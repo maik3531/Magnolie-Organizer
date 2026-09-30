@@ -781,6 +781,9 @@ msgstr "Даданне аплета сістэмнага трэя ў аўтаз�
 msgid "Adding the word to the dictionary"
 msgstr "Даданне слова ў слоўнік"
 
+msgid "Additional information"
+msgstr "Дадатковыя звесткі"
+
 msgid "Address"
 msgstr "Адрас"
 
@@ -1087,6 +1090,9 @@ msgstr "Аўтаматычныя копіі ў воблачнай папцы"
 msgid "Automatically choose a suitable application"
 msgstr "Аўтаматычна выбраць прыдатную праграму"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "Аўтаматычна хаваць напаміны пра гадавіны"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Аўтаматычна сінхранізаваць праз Wi-Fi"
 
@@ -1324,6 +1330,13 @@ msgstr "Агляд..."
 
 msgid "Burgenland"
 msgstr "Бургенланд"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"Прадвызначана напаміны пра гадавіны застаюцца бачнымі, пакуль вы іх не "
+"закрыеце. Гэта налада не залежыць ад напамінаў пра сустрэчы."
 
 msgid "By first name (Hans Müller)"
 msgstr "Паводле імя (Hans Müller)"
@@ -2445,9 +2458,6 @@ msgstr "Уключыць тэлефоннае злучэнне Magnolie Notes"
 msgid "Enable SMS scheduling"
 msgstr "Уключыць планаванне SMS"
 
-msgid "Enable background service"
-msgstr "Уключыць фонавую службу"
-
 msgid "Enable cycle calendar"
 msgstr "Уключыць каляндар цыклу"
 
@@ -2495,9 +2505,6 @@ msgstr ""
 
 msgid "Encrypted archive entries are not supported."
 msgstr "Зашыфраваныя запісы архіва не падтрымліваюцца."
-
-msgid "Encrypted data behavior"
-msgstr "Праца з зашыфраванымі данымі"
 
 msgid "Encrypting the data"
 msgstr "Шыфраванне даных"
@@ -3239,9 +3246,6 @@ msgstr ""
 msgid "KDE Connect pairing"
 msgstr "Спалучэнне KDE Connect"
 
-msgid "KDE Connect pairing decisions"
-msgstr "Рашэнні аб спалучэнні KDE Connect"
-
 msgid "KDE Connect pairing failed."
 msgstr "Збой спалучэння KDE Connect."
 
@@ -3422,9 +3426,6 @@ msgstr "Спалучэнне Magnolie Notes"
 msgid "Magnolie Notes phone connection"
 msgstr "Тэлефонная сувязь Magnolie Notes"
 
-msgid "Magnolie Notes phone pairing decisions"
-msgstr "Рашэнні аб спалучэнні тэлефона з Magnolie Notes"
-
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
 "name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
@@ -3506,9 +3507,6 @@ msgstr "Магнолія-Гадовы-Планавальнік-%d.ods"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
-
-msgid "Magnolienbaum change offers"
-msgstr "Прапановы змен Magnolienbaum"
 
 msgid "Magnolienbaum mailbox"
 msgstr "Паштовая скрыня Magnolienbaum"
@@ -3672,9 +3670,6 @@ msgstr "Панядзелак"
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "Адсочваць SMS KDE Connect і паказваць апавяшчэнні"
 
-msgid "Monitor the Magnolie Notes phone connection"
-msgstr "Адсочваць злучэнне тэлефона з Magnolie Notes"
-
 msgid "Month"
 msgstr "Месяц"
 
@@ -3778,9 +3773,6 @@ msgstr ""
 
 msgid "Native notifications available"
 msgstr "Сістэмныя апавяшчэнні даступныя"
-
-msgid "Native notifications unavailable"
-msgstr "Сістэмныя апавяшчэнні недаступныя"
 
 msgid "Netherlands"
 msgstr "Нідэрланды"
@@ -4342,14 +4334,6 @@ msgid "Only HTTPS. The password is stored securely on this computer."
 msgstr "Толькі HTTPS. Пароль бяспечна захоўваецца на гэтым камп’ютары."
 
 msgid ""
-"Only Notify, then unlock is currently available. Keyring access and pausing "
-"while locked are not yet enforced by the background service."
-msgstr ""
-"Зараз даступны толькі рэжым «Апавясціць, затым разблакіраваць». Фонавая "
-"служба пакуль не забяспечвае доступ да сховішча ключоў і прыпыненне працы "
-"пры блакіроўцы."
-
-msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
 msgstr ""
@@ -4628,9 +4612,6 @@ msgstr "Уставіць"
 msgid "Patch"
 msgstr "Пластыр"
 
-msgid "Pause while data is locked"
-msgstr "Прыпыняць, пакуль даныя заблакіраваны"
-
 msgid "Paused — review required"
 msgstr "Прыпынена — патрэбна праверка"
 
@@ -4733,6 +4714,9 @@ msgstr "Злучэнне з тэлефонам скасаванае або ча�
 msgid "Phone connection failed."
 msgstr "Не ўдалося злучыцца з тэлефонам."
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "Кантакты тэлефона (KDE Connect)"
+
 msgid "Phone notification"
 msgstr "Апавяшчэнне з тэлефона"
 
@@ -4824,6 +4808,9 @@ msgstr "Выберыце выяву ў фармаце JPEG, PNG, WebP або GIF
 msgid "Please unlock"
 msgstr "Спачатку разблакіруйце"
 
+msgid "Please wait …"
+msgstr "Пачакайце…"
+
 msgid "Poland"
 msgstr "Польшча"
 
@@ -4861,6 +4848,13 @@ msgstr "Пажаданая папка рэзервовых копій"
 
 msgid "Preview"
 msgstr "Прагляд"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"Праглядзіце кантакты спалучанага тэлефона. Змены захоўваюцца толькі ў "
+"Organizer; кантакты не выдаляюцца."
 
 msgid "Preview failed."
 msgstr "Прагляд не ўдалося."
@@ -5892,9 +5886,6 @@ msgstr "Аўтаматычна запускаць пры ўваходзе"
 msgid "Start Organizer"
 msgstr "Запусціць Арганайзер"
 
-msgid "Start at login"
-msgstr "Запускаць пры ўваходзе"
-
 msgid "Start automatically when signing in"
 msgstr "Аўтаматычна запускаць пры ўваходзе"
 
@@ -6036,15 +6027,6 @@ msgstr "Сістэма па змаўчанні"
 
 msgid "System internet accounts"
 msgstr "Сістэмныя інтэрнэт-акаўнты"
-
-msgid "System keyring and pause modes cannot be enabled yet."
-msgstr "Сістэмнае сховішча ключоў і рэжымы прыпынення пакуль нельга ўключыць."
-
-msgid "System keyring available"
-msgstr "Сістэмнае сховішча ключоў даступнае"
-
-msgid "System keyring unavailable"
-msgstr "Сістэмнае сховішча ключоў недаступнае"
 
 msgid "System setting"
 msgstr "Сістэмная налада"
@@ -6397,9 +6379,6 @@ msgstr "Не ўдалося запусціць фонавую службу."
 
 msgid "The background service could not start."
 msgstr "Не ўдалося запусціць фонавую службу."
-
-msgid "The background service is available only in the installed application."
-msgstr "Фонавая служба даступная толькі ва ўсталяванай праграме."
 
 msgid "The background settings could not be saved."
 msgstr "Не ўдалося захаваць фонавыя налады."
@@ -7690,9 +7669,6 @@ msgstr ""
 "Выкарыстоўвайце толькі схемы прыёму, прызначаныя або пацверджаныя "
 "медыцынскім спецыялістам."
 
-msgid "Use system keyring"
-msgstr "Выкарыстоўваць сістэмнае сховішча ключоў"
-
 msgid "Use the DAV address provided by your service."
 msgstr "Выкарыстоўвайце адрас DAV, прадастаўлены вашым пастаўшчыком."
 
@@ -8547,6 +8523,58 @@ msgstr[2] "… і яшчэ %(count)s элементы, якія таксама �
 
 msgid "＋ Add appointment"
 msgstr "＋ Дадаць сустрэчу"
+
+#~ msgid "Enable background service"
+#~ msgstr "Уключыць фонавую службу"
+
+#~ msgid "Encrypted data behavior"
+#~ msgstr "Праца з зашыфраванымі данымі"
+
+#~ msgid "KDE Connect pairing decisions"
+#~ msgstr "Рашэнні аб спалучэнні KDE Connect"
+
+#~ msgid "Magnolie Notes phone pairing decisions"
+#~ msgstr "Рашэнні аб спалучэнні тэлефона з Magnolie Notes"
+
+#~ msgid "Magnolienbaum change offers"
+#~ msgstr "Прапановы змен Magnolienbaum"
+
+#~ msgid "Monitor the Magnolie Notes phone connection"
+#~ msgstr "Адсочваць злучэнне тэлефона з Magnolie Notes"
+
+#~ msgid "Native notifications unavailable"
+#~ msgstr "Сістэмныя апавяшчэнні недаступныя"
+
+#~ msgid ""
+#~ "Only Notify, then unlock is currently available. Keyring access and "
+#~ "pausing while locked are not yet enforced by the background service."
+#~ msgstr ""
+#~ "Зараз даступны толькі рэжым «Апавясціць, затым разблакіраваць». Фонавая "
+#~ "служба пакуль не забяспечвае доступ да сховішча ключоў і прыпыненне працы "
+#~ "пры блакіроўцы."
+
+#~ msgid "Pause while data is locked"
+#~ msgstr "Прыпыняць, пакуль даныя заблакіраваны"
+
+#~ msgid "Start at login"
+#~ msgstr "Запускаць пры ўваходзе"
+
+#~ msgid "System keyring and pause modes cannot be enabled yet."
+#~ msgstr ""
+#~ "Сістэмнае сховішча ключоў і рэжымы прыпынення пакуль нельга ўключыць."
+
+#~ msgid "System keyring available"
+#~ msgstr "Сістэмнае сховішча ключоў даступнае"
+
+#~ msgid "System keyring unavailable"
+#~ msgstr "Сістэмнае сховішча ключоў недаступнае"
+
+#~ msgid ""
+#~ "The background service is available only in the installed application."
+#~ msgstr "Фонавая служба даступная толькі ва ўсталяванай праграме."
+
+#~ msgid "Use system keyring"
+#~ msgstr "Выкарыстоўваць сістэмнае сховішча ключоў"
 
 #~ msgid "New phone changes are available"
 #~ msgstr "Даступныя новыя змены з тэлефона"

@@ -383,6 +383,9 @@ msgstr "من %(start)s إلى %(end)s"
 msgid "%(title)s – %(when)s"
 msgstr "%(title)s – %(when)s"
 
+msgid "%s has a birthday %s."
+msgstr "عيد ميلاد %s هو %s."
+
 msgid "(unnamed)"
 msgstr "(بلا اسم)"
 
@@ -654,6 +657,9 @@ msgstr "إضافة فترة إجازة"
 msgid "Add waste collection"
 msgstr "إضافة جمع النفايات"
 
+msgid "Additional information"
+msgstr "معلومات إضافية"
+
 msgid "Address"
 msgstr "العنوان"
 
@@ -891,6 +897,9 @@ msgstr "نسخ احتياطية تلقائية في مجلد سحابي"
 msgid "Automatically choose a suitable application"
 msgstr "اختيار تطبيق مناسب تلقائيًا"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "إخفاء تذكيرات الذكريات السنوية تلقائيًا"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "المزامنة تلقائيًا عبر Wi-Fi"
 
@@ -1016,6 +1025,9 @@ msgstr "عيد الميلاد"
 msgid "Birthday party"
 msgstr "حفلة عيد ميلاد"
 
+msgid "Birthday today"
+msgstr "عيد الميلاد اليوم"
+
 msgid "Black"
 msgstr "أسود"
 
@@ -1109,6 +1121,13 @@ msgstr "استعراض..."
 
 msgid "Burgenland"
 msgstr "بورغنلاند"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"تبقى تذكيرات الذكريات السنوية ظاهرة افتراضيًا حتى تغلقها. هذا الإعداد مستقل "
+"عن تذكيرات المواعيد."
 
 msgid "By first name (Hans Müller)"
 msgstr "حسب الاسم الأول (Hans Müller)"
@@ -3949,6 +3968,9 @@ msgstr "أُلغي اتصال الهاتف أو انتهت مهلة الاتصا
 msgid "Phone connection failed."
 msgstr "تعذّر الاتصال بالهاتف."
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "جهات اتصال الهاتف (KDE Connect)"
+
 msgid "Phone error: %(error)s"
 msgstr "خطأ في الهاتف: %(error)s"
 
@@ -4033,6 +4055,9 @@ msgstr "يرجى تحديد صورة بتنسيق JPEG أو PNG أو WebP أو G
 msgid "Please unlock"
 msgstr "يرجى إلغاء القفل"
 
+msgid "Please wait …"
+msgstr "يُرجى الانتظار…"
+
 msgid "Poland"
 msgstr "بولندا"
 
@@ -4073,6 +4098,13 @@ msgstr "جارٍ تحضير تسجيل الدخول إلى الحساب…"
 
 msgid "Preview"
 msgstr "معاينة"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"عاين جهات اتصال الهاتف المقترن. تُحفظ التغييرات في Organizer فقط؛ ولا تُحذف أي "
+"جهة اتصال."
 
 msgid "Preview failed."
 msgstr "فشل المعاينة."
@@ -4868,6 +4900,9 @@ msgid ""
 msgstr ""
 "تعذّر حساب المواعيد الناتجة عن بعض قواعد التكرار. تم الاحتفاظ ببيانات التقويم "
 "الأصلية."
+
+msgid "Someone"
+msgstr "شخص ما"
 
 msgid "Son"
 msgstr "ابن"
@@ -6801,6 +6836,9 @@ msgstr "أبدًا – أفرغها يدويًا"
 msgid "new task for this appointment…"
 msgstr "مهمة جديدة لهذا الموعد…"
 
+msgid "no changes"
+msgstr "لا تغييرات"
+
 msgid "notification %(count)s minute before"
 msgid_plural "notification %(count)s minutes before"
 msgstr[0] "الإشعار قبل الموعد بالدقائق: %(count)s"
@@ -6857,6 +6895,9 @@ msgstr "محفوظة – اتركه فارغًا للإبقاء عليها"
 
 msgid "tentative"
 msgstr "مبدئي"
+
+msgid "the day after tomorrow"
+msgstr "بعد غد"
 
 msgid "the other branch"
 msgstr "الفرع الآخر"

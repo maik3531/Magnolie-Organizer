@@ -823,6 +823,9 @@ msgstr "Aplet systemoweho pola awtomatiskemu startu přidać"
 msgid "Adding the word to the dictionary"
 msgstr "Słowo do słownika přidać"
 
+msgid "Additional information"
+msgstr "Přidatne informacije"
+
 msgid "Address"
 msgstr "Adresa"
 
@@ -1130,6 +1133,9 @@ msgstr "Awtomatiske zawěsćenja w cloudowym rjadowaku"
 msgid "Automatically choose a suitable application"
 msgstr "Awtomatisce přihódne nałoženje wubrać"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "Dopomnjeća na róčnicy awtomatisce schować"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Awtomatisce přez WLAN synchronizować"
 
@@ -1366,6 +1372,13 @@ msgstr "Přepytać..."
 
 msgid "Burgenland"
 msgstr "Burgenland"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"Dopomnjeća na róčnicy standardnje widźomne wostanu, doniž je njezačinjeće. "
+"Tute nastajenje je njewotwisne wot dopomnjećow na terminy."
 
 msgid "By first name (Hans Müller)"
 msgstr "Po předmjenje (Hans Müller)"
@@ -2501,9 +2514,6 @@ msgstr "Telefonowy zwisk Magnolie Notes zmóžnić"
 msgid "Enable SMS scheduling"
 msgstr "Planowanje SMS zmóžnić"
 
-msgid "Enable background service"
-msgstr "Pozadkowu słužbu zmóžnić"
-
 msgid "Enable cycle calendar"
 msgstr "Cykusowu protyku zmóžnić"
 
@@ -2550,9 +2560,6 @@ msgstr ""
 
 msgid "Encrypted archive entries are not supported."
 msgstr "Zaklučowane zapiski archiwa so njepodpěruja."
-
-msgid "Encrypted data behavior"
-msgstr "Zadźerženje při zaklučowanych datach"
 
 msgid "Encrypting the data"
 msgstr "Daty so zaklučuja"
@@ -3294,9 +3301,6 @@ msgstr ""
 msgid "KDE Connect pairing"
 msgstr "Porowanje KDE Connect"
 
-msgid "KDE Connect pairing decisions"
-msgstr "Rozsudy wo porowanju KDE Connect"
-
 msgid "KDE Connect pairing failed."
 msgstr "Koplowanje KDE Connect je so njeporadźiło."
 
@@ -3477,9 +3481,6 @@ msgstr "Porowanje Magnolie Notes"
 msgid "Magnolie Notes phone connection"
 msgstr "Telefonowy zwisk Magnolie Notes"
 
-msgid "Magnolie Notes phone pairing decisions"
-msgstr "Rozsudy wo porowanju telefona z Magnolie Notes"
-
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
 "name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
@@ -3561,9 +3562,6 @@ msgstr "Magnolie-Lětny-Planowak-%d.ods"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
-
-msgid "Magnolienbaum change offers"
-msgstr "Poskitki změnow Magnolienbaum"
 
 msgid "Magnolienbaum mailbox"
 msgstr "Póstowy kašćik Magnolienbaum"
@@ -3727,9 +3725,6 @@ msgstr "Póndźela"
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "SMS KDE Connect dohladować a zdźělenki pokazać"
 
-msgid "Monitor the Magnolie Notes phone connection"
-msgstr "Telefonowy zwisk Magnolie Notes dohladować"
-
 msgid "Month"
 msgstr "Měsac"
 
@@ -3834,9 +3829,6 @@ msgstr ""
 
 msgid "Native notifications available"
 msgstr "Systemowe zdźělenki su k dispoziciji"
-
-msgid "Native notifications unavailable"
-msgstr "Systemowe zdźělenki njejsu k dispoziciji"
 
 msgid "Netherlands"
 msgstr "Nižozemska"
@@ -4407,14 +4399,6 @@ msgid "Only HTTPS. The password is stored securely on this computer."
 msgstr "Jenož HTTPS. Hesło so škitane na tutym ličaku składuje."
 
 msgid ""
-"Only Notify, then unlock is currently available. Keyring access and pausing "
-"while locked are not yet enforced by the background service."
-msgstr ""
-"Nětko je jenož „Zdźělić, potom wotamknyć“ k dispoziciji. Pozadkowa słužba "
-"hišće přistup ke klučowemu rjećazkej a zastajenje při zamknjenju "
-"njepřesadźuje."
-
-msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
 msgstr ""
@@ -4694,9 +4678,6 @@ msgstr "Zasadźić"
 msgid "Patch"
 msgstr "Pflaster"
 
-msgid "Pause while data is locked"
-msgstr "Zastajić, dokelž su daty zaklučowane"
-
 msgid "Paused — review required"
 msgstr "Zastajene — přepruwowanje trěbne"
 
@@ -4807,6 +4788,9 @@ msgstr "Zwjazanje z telefonom je so přetorhnyło abo čakanski čas je wotběž
 msgid "Phone connection failed."
 msgstr "Zwjazanje z telefonom njeje so poradźiło."
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "Telefonowe kontakty (KDE Connect)"
+
 msgid "Phone notification"
 msgstr "Telefonowe zdźělenje"
 
@@ -4898,6 +4882,9 @@ msgstr "Prošu wubjerće wobraz we formaće JPEG, PNG, WebP abo GIF."
 msgid "Please unlock"
 msgstr "Prošu wotzamknyć"
 
+msgid "Please wait …"
+msgstr "Prošu čakajće …"
+
 msgid "Poland"
 msgstr "Pólska"
 
@@ -4936,6 +4923,13 @@ msgstr "Preferowany rjadowak zawěsćenjow"
 
 msgid "Preview"
 msgstr "Přehlad"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"Přepruwujće kontakty spřaženeho telefona. Změny so jenož w Organizer "
+"składuja; žane kontakty so njezhašeja."
 
 msgid "Preview failed."
 msgstr "Preview njeje so poradźił."
@@ -5972,9 +5966,6 @@ msgstr "Při přizjewjenju awtomatisce startować"
 msgid "Start Organizer"
 msgstr "Organizer startować"
 
-msgid "Start at login"
-msgstr "Při přizjewjenju startować"
-
 msgid "Start automatically when signing in"
 msgstr "Při přizjewjenju awtomatisce startować"
 
@@ -6116,16 +6107,6 @@ msgstr "Systemstandard"
 
 msgid "System internet accounts"
 msgstr "Systemowe internetne konta"
-
-msgid "System keyring and pause modes cannot be enabled yet."
-msgstr ""
-"Systemowy klučowy rjećazk a pauzowanske modusy hišće njehodźa so zmóžnić."
-
-msgid "System keyring available"
-msgstr "Systemowy klučowy składowak je k dispoziciji"
-
-msgid "System keyring unavailable"
-msgstr "Systemowy klučowy składowak njeje k dispoziciji"
 
 msgid "System setting"
 msgstr "Systemowe nastajenje"
@@ -6487,9 +6468,6 @@ msgstr "Pozadkowa słužba njeda so startować."
 
 msgid "The background service could not start."
 msgstr "Pozadkowa słužba njedaše so startować."
-
-msgid "The background service is available only in the installed application."
-msgstr "Pozadkowa słužba je jenož w instalowanym nałoženju k dispoziciji."
 
 msgid "The background settings could not be saved."
 msgstr "Pozadkowe nastajenja njedadźa so składować."
@@ -7781,9 +7759,6 @@ msgid ""
 msgstr ""
 "Wužiwajće jenož plany, kotrež je medicinski fachowc předpisał abo wobkrućił."
 
-msgid "Use system keyring"
-msgstr "Systemowy klučowy składowak wužiwać"
-
 msgid "Use the DAV address provided by your service."
 msgstr "Wužiwajće DAV-adresu swojeho poskićowarja."
 
@@ -8646,6 +8621,58 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
+
+#~ msgid "Enable background service"
+#~ msgstr "Pozadkowu słužbu zmóžnić"
+
+#~ msgid "Encrypted data behavior"
+#~ msgstr "Zadźerženje při zaklučowanych datach"
+
+#~ msgid "KDE Connect pairing decisions"
+#~ msgstr "Rozsudy wo porowanju KDE Connect"
+
+#~ msgid "Magnolie Notes phone pairing decisions"
+#~ msgstr "Rozsudy wo porowanju telefona z Magnolie Notes"
+
+#~ msgid "Magnolienbaum change offers"
+#~ msgstr "Poskitki změnow Magnolienbaum"
+
+#~ msgid "Monitor the Magnolie Notes phone connection"
+#~ msgstr "Telefonowy zwisk Magnolie Notes dohladować"
+
+#~ msgid "Native notifications unavailable"
+#~ msgstr "Systemowe zdźělenki njejsu k dispoziciji"
+
+#~ msgid ""
+#~ "Only Notify, then unlock is currently available. Keyring access and "
+#~ "pausing while locked are not yet enforced by the background service."
+#~ msgstr ""
+#~ "Nětko je jenož „Zdźělić, potom wotamknyć“ k dispoziciji. Pozadkowa słužba "
+#~ "hišće přistup ke klučowemu rjećazkej a zastajenje při zamknjenju "
+#~ "njepřesadźuje."
+
+#~ msgid "Pause while data is locked"
+#~ msgstr "Zastajić, dokelž su daty zaklučowane"
+
+#~ msgid "Start at login"
+#~ msgstr "Při přizjewjenju startować"
+
+#~ msgid "System keyring and pause modes cannot be enabled yet."
+#~ msgstr ""
+#~ "Systemowy klučowy rjećazk a pauzowanske modusy hišće njehodźa so zmóžnić."
+
+#~ msgid "System keyring available"
+#~ msgstr "Systemowy klučowy składowak je k dispoziciji"
+
+#~ msgid "System keyring unavailable"
+#~ msgstr "Systemowy klučowy składowak njeje k dispoziciji"
+
+#~ msgid ""
+#~ "The background service is available only in the installed application."
+#~ msgstr "Pozadkowa słužba je jenož w instalowanym nałoženju k dispoziciji."
+
+#~ msgid "Use system keyring"
+#~ msgstr "Systemowy klučowy składowak wužiwać"
 
 #~ msgid "New phone changes are available"
 #~ msgstr "Nowe změny z telefona su k dispoziciji"

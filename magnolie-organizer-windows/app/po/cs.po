@@ -286,6 +286,9 @@ msgstr "%(start)s až %(end)s"
 msgid "%(title)s – %(when)s"
 msgstr "%(title)s – %(when)s"
 
+msgid "%s has a birthday %s."
+msgstr "%s má narozeniny %s."
+
 msgid "(unnamed)"
 msgstr "(bez názvu)"
 
@@ -562,6 +565,9 @@ msgstr "Přidat období dovolené"
 msgid "Add waste collection"
 msgstr "Přidat svoz odpadu"
 
+msgid "Additional information"
+msgstr "Další informace"
+
 msgid "Address"
 msgstr "Adresa"
 
@@ -800,6 +806,9 @@ msgstr "Automatické zálohy ve cloudové složce"
 msgid "Automatically choose a suitable application"
 msgstr "Automaticky vybrat vhodnou aplikaci"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "Automaticky skrývat připomínky výročí"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Automaticky synchronizovat přes Wi-Fi"
 
@@ -923,6 +932,9 @@ msgstr "Narozeniny"
 msgid "Birthday party"
 msgstr "Narozeninová oslava"
 
+msgid "Birthday today"
+msgstr "Dnes narozeniny"
+
 msgid "Black"
 msgstr "Černá"
 
@@ -1018,6 +1030,13 @@ msgstr "Procházet..."
 
 msgid "Burgenland"
 msgstr "Burgenland"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"Připomínky výročí ve výchozím nastavení zůstávají viditelné, dokud je "
+"nezavřete. Toto nastavení je nezávislé na připomínkách schůzek."
 
 msgid "By first name (Hans Müller)"
 msgstr "Podle jména (Hans Müller)"
@@ -3864,6 +3883,9 @@ msgstr "Připojování telefonu bylo zrušeno nebo vypršela čekací doba."
 msgid "Phone connection failed."
 msgstr "Připojení telefonu se nezdařilo."
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "Kontakty telefonu (KDE Connect)"
+
 msgid "Phone error: %(error)s"
 msgstr "Chyba telefonu: %(error)s"
 
@@ -3948,6 +3970,9 @@ msgstr "Vyberte obrázek ve formátu JPEG, PNG, WebP nebo GIF."
 msgid "Please unlock"
 msgstr "Nejprve odemkněte"
 
+msgid "Please wait …"
+msgstr "Čekejte…"
+
 msgid "Poland"
 msgstr "Polsko"
 
@@ -3988,6 +4013,13 @@ msgstr "Příprava přihlášení k účtu…"
 
 msgid "Preview"
 msgstr "Náhled"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"Prohlédněte si kontakty spárovaného telefonu. Změny se ukládají pouze do "
+"Organizeru; žádné kontakty se nemažou."
 
 msgid "Preview failed."
 msgstr "Náhled se nezdařil."
@@ -4785,6 +4817,9 @@ msgid ""
 msgstr ""
 "U některých pravidel opakování nelze vypočítat jednotlivé výskyty událostí. "
 "Původní kalendářová data zůstala zachována."
+
+msgid "Someone"
+msgstr "Někdo"
 
 msgid "Son"
 msgstr "Syn"
@@ -6727,6 +6762,9 @@ msgstr "nikdy – vyprázdnit ručně"
 msgid "new task for this appointment…"
 msgstr "nový úkol k této schůzce…"
 
+msgid "no changes"
+msgstr "žádné změny"
+
 msgid "notification %(count)s minute before"
 msgid_plural "notification %(count)s minutes before"
 msgstr[0] "oznámení %(count)s minutu předem"
@@ -6774,6 +6812,9 @@ msgstr "uloženo – ponechte prázdné pro zachování"
 
 msgid "tentative"
 msgstr "předběžné"
+
+msgid "the day after tomorrow"
+msgstr "pozítří"
 
 msgid "the other branch"
 msgstr "druhá větev"

@@ -256,6 +256,9 @@ msgstr "%(start)s tot %(end)s"
 msgid "%(title)s – %(when)s"
 msgstr "%(title)s – %(when)s"
 
+msgid "%s has a birthday %s."
+msgstr "%s is %s jarig."
+
 msgid "(unnamed)"
 msgstr "(zonder naam)"
 
@@ -537,6 +540,9 @@ msgstr "Vakantieperiode toevoegen"
 msgid "Add waste collection"
 msgstr "Afvalinzameling toevoegen"
 
+msgid "Additional information"
+msgstr "Aanvullende informatie"
+
 msgid "Address"
 msgstr "Adres"
 
@@ -777,6 +783,9 @@ msgstr "Automatische back-ups in een cloudmap"
 msgid "Automatically choose a suitable application"
 msgstr "Automatisch een geschikte toepassing kiezen"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "Herinneringen aan verjaardagen en jubilea automatisch verbergen"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Automatisch synchroniseren via wifi"
 
@@ -905,6 +914,9 @@ msgstr "Verjaardag"
 msgid "Birthday party"
 msgstr "Verjaardagsfeest"
 
+msgid "Birthday today"
+msgstr "Vandaag jarig"
+
 msgid "Black"
 msgstr "Zwart"
 
@@ -1001,6 +1013,13 @@ msgstr "Bladeren..."
 
 msgid "Burgenland"
 msgstr "Burgenland"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"Herinneringen aan verjaardagen en jubilea blijven standaard zichtbaar totdat "
+"u ze sluit. Deze instelling staat los van afspraakherinneringen."
 
 msgid "By first name (Hans Müller)"
 msgstr "Op voornaam (Hans Müller)"
@@ -3890,6 +3909,9 @@ msgstr ""
 msgid "Phone connection failed."
 msgstr "Verbinding maken met de telefoon is mislukt."
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "Telefooncontacten (KDE Connect)"
+
 msgid "Phone error: %(error)s"
 msgstr "Telefoonfout: %(error)s"
 
@@ -3974,6 +3996,9 @@ msgstr "Selecteer een afbeelding in JPEG-, PNG-, WebP- of GIF-formaat."
 msgid "Please unlock"
 msgstr "Ontgrendel om door te gaan"
 
+msgid "Please wait …"
+msgstr "Even geduld …"
+
 msgid "Poland"
 msgstr "Polen"
 
@@ -4014,6 +4039,13 @@ msgstr "Accountaanmelding voorbereiden …"
 
 msgid "Preview"
 msgstr "Voorbeeld"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"Bekijk vooraf de contacten van de gekoppelde telefoon. Wijzigingen worden "
+"alleen in Organizer opgeslagen; er worden geen contacten verwijderd."
 
 msgid "Preview failed."
 msgstr "Voorbeeld mislukt."
@@ -4817,6 +4849,9 @@ msgid ""
 msgstr ""
 "Bij sommige herhalingsregels kunnen de afzonderlijke afspraken niet worden "
 "berekend. De oorspronkelijke agendagegevens zijn bewaard gebleven."
+
+msgid "Someone"
+msgstr "Iemand"
 
 msgid "Son"
 msgstr "Zoon"
@@ -6797,6 +6832,9 @@ msgstr "nooit – handmatig legen"
 msgid "new task for this appointment…"
 msgstr "nieuwe taak voor deze afspraak…"
 
+msgid "no changes"
+msgstr "geen wijzigingen"
+
 msgid "notification %(count)s minute before"
 msgid_plural "notification %(count)s minutes before"
 msgstr[0] "melding %(count)s minuut van tevoren"
@@ -6841,6 +6879,9 @@ msgstr "opgeslagen – laat leeg om te behouden"
 
 msgid "tentative"
 msgstr "voorlopig"
+
+msgid "the day after tomorrow"
+msgstr "overmorgen"
 
 msgid "the other branch"
 msgstr "de andere tak"

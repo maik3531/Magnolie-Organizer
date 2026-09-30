@@ -253,6 +253,9 @@ msgstr ""
 msgid "%(title)s – %(when)s"
 msgstr ""
 
+msgid "%s has a birthday %s."
+msgstr ""
+
 msgid "(unnamed)"
 msgstr ""
 
@@ -512,6 +515,9 @@ msgstr ""
 msgid "Add waste collection"
 msgstr ""
 
+msgid "Additional information"
+msgstr ""
+
 msgid "Address"
 msgstr ""
 
@@ -738,6 +744,9 @@ msgstr ""
 msgid "Automatically choose a suitable application"
 msgstr ""
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr ""
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr ""
 
@@ -859,6 +868,9 @@ msgstr ""
 msgid "Birthday party"
 msgstr ""
 
+msgid "Birthday today"
+msgstr ""
+
 msgid "Black"
 msgstr ""
 
@@ -944,6 +956,11 @@ msgid "Browse..."
 msgstr ""
 
 msgid "Burgenland"
+msgstr ""
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
 msgstr ""
 
 msgid "By first name (Hans Müller)"
@@ -3618,6 +3635,9 @@ msgstr ""
 msgid "Phone connection failed."
 msgstr ""
 
+msgid "Phone contacts (KDE Connect)"
+msgstr ""
+
 msgid "Phone error: %(error)s"
 msgstr ""
 
@@ -3702,6 +3722,9 @@ msgstr ""
 msgid "Please unlock"
 msgstr ""
 
+msgid "Please wait …"
+msgstr ""
+
 msgid "Poland"
 msgstr ""
 
@@ -3739,6 +3762,11 @@ msgid "Preparing account sign-in …"
 msgstr ""
 
 msgid "Preview"
+msgstr ""
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
 msgstr ""
 
 msgid "Preview failed."
@@ -4492,6 +4520,9 @@ msgstr ""
 msgid ""
 "Some recurrence rules cannot be expanded. Their original calendar data was "
 "preserved."
+msgstr ""
+
+msgid "Someone"
 msgstr ""
 
 msgid "Son"
@@ -6260,6 +6291,9 @@ msgstr ""
 msgid "new task for this appointment…"
 msgstr ""
 
+msgid "no changes"
+msgstr ""
+
 msgid "notification %(count)s minute before"
 msgid_plural "notification %(count)s minutes before"
 msgstr[0] ""
@@ -6303,6 +6337,9 @@ msgid "stored – leave empty to keep"
 msgstr ""
 
 msgid "tentative"
+msgstr ""
+
+msgid "the day after tomorrow"
 msgstr ""
 
 msgid "the other branch"

@@ -523,6 +523,15 @@ msgstr ""
 
 #, no-javascript-format
 msgid ""
+"<h3>Automatically dismiss anniversary reminders</h3><p>By default, "
+"anniversary reminders stay visible until you close them. This setting is "
+"independent of appointment reminders.</p>"
+msgstr ""
+"<h3>वर्षगाँठ के अनुस्मारक अपने आप छिपाएँ</h3><p>डिफ़ॉल्ट रूप से, वर्षगाँठ के अनुस्मारक तब तक "
+"दिखाई देते हैं जब तक आप उन्हें बंद नहीं करते। यह सेटिंग नियुक्ति के अनुस्मारकों से स्वतंत्र है।</p>"
+
+#, no-javascript-format
+msgid ""
 "<h3>Bold, italic, underline, and strikethrough</h3><p>As soon as you start "
 "writing or select some text, a small row of four letters appears above the "
 "page: <span class='knopfwort'>B</span> <span class='knopfwort'>I</span> "

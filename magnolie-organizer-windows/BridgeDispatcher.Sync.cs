@@ -585,7 +585,7 @@ internal sealed partial class BridgeDispatcher
         catch (ObjectDisposedException) { }
     }
 
-    private async Task ReadContactPhotosAsync(JsonElement message)
+    private async Task ReadContactPhotosAsync(JsonElement message, bool fullContacts = false)
     {
         var requestId = Text(message, "requestId");
         if (!Guid.TryParse(requestId, out _) || Text(message, "device_id").Length is < 1 or > 200) return;
@@ -602,7 +602,9 @@ internal sealed partial class BridgeDispatcher
             var result = uids is not null
                 ? await kdeConnectSms.ContactVcardsAsync(uids, Text(message, "device_id"), deadline.Token)
                 : await kdeConnectSms.ContactIndexAsync(Text(message, "device_id"), deadline.Token);
-            if (uids is not null)
+            if (uids is not null && fullContacts)
+                KdeContactImport.Project(result, Text(message, "device_id"), KdeConnectProtocol.ContactUids(uids, 5));
+            else if (uids is not null)
             {
                 foreach (var item in result["contacts"]!.AsArray().OfType<JsonObject>())
                 {
@@ -614,10 +616,16 @@ internal sealed partial class BridgeDispatcher
                         item[field] = contact[field]?.DeepClone();
                 }
             }
+            if (fullContacts && !currentPlainTextAvailable) throw new InvalidOperationException("locked");
             result["ok"] = true; result["requestId"] = requestId;
-            await form.SendAsync("App.kontaktFotos", result);
+            if (fullContacts) await form.SendAsync("App.telefonKontakte", result);
+            else await form.SendAsync("App.kontaktFotos", result);
         }
-        catch (Exception) { await form.SendAsync("App.kontaktFotos", new { ok = false, requestId }); }
+        catch (Exception)
+        {
+            if (fullContacts) await form.SendAsync("App.telefonKontakte", new { ok = false, requestId });
+            else await form.SendAsync("App.kontaktFotos", new { ok = false, requestId });
+        }
     }
 
     private async Task<object> KdeStatusForWebAsync()

@@ -222,6 +222,9 @@ msgstr "%(start)s 至 %(end)s"
 msgid "%(title)s – %(when)s"
 msgstr "%(title)s – %(when)s"
 
+msgid "%s has a birthday %s."
+msgstr "%s 的生日是 %s。"
+
 msgid "(unnamed)"
 msgstr "（未命名）"
 
@@ -492,6 +495,9 @@ msgstr "添加休假时段"
 msgid "Add waste collection"
 msgstr "添加垃圾收集"
 
+msgid "Additional information"
+msgstr "附加信息"
+
 msgid "Address"
 msgstr "地址"
 
@@ -723,6 +729,9 @@ msgstr "云文件夹自动备份"
 msgid "Automatically choose a suitable application"
 msgstr "自动选择合适的应用程序"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "自动隐藏纪念日提醒"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "通过 Wi-Fi 自动同步"
 
@@ -846,6 +855,9 @@ msgstr "生日"
 msgid "Birthday party"
 msgstr "生日聚会"
 
+msgid "Birthday today"
+msgstr "今天生日"
+
 msgid "Black"
 msgstr "黑色"
 
@@ -938,6 +950,12 @@ msgstr "浏览..."
 
 msgid "Burgenland"
 msgstr "布尔根兰州"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"默认情况下，纪念日提醒会一直显示，直到您手动关闭。此设置独立于日程提醒。"
 
 msgid "By first name (Hans Müller)"
 msgstr "按名字排序（Hans Müller）"
@@ -3681,6 +3699,9 @@ msgstr "手机连接已取消或超时。"
 msgid "Phone connection failed."
 msgstr "手机连接失败。"
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "手机联系人（KDE Connect）"
+
 msgid "Phone error: %(error)s"
 msgstr "电话错误：%(error)s"
 
@@ -3765,6 +3786,9 @@ msgstr "请选择 JPEG、PNG、WebP 或 GIF 格式的图像。"
 msgid "Please unlock"
 msgstr "请先解锁"
 
+msgid "Please wait …"
+msgstr "请稍候…"
+
 msgid "Poland"
 msgstr "波兰"
 
@@ -3803,6 +3827,12 @@ msgstr "正在准备账户登录…"
 
 msgid "Preview"
 msgstr "预览"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"预览已配对手机的联系人。更改仅保存在 Organizer 中，不会删除任何联系人。"
 
 msgid "Preview failed."
 msgstr "预览失败。"
@@ -4568,6 +4598,9 @@ msgid ""
 "Some recurrence rules cannot be expanded. Their original calendar data was "
 "preserved."
 msgstr "有些重复规则无法计算出各次日程。原始日历数据已保留。"
+
+msgid "Someone"
+msgstr "某人"
 
 msgid "Son"
 msgstr "儿子"
@@ -6421,6 +6454,9 @@ msgstr "从不——手动清空"
 msgid "new task for this appointment…"
 msgstr "为此约会新建任务…"
 
+msgid "no changes"
+msgstr "无更改"
+
 msgid "notification %(count)s minute before"
 msgid_plural "notification %(count)s minutes before"
 msgstr[0] "提前 %(count)s 分钟通知"
@@ -6462,6 +6498,9 @@ msgstr "已保存 – 留空则保持不变"
 
 msgid "tentative"
 msgstr "暂定"
+
+msgid "the day after tomorrow"
+msgstr "后天"
 
 msgid "the other branch"
 msgstr "另一分支"

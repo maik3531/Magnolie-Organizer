@@ -421,6 +421,45 @@ KONTAKT_FELDER = ["nachname", "vorname", "firma", "strasse", "plz", "ort",
                     "jubilaeum", "anzeigename", "vcardRoundtrip", "vcardParameter"]
 
 
+def kde_kontakt_bindung(device_id, fingerprint, uid_wert):
+    if (not isinstance(device_id, str) or not 1 <= len(device_id.encode("utf-16-le")) // 2 <= 200 or
+            not isinstance(uid_wert, str) or not 1 <= len(uid_wert.encode("utf-16-le")) // 2 <= 1024 or
+            any(unicodedata.category(char) == "Cc" for char in device_id + uid_wert) or
+            not isinstance(fingerprint, str) or not re.fullmatch(r"[a-fA-F0-9]{64}", fingerprint)):
+        raise ValueError("invalid_contact_source")
+    source = "kde-contact-v1\0" + device_id + "\0" + fingerprint.lower() + "\0" + uid_wert
+    return "urn:magnolie:import:kde:" + hashlib.sha256(source.encode("utf-8")).hexdigest()
+
+
+def kde_kontakte_projizieren(result, device_id, requested):
+    cards = result.get("contacts")
+    if (result.get("device_id") != device_id or not isinstance(cards, list) or
+            len(cards) != len(requested)):
+        raise ValueError("incomplete_contact_batch")
+    seen = set()
+    transport = re.compile(r"^(?:[^:;.]+\.)?(?:PHOTO|UID|REV|VERSION|BEGIN|END|PRODID)[;:]", re.I)
+    for item in cards:
+        uid_wert = item.get("uid")
+        if uid_wert not in requested or uid_wert in seen:
+            raise ValueError("invalid_contact_batch")
+        seen.add(uid_wert)
+        parsed = vcf_lesen(item["vcard"])
+        if len(parsed["kontakte"]) != 1 or parsed.get("uebersprungen", 0):
+            raise ValueError("invalid_contact_vcard")
+        contact = parsed["kontakte"][0]
+        selected = {name: contact[name] for name in KONTAKT_FELDER + ["land", "jubilaeumJahrUnbekannt"]
+                    if name != "foto" and name in contact}
+        selected["vcardRoundtrip"] = [line for line in selected.get("vcardRoundtrip", [])
+                                      if not transport.match(line)]
+        if isinstance(selected.get("vcardParameter"), dict):
+            selected["vcardParameter"] = {key: value for key, value in selected["vcardParameter"].items()
+                                           if not transport.match(key + ":")}
+        del item["vcard"]
+        item["kontakt"] = selected
+        item["bindung"] = kde_kontakt_bindung(device_id, result.get("fingerprint"), uid_wert)
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Ablageorte und Datendatei
 # ---------------------------------------------------------------------------
@@ -6621,7 +6660,7 @@ ERINNERUNG_JAHRESTAG_FELDER = ("id", "uid", "name", "datum", "typ")
 ERINNERUNG_EINSTELLUNG_FELDER = (
     "an", "vorlauf", "verpasste", "aufgaben", "art", "stil", "protokoll",
     "protokollVoreinstellung")
-ERINNERUNG_JAHRESTAG_EINSTELLUNG_FELDER = ("an", "tage", "amTag", "stunde")
+ERINNERUNG_JAHRESTAG_EINSTELLUNG_FELDER = ("an", "tage", "amTag", "stunde", "autoAusblenden")
 
 
 def _erinnerungsfelder_auswaehlen(quelle, felder):
@@ -8334,7 +8373,10 @@ def benachrichtigen(kopf, rumpf, mit_aktion=True, wartezeit=60,
         if not werkzeug:
             return False
         try:
-            subprocess.Popen([werkzeug, "-a", FENSTER_TITEL, kopf, rumpf],
+            argumente = [werkzeug, "-a", FENSTER_TITEL]
+            if wartezeit == 0:
+                argumente += ["--expire-time=0", "--urgency=critical", "--hint=boolean:resident:true"]
+            subprocess.Popen(argumente + [kopf, rumpf],
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return True
         except OSError:
@@ -8343,6 +8385,10 @@ def benachrichtigen(kopf, rumpf, mit_aktion=True, wartezeit=60,
     try:
         Notify.init(FENSTER_TITEL)
         meldung = Notify.Notification.new(kopf, rumpf, PROGRAMM_NAME)
+        if wartezeit == 0:
+            meldung.set_timeout(0)
+            meldung.set_urgency(Notify.Urgency.CRITICAL)
+            meldung.set_hint("resident", _GLib.Variant("b", True))
         try:
             meldung.set_hint("desktop-entry",
                              _GLib.Variant("s", DESKTOP_APP_ID))
@@ -8732,7 +8778,8 @@ def melden(kopf, rumpf, stil="system", mit_aktion=True, wartezeit=60):
             kopf, rumpf, wartezeit, mit_aktion,
             eigene_schleife=not _SCHLEIFE_LAEUFT["ja"]):
         return "magnolie"
-    return "system" if benachrichtigen(kopf, rumpf, mit_aktion, wartezeit) else ""
+    return "system" if benachrichtigen(kopf, rumpf, mit_aktion, wartezeit,
+                                       eigene_schleife=not _SCHLEIFE_LAEUFT["ja"]) else ""
 
 
 def wecker_protokoll_datei():
@@ -9252,7 +9299,8 @@ def erinnerungslauf(jetzt=None, als_wecker=False):
         if art in ("sound", "both"):
             ton_abspielen(eigener=eigener_klang)
         if art in ("notification", "both"):
-            weg = melden(kopf, rumpf, stil)
+            dauerhaft = bool(eintrag.get("jahrestag") and jt.get("autoAusblenden") is not True)
+            weg = melden(kopf, rumpf, stil, wartezeit=0) if dauerhaft else melden(kopf, rumpf, stil)
             weg_text = {
                 "magnolie": _("Magnolie sheet"),
                 "system": _("system notification"),
@@ -19804,12 +19852,15 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=lambda: self._telefon_status_anfordern(
                  nachricht.get("kennung") or "", nachricht.get("requestId")), daemon=True).start()
 
-        elif befehl == "telefon_kontaktfotos":
+        elif befehl in ("telefon_kontaktfotos", "telefon_kontakte"):
             request_id = nachricht.get("requestId")
             if not isinstance(request_id, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}", request_id):
                 return
             if getattr(self, "_kontakt_fotos_laeuft", False):
-                self.antwort("App.kontaktFotos", {"ok": False, "requestId": request_id})
+                if befehl == "telefon_kontakte":
+                    self.antwort("App.telefonKontakte", {"ok": False, "requestId": request_id})
+                else:
+                    self.antwort("App.kontaktFotos", {"ok": False, "requestId": request_id})
                 return
             self._kontakt_fotos_laeuft = True
             threading.Thread(target=self._kontakt_fotos_lesen, args=(nachricht,), daemon=True).start()
@@ -21427,26 +21478,41 @@ class Fenster(_FENSTER_BASIS):
 
     def _kontakt_fotos_lesen(self, nachricht):
         request_id = nachricht.get("requestId", "")
+        vollstaendig = nachricht.get("cmd") == "telefon_kontakte"
         try:
+            if vollstaendig and getattr(self, "_gesperrt", True):
+                raise ValueError("locked")
             device_id = nachricht.get("device_id")
             if not isinstance(device_id, str) or not 1 <= len(device_id) <= 200:
                 raise ValueError("invalid_contact_device")
             backend = _kdeconnect_backend()
             if "uids" in nachricht:
                 result = backend.contact_vcards(nachricht["uids"], device_id)
-                for item in result["contacts"]:
-                    contacts = vcf_lesen(item["vcard"])["kontakte"]
-                    if len(contacts) != 1:
-                        raise ValueError("invalid_contact_vcard")
-                    del item["vcard"]
-                    for field in ("foto", "telefone", "telefon", "mobil", "email", "emails", "emailEintraege"):
-                        item[field] = contacts[0].get(field)
+                if vollstaendig:
+                    kde_kontakte_projizieren(result, device_id, nachricht["uids"])
+                else:
+                    for item in result["contacts"]:
+                        contacts = vcf_lesen(item["vcard"])["kontakte"]
+                        if len(contacts) != 1:
+                            raise ValueError("invalid_contact_vcard")
+                        del item["vcard"]
+                        for field in ("foto", "telefone", "telefon", "mobil", "email", "emails", "emailEintraege"):
+                            item[field] = contacts[0].get(field)
             else:
                 result = backend.contact_uids(device_id)
             result.update(ok=True, requestId=request_id)
-            self.antwort("App.kontaktFotos", result)
+            if vollstaendig:
+                if getattr(self, "_gesperrt", True):
+                    raise ValueError("locked")
+                result["native_cache"] = bool(getattr(backend, "native", False))
+                self.antwort("App.telefonKontakte", result)
+            else:
+                self.antwort("App.kontaktFotos", result)
         except Exception:
-            self.antwort("App.kontaktFotos", {"ok": False, "requestId": request_id})
+            if vollstaendig:
+                self.antwort("App.telefonKontakte", {"ok": False, "requestId": request_id})
+            else:
+                self.antwort("App.kontaktFotos", {"ok": False, "requestId": request_id})
         finally:
             self._kontakt_fotos_laeuft = False
 

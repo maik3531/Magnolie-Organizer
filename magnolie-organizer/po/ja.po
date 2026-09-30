@@ -704,6 +704,9 @@ msgstr "トレイアプレットを自動起動に追加しています"
 msgid "Adding the word to the dictionary"
 msgstr "単語を辞書に追加しています"
 
+msgid "Additional information"
+msgstr "追加情報"
+
 msgid "Address"
 msgstr "住所"
 
@@ -1009,6 +1012,9 @@ msgstr "クラウドフォルダーへの自動バックアップ"
 msgid "Automatically choose a suitable application"
 msgstr "適切なアプリケーションを自動選択"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "記念日のリマインダーを自動的に非表示にする"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Wi-Fi で自動的に同期する"
 
@@ -1245,6 +1251,13 @@ msgstr "参照..."
 
 msgid "Burgenland"
 msgstr "ブルゲンラント州"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"記念日のリマインダーは、標準では閉じるまで表示されます。この設定は予定のリマ"
+"インダーとは独立しています。"
 
 msgid "By first name (Hans Müller)"
 msgstr "名で並べる（Hans Müller）"
@@ -2364,9 +2377,6 @@ msgstr "Magnolie Notes 電話接続を有効にする"
 msgid "Enable SMS scheduling"
 msgstr "SMSの予約送信を有効にする"
 
-msgid "Enable background service"
-msgstr "バックグラウンドサービスを有効にする"
-
 msgid "Enable cycle calendar"
 msgstr "周期カレンダーを有効化"
 
@@ -2413,9 +2423,6 @@ msgstr ""
 
 msgid "Encrypted archive entries are not supported."
 msgstr "暗号化されたアーカイブ内の項目はサポートされていません。"
-
-msgid "Encrypted data behavior"
-msgstr "暗号化データの処理"
 
 msgid "Encrypting the data"
 msgstr "データを暗号化しています"
@@ -3158,9 +3165,6 @@ msgstr ""
 msgid "KDE Connect pairing"
 msgstr "KDE Connect のペアリング"
 
-msgid "KDE Connect pairing decisions"
-msgstr "KDE Connect のペアリング確認"
-
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect のペアリングに失敗しました。"
 
@@ -3342,9 +3346,6 @@ msgstr "Magnolie Notes のペアリング"
 msgid "Magnolie Notes phone connection"
 msgstr "Magnolie Notes 電話接続"
 
-msgid "Magnolie Notes phone pairing decisions"
-msgstr "Magnolie Notes 電話のペアリング確認"
-
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
 "name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
@@ -3425,9 +3426,6 @@ msgstr "マグノリア-イヤープランナー-%d.ods"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
-
-msgid "Magnolienbaum change offers"
-msgstr "Magnolienbaum の変更提案"
 
 msgid "Magnolienbaum mailbox"
 msgstr "Magnolienbaum メールボックス"
@@ -3589,9 +3587,6 @@ msgstr "月曜日"
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "KDE Connect SMS を監視して通知を表示する"
 
-msgid "Monitor the Magnolie Notes phone connection"
-msgstr "Magnolie Notes 電話接続を監視する"
-
 msgid "Month"
 msgstr "月"
 
@@ -3696,9 +3691,6 @@ msgstr ""
 
 msgid "Native notifications available"
 msgstr "ネイティブ通知を利用できます"
-
-msgid "Native notifications unavailable"
-msgstr "ネイティブ通知を利用できません"
 
 msgid "Netherlands"
 msgstr "オランダ"
@@ -4249,13 +4241,6 @@ msgid "Only HTTPS. The password is stored securely on this computer."
 msgstr "HTTPS のみ。パスワードはこのコンピューターに安全に保存されます。"
 
 msgid ""
-"Only Notify, then unlock is currently available. Keyring access and pausing "
-"while locked are not yet enforced by the background service."
-msgstr ""
-"現在利用できるのは「通知してからロック解除」のみです。バックグラウンドサービ"
-"スでは、キーリングへのアクセスとロック中の一時停止はまだ適用されていません。"
-
-msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
 msgstr ""
@@ -4534,9 +4519,6 @@ msgstr "貼り付け"
 msgid "Patch"
 msgstr "貼付剤"
 
-msgid "Pause while data is locked"
-msgstr "データのロック中は一時停止"
-
 msgid "Paused — review required"
 msgstr "一時停止中 — 確認が必要"
 
@@ -4629,6 +4611,9 @@ msgstr "電話接続がキャンセルされたか、待ち時間の上限を超
 msgid "Phone connection failed."
 msgstr "携帯電話に接続できませんでした。"
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "電話の連絡先 (KDE Connect)"
+
 msgid "Phone notification"
 msgstr "電話の通知"
 
@@ -4720,6 +4705,9 @@ msgstr "JPEG、PNG、WebP、GIF のいずれかの形式の画像を選択して
 msgid "Please unlock"
 msgstr "ロックを解除してください"
 
+msgid "Please wait …"
+msgstr "お待ちください…"
+
 msgid "Poland"
 msgstr "ポーランド"
 
@@ -4755,6 +4743,13 @@ msgstr "優先するバックアップフォルダー"
 
 msgid "Preview"
 msgstr "プレビュー"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"ペアリング済みの電話の連絡先をプレビューします。変更は Organizer にのみ保存さ"
+"れ、連絡先は削除されません。"
 
 msgid "Preview failed."
 msgstr "プレビューに失敗しました。"
@@ -5772,9 +5767,6 @@ msgstr "サインイン時に自動起動"
 msgid "Start Organizer"
 msgstr "Organizer を起動"
 
-msgid "Start at login"
-msgstr "ログイン時に起動"
-
 msgid "Start automatically when signing in"
 msgstr "サインイン時に自動起動"
 
@@ -5916,15 +5908,6 @@ msgstr "システムのデフォルト"
 
 msgid "System internet accounts"
 msgstr "システムのインターネットアカウント"
-
-msgid "System keyring and pause modes cannot be enabled yet."
-msgstr "システムキーリングと一時停止モードはまだ有効にできません。"
-
-msgid "System keyring available"
-msgstr "システムキーリングを利用できます"
-
-msgid "System keyring unavailable"
-msgstr "システムキーリングを利用できません"
 
 msgid "System setting"
 msgstr "システム設定"
@@ -6280,9 +6263,6 @@ msgstr "バックグラウンドサービスを起動できませんでした。
 
 msgid "The background service could not start."
 msgstr "バックグラウンドサービスを起動できませんでした。"
-
-msgid "The background service is available only in the installed application."
-msgstr "バックグラウンドサービスはインストール版アプリでのみ利用できます。"
 
 msgid "The background settings could not be saved."
 msgstr "バックグラウンド設定を保存できませんでした。"
@@ -7571,9 +7551,6 @@ msgid ""
 "Use only schedules prescribed or confirmed by a healthcare professional."
 msgstr "医療従事者が処方または確認した服薬計画のみを使用してください。"
 
-msgid "Use system keyring"
-msgstr "システムキーリングを使用"
-
 msgid "Use the DAV address provided by your service."
 msgstr "サービス提供元の DAV アドレスを使用してください。"
 
@@ -8404,6 +8381,57 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
+
+#~ msgid "Enable background service"
+#~ msgstr "バックグラウンドサービスを有効にする"
+
+#~ msgid "Encrypted data behavior"
+#~ msgstr "暗号化データの処理"
+
+#~ msgid "KDE Connect pairing decisions"
+#~ msgstr "KDE Connect のペアリング確認"
+
+#~ msgid "Magnolie Notes phone pairing decisions"
+#~ msgstr "Magnolie Notes 電話のペアリング確認"
+
+#~ msgid "Magnolienbaum change offers"
+#~ msgstr "Magnolienbaum の変更提案"
+
+#~ msgid "Monitor the Magnolie Notes phone connection"
+#~ msgstr "Magnolie Notes 電話接続を監視する"
+
+#~ msgid "Native notifications unavailable"
+#~ msgstr "ネイティブ通知を利用できません"
+
+#~ msgid ""
+#~ "Only Notify, then unlock is currently available. Keyring access and "
+#~ "pausing while locked are not yet enforced by the background service."
+#~ msgstr ""
+#~ "現在利用できるのは「通知してからロック解除」のみです。バックグラウンドサー"
+#~ "ビスでは、キーリングへのアクセスとロック中の一時停止はまだ適用されていませ"
+#~ "ん。"
+
+#~ msgid "Pause while data is locked"
+#~ msgstr "データのロック中は一時停止"
+
+#~ msgid "Start at login"
+#~ msgstr "ログイン時に起動"
+
+#~ msgid "System keyring and pause modes cannot be enabled yet."
+#~ msgstr "システムキーリングと一時停止モードはまだ有効にできません。"
+
+#~ msgid "System keyring available"
+#~ msgstr "システムキーリングを利用できます"
+
+#~ msgid "System keyring unavailable"
+#~ msgstr "システムキーリングを利用できません"
+
+#~ msgid ""
+#~ "The background service is available only in the installed application."
+#~ msgstr "バックグラウンドサービスはインストール版アプリでのみ利用できます。"
+
+#~ msgid "Use system keyring"
+#~ msgstr "システムキーリングを使用"
 
 #~ msgid "New phone changes are available"
 #~ msgstr "電話に新しい変更があります"

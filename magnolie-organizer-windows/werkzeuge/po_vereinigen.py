@@ -10,6 +10,81 @@ import sys
 import tempfile
 
 ERGÄNZUNGEN = {
+    "Automatically dismiss anniversary reminders": {
+        "de": "Jahrestagserinnerungen automatisch ausblenden", "fr": "Masquer automatiquement les rappels d’anniversaire",
+        "es": "Ocultar automáticamente los recordatorios de aniversarios", "it": "Nascondi automaticamente i promemoria degli anniversari",
+        "nl": "Herinneringen aan verjaardagen en jubilea automatisch verbergen", "pt": "Ocultar automaticamente os lembretes de aniversários",
+        "ru": "Автоматически скрывать напоминания о годовщинах", "cs": "Automaticky skrývat připomínky výročí",
+        "pl": "Automatycznie ukrywaj przypomnienia o rocznicach", "hsb": "Dopomnjeća na róčnicy awtomatisce schować",
+        "da": "Skjul automatisk påmindelser om mærkedage", "nb": "Skjul påminnelser om merkedager automatisk",
+        "hi": "वर्षगाँठ के अनुस्मारक अपने आप छिपाएँ", "zh_CN": "自动隐藏纪念日提醒", "ja": "記念日のリマインダーを自動的に非表示にする",
+        "ar": "إخفاء تذكيرات الذكريات السنوية تلقائيًا", "uk": "Автоматично приховувати нагадування про річниці",
+        "be": "Аўтаматычна хаваць напаміны пра гадавіны", "tr": "Yıldönümü hatırlatmalarını otomatik gizle",
+    },
+    "By default, anniversary reminders stay visible until you close them. This setting is independent of appointment reminders.": {
+        "de": "Jahrestagserinnerungen bleiben standardmäßig sichtbar, bis Sie sie schließen. Diese Einstellung ist unabhängig von Terminerinnerungen.",
+        "fr": "Par défaut, les rappels d’anniversaire restent visibles jusqu’à leur fermeture. Ce réglage est indépendant des rappels de rendez-vous.",
+        "es": "De forma predeterminada, los recordatorios de aniversarios permanecen visibles hasta que los cierre. Este ajuste es independiente de los recordatorios de citas.",
+        "it": "Per impostazione predefinita, i promemoria degli anniversari restano visibili finché non vengono chiusi. Questa impostazione è indipendente dai promemoria degli appuntamenti.",
+        "nl": "Herinneringen aan verjaardagen en jubilea blijven standaard zichtbaar totdat u ze sluit. Deze instelling staat los van afspraakherinneringen.",
+        "pt": "Por predefinição, os lembretes de aniversários permanecem visíveis até serem fechados. Esta definição é independente dos lembretes de compromissos.",
+        "ru": "По умолчанию напоминания о годовщинах остаются видимыми, пока вы их не закроете. Эта настройка не зависит от напоминаний о встречах.",
+        "cs": "Připomínky výročí ve výchozím nastavení zůstávají viditelné, dokud je nezavřete. Toto nastavení je nezávislé na připomínkách schůzek.",
+        "pl": "Domyślnie przypomnienia o rocznicach pozostają widoczne, dopóki ich nie zamkniesz. To ustawienie jest niezależne od przypomnień o spotkaniach.",
+        "hsb": "Dopomnjeća na róčnicy standardnje widźomne wostanu, doniž je njezačinjeće. Tute nastajenje je njewotwisne wot dopomnjećow na terminy.",
+        "da": "Påmindelser om mærkedage forbliver som standard synlige, indtil du lukker dem. Denne indstilling er uafhængig af aftalepåmindelser.",
+        "nb": "Påminnelser om merkedager forblir som standard synlige til du lukker dem. Denne innstillingen er uavhengig av avtalepåminnelser.",
+        "hi": "डिफ़ॉल्ट रूप से, वर्षगाँठ के अनुस्मारक तब तक दिखाई देते हैं जब तक आप उन्हें बंद नहीं करते। यह सेटिंग नियुक्ति के अनुस्मारकों से स्वतंत्र है।",
+        "zh_CN": "默认情况下，纪念日提醒会一直显示，直到您手动关闭。此设置独立于日程提醒。",
+        "ja": "記念日のリマインダーは、標準では閉じるまで表示されます。この設定は予定のリマインダーとは独立しています。",
+        "ar": "تبقى تذكيرات الذكريات السنوية ظاهرة افتراضيًا حتى تغلقها. هذا الإعداد مستقل عن تذكيرات المواعيد.",
+        "uk": "Типово нагадування про річниці залишаються видимими, доки ви їх не закриєте. Це налаштування не залежить від нагадувань про зустрічі.",
+        "be": "Прадвызначана напаміны пра гадавіны застаюцца бачнымі, пакуль вы іх не закрыеце. Гэта налада не залежыць ад напамінаў пра сустрэчы.",
+        "tr": "Varsayılan olarak yıldönümü hatırlatmaları siz kapatana kadar görünür kalır. Bu ayar randevu hatırlatmalarından bağımsızdır.",
+    },
+    "Phone contacts (KDE Connect)": {
+        "de": "Telefonkontakte (KDE Connect)", "fr": "Contacts du téléphone (KDE Connect)", "es": "Contactos del teléfono (KDE Connect)",
+        "it": "Contatti del telefono (KDE Connect)", "nl": "Telefooncontacten (KDE Connect)", "pt": "Contactos do telefone (KDE Connect)",
+        "ru": "Контакты телефона (KDE Connect)", "cs": "Kontakty telefonu (KDE Connect)", "pl": "Kontakty telefonu (KDE Connect)",
+        "hsb": "Telefonowe kontakty (KDE Connect)", "da": "Telefonkontakter (KDE Connect)", "nb": "Telefonkontakter (KDE Connect)",
+        "hi": "फ़ोन संपर्क (KDE Connect)", "zh_CN": "手机联系人（KDE Connect）", "ja": "電話の連絡先 (KDE Connect)",
+        "ar": "جهات اتصال الهاتف (KDE Connect)", "uk": "Контакти телефону (KDE Connect)", "be": "Кантакты тэлефона (KDE Connect)",
+        "tr": "Telefon kişileri (KDE Connect)",
+    },
+    "Preview contacts from the paired phone. Changes are saved only in Organizer; no contacts are deleted.": {
+        "de": "Kontakte des gekoppelten Telefons vorab prüfen. Änderungen werden nur im Organizer gespeichert; es werden keine Kontakte gelöscht.",
+        "fr": "Prévisualisez les contacts du téléphone associé. Les modifications sont enregistrées uniquement dans Organizer ; aucun contact n’est supprimé.",
+        "es": "Revise los contactos del teléfono vinculado. Los cambios se guardan solo en Organizer; no se elimina ningún contacto.",
+        "it": "Visualizza in anteprima i contatti del telefono associato. Le modifiche vengono salvate solo in Organizer; nessun contatto viene eliminato.",
+        "nl": "Bekijk vooraf de contacten van de gekoppelde telefoon. Wijzigingen worden alleen in Organizer opgeslagen; er worden geen contacten verwijderd.",
+        "pt": "Pré-visualize os contactos do telefone emparelhado. As alterações são guardadas apenas no Organizer; nenhum contacto é eliminado.",
+        "ru": "Просмотрите контакты сопряжённого телефона. Изменения сохраняются только в Organizer; контакты не удаляются.",
+        "cs": "Prohlédněte si kontakty spárovaného telefonu. Změny se ukládají pouze do Organizeru; žádné kontakty se nemažou.",
+        "pl": "Przejrzyj kontakty sparowanego telefonu. Zmiany są zapisywane tylko w Organizerze; żadne kontakty nie są usuwane.",
+        "hsb": "Přepruwujće kontakty spřaženeho telefona. Změny so jenož w Organizer składuja; žane kontakty so njezhašeja.",
+        "da": "Forhåndsvis kontakter fra den parrede telefon. Ændringer gemmes kun i Organizer; ingen kontakter slettes.",
+        "nb": "Forhåndsvis kontakter fra den parede telefonen. Endringer lagres bare i Organizer; ingen kontakter slettes.",
+        "hi": "युग्मित फ़ोन के संपर्कों का पूर्वावलोकन करें। बदलाव केवल Organizer में सहेजे जाते हैं; कोई संपर्क नहीं हटाया जाता।",
+        "zh_CN": "预览已配对手机的联系人。更改仅保存在 Organizer 中，不会删除任何联系人。",
+        "ja": "ペアリング済みの電話の連絡先をプレビューします。変更は Organizer にのみ保存され、連絡先は削除されません。",
+        "ar": "عاين جهات اتصال الهاتف المقترن. تُحفظ التغييرات في Organizer فقط؛ ولا تُحذف أي جهة اتصال.",
+        "uk": "Перегляньте контакти спареного телефону. Зміни зберігаються лише в Organizer; контакти не видаляються.",
+        "be": "Праглядзіце кантакты спалучанага тэлефона. Змены захоўваюцца толькі ў Organizer; кантакты не выдаляюцца.",
+        "tr": "Eşleştirilmiş telefonun kişilerini önizleyin. Değişiklikler yalnızca Organizer’da kaydedilir; hiçbir kişi silinmez.",
+    },
+    "Please wait …": {
+        "de": "Bitte warten …", "fr": "Veuillez patienter…", "es": "Espere…", "it": "Attendere…", "nl": "Even geduld …",
+        "pt": "Aguarde…", "ru": "Подождите…", "cs": "Čekejte…", "pl": "Proszę czekać…", "hsb": "Prošu čakajće …",
+        "da": "Vent venligst …", "nb": "Vennligst vent …", "hi": "कृपया प्रतीक्षा करें…", "zh_CN": "请稍候…", "ja": "お待ちください…",
+        "ar": "يُرجى الانتظار…", "uk": "Зачекайте…", "be": "Пачакайце…", "tr": "Lütfen bekleyin …",
+    },
+    "Additional information": {
+        "de": "Zusätzliche Angaben", "fr": "Informations supplémentaires", "es": "Información adicional", "it": "Informazioni aggiuntive",
+        "nl": "Aanvullende informatie", "pt": "Informações adicionais", "ru": "Дополнительные сведения", "cs": "Další informace",
+        "pl": "Dodatkowe informacje", "hsb": "Přidatne informacije", "da": "Yderligere oplysninger", "nb": "Tilleggsinformasjon",
+        "hi": "अतिरिक्त जानकारी", "zh_CN": "附加信息", "ja": "追加情報", "ar": "معلومات إضافية", "uk": "Додаткові відомості",
+        "be": "Дадатковыя звесткі", "tr": "Ek bilgiler",
+    },
     "The Windows installer includes the manual.": {
         "de": "Das Handbuch ist im Windows-Installationsprogramm enthalten.",
         "fr": "Le programme d’installation Windows inclut le manuel.",
@@ -521,7 +596,9 @@ def haupt(argv):
         key = (context + "\x04" + msgid) if context else msgid
         plural = feld(block, "msgid_plural")
         if plural is None:
-            wert = alte.get(key) or ERGÄNZUNGEN.get(key, {}).get(sprache) or aktuelle.get(key)
+            # Existing PO translations are authoritative; generated catalogs
+            # and explicit additions only fill missing entries.
+            wert = aktuelle.get(key) or alte.get(key) or ERGÄNZUNGEN.get(key, {}).get(sprache)
             if not isinstance(wert, str) or not wert:
                 raise ValueError("Übersetzung fehlt: " + key)
             ersetzt = re.sub(r'^msgstr ""(?:\n".*")*', lambda _: quoted("msgstr", wert), block,
@@ -531,7 +608,7 @@ def haupt(argv):
             zeilen = []
             index = 0
             while (key, index) in aktuelle or index < len(altwerte):
-                wert = (altwerte[index] if index < len(altwerte) else "") or aktuelle.get((key, index))
+                wert = aktuelle.get((key, index)) or (altwerte[index] if index < len(altwerte) else "")
                 if not wert:
                     raise ValueError("Pluralübersetzung fehlt: " + key)
                 zeilen.append(quoted("msgstr[%d]" % index, wert))

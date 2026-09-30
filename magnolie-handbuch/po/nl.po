@@ -586,6 +586,16 @@ msgstr ""
 
 #, no-javascript-format
 msgid ""
+"<h3>Automatically dismiss anniversary reminders</h3><p>By default, "
+"anniversary reminders stay visible until you close them. This setting is "
+"independent of appointment reminders.</p>"
+msgstr ""
+"<h3>Herinneringen aan verjaardagen en jubilea automatisch verbergen</"
+"h3><p>Herinneringen aan verjaardagen en jubilea blijven standaard zichtbaar "
+"totdat u ze sluit. Deze instelling staat los van afspraakherinneringen.</p>"
+
+#, no-javascript-format
+msgid ""
 "<h3>Bold, italic, underline, and strikethrough</h3><p>As soon as you start "
 "writing or select some text, a small row of four letters appears above the "
 "page: <span class='knopfwort'>B</span> <span class='knopfwort'>I</span> "

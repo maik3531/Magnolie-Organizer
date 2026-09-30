@@ -777,6 +777,9 @@ msgstr "Přidávání apletu oznamovací oblasti do automatického spuštění"
 msgid "Adding the word to the dictionary"
 msgstr "Přidávání slova do slovníku"
 
+msgid "Additional information"
+msgstr "Další informace"
+
 msgid "Address"
 msgstr "Adresa"
 
@@ -1082,6 +1085,9 @@ msgstr "Automatické zálohy ve cloudové složce"
 msgid "Automatically choose a suitable application"
 msgstr "Automaticky vybrat vhodnou aplikaci"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "Automaticky skrývat připomínky výročí"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Automaticky synchronizovat přes Wi-Fi"
 
@@ -1315,6 +1321,13 @@ msgstr "Procházet..."
 
 msgid "Burgenland"
 msgstr "Burgenland"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"Připomínky výročí ve výchozím nastavení zůstávají viditelné, dokud je "
+"nezavřete. Toto nastavení je nezávislé na připomínkách schůzek."
 
 msgid "By first name (Hans Müller)"
 msgstr "Podle jména (Hans Müller)"
@@ -2434,9 +2447,6 @@ msgstr "Povolte připojení telefonu Magnolie Notes"
 msgid "Enable SMS scheduling"
 msgstr "Povolit plánování SMS"
 
-msgid "Enable background service"
-msgstr "Povolit službu na pozadí"
-
 msgid "Enable cycle calendar"
 msgstr "Povolit kalendář cyklu"
 
@@ -2483,9 +2493,6 @@ msgstr ""
 
 msgid "Encrypted archive entries are not supported."
 msgstr "Šifrované položky archivu nejsou podporovány."
-
-msgid "Encrypted data behavior"
-msgstr "Chování u šifrovaných dat"
 
 msgid "Encrypting the data"
 msgstr "Šifrování dat"
@@ -3226,9 +3233,6 @@ msgstr ""
 msgid "KDE Connect pairing"
 msgstr "Párování KDE Connect"
 
-msgid "KDE Connect pairing decisions"
-msgstr "Rozhodování o párování KDE Connect"
-
 msgid "KDE Connect pairing failed."
 msgstr "Párování KDE Connect se nezdařilo."
 
@@ -3409,9 +3413,6 @@ msgstr "Párování Magnolie Notes"
 msgid "Magnolie Notes phone connection"
 msgstr "Připojení telefonu Magnolie Notes"
 
-msgid "Magnolie Notes phone pairing decisions"
-msgstr "Rozhodování o párování telefonu s Magnolie Notes"
-
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
 "name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
@@ -3492,9 +3493,6 @@ msgstr "Plánovač-roční-Magnolie-%d.ods"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
-
-msgid "Magnolienbaum change offers"
-msgstr "Nabídky změn Magnolienbaum"
 
 msgid "Magnolienbaum mailbox"
 msgstr "Poštovní schránka Magnolienbaum"
@@ -3658,9 +3656,6 @@ msgstr "Pondělí"
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "Sledovat SMS z KDE Connect a zobrazovat oznámení"
 
-msgid "Monitor the Magnolie Notes phone connection"
-msgstr "Sledovat připojení telefonu k Magnolie Notes"
-
 msgid "Month"
 msgstr "Měsíc"
 
@@ -3764,9 +3759,6 @@ msgstr ""
 
 msgid "Native notifications available"
 msgstr "Nativní oznámení jsou dostupná"
-
-msgid "Native notifications unavailable"
-msgstr "Nativní oznámení nejsou dostupná"
 
 msgid "Netherlands"
 msgstr "Nizozemsko"
@@ -4325,14 +4317,6 @@ msgid "Only HTTPS. The password is stored securely on this computer."
 msgstr "Pouze HTTPS. Heslo se bezpečně ukládá na tomto počítači."
 
 msgid ""
-"Only Notify, then unlock is currently available. Keyring access and pausing "
-"while locked are not yet enforced by the background service."
-msgstr ""
-"V současnosti je k dispozici pouze možnost „Upozornit a poté odemknout“. "
-"Služba na pozadí zatím nevynucuje přístup ke klíčence ani pozastavení při "
-"uzamčení."
-
-msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
 msgstr ""
@@ -4609,9 +4593,6 @@ msgstr "Vložit"
 msgid "Patch"
 msgstr "Náplast"
 
-msgid "Pause while data is locked"
-msgstr "Pozastavit, dokud jsou data zamknutá"
-
 msgid "Paused — review required"
 msgstr "Pozastaveno — vyžaduje kontrolu"
 
@@ -4711,6 +4692,9 @@ msgstr "Připojování telefonu bylo zrušeno nebo vypršela čekací doba."
 msgid "Phone connection failed."
 msgstr "Připojení telefonu se nezdařilo."
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "Kontakty telefonu (KDE Connect)"
+
 msgid "Phone notification"
 msgstr "Oznámení z telefonu"
 
@@ -4802,6 +4786,9 @@ msgstr "Vyberte obrázek ve formátu JPEG, PNG, WebP nebo GIF."
 msgid "Please unlock"
 msgstr "Nejprve odemkněte"
 
+msgid "Please wait …"
+msgstr "Čekejte…"
+
 msgid "Poland"
 msgstr "Polsko"
 
@@ -4839,6 +4826,13 @@ msgstr "Upřednostňovaná složka pro zálohy"
 
 msgid "Preview"
 msgstr "Náhled"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"Prohlédněte si kontakty spárovaného telefonu. Změny se ukládají pouze do "
+"Organizeru; žádné kontakty se nemažou."
 
 msgid "Preview failed."
 msgstr "Náhled se nezdařil."
@@ -5866,9 +5860,6 @@ msgstr "Spouštět automaticky při přihlášení"
 msgid "Start Organizer"
 msgstr "Spustit Organizér"
 
-msgid "Start at login"
-msgstr "Spouštět při přihlášení"
-
 msgid "Start automatically when signing in"
 msgstr "Spouštět automaticky při přihlášení"
 
@@ -6010,15 +6001,6 @@ msgstr "Výchozí nastavení systému"
 
 msgid "System internet accounts"
 msgstr "Systémové internetové účty"
-
-msgid "System keyring and pause modes cannot be enabled yet."
-msgstr "Systémovou klíčenku a režimy pozastavení zatím nelze povolit."
-
-msgid "System keyring available"
-msgstr "Systémová klíčenka je dostupná"
-
-msgid "System keyring unavailable"
-msgstr "Systémová klíčenka není dostupná"
 
 msgid "System setting"
 msgstr "Nastavení systému"
@@ -6372,9 +6354,6 @@ msgstr "Službu na pozadí se nepodařilo spustit."
 
 msgid "The background service could not start."
 msgstr "Službu na pozadí se nepodařilo spustit."
-
-msgid "The background service is available only in the installed application."
-msgstr "Služba na pozadí je dostupná pouze v nainstalované aplikaci."
 
 msgid "The background settings could not be saved."
 msgstr "Nastavení služby na pozadí se nepodařilo uložit."
@@ -7656,9 +7635,6 @@ msgid ""
 msgstr ""
 "Používejte pouze rozvrhy předepsané nebo potvrzené zdravotnickým pracovníkem."
 
-msgid "Use system keyring"
-msgstr "Použít systémovou klíčenku"
-
 msgid "Use the DAV address provided by your service."
 msgstr "Použijte adresu DAV od svého poskytovatele."
 
@@ -8511,6 +8487,57 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid "Enable background service"
+#~ msgstr "Povolit službu na pozadí"
+
+#~ msgid "Encrypted data behavior"
+#~ msgstr "Chování u šifrovaných dat"
+
+#~ msgid "KDE Connect pairing decisions"
+#~ msgstr "Rozhodování o párování KDE Connect"
+
+#~ msgid "Magnolie Notes phone pairing decisions"
+#~ msgstr "Rozhodování o párování telefonu s Magnolie Notes"
+
+#~ msgid "Magnolienbaum change offers"
+#~ msgstr "Nabídky změn Magnolienbaum"
+
+#~ msgid "Monitor the Magnolie Notes phone connection"
+#~ msgstr "Sledovat připojení telefonu k Magnolie Notes"
+
+#~ msgid "Native notifications unavailable"
+#~ msgstr "Nativní oznámení nejsou dostupná"
+
+#~ msgid ""
+#~ "Only Notify, then unlock is currently available. Keyring access and "
+#~ "pausing while locked are not yet enforced by the background service."
+#~ msgstr ""
+#~ "V současnosti je k dispozici pouze možnost „Upozornit a poté odemknout“. "
+#~ "Služba na pozadí zatím nevynucuje přístup ke klíčence ani pozastavení při "
+#~ "uzamčení."
+
+#~ msgid "Pause while data is locked"
+#~ msgstr "Pozastavit, dokud jsou data zamknutá"
+
+#~ msgid "Start at login"
+#~ msgstr "Spouštět při přihlášení"
+
+#~ msgid "System keyring and pause modes cannot be enabled yet."
+#~ msgstr "Systémovou klíčenku a režimy pozastavení zatím nelze povolit."
+
+#~ msgid "System keyring available"
+#~ msgstr "Systémová klíčenka je dostupná"
+
+#~ msgid "System keyring unavailable"
+#~ msgstr "Systémová klíčenka není dostupná"
+
+#~ msgid ""
+#~ "The background service is available only in the installed application."
+#~ msgstr "Služba na pozadí je dostupná pouze v nainstalované aplikaci."
+
+#~ msgid "Use system keyring"
+#~ msgstr "Použít systémovou klíčenku"
 
 #~ msgid "New phone changes are available"
 #~ msgstr "Jsou dostupné nové změny z telefonu"

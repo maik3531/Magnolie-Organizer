@@ -744,6 +744,9 @@ msgstr "Sistem tepsisi uygulamacığı otomatik başlatmaya ekleniyor"
 msgid "Adding the word to the dictionary"
 msgstr "Sözcük sözlüğe ekleniyor"
 
+msgid "Additional information"
+msgstr "Ek bilgiler"
+
 msgid "Address"
 msgstr "Adres"
 
@@ -1052,6 +1055,9 @@ msgstr "Bulut klasörüne otomatik yedekler"
 msgid "Automatically choose a suitable application"
 msgstr "Uygun bir uygulamayı otomatik seç"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "Yıldönümü hatırlatmalarını otomatik gizle"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Wi-Fi üzerinden otomatik eşitle"
 
@@ -1288,6 +1294,13 @@ msgstr "Gözat..."
 
 msgid "Burgenland"
 msgstr "Burgenland"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"Varsayılan olarak yıldönümü hatırlatmaları siz kapatana kadar görünür kalır. "
+"Bu ayar randevu hatırlatmalarından bağımsızdır."
 
 msgid "By first name (Hans Müller)"
 msgstr "Ada göre (Hans Müller)"
@@ -2407,9 +2420,6 @@ msgstr "Magnolie Notes telefon bağlantısını etkinleştirin"
 msgid "Enable SMS scheduling"
 msgstr "SMS zamanlamasını etkinleştir"
 
-msgid "Enable background service"
-msgstr "Arka plan hizmetini etkinleştir"
-
 msgid "Enable cycle calendar"
 msgstr "Döngü takvimini etkinleştir"
 
@@ -2457,9 +2467,6 @@ msgstr ""
 
 msgid "Encrypted archive entries are not supported."
 msgstr "Şifrelenmiş arşiv girdileri desteklenmiyor."
-
-msgid "Encrypted data behavior"
-msgstr "Şifrelenmiş veri davranışı"
 
 msgid "Encrypting the data"
 msgstr "Veriler şifreleniyor"
@@ -3202,9 +3209,6 @@ msgstr ""
 msgid "KDE Connect pairing"
 msgstr "KDE Connect eşleştirmesi"
 
-msgid "KDE Connect pairing decisions"
-msgstr "KDE Connect eşleştirme kararları"
-
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect eşleştirmesi başarısız oldu."
 
@@ -3385,9 +3389,6 @@ msgstr "Magnolie Notes eşleştirmesi"
 msgid "Magnolie Notes phone connection"
 msgstr "Magnolie Notes telefon bağlantısı"
 
-msgid "Magnolie Notes phone pairing decisions"
-msgstr "Magnolie Notes telefon eşleştirme kararları"
-
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
 "name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
@@ -3468,9 +3469,6 @@ msgstr "Manolya-Yıllık-Planlayıcı-%d.ods"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
-
-msgid "Magnolienbaum change offers"
-msgstr "Magnolienbaum değişiklik teklifleri"
 
 msgid "Magnolienbaum mailbox"
 msgstr "Magnolienbaum posta kutusu"
@@ -3634,9 +3632,6 @@ msgstr "Pazartesi"
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "KDE Connect SMS'lerini izle ve bildirimleri göster"
 
-msgid "Monitor the Magnolie Notes phone connection"
-msgstr "Magnolie Notes telefon bağlantısını izle"
-
 msgid "Month"
 msgstr "Ay"
 
@@ -3741,9 +3736,6 @@ msgstr ""
 
 msgid "Native notifications available"
 msgstr "Yerel bildirimler kullanılabilir"
-
-msgid "Native notifications unavailable"
-msgstr "Yerel bildirimler kullanılamıyor"
 
 msgid "Netherlands"
 msgstr "Hollanda"
@@ -4293,14 +4285,6 @@ msgid "Only HTTPS. The password is stored securely on this computer."
 msgstr "Yalnızca HTTPS. Parola bu bilgisayarda güvenli bir şekilde saklanır."
 
 msgid ""
-"Only Notify, then unlock is currently available. Keyring access and pausing "
-"while locked are not yet enforced by the background service."
-msgstr ""
-"Şu anda yalnızca “Bildir, ardından kilidi aç” kullanılabilir. Arka plan "
-"hizmeti anahtarlık erişimini ve kilitliyken duraklatmayı henüz "
-"uygulamamaktadır."
-
-msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
 msgstr ""
@@ -4579,9 +4563,6 @@ msgstr "Yapıştır"
 msgid "Patch"
 msgstr "Flaster"
 
-msgid "Pause while data is locked"
-msgstr "Veriler kilitliyken duraklat"
-
 msgid "Paused — review required"
 msgstr "Duraklatıldı — inceleme gerekli"
 
@@ -4680,6 +4661,9 @@ msgstr "Telefon bağlantısı iptal edildi veya bekleme süresi doldu."
 msgid "Phone connection failed."
 msgstr "Telefon bağlantısı kurulamadı."
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "Telefon kişileri (KDE Connect)"
+
 msgid "Phone notification"
 msgstr "Telefon bildirimi"
 
@@ -4771,6 +4755,9 @@ msgstr "JPEG, PNG, WebP veya GIF biçiminde bir görsel seçin."
 msgid "Please unlock"
 msgstr "Lütfen kilidi açın"
 
+msgid "Please wait …"
+msgstr "Lütfen bekleyin …"
+
 msgid "Poland"
 msgstr "Polonya"
 
@@ -4810,6 +4797,13 @@ msgstr "Tercih edilen yedekleme klasörü"
 
 msgid "Preview"
 msgstr "Önizleme"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"Eşleştirilmiş telefonun kişilerini önizleyin. Değişiklikler yalnızca "
+"Organizer’da kaydedilir; hiçbir kişi silinmez."
 
 msgid "Preview failed."
 msgstr "Önizleme başarısız oldu."
@@ -5842,9 +5836,6 @@ msgstr "Oturum açarken otomatik başlat"
 msgid "Start Organizer"
 msgstr "Organizer'ı başlat"
 
-msgid "Start at login"
-msgstr "Oturum açıldığında başlat"
-
 msgid "Start automatically when signing in"
 msgstr "Oturum açarken otomatik başlat"
 
@@ -5986,15 +5977,6 @@ msgstr "Sistem varsayılanı"
 
 msgid "System internet accounts"
 msgstr "Sistem internet hesapları"
-
-msgid "System keyring and pause modes cannot be enabled yet."
-msgstr "Sistem anahtarlığı ve duraklatma kipleri henüz etkinleştirilemez."
-
-msgid "System keyring available"
-msgstr "Sistem anahtar zinciri kullanılabilir"
-
-msgid "System keyring unavailable"
-msgstr "Sistem anahtar zinciri kullanılamıyor"
 
 msgid "System setting"
 msgstr "Sistem ayarı"
@@ -6345,9 +6327,6 @@ msgstr "Arka plan hizmeti başlatılamadı."
 
 msgid "The background service could not start."
 msgstr "Arka plan hizmeti başlatılamadı."
-
-msgid "The background service is available only in the installed application."
-msgstr "Arka plan hizmeti yalnızca yüklü uygulamada kullanılabilir."
 
 msgid "The background settings could not be saved."
 msgstr "Arka plan ayarları kaydedilemedi."
@@ -7631,9 +7610,6 @@ msgstr ""
 "Yalnızca bir sağlık uzmanı tarafından reçete edilen veya onaylanan "
 "programları kullanın."
 
-msgid "Use system keyring"
-msgstr "Sistem anahtar zincirini kullan"
-
 msgid "Use the DAV address provided by your service."
 msgstr "Hizmet sağlayıcınızın verdiği DAV adresini kullanın."
 
@@ -8479,6 +8455,57 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
+
+#~ msgid "Enable background service"
+#~ msgstr "Arka plan hizmetini etkinleştir"
+
+#~ msgid "Encrypted data behavior"
+#~ msgstr "Şifrelenmiş veri davranışı"
+
+#~ msgid "KDE Connect pairing decisions"
+#~ msgstr "KDE Connect eşleştirme kararları"
+
+#~ msgid "Magnolie Notes phone pairing decisions"
+#~ msgstr "Magnolie Notes telefon eşleştirme kararları"
+
+#~ msgid "Magnolienbaum change offers"
+#~ msgstr "Magnolienbaum değişiklik teklifleri"
+
+#~ msgid "Monitor the Magnolie Notes phone connection"
+#~ msgstr "Magnolie Notes telefon bağlantısını izle"
+
+#~ msgid "Native notifications unavailable"
+#~ msgstr "Yerel bildirimler kullanılamıyor"
+
+#~ msgid ""
+#~ "Only Notify, then unlock is currently available. Keyring access and "
+#~ "pausing while locked are not yet enforced by the background service."
+#~ msgstr ""
+#~ "Şu anda yalnızca “Bildir, ardından kilidi aç” kullanılabilir. Arka plan "
+#~ "hizmeti anahtarlık erişimini ve kilitliyken duraklatmayı henüz "
+#~ "uygulamamaktadır."
+
+#~ msgid "Pause while data is locked"
+#~ msgstr "Veriler kilitliyken duraklat"
+
+#~ msgid "Start at login"
+#~ msgstr "Oturum açıldığında başlat"
+
+#~ msgid "System keyring and pause modes cannot be enabled yet."
+#~ msgstr "Sistem anahtarlığı ve duraklatma kipleri henüz etkinleştirilemez."
+
+#~ msgid "System keyring available"
+#~ msgstr "Sistem anahtar zinciri kullanılabilir"
+
+#~ msgid "System keyring unavailable"
+#~ msgstr "Sistem anahtar zinciri kullanılamıyor"
+
+#~ msgid ""
+#~ "The background service is available only in the installed application."
+#~ msgstr "Arka plan hizmeti yalnızca yüklü uygulamada kullanılabilir."
+
+#~ msgid "Use system keyring"
+#~ msgstr "Sistem anahtar zincirini kullan"
 
 #~ msgid "New phone changes are available"
 #~ msgstr "Telefondan yeni değişiklikler var"

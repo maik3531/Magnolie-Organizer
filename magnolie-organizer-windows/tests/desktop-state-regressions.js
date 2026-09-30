@@ -69,6 +69,25 @@ async function run(web) {
     b.t.speichereJetzt(); assert.equal(JSON.parse(b.saves().at(-1).text).notizen[0].id, "existing");
   }, {}, false);
 
+  await test("anniversary dismissal defaults to manual and saves independently", async b => {
+    const reminder = b.t.daten().einstellungen.erinnerung;
+    assert.equal(reminder.jahrestage.autoAusblenden, false);
+    const ordinary = { vorlauf: reminder.vorlauf, art: reminder.art, verpasste: reminder.verpasste };
+    b.t.oeffneEinstellungen();
+    b.w.document.querySelector("#einst-tab-erinnerung").click();
+    const toggle = b.w.document.querySelector("#erinnerung-jahrestage-auto-ausblenden");
+    assert.ok(toggle && !toggle.checked && !toggle.disabled);
+    toggle.checked = true; toggle.dispatchEvent(new b.w.Event("change", { bubbles: true }));
+    assert.equal(reminder.jahrestage.autoAusblenden, true);
+    assert.deepEqual({ vorlauf: reminder.vorlauf, art: reminder.art, verpasste: reminder.verpasste }, ordinary);
+    const saved = JSON.parse(b.saves().at(-1).text);
+    assert.equal(saved.einstellungen.erinnerung.jahrestage.autoAusblenden, true);
+    assert.equal(b.t.normalisiere(saved).einstellungen.erinnerung.jahrestage.autoAusblenden, true);
+    b.ack();
+    toggle.checked = false; toggle.dispatchEvent(new b.w.Event("change", { bubbles: true }));
+    assert.equal(b.t.daten().einstellungen.erinnerung.jahrestage.autoAusblenden, false);
+  }, { einstellungen: { erinnerung: { an: true, vorlauf: 30, art: "notification", jahrestage: { an: true } } } });
+
   await test("search ASCII fast path preserves Turkish I and non-ASCII folding", async b => {
     b.t.daten().termine = [{ id: "ascii", titel: "I", datum: "2026-09-08" },
       { id: "unicode", titel: "ÉCOLE", datum: "2026-09-08" }];

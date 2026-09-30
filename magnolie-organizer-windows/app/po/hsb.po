@@ -319,6 +319,9 @@ msgstr "%(start)s hač do %(end)s"
 msgid "%(title)s – %(when)s"
 msgstr "%(title)s – %(when)s"
 
+msgid "%s has a birthday %s."
+msgstr "%s ma %s narodniny."
+
 msgid "(unnamed)"
 msgstr "(bjez mjena)"
 
@@ -596,6 +599,9 @@ msgstr "Prózdninsku dobu přidać"
 msgid "Add waste collection"
 msgstr "Wotwóz wotpadkow přidać"
 
+msgid "Additional information"
+msgstr "Přidatne informacije"
+
 msgid "Address"
 msgstr "Adresa"
 
@@ -835,6 +841,9 @@ msgstr "Awtomatiske zawěsćenja w cloudowym rjadowaku"
 msgid "Automatically choose a suitable application"
 msgstr "Awtomatisce přihódne nałoženje wubrać"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "Dopomnjeća na róčnicy awtomatisce schować"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Awtomatisce přez WLAN synchronizować"
 
@@ -960,6 +969,9 @@ msgstr "Narodniny"
 msgid "Birthday party"
 msgstr "Narodninska swjedźeń"
 
+msgid "Birthday today"
+msgstr "Dźensa narodniny"
+
 msgid "Black"
 msgstr "Čorny"
 
@@ -1056,6 +1068,13 @@ msgstr "Přepytać..."
 
 msgid "Burgenland"
 msgstr "Burgenland"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"Dopomnjeća na róčnicy standardnje widźomne wostanu, doniž je njezačinjeće. "
+"Tute nastajenje je njewotwisne wot dopomnjećow na terminy."
 
 msgid "By first name (Hans Müller)"
 msgstr "Po předmjenje (Hans Müller)"
@@ -3937,6 +3956,9 @@ msgstr "Zwjazanje z telefonom je so přetorhnyło abo čakanski čas je wotběž
 msgid "Phone connection failed."
 msgstr "Zwjazanje z telefonom njeje so poradźiło."
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "Telefonowe kontakty (KDE Connect)"
+
 msgid "Phone error: %(error)s"
 msgstr "Telefonowy zmylk: %(error)s"
 
@@ -4021,6 +4043,9 @@ msgstr "Prošu wubjerće wobraz we formaće JPEG, PNG, WebP abo GIF."
 msgid "Please unlock"
 msgstr "Prošu wotzamknyć"
 
+msgid "Please wait …"
+msgstr "Prošu čakajće …"
+
 msgid "Poland"
 msgstr "Pólska"
 
@@ -4061,6 +4086,13 @@ msgstr "Přizjewjenje pola konta so přihotuje …"
 
 msgid "Preview"
 msgstr "Přehlad"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"Přepruwujće kontakty spřaženeho telefona. Změny so jenož w Organizer "
+"składuja; žane kontakty so njezhašeja."
 
 msgid "Preview failed."
 msgstr "Preview njeje so poradźił."
@@ -4866,6 +4898,9 @@ msgid ""
 msgstr ""
 "Za někotre prawidła wospjetowanja njedadźa so jednotliwe terminy wuličić. "
 "Originalne kalendrowe daty su so wobchowali."
+
+msgid "Someone"
+msgstr "Něchtó"
 
 msgid "Son"
 msgstr "Syn"
@@ -6826,6 +6861,9 @@ msgstr "ženje – manuelnje wuprózdnić"
 msgid "new task for this appointment…"
 msgstr "nowy nadawk za tutón termin…"
 
+msgid "no changes"
+msgstr "žane změny"
+
 msgid "notification %(count)s minute before"
 msgid_plural "notification %(count)s minutes before"
 msgstr[0] "powěsć %(count)s mjeńšinu do toho"
@@ -6876,6 +6914,9 @@ msgstr "składowane – prózdne wostajić, zo by so wobchowało"
 
 msgid "tentative"
 msgstr "nachwilne"
+
+msgid "the day after tomorrow"
+msgstr "pojutřim"
 
 msgid "the other branch"
 msgstr "druha hałuza"

@@ -255,6 +255,9 @@ msgstr "%(start)s til %(end)s"
 msgid "%(title)s – %(when)s"
 msgstr "%(title)s – %(when)s"
 
+msgid "%s has a birthday %s."
+msgstr "%s har fødselsdag %s."
+
 msgid "(unnamed)"
 msgstr "(uten navn)"
 
@@ -533,6 +536,9 @@ msgstr "Legg til ferieperiode"
 msgid "Add waste collection"
 msgstr "Legg til avfallshenting"
 
+msgid "Additional information"
+msgstr "Tilleggsinformasjon"
+
 msgid "Address"
 msgstr "Adresse"
 
@@ -771,6 +777,9 @@ msgstr "Automatiske sikkerhetskopier i en skymappe"
 msgid "Automatically choose a suitable application"
 msgstr "Velg automatisk et egnet program"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "Skjul påminnelser om merkedager automatisk"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Synkroniser automatisk via Wi-Fi"
 
@@ -898,6 +907,9 @@ msgstr "Fødselsdag"
 msgid "Birthday party"
 msgstr "Fødselsdagsfest"
 
+msgid "Birthday today"
+msgstr "Fødselsdag i dag"
+
 msgid "Black"
 msgstr "Svart"
 
@@ -993,6 +1005,13 @@ msgstr "Bla gjennom..."
 
 msgid "Burgenland"
 msgstr "Burgenland"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"Påminnelser om merkedager forblir som standard synlige til du lukker dem. "
+"Denne innstillingen er uavhengig av avtalepåminnelser."
 
 msgid "By first name (Hans Müller)"
 msgstr "Etter fornavn (Hans Müller)"
@@ -3849,6 +3868,9 @@ msgstr "Tilkoblingen til telefonen ble avbrutt, eller ventetiden er utløpt."
 msgid "Phone connection failed."
 msgstr "Tilkoblingen til telefonen mislyktes."
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "Telefonkontakter (KDE Connect)"
+
 msgid "Phone error: %(error)s"
 msgstr "Telefonfeil: %(error)s"
 
@@ -3933,6 +3955,9 @@ msgstr "Velg et bilde i JPEG-, PNG-, WebP- eller GIF-format."
 msgid "Please unlock"
 msgstr "Lås opp først"
 
+msgid "Please wait …"
+msgstr "Vennligst vent …"
+
 msgid "Poland"
 msgstr "Polen"
 
@@ -3973,6 +3998,13 @@ msgstr "Forbereder kontoinnlogging …"
 
 msgid "Preview"
 msgstr "Forhåndsvisning"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"Forhåndsvis kontakter fra den parede telefonen. Endringer lagres bare i "
+"Organizer; ingen kontakter slettes."
 
 msgid "Preview failed."
 msgstr "Forhåndsvisning mislyktes."
@@ -4772,6 +4804,9 @@ msgid ""
 msgstr ""
 "For noen gjentakelsesregler kan ikke de enkelte avtalene beregnes. De "
 "opprinnelige kalenderdataene er bevart."
+
+msgid "Someone"
+msgstr "Noen"
 
 msgid "Son"
 msgstr "Sønn"
@@ -6721,6 +6756,9 @@ msgstr "aldri – tøm manuelt"
 msgid "new task for this appointment…"
 msgstr "ny oppgave for denne avtalen…"
 
+msgid "no changes"
+msgstr "ingen endringer"
+
 msgid "notification %(count)s minute before"
 msgid_plural "notification %(count)s minutes before"
 msgstr[0] "varsel %(count)s minutt før"
@@ -6765,6 +6803,9 @@ msgstr "lagret – la feltet stå tomt for å beholde det"
 
 msgid "tentative"
 msgstr "foreløpig"
+
+msgid "the day after tomorrow"
+msgstr "i overmorgen"
 
 msgid "the other branch"
 msgstr "den andre grenen"

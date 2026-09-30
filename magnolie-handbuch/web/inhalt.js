@@ -1326,6 +1326,30 @@ const AUTOMATISCHE_HINTERGRUNDDIENSTE = {
   "zh-cn": "<p>完成或跳过设置后，Linux 会自动准备受支持的后台服务及其登录启动。已连接、已认证且支持自动启动的手机连接方式会自动纳入，无需另行打开服务开关。</p><p>在 Linux 的<b>设置 ▸ 安全</b>中，可以查看服务状态以及通知、文件的可选权限。<b>无</b>会清除这些可选权限，不会停用必要的连接。配对仍须确认；文件和剪贴板访问不会自动获得授权。</p><p>已安装且可用的系统 KDE Connect 服务会启动，但不会更改插件或权限，也不会创建与之竞争的 KDE 连接。系统管理的配对仍由 KDE Connect 处理；Magnolie 可以选择已经配对的手机。不会启动不受支持的功能。</p><p>明确停用的 Magnolienbaum 或 Notes 手机连接会保持停用。加密的主数据仍须解锁。Windows 使用 Organizer 的托盘启动来支持已连接的受支持手机，而不是单独的 Linux 式后台服务。</p>"
 };
 HANDBUCH_ANHAENGE["linux-background-service"] = { ersetzen: true, inhalt: AUTOMATISCHE_HINTERGRUNDDIENSTE };
+const JAHRESTAG_DAUER = {
+  en: ["Automatically dismiss anniversary reminders", "By default, anniversary reminders stay visible until you close them. This setting is independent of appointment reminders."],
+  de: ["Jahrestagserinnerungen automatisch ausblenden", "Jahrestagserinnerungen bleiben standardmäßig sichtbar, bis Sie sie schließen. Diese Einstellung ist unabhängig von Terminerinnerungen."],
+  fr: ["Masquer automatiquement les rappels d’anniversaire", "Par défaut, les rappels d’anniversaire restent visibles jusqu’à leur fermeture. Ce réglage est indépendant des rappels de rendez-vous."],
+  es: ["Ocultar automáticamente los recordatorios de aniversarios", "De forma predeterminada, los recordatorios de aniversarios permanecen visibles hasta que los cierre. Este ajuste es independiente de los recordatorios de citas."],
+  it: ["Nascondi automaticamente i promemoria degli anniversari", "Per impostazione predefinita, i promemoria degli anniversari restano visibili finché non vengono chiusi. Questa impostazione è indipendente dai promemoria degli appuntamenti."],
+  nl: ["Herinneringen aan verjaardagen en jubilea automatisch verbergen", "Herinneringen aan verjaardagen en jubilea blijven standaard zichtbaar totdat u ze sluit. Deze instelling staat los van afspraakherinneringen."],
+  pt: ["Ocultar automaticamente os lembretes de aniversários", "Por predefinição, os lembretes de aniversários permanecem visíveis até serem fechados. Esta definição é independente dos lembretes de compromissos."],
+  ru: ["Автоматически скрывать напоминания о годовщинах", "По умолчанию напоминания о годовщинах остаются видимыми, пока вы их не закроете. Эта настройка не зависит от напоминаний о встречах."],
+  cs: ["Automaticky skrývat připomínky výročí", "Připomínky výročí ve výchozím nastavení zůstávají viditelné, dokud je nezavřete. Toto nastavení je nezávislé na připomínkách schůzek."],
+  pl: ["Automatycznie ukrywaj przypomnienia o rocznicach", "Domyślnie przypomnienia o rocznicach pozostają widoczne, dopóki ich nie zamkniesz. To ustawienie jest niezależne od przypomnień o spotkaniach."],
+  hsb: ["Dopomnjeća na róčnicy awtomatisce schować", "Dopomnjeća na róčnicy standardnje widźomne wostanu, doniž je njezačinjeće. Tute nastajenje je njewotwisne wot dopomnjećow na terminy."],
+  da: ["Skjul automatisk påmindelser om mærkedage", "Påmindelser om mærkedage forbliver som standard synlige, indtil du lukker dem. Denne indstilling er uafhængig af aftalepåmindelser."],
+  nb: ["Skjul påminnelser om merkedager automatisk", "Påminnelser om merkedager forblir som standard synlige til du lukker dem. Denne innstillingen er uavhengig av avtalepåminnelser."],
+  hi: ["वर्षगाँठ के अनुस्मारक अपने आप छिपाएँ", "डिफ़ॉल्ट रूप से, वर्षगाँठ के अनुस्मारक तब तक दिखाई देते हैं जब तक आप उन्हें बंद नहीं करते। यह सेटिंग नियुक्ति के अनुस्मारकों से स्वतंत्र है।"],
+  "zh-cn": ["自动隐藏纪念日提醒", "默认情况下，纪念日提醒会一直显示，直到您手动关闭。此设置独立于日程提醒。"],
+  ja: ["記念日のリマインダーを自動的に非表示にする", "記念日のリマインダーは、標準では閉じるまで表示されます。この設定は予定のリマインダーとは独立しています。"],
+  ar: ["إخفاء تذكيرات الذكريات السنوية تلقائيًا", "تبقى تذكيرات الذكريات السنوية ظاهرة افتراضيًا حتى تغلقها. هذا الإعداد مستقل عن تذكيرات المواعيد."],
+  uk: ["Автоматично приховувати нагадування про річниці", "Типово нагадування про річниці залишаються видимими, доки ви їх не закриєте. Це налаштування не залежить від нагадувань про зустрічі."],
+  be: ["Аўтаматычна хаваць напаміны пра гадавіны", "Прадвызначана напаміны пра гадавіны застаюцца бачнымі, пакуль вы іх не закрыеце. Гэта налада не залежыць ад напамінаў пра сустрэчы."],
+  tr: ["Yıldönümü hatırlatmalarını otomatik gizle", "Varsayılan olarak yıldönümü hatırlatmaları siz kapatana kadar görünür kalır. Bu ayar randevu hatırlatmalarından bağımsızdır."]
+};
+HANDBUCH_ANHAENGE["getting-timely-anniversary-reminders"] = Object.fromEntries(
+  Object.entries(JAHRESTAG_DAUER).map(([locale, [label, text]]) => [locale, "<h3>" + label + "</h3><p>" + text + "</p>"]));
 const MOBILE_DOWNLOADS = window.MAGNOLIE_MOBILE_DOWNLOADS;
 if (MOBILE_DOWNLOADS) {
   const cards = "<div class='download-karten'>" +

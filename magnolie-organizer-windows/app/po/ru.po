@@ -289,6 +289,9 @@ msgstr "с %(start)s по %(end)s"
 msgid "%(title)s – %(when)s"
 msgstr "%(title)s — %(when)s"
 
+msgid "%s has a birthday %s."
+msgstr "У %s день рождения %s."
+
 msgid "(unnamed)"
 msgstr "(без имени)"
 
@@ -568,6 +571,9 @@ msgstr "Добавить период отпуска"
 msgid "Add waste collection"
 msgstr "Добавить вывоз отходов"
 
+msgid "Additional information"
+msgstr "Дополнительные сведения"
+
 msgid "Address"
 msgstr "Адрес"
 
@@ -808,6 +814,9 @@ msgstr "Автоматические копии в облачной папке"
 msgid "Automatically choose a suitable application"
 msgstr "Автоматически выбирать подходящее приложение"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "Автоматически скрывать напоминания о годовщинах"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Автоматически синхронизировать по Wi-Fi"
 
@@ -935,6 +944,9 @@ msgstr "День рождения"
 msgid "Birthday party"
 msgstr "Празднование дня рождения"
 
+msgid "Birthday today"
+msgstr "День рождения сегодня"
+
 msgid "Black"
 msgstr "Чёрный"
 
@@ -1031,6 +1043,13 @@ msgstr "Обзор..."
 
 msgid "Burgenland"
 msgstr "Бургенланд"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"По умолчанию напоминания о годовщинах остаются видимыми, пока вы их не "
+"закроете. Эта настройка не зависит от напоминаний о встречах."
 
 msgid "By first name (Hans Müller)"
 msgstr "По имени (Hans Müller)"
@@ -3894,6 +3913,9 @@ msgstr "Соединение с телефоном отменено или вр�
 msgid "Phone connection failed."
 msgstr "Не удалось соединиться с телефоном."
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "Контакты телефона (KDE Connect)"
+
 msgid "Phone error: %(error)s"
 msgstr "Ошибка телефона: %(error)s"
 
@@ -3978,6 +4000,9 @@ msgstr "Выберите изображение в формате JPEG, PNG, Web
 msgid "Please unlock"
 msgstr "Разблокируйте"
 
+msgid "Please wait …"
+msgstr "Подождите…"
+
 msgid "Poland"
 msgstr "Польша"
 
@@ -4018,6 +4043,13 @@ msgstr "Подготовка входа в аккаунт…"
 
 msgid "Preview"
 msgstr "Предварительный просмотр"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"Просмотрите контакты сопряжённого телефона. Изменения сохраняются только в "
+"Organizer; контакты не удаляются."
 
 msgid "Preview failed."
 msgstr "Предварительный просмотр не удался."
@@ -4819,6 +4851,9 @@ msgid ""
 msgstr ""
 "Для некоторых правил повторения не удалось рассчитать даты событий. Исходные "
 "данные календаря сохранены."
+
+msgid "Someone"
+msgstr "Кто-то"
 
 msgid "Son"
 msgstr "Сын"
@@ -6782,6 +6817,9 @@ msgstr "никогда — очищать вручную"
 msgid "new task for this appointment…"
 msgstr "новая задача для этой встречи…"
 
+msgid "no changes"
+msgstr "без изменений"
+
 msgid "notification %(count)s minute before"
 msgid_plural "notification %(count)s minutes before"
 msgstr[0] "уведомление за %(count)s минуту"
@@ -6829,6 +6867,9 @@ msgstr "сохранён — оставьте пустым, чтобы сохр�
 
 msgid "tentative"
 msgstr "предварительно"
+
+msgid "the day after tomorrow"
+msgstr "послезавтра"
 
 msgid "the other branch"
 msgstr "другая ветвь"

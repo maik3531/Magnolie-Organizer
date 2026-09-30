@@ -749,6 +749,9 @@ msgstr "Añadiendo el applet de la bandeja al inicio automático"
 msgid "Adding the word to the dictionary"
 msgstr "Añadiendo la palabra al diccionario"
 
+msgid "Additional information"
+msgstr "Información adicional"
+
 msgid "Address"
 msgstr "Dirección"
 
@@ -1061,6 +1064,9 @@ msgstr "Copias automáticas en una carpeta de nube"
 msgid "Automatically choose a suitable application"
 msgstr "Elegir automáticamente una aplicación adecuada"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "Ocultar automáticamente los recordatorios de aniversarios"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Sincronizar automáticamente por Wi-Fi"
 
@@ -1300,6 +1306,14 @@ msgstr "Examinar..."
 
 msgid "Burgenland"
 msgstr "Burgenland"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"De forma predeterminada, los recordatorios de aniversarios permanecen "
+"visibles hasta que los cierre. Este ajuste es independiente de los "
+"recordatorios de citas."
 
 msgid "By first name (Hans Müller)"
 msgstr "Por nombre (Hans Müller)"
@@ -2437,9 +2451,6 @@ msgstr "Habilitar la conexión telefónica Magnolie Notes"
 msgid "Enable SMS scheduling"
 msgstr "Activar la programación de SMS"
 
-msgid "Enable background service"
-msgstr "Activar el servicio en segundo plano"
-
 msgid "Enable cycle calendar"
 msgstr "Activar calendario del ciclo"
 
@@ -2487,9 +2498,6 @@ msgstr ""
 
 msgid "Encrypted archive entries are not supported."
 msgstr "No se admiten las entradas cifradas de los archivos."
-
-msgid "Encrypted data behavior"
-msgstr "Comportamiento con los datos cifrados"
 
 msgid "Encrypting the data"
 msgstr "Cifrando los datos"
@@ -3246,9 +3254,6 @@ msgstr ""
 msgid "KDE Connect pairing"
 msgstr "Vinculación de KDE Connect"
 
-msgid "KDE Connect pairing decisions"
-msgstr "Decisiones de vinculación de KDE Connect"
-
 msgid "KDE Connect pairing failed."
 msgstr "Error al emparejar KDE Connect."
 
@@ -3431,9 +3436,6 @@ msgstr "Vinculación de Magnolie Notes"
 msgid "Magnolie Notes phone connection"
 msgstr "Conexión telefónica Magnolie Notes"
 
-msgid "Magnolie Notes phone pairing decisions"
-msgstr "Decisiones de vinculación del teléfono de Magnolie Notes"
-
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
 "name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
@@ -3516,9 +3518,6 @@ msgstr "Planificador-Anual-Magnolia-%d.ods"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
-
-msgid "Magnolienbaum change offers"
-msgstr "Ofertas de cambios de Magnolienbaum"
 
 msgid "Magnolienbaum mailbox"
 msgstr "Buzón de Magnolienbaum"
@@ -3682,9 +3681,6 @@ msgstr "Lunes"
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "Supervisar los SMS de KDE Connect y mostrar notificaciones"
 
-msgid "Monitor the Magnolie Notes phone connection"
-msgstr "Supervisar la conexión telefónica de Magnolie Notes"
-
 msgid "Month"
 msgstr "Mes"
 
@@ -3789,9 +3785,6 @@ msgstr ""
 
 msgid "Native notifications available"
 msgstr "Notificaciones nativas disponibles"
-
-msgid "Native notifications unavailable"
-msgstr "Notificaciones nativas no disponibles"
 
 msgid "Netherlands"
 msgstr "Países Bajos"
@@ -4356,14 +4349,6 @@ msgid "Only HTTPS. The password is stored securely on this computer."
 msgstr "Solo HTTPS. La contraseña se guarda de forma segura en este equipo."
 
 msgid ""
-"Only Notify, then unlock is currently available. Keyring access and pausing "
-"while locked are not yet enforced by the background service."
-msgstr ""
-"Actualmente solo está disponible «Notificar y luego desbloquear». El "
-"servicio en segundo plano aún no aplica el acceso al depósito de claves ni "
-"la pausa mientras está bloqueado."
-
-msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
 msgstr ""
@@ -4649,9 +4634,6 @@ msgstr "Pegar"
 msgid "Patch"
 msgstr "Parche"
 
-msgid "Pause while data is locked"
-msgstr "Pausar mientras los datos estén bloqueados"
-
 msgid "Paused — review required"
 msgstr "En pausa — requiere revisión"
 
@@ -4760,6 +4742,9 @@ msgstr ""
 msgid "Phone connection failed."
 msgstr "La conexión con el teléfono ha fallado."
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "Contactos del teléfono (KDE Connect)"
+
 msgid "Phone notification"
 msgstr "Notificación del teléfono"
 
@@ -4851,6 +4836,9 @@ msgstr "Selecciona una imagen en formato JPEG, PNG, WebP o GIF."
 msgid "Please unlock"
 msgstr "Desbloquea primero"
 
+msgid "Please wait …"
+msgstr "Espere…"
+
 msgid "Poland"
 msgstr "Polonia"
 
@@ -4890,6 +4878,13 @@ msgstr "Carpeta preferida para las copias de seguridad"
 
 msgid "Preview"
 msgstr "Vista previa"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"Revise los contactos del teléfono vinculado. Los cambios se guardan solo en "
+"Organizer; no se elimina ningún contacto."
 
 msgid "Preview failed."
 msgstr "Ha fallado la vista previa."
@@ -5929,9 +5924,6 @@ msgstr "Iniciar automáticamente al iniciar sesión"
 msgid "Start Organizer"
 msgstr "Iniciar el Organizer"
 
-msgid "Start at login"
-msgstr "Iniciar al abrir sesión"
-
 msgid "Start automatically when signing in"
 msgstr "Iniciar automáticamente al iniciar sesión"
 
@@ -6076,17 +6068,6 @@ msgstr "Valor predeterminado del sistema"
 
 msgid "System internet accounts"
 msgstr "Cuentas de Internet del sistema"
-
-msgid "System keyring and pause modes cannot be enabled yet."
-msgstr ""
-"El depósito de claves del sistema y los modos de pausa aún no se pueden "
-"activar."
-
-msgid "System keyring available"
-msgstr "Depósito de claves del sistema disponible"
-
-msgid "System keyring unavailable"
-msgstr "Depósito de claves del sistema no disponible"
 
 msgid "System setting"
 msgstr "Configuración del sistema"
@@ -6455,10 +6436,6 @@ msgstr "No se pudo iniciar el servicio en segundo plano."
 
 msgid "The background service could not start."
 msgstr "No se ha podido iniciar el servicio en segundo plano."
-
-msgid "The background service is available only in the installed application."
-msgstr ""
-"El servicio en segundo plano solo está disponible en la aplicación instalada."
 
 msgid "The background settings could not be saved."
 msgstr "No se pudieron guardar los ajustes del servicio en segundo plano."
@@ -7796,9 +7773,6 @@ msgid ""
 msgstr ""
 "Usa únicamente pautas prescritas o confirmadas por un profesional sanitario."
 
-msgid "Use system keyring"
-msgstr "Usar el depósito de claves del sistema"
-
 msgid "Use the DAV address provided by your service."
 msgstr "Utilice la dirección DAV proporcionada por su servicio."
 
@@ -8648,6 +8622,61 @@ msgstr[1] "… y %(count)s elementos más que también se imprimirán."
 
 msgid "＋ Add appointment"
 msgstr "＋ Añadir cita"
+
+#~ msgid "Enable background service"
+#~ msgstr "Activar el servicio en segundo plano"
+
+#~ msgid "Encrypted data behavior"
+#~ msgstr "Comportamiento con los datos cifrados"
+
+#~ msgid "KDE Connect pairing decisions"
+#~ msgstr "Decisiones de vinculación de KDE Connect"
+
+#~ msgid "Magnolie Notes phone pairing decisions"
+#~ msgstr "Decisiones de vinculación del teléfono de Magnolie Notes"
+
+#~ msgid "Magnolienbaum change offers"
+#~ msgstr "Ofertas de cambios de Magnolienbaum"
+
+#~ msgid "Monitor the Magnolie Notes phone connection"
+#~ msgstr "Supervisar la conexión telefónica de Magnolie Notes"
+
+#~ msgid "Native notifications unavailable"
+#~ msgstr "Notificaciones nativas no disponibles"
+
+#~ msgid ""
+#~ "Only Notify, then unlock is currently available. Keyring access and "
+#~ "pausing while locked are not yet enforced by the background service."
+#~ msgstr ""
+#~ "Actualmente solo está disponible «Notificar y luego desbloquear». El "
+#~ "servicio en segundo plano aún no aplica el acceso al depósito de claves "
+#~ "ni la pausa mientras está bloqueado."
+
+#~ msgid "Pause while data is locked"
+#~ msgstr "Pausar mientras los datos estén bloqueados"
+
+#~ msgid "Start at login"
+#~ msgstr "Iniciar al abrir sesión"
+
+#~ msgid "System keyring and pause modes cannot be enabled yet."
+#~ msgstr ""
+#~ "El depósito de claves del sistema y los modos de pausa aún no se pueden "
+#~ "activar."
+
+#~ msgid "System keyring available"
+#~ msgstr "Depósito de claves del sistema disponible"
+
+#~ msgid "System keyring unavailable"
+#~ msgstr "Depósito de claves del sistema no disponible"
+
+#~ msgid ""
+#~ "The background service is available only in the installed application."
+#~ msgstr ""
+#~ "El servicio en segundo plano solo está disponible en la aplicación "
+#~ "instalada."
+
+#~ msgid "Use system keyring"
+#~ msgstr "Usar el depósito de claves del sistema"
 
 #~ msgid "New phone changes are available"
 #~ msgstr "Hay nuevos cambios del teléfono disponibles"

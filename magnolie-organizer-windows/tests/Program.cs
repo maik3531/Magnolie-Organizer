@@ -59,6 +59,7 @@ runner.Add("ODT Brief / MIME / Paket / Dateiendung", ContractGroupTests.OdtAsync
 runner.Add("Windows Contacts / Graph / OAuth / Token", WindowsContactGraphTests.RunAsync);
 runner.Add("Reminder / Serien", ContractGroupTests.RemindersAsync);
 runner.Add("Reminder / Neustart / Kennwort / DST", ReminderPersistenceTests.RunAsync);
+runner.Add("Anniversary reminder / text / independent dismissal", AnniversaryReminderTests.RunAsync);
 runner.Add("Tray-Persistenz / Autostart", ContractGroupTests.TrayAsync);
 runner.Add("Wetterstandort / LibreOffice / Datenschutz", WeatherLocationTests.RunAsync);
 runner.Add("Magnolienbaum Crypto / Pairing / FS1 / Replay / Queues / Netzwerk", ContractGroupTests.TreeAsync);
@@ -75,6 +76,7 @@ runner.Add("Telefon Bluetooth first pairing / target binding", TelefonBluetoothS
 runner.Add("Telefon setup startup lifecycle / Finish / Skip / rollback", PhoneStartupLifecycleTests.RunAsync);
 runner.Add("Bluetooth-Funkschalter / Gesprächsdauer / Zustandsrückgabe", BluetoothRadioTests.RunAsync);
 runner.Add("KDE Connect / Codec / P-256-Ablage / Pinning / Integration", KdeConnectTests.RunAsync);
+runner.Add("KDE contact import / projection / source binding", KdeContactImportTests.RunAsync);
 runner.Add("WebView2 / Handbuch-Start / Navigationssicherheit", WebViewStartupSourceTests.RunAsync);
 runner.Add("WebView2 / geschützte Assets / URI / Header", ProtectedAssetPolicyTests.RunAsync);
 runner.Add("Shell-Öffnen / URI-Positivliste / lokale Pfade", ShellLauncherTests.RunAsync);

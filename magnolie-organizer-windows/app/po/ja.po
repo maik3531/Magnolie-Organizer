@@ -226,6 +226,9 @@ msgstr "%(start)s から %(end)s"
 msgid "%(title)s – %(when)s"
 msgstr "%(title)s – %(when)s"
 
+msgid "%s has a birthday %s."
+msgstr "%s の誕生日は %s です。"
+
 msgid "(unnamed)"
 msgstr "（名称未設定）"
 
@@ -502,6 +505,9 @@ msgstr "休暇期間を追加"
 msgid "Add waste collection"
 msgstr "ごみ収集を追加"
 
+msgid "Additional information"
+msgstr "追加情報"
+
 msgid "Address"
 msgstr "住所"
 
@@ -737,6 +743,9 @@ msgstr "クラウドフォルダーへの自動バックアップ"
 msgid "Automatically choose a suitable application"
 msgstr "適切なアプリケーションを自動選択"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "記念日のリマインダーを自動的に非表示にする"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Wi-Fi で自動的に同期する"
 
@@ -863,6 +872,9 @@ msgstr "誕生日"
 msgid "Birthday party"
 msgstr "誕生日会"
 
+msgid "Birthday today"
+msgstr "今日が誕生日"
+
 msgid "Black"
 msgstr "黒"
 
@@ -958,6 +970,13 @@ msgstr "参照..."
 
 msgid "Burgenland"
 msgstr "ブルゲンラント州"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"記念日のリマインダーは、標準では閉じるまで表示されます。この設定は予定のリマ"
+"インダーとは独立しています。"
 
 msgid "By first name (Hans Müller)"
 msgstr "名で並べる（Hans Müller）"
@@ -3797,6 +3816,9 @@ msgstr "電話接続がキャンセルされたか、待ち時間の上限を超
 msgid "Phone connection failed."
 msgstr "携帯電話に接続できませんでした。"
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "電話の連絡先 (KDE Connect)"
+
 msgid "Phone error: %(error)s"
 msgstr "電話エラー: %(error)s"
 
@@ -3881,6 +3903,9 @@ msgstr "JPEG、PNG、WebP、GIF のいずれかの形式の画像を選択して
 msgid "Please unlock"
 msgstr "ロックを解除してください"
 
+msgid "Please wait …"
+msgstr "お待ちください…"
+
 msgid "Poland"
 msgstr "ポーランド"
 
@@ -3919,6 +3944,13 @@ msgstr "アカウントへのログインを準備中…"
 
 msgid "Preview"
 msgstr "プレビュー"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"ペアリング済みの電話の連絡先をプレビューします。変更は Organizer にのみ保存さ"
+"れ、連絡先は削除されません。"
 
 msgid "Preview failed."
 msgstr "プレビューに失敗しました。"
@@ -4704,6 +4736,9 @@ msgid ""
 msgstr ""
 "一部の繰り返しルールから各回の予定を計算できません。元のカレンダーデータは保"
 "持されています。"
+
+msgid "Someone"
+msgstr "誰か"
 
 msgid "Son"
 msgstr "息子"
@@ -6636,6 +6671,9 @@ msgstr "なし – 手動で空にする"
 msgid "new task for this appointment…"
 msgstr "この予定の新しいタスク…"
 
+msgid "no changes"
+msgstr "変更なし"
+
 msgid "notification %(count)s minute before"
 msgid_plural "notification %(count)s minutes before"
 msgstr[0] "%(count)s分前に通知"
@@ -6677,6 +6715,9 @@ msgstr "保存済み – 保持するには空のままにします"
 
 msgid "tentative"
 msgstr "仮"
+
+msgid "the day after tomorrow"
+msgstr "明後日"
 
 msgid "the other branch"
 msgstr "もう一方のブランチ"

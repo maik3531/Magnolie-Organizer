@@ -255,6 +255,9 @@ msgstr "%(start)s से %(end)s"
 msgid "%(title)s – %(when)s"
 msgstr "%(title)s – %(when)s"
 
+msgid "%s has a birthday %s."
+msgstr "%s का जन्मदिन %s है।"
+
 msgid "(unnamed)"
 msgstr "(बेनाम)"
 
@@ -526,6 +529,9 @@ msgstr "अवकाश अवधि जोड़ें"
 msgid "Add waste collection"
 msgstr "कचरा संग्रह जोड़ें"
 
+msgid "Additional information"
+msgstr "अतिरिक्त जानकारी"
+
 msgid "Address"
 msgstr "पता"
 
@@ -761,6 +767,9 @@ msgstr "क्लाउड फ़ोल्डर में स्वचालि
 msgid "Automatically choose a suitable application"
 msgstr "उपयुक्त एप्लिकेशन अपने-आप चुनें"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "वर्षगाँठ के अनुस्मारक अपने आप छिपाएँ"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Wi-Fi पर अपने आप सिंक्रनाइज़ करें"
 
@@ -884,6 +893,9 @@ msgstr "जन्मदिन"
 msgid "Birthday party"
 msgstr "जन्मदिन की पार्टी"
 
+msgid "Birthday today"
+msgstr "आज जन्मदिन"
+
 msgid "Black"
 msgstr "काला"
 
@@ -977,6 +989,13 @@ msgstr "ब्राउज़ करें..."
 
 msgid "Burgenland"
 msgstr "बुर्गेनलांड"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"डिफ़ॉल्ट रूप से, वर्षगाँठ के अनुस्मारक तब तक दिखाई देते हैं जब तक आप उन्हें बंद नहीं करते। यह "
+"सेटिंग नियुक्ति के अनुस्मारकों से स्वतंत्र है।"
 
 msgid "By first name (Hans Müller)"
 msgstr "पहले नाम के अनुसार (Hans Müller)"
@@ -3780,6 +3799,9 @@ msgstr "फ़ोन से जुड़ना रद्द कर दिया 
 msgid "Phone connection failed."
 msgstr "फ़ोन से जुड़ नहीं सके।"
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "फ़ोन संपर्क (KDE Connect)"
+
 msgid "Phone error: %(error)s"
 msgstr "फ़ोन त्रुटि: %(error)s"
 
@@ -3864,6 +3886,9 @@ msgstr "JPEG, PNG, WebP या GIF प्रारूप में चित्�
 msgid "Please unlock"
 msgstr "कृपया अनलॉक करें"
 
+msgid "Please wait …"
+msgstr "कृपया प्रतीक्षा करें…"
+
 msgid "Poland"
 msgstr "पोलैंड"
 
@@ -3903,6 +3928,13 @@ msgstr "खाते में साइन इन करने की तैय
 
 msgid "Preview"
 msgstr "पूर्वावलोकन"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"युग्मित फ़ोन के संपर्कों का पूर्वावलोकन करें। बदलाव केवल Organizer में सहेजे जाते हैं; कोई संपर्क "
+"नहीं हटाया जाता।"
 
 msgid "Preview failed."
 msgstr "पूर्वावलोकन विफल हुआ।"
@@ -4688,6 +4720,9 @@ msgid ""
 msgstr ""
 "दोहराव के कुछ नियमों से हर बार की तारीखें नहीं निकाली जा सकीं। कैलेंडर का मूल डेटा सुरक्षित "
 "रखा गया है।"
+
+msgid "Someone"
+msgstr "कोई व्यक्ति"
 
 msgid "Son"
 msgstr "बेटा"
@@ -6603,6 +6638,9 @@ msgstr "कभी नहीं – हाथ से खाली करें"
 msgid "new task for this appointment…"
 msgstr "इस अपॉइंटमेंट के लिए नया कार्य…"
 
+msgid "no changes"
+msgstr "कोई बदलाव नहीं"
+
 msgid "notification %(count)s minute before"
 msgid_plural "notification %(count)s minutes before"
 msgstr[0] "%(count)s मिनट पहले सूचना"
@@ -6647,6 +6685,9 @@ msgstr "सहेजा गया – बनाए रखने के लिए
 
 msgid "tentative"
 msgstr "अनिश्चित"
+
+msgid "the day after tomorrow"
+msgstr "परसों"
 
 msgid "the other branch"
 msgstr "दूसरी शाखा"

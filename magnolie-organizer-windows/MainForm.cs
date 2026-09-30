@@ -274,15 +274,21 @@ internal sealed class MainForm : Form
     }
 
     internal void ShowReminder(string title, string message, string kind, string style)
+        => ShowReminderCore(title, message, kind, style, false);
+
+    internal void ShowScheduledReminder(ReminderNotice notice)
+        => ShowReminderCore(notice.Title, notice.Body, notice.Kind, notice.Style, notice.RequireDismissal);
+
+    private void ShowReminderCore(string title, string message, string kind, string style, bool requireDismissal)
     {
         if (IsDisposed || Disposing || shutdownStarted) return;
-        if (InvokeRequired) { BeginInvoke(() => ShowReminder(title, message, kind, style)); return; }
+        if (InvokeRequired) { BeginInvoke(() => ShowReminderCore(title, message, kind, style, requireDismissal)); return; }
         kind = kind is "notification" or "sound" or "both" ? kind : "both";
         if (kind is "sound" or "both")
             NativeMethods.PlaySoundFile(Path.Combine(AppContext.BaseDirectory, "erinnerung.wav"));
         if (kind is not ("notification" or "both")) return;
 
-        if (style == "magnolie")
+        if (style == "magnolie" || requireDismissal)
         {
             var area = Screen.FromControl(this).WorkingArea;
             var bodyFont = new Font("Segoe UI", 11);
@@ -315,8 +321,7 @@ internal sealed class MainForm : Form
                 Font = headingFont, Padding = new Padding(0, 0, 0, 7), UseMnemonic = false };
             var gold = new Panel { Dock = DockStyle.Top, Height = 2, BackColor = Color.FromArgb(216, 178, 92) };
             var textArea = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 7, 0, 0) };
-            var body = new TextBox { Text = message, Dock = DockStyle.Fill, Multiline = true,
-                ReadOnly = true, BorderStyle = BorderStyle.None, ScrollBars = ScrollBars.Vertical,
+            var body = new ReminderTextPanel { Text = message, Dock = DockStyle.Fill,
                 BackColor = content.BackColor, ForeColor = Color.FromArgb(90, 70, 48), AccessibleName = title };
             textArea.Controls.Add(body);
             content.Controls.Add(textArea); content.Controls.Add(gold);
@@ -359,7 +364,7 @@ internal sealed class MainForm : Form
             try
             {
                 paper.Show();
-                if (!paper.IsDisposed) dismiss.Start();
+                if (!paper.IsDisposed && !requireDismissal) dismiss.Start();
             }
             catch
             {

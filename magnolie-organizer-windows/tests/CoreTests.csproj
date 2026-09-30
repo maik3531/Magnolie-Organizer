@@ -30,6 +30,7 @@
     <Compile Include="..\DocumentExportService.cs" Link="DocumentExportService.cs" />
     <Compile Include="..\GesamtarchivService.cs" Link="GesamtarchivService.cs" />
     <Compile Include="..\ContactSyncModels.cs" Link="ContactSyncModels.cs" />
+    <Compile Include="..\KdeContactImport.cs" Link="KdeContactImport.cs" />
     <Compile Include="..\ContactCleanupSnapshot.cs" Link="ContactCleanupSnapshot.cs" />
     <Compile Include="..\BaumSyncSnapshot.cs" Link="BaumSyncSnapshot.cs" />
     <Compile Include="..\WindowsContactStore.cs" Link="WindowsContactStore.cs" />

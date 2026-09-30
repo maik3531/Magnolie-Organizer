@@ -179,6 +179,7 @@ internal static class UiSelfTest
                     Console.WriteLine("WINDOWS-HANDBOOK-PORTRAIT-OK");
                     Test(await form.OpenHandbookAsync(manualPath) && form.OwnedForms.Count(owned => owned is HandbookForm) == 1,
                         "Erneutes Öffnen erzeugte ein zweites Handbuchfenster.");
+                    await TestAnniversaryReminderAsync(form);
                     form.ShowReminder("UI-Erinnerungsfenster-Lebenszyklus", "Synthetische Benachrichtigung ohne Ton.",
                         "notification", "magnolie");
                     var reminders = Application.OpenForms.Cast<Form>()
@@ -221,6 +222,48 @@ internal static class UiSelfTest
         {
             try { if (Directory.Exists(root)) Directory.Delete(root, true); } catch (Exception) { }
         }
+    }
+
+    private static async Task TestAnniversaryReminderAsync(MainForm form)
+    {
+        static IEnumerable<Control> Descendants(Control root) => root.Controls.Cast<Control>()
+            .SelectMany(child => new[] { child }.Concat(Descendants(child)));
+        const string title = "UI-Geburtstag-71";
+        form.ShowScheduledReminder(new ReminderNotice(title, "Testperson hat heute Geburtstag.", "notification", "system", true));
+        var paper = Application.OpenForms.Cast<Form>().Single(window => window.Text == title);
+        var text = Descendants(paper).OfType<ReminderTextPanel>().Single();
+        var indicator = text.Controls.OfType<Panel>().Single();
+        Test(!indicator.Visible, "Kurzer Geburtstagstext zeigt eine Scrollleiste.");
+        Test(text.AccessibleDescription == "Testperson hat heute Geburtstag.", "Erinnerungstext ist nicht zugänglich.");
+        text.Text = string.Join("\n", Enumerable.Range(1, 80).Select(n => $"Lange Testzeile {n}: vollständig erreichbarer Erinnerungstext."));
+        var cursor = Cursor.Position;
+        try
+        {
+            Cursor.Position = text.PointToScreen(new Point(Math.Max(1, text.Width / 2), Math.Max(1, text.Height / 2)));
+            typeof(Control).GetMethod("OnMouseEnter", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(text, [EventArgs.Empty]);
+            Test(indicator.Visible && indicator.Width <= Math.Max(3, text.DeviceDpi * 3 / 96),
+                $"Langer Text zeigt bei Hover keine schmale Scrollanzeige: viewport={text.ClientSize}, body={text.Controls.OfType<Label>().Single().Size}, " +
+                $"cursor={text.PointToClient(Cursor.Position)}, visible={indicator.Visible}, width={indicator.Width}, dpi={text.DeviceDpi}.");
+            typeof(ReminderTextPanel).GetMethod("OnMouseWheel", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(text, [new HandledMouseEventArgs(MouseButtons.None, 0, 10, 10, -120)]);
+            Test(text.Controls.OfType<Label>().Single().Top < 0, "Mausrad erreicht lange Erinnerung nicht.");
+            typeof(ReminderTextPanel).GetMethod("OnKeyDown", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(text, [new KeyEventArgs(Keys.End)]);
+            Test(text.Controls.OfType<Label>().Single().Bottom <= text.ClientSize.Height,
+                "Tastatur erreicht das Ende der Erinnerung nicht.");
+            form.Activate(); Cursor.Position = form.PointToScreen(new Point(10, 10)); Application.DoEvents();
+            typeof(Control).GetMethod("OnMouseLeave", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(text, [EventArgs.Empty]);
+            Test(!indicator.Visible, "Scrollanzeige bleibt ohne Hover sichtbar.");
+            text.Text = "Testperson hat heute Geburtstag.";
+            await Task.Delay(TimeSpan.FromSeconds(47));
+            Test(!paper.IsDisposed && paper.Visible, "Jahrestag verschwand ohne aktives Schließen.");
+            Descendants(paper).OfType<Button>().Single().PerformClick();
+            Test(paper.IsDisposed, "Schließen beendet die Jahrestagserinnerung nicht.");
+            Console.WriteLine("WINDOWS-ANNIVERSARY-DISMISSAL-SCROLL-OK");
+        }
+        finally { Cursor.Position = cursor; if (!paper.IsDisposed) paper.Dispose(); }
     }
 
     private static void Test(bool condition, string message)

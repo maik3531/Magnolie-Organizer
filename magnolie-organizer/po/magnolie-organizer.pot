@@ -708,6 +708,9 @@ msgstr ""
 msgid "Adding the word to the dictionary"
 msgstr ""
 
+msgid "Additional information"
+msgstr ""
+
 msgid "Address"
 msgstr ""
 
@@ -996,6 +999,9 @@ msgstr ""
 msgid "Automatically choose a suitable application"
 msgstr ""
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr ""
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr ""
 
@@ -1217,6 +1223,11 @@ msgid "Browse…"
 msgstr ""
 
 msgid "Burgenland"
+msgstr ""
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
 msgstr ""
 
 msgid "By first name (Hans Müller)"
@@ -2274,9 +2285,6 @@ msgstr ""
 msgid "Enable SMS scheduling"
 msgstr ""
 
-msgid "Enable background service"
-msgstr ""
-
 msgid "Enable cycle calendar"
 msgstr ""
 
@@ -2318,9 +2326,6 @@ msgid ""
 msgstr ""
 
 msgid "Encrypted archive entries are not supported."
-msgstr ""
-
-msgid "Encrypted data behavior"
 msgstr ""
 
 msgid "Encrypting the data"
@@ -3006,9 +3011,6 @@ msgstr ""
 msgid "KDE Connect pairing"
 msgstr ""
 
-msgid "KDE Connect pairing decisions"
-msgstr ""
-
 msgid "KDE Connect pairing failed."
 msgstr ""
 
@@ -3187,9 +3189,6 @@ msgstr ""
 msgid "Magnolie Notes phone connection"
 msgstr ""
 
-msgid "Magnolie Notes phone pairing decisions"
-msgstr ""
-
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
 "name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
@@ -3262,9 +3261,6 @@ msgid "Magnolie-Year-Planner-%d.ods"
 msgstr ""
 
 msgid "Magnolienbaum"
-msgstr ""
-
-msgid "Magnolienbaum change offers"
 msgstr ""
 
 msgid "Magnolienbaum mailbox"
@@ -3416,9 +3412,6 @@ msgstr ""
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr ""
 
-msgid "Monitor the Magnolie Notes phone connection"
-msgstr ""
-
 msgid "Month"
 msgstr ""
 
@@ -3511,9 +3504,6 @@ msgid ""
 msgstr ""
 
 msgid "Native notifications available"
-msgstr ""
-
-msgid "Native notifications unavailable"
 msgstr ""
 
 msgid "Netherlands"
@@ -4034,11 +4024,6 @@ msgid "Only HTTPS. The password is stored securely on this computer."
 msgstr ""
 
 msgid ""
-"Only Notify, then unlock is currently available. Keyring access and pausing "
-"while locked are not yet enforced by the background service."
-msgstr ""
-
-msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
 msgstr ""
@@ -4301,9 +4286,6 @@ msgstr ""
 msgid "Patch"
 msgstr ""
 
-msgid "Pause while data is locked"
-msgstr ""
-
 msgid "Paused — review required"
 msgstr ""
 
@@ -4397,6 +4379,9 @@ msgstr ""
 msgid "Phone connection failed."
 msgstr ""
 
+msgid "Phone contacts (KDE Connect)"
+msgstr ""
+
 msgid "Phone notification"
 msgstr ""
 
@@ -4486,6 +4471,9 @@ msgstr ""
 msgid "Please unlock"
 msgstr ""
 
+msgid "Please wait …"
+msgstr ""
+
 msgid "Poland"
 msgstr ""
 
@@ -4520,6 +4508,11 @@ msgid "Preferred backup folder"
 msgstr ""
 
 msgid "Preview"
+msgstr ""
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
 msgstr ""
 
 msgid "Preview failed."
@@ -5500,9 +5493,6 @@ msgstr ""
 msgid "Start Organizer"
 msgstr ""
 
-msgid "Start at login"
-msgstr ""
-
 msgid "Start automatically when signing in"
 msgstr ""
 
@@ -5641,15 +5631,6 @@ msgid "System default"
 msgstr ""
 
 msgid "System internet accounts"
-msgstr ""
-
-msgid "System keyring and pause modes cannot be enabled yet."
-msgstr ""
-
-msgid "System keyring available"
-msgstr ""
-
-msgid "System keyring unavailable"
 msgstr ""
 
 msgid "System setting"
@@ -5969,9 +5950,6 @@ msgid "The background service could not be started."
 msgstr ""
 
 msgid "The background service could not start."
-msgstr ""
-
-msgid "The background service is available only in the installed application."
 msgstr ""
 
 msgid "The background settings could not be saved."
@@ -7153,9 +7131,6 @@ msgstr ""
 
 msgid ""
 "Use only schedules prescribed or confirmed by a healthcare professional."
-msgstr ""
-
-msgid "Use system keyring"
 msgstr ""
 
 msgid "Use the DAV address provided by your service."

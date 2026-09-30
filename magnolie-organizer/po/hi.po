@@ -734,6 +734,9 @@ msgstr "सिस्टम ट्रे एप्लेट को ऑटोस�
 msgid "Adding the word to the dictionary"
 msgstr "शब्द को शब्दकोश में जोड़ा जा रहा है"
 
+msgid "Additional information"
+msgstr "अतिरिक्त जानकारी"
+
 msgid "Address"
 msgstr "पता"
 
@@ -1035,6 +1038,9 @@ msgstr "क्लाउड फ़ोल्डर में स्वचालि
 msgid "Automatically choose a suitable application"
 msgstr "उपयुक्त एप्लिकेशन अपने-आप चुनें"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "वर्षगाँठ के अनुस्मारक अपने आप छिपाएँ"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Wi-Fi पर अपने आप सिंक्रनाइज़ करें"
 
@@ -1266,6 +1272,13 @@ msgstr "ब्राउज़ करें..."
 
 msgid "Burgenland"
 msgstr "बुर्गेनलांड"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"डिफ़ॉल्ट रूप से, वर्षगाँठ के अनुस्मारक तब तक दिखाई देते हैं जब तक आप उन्हें बंद नहीं करते। यह "
+"सेटिंग नियुक्ति के अनुस्मारकों से स्वतंत्र है।"
 
 msgid "By first name (Hans Müller)"
 msgstr "पहले नाम के अनुसार (Hans Müller)"
@@ -2359,9 +2372,6 @@ msgstr "Magnolie Notes फ़ोन कनेक्शन सक्षम कर
 msgid "Enable SMS scheduling"
 msgstr "SMS शेड्यूलिंग चालू करें"
 
-msgid "Enable background service"
-msgstr "बैकग्राउंड सेवा सक्षम करें"
-
 msgid "Enable cycle calendar"
 msgstr "चक्र कैलेंडर सक्षम करें"
 
@@ -2407,9 +2417,6 @@ msgstr ""
 
 msgid "Encrypted archive entries are not supported."
 msgstr "एन्क्रिप्ट की गई आर्काइव प्रविष्टियाँ समर्थित नहीं हैं।"
-
-msgid "Encrypted data behavior"
-msgstr "एन्क्रिप्टेड डेटा का व्यवहार"
 
 msgid "Encrypting the data"
 msgstr "डेटा एन्क्रिप्ट किया जा रहा है"
@@ -3140,9 +3147,6 @@ msgstr ""
 msgid "KDE Connect pairing"
 msgstr "KDE Connect पेयरिंग"
 
-msgid "KDE Connect pairing decisions"
-msgstr "KDE Connect पेयरिंग के निर्णय"
-
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect युग्मन विफल रहा।"
 
@@ -3323,9 +3327,6 @@ msgstr "Magnolie Notes पेयरिंग"
 msgid "Magnolie Notes phone connection"
 msgstr "Magnolie Notes फ़ोन कनेक्शन"
 
-msgid "Magnolie Notes phone pairing decisions"
-msgstr "Magnolie Notes फ़ोन पेयरिंग के निर्णय"
-
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
 "name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
@@ -3406,9 +3407,6 @@ msgstr "मैग्नोलिया-वर्ष-योजनाकार-%d.
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
-
-msgid "Magnolienbaum change offers"
-msgstr "Magnolienbaum बदलाव के प्रस्ताव"
 
 msgid "Magnolienbaum mailbox"
 msgstr "Magnolienbaum मेलबॉक्स"
@@ -3570,9 +3568,6 @@ msgstr "सोमवार"
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "KDE Connect SMS की निगरानी करें और सूचनाएँ दिखाएँ"
 
-msgid "Monitor the Magnolie Notes phone connection"
-msgstr "Magnolie Notes फ़ोन कनेक्शन की निगरानी करें"
-
 msgid "Month"
 msgstr "महीना"
 
@@ -3674,9 +3669,6 @@ msgstr ""
 
 msgid "Native notifications available"
 msgstr "मूल सिस्टम सूचनाएँ उपलब्ध हैं"
-
-msgid "Native notifications unavailable"
-msgstr "मूल सिस्टम सूचनाएँ अनुपलब्ध हैं"
 
 msgid "Netherlands"
 msgstr "नीदरलैंड"
@@ -4222,13 +4214,6 @@ msgid "Only HTTPS. The password is stored securely on this computer."
 msgstr "केवल HTTPS। पासवर्ड इस कंप्यूटर पर सुरक्षित रूप से सहेजा जाता है।"
 
 msgid ""
-"Only Notify, then unlock is currently available. Keyring access and pausing "
-"while locked are not yet enforced by the background service."
-msgstr ""
-"वर्तमान में केवल “सूचित करें, फिर अनलॉक करें” उपलब्ध है। बैकग्राउंड सेवा अभी कीरिंग एक्सेस और "
-"लॉक रहने के दौरान रोकने की नीति लागू नहीं करती है।"
-
-msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
 msgstr ""
@@ -4501,9 +4486,6 @@ msgstr "चिपकाएँ"
 msgid "Patch"
 msgstr "पैच"
 
-msgid "Pause while data is locked"
-msgstr "डेटा लॉक होने पर रोकें"
-
 msgid "Paused — review required"
 msgstr "रुका हुआ — समीक्षा ज़रूरी है"
 
@@ -4602,6 +4584,9 @@ msgstr "फ़ोन से जुड़ना रद्द कर दिया 
 msgid "Phone connection failed."
 msgstr "फ़ोन से जुड़ नहीं सके।"
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "फ़ोन संपर्क (KDE Connect)"
+
 msgid "Phone notification"
 msgstr "फ़ोन सूचना"
 
@@ -4693,6 +4678,9 @@ msgstr "JPEG, PNG, WebP या GIF प्रारूप में चित्�
 msgid "Please unlock"
 msgstr "कृपया अनलॉक करें"
 
+msgid "Please wait …"
+msgstr "कृपया प्रतीक्षा करें…"
+
 msgid "Poland"
 msgstr "पोलैंड"
 
@@ -4729,6 +4717,13 @@ msgstr "पसंदीदा बैकअप फ़ोल्डर"
 
 msgid "Preview"
 msgstr "पूर्वावलोकन"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"युग्मित फ़ोन के संपर्कों का पूर्वावलोकन करें। बदलाव केवल Organizer में सहेजे जाते हैं; कोई संपर्क "
+"नहीं हटाया जाता।"
 
 msgid "Preview failed."
 msgstr "पूर्वावलोकन विफल हुआ।"
@@ -5741,9 +5736,6 @@ msgstr "साइन इन करते समय अपने-आप शुर
 msgid "Start Organizer"
 msgstr "Organizer शुरू करें"
 
-msgid "Start at login"
-msgstr "लॉगिन पर शुरू करें"
-
 msgid "Start automatically when signing in"
 msgstr "साइन इन करते समय अपने-आप शुरू करें"
 
@@ -5885,15 +5877,6 @@ msgstr "प्रणालीगत चूक"
 
 msgid "System internet accounts"
 msgstr "सिस्टम इंटरनेट खाते"
-
-msgid "System keyring and pause modes cannot be enabled yet."
-msgstr "सिस्टम कीरिंग और रोकने के मोड अभी सक्षम नहीं किए जा सकते।"
-
-msgid "System keyring available"
-msgstr "सिस्टम कीरिंग उपलब्ध है"
-
-msgid "System keyring unavailable"
-msgstr "सिस्टम कीरिंग अनुपलब्ध है"
 
 msgid "System setting"
 msgstr "सिस्टम सेटिंग"
@@ -6234,9 +6217,6 @@ msgstr "बैकग्राउंड सेवा शुरू नहीं �
 
 msgid "The background service could not start."
 msgstr "पृष्ठभूमि में चलने वाली सेवा शुरू नहीं हो सकी।"
-
-msgid "The background service is available only in the installed application."
-msgstr "बैकग्राउंड सेवा केवल इंस्टॉल किए गए एप्लिकेशन में उपलब्ध है।"
 
 msgid "The background settings could not be saved."
 msgstr "बैकग्राउंड सेटिंग सहेजी नहीं जा सकीं।"
@@ -7497,9 +7477,6 @@ msgid ""
 "Use only schedules prescribed or confirmed by a healthcare professional."
 msgstr "केवल स्वास्थ्य पेशेवर द्वारा निर्धारित या पुष्टि की गई समय-सारिणियों का उपयोग करें।"
 
-msgid "Use system keyring"
-msgstr "सिस्टम कीरिंग का उपयोग करें"
-
 msgid "Use the DAV address provided by your service."
 msgstr "अपने सेवा प्रदाता द्वारा दिया गया DAV पता उपयोग करें।"
 
@@ -8330,6 +8307,56 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
+
+#~ msgid "Enable background service"
+#~ msgstr "बैकग्राउंड सेवा सक्षम करें"
+
+#~ msgid "Encrypted data behavior"
+#~ msgstr "एन्क्रिप्टेड डेटा का व्यवहार"
+
+#~ msgid "KDE Connect pairing decisions"
+#~ msgstr "KDE Connect पेयरिंग के निर्णय"
+
+#~ msgid "Magnolie Notes phone pairing decisions"
+#~ msgstr "Magnolie Notes फ़ोन पेयरिंग के निर्णय"
+
+#~ msgid "Magnolienbaum change offers"
+#~ msgstr "Magnolienbaum बदलाव के प्रस्ताव"
+
+#~ msgid "Monitor the Magnolie Notes phone connection"
+#~ msgstr "Magnolie Notes फ़ोन कनेक्शन की निगरानी करें"
+
+#~ msgid "Native notifications unavailable"
+#~ msgstr "मूल सिस्टम सूचनाएँ अनुपलब्ध हैं"
+
+#~ msgid ""
+#~ "Only Notify, then unlock is currently available. Keyring access and "
+#~ "pausing while locked are not yet enforced by the background service."
+#~ msgstr ""
+#~ "वर्तमान में केवल “सूचित करें, फिर अनलॉक करें” उपलब्ध है। बैकग्राउंड सेवा अभी कीरिंग एक्सेस "
+#~ "और लॉक रहने के दौरान रोकने की नीति लागू नहीं करती है।"
+
+#~ msgid "Pause while data is locked"
+#~ msgstr "डेटा लॉक होने पर रोकें"
+
+#~ msgid "Start at login"
+#~ msgstr "लॉगिन पर शुरू करें"
+
+#~ msgid "System keyring and pause modes cannot be enabled yet."
+#~ msgstr "सिस्टम कीरिंग और रोकने के मोड अभी सक्षम नहीं किए जा सकते।"
+
+#~ msgid "System keyring available"
+#~ msgstr "सिस्टम कीरिंग उपलब्ध है"
+
+#~ msgid "System keyring unavailable"
+#~ msgstr "सिस्टम कीरिंग अनुपलब्ध है"
+
+#~ msgid ""
+#~ "The background service is available only in the installed application."
+#~ msgstr "बैकग्राउंड सेवा केवल इंस्टॉल किए गए एप्लिकेशन में उपलब्ध है।"
+
+#~ msgid "Use system keyring"
+#~ msgstr "सिस्टम कीरिंग का उपयोग करें"
 
 #~ msgid "New phone changes are available"
 #~ msgstr "फ़ोन से नए बदलाव उपलब्ध हैं"

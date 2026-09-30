@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 
 namespace MagnolieOrganizer.Windows;
 
-internal sealed record ReminderNotice(string Title, string Body, string Kind, string Style);
+internal sealed record ReminderNotice(string Title, string Body, string Kind, string Style, bool RequireDismissal = false);
 
 internal sealed class ReminderScheduler : IDisposable
 {
@@ -279,10 +279,14 @@ internal sealed class ReminderScheduler : IDisposable
             foreach (var due in dueItems)
             {
                 lock (gate) { if (!reported.Add(due.Key)) continue; reportedAt[due.Key] = CalendarRecurrence.NowUtc(now); dirty = true; }
+                if (due.Key.StartsWith("jahrestag:", StringComparison.Ordinal))
+                {
+                    pending.Add((due.Key, AnniversaryNotice(document.RootElement, due.Key, due.Start, now, kind, style)));
+                    continue;
+                }
                 var title = titles.GetValueOrDefault(due.Key) ?? FindTitle(document.RootElement, due.Key);
                 var when = due.Start.ToString(due.Start.TimeOfDay == TimeSpan.FromHours(8) ? "d" : "g", CultureInfo.CurrentCulture);
-            var heading = due.Key.StartsWith("aufgabe:", StringComparison.Ordinal) ? NativeLocalization.Gettext("Task") :
-                    due.Key.StartsWith("jahrestag:", StringComparison.Ordinal) ? NativeLocalization.Gettext("Anniversary") : NativeLocalization.Gettext("Appointment");
+                var heading = due.Key.StartsWith("aufgabe:", StringComparison.Ordinal) ? NativeLocalization.Gettext("Task") : NativeLocalization.Gettext("Appointment");
                 pending.Add((due.Key, new ReminderNotice(heading, $"{title}\n{when}", kind, style)));
             }
             if (dirty && !Persist(now))
@@ -389,6 +393,43 @@ internal sealed class ReminderScheduler : IDisposable
             }
         }
         return result;
+    }
+
+    internal static ReminderNotice AnniversaryNotice(JsonElement root, string key, DateTime occurrence,
+        DateTime now, string kind, string style)
+    {
+        var separator = key.LastIndexOf('@');
+        var id = key[10..(separator > 10 ? separator : key.Length)];
+        var item = default(JsonElement);
+        if (root.TryGetProperty("jahrestage", out var entries) && entries.ValueKind == JsonValueKind.Array)
+            foreach (var candidate in entries.EnumerateArray())
+                if (Identity(candidate) == id || id == Text(candidate, "name") + "|" + Text(candidate, "datum")[Math.Max(0, Text(candidate, "datum").Length - 5)..])
+                { item = candidate; break; }
+        var name = Text(item, "name").Trim();
+        if (name.Length == 0) name = NativeLocalization.Gettext("Someone");
+        var type = Text(item, "typ");
+        var birthday = NativeLocalization.IsTranslation("Birthday", type);
+        var wedding = type == "wedding-anniversary" || NativeLocalization.IsTranslation("Wedding anniversary", type);
+        var localNow = TimeZoneInfo.ConvertTimeFromUtc(CalendarRecurrence.NowUtc(now), CalendarRecurrence.OrganizerZone(root));
+        var days = (occurrence.Date - localNow.Date).Days;
+        var when = days switch
+        {
+            0 => NativeLocalization.Gettext("today"),
+            1 => NativeLocalization.Gettext("tomorrow"),
+            2 => NativeLocalization.Gettext("the day after tomorrow"),
+            _ => occurrence.ToString("d", CultureInfo.CurrentCulture)
+        };
+        var heading = birthday ? days == 0 ? NativeLocalization.Gettext("Birthday today") : NativeLocalization.Gettext("Birthday") :
+            wedding ? NativeLocalization.Gettext("Wedding anniversary") : NativeLocalization.Gettext("Anniversary");
+        var body = name + ": " + heading + " — " + when;
+        if (birthday && days is >= 0 and <= 2)
+        {
+            var args = new[] { name, when }; var index = 0;
+            body = System.Text.RegularExpressions.Regex.Replace(NativeLocalization.Gettext("%s has a birthday %s."),
+                "%s", _ => args[Math.Min(index++, args.Length - 1)]);
+        }
+        var settings = Child(Child(Child(root, "einstellungen"), "erinnerung"), "jahrestage");
+        return new ReminderNotice(heading, body, kind, style, !True(settings, "autoAusblenden"));
     }
 
     private static void AddDue(List<(string Key, DateTime Start, DateTime Due)> result, string id,

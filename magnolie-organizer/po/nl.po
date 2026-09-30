@@ -744,6 +744,9 @@ msgstr "Systeemvak-applet aan automatisch opstarten toevoegen"
 msgid "Adding the word to the dictionary"
 msgstr "Woord aan woordenboek toevoegen"
 
+msgid "Additional information"
+msgstr "Aanvullende informatie"
+
 msgid "Address"
 msgstr "Adres"
 
@@ -1051,6 +1054,9 @@ msgstr "Automatische back-ups in een cloudmap"
 msgid "Automatically choose a suitable application"
 msgstr "Automatisch een geschikte toepassing kiezen"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "Herinneringen aan verjaardagen en jubilea automatisch verbergen"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Automatisch synchroniseren via wifi"
 
@@ -1290,6 +1296,13 @@ msgstr "Bladeren..."
 
 msgid "Burgenland"
 msgstr "Burgenland"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"Herinneringen aan verjaardagen en jubilea blijven standaard zichtbaar totdat "
+"u ze sluit. Deze instelling staat los van afspraakherinneringen."
 
 msgid "By first name (Hans Müller)"
 msgstr "Op voornaam (Hans Müller)"
@@ -2427,9 +2440,6 @@ msgstr "Schakel Magnolie Notes-telefoonverbinding in"
 msgid "Enable SMS scheduling"
 msgstr "SMS-planning inschakelen"
 
-msgid "Enable background service"
-msgstr "Achtergrondservice inschakelen"
-
 msgid "Enable cycle calendar"
 msgstr "Cycluskalender inschakelen"
 
@@ -2477,9 +2487,6 @@ msgstr ""
 
 msgid "Encrypted archive entries are not supported."
 msgstr "Versleutelde archiefitems worden niet ondersteund."
-
-msgid "Encrypted data behavior"
-msgstr "Gedrag bij versleutelde gegevens"
 
 msgid "Encrypting the data"
 msgstr "Gegevens versleutelen"
@@ -3225,9 +3232,6 @@ msgstr ""
 msgid "KDE Connect pairing"
 msgstr "KDE Connect-koppeling"
 
-msgid "KDE Connect pairing decisions"
-msgstr "Beslissingen over KDE Connect-koppeling"
-
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect-koppeling mislukt."
 
@@ -3410,9 +3414,6 @@ msgstr "Koppeling met Magnolie Notes"
 msgid "Magnolie Notes phone connection"
 msgstr "Magnolie Notes telefoonverbinding"
 
-msgid "Magnolie Notes phone pairing decisions"
-msgstr "Beslissingen over het koppelen van een telefoon met Magnolie Notes"
-
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
 "name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
@@ -3495,9 +3496,6 @@ msgstr "Magnolie-Jaarplanner-%d.ods"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
-
-msgid "Magnolienbaum change offers"
-msgstr "Aanbiedingen voor wijzigingen in Magnolienbaum"
 
 msgid "Magnolienbaum mailbox"
 msgstr "Magnolienbaum-postbus"
@@ -3662,9 +3660,6 @@ msgstr "Maandag"
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "KDE Connect-SMS'jes controleren en meldingen tonen"
 
-msgid "Monitor the Magnolie Notes phone connection"
-msgstr "De telefoonverbinding van Magnolie Notes bewaken"
-
 msgid "Month"
 msgstr "Maand"
 
@@ -3770,9 +3765,6 @@ msgstr ""
 
 msgid "Native notifications available"
 msgstr "Systeemeigen meldingen beschikbaar"
-
-msgid "Native notifications unavailable"
-msgstr "Systeemeigen meldingen niet beschikbaar"
 
 msgid "Netherlands"
 msgstr "Nederland"
@@ -4334,14 +4326,6 @@ msgid "Only HTTPS. The password is stored securely on this computer."
 msgstr "Alleen HTTPS. Het wachtwoord wordt veilig op deze computer opgeslagen."
 
 msgid ""
-"Only Notify, then unlock is currently available. Keyring access and pausing "
-"while locked are not yet enforced by the background service."
-msgstr ""
-"Momenteel is alleen ‘Melden, dan ontgrendelen’ beschikbaar. Toegang tot de "
-"sleutelbos en pauzeren wanneer vergrendeld worden nog niet afgedwongen door "
-"de achtergronddienst."
-
-msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
 msgstr ""
@@ -4626,9 +4610,6 @@ msgstr "Plakken"
 msgid "Patch"
 msgstr "Pleister"
 
-msgid "Pause while data is locked"
-msgstr "Pauzeren zolang gegevens vergrendeld zijn"
-
 msgid "Paused — review required"
 msgstr "Gepauzeerd — controle vereist"
 
@@ -4738,6 +4719,9 @@ msgstr ""
 msgid "Phone connection failed."
 msgstr "Verbinding maken met de telefoon is mislukt."
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "Telefooncontacten (KDE Connect)"
+
 msgid "Phone notification"
 msgstr "Telefoonmelding"
 
@@ -4829,6 +4813,9 @@ msgstr "Selecteer een afbeelding in JPEG-, PNG-, WebP- of GIF-formaat."
 msgid "Please unlock"
 msgstr "Ontgrendel om door te gaan"
 
+msgid "Please wait …"
+msgstr "Even geduld …"
+
 msgid "Poland"
 msgstr "Polen"
 
@@ -4868,6 +4855,13 @@ msgstr "Voorkeursmap voor back-ups"
 
 msgid "Preview"
 msgstr "Voorbeeld"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"Bekijk vooraf de contacten van de gekoppelde telefoon. Wijzigingen worden "
+"alleen in Organizer opgeslagen; er worden geen contacten verwijderd."
 
 msgid "Preview failed."
 msgstr "Voorbeeld mislukt."
@@ -5903,9 +5897,6 @@ msgstr "Automatisch starten bij aanmelden"
 msgid "Start Organizer"
 msgstr "Organizer starten"
 
-msgid "Start at login"
-msgstr "Starten bij aanmelden"
-
 msgid "Start automatically when signing in"
 msgstr "Automatisch starten bij aanmelden"
 
@@ -6048,15 +6039,6 @@ msgstr "Systeemstandaard"
 
 msgid "System internet accounts"
 msgstr "Internetaccounts van het systeem"
-
-msgid "System keyring and pause modes cannot be enabled yet."
-msgstr "De systeemsleutelbos en pauzemodi kunnen nog niet worden ingeschakeld."
-
-msgid "System keyring available"
-msgstr "Systeemsleutelbos beschikbaar"
-
-msgid "System keyring unavailable"
-msgstr "Systeemsleutelbos niet beschikbaar"
 
 msgid "System setting"
 msgstr "Systeeminstelling"
@@ -6418,10 +6400,6 @@ msgstr "De achtergrondservice kon niet worden gestart."
 
 msgid "The background service could not start."
 msgstr "De achtergrondservice kon niet starten."
-
-msgid "The background service is available only in the installed application."
-msgstr ""
-"De achtergrondservice is alleen beschikbaar in de geïnstalleerde toepassing."
 
 msgid "The background settings could not be saved."
 msgstr "De achtergrondinstellingen konden niet worden opgeslagen."
@@ -7750,9 +7728,6 @@ msgstr ""
 "Gebruik uitsluitend schema’s die door een zorgverlener zijn voorgeschreven "
 "of bevestigd."
 
-msgid "Use system keyring"
-msgstr "Systeemsleutelbos gebruiken"
-
 msgid "Use the DAV address provided by your service."
 msgstr "Gebruik het DAV-adres van uw aanbieder."
 
@@ -8603,6 +8578,60 @@ msgstr[1] "… en %(count)s extra items die ook worden afgedrukt."
 
 msgid "＋ Add appointment"
 msgstr "＋ Afspraak toevoegen"
+
+#~ msgid "Enable background service"
+#~ msgstr "Achtergrondservice inschakelen"
+
+#~ msgid "Encrypted data behavior"
+#~ msgstr "Gedrag bij versleutelde gegevens"
+
+#~ msgid "KDE Connect pairing decisions"
+#~ msgstr "Beslissingen over KDE Connect-koppeling"
+
+#~ msgid "Magnolie Notes phone pairing decisions"
+#~ msgstr "Beslissingen over het koppelen van een telefoon met Magnolie Notes"
+
+#~ msgid "Magnolienbaum change offers"
+#~ msgstr "Aanbiedingen voor wijzigingen in Magnolienbaum"
+
+#~ msgid "Monitor the Magnolie Notes phone connection"
+#~ msgstr "De telefoonverbinding van Magnolie Notes bewaken"
+
+#~ msgid "Native notifications unavailable"
+#~ msgstr "Systeemeigen meldingen niet beschikbaar"
+
+#~ msgid ""
+#~ "Only Notify, then unlock is currently available. Keyring access and "
+#~ "pausing while locked are not yet enforced by the background service."
+#~ msgstr ""
+#~ "Momenteel is alleen ‘Melden, dan ontgrendelen’ beschikbaar. Toegang tot "
+#~ "de sleutelbos en pauzeren wanneer vergrendeld worden nog niet afgedwongen "
+#~ "door de achtergronddienst."
+
+#~ msgid "Pause while data is locked"
+#~ msgstr "Pauzeren zolang gegevens vergrendeld zijn"
+
+#~ msgid "Start at login"
+#~ msgstr "Starten bij aanmelden"
+
+#~ msgid "System keyring and pause modes cannot be enabled yet."
+#~ msgstr ""
+#~ "De systeemsleutelbos en pauzemodi kunnen nog niet worden ingeschakeld."
+
+#~ msgid "System keyring available"
+#~ msgstr "Systeemsleutelbos beschikbaar"
+
+#~ msgid "System keyring unavailable"
+#~ msgstr "Systeemsleutelbos niet beschikbaar"
+
+#~ msgid ""
+#~ "The background service is available only in the installed application."
+#~ msgstr ""
+#~ "De achtergrondservice is alleen beschikbaar in de geïnstalleerde "
+#~ "toepassing."
+
+#~ msgid "Use system keyring"
+#~ msgstr "Systeemsleutelbos gebruiken"
 
 #~ msgid "New phone changes are available"
 #~ msgstr "Nieuwe wijzigingen van de telefoon zijn beschikbaar"

@@ -45,8 +45,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         this.form = form;
         this.paths = paths;
         this.setupSelections = setupSelections;
-        reminders = new ReminderScheduler(paths.ReminderState, notice =>
-            form.ShowReminder(notice.Title, notice.Body, notice.Kind, notice.Style));
+        reminders = new ReminderScheduler(paths.ReminderState, form.ShowScheduledReminder);
         LoadPersistentReminders();
         recovery = new RecoveryJournal(paths.RecoveryJournal, paths.RecoverySettings, store);
         recoveryTimer = new System.Threading.Timer(_ => QueueBackground(RunPeriodicSnapshotAsync), null,
@@ -79,9 +78,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 "sync" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
                 "telefon_oeffnen" or "telefon_verbinden" or "telefon_pairing_oeffnen" or "kde_pairing_start" or "kde_pairing_complete" or
                 "kde_paaren" or "kde_pairing_confirm" or "kde_paarung_bestaetigen" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or
-                "internet_konto_anmelden" or "internet_konten_status" or "internet_konto_verwalten" or "telefon_kontaktfotos")
+                "internet_konto_anmelden" or "internet_konten_status" or "internet_konto_verwalten" or "telefon_kontaktfotos" or "telefon_kontakte")
             {
-                var owner = command == "telefon_kontaktfotos" ? "kontaktfotos" :
+                var owner = command is "telefon_kontaktfotos" or "telefon_kontakte" ? "kontaktfotos" :
                     command is "sync" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or "internet_konto_verwalten" ? "sync" :
                     command.StartsWith("personal_sync", StringComparison.Ordinal) || command.StartsWith("telefon", StringComparison.Ordinal) ? "phone" :
                     command.StartsWith("kde", StringComparison.Ordinal) ? "kde" : command.StartsWith("baum", StringComparison.Ordinal) ? "baum" :
@@ -264,6 +263,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "telefon_personal_sync_commit": await CommitPersonalSyncAsync(message); break;
                     case "kde_sms_senden": await SendKdeSmsAsync(message); break;
                     case "telefon_kontaktfotos": await ReadContactPhotosAsync(message); break;
+                    case "telefon_kontakte": await ReadContactPhotosAsync(message, fullContacts: true); break;
                     case "kde_pairing_start":
                     case "kde_pairing_complete":
                     case "kde_paaren": await EnsureFirewallAsync(); await StartKdePairingAsync(message); break;

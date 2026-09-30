@@ -896,6 +896,9 @@ msgstr "إضافة بريمج صينية النظام إلى التشغيل ال
 msgid "Adding the word to the dictionary"
 msgstr "إضافة الكلمة إلى القاموس"
 
+msgid "Additional information"
+msgstr "معلومات إضافية"
+
 msgid "Address"
 msgstr "العنوان"
 
@@ -1197,6 +1200,9 @@ msgstr "نسخ احتياطية تلقائية في مجلد سحابي"
 msgid "Automatically choose a suitable application"
 msgstr "اختيار تطبيق مناسب تلقائيًا"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "إخفاء تذكيرات الذكريات السنوية تلقائيًا"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "المزامنة تلقائيًا عبر Wi-Fi"
 
@@ -1430,6 +1436,13 @@ msgstr "استعراض..."
 
 msgid "Burgenland"
 msgstr "بورغنلاند"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"تبقى تذكيرات الذكريات السنوية ظاهرة افتراضيًا حتى تغلقها. هذا الإعداد مستقل "
+"عن تذكيرات المواعيد."
 
 msgid "By first name (Hans Müller)"
 msgstr "حسب الاسم الأول (Hans Müller)"
@@ -2535,9 +2548,6 @@ msgstr "تمكين اتصال الهاتف Magnolie Notes"
 msgid "Enable SMS scheduling"
 msgstr "تفعيل جدولة رسائل SMS"
 
-msgid "Enable background service"
-msgstr "تمكين خدمة الخلفية"
-
 msgid "Enable cycle calendar"
 msgstr "تمكين تقويم الدورة"
 
@@ -2582,9 +2592,6 @@ msgstr "يسمح تفعيل هذه الخطة بإرسال رسالتها الم
 
 msgid "Encrypted archive entries are not supported."
 msgstr "إدخالات الأرشيف المشفرة غير مدعومة."
-
-msgid "Encrypted data behavior"
-msgstr "كيفية التعامل مع البيانات المشفرة"
 
 msgid "Encrypting the data"
 msgstr "جارٍ تشفير البيانات"
@@ -3314,9 +3321,6 @@ msgstr ""
 msgid "KDE Connect pairing"
 msgstr "اقتران KDE Connect"
 
-msgid "KDE Connect pairing decisions"
-msgstr "قرارات اقتران KDE Connect"
-
 msgid "KDE Connect pairing failed."
 msgstr "فشل الاقتران KDE Connect."
 
@@ -3497,9 +3501,6 @@ msgstr "اقتران Magnolie Notes"
 msgid "Magnolie Notes phone connection"
 msgstr "اتصال الهاتف Magnolie Notes"
 
-msgid "Magnolie Notes phone pairing decisions"
-msgstr "قرارات اقتران هاتف Magnolie Notes"
-
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
 "name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
@@ -3580,9 +3581,6 @@ msgstr "%d.ods-ﺎﻴﻟﻮﻨﻐﻤﻟﺍ-ﺔﻨﺳ-ﻂﻄﺨﻣ"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
-
-msgid "Magnolienbaum change offers"
-msgstr "عروض تغييرات Magnolienbaum"
 
 msgid "Magnolienbaum mailbox"
 msgstr "صندوق بريد Magnolienbaum"
@@ -3744,9 +3742,6 @@ msgstr "الاثنين"
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "مراقبة رسائل SMS في KDE Connect وإظهار الإشعارات"
 
-msgid "Monitor the Magnolie Notes phone connection"
-msgstr "مراقبة اتصال هاتف Magnolie Notes"
-
 msgid "Month"
 msgstr "الشهر"
 
@@ -3850,9 +3845,6 @@ msgstr ""
 
 msgid "Native notifications available"
 msgstr "الإشعارات الأصلية متاحة"
-
-msgid "Native notifications unavailable"
-msgstr "الإشعارات الأصلية غير متاحة"
 
 msgid "Netherlands"
 msgstr "هولندا"
@@ -4427,13 +4419,6 @@ msgid "Only HTTPS. The password is stored securely on this computer."
 msgstr "HTTPS فقط. تُحفظ كلمة المرور بأمان على هذا الحاسوب."
 
 msgid ""
-"Only Notify, then unlock is currently available. Keyring access and pausing "
-"while locked are not yet enforced by the background service."
-msgstr ""
-"لا يتوفر حاليًا سوى خيار «الإشعار، ثم إلغاء القفل». لم تنفّذ خدمة الخلفية بعد "
-"إمكانية الوصول إلى حلقة المفاتيح والإيقاف المؤقت أثناء القفل."
-
-msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
 msgstr ""
@@ -4706,9 +4691,6 @@ msgstr "لصق"
 msgid "Patch"
 msgstr "لصقة"
 
-msgid "Pause while data is locked"
-msgstr "الإيقاف المؤقت أثناء قفل البيانات"
-
 msgid "Paused — review required"
 msgstr "متوقفة مؤقتًا — المراجعة مطلوبة"
 
@@ -4821,6 +4803,9 @@ msgstr "أُلغي اتصال الهاتف أو انتهت مهلة الاتصا
 msgid "Phone connection failed."
 msgstr "تعذّر الاتصال بالهاتف."
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "جهات اتصال الهاتف (KDE Connect)"
+
 msgid "Phone notification"
 msgstr "إشعار الهاتف"
 
@@ -4912,6 +4897,9 @@ msgstr "يرجى تحديد صورة بتنسيق JPEG أو PNG أو WebP أو G
 msgid "Please unlock"
 msgstr "يرجى إلغاء القفل"
 
+msgid "Please wait …"
+msgstr "يُرجى الانتظار…"
+
 msgid "Poland"
 msgstr "بولندا"
 
@@ -4949,6 +4937,13 @@ msgstr "مجلد النسخ الاحتياطي المفضّل"
 
 msgid "Preview"
 msgstr "معاينة"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"عاين جهات اتصال الهاتف المقترن. تُحفظ التغييرات في Organizer فقط؛ ولا تُحذف أي "
+"جهة اتصال."
 
 msgid "Preview failed."
 msgstr "فشل المعاينة."
@@ -5971,9 +5966,6 @@ msgstr "البدء تلقائيًا عند تسجيل الدخول"
 msgid "Start Organizer"
 msgstr "تشغيل Organizer"
 
-msgid "Start at login"
-msgstr "التشغيل عند تسجيل الدخول"
-
 msgid "Start automatically when signing in"
 msgstr "البدء تلقائيًا عند تسجيل الدخول"
 
@@ -6115,15 +6107,6 @@ msgstr "الافتراضي للنظام"
 
 msgid "System internet accounts"
 msgstr "حسابات إنترنت النظام"
-
-msgid "System keyring and pause modes cannot be enabled yet."
-msgstr "لا يمكن تمكين حلقة مفاتيح النظام وأوضاع الإيقاف المؤقت بعد."
-
-msgid "System keyring available"
-msgstr "حلقة مفاتيح النظام متاحة"
-
-msgid "System keyring unavailable"
-msgstr "حلقة مفاتيح النظام غير متاحة"
 
 msgid "System setting"
 msgstr "إعداد النظام"
@@ -6477,9 +6460,6 @@ msgstr "تعذر بدء خدمة الخلفية."
 
 msgid "The background service could not start."
 msgstr "تعذّر بدء خدمة الخلفية."
-
-msgid "The background service is available only in the installed application."
-msgstr "لا تتوفر خدمة الخلفية إلا في التطبيق المثبّت."
 
 msgid "The background settings could not be saved."
 msgstr "تعذر حفظ إعدادات الخلفية."
@@ -7743,9 +7723,6 @@ msgid ""
 "Use only schedules prescribed or confirmed by a healthcare professional."
 msgstr "استخدم فقط الجداول العلاجية التي يصفها أو يؤكدها اختصاصي رعاية صحية."
 
-msgid "Use system keyring"
-msgstr "استخدام حلقة مفاتيح النظام"
-
 msgid "Use the DAV address provided by your service."
 msgstr "استخدم عنوان DAV الذي يقدمه مزود الخدمة."
 
@@ -8616,6 +8593,56 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
+
+#~ msgid "Enable background service"
+#~ msgstr "تمكين خدمة الخلفية"
+
+#~ msgid "Encrypted data behavior"
+#~ msgstr "كيفية التعامل مع البيانات المشفرة"
+
+#~ msgid "KDE Connect pairing decisions"
+#~ msgstr "قرارات اقتران KDE Connect"
+
+#~ msgid "Magnolie Notes phone pairing decisions"
+#~ msgstr "قرارات اقتران هاتف Magnolie Notes"
+
+#~ msgid "Magnolienbaum change offers"
+#~ msgstr "عروض تغييرات Magnolienbaum"
+
+#~ msgid "Monitor the Magnolie Notes phone connection"
+#~ msgstr "مراقبة اتصال هاتف Magnolie Notes"
+
+#~ msgid "Native notifications unavailable"
+#~ msgstr "الإشعارات الأصلية غير متاحة"
+
+#~ msgid ""
+#~ "Only Notify, then unlock is currently available. Keyring access and "
+#~ "pausing while locked are not yet enforced by the background service."
+#~ msgstr ""
+#~ "لا يتوفر حاليًا سوى خيار «الإشعار، ثم إلغاء القفل». لم تنفّذ خدمة الخلفية "
+#~ "بعد إمكانية الوصول إلى حلقة المفاتيح والإيقاف المؤقت أثناء القفل."
+
+#~ msgid "Pause while data is locked"
+#~ msgstr "الإيقاف المؤقت أثناء قفل البيانات"
+
+#~ msgid "Start at login"
+#~ msgstr "التشغيل عند تسجيل الدخول"
+
+#~ msgid "System keyring and pause modes cannot be enabled yet."
+#~ msgstr "لا يمكن تمكين حلقة مفاتيح النظام وأوضاع الإيقاف المؤقت بعد."
+
+#~ msgid "System keyring available"
+#~ msgstr "حلقة مفاتيح النظام متاحة"
+
+#~ msgid "System keyring unavailable"
+#~ msgstr "حلقة مفاتيح النظام غير متاحة"
+
+#~ msgid ""
+#~ "The background service is available only in the installed application."
+#~ msgstr "لا تتوفر خدمة الخلفية إلا في التطبيق المثبّت."
+
+#~ msgid "Use system keyring"
+#~ msgstr "استخدام حلقة مفاتيح النظام"
 
 #~ msgid "New phone changes are available"
 #~ msgstr "تتوفر تغييرات جديدة من الهاتف"

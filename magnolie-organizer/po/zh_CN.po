@@ -682,6 +682,9 @@ msgstr "正在将系统托盘小程序添加到自动启动"
 msgid "Adding the word to the dictionary"
 msgstr "正在将单词添加到词典"
 
+msgid "Additional information"
+msgstr "附加信息"
+
 msgid "Address"
 msgstr "地址"
 
@@ -977,6 +980,9 @@ msgstr "云文件夹自动备份"
 msgid "Automatically choose a suitable application"
 msgstr "自动选择合适的应用程序"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "自动隐藏纪念日提醒"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "通过 Wi-Fi 自动同步"
 
@@ -1207,6 +1213,12 @@ msgstr "浏览..."
 
 msgid "Burgenland"
 msgstr "布尔根兰州"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"默认情况下，纪念日提醒会一直显示，直到您手动关闭。此设置独立于日程提醒。"
 
 msgid "By first name (Hans Müller)"
 msgstr "按名字排序（Hans Müller）"
@@ -2278,9 +2290,6 @@ msgstr "启用 Magnolie Notes 电话连接"
 msgid "Enable SMS scheduling"
 msgstr "启用 SMS 定时发送"
 
-msgid "Enable background service"
-msgstr "启用后台服务"
-
 msgid "Enable cycle calendar"
 msgstr "启用周期日历"
 
@@ -2325,9 +2334,6 @@ msgstr "启用此计划后，在短信定时功能开启时，其已过期的短
 
 msgid "Encrypted archive entries are not supported."
 msgstr "不支持加密的归档条目。"
-
-msgid "Encrypted data behavior"
-msgstr "加密数据处理方式"
 
 msgid "Encrypting the data"
 msgstr "正在加密数据"
@@ -3044,9 +3050,6 @@ msgstr "KDE Connect 仅用于 SMS。它不连接或同步Magnolienbaum。"
 msgid "KDE Connect pairing"
 msgstr "KDE Connect 配对"
 
-msgid "KDE Connect pairing decisions"
-msgstr "KDE Connect 配对决定"
-
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect 配对失败。"
 
@@ -3225,9 +3228,6 @@ msgstr "Magnolie Notes 配对"
 msgid "Magnolie Notes phone connection"
 msgstr "Magnolie Notes 电话连接"
 
-msgid "Magnolie Notes phone pairing decisions"
-msgstr "Magnolie Notes 手机配对决定"
-
 msgid ""
 "Magnolie Notes phones and KDE Connect phones are separate: the Android model "
 "name belongs to Magnolie Notes; the KDE peer name comes from KDE Connect."
@@ -3305,9 +3305,6 @@ msgstr "木兰年计划-%d.ods"
 
 msgid "Magnolienbaum"
 msgstr "Magnolienbaum"
-
-msgid "Magnolienbaum change offers"
-msgstr "Magnolienbaum 更改提议"
 
 msgid "Magnolienbaum mailbox"
 msgstr "Magnolienbaum 邮箱"
@@ -3467,9 +3464,6 @@ msgstr "星期一"
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "监控 KDE Connect SMS 并显示通知"
 
-msgid "Monitor the Magnolie Notes phone connection"
-msgstr "监控 Magnolie Notes 手机连接"
-
 msgid "Month"
 msgstr "月"
 
@@ -3568,9 +3562,6 @@ msgstr ""
 
 msgid "Native notifications available"
 msgstr "原生通知可用"
-
-msgid "Native notifications unavailable"
-msgstr "原生通知不可用"
 
 msgid "Netherlands"
 msgstr "荷兰"
@@ -4101,12 +4092,6 @@ msgid "Only HTTPS. The password is stored securely on this computer."
 msgstr "仅限 HTTPS。密码将安全地存储在此计算机上。"
 
 msgid ""
-"Only Notify, then unlock is currently available. Keyring access and pausing "
-"while locked are not yet enforced by the background service."
-msgstr ""
-"目前只有“通知，然后解锁”可用。后台服务尚未实施密钥环访问和锁定时暂停功能。"
-
-msgid ""
 "Only one Magnolie Notes phone can be paired. Remove the existing phone "
 "before changing devices."
 msgstr "只能配对一部 Magnolie Notes 手机。更换设备前请移除现有手机。"
@@ -4374,9 +4359,6 @@ msgstr "粘贴"
 msgid "Patch"
 msgstr "贴剂"
 
-msgid "Pause while data is locked"
-msgstr "数据锁定时暂停"
-
 msgid "Paused — review required"
 msgstr "已暂停 — 需要审核"
 
@@ -4468,6 +4450,9 @@ msgstr "手机连接已取消或超时。"
 msgid "Phone connection failed."
 msgstr "手机连接失败。"
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "手机联系人（KDE Connect）"
+
 msgid "Phone notification"
 msgstr "手机通知"
 
@@ -4557,6 +4542,9 @@ msgstr "请选择 JPEG、PNG、WebP 或 GIF 格式的图像。"
 msgid "Please unlock"
 msgstr "请先解锁"
 
+msgid "Please wait …"
+msgstr "请稍候…"
+
 msgid "Poland"
 msgstr "波兰"
 
@@ -4592,6 +4580,12 @@ msgstr "首选备份文件夹"
 
 msgid "Preview"
 msgstr "预览"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"预览已配对手机的联系人。更改仅保存在 Organizer 中，不会删除任何联系人。"
 
 msgid "Preview failed."
 msgstr "预览失败。"
@@ -5581,9 +5575,6 @@ msgstr "登录时自动启动"
 msgid "Start Organizer"
 msgstr "启动 Organizer"
 
-msgid "Start at login"
-msgstr "登录时启动"
-
 msgid "Start automatically when signing in"
 msgstr "登录时自动启动"
 
@@ -5725,15 +5716,6 @@ msgstr "系统默认"
 
 msgid "System internet accounts"
 msgstr "系统互联网账户"
-
-msgid "System keyring and pause modes cannot be enabled yet."
-msgstr "系统密钥环和暂停模式目前还无法启用。"
-
-msgid "System keyring available"
-msgstr "系统密钥环可用"
-
-msgid "System keyring unavailable"
-msgstr "系统密钥环不可用"
 
 msgid "System setting"
 msgstr "系统设置"
@@ -6064,9 +6046,6 @@ msgstr "无法启动后台服务。"
 
 msgid "The background service could not start."
 msgstr "无法启动后台服务。"
-
-msgid "The background service is available only in the installed application."
-msgstr "后台服务仅在已安装的应用程序中可用。"
 
 msgid "The background settings could not be saved."
 msgstr "无法保存后台设置。"
@@ -7294,9 +7273,6 @@ msgid ""
 "Use only schedules prescribed or confirmed by a healthcare professional."
 msgstr "请仅使用由医疗专业人员开具或确认的用药计划。"
 
-msgid "Use system keyring"
-msgstr "使用系统密钥环"
-
 msgid "Use the DAV address provided by your service."
 msgstr "请使用服务商提供的 DAV 地址。"
 
@@ -8094,6 +8070,55 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
+
+#~ msgid "Enable background service"
+#~ msgstr "启用后台服务"
+
+#~ msgid "Encrypted data behavior"
+#~ msgstr "加密数据处理方式"
+
+#~ msgid "KDE Connect pairing decisions"
+#~ msgstr "KDE Connect 配对决定"
+
+#~ msgid "Magnolie Notes phone pairing decisions"
+#~ msgstr "Magnolie Notes 手机配对决定"
+
+#~ msgid "Magnolienbaum change offers"
+#~ msgstr "Magnolienbaum 更改提议"
+
+#~ msgid "Monitor the Magnolie Notes phone connection"
+#~ msgstr "监控 Magnolie Notes 手机连接"
+
+#~ msgid "Native notifications unavailable"
+#~ msgstr "原生通知不可用"
+
+#~ msgid ""
+#~ "Only Notify, then unlock is currently available. Keyring access and "
+#~ "pausing while locked are not yet enforced by the background service."
+#~ msgstr ""
+#~ "目前只有“通知，然后解锁”可用。后台服务尚未实施密钥环访问和锁定时暂停功能。"
+
+#~ msgid "Pause while data is locked"
+#~ msgstr "数据锁定时暂停"
+
+#~ msgid "Start at login"
+#~ msgstr "登录时启动"
+
+#~ msgid "System keyring and pause modes cannot be enabled yet."
+#~ msgstr "系统密钥环和暂停模式目前还无法启用。"
+
+#~ msgid "System keyring available"
+#~ msgstr "系统密钥环可用"
+
+#~ msgid "System keyring unavailable"
+#~ msgstr "系统密钥环不可用"
+
+#~ msgid ""
+#~ "The background service is available only in the installed application."
+#~ msgstr "后台服务仅在已安装的应用程序中可用。"
+
+#~ msgid "Use system keyring"
+#~ msgstr "使用系统密钥环"
 
 #~ msgid "New phone changes are available"
 #~ msgstr "有新的手机更改可用"

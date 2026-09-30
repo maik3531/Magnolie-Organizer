@@ -256,6 +256,9 @@ msgstr "%(start)s a %(end)s"
 msgid "%(title)s – %(when)s"
 msgstr "%(title)s – %(when)s"
 
+msgid "%s has a birthday %s."
+msgstr "%s faz anos %s."
+
 msgid "(unnamed)"
 msgstr "(sem nome)"
 
@@ -536,6 +539,9 @@ msgstr "Adicionar período de férias"
 msgid "Add waste collection"
 msgstr "Adicionar recolha de resíduos"
 
+msgid "Additional information"
+msgstr "Informações adicionais"
+
 msgid "Address"
 msgstr "Morada"
 
@@ -776,6 +782,9 @@ msgstr "Cópias automáticas numa pasta da nuvem"
 msgid "Automatically choose a suitable application"
 msgstr "Escolher automaticamente uma aplicação adequada"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "Ocultar automaticamente os lembretes de aniversários"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Sincronizar automaticamente por Wi-Fi"
 
@@ -903,6 +912,9 @@ msgstr "Aniversário"
 msgid "Birthday party"
 msgstr "Festa de aniversário"
 
+msgid "Birthday today"
+msgstr "Faz anos hoje"
+
 msgid "Black"
 msgstr "Preto"
 
@@ -999,6 +1011,13 @@ msgstr "Procurar..."
 
 msgid "Burgenland"
 msgstr "Burgenland"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"Por predefinição, os lembretes de aniversários permanecem visíveis até serem "
+"fechados. Esta definição é independente dos lembretes de compromissos."
 
 msgid "By first name (Hans Müller)"
 msgstr "Por nome próprio (Hans Müller)"
@@ -3892,6 +3911,9 @@ msgstr "A ligação ao telefone foi cancelada ou o tempo de espera terminou."
 msgid "Phone connection failed."
 msgstr "A ligação ao telefone falhou."
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "Contactos do telefone (KDE Connect)"
+
 msgid "Phone error: %(error)s"
 msgstr "Erro de telefone: %(error)s"
 
@@ -3976,6 +3998,9 @@ msgstr "Selecione uma imagem em formato JPEG, PNG, WebP ou GIF."
 msgid "Please unlock"
 msgstr "Desbloqueie para continuar"
 
+msgid "Please wait …"
+msgstr "Aguarde…"
+
 msgid "Poland"
 msgstr "Polónia"
 
@@ -4016,6 +4041,13 @@ msgstr "A preparar o início de sessão…"
 
 msgid "Preview"
 msgstr "Pré-visualização"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"Pré-visualize os contactos do telefone emparelhado. As alterações são "
+"guardadas apenas no Organizer; nenhum contacto é eliminado."
 
 msgid "Preview failed."
 msgstr "A pré-visualização falhou."
@@ -4821,6 +4853,9 @@ msgid ""
 msgstr ""
 "Não é possível calcular as datas de algumas regras de repetição. Os dados "
 "originais do calendário foram preservados."
+
+msgid "Someone"
+msgstr "Alguém"
 
 msgid "Son"
 msgstr "Filho"
@@ -6792,6 +6827,9 @@ msgstr "nunca – esvaziar manualmente"
 msgid "new task for this appointment…"
 msgstr "nova tarefa para este compromisso…"
 
+msgid "no changes"
+msgstr "sem alterações"
+
 msgid "notification %(count)s minute before"
 msgid_plural "notification %(count)s minutes before"
 msgstr[0] "notificação %(count)s minuto antes"
@@ -6836,6 +6874,9 @@ msgstr "guardada – deixe vazio para manter"
 
 msgid "tentative"
 msgstr "provisório"
+
+msgid "the day after tomorrow"
+msgstr "depois de amanhã"
 
 msgid "the other branch"
 msgstr "o outro ramo"

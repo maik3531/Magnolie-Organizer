@@ -393,7 +393,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         ansicht: "week",
         erinnerung: { an: true, vorlauf: 15, art: "both", verpasste: true,
           wecken: false, stil: "magnolie",
-          jahrestage: { an: true, tage: 1, amTag: true, stunde: 8 },
+          jahrestage: { an: true, tage: 1, amTag: true, stunde: 8, autoAusblenden: false },
           protokoll: false, protokollVoreinstellung: 1 },
         adressen: { absender: "", karten: "google", land: "Deutschland", landCode: "DE",
           sortierung: "last-name", brief: true, karte: true, route: false,
@@ -4238,7 +4238,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function planeKontaktFotoAbruf() {
     const quelle = telefonStand?.kdeconnect;
-    const beschaeftigt = () => aktiverEditor || syncLaeuft ||
+    const beschaeftigt = () => aktiverEditor || syncLaeuft || kdeKontaktLauf ||
       (typeof kontaktSyncPruefungLauf !== "undefined" && kontaktSyncPruefungLauf) ||
       document.querySelector(".baum-kontakt-konflikt, .sync-kontakt-konflikt, .kontakt-import-schleier, .kontakt-assistent-schleier");
     if (!initialisiert || gesperrt || !DATEN.einstellungen.adressen.foto ||
@@ -6068,7 +6068,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const Q = (x) => x && typeof x === "object" ? JSON.parse(JSON.stringify(x)) : {};
     const importBindungen = (werte) => Array.from(new Set((Array.isArray(werte) ? werte : [])
       .map((wert) => String(wert || "").trim().toLowerCase())
-      .filter((wert) => /^urn:magnolie:import:android:[0-9a-f]{64}$/.test(wert)))).slice(-32);
+      .filter((wert) => /^urn:magnolie:import:(?:android|kde):[0-9a-f]{64}$/.test(wert)))).slice(-32);
     d.customOrganizer = normalisiereCustomOrganizer(roh.customOrganizer);
     d.termine = normalisiereTermine(roh.termine);
     for (const a of Array.isArray(roh.aufgaben) ? roh.aufgaben : []) {
@@ -6548,6 +6548,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     zw.jahrestage.tage = [0, 1, 2, 3, 4, 5, 6, 7].includes(Number(jt.tage))
       ? Number(jt.tage) : 1;
     zw.jahrestage.amTag = jt.amTag === undefined ? true : !!jt.amTag;
+    zw.jahrestage.autoAusblenden = jt.autoAusblenden === true;
     zw.jahrestage.stunde = (Number(jt.stunde) >= 0 && Number(jt.stunde) <= 23)
       ? Number(jt.stunde) : 8;
     zw.protokoll = Number(er.protokollVoreinstellung) >= 1
@@ -20546,6 +20547,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       status.textContent = _("Checking online accounts …");
     }
     baueNextcloudKonto(wurzel);
+    const telefonKontakte = abschnitt(_("Phone contacts (KDE Connect)"),
+      _("Preview contacts from the paired phone. Changes are saved only in Organizer; no contacts are deleted."));
+    const abrufen = knopf(_("Import preview"), "", () => starteKdeKontaktImport());
+    abrufen.id = "kde-kontakte-abrufen";
+    abrufen.disabled = !Bruecke.vorhanden;
+    telefonKontakte.append(abrufen); wurzel.append(telefonKontakte);
     baueInternetKonten(wurzel);
     baueBriefkasten(wurzel);
   }
@@ -20712,6 +20719,211 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   const baumGemeldeteAngebote = new Set();
   const baumKontaktLaeufe = new Map();
   let kontaktImportDialogOffen = false;
+
+  let kdeKontaktLauf = null;
+  const kdeKontaktAnfragen = new Map();
+
+  function kdeKontaktAbfragen(deviceId, uids) {
+    return new Promise((resolve, reject) => {
+      const requestId = anrufClientRef();
+      const timer = setTimeout(() => {
+        kdeKontaktAnfragen.delete(requestId); reject(new Error(_("The offered entry is incomplete.")));
+      }, 12000);
+      kdeKontaktAnfragen.set(requestId, { resolve, reject, timer, deviceId });
+      if (!Bruecke.sende({ cmd: "telefon_kontakte", requestId, device_id: deviceId, uids })) {
+        clearTimeout(timer); kdeKontaktAnfragen.delete(requestId); reject(new Error(_("The phone is no longer connected.")));
+      }
+    });
+  }
+
+  function kdeKontaktPlan(karte, kontakte) {
+    const bindung = karte.bindung;
+    if (!/^urn:magnolie:import:kde:[0-9a-f]{64}$/.test(bindung || "") ||
+        !karte.kontakt || typeof karte.kontakt !== "object") throw new Error(_("The offered entry is incomplete."));
+    const eingang = karte.kontakt;
+    const mails = new Set(emailListe(eingang).map(kontaktFotoMailSchluessel));
+    const telefone = new Set(kontaktTelefone(eingang));
+    const gebunden = kontakte.filter(k => (k.importBindungen || []).includes(bindung));
+    const kandidaten = kontakte.filter(k => gebunden.includes(k) ||
+      emailListe(k).some(m => mails.has(kontaktFotoMailSchluessel(m))) ||
+      kontaktTelefone(k).some(t => telefone.has(t)));
+    return { karte, kandidaten, zielId: kandidaten.length === 1 ? kandidaten[0].id : "",
+      modus: kandidaten.length > 1 ? "skip" : kandidaten.length ? "merge" : "new", auswahl: {} };
+  }
+
+  function kdeKontaktFelder() {
+    return { vorname: _("First name"), nachname: _("Last name"), anzeigename: _("Name"),
+      firma: _("Company"), geburtstag: _("Birthday"), jubilaeum: _("Anniversary"), notiz: _("Note"),
+      kontakte: _("Emergency contacts"), sozialeMedien: _("Social media"),
+      vcardRoundtrip: _("Additional information"), vcardParameter: _("Additional information") };
+  }
+
+  function kdeKontaktEntwurf(plan, ziel) {
+    const eingang = plan.karte.kontakt, entwurf = kopie(ziel || {});
+    for (const feld of Object.keys(kdeKontaktFelder()).filter(f => f !== "kontakte")) {
+      const wert = eingang[feld];
+      if (plan.auswahl[feld] === "keep") continue;
+      if (wert === undefined || wert === "" || kanonischerEntwurf(wert) === "[]" || kanonischerEntwurf(wert) === "{}") continue;
+      if (!ziel || !entwurf[feld] || kanonischerEntwurf(entwurf[feld]) === "[]" ||
+          kanonischerEntwurf(entwurf[feld]) === "{}" || plan.auswahl[feld] === "incoming") entwurf[feld] = kopie(wert);
+    }
+    for (const [feld, regel] of Object.entries({ ...BAUM_KONTAKT_LISTEN,
+      kontaktpersonen: { lesen: kontaktpersonenListe, setzen: setzeKontaktpersonen } })) {
+      const alt = regel.lesen(entwurf), neu = regel.lesen(eingang);
+      const entscheidung = plan.auswahl[feld] || "add";
+      if (entscheidung === "keep") continue;
+      regel.setzen(entwurf, entscheidung === "incoming" ? kopie(neu) : alt.concat(neu.filter(n =>
+        !alt.some(a => kanonischerEntwurf(a) === kanonischerEntwurf(n))).map(kopie)));
+    }
+    if (!ziel) { entwurf.id = uid(); entwurf.uid = syncUid(); entwurf.geaendert = Date.now(); }
+    entwurf.geburtstagJahrUnbekannt = gueltigesTeildatum(entwurf.geburtstag);
+    const bindungen = Array.from(new Set((entwurf.importBindungen || []).concat(plan.karte.bindung)));
+    if (bindungen.length > 32) throw new Error(_("Conflict"));
+    entwurf.importBindungen = bindungen;
+    entwurf.kdeImportStaende = { ...(entwurf.kdeImportStaende || {}), [plan.karte.bindung]: plan.karte.hash };
+    if (ziel && kanonischerEntwurf(entwurf) !== kanonischerEntwurf(ziel)) entwurf.geaendert = Date.now();
+    return entwurf;
+  }
+
+  async function starteKdeKontaktImport() {
+    if (kdeKontaktLauf || kontaktFotoLauf || aktiverEditor || syncLaeuft || kontaktImportDialogOffen || gesperrt ||
+        document.querySelector(".baum-kontakt-konflikt, .sync-kontakt-konflikt, .kontakt-assistent-schleier")) {
+      zettel(_("Please wait …")); return;
+    }
+    const quelle = telefonStand?.kdeconnect;
+    if (!quelle?.contacts_available || !quelle.contacts_device_id) {
+      Bruecke.sende({ cmd: "telefon_stand" }); zettel(_("The phone is no longer connected.")); return;
+    }
+    const lauf = { daten: DATEN, epoch: DATEN.syncEpoch, deviceId: quelle.contacts_device_id, beendet: false };
+    kdeKontaktLauf = lauf;
+    const gueltig = () => !lauf.beendet && kdeKontaktLauf === lauf && DATEN === lauf.daten && !gesperrt &&
+      DATEN.syncEpoch === lauf.epoch && !syncLaeuft && !aktiverEditor &&
+      telefonStand?.kdeconnect?.contacts_available && telefonStand.kdeconnect.contacts_device_id === lauf.deviceId;
+    const schleier = el("div", "eingabe-schleier kontakt-import-schleier");
+    const dialog = el("section", "eingabe-dialog kontakt-import-dialog");
+    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+    const status = el("p", "einst-hinweis", _("Please wait …")), liste = el("div");
+    const schliessen = () => {
+      if (lauf.beendet) return;
+      lauf.beendet = true; beendeModal(schleier); schleier.remove();
+      if (kdeKontaktLauf === lauf) kdeKontaktLauf = null;
+      for (const [id, anfrage] of kdeKontaktAnfragen) {
+        clearTimeout(anfrage.timer); kdeKontaktAnfragen.delete(id); anfrage.reject(new Error(_("Cancel")));
+      }
+      planeKontaktFotoAbruf();
+    };
+    const abbrechen = knopf(_("Cancel"), "", schliessen);
+    const anwenden = knopf(_("Apply"), "hauptknopf", () => {}); anwenden.disabled = true;
+    const knoepfe = el("div", "dialog-knoepfe"); knoepfe.append(anwenden, abbrechen);
+    dialog.append(el("h2", null, _("Phone contacts (KDE Connect)")), status, liste, knoepfe);
+    schleier.append(dialog); document.body.append(schleier);
+    registriereModal(schleier, dialog, { anfang: abbrechen, schliessen });
+    try {
+      await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+      if (!gueltig()) throw new Error(_("Conflict"));
+      const vorher = kanonischerEntwurf(DATEN.kontakte);
+      const index = await kdeKontaktAbfragen(lauf.deviceId);
+      if (!gueltig() || !/^[a-f0-9]{64}$/i.test(index.fingerprint || "") || index.contacts.length > 20000)
+        throw new Error(_("The offered entry is incomplete."));
+      const fingerprint = index.fingerprint.toLowerCase(), ids = index.contacts.map(k => k.uid);
+      if (new Set(ids).size !== ids.length || ids.some(id => typeof id !== "string" || !id || id.length > 1024))
+        throw new Error(_("The offered entry is incomplete."));
+      const karten = []; let umfang = 0;
+      for (let i = 0; i < ids.length; i += 5) {
+        if (!gueltig()) throw new Error(_("Conflict"));
+        const angefordert = ids.slice(i, i + 5), antwort = await kdeKontaktAbfragen(lauf.deviceId, angefordert);
+        if (!gueltig() || antwort.fingerprint?.toLowerCase() !== fingerprint ||
+            antwort.contacts.length !== angefordert.length || new Set(antwort.contacts.map(k => k.uid)).size !== angefordert.length ||
+            antwort.contacts.some(k => !angefordert.includes(k.uid))) throw new Error(_("The offered entry is incomplete."));
+        umfang += new Blob([JSON.stringify(antwort.contacts)]).size;
+        if (umfang > 64 * 1024 * 1024) throw new Error(_("The offered entry is incomplete."));
+        for (const karte of antwort.contacts) {
+          const bindung = "urn:magnolie:import:kde:" + await kontaktFotoHash("kde-contact-v1\0" + lauf.deviceId + "\0" + fingerprint + "\0" + karte.uid);
+          if (karte.bindung !== bindung) throw new Error(_("Conflict"));
+          karte.hash = await kontaktFotoHash(kanonischerEntwurf(karte.kontakt)); karten.push(karte);
+        }
+        status.textContent = _("Please wait …") + " " + karten.length + " / " + ids.length;
+      }
+      if (!gueltig() || kanonischerEntwurf(DATEN.kontakte) !== vorher) throw new Error(_("Conflict"));
+      const plaene = karten.map(k => kdeKontaktPlan(k, DATEN.kontakte));
+      const beschreibe = wert => typeof wert === "string" ? wert : JSON.stringify(wert ?? "");
+      let seite = 0;
+      function zeichnen() {
+        liste.textContent = "";
+        status.textContent = uebersetztMehrzahl("Preview: %(count)s contact", "Preview: %(count)s contacts", plaene.length);
+        for (const plan of plaene.slice(seite * 25, (seite + 1) * 25)) {
+          const zeile = el("details"), kopf = el("summary", null, kontaktName(plan.karte.kontakt));
+          const felder = el("div");
+          const optionen = [["skip", _("Reject")], ["new", _("New contact")],
+            ...plan.kandidaten.map(k => [k.id, _("Keep existing") + ": " + kontaktName(k) + " · " + (emailListe(k)[0] || "")])];
+          const wahl = auswahlFeld(optionen, plan.modus === "merge" ? plan.zielId : plan.modus);
+          const aktualisieren = () => {
+            plan.modus = ["skip", "new"].includes(wahl.value) ? wahl.value : "merge";
+            plan.zielId = plan.modus === "merge" ? wahl.value : "";
+            felder.textContent = "";
+            const ziel = DATEN.kontakte.find(k => k.id === plan.zielId), incoming = plan.karte.kontakt;
+            if (!ziel) { felder.append(el("pre", null, beschreibe(incoming))); return; }
+            if (ziel.kdeImportStaende?.[plan.karte.bindung] === plan.karte.hash) {
+              felder.append(el("p", null, _("no changes"))); return;
+            }
+            const anzeigen = (feld, titel, alt, neu, mehrwertig) => {
+              if (neu === undefined || neu === "" || kanonischerEntwurf(neu) === "[]" ||
+                  kanonischerEntwurf(neu) === "{}" || kanonischerEntwurf(alt) === kanonischerEntwurf(neu)) return;
+              const werte = [["keep", _("Keep existing") + ": " + beschreibe(alt)],
+                ["incoming", _("Incoming") + ": " + beschreibe(neu)]];
+              if (mehrwertig) werte.push(["add", _("Add") + ": " + beschreibe(neu)]);
+              const auswahl = auswahlFeld(werte, plan.auswahl[feld] || (mehrwertig ? "add" : alt && beschreibe(alt) !== "{}" && beschreibe(alt) !== "[]" ? "keep" : "incoming"));
+              plan.auswahl[feld] = auswahl.value;
+              auswahl.addEventListener("change", () => { plan.auswahl[feld] = auswahl.value; });
+              felder.append(formZeile(titel, auswahl));
+            };
+            for (const [feld, titel] of Object.entries(kdeKontaktFelder()).filter(([f]) => f !== "kontakte"))
+              anzeigen(feld, titel, ziel[feld], incoming[feld], false);
+            for (const [feld, regel] of Object.entries({ ...BAUM_KONTAKT_LISTEN,
+              kontaktpersonen: { lesen: kontaktpersonenListe } }))
+              anzeigen(feld, { telefone: _("Phone numbers"), emailEintraege: _("Email addresses"),
+                anschriften: _("Address"), kontaktpersonen: _("Emergency contacts") }[feld], regel.lesen(ziel), regel.lesen(incoming), true);
+          };
+          wahl.addEventListener("change", () => { plan.auswahl = {}; aktualisieren(); });
+          zeile.append(kopf, wahl, felder); liste.append(zeile); aktualisieren();
+        }
+        const navigation = el("div", "knopfreihe");
+        const zurueck = knopf(_("Previous page"), "", () => { seite--; zeichnen(); }); zurueck.disabled = seite === 0;
+        const weiter = knopf(_("Next"), "", () => { seite++; zeichnen(); }); weiter.disabled = (seite + 1) * 25 >= plaene.length;
+        navigation.append(zurueck, weiter); liste.append(navigation);
+      }
+      zeichnen(); anwenden.disabled = !plaene.length;
+      anwenden.onclick = () => {
+        if (!gueltig() || kanonischerEntwurf(DATEN.kontakte) !== vorher) { status.textContent = _("Conflict"); anwenden.disabled = true; return; }
+        const entwürfe = DATEN.kontakte.slice();
+        try {
+          for (const plan of plaene) {
+            if (plan.modus === "skip") continue;
+            const ziel = plan.modus === "merge" ? entwürfe.find(k => k.id === plan.zielId) : null;
+            if (plan.modus === "merge" && !ziel) throw new Error(_("Conflict"));
+            if (ziel?.kdeImportStaende?.[plan.karte.bindung] === plan.karte.hash) continue;
+            if (entwürfe.some(k => k !== ziel && (k.importBindungen || []).includes(plan.karte.bindung))) throw new Error(_("Conflict"));
+            const entwurf = kdeKontaktEntwurf(plan, ziel);
+            if (ziel) entwürfe[entwürfe.indexOf(ziel)] = entwurf; else entwürfe.push(entwurf);
+          }
+        } catch (error) { status.textContent = error.message; return; }
+        if (entwürfe.length === DATEN.kontakte.length && entwürfe.every((kontakt, index) => kontakt === DATEN.kontakte[index])) {
+          schliessen(); return;
+        }
+        anwenden.disabled = true; abbrechen.disabled = true;
+        mitMutationsSnapshot("pre-contact-import", () => {
+          if (!gueltig() || kanonischerEntwurf(DATEN.kontakte) !== vorher) {
+            status.textContent = _("Conflict"); abbrechen.disabled = false; return;
+          }
+          DATEN.kontakte = entwürfe;
+          for (const kontakt of entwürfe) { verknuepfeKontaktGeburtstag(kontakt); verknuepfeKontaktJubilaeum(kontakt); }
+          zeichneAlles(); nachDauerhaftemSpeichern(schliessen, () => { status.textContent = _("Warning: The data could not be saved."); abbrechen.disabled = false; });
+        }, () => { status.textContent = _("The required recovery snapshot could not be created."); abbrechen.disabled = false; anwenden.disabled = false; });
+      };
+    } catch (error) {
+      if (!lauf.beendet) { status.textContent = String(error.message || error); anwenden.disabled = true; }
+    }
+  }
 
   function kontaktImportHerkunft(roh, mitAnzahl) {
     if (!roh || typeof roh !== "object") return null;
@@ -24134,13 +24346,20 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     jtAmTagZeile.id = "erinnerung-jahrestage-amtag-zeile";
     jtAmTagZeile.append(jtAmTag,
       document.createTextNode(" " + _("Remind me again on the day itself")));
+    const jtAuto = document.createElement("input");
+    jtAuto.type = "checkbox"; jtAuto.id = "erinnerung-jahrestage-auto-ausblenden";
+    jtAuto.checked = e.jahrestage.autoAusblenden === true;
+    const jtAutoZeile = el("label", "hak");
+    jtAutoZeile.append(jtAuto, document.createTextNode(" " + _("Automatically dismiss anniversary reminders")));
+    const jtDauerHinweis = el("p", "einst-hinweis",
+      _("By default, anniversary reminders stay visible until you close them. This setting is independent of appointment reminders."));
     const jtHinweis = el("p", "einst-hinweis",
       _("This leaves time to get something, followed by another reminder on the " +
         "day itself. For example: “Max Mustermann has a birthday tomorrow” and " +
         "the next day “Max Mustermann has a birthday today”. Anniversary " +
         "reminders are shown in the morning."));
     if (registerAktiv("jahrestage")) {
-      felder.append(jtZeile, jtTageZeile, jtAmTagZeile, jtHinweis);
+      felder.append(jtZeile, jtTageZeile, jtAmTagZeile, jtAutoZeile, jtDauerHinweis, jtHinweis);
     }
 
     const protHak = document.createElement("input");
@@ -24181,7 +24400,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const zeigen = () => {
       felder.classList.toggle("gesperrt", !anHak.checked);
       for (const feld of [vorlaufWahl, artWahl, stilWahl, verpasstHak,
-        weckHak, probeKnopf, protokollKnopf, jtHak, jtTage, jtAmTag,
+        weckHak, probeKnopf, protokollKnopf, jtHak, jtTage, jtAmTag, jtAuto,
         protHak]) {
         feld.disabled = !anHak.checked;
       }
@@ -24196,6 +24415,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           "Magnolie chime.")
         : _("Appearance and sound follow your system notification settings.");
       const jtAn = anHak.checked && jtHak.checked;
+      jtAuto.disabled = !jtAn;
       jtTageZeile.style.display = jtAn ? "" : "none";
       jtAmTagZeile.style.display = (jtAn && Number(jtTage.value) > 0)
         ? "" : "none";
@@ -24215,6 +24435,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       e.jahrestage.an = jtHak.checked;
       e.jahrestage.tage = Number(jtTage.value) || 0;
       e.jahrestage.amTag = jtAmTag.checked;
+      e.jahrestage.autoAusblenden = jtAuto.checked;
       e.protokoll = protHak.checked;
       planeSpeichern();
       speichereJetzt();
@@ -24237,6 +24458,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     jtHak.addEventListener("change", () => uebernehmen(false));
     jtTage.addEventListener("change", () => uebernehmen(false));
     jtAmTag.addEventListener("change", () => uebernehmen(false));
+    jtAuto.addEventListener("change", () => uebernehmen(false));
     protHak.addEventListener("change", () => uebernehmen(false));
     zeigen();
 
@@ -26305,6 +26527,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (offenesGeraet === String(nutzlast.kennung || "")) {
         zeichneGeraeteStatus(nutzlast.status);
       }
+    },
+    telefonKontakte(nutzlast) {
+      const anfrage = kdeKontaktAnfragen.get(nutzlast?.requestId);
+      if (!anfrage) return;
+      clearTimeout(anfrage.timer); kdeKontaktAnfragen.delete(nutzlast.requestId);
+      if (nutzlast.ok !== true || nutzlast.device_id !== anfrage.deviceId || !Array.isArray(nutzlast.contacts))
+        anfrage.reject(new Error(_("The offered entry is incomplete.")));
+      else anfrage.resolve(nutzlast);
     },
     kontaktFotos(nutzlast) {
       const anfrage = kontaktFotoAnfragen.get(nutzlast?.requestId);

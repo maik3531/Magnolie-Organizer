@@ -257,6 +257,9 @@ msgstr "%(start)s – %(end)s"
 msgid "%(title)s – %(when)s"
 msgstr "%(title)s – %(when)s"
 
+msgid "%s has a birthday %s."
+msgstr "%s adlı kişinin doğum günü %s."
+
 msgid "(unnamed)"
 msgstr "(adsız)"
 
@@ -534,6 +537,9 @@ msgstr "Tatil dönemi ekle"
 msgid "Add waste collection"
 msgstr "Atık toplama ekle"
 
+msgid "Additional information"
+msgstr "Ek bilgiler"
+
 msgid "Address"
 msgstr "Adres"
 
@@ -775,6 +781,9 @@ msgstr "Bulut klasörüne otomatik yedekler"
 msgid "Automatically choose a suitable application"
 msgstr "Uygun bir uygulamayı otomatik seç"
 
+msgid "Automatically dismiss anniversary reminders"
+msgstr "Yıldönümü hatırlatmalarını otomatik gizle"
+
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Wi-Fi üzerinden otomatik eşitle"
 
@@ -900,6 +909,9 @@ msgstr "Doğum günü"
 msgid "Birthday party"
 msgstr "Doğum günü partisi"
 
+msgid "Birthday today"
+msgstr "Doğum günü bugün"
+
 msgid "Black"
 msgstr "Siyah"
 
@@ -996,6 +1008,13 @@ msgstr "Gözat..."
 
 msgid "Burgenland"
 msgstr "Burgenland"
+
+msgid ""
+"By default, anniversary reminders stay visible until you close them. This "
+"setting is independent of appointment reminders."
+msgstr ""
+"Varsayılan olarak yıldönümü hatırlatmaları siz kapatana kadar görünür kalır. "
+"Bu ayar randevu hatırlatmalarından bağımsızdır."
 
 msgid "By first name (Hans Müller)"
 msgstr "Ada göre (Hans Müller)"
@@ -3841,6 +3860,9 @@ msgstr "Telefon bağlantısı iptal edildi veya bekleme süresi doldu."
 msgid "Phone connection failed."
 msgstr "Telefon bağlantısı kurulamadı."
 
+msgid "Phone contacts (KDE Connect)"
+msgstr "Telefon kişileri (KDE Connect)"
+
 msgid "Phone error: %(error)s"
 msgstr "Telefon hatası: %(error)s"
 
@@ -3925,6 +3947,9 @@ msgstr "JPEG, PNG, WebP veya GIF biçiminde bir görsel seçin."
 msgid "Please unlock"
 msgstr "Lütfen kilidi açın"
 
+msgid "Please wait …"
+msgstr "Lütfen bekleyin …"
+
 msgid "Poland"
 msgstr "Polonya"
 
@@ -3965,6 +3990,13 @@ msgstr "Hesap oturumu hazırlanıyor…"
 
 msgid "Preview"
 msgstr "Önizleme"
+
+msgid ""
+"Preview contacts from the paired phone. Changes are saved only in Organizer; "
+"no contacts are deleted."
+msgstr ""
+"Eşleştirilmiş telefonun kişilerini önizleyin. Değişiklikler yalnızca "
+"Organizer’da kaydedilir; hiçbir kişi silinmez."
 
 msgid "Preview failed."
 msgstr "Önizleme başarısız oldu."
@@ -4766,6 +4798,9 @@ msgid ""
 msgstr ""
 "Bazı yineleme kurallarından tek tek randevular hesaplanamadı. Özgün takvim "
 "verileri korundu."
+
+msgid "Someone"
+msgstr "Birisi"
 
 msgid "Son"
 msgstr "Oğul"
@@ -6711,6 +6746,9 @@ msgstr "hiçbir zaman – elle boşalt"
 msgid "new task for this appointment…"
 msgstr "bu randevu için yeni görev…"
 
+msgid "no changes"
+msgstr "değişiklik yok"
+
 msgid "notification %(count)s minute before"
 msgid_plural "notification %(count)s minutes before"
 msgstr[0] "%(count)s dakika önce bildirim"
@@ -6755,6 +6793,9 @@ msgstr "kayıtlı – korumak için boş bırakın"
 
 msgid "tentative"
 msgstr "geçici"
+
+msgid "the day after tomorrow"
+msgstr "öbür gün"
 
 msgid "the other branch"
 msgstr "diğer dal"
