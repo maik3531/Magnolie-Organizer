@@ -33,8 +33,8 @@ async function check(web) {
     kontakt: { vorname: "Mia", nachname: "Muster", geburtstag: "1604-02-29", telefone: [],
       emailEintraege: [{ wert: "mia@example.test", art: "HOME" }], anschriften: [], ...values }
   } });
-  const inbox = offers => w.App.baumStand({ an: true, moeglich: true, name: "Test", kennung: "local",
-    eingang: offers, partner: [{ kennung: "peer", name: "Peer", bestaetigt: true, vertraut: false }] });
+  const inbox = (offers, options = {}) => w.App.baumStand({ an: true, moeglich: true, name: "Test", kennung: "local",
+    eingang: offers, partner: [{ kennung: "peer", name: "Peer", bestaetigt: true, vertraut: false, ...options }] });
   const reset = async (contacts = []) => {
     autoSave = true; saveOk = true;
     w.App.init({ daten: { kontakte: contacts }, neu: false, regional: { language: "en" } });
@@ -99,7 +99,41 @@ async function check(web) {
     assert.equal(joined.angenommen, 1);
     assert.equal(T.daten().kontakte[0].baumKontakt.version, 5);
     assert.ok(T.daten().kontakte[0].baumKontakt.partner.includes("peer"), "a known shared identity from a new partner was acknowledged without saving its binding");
-    assert.equal(T.baumKontaktPruefung(offer("different-binding")).art, "konflikt", "an independent binding was overwritten silently");
+    assert.equal(T.baumKontaktPruefung(offer("different-binding")).art, "gleich");
+    inbox([offer("different-binding")]);
+    const aliasRun = await T.uebernehmeBaumKontakte();
+    assert.equal(aliasRun.konflikte, 0); assert.equal(aliasRun.gespeichert, true);
+    assert.equal(T.daten().kontakte.length, 1);
+    let binding = T.daten().kontakte[0].baumKontakt;
+    assert.equal(binding.freigabeId, "contact-same", "independent share overwrote the original binding");
+    assert.equal(binding.version, 5, "another share's version replaced the original version");
+    assert.equal(binding.weitere[0].freigabeId, "contact-different-binding");
+    assert.equal(binding.weitere[0].version, 1);
+    w.App.init({ daten: JSON.parse(JSON.stringify(T.daten())), neu: false, regional: { language: "en" } });
+    inbox([offer("different-binding", {}, 2)]);
+    assert.equal((await T.uebernehmeBaumKontakte()).konflikte, 0);
+    binding = T.daten().kontakte[0].baumKontakt;
+    assert.equal(binding.version, 5); assert.equal(binding.weitere[0].version, 2);
+    messages.length = 0;
+    assert.equal(await T.synchronisiereKontakteMit("peer"), true);
+    const sent = messages.filter(m => m.cmd === "baum_teilen" && m.art === "kontakt_sync").map(m => m.inhalt);
+    assert.deepEqual(sent.map(m => m.freigabeId).sort(), ["contact-different-binding", "contact-same"]);
+    assert.equal(sent.find(m => m.freigabeId === "contact-same").version, 6);
+    assert.equal(sent.find(m => m.freigabeId === "contact-different-binding").version, 3);
+    assert.ok(sent.every(m => !JSON.stringify(m).includes("weitere")), "local binding metadata leaked onto the wire");
+    const deletion = { id: "delete-alias", von: "peer", inhalt: { art: "kontakt_loeschen",
+      freigabeId: "contact-different-binding", quelle: "peer", version: 4 } };
+    T.merkeGeloescht("kontakte", T.daten().kontakte[0]);
+    assert.deepEqual(Array.from(T.daten().baumKontaktGeloescht, m => m.freigabeId).sort(), ["contact-different-binding", "contact-same"]);
+    const localMarks = T.daten().baumKontaktGeloescht;
+    assert.equal(localMarks.find(m => m.freigabeId === "contact-same").version, 7);
+    assert.equal(localMarks.find(m => m.freigabeId === "contact-different-binding").version, 4);
+    inbox([deletion], { kontaktLoeschen: true }); await pause();
+    T.oeffneEinstellungen(); w.document.querySelector("#einst-tab-baum").click();
+    assert.ok([...w.document.querySelectorAll(".baum-eingang button")].some(b => b.textContent === "Delete"), "secondary binding's deletion offer is hidden");
+    assert.equal(T.daten().kontakte.length, 1, "a deletion offer was applied without confirmation");
+    assert.equal(T.uebernehmeBaumAngebot(deletion, {}, { aufschieben: true }), true);
+    assert.equal(T.daten().kontakte.length, 0, "confirmed deletion did not find the secondary binding");
 
     await reset([contact, { ...contact, id: "other-person" }]);
     assert.equal(T.baumKontaktPruefung(same).art, "konflikt", "ambiguous matches were silently merged");

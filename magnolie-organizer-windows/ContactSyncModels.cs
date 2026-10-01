@@ -280,6 +280,11 @@ internal static class ContactCleanupPlan
                 .Where(value => value.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
             if (treeIds.Length > 1 || cards.Select(card => card["baumKontakt"]?["entscheidungHash"]?.GetValue<string>() ?? "")
                 .Where(value => value.Length > 0).Distinct(StringComparer.Ordinal).Count() > 1) continue;
+            var treeBindings = cards.Select(card => card["baumKontakt"]).OfType<JsonObject>().ToArray();
+            // A primary share ID alone cannot establish equivalence of multiple
+            // independent bindings. Leave differing binding sets for review.
+            if (treeBindings.Any(tree => tree["weitere"] is JsonArray { Count: > 0 }) &&
+                treeBindings.Skip(1).Any(tree => !JsonNode.DeepEquals(treeBindings[0], tree))) continue;
             var unknown = cards.SelectMany(card => card.Select(pair => pair.Key)).Distinct(StringComparer.Ordinal)
                 .Where(field => !metadata.Contains(field) && !ContactFields.Names.Contains(field));
             if (unknown.Any(field => field is "__proto__" or "prototype" or "constructor" || cards.Select(card => card[field]?.ToJsonString() ?? "null")

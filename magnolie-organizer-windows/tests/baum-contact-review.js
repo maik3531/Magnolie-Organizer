@@ -49,6 +49,27 @@ async function check(web) {
     const incomplete = T.normalisiere({ kontakte: [person(1)] }).kontakte[0];
     const preserved = T.baumKontaktEntwurf(dateTarget, incomplete, {}, "replace");
     assert.equal(preserved.geburtstag, "--02-29"); assert.equal(preserved.jubilaeum, "2000-06-07");
+    await reset([{ ...person(1), baumKontakt: { freigabeId: "original-share", version: 40,
+      quelle: "original-peer", partner: ["original-peer"] } }], [offer(1)]);
+    w.document.querySelector("#baum-kontakte-annehmen").click(); await until(() => w.document.querySelector(".baum-kontakt-konflikt"));
+    action("keep"); await until(() => receipts().length === 1);
+    let multi = T.daten().kontakte[0];
+    assert.equal(multi.baumKontakt.freigabeId, "original-share");
+    assert.equal(multi.baumKontakt.version, 40);
+    assert.equal(multi.baumKontakt.weitere[0].freigabeId, "share-1");
+    assert.equal(multi.nachname, "Example");
+    w.App.init({ daten: clean(T.daten()), neu: false, regional: { language: "en" } });
+    inbox([offer(1, {}, 2)]);
+    assert.equal((await T.uebernehmeBaumKontakte()).konflikte, 0, "secondary binding lost its remembered decision");
+    assert.equal(T.daten().kontakte.length, 1);
+    inbox([offer(1, { nachname: "Separate person" }, 3)]);
+    T.oeffneEinstellungen(); w.document.querySelector("#einst-tab-baum").click(); messages.length = 0;
+    w.document.querySelector("#baum-kontakte-annehmen").click(); await until(() => w.document.querySelector(".baum-kontakt-konflikt"));
+    action("new"); await until(() => receipts().length === 1);
+    assert.equal(T.daten().kontakte.length, 2);
+    multi = T.daten().kontakte.find(k => k.id === "person-1");
+    assert.equal(multi.baumKontakt.freigabeId, "original-share");
+    assert.equal(multi.baumKontakt.weitere.length, 0, "moving one share detached the wrong binding");
     await reset([person(1), person(2)], [offer(1), offer(2), offer(3, { nachname: "New" })]);
     const before = JSON.stringify(T.daten().kontakte);
     w.document.querySelector("#baum-kontakte-annehmen").click();

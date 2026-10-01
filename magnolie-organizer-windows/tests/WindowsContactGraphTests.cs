@@ -237,6 +237,20 @@ internal static class WindowsContactGraphTests
         var group = plan["groups"]![0]!.AsObject();
         TestAssert.That(group["keepId"]!.GetValue<string>() == "tree" && group["mapping"]!["id"]!.GetValue<string>() == "original",
             "Cleanup must retain the local tree identity and the provider's original record.");
+        var multipleBindings = profile.DeepClone().AsObject();
+        multipleBindings["kontakte"]![0]!["baumKontakt"]!["weitere"] = new JsonArray(new JsonObject {
+            ["freigabeId"] = "second-share", ["version"] = 17L, ["partner"] = new JsonArray("second-peer") });
+        using (var multipleInput = System.Text.Json.JsonDocument.Parse(multipleBindings.ToJsonString()))
+        {
+            var multiplePlan = ContactCleanupPlan.Create(multipleInput.RootElement);
+            TestAssert.That(multiplePlan["groups"]!.AsArray().Count == 1 &&
+                JsonNode.DeepEquals(multiplePlan["groups"]![0]!["metadata"]!["baumKontakt"]!["weitere"], multipleBindings["kontakte"]![0]!["baumKontakt"]!["weitere"]),
+                "Cleanup against an unbound provider copy lost secondary tree bindings.");
+        }
+        multipleBindings["kontakte"]![1]!["baumKontakt"] = tree["baumKontakt"]!.DeepClone();
+        using (var differentBindings = System.Text.Json.JsonDocument.Parse(multipleBindings.ToJsonString()))
+            TestAssert.That(ContactCleanupPlan.Create(differentBindings.RootElement)["groups"]!.AsArray().Count == 0,
+                "Cleanup silently discarded differing secondary bindings behind the same primary ID.");
         var local = tree.DeepClone().AsObject();
         foreach (var pair in group["metadata"]!.AsObject()) local[pair.Key] = pair.Value?.DeepClone();
         var deletion = group["deletions"]![0]!.AsObject();

@@ -5126,8 +5126,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         syncQuellen: obj.syncQuellen && typeof obj.syncQuellen === "object"
           ? JSON.parse(JSON.stringify(obj.syncQuellen)) : {} });
     }
-    if (art === "kontakte" && obj && obj.baumKontakt && obj.baumKontakt.freigabeId) {
-      const meta = obj.baumKontakt;
+    if (art === "kontakte") for (const meta of baumKontaktBindungen(obj)) {
       DATEN.baumKontaktGeloescht = (DATEN.baumKontaktGeloescht || []).filter((x) =>
         x.freigabeId !== meta.freigabeId);
       DATEN.baumKontaktGeloescht.push({ freigabeId: meta.freigabeId,
@@ -6334,20 +6333,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         importHerkunfte: (Array.isArray(k.importHerkunfte) ? k.importHerkunfte : [])
           .map((wert) => String(wert || "").replace(/[\x00-\x1f\x7f]/g, " ").trim().slice(0, 128))
           .filter(Boolean).slice(0, 16),
-        baumKontakt: k.baumKontakt && typeof k.baumKontakt === "object" &&
-          S(k.baumKontakt.freigabeId) ? {
-            freigabeId: S(k.baumKontakt.freigabeId).slice(0, 128),
-            version: Math.max(0, N(k.baumKontakt.version)),
-            quelle: S(k.baumKontakt.quelle).slice(0, 128),
-            geaendert: Math.max(0, N(k.baumKontakt.geaendert)),
-            hash: S(k.baumKontakt.hash),
-            entscheidungHash: /^[a-f0-9]{64}$/.test(S(k.baumKontakt.entscheidungHash)) ? S(k.baumKontakt.entscheidungHash) : "",
-            fernStand: Q(k.baumKontakt.fernStand),
-            staende: Array.isArray(k.baumKontakt.staende)
-              ? k.baumKontakt.staende.map(S).filter(Boolean).slice(-100) : [],
-            partner: Array.isArray(k.baumKontakt.partner)
-              ? Array.from(new Set(k.baumKontakt.partner.map(S).filter(Boolean))) : []
-          } : null,
+        baumKontakt: normalisiereBaumKontaktBindungen(k.baumKontakt),
         geaendert: N(k.geaendert), sync: !!k.sync, syncQuellen: Q(k.syncQuellen) };
       setzeTelefonListe(kontakt, telefonListe(k, telefonLand), telefonLand);
       setzeAnschriftListe(kontakt, anschriftListe(k));
@@ -14730,6 +14716,46 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return true;
   }
 
+  function normalisiereBaumKontaktBindungen(roh) {
+    const text = wert => String(wert || "");
+    const zahl = wert => Number.isFinite(Number(wert)) ? Math.max(0, Number(wert)) : 0;
+    const liste = wert => Array.isArray(wert) ? [...new Set(wert.map(text).filter(Boolean))] : [];
+    const einzeln = m => m && typeof m === "object" && text(m.freigabeId) ? {
+      freigabeId: text(m.freigabeId).slice(0, 128), version: zahl(m.version),
+      quelle: text(m.quelle).slice(0, 128), geaendert: zahl(m.geaendert), hash: text(m.hash),
+      entscheidungHash: /^[a-f0-9]{64}$/.test(text(m.entscheidungHash)) ? text(m.entscheidungHash) : "",
+      fernStand: m.fernStand && typeof m.fernStand === "object" && !Array.isArray(m.fernStand) ? kopie(m.fernStand) : {},
+      staende: liste(m.staende).slice(-100), partner: liste(m.partner)
+    } : null;
+    const meta = einzeln(roh);
+    if (!meta) return null;
+    const bekannt = new Set([meta.freigabeId]);
+    meta.weitere = (Array.isArray(roh.weitere) ? roh.weitere : []).map(einzeln).filter(m => {
+      if (!m || bekannt.has(m.freigabeId)) return false;
+      bekannt.add(m.freigabeId); return true;
+    });
+    return meta;
+  }
+
+  function baumKontaktBindungen(kontakt) {
+    const meta = kontakt?.baumKontakt;
+    return meta ? [meta, ...(Array.isArray(meta.weitere) ? meta.weitere : [])].filter(m => m?.freigabeId) : [];
+  }
+
+  function baumKontaktBindung(kontakt, freigabeId, partner = null) {
+    return baumKontaktBindungen(kontakt).find(m => m.freigabeId === freigabeId &&
+      (partner === null || (m.partner || []).includes(partner)));
+  }
+
+  function setzeBaumKontaktBindung(kontakt, meta) {
+    const bindungen = baumKontaktBindungen(kontakt).map(m => { const { weitere, ...einzeln } = m; return einzeln; });
+    const index = bindungen.findIndex(m => m.freigabeId === meta.freigabeId);
+    const { weitere, ...einzeln } = meta;
+    if (index < 0) bindungen.push(einzeln); else bindungen[index] = einzeln;
+    kontakt.baumKontakt = { ...bindungen[0], weitere: bindungen.slice(1) };
+    return baumKontaktBindung(kontakt, meta.freigabeId);
+  }
+
   function kontaktBaumInhalt(kontakt, fassung = 2) {
     const meta = kontakt.baumKontakt;
     const art = (eintrag) => String(eintrag.label || telefonArt(eintrag) || "");
@@ -14781,26 +14807,25 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
     catch (_fehler) { zettel(_("Not sent.")); return false; }
     DATEN.baumKontaktErfolgreich[kennung] = false;
-    baumKontaktLaeufe.set(kennung, { offen: kontakte.length, fehler: false,
-      bestand: kontakte.length });
-    for (let index = 0; index < kontakte.length; index++) {
-      const kontakt = kontakte[index];
+    const sendungen = kontakte.flatMap((kontakt, index) => {
       if (!kontakt.baumKontakt) {
         kontakt.baumKontakt = { freigabeId: (quelle + ":" + kontakt.id).slice(0, 128),
           version: 0, quelle: quelle, geaendert: 0, staende: [], partner: [] };
       }
-      if (kontakt.baumKontakt.hash !== hashes[index] || !kontakt.baumKontakt.version) {
-        kontakt.baumKontakt.version = Number(kontakt.baumKontakt.version || 0) + 1;
-        kontakt.baumKontakt.quelle = quelle;
-        kontakt.baumKontakt.geaendert = Date.now();
-        kontakt.baumKontakt.hash = hashes[index];
+      const bekannt = baumKontaktBindungen(kontakt).filter(meta => (meta.partner || []).includes(kennung));
+      return (bekannt.length ? bekannt : [kontakt.baumKontakt]).map(meta => ({ index, meta }));
+    });
+    baumKontaktLaeufe.set(kennung, { offen: sendungen.length, fehler: false, bestand: kontakte.length });
+    for (const { index, meta } of sendungen) {
+      if (meta.hash !== hashes[index] || !meta.version) {
+        meta.version = Number(meta.version || 0) + 1;
+        meta.quelle = quelle;
+        meta.geaendert = Date.now();
+        meta.hash = hashes[index];
       }
-      kontakt.baumKontakt.partner = Array.from(new Set(
-        (kontakt.baumKontakt.partner || []).concat(kennung)));
-      Object.assign(inhalte[index], { freigabeId: kontakt.baumKontakt.freigabeId,
-        version: kontakt.baumKontakt.version, quelle: kontakt.baumKontakt.quelle,
-        geaendert: kontakt.baumKontakt.geaendert });
-      schickeBaumInhalt("kontakt_sync", inhalte[index], [kennung]);
+      meta.partner = Array.from(new Set((meta.partner || []).concat(kennung)));
+      schickeBaumInhalt("kontakt_sync", { ...inhalte[index], freigabeId: meta.freigabeId,
+        version: meta.version, quelle: meta.quelle, geaendert: meta.geaendert }, [kennung]);
     }
     if (!kontakte.length) baumKontaktLaeufe.delete(kennung);
     planeSpeichern();
@@ -14808,8 +14833,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function baumKontaktDubletten(kennung) {
-    const gebunden = DATEN.kontakte.filter((k) => k.baumKontakt &&
-      (k.baumKontakt.partner || []).includes(kennung));
+    const gebunden = DATEN.kontakte.filter(k => baumKontaktBindungen(k).some(m => (m.partner || []).includes(kennung)));
     const index = new Map(), paare = [];
     for (let i = 0; i < gebunden.length; i++) {
       const kontakt = gebunden[i];
@@ -14833,8 +14857,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function kontaktLoeschVorschlaege(kennung, partner) {
     if (!partner.kontaktLoeschen || !DATEN.baumKontaktErfolgreich[kennung]) return [];
-    const gebunden = DATEN.kontakte.filter((k) => k.baumKontakt &&
-      (k.baumKontakt.partner || []).includes(kennung)).length;
+    const gebunden = DATEN.kontakte.filter(k => baumKontaktBindungen(k).some(m => (m.partner || []).includes(kennung))).length;
     const vorher = Number((DATEN.baumKontaktBestand || {})[kennung]) || 0;
     if (vorher && gebunden < Math.ceil(vorher * 0.5)) return null;
     if (!vorher && !gebunden) return [];
@@ -14848,8 +14871,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   function bereiteKontaktAbgleichVor(kennung) {
     const partner = baumPartnerListe().find((p2) => p2.kennung === kennung);
     if (!partner) return;
-    const gebunden = DATEN.kontakte.filter((k) => k.baumKontakt &&
-      (k.baumKontakt.partner || []).includes(kennung));
+    const gebunden = DATEN.kontakte.filter(k => baumKontaktBindungen(k).some(m => (m.partner || []).includes(kennung)));
     if (!DATEN.kontakte.length) {
       zettel(_("Contact synchronization was blocked because the bound snapshot is empty."));
       return;
@@ -21631,8 +21653,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (kontakt.anzeigename) keys.push("a:" + kanonischerText(kontakt.anzeigename));
       if (kontakt.firma) keys.push("f:" + kanonischerText(kontakt.firma));
     }
-    for (const partner of kontakt.baumKontakt?.partner || [])
-      keys.push("b:" + partner + "\u0000" + kontakt.baumKontakt.freigabeId);
+    for (const meta of baumKontaktBindungen(kontakt)) for (const partner of meta.partner || [])
+      keys.push("b:" + partner + "\u0000" + meta.freigabeId);
     for (const key of keys) {
       if (!index.has(key)) index.set(key, new Set());
       index.get(key).add(kontakt);
@@ -21660,15 +21682,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const kandidaten = bindung?.size ? [...bindung] : [...new Set([...schluessel.keys()].flatMap(key => [...(index.get(key) || [])]))];
     if (!kandidaten.length) return { art: "neu" };
     if (kandidaten.length !== 1) return { art: "konflikt", kandidaten };
-    const ziel = kandidaten[0], meta = ziel.baumKontakt;
+    const ziel = kandidaten[0], meta = baumKontaktBindung(ziel, inhalt.freigabeId);
     if (bindung?.size === 1 && ((meta.staende || []).includes(String(inhalt.quelle || stueck.von || "") + "\u0000" + Number(inhalt.version)) ||
         Number(inhalt.version) < meta.version)) return { art: "gleich", ziel };
     const starkeKennung = !!bindung?.size || [...schluessel.keys()].some(key =>
       (key.startsWith("e:") || key.startsWith("t:")) && index.get(key)?.has(ziel));
-    if (starkeKennung && baumKontaktVergleich(ziel) === baumKontaktVergleich(karte) &&
-        (!meta || art !== "kontakt_sync" || meta.freigabeId === inhalt.freigabeId)) return { art: "gleich", ziel };
-    if (starkeKennung && baumKontaktNurErgaenzungen(ziel, karte) &&
-        (!meta || art !== "kontakt_sync" || meta.freigabeId === inhalt.freigabeId)) return { art: "ergaenzung", ziel };
+    if (starkeKennung && baumKontaktVergleich(ziel) === baumKontaktVergleich(karte)) return { art: "gleich", ziel };
+    if (starkeKennung && baumKontaktNurErgaenzungen(ziel, karte)) return { art: "ergaenzung", ziel };
     return { art: "konflikt", kandidaten };
   }
 
@@ -21707,11 +21727,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (plan.art !== "ungueltig" && daten.baumKontaktAblehnungen?.length &&
         daten.baumKontaktAblehnungen.includes(await baumKontaktAblehnungHash(stueck))) return { art: "abgelehnt" };
     const ziel = plan.kandidaten?.length === 1 ? plan.kandidaten[0] : null;
-    const meta = ziel?.baumKontakt;
+    const meta = baumKontaktBindung(ziel, inhalt.freigabeId);
     if (plan.art === "konflikt" && meta?.entscheidungHash && meta.freigabeId === inhalt.freigabeId &&
         (meta.partner || []).includes(stueck.von)) {
       const hash = await personalSyncHash(baumKontaktVergleich(baumKontaktKarte(stueck)));
-      if (daten.kontakte.includes(ziel) && ziel.baumKontakt === meta && meta.entscheidungHash === hash)
+      if (daten.kontakte.includes(ziel) && baumKontaktBindung(ziel, inhalt.freigabeId) === meta && meta.entscheidungHash === hash)
         return { art: "gleich", ziel, behalten: true };
     }
     return plan;
@@ -21855,8 +21875,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const art = inhalt.art || stueck.art, karte = baumKontaktKarte(stueck);
     if (!karte || !["merge", "replace", "keep", "new"].includes(modus) ||
         !(baumStand?.partner || []).some(p => p.kennung === stueck.von && p.bestaetigt)) throw new Error(_("Conflict"));
-    if (modus !== "new" && (!ziel || art === "kontakt_sync" && ziel.baumKontakt &&
-        ziel.baumKontakt.freigabeId !== inhalt.freigabeId)) throw new Error(_("Conflict"));
+    if (modus !== "new" && !ziel) throw new Error(_("Conflict"));
     const vorher = ziel ? kanonischerEntwurf(ziel) : "";
     if (revision !== null && revision !== vorher) throw new Error(_("Conflict"));
     const entwurf = modus === "new" ? null : baumKontaktEntwurf(ziel, karte, auswahl, modus);
@@ -21866,12 +21885,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (DATEN !== bestand || gesperrt || ziel && (!daten.kontakte.includes(ziel) || kanonischerEntwurf(ziel) !== vorher) ||
           !(baumStand?.partner || []).some(p => p.kennung === stueck.von && p.bestaetigt)) throw new Error(_("Conflict"));
       if (modus === "new") {
-        const alteBindungen = daten.kontakte.filter(k => art === "kontakt_sync" && k.baumKontakt?.freigabeId === inhalt.freigabeId &&
-          (k.baumKontakt.partner || []).includes(stueck.von));
+        const alteBindungen = daten.kontakte.filter(k => art === "kontakt_sync" && baumKontaktBindung(k, inhalt.freigabeId, stueck.von));
         if (!mitBaumKontaktEntwurf(daten, () => uebernehmeBaumAngebot(stueck, {}, { aufschieben: true, neu: true }))) throw new Error(_("The offered entry is incomplete."));
         for (const kontakt of alteBindungen) {
-          kontakt.baumKontakt.partner = kontakt.baumKontakt.partner.filter(p => p !== stueck.von);
-          if (!kontakt.baumKontakt.partner.length) kontakt.baumKontakt = null;
+          const bindungen = baumKontaktBindungen(kontakt).map(m => {
+            const { weitere, ...einzeln } = m;
+            return m.freigabeId === inhalt.freigabeId ? { ...einzeln, partner: m.partner.filter(p => p !== stueck.von) } : einzeln;
+          }).filter(m => m.freigabeId !== inhalt.freigabeId || m.partner.length);
+          kontakt.baumKontakt = bindungen.length ? { ...bindungen[0], weitere: bindungen.slice(1) } : null;
         }
       } else {
         for (const feld of BAUM_KONTAKT_FELDER.concat(["geburtstagJahrUnbekannt", "vcardRoundtrip"]))
@@ -21879,14 +21900,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         for (const regel of Object.values(BAUM_KONTAKT_LISTEN)) regel.setzen(ziel, regel.lesen(entwurf));
         ziel.geaendert = Date.now();
         if (art === "kontakt_sync") {
-          const meta = ziel.baumKontakt || {};
+          const meta = baumKontaktBindung(ziel, inhalt.freigabeId) || {};
           const quelle = String(inhalt.quelle || stueck.von || ""), version = Number(inhalt.version);
-          ziel.baumKontakt = { ...meta, freigabeId: inhalt.freigabeId, version: Math.max(meta.version || 0, version),
+          setzeBaumKontaktBindung(ziel, { ...meta, freigabeId: inhalt.freigabeId, version: Math.max(meta.version || 0, version),
             quelle, hash: "", entscheidungHash: hash, geaendert: Number(inhalt.geaendert) || 0,
             fernStand: Object.fromEntries(["vorname", "nachname", "anzeigename", "firma", "geburtstag", "jubilaeum", "vcardName"]
               .filter(f => inhalt.kontakt[f] !== undefined).map(f => [f, kopie(inhalt.kontakt[f])])),
             partner: Array.from(new Set((meta.partner || []).concat(stueck.von))),
-            staende: Array.from(new Set((meta.staende || []).concat(quelle + "\u0000" + version))).slice(-100) };
+            staende: Array.from(new Set((meta.staende || []).concat(quelle + "\u0000" + version))).slice(-100) });
         }
         mitBaumKontaktEntwurf(daten, () => { verknuepfeKontaktGeburtstag(ziel); verknuepfeKontaktJubilaeum(ziel); });
       }
@@ -21941,7 +21962,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         } else {
           const ziel = nummer === 0 ? lauf.daten.kontakte.find(k => k.id === zielId) :
             plan.ziel || (plan.kandidaten?.length === 1 ? plan.kandidaten[0] : null);
-          if (nummer > 0 && modus !== "new" && (!ziel || ziel.baumKontakt && ziel.baumKontakt.freigabeId !== angebot.inhalt?.freigabeId)) continue;
+          if (nummer > 0 && modus !== "new" && !ziel) continue;
           const weitereAuswahl = nummer > 0 && modus === "merge" ? baumKontaktAuswahlFuerRest(erstesZiel, ersteKarte, auswahl, ziel, baumKontaktKarte(angebot)) : {};
           if (weitereAuswahl === null) continue;
           await entscheideBaumKontakt(angebot, ziel?.id, nummer === 0 ? auswahl : weitereAuswahl, modus,
@@ -22043,8 +22064,6 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const button = knopf(label, modus === "merge" ? "hauptknopf" : "", () => {
         try {
           if (!["new", "skip"].includes(modus)) {
-            if ((stueck.inhalt?.art || stueck.art) === "kontakt_sync" && ziel.baumKontakt &&
-                ziel.baumKontakt.freigabeId !== stueck.inhalt.freigabeId) throw new Error(_("Conflict"));
             baumKontaktEntwurf(ziel, karte, auswahl, modus);
           }
         }
@@ -22128,23 +22147,21 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const version = Number(inhalt.version) || 0;
       const stand = quelle + "\u0000" + version;
       if (!freigabeId || !version || !inhalt.kontakt) return false;
-      let kontakt = optionen.neu ? null : DATEN.kontakte.find((k) => k.baumKontakt &&
-        k.baumKontakt.freigabeId === freigabeId && (k.baumKontakt.partner || []).includes(stueck.von));
+      let kontakt = optionen.neu ? null : DATEN.kontakte.find(k => baumKontaktBindung(k, freigabeId, stueck.von));
       if (!kontakt && optionen.kontakt && DATEN.kontakte.includes(optionen.kontakt)) {
         kontakt = optionen.kontakt;
-        kontakt.baumKontakt ||= { freigabeId, version: 0, quelle: "", partner: [], staende: [], fernStand: {} };
-        kontakt.baumKontakt.partner = Array.from(new Set((kontakt.baumKontakt.partner || []).concat(stueck.von)));
       }
-      if (kontakt && (kontakt.baumKontakt.staende || []).includes(stand)) return true;
+      let meta = baumKontaktBindung(kontakt, freigabeId) || { freigabeId, version: 0, quelle: "", partner: [], staende: [], fernStand: {} };
+      if (kontakt) meta = setzeBaumKontaktBindung(kontakt, { ...meta, partner: [...new Set((meta.partner || []).concat(stueck.von))] });
+      if (kontakt && (meta.staende || []).includes(stand)) return true;
       if (kontakt && optionen.behalten) {
-        kontakt.baumKontakt.version = Math.max(kontakt.baumKontakt.version || 0, version);
-        kontakt.baumKontakt.staende = Array.from(new Set((kontakt.baumKontakt.staende || []).concat(stand))).slice(-100);
+        meta.version = Math.max(meta.version || 0, version);
+        meta.staende = Array.from(new Set((meta.staende || []).concat(stand))).slice(-100);
         return true;
       }
       const fern = { ...inhalt.kontakt,
         geburtstag: kanonischesGeburtsdatum(String(inhalt.kontakt.geburtstag || "")) };
       if (kontakt) {
-        const meta = kontakt.baumKontakt;
         if (version < meta.version || version === meta.version && quelle <= meta.quelle) return true;
         for (const feld of ["geburtstag", "jubilaeum", "vorname", "nachname", "anzeigename", "firma"]) {
           if (fern[feld] && kontakt[feld] && fern[feld] !== kontakt[feld] && meta.fernStand?.[feld] !== kontakt[feld]) {
@@ -22172,7 +22189,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         DATEN.kontakte.push(kontakt);
       } else {
         for (const feld of ["vorname", "nachname", "anzeigename", "firma"]) {
-          if (fern[feld] && (!kontakt[feld] || kontakt.baumKontakt.fernStand?.[feld] === kontakt[feld])) kontakt[feld] = String(fern[feld]);
+          if (fern[feld] && (!kontakt[feld] || meta.fernStand?.[feld] === kontakt[feld])) kontakt[feld] = String(fern[feld]);
         }
         const fernGeburtstag = kanonischesGeburtsdatum(String(fern.geburtstag || ""));
         if (fernGeburtstag) {
@@ -22200,22 +22217,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           (fern.anschriften || []).map((e) => ({ strasse: e.strasse, plz: e.plz,
             ort: e.ort, region: e.region, land: e.land, label: e.art, typen: [] }))));
       }
-      kontakt.baumKontakt = { freigabeId: freigabeId, version: version,
-        hash: kontakt.baumKontakt?.hash || "",
+      setzeBaumKontaktBindung(kontakt, { freigabeId: freigabeId, version: version,
+        hash: meta.hash || "",
         fernStand: Object.fromEntries(["vorname", "nachname", "anzeigename", "firma", "geburtstag", "jubilaeum", "vcardName"]
           .filter((feld) => fern[feld] !== undefined).map((feld) => [feld, kopie(fern[feld])])),
         quelle: quelle, geaendert: Number(inhalt.geaendert) || 0,
-        staende: Array.from(new Set((kontakt.baumKontakt &&
-          kontakt.baumKontakt.staende || []).concat(stand))).slice(-100),
-        partner: Array.from(new Set((kontakt.baumKontakt &&
-          kontakt.baumKontakt.partner || []).concat(stueck.von))) };
+        staende: Array.from(new Set((meta.staende || []).concat(stand))).slice(-100),
+        partner: Array.from(new Set((meta.partner || []).concat(stueck.von))) });
       if (!kontakt.fotoManuell && !kontakt.foto && fern.foto) kontakt.foto = String(fern.foto);
       verknuepfeKontaktGeburtstag(kontakt);
       verknuepfeKontaktJubilaeum(kontakt);
     } else if (art === "kontakt_loeschen") {
-      const kontakt = DATEN.kontakte.find((k) => k.baumKontakt &&
-        k.baumKontakt.freigabeId === String(inhalt.freigabeId || "") &&
-        (k.baumKontakt.partner || []).includes(stueck.von));
+      const kontakt = DATEN.kontakte.find(k => baumKontaktBindung(k, String(inhalt.freigabeId || ""), stueck.von));
       const stand = stueck.von + "\u0000" + String(inhalt.freigabeId || "") +
         "\u0000" + String(inhalt.quelle || "") + "\u0000" + Number(inhalt.version || 0);
       if (!kontakt || (DATEN.baumKontaktLoeschStaende || []).includes(stand)) return false;
@@ -22247,9 +22260,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       kontakt: _("Address"), kontakt_sync: _("Contact synchronization"),
       kontakt_loeschen: _("Address"),
       notiz: _("Shared note"), notiz_sync: _("Shared note") }[art] || _("Entry");
-    const gebundenerKontakt = art === "kontakt_loeschen" ? DATEN.kontakte.find((k) =>
-      k.baumKontakt && k.baumKontakt.freigabeId === String(inhalt.freigabeId || "") &&
-      (k.baumKontakt.partner || []).includes(stueck.von)) : null;
+    const gebundenerKontakt = art === "kontakt_loeschen" ? DATEN.kontakte.find(k =>
+      baumKontaktBindung(k, String(inhalt.freigabeId || ""), stueck.von)) : null;
     const titel = art === "kontakt_loeschen" ? kontaktName(gebundenerKontakt || {}) :
       art === "kontakt" || art === "kontakt_sync"
       ? [art === "kontakt_sync" ? inhalt.kontakt?.vorname : inhalt.vorname,
@@ -22517,9 +22529,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       for (const stueck of angebote) {
         const angebotArt = (stueck.inhalt || {}).art || stueck.art;
         if (angebotArt === "kontakt_loeschen") {
-          const kontakt = DATEN.kontakte.find((k) => k.baumKontakt &&
-            k.baumKontakt.freigabeId === String(stueck.inhalt.freigabeId || "") &&
-            (k.baumKontakt.partner || []).includes(stueck.von));
+          const kontakt = DATEN.kontakte.find(k => baumKontaktBindung(k, String(stueck.inhalt.freigabeId || ""), stueck.von));
           if (!kontakt) continue;
         }
         const zeile = el("div", "baum-zeile wartet");
@@ -28478,6 +28488,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     notizAnhangLesen: notizAnhangLesen,
     kanonischerText: kanonischerText,
     inDenPapierkorb: inDenPapierkorb,
+    merkeGeloescht: merkeGeloescht,
     ausDemPapierkorb: ausDemPapierkorb,
     raeumePapierkorbAuf: raeumePapierkorbAuf,
     zeigeSperrbildschirm: zeigeSperrbildschirm,
