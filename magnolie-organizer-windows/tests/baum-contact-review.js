@@ -10,12 +10,16 @@ async function check(web) {
   const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), {
     url: "https://app.magnolie.invalid/index.html", runScripts: "outside-only", pretendToBeVisual: true });
   const w = dom.window, messages = [];
-  let snapshotOk = true;
+  let snapshotOk = true, deferSaves = false;
+  const saveReplies = [];
   Object.defineProperty(w, "crypto", { value: webcrypto }); w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
   w.__MAGNOLIE_BRUECKE__ = "test";
   w.webkit = { messageHandlers: { test: { postMessage(text) {
     const m = JSON.parse(text); messages.push(m);
-    if (m.cmd === "speichern") queueMicrotask(() => w.App.gespeichert({ id: m.id, ok: true }));
+    if (m.cmd === "speichern") {
+      const reply = () => w.App.gespeichert({ id: m.id, ok: true });
+      if (deferSaves) saveReplies.push(reply); else queueMicrotask(reply);
+    }
     if (m.cmd === "mutations_snapshot") queueMicrotask(() => w.App.mutationsSnapshot({ token: m.token, ok: snapshotOk }));
   } } } };
   w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
@@ -29,8 +33,8 @@ async function check(web) {
       vorname: "Person " + i, nachname: "Changed " + i, geburtstag: "", anschriften: [],
       emailEintraege: [{ wert: "person" + i + "@example.test", art: "HOME" }],
       telefone: [{ wert: "+4930987654" + i, art: "CELL" }], ...extra } } });
-  const inbox = rows => w.App.baumStand({ an: true, moeglich: true, kennung: "local", name: "Local", eingang: rows,
-    partner: [{ kennung: "peer", name: "Peer", bestaetigt: true, vertraut: false }] });
+  const inbox = (rows, peers = ["peer"]) => w.App.baumStand({ an: true, moeglich: true, kennung: "local", name: "Local", eingang: rows,
+    partner: peers.map(kennung => ({ kennung, name: kennung, bestaetigt: true, vertraut: false })) });
   const reset = async (people, rows) => {
     snapshotOk = true; w.App.init({ daten: { kontakte: people }, neu: false, regional: { language: "en" } });
     inbox(rows); await tick(); T.oeffneEinstellungen(); w.document.querySelector("#einst-tab-baum").click();
@@ -99,6 +103,55 @@ async function check(web) {
     w.document.querySelector('[data-kontakt-rest="true"]').checked = true; action("skip");
     await until(() => receipts().length === 2);
     assert.equal(snapshotCount(), 0); assert.equal(JSON.stringify(T.daten().kontakte), skipped);
+    assert.equal(T.daten().baumKontaktAblehnungen.length, 2);
+    const rejected = clean(T.daten());
+    w.App.init({ daten: rejected, neu: false, regional: { language: "en" } });
+    const afterReload = JSON.stringify(T.daten().kontakte);
+    inbox([offer(1, {}, 9), offer(2, {}, 9)]); messages.length = 0;
+    const rejectedReplay = await T.uebernehmeBaumKontakte();
+    assert.equal(rejectedReplay.konflikte, 0, "rejected unchanged content asked again after reload/version change");
+    assert.equal(rejectedReplay.gespeichert, true);
+    assert.equal(JSON.stringify(T.daten().kontakte), afterReload, "rejected data was imported on replay");
+    assert.equal(snapshotCount(), 0); assert.equal(receipts().length, 2);
+    inbox([offer(1, { nachname: "Genuinely changed" }, 10)]);
+    assert.equal((await T.uebernehmeBaumKontakte()).konflikte, 1, "changed content was silently rejected");
+    inbox([offer(1, { sozialeMedien: [{ dienst: "Signal", wert: "provided-by-source" }] }, 10)]);
+    assert.equal((await T.uebernehmeBaumKontakte()).konflikte, 1, "rejection ignored additional source fields");
+    const otherShare = offer(1, {}, 10); otherShare.inhalt.freigabeId = "independent-share";
+    inbox([otherShare]);
+    assert.equal((await T.uebernehmeBaumKontakte()).konflikte, 1, "rejection leaked into another share");
+    const otherSender = offer(1, {}, 10); otherSender.von = "other-peer";
+    inbox([otherSender], ["other-peer"]);
+    assert.equal((await T.uebernehmeBaumKontakte()).konflikte, 1, "rejection leaked into another sender");
+
+    await reset([person(1), person(2)], [offer(1), offer(2)]);
+    w.document.querySelector("#baum-kontakte-annehmen").click(); await until(() => w.document.querySelector(".baum-kontakt-konflikt"));
+    action("skip"); await until(() => w.document.querySelector(".baum-kontakt-konflikt"));
+    assert.equal(T.daten().baumKontaktAblehnungen.length, 0, "draft rejection escaped before the full review");
+    [...w.document.querySelectorAll(".baum-kontakt-konflikt button")].find(b => b.textContent === "Cancel").click();
+    assert.equal(T.daten().baumKontaktAblehnungen.length, 0); assert.equal(receipts().length, 0);
+
+    await reset([person(1)], [offer(1)]);
+    w.document.querySelector("#baum-kontakte-annehmen").click(); await until(() => w.document.querySelector(".baum-kontakt-konflikt"));
+    deferSaves = true; action("skip");
+    await until(() => saveReplies.length);
+    assert.equal(receipts().length, 0, "rejection acknowledged before durable save");
+    deferSaves = false; saveReplies.splice(0).forEach(reply => reply());
+    await until(() => receipts().length === 1);
+
+    const many = Array.from({ length: 300 }, (_, i) => i + 1);
+    await reset(many.map(person), many.map(i => offer(i)));
+    w.document.querySelector("#baum-kontakte-annehmen").click(); await until(() => w.document.querySelector(".baum-kontakt-konflikt"));
+    w.document.querySelector('[data-kontakt-rest="true"]').checked = true; action("skip");
+    await until(() => receipts().length === many.length);
+    assert.equal(T.daten().baumKontaktAblehnungen.length, many.length);
+    w.App.init({ daten: clean(T.daten()), neu: false, regional: { language: "en" } });
+    inbox(many.map(i => offer(i, {}, 20))); messages.length = 0;
+    const manyStart = Date.now(), manyReplay = await T.uebernehmeBaumKontakte();
+    assert.equal(manyReplay.konflikte, 0); assert.equal(receipts().length, many.length);
+    assert.equal(T.daten().kontakte.length, many.length);
+    assert.ok(T.daten().kontakte.every(k => k.nachname === "Example"));
+    console.log("Remembered rejections: " + many.length + " offers in " + (Date.now() - manyStart) + " ms");
 
     await reset([person(1)], [offer(1)]);
     w.document.querySelector("#baum-kontakte-annehmen").click(); await until(() => w.document.querySelector(".baum-kontakt-konflikt"));

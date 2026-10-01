@@ -424,7 +424,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       letzterSync: 0, letzteSyncs: { kalender: {}, adressbuecher: {} },
       syncStatus: { letzterVersuch: 0, letzterFehler: "" },
       baumKontaktGeloescht: [], baumKontaktBestand: {},
-      baumKontaktLoeschStaende: [], baumKontaktErfolgreich: {},
+      baumKontaktLoeschStaende: [], baumKontaktErfolgreich: {}, baumKontaktAblehnungen: [],
       personalSync: { format: 1, actor_id: "", counter: 0, entities: {},
         last_reports: [], applied_batches: [], last_auto_ms: 0, last_auto_hash: "",
         peer_device_id: "", restoration_requests: [], pending_proposals: [],
@@ -6870,6 +6870,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     d.baumKontaktLoeschStaende = Array.isArray(roh.baumKontaktLoeschStaende)
       ? Array.from(new Set(roh.baumKontaktLoeschStaende.map(S).filter(Boolean))).slice(-500)
       : [];
+    d.baumKontaktAblehnungen = Array.isArray(roh.baumKontaktAblehnungen)
+      ? [...new Set(roh.baumKontaktAblehnungen.filter(wert => typeof wert === "string" && /^[a-f0-9]{64}$/.test(wert)))] : [];
     d.baumKontaktErfolgreich = {};
     if (roh.baumKontaktErfolgreich && typeof roh.baumKontaktErfolgreich === "object") {
       for (const [partner, erfolgreich] of Object.entries(roh.baumKontaktErfolgreich)) {
@@ -21440,17 +21442,30 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   function baumKontaktBereiche(daten) {
-    return kanonischerEntwurf({ kontakte: daten.kontakte, jahrestage: daten.jahrestage });
+    return kanonischerEntwurf({ kontakte: daten.kontakte, jahrestage: daten.jahrestage,
+      ablehnungen: daten.baumKontaktAblehnungen });
   }
 
   function neuerBaumKontaktLauf() {
     return { bestand: DATEN, basis: baumKontaktBereiche(DATEN),
-      daten: { ...DATEN, kontakte: kopie(DATEN.kontakte), jahrestage: kopie(DATEN.jahrestage) },
+      daten: { ...DATEN, kontakte: kopie(DATEN.kontakte), jahrestage: kopie(DATEN.jahrestage),
+        baumKontaktAblehnungen: [...(DATEN.baumKontaktAblehnungen || [])] },
       angenommen: [], offen: [], nachrichten: new Map(), beendet: false };
+  }
+
+  async function baumKontaktAblehnungHash(stueck) {
+    const karte = baumKontaktKarte(stueck), inhalt = stueck.inhalt || {};
+    if (!karte) throw new Error(_("The offered entry is incomplete."));
+    // Bind rejection to sender, share and content, never transport ID/version.
+    const art = inhalt.art || stueck.art;
+    return personalSyncHash(kanonischerEntwurf([String(stueck.von || ""), inhalt.art || stueck.art,
+      String(inhalt.freigabeId || ""), art === "kontakt_sync" ? inhalt.kontakt : inhalt]));
   }
 
   async function baumKontaktPlan(stueck, index = null, daten = DATEN) {
     const plan = mitBaumKontaktEntwurf(daten, () => baumKontaktPruefung(stueck, index)), inhalt = stueck.inhalt || {};
+    if (plan.art !== "ungueltig" && daten.baumKontaktAblehnungen?.length &&
+        daten.baumKontaktAblehnungen.includes(await baumKontaktAblehnungHash(stueck))) return { art: "abgelehnt" };
     const ziel = plan.kandidaten?.length === 1 ? plan.kandidaten[0] : null;
     const meta = ziel?.baumKontakt;
     if (plan.art === "konflikt" && meta?.entscheidungHash && meta.freigabeId === inhalt.freigabeId &&
@@ -21481,6 +21496,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         if (!gueltig()) { reject(new Error(_("Conflict"))); return; }
         lauf.beendet = true;
         DATEN.kontakte = lauf.daten.kontakte; DATEN.jahrestage = lauf.daten.jahrestage;
+        DATEN.baumKontaktAblehnungen = lauf.daten.baumKontaktAblehnungen;
         planeSpeichern();
         zeichneAlles();
         nachDauerhaftemSpeichern(() => {
@@ -21521,6 +21537,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         if (DATEN !== bestand || gesperrt) return ergebnis;
         if (plan.art === "konflikt") { ergebnis.konflikte++; lauf.offen.push(stueck.id); continue; }
         if (plan.art === "ungueltig") { ergebnis.ungueltig++; continue; }
+        if (plan.art === "abgelehnt") {
+          lauf.angenommen.push(stueck.id); ergebnis.angenommen++; continue;
+        }
         const vorher = lauf.daten.kontakte.length;
         if (!mitBaumKontaktEntwurf(lauf.daten, () => uebernehmeBaumAngebot(stueck, {}, { aufschieben: true, kontakt: plan.ziel, behalten: plan.behalten,
             ergaenzen: plan.art === "ergaenzung" }))) {
@@ -21677,7 +21696,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         const plan = await baumKontaktPlan(angebot, null, lauf.daten);
         if (modus === "auto") {
           if (plan.art === "konflikt" || plan.art === "ungueltig") continue;
-          mitBaumKontaktEntwurf(lauf.daten, () => uebernehmeBaumAngebot(angebot, {}, {
+          if (plan.art !== "abgelehnt") mitBaumKontaktEntwurf(lauf.daten, () => uebernehmeBaumAngebot(angebot, {}, {
             aufschieben: true, kontakt: plan.ziel, behalten: plan.behalten, ergaenzen: plan.art === "ergaenzung" }));
         } else {
           const ziel = nummer === 0 ? lauf.daten.kontakte.find(k => k.id === zielId) :
@@ -21688,6 +21707,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           await entscheideBaumKontakt(angebot, ziel?.id, nummer === 0 ? auswahl : weitereAuswahl, modus,
             nummer === 0 ? revision : ziel ? kanonischerEntwurf(ziel) : null, bestand, lauf);
         }
+      }
+      if (modus === "skip") {
+        const hash = await baumKontaktAblehnungHash(angebot);
+        if (!lauf.daten.baumKontaktAblehnungen.includes(hash)) lauf.daten.baumKontaktAblehnungen.push(hash);
       }
       lauf.angenommen.push(id); lauf.offen = lauf.offen.filter(wert => wert !== id);
       if (nummer % 25 === 24) await new Promise(resolve => setTimeout(resolve, 0));
