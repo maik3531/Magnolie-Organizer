@@ -1547,6 +1547,9 @@ msgstr ""
 msgid "Choose at least four characters."
 msgstr "Vælg mindst fire tegn."
 
+msgid "Choose contact photo"
+msgstr "Vælg kontaktbillede"
+
 msgid "Choose entries to print, export or delete"
 msgstr "Vælg poster, der skal udskrives, eksporteres eller slettes"
 
@@ -1555,6 +1558,9 @@ msgstr "Vælg fil…"
 
 msgid "Choose folder …"
 msgstr "Vælg mappe …"
+
+msgid "Choose local image…"
+msgstr "Vælg lokalt billede…"
 
 msgid "Choose or enter a phone number"
 msgstr "Vælg eller indtast et telefonnummer"
@@ -3332,6 +3338,9 @@ msgstr "Indlæser baggrundsindstillinger"
 
 msgid "Local calendar"
 msgstr "Lokal kalender"
+
+msgid "Local image"
+msgstr "Lokalt billede"
 
 msgid "Location"
 msgstr "Sted"

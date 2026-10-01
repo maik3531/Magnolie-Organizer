@@ -1570,6 +1570,9 @@ msgstr ""
 msgid "Choose at least four characters."
 msgstr "Escolha pelo menos quatro caracteres."
 
+msgid "Choose contact photo"
+msgstr "Escolher fotografia do contacto"
+
 msgid "Choose entries to print, export or delete"
 msgstr "Escolher entradas para imprimir, exportar ou eliminar"
 
@@ -1578,6 +1581,9 @@ msgstr "Escolher ficheiro…"
 
 msgid "Choose folder …"
 msgstr "Escolher pasta …"
+
+msgid "Choose local image…"
+msgstr "Escolher imagem local…"
 
 msgid "Choose or enter a phone number"
 msgstr "Escolher ou introduzir um número de telefone"
@@ -3379,6 +3385,9 @@ msgstr "A carregar as definições de segundo plano"
 
 msgid "Local calendar"
 msgstr "Calendário local"
+
+msgid "Local image"
+msgstr "Imagem local"
 
 msgid "Location"
 msgstr "Localização"

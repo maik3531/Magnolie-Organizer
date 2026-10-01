@@ -1634,6 +1634,9 @@ msgstr ""
 msgid "Choose at least four characters."
 msgstr "Wubjerće znajmjeńša štyri znamješka."
 
+msgid "Choose contact photo"
+msgstr "Kontaktowe foto wubrać"
+
 msgid "Choose entries to print, export or delete"
 msgstr "Zapiski za ćišć, eksport abo zhašenje wubrać"
 
@@ -1642,6 +1645,9 @@ msgstr "Dataj wubrać…"
 
 msgid "Choose folder …"
 msgstr "Rjadowak wubrać …"
+
+msgid "Choose local image…"
+msgstr "Swójski wobraz wubrać…"
 
 msgid "Choose or enter a phone number"
 msgstr "Telefonowe čisło wubrać abo zapodać"
@@ -3432,6 +3438,9 @@ msgstr "Pozadkowe nastajenja so začituja"
 
 msgid "Local calendar"
 msgstr "Lokalny protyk"
+
+msgid "Local image"
+msgstr "Swójski wobraz"
 
 msgid "Location"
 msgstr "Městno"

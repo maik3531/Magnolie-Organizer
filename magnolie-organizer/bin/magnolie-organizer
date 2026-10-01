@@ -4029,6 +4029,42 @@ def _telefon_typen_aus_label(typen, label):
     return sorted(aus)
 
 
+def _kontakt_foto_merke(kontakt, foto, quellen="system"):
+    """Retain delivered alternatives without changing the displayed image."""
+    def sauber(wert):
+        if not isinstance(wert, str) or len(wert) > 3600000:
+            return ""
+        if not re.fullmatch(r"data:image/(?:jpeg|png|webp|gif);base64,[A-Za-z0-9+/=\s]+", wert, re.I):
+            return ""
+        return re.sub(r"\s", "", wert)
+
+    foto = sauber(foto)
+    if not foto:
+        return
+    bilder = {}
+
+    def aufnehmen(wert, herkunft):
+        wert = sauber(wert)
+        if not wert:
+            return
+        bekannt = bilder.setdefault(wert, [])
+        for quelle in herkunft if isinstance(herkunft, list) else []:
+            if isinstance(quelle, str):
+                quelle = re.sub(r"[\x00-\x1f\x7f]", " ", quelle).strip()[:256]
+                if quelle and quelle not in bekannt:
+                    bekannt.append(quelle)
+
+    aktuell = sauber(kontakt.get("foto"))
+    aufnehmen(aktuell, kontakt.get("fotoQuellen"))
+    for bild in kontakt.get("fotoAlternativen") if isinstance(kontakt.get("fotoAlternativen"), list) else []:
+        if isinstance(bild, dict):
+            aufnehmen(bild.get("foto"), bild.get("quellen"))
+    aufnehmen(foto, [quellen] if isinstance(quellen, str) else quellen)
+    kontakt["fotoQuellen"] = bilder.get(aktuell, [])
+    kontakt["fotoAlternativen"] = [{"foto": wert, "quellen": herkunft}
+                                  for wert, herkunft in bilder.items() if wert != aktuell]
+
+
 def _vcard_foto(wert, params, lokale_dateien=False):
     """Übernimmt eingebettete Kontaktbilder als begrenzte Datenadresse.
 
@@ -6174,8 +6210,11 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None):
                     lokal_neu = (lokal_hash != zuordnung["inhaltSha256"] if
                                   zuordnung.get("inhaltFormat") == _sync_inhalt_format(felder) and zuordnung.get("inhaltSha256") else remote_neu or
                                   lokal_hash != _sync_inhalt_hash(fern, felder))
+                    vergleich_fern = fern
+                    if "foto" in felder and obj.get("fotoManuell") is True:
+                        vergleich_fern = dict(fern, foto=obj.get("foto") or "")
                     if remote_neu and lokal_neu and (
-                            _sync_inhalt_hash(obj, felder) != _sync_inhalt_hash(fern, felder)):
+                            _sync_inhalt_hash(obj, felder) != _sync_inhalt_hash(vergleich_fern, felder)):
                         kopie = json.loads(json.dumps(obj))
                         kennung = uuid.uuid5(uuid.NAMESPACE_URL, "\n".join((
                             quelle, u, alt["etag"], _sync_inhalt_hash(obj, felder)))).hex
@@ -6191,11 +6230,13 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None):
             if "foto" in felder:
                 lokal_foto = obj.get("foto") or ""
                 fern_foto = fern.get("foto") or ""
+                _kontakt_foto_merke(obj, fern_foto)
                 if fern_foto and not lokal_foto and obj.get("fotoManuell") is not True:
                     # Ein Foto kann von EDS später als die übrige vCard
                     # geliefert werden. Es darf dann nicht wegen eines
                     # neueren lokalen Zeitstempels wieder verschwinden.
                     obj["foto"] = fern_foto
+                    _kontakt_foto_merke(obj, fern_foto)
                 elif lokal_foto and not fern_foto:
                     # Ein fehlendes PHOTO-Feld ist bei vielen EDS-Backends
                     # keine ausdrückliche Löschung. Das lokale Bild erhalten
@@ -6291,7 +6332,15 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None):
                              "sozialeMedien"):
                         continue
                     if f in fern:
-                        obj[f] = fern[f]
+                        if f == "foto" and obj.get(f) != fern[f]:
+                            altes_foto = obj.get(f)
+                            alte_quellen = obj.get("fotoQuellen", [])
+                            obj[f] = fern[f]
+                            obj["fotoQuellen"] = []
+                            _kontakt_foto_merke(obj, altes_foto, alte_quellen)
+                            _kontakt_foto_merke(obj, fern[f])
+                        else:
+                            obj[f] = fern[f]
                 for f in ("vcardRoundtrip", "vcardParameter"):
                     if f in fern:
                         obj[f] = fern[f]
@@ -18619,8 +18668,10 @@ class Fenster(_FENSTER_BASIS):
         kontext = WebKit2.WebContext.get_default()
         kontext.register_uri_scheme("magnolie-organizer", self._bei_organizer_anfrage)
         sicherheit = kontext.get_security_manager()
-        for methode in ("register_uri_scheme_as_local", "register_uri_scheme_as_secure",
-                        "register_uri_scheme_as_display_isolated"):
+        # Keep an ordinary secure, isolated origin. Marking it as a file-local
+        # origin makes FileReader reject explicitly selected files while the
+        # file-URL access settings below correctly remain disabled.
+        for methode in ("register_uri_scheme_as_secure", "register_uri_scheme_as_display_isolated"):
             try:
                 getattr(sicherheit, methode)("magnolie-organizer")
             except AttributeError:
@@ -19655,8 +19706,8 @@ class Fenster(_FENSTER_BASIS):
             grund = nachricht.get("reason") or ""
             token = str(nachricht.get("token") or "")[:128]
             try:
-                if grund not in ("pre-contact-import", "pre-contact-merge",
-                                  "pre-contact-delete"):
+                if grund not in ("pre-contact", "pre-contact-import", "pre-contact-merge",
+                                  "pre-contact-delete", "pre-sync"):
                     raise ValueError("reason")
                 self._journal_snapshot(grund)
                 self.antwort("App.mutationsSnapshot", {"ok": True, "token": token})

@@ -1155,6 +1155,9 @@ msgstr ""
 msgid "Choose at least four characters."
 msgstr "请至少选择四个字符。"
 
+msgid "Choose contact photo"
+msgstr "选择联系人照片"
+
 msgid "Choose entries to print, export or delete"
 msgstr "选择要打印、导出或删除的条目"
 
@@ -1163,6 +1166,9 @@ msgstr "选择文件…"
 
 msgid "Choose folder …"
 msgstr "选择文件夹 …"
+
+msgid "Choose local image…"
+msgstr "选择本地图片…"
 
 msgid "Choose or enter a phone number"
 msgstr "选择或输入电话号码"
@@ -2634,6 +2640,9 @@ msgstr "监听器已停止"
 
 msgid "Local calendar"
 msgstr "本地日历"
+
+msgid "Local image"
+msgstr "本地图片"
 
 msgid "Location"
 msgstr "位置"

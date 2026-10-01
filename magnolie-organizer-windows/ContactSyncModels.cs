@@ -175,8 +175,38 @@ internal static class ContactFields
         return remote is null || hash != ContentHash(remote);
     }
 
+    internal static void RememberPhoto(JsonObject target, string photo, params string[] sources)
+    {
+        static string Clean(string value) => value.Length <= 3600000 &&
+            System.Text.RegularExpressions.Regex.IsMatch(value, @"^data:image/(?:jpeg|png|webp|gif);base64,[A-Za-z0-9+/=\s]+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                ? System.Text.RegularExpressions.Regex.Replace(value, @"\s", "") : "";
+        photo = Clean(photo);
+        if (photo.Length == 0) return;
+        var images = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        void Add(string value, IEnumerable<string> origins)
+        {
+            value = Clean(value); if (value.Length == 0) return;
+            if (!images.TryGetValue(value, out var known)) images[value] = known = new(StringComparer.Ordinal);
+            foreach (var origin in origins) if (!string.IsNullOrWhiteSpace(origin)) known.Add(origin.Length > 256 ? origin[..256] : origin);
+        }
+        static IEnumerable<string> Origins(JsonNode? value) => (value as JsonArray ?? []).OfType<JsonValue>()
+            .Select(item => item.TryGetValue<string>(out var text) ? text : "");
+        var current = Clean(Text(target, "foto"));
+        Add(current, Origins(target["fotoQuellen"]));
+        foreach (var choice in (target["fotoAlternativen"] as JsonArray ?? []).OfType<JsonObject>())
+            Add(Text(choice, "foto"), Origins(choice["quellen"]));
+        Add(photo, sources);
+        static JsonArray List(IEnumerable<string> values) => new(values.Select(value => (JsonNode?)JsonValue.Create(value)).ToArray());
+        target["fotoQuellen"] = List(images.GetValueOrDefault(current) ?? []);
+        target["fotoAlternativen"] = new JsonArray(images.Where(pair => pair.Key != current).Select(pair => (JsonNode?)new JsonObject {
+            ["foto"] = pair.Key, ["quellen"] = List(pair.Value) }).ToArray());
+    }
+
     internal static JsonObject CopyRemoteFields(JsonObject target, JsonObject source, string provider = "")
     {
+        var oldPhoto = Text(target, "foto");
+        var oldOrigins = (target["fotoQuellen"] as JsonArray ?? []).OfType<JsonValue>()
+            .Select(value => value.TryGetValue<string>(out var text) ? text : "").ToArray();
         foreach (var name in Names)
         {
             if (name == "foto" && target["fotoManuell"] is JsonValue manualPhoto &&
@@ -193,6 +223,12 @@ internal static class ContactFields
             target[name] = source[name]?.DeepClone();
         }
         NormalizeBirthday(target);
+        if (Text(target, "foto") != oldPhoto)
+        {
+            target["fotoQuellen"] = new JsonArray();
+            RememberPhoto(target, oldPhoto, oldOrigins);
+        }
+        if (provider is not ("windows-contacts" or "microsoft-graph")) RememberPhoto(target, Text(source, "foto"), "system");
         return target;
     }
 
@@ -264,11 +300,13 @@ internal static class ContactCleanupPlan
         if (profile.TryGetProperty("syncNachRestore", out var restore) && restore.ValueKind == System.Text.Json.JsonValueKind.Object &&
             new[] { "additiv", "loeschungsfrei" }.Any(field => restore.TryGetProperty(field, out var flag) && flag.ValueKind == System.Text.Json.JsonValueKind.True)) return result;
         var contacts = JsonNode.Parse(raw)!.AsArray().OfType<JsonObject>().ToArray();
-        var metadata = new HashSet<string>(new[] { "id", "uid", "geaendert", "sync", "syncQuellen", "baumKontakt", "importBindungen", "importHerkunfte", "importKonflikt", "kontaktAliase" }, StringComparer.Ordinal);
+        var metadata = new HashSet<string>(new[] { "id", "uid", "geaendert", "sync", "syncQuellen", "baumKontakt", "importBindungen", "importHerkunfte", "importKonflikt", "kontaktAliase", "fotoAlternativen", "fotoQuellen", "fotoManuell" }, StringComparer.Ordinal);
         foreach (var candidate in Candidates(contacts, homeCountry))
         {
             var cards = candidate.Cards;
             var desiredHash = ContactFields.ContentHash(candidate.Complete);
+            if (cards.Any(card => card["fotoManuell"] is JsonValue manual && manual.TryGetValue<bool>(out var pinned) && pinned &&
+                ContactFields.Text(card, "foto") != ContactFields.Text(candidate.Complete, "foto"))) continue;
             if (cards.Any(card => ContactFields.Text(card, "id").Length == 0 || card["importKonflikt"]?.GetValue<bool>() == true ||
                     card["syncKonflikte"] is JsonObject { Count: > 0 }) ||
                 cards.Select(card => ContactFields.Text(card, "id")).Distinct(StringComparer.Ordinal).Count() != cards.Length) continue;
@@ -326,6 +364,19 @@ internal static class ContactCleanupPlan
                 mergedTree["staende"] = Strings(cards.SelectMany(card => card["baumKontakt"]?["staende"] as JsonArray ?? []));
                 combined["baumKontakt"] = mergedTree;
             }
+            var gallery = new JsonObject { ["foto"] = contentHolder["foto"]?.DeepClone(),
+                ["fotoQuellen"] = contentHolder["fotoQuellen"]?.DeepClone() ?? new JsonArray() };
+            static string[] PhotoSources(JsonNode? sources) => (sources as JsonArray ?? []).OfType<JsonValue>()
+                .Select(value => value.TryGetValue<string>(out var text) ? text : "").ToArray();
+            foreach (var card in cards)
+            {
+                ContactFields.RememberPhoto(gallery, ContactFields.Text(card, "foto"), PhotoSources(card["fotoQuellen"]));
+                foreach (var image in (card["fotoAlternativen"] as JsonArray ?? []).OfType<JsonObject>())
+                    ContactFields.RememberPhoto(gallery, ContactFields.Text(image, "foto"), PhotoSources(image["quellen"]));
+            }
+            combined["fotoAlternativen"] = gallery["fotoAlternativen"]?.DeepClone() ?? new JsonArray();
+            combined["fotoQuellen"] = gallery["fotoQuellen"]?.DeepClone() ?? new JsonArray();
+            combined["fotoManuell"] = cards.Any(card => card["fotoManuell"] is JsonValue manual && manual.TryGetValue<bool>(out var pinned) && pinned);
             foreach (var field in unknown)
                 if (keeper[field] is null) combined[field] = cards.Select(card => card[field]).FirstOrDefault(value => value is not null)?.DeepClone();
             var deletions = new JsonArray();
@@ -564,6 +615,7 @@ internal sealed class ContactSyncEngine
                     catch { errors++; }
                     continue;
                 }
+                ContactFields.RememberPhoto(item, ContactFields.Text(other.Data, "foto"), "system");
                 var localTime = item["geaendert"]?.GetValue<long>() ?? 0;
                 var priorEtag = mapping?["etag"]?.GetValue<string>() ?? "";
                 var remoteChanged = priorEtag.Length > 0 || other.ETag.Length > 0
@@ -571,6 +623,12 @@ internal sealed class ContactSyncEngine
                 var localChanged = ContactFields.Dirty(item, mapping, other.Data);
                 var conflictingChanges = remoteChanged && localChanged &&
                     ContactFields.ContentHash(item) != ContactFields.ContentHash(other.Data);
+                if (conflictingChanges && item["fotoManuell"] is JsonValue photoChoice && photoChoice.TryGetValue<bool>(out var pinnedPhoto) && pinnedPhoto)
+                {
+                    var withoutPhotoDifference = other.Data.DeepClone().AsObject();
+                    withoutPhotoDifference["foto"] = item["foto"]?.DeepClone();
+                    conflictingChanges = ContactFields.ContentHash(item) != ContactFields.ContentHash(withoutPhotoDifference);
+                }
                 var repairBirthday = birthdayRepairs.Contains(other.Id) ||
                     ContactFields.Text(item, "geburtstag").Length > 0 && ContactFields.Text(other.Data, "geburtstag").Length == 0 &&
                     (remoteStore.SupportsYearlessBirthdays || !ContactFields.Text(item, "geburtstag").StartsWith("--", StringComparison.Ordinal));

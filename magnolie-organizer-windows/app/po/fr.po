@@ -1239,6 +1239,9 @@ msgstr ""
 msgid "Choose at least four characters."
 msgstr "Choisissez au moins quatre caractères."
 
+msgid "Choose contact photo"
+msgstr "Choisir la photo du contact"
+
 msgid "Choose entries to print, export or delete"
 msgstr "Choisir les entrées à imprimer, exporter ou supprimer"
 
@@ -1247,6 +1250,9 @@ msgstr "Choisir un fichier…"
 
 msgid "Choose folder …"
 msgstr "Choisir un dossier …"
+
+msgid "Choose local image…"
+msgstr "Choisir une image locale…"
 
 msgid "Choose or enter a phone number"
 msgstr "Choisir ou saisir un numéro de téléphone"
@@ -2818,6 +2824,9 @@ msgstr "Écouteur arrêté"
 
 msgid "Local calendar"
 msgstr "Calendrier local"
+
+msgid "Local image"
+msgstr "Image locale"
 
 msgid "Location"
 msgstr "Emplacement"

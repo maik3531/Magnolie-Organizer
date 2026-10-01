@@ -1603,6 +1603,9 @@ msgstr ""
 msgid "Choose at least four characters."
 msgstr "Выберите не менее четырёх символов."
 
+msgid "Choose contact photo"
+msgstr "Выбрать фото контакта"
+
 msgid "Choose entries to print, export or delete"
 msgstr "Выбрать записи для печати, экспорта или удаления"
 
@@ -1611,6 +1614,9 @@ msgstr "Выбрать файл…"
 
 msgid "Choose folder …"
 msgstr "Выбрать папку …"
+
+msgid "Choose local image…"
+msgstr "Выбрать локальное изображение…"
 
 msgid "Choose or enter a phone number"
 msgstr "Выбрать или ввести номер телефона"
@@ -3394,6 +3400,9 @@ msgstr "Загрузка настроек фоновой службы"
 
 msgid "Local calendar"
 msgstr "Локальный календарь"
+
+msgid "Local image"
+msgstr "Локальное изображение"
 
 msgid "Location"
 msgstr "Место"

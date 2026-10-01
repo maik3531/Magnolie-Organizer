@@ -1227,6 +1227,9 @@ msgstr ""
 msgid "Choose at least four characters."
 msgstr "Kies minimaal vier tekens."
 
+msgid "Choose contact photo"
+msgstr "Contactfoto kiezen"
+
 msgid "Choose entries to print, export or delete"
 msgstr "Items kiezen om af te drukken, te exporteren of te verwijderen"
 
@@ -1235,6 +1238,9 @@ msgstr "Bestand kiezen…"
 
 msgid "Choose folder …"
 msgstr "Map kiezen …"
+
+msgid "Choose local image…"
+msgstr "Lokale afbeelding kiezen…"
 
 msgid "Choose or enter a phone number"
 msgstr "Telefoonnummer kiezen of invoeren"
@@ -2790,6 +2796,9 @@ msgstr "Luisterservice gestopt"
 
 msgid "Local calendar"
 msgstr "Lokale agenda"
+
+msgid "Local image"
+msgstr "Lokale afbeelding"
 
 msgid "Location"
 msgstr "Locatie"

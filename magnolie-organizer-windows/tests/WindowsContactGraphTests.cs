@@ -251,6 +251,44 @@ internal static class WindowsContactGraphTests
         using (var differentBindings = System.Text.Json.JsonDocument.Parse(multipleBindings.ToJsonString()))
             TestAssert.That(ContactCleanupPlan.Create(differentBindings.RootElement)["groups"]!.AsArray().Count == 0,
                 "Cleanup silently discarded differing secondary bindings behind the same primary ID.");
+        var photos = profile.DeepClone().AsObject();
+        foreach (var card in photos["kontakte"]!.AsArray().OfType<JsonObject>()) card["foto"] = "data:image/png;base64,AQID";
+        photos["kontakte"]![0]!["fotoManuell"] = true;
+        photos["kontakte"]![0]!["fotoQuellen"] = new JsonArray("local");
+        photos["kontakte"]![1]!["fotoQuellen"] = new JsonArray("system");
+        photos["kontakte"]![0]!["fotoAlternativen"] = new JsonArray(new JsonObject { ["foto"] = "data:image/png;base64,BAUG", ["quellen"] = new JsonArray("KDE Connect") });
+        photos["kontakte"]![1]!["fotoAlternativen"] = new JsonArray(new JsonObject { ["foto"] = "data:image/png;base64,BwgJ", ["quellen"] = new JsonArray("system") });
+        using (var photoInput = System.Text.Json.JsonDocument.Parse(photos.ToJsonString()))
+        {
+            var photoPlan = ContactCleanupPlan.Create(photoInput.RootElement);
+            TestAssert.That(photoPlan["groups"]!.AsArray().Count == 1 &&
+                photoPlan["groups"]![0]!["metadata"]!["fotoAlternativen"]!.AsArray().Count == 2 &&
+                photoPlan["groups"]![0]!["metadata"]!["fotoQuellen"]!.AsArray().Count == 2 &&
+                photoPlan["groups"]![0]!["metadata"]!["fotoManuell"]!.GetValue<bool>(),
+                "Identical contact cleanup lost available images or the explicit photo choice.");
+        }
+        photos["kontakte"]![0]!["foto"] = "";
+        using (var removedPhoto = System.Text.Json.JsonDocument.Parse(photos.ToJsonString()))
+            TestAssert.That(ContactCleanupPlan.Create(removedPhoto.RootElement)["groups"]!.AsArray().Count == 0,
+                "Automatic cleanup undid explicit photo removal.");
+        var photoLocal = new JsonObject { ["id"] = "photo-local", ["uid"] = "photo-uid", ["vorname"] = "Photo",
+            ["foto"] = "data:image/png;base64,AQID", ["geaendert"] = 10L };
+        var photoBefore = new RemoteContact("photo-source", "old", 10, photoLocal.DeepClone().AsObject(), true);
+        ContactFields.SetSource(photoLocal, source, photoBefore);
+        photoLocal["foto"] = "data:image/png;base64,BAUG"; photoLocal["fotoManuell"] = true;
+        var photoRemote = photoBefore with { ETag = "new", Modified = 20, Data = photoBefore.Data.DeepClone().AsObject() };
+        photoRemote.Data["foto"] = "data:image/png;base64,BwgJ";
+        var photoResult = await new ContactSyncEngine().SyncAsync(source, new JsonArray(photoLocal.DeepClone()), [], 0,
+            new YearlessUnsupportedRemote(photoRemote));
+        TestAssert.That(photoResult.Contacts.Count == 1 && photoResult.Counts.Conflicts == 0 && photoResult.Counts.Errors == 0 &&
+            photoResult.Contacts[0]!["foto"]!.GetValue<string>() == "data:image/png;base64,BAUG" &&
+            photoResult.Contacts[0]!["fotoAlternativen"]!.AsArray().Count == 1,
+            "A pinned photo-only change produced a provider conflict or replaced the chosen picture.");
+        photoRemote.Data["notiz"] = "Different source content";
+        var realConflict = await new ContactSyncEngine().SyncAsync(source, new JsonArray(photoLocal.DeepClone()), [], 0,
+            new YearlessUnsupportedRemote(photoRemote));
+        TestAssert.That(realConflict.Counts.Conflicts == 1,
+            "Ignoring a pinned photo also suppressed unrelated contact differences.");
         var local = tree.DeepClone().AsObject();
         foreach (var pair in group["metadata"]!.AsObject()) local[pair.Key] = pair.Value?.DeepClone();
         var deletion = group["deletions"]![0]!.AsObject();
@@ -428,10 +466,19 @@ internal static class WindowsContactGraphTests
                 TestAssert.That(manualPhoto["foto"]!.GetValue<string>() == photo &&
                     manualPhoto["vorname"]!.GetValue<string>() == "Updated",
                     "Remote updates replaced a manual photo/removal or blocked unrelated fields.");
+                TestAssert.That(manualPhoto["fotoAlternativen"]!.AsArray().Count == 1 &&
+                    manualPhoto["fotoAlternativen"]![0]!["foto"]!.GetValue<string>() == "data:image/png;base64,BAUG",
+                    "The unselected source image was discarded instead of retained for selection.");
+                ContactFields.CopyRemoteFields(manualPhoto, new JsonObject { ["foto"] = "data:image/png;base64,BAUG" });
+                TestAssert.That(manualPhoto["fotoAlternativen"]!.AsArray().Count == 1,
+                    "Repeated source image created another gallery entry.");
                 manualPhoto["fotoManuell"] = false;
                 ContactFields.CopyRemoteFields(manualPhoto, new JsonObject { ["foto"] = "data:image/png;base64,BAUG" });
                 TestAssert.That(manualPhoto["foto"]!.GetValue<string>() == "data:image/png;base64,BAUG",
                     "Automatic source photos stopped updating.");
+                TestAssert.That(manualPhoto["fotoAlternativen"]!.AsArray().Count == (photo.Length == 0 ? 0 : 1) &&
+                    (photo.Length == 0 || manualPhoto["fotoAlternativen"]![0]!["foto"]!.GetValue<string>() == photo),
+                    "Replacing the displayed source image lost its previous alternative or duplicated the displayed image.");
             }
             ContactFields.CopyRemoteFields(mergeTarget, new JsonObject { ["vorname"] = "Remote" });
             TestAssert.That(mergeTarget["geburtstag"]!.GetValue<string>() == "--02-29",

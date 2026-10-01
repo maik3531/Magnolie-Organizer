@@ -151,7 +151,7 @@ from gi.repository import Gio, GLib, Gtk, WebKit2, GdkX11
 
 context = WebKit2.WebContext.new_ephemeral()
 security = context.get_security_manager()
-for method in ("register_uri_scheme_as_local", "register_uri_scheme_as_secure", "register_uri_scheme_as_display_isolated"):
+for method in ("register_uri_scheme_as_secure", "register_uri_scheme_as_display_isolated"):
     getattr(security, method)("magnolie-organizer")
 
 def serve(request):

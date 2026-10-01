@@ -1513,6 +1513,9 @@ msgstr ""
 msgid "Choose at least four characters."
 msgstr "4 文字以上を選択してください。"
 
+msgid "Choose contact photo"
+msgstr "連絡先の写真を選択"
+
 msgid "Choose entries to print, export or delete"
 msgstr "印刷、エクスポート、削除する項目を選択"
 
@@ -1521,6 +1524,9 @@ msgstr "ファイルを選択…"
 
 msgid "Choose folder …"
 msgstr "フォルダーを選択 …"
+
+msgid "Choose local image…"
+msgstr "ローカル画像を選択…"
 
 msgid "Choose or enter a phone number"
 msgstr "電話番号を選択または入力"
@@ -3298,6 +3304,9 @@ msgstr "バックグラウンド設定を読み込んでいます"
 
 msgid "Local calendar"
 msgstr "ローカルカレンダー"
+
+msgid "Local image"
+msgstr "ローカル画像"
 
 msgid "Location"
 msgstr "場所"

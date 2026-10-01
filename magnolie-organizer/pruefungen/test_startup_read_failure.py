@@ -42,6 +42,59 @@ def native(monkeypatch, tmp_path):
     return m
 
 
+@pytest.mark.parametrize("reason,allowed", [("pre-contact", True), ("pre-sync", True), ("arbitrary-reason", False)])
+def test_contact_mutation_snapshot_reasons(native, monkeypatch, reason, allowed):
+    host = Host(native)
+    host._gesperrt = False
+    host._aktuelle_daten = full_data()
+    snapshots = []
+    monkeypatch.setattr(host, "_journal_snapshot", lambda value: snapshots.append(value))
+    host.bei_nachricht(json.dumps({"cmd": "mutations_snapshot", "reason": reason, "token": "photo-fixture"}))
+    assert snapshots == ([reason] if allowed else [])
+    name, payload = host.responses[-1]
+    assert name == "App.mutationsSnapshot" and payload["ok"] is allowed and payload["token"] == "photo-fixture"
+
+
+def test_webkit_app_origin_keeps_file_access_disabled(native, monkeypatch):
+    registered, settings, scripts = [], {}, []
+
+    class Security:
+        def __getattr__(self, name):
+            return lambda scheme: registered.append((name, scheme))
+
+    class Content:
+        def connect(self, *_): pass
+        def register_script_message_handler(self, _): return True
+        def add_script(self, script): scripts.append(script)
+
+    class Settings:
+        def __getattr__(self, name):
+            return lambda value: settings.update({name: value})
+
+    class View:
+        def __init__(self, **_): pass
+        def get_settings(self): return Settings()
+        def set_background_color(self, _): pass
+        def connect(self, *_): pass
+        def load_uri(self, uri): self.uri = uri
+
+    context = SimpleNamespace(register_uri_scheme=lambda *_: None, get_security_manager=Security)
+    monkeypatch.setattr(native, "WebKit2", SimpleNamespace(
+        WebContext=SimpleNamespace(get_default=lambda: context), UserContentManager=Content, WebView=View,
+        UserScript=SimpleNamespace(new=lambda *args: args), UserContentInjectedFrames=SimpleNamespace(TOP_FRAME=1),
+        UserScriptInjectionTime=SimpleNamespace(START=1)), raising=False)
+    monkeypatch.setattr(native, "Gdk", SimpleNamespace(RGBA=lambda: SimpleNamespace(parse=lambda _: None)), raising=False)
+    host = Host(native); host._bruecken_name = "isolated-origin-fixture"
+    monkeypatch.setattr(host, "add", lambda _: None, raising=False)
+    native.Fenster._webkit_einrichten(host)
+    assert registered == [("register_uri_scheme_as_secure", "magnolie-organizer"),
+                          ("register_uri_scheme_as_display_isolated", "magnolie-organizer")]
+    assert settings["set_allow_file_access_from_file_urls"] is False
+    assert settings["set_allow_universal_access_from_file_urls"] is False
+    assert scripts[0][3] == ["magnolie-organizer://app/*"]
+    assert host.ansicht.uri == native.ORGANIZER_URI
+
+
 def full_data():
     return {"version": 6, "notizen": [{"id": "note", "text": "keep", "html": "keep",
         "anhaenge": [{"id": "attachment", "daten": "data:text/plain;base64,a2VlcA=="}]}],

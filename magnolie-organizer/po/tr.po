@@ -1556,6 +1556,9 @@ msgstr ""
 msgid "Choose at least four characters."
 msgstr "En az dört karakter seçin."
 
+msgid "Choose contact photo"
+msgstr "Kişi fotoğrafı seç"
+
 msgid "Choose entries to print, export or delete"
 msgstr "Yazdırılacak, dışa aktarılacak veya silinecek kayıtları seçin"
 
@@ -1564,6 +1567,9 @@ msgstr "Dosya seç…"
 
 msgid "Choose folder …"
 msgstr "Klasör seç …"
+
+msgid "Choose local image…"
+msgstr "Yerel resim seç…"
 
 msgid "Choose or enter a phone number"
 msgstr "Telefon numarası seçin veya girin"
@@ -3340,6 +3346,9 @@ msgstr "Arka plan ayarları yükleniyor"
 
 msgid "Local calendar"
 msgstr "Yerel takvim"
+
+msgid "Local image"
+msgstr "Yerel resim"
 
 msgid "Location"
 msgstr "Konum"

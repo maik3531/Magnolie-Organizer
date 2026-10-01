@@ -1197,6 +1197,9 @@ msgstr ""
 msgid "Choose at least four characters."
 msgstr "कम से कम चार अक्षर चुनें।"
 
+msgid "Choose contact photo"
+msgstr "संपर्क फ़ोटो चुनें"
+
 msgid "Choose entries to print, export or delete"
 msgstr "प्रिंट, निर्यात या हटाने के लिए प्रविष्टियाँ चुनें"
 
@@ -1205,6 +1208,9 @@ msgstr "फ़ाइल चुनें…"
 
 msgid "Choose folder …"
 msgstr "फ़ोल्डर चुनें …"
+
+msgid "Choose local image…"
+msgstr "स्थानीय चित्र चुनें…"
 
 msgid "Choose or enter a phone number"
 msgstr "फ़ोन नंबर चुनें या दर्ज करें"
@@ -2704,6 +2710,9 @@ msgstr "सुनने वाला रुक गया"
 
 msgid "Local calendar"
 msgstr "स्थानीय कैलेंडर"
+
+msgid "Local image"
+msgstr "स्थानीय चित्र"
 
 msgid "Location"
 msgstr "स्थान"

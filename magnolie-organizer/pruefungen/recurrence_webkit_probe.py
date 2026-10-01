@@ -13,7 +13,7 @@ from gi.repository import Gtk, WebKit2, GLib, Gio
 web = Path(__file__).parents[1] / 'web'
 context = WebKit2.WebContext.new_ephemeral()
 security = context.get_security_manager()
-for method in ('register_uri_scheme_as_local', 'register_uri_scheme_as_secure', 'register_uri_scheme_as_display_isolated'):
+for method in ('register_uri_scheme_as_secure', 'register_uri_scheme_as_display_isolated'):
     getattr(security, method)('magnolie-organizer')
 
 

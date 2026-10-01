@@ -1212,6 +1212,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         {
             var reason = Text(message, "reason") switch
             {
+                "pre-contact" => SnapshotReason.PreContact,
                 "pre-contact-delete" => SnapshotReason.PreContactDelete,
                 "pre-contact-merge" => SnapshotReason.PreContactMerge,
                 "pre-contact-import" => SnapshotReason.PreContactImport,

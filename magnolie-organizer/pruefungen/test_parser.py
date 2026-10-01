@@ -1230,6 +1230,27 @@ for manuelles_foto in ("", foto_data):
     manuell_neu, *_ = m.sync_merge(manuell_lokal, manuell_fern, [], 0, m.KONTAKT_FELDER)
     pruefe(manuell_neu[0]["foto"] == manuelles_foto and manuell_neu[0]["nachname"] == "Bild neu",
            "manuelles Foto bzw. Entfernen bleibt bei neuerem Serverstand erhalten")
+    pruefe(manuell_neu[0]["fotoAlternativen"] == [{"foto": "data:image/png;base64,BAUG", "quellen": ["system"]}],
+           "nicht ausgewähltes Quellenbild bleibt als Alternative erhalten")
+    wieder, *_ = m.sync_merge(manuell_neu, manuell_fern, [], 0, m.KONTAKT_FELDER)
+    pruefe(len(wieder[0]["fotoAlternativen"]) == 1 and wieder[0]["foto"] == manuelles_foto,
+           "erneuter Abgleich vervielfacht Quellenbild nicht und erhält Auswahl")
+auto_neu, *_ = m.sync_merge(
+    [{"uid": "auto-foto", "nachname": "Bild", "foto": foto_data, "geaendert": 100, "sync": True}],
+    {"auto-foto": {"uid": "auto-foto", "nachname": "Bild", "foto": "data:image/png;base64,BAUG", "geaendert": 900}},
+    [], 0, m.KONTAKT_FELDER)
+pruefe(auto_neu[0]["foto"] == "data:image/png;base64,BAUG" and
+       auto_neu[0]["fotoAlternativen"][0]["foto"] == foto_data and len(auto_neu[0]["fotoAlternativen"]) == 1,
+       "automatischer Fotoersatz bewahrt vorheriges Bild ohne doppelte aktive Bilddaten")
+foto_dav_neu, *_foto_dav_rest, foto_dav_zaehler = m.sync_merge(
+    [{"uid": "foto-dav", "nachname": "Bild", "foto": foto_data, "fotoManuell": True,
+      "geaendert": 100, "sync": True}],
+    {"foto-dav": {"uid": "foto-dav", "nachname": "Bild", "foto": "data:image/png;base64,BAUG", "geaendert": 900}},
+    [], 0, m.KONTAKT_FELDER,
+    dav=("photo-source", {"foto-dav": {"etag": "old"}}, {"foto-dav": {"etag": "new"}}))
+pruefe(len(foto_dav_neu) == 1 and foto_dav_zaehler["konflikte"] == 0 and foto_dav_neu[0]["foto"] == foto_data and
+       len(foto_dav_neu[0]["fotoAlternativen"]) == 1,
+       "manuelle Fotowahl plus anderes Quellenfoto erzeugt keine DAV-Konfliktkopie")
 foto_lokal = [{"uid": "foto", "nachname": "Bild", "foto": "",
                "geaendert": 900, "sync": True}]
 foto_fern = {"foto": {"uid": "foto", "nachname": "Bild", "foto": foto_data,
@@ -4203,7 +4224,7 @@ for sprache in m.UNTERSTUETZTE_SPRACHEN:
     pruefe(all(json.dumps(msgid, ensure_ascii=False) in web_text
                for msgid in kommunikation_msgids),
            "Webkatalog %s enthält alle Kommunikations-msgids" % sprache)
-pruefe('"KDE Connect for SMS":"KDE Connect für SMS"' in open(
+pruefe('"Phone contacts (KDE Connect)":"Telefonkontakte (KDE Connect)"' in open(
            os.path.join(web_i18n_ordner, "de.js"), encoding="utf-8").read() and
        '"Reconnect":"Erneut verbinden"' in open(
            os.path.join(web_i18n_ordner, "de.js"), encoding="utf-8").read(),
@@ -6567,7 +6588,7 @@ erinner_daten = {
             "an": True, "vorlauf": 15, "verpasste": True,
             "aufgaben": True, "art": "both", "stil": "system",
             "jahrestage": {"an": True, "tage": 2, "amTag": True,
-                            "stunde": 8, "notiz": "Einstellungsgeheimnis"},
+                            "stunde": 8, "autoAusblenden": False, "notiz": "Einstellungsgeheimnis"},
             "protokoll": True, "protokollVoreinstellung": False,
             "notiz": "Nicht für den Wecker"},
         "sicherheit": {

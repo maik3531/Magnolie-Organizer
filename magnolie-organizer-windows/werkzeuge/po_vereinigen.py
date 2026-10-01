@@ -10,6 +10,25 @@ import sys
 import tempfile
 
 ERGÄNZUNGEN = {
+    "Choose contact photo": {
+        "de": "Kontaktfoto auswählen", "fr": "Choisir la photo du contact", "es": "Elegir foto del contacto", "it": "Scegli la foto del contatto",
+        "nl": "Contactfoto kiezen", "pt": "Escolher fotografia do contacto", "ru": "Выбрать фото контакта", "cs": "Vybrat fotografii kontaktu",
+        "pl": "Wybierz zdjęcie kontaktu", "hsb": "Kontaktowe foto wubrać", "da": "Vælg kontaktbillede", "nb": "Velg kontaktbilde",
+        "hi": "संपर्क फ़ोटो चुनें", "zh_CN": "选择联系人照片", "ja": "連絡先の写真を選択", "ar": "اختيار صورة جهة الاتصال",
+        "uk": "Вибрати фото контакту", "be": "Выбраць фота кантакту", "tr": "Kişi fotoğrafı seç",
+    },
+    "Choose local image…": {
+        "de": "Eigenes Bild wählen…", "fr": "Choisir une image locale…", "es": "Elegir imagen local…", "it": "Scegli immagine locale…",
+        "nl": "Lokale afbeelding kiezen…", "pt": "Escolher imagem local…", "ru": "Выбрать локальное изображение…", "cs": "Vybrat místní obrázek…",
+        "pl": "Wybierz obraz lokalny…", "hsb": "Swójski wobraz wubrać…", "da": "Vælg lokalt billede…", "nb": "Velg lokalt bilde…",
+        "hi": "स्थानीय चित्र चुनें…", "zh_CN": "选择本地图片…", "ja": "ローカル画像を選択…", "ar": "اختيار صورة محلية…",
+        "uk": "Вибрати локальне зображення…", "be": "Выбраць лакальную выяву…", "tr": "Yerel resim seç…",
+    },
+    "Local image": {
+        "de": "Eigenes Bild", "fr": "Image locale", "es": "Imagen local", "it": "Immagine locale", "nl": "Lokale afbeelding", "pt": "Imagem local",
+        "ru": "Локальное изображение", "cs": "Místní obrázek", "pl": "Obraz lokalny", "hsb": "Swójski wobraz", "da": "Lokalt billede", "nb": "Lokalt bilde",
+        "hi": "स्थानीय चित्र", "zh_CN": "本地图片", "ja": "ローカル画像", "ar": "صورة محلية", "uk": "Локальне зображення", "be": "Лакальная выява", "tr": "Yerel resim",
+    },
     "Create a drawing sheet in the custom tab first.": {
         "de": "Legen Sie zuerst ein Zeichenblatt in der benutzerdefinierten Registerkarte an.",
         "fr": "Créez d’abord une feuille de dessin dans l’onglet personnalisé.",

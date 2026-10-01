@@ -1220,6 +1220,9 @@ msgstr ""
 msgid "Choose at least four characters."
 msgstr "Velg minst fire tegn."
 
+msgid "Choose contact photo"
+msgstr "Velg kontaktbilde"
+
 msgid "Choose entries to print, export or delete"
 msgstr "Velg oppføringer som skal skrives ut, eksporteres eller slettes"
 
@@ -1228,6 +1231,9 @@ msgstr "Velg fil…"
 
 msgid "Choose folder …"
 msgstr "Velg mappe …"
+
+msgid "Choose local image…"
+msgstr "Velg lokalt bilde…"
 
 msgid "Choose or enter a phone number"
 msgstr "Velg eller skriv inn et telefonnummer"
@@ -2763,6 +2769,9 @@ msgstr "Lytter stoppet"
 
 msgid "Local calendar"
 msgstr "Lokal kalender"
+
+msgid "Local image"
+msgstr "Lokalt bilde"
 
 msgid "Location"
 msgstr "Sted"

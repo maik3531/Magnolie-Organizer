@@ -1351,6 +1351,25 @@ body[data-hilfsrahmen="an"] .mm-tag:focus-visible {
   height: 92px;
 }
 
+.kontakt-foto-auswahl { flex: none; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.kontakt-foto-auswahl img { display: block; }
+.kontakt-foto-galerie {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+  gap: 10px;
+  max-height: min(55vh, 420px);
+  overflow: auto;
+  scrollbar-width: none;
+}
+.kontakt-foto-galerie:hover, .kontakt-foto-galerie:focus-within { scrollbar-width: thin; }
+.kontakt-foto-galerie::-webkit-scrollbar { width: 3px; height: 3px; }
+.kontakt-foto-galerie::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
+.kontakt-foto-galerie:hover::-webkit-scrollbar-thumb,
+.kontakt-foto-galerie:focus-within::-webkit-scrollbar-thumb { background: var(--linie-stark); }
+.kontakt-foto-option { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; overflow-wrap: anywhere; }
+.kontakt-foto-option img { width: 92px; height: 112px; object-fit: contain; }
+.kontakt-foto-option[aria-pressed="true"] { outline: 2px solid var(--linie-stark); outline-offset: -3px; }
+
 .kontakt-foto-wahl {
   display: flex;
   align-items: center;
