@@ -39,17 +39,10 @@ val produktionsSchluesselDatei = providers.environmentVariable("MAGNOLIE_KEYSTOR
 val eigenerSchluessel = !fdroidBau && schluesselDatei.isFile && schluesselVollstaendig &&
     produktionsSchluesselDatei?.isFile == true
 
-/*
- * Uebersetzt wird ausdruecklich gegen JDK 17.
- *
- * Ohne diese Festlegung nimmt Gradle die Java-Fassung, unter der es selbst
- * laeuft. Auf dem Baurechner ist das Java 21, und dort war nur die Laufzeit
- * ohne Compiler installiert - der Bau brach mit "does not provide the required
- * capabilities: [JAVA_COMPILER]" ab. Mit der Toolchain sucht Gradle sich das
- * passende JDK selbst; ein gesetztes JAVA_HOME ist dann nicht mehr noetig.
- */
+// A complete JDK 21 is required; a runtime-only installation has no compiler.
+// Keep the Android Java/Kotlin bytecode target at 17 for compatibility.
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }
 
 android {

@@ -31,7 +31,7 @@ Jahr wie `--02-29` bleiben unverändert.
 
 ### Aktuell prüfen
 
-Mit vorhandenem SDK 35, JDK 17 und vollständig verfügbaren Abhängigkeiten:
+Mit vorhandenem SDK 35, vollständigem JDK 21 (einschließlich Compiler) und vollständig verfügbaren Abhängigkeiten:
 
 ```sh
 ./gradlew --offline --no-daemon --dependency-verification strict --no-build-cache :app:testDebugUnitTest --rerun-tasks
@@ -338,7 +338,7 @@ Neue Prüfvektoren erzeugt man mit:
 
 ## 6. Bauen
 
-Voraussetzungen: Android SDK (Platform 35, Build-Tools 35), JDK 17, Gradle 8.13.
+Voraussetzungen: Android SDK (Platform 35, Build-Tools 35), vollständiges JDK 21, Gradle 8.13. Das Java-/Kotlin-Bytecodeziel bleibt 17.
 
     ./gradlew :app:assembleDebug     # entwickeln
     ./gradlew :app:testDebugUnitTest # prüfen

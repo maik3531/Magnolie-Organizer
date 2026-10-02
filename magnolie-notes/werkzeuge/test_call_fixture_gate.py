@@ -13,6 +13,17 @@ gate = importlib.util.module_from_spec(spec); spec.loader.exec_module(gate)
 
 
 class SupervisorTest(unittest.TestCase):
+    def test_selected_jdk_reaches_the_isolated_worker(self):
+        with tempfile.TemporaryDirectory(dir='/tmp/opencode') as temporary:
+            def completed(command, **kwargs):
+                self.assertIn('--setenv=JAVA_HOME=/fixture/jdk-21', command)
+                (Path(temporary) / 'gate-result.json').write_text(json.dumps({'passed': True, 'clean_exit': True}))
+                return gate.subprocess.CompletedProcess(command, 0)
+            with patch.dict(os.environ, {'JAVA_HOME': '/fixture/jdk-21'}), \
+                    patch.object(sys, 'argv', ['call_fixture_gate.py', '--output', temporary]), \
+                    patch.object(gate.subprocess, 'run', side_effect=completed):
+                self.assertEqual(0, gate.main())
+
     def run_child(self, source, wall=1):
         with tempfile.TemporaryDirectory(dir='/tmp/opencode', prefix='call-wrapper-test-') as temporary:
             return gate.monitor([sys.executable, '-c', source], temporary, Path(temporary), wall=wall, interval=0.2)

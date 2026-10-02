@@ -11,6 +11,7 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import selectors
 import signal
@@ -175,9 +176,12 @@ def worker(args):
     os.sched_setaffinity(0, sorted(os.sched_getaffinity(0))[:2])
     cache_home = args.cache_home
     sdk = cache_home / '.local/share/android-sdk'
+    jdk = Path(os.environ.get('JAVA_HOME', '/usr/lib/jvm/java-21-openjdk-amd64')).resolve()
     gradle = cache_home / '.gradle/wrapper/dists/gradle-8.13-bin/5xuhj0ry160q40clulazy9h7d/gradle-8.13/bin/gradle'
-    required = [sdk, gradle, cache_home / '.gradle/caches', cache_home / '.m2/repository/org/robolectric']
+    required = [sdk, gradle, jdk / 'bin/java', jdk / 'bin/javac', cache_home / '.gradle/caches', cache_home / '.m2/repository/org/robolectric']
     if any(not path.exists() for path in required): raise RuntimeError('Required offline SDK/Gradle/Robolectric cache is unavailable')
+    compiler = subprocess.check_output([str(jdk / 'bin/javac'), '-version'], stderr=subprocess.STDOUT, text=True, timeout=10)
+    if not re.search(r'\bjavac 21(?:\.|\s|$)', compiler): raise RuntimeError('A complete JDK 21 is required')
     for name in ('home/.m2/repository', 'gradle', 'app-build', 'root-build', 'cache', 'tmp', 'kotlin', 'trace'):
         (output / name).mkdir(parents=True, exist_ok=True)
     started_wall = time.time()
@@ -192,7 +196,7 @@ def worker(args):
                 time.sleep(0.2)
         command = ['bwrap', '--die-with-parent', '--unshare-net', '--unshare-pid', '--as-pid-1',
             '--ro-bind', '/', '/', '--tmpfs', '/tmp', '--tmpfs', '/run', '--tmpfs', '/home',
-            '--ro-bind', str(SOURCE), str(SOURCE), '--ro-bind', str(sdk), str(sdk),
+            '--ro-bind', str(SOURCE), str(SOURCE), '--ro-bind', str(sdk), str(sdk), '--ro-bind', str(jdk), str(jdk),
             '--bind', str(output), str(output),
             '--bind', str(cache_home / '.gradle/caches'), str(output / 'gradle/caches'),
             '--ro-bind', str(cache_home / '.gradle/wrapper'), str(output / 'gradle/wrapper'),
@@ -200,7 +204,7 @@ def worker(args):
             '--bind', str(output / 'app-build'), str(SOURCE / 'app/build'),
             '--bind', str(output / 'root-build'), str(SOURCE / 'build'),
             '--bind', str(output / 'kotlin'), str(SOURCE / '.kotlin'), '--proc', '/proc', '--dev', '/dev', '--clearenv']
-        environment = dict(PATH='/usr/bin:/bin', HOME=str(output / 'home'), JAVA_HOME='/usr/lib/jvm/java-17-openjdk-amd64',
+        environment = dict(PATH='/usr/bin:/bin', HOME=str(output / 'home'), JAVA_HOME=str(jdk),
             JAVA_TOOL_OPTIONS=f'-Duser.home={output}/home -Djava.io.tmpdir={output}/tmp -XX:ActiveProcessorCount=2 -Djava.awt.headless=true',
             ANDROID_HOME=str(sdk), ANDROID_SDK_ROOT=str(sdk), GRADLE_USER_HOME=str(output / 'gradle'),
             XDG_CONFIG_HOME=str(output / 'home/config'), XDG_DATA_HOME=str(output / 'home/data'),
@@ -255,7 +259,9 @@ def main():
     unit = 'magnolie-call-fixture-' + uuid.uuid4().hex
     command = ['systemd-run', '--user', '--wait', '--pipe', '--collect', '--unit=' + unit,
         '-p', 'MemoryMax=6G', '-p', 'MemorySwapMax=0', '-p', 'CPUQuota=200%', '-p', 'RuntimeMaxSec=285',
-        '-p', 'TimeoutStopSec=5', '-p', 'KillMode=control-group', sys.executable, '-B', str(Path(__file__).resolve()),
+        '-p', 'TimeoutStopSec=5', '-p', 'KillMode=control-group',
+        '--setenv=JAVA_HOME=' + os.environ.get('JAVA_HOME', '/usr/lib/jvm/java-21-openjdk-amd64'),
+        sys.executable, '-B', str(Path(__file__).resolve()),
         '--worker', '--output', str(args.output), '--cache-home', str(args.cache_home), '--variant', args.variant]
     started_ns = time.time_ns()
     try:
