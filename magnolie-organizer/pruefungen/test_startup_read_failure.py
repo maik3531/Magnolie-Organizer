@@ -42,7 +42,7 @@ def native(monkeypatch, tmp_path):
     return m
 
 
-@pytest.mark.parametrize("reason,allowed", [("pre-contact", True), ("pre-sync", True), ("arbitrary-reason", False)])
+@pytest.mark.parametrize("reason,allowed", [("pre-change", True), ("pre-contact", True), ("pre-sync", True), ("arbitrary-reason", False)])
 def test_contact_mutation_snapshot_reasons(native, monkeypatch, reason, allowed):
     host = Host(native)
     host._gesperrt = False

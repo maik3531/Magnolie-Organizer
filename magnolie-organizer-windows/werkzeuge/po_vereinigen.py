@@ -10,6 +10,52 @@ import sys
 import tempfile
 
 ERGÄNZUNGEN = {
+    "The content is unreadable.": {
+        "de": "Der Inhalt ist unlesbar.", "fr": "Le contenu est illisible.", "es": "El contenido no se puede leer.",
+        "it": "Il contenuto non è leggibile.", "nl": "De inhoud is onleesbaar.", "pt": "O conteúdo é ilegível.",
+        "ru": "Содержимое невозможно прочитать.", "cs": "Obsah nelze přečíst.", "pl": "Nie można odczytać zawartości.",
+        "hsb": "Wobsah je nječitajomny.", "da": "Indholdet kan ikke læses.", "nb": "Innholdet kan ikke leses.",
+        "hi": "सामग्री पढ़ी नहीं जा सकती।", "zh_CN": "内容无法读取。", "ja": "内容を読み取れません。", "ar": "لا يمكن قراءة المحتوى.",
+        "uk": "Вміст неможливо прочитати.", "be": "Змесціва немагчыма прачытаць.", "tr": "İçerik okunamıyor.",
+    },
+    "Import ICS / CSV…": {
+        "de": "ICS / CSV importieren …", "fr": "Importer ICS / CSV…", "es": "Importar ICS / CSV…", "it": "Importa ICS / CSV…",
+        "nl": "ICS / CSV importeren…", "pt": "Importar ICS / CSV…", "ru": "Импортировать ICS / CSV…", "cs": "Importovat ICS / CSV…",
+        "pl": "Importuj ICS / CSV…", "hsb": "ICS / CSV importować …", "da": "Importér ICS / CSV…", "nb": "Importer ICS / CSV…",
+        "hi": "ICS / CSV आयात करें…", "zh_CN": "导入 ICS / CSV…", "ja": "ICS / CSV をインポート…", "ar": "استيراد ICS / CSV…",
+        "uk": "Імпортувати ICS / CSV…", "be": "Імпартаваць ICS / CSV…", "tr": "ICS / CSV içe aktar…",
+    },
+    "The import exceeds the supported limits.": {
+        "de": "Der Import überschreitet die unterstützten Grenzen.", "fr": "L’importation dépasse les limites prises en charge.",
+        "es": "La importación supera los límites admitidos.", "it": "L’importazione supera i limiti supportati.",
+        "nl": "De import overschrijdt de ondersteunde limieten.", "pt": "A importação excede os limites suportados.",
+        "ru": "Импорт превышает поддерживаемые ограничения.", "cs": "Import překračuje podporované limity.",
+        "pl": "Import przekracza obsługiwane limity.", "hsb": "Import překročuje podpěrane mjezy.",
+        "da": "Importen overskrider de understøttede grænser.", "nb": "Importen overskrider de støttede grensene.",
+        "hi": "आयात समर्थित सीमाओं से अधिक है।", "zh_CN": "导入内容超出支持的限制。", "ja": "インポート内容が対応する上限を超えています。",
+        "ar": "يتجاوز الاستيراد الحدود المدعومة.", "uk": "Імпорт перевищує підтримувані обмеження.",
+        "be": "Імпарт перавышае падтрымліваныя абмежаванні.", "tr": "İçe aktarma desteklenen sınırları aşıyor.",
+    },
+    "First row contains headings": {
+        "de": "Erste Zeile enthält Überschriften", "fr": "La première ligne contient les en-têtes", "es": "La primera fila contiene encabezados",
+        "it": "La prima riga contiene le intestazioni", "nl": "Eerste rij bevat kolomkoppen", "pt": "A primeira linha contém cabeçalhos",
+        "ru": "Первая строка содержит заголовки", "cs": "První řádek obsahuje záhlaví", "pl": "Pierwszy wiersz zawiera nagłówki",
+        "hsb": "Prěnja linka napisma wobsahuje", "da": "Første række indeholder overskrifter", "nb": "Første rad inneholder overskrifter",
+        "hi": "पहली पंक्ति में शीर्षक हैं", "zh_CN": "首行为列标题", "ja": "先頭行を見出しとして使用", "ar": "يحتوي الصف الأول على عناوين",
+        "uk": "Перший рядок містить заголовки", "be": "Першы радок змяшчае загалоўкі", "tr": "İlk satır başlıkları içerir",
+    },
+    "Date format": {
+        "de": "Datumsformat", "fr": "Format de date", "es": "Formato de fecha", "it": "Formato della data", "nl": "Datumnotatie",
+        "pt": "Formato da data", "ru": "Формат даты", "cs": "Formát data", "pl": "Format daty", "hsb": "Datumowy format",
+        "da": "Datoformat", "nb": "Datoformat", "hi": "तारीख़ का प्रारूप", "zh_CN": "日期格式", "ja": "日付形式", "ar": "تنسيق التاريخ",
+        "uk": "Формат дати", "be": "Фармат даты", "tr": "Tarih biçimi",
+    },
+    "Waste type": {
+        "de": "Müllart", "fr": "Type de déchets", "es": "Tipo de residuo", "it": "Tipo di rifiuto", "nl": "Afvalsoort",
+        "pt": "Tipo de resíduo", "ru": "Вид отходов", "cs": "Druh odpadu", "pl": "Rodzaj odpadów", "hsb": "Družina wotpadkow",
+        "da": "Affaldstype", "nb": "Avfallstype", "hi": "कचरे का प्रकार", "zh_CN": "垃圾类型", "ja": "ごみの種類", "ar": "نوع النفايات",
+        "uk": "Вид відходів", "be": "Від адходаў", "tr": "Atık türü",
+    },
     "Loading…": {
         "de": "Wird geladen …", "fr": "Chargement…", "es": "Cargando…", "it": "Caricamento…", "nl": "Laden…", "pt": "A carregar…",
         "ru": "Загрузка…", "cs": "Načítání…", "pl": "Wczytywanie…", "hsb": "Začituje so…", "da": "Indlæser…", "nb": "Laster…",

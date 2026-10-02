@@ -1212,6 +1212,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         {
             var reason = Text(message, "reason") switch
             {
+                "pre-change" => SnapshotReason.PreChange,
                 "pre-contact" => SnapshotReason.PreContact,
                 "pre-contact-delete" => SnapshotReason.PreContactDelete,
                 "pre-contact-merge" => SnapshotReason.PreContactMerge,
@@ -1881,6 +1882,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         var art = Text(message, "art");
         var filter = art switch
         {
+            "muell" => T("Calendar (*.ics)") + " / " + T("CSV files (*.csv)") + "|*.ics;*.csv|" + T("All files") + " (*.*)|*.*",
             "ics" => T("Calendar (*.ics)") + "|*.ics;*.vcs;*.lcs;*.zip|" + T("All files") + " (*.*)|*.*",
             "vcf" => T("Contact cards (*.vcf)") + "|*.vcf;*.csv;*.zip|" + T("All files") + " (*.*)|*.*",
             "lotus" => T("CSV files (*.csv)") + "|*.csv;*.zip|" + T("All files") + " (*.*)|*.*",
@@ -1896,7 +1898,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
         using var dialog = new OpenFileDialog { Title = T("Import"), Filter = filter, CheckFileExists = true, Multiselect = false };
         if (dialog.ShowDialog(form) != DialogResult.OK)
         {
-            await form.SendAsync("App.importErgebnis", new { art, abgebrochen = true });
+            if (art == "muell") await form.SendAsync("App.importErgebnis", new { art, abgebrochen = true, muellToken = Text(message, "muellToken") });
+            else await form.SendAsync("App.importErgebnis", new { art, abgebrochen = true });
             return;
         }
         try
@@ -1904,6 +1907,13 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var info = new FileInfo(dialog.FileName);
             if (info.Length > ExchangeCodec.MaxImportBytes) throw new IOException(T("The import file is larger than 32 megabytes."));
             var bytes = await File.ReadAllBytesAsync(dialog.FileName);
+            if (art == "muell")
+            {
+                var waste = ExchangeCodec.ParseWasteImport(bytes, dialog.FileName);
+                waste["muellToken"] = Text(message, "muellToken");
+                await form.SendAsync("App.importErgebnis", waste);
+                return;
+            }
             var result = ExchangeCodec.ParseImport(bytes, art == "ldif" ? "claws" : art, dialog.FileName);
             if (art == "ldif") foreach (var contact in result.Kontakte.OfType<JsonObject>())
             {
@@ -1918,7 +1928,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
         catch (Exception error)
         {
-            await form.SendAsync("App.importErgebnis", new { art, abgebrochen = false, fehler = error.Message });
+            if (art == "muell") await form.SendAsync("App.importErgebnis", new { art, abgebrochen = false, fehler = error.Message, muellToken = Text(message, "muellToken") });
+            else await form.SendAsync("App.importErgebnis", new { art, abgebrochen = false, fehler = error.Message });
         }
     }
 

@@ -2021,6 +2021,9 @@ msgstr "データ: 見つかりません – Organizer を一度開いてくだ�
 msgid "Date"
 msgstr "日付"
 
+msgid "Date format"
+msgstr "日付形式"
+
 msgid "Daughter"
 msgstr "娘"
 
@@ -2698,6 +2701,9 @@ msgstr ""
 "番地・建物番号\n"
 "郵便番号 市区町村"
 
+msgid "First row contains headings"
+msgstr "先頭行を見出しとして使用"
+
 msgid "First select a calendar or address book from the online accounts."
 msgstr ""
 "最初にオンラインアカウントからカレンダーまたはアドレス帳を選択してください。"
@@ -2967,6 +2973,9 @@ msgstr "インポート"
 
 msgid "Import Claws Mail contacts"
 msgstr "Claws Mail の連絡先をインポート"
+
+msgid "Import ICS / CSV…"
+msgstr "ICS / CSV をインポート…"
 
 msgid "Import Lotus Organizer CSV"
 msgstr "Lotus Organizer CSV をインポート"
@@ -6533,6 +6542,9 @@ msgstr "祝日をインポートしました。"
 msgid "The holidays were removed."
 msgstr "祝日を削除しました。"
 
+msgid "The import exceeds the supported limits."
+msgstr "インポート内容が対応する上限を超えています。"
+
 msgid "The import file is larger than 32 megabytes."
 msgstr "インポートファイルが 32 MB を超えています。"
 
@@ -7733,6 +7745,9 @@ msgstr "警告：データファイルを読み取れませんでした（%s）�
 
 msgid "Waste collection calendar"
 msgstr "ごみ収集カレンダー"
+
+msgid "Waste type"
+msgstr "ごみの種類"
 
 msgid ""
 "We are delighted that you chose Magnolie. Let us prepare your personal "

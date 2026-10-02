@@ -1599,6 +1599,9 @@ msgstr "क्षतिग्रस्त"
 msgid "Date"
 msgstr "दिनांक"
 
+msgid "Date format"
+msgstr "तारीख़ का प्रारूप"
+
 msgid "Daughter"
 msgstr "बेटी"
 
@@ -2191,6 +2194,9 @@ msgstr ""
 "सड़क और मकान संख्या\n"
 "पिन कोड शहर"
 
+msgid "First row contains headings"
+msgstr "पहली पंक्ति में शीर्षक हैं"
+
 msgid "Fixed units"
 msgstr "निश्चित इकाइयाँ"
 
@@ -2450,6 +2456,9 @@ msgstr "चित्र फ़ाइल"
 
 msgid "Import"
 msgstr "आयात करें"
+
+msgid "Import ICS / CSV…"
+msgstr "ICS / CSV आयात करें…"
 
 msgid "Import Magnolie complete archive"
 msgstr "मैग्नोली संपूर्ण संग्रह आयात करें"
@@ -5206,6 +5215,9 @@ msgstr "संपर्क गायब है."
 msgid "The content is missing."
 msgstr "सामग्री गायब है."
 
+msgid "The content is unreadable."
+msgstr "सामग्री पढ़ी नहीं जा सकती।"
+
 msgid "The contributor key is invalid."
 msgstr "योगदानकर्ता कुंजी अमान्य है."
 
@@ -5281,6 +5293,9 @@ msgstr "छुट्टियाँ आयात की गईं।"
 
 msgid "The holidays were removed."
 msgstr "छुट्टियाँ हटा दी गईं।"
+
+msgid "The import exceeds the supported limits."
+msgstr "आयात समर्थित सीमाओं से अधिक है।"
 
 msgid "The import file is larger than 32 megabytes."
 msgstr "आयात फ़ाइल 32 मेगाबाइट से बड़ी है।"
@@ -6185,6 +6200,9 @@ msgstr "चेतावनी: डेटा सहेजा नहीं जा 
 
 msgid "Waste collection calendar"
 msgstr "कचरा संग्रह कैलेंडर"
+
+msgid "Waste type"
+msgstr "कचरे का प्रकार"
 
 msgid ""
 "We are delighted to welcome you. This short assistant prepares Magnolie "

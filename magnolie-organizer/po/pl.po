@@ -2103,6 +2103,9 @@ msgstr "Dane: nie znaleziono – otwórz raz Organizer."
 msgid "Date"
 msgstr "Data"
 
+msgid "Date format"
+msgstr "Format daty"
+
 msgid "Daughter"
 msgstr "Córka"
 
@@ -2787,6 +2790,9 @@ msgstr ""
 "Ulica i numer domu\n"
 "Kod pocztowy Miejscowość"
 
+msgid "First row contains headings"
+msgstr "Pierwszy wiersz zawiera nagłówki"
+
 msgid "First select a calendar or address book from the online accounts."
 msgstr "Najpierw wybierz kalendarz lub książkę adresową z kont internetowych."
 
@@ -3056,6 +3062,9 @@ msgstr "Importuj"
 
 msgid "Import Claws Mail contacts"
 msgstr "Importuj kontakty Claws Mail"
+
+msgid "Import ICS / CSV…"
+msgstr "Importuj ICS / CSV…"
 
 msgid "Import Lotus Organizer CSV"
 msgstr "Importuj CSV z Lotus Organizer"
@@ -6674,6 +6683,9 @@ msgstr "Święta zostały zaimportowane."
 msgid "The holidays were removed."
 msgstr "Święta zostały usunięte."
 
+msgid "The import exceeds the supported limits."
+msgstr "Import przekracza obsługiwane limity."
+
 msgid "The import file is larger than 32 megabytes."
 msgstr "Plik importu ma więcej niż 32 megabajty."
 
@@ -7885,6 +7897,9 @@ msgstr "Ostrzeżenie: nie udało się odczytać pliku danych (%s)."
 
 msgid "Waste collection calendar"
 msgstr "Kalendarz odbioru odpadów"
+
+msgid "Waste type"
+msgstr "Rodzaj odpadów"
 
 msgid ""
 "We are delighted that you chose Magnolie. Let us prepare your personal "

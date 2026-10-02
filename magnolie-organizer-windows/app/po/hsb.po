@@ -1697,6 +1697,9 @@ msgstr "Wobškodźene"
 msgid "Date"
 msgstr "Datum"
 
+msgid "Date format"
+msgstr "Datumowy format"
+
 msgid "Daughter"
 msgstr "Dźowka"
 
@@ -2313,6 +2316,9 @@ msgstr ""
 "Hasa a domske čisło\n"
 "Póstowe wodźenske čisło Město"
 
+msgid "First row contains headings"
+msgstr "Prěnja linka napisma wobsahuje"
+
 msgid "Fixed units"
 msgstr "Krute jednotki"
 
@@ -2576,6 +2582,9 @@ msgstr "Wobrazowy dataj"
 
 msgid "Import"
 msgstr "Importować"
+
+msgid "Import ICS / CSV…"
+msgstr "ICS / CSV importować …"
 
 msgid "Import Magnolie complete archive"
 msgstr "Dospołny archiw Magnolie importować"
@@ -5397,6 +5406,9 @@ msgstr "Kontakt faluje."
 msgid "The content is missing."
 msgstr "Wobsah faluje."
 
+msgid "The content is unreadable."
+msgstr "Wobsah je nječitajomny."
+
 msgid "The contributor key is invalid."
 msgstr "Sobuskutkowarski kluč je njepłaćiwy."
 
@@ -5473,6 +5485,9 @@ msgstr "Swjate dny su so importowali."
 
 msgid "The holidays were removed."
 msgstr "Swjate dny su so wotstronili."
+
+msgid "The import exceeds the supported limits."
+msgstr "Import překročuje podpěrane mjezy."
 
 msgid "The import file is larger than 32 megabytes."
 msgstr "Importowy dataj je wjetši hač 32 megabajtow."
@@ -6396,6 +6411,9 @@ msgstr "Warnowanje: Daty njedadźachu so składować."
 
 msgid "Waste collection calendar"
 msgstr "Protyka wotwoženja wotpadkow"
+
+msgid "Waste type"
+msgstr "Družina wotpadkow"
 
 msgid ""
 "We are delighted to welcome you. This short assistant prepares Magnolie "

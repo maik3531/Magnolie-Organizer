@@ -1942,6 +1942,9 @@ msgstr ""
 msgid "Date"
 msgstr ""
 
+msgid "Date format"
+msgstr ""
+
 msgid "Daughter"
 msgstr ""
 
@@ -2583,6 +2586,9 @@ msgid ""
 "Postal code City"
 msgstr ""
 
+msgid "First row contains headings"
+msgstr ""
+
 msgid "First select a calendar or address book from the online accounts."
 msgstr ""
 
@@ -2833,6 +2839,9 @@ msgid "Import"
 msgstr ""
 
 msgid "Import Claws Mail contacts"
+msgstr ""
+
+msgid "Import ICS / CSV…"
 msgstr ""
 
 msgid "Import Lotus Organizer CSV"
@@ -6197,6 +6206,9 @@ msgstr ""
 msgid "The holidays were removed."
 msgstr ""
 
+msgid "The import exceeds the supported limits."
+msgstr ""
+
 msgid "The import file is larger than 32 megabytes."
 msgstr ""
 
@@ -7297,6 +7309,9 @@ msgid "Warning: The data file could not be read (%s)."
 msgstr ""
 
 msgid "Waste collection calendar"
+msgstr ""
+
+msgid "Waste type"
 msgstr ""
 
 msgid ""

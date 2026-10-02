@@ -2073,6 +2073,9 @@ msgstr "Gegevens: niet gevonden – open de organizer één keer."
 msgid "Date"
 msgstr "Datum"
 
+msgid "Date format"
+msgstr "Datumnotatie"
+
 msgid "Daughter"
 msgstr "Dochter"
 
@@ -2762,6 +2765,9 @@ msgstr ""
 "Straat en huisnummer\n"
 "Postcode Plaats"
 
+msgid "First row contains headings"
+msgstr "Eerste rij bevat kolomkoppen"
+
 msgid "First select a calendar or address book from the online accounts."
 msgstr "Selecteer eerst een kalender of adresboek uit de online-accounts."
 
@@ -3032,6 +3038,9 @@ msgstr "Importeren"
 
 msgid "Import Claws Mail contacts"
 msgstr "Claws Mail-contacten importeren"
+
+msgid "Import ICS / CSV…"
+msgstr "ICS / CSV importeren…"
 
 msgid "Import Lotus Organizer CSV"
 msgstr "Lotus Organizer-CSV importeren"
@@ -6676,6 +6685,9 @@ msgstr "De feestdagen zijn geïmporteerd."
 msgid "The holidays were removed."
 msgstr "De feestdagen zijn verwijderd."
 
+msgid "The import exceeds the supported limits."
+msgstr "De import overschrijdt de ondersteunde limieten."
+
 msgid "The import file is larger than 32 megabytes."
 msgstr "Het importbestand is groter dan 32 megabyte."
 
@@ -7908,6 +7920,9 @@ msgstr "Waarschuwing: het gegevensbestand kon niet worden gelezen (%s)."
 
 msgid "Waste collection calendar"
 msgstr "Afvalinzamelingskalender"
+
+msgid "Waste type"
+msgstr "Afvalsoort"
 
 msgid ""
 "We are delighted that you chose Magnolie. Let us prepare your personal "

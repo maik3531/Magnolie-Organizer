@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
@@ -532,6 +533,24 @@ internal static class ContractGroupTests
 
     private static void NativeExchangeRegressions()
     {
+        using var wasteFixture = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(TestSource.Root("contracts/waste-calendar-v1.json"), "contracts", "waste-calendar-v1.json")));
+        var wasteBytes = Encoding.UTF8.GetBytes(wasteFixture.RootElement.GetProperty("ics").GetString()!);
+        var waste = ExchangeCodec.ParseWasteImport(wasteBytes, "waste.ics");
+        TestAssert.That(waste["termine"]!.AsArray().Count == 7 && waste["muellName"]!.ToString() == "Example waste calendar" &&
+            waste["muellQuelle"]!.ToString() == ExchangeCodec.ParseWasteImport(wasteBytes, "waste (2).ics")["muellQuelle"]!.ToString(),
+            "Waste-calendar source identity or appointment records changed with the downloaded filename.");
+        var hazardous = waste["termine"]!.AsArray().OfType<JsonObject>().Where(t => t["titel"]!.ToString() == "Schadstoffe").ToArray();
+        TestAssert.That(hazardous.Length == 2 && hazardous.All(t => t["zeit"]!.ToString() == "") &&
+            hazardous[0]["notiz"]!.ToString().Contains("14:30", StringComparison.Ordinal), "Waste importer invented a start time or lost collection locations.");
+        foreach (var separator in new[] { ',', ';', '\t', '|' })
+        {
+            var csv = string.Join(separator, "Datum", "Abfallart", "Beschreibung") + "\r\n" +
+                string.Join(separator, "\"12.01.2026\"", "\"Biotonne\"", "\"First line\nSecond, line; with \"\"quotes\"\"\"") + "\r\n";
+            var rows = ExchangeCodec.ParseWasteImport(Encoding.UTF8.GetBytes("\ufeff" + csv), "waste.csv")["zeilen"]!.AsArray();
+            TestAssert.That(rows.Count == 2 && rows[1]![2]!.ToString() == "First line\nSecond, line; with \"quotes\"", "Waste CSV delimiter or quoted fields were not preserved.");
+        }
+        TestAssert.Throws<InvalidDataException>(() => ExchangeCodec.ParseWasteImport(Encoding.UTF8.GetBytes("Datum;Art\n\"unterminated"), "bad.csv"),
+            "An incomplete waste CSV was accepted as a partial import.");
         using (var people = JsonDocument.Parse("""[{"vorname":"Parent","uid":"parent","kontaktpersonen":[{"name":"Elena Care","telefon":"0123","status":"Son","kontaktId":"local-card","firma":"Care company","geburtstag":"--07-06","notiz":"First line\nSecond line","emailEintraege":[{"wert":"care@example.test","typen":["WORK"]}],"anschriften":[{"strasse":"Care 7","ort":"Example","region":"Region","land":"Deutschland","postfach":"42","zusatz":"Floor 2","typen":["WORK"]}]}]}]"""))
         {
             var vcard = ExchangeCodec.WriteVCard(people.RootElement).Text;

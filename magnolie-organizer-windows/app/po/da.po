@@ -1637,6 +1637,9 @@ msgstr "Beskadiget"
 msgid "Date"
 msgstr "Dato"
 
+msgid "Date format"
+msgstr "Datoformat"
+
 msgid "Daughter"
 msgstr "Datter"
 
@@ -2241,6 +2244,9 @@ msgstr ""
 "Gade og husnummer\n"
 "Postnummer By"
 
+msgid "First row contains headings"
+msgstr "Første række indeholder overskrifter"
+
 msgid "Fixed units"
 msgstr "Faste enheder"
 
@@ -2500,6 +2506,9 @@ msgstr "Billedfil"
 
 msgid "Import"
 msgstr "Importér"
+
+msgid "Import ICS / CSV…"
+msgstr "Importér ICS / CSV…"
 
 msgid "Import Magnolie complete archive"
 msgstr "Importer Magnolie komplet arkiv"
@@ -5294,6 +5303,9 @@ msgstr "Kontakten mangler."
 msgid "The content is missing."
 msgstr "Indholdet mangler."
 
+msgid "The content is unreadable."
+msgstr "Indholdet kan ikke læses."
+
 msgid "The contributor key is invalid."
 msgstr "Bidragydernøglen er ugyldig."
 
@@ -5370,6 +5382,9 @@ msgstr "Helligdagene blev importeret."
 
 msgid "The holidays were removed."
 msgstr "Helligdagene blev fjernet."
+
+msgid "The import exceeds the supported limits."
+msgstr "Importen overskrider de understøttede grænser."
 
 msgid "The import file is larger than 32 megabytes."
 msgstr "Importfilen er større end 32 megabyte."
@@ -6297,6 +6312,9 @@ msgstr "Advarsel: Dataene kunne ikke gemmes."
 
 msgid "Waste collection calendar"
 msgstr "Affaldskalender"
+
+msgid "Waste type"
+msgstr "Affaldstype"
 
 msgid ""
 "We are delighted to welcome you. This short assistant prepares Magnolie "

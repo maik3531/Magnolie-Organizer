@@ -1552,6 +1552,9 @@ msgstr "损坏的"
 msgid "Date"
 msgstr "日期"
 
+msgid "Date format"
+msgstr "日期格式"
+
 msgid "Daughter"
 msgstr "女儿"
 
@@ -2133,6 +2136,9 @@ msgstr ""
 "街道和门牌号\n"
 "邮政编码 城市"
 
+msgid "First row contains headings"
+msgstr "首行为列标题"
+
 msgid "Fixed units"
 msgstr "固定单位数"
 
@@ -2387,6 +2393,9 @@ msgstr "图像文件"
 
 msgid "Import"
 msgstr "导入"
+
+msgid "Import ICS / CSV…"
+msgstr "导入 ICS / CSV…"
 
 msgid "Import Magnolie complete archive"
 msgstr "导入 Magnolie 完整档案"
@@ -5079,6 +5088,9 @@ msgstr "联系方式不见了。"
 msgid "The content is missing."
 msgstr "内容缺失。"
 
+msgid "The content is unreadable."
+msgstr "内容无法读取。"
+
 msgid "The contributor key is invalid."
 msgstr "贡献者密钥无效。"
 
@@ -5152,6 +5164,9 @@ msgstr "已导入节假日。"
 
 msgid "The holidays were removed."
 msgstr "已移除节假日。"
+
+msgid "The import exceeds the supported limits."
+msgstr "导入内容超出支持的限制。"
 
 msgid "The import file is larger than 32 megabytes."
 msgstr "导入文件大于 32 MB。"
@@ -6021,6 +6036,9 @@ msgstr "警告：无法保存数据。"
 
 msgid "Waste collection calendar"
 msgstr "垃圾收运日历"
+
+msgid "Waste type"
+msgstr "垃圾类型"
 
 msgid ""
 "We are delighted to welcome you. This short assistant prepares Magnolie "

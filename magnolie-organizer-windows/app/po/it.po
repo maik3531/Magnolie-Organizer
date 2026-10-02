@@ -1657,6 +1657,9 @@ msgstr "Danneggiato"
 msgid "Date"
 msgstr "Data"
 
+msgid "Date format"
+msgstr "Formato della data"
+
 msgid "Daughter"
 msgstr "Figlia"
 
@@ -2269,6 +2272,9 @@ msgstr ""
 "Via e numero civico\n"
 "CAP Città"
 
+msgid "First row contains headings"
+msgstr "La prima riga contiene le intestazioni"
+
 msgid "Fixed units"
 msgstr "Unità fisse"
 
@@ -2533,6 +2539,9 @@ msgstr "File immagine"
 
 msgid "Import"
 msgstr "Importa"
+
+msgid "Import ICS / CSV…"
+msgstr "Importa ICS / CSV…"
 
 msgid "Import Magnolie complete archive"
 msgstr "Importa l'archivio completo di Magnolie"
@@ -5370,6 +5379,9 @@ msgstr "Manca il contatto."
 msgid "The content is missing."
 msgstr "Manca il contenuto."
 
+msgid "The content is unreadable."
+msgstr "Il contenuto non è leggibile."
+
 msgid "The contributor key is invalid."
 msgstr "La chiave del collaboratore non è valida."
 
@@ -5447,6 +5459,9 @@ msgstr "Le festività sono state importate."
 
 msgid "The holidays were removed."
 msgstr "Le festività sono state rimosse."
+
+msgid "The import exceeds the supported limits."
+msgstr "L’importazione supera i limiti supportati."
 
 msgid "The import file is larger than 32 megabytes."
 msgstr "Il file di importazione supera i 32 megabyte."
@@ -6394,6 +6409,9 @@ msgstr "Avviso: impossibile salvare i dati."
 
 msgid "Waste collection calendar"
 msgstr "Calendario raccolta rifiuti"
+
+msgid "Waste type"
+msgstr "Tipo di rifiuto"
 
 msgid ""
 "We are delighted to welcome you. This short assistant prepares Magnolie "

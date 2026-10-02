@@ -2056,6 +2056,9 @@ msgstr "Data: ikke fundet – åbn Organizer én gang."
 msgid "Date"
 msgstr "Dato"
 
+msgid "Date format"
+msgstr "Datoformat"
+
 msgid "Daughter"
 msgstr "Datter"
 
@@ -2735,6 +2738,9 @@ msgstr ""
 "Gade og husnummer\n"
 "Postnummer By"
 
+msgid "First row contains headings"
+msgstr "Første række indeholder overskrifter"
+
 msgid "First select a calendar or address book from the online accounts."
 msgstr "Vælg først en kalender eller adressebog fra onlinekontiene."
 
@@ -3003,6 +3009,9 @@ msgstr "Importér"
 
 msgid "Import Claws Mail contacts"
 msgstr "Importér Claws Mail-kontakter"
+
+msgid "Import ICS / CSV…"
+msgstr "Importér ICS / CSV…"
 
 msgid "Import Lotus Organizer CSV"
 msgstr "Importér Lotus Organizer CSV"
@@ -6588,6 +6597,9 @@ msgstr "Helligdagene blev importeret."
 msgid "The holidays were removed."
 msgstr "Helligdagene blev fjernet."
 
+msgid "The import exceeds the supported limits."
+msgstr "Importen overskrider de understøttede grænser."
+
 msgid "The import file is larger than 32 megabytes."
 msgstr "Importfilen er større end 32 megabyte."
 
@@ -7800,6 +7812,9 @@ msgstr "Advarsel: Datafilen kunne ikke læses (%s)."
 
 msgid "Waste collection calendar"
 msgstr "Affaldskalender"
+
+msgid "Waste type"
+msgstr "Affaldstype"
 
 msgid ""
 "We are delighted that you chose Magnolie. Let us prepare your personal "

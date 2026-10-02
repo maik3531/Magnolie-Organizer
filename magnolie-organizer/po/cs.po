@@ -2085,6 +2085,9 @@ msgstr "Data: nenalezena – jednou otevřete Organizér."
 msgid "Date"
 msgstr "Datum"
 
+msgid "Date format"
+msgstr "Formát data"
+
 msgid "Daughter"
 msgstr "Dcera"
 
@@ -2767,6 +2770,9 @@ msgstr ""
 "Ulice a číslo domu\n"
 "PSČ Město"
 
+msgid "First row contains headings"
+msgstr "První řádek obsahuje záhlaví"
+
 msgid "First select a calendar or address book from the online accounts."
 msgstr "Nejprve vyberte kalendář nebo adresář z online účtů."
 
@@ -3035,6 +3041,9 @@ msgstr "Importovat"
 
 msgid "Import Claws Mail contacts"
 msgstr "Importovat kontakty Claws Mail"
+
+msgid "Import ICS / CSV…"
+msgstr "Importovat ICS / CSV…"
 
 msgid "Import Lotus Organizer CSV"
 msgstr "Importovat CSV z Lotus Organizer"
@@ -6614,6 +6623,9 @@ msgstr "Svátky byly importovány."
 msgid "The holidays were removed."
 msgstr "Svátky byly odstraněny."
 
+msgid "The import exceeds the supported limits."
+msgstr "Import překračuje podporované limity."
+
 msgid "The import file is larger than 32 megabytes."
 msgstr "Importovaný soubor je větší než 32 megabajtů."
 
@@ -7811,6 +7823,9 @@ msgstr "Varování: Datový soubor se nepodařilo přečíst (%s)."
 
 msgid "Waste collection calendar"
 msgstr "Kalendář svozu odpadu"
+
+msgid "Waste type"
+msgstr "Druh odpadu"
 
 msgid ""
 "We are delighted that you chose Magnolie. Let us prepare your personal "

@@ -1724,6 +1724,9 @@ msgstr "تالف"
 msgid "Date"
 msgstr "التاريخ"
 
+msgid "Date format"
+msgstr "تنسيق التاريخ"
+
 msgid "Daughter"
 msgstr "ابنة"
 
@@ -2324,6 +2327,9 @@ msgstr ""
 "الشارع ورقم المنزل\n"
 "الرمز البريدي المدينة"
 
+msgid "First row contains headings"
+msgstr "يحتوي الصف الأول على عناوين"
+
 msgid "Fixed units"
 msgstr "وحدات ثابتة"
 
@@ -2583,6 +2589,9 @@ msgstr "ملف صورة"
 
 msgid "Import"
 msgstr "استيراد"
+
+msgid "Import ICS / CSV…"
+msgstr "استيراد ICS / CSV…"
 
 msgid "Import Magnolie complete archive"
 msgstr "استيراد أرشيف Magnolie الكامل"
@@ -5383,6 +5392,9 @@ msgstr "جهة الاتصال مفقودة."
 msgid "The content is missing."
 msgstr "المحتوى مفقود."
 
+msgid "The content is unreadable."
+msgstr "لا يمكن قراءة المحتوى."
+
 msgid "The contributor key is invalid."
 msgstr "مفتاح المساهم غير صالح."
 
@@ -5459,6 +5471,9 @@ msgstr "تم استيراد العطل."
 
 msgid "The holidays were removed."
 msgstr "تمت إزالة العطل."
+
+msgid "The import exceeds the supported limits."
+msgstr "يتجاوز الاستيراد الحدود المدعومة."
 
 msgid "The import file is larger than 32 megabytes."
 msgstr "ملف الاستيراد أكبر من 32 ميغابايت."
@@ -6363,6 +6378,9 @@ msgstr "تحذير: تعذر حفظ البيانات."
 
 msgid "Waste collection calendar"
 msgstr "تقويم جمع النفايات"
+
+msgid "Waste type"
+msgstr "نوع النفايات"
 
 msgid ""
 "We are delighted to welcome you. This short assistant prepares Magnolie "

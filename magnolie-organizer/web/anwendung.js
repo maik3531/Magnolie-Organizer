@@ -6673,6 +6673,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         farbe: farbe(termin.farbe, "#4c4b47"),
         art: ["residual", "packaging", "organic", "custom"].includes(termin.art)
           ? termin.art : "custom" });
+      if (Array.isArray(termin.importierteTermine) && /^waste:(ics|csv):[a-f0-9]{64}$/.test(S(termin.importQuelle))) {
+        const gruppe = d.muelltermine[d.muelltermine.length - 1];
+        gruppe.importQuelle = termin.importQuelle;
+        gruppe.importName = S(termin.importName).slice(0, 256);
+        gruppe.importTyp = S(termin.importTyp).slice(0, 512);
+        gruppe.importierteTermine = normalisiereTermine(termin.importierteTermine.slice(0, 10000));
+        gruppe.intervallTage = 0;
+      }
     }
     const schichtIds = new Set();
     for (const schicht of (Array.isArray(roh.schichten) ? roh.schichten : []).slice(0, 64)) {
@@ -9285,12 +9293,236 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return { palm: "🌴", sun: "☀", snowman: "☃" }[art] || "🌴";
   }
 
+  function muellImportTermineVorschau(termine) {
+    const details = el("details"); details.append(el("summary", null, _("Preview")));
+    const text = el("pre"), navigation = el("div", "knopfreihe"); let seite = 0;
+    const zurueck = knopf(_("Previous page"), "", () => { seite--; zeichnen(); });
+    const weiter = knopf(_("Next"), "", () => { seite++; zeichnen(); });
+    const stand = el("span");
+    const zeichnen = () => {
+      text.textContent = termine.slice(seite * 25, (seite + 1) * 25).map(t =>
+        [t.datum, t.zeit, t.titel, t.ort, t.notiz].filter(Boolean).join(" · ")).join("\n");
+      zurueck.disabled = seite === 0; weiter.disabled = (seite + 1) * 25 >= termine.length;
+      stand.textContent = String(seite + 1) + " / " + Math.max(1, Math.ceil(termine.length / 25));
+    };
+    navigation.append(zurueck, stand, weiter); details.append(text, navigation); zeichnen(); return details;
+  }
+
+  let muellImportLauf = null;
+  function starteMuellImport(frischen = null) {
+    if (!Bruecke.vorhanden) return nurImProgramm();
+    if (gesperrt || muellImportLauf) return false;
+    const token = uid();
+    muellImportLauf = { token, bestand: DATEN, vorher: kanonischerEntwurf(DATEN.muelltermine), frischen };
+    if (!Bruecke.sende({ cmd: "import", art: "muell", muellToken: token })) { muellImportLauf = null; return false; }
+    return true;
+  }
+
+  function muellCsvDatum(wert, format) {
+    const roh = String(wert || "").trim();
+    const m = /^(.*?)(?:[ T](\d{1,2}):(\d{2})(?::\d{2})?)?$/.exec(roh);
+    if (!m) return null;
+    const teile = m[1].split(format === "iso" ? "-" : format === "dot" ? "." : "/");
+    if (teile.length !== 3 || !teile.every(t => /^\d+$/.test(t))) return null;
+    const [jahr, monat, tag] = format === "iso" ? teile : format === "mdy" ? [teile[2], teile[0], teile[1]] : [teile[2], teile[1], teile[0]];
+    const datum = jahr + "-" + monat.padStart(2, "0") + "-" + tag.padStart(2, "0");
+    const zeit = m[2] ? m[2].padStart(2, "0") + ":" + m[3] : "";
+    return gueltigesISO(datum) && (!zeit || /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(zeit)) ? { datum, zeit } : null;
+  }
+
+  function muellTypVorschlag(name) {
+    const text = String(name || "").toLowerCase();
+    if (/restabfall|restm[uü]ll|residual|general waste|black bin/.test(text)) return { art: "residual", farbe: "#4c4b47" };
+    if (/bio|organic|compost/.test(text)) return { art: "organic", farbe: "#756443" };
+    if (/gelb|verpack|yellow|packaging|plastic/.test(text)) return { art: "packaging", farbe: "#d5ad18" };
+    if (/papier|pappe|blaue|paper|cardboard/.test(text)) return { art: "custom", farbe: "#3c75a5" };
+    return { art: "custom", farbe: "#54744a" };
+  }
+
+  function muellImportErgebnis(nutzlast) {
+    const lauf = muellImportLauf;
+    if (!lauf || nutzlast.muellToken !== lauf.token) return Promise.resolve(false);
+    const gueltig = () => muellImportLauf === lauf && DATEN === lauf.bestand && !gesperrt &&
+      kanonischerEntwurf(DATEN.muelltermine) === lauf.vorher;
+    if (!gueltig() || nutzlast.abgebrochen || nutzlast.fehler) {
+      muellImportLauf = null;
+      if (nutzlast.fehler) zettel(String(nutzlast.fehler));
+      return Promise.resolve(false);
+    }
+    if (nutzlast.muellFormat === "csv" && (!Array.isArray(nutzlast.zeilen) || nutzlast.zeilen.length > 10001 ||
+        nutzlast.zeilen.some(row => !Array.isArray(row) || row.length > 64 || row.some(cell => typeof cell !== "string" || cell.length > 32768)))) {
+      muellImportLauf = null; zettel(_("The content is unreadable.")); return Promise.resolve(false);
+    }
+    return new Promise(resolve => {
+      const schleier = el("div", "eingabe-schleier muell-import-vorschau"), dialog = el("section", "eingabe-dialog");
+      const konfiguration = el("div"), vorschau = el("div"), status = el("p", "einst-warnung"), knoepfe = el("div", "dialog-knoepfe");
+      const wahlen = new Map(); let gruppen = [], fehler = "", version = 0, beschaeftigt = false;
+      const schliessen = () => { if (muellImportLauf === lauf) muellImportLauf = null; beendeModal(schleier); schleier.remove(); resolve(false); };
+      lauf.schliessen = schliessen;
+      const rows = Array.isArray(nutzlast.zeilen) ? nutzlast.zeilen : [];
+      const kopf = document.createElement("input"); kopf.type = "checkbox";
+      const header = (rows[0] || []).map(t => String(t).trim().toLowerCase());
+      const finde = muster => header.findIndex(h => muster.test(h));
+      const dateIndex = finde(/^(datum|date|abfuhrdatum|abholtermin|start date|startdatum)$/);
+      const typeIndex = finde(/^(abfallart|abfall|fraktion|m[uü]llart|art|type|waste type|summary|betreff|titel|bezeichnung)$/);
+      kopf.checked = dateIndex >= 0 || typeIndex >= 0;
+      const breite = rows.length ? Math.max(...rows.slice(0, 10001).map(r => Array.isArray(r) ? r.length : 0)) : 0;
+      const spalten = Array.from({ length: breite }, (_, i) => [String(i), String(i + 1) + " · " + String(rows[0]?.[i] || "").slice(0, 80)]);
+      const datumSpalte = auswahlFeld(spalten, String(Math.max(0, dateIndex)));
+      const artSpalte = auswahlFeld([["-1", _("Custom")], ...spalten], String(typeIndex));
+      const ortSpalte = auswahlFeld([["-1", "—"], ...spalten], String(finde(/^(ort|location|adresse|address)$/)));
+      const notizSpalte = auswahlFeld([["-1", "—"], ...spalten], String(finde(/^(notiz|note|description|beschreibung|hinweis)$/)));
+      const uidSpalte = auswahlFeld([["-1", "—"], ...spalten], String(finde(/^(uid|id)$/)));
+      const beispiel = rows[kopf.checked ? 1 : 0]?.[Number(datumSpalte.value)] || "";
+      const format = auswahlFeld([["iso", "YYYY-MM-DD"], ["dot", "DD.MM.YYYY"], ["dmy", "DD/MM/YYYY"], ["mdy", "MM/DD/YYYY"]],
+        /^\d{4}-/.test(beispiel) ? "iso" : "dot");
+      const eigenerName = eingabe("text", String(nutzlast.datei || "").replace(/\.[^.]+$/, ""));
+      function lesen() {
+        if (!/^waste:(ics|csv):[a-f0-9]{64}$/.test(nutzlast.muellQuelle || "")) throw new Error(_("The content is unreadable."));
+        if (nutzlast.muellFormat === "ics") {
+          if (!Array.isArray(nutzlast.termine) || nutzlast.termine.length > 10000) throw new Error(_("The import exceeds the supported limits."));
+          return nutzlast.termine.map(t => ({ ...kopie(t), _muellTyp: String(t.titel || "").trim(),
+            _muellKey: t.uid ? ["uid", t.icsSerienUid || t.uid, (t.icsRoundtrip || []).filter(x => /^RECURRENCE-ID[;:]/i.test(x))] :
+              ["value", t.datum, t.zeit || "", t.titel || "", t.ort || ""] }));
+        }
+        if (nutzlast.muellFormat !== "csv" || rows.length > 10001 || breite > 64) throw new Error(_("The content is unreadable."));
+        return rows.slice(kopf.checked ? 1 : 0).flatMap((row, index) => {
+          if (!Array.isArray(row)) throw new Error(_("The content is unreadable."));
+          const rawDate = String(row[Number(datumSpalte.value)] || "").trim();
+          if (!rawDate) return [];
+          const date = muellCsvDatum(rawDate, format.value);
+          if (!date) throw new Error(_("Date") + ": " + rawDate);
+          const titel = String(Number(artSpalte.value) < 0 ? eigenerName.value : row[Number(artSpalte.value)] || "").trim();
+          if (!titel) throw new Error(_("Name") + ": " + (index + 1));
+          const ort = String(row[Number(ortSpalte.value)] || ""), notiz = String(row[Number(notizSpalte.value)] || "");
+          const originalUid = String(row[Number(uidSpalte.value)] || "").trim();
+          return [{ ...date, titel, ort, notiz, endDatum: "", endZeit: "", wiederholung: { art: "none", bis: "" },
+            uid: originalUid, _muellTyp: titel, _muellKey: originalUid ? ["uid", originalUid] : ["value", date.datum, date.zeit, titel, ort] }];
+        });
+      }
+      const zeichnen = () => {
+        version++; vorschau.textContent = ""; fehler = ""; gruppen = [];
+        try {
+          const ereignisse = lesen();
+          if (!ereignisse.length || ereignisse.some(t => !gueltigesISO(t.datum) || !t._muellTyp || t._muellTyp.length > 512)) throw new Error(_("The content is unreadable."));
+          const nachTyp = new Map();
+          for (const t of ereignisse) {
+            const key = kanonischerText(t._muellTyp);
+            if (!nachTyp.has(key)) nachTyp.set(key, []);
+            nachTyp.get(key).push(t);
+          }
+          if (nachTyp.size > 64) throw new Error(_("The import exceeds the supported limits."));
+          for (const [typ, termine] of nachTyp) {
+            const alt = DATEN.muelltermine.find(m => m.importQuelle === nutzlast.muellQuelle && m.importTyp === typ);
+            if (!wahlen.has(typ)) wahlen.set(typ, { an: true, name: alt?.name || termine[0]._muellTyp.slice(0, 80),
+              art: alt?.art || muellTypVorschlag(typ).art, farbe: alt?.farbe || muellTypVorschlag(typ).farbe });
+            const wahl = wahlen.get(typ), gruppe = { typ, termine, wahl }; gruppen.push(gruppe);
+            const zeile = el("section", "muell-import-gruppe"), an = document.createElement("input"); an.type = "checkbox"; an.checked = wahl.an;
+            an.dataset.muellImportTyp = typ;
+            an.setAttribute("aria-label", termine[0]._muellTyp);
+            an.addEventListener("change", () => { version++; wahl.an = an.checked; });
+            const name = eingabe("text", wahl.name); name.maxLength = 80; name.setAttribute("aria-label", _("Name"));
+            name.addEventListener("input", () => { version++; wahl.name = name.value.trim(); });
+            const art = auswahlFeld([["residual", _("Residual waste")], ["packaging", _("Packaging / Yellow bin")],
+              ["organic", _("Organic waste")], ["custom", _("Custom")]], wahl.art);
+            art.setAttribute("aria-label", _("Waste type"));
+            art.addEventListener("change", () => { version++; wahl.art = art.value; });
+            const farbe = eingabe("color", wahl.farbe); farbe.setAttribute("aria-label", _("Color")); farbe.addEventListener("input", () => { version++; wahl.farbe = farbe.value; });
+            zeile.append(an, name, art, farbe, el("p", null, _("Appointments") + ": " + termine.length));
+            zeile.append(muellImportTermineVorschau(termine)); vorschau.append(zeile);
+          }
+        } catch (error) { fehler = String(error.message || error); }
+        status.textContent = fehler;
+      };
+      if (nutzlast.muellFormat === "csv") {
+        const label = el("label", "hak"); label.append(kopf, document.createTextNode(" " + _("First row contains headings")));
+        konfiguration.append(label, formZeile(_("Date"), datumSpalte), formZeile(_("Date format"), format),
+          formZeile(_("Waste type"), artSpalte), formZeile(_("Name"), eigenerName), formZeile(_("Location"), ortSpalte),
+          formZeile(_("Note"), notizSpalte), formZeile("UID", uidSpalte));
+        for (const feld of [kopf, datumSpalte, format, artSpalte, eigenerName, ortSpalte, notizSpalte, uidSpalte]) feld.addEventListener("change", zeichnen);
+        eigenerName.addEventListener("input", zeichnen);
+      }
+      const anwenden = knopf(_("Apply"), "hauptknopf", async () => {
+        if (beschaeftigt || fehler || !gueltig()) { status.textContent = fehler || _("Conflict"); return; }
+        const auswahl = gruppen.filter(g => g.wahl.an);
+        if (!auswahl.length || auswahl.some(g => !g.wahl.name || g.wahl.name.length > 80)) { status.textContent = _("The content is unreadable."); return; }
+        const stand = version; beschaeftigt = true; anwenden.disabled = true;
+        try {
+          const entwurf = kopie(DATEN.muelltermine), eingang = [], gesehen = new Map();
+          for (const g of auswahl) for (const t of g.termine) {
+            const id = "waste:" + await personalSyncHash([nutzlast.muellQuelle, t._muellKey]);
+            const { _muellKey, _muellTyp, ...roh } = t;
+            const normal = normalisiereTermine([{ ...roh, id, sync: false, kontaktId: "", syncQuellen: {} }])[0];
+            if (!normal) throw new Error(_("The content is unreadable."));
+            if (gesehen.has(id) && kanonischerEntwurf(gesehen.get(id)) !== kanonischerEntwurf(normal)) throw new Error(_("Conflict"));
+            if (!gesehen.has(id)) { gesehen.set(id, normal); eingang.push({ gruppe: g, termin: normal }); }
+          }
+          for (const gruppe of entwurf) if (gruppe.importQuelle === nutzlast.muellQuelle && Array.isArray(gruppe.importierteTermine))
+            gruppe.importierteTermine = gruppe.importierteTermine.filter(t => !gesehen.has(t.id));
+          for (const g of auswahl) {
+            let ziel = entwurf.find(m => m.importQuelle === nutzlast.muellQuelle && m.importTyp === g.typ);
+            if (!ziel) { ziel = { id: uid(), importQuelle: nutzlast.muellQuelle, importTyp: g.typ, importierteTermine: [] }; entwurf.push(ziel); }
+            Object.assign(ziel, { name: g.wahl.name, art: g.wahl.art, farbe: g.wahl.farbe, intervallTage: 0,
+              importName: String(nutzlast.muellName || nutzlast.datei || "").slice(0, 256) });
+            ziel.importierteTermine.push(...eingang.filter(e => e.gruppe === g).map(e => e.termin));
+            ziel.importierteTermine.sort((a, b) => a.datum.localeCompare(b.datum) || a.id.localeCompare(b.id));
+            ziel.von = ziel.importierteTermine[0]?.datum || g.termine[0].datum;
+          }
+          if (entwurf.length > 64 || entwurf.reduce((sum, m) => sum + (m.importierteTermine?.length || 0), 0) > 10000)
+            throw new Error(_("The import exceeds the supported limits."));
+          if (!gueltig() || version !== stand) throw new Error(_("Conflict"));
+          await new Promise((erledigt, abgelehnt) => mitMutationsSnapshot("pre-change", () => {
+            if (!gueltig() || version !== stand) { abgelehnt(new Error(_("Conflict"))); return; }
+            DATEN.muelltermine = entwurf; DATEN.einstellungen.kalender.muellkalenderAn = true;
+            muellImportLauf = null; beendeModal(schleier); schleier.remove(); planeSpeichern(); lauf.frischen?.(); zeichneAlles(); resolve(true); erledigt();
+          }, abgelehnt));
+        } catch (error) { status.textContent = String(error.message || error); }
+        finally { beschaeftigt = false; anwenden.disabled = false; }
+      });
+      anwenden.dataset.muellImportAnwenden = "true";
+      knoepfe.append(knopf(_("Cancel"), "", schliessen), anwenden);
+      dialog.append(el("h3", null, _("Waste collection calendar")), el("p", null, String(nutzlast.muellName || nutzlast.datei || "")),
+        konfiguration, status, vorschau, knoepfe); schleier.append(dialog); document.body.append(schleier);
+      zeichnen(); registriereModal(schleier, dialog, { schliessen, anfang: anwenden });
+    });
+  }
+
+  const muellImportIndex = new WeakMap();
+  function muellImportVorkommen(gruppe, iso) {
+    const eintraege = gruppe.importierteTermine;
+    let index = muellImportIndex.get(eintraege);
+    if (!index) {
+      const quellen = icsSerienAbstimmen(eintraege);
+      index = { einzeln: quellen.filter(t => icsQuelle(t) && !istWiederkehrend(t)),
+        serien: quellen.filter(t => icsQuelle(t) && istWiederkehrend(t)), normal: quellen.filter(t => !icsQuelle(t)) };
+      muellImportIndex.set(eintraege, index);
+    }
+    const [jahr, monat, tag] = iso.split("-").map(Number);
+    const ab = +organizerZeitpunkt(jahr, 1, 1, 0, 0, 0), bis = +organizerZeitpunkt(jahr + 1, 1, 1, 0, 0, 0) - 1;
+    const werte = index.einzeln.length ? (icsRuntime("base", index.einzeln, [-Infinity, Infinity]) || []).slice() : [];
+    for (const serie of index.serien) werte.push(...(icsRuntime("expand", serie, [ab, bis, false, true]) || []));
+    const aktuell = werte.filter(t => {
+      const von = t.zeit ? +organizerZeitpunkt(jahr, monat, tag, 0, 0, 0) : Date.UTC(jahr, monat - 1, tag);
+      const next = new Date(Date.UTC(jahr, monat - 1, tag + 1));
+      const ende = t.zeit ? +organizerZeitpunkt(next.getUTCFullYear(), next.getUTCMonth() + 1, next.getUTCDate(), 0, 0, 0) : von + 86400000;
+      return t.icsStartUtc < ende && !(t.icsEndUtc <= von && t.icsStartUtc < von);
+    });
+    for (const t of index.normal) if (!t.icsAusnahmen?.includes(iso) &&
+        (t.datum === iso || wiederholungTrifft(t, iso))) aktuell.push(t);
+    return aktuell;
+  }
+
   function muelltermineAm(iso) {
     if (!DATEN.einstellungen.kalender.muellkalenderAn || !gueltigesISO(iso)) return [];
-    return DATEN.muelltermine.filter((termin) => {
-      if (iso < termin.von) return false;
+    return DATEN.muelltermine.flatMap((termin) => {
+      if (Array.isArray(termin.importierteTermine)) {
+        const vorkommen = muellImportVorkommen(termin, iso);
+        return vorkommen.length ? [{ ...termin, hinweis: [...new Set(vorkommen.map(t =>
+          [t.zeit, t.ort, t.notiz].filter(Boolean).join(" · ")).filter(Boolean))].join("\n") }] : [];
+      }
+      if (iso < termin.von) return [];
       const abstand = tageDiff(termin.von, iso);
-      return termin.intervallTage ? abstand % termin.intervallTage === 0 : abstand === 0;
+      return (termin.intervallTage ? abstand % termin.intervallTage === 0 : abstand === 0) ? [termin] : [];
     });
   }
 
@@ -9443,8 +9675,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       span.style.setProperty("--markenfarbe", termin.farbe);
       span.append(sinnbild("muelltonne", kompakt ? 9 : 12));
       if (!kompakt) span.append(document.createTextNode(termin.name));
-      span.title = termin.name;
-      span.setAttribute("aria-label", termin.name);
+      span.title = [termin.name, termin.hinweis].filter(Boolean).join("\n");
+      span.setAttribute("aria-label", span.title);
       streifen.append(span);
     }
     for (const marke of gesundheit) {
@@ -24353,6 +24585,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       _("Waste collection calendar"), !!k.muellkalenderAn, _("Enable waste collection calendar"));
     const zeichneMuelltermine = () => {
       muellGruppe.inhalt.textContent = "";
+      muellGruppe.hak.checked = !!k.muellkalenderAn;
+      muellGruppe.inhalt.style.display = k.muellkalenderAn ? "" : "none";
+      const importieren = knopf(_("Import ICS / CSV…"), "", () => starteMuellImport(() => {
+        if (muellGruppe.inhalt.isConnected) zeichneMuelltermine();
+      }));
+      importieren.dataset.muellImport = "true";
       const auswahl = el("div", "marken-vorlagen");
       const muellVorlage = (art, name, farbe) => {
         const button = knopf(name, "klein", () => {
@@ -24411,7 +24649,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         };
         [name, von, intervall, farbe].forEach((feld) =>
           feld.addEventListener("change", speichern));
-        zeile.append(name, el("span", "bis-wort", _("first on")), von,
+        if (Array.isArray(termin.importierteTermine)) {
+          zeile.classList.add("muell-importiert");
+          zeile.append(name, el("span", "einst-hinweis", _("Appointments") + ": " + termin.importierteTermine.length), farbe, weg);
+          zeile.append(muellImportTermineVorschau(termin.importierteTermine));
+        } else zeile.append(name, el("span", "bis-wort", _("first on")), von,
           el("span", "bis-wort", _("every")), intervall,
           el("span", "bis-wort", _("days")), farbe, weg);
         liste.append(zeile);
@@ -24424,7 +24666,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       muellGruppe.inhalt.append(el("p", "einst-hinweis",
         _("Choose a waste type or enter a custom collection. Set the first collection " +
           "and the interval in days; 0 creates a one-time collection.")),
-        auswahl, liste, plus);
+        importieren, auswahl, liste, plus);
     };
     muellGruppe.hak.id = "kalender-muellkalender";
     muellGruppe.hak.addEventListener("change", () => {
@@ -27122,6 +27364,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     kontaktFotoDialogSchliessen?.();
     kontaktDateiPruefungSchliessen?.();
     kontaktKartenAuswahlSchliessen?.();
+    muellImportLauf?.schliessen?.(); muellImportLauf = null;
     const vorheriger = document.getElementById("sperr-schleier");
     if (vorheriger) {
       if (vorheriger.tastenhorcher) {
@@ -27692,6 +27935,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       kontaktFotoDialogSchliessen?.();
       kontaktDateiPruefungSchliessen?.();
       kontaktKartenAuswahlSchliessen?.();
+      muellImportLauf?.schliessen?.(); muellImportLauf = null;
       kdeKontaktLauf?.abbrechen?.();
       zeichenblattAuswahlSchliessen?.();
       beendeZeicheneingabe();
@@ -29012,6 +29256,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
     },
     importErgebnis(nutzlast, termineNormalisiert = false, kontaktPruefung = null) {
+      if (nutzlast.art === "muell") return muellImportErgebnis(nutzlast);
       nutzlast = nutzlast || {};
       const setupImportBeenden = () => {
         if (!setupImportLaeuft) return;

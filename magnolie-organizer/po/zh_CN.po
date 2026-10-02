@@ -1948,6 +1948,9 @@ msgstr "数据：未找到 – 请先打开一次 Organizer。"
 msgid "Date"
 msgstr "日期"
 
+msgid "Date format"
+msgstr "日期格式"
+
 msgid "Daughter"
 msgstr "女儿"
 
@@ -2599,6 +2602,9 @@ msgstr ""
 "街道和门牌号\n"
 "邮政编码 城市"
 
+msgid "First row contains headings"
+msgstr "首行为列标题"
+
 msgid "First select a calendar or address book from the online accounts."
 msgstr "请先从在线账户中选择一个日历或通讯录。"
 
@@ -2862,6 +2868,9 @@ msgstr "导入"
 
 msgid "Import Claws Mail contacts"
 msgstr "导入 Claws Mail 联系人"
+
+msgid "Import ICS / CSV…"
+msgstr "导入 ICS / CSV…"
 
 msgid "Import Lotus Organizer CSV"
 msgstr "导入 Lotus Organizer CSV"
@@ -6299,6 +6308,9 @@ msgstr "已导入节假日。"
 msgid "The holidays were removed."
 msgstr "已移除节假日。"
 
+msgid "The import exceeds the supported limits."
+msgstr "导入内容超出支持的限制。"
+
 msgid "The import file is larger than 32 megabytes."
 msgstr "导入文件大于 32 MB。"
 
@@ -7444,6 +7456,9 @@ msgstr "警告：无法读取数据文件（%s）。"
 
 msgid "Waste collection calendar"
 msgstr "垃圾收运日历"
+
+msgid "Waste type"
+msgstr "垃圾类型"
 
 msgid ""
 "We are delighted that you chose Magnolie. Let us prepare your personal "

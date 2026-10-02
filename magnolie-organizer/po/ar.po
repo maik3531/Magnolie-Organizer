@@ -2178,6 +2178,9 @@ msgstr "البيانات: غير موجودة – افتح Organizer مرة وا
 msgid "Date"
 msgstr "التاريخ"
 
+msgid "Date format"
+msgstr "تنسيق التاريخ"
+
 msgid "Daughter"
 msgstr "ابنة"
 
@@ -2851,6 +2854,9 @@ msgstr ""
 "الشارع ورقم المنزل\n"
 "الرمز البريدي المدينة"
 
+msgid "First row contains headings"
+msgstr "يحتوي الصف الأول على عناوين"
+
 msgid "First select a calendar or address book from the online accounts."
 msgstr "اختر أولًا تقويمًا أو دفتر عناوين من الحسابات عبر الإنترنت."
 
@@ -3118,6 +3124,9 @@ msgstr "استيراد"
 
 msgid "Import Claws Mail contacts"
 msgstr "استيراد جهات اتصال Claws Mail"
+
+msgid "Import ICS / CSV…"
+msgstr "استيراد ICS / CSV…"
 
 msgid "Import Lotus Organizer CSV"
 msgstr "استيراد Lotus Organizer CSV"
@@ -6703,6 +6712,9 @@ msgstr "تم استيراد العطل."
 msgid "The holidays were removed."
 msgstr "تمت إزالة العطل."
 
+msgid "The import exceeds the supported limits."
+msgstr "يتجاوز الاستيراد الحدود المدعومة."
+
 msgid "The import file is larger than 32 megabytes."
 msgstr "ملف الاستيراد أكبر من 32 ميغابايت."
 
@@ -7887,6 +7899,9 @@ msgstr "تحذير: تعذر قراءة ملف البيانات (%s)."
 
 msgid "Waste collection calendar"
 msgstr "تقويم جمع النفايات"
+
+msgid "Waste type"
+msgstr "نوع النفايات"
 
 msgid ""
 "We are delighted that you chose Magnolie. Let us prepare your personal "

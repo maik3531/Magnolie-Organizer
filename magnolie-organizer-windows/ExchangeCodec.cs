@@ -128,6 +128,54 @@ internal static partial class ExchangeCodec
         catch (DecoderFallbackException) { return Encoding.GetEncoding(1252).GetString(bytes); }
     }
 
+    internal static JsonObject ParseWasteImport(byte[] bytes, string fileName)
+    {
+        if (bytes.LongLength > MaxImportBytes) throw new IOException(NativeLocalization.Gettext("The import file is larger than 32 megabytes."));
+        var text = DecodeText(bytes);
+        if (text.IndexOf('\0') >= 0) throw new InvalidDataException(NativeLocalization.Gettext("The content is unreadable."));
+        var identity = Path.GetFileName(fileName);
+        var calendarName = "";
+        if (text.TrimStart().StartsWith("BEGIN:VCALENDAR", StringComparison.OrdinalIgnoreCase))
+        {
+            var depth = 0;
+            foreach (var line in Unfold(text))
+            {
+                var property = ParseIcsProperty(line); if (property is null) continue;
+                if (property.Name == "BEGIN") { depth++; continue; }
+                if (property.Name == "END") { depth--; continue; }
+                if (depth != 1) continue;
+                if (property.Name is "UID" or "X-WR-RELCALID") identity = property.Value;
+                if (property.Name == "X-WR-CALNAME") calendarName = IcsText(property.Value);
+            }
+            var source = "waste:ics:" + Sha256(identity);
+            var result = ParseIcs(text, source);
+            if (result.Termine.Count > 10000) throw new InvalidDataException(NativeLocalization.Gettext("The import exceeds the supported limits."));
+            if (result.FehlerhafteTermine > 0) throw new InvalidDataException(NativeLocalization.Gettext("The content is unreadable."));
+            foreach (var appointment in result.Termine.OfType<JsonObject>())
+            {
+                var nested = 0;
+                foreach (var line in (appointment["icsRoundtrip"] as JsonArray ?? []).OfType<JsonValue>())
+                {
+                    var property = ParseIcsProperty(line.GetValue<string>()); if (property is null) continue;
+                    if (property.Name == "BEGIN") nested++;
+                    else if (property.Name == "END") nested--;
+                    else if (property.Name == "LOCATION" && nested == 0 && !appointment.ContainsKey("ort")) appointment["ort"] = IcsText(property.Value);
+                }
+            }
+            var payload = result.ToPayload("muell", Path.GetFileName(fileName));
+            payload["muellFormat"] = "ics"; payload["muellQuelle"] = source;
+            payload["muellName"] = calendarName;
+            return payload;
+        }
+        var rows = ParseCsv(text, strict: true);
+        if (rows.Count == 0) throw new InvalidDataException(NativeLocalization.Gettext("The content is unreadable."));
+        if (rows.Count > 10001 || rows.Any(row => row.Count > 64 || row.Any(cell => cell.Length > 32768)))
+            throw new InvalidDataException(NativeLocalization.Gettext("The import exceeds the supported limits."));
+        return new JsonObject { ["art"] = "muell", ["abgebrochen"] = false, ["datei"] = Path.GetFileName(fileName),
+            ["muellFormat"] = "csv", ["muellQuelle"] = "waste:csv:" + Sha256(identity),
+            ["zeilen"] = new JsonArray(rows.Select(row => (JsonNode)new JsonArray(row.Select(cell => (JsonNode)JsonValue.Create(cell)!).ToArray())).ToArray()) };
+    }
+
     internal static ExchangeImportResult ParseIcs(string text, string sourceId = "", TimeZoneInfo? timeZone = null)
     {
         using var culture = new CalendarRecurrence.WireCulture();
@@ -1999,19 +2047,33 @@ internal static partial class ExchangeCodec
         return result;
     }
 
-    private static List<List<string>> ParseCsv(string text)
+    private static List<List<string>> ParseCsv(string text, bool strict = false)
     {
         var firstLine = text.Split('\n').FirstOrDefault(line => line.Trim().Length > 0) ?? "";
-        var delimiter = firstLine.Count(character => character == ';') > firstLine.Count(character => character == ',') ? ';' : ',';
-        var rows = new List<List<string>>(); var row = new List<string>(); var field = new StringBuilder(); var quoted = false;
+        var delimiters = strict ? new[] { ',', ';', '\t', '|' } : new[] { ',', ';' };
+        int Count(char candidate) {
+            var inside = false; var count = 0;
+            foreach (var value in firstLine) { if (value == '"') inside = !inside; else if (!inside && value == candidate) count++; }
+            return count;
+        }
+        var delimiter = strict ? delimiters.OrderByDescending(Count).First() :
+            firstLine.Count(character => character == ';') > firstLine.Count(character => character == ',') ? ';' : ',';
+        var rows = new List<List<string>>(); var row = new List<string>(); var field = new StringBuilder(); var quoted = false; var closed = false;
         for (var index = 0; index <= text.Length; index++)
         {
             var character = index < text.Length ? text[index] : '\n';
-            if (character == '"') { if (quoted && index + 1 < text.Length && text[index + 1] == '"') { field.Append('"'); index++; } else quoted = !quoted; }
-            else if (character == delimiter && !quoted) { row.Add(field.ToString()); field.Clear(); }
-            else if ((character == '\n' || character == '\r') && !quoted) { if (character == '\r' && index + 1 < text.Length && text[index + 1] == '\n') index++; row.Add(field.ToString()); field.Clear(); if (row.Any(value => value.Trim().Length > 0)) rows.Add(row); row = new(); }
-            else field.Append(character);
+            if (character == '"') {
+                if (quoted && index + 1 < text.Length && text[index + 1] == '"') { field.Append('"'); index++; }
+                else {
+                    if (strict && !quoted && (closed || field.Length > 0)) throw new InvalidDataException(NativeLocalization.Gettext("The content is unreadable."));
+                    closed = quoted; quoted = !quoted;
+                }
+            }
+            else if (character == delimiter && !quoted) { row.Add(field.ToString()); field.Clear(); closed = false; }
+            else if ((character == '\n' || character == '\r') && !quoted) { if (character == '\r' && index + 1 < text.Length && text[index + 1] == '\n') index++; row.Add(field.ToString()); field.Clear(); if (row.Any(value => value.Trim().Length > 0)) rows.Add(row); row = new(); closed = false; }
+            else { if (strict && closed) throw new InvalidDataException(NativeLocalization.Gettext("The content is unreadable.")); field.Append(character); }
         }
+        if (strict && quoted) throw new InvalidDataException(NativeLocalization.Gettext("The content is unreadable."));
         return rows;
     }
 

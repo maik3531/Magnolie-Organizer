@@ -1653,6 +1653,9 @@ msgstr "Poškozený"
 msgid "Date"
 msgstr "Datum"
 
+msgid "Date format"
+msgstr "Formát data"
+
 msgid "Daughter"
 msgstr "Dcera"
 
@@ -2260,6 +2263,9 @@ msgstr ""
 "Ulice a číslo domu\n"
 "PSČ Město"
 
+msgid "First row contains headings"
+msgstr "První řádek obsahuje záhlaví"
+
 msgid "Fixed units"
 msgstr "Pevné jednotky"
 
@@ -2521,6 +2527,9 @@ msgstr "Soubor obrázku"
 
 msgid "Import"
 msgstr "Importovat"
+
+msgid "Import ICS / CSV…"
+msgstr "Importovat ICS / CSV…"
 
 msgid "Import Magnolie complete archive"
 msgstr "Importujte kompletní archiv Magnolie"
@@ -5313,6 +5322,9 @@ msgstr "Chybí kontakt."
 msgid "The content is missing."
 msgstr "Chybí obsah."
 
+msgid "The content is unreadable."
+msgstr "Obsah nelze přečíst."
+
 msgid "The contributor key is invalid."
 msgstr "Klíč přispěvatele je neplatný."
 
@@ -5389,6 +5401,9 @@ msgstr "Svátky byly importovány."
 
 msgid "The holidays were removed."
 msgstr "Svátky byly odstraněny."
+
+msgid "The import exceeds the supported limits."
+msgstr "Import překračuje podporované limity."
 
 msgid "The import file is larger than 32 megabytes."
 msgstr "Importovaný soubor je větší než 32 megabajtů."
@@ -6304,6 +6319,9 @@ msgstr "Varování: Data se nepodařilo uložit."
 
 msgid "Waste collection calendar"
 msgstr "Kalendář svozu odpadu"
+
+msgid "Waste type"
+msgstr "Druh odpadu"
 
 msgid ""
 "We are delighted to welcome you. This short assistant prepares Magnolie "

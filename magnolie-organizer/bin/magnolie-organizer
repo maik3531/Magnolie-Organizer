@@ -6034,6 +6034,75 @@ def lotus_csv_schreiben(termine):
     return puffer.getvalue()
 
 
+def muell_import_lesen(roh, dateiname=""):
+    """Liest Müllkalender für eine getrennte Vorschau, ohne Termine zu speichern."""
+    if len(roh) > IMPORT_DATEI_MAX:
+        raise ValueError(_("The import file is larger than 32 megabytes."))
+    text = _text_dekodieren(roh)
+    if "\x00" in text:
+        raise ValueError(_("The content is unreadable."))
+    dateiname = os.path.basename(dateiname)
+    identitaet, kalendername = dateiname, ""
+    if text.lstrip().upper().startswith("BEGIN:VCALENDAR"):
+        tiefe = 0
+        for zeile in _entfalte_zeilen(text):
+            prop = _prop_zerlegen(zeile)
+            if not prop:
+                continue
+            name, _params, wert = prop
+            if name == "BEGIN":
+                tiefe += 1
+            elif name == "END":
+                tiefe -= 1
+            elif tiefe == 1:
+                if name in ("UID", "X-WR-RELCALID"):
+                    identitaet = wert
+                elif name == "X-WR-CALNAME":
+                    kalendername = _ical_unescape(wert)
+        quelle = "waste:ics:" + hashlib.sha256(identitaet.encode("utf-8")).hexdigest()
+        ergebnis = ics_lesen(text, dateiname, quelle, jahrestage_als_termine=True)
+        if ergebnis.get("uebersprungenTermine"):
+            raise ValueError(_("The content is unreadable."))
+        if len(ergebnis["termine"]) > 10000:
+            raise ValueError(_("The import exceeds the supported limits."))
+        for termin in ergebnis["termine"]:
+            tiefe = 0
+            for zeile in termin.get("icsRoundtrip", []):
+                prop = _prop_zerlegen(zeile)
+                if not prop:
+                    continue
+                name, _params, wert = prop
+                if name == "BEGIN":
+                    tiefe += 1
+                elif name == "END":
+                    tiefe -= 1
+                elif name == "LOCATION" and tiefe == 0 and "ort" not in termin:
+                    termin["ort"] = _ical_unescape(wert)
+        ergebnis.update(art="muell", abgebrochen=False, datei=dateiname, muellFormat="ics", muellQuelle=quelle, muellName=kalendername)
+        return ergebnis
+    erste = next((zeile for zeile in text.splitlines() if zeile.strip()), "")
+    def anzahl(trenner):
+        zitiert, count = False, 0
+        for zeichen in erste:
+            if zeichen == '"':
+                zitiert = not zitiert
+            elif not zitiert and zeichen == trenner:
+                count += 1
+        return count
+    trenner = max(",;\t|", key=anzahl)
+    zeilen = []
+    for zeile in csv.reader(io.StringIO(text), delimiter=trenner, strict=True):
+        if not any(wert.strip() for wert in zeile):
+            continue
+        if len(zeilen) >= 10001 or len(zeile) > 64 or any(len(wert) > 32768 for wert in zeile):
+            raise ValueError(_("The import exceeds the supported limits."))
+        zeilen.append(zeile)
+    if not zeilen:
+        raise ValueError(_("The content is unreadable."))
+    return {"art": "muell", "abgebrochen": False, "datei": dateiname, "muellFormat": "csv", "zeilen": zeilen,
+            "muellQuelle": "waste:csv:" + hashlib.sha256(identitaet.encode("utf-8")).hexdigest()}
+
+
 def import_rohdaten_lesen(art, roh, dateiname=""):
     """Liest Einzeldateien und begrenzte ZIP-/Takeout-Sammlungen ohne Entpacken."""
     def einzelne(daten, name, quellen_id=""):
@@ -19564,7 +19633,8 @@ class Fenster(_FENSTER_BASIS):
         for name, muster in filter_liste:
             f = Gtk.FileFilter()
             f.set_name(name)
-            f.add_pattern(muster)
+            for pattern in muster if isinstance(muster, (tuple, list)) else [muster]:
+                f.add_pattern(pattern)
             dialog.add_filter(f)
         antwort = dialog.run()
         pfad = dialog.get_filename() if antwort == Gtk.ResponseType.ACCEPT else None
@@ -19897,7 +19967,7 @@ class Fenster(_FENSTER_BASIS):
             grund = nachricht.get("reason") or ""
             token = str(nachricht.get("token") or "")[:128]
             try:
-                if grund not in ("pre-contact", "pre-contact-import", "pre-contact-merge",
+                if grund not in ("pre-change", "pre-contact", "pre-contact-import", "pre-contact-merge",
                                   "pre-contact-delete", "pre-sync"):
                     raise ValueError("reason")
                 self._journal_snapshot(grund)
@@ -20410,7 +20480,13 @@ class Fenster(_FENSTER_BASIS):
 
     def bei_import(self, nachricht):
         art = nachricht.get("art")
+        def melden(nutzlast):
+            if art == "muell":
+                nutzlast["muellToken"] = str(nachricht.get("muellToken") or "")[:128]
+            self.antwort("App.importErgebnis", nutzlast)
         einstellungen = {
+            "muell": (_("Import calendar file"), [(_("iCalendar (*.ics)") + " / " + _("CSV files (*.csv)"), ("*.ics", "*.csv")),
+                       (_("All files"), "*")]),
             "ics": (_("Import calendar file"),
                     [(_("iCalendar (*.ics)"), "*.ics"),
                      (_("ZIP archives (*.zip)"), "*.zip"),
@@ -20438,23 +20514,24 @@ class Fenster(_FENSTER_BASIS):
             return
         pfad = self._datei_oeffnen(einstellungen[0], einstellungen[1])
         if not pfad:
-            self.antwort("App.importErgebnis", {"art": art, "abgebrochen": True})
+            melden({"art": art, "abgebrochen": True})
             return
         try:
             roh = datei_begrenzt_lesen(
                 pfad, IMPORT_DATEI_MAX,
                 _("The import file is larger than 32 megabytes."))
+            if art == "muell":
+                melden(muell_import_lesen(roh, os.path.basename(pfad)))
+                return
             nutzlast = import_rohdaten_lesen(
                 "claws" if art == "ldif" else art, roh, os.path.basename(pfad))
         except GroessenFehler as fehler:
-            self.antwort("App.importErgebnis",
-                         {"art": art, "abgebrochen": False,
+            melden({"art": art, "abgebrochen": False,
                           "fehler": str(fehler)})
             return
         except (OSError, ValueError, TypeError, csv.Error, ET.ParseError,
                 zipfile.BadZipFile) as fehler:
-            self.antwort("App.importErgebnis",
-                         {"art": art, "abgebrochen": False,
+            melden({"art": art, "abgebrochen": False,
                            "fehler": _("File could not be read: %s") % fehler})
             return
         if art == "ldif":
@@ -20467,7 +20544,7 @@ class Fenster(_FENSTER_BASIS):
         nutzlast["datei"] = os.path.basename(pfad)
         nutzlast["kontaktQuelle"] = "datei:" + hashlib.sha256(
             os.path.abspath(pfad).encode("utf-8")).hexdigest()
-        self.antwort("App.importErgebnis", nutzlast)
+        melden(nutzlast)
 
     def bei_notiz_anhang_datei(self, nachricht, starter=None):
         kennung = nachricht.get("id")

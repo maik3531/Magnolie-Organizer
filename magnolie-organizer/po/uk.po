@@ -2095,6 +2095,9 @@ msgstr "Дані: не знайдено – відкрийте Organizer оди�
 msgid "Date"
 msgstr "Дата"
 
+msgid "Date format"
+msgstr "Формат дати"
+
 msgid "Daughter"
 msgstr "Дочка"
 
@@ -2776,6 +2779,9 @@ msgstr ""
 "Вулиця й номер будинку\n"
 "Поштовий індекс Місто"
 
+msgid "First row contains headings"
+msgstr "Перший рядок містить заголовки"
+
 msgid "First select a calendar or address book from the online accounts."
 msgstr ""
 "Спочатку виберіть календар або адресну книгу з онлайн-облікових записів."
@@ -3046,6 +3052,9 @@ msgstr "Імпорт"
 
 msgid "Import Claws Mail contacts"
 msgstr "Імпортувати контакти Claws Mail"
+
+msgid "Import ICS / CSV…"
+msgstr "Імпортувати ICS / CSV…"
 
 msgid "Import Lotus Organizer CSV"
 msgstr "Імпортувати CSV Lotus Organizer"
@@ -6645,6 +6654,9 @@ msgstr "Свята імпортовано."
 msgid "The holidays were removed."
 msgstr "Свята видалено."
 
+msgid "The import exceeds the supported limits."
+msgstr "Імпорт перевищує підтримувані обмеження."
+
 msgid "The import file is larger than 32 megabytes."
 msgstr "Файл імпорту більший за 32 мегабайти."
 
@@ -7852,6 +7864,9 @@ msgstr "Попередження: не вдалося прочитати фай�
 
 msgid "Waste collection calendar"
 msgstr "Календар вивезення відходів"
+
+msgid "Waste type"
+msgstr "Вид відходів"
 
 msgid ""
 "We are delighted that you chose Magnolie. Let us prepare your personal "

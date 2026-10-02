@@ -2059,6 +2059,9 @@ msgstr "Veri: bulunamadı – Organizer’ı bir kez açın."
 msgid "Date"
 msgstr "Tarih"
 
+msgid "Date format"
+msgstr "Tarih biçimi"
+
 msgid "Daughter"
 msgstr "Kız evlat"
 
@@ -2740,6 +2743,9 @@ msgstr ""
 "Sokak ve kapı numarası\n"
 "Posta kodu Şehir"
 
+msgid "First row contains headings"
+msgstr "İlk satır başlıkları içerir"
+
 msgid "First select a calendar or address book from the online accounts."
 msgstr "Önce çevrimiçi hesaplardan bir takvim veya adres defteri seçin."
 
@@ -3010,6 +3016,9 @@ msgstr "İçe aktar"
 
 msgid "Import Claws Mail contacts"
 msgstr "Claws Mail kişilerini içe aktar"
+
+msgid "Import ICS / CSV…"
+msgstr "ICS / CSV içe aktar…"
 
 msgid "Import Lotus Organizer CSV"
 msgstr "Lotus Organizer CSV’yi içe aktar"
@@ -6588,6 +6597,9 @@ msgstr "Tatiller içe aktarıldı."
 msgid "The holidays were removed."
 msgstr "Tatiller kaldırıldı."
 
+msgid "The import exceeds the supported limits."
+msgstr "İçe aktarma desteklenen sınırları aşıyor."
+
 msgid "The import file is larger than 32 megabytes."
 msgstr "İçe aktarma dosyası 32 megabayttan büyük."
 
@@ -7789,6 +7801,9 @@ msgstr "Uyarı: Veri dosyası okunamadı (%s)."
 
 msgid "Waste collection calendar"
 msgstr "Atık toplama takvimi"
+
+msgid "Waste type"
+msgstr "Atık türü"
 
 msgid ""
 "We are delighted that you chose Magnolie. Let us prepare your personal "

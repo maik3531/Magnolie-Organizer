@@ -2019,6 +2019,9 @@ msgstr "डेटा: नहीं मिला – Organizer को एक ब�
 msgid "Date"
 msgstr "दिनांक"
 
+msgid "Date format"
+msgstr "तारीख़ का प्रारूप"
+
 msgid "Daughter"
 msgstr "बेटी"
 
@@ -2684,6 +2687,9 @@ msgstr ""
 "सड़क और मकान संख्या\n"
 "पिन कोड शहर"
 
+msgid "First row contains headings"
+msgstr "पहली पंक्ति में शीर्षक हैं"
+
 msgid "First select a calendar or address book from the online accounts."
 msgstr "पहले ऑनलाइन खातों से कोई कैलेंडर या पता पुस्तिका चुनें।"
 
@@ -2951,6 +2957,9 @@ msgstr "आयात करें"
 
 msgid "Import Claws Mail contacts"
 msgstr "Claws Mail संपर्क आयात करें"
+
+msgid "Import ICS / CSV…"
+msgstr "ICS / CSV आयात करें…"
 
 msgid "Import Lotus Organizer CSV"
 msgstr "Lotus Organizer CSV आयात करें"
@@ -6470,6 +6479,9 @@ msgstr "छुट्टियाँ आयात की गईं।"
 msgid "The holidays were removed."
 msgstr "छुट्टियाँ हटा दी गईं।"
 
+msgid "The import exceeds the supported limits."
+msgstr "आयात समर्थित सीमाओं से अधिक है।"
+
 msgid "The import file is larger than 32 megabytes."
 msgstr "आयात फ़ाइल 32 मेगाबाइट से बड़ी है।"
 
@@ -7652,6 +7664,9 @@ msgstr "चेतावनी: डेटा फ़ाइल पढ़ी नह�
 
 msgid "Waste collection calendar"
 msgstr "कचरा संग्रह कैलेंडर"
+
+msgid "Waste type"
+msgstr "कचरे का प्रकार"
 
 msgid ""
 "We are delighted that you chose Magnolie. Let us prepare your personal "

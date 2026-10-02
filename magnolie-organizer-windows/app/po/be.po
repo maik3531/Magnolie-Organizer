@@ -1664,6 +1664,9 @@ msgstr "Пашкоджаны"
 msgid "Date"
 msgstr "Дата"
 
+msgid "Date format"
+msgstr "Фармат даты"
+
 msgid "Daughter"
 msgstr "Дачка"
 
@@ -2269,6 +2272,9 @@ msgstr ""
 "Вуліца і нумар дома\n"
 "Паштовы індэкс Горад"
 
+msgid "First row contains headings"
+msgstr "Першы радок змяшчае загалоўкі"
+
 msgid "Fixed units"
 msgstr "Фіксаваныя адзінкі"
 
@@ -2531,6 +2537,9 @@ msgstr "Файл выявы"
 
 msgid "Import"
 msgstr "Імпарт"
+
+msgid "Import ICS / CSV…"
+msgstr "Імпартаваць ICS / CSV…"
 
 msgid "Import Magnolie complete archive"
 msgstr "Імпартаваць поўны архіў Magnolie"
@@ -5334,6 +5343,9 @@ msgstr "Кантакт адсутнічае."
 msgid "The content is missing."
 msgstr "Змест адсутнічае."
 
+msgid "The content is unreadable."
+msgstr "Змесціва немагчыма прачытаць."
+
 msgid "The contributor key is invalid."
 msgstr "Ключ удзельніка несапраўдны."
 
@@ -5410,6 +5422,9 @@ msgstr "Святы імпартаваны."
 
 msgid "The holidays were removed."
 msgstr "Святы выдалены."
+
+msgid "The import exceeds the supported limits."
+msgstr "Імпарт перавышае падтрымліваныя абмежаванні."
 
 msgid "The import file is larger than 32 megabytes."
 msgstr "Файл імпарту большы за 32 мегабайты."
@@ -6336,6 +6351,9 @@ msgstr "Папярэджанне: не ўдалося захаваць даны�
 
 msgid "Waste collection calendar"
 msgstr "Каляндар вывазу адходаў"
+
+msgid "Waste type"
+msgstr "Від адходаў"
 
 msgid ""
 "We are delighted to welcome you. This short assistant prepares Magnolie "

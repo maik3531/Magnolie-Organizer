@@ -1633,6 +1633,9 @@ msgstr "Hasarlı"
 msgid "Date"
 msgstr "Tarih"
 
+msgid "Date format"
+msgstr "Tarih biçimi"
+
 msgid "Daughter"
 msgstr "Kız evlat"
 
@@ -2239,6 +2242,9 @@ msgstr ""
 "Sokak ve kapı numarası\n"
 "Posta kodu Şehir"
 
+msgid "First row contains headings"
+msgstr "İlk satır başlıkları içerir"
+
 msgid "Fixed units"
 msgstr "Sabit birimler"
 
@@ -2502,6 +2508,9 @@ msgstr "Görsel dosyası"
 
 msgid "Import"
 msgstr "İçe aktar"
+
+msgid "Import ICS / CSV…"
+msgstr "ICS / CSV içe aktar…"
 
 msgid "Import Magnolie complete archive"
 msgstr "Magnolie arşivinin tamamını içe aktar"
@@ -5295,6 +5304,9 @@ msgstr "Kişi eksik."
 msgid "The content is missing."
 msgstr "İçerik eksik."
 
+msgid "The content is unreadable."
+msgstr "İçerik okunamıyor."
+
 msgid "The contributor key is invalid."
 msgstr "Katılımcı anahtarı geçersiz."
 
@@ -5371,6 +5383,9 @@ msgstr "Tatiller içe aktarıldı."
 
 msgid "The holidays were removed."
 msgstr "Tatiller kaldırıldı."
+
+msgid "The import exceeds the supported limits."
+msgstr "İçe aktarma desteklenen sınırları aşıyor."
 
 msgid "The import file is larger than 32 megabytes."
 msgstr "İçe aktarma dosyası 32 megabayttan büyük."
@@ -6290,6 +6305,9 @@ msgstr "Uyarı: Veriler kaydedilemedi."
 
 msgid "Waste collection calendar"
 msgstr "Atık toplama takvimi"
+
+msgid "Waste type"
+msgstr "Atık türü"
 
 msgid ""
 "We are delighted to welcome you. This short assistant prepares Magnolie "

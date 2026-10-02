@@ -2140,6 +2140,9 @@ msgstr "Daty: njenamakane – wočińće Organizator jónkróć."
 msgid "Date"
 msgstr "Datum"
 
+msgid "Date format"
+msgstr "Datumowy format"
+
 msgid "Daughter"
 msgstr "Dźowka"
 
@@ -2831,6 +2834,9 @@ msgstr ""
 "Hasa a domske čisło\n"
 "Póstowe wodźenske čisło Město"
 
+msgid "First row contains headings"
+msgstr "Prěnja linka napisma wobsahuje"
+
 msgid "First select a calendar or address book from the online accounts."
 msgstr "Wubjerće najprjedy protyku abo adresnik z online-kontow."
 
@@ -3101,6 +3107,9 @@ msgstr "Importować"
 
 msgid "Import Claws Mail contacts"
 msgstr "Kontakty Claws Mail importować"
+
+msgid "Import ICS / CSV…"
+msgstr "ICS / CSV importować …"
 
 msgid "Import Lotus Organizer CSV"
 msgstr "CSV Lotus Organizer importować"
@@ -6726,6 +6735,9 @@ msgstr "Swjate dny su so importowali."
 msgid "The holidays were removed."
 msgstr "Swjate dny su so wotstronili."
 
+msgid "The import exceeds the supported limits."
+msgstr "Import překročuje podpěrane mjezy."
+
 msgid "The import file is larger than 32 megabytes."
 msgstr "Importowy dataj je wjetši hač 32 megabajtow."
 
@@ -7933,6 +7945,9 @@ msgstr "Warnowanje: Datajowa dataja njeda so čitać (%s)."
 
 msgid "Waste collection calendar"
 msgstr "Protyka wotwoženja wotpadkow"
+
+msgid "Waste type"
+msgstr "Družina wotpadkow"
 
 msgid ""
 "We are delighted that you chose Magnolie. Let us prepare your personal "

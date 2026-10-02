@@ -1543,6 +1543,9 @@ msgstr ""
 msgid "Date"
 msgstr ""
 
+msgid "Date format"
+msgstr ""
+
 msgid "Daughter"
 msgstr ""
 
@@ -2114,6 +2117,9 @@ msgid ""
 "Postal code City"
 msgstr ""
 
+msgid "First row contains headings"
+msgstr ""
+
 msgid "Fixed units"
 msgstr ""
 
@@ -2355,6 +2361,9 @@ msgid "Image file"
 msgstr ""
 
 msgid "Import"
+msgstr ""
+
+msgid "Import ICS / CSV…"
 msgstr ""
 
 msgid "Import Magnolie complete archive"
@@ -4987,6 +4996,9 @@ msgstr ""
 msgid "The content is missing."
 msgstr ""
 
+msgid "The content is unreadable."
+msgstr ""
+
 msgid "The contributor key is invalid."
 msgstr ""
 
@@ -5052,6 +5064,9 @@ msgid "The holidays were imported."
 msgstr ""
 
 msgid "The holidays were removed."
+msgstr ""
+
+msgid "The import exceeds the supported limits."
 msgstr ""
 
 msgid "The import file is larger than 32 megabytes."
@@ -5878,6 +5893,9 @@ msgid "Warning: The data could not be saved."
 msgstr ""
 
 msgid "Waste collection calendar"
+msgstr ""
+
+msgid "Waste type"
 msgstr ""
 
 msgid ""
