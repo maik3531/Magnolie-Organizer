@@ -407,4 +407,12 @@
     <string name="telefon_mehrere_rechner">Спарені комп’ютери залишаються збереженими. Виберіть комп’ютер, який бажаєте використовувати зараз.</string>
     <string name="telefon_anrufe_erlauben">Дозволити дзвінки</string>
     <string name="telefon_anruf_berechtigungen">Увімкнути дозволи Android</string>
+    <string name="kontakt_review_titel">Перевірити зміни контактів</string>
+    <string name="kontakt_review_lokal">Наявний контакт</string>
+    <string name="kontakt_review_fern">Вхідний контакт</string>
+    <string name="kontakt_review_behalten">Зберегти наявний контакт</string>
+    <string name="kontakt_review_neu">Створити окремий контакт</string>
+    <string name="kontakt_review_neueste">Використати новішу версію</string>
+    <string name="kontakt_review_rest">Застосувати цей вибір до решти конфліктів з однозначним зіставленням</string>
+    <string name="kontakt_review_geburtsname">Прізвище при народженні: %1$s</string>
 </resources>

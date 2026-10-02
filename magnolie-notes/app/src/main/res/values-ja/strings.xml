@@ -358,4 +358,12 @@
     <string name="telefon_mehrere_rechner">ペアリング済みのコンピューターは保存されます。今使うコンピューターを選んでください。</string>
     <string name="telefon_anrufe_erlauben">通話を許可</string>
     <string name="telefon_anruf_berechtigungen">Android の権限を有効にする</string>
+    <string name="kontakt_review_titel">連絡先の変更を確認</string>
+    <string name="kontakt_review_lokal">既存の連絡先</string>
+    <string name="kontakt_review_fern">受信した連絡先</string>
+    <string name="kontakt_review_behalten">既存の連絡先を保持</string>
+    <string name="kontakt_review_neu">別の連絡先を作成</string>
+    <string name="kontakt_review_neueste">新しい版を使用</string>
+    <string name="kontakt_review_rest">対応が明確な残りの競合にもこの選択を適用</string>
+    <string name="kontakt_review_geburtsname">出生時の姓：%1$s</string>
 </resources>

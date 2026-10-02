@@ -5,6 +5,8 @@ import io.gitlab.maik3531.magnolienotes.daten.KontaktEingang
 import io.gitlab.maik3531.magnolienotes.daten.KontaktSpur
 import io.gitlab.maik3531.magnolienotes.daten.Baumzustand
 import java.security.MessageDigest
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
 
 enum class KontaktGruppenArt { SICHER, PRUEFEN, KONFLIKT }
 
@@ -35,12 +37,44 @@ object KontaktEingangslogik {
         gebundenQuelle: String?,
         abgelehnt: KontaktAblehnung?
     ): Boolean {
+        if (!abgelehnt?.inhaltHash.isNullOrBlank() && abgelehnt?.inhaltHash == KontaktSync.hash(neu.kontakt)) return false
         val staende = listOfNotNull(
             wartend?.let { it.version to it.quelle },
             gebundenVersion?.let { it to gebundenQuelle.orEmpty() },
-            abgelehnt?.let { it.version to it.quelle }
+            abgelehnt?.takeIf { it.inhaltHash.isBlank() }?.let { it.version to it.quelle }
         )
         return staende.all { (version, quelle) -> istNeuer(neu.version, neu.quelle, version, quelle) }
+    }
+
+    fun findeAblehnung(ablehnungen: List<KontaktAblehnung>, partner: String, nachricht: KontaktNachricht): KontaktAblehnung? {
+        val passend = ablehnungen.filter { it.partner == partner && it.freigabeId == nachricht.freigabeId }
+        if (passend.isEmpty()) return null
+        val hash = KontaktSync.hash(nachricht.kontakt)
+        return passend.firstOrNull { it.inhaltHash == hash }
+            ?: passend.filter { it.inhaltHash.isBlank() }.maxWithOrNull(compareBy<KontaktAblehnung> { it.version }.thenBy { it.quelle })
+    }
+
+    fun merkeAblehnungen(vorhanden: List<KontaktAblehnung>, karten: List<KontaktEingang>): List<KontaktAblehnung> {
+        val neu = karten.map { KontaktAblehnung(it.partner, it.freigabeId, it.version, it.quelle, KontaktSync.hash(it.kontakt)) }
+        return ohneAngenommeneAblehnungen(vorhanden, karten) + neu.distinctBy { Triple(it.partner, it.freigabeId, it.inhaltHash) }
+    }
+
+    fun ohneAngenommeneAblehnungen(vorhanden: List<KontaktAblehnung>, karten: List<KontaktEingang>): List<KontaktAblehnung> {
+        val schluessel = karten.groupBy { it.partner to it.freigabeId }
+            .mapValues { (_, werte) -> werte.map { KontaktSync.hash(it.kontakt) }.toSet() }
+        return vorhanden.filterNot {
+            val hashes = schluessel[it.partner to it.freigabeId]
+            hashes != null && (it.inhaltHash.isBlank() || it.inhaltHash in hashes)
+        }
+    }
+
+    fun ohneBearbeiteteKarten(vorhanden: List<KontaktEingang>, karten: List<KontaktEingang>): List<KontaktEingang> {
+        val schluessel = karten.groupBy { it.partner to it.freigabeId }
+            .mapValues { (_, werte) -> werte.map { KontaktSync.hash(it.kontakt) }.toSet() }
+        return vorhanden.filterNot { karte ->
+            val hashes = schluessel[karte.partner to karte.freigabeId]
+            hashes != null && KontaktSync.hash(karte.kontakt) in hashes
+        }
     }
 
     fun gruppiere(eingang: List<KontaktEingang>): List<KontaktGruppe> {
@@ -92,9 +126,13 @@ object KontaktEingangslogik {
         return gruppen.map { gruppe ->
             val konflikt = konflikte(gruppe)
             val sicher = konflikt.isEmpty() && (gruppe.size == 1 ||
-                hatGemeinsamesHartesMerkmal(gruppe) || gruppe.all { fragmentarisch(it.kontakt) })
+                hatGemeinsamesHartesMerkmal(gruppe))
             KontaktGruppe(
-                id = gruppenId(gruppe.first().partner, gruppe.map { it.freigabeId }),
+                id = gruppenId(gruppe.first().partner, gruppe.map {
+                    Kanonisch.json.encodeToString(JsonArray.serializer(), JsonArray(listOf(
+                        JsonPrimitive(it.freigabeId), JsonPrimitive(it.version), JsonPrimitive(it.quelle),
+                        JsonPrimitive(it.inhaltGeaendert), JsonPrimitive(KontaktSync.hash(it.kontakt)))))
+                }),
                 partner = gruppe.first().partner,
                 karten = gruppe.sortedBy { it.freigabeId },
                 kontakt = vereinige(gruppe.map { it.kontakt }),
@@ -119,9 +157,12 @@ object KontaktEingangslogik {
         var lokal = gebundeneRawId?.let { schreiber.mischen(it, kontakt.copy(foto = "")) }
             ?: schreiber.anlegen(kontakt.copy(foto = ""), importOperation(karten))
         if (kontakt.foto.isNotEmpty()) lokal = schreiber.fotoErgaenzen(lokal.rawContactId, kontakt.foto) ?: lokal
+        val gespeichertHash = KontaktSync.hash(lokal.daten)
+        val originalZeit = karten.filter { KontaktSync.hash(it.kontakt) == gespeichertHash }
+            .map { it.inhaltGeaendert }.filter { it > 0 && it <= System.currentTimeMillis() + 300_000 }.maxOrNull() ?: 0
         val spuren = karten.map { karte -> KontaktSpur(
             lokal.lookupKey, lokal.rawContactId, karte.freigabeId, karte.version, karte.quelle,
-            KontaktSync.hash(kontakt), karte.partner, KontaktPruefung.name(kontakt)
+            KontaktSync.hash(kontakt), karte.partner, KontaktPruefung.name(lokal.daten), originalZeit, lokal.providerGeaendert, gespeichertHash
         ) }
         return KontaktImportErgebnis(lokal, spuren)
     }
@@ -186,9 +227,25 @@ object KontaktEingangslogik {
         return name(k).isNotBlank() && klassen <= 1
     }
 
-    private fun hatGemeinsamesHartesMerkmal(karten: List<KontaktEingang>): Boolean =
-        karten.flatMap { it.kontakt.telefone.map { w -> telefon(w.wert) } }.groupingBy { it }.eachCount().any { it.key.isNotBlank() && it.value > 1 } ||
-            karten.flatMap { it.kontakt.emailEintraege.map { w -> email(w.wert) } }.groupingBy { it }.eachCount().any { it.key.isNotBlank() && it.value > 1 }
+    private fun hatGemeinsamesHartesMerkmal(karten: List<KontaktEingang>): Boolean {
+        if (karten.isEmpty()) return false
+        val verbunden = mutableListOf(karten.first())
+        val rest = karten.drop(1).toMutableList()
+        // Jede Karte braucht eine harte Verbindung. Ein passendes Paar reicht
+        // nicht, wenn die Namensvorschau weitere, ungebundene Karten enthält.
+        while (rest.isNotEmpty()) {
+            val nummern = telefone(verbunden)
+            val adressen = mails(verbunden)
+            val naechste = rest.filter { karte ->
+                telefone(listOf(karte)).any { it in nummern } ||
+                    mails(listOf(karte)).any { it in adressen }
+            }
+            if (naechste.isEmpty()) return false
+            verbunden += naechste
+            rest.removeAll(naechste.toSet())
+        }
+        return true
+    }
 
     private fun telefone(k: List<KontaktEingang>) = k.flatMap { it.kontakt.telefone }.map { telefon(it.wert) }.filter(String::isNotBlank).toSet()
     private fun mails(k: List<KontaktEingang>) = k.flatMap { it.kontakt.emailEintraege }.map { email(it.wert) }.filter(String::isNotBlank).toSet()

@@ -141,9 +141,17 @@ def sync_lauf(monkeypatch, client, lokale=None, tombstones=None, basis=None,
         if anlegen_fehler:
             raise RuntimeError("write failed")
         erstellt.append(text)
+        _client.kontakte.append(Kontakt(text))
     monkeypatch.setattr(m, "eds_kontakt_anlegen", anlegen)
-    monkeypatch.setattr(m, "eds_kontakt_aendern", lambda _client, text:
-                        geaendert.append(text))
+    def aendern(_client, text):
+        uid = m.vcf_lesen(text)["kontakte"][0]["uid"]
+        for index, previous in enumerate(_client.kontakte):
+            if m.vcf_lesen(previous.text)["kontakte"][0]["uid"] == uid:
+                _client.kontakte[index] = Kontakt(text)
+                geaendert.append(text)
+                return
+        raise RuntimeError("fixture contact missing")
+    monkeypatch.setattr(m, "eds_kontakt_aendern", aendern)
     monkeypatch.setattr(m, "eds_kontakt_loeschen", lambda _client, uid:
                         geloescht.append(uid))
     probe = Probe()
@@ -203,6 +211,9 @@ def test_etablierter_bidirektionaler_sync_und_erfolgszaehler(monkeypatch):
               "sync": False},
              {"uid": "gemeinsam", "nachname": "Lokal neu", "geaendert": 2000000000000,
               "sync": True}]
+    baseline = m.vcf_lesen(vcard("gemeinsam", "Remote alt", "20200101T000000Z"))["kontakte"][0]
+    m._kontakt_eds_baseline(lokal[1], "eds:google", baseline)
+    lokal[1]["syncQuellen"]["eds:google"]["lokalInhaltSha256"] = m._sync_inhalt_hash(baseline, m.KONTAKT_FELDER)
     client = Client([Kontakt(vcard("remote-neu", "Remote", "20260812T120000Z")),
                      Kontakt(vcard("gemeinsam", "Remote alt", "20200101T000000Z"))])
     basis = {"initialisiert": True, "letzterSync": 100,
@@ -219,10 +230,27 @@ def test_etablierter_bidirektionaler_sync_und_erfolgszaehler(monkeypatch):
     assert neuer_cursor["initialisiert"] and neuer_cursor["letzterSync"] > basis["letzterSync"]
 
 
+def test_fehlendes_ruecklesen_nach_schreiben_bestaetigt_keine_baseline(monkeypatch):
+    class VerzoegerteSicht(Client):
+        def get_contacts_sync(self, _abfrage, _abbruch):
+            return True, []
+    basis = {"initialisiert": True, "letzterSync": 100, "remoteAnzahl": 0, "snapshotHash": "a" * 64}
+    probe, erstellt, _, _ = sync_lauf(monkeypatch, VerzoegerteSicht(),
+        [{"uid": "neu", "nachname": "Keep", "geaendert": 200, "sync": False}], basis=basis)
+    assert len(erstellt) == 1
+    assert probe.nutzlast["kontakte"][0]["sync"] is False
+    assert probe.nutzlast["kontakte"][0]["nachname"] == "Keep"
+    assert probe.nutzlast["kontaktVorschau"]["fehler"] == 1
+    assert probe.nutzlast["syncMetadaten"]["eds"]["adressbuecher"]["google"] == basis
+
+
 def test_leeres_remote_geburtsdatum_loescht_lokales_nicht(monkeypatch):
     lokal = [{"uid": "gemeinsam", "nachname": "Remote",
               "geburtstag": "1980-04-03", "geburtstagJahrUnbekannt": False,
               "geaendert": 10, "sync": True}]
+    baseline = m.vcf_lesen(vcard("gemeinsam", "Remote", birthday="1980-04-03"))["kontakte"][0]
+    lokal[0] = dict(baseline, sync=True)
+    m._kontakt_eds_baseline(lokal[0], "eds:google", baseline)
     basis = {"initialisiert": True, "letzterSync": 100,
              "remoteAnzahl": 1, "snapshotHash": "e" * 64}
     probe, _erstellt, geaendert, _geloescht = sync_lauf(
@@ -238,6 +266,9 @@ def test_anderes_remote_geburtsdatum_bleibt_echte_aenderung(monkeypatch):
     lokal = [{"uid": "gemeinsam", "nachname": "Remote",
               "geburtstag": "1980-04-03", "geburtstagJahrUnbekannt": False,
               "geaendert": 10, "sync": True}]
+    baseline = m.vcf_lesen(vcard("gemeinsam", "Remote", birthday="1980-04-03"))["kontakte"][0]
+    lokal[0] = dict(baseline, sync=True)
+    m._kontakt_eds_baseline(lokal[0], "eds:google", baseline)
     basis = {"initialisiert": True, "letzterSync": 100,
              "remoteAnzahl": 1, "snapshotHash": "f" * 64}
     probe, _erstellt, _geaendert, _geloescht = sync_lauf(

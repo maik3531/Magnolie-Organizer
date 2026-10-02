@@ -189,4 +189,4 @@ object Krypto {
     }
 }
 
-class BaumFehler(nachricht: String) : Exception(nachricht)
+class BaumFehler(nachricht: String, val httpStatus: Int = 0) : Exception(nachricht)

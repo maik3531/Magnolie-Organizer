@@ -45,11 +45,6 @@ msgstr ""
 "%(appointment)s\n"
 "クリックして編集"
 
-msgid ""
-"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
-msgstr ""
-"%(cards)s 件を統合しました。コピーはごみ箱の「重複」に保存されています。"
-
 msgid "%(count)s anniversary"
 msgid_plural "%(count)s anniversaries"
 msgstr[0] "記念日 %(count)s 件"
@@ -73,10 +68,6 @@ msgstr[0] "誕生日 %(count)s 件"
 msgid "%(count)s contact"
 msgid_plural "%(count)s contacts"
 msgstr[0] "連絡先 %(count)s 件"
-
-msgid "%(count)s contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "連絡先カード %(count)s 件"
 
 msgid "%(count)s contact imported."
 msgid_plural "%(count)s contacts imported."
@@ -109,10 +100,6 @@ msgstr[0] "既存の項目 %(count)s 件をスキップしました。"
 msgid "%(count)s found"
 msgid_plural "%(count)s found"
 msgstr[0] "%(count)s 件見つかりました"
-
-msgid "%(count)s group"
-msgid_plural "%(count)s groups"
-msgstr[0] "グループ %(count)s 件"
 
 msgid "%(count)s holiday period"
 msgid_plural "%(count)s holiday periods"
@@ -865,6 +852,9 @@ msgstr "ベルリン"
 
 msgid "Bern"
 msgstr "ベルン"
+
+msgid "Birth name: %(name)s"
+msgstr "出生時の姓：%(name)s"
 
 msgid "Birthday"
 msgstr "誕生日"
@@ -2256,21 +2246,6 @@ msgstr "書式の地域"
 msgid "Forward Secrecy"
 msgstr "前方秘匿性 (Forward Secrecy)"
 
-msgid ""
-"Found %(groups)s containing %(cards)s in total, for example:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"The most complete card in each group is retained, and missing fields are "
-"filled from the others. The remaining cards are moved to the recycle bin as "
-"“Duplicates” and can be restored from there. Continue?"
-msgstr ""
-"合計 %(cards)s 枚のカードを含む %(groups)s グループが見つかりました。例:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"各グループで最も完全なカードを残し、欠けている欄を他のカードから補完します。"
-"残りのカードは「重複」としてごみ箱に移動し、そこから復元できます。続行します"
-"か？"
-
 #, javascript-format
 msgid "Found – %s."
 msgstr "見つかりました – %s。"
@@ -2479,9 +2454,6 @@ msgstr "インポート"
 
 msgid "Import Magnolie complete archive"
 msgstr "Magnolie の完全なアーカイブをインポートする"
-
-msgid "Import contacts additively"
-msgstr "連絡先を追加方式でインポート"
 
 msgid "Import failed."
 msgstr "取り込みに失敗しました。"
@@ -3460,10 +3432,6 @@ msgid_plural ""
 "%(count)s completion updates were received from the Magnolienbaum."
 msgstr[0] "Magnolienbaum から1件の完了更新を受信しました。"
 
-msgid "One duplicate contact card was"
-msgid_plural "%(count)s duplicate contact cards were"
-msgstr[0] "一つの重複した連絡先カードが"
-
 msgid "One moment …"
 msgstr "少々お待ちください …"
 
@@ -3965,6 +3933,10 @@ msgstr "電源"
 msgid "Prefer PC speakers and microphone for calls on my own Bluetooth phone"
 msgstr "自分の Bluetooth 電話での通話には PC のスピーカーとマイクを優先する"
 
+msgid ""
+"Prefer newer contact versions when reliable modification times are available."
+msgstr "信頼できる更新日時がある場合は、新しい連絡先の版を優先する。"
+
 msgid "Preferred backup folder"
 msgstr "優先するバックアップフォルダー"
 
@@ -4086,13 +4058,6 @@ msgstr "このコンピューターに到達可能な IPv4 または IPv6 アド
 msgid "Ready."
 msgstr "準備完了。"
 
-msgid ""
-"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
-"every removed card is kept in the recycle bin."
-msgstr ""
-"%(cards)s を本当に統合しますか？統合後は結果をよく確認してください。削除され"
-"た各カードのコピーはゴミ箱に残ります。"
-
 msgid "Reason"
 msgstr "理由"
 
@@ -4133,6 +4098,9 @@ msgstr "この提案を今後も拒否しますか？"
 
 msgid "Related tasks"
 msgstr "関連タスク"
+
+msgid "Reliable modification times are not available for both versions."
+msgstr "両方の版について信頼できる更新日時が揃っていません。"
 
 msgid "Remind me again on the day itself"
 msgstr "当日にももう一度通知"
@@ -5829,13 +5797,6 @@ msgstr ""
 msgid "This notebook is still empty."
 msgstr "このノートブックはまだ空です。"
 
-msgid ""
-"This one-time import only adds or enriches contacts. It does not synchronize "
-"or delete contacts."
-msgstr ""
-"この1回限りのインポートでは、連絡先の追加または情報の補完のみを行います。連絡"
-"先の同期や削除は行いません。"
-
 msgid "This person's anniversaries"
 msgstr "この人の記念日"
 
@@ -6080,6 +6041,9 @@ msgstr "連絡先の住所を使用"
 
 msgid "Use default"
 msgstr "既定を使用"
+
+msgid "Use newer version"
+msgstr "新しい版を使用"
 
 msgid "Use numeric keypad"
 msgstr "テンキーを使用"
@@ -6459,9 +6423,6 @@ msgstr "%(year)s 年間プランナー"
 msgid "Yes"
 msgstr "はい"
 
-msgid "Yes, merge"
-msgstr "はい、統合します"
-
 msgid "Yes, the code matches"
 msgstr "はい、コードは一致します"
 
@@ -6729,10 +6690,6 @@ msgid "one backup was encrypted as well"
 msgid_plural "%(count)s backups were encrypted as well"
 msgstr[0] "1つのバックアップも暗号化されていました"
 
-msgid "one contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "1つの連絡先カード"
-
 msgid "only %(year)s"
 msgstr "%(year)s のみ"
 
@@ -6881,6 +6838,62 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
+
+#~ msgid ""
+#~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+#~ msgstr ""
+#~ "%(cards)s 件を統合しました。コピーはごみ箱の「重複」に保存されています。"
+
+#~ msgid "%(count)s contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "連絡先カード %(count)s 件"
+
+#~ msgid "%(count)s group"
+#~ msgid_plural "%(count)s groups"
+#~ msgstr[0] "グループ %(count)s 件"
+
+#~ msgid ""
+#~ "Found %(groups)s containing %(cards)s in total, for example:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "The most complete card in each group is retained, and missing fields are "
+#~ "filled from the others. The remaining cards are moved to the recycle bin "
+#~ "as “Duplicates” and can be restored from there. Continue?"
+#~ msgstr ""
+#~ "合計 %(cards)s 枚のカードを含む %(groups)s グループが見つかりました。例:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "各グループで最も完全なカードを残し、欠けている欄を他のカードから補完しま"
+#~ "す。残りのカードは「重複」としてごみ箱に移動し、そこから復元できます。続行"
+#~ "しますか？"
+
+#~ msgid "Import contacts additively"
+#~ msgstr "連絡先を追加方式でインポート"
+
+#~ msgid "One duplicate contact card was"
+#~ msgid_plural "%(count)s duplicate contact cards were"
+#~ msgstr[0] "一つの重複した連絡先カードが"
+
+#~ msgid ""
+#~ "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+#~ "every removed card is kept in the recycle bin."
+#~ msgstr ""
+#~ "%(cards)s を本当に統合しますか？統合後は結果をよく確認してください。削除さ"
+#~ "れた各カードのコピーはゴミ箱に残ります。"
+
+#~ msgid ""
+#~ "This one-time import only adds or enriches contacts. It does not "
+#~ "synchronize or delete contacts."
+#~ msgstr ""
+#~ "この1回限りのインポートでは、連絡先の追加または情報の補完のみを行います。"
+#~ "連絡先の同期や削除は行いません。"
+
+#~ msgid "Yes, merge"
+#~ msgstr "はい、統合します"
+
+#~ msgid "one contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "1つの連絡先カード"
 
 #~ msgid "KDE Connect for SMS"
 #~ msgstr "KDE Connect SMS用"

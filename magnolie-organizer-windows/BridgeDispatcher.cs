@@ -1911,7 +1911,10 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 contact["vcardRoundtrip"] ??= new JsonArray();
                 contact["vcardParameter"] ??= new JsonObject();
             }
-            await form.SendAsync("App.importErgebnis", result.ToPayload(art, Path.GetFileName(dialog.FileName)));
+            var payload = result.ToPayload(art, Path.GetFileName(dialog.FileName));
+            payload["kontaktQuelle"] = "datei:" + Convert.ToHexString(SHA256.HashData(
+                Encoding.UTF8.GetBytes(Path.GetFullPath(dialog.FileName)))).ToLowerInvariant();
+            await form.SendAsync("App.importErgebnis", payload);
         }
         catch (Exception error)
         {

@@ -40,6 +40,9 @@ class Baumwerk private constructor(
     private val zusammenhang: Context,
     private val notizSnapshotVorher: () -> Unit = {
         AndroidJournal.hole(zusammenhang).appSnapshot("pre-sync")
+    },
+    private val kontaktSnapshotVorher: (List<io.gitlab.maik3531.magnolienotes.journal.KontaktRohstand>, String) -> Unit = { staende, id ->
+        AndroidJournal.hole(zusammenhang).kontaktSnapshot("contact-import", staende, id)
     }
 ) : Server.Handlung {
 
@@ -70,6 +73,9 @@ class Baumwerk private constructor(
         }
     }
     private var offenesKontaktImportZiel: String? = null
+    private data class OffeneKontaktUebernahme(val vorschau: KontaktUebernahmeVorschau,
+        val baum: Baumzustand, val snapshot: KontaktSnapshot)
+    @Volatile private var offeneKontaktUebernahme: OffeneKontaktUebernahme? = null
 
     private val _meldungen = MutableStateFlow<List<String>>(emptyList())
     val meldungen: StateFlow<List<String>> = _meldungen.asStateFlow()
@@ -445,7 +451,7 @@ class Baumwerk private constructor(
         val snapshot = adapter.snapshot()
         if (!snapshot.vollstaendig) throw BaumFehler("Kontakte konnten nicht vollständig gelesen werden.")
         if (snapshot.kontakte.isEmpty()) throw BaumFehler("Der Kontaktsnapshot ist leer; es wurde nichts geändert.")
-        val fassung = if (2 in partner(kennung)!!.kontaktSyncFassungen) 2 else 1
+        val fassung = partner(kennung)!!.kontaktSyncFassungen.filter { it in 1..3 }.maxOrNull() ?: 1
         if (fassung == 1 && snapshot.kontakte.any { it.daten.jubilaeum.isNotEmpty() })
             throw BaumFehler(Fehlertext.KONTAKT_VERSION)
         if (fassung == 1 && snapshot.kontakte.any { !KontaktSync.legacyDarstellbar(it.daten) })
@@ -457,18 +463,22 @@ class Baumwerk private constructor(
         val alteSpuren = ablage.baum.value.kontaktSpuren.filter { it.partner == kennung }
         val vorschlaege = mutableListOf<KontaktVorschlag>()
         snapshot.kontakte.forEach { lokal ->
-            val passendeSpuren = ablage.baum.value.kontaktSpuren.filter {
-                it.rawContactId in lokal.rawContactIds && it.partner == kennung
-            }
-            val alt = passendeSpuren.minByOrNull { it.freigabeId }
+            val alleSpuren = ablage.baum.value.kontaktSpuren.filter { it.rawContactId in lokal.rawContactIds }
+            val passendeSpuren = alleSpuren.filter { it.partner == kennung }.distinctBy { it.freigabeId }
             val hash = KontaktSync.hash(lokal.daten)
+            val inhaltGeaendert = KontaktSync.inhaltszeit(hash, lokal.providerGeaendert, alleSpuren, jetzt)
+            val bindungen: List<KontaktSpur?> = if (passendeSpuren.isEmpty()) listOf(null) else passendeSpuren
+            bindungen.forEach { alt ->
             val geaendert = alt == null || alt.hash != hash
             val spur = KontaktSpur(
-                lookupKey = lokal.lookupKey, rawContactId = lokal.rawContactId,
+                lookupKey = lokal.lookupKey, rawContactId = alt?.rawContactId ?: lokal.rawContactId,
                 freigabeId = alt?.freigabeId ?: UUID.randomUUID().toString(),
                 version = if (alt == null) 1 else if (geaendert) alt.version + 1 else alt.version,
                 quelle = if (alt == null || geaendert) eigen.kennung else alt.quelle,
-                hash = hash, partner = kennung, name = KontaktPruefung.name(lokal.daten)
+                hash = hash, partner = kennung, name = KontaktPruefung.name(lokal.daten),
+                inhaltGeaendert = inhaltGeaendert,
+                providerGeaendert = maxOf(lokal.providerGeaendert, alleSpuren.maxOfOrNull { it.providerGeaendert } ?: 0),
+                inhaltHash = hash
             )
             KontaktVorschlag(
                 id = UUID.randomUUID().toString(), partner = kennung,
@@ -479,8 +489,9 @@ class Baumwerk private constructor(
             ).takeIf { it.art.isNotEmpty() }?.let { vorschlaege += it }
             spurSichern(spur)
             einreihen(kennung, "kontakt_sync", KontaktSync.inhalt(KontaktNachricht(
-                spur.freigabeId, spur.version, spur.quelle, jetzt, lokal.daten, fassung
+                spur.freigabeId, spur.version, spur.quelle, jetzt, lokal.daten, fassung, inhaltGeaendert
             )))
+            }
         }
         KontaktPruefung.dubletten(snapshot.kontakte).forEach { d ->
             vorschlaege += KontaktVorschlag(
@@ -554,45 +565,85 @@ class Baumwerk private constructor(
     fun kontaktPartnerMitEingang(): List<String> = ablage.baum.value.kontaktEingang
         .map { it.partner }.distinct()
 
-    fun kontaktGruppeImportieren(id: String, getrennt: Boolean = false): Int {
-        val gruppe = kontaktPartnerMitEingang().asSequence().flatMap { kontaktGruppen(it).asSequence() }
-            .firstOrNull { it.id == id } ?: return 0
-        if (!getrennt && !gruppe.zusammenfuehrbar) return 0
-        val teile = if (getrennt) gruppe.karten.map { listOf(it) } else listOf(gruppe.karten)
-        val adapter = AndroidKontakte(zusammenhang)
-        val gebundene = ablage.baum.value.kontaktSpuren.filter { spur ->
-            gruppe.karten.any { it.partner == spur.partner && it.freigabeId == spur.freigabeId }
-        }.map { it.rawContactId }
-        val mutationId = "contact-import:${gruppe.id}:${if (getrennt) "split" else "merge"}"
-        val staende = adapter.journalStaende(gebundene, "update") +
-            if (gebundene.isEmpty()) teile.map { adapter.geplanterStand(
-                KontaktEingangslogik.vereinige(it.map { k -> k.kontakt }), "create",
-                KontaktEingangslogik.importOperation(it)) } else emptyList()
-        AndroidJournal.hole(zusammenhang).kontaktSnapshot("contact-import", staende, mutationId)
-        teile.forEach { karten -> importiereKarten(adapter, karten) }
-        entferneKontaktKarten(gruppe.karten)
-        lokaleDublettenAktualisieren(gruppe.partner)
-        return teile.size
+    fun kontaktUebernahmeVorschau(id: String, getrennt: Boolean = false,
+                                 sammel: Boolean = false): KontaktUebernahmeVorschau = synchronized(Ablage.SCHREIBSPERRE) {
+        offeneKontaktUebernahme = null
+        val baum = ablage.baum.value
+        val gruppen = if (sammel) kontaktGruppen(id).filter { it.art == KontaktGruppenArt.SICHER }
+            else kontaktPartnerMitEingang().flatMap(::kontaktGruppen).filter { it.id == id }.flatMap { gruppe ->
+                if (getrennt) gruppe.karten.flatMap { KontaktEingangslogik.gruppiere(listOf(it)) } else listOf(gruppe)
+            }
+        require(gruppen.isNotEmpty() && gruppen.all { it.zusammenfuehrbar })
+        val snapshot = AndroidKontakte(zusammenhang).snapshot()
+        val vorschau = KontaktUebernahmeVorschau(UUID.randomUUID().toString(),
+            KontaktUebernahmePlan.planen(gruppen, snapshot, baum.kontaktSpuren))
+        offeneKontaktUebernahme = OffeneKontaktUebernahme(vorschau, baum, snapshot)
+        vorschau
     }
 
-    fun sichereKontaktGruppenImportieren(partner: String): Int {
-        val gruppen = kontaktGruppen(partner).filter { it.art == KontaktGruppenArt.SICHER }
-        if (gruppen.isEmpty()) return 0
-        val adapter = AndroidKontakte(zusammenhang)
-        val mutationId = "contact-safe-batch:$partner:${gruppen.joinToString { it.id }}"
-        val rawIds = ablage.baum.value.kontaktSpuren.filter { spur -> gruppen.any { g ->
-            g.karten.any { it.partner == spur.partner && it.freigabeId == spur.freigabeId }
-        } }.map { it.rawContactId }
-        val staende = adapter.journalStaende(rawIds, "update") + groupsPlanned@ run {
-            gruppen.filter { gruppe -> ablage.baum.value.kontaktSpuren.none { spur ->
-                gruppe.karten.any { it.partner == spur.partner && it.freigabeId == spur.freigabeId }
-            } }.map { adapter.geplanterStand(it.kontakt, "create", KontaktEingangslogik.importOperation(it.karten)) }
+    fun kontaktUebernahmeAbbrechen() {
+        offeneKontaktUebernahme = null
+    }
+
+    fun kontaktUebernahmeBestaetigen(id: String, auswahl: List<KontaktAuswahl>): Int = synchronized(Ablage.SCHREIBSPERRE) {
+        val offen = requireNotNull(offeneKontaktUebernahme).also { require(it.vorschau.id == id) }
+        ablage.aendereBaum { it } // Check the storage recovery barrier before any provider write.
+        val alt = offen.baum
+        val jetzt = ablage.baum.value
+        require(jetzt.kennung == alt.kennung && jetzt.geheim == alt.geheim && jetzt.syncEpoch == alt.syncEpoch &&
+            jetzt.kontaktSpuren == alt.kontaktSpuren && offen.vorschau.eintraege.all { eintrag ->
+                eintrag.gruppe.karten.all { it in jetzt.kontaktEingang } &&
+                    jetzt.partner.firstOrNull { it.kennung == eintrag.gruppe.partner } ==
+                    alt.partner.firstOrNull { it.kennung == eintrag.gruppe.partner }
+            })
+        require(auswahl.size == offen.vorschau.eintraege.size && auswahl.map { it.gruppe }.toSet().size == auswahl.size)
+        val plan = offen.vorschau.eintraege.map { eintrag ->
+            val wahl = auswahl.single { it.gruppe == eintrag.gruppe.id }
+            Triple(eintrag, wahl, KontaktUebernahmePlan.inhalt(eintrag, wahl) {
+                zusammenhang.getString(R.string.kontakt_review_geburtsname, it)
+            })
         }
-        AndroidJournal.hole(zusammenhang).kontaktSnapshot("contact-import", staende, mutationId)
-        gruppen.forEach { gruppe -> importiereKarten(adapter, gruppe.karten) }
-        entferneKontaktKarten(gruppen.flatMap { it.karten })
-        lokaleDublettenAktualisieren(partner)
-        return gruppen.size
+        val schreibend = plan.filter { (eintrag, wahl, _) -> wahl.entscheidung != KontaktEntscheidung.BEHALTEN &&
+            !(wahl.entscheidung == KontaktEntscheidung.NEUESTE &&
+                eintrag.ziele.single { it.kontakt.rawContactId == wahl.rawId }.inhaltszeit > eintrag.fernzeit) }
+        val zielIds = schreibend.mapNotNull { it.second.rawId }
+        require(zielIds.toSet().size == zielIds.size)
+        val adapter = AndroidKontakte(zusammenhang)
+        require(adapter.snapshot() == offen.snapshot)
+        val staende = adapter.journalStaende(zielIds, "update")
+        require(staende.size == zielIds.size)
+        val neue = plan.filter { it.second.entscheidung == KontaktEntscheidung.NEU }.map { (eintrag, _, inhalt) ->
+            adapter.geplanterStand(inhalt, "create", KontaktEingangslogik.importOperation(eintrag.gruppe.karten))
+        }
+        if (staende.isNotEmpty() || neue.isNotEmpty()) kontaktSnapshotVorher(staende + neue, "contact-review:$id")
+        require(adapter.snapshot() == offen.snapshot)
+        require(offeneKontaktUebernahme === offen)
+        try { plan.forEach { (eintrag, wahl, inhalt) ->
+            require(offeneKontaktUebernahme === offen)
+            val ziel = eintrag.ziele.singleOrNull { it.kontakt.rawContactId == wahl.rawId }
+            val behalten = wahl.entscheidung == KontaktEntscheidung.BEHALTEN ||
+                wahl.entscheidung == KontaktEntscheidung.NEUESTE && requireNotNull(ziel).inhaltszeit > eintrag.fernzeit
+            if (behalten) kontaktKartenAblehnen(eintrag.gruppe.karten)
+            else {
+                val gespeichert = if (wahl.entscheidung == KontaktEntscheidung.NEU) {
+                    adapter.anlegen(inhalt, KontaktEingangslogik.importOperation(eintrag.gruppe.karten))
+                } else adapter.uebernehmen(requireNotNull(ziel).kontakt, inhalt,
+                    wahl.entscheidung in setOf(KontaktEntscheidung.ERSETZEN, KontaktEntscheidung.NEUESTE))
+                val hash = KontaktSync.hash(gespeichert.daten)
+                val zeit = KontaktUebernahmePlan.originalZeit(eintrag.gruppe.karten, gespeichert.daten, System.currentTimeMillis())
+                    .takeIf { it > 0 } ?: if (ziel != null && KontaktSync.hash(ziel.kontakt.daten) == hash) ziel.inhaltszeit else 0
+                val spuren = eintrag.gruppe.karten.map { karte -> KontaktSpur(gespeichert.lookupKey,
+                    gespeichert.rawContactId, karte.freigabeId, karte.version, karte.quelle,
+                    KontaktSync.hash(eintrag.gruppe.kontakt), karte.partner, KontaktPruefung.name(gespeichert.daten),
+                    zeit, gespeichert.providerGeaendert, hash) }
+                ablage.aendereBaum { stand -> stand.copy(
+                    kontaktSpuren = stand.kontaktSpuren.filterNot { s -> spuren.any { it.partner == s.partner && it.freigabeId == s.freigabeId } } + spuren,
+                    kontaktEingang = KontaktEingangslogik.ohneBearbeiteteKarten(stand.kontaktEingang, eintrag.gruppe.karten),
+                    kontaktAblehnungen = KontaktEingangslogik.ohneAngenommeneAblehnungen(stand.kontaktAblehnungen, eintrag.gruppe.karten)) }
+            }
+        } } finally { if (offeneKontaktUebernahme === offen) offeneKontaktUebernahme = null }
+        plan.map { it.first.gruppe.partner }.distinct().forEach(::lokaleDublettenAktualisieren)
+        plan.size
     }
 
     fun kontaktGruppeAblehnen(id: String) {
@@ -607,30 +658,10 @@ class Baumwerk private constructor(
 
     private fun kontaktKartenAblehnen(karten: List<KontaktEingang>) {
         if (karten.isEmpty()) return
-        val schluessel = karten.map { it.partner to it.freigabeId }.toSet()
         ablage.aendereBaum { alt -> alt.copy(
-            kontaktEingang = alt.kontaktEingang.filterNot { it.partner to it.freigabeId in schluessel },
-            kontaktAblehnungen = alt.kontaktAblehnungen.filterNot {
-                it.partner to it.freigabeId in schluessel
-            } + karten.map { KontaktAblehnung(it.partner, it.freigabeId, it.version, it.quelle) }
+            kontaktEingang = KontaktEingangslogik.ohneBearbeiteteKarten(alt.kontaktEingang, karten),
+            kontaktAblehnungen = KontaktEingangslogik.merkeAblehnungen(alt.kontaktAblehnungen, karten)
         ) }
-    }
-
-    private fun entferneKontaktKarten(karten: List<KontaktEingang>) {
-        val schluessel = karten.map { it.partner to it.freigabeId }.toSet()
-        ablage.aendereBaum { alt -> alt.copy(
-            kontaktEingang = alt.kontaktEingang.filterNot { it.partner to it.freigabeId in schluessel },
-            kontaktAblehnungen = alt.kontaktAblehnungen.filterNot { it.partner to it.freigabeId in schluessel }
-        ) }
-    }
-
-    private fun importiereKarten(adapter: AndroidKontakte, karten: List<KontaktEingang>) {
-        val gebundene = ablage.baum.value.kontaktSpuren.filter { spur ->
-            karten.any { it.partner == spur.partner && it.freigabeId == spur.freigabeId }
-        }.map { it.rawContactId }.distinct()
-        // Mehrere bestehende Zielkontakte werden nie stillschweigend vereinigt.
-        val rawId = gebundene.singleOrNull()
-        KontaktEingangslogik.importiere(karten, adapter, rawId).spuren.forEach(::spurSichern)
     }
 
     private fun lokaleDublettenAktualisieren(partner: String) {
@@ -733,25 +764,41 @@ class Baumwerk private constructor(
         return true
     }
 
-    private fun einreihen(an: String, art: String, inhalt: JsonObject) {
+    private fun einreihen(an: String, art: String, inhalt: JsonObject, v3Probe: Boolean = false) {
         if (art in setOf("kontakt_sync", "kontakt_import_manifest", "kontakt_import_karte")) {
             val peer = partner(an)
             val versions = if (art == "kontakt_sync") peer?.kontaktSyncFassungen else peer?.kontaktImportFassungen
             if (peer?.bestaetigt != true || inhalt["fassung"] !in versions.orEmpty().map { kotlinx.serialization.json.JsonPrimitive(it) })
                 throw BaumFehler("contact_version_not_available")
         }
+        val angebot = if (art == "kontakt_faehigkeiten" && inhalt["antwort"] == kotlinx.serialization.json.JsonPrimitive(false) &&
+            3 in partner(an)?.kontaktSyncFassungen.orEmpty()) KontaktFaehigkeiten.inhalt(false, 3) else inhalt
+        val faehigkeiten = if (art == "kontakt_faehigkeiten") KontaktFaehigkeiten.lesen(angebot) else null
+        val probe = v3Probe || faehigkeiten?.first?.contains(3) == true
+        val encoded = Kanonisch.json.encodeToString(JsonObject.serializer(), angebot)
+        fun probeEinreihen() {
+            if (faehigkeiten != null && !probe && angebot["antwort"] == kotlinx.serialization.json.JsonPrimitive(false) &&
+                partner(an)?.bestaetigt == true && partner(an)?.kontaktV3Geprueft != true)
+                einreihen(an, art, KontaktFaehigkeiten.inhalt(false, 3), true)
+        }
+        if (faehigkeiten != null && ablage.baum.value.postfach.any {
+                it.an == an && it.art == art && it.inhalt == encoded && !it.aufgegeben }) {
+            probeEinreihen(); return
+        }
         val sendung = Sendung(
             id = UUID.randomUUID().toString(),
             transportId = Krypto.b64(Krypto.zufallsbytes(16)),
             an = an,
             art = art,
-            inhalt = Kanonisch.json.encodeToString(JsonObject.serializer(), inhalt),
+            inhalt = encoded,
             angelegt = System.currentTimeMillis(),
             syncEpoch = ablage.baum.value.syncEpoch,
-            protokoll = partner(an)?.protokoll.orEmpty()
+            protokoll = if (probe) "baum-fs1" else partner(an)?.protokoll.orEmpty(),
+            kontaktV3Probe = probe
         )
         // Erst ins Postfach, dann ins Netz – ein Absturz verliert nichts.
         ablage.aendereBaum { it.copy(postfach = it.postfach + sendung) }
+        probeEinreihen()
     }
 
     /** Arbeitet fällige Sendungen ab. Läuft im Aufruferfaden; nie im Hauptfaden. */
@@ -810,7 +857,7 @@ class Baumwerk private constructor(
                 wartendePartner += snapshot.an
                 continue
             }
-            if (snapshot.aufgegeben || snapshot.an in wartendePartner) continue
+            if (snapshot.aufgegeben || !snapshot.kontaktV3Probe && snapshot.an in wartendePartner) continue
             if (snapshot.naechsterVersuch > jetzt) {
                 if (snapshot.baum1Umschlag.isNotEmpty()) wartendePartner += snapshot.an
                 continue
@@ -848,7 +895,8 @@ class Baumwerk private constructor(
                 try {
                     if (sendung.baum1Umschlag.isNotEmpty() && !sendungVersuchen(sendung, generation)) break
                     ergebnis = Versand.zustellen(
-                    eigen, partner, sendung.art, inhalt, sendung.transportId, transport,
+                    eigen, if (sendung.kontaktV3Probe) partner.copy(protokoll = "baum-fs1") else partner,
+                    sendung.art, inhalt, sendung.transportId, transport,
                     sendung.baum1Umschlag.takeIf(String::isNotEmpty)?.let { Kanonisch.json.parseToJsonElement(it).jsonObject }
                 )
                     if (sendung.baum1Umschlag.isNotEmpty() && !ergebnis.gelungen && !ergebnis.unsicher) {
@@ -863,7 +911,13 @@ class Baumwerk private constructor(
                 if (ergebnis.gelungen || ergebnis.unsicher) break
             }
             if (sendung.syncEpoch != ablage.baum.value.syncEpoch || generation != ablage.baumVersandGeneration()) break
-            if (ergebnis.gelungen) {
+            if (sendung.kontaktV3Probe && ergebnis.httpStatus in setOf(400, 403, 404)) {
+                ablage.aendereBaum { alt ->
+                    if (alt.syncEpoch != sendung.syncEpoch || generation != ablage.baumVersandGeneration()) alt
+                    else alt.copy(postfach = alt.postfach.filterNot { it.id == sendung.id },
+                        partner = alt.partner.map { if (it.kennung == partner.kennung) it.copy(kontaktV3Geprueft = true) else it })
+                }
+            } else if (ergebnis.gelungen) {
                 zugestellt++
                 ablage.aendereBaum { alt ->
                     if (sendung.syncEpoch != alt.syncEpoch || generation != ablage.baumVersandGeneration()) return@aendereBaum alt
@@ -904,7 +958,7 @@ class Baumwerk private constructor(
                 )
             })
         }
-        if (versuche == 1) meldeFehler(grund)
+        if (versuche == 1 && !sendung.kontaktV3Probe) meldeFehler(grund)
     }
 
     private fun aufgeben(sendung: Sendung) {
@@ -1001,11 +1055,15 @@ class Baumwerk private constructor(
             if (zweig?.bestaetigt != true) throw BaumFehler("Dieser Zweig ist noch nicht bestätigt.")
             val (sync, import) = KontaktFaehigkeiten.lesen(inhalt)
                 ?: throw BaumFehler("Die Nachricht ist beschädigt.")
+            val modern = 3 in sync
+            val answer = inhalt["antwort"] == kotlinx.serialization.json.JsonPrimitive(true)
             ablage.aendereBaum { alt -> alt.copy(partner = alt.partner.map {
-                if (it.kennung == vonKennung) it.copy(kontaktSyncFassungen = sync, kontaktImportFassungen = import) else it
+                if (it.kennung == vonKennung && (modern || !answer || 3 !in it.kontaktSyncFassungen))
+                    it.copy(kontaktSyncFassungen = sync, kontaktImportFassungen = import,
+                        kontaktV3Geprueft = it.kontaktV3Geprueft || modern) else it
             }) }
             if (inhalt["antwort"] == kotlinx.serialization.json.JsonPrimitive(false))
-                einreihen(vonKennung, art, KontaktFaehigkeiten.inhalt(true))
+                einreihen(vonKennung, art, KontaktFaehigkeiten.inhalt(true, if (modern) 3 else 2))
             return
         }
         if (art == "termin") {
@@ -1118,7 +1176,7 @@ class Baumwerk private constructor(
     private fun kontaktUebernehmen(von: String, inhalt: JsonObject) {
         val n = KontaktSync.lies(inhalt)
             ?: throw BaumFehler("Die Kontaktnachricht ist ungültig oder hat eine unbekannte Fassung.")
-        if (n.fassung == 2 && 2 !in (partner(von)?.kontaktSyncFassungen ?: emptyList()))
+        if (n.fassung >= 2 && n.fassung !in (partner(von)?.kontaktSyncFassungen ?: emptyList()))
             throw BaumFehler(Fehlertext.KONTAKT_VERSION)
         val alt = ablage.baum.value.kontaktSpuren.firstOrNull {
             it.freigabeId == n.freigabeId && it.partner == von
@@ -1126,12 +1184,10 @@ class Baumwerk private constructor(
         val wartend = ablage.baum.value.kontaktEingang.firstOrNull {
             it.partner == von && it.freigabeId == n.freigabeId
         }
-        val abgelehnt = ablage.baum.value.kontaktAblehnungen.firstOrNull {
-            it.partner == von && it.freigabeId == n.freigabeId
-        }
+        val abgelehnt = KontaktEingangslogik.findeAblehnung(ablage.baum.value.kontaktAblehnungen, von, n)
         if (!KontaktEingangslogik.sollAufnehmen(n, wartend, alt?.version, alt?.quelle, abgelehnt)) return
         val karte = KontaktEingang(von, n.freigabeId, n.version, n.quelle, n.geaendert,
-            n.kontakt, System.currentTimeMillis())
+            n.kontakt, System.currentTimeMillis(), n.inhaltGeaendert)
         ablage.aendereBaum { zustand -> zustand.copy(
             kontaktEingang = zustand.kontaktEingang.filterNot {
                 it.partner == von && it.freigabeId == n.freigabeId
@@ -1388,6 +1444,10 @@ class Baumwerk private constructor(
 
         internal fun fuerTest(ablage: Ablage, zusammenhang: Context, notizSnapshotVorher: () -> Unit): Baumwerk =
             Baumwerk(ablage, zusammenhang.applicationContext, notizSnapshotVorher)
+
+        internal fun fuerKontaktTest(ablage: Ablage, zusammenhang: Context,
+            snapshot: (List<io.gitlab.maik3531.magnolienotes.journal.KontaktRohstand>, String) -> Unit): Baumwerk =
+            Baumwerk(ablage, zusammenhang.applicationContext, kontaktSnapshotVorher = snapshot)
     }
 }
 

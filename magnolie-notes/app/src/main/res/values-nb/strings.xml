@@ -378,4 +378,12 @@
     <string name="telefon_mehrere_rechner">Parede datamaskiner forblir lagret. Velg datamaskinen du vil bruke nå.</string>
     <string name="telefon_anrufe_erlauben">Tillat anrop</string>
     <string name="telefon_anruf_berechtigungen">Aktiver Android-tillatelser</string>
+    <string name="kontakt_review_titel">Se gjennom kontaktendringer</string>
+    <string name="kontakt_review_lokal">Eksisterende kontakt</string>
+    <string name="kontakt_review_fern">Innkommende kontakt</string>
+    <string name="kontakt_review_behalten">Behold eksisterende kontakt</string>
+    <string name="kontakt_review_neu">Opprett en separat kontakt</string>
+    <string name="kontakt_review_neueste">Bruk den nyere versjonen</string>
+    <string name="kontakt_review_rest">Bruk dette valget på gjenværende entydig tilordnede konflikter</string>
+    <string name="kontakt_review_geburtsname">Fødenavn: %1$s</string>
 </resources>

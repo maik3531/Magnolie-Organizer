@@ -46,12 +46,6 @@ msgstr ""
 "%(appointment)s\n"
 "Нажмите, чтобы изменить"
 
-msgid ""
-"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
-msgstr ""
-"Объединено карточек: %(cards)s. Копии сохранены в Корзине в разделе "
-"«Дубликаты»."
-
 msgid "%(count)s anniversary"
 msgid_plural "%(count)s anniversaries"
 msgstr[0] "%(count)s памятная дата"
@@ -87,12 +81,6 @@ msgid_plural "%(count)s contacts"
 msgstr[0] "%(count)s контакт"
 msgstr[1] "%(count)s контакта"
 msgstr[2] "%(count)s контакта"
-
-msgid "%(count)s contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "%(count)s карточка контакта"
-msgstr[1] "%(count)s карточки контакта"
-msgstr[2] "%(count)s карточки контакта"
 
 msgid "%(count)s contact imported."
 msgid_plural "%(count)s contacts imported."
@@ -141,12 +129,6 @@ msgid_plural "%(count)s found"
 msgstr[0] "Найдено: %(count)s"
 msgstr[1] "Найдено: %(count)s"
 msgstr[2] "Найдено: %(count)s"
-
-msgid "%(count)s group"
-msgid_plural "%(count)s groups"
-msgstr[0] "%(count)s группа"
-msgstr[1] "%(count)s группы"
-msgstr[2] "%(count)s группы"
 
 msgid "%(count)s holiday period"
 msgid_plural "%(count)s holiday periods"
@@ -937,6 +919,9 @@ msgstr "Берлин"
 
 msgid "Bern"
 msgstr "Берн"
+
+msgid "Birth name: %(name)s"
+msgstr "Фамилия при рождении: %(name)s"
 
 msgid "Birthday"
 msgstr "День рождения"
@@ -2337,21 +2322,6 @@ msgstr "Регион формата"
 msgid "Forward Secrecy"
 msgstr "Прямая секретность (Forward Secrecy)"
 
-msgid ""
-"Found %(groups)s containing %(cards)s in total, for example:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"The most complete card in each group is retained, and missing fields are "
-"filled from the others. The remaining cards are moved to the recycle bin as "
-"“Duplicates” and can be restored from there. Continue?"
-msgstr ""
-"Найдено групп: %(groups)s, всего карточек: %(cards)s, например:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"В каждой группе сохраняется самая полная карточка, а недостающие поля "
-"дополняются из остальных. Оставшиеся карточки перемещаются в Корзину как "
-"«Дубликаты» и могут быть восстановлены. Продолжить?"
-
 #, javascript-format
 msgid "Found – %s."
 msgstr "Найдено — %s."
@@ -2561,9 +2531,6 @@ msgstr "Импорт"
 
 msgid "Import Magnolie complete archive"
 msgstr "Импортировать полный архив Magnolie"
-
-msgid "Import contacts additively"
-msgstr "Импортировать контакты без замены существующих"
 
 msgid "Import failed."
 msgstr "Не удалось выполнить импорт."
@@ -3541,12 +3508,6 @@ msgstr[0] "Было получено одно обновление о выпол
 msgstr[1] "Обновления завершения %(count)s были получены от Magnolienbaum."
 msgstr[2] "Обновления завершения %(count)s были получены от Magnolienbaum."
 
-msgid "One duplicate contact card was"
-msgid_plural "%(count)s duplicate contact cards were"
-msgstr[0] "Одна дубликат карточки контакта была"
-msgstr[1] "%(count)s дублированных контактных карт были"
-msgstr[2] "%(count)s дублированных контактных карт были"
-
 msgid "One moment …"
 msgstr "Подождите …"
 
@@ -4063,6 +4024,12 @@ msgstr ""
 "Предпочитать динамики и микрофон ПК для звонков на моём собственном "
 "Bluetooth-телефоне"
 
+msgid ""
+"Prefer newer contact versions when reliable modification times are available."
+msgstr ""
+"Предпочитать более новые версии контактов при наличии достоверного времени "
+"изменения."
+
 msgid "Preferred backup folder"
 msgstr "Предпочтительная папка для резервных копий"
 
@@ -4189,13 +4156,6 @@ msgstr "Доступный IPv4- или IPv6-адрес этого компью�
 msgid "Ready."
 msgstr "Готово."
 
-msgid ""
-"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
-"every removed card is kept in the recycle bin."
-msgstr ""
-"Действительно объединить %(cards)s карточек? После этого внимательно "
-"проверьте результат. Копия каждой удалённой карточки сохраняется в Корзине."
-
 msgid "Reason"
 msgstr "Причина"
 
@@ -4237,6 +4197,9 @@ msgstr "Отклонить это предложение навсегда?"
 
 msgid "Related tasks"
 msgstr "Связанные задачи"
+
+msgid "Reliable modification times are not available for both versions."
+msgstr "Достоверное время изменения доступно не для обеих версий."
 
 msgid "Remind me again on the day itself"
 msgstr "Напомнить ещё раз в сам день"
@@ -5963,13 +5926,6 @@ msgstr ""
 msgid "This notebook is still empty."
 msgstr "Этот блокнот пока пуст."
 
-msgid ""
-"This one-time import only adds or enriches contacts. It does not synchronize "
-"or delete contacts."
-msgstr ""
-"Этот однократный импорт только добавляет или дополняет контакты. Он не "
-"синхронизирует и не удаляет их."
-
 msgid "This person's anniversaries"
 msgstr "Памятные даты этого человека"
 
@@ -6212,6 +6168,9 @@ msgstr "Использовать адреса контактов"
 
 msgid "Use default"
 msgstr "Использовать значение по умолчанию"
+
+msgid "Use newer version"
+msgstr "Использовать более новую версию"
 
 msgid "Use numeric keypad"
 msgstr "Использовать цифровую клавиатуру"
@@ -6600,9 +6559,6 @@ msgstr "Годовой планировщик %(year)s"
 msgid "Yes"
 msgstr "Да"
 
-msgid "Yes, merge"
-msgstr "Да, объединить"
-
 msgid "Yes, the code matches"
 msgstr "Да, код совпадает"
 
@@ -6878,12 +6834,6 @@ msgstr[0] "одна резервная копия также была зашиф
 msgstr[1] "Резервные копии %(count)s также были зашифрованы"
 msgstr[2] "Резервные копии %(count)s также были зашифрованы"
 
-msgid "one contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "одна контактная карточка"
-msgstr[1] "%(count)s контактные карточки"
-msgstr[2] "%(count)s контактные карточки"
-
 msgid "only %(year)s"
 msgstr "только %(year)s"
 
@@ -7037,6 +6987,72 @@ msgstr[2] "… и ещё %(count)s записи, которые также бу�
 
 msgid "＋ Add appointment"
 msgstr "＋ Добавить встречу"
+
+#~ msgid ""
+#~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+#~ msgstr ""
+#~ "Объединено карточек: %(cards)s. Копии сохранены в Корзине в разделе "
+#~ "«Дубликаты»."
+
+#~ msgid "%(count)s contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "%(count)s карточка контакта"
+#~ msgstr[1] "%(count)s карточки контакта"
+#~ msgstr[2] "%(count)s карточки контакта"
+
+#~ msgid "%(count)s group"
+#~ msgid_plural "%(count)s groups"
+#~ msgstr[0] "%(count)s группа"
+#~ msgstr[1] "%(count)s группы"
+#~ msgstr[2] "%(count)s группы"
+
+#~ msgid ""
+#~ "Found %(groups)s containing %(cards)s in total, for example:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "The most complete card in each group is retained, and missing fields are "
+#~ "filled from the others. The remaining cards are moved to the recycle bin "
+#~ "as “Duplicates” and can be restored from there. Continue?"
+#~ msgstr ""
+#~ "Найдено групп: %(groups)s, всего карточек: %(cards)s, например:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "В каждой группе сохраняется самая полная карточка, а недостающие поля "
+#~ "дополняются из остальных. Оставшиеся карточки перемещаются в Корзину как "
+#~ "«Дубликаты» и могут быть восстановлены. Продолжить?"
+
+#~ msgid "Import contacts additively"
+#~ msgstr "Импортировать контакты без замены существующих"
+
+#~ msgid "One duplicate contact card was"
+#~ msgid_plural "%(count)s duplicate contact cards were"
+#~ msgstr[0] "Одна дубликат карточки контакта была"
+#~ msgstr[1] "%(count)s дублированных контактных карт были"
+#~ msgstr[2] "%(count)s дублированных контактных карт были"
+
+#~ msgid ""
+#~ "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+#~ "every removed card is kept in the recycle bin."
+#~ msgstr ""
+#~ "Действительно объединить %(cards)s карточек? После этого внимательно "
+#~ "проверьте результат. Копия каждой удалённой карточки сохраняется в "
+#~ "Корзине."
+
+#~ msgid ""
+#~ "This one-time import only adds or enriches contacts. It does not "
+#~ "synchronize or delete contacts."
+#~ msgstr ""
+#~ "Этот однократный импорт только добавляет или дополняет контакты. Он не "
+#~ "синхронизирует и не удаляет их."
+
+#~ msgid "Yes, merge"
+#~ msgstr "Да, объединить"
+
+#~ msgid "one contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "одна контактная карточка"
+#~ msgstr[1] "%(count)s контактные карточки"
+#~ msgstr[2] "%(count)s контактные карточки"
 
 #~ msgid "KDE Connect for SMS"
 #~ msgstr "KDE Connect для SMS"

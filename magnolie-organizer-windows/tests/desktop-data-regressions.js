@@ -42,11 +42,21 @@ const plain = value => JSON.parse(JSON.stringify(value));
       const b = await harness.exports.boot(web, { kontakte: [{ id: "photo", uid: "photo-source",
         vorname: "Photo", nachname: "Fixture", foto: manualPhoto, fotoManuell: true, geaendert: 1 }] });
       try {
-        b.w.App.importErgebnis({ kontakte: [{ uid: "photo-source", vorname: "Photo", nachname: "Fixture",
+        b.w.webkit.messageHandlers.regression.postMessage = text => {
+          const message = JSON.parse(text); b.messages.push(message);
+          if (message.cmd === "speichern") queueMicrotask(() => b.w.App.gespeichert({ id: message.id, ok: true }));
+          if (message.cmd === "mutations_snapshot") queueMicrotask(() => b.w.App.mutationsSnapshot({ token: message.token, ok: true }));
+        };
+        const importing = b.w.App.importErgebnis({ kontakte: [{ uid: "photo-source", vorname: "Photo", nachname: "Fixture",
           foto: "data:image/png;base64,BAUG", geaendert: 200 }] });
+        const choice = b.w.document.querySelector('[data-import-entscheidung="0"]');
+        choice.value = "merge"; choice.dispatchEvent(new b.w.Event("change"));
+        b.w.document.querySelector("[data-import-anwenden]").click();
+        await importing;
         assert.equal(b.t.daten().kontakte[0].foto, manualPhoto, "newer imports must respect a manual photo or explicit removal");
         b.t.speichereJetzt();
         assert.equal(JSON.parse(b.messages.filter(m => m.cmd === "speichern").at(-1).text).kontakte[0].fotoManuell, true);
+        await new Promise(resolve => setImmediate(resolve));
         count++;
       } finally { b.close(); }
     }

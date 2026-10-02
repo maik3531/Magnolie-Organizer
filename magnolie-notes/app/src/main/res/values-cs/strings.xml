@@ -400,4 +400,12 @@
     <string name="telefon_mehrere_rechner">Spárované počítače zůstanou uložené. Vyberte počítač, který chcete nyní používat.</string>
     <string name="telefon_anrufe_erlauben">Povolit hovory</string>
     <string name="telefon_anruf_berechtigungen">Povolit oprávnění Androidu</string>
+    <string name="kontakt_review_titel">Zkontrolovat změny kontaktů</string>
+    <string name="kontakt_review_lokal">Stávající kontakt</string>
+    <string name="kontakt_review_fern">Příchozí kontakt</string>
+    <string name="kontakt_review_behalten">Ponechat stávající kontakt</string>
+    <string name="kontakt_review_neu">Vytvořit samostatný kontakt</string>
+    <string name="kontakt_review_neueste">Použít novější verzi</string>
+    <string name="kontakt_review_rest">Použít tuto volbu na zbývající jednoznačně přiřazené konflikty</string>
+    <string name="kontakt_review_geburtsname">Rodné příjmení: %1$s</string>
 </resources>

@@ -407,4 +407,12 @@
     <string name="telefon_mehrere_rechner">Спалучаныя камп’ютары застаюцца захаванымі. Выберыце камп’ютар, які хочаце выкарыстоўваць цяпер.</string>
     <string name="telefon_anrufe_erlauben">Дазволіць выклікі</string>
     <string name="telefon_anruf_berechtigungen">Уключыць дазволы Android</string>
+    <string name="kontakt_review_titel">Праверыць змены кантактаў</string>
+    <string name="kontakt_review_lokal">Існуючы кантакт</string>
+    <string name="kontakt_review_fern">Уваходны кантакт</string>
+    <string name="kontakt_review_behalten">Захаваць існуючы кантакт</string>
+    <string name="kontakt_review_neu">Стварыць асобны кантакт</string>
+    <string name="kontakt_review_neueste">Выкарыстаць навейшую версію</string>
+    <string name="kontakt_review_rest">Ужыць гэты выбар да астатніх канфліктаў з адназначным супастаўленнем</string>
+    <string name="kontakt_review_geburtsname">Прозвішча пры нараджэнні: %1$s</string>
 </resources>

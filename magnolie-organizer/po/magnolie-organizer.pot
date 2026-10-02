@@ -78,10 +78,6 @@ msgid ""
 "Organizer."
 msgstr ""
 
-msgid ""
-"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
-msgstr ""
-
 msgid "%(count)s anniversary"
 msgid_plural "%(count)s anniversaries"
 msgstr[0] ""
@@ -109,11 +105,6 @@ msgstr[1] ""
 
 msgid "%(count)s contact"
 msgid_plural "%(count)s contacts"
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "%(count)s contact card"
-msgid_plural "%(count)s contact cards"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -154,11 +145,6 @@ msgstr[1] ""
 
 msgid "%(count)s found"
 msgid_plural "%(count)s found"
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "%(count)s group"
-msgid_plural "%(count)s groups"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -1129,6 +1115,9 @@ msgid "Berlin"
 msgstr ""
 
 msgid "Bern"
+msgstr ""
+
+msgid "Birth name: %(name)s"
 msgstr ""
 
 msgid "Birthday"
@@ -2631,15 +2620,6 @@ msgstr ""
 msgid "Forward Secrecy"
 msgstr ""
 
-msgid ""
-"Found %(groups)s containing %(cards)s in total, for example:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"The most complete card in each group is retained, and missing fields are "
-"filled from the others. The remaining cards are moved to the recycle bin as "
-"“Duplicates” and can be restored from there. Continue?"
-msgstr ""
-
 #, python-format, javascript-format
 msgid "Found – %s."
 msgstr ""
@@ -2850,9 +2830,6 @@ msgid "Import calendar file"
 msgstr ""
 
 msgid "Import contacts"
-msgstr ""
-
-msgid "Import contacts additively"
 msgstr ""
 
 msgid "Import failed."
@@ -3988,11 +3965,6 @@ msgid_plural ""
 msgstr[0] ""
 msgstr[1] ""
 
-msgid "One duplicate contact card was"
-msgid_plural "%(count)s duplicate contact cards were"
-msgstr[0] ""
-msgstr[1] ""
-
 msgid "One moment …"
 msgstr ""
 
@@ -4533,6 +4505,10 @@ msgstr ""
 msgid "Prefer PC speakers and microphone for calls on my own Bluetooth phone"
 msgstr ""
 
+msgid ""
+"Prefer newer contact versions when reliable modification times are available."
+msgstr ""
+
 msgid "Preferred backup folder"
 msgstr ""
 
@@ -4669,11 +4645,6 @@ msgstr ""
 msgid "Ready."
 msgstr ""
 
-msgid ""
-"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
-"every removed card is kept in the recycle bin."
-msgstr ""
-
 msgid "Reason"
 msgstr ""
 
@@ -4718,6 +4689,9 @@ msgid "Reject this offer permanently?"
 msgstr ""
 
 msgid "Related tasks"
+msgstr ""
+
+msgid "Reliable modification times are not available for both versions."
 msgstr ""
 
 msgid "Remind about appointments in the background"
@@ -6143,6 +6117,9 @@ msgstr ""
 msgid "The entered fingerprint is incomplete."
 msgstr ""
 
+msgid "The entry could not be found."
+msgstr ""
+
 msgid "The file could not be read."
 msgstr ""
 
@@ -6500,6 +6477,11 @@ msgid "The recycle bin was emptied."
 msgstr ""
 
 msgid "The regional settings could not be saved."
+msgstr ""
+
+msgid ""
+"The remote contact was deleted. Keep this contact and restore it on the next "
+"synchronization?"
 msgstr ""
 
 msgid "The request is unreadable."
@@ -6866,11 +6848,6 @@ msgstr ""
 msgid "This notebook is still empty."
 msgstr ""
 
-msgid ""
-"This one-time import only adds or enriches contacts. It does not synchronize "
-"or delete contacts."
-msgstr ""
-
 msgid "This person's anniversaries"
 msgstr ""
 
@@ -7162,6 +7139,9 @@ msgid "Use contact addresses"
 msgstr ""
 
 msgid "Use default"
+msgstr ""
+
+msgid "Use newer version"
 msgstr ""
 
 msgid "Use numeric keypad"
@@ -7487,9 +7467,6 @@ msgstr ""
 msgid "Yes"
 msgstr ""
 
-msgid "Yes, merge"
-msgstr ""
-
 msgid "Yes, the code matches"
 msgstr ""
 
@@ -7785,11 +7762,6 @@ msgstr ""
 
 msgid "one backup was encrypted as well"
 msgid_plural "%(count)s backups were encrypted as well"
-msgstr[0] ""
-msgstr[1] ""
-
-msgid "one contact card"
-msgid_plural "%(count)s contact cards"
 msgstr[0] ""
 msgstr[1] ""
 

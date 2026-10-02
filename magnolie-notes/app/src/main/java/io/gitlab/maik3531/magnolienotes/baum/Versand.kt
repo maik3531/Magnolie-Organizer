@@ -12,7 +12,7 @@ import kotlinx.serialization.json.jsonObject
 object Versand {
 
     /** Ergebnis eines Zustellversuchs; `zaehler` gilt nur für `baum-1`. */
-    data class Ergebnis(val gelungen: Boolean, val zaehler: Long = 0L, val grund: String = "", val unsicher: Boolean = false)
+    data class Ergebnis(val gelungen: Boolean, val zaehler: Long = 0L, val grund: String = "", val unsicher: Boolean = false, val httpStatus: Int = 0)
 
     fun zustellen(
         eigen: EigeneIdentitaet,
@@ -64,7 +64,7 @@ object Versand {
                 Ergebnis(true)
             }
         } catch (fehler: Exception) {
-            Ergebnis(false, grund = fehler.message ?: "Nicht erreichbar.")
+            Ergebnis(false, grund = fehler.message ?: "Nicht erreichbar.", httpStatus = (fehler as? BaumFehler)?.httpStatus ?: 0)
         } finally {
             sitzung?.loeschen()
         }

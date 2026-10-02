@@ -45,12 +45,6 @@ msgstr ""
 "%(appointment)s\n"
 "Düzenlemek için tıklayın"
 
-msgid ""
-"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
-msgstr ""
-"%(cards)s birleştirildi. Kopyalar çöp kutusundaki “Yinelenenler” bölümünde "
-"saklanır."
-
 msgid "%(count)s anniversary"
 msgid_plural "%(count)s anniversaries"
 msgstr[0] "%(count)s yıldönümü"
@@ -80,11 +74,6 @@ msgid "%(count)s contact"
 msgid_plural "%(count)s contacts"
 msgstr[0] "%(count)s kişi"
 msgstr[1] "%(count)s kişi"
-
-msgid "%(count)s contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "%(count)s kişi kartı"
-msgstr[1] "%(count)s kişi kartı"
 
 msgid "%(count)s contact imported."
 msgid_plural "%(count)s contacts imported."
@@ -125,11 +114,6 @@ msgid "%(count)s found"
 msgid_plural "%(count)s found"
 msgstr[0] "%(count)s bulundu"
 msgstr[1] "%(count)s bulundu"
-
-msgid "%(count)s group"
-msgid_plural "%(count)s groups"
-msgstr[0] "%(count)s grup"
-msgstr[1] "%(count)s grup"
 
 msgid "%(count)s holiday period"
 msgid_plural "%(count)s holiday periods"
@@ -902,6 +886,9 @@ msgstr "Berlin"
 
 msgid "Bern"
 msgstr "Bern"
+
+msgid "Birth name: %(name)s"
+msgstr "Doğumdaki soyadı: %(name)s"
 
 msgid "Birthday"
 msgstr "Doğum günü"
@@ -2297,21 +2284,6 @@ msgstr "Biçim bölgesi"
 msgid "Forward Secrecy"
 msgstr "İleriye dönük gizlilik (Forward Secrecy)"
 
-msgid ""
-"Found %(groups)s containing %(cards)s in total, for example:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"The most complete card in each group is retained, and missing fields are "
-"filled from the others. The remaining cards are moved to the recycle bin as "
-"“Duplicates” and can be restored from there. Continue?"
-msgstr ""
-"Toplam %(cards)s kart içeren %(groups)s grup bulundu, örneğin:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"Her gruptaki en eksiksiz kart korunur ve eksik alanlar diğerlerinden "
-"doldurulur. Kalan kartlar “Yinelenenler” olarak çöp kutusuna taşınır ve "
-"oradan geri yüklenebilir. Devam edilsin mi?"
-
 #, javascript-format
 msgid "Found – %s."
 msgstr "Bulundu – %s."
@@ -2521,9 +2493,6 @@ msgstr "İçe aktar"
 
 msgid "Import Magnolie complete archive"
 msgstr "Magnolie arşivinin tamamını içe aktar"
-
-msgid "Import contacts additively"
-msgstr "Kişileri mevcutlara ekleyerek içe aktar"
 
 msgid "Import failed."
 msgstr "İçe aktarma başarısız oldu."
@@ -3497,11 +3466,6 @@ msgid_plural ""
 msgstr[0] "Magnolienbaum’dan bir tamamlanma güncellemesi alındı."
 msgstr[1] "Magnolienbaum’dan %(count)s tamamlanma güncellemesi alındı."
 
-msgid "One duplicate contact card was"
-msgid_plural "%(count)s duplicate contact cards were"
-msgstr[0] "Bir yinelenen kişi kartı vardı"
-msgstr[1] "%(count)s yinelenen kişi kartı vardı"
-
 msgid "One moment …"
 msgstr "Bir dakika …"
 
@@ -4010,6 +3974,12 @@ msgstr ""
 "Kendi Bluetooth telefonumdaki aramalar için PC hoparlörlerini ve mikrofonunu "
 "tercih et"
 
+msgid ""
+"Prefer newer contact versions when reliable modification times are available."
+msgstr ""
+"Güvenilir değişiklik zamanları mevcut olduğunda daha yeni kişi sürümlerini "
+"tercih et."
+
 msgid "Preferred backup folder"
 msgstr "Tercih edilen yedekleme klasörü"
 
@@ -4137,13 +4107,6 @@ msgstr "Bu bilgisayarın erişilebilir IPv4 veya IPv6 adresi"
 msgid "Ready."
 msgstr "Hazır."
 
-msgid ""
-"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
-"every removed card is kept in the recycle bin."
-msgstr ""
-"%(cards)s gerçekten birleştirilsin mi? Sonrasında sonucu dikkatle inceleyin. "
-"Kaldırılan her kartın bir kopyası çöp kutusunda saklanır."
-
 msgid "Reason"
 msgstr "Neden"
 
@@ -4185,6 +4148,9 @@ msgstr "Bu teklif kalıcı olarak reddedilsin mi?"
 
 msgid "Related tasks"
 msgstr "İlgili görevler"
+
+msgid "Reliable modification times are not available for both versions."
+msgstr "Her iki sürüm için güvenilir değişiklik zamanları mevcut değil."
 
 msgid "Remind me again on the day itself"
 msgstr "Aynı gün tekrar anımsat"
@@ -5897,13 +5863,6 @@ msgstr ""
 msgid "This notebook is still empty."
 msgstr "Bu not defteri hâlâ boş."
 
-msgid ""
-"This one-time import only adds or enriches contacts. It does not synchronize "
-"or delete contacts."
-msgstr ""
-"Bu tek seferlik içe aktarma yalnızca kişi ekler veya mevcut kişilerin "
-"bilgilerini tamamlar. Kişileri eşzamanlamaz veya silmez."
-
 msgid "This person's anniversaries"
 msgstr "Bu kişinin yıldönümleri"
 
@@ -6147,6 +6106,9 @@ msgstr "Kişi adreslerini kullan"
 
 msgid "Use default"
 msgstr "Varsayılanı kullan"
+
+msgid "Use newer version"
+msgstr "Daha yeni sürümü kullan"
 
 msgid "Use numeric keypad"
 msgstr "Sayısal tuş takımını kullan"
@@ -6531,9 +6493,6 @@ msgstr "%(year)s yıl planlayıcısı"
 msgid "Yes"
 msgstr "Evet"
 
-msgid "Yes, merge"
-msgstr "Evet, birleştir"
-
 msgid "Yes, the code matches"
 msgstr "Evet, kod eşleşiyor"
 
@@ -6805,11 +6764,6 @@ msgid_plural "%(count)s backups were encrypted as well"
 msgstr[0] "bir yedek de şifrelendi"
 msgstr[1] "%(count)s yedek de şifrelendi"
 
-msgid "one contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "bir kişi kartı"
-msgstr[1] "%(count)s kişi kartı"
-
 msgid "only %(year)s"
 msgstr "yalnızca %(year)s"
 
@@ -6962,6 +6916,67 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
+
+#~ msgid ""
+#~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+#~ msgstr ""
+#~ "%(cards)s birleştirildi. Kopyalar çöp kutusundaki “Yinelenenler” "
+#~ "bölümünde saklanır."
+
+#~ msgid "%(count)s contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "%(count)s kişi kartı"
+#~ msgstr[1] "%(count)s kişi kartı"
+
+#~ msgid "%(count)s group"
+#~ msgid_plural "%(count)s groups"
+#~ msgstr[0] "%(count)s grup"
+#~ msgstr[1] "%(count)s grup"
+
+#~ msgid ""
+#~ "Found %(groups)s containing %(cards)s in total, for example:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "The most complete card in each group is retained, and missing fields are "
+#~ "filled from the others. The remaining cards are moved to the recycle bin "
+#~ "as “Duplicates” and can be restored from there. Continue?"
+#~ msgstr ""
+#~ "Toplam %(cards)s kart içeren %(groups)s grup bulundu, örneğin:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "Her gruptaki en eksiksiz kart korunur ve eksik alanlar diğerlerinden "
+#~ "doldurulur. Kalan kartlar “Yinelenenler” olarak çöp kutusuna taşınır ve "
+#~ "oradan geri yüklenebilir. Devam edilsin mi?"
+
+#~ msgid "Import contacts additively"
+#~ msgstr "Kişileri mevcutlara ekleyerek içe aktar"
+
+#~ msgid "One duplicate contact card was"
+#~ msgid_plural "%(count)s duplicate contact cards were"
+#~ msgstr[0] "Bir yinelenen kişi kartı vardı"
+#~ msgstr[1] "%(count)s yinelenen kişi kartı vardı"
+
+#~ msgid ""
+#~ "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+#~ "every removed card is kept in the recycle bin."
+#~ msgstr ""
+#~ "%(cards)s gerçekten birleştirilsin mi? Sonrasında sonucu dikkatle "
+#~ "inceleyin. Kaldırılan her kartın bir kopyası çöp kutusunda saklanır."
+
+#~ msgid ""
+#~ "This one-time import only adds or enriches contacts. It does not "
+#~ "synchronize or delete contacts."
+#~ msgstr ""
+#~ "Bu tek seferlik içe aktarma yalnızca kişi ekler veya mevcut kişilerin "
+#~ "bilgilerini tamamlar. Kişileri eşzamanlamaz veya silmez."
+
+#~ msgid "Yes, merge"
+#~ msgstr "Evet, birleştir"
+
+#~ msgid "one contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "bir kişi kartı"
+#~ msgstr[1] "%(count)s kişi kartı"
 
 #~ msgid "KDE Connect for SMS"
 #~ msgstr "SMS için KDE Connect"

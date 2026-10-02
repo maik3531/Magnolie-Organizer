@@ -378,4 +378,12 @@
     <string name="telefon_mehrere_rechner">Parrede computere forbliver gemt. Vælg den computer, du vil bruge nu.</string>
     <string name="telefon_anrufe_erlauben">Tillad opkald</string>
     <string name="telefon_anruf_berechtigungen">Aktivér Android-tilladelser</string>
+    <string name="kontakt_review_titel">Gennemgå kontaktændringer</string>
+    <string name="kontakt_review_lokal">Eksisterende kontakt</string>
+    <string name="kontakt_review_fern">Indgående kontakt</string>
+    <string name="kontakt_review_behalten">Behold eksisterende kontakt</string>
+    <string name="kontakt_review_neu">Opret en separat kontakt</string>
+    <string name="kontakt_review_neueste">Brug den nyere version</string>
+    <string name="kontakt_review_rest">Anvend dette valg på resterende entydigt tilknyttede konflikter</string>
+    <string name="kontakt_review_geburtsname">Fødenavn: %1$s</string>
 </resources>

@@ -428,4 +428,12 @@
     <string name="telefon_mehrere_rechner">تبقى الحواسيب المقترنة محفوظة. اختر الحاسوب الذي تريد استخدامه الآن.</string>
     <string name="telefon_anrufe_erlauben">السماح بالمكالمات</string>
     <string name="telefon_anruf_berechtigungen">تفعيل أذونات Android</string>
+    <string name="kontakt_review_titel">مراجعة تغييرات جهات الاتصال</string>
+    <string name="kontakt_review_lokal">جهة الاتصال الحالية</string>
+    <string name="kontakt_review_fern">جهة الاتصال الواردة</string>
+    <string name="kontakt_review_behalten">الاحتفاظ بجهة الاتصال الحالية</string>
+    <string name="kontakt_review_neu">إنشاء جهة اتصال منفصلة</string>
+    <string name="kontakt_review_neueste">استخدام النسخة الأحدث</string>
+    <string name="kontakt_review_rest">تطبيق هذا الاختيار على التعارضات المتبقية ذات المطابقة المؤكدة</string>
+    <string name="kontakt_review_geburtsname">اسم العائلة عند الولادة: %1$s</string>
 </resources>

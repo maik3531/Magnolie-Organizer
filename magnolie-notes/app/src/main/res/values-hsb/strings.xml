@@ -400,4 +400,12 @@
     <string name="telefon_mehrere_rechner">Sparowane ličaki wostanu składowane. Wubjerće ličak, kotryž chceće nětko wužiwać.</string>
     <string name="telefon_anrufe_erlauben">Wołanja dowolić</string>
     <string name="telefon_anruf_berechtigungen">Dowolnosće Android zmóžnić</string>
+    <string name="kontakt_review_titel">Změny kontaktow přepruwować</string>
+    <string name="kontakt_review_lokal">Eksistowacy kontakt</string>
+    <string name="kontakt_review_fern">Přichadźacy kontakt</string>
+    <string name="kontakt_review_behalten">Eksistowacy kontakt wobchować</string>
+    <string name="kontakt_review_neu">Wosebity kontakt załožić</string>
+    <string name="kontakt_review_neueste">Nowšu wersiju wužiwać</string>
+    <string name="kontakt_review_rest">Tutón wuběr na zbytk jednozmyslnje přirjadowanych konfliktow nałožić</string>
+    <string name="kontakt_review_geburtsname">Rodźene mjeno: %1$s</string>
 </resources>

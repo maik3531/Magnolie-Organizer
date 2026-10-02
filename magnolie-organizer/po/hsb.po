@@ -86,10 +86,6 @@ msgid ""
 msgstr ""
 "%(branch)s chce termin dźělić. Prošu w Organizatorje přiwzać abo wotpokazać."
 
-msgid ""
-"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
-msgstr "Zjednoćene: %(cards)s. Kopije su w papjerowym košu pod „Duplikaty“."
-
 msgid "%(count)s anniversary"
 msgid_plural "%(count)s anniversaries"
 msgstr[0] "Ličba róčnic: %(count)s"
@@ -131,13 +127,6 @@ msgstr[0] "Ličba kontaktow: %(count)s"
 msgstr[1] "Ličba kontaktow: %(count)s"
 msgstr[2] "Ličba kontaktow: %(count)s"
 msgstr[3] "Ličba kontaktow: %(count)s"
-
-msgid "%(count)s contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "Ličba kontaktnych kartow: %(count)s"
-msgstr[1] "Ličba kontaktnych kartow: %(count)s"
-msgstr[2] "Ličba kontaktnych kartow: %(count)s"
-msgstr[3] "Ličba kontaktnych kartow: %(count)s"
 
 msgid "%(count)s contact imported."
 msgid_plural "%(count)s contacts imported."
@@ -194,13 +183,6 @@ msgstr[0] "Namakane wuslědki: %(count)s"
 msgstr[1] "Namakane wuslědki: %(count)s"
 msgstr[2] "Namakane wuslědki: %(count)s"
 msgstr[3] "Namakane wuslědki: %(count)s"
-
-msgid "%(count)s group"
-msgid_plural "%(count)s groups"
-msgstr[0] "Ličba skupin: %(count)s"
-msgstr[1] "Ličba skupin: %(count)s"
-msgstr[2] "Ličba skupin: %(count)s"
-msgstr[3] "Ličba skupin: %(count)s"
 
 msgid "%(count)s holiday period"
 msgid_plural "%(count)s holiday periods"
@@ -1268,6 +1250,9 @@ msgstr "Berlin"
 
 msgid "Bern"
 msgstr "Bern"
+
+msgid "Birth name: %(name)s"
+msgstr "Rodźene mjeno: %(name)s"
 
 msgid "Birthday"
 msgstr "Narodniny"
@@ -2894,21 +2879,6 @@ msgstr "Formatowy region"
 msgid "Forward Secrecy"
 msgstr "Přednosna tajnosć (Forward Secrecy)"
 
-msgid ""
-"Found %(groups)s containing %(cards)s in total, for example:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"The most complete card in each group is retained, and missing fields are "
-"filled from the others. The remaining cards are moved to the recycle bin as "
-"“Duplicates” and can be restored from there. Continue?"
-msgstr ""
-"Namakane %(groups)s skupin z dohromady %(cards)s kartami, na přikład:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"Najdospołniša karta w kóždej skupinje so wobchowa a falowace pola so z "
-"druhich wudospołnja. Zbytne karty so jako „Duplikaty“ do papjeroweho koša "
-"přesunu a dadźa so wot tam wobnowić. Pokročować?"
-
 #, python-format, javascript-format
 msgid "Found – %s."
 msgstr "Namakane – %s."
@@ -3128,9 +3098,6 @@ msgstr "Protykowy dataj importować"
 
 msgid "Import contacts"
 msgstr "Kontakty importować"
-
-msgid "Import contacts additively"
-msgstr "Kontakty přidawajo importować"
 
 msgid "Import failed."
 msgstr "Import njeje so poradźił."
@@ -4345,13 +4312,6 @@ msgstr[1] "%(count)s dokónčenja dóńdźe wot Magnolienbauma."
 msgstr[2] "%(count)s dokónčenja dóńdźe wot Magnolienbauma."
 msgstr[3] "%(count)s dokónčenja dóńdźe wot Magnolienbauma."
 
-msgid "One duplicate contact card was"
-msgid_plural "%(count)s duplicate contact cards were"
-msgstr[0] "Jedna dwójna kontaktna karta bě"
-msgstr[1] "%(count)s dwójne kontaktne karty běchu"
-msgstr[2] "%(count)s dwójne kontaktne karty běchu"
-msgstr[3] "%(count)s dwójne kontaktne karty běchu"
-
 msgid "One moment …"
 msgstr "Wokomik …"
 
@@ -4949,6 +4909,12 @@ msgstr ""
 "Wótřečaki a mikrofon PC za zawołanja na mojim swójskim Bluetooth-telefonje "
 "preferować"
 
+msgid ""
+"Prefer newer contact versions when reliable modification times are available."
+msgstr ""
+"Nowše wersije kontaktow preferować, jeli su spušćomne časy změnow k "
+"dispoziciji."
+
 msgid "Preferred backup folder"
 msgstr "Preferowany rjadowak zawěsćenjow"
 
@@ -5097,13 +5063,6 @@ msgstr "Wužiwarske daty so čitaja"
 msgid "Ready."
 msgstr "Hotowo."
 
-msgid ""
-"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
-"every removed card is kept in the recycle bin."
-msgstr ""
-"Chceće woprawdźe %(cards)s zjednoćić? Přepruwujće wuslědk potom dokładnje. "
-"Kopija kóždeje wotstronjeneje karty so w papjerowym košu wobchowa."
-
 msgid "Reason"
 msgstr "Přičina"
 
@@ -5151,6 +5110,9 @@ msgstr "Tutu poskitku na přeco wotpokazać?"
 
 msgid "Related tasks"
 msgstr "Zwisowace nadawki"
+
+msgid "Reliable modification times are not available for both versions."
+msgstr "Za wobě wersiji njejsu spušćomne časy změnow k dispoziciji."
 
 msgid "Remind about appointments in the background"
 msgstr "Na terminy w pozadku dopominać"
@@ -6675,6 +6637,9 @@ msgstr "Kónčny datum njemóže před startowym datumom być."
 msgid "The entered fingerprint is incomplete."
 msgstr "Zapodaty porstowy wotćišć njeje dospołny."
 
+msgid "The entry could not be found."
+msgstr "Zapisk njebu namakany."
+
 msgid "The file could not be read."
 msgstr "Dataj njehodźeše so čitać."
 
@@ -7063,6 +7028,13 @@ msgstr "Papjerowy koš je so wuprózdnił."
 
 msgid "The regional settings could not be saved."
 msgstr "Regionalne nastajenja njedachu so składować."
+
+msgid ""
+"The remote contact was deleted. Keep this contact and restore it on the next "
+"synchronization?"
+msgstr ""
+"Zdaleny kontakt bu zhašeny. Tutón kontakt wobchować a při přichodnej "
+"synchronizaciji wobnowić?"
 
 msgid "The request is unreadable."
 msgstr "Naprašowanje njeje čitajomne."
@@ -7480,13 +7452,6 @@ msgstr "Tuta powěsć je hižo dóstata."
 msgid "This notebook is still empty."
 msgstr "Tutón noticnik je hišće prózdny."
 
-msgid ""
-"This one-time import only adds or enriches contacts. It does not synchronize "
-"or delete contacts."
-msgstr ""
-"Tutón jónkróćny import kontakty jenož přidawa abo wudospołnja. Kontakty "
-"njesynchronizuje ani njezhaša."
-
 msgid "This person's anniversaries"
 msgstr "Róčnicy tuteje wosoby"
 
@@ -7790,6 +7755,9 @@ msgstr "Adresy kontakta wužiwać"
 
 msgid "Use default"
 msgstr "Standard wužiwać"
+
+msgid "Use newer version"
+msgstr "Nowšu wersiju wužiwać"
 
 msgid "Use numeric keypad"
 msgstr "Numerisku tastaturu wužiwać"
@@ -8163,9 +8131,6 @@ msgstr "Lětny planowak %(year)s"
 msgid "Yes"
 msgstr "Haj"
 
-msgid "Yes, merge"
-msgstr "Haj, zjednoćić"
-
 msgid "Yes, the code matches"
 msgstr "Haj, kod so kryje"
 
@@ -8480,13 +8445,6 @@ msgstr[1] "Tež %(count)s backupy běchu zaklučowane"
 msgstr[2] "Tež %(count)s backupy běchu zaklučowane"
 msgstr[3] "Tež %(count)s backupy běchu zaklučowane"
 
-msgid "one contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "Jedna kontaktowa karta"
-msgstr[1] "%(count)s kontaktowe karty"
-msgstr[2] "%(count)s kontaktowe karty"
-msgstr[3] "%(count)s kontaktowe karty"
-
 msgid "one recovery snapshot was encrypted as well"
 msgid_plural "%(count)s recovery snapshots were encrypted as well"
 msgstr[0] "Jedyn wuchowanski wobraz bě tohorunja zaklučowany"
@@ -8661,6 +8619,74 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
+
+#~ msgid ""
+#~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+#~ msgstr "Zjednoćene: %(cards)s. Kopije su w papjerowym košu pod „Duplikaty“."
+
+#~ msgid "%(count)s contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "Ličba kontaktnych kartow: %(count)s"
+#~ msgstr[1] "Ličba kontaktnych kartow: %(count)s"
+#~ msgstr[2] "Ličba kontaktnych kartow: %(count)s"
+#~ msgstr[3] "Ličba kontaktnych kartow: %(count)s"
+
+#~ msgid "%(count)s group"
+#~ msgid_plural "%(count)s groups"
+#~ msgstr[0] "Ličba skupin: %(count)s"
+#~ msgstr[1] "Ličba skupin: %(count)s"
+#~ msgstr[2] "Ličba skupin: %(count)s"
+#~ msgstr[3] "Ličba skupin: %(count)s"
+
+#~ msgid ""
+#~ "Found %(groups)s containing %(cards)s in total, for example:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "The most complete card in each group is retained, and missing fields are "
+#~ "filled from the others. The remaining cards are moved to the recycle bin "
+#~ "as “Duplicates” and can be restored from there. Continue?"
+#~ msgstr ""
+#~ "Namakane %(groups)s skupin z dohromady %(cards)s kartami, na přikład:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "Najdospołniša karta w kóždej skupinje so wobchowa a falowace pola so z "
+#~ "druhich wudospołnja. Zbytne karty so jako „Duplikaty“ do papjeroweho koša "
+#~ "přesunu a dadźa so wot tam wobnowić. Pokročować?"
+
+#~ msgid "Import contacts additively"
+#~ msgstr "Kontakty přidawajo importować"
+
+#~ msgid "One duplicate contact card was"
+#~ msgid_plural "%(count)s duplicate contact cards were"
+#~ msgstr[0] "Jedna dwójna kontaktna karta bě"
+#~ msgstr[1] "%(count)s dwójne kontaktne karty běchu"
+#~ msgstr[2] "%(count)s dwójne kontaktne karty běchu"
+#~ msgstr[3] "%(count)s dwójne kontaktne karty běchu"
+
+#~ msgid ""
+#~ "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+#~ "every removed card is kept in the recycle bin."
+#~ msgstr ""
+#~ "Chceće woprawdźe %(cards)s zjednoćić? Přepruwujće wuslědk potom "
+#~ "dokładnje. Kopija kóždeje wotstronjeneje karty so w papjerowym košu "
+#~ "wobchowa."
+
+#~ msgid ""
+#~ "This one-time import only adds or enriches contacts. It does not "
+#~ "synchronize or delete contacts."
+#~ msgstr ""
+#~ "Tutón jónkróćny import kontakty jenož přidawa abo wudospołnja. Kontakty "
+#~ "njesynchronizuje ani njezhaša."
+
+#~ msgid "Yes, merge"
+#~ msgstr "Haj, zjednoćić"
+
+#~ msgid "one contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "Jedna kontaktowa karta"
+#~ msgstr[1] "%(count)s kontaktowe karty"
+#~ msgstr[2] "%(count)s kontaktowe karty"
+#~ msgstr[3] "%(count)s kontaktowe karty"
 
 #~ msgid "KDE Connect for SMS"
 #~ msgstr "KDE Connect za SMS"

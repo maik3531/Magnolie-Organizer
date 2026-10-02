@@ -1354,7 +1354,7 @@ def test_provider_vcard_versions_preserve_uid_unknown_fields_and_parameters():
     assert ";X-SERVICE-TYPE=signal:0203 1" in written
 
 
-def test_nextcloud_changed_etag_beats_stagnant_contact_rev(monkeypatch):
+def test_nextcloud_changed_etag_without_contact_baseline_requires_review(monkeypatch):
     href = "https://cloud.example/addressbook/contact.vcf"
     dav = SyncDav({"calendar": [], "addressbook": [{"href": href,
         "etag": '"new"', "data": contact_vcf(name="Remote neu", rev="20200101T000000Z")}]})
@@ -1369,7 +1369,10 @@ def test_nextcloud_changed_etag_beats_stagnant_contact_rev(monkeypatch):
         "davHref": href, "davEtag": '"old"'}]
     probe = run_sync(monkeypatch, dav, data, calendar=False, contacts=True)
     contact = probe.payload["kontakte"][0]
-    assert contact["nachname"] == "Remote neu" and not dav.puts
+    assert len(probe.payload["kontakte"]) == 1 and contact["nachname"] == "Example" and not dav.puts
+    assert contact["kontaktProviderKonflikte"][uid]["kontakt"]["nachname"] == "Remote neu"
+    assert contact["kontaktProviderKonflikte"][uid]["mapping"]["etag"] == '"new"'
+    assert contact["syncQuellen"][uid]["etag"] == '"old"'
     assert contact["davEtag"] == '"new"'
 
 
@@ -1455,6 +1458,15 @@ def test_dav_etag_conflict_uses_item_baseline_and_survives_saved_followups(
         state = run_sync(monkeypatch, dav, json.loads(persisted.read_text()),
                          calendar=not contact, contacts=contact).payload
         original = next(item for item in state[field] if item["uid"] == "synthetic")
+        if contact and local_changed:
+            assert original["nachname"] == "BASE" and original["notiz"] == "LOCAL"
+            assert original["syncQuellen"][source]["etag"] == '"base"'
+            pending = original["kontaktProviderKonflikte"][source]
+            assert pending["kontakt"]["nachname"] == "REMOTE"
+            assert pending["mapping"]["etag"] == '"remote"'
+            assert len(state[field]) == 1 and not dav.puts
+            assert resources[kind][0]["data"] == text.replace("BASE", "REMOTE")
+            continue
         assert original["nachname" if contact else "titel"] == "REMOTE"
         if contact:
             assert original["geaendert"] == original["syncQuellen"][source]["geaendert"] == 0
@@ -1481,7 +1493,7 @@ def test_dav_etag_conflict_uses_item_baseline_and_survives_saved_followups(
         reimported = run_sync(monkeypatch, dav, json.loads(persisted.read_text()),
                               calendar=not contact, contacts=contact).payload
         assert {item["uid"] for item in reimported[field]} == {item["uid"] for item in state[field]}
-        assert len(dav.puts) == int(local_changed)
+        assert len(dav.puts) == int(local_changed and not contact)
 
 
 @pytest.mark.parametrize(("properties", "expected"), [

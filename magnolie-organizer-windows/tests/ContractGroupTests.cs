@@ -532,6 +532,26 @@ internal static class ContractGroupTests
 
     private static void NativeExchangeRegressions()
     {
+        foreach (var (revision, reliable) in new[] {
+            ("REV:20260101T120000Z", true), ("REV:20260101T120000", false),
+            ("REV:20260101T140000+0200", true), ("REV:20260101T063000-05:30", true),
+            ("REV:2026-01-01T14:00:00+02:00", true), ("REV:2026-01-01T06:30:00-0530", true),
+            ("REV:20260101t120000z", true), ("REV:20260101T120000ZZ", false),
+            ("REV:20260101T120000+1460", false), ("REV:20260101T120000+1401", false),
+            ("REV:20260230T120000Z", false),
+            ("REV:20260101", false), ("REV:20260101T120000Z\r\nREV:20260102T120000Z", false), ("", false) })
+        {
+            var parsed = ExchangeCodec.ParseVCard("BEGIN:VCARD\r\nVERSION:3.0\r\nN:Person;Test;;;\r\n" +
+                revision + "\r\nEND:VCARD\r\n").Kontakte[0]!;
+            var original = parsed["vcardRev"]!.GetValue<long>();
+            TestAssert.That((original > 0) == reliable, "Only one timezone-qualified REV may supply an original content time.");
+            if (reliable) TestAssert.That(original == parsed["geaendert"]!.GetValue<long>() && original == 1767268800000L,
+                "Equivalent explicit time zones must preserve the same original REV instant.");
+            parsed["geaendert"] = 0;
+            using var unknown = JsonDocument.Parse(new JsonArray(parsed.DeepClone()).ToJsonString());
+            TestAssert.That(!ExchangeCodec.WriteVCard(unknown.RootElement).Text.Contains("REV:", StringComparison.Ordinal),
+                "Unknown modification time was replaced with export time.");
+        }
         foreach (var name in new[] { "N:Van Dame;;;;\r\nFN:Van Dame", "N:;Anna Maria;;;\r\nFN:Anna Maria",
             "FN:Van Dame", "N:Smith,Jones;Anna,Maria;Grace;Dr.;Jr.\r\nFN:Different display",
             "N:Smith\\,Jones;Anna\\,Maria;;;\r\nFN:Literal commas" })
@@ -754,6 +774,30 @@ internal static class ContractGroupTests
         BaumContactSyncContract.Validate(valid);
         var yearless = valid.DeepClone(); yearless["kontakt"]!["geburtstag"] = "--02-29";
         BaumContactSyncContract.Validate(yearless);
+        var dated = valid.DeepClone().AsObject(); dated["fassung"] = 3; dated["inhaltGeaendert"] = 1760000000000L;
+        dated["kontakt"]!["anzeigename"] = ""; dated["kontakt"]!["jubilaeum"] = ""; dated["kontakt"]!["vcardName"] = new JsonArray();
+        BaumContactSyncContract.Validate(dated);
+        foreach (var invalidTime in new JsonNode?[] { null, JsonValue.Create(-1), JsonValue.Create(true), JsonValue.Create("1760000000000"), JsonValue.Create(1.5), JsonValue.Create(253402300800000L) })
+        {
+            var invalidDated = dated.DeepClone(); invalidDated["inhaltGeaendert"] = invalidTime?.DeepClone();
+            TestAssert.Throws<InvalidDataException>(() => BaumContactSyncContract.Validate(invalidDated),
+                "A malformed content timestamp was accepted.");
+        }
+        var oldPeer = new JsonObject { ["bestaetigt"] = true, ["kontaktFaehigkeiten"] = BaumContactSyncContract.Capabilities(false) };
+        var compatible = BaumContactSyncContract.ForPeer(oldPeer, dated);
+        TestAssert.That(compatible["fassung"]!.GetValue<int>() == 2 && compatible["inhaltGeaendert"] is null &&
+            JsonNode.DeepEquals(compatible["kontakt"], dated["kontakt"]) && dated["fassung"]!.GetValue<int>() == 3,
+            "Downgrading timestamp metadata changed contact content or the input payload.");
+        BaumContactSyncContract.Validate(compatible);
+        var modernCapabilities = BaumContactSyncContract.Capabilities(false, 3);
+        BaumContactSyncContract.ValidateCapabilities(modernCapabilities);
+        oldPeer["kontaktFaehigkeiten"] = modernCapabilities;
+        TestAssert.That(BaumContactSyncContract.PeerVersion(oldPeer, "kontakt_sync") == 3 &&
+            BaumContactSyncContract.PeerVersion(oldPeer, "kontakt_import") == 2,
+            "Contact timestamp capability changed the independent import protocol.");
+        oldPeer["bestaetigt"] = false;
+        TestAssert.That(BaumContactSyncContract.PeerVersion(oldPeer, "kontakt_sync") == 1,
+            "An unconfirmed capability enabled the new format.");
         foreach (var invalid in new[]
         {
             """{"art":"kontakt_sync","fassung":2,"freigabeId":"a","version":1,"quelle":"a","geaendert":1,"kontakt":{"vorname":"A","nachname":"","firma":"","notiz":"","geburtstag":"","telefone":[],"emailEintraege":[],"anschriften":[]}}""",

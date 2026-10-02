@@ -80,10 +80,6 @@ msgid ""
 "Organizer."
 msgstr "يريد %(branch)s مشاركة موعد. يُرجى قبوله أو رفضه في Organizer."
 
-msgid ""
-"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
-msgstr "تم دمج %(cards)s. حُفظت النسخ ضمن «التكرارات» في سلة المحذوفات."
-
 msgid "%(count)s anniversary"
 msgid_plural "%(count)s anniversaries"
 msgstr[0] "عدد المناسبات السنوية: %(count)s"
@@ -137,15 +133,6 @@ msgstr[2] "عدد جهات الاتصال: %(count)s"
 msgstr[3] "عدد جهات الاتصال: %(count)s"
 msgstr[4] "عدد جهات الاتصال: %(count)s"
 msgstr[5] "عدد جهات الاتصال: %(count)s"
-
-msgid "%(count)s contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "عدد بطاقات جهات الاتصال: %(count)s"
-msgstr[1] "عدد بطاقات جهات الاتصال: %(count)s"
-msgstr[2] "عدد بطاقات جهات الاتصال: %(count)s"
-msgstr[3] "عدد بطاقات جهات الاتصال: %(count)s"
-msgstr[4] "عدد بطاقات جهات الاتصال: %(count)s"
-msgstr[5] "عدد بطاقات جهات الاتصال: %(count)s"
 
 msgid "%(count)s contact imported."
 msgid_plural "%(count)s contacts imported."
@@ -218,15 +205,6 @@ msgstr[2] "عدد النتائج: %(count)s"
 msgstr[3] "عدد النتائج: %(count)s"
 msgstr[4] "عدد النتائج: %(count)s"
 msgstr[5] "عدد النتائج: %(count)s"
-
-msgid "%(count)s group"
-msgid_plural "%(count)s groups"
-msgstr[0] "عدد المجموعات: %(count)s"
-msgstr[1] "عدد المجموعات: %(count)s"
-msgstr[2] "عدد المجموعات: %(count)s"
-msgstr[3] "عدد المجموعات: %(count)s"
-msgstr[4] "عدد المجموعات: %(count)s"
-msgstr[5] "عدد المجموعات: %(count)s"
 
 msgid "%(count)s holiday period"
 msgid_plural "%(count)s holiday periods"
@@ -1335,6 +1313,9 @@ msgstr "برلين"
 
 msgid "Bern"
 msgstr "برن"
+
+msgid "Birth name: %(name)s"
+msgstr "اسم العائلة عند الولادة: %(name)s"
 
 msgid "Birthday"
 msgstr "عيد الميلاد"
@@ -2916,22 +2897,6 @@ msgstr "منطقة التنسيق"
 msgid "Forward Secrecy"
 msgstr "السرية الأمامية (Forward Secrecy)"
 
-msgid ""
-"Found %(groups)s containing %(cards)s in total, for example:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"The most complete card in each group is retained, and missing fields are "
-"filled from the others. The remaining cards are moved to the recycle bin as "
-"“Duplicates” and can be restored from there. Continue?"
-msgstr ""
-"تم العثور على %(groups)s من المجموعات تضم إجمالًا %(cards)s من البطاقات، "
-"مثلًا:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"يُحتفظ بالبطاقة الأكثر اكتمالًا في كل مجموعة، وتُستكمل الحقول الناقصة من "
-"البطاقات الأخرى. وتُنقل البطاقات المتبقية إلى سلة المحذوفات تحت «التكرارات» "
-"ويمكن استعادتها منها. هل تريد المتابعة؟"
-
 #, python-format, javascript-format
 msgid "Found – %s."
 msgstr "تم العثور – %s."
@@ -3150,9 +3115,6 @@ msgstr "استيراد ملف تقويم"
 
 msgid "Import contacts"
 msgstr "استيراد جهات الاتصال"
-
-msgid "Import contacts additively"
-msgstr "استيراد جهات الاتصال بالإضافة"
 
 msgid "Import failed."
 msgstr "تعذّر الاستيراد."
@@ -4359,15 +4321,6 @@ msgstr[3] "تم استلام %(count)s تحديث إكمال من Magnolienbaum.
 msgstr[4] "تم استلام %(count)s تحديث إكمال من Magnolienbaum."
 msgstr[5] "تم استلام %(count)s تحديث إكمال من Magnolienbaum."
 
-msgid "One duplicate contact card was"
-msgid_plural "%(count)s duplicate contact cards were"
-msgstr[0] "تم إنشاء بطاقة اتصال مكررة واحدة"
-msgstr[1] "كانت هناك بطاقتا اتصال مكررتان %(count)s"
-msgstr[2] "كانت هناك بطاقتا اتصال مكررتان %(count)s"
-msgstr[3] "كانت هناك بطاقتا اتصال مكررتان %(count)s"
-msgstr[4] "كانت هناك بطاقتا اتصال مكررتان %(count)s"
-msgstr[5] "كانت هناك بطاقتا اتصال مكررتان %(count)s"
-
 msgid "One moment …"
 msgstr "لحظة …"
 
@@ -4962,6 +4915,10 @@ msgstr ""
 "تفضيل مكبرات صوت الكمبيوتر وميكروفونه للمكالمات على هاتفي الشخصي المتصل عبر "
 "Bluetooth"
 
+msgid ""
+"Prefer newer contact versions when reliable modification times are available."
+msgstr "تفضيل النسخ الأحدث لجهات الاتصال عند توفر أوقات تعديل موثوقة."
+
 msgid "Preferred backup folder"
 msgstr "مجلد النسخ الاحتياطي المفضّل"
 
@@ -5110,13 +5067,6 @@ msgstr "قراءة بيانات المستخدم"
 msgid "Ready."
 msgstr "جاهز."
 
-msgid ""
-"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
-"every removed card is kept in the recycle bin."
-msgstr ""
-"هل تريد حقًا دمج %(cards)s؟ راجع النتيجة بعناية بعد ذلك. يُحتفظ بنسخة من كل "
-"بطاقة تمت إزالتها في سلة المحذوفات."
-
 msgid "Reason"
 msgstr "السبب"
 
@@ -5162,6 +5112,9 @@ msgstr "رفض هذا العرض نهائيًا؟"
 
 msgid "Related tasks"
 msgstr "المهام المرتبطة"
+
+msgid "Reliable modification times are not available for both versions."
+msgstr "لا تتوفر أوقات تعديل موثوقة لكلا النسختين."
 
 msgid "Remind about appointments in the background"
 msgstr "التذكير بالمواعيد في الخلفية"
@@ -6663,6 +6616,9 @@ msgstr "لا يمكن أن يسبق تاريخ الانتهاء تاريخ ال�
 msgid "The entered fingerprint is incomplete."
 msgstr "البصمة المدخلة غير مكتملة."
 
+msgid "The entry could not be found."
+msgstr "تعذر العثور على الإدخال."
+
 msgid "The file could not be read."
 msgstr "تعذر قراءة الملف."
 
@@ -7039,6 +6995,13 @@ msgstr "أُفرغت سلة المحذوفات."
 
 msgid "The regional settings could not be saved."
 msgstr "تعذر حفظ الإعدادات الإقليمية."
+
+msgid ""
+"The remote contact was deleted. Keep this contact and restore it on the next "
+"synchronization?"
+msgstr ""
+"حُذفت جهة الاتصال البعيدة. هل تريد الاحتفاظ بجهة الاتصال هذه واستعادتها عند "
+"المزامنة التالية؟"
 
 msgid "The request is unreadable."
 msgstr "الطلب غير قابل للقراءة."
@@ -7448,13 +7411,6 @@ msgstr "تم استلام هذه الرسالة من قبل."
 msgid "This notebook is still empty."
 msgstr "دفتر الملاحظات هذا ما زال فارغًا."
 
-msgid ""
-"This one-time import only adds or enriches contacts. It does not synchronize "
-"or delete contacts."
-msgstr ""
-"لا يضيف هذا الاستيراد لمرة واحدة إلا جهات الاتصال أو معلومات إليها. وهو لا "
-"يزامن جهات الاتصال ولا يحذفها."
-
 msgid "This person's anniversaries"
 msgstr "المناسبات السنوية لهذا الشخص"
 
@@ -7754,6 +7710,9 @@ msgstr "استخدام عناوين جهة الاتصال"
 
 msgid "Use default"
 msgstr "استخدام الافتراضي"
+
+msgid "Use newer version"
+msgstr "استخدام النسخة الأحدث"
 
 msgid "Use numeric keypad"
 msgstr "استخدام لوحة الأرقام"
@@ -8120,9 +8079,6 @@ msgstr "مخطِّط سنة %(year)s"
 msgid "Yes"
 msgstr "نعم"
 
-msgid "Yes, merge"
-msgstr "نعم، دمج"
-
 msgid "Yes, the code matches"
 msgstr "نعم، الرمز متطابق"
 
@@ -8448,15 +8404,6 @@ msgstr[3] "تمت أيضًا تشفير نسخ %(count)s الاحتياطية"
 msgstr[4] "تمت أيضًا تشفير نسخ %(count)s الاحتياطية"
 msgstr[5] "تمت أيضًا تشفير نسخ %(count)s الاحتياطية"
 
-msgid "one contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "بطاقة اتصال واحدة"
-msgstr[1] "بطاقات الاتصال %(count)s"
-msgstr[2] "بطاقات الاتصال %(count)s"
-msgstr[3] "بطاقات الاتصال %(count)s"
-msgstr[4] "بطاقات الاتصال %(count)s"
-msgstr[5] "بطاقات الاتصال %(count)s"
-
 msgid "one recovery snapshot was encrypted as well"
 msgid_plural "%(count)s recovery snapshots were encrypted as well"
 msgstr[0] "ﺎﻀًﻳﺃ ﺓﺪﺣﺍﻭ ﺩﺍﺩﺮﺘﺳﺍ ﺔﻄﻘﻟ ﺮﻴﻔﺸﺗ ﻢﺗ"
@@ -8632,6 +8579,82 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
+
+#~ msgid ""
+#~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+#~ msgstr "تم دمج %(cards)s. حُفظت النسخ ضمن «التكرارات» في سلة المحذوفات."
+
+#~ msgid "%(count)s contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "عدد بطاقات جهات الاتصال: %(count)s"
+#~ msgstr[1] "عدد بطاقات جهات الاتصال: %(count)s"
+#~ msgstr[2] "عدد بطاقات جهات الاتصال: %(count)s"
+#~ msgstr[3] "عدد بطاقات جهات الاتصال: %(count)s"
+#~ msgstr[4] "عدد بطاقات جهات الاتصال: %(count)s"
+#~ msgstr[5] "عدد بطاقات جهات الاتصال: %(count)s"
+
+#~ msgid "%(count)s group"
+#~ msgid_plural "%(count)s groups"
+#~ msgstr[0] "عدد المجموعات: %(count)s"
+#~ msgstr[1] "عدد المجموعات: %(count)s"
+#~ msgstr[2] "عدد المجموعات: %(count)s"
+#~ msgstr[3] "عدد المجموعات: %(count)s"
+#~ msgstr[4] "عدد المجموعات: %(count)s"
+#~ msgstr[5] "عدد المجموعات: %(count)s"
+
+#~ msgid ""
+#~ "Found %(groups)s containing %(cards)s in total, for example:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "The most complete card in each group is retained, and missing fields are "
+#~ "filled from the others. The remaining cards are moved to the recycle bin "
+#~ "as “Duplicates” and can be restored from there. Continue?"
+#~ msgstr ""
+#~ "تم العثور على %(groups)s من المجموعات تضم إجمالًا %(cards)s من البطاقات، "
+#~ "مثلًا:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "يُحتفظ بالبطاقة الأكثر اكتمالًا في كل مجموعة، وتُستكمل الحقول الناقصة من "
+#~ "البطاقات الأخرى. وتُنقل البطاقات المتبقية إلى سلة المحذوفات تحت "
+#~ "«التكرارات» ويمكن استعادتها منها. هل تريد المتابعة؟"
+
+#~ msgid "Import contacts additively"
+#~ msgstr "استيراد جهات الاتصال بالإضافة"
+
+#~ msgid "One duplicate contact card was"
+#~ msgid_plural "%(count)s duplicate contact cards were"
+#~ msgstr[0] "تم إنشاء بطاقة اتصال مكررة واحدة"
+#~ msgstr[1] "كانت هناك بطاقتا اتصال مكررتان %(count)s"
+#~ msgstr[2] "كانت هناك بطاقتا اتصال مكررتان %(count)s"
+#~ msgstr[3] "كانت هناك بطاقتا اتصال مكررتان %(count)s"
+#~ msgstr[4] "كانت هناك بطاقتا اتصال مكررتان %(count)s"
+#~ msgstr[5] "كانت هناك بطاقتا اتصال مكررتان %(count)s"
+
+#~ msgid ""
+#~ "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+#~ "every removed card is kept in the recycle bin."
+#~ msgstr ""
+#~ "هل تريد حقًا دمج %(cards)s؟ راجع النتيجة بعناية بعد ذلك. يُحتفظ بنسخة من كل "
+#~ "بطاقة تمت إزالتها في سلة المحذوفات."
+
+#~ msgid ""
+#~ "This one-time import only adds or enriches contacts. It does not "
+#~ "synchronize or delete contacts."
+#~ msgstr ""
+#~ "لا يضيف هذا الاستيراد لمرة واحدة إلا جهات الاتصال أو معلومات إليها. وهو "
+#~ "لا يزامن جهات الاتصال ولا يحذفها."
+
+#~ msgid "Yes, merge"
+#~ msgstr "نعم، دمج"
+
+#~ msgid "one contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "بطاقة اتصال واحدة"
+#~ msgstr[1] "بطاقات الاتصال %(count)s"
+#~ msgstr[2] "بطاقات الاتصال %(count)s"
+#~ msgstr[3] "بطاقات الاتصال %(count)s"
+#~ msgstr[4] "بطاقات الاتصال %(count)s"
+#~ msgstr[5] "بطاقات الاتصال %(count)s"
 
 #~ msgid "KDE Connect for SMS"
 #~ msgstr "KDE Connect لـ SMS"

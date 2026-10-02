@@ -81,10 +81,6 @@ msgid ""
 "Organizer."
 msgstr "%(branch)s vil dele en aftale. Accepter eller afvis den i Organizer."
 
-msgid ""
-"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
-msgstr "%(cards)s flettet. Kopierne ligger under “Dubletter” i papirkurven."
-
 msgid "%(count)s anniversary"
 msgid_plural "%(count)s anniversaries"
 msgstr[0] "%(count)s mærkedag"
@@ -114,11 +110,6 @@ msgid "%(count)s contact"
 msgid_plural "%(count)s contacts"
 msgstr[0] "%(count)s kontakt"
 msgstr[1] "%(count)s kontakter"
-
-msgid "%(count)s contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "%(count)s kontaktkort"
-msgstr[1] "%(count)s kontaktkort"
 
 msgid "%(count)s contact imported."
 msgid_plural "%(count)s contacts imported."
@@ -159,11 +150,6 @@ msgid "%(count)s found"
 msgid_plural "%(count)s found"
 msgstr[0] "%(count)s fundet"
 msgstr[1] "%(count)s fundet"
-
-msgid "%(count)s group"
-msgid_plural "%(count)s groups"
-msgstr[0] "%(count)s gruppe"
-msgstr[1] "%(count)s grupper"
 
 msgid "%(count)s holiday period"
 msgid_plural "%(count)s holiday periods"
@@ -1180,6 +1166,9 @@ msgstr "Berlin"
 
 msgid "Bern"
 msgstr "Bern"
+
+msgid "Birth name: %(name)s"
+msgstr "Fødenavn: %(name)s"
 
 msgid "Birthday"
 msgstr "Fødselsdag"
@@ -2793,21 +2782,6 @@ msgstr "Formatområde"
 msgid "Forward Secrecy"
 msgstr "Forward Secrecy (fremadrettet hemmeligholdelse)"
 
-msgid ""
-"Found %(groups)s containing %(cards)s in total, for example:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"The most complete card in each group is retained, and missing fields are "
-"filled from the others. The remaining cards are moved to the recycle bin as "
-"“Duplicates” and can be restored from there. Continue?"
-msgstr ""
-"Fandt %(groups)s grupper med i alt %(cards)s kort, for eksempel:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"Det mest komplette kort i hver gruppe bevares, og manglende felter udfyldes "
-"fra de andre. De resterende kort flyttes til papirkurven som “Dubletter” og "
-"kan gendannes derfra. Fortsæt?"
-
 #, python-format, javascript-format
 msgid "Found – %s."
 msgstr "Fundet – %s."
@@ -3026,9 +3000,6 @@ msgstr "Importér kalenderfil"
 
 msgid "Import contacts"
 msgstr "Importér kontakter"
-
-msgid "Import contacts additively"
-msgstr "Importér kontakter som supplement"
 
 msgid "Import failed."
 msgstr "Importen mislykkedes."
@@ -4246,11 +4217,6 @@ msgstr[0] "Én opdatering om fuldførelse blev modtaget fra Magnolienbaum."
 msgstr[1] ""
 "%(count)s opdateringer om fuldførelse blev modtaget fra Magnolienbaum."
 
-msgid "One duplicate contact card was"
-msgid_plural "%(count)s duplicate contact cards were"
-msgstr[0] "Der var ét dubleret kontaktkort"
-msgstr[1] "Der var %(count)s dublerede kontaktkort"
-
 msgid "One moment …"
 msgstr "Et øjeblik …"
 
@@ -4823,6 +4789,12 @@ msgid "Prefer PC speakers and microphone for calls on my own Bluetooth phone"
 msgstr ""
 "Foretræk pc-højttalere og mikrofon til opkald på min egen Bluetooth-telefon"
 
+msgid ""
+"Prefer newer contact versions when reliable modification times are available."
+msgstr ""
+"Foretræk nyere kontaktversioner, når pålidelige ændringstidspunkter er "
+"tilgængelige."
+
 msgid "Preferred backup folder"
 msgstr "Foretrukken mappe til sikkerhedskopier"
 
@@ -4964,13 +4936,6 @@ msgstr "Læser brugerdata"
 msgid "Ready."
 msgstr "Klar."
 
-msgid ""
-"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
-"every removed card is kept in the recycle bin."
-msgstr ""
-"Flet virkelig %(cards)s? Gennemgå bagefter resultatet omhyggeligt. En kopi "
-"af hvert fjernet kort gemmes i papirkurven."
-
 msgid "Reason"
 msgstr "Årsag"
 
@@ -5018,6 +4983,9 @@ msgstr "Afvis dette tilbud permanent?"
 
 msgid "Related tasks"
 msgstr "Relaterede opgaver"
+
+msgid "Reliable modification times are not available for both versions."
+msgstr "Der findes ikke pålidelige ændringstidspunkter for begge versioner."
 
 msgid "Remind about appointments in the background"
 msgstr "Påmind om aftaler i baggrunden"
@@ -6532,6 +6500,9 @@ msgstr "Slutdatoen kan ikke ligge før startdatoen."
 msgid "The entered fingerprint is incomplete."
 msgstr "Det indtastede fingeraftryk er ufuldstændigt."
 
+msgid "The entry could not be found."
+msgstr "Posten blev ikke fundet."
+
 msgid "The file could not be read."
 msgstr "Filen kunne ikke læses."
 
@@ -6922,6 +6893,13 @@ msgstr "Papirkurven blev tømt."
 
 msgid "The regional settings could not be saved."
 msgstr "De regionale indstillinger kunne ikke gemmes."
+
+msgid ""
+"The remote contact was deleted. Keep this contact and restore it on the next "
+"synchronization?"
+msgstr ""
+"Den eksterne kontakt blev slettet. Behold denne kontakt, og gendan den ved "
+"næste synkronisering?"
 
 msgid "The request is unreadable."
 msgstr "Anmodningen kan ikke læses."
@@ -7340,13 +7318,6 @@ msgstr "Denne besked er allerede modtaget."
 msgid "This notebook is still empty."
 msgstr "Denne notesbog er stadig tom."
 
-msgid ""
-"This one-time import only adds or enriches contacts. It does not synchronize "
-"or delete contacts."
-msgstr ""
-"Denne engangsimport tilføjer eller supplerer kun kontakter. Den "
-"synkroniserer eller sletter ikke kontakter."
-
 msgid "This person's anniversaries"
 msgstr "Denne persons mærkedage"
 
@@ -7648,6 +7619,9 @@ msgstr "Brug kontaktens adresser"
 
 msgid "Use default"
 msgstr "Brug standard"
+
+msgid "Use newer version"
+msgstr "Brug nyere version"
 
 msgid "Use numeric keypad"
 msgstr "Brug det numeriske tastatur"
@@ -8022,9 +7996,6 @@ msgstr "Årsplanlægger %(year)s"
 msgid "Yes"
 msgstr "Ja"
 
-msgid "Yes, merge"
-msgstr "Ja, flet"
-
 msgid "Yes, the code matches"
 msgstr "Ja, koden stemmer"
 
@@ -8327,11 +8298,6 @@ msgid_plural "%(count)s backups were encrypted as well"
 msgstr[0] "én sikkerhedskopi blev også krypteret"
 msgstr[1] "%(count)s sikkerhedskopier blev også krypteret"
 
-msgid "one contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "ét kontaktkort"
-msgstr[1] "%(count)s kontaktkort"
-
 msgid "one recovery snapshot was encrypted as well"
 msgid_plural "%(count)s recovery snapshots were encrypted as well"
 msgstr[0] "et øjebliksbillede af gendannelse blev også krypteret"
@@ -8503,6 +8469,65 @@ msgstr[1] "… og %(count)s elementer mere, som også bliver udskrevet."
 
 msgid "＋ Add appointment"
 msgstr "＋ Tilføj aftale"
+
+#~ msgid ""
+#~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+#~ msgstr "%(cards)s flettet. Kopierne ligger under “Dubletter” i papirkurven."
+
+#~ msgid "%(count)s contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "%(count)s kontaktkort"
+#~ msgstr[1] "%(count)s kontaktkort"
+
+#~ msgid "%(count)s group"
+#~ msgid_plural "%(count)s groups"
+#~ msgstr[0] "%(count)s gruppe"
+#~ msgstr[1] "%(count)s grupper"
+
+#~ msgid ""
+#~ "Found %(groups)s containing %(cards)s in total, for example:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "The most complete card in each group is retained, and missing fields are "
+#~ "filled from the others. The remaining cards are moved to the recycle bin "
+#~ "as “Duplicates” and can be restored from there. Continue?"
+#~ msgstr ""
+#~ "Fandt %(groups)s grupper med i alt %(cards)s kort, for eksempel:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "Det mest komplette kort i hver gruppe bevares, og manglende felter "
+#~ "udfyldes fra de andre. De resterende kort flyttes til papirkurven som "
+#~ "“Dubletter” og kan gendannes derfra. Fortsæt?"
+
+#~ msgid "Import contacts additively"
+#~ msgstr "Importér kontakter som supplement"
+
+#~ msgid "One duplicate contact card was"
+#~ msgid_plural "%(count)s duplicate contact cards were"
+#~ msgstr[0] "Der var ét dubleret kontaktkort"
+#~ msgstr[1] "Der var %(count)s dublerede kontaktkort"
+
+#~ msgid ""
+#~ "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+#~ "every removed card is kept in the recycle bin."
+#~ msgstr ""
+#~ "Flet virkelig %(cards)s? Gennemgå bagefter resultatet omhyggeligt. En "
+#~ "kopi af hvert fjernet kort gemmes i papirkurven."
+
+#~ msgid ""
+#~ "This one-time import only adds or enriches contacts. It does not "
+#~ "synchronize or delete contacts."
+#~ msgstr ""
+#~ "Denne engangsimport tilføjer eller supplerer kun kontakter. Den "
+#~ "synkroniserer eller sletter ikke kontakter."
+
+#~ msgid "Yes, merge"
+#~ msgstr "Ja, flet"
+
+#~ msgid "one contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "ét kontaktkort"
+#~ msgstr[1] "%(count)s kontaktkort"
 
 #~ msgid "KDE Connect for SMS"
 #~ msgstr "KDE Connect til SMS"

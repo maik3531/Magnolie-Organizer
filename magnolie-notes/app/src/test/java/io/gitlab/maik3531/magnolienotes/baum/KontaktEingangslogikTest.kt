@@ -17,14 +17,15 @@ class KontaktEingangslogikTest {
         KontaktEingang(partner, id, version, "q", 1, daten, 1)
     private fun marcel(vararg daten: KontaktDaten) = daten.mapIndexed { i, k -> karte("m$i", k) }
 
-    @Test fun `fragmentierte Marcel Karten werden eine sichere Person`() {
+    @Test fun `fragmentierte gleichnamige Karten bleiben ohne harte Verbindung eine Vorschau`() {
         val gruppen = KontaktEingangslogik.gruppiere(marcel(
             KontaktDaten(vorname = "Marcel", nachname = "Muster", telefone = listOf(KontaktWert("mobil", "+49 170 1"))),
             KontaktDaten(vorname = " marcel ", nachname = "MUSTER", emailEintraege = listOf(KontaktWert("", "m@example.org"))),
             KontaktDaten(vorname = "Marcel", nachname = "Muster", foto = "bild")
         ))
         assertEquals(1, gruppen.size)
-        assertEquals(KontaktGruppenArt.SICHER, gruppen.single().art)
+        assertEquals(KontaktGruppenArt.PRUEFEN, gruppen.single().art)
+        assertTrue(gruppen.single().zusammenfuehrbar)
         assertEquals(3, gruppen.single().karten.size)
         assertEquals(1, gruppen.single().kontakt.telefone.size)
         assertEquals(1, gruppen.single().kontakt.emailEintraege.size)
@@ -70,6 +71,20 @@ class KontaktEingangslogikTest {
         assertEquals(1, gruppen.size)
         assertEquals(KontaktGruppenArt.KONFLIKT, gruppen.single().art)
         assertEquals(3, gruppen.single().karten.size)
+    }
+
+    @Test fun `Namensbruecke ohne Feldkonflikt erlaubt keine Sammelzusammenfuehrung`() {
+        val karten = listOf(
+            karte("a", KontaktDaten(vorname = "Marcel", nachname = "M", telefone = listOf(KontaktWert("", "111")))),
+            karte("b", KontaktDaten(vorname = "Marcel", nachname = "M", telefone = listOf(KontaktWert("", "111")), firma = "A")),
+            karte("c", KontaktDaten(vorname = "Marcel", nachname = "M", telefone = listOf(KontaktWert("", "222")), firma = "A"))
+        )
+        for (reihenfolge in listOf(karten, karten.reversed(), listOf(karten[2], karten[0], karten[1]))) {
+            val gruppe = KontaktEingangslogik.gruppiere(reihenfolge).single()
+            assertEquals(KontaktGruppenArt.PRUEFEN, gruppe.art)
+            assertTrue(gruppe.zusammenfuehrbar)
+            assertEquals(3, gruppe.karten.size)
+        }
     }
 
     @Test fun `gleiche Id ist nur die neueste Revision derselben Karte`() {

@@ -396,4 +396,12 @@
     <string name="telefon_mehrere_rechner">Los ordenadores emparejados permanecen guardados. Seleccione el que desea usar ahora.</string>
     <string name="telefon_anrufe_erlauben">Permitir llamadas</string>
     <string name="telefon_anruf_berechtigungen">Activar los permisos de Android</string>
+    <string name="kontakt_review_titel">Revisar cambios de contactos</string>
+    <string name="kontakt_review_lokal">Contacto existente</string>
+    <string name="kontakt_review_fern">Contacto entrante</string>
+    <string name="kontakt_review_behalten">Conservar el contacto existente</string>
+    <string name="kontakt_review_neu">Crear un contacto independiente</string>
+    <string name="kontakt_review_neueste">Usar la versión más reciente</string>
+    <string name="kontakt_review_rest">Aplicar esta decisión a los conflictos restantes con coincidencia inequívoca</string>
+    <string name="kontakt_review_geburtsname">Apellido de nacimiento: %1$s</string>
 </resources>

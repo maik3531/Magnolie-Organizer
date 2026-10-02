@@ -590,7 +590,8 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             {
                 due = outbox.OfType<JsonObject>().Where(item => !Boolean(item, "aufgegeben"))
                     // Advisory probes must not head-of-line block old peers' contact traffic.
-                    .GroupBy(item => (String(item, "an"), String(item, "art") == "kontakt_faehigkeiten")).Select(group => group.First())
+                    .GroupBy(item => (String(item, "an"), Boolean(item, "kontaktV3Probe") ? 2 :
+                        String(item, "art") == "kontakt_faehigkeiten" ? 1 : 0)).Select(group => group.First())
                     .Where(item => !Boolean(item, "unsicher") && IsDue(item)).Take(maximum == 0 ? int.MaxValue : maximum).ToList();
             }
             var delivered = 0;
@@ -607,7 +608,8 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                 {
                     var current = outbox.OfType<JsonObject>().FirstOrDefault(value => String(value, "id") == String(item, "id"));
                     if (current is null) continue;
-                    if (success) { outbox.Remove(current); delivered++; }
+                    if (Boolean(current, "kontaktV3NichtUnterstuetzt")) outbox.Remove(current);
+                    else if (success) { outbox.Remove(current); delivered++; }
                     else
                     {
                         current["versuche"] = Number(current, "versuche") + 1; current["zuletzt"] = Timestamp();
@@ -627,6 +629,10 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
 
     private async Task<bool> DeliverAsync(JsonObject partner, JsonObject item, CancellationToken cancellation)
     {
+        // New capability probes use independent authenticated FS1 sessions,
+        // never legacy counters that could overtake reserved contact messages.
+        if (Boolean(item, "kontaktV3Probe"))
+            return await DeliverFsAsync(partner, item, cancellation).ConfigureAwait(false);
         if (String(item, "art") is "kontakt" or "kontakt_sync" or "kontakt_import_manifest" or "kontakt_import_karte")
         {
             var payload = item["inhalt"]!.AsObject();
@@ -726,6 +732,17 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                     lock (gate) { partner["zuletzt"] = Timestamp(); }
                     return true;
                 }
+            }
+            catch (HttpRequestException error) when (Boolean(item, "kontaktV3Probe") &&
+                error.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Forbidden or HttpStatusCode.NotFound)
+            {
+                lock (gate)
+                {
+                    var current = outbox.OfType<JsonObject>().FirstOrDefault(value => String(value, "id") == String(item, "id"));
+                    if (current is not null) current["kontaktV3NichtUnterstuetzt"] = true;
+                    partner["kontaktV3Geprueft"] = true;
+                }
+                return false; // Unsupported advisory traffic is not failed user data.
             }
             catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { throw; }
             catch (Exception) { }
@@ -907,8 +924,14 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             if (!Boolean(partner, "bestaetigt") || !ReferenceEquals(Partner(String(partner, "kennung")), partner))
                 throw new InvalidDataException(NativeLocalization.Gettext("The data is invalid."));
             BaumContactSyncContract.ValidateCapabilities(content);
-            if (!content["antwort"]!.GetValue<bool>()) QueueContactCapabilities(partner, true);
-            partner["kontaktFaehigkeiten"] = content.DeepClone();
+            var modern = JsonNode.DeepEquals(content["kontakt_sync"], new JsonArray(1, 2, 3));
+            var answer = content["antwort"]!.GetValue<bool>();
+            if (!answer) QueueContactCapabilities(partner, true, modern ? 3 : 2);
+            // An old reply may arrive after the newer probe. A fresh explicit
+            // advertisement can still report a downgraded peer.
+            if (modern || !answer || BaumContactSyncContract.PeerVersion(partner, "kontakt_sync") < 3)
+                partner["kontaktFaehigkeiten"] = content.DeepClone();
+            if (modern) partner["kontaktV3Geprueft"] = true;
             return null; // Authentication/replay counters and capabilities are saved together by the caller.
         }
         if (kind == "kontakt_sync") BaumContactSyncContract.Validate(content);
@@ -940,19 +963,25 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         return entry;
     }
 
-    private void QueueContactCapabilities(JsonObject partner, bool response = false)
+    private void QueueContactCapabilities(JsonObject partner, bool response = false, int maximum = 0)
     {
         if (!Boolean(partner, "bestaetigt")) return;
         var id = String(partner, "kennung");
-        var payload = BaumContactSyncContract.Capabilities(response);
-        if (outbox.OfType<JsonObject>().Any(item => String(item, "an") == id && !Boolean(item, "aufgegeben") &&
-            JsonNode.DeepEquals(item["inhalt"], payload))) return;
-        var candidate = outbox.DeepClone().AsArray();
-        candidate.Add(new JsonObject { ["id"] = MagnolienbaumStore.RandomId(12),
-            ["transportId"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)), ["an"] = id,
-            ["art"] = "kontakt_faehigkeiten", ["inhalt"] = payload,
-            ["versuche"] = 0, ["zuletzt"] = "", ["angelegt"] = Timestamp() });
-        storage.SaveOutbox(candidate); outbox = candidate;
+        if (maximum == 0) maximum = Math.Max(2, BaumContactSyncContract.PeerVersion(partner, "kontakt_sync"));
+        void Queue(int version)
+        {
+            var payload = BaumContactSyncContract.Capabilities(response, version);
+            if (outbox.OfType<JsonObject>().Any(item => String(item, "an") == id && !Boolean(item, "aufgegeben") &&
+                JsonNode.DeepEquals(item["inhalt"], payload))) return;
+            var candidate = outbox.DeepClone().AsArray();
+            candidate.Add(new JsonObject { ["id"] = MagnolienbaumStore.RandomId(12),
+                ["transportId"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)), ["an"] = id,
+                ["art"] = "kontakt_faehigkeiten", ["inhalt"] = payload, ["kontaktV3Probe"] = version >= 3,
+                ["versuche"] = 0, ["zuletzt"] = "", ["angelegt"] = Timestamp() });
+            storage.SaveOutbox(candidate); outbox = candidate;
+        }
+        Queue(maximum);
+        if (!response && maximum < 3 && !Boolean(partner, "kontaktV3Geprueft")) Queue(3);
     }
 
     private async Task UdpLoopAsync(UdpClient socket, CancellationToken cancellation)

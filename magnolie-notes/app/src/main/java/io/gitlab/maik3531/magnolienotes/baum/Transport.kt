@@ -103,7 +103,7 @@ class WlanTransport(private val host: String, private val port: Int) : Transport
             val antwort = liesAntwort(herein, laengen.singleOrNull())
                 .toString(Charsets.UTF_8)
             if (nummer !in 200..299) {
-                throw BaumFehler(Netz.fehlertext(nummer, antwort))
+                throw BaumFehler(Netz.fehlertext(nummer, antwort), httpStatus = nummer)
             }
             if (antwort.isBlank()) throw BaumFehler("Die Gegenstelle hat nichts geantwortet.")
             Kanonisch.json.parseToJsonElement(antwort).jsonObject

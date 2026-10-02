@@ -35,11 +35,25 @@ data class KontaktDaten(
 data class KontaktNachricht(
     val freigabeId: String, val version: Long, val quelle: String,
     val geaendert: Long, val kontakt: KontaktDaten,
-    val fassung: Int = 1
+    val fassung: Int = 1,
+    val inhaltGeaendert: Long = 0
 )
 
 /** Interoperabler Vertrag und reine, auf der JVM testbare Kontaktlogik. */
 object KontaktSync {
+    /** A write caused by import/sync must not become a fresh content timestamp. */
+    fun inhaltszeit(hash: String, providerZeit: Long,
+                    spuren: List<io.gitlab.maik3531.magnolienotes.daten.KontaktSpur>,
+                    jetzt: Long = System.currentTimeMillis()): Long {
+        fun gueltig(zeit: Long) = zeit > 0 && zeit <= jetzt + 300_000 && zeit <= 253402300799999L
+        val gleich = spuren.filter { it.inhaltHash.ifBlank { it.hash } == hash }
+        if (gleich.isNotEmpty()) return gleich.map { it.inhaltGeaendert }.filter(::gueltig).maxOrNull() ?: 0
+        if (!gueltig(providerZeit)) return 0
+        if (spuren.isEmpty()) return providerZeit
+        val vorher = spuren.maxOf { it.providerGeaendert }
+        return if (vorher > 0 && providerZeit > vorher) providerZeit else 0
+    }
+
     private const val TEXT_MAX = 2_048
     private const val NOTIZ_MAX = 20_000
     private const val LISTE_MAX = 100
@@ -51,22 +65,26 @@ object KontaktSync {
         "delete", "deleted", "deletion", "tombstone", "loeschen", "löschen", "geloescht", "gelöscht")
 
     fun inhalt(n: KontaktNachricht): JsonObject = buildJsonObject {
-        require(n.fassung in 1..2)
+        require(n.fassung in 1..3)
         put("art", JsonPrimitive("kontakt_sync"))
         put("fassung", JsonPrimitive(n.fassung))
         put("freigabeId", JsonPrimitive(n.freigabeId))
         put("version", JsonPrimitive(n.version))
         put("quelle", JsonPrimitive(n.quelle))
         put("geaendert", JsonPrimitive(n.geaendert))
+        if (n.fassung == 3) {
+            require(n.inhaltGeaendert in 0..253402300799999L)
+            put("inhaltGeaendert", JsonPrimitive(n.inhaltGeaendert))
+        }
         put("kontakt", kontaktJson(n.kontakt, n.fassung))
     }
 
     internal fun kontaktJson(k: KontaktDaten, fassung: Int) = buildJsonObject {
-        require(fassung in 1..2 && (fassung == 2 || legacyDarstellbar(k)))
+        require(fassung in 1..3 && (fassung >= 2 || legacyDarstellbar(k)))
         put("vorname", JsonPrimitive(k.vorname)); put("nachname", JsonPrimitive(k.nachname))
         put("firma", JsonPrimitive(k.firma)); put("notiz", JsonPrimitive(k.notiz))
         put("geburtstag", JsonPrimitive(k.geburtstag))
-        if (fassung == 2) {
+        if (fassung >= 2) {
             put("jubilaeum", JsonPrimitive(k.jubilaeum))
             put("anzeigename", JsonPrimitive(k.anzeigename))
             put("vcardName", JsonArray(k.vcardName.map(::JsonPrimitive)))
@@ -86,21 +104,27 @@ object KontaktSync {
 
     fun lies(o: JsonObject): KontaktNachricht? = runCatching {
         val fassung = o.long("fassung")?.toInt() ?: return null
-        if (o.text("art") != "kontakt_sync" || o["fassung"] !in setOf(JsonPrimitive(1), JsonPrimitive(2))) return null
-        if (o.keys != setOf("art", "fassung", "freigabeId", "version", "quelle", "geaendert", "kontakt")) return null
-        if (fassung == 2) {
+        if (o.text("art") != "kontakt_sync" || o["fassung"] !in setOf(JsonPrimitive(1), JsonPrimitive(2), JsonPrimitive(3))) return null
+        val rootFields = setOf("art", "fassung", "freigabeId", "version", "quelle", "geaendert", "kontakt") +
+            if (fassung == 3) setOf("inhaltGeaendert") else emptySet()
+        if (o.keys != rootFields) return null
+        if (fassung >= 2) {
             if (listOf("freigabeId", "quelle").any { (o[it] as? JsonPrimitive)?.isString != true }) return null
             if (listOf("version", "geaendert").any { (o[it] as? JsonPrimitive)?.isString != false }) return null
         }
         val id = o.text("freigabeId"); val quelle = o.text("quelle")
         val version = o.long("version") ?: return null
         val geaendert = o.long("geaendert") ?: return null
+        val inhaltGeaendert = if (fassung == 3) {
+            if ((o["inhaltGeaendert"] as? JsonPrimitive)?.isString != false) return null
+            (o.long("inhaltGeaendert") ?: return null).takeIf { it in 0..253402300799999L } ?: return null
+        } else 0L
         if (id.isEmpty() || id.codePointAnzahl() > 128 || id.hatC0() ||
             quelle.isEmpty() || quelle.codePointAnzahl() > 128 || quelle.hatC0() ||
             version <= 0 || geaendert < 0) return null
         val k = o["kontakt"] as? JsonObject ?: return null
         val pflicht = setOf("vorname", "nachname", "firma", "notiz", "geburtstag",
-            "telefone", "emailEintraege", "anschriften") + if (fassung == 2) setOf("jubilaeum", "anzeigename", "vcardName") else emptySet()
+            "telefone", "emailEintraege", "anschriften") + if (fassung >= 2) setOf("jubilaeum", "anzeigename", "vcardName") else emptySet()
         if (k.keys != pflicht && k.keys != pflicht + "foto") return null
         if (k.filterKeys { it !in setOf("telefone", "emailEintraege", "anschriften", "vcardName") }
                 .values.any { it !is JsonPrimitive || !it.isString }) return null
@@ -115,13 +139,13 @@ object KontaktSync {
             geburtstag = geburtstag.takeIf { it.isEmpty() || datumGueltig(it) } ?: return null,
             jubilaeum = k.text("jubilaeum").takeIf { it.isEmpty() || datumGueltig(it) } ?: return null,
             anzeigename = k.kurzer("anzeigename") ?: return null,
-            vcardName = if (fassung == 2) liesNamen(k["vcardName"] as? JsonArray ?: return null) ?: return null else emptyList(),
+            vcardName = if (fassung >= 2) liesNamen(k["vcardName"] as? JsonArray ?: return null) ?: return null else emptyList(),
             foto = foto,
-            telefone = liesWerte(k["telefone"] as? JsonArray ?: return null, fassung == 2) ?: return null,
-            emailEintraege = liesWerte(k["emailEintraege"] as? JsonArray ?: return null, fassung == 2) ?: return null,
-            anschriften = liesAnschriften(k["anschriften"] as? JsonArray ?: return null, fassung == 2) ?: return null
+            telefone = liesWerte(k["telefone"] as? JsonArray ?: return null, fassung >= 2) ?: return null,
+            emailEintraege = liesWerte(k["emailEintraege"] as? JsonArray ?: return null, fassung >= 2) ?: return null,
+            anschriften = liesAnschriften(k["anschriften"] as? JsonArray ?: return null, fassung >= 2) ?: return null
         )
-        KontaktNachricht(id, version, quelle, geaendert, normalisiere(daten), fassung)
+        KontaktNachricht(id, version, quelle, geaendert, normalisiere(daten), fassung, inhaltGeaendert)
     }.getOrNull()
 
     internal fun liesNamen(a: JsonArray): List<String>? {
@@ -278,9 +302,9 @@ object KontaktSync {
 
 /** Capabilities travel only inside an authenticated tree message, never in discovery or pairing. */
 internal object KontaktFaehigkeiten {
-    fun inhalt(antwort: Boolean) = buildJsonObject {
+    fun inhalt(antwort: Boolean, maximum: Int = 2) = buildJsonObject {
         put("art", JsonPrimitive("kontakt_faehigkeiten")); put("fassung", JsonPrimitive(1))
-        put("kontakt_sync", JsonArray(listOf(JsonPrimitive(1), JsonPrimitive(2))))
+        put("kontakt_sync", JsonArray((if (maximum >= 3) listOf(1, 2, 3) else listOf(1, 2)).map(::JsonPrimitive)))
         // Notes sends one-time import cards, but has no inbound import-card handler.
         put("kontakt_import", JsonArray(emptyList()))
         put("antwort", JsonPrimitive(antwort))
@@ -293,7 +317,8 @@ internal object KontaktFaehigkeiten {
         fun versions(name: String): List<Int> {
             val values = o[name] as JsonArray
             require((name == "kontakt_import" && values.isEmpty()) || values == JsonArray(listOf(JsonPrimitive(1))) ||
-                values == JsonArray(listOf(JsonPrimitive(1), JsonPrimitive(2))))
+                values == JsonArray(listOf(JsonPrimitive(1), JsonPrimitive(2))) ||
+                name == "kontakt_sync" && values == JsonArray(listOf(JsonPrimitive(1), JsonPrimitive(2), JsonPrimitive(3))))
             return values.map { (it as JsonPrimitive).content.toInt() }
         }
         versions("kontakt_sync") to versions("kontakt_import")

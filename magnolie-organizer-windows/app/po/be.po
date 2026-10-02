@@ -46,11 +46,6 @@ msgstr ""
 "%(appointment)s\n"
 "Націсніце, каб рэдагаваць"
 
-msgid ""
-"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
-msgstr ""
-"Аб’яднана: %(cards)s. Копіі захаваны ў сметніцы ў раздзеле «Дублікаты»."
-
 msgid "%(count)s anniversary"
 msgid_plural "%(count)s anniversaries"
 msgstr[0] "%(count)s гадавіна"
@@ -86,12 +81,6 @@ msgid_plural "%(count)s contacts"
 msgstr[0] "%(count)s кантакт"
 msgstr[1] "%(count)s кантакты"
 msgstr[2] "%(count)s кантакты"
-
-msgid "%(count)s contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "%(count)s картка кантакту"
-msgstr[1] "%(count)s карткі кантакту"
-msgstr[2] "%(count)s карткі кантакту"
 
 msgid "%(count)s contact imported."
 msgid_plural "%(count)s contacts imported."
@@ -140,12 +129,6 @@ msgid_plural "%(count)s found"
 msgstr[0] "Знойдзены %(count)s вынік"
 msgstr[1] "Знойдзены %(count)s вынікі"
 msgstr[2] "Знойдзены %(count)s вынікі"
-
-msgid "%(count)s group"
-msgid_plural "%(count)s groups"
-msgstr[0] "%(count)s група"
-msgstr[1] "%(count)s групы"
-msgstr[2] "%(count)s групы"
 
 msgid "%(count)s holiday period"
 msgid_plural "%(count)s holiday periods"
@@ -931,6 +914,9 @@ msgstr "Берлін"
 
 msgid "Bern"
 msgstr "Берн"
+
+msgid "Birth name: %(name)s"
+msgstr "Прозвішча пры нараджэнні: %(name)s"
 
 msgid "Birthday"
 msgstr "Дзень нараджэння"
@@ -2328,22 +2314,6 @@ msgstr "Рэгіён фармату"
 msgid "Forward Secrecy"
 msgstr "Прамая сакрэтнасць (Forward Secrecy)"
 
-msgid ""
-"Found %(groups)s containing %(cards)s in total, for example:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"The most complete card in each group is retained, and missing fields are "
-"filled from the others. The remaining cards are moved to the recycle bin as "
-"“Duplicates” and can be restored from there. Continue?"
-msgstr ""
-"Знойдзена %(groups)s груп, якія разам змяшчаюць %(cards)s картак, "
-"напрыклад:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"У кожнай групе захоўваецца найбольш поўная картка, а адсутныя палі "
-"дапаўняюцца з іншых. Астатнія карткі перамяшчаюцца ў сметніцу як «Дублікаты» "
-"і могуць быць адтуль адноўлены. Працягнуць?"
-
 #, javascript-format
 msgid "Found – %s."
 msgstr "Знойдзена – %s."
@@ -2552,9 +2522,6 @@ msgstr "Імпарт"
 
 msgid "Import Magnolie complete archive"
 msgstr "Імпартаваць поўны архіў Magnolie"
-
-msgid "Import contacts additively"
-msgstr "Імпартаваць кантакты з дапаўненнем"
 
 msgid "Import failed."
 msgstr "Не ўдалося выканаць імпарт."
@@ -3534,12 +3501,6 @@ msgstr[0] "Адно абнаўленне завяршэння было атры�
 msgstr[1] "Атрыманы абнаўленні завяршэння %(count)s ад Magnolienbaum."
 msgstr[2] "Атрыманы абнаўленні завяршэння %(count)s ад Magnolienbaum."
 
-msgid "One duplicate contact card was"
-msgid_plural "%(count)s duplicate contact cards were"
-msgstr[0] "Была адна дублікатная кантактная картка"
-msgstr[1] "дублікаты кантактных картак %(count)s былі"
-msgstr[2] "дублікаты кантактных картак %(count)s былі"
-
 msgid "One moment …"
 msgstr "Хвілінку …"
 
@@ -4054,6 +4015,12 @@ msgstr ""
 "Аддаваць перавагу дынамікам і мікрафону ПК для званкоў на маім уласным "
 "Bluetooth-тэлефоне"
 
+msgid ""
+"Prefer newer contact versions when reliable modification times are available."
+msgstr ""
+"Аддаваць перавагу навейшым версіям кантактаў пры наяўнасці дакладнага часу "
+"змены."
+
 msgid "Preferred backup folder"
 msgstr "Пажаданая папка рэзервовых копій"
 
@@ -4182,13 +4149,6 @@ msgstr "Даступны адрас IPv4 або IPv6 гэтага камп’ю�
 msgid "Ready."
 msgstr "Гатова."
 
-msgid ""
-"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
-"every removed card is kept in the recycle bin."
-msgstr ""
-"Сапраўды аб’яднаць %(cards)s? Пасля гэтага ўважліва праверце вынік. Копія "
-"кожнай выдаленай карткі захоўваецца ў сметніцы."
-
 msgid "Reason"
 msgstr "Прычына"
 
@@ -4230,6 +4190,9 @@ msgstr "Назаўсёды адхіліць гэтую прапанову?"
 
 msgid "Related tasks"
 msgstr "Звязаныя задачы"
+
+msgid "Reliable modification times are not available for both versions."
+msgstr "Дакладны час змены даступны не для абедзвюх версій."
 
 msgid "Remind me again on the day itself"
 msgstr "Нагадаць мне яшчэ раз у сам дзень"
@@ -5947,13 +5910,6 @@ msgstr ""
 msgid "This notebook is still empty."
 msgstr "Гэты нататнік усё яшчэ пусты."
 
-msgid ""
-"This one-time import only adds or enriches contacts. It does not synchronize "
-"or delete contacts."
-msgstr ""
-"Гэты аднаразовы імпарт толькі дадае або дапаўняе кантакты. Ён не сінхранізуе "
-"і не выдаляе іх."
-
 msgid "This person's anniversaries"
 msgstr "Гадавіны гэтага чалавека"
 
@@ -6195,6 +6151,9 @@ msgstr "Выкарыстоўваць адрасы кантакту"
 
 msgid "Use default"
 msgstr "Выкарыстоўваць прадвызначанае"
+
+msgid "Use newer version"
+msgstr "Выкарыстаць навейшую версію"
 
 msgid "Use numeric keypad"
 msgstr "Выкарыстоўваць лічбавую клавіятуру"
@@ -6583,9 +6542,6 @@ msgstr "Гадавы планавальнік %(year)s"
 msgid "Yes"
 msgstr "Так"
 
-msgid "Yes, merge"
-msgstr "Так, аб’яднаць"
-
 msgid "Yes, the code matches"
 msgstr "Так, код супадае"
 
@@ -6861,12 +6817,6 @@ msgstr[0] "адна рэзервовая копія таксама была шы
 msgstr[1] "Рэзервовыя копіі %(count)s таксама былі шыфраваныя"
 msgstr[2] "Рэзервовыя копіі %(count)s таксама былі шыфраваныя"
 
-msgid "one contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "адна кантактная картка"
-msgstr[1] "кантактныя карткі %(count)s"
-msgstr[2] "кантактныя карткі %(count)s"
-
 msgid "only %(year)s"
 msgstr "толькі %(year)s"
 
@@ -7019,6 +6969,71 @@ msgstr[2] "… і яшчэ %(count)s элементы, якія таксама �
 
 msgid "＋ Add appointment"
 msgstr "＋ Дадаць сустрэчу"
+
+#~ msgid ""
+#~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+#~ msgstr ""
+#~ "Аб’яднана: %(cards)s. Копіі захаваны ў сметніцы ў раздзеле «Дублікаты»."
+
+#~ msgid "%(count)s contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "%(count)s картка кантакту"
+#~ msgstr[1] "%(count)s карткі кантакту"
+#~ msgstr[2] "%(count)s карткі кантакту"
+
+#~ msgid "%(count)s group"
+#~ msgid_plural "%(count)s groups"
+#~ msgstr[0] "%(count)s група"
+#~ msgstr[1] "%(count)s групы"
+#~ msgstr[2] "%(count)s групы"
+
+#~ msgid ""
+#~ "Found %(groups)s containing %(cards)s in total, for example:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "The most complete card in each group is retained, and missing fields are "
+#~ "filled from the others. The remaining cards are moved to the recycle bin "
+#~ "as “Duplicates” and can be restored from there. Continue?"
+#~ msgstr ""
+#~ "Знойдзена %(groups)s груп, якія разам змяшчаюць %(cards)s картак, "
+#~ "напрыклад:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "У кожнай групе захоўваецца найбольш поўная картка, а адсутныя палі "
+#~ "дапаўняюцца з іншых. Астатнія карткі перамяшчаюцца ў сметніцу як "
+#~ "«Дублікаты» і могуць быць адтуль адноўлены. Працягнуць?"
+
+#~ msgid "Import contacts additively"
+#~ msgstr "Імпартаваць кантакты з дапаўненнем"
+
+#~ msgid "One duplicate contact card was"
+#~ msgid_plural "%(count)s duplicate contact cards were"
+#~ msgstr[0] "Была адна дублікатная кантактная картка"
+#~ msgstr[1] "дублікаты кантактных картак %(count)s былі"
+#~ msgstr[2] "дублікаты кантактных картак %(count)s былі"
+
+#~ msgid ""
+#~ "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+#~ "every removed card is kept in the recycle bin."
+#~ msgstr ""
+#~ "Сапраўды аб’яднаць %(cards)s? Пасля гэтага ўважліва праверце вынік. Копія "
+#~ "кожнай выдаленай карткі захоўваецца ў сметніцы."
+
+#~ msgid ""
+#~ "This one-time import only adds or enriches contacts. It does not "
+#~ "synchronize or delete contacts."
+#~ msgstr ""
+#~ "Гэты аднаразовы імпарт толькі дадае або дапаўняе кантакты. Ён не "
+#~ "сінхранізуе і не выдаляе іх."
+
+#~ msgid "Yes, merge"
+#~ msgstr "Так, аб’яднаць"
+
+#~ msgid "one contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "адна кантактная картка"
+#~ msgstr[1] "кантактныя карткі %(count)s"
+#~ msgstr[2] "кантактныя карткі %(count)s"
 
 #~ msgid "KDE Connect for SMS"
 #~ msgstr "KDE Connect для SMS"

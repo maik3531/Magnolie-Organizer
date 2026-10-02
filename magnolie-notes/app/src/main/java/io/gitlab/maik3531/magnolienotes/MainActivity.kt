@@ -419,6 +419,8 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     var kontaktNachFreigabe by remember { mutableStateOf<(() -> Unit)?>(null) }
     var kontaktImportZweig by remember { mutableStateOf<String?>(null) }
     var kontaktImportVorschau by remember { mutableStateOf<KontaktImportVorschau?>(null) }
+    var kontaktUebernahme by remember { mutableStateOf<io.gitlab.maik3531.magnolienotes.baum.KontaktUebernahmeVorschau?>(null) }
+    var kontaktUebernahmeLaeuft by remember { mutableStateOf(false) }
     var portableExportPasswort by remember { mutableStateOf<String?>(null) }
     var portableExportZiel by rememberSaveable { mutableStateOf<String?>(null) }
     var exportPasswortErneut by remember { mutableStateOf("") }
@@ -428,6 +430,37 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     var portableFehler by remember { mutableStateOf(false) }
 
     fun sage(text: String) = Toast.makeText(zusammenhang, text, Toast.LENGTH_LONG).show()
+
+    fun kontaktUebernahmeLaden(id: String, getrennt: Boolean = false, sammel: Boolean = false) {
+        if (kontaktUebernahmeLaeuft || kontaktUebernahme != null) return
+        kontaktUebernahmeLaeuft = true
+        faden.launch {
+            try {
+                withContext(Dispatchers.IO) { runCatching { werk.kontaktUebernahmeVorschau(id, getrennt, sammel) } }
+                    .onSuccess { kontaktUebernahme = it }.onFailure { sage(zusammenhang.fehlertext(it)) }
+            } finally { kontaktUebernahmeLaeuft = false }
+        }
+    }
+    androidx.compose.runtime.DisposableEffect(werk) {
+        onDispose { werk.kontaktUebernahmeAbbrechen() }
+    }
+    kontaktUebernahme?.let { vorschau ->
+        io.gitlab.maik3531.magnolienotes.ui.KontaktUebernahmeDialog(vorschau, kontaktUebernahmeLaeuft,
+            abbrechen = { werk.kontaktUebernahmeAbbrechen(); kontaktUebernahme = null },
+            bestaetigen = { wahlen ->
+                if (!kontaktUebernahmeLaeuft) {
+                    kontaktUebernahmeLaeuft = true
+                    faden.launch {
+                        try {
+                            withContext(Dispatchers.IO) { runCatching { werk.kontaktUebernahmeBestaetigen(vorschau.id, wahlen) } }
+                                .onFailure { sage(zusammenhang.fehlertext(it)) }
+                        } finally {
+                            werk.kontaktUebernahmeAbbrechen(); kontaktUebernahme = null; kontaktUebernahmeLaeuft = false
+                        }
+                    }
+                }
+            })
+    }
 
     LaunchedEffect(entwurf) {
         delay(250)
@@ -1055,13 +1088,13 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                         },
                         beiKontaktGruppeImportieren = { id, getrennt ->
                             mitKontaktSchreibfreigabe {
-                                faden.launch { withContext(Dispatchers.IO) { werk.kontaktGruppeImportieren(id, getrennt) } }
+                                kontaktUebernahmeLaden(id, getrennt)
                             }
                         },
                         beiKontaktGruppeAblehnen = { werk.kontaktGruppeAblehnen(it) },
                         beiSichereKontaktGruppenImportieren = { partner ->
                             mitKontaktSchreibfreigabe {
-                                faden.launch { withContext(Dispatchers.IO) { werk.sichereKontaktGruppenImportieren(partner) } }
+                                kontaktUebernahmeLaden(partner, sammel = true)
                             }
                         },
                         beiAlleKontaktKartenAblehnen = { werk.alleKontaktKartenAblehnen(it) },

@@ -164,7 +164,8 @@ data class Partner(
     /** Only authenticated kontakt_faehigkeiten messages can change these versions. */
     val kontaktSyncFassungen: List<Int> = listOf(1),
     val kontaktImportFassungen: List<Int> = listOf(1),
-    val baum1Belege: List<Baum1Beleg> = emptyList()
+    val baum1Belege: List<Baum1Beleg> = emptyList(),
+    val kontaktV3Geprueft: Boolean = false
 )
 
 @Serializable
@@ -187,7 +188,8 @@ data class Sendung(
     val baum1Umschlag: String = "",
     val receiptProtocol: Int = 0,
     val receiptAttempted: Boolean = false,
-    val unsicher: Boolean = false
+    val unsicher: Boolean = false,
+    val kontaktV3Probe: Boolean = false
 ) {
     val brauchtPruefung: Boolean get() = unsicher || receiptAttempted ||
         (baum1Umschlag.isNotEmpty() && receiptProtocol != 1)
@@ -249,7 +251,8 @@ data class KontaktEingang(
     val geaendert: Long = 0L,
     val kontakt: io.gitlab.maik3531.magnolienotes.baum.KontaktDaten =
         io.gitlab.maik3531.magnolienotes.baum.KontaktDaten(),
-    val empfangen: Long = 0L
+    val empfangen: Long = 0L,
+    val inhaltGeaendert: Long = 0L
 )
 
 @Serializable
@@ -257,7 +260,8 @@ data class KontaktAblehnung(
     val partner: String = "",
     val freigabeId: String = "",
     val version: Long = 0L,
-    val quelle: String = ""
+    val quelle: String = "",
+    val inhaltHash: String = ""
 )
 
 @Serializable
@@ -269,7 +273,10 @@ data class KontaktSpur(
     val quelle: String = "",
     val hash: String = "",
     val partner: String = "",
-    val name: String = ""
+    val name: String = "",
+    val inhaltGeaendert: Long = 0,
+    val providerGeaendert: Long = 0,
+    val inhaltHash: String = ""
 )
 
 @Serializable

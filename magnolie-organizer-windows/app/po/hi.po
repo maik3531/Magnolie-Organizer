@@ -45,11 +45,6 @@ msgstr ""
 "%(appointment)s\n"
 "संपादित करने के लिए क्लिक करें"
 
-msgid ""
-"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
-msgstr ""
-"%(cards)s कार्ड मिला दिए गए। प्रतियाँ रीसायकल बिन के “Duplicates” में रखी गई हैं।"
-
 msgid "%(count)s anniversary"
 msgid_plural "%(count)s anniversaries"
 msgstr[0] "%(count)s वर्षगाँठ"
@@ -79,11 +74,6 @@ msgid "%(count)s contact"
 msgid_plural "%(count)s contacts"
 msgstr[0] "%(count)s संपर्क"
 msgstr[1] "%(count)s संपर्क"
-
-msgid "%(count)s contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "%(count)s संपर्क कार्ड"
-msgstr[1] "%(count)s संपर्क कार्ड"
 
 msgid "%(count)s contact imported."
 msgid_plural "%(count)s contacts imported."
@@ -124,11 +114,6 @@ msgid "%(count)s found"
 msgid_plural "%(count)s found"
 msgstr[0] "%(count)s मिला"
 msgstr[1] "%(count)s मिले"
-
-msgid "%(count)s group"
-msgid_plural "%(count)s groups"
-msgstr[0] "%(count)s समूह"
-msgstr[1] "%(count)s समूह"
 
 msgid "%(count)s holiday period"
 msgid_plural "%(count)s holiday periods"
@@ -886,6 +871,9 @@ msgstr "बर्लिन"
 
 msgid "Bern"
 msgstr "बर्न"
+
+msgid "Birth name: %(name)s"
+msgstr "जन्म का उपनाम: %(name)s"
 
 msgid "Birthday"
 msgstr "जन्मदिन"
@@ -2246,21 +2234,6 @@ msgstr "प्रारूप क्षेत्र"
 msgid "Forward Secrecy"
 msgstr "Forward Secrecy (भविष्य गोपनीयता)"
 
-msgid ""
-"Found %(groups)s containing %(cards)s in total, for example:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"The most complete card in each group is retained, and missing fields are "
-"filled from the others. The remaining cards are moved to the recycle bin as "
-"“Duplicates” and can be restored from there. Continue?"
-msgstr ""
-"कुल %(cards)s कार्ड वाले %(groups)s समूह मिले, उदाहरण के लिए:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"हर समूह का सबसे पूर्ण कार्ड रखा जाता है और बाकी कार्डों से गायब फ़ील्ड भरे जाते हैं। शेष "
-"कार्ड “Duplicates” के रूप में रीसायकल बिन में भेजे जाते हैं और वहाँ से पुनर्स्थापित किए जा "
-"सकते हैं। जारी रखें?"
-
 #, javascript-format
 msgid "Found – %s."
 msgstr "मिला – %s।"
@@ -2468,9 +2441,6 @@ msgstr "आयात करें"
 
 msgid "Import Magnolie complete archive"
 msgstr "मैग्नोली संपूर्ण संग्रह आयात करें"
-
-msgid "Import contacts additively"
-msgstr "संपर्कों को जोड़ते हुए आयात करें"
 
 msgid "Import failed."
 msgstr "आयात नहीं हो सका।"
@@ -3434,11 +3404,6 @@ msgid_plural ""
 msgstr[0] "Magnolienbaum से एक पूर्णता अद्यतन प्राप्त हुआ।"
 msgstr[1] "Magnolienbaum से %(count)s पूर्णता अद्यतन प्राप्त हुए।"
 
-msgid "One duplicate contact card was"
-msgid_plural "%(count)s duplicate contact cards were"
-msgstr[0] "एक डुप्लीकेट संपर्क कार्ड था"
-msgstr[1] "%(count)s डुप्लिकेट संपर्क कार्ड थे"
-
 msgid "One moment …"
 msgstr "एक क्षण …"
 
@@ -3946,6 +3911,10 @@ msgid "Prefer PC speakers and microphone for calls on my own Bluetooth phone"
 msgstr ""
 "मेरे अपने Bluetooth फ़ोन की कॉल के लिए PC के स्पीकर और माइक्रोफ़ोन को प्राथमिकता दें"
 
+msgid ""
+"Prefer newer contact versions when reliable modification times are available."
+msgstr "विश्वसनीय संशोधन समय उपलब्ध होने पर संपर्कों के नए संस्करणों को प्राथमिकता दें।"
+
 msgid "Preferred backup folder"
 msgstr "पसंदीदा बैकअप फ़ोल्डर"
 
@@ -4071,13 +4040,6 @@ msgstr "इस कंप्यूटर का पहुँच योग्य I
 msgid "Ready."
 msgstr "तैयार।"
 
-msgid ""
-"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
-"every removed card is kept in the recycle bin."
-msgstr ""
-"क्या वाकई %(cards)s को मिलाएँ? बाद में परिणाम ध्यान से जाँचें। हटाए गए हर कार्ड की एक "
-"प्रति कूड़ेदान में रखी जाती है।"
-
 msgid "Reason"
 msgstr "कारण"
 
@@ -4118,6 +4080,9 @@ msgstr "इस प्रस्ताव को स्थायी रूप स�
 
 msgid "Related tasks"
 msgstr "संबंधित कार्य"
+
+msgid "Reliable modification times are not available for both versions."
+msgstr "दोनों संस्करणों के लिए विश्वसनीय संशोधन समय उपलब्ध नहीं हैं।"
 
 msgid "Remind me again on the day itself"
 msgstr "उसी दिन फिर याद दिलाएँ"
@@ -5799,13 +5764,6 @@ msgstr ""
 msgid "This notebook is still empty."
 msgstr "यह नोटबुक अभी भी खाली है।"
 
-msgid ""
-"This one-time import only adds or enriches contacts. It does not synchronize "
-"or delete contacts."
-msgstr ""
-"यह एक बार का आयात केवल संपर्कों को जोड़ता या बेहतर करता है। यह संपर्कों को सिंक्रनाइज़ या "
-"हटाता नहीं है।"
-
 msgid "This person's anniversaries"
 msgstr "इस व्यक्ति की वर्षगाँठ"
 
@@ -6044,6 +6002,9 @@ msgstr "संपर्क के पते उपयोग करें"
 
 msgid "Use default"
 msgstr "डिफ़ॉल्ट उपयोग करें"
+
+msgid "Use newer version"
+msgstr "नया संस्करण उपयोग करें"
 
 msgid "Use numeric keypad"
 msgstr "न्यूमेरिक कीपैड का उपयोग करें"
@@ -6423,9 +6384,6 @@ msgstr "वार्षिक प्लानर %(year)s"
 msgid "Yes"
 msgstr "हाँ"
 
-msgid "Yes, merge"
-msgstr "हाँ, मर्ज करें"
-
 msgid "Yes, the code matches"
 msgstr "हाँ, कोड मेल खाता है"
 
@@ -6695,11 +6653,6 @@ msgid_plural "%(count)s backups were encrypted as well"
 msgstr[0] "एक बैकअप भी एन्क्रिप्ट किया गया था"
 msgstr[1] "%(count)s बैकअप भी एन्क्रिप्ट किए गए थे"
 
-msgid "one contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "एक संपर्क कार्ड"
-msgstr[1] "%(count)s संपर्क कार्ड"
-
 msgid "only %(year)s"
 msgstr "केवल %(year)s"
 
@@ -6847,6 +6800,66 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
+
+#~ msgid ""
+#~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+#~ msgstr ""
+#~ "%(cards)s कार्ड मिला दिए गए। प्रतियाँ रीसायकल बिन के “Duplicates” में रखी गई हैं।"
+
+#~ msgid "%(count)s contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "%(count)s संपर्क कार्ड"
+#~ msgstr[1] "%(count)s संपर्क कार्ड"
+
+#~ msgid "%(count)s group"
+#~ msgid_plural "%(count)s groups"
+#~ msgstr[0] "%(count)s समूह"
+#~ msgstr[1] "%(count)s समूह"
+
+#~ msgid ""
+#~ "Found %(groups)s containing %(cards)s in total, for example:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "The most complete card in each group is retained, and missing fields are "
+#~ "filled from the others. The remaining cards are moved to the recycle bin "
+#~ "as “Duplicates” and can be restored from there. Continue?"
+#~ msgstr ""
+#~ "कुल %(cards)s कार्ड वाले %(groups)s समूह मिले, उदाहरण के लिए:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "हर समूह का सबसे पूर्ण कार्ड रखा जाता है और बाकी कार्डों से गायब फ़ील्ड भरे जाते हैं। शेष "
+#~ "कार्ड “Duplicates” के रूप में रीसायकल बिन में भेजे जाते हैं और वहाँ से पुनर्स्थापित किए जा "
+#~ "सकते हैं। जारी रखें?"
+
+#~ msgid "Import contacts additively"
+#~ msgstr "संपर्कों को जोड़ते हुए आयात करें"
+
+#~ msgid "One duplicate contact card was"
+#~ msgid_plural "%(count)s duplicate contact cards were"
+#~ msgstr[0] "एक डुप्लीकेट संपर्क कार्ड था"
+#~ msgstr[1] "%(count)s डुप्लिकेट संपर्क कार्ड थे"
+
+#~ msgid ""
+#~ "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+#~ "every removed card is kept in the recycle bin."
+#~ msgstr ""
+#~ "क्या वाकई %(cards)s को मिलाएँ? बाद में परिणाम ध्यान से जाँचें। हटाए गए हर कार्ड की "
+#~ "एक प्रति कूड़ेदान में रखी जाती है।"
+
+#~ msgid ""
+#~ "This one-time import only adds or enriches contacts. It does not "
+#~ "synchronize or delete contacts."
+#~ msgstr ""
+#~ "यह एक बार का आयात केवल संपर्कों को जोड़ता या बेहतर करता है। यह संपर्कों को सिंक्रनाइज़ "
+#~ "या हटाता नहीं है।"
+
+#~ msgid "Yes, merge"
+#~ msgstr "हाँ, मर्ज करें"
+
+#~ msgid "one contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "एक संपर्क कार्ड"
+#~ msgstr[1] "%(count)s संपर्क कार्ड"
 
 #~ msgid "KDE Connect for SMS"
 #~ msgstr "SMS के लिए KDE Connect"

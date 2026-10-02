@@ -358,4 +358,12 @@
     <string name="telefon_mehrere_rechner">已配对的电脑会保持保存。请选择现在要使用的电脑。</string>
     <string name="telefon_anrufe_erlauben">允许通话</string>
     <string name="telefon_anruf_berechtigungen">启用 Android 权限</string>
+    <string name="kontakt_review_titel">检查联系人更改</string>
+    <string name="kontakt_review_lokal">现有联系人</string>
+    <string name="kontakt_review_fern">收到的联系人</string>
+    <string name="kontakt_review_behalten">保留现有联系人</string>
+    <string name="kontakt_review_neu">创建独立联系人</string>
+    <string name="kontakt_review_neueste">使用较新版本</string>
+    <string name="kontakt_review_rest">将此选择应用于其余匹配明确的冲突</string>
+    <string name="kontakt_review_geburtsname">出生姓氏：%1$s</string>
 </resources>

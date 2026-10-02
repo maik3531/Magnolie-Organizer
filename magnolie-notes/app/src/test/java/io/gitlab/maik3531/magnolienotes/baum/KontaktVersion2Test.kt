@@ -7,6 +7,37 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class KontaktVersion2Test {
+    @Test fun `provider write times never promote an unchanged imported version`() {
+        val imported = io.gitlab.maik3531.magnolienotes.daten.KontaktSpur(
+            hash = "incoming", inhaltHash = "written", inhaltGeaendert = 100_000, providerGeaendert = 200_000)
+        assertEquals(100_000L, KontaktSync.inhaltszeit("written", 900_000, listOf(imported), 1_000_000))
+        assertEquals(250_000L, KontaktSync.inhaltszeit("edited", 250_000, listOf(imported), 1_000_000))
+        assertEquals(0L, KontaktSync.inhaltszeit("edited", 200_000, listOf(imported), 1_000_000))
+        assertEquals(0L, KontaktSync.inhaltszeit("written", 900_000, listOf(imported.copy(inhaltGeaendert = 0)), 1_000_000))
+        assertEquals(0L, KontaktSync.inhaltszeit("edited", 250_000, listOf(imported.copy(providerGeaendert = 0)), 1_000_000))
+        assertEquals(0L, KontaktSync.inhaltszeit("edited", 1_400_000, listOf(imported), 1_000_000))
+        assertEquals(250_000L, KontaktSync.inhaltszeit("first", 250_000, emptyList(), 1_000_000))
+        assertEquals(0L, KontaktSync.inhaltszeit("first", 0, emptyList(), 1_000_000))
+    }
+
+    @Test fun `v3 separates original content time from transport time`() {
+        val contact = KontaktDaten(vorname = "Anna", anzeigename = "Anna Example")
+        val message = KontaktNachricht("share", 7, "peer", 1770000000000, contact, 3, 1760000000000)
+        val wire = KontaktSync.inhalt(message)
+        assertEquals(message, KontaktSync.lies(wire))
+        assertEquals(1760000000000, KontaktSync.lies(wire)!!.inhaltGeaendert)
+        assertNull(KontaktSync.lies(JsonObject(wire - "inhaltGeaendert")))
+        for (invalid in listOf(JsonPrimitive(-1), JsonPrimitive(true), JsonPrimitive("1760000000000"),
+                JsonPrimitive(1.5), JsonPrimitive(253402300800000L)))
+            assertNull(KontaktSync.lies(JsonObject(wire + ("inhaltGeaendert" to invalid))))
+        assertNull(KontaktSync.lies(JsonObject(wire + ("fassung" to JsonPrimitive(2)))))
+        val older = KontaktSync.inhalt(message.copy(fassung = 2))
+        assertFalse(older.containsKey("inhaltGeaendert"))
+        assertEquals(contact, KontaktSync.lies(older)!!.kontakt)
+        assertEquals(0L, KontaktSync.lies(older)!!.inhaltGeaendert)
+        assertEquals(listOf(1, 2, 3) to emptyList<Int>(), KontaktFaehigkeiten.lesen(KontaktFaehigkeiten.inhalt(false, 3)))
+    }
+
     @Test fun `v2 name fields are exact bounded and participate in revisions without changing v1 hashes`() {
         val legacy = KontaktDaten(vorname = "Anna")
         assertEquals(KontaktSync.hash(legacy), KontaktSync.hash(legacy.copy(anzeigename = "Anna", vcardName = listOf("N:;Anna;;;", "FN:Anna"))))

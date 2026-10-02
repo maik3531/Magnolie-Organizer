@@ -473,4 +473,12 @@
     <string name="telefon_mehrere_rechner">Paired computers stay saved. Select the computer to use now.</string>
     <string name="telefon_anrufe_erlauben">Allow calls</string>
     <string name="telefon_anruf_berechtigungen">Enable Android permissions</string>
+    <string name="kontakt_review_titel">Review contact changes</string>
+    <string name="kontakt_review_lokal">Existing contact</string>
+    <string name="kontakt_review_fern">Incoming contact</string>
+    <string name="kontakt_review_behalten">Keep existing contact</string>
+    <string name="kontakt_review_neu">Create a separate contact</string>
+    <string name="kontakt_review_neueste">Use the newer version</string>
+    <string name="kontakt_review_rest">Apply this choice to remaining unambiguous conflicts</string>
+    <string name="kontakt_review_geburtsname">Birth name: %1$s</string>
 </resources>

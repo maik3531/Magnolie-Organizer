@@ -880,7 +880,7 @@ def journal_inhalt_geaendert(vorher, nachher):
     metadaten = {"uid", "geaendert", "angelegt", "personalGeaendert", "sync", "syncQuellen",
                  "syncKalenderUid", "davHref", "davEtag", "baumKontakt", "baumFreigabe",
                  "baumVersion", "baumQuelle", "baumGeaendert", "baumInhaltVersion", "persoenlichVerknuepft", "importBindungen", "importHerkunfte",
-                 "importKonflikt", "fotoQuelle", "fotoManuell", "icsSequence", "icsAenderungszeitFehlt"}
+                 "importKonflikt", "fotoQuelle", "fotoManuell", "kontaktZeit", "icsSequence", "icsAenderungszeitFehlt"}
 
     def inhalt(name, wert):
         if name in {"kontakte", "jahrestage", "notizen", "aufgaben", "termine"} and isinstance(wert, list):
@@ -2311,6 +2311,23 @@ def _kalender_strptime(text, form):
             text = "1900-01-01T" + text
         return datetime.fromisoformat(text)
     return datetime.strptime(text, form)
+
+
+def _vcard_rev_zu_ms(wert):
+    """Nur vollständige REV-Zeitpunkte mit expliziter, gültiger Zeitzone."""
+    w = (wert or "").upper()
+    if not re.fullmatch(r"(?:[0-9]{8}T[0-9]{6}|[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})(?:Z|[+-][0-9]{2}:?[0-9]{2})", w):
+        return 0
+    zone = re.search(r"([+-])([0-9]{2}):?([0-9]{2})$", w)
+    if zone and (int(zone[3]) > 59 or int(zone[2]) > 14 or
+                 (int(zone[2]) == 14 and int(zone[3]) != 0)):
+        return 0
+    for form in ("%Y%m%dT%H%M%S%z", "%Y-%m-%dT%H:%M:%S%z"):
+        try:
+            return int(_kalender_strptime(w, form).timestamp() * 1000)
+        except (ValueError, OverflowError):
+            continue
+    return 0
 
 
 def _stempel_zu_ms(wert):
@@ -5028,7 +5045,7 @@ def kontakte_vor_sync_zuordnen(lokal, entfernt):
     vergeben = {obj.get("uid") for obj in lokal if obj.get("sync")}
     for obj in lokal:
         uid = obj.get("uid")
-        if obj.get("sync") or (uid and uid in entfernt):
+        if obj.get("sync") or obj.get("kontaktProviderKonflikte") or (uid and uid in entfernt):
             continue
         mails = {wert.casefold() for wert in _email_liste(obj)}
         telefone = _kontakt_telefone(obj)
@@ -5101,6 +5118,7 @@ def vcf_lesen(text, lokale_dateien=False):
         telefone = []
         anschriften = []
         geaendert = 0
+        vcard_rev = rev_anzahl = 0
         gruppen_label = {}
         vcard_parameter = {"TEL": [], "EMAIL": [], "ADR": []}
         vcard_roundtrip = []
@@ -5181,8 +5199,11 @@ def vcf_lesen(text, lokale_dateien=False):
                 vcard_roundtrip.append(zeile)
             elif name == "UID" and not uid_wert:
                 uid_wert = _ical_unescape(wert).strip()
-            elif name == "REV" and not geaendert:
-                geaendert = _stempel_zu_ms(wert)
+            elif name == "REV":
+                rev_anzahl += 1
+                if not geaendert:
+                    geaendert = _vcard_rev_zu_ms(wert) or _stempel_zu_ms(wert)
+                vcard_rev = _vcard_rev_zu_ms(wert) if rev_anzahl == 1 else 0
             elif name == "X-MAGNOLIE-KONTAKTPERSON-NAME":
                 kontaktperson_name = _ical_unescape(wert).strip()
             elif name == "X-MAGNOLIE-KONTAKTPERSON-TELEFON":
@@ -5224,6 +5245,7 @@ def vcf_lesen(text, lokale_dateien=False):
                 "emailEintraege": email_eintraege}),
             "notiz": notiz,
             "foto": foto, "uid": uid_wert, "geaendert": geaendert,
+            "vcardRev": vcard_rev,
             "geburtstag": bday,
             "jubilaeum": jubilaeum,
             "geburtstagJahrUnbekannt": bday_unbekannt,
@@ -5414,7 +5436,8 @@ def vcard_text(k):
                 zerlegt[0] == "ANNIVERSARY" and "jubilaeum" in k):
             zeilen.append(roh)
     zeilen.append(("UID;VALUE=text:" if v4 else "UID:") + _vcard_escape(k.get("uid") or _neue_uid()))
-    zeilen.append("REV:" + _utc_stempel(k.get("geaendert") or None))
+    if k.get("geaendert"):
+        zeilen.append("REV:" + _utc_stempel(k["geaendert"]))
     zeilen.append("END:VCARD")
     return "\r\n".join(_falte(z) for z in zeilen) + "\r\n"
 
@@ -6136,7 +6159,45 @@ def _sync_konflikt_bewahren(obj, fern, felder):
     obj["syncKonflikte"] = konflikte[-16:]
 
 
-def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None):
+def _kontakt_provider_pruefung(obj, fern, quelle, meta, baseline=None, transport="dav", nur_lesen=False):
+    if not (obj.get("syncQuellen") or {}).get(quelle):
+        baseline = baseline or {}
+        obj.setdefault("syncQuellen", {})[quelle] = {
+            "id": baseline.get("id") or baseline.get("href") or meta.get("href") or obj.get("davHref") or obj.get("uid"),
+            "etag": baseline.get("etag") or "", "inhaltFormat": "", "inhaltSha256": "", "eigen": True}
+    pruefungen = dict(obj.get("kontaktProviderKonflikte") or {})
+    if fern is None:
+        pruefung = dict(pruefungen.get(quelle) or {})
+        pruefung["entfernt"] = True
+    else:
+        pruefung = {"kontakt": json.loads(json.dumps(fern)), "entfernt": False,
+                    "mapping": {"id": meta.get("href") or obj.get("davHref") or obj.get("uid"),
+                                "etag": meta.get("etag") or "",
+                                "inhaltFormat": _sync_inhalt_format(KONTAKT_FELDER),
+                                "inhaltSha256": _sync_inhalt_hash(fern, KONTAKT_FELDER),
+                                "eigen": True}}
+    pruefungen[quelle] = pruefung
+    pruefung["transport"] = transport
+    pruefung["nurLesen"] = bool(nur_lesen)
+    if "mapping" in pruefung:
+        pruefung["mapping"]["transport"] = transport
+    obj["kontaktProviderKonflikte"] = pruefungen
+
+
+def _kontakt_eds_baseline(obj, quelle, fern):
+    if (obj.get("kontaktProviderKonflikte") or {}).get(quelle):
+        return
+    lokal_hash = _sync_inhalt_hash(obj, KONTAKT_FELDER)
+    remote_hash = _sync_inhalt_hash(fern, KONTAKT_FELDER)
+    obj.setdefault("syncQuellen", {})[quelle] = {
+        "id": fern.get("uid") or obj.get("uid"), "transport": "eds",
+        "inhaltFormat": _sync_inhalt_format(KONTAKT_FELDER),
+        "inhaltSha256": remote_hash, "lokalInhaltSha256": lokal_hash,
+        "abweichungBehalten": lokal_hash != remote_hash, "eigen": True}
+
+
+def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
+               kontakt_quelle="", kontakt_nur_lesen=False):
     """Gleicht die lokale Liste mit dem entfernten Stand ab.
 
     lokal      Liste von Objekten mit uid / geaendert / sync
@@ -6176,12 +6237,29 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None):
         u = obj["uid"]
         gesehen.add(u)
         fern = entfernt.get(u)
+        if kontakt_quelle and (obj.get("kontaktProviderKonflikte") or {}).get(kontakt_quelle):
+            _kontakt_provider_pruefung(obj, fern, kontakt_quelle, {"href": u},
+                                      transport="eds", nur_lesen=kontakt_nur_lesen)
+            neue_lokal.append(obj)
+            zaehler["konflikte"] += 1
+            continue
+        if dav and felder == KONTAKT_FELDER and (obj.get("kontaktProviderKonflikte") or {}).get(dav[0]):
+            _kontakt_provider_pruefung(obj, fern, dav[0], (dav[2] or {}).get(u) or {})
+            neue_lokal.append(obj)
+            zaehler["konflikte"] += 1
+            continue
         if fern is None:
+            if kontakt_quelle and kontakt_nur_lesen:
+                neue_lokal.append(obj)
+                continue
             if obj.get("sync"):
-                basis = ((obj.get("syncQuellen") or {}).get(dav[0]) or {}) if dav else {}
+                basis = ((obj.get("syncQuellen") or {}).get(dav[0] if dav else kontakt_quelle) or {})
                 lokal_neu = (basis.get("inhaltFormat") != _sync_inhalt_format(felder) or
-                              _sync_inhalt_hash(obj, felder) != basis.get("inhaltSha256")
-                              if dav else (obj.get("geaendert") or 0) > letzter_sync)
+                              _sync_inhalt_hash(obj, felder) != basis.get("lokalInhaltSha256", basis.get("inhaltSha256")) or
+                              bool(basis.get("pruefungFreigegeben"))
+                              if dav or kontakt_quelle else (obj.get("geaendert") or 0) > letzter_sync)
+                if kontakt_quelle and not basis.get("inhaltSha256") and not basis.get("pruefungFreigegeben"):
+                    lokal_neu = (obj.get("geaendert") or 0) > letzter_sync
                 if lokal_neu:
                     obj["sync"] = True          # drüben gelöscht, hier neuer geändert
                     anlegen.append(obj)
@@ -6198,6 +6276,24 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None):
             lokal_zeit = obj.get("geaendert") or 0
             fern_zeit = fern.get("geaendert") or 0
             dav_entscheidung = None
+            if kontakt_quelle:
+                basis = (obj.get("syncQuellen") or {}).get(kontakt_quelle) or {}
+                lokal_hash = _sync_inhalt_hash(obj, felder)
+                remote_hash = _sync_inhalt_hash(fern, felder)
+                bekannt = basis.get("inhaltFormat") == _sync_inhalt_format(felder) and bool(basis.get("inhaltSha256"))
+                lokal_neu = lokal_hash != basis.get("lokalInhaltSha256", basis.get("inhaltSha256"))
+                remote_neu = remote_hash != basis.get("inhaltSha256")
+                freigegeben = bool(basis.get("pruefungFreigegeben")) and not remote_neu
+                if lokal_hash != remote_hash and (not bekannt or
+                        remote_neu and (lokal_neu or basis.get("abweichungBehalten"))):
+                    _kontakt_provider_pruefung(obj, fern, kontakt_quelle, {"href": u},
+                                              transport="eds", nur_lesen=kontakt_nur_lesen)
+                    neue_lokal.append(obj)
+                    zaehler["konflikte"] += 1
+                    continue
+                dav_entscheidung = ("gleich" if lokal_hash == remote_hash else
+                                    "lokal" if (lokal_neu or freigegeben) and not kontakt_nur_lesen else
+                                    "remote" if remote_neu else "gleich")
             if dav is not None:
                 quelle, alte_etags, aktuelle_etags = dav
                 zuordnung = (obj.get("syncQuellen") or {}).get(quelle) or {}
@@ -6215,6 +6311,11 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None):
                         vergleich_fern = dict(fern, foto=obj.get("foto") or "")
                     if remote_neu and lokal_neu and (
                             _sync_inhalt_hash(obj, felder) != _sync_inhalt_hash(vergleich_fern, felder)):
+                        if felder == KONTAKT_FELDER:
+                            _kontakt_provider_pruefung(obj, fern, quelle, aktuell, baseline=alt)
+                            neue_lokal.append(obj)
+                            zaehler["konflikte"] += 1
+                            continue
                         kopie = json.loads(json.dumps(obj))
                         kennung = uuid.uuid5(uuid.NAMESPACE_URL, "\n".join((
                             quelle, u, alt["etag"], _sync_inhalt_hash(obj, felder)))).hex
@@ -6399,6 +6500,9 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None):
             if kopie.get("elternUid") in konflikt_uids:
                 kopie["elternUid"] = konflikt_uids[kopie["elternUid"]]
     neue_lokal.extend(konflikt_kopien)
+    if kontakt_quelle and kontakt_nur_lesen:
+        anlegen, aendern, loeschen = [], [], []
+        zaehler.update(remote_neu=0, remote_geaendert=0, remote_geloescht=0)
     return neue_lokal, anlegen, aendern, loeschen, zaehler
 
 
@@ -12027,15 +12131,20 @@ def baum_kontakt_sync_pruefen(inhalt):
     """Validiert den interoperablen Kontaktvertrag ohne stilles Bereinigen."""
     kopf = {"art", "fassung", "freigabeId", "version", "quelle", "geaendert",
             "kontakt"}
+    if isinstance(inhalt, dict) and inhalt.get("fassung") == 3:
+        kopf.add("inhaltGeaendert")
     kontakt_felder = {"vorname", "nachname", "firma", "notiz", "geburtstag",
                        "telefone", "emailEintraege", "anschriften"}
     fehler = _("The contact synchronization message is invalid.")
     if (not isinstance(inhalt, dict) or set(inhalt) != kopf
             or inhalt.get("art") != "kontakt_sync" or type(inhalt.get("fassung")) is not int
-            or inhalt["fassung"] not in (1, 2)):
+            or inhalt["fassung"] not in (1, 2, 3)):
         raise RuntimeError(fehler)
-    if inhalt["fassung"] == 2:
+    if inhalt["fassung"] >= 2:
         kontakt_felder |= {"jubilaeum", "anzeigename", "vcardName"}
+    if inhalt["fassung"] == 3 and (type(inhalt.get("inhaltGeaendert")) is not int or
+            not 0 <= inhalt["inhaltGeaendert"] <= 253402300799999):
+        raise RuntimeError(fehler)
     for feld in ("freigabeId", "quelle"):
         wert = inhalt.get(feld)
         if (not isinstance(wert, str) or not wert or len(wert) > 128
@@ -12061,7 +12170,7 @@ def baum_kontakt_sync_pruefen(inhalt):
     if kontakt["geburtstag"]:
         if not _maschinen_datum(kontakt["geburtstag"]):
             raise RuntimeError(fehler)
-    if inhalt["fassung"] == 2:
+    if inhalt["fassung"] >= 2:
         for feld in ("jubilaeum", "anzeigename"):
             if not isinstance(kontakt[feld], str) or len(kontakt[feld]) > BAUM_KONTAKT_TEXT_MAX:
                 raise RuntimeError(fehler)
@@ -12196,9 +12305,9 @@ def baum_kontakt_nutzlast_pruefen(art, inhalt):
     return inhalt
 
 
-def baum_kontakt_faehigkeiten(antwort=False):
+def baum_kontakt_faehigkeiten(antwort=False, maximum=2):
     return {"art": "kontakt_faehigkeiten", "fassung": 1,
-            "kontakt_sync": [1, 2], "kontakt_import": [1, 2], "antwort": antwort}
+            "kontakt_sync": [1, 2, 3] if maximum >= 3 else [1, 2], "kontakt_import": [1, 2], "antwort": antwort}
 
 
 def baum_kontakt_faehigkeiten_pruefen(inhalt):
@@ -12211,12 +12320,16 @@ def baum_kontakt_faehigkeiten_pruefen(inhalt):
     for feld in ("kontakt_sync", "kontakt_import"):
         werte = inhalt[feld]
         if (not isinstance(werte, list) or any(type(wert) is not int for wert in werte)
-                or werte not in ([1], [1, 2]) and not (feld == "kontakt_import" and werte == [])):
+                or werte not in ([1], [1, 2]) and not (feld == "kontakt_import" and werte == [])
+                and not (feld == "kontakt_sync" and werte == [1, 2, 3])):
             raise RuntimeError(fehler)
     return inhalt
 
 
 def baum_kontakt_peer_fassung(partner, art):
+    if (partner.get("bestaetigt") and art == "kontakt_sync" and
+            (partner.get("kontaktFaehigkeiten") or {}).get(art) == [1, 2, 3]):
+        return 3
     return 2 if (partner.get("bestaetigt") and
                  (partner.get("kontaktFaehigkeiten") or {}).get(art) == [1, 2]) else 1
 
@@ -12224,7 +12337,7 @@ def baum_kontakt_peer_fassung(partner, art):
 def baum_kontakt_fuer_partner(partner, inhalt):
     art = inhalt.get("art")
     if art == "kontakt":
-        if baum_kontakt_peer_fassung(partner, "kontakt_sync") == 2:
+        if baum_kontakt_peer_fassung(partner, "kontakt_sync") >= 2:
             return inhalt
         kontakt = {feld: inhalt.get(feld, "") for feld in ("vorname", "nachname", "anzeigename", "jubilaeum")}
         kontakt.update(firma="", notiz="", geburtstag="", telefone=[], emailEintraege=[], anschriften=[],
@@ -12243,6 +12356,11 @@ def baum_kontakt_fuer_partner(partner, inhalt):
     fehler = _("This type cannot be shared.")
     if art != "kontakt_sync":
         raise RuntimeError(fehler)
+    if inhalt["fassung"] == 3:
+        inhalt = dict(inhalt, fassung=2)
+        inhalt.pop("inhaltGeaendert")
+        if baum_kontakt_peer_fassung(partner, "kontakt_sync") >= 2:
+            return inhalt
     kontakt = inhalt["kontakt"]
     name = " ".join(kontakt[feld] for feld in ("vorname", "nachname") if kontakt[feld])
     n = "N:" + _vcard_escape(kontakt["nachname"]) + ";" + _vcard_escape(kontakt["vorname"]) + ";;;"
@@ -13554,7 +13672,8 @@ def _baum_http_json_senden(adresse, inhalt, zeitgrenze=6):
 
 
 def baum_senden_fs(zustand, partner, art, inhalt, transport_id,
-                    sender=None, zeitgrenze=6):
+                    sender=None, zeitgrenze=6, probe=None):
+    from urllib.error import HTTPError
     sende = sender or (lambda adresse, nutzlast: _baum_http_json_senden(
         adresse, nutzlast, zeitgrenze))
     for host, port in baum_partner_endpunkte(partner):
@@ -13577,6 +13696,11 @@ def baum_senden_fs(zustand, partner, art, inhalt, transport_id,
             if fs_ack_pruefen(sitzung, umschlag, quittung):
                 partner["zuletzt"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 return True
+        except HTTPError as fehler:
+            if probe is not None and fehler.code in (400, 403, 404):
+                probe["kontaktV3NichtUnterstuetzt"] = True
+                partner["kontaktV3Geprueft"] = True
+                return False
         except Exception:
             pass
         finally:
@@ -13614,6 +13738,9 @@ def baum_senden(zustand, partner, art, inhalt, sender=None, zeitgrenze=6,
     baum_kontakt_nutzlast_pruefen(art, inhalt)
     if not partner.get("bestaetigt"):
         return False
+    if sendung and sendung.get("kontaktV3Probe"):
+        return baum_senden_fs(zustand, partner, art, inhalt, transport_id,
+                              sender, zeitgrenze, probe=sendung)
     if art in ("kontakt", "kontakt_sync", "kontakt_import_manifest", "kontakt_import_karte"):
         try:
             if baum_kontakt_fuer_partner(partner, inhalt) != inhalt:
@@ -13670,7 +13797,7 @@ def baum_post_zustellen(zustand, post, jetzt=None, sender=None, hoechstens=0,
         if sichern is None or sichern() is False:
             raise RuntimeError(_("The Magnolienbaum outbox could not be saved."))
     for sendung in post:
-        empfaenger = sendung.get("an")
+        empfaenger = (sendung.get("an"), bool(sendung.get("kontaktV3Probe")))
         if (sendung.get("receiptAttempted") or sendung.get("unsicher") or
                 isinstance(sendung.get("briefUmschlag"), dict) and
                 (type(sendung.get("receiptProtocol")) is not int or sendung["receiptProtocol"] != 1)):
@@ -13707,7 +13834,7 @@ def baum_post_zustellen(zustand, post, jetzt=None, sender=None, hoechstens=0,
         versucht += 1
         if not sendung.get("transportId"):
             sendung["transportId"] = _fs_b64(os.urandom(16))
-        if partner.get("protokoll", "baum-1") != "baum-fs1" \
+        if not sendung.get("kontaktV3Probe") and partner.get("protokoll", "baum-1") != "baum-fs1" \
                 and not isinstance(sendung.get("briefUmschlag"), dict):
             partner["zaehler_raus"] = int(partner.get("zaehler_raus") or 0) + 1
             sendung["briefZaehler"] = partner["zaehler_raus"]
@@ -13723,6 +13850,8 @@ def baum_post_zustellen(zustand, post, jetzt=None, sender=None, hoechstens=0,
                        gespeicherter_umschlag=sendung.get("briefUmschlag"),
                        sendung=sendung, sichern=speichern):
             zugestellt += 1
+            continue
+        if sendung.get("kontaktV3NichtUnterstuetzt"):
             continue
         baum_fehlversuch(sendung, jetzt)
         offen += 1
@@ -17894,8 +18023,18 @@ def kontakt_snapshot_hash(kontakte):
         separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
-def kontakte_erster_sync(lokal, entfernt):
+def kontakte_erster_sync(lokal, entfernt, dav=None, kontakt_quelle="", kontakt_nur_lesen=False):
     """Additiver Erstimport ohne lokale oder entfernte Löschungen/Schreibvorgänge."""
+    if dav or kontakt_quelle:
+        for obj in lokal:
+            fern = entfernt.get(obj.get("uid"))
+            if fern is None:
+                continue
+            vergleich = dict(fern, foto=obj.get("foto") or "") if obj.get("fotoManuell") is True else fern
+            if _sync_inhalt_hash(obj, KONTAKT_FELDER) != _sync_inhalt_hash(vergleich, KONTAKT_FELDER):
+                _kontakt_provider_pruefung(obj, fern, dav[0] if dav else kontakt_quelle,
+                    ((dav[2] or {}).get(obj.get("uid")) or {}) if dav else {"href": obj.get("uid")},
+                    transport="dav" if dav else "eds", nur_lesen=kontakt_nur_lesen)
     kontakte_vor_sync_zuordnen(lokal, entfernt)
     vorher = {id(obj): json.dumps(obj, ensure_ascii=False, sort_keys=True)
               for obj in lokal}
@@ -17905,6 +18044,17 @@ def kontakte_erster_sync(lokal, entfernt):
     for obj in lokal:
         uid_wert = obj.get("uid")
         fern = entfernt.get(uid_wert)
+        if kontakt_quelle and (obj.get("kontaktProviderKonflikte") or {}).get(kontakt_quelle):
+            _kontakt_provider_pruefung(obj, fern, kontakt_quelle, {"href": uid_wert},
+                                      transport="eds", nur_lesen=kontakt_nur_lesen)
+            ergebnis.append(obj)
+            gesehen.add(uid_wert)
+            continue
+        if dav and (obj.get("kontaktProviderKonflikte") or {}).get(dav[0]):
+            _kontakt_provider_pruefung(obj, fern, dav[0], (dav[2] or {}).get(uid_wert) or {})
+            ergebnis.append(obj)
+            gesehen.add(uid_wert)
+            continue
         if fern is None:
             # Eine alte Bindung kann zu einer anderen EDS-Quelle gehören.
             # In der neuen Baseline ist dieser Kontakt lokal und wird später
@@ -20274,6 +20424,8 @@ class Fenster(_FENSTER_BASIS):
         nutzlast["art"] = art
         nutzlast["abgebrochen"] = False
         nutzlast["datei"] = os.path.basename(pfad)
+        nutzlast["kontaktQuelle"] = "datei:" + hashlib.sha256(
+            os.path.abspath(pfad).encode("utf-8")).hexdigest()
         self.antwort("App.importErgebnis", nutzlast)
 
     def bei_notiz_anhang_datei(self, nachricht, starter=None):
@@ -22382,15 +22534,24 @@ class Fenster(_FENSTER_BASIS):
             except (AttributeError, TypeError):
                 pass
 
-    def _baum_kontakt_faehigkeiten_anmelden(self, partner=None, antwort=False):
+    def _baum_kontakt_faehigkeiten_anmelden(self, partner=None, antwort=False, maximum=None):
         with self._baum_sperre:
             zustand = self._baum_zustand()
             post = baum_post_lesen(kennwort=self._kennwort)
-            inhalt = baum_kontakt_faehigkeiten(antwort)
             for ziel in ([partner] if partner else (zustand or {}).get("partner", [])):
-                if ziel.get("bestaetigt") and not any(s.get("an") == ziel["kennung"] and
-                        not s.get("aufgegeben") and s.get("inhalt") == inhalt for s in post):
-                    baum_einreihen(post, ziel["kennung"], "kontakt_faehigkeiten", inhalt)
+                if not ziel.get("bestaetigt"):
+                    continue
+                version = maximum or max(2, baum_kontakt_peer_fassung(ziel, "kontakt_sync"))
+                versionen = [version]
+                if not antwort and version < 3 and not ziel.get("kontaktV3Geprueft"):
+                    versionen.append(3)
+                for angebot in versionen:
+                    inhalt = baum_kontakt_faehigkeiten(antwort, angebot)
+                    if not any(s.get("an") == ziel["kennung"] and not s.get("aufgegeben") and
+                               s.get("inhalt") == inhalt for s in post):
+                        sendung = baum_einreihen(post, ziel["kennung"], "kontakt_faehigkeiten", inhalt)
+                        if angebot >= 3:
+                            sendung["kontaktV3Probe"] = True
             if not baum_post_schreiben(post, kennwort=self._kennwort):
                 raise RuntimeError(_("The Magnolienbaum outbox could not be saved."))
 
@@ -22403,9 +22564,13 @@ class Fenster(_FENSTER_BASIS):
                 if not partner.get("bestaetigt") or baum_partner(zustand, partner.get("kennung")) is not partner:
                     raise RuntimeError(_("This branch has not been confirmed."))
                 baum_kontakt_faehigkeiten_pruefen(inhalt)
+                modern = inhalt["kontakt_sync"] == [1, 2, 3]
                 if not inhalt["antwort"]:
-                    self._baum_kontakt_faehigkeiten_anmelden(partner, True)
-                partner["kontaktFaehigkeiten"] = dict(inhalt)
+                    self._baum_kontakt_faehigkeiten_anmelden(partner, True, 3 if modern else 2)
+                if modern or not inhalt["antwort"] or baum_kontakt_peer_fassung(partner, "kontakt_sync") < 3:
+                    partner["kontaktFaehigkeiten"] = dict(inhalt)
+                if modern:
+                    partner["kontaktV3Geprueft"] = True
                 # The authenticated receiver saves this together with replay state.
             else:
                 baum_eingang_ablegen(partner, inhalt, kennwort=self._kennwort)
@@ -23352,7 +23517,8 @@ class Fenster(_FENSTER_BASIS):
             basis = adress_meta.get(buch_uid) if isinstance(adress_meta.get(buch_uid), dict) else {}
             erster = restore_additiv or not basis.get("initialisiert")
             if erster:
-                kontakte, plan = kontakte_erster_sync(kontakte, fern)
+                kontakte, plan = kontakte_erster_sync(kontakte, fern,
+                    dav=(buch_uid, basis.get("etags"), remote_meta))
                 for item in kontakte:
                     item_uid = item.get("uid")
                     if item_uid in remote_meta:
@@ -23424,6 +23590,9 @@ class Fenster(_FENSTER_BASIS):
                 tote_kontakte, loeschen, geschafft, jetzt_ms())
             for item in kontakte:
                 meta = remote_meta.get(item.get("uid"))
+                pruefung = (item.get("kontaktProviderKonflikte") or {}).get(buch_uid)
+                if pruefung:
+                    pruefung["name"] = quelle["name"]
                 if meta and item.get("sync"):
                     item["davHref"] = meta["href"]
                     item["davEtag"] = meta["etag"]
@@ -24067,13 +24236,14 @@ class Fenster(_FENSTER_BASIS):
             else:
                 client = buch_client
                 fern = buch_fern
+                kontakt_quelle = ("akonadi:" if buch_uid.startswith("akonadi-addressbook:") else "eds:") + buch_uid
                 geburtstage = buch_lesen["geburtstage"]
                 erster_buch_sync = not bool(buch_basis.get("initialisiert"))
-                if erster_buch_sync or buch_nur_lesen:
-                    kontakte, plan = kontakte_erster_sync(kontakte, fern)
-                    if buch_nur_lesen:
-                        tote_kontakte = [t for t in tote_kontakte
-                            if t.get("uid") not in fern]
+                if buch_nur_lesen:
+                    tote_kontakte = [t for t in tote_kontakte if t.get("uid") not in fern]
+                if erster_buch_sync:
+                    kontakte, plan = kontakte_erster_sync(kontakte, fern,
+                        kontakt_quelle=kontakt_quelle, kontakt_nur_lesen=buch_nur_lesen)
                     anlegen, aendern, loeschen = [], [], []
                     z = {"lokal_neu": plan["lokalNeu"],
                          "lokal_geaendert": plan["lokalAktualisiert"],
@@ -24084,12 +24254,13 @@ class Fenster(_FENSTER_BASIS):
                     kontakte, anlegen, aendern, loeschen, z = sync_merge(
                         kontakte, fern, tote_kontakte,
                         int(buch_basis.get("letzterSync") or letzter),
-                        KONTAKT_FELDER)
+                        KONTAKT_FELDER, kontakt_quelle=kontakt_quelle, kontakt_nur_lesen=buch_nur_lesen)
                 geplant = {"anlegen": len(anlegen), "aendern": len(aendern),
                             "loeschen": len(loeschen)}
                 erfolgreich = {"anlegen": 0, "aendern": 0, "loeschen": 0}
                 fehler = 0
                 verweigert = []
+                geschrieben = set()
                 for recht, liste in (("create", anlegen), ("change", aendern)):
                     if recht not in buch_rechte and liste:
                         verweigert.extend(liste)
@@ -24115,6 +24286,7 @@ class Fenster(_FENSTER_BASIS):
                         neu = eds_kontakt_anlegen(client, vcard_text(obj))
                         if neu and neu != obj["uid"]:
                             obj["uid"] = neu
+                        geschrieben.add(obj["uid"])
                         erfolgreich["anlegen"] += 1
                     except Exception as fehler_ursache:
                         fehler += 1
@@ -24125,6 +24297,7 @@ class Fenster(_FENSTER_BASIS):
                 for obj in aendern:
                     try:
                         eds_kontakt_aendern(client, vcard_text(obj))
+                        geschrieben.add(obj["uid"])
                         erfolgreich["aendern"] += 1
                     except Exception as fehler_ursache:
                         fehler += 1
@@ -24143,6 +24316,28 @@ class Fenster(_FENSTER_BASIS):
                         sync_fehler.append(_sync_fehlertext(
                             "%s · %s" % (buch_name, _("Contacts")),
                             fehler_ursache))
+                baseline_fern = fern
+                if geschrieben:
+                    try:
+                        ruecklesen = eds_kontakte_lesen(client)
+                        if not ruecklesen.get("vollstaendig"):
+                            raise RuntimeError(_("The address book backend reported an incomplete read."))
+                        baseline_fern = {k["uid"]: k for k in ruecklesen["kontakte"]}
+                        if not geschrieben.issubset(baseline_fern):
+                            raise RuntimeError(_("The address book backend reported an incomplete read."))
+                    except Exception as fehler_ursache:
+                        fehler += 1
+                        for obj in kontakte:
+                            if obj.get("uid") in geschrieben:
+                                obj["sync"] = False
+                        baseline_fern = {uid: k for uid, k in fern.items() if uid not in geschrieben}
+                        sync_fehler.append(_sync_fehlertext("%s · %s" % (buch_name, _("Contacts")), fehler_ursache))
+                for obj in kontakte:
+                    pruefung = (obj.get("kontaktProviderKonflikte") or {}).get(kontakt_quelle)
+                    if pruefung:
+                        pruefung["name"] = buch_name
+                    elif obj.get("sync") and obj.get("uid") in baseline_fern:
+                        _kontakt_eds_baseline(obj, kontakt_quelle, baseline_fern[obj["uid"]])
                 tote_kontakte = kontakt_grabsteine_nach_loeschung(
                     tote_kontakte, loeschen, geschafft, jetzt_ms())
                 if erster_buch_sync:
@@ -24237,6 +24432,8 @@ def sync_quellen_aufteilen(kalender_uids, adressbuch_uid):
 
 
 def _dav_syncquelle_setzen(item, quelle, remote_id, etag, eigen=True, baseline=None):
+    if (item.get("kontaktProviderKonflikte") or {}).get(quelle):
+        return
     alle = dict(item.get("syncQuellen") or {})
     felder = (KONTAKT_FELDER if quelle.startswith(("nextcloud-addressbook:", "generic-dav-addressbook:"))
               else AUFGABE_FELDER if "faellig" in item or "elternUid" in item else TERMIN_FELDER)

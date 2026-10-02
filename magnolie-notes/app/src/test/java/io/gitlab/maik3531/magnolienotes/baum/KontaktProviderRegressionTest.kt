@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.ContentProvider
 import android.content.ContentUris
 import android.content.ContentValues
+import android.content.ContentProviderOperation
+import android.content.ContentProviderResult
 import android.content.Context
 import android.content.pm.ProviderInfo
 import android.database.Cursor
@@ -117,18 +119,43 @@ class KontaktProviderRegressionTest {
         assertEquals(raw, adapter.alle().single().rawContactId)
     }
 
-    private class FixtureProvider : ContentProvider() {
+    internal class FixtureProvider : ContentProvider() {
         val rows = mutableListOf<MutableMap<String, Any?>>()
         private val rawIds = mutableListOf<Long>()
+        private val versions = mutableMapOf<Long, Long>()
+        var beforeBatch: (() -> Unit)? = null
+        var failAt = -1
+        var batches = 0
         private var nextRow = 1L
         private var nextRaw = 1L
         override fun onCreate() = true
         override fun getType(uri: Uri): String? = null
+        override fun applyBatch(operations: ArrayList<ContentProviderOperation>): Array<ContentProviderResult> {
+            beforeBatch?.also { beforeBatch = null }?.invoke()
+            val oldRows = rows.map { it.toMutableMap() }
+            val oldIds = rawIds.toList(); val oldVersions = versions.toMap()
+            val rowCounter = nextRow; val rawCounter = nextRaw
+            batches++
+            try {
+                val results = arrayOfNulls<ContentProviderResult>(operations.size)
+                operations.forEachIndexed { index, operation ->
+                    if (index == failAt) throw android.content.OperationApplicationException("Injected batch failure")
+                    results[index] = operation.apply(this, results, index)
+                }
+                return results.map { requireNotNull(it) }.toTypedArray()
+            } catch (error: Exception) {
+                rows.clear(); rows.addAll(oldRows); rawIds.clear(); rawIds.addAll(oldIds)
+                versions.clear(); versions.putAll(oldVersions); nextRow = rowCounter; nextRaw = rawCounter
+                throw error
+            }
+        }
+        fun changed(raw: Long) { versions[raw] = versions.getValue(raw) + 1 }
         override fun query(uri: Uri, projection: Array<out String>?, selection: String?,
                            selectionArgs: Array<out String>?, sortOrder: String?): Cursor {
             val columns = requireNotNull(projection)
             val values: List<Map<String, Any?>> = when (uri.pathSegments.first()) {
-                "raw_contacts" -> rawIds.map { mapOf(RawContacts._ID to it, RawContacts.CONTACT_ID to it) }
+                "raw_contacts" -> rawIds.filter { uri.pathSegments.size == 1 || it.toString() == uri.lastPathSegment }
+                    .map { mapOf(RawContacts._ID to it, RawContacts.CONTACT_ID to it, RawContacts.VERSION to versions.getValue(it)) }
                 "contacts" -> rawIds.map { mapOf(ContactsContract.Contacts._ID to it,
                     ContactsContract.Contacts.LOOKUP_KEY to "lookup-$it") }
                 else -> rows.filter { row -> selectionArgs == null ||
@@ -145,25 +172,38 @@ class KontaktProviderRegressionTest {
             if (uri.pathSegments.first() == "raw_contacts") {
                 val id = nextRaw++
                 rawIds += id
+                versions[id] = 1
                 return ContentUris.withAppendedId(uri, id)
             }
             val row = requireNotNull(values).valueSet().associate { it.key to it.value }.toMutableMap()
             val id = nextRow++
             row[Data._ID] = id
             rows += row
+            changed((row.getValue(Data.RAW_CONTACT_ID) as Number).toLong())
             return ContentUris.withAppendedId(uri, id)
         }
         override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?): Int {
             val row = rows.single { it[Data._ID] == ContentUris.parseId(uri) }
             requireNotNull(values).valueSet().forEach { row[it.key] = it.value }
+            changed((row.getValue(Data.RAW_CONTACT_ID) as Number).toLong())
             return 1
         }
         override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int {
             val id = if (uri.pathSegments.first() == "raw_contacts") ContentUris.parseId(uri)
                 else requireNotNull(selectionArgs)[0].toLong()
-            if (uri.pathSegments.first() == "raw_contacts") rawIds.remove(id)
-            val count = rows.count { it[Data.RAW_CONTACT_ID] == id }
-            rows.removeAll { it[Data.RAW_CONTACT_ID] == id }
+            val rawDelete = uri.pathSegments.first() == "raw_contacts"
+            if (rawDelete) { rawIds.remove(id); versions.remove(id) }
+            fun matches(row: Map<String, Any?>): Boolean {
+                if (row[Data.RAW_CONTACT_ID] != id) return false
+                if (rawDelete || selectionArgs == null || selectionArgs.size < 2) return true
+                if (selection?.contains(" IN ") != true) return row[Data.MIMETYPE] == selectionArgs[1]
+                val mimes = selectionArgs.drop(1).dropLast(3)
+                return row[Data.MIMETYPE] in mimes || row[Data.MIMETYPE] == Event.CONTENT_ITEM_TYPE &&
+                    row[Event.TYPE].toString() in selectionArgs.takeLast(2)
+            }
+            val count = rows.count(::matches)
+            rows.removeAll(::matches)
+            if (!rawDelete && count > 0) changed(id)
             return count
         }
     }

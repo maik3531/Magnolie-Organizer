@@ -3,7 +3,7 @@ const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("n
 const {webcrypto}=require("node:crypto"),{JSDOM}=require("jsdom");
 const web=path.resolve(__dirname,"../app/web"),tick=()=>new Promise(resolve=>setTimeout(resolve,5));
 async function check(mode){
-  const duplicate=mode.startsWith("duplicate"), blocked=duplicate&&mode!=="duplicate";
+  const duplicate=mode.startsWith("duplicate"), mergedDuplicate=["duplicate","duplicate-tree"].includes(mode), blocked=duplicate&&!mergedDuplicate;
   const dom=new JSDOM(fs.readFileSync(path.join(web,"index.html"),"utf8"),{
     runScripts:"outside-only",url:"https://app.magnolie.invalid/",pretendToBeVisual:true});
   const w=dom.window,messages=[];
@@ -41,7 +41,7 @@ async function check(mode){
       if(mode==="duplicate-local-conflict")local.syncKonflikte={[source]:{kontakt:remote,mapping}};
       if(mode==="duplicate-etag")delete other.syncQuellen[source].etag;
       if(mode==="duplicate-tree"){
-        local.baumKontakt={freigabeId:"one"};other.baumKontakt={freigabeId:"two"};
+        local.baumKontakt={freigabeId:"one",version:3,partner:["first"]};other.baumKontakt={freigabeId:"two",version:7,partner:["second"]};
       }
     }
     const before=JSON.stringify(T.daten().kontakte);
@@ -51,11 +51,11 @@ async function check(mode){
     if(mode==="cancel"||mode==="duplicate-cancel"){
       [...w.document.querySelectorAll(".sync-kontakt-konflikt button")].find(b=>b.textContent==="Cancel").click();
     }else{
-      if(mode==="merge"||mode==="duplicate"){
+      if(mode==="merge"||mergedDuplicate){
         const name=w.document.querySelector('[data-kontakt-feld="vorname"]');name.value="incoming";name.dispatchEvent(new w.Event("change"));
         const phone=w.document.querySelector('[data-kontakt-liste="telefone"][data-kontakt-index="0"]');
         phone.value="replace:0";phone.dispatchEvent(new w.Event("change"));
-        if(mode==="duplicate"){
+        if(mergedDuplicate){
           const photo=w.document.querySelector('[data-kontakt-feld="foto"]');
           assert.ok(photo,"different photos must be a visible decision");photo.value="incoming";photo.dispatchEvent(new w.Event("change"));
         }
@@ -72,7 +72,7 @@ async function check(mode){
       return;
     }
     const card=T.daten().kontakte[0];
-    assert.equal(T.daten().kontakte.length,1);assert.equal(card.id,"local");assert.equal(card.uid,mode==="duplicate"?"mag-local@magnolie-organizer":"stable-local");
+    assert.equal(T.daten().kontakte.length,1);assert.equal(card.id,"local");assert.equal(card.uid,mergedDuplicate?"mag-local@magnolie-organizer":"stable-local");
     if(["cancel","snapshot-error","stale"].includes(mode)){
       assert.equal(card.vorname,"Local");assert.ok(card.syncKonflikte[source]);assert.equal(card.syncQuellen[source].etag,'"v1"');
       assert.equal(messages.filter(m=>m.cmd==="mutations_snapshot").length,mode==="cancel"?0:1);
@@ -81,7 +81,12 @@ async function check(mode){
       assert.equal(card.telefone[0].wert,mode==="keep"?"+49305550123":"+49305550124");
       assert.equal(card.syncQuellen[source].etag,'"v2"');assert.equal(card.syncKonflikte,undefined);
       assert.equal(messages.filter(m=>m.cmd==="mutations_snapshot").length,1);
-      if(mode==="duplicate"){
+      if(mergedDuplicate){
+        if(mode==="duplicate-tree"){
+          assert.equal(card.baumKontakt.freigabeId,"one");
+          assert.equal(card.baumKontakt.weitere[0].freigabeId,"two");
+          assert.equal(card.baumKontakt.weitere[0].version,7);
+        }
         assert.equal(card.syncQuellen[source].id,"provider-record");
         assert.equal(T.daten().geloescht.kontakte[0].syncQuellen[source].id,"redundant");
         assert.notEqual(T.daten().geloescht.kontakte[0].uid,card.uid);

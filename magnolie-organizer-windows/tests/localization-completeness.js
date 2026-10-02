@@ -21,6 +21,8 @@ const linuxSmsTerms = path.resolve(__dirname, "../../magnolie-organizer/pruefung
 if (fs.existsSync(linuxSmsTerms)) assert.deepStrictEqual(smsTerms, JSON.parse(fs.readFileSync(linuxSmsTerms, "utf8")));
 function preservesToken(value, token, locale, source) {
   if (value.includes(token)) return true;
+  // German compounds hyphenate the multiword product name (KDE-Connect-Zeichentablett).
+  if (locale === "de" && token === "KDE Connect" && /\bKDE-Connect-[\p{L}]/u.test(value)) return true;
   const index = smsTerms.messages.indexOf(source);
   return token === "SMS" && index >= 0 && smsTerms.locales[locale]?.[index] === value;
 }
@@ -28,6 +30,9 @@ assert.ok(preservesToken("Sms-plannen bevestigen", "SMS", "nl", "Confirm SMS pla
 assert.ok(!preservesToken("Plannen bevestigen", "SMS", "nl", "Confirm SMS plans"));
 assert.ok(!preservesToken("短信", "SMS", "zh_CN", "Unknown SMS message"));
 assert.ok(!preservesToken("蓝牙", "Bluetooth", "zh_CN", "Bluetooth"));
+assert.ok(preservesToken("KDE-Connect-Zeichentablett verwenden", "KDE Connect", "de", "Use KDE Connect drawing tablet"));
+assert.ok(!preservesToken("KDE-Zeichentablett verwenden", "KDE Connect", "de", "Use KDE Connect drawing tablet"));
+assert.ok(!preservesToken("Connect-Zeichentablett verwenden", "KDE Connect", "de", "Use KDE Connect drawing tablet"));
 const englishEqualAllowlist = new Set(protectedTokens);
 // This exact label consists only of a product name and file-format identifiers.
 englishEqualAllowlist.add("Claws Mail XML / LDIF");

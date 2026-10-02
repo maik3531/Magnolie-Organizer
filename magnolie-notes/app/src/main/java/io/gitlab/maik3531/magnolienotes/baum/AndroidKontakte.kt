@@ -25,7 +25,9 @@ data class AndroidKontakt(
     val daten: KontaktDaten,
     val contactId: Long = rawContactId,
     val rawContactIds: Set<Long> = setOf(rawContactId),
-    val herkuenfte: List<KontaktHerkunft> = emptyList()
+    val herkuenfte: List<KontaktHerkunft> = emptyList(),
+    val providerGeaendert: Long = 0,
+    val rawVersionen: Map<Long, Long> = emptyMap()
 )
 data class KontaktHerkunft(
     val accountType: String = "", val accountName: String = "", val dataSet: String = "",
@@ -46,22 +48,34 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
     fun snapshot(): KontaktSnapshot {
       return try {
         val rawZuKontakt = linkedMapOf<Long, Long>()
+        val rawVersionen = mutableMapOf<Long, Long>()
         val herkunft = mutableMapOf<Long, KontaktHerkunft>()
         resolver.query(RawContacts.CONTENT_URI, arrayOf(RawContacts._ID, RawContacts.CONTACT_ID,
-            RawContacts.ACCOUNT_TYPE, RawContacts.ACCOUNT_NAME, RawContacts.DATA_SET, RawContacts.SOURCE_ID),
+            RawContacts.ACCOUNT_TYPE, RawContacts.ACCOUNT_NAME, RawContacts.DATA_SET, RawContacts.SOURCE_ID, RawContacts.VERSION),
             "${RawContacts.DELETED}=0" + if (konto != null) " AND ${RawContacts.ACCOUNT_NAME}=? AND ${RawContacts.ACCOUNT_TYPE}=?" else "",
             konto?.let { arrayOf(it.name, it.type) }, null)?.use { c ->
             while (c.moveToNext()) {
                 rawZuKontakt[c.getLong(0)] = c.getLong(1)
+                if (c.getType(6) == android.database.Cursor.FIELD_TYPE_INTEGER) rawVersionen[c.getLong(0)] = c.getLong(6)
                 herkunft[c.getLong(0)] = KontaktHerkunft(c.getString(2).orEmpty(), c.getString(3).orEmpty(),
                     c.getString(4).orEmpty(), c.getString(5).orEmpty())
             }
         } ?: return KontaktSnapshot(emptyList(), false)
         val lookup = mutableMapOf<Long, String>()
+        val geaendert = mutableMapOf<Long, Long>()
         val contactFilter = if (konto == null) null else if (rawZuKontakt.isEmpty()) "0" else
             "${Contacts._ID} IN (${rawZuKontakt.values.distinct().joinToString(",")})"
-        resolver.query(Contacts.CONTENT_URI, arrayOf(Contacts._ID, Contacts.LOOKUP_KEY), contactFilter, null, null)?.use { c ->
-            while (c.moveToNext()) lookup[c.getLong(0)] = c.getString(1).orEmpty()
+        val contactCursor = try {
+            resolver.query(Contacts.CONTENT_URI, arrayOf(Contacts._ID, Contacts.LOOKUP_KEY, Contacts.CONTACT_LAST_UPDATED_TIMESTAMP), contactFilter, null, null)
+        } catch (_: IllegalArgumentException) {
+            resolver.query(Contacts.CONTENT_URI, arrayOf(Contacts._ID, Contacts.LOOKUP_KEY), contactFilter, null, null)
+        }
+        contactCursor?.use { c ->
+            while (c.moveToNext()) {
+                lookup[c.getLong(0)] = c.getString(1).orEmpty()
+                geaendert[c.getLong(0)] = if (c.columnCount < 3 || c.getType(2) != android.database.Cursor.FIELD_TYPE_INTEGER) 0
+                    else c.getLong(2).takeIf { it in 0..253402300799999L } ?: 0
+            }
         } ?: return KontaktSnapshot(emptyList(), false)
         val daten = rawZuKontakt.keys.associateWith { BauKontakt() }.toMutableMap()
         val spalten = arrayOf(Data.RAW_CONTACT_ID, Data.MIMETYPE, Data.DATA1, Data.DATA2,
@@ -103,7 +117,9 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
             val b = daten[raw] ?: return@mapNotNull null
             val lookupKey = lookup[kontakt].orEmpty()
             AndroidKontakt(lookupKey, raw, KontaktSync.normalisiere(b.fertig()), kontakt,
-                herkuenfte = listOf((herkunft[raw] ?: KontaktHerkunft()).copy(lookupKey = lookupKey)))
+                herkuenfte = listOf((herkunft[raw] ?: KontaktHerkunft()).copy(lookupKey = lookupKey)),
+                providerGeaendert = geaendert[kontakt] ?: 0,
+                rawVersionen = rawVersionen[raw]?.let { mapOf(raw to it) }.orEmpty())
         }.filter { k -> with(k.daten) {
             vorname.isNotBlank() || nachname.isNotBlank() || anzeigename.isNotBlank() || firma.isNotBlank() ||
                 telefone.isNotEmpty() || emailEintraege.isNotEmpty() || anschriften.isNotEmpty()
@@ -225,12 +241,18 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
             .withValue(RawContacts.AGGREGATION_MODE, if (konto == null) RawContacts.AGGREGATION_MODE_DEFAULT
                 else RawContacts.AGGREGATION_MODE_DISABLED).build())
         fuegeDatenEin(ops, k, null)
+        if (k.foto.isNotEmpty()) {
+            val bytes = requireNotNull(KontaktSync.fotoBytes(k.foto))
+            ops += ContentProviderOperation.newInsert(Data.CONTENT_URI)
+                .withValueBackReference(Data.RAW_CONTACT_ID, 0).withValue(Data.MIMETYPE, Photo.CONTENT_ITEM_TYPE)
+                .withValue(Photo.PHOTO, bytes).build()
+        }
         if (operationId.isNotBlank()) ops += ContentProviderOperation.newInsert(Data.CONTENT_URI)
             .withValueBackReference(Data.RAW_CONTACT_ID, 0).withValue(Data.MIMETYPE, OPERATION_MIME)
             .withValue(Data.DATA1, operationId).build()
         val ergebnis = resolver.applyBatch(ContactsContract.AUTHORITY, ops)
         val rawId = ContentUris.parseId(ergebnis.first().uri!!)
-        liesRaw(rawId) ?: AndroidKontakt("", rawId, k)
+        requireNotNull(liesRaw(rawId))
     }
 
     override fun mischen(rawId: Long, fern: KontaktDaten): AndroidKontakt? {
@@ -240,7 +262,45 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
         aktualisiereSkalare(ops, rawId, lokal.daten, ziel)
         fuegeListenEin(ops, rawId, lokal.daten, ziel)
         if (ops.isNotEmpty()) resolver.applyBatch(ContactsContract.AUTHORITY, ops)
-        return liesRaw(rawId) ?: lokal.copy(daten = ziel)
+        return liesRaw(rawId) ?: lokal.copy(daten = ziel, providerGeaendert = 0)
+    }
+
+    /** Reviewed content only; provider version assertions and writes share one atomic batch. */
+    fun uebernehmen(erwartet: AndroidKontakt, ziel: KontaktDaten, ersetzen: Boolean): AndroidKontakt = synchronized(PROVIDER_SPERRE) {
+        val lokal = requireNotNull(liesRaw(erwartet.rawContactId))
+        require(lokal == erwartet && erwartet.rawVersionen.keys.containsAll(erwartet.rawContactIds))
+        require(!ersetzen || erwartet.rawContactIds.size == 1)
+        if (KontaktSync.hash(lokal.daten) == KontaktSync.hash(ziel)) return@synchronized lokal
+        val ops = arrayListOf<ContentProviderOperation>()
+        erwartet.rawContactIds.sorted().forEach { raw ->
+            ops += ContentProviderOperation.newAssertQuery(ContentUris.withAppendedId(RawContacts.CONTENT_URI, raw))
+                .withValue(RawContacts.VERSION, erwartet.rawVersionen.getValue(raw)).withExpectedCount(1).build()
+        }
+        val raw = erwartet.rawContactId
+        if (ersetzen) {
+            val mimes = listOf(StructuredName.CONTENT_ITEM_TYPE, NAME_MIME, Organization.CONTENT_ITEM_TYPE,
+                Note.CONTENT_ITEM_TYPE, Event.CONTENT_ITEM_TYPE, Phone.CONTENT_ITEM_TYPE,
+                Email.CONTENT_ITEM_TYPE, StructuredPostal.CONTENT_ITEM_TYPE)
+            // Other event kinds and application-specific rows are not contact-import fields.
+            ops += ContentProviderOperation.newDelete(Data.CONTENT_URI)
+                .withSelection("${Data.RAW_CONTACT_ID}=? AND (${Data.MIMETYPE} IN (${mimes.filterNot { it == Event.CONTENT_ITEM_TYPE }.joinToString { "?" }}) OR (${Data.MIMETYPE}=? AND ${Event.TYPE} IN (?,?)))",
+                    (listOf(raw.toString()) + mimes.filterNot { it == Event.CONTENT_ITEM_TYPE } +
+                        listOf(Event.CONTENT_ITEM_TYPE, Event.TYPE_BIRTHDAY.toString(), Event.TYPE_ANNIVERSARY.toString())).toTypedArray()).build()
+            fuegeDatenEin(ops, ziel, raw)
+        } else {
+            aktualisiereSkalare(ops, raw, lokal.daten, ziel)
+            fuegeListenEin(ops, raw, lokal.daten, ziel)
+        }
+        if (ziel.foto != lokal.daten.foto) {
+            require(lokal.rawContactIds.size == 1)
+            val bytes = requireNotNull(KontaktSync.fotoBytes(ziel.foto))
+            ops += ContentProviderOperation.newDelete(Data.CONTENT_URI)
+                .withSelection("${Data.RAW_CONTACT_ID}=? AND ${Data.MIMETYPE}=?", arrayOf(raw.toString(), Photo.CONTENT_ITEM_TYPE)).build()
+            if (bytes.isNotEmpty()) ops += einfuegen(raw, Photo.CONTENT_ITEM_TYPE, mapOf(Photo.PHOTO to bytes))
+        }
+        require(ops.size <= 500)
+        resolver.applyBatch(ContactsContract.AUTHORITY, ops)
+        requireNotNull(liesRaw(raw))
     }
 
     /** Ergänzt nur auf der über eine Spur bestimmten RawContact-ID und nie über ein Namensmatching. */
@@ -251,7 +311,7 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
         if (bytes.isEmpty()) return lokal
         val op = einfuegen(rawId, Photo.CONTENT_ITEM_TYPE, mapOf(Photo.PHOTO to bytes))
         resolver.applyBatch(ContactsContract.AUTHORITY, arrayListOf(op))
-        return liesRaw(rawId) ?: lokal.copy(daten = lokal.daten.copy(foto = foto))
+        return liesRaw(rawId) ?: lokal.copy(daten = lokal.daten.copy(foto = foto), providerGeaendert = 0)
     }
 
     private fun aktualisiereSkalare(ops: MutableList<ContentProviderOperation>, raw: Long,
@@ -456,7 +516,7 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
             return ops
         }
 
-        /** Ein sichtbarer Android-Kontakt wird unabhängig von seinen Konten genau einmal gesendet. */
+        /** Ein sichtbarer Android-Kontakt steht unabhängig von seinen Konten einmal im Snapshot. */
         fun aggregiere(roh: List<AndroidKontakt>): List<AndroidKontakt> = roh.groupBy { it.contactId }
             .values.map { teile ->
                 val erste = teile.first()
@@ -470,7 +530,9 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
                     daten = daten,
                     contactId = erste.contactId,
                     rawContactIds = teile.map { it.rawContactId }.toSet(),
-                    herkuenfte = teile.flatMap { it.herkuenfte }.distinct()
+                    herkuenfte = teile.flatMap { it.herkuenfte }.distinct(),
+                    providerGeaendert = if (teile.all { it.providerGeaendert > 0 }) teile.maxOf { it.providerGeaendert } else 0,
+                    rawVersionen = teile.flatMap { it.rawVersionen.entries }.associate { it.key to it.value }
                 )
             }
     }

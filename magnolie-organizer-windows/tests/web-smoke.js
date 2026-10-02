@@ -146,6 +146,7 @@ dom = new JSDOM(html, {
   pretendToBeVisual: true
 });
 const { window } = dom;
+Object.defineProperty(window, "crypto", { value: crypto.webcrypto });
 window.TextEncoder = TextEncoder;
 window.TextDecoder = TextDecoder;
 window.__MAGNOLIE_BRUECKE__ = "windows_test_bridge";
@@ -597,10 +598,25 @@ window.App.baumStand({ partner: [], eingang: [
 assert.ok(window.document.querySelector(".kontakt-import-dialog")?.textContent.includes("Phone") &&
   T.daten().kontakte.length === pendingImportCount,
 "Android import does not show a local source preview before mutation");
+const importBridge = window.webkit.messageHandlers.windows_test_bridge;
+const originalImportPost = importBridge.postMessage;
+importBridge.postMessage = text => {
+  originalImportPost(text);
+  const message = JSON.parse(text);
+  if (message.cmd === "speichern") queueMicrotask(() => window.App.gespeichert({ id: message.id, ok: true }));
+  if (message.cmd === "mutations_snapshot") queueMicrotask(() => window.App.mutationsSnapshot({ token: message.token, ok: true }));
+};
+const pendingImportSave = messages.findLast(message => message.cmd === "speichern");
+if (pendingImportSave) window.App.gespeichert({ id: pendingImportSave.id, ok: true });
 window.document.querySelector(".kontakt-import-dialog .dialog-knoepfe button:last-child").click();
+for (let attempt = 0; attempt < 1000 && window.document.querySelector(".kontakt-import-dialog"); attempt++)
+  await new Promise(resolve => setTimeout(resolve, 1));
+importBridge.postMessage = originalImportPost;
 assert.ok(!window.document.querySelector(".kontakt-import-dialog") && messages.some((message) =>
   message.cmd === "baum_eingang_geleert" && message.ids.includes("import-manifest") &&
-  message.ids.includes("import-card")), "rejected Android import is not acknowledged without mutation");
+   message.ids.includes("import-card")), "rejected Android import is not durably acknowledged");
+assert.strictEqual(T.daten().kontakte.length, pendingImportCount, "rejecting an import changed contacts");
+assert.strictEqual(T.daten().kontaktImportAblehnungen.length, 1, "rejection was not remembered");
 assert.strictEqual(defaults.einstellungen.kalender.gesundheitPlanung.vital.zeit, "",
   "health planning fabricates a default time");
 assert.strictEqual(defaults.einstellungen.sync.adressbuchUid, "");

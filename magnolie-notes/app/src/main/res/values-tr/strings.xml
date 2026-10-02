@@ -379,4 +379,12 @@
     <string name="telefon_mehrere_rechner">Eşleştirilmiş bilgisayarlar kayıtlı kalır. Şimdi kullanmak istediğiniz bilgisayarı seçin.</string>
     <string name="telefon_anrufe_erlauben">Aramalara izin ver</string>
     <string name="telefon_anruf_berechtigungen">Android izinlerini etkinleştir</string>
+    <string name="kontakt_review_titel">Kişi değişikliklerini incele</string>
+    <string name="kontakt_review_lokal">Mevcut kişi</string>
+    <string name="kontakt_review_fern">Gelen kişi</string>
+    <string name="kontakt_review_behalten">Mevcut kişiyi koru</string>
+    <string name="kontakt_review_neu">Ayrı bir kişi oluştur</string>
+    <string name="kontakt_review_neueste">Daha yeni sürümü kullan</string>
+    <string name="kontakt_review_rest">Bu seçimi açıkça eşleşen kalan çakışmalara uygula</string>
+    <string name="kontakt_review_geburtsname">Doğumdaki soyadı: %1$s</string>
 </resources>

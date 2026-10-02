@@ -378,4 +378,12 @@
     <string name="telefon_mehrere_rechner">पेयर किए गए कंप्यूटर सहेजे रहते हैं। अभी उपयोग करने के लिए कंप्यूटर चुनें।</string>
     <string name="telefon_anrufe_erlauben">कॉल की अनुमति दें</string>
     <string name="telefon_anruf_berechtigungen">Android अनुमतियाँ चालू करें</string>
+    <string name="kontakt_review_titel">संपर्क परिवर्तनों की समीक्षा करें</string>
+    <string name="kontakt_review_lokal">मौजूदा संपर्क</string>
+    <string name="kontakt_review_fern">प्राप्त संपर्क</string>
+    <string name="kontakt_review_behalten">मौजूदा संपर्क रखें</string>
+    <string name="kontakt_review_neu">अलग संपर्क बनाएँ</string>
+    <string name="kontakt_review_neueste">नया संस्करण इस्तेमाल करें</string>
+    <string name="kontakt_review_rest">स्पष्ट मिलान वाले बाकी विरोधों पर यह विकल्प लागू करें</string>
+    <string name="kontakt_review_geburtsname">जन्म का उपनाम: %1$s</string>
 </resources>

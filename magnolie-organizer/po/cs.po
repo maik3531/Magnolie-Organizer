@@ -84,10 +84,6 @@ msgid ""
 msgstr ""
 "%(branch)s chce sdílet schůzku. Přijměte ji nebo odmítněte v Organizéru."
 
-msgid ""
-"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
-msgstr "Sloučeno: %(cards)s. Kopie jsou v koši ve složce „Duplikáty“."
-
 msgid "%(count)s anniversary"
 msgid_plural "%(count)s anniversaries"
 msgstr[0] "%(count)s výročí"
@@ -123,12 +119,6 @@ msgid_plural "%(count)s contacts"
 msgstr[0] "%(count)s kontakt"
 msgstr[1] "%(count)s kontakty"
 msgstr[2] "%(count)s kontakty"
-
-msgid "%(count)s contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "%(count)s kontaktní karta"
-msgstr[1] "%(count)s kontaktní karty"
-msgstr[2] "%(count)s kontaktní karty"
 
 msgid "%(count)s contact imported."
 msgid_plural "%(count)s contacts imported."
@@ -177,12 +167,6 @@ msgid_plural "%(count)s found"
 msgstr[0] "Nalezen %(count)s výsledek"
 msgstr[1] "Nalezeny %(count)s výsledky"
 msgstr[2] "Nalezeny %(count)s výsledky"
-
-msgid "%(count)s group"
-msgid_plural "%(count)s groups"
-msgstr[0] "%(count)s skupina"
-msgstr[1] "%(count)s skupiny"
-msgstr[2] "%(count)s skupiny"
 
 msgid "%(count)s holiday period"
 msgid_plural "%(count)s holiday periods"
@@ -1218,6 +1202,9 @@ msgstr "Berlín"
 
 msgid "Bern"
 msgstr "Bern"
+
+msgid "Birth name: %(name)s"
+msgstr "Rodné příjmení: %(name)s"
 
 msgid "Birthday"
 msgstr "Narozeniny"
@@ -2827,21 +2814,6 @@ msgstr "Oblast formátu"
 msgid "Forward Secrecy"
 msgstr "Dopředné utajení (Forward Secrecy)"
 
-msgid ""
-"Found %(groups)s containing %(cards)s in total, for example:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"The most complete card in each group is retained, and missing fields are "
-"filled from the others. The remaining cards are moved to the recycle bin as "
-"“Duplicates” and can be restored from there. Continue?"
-msgstr ""
-"Nalezeno %(groups)s skupin s celkem %(cards)s kartami, například:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"V každé skupině se zachová nejúplnější karta a chybějící pole se doplní z "
-"ostatních. Zbývající karty se přesunou do koše jako „Duplikáty“ a lze je "
-"odtud obnovit. Pokračovat?"
-
 #, python-format, javascript-format
 msgid "Found – %s."
 msgstr "Nalezeno – %s."
@@ -3060,9 +3032,6 @@ msgstr "Importovat soubor kalendáře"
 
 msgid "Import contacts"
 msgstr "Importovat kontakty"
-
-msgid "Import contacts additively"
-msgstr "Importovat kontakty bez nahrazení stávajících"
 
 msgid "Import failed."
 msgstr "Import se nezdařil."
@@ -4272,12 +4241,6 @@ msgstr[0] "Byla přijata jedna aktualizace dokončení od Magnolienbaum."
 msgstr[1] "Byly přijaty aktualizace dokončení %(count)s od Magnolienbaumu."
 msgstr[2] "Byly přijaty aktualizace dokončení %(count)s od Magnolienbaumu."
 
-msgid "One duplicate contact card was"
-msgid_plural "%(count)s duplicate contact cards were"
-msgstr[0] "Byla jedna duplicitní kontaktní karta"
-msgstr[1] "Byly duplikovány kontaktní karty %(count)s"
-msgstr[2] "Byly duplikovány kontaktní karty %(count)s"
-
 msgid "One moment …"
 msgstr "Okamžik …"
 
@@ -4852,6 +4815,12 @@ msgstr ""
 "Upřednostnit reproduktory a mikrofon počítače pro hovory na mém vlastním "
 "telefonu Bluetooth"
 
+msgid ""
+"Prefer newer contact versions when reliable modification times are available."
+msgstr ""
+"Upřednostňovat novější verze kontaktů, pokud jsou k dispozici spolehlivé "
+"časy změn."
+
 msgid "Preferred backup folder"
 msgstr "Upřednostňovaná složka pro zálohy"
 
@@ -4995,13 +4964,6 @@ msgstr "Načítání uživatelských dat"
 msgid "Ready."
 msgstr "Připraveno."
 
-msgid ""
-"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
-"every removed card is kept in the recycle bin."
-msgstr ""
-"Opravdu sloučit %(cards)s? Výsledek potom pečlivě zkontrolujte. Kopie každé "
-"odstraněné karty zůstane v koši."
-
 msgid "Reason"
 msgstr "Důvod"
 
@@ -5049,6 +5011,9 @@ msgstr "Odmítnout tuto nabídku natrvalo?"
 
 msgid "Related tasks"
 msgstr "Související úkoly"
+
+msgid "Reliable modification times are not available for both versions."
+msgstr "Pro obě verze nejsou k dispozici spolehlivé časy změn."
 
 msgid "Remind about appointments in the background"
 msgstr "Připomínat schůzky na pozadí"
@@ -6561,6 +6526,9 @@ msgstr "Datum konce nemůže být před datem začátku."
 msgid "The entered fingerprint is incomplete."
 msgstr "Zadaný otisk není úplný."
 
+msgid "The entry could not be found."
+msgstr "Položka nebyla nalezena."
+
 msgid "The file could not be read."
 msgstr "Soubor se nepodařilo přečíst."
 
@@ -6943,6 +6911,13 @@ msgstr "Koš byl vyprázdněn."
 
 msgid "The regional settings could not be saved."
 msgstr "Místní nastavení se nepodařilo uložit."
+
+msgid ""
+"The remote contact was deleted. Keep this contact and restore it on the next "
+"synchronization?"
+msgstr ""
+"Vzdálený kontakt byl odstraněn. Ponechat tento kontakt a obnovit jej při "
+"příští synchronizaci?"
 
 msgid "The request is unreadable."
 msgstr "Požadavek nelze přečíst."
@@ -7357,13 +7332,6 @@ msgstr "Tato zpráva již byla přijata."
 msgid "This notebook is still empty."
 msgstr "Tento zápisník je stále prázdný."
 
-msgid ""
-"This one-time import only adds or enriches contacts. It does not synchronize "
-"or delete contacts."
-msgstr ""
-"Tento jednorázový import kontakty pouze přidá nebo doplní. Nesynchronizuje "
-"je ani nemaže."
-
 msgid "This person's anniversaries"
 msgstr "Výročí této osoby"
 
@@ -7666,6 +7634,9 @@ msgstr "Použít adresy kontaktu"
 
 msgid "Use default"
 msgstr "Použít výchozí"
+
+msgid "Use newer version"
+msgstr "Použít novější verzi"
 
 msgid "Use numeric keypad"
 msgstr "Používat numerickou klávesnici"
@@ -8037,9 +8008,6 @@ msgstr "Roční plánovač %(year)s"
 msgid "Yes"
 msgstr "Ano"
 
-msgid "Yes, merge"
-msgstr "Ano, sloučit"
-
 msgid "Yes, the code matches"
 msgstr "Ano, kód souhlasí"
 
@@ -8348,12 +8316,6 @@ msgstr[0] "jeden záloh byl také zašifrován"
 msgstr[1] "Zálohy %(count)s byly také šifrovány"
 msgstr[2] "Zálohy %(count)s byly také šifrovány"
 
-msgid "one contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "jedna kontaktní karta"
-msgstr[1] "Kontaktní karty %(count)s"
-msgstr[2] "Kontaktní karty %(count)s"
-
 msgid "one recovery snapshot was encrypted as well"
 msgid_plural "%(count)s recovery snapshots were encrypted as well"
 msgstr[0] "jeden snímek obnovy byl také zašifrován"
@@ -8527,6 +8489,69 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid ""
+#~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+#~ msgstr "Sloučeno: %(cards)s. Kopie jsou v koši ve složce „Duplikáty“."
+
+#~ msgid "%(count)s contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "%(count)s kontaktní karta"
+#~ msgstr[1] "%(count)s kontaktní karty"
+#~ msgstr[2] "%(count)s kontaktní karty"
+
+#~ msgid "%(count)s group"
+#~ msgid_plural "%(count)s groups"
+#~ msgstr[0] "%(count)s skupina"
+#~ msgstr[1] "%(count)s skupiny"
+#~ msgstr[2] "%(count)s skupiny"
+
+#~ msgid ""
+#~ "Found %(groups)s containing %(cards)s in total, for example:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "The most complete card in each group is retained, and missing fields are "
+#~ "filled from the others. The remaining cards are moved to the recycle bin "
+#~ "as “Duplicates” and can be restored from there. Continue?"
+#~ msgstr ""
+#~ "Nalezeno %(groups)s skupin s celkem %(cards)s kartami, například:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "V každé skupině se zachová nejúplnější karta a chybějící pole se doplní z "
+#~ "ostatních. Zbývající karty se přesunou do koše jako „Duplikáty“ a lze je "
+#~ "odtud obnovit. Pokračovat?"
+
+#~ msgid "Import contacts additively"
+#~ msgstr "Importovat kontakty bez nahrazení stávajících"
+
+#~ msgid "One duplicate contact card was"
+#~ msgid_plural "%(count)s duplicate contact cards were"
+#~ msgstr[0] "Byla jedna duplicitní kontaktní karta"
+#~ msgstr[1] "Byly duplikovány kontaktní karty %(count)s"
+#~ msgstr[2] "Byly duplikovány kontaktní karty %(count)s"
+
+#~ msgid ""
+#~ "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+#~ "every removed card is kept in the recycle bin."
+#~ msgstr ""
+#~ "Opravdu sloučit %(cards)s? Výsledek potom pečlivě zkontrolujte. Kopie "
+#~ "každé odstraněné karty zůstane v koši."
+
+#~ msgid ""
+#~ "This one-time import only adds or enriches contacts. It does not "
+#~ "synchronize or delete contacts."
+#~ msgstr ""
+#~ "Tento jednorázový import kontakty pouze přidá nebo doplní. "
+#~ "Nesynchronizuje je ani nemaže."
+
+#~ msgid "Yes, merge"
+#~ msgstr "Ano, sloučit"
+
+#~ msgid "one contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "jedna kontaktní karta"
+#~ msgstr[1] "Kontaktní karty %(count)s"
+#~ msgstr[2] "Kontaktní karty %(count)s"
 
 #~ msgid "KDE Connect for SMS"
 #~ msgstr "KDE Connect pro SMS"

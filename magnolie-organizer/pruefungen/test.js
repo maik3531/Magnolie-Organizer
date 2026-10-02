@@ -90,6 +90,18 @@ const warteBis = async (probe, grund) => {
   const frist = Date.now() + 5000;
   while (!probe()) { assert.ok(Date.now() < frist, grund); await tick(); }
 };
+async function bestaetigeKontaktImport(fenster, nutzlast, modus = "merge") {
+  const lauf = fenster.App.importErgebnis(nutzlast);
+  if (nutzlast.kontakte?.length) {
+    await warteBis(() => fenster.document.querySelector(".kontakt-datei-pruefung"), "Kontaktvorschau fehlt");
+    for (const wahl of fenster.document.querySelectorAll("[data-import-entscheidung]")) {
+      if (wahl.value) continue;
+      wahl.value = modus; wahl.dispatchEvent(new fenster.Event("change"));
+    }
+    fenster.document.querySelector("[data-import-anwenden]").click();
+  }
+  await lauf;
+}
 const $ = (s) => d.querySelector(s);
 const $$ = (s) => Array.from(d.querySelectorAll(s));
 const T = w.OrganizerTest;
@@ -457,6 +469,7 @@ function knopfMit(text, wurzel) {
     T.daten().kontakte.length === importAnzahlVorher,
   "Android-Import zeigt vor der Änderung keine lokale Herkunftsvorschau");
   d.querySelector(".kontakt-import-dialog .dialog-knoepfe button:last-child").click();
+  await warteBis(() => !d.querySelector(".kontakt-import-dialog"), "Android-Ablehnung wurde nicht gespeichert");
   assert.strictEqual(d.querySelector(".kontakt-import-dialog"), null,
     "abgelehnter Android-Import bleibt als Dialog offen");
 
@@ -1908,7 +1921,7 @@ function knopfMit(text, wurzel) {
     enD.querySelector("#zettel").textContent.includes("Provider-Bericht") &&
     enT.daten().aufgaben.some((a) => a.titel === "Mülltonne rausstellen"),
   "englische Importmeldung oder unveränderte Importdaten fehlen");
-  enDom.window.App.importErgebnis({ art: "claws", abgebrochen: false,
+  await bestaetigeKontaktImport(enDom.window, { art: "claws", abgebrochen: false,
     fehler: "File could not be read: DOCTYPE is not allowed in a Claws Mail address book." });
   assert.strictEqual(enD.querySelector("#zettel").textContent,
     "Import failed: File could not be read: DOCTYPE is not allowed in a Claws Mail address book.",
@@ -2191,20 +2204,12 @@ function knopfMit(text, wurzel) {
     { id: "en-d2", nachname: "Doppel", vorname: "Dieter",
       email: "dieter@example.test", telefone: [], anschriften: [] });
   enSD.querySelector("#adressen-dubletten").click();
-  assert.ok(enSD.querySelector("#dialog-text").textContent.includes(
-    "Found 1 group containing 2 contact cards in total") &&
-    enSD.querySelector("#dialog-text").textContent.includes("Doppel"),
-  "englischer Dublettenfund oder unveränderter Kontaktname fehlt");
-  enSD.querySelector("#dialog-ja").click();
+  await warteBis(() => enSD.querySelector(".kontakt-datei-pruefung"), "englische Dublettenprüfung fehlt");
+  assert.ok(enSD.querySelector(".kontakt-datei-pruefung").textContent.includes("Doppel") &&
+    enSD.querySelector('[data-import-entscheidung] option[value="merge"]').textContent === "Merge",
+    "Dublettenprüfung zeigt keine lokalisierte ausdrückliche Entscheidung");
+  [...enSD.querySelectorAll(".kontakt-datei-pruefung button")].find(button => button.textContent === "Cancel").click();
   await tick();
-  await tick();
-  assert.ok(enSD.querySelector("#dialog-text").textContent.includes(
-    "Really merge one contact card") &&
-    enSD.querySelector("#dialog-ja").textContent === "Yes, merge",
-  "englische zweite Dublettenbestätigung fehlt: " +
-    enSD.querySelector("#dialog-text").textContent + " / " +
-    enSD.querySelector("#dialog-ja").textContent);
-  enSD.querySelector("#dialog-nein").click();
   enST.daten().kontakte = enST.daten().kontakte.filter(
     (kontakt) => !kontakt.id.startsWith("en-d"));
 
@@ -4077,7 +4082,7 @@ function knopfMit(text, wurzel) {
   assert.strictEqual($$("#inhalt-rechts .post-anschrift").length, 2,
     "die zweite E-Post-Anschrift fehlt auf der Karte");
   const kontaktUid = T.daten().kontakte[0].uid;
-  w.App.importErgebnis({ kontakte: [{ uid: kontaktUid, nachname: "Beispiel",
+  await bestaetigeKontaktImport(w, { kontakte: [{ uid: kontaktUid, nachname: "Beispiel",
     vorname: "Anna", email: "anna@example.org",
     emails: ["anna@example.org", "ANNA@ARBEIT.EXAMPLE", "774921",
       "Anna Beispiel <anna@verein.example>"],
@@ -4094,10 +4099,10 @@ function knopfMit(text, wurzel) {
     "Landesvorwahl-Dublette oder neue Rufnummer wurde falsch zusammengeführt");
   assert.strictEqual(T.daten().kontakte[0].anschriften.length, 2,
     "Straße/Str./Strasse hat eine Anschrift verdoppelt");
-  w.App.importErgebnis({ kontakte: [{ uid: "anderer-cache-eintrag",
+  await bestaetigeKontaktImport(w, { kontakte: [{ uid: "anderer-cache-eintrag",
     nachname: "Beispiel", vorname: "Anna",
     email: "4d87d88e8c565eed@nowhere.invalid",
-    emails: ["4d87d88e8c565eed@nowhere.invalid"] }] });
+    emails: ["4d87d88e8c565eed@nowhere.invalid"] }] }, "new");
   assert.strictEqual(T.daten().kontakte.length, 2,
     "eine nur namensgleiche Cache-Karte wurde automatisch zusammengeführt");
   assert.ok(T.daten().kontakte.every((kontakt) =>
@@ -5810,7 +5815,7 @@ function knopfMit(text, wurzel) {
     geburtstage: [{ uid: "oma-erna", name: "Oma Erna", datum: "1950-03-04" }],
     wiederholend: 1
   };
-  await w.App.importErgebnis(nutzlast);
+  await bestaetigeKontaktImport(w, nutzlast);
   assert.ok($("#zettel").textContent.includes("1 Termin") &&
     $("#zettel").textContent.includes("1 Aufgabe") &&
     $("#zettel").textContent.includes("1 Geburtstag") &&
@@ -5848,7 +5853,7 @@ function knopfMit(text, wurzel) {
   const oma = T.daten().jahrestage.find((j) => j.name === "Oma Erna");
   assert.ok(oma, "Geburtstag nicht als Jahrestag übernommen");
   assert.strictEqual(oma.typ, "birthday");
-  w.App.importErgebnis(nutzlast);
+  await bestaetigeKontaktImport(w, nutzlast);
   assert.strictEqual(T.daten().termine.length, vorherT + 1, "Duplikat nicht erkannt");
   assert.strictEqual(T.daten().jahrestage.length, vorherJ + 1, "Geburtstag doppelt");
   w.App.importErgebnis({ art: "ics", abgebrochen: false, termine: [
@@ -5860,7 +5865,7 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(parallele.map((t) => t.uid), ["parallel-a", "parallel-b"],
     "verschiedene Termine mit gleichem Titel und gleicher Zeit wurden zusammengeführt");
   const parallelA = parallele.find((t) => t.uid === "parallel-a");
-  w.App.importErgebnis({ art: "ics", abgebrochen: false, termine: [
+  await bestaetigeKontaktImport(w, { art: "ics", abgebrochen: false, termine: [
     { uid: "parallel-a", datum: "2026-09-11", zeit: "11:00", titel: "Neuere Fassung",
       geaendert: parallelA.geaendert + 1000, icsRoundtrip: ["LOCATION:Raum 9"] }
   ], aufgaben: [{ uid: "todo-import-1", titel: "Import-Aufgabe neu",
@@ -5920,7 +5925,7 @@ function knopfMit(text, wurzel) {
   "Kontaktgeburtstag wird nicht mit der Karte verknüpft");
 
   /* ---- Rechner-Import: Fundbericht erscheint auf dem Zettel ---- */
-  w.App.importErgebnis({ art: "lokal", abgebrochen: false,
+  await bestaetigeKontaktImport(w, { art: "lokal", abgebrochen: false,
     kontakte: [{ nachname: "Lokal", vorname: "Lena", email: "lena@rechner.de" }],
     bericht: "Gefunden – Evolution: 1 Adressen." });
   assert.ok(T.daten().kontakte.some((k) => k.nachname === "Lokal"),

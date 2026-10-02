@@ -45,10 +45,6 @@ msgstr ""
 "%(appointment)s\n"
 "点击编辑"
 
-msgid ""
-"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
-msgstr "已合并 %(cards)s。副本保存在回收站的“重复项”中。"
-
 msgid "%(count)s anniversary"
 msgid_plural "%(count)s anniversaries"
 msgstr[0] "%(count)s 个纪念日"
@@ -72,10 +68,6 @@ msgstr[0] "%(count)s 个生日"
 msgid "%(count)s contact"
 msgid_plural "%(count)s contacts"
 msgstr[0] "%(count)s 个联系人"
-
-msgid "%(count)s contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "%(count)s 张联系人卡片"
 
 msgid "%(count)s contact imported."
 msgid_plural "%(count)s contacts imported."
@@ -108,10 +100,6 @@ msgstr[0] "已跳过 %(count)s 个现有条目。"
 msgid "%(count)s found"
 msgid_plural "%(count)s found"
 msgstr[0] "找到 %(count)s 个"
-
-msgid "%(count)s group"
-msgid_plural "%(count)s groups"
-msgstr[0] "%(count)s 个组"
 
 msgid "%(count)s holiday period"
 msgid_plural "%(count)s holiday periods"
@@ -848,6 +836,9 @@ msgstr "柏林"
 
 msgid "Bern"
 msgstr "伯尔尼"
+
+msgid "Birth name: %(name)s"
+msgstr "出生姓氏：%(name)s"
 
 msgid "Birthday"
 msgstr "生日"
@@ -2183,20 +2174,6 @@ msgstr "格式区域"
 msgid "Forward Secrecy"
 msgstr "前向保密 (Forward Secrecy)"
 
-msgid ""
-"Found %(groups)s containing %(cards)s in total, for example:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"The most complete card in each group is retained, and missing fields are "
-"filled from the others. The remaining cards are moved to the recycle bin as "
-"“Duplicates” and can be restored from there. Continue?"
-msgstr ""
-"找到 %(groups)s 个组，共包含 %(cards)s 张卡片，例如：\n"
-"%(examples)s%(more)s\n"
-"\n"
-"每组会保留信息最完整的卡片，并用其他卡片补全缺失字段。其余卡片会作为“重复"
-"项”移到回收站，并可从那里恢复。继续吗？"
-
 #, javascript-format
 msgid "Found – %s."
 msgstr "找到 – %s。"
@@ -2401,9 +2378,6 @@ msgstr "导入"
 
 msgid "Import Magnolie complete archive"
 msgstr "导入 Magnolie 完整档案"
-
-msgid "Import contacts additively"
-msgstr "增量导入联系人"
 
 msgid "Import failed."
 msgstr "导入失败。"
@@ -3350,10 +3324,6 @@ msgid_plural ""
 "%(count)s completion updates were received from the Magnolienbaum."
 msgstr[0] "收到了来自 Magnolienbaum 的一个完成更新。"
 
-msgid "One duplicate contact card was"
-msgid_plural "%(count)s duplicate contact cards were"
-msgstr[0] "有一张重复的联系人卡"
-
 msgid "One moment …"
 msgstr "请稍候 …"
 
@@ -3845,6 +3815,10 @@ msgstr "电源"
 msgid "Prefer PC speakers and microphone for calls on my own Bluetooth phone"
 msgstr "优先使用电脑扬声器和麦克风接听我自己的 Bluetooth 手机上的通话"
 
+msgid ""
+"Prefer newer contact versions when reliable modification times are available."
+msgstr "有可靠的修改时间时，优先使用较新的联系人版本。"
+
 msgid "Preferred backup folder"
 msgstr "首选备份文件夹"
 
@@ -3964,13 +3938,6 @@ msgstr "此电脑可访问的 IPv4 或 IPv6 地址"
 msgid "Ready."
 msgstr "就绪。"
 
-msgid ""
-"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
-"every removed card is kept in the recycle bin."
-msgstr ""
-"确实要合并 %(cards)s 吗？之后请仔细检查结果。每张被删除的卡片都会在回收站中保"
-"留一份副本。"
-
 msgid "Reason"
 msgstr "原因"
 
@@ -4010,6 +3977,9 @@ msgstr "永久拒绝此提议？"
 
 msgid "Related tasks"
 msgstr "相关任务"
+
+msgid "Reliable modification times are not available for both versions."
+msgstr "并非两个版本都有可靠的修改时间。"
 
 msgid "Remind me again on the day itself"
 msgstr "当天再次提醒我"
@@ -5644,11 +5614,6 @@ msgstr ""
 msgid "This notebook is still empty."
 msgstr "此笔记本仍为空。"
 
-msgid ""
-"This one-time import only adds or enriches contacts. It does not synchronize "
-"or delete contacts."
-msgstr "此次一次性导入只会添加或补充联系人信息，不会同步或删除联系人。"
-
 msgid "This person's anniversaries"
 msgstr "此人的纪念日"
 
@@ -5884,6 +5849,9 @@ msgstr "使用联系人地址"
 
 msgid "Use default"
 msgstr "使用默认设置"
+
+msgid "Use newer version"
+msgstr "使用较新版本"
 
 msgid "Use numeric keypad"
 msgstr "使用数字小键盘"
@@ -6241,9 +6209,6 @@ msgstr "%(year)s 年度计划表"
 msgid "Yes"
 msgstr "是"
 
-msgid "Yes, merge"
-msgstr "是，合并"
-
 msgid "Yes, the code matches"
 msgstr "是，代码一致"
 
@@ -6509,10 +6474,6 @@ msgid "one backup was encrypted as well"
 msgid_plural "%(count)s backups were encrypted as well"
 msgstr[0] "一个备份也被加密了"
 
-msgid "one contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "一张联系人名片"
-
 msgid "only %(year)s"
 msgstr "仅 %(year)s"
 
@@ -6654,6 +6615,58 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
+
+#~ msgid ""
+#~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+#~ msgstr "已合并 %(cards)s。副本保存在回收站的“重复项”中。"
+
+#~ msgid "%(count)s contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "%(count)s 张联系人卡片"
+
+#~ msgid "%(count)s group"
+#~ msgid_plural "%(count)s groups"
+#~ msgstr[0] "%(count)s 个组"
+
+#~ msgid ""
+#~ "Found %(groups)s containing %(cards)s in total, for example:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "The most complete card in each group is retained, and missing fields are "
+#~ "filled from the others. The remaining cards are moved to the recycle bin "
+#~ "as “Duplicates” and can be restored from there. Continue?"
+#~ msgstr ""
+#~ "找到 %(groups)s 个组，共包含 %(cards)s 张卡片，例如：\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "每组会保留信息最完整的卡片，并用其他卡片补全缺失字段。其余卡片会作为“重复"
+#~ "项”移到回收站，并可从那里恢复。继续吗？"
+
+#~ msgid "Import contacts additively"
+#~ msgstr "增量导入联系人"
+
+#~ msgid "One duplicate contact card was"
+#~ msgid_plural "%(count)s duplicate contact cards were"
+#~ msgstr[0] "有一张重复的联系人卡"
+
+#~ msgid ""
+#~ "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+#~ "every removed card is kept in the recycle bin."
+#~ msgstr ""
+#~ "确实要合并 %(cards)s 吗？之后请仔细检查结果。每张被删除的卡片都会在回收站"
+#~ "中保留一份副本。"
+
+#~ msgid ""
+#~ "This one-time import only adds or enriches contacts. It does not "
+#~ "synchronize or delete contacts."
+#~ msgstr "此次一次性导入只会添加或补充联系人信息，不会同步或删除联系人。"
+
+#~ msgid "Yes, merge"
+#~ msgstr "是，合并"
+
+#~ msgid "one contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "一张联系人名片"
 
 #~ msgid "KDE Connect for SMS"
 #~ msgstr "KDE Connect 为 SMS"

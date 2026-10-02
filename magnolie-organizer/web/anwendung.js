@@ -364,7 +364,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           langzeitRegeln: [], kurzzeitInsulin: "", kurzzeitModus: "fixed",
           kurzzeitFestEinheiten: 0, kurzzeitRegeln: [], hinweis: "" } },
       einstellungen: { sync: { kalenderUid: "", kalenderUids: [],
-          adressbuchUid: "", beimStart: false, kdeEmpfang: { dateien: false,
+          adressbuchUid: "", beimStart: false, kontaktNeuereBevorzugen: false, kdeEmpfang: { dateien: false,
             zwischenablage: false,
             zwischenablageAutomatisch: false, ordnerBeiAnnahme: false,
             geraetId: "", ordner: "" } },
@@ -430,7 +430,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       letzterSync: 0, letzteSyncs: { kalender: {}, adressbuecher: {} },
       syncStatus: { letzterVersuch: 0, letzterFehler: "" },
       baumKontaktGeloescht: [], baumKontaktBestand: {},
-      baumKontaktLoeschStaende: [], baumKontaktErfolgreich: {}, baumKontaktAblehnungen: [],
+      baumKontaktLoeschStaende: [], baumKontaktErfolgreich: {}, baumKontaktAblehnungen: [], kontaktImportAblehnungen: [],
       personalSync: { format: 1, actor_id: "", counter: 0, entities: {},
         last_reports: [], applied_batches: [], last_auto_ms: 0, last_auto_hash: "",
         peer_device_id: "", restoration_requests: [], pending_proposals: [],
@@ -4489,7 +4489,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const quelle = telefonStand?.kdeconnect;
     const beschaeftigt = () => aktiverEditor || syncLaeuft || kdeKontaktLauf ||
       (typeof kontaktSyncPruefungLauf !== "undefined" && kontaktSyncPruefungLauf) ||
-      document.querySelector(".baum-kontakt-konflikt, .sync-kontakt-konflikt, .kontakt-import-schleier, .kontakt-assistent-schleier");
+      document.querySelector(".baum-kontakt-konflikt, .sync-kontakt-konflikt, .kontakt-import-schleier, .kontakt-datei-pruefung, .kontakt-assistent-schleier");
     if (!initialisiert || gesperrt || !DATEN.einstellungen.adressen.foto ||
         !quelle?.contacts_available || !quelle.contacts_device_id ||
         DATEN.syncMetadaten?.ersteSyncLoeschungsfrei || DATEN.syncNachRestore?.loeschungsfrei ||
@@ -5141,7 +5141,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       // A merged identity and its remote bindings now belong to the survivor.
       // Restore the archived fields as a separate local card, never as a second writer.
       eintrag.id = uid(); eintrag.uid = syncUid(); eintrag.sync = false;
-      for (const feld of ["syncQuellen", "syncKonflikte", "baumKontakt", "kontaktAliase",
+      for (const feld of ["syncQuellen", "syncKonflikte", "kontaktProviderKonflikte", "baumKontakt", "kontaktAliase",
           "importBindungen", "importHerkunfte"]) delete eintrag[feld];
     }
     if (stueck.art === "task" && eintrag.elternUid &&
@@ -6744,6 +6744,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     d.einstellungen.sync.adressbuchUid = S(sy.adressbuchUid);
     d.einstellungen.sync.beimStart = !!sy.beimStart;
     d.einstellungen.sync.erfolgsmeldungen = sy.erfolgsmeldungen === true;
+    d.einstellungen.sync.kontaktNeuereBevorzugen = sy.kontaktNeuereBevorzugen === true;
     const kdeEmpfang = sy.kdeEmpfang && typeof sy.kdeEmpfang === "object"
       ? sy.kdeEmpfang : {};
     d.einstellungen.sync.kdeEmpfang = {
@@ -7150,6 +7151,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       : [];
     d.baumKontaktAblehnungen = Array.isArray(roh.baumKontaktAblehnungen)
       ? [...new Set(roh.baumKontaktAblehnungen.filter(wert => typeof wert === "string" && /^[a-f0-9]{64}$/.test(wert)))] : [];
+    d.kontaktImportAblehnungen = Array.isArray(roh.kontaktImportAblehnungen)
+      ? [...new Set(roh.kontaktImportAblehnungen.filter(wert => typeof wert === "string" && /^[a-f0-9]{64}$/.test(wert)))] : [];
     d.baumKontaktErfolgreich = {};
     if (roh.baumKontaktErfolgreich && typeof roh.baumKontaktErfolgreich === "object") {
       for (const [partner, erfolgreich] of Object.entries(roh.baumKontaktErfolgreich)) {
@@ -14818,8 +14821,69 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return baumKontaktBindung(kontakt, meta.freigabeId);
   }
 
-  function kontaktBaumInhalt(kontakt, fassung = 2) {
-    const meta = kontakt.baumKontakt;
+  function kontaktZeitGueltig(zeit) {
+    return Number.isSafeInteger(zeit) && zeit > 0 && zeit <= Date.now() + 300000 && zeit <= 253402300799999;
+  }
+
+  function kontaktZeitInhaltGleich(a, b) {
+    if (a === b) return true;
+    if (!a || !b || typeof a !== "object" || typeof b !== "object" || Array.isArray(a) !== Array.isArray(b)) return false;
+    if (Array.isArray(a) && a.length !== b.length) return false;
+    const keys = Object.keys(a);
+    return keys.length === Object.keys(b).length && keys.every(key =>
+      Object.prototype.hasOwnProperty.call(b, key) && kontaktZeitInhaltGleich(a[key], b[key]));
+  }
+
+  async function kontaktInhaltszeit(kontakt, bekannterHash = null) {
+    const stand = kontakt.kontaktZeit;
+    if (!stand || !kontaktZeitGueltig(stand.zeit) || !/^[a-f0-9]{64}$/.test(stand.hash || "")) return 0;
+    if (bekannterHash !== null) return stand.hash === bekannterHash ? stand.zeit : 0;
+    const inhalt = kontaktBaumInhalt(kontakt, 2, false).kontakt;
+    const hash = await personalSyncHash(inhalt);
+    return kontakt.kontaktZeit === stand && stand.hash === hash &&
+      kontaktZeitInhaltGleich(kontaktBaumInhalt(kontakt, 2, false).kontakt, inhalt) ? stand.zeit : 0;
+  }
+
+  async function merkeKontaktInhaltszeit(kontakt, zeit, daten = DATEN) {
+    const bestand = DATEN;
+    delete kontakt.kontaktZeit;
+    if (!kontaktZeitGueltig(zeit)) return false;
+    const inhalt = kontaktBaumInhalt(kontakt, 2, false).kontakt;
+    const hash = await personalSyncHash(inhalt);
+    if (DATEN !== bestand || gesperrt || !daten.kontakte.includes(kontakt) ||
+        !kontaktZeitInhaltGleich(kontaktBaumInhalt(kontakt, 2, false).kontakt, inhalt)) return false;
+    kontakt.kontaktZeit = { zeit, hash };
+    if (daten === DATEN) planeSpeichern();
+    return true;
+  }
+
+  async function kontaktZeitAusQuelle(kontakt, karte, zeit, vorher = "", vorherZeit = 0, daten = DATEN) {
+    const bestand = DATEN;
+    const nachher = personalSyncKanonisch(kontaktBaumInhalt(kontakt, 2, false).kontakt);
+    const quelle = personalSyncKanonisch(kontaktBaumInhalt(karte, 2, false).kontakt);
+    const bisher = await kontaktInhaltszeit(kontakt);
+    if (DATEN !== bestand || gesperrt || !daten.kontakte.includes(kontakt) ||
+        personalSyncKanonisch(kontaktBaumInhalt(kontakt, 2, false).kontakt) !== nachher) return;
+    if (nachher === quelle) {
+      if (kontaktZeitGueltig(zeit)) {
+        if (nachher !== vorher || zeit > bisher) await merkeKontaktInhaltszeit(kontakt, zeit, daten);
+      } else if (nachher !== vorher) await merkeKontaktInhaltszeit(kontakt, 0, daten);
+    } else if (nachher !== vorher) {
+      await merkeKontaktInhaltszeit(kontakt, kontaktZeitGueltig(zeit) && kontaktZeitGueltig(vorherZeit)
+        ? Math.max(zeit, vorherZeit) : 0, daten);
+    }
+  }
+
+  async function baumKontaktNeuereFassung(stueck, ziel) {
+    const inhalt = stueck.inhalt || {};
+    if (inhalt.fassung !== 3 || !kontaktZeitGueltig(inhalt.inhaltGeaendert) || !ziel) return null;
+    const lokal = await kontaktInhaltszeit(ziel);
+    if (!lokal || lokal === inhalt.inhaltGeaendert) return null;
+    return lokal > inhalt.inhaltGeaendert ? "keep" : "newer";
+  }
+
+  function kontaktBaumInhalt(kontakt, fassung = 2, pruefeFoto = true) {
+    const meta = kontakt.baumKontakt || {};
     const art = (eintrag) => String(eintrag.label || telefonArt(eintrag) || "");
     const foto = String(kontakt.foto || "");
     const nutzlast = { art: "kontakt_sync", fassung: fassung, freigabeId: meta.freigabeId,
@@ -14836,13 +14900,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           region: e.region || "", land: e.land || "" })) } };
     const fotoMuster = new RegExp(
       "^data:image/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$");
-    if (foto.length <= 2800000 && fotoMuster.test(foto)) {
+    if (foto && (!pruefeFoto || foto.length <= 2800000 && fotoMuster.test(foto))) {
       nutzlast.kontakt.foto = foto;
     } else if (foto) throw new Error(_("Not sent."));
     const namen = (kontakt.vcardRoundtrip || []).filter((s) => /^(?:[A-Za-z0-9-]+\.)?(?:N|FN)[;:]/i.test(s));
     const anzeigename = String(kontakt.anzeigename || "");
     const jubilaeum = String(kontakt.jubilaeum || "");
-    if (fassung === 2) Object.assign(nutzlast.kontakt, { anzeigename, jubilaeum, vcardName: namen });
+    if (fassung >= 2) Object.assign(nutzlast.kontakt, { anzeigename, jubilaeum, vcardName: namen });
     else {
       const esc = (s) => String(s || "").replace(/\\/g, "\\\\").replace(/\r\n|\n/g, "\\n").replace(/;/g, "\\;").replace(/,/g, "\\,");
       const fn = [kontakt.vorname, kontakt.nachname].filter(Boolean).join(" ");
@@ -14850,22 +14914,27 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (jubilaeum || anzeigename && anzeigename !== fn || namen.some((s) => s !== n && s !== "FN:" + esc(fn)))
         throw new Error(_("Not sent."));
     }
+    if (fassung === 3) nutzlast.inhaltGeaendert = 0;
     return nutzlast;
   }
 
   async function synchronisiereKontakteMit(kennung) {
     const partner = baumPartnerListe().find((p2) => p2.kennung === kennung);
     if (!partner) return false;
-    const fassung = partner.kontaktFaehigkeiten?.kontakt_sync?.includes(2) ? 2 : 1;
+    const fassung = partner.kontaktFaehigkeiten?.kontakt_sync?.includes(3) ? 3 : partner.kontaktFaehigkeiten?.kontakt_sync?.includes(2) ? 2 : 1;
     const quelle = String((baumStand && baumStand.kennung) || "zweig").slice(0, 128);
-    const kontakte = DATEN.kontakte.slice();
+    const bestand = DATEN, kontakte = DATEN.kontakte.slice();
     if (fassung === 1) schickeBaumInhalt("kontakt_faehigkeiten", {}, [kennung]);
     // Preflight the whole snapshot before any contact content is queued.
-    let inhalte, hashes;
+    let inhalte, hashes, zeiten;
     try {
       const modern = kontakte.map((k) => kontaktBaumInhalt({ ...k, baumKontakt: k.baumKontakt || {} }));
-      inhalte = fassung === 2 ? modern : kontakte.map((k) => kontaktBaumInhalt({ ...k, baumKontakt: k.baumKontakt || {} }, 1));
+      inhalte = fassung >= 2 ? modern.map(inhalt => fassung === 3 ? { ...inhalt, fassung: 3, inhaltGeaendert: 0 } : inhalt) :
+        kontakte.map(k => kontaktBaumInhalt(k, 1));
       hashes = await Promise.all(modern.map((n) => personalSyncHash(n.kontakt)));
+      zeiten = fassung === 3 ? await Promise.all(kontakte.map((k, index) => kontaktInhaltszeit(k, hashes[index]))) : [];
+      if (DATEN !== bestand || gesperrt || kontakte.some((k, index) => !DATEN.kontakte.includes(k) ||
+          !kontaktZeitInhaltGleich(kontaktBaumInhalt(k).kontakt, modern[index].kontakt))) return false;
     }
     catch (_fehler) { zettel(_("Not sent.")); return false; }
     DATEN.baumKontaktErfolgreich[kennung] = false;
@@ -14886,7 +14955,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         meta.hash = hashes[index];
       }
       meta.partner = Array.from(new Set((meta.partner || []).concat(kennung)));
-      schickeBaumInhalt("kontakt_sync", { ...inhalte[index], freigabeId: meta.freigabeId,
+      schickeBaumInhalt("kontakt_sync", { ...inhalte[index], ...(fassung === 3 ? { inhaltGeaendert: zeiten[index] } : {}), freigabeId: meta.freigabeId,
         version: meta.version, quelle: meta.quelle, geaendert: meta.geaendert }, [kennung]);
     }
     if (!kontakte.length) baumKontaktLaeufe.delete(kennung);
@@ -15752,7 +15821,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       laeuft = true; dialog.querySelectorAll("button").forEach(button => { button.disabled = true; });
       mitMutationsSnapshot("pre-contact", () => {
         if (!gueltig()) return;
+        const vorher = k.foto;
         waehleKontaktFoto(k, foto, quelle); k.geaendert = Date.now();
+        if (k.foto !== vorher) merkeKontaktInhaltszeit(k, k.geaendert).catch(() => {});
         planeSpeichern(); zeichneAlles();
         nachDauerhaftemSpeichern(() => { if (gueltig()) schliessen(); }, melden);
       }, melden);
@@ -15807,6 +15878,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (k.firma) kopfText.append(el("div", "k-firma", k.firma));
     kopf.append(kopfText);
     karte.append(kopf);
+
+    for (const [quelle, konflikt] of Object.entries(k.kontaktProviderKonflikte || {})) {
+      const pruefen = knopf(_("Conflict") + " · " + (konflikt.name || _("Contacts")), "",
+        () => oeffneKontaktProviderPruefung(k.id, quelle));
+      pruefen.dataset.providerKonflikt = quelle; karte.append(pruefen);
+    }
 
     const anschriften = anschriftListe(k);
     anschriften.forEach((anschrift, index) => {
@@ -15912,7 +15989,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const kopie = JSON.parse(JSON.stringify(Object.fromEntries(Object.keys(k)
         .filter(key => !["id", "uid", "sync", "foto", "fotoAlternativen", "fotoQuellen", "fotoQuelle", "fotoManuell",
           "baumKontakt", "syncQuellen", "syncKonflikte", "importBindungen", "importHerkunfte", "importKonflikt",
-          "kontaktAliase", "kdeImportStaende"].includes(key)).map(key => [key, k[key]]))));
+          "kontaktAliase", "kdeImportStaende", "kontaktZeit", "kontaktProviderKonflikte", "vcardRev"].includes(key)).map(key => [key, k[key]]))));
       return kopie;
     }, _("Share address"), (kennungen) => {
       try {
@@ -16629,6 +16706,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         geaendert: Date.now()
       };
       let ziel = k ? DATEN.kontakte.find(item => item.id === k.id) : null;
+      const inhaltVorher = ziel ? personalSyncKanonisch(kontaktBaumInhalt(ziel, 2, false).kontakt) : "";
       const felder = Object.keys(werte).filter(key => key !== "geaendert").concat(
         ["telefone", "telefon", "mobil", "anschriften", "strasse", "plz", "ort", "land",
           "kontaktpersonen", "sozialeMedien", "geburtstag", "jubilaeum"]);
@@ -16687,6 +16765,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           delegiertAn: "", geaendert: Date.now() });
       }
       gespeichertesZiel = ziel;
+      if (inhaltVorher !== personalSyncKanonisch(kontaktBaumInhalt(ziel, 2, false).kontakt))
+        merkeKontaktInhaltszeit(ziel, Date.now()).catch(() => {});
       z.auswahlId = ziel.id;
       z.buchstabe = buchstabeVon(ziel);
       z.suche = "";
@@ -21104,6 +21184,17 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       _("Show successful synchronization notifications (errors are always shown)")));
     sy.append(meldungsZeile);
 
+    const neuereHak = document.createElement("input");
+    neuereHak.type = "checkbox"; neuereHak.id = "sync-kontakte-neuer";
+    neuereHak.checked = DATEN.einstellungen.sync.kontaktNeuereBevorzugen === true;
+    neuereHak.addEventListener("change", () => {
+      DATEN.einstellungen.sync.kontaktNeuereBevorzugen = neuereHak.checked; planeSpeichern();
+    });
+    const neuereZeile = el("label", "hak");
+    neuereZeile.append(neuereHak, document.createTextNode(" " +
+      _("Prefer newer contact versions when reliable modification times are available.")));
+    sy.append(neuereZeile);
+
     const syncKnopf = knopf(_("Synchronize now"), "", () => starteSync(false));
     syncKnopf.id = "sync-jetzt";
     const syncReihe = el("div", "knopfreihe");
@@ -21571,6 +21662,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const herkuenfte = herkunftRoh.map((wert) =>
         kontaktImportHerkunft(wert, true)).filter(Boolean).slice(0, 64);
       if (herkuenfte.length !== herkunftRoh.length) continue;
+      const bestand = DATEN, vorher = kanonischerEntwurf(DATEN.kontakte);
+      const eingangsStand = kanonischerEntwurf([manifestStueck, ...karten]);
+      const quelleGueltig = () => DATEN === bestand && !gesperrt &&
+        kanonischerEntwurf(ids.map(id => (baumStand?.eingang || []).find(s => s.id === id))) === eingangsStand;
+      const gueltig = () => quelleGueltig() && kanonischerEntwurf(DATEN.kontakte) === vorher;
       kontaktImportDialogOffen = true;
       const schleier = el("div", "eingabe-schleier kontakt-import-schleier");
       const dialog = el("section", "eingabe-dialog kontakt-import-dialog");
@@ -21579,29 +21675,37 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       herkuenfte.forEach((wert) => liste.append(el("li", null, wert.text)));
       const status = el("p", "einst-hinweis", _("Nothing has been imported yet."));
       const schliessen = () => { beendeModal(schleier); schleier.remove(); kontaktImportDialogOffen = false; };
-      const bestaetigen = knopf(_("Import contacts additively"), "hauptknopf", () => {
+      const verarbeiten = async (nurAblehnen = false) => {
+        if (!gueltig()) { schliessen(); zettel(_("Conflict")); return; }
         dialog.querySelectorAll("button").forEach((button) => { button.disabled = true; });
+        const pruefung = await pruefeKontaktDateiImport(kontakte, "android:" + manifestStueck.von, nurAblehnen);
+        if (!pruefung) { schliessen(); return; }
+        if (!gueltig() || !pruefung.gueltig()) { schliessen(); zettel(_("Conflict")); return; }
         status.textContent = _("Creating recovery snapshot …");
         mitMutationsSnapshot("pre-contact-import", () => {
-          const ergebnis = mergeKontakte(kontakte);
+          if (!gueltig() || !pruefung.gueltig()) { schliessen(); zettel(_("Conflict")); return; }
+          DATEN.kontakte = pruefung.daten.kontakte;
+          DATEN.jahrestage = pruefung.daten.jahrestage;
+          DATEN.kontaktImportAblehnungen = pruefung.daten.kontaktImportAblehnungen;
+          const ergebnis = pruefung.zaehlung;
           zeichneAlles();
           nachDauerhaftemSpeichern(() => {
+            if (!quelleGueltig()) { schliessen(); zettel(_("Conflict")); return; }
             Bruecke.sende({ cmd: "baum_eingang_geleert", ids: ids });
             schliessen();
-            zettel(uebersetztMehrzahl("%(count)s contact imported.", "%(count)s contacts imported.",
-              ergebnis.neu + ergebnis.doppelt));
+            if (!nurAblehnen) zettel(uebersetztMehrzahl("%(count)s contact imported.", "%(count)s contacts imported.",
+              ergebnis.neu));
           });
         });
-      });
-      const ablehnen = knopf(_("Reject"), "", () => {
-        Bruecke.sende({ cmd: "baum_eingang_geleert", ids: ids }); schliessen();
-      });
+      };
+      const bestaetigen = knopf(_("Preview"), "hauptknopf", () => verarbeiten());
+      const ablehnen = knopf(_("Reject"), "", () => verarbeiten(true));
       const knoepfe = el("div", "dialog-knoepfe"); knoepfe.append(bestaetigen, ablehnen);
       dialog.append(el("h2", null, _("Magnolie Notes contact import")),
         el("p", "kontakt-import-anzahl", uebersetztMehrzahl(
           "Preview: %(count)s contact", "Preview: %(count)s contacts", anzahl)),
         el("h3", null, _("Sources")), liste, el("p", "einst-warnung",
-          _("This one-time import only adds or enriches contacts. It does not synchronize or delete contacts.")),
+          _("Preview contacts from the paired phone. Changes are saved only in Organizer; no contacts are deleted.")),
         status, knoepfe);
       schleier.append(dialog); document.body.append(schleier);
       registriereModal(schleier, dialog, { anfang: bestaetigen, schliessen: () => {} });
@@ -21751,10 +21855,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   function baumKontaktKarte(stueck) {
     const inhalt = stueck.inhalt || {}, art = inhalt.art || stueck.art;
     if (art === "kontakt") return normalisiere({ kontakte: [{ ...inhalt,
-      id: uid(), uid: syncUid(), sync: false, foto: "" }] }).kontakte[0];
+      id: uid(), uid: syncUid(), sync: false, foto: "", kontaktZeit: undefined, kontaktProviderKonflikte: undefined, vcardRev: undefined,
+      syncQuellen: undefined, syncKonflikte: undefined, baumKontakt: undefined, kontaktAliase: undefined,
+      importBindungen: undefined, importHerkunfte: undefined, importKonflikt: false, kdeImportStaende: undefined,
+      fotoManuell: false, fotoQuelle: undefined, fotoAlternativen: undefined, fotoQuellen: undefined }] }).kontakte[0];
     if (art !== "kontakt_sync" || !inhalt.kontakt || !inhalt.freigabeId || !(Number(inhalt.version) > 0)) return null;
     const fern = inhalt.kontakt;
     return normalisiere({ kontakte: [{ ...fern, id: uid(), uid: syncUid(), sync: false,
+      kontaktZeit: undefined, kontaktProviderKonflikte: undefined, vcardRev: undefined, fotoAlternativen: undefined, fotoQuellen: undefined,
       vcardRoundtrip: fern.vcardName || [],
       telefone: (fern.telefone || []).map(e => ({ wert: e.wert, label: e.art, typen: telefonTypenAusArt(e.art) })),
       emailEintraege: (fern.emailEintraege || []).map(e => ({ wert: e.wert, label: e.art, typen: [] })),
@@ -21762,7 +21870,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }] }).kontakte[0];
   }
 
-  function baumKontaktVergleich(kontakt, ohneFoto = false) {
+  function baumKontaktVergleich(kontakt, ohneFoto = false, alsObjekt = false) {
     const werte = {};
     for (const feld of ["vorname", "nachname", "anzeigename", "firma", "notiz", "foto", "jubilaeum"])
       werte[feld] = String(kontakt[feld] || "").trim();
@@ -21775,7 +21883,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     werte.anschriften = sortiert(anschriftListe(kontakt).map(e =>
       [art(e), ...["strasse", "plz", "ort", "region", "land"].map(f => String(e[f] || "").trim())]));
     werte.namen = (kontakt.vcardRoundtrip || []).filter(s => /^(?:[A-Za-z0-9-]+\.)?(?:N|FN)[;:]/i.test(s)).slice().sort();
-    return kanonischerEntwurf(werte);
+    return alsObjekt ? werte : kanonischerEntwurf(werte);
   }
 
   function baumKontaktIndexiere(index, kontakt) {
@@ -21815,12 +21923,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (kandidaten.length !== 1) return { art: "konflikt", kandidaten };
     const ziel = kandidaten[0], meta = baumKontaktBindung(ziel, inhalt.freigabeId);
     if (bindung?.size === 1 && ((meta.staende || []).includes(String(inhalt.quelle || stueck.von || "") + "\u0000" + Number(inhalt.version)) ||
-        Number(inhalt.version) < meta.version)) return { art: "gleich", ziel };
+        Number(inhalt.version) < meta.version)) return { art: "gleich", ziel, bekannteVersion: true };
     const starkeKennung = !!bindung?.size || [...schluessel.keys()].some(key =>
       (key.startsWith("e:") || key.startsWith("t:")) && index.get(key)?.has(ziel));
     if (starkeKennung && baumKontaktVergleich(ziel, ziel.fotoManuell) === baumKontaktVergleich(karte, ziel.fotoManuell)) return { art: "gleich", ziel };
     if (starkeKennung && baumKontaktNurErgaenzungen(ziel, karte)) return { art: "ergaenzung", ziel };
-    return { art: "konflikt", kandidaten };
+    return { art: "konflikt", kandidaten, eindeutig: starkeKennung };
   }
 
   let baumKontaktSammelLaeuft = false;
@@ -21834,7 +21942,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function baumKontaktBereiche(daten) {
     return kanonischerEntwurf({ kontakte: daten.kontakte, jahrestage: daten.jahrestage,
-      ablehnungen: daten.baumKontaktAblehnungen });
+      ablehnungen: daten.baumKontaktAblehnungen, neuere: daten.einstellungen.sync.kontaktNeuereBevorzugen === true });
   }
 
   function neuerBaumKontaktLauf() {
@@ -21854,9 +21962,17 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   async function baumKontaktPlan(stueck, index = null, daten = DATEN) {
-    const plan = mitBaumKontaktEntwurf(daten, () => baumKontaktPruefung(stueck, index)), inhalt = stueck.inhalt || {};
+    let plan = mitBaumKontaktEntwurf(daten, () => baumKontaktPruefung(stueck, index));
+    const inhalt = stueck.inhalt || {};
     if (plan.art !== "ungueltig" && daten.baumKontaktAblehnungen?.length &&
         daten.baumKontaktAblehnungen.includes(await baumKontaktAblehnungHash(stueck))) return { art: "abgelehnt" };
+    if (plan.bekannteVersion && inhalt.fassung === 3 && kontaktZeitGueltig(inhalt.inhaltGeaendert)) {
+      const zeit = await kontaktInhaltszeit(plan.ziel);
+      if (zeit && inhalt.inhaltGeaendert > zeit && !kontaktZeitInhaltGleich(
+          baumKontaktVergleich(plan.ziel, plan.ziel.fotoManuell, true),
+          baumKontaktVergleich(baumKontaktKarte(stueck), plan.ziel.fotoManuell, true)))
+        plan = { art: "konflikt", kandidaten: [plan.ziel], eindeutig: true };
+    }
     const ziel = plan.kandidaten?.length === 1 ? plan.kandidaten[0] : null;
     const meta = baumKontaktBindung(ziel, inhalt.freigabeId);
     if (plan.art === "konflikt" && meta?.entscheidungHash && meta.freigabeId === inhalt.freigabeId &&
@@ -21926,17 +22042,30 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         lauf.nachrichten.set(stueck.id, kanonischerEntwurf(stueck));
         const plan = await baumKontaktPlan(stueck, index, lauf.daten);
         if (DATEN !== bestand || gesperrt) return ergebnis;
+        if (plan.art === "konflikt" && plan.eindeutig && plan.kandidaten?.length === 1 &&
+            DATEN.einstellungen.sync.kontaktNeuereBevorzugen && await baumKontaktNeuereFassung(stueck, plan.kandidaten[0])) {
+          const ziel = plan.kandidaten[0];
+          await entscheideBaumKontakt(stueck, ziel.id, {}, "newer", kanonischerEntwurf(ziel), bestand, lauf, true);
+          lauf.angenommen.push(stueck.id); ergebnis.angenommen++; baumKontaktIndexiere(index, ziel); continue;
+        }
         if (plan.art === "konflikt") { ergebnis.konflikte++; lauf.offen.push(stueck.id); continue; }
         if (plan.art === "ungueltig") { ergebnis.ungueltig++; continue; }
         if (plan.art === "abgelehnt") {
           lauf.angenommen.push(stueck.id); ergebnis.angenommen++; continue;
         }
         const vorher = lauf.daten.kontakte.length;
+        const zeitRelevant = !!plan.ziel?.kontaktZeit || stueck.inhalt?.fassung === 3 && kontaktZeitGueltig(stueck.inhalt.inhaltGeaendert);
+        const vorherInhalt = zeitRelevant && plan.ziel ? personalSyncKanonisch(kontaktBaumInhalt(plan.ziel, 2, false).kontakt) : "";
+        const vorherZeit = zeitRelevant && plan.ziel ? await kontaktInhaltszeit(plan.ziel) : 0;
+        if (DATEN !== bestand || gesperrt) return ergebnis;
         if (!mitBaumKontaktEntwurf(lauf.daten, () => uebernehmeBaumAngebot(stueck, {}, { aufschieben: true, kontakt: plan.ziel, behalten: plan.behalten,
             ergaenzen: plan.art === "ergaenzung" }))) {
           ergebnis.ungueltig++; continue;
         }
         lauf.angenommen.push(stueck.id); ergebnis.angenommen++;
+        const zeitZiel = plan.ziel || lauf.daten.kontakte[vorher];
+        if (zeitRelevant && zeitZiel) await kontaktZeitAusQuelle(zeitZiel, baumKontaktKarte(stueck),
+          stueck.inhalt?.fassung === 3 ? stueck.inhalt.inhaltGeaendert : 0, vorherInhalt, vorherZeit, lauf.daten);
         if (plan.ziel) baumKontaktIndexiere(index, plan.ziel);
         for (const kontakt of lauf.daten.kontakte.slice(vorher)) baumKontaktIndexiere(index, kontakt);
       }
@@ -21974,17 +22103,19 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       for (const quelle of bild.quellen.length ? bild.quellen : [fotoQuelle]) merkeKontaktFoto(entwurf, bild.foto, quelle);
     const bilder = kontaktFotoVarianten(entwurf);
     if (modus === "keep") return entwurf;
+    const ersetzen = modus === "replace" || modus === "newer";
     for (const feld of BAUM_KONTAKT_FELDER) {
       // An absent provider date is not a request to delete a known birthday.
       if (["geburtstag", "jubilaeum"].includes(feld) && !karte[feld]) continue;
-      if (modus === "replace" || auswahl.felder?.[feld] === "incoming" ||
+      if (feld === "foto" && modus === "newer" && ziel.fotoManuell) continue;
+      if (ersetzen || auswahl.felder?.[feld] === "incoming" ||
           (!String(ziel[feld] || "") && auswahl.felder?.[feld] !== "keep")) entwurf[feld] = karte[feld] || "";
     }
     speichereKontaktFotoVarianten(entwurf, bilder);
     entwurf.geburtstagJahrUnbekannt = gueltigesTeildatum(entwurf.geburtstag);
     for (const [feld, regel] of Object.entries(BAUM_KONTAKT_LISTEN)) {
       const alt = regel.lesen(ziel), neu = regel.lesen(karte);
-      if (modus === "replace" || auswahl.leeren?.[feld]) { regel.setzen(entwurf, neu); continue; }
+      if (ersetzen || auswahl.leeren?.[feld]) { regel.setzen(entwurf, neu); continue; }
       const werte = kopie(alt), ersetzt = new Set();
       neu.forEach((eintrag, i) => {
         if (alt.some(wert => kanonischerEntwurf(wert) === kanonischerEntwurf(eintrag))) return;
@@ -21998,30 +22129,40 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       });
       regel.setzen(entwurf, werte);
     }
-    if (modus === "replace" && karte.vcardRoundtrip?.length) entwurf.vcardRoundtrip =
+    if (ersetzen && karte.vcardRoundtrip?.length) entwurf.vcardRoundtrip =
       (ziel.vcardRoundtrip || []).filter(s => !/^(?:[A-Za-z0-9-]+\.)?(?:N|FN)[;:]/i.test(s)).concat(karte.vcardRoundtrip);
     return entwurf;
   }
 
-  async function entscheideBaumKontakt(stueck, zielId, auswahl, modus, revision, bestand, lauf) {
-    if (!lauf || lauf.beendet || baumKontaktSammelLaeuft || gesperrt || DATEN !== bestand) throw new Error(_("Conflict"));
+  async function entscheideBaumKontakt(stueck, zielId, auswahl, modus, revision, bestand, lauf, intern = false) {
+    if (!lauf || lauf.beendet || baumKontaktSammelLaeuft && !intern || gesperrt || DATEN !== bestand) throw new Error(_("Conflict"));
     const daten = lauf.daten;
     const ziel = daten.kontakte.find(k => k.id === zielId), inhalt = stueck.inhalt || {};
     const art = inhalt.art || stueck.art, karte = baumKontaktKarte(stueck);
-    if (!karte || !["merge", "replace", "keep", "new"].includes(modus) ||
+    if (!karte || !["merge", "replace", "keep", "new", "newer"].includes(modus) ||
         !(baumStand?.partner || []).some(p => p.kennung === stueck.von && p.bestaetigt)) throw new Error(_("Conflict"));
     if (modus !== "new" && !ziel) throw new Error(_("Conflict"));
+    const neuereRegel = modus === "newer";
+    if (neuereRegel) {
+      modus = await baumKontaktNeuereFassung(stueck, ziel);
+      if (!modus) throw new Error(_("Reliable modification times are not available for both versions."));
+    }
     const vorher = ziel ? kanonischerEntwurf(ziel) : "";
+    const inhaltVorher = ziel ? personalSyncKanonisch(kontaktBaumInhalt(ziel, 2, false).kontakt) : "";
     if (revision !== null && revision !== vorher) throw new Error(_("Conflict"));
     const entwurf = modus === "new" ? null : baumKontaktEntwurf(ziel, karte, auswahl, modus);
+    const zuvorLaeuft = baumKontaktSammelLaeuft;
     baumKontaktSammelLaeuft = true;
     try {
       const hash = await personalSyncHash(baumKontaktVergleich(karte));
+      const vorherZeit = ziel ? await kontaktInhaltszeit(ziel) : 0;
       if (DATEN !== bestand || gesperrt || ziel && (!daten.kontakte.includes(ziel) || kanonischerEntwurf(ziel) !== vorher) ||
           !(baumStand?.partner || []).some(p => p.kennung === stueck.von && p.bestaetigt)) throw new Error(_("Conflict"));
       if (modus === "new") {
         const alteBindungen = daten.kontakte.filter(k => art === "kontakt_sync" && baumKontaktBindung(k, inhalt.freigabeId, stueck.von));
         if (!mitBaumKontaktEntwurf(daten, () => uebernehmeBaumAngebot(stueck, {}, { aufschieben: true, neu: true }))) throw new Error(_("The offered entry is incomplete."));
+        await kontaktZeitAusQuelle(daten.kontakte[daten.kontakte.length - 1], karte,
+          inhalt.fassung === 3 ? inhalt.inhaltGeaendert : 0, "", 0, daten);
         for (const kontakt of alteBindungen) {
           const bindungen = baumKontaktBindungen(kontakt).map(m => {
             const { weitere, ...einzeln } = m;
@@ -22045,9 +22186,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
             staende: Array.from(new Set((meta.staende || []).concat(quelle + "\u0000" + version))).slice(-100) });
         }
         mitBaumKontaktEntwurf(daten, () => { verknuepfeKontaktGeburtstag(ziel); verknuepfeKontaktJubilaeum(ziel); });
+        await kontaktZeitAusQuelle(ziel, karte, inhalt.fassung === 3 ? inhalt.inhaltGeaendert : 0,
+          inhaltVorher, vorherZeit, daten);
       }
       return true;
-    } finally { baumKontaktSammelLaeuft = false; }
+    } finally { baumKontaktSammelLaeuft = zuvorLaeuft; }
   }
 
   function baumKontaktAuswahlFuerRest(alt, neu, auswahl, ziel, karte) {
@@ -22092,12 +22235,24 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         const plan = await baumKontaktPlan(angebot, null, lauf.daten);
         if (modus === "auto") {
           if (plan.art === "konflikt" || plan.art === "ungueltig") continue;
-          if (plan.art !== "abgelehnt") mitBaumKontaktEntwurf(lauf.daten, () => uebernehmeBaumAngebot(angebot, {}, {
-            aufschieben: true, kontakt: plan.ziel, behalten: plan.behalten, ergaenzen: plan.art === "ergaenzung" }));
+          if (plan.art !== "abgelehnt") {
+            const anzahl = lauf.daten.kontakte.length;
+            const zeitRelevant = !!plan.ziel?.kontaktZeit || angebot.inhalt?.fassung === 3 && kontaktZeitGueltig(angebot.inhalt.inhaltGeaendert);
+            const vorherInhalt = zeitRelevant && plan.ziel ? personalSyncKanonisch(kontaktBaumInhalt(plan.ziel, 2, false).kontakt) : "";
+            const vorherZeit = zeitRelevant && plan.ziel ? await kontaktInhaltszeit(plan.ziel) : 0;
+            if (DATEN !== bestand || gesperrt || lauf.beendet) throw new Error(_("Conflict"));
+            if (!mitBaumKontaktEntwurf(lauf.daten, () => uebernehmeBaumAngebot(angebot, {}, {
+              aufschieben: true, kontakt: plan.ziel, behalten: plan.behalten, ergaenzen: plan.art === "ergaenzung" })))
+              throw new Error(_("The offered entry is incomplete."));
+            const ziel = plan.ziel || lauf.daten.kontakte[anzahl];
+            if (zeitRelevant && ziel) await kontaktZeitAusQuelle(ziel, baumKontaktKarte(angebot),
+              angebot.inhalt?.fassung === 3 ? angebot.inhalt.inhaltGeaendert : 0, vorherInhalt, vorherZeit, lauf.daten);
+          }
         } else {
           const ziel = nummer === 0 ? lauf.daten.kontakte.find(k => k.id === zielId) :
             plan.ziel || (plan.kandidaten?.length === 1 ? plan.kandidaten[0] : null);
-          if (nummer > 0 && modus !== "new" && !ziel) continue;
+          if (nummer > 0 && modus !== "new" && (!ziel || plan.art === "konflikt" && !plan.eindeutig)) continue;
+          if (modus === "newer" && !await baumKontaktNeuereFassung(angebot, ziel)) continue;
           const weitereAuswahl = nummer > 0 && modus === "merge" ? baumKontaktAuswahlFuerRest(erstesZiel, ersteKarte, auswahl, ziel, baumKontaktKarte(angebot)) : {};
           if (weitereAuswahl === null) continue;
           await entscheideBaumKontakt(angebot, ziel?.id, nummer === 0 ? auswahl : weitereAuswahl, modus,
@@ -22142,7 +22297,20 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const zielWahl = auswahlFeld(plan.kandidaten.map(k => [k.id, kontaktName(k) + " · " +
       (emailListe(k)[0] || telefonListe(k)[0]?.wert || k.firma || "")]), plan.kandidaten[0].id);
     zielWahl.dataset.kontaktZiel = "true";
-    let ziel, revision, auswahl;
+    let ziel, revision, auswahl, neuerKnopf, zeitPruefung = 0;
+    const pruefeNeuere = () => {
+      if (!neuerKnopf) return;
+      const folge = ++zeitPruefung, ausgewaehlt = ziel, stand = revision;
+      neuerKnopf.disabled = true;
+      neuerKnopf.title = _("Reliable modification times are not available for both versions.");
+      baumKontaktNeuereFassung(stueck, ziel).then(modus => {
+        if (!schleier.isConnected || DATEN !== bestand || ziel !== ausgewaehlt || folge !== zeitPruefung ||
+            kanonischerEntwurf(ziel) !== stand) return;
+        neuerKnopf.disabled = !modus;
+        if (modus) neuerKnopf.title = _("Saved") + ": " + new Date(ziel.kontaktZeit.zeit).toLocaleString(formatGebiet()) +
+          " · " + _("Incoming") + ": " + new Date(stueck.inhalt.inhaltGeaendert).toLocaleString(formatGebiet());
+      }).catch(() => {});
+    };
     const alle = document.createElement("input"); alle.type = "checkbox"; alle.dataset.kontaktRest = "true";
     const umfang = () => {
       alle.disabled = !rest.length;
@@ -22190,11 +22358,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           felder.append(formZeile(titel[feld] + " · " + beschreibe(eintrag), wahl));
         });
       }
-      umfang();
+      umfang(); pruefeNeuere();
     }
     zielWahl.addEventListener("change", zeichnen); zeichnen();
     const knoepfe = el("div", "dialog-knoepfe");
-    for (const [modus, label] of [["skip", _("Reject")], ["keep", _("Keep existing")], ["merge", _("Merge")],
+    for (const [modus, label] of [["skip", _("Reject")], ["keep", _("Keep existing")], ["newer", _("Use newer version")], ["merge", _("Merge")],
       ["replace", _("Replace completely")], ["new", _("Create contact")]]) {
       const button = knopf(label, modus === "merge" ? "hauptknopf" : "", () => {
         try {
@@ -22217,6 +22385,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         aktion();
       });
       button.dataset.kontaktEntscheidung = modus; knoepfe.append(button);
+      if (modus === "newer") neuerKnopf = button;
     }
     knoepfe.append(knopf(_("Cancel"), "", abbrechen));
     const restZeile = el("label", "hak");
@@ -22226,6 +22395,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       formZeile(_("Address"), zielWahl), felder, restZeile, fehler, knoepfe);
     schleier.append(dialog); document.body.append(schleier);
     registriereModal(schleier, dialog, { anfang: zielWahl, schliessen: abbrechen });
+    pruefeNeuere();
   }
 
   function uebernehmeBaumAngebot(stueck, fehler = {}, optionen = {}) {
@@ -22270,8 +22440,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         }
         return true;
       }
-      const kontakt = normalisiere({ kontakte: [Object.assign({}, inhalt,
-        { id: uid(), uid: syncUid(), sync: false, foto: "" })] }).kontakte[0];
+      const kontakt = baumKontaktKarte(stueck);
       if (!kontakt || (!kontakt.nachname && !kontakt.vorname && !kontakt.anzeigename && !kontakt.firma)) return false;
       DATEN.kontakte.push(kontakt);
       verknuepfeKontaktGeburtstag(kontakt);
@@ -22287,17 +22456,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         kontakt = optionen.kontakt;
       }
       let meta = baumKontaktBindung(kontakt, freigabeId) || { freigabeId, version: 0, quelle: "", partner: [], staende: [], fernStand: {} };
-      if (kontakt) meta = setzeBaumKontaktBindung(kontakt, { ...meta, partner: [...new Set((meta.partner || []).concat(stueck.von))] });
-      if (kontakt && (meta.staende || []).includes(stand)) return true;
+      if (kontakt) meta = { ...meta, partner: [...new Set((meta.partner || []).concat(stueck.von))] };
+      if (kontakt && (meta.staende || []).includes(stand)) { setzeBaumKontaktBindung(kontakt, meta); return true; }
       if (kontakt && optionen.behalten) {
         meta.version = Math.max(meta.version || 0, version);
         meta.staende = Array.from(new Set((meta.staende || []).concat(stand))).slice(-100);
+        setzeBaumKontaktBindung(kontakt, meta);
         return true;
       }
       const fern = { ...inhalt.kontakt,
         geburtstag: kanonischesGeburtsdatum(String(inhalt.kontakt.geburtstag || "")) };
       if (kontakt) {
-        if (version < meta.version || version === meta.version && quelle <= meta.quelle) return true;
+        if (version < meta.version || version === meta.version && quelle <= meta.quelle) { setzeBaumKontaktBindung(kontakt, meta); return true; }
         for (const feld of ["geburtstag", "jubilaeum", "vorname", "nachname", "anzeigename", "firma"]) {
           if (fern[feld] && kontakt[feld] && fern[feld] !== kontakt[feld] && meta.fernStand?.[feld] !== kontakt[feld]) {
             fehler.text = _("Conflict"); zettel(fehler.text); return false;
@@ -24622,52 +24792,63 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return { bleibt: bleibt, entfernt: sortiert.slice(1) };
   }
 
-  function starteDublettenAbgleich() {
+  async function starteDublettenAbgleich() {
+    if (gesperrt || syncLaeuft || aktiverEditor || kontaktDateiPruefungSchliessen) return;
     const gruppen = findeDubletten();
     if (!gruppen.length) {
       zettel(_("No duplicate contact cards were found."));
       return;
     }
-    const betroffen = gruppen.reduce((s, g) => s + g.length, 0);
-    const beispiele = gruppen.slice(0, 5)
-      .map((g) => "• " + kontaktName(g[0]) + " (" + g.length + "×)").join("\n");
-    const fund = uebersetzt("Found %(groups)s containing %(cards)s in total, for example:\n" +
-      "%(examples)s%(more)s\n\nThe most complete card in each group is retained, and " +
-      "missing fields are filled from the others. The remaining cards are moved " +
-      "to the recycle bin as “Duplicates” and can be restored from there. Continue?", {
-      groups: uebersetztMehrzahl("%(count)s group", "%(count)s groups", gruppen.length),
-      cards: uebersetztMehrzahl("%(count)s contact card", "%(count)s contact cards", betroffen),
-      examples: beispiele,
-      more: gruppen.length > 5 ? "\n…" : ""
-    });
-    frage(fund,
-      _("Merge")).then((ja) => {
-      if (!ja) return;
-      const zuEntfernen = betroffen - gruppen.length;
-      frage(uebersetzt("Really merge %(cards)s? Review the result carefully afterwards. " +
-        "A copy of every removed card is kept in the recycle bin.", {
-        cards: uebersetztMehrzahl("one contact card", "%(count)s contact cards", zuEntfernen)
-      }), _("Yes, merge")).then((sicher) => {
-        if (!sicher) return;
-        mitMutationsSnapshot("pre-contact-merge", () => {
-          let entfernt = 0;
-          for (const gruppe of gruppen) {
-            const erg = fuehreZusammen(gruppe);
-            for (const weg of erg.entfernt) {
-              inDenPapierkorb("duplikat", weg, kontaktName(weg));
-              merkeGeloescht("kontakte", weg);
-              entfernt++;
-            }
-            const fort = new Set(erg.entfernt.map((x) => x.id));
-            DATEN.kontakte = DATEN.kontakte.filter((k) => !fort.has(k.id));
-          }
-          planeSpeichern(); zeichneAlles();
-          zettel(uebersetzt("%(cards)s merged. Copies are stored under “Duplicates” " +
-            "in the recycle bin.", { cards: uebersetztMehrzahl(
-              "One duplicate contact card was", "%(count)s duplicate contact cards were", entfernt) }));
+    const bestand = DATEN, revision = kanonischerEntwurf(DATEN);
+    const gueltig = () => DATEN === bestand && !gesperrt && !syncLaeuft && kanonischerEntwurf(DATEN) === revision;
+    const gewicht = k => Number(!!k.fotoManuell) * 1000 + Object.keys(k.syncQuellen || {}).length * 100 +
+      [k.vorname, k.nachname, k.firma, k.notiz, k.foto].filter(Boolean).length;
+    const gruppe = gruppen[0].slice().sort((a, b) => gewicht(b) - gewicht(a));
+    const ziel = gruppe[0], keys = new Set(dublettenSchluessel(ziel));
+    const anderer = gruppe.slice(1).find(k => dublettenSchluessel(k).some(key => keys.has(key)));
+    if (!anderer) return;
+    try {
+      if ([ziel, anderer].some(k => Object.keys(k.kontaktProviderKonflikte || {}).length ||
+          Object.keys(k.syncKonflikte || {}).length)) throw new Error(_("Conflict"));
+      for (const [quelle, bindung] of Object.entries(anderer.syncQuellen || {})) {
+        const alt = ziel.syncQuellen?.[quelle];
+        if (alt?.id && bindung?.id && alt.id !== bindung.id) throw new Error(_("Conflict"));
+      }
+      if (Object.keys(ziel.syncQuellen || {}).length && Object.keys(anderer.syncQuellen || {}).length &&
+          ziel.uid && anderer.uid && ziel.uid !== anderer.uid) throw new Error(_("Conflict"));
+      const karte = kopie(anderer); karte.vcardRev = await kontaktInhaltszeit(anderer);
+      if (!gueltig()) return;
+      const pruefung = await pruefeKontaktDateiImport([karte], "", false, ziel.id);
+      if (!pruefung || !gueltig() || !pruefung.gueltig()) return;
+      const entwurf = pruefung.daten.kontakte.find(k => k.id === ziel.id);
+      entwurf.syncQuellen = { ...(anderer.syncQuellen || {}), ...(ziel.syncQuellen || {}) };
+      if (!Object.keys(ziel.syncQuellen || {}).length && Object.keys(anderer.syncQuellen || {}).length) entwurf.uid = anderer.uid;
+      entwurf.sync = !!(ziel.sync || anderer.sync);
+      for (const meta of baumKontaktBindungen(anderer)) {
+        const alt = baumKontaktBindung(entwurf, meta.freigabeId);
+        setzeBaumKontaktBindung(entwurf, alt ? { ...(Number(meta.version) > Number(alt.version) ? meta : alt), hash: "",
+          partner: [...new Set([...(alt.partner || []), ...(meta.partner || [])])],
+          staende: [...new Set([...(alt.staende || []), ...(meta.staende || [])])].slice(-100) } : meta);
+      }
+      entwurf.importBindungen = [...new Set([...(ziel.importBindungen || []), ...(anderer.importBindungen || [])])];
+      entwurf.importHerkunfte = [...new Set([...(ziel.importHerkunfte || []), ...(anderer.importHerkunfte || [])])];
+      entwurf.kontaktAliase = {
+        ids: [...new Set([...(ziel.kontaktAliase?.ids || []), ...(anderer.kontaktAliase?.ids || []), anderer.id])],
+        uids: [...new Set([...(ziel.kontaktAliase?.uids || []), ...(anderer.kontaktAliase?.uids || []), ziel.uid, anderer.uid].filter(v => v && v !== entwurf.uid))]
+      };
+      for (const bild of kontaktFotoVarianten(anderer)) for (const quelle of bild.quellen.length ? bild.quellen : ["import"])
+        merkeKontaktFoto(entwurf, bild.foto, quelle);
+      pruefung.daten.kontakte = pruefung.daten.kontakte.filter(k => k.id !== anderer.id);
+      mitMutationsSnapshot("pre-contact-merge", () => {
+        if (!gueltig() || !pruefung.gueltig()) { zettel(_("Conflict")); return; }
+        inDenPapierkorb("duplikat", anderer, kontaktName(anderer));
+        DATEN.kontakte = pruefung.daten.kontakte; DATEN.jahrestage = pruefung.daten.jahrestage;
+        normalisiereKontaktVerweise(DATEN);
+        zeichneAlles(); nachDauerhaftemSpeichern(() => {
+          if (DATEN === bestand && !gesperrt && !aktiverEditor && findeDubletten().length) starteDublettenAbgleich();
         });
       });
-    });
+    } catch (error) { zettel(String(error.message || error)); }
   }
 
   function baueSeiteAdressen(wurzel) {
@@ -25710,6 +25891,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       zettel(_("There are no entries to export yet."));
       return;
     }
+    if (art === "vcf-adressen") {
+      const bestand = DATEN, revision = kanonischerEntwurf(liste), kopien = kopie(liste);
+      return Promise.all(kopien.map(k => kontaktInhaltszeit(k))).then(zeiten => {
+        if (DATEN !== bestand || gesperrt || DATEN.kontakte !== liste || kanonischerEntwurf(liste) !== revision) {
+          zettel(_("Conflict")); return;
+        }
+        kopien.forEach((k, index) => { k.geaendert = zeiten[index]; });
+        Bruecke.sende({ cmd: "export", art: art, daten: kopien });
+      }).catch(() => zettel(_("Export failed.")));
+    }
     Bruecke.sende({ cmd: "export", art: art, daten: liste });
   }
 
@@ -25885,28 +26076,38 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function findeImportKontakt(k, indexe) {
     if (k.importKonflikt) return null;
+    const identitaeten = new Set();
     for (const bindung of (k.importBindungen || [])) {
-      const nachBindung = indexe.bindungen.get(bindung);
-      if (nachBindung) return nachBindung;
+      if (!indexe.bindungen.has(bindung)) continue;
+      const treffer = indexe.bindungen.get(bindung);
+      if (!treffer) return null;
+      identitaeten.add(treffer);
     }
     if (k.uid) {
-      const nachUid = indexe.uids.get(k.uid);
-      if (nachUid) return nachUid;
-      if (!indexe.uids.has(k.uid) && indexe.uidAliase?.get(k.uid)) return indexe.uidAliase.get(k.uid);
-      if (String(k.uid).startsWith("thunderbird:")) return null;
+      for (const index of [indexe.uids, indexe.uidAliase]) {
+        if (!index?.has(k.uid)) continue;
+        const treffer = index.get(k.uid);
+        if (!treffer) return null;
+        identitaeten.add(treffer);
+      }
     }
+    if (identitaeten.size) return identitaeten.size === 1 ? Array.from(identitaeten)[0] : null;
+    if (String(k.uid || "").startsWith("thunderbird:")) return null;
     const vereinbar = (treffer) => treffer &&
       !(k.uid && treffer.uid && k.uid !== treffer.uid) &&
       !["vorname", "nachname"].some((feld) => k[feld] && treffer[feld] &&
         kanonischerText(k[feld]) !== kanonischerText(treffer[feld]));
-    const mailTreffer = new Set(emailListe(k).map(
-      (wert) => indexe.mails.get(kanonischerText(wert)))
-      .filter(vereinbar));
-    if (mailTreffer.size === 1) return Array.from(mailTreffer)[0];
-    const telefonTreffer = new Set(kontaktTelefone(k).map(
-      (wert) => indexe.telefone.get(wert)).filter(vereinbar));
-    if (telefonTreffer.size === 1) return Array.from(telefonTreffer)[0];
-    return null;
+    const kandidaten = new Set();
+    for (const [index, werte] of [[indexe.mails, emailListe(k).map(kanonischerText)],
+      [indexe.telefone, kontaktTelefone(k)]]) {
+      for (const wert of werte) {
+        if (!index.has(wert)) continue;
+        const treffer = index.get(wert);
+        if (!treffer || !vereinbar(treffer)) return null;
+        kandidaten.add(treffer);
+      }
+    }
+    return kandidaten.size === 1 ? Array.from(kandidaten)[0] : null;
   }
 
   function mergeTermine(liste, normalisiert = false) {
@@ -26162,7 +26363,346 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return z;
   }
 
-  function mergeKontakte(liste) {
+  let kontaktDateiPruefungSchliessen = null;
+  async function oeffneKontaktProviderPruefung(id, quelle) {
+    if (gesperrt || syncLaeuft || aktiverEditor) return;
+    const bestand = DATEN, ziel = DATEN.kontakte.find(k => k.id === id);
+    const konflikt = ziel?.kontaktProviderKonflikte?.[quelle];
+    if (!konflikt?.mapping?.id) return;
+    const revision = kanonischerEntwurf(DATEN);
+    const gueltig = () => DATEN === bestand && !gesperrt && !syncLaeuft && kanonischerEntwurf(DATEN) === revision;
+    try {
+      let pruefung;
+      if (konflikt.entfernt) {
+        const hinweis = konflikt.nurLesen ? _("The entry could not be found.") :
+          _("The remote contact was deleted. Keep this contact and restore it on the next synchronization?");
+        if (!await frage(kontaktName(ziel) + "\n" + hinweis, _("Keep existing")) || !gueltig()) return;
+        pruefung = { daten: { ...bestand, kontakte: kopie(bestand.kontakte), jahrestage: kopie(bestand.jahrestage) }, gueltig };
+      } else {
+        if ((!konflikt.mapping.etag && konflikt.transport !== "eds") || !konflikt.kontakt) return;
+        pruefung = await pruefeKontaktDateiImport([konflikt.kontakt], "", false, id);
+        if (!pruefung || !gueltig() || !pruefung.gueltig()) return;
+      }
+      const entwurf = pruefung.daten.kontakte.find(k => k.id === id);
+      entwurf.syncQuellen ||= {};
+      entwurf.syncQuellen[quelle] = kopie(konflikt.mapping);
+      if (konflikt.transport === "eds") entwurf.syncQuellen[quelle].pruefungFreigegeben = true;
+      if (konflikt.entfernt) {
+        entwurf.syncQuellen[quelle].inhaltFormat = "";
+        entwurf.syncQuellen[quelle].inhaltSha256 = "";
+      }
+      if (konflikt.transport !== "eds") {
+        entwurf.davHref = konflikt.mapping.id; entwurf.davEtag = konflikt.mapping.etag || "";
+      }
+      entwurf.sync = true;
+      delete entwurf.kontaktProviderKonflikte[quelle];
+      if (!Object.keys(entwurf.kontaktProviderKonflikte).length) delete entwurf.kontaktProviderKonflikte;
+      mitMutationsSnapshot("pre-contact-merge", () => {
+        if (!gueltig() || !pruefung.gueltig()) { zettel(_("Conflict")); return; }
+        DATEN.kontakte = pruefung.daten.kontakte; DATEN.jahrestage = pruefung.daten.jahrestage;
+        planeSpeichern(); zeichneAlles();
+      });
+    } catch (error) { zettel(String(error.message || error)); }
+  }
+
+  function kontaktKonfliktHerkunft(k, fallback) {
+    const namen = Array.isArray(k.importHerkunfte) ? k.importHerkunfte.slice() : [];
+    const buecher = letzterEdsStatus?.alleAdressbuecher || letzterEdsStatus?.adressbuecher || [];
+    for (const [id, bindung] of Object.entries(k.syncQuellen || {})) {
+      const buch = buecher.find(b => b.uid === id);
+      if (buch?.name || bindung?.name) namen.push(buch?.name || bindung.name);
+    }
+    for (const bindung of baumKontaktBindungen(k)) for (const id of Array.isArray(bindung.partner) ? bindung.partner : []) {
+      const partner = baumPartnerListe().find(p => p.kennung === id);
+      if (partner?.name) namen.push(partner.name);
+    }
+    return [...new Set(namen.filter(n => typeof n === "string" && n.trim()).map(n => n.trim()))].join(" · ") || fallback;
+  }
+
+  function pruefeKontaktDateiImport(liste, quelle = "", nurAblehnen = false, providerZielId = "") {
+    if (gesperrt || kontaktDateiPruefungSchliessen) return Promise.resolve(null);
+    const providerZiel = providerZielId ? DATEN.kontakte.find(k => k.id === providerZielId) : null;
+    if (providerZielId && (!providerZiel || liste.length !== 1)) return Promise.resolve(null);
+    const bestand = DATEN, revision = kanonischerEntwurf(DATEN);
+    const index = { bindungen: new Map(), uids: new Map(), mails: new Map(), telefone: new Map() };
+    const namen = new Map();
+    bestand.kontakte.forEach(k => { indexiereKontakt(index, k); baumKontaktIndexiere(namen, k); });
+    const inhalt = k => kanonischerEntwurf([baumKontaktVergleich(k), kontaktpersonenListe(k),
+      sozialeMedienListe(k), k.vcardRoundtrip || [], k.vcardParameter || {}]);
+    const plaene = (liste || []).filter(Boolean).map(roh => {
+      const karte = kopie(roh);
+      const herkunft = kontaktKonfliktHerkunft(roh, _("Incoming"));
+      const quellzeit = kontaktZeitGueltig(karte.vcardRev) ? karte.vcardRev : 0;
+      delete karte.vcardRev;
+      // An ordinary import cannot grant sharing rights or inject local clock proofs.
+      for (const feld of ["id", "sync", "syncQuellen", "syncKonflikte", "kontaktProviderKonflikte", "baumKontakt", "kontaktZeit", "kontaktAliase",
+        "fotoManuell", "fotoAlternativen", "fotoQuellen", "kdeImportStaende"]) delete karte[feld];
+      const ziel = providerZiel || findeImportKontakt(karte, index), keys = new Map(); baumKontaktIndexiere(keys, karte);
+      const kandidaten = ziel ? [ziel] : [...new Set([
+        ...[...keys.keys()].flatMap(key => [...(namen.get(key) || [])]),
+        ...bestand.kontakte.filter(k => karte.uid && (k.uid === karte.uid || k.kontaktAliase?.uids?.includes(karte.uid)) ||
+          (karte.importBindungen || []).some(b => (k.importBindungen || []).includes(b)))])];
+      const neuId = uid();
+      if (!kandidaten.length) {
+        const vorschau = { ...karte, id: neuId };
+        indexiereKontakt(index, vorschau); baumKontaktIndexiere(namen, vorschau);
+      }
+      const adressZiel = ziel || (kandidaten.length === 1 ? kandidaten[0] : null);
+      const alteAdressen = anschriftListe(adressZiel || {});
+      const auswahl = { felder: {}, listen: { anschriften: Object.fromEntries(anschriftListe(karte).map((a, nr) =>
+        [nr, alteAdressen.length && !alteAdressen.some(b => kanonischerEntwurf(a) === kanonischerEntwurf(b)) ? "" : "add"])) } };
+      return { karte, kandidaten, neuId, quellzeit, herkunft, auswahl, eindeutig: !!ziel, zielId: kandidaten.length === 1 ? kandidaten[0].id : "",
+        modus: nurAblehnen ? "skip" : !kandidaten.length ? "new" : ziel && inhalt(ziel) === inhalt(karte) ? "keep" : "" };
+    });
+    const ablehnungen = new Set(bestand.kontaktImportAblehnungen || []);
+    const hashes = Promise.all(plaene.map(async plan => {
+      if (plan.eindeutig && plan.quellzeit) {
+        plan.lokalzeit = await kontaktInhaltszeit(plan.kandidaten[0]);
+        if (plan.lokalzeit && plan.lokalzeit !== plan.quellzeit)
+          plan.neuereEntscheidung = plan.lokalzeit > plan.quellzeit ? "keep" : "newer";
+      }
+      const bereich = quelle || (plan.karte.importBindungen || []).filter(b => /^urn:magnolie:import:(android|kde):[a-f0-9]{64}$/.test(b)).sort().join("|");
+      if (!bereich || providerZiel) return;
+      const { geaendert, ...inhalt } = plan.karte;
+      plan.hash = await personalSyncHash(kanonischerEntwurf(["kontakt_import", bereich, inhalt]));
+      plan.abgelehnt = ablehnungen.has(plan.hash);
+    }));
+    return new Promise(resolve => {
+      const schleier = el("div", "eingabe-schleier kontakt-datei-pruefung"), dialog = el("section", "eingabe-dialog");
+      dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
+      dialog.setAttribute("aria-busy", "true");
+      const status = el("p", "einst-warnung"), zeilen = el("div"), knoepfe = el("div", "dialog-knoepfe");
+      let seite = 0, beendet = false, entscheidungsVersion = 0, hashesFertig = false;
+      const rest = document.createElement("input"); rest.type = "checkbox"; rest.disabled = true;
+      rest.dataset.importRest = "true";
+      const restZeile = el("label", "hak");
+      restZeile.append(rest, document.createTextNode(" " + _("Apply to the remaining conflicts")));
+      const schliessen = wert => {
+        if (beendet) return;
+        beendet = true; kontaktDateiPruefungSchliessen = null;
+        beendeModal(schleier); schleier.remove(); resolve(wert);
+      };
+      kontaktDateiPruefungSchliessen = () => schliessen(null);
+      const gueltig = () => DATEN === bestand && !gesperrt && kanonischerEntwurf(DATEN) === revision;
+      const beschreibeFelder = k => [
+        [_("First name"), k.vorname], [_("Last name"), k.nachname], [_("Name"), k.anzeigename], [_("Company"), k.firma], [_("Note"), k.notiz],
+        [_("Birthday"), k.geburtstag], [_("Anniversary"), k.jubilaeum],
+        [_("Phone numbers"), telefonListe(k).map(e => [e.label, e.wert].filter(Boolean).join(": ")).join("\n")],
+        [_("Email addresses"), emailEintragListe(k).map(e => e.wert).join("\n")],
+        [_("Address"), anschriftListe(k).map(e => [e.strasse, e.plz, e.ort, e.region, e.land].filter(Boolean).join(", ")).join("\n")],
+        [_("Emergency contacts"), kontaktpersonenListe(k).map(e => [e.name, e.telefon, e.status].filter(Boolean).join(" · ")).join("\n")],
+        [_("Social media"), sozialeMedienListe(k).map(e => [e.label, e.wert].filter(Boolean).join(": ")).join("\n")],
+        [_("Photo"), k.foto ? _("Photo available") : _("No photo selected")],
+        [_("vCard / iPhone / iCloud"), (k.vcardRoundtrip || []).map(s => /^(?:[A-Za-z0-9-]+\.)?PHOTO[;:]/i.test(s) ? _("Photo available") : s).join("\n")]
+      ];
+      const beschreibe = k => beschreibeFelder(k).filter(([, wert]) => wert).map(([titel, wert]) => titel + ": " + wert).join("\n\n");
+      const zeichnen = () => {
+        zeilen.textContent = "";
+        for (const plan of plaene.slice(seite * 25, (seite + 1) * 25)) {
+          const zeile = el("details"), zielWahl = auswahlFeld([["", _("New contact")],
+            ...plan.kandidaten.map(k => [k.id, kontaktName(k) + " · " + (emailListe(k)[0] || "")])], plan.zielId);
+          const wahl = auswahlFeld([["", _("Conflict")], ["new", _("New contact")], ["skip", _("Reject")],
+            ["keep", _("Keep existing")], ["merge", _("Merge")], ["replace", _("Replace completely")], ["newer", _("Use newer version")]]
+              .filter(([modus]) => !providerZiel || !["new", "skip"].includes(modus)), plan.modus);
+          if (providerZiel) zielWahl.disabled = true;
+          const neuer = wahl.querySelector('option[value="newer"]');
+          neuer.disabled = !plan.neuereEntscheidung || !plan.eindeutig;
+          neuer.title = neuer.disabled ? _("Reliable modification times are not available for both versions.") :
+            _("Saved") + ": " + new Date(plan.lokalzeit).toISOString() + " / " + _("Incoming") + ": " + new Date(plan.quellzeit).toISOString();
+          const zeithinweis = el("p", "einst-hinweis");
+          const vergleich = el("div", "kontakt-feldvergleich");
+          const lokalQuelle = el("strong"), fernQuelle = el("strong", null, plan.herkunft);
+          const vorher = el("pre"), aktualisieren = () => {
+            const ziel = plan.kandidaten.find(k => k.id === plan.zielId);
+            vorher.textContent = ziel ? beschreibe(ziel) : "";
+            lokalQuelle.textContent = ziel ? kontaktKonfliktHerkunft(ziel, _("Saved")) : _("Saved");
+            vergleich.textContent = "";
+            if (ziel) {
+              const alt = beschreibeFelder(ziel), neu = beschreibeFelder(plan.karte);
+              alt.forEach(([feld, wert], index) => {
+                const gegenwert = neu[index][1];
+                if (feld === _("Photo") ? (ziel.foto || "") === (plan.karte.foto || "") : (wert || "") === (gegenwert || "")) return;
+                const unterschied = el("section", "kontakt-feldunterschied");
+                unterschied.dataset.kontaktUnterschied = feld;
+                unterschied.append(el("strong", null, feld + " · " + _("Conflict")));
+                for (const [quelle, text, kontakt] of [[lokalQuelle.textContent, wert, ziel], [plan.herkunft, gegenwert, plan.karte]]) {
+                  unterschied.append(el("div", "k-label", quelle), el("pre", null, text || "—"));
+                  if (feld === _("Photo") && sauberesFoto(kontakt.foto)) {
+                    const bild = document.createElement("img"); bild.src = sauberesFoto(kontakt.foto); bild.alt = quelle;
+                    bild.style.maxWidth = "96px"; bild.style.maxHeight = "96px"; unterschied.append(bild);
+                  }
+                }
+                const skalar = Object.entries({ ...kdeKontaktFelder(), foto: _("Photo") })
+                  .find(([key, titel]) => BAUM_KONTAKT_FELDER.includes(key) && titel === feld)?.[0];
+                if (skalar) {
+                  const feldWahl = auswahlFeld([["keep", lokalQuelle.textContent], ["incoming", plan.herkunft],
+                    ...(skalar === "notiz" ? [["merge", _("Merge")]] : [])], plan.auswahl.felder[skalar] || (skalar === "notiz" ? "merge" : "keep"));
+                  feldWahl.dataset.importFeld = skalar; feldWahl.disabled = plan.modus !== "merge";
+                  feldWahl.addEventListener("change", () => { entscheidungsVersion++; plan.auswahl.felder[skalar] = feldWahl.value; if (skalar === "nachname") aktualisieren(); });
+                  unterschied.append(feldWahl);
+                  if (skalar === "nachname" && ziel.nachname && plan.karte.nachname) {
+                    const geburtsname = document.createElement("input"); geburtsname.type = "checkbox";
+                    geburtsname.dataset.importGeburtsname = "true"; geburtsname.checked = !!plan.geburtsname;
+                    geburtsname.disabled = !(plan.modus === "replace" || plan.modus === "newer" && plan.neuereEntscheidung === "newer" ||
+                      plan.modus === "merge" && plan.auswahl.felder.nachname === "incoming");
+                    geburtsname.addEventListener("change", () => { entscheidungsVersion++; plan.geburtsname = geburtsname.checked; });
+                    const label = el("label", "hak"); label.append(geburtsname,
+                      document.createTextNode(" " + uebersetzt("Birth name: %(name)s", { name: ziel.nachname })));
+                    unterschied.append(label);
+                  }
+                }
+                const liste = { telefone: _("Phone numbers"), emailEintraege: _("Email addresses"), anschriften: _("Address") };
+                const listenFeld = Object.keys(liste).find(key => liste[key] === feld);
+                if (listenFeld) {
+                  const regel = BAUM_KONTAKT_LISTEN[listenFeld], altListe = regel.lesen(ziel), neuListe = regel.lesen(plan.karte);
+                  const anzeigen = e => typeof e.wert === "string" ? [e.label || telefonArt(e), e.wert].filter(Boolean).join(": ") :
+                    [anschriftBezeichnung(e, 0), e.strasse, e.plz, e.ort, e.region, e.land].filter(Boolean).join(", ");
+                  const entscheidungen = plan.auswahl.listen[listenFeld] ||= {};
+                  neuListe.forEach((eintrag, nr) => {
+                    if (altListe.some(e => kanonischerEntwurf(e) === kanonischerEntwurf(eintrag))) return;
+                    if (entscheidungen[nr] === undefined) entscheidungen[nr] = listenFeld === "anschriften" && altListe.length ? "" : "add";
+                    const listenWahl = auswahlFeld([["", _("Conflict")], ["keep", _("Keep existing")], ["add", _("Add")],
+                      ...altListe.map((e, i) => ["replace:" + i, _("Replace completely") + ": " + anzeigen(e)])], entscheidungen[nr]);
+                    listenWahl.dataset.importListe = listenFeld; listenWahl.dataset.importEintrag = String(nr);
+                    listenWahl.disabled = plan.modus !== "merge";
+                    listenWahl.addEventListener("change", () => { entscheidungsVersion++; entscheidungen[nr] = listenWahl.value; });
+                    unterschied.append(formZeile(plan.herkunft + ": " + anzeigen(eintrag), listenWahl));
+                  });
+                }
+                vergleich.append(unterschied);
+              });
+            }
+            if (!plan.eindeutig) neuer.title = _("Reliable modification times are not available for both versions.");
+            zeithinweis.textContent = neuer.title;
+          };
+          zielWahl.dataset.importZiel = String(plaene.indexOf(plan));
+          wahl.dataset.importEntscheidung = String(plaene.indexOf(plan));
+          zielWahl.addEventListener("change", () => { entscheidungsVersion++; plan.gewaehlt = true; plan.eindeutig = false; neuer.disabled = true; plan.zielId = zielWahl.value; plan.modus = ""; plan.geburtsname = false; plan.auswahl = { felder: {}, listen: {} }; wahl.value = ""; aktualisieren(); });
+          wahl.addEventListener("change", () => {
+            entscheidungsVersion++; plan.gewaehlt = true; plan.modus = wahl.value;
+            if (rest.checked && hashesFertig && plan.eindeutig && plan.modus) {
+              for (const anderer of plaene) if (anderer.eindeutig && !anderer.modus && !anderer.gewaehlt &&
+                  (plan.modus !== "newer" || anderer.neuereEntscheidung)) {
+                anderer.modus = plan.modus; anderer.gewaehlt = true;
+              }
+              zeilen.querySelectorAll("[data-import-entscheidung]").forEach(feld => {
+                feld.value = plaene[Number(feld.dataset.importEntscheidung)].modus;
+              });
+            }
+            zeichnen();
+          });
+          zeile.open = !plan.modus;
+          zeile.append(el("summary", null, kontaktName(plan.karte)), vergleich, zielWahl, wahl, zeithinweis,
+            lokalQuelle, vorher, fernQuelle, el("pre", null, beschreibe(plan.karte)));
+          zeilen.append(zeile); aktualisieren();
+        }
+        const navigation = el("div", "knopfreihe");
+        const zurueck = knopf(_("Previous page"), "", () => { seite--; zeichnen(); }); zurueck.disabled = seite === 0;
+        const weiter = knopf(_("Next"), "", () => { seite++; zeichnen(); }); weiter.disabled = (seite + 1) * 25 >= plaene.length;
+        navigation.append(zurueck, weiter); zeilen.append(navigation);
+      };
+      const anwenden = knopf(_("Apply"), "hauptknopf", async () => {
+        if (!gueltig()) { schliessen(null); zettel(_("Conflict")); return; }
+        if (plaene.some(p => !p.modus || !["skip", "new"].includes(p.modus) && !p.zielId ||
+            p.modus === "newer" && (!p.eindeutig || !p.neuereEntscheidung) || p.modus === "merge" &&
+            Object.values(p.auswahl.listen).some(liste => Object.values(liste).some(wahl => !wahl)))) { status.textContent = _("Conflict"); return; }
+        const auswahlVersion = entscheidungsVersion;
+        try {
+          await hashes;
+          if (beendet || !gueltig()) { schliessen(null); return; }
+          if (auswahlVersion !== entscheidungsVersion) { status.textContent = _("Conflict"); return; }
+          const daten = { ...bestand, kontakte: kopie(bestand.kontakte), jahrestage: kopie(bestand.jahrestage),
+            kontaktImportAblehnungen: [...ablehnungen] };
+          const zaehlung = { neu: 0, doppelt: 0, fotos: 0, emails: 0 };
+          const neueZiele = new Map();
+          for (const plan of plaene) {
+            const modus = plan.modus === "newer" ? plan.neuereEntscheidung : plan.modus;
+            if (modus === "skip") {
+              if (plan.hash && !daten.kontaktImportAblehnungen.includes(plan.hash)) daten.kontaktImportAblehnungen.push(plan.hash);
+              zaehlung.doppelt++; continue;
+            }
+            if (plan.hash) daten.kontaktImportAblehnungen = daten.kontaktImportAblehnungen.filter(h => h !== plan.hash);
+            const ziel = daten.kontakte.find(k => k.id === (neueZiele.get(plan.zielId) || plan.zielId));
+            if (modus !== "new" && !ziel) throw new Error(_("Conflict"));
+            const karte = kopie(plan.karte);
+            if (modus === "keep") {
+              if (plan.hash && plan.gewaehlt) daten.kontaktImportAblehnungen.push(plan.hash);
+              merkeKontaktFoto(ziel, karte.foto, "import");
+              ziel.importBindungen = [...new Set([...(ziel.importBindungen || []), ...(karte.importBindungen || [])])].slice(-32);
+              zaehlung.doppelt++; continue;
+            }
+            if (modus === "new") {
+              const z = mitBaumKontaktEntwurf(daten, () => mergeKontakte([karte], ""));
+              neueZiele.set(plan.neuId, daten.kontakte[daten.kontakte.length - 1].id);
+              await kontaktZeitAusQuelle(daten.kontakte[daten.kontakte.length - 1], karte, plan.quellzeit, "", 0, daten);
+              zaehlung.neu += z.neu; continue;
+            }
+            const vorher = personalSyncKanonisch(kontaktBaumInhalt(ziel, 2, false).kontakt);
+            const vorherZeit = await kontaktInhaltszeit(ziel);
+            const alterNachname = ziel.nachname;
+            if (modus === "merge") {
+              karte.uid = ziel.uid; karte.geaendert = 0;
+              const gewaehlt = baumKontaktEntwurf(ziel, karte, plan.auswahl, "merge", "import");
+              mitBaumKontaktEntwurf(daten, () => mergeKontakte([karte], ziel.id));
+              for (const [feld, wahl] of Object.entries(plan.auswahl.felder)) if (["keep", "incoming"].includes(wahl)) {
+                ziel[feld] = gewaehlt[feld];
+                if (feld === "foto" && wahl === "incoming") { ziel.fotoManuell = true; delete ziel.fotoQuelle; }
+              }
+              for (const [feld, regel] of Object.entries(BAUM_KONTAKT_LISTEN)) regel.setzen(ziel, regel.lesen(gewaehlt));
+              mitBaumKontaktEntwurf(daten, () => { verknuepfeKontaktGeburtstag(ziel); verknuepfeKontaktJubilaeum(ziel); });
+            } else {
+              const entwurf = baumKontaktEntwurf(ziel, karte, {}, modus, "import");
+              entwurf.vcardRoundtrip = kopie(karte.vcardRoundtrip || []);
+              entwurf.vcardParameter = kopie(karte.vcardParameter || {});
+              entwurf.importBindungen = [...new Set([...(ziel.importBindungen || []), ...(karte.importBindungen || [])])].slice(-32);
+              entwurf.importHerkunfte = [...new Set([...(ziel.importHerkunfte || []), ...(karte.importHerkunfte || [])])].slice(0, 16);
+              for (const feld of ["weitereNamen", "namensPraefix", "namensSuffix", "vcardN"])
+                if (karte[feld] !== undefined) entwurf[feld] = kopie(karte[feld]);
+              setzeKontaktpersonen(entwurf, kontaktpersonenListe(karte)); setzeSozialeMedien(entwurf, sozialeMedienListe(karte));
+              if (inhalt(entwurf) !== inhalt(ziel)) entwurf.geaendert = Date.now();
+              daten.kontakte[daten.kontakte.indexOf(ziel)] = entwurf;
+              mitBaumKontaktEntwurf(daten, () => { verknuepfeKontaktGeburtstag(entwurf); verknuepfeKontaktJubilaeum(entwurf); });
+            }
+            const ergebnis = daten.kontakte.find(k => k.id === ziel.id);
+            if (plan.geburtsname && alterNachname && ergebnis.nachname && ergebnis.nachname !== alterNachname) {
+              const zeile = uebersetzt("Birth name: %(name)s", { name: alterNachname });
+              if (!String(ergebnis.notiz || "").split(/\r?\n/).includes(zeile))
+                ergebnis.notiz = [ergebnis.notiz, zeile].filter(Boolean).join("\n");
+            }
+            if (personalSyncKanonisch(kontaktBaumInhalt(ergebnis, 2, false).kontakt) !== vorher) ergebnis.geaendert = Date.now();
+            await kontaktZeitAusQuelle(ergebnis, karte, plan.quellzeit, vorher, vorherZeit, daten);
+            zaehlung.neu++;
+          }
+          if (beendet || !gueltig()) { schliessen(null); return; }
+          if (auswahlVersion !== entscheidungsVersion) { status.textContent = _("Conflict"); return; }
+          schliessen({ daten, zaehlung, gueltig });
+        } catch (error) { status.textContent = String(error.message || error); }
+      });
+      anwenden.dataset.importAnwenden = "true";
+      knoepfe.append(anwenden, knopf(_("Cancel"), "", () => schliessen(null)));
+      dialog.append(el("h2", null, _("Contacts")), el("p", null,
+        uebersetztMehrzahl("Preview: %(count)s contact", "Preview: %(count)s contacts", plaene.length)), restZeile, zeilen, status, knoepfe);
+      if (nurAblehnen) {
+        hashes.then(() => { if (!beendet) anwenden.click(); }).catch(error => { schliessen(null); zettel(String(error.message || error)); });
+        return;
+      }
+      zeichnen(); schleier.append(dialog); document.body.append(schleier);
+      registriereModal(schleier, dialog, { anfang: anwenden, schliessen: () => schliessen(null) });
+      hashes.then(() => {
+        if (beendet || !gueltig()) return;
+        hashesFertig = true; rest.disabled = false;
+        dialog.setAttribute("aria-busy", "false");
+        let geaendert = false;
+        for (const plan of plaene) if (plan.abgelehnt && !plan.gewaehlt) { plan.modus = "skip"; geaendert = true; }
+        for (const plan of plaene) if (!plan.modus && !plan.gewaehlt && plan.eindeutig && plan.neuereEntscheidung &&
+            bestand.einstellungen.sync.kontaktNeuereBevorzugen) { plan.modus = "newer"; geaendert = true; }
+        if (geaendert) entscheidungsVersion++;
+        zeichnen();
+      }).catch(error => { if (!beendet) { status.textContent = String(error.message || error); anwenden.disabled = true; } });
+    });
+  }
+
+  function mergeKontakte(liste, zielId = null) {
     const z = { neu: 0, doppelt: 0, fotos: 0, emails: 0 };
     const indexe = { bindungen: new Map(), uids: new Map(), mails: new Map(), telefone: new Map() };
     for (const kontakt of DATEN.kontakte) indexiereKontakt(indexe, kontakt);
@@ -26170,7 +26710,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (!k) continue;
       const importGeburtstag = kanonischesGeburtsdatum(String(k.geburtstag || ""),
         k.geburtstagJahrUnbekannt);
-      const vorhanden = findeImportKontakt(k, indexe);
+      const vorhanden = zielId === null ? findeImportKontakt(k, indexe) :
+        DATEN.kontakte.find(kontakt => kontakt.id === zielId);
       if (vorhanden) {
         const foto = sauberesFoto(k.foto);
         let geaendert = false;
@@ -26330,6 +26871,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function zeigeSperrbildschirm(wartet) {
     kontaktFotoDialogSchliessen?.();
+    kontaktDateiPruefungSchliessen?.();
     const vorheriger = document.getElementById("sperr-schleier");
     if (vorheriger) {
       if (vorheriger.tastenhorcher) {
@@ -26898,6 +27440,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     },
     init(nutzlast) {
       kontaktFotoDialogSchliessen?.();
+      kontaktDateiPruefungSchliessen?.();
       kdeKontaktLauf?.abbrechen?.();
       zeichenblattAuswahlSchliessen?.();
       beendeZeicheneingabe();
@@ -28217,7 +28760,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         zettel(handbuchFehler);
       }
     },
-    importErgebnis(nutzlast, termineNormalisiert = false) {
+    importErgebnis(nutzlast, termineNormalisiert = false, kontaktPruefung = null) {
       nutzlast = nutzlast || {};
       const setupImportBeenden = () => {
         if (!setupImportLaeuft) return;
@@ -28243,6 +28786,21 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           if (DATEN !== bestand || gesperrt) { setupImportBeenden(); return; }
           App.importErgebnis({ ...nutzlast, termine: termine }, true);
         })().catch(fehler => App.importErgebnis({ fehler: String(fehler.message || fehler) }));
+      }
+      if (!kontaktPruefung && Array.isArray(nutzlast.kontakte) && nutzlast.kontakte.length) {
+        const eingang = kopie(nutzlast);
+        return pruefeKontaktDateiImport(eingang.kontakte, String(eingang.kontaktQuelle || "")).then(pruefung => {
+          if (!pruefung) { setupImportBeenden(); return; }
+          return new Promise(resolve => mitMutationsSnapshot("pre-contact-import", () => {
+            if (!pruefung.gueltig()) { setupImportBeenden(); zettel(_("Conflict")); resolve(); return; }
+            App.importErgebnis(eingang, termineNormalisiert, pruefung); resolve();
+          }, () => { setupImportBeenden(); resolve(); }));
+        });
+      }
+      if (kontaktPruefung) {
+        DATEN.kontakte = kontaktPruefung.daten.kontakte;
+        DATEN.jahrestage = kontaktPruefung.daten.jahrestage;
+        DATEN.kontaktImportAblehnungen = kontaktPruefung.daten.kontaktImportAblehnungen;
       }
       const teile = [];
       let doppelt = 0;
@@ -28283,7 +28841,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           "%(count)s task", "%(count)s tasks", z.neu));
       }
       if (Array.isArray(nutzlast.kontakte) && nutzlast.kontakte.length) {
-        const z = mergeKontakte(nutzlast.kontakte);
+        const z = kontaktPruefung ? kontaktPruefung.zaehlung : mergeKontakte(nutzlast.kontakte);
         doppelt += z.doppelt;
         if (z.neu) teile.push(uebersetztMehrzahl(
           "%(count)s contact", "%(count)s contacts", z.neu));
@@ -28635,6 +29193,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     inDenPapierkorb: inDenPapierkorb,
     merkeGeloescht: merkeGeloescht,
     kontaktFotoVarianten: kontaktFotoVarianten,
+    kontaktInhaltszeit: kontaktInhaltszeit,
+    baumKontaktNeuereFassung: baumKontaktNeuereFassung,
+    merkeKontaktInhaltszeit: merkeKontaktInhaltszeit,
     uebernehmeKontaktFoto: uebernehmeKontaktFoto,
     oeffneKontaktFotoAuswahl: oeffneKontaktFotoAuswahl,
     kontaktKarte: kontaktKarte,

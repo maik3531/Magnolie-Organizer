@@ -395,4 +395,12 @@
     <string name="telefon_mehrere_rechner">I computer associati restano salvati. Seleziona quello da usare ora.</string>
     <string name="telefon_anrufe_erlauben">Consenti chiamate</string>
     <string name="telefon_anruf_berechtigungen">Attiva le autorizzazioni Android</string>
+    <string name="kontakt_review_titel">Verifica le modifiche ai contatti</string>
+    <string name="kontakt_review_lokal">Contatto esistente</string>
+    <string name="kontakt_review_fern">Contatto ricevuto</string>
+    <string name="kontakt_review_behalten">Mantieni il contatto esistente</string>
+    <string name="kontakt_review_neu">Crea un contatto separato</string>
+    <string name="kontakt_review_neueste">Usa la versione più recente</string>
+    <string name="kontakt_review_rest">Applica questa scelta ai conflitti rimanenti con corrispondenza univoca</string>
+    <string name="kontakt_review_geburtsname">Cognome alla nascita: %1$s</string>
 </resources>

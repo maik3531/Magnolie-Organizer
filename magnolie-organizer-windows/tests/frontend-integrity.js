@@ -13,7 +13,12 @@ async function check(web) {
   Object.defineProperty(w, "crypto", { value: webcrypto });
   w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
   w.__MAGNOLIE_BRUECKE__ = "test";
-  w.webkit = { messageHandlers: { test: { postMessage: text => messages.push(JSON.parse(text)) } } };
+  let importAntworten = false;
+  w.webkit = { messageHandlers: { test: { postMessage: text => {
+    const message = JSON.parse(text); messages.push(message);
+    if (importAntworten && message.cmd === "speichern") queueMicrotask(() => w.App.gespeichert({ id: message.id, ok: true }));
+    if (importAntworten && message.cmd === "mutations_snapshot") queueMicrotask(() => w.App.mutationsSnapshot({ token: message.token, ok: true }));
+  } } } };
   w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
   w.MagnolieI18n.setLocale("en");
   w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
@@ -119,7 +124,13 @@ async function check(web) {
     reset();
     const imported = { kontakte: [contact], geburtstage: [{ kontaktUid: contact.uid, name: "Dr Van Dame", datum: "--06-07" }],
       jahrestage: [{ kontaktUid: contact.uid, name: "Dr Van Dame", datum: "--02-29", typ: "anniversary" }] };
-    w.App.importErgebnis(clean(imported)); w.App.importErgebnis(clean(imported));
+    importAntworten = true;
+    for (let replay = 0; replay < 2; replay++) {
+      const pending = w.App.importErgebnis(clean(imported));
+      d.querySelector("[data-import-anwenden]").click();
+      await pending;
+    }
+    importAntworten = false;
     assert.equal(T.daten().jahrestage.length, 2, "F30: contact event copies imported twice");
     assert.ok(T.daten().jahrestage.every(j => j.kontaktId === T.daten().kontakte[0].id));
 

@@ -20,13 +20,18 @@ internal static class BaumContactSyncContract
 
     internal static void Validate(JsonNode content)
     {
-        if (content is not JsonObject root || !Only(root, RootFields) || Text(root, "art") != "kontakt_sync" ||
-            Integer(root, "fassung") is not (1 or 2) || Long(root, "version") <= 0 || Long(root, "geaendert") < 0)
+        if (content is not JsonObject root) throw Invalid();
+        var version = Integer(root, "fassung");
+        var rootFields = new HashSet<string>(RootFields);
+        if (version == 3) rootFields.Add("inhaltGeaendert");
+        if (!Only(root, rootFields) || Text(root, "art") != "kontakt_sync" ||
+            version is not (1 or 2 or 3) || Long(root, "version") <= 0 || Long(root, "geaendert") < 0 ||
+            version == 3 && Long(root, "inhaltGeaendert") is < 0 or > 253402300799999L)
             throw Invalid();
         RequiredText(root, "freigabeId", 128);
         RequiredText(root, "quelle", 128);
         var fields = new HashSet<string>(ContactFields);
-        if (Integer(root, "fassung") == 2) fields.UnionWith(["jubilaeum", "anzeigename", "vcardName"]);
+        if (version >= 2) fields.UnionWith(["jubilaeum", "anzeigename", "vcardName"]);
         if (root["kontakt"] is not JsonObject contact ||
             contact.Any(item => !fields.Contains(item.Key) && item.Key != "foto") ||
             fields.Any(field => !contact.ContainsKey(field))) throw Invalid();
@@ -35,7 +40,7 @@ internal static class BaumContactSyncContract
         var birthday = Text(contact, "geburtstag");
         if (birthday.Length > 0 && !ExchangeCodec.TryParseCanonicalDate(birthday, out _, out _, out _))
             throw Invalid();
-        if (Integer(root, "fassung") == 2)
+        if (version >= 2)
         {
             OptionalText(contact, "anzeigename", MaxText);
             OptionalText(contact, "jubilaeum", MaxText);
@@ -120,10 +125,11 @@ internal static class BaumContactSyncContract
         }
     }
 
-    internal static JsonObject Capabilities(bool response) => new()
+    internal static JsonObject Capabilities(bool response, int maximum = 2) => new()
     {
         ["art"] = "kontakt_faehigkeiten", ["fassung"] = 1,
-        ["kontakt_sync"] = new JsonArray(1, 2), ["kontakt_import"] = new JsonArray(1, 2), ["antwort"] = response
+        ["kontakt_sync"] = maximum >= 3 ? new JsonArray(1, 2, 3) : new JsonArray(1, 2),
+        ["kontakt_import"] = new JsonArray(1, 2), ["antwort"] = response
     };
 
     internal static void ValidateCapabilities(JsonNode content)
@@ -134,20 +140,24 @@ internal static class BaumContactSyncContract
         foreach (var field in new[] { "kontakt_sync", "kontakt_import" })
         {
             if (root[field] is not JsonArray versions || !(field == "kontakt_import" && versions.Count == 0 ||
-                JsonNode.DeepEquals(versions, new JsonArray(1)) || JsonNode.DeepEquals(versions, new JsonArray(1, 2)))) throw Invalid();
+                JsonNode.DeepEquals(versions, new JsonArray(1)) || JsonNode.DeepEquals(versions, new JsonArray(1, 2)) ||
+                field == "kontakt_sync" && JsonNode.DeepEquals(versions, new JsonArray(1, 2, 3)))) throw Invalid();
         }
     }
 
-    internal static int PeerVersion(JsonObject partner, string kind) =>
-        partner["bestaetigt"]?.GetValue<bool>() == true && partner["kontaktFaehigkeiten"] is JsonObject caps &&
-        JsonNode.DeepEquals(caps[kind], new JsonArray(1, 2)) ? 2 : 1;
+    internal static int PeerVersion(JsonObject partner, string kind)
+    {
+        if (partner["bestaetigt"]?.GetValue<bool>() != true || partner["kontaktFaehigkeiten"] is not JsonObject caps) return 1;
+        if (kind == "kontakt_sync" && JsonNode.DeepEquals(caps[kind], new JsonArray(1, 2, 3))) return 3;
+        return JsonNode.DeepEquals(caps[kind], new JsonArray(1, 2)) ? 2 : 1;
+    }
 
     internal static JsonObject ForPeer(JsonObject partner, JsonObject payload)
     {
         var kind = Text(payload, "art");
         if (kind == "kontakt")
         {
-            if (PeerVersion(partner, "kontakt_sync") == 2) return payload;
+            if (PeerVersion(partner, "kontakt_sync") >= 2) return payload;
             var projection = new JsonObject();
             foreach (var field in new[] { "vorname", "nachname", "anzeigename", "jubilaeum" }) projection[field] = payload[field]?.DeepClone() ?? JsonValue.Create("");
             foreach (var field in new[] { "firma", "notiz", "geburtstag" }) projection[field] = "";
@@ -167,6 +177,11 @@ internal static class BaumContactSyncContract
         if (Integer(payload, "fassung") <= version) return payload;
         // Import preview and cards must agree; never rewrite an import after consent.
         if (kind != "kontakt_sync") throw new InvalidDataException(NativeLocalization.Gettext("Not sent."));
+        if (Integer(payload, "fassung") == 3)
+        {
+            payload = payload.DeepClone().AsObject(); payload.Remove("inhaltGeaendert"); payload["fassung"] = 2;
+            if (version >= 2) return payload;
+        }
         var contact = payload["kontakt"]!.AsObject();
         string Escape(string value) => value.Replace("\\", "\\\\").Replace("\r\n", "\\n").Replace("\n", "\\n").Replace(";", "\\;").Replace(",", "\\,");
         var display = string.Join(' ', new[] { Text(contact, "vorname"), Text(contact, "nachname") }.Where(s => s.Length > 0));

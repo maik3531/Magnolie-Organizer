@@ -98,7 +98,7 @@ internal sealed class RecoveryJournal
                 field is "uid" or "geaendert" or "angelegt" or "personalGeaendert" or "sync" or "syncQuellen" or
                     "syncKalenderUid" or "davHref" or "davEtag" or "baumKontakt" or "baumFreigabe" or
                     "baumVersion" or "baumQuelle" or "baumGeaendert" or "baumInhaltVersion" or "persoenlichVerknuepft" or "importBindungen" or "importHerkunfte" or
-                    "importKonflikt" or "fotoQuelle" or "fotoManuell" or "kontaktAliase" or "icsSequence" or "icsAenderungszeitFehlt" || JsonNode.DeepEquals(left[field], right[field]));
+                    "importKonflikt" or "fotoQuelle" or "fotoManuell" or "kontaktAliase" or "kontaktZeit" or "icsSequence" or "icsAenderungszeitFehlt" || JsonNode.DeepEquals(left[field], right[field]));
         }
     }
 

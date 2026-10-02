@@ -399,4 +399,12 @@
     <string name="telefon_mehrere_rechner">Les ordinateurs associés restent enregistrés. Sélectionnez celui à utiliser maintenant.</string>
     <string name="telefon_anrufe_erlauben">Autoriser les appels</string>
     <string name="telefon_anruf_berechtigungen">Activer les autorisations Android</string>
+    <string name="kontakt_review_titel">Vérifier les modifications des contacts</string>
+    <string name="kontakt_review_lokal">Contact existant</string>
+    <string name="kontakt_review_fern">Contact reçu</string>
+    <string name="kontakt_review_behalten">Conserver le contact existant</string>
+    <string name="kontakt_review_neu">Créer un contact distinct</string>
+    <string name="kontakt_review_neueste">Utiliser la version la plus récente</string>
+    <string name="kontakt_review_rest">Appliquer ce choix aux conflits restants dont la correspondance est certaine</string>
+    <string name="kontakt_review_geburtsname">Nom de naissance : %1$s</string>
 </resources>

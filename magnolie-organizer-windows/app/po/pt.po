@@ -45,12 +45,6 @@ msgstr ""
 "%(appointment)s\n"
 "Clique para editar"
 
-msgid ""
-"%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
-msgstr ""
-"Foram unidos %(cards)s cartões. As cópias estão guardadas em «Duplicados», "
-"no Lixo."
-
 msgid "%(count)s anniversary"
 msgid_plural "%(count)s anniversaries"
 msgstr[0] "%(count)s data comemorativa"
@@ -80,11 +74,6 @@ msgid "%(count)s contact"
 msgid_plural "%(count)s contacts"
 msgstr[0] "%(count)s contacto"
 msgstr[1] "%(count)s contactos"
-
-msgid "%(count)s contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "%(count)s cartão de contacto"
-msgstr[1] "%(count)s cartões de contacto"
 
 msgid "%(count)s contact imported."
 msgid_plural "%(count)s contacts imported."
@@ -125,11 +114,6 @@ msgid "%(count)s found"
 msgid_plural "%(count)s found"
 msgstr[0] "%(count)s encontrado"
 msgstr[1] "%(count)s encontrados"
-
-msgid "%(count)s group"
-msgid_plural "%(count)s groups"
-msgstr[0] "%(count)s grupo"
-msgstr[1] "%(count)s grupos"
 
 msgid "%(count)s holiday period"
 msgid_plural "%(count)s holiday periods"
@@ -905,6 +889,9 @@ msgstr "Berlim"
 
 msgid "Bern"
 msgstr "Berna"
+
+msgid "Birth name: %(name)s"
+msgstr "Apelido de nascimento: %(name)s"
 
 msgid "Birthday"
 msgstr "Aniversário"
@@ -2324,22 +2311,6 @@ msgstr "Região de formato"
 msgid "Forward Secrecy"
 msgstr "Sigilo futuro (Forward Secrecy)"
 
-msgid ""
-"Found %(groups)s containing %(cards)s in total, for example:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"The most complete card in each group is retained, and missing fields are "
-"filled from the others. The remaining cards are moved to the recycle bin as "
-"“Duplicates” and can be restored from there. Continue?"
-msgstr ""
-"Foram encontrados %(groups)s grupos com %(cards)s cartões no total, por "
-"exemplo:\n"
-"%(examples)s%(more)s\n"
-"\n"
-"O cartão mais completo de cada grupo é mantido e os campos em falta são "
-"preenchidos a partir dos restantes. Os outros cartões são movidos para o "
-"Lixo como «Duplicados» e podem ser restaurados a partir daí. Continuar?"
-
 #, javascript-format
 msgid "Found – %s."
 msgstr "Encontrado – %s."
@@ -2550,9 +2521,6 @@ msgstr "Importar"
 
 msgid "Import Magnolie complete archive"
 msgstr "Importe o arquivo completo do Magnolie"
-
-msgid "Import contacts additively"
-msgstr "Importar contactos de forma aditiva"
 
 msgid "Import failed."
 msgstr "A importação falhou."
@@ -3537,11 +3505,6 @@ msgstr[0] "Foi recebida uma atualização de conclusão do Magnolienbaum."
 msgstr[1] ""
 "Foram recebidas %(count)s atualizações de conclusão do Magnolienbaum."
 
-msgid "One duplicate contact card was"
-msgid_plural "%(count)s duplicate contact cards were"
-msgstr[0] "Um cartão de contacto duplicado foi"
-msgstr[1] "%(count)s cartões de contacto duplicados foram"
-
 msgid "One moment …"
 msgstr "Um momento …"
 
@@ -4061,6 +4024,12 @@ msgstr ""
 "Preferir os altifalantes e o microfone do PC nas chamadas do meu próprio "
 "telefone Bluetooth"
 
+msgid ""
+"Prefer newer contact versions when reliable modification times are available."
+msgstr ""
+"Preferir as versões mais recentes dos contactos quando existirem datas de "
+"alteração fiáveis."
+
 msgid "Preferred backup folder"
 msgstr "Pasta preferida para cópias de segurança"
 
@@ -4187,13 +4156,6 @@ msgstr "Endereço IPv4 ou IPv6 acessível deste computador"
 msgid "Ready."
 msgstr "Pronto."
 
-msgid ""
-"Really merge %(cards)s? Review the result carefully afterwards. A copy of "
-"every removed card is kept in the recycle bin."
-msgstr ""
-"Unir realmente %(cards)s cartões? Reveja cuidadosamente o resultado depois. "
-"É mantida no Lixo uma cópia de cada cartão removido."
-
 msgid "Reason"
 msgstr "Motivo"
 
@@ -4235,6 +4197,10 @@ msgstr "Rejeitar definitivamente esta oferta?"
 
 msgid "Related tasks"
 msgstr "Tarefas relacionadas"
+
+msgid "Reliable modification times are not available for both versions."
+msgstr ""
+"Não estão disponíveis datas de alteração fiáveis para ambas as versões."
 
 msgid "Remind me again on the day itself"
 msgstr "Voltar a lembrar-me no próprio dia"
@@ -5971,13 +5937,6 @@ msgstr ""
 msgid "This notebook is still empty."
 msgstr "Este bloco de notas ainda está vazio."
 
-msgid ""
-"This one-time import only adds or enriches contacts. It does not synchronize "
-"or delete contacts."
-msgstr ""
-"Esta importação única apenas adiciona ou completa contactos. Não sincroniza "
-"nem elimina contactos."
-
 msgid "This person's anniversaries"
 msgstr "Datas comemorativas desta pessoa"
 
@@ -6223,6 +6182,9 @@ msgstr "Utilizar moradas dos contactos"
 
 msgid "Use default"
 msgstr "Utilizar predefinição"
+
+msgid "Use newer version"
+msgstr "Usar a versão mais recente"
 
 msgid "Use numeric keypad"
 msgstr "Utilizar teclado numérico"
@@ -6612,9 +6574,6 @@ msgstr "Planeador anual %(year)s"
 msgid "Yes"
 msgstr "Sim"
 
-msgid "Yes, merge"
-msgstr "Sim, unir"
-
 msgid "Yes, the code matches"
 msgstr "Sim, o código coincide"
 
@@ -6886,11 +6845,6 @@ msgid_plural "%(count)s backups were encrypted as well"
 msgstr[0] "uma cópia de segurança também foi encriptada"
 msgstr[1] "%(count)s cópias de segurança também foram encriptadas"
 
-msgid "one contact card"
-msgid_plural "%(count)s contact cards"
-msgstr[0] "um cartão de contacto"
-msgstr[1] "%(count)s cartões de contacto"
-
 msgid "only %(year)s"
 msgstr "apenas %(year)s"
 
@@ -7043,6 +6997,68 @@ msgstr[1] "… e mais %(count)s entradas que também serão impressas."
 
 msgid "＋ Add appointment"
 msgstr "＋ Adicionar compromisso"
+
+#~ msgid ""
+#~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."
+#~ msgstr ""
+#~ "Foram unidos %(cards)s cartões. As cópias estão guardadas em "
+#~ "«Duplicados», no Lixo."
+
+#~ msgid "%(count)s contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "%(count)s cartão de contacto"
+#~ msgstr[1] "%(count)s cartões de contacto"
+
+#~ msgid "%(count)s group"
+#~ msgid_plural "%(count)s groups"
+#~ msgstr[0] "%(count)s grupo"
+#~ msgstr[1] "%(count)s grupos"
+
+#~ msgid ""
+#~ "Found %(groups)s containing %(cards)s in total, for example:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "The most complete card in each group is retained, and missing fields are "
+#~ "filled from the others. The remaining cards are moved to the recycle bin "
+#~ "as “Duplicates” and can be restored from there. Continue?"
+#~ msgstr ""
+#~ "Foram encontrados %(groups)s grupos com %(cards)s cartões no total, por "
+#~ "exemplo:\n"
+#~ "%(examples)s%(more)s\n"
+#~ "\n"
+#~ "O cartão mais completo de cada grupo é mantido e os campos em falta são "
+#~ "preenchidos a partir dos restantes. Os outros cartões são movidos para o "
+#~ "Lixo como «Duplicados» e podem ser restaurados a partir daí. Continuar?"
+
+#~ msgid "Import contacts additively"
+#~ msgstr "Importar contactos de forma aditiva"
+
+#~ msgid "One duplicate contact card was"
+#~ msgid_plural "%(count)s duplicate contact cards were"
+#~ msgstr[0] "Um cartão de contacto duplicado foi"
+#~ msgstr[1] "%(count)s cartões de contacto duplicados foram"
+
+#~ msgid ""
+#~ "Really merge %(cards)s? Review the result carefully afterwards. A copy of "
+#~ "every removed card is kept in the recycle bin."
+#~ msgstr ""
+#~ "Unir realmente %(cards)s cartões? Reveja cuidadosamente o resultado "
+#~ "depois. É mantida no Lixo uma cópia de cada cartão removido."
+
+#~ msgid ""
+#~ "This one-time import only adds or enriches contacts. It does not "
+#~ "synchronize or delete contacts."
+#~ msgstr ""
+#~ "Esta importação única apenas adiciona ou completa contactos. Não "
+#~ "sincroniza nem elimina contactos."
+
+#~ msgid "Yes, merge"
+#~ msgstr "Sim, unir"
+
+#~ msgid "one contact card"
+#~ msgid_plural "%(count)s contact cards"
+#~ msgstr[0] "um cartão de contacto"
+#~ msgstr[1] "%(count)s cartões de contacto"
 
 #~ msgid "KDE Connect for SMS"
 #~ msgstr "KDE Connect para SMS"

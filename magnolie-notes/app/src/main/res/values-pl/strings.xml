@@ -400,4 +400,12 @@
     <string name="telefon_mehrere_rechner">Sparowane komputery pozostają zapisane. Wybierz komputer, którego chcesz teraz używać.</string>
     <string name="telefon_anrufe_erlauben">Zezwalaj na połączenia</string>
     <string name="telefon_anruf_berechtigungen">Włącz uprawnienia Androida</string>
+    <string name="kontakt_review_titel">Sprawdź zmiany kontaktów</string>
+    <string name="kontakt_review_lokal">Istniejący kontakt</string>
+    <string name="kontakt_review_fern">Otrzymany kontakt</string>
+    <string name="kontakt_review_behalten">Zachowaj istniejący kontakt</string>
+    <string name="kontakt_review_neu">Utwórz osobny kontakt</string>
+    <string name="kontakt_review_neueste">Użyj nowszej wersji</string>
+    <string name="kontakt_review_rest">Zastosuj ten wybór do pozostałych jednoznacznie dopasowanych konfliktów</string>
+    <string name="kontakt_review_geburtsname">Nazwisko rodowe: %1$s</string>
 </resources>

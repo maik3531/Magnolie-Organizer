@@ -72,7 +72,8 @@ assert.ok(lazyKde, "KDE service initializer was not inspected");
 assert.match(lazyKde, /lock \(serviceGate\)[\s\S]*ObjectDisposedException.ThrowIf\(disposed, this\)/);
 assert.match(lazyKde, /if \(kdeInstance is not null\) return kdeInstance/);
 for (const [callback, handler] of [["StatusChanged", "HandleKdeStatusChanged"],
-  ["SmsReceived", "HandleKdeSmsReceived"], ["PairingChanged", "HandleKdePairingChanged"]]) {
+  ["SmsReceived", "HandleKdeSmsReceived"], ["PairingChanged", "HandleKdePairingChanged"],
+  ["DigitizerReceived", "HandleKdeDigitizer"]]) {
   const registration = `created.${callback} += ${handler}`;
   assert.strictEqual(lazyKde.split(registration).length - 1, 1, `Register exactly once: ${callback}`);
   assert.ok(lazyKde.indexOf(registration) < lazyKde.indexOf("kdeInstance = created"), "Do not publish a partly subscribed service");
@@ -103,6 +104,7 @@ internal sealed class Probe {
   private void HandleKdeStatusChanged() => Calls++;
   private void HandleKdeSmsReceived() => Calls++;
   private void HandleKdePairingChanged() => Calls++;
+  private void HandleKdeDigitizer() => Calls++;
   ${lazyKde}
   internal KdeConnectSms Get() => kdeConnectSms;
   internal void Stop() { disposed = true; kdeInstance?.Dispose(); }
@@ -110,7 +112,7 @@ internal sealed class Probe {
 internal sealed class KdeConnectSms : IDisposable {
   internal static int Created, Disposed;
   internal static bool FailSubscription;
-  private Action? status, sms, pairing;
+  private Action? status, sms, pairing, digitizer;
   internal KdeConnectSms(object paths) { Interlocked.Increment(ref Created); }
   internal event Action StatusChanged { add => status += value; remove => status -= value; }
   internal event Action SmsReceived {
@@ -118,8 +120,9 @@ internal sealed class KdeConnectSms : IDisposable {
     remove => sms -= value;
   }
   internal event Action PairingChanged { add => pairing += value; remove => pairing -= value; }
-  internal void Emit() { status?.Invoke(); sms?.Invoke(); pairing?.Invoke(); }
-  public void Dispose() { Interlocked.Increment(ref Disposed); status = sms = pairing = null; }
+  internal event Action DigitizerReceived { add => digitizer += value; remove => digitizer -= value; }
+  internal void Emit() { status?.Invoke(); sms?.Invoke(); pairing?.Invoke(); digitizer?.Invoke(); }
+  public void Dispose() { Interlocked.Increment(ref Disposed); status = sms = pairing = digitizer = null; }
 }
 internal static class Program {
   private static void Check(bool condition) { if (!condition) throw new Exception("Lifecycle assertion failed"); }
@@ -127,13 +130,13 @@ internal static class Program {
     var probe = new Probe(); var values = new KdeConnectSms[64];
     Parallel.For(0, values.Length, index => values[index] = probe.Get());
     Check(KdeConnectSms.Created == 1 && values.All(value => ReferenceEquals(value, values[0])));
-    values[0].Emit(); Check(probe.Calls == 3);
+    values[0].Emit(); Check(probe.Calls == 4);
     probe.Stop(); Check(KdeConnectSms.Disposed == 1);
     try { probe.Get(); throw new Exception("Disposed service was recreated"); } catch (ObjectDisposedException) { }
     var retry = new Probe(); KdeConnectSms.FailSubscription = true;
     try { retry.Get(); throw new Exception("Subscription fault was ignored"); } catch (InvalidOperationException) { }
     Check(KdeConnectSms.Created == 2 && KdeConnectSms.Disposed == 2);
-    retry.Get().Emit(); Check(KdeConnectSms.Created == 3 && retry.Calls == 3);
+    retry.Get().Emit(); Check(KdeConnectSms.Created == 3 && retry.Calls == 4);
     retry.Stop(); Check(KdeConnectSms.Disposed == 3);
     Console.WriteLine("OPTIONAL SERVICE LIFECYCLE PASSED");
   }

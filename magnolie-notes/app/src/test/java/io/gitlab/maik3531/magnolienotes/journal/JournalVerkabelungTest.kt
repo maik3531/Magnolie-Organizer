@@ -21,10 +21,11 @@ class JournalVerkabelungTest {
 
     @Test fun `risikopfade blockieren bei fehlgeschlagenem Snapshot und Batch hat einen Snapshot`() {
         val werk = File("app/src/main/java/io/gitlab/maik3531/magnolienotes/baum/Baumwerk.kt").readText()
-        val batch = werk.substring(werk.indexOf("fun sichereKontaktGruppenImportieren"),
+        val batch = werk.substring(werk.indexOf("fun kontaktUebernahmeBestaetigen"),
             werk.indexOf("fun kontaktGruppeAblehnen"))
-        assertEquals(1, Regex("kontaktSnapshot\\(").findAll(batch).count())
-        assertTrue(batch.indexOf("kontaktSnapshot") < batch.indexOf("gruppen.forEach"))
+        assertEquals(1, Regex("kontaktSnapshotVorher\\(").findAll(batch).count())
+        assertTrue(batch.indexOf("kontaktSnapshotVorher") < batch.indexOf("plan.forEach"))
+        assertTrue(werk.contains("AndroidJournal.hole(zusammenhang).kontaktSnapshot(\"contact-import\", staende, id)"))
         assertTrue(werk.indexOf("appSnapshot(\"pre-sync-full\")") < werk.indexOf("Synchronisation.planen"))
         assertTrue(werk.contains("journalStaende(listOf(spur.rawContactId), \"delete\")"))
         assertTrue(werk.contains("contact-keep-together"))

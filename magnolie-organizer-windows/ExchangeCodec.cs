@@ -384,6 +384,7 @@ internal static partial class ExchangeCodec
                     entry["typen"]?.AsArray().Any(type => type?.ToString().Equals("CELL", StringComparison.OrdinalIgnoreCase) == false) == true);
                 var mobile = phones.FirstOrDefault(entry =>
                     entry["typen"]?.AsArray().Any(type => type?.ToString().Equals("CELL", StringComparison.OrdinalIgnoreCase) == true) == true);
+                var revision = ParseVCardRevision(Value(values, "REV"));
                 var contact = new JsonObject
                 {
                     ["uid"] = Value(values, "UID"), ["nachname"] = lastName, ["vorname"] = firstName,
@@ -403,7 +404,8 @@ internal static partial class ExchangeCodec
                     ["kontaktpersonen"] = MagnolieJsonEntries(values, "X-MAGNOLIE-NOTFALLKONTAKT"),
                     ["sozialeMedien"] = MagnolieJsonEntries(values, "X-MAGNOLIE-SOZIALES-MEDIUM"),
                     ["vcardRoundtrip"] = UnknownVCardLines(lines),
-                    ["geaendert"] = ParseTimestamp(Value(values, "REV"))
+                    ["geaendert"] = revision != 0 ? revision : ParseTimestamp(Value(values, "REV")),
+                    ["vcardRev"] = Entries(values, "REV").Count() == 1 ? revision : 0
                 };
                 if (firstName.Length + lastName.Length + fullName.Length + company.Length + emails.Length + phones.Length > 0) contacts.Add(contact);
                 else { skipped++; continue; }
@@ -2078,6 +2080,16 @@ internal static partial class ExchangeCodec
         catch (FormatException) { return false; }
         mediaType = match.Groups[1].Value.Equals("jpg", StringComparison.OrdinalIgnoreCase) ? "JPEG" : match.Groups[1].Value.ToUpperInvariant(); base64 = match.Groups[2].Value; return true;
     }
+    private static long ParseVCardRevision(string value)
+    {
+        value = value.ToUpperInvariant();
+        if (!Regex.IsMatch(value, @"\A(?:[0-9]{8}T[0-9]{6}|[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})(?:Z|[+-][0-9]{2}:?[0-9]{2})\z")) return 0;
+        value = Regex.Replace(value, @"([+-][0-9]{2})([0-9]{2})$", "$1:$2");
+        foreach (var format in new[] { "yyyyMMdd'T'HHmmss'Z'", "yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyyMMdd'T'HHmmsszzz", "yyyy-MM-dd'T'HH:mm:sszzz" })
+            if (DateTimeOffset.TryParseExact(value, format, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)) return parsed.ToUnixTimeMilliseconds();
+        return 0;
+    }
+
     private static long ParseTimestamp(string value)
     {
         foreach (var format in new[] { "yyyyMMdd'T'HHmmss'Z'", "yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyy-MM-dd'T'HH:mm:ssK" })

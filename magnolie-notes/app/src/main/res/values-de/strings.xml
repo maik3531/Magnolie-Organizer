@@ -441,4 +441,12 @@
     <string name="telefon_mehrere_rechner">Gekoppelte Rechner bleiben gespeichert. Wählen Sie den Rechner, den Sie jetzt verwenden möchten.</string>
     <string name="telefon_anrufe_erlauben">Anrufe erlauben</string>
     <string name="telefon_anruf_berechtigungen">Android-Berechtigungen aktivieren</string>
+    <string name="kontakt_review_titel">Kontaktänderungen prüfen</string>
+    <string name="kontakt_review_lokal">Vorhandener Kontakt</string>
+    <string name="kontakt_review_fern">Eingehender Kontakt</string>
+    <string name="kontakt_review_behalten">Vorhandenen Kontakt behalten</string>
+    <string name="kontakt_review_neu">Eigenständigen Kontakt anlegen</string>
+    <string name="kontakt_review_neueste">Neuere Fassung verwenden</string>
+    <string name="kontakt_review_rest">Diese Entscheidung auf verbleibende eindeutig zugeordnete Konflikte anwenden</string>
+    <string name="kontakt_review_geburtsname">Geburtsname: %1$s</string>
 </resources>
