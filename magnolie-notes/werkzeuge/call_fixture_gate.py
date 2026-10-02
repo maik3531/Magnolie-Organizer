@@ -234,7 +234,7 @@ def worker(args):
         affinity=sorted(os.sched_getaffinity(0)), source=str(SOURCE), command=command,
         started_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(started_wall)),
         ended_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()))
-    expected_tests = {'CallLifecycleTransportTest': 12, 'CallControlOriginTrackerTest': 7, 'TelefonSitzungTest': 8}
+    expected_tests = {'CallLifecycleTransportTest': 15, 'CallControlOriginTrackerTest': 7, 'TelefonSitzungTest': 8}
     result['passed'] = result['clean_exit'] and {s['name']: s['tests'] for s in suites} == expected_tests and all(
         s['failures'] == s['errors'] == s['skipped'] == 0 for s in suites) and before == after
     (output / 'gate-result.json').write_text(json.dumps(result, indent=2) + '\n')
