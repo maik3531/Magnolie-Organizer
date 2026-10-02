@@ -1053,7 +1053,8 @@ class PhoneStore:
             old_metadata = self._load_attachment_metadata(db, peer_id, run_id, reply, aggregate_hash, digest, direction)
             transfer_exists = old_metadata is not None
             metadata = self._attachment_metadata(peer_id, run_id, reply, aggregate_hash, digest, direction,
-                size, mime, policy, old_metadata["expires_ms"] if old_metadata else expires_ms, False,
+                size, mime, policy, old_metadata["expires_ms"] if old_metadata else expires_ms,
+                old_metadata["complete"] if old_metadata else False,
                 old_metadata["attachment_id"] if old_metadata else attachment_id)
             if old_metadata is not None and old_metadata != metadata:
                 raise ValueError("conflicting attachment metadata")
@@ -1092,7 +1093,8 @@ class PhoneStore:
             db.execute("BEGIN IMMEDIATE")
             old = self._load_attachment_metadata(db, peer_id, run_id, reply, aggregate_hash, digest, "incoming")
             metadata = self._attachment_metadata(peer_id, run_id, reply, aggregate_hash, digest, "incoming",
-                size, mime, policy, expires_ms, False, attachment_id or digest)
+                size, mime, policy, old["expires_ms"] if old else expires_ms,
+                old["complete"] if old else False, attachment_id or digest)
             if old and old != metadata:
                 raise ValueError("conflicting attachment manifest")
             db.execute("INSERT OR IGNORE INTO personal_attachment_transfer VALUES(?,?,?,?,?,?,?,?,?,?,0,?)",
