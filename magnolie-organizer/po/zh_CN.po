@@ -682,12 +682,18 @@ msgstr "通讯录"
 msgid "Address imported from LibreOffice."
 msgstr "已从 LibreOffice 导入地址。"
 
+msgid "Address supplement"
+msgstr "地址补充信息"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr "发送给 %(branch)s；该分支可用时将会送达。"
 
 msgid "Addresses"
 msgstr "地址"
+
+msgid "Advanced"
+msgstr "高级"
 
 msgid "After exercise"
 msgstr "运动后"
@@ -1447,6 +1453,9 @@ msgid ""
 msgstr ""
 "选择垃圾类型或输入自定义收集项目。设置首次收集日期和间隔天数；设为 0 表示仅收"
 "集一次。"
+
+msgid "Choose an address"
+msgstr "选择地址"
 
 msgid "Choose at least four characters."
 msgstr "请至少选择四个字符。"
@@ -2253,6 +2262,9 @@ msgstr "编辑所使用的网站或应用程序"
 
 msgid "Email"
 msgstr "电子邮件"
+
+msgid "Email address"
+msgstr "电子邮箱地址"
 
 msgid "Email addresses"
 msgstr "电子邮件地址"
@@ -3148,6 +3160,9 @@ msgstr "横线纸（书写页面带横线）"
 msgid "Link"
 msgstr "链接"
 
+msgid "Link existing contact"
+msgstr "关联现有联系人"
+
 msgid "Listener active"
 msgstr "暂定"
 
@@ -3156,6 +3171,9 @@ msgstr "监听器已停止"
 
 msgid "Loading background settings"
 msgstr "正在加载后台设置"
+
+msgid "Loading…"
+msgstr "正在加载…"
 
 msgid "Local calendar"
 msgstr "本地日历"
@@ -4272,6 +4290,9 @@ msgstr "可用独立窗口：是"
 msgid "PDF file"
 msgstr "PDF 文件"
 
+msgid "PO box"
+msgstr "邮政信箱"
+
 #, python-format
 msgid "POT template written to: %s"
 msgstr "POT 模板已写入：%s"
@@ -4744,6 +4765,9 @@ msgstr "重做"
 
 msgid "Refresh"
 msgstr "刷新"
+
+msgid "Region"
+msgstr "地区"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."

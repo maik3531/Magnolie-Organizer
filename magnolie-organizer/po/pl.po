@@ -778,6 +778,9 @@ msgstr "Książka adresowa"
 msgid "Address imported from LibreOffice."
 msgstr "Adres zaimportowano z LibreOffice."
 
+msgid "Address supplement"
+msgstr "Uzupełnienie adresu"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr ""
@@ -786,6 +789,9 @@ msgstr ""
 
 msgid "Addresses"
 msgstr "Adresy"
+
+msgid "Advanced"
+msgstr "Zaawansowane"
 
 msgid "After exercise"
 msgstr "Po wysiłku fizycznym"
@@ -1580,6 +1586,9 @@ msgid ""
 msgstr ""
 "Wybierz rodzaj odpadów lub wpisz własny odbiór. Ustaw pierwszy odbiór oraz "
 "odstęp w dniach; 0 tworzy odbiór jednorazowy."
+
+msgid "Choose an address"
+msgstr "Wybierz adres"
 
 msgid "Choose at least four characters."
 msgstr "Wybierz co najmniej cztery znaki."
@@ -2426,6 +2435,9 @@ msgstr "Edytuj używaną witrynę lub aplikację"
 
 msgid "Email"
 msgstr "E-mail"
+
+msgid "Email address"
+msgstr "Adres e-mail"
 
 msgid "Email addresses"
 msgstr "Adresy e-mail"
@@ -3350,6 +3362,9 @@ msgstr "Papier w linie (linie na arkuszu do pisania)"
 msgid "Link"
 msgstr "Łącze"
 
+msgid "Link existing contact"
+msgstr "Połącz istniejący kontakt"
+
 msgid "Listener active"
 msgstr "wstępne"
 
@@ -3358,6 +3373,9 @@ msgstr "Słuchacz zatrzymany"
 
 msgid "Loading background settings"
 msgstr "Wczytywanie ustawień działania w tle"
+
+msgid "Loading…"
+msgstr "Wczytywanie…"
 
 msgid "Local calendar"
 msgstr "Kalendarz lokalny"
@@ -4532,6 +4550,9 @@ msgstr "Własne okno dostępne: tak"
 msgid "PDF file"
 msgstr "Plik PDF"
 
+msgid "PO box"
+msgstr "Skrytka pocztowa"
+
 #, python-format
 msgid "POT template written to: %s"
 msgstr "Szablon POT zapisano do: %s"
@@ -5031,6 +5052,9 @@ msgstr "Ponów"
 
 msgid "Refresh"
 msgstr "Odśwież"
+
+msgid "Region"
+msgstr "Region"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."

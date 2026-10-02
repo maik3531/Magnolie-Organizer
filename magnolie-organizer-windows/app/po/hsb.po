@@ -593,12 +593,18 @@ msgstr "Adresnik"
 msgid "Address imported from LibreOffice."
 msgstr "Adresa z LibreOffice importowana."
 
+msgid "Address supplement"
+msgstr "Adresowy dodawk"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr "Za %(branch)s myslene; dodawa so, hdyž budźe wotrězk k dispoziciji."
 
 msgid "Addresses"
 msgstr "Adresy"
+
+msgid "Advanced"
+msgstr "Rozšěrjene"
 
 msgid "After exercise"
 msgstr "Po ćělesnym ćwicjenju"
@@ -1262,6 +1268,9 @@ msgid ""
 msgstr ""
 "Wubjerće družinu wotpadkow abo zapodajće swójski wotwóz. Nastajće prěni "
 "wotwóz a interwal w dnjach; 0 wutwori jónkróćny wotwóz."
+
+msgid "Choose an address"
+msgstr "Adresu wubrać"
 
 msgid "Choose at least four characters."
 msgstr "Wubjerće znajmjeńša štyri znamješka."
@@ -2006,6 +2015,9 @@ msgstr "Wužiwane websydło abo nałoženje wobdźěłać"
 
 msgid "Email"
 msgstr "E-mejl"
+
+msgid "Email address"
+msgstr "E-mejlowa adresa"
 
 msgid "Email addresses"
 msgstr "E-mejlowe adresy"
@@ -2801,11 +2813,17 @@ msgstr "Linijowany papjer (linije na pisanskim łopjenje)"
 msgid "Link"
 msgstr "Wotkaz"
 
+msgid "Link existing contact"
+msgstr "Eksistowacy kontakt zwjazać"
+
 msgid "Listener active"
 msgstr "nachwilne"
 
 msgid "Listener stopped"
 msgstr "Słuchar wosta stejo"
+
+msgid "Loading…"
+msgstr "Začituje so…"
 
 msgid "Local calendar"
 msgstr "Lokalny protyk"
@@ -3761,6 +3779,9 @@ msgstr "Swójske čisło (standardna SIM za zawołanja)"
 msgid "PDF file"
 msgstr "PDF-dataj"
 
+msgid "PO box"
+msgstr "Póštowy fach"
+
 msgid "Packaging / Yellow bin"
 msgstr "Zapakowanja / Žołty kontejner"
 
@@ -4225,6 +4246,9 @@ msgstr "Wospjetować"
 
 msgid "Refresh"
 msgstr "Wokřewić"
+
+msgid "Region"
+msgstr "Region"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."
@@ -5405,6 +5429,9 @@ msgstr "Rysowanska hranica je docpěta."
 
 msgid "The end date cannot be before the start date."
 msgstr "Kónčny datum njemóže před startowym datumom być."
+
+msgid "The entry could not be found."
+msgstr "Zapisk njebu namakany."
 
 msgid "The export data is missing."
 msgstr "Eksportowe daty faluja."

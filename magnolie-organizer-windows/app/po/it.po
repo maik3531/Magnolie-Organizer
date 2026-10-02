@@ -536,6 +536,9 @@ msgstr "Rubrica"
 msgid "Address imported from LibreOffice."
 msgstr "Indirizzo importato da LibreOffice."
 
+msgid "Address supplement"
+msgstr "Complemento di indirizzo"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr ""
@@ -543,6 +546,9 @@ msgstr ""
 
 msgid "Addresses"
 msgstr "Indirizzi"
+
+msgid "Advanced"
+msgstr "Avanzate"
 
 msgid "After exercise"
 msgstr "Dopo l'attività fisica"
@@ -1213,6 +1219,9 @@ msgid ""
 msgstr ""
 "Scegli un tipo di rifiuto o inserisci una raccolta personalizzata. Imposta "
 "la prima raccolta e l’intervallo in giorni; 0 crea una raccolta una tantum."
+
+msgid "Choose an address"
+msgstr "Scegli un indirizzo"
 
 msgid "Choose at least four characters."
 msgstr "Scegli almeno quattro caratteri."
@@ -1958,6 +1967,9 @@ msgstr "Modifica il sito web o l’applicazione utilizzata"
 
 msgid "Email"
 msgstr "E-mail"
+
+msgid "Email address"
+msgstr "Indirizzo email"
 
 msgid "Email addresses"
 msgstr "Indirizzi e-mail"
@@ -2759,11 +2771,17 @@ msgstr "Carta a righe (righe sul foglio di scrittura)"
 msgid "Link"
 msgstr "Collegamento"
 
+msgid "Link existing contact"
+msgstr "Collega un contatto esistente"
+
 msgid "Listener active"
 msgstr "Listener attivo"
 
 msgid "Listener stopped"
 msgstr "Listener arrestato"
+
+msgid "Loading…"
+msgstr "Caricamento…"
 
 msgid "Local calendar"
 msgstr "Calendario locale"
@@ -3723,6 +3741,9 @@ msgstr "Il mio numero (SIM vocale predefinita)"
 msgid "PDF file"
 msgstr "File PDF"
 
+msgid "PO box"
+msgstr "Casella postale"
+
 msgid "Packaging / Yellow bin"
 msgstr "Imballaggi / bidone giallo"
 
@@ -4185,6 +4206,9 @@ msgstr "Ripristina"
 
 msgid "Refresh"
 msgstr "Aggiorna"
+
+msgid "Region"
+msgstr "Regione"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."
@@ -5378,6 +5402,9 @@ msgstr "È stato raggiunto il limite del disegno."
 
 msgid "The end date cannot be before the start date."
 msgstr "La data di fine non può precedere la data di inizio."
+
+msgid "The entry could not be found."
+msgstr "Impossibile trovare la voce."
 
 msgid "The export data is missing."
 msgstr "Mancano i dati di esportazione."

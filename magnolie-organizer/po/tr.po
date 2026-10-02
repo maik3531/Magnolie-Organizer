@@ -740,6 +740,9 @@ msgstr "Adres defteri"
 msgid "Address imported from LibreOffice."
 msgstr "Adres LibreOffice üzerinden içe aktarıldı."
 
+msgid "Address supplement"
+msgstr "Ek adres bilgisi"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr ""
@@ -747,6 +750,9 @@ msgstr ""
 
 msgid "Addresses"
 msgstr "Adresler"
+
+msgid "Advanced"
+msgstr "Gelişmiş"
 
 msgid "After exercise"
 msgstr "Egzersizden sonra"
@@ -1539,6 +1545,9 @@ msgid ""
 msgstr ""
 "Bir atık türü seçin veya özel bir toplama girin. İlk toplamayı ve gün "
 "cinsinden aralığı ayarlayın; 0 tek seferlik toplama oluşturur."
+
+msgid "Choose an address"
+msgstr "Adres seç"
 
 msgid "Choose at least four characters."
 msgstr "En az dört karakter seçin."
@@ -2379,6 +2388,9 @@ msgstr "Kullanılan web sitesini veya uygulamayı düzenle"
 
 msgid "Email"
 msgstr "E-posta"
+
+msgid "Email address"
+msgstr "E-posta adresi"
 
 msgid "Email addresses"
 msgstr "E-posta adresleri"
@@ -3304,6 +3316,9 @@ msgstr "Çizgili kâğıt (yazı sayfasında çizgiler)"
 msgid "Link"
 msgstr "Bağlantı"
 
+msgid "Link existing contact"
+msgstr "Mevcut kişiyi bağla"
+
 msgid "Listener active"
 msgstr "Dinleyici etkin"
 
@@ -3312,6 +3327,9 @@ msgstr "Dinleyici durduruldu"
 
 msgid "Loading background settings"
 msgstr "Arka plan ayarları yükleniyor"
+
+msgid "Loading…"
+msgstr "Yükleniyor…"
 
 msgid "Local calendar"
 msgstr "Yerel takvim"
@@ -4470,6 +4488,9 @@ msgstr "Bağımsız pencere kullanılabilir: evet"
 msgid "PDF file"
 msgstr "PDF dosyası"
 
+msgid "PO box"
+msgstr "Posta kutusu"
+
 #, python-format
 msgid "POT template written to: %s"
 msgstr "POT şablonu şuraya yazıldı: %s"
@@ -4967,6 +4988,9 @@ msgstr "Yinele"
 
 msgid "Refresh"
 msgstr "Yenile"
+
+msgid "Region"
+msgstr "Bölge"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."

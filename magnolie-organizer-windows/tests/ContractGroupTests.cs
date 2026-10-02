@@ -532,6 +532,27 @@ internal static class ContractGroupTests
 
     private static void NativeExchangeRegressions()
     {
+        using (var people = JsonDocument.Parse("""[{"vorname":"Parent","uid":"parent","kontaktpersonen":[{"name":"Elena Care","telefon":"0123","status":"Son","kontaktId":"local-card","firma":"Care company","geburtstag":"--07-06","notiz":"First line\nSecond line","emailEintraege":[{"wert":"care@example.test","typen":["WORK"]}],"anschriften":[{"strasse":"Care 7","ort":"Example","region":"Region","land":"Deutschland","postfach":"42","zusatz":"Floor 2","typen":["WORK"]}]}]}]"""))
+        {
+            var vcard = ExchangeCodec.WriteVCard(people.RootElement).Text;
+            TestAssert.That(!vcard.Contains("local-card", StringComparison.Ordinal), "A local emergency-contact link leaked into vCard exchange.");
+            var restored = ExchangeCodec.ParseVCard(vcard).Kontakte.Single()!["kontaktpersonen"]!.AsArray().Single()!.AsObject();
+            var expected = JsonNode.Parse(people.RootElement[0].GetProperty("kontaktpersonen")[0].GetRawText())!.AsObject();
+            expected.Remove("kontaktId");
+            TestAssert.That(JsonNode.DeepEquals(restored, expected), "Extended emergency-contact details were lost during vCard exchange.");
+            var local = JsonNode.Parse(people.RootElement[0].GetRawText())!.AsObject();
+            var remote = local.DeepClone().AsObject(); remote["kontaktpersonen"]![0]!.AsObject().Remove("kontaktId");
+            TestAssert.That(ContactFields.ContentHash(local) == ContactFields.ContentHash(remote),
+                "A local contact-person link caused a permanent provider content conflict.");
+            remote["firma"] = "Updated parent company";
+            ContactFields.CopyRemoteFields(local, remote, "carddav");
+            TestAssert.That(local["kontaktpersonen"]!.AsArray().Count == 1 &&
+                local["kontaktpersonen"]![0]!["kontaktId"]!.GetValue<string>() == "local-card",
+                "An unchanged provider copy severed the local contact-person reference.");
+            var external = ExchangeCodec.ParseVCard("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Parent\r\nX-MAGNOLIE-NOTFALLKONTAKT:{\"name\":\"Other\",\"kontaktId\":\"local-card\"}\r\nEND:VCARD\r\n");
+            TestAssert.That(external.Kontakte.Single()!["kontaktpersonen"]![0]!["kontaktId"] is null,
+                "An external vCard established a local emergency-contact binding.");
+        }
         foreach (var (revision, reliable) in new[] {
             ("REV:20260101T120000Z", true), ("REV:20260101T120000", false),
             ("REV:20260101T140000+0200", true), ("REV:20260101T063000-05:30", true),

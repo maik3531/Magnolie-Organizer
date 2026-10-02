@@ -733,6 +733,9 @@ msgstr "Adressebog"
 msgid "Address imported from LibreOffice."
 msgstr "Adresse importeret fra LibreOffice."
 
+msgid "Address supplement"
+msgstr "Adressetilføjelse"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr ""
@@ -740,6 +743,9 @@ msgstr ""
 
 msgid "Addresses"
 msgstr "Adresser"
+
+msgid "Advanced"
+msgstr "Avanceret"
 
 msgid "After exercise"
 msgstr "Efter motion"
@@ -1532,6 +1538,9 @@ msgid ""
 msgstr ""
 "Vælg en affaldstype, eller indtast en brugerdefineret afhentning. Angiv den "
 "første afhentning og intervallet i dage; 0 opretter en engangsafhentning."
+
+msgid "Choose an address"
+msgstr "Vælg en adresse"
 
 msgid "Choose at least four characters."
 msgstr "Vælg mindst fire tegn."
@@ -2372,6 +2381,9 @@ msgstr "Rediger det anvendte websted eller program"
 
 msgid "Email"
 msgstr "E-mail"
+
+msgid "Email address"
+msgstr "E-mailadresse"
 
 msgid "Email addresses"
 msgstr "E-mailadresser"
@@ -3298,6 +3310,9 @@ msgstr "Linjeret papir (linjer på skrivearket)"
 msgid "Link"
 msgstr "Link"
 
+msgid "Link existing contact"
+msgstr "Tilknyt eksisterende kontakt"
+
 msgid "Listener active"
 msgstr "Lytter aktiv"
 
@@ -3306,6 +3321,9 @@ msgstr "Lytter stoppet"
 
 msgid "Loading background settings"
 msgstr "Indlæser baggrundsindstillinger"
+
+msgid "Loading…"
+msgstr "Indlæser…"
 
 msgid "Local calendar"
 msgstr "Lokal kalender"
@@ -4472,6 +4490,9 @@ msgstr "Eget vindue tilgængeligt: ja"
 msgid "PDF file"
 msgstr "PDF-fil"
 
+msgid "PO box"
+msgstr "Postboks"
+
 #, python-format
 msgid "POT template written to: %s"
 msgstr "POT-skabelon skrevet til: %s"
@@ -4965,6 +4986,9 @@ msgstr "Gentag"
 
 msgid "Refresh"
 msgstr "Opdatér"
+
+msgid "Region"
+msgstr "Region"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."

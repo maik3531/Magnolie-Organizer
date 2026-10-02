@@ -731,12 +731,18 @@ msgstr "पता पुस्तिका"
 msgid "Address imported from LibreOffice."
 msgstr "LibreOffice से पता आयात किया गया।"
 
+msgid "Address supplement"
+msgstr "पते का अतिरिक्त विवरण"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr "%(branch)s के लिए; शाखा उपलब्ध होने पर इसे पहुँचा दिया जाएगा।"
 
 msgid "Addresses"
 msgstr "पते"
+
+msgid "Advanced"
+msgstr "उन्नत"
 
 msgid "After exercise"
 msgstr "व्यायाम के बाद"
@@ -1510,6 +1516,9 @@ msgid ""
 msgstr ""
 "कचरे का प्रकार चुनें या अपनी संग्रह प्रविष्टि लिखें। पहला संग्रह और दिनों का अंतराल तय करें; "
 "0 एक बार का संग्रह बनाता है।"
+
+msgid "Choose an address"
+msgstr "पता चुनें"
 
 msgid "Choose at least four characters."
 msgstr "कम से कम चार अक्षर चुनें।"
@@ -2332,6 +2341,9 @@ msgstr "उपयोग की जाने वाली वेबसाइट �
 
 msgid "Email"
 msgstr "ईमेल"
+
+msgid "Email address"
+msgstr "ईमेल पता"
 
 msgid "Email addresses"
 msgstr "ईमेल पते"
@@ -3241,6 +3253,9 @@ msgstr "लाइन वाला काग़ज़ (लेखन शीट प
 msgid "Link"
 msgstr "लिंक"
 
+msgid "Link existing contact"
+msgstr "मौजूदा संपर्क जोड़ें"
+
 msgid "Listener active"
 msgstr "अनिश्चित"
 
@@ -3249,6 +3264,9 @@ msgstr "सुनने वाला रुक गया"
 
 msgid "Loading background settings"
 msgstr "बैकग्राउंड सेटिंग लोड की जा रही हैं"
+
+msgid "Loading…"
+msgstr "लोड हो रहा है…"
 
 msgid "Local calendar"
 msgstr "स्थानीय कैलेंडर"
@@ -4394,6 +4412,9 @@ msgstr "अपनी विंडो उपलब्ध: हाँ"
 msgid "PDF file"
 msgstr "PDF फ़ाइल"
 
+msgid "PO box"
+msgstr "डाक पेटी"
+
 #, python-format
 msgid "POT template written to: %s"
 msgstr "POT टेम्पलेट यहाँ लिखा गया: %s"
@@ -4882,6 +4903,9 @@ msgstr "फिर से करें"
 
 msgid "Refresh"
 msgstr "रीफ़्रेश"
+
+msgid "Region"
+msgstr "क्षेत्र"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."

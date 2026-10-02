@@ -777,12 +777,18 @@ msgstr "Адресна книга"
 msgid "Address imported from LibreOffice."
 msgstr "Адресу імпортовано з LibreOffice."
 
+msgid "Address supplement"
+msgstr "Доповнення до адреси"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr "Адресовано %(branch)s; буде доставлено, щойно гілка стане доступною."
 
 msgid "Addresses"
 msgstr "Адреси"
+
+msgid "Advanced"
+msgstr "Додатково"
 
 msgid "After exercise"
 msgstr "Після фізичного навантаження"
@@ -1576,6 +1582,9 @@ msgid ""
 msgstr ""
 "Виберіть тип відходів або введіть власне вивезення. Укажіть першу дату та "
 "інтервал у днях; 0 створює одноразове вивезення."
+
+msgid "Choose an address"
+msgstr "Вибрати адресу"
 
 msgid "Choose at least four characters."
 msgstr "Виберіть щонайменше чотири символи."
@@ -2415,6 +2424,9 @@ msgstr "Редагувати використовуваний вебсайт а�
 
 msgid "Email"
 msgstr "Електронна пошта"
+
+msgid "Email address"
+msgstr "Адреса електронної пошти"
 
 msgid "Email addresses"
 msgstr "Адреси електронної пошти"
@@ -3340,6 +3352,9 @@ msgstr "Лінійований папір (лінії на аркуші для �
 msgid "Link"
 msgstr "Посилання"
 
+msgid "Link existing contact"
+msgstr "Пов’язати наявний контакт"
+
 msgid "Listener active"
 msgstr "попередньо"
 
@@ -3348,6 +3363,9 @@ msgstr "Слухач зупинився"
 
 msgid "Loading background settings"
 msgstr "Завантаження налаштувань фонової служби"
+
+msgid "Loading…"
+msgstr "Завантаження…"
 
 msgid "Local calendar"
 msgstr "Локальний календар"
@@ -4520,6 +4538,9 @@ msgstr "Власне вікно доступне: так"
 msgid "PDF file"
 msgstr "Файл PDF"
 
+msgid "PO box"
+msgstr "Абонентська скринька"
+
 #, python-format
 msgid "POT template written to: %s"
 msgstr "Шаблон POT записано до: %s"
@@ -5021,6 +5042,9 @@ msgstr "Повторити"
 
 msgid "Refresh"
 msgstr "Оновити"
+
+msgid "Region"
+msgstr "Регіон"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."

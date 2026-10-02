@@ -513,11 +513,17 @@ msgstr ""
 msgid "Address imported from LibreOffice."
 msgstr ""
 
+msgid "Address supplement"
+msgstr ""
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr ""
 
 msgid "Addresses"
+msgstr ""
+
+msgid "Advanced"
 msgstr ""
 
 msgid "After exercise"
@@ -1138,6 +1144,9 @@ msgstr ""
 msgid ""
 "Choose a waste type or enter a custom collection. Set the first collection "
 "and the interval in days; 0 creates a one-time collection."
+msgstr ""
+
+msgid "Choose an address"
 msgstr ""
 
 msgid "Choose at least four characters."
@@ -1826,6 +1835,9 @@ msgid "Edit the website or application used"
 msgstr ""
 
 msgid "Email"
+msgstr ""
+
+msgid "Email address"
 msgstr ""
 
 msgid "Email addresses"
@@ -2571,10 +2583,16 @@ msgstr ""
 msgid "Link"
 msgstr ""
 
+msgid "Link existing contact"
+msgstr ""
+
 msgid "Listener active"
 msgstr ""
 
 msgid "Listener stopped"
+msgstr ""
+
+msgid "Loading…"
 msgstr ""
 
 msgid "Local calendar"
@@ -3465,6 +3483,9 @@ msgstr ""
 msgid "PDF file"
 msgstr ""
 
+msgid "PO box"
+msgstr ""
+
 msgid "Packaging / Yellow bin"
 msgstr ""
 
@@ -3897,6 +3918,9 @@ msgid "Redo"
 msgstr ""
 
 msgid "Refresh"
+msgstr ""
+
+msgid "Region"
 msgstr ""
 
 msgid ""
@@ -4991,6 +5015,9 @@ msgid "The drawing limit has been reached."
 msgstr ""
 
 msgid "The end date cannot be before the start date."
+msgstr ""
+
+msgid "The entry could not be found."
 msgstr ""
 
 msgid "The export data is missing."

@@ -565,6 +565,9 @@ msgstr "Książka adresowa"
 msgid "Address imported from LibreOffice."
 msgstr "Adres zaimportowano z LibreOffice."
 
+msgid "Address supplement"
+msgstr "Uzupełnienie adresu"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr ""
@@ -573,6 +576,9 @@ msgstr ""
 
 msgid "Addresses"
 msgstr "Adresy"
+
+msgid "Advanced"
+msgstr "Zaawansowane"
 
 msgid "After exercise"
 msgstr "Po wysiłku fizycznym"
@@ -1239,6 +1245,9 @@ msgid ""
 msgstr ""
 "Wybierz rodzaj odpadów lub wpisz własny odbiór. Ustaw pierwszy odbiór oraz "
 "odstęp w dniach; 0 tworzy odbiór jednorazowy."
+
+msgid "Choose an address"
+msgstr "Wybierz adres"
 
 msgid "Choose at least four characters."
 msgstr "Wybierz co najmniej cztery znaki."
@@ -1972,6 +1981,9 @@ msgstr "Edytuj używaną witrynę lub aplikację"
 
 msgid "Email"
 msgstr "E-mail"
+
+msgid "Email address"
+msgstr "Adres e-mail"
 
 msgid "Email addresses"
 msgstr "Adresy e-mail"
@@ -2767,11 +2779,17 @@ msgstr "Papier w linie (linie na arkuszu do pisania)"
 msgid "Link"
 msgstr "Łącze"
 
+msgid "Link existing contact"
+msgstr "Połącz istniejący kontakt"
+
 msgid "Listener active"
 msgstr "wstępne"
 
 msgid "Listener stopped"
 msgstr "Słuchacz zatrzymany"
+
+msgid "Loading…"
+msgstr "Wczytywanie…"
 
 msgid "Local calendar"
 msgstr "Kalendarz lokalny"
@@ -3727,6 +3745,9 @@ msgstr "Własny numer (domyślna karta SIM do rozmów)"
 msgid "PDF file"
 msgstr "Plik PDF"
 
+msgid "PO box"
+msgstr "Skrytka pocztowa"
+
 msgid "Packaging / Yellow bin"
 msgstr "Opakowania / żółty pojemnik"
 
@@ -4186,6 +4207,9 @@ msgstr "Ponów"
 
 msgid "Refresh"
 msgstr "Odśwież"
+
+msgid "Region"
+msgstr "Region"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."
@@ -5372,6 +5396,9 @@ msgstr "Osiągnięto limit rysowania."
 
 msgid "The end date cannot be before the start date."
 msgstr "Data końcowa nie może być wcześniejsza niż data początkowa."
+
+msgid "The entry could not be found."
+msgstr "Nie znaleziono wpisu."
 
 msgid "The export data is missing."
 msgstr "Brak danych eksportu."

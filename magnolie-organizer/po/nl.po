@@ -740,6 +740,9 @@ msgstr "Adresboek"
 msgid "Address imported from LibreOffice."
 msgstr "Adres geïmporteerd uit LibreOffice."
 
+msgid "Address supplement"
+msgstr "Adrestoevoeging"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr ""
@@ -747,6 +750,9 @@ msgstr ""
 
 msgid "Addresses"
 msgstr "Adressen"
+
+msgid "Advanced"
+msgstr "Geavanceerd"
 
 msgid "After exercise"
 msgstr "Na het sporten"
@@ -1542,6 +1548,9 @@ msgid ""
 msgstr ""
 "Kies een afvalsoort of voer een eigen inzameling in. Stel de eerste "
 "inzameling en het interval in dagen in; 0 maakt een eenmalige inzameling."
+
+msgid "Choose an address"
+msgstr "Adres kiezen"
 
 msgid "Choose at least four characters."
 msgstr "Kies minimaal vier tekens."
@@ -2399,6 +2408,9 @@ msgstr "De gebruikte website of toepassing bewerken"
 
 msgid "Email"
 msgstr "E-mail"
+
+msgid "Email address"
+msgstr "E-mailadres"
 
 msgid "Email addresses"
 msgstr "E-mailadressen"
@@ -3328,6 +3340,9 @@ msgstr "Gelijnd papier (lijnen op het schrijfblad)"
 msgid "Link"
 msgstr "Koppeling"
 
+msgid "Link existing contact"
+msgstr "Bestaand contact koppelen"
+
 msgid "Listener active"
 msgstr "Luisterservice actief"
 
@@ -3336,6 +3351,9 @@ msgstr "Luisterservice gestopt"
 
 msgid "Loading background settings"
 msgstr "Achtergrondinstellingen laden"
+
+msgid "Loading…"
+msgstr "Laden…"
 
 msgid "Local calendar"
 msgstr "Lokale agenda"
@@ -4511,6 +4529,9 @@ msgstr "Eigen venster beschikbaar: ja"
 msgid "PDF file"
 msgstr "PDF-bestand"
 
+msgid "PO box"
+msgstr "Postbus"
+
 #, python-format
 msgid "POT template written to: %s"
 msgstr "POT-sjabloon geschreven naar: %s"
@@ -5022,6 +5043,9 @@ msgstr "Opnieuw"
 
 msgid "Refresh"
 msgstr "Vernieuwen"
+
+msgid "Region"
+msgstr "Regio"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."

@@ -817,12 +817,18 @@ msgstr "Adresnik"
 msgid "Address imported from LibreOffice."
 msgstr "Adresa z LibreOffice importowana."
 
+msgid "Address supplement"
+msgstr "Adresowy dodawk"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr "Za %(branch)s myslene; dodawa so, hdyž budźe wotrězk k dispoziciji."
 
 msgid "Addresses"
 msgstr "Adresy"
+
+msgid "Advanced"
+msgstr "Rozšěrjene"
 
 msgid "After exercise"
 msgstr "Po ćělesnym ćwicjenju"
@@ -1615,6 +1621,9 @@ msgid ""
 msgstr ""
 "Wubjerće družinu wotpadkow abo zapodajće swójski wotwóz. Nastajće prěni "
 "wotwóz a interwal w dnjach; 0 wutwori jónkróćny wotwóz."
+
+msgid "Choose an address"
+msgstr "Adresu wubrać"
 
 msgid "Choose at least four characters."
 msgstr "Wubjerće znajmjeńša štyri znamješka."
@@ -2471,6 +2480,9 @@ msgstr "Wužiwane websydło abo nałoženje wobdźěłać"
 
 msgid "Email"
 msgstr "E-mejl"
+
+msgid "Email address"
+msgstr "E-mejlowa adresa"
 
 msgid "Email addresses"
 msgstr "E-mejlowe adresy"
@@ -3394,6 +3406,9 @@ msgstr "Linijowany papjer (linije na pisanskim łopjenje)"
 msgid "Link"
 msgstr "Wotkaz"
 
+msgid "Link existing contact"
+msgstr "Eksistowacy kontakt zwjazać"
+
 msgid "Listener active"
 msgstr "nachwilne"
 
@@ -3402,6 +3417,9 @@ msgstr "Słuchar wosta stejo"
 
 msgid "Loading background settings"
 msgstr "Pozadkowe nastajenja so začituja"
+
+msgid "Loading…"
+msgstr "Začituje so…"
 
 msgid "Local calendar"
 msgstr "Lokalny protyk"
@@ -4580,6 +4598,9 @@ msgstr "Wosobinske wokno k dispoziciji: haj"
 msgid "PDF file"
 msgstr "PDF-dataj"
 
+msgid "PO box"
+msgstr "Póštowy fach"
+
 #, python-format
 msgid "POT template written to: %s"
 msgstr "POT-předłoha zapisana do: %s"
@@ -5092,6 +5113,9 @@ msgstr "Wospjetować"
 
 msgid "Refresh"
 msgstr "Wokřewić"
+
+msgid "Region"
+msgstr "Region"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."

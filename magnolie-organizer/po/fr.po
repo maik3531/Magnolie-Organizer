@@ -751,6 +751,9 @@ msgstr "Carnet d’adresses"
 msgid "Address imported from LibreOffice."
 msgstr "Adresse importée depuis LibreOffice."
 
+msgid "Address supplement"
+msgstr "Complément d’adresse"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr ""
@@ -759,6 +762,9 @@ msgstr ""
 
 msgid "Addresses"
 msgstr "Adresses"
+
+msgid "Advanced"
+msgstr "Avancé"
 
 msgid "After exercise"
 msgstr "Après l'effort"
@@ -1566,6 +1572,9 @@ msgstr ""
 "Choisissez un type de déchet ou saisissez une collecte personnalisée. "
 "Indiquez la première collecte et l’intervalle en jours ; 0 crée une collecte "
 "unique."
+
+msgid "Choose an address"
+msgstr "Choisir une adresse"
 
 msgid "Choose at least four characters."
 msgstr "Choisissez au moins quatre caractères."
@@ -2429,6 +2438,9 @@ msgstr "Modifier le site Web ou l’application utilisée"
 
 msgid "Email"
 msgstr "E-mail"
+
+msgid "Email address"
+msgstr "Adresse e-mail"
 
 msgid "Email addresses"
 msgstr "Adresses e-mail"
@@ -3375,6 +3387,9 @@ msgstr "Papier ligné (lignes sur la feuille d’écriture)"
 msgid "Link"
 msgstr "Lien"
 
+msgid "Link existing contact"
+msgstr "Lier un contact existant"
+
 msgid "Listener active"
 msgstr "Écouteur actif"
 
@@ -3383,6 +3398,9 @@ msgstr "Écouteur arrêté"
 
 msgid "Loading background settings"
 msgstr "Chargement des paramètres d’arrière-plan"
+
+msgid "Loading…"
+msgstr "Chargement…"
 
 msgid "Local calendar"
 msgstr "Calendrier local"
@@ -4570,6 +4588,9 @@ msgstr "Fenêtre propre disponible : oui"
 msgid "PDF file"
 msgstr "Fichier PDF"
 
+msgid "PO box"
+msgstr "Boîte postale"
+
 #, python-format
 msgid "POT template written to: %s"
 msgstr "Modèle POT écrit dans : %s"
@@ -5090,6 +5111,9 @@ msgstr "Rétablir"
 
 msgid "Refresh"
 msgstr "Actualiser"
+
+msgid "Region"
+msgstr "Région"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."

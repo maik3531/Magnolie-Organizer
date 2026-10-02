@@ -732,12 +732,18 @@ msgstr "Adressebok"
 msgid "Address imported from LibreOffice."
 msgstr "Adresse importert fra LibreOffice."
 
+msgid "Address supplement"
+msgstr "Adressetillegg"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr "Adressert til %(branch)s; den blir levert når grenen er tilgjengelig."
 
 msgid "Addresses"
 msgstr "Adresser"
+
+msgid "Advanced"
+msgstr "Avansert"
 
 msgid "After exercise"
 msgstr "Etter trening"
@@ -1531,6 +1537,9 @@ msgid ""
 msgstr ""
 "Velg en avfallstype eller skriv inn en egendefinert henting. Angi første "
 "henting og intervallet i dager; 0 oppretter en engangshenting."
+
+msgid "Choose an address"
+msgstr "Velg en adresse"
 
 msgid "Choose at least four characters."
 msgstr "Velg minst fire tegn."
@@ -2374,6 +2383,9 @@ msgstr "Rediger nettstedet eller programmet som brukes"
 
 msgid "Email"
 msgstr "E-post"
+
+msgid "Email address"
+msgstr "E-postadresse"
 
 msgid "Email addresses"
 msgstr "E-postadresser"
@@ -3301,6 +3313,9 @@ msgstr "Linjeert papir (linjer på skrivearket)"
 msgid "Link"
 msgstr "Lenke"
 
+msgid "Link existing contact"
+msgstr "Koble til eksisterende kontakt"
+
 msgid "Listener active"
 msgstr "Lytter aktiv"
 
@@ -3309,6 +3324,9 @@ msgstr "Lytter stoppet"
 
 msgid "Loading background settings"
 msgstr "Laster inn bakgrunnsinnstillingene"
+
+msgid "Loading…"
+msgstr "Laster…"
 
 msgid "Local calendar"
 msgstr "Lokal kalender"
@@ -4470,6 +4488,9 @@ msgstr "Eget vindu tilgjengelig: ja"
 msgid "PDF file"
 msgstr "PDF-fil"
 
+msgid "PO box"
+msgstr "Postboks"
+
 #, python-format
 msgid "POT template written to: %s"
 msgstr "POT-mal skrevet til: %s"
@@ -4963,6 +4984,9 @@ msgstr "Gjør om"
 
 msgid "Refresh"
 msgstr "Oppdater"
+
+msgid "Region"
+msgstr "Region"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."

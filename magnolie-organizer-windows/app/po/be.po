@@ -562,12 +562,18 @@ msgstr "Адрасная кніга"
 msgid "Address imported from LibreOffice."
 msgstr "Адрас імпартаваны з LibreOffice."
 
+msgid "Address supplement"
+msgstr "Дапаўненне да адраса"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr "Адрасавана %(branch)s; будзе дастаўлена, калі галіна стане даступнай."
 
 msgid "Addresses"
 msgstr "Адрасы"
+
+msgid "Advanced"
+msgstr "Дадаткова"
 
 msgid "After exercise"
 msgstr "Пасля фізічнай нагрузкі"
@@ -1234,6 +1240,9 @@ msgid ""
 msgstr ""
 "Выберыце тып адходаў або ўвядзіце свой вываз. Задайце першы вываз і інтэрвал "
 "у днях; 0 стварае аднаразовы вываз."
+
+msgid "Choose an address"
+msgstr "Выбраць адрас"
 
 msgid "Choose at least four characters."
 msgstr "Выберыце не менш за чатыры знакі."
@@ -1962,6 +1971,9 @@ msgstr "Рэдагаваць выкарыстоўваны вэб-сайт або
 
 msgid "Email"
 msgstr "Электронная пошта"
+
+msgid "Email address"
+msgstr "Адрас электроннай пошты"
 
 msgid "Email addresses"
 msgstr "Адрасы электроннай пошты"
@@ -2755,11 +2767,17 @@ msgstr "Лінаваны папер (лініі на аркушы для піс�
 msgid "Link"
 msgstr "Спасылка"
 
+msgid "Link existing contact"
+msgstr "Звязаць існуючы кантакт"
+
 msgid "Listener active"
 msgstr "папярэдне"
 
 msgid "Listener stopped"
 msgstr "Слухач спыніўся"
+
+msgid "Loading…"
+msgstr "Загрузка…"
 
 msgid "Local calendar"
 msgstr "Лакальны каляндар"
@@ -3714,6 +3732,9 @@ msgstr "Уласны нумар (стандартная SIM для званко�
 msgid "PDF file"
 msgstr "Файл PDF"
 
+msgid "PO box"
+msgstr "Абаненцкая скрыня"
+
 msgid "Packaging / Yellow bin"
 msgstr "Упакоўка / жоўты кантэйнер"
 
@@ -4172,6 +4193,9 @@ msgstr "Паўтарыць"
 
 msgid "Refresh"
 msgstr "Абнавіць"
+
+msgid "Region"
+msgstr "Рэгіён"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."
@@ -5342,6 +5366,9 @@ msgstr "Дасягнута мяжа малявання."
 
 msgid "The end date cannot be before the start date."
 msgstr "Дата заканчэння не можа быць ранейшай за дату пачатку."
+
+msgid "The entry could not be found."
+msgstr "Запіс не знойдзены."
 
 msgid "The export data is missing."
 msgstr "Экспартныя даныя адсутнічаюць."

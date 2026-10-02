@@ -745,12 +745,18 @@ msgstr "Libreta de direcciones"
 msgid "Address imported from LibreOffice."
 msgstr "Dirección importada de LibreOffice."
 
+msgid "Address supplement"
+msgstr "Complemento de dirección"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr "Dirigido a %(branch)s; se entregará cuando la rama esté disponible."
 
 msgid "Addresses"
 msgstr "Direcciones"
+
+msgid "Advanced"
+msgstr "Avanzado"
 
 msgid "After exercise"
 msgstr "Después del ejercicio"
@@ -1557,6 +1563,9 @@ msgid ""
 msgstr ""
 "Elige un tipo de residuo o introduce una recogida personalizada. Indica la "
 "primera recogida y el intervalo en días; 0 crea una recogida única."
+
+msgid "Choose an address"
+msgstr "Elegir una dirección"
 
 msgid "Choose at least four characters."
 msgstr "Elige al menos cuatro caracteres."
@@ -2410,6 +2419,9 @@ msgstr "Editar el sitio web o la aplicación utilizada"
 
 msgid "Email"
 msgstr "Correo electrónico"
+
+msgid "Email address"
+msgstr "Dirección de correo electrónico"
 
 msgid "Email addresses"
 msgstr "Direcciones de correo electrónico"
@@ -3350,6 +3362,9 @@ msgstr "Papel rayado (líneas en la hoja de escritura)"
 msgid "Link"
 msgstr "Enlace"
 
+msgid "Link existing contact"
+msgstr "Vincular un contacto existente"
+
 msgid "Listener active"
 msgstr "Servicio de escucha activo"
 
@@ -3358,6 +3373,9 @@ msgstr "Servicio de escucha detenido"
 
 msgid "Loading background settings"
 msgstr "Cargando los ajustes del servicio en segundo plano"
+
+msgid "Loading…"
+msgstr "Cargando…"
 
 msgid "Local calendar"
 msgstr "Calendario local"
@@ -4534,6 +4552,9 @@ msgstr "Ventana propia disponible: sí"
 msgid "PDF file"
 msgstr "Archivo PDF"
 
+msgid "PO box"
+msgstr "Apartado postal"
+
 #, python-format
 msgid "POT template written to: %s"
 msgstr "Plantilla POT escrita en: %s"
@@ -5045,6 +5066,9 @@ msgstr "Rehacer"
 
 msgid "Refresh"
 msgstr "Actualizar"
+
+msgid "Region"
+msgstr "Región"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."

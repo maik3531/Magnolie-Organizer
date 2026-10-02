@@ -1800,13 +1800,21 @@ internal static partial class ExchangeCodec
     {
         var result = new JsonArray();
         foreach (var entry in Entries(values, name))
-            try { if (JsonNode.Parse(entry.Value) is JsonObject value) result.Add(value); } catch (JsonException) { }
+            try { if (JsonNode.Parse(entry.Value) is JsonObject value) {
+                if (name == "X-MAGNOLIE-NOTFALLKONTAKT") value.Remove("kontaktId");
+                result.Add(value);
+            } } catch (JsonException) { }
         return result;
     }
     private static void AddMagnolieJsonEntries(List<string> lines, JsonElement contact, string field, string property)
     {
         if (!contact.TryGetProperty(field, out var entries) || entries.ValueKind != JsonValueKind.Array) return;
-        foreach (var entry in entries.EnumerateArray()) if (entry.ValueKind == JsonValueKind.Object) lines.Add(property + ":" + V(entry.GetRawText()));
+        foreach (var entry in entries.EnumerateArray()) if (entry.ValueKind == JsonValueKind.Object)
+        {
+            var value = JsonNode.Parse(entry.GetRawText())!.AsObject();
+            if (field == "kontaktpersonen") value.Remove("kontaktId");
+            lines.Add(property + ":" + V(value.ToJsonString()));
+        }
     }
 
     private static (JsonObject Contact, string Name, string Birthday, bool UnknownYear)? ContactFromFields(Dictionary<string, List<string>> fields, string photo)

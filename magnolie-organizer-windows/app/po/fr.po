@@ -540,6 +540,9 @@ msgstr "Carnet d’adresses"
 msgid "Address imported from LibreOffice."
 msgstr "Adresse importée depuis LibreOffice."
 
+msgid "Address supplement"
+msgstr "Complément d’adresse"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr ""
@@ -548,6 +551,9 @@ msgstr ""
 
 msgid "Addresses"
 msgstr "Adresses"
+
+msgid "Advanced"
+msgstr "Avancé"
 
 msgid "After exercise"
 msgstr "Après l'effort"
@@ -1222,6 +1228,9 @@ msgstr ""
 "Choisissez un type de déchet ou saisissez une collecte personnalisée. "
 "Indiquez la première collecte et l’intervalle en jours ; 0 crée une collecte "
 "unique."
+
+msgid "Choose an address"
+msgstr "Choisir une adresse"
 
 msgid "Choose at least four characters."
 msgstr "Choisissez au moins quatre caractères."
@@ -1972,6 +1981,9 @@ msgstr "Modifier le site Web ou l’application utilisée"
 
 msgid "Email"
 msgstr "E-mail"
+
+msgid "Email address"
+msgstr "Adresse e-mail"
 
 msgid "Email addresses"
 msgstr "Adresses e-mail"
@@ -2783,11 +2795,17 @@ msgstr "Papier ligné (lignes sur la feuille d’écriture)"
 msgid "Link"
 msgstr "Lien"
 
+msgid "Link existing contact"
+msgstr "Lier un contact existant"
+
 msgid "Listener active"
 msgstr "Écouteur actif"
 
 msgid "Listener stopped"
 msgstr "Écouteur arrêté"
+
+msgid "Loading…"
+msgstr "Chargement…"
 
 msgid "Local calendar"
 msgstr "Calendrier local"
@@ -3757,6 +3775,9 @@ msgstr "Mon numéro (SIM vocale par défaut)"
 msgid "PDF file"
 msgstr "Fichier PDF"
 
+msgid "PO box"
+msgstr "Boîte postale"
+
 msgid "Packaging / Yellow bin"
 msgstr "Emballages / bac jaune"
 
@@ -4226,6 +4247,9 @@ msgstr "Rétablir"
 
 msgid "Refresh"
 msgstr "Actualiser"
+
+msgid "Region"
+msgstr "Région"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."
@@ -5434,6 +5458,9 @@ msgstr "La limite de dessin est atteinte."
 
 msgid "The end date cannot be before the start date."
 msgstr "La date de fin ne peut pas précéder la date de début."
+
+msgid "The entry could not be found."
+msgstr "L’entrée est introuvable."
 
 msgid "The export data is missing."
 msgstr "Les données d'exportation sont manquantes."

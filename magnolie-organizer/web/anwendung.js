@@ -4395,8 +4395,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       ? kontakt.kontaktpersonen.slice() : [];
     if (kontakt && (kontakt.kontaktpersonName || kontakt.kontaktpersonTelefon ||
       kontakt.kontaktpersonStatus)) {
-      kandidaten.unshift({ name: kontakt.kontaktpersonName,
-        telefon: kontakt.kontaktpersonTelefon, status: kontakt.kontaktpersonStatus });
+      const alt = { name: kontakt.kontaktpersonName || "", telefon: kontakt.kontaktpersonTelefon || "", status: kontakt.kontaktpersonStatus || "" };
+      if (!kandidaten.some(p => p && ["name", "telefon", "status"].every(f => String(p[f] || "") === String(alt[f])))) kandidaten.unshift(alt);
     }
     const aus = [], gesehen = new Set();
     for (const roh of kandidaten) {
@@ -4404,10 +4404,19 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const eintrag = { name: String(roh.name || "").trim(),
         telefon: String(roh.telefon || "").trim(),
         status: String(roh.status || roh.beziehung || "").trim().slice(0, 80) };
-      if (!eintrag.name && !eintrag.telefon && !eintrag.status) continue;
-      const schluessel = [kanonischerText(eintrag.name),
+      if (typeof roh.kontaktId === "string" && roh.kontaktId.trim()) eintrag.kontaktId = roh.kontaktId.trim();
+      for (const feld of ["vorname", "nachname", "anzeigename", "firma", "notiz", "geburtstag", "jubilaeum"])
+        if (typeof roh[feld] === "string" && roh[feld].trim()) eintrag[feld] = roh[feld].trim();
+      if (eintrag.vorname || eintrag.nachname) eintrag.name = [eintrag.vorname, eintrag.nachname].filter(Boolean).join(" ");
+      if (Array.isArray(roh.telefone) || roh.mobil) eintrag.telefone = telefonListe(roh);
+      if (roh.email || Array.isArray(roh.emails) || Array.isArray(roh.emailEintraege)) eintrag.emailEintraege = emailEintragListe(roh);
+      if (Array.isArray(roh.anschriften) || roh.strasse || roh.plz || roh.ort) eintrag.anschriften = anschriftListe(roh);
+      if (Array.isArray(roh.sozialeMedien)) eintrag.sozialeMedien = sozialeMedienListe(roh);
+      if (sauberesFoto(roh.foto)) eintrag.foto = sauberesFoto(roh.foto);
+      if (!eintrag.name && !eintrag.telefon && !eintrag.status && !eintrag.kontaktId && !eintrag.firma && !eintrag.anschriften?.length) continue;
+      const schluessel = eintrag.kontaktId ? "link:" + eintrag.kontaktId + "|" + kanonischerText(eintrag.status) : [kanonischerText(eintrag.name),
         telefonSchluessel(eintrag.telefon) || eintrag.telefon,
-        kanonischerText(eintrag.status)].join("|");
+        kanonischerText(eintrag.status), kanonischerEntwurf(Object.fromEntries(Object.entries(eintrag).filter(([f]) => !["name", "telefon", "status"].includes(f))))].join("|");
       if (gesehen.has(schluessel)) continue;
       gesehen.add(schluessel);
       aus.push(eintrag);
@@ -4422,6 +4431,63 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     kontakt.kontaktpersonTelefon = erste.telefon || "";
     kontakt.kontaktpersonStatus = erste.status || "";
     return kontakt;
+  }
+
+  function aufgeloesteKontaktpersonen(kontakt, daten = DATEN) {
+    return kontaktpersonenListe(kontakt).map(person => {
+      if (!person.kontaktId) return person;
+      const ziel = daten.kontakte.find(k => k.id === person.kontaktId && k.id !== kontakt.id);
+      if (!ziel) return { ...person, verknuepfungFehlt: true };
+      // Resolve one card only; reciprocal emergency contacts never recurse.
+      const werte = kontaktpersonenListe({ kontaktpersonen: [{ ...ziel, kontaktId: "", name: [ziel.vorname, ziel.nachname].filter(Boolean).join(" ") || ziel.anzeigename || ziel.firma || "",
+        telefon: telefonListe(ziel)[0]?.wert || "", status: person.status }] })[0] || {};
+      return { ...werte, kontaktId: person.kontaktId, status: person.status };
+    });
+  }
+
+  function aktualisiereKontaktpersonen(daten) {
+    for (const kontakt of daten.kontakte) {
+      const vorher = kontaktpersonenListe(kontakt);
+      if (!vorher.some(p => p.kontaktId)) continue;
+      const aktuell = aufgeloesteKontaktpersonen(kontakt, daten).map((person, index) =>
+        person.verknuepfungFehlt ? vorher[index] : person);
+      if (kontaktZeitInhaltGleich(vorher, aktuell)) continue;
+      setzeKontaktpersonen(kontakt, aktuell);
+      kontakt.geaendert = Date.now();
+      delete kontakt.kontaktZeit;
+    }
+  }
+
+  function kontaktKartenZiele(kontakt) {
+    const ziele = [];
+    const sammeln = (person, name, schluessel) => anschriftListe(person).forEach((adresse, nr) => {
+      if (![adresse.strasse, adresse.plz, adresse.ort, adresse.region, adresse.land].some(Boolean)) return;
+      ziele.push({ schluessel: schluessel + ":" + nr, name, adresse,
+        bezeichnung: [name, anschriftBezeichnung(adresse, nr), adresse.strasse, adresse.plz, adresse.ort, adresse.region, adresse.land].filter(Boolean).join(" · ") });
+    });
+    sammeln(kontakt, kontaktName(kontakt), "kontakt");
+    aufgeloesteKontaktpersonen(kontakt).filter(p => !p.verknuepfungFehlt).forEach((person, nr) =>
+      sammeln(person, [person.name || person.firma, person.status].filter(Boolean).join(" · "), "person:" + nr));
+    return ziele;
+  }
+
+  function kontaktFuerAustausch(kontakt) {
+    const aus = kopie(kontakt);
+    setzeKontaktpersonen(aus, aufgeloesteKontaktpersonen(kontakt).map(person => {
+      const { kontaktId, verknuepfungFehlt, ...werte } = person; return werte;
+    }));
+    return aus;
+  }
+
+  function kontaktpersonZusatzWerte(person) {
+    return [[_("Company"), person.firma],
+      ...telefonListe(person).filter(t => t.wert !== person.telefon).map(t => [telefonBezeichnung(t), t.wert]),
+      ...emailEintragListe(person).map((e, i) => [emailBezeichnung(e, i), e.wert]),
+      ...anschriftListe(person).map((a, i) => [anschriftBezeichnung(a, i),
+        [a.strasse, a.zusatz, a.postfach, a.plz, a.ort, a.region, a.land].filter(Boolean).join(", ")]),
+      [_("Birthday"), datumAnzeige(person.geburtstag)], [_("Anniversary"), datumAnzeige(person.jubilaeum)],
+      [_("Note"), person.notiz], ...sozialeMedienListe(person).map(e => [sozialerDienstName(e.dienst), e.wert])]
+      .filter(([, wert]) => wert);
   }
 
   function anschriftBezeichnung(anschrift, index) {
@@ -6309,9 +6375,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (aliase.has(id) && aliase.get(id) !== kontakt.id) aliase.set(id, null);
       else aliase.set(id, kontakt.id);
     }
-    if (!aliase.size) return;
+    if (!aliase.size) { aktualisiereKontaktpersonen(daten); return; }
     for (const feld of ["termine", "aufgaben", "jahrestage", "smsVerlauf", "smsPlanung"])
       for (const eintrag of daten[feld] || []) if (aliase.get(eintrag.kontaktId)) eintrag.kontaktId = aliase.get(eintrag.kontaktId);
+    for (const kontakt of daten.kontakte) for (const person of kontakt.kontaktpersonen || [])
+      if (aliase.get(person.kontaktId)) person.kontaktId = aliase.get(person.kontaktId);
+    aktualisiereKontaktpersonen(daten);
   }
 
   function normalisiere(roh) {
@@ -9575,7 +9644,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return zeilen.some((z) => /\d/.test(z));
   }
 
+  let kontaktKartenAuswahlSchliessen = null;
   function zeigeKarte(k) {
+    if (gesperrt || kontaktKartenAuswahlSchliessen) return false;
     const ea = DATEN.einstellungen.adressen;
     /* Zuerst das Naheliegende prüfen: Ohne Ausgangspunkt hat eine Route
        keinen Sinn – das ist die hilfreichere Meldung. */
@@ -9585,11 +9656,34 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       return false;
     }
     if (!Bruecke.vorhanden) return nurImProgramm();
-    Bruecke.sende({ cmd: "karte", kontakt: k,
-      dienst: ea.karten || "auto",
-      land: ea.land || "Deutschland",
-      route: !!ea.route,
-      absender: ea.absender || "" });
+    const bestand = DATEN, ziele = kontaktKartenZiele(k), stand = kanonischerEntwurf(ziele), einstellungen = kanonischerEntwurf(ea);
+    if (!ziele.length) return false;
+    const senden = ziel => {
+      const aktuell = k.id ? DATEN.kontakte.find(c => c.id === k.id) : k;
+      if (DATEN !== bestand || gesperrt || !aktuell || kanonischerEntwurf(kontaktKartenZiele(aktuell)) !== stand ||
+          kanonischerEntwurf(DATEN.einstellungen.adressen) !== einstellungen) { zettel(_("Conflict")); return false; }
+      const adresse = ziel.adresse;
+      return Bruecke.sende({ cmd: "karte", kontakt: { vorname: "", nachname: ziel.name, firma: "",
+        ...adresse, anschriften: [kopie(adresse)] }, dienst: ea.karten || "auto",
+        land: adresse.land || ea.land || "Deutschland", route: !!ea.route, absender: ea.absender || "" });
+    };
+    if (ziele.length === 1) { senden(ziele[0]); return true; }
+    const schleier = el("div", "eingabe-schleier kontakt-karten-auswahl"), dialog = el("div", "eingabe-dialog");
+    const schliessen = () => { if (kontaktKartenAuswahlSchliessen !== schliessen) return;
+      kontaktKartenAuswahlSchliessen = null; beendeModal(schleier); schleier.remove(); };
+    kontaktKartenAuswahlSchliessen = schliessen;
+    const liste = el("div", "anruf-auswahl");
+    for (const ziel of ziele) {
+      const b = knopf(ziel.bezeichnung, "", () => {
+        if (kontaktKartenAuswahlSchliessen !== schliessen) return;
+        schliessen(); senden(ziel);
+      });
+      b.dataset.kartenZiel = ziel.schluessel; liste.append(b);
+    }
+    const knoepfe = el("div", "dialog-knoepfe"); knoepfe.append(knopf(_("Cancel"), "", schliessen));
+    dialog.append(el("h3", null, _("Choose an address")), liste, knoepfe);
+    schleier.append(dialog); document.body.append(schleier);
+    registriereModal(schleier, dialog, { anfang: liste.querySelector("button"), schliessen });
     return true;
   }
 
@@ -9955,12 +10049,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const mobil = mobilIndex >= 0 ? telefone[mobilIndex].wert : "";
       const weitereNummern = telefone.filter((_t, index) =>
         index !== festnetzIndex && index !== mobilIndex).map((t) => t.wert).join("\n");
-      const notfall = kontaktpersonenListe(k).map((person, index) => {
+      const notfall = aufgeloesteKontaktpersonen(k).map((person, index) => {
         const bezeichnung = index ? uebersetzt("Emergency contact %(number)s", {
           number: index + 1 }) : _("Emergency contact");
         return [bezeichnung + ": " + [person.name, person.status]
           .filter(Boolean).join(" · "), person.telefon
-          ? _("Emergency contact phone") + ": " + person.telefon : ""]
+          ? _("Emergency contact phone") + ": " + person.telefon : "", ...kontaktpersonZusatzWerte(person).map(([titel, wert]) => titel + ": " + wert)]
           .filter(Boolean).join("\n");
       }).join("\n\n");
       const emails = emailEintragListe(k).map((eintrag) => eintrag.wert).join("\n");
@@ -10767,12 +10861,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     emailEintragListe(k).forEach((eintrag, index) => {
       druckWerte.push([emailBezeichnung(eintrag, index), eintrag.wert]);
     });
-    kontaktpersonenListe(k).forEach((person, index) => {
+    aufgeloesteKontaktpersonen(k).forEach((person, index) => {
       druckWerte.push([index ? uebersetzt("Emergency contact %(number)s", {
         number: index + 1 }) : _("Emergency contact"),
         [person.name, person.status ? "(" + person.status + ")" : ""]
           .filter(Boolean).join(" ")]);
       if (person.telefon) druckWerte.push([_("Emergency contact phone"), person.telefon]);
+      druckWerte.push(...kontaktpersonZusatzWerte(person));
     });
     for (const [wort, wert] of druckWerte) {
       if (wert) {
@@ -10805,12 +10900,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     emailEintragListe(k).forEach((eintrag, index) => {
       druckWerte.push([emailBezeichnung(eintrag, index), eintrag.wert]);
     });
-    kontaktpersonenListe(k).forEach((person, index) => {
+    aufgeloesteKontaktpersonen(k).forEach((person, index) => {
       druckWerte.push([index ? uebersetzt("Emergency contact %(number)s", {
         number: index + 1 }) : _("Emergency contact"),
         [person.name, person.status ? "(" + person.status + ")" : ""]
           .filter(Boolean).join(" ")]);
       if (person.telefon) druckWerte.push([_("Emergency contact phone"), person.telefon]);
+      druckWerte.push(...kontaktpersonZusatzWerte(person));
     });
     for (const [wort, wert] of druckWerte) {
       if (wert) {
@@ -15707,7 +15803,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       liste = DATEN.kontakte.filter((k) => {
         const text = [k.nachname, k.vorname, k.anzeigename, k.firma, k.notiz, k.geburtstag, k.jubilaeum,
           k.geburtstag ? datumAnzeige(k.geburtstag) : "",
-          kontaktpersonenListe(k).map((p) => [p.name, p.telefon, p.status].join(" ")).join(" "),
+          aufgeloesteKontaktpersonen(k).map((p) => [p.name, p.telefon, p.status, kontaktpersonZusatzWerte(p).map(w => w[1]).join(" ")].join(" ")).join(" "),
           anschriftListe(k).map((a) => [anschriftBezeichnung(a), a.strasse, a.plz,
             a.ort, a.land].join(" ")).join(" "),
           emailListe(k).join(" "),
@@ -15718,7 +15814,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         const textTreffer = begriffe.every((begriff) => text.includes(begriff));
         return textTreffer || (!!telefonSuche && (telefonListe(k).some(
           (t) => telefonSchluessel(t.wert) === telefonSuche) ||
-          kontaktpersonenListe(k).some(
+          aufgeloesteKontaktpersonen(k).some(
             (p) => telefonSchluessel(p.telefon) === telefonSuche)));
       });
     } else {
@@ -15925,12 +16021,32 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (kontaktpersonenListe(k).length) {
       const block = el("div", "k-block kontaktperson-block");
       block.append(el("div", "k-label", _("Emergency contacts")));
-      kontaktpersonenListe(k).forEach((person) => {
+      aufgeloesteKontaktpersonen(k).forEach((person) => {
         const zeile = el("div", "kontaktperson-anzeige");
         const name = [person.name, person.status ? "(" + person.status + ")" : ""]
           .filter(Boolean).join(" ");
         if (name) zeile.append(el("div", "k-wert", name));
         if (person.telefon) zeile.append(el("div", "k-wert", person.telefon));
+        if (person.verknuepfungFehlt) zeile.append(el("div", "einst-warnung", _("The entry could not be found.")));
+        if (person.kontaktId && !person.verknuepfungFehlt) {
+          const profil = DATEN;
+          zeile.append(knopf(_("Open"), "klein", () => navigiereMitGuard(() => {
+            const ziel = DATEN === profil && DATEN.kontakte.find(c => c.id === person.kontaktId);
+            if (!ziel || gesperrt) return;
+            Object.assign(zustand.adressen, { auswahlId: ziel.id, buchstabe: buchstabeVon(ziel), suche: "", modus: "ansehen" });
+            zeichneAlles();
+          })));
+        }
+        const zusatz = kontaktpersonZusatzWerte(person);
+        if (zusatz.length || person.foto && DATEN.einstellungen.adressen.foto) {
+          const details = el("details"); details.append(el("summary", null, _("Advanced")));
+          for (const [titel, wert] of zusatz) details.append(el("div", "k-wert", titel + ": " + wert));
+          if (person.foto && DATEN.einstellungen.adressen.foto) {
+            const bild = el("img"); bild.src = person.foto; bild.alt = person.name || _("Photo");
+            bild.style.maxWidth = "120px"; bild.style.maxHeight = "120px"; details.append(bild);
+          }
+          zeile.append(details);
+        }
         block.append(zeile);
       });
       karte.append(block);
@@ -15944,7 +16060,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       wege.append(bildknopf("brief", _("Letter"), () => schreibeBrief(k),
         _("Open this address as a letter in LibreOffice")));
     }
-    if (ea.karte && anschriften.length) {
+    if (ea.karte && kontaktKartenZiele(k).length) {
       wege.append(bildknopf("karte", ea.route ? _("Route") : _("Map"),
         () => zeigeKarte(k),
         ea.route ? _("Calculate the route to this address")
@@ -15990,6 +16106,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         .filter(key => !["id", "uid", "sync", "foto", "fotoAlternativen", "fotoQuellen", "fotoQuelle", "fotoManuell",
           "baumKontakt", "syncQuellen", "syncKonflikte", "importBindungen", "importHerkunfte", "importKonflikt",
           "kontaktAliase", "kdeImportStaende", "kontaktZeit", "kontaktProviderKonflikte", "vcardRev"].includes(key)).map(key => [key, k[key]]))));
+      setzeKontaktpersonen(kopie, kontaktFuerAustausch(k).kontaktpersonen.map(({ foto, ...person }) => person));
       return kopie;
     }, _("Share address"), (kennungen) => {
       try {
@@ -16032,6 +16149,95 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return karte;
   }
 
+  function kontaktpersonErweitert(person, aenderung, fotoStart, fotoEnde, nurLesen = false) {
+    const details = el("details", "kontaktperson-erweitert"); details.append(el("summary", null, _("Advanced")));
+    let gebaut = false;
+    const bauen = () => {
+    person.telefone = telefonListe(person);
+    person.emailEintraege = emailEintragListe(person);
+    person.anschriften = anschriftListe(person);
+    person.sozialeMedien = sozialeMedienListe(person);
+    const inhalt = el("fieldset", "kontaktperson-details"); inhalt.disabled = nurLesen; details.append(inhalt);
+    const feld = (objekt, key, titel, typ = "text") => {
+      const f = eingabe(typ, objekt[key] || "", typ === "date" ? { jahrOptional: true,
+        jahrUnbekannt: String(objekt[key] || "").startsWith("--") } : {}); f.dataset.personFeld = key;
+      f.addEventListener("input", () => { objekt[key] = typ === "date" ? datumswert(f) : f.value; aenderung(key); });
+      return formZeile(titel, f);
+    };
+    for (const [key, titel, typ] of [["nachname", _("Last name")], ["vorname", _("First name")],
+      ["anzeigename", _("Name")], ["firma", _("Company")], ["geburtstag", _("Birthday"), "date"],
+      ["jubilaeum", _("Anniversary"), "date"], ["notiz", _("Note"), "textarea"]]) inhalt.append(feld(person, key, titel, typ));
+    const mehrfach = (key, titel, neu, fuellen) => {
+      const block = el("section", "kontaktperson-mehrfach"), liste = el("div");
+      block.dataset.personListe = key;
+      person[key] ||= [];
+      const zeichnen = () => {
+        liste.textContent = "";
+        person[key].forEach((eintrag, index) => {
+          const zeile = el("div", "kontaktperson-eintrag"); fuellen(zeile, eintrag, index);
+          const entfernen = knopf("−", "klein", () => { person[key].splice(index, 1); aenderung(key); zeichnen(); });
+          entfernen.setAttribute("aria-label", _("Remove") + ": " + titel); zeile.append(entfernen); liste.append(zeile);
+        });
+      };
+      block.append(el("h4", null, titel), liste, knopf(_("Add"), "klein", () => { person[key].push(neu()); zeichnen(); aenderung(key); }));
+      zeichnen(); inhalt.append(block);
+    };
+    const artFeld = (zeile, eintrag, typ) => {
+      const wert = typ === "anschrift" ? anschriftArtText(eintrag) : typ === "email" ? emailArtText(eintrag) : telefonArtText(eintrag);
+      const f = eingabe("text", wert); f.dataset.personFeld = "art"; f.setAttribute("aria-label", _("Type"));
+      f.addEventListener("input", () => {
+        const art = typ === "anschrift" ? anschriftArtAusText(f.value) : typ === "email" ? emailArtAusText(f.value) : telefonArtAusText(f.value);
+        if (art) {
+          eintrag.typen = typ === "anschrift" ? anschriftTypenAusArt(art) : typ === "email" ? emailTypenAusArt(art) : telefonTypenAusArt(art);
+          eintrag.label = "";
+        } else eintrag.label = kontaktLabel(f.value);
+        aenderung(typ);
+      });
+      zeile.append(f);
+    };
+    mehrfach("telefone", _("Phone numbers"), () => ({ wert: "", typen: [] }), (zeile, e) => {
+      artFeld(zeile, e, "telefon"); zeile.append(feld(e, "wert", _("Phone"), "tel"));
+    });
+    mehrfach("emailEintraege", _("Email addresses"), () => ({ wert: "", typen: [] }), (zeile, e) => {
+      artFeld(zeile, e, "email"); zeile.append(feld(e, "wert", _("Email address"), "email"));
+    });
+    mehrfach("anschriften", _("Addresses"), () => ({ strasse: "", plz: "", ort: "", region: "", land: "", typen: [] }), (zeile, e) => {
+      artFeld(zeile, e, "anschrift");
+      for (const [key, titel] of [["strasse", _("Street and house number")], ["plz", _("Postal code")], ["ort", _("City")],
+        ["region", _("Region")], ["land", _("Country (optional)")], ["postfach", _("PO box")], ["zusatz", _("Address supplement")]]) zeile.append(feld(e, key, titel));
+    });
+    mehrfach("sozialeMedien", _("Social media"), () => ({ dienst: "", wert: "" }), (zeile, e) => {
+      const dienst = auswahlFeld([["", _("Choose service")], ...SOZIALE_DIENSTE], e.dienst);
+      dienst.addEventListener("change", () => { e.dienst = dienst.value; aenderung("sozialeMedien"); });
+      zeile.append(dienst, feld(e, "wert", _("Handle or profile address")), feld(e, "label", _("Name")));
+    });
+    const foto = el("img", "kontaktfoto"); foto.alt = _("Photo");
+    foto.style.maxWidth = "120px"; foto.style.maxHeight = "120px";
+    const aktualisiereFoto = () => { const url = sauberesFoto(person.foto); foto.hidden = !url;
+      if (url) foto.src = url; else foto.removeAttribute("src"); };
+    aktualisiereFoto();
+    const waehlen = document.createElement("input"); waehlen.type = "file"; waehlen.accept = "image/jpeg,image/png,image/webp";
+    waehlen.setAttribute("aria-label", _("Choose photo…"));
+    let folge = 0;
+    waehlen.addEventListener("change", () => {
+      const datei = waehlen.files?.[0]; if (!datei) return;
+      const nummer = ++folge; fotoStart(person);
+      kontaktFotoLesen(datei, (wert, fehler) => {
+        if (nummer !== folge) return;
+        fotoEnde(person);
+        if (!details.isConnected || gesperrt || nurLesen) return;
+        if (fehler) { zettel(fehler); return; }
+        person.foto = wert; aktualisiereFoto(); aenderung("foto");
+      });
+    });
+    inhalt.append(foto, waehlen, knopf(_("Remove photo"), "klein", () => {
+      folge++; fotoEnde(person); person.foto = ""; aktualisiereFoto(); aenderung("foto");
+    }));
+    };
+    details.addEventListener("toggle", () => { if (details.open && !gebaut) { gebaut = true; bauen(); } });
+    return details;
+  }
+
   function kontaktFormular(k) {
     const z = zustand.adressen;
     const form = el("fieldset", "formular kontakt-formular" + (k ? " bearbeiten" : " neu"));
@@ -16048,6 +16254,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       : [{ wert: "", typen: [] }];
     const kontaktpersonen = k && kontaktpersonenListe(k).length ? kontaktpersonenListe(k)
       : [{ name: "", telefon: "", status: "" }];
+    const kontaktpersonFotos = new Set();
     const sozialeMedien = k && sozialeMedienListe(k).length ? sozialeMedienListe(k)
       : [{ dienst: "", wert: "" }];
     const fNotiz = eingabe("textarea", k ? k.notiz : "");
@@ -16445,6 +16652,27 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       kontaktpersonKasten.textContent = "";
       kontaktpersonen.forEach((person, index) => {
         const karte = el("div", "kontaktperson-zeile");
+        const bezug = auswahlFeld([["", _("— do not link —")],
+          ...DATEN.kontakte.filter(c => c.id !== k?.id).map(c => [c.id,
+            kontaktName(c) + " · " + (emailListe(c)[0] || telefonListe(c)[0]?.wert || c.firma || "")])], person.kontaktId || "");
+        bezug.dataset.personVerknuepfung = String(index);
+        if (person.kontaktId && !DATEN.kontakte.some(c => c.id === person.kontaktId && c.id !== k?.id)) {
+          const fehlt = document.createElement("option"); fehlt.value = person.kontaktId; fehlt.textContent = _("The entry could not be found.");
+          bezug.append(fehlt); bezug.value = person.kontaktId;
+        }
+        bezug.addEventListener("change", () => {
+          const alt = aufgeloesteKontaktpersonen({ id: k?.id, kontaktpersonen: [person] })[0];
+          const status = person.status;
+          for (const feld of Object.keys(person)) delete person[feld];
+          if (bezug.value) {
+            const ziel = DATEN.kontakte.find(c => c.id === bezug.value && c.id !== k?.id);
+            if (ziel) Object.assign(person, { kontaktId: ziel.id, name: kontaktName(ziel), telefon: telefonListe(ziel)[0]?.wert || "", status });
+          } else {
+            Object.assign(person, alt, { status }); delete person.kontaktId; delete person.verknuepfungFehlt;
+          }
+          kontaktpersonFotos.delete(person); zeichneKontaktpersonen();
+        });
+        const angezeigt = person.kontaktId ? aufgeloesteKontaktpersonen({ id: k?.id, kontaktpersonen: [person] })[0] : person;
         const kopf = el("div", "kontaktperson-kopf");
         const status = eingabe("text", person.status);
         status.maxLength = 80;
@@ -16462,19 +16690,32 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           weg.title = _("Remove emergency contact");
           kopf.append(weg);
         }
-        const name = eingabe("text", person.name);
+        const name = eingabe("text", angezeigt.name);
         name.placeholder = _("First name Last name");
         name.classList.add("kontaktperson-name");
         if (index === 0) name.id = "kontaktperson-name";
-        const telefon = eingabe("tel", person.telefon);
+        const telefon = eingabe("tel", angezeigt.telefon);
         telefon.placeholder = _("+49 … or 0…");
         telefon.classList.add("kontaktperson-telefon");
         if (index === 0) telefon.id = "kontaktperson-telefon";
-        name.addEventListener("input", () => { person.name = name.value; });
-        telefon.addEventListener("input", () => { person.telefon = telefon.value; });
+        name.disabled = telefon.disabled = !!person.kontaktId;
+        name.addEventListener("input", () => { person.name = name.value; delete person.vorname; delete person.nachname; });
+        telefon.addEventListener("input", () => {
+          const alt = person.telefon;
+          const eintrag = person.telefone?.find(e => telefonSchluessel(e.wert) === telefonSchluessel(alt));
+          if (eintrag) eintrag.wert = telefon.value;
+          person.telefon = telefon.value;
+        });
         const raster = el("div", "formraster");
         raster.append(formZeile(_("Name"), name), formZeile(_("Phone"), telefon));
-        karte.append(kopf, raster);
+        const erweitert = kontaktpersonErweitert(angezeigt, feld => {
+          if (["vorname", "nachname"].includes(feld)) { person.name = [person.vorname, person.nachname].filter(Boolean).join(" "); name.value = person.name; }
+          if (["wert", "telefone"].includes(feld) && person.telefone?.length) {
+            person.telefon = person.telefone.find(e => e.wert)?.wert || ""; telefon.value = person.telefon;
+          }
+        }, p => kontaktpersonFotos.add(p), p => kontaktpersonFotos.delete(p), !!person.kontaktId);
+        karte.append(kopf, formZeile(_("Link existing contact"), bezug), raster, erweitert);
+        if (angezeigt.verknuepfungFehlt) karte.append(el("p", "einst-warnung", _("The entry could not be found.")));
         kontaktpersonKasten.append(karte);
       });
     };
@@ -16655,6 +16896,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     let gespeichertesZiel = k || null;
 
     const speichernFn = () => {
+      if ([...kontaktpersonFotos].some(p => kontaktpersonen.includes(p))) { zettel(_("Loading…")); return false; }
       /* E-Mail-Felder dürfen auch freie Kennungen aufnehmen; die Fachbereinigung
          übernimmt nur syntaktische Adressen in den Kontakt. */
       const nativUngueltig = form.querySelector(":invalid:not(.kontakt-email-adresse)");
@@ -16765,6 +17007,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           delegiertAn: "", geaendert: Date.now() });
       }
       gespeichertesZiel = ziel;
+      aktualisiereKontaktpersonen(DATEN);
       if (inhaltVorher !== personalSyncKanonisch(kontaktBaumInhalt(ziel, 2, false).kontakt))
         merkeKontaktInhaltszeit(ziel, Date.now()).catch(() => {});
       z.auswahlId = ziel.id;
@@ -21855,6 +22098,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   function baumKontaktKarte(stueck) {
     const inhalt = stueck.inhalt || {}, art = inhalt.art || stueck.art;
     if (art === "kontakt") return normalisiere({ kontakte: [{ ...inhalt,
+      kontaktpersonen: kontaktpersonenListe(inhalt).map(({ kontaktId, ...person }) => person),
       id: uid(), uid: syncUid(), sync: false, foto: "", kontaktZeit: undefined, kontaktProviderKonflikte: undefined, vcardRev: undefined,
       syncQuellen: undefined, syncKonflikte: undefined, baumKontakt: undefined, kontaktAliase: undefined,
       importBindungen: undefined, importHerkunfte: undefined, importKonflikt: false, kdeImportStaende: undefined,
@@ -21862,6 +22106,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (art !== "kontakt_sync" || !inhalt.kontakt || !inhalt.freigabeId || !(Number(inhalt.version) > 0)) return null;
     const fern = inhalt.kontakt;
     return normalisiere({ kontakte: [{ ...fern, id: uid(), uid: syncUid(), sync: false,
+      kontaktpersonen: kontaktpersonenListe(fern).map(({ kontaktId, ...person }) => person),
       kontaktZeit: undefined, kontaktProviderKonflikte: undefined, vcardRev: undefined, fotoAlternativen: undefined, fotoQuellen: undefined,
       vcardRoundtrip: fern.vcardName || [],
       telefone: (fern.telefone || []).map(e => ({ wert: e.wert, label: e.art, typen: telefonTypenAusArt(e.art) })),
@@ -24818,7 +25063,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           ziel.uid && anderer.uid && ziel.uid !== anderer.uid) throw new Error(_("Conflict"));
       const karte = kopie(anderer); karte.vcardRev = await kontaktInhaltszeit(anderer);
       if (!gueltig()) return;
-      const pruefung = await pruefeKontaktDateiImport([karte], "", false, ziel.id);
+      const pruefung = await pruefeKontaktDateiImport([karte], "", false, ziel.id, true);
       if (!pruefung || !gueltig() || !pruefung.gueltig()) return;
       const entwurf = pruefung.daten.kontakte.find(k => k.id === ziel.id);
       entwurf.syncQuellen = { ...(anderer.syncQuellen || {}), ...(ziel.syncQuellen || {}) };
@@ -25891,10 +26136,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       zettel(_("There are no entries to export yet."));
       return;
     }
-    if (art === "vcf-adressen") {
-      const bestand = DATEN, revision = kanonischerEntwurf(liste), kopien = kopie(liste);
+    if (["vcf-adressen", "ldif-adressen"].includes(art)) {
+      const bestand = DATEN, revision = kanonischerEntwurf(DATEN.kontakte), kopien = liste.map(kontaktFuerAustausch);
       return Promise.all(kopien.map(k => kontaktInhaltszeit(k))).then(zeiten => {
-        if (DATEN !== bestand || gesperrt || DATEN.kontakte !== liste || kanonischerEntwurf(liste) !== revision) {
+        if (DATEN !== bestand || gesperrt || DATEN.kontakte !== liste || kanonischerEntwurf(DATEN.kontakte) !== revision) {
           zettel(_("Conflict")); return;
         }
         kopien.forEach((k, index) => { k.geaendert = zeiten[index]; });
@@ -25970,6 +26215,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   function starteSync(stumm) {
     sichereNotizSnapshot();
     if (!Bruecke.vorhanden || syncLaeuft) return;
+    aktualisiereKontaktpersonen(DATEN);
     const w = DATEN.einstellungen.sync;
     const kalenderUids = Array.from(new Set(
       (w.kalenderUids || []).filter((wert) => typeof wert === "string" && wert)));
@@ -26419,7 +26665,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return [...new Set(namen.filter(n => typeof n === "string" && n.trim()).map(n => n.trim()))].join(" · ") || fallback;
   }
 
-  function pruefeKontaktDateiImport(liste, quelle = "", nurAblehnen = false, providerZielId = "") {
+  function pruefeKontaktDateiImport(liste, quelle = "", nurAblehnen = false, providerZielId = "", lokaleQuelle = false) {
     if (gesperrt || kontaktDateiPruefungSchliessen) return Promise.resolve(null);
     const providerZiel = providerZielId ? DATEN.kontakte.find(k => k.id === providerZielId) : null;
     if (providerZielId && (!providerZiel || liste.length !== 1)) return Promise.resolve(null);
@@ -26437,6 +26683,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       // An ordinary import cannot grant sharing rights or inject local clock proofs.
       for (const feld of ["id", "sync", "syncQuellen", "syncKonflikte", "kontaktProviderKonflikte", "baumKontakt", "kontaktZeit", "kontaktAliase",
         "fotoManuell", "fotoAlternativen", "fotoQuellen", "kdeImportStaende"]) delete karte[feld];
+      if (!lokaleQuelle && kontaktpersonenListe(karte).some(p => p.kontaktId)) setzeKontaktpersonen(karte, kontaktpersonenListe(karte).map(person => {
+        const { kontaktId, ...werte } = person; return werte;
+      }));
       const ziel = providerZiel || findeImportKontakt(karte, index), keys = new Map(); baumKontaktIndexiere(keys, karte);
       const kandidaten = ziel ? [ziel] : [...new Set([
         ...[...keys.keys()].flatMap(key => [...(namen.get(key) || [])]),
@@ -26872,6 +27121,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   function zeigeSperrbildschirm(wartet) {
     kontaktFotoDialogSchliessen?.();
     kontaktDateiPruefungSchliessen?.();
+    kontaktKartenAuswahlSchliessen?.();
     const vorheriger = document.getElementById("sperr-schleier");
     if (vorheriger) {
       if (vorheriger.tastenhorcher) {
@@ -27441,6 +27691,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     init(nutzlast) {
       kontaktFotoDialogSchliessen?.();
       kontaktDateiPruefungSchliessen?.();
+      kontaktKartenAuswahlSchliessen?.();
       kdeKontaktLauf?.abbrechen?.();
       zeichenblattAuswahlSchliessen?.();
       beendeZeicheneingabe();

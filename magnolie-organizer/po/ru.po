@@ -780,6 +780,9 @@ msgstr "Адресная книга"
 msgid "Address imported from LibreOffice."
 msgstr "Адрес импортирован из LibreOffice."
 
+msgid "Address supplement"
+msgstr "Дополнение к адресу"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr ""
@@ -787,6 +790,9 @@ msgstr ""
 
 msgid "Addresses"
 msgstr "Адреса"
+
+msgid "Advanced"
+msgstr "Дополнительно"
 
 msgid "After exercise"
 msgstr "После физической нагрузки"
@@ -1584,6 +1590,9 @@ msgid ""
 msgstr ""
 "Выберите вид отходов или введите собственный вариант вывоза. Укажите первый "
 "вывоз и интервал в днях; значение 0 создаёт одноразовый вывоз."
+
+msgid "Choose an address"
+msgstr "Выбрать адрес"
 
 msgid "Choose at least four characters."
 msgstr "Выберите не менее четырёх символов."
@@ -2428,6 +2437,9 @@ msgstr "Изменить используемый сайт или приложе
 
 msgid "Email"
 msgstr "Эл. почта"
+
+msgid "Email address"
+msgstr "Адрес электронной почты"
 
 msgid "Email addresses"
 msgstr "Адреса эл. почты"
@@ -3356,6 +3368,9 @@ msgstr "Линованная бумага (линии на листе для з�
 msgid "Link"
 msgstr "Ссылка"
 
+msgid "Link existing contact"
+msgstr "Связать существующий контакт"
+
 msgid "Listener active"
 msgstr "предварительно"
 
@@ -3364,6 +3379,9 @@ msgstr "Прослушиватель остановлен"
 
 msgid "Loading background settings"
 msgstr "Загрузка настроек фоновой службы"
+
+msgid "Loading…"
+msgstr "Загрузка…"
 
 msgid "Local calendar"
 msgstr "Локальный календарь"
@@ -4537,6 +4555,9 @@ msgstr "Собственное окно доступно: да"
 msgid "PDF file"
 msgstr "PDF-файл"
 
+msgid "PO box"
+msgstr "Абонентский ящик"
+
 #, python-format
 msgid "POT template written to: %s"
 msgstr "Шаблон POT записан в: %s"
@@ -5040,6 +5061,9 @@ msgstr "Повторить"
 
 msgid "Refresh"
 msgstr "Обновить"
+
+msgid "Region"
+msgstr "Регион"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."

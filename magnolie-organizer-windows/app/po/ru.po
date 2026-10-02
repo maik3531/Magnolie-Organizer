@@ -565,6 +565,9 @@ msgstr "Адресная книга"
 msgid "Address imported from LibreOffice."
 msgstr "Адрес импортирован из LibreOffice."
 
+msgid "Address supplement"
+msgstr "Дополнение к адресу"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr ""
@@ -572,6 +575,9 @@ msgstr ""
 
 msgid "Addresses"
 msgstr "Адреса"
+
+msgid "Advanced"
+msgstr "Дополнительно"
 
 msgid "After exercise"
 msgstr "После физической нагрузки"
@@ -1239,6 +1245,9 @@ msgid ""
 msgstr ""
 "Выберите вид отходов или введите собственный вариант вывоза. Укажите первый "
 "вывоз и интервал в днях; значение 0 создаёт одноразовый вывоз."
+
+msgid "Choose an address"
+msgstr "Выбрать адрес"
 
 msgid "Choose at least four characters."
 msgstr "Выберите не менее четырёх символов."
@@ -1969,6 +1978,9 @@ msgstr "Изменить используемый сайт или приложе
 
 msgid "Email"
 msgstr "Эл. почта"
+
+msgid "Email address"
+msgstr "Адрес электронной почты"
 
 msgid "Email addresses"
 msgstr "Адреса эл. почты"
@@ -2764,11 +2776,17 @@ msgstr "Линованная бумага (линии на листе для з�
 msgid "Link"
 msgstr "Ссылка"
 
+msgid "Link existing contact"
+msgstr "Связать существующий контакт"
+
 msgid "Listener active"
 msgstr "предварительно"
 
 msgid "Listener stopped"
 msgstr "Прослушиватель остановлен"
+
+msgid "Loading…"
+msgstr "Загрузка…"
 
 msgid "Local calendar"
 msgstr "Локальный календарь"
@@ -3722,6 +3740,9 @@ msgstr "Свой номер (SIM для звонков по умолчанию)"
 msgid "PDF file"
 msgstr "PDF-файл"
 
+msgid "PO box"
+msgstr "Абонентский ящик"
+
 msgid "Packaging / Yellow bin"
 msgstr "Упаковка / жёлтый контейнер"
 
@@ -4179,6 +4200,9 @@ msgstr "Повторить"
 
 msgid "Refresh"
 msgstr "Обновить"
+
+msgid "Region"
+msgstr "Регион"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."
@@ -5357,6 +5381,9 @@ msgstr "Достигнут предел рисунка."
 
 msgid "The end date cannot be before the start date."
 msgstr "Дата окончания не может быть раньше даты начала."
+
+msgid "The entry could not be found."
+msgstr "Запись не найдена."
 
 msgid "The export data is missing."
 msgstr "Данные экспорта отсутствуют."

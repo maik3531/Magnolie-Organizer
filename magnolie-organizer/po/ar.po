@@ -886,12 +886,18 @@ msgstr "دفتر العناوين"
 msgid "Address imported from LibreOffice."
 msgstr "تم استيراد العنوان من LibreOffice."
 
+msgid "Address supplement"
+msgstr "تفاصيل إضافية للعنوان"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr "موجّه إلى %(branch)s؛ وسيتم تسليمه عند توفر الفرع."
 
 msgid "Addresses"
 msgstr "العناوين"
+
+msgid "Advanced"
+msgstr "متقدم"
 
 msgid "After exercise"
 msgstr "بعد التمرين"
@@ -1666,6 +1672,9 @@ msgid ""
 msgstr ""
 "اختر نوع نفايات أو أدخل عملية جمع مخصصة. اضبط أول موعد للجمع والفاصل "
 "بالأيام؛ القيمة 0 تنشئ عملية جمع لمرة واحدة."
+
+msgid "Choose an address"
+msgstr "اختيار عنوان"
 
 msgid "Choose at least four characters."
 msgstr "اختر أربعة محارف على الأقل."
@@ -2501,6 +2510,9 @@ msgstr "تحرير موقع الويب أو التطبيق المستخدم"
 
 msgid "Email"
 msgstr "البريد الإلكتروني"
+
+msgid "Email address"
+msgstr "عنوان البريد الإلكتروني"
 
 msgid "Email addresses"
 msgstr "عناوين البريد الإلكتروني"
@@ -3408,6 +3420,9 @@ msgstr "ورق مسطر (خطوط على ورقة الكتابة)"
 msgid "Link"
 msgstr "رابط"
 
+msgid "Link existing contact"
+msgstr "ربط جهة اتصال حالية"
+
 msgid "Listener active"
 msgstr "مبدئي"
 
@@ -3416,6 +3431,9 @@ msgstr "توقف المستمع"
 
 msgid "Loading background settings"
 msgstr "جارٍ تحميل إعدادات الخلفية"
+
+msgid "Loading…"
+msgstr "جارٍ التحميل…"
 
 msgid "Local calendar"
 msgstr "التقويم المحلي"
@@ -4588,6 +4606,9 @@ msgstr "نافذة مستقلة متاحة: نعم"
 msgid "PDF file"
 msgstr "ملف PDF"
 
+msgid "PO box"
+msgstr "صندوق بريد"
+
 #, python-format
 msgid "POT template written to: %s"
 msgstr "تمت كتابة قالب POT في: %s"
@@ -5096,6 +5117,9 @@ msgstr "إعادة"
 
 msgid "Refresh"
 msgstr "تحديث"
+
+msgid "Region"
+msgstr "المنطقة"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."

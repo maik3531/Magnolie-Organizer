@@ -504,12 +504,18 @@ msgstr "アドレス帳"
 msgid "Address imported from LibreOffice."
 msgstr "LibreOffice から住所をインポートしました。"
 
+msgid "Address supplement"
+msgstr "住所の補足"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr "%(branch)s 宛てです。ブランチが利用可能になると配信されます。"
 
 msgid "Addresses"
 msgstr "住所"
+
+msgid "Advanced"
+msgstr "詳細設定"
 
 msgid "After exercise"
 msgstr "運動後"
@@ -1169,6 +1175,9 @@ msgid ""
 msgstr ""
 "ごみの種類を選ぶか、独自の収集を入力してください。最初の収集日と日数の間隔を"
 "設定します。0 にすると 1 回だけの収集になります。"
+
+msgid "Choose an address"
+msgstr "住所を選択"
 
 msgid "Choose at least four characters."
 msgstr "4 文字以上を選択してください。"
@@ -1898,6 +1907,9 @@ msgstr "使用する Web サイトまたはアプリケーションを編集"
 
 msgid "Email"
 msgstr "メール"
+
+msgid "Email address"
+msgstr "メールアドレス"
 
 msgid "Email addresses"
 msgstr "メールアドレス"
@@ -2691,11 +2703,17 @@ msgstr "罫線入り用紙（筆記シートに横線）"
 msgid "Link"
 msgstr "リンク"
 
+msgid "Link existing contact"
+msgstr "既存の連絡先を関連付ける"
+
 msgid "Listener active"
 msgstr "仮"
 
 msgid "Listener stopped"
 msgstr "リスナーが停止しました"
+
+msgid "Loading…"
+msgstr "読み込み中…"
 
 msgid "Local calendar"
 msgstr "ローカルカレンダー"
@@ -3643,6 +3661,9 @@ msgstr "自分の番号（既定の音声 SIM）"
 msgid "PDF file"
 msgstr "PDF ファイル"
 
+msgid "PO box"
+msgstr "私書箱"
+
 msgid "Packaging / Yellow bin"
 msgstr "容器包装 / 黄色いごみ箱"
 
@@ -4081,6 +4102,9 @@ msgstr "やり直す"
 
 msgid "Refresh"
 msgstr "更新"
+
+msgid "Region"
+msgstr "地域"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."
@@ -5239,6 +5263,9 @@ msgstr "描画の上限に達しました。"
 
 msgid "The end date cannot be before the start date."
 msgstr "終了日は開始日より前にできません。"
+
+msgid "The entry could not be found."
+msgstr "項目が見つかりませんでした。"
 
 msgid "The export data is missing."
 msgstr "エクスポートデータがありません。"

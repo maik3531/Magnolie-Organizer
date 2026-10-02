@@ -1689,6 +1689,11 @@ body[data-hilfsrahmen="an"] .kontakt-form-inhalt :focus-visible {
 .kontaktperson-status { flex: 1; min-width: 0; }
 .kontaktperson-zeile .formzeile { margin-bottom: 0; }
 .kontaktperson-anzeige + .kontaktperson-anzeige { margin-top: 7px; }
+.kontaktperson-erweitert { margin-top: 8px; min-width: 0; }
+.kontaktperson-details { min-width: 0; margin: 6px 0 0; padding: 6px; border: 1px dotted var(--linie); }
+.kontaktperson-details .formzeile { margin-bottom: 6px; }
+.kontaktperson-eintrag { margin: 6px 0; padding: 6px 0; border-bottom: 1px dotted var(--linie); }
+.kontakt-karten-auswahl .anruf-auswahl button { white-space: normal; overflow-wrap: anywhere; text-align: start; }
 
 .kontakt-verknuepfung-zeile {
   display: grid;

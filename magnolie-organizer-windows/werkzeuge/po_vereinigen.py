@@ -10,6 +10,60 @@ import sys
 import tempfile
 
 ERGÄNZUNGEN = {
+    "Loading…": {
+        "de": "Wird geladen …", "fr": "Chargement…", "es": "Cargando…", "it": "Caricamento…", "nl": "Laden…", "pt": "A carregar…",
+        "ru": "Загрузка…", "cs": "Načítání…", "pl": "Wczytywanie…", "hsb": "Začituje so…", "da": "Indlæser…", "nb": "Laster…",
+        "hi": "लोड हो रहा है…", "zh_CN": "正在加载…", "ja": "読み込み中…", "ar": "جارٍ التحميل…", "uk": "Завантаження…", "be": "Загрузка…", "tr": "Yükleniyor…",
+    },
+    "Remove": {
+        "de": "Entfernen", "fr": "Retirer", "es": "Quitar", "it": "Rimuovi", "nl": "Verwijderen", "pt": "Remover",
+        "ru": "Убрать", "cs": "Odebrat", "pl": "Usuń", "hsb": "Wotstronić", "da": "Fjern", "nb": "Fjern",
+        "hi": "हटाएँ", "zh_CN": "移除", "ja": "削除", "ar": "إزالة", "uk": "Прибрати", "be": "Прыбраць", "tr": "Kaldır",
+    },
+    "Advanced": {
+        "de": "Erweitert", "fr": "Avancé", "es": "Avanzado", "it": "Avanzate", "nl": "Geavanceerd", "pt": "Avançado",
+        "ru": "Дополнительно", "cs": "Pokročilé", "pl": "Zaawansowane", "hsb": "Rozšěrjene", "da": "Avanceret", "nb": "Avansert",
+        "hi": "उन्नत", "zh_CN": "高级", "ja": "詳細設定", "ar": "متقدم", "uk": "Додатково", "be": "Дадаткова", "tr": "Gelişmiş",
+    },
+    "Link existing contact": {
+        "de": "Vorhandene Karteikarte verknüpfen", "fr": "Lier un contact existant", "es": "Vincular un contacto existente",
+        "it": "Collega un contatto esistente", "nl": "Bestaand contact koppelen", "pt": "Associar contacto existente",
+        "ru": "Связать существующий контакт", "cs": "Propojit stávající kontakt", "pl": "Połącz istniejący kontakt",
+        "hsb": "Eksistowacy kontakt zwjazać", "da": "Tilknyt eksisterende kontakt", "nb": "Koble til eksisterende kontakt",
+        "hi": "मौजूदा संपर्क जोड़ें", "zh_CN": "关联现有联系人", "ja": "既存の連絡先を関連付ける", "ar": "ربط جهة اتصال حالية",
+        "uk": "Пов’язати наявний контакт", "be": "Звязаць існуючы кантакт", "tr": "Mevcut kişiyi bağla",
+    },
+    "Choose an address": {
+        "de": "Anschrift auswählen", "fr": "Choisir une adresse", "es": "Elegir una dirección", "it": "Scegli un indirizzo",
+        "nl": "Adres kiezen", "pt": "Escolher uma morada", "ru": "Выбрать адрес", "cs": "Vybrat adresu", "pl": "Wybierz adres",
+        "hsb": "Adresu wubrać", "da": "Vælg en adresse", "nb": "Velg en adresse", "hi": "पता चुनें", "zh_CN": "选择地址",
+        "ja": "住所を選択", "ar": "اختيار عنوان", "uk": "Вибрати адресу", "be": "Выбраць адрас", "tr": "Adres seç",
+    },
+    "Email address": {
+        "de": "E-Mail-Adresse", "fr": "Adresse e-mail", "es": "Dirección de correo electrónico", "it": "Indirizzo email",
+        "nl": "E-mailadres", "pt": "Endereço de e-mail", "ru": "Адрес электронной почты", "cs": "E-mailová adresa",
+        "pl": "Adres e-mail", "hsb": "E-mejlowa adresa", "da": "E-mailadresse", "nb": "E-postadresse", "hi": "ईमेल पता",
+        "zh_CN": "电子邮箱地址", "ja": "メールアドレス", "ar": "عنوان البريد الإلكتروني", "uk": "Адреса електронної пошти",
+        "be": "Адрас электроннай пошты", "tr": "E-posta adresi",
+    },
+    "Region": {
+        "de": "Region", "fr": "Région", "es": "Región", "it": "Regione", "nl": "Regio", "pt": "Região",
+        "ru": "Регион", "cs": "Region", "pl": "Region", "hsb": "Region", "da": "Region", "nb": "Region",
+        "hi": "क्षेत्र", "zh_CN": "地区", "ja": "地域", "ar": "المنطقة", "uk": "Регіон", "be": "Рэгіён", "tr": "Bölge",
+    },
+    "PO box": {
+        "de": "Postfach", "fr": "Boîte postale", "es": "Apartado postal", "it": "Casella postale", "nl": "Postbus",
+        "pt": "Apartado", "ru": "Абонентский ящик", "cs": "Poštovní přihrádka", "pl": "Skrytka pocztowa", "hsb": "Póštowy fach",
+        "da": "Postboks", "nb": "Postboks", "hi": "डाक पेटी", "zh_CN": "邮政信箱", "ja": "私書箱", "ar": "صندوق بريد",
+        "uk": "Абонентська скринька", "be": "Абаненцкая скрыня", "tr": "Posta kutusu",
+    },
+    "Address supplement": {
+        "de": "Adresszusatz", "fr": "Complément d’adresse", "es": "Complemento de dirección", "it": "Complemento di indirizzo",
+        "nl": "Adrestoevoeging", "pt": "Complemento da morada", "ru": "Дополнение к адресу", "cs": "Doplněk adresy",
+        "pl": "Uzupełnienie adresu", "hsb": "Adresowy dodawk", "da": "Adressetilføjelse", "nb": "Adressetillegg",
+        "hi": "पते का अतिरिक्त विवरण", "zh_CN": "地址补充信息", "ja": "住所の補足", "ar": "تفاصيل إضافية للعنوان",
+        "uk": "Доповнення до адреси", "be": "Дапаўненне да адраса", "tr": "Ek adres bilgisi",
+    },
     "Birth name: %(name)s": {
         "de": "Geburtsname: %(name)s", "fr": "Nom de naissance : %(name)s", "es": "Apellido de nacimiento: %(name)s",
         "it": "Cognome alla nascita: %(name)s", "nl": "Geboortenaam: %(name)s", "pt": "Apelido de nascimento: %(name)s",

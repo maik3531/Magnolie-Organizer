@@ -744,6 +744,9 @@ msgstr "Rubrica"
 msgid "Address imported from LibreOffice."
 msgstr "Indirizzo importato da LibreOffice."
 
+msgid "Address supplement"
+msgstr "Complemento di indirizzo"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr ""
@@ -751,6 +754,9 @@ msgstr ""
 
 msgid "Addresses"
 msgstr "Indirizzi"
+
+msgid "Advanced"
+msgstr "Avanzate"
 
 msgid "After exercise"
 msgstr "Dopo l'attività fisica"
@@ -1554,6 +1560,9 @@ msgid ""
 msgstr ""
 "Scegli un tipo di rifiuto o inserisci una raccolta personalizzata. Imposta "
 "la prima raccolta e l’intervallo in giorni; 0 crea una raccolta una tantum."
+
+msgid "Choose an address"
+msgstr "Scegli un indirizzo"
 
 msgid "Choose at least four characters."
 msgstr "Scegli almeno quattro caratteri."
@@ -2409,6 +2418,9 @@ msgstr "Modifica il sito web o l’applicazione utilizzata"
 
 msgid "Email"
 msgstr "E-mail"
+
+msgid "Email address"
+msgstr "Indirizzo email"
 
 msgid "Email addresses"
 msgstr "Indirizzi e-mail"
@@ -3342,6 +3354,9 @@ msgstr "Carta a righe (righe sul foglio di scrittura)"
 msgid "Link"
 msgstr "Collegamento"
 
+msgid "Link existing contact"
+msgstr "Collega un contatto esistente"
+
 msgid "Listener active"
 msgstr "Listener attivo"
 
@@ -3350,6 +3365,9 @@ msgstr "Listener arrestato"
 
 msgid "Loading background settings"
 msgstr "Caricamento delle impostazioni in background"
+
+msgid "Loading…"
+msgstr "Caricamento…"
 
 msgid "Local calendar"
 msgstr "Calendario locale"
@@ -4532,6 +4550,9 @@ msgstr "Finestra propria disponibile: sì"
 msgid "PDF file"
 msgstr "File PDF"
 
+msgid "PO box"
+msgstr "Casella postale"
+
 #, python-format
 msgid "POT template written to: %s"
 msgstr "Modello POT scritto in: %s"
@@ -5045,6 +5066,9 @@ msgstr "Ripristina"
 
 msgid "Refresh"
 msgstr "Aggiorna"
+
+msgid "Region"
+msgstr "Regione"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."

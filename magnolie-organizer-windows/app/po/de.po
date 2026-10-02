@@ -538,6 +538,9 @@ msgstr "Adressbuch"
 msgid "Address imported from LibreOffice."
 msgstr "Anschrift aus LibreOffice übernommen."
 
+msgid "Address supplement"
+msgstr "Adresszusatz"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr ""
@@ -545,6 +548,9 @@ msgstr ""
 
 msgid "Addresses"
 msgstr "Anschriften"
+
+msgid "Advanced"
+msgstr "Erweitert"
 
 msgid "After exercise"
 msgstr "Nach dem Sport"
@@ -1218,6 +1224,9 @@ msgstr ""
 "Wählen Sie eine Müllart oder tragen Sie eine eigene Abholung ein. Legen Sie "
 "die erste Abholung und den Abstand in Tagen fest; 0 erzeugt eine einmalige "
 "Abholung."
+
+msgid "Choose an address"
+msgstr "Anschrift auswählen"
 
 msgid "Choose at least four characters."
 msgstr "Bitte mindestens vier Zeichen wählen."
@@ -1960,6 +1969,9 @@ msgstr "Verwendete Webseite oder Programm bearbeiten"
 
 msgid "Email"
 msgstr "E-Mail"
+
+msgid "Email address"
+msgstr "E-Mail-Adresse"
 
 msgid "Email addresses"
 msgstr "E-Mail-Adressen"
@@ -2761,11 +2773,17 @@ msgstr "Liniertes Papier (Linien im Schreibblatt)"
 msgid "Link"
 msgstr "Link"
 
+msgid "Link existing contact"
+msgstr "Vorhandene Karteikarte verknüpfen"
+
 msgid "Listener active"
 msgstr "Listener aktiv"
 
 msgid "Listener stopped"
 msgstr "Listener angehalten"
+
+msgid "Loading…"
+msgstr "Wird geladen …"
 
 msgid "Local calendar"
 msgstr "Lokaler Kalender"
@@ -3725,6 +3743,9 @@ msgstr "Eigene Rufnummer (Standard-Sprach-SIM)"
 msgid "PDF file"
 msgstr "PDF-Datei"
 
+msgid "PO box"
+msgstr "Postfach"
+
 msgid "Packaging / Yellow bin"
 msgstr "Grüner Punkt / Gelbe Tonne"
 
@@ -4186,6 +4207,9 @@ msgstr "Wiederholen"
 
 msgid "Refresh"
 msgstr "Aktualisieren"
+
+msgid "Region"
+msgstr "Region"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."
@@ -5380,6 +5404,9 @@ msgstr "Die Zeichengrenze ist erreicht."
 
 msgid "The end date cannot be before the start date."
 msgstr "Das Enddatum darf nicht vor dem Anfang liegen."
+
+msgid "The entry could not be found."
+msgstr "Der Eintrag wurde nicht gefunden."
 
 msgid "The export data is missing."
 msgstr "Die Exportdaten fehlen."

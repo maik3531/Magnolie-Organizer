@@ -4248,10 +4248,12 @@ def _kontaktpersonen_liste(kontakt):
             kandidaten.extend(roh)
         if any(kontakt.get(feld) for feld in (
                 "kontaktpersonName", "kontaktpersonTelefon", "kontaktpersonStatus")):
-            kandidaten.insert(0, {
-                "name": kontakt.get("kontaktpersonName"),
-                "telefon": kontakt.get("kontaktpersonTelefon"),
-                "status": kontakt.get("kontaktpersonStatus")})
+            alt = {"name": kontakt.get("kontaktpersonName") or "",
+                   "telefon": kontakt.get("kontaktpersonTelefon") or "",
+                   "status": kontakt.get("kontaktpersonStatus") or ""}
+            if not any(isinstance(p, dict) and all(str(p.get(f) or "") == str(alt[f])
+                       for f in ("name", "telefon", "status")) for p in kandidaten):
+                kandidaten.insert(0, alt)
     ergebnis, gesehen = [], set()
     for roh in kandidaten:
         if not isinstance(roh, dict):
@@ -4260,11 +4262,34 @@ def _kontaktpersonen_liste(kontakt):
             "name": str(roh.get("name") or "").strip(),
             "telefon": str(roh.get("telefon") or "").strip(),
             "status": str(roh.get("status") or roh.get("beziehung") or "").strip()[:80]}
+        if isinstance(roh.get("kontaktId"), str) and roh["kontaktId"].strip():
+            eintrag["kontaktId"] = roh["kontaktId"].strip()
+        for feld in ("vorname", "nachname", "anzeigename", "firma", "notiz", "geburtstag", "jubilaeum"):
+            if isinstance(roh.get(feld), str) and roh[feld].strip():
+                eintrag[feld] = roh[feld].strip()
+        if eintrag.get("vorname") or eintrag.get("nachname"):
+            eintrag["name"] = " ".join(filter(None, (eintrag.get("vorname"), eintrag.get("nachname"))))
+        if isinstance(roh.get("telefone"), (list, tuple)) or roh.get("mobil"):
+            eintrag["telefone"] = _telefon_liste(roh)
+        if roh.get("email") or isinstance(roh.get("emails"), (list, tuple)) or isinstance(roh.get("emailEintraege"), (list, tuple)):
+            eintrag["emailEintraege"] = _email_eintraege(roh)
+        if isinstance(roh.get("anschriften"), (list, tuple)) or any(roh.get(f) for f in ("strasse", "plz", "ort")):
+            eintrag["anschriften"] = _anschrift_liste(roh)
+        if isinstance(roh.get("sozialeMedien"), (list, tuple)):
+            eintrag["sozialeMedien"] = _soziale_medien_liste(roh)
+        for feld in ("telefone", "emailEintraege", "anschriften"):
+            for wert in eintrag.get(feld, []):
+                if not wert.get("vcardParameter"):
+                    wert.pop("vcardParameter", None)
+        foto = _vcard_foto(roh.get("foto"), {})
+        if foto:
+            eintrag["foto"] = foto
         if not any(eintrag.values()):
             continue
-        schluessel = (kanonischer_text(eintrag["name"]),
+        schluessel = ("link", eintrag["kontaktId"], kanonischer_text(eintrag["status"])) if eintrag.get("kontaktId") else (kanonischer_text(eintrag["name"]),
                       _telefon_schluessel(eintrag["telefon"]) or eintrag["telefon"],
-                      kanonischer_text(eintrag["status"]))
+                      kanonischer_text(eintrag["status"]), json.dumps({k: v for k, v in eintrag.items()
+                          if k not in ("name", "telefon", "status")}, sort_keys=True, ensure_ascii=False))
         if schluessel in gesehen:
             continue
         gesehen.add(schluessel)
@@ -4283,9 +4308,19 @@ def _kontaktpersonen_setzen(kontakt, kontaktpersonen):
 
 
 def _kontaktpersonen_vereinigen(*kontakte):
-    return _kontaktpersonen_liste({"kontaktpersonen": [
+    personen = _kontaktpersonen_liste({"kontaktpersonen": [
         person for kontakt in kontakte
         for person in _kontaktpersonen_liste(kontakt)]})
+    ergebnis = []
+    for person in personen:
+        vergleich = {k: v for k, v in person.items() if k != "kontaktId"}
+        passend = next((alt for alt in ergebnis if {k: v for k, v in alt.items() if k != "kontaktId"} == vergleich
+                        and (not alt.get("kontaktId") or not person.get("kontaktId") or alt["kontaktId"] == person["kontaktId"])), None)
+        if passend is None:
+            ergebnis.append(person)
+        elif person.get("kontaktId"):
+            passend["kontaktId"] = person["kontaktId"]
+    return ergebnis
 
 
 def _soziale_medien_liste(kontakt):
@@ -5214,6 +5249,7 @@ def vcf_lesen(text, lokale_dateien=False):
                 try:
                     person = json.loads(_ical_unescape(wert))
                     if isinstance(person, dict):
+                        person.pop("kontaktId", None)
                         kontaktpersonen.append(person)
                 except (TypeError, ValueError):
                     pass
@@ -5401,6 +5437,7 @@ def vcard_text(k):
         if k.get(feld):
             zeilen.append(name + ":" + _vcard_escape(k[feld]))
     for person in _kontaktpersonen_liste(k):
+        person = {feld: wert for feld, wert in person.items() if feld != "kontaktId"}
         zeilen.append("X-MAGNOLIE-NOTFALLKONTAKT:" + _vcard_escape(
             json.dumps(person, ensure_ascii=False, separators=(",", ":"))))
     for eintrag in _soziale_medien_liste(k):
@@ -6115,6 +6152,9 @@ def _sync_inhalt(obj, felder):
     if felder is TERMIN_FELDER or felder == TERMIN_FELDER:
         namen.extend(("icsRoundtrip", "icsKomplex", "icsSerienUid", "icsSequence"))
     inhalt = {name: obj.get(name) for name in namen}
+    if isinstance(inhalt.get("kontaktpersonen"), list):
+        inhalt["kontaktpersonen"] = [{k: v for k, v in p.items() if k != "kontaktId"}
+                                     if isinstance(p, dict) else p for p in inhalt["kontaktpersonen"]]
     if felder is TERMIN_FELDER or felder == TERMIN_FELDER:
         for name in ("icsTimezones", "icsRangeOverrides", "icsAusnahmeTermine", "icsStatus"):
             inhalt[name] = obj.get(name) or None
@@ -6381,7 +6421,8 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
             if "kontaktpersonen" in felder:
                 lokale_personen = _kontaktpersonen_liste(obj)
                 ferne_personen = _kontaktpersonen_liste(fern)
-                if any(person not in ferne_personen for person in lokale_personen):
+                fern_portabel = [{k: v for k, v in p.items() if k != "kontaktId"} for p in ferne_personen]
+                if any({k: v for k, v in person.items() if k != "kontaktId"} not in fern_portabel for person in lokale_personen):
                     ergaenzung_hochladen = True
                 _kontaktpersonen_setzen(
                     obj, _kontaktpersonen_vereinigen(obj, fern))

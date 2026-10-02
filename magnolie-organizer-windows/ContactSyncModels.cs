@@ -69,6 +69,7 @@ internal static class ContactFields
         }
         var copy = new JsonObject();
         foreach (var name in Names) if (contact.ContainsKey(name)) copy[name] = Normalize(contact[name]);
+        foreach (var person in (copy["kontaktpersonen"] as JsonArray ?? []).OfType<JsonObject>()) person.Remove("kontaktId");
         NormalizeBirthday(copy);
         foreach (var (date, unknown) in new[] { ("geburtstag", "geburtstagJahrUnbekannt"), ("jubilaeum", "jubilaeumJahrUnbekannt") })
             if (ExchangeCodec.TryParseCanonicalDate(Text(copy, date), out _, out _, out _)) copy.Remove(unknown);
@@ -123,7 +124,8 @@ internal static class ContactFields
         if (complete is null) return false;
         if (JsonNode.DeepEquals(complete, partial)) return true;
         if (complete is JsonObject obj && partial is JsonObject other)
-            return other.All(pair => ContainsContent(obj[pair.Key], pair.Value, field.Length == 0 ? pair.Key : field + "." + pair.Key, homeCountry));
+            return other.Where(pair => field != "kontaktpersonen" || pair.Key != "kontaktId")
+                .All(pair => ContainsContent(obj[pair.Key], pair.Value, field.Length == 0 ? pair.Key : field + "." + pair.Key, homeCountry));
         if (complete is JsonArray array && partial is JsonArray subset)
             return subset.All(item => array.Any(candidate => ContainsContent(candidate, item, field, homeCountry)));
         if (field == "telefone.wert" && complete is JsonValue fullNumber && partial is JsonValue shortNumber &&
@@ -204,6 +206,8 @@ internal static class ContactFields
 
     internal static JsonObject CopyRemoteFields(JsonObject target, JsonObject source, string provider = "")
     {
+        var linkedPeople = (target["kontaktpersonen"] as JsonArray ?? []).OfType<JsonObject>()
+            .Where(person => Text(person, "kontaktId").Length > 0).Select(person => person.DeepClone().AsObject()).ToArray();
         var oldPhoto = Text(target, "foto");
         var oldOrigins = (target["fotoQuellen"] as JsonArray ?? []).OfType<JsonValue>()
             .Select(value => value.TryGetValue<string>(out var text) ? text : "").ToArray();
@@ -221,6 +225,22 @@ internal static class ContactFields
             if (dateField is "geburtstag" or "jubilaeum" && Text(source, dateField).Length == 0 && Text(target, dateField).Length > 0) continue;
             if (name == "anzeigename" && !source.ContainsKey(name)) continue;
             target[name] = source[name]?.DeepClone();
+        }
+        if (linkedPeople.Length > 0)
+        {
+            var people = target["kontaktpersonen"] as JsonArray;
+            if (people is null) target["kontaktpersonen"] = people = new JsonArray();
+            foreach (var linked in linkedPeople)
+            {
+                if (people.OfType<JsonObject>().Any(person => Text(person, "kontaktId") == Text(linked, "kontaktId") &&
+                        Text(person, "status") == Text(linked, "status"))) continue;
+                var portable = linked.DeepClone().AsObject(); portable.Remove("kontaktId");
+                var same = people.OfType<JsonObject>().Where(person => {
+                    var copy = person.DeepClone().AsObject(); copy.Remove("kontaktId"); return JsonNode.DeepEquals(copy, portable);
+                }).ToArray();
+                if (same.Length == 1) same[0]["kontaktId"] = Text(linked, "kontaktId");
+                else people.Add(linked);
+            }
         }
         NormalizeBirthday(target);
         if (Text(target, "foto") != oldPhoto)

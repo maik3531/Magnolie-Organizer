@@ -533,12 +533,18 @@ msgstr "Adressebok"
 msgid "Address imported from LibreOffice."
 msgstr "Adresse importert fra LibreOffice."
 
+msgid "Address supplement"
+msgstr "Adressetillegg"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr "Adressert til %(branch)s; den blir levert når grenen er tilgjengelig."
 
 msgid "Addresses"
 msgstr "Adresser"
+
+msgid "Advanced"
+msgstr "Avansert"
 
 msgid "After exercise"
 msgstr "Etter trening"
@@ -1204,6 +1210,9 @@ msgid ""
 msgstr ""
 "Velg en avfallstype eller skriv inn en egendefinert henting. Angi første "
 "henting og intervallet i dager; 0 oppretter en engangshenting."
+
+msgid "Choose an address"
+msgstr "Velg en adresse"
 
 msgid "Choose at least four characters."
 msgstr "Velg minst fire tegn."
@@ -1935,6 +1944,9 @@ msgstr "Rediger nettstedet eller programmet som brukes"
 
 msgid "Email"
 msgstr "E-post"
+
+msgid "Email address"
+msgstr "E-postadresse"
 
 msgid "Email addresses"
 msgstr "E-postadresser"
@@ -2731,11 +2743,17 @@ msgstr "Linjeert papir (linjer på skrivearket)"
 msgid "Link"
 msgstr "Lenke"
 
+msgid "Link existing contact"
+msgstr "Koble til eksisterende kontakt"
+
 msgid "Listener active"
 msgstr "Lytter aktiv"
 
 msgid "Listener stopped"
 msgstr "Lytter stoppet"
+
+msgid "Loading…"
+msgstr "Laster…"
 
 msgid "Local calendar"
 msgstr "Lokal kalender"
@@ -3686,6 +3704,9 @@ msgstr "Mitt nummer (standard-SIM for anrop)"
 msgid "PDF file"
 msgstr "PDF-fil"
 
+msgid "PO box"
+msgstr "Postboks"
+
 msgid "Packaging / Yellow bin"
 msgstr "Emballasje / gul beholder"
 
@@ -4136,6 +4157,9 @@ msgstr "Gjør om"
 
 msgid "Refresh"
 msgstr "Oppdater"
+
+msgid "Region"
+msgstr "Region"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."
@@ -5313,6 +5337,9 @@ msgstr "Tegnegrensen er nådd."
 
 msgid "The end date cannot be before the start date."
 msgstr "Sluttdatoen kan ikke være før startdatoen."
+
+msgid "The entry could not be found."
+msgstr "Oppføringen ble ikke funnet."
 
 msgid "The export data is missing."
 msgstr "Eksportdataene mangler."

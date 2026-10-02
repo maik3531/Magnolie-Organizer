@@ -561,12 +561,18 @@ msgstr "Adresář"
 msgid "Address imported from LibreOffice."
 msgstr "Adresa importována z LibreOffice."
 
+msgid "Address supplement"
+msgstr "Doplněk adresy"
+
 msgid ""
 "Addressed to %(branch)s; it will be delivered when the branch is available."
 msgstr "Určeno pro %(branch)s; bude doručeno, jakmile bude větev dostupná."
 
 msgid "Addresses"
 msgstr "Adresy"
+
+msgid "Advanced"
+msgstr "Pokročilé"
 
 msgid "After exercise"
 msgstr "Po cvičení"
@@ -1223,6 +1229,9 @@ msgid ""
 msgstr ""
 "Vyberte druh odpadu nebo zadejte vlastní svoz. Nastavte první svoz a "
 "interval ve dnech; 0 vytvoří jednorázový svoz."
+
+msgid "Choose an address"
+msgstr "Vybrat adresu"
 
 msgid "Choose at least four characters."
 msgstr "Zvolte alespoň čtyři znaky."
@@ -1953,6 +1962,9 @@ msgstr "Upravit používaný web nebo aplikaci"
 
 msgid "Email"
 msgstr "E-mail"
+
+msgid "Email address"
+msgstr "E-mailová adresa"
 
 msgid "Email addresses"
 msgstr "E-mailové adresy"
@@ -2745,11 +2757,17 @@ msgstr "Linkovaný papír (řádky na psacím listu)"
 msgid "Link"
 msgstr "Odkaz"
 
+msgid "Link existing contact"
+msgstr "Propojit stávající kontakt"
+
 msgid "Listener active"
 msgstr "předběžné"
 
 msgid "Listener stopped"
 msgstr "Posluchač se zastavil"
+
+msgid "Loading…"
+msgstr "Načítání…"
 
 msgid "Local calendar"
 msgstr "Místní kalendář"
@@ -3698,6 +3716,9 @@ msgstr "Vlastní číslo (výchozí hlasová SIM)"
 msgid "PDF file"
 msgstr "Soubor PDF"
 
+msgid "PO box"
+msgstr "Poštovní přihrádka"
+
 msgid "Packaging / Yellow bin"
 msgstr "Obaly / žlutá nádoba"
 
@@ -4150,6 +4171,9 @@ msgstr "Znovu"
 
 msgid "Refresh"
 msgstr "Obnovit"
+
+msgid "Region"
+msgstr "Region"
 
 msgid ""
 "Regional settings saved. Restart the Organizer to apply them completely."
@@ -5321,6 +5345,9 @@ msgstr "Byl dosažen limit kreslení."
 
 msgid "The end date cannot be before the start date."
 msgstr "Datum konce nemůže být před datem začátku."
+
+msgid "The entry could not be found."
+msgstr "Položka nebyla nalezena."
 
 msgid "The export data is missing."
 msgstr "Chybí exportní data."
