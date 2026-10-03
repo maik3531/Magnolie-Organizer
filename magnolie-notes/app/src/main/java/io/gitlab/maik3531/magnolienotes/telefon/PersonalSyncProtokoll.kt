@@ -134,6 +134,7 @@ object PersonalSyncProtokoll {
 
     fun validate(kind: String, body: JsonObject) {
         when (kind) {
+            PersonalNoteMode.KIND -> PersonalNoteMode.validate(body)
             "personal_sync.settings" -> {
                 TelefonNachrichten.exact(body, setOf("format", "own_device"))
                 if (body.integer("format") != 1L || (body["own_device"] as? JsonPrimitive)?.booleanOrNull == null) fail()

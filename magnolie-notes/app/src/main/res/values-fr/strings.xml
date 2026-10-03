@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="personal_note_direction_update">Mettez les deux appareils à jour pour choisir le sens de transfert des notes.</string>
+    <string name="personal_note_direction">Sens de synchronisation des notes</string>
+    <string name="personal_note_two_way">Synchronisation bidirectionnelle</string>
+    <string name="personal_note_import">Importer uniquement de Notes vers Organizer</string>
+    <string name="personal_note_direction_hint">Le mode import ne renvoie aucune note d’Organizer et ne synchronise aucune suppression de notes, carnets ou pièces jointes. Les tâches restent indépendantes.</string>
     <string name="baum_postfach_unsicher">Livraisons non vérifiées : %1$d. Les messages sont conservés et le renvoi automatique est suspendu. Vérifiez la réception ; les anciens appareils peuvent ne pas prendre en charge les accusés de réception vérifiés.</string>
     <string name="telefon_bluetooth_setup">Associer un nouvel Organizer par Bluetooth</string>
     <string name="telefon_bluetooth_setup_hinweis">Gardez cet écran ouvert. Sélectionnez ce téléphone dans Organizer, confirmez le jumelage système, puis comparez le code sur les deux appareils.</string>

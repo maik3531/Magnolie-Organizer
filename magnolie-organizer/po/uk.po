@@ -3059,6 +3059,9 @@ msgstr "Імпортувати ICS / CSV…"
 msgid "Import Lotus Organizer CSV"
 msgstr "Імпортувати CSV Lotus Organizer"
 
+msgid "Import Notes → Organizer only"
+msgstr "Імпорт лише з Notes до Organizer"
+
 msgid "Import calendar file"
 msgstr "Імпортувати файл календаря"
 
@@ -3076,6 +3079,14 @@ msgstr "Імпортувати з LibreOffice"
 
 msgid "Import is available only in the installed application."
 msgstr "Імпорт доступний лише у встановленій програмі."
+
+msgid ""
+"Import mode sends no Organizer notes back and synchronizes no note, notebook "
+"or attachment deletions. Tasks remain independent."
+msgstr ""
+"У режимі імпорту нотатки Organizer не надсилаються назад, а видалення "
+"нотаток, блокнотів і вкладень не синхронізуються. Завдання залишаються "
+"незалежними."
 
 msgid "Import once"
 msgstr "Імпортувати один раз"
@@ -3278,6 +3289,9 @@ msgstr "Не вдалося отримати дані через KDE Connect."
 
 msgid "KDE/Akonadi integration is not available."
 msgstr "Інтеграція KDE/Akonadi недоступна."
+
+msgid "Keep"
+msgstr "Зберегти"
 
 msgid "Keep a troubleshooting log"
 msgstr "Зберігати журнал усунення несправностей"
@@ -4163,6 +4177,9 @@ msgstr "Не надіслано."
 
 msgid "Note"
 msgstr "Нотатка"
+
+msgid "Note synchronization direction"
+msgstr "Напрямок синхронізації нотаток"
 
 msgid "Note text"
 msgstr "Текст нотатки"
@@ -7549,6 +7566,9 @@ msgstr "На два дні назад"
 msgid "Two days forward"
 msgstr "На два дні вперед"
 
+msgid "Two-way synchronization"
+msgstr "Двостороння синхронізація"
+
 msgid "Type"
 msgstr "Тип"
 
@@ -7657,6 +7677,9 @@ msgstr "Без назви"
 
 msgid "Untitled appointment"
 msgstr "Зустріч без назви"
+
+msgid "Update both devices to choose the note direction."
+msgstr "Оновіть обидва пристрої, щоб вибрати напрямок передавання нотаток."
 
 msgid "Update checking is available in the installed application."
 msgstr "Перевірка оновлень доступна у встановленій програмі."

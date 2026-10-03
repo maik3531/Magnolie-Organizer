@@ -48,7 +48,7 @@ class PersonalDeletionAckServiceTest {
 
         val pending = service.personalSyncPendingDecisions().single()
         assertEquals(PendingPersonalDecision("peer", runId, decisionId, proposalId, "restore", clock,
-            "terminal:conflict"), pending)
+            "terminal:conflict", kind = "note"), pending)
     }
 
     private fun uuid(value: Int) = "%08x-0000-4000-8000-%012x".format(value, value)

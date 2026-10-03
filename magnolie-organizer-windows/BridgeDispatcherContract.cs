@@ -72,6 +72,7 @@ internal static class BridgeDispatcherContract
             T("foto"), T("stil"), N("dauer"), B("annehmen"), B("leiser")),
         ["telefon_anruf_lautstaerke_wiederherstellen"] = S(T("callRef")),
         ["personal_sync_einstellungen"] = S(T("kennung"), B("eigen"), B("autoWlan")),
+        ["personal_sync_notizrichtung"] = S(T("kennung"), T("modus")),
         ["personal_sync_senden"] = S(T("kennung"), T("art"), J("inhalt")),
         ["personal_sync_lauf_senden"] = S(T("kennung"), J("request"), A("batches"), A("sources"), O("report", JsonValueKind.Object), O("commit", JsonValueKind.Object)),
         ["personal_sync_attachment_index"] = S(T("kennung"), T("runId"), B("reply"), T("recordsHash"), A("sources")),

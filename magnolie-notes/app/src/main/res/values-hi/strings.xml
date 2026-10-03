@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="personal_note_direction_update">नोट की दिशा चुनने के लिए दोनों डिवाइस अपडेट करें।</string>
+    <string name="personal_note_direction">नोट सिंक्रनाइज़ेशन की दिशा</string>
+    <string name="personal_note_two_way">दोनों दिशाओं में सिंक्रनाइज़ेशन</string>
+    <string name="personal_note_import">केवल Notes से Organizer में आयात करें</string>
+    <string name="personal_note_direction_hint">आयात मोड में Organizer के नोट वापस नहीं भेजे जाते और नोट, नोटबुक या अटैचमेंट हटाने की कार्रवाई सिंक्रनाइज़ नहीं होती। कार्य स्वतंत्र रहते हैं।</string>
     <string name="baum_postfach_unsicher">असत्यापित डिलीवरी: %1$d। संदेश सुरक्षित हैं और अपने आप दोबारा भेजना रोक दिया गया है। प्राप्ति की जाँच करें; पुराने उपकरण सत्यापित प्राप्ति-पुष्टि का समर्थन नहीं कर सकते हैं।</string>
     <string name="telefon_bluetooth_setup">Bluetooth से नया Organizer जोड़ें</string>
     <string name="telefon_bluetooth_setup_hinweis">यह स्क्रीन खुली रखें। Organizer में यह फ़ोन चुनें, सिस्टम पेयरिंग की पुष्टि करें, फिर दोनों डिवाइसों पर कोड की तुलना करें।</string>

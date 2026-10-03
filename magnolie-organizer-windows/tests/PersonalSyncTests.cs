@@ -9,6 +9,7 @@ internal static class PersonalSyncTests
     internal static async Task RunAsync()
     {
         PersonalCustomConsentTests.Run();
+        await PersonalNoteModeTests.RunAsync();
         var resource = Path.Combine(AppContext.BaseDirectory, "resources", "personal-sync-contract.json");
         TestAssert.That(File.Exists(resource), "Repository-lokaler Personal-Sync-Vertrag fehlt.");
         var vectors = JsonNode.Parse(await File.ReadAllTextAsync(resource))!.AsObject(); var value = vectors["value"]!.AsObject();
@@ -271,6 +272,9 @@ internal static class PersonalSyncTests
         var store = new TelefonStore(paths, key); var personal = new PersonalSyncStore(store);
         const string peer = "34343434-3434-4434-8434-343434343434";
         var capabilities = TelefonProtocolContract.DesktopCapabilities()["items"]!.DeepClone().AsObject();
+        // This restart fixture exercises the pre-V5 protocol without a live
+        // connection. V5 replay must wait for the new connection's policy echoes.
+        capabilities["personal_notes_sync"]!["versions"] = new JsonArray(1, 2, 3);
         store.SavePeers([new TelefonPeer(peer, "Synthetic", TelefonCrypto.GenerateX25519().Public,
             StoredCapabilities: capabilities, StoredGrants: new JsonObject { ["personal_tasks_sync"] = true, ["personal_notes_sync"] = true })]);
         store.SetLocalGrant("personal_tasks_sync", true); store.SetLocalGrant("personal_notes_sync", true);

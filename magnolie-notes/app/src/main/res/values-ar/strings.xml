@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="personal_note_direction_update">حدّث الجهازين لاختيار اتجاه نقل الملاحظات.</string>
+    <string name="personal_note_direction">اتجاه مزامنة الملاحظات</string>
+    <string name="personal_note_two_way">مزامنة ثنائية الاتجاه</string>
+    <string name="personal_note_import">الاستيراد من Notes إلى Organizer فقط</string>
+    <string name="personal_note_direction_hint">لا يعيد وضع الاستيراد إرسال ملاحظات Organizer ولا يزامن حذف الملاحظات أو دفاتر الملاحظات أو المرفقات. تبقى المهام مستقلة.</string>
     <string name="baum_postfach_unsicher">عمليات تسليم غير مؤكدة: %1$d. تبقى الرسائل محفوظة وتتوقف إعادة إرسالها تلقائيًا. تحقق من الاستلام؛ فقد لا تدعم الأجهزة القديمة إيصالات الاستلام الموثقة.</string>
     <string name="telefon_bluetooth_setup">إقران Organizer جديد عبر Bluetooth</string>
     <string name="telefon_bluetooth_setup_hinweis">أبقِ هذه الشاشة مفتوحة. اختر هذا الهاتف في Organizer، وأكّد الاقتران في النظام، ثم قارن الرمز على الجهازين.</string>

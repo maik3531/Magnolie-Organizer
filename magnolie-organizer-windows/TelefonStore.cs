@@ -11,6 +11,7 @@ internal sealed class TelefonStore
     internal const long MaximumMessageTtlMs = 30L * 24 * 60 * 60 * 1000;
     private const long OutboxLimitBytes = 50L * 1024 * 1024;
     private readonly object gate = new();
+    internal SemaphoreSlim NotePolicyGate { get; } = new(1, 1);
     private readonly WindowsPaths paths;
     private readonly AtomicStore files;
     private readonly Action<string>? restoreCheckpoint;
@@ -85,7 +86,7 @@ internal sealed class TelefonStore
             using var command = connection.CreateCommand(); command.Transaction = transaction;
             // Do not resurrect pre-fence commands, receive tokens or batches on abort.
             // Keep effect/dedupe and consent high-water marks so old work cannot replay.
-            command.CommandText = "DELETE FROM outbox; DELETE FROM inbox; DELETE FROM personal_batch; DELETE FROM personal_domain; DELETE FROM personal_attachment_chunk; DELETE FROM personal_attachment_transfer; DELETE FROM meta WHERE key NOT LIKE 'own_revision_%' AND key NOT GLOB 'personal_custom:*:consent' AND key != 'restore_epoch';";
+            command.CommandText = "DELETE FROM outbox; DELETE FROM inbox; DELETE FROM personal_batch; DELETE FROM personal_domain; DELETE FROM personal_attachment_chunk; DELETE FROM personal_attachment_transfer; DELETE FROM meta WHERE key NOT LIKE 'own_revision_%' AND key NOT GLOB 'personal_custom:*:consent' AND key NOT GLOB 'personal_note_mode:*:consent' AND key != 'restore_epoch';";
             command.ExecuteNonQuery(); transaction.Commit();
             ReleaseRestore(token);
         }
@@ -112,7 +113,7 @@ internal sealed class TelefonStore
             using var transaction = connection.BeginTransaction();
             using var command = connection.CreateCommand(); command.Transaction = transaction;
             // Content restore must not reset the live pairing's consent high-water marks.
-            command.CommandText = "DELETE FROM outbox; DELETE FROM inbox; DELETE FROM dedupe; DELETE FROM command_effect; DELETE FROM personal_batch; DELETE FROM personal_domain; DELETE FROM personal_attachment_chunk; DELETE FROM personal_attachment_transfer; DELETE FROM meta WHERE key NOT LIKE 'own_revision_%' AND key NOT GLOB 'personal_custom:*:consent'; INSERT INTO meta(key,value) VALUES('restore_epoch',$epoch);";
+            command.CommandText = "DELETE FROM outbox; DELETE FROM inbox; DELETE FROM dedupe; DELETE FROM command_effect; DELETE FROM personal_batch; DELETE FROM personal_domain; DELETE FROM personal_attachment_chunk; DELETE FROM personal_attachment_transfer; DELETE FROM meta WHERE key NOT LIKE 'own_revision_%' AND key NOT GLOB 'personal_custom:*:consent' AND key NOT GLOB 'personal_note_mode:*:consent'; INSERT INTO meta(key,value) VALUES('restore_epoch',$epoch);";
             command.Parameters.AddWithValue("$epoch", Encoding.UTF8.GetBytes(epoch)); command.ExecuteNonQuery();
             restoreCheckpoint?.Invoke("before-phone-commit");
             transaction.Commit();
@@ -183,6 +184,104 @@ internal sealed class TelefonStore
         if (ownDevice.HasValue) value["own_device"] = ownDevice.Value; if (remoteOwnDevice.HasValue) value["remote_own_device"] = remoteOwnDevice.Value; if (autoWifi.HasValue) value["auto_wifi"] = autoWifi.Value;
         if (value["own_device"]?.GetValue<bool>() != true) value["auto_wifi"] = false; SaveSettings(settings);
         if (ownDevice == false || remoteOwnDevice == false) PauseCustom(peerId);
+        }
+    }
+
+    internal JsonObject NoteSettings(string peerId)
+    {
+        lock (gate)
+        {
+            var key = "personal_note_mode:" + peerId + ":consent";
+            using var connection = OpenDatabase(); connection.Open(); using var command = connection.CreateCommand();
+            command.CommandText = "SELECT value FROM meta WHERE key=$key"; command.Parameters.AddWithValue("$key", key);
+            var settings = command.ExecuteScalar() is byte[] value ? JsonNode.Parse(Open("personal_note_mode", key, value))!.AsObject() : new JsonObject();
+            foreach (var name in new[] { "local", "remote" }) if (settings[name] is JsonObject policy) PersonalSyncContract.ValidateNoteSettings(policy);
+            return settings;
+        }
+    }
+
+    internal void SetNoteSettings(string peerId, JsonObject body, bool remote)
+    {
+        lock (gate)
+        {
+            if (!LoadPeers().Any(peer => peer.Id == peerId && peer.State == "paired")) throw new InvalidOperationException("Unknown note-mode peer.");
+            var settings = NoteSettings(peerId); var side = remote ? "remote" : "local";
+            settings[side] = PersonalSyncContract.AcceptNoteSettings(settings[side] as JsonObject, body);
+            var key = "personal_note_mode:" + peerId + ":consent";
+            using var connection = OpenDatabase(); connection.Open(); using var command = connection.CreateCommand();
+            command.CommandText = "INSERT OR REPLACE INTO meta(key,value) VALUES($key,$value)";
+            command.Parameters.AddWithValue("$key", key); command.Parameters.AddWithValue("$value", Seal("personal_note_mode", key, TelefonCrypto.Canonical(settings)));
+            command.ExecuteNonQuery();
+        }
+    }
+
+    internal bool NoteModeSupported(string peerId)
+    {
+        var peer = LoadPeers().SingleOrDefault(peer => peer.Id == peerId && peer.State == "paired");
+        return peer?.Capabilities["personal_notes_sync"]?["available"]?.GetValue<bool>() == true &&
+            TelefonProtocolContract.DesktopCapabilities()["items"]?["personal_notes_sync"]?["versions"] is JsonArray local &&
+            local.Any(v => TelefonProtocolContract.Integer(v) == PersonalSyncContract.NoteModeVersion) &&
+            peer.Capabilities["personal_notes_sync"]?["versions"] is JsonArray versions && versions.Any(v => TelefonProtocolContract.Integer(v) == PersonalSyncContract.NoteModeVersion);
+    }
+
+    internal bool NoteImportMode(string peerId)
+    {
+        var settings = NoteSettings(peerId);
+        return PersonalSyncContract.NoteImportMode(settings["local"] as JsonObject, settings["remote"] as JsonObject);
+    }
+
+    internal void RememberPersonalProposalKinds(string peerId, JsonObject body, bool outgoing, long? now = null)
+    {
+        PersonalSyncContract.ValidateBody("personal_sync.deletion_proposals", body);
+        lock (gate)
+        {
+            using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
+            foreach (var proposal in body["proposals"]!.AsArray().OfType<JsonObject>())
+            {
+                var key = "personal_proposal_kind:" + peerId + ":" + (outgoing ? "out:" : "in:") + proposal["proposal_id"]!.GetValue<string>();
+                var value = new JsonObject { ["kind"] = proposal["kind"]!.DeepClone(), ["clock"] = proposal["clock"]!.DeepClone(),
+                    ["expires_ms"] = (now ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) + MaximumMessageTtlMs };
+                using var read = connection.CreateCommand(); read.Transaction = transaction;
+                read.CommandText = "SELECT value FROM meta WHERE key=$key"; read.Parameters.AddWithValue("$key", key);
+                if (read.ExecuteScalar() is byte[] existing)
+                {
+                    var previous = JsonNode.Parse(Open("personal_proposal_kind", key, existing))!.AsObject();
+                    if (!JsonNode.DeepEquals(previous["kind"], value["kind"]) || !JsonNode.DeepEquals(previous["clock"], value["clock"]))
+                        throw new InvalidDataException("Conflicting personal proposal identity.");
+                    if (previous["expires_ms"] is not null) value["expires_ms"] = previous["expires_ms"]!.DeepClone();
+                }
+                else
+                {
+                    using var count = connection.CreateCommand(); count.Transaction = transaction;
+                    count.CommandText = "SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_proposal_kind:%'";
+                    if (Convert.ToInt64(count.ExecuteScalar()) >= 10000) throw new InvalidOperationException("queue_full");
+                }
+                using var write = connection.CreateCommand(); write.Transaction = transaction;
+                write.CommandText = "INSERT OR REPLACE INTO meta(key,value) VALUES($key,$value)";
+                write.Parameters.AddWithValue("$key", key); write.Parameters.AddWithValue("$value", Seal("personal_proposal_kind", key, TelefonCrypto.Canonical(value)));
+                write.ExecuteNonQuery();
+            }
+            transaction.Commit();
+        }
+    }
+
+    internal IReadOnlyList<string>? PersonalDecisionKinds(string peerId, JsonObject body, bool outgoingDecision)
+    {
+        if (body["decisions"] is not JsonArray decisions) return null;
+        lock (gate)
+        {
+            using var connection = OpenDatabase(); connection.Open(); var result = new List<string>();
+            foreach (var decision in decisions.OfType<JsonObject>())
+            {
+                var key = "personal_proposal_kind:" + peerId + ":" + (outgoingDecision ? "in:" : "out:") + decision["proposal_id"]?.GetValue<string>();
+                using var read = connection.CreateCommand(); read.CommandText = "SELECT value FROM meta WHERE key=$key"; read.Parameters.AddWithValue("$key", key);
+                if (read.ExecuteScalar() is not byte[] encrypted) return null;
+                var value = JsonNode.Parse(Open("personal_proposal_kind", key, encrypted))!.AsObject();
+                if (!JsonNode.DeepEquals(value["clock"], decision["expected_clock"]) ||
+                    (value["expires_ms"]?.GetValue<long>() ?? 0) <= DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) return null;
+                result.Add(value["kind"]!.GetValue<string>());
+            }
+            return result.Count == decisions.Count ? result : null;
         }
     }
 
@@ -513,8 +612,9 @@ internal sealed class TelefonStore
             // Revoke authorization before modifying recoverable pairing/settings files.
             using (var db = OpenDatabase())
             {
-                db.Open(); using var revoke = db.CreateCommand(); revoke.CommandText = "DELETE FROM meta WHERE key=$key";
-                revoke.Parameters.AddWithValue("$key", "personal_custom:" + peerId + ":consent"); revoke.ExecuteNonQuery();
+                db.Open(); using var revoke = db.CreateCommand(); revoke.CommandText = "DELETE FROM meta WHERE key IN ($key,$notes)";
+                revoke.Parameters.AddWithValue("$key", "personal_custom:" + peerId + ":consent");
+                revoke.Parameters.AddWithValue("$notes", "personal_note_mode:" + peerId + ":consent"); revoke.ExecuteNonQuery();
             }
             SavePeers(LoadPeers().Where(peer => peer.Id != peerId));
             RemoveStatus(peerId);
@@ -538,12 +638,13 @@ internal sealed class TelefonStore
         var message = new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = id, ["kind"] = kind,
             ["created_ms"] = now, ["expires_ms"] = expires, ["body"] = body.DeepClone() };
         TelefonMessageContract.ValidateMessage(message, now, false);
+        if (kind == "personal_sync.deletion_proposals") RememberPersonalProposalKinds(peerId, body, true);
         var payload = Seal("outbox", id, TelefonCrypto.Canonical(message));
         lock (gate)
         {
             if (RestoreFenced) throw new InvalidOperationException("restore_unavailable");
             using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
-            if (kind is "personal_sync.custom_settings" or "personal_sync.settings")
+            if (kind is "personal_sync.custom_settings" or "personal_sync.settings" or PersonalSyncContract.NoteModeKind)
             {
                 using var replace = connection.CreateCommand(); replace.Transaction = transaction;
                 replace.CommandText = "DELETE FROM outbox WHERE peer_id=$peer AND kind=$kind";
@@ -569,7 +670,7 @@ internal sealed class TelefonStore
             if (RestoreFenced) return [];
             using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction(); using var command = connection.CreateCommand();
             if (transport is not ("wifi" or "bluetooth")) throw new ArgumentOutOfRangeException(nameof(transport));
-            command.Transaction = transaction; command.CommandText = "SELECT message_id,kind,payload,attempts,transport_policy FROM outbox WHERE peer_id=$peer AND expires_ms>=$now AND next_attempt_ms<=$now AND (transport_policy='any' OR $transport='wifi') ORDER BY CASE WHEN kind='personal_sync.custom_settings' THEN 0 ELSE 1 END,created_ms";
+            command.Transaction = transaction; command.CommandText = "SELECT message_id,kind,payload,attempts,transport_policy FROM outbox WHERE peer_id=$peer AND expires_ms>=$now AND next_attempt_ms<=$now AND (transport_policy='any' OR $transport='wifi') ORDER BY CASE kind WHEN 'capabilities.update' THEN 0 WHEN 'grants.update' THEN 1 WHEN 'personal_sync.settings' THEN 2 WHEN 'personal_sync.note_settings' THEN 3 WHEN 'personal_sync.custom_settings' THEN 4 ELSE 5 END,created_ms";
             command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$now", now); command.Parameters.AddWithValue("$transport", transport);
             var queued = new List<(string Id, string Kind, byte[] Payload, int Attempts, string Policy)>();
             using (var reader = command.ExecuteReader()) while (reader.Read()) queued.Add((reader.GetString(0), reader.GetString(1), (byte[])reader[2], reader.GetInt32(3), reader.GetString(4)));
@@ -765,6 +866,19 @@ internal sealed class TelefonStore
         transaction.Commit();
     }
 
+    internal bool ReceivedMatches(string peerId, JsonObject message)
+    {
+        var id = message["message_id"]!.GetValue<string>();
+        lock (gate)
+        {
+            using var connection = OpenDatabase(); connection.Open(); using var command = connection.CreateCommand();
+            command.CommandText = "SELECT payload FROM inbox WHERE peer_id=$peer AND message_id=$id";
+            command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$id", id);
+            return command.ExecuteScalar() is byte[] encrypted &&
+                JsonNode.DeepEquals(JsonNode.Parse(Open("inbox", peerId + id, encrypted)), message);
+        }
+    }
+
     internal void MarkIncomingRejected(string peerId, string messageId, string error, long now)
     {
         using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
@@ -828,6 +942,28 @@ internal sealed class TelefonStore
             Execute(connection, transaction, "DELETE FROM personal_attachment_chunk WHERE NOT EXISTS (SELECT 1 FROM personal_attachment_transfer t WHERE t.peer_id=personal_attachment_chunk.peer_id AND t.run_id=personal_attachment_chunk.run_id AND t.reply=personal_attachment_chunk.reply AND t.records_hash=personal_attachment_chunk.records_hash AND t.sha256=personal_attachment_chunk.sha256 AND t.direction=personal_attachment_chunk.direction) OR EXISTS (SELECT 1 FROM personal_attachment_transfer t WHERE t.peer_id=personal_attachment_chunk.peer_id AND t.run_id=personal_attachment_chunk.run_id AND t.reply=personal_attachment_chunk.reply AND t.records_hash=personal_attachment_chunk.records_hash AND t.sha256=personal_attachment_chunk.sha256 AND t.direction=personal_attachment_chunk.direction AND t.expires_ms<=$now)", now);
             Execute(connection, transaction, "DELETE FROM personal_attachment_transfer WHERE expires_ms<=$now OR NOT EXISTS (SELECT 1 FROM meta WHERE key='personal_run:'||personal_attachment_transfer.peer_id||':'||personal_attachment_transfer.run_id)", now);
             Execute(connection, transaction, "DELETE FROM personal_batch WHERE NOT EXISTS (SELECT 1 FROM meta WHERE key='personal_run:'||personal_batch.peer_id||':'||personal_batch.run_id)", now);
+            var expiredProofs = new List<string>();
+            using (var proofs = connection.CreateCommand())
+            {
+                proofs.Transaction = transaction; proofs.CommandText = "SELECT key,value FROM meta WHERE key LIKE 'personal_proposal_kind:%'";
+                using var reader = proofs.ExecuteReader();
+                while (reader.Read())
+                {
+                    var key = reader.GetString(0);
+                    try
+                    {
+                        var value = JsonNode.Parse(Open("personal_proposal_kind", key, (byte[])reader[1]))!.AsObject();
+                        if ((value["expires_ms"]?.GetValue<long>() ?? 0) <= now) expiredProofs.Add(key);
+                    }
+                    catch (Exception error) when (error is CryptographicException or JsonException or InvalidOperationException or InvalidDataException)
+                    { expiredProofs.Add(key); }
+                }
+            }
+            foreach (var key in expiredProofs)
+            {
+                using var delete = connection.CreateCommand(); delete.Transaction = transaction;
+                delete.CommandText = "DELETE FROM meta WHERE key=$key"; delete.Parameters.AddWithValue("$key", key); delete.ExecuteNonQuery();
+            }
             transaction.Commit();
         }
     }

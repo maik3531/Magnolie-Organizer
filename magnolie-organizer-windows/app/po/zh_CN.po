@@ -2400,6 +2400,9 @@ msgstr "导入 ICS / CSV…"
 msgid "Import Magnolie complete archive"
 msgstr "导入 Magnolie 完整档案"
 
+msgid "Import Notes → Organizer only"
+msgstr "仅从 Notes 导入到 Organizer"
+
 msgid "Import failed."
 msgstr "导入失败。"
 
@@ -2411,6 +2414,13 @@ msgstr "从 LibreOffice 导入"
 
 msgid "Import is available only in the installed application."
 msgstr "只有安装版应用程序支持导入。"
+
+msgid ""
+"Import mode sends no Organizer notes back and synchronizes no note, notebook "
+"or attachment deletions. Tasks remain independent."
+msgstr ""
+"导入模式不会回传 Organizer 笔记，也不会同步笔记、笔记本或附件的删除操作。任务"
+"保持独立。"
 
 msgid "Import once"
 msgstr "仅导入一次"
@@ -2552,6 +2562,9 @@ msgstr "KDE Connect 手机已配对。"
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect 端口 %(port)s"
+
+msgid "Keep"
+msgstr "保留"
 
 msgid "Keep a troubleshooting log"
 msgstr "保留故障排除日志"
@@ -3259,6 +3272,9 @@ msgstr "尚未登录 Microsoft。"
 
 msgid "Note"
 msgstr "便笺"
+
+msgid "Note synchronization direction"
+msgstr "笔记同步方向"
 
 msgid "Note text"
 msgstr "便笺文本"
@@ -5772,6 +5788,9 @@ msgstr "后退两天"
 msgid "Two days forward"
 msgstr "前进两天"
 
+msgid "Two-way synchronization"
+msgstr "双向同步"
+
 msgid "Type"
 msgstr "类型"
 
@@ -5846,6 +5865,9 @@ msgstr "无标题"
 
 msgid "Untitled appointment"
 msgstr "无标题约会"
+
+msgid "Update both devices to choose the note direction."
+msgstr "请更新两台设备以选择笔记传输方向。"
 
 msgid "Update checking is available in the installed application."
 msgstr "已安装的应用中可以检查更新。"

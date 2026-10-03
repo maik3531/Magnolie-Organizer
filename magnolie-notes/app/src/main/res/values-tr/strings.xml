@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="personal_note_direction_update">Not yönünü seçmek için her iki cihazı da güncelleyin.</string>
+    <string name="personal_note_direction">Not eşitleme yönü</string>
+    <string name="personal_note_two_way">Çift yönlü eşitleme</string>
+    <string name="personal_note_import">Yalnızca Notes → Organizer içe aktarımı</string>
+    <string name="personal_note_direction_hint">İçe aktarma modu Organizer notlarını geri göndermez ve not, not defteri veya ek silmelerini eşitlemez. Görevler bağımsız kalır.</string>
     <string name="baum_postfach_unsicher">Doğrulanmamış teslimatlar: %1$d. İletiler saklanır ve otomatik yeniden gönderim duraklatılır. Alındığını kontrol edin; eski cihazlar doğrulanmış alındı bildirimlerini desteklemeyebilir.</string>
     <string name="telefon_bluetooth_setup">Bluetooth ile yeni bir Organizer eşleştirin</string>
     <string name="telefon_bluetooth_setup_hinweis">Bu ekranı açık tutun. Organizer uygulamasında bu telefonu seçin, sistem eşleştirmesini onaylayın ve ardından iki cihazdaki kodu karşılaştırın.</string>

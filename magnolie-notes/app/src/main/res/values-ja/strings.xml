@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="personal_note_direction_update">ノートの転送方向を選ぶには両方のデバイスを更新してください。</string>
+    <string name="personal_note_direction">ノートの同期方向</string>
+    <string name="personal_note_two_way">双方向同期</string>
+    <string name="personal_note_import">Notes から Organizer へのインポートのみ</string>
+    <string name="personal_note_direction_hint">インポートモードでは Organizer のノートを送り返さず、ノート、ノートブック、添付ファイルの削除も同期しません。タスクは独立したままです。</string>
     <string name="baum_postfach_unsicher">配信未確認：%1$d 件。メッセージは保存され、自動再送は停止されています。受信側で確認してください。古い端末は認証付き受領確認に対応していない場合があります。</string>
     <string name="telefon_bluetooth_setup">Bluetooth で新しい Organizer とペア設定</string>
     <string name="telefon_bluetooth_setup_hinweis">この画面を開いたままにしてください。Organizer でこの電話を選び、システムのペア設定を確認してから、両方の端末のコードを比較してください。</string>

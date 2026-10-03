@@ -47,6 +47,123 @@ def projection_hash(value):
     return hashlib.sha256(canonical(value)).hexdigest()
 
 
+NOTE_MODE_VERSION = 5
+NOTE_MODE_KIND = "personal_sync.note_settings"
+
+
+def validate_note_settings(body):
+    if (not isinstance(body, dict) or set(body) != {"format", "mode", "revision", "epoch", "peer_epoch"}
+            or type(body.get("format")) is not int or body["format"] != NOTE_MODE_VERSION
+            or body.get("mode") not in ("two_way", "phone_import")
+            or type(body.get("revision")) is not int or not 1 <= body["revision"] <= MAX_SAFE_INTEGER
+            or not isinstance(body.get("epoch"), str) or not UUID4.fullmatch(body["epoch"])
+            or not isinstance(body.get("peer_epoch"), str)
+            or body["peer_epoch"] and not UUID4.fullmatch(body["peer_epoch"])):
+        raise ValueError("invalid note direction")
+    return body
+
+
+def note_settings(mode="two_way", revision=1, peer_epoch=""):
+    return validate_note_settings({"format": NOTE_MODE_VERSION, "mode": mode, "revision": revision,
+                                   "epoch": str(uuid.uuid4()), "peer_epoch": peer_epoch})
+
+
+def accept_note_settings(current, incoming):
+    validate_note_settings(incoming)
+    if current is not None:
+        validate_note_settings(current)
+        revision, previous = incoming["revision"], current["revision"]
+        if (revision < previous or revision == previous and
+                {k: v for k, v in incoming.items() if k != "peer_epoch"} !=
+                {k: v for k, v in current.items() if k != "peer_epoch"} or
+                revision > previous and incoming["epoch"] == current["epoch"]):
+            raise ValueError("stale note direction")
+    return dict(incoming)
+
+
+def note_settings_echo(local, remote):
+    validate_note_settings(local)
+    if remote is not None:
+        validate_note_settings(remote)
+    return dict(local, peer_epoch=remote["epoch"] if remote else "")
+
+
+def note_import_mode(local, remote):
+    values = [validate_note_settings(value) for value in (local, remote) if value is not None]
+    return any(value["mode"] == "phone_import" for value in values)
+
+
+def note_settings_ready(local, remote, received_on_connection, sent_on_connection):
+    if not received_on_connection or not sent_on_connection or local is None or remote is None:
+        return False
+    try:
+        validate_note_settings(local)
+        validate_note_settings(remote)
+    except ValueError:
+        return False
+    return local["peer_epoch"] == remote["epoch"] and remote["peer_epoch"] == local["epoch"]
+
+
+def same_note_policy(left, right):
+    return (isinstance(left, dict) and isinstance(right, dict) and
+            {key: value for key, value in left.items() if key != "peer_epoch"} ==
+            {key: value for key, value in right.items() if key != "peer_epoch"})
+
+
+class PersonalNoteSession:
+    """Connection-local evidence, never reconstructed from persisted consent."""
+
+    def __init__(self):
+        self.sent = None
+        self.received = None
+
+    def ready(self, local, remote):
+        return (same_note_policy(local, self.sent) and
+                same_note_policy(remote, self.received) and
+                note_settings_ready(self.sent, self.received, True, True))
+
+
+def note_message_uses_notes(kind, body, decision_kinds=None):
+    if kind == "personal_sync.batch":
+        return any(record.get("kind") in ("note", "notebook") for record in body.get("records", []))
+    if kind == "personal_sync.request":
+        return "notes" in body.get("modules", [])
+    if kind in ("personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result"):
+        return True
+    if kind == "personal_sync.deletion_proposals":
+        return any(proposal.get("kind") != "task" for proposal in body.get("proposals", []))
+    if kind == "personal_sync.deletion_decision":
+        return decision_kinds is None or any(value != "task" for value in decision_kinds)
+    if kind == "personal_sync.report":
+        return any(body.get(direction, {}).get(module, 0) > 0
+                   for direction in ("sent", "received") for module in ("notes", "notebooks"))
+    return False
+
+
+def note_direction_allowed(role, outgoing, kind, body, importing, decision_kinds=None):
+    if role not in ("phone", "desktop"):
+        raise ValueError("invalid endpoint role")
+    if not importing or kind in (NOTE_MODE_KIND, "personal_sync.settings"):
+        return True
+    phone_to_desktop = role == "phone" if outgoing else role == "desktop"
+    if kind == "personal_sync.batch":
+        records = body.get("records")
+        return isinstance(records, list) and (phone_to_desktop or
+            all(isinstance(record, dict) and record.get("kind") == "task" for record in records))
+    if kind == "personal_sync.attachment_chunk":
+        return phone_to_desktop
+    if kind == "personal_sync.attachment_request":
+        return not phone_to_desktop
+    if kind == "personal_sync.deletion_proposals":
+        proposals = body.get("proposals")
+        return isinstance(proposals, list) and all(isinstance(value, dict) and value.get("kind") == "task" for value in proposals)
+    if kind == "personal_sync.deletion_decision":
+        decisions = body.get("decisions")
+        return (isinstance(decisions, list) and isinstance(decision_kinds, list) and
+                len(decisions) == len(decision_kinds) and all(value == "task" for value in decision_kinds))
+    return True
+
+
 def custom_source_id(source_id, item_id):
     """Custom identity is independent of module placement and display labels."""
     if (not isinstance(source_id, str) or not UUID4.fullmatch(source_id)
@@ -434,7 +551,9 @@ def validate_record(record, format=1):
 def validate_body(kind, body):
     if not isinstance(body, dict):
         raise ValueError("invalid personal sync body")
-    if kind == "personal_sync.settings":
+    if kind == NOTE_MODE_KIND:
+        validate_note_settings(body)
+    elif kind == "personal_sync.settings":
         if set(body) != {"format", "own_device"} or body.get("format") != FORMAT or not isinstance(body.get("own_device"), bool):
             raise ValueError("invalid personal sync settings")
     elif kind == "personal_sync.request":

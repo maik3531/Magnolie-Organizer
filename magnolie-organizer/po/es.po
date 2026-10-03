@@ -3066,6 +3066,9 @@ msgstr "Importar ICS / CSV…"
 msgid "Import Lotus Organizer CSV"
 msgstr "Importar CSV de Lotus Organizer"
 
+msgid "Import Notes → Organizer only"
+msgstr "Importar solo de Notes a Organizer"
+
 msgid "Import calendar file"
 msgstr "Importar archivo de calendario"
 
@@ -3083,6 +3086,14 @@ msgstr "Importar desde LibreOffice"
 
 msgid "Import is available only in the installed application."
 msgstr "La importación solo está disponible en la aplicación instalada."
+
+msgid ""
+"Import mode sends no Organizer notes back and synchronizes no note, notebook "
+"or attachment deletions. Tasks remain independent."
+msgstr ""
+"El modo de importación no devuelve notas de Organizer ni sincroniza "
+"eliminaciones de notas, cuadernos o adjuntos. Las tareas siguen siendo "
+"independientes."
 
 msgid "Import once"
 msgstr "Importar una vez"
@@ -3288,6 +3299,9 @@ msgstr "Ha fallado la recepción de KDE Connect."
 
 msgid "KDE/Akonadi integration is not available."
 msgstr "La integración con KDE/Akonadi no está disponible."
+
+msgid "Keep"
+msgstr "Conservar"
 
 msgid "Keep a troubleshooting log"
 msgstr "Mantener un registro de diagnóstico"
@@ -4179,6 +4193,9 @@ msgstr "No enviado."
 
 msgid "Note"
 msgstr "Nota"
+
+msgid "Note synchronization direction"
+msgstr "Dirección de sincronización de notas"
 
 msgid "Note text"
 msgstr "Texto de la nota"
@@ -7645,6 +7662,9 @@ msgstr "Dos días atrás"
 msgid "Two days forward"
 msgstr "Dos días adelante"
 
+msgid "Two-way synchronization"
+msgstr "Sincronización bidireccional"
+
 msgid "Type"
 msgstr "Tipo"
 
@@ -7753,6 +7773,9 @@ msgstr "Sin título"
 
 msgid "Untitled appointment"
 msgstr "Cita sin título"
+
+msgid "Update both devices to choose the note direction."
+msgstr "Actualice ambos dispositivos para elegir la dirección de las notas."
 
 msgid "Update checking is available in the installed application."
 msgstr ""

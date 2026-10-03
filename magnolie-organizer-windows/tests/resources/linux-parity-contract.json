@@ -1,8 +1,8 @@
 {
   "schema": "magnolie-linux-parity-v1",
   "sources": {
-    "web/anwendung.js": "5b6ca9d0788b1102476f53e9a93ae70ff7a630e0e6e7b66fd71fe3c42da32353",
-    "bin/magnolie-organizer": "f7332812224cba795cf9ac41a7a35ed3a616dc12e689aa9a07d263738d0b5b2f"
+    "web/anwendung.js": "9978cd53a1b2e4b3c210c2db3eaf0dad8e554bb6bfab718bc66a6ce6ae5dfd46",
+    "bin/magnolie-organizer": "611fc26c1753f17296fa371b50c42b2c3b54d3e4fa90b182453ced2e77e0ba83"
   },
   "commands": [
     "ablage_holen",
@@ -72,6 +72,7 @@
     "personal_sync_attachment_index",
     "personal_sync_einstellungen",
     "personal_sync_lauf_senden",
+    "personal_sync_notizrichtung",
     "personal_sync_senden",
     "planer_ods",
     "protokoll_zeigen",
@@ -393,5 +394,5 @@
       ]
     ]
   ],
-  "contractSha256": "fe0f0bb0caecb34dda3a2beac02526621e069c774fac50a8cd1b6b81aba9db27"
+  "contractSha256": "339715039eea52e98be5f2ebd29a443c754d65e26b3a417b4bfafc6c20feb733"
 }

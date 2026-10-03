@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="personal_note_direction_update">Абнавіце абедзве прылады, каб выбраць напрамак перадачы нататак.</string>
+    <string name="personal_note_direction">Напрамак сінхранізацыі нататак</string>
+    <string name="personal_note_two_way">Двухбаковая сінхранізацыя</string>
+    <string name="personal_note_import">Імпартаваць толькі з Notes у Organizer</string>
+    <string name="personal_note_direction_hint">У рэжыме імпарту нататкі Organizer не адпраўляюцца назад, а выдаленні нататак, нататнікаў і ўкладанняў не сінхранізуюцца. Задачы застаюцца незалежнымі.</string>
     <string name="baum_postfach_unsicher">Непацверджаныя дастаўкі: %1$d. Паведамленні захоўваюцца і не адпраўляюцца паўторна аўтаматычна. Праверце атрыманне; старыя прылады могуць не падтрымліваць правераныя пацвярджэнні.</string>
     <string name="telefon_bluetooth_setup">Спалучыць новы Organizer праз Bluetooth</string>
     <string name="telefon_bluetooth_setup_hinweis">Пакіньце гэты экран адкрытым. Выберыце гэты тэлефон у Organizer, пацвердзіце сістэмнае спалучэнне, затым параўнайце код на абедзвюх прыладах.</string>

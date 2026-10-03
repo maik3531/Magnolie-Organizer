@@ -257,6 +257,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "telefon_anruf_anzeigen": form.ShowIncomingCall(message); break;
                     case "telefon_anruf_lautstaerke_wiederherstellen": break;
                     case "personal_sync_einstellungen": await telefon.SetPersonalSyncAsync(Text(message, "kennung"), Boolean(message, "eigen"), Boolean(message, "autoWlan")); break;
+                    case "personal_sync_notizrichtung": await telefon.SetNoteModeAsync(Text(message, "kennung"), Text(message, "modus")); break;
                     case "personal_sync_senden": await SendPersonalSyncAsync(message); break;
                     case "personal_sync_lauf_senden": await SendPersonalSyncRunAsync(message); break;
                     case "personal_sync_attachment_index": await IndexPersonalSyncAttachmentsAsync(message); break;

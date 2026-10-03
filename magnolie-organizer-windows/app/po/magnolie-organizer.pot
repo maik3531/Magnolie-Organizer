@@ -2369,6 +2369,9 @@ msgstr ""
 msgid "Import Magnolie complete archive"
 msgstr ""
 
+msgid "Import Notes → Organizer only"
+msgstr ""
+
 msgid "Import failed."
 msgstr ""
 
@@ -2379,6 +2382,11 @@ msgid "Import from LibreOffice"
 msgstr ""
 
 msgid "Import is available only in the installed application."
+msgstr ""
+
+msgid ""
+"Import mode sends no Organizer notes back and synchronizes no note, notebook "
+"or attachment deletions. Tasks remain independent."
 msgstr ""
 
 msgid "Import once"
@@ -2516,6 +2524,9 @@ msgid "KDE Connect phone paired."
 msgstr ""
 
 msgid "KDE Connect port %(port)s"
+msgstr ""
+
+msgid "Keep"
 msgstr ""
 
 msgid "Keep a troubleshooting log"
@@ -3201,6 +3212,9 @@ msgid "Not signed in to Microsoft yet."
 msgstr ""
 
 msgid "Note"
+msgstr ""
+
+msgid "Note synchronization direction"
 msgstr ""
 
 msgid "Note text"
@@ -5641,6 +5655,9 @@ msgstr ""
 msgid "Two days forward"
 msgstr ""
 
+msgid "Two-way synchronization"
+msgstr ""
+
 msgid "Type"
 msgstr ""
 
@@ -5713,6 +5730,9 @@ msgid "Untitled"
 msgstr ""
 
 msgid "Untitled appointment"
+msgstr ""
+
+msgid "Update both devices to choose the note direction."
 msgstr ""
 
 msgid "Update checking is available in the installed application."

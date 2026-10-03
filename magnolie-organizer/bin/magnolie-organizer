@@ -20255,6 +20255,10 @@ class Fenster(_FENSTER_BASIS):
                 nachricht.get("kennung") or "", bool(nachricht.get("eigen")),
                 bool(nachricht.get("autoWlan"))), daemon=True).start()
 
+        elif befehl == "personal_sync_notizrichtung":
+            threading.Thread(target=lambda: self._personal_sync_notizrichtung(
+                nachricht.get("kennung") or "", nachricht.get("modus") or ""), daemon=True).start()
+
         elif befehl == "personal_sync_senden":
             threading.Thread(target=lambda: self._personal_sync_senden(
                 nachricht.get("kennung") or "", nachricht.get("art") or "",
@@ -22036,6 +22040,16 @@ class Fenster(_FENSTER_BASIS):
         except Exception as fehler:
             self.antwort("App.personalSyncFehler", {"fehler": _("Personal synchronization failed.")
                 if art.startswith("personal_sync.custom_") else fehler_deutsch(fehler, "Persönlicher Sync")})
+
+    def _personal_sync_notizrichtung(self, kennung, modus):
+        try:
+            if not self._telefon:
+                raise RuntimeError(_("The phone connection is not available."))
+            self._telefon.set_note_mode(kennung, modus)
+            self._telefon_fehler = ""
+        except Exception as fehler:
+            self._telefon_fehler = fehler_deutsch(fehler, "Persönlicher Sync")
+        self._telefon_stand_melden()
 
     def _personal_sync_lauf_senden(self, kennung, request, batches, sources, trigger, report, commit):
         try:

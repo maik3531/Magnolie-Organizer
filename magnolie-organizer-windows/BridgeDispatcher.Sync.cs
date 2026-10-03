@@ -702,6 +702,7 @@ internal sealed partial class BridgeDispatcher
                 ["local_grants"] = new JsonObject { ["grants"] = localGrants.DeepClone() },
                 ["own_device"] = personal?["own_device"]?.GetValue<bool>() == true,
                 ["custom_sync"] = telefon.CustomSettings(peer.Id),
+                ["note_sync"] = telefon.NoteSettings(peer.Id),
                 ["remote_own_device"] = personal?["remote_own_device"]?.GetValue<bool>() == true,
                 ["auto_wifi"] = personal?["auto_wifi"]?.GetValue<bool>() == true,
                 ["personal_sync_active_auto"] = false,
@@ -861,6 +862,8 @@ internal sealed partial class BridgeDispatcher
         if (batches.Length == 0) throw new InvalidDataException(T("Personal synchronization batches are missing."));
         PersonalSyncContract.ValidateBody("personal_sync.request", request);
         foreach (var batch in batches) PersonalSyncContract.ValidateBody("personal_sync.batch", batch);
+        if (batches.Any(batch => !telefon.NoteDirectionAllowed(peerId, "personal_sync.batch", batch, true)))
+            throw new InvalidOperationException(T("Personal synchronization is not permitted on both devices."));
         var runId = request["run_id"]!.GetValue<string>();
         if (batches.Any(batch => batch["run_id"]?.GetValue<string>() != runId ||
             batch["format"]!.GetValue<int>() != request["format"]!.GetValue<int>())) throw new InvalidDataException(T("The personal synchronization run does not match."));

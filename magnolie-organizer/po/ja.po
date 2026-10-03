@@ -2980,6 +2980,9 @@ msgstr "ICS / CSV をインポート…"
 msgid "Import Lotus Organizer CSV"
 msgstr "Lotus Organizer CSV をインポート"
 
+msgid "Import Notes → Organizer only"
+msgstr "Notes から Organizer へのインポートのみ"
+
 msgid "Import calendar file"
 msgstr "カレンダーファイルをインポート"
 
@@ -2997,6 +3000,13 @@ msgstr "LibreOffice からインポート"
 
 msgid "Import is available only in the installed application."
 msgstr "インポートはインストール版アプリケーションでのみ利用できます。"
+
+msgid ""
+"Import mode sends no Organizer notes back and synchronizes no note, notebook "
+"or attachment deletions. Tasks remain independent."
+msgstr ""
+"インポートモードでは Organizer のノートを送り返さず、ノート、ノートブック、添"
+"付ファイルの削除も同期しません。タスクは独立したままです。"
 
 msgid "Import once"
 msgstr "1回だけインポート"
@@ -3203,6 +3213,9 @@ msgstr "KDE Connect の受信に失敗しました。"
 
 msgid "KDE/Akonadi integration is not available."
 msgstr "KDE/Akonadi 連携は利用できません。"
+
+msgid "Keep"
+msgstr "保持"
 
 msgid "Keep a troubleshooting log"
 msgstr "トラブルシューティングログを保存"
@@ -4090,6 +4103,9 @@ msgstr "未送信。"
 
 msgid "Note"
 msgstr "メモ"
+
+msgid "Note synchronization direction"
+msgstr "ノートの同期方向"
 
 msgid "Note text"
 msgstr "メモの本文"
@@ -7430,6 +7446,9 @@ msgstr "2日前"
 msgid "Two days forward"
 msgstr "2日後"
 
+msgid "Two-way synchronization"
+msgstr "双方向同期"
+
 msgid "Type"
 msgstr "種類"
 
@@ -7540,6 +7559,9 @@ msgstr "無題"
 
 msgid "Untitled appointment"
 msgstr "無題の予定"
+
+msgid "Update both devices to choose the note direction."
+msgstr "ノートの転送方向を選ぶには両方のデバイスを更新してください。"
 
 msgid "Update checking is available in the installed application."
 msgstr "更新の確認はインストール版アプリで利用できます。"

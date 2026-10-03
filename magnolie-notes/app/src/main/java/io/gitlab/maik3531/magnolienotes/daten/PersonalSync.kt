@@ -68,7 +68,8 @@ data class PendingPersonalDecision(
     val proposal_id: String,
     val decision: String,
     val expected_clock: List<PersonalSyncClock>,
-    val state: String = "pending"
+    val state: String = "pending",
+    val kind: String = ""
 )
 
 @Serializable
@@ -118,7 +119,7 @@ object PersonalSync {
         }
         return state.copy(
             pending_proposals = state.pending_proposals.filterNot { it.source_device == peerId && (kinds == null || it.kind in kinds) },
-            pending_decisions = state.pending_decisions.filterNot { it.peer_device_id == peerId && (kinds == null || it.proposal_id in removed) })
+            pending_decisions = state.pending_decisions.filterNot { it.peer_device_id == peerId && (kinds == null || it.kind in kinds || it.proposal_id in removed) })
     }
 
     private val uuid4 = Regex("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")

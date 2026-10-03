@@ -20,6 +20,7 @@ internal static class PersonalSyncContract
     {
         switch (kind)
         {
+            case NoteModeKind: ValidateNoteSettings(body); break;
             case "personal_sync.settings":
                 Exact(body, "format", "own_device"); Number(body, "format", 1, 1); Bool(body, "own_device"); break;
             case "personal_sync.request": ValidateRequest(body); break;
@@ -35,6 +36,98 @@ internal static class PersonalSyncContract
     }
 
     internal static string ProjectionHash(JsonObject value) => Convert.ToHexString(SHA256.HashData(TelefonCrypto.Canonical(value))).ToLowerInvariant();
+
+    internal const int NoteModeVersion = 5;
+    internal const string NoteModeKind = "personal_sync.note_settings";
+
+    internal static void ValidateNoteSettings(JsonObject body)
+    {
+        Exact(body, "format", "mode", "revision", "epoch", "peer_epoch");
+        Number(body, "format", NoteModeVersion, NoteModeVersion); Enum(body, "mode", "two_way", "phone_import");
+        Number(body, "revision", 1, MaximumSafeInteger); Uuid4(String(body, "epoch"));
+        if (String(body, "peer_epoch").Length > 0) Uuid4(String(body, "peer_epoch"));
+    }
+
+    internal static JsonObject NoteSettings(string mode = "two_way", long revision = 1, string peerEpoch = "")
+    {
+        var result = new JsonObject { ["format"] = NoteModeVersion, ["mode"] = mode, ["revision"] = revision,
+            ["epoch"] = Guid.NewGuid().ToString("D"), ["peer_epoch"] = peerEpoch };
+        ValidateNoteSettings(result); return result;
+    }
+
+    internal static JsonObject AcceptNoteSettings(JsonObject? current, JsonObject incoming)
+    {
+        ValidateNoteSettings(incoming);
+        if (current is not null)
+        {
+            ValidateNoteSettings(current);
+            var revision = Number(incoming, "revision", 1, MaximumSafeInteger);
+            var previous = Number(current, "revision", 1, MaximumSafeInteger);
+            var a = current.DeepClone().AsObject(); var b = incoming.DeepClone().AsObject();
+            a.Remove("peer_epoch"); b.Remove("peer_epoch");
+            if (revision < previous || revision == previous && !JsonNode.DeepEquals(a, b) ||
+                revision > previous && String(incoming, "epoch") == String(current, "epoch"))
+                throw new InvalidDataException("Stale note direction.");
+        }
+        return incoming.DeepClone().AsObject();
+    }
+
+    internal static JsonObject NoteSettingsEcho(JsonObject local, JsonObject? remote)
+    {
+        ValidateNoteSettings(local); if (remote is not null) ValidateNoteSettings(remote);
+        var result = local.DeepClone().AsObject(); result["peer_epoch"] = remote is null ? "" : String(remote, "epoch");
+        return result;
+    }
+
+    internal static bool NoteImportMode(JsonObject? local, JsonObject? remote)
+    {
+        if (local is not null) ValidateNoteSettings(local); if (remote is not null) ValidateNoteSettings(remote);
+        return local is not null && String(local, "mode") == "phone_import" || remote is not null && String(remote, "mode") == "phone_import";
+    }
+
+    internal static bool NoteSettingsReady(JsonObject? local, JsonObject? remote, bool receivedOnConnection, bool sentOnConnection)
+    {
+        if (!receivedOnConnection || !sentOnConnection || local is null || remote is null) return false;
+        try { ValidateNoteSettings(local); ValidateNoteSettings(remote); }
+        catch (InvalidDataException) { return false; }
+        return String(local, "peer_epoch") == String(remote, "epoch") && String(remote, "peer_epoch") == String(local, "epoch");
+    }
+
+    internal static bool SameNotePolicy(JsonObject? left, JsonObject? right)
+    {
+        if (left is null || right is null) return false;
+        var a = left.DeepClone().AsObject(); var b = right.DeepClone().AsObject();
+        a.Remove("peer_epoch"); b.Remove("peer_epoch"); return JsonNode.DeepEquals(a, b);
+    }
+
+    internal static bool NoteMessageUsesNotes(string kind, JsonObject body, IReadOnlyList<string>? decisionKinds = null)
+    {
+        if (kind == "personal_sync.batch") return (body["records"] as JsonArray ?? []).OfType<JsonObject>().Any(record =>
+            record["kind"]?.ToString() is "note" or "notebook");
+        if (kind == "personal_sync.request") return (body["modules"] as JsonArray ?? []).Any(value => value?.ToString() == "notes");
+        if (kind is "personal_sync.attachment_request" or "personal_sync.attachment_chunk" or "personal_sync.attachment_result") return true;
+        if (kind == "personal_sync.deletion_proposals") return (body["proposals"] as JsonArray ?? []).OfType<JsonObject>().Any(value => value["kind"]?.ToString() != "task");
+        if (kind == "personal_sync.deletion_decision") return decisionKinds is null || decisionKinds.Any(value => value != "task");
+        return kind == "personal_sync.report" && new[] { "sent", "received" }.Any(direction =>
+            new[] { "notes", "notebooks" }.Any(name => TelefonProtocolContract.TryInteger(body[direction]?[name], out var count) && count > 0));
+    }
+
+    internal static bool NoteDirectionAllowed(string role, bool outgoing, string kind, JsonObject body, bool importing,
+        IReadOnlyList<string>? decisionKinds = null)
+    {
+        if (role is not ("phone" or "desktop")) throw new ArgumentException("Invalid endpoint role.");
+        if (!importing || kind is NoteModeKind or "personal_sync.settings") return true;
+        var phoneToDesktop = outgoing ? role == "phone" : role == "desktop";
+        if (kind == "personal_sync.batch") return body["records"] is JsonArray records &&
+            (phoneToDesktop || records.All(value => value is JsonObject record && record["kind"]?.ToString() == "task"));
+        if (kind == "personal_sync.attachment_chunk") return phoneToDesktop;
+        if (kind == "personal_sync.attachment_request") return !phoneToDesktop;
+        if (kind == "personal_sync.deletion_proposals") return body["proposals"] is JsonArray proposals &&
+            proposals.All(value => value is JsonObject proposal && proposal["kind"]?.ToString() == "task");
+        if (kind == "personal_sync.deletion_decision") return body["decisions"] is JsonArray decisions && decisionKinds is not null &&
+            decisions.Count == decisionKinds.Count && decisionKinds.All(value => value == "task");
+        return true;
+    }
 
     internal static string CustomSourceId(string sourceId, string itemId)
     {

@@ -223,6 +223,11 @@ internal fun sanitizeLegacyPeer(value: JsonObject): Pair<JsonObject, Boolean> {
     val legacy = setOf("remote_sms_send_granted", "remote_sms_send_available")
     if ((peer.keys - current - legacy).isNotEmpty())
         throw TelefonProtokollFehler("Unbekanntes Feld in der Telefonablage.")
+    for (name in listOf("personal_note_policy", "remote_personal_note_policy")) {
+        val policy = peer[name]
+        if (policy != null && policy != kotlinx.serialization.json.JsonNull)
+            PersonalNoteMode.validate(policy as? JsonObject ?: throw TelefonProtokollFehler("Ungültige Notizrichtung."))
+    }
     val sanitized = peer.filterKeys { it !in legacy }.toMutableMap()
     var migrated = peer.keys.any { it in legacy }
     for (name in setOf("remote_incoming_call_number_granted", "remote_end_call_granted",

@@ -14,10 +14,12 @@ import struct
 import subprocess
 import tempfile
 import threading
+import magnolie_personal_sync as personal_sync_contract
 from magnolie_personal_sync import CUSTOM_KINDS, validate_custom_body, accept_custom_settings, custom_scope_allowed
 import time
 import unicodedata
 import uuid
+import weakref
 from collections import deque
 
 from magnolie_personal_sync import (CHUNK_RAW, MAX_ATTACHMENT, MAX_ATTACHMENTS, MIMES,
@@ -82,7 +84,7 @@ def desktop_capabilities(revision=1, bluetooth_available=False,
                            else "not_implemented"),
                          "versions": [1, 2, 3, 4] if name == "personal_tasks_sync" else
                                       [1, 2, 3, 4] if name == "device_status" else
-                                      [1, 2, 3] if name == "personal_notes_sync" else
+                                       [1, 2, 3, 5] if name == "personal_notes_sync" else
                                      [2] if name == "incoming_call_state" else [1]}
     return {"revision": revision, "items": items}
 
@@ -434,6 +436,13 @@ class PhoneStore:
                 raise RuntimeError("Telefon-Gegenstellenliste ist beschaedigt.")
             for settings in custom.values():
                 validate_custom_body("personal_sync.custom_settings", settings)
+        if isinstance(peer, dict) and "note_sync" in peer:
+            common.add("note_sync")
+            settings = peer["note_sync"]
+            if not isinstance(settings, dict) or not set(settings) <= {"local", "remote"}:
+                raise RuntimeError("Telefon-Gegenstellenliste ist beschaedigt.")
+            for policy in settings.values():
+                personal_sync_contract.validate_note_settings(policy)
         pending = {"pending_transcript", "pending_phone_finish_proof",
                    "pending_desktop_finish_proof", "pending_expires_ms"}
         if (not isinstance(peer, dict) or peer.get("state") not in {
@@ -479,6 +488,72 @@ class PhoneStore:
     def save_peers(self):
         raw = canonical({"storage_version": 1, "items": self.peers})
         self._encrypt_file(self.peers_path, raw, "peers", "all")
+
+    def note_settings(self, peer_id):
+        if peer_id in getattr(self, "note_policy_failed", set()):
+            raise RuntimeError("Note direction could not be saved.")
+        peer = self.sole_peer(peer_id)
+        if not peer or peer.get("state") != "paired":
+            raise RuntimeError("Das Telefon ist nicht gekoppelt.")
+        return json.loads(json.dumps(peer.get("note_sync", {})))
+
+    def set_note_settings(self, peer_id, policy, remote=False):
+        """Persist peer-bound consent before a settings ACK; caller holds service lock."""
+        peer = self.sole_peer(peer_id)
+        if not peer or peer.get("state") != "paired":
+            raise RuntimeError("Das Telefon ist nicht gekoppelt.")
+        previous = peer.get("note_sync")
+        settings = dict(previous or {})
+        side = "remote" if remote else "local"
+        settings[side] = personal_sync_contract.accept_note_settings(settings.get(side), policy)
+        peer["note_sync"] = settings
+        try:
+            self.save_peers()
+        except Exception:
+            if previous is None:
+                peer.pop("note_sync", None)
+            else:
+                peer["note_sync"] = previous
+            self.note_policy_failed = getattr(self, "note_policy_failed", set()) | {peer_id}
+            raise
+        self.note_policy_failed = getattr(self, "note_policy_failed", set()) - {peer_id}
+
+    def remember_personal_proposal_kinds(self, peer_id, body, outgoing):
+        validate_personal_sync_body("personal_sync.deletion_proposals", body)
+        with sqlite3.connect(self.database_path) as db:
+            db.execute("BEGIN IMMEDIATE")
+            for proposal in body["proposals"]:
+                key = "personal_proposal_kind:%s:%s:%s" % (peer_id, "out" if outgoing else "in", proposal["proposal_id"])
+                value = {"kind": proposal["kind"], "clock": proposal["clock"], "expires_ms": now_ms() + 30 * DAY_MS}
+                previous = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+                if previous:
+                    saved = strict_json(self._decrypt(previous[0], "personal_proposal_kind", key))
+                    if any(saved.get(field) != value[field] for field in ("kind", "clock")):
+                        raise ValueError("conflicting personal proposal identity")
+                    value["expires_ms"] = saved.get("expires_ms", value["expires_ms"])
+                elif db.execute("SELECT COUNT(*) FROM meta WHERE key LIKE 'personal_proposal_kind:%'").fetchone()[0] >= 10000:
+                    raise RuntimeError("queue_full")
+                db.execute("INSERT OR REPLACE INTO meta VALUES(?,?)", (key,
+                    self._encrypt(canonical(value), "personal_proposal_kind", key)))
+
+    def personal_decision_kinds(self, peer_id, body, outgoing):
+        decisions = body.get("decisions")
+        if not isinstance(decisions, list):
+            return None
+        result = []
+        with sqlite3.connect(self.database_path) as db:
+            for decision in decisions:
+                if not isinstance(decision, dict):
+                    return None
+                key = "personal_proposal_kind:%s:%s:%s" % (peer_id, "in" if outgoing else "out", decision.get("proposal_id", ""))
+                row = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+                if not row:
+                    return None
+                value = strict_json(self._decrypt(row[0], "personal_proposal_kind", key))
+                if value["clock"] != decision.get("expected_clock") or value.get("expires_ms", 0) <= now_ms():
+                    return None
+                result.append(value["kind"])
+        return result
 
     def set_bluetooth(self, peer_id, enabled, address=""):
         peer = self.peer(peer_id)
@@ -625,11 +700,19 @@ class PhoneStore:
             raise ValueError("invalid message lifetime")
         if transport_policy not in {"any", "wifi_only"}:
             raise ValueError("invalid transport policy")
+        if kind == personal_sync_contract.NOTE_MODE_KIND:
+            personal_sync_contract.validate_note_settings(body)
+            if ttl_ms > DAY_MS:
+                raise ValueError("invalid note settings lifetime")
+        if kind == "personal_sync.deletion_proposals":
+            self.remember_personal_proposal_kinds(peer_id, body, True)
         message = {"type": "message", "v": 1, "message_id": str(uuid.uuid4()),
                    "kind": kind, "created_ms": now, "expires_ms": now + ttl_ms,
                    "body": body}
         encrypted = self._encrypt(canonical(message), "outbox", message["message_id"])
         with sqlite3.connect(self.database_path) as db:
+            if kind == personal_sync_contract.NOTE_MODE_KIND:
+                db.execute("DELETE FROM outbox WHERE peer_id=? AND kind=?", (peer_id, kind))
             size = db.execute("SELECT COALESCE(SUM(length(payload)),0) FROM outbox").fetchone()[0]
             if size + len(encrypted) > 50 * 1024 * 1024:
                 raise RuntimeError("queue_full")
@@ -699,7 +782,8 @@ class PhoneStore:
         with sqlite3.connect(self.database_path) as db:
             rows = db.execute("SELECT message_id,payload FROM outbox WHERE peer_id=? AND "
                               "expires_ms>? AND next_attempt_ms<=? AND (transport_policy='any' OR ?='wifi') "
-                              "ORDER BY CASE WHEN kind='personal_sync.custom_settings' THEN 0 ELSE 1 END,created_ms LIMIT 32", (peer_id, now, now, transport)).fetchall()
+                              "ORDER BY CASE WHEN kind IN ('capabilities.update','grants.update','personal_sync.settings',"
+                              "'personal_sync.note_settings','personal_sync.custom_settings') THEN 0 ELSE 1 END,created_ms LIMIT 32", (peer_id, now, now, transport)).fetchall()
         return [strict_json(self._decrypt(payload, "outbox", message_id))
                 for message_id, payload in rows]
 
@@ -811,6 +895,7 @@ class PhoneStore:
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_run:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_applied:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_report:%s:%%" % peer_id,))
+            db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_proposal_kind:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_local_index:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key=?", ("personal_active_auto:" + peer_id,))
 
@@ -1447,6 +1532,13 @@ class PhoneStore:
                     expired = True
                 if expired:
                     db.execute("DELETE FROM meta WHERE key=?", (key,))
+            for key, encrypted in db.execute("SELECT key,value FROM meta WHERE key LIKE 'personal_proposal_kind:%'").fetchall():
+                try:
+                    expired = strict_json(self._decrypt(encrypted, "personal_proposal_kind", key)).get("expires_ms", 0) <= now
+                except Exception:
+                    expired = True
+                if expired:
+                    db.execute("DELETE FROM meta WHERE key=?", (key,))
             db.execute("DELETE FROM meta WHERE key LIKE 'personal_local_index:%' AND CAST(value AS INTEGER)<?",
                        (now - DAY_MS,))
             for key, encrypted in db.execute("SELECT key,value FROM meta WHERE key LIKE 'personal_run:%'").fetchall():
@@ -1953,6 +2045,8 @@ class PhoneService:
         self.pairings = {}
         self.pairing_attempt_active = False
         self.connections = {}
+        self.note_sessions = weakref.WeakKeyDictionary()
+        self.note_controls = weakref.WeakKeyDictionary()
         self.status_requests = {}
         self.identifier_requests = {}
         self.transient_identifiers = {}
@@ -2019,6 +2113,7 @@ class PhoneService:
                             "bluetooth_address": bluetooth["address"],
                              "call_audio": dict(peer.get("call_audio", {}), address=self._call_audio_address(peer)),
                             "custom_sync": peer.get("custom_sync", {}),
+                            "note_sync": self.note_status(peer_id),
                             "own_device": personal["own_device"] and not binding_conflict,
                            "remote_own_device": personal["remote_own_device"],
                            "auto_wifi": personal["auto_wifi"],
@@ -2364,6 +2459,7 @@ class PhoneService:
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_applied:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_report:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_local_index:%s:%%" % peer_id,))
+            db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_proposal_kind:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key=?", ("personal_active_auto:" + peer_id,))
         self.connection_transports.pop(peer_id, None)
         self.connection_errors.pop(peer_id, None)
@@ -2546,6 +2642,121 @@ class PhoneService:
                 and peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {}).get("available") is True
                 and 4 in peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {}).get("versions", []))
 
+    def _note_supported(self, peer):
+        remote = peer.get("capabilities", {}).get("items", {}).get("personal_notes_sync", {})
+        return (5 in desktop_capabilities()["items"]["personal_notes_sync"]["versions"] and
+                remote.get("available") is True and 5 in remote.get("versions", []))
+
+    def note_status(self, peer_id):
+        peer = self.store.sole_peer(peer_id)
+        if not peer:
+            return {"supported": False, "importing": False, "ready": False}
+        try:
+            settings = self.store.note_settings(peer_id)
+            return dict(settings, supported=self._note_supported(peer),
+                importing=personal_sync_contract.note_import_mode(settings.get("local"), settings.get("remote")),
+                ready=self._note_ready(peer_id))
+        except RuntimeError:
+            return {"supported": self._note_supported(peer), "importing": True, "ready": False}
+
+    def _note_importing(self, peer_id):
+        settings = self.store.note_settings(peer_id)
+        return personal_sync_contract.note_import_mode(settings.get("local"), settings.get("remote"))
+
+    def _note_controls_for(self, channel):
+        if channel is None:
+            return {}
+        try:
+            return self.note_controls.get(channel, {})
+        except TypeError:
+            # A transport without connection-scoped evidence cannot authorize
+            # notes, but must not break unrelated phone-status reporting.
+            return {}
+
+    def _note_ready(self, peer_id, channel=None):
+        peer = self.store.sole_peer(peer_id)
+        if not peer:
+            return False
+        channel = channel or self.connections.get(peer_id)
+        controls = self._note_controls_for(channel)
+        expected = {"capabilities.update": peer.get("capabilities"), "grants.update": peer.get("grants"),
+                    "personal_sync.settings": {"format": 1, "own_device": peer.get("personal_sync", {}).get("remote_own_device", False)}}
+        if any(controls.get(kind) != body for kind, body in expected.items()):
+            return False
+        try:
+            settings = self.store.note_settings(peer_id)
+            if not self._note_supported(peer):
+                return not personal_sync_contract.note_import_mode(settings.get("local"), settings.get("remote"))
+            session = self.note_sessions.get(channel)
+            return session is not None and session.ready(settings.get("local"), settings.get("remote"))
+        except RuntimeError:
+            return False
+
+    def _observe_note_control(self, peer, channel, kind, body):
+        if kind not in {"capabilities.update", "grants.update", "personal_sync.settings"}:
+            return
+        expected = ({"format": 1, "own_device": peer.get("personal_sync", {}).get("remote_own_device", False)}
+                    if kind == "personal_sync.settings" else peer.get("capabilities" if kind == "capabilities.update" else "grants"))
+        if body == expected:
+            try:
+                self.note_controls.setdefault(channel, {})[kind] = json.loads(json.dumps(body))
+            except TypeError:
+                return
+
+    def _queue_note_settings(self, peer_id, channel=None, force=False):
+        peer = self.store.sole_peer(peer_id)
+        if not peer or not self._note_supported(peer):
+            return
+        channel = channel or self.connections.get(peer_id)
+        if not channel or self._note_controls_for(channel).get("capabilities.update") != peer.get("capabilities"):
+            return
+        settings = self.store.note_settings(peer_id)
+        local = settings.get("local") or personal_sync_contract.note_settings()
+        local = personal_sync_contract.note_settings_echo(local, settings.get("remote"))
+        if local != settings.get("local"):
+            self.store.set_note_settings(peer_id, local)
+        channel = channel or self.connections.get(peer_id)
+        session = self.note_sessions.get(channel) if channel else None
+        if force or session is None or session.sent != local:
+            message = self.store.queue(peer_id, personal_sync_contract.NOTE_MODE_KIND, local, DAY_MS)
+            if channel:
+                self._send_message(channel, peer_id, message)
+
+    def set_note_mode(self, peer_id, mode):
+        with self.lock:
+            peer = self.store.sole_peer(peer_id)
+            if not peer or not self._note_supported(peer):
+                raise RuntimeError("Note direction is not supported.")
+            settings = json.loads(json.dumps(peer.get("note_sync", {})))
+            current = settings.get("local")
+            if current and current["mode"] == mode and peer_id not in getattr(self.store, "note_policy_failed", set()):
+                return
+            policy = personal_sync_contract.note_settings(mode, current["revision"] + 1 if current else 1,
+                settings.get("remote", {}).get("epoch", ""))
+            self.store.set_note_settings(peer_id, policy)
+            self.store.purge_personal_modules(peer_id, {"notes"})
+            self._queue_note_settings(peer_id, force=True)
+        self.callback("status", self.report())
+
+    def _note_direction_allowed(self, peer_id, kind, body, outgoing):
+        kinds = self.store.personal_decision_kinds(peer_id, body, outgoing) if kind == "personal_sync.deletion_decision" else None
+        return personal_sync_contract.note_direction_allowed("desktop", outgoing, kind, body,
+            self._note_importing(peer_id), kinds)
+
+    def _note_policy_error(self, peer_id, kind, body, outgoing, channel=None):
+        try:
+            peer = self.store.sole_peer(peer_id)
+            if peer and not self._note_supported(peer) and not self.store.note_settings(peer_id):
+                return None  # Existing pre-V5 consent contract remains unchanged.
+            kinds = self.store.personal_decision_kinds(peer_id, body, outgoing) if kind == "personal_sync.deletion_decision" else None
+            if personal_sync_contract.note_message_uses_notes(kind, body, kinds) and not self._note_ready(peer_id, channel):
+                return "temporary_failure"
+            if not self._note_direction_allowed(peer_id, kind, body, outgoing):
+                return "not_granted"
+        except RuntimeError:
+            return "temporary_failure"
+        return None
+
     @staticmethod
     def _custom_settings(enabled, revision):
         value = {"format": 4, "scope": "custom", "enabled": enabled,
@@ -2656,6 +2867,10 @@ class PhoneService:
         self.callback("status", self.report())
 
     def send_personal_sync(self, peer_id, kind, body, trigger="manual"):
+        with self.lock:
+            return self._send_personal_sync(peer_id, kind, body, trigger)
+
+    def _send_personal_sync(self, peer_id, kind, body, trigger="manual"):
         if kind in CUSTOM_KINDS:
             return self.send_custom_sync(peer_id, kind, body)
         if kind not in PERSONAL_DATA_KINDS:
@@ -2663,6 +2878,8 @@ class PhoneService:
         body = dict(body)
         attachment_sources = body.pop("_attachment_sources", [])
         validate_personal_sync_body(kind, body)
+        if not self._note_direction_allowed(peer_id, kind, body, True):
+            raise RuntimeError("Note direction does not permit this message.")
         peer = self.store.peer(peer_id)
         needed = personal_sync_grants_needed(kind, body)
         local = (peer or {}).get("local_grants", {}).get("grants", {})
@@ -2739,6 +2956,10 @@ class PhoneService:
         return message["message_id"]
 
     def send_personal_sync_run(self, peer_id, request, batches, sources, trigger="manual", report=None):
+        with self.lock:
+            return self._send_personal_sync_run(peer_id, request, batches, sources, trigger, report)
+
+    def _send_personal_sync_run(self, peer_id, request, batches, sources, trigger="manual", report=None):
         """Validate and durably stage one complete attachment-capable direction."""
         validate_personal_sync_body("personal_sync.request", request)
         format = request["format"]
@@ -2746,6 +2967,8 @@ class PhoneService:
             raise ValueError("invalid format 2 run")
         for body in batches:
             validate_personal_sync_body("personal_sync.batch", body)
+            if not self._note_direction_allowed(peer_id, "personal_sync.batch", body, True):
+                raise RuntimeError("Note direction does not permit this batch.")
         if report is not None:
             validate_personal_sync_body("personal_sync.report", report)
             if report["format"] != format or report["run_id"] != request["run_id"]:
@@ -2958,9 +3181,32 @@ class PhoneService:
             return True
 
     def _send_message(self, channel, peer_id, message):
+        with self.lock:
+            return self._send_message_locked(channel, peer_id, message)
+
+    def _send_message_locked(self, channel, peer_id, message):
         policy = self.store.outbox_policy(peer_id, message.get("message_id", ""))
         if policy == "invalid" or policy == "wifi_only" and self.connection_transports.get(peer_id) != "wifi":
             return False
+        if message.get("kind") == personal_sync_contract.NOTE_MODE_KIND:
+            peer = self.store.sole_peer(peer_id)
+            if peer and self._note_controls_for(channel).get("capabilities.update") != peer.get("capabilities"):
+                return False
+            if (not peer or not self._note_supported(peer) or
+                    message["body"] != self.store.note_settings(peer_id).get("local")):
+                self.store.acknowledge(peer_id, message["message_id"])
+                return False
+            channel.send(message)
+            session = self.note_sessions.setdefault(channel, personal_sync_contract.PersonalNoteSession())
+            session.sent = json.loads(json.dumps(message["body"]))
+            self.store.mark_attempt(peer_id, message["message_id"])
+            return True
+        if message.get("kind") in PERSONAL_DATA_KINDS:
+            error = self._note_policy_error(peer_id, message["kind"], message["body"], True, channel)
+            if error:
+                if error != "temporary_failure":
+                    self.store.acknowledge(peer_id, message["message_id"])
+                return False
         if message.get("kind") in CUSTOM_KINDS:
             with self.lock:
                 if message["kind"] == "personal_sync.custom_batch" and (
@@ -2996,6 +3242,19 @@ class PhoneService:
         return True
 
     def commit_personal_sync(self, peer_id, message_id, token, success):
+        with self.lock:
+            return self._commit_personal_sync(peer_id, message_id, token, success)
+
+    def _commit_personal_sync(self, peer_id, message_id, token, success):
+        if success:
+            for stored_peer, payload in self.store.ready_personal_domains():
+                if stored_peer == peer_id and payload["pending_message_id"] == message_id and payload["commit_token"] == token:
+                    if self._note_policy_error(peer_id, payload["kind"], payload["body"], False):
+                        return False
+            for stored_peer, aggregate in self.store.ready_personal_batches():
+                if stored_peer == peer_id and aggregate["message_id"] == message_id and aggregate["commit_token"] == token:
+                    if self._note_policy_error(peer_id, "personal_sync.batch", {"records": aggregate["records"]}, False):
+                        return False
         if not success:
             if (not self.store.has_personal_batch(peer_id, message_id, token)
                     and not any(item[1]["pending_message_id"] == message_id and
@@ -3033,14 +3292,22 @@ class PhoneService:
         return bool(message_ids)
 
     def replay_personal_sync(self):
+        with self.lock:
+            self._replay_personal_sync()
+
+    def _replay_personal_sync(self):
         for peer_id, payload in self.store.ready_personal_domains():
             if self.store.sole_peer(peer_id) is None or payload["commit_token"] in self.personal_dispatched:
+                continue
+            if self._note_policy_error(peer_id, payload["kind"], payload["body"], False):
                 continue
             self.personal_dispatched.add(payload["commit_token"])
             payload["transport"] = "wifi"
             self.callback("personal_sync", payload)
         for peer_id, aggregate in self.store.ready_personal_batches():
             if self.store.sole_peer(peer_id) is None:
+                continue
+            if self._note_policy_error(peer_id, "personal_sync.batch", {"records": aggregate["records"]}, False):
                 continue
             token = aggregate.pop("commit_token")
             if token in self.personal_dispatched:
@@ -3062,6 +3329,12 @@ class PhoneService:
                     "attachment_data": aggregate.get("attachment_data", {})}})
 
     def _prepare_format2_aggregate(self, peer_id, aggregate, transport):
+        with self.lock:
+            return self._prepare_format2_aggregate_locked(peer_id, aggregate, transport)
+
+    def _prepare_format2_aggregate_locked(self, peer_id, aggregate, transport):
+        if self._note_policy_error(peer_id, "personal_sync.batch", {"records": aggregate["records"]}, False):
+            return False
         messages = aggregate.get("messages", [])
         body = messages[-1]["body"] if messages else {}
         if body.get("format", 1) < 2:
@@ -3111,6 +3384,12 @@ class PhoneService:
         return True
 
     def index_local_attachments(self, peer_id, run_id, reply, aggregate_hash, sources):
+        with self.lock:
+            return self._index_local_attachments(peer_id, run_id, reply, aggregate_hash, sources)
+
+    def _index_local_attachments(self, peer_id, run_id, reply, aggregate_hash, sources):
+        if self._note_policy_error(peer_id, "personal_sync.attachment_chunk", {}, False):
+            raise PermissionError("note direction is not ready")
         if not isinstance(sources, list) or len(sources) > 256:
             raise ValueError("invalid local attachment index")
         run = self.store.personal_run(peer_id, run_id)
@@ -3461,6 +3740,7 @@ class PhoneService:
         try:
             self._ensure_desktop_updates(peer_id, {
                 "capabilities.update": capability_revision, "grants.update": grant_revision})
+            self._queue_note_settings(peer_id, channel, force=True)
             control_ids = {message["message_id"] for message in self.store.pending(peer_id, transport)
                            if message["kind"] in {"capabilities.update", "grants.update"}}
             for message in self.store.pending(peer_id, transport):
@@ -3656,6 +3936,35 @@ class PhoneService:
                 or payload["created_ms"] > received + CLOCK_SKEW_MS):
             raise ValueError("invalid message")
         kind = payload["kind"]
+        if kind == personal_sync_contract.NOTE_MODE_KIND:
+            status, error = "accepted", "none"
+            try:
+                personal_sync_contract.validate_note_settings(payload["body"])
+                if payload["expires_ms"] <= received or payload["expires_ms"] - payload["created_ms"] > DAY_MS:
+                    raise ValueError("expired note settings")
+                with self.lock:
+                    current = self.store.sole_peer(peer["device_id"])
+                    if not current or not self._note_supported(current):
+                        raise PermissionError
+                    if self.store.dedupe_result(peer["device_id"], payload["message_id"]) and not self.store.received_matches(peer["device_id"], payload):
+                        raise ValueError("conflicting note settings identity")
+                    previous = self._note_importing(peer["device_id"])
+                    self.store.set_note_settings(peer["device_id"], payload["body"], remote=True)
+                    session = self.note_sessions.setdefault(channel, personal_sync_contract.PersonalNoteSession())
+                    session.received = json.loads(json.dumps(payload["body"]))
+                    if previous != self._note_importing(peer["device_id"]):
+                        self.store.purge_personal_modules(peer["device_id"], {"notes"})
+                    self._queue_note_settings(peer["device_id"], channel)
+                    self.store.remember_message(peer["device_id"], payload, status, error)
+            except PermissionError:
+                status, error = "rejected", "not_granted"
+            except ValueError:
+                status, error = "rejected", "invalid_schema"
+            except (OSError, RuntimeError):
+                status, error = "rejected", "temporary_failure"
+            channel.send({"type": "ack", "message_id": payload["message_id"], "status": status, "error": error})
+            self.callback("status", self.report())
+            return
         if kind in CUSTOM_KINDS:
             status, error = "accepted", "none"
             try:
@@ -3696,6 +4005,11 @@ class PhoneService:
             return
         if kind in PERSONAL_DATA_KINDS:
             value = validate_personal_sync_body(kind, payload["body"])
+            with self.lock:
+                error = self._note_policy_error(peer["device_id"], kind, value, False, channel)
+            if error:
+                channel.send({"type": "ack", "message_id": payload["message_id"], "status": "rejected", "error": error})
+                return
             if payload["expires_ms"] <= received:
                 self.store.remember_message(peer["device_id"], payload, "rejected", "expired")
                 channel.send({"type": "ack", "message_id": payload["message_id"],
@@ -3737,6 +4051,10 @@ class PhoneService:
             return
         previous = self.store.dedupe_result(peer["device_id"], payload["message_id"])
         if previous:
+            if previous[0] == "accepted" and self.store.received_matches(peer["device_id"], payload):
+                self._observe_note_control(peer, channel, kind, payload["body"])
+                if kind == "capabilities.update":
+                    self._queue_note_settings(peer["device_id"], channel)
             if kind.startswith("personal_sync.") and kind != "personal_sync.settings":
                 try:
                     value = validate_personal_sync_body(kind, payload["body"])
@@ -4010,9 +4328,14 @@ class PhoneService:
                     if not descriptor:
                         raise ValueError("attachment is not in staged manifest")
                     raw = base64.b64decode(value["data"], validate=True)
-                    self.store.stage_incoming_attachment(peer["device_id"], value["run_id"], value["reply"],
-                        value["records_hash"], value["sha256"], descriptor["size"], descriptor["mime"],
-                        value["index"], raw, policy, payload["expires_ms"], descriptor["attachment_id"])
+                    with self.lock:
+                        direction_error = self._note_policy_error(peer["device_id"], kind, value, False, channel)
+                        if direction_error:
+                            status, error = "rejected", direction_error
+                            raise PermissionError
+                        self.store.stage_incoming_attachment(peer["device_id"], value["run_id"], value["reply"],
+                            value["records_hash"], value["sha256"], descriptor["size"], descriptor["mime"],
+                            value["index"], raw, policy, payload["expires_ms"], descriptor["attachment_id"])
                     self.store.remember_message(peer["device_id"], payload, "accepted", "none")
                     channel.send({"type": "ack", "message_id": payload["message_id"],
                                   "status": "accepted", "error": "none"})
@@ -4038,7 +4361,14 @@ class PhoneService:
                     if not self.personal_sync_available():
                         status, error = "rejected", "restore_unavailable"
                         raise PermissionError
-                    staged = self.store.stage_personal_domain(peer["device_id"], payload)
+                    with self.lock:
+                        direction_error = self._note_policy_error(peer["device_id"], kind, value, False, channel)
+                        if direction_error:
+                            status, error = "rejected", direction_error
+                            raise PermissionError
+                        if kind == "personal_sync.deletion_proposals":
+                            self.store.remember_personal_proposal_kinds(peer["device_id"], value, False)
+                        staged = self.store.stage_personal_domain(peer["device_id"], payload)
                     token = staged["commit_token"]
                     staged["transport"] = self.connection_transports.get(peer["device_id"], "")
                     with self.lock:
@@ -4047,7 +4377,13 @@ class PhoneService:
                         if dispatch:
                             self.personal_dispatched.add(token)
                     if dispatch:
-                        self.callback("personal_sync", staged)
+                        with self.lock:
+                            if self._note_policy_error(peer["device_id"], kind, value, False, channel) is None:
+                                self.callback("personal_sync", staged)
+                            else:
+                                self.personal_dispatched.discard(token)
+                                self.personal_commit_events.pop(token, None)
+                                return
                     event.wait(PERSONAL_COMMIT_SECONDS)
                     committed = not any(item[1]["pending_message_id"] == payload["message_id"]
                         for item in self.store.ready_personal_domains())
@@ -4069,7 +4405,12 @@ class PhoneService:
                     run = self.store.personal_run(peer["device_id"], value["run_id"])
                     if run.get("trigger") not in {"manual", "auto_wifi"} or not run.get("modules"):
                         raise ValueError("personal sync request missing")
-                    aggregate = self.store.stage_personal_batch(peer["device_id"], payload)
+                    with self.lock:
+                        direction_error = self._note_policy_error(peer["device_id"], kind, value, False, channel)
+                        if direction_error:
+                            status, error = "rejected", direction_error
+                            raise PermissionError
+                        aggregate = self.store.stage_personal_batch(peer["device_id"], payload)
                     # A batch transport ACK means encrypted durable staging, not semantic apply.
                     channel.send({"type": "ack", "message_id": payload["message_id"],
                                   "status": "accepted", "error": "none"})
@@ -4149,6 +4490,10 @@ class PhoneService:
         else:
             status, error = "rejected", "unsupported"
         self.store.remember_message(peer["device_id"], payload, status, error)
+        if status == "accepted":
+            self._observe_note_control(peer, channel, kind, payload["body"])
+            if kind == "capabilities.update":
+                self._queue_note_settings(peer["device_id"], channel)
         channel.send({"type": "ack", "message_id": payload["message_id"],
                       "status": status, "error": error})
 

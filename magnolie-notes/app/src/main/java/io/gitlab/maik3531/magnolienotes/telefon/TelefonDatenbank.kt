@@ -185,7 +185,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                 "transport_policy", "payload"), "peer_id=? AND next_attempt_ms<=?" +
                     if (transport == TelefonTransportArt.BLUETOOTH) " AND transport_policy='any'" else "",
                 arrayOf(peerId, now.toString()), null, null,
-                "CASE WHEN kind='personal_sync.custom_settings' THEN 0 ELSE 1 END,created_ms,message_id", "32").use { cursor ->
+                "CASE kind WHEN 'capabilities.update' THEN 0 WHEN 'grants.update' THEN 1 WHEN 'personal_sync.settings' THEN 2 WHEN 'personal_sync.note_settings' THEN 3 WHEN 'personal_sync.custom_settings' THEN 4 ELSE 5 END,created_ms,message_id", "32").use { cursor ->
                 while (cursor.moveToNext()) {
                     val id = cursor.getString(0)
                     var clear: ByteArray? = null

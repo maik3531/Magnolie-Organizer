@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="personal_note_direction_update">Оновіть обидва пристрої, щоб вибрати напрямок передавання нотаток.</string>
+    <string name="personal_note_direction">Напрямок синхронізації нотаток</string>
+    <string name="personal_note_two_way">Двостороння синхронізація</string>
+    <string name="personal_note_import">Імпорт лише з Notes до Organizer</string>
+    <string name="personal_note_direction_hint">У режимі імпорту нотатки Organizer не надсилаються назад, а видалення нотаток, блокнотів і вкладень не синхронізуються. Завдання залишаються незалежними.</string>
     <string name="baum_postfach_unsicher">Непідтверджені доставки: %1$d. Повідомлення збережено, автоматичне повторне надсилання призупинено. Перевірте отримання: старі пристрої можуть не підтримувати перевірені підтвердження.</string>
     <string name="telefon_bluetooth_setup">З’єднати новий Organizer через Bluetooth</string>
     <string name="telefon_bluetooth_setup_hinweis">Залиште цей екран відкритим. Виберіть цей телефон в Organizer, підтвердьте системне сполучення, потім порівняйте код на обох пристроях.</string>

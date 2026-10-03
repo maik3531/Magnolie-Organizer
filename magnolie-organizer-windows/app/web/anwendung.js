@@ -1098,6 +1098,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   function personalSyncEntscheidungAnwenden(vorschlag, entscheidung, konfliktErlaubt = false) {
+    if (telefonStand && vorschlag.kind !== "task") {
+      const peer = personalSyncNotizPeer(vorschlag.source_device);
+      if (!peer || personalSyncNotizImport(peer) || !personalSyncNotizBereit(peer)) return "blocked";
+    }
     if (["note", "notebook"].includes(vorschlag.kind) && personalSyncNotizId(vorschlag.id, vorschlag.kind) !== vorschlag.id ||
         vorschlag.kind === "attachment" && (personalSyncNotizId(vorschlag.parent_id) !== vorschlag.parent_id ||
           personalSyncAnhangId(vorschlag.parent_id, vorschlag.id) !== vorschlag.id)) return "conflict";
@@ -1133,14 +1137,18 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   function personalSyncEntscheidungSenden(peer, vorschlag, entscheidung) {
+    peer = personalSyncNotizPeer(peer);
+    if (!peer || vorschlag.kind !== "task" && (personalSyncNotizImport(peer) || !personalSyncNotizBereit(peer))) return;
     const offen = { peer_device_id: peer.device_id, run_id: vorschlag.run_id,
       decision_id: crypto.randomUUID(), proposal_id: vorschlag.proposal_id,
-      decision: entscheidung, expected_clock: kopie(vorschlag.clock), state: "pending" };
+      decision: entscheidung, expected_clock: kopie(vorschlag.clock), kind: vorschlag.kind, state: "pending" };
     DATEN.personalSync.pending_decisions.push(offen);
     nachDauerhaftemSpeichern(() => personalSyncEntscheidungWiederholen(offen));
   }
 
   function personalSyncEntscheidungWiederholen(offen) {
+    const peer = personalSyncNotizPeer(offen.peer_device_id);
+    if (telefonStand && (!peer || offen.kind !== "task" && (personalSyncNotizImport(peer) || !personalSyncNotizBereit(peer)))) return;
     Bruecke.sende({ cmd: "personal_sync_senden", kennung: offen.peer_device_id,
       art: "personal_sync.deletion_decision", inhalt: { format: 1,
         run_id: offen.run_id, decision_id: offen.decision_id, decisions: [{
@@ -1149,13 +1157,15 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     offen.state = "queued"; planeSpeichern();
   }
 
-  function personalSyncEingehendeEntscheidungen(decisions) {
+  function personalSyncEingehendeEntscheidungen(decisions, peer = null) {
     const vorbereitet = [];
     for (const entscheidung of decisions || []) {
       const fund = Object.entries(DATEN.personalSync.entities).find(([, meta]) =>
         meta.proposal_id === entscheidung.proposal_id);
       const proof = (DATEN.personalSync.applied_decisions || []).find((x) => x &&
         x.proposal_id === entscheidung.proposal_id);
+      const kind = proof?.kind || (fund && fund[0].split("\u0000")[0]);
+      if (kind !== "task" && (personalSyncNotizImport(peer) || !personalSyncNotizBereit(peer))) return "not_granted";
       const gleich = (a, b) => personalSyncKanonisch(a || []) === personalSyncKanonisch(b || []);
       if (proof) {
         if (proof.decision !== entscheidung.decision || !gleich(proof.expected_clock,
@@ -1194,7 +1204,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   async function personalSyncOffeneEntscheidungen(peer, runId) {
-    const offen = DATEN.personalSync.pending_proposals.filter((x) => x.run_id === runId);
+    const offen = DATEN.personalSync.pending_proposals.filter((x) => x.run_id === runId &&
+      (!personalSyncNotizImport(personalSyncNotizPeer(peer)) || x.kind === "task"));
     const live = Object.values(DATEN.personalSync.entities).filter((x) =>
       x.state !== "deleted" && x.acknowledged_by_peer).length;
     const grenze = Math.min(10, Math.max(1, Math.floor(live * 0.1)));
@@ -1293,13 +1304,15 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       }
     }
     sichereNotizSnapshot();
-    if (modules.includes("notes")) vereinigeBestehendeNotizen();
+    const importModus = personalSyncNotizImport(personalSyncNotizPeer(peerId));
+    if (modules.includes("notes") && !importModus) vereinigeBestehendeNotizen();
     let eigeneRecords = await personalSyncSnapshot(modules, format, peerId);
     let buecherZugeordnet = false;
     if (modules.includes("notes")) for (const record of records) if (record.kind === "notebook")
       buecherZugeordnet = personalSyncBuchZuordnen(record) || buecherZugeordnet;
     if (buecherZugeordnet) eigeneRecords = await personalSyncSnapshot(modules, format, peerId);
     const eigeneWerte = new Map(eigeneRecords.map(record => [record.kind + "\u0000" + record.id, record.value]));
+    const importWahl = importModus ? await personalSyncImportKonflikte(records, eigeneWerte, peerId) : new Map();
     let konflikte = 0, anlagen = 0;
     for (const eingang of records) {
       if (eingang.kind === "note" && DATEN.notizen.some(n => !personalSyncEigeneNotiz(n) &&
@@ -1312,6 +1325,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (!lokal) { personalSyncSetze(record, record.id, true, attachmentData); DATEN.personalSync.entities[key] = {
         clock: record.clock, hash: record.hash, modified_ms: record.modified_ms, conflict: false }; eigeneWerte.set(key, record.value); continue; }
       const vergleich = personalSyncVergleiche(lokal.clock, record.clock);
+      const wahl = importWahl.get(eingang.kind + "\u0000" + eingang.id);
+      if (wahl && vergleich === "concurrent") {
+        if (wahl === "remote") { personalSyncSetze(record, record.id, false, attachmentData); eigeneWerte.set(key, record.value); }
+        DATEN.personalSync.entities[key] = { ...lokal, clock: personalSyncVereinige(lokal.clock, record.clock),
+          hash: wahl === "remote" ? record.hash : lokal.hash,
+          modified_ms: wahl === "remote" ? record.modified_ms : lokal.modified_ms, conflict: false };
+        konflikte++; continue;
+      }
       if (vergleich === "dominates") continue;
       if (vergleich === "equal") { if (lokal.hash !== record.hash) throw new Error(_("Personal synchronization failed.")); continue; }
       if (vergleich === "concurrent" && lokal.hash === record.hash) {
@@ -1346,7 +1367,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           if (record.kind === "note") { kopie.baumFreigabe = null; kopie.baumVersion = 0; kopie.baumQuelle = ""; kopie.baumGeaendert = 0; kopie.baumInhaltVersion = 0; }
           liste.push(kopie);
         }
-        personalSyncSetze(record, record.id, record.kind === "note", attachmentData);
+        personalSyncSetze(record, record.id, record.kind === "note" && !personalSyncNotizImport(personalSyncNotizPeer(peerId)), attachmentData);
         eigeneWerte.set(key, record.value);
       } else {
         personalSyncSetze(record, konfliktId, true, attachmentData);
@@ -1361,7 +1382,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         modified_ms: remoteWins ? lokal.modified_ms : record.modified_ms, conflict: true };
       konflikte += 1;
     }
-    if (modules.includes("notes") && vereinigeBestehendeNotizen()) await personalSyncSnapshot(modules, format, peerId);
+    if (modules.includes("notes") && !importModus && vereinigeBestehendeNotizen()) await personalSyncSnapshot(modules, format, peerId);
     return { conflicts: konflikte, attachments: anlagen };
   }
 
@@ -1480,13 +1501,71 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return personalCustomKette;
   }
 
+  function personalSyncNotizImport(peer) {
+    const mode = peer?.note_sync;
+    return mode?.importing === true || mode?.local?.mode === "phone_import" || mode?.remote?.mode === "phone_import";
+  }
+
+  function personalSyncNotizPeer(peer) {
+    if (!telefonStand) return typeof peer === "object" ? peer : null;
+    return (telefonStand.peers || []).find(value => value.device_id === (typeof peer === "string" ? peer : peer?.device_id)) || null;
+  }
+
+  function personalSyncNotizBereit(peer) {
+    const mode = peer?.note_sync;
+    return !(mode?.supported || mode?.local || mode?.remote || personalSyncNotizImport(peer)) || mode?.ready === true;
+  }
+
+  function personalSyncNotizAusgang(peer, records) {
+    if (!personalSyncNotizImport(peer)) return records;
+    const result = records.filter(record => record.kind === "task");
+    result.attachmentSources = [];
+    return result;
+  }
+
+  async function personalSyncImportKonflikte(records, eigeneWerte, peerId) {
+    const bestand = DATEN, result = new Map();
+    const scope = () => {
+      const peer = personalSyncNotizPeer(peerId);
+      return JSON.stringify([peer?.note_sync, peer?.own_device, peer?.remote_own_device,
+        peer?.local_grants?.grants?.personal_notes_sync, peer?.grants?.grants?.personal_notes_sync]);
+    };
+    const policy = scope();
+    for (const incoming of records) {
+      if (!["note", "notebook"].includes(incoming.kind)) continue;
+      const record = personalSyncNotizZuordnen(incoming, eigeneWerte);
+      const key = record.kind + "\u0000" + record.id, local = DATEN.personalSync.entities[key], value = eigeneWerte.get(key);
+      if (!local || !value || local.state === "deleted" || local.hash === record.hash ||
+          personalSyncVergleiche(local.clock, record.clock) !== "concurrent" ||
+          personalSyncNotizInhalt(value, false, record.kind === "note" ? record.id : "") ===
+          personalSyncNotizInhalt(record.value, false, record.kind === "note" ? record.id : "")) continue;
+      const before = JSON.stringify([DATEN.notizen, DATEN.notizbuecher, DATEN.personalSync]);
+      const content = el("div", "personal-note-conflict");
+      for (const [source, item] of [["Organizer", value], ["Notes", record.value]]) {
+        content.append(el("h4", "", source), el("pre", "", [item.title || item.name || "", item.html || item.text || ""].join("\n")));
+      }
+      const choice = await dreiWegeDialog({ id: "personal-note-conflict", titel: _("Conflict"), inhalt: content,
+        abbrechen: _("Cancel"), mitte: { text: _("Keep") + " (Organizer)", wert: "local" },
+        bestaetigen: { text: _("Apply") + " (Notes)", wert: "remote" } });
+      if (!choice) { const error = new Error(_("Cancel")); error.personalSyncDeferred = true; throw error; }
+      if (DATEN !== bestand || gesperrt || scope() !== policy ||
+          !personalSyncNotizBereit(personalSyncNotizPeer(peerId)) ||
+          JSON.stringify([DATEN.notizen, DATEN.notizbuecher, DATEN.personalSync]) !== before)
+        throw new Error(_("Personal synchronization failed."));
+      result.set(incoming.kind + "\u0000" + incoming.id, choice);
+    }
+    return result;
+  }
+
   async function personalSyncSenden(peer, trigger, vorbereitet) {
+    if (trigger === "manual") for (const key of personalSyncVertagteBatches.keys())
+      if (key.startsWith(peer.device_id + "\u0000")) personalSyncVertagteBatches.delete(key);
     const bestand = DATEN.personalSync;
     const custom = await personalCustomSenden(peer, trigger);
     if (DATEN.personalSync !== bestand) throw new Error(_("Personal synchronization failed."));
     const modules = vorbereitet ? vorbereitet.modules.slice() : [];
     const local = peer.local_grants && peer.local_grants.grants || {}, remote = peer.grants && peer.grants.grants || {};
-    if (!vorbereitet && local.personal_notes_sync && remote.personal_notes_sync) modules.push("notes");
+    if (!vorbereitet && local.personal_notes_sync && remote.personal_notes_sync && personalSyncNotizBereit(peer)) modules.push("notes");
     if (!vorbereitet && local.personal_tasks_sync && remote.personal_tasks_sync) modules.push("tasks");
     if (!modules.length && custom) return "custom";
     if (!peer.own_device || !peer.remote_own_device || !modules.length)
@@ -1505,8 +1584,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       { hash: vorbereitet.hash, modules: vorbereitet.modules.slice(), format: format, peerId: peer.device_id });
     const request = { format: format, run_id: run, trigger: trigger, modules: modules };
     sichereNotizSnapshot();
-    const bereinigt = modules.includes("notes") && vereinigeBestehendeNotizen();
-    const records = !bereinigt && vorbereitet && vorbereitet.format === format ? vorbereitet.records : await personalSyncSnapshot(modules, format, peer.device_id);
+    const bereinigt = modules.includes("notes") && !personalSyncNotizImport(peer) && vereinigeBestehendeNotizen();
+    const records = personalSyncNotizAusgang(peer, !bereinigt && vorbereitet && vorbereitet.format === format ? vorbereitet.records : await personalSyncSnapshot(modules, format, peer.device_id));
     await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
     {
       const chunks = personalSyncPakete(records, run, false, format);
@@ -1533,6 +1612,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             proposal_id: meta.proposal_id, kind: parts[0], id: parts[parts.length - 1],
             parent_id: String(meta.parent_id || ""), clock: meta.clock, prior_hash: meta.prior_hash,
             deleted_ms: meta.deleted_ms, label: String(meta.label || "").replace(/[\x00-\x1f\x7f]/g, " ").slice(0, 120) }; })
+          .filter(proposal => !personalSyncNotizImport(peer) || proposal.kind === "task")
           .sort((a, b) => personalSyncUtf8(a.proposal_id, b.proposal_id));
         for (let offset = 0; offset < proposals.length; offset += 32) Bruecke.sende({
           cmd: "personal_sync_senden", kennung: peer.device_id, art: "personal_sync.deletion_proposals",
@@ -1548,9 +1628,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const local = peer.local_grants && peer.local_grants.grants || {};
     const remote = peer.grants && peer.grants.grants || {};
     const modules = [];
-    if (local.personal_notes_sync && remote.personal_notes_sync) modules.push("notes");
+    if (local.personal_notes_sync && remote.personal_notes_sync && personalSyncNotizBereit(peer)) modules.push("notes");
     if (local.personal_tasks_sync && remote.personal_tasks_sync) modules.push("tasks");
-    if (!modules.length) return;
+    if (!modules.length) return false;
     const notesVersions = peer.capabilities && peer.capabilities.items &&
       peer.capabilities.items.personal_notes_sync && peer.capabilities.items.personal_notes_sync.versions || [];
     const taskVersions = peer.capabilities && peer.capabilities.items &&
@@ -1558,7 +1638,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const format = modules.includes("tasks") && taskVersions.includes(3) &&
       (!modules.includes("notes") || notesVersions.includes(3)) ? 3 :
       modules.includes("notes") && notesVersions.includes(2) ? 2 : 1;
-    const records = await personalSyncSnapshot(modules, format, peer.device_id);
+    const records = personalSyncNotizAusgang(peer, await personalSyncSnapshot(modules, format, peer.device_id));
     const hash = await personalSyncHash(records);
     const lastHash = String(DATEN.personalSync.last_auto_hash || "");
     if (!personalSyncAutoEntscheidung({ secureWifi: peer.transport === "wifi",
@@ -1568,9 +1648,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       active: personalSyncAutoLaeuft || !!peer.personal_sync_active_auto,
       nowMs: Date.now(), lastAutoMs: DATEN.personalSync.last_auto_ms,
       remoteUnknown: !Number(DATEN.personalSync.last_auto_ms || 0),
-      localDirty: !!lastHash && hash !== lastHash })) return;
+      localDirty: !!lastHash && hash !== lastHash })) return false;
     personalSyncAutoLaeuft = true;
-    try { await personalSyncSenden(peer, "auto_wifi", { modules: modules, records: records, hash: hash, format: format }); }
+    try { await personalSyncSenden(peer, "auto_wifi", { modules: modules, records: records, hash: hash, format: format }); return true; }
     finally { personalSyncAutoLaeuft = false; }
   }
 
@@ -1807,7 +1887,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         optionen.bestaetigen.klasse || "", () => beenden(optionen.bestaetigen.wert));
       const knoepfe = el("div", "dialog-knoepfe");
       knoepfe.append(abbrechen, mitte, bestaetigen);
-      dialog.append(titel, knoepfe);
+      if (optionen.inhalt) dialog.append(titel, optionen.inhalt, knoepfe);
+      else dialog.append(titel, knoepfe);
       schleier.append(dialog);
       document.body.append(schleier);
       schleier.addEventListener("click", (ev) => {
@@ -1872,8 +1953,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
   let personalSyncAutoLaeuft = false;
   let personalSyncBatchKette = Promise.resolve();
+  const personalSyncVertagteBatches = new Map();
   const personalSyncTrigger = new Map();
   const personalSyncSecureWifi = new Map();
+  const personalSyncNoteReady = new Map();
   const personalSyncAutoHash = new Map();
 
   function geraeteZeit(wert) {
@@ -2109,7 +2192,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           (!aktuell.custom_sync?.local?.enabled || aktuell.custom_sync?.remote?.enabled) &&
           ((!lokal.personal_notes_sync || fern.personal_notes_sync) &&
            (!lokal.personal_tasks_sync || fern.personal_tasks_sync));
-        personalStand.textContent = !bestaetigt ? _("Waiting for consent on the other device.") :
+        personalStand.textContent = !bestaetigt || aktuell.local_grants?.grants?.personal_notes_sync &&
+          aktuell.grants?.grants?.personal_notes_sync && !personalSyncNotizBereit(aktuell) ? _("Waiting for consent on the other device.") :
+          personalSyncNotizImport(aktuell) ? _("Import Notes → Organizer only") :
           aktuell.personal_sync_report && aktuell.personal_sync_report.state
             ? String(aktuell.personal_sync_report.state) : _("Deletions are not synchronized yet.");
       };
@@ -2134,6 +2219,31 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       inhaltWahl.append(knopf(_("All"), "klein", () => waehleInhalte(true)),
         knopf(_("None"), "klein", () => waehleInhalte(false)));
       personal.append(inhaltWahl);
+      const notizRichtung = el("select", "");
+      notizRichtung.dataset.personalNoteModePeer = kennung;
+      notizRichtung.setAttribute("aria-label", _("Note synchronization direction"));
+      for (const [value, title] of [["two_way", _("Two-way synchronization")],
+        ["phone_import", _("Import Notes → Organizer only")]]) {
+        const option = el("option", "", title); option.value = value; notizRichtung.append(option);
+      }
+      notizRichtung.value = peer.note_sync?.local?.mode || "two_way";
+      notizRichtung.disabled = peer.note_sync?.supported !== true;
+      notizRichtung.addEventListener("change", () => {
+        notizRichtung.disabled = true;
+        const aktuell = personalSyncNotizPeer(kennung) || peer;
+        aktuell.note_sync = { ...aktuell.note_sync, ready: false,
+          importing: personalSyncNotizImport(aktuell) || notizRichtung.value === "phone_import",
+          local: { ...aktuell.note_sync?.local, mode: notizRichtung.value } };
+        zeigePersonalStand(aktuell);
+        Bruecke.sende({ cmd: "personal_sync_notizrichtung", kennung: kennung, modus: notizRichtung.value });
+        Bruecke.sende({ cmd: "telefon_stand" });
+      });
+      const richtungsZeile = el("label", "einst-zeile", _("Note synchronization direction"));
+      richtungsZeile.append(notizRichtung); personal.append(richtungsZeile);
+      const richtungsHinweis = el("p", "einst-hinweis", peer.note_sync?.supported === true
+        ? _("Import mode sends no Organizer notes back and synchronizes no note, notebook or attachment deletions. Tasks remain independent.")
+        : _("Update both devices to choose the note direction."));
+      richtungsHinweis.dataset.personalNoteModeHint = kennung; personal.append(richtungsHinweis);
       const customSupported = peer.capabilities?.items?.personal_tasks_sync?.available === true &&
         (peer.capabilities?.items?.personal_tasks_sync?.versions || []).includes(4);
       let customLocal = peer.custom_sync?.local;
@@ -27961,6 +28071,17 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       document.querySelectorAll("[data-personal-sync-action]").forEach(button => {
         button.disabled = !personalSyncBereit((telefonStand?.peers || []).find(peer => peer.device_id === button.dataset.personalSyncAction));
       });
+      document.querySelectorAll("[data-personal-note-mode-peer]").forEach(select => {
+        const peer = (telefonStand?.peers || []).find(p => p.device_id === select.dataset.personalNoteModePeer);
+        select.disabled = peer?.note_sync?.supported !== true;
+        select.value = peer?.note_sync?.local?.mode || "two_way";
+      });
+      document.querySelectorAll("[data-personal-note-mode-hint]").forEach(node => {
+        const peer = (telefonStand?.peers || []).find(p => p.device_id === node.dataset.personalNoteModeHint);
+        node.textContent = peer?.note_sync?.supported === true
+          ? _("Import mode sends no Organizer notes back and synchronizes no note, notebook or attachment deletions. Tasks remain independent.")
+          : _("Update both devices to choose the note direction.");
+      });
       zeichneGeraeteKennungen();
       pruefeSmsPlanung();
       document.querySelectorAll("[data-personal-sync-peer]").forEach((anzeige) => {
@@ -27972,7 +28093,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           (!peer.custom_sync?.local?.enabled || peer.custom_sync?.remote?.enabled) &&
           ((!lokal.personal_notes_sync || fern.personal_notes_sync) &&
            (!lokal.personal_tasks_sync || fern.personal_tasks_sync));
-        if (peer) anzeige.textContent = !bestaetigt ? _("Waiting for consent on the other device.") :
+        if (peer) anzeige.textContent = !bestaetigt || lokal.personal_notes_sync && fern.personal_notes_sync &&
+          !personalSyncNotizBereit(peer) ? _("Waiting for consent on the other device.") :
+          personalSyncNotizImport(peer) ? _("Import Notes → Organizer only") :
           peer.personal_sync_report && peer.personal_sync_report.deletions &&
             Number(peer.personal_sync_report.deletions.pending) > 0
             ? _("Deletion proposals are pending manual review.") :
@@ -27997,7 +28120,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         const lokal = peer.local_grants && peer.local_grants.grants || {};
         const fern = peer.grants && peer.grants.grants || {};
         const widerrufen = new Set();
-        if (!lokal.personal_notes_sync || !fern.personal_notes_sync)
+        if (!lokal.personal_notes_sync || !fern.personal_notes_sync || personalSyncNotizImport(peer))
           ["note", "notebook", "attachment"].forEach((x) => widerrufen.add(x));
         if (!lokal.personal_tasks_sync || !fern.personal_tasks_sync) widerrufen.add("task");
         const entfernt = new Set(DATEN.personalSync.pending_proposals.filter((x) =>
@@ -28017,11 +28140,19 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           planeSpeichern();
         }
         const secureWifi = peer.transport === "wifi" && peer.state === "online_wifi";
-        const transition = secureWifi && !personalSyncSecureWifi.get(peer.device_id);
+        const noteReady = !!peer.own_device && !!peer.remote_own_device && !!lokal.personal_notes_sync &&
+          !!fern.personal_notes_sync && personalSyncNotizBereit(peer);
+        if (!noteReady || !secureWifi) personalSyncNoteReady.set(peer.device_id, false);
+        const transition = secureWifi && (!personalSyncSecureWifi.get(peer.device_id) ||
+          noteReady && !personalSyncNoteReady.get(peer.device_id));
         personalSyncSecureWifi.set(peer.device_id, secureWifi);
-        if (transition) personalSyncAutoBeiSicheremWlan(peer, true).catch(() => {});
+        if (transition) personalSyncAutoBeiSicheremWlan(peer, true).then(started => {
+          if (personalSyncNotizPeer(peer) === peer && (started || !peer.auto_wifi)) personalSyncNoteReady.set(peer.device_id, noteReady);
+        }).catch(() => {});
       }
-      for (const key of personalSyncSecureWifi.keys()) if (!vorhandene.has(key)) personalSyncSecureWifi.delete(key);
+      for (const key of personalSyncSecureWifi.keys()) if (!vorhandene.has(key)) {
+        personalSyncSecureWifi.delete(key); personalSyncNoteReady.delete(key);
+      }
       const getrennt = new Set(DATEN.personalSync.pending_proposals.filter((x) =>
         x.source_device && !vorhandene.has(x.source_device)).map((x) => x.proposal_id));
       DATEN.personalSync.pending_decisions.filter((x) => !vorhandene.has(x.peer_device_id))
@@ -28071,6 +28202,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (kind === "personal_sync.request") return;
       const peer = telefonStand && (telefonStand.peers || []).find((x) => x.device_id === nutzlast.device_id);
       if (!peer) return;
+      const syncBestand = DATEN.personalSync, deferredKey = peer.device_id + "\u0000" + nutzlast.commit_token;
+      if (kind === "personal_sync.batch" && personalSyncVertagteBatches.get(deferredKey) === syncBestand) return;
       if (kind === "personal_sync.deletion_proposals") {
         const vorhanden = new Set(DATEN.personalSync.pending_proposals.map((x) => x.proposal_id));
         for (const proposal of (body.proposals || [])) if (!vorhanden.has(proposal.proposal_id)) {
@@ -28087,7 +28220,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         return;
       }
       if (kind === "personal_sync.deletion_decision") {
-        const entscheidungsStatus = personalSyncEingehendeEntscheidungen(body.decisions || []);
+        const entscheidungsStatus = personalSyncEingehendeEntscheidungen(body.decisions || [], peer);
         if (entscheidungsStatus !== "applied") {
           Bruecke.sende({ cmd: "telefon_personal_sync_commit", kennung: nutzlast.device_id,
             messageId: nutzlast.pending_message_id, token: nutzlast.commit_token, erfolgreich: false });
@@ -28112,13 +28245,16 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         : Promise.resolve({ conflicts: 0, attachments: 0 });
       const batchArbeit = arbeit.then(async (ergebnis) => {
         const antwort = kind === "personal_sync.batch" && body.reply === false;
-        const records = antwort ? await personalSyncSnapshot(modules, format, peer.device_id) : [];
+        const records = antwort ? personalSyncNotizAusgang(peer, await personalSyncSnapshot(modules, format, peer.device_id)) : [];
         const responseChunks = antwort ? personalSyncPakete(records, body.run_id, true, format) : [];
         const aggregate = antwort && format >= 2 ? await personalSyncHash(responseChunks.flat()) : "";
         if (kind === "personal_sync.batch") JSON.stringify(DATEN);
         if (!DATEN.personalSync.applied_batches.includes(nutzlast.commit_token)) DATEN.personalSync.applied_batches.push(nutzlast.commit_token);
         DATEN.personalSync.applied_batches = DATEN.personalSync.applied_batches.slice(-500);
-        Object.values(DATEN.personalSync.entities).forEach((meta) => {
+        const importedKeys = new Set((body.records || []).map(record => record.kind + "\u0000" +
+          (["note", "notebook"].includes(record.kind) ? personalSyncNotizId(record.id, record.kind) : record.id)));
+        Object.entries(DATEN.personalSync.entities).forEach(([key, meta]) => {
+          if (personalSyncNotizImport(personalSyncNotizPeer(peer)) && key.split("\u0000")[0] !== "task" && !importedKeys.has(key)) return;
           if (meta.state !== "deleted") { meta.peer_device_id = peer.device_id; meta.acknowledged_by_peer = true; }
         });
         await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
@@ -28184,7 +28320,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           if (!editorIstGeaendert()) zeichneAlles();
           zettel(_("Personal synchronization complete. Deletions are not synchronized yet."));
         }
-      }).catch((fehler) => App.personalSyncFehler({ fehler: String(fehler.message || fehler) }));
+      }).catch((fehler) => {
+        if (kind === "personal_sync.batch" && fehler.personalSyncDeferred) {
+          personalSyncVertagteBatches.set(deferredKey, syncBestand);
+          if (personalSyncVertagteBatches.size > 500) personalSyncVertagteBatches.delete(personalSyncVertagteBatches.keys().next().value);
+          Bruecke.sende({ cmd: "telefon_personal_sync_commit", kennung: peer.device_id,
+            messageId: nutzlast.pending_message_id, token: nutzlast.commit_token, erfolgreich: false });
+        } else App.personalSyncFehler({ fehler: String(fehler.message || fehler) });
+      });
       if (kind === "personal_sync.batch") personalSyncBatchKette = batchArbeit;
     },
     personalSyncFehler(nutzlast) {
@@ -29442,6 +29585,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     personalSyncHash: personalSyncHash,
     personalSyncAutoEntscheidung: personalSyncAutoEntscheidung,
     personalSyncSnapshot: personalSyncSnapshot,
+    personalSyncNotizImport: personalSyncNotizImport,
+    personalSyncNotizBereit: personalSyncNotizBereit,
+    personalSyncNotizAusgang: personalSyncNotizAusgang,
     personalSyncAnwenden: personalSyncAnwenden,
     personalSyncEntscheidungAnwenden: personalSyncEntscheidungAnwenden,
     personalSyncEingehendeEntscheidungen: personalSyncEingehendeEntscheidungen,

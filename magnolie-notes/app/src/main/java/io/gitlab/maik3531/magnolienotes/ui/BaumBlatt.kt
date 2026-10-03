@@ -63,6 +63,7 @@ import io.gitlab.maik3531.magnolienotes.baum.KontaktImportVorschau
 import io.gitlab.maik3531.magnolienotes.telefon.TelefonUiZustand
 import io.gitlab.maik3531.magnolienotes.telefon.TelefonVerbindungsstatus
 import io.gitlab.maik3531.magnolienotes.telefon.GefundenerDesktop
+import io.gitlab.maik3531.magnolienotes.telefon.PersonalNoteMode
 import kotlinx.serialization.json.*
 
 /** Alles, was das Baumblatt an Handlungen anbietet. */
@@ -124,6 +125,7 @@ class Telefonhandlungen(
     val beiPersonalEigen: (Boolean) -> Unit,
     val beiIdentifierSharing: (Boolean) -> Unit,
     val beiPersonalNotizen: (Boolean) -> Unit,
+    val beiPersonalNotizrichtung: (String) -> Unit,
     val beiPersonalAufgaben: (Boolean) -> Unit,
     val beiPersonalAutoWlan: (Boolean) -> Unit,
     val beiPersonalLoeschungen: (Boolean) -> Unit,
@@ -156,7 +158,9 @@ fun BaumBlatt(
     var loeschWarnung by remember { mutableStateOf<String?>(null) }
     var entfernenWarnung by remember { mutableStateOf<String?>(null) }
     val peerScope = telefon.peer?.let { it.device_id + ":" + it.static_public }
-    val activeProposals = bestand.personalSync.pending_proposals.filter { it.source_device == telefon.peer?.device_id }
+    val noteImportMode = PersonalNoteMode.importing(telefon.peer?.personal_note_policy, telefon.peer?.remote_personal_note_policy)
+    val activeProposals = bestand.personalSync.pending_proposals.filter {
+        it.source_device == telefon.peer?.device_id && (!noteImportMode || it.kind == "task") }
     var telefonEntfernenWarnung by remember(peerScope) { mutableStateOf(false) }
     val personalDecisions = remember(peerScope) { PersonalDeletionDecisions() }
     var personalProposal by remember(peerScope) { mutableStateOf<PersonalDeletionProposal?>(null) }
@@ -330,6 +334,16 @@ fun BaumBlatt(
             }
             Schalterzeile(stringResource(R.string.personal_sync_notizen), telefon.personalNotesEnabled,
                 telefonHandlungen.beiPersonalNotizen)
+            val noteModeSupported = telefon.peer?.remote_personal_notes_sync_available == true &&
+                PersonalNoteMode.VERSION in (telefon.peer?.remote_personal_notes_sync_versions ?: emptyList()) &&
+                PersonalNoteMode.VERSION in io.gitlab.maik3531.magnolienotes.telefon.TelefonCapabilities.phase1().getValue("personal_notes_sync").versions
+            if (noteModeSupported) {
+                Text(stringResource(R.string.personal_note_direction), fontWeight = FontWeight.Bold)
+                Schalterzeile(stringResource(R.string.personal_note_import), telefon.personalNotesMode == PersonalNoteMode.IMPORT,
+                    { telefonHandlungen.beiPersonalNotizrichtung(if (it) PersonalNoteMode.IMPORT else PersonalNoteMode.TWO_WAY) })
+                Text(stringResource(if (noteImportMode) R.string.personal_note_import else R.string.personal_note_two_way), fontSize = 12.sp)
+                Text(stringResource(R.string.personal_note_direction_hint), fontSize = 12.sp)
+            } else Text(stringResource(R.string.personal_note_direction_update), fontSize = 12.sp)
             Schalterzeile(stringResource(R.string.personal_sync_aufgaben), telefon.personalTasksEnabled,
                 telefonHandlungen.beiPersonalAufgaben)
             val customSupported = telefon.peer?.remote_personal_tasks_sync_available == true && 4 in (telefon.peer?.remote_personal_tasks_sync_versions ?: emptyList()) &&

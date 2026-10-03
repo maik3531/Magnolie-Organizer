@@ -525,6 +525,7 @@ internal sealed class TelefonCoordinator : IDisposable
             await ReportStatusAsync(); return queued;
         }
         PersonalSyncContract.ValidateBody(kind, body); var peer = RequireSolePeer(id); var now = Now(); PersonalSyncRun? run = null;
+        if (!NoteDirectionAllowed(id, kind, body, true)) throw new InvalidOperationException(T("Personal synchronization is not permitted on both devices."));
         if (kind != "personal_sync.request") run = personalSync.LoadRun(id, body["run_id"]!.GetValue<string>(), now) ?? throw new InvalidOperationException(T("The personal synchronization request is missing."));
         if (kind is "personal_sync.batch" or "personal_sync.report" && body["format"]!.GetValue<int>() != run!.Request["format"]!.GetValue<int>())
             throw new InvalidDataException(T("The personal synchronization run does not match."));
@@ -542,6 +543,54 @@ internal sealed class TelefonCoordinator : IDisposable
 
     internal JsonObject CustomSettings(string id) => store.CustomSettings(id);
 
+    internal bool NoteDirectionAllowed(string id, string kind, JsonObject body, bool outgoing)
+    {
+        if (!store.NoteImportMode(id)) return true;
+        return PersonalSyncContract.NoteDirectionAllowed("desktop", outgoing, kind, body, true,
+            kind == "personal_sync.deletion_decision" ? store.PersonalDecisionKinds(id, body, outgoing) : null);
+    }
+
+    internal JsonObject NoteSettings(string id)
+    {
+        var result = store.NoteSettings(id);
+        result["supported"] = store.NoteModeSupported(id); result["importing"] = store.NoteImportMode(id);
+        TelefonConnection? connection; lock (gate) online.TryGetValue(id, out connection);
+        result["ready"] = connection?.NotePolicyReady == true;
+        return result;
+    }
+
+    private bool NoteApplicationAllowed(string id, string kind, JsonObject body)
+    {
+        if (!NoteDirectionAllowed(id, kind, body, false)) return false;
+        var settings = store.NoteSettings(id);
+        if (!store.NoteModeSupported(id) && settings.Count == 0) return true;
+        var kinds = kind == "personal_sync.deletion_decision" ? store.PersonalDecisionKinds(id, body, false) : null;
+        if (!PersonalSyncContract.NoteMessageUsesNotes(kind, body, kinds)) return true;
+        TelefonConnection? connection; lock (gate) online.TryGetValue(id, out connection);
+        return connection?.NotePolicyReady == true;
+    }
+
+    internal async Task SetNoteModeAsync(string id, string mode)
+    {
+        RequireSolePeer(id);
+        if (mode is not ("two_way" or "phone_import")) throw new InvalidDataException("Invalid note direction.");
+        if (mode == "phone_import" && !store.NoteModeSupported(id)) throw new InvalidOperationException("Note direction is not supported.");
+        await store.NotePolicyGate.WaitAsync();
+        try
+        {
+            var settings = store.NoteSettings(id); var old = settings["local"] as JsonObject;
+            if ((old?["mode"]?.GetValue<string>() ?? "two_way") == mode) return;
+            var policy = PersonalSyncContract.NoteSettings(mode, checked((old?["revision"]?.GetValue<long>() ?? 0) + 1),
+                settings["remote"]?["epoch"]?.GetValue<string>() ?? "");
+            store.SetNoteSettings(id, policy, false);
+            personalSync.PurgeModules(id, new HashSet<string>(StringComparer.Ordinal) { "notes" });
+        }
+        finally { store.NotePolicyGate.Release(); }
+        TelefonConnection? connection; lock (gate) online.TryGetValue(id, out connection);
+        if (connection is not null) await connection.SendNoteSettingsAsync(true);
+        await ReportStatusAsync();
+    }
+
     internal async Task SetPersonalSyncAsync(string id, bool ownDevice, bool autoWifi)
     {
         RequireSolePeer(id); if (!ownDevice) personalSync.PurgeProtocol(id); store.SetPersonalSettings(id, ownDevice: ownDevice, autoWifi: ownDevice && autoWifi);
@@ -550,8 +599,22 @@ internal sealed class TelefonCoordinator : IDisposable
 
     internal bool CommitPersonalSync(string id, string messageId, string commitToken, string outcome)
     {
+        store.NotePolicyGate.Wait();
+        try { return CommitPersonalSyncUnderNotePolicy(id, messageId, commitToken, outcome); }
+        finally { store.NotePolicyGate.Release(); }
+    }
+
+    private bool CommitPersonalSyncUnderNotePolicy(string id, string messageId, string commitToken, string outcome)
+    {
         if (outcome is not ("applied" or "conflict" or "restore_unavailable" or "invalid" or "temporary" or "timeout")) throw new InvalidDataException(T("The personal synchronization result is invalid."));
         if (outcome == "timeout") outcome = "temporary";
+        if (outcome == "applied")
+        {
+            var intent = personalSync.DecisionIntents(Now()).FirstOrDefault(value => value.PeerId == id && value.PendingMessageId == messageId && value.CommitToken == commitToken);
+            if (intent is not null && !NoteApplicationAllowed(id, intent.Kind, intent.Body)) return false;
+            var batch = personalSync.ReadyBatches(Now()).FirstOrDefault(value => value.PeerId == id && value.PendingMessageId == messageId && value.CommitToken == commitToken);
+            if (batch is not null && !NoteApplicationAllowed(id, "personal_sync.batch", new JsonObject { ["records"] = batch.Records.DeepClone() })) return false;
+        }
         var decisionHandled = personalSync.CommitDecisionIntent(id, messageId, commitToken, outcome, Now());
         var committed = outcome == "applied" && (decisionHandled || personalSync.CommitBatch(id, messageId, commitToken, Now(), out _));
         lock (gate) if (personalCommits.Remove(commitToken, out var pending) && pending.PeerId == id) pending.Completion.TrySetResult(committed ? "applied" : outcome);
@@ -577,6 +640,7 @@ internal sealed class TelefonCoordinator : IDisposable
     internal void StagePersonalAttachment(string id, string runId, bool reply, string recordsHash,
         JsonObject descriptor, string direction, long expiresMs, IEnumerable<(int Index, byte[] Data)> chunks)
     {
+        if (direction == "outgoing" && store.NoteImportMode(id)) throw new InvalidOperationException(T("Personal synchronization is not permitted on both devices."));
         var run = personalSync.LoadRun(id, runId, Now()) ?? throw new InvalidDataException(T("The personal synchronization request is missing."));
         if (run.Expired) throw new InvalidDataException(T("The personal synchronization run has expired."));
         personalSync.StageAttachment(id, runId, reply, recordsHash, descriptor, direction, run.Policy, Math.Min(expiresMs, run.ExpiresMs), chunks);
@@ -990,7 +1054,8 @@ internal sealed class TelefonCoordinator : IDisposable
             material = TelefonCrypto.Hkdf(sessionShared, salt, Encoding.UTF8.GetBytes("magnolie-phone-fs1/session-keys\0").Concat(transcript).ToArray(), 72);
             connection = new TelefonConnection(peer, stream, sid, material, store,
                 (source, message) => HandleMessageAsync(source, message, transport), cancellation, transport,
-                body => emit("App.personalCustomAck", new { device_id = peer.Id, body }), AuthorizeCall, SendCall);
+                body => emit("App.personalCustomAck", new { device_id = peer.Id, body }), AuthorizeCall, SendCall,
+                async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); });
             var capabilityRevision = store.NextOwnRevision("capabilities"); var grantRevision = store.NextOwnRevision("grants");
             await connection.InitializeAsync(capabilityRevision);
             lock (gate)
@@ -1005,6 +1070,7 @@ internal sealed class TelefonCoordinator : IDisposable
             await connection.SendGrantsAsync(grantRevision, store.LocalGrants());
             await connection.SendMessageAsync("personal_sync.settings", new JsonObject {
                 ["format"] = 1, ["own_device"] = store.PersonalSettings(peer.Id).OwnDevice }, 86_400_000);
+            await connection.SendNoteSettingsAsync(true);
             if (store.CustomSupported(peer.Id) && store.CustomSettings(peer.Id)["local"] is JsonObject customSettings)
                 await connection.SendMessageAsync("personal_sync.custom_settings", customSettings, 86_400_000);
             await ReportStatusAsync();
@@ -1043,6 +1109,8 @@ internal sealed class TelefonCoordinator : IDisposable
                 if (Peers.FirstOrDefault(p => p.Id == peer.Id) is not { } current || !RemoteCapability(current, "dial_request") ||
                     pendingDial is { Scoped: true } && !SupportsScopedDial(current)) RevokeDial(peer.Id);
             }
+            TelefonConnection? noteConnection; lock (gate) online.TryGetValue(peer.Id, out noteConnection);
+            if (noteConnection is not null) await noteConnection.SendNoteSettingsAsync();
             await ReportStatusAsync(); return null;
         }
         if (kind == "grants.update" && message["body"] is JsonObject grants)
@@ -1059,6 +1127,7 @@ internal sealed class TelefonCoordinator : IDisposable
             await ReportStatusAsync(); return null;
         }
         if (message["body"] is not JsonObject body) return null;
+        if (kind == PersonalSyncContract.NoteModeKind) { await ReportStatusAsync(); return null; }
         if (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal))
         {
             if (!store.CustomAllowed(peer.Id, kind, body, false) || kind == "personal_sync.custom_batch" ||
@@ -1157,7 +1226,11 @@ internal sealed class TelefonCoordinator : IDisposable
     private async Task<TelefonAck?> HandlePersonalMessageAsync(TelefonPeer peer, JsonObject message, JsonObject body, string transport)
     {
         var kind = message["kind"]!.GetValue<string>(); var id = message["message_id"]!.GetValue<string>(); var now = Now();
-        if (kind == "personal_sync.settings") { var own = body["own_device"]!.GetValue<bool>(); if (!own) personalSync.PurgeProtocol(peer.Id); store.SetPersonalSettings(peer.Id, remoteOwnDevice: own); await emit("App.telefonPersonalSyncEinstellungen", new { device_id = peer.Id, own_device = own }); return null; }
+        var currentPeer = Peers.FirstOrDefault(value => value.Id == peer.Id && value.PublicKey.SequenceEqual(peer.PublicKey));
+        if (currentPeer is null) return new TelefonAck(id, "rejected", "not_granted");
+        peer = currentPeer;
+        if (kind == "personal_sync.settings") { var own = body["own_device"]!.GetValue<bool>(); if (!own) personalSync.PurgeProtocol(peer.Id); store.SetPersonalSettings(peer.Id, remoteOwnDevice: own); await emit("App.telefonPersonalSyncEinstellungen", new { device_id = peer.Id, own_device = own }); await ReportStatusAsync(); return null; }
+        if (!NoteDirectionAllowed(peer.Id, kind, body, false)) return new TelefonAck(id, "rejected", "not_granted");
         var run = kind == "personal_sync.request" ? null : personalSync.LoadRun(peer.Id, body["run_id"]!.GetValue<string>(), now);
         var grants = PersonalGrants(kind, body, run?.Request); if (grants.Count == 0 || grants.Any(name => store.LocalGrants()[name]?.GetValue<bool>() != true || peer.Grants[name]?.GetValue<bool>() != true)) return new TelefonAck(id, "rejected", "not_granted");
         var settings = store.PersonalSettings(peer.Id); if (!settings.OwnDevice || !settings.RemoteOwnDevice) return new TelefonAck(id, "rejected", "not_granted");
@@ -1172,6 +1245,7 @@ internal sealed class TelefonCoordinator : IDisposable
         }
         if (kind is "personal_sync.deletion_proposals" or "personal_sync.deletion_decision")
         {
+            if (kind == "personal_sync.deletion_proposals") store.RememberPersonalProposalKinds(peer.Id, body, false);
             var intent = personalSync.StageDecisionIntent(peer.Id, message, transport, now);
             var completion = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
             lock (gate) personalCommits[intent.CommitToken] = (peer.Id, completion);
@@ -1205,6 +1279,8 @@ internal sealed class TelefonCoordinator : IDisposable
     private async Task<bool> CompleteOrRequestAttachmentsAsync(PersonalSyncStagedBatch staged, bool requestMissing,
         string transport = "wifi")
     {
+        var noteBody = new JsonObject { ["records"] = staged.Records.DeepClone() };
+        if (!NoteApplicationAllowed(staged.PeerId, "personal_sync.batch", noteBody)) return false;
         if (staged.RecordsHash.Length == 64)
         {
             var run = personalSync.LoadRun(staged.PeerId, staged.RunId, Now()) ?? throw new InvalidDataException("Personal-Sync-Request fehlt.");
@@ -1222,6 +1298,7 @@ internal sealed class TelefonCoordinator : IDisposable
                 return false;
             }
         }
+        if (!NoteApplicationAllowed(staged.PeerId, "personal_sync.batch", noteBody)) return false;
         await emit("App.telefonPersonalSync", new { device_id = staged.PeerId, transport, kind = "personal_sync.batch", pending_message_id = staged.PendingMessageId, commit_token = staged.CommitToken, body = new { format = staged.Format, run_id = staged.RunId, reply = staged.Reply, records = staged.Records, records_hash = staged.RecordsHash } });
         if (staged.RecordsHash.Length == 64)
             foreach (var hash in staged.Records.OfType<JsonObject>().SelectMany(record => (record["value"]?["attachments"] as JsonArray ?? []).OfType<JsonObject>()).Select(value => value["sha256"]!.GetValue<string>()).Distinct(StringComparer.Ordinal))
@@ -1236,7 +1313,10 @@ internal sealed class TelefonCoordinator : IDisposable
         personalSync.DeleteReport(peerId, runId);
     }
 
-    private Task EmitPersonalIntentAsync(PersonalSyncDecisionIntent intent, string transport) => emit("App.telefonPersonalSync", new { device_id = intent.PeerId, transport, kind = intent.Kind, pending_message_id = intent.PendingMessageId, commit_token = intent.CommitToken, body = intent.Body });
+    private Task EmitPersonalIntentAsync(PersonalSyncDecisionIntent intent, string transport) =>
+        NoteApplicationAllowed(intent.PeerId, intent.Kind, intent.Body)
+            ? emit("App.telefonPersonalSync", new { device_id = intent.PeerId, transport, kind = intent.Kind, pending_message_id = intent.PendingMessageId, commit_token = intent.CommitToken, body = intent.Body })
+            : Task.CompletedTask;
 
     private TelefonConnection RequireOnline(string id, string capability, bool localGrant)
     {
@@ -1339,6 +1419,44 @@ internal sealed class TelefonCoordinator : IDisposable
 
 internal sealed class TelefonConnection : IDisposable
 {
+    private bool freshCapabilities, freshGrants, freshOwnSettings;
+    private JsonObject? sentNotePolicy, receivedNotePolicy;
+    internal bool NotePolicyReady
+    {
+        get
+        {
+            if (!freshCapabilities || !freshGrants || !freshOwnSettings) return false;
+            var settings = store.NoteSettings(peer.Id);
+            if (!store.NoteModeSupported(peer.Id)) return !PersonalSyncContract.NoteImportMode(settings["local"] as JsonObject, settings["remote"] as JsonObject);
+            return PersonalSyncContract.SameNotePolicy(settings["local"] as JsonObject, sentNotePolicy) &&
+                PersonalSyncContract.SameNotePolicy(settings["remote"] as JsonObject, receivedNotePolicy) &&
+                PersonalSyncContract.NoteSettingsReady(sentNotePolicy, receivedNotePolicy, true, true);
+        }
+    }
+
+    internal async Task SendNoteSettingsAsync(bool force = false)
+    {
+        var queued = false;
+        await store.NotePolicyGate.WaitAsync(cancellation);
+        try
+        {
+            if (!freshCapabilities || !store.NoteModeSupported(peer.Id)) return;
+            var settings = store.NoteSettings(peer.Id);
+            var body = PersonalSyncContract.NoteSettingsEcho(settings["local"] as JsonObject ?? PersonalSyncContract.NoteSettings(), settings["remote"] as JsonObject);
+            store.SetNoteSettings(peer.Id, body, false);
+            if (force || !JsonNode.DeepEquals(sentNotePolicy, body))
+            { store.Enqueue(peer.Id, PersonalSyncContract.NoteModeKind, body, 86_400_000, Now()); queued = true; }
+        }
+        finally { store.NotePolicyGate.Release(); }
+        if (queued) await PumpOutboxAsync();
+    }
+
+    private string? NotePolicyError(string kind, JsonObject body, bool outgoing)
+    {
+        var kinds = kind == "personal_sync.deletion_decision" ? store.PersonalDecisionKinds(peer.Id, body, outgoing) : null;
+        if (PersonalSyncContract.NoteMessageUsesNotes(kind, body, kinds) && !NotePolicyReady) return "temporary_failure";
+        return PersonalSyncContract.NoteDirectionAllowed("desktop", outgoing, kind, body, store.NoteImportMode(peer.Id), kinds) ? null : "not_granted";
+    }
     private readonly TelefonPeer peer; private readonly Stream stream; private readonly byte[] sid;
     private readonly byte[] receiveKey; private readonly byte[] receivePrefix; private readonly byte[] sendKey; private readonly byte[] sendPrefix;
     private readonly TelefonStore store; private readonly Func<TelefonPeer, JsonObject, Task<TelefonAck?>> receive; private readonly CancellationToken cancellation; private readonly string transport; private readonly SemaphoreSlim writer = new(1, 1);
@@ -1346,12 +1464,13 @@ internal sealed class TelefonConnection : IDisposable
     private readonly Func<JsonObject, Task>? customAccepted;
     private readonly Func<TelefonPeer, string, JsonObject, string?>? authorizeCall;
     private readonly Func<TelefonConnection, TelefonPeer, JsonObject, Action, bool>? sendCall;
+    private readonly Func<Task>? noteReady;
     internal string RemoteCloseReason { get; private set; } = "";
     internal string Transport => transport;
     internal TelefonConnection(TelefonPeer peer, Stream stream, byte[] sid, byte[] material, TelefonStore store, Func<TelefonPeer, JsonObject, Task<TelefonAck?>> receive, CancellationToken cancellation, string transport, Func<JsonObject, Task>? customAccepted = null,
         Func<TelefonPeer, string, JsonObject, string?>? authorizeCall = null,
-        Func<TelefonConnection, TelefonPeer, JsonObject, Action, bool>? sendCall = null)
-    { this.authorizeCall = authorizeCall; this.sendCall = sendCall; this.customAccepted = customAccepted; this.peer = peer; this.stream = stream; this.sid = sid.ToArray(); receiveKey = material[..32]; receivePrefix = material[32..36]; sendKey = material[36..68]; sendPrefix = material[68..72]; this.store = store; this.receive = receive; this.cancellation = cancellation; this.transport = transport; lastReceivedMs = lastSentMs = Now(); }
+        Func<TelefonConnection, TelefonPeer, JsonObject, Action, bool>? sendCall = null, Func<Task>? noteReady = null)
+    { this.noteReady = noteReady; this.authorizeCall = authorizeCall; this.sendCall = sendCall; this.customAccepted = customAccepted; this.peer = peer; this.stream = stream; this.sid = sid.ToArray(); receiveKey = material[..32]; receivePrefix = material[32..36]; sendKey = material[36..68]; sendPrefix = material[68..72]; this.store = store; this.receive = receive; this.cancellation = cancellation; this.transport = transport; lastReceivedMs = lastSentMs = Now(); }
     internal async Task RunAsync()
     {
         Task<JsonObject>? read = null;
@@ -1393,7 +1512,7 @@ internal sealed class TelefonConnection : IDisposable
     internal Task PumpOutboxNowAsync() => PumpOutboxAsync();
     internal Task SendCapabilitiesAsync(long revision) { var value = TelefonProtocolContract.DesktopCapabilities(); value["revision"] = revision; return SendMessageAsync("capabilities.update", value, 86_400_000); }
     internal Task SendGrantsAsync(long revision, JsonObject grants) => SendMessageAsync("grants.update", new JsonObject { ["revision"] = revision, ["grants"] = grants.DeepClone() }, 86_400_000);
-    private async Task HandlePlainAsync(JsonObject plain)
+    internal async Task HandlePlainAsync(JsonObject plain)
     {
         var type = plain["type"]?.GetValue<string>();
         if (type == "ping")
@@ -1427,7 +1546,41 @@ internal sealed class TelefonConnection : IDisposable
             store.CompleteOutbox(peer.Id, id!); return;
         }
         if (type != "message") throw new InvalidDataException("Unbekanntes Steuerobjekt.");
+        var wasNoteReady = NotePolicyReady;
         var now = Now(); TelefonAck ack;
+        if (plain["kind"]?.GetValue<string>() == PersonalSyncContract.NoteModeKind)
+        {
+            TelefonMessageContract.ValidateMessage(plain, now, true);
+            ack = store.CommitIncoming(peer.Id, plain, now, (_, _) => store.NoteModeSupported(peer.Id) ? null : "not_granted",
+                deferAcceptance: true, reauthorizeDuplicates: true);
+            if (ack.Status is "accepted" or "duplicate" && !store.ReceivedMatches(peer.Id, plain))
+                ack = new TelefonAck(ack.MessageId, "rejected", "invalid_schema");
+            if (ack.Process || ack.Status is "accepted" or "duplicate")
+            {
+                try
+                {
+                    await store.NotePolicyGate.WaitAsync(cancellation);
+                    try
+                    {
+                        var body = plain["body"]!.AsObject(); var previous = store.NoteSettings(peer.Id);
+                        var priorMode = store.NoteImportMode(peer.Id);
+                        var current = previous["remote"] as JsonObject;
+                        if (ack.Process) store.SetNoteSettings(peer.Id, body, true);
+                        if (ack.Process || PersonalSyncContract.SameNotePolicy(current, body)) receivedNotePolicy = body.DeepClone().AsObject();
+                        if (priorMode != store.NoteImportMode(peer.Id)) new PersonalSyncStore(store).PurgeModules(peer.Id, new HashSet<string>(StringComparer.Ordinal) { "notes" });
+                    }
+                    finally { store.NotePolicyGate.Release(); }
+                    await SendNoteSettingsAsync();
+                    if (ack.Process) store.MarkIncomingProcessed(peer.Id, ack.MessageId, now);
+                    await receive(peer, plain);
+                }
+                catch (Exception error) when (error is InvalidDataException or InvalidOperationException)
+                { ack = new TelefonAck(ack.MessageId, "rejected", "invalid_schema"); }
+            }
+            await SendPlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = ack.MessageId, ["status"] = ack.Status, ["error"] = ack.Error });
+            if (!wasNoteReady && NotePolicyReady && noteReady is not null) await noteReady();
+            return;
+        }
         if (plain["kind"]?.GetValue<string>() == "device_status.report" && plain["body"] is JsonObject statusBody &&
             (statusBody.ContainsKey("identifiers") || statusBody.ContainsKey("version")))
         {
@@ -1462,14 +1615,43 @@ internal sealed class TelefonConnection : IDisposable
                 if (ack.Status == "rejected") store.MarkIncomingRejected(peer.Id, ack.MessageId, ack.Error, now);
                 else store.MarkIncomingProcessed(peer.Id, ack.MessageId);
             }
+            // Retransmitted controls are fresh evidence on this connection only
+            // when they still describe the current durable state. Rejected
+            // callbacks and superseded duplicate revisions must not open the gate.
+            if (ack.Status is "accepted" or "duplicate" &&
+                plain["kind"]?.GetValue<string>() is "capabilities.update" or "grants.update" or "personal_sync.settings" &&
+                store.ReceivedMatches(peer.Id, plain))
+            {
+                var current = store.LoadPeers().First(value => value.Id == peer.Id);
+                var body = plain["body"]!.AsObject();
+                switch (plain["kind"]?.GetValue<string>())
+                {
+                    case "capabilities.update":
+                        if (TelefonProtocolContract.Integer(body["revision"]) == current.CapabilityRevision &&
+                            JsonNode.DeepEquals(body["items"], current.Capabilities)) freshCapabilities = true;
+                        break;
+                    case "grants.update":
+                        if (TelefonProtocolContract.Integer(body["revision"]) == current.GrantRevision &&
+                            JsonNode.DeepEquals(body["grants"], current.Grants)) freshGrants = true;
+                        break;
+                    case "personal_sync.settings":
+                        if (body["own_device"]!.GetValue<bool>() == store.PersonalSettings(peer.Id).RemoteOwnDevice)
+                            freshOwnSettings = true;
+                        break;
+                }
+            }
         }
+        if (plain["kind"]?.GetValue<string>() == "capabilities.update" && ack.Status is "accepted" or "duplicate")
+            await SendNoteSettingsAsync();
         await SendPlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = ack.MessageId, ["status"] = ack.Status, ["error"] = ack.Error });
+        if (!wasNoteReady && NotePolicyReady && noteReady is not null) await noteReady();
     }
     private string? AuthorizePersonal(string kind, JsonObject body)
     {
         if (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal)) return
             kind != "personal_sync.custom_batch" && store.CustomAllowed(peer.Id, kind, body, false) &&
-            (body["trigger"]?.GetValue<string>() != "auto_wifi" || transport == "wifi") ? null : "not_granted";
+             (body["trigger"]?.GetValue<string>() != "auto_wifi" || transport == "wifi") ? null : "not_granted";
+        if (NotePolicyError(kind, body, false) is { } noteError) return noteError;
         var current = store.LoadPeers().First(value => value.Id == peer.Id);
         var run = kind == "personal_sync.request" ? null : new PersonalSyncStore(store).LoadRun(peer.Id, body["run_id"]!.GetValue<string>(), Now());
         if (kind != "personal_sync.request" && (run is null || run.Expired)) return "expired";
@@ -1512,8 +1694,30 @@ internal sealed class TelefonConnection : IDisposable
     private static bool IsCallResultOrEvent(string? kind) => kind is "dial_request.result" or "answer_call.result" or "end_call.result" or "incoming_call_state.event";
     private async Task PumpOutboxAsync()
     {
+        await store.NotePolicyGate.WaitAsync(cancellation);
+        try { await PumpOutboxUnderNotePolicyAsync(); }
+        finally { store.NotePolicyGate.Release(); }
+    }
+
+    private async Task PumpOutboxUnderNotePolicyAsync()
+    {
         var now = Now(); foreach (var item in store.Due(peer.Id, now, transport: transport))
         {
+            var kind = item.Message["kind"]!.GetValue<string>(); var body = item.Message["body"]!.AsObject();
+            if (kind == PersonalSyncContract.NoteModeKind)
+            {
+                if (!freshCapabilities) continue;
+                if (!store.NoteModeSupported(peer.Id) || !JsonNode.DeepEquals(store.NoteSettings(peer.Id)["local"], body))
+                { store.CompleteOutbox(peer.Id, item.Id); continue; }
+                await SendPlainAsync(item.Message); sentNotePolicy = body.DeepClone().AsObject();
+                store.MarkAttempt(item.Id, item.Attempts, now); continue;
+            }
+            if (TelefonProtocolContract.PersonalKinds.Contains(kind) && kind != "personal_sync.settings")
+            {
+                var noteError = NotePolicyError(kind, body, true);
+                if (noteError == "temporary_failure") continue;
+                if (noteError is not null) { store.CompleteOutbox(peer.Id, item.Id); continue; }
+            }
             if (item.Message["kind"]?.GetValue<string>()?.StartsWith("personal_sync.custom_", StringComparison.Ordinal) == true)
             {
                 if (item.Message["kind"]!.GetValue<string>() == "personal_sync.custom_batch" && store.HasPendingCustomSettings(peer.Id)) continue;

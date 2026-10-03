@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="personal_note_direction_update">Werk beide apparaten bij om de richting voor notities te kiezen.</string>
+    <string name="personal_note_direction">Synchronisatierichting voor notities</string>
+    <string name="personal_note_two_way">Synchronisatie in beide richtingen</string>
+    <string name="personal_note_import">Alleen van Notes naar Organizer importeren</string>
+    <string name="personal_note_direction_hint">De importmodus stuurt geen Organizer-notities terug en synchroniseert geen verwijderingen van notities, notitieboeken of bijlagen. Taken blijven onafhankelijk.</string>
     <string name="baum_postfach_unsicher">Onbevestigde afleveringen: %1$d. De berichten blijven bewaard en automatisch opnieuw verzenden is gepauzeerd. Controleer de ontvangst; oudere apparaten ondersteunen mogelijk geen geverifieerde ontvangstbewijzen.</string>
     <string name="telefon_bluetooth_setup">Een nieuwe Organizer via Bluetooth koppelen</string>
     <string name="telefon_bluetooth_setup_hinweis">Houd dit scherm geopend. Selecteer deze telefoon in Organizer, bevestig de systeemkoppeling en vergelijk daarna de code op beide apparaten.</string>

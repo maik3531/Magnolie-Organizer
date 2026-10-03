@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="personal_note_direction_update">Aktualizujte obě zařízení, abyste mohli zvolit směr poznámek.</string>
+    <string name="personal_note_direction">Směr synchronizace poznámek</string>
+    <string name="personal_note_two_way">Obousměrná synchronizace</string>
+    <string name="personal_note_import">Importovat pouze z Notes do Organizeru</string>
+    <string name="personal_note_direction_hint">Režim importu neposílá poznámky Organizeru zpět a nesynchronizuje mazání poznámek, zápisníků ani příloh. Úkoly zůstávají nezávislé.</string>
     <string name="baum_postfach_unsicher">Neověřená doručení: %1$d. Zprávy zůstávají uložené a automatické opětovné odesílání je pozastaveno. Ověřte příjem; starší zařízení nemusí podporovat ověřená potvrzení.</string>
     <string name="telefon_bluetooth_setup">Spárovat nový Organizer přes Bluetooth</string>
     <string name="telefon_bluetooth_setup_hinweis">Nechte tuto obrazovku otevřenou. Vyberte tento telefon v aplikaci Organizer, potvrďte systémové párování a poté porovnejte kód na obou zařízeních.</string>

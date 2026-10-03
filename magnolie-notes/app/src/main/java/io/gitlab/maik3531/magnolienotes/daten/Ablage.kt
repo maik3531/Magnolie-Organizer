@@ -554,7 +554,7 @@ class Ablage private constructor(
             applied_decision_proofs = (next.personalSync.applied_decision_proofs + AppliedPersonalDecision(
                 proposalId, decision, proposal.clock, decisionId)),
             pending_decisions = (next.personalSync.pending_decisions + PendingPersonalDecision(
-                peerId, proposal.run_id, decisionId, proposal.proposal_id, decision, proposal.clock)).distinctBy {
+                peerId, proposal.run_id, decisionId, proposal.proposal_id, decision, proposal.clock, kind = proposal.kind)).distinctBy {
                     it.decision_id }.takeLast(500)))
         schreibeBestand(next); "applied"
     }

@@ -3114,6 +3114,9 @@ msgstr "ICS / CSV importować …"
 msgid "Import Lotus Organizer CSV"
 msgstr "CSV Lotus Organizer importować"
 
+msgid "Import Notes → Organizer only"
+msgstr "Jenož z Notes do Organizera importować"
+
 msgid "Import calendar file"
 msgstr "Protykowy dataj importować"
 
@@ -3131,6 +3134,13 @@ msgstr "Z LibreOffice importować"
 
 msgid "Import is available only in the installed application."
 msgstr "Import je jenož w instalowanym nałoženju k dispoziciji."
+
+msgid ""
+"Import mode sends no Organizer notes back and synchronizes no note, notebook "
+"or attachment deletions. Tasks remain independent."
+msgstr ""
+"Importowy modus njepósćele notice Organizera wróćo a njesynchronizuje "
+"zhašenja noticow, zapisnikow abo přiwěškow. Nadawki wostanu njewotwisne."
 
 msgid "Import once"
 msgstr "Jónu importować"
@@ -3332,6 +3342,9 @@ msgstr "Přijimanje KDE Connect je so njeporadźiło."
 
 msgid "KDE/Akonadi integration is not available."
 msgstr "Integracija KDE/Akonadi k dispoziciji njeje."
+
+msgid "Keep"
+msgstr "Wobchować"
 
 msgid "Keep a troubleshooting log"
 msgstr "Protokol za pytanje zmylkow wobchować"
@@ -4216,6 +4229,9 @@ msgstr "Njepósłane."
 
 msgid "Note"
 msgstr "Notica"
+
+msgid "Note synchronization direction"
+msgstr "Směr synchronizacije noticow"
 
 msgid "Note text"
 msgstr "Tekst notice"
@@ -7629,6 +7645,9 @@ msgstr "Dwaj dnaj wróćo"
 msgid "Two days forward"
 msgstr "Dwaj dnaj doprědka"
 
+msgid "Two-way synchronization"
+msgstr "Synchronizacija we woběmaj směromaj"
+
 msgid "Type"
 msgstr "Typ"
 
@@ -7737,6 +7756,9 @@ msgstr "Bjez titula"
 
 msgid "Untitled appointment"
 msgstr "Termin bjez titula"
+
+msgid "Update both devices to choose the note direction."
+msgstr "Aktualizujće wobě grataj, zo byšće směr noticow wubrali."
 
 msgid "Update checking is available in the installed application."
 msgstr ""

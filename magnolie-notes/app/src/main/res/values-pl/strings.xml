@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="personal_note_direction_update">Zaktualizuj oba urządzenia, aby wybrać kierunek przesyłania notatek.</string>
+    <string name="personal_note_direction">Kierunek synchronizacji notatek</string>
+    <string name="personal_note_two_way">Synchronizacja dwukierunkowa</string>
+    <string name="personal_note_import">Importuj tylko z Notes do Organizera</string>
+    <string name="personal_note_direction_hint">Tryb importu nie odsyła notatek Organizera i nie synchronizuje usuwania notatek, notatników ani załączników. Zadania pozostają niezależne.</string>
     <string name="baum_postfach_unsicher">Niezweryfikowane dostarczenia: %1$d. Wiadomości pozostają zapisane, a automatyczne ponowne wysyłanie jest wstrzymane. Sprawdź odbiór; starsze urządzenia mogą nie obsługiwać zweryfikowanych potwierdzeń.</string>
     <string name="telefon_bluetooth_setup">Sparuj nowy Organizer przez Bluetooth</string>
     <string name="telefon_bluetooth_setup_hinweis">Pozostaw ten ekran otwarty. Wybierz ten telefon w Organizer, potwierdź parowanie systemowe, a następnie porównaj kod na obu urządzeniach.</string>

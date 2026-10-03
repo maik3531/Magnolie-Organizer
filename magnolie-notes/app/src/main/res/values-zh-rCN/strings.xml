@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="personal_note_direction_update">请更新两台设备以选择笔记传输方向。</string>
+    <string name="personal_note_direction">笔记同步方向</string>
+    <string name="personal_note_two_way">双向同步</string>
+    <string name="personal_note_import">仅从 Notes 导入到 Organizer</string>
+    <string name="personal_note_direction_hint">导入模式不会回传 Organizer 笔记，也不会同步笔记、笔记本或附件的删除操作。任务保持独立。</string>
     <string name="baum_postfach_unsicher">未验证的投递：%1$d。消息仍已保存，自动重发已暂停。请核实对方是否收到；旧设备可能不支持经过验证的回执。</string>
     <string name="telefon_bluetooth_setup">通过蓝牙（Bluetooth）配对新的 Organizer</string>
     <string name="telefon_bluetooth_setup_hinweis">请保持此屏幕打开。在 Organizer 中选择此手机，确认系统配对，然后比较两台设备上的验证码。</string>

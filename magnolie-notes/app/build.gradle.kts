@@ -185,7 +185,7 @@ tasks.withType<Test>().configureEach {
     workingDir = rootDir
     val cross = providers.gradleProperty("magnolieCrossTests").orNull == "true"
     val crossClasses = listOf("*.TelefonWlanInvitationTest", "*.TelefonBluetoothSetupTest",
-        "*.BaumReceiptInteropTest", "*.LiveprobeTest", "*.PersonalCustomTransportTest")
+        "*.BaumReceiptInteropTest", "*.LiveprobeTest", "*.PersonalCustomTransportTest", "*.PersonalNoteModeTransportTest")
     filter {
         crossClasses.forEach { if (cross) includeTestsMatching(it) else excludeTestsMatching(it) }
     }

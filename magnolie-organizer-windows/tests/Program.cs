@@ -19,6 +19,7 @@ if (args.FirstOrDefault() == "--managed-account-lifecycle" && args.Length == 4)
 if (args.FirstOrDefault() == "--scoped-call-host") return await OutgoingDialTests.RunAsync(args.ElementAtOrDefault(1), args.ElementAtOrDefault(2));
 
 if (args.FirstOrDefault() == "--personal-custom-host") return await PersonalCustomTransportTests.HostAsync();
+if (args.FirstOrDefault() == "--personal-note-mode-host") return await PersonalNoteModeTransportHost.RunAsync();
 
 if (args.FirstOrDefault() == "--phone-bt-native-probe") return await TelefonBluetoothNativeProbe.RunAsync();
 

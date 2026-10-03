@@ -2596,6 +2596,9 @@ msgstr "استيراد ICS / CSV…"
 msgid "Import Magnolie complete archive"
 msgstr "استيراد أرشيف Magnolie الكامل"
 
+msgid "Import Notes → Organizer only"
+msgstr "الاستيراد من Notes إلى Organizer فقط"
+
 msgid "Import failed."
 msgstr "تعذّر الاستيراد."
 
@@ -2607,6 +2610,13 @@ msgstr "استيراد من LibreOffice"
 
 msgid "Import is available only in the installed application."
 msgstr "الاستيراد متاح فقط في التطبيق المثبت."
+
+msgid ""
+"Import mode sends no Organizer notes back and synchronizes no note, notebook "
+"or attachment deletions. Tasks remain independent."
+msgstr ""
+"لا يعيد وضع الاستيراد إرسال ملاحظات Organizer ولا يزامن حذف الملاحظات أو "
+"دفاتر الملاحظات أو المرفقات. تبقى المهام مستقلة."
 
 msgid "Import once"
 msgstr "الاستيراد مرة واحدة"
@@ -2750,6 +2760,9 @@ msgstr "تم إقران الهاتف KDE Connect."
 
 msgid "KDE Connect port %(port)s"
 msgstr "منفذ KDE Connect %(port)s"
+
+msgid "Keep"
+msgstr "احتفاظ"
 
 msgid "Keep a troubleshooting log"
 msgstr "الاحتفاظ بسجل لاستكشاف الأخطاء وإصلاحها"
@@ -3469,6 +3482,9 @@ msgstr "لم يتم تسجيل الدخول إلى Microsoft بعد."
 
 msgid "Note"
 msgstr "ملاحظة"
+
+msgid "Note synchronization direction"
+msgstr "اتجاه مزامنة الملاحظات"
 
 msgid "Note text"
 msgstr "نص الملاحظة"
@@ -6104,6 +6120,9 @@ msgstr "قبل يومين"
 msgid "Two days forward"
 msgstr "بعد يومين"
 
+msgid "Two-way synchronization"
+msgstr "مزامنة ثنائية الاتجاه"
+
 msgid "Type"
 msgstr "النوع"
 
@@ -6179,6 +6198,9 @@ msgstr "بلا عنوان"
 
 msgid "Untitled appointment"
 msgstr "موعد بلا عنوان"
+
+msgid "Update both devices to choose the note direction."
+msgstr "حدّث الجهازين لاختيار اتجاه نقل الملاحظات."
 
 msgid "Update checking is available in the installed application."
 msgstr "التحقق من التحديثات متاح في التطبيق المثبّت."

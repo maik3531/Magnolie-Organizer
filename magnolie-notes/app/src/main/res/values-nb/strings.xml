@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="personal_note_direction_update">Oppdater begge enhetene for å velge retning for notater.</string>
+    <string name="personal_note_direction">Synkroniseringsretning for notater</string>
+    <string name="personal_note_two_way">Toveissynkronisering</string>
+    <string name="personal_note_import">Importer bare fra Notes til Organizer</string>
+    <string name="personal_note_direction_hint">Importmodus sender ingen Organizer-notater tilbake og synkroniserer ikke sletting av notater, notatbøker eller vedlegg. Oppgaver forblir uavhengige.</string>
     <string name="baum_postfach_unsicher">Ubekreftede leveringer: %1$d. Meldingene beholdes, og automatisk sending på nytt er satt på pause. Kontroller mottaket; eldre enheter støtter kanskje ikke verifiserte kvitteringer.</string>
     <string name="telefon_bluetooth_setup">Koble en ny Organizer via Bluetooth</string>
     <string name="telefon_bluetooth_setup_hinweis">Hold denne skjermen åpen. Velg denne telefonen i Organizer, bekreft systemets sammenkobling, og sammenlign deretter koden på begge enhetene.</string>

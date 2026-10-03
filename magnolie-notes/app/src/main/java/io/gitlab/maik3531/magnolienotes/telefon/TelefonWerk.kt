@@ -119,6 +119,37 @@ internal fun shouldStartPersonalSyncOnSecureWifi(
 }
 
 class TelefonWerk private constructor(private val context: Context, private val storage: TelefonAblage) {
+    private val noteSessions = java.util.WeakHashMap<TelefonSecureChannel, PersonalNoteSession>()
+
+    private fun noteModeSupported(peer: TelefonPeer) = peer.remote_personal_notes_sync_available &&
+        PersonalNoteMode.VERSION in peer.remote_personal_notes_sync_versions &&
+        PersonalNoteMode.VERSION in TelefonCapabilities.phase1().getValue("personal_notes_sync").versions
+
+    private fun noteModeReady(peer: TelefonPeer, session: PersonalNoteSession?) =
+        if (!noteModeSupported(peer)) !PersonalNoteMode.importing(peer.personal_note_policy, peer.remote_personal_note_policy)
+        else session?.ready(peer.personal_note_policy, peer.remote_personal_note_policy) == true
+
+    private fun noteDecisionKinds(peer: TelefonPeer, body: JsonObject, outgoing: Boolean): List<String>? =
+        PersonalNoteMode.decisionKinds(Ablage.hole(context).bestand.value.personalSync, peer.device_id, body, outgoing)
+
+    private fun noteDirectionAllowed(peer: TelefonPeer, outgoing: Boolean, kind: String, body: JsonObject): Boolean {
+        if (!PersonalNoteMode.importing(peer.personal_note_policy, peer.remote_personal_note_policy)) return true
+        return PersonalNoteMode.allowed("phone", outgoing, kind, body, true,
+            if (kind == "personal_sync.deletion_decision") noteDecisionKinds(peer, body, outgoing) else null)
+    }
+
+    private fun queueNoteSettings(peer: TelefonPeer, force: Boolean = false, session: PersonalNoteSession? = null): TelefonPeer {
+        if (!noteModeSupported(peer) || session?.capabilitiesReceived != true) return peer
+        val local = peer.personal_note_policy ?: PersonalNoteMode.create()
+        val body = PersonalNoteMode.echo(local, peer.remote_personal_note_policy)
+        val updated = peer.copy(personal_note_policy = body)
+        if (updated != peer) storage.savePeer(updated)
+        if (force || session?.sent != body) {
+            queue.removeKind(peer.device_id, PersonalNoteMode.KIND)
+            queue.queue(peer.device_id, PersonalNoteMode.KIND, body, 86_400_000)
+        }
+        return updated
+    }
     private val _state = MutableStateFlow(TelefonUiZustand(enabled = storage.enabled(),
         bluetoothEnabled = storage.bluetoothEnabled(), peer = safePeer(), pairedComputers = savedComputers(),
         dialRequestEnabled = storage.dialRequestEnabled(), dialAvailable = TelefonModulStatus.dialResolvable(context),
@@ -254,6 +285,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             answerCallsEnabled = storage.answerCallsEnabled(), personalOwnDevice = storage.personalOwnDevice(),
             personalNotesEnabled = storage.personalNotesEnabled(), personalTasksEnabled = storage.personalTasksEnabled(),
             personalAutoWifi = storage.personalAutoWifi(), personalDeletionsEnabled = storage.personalDeletionsEnabled(),
+            personalNotesMode = safePeer()?.personal_note_policy?.string("mode") ?: PersonalNoteMode.TWO_WAY,
             personalSyncReport = storage.personalSyncReport())
     }
 
@@ -355,6 +387,21 @@ class TelefonWerk private constructor(private val context: Context, private val 
         modulesChanged(reconnectAfterChange)
     }
 
+    @Synchronized fun setPersonalNotesMode(mode: String) {
+        require(mode in setOf(PersonalNoteMode.TWO_WAY, PersonalNoteMode.IMPORT))
+        val peer = safePeer() ?: throw TelefonProtokollFehler("Kein eigener Rechner gekoppelt.")
+        require(noteModeSupported(peer) || mode == PersonalNoteMode.TWO_WAY)
+        val previous = peer.personal_note_policy
+        if ((previous?.string("mode") ?: PersonalNoteMode.TWO_WAY) == mode) return
+        val policy = PersonalNoteMode.create(mode, (previous?.long("revision") ?: 0) + 1,
+            peer.remote_personal_note_policy?.string("epoch").orEmpty())
+        storage.savePeer(peer.copy(personal_note_policy = policy))
+        queue.purgePersonalModules(peer.device_id, setOf("notes"))
+        Ablage.hole(context).personalSyncRevokeModules(setOf("notes"), peer.device_id)
+        queue.removeKind(peer.device_id, PersonalNoteMode.KIND)
+        modulesChanged()
+    }
+
     @Synchronized fun personalSyncNow(trigger: String = "manual") {
         val peer = safePeer() ?: throw TelefonProtokollFehler("Kein eigener Rechner gekoppelt.")
         val custom = requestCustom(trigger)
@@ -372,6 +419,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val peer = safePeer() ?: return "missing"
         val proposal = Ablage.hole(context).bestand.value.personalSync.pending_proposals
             .firstOrNull { it.proposal_id == proposalId } ?: return "missing"
+        if (proposal.kind != "task" && PersonalNoteMode.importing(peer.personal_note_policy, peer.remote_personal_note_policy)) return "blocked"
         if (!peer.own_device || !peer.remote_own_device || !peer.personal_deletions_sync_granted ||
             !peer.remote_personal_deletions_sync_granted) return "blocked"
         val moduleAllowed = if (proposal.kind == "task") peer.personal_tasks_sync_granted && peer.remote_personal_tasks_sync_granted
@@ -1024,7 +1072,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val secrets = TelefonSession.start(identity, peer, staticPrivate)
             TelefonRahmen.schreiben(pipe.output, secrets.start)
             TelefonSession.finish(secrets, TelefonRahmen.lesen(pipe.input), identity, peer,
-                pipe.input, pipe.output).use { channel ->
+                 pipe.input, pipe.output).use { channel ->
+                val noteSession = PersonalNoteSession()
+                synchronized(this) { noteSessions[channel] = noteSession }
                 channel.send(buildJsonObject {
                     put("type", JsonPrimitive("session_ready")); put("connection_id", JsonPrimitive(UUID.randomUUID().toString()))
                     put("capabilities_revision", JsonPrimitive(maxOf(1, peer.capabilities_revision))); put("last_received_seq", JsonPrimitive(-1))
@@ -1045,9 +1095,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     queue.queue(peer.device_id, "personal_sync.settings", buildJsonObject {
                         put("format", JsonPrimitive(1)); put("own_device", JsonPrimitive(peer.own_device && storage.personalOwnDevice()))
                     }, 86_400_000)
+                    peer = queueNoteSettings(peer, force = true, session = noteSession)
                 }
-                val controls = sendDue(peer, channel, generation).toMutableSet()
-                while (controls.isNotEmpty()) {
+                val controlDeadline = TelefonPaarungsRoehre(pipe, 15_000)
+                val controls = sendDue(peer, channel, generation, true).toMutableSet()
+                try { while (controls.isNotEmpty() || peerEffect(peer, generation) {
+                        noteModeSupported(it) && it.personal_notes_sync_granted && it.remote_personal_notes_sync_granted && !noteModeReady(it, noteSession)
+                    }) {
                     val payload = channel.receive()
                     when (payload.string("type")) {
                         "ack" -> {
@@ -1070,8 +1124,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         }
                         else -> throw TelefonProtokollFehler("Unbekannter sicherer Inhalt.")
                     }
-                }
+                    controls.addAll(sendDue(peer, channel, generation, true))
+                } } finally { controlDeadline.disarm() }
                 peer = sessionEstablished(peer, generation, transport, wifiHost, bluetoothAddress, bluetoothInbound)
+                peerEffect(peer, generation) { current ->
+                    queue.readyPersonalBatches().filter { it.first == current.device_id }.forEach {
+                        completePersonalBatch(current, it.second, noteSession)
+                    }
+                }
                 synchronized(this) {
                     refreshCustomAuthorization()
                     if (customSupported(peer)) Ablage.hole(context).bestand.value.personalCustom.local?.let {
@@ -1144,11 +1204,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
 
     internal fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
-                               generation: Long) {
+                                generation: Long) {
         val replies = mutableListOf<JsonObject>()
         val epoch = identifierEpoch
         val permissions = identifierPermissionMask()
-        peerEffect(sessionPeer, generation) { receiveMessage(it, message, replies::add) }
+        peerEffect(sessionPeer, generation) { receiveMessage(it, message, replies::add, noteSessions[channel]) }
         replies.forEach { reply ->
             if ((reply["body"] as? JsonObject)?.containsKey("identifiers") == true) {
                 peerEffect(sessionPeer, generation) { current ->
@@ -1159,10 +1219,45 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
     }
 
-    @Synchronized private fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, send: (JsonObject) -> Unit) {
+    @Synchronized private fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, send: (JsonObject) -> Unit) =
+        receiveMessage(sessionPeer, message, send, null)
+
+    @Synchronized private fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, send: (JsonObject) -> Unit,
+                                              noteSession: PersonalNoteSession?) {
         val peer = safePeer()?.takeIf { it.device_id == sessionPeer.device_id && it.static_public == sessionPeer.static_public }
             ?: throw TelefonProtokollFehler("Unbekannte Gegenstelle.")
         val kind = runCatching { message.string("kind") }.getOrDefault("")
+        if (kind == PersonalNoteMode.KIND) {
+            val result = runCatching {
+                TelefonNachrichten.validate(message)
+                require(noteModeSupported(peer) && noteSession != null)
+                val body = message["body"] as JsonObject
+                queue.duplicateResult(peer.device_id, message.string("message_id"))?.let { duplicate ->
+                    check(queue.receivedMatches(peer.device_id, message))
+                    if (PersonalNoteMode.samePolicy(peer.remote_personal_note_policy, body)) {
+                        noteSession.received = body
+                        queueNoteSettings(peer, session = noteSession)
+                    }
+                    return@runCatching duplicate
+                }
+                val before = PersonalNoteMode.importing(peer.personal_note_policy, peer.remote_personal_note_policy)
+                val updated = peer.copy(remote_personal_note_policy = PersonalNoteMode.accept(peer.remote_personal_note_policy, body))
+                storage.savePeer(updated)
+                noteSession.received = body
+                if (before != PersonalNoteMode.importing(updated.personal_note_policy, updated.remote_personal_note_policy)) {
+                    queue.purgePersonalModules(peer.device_id, setOf("notes"))
+                    Ablage.hole(context).personalSyncRevokeModules(setOf("notes"), peer.device_id)
+                }
+                queueNoteSettings(updated, session = noteSession)
+                queue.receive(peer.device_id, message)
+            }.getOrElse { "rejected" to when (it) {
+                is java.io.IOException, is android.database.sqlite.SQLiteException -> "temporary_failure"
+                is TelefonProtokollFehler -> "invalid_schema"
+                else -> "not_granted"
+            } }
+            send(TelefonNachrichten.ack(message.string("message_id"), result.first, result.second))
+            refreshModules(); return
+        }
         if (kind in setOf("personal_sync.custom_settings", "personal_sync.custom_batch")) {
             val result = runCatching {
                 TelefonNachrichten.validate(message)
@@ -1206,6 +1301,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 val body = message["body"] as? JsonObject
                     ?: throw TelefonProtokollFehler("Personal-Sync-Inhalt fehlt.")
                 PersonalSyncProtokoll.validate(kind, body)
+                if (!noteDirectionAllowed(current, false, kind, body)) {
+                    send(TelefonNachrichten.ack(message.string("message_id"), "rejected", "not_granted")); return
+                }
+                if (PersonalNoteMode.usesNotes(kind, body, if (kind == "personal_sync.deletion_decision") noteDecisionKinds(current, body, false) else null) &&
+                    !noteModeReady(current, noteSession)) {
+                    send(TelefonNachrichten.ack(message.string("message_id"), "rejected", "temporary_failure")); return
+                }
                 val runId = body.string("run_id")
                 val advertised = if (kind == "personal_sync.request" && body.string("trigger") == "auto_wifi")
                     "wifi_only" else if (kind == "personal_sync.request") "any" else null
@@ -1225,6 +1327,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 if (!stillAllowed) {
                     send(TelefonNachrichten.ack(message.string("message_id"), "rejected", "not_granted")); return
                 }
+                if (kind == "personal_sync.settings" && duplicate.first in setOf("accepted", "duplicate") &&
+                    queue.receivedMatches(peer.device_id, message) &&
+                    (duplicateBody?.get("own_device") as? JsonPrimitive)?.booleanOrNull == current.remote_own_device)
+                    noteSession?.ownSettingsReceived = true
                 if (kind == "personal_sync.attachment_result" && duplicateBody!!.string("state") == "complete") {
                     val runId = duplicateBody.string("run_id")
                     queue.completeOutgoingAttachment(peer.device_id, runId,
@@ -1275,7 +1381,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     val staged = queue.stagePersonalBatch(peer.device_id, message)
                     send(TelefonNachrichten.ack(message.string("message_id"), "accepted", "none"))
                     if (staged == null) return
-                    completePersonalBatch(current, staged)
+                    completePersonalBatch(current, staged, noteSession)
                     refreshModules(); return
                 }
                 if (kind == "personal_sync.attachment_request") {
@@ -1328,7 +1434,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     send(TelefonNachrichten.ack(message.string("message_id"), accepted.first, accepted.second))
                     queue.readyPersonalBatches().firstOrNull { it.first == peer.device_id &&
                         (it.second.last()["body"] as JsonObject).string("run_id") == runId }?.let {
-                        runCatching { completePersonalBatch(current, it.second) }.onFailure {
+                        runCatching { completePersonalBatch(current, it.second, noteSession) }.onFailure {
                             queue.queue(peer.device_id, "personal_sync.attachment_result", buildJsonObject {
                                 put("format", JsonPrimitive(2)); put("run_id", JsonPrimitive(runId)); put("reply", JsonPrimitive(reply))
                                 put("records_hash", JsonPrimitive(aggregate)); put("sha256", JsonPrimitive(hash))
@@ -1394,6 +1500,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 accepted
             }.getOrElse { runCatching { queue.terminal(peer.device_id, message, "invalid_schema") }
                 .getOrDefault("rejected" to "invalid_schema") }
+            if (kind == "personal_sync.settings" && result.first in setOf("accepted", "duplicate"))
+                noteSession?.ownSettingsReceived = true
             refreshModules()
             send(TelefonNachrichten.ack(message.string("message_id"), result.first, result.second)); return
         }
@@ -1532,6 +1640,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val current = peer
             val savedRevision = if (kind == "capabilities.update") current.remote_capabilities_revision else current.remote_grants_revision
             if (revision <= savedRevision) {
+                if (revision == savedRevision) {
+                    if (kind == "capabilities.update") noteSession?.capabilitiesReceived = true
+                    else noteSession?.grantsReceived = true
+                    if (kind == "capabilities.update" && noteSession != null) queueNoteSettings(current, session = noteSession)
+                }
                 queue.controlApplied(peer.device_id, message.string("message_id"))
                 send(TelefonNachrichten.ack(message.string("message_id"), result.first, result.second))
                 return
@@ -1548,7 +1661,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     remote_answer_call_available = ((items["answer_call"] as JsonObject)["available"] as JsonPrimitive).content.toBooleanStrict(),
                     remote_end_call_available = ((items["end_call"] as JsonObject)["available"] as JsonPrimitive).content.toBooleanStrict(),
                     remote_personal_notes_sync_versions = ((items["personal_notes_sync"] as JsonObject)["versions"] as JsonArray)
-                        .map { (it as JsonPrimitive).content.toInt() }.filter { it in 1..3 }.distinct().sorted(),
+                        .map { (it as JsonPrimitive).content.toInt() }.filter { it in 1..3 || it == PersonalNoteMode.VERSION }.distinct().sorted(),
+                    remote_personal_notes_sync_available = ((items["personal_notes_sync"] as JsonObject)["available"] as JsonPrimitive).booleanOrNull == true,
                     remote_personal_tasks_sync_versions = ((items["personal_tasks_sync"] as JsonObject)["versions"] as JsonArray)
                         .map { (it as JsonPrimitive).content.toInt() }.filter { it in 1..4 }.distinct().sorted(),
                     remote_personal_tasks_sync_available = ((items["personal_tasks_sync"] as JsonObject)["available"] as JsonPrimitive).booleanOrNull == true)
@@ -1585,15 +1699,21 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     2 !in updated.remote_dial_request_versions) outgoingScope = null
                 storage.savePeer(updated)
             }
+            if (kind == "capabilities.update") noteSession?.capabilitiesReceived = true
+            else noteSession?.grantsReceived = true
+            if (noteSession != null && noteModeSupported(updated)) queueNoteSettings(updated, session = noteSession)
             queue.controlApplied(peer.device_id, message.string("message_id"))
         }
         refreshModules()
         send(TelefonNachrichten.ack(message.string("message_id"), result.first, result.second))
     }
 
-    @Synchronized private fun completePersonalBatch(peer: TelefonPeer, staged: List<JsonObject>): Unit = synchronized(Ablage.SCHREIBSPERRE) {
+    @Synchronized private fun completePersonalBatch(peer: TelefonPeer, staged: List<JsonObject>, noteSession: PersonalNoteSession? = null): Unit = synchronized(Ablage.SCHREIBSPERRE) {
         val current = peerEffect(peer, pairingGeneration) { it }
+        if (staged.any { PersonalNoteMode.usesNotes("personal_sync.batch", it["body"] as JsonObject) } &&
+            !noteModeReady(current, noteSession)) return@synchronized
         check(personalSyncTransmissionAllowed(current, "personal_sync.batch", staged.last()["body"] as JsonObject))
+        check(staged.all { noteDirectionAllowed(current, false, "personal_sync.batch", it["body"] as JsonObject) })
         val body = staged.last()["body"] as JsonObject
         val runId = body.string("run_id")
         val request = queue.personalRun(peer.device_id, runId)
@@ -1757,6 +1877,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private fun sendDue(peer: TelefonPeer, channel: TelefonSecureChannel): Set<String> = sendDue(peer, channel, pairingGeneration)
 
     private fun sendDue(peer: TelefonPeer, channel: TelefonSecureChannel, generation: Long): Set<String> {
+        return sendDue(peer, channel, generation, false)
+    }
+
+    private fun sendDue(peer: TelefonPeer, channel: TelefonSecureChannel, generation: Long, controlsOnly: Boolean): Set<String> {
         val controls = mutableSetOf<String>()
         val transport = activeTransport?.first ?: throw TelefonProtokollFehler("Keine aktive Transportart.")
         queue.due(peer.device_id, transport).forEach { entry ->
@@ -1764,6 +1888,17 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 val current = peerEffect(peer, generation) { it }
                 if (!serviceRunning || !storage.enabled()) return controls
                 val kind = entry.payload.string("kind")
+                if (controlsOnly && kind !in setOf("capabilities.update", "grants.update", "personal_sync.settings", PersonalNoteMode.KIND)) return@forEach
+                if (kind == PersonalNoteMode.KIND) {
+                    if (noteSessions[channel]?.capabilitiesReceived != true) return@forEach
+                    val body = entry.payload["body"] as JsonObject
+                    if (!noteModeSupported(current) || current.personal_note_policy != body) {
+                        queue.acknowledge(peer.device_id, entry.messageId); return@forEach
+                    }
+                    channel.send(entry.payload)
+                    noteSessions.getOrPut(channel) { PersonalNoteSession() }.sent = body
+                    queue.sent(entry.messageId, queue.attempts(entry.messageId)); return@forEach
+                }
                 if (kind == "incoming_call_state.event") {
                     val body = entry.payload["body"] as JsonObject
                     val stateAllowed = callStateAllowed(current, body)
@@ -1800,9 +1935,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         channel.send(entry.payload)
                         queue.sent(entry.messageId, queue.attempts(entry.messageId))
                         return@forEach
-                    } else if (!personalSyncTransmissionAllowed(current, kind, body)) {
+                    }
+                    val decisionKinds = if (kind == "personal_sync.deletion_decision") noteDecisionKinds(current, body, true) else null
+                    if (PersonalNoteMode.usesNotes(kind, body, decisionKinds) && !noteModeReady(current, noteSessions[channel])) return@forEach
+                    if (!personalSyncTransmissionAllowed(current, kind, body) || !noteDirectionAllowed(current, true, kind, body)) {
                         queue.acknowledge(peer.device_id, entry.messageId); return@forEach
                     }
+                    channel.send(entry.payload)
+                    queue.sent(entry.messageId, queue.attempts(entry.messageId)); return@forEach
                 }
             }
             channel.send(entry.payload)
@@ -1984,7 +2124,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
             queueSnapshotRecords(peer, runId, records, false, 1)
         }
         if (peer.personal_deletions_sync_granted && peer.remote_personal_deletions_sync_granted) {
-            val proposals = PersonalSync.proposals(Ablage.hole(context).bestand.value, peer.device_id)
+            val proposals = PersonalSync.proposals(Ablage.hole(context).bestand.value, peer.device_id).filter {
+                it.kind == "task" || !PersonalNoteMode.importing(peer.personal_note_policy, peer.remote_personal_note_policy)
+            }
             proposals.chunked(32).forEachIndexed { index, chunk ->
                 queue.queue(peer.device_id, "personal_sync.deletion_proposals", buildJsonObject {
                     put("format", JsonPrimitive(1)); put("run_id", JsonPrimitive(runId))

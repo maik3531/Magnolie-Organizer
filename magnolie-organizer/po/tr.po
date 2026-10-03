@@ -3023,6 +3023,9 @@ msgstr "ICS / CSV içe aktar…"
 msgid "Import Lotus Organizer CSV"
 msgstr "Lotus Organizer CSV’yi içe aktar"
 
+msgid "Import Notes → Organizer only"
+msgstr "Yalnızca Notes → Organizer içe aktarımı"
+
 msgid "Import calendar file"
 msgstr "Takvim dosyasını içe aktar"
 
@@ -3040,6 +3043,13 @@ msgstr "LibreOffice üzerinden içe aktar"
 
 msgid "Import is available only in the installed application."
 msgstr "İçe aktarma yalnızca kurulu uygulamada kullanılabilir."
+
+msgid ""
+"Import mode sends no Organizer notes back and synchronizes no note, notebook "
+"or attachment deletions. Tasks remain independent."
+msgstr ""
+"İçe aktarma modu Organizer notlarını geri göndermez ve not, not defteri veya "
+"ek silmelerini eşitlemez. Görevler bağımsız kalır."
 
 msgid "Import once"
 msgstr "Bir kez içe aktar"
@@ -3242,6 +3252,9 @@ msgstr "KDE Connect ile alım başarısız oldu."
 
 msgid "KDE/Akonadi integration is not available."
 msgstr "KDE/Akonadi tümleştirmesi kullanılamıyor."
+
+msgid "Keep"
+msgstr "Koru"
 
 msgid "Keep a troubleshooting log"
 msgstr "Sorun giderme günlüğü tut"
@@ -4122,6 +4135,9 @@ msgstr "Gönderilmedi."
 
 msgid "Note"
 msgstr "Not"
+
+msgid "Note synchronization direction"
+msgstr "Not eşitleme yönü"
 
 msgid "Note text"
 msgstr "Not metni"
@@ -7485,6 +7501,9 @@ msgstr "İki gün geri"
 msgid "Two days forward"
 msgstr "İki gün ileri"
 
+msgid "Two-way synchronization"
+msgstr "Çift yönlü eşitleme"
+
 msgid "Type"
 msgstr "Tür"
 
@@ -7593,6 +7612,9 @@ msgstr "Başlıksız"
 
 msgid "Untitled appointment"
 msgstr "Başlıksız randevu"
+
+msgid "Update both devices to choose the note direction."
+msgstr "Not yönünü seçmek için her iki cihazı da güncelleyin."
 
 msgid "Update checking is available in the installed application."
 msgstr "Güncelleme denetimi kurulu uygulamada kullanılabilir."

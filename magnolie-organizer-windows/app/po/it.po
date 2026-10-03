@@ -2546,6 +2546,9 @@ msgstr "Importa ICS / CSV…"
 msgid "Import Magnolie complete archive"
 msgstr "Importa l'archivio completo di Magnolie"
 
+msgid "Import Notes → Organizer only"
+msgstr "Importa solo da Notes a Organizer"
+
 msgid "Import failed."
 msgstr "L’importazione non è riuscita."
 
@@ -2557,6 +2560,14 @@ msgstr "Importa da LibreOffice"
 
 msgid "Import is available only in the installed application."
 msgstr "L’importazione è disponibile solo nell’applicazione installata."
+
+msgid ""
+"Import mode sends no Organizer notes back and synchronizes no note, notebook "
+"or attachment deletions. Tasks remain independent."
+msgstr ""
+"La modalità di importazione non restituisce note di Organizer e non "
+"sincronizza eliminazioni di note, taccuini o allegati. Le attività restano "
+"indipendenti."
 
 msgid "Import once"
 msgstr "Importa una volta"
@@ -2703,6 +2714,9 @@ msgstr "Telefono KDE Connect accoppiato."
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect porta %(port)s"
+
+msgid "Keep"
+msgstr "Mantieni"
 
 msgid "Keep a troubleshooting log"
 msgstr "Conserva un registro per la risoluzione dei problemi"
@@ -3434,6 +3448,9 @@ msgstr "Non hai ancora effettuato l'accesso a Microsoft."
 
 msgid "Note"
 msgstr "Nota"
+
+msgid "Note synchronization direction"
+msgstr "Direzione di sincronizzazione delle note"
 
 msgid "Note text"
 msgstr "Testo della nota"
@@ -6126,6 +6143,9 @@ msgstr "Due giorni indietro"
 msgid "Two days forward"
 msgstr "Due giorni avanti"
 
+msgid "Two-way synchronization"
+msgstr "Sincronizzazione bidirezionale"
+
 msgid "Type"
 msgstr "Tipo"
 
@@ -6201,6 +6221,9 @@ msgstr "Senza titolo"
 
 msgid "Untitled appointment"
 msgstr "Appuntamento senza titolo"
+
+msgid "Update both devices to choose the note direction."
+msgstr "Aggiorna entrambi i dispositivi per scegliere la direzione delle note."
 
 msgid "Update checking is available in the installed application."
 msgstr ""

@@ -2186,6 +2186,14 @@ body[data-hilfsrahmen="an"] .notiz-editor :focus-visible {
 }
 
 #sicherung-dialog h3,
+.personal-note-conflict pre {
+  max-height: 24vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  user-select: text;
+}
 .eingabe-dialog h3 {
   margin: 0 0 10px;
   font: 700 21px var(--serif);

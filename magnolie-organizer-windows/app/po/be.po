@@ -2544,6 +2544,9 @@ msgstr "Імпартаваць ICS / CSV…"
 msgid "Import Magnolie complete archive"
 msgstr "Імпартаваць поўны архіў Magnolie"
 
+msgid "Import Notes → Organizer only"
+msgstr "Імпартаваць толькі з Notes у Organizer"
+
 msgid "Import failed."
 msgstr "Не ўдалося выканаць імпарт."
 
@@ -2555,6 +2558,14 @@ msgstr "Імпартаваць з LibreOffice"
 
 msgid "Import is available only in the installed application."
 msgstr "Імпарт даступны толькі ва ўсталяванай праграме."
+
+msgid ""
+"Import mode sends no Organizer notes back and synchronizes no note, notebook "
+"or attachment deletions. Tasks remain independent."
+msgstr ""
+"У рэжыме імпарту нататкі Organizer не адпраўляюцца назад, а выдаленні "
+"нататак, нататнікаў і ўкладанняў не сінхранізуюцца. Задачы застаюцца "
+"незалежнымі."
 
 msgid "Import once"
 msgstr "Імпартаваць адзін раз"
@@ -2699,6 +2710,9 @@ msgstr "Тэлефон KDE Connect спалучаны."
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect порт %(port)s"
+
+msgid "Keep"
+msgstr "Пакінуць"
 
 msgid "Keep a troubleshooting log"
 msgstr "Захоўваць журнал ліквідацыі непаладак"
@@ -3430,6 +3444,9 @@ msgstr "Яшчэ не ўвайшлі ў Microsoft."
 
 msgid "Note"
 msgstr "Нататка"
+
+msgid "Note synchronization direction"
+msgstr "Напрамак сінхранізацыі нататак"
 
 msgid "Note text"
 msgstr "Тэкст нататкі"
@@ -6073,6 +6090,9 @@ msgstr "На два дні назад"
 msgid "Two days forward"
 msgstr "На два дні наперад"
 
+msgid "Two-way synchronization"
+msgstr "Двухбаковая сінхранізацыя"
+
 msgid "Type"
 msgstr "Тып"
 
@@ -6148,6 +6168,9 @@ msgstr "Без назвы"
 
 msgid "Untitled appointment"
 msgstr "Сустрэча без назвы"
+
+msgid "Update both devices to choose the note direction."
+msgstr "Абнавіце абедзве прылады, каб выбраць напрамак перадачы нататак."
 
 msgid "Update checking is available in the installed application."
 msgstr "Праверка абнаўленняў даступная ва ўсталяванай праграме."

@@ -3,6 +3,7 @@ package io.gitlab.maik3531.magnolienotes.telefon
 import android.os.Build
 import io.gitlab.maik3531.magnolienotes.BuildConfig
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 @Serializable
 data class TelefonIdentitaet(
@@ -46,6 +47,7 @@ data class TelefonPeer(
     val personal_deletions_sync_granted: Boolean = false,
     val remote_personal_notes_sync_granted: Boolean = false,
     val remote_personal_notes_sync_versions: List<Int> = listOf(1),
+    val remote_personal_notes_sync_available: Boolean = false,
     val remote_personal_tasks_sync_granted: Boolean = false,
     val remote_personal_tasks_sync_versions: List<Int> = listOf(1),
     val remote_personal_tasks_sync_available: Boolean = false,
@@ -57,7 +59,9 @@ data class TelefonPeer(
     val pending_finish: String = "",
     val pending_finish_expires_ms: Long = 0,
     val saved_auto_wifi: Boolean = false,
-    val saved_bluetooth: Boolean = false
+    val saved_bluetooth: Boolean = false,
+    val personal_note_policy: JsonObject? = null,
+    val remote_personal_note_policy: JsonObject? = null
 )
 
 @Serializable
@@ -125,6 +129,7 @@ data class TelefonUiZustand(
     val personalTasksEnabled: Boolean = false,
     val personalAutoWifi: Boolean = false,
     val personalDeletionsEnabled: Boolean = false,
+    val personalNotesMode: String = PersonalNoteMode.TWO_WAY,
     val personalSyncReport: String = "",
     val selectedPackages: Set<String> = emptySet(),
     val notificationApps: List<TelefonApp> = emptyList(),
@@ -172,7 +177,7 @@ object TelefonCapabilities {
         "incoming_call_number" to TelefonCapability(incomingNumber, if (incomingNumber) "available" else "disabled"),
         "answer_call" to TelefonCapability(answerCalls, if (answerCalls) "available" else "disabled"),
         "end_call" to TelefonCapability(endCalls, if (endCalls) "available" else if (Build.VERSION.SDK_INT < 28) "os_restricted" else "disabled", listOf(1, 2)),
-        "personal_notes_sync" to TelefonCapability(true, "available", listOf(1, 2, 3)),
+        "personal_notes_sync" to TelefonCapability(true, "available", listOf(1, 2, 3, 5)),
         "personal_tasks_sync" to TelefonCapability(true, "available", listOf(1, 2, 3, 4)),
         "personal_deletions_sync" to TelefonCapability(true, "available"),
         "transport.bluetooth_rfcomm" to TelefonCapability(true, "available")

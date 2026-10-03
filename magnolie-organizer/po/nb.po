@@ -3019,6 +3019,9 @@ msgstr "Importer ICS / CSV…"
 msgid "Import Lotus Organizer CSV"
 msgstr "Importer Lotus Organizer CSV"
 
+msgid "Import Notes → Organizer only"
+msgstr "Importer bare fra Notes til Organizer"
+
 msgid "Import calendar file"
 msgstr "Importer kalenderfil"
 
@@ -3036,6 +3039,13 @@ msgstr "Importer fra LibreOffice"
 
 msgid "Import is available only in the installed application."
 msgstr "Import er bare tilgjengelig i det installerte programmet."
+
+msgid ""
+"Import mode sends no Organizer notes back and synchronizes no note, notebook "
+"or attachment deletions. Tasks remain independent."
+msgstr ""
+"Importmodus sender ingen Organizer-notater tilbake og synkroniserer ikke "
+"sletting av notater, notatbøker eller vedlegg. Oppgaver forblir uavhengige."
 
 msgid "Import once"
 msgstr "Importer én gang"
@@ -3239,6 +3249,9 @@ msgstr "Mottak med KDE Connect mislyktes."
 
 msgid "KDE/Akonadi integration is not available."
 msgstr "KDE/Akonadi-integrasjonen er ikke tilgjengelig."
+
+msgid "Keep"
+msgstr "Behold"
 
 msgid "Keep a troubleshooting log"
 msgstr "Behold en feilsøkingslogg"
@@ -4121,6 +4134,9 @@ msgstr "Ikke sendt."
 
 msgid "Note"
 msgstr "Notat"
+
+msgid "Note synchronization direction"
+msgstr "Synkroniseringsretning for notater"
 
 msgid "Note text"
 msgstr "Notattekst"
@@ -7502,6 +7518,9 @@ msgstr "To dager tilbake"
 msgid "Two days forward"
 msgstr "To dager frem"
 
+msgid "Two-way synchronization"
+msgstr "Toveissynkronisering"
+
 msgid "Type"
 msgstr "Type"
 
@@ -7610,6 +7629,9 @@ msgstr "Uten tittel"
 
 msgid "Untitled appointment"
 msgstr "Avtale uten tittel"
+
+msgid "Update both devices to choose the note direction."
+msgstr "Oppdater begge enhetene for å velge retning for notater."
 
 msgid "Update checking is available in the installed application."
 msgstr "Søk etter oppdateringer er tilgjengelig i den installerte appen."

@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="personal_note_direction_update">Aktualizujće wobě grataj, zo byšće směr noticow wubrali.</string>
+    <string name="personal_note_direction">Směr synchronizacije noticow</string>
+    <string name="personal_note_two_way">Synchronizacija we woběmaj směromaj</string>
+    <string name="personal_note_import">Jenož z Notes do Organizera importować</string>
+    <string name="personal_note_direction_hint">Importowy modus njepósćele notice Organizera wróćo a njesynchronizuje zhašenja noticow, zapisnikow abo přiwěškow. Nadawki wostanu njewotwisne.</string>
     <string name="baum_postfach_unsicher">Njewobkrućene doručenja: %1$d. Powěsće wostanu składowane a njezapósćelu so awtomatisce znowa. Přepruwujće přijeće; starše graty snadź přepruwowane potwjerdźenja njepodpěruja.</string>
     <string name="telefon_bluetooth_setup">Nowy Organizer přez Bluetooth zwjazać</string>
     <string name="telefon_bluetooth_setup_hinweis">Wostajće tutu wobrazowku wočinjenu. Wubjerće tutón telefon w Organizer, wobkrućće systemowe zwjazanje a přirunajće potom kod na woběmaj gratajomaj.</string>

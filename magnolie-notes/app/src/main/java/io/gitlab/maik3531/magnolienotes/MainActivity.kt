@@ -1012,6 +1012,8 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                             else telefonWerk.setPersonalSync(false, false, false, false, false) },
                         beiPersonalNotizen = { telefonWerk.setPersonalSync(telefonZustand.personalOwnDevice, it,
                             telefonZustand.personalTasksEnabled, telefonZustand.personalAutoWifi, telefonZustand.personalDeletionsEnabled) },
+                        beiPersonalNotizrichtung = { runCatching { telefonWerk.setPersonalNotesMode(it) }
+                            .onFailure { sage(zusammenhang.fehlertext(it)) } },
                         beiPersonalAufgaben = { telefonWerk.setPersonalSync(telefonZustand.personalOwnDevice,
                             telefonZustand.personalNotesEnabled, it, telefonZustand.personalAutoWifi, telefonZustand.personalDeletionsEnabled) },
                         beiPersonalAutoWlan = { telefonWerk.setPersonalSync(telefonZustand.personalOwnDevice,

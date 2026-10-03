@@ -2463,6 +2463,9 @@ msgstr "ICS / CSV आयात करें…"
 msgid "Import Magnolie complete archive"
 msgstr "मैग्नोली संपूर्ण संग्रह आयात करें"
 
+msgid "Import Notes → Organizer only"
+msgstr "केवल Notes से Organizer में आयात करें"
+
 msgid "Import failed."
 msgstr "आयात नहीं हो सका।"
 
@@ -2474,6 +2477,13 @@ msgstr "LibreOffice से आयात करें"
 
 msgid "Import is available only in the installed application."
 msgstr "आयात केवल स्थापित एप्लिकेशन में उपलब्ध है।"
+
+msgid ""
+"Import mode sends no Organizer notes back and synchronizes no note, notebook "
+"or attachment deletions. Tasks remain independent."
+msgstr ""
+"आयात मोड में Organizer के नोट वापस नहीं भेजे जाते और नोट, नोटबुक या अटैचमेंट हटाने की "
+"कार्रवाई सिंक्रनाइज़ नहीं होती। कार्य स्वतंत्र रहते हैं।"
 
 msgid "Import once"
 msgstr "एक बार आयात करें"
@@ -2617,6 +2627,9 @@ msgstr "KDE Connect फ़ोन युग्मित हुआ।"
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect पोर्ट %(port)s"
+
+msgid "Keep"
+msgstr "रखें"
 
 msgid "Keep a troubleshooting log"
 msgstr "समस्या निवारण लॉग रखें"
@@ -3336,6 +3349,9 @@ msgstr "अभी तक Microsoft में साइन इन नहीं �
 
 msgid "Note"
 msgstr "नोट"
+
+msgid "Note synchronization direction"
+msgstr "नोट सिंक्रनाइज़ेशन की दिशा"
 
 msgid "Note text"
 msgstr "नोट का टेक्स्ट"
@@ -5924,6 +5940,9 @@ msgstr "दो दिन पीछे"
 msgid "Two days forward"
 msgstr "दो दिन आगे"
 
+msgid "Two-way synchronization"
+msgstr "दोनों दिशाओं में सिंक्रनाइज़ेशन"
+
 msgid "Type"
 msgstr "प्रकार"
 
@@ -5999,6 +6018,9 @@ msgstr "बिना शीर्षक"
 
 msgid "Untitled appointment"
 msgstr "बिना शीर्षक की अपॉइंटमेंट"
+
+msgid "Update both devices to choose the note direction."
+msgstr "नोट की दिशा चुनने के लिए दोनों डिवाइस अपडेट करें।"
 
 msgid "Update checking is available in the installed application."
 msgstr "अपडेट जाँच इंस्टॉल किए गए ऐप में उपलब्ध है।"

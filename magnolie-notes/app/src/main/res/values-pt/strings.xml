@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="personal_note_direction_update">Atualize ambos os dispositivos para escolher a direção das notas.</string>
+    <string name="personal_note_direction">Direção de sincronização das notas</string>
+    <string name="personal_note_two_way">Sincronização bidirecional</string>
+    <string name="personal_note_import">Importar apenas de Notes para Organizer</string>
+    <string name="personal_note_direction_hint">O modo de importação não devolve notas do Organizer nem sincroniza eliminações de notas, cadernos ou anexos. As tarefas permanecem independentes.</string>
     <string name="baum_postfach_unsicher">Entregas não verificadas: %1$d. As mensagens são guardadas e o reenvio automático está suspenso. Confirme a receção; os dispositivos antigos podem não suportar comprovativos verificados.</string>
     <string name="telefon_bluetooth_setup">Emparelhar um novo Organizer por Bluetooth</string>
     <string name="telefon_bluetooth_setup_hinweis">Mantenha este ecrã aberto. Selecione este telefone no Organizer, confirme o emparelhamento do sistema e compare o código nos dois dispositivos.</string>
