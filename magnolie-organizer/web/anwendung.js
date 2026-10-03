@@ -12066,7 +12066,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (block.type === "notes") return (block.items || []).map((item) =>
       [item.title, item.text].filter(Boolean).join("\n")).join("\n");
     return (block.items || []).map((item) => [block.type === "tasks" ? (item.done ? "☑" : "☐") : "",
-      item.date || item.due || "", item.time || "", item.title, item.note]
+      fmtPunkt(item.date || item.due), zeitText(item.date || item.due, item.time), item.title, item.note]
       .filter(Boolean).join(" · ")).join("\n");
   }
 
@@ -12401,7 +12401,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       } else for (const item of modul.items || []) {
         const eintrag = el("div", "custom-modul-eintrag");
         eintrag.append(el("strong", "custom-modul-eintrag-titel", item.title || _("Untitled")),
-          el("span", "custom-modul-eintrag-meta", [item.date || item.due, item.time].filter(Boolean).join(" · ")),
+          el("span", "custom-modul-eintrag-meta", [fmtPunkt(item.date || item.due),
+            zeitText(item.date || item.due, item.time)].filter(Boolean).join(" · ")),
           el("span", "custom-modul-eintrag-notiz", item.note || ""));
         liste.append(eintrag);
       }
@@ -12522,7 +12523,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
       const eintrag = knopf("", "custom-modul-eintrag", () => oeffneCustomEintrag(modul, item));
       eintrag.append(el("strong", "custom-modul-eintrag-titel", item.title || _("Untitled")));
-      const meta = [item.date || item.due || "", item.time || ""].filter(Boolean).join(" · ");
+      const meta = [fmtPunkt(item.date || item.due), zeitText(item.date || item.due, item.time)].filter(Boolean).join(" · ");
       if (meta) eintrag.append(el("span", "custom-modul-eintrag-meta", meta));
       if (item.note) eintrag.append(el("span", "custom-modul-eintrag-notiz", item.note));
       karte.append(eintrag);
@@ -18835,6 +18836,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function bindeZeiteingabe(feld, gesundheitsZeit = false) {
+    const zyklus = DATEN.einstellungen.regional.hourCycle;
+    const format = new Intl.DateTimeFormat(formatGebiet(), { hour: "2-digit", minute: "2-digit",
+      ...(zyklus && zyklus !== "system" ? { hourCycle: zyklus } : {}) });
+    if (format.resolvedOptions().hour12) return bindeRegionaleZeiteingabe(feld, format, gesundheitsZeit);
     feld.type = "text";
     feld.classList.add("zeitfeld");
     feld.pattern = "(?:[01]\\d|2[0-3]):[0-5]\\d";
@@ -18928,6 +18933,102 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     feld.addEventListener("blur", () => {
       zuruecksetzen();
       if (feld.value !== letzterWert) feld.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    return feld;
+  }
+
+  function bindeRegionaleZeiteingabe(feld, format, gesundheitsZeit) {
+    // The native input value is the localized editing surface. The application
+    // value remains HH:mm, just as for a native time input, for every consumer.
+    const wert = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+    const anfang = feld.value;
+    feld.type = "text";
+    feld.classList.add("zeitfeld");
+    feld.dataset.uhrformat = "h12";
+    feld.inputMode = "text";
+    feld.autocomplete = "off";
+    feld.removeAttribute("pattern");
+    feld.maxLength = 40;
+    feld.style.minWidth = "12ch";
+    const datum = minute => new Date(2000, 0, 1, Math.floor(minute / 60), minute % 60);
+    feld.placeholder = format.format(datum(14 * 60 + 35));
+    const nummern = new Intl.NumberFormat(format.resolvedOptions().locale, { useGrouping: false });
+    const ziffern = Array.from({ length: 10 }, (_, i) => [nummern.format(i), String(i)]);
+    const normal = text => {
+      let s = String(text).normalize("NFKC").replace(/[\u200e\u200f\u061c\s]/g, "").toLowerCase();
+      for (const [lokal, ascii] of ziffern) s = s.split(lokal).join(ascii);
+      return s;
+    };
+    const perioden = [0, 720].map(minute => normal(format.formatToParts(datum(minute))
+      .find(teil => teil.type === "dayPeriod").value));
+    const lesen = () => {
+      const roh = wert.get.call(feld);
+      if (!roh.trim()) return "";
+      const s = normal(roh);
+      for (let periode = 0; periode < perioden.length; periode++) {
+        const marker = perioden[periode];
+        if (!s.includes(marker)) continue;
+        const zeit = s.replace(marker, "").match(/^(\d{1,2})[:.](\d{2})$/);
+        if (!zeit) continue;
+        const h = Number(zeit[1]), m = Number(zeit[2]);
+        const nullStunde = format.resolvedOptions().hourCycle === "h11";
+        if (m > 59 || h < (nullStunde ? 0 : 1) || h > (nullStunde ? 11 : 12)) continue;
+        return pad2(h % 12 + periode * 12) + ":" + pad2(m);
+      }
+      return null;
+    };
+    const pruefen = () => feld.setCustomValidity(lesen() === null
+      ? _("Enter both hours and minutes, or leave the time completely empty.") : "");
+    Object.defineProperty(feld, "value", { configurable: true,
+      get: () => lesen() ?? "!" + wert.get.call(feld),
+      set: neu => {
+        const s = String(neu ?? "");
+        const zeit = /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(s);
+        wert.set.call(feld, zeit ? format.format(datum(Number(s.slice(0, 2)) * 60 + Number(s.slice(3)))) : s);
+        pruefen();
+      }
+    });
+    feld.value = anfang;
+    const abschnitt = () => {
+      const kanonisch = lesen();
+      if (!kanonisch) return "minute";
+      let offset = 0;
+      for (const teil of format.formatToParts(datum(Number(kanonisch.slice(0, 2)) * 60 + Number(kanonisch.slice(3))))) {
+        const ende = offset + teil.value.length;
+        if ((feld.selectionStart || 0) < ende && ["hour", "minute", "dayPeriod"].includes(teil.type)) return teil.type;
+        offset = ende;
+      }
+      return "minute";
+    };
+    const bewegen = (richtung, shift) => {
+      const alt = lesen();
+      if (!alt) return;
+      const teil = abschnitt();
+      const schritt = teil === "dayPeriod" ? 720 : teil === "hour" || shift ? 60 : 1;
+      const minute = (Number(alt.slice(0, 2)) * 60 + Number(alt.slice(3)) + richtung * schritt + 1440) % 1440;
+      feld.value = pad2(Math.floor(minute / 60)) + ":" + pad2(minute % 60);
+      let offset = 0;
+      for (const part of format.formatToParts(datum(minute))) {
+        if (part.type === teil) feld.setSelectionRange(offset, offset + part.value.length);
+        offset += part.value.length;
+      }
+      feld.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    feld.addEventListener("input", pruefen);
+    feld.addEventListener("keydown", ev => {
+      if (feld.disabled || feld.readOnly || ev.ctrlKey || ev.metaKey || ev.altKey || ev.isComposing) return;
+      if (ev.key === "ArrowUp" || ev.key === "ArrowDown") {
+        ev.preventDefault(); bewegen(ev.key === "ArrowUp" ? 1 : -1, ev.shiftKey);
+      }
+    });
+    feld.addEventListener("wheel", ev => {
+      if (!gesundheitsZeit || feld.disabled || feld.readOnly || !ev.deltaY) return;
+      ev.preventDefault(); bewegen(ev.deltaY < 0 ? 1 : -1, ev.shiftKey);
+    }, { passive: false });
+    feld.addEventListener("blur", () => {
+      const kanonisch = lesen();
+      if (kanonisch !== null) feld.value = kanonisch;
+      pruefen();
     });
     return feld;
   }

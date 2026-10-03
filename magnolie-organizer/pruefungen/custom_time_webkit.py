@@ -11,6 +11,7 @@ import mimetypes
 import os
 from pathlib import Path
 import subprocess
+import sys
 import time
 from urllib.parse import urlsplit
 
@@ -26,6 +27,7 @@ parser.add_argument("--output", type=Path, required=True)
 parser.add_argument("--before", action="store_true")
 parser.add_argument("--locale", choices=("de", "en"), default="de")
 parser.add_argument("--all-locales", action="store_true")
+parser.add_argument("--regional-only", action="store_true")
 args = parser.parse_args()
 assert os.environ.get("MAGNOLIE_TIME_ISOLATED") == "1", "Use custom_time_isolated.sh"
 assert not Path("/dev/dri").exists() and not list(Path("/dev").glob("nvidia*"))
@@ -88,7 +90,7 @@ HTMLInputElement.prototype.reportValidity = function() {
 };
 for (const kind of ['keydown', 'wheel', 'input', 'change', 'blur'])
   document.addEventListener(kind, e => {
-    if (e.target.type === 'time') nativeEvents.push({kind, trusted: e.isTrusted,
+    if (e.target.type === 'time' || e.target.classList?.contains('zeitfeld')) nativeEvents.push({kind, trusted: e.isTrusted,
       key: e.key, deltaY: e.deltaY, deltaX: e.deltaX, shift: e.shiftKey, value: e.target.value});
   }, true);
 """, WebKit2.UserContentInjectedFrames.TOP_FRAME, WebKit2.UserScriptInjectionTime.START, None, None))
@@ -197,6 +199,48 @@ load()
 results = []
 completed = False
 try:
+    if args.regional_only:
+        regional_field = '#custom-eintrag-schleier .zeitfeld'
+        evaluate("MagnolieI18n.setLocale('en'); Object.assign(OrganizerTest.daten().einstellungen.regional, {formatLocale:'en-US', hourCycle:'h12'}); return true;")
+        for kind in ("appointments", "tasks"):
+            for text, expected in (("12:05 AM", "00:05"), ("12:05 PM", "12:05"),
+                                   ("02:35 PM", "14:35"), ("02:35", None), ("", "")):
+                evaluate("""
+const old = document.querySelector('#custom-eintrag-schleier');
+if (old) { OrganizerTest.beendeModal(old); old.remove(); }
+const item = {id:'entry', title:'Synthetic', time:'14:35', date:'2026-10-04', due:'2026-10-04', note:''};
+const module = {id:'regional', type:""" + json.dumps(kind) + """, title:'Synthetic', items:[item]};
+OrganizerTest.daten().customOrganizer.modules = [module];
+OrganizerTest.oeffneCustomEintrag(module, item);
+window.nativeEvents = [];
+return true;
+""")
+                click(regional_field)
+                xdo("key", "ctrl+a")
+                if text:
+                    xdo("type", "--clearmodifiers", "--delay", "60", text)
+                else:
+                    xdo("key", "BackSpace")
+                state = evaluate("""
+const field = document.querySelector('#custom-eintrag-schleier .zeitfeld');
+return {value:field.value, valid:field.checkValidity(),
+  visible:Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').get.call(field), events:nativeEvents};
+""")
+                assert state["visible"] == text, state
+                assert any(event["kind"] == "input" and event["trusted"] for event in state["events"]), state
+                if expected is not None:
+                    assert state["valid"] and state["value"] == expected, state
+                else:
+                    assert not state["valid"], state
+                if text == "02:35 PM":
+                    screenshot("regional-" + kind)
+                click(apply)
+                after = evaluate("return {open:!!document.querySelector('#custom-eintrag-schleier'), time:OrganizerTest.daten().customOrganizer.modules[0].items[0].time};")
+                assert after == {"open": expected is None, "time": "14:35" if expected is None else expected}, after
+                results.append({"kind": kind, "typed": text, "before": state, "after": after})
+        completed = True
+        print(f"{len(results)} trusted-input regional time cases passed: {web}", flush=True)
+        sys.exit(0)
     for kind in ("appointments", "tasks"):
         for edit in (False, True):
             for action in ("default", "default-hour", "hour", "minute", "wheel", "shift-wheel", "reverse-wheel", "unfocused-wheel",
