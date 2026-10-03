@@ -99,8 +99,27 @@ async function bestaetigeKontaktImport(fenster, nutzlast, modus = "merge") {
       wahl.value = modus; wahl.dispatchEvent(new fenster.Event("change"));
     }
     fenster.document.querySelector("[data-import-anwenden]").click();
+    await tick();
+    // Merging an existing card now requires the explicit field review as well.
+    const hatFeldpruefung = !!fenster.document.querySelector("[data-import-feld], [data-import-liste]");
+    for (let schritt = 0; ; schritt++) {
+      // A decision rerenders the review; never dispatch to detached old controls.
+      const feld = [...fenster.document.querySelectorAll("[data-import-feld], [data-import-liste]")]
+        .find(element => element.hasAttribute("data-import-liste") ? element.value !== "add" : !element.value);
+      if (!feld) break;
+      assert.ok(schritt < 1000, "Importentscheidungen werden nicht übernommen");
+      const wahl = feld.hasAttribute("data-import-liste") ? "add" : "keep";
+      assert.ok([...feld.options].some(option => option.value === wahl), "Additive Importentscheidung fehlt");
+      feld.value = wahl; feld.dispatchEvent(new fenster.Event("change"));
+    }
+    if (hatFeldpruefung) fenster.document.querySelector("[data-import-anwenden]").click();
   }
-  await lauf;
+  let timer;
+  try {
+    await Promise.race([lauf, new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error("Kontaktimport endet nach expliziter Prüfung nicht")), 5000);
+    })]);
+  } finally { clearTimeout(timer); }
 }
 const $ = (s) => d.querySelector(s);
 const $$ = (s) => Array.from(d.querySelectorAll(s));
@@ -4067,6 +4086,8 @@ function knopfMit(text, wurzel) {
   assert.ok($("#kontakt-firma").compareDocumentPosition($("#kontakt-notiz")) &
     w.Node.DOCUMENT_POSITION_FOLLOWING, "Firma steht nicht direkt vor der Notiz");
   knopfMit("Änderungen speichern").click();
+  await warteBis(() => !!T.daten().kontakte[0].kontaktZeit,
+    "Inhaltszeit der gespeicherten Kontaktbearbeitung fehlt");
   assert.strictEqual(T.daten().jahrestage.filter((j) => j.kontaktId === T.daten().kontakte[0].id).length, 2,
     "erneutes Speichern verdoppelt oder verliert die Kontaktjahrestage");
   assert.strictEqual(T.daten().termine.filter((t) => t.titel === "Jahresgespräch").length, 1,
@@ -8616,9 +8637,6 @@ function knopfMit(text, wurzel) {
   grantDom.window.App.telefonStand({ peers: [grantPeer] });
   const grantBefehle = grantNachrichten.filter((nachricht) => nachricht.cmd === "telefon_freigabe");
   assert.deepStrictEqual(grantBefehle.map((nachricht) => [nachricht.kennung, nachricht.name, nachricht.an]), [
-    ["telefon-grants", "personal_notes_sync", true],
-    ["telefon-grants", "personal_tasks_sync", true],
-    ["telefon-grants", "selected_notifications_readonly", true],
     ["telefon-grants", "incoming_call_state", true],
     ["telefon-grants", "incoming_call_number", true],
     ["telefon-grants", "answer_call", true],
@@ -8627,7 +8645,7 @@ function knopfMit(text, wurzel) {
   assert.strictEqual(grantDom.window.OrganizerTest.daten().einstellungen.adressen.kommunikation.anruf.telefonId,
     "telefon-grants", "alte Anrufoptionen werden nicht sicher an das vorhandene Telefon gebunden");
   grantDom.window.App.telefonStand({ peers: [grantPeer] });
-  assert.strictEqual(grantNachrichten.filter((nachricht) => nachricht.cmd === "telefon_freigabe").length, 7,
+  assert.strictEqual(grantNachrichten.filter((nachricht) => nachricht.cmd === "telefon_freigabe").length, 4,
     "unveränderter Telefonstand erzeugt eine Freigabeschleife");
   grantDom.window.App.telefonStand({ peers: [Object.assign({}, grantPeer, {
     device_id: "anderes-telefon", local_grants: { grants: {
@@ -9228,12 +9246,11 @@ function knopfMit(text, wurzel) {
   const personalBereich = geraetD.querySelector("details.telefon-personal-sync");
   assert.ok(personalBereich && !personalBereich.open && personalBereich.querySelector("summary"),
     "persönliche Synchronisierung ist nicht standardmäßig eingeklappt");
-  const personalHaken = Array.from(personalBereich.querySelectorAll("input"));
-  assert.ok(!personalBereich.textContent.includes("This paired phone is my own device") &&
-    geraetNachrichten.some(n => n.cmd === "personal_sync_einstellungen" && n.eigen === true),
-    "Die bestehende Kopplung ersetzt die zusätzliche Eigentumscheckbox");
-  personalHaken[0].click();
-  personalHaken[1].click();
+  assert.ok(personalBereich.querySelector("[data-personal-auto-peer]") &&
+    personalBereich.querySelector("[data-personal-skip-deletions-peer]"),
+    "Automatik und optionale Löschungsausnahme fehlen");
+  assert.strictEqual(personalBereich.querySelectorAll(".personal-sync-wahl button, [data-personal-grant-name]").length, 0,
+    "Veraltete Einzelbereichs- oder Alle/Keine-Schalter werden noch angeboten");
   const wartenderPersonalStand = geraetD.querySelector("[data-personal-sync-peer]").textContent;
   assert.ok(wartenderPersonalStand,
     "lokale Personal-Sync-Freigabe zeigt nicht den ausstehenden Fernstand");
@@ -9244,21 +9261,11 @@ function knopfMit(text, wurzel) {
   assert.notStrictEqual(geraetD.querySelector("[data-personal-sync-peer]").textContent,
     wartenderPersonalStand,
     "aktueller Peer-Stand aktualisiert den offenen Personal-Sync-Dialog nicht");
-  const personalWahl = Array.from(personalBereich.querySelectorAll(".personal-sync-wahl button"));
-  assert.deepStrictEqual(personalWahl.map((button) => button.textContent), ["Alle", "Keine"],
-    "Personal Sync bietet beim Aufklappen keine Alle-/Keine-Auswahl");
-  personalWahl[1].click();
-  assert.ok(Array.from(personalBereich.querySelectorAll("input")).slice(0, 3)
-    .every((haken) => !haken.checked), "Keine schaltet nicht alle Sync-Inhalte ab");
-  personalWahl[0].click();
-  assert.ok(Array.from(personalBereich.querySelectorAll("input")).slice(0, 3)
-    .every((haken) => haken.checked), "Alle schaltet nicht alle Sync-Inhalte ein");
-  assert.strictEqual(personalBereich.querySelector("[data-personal-custom-peer]").checked, false,
-    "Alle darf die getrennte Custom-Freigabe nicht einschalten");
-  geraetW.App.telefonStand({ peers: [{ ...personalPeer, own_device: true,
+  const konfigurierterPersonalPeer = { ...personalPeer, own_device: true, auto_wifi: false,
     remote_own_device: true, local_grants: { grants: { personal_notes_sync: true,
       personal_tasks_sync: true, personal_deletions_sync: true } },
-    grants: { grants: { personal_notes_sync: true, personal_tasks_sync: false } } }] });
+    grants: { grants: { personal_notes_sync: true, personal_tasks_sync: false } } };
+  geraetW.App.telefonStand({ peers: [konfigurierterPersonalPeer] });
   const geraetFuss = geraetD.querySelector(".geraet-dialog-knoepfe");
   assert.ok(geraetFuss && geraetD.querySelector(".geraet-dialog-inhalt"),
     "Geräteinhalt und dauerhaft sichtbare Aktionsleiste sind nicht getrennt");
@@ -9272,6 +9279,10 @@ function knopfMit(text, wurzel) {
   const personalSaveQuittungen = new Set();
   await warteBis(() => {
     if (personalAngefordert()) return true;
+    const betrieb = geraetNachrichten.findLast(n => n.cmd === "personal_sync_betrieb");
+    if (betrieb) geraetW.App.telefonStand({ peers: [{ ...konfigurierterPersonalPeer,
+      auto_wifi: betrieb.autoWlan, local_grants: { grants: { personal_notes_sync: true,
+        personal_tasks_sync: true, personal_deletions_sync: !betrieb.loeschungenAuslassen } } }] });
     const save = geraetNachrichten.find((nachricht) => nachricht.cmd === "speichern" &&
       !personalSaveQuittungen.has(nachricht.id));
     if (save) {
@@ -9396,7 +9407,7 @@ function knopfMit(text, wurzel) {
   const vorschlag = { proposal_id: "44444444-4444-4444-8444-444444444444",
     kind: "note", id: "own", parent_id: "", clock: loeschMeta.clock,
     prior_hash: loeschMeta.hash, deleted_ms: Date.now(), label: "Own",
-    run_id: "55555555-5555-4555-8555-555555555555", source_device: "peer" };
+    run_id: "55555555-5555-4555-8555-555555555555", source_device: personalPeer.device_id };
   daten.personalSync.pending_proposals = [vorschlag];
   const andereUhr = { ...vorschlag, clock: vorschlag.clock.map((x) => ({ ...x, counter: x.counter + 1 })) };
   assert.strictEqual(personalT.personalSyncEntscheidungAnwenden(andereUhr, "delete"), "conflict");
