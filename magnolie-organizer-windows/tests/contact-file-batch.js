@@ -59,5 +59,5 @@ async function check(web) {
   } finally { w.close(); }
 }
 (async () => {
-  for (const web of [path.resolve(__dirname, "../app/web"), path.resolve(__dirname, "../../magnolie-organizer/web")]) await check(web);
+  for (const web of require("./web-test-roots")) await check(web);
 })().catch(error => { console.error(error); process.exitCode = 1; });

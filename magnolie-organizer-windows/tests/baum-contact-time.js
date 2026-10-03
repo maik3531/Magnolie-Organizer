@@ -104,5 +104,5 @@ async function check(web) {
     console.log("BAUM CONTENT TIME REVIEW PASSED: " + web);
   } finally { w.close(); }
 }
-(async () => { for (const web of [path.resolve(__dirname, "../app/web"), path.resolve(__dirname, "../../magnolie-organizer/web")]) await check(web); })()
+(async () => { for (const web of require("./web-test-roots")) await check(web); })()
   .catch(error => { console.error(error); process.exitCode = 1; });

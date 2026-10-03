@@ -2,7 +2,7 @@
 const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path");
 const { webcrypto } = require("node:crypto"), { JSDOM } = require("jsdom");
 const binding = n => "urn:magnolie:import:android:" + String(n).repeat(64);
-for (const web of [path.resolve(__dirname, "../app/web"), path.resolve(__dirname, "../../magnolie-organizer/web")]) {
+for (const web of require("./web-test-roots")) {
   const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), {
     url: "https://app.magnolie.invalid/", runScripts: "outside-only", pretendToBeVisual: true });
   const w = dom.window;

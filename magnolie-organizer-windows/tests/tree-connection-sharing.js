@@ -50,6 +50,6 @@ async function check(web) {
 }
 
 (async () => {
-  for (const web of [path.resolve(__dirname, "../app/web"), path.resolve(__dirname, "../../magnolie-organizer/web")]) await check(web);
-  console.log("Three-device sharing: existing data scope and request-only acceptance passed on both desktops.");
+  for (const web of require("./web-test-roots")) await check(web);
+  console.log("Three-device sharing: data scope and request-only acceptance passed for " + require("./web-test-roots").length + " frontend(s).");
 })().catch(error => { console.error(error); process.exitCode = 1; });

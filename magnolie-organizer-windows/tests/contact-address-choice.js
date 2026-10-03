@@ -72,7 +72,7 @@ async function check(web, mode) {
   } finally { w.close(); }
 }
 (async () => {
-  for (const web of [path.resolve(__dirname, "../../magnolie-organizer/web"), path.resolve(__dirname, "../app/web")])
+  for (const web of require("./web-test-roots"))
     for (const mode of ["single", "own-work", "linked", "alias", "foreign-link", "route", "only-person", "cancel", "profile", "lock", "stale"]) await check(web, mode);
   console.log("CONTACT ADDRESS CHOICE PASSED: own and linked addresses, route, cancellation and stale guards");
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -74,7 +74,7 @@ async function check(web, mode) {
     }
   } finally { w.close(); }
 }
-(async () => { for (const web of [path.resolve(__dirname, "../../magnolie-organizer/web"), path.resolve(__dirname, "../app/web")])
+(async () => { for (const web of require("./web-test-roots"))
     for (const mode of ["merge", "cancel", "snapshot-error", "stale"]) await check(web, mode);
   console.log("CONTACT DUPLICATE REVIEW PASSED: menu, source bindings, aliases, reference repair and guards");
 })().catch(error => { console.error(error); process.exitCode = 1; });

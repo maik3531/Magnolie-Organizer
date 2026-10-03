@@ -11,9 +11,20 @@ m=quellmodul_laden('waste_fixture',root/'magnolie-organizer/bin/magnolie-organiz
 fixture=json.loads((root/'contracts/waste-calendar-v1.json').read_text())
 print(json.dumps(m.muell_import_lesen(fixture['ics'].encode(),'waste.ics')))
 `;
-const parsed = spawnSync(process.env.MAGNOLIE_PYTHON || "python3", ["-c", python, root], { encoding: "utf8",
-  env: { ...process.env, HOME: scratch, XDG_CONFIG_HOME: scratch, XDG_DATA_HOME: scratch, XDG_CACHE_HOME: scratch,
-    XDG_STATE_HOME: scratch, XDG_RUNTIME_DIR: scratch, DBUS_SESSION_BUS_ADDRESS: "unix:path=/nonexistent-waste-fixture" } });
+let parsed;
+if (fs.existsSync(path.join(root, "magnolie-organizer/pruefungen/modul_laden.py"))) {
+  parsed = spawnSync(process.env.MAGNOLIE_PYTHON || "python3", ["-c", python, root], { encoding: "utf8",
+    env: { ...process.env, HOME: scratch, XDG_CONFIG_HOME: scratch, XDG_DATA_HOME: scratch, XDG_CACHE_HOME: scratch,
+      XDG_STATE_HOME: scratch, XDG_RUNTIME_DIR: scratch, DBUS_SESSION_BUS_ADDRESS: "unix:path=/nonexistent-waste-fixture" } });
+} else {
+  const dotnet = process.env.MAGNOLIE_DOTNET || process.env.DOTNET_HOST_PATH || "dotnet";
+  const runner = process.env.MAGNOLIE_CORE_TESTS || path.join(__dirname, "bin/Debug/net8.0/CoreTests.dll");
+  if (!process.env.MAGNOLIE_CORE_TESTS) {
+    const build = spawnSync(dotnet, ["build", path.join(__dirname, "CoreTests.csproj"), "--no-restore", "-v", "quiet"], { encoding: "utf8" });
+    assert.equal(build.status, 0, build.error?.message || build.stderr || build.stdout);
+  }
+  parsed = spawnSync(dotnet, [runner, "--waste-import-fixture"], { encoding: "utf8" });
+}
 assert.equal(parsed.status, 0, parsed.stderr);
 const fixture = JSON.parse(parsed.stdout);
 async function check(web, mode) {
@@ -108,7 +119,7 @@ async function check(web, mode) {
 }
 (async () => {
   try {
-    for (const web of [path.join(root, "magnolie-organizer/web"), path.join(root, "magnolie-organizer-windows/app/web")])
+    for (const web of require("./web-test-roots"))
       for (const mode of ["ics", "csv", "bulk", "cancel", "profile", "lock", "snapshot-error", "stale", "changed-choice"]) await check(web, mode);
     console.log("WASTE IMPORT PASSED: native ICS, CSV mapping, grouping, markers, replay, reload and transaction guards");
   } finally { fs.rmSync(scratch, { recursive: true, force: true }); }

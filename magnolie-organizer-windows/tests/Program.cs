@@ -21,6 +21,14 @@ if (args.FirstOrDefault() == "--scoped-call-host") return await OutgoingDialTest
 if (args.FirstOrDefault() == "--personal-custom-host") return await PersonalCustomTransportTests.HostAsync();
 if (args.FirstOrDefault() == "--personal-note-mode-host") return await PersonalNoteModeTransportHost.RunAsync();
 if (args.FirstOrDefault() == "--phone-contact-read-host") return await PhoneContactReadTests.HostAsync();
+if (args.FirstOrDefault() == "--waste-import-fixture")
+{
+    var fixture = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(
+        TestSource.Root("contracts/waste-calendar-v1.json"), "contracts", "waste-calendar-v1.json")))!;
+    Console.WriteLine(MagnolieOrganizer.Windows.ExchangeCodec.ParseWasteImport(
+        System.Text.Encoding.UTF8.GetBytes(fixture["ics"]!.GetValue<string>()), "waste.ics").ToJsonString());
+    return 0;
+}
 
 if (args.FirstOrDefault() == "--phone-bt-native-probe") return await TelefonBluetoothNativeProbe.RunAsync();
 

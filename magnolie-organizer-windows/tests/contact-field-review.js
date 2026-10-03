@@ -59,7 +59,7 @@ async function check(web, mode) {
   } finally { w.close(); }
 }
 (async () => {
-  for (const web of [path.resolve(__dirname, "../../magnolie-organizer/web"), path.resolve(__dirname, "../app/web")])
+  for (const web of require("./web-test-roots"))
     for (const mode of ["add", "replace-phone", "keep-email", "birth-name", "cancel"]) await check(web, mode);
   console.log("CONTACT FIELD REVIEW PASSED: explicit names, additive values, replacement address and cancellation");
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -95,7 +95,7 @@ async function check(web, mode) {
   } finally { w.close(); }
 }
 (async () => {
-  for (const web of [path.resolve(__dirname, "../app/web"), path.resolve(__dirname, "../../magnolie-organizer/web")]) {
+  for (const web of require("./web-test-roots")) {
     for (const mode of ["replace", "merge", "keep", "skip", "new", "cancel", "snapshot-error", "stale", "profile", "lock", "changed-choice"]) await check(web, mode);
     console.log("CONTACT FILE REVIEW PASSED:", web);
   }

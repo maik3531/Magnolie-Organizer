@@ -113,6 +113,6 @@ async function check(web) {
 }
 
 (async () => {
-  for (const web of ["app/web", "../magnolie-organizer/web"]) await check(path.resolve(__dirname, "..", web));
-  console.log("Personal note import: both desktop snapshots, task-only batches, empty replies, attachment suppression and consent gates passed.");
+  for (const web of require("./web-test-roots")) await check(web);
+  console.log("Personal note import: snapshots, task-only batches, empty replies, attachment suppression and consent gates passed for " + require("./web-test-roots").length + " frontend(s).");
 })().catch(error => { console.error(error); process.exitCode = 1; });
