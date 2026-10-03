@@ -14971,11 +14971,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   function synchronisiereAllesMit(kennung, mitAnfrage) {
     const partner = baumPartnerListe().find((p2) => p2.kennung === kennung);
     if (!partner) return false;
+    const weitergabeQuelle = partner.weitergabeVon ? String(partner.weitergabeQuelle || "") : null;
+    if (weitergabeQuelle === "") return false;
     const syncLauf = crypto.randomUUID();
     sichereNotizSnapshot();
     const eigeneKennung = String((baumStand && baumStand.kennung) || "zweig");
-    let datenGeaendert = vereinigeBestehendeNotizen() > 0;
+    let datenGeaendert = weitergabeQuelle === null && vereinigeBestehendeNotizen() > 0;
     for (const notiz of DATEN.notizen) {
+      if (weitergabeQuelle !== null && !(notiz.baumFreigabe?.partner || []).includes(weitergabeQuelle)) continue;
       if (!notiz.baumFreigabe || !notiz.baumFreigabe.id) {
         notiz.baumFreigabe = { id: eigeneKennung + ":" + notiz.id,
           partner: [], anhangPartner: [] };
@@ -15008,6 +15011,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
     for (const aufgabe of DATEN.aufgaben) {
       if (aufgabe.fremdId || (aufgabe.herkunft && aufgabe.herkunft !== eigeneKennung)) continue;
+      if (weitergabeQuelle !== null && aufgabe.delegiertAn !== weitergabeQuelle) continue;
       schickeAnZweig(aufgabe, kennung, syncLauf);
     }
     if (mitAnfrage) schickeBaumInhalt("sync_anfrage", {}, [kennung]);
@@ -22149,7 +22153,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         (p2) => p2.kennung === stueck.von);
       const vertraut = !!(partner && partner.bestaetigt && partner.vertraut);
       if (art === "sync_anfrage") {
-        if (vertraut) {
+        if (vertraut || (partner?.bestaetigt && partner.weitergabeQuelle)) {
           synchronisiereAllesMit(stueck.von, false);
           erledigteIds.push(stueck.id);
         }
@@ -23340,9 +23344,22 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           return;
         }
         Bruecke.sende({ cmd: "baum_paaren", adresse: adresse,
-          port: baumStand.port || 8737, fingerabdruck: finger });
+          port: baumStand.port || 8737, fingerabdruck: finger, anfrage: true });
       }));
       ab.append(internetKasten);
+    }
+
+    for (const angebot of baumStand.weitergabeAngebote || []) {
+      const zeile = el("div", "baum-zeile wartet");
+      const von = baumStand.partner.find(p => p.kennung === angebot.von);
+      zeile.append(el("span", "baum-name", _("Shared connection") + ": " + angebot.name),
+        el("span", "baum-abdruck", angebot.fingerabdruck),
+        el("small", null, uebersetzt(" from %(branch)s", { branch: von?.name || angebot.von })));
+      zeile.append(knopf(_("Accept"), "klein", async () => {
+        if (await frage(_("Create a separate connection to this computer?") + "\n\n" + angebot.name + "\n" + angebot.fingerabdruck, _("Accept")))
+          Bruecke.sende({ cmd: "baum_weitergabe_annehmen", id: angebot.id, ja: true });
+      }), knopf(_("Reject"), "klein", () => Bruecke.sende({ cmd: "baum_weitergabe_annehmen", id: angebot.id, ja: false })));
+      ab.append(zeile);
     }
 
     /* ---- Angebote, die erst nach Bestätigung übernommen werden ---- */
@@ -23445,6 +23462,29 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         });
         zeile.append(automatischZeile);
 
+        const weitergabe = document.createElement("input");
+        weitergabe.type = "checkbox"; weitergabe.checked = !!p2.weitergabeErlaubt;
+        const weitergabeZeile = el("label", "hak baum-vertrauen");
+        weitergabeZeile.append(weitergabe, document.createTextNode(" " + _("Allow this device to share this connection")));
+        weitergabe.addEventListener("change", () => Bruecke.sende({ cmd: "baum_weitergabe_erlauben",
+          kennung: p2.kennung, fingerabdruck: p2.fingerabdruck, erlaubt: weitergabe.checked }));
+        zeile.append(weitergabeZeile);
+        const ziele = baumStand.partner.filter(p => p.bestaetigt && p.kennung !== p2.kennung);
+        if (ziele.length) {
+          const ziel = document.createElement("select");
+          ziel.setAttribute("aria-label", _("Share connection with"));
+          for (const p of ziele) { const option = document.createElement("option"); option.value = p.kennung; option.textContent = p.name || p.kennung; ziel.append(option); }
+          zeile.append(ziel, knopf(_("Share connection"), "klein", async () => {
+            const empfaenger = ziele.find(p => p.kennung === ziel.value);
+            if (!empfaenger) return;
+            if (!p2.fernAdresse) { zettel(_("The home computer needs a reachable Internet address.")); return; }
+            if (await frage(_("Share this connection with the selected device?") + "\n\n" + (p2.name || p2.kennung) + " → " +
+                (empfaenger.name || empfaenger.kennung) + "\n" + empfaenger.fingerabdruck, _("Share connection")))
+              Bruecke.sende({ cmd: "baum_weitergeben", kennung: p2.kennung, ziel: empfaenger.kennung,
+                fingerabdruck: p2.fingerabdruck, zielFingerabdruck: empfaenger.fingerabdruck });
+          }));
+        }
+
         const kontakte = document.createElement("input");
         kontakte.type = "checkbox";
         kontakte.checked = !!p2.kontakte;
@@ -23541,9 +23581,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           "Contacts are merged additively. No deletions are transmitted.")));
       } else {
         zeile.append(el("span", "baum-code", "Code " + p2.code));
-        zeile.append(knopf(_("Code matches"), "klein", () => {
+        if (p2.anfrageAusgehend) zeile.append(el("p", "einst-hinweis", _("Waiting for consent on the other device.")));
+        else zeile.append(knopf(_("Code matches"), "klein", () => {
           Bruecke.sende({ cmd: "baum_bestaetigen", kennung: p2.kennung,
-            ja: true });
+            ja: true, fingerabdruck: p2.fingerabdruck || "" });
         }));
       }
       const verbindungFolgen = _("Synchronization state, pending messages and metadata for this " +
@@ -28924,14 +28965,23 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         zettel(nutzlast.fehler || _("That did not work."));
         return;
       }
+      if (nutzlast.bereitsBestaetigt || nutzlast.anfrage) {
+        if (!nutzlast.bereitsBestaetigt) zettel(_("Waiting for consent on the other device."));
+        Bruecke.sende({ cmd: "baum_stand" }); return;
+      }
       frage(uebersetzt("The same code must appear on both computers:\n\n%(code)s\n\n" +
         "Other branch: %(branch)s\nFingerprint: %(fingerprint)s\n\nDoes the code match?",
       { code: nutzlast.code, branch: nutzlast.name,
         fingerprint: nutzlast.fingerabdruck }), _("Yes, the code matches")).then((ja) => {
         Bruecke.sende({ cmd: "baum_bestaetigen", kennung: nutzlast.kennung,
-          ja: !!ja });
+          ja: !!ja, fingerabdruck: nutzlast.fingerabdruck || "" });
       });
     },
+    baumWeitergabe(nutzlast) {
+      zettel(nutzlast?.ok ? (nutzlast.wartet ? _("Connection offered. Accept it on the other computer.") : _("Connection already accepted.")) :
+        (nutzlast?.fehler || _("The connection could not be shared.")));
+    },
+
     baumPaarungsdatei(nutzlast) {
       nutzlast = nutzlast || {};
       if (!nutzlast.ok) {
@@ -28944,6 +28994,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       } else {
         zettel(uebersetzt("Securely connected to %(branch)s.", {
           branch: nutzlast.name || _("the other branch") }));
+        if (nutzlast.weitergabe && nutzlast.kennung) schickeBaumInhalt("sync_anfrage", {}, [nutzlast.kennung]);
       }
     },
     baumPartnerEinstellungen(nutzlast) {

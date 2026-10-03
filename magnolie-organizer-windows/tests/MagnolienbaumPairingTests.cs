@@ -11,6 +11,9 @@ internal static class MagnolienbaumPairingTests
 {
     internal static async Task RunAsync(string root)
     {
+        SharedConnectionInvitation();
+        await SharedThreeDevicesAsync(Path.Combine(root, "three-devices"), true);
+        await SharedThreeDevicesAsync(Path.Combine(root, "three-devices-rejected"), false);
         const long now = 1_700_000_000;
         var a = State("alpha"); var b = State("beta");
         var peerB = Trust(a, b); var peerA = Trust(b, a);
@@ -140,6 +143,117 @@ internal static class MagnolienbaumPairingTests
         var sessionEnvelope = MagnolienbaumFs1.BuildEnvelope(session, "alpha", "beta", new JsonObject { ["art"] = "aufgabe", ["titel"] = "Existing authenticated session" }, Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)));
         var sessionResult = coordinator.HandleProtocolRequest("/magnolie/v2/nachricht", sessionEnvelope, "127.0.0.1");
         TestAssert.That(sessionResult.Status == 200 && MagnolienbaumFs1.VerifyAcknowledgement(session, sessionEnvelope, sessionResult.Body), "Same-key protocol upgrade discarded a valid source-bound session.");
+    }
+
+    private static async Task SharedThreeDevicesAsync(string root, bool accept)
+    {
+        int FreePort()
+        {
+            var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0); listener.Start();
+            var port = ((IPEndPoint)listener.LocalEndpoint).Port; listener.Stop(); return port;
+        }
+        var states = new[] { State("home"), State("laptop"), State("office") };
+        var ports = new HashSet<int>();
+        foreach (var value in states) { var port = FreePort(); while (!ports.Add(port)) port = FreePort(); value["port"] = port; }
+        var home = states[0]; var laptop = states[1]; var office = states[2];
+        var sponsor = Trust(home, laptop); var homePeer = Trust(laptop, home);
+        Trust(laptop, office); Trust(office, laptop);
+        MagnolienbaumPairing.SetSharingPermission(home, "laptop", laptop["oeffentlich"]!.GetValue<string>(), true);
+        homePeer["fernAdresse"] = "127.0.0.1"; homePeer["fernPort"] = home["port"]!.DeepClone();
+        var unavailablePort = FreePort(); while (ports.Contains(unavailablePort)) unavailablePort = FreePort();
+        homePeer["port"] = unavailablePort; // The old LAN route is no longer usable.
+        var paths = states.Select(value => new WindowsPaths(Path.Combine(root, value["kennung"]!.GetValue<string>()))).ToArray();
+        for (var i = 0; i < paths.Length; i++) { paths[i].EnsureDirectories(); new MagnolienbaumStore(paths[i]).SaveState(states[i]); }
+        var events = new System.Collections.Concurrent.ConcurrentQueue<(string Name, JsonObject Payload)>();
+        Task Emit(string name, object value) { events.Enqueue((name, JsonSerializer.SerializeToNode(value)!.AsObject())); return Task.CompletedTask; }
+        using var homeRuntime = new MagnolienbaumCoordinator(paths[0], Emit);
+        using var laptopRuntime = new MagnolienbaumCoordinator(paths[1], Emit);
+        using var officeRuntime = new MagnolienbaumCoordinator(paths[2], Emit);
+        var liveStateField = typeof(MagnolienbaumCoordinator).GetField("state", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var inFlightPeer = ((JsonObject)liveStateField.GetValue(homeRuntime)!)["partner"]![0];
+        await homeRuntime.ResumeAsync(); await laptopRuntime.ResumeAsync(); await officeRuntime.ResumeAsync();
+        string Fingerprint(JsonObject value) => MagnolienbaumCrypto.Fingerprint(Convert.FromBase64String(value["oeffentlich"]!.GetValue<string>()));
+        await laptopRuntime.ShareConnectionAsync("home", "office", Fingerprint(home), Fingerprint(office));
+        var result = events.Last(value => value.Name == "App.baumWeitergabe").Payload;
+        TestAssert.That(result["ok"]!.GetValue<bool>(), "Three-device TCP forwarding failed: " + result["fehler"]);
+        TestAssert.That(ReferenceEquals(inFlightPeer, ((JsonObject)liveStateField.GetValue(homeRuntime)!)["partner"]![0]),
+            "Saving a connection invitation detached a peer still used by an in-flight delivery.");
+        var officeStored = new MagnolienbaumStore(paths[2]).LoadOrCreate();
+        TestAssert.That(officeStored["partner"]!.AsArray().Count == 1, "Receiving an offer silently paired the office computer.");
+        var offer = officeStored["weitergabeAngebote"]!.AsArray().Single()!.AsObject();
+        // Lost offer response/repeated button press uses the durable operation ID.
+        await laptopRuntime.ShareConnectionAsync("home", "office", Fingerprint(home), Fingerprint(office));
+        TestAssert.That(new MagnolienbaumStore(paths[2]).LoadOrCreate()["weitergabeAngebote"]!.AsArray().Count == 1,
+            "Retry duplicated the pending connection offer.");
+        await officeRuntime.AcceptSharedOfferAsync(offer["id"]!.GetValue<string>(), accept);
+        if (!accept)
+        {
+            await laptopRuntime.ShareConnectionAsync("home", "office", Fingerprint(home), Fingerprint(office));
+            TestAssert.That(!events.Last(value => value.Name == "App.baumWeitergabe").Payload["ok"]!.GetValue<bool>() &&
+                new MagnolienbaumStore(paths[2]).LoadOrCreate()["weitergabeAngebote"]!.AsArray().Count == 0 &&
+                new MagnolienbaumStore(paths[0]).LoadOrCreate()["partner"]!.AsArray().Count == 1,
+                "Retry revived a rejected connection offer.");
+            return;
+        }
+        var paired = events.Last(value => value.Name == "App.baumPaarungsdatei").Payload;
+        TestAssert.That(paired["ok"]!.GetValue<bool>(), "Office could not accept its own connection: " + paired["fehler"]);
+        await laptopRuntime.ShareConnectionAsync("home", "office", Fingerprint(home), Fingerprint(office));
+        var repeated = events.Last(value => value.Name == "App.baumWeitergabe").Payload;
+        TestAssert.That(repeated["ok"]!.GetValue<bool>() && !repeated["wartet"]!.GetValue<bool>() &&
+            new MagnolienbaumStore(paths[2]).LoadOrCreate()["weitergabeAngebote"]!.AsArray().Count == 0,
+            "Retry prompted again for an already accepted connection.");
+        laptopRuntime.Dispose();
+        await homeRuntime.SendAsync("office", "notiz", new JsonObject { ["freigabeId"] = "three-device-note", ["titel"] = "Home without laptop" });
+        TestAssert.That(new MagnolienbaumStore(paths[2]).LoadInbox().OfType<JsonObject>().Any(value =>
+            value["inhalt"]?["titel"]?.GetValue<string>() == "Home without laptop"), "Office still depended on the laptop for transport.");
+        foreach (var (path, original) in paths.Zip(states))
+            TestAssert.That(new MagnolienbaumStore(path).LoadOrCreate()["oeffentlich"]!.GetValue<string>() == original["oeffentlich"]!.GetValue<string>(),
+                "Forwarding replaced a device identity.");
+        var child = new MagnolienbaumStore(paths[0]).LoadOrCreate()["partner"]!.AsArray().OfType<JsonObject>().Single(value => value["kennung"]!.GetValue<string>() == "office");
+        TestAssert.That(child["kontakte"]?.GetValue<bool>() != true && child["weitergabeErlaubt"]?.GetValue<bool>() != true,
+            "Forwarding expanded the office computer's permissions.");
+    }
+
+    private static void SharedConnectionInvitation()
+    {
+        const long now = 1_700_000_000;
+        var home = State("home"); var laptop = State("laptop"); var office = State("office");
+        var sponsor = Trust(home, laptop);
+        TestAssert.Throws<InvalidOperationException>(() => MagnolienbaumPairing.CreateSharedFile(home, "laptop",
+            laptop["oeffentlich"]!.GetValue<string>(), MagnolienbaumPairing.Identity(office), "127.0.0.1", 8737, now),
+            "A paired device delegated a connection without permission.");
+        MagnolienbaumPairing.SetSharingPermission(home, "laptop", laptop["oeffentlich"]!.GetValue<string>(), true);
+        var invitation = MagnolienbaumPairing.CreateSharedFile(home, "laptop", laptop["oeffentlich"]!.GetValue<string>(),
+            MagnolienbaumPairing.Identity(office), "127.0.0.1", 8737, now);
+        var wrong = MagnolienbaumPairing.BuildRequest(State("wrong"), invitation, now: now + 1);
+        TestAssert.Throws<InvalidDataException>(() => MagnolienbaumPairing.AcceptRequest(home, wrong, "127.0.0.1", now + 1),
+            "A shared invitation accepted a different target device.");
+        TestAssert.That(home["paarungen"]!.AsArray().Count == 1, "Wrong target consumed the invitation.");
+        var request = MagnolienbaumPairing.BuildRequest(office, invitation, now: now + 1);
+        MagnolienbaumPairing.SetSharingPermission(home, "laptop", laptop["oeffentlich"]!.GetValue<string>(), false);
+        TestAssert.Throws<InvalidDataException>(() => MagnolienbaumPairing.AcceptRequest(home, request, "127.0.0.1", now + 1),
+            "Revoked sharing still authorized a new device.");
+        MagnolienbaumPairing.SetSharingPermission(home, "laptop", laptop["oeffentlich"]!.GetValue<string>(), true);
+        TestAssert.Throws<InvalidDataException>(() => MagnolienbaumPairing.AcceptRequest(home, request, "127.0.0.1", now + 1),
+            "Re-enabling sharing revived a revoked invitation.");
+        TestAssert.Throws<InvalidOperationException>(() => MagnolienbaumPairing.SetSharingPermission(home, "laptop",
+            office["oeffentlich"]!.GetValue<string>(), false), "Stale identity changed sharing permission.");
+        TestAssert.That(sponsor["weitergabeErlaubt"]!.GetValue<bool>(), "Rejected authorization mutated permission.");
+        invitation = MagnolienbaumPairing.CreateSharedFile(home, "laptop", laptop["oeffentlich"]!.GetValue<string>(),
+            MagnolienbaumPairing.Identity(office), "127.0.0.1", 8737, now);
+        request = MagnolienbaumPairing.BuildRequest(office, invitation, now: now + 1);
+        var response = MagnolienbaumPairing.AcceptRequest(home, request, "127.0.0.1", now + 1);
+        MagnolienbaumPairing.ValidateResponse(invitation, request, response);
+        var child = home["partner"]!.AsArray().OfType<JsonObject>().Single(value => value["kennung"]!.GetValue<string>() == "office");
+        TestAssert.That(child["oeffentlich"]!.GetValue<string>() == office["oeffentlich"]!.GetValue<string>() &&
+            child["oeffentlich"]!.GetValue<string>() != laptop["oeffentlich"]!.GetValue<string>() &&
+            child["bestaetigt"]!.GetValue<bool>() && child["vertraut"]?.GetValue<bool>() != true &&
+            child["weitergabeErlaubt"]?.GetValue<bool>() != true, "Shared connection cloned an identity or widened permissions.");
+        TestAssert.That(JsonNode.DeepEquals(response, MagnolienbaumPairing.AcceptRequest(home, request, "127.0.0.1", now + 2)),
+            "Lost response could not be recovered without another pairing.");
+        home["partner"]!.AsArray().Remove(child);
+        TestAssert.Throws<InvalidDataException>(() => MagnolienbaumPairing.AcceptRequest(home, request, "127.0.0.1", now + 3),
+            "Old shared invitation revived an explicitly removed device.");
     }
 
     private static JsonObject State(string id)

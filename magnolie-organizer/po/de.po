@@ -810,6 +810,9 @@ msgstr "Alle Bundesländer"
 msgid "Allow notifications despite password protection"
 msgstr "Benachrichtigungen trotz Kennwortschutz zulassen"
 
+msgid "Allow this device to share this connection"
+msgstr "Diesem Gerät die Weitergabe dieser Verbindung erlauben"
+
 msgid "Allowed background functions"
 msgstr "Zulässige Hintergrundfunktionen"
 
@@ -1792,13 +1795,22 @@ msgstr "Verbunden"
 msgid "Connecting to the online accounts"
 msgstr "Die Verbindung zu den Online-Konten"
 
+msgid "Connection already accepted."
+msgstr "Verbindung bereits angenommen."
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr ""
 "Die verfügbaren Verbindungen konnten nicht ermittelt werden. Prüfen Sie den "
 "Server und die Zugangsdaten."
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr "Verbindung angeboten. Bitte am anderen Rechner annehmen."
+
 msgid "Connection ready"
 msgstr "Verbindung bereit"
+
+msgid "Connection sharing was rejected."
+msgstr "Die Verbindungsweitergabe wurde abgelehnt."
 
 msgid "Contact"
 msgstr "Kontakt"
@@ -1957,6 +1969,9 @@ msgstr "Eine Gettext-POT-Vorlage erzeugen"
 
 msgid "Create a new appointment immediately"
 msgstr "Gleich einen neuen Termin anlegen"
+
+msgid "Create a separate connection to this computer?"
+msgstr "Eine eigene Verbindung zu diesem Rechner einrichten?"
 
 msgid "Create an empty printable template"
 msgstr "Leere druckbare Vorlage erstellen"
@@ -5756,6 +5771,15 @@ msgstr "Adresse freigeben"
 msgid "Share appointment"
 msgstr "Termin freigeben"
 
+msgid "Share connection"
+msgstr "Verbindung weitergeben"
+
+msgid "Share connection with"
+msgstr "Verbindung weitergeben an"
+
+msgid "Share this connection with the selected device?"
+msgstr "Diese Verbindung an das ausgewählte Gerät weitergeben?"
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr "Diesen Eintrag ausdrücklich für %(branch)s freigeben?"
 
@@ -5768,11 +5792,17 @@ msgstr "Diesen Eintrag ausdrücklich für diesen Zweig freigeben?"
 msgid "Share together"
 msgstr "Gemeinsam freigeben"
 
+msgid "Shared connection"
+msgstr "Weitergegebene Verbindung"
+
 msgid "Shared credentials"
 msgstr "Gemeinsame Zugangsdaten"
 
 msgid "Shared note"
 msgstr "Gemeinsame Notiz"
+
+msgid "Sharing this connection is not allowed."
+msgstr "Die Weitergabe dieser Verbindung ist nicht freigegeben."
 
 msgid "Shift planner"
 msgstr "Schichtdienst-Planer"
@@ -6570,6 +6600,9 @@ msgstr ""
 "Die Datei wird vollständig in dieser Notiz gespeichert (höchstens 8 "
 "Megabyte)."
 
+msgid "The connection could not be shared."
+msgstr "Die Verbindung konnte nicht weitergegeben werden."
+
 msgid "The connection settings could not be saved."
 msgstr "Die Verbindungseinstellungen konnten nicht gespeichert werden."
 
@@ -6733,6 +6766,9 @@ msgstr "Die Feiertage wurden übernommen."
 
 msgid "The holidays were removed."
 msgstr "Die Feiertage wurden entfernt."
+
+msgid "The home computer needs a reachable Internet address."
+msgstr "Für den Zuhause-Rechner fehlt eine erreichbare Internetadresse."
 
 msgid "The import exceeds the supported limits."
 msgstr "Der Import überschreitet die unterstützten Grenzen."
@@ -7616,6 +7652,9 @@ msgstr "Es sind noch zu viele Paarungsdateien gültig."
 
 msgid "Too many pairing requests are awaiting confirmation."
 msgstr "Zu viele Paarungsanfragen warten auf Bestätigung."
+
+msgid "Too many pairing requests are waiting."
+msgstr "Zu viele offene Paarungsanfragen."
 
 msgid "Too many regions were selected."
 msgstr "Es wurden zu viele Regionen ausgewählt."

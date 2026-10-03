@@ -950,6 +950,9 @@ msgstr "كل الولايات"
 msgid "Allow notifications despite password protection"
 msgstr "السماح بالإشعارات رغم الحماية بكلمة مرور"
 
+msgid "Allow this device to share this connection"
+msgstr "السماح لهذا الجهاز بمشاركة هذا الاتصال"
+
 msgid "Allowed background functions"
 msgstr "وظائف الخلفية المسموح بها"
 
@@ -1898,11 +1901,20 @@ msgstr "متصل"
 msgid "Connecting to the online accounts"
 msgstr "جارٍ الاتصال بالحسابات عبر الإنترنت"
 
+msgid "Connection already accepted."
+msgstr "تم قبول الاتصال بالفعل."
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr "تعذّر اكتشاف الاتصال. تحقق من الخادم وبيانات الدخول."
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr "تم عرض الاتصال. اقبله على الحاسوب الآخر."
+
 msgid "Connection ready"
 msgstr "الاتصال جاهز"
+
+msgid "Connection sharing was rejected."
+msgstr "رُفضت مشاركة الاتصال."
 
 msgid "Contact"
 msgstr "جهة اتصال"
@@ -2054,6 +2066,9 @@ msgstr "إنشاء قالب gettext POT"
 
 msgid "Create a new appointment immediately"
 msgstr "إنشاء موعد جديد فورًا"
+
+msgid "Create a separate connection to this computer?"
+msgstr "إنشاء اتصال مستقل بهذا الحاسوب؟"
 
 msgid "Create an empty printable template"
 msgstr "إنشاء قالب فارغ قابل للطباعة"
@@ -5792,6 +5807,15 @@ msgstr "مشاركة العنوان"
 msgid "Share appointment"
 msgstr "مشاركة الموعد"
 
+msgid "Share connection"
+msgstr "مشاركة الاتصال"
+
+msgid "Share connection with"
+msgstr "مشاركة الاتصال مع"
+
+msgid "Share this connection with the selected device?"
+msgstr "مشاركة هذا الاتصال مع الجهاز المحدد؟"
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr "مشاركة هذا العنصر صراحةً مع %(branch)s؟"
 
@@ -5804,11 +5828,17 @@ msgstr "مشاركة هذا العنصر صراحةً مع هذا الفرع؟"
 msgid "Share together"
 msgstr "مشاركة معًا"
 
+msgid "Shared connection"
+msgstr "اتصال مشترك"
+
 msgid "Shared credentials"
 msgstr "بيانات الاعتماد المشتركة"
 
 msgid "Shared note"
 msgstr "ملاحظة مشتركة"
+
+msgid "Sharing this connection is not allowed."
+msgstr "مشاركة هذا الاتصال غير مسموحة."
 
 msgid "Shift planner"
 msgstr "مخطط المناوبات"
@@ -6584,6 +6614,9 @@ msgstr "طريقة الاتصال غير مكتملة."
 msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr "يُخزَّن الملف كاملًا في هذه الملاحظة (حتى 8 ميغابايت)."
 
+msgid "The connection could not be shared."
+msgstr "تعذرت مشاركة الاتصال."
+
 msgid "The connection settings could not be saved."
 msgstr "تعذّر حفظ إعدادات الاتصال."
 
@@ -6734,6 +6767,9 @@ msgstr "تم استيراد العطل."
 
 msgid "The holidays were removed."
 msgstr "تمت إزالة العطل."
+
+msgid "The home computer needs a reachable Internet address."
+msgstr "يحتاج حاسوب المنزل إلى عنوان إنترنت قابل للوصول."
 
 msgid "The import exceeds the supported limits."
 msgstr "يتجاوز الاستيراد الحدود المدعومة."
@@ -7570,6 +7606,9 @@ msgstr "لا يزال عدد كبير جدًا من ملفات الإقران ص
 
 msgid "Too many pairing requests are awaiting confirmation."
 msgstr "طلبات إقران كثيرة جدًا بانتظار التأكيد."
+
+msgid "Too many pairing requests are waiting."
+msgstr "طلبات اقتران معلقة كثيرة جداً."
 
 msgid "Too many regions were selected."
 msgstr "تم تحديد مناطق كثيرة جدًا."

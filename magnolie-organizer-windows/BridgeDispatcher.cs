@@ -73,7 +73,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var command = parsed.RootElement.GetProperty("cmd").GetString()!;
             if (command is "wetter" or "feiertage" or "update_pruefen" or "journal_liste" or "import_lokal" or
                 "update_herunterladen" or "eds_status" or "graph_anmelden" or "baum_suchen" or "baum_paaren" or "baum_briefkasten_pruefen" or "kde_sms_senden" or "cloud_sicherung_test" or
-                "baum_ein" or "baum_teilen" or "baum_delegieren" or "baum_rueckmeldung" or "telefon_ein" or "telefon_verbindung_ein" or
+                "baum_ein" or "baum_teilen" or "baum_delegieren" or "baum_rueckmeldung" or "baum_weitergeben" or "baum_weitergabe_annehmen" or "telefon_ein" or "telefon_verbindung_ein" or
                 "telefon_status_anfordern" or "telefon_waehlen" or "telefon_annehmen" or "telefon_auflegen" or
                 "sync" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
                 "telefon_oeffnen" or "telefon_verbinden" or "telefon_pairing_oeffnen" or "kde_pairing_start" or "kde_pairing_complete" or
@@ -210,10 +210,13 @@ internal sealed partial class BridgeDispatcher : IDisposable
                         await baum.SwitchAsync(Boolean(message, "an"), Text(message, "name"));
                         break;
                     case "baum_suchen": await baum.SearchAsync(); break;
-                    case "baum_paaren": await baum.PairV1Async(Text(message, "adresse"), Integer(message, "port"), Text(message, "fingerabdruck")); break;
-                    case "baum_bestaetigen": await baum.ConfirmAsync(Text(message, "kennung"), Boolean(message, "ja")); break;
+                    case "baum_paaren": await baum.PairV1Async(Text(message, "adresse"), Integer(message, "port"), Text(message, "fingerabdruck"), Boolean(message, "anfrage")); break;
+                    case "baum_bestaetigen": await baum.ConfirmAsync(Text(message, "kennung"), Boolean(message, "ja"), Text(message, "fingerabdruck")); break;
                     case "baum_entfernen": await baum.RemoveAsync(Text(message, "kennung")); break;
                     case "baum_partner_einstellungen": await baum.SetPartnerAsync(Text(message, "kennung"), Boolean(message, "vertraut"), Boolean(message, "kontakte"), Boolean(message, "kontaktLoeschen"), Text(message, "fernAdresse"), Port(message, "fernPort")); break;
+                    case "baum_weitergabe_erlauben": await baum.SetSharingPermissionAsync(Text(message, "kennung"), Text(message, "fingerabdruck"), Boolean(message, "erlaubt")); break;
+                    case "baum_weitergeben": await baum.ShareConnectionAsync(Text(message, "kennung"), Text(message, "ziel"), Text(message, "fingerabdruck"), Text(message, "zielFingerabdruck")); break;
+                    case "baum_weitergabe_annehmen": await baum.AcceptSharedOfferAsync(Text(message, "id"), Boolean(message, "ja")); break;
                     case "baum_delegieren": await BaumSendAsync(message, "aufgabe", "aufgabe"); break;
                     case "baum_teilen": await BaumSendAsync(message, Text(message, "art"), "inhalt"); break;
                     case "baum_rueckmeldung": await BaumSendAsync(message, "stand", "stand"); break;

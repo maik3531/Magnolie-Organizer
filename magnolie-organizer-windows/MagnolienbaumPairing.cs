@@ -57,6 +57,131 @@ internal static class MagnolienbaumPairing
         return document;
     }
 
+    internal static JsonObject SetSharingPermission(JsonObject state, string id, string publicKey, bool allowed)
+    {
+        var partner = state["partner"]!.AsArray().OfType<JsonObject>().FirstOrDefault(value => value["kennung"]?.GetValue<string>() == id);
+        if (partner?["bestaetigt"]?.GetValue<bool>() != true || partner["oeffentlich"]?.GetValue<string>() != publicKey)
+            throw new InvalidOperationException("Die Paarungsanfrage gilt nicht mehr.");
+        partner["weitergabeErlaubt"] = allowed;
+        if (!allowed && state["paarungen"] is JsonArray invitations)
+            state["paarungen"] = new JsonArray(invitations.OfType<JsonObject>()
+                .Where(value => value["weitergabeVon"]?.GetValue<string>() != id)
+                .Select(value => value.DeepClone()).ToArray());
+        return partner;
+    }
+
+    internal static JsonObject CreateSharedFile(JsonObject state, string sponsorId, string sponsorPublicKey,
+        JsonObject recipient, string address, int port, long now)
+    {
+        var sponsor = state["partner"]!.AsArray().OfType<JsonObject>().FirstOrDefault(value => value["kennung"]?.GetValue<string>() == sponsorId);
+        if (sponsor?["bestaetigt"]?.GetValue<bool>() != true || sponsor["weitergabeErlaubt"]?.GetValue<bool>() != true ||
+            sponsor["oeffentlich"]?.GetValue<string>() != sponsorPublicKey)
+            throw new InvalidOperationException(NativeLocalization.Gettext("Sharing this connection is not allowed."));
+        if (!recipient.Select(value => value.Key).ToHashSet(StringComparer.Ordinal).SetEquals(new[] { "kennung", "name", "oeffentlich", "port" }))
+            throw new InvalidDataException("Die Zweigidentität ist unvollständig.");
+        var id = recipient["kennung"]?.GetValue<string>() ?? "";
+        var key = recipient["oeffentlich"]?.GetValue<string>() ?? "";
+        if (id.Length is < 1 or > 32 || id == sponsorId || id == state["kennung"]?.GetValue<string>() ||
+            !ValidPublic(key) || key == sponsorPublicKey || key == state["oeffentlich"]?.GetValue<string>())
+            throw new InvalidDataException("Die Paarungsanfrage ist ungültig.");
+        var document = CreateFile(state, address, port, now);
+        var invitation = state["paarungen"]!.AsArray().OfType<JsonObject>().Single(value => value["paarung"]!.GetValue<string>() == document["paarung"]!.GetValue<string>());
+        invitation["weitergabeVon"] = sponsorId; invitation["weitergabeSchluessel"] = sponsorPublicKey;
+        invitation["zielKennung"] = id; invitation["zielOeffentlich"] = key;
+        return document;
+    }
+
+    // Called only after the enclosing FS1 request has authenticated the current peer.
+    internal static JsonObject SharedRequest(JsonObject state, JsonObject peer, JsonObject request, long now)
+    {
+        if (peer["bestaetigt"]?.GetValue<bool>() != true ||
+            !state["partner"]!.AsArray().OfType<JsonObject>().Any(value => ReferenceEquals(value, peer)))
+            throw new InvalidDataException("Dieser Zweig wurde noch nicht bestätigt.");
+        var operation = request["aktion"]?.GetValue<string>() ?? "";
+        var id = request["id"]?.GetValue<string>() ?? "";
+        _ = MagnolienbaumCrypto.ReadBase64Url(id, 16);
+        if (operation == "einladung")
+        {
+            if (!request.Select(value => value.Key).ToHashSet().SetEquals(new[] { "aktion", "id", "ziel", "adresse", "port" }))
+                throw new InvalidDataException("Die Paarungsanfrage ist ungültig.");
+            if (peer["weitergabeErlaubt"]?.GetValue<bool>() != true)
+                throw new InvalidOperationException(NativeLocalization.Gettext("Sharing this connection is not allowed."));
+            var hash = Convert.ToHexString(SHA256.HashData(MagnolienbaumCrypto.Canonical(request)));
+            var invitations = state["paarungen"] as JsonArray ?? new JsonArray();
+            var prior = invitations.OfType<JsonObject>().FirstOrDefault(value =>
+                value["weitergabeAnfrage"]?.GetValue<string>() == id &&
+                value["weitergabeVon"]?.GetValue<string>() == peer["kennung"]!.GetValue<string>());
+            if (prior is not null)
+            {
+                if (prior["weitergabeHash"]?.GetValue<string>() != hash ||
+                    prior["weitergabeSchluessel"]?.GetValue<string>() != peer["oeffentlich"]!.GetValue<string>() ||
+                    prior["gueltigBis"]!.GetValue<long>() <= now)
+                    throw new InvalidDataException("Die Paarungsanfrage gilt nicht mehr.");
+                return prior["weitergabeDatei"]!.DeepClone().AsObject();
+            }
+            var document = CreateSharedFile(state, peer["kennung"]!.GetValue<string>(), peer["oeffentlich"]!.GetValue<string>(),
+                request["ziel"]!.AsObject(), request["adresse"]!.GetValue<string>(), request["port"]!.GetValue<int>(), now);
+            var created = state["paarungen"]!.AsArray().OfType<JsonObject>().Single(value =>
+                value["paarung"]!.GetValue<string>() == document["paarung"]!.GetValue<string>());
+            created["weitergabeAnfrage"] = id; created["weitergabeHash"] = hash; created["weitergabeDatei"] = document.DeepClone();
+            return document;
+        }
+        if (operation == "angebot")
+        {
+            if (!request.Select(value => value.Key).ToHashSet().SetEquals(new[] { "aktion", "id", "datei", "ziel" }) ||
+                request["ziel"]?["kennung"]?.GetValue<string>() != state["kennung"]!.GetValue<string>() ||
+                request["ziel"]?["oeffentlich"]?.GetValue<string>() != state["oeffentlich"]!.GetValue<string>())
+                throw new InvalidDataException("Die Paarungsanfrage ist ungültig.");
+            var document = request["datei"]!.AsObject(); ValidateFile(document, now);
+            if (document["einlader"]!["kennung"]!.GetValue<string>() == state["kennung"]!.GetValue<string>())
+                throw new InvalidDataException("Die Paarungsanfrage ist ungültig.");
+            var completed = (state["weitergabeAbschluesse"] as JsonArray)?.OfType<JsonObject>().FirstOrDefault(value =>
+                value["id"]!.GetValue<string>() == id && value["gueltigBis"]!.GetValue<long>() > now);
+            if (completed is not null)
+            {
+                if (completed["von"]!.GetValue<string>() != peer["kennung"]!.GetValue<string>() ||
+                    completed["schluessel"]!.GetValue<string>() != peer["oeffentlich"]!.GetValue<string>() ||
+                    completed["home"]!.GetValue<string>() != document["einlader"]!["kennung"]!.GetValue<string>() ||
+                    completed["homeSchluessel"]!.GetValue<string>() != document["einlader"]!["oeffentlich"]!.GetValue<string>())
+                    throw new InvalidDataException("Die Paarungsanfrage gilt nicht mehr.");
+                var accepted = completed["angenommen"]!.GetValue<bool>();
+                if (accepted && !state["partner"]!.AsArray().OfType<JsonObject>().Any(value => value["bestaetigt"]?.GetValue<bool>() == true &&
+                    value["kennung"]?.GetValue<string>() == completed["home"]!.GetValue<string>() &&
+                    value["oeffentlich"]?.GetValue<string>() == completed["homeSchluessel"]!.GetValue<string>()))
+                    throw new InvalidDataException("Die Paarungsanfrage gilt nicht mehr.");
+                return new JsonObject { ["id"] = id, ["wartet"] = false, ["angenommen"] = accepted };
+            }
+            var offers = new JsonArray((state["weitergabeAngebote"] as JsonArray ?? new JsonArray()).OfType<JsonObject>()
+                .Where(value => value["datei"]!["gueltigBis"]!.GetValue<long>() > now).Select(value => value.DeepClone()).ToArray());
+            var previous = offers.OfType<JsonObject>().FirstOrDefault(value => value["id"]!.GetValue<string>() == id);
+            var offer = new JsonObject { ["id"] = id, ["von"] = peer["kennung"]!.DeepClone(),
+                ["schluessel"] = peer["oeffentlich"]!.DeepClone(), ["datei"] = document.DeepClone(), ["ziel"] = request["ziel"]!.DeepClone() };
+            var original = previous?.DeepClone().AsObject(); original?.Remove("anfrage");
+            if (original is not null && !JsonNode.DeepEquals(original, offer)) throw new InvalidDataException("Die Paarungsanfrage ist ungültig.");
+            if (previous is null)
+            {
+                if (offers.Count >= 8) throw new InvalidOperationException(NativeLocalization.Gettext("Too many pairing requests are waiting."));
+                offers.Add(offer);
+            }
+            state["weitergabeAngebote"] = offers;
+            return new JsonObject { ["id"] = id, ["wartet"] = true };
+        }
+        throw new InvalidDataException("Unbekannter Endpunkt.");
+    }
+
+    internal static void CompleteSharedOffer(JsonObject state, JsonObject offer, bool accepted, long now)
+    {
+        var receipts = new JsonArray((state["weitergabeAbschluesse"] as JsonArray ?? new JsonArray()).OfType<JsonObject>()
+            .Where(value => value["gueltigBis"]!.GetValue<long>() > now).Select(value => value.DeepClone()).ToArray());
+        if (receipts.Count >= 100) throw new InvalidOperationException(NativeLocalization.Gettext("Too many pairing requests are waiting."));
+        receipts.Add(new JsonObject { ["id"] = offer["id"]!.DeepClone(), ["von"] = offer["von"]!.DeepClone(),
+            ["schluessel"] = offer["schluessel"]!.DeepClone(), ["home"] = offer["datei"]!["einlader"]!["kennung"]!.DeepClone(),
+            ["homeSchluessel"] = offer["datei"]!["einlader"]!["oeffentlich"]!.DeepClone(), ["angenommen"] = accepted,
+            ["gueltigBis"] = now + 1800 });
+        state["weitergabeAbschluesse"] = receipts;
+        state["weitergabeAngebote"]!.AsArray().Remove(offer);
+    }
+
     internal static JsonObject BuildRequest(JsonObject state, JsonObject document, byte[]? nonce = null, long? now = null)
     {
         ValidateFile(document, now ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds());
@@ -78,7 +203,15 @@ internal static class MagnolienbaumPairing
         foreach (var old in consumed.OfType<JsonObject>())
             if ((old["behaltenBis"]?.GetValue<long>() ?? 0) > now &&
                 old["paarung"]?.GetValue<string>() == request["paarung"]?.GetValue<string>() && old["anfrageHash"]?.GetValue<string>() == requestHash)
+            {
+                if (old["zielKennung"] is JsonNode recipientId)
+                {
+                    var recipient = state["partner"]!.AsArray().OfType<JsonObject>().FirstOrDefault(value => value["kennung"]?.GetValue<string>() == recipientId.GetValue<string>());
+                    if (recipient?["bestaetigt"]?.GetValue<bool>() != true || recipient["oeffentlich"]?.GetValue<string>() != old["zielOeffentlich"]?.GetValue<string>())
+                        throw new InvalidDataException("Die Paarungsanfrage ist ungültig.");
+                }
                 return old["antwort"]!.DeepClone().AsObject();
+            }
         var invitations = state["paarungen"] as JsonArray ?? new JsonArray();
         var invitation = invitations.OfType<JsonObject>().FirstOrDefault(item => item["paarung"]?.GetValue<string>() == request["paarung"]?.GetValue<string>());
         if (invitation is null || (invitation["gueltigBis"]?.GetValue<long>() ?? 0) <= now)
@@ -87,18 +220,35 @@ internal static class MagnolienbaumPairing
         _ = MagnolienbaumCrypto.ReadBase64Url(request["nonce"]?.GetValue<string>() ?? "", 32);
         if (branch.Count != 4 || string.IsNullOrEmpty(branch["kennung"]?.GetValue<string>()) || !ValidPublic(branch["oeffentlich"]?.GetValue<string>()))
             throw new InvalidDataException("Die Paarungsanfrage ist ungültig.");
+        var delegated = invitation["weitergabeVon"]?.GetValue<string>();
+        var sponsor = delegated is null ? null : state["partner"]!.AsArray().OfType<JsonObject>().FirstOrDefault(value => value["kennung"]?.GetValue<string>() == delegated);
+        if (delegated is not null && (sponsor?["bestaetigt"]?.GetValue<bool>() != true || sponsor["weitergabeErlaubt"]?.GetValue<bool>() != true ||
+                sponsor["oeffentlich"]?.GetValue<string>() != invitation["weitergabeSchluessel"]?.GetValue<string>() ||
+                branch["kennung"]?.GetValue<string>() != invitation["zielKennung"]?.GetValue<string>() ||
+                branch["oeffentlich"]?.GetValue<string>() != invitation["zielOeffentlich"]?.GetValue<string>()))
+            throw new InvalidDataException("Die Paarungsanfrage ist ungültig.");
         var proof = MagnolienbaumCrypto.ReadBase64Url(request["beweis"]?.GetValue<string>() ?? "", 32);
         var requestCore = request.DeepClone().AsObject(); requestCore.Remove("beweis");
         if (!CryptographicOperations.FixedTimeEquals(proof, MagnolienbaumCrypto.Hmac(secret, "magnolie-pair-request-v2\0"u8.ToArray(), requestCore)))
             throw new InvalidDataException("Die Paarungsanfrage ist ungültig.");
-        AddPartner(state, branch, address, true);
+        var wasConfirmed = state["partner"]!.AsArray().OfType<JsonObject>().Any(value =>
+            value["kennung"]?.GetValue<string>() == branch["kennung"]?.GetValue<string>() && value["bestaetigt"]?.GetValue<bool>() == true);
+        var paired = AddPartner(state, branch, address, true);
+        if (delegated is not null && !wasConfirmed)
+        {
+            paired["vertraut"] = sponsor!["vertraut"]?.GetValue<bool>() == true;
+            paired["weitergabeVon"] = delegated; paired["weitergabeErlaubt"] = false;
+            paired["weitergabeSchluessel"] = sponsor!["oeffentlich"]!.DeepClone();
+        }
         var response = new JsonObject { ["magnolie"] = "baum-paarung-2-antwort", ["paarung"] = request["paarung"]!.DeepClone(),
             ["nonce"] = request["nonce"]!.DeepClone(), ["zweig"] = Identity(state) };
         response["beweis"] = MagnolienbaumCrypto.Base64Url(MagnolienbaumCrypto.Hmac(secret,
             "magnolie-pair-response-v2\0"u8.ToArray(), response.DeepClone().AsObject()));
         state["paarungen"] = new JsonArray(invitations.OfType<JsonObject>().Where(item => item != invitation).Select(item => item.DeepClone()).ToArray());
-        consumed.Add(new JsonObject { ["paarung"] = request["paarung"]!.DeepClone(), ["anfrageHash"] = requestHash,
-            ["antwort"] = response.DeepClone(), ["behaltenBis"] = now + 86400 });
+        var receipt = new JsonObject { ["paarung"] = request["paarung"]!.DeepClone(), ["anfrageHash"] = requestHash,
+            ["antwort"] = response.DeepClone(), ["behaltenBis"] = now + 86400 };
+        if (delegated is not null) { receipt["zielKennung"] = paired["kennung"]!.DeepClone(); receipt["zielOeffentlich"] = paired["oeffentlich"]!.DeepClone(); }
+        consumed.Add(receipt);
         state["paarungenVerbraucht"] = new JsonArray(consumed.OfType<JsonObject>()
             .Where(item => (item["behaltenBis"]?.GetValue<long>() ?? 0) > now).TakeLast(100).Select(item => item.DeepClone()).ToArray());
         return response;
@@ -133,7 +283,7 @@ internal static class MagnolienbaumPairing
 
         var partners = state["partner"]!.AsArray();
         var partner = partners.OfType<JsonObject>().FirstOrDefault(item => item["kennung"]?.GetValue<string>() == id);
-        if (partner is not null && partner["bestaetigt"]?.GetValue<bool>() == true && partner["oeffentlich"]?.GetValue<string>() != publicKey)
+        if (partner is not null && (partner["bestaetigt"]?.GetValue<bool>() == true || partner["anfrageAusgehend"]?.GetValue<bool>() == true) && partner["oeffentlich"]?.GetValue<string>() != publicKey)
             throw new CryptographicException("Der Schlüssel dieses Zweigs hat sich geändert.");
         if (partner?["bestaetigt"]?.GetValue<bool>() == true)
         {
@@ -146,6 +296,7 @@ internal static class MagnolienbaumPairing
             }
             return partner;
         }
+        if (partner?["anfrageAusgehend"]?.GetValue<bool>() == true && !filePairing) return partner;
         if (partner is null)
         {
             if (partners.Count >= 100 || partners.OfType<JsonObject>().Count(item => item["bestaetigt"]?.GetValue<bool>() != true) >= 20)
@@ -157,6 +308,7 @@ internal static class MagnolienbaumPairing
         partner["port"] = port; partner["fernAdresse"] ??= ""; partner["fernPort"] ??= 8737;
         partner["zaehler_raus"] ??= 0; partner["zaehler_rein"] ??= 0; partner["zuletzt"] ??= "";
         partner["bestaetigt"] = filePairing; partner["wartet"] = !filePairing; partner["vertraut"] = filePairing;
+        if (filePairing) partner["wartetFern"] = false;
         partner["protokoll"] = filePairing ? "baum-fs1" : "baum-1";
         partner["paarungsart"] = filePairing ? "datei-v2" : "lokal-v1";
         return partner;
@@ -164,6 +316,38 @@ internal static class MagnolienbaumPairing
 
     internal static JsonObject Identity(JsonObject state) => new() { ["kennung"] = state["kennung"]!.DeepClone(),
         ["name"] = state["name"]!.DeepClone(), ["oeffentlich"] = state["oeffentlich"]!.DeepClone(), ["port"] = state["port"]!.DeepClone() };
+
+    internal static string NormalizeFingerprint(string value)
+    {
+        var clean = new string(value.Where(Uri.IsHexDigit).ToArray()).ToUpperInvariant();
+        return clean.Length == 16 ? string.Join("-", clean.Chunk(4).Select(chars => new string(chars))) : "";
+    }
+
+    internal static JsonObject PreparePinnedRequest(JsonObject state, JsonObject identity, string address, string expectedFingerprint)
+    {
+        var expected = NormalizeFingerprint(expectedFingerprint);
+        if (expected.Length == 0) throw new InvalidDataException("Der eingegebene Fingerabdruck ist unvollständig.");
+        if (!ValidPublic(identity["oeffentlich"]?.GetValue<string>()) ||
+            MagnolienbaumCrypto.Fingerprint(Convert.FromBase64String(identity["oeffentlich"]!.GetValue<string>())) != expected)
+            throw new CryptographicException("Der Fingerabdruck stimmt nicht überein.");
+        var peer = AddPartner(state, identity, address, false);
+        if (peer["bestaetigt"]?.GetValue<bool>() != true)
+        {
+            peer["anfrageAusgehend"] = true; peer["wartetFern"] = true; peer["wartet"] = false;
+            peer["paarungsart"] = "anfrage-pin-v1";
+        }
+        return peer;
+    }
+
+    internal static bool CompletePinnedRequest(JsonObject state, string id, string publicKey, string ownId, string ownPublicKey)
+    {
+        var peer = (state["partner"] as JsonArray)?.OfType<JsonObject>().FirstOrDefault(value => value["kennung"]?.GetValue<string>() == id);
+        if (peer is null || peer["oeffentlich"]?.GetValue<string>() != publicKey || state["kennung"]?.GetValue<string>() != ownId ||
+            state["oeffentlich"]?.GetValue<string>() != ownPublicKey || peer["anfrageAusgehend"]?.GetValue<bool>() != true ||
+            peer["bestaetigt"]?.GetValue<bool>() == true) return false;
+        peer["bestaetigt"] = true; peer["wartet"] = false; peer["wartetFern"] = false; peer["protokoll"] = "baum-fs1";
+        return true;
+    }
 
     private static JsonObject PublicPart(JsonObject document) => new() { ["magnolie"] = document["magnolie"]!.DeepClone(),
         ["fassung"] = document["fassung"]!.DeepClone(), ["paarung"] = document["paarung"]!.DeepClone(),

@@ -547,6 +547,9 @@ msgstr "すべての州"
 msgid "Allow notifications despite password protection"
 msgstr "パスワード保護中でも通知を許可"
 
+msgid "Allow this device to share this connection"
+msgstr "このデバイスに接続の共有を許可"
+
 msgid "Also disclose appointments marked as confidential"
 msgstr "機密としてマークされた予定も開示"
 
@@ -1399,12 +1402,21 @@ msgstr "KDE Connect で接続"
 msgid "Connected"
 msgstr "接続済み"
 
+msgid "Connection already accepted."
+msgstr "接続はすでに承認されています。"
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr ""
 "接続先を検出できませんでした。サーバーとログイン情報を確認してください。"
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr "接続を提案しました。相手のコンピューターで承認してください。"
+
 msgid "Connection ready"
 msgstr "接続の準備ができました"
+
+msgid "Connection sharing was rejected."
+msgstr "接続の共有が拒否されました。"
 
 msgid "Contact"
 msgstr "連絡先"
@@ -1509,6 +1521,9 @@ msgstr "まずカスタムタブで描画シートを作成してください。
 
 msgid "Create a new appointment immediately"
 msgstr "新しい予定をすぐに作成"
+
+msgid "Create a separate connection to this computer?"
+msgstr "このコンピューターへの独立した接続を作成しますか？"
 
 msgid "Create an empty printable template"
 msgstr "印刷用の空のテンプレートを作成"
@@ -4637,6 +4652,15 @@ msgstr "住所を共有"
 msgid "Share appointment"
 msgstr "予定を共有"
 
+msgid "Share connection"
+msgstr "接続を共有"
+
+msgid "Share connection with"
+msgstr "接続の共有先"
+
+msgid "Share this connection with the selected device?"
+msgstr "選択したデバイスと接続を共有しますか？"
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr "この項目を %(branch)s と明示的に共有しますか？"
 
@@ -4649,11 +4673,17 @@ msgstr "この項目をこのブランチと明示的に共有しますか？"
 msgid "Share together"
 msgstr "一緒に共有"
 
+msgid "Shared connection"
+msgstr "共有された接続"
+
 msgid "Shared credentials"
 msgstr "共有認証情報"
 
 msgid "Shared note"
 msgstr "共有メモ"
+
+msgid "Sharing this connection is not allowed."
+msgstr "この接続の共有は許可されていません。"
 
 msgid "Shift planner"
 msgstr "シフトプランナー"
@@ -5255,6 +5285,9 @@ msgstr "完全なアーカイブは空です。"
 msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr "ファイル全体がこのメモに保存されます（最大 8 MB）。"
 
+msgid "The connection could not be shared."
+msgstr "接続を共有できませんでした。"
+
 msgid "The connection to the phone was interrupted during pairing."
 msgstr "ペアリング中に電話への接続が中断されました。"
 
@@ -5342,6 +5375,9 @@ msgstr "祝日をインポートしました。"
 
 msgid "The holidays were removed."
 msgstr "祝日を削除しました。"
+
+msgid "The home computer needs a reachable Internet address."
+msgstr "自宅PCには到達可能なインターネットアドレスが必要です。"
 
 msgid "The import exceeds the supported limits."
 msgstr "インポート内容が対応する上限を超えています。"
@@ -5955,6 +5991,9 @@ msgstr "失敗が多すぎます — %(duration)s 待ってください。"
 
 msgid "Too many failed attempts. Wait a moment."
 msgstr "失敗が多すぎます。しばらく待ってください。"
+
+msgid "Too many pairing requests are waiting."
+msgstr "保留中のペアリング要求が多すぎます。"
 
 msgid "Too many regions were selected."
 msgstr "選択した地域が多すぎます。"

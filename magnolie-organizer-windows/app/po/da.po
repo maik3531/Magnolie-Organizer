@@ -577,6 +577,9 @@ msgstr "Alle delstater"
 msgid "Allow notifications despite password protection"
 msgstr "Tillad meddelelser trods adgangskodebeskyttelse"
 
+msgid "Allow this device to share this connection"
+msgstr "Tillad denne enhed at dele forbindelsen"
+
 msgid "Also disclose appointments marked as confidential"
 msgstr "Vis også aftaler markeret som fortrolige"
 
@@ -1430,13 +1433,22 @@ msgstr "Forbind via KDE Connect"
 msgid "Connected"
 msgstr "Forbundet"
 
+msgid "Connection already accepted."
+msgstr "Forbindelsen er allerede accepteret."
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr ""
 "Søgningen efter tilgængelige forbindelser mislykkedes. Kontrollér serveren "
 "og loginoplysningerne."
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr "Forbindelse tilbudt. Acceptér på den anden computer."
+
 msgid "Connection ready"
 msgstr "Forbindelsen er klar"
+
+msgid "Connection sharing was rejected."
+msgstr "Deling af forbindelsen blev afvist."
 
 msgid "Contact"
 msgstr "Kontakt"
@@ -1544,6 +1556,9 @@ msgstr "Opret først et tegneark på den brugerdefinerede fane."
 
 msgid "Create a new appointment immediately"
 msgstr "Opret straks en ny aftale"
+
+msgid "Create a separate connection to this computer?"
+msgstr "Opret en selvstændig forbindelse til denne computer?"
 
 msgid "Create an empty printable template"
 msgstr "Opret en tom skabelon til udskrivning"
@@ -4696,6 +4711,15 @@ msgstr "Del adresse"
 msgid "Share appointment"
 msgstr "Del aftale"
 
+msgid "Share connection"
+msgstr "Del forbindelse"
+
+msgid "Share connection with"
+msgstr "Del forbindelse med"
+
+msgid "Share this connection with the selected device?"
+msgstr "Del forbindelsen med den valgte enhed?"
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr "Del denne post udtrykkeligt med %(branch)s?"
 
@@ -4708,11 +4732,17 @@ msgstr "Del denne post udtrykkeligt med denne gren?"
 msgid "Share together"
 msgstr "Del sammen"
 
+msgid "Shared connection"
+msgstr "Delt forbindelse"
+
 msgid "Shared credentials"
 msgstr "Delte loginoplysninger"
 
 msgid "Shared note"
 msgstr "Delt note"
+
+msgid "Sharing this connection is not allowed."
+msgstr "Deling af denne forbindelse er ikke tilladt."
 
 msgid "Shift planner"
 msgstr "Vagtplan"
@@ -5318,6 +5348,9 @@ msgstr "Hele arkivet er tomt."
 msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr "Hele filen er gemt i denne note (op til 8 megabyte)."
 
+msgid "The connection could not be shared."
+msgstr "Forbindelsen kunne ikke deles."
+
 msgid "The connection to the phone was interrupted during pairing."
 msgstr "Forbindelsen til telefonen blev afbrudt under parring."
 
@@ -5406,6 +5439,9 @@ msgstr "Helligdagene blev importeret."
 
 msgid "The holidays were removed."
 msgstr "Helligdagene blev fjernet."
+
+msgid "The home computer needs a reachable Internet address."
+msgstr "Hjemmecomputeren kræver en tilgængelig internetadresse."
 
 msgid "The import exceeds the supported limits."
 msgstr "Importen overskrider de understøttede grænser."
@@ -6027,6 +6063,9 @@ msgstr "For mange mislykkede forsøg – vent %(duration)s."
 
 msgid "Too many failed attempts. Wait a moment."
 msgstr "For mange mislykkede forsøg. Vent et øjeblik."
+
+msgid "Too many pairing requests are waiting."
+msgstr "For mange ventende parringsanmodninger."
 
 msgid "Too many regions were selected."
 msgstr "Der blev valgt for mange regioner."

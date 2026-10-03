@@ -769,6 +769,9 @@ msgstr "すべての州"
 msgid "Allow notifications despite password protection"
 msgstr "パスワード保護中でも通知を許可"
 
+msgid "Allow this device to share this connection"
+msgstr "このデバイスに接続の共有を許可"
+
 msgid "Allowed background functions"
 msgstr "許可するバックグラウンド機能"
 
@@ -1735,12 +1738,21 @@ msgstr "接続済み"
 msgid "Connecting to the online accounts"
 msgstr "オンラインアカウントに接続しています"
 
+msgid "Connection already accepted."
+msgstr "接続はすでに承認されています。"
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr ""
 "接続先を検出できませんでした。サーバーとログイン情報を確認してください。"
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr "接続を提案しました。相手のコンピューターで承認してください。"
+
 msgid "Connection ready"
 msgstr "接続の準備ができました"
+
+msgid "Connection sharing was rejected."
+msgstr "接続の共有が拒否されました。"
 
 msgid "Contact"
 msgstr "連絡先"
@@ -1896,6 +1908,9 @@ msgstr "gettext POT テンプレートを作成"
 
 msgid "Create a new appointment immediately"
 msgstr "新しい予定をすぐに作成"
+
+msgid "Create a separate connection to this computer?"
+msgstr "このコンピューターへの独立した接続を作成しますか？"
 
 msgid "Create an empty printable template"
 msgstr "印刷用の空のテンプレートを作成"
@@ -5610,6 +5625,15 @@ msgstr "住所を共有"
 msgid "Share appointment"
 msgstr "予定を共有"
 
+msgid "Share connection"
+msgstr "接続を共有"
+
+msgid "Share connection with"
+msgstr "接続の共有先"
+
+msgid "Share this connection with the selected device?"
+msgstr "選択したデバイスと接続を共有しますか？"
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr "この項目を %(branch)s と明示的に共有しますか？"
 
@@ -5622,11 +5646,17 @@ msgstr "この項目をこのブランチと明示的に共有しますか？"
 msgid "Share together"
 msgstr "一緒に共有"
 
+msgid "Shared connection"
+msgstr "共有された接続"
+
 msgid "Shared credentials"
 msgstr "共有認証情報"
 
 msgid "Shared note"
 msgstr "共有メモ"
+
+msgid "Sharing this connection is not allowed."
+msgstr "この接続の共有は許可されていません。"
 
 msgid "Shift planner"
 msgstr "シフトプランナー"
@@ -6407,6 +6437,9 @@ msgstr "通信方法の設定が不完全です。"
 msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr "ファイル全体がこのメモに保存されます（最大 8 MB）。"
 
+msgid "The connection could not be shared."
+msgstr "接続を共有できませんでした。"
+
 msgid "The connection settings could not be saved."
 msgstr "接続設定を保存できませんでした。"
 
@@ -6564,6 +6597,9 @@ msgstr "祝日をインポートしました。"
 
 msgid "The holidays were removed."
 msgstr "祝日を削除しました。"
+
+msgid "The home computer needs a reachable Internet address."
+msgstr "自宅PCには到達可能なインターネットアドレスが必要です。"
 
 msgid "The import exceeds the supported limits."
 msgstr "インポート内容が対応する上限を超えています。"
@@ -7413,6 +7449,9 @@ msgstr "有効なペアリングファイルが多すぎます。"
 
 msgid "Too many pairing requests are awaiting confirmation."
 msgstr "確認待ちのペアリング要求が多すぎます。"
+
+msgid "Too many pairing requests are waiting."
+msgstr "保留中のペアリング要求が多すぎます。"
 
 msgid "Too many regions were selected."
 msgstr "選択した地域が多すぎます。"

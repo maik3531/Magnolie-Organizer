@@ -40,6 +40,8 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     private readonly List<Task> connectionTasks = [];
     private readonly Dictionary<string, int> activeConnections = new(StringComparer.Ordinal);
     private readonly Dictionary<string, List<long>> requestTimes = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<long>> pairingRequestTimes = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, long> pairingProbeDeadlines = new(StringComparer.Ordinal);
     private string serviceError = "";
     private string mailboxError = "";
     private string mailboxErrorCode = "none";
@@ -167,6 +169,11 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                 port = Number(partner, "port", DefaultPort), vertraut = Boolean(partner, "vertraut"),
                 fernAdresse = String(partner, "fernAdresse"), fernPort = Number(partner, "fernPort", DefaultPort),
                 bestaetigt = Boolean(partner, "bestaetigt"), wartet = Boolean(partner, "wartet"),
+                anfrageAusgehend = Boolean(partner, "anfrageAusgehend"), wartetFern = Boolean(partner, "wartetFern"),
+                weitergabeErlaubt = Boolean(partner, "weitergabeErlaubt"),
+                weitergabeVon = String(partner, "weitergabeVon"),
+                weitergabeQuelle = Partner(String(partner, "weitergabeVon")) is { } sponsor && Boolean(sponsor, "bestaetigt") &&
+                    String(sponsor, "oeffentlich") == String(partner, "weitergabeSchluessel") ? String(sponsor, "kennung") : "",
                 kontakte = Boolean(partner, "kontakte"), kontaktLoeschen = Boolean(partner, "kontaktLoeschen") || Boolean(partner, "loeschungen"),
                 kontaktFaehigkeiten = partner["kontaktFaehigkeiten"]?.DeepClone(),
                 protokoll = String(partner, "protokoll", "baum-1"), paarungsart = String(partner, "paarungsart", "lokal-v1"),
@@ -180,6 +187,12 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                 partner = partners, post = outbox.Count, postOffen = outbox.OfType<JsonObject>().Count(item => !Boolean(item, "aufgegeben")),
                 eingang = JsonNode.Parse(inbox.ToJsonString()), fehler = serviceError.Length > 0 ? serviceError :
                     outbox.OfType<JsonObject>().Any(item => Boolean(item, "unsicher")) ? NativeLocalization.Gettext("Delivery status uncertain") : "",
+                weitergabeAngebote = (state["weitergabeAngebote"] as JsonArray ?? new JsonArray()).OfType<JsonObject>()
+                    .Where(value => Long(value["datei"]!.AsObject(), "gueltigBis") > DateTimeOffset.UtcNow.ToUnixTimeSeconds() &&
+                        Partner(String(value, "von")) is { } peer && Boolean(peer, "bestaetigt") && String(peer, "oeffentlich") == String(value, "schluessel"))
+                    .Select(value => new { id = String(value, "id"), von = String(value, "von"),
+                        name = String(value["datei"]!["einlader"]!.AsObject(), "name"),
+                        fingerabdruck = MagnolienbaumCrypto.Fingerprint(Convert.FromBase64String(String(value["datei"]!["einlader"]!.AsObject(), "oeffentlich"))) }).ToArray(),
                 migrationHinweis = migrationNotice, windows = true };
         }
         await emit("App.baumStand", report);
@@ -377,13 +390,15 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         catch (JsonException) { }
     }
 
-    internal async Task PairV1Async(string host, int port, string expectedFingerprint)
+    internal async Task PairV1Async(string host, int port, string expectedFingerprint, bool requestOnly = false)
     {
         try
         {
             var expected = NormalizeFingerprint(expectedFingerprint);
             if (expectedFingerprint.Length > 0 && expected.Length == 0) throw new ArgumentException("Der eingegebene Fingerabdruck ist unvollständig.");
-            var request = MagnolienbaumPairing.Identity(state);
+            if (requestOnly && expected.Length == 0) throw new ArgumentException("Der eingegebene Fingerabdruck ist unvollständig.");
+            JsonObject own; lock (gate) own = state.DeepClone().AsObject();
+            var request = MagnolienbaumPairing.Identity(own);
             var response = await PostAsync(BuildUri(host, port, "/magnolie/v1/paarung"), request, CancellationToken.None);
             var publicKey = Convert.FromBase64String(String(response, "oeffentlich"));
             if (publicKey.Length != 32) throw new InvalidDataException("Der andere Zweig sandte keinen gültigen Schlüssel.");
@@ -391,9 +406,19 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             if (expected.Length > 0 && expected != fingerprint) throw new CryptographicException($"Der Fingerabdruck stimmt nicht überein (empfangen: {fingerprint}).");
             JsonObject partner;
             var identity = response.DeepClone().AsObject(); identity.Remove("code");
-            lock (gate) { partner = MagnolienbaumPairing.AddPartner(state, identity, host, false); storage.SaveState(state); }
+            lock (gate)
+            {
+                if (outboxPaused || String(state, "kennung") != String(own, "kennung") || String(state, "oeffentlich") != String(own, "oeffentlich"))
+                    throw new InvalidOperationException("Die Paarungsanfrage gilt nicht mehr.");
+                partner = requestOnly ? MagnolienbaumPairing.PreparePinnedRequest(state, identity, host, expected) :
+                    MagnolienbaumPairing.AddPartner(state, identity, host, false);
+                storage.SaveState(state);
+            }
             await emit("App.baumPaarung", new { ok = true, fehler = "", kennung = String(partner, "kennung"), name = String(partner, "name"),
-                code = MagnolienbaumCrypto.PairingCode(Convert.FromBase64String(String(state, "oeffentlich")), publicKey), fingerabdruck = fingerprint });
+                anfrage = requestOnly, bereitsBestaetigt = Boolean(partner, "bestaetigt"),
+                code = MagnolienbaumCrypto.PairingCode(Convert.FromBase64String(String(own, "oeffentlich")), publicKey), fingerabdruck = fingerprint });
+            await ReportStatusAsync();
+            if (requestOnly) await ProbePairingRequestsAsync(serviceCancellation?.Token ?? CancellationToken.None);
         }
         catch (Exception error) { await emit("App.baumPaarung", new { ok = false, fehler = $"Der andere Zweig antwortet nicht ({error.Message})." }); }
     }
@@ -407,13 +432,24 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         }
     }
 
-    internal async Task ImportPairingFileAsync(JsonObject document)
+    internal async Task ImportPairingFileAsync(JsonObject document, string offerId = "")
     {
         try
         {
             document = document.DeepClone().AsObject();
             MagnolienbaumPairing.ValidateFile(document, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-            var request = MagnolienbaumPairing.BuildRequest(state, document);
+            JsonObject own, request;
+            lock (gate)
+            {
+                own = state.DeepClone().AsObject();
+                request = MagnolienbaumPairing.BuildRequest(own, document);
+                if (offerId.Length > 0)
+                {
+                    var offer = CurrentSharedOffer(offerId);
+                    request = offer["anfrage"]?.DeepClone().AsObject() ?? request;
+                    offer["anfrage"] = request.DeepClone(); storage.SaveState(state);
+                }
+            }
             var target = document["ziel"]!.AsObject(); JsonObject response;
             try { response = await PostAsync(BuildUri(String(target, "adresse"), Number(target, "port", DefaultPort), "/magnolie/v2/paarung"), request, CancellationToken.None); }
             catch (Exception) { response = await PostAsync(BuildUri(String(target, "adresse"), Number(target, "port", DefaultPort), "/magnolie/v2/paarung"), request, CancellationToken.None); }
@@ -422,23 +458,41 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             lock (gate)
             {
                 MagnolienbaumPairing.ValidateFile(document, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-                partner = MagnolienbaumPairing.AddPartner(state, document["einlader"]!.AsObject(), String(target, "adresse"), true);
+                if (String(state, "kennung") != String(own, "kennung") || String(state, "oeffentlich") != String(own, "oeffentlich"))
+                    throw new InvalidOperationException("Die Paarungsanfrage gilt nicht mehr.");
+                if (offerId.Length > 0) _ = CurrentSharedOffer(offerId);
+                var candidate = state.DeepClone().AsObject();
+                var wasConfirmed = Partner(String(document["einlader"]!.AsObject(), "kennung")) is { } previous && Boolean(previous, "bestaetigt");
+                partner = MagnolienbaumPairing.AddPartner(candidate, document["einlader"]!.AsObject(), String(target, "adresse"), true);
+                if (offerId.Length > 0)
+                {
+                    if (!wasConfirmed) partner["vertraut"] = false;
+                    partner["fernAdresse"] = String(target, "adresse"); partner["fernPort"] = Number(target, "port", DefaultPort);
+                    var offers = candidate["weitergabeAngebote"]!.AsArray();
+                    MagnolienbaumPairing.CompleteSharedOffer(candidate, offers.OfType<JsonObject>().Single(value => String(value, "id") == offerId), true,
+                        DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                }
+                CommitPairingState(candidate);
+                partner = Partner(String(partner, "kennung"))!;
                 QueueContactCapabilities(partner);
-                storage.SaveState(state);
             }
-            await emit("App.baumPaarungsdatei", new { ok = true, art = "importiert", name = String(partner, "name"), fehler = "" });
+            await emit("App.baumPaarungsdatei", new { ok = true, art = "importiert", name = String(partner, "name"), fehler = "",
+                weitergabe = offerId.Length > 0, kennung = String(partner, "kennung") });
             await ReportStatusAsync();
         }
         catch (Exception error) { await emit("App.baumPaarungsdatei", new { ok = false, art = "importiert", fehler = error.Message }); }
     }
 
-    internal async Task ConfirmAsync(string id, bool yes)
+    internal async Task ConfirmAsync(string id, bool yes, string expectedFingerprint = "")
     {
         lock (gate)
         {
             var partners = state["partner"]!.AsArray();
             var partner = Partner(id);
-            if (partner is not null && yes) { partner["bestaetigt"] = true; partner["wartet"] = false; QueueContactCapabilities(partner); }
+            if (partner is not null && expectedFingerprint.Length > 0 && NormalizeFingerprint(expectedFingerprint) !=
+                MagnolienbaumCrypto.Fingerprint(Convert.FromBase64String(String(partner, "oeffentlich"))))
+                throw new InvalidOperationException("Die Paarungsanfrage gilt nicht mehr.");
+            if (partner is not null && yes) { partner["bestaetigt"] = true; partner["wartet"] = false; partner["wartetFern"] = false; QueueContactCapabilities(partner); }
             else if (partner is not null) partners.Remove(partner);
             storage.SaveState(state);
         }
@@ -455,6 +509,109 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                 !String(item, "art").StartsWith("kontakt", StringComparison.Ordinal)).Select(item => item.DeepClone()).ToArray());
             storage.SaveOutbox(remaining); outbox = remaining; storage.SaveState(state);
         }
+        await ReportStatusAsync();
+    }
+
+    internal async Task SetSharingPermissionAsync(string id, string fingerprint, bool allowed)
+    {
+        try
+        {
+            lock (gate)
+            {
+                var candidate = state.DeepClone().AsObject();
+                var peer = candidate["partner"]!.AsArray().OfType<JsonObject>().Single(value => String(value, "kennung") == id);
+                if (MagnolienbaumPairing.NormalizeFingerprint(fingerprint).Length == 0 ||
+                    MagnolienbaumCrypto.Fingerprint(Convert.FromBase64String(String(peer, "oeffentlich"))) != MagnolienbaumPairing.NormalizeFingerprint(fingerprint))
+                    throw new InvalidOperationException("Die Paarungsanfrage gilt nicht mehr.");
+                MagnolienbaumPairing.SetSharingPermission(candidate, id, String(peer, "oeffentlich"), allowed);
+                CommitPairingState(candidate);
+            }
+            await emit("App.baumPartnerEinstellungen", new { ok = true, fehler = "" });
+        }
+        catch (Exception error) { await emit("App.baumPartnerEinstellungen", new { ok = false, fehler = error.Message }); }
+        await ReportStatusAsync();
+    }
+
+    private JsonObject CurrentSharedOffer(string id)
+    {
+        if (disposed || outboxPaused || !Boolean(state, "an")) throw new InvalidOperationException("Die Paarungsanfrage gilt nicht mehr.");
+        var offer = (state["weitergabeAngebote"] as JsonArray)?.OfType<JsonObject>().SingleOrDefault(value => String(value, "id") == id)
+            ?? throw new InvalidDataException("Die Paarungsanfrage gilt nicht mehr.");
+        var peer = Partner(String(offer, "von"));
+        if (peer is null || !Boolean(peer, "bestaetigt") || String(peer, "oeffentlich") != String(offer, "schluessel") ||
+            String(offer["ziel"]!.AsObject(), "kennung") != String(state, "kennung") ||
+            String(offer["ziel"]!.AsObject(), "oeffentlich") != String(state, "oeffentlich"))
+            throw new InvalidDataException("Die Paarungsanfrage gilt nicht mehr.");
+        MagnolienbaumPairing.ValidateFile(offer["datei"]!.AsObject(), DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        return offer;
+    }
+
+    internal async Task AcceptSharedOfferAsync(string id, bool accept)
+    {
+        try
+        {
+            JsonObject document;
+            lock (gate)
+            {
+                var offer = CurrentSharedOffer(id); document = offer["datei"]!.DeepClone().AsObject();
+                if (!accept)
+                {
+                    var candidate = state.DeepClone().AsObject();
+                    var pending = candidate["weitergabeAngebote"]!.AsArray().OfType<JsonObject>().Single(value => String(value, "id") == id);
+                    MagnolienbaumPairing.CompleteSharedOffer(candidate, pending, false, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                    CommitPairingState(candidate);
+                }
+            }
+            if (accept) await ImportPairingFileAsync(document, id);
+        }
+        catch (Exception error) { await emit("App.baumWeitergabe", new { ok = false, fehler = error.Message }); }
+        await ReportStatusAsync();
+    }
+
+    internal async Task ShareConnectionAsync(string homeId, string recipientId, string homeFingerprint, string recipientFingerprint)
+    {
+        try
+        {
+            JsonObject home, recipient, request;
+            lock (gate)
+            {
+                home = (Partner(homeId) ?? throw new InvalidDataException("Dieser Zweig wurde noch nicht bestätigt.")).DeepClone().AsObject();
+                recipient = (Partner(recipientId) ?? throw new InvalidDataException("Dieser Zweig wurde noch nicht bestätigt.")).DeepClone().AsObject();
+                if (homeId == recipientId || !Boolean(home, "bestaetigt") || !Boolean(recipient, "bestaetigt") ||
+                    MagnolienbaumCrypto.Fingerprint(Convert.FromBase64String(String(home, "oeffentlich"))) != MagnolienbaumPairing.NormalizeFingerprint(homeFingerprint) ||
+                    MagnolienbaumCrypto.Fingerprint(Convert.FromBase64String(String(recipient, "oeffentlich"))) != MagnolienbaumPairing.NormalizeFingerprint(recipientFingerprint))
+                    throw new InvalidDataException("Die Paarungsanfrage gilt nicht mehr.");
+                if (String(home, "fernAdresse").Length == 0) throw new InvalidOperationException(NativeLocalization.Gettext("The home computer needs a reachable Internet address."));
+                var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                var pending = new JsonArray((state["weitergabeAusgang"] as JsonArray ?? new JsonArray()).OfType<JsonObject>()
+                    .Where(value => Long(value, "gueltigBis") > now).Select(value => value.DeepClone()).ToArray());
+                var operation = pending.OfType<JsonObject>().FirstOrDefault(value => String(value, "home") == homeId && String(value, "ziel") == recipientId &&
+                    String(value, "homeSchluessel") == String(home, "oeffentlich") && String(value, "zielSchluessel") == String(recipient, "oeffentlich"));
+                if (operation is null)
+                {
+                    if (pending.Count >= 8) throw new InvalidOperationException(NativeLocalization.Gettext("Too many pairing requests are waiting."));
+                    request = new JsonObject { ["aktion"] = "einladung", ["id"] = MagnolienbaumCrypto.Base64Url(RandomNumberGenerator.GetBytes(16)),
+                        ["ziel"] = MagnolienbaumPairing.Identity(recipient), ["adresse"] = String(home, "fernAdresse"), ["port"] = Number(home, "fernPort", DefaultPort) };
+                    operation = new JsonObject { ["home"] = homeId, ["ziel"] = recipientId, ["homeSchluessel"] = String(home, "oeffentlich"),
+                        ["zielSchluessel"] = String(recipient, "oeffentlich"), ["gueltigBis"] = now + 900, ["anfrage"] = request.DeepClone() };
+                    pending.Add(operation);
+                    var candidate = state.DeepClone().AsObject(); candidate["weitergabeAusgang"] = pending;
+                    CommitPairingState(candidate);
+                }
+                request = operation["anfrage"]!.DeepClone().AsObject();
+            }
+            var cancellation = serviceCancellation?.Token ?? CancellationToken.None;
+            var document = await SharedRpcAsync(home, request, cancellation);
+            MagnolienbaumPairing.ValidateFile(document, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+            if (document["einlader"]?["kennung"]?.GetValue<string>() != homeId ||
+                document["einlader"]?["oeffentlich"]?.GetValue<string>() != String(home, "oeffentlich"))
+                throw new CryptographicException("Die Paarungsanfrage ist ungültig.");
+            var offered = await SharedRpcAsync(recipient, new JsonObject { ["aktion"] = "angebot", ["id"] = request["id"]!.DeepClone(),
+                ["ziel"] = request["ziel"]!.DeepClone(), ["datei"] = document }, cancellation);
+            if (!Boolean(offered, "wartet") && !Boolean(offered, "angenommen")) throw new InvalidOperationException(NativeLocalization.Gettext("Connection sharing was rejected."));
+            await emit("App.baumWeitergabe", new { ok = true, wartet = Boolean(offered, "wartet"), fehler = "" });
+        }
+        catch (Exception error) { await emit("App.baumWeitergabe", new { ok = false, fehler = error.Message }); }
         await ReportStatusAsync();
     }
 
@@ -838,7 +995,9 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                 if (path == "/magnolie/v2/paarung")
                 {
                     var invitationCount = (state["paarungen"] as JsonArray)?.Count ?? 0;
-                    var response = MagnolienbaumPairing.AcceptRequest(state, payload, source, DateTimeOffset.UtcNow.ToUnixTimeSeconds()); storage.SaveState(state);
+                    var candidate = state.DeepClone().AsObject();
+                    var response = MagnolienbaumPairing.AcceptRequest(candidate, payload, source, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                    CommitPairingState(candidate);
                     if (((state["paarungen"] as JsonArray)?.Count ?? 0) < invitationCount &&
                         Partner(String(payload["zweig"]!.AsObject(), "kennung")) is { } paired) QueueContactCapabilities(paired);
                     return new(200, response, true);
@@ -855,10 +1014,11 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                     if (incomingFsSessions.ContainsKey(result.Session.Sid))
                     { result.Session.Dispose(); throw new InvalidOperationException("Diese sichere Sitzung existiert bereits."); }
                     incomingFsSessions[result.Session.Sid] = new IncomingFsSession(result.Session, String(partner, "kennung"),
-                        NormalizeSource(source), now + 30L * Stopwatch.Frequency);
+                        NormalizeSource(source), now + 30L * Stopwatch.Frequency, String(partner, "oeffentlich"), String(state, "oeffentlich"));
                     return new(200, result.Response);
                 }
                 if (path == "/magnolie/v2/nachricht") return HandleFsMessage(payload, source);
+                if (path == "/magnolie/v2/weitergabe") return HandleSharedRequest(payload, source);
                 if (path == "/magnolie/v1/nachricht")
                 {
                     var partner = Partner(String(payload, "von"));
@@ -886,6 +1046,93 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         }
         catch (InboxFullException error) { return new(503, Error(error.Message)); }
         catch (Exception error) { return new(403, Error(error.Message)); }
+    }
+
+    private void CommitPairingState(JsonObject candidate)
+    {
+        // An in-flight delivery may hold a same-key peer reference. Its later
+        // counter/receipt save must still update the live state.
+        var current = state["partner"]!.AsArray();
+        var existing = current.OfType<JsonObject>().ToDictionary(value => String(value, "kennung"));
+        var proposed = candidate["partner"]!.AsArray();
+        var peers = proposed.OfType<JsonObject>().ToArray();
+        storage.SaveState(candidate);
+        current.Clear(); proposed.Clear();
+        foreach (var peer in peers)
+        {
+            if (existing.TryGetValue(String(peer, "kennung"), out var original) && String(original, "oeffentlich") == String(peer, "oeffentlich"))
+            {
+                foreach (var key in original.Select(value => value.Key).Where(key => !peer.ContainsKey(key)).ToArray()) original.Remove(key);
+                foreach (var value in peer)
+                    if (!JsonNode.DeepEquals(original[value.Key], value.Value)) original[value.Key] = value.Value?.DeepClone();
+                proposed.Add(original);
+            }
+            else proposed.Add(peer);
+        }
+        state = candidate;
+    }
+
+    private HttpResult HandleSharedRequest(JsonObject payload, string source)
+    {
+        if (!incomingFsSessions.Remove(String(payload, "sid"), out var incoming))
+            throw new InvalidDataException("Die sichere Sitzung ist unbekannt oder abgelaufen.");
+        using (incoming.Session)
+        {
+            var current = Partner(incoming.PartnerId);
+            if (disposed || outboxPaused || incoming.Expires <= Stopwatch.GetTimestamp() || incoming.Source != NormalizeSource(source) ||
+                current is null || !Boolean(current, "bestaetigt") || String(current, "oeffentlich") != incoming.PartnerPublicKey ||
+                String(state, "oeffentlich") != incoming.OwnPublicKey)
+                throw new InvalidDataException("Die Paarungsanfrage gilt nicht mehr.");
+            var opened = MagnolienbaumFs1.OpenEnvelope(incoming.Session, String(state, "kennung"), incoming.PartnerId, payload);
+            var candidate = state.DeepClone().AsObject();
+            var peer = candidate["partner"]!.AsArray().OfType<JsonObject>().Single(value => String(value, "kennung") == incoming.PartnerId);
+            var result = MagnolienbaumPairing.SharedRequest(candidate, peer, opened.Content.AsObject(), DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+            var response = MagnolienbaumFs1.BuildEnvelope(incoming.Session, String(state, "kennung"), incoming.PartnerId,
+                new JsonObject { ["anfrageHash"] = Convert.ToHexString(SHA256.HashData(MagnolienbaumCrypto.Canonical(opened.Content))),
+                    ["ergebnis"] = result }, opened.TransportId);
+            CommitPairingState(candidate);
+            return new HttpResult(200, response, true);
+        }
+    }
+
+    private async Task<JsonObject> SharedRpcAsync(JsonObject peer, JsonObject request, CancellationToken cancellation)
+    {
+        JsonObject own;
+        lock (gate)
+        {
+            var current = Partner(String(peer, "kennung"));
+            if (disposed || outboxPaused || !Boolean(state, "an") || current is null || !Boolean(current, "bestaetigt") ||
+                String(current, "oeffentlich") != String(peer, "oeffentlich")) throw new InvalidOperationException("Die Paarungsanfrage gilt nicht mehr.");
+            own = state.DeepClone().AsObject();
+        }
+        Exception? last = null;
+        foreach (var endpoint in Endpoints(peer))
+        {
+            try
+            {
+                using var start = MagnolienbaumFs1.BuildStart(own, peer);
+                var answer = await PostAsync(BuildUri(endpoint.Host, endpoint.Port, "/magnolie/v2/sitzung"), start.Message, cancellation);
+                using var session = MagnolienbaumFs1.OpenResponse(own, peer, start.Message, answer, start.EphemeralPrivate);
+                var mid = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
+                var envelope = MagnolienbaumFs1.BuildEnvelope(session, String(own, "kennung"), String(peer, "kennung"), request, mid);
+                var response = await PostAsync(BuildUri(endpoint.Host, endpoint.Port, "/magnolie/v2/weitergabe"), envelope, cancellation);
+                var opened = MagnolienbaumFs1.OpenEnvelope(session, String(own, "kennung"), String(peer, "kennung"), response);
+                if (opened.TransportId != mid || opened.Content["anfrageHash"]?.GetValue<string>() !=
+                    Convert.ToHexString(SHA256.HashData(MagnolienbaumCrypto.Canonical(request)))) throw new CryptographicException("Die Paarungsanfrage ist ungültig.");
+                lock (gate)
+                {
+                    var current = Partner(String(peer, "kennung"));
+                    if (disposed || outboxPaused || !Boolean(state, "an") || String(state, "kennung") != String(own, "kennung") ||
+                        String(state, "oeffentlich") != String(own, "oeffentlich") || current is null ||
+                        !Boolean(current, "bestaetigt") || String(current, "oeffentlich") != String(peer, "oeffentlich"))
+                        throw new InvalidOperationException("Die Paarungsanfrage gilt nicht mehr.");
+                }
+                return opened.Content["ergebnis"]!.DeepClone().AsObject();
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { throw; }
+            catch (Exception error) { last = error; }
+        }
+        throw new IOException(NativeLocalization.Gettext("The connection could not be shared."), last);
     }
 
     private HttpResult HandleFsMessage(JsonObject payload, string source)
@@ -1018,13 +1265,48 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         {
             while (await timer.WaitForNextTickAsync(cancellation).ConfigureAwait(false))
             {
-                try { await MaintainOutboxAsync(1, cancellation).ConfigureAwait(false); }
+                try { await MaintainOutboxAsync(1, cancellation).ConfigureAwait(false); await ProbePairingRequestsAsync(cancellation).ConfigureAwait(false); }
                 catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { throw; }
                 catch (Exception error) { serviceError = error.Message; }
                 await PollMailboxSafeAsync(cancellation).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
+    }
+
+    private async Task ProbePairingRequestsAsync(CancellationToken cancellation)
+    {
+        JsonObject own, target;
+        lock (gate)
+        {
+            if (disposed || outboxPaused || !Boolean(state, "an")) return;
+            var now = Environment.TickCount64;
+            var peer = state["partner"]!.AsArray().OfType<JsonObject>().FirstOrDefault(value =>
+                Boolean(value, "anfrageAusgehend") && !Boolean(value, "bestaetigt") &&
+                pairingProbeDeadlines.GetValueOrDefault(String(value, "kennung")) <= now);
+            if (peer is null) return;
+            pairingProbeDeadlines[String(peer, "kennung")] = now + 30_000;
+            own = state.DeepClone().AsObject(); target = peer.DeepClone().AsObject();
+        }
+        foreach (var endpoint in Endpoints(target))
+        {
+            try
+            {
+                using var start = MagnolienbaumFs1.BuildStart(own, target);
+                var response = await PostAsync(BuildUri(endpoint.Host, endpoint.Port, "/magnolie/v2/sitzung"), start.Message, cancellation).ConfigureAwait(false);
+                using var session = MagnolienbaumFs1.OpenResponse(own, target, start.Message, response, start.EphemeralPrivate);
+                lock (gate)
+                {
+                    if (disposed || outboxPaused || !Boolean(state, "an") ||
+                        !MagnolienbaumPairing.CompletePinnedRequest(state, String(target, "kennung"), String(target, "oeffentlich"),
+                            String(own, "kennung"), String(own, "oeffentlich"))) return;
+                    storage.SaveState(state); QueueContactCapabilities(Partner(String(target, "kennung"))!);
+                }
+                await ReportStatusAsync(); return;
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { throw; }
+            catch (Exception error) when (error is HttpRequestException or IOException or CryptographicException or InvalidOperationException or TaskCanceledException) { }
+        }
     }
 
     private async Task PollMailboxSafeAsync(CancellationToken cancellation)
@@ -1218,7 +1500,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     private static bool TooOld(JsonObject item) => DateTime.TryParseExact(String(item, "angelegt"), "yyyy-MM-dd HH:mm:ss", null,
         System.Globalization.DateTimeStyles.None, out var created) && DateTime.Now > created.AddDays(7);
     private static string Timestamp() => DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-    private static string NormalizeFingerprint(string value) { var clean = new string(value.Where(Uri.IsHexDigit).ToArray()).ToUpperInvariant(); return clean.Length == 16 ? string.Join("-", clean.Chunk(4).Select(chars => new string(chars))) : ""; }
+    private static string NormalizeFingerprint(string value) => MagnolienbaumPairing.NormalizeFingerprint(value);
     private static string NormalizeSource(string value)
     {
         var plain = value.Split('%', 2)[0];
@@ -1259,11 +1541,21 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         {
             if (!requestTimes.TryGetValue(source, out var times)) requestTimes[source] = times = [];
             times.RemoveAll(value => now - value >= window);
-            if (times.Count >= (pairing ? 8 : 120)) return false;
+            if (times.Count >= 120) return false;
+            if (pairing)
+            {
+                if (!pairingRequestTimes.TryGetValue(source, out var pairingTimes)) pairingRequestTimes[source] = pairingTimes = [];
+                pairingTimes.RemoveAll(value => now - value >= window);
+                if (pairingTimes.Count >= 8) return false;
+                pairingTimes.Add(now);
+            }
             times.Add(now);
             if (requestTimes.Count > 1000)
                 foreach (var old in requestTimes.Where(item => item.Value.Count == 0 || now - item.Value[^1] >= window).Select(item => item.Key).ToArray())
                     requestTimes.Remove(old);
+            if (pairingRequestTimes.Count > 1000)
+                foreach (var old in pairingRequestTimes.Where(item => item.Value.Count == 0 || now - item.Value[^1] >= window).Select(item => item.Key).ToArray())
+                    pairingRequestTimes.Remove(old);
             return true;
         }
     }
@@ -1314,5 +1606,6 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     private sealed record HttpResult(int Status, JsonObject Body, bool Notify = false);
     private sealed record QueueReport(int Delivered, int Open);
     private sealed class InboxFullException(string message) : Exception(message);
-    private sealed record IncomingFsSession(MagnolienbaumFsSession Session, string PartnerId, string Source, long Expires);
+    private sealed record IncomingFsSession(MagnolienbaumFsSession Session, string PartnerId, string Source, long Expires,
+        string PartnerPublicKey, string OwnPublicKey);
 }

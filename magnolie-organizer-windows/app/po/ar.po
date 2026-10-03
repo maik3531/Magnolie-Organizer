@@ -690,6 +690,9 @@ msgstr "كل الولايات"
 msgid "Allow notifications despite password protection"
 msgstr "السماح بالإشعارات رغم الحماية بكلمة مرور"
 
+msgid "Allow this device to share this connection"
+msgstr "السماح لهذا الجهاز بمشاركة هذا الاتصال"
+
 msgid "Also disclose appointments marked as confidential"
 msgstr "إظهار المواعيد المعلّمة على أنها سرية أيضًا"
 
@@ -1526,11 +1529,20 @@ msgstr "الاتصال عبر KDE Connect"
 msgid "Connected"
 msgstr "متصل"
 
+msgid "Connection already accepted."
+msgstr "تم قبول الاتصال بالفعل."
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr "تعذّر اكتشاف الاتصال. تحقق من الخادم وبيانات الدخول."
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr "تم عرض الاتصال. اقبله على الحاسوب الآخر."
+
 msgid "Connection ready"
 msgstr "الاتصال جاهز"
+
+msgid "Connection sharing was rejected."
+msgstr "رُفضت مشاركة الاتصال."
 
 msgid "Contact"
 msgstr "جهة اتصال"
@@ -1634,6 +1646,9 @@ msgstr "أنشئ أولًا ورقة رسم في علامة التبويب ال�
 
 msgid "Create a new appointment immediately"
 msgstr "إنشاء موعد جديد فورًا"
+
+msgid "Create a separate connection to this computer?"
+msgstr "إنشاء اتصال مستقل بهذا الحاسوب؟"
 
 msgid "Create an empty printable template"
 msgstr "إنشاء قالب فارغ قابل للطباعة"
@@ -4785,6 +4800,15 @@ msgstr "مشاركة العنوان"
 msgid "Share appointment"
 msgstr "مشاركة الموعد"
 
+msgid "Share connection"
+msgstr "مشاركة الاتصال"
+
+msgid "Share connection with"
+msgstr "مشاركة الاتصال مع"
+
+msgid "Share this connection with the selected device?"
+msgstr "مشاركة هذا الاتصال مع الجهاز المحدد؟"
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr "مشاركة هذا العنصر صراحةً مع %(branch)s؟"
 
@@ -4797,11 +4821,17 @@ msgstr "مشاركة هذا العنصر صراحةً مع هذا الفرع؟"
 msgid "Share together"
 msgstr "مشاركة معًا"
 
+msgid "Shared connection"
+msgstr "اتصال مشترك"
+
 msgid "Shared credentials"
 msgstr "بيانات الاعتماد المشتركة"
 
 msgid "Shared note"
 msgstr "ملاحظة مشتركة"
+
+msgid "Sharing this connection is not allowed."
+msgstr "مشاركة هذا الاتصال غير مسموحة."
 
 msgid "Shift planner"
 msgstr "مخطط المناوبات"
@@ -5406,6 +5436,9 @@ msgstr "الأرشيف الكامل فارغ."
 msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr "يُخزَّن الملف كاملًا في هذه الملاحظة (حتى 8 ميغابايت)."
 
+msgid "The connection could not be shared."
+msgstr "تعذرت مشاركة الاتصال."
+
 msgid "The connection to the phone was interrupted during pairing."
 msgstr "انقطع الاتصال بالهاتف أثناء الاقتران."
 
@@ -5494,6 +5527,9 @@ msgstr "تم استيراد العطل."
 
 msgid "The holidays were removed."
 msgstr "تمت إزالة العطل."
+
+msgid "The home computer needs a reachable Internet address."
+msgstr "يحتاج حاسوب المنزل إلى عنوان إنترنت قابل للوصول."
 
 msgid "The import exceeds the supported limits."
 msgstr "يتجاوز الاستيراد الحدود المدعومة."
@@ -6096,6 +6132,9 @@ msgstr "محاولات فاشلة كثيرة جدًا – انتظر %(duration)
 
 msgid "Too many failed attempts. Wait a moment."
 msgstr "محاولات فاشلة كثيرة جدًا. انتظر لحظة."
+
+msgid "Too many pairing requests are waiting."
+msgstr "طلبات اقتران معلقة كثيرة جداً."
 
 msgid "Too many regions were selected."
 msgstr "تم تحديد مناطق كثيرة جدًا."

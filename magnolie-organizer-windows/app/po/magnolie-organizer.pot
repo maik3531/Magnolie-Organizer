@@ -556,6 +556,9 @@ msgstr ""
 msgid "Allow notifications despite password protection"
 msgstr ""
 
+msgid "Allow this device to share this connection"
+msgstr ""
+
 msgid "Also disclose appointments marked as confidential"
 msgstr ""
 
@@ -1347,10 +1350,19 @@ msgstr ""
 msgid "Connected"
 msgstr ""
 
+msgid "Connection already accepted."
+msgstr ""
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr ""
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr ""
+
 msgid "Connection ready"
+msgstr ""
+
+msgid "Connection sharing was rejected."
 msgstr ""
 
 msgid "Contact"
@@ -1452,6 +1464,9 @@ msgid "Create a drawing sheet in the custom tab first."
 msgstr ""
 
 msgid "Create a new appointment immediately"
+msgstr ""
+
+msgid "Create a separate connection to this computer?"
 msgstr ""
 
 msgid "Create an empty printable template"
@@ -4427,6 +4442,15 @@ msgstr ""
 msgid "Share appointment"
 msgstr ""
 
+msgid "Share connection"
+msgstr ""
+
+msgid "Share connection with"
+msgstr ""
+
+msgid "Share this connection with the selected device?"
+msgstr ""
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr ""
 
@@ -4439,10 +4463,16 @@ msgstr ""
 msgid "Share together"
 msgstr ""
 
+msgid "Shared connection"
+msgstr ""
+
 msgid "Shared credentials"
 msgstr ""
 
 msgid "Shared note"
+msgstr ""
+
+msgid "Sharing this connection is not allowed."
 msgstr ""
 
 msgid "Shift planner"
@@ -5006,6 +5036,9 @@ msgstr ""
 msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr ""
 
+msgid "The connection could not be shared."
+msgstr ""
+
 msgid "The connection to the phone was interrupted during pairing."
 msgstr ""
 
@@ -5083,6 +5116,9 @@ msgid "The holidays were imported."
 msgstr ""
 
 msgid "The holidays were removed."
+msgstr ""
+
+msgid "The home computer needs a reachable Internet address."
 msgstr ""
 
 msgid "The import exceeds the supported limits."
@@ -5628,6 +5664,9 @@ msgid "Too many failed attempts – wait %(duration)s."
 msgstr ""
 
 msgid "Too many failed attempts. Wait a moment."
+msgstr ""
+
+msgid "Too many pairing requests are waiting."
 msgstr ""
 
 msgid "Too many regions were selected."

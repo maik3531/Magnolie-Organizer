@@ -883,6 +883,9 @@ msgstr "Wšě zwjazkowe kraje"
 msgid "Allow notifications despite password protection"
 msgstr "Zdźělenki tež při škitje z hesłom dowolić"
 
+msgid "Allow this device to share this connection"
+msgstr "Tutomu gratej dale daće tutoho zwiska dowolić"
+
 msgid "Allowed background functions"
 msgstr "Dowolene pozadkowe funkcije"
 
@@ -1853,13 +1856,22 @@ msgstr "Zwjazany"
 msgid "Connecting to the online accounts"
 msgstr "Zwjazowanje z online-kontami"
 
+msgid "Connection already accepted."
+msgstr "Zwisk hižo přijaty."
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr ""
 "Słužby za zwjazanje njedachu so namakać. Přepruwujće serwer a přizjewjenske "
 "daty."
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr "Zwisk poskićeny. Přijimće jón na druhim ličaku."
+
 msgid "Connection ready"
 msgstr "Zwisk je přihotowany"
+
+msgid "Connection sharing was rejected."
+msgstr "Dale daće zwiska je wotpokazane."
 
 msgid "Contact"
 msgstr "Kontakt"
@@ -2013,6 +2025,9 @@ msgstr "Gettext POT-předłohu wutworić"
 
 msgid "Create a new appointment immediately"
 msgstr "Hnydom nowy termin wutworić"
+
+msgid "Create a separate connection to this computer?"
+msgstr "Swójski zwisk k tutomu ličakej wutworić?"
 
 msgid "Create an empty printable template"
 msgstr "Prózdnu ćišćomnu předłohu wutworić"
@@ -5801,6 +5816,15 @@ msgstr "Adresu dźělić"
 msgid "Share appointment"
 msgstr "Termin dźělić"
 
+msgid "Share connection"
+msgstr "Zwisk dale dać"
+
+msgid "Share connection with"
+msgstr "Zwisk dale dać na"
+
+msgid "Share this connection with the selected device?"
+msgstr "Tutón zwisk na wubrany grat dale dać?"
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr "Tutón zapisk wuraznje z %(branch)s dźělić?"
 
@@ -5813,11 +5837,17 @@ msgstr "Tutón zapisk wuraznje z tutym hałuzom dźělić?"
 msgid "Share together"
 msgstr "Hromadźe dźělić"
 
+msgid "Shared connection"
+msgstr "Dale daty zwisk"
+
 msgid "Shared credentials"
 msgstr "Zhromadne přizjewjenske daty"
 
 msgid "Shared note"
 msgstr "Dźělena notica"
+
+msgid "Sharing this connection is not allowed."
+msgstr "Dale daće tutoho zwiska njeje dowolene."
 
 msgid "Shift planner"
 msgstr "Směnowy planowak"
@@ -6603,6 +6633,9 @@ msgstr "Komunikaciska metoda njeje dospołna."
 msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr "Cyły dataj je w tutej noticy składowany (hač do 8 megabajtow)."
 
+msgid "The connection could not be shared."
+msgstr "Zwisk njeda so dale dać."
+
 msgid "The connection settings could not be saved."
 msgstr "Nastajenja zwiska njedachu so składować."
 
@@ -6757,6 +6790,9 @@ msgstr "Swjate dny su so importowali."
 
 msgid "The holidays were removed."
 msgstr "Swjate dny su so wotstronili."
+
+msgid "The home computer needs a reachable Internet address."
+msgstr "Domjacy ličak trjeba přistupnu internetowu adresu."
 
 msgid "The import exceeds the supported limits."
 msgstr "Import překročuje podpěrane mjezy."
@@ -7612,6 +7648,9 @@ msgstr "Přewjele porowanskich datajow hišće płaći."
 
 msgid "Too many pairing requests are awaiting confirmation."
 msgstr "Přewjele porowanskich naprašowanjow čaka na wobkrućenje."
+
+msgid "Too many pairing requests are waiting."
+msgstr "Přewjele čakacych koplowanskich požadanjow."
 
 msgid "Too many regions were selected."
 msgstr "Přewjele regionow wubrane."

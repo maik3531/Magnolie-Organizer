@@ -806,6 +806,9 @@ msgstr "Tüm eyaletler"
 msgid "Allow notifications despite password protection"
 msgstr "Parola korumasına rağmen bildirimlere izin ver"
 
+msgid "Allow this device to share this connection"
+msgstr "Bu cihazın bu bağlantıyı paylaşmasına izin ver"
+
 msgid "Allowed background functions"
 msgstr "İzin verilen arka plan işlevleri"
 
@@ -1776,11 +1779,20 @@ msgstr "Bağlı"
 msgid "Connecting to the online accounts"
 msgstr "Çevrimiçi hesaplara bağlanılıyor"
 
+msgid "Connection already accepted."
+msgstr "Bağlantı zaten kabul edildi."
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr "Bağlantı bulunamadı. Sunucuyu ve giriş bilgilerini kontrol edin."
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr "Bağlantı teklif edildi. Diğer bilgisayarda kabul edin."
+
 msgid "Connection ready"
 msgstr "Bağlantı hazır"
+
+msgid "Connection sharing was rejected."
+msgstr "Bağlantı paylaşımı reddedildi."
 
 msgid "Contact"
 msgstr "Kişi"
@@ -1932,6 +1944,9 @@ msgstr "gettext POT şablonu oluştur"
 
 msgid "Create a new appointment immediately"
 msgstr "Hemen yeni bir randevu oluştur"
+
+msgid "Create a separate connection to this computer?"
+msgstr "Bu bilgisayara bağımsız bir bağlantı oluşturulsun mu?"
 
 msgid "Create an empty printable template"
 msgstr "Yazdırılabilir boş bir şablon oluştur"
@@ -5674,6 +5689,15 @@ msgstr "Adresi paylaş"
 msgid "Share appointment"
 msgstr "Randevuyu paylaş"
 
+msgid "Share connection"
+msgstr "Bağlantıyı paylaş"
+
+msgid "Share connection with"
+msgstr "Bağlantının paylaşılacağı cihaz"
+
+msgid "Share this connection with the selected device?"
+msgstr "Bu bağlantı seçilen cihazla paylaşılsın mı?"
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr "Bu girdi açıkça %(branch)s ile paylaşılsın mı?"
 
@@ -5686,11 +5710,17 @@ msgstr "Bu girdi açıkça bu dalla paylaşılsın mı?"
 msgid "Share together"
 msgstr "Birlikte paylaş"
 
+msgid "Shared connection"
+msgstr "Paylaşılan bağlantı"
+
 msgid "Shared credentials"
 msgstr "Paylaşılan kimlik bilgileri"
 
 msgid "Shared note"
 msgstr "Paylaşılan not"
+
+msgid "Sharing this connection is not allowed."
+msgstr "Bu bağlantının paylaşılmasına izin verilmedi."
 
 msgid "Shift planner"
 msgstr "Vardiya planlayıcı"
@@ -6468,6 +6498,9 @@ msgstr "İletişim yöntemi eksik."
 msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr "Dosyanın tamamı bu notta saklanır (8 megabayta kadar)."
 
+msgid "The connection could not be shared."
+msgstr "Bağlantı paylaşılamadı."
+
 msgid "The connection settings could not be saved."
 msgstr "Bağlantı ayarları kaydedilemedi."
 
@@ -6619,6 +6652,9 @@ msgstr "Tatiller içe aktarıldı."
 
 msgid "The holidays were removed."
 msgstr "Tatiller kaldırıldı."
+
+msgid "The home computer needs a reachable Internet address."
+msgstr "Ev bilgisayarı için erişilebilir bir İnternet adresi gerekiyor."
 
 msgid "The import exceeds the supported limits."
 msgstr "İçe aktarma desteklenen sınırları aşıyor."
@@ -7468,6 +7504,9 @@ msgstr "Hâlâ çok fazla eşleştirme dosyası geçerli."
 
 msgid "Too many pairing requests are awaiting confirmation."
 msgstr "Çok fazla eşleştirme isteği onay bekliyor."
+
+msgid "Too many pairing requests are waiting."
+msgstr "Çok fazla bekleyen eşleştirme isteği var."
 
 msgid "Too many regions were selected."
 msgstr "Çok fazla bölge seçildi."

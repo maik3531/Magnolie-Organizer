@@ -795,6 +795,9 @@ msgstr "सभी राज्य"
 msgid "Allow notifications despite password protection"
 msgstr "पासवर्ड सुरक्षा के बावजूद सूचनाएँ अनुमति दें"
 
+msgid "Allow this device to share this connection"
+msgstr "इस डिवाइस को यह कनेक्शन साझा करने दें"
+
 msgid "Allowed background functions"
 msgstr "अनुमत बैकग्राउंड फ़ंक्शन"
 
@@ -1741,11 +1744,20 @@ msgstr "कनेक्टेड"
 msgid "Connecting to the online accounts"
 msgstr "ऑनलाइन खातों से कनेक्ट हो रहा है"
 
+msgid "Connection already accepted."
+msgstr "कनेक्शन पहले ही स्वीकार हो चुका है।"
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr "जुड़ने के लिए सेवा नहीं मिल सकी। सर्वर और प्रवेश के लिए दिए गए विवरण जाँचें।"
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr "कनेक्शन प्रस्तावित है। दूसरे कंप्यूटर पर स्वीकार करें।"
+
 msgid "Connection ready"
 msgstr "कनेक्शन तैयार है"
+
+msgid "Connection sharing was rejected."
+msgstr "कनेक्शन साझा करना अस्वीकार किया गया।"
 
 msgid "Contact"
 msgstr "संपर्क"
@@ -1895,6 +1907,9 @@ msgstr "gettext POT टेम्पलेट बनाएँ"
 
 msgid "Create a new appointment immediately"
 msgstr "तुरंत नया अपॉइंटमेंट बनाएँ"
+
+msgid "Create a separate connection to this computer?"
+msgstr "इस कंप्यूटर से अपना अलग कनेक्शन बनाएँ?"
 
 msgid "Create an empty printable template"
 msgstr "खाली मुद्रण योग्य टेम्पलेट बनाएँ"
@@ -5573,6 +5588,15 @@ msgstr "पता साझा करें"
 msgid "Share appointment"
 msgstr "अपॉइंटमेंट साझा करें"
 
+msgid "Share connection"
+msgstr "कनेक्शन साझा करें"
+
+msgid "Share connection with"
+msgstr "इसके साथ कनेक्शन साझा करें"
+
+msgid "Share this connection with the selected device?"
+msgstr "यह कनेक्शन चुने हुए डिवाइस से साझा करें?"
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr "इस प्रविष्टि को स्पष्ट रूप से %(branch)s के साथ साझा करें?"
 
@@ -5585,11 +5609,17 @@ msgstr "इस प्रविष्टि को स्पष्ट रूप �
 msgid "Share together"
 msgstr "मिलकर साझा करें"
 
+msgid "Shared connection"
+msgstr "साझा कनेक्शन"
+
 msgid "Shared credentials"
 msgstr "साझा क्रेडेंशियल"
 
 msgid "Shared note"
 msgstr "साझा नोट"
+
+msgid "Sharing this connection is not allowed."
+msgstr "यह कनेक्शन साझा करने की अनुमति नहीं है।"
 
 msgid "Shift planner"
 msgstr "शिफ्ट प्लानर"
@@ -6354,6 +6384,9 @@ msgstr "संचार विधि अधूरी है।"
 msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr "पूरी फ़ाइल इस नोट में संग्रहीत है (8 मेगाबाइट तक)।"
 
+msgid "The connection could not be shared."
+msgstr "कनेक्शन साझा नहीं हो सका।"
+
 msgid "The connection settings could not be saved."
 msgstr "कनेक्शन की सेटिंग्स सहेजी नहीं जा सकीं।"
 
@@ -6501,6 +6534,9 @@ msgstr "छुट्टियाँ आयात की गईं।"
 
 msgid "The holidays were removed."
 msgstr "छुट्टियाँ हटा दी गईं।"
+
+msgid "The home computer needs a reachable Internet address."
+msgstr "घर के कंप्यूटर के लिए पहुँच योग्य इंटरनेट पता चाहिए।"
 
 msgid "The import exceeds the supported limits."
 msgstr "आयात समर्थित सीमाओं से अधिक है।"
@@ -7334,6 +7370,9 @@ msgstr "बहुत अधिक पेयरिंग फ़ाइलें �
 
 msgid "Too many pairing requests are awaiting confirmation."
 msgstr "बहुत अधिक पेयरिंग अनुरोध पुष्टि की प्रतीक्षा में हैं।"
+
+msgid "Too many pairing requests are waiting."
+msgstr "बहुत अधिक युग्मन अनुरोध लंबित हैं।"
 
 msgid "Too many regions were selected."
 msgstr "बहुत अधिक क्षेत्र चुने गए।"

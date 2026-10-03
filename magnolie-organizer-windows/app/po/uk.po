@@ -606,6 +606,9 @@ msgstr "Усі федеральні землі"
 msgid "Allow notifications despite password protection"
 msgstr "Дозволити сповіщення попри захист паролем"
 
+msgid "Allow this device to share this connection"
+msgstr "Дозволити пристрою передавати це з’єднання"
+
 msgid "Also disclose appointments marked as confidential"
 msgstr "Також розкривати зустрічі, позначені як конфіденційні"
 
@@ -1460,12 +1463,21 @@ msgstr "Під'єднати через KDE Connect"
 msgid "Connected"
 msgstr "Підключено"
 
+msgid "Connection already accepted."
+msgstr "З’єднання вже прийнято."
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr ""
 "Не вдалося знайти сервіси для з'єднання. Перевірте сервер і облікові дані."
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr "З’єднання запропоновано. Прийміть його на іншому комп’ютері."
+
 msgid "Connection ready"
 msgstr "З'єднання підготовлено"
+
+msgid "Connection sharing was rejected."
+msgstr "Передавання з’єднання відхилено."
 
 msgid "Contact"
 msgstr "Контакт"
@@ -1569,6 +1581,9 @@ msgstr "Спочатку створіть аркуш для малювання �
 
 msgid "Create a new appointment immediately"
 msgstr "Негайно створити нову зустріч"
+
+msgid "Create a separate connection to this computer?"
+msgstr "Створити власне з’єднання з цим комп’ютером?"
 
 msgid "Create an empty printable template"
 msgstr "Створити порожній шаблон для друку"
@@ -4734,6 +4749,15 @@ msgstr "Поділитися адресою"
 msgid "Share appointment"
 msgstr "Поділитися зустріччю"
 
+msgid "Share connection"
+msgstr "Передати з’єднання"
+
+msgid "Share connection with"
+msgstr "Передати з’єднання пристрою"
+
+msgid "Share this connection with the selected device?"
+msgstr "Передати з’єднання вибраному пристрою?"
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr "Явно поділитися цим записом із %(branch)s?"
 
@@ -4746,11 +4770,17 @@ msgstr "Явно поділитися цим записом із цією гіл
 msgid "Share together"
 msgstr "Поділитися разом"
 
+msgid "Shared connection"
+msgstr "Передане з’єднання"
+
 msgid "Shared credentials"
 msgstr "Спільні облікові дані"
 
 msgid "Shared note"
 msgstr "Спільна нотатка"
+
+msgid "Sharing this connection is not allowed."
+msgstr "Передавання цього з’єднання не дозволено."
 
 msgid "Shift planner"
 msgstr "Планувальник змін"
@@ -5362,6 +5392,9 @@ msgstr "Повний архів порожній."
 msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr "У цій нотатці зберігається весь файл (до 8 мегабайтів)."
 
+msgid "The connection could not be shared."
+msgstr "Не вдалося передати з’єднання."
+
 msgid "The connection to the phone was interrupted during pairing."
 msgstr "З’єднання з телефоном було перервано під час створення пари."
 
@@ -5450,6 +5483,9 @@ msgstr "Свята імпортовано."
 
 msgid "The holidays were removed."
 msgstr "Свята видалено."
+
+msgid "The home computer needs a reachable Internet address."
+msgstr "Домашньому комп’ютеру потрібна доступна інтернет-адреса."
 
 msgid "The import exceeds the supported limits."
 msgstr "Імпорт перевищує підтримувані обмеження."
@@ -6068,6 +6104,9 @@ msgstr "Забагато невдалих спроб – зачекайте %(du
 
 msgid "Too many failed attempts. Wait a moment."
 msgstr "Забагато невдалих спроб. Трохи зачекайте."
+
+msgid "Too many pairing requests are waiting."
+msgstr "Забагато запитів на сполучення в очікуванні."
 
 msgid "Too many regions were selected."
 msgstr "Вибрано забагато регіонів."

@@ -746,6 +746,9 @@ msgstr "所有州/邦"
 msgid "Allow notifications despite password protection"
 msgstr "即使有密码保护也允许通知"
 
+msgid "Allow this device to share this connection"
+msgstr "允许此设备分享此连接"
+
 msgid "Allowed background functions"
 msgstr "允许的后台功能"
 
@@ -1670,11 +1673,20 @@ msgstr "已连接"
 msgid "Connecting to the online accounts"
 msgstr "正在连接在线账户"
 
+msgid "Connection already accepted."
+msgstr "连接已接受。"
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr "未能找到可用的连接。请检查服务器和登录信息。"
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr "已发出连接邀请。请在另一台电脑上接受。"
+
 msgid "Connection ready"
 msgstr "连接已就绪"
+
+msgid "Connection sharing was rejected."
+msgstr "连接分享已被拒绝。"
 
 msgid "Contact"
 msgstr "联系人"
@@ -1824,6 +1836,9 @@ msgstr "创建 gettext POT 模板"
 
 msgid "Create a new appointment immediately"
 msgstr "立即创建新约会"
+
+msgid "Create a separate connection to this computer?"
+msgstr "创建与此电脑的独立连接？"
 
 msgid "Create an empty printable template"
 msgstr "创建可打印的空白模板"
@@ -5419,6 +5434,15 @@ msgstr "共享地址"
 msgid "Share appointment"
 msgstr "共享约会"
 
+msgid "Share connection"
+msgstr "分享连接"
+
+msgid "Share connection with"
+msgstr "连接分享给"
+
+msgid "Share this connection with the selected device?"
+msgstr "与所选设备分享此连接？"
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr "明确将此条目与 %(branch)s 共享？"
 
@@ -5431,11 +5455,17 @@ msgstr "明确将此条目与此分支共享？"
 msgid "Share together"
 msgstr "共同共享"
 
+msgid "Shared connection"
+msgstr "分享的连接"
+
 msgid "Shared credentials"
 msgstr "共享凭据"
 
 msgid "Shared note"
 msgstr "共享便笺"
+
+msgid "Sharing this connection is not allowed."
+msgstr "未授权分享此连接。"
 
 msgid "Shift planner"
 msgstr "班次计划器"
@@ -6183,6 +6213,9 @@ msgstr "通信方式不完整。"
 msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr "完整文件存储在此便笺中（最大 8 MB）。"
 
+msgid "The connection could not be shared."
+msgstr "无法分享连接。"
+
 msgid "The connection settings could not be saved."
 msgstr "无法保存连接设置。"
 
@@ -6328,6 +6361,9 @@ msgstr "已导入节假日。"
 
 msgid "The holidays were removed."
 msgstr "已移除节假日。"
+
+msgid "The home computer needs a reachable Internet address."
+msgstr "家中电脑需要可访问的互联网地址。"
 
 msgid "The import exceeds the supported limits."
 msgstr "导入内容超出支持的限制。"
@@ -7135,6 +7171,9 @@ msgstr "仍有过多配对文件处于有效状态。"
 
 msgid "Too many pairing requests are awaiting confirmation."
 msgstr "等待确认的配对请求过多。"
+
+msgid "Too many pairing requests are waiting."
+msgstr "等待处理的配对请求过多。"
 
 msgid "Too many regions were selected."
 msgstr "选择的地区过多。"

@@ -609,6 +609,9 @@ msgstr "Все земли"
 msgid "Allow notifications despite password protection"
 msgstr "Разрешить уведомления несмотря на защиту паролем"
 
+msgid "Allow this device to share this connection"
+msgstr "Разрешить устройству передавать это соединение"
+
 msgid "Also disclose appointments marked as confidential"
 msgstr "Также предоставлять доступ к встречам, отмеченным как конфиденциальные"
 
@@ -1467,12 +1470,21 @@ msgstr "Подключить через KDE Connect"
 msgid "Connected"
 msgstr "Подключено"
 
+msgid "Connection already accepted."
+msgstr "Соединение уже принято."
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr ""
 "Не удалось найти сервисы для соединения. Проверьте сервер и учётные данные."
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr "Соединение предложено. Примите его на другом компьютере."
+
 msgid "Connection ready"
 msgstr "Соединение подготовлено"
+
+msgid "Connection sharing was rejected."
+msgstr "Передача соединения отклонена."
 
 msgid "Contact"
 msgstr "Контакт"
@@ -1576,6 +1588,9 @@ msgstr "Сначала создайте лист для рисования на 
 
 msgid "Create a new appointment immediately"
 msgstr "Сразу создать новую встречу"
+
+msgid "Create a separate connection to this computer?"
+msgstr "Создать собственное соединение с этим компьютером?"
 
 msgid "Create an empty printable template"
 msgstr "Создать пустой шаблон для печати"
@@ -4747,6 +4762,15 @@ msgstr "Поделиться адресом"
 msgid "Share appointment"
 msgstr "Поделиться встречей"
 
+msgid "Share connection"
+msgstr "Передать соединение"
+
+msgid "Share connection with"
+msgstr "Передать соединение устройству"
+
+msgid "Share this connection with the selected device?"
+msgstr "Передать соединение выбранному устройству?"
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr "Явно поделиться этой записью с %(branch)s?"
 
@@ -4759,11 +4783,17 @@ msgstr "Явно поделиться этой записью с этой вет
 msgid "Share together"
 msgstr "Совместный доступ"
 
+msgid "Shared connection"
+msgstr "Переданное соединение"
+
 msgid "Shared credentials"
 msgstr "Общие учётные данные"
 
 msgid "Shared note"
 msgstr "Общая заметка"
+
+msgid "Sharing this connection is not allowed."
+msgstr "Передача этого соединения не разрешена."
 
 msgid "Shift planner"
 msgstr "Планировщик смен"
@@ -5373,6 +5403,9 @@ msgstr "Полный архив пуст."
 msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr "В этой заметке сохраняется весь файл целиком (до 8 мегабайт)."
 
+msgid "The connection could not be shared."
+msgstr "Не удалось передать соединение."
+
 msgid "The connection to the phone was interrupted during pairing."
 msgstr "Соединение с телефоном прервалось во время сопряжения."
 
@@ -5462,6 +5495,9 @@ msgstr "Праздники импортированы."
 
 msgid "The holidays were removed."
 msgstr "Праздники удалены."
+
+msgid "The home computer needs a reachable Internet address."
+msgstr "Домашнему компьютеру нужен доступный интернет-адрес."
 
 msgid "The import exceeds the supported limits."
 msgstr "Импорт превышает поддерживаемые ограничения."
@@ -6083,6 +6119,9 @@ msgstr "Слишком много неудачных попыток — подо
 
 msgid "Too many failed attempts. Wait a moment."
 msgstr "Слишком много неудачных попыток. Немного подождите."
+
+msgid "Too many pairing requests are waiting."
+msgstr "Слишком много ожидающих запросов сопряжения."
 
 msgid "Too many regions were selected."
 msgstr "Выбрано слишком много регионов."

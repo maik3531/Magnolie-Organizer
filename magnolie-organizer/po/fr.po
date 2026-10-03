@@ -820,6 +820,9 @@ msgstr "Tous les États fédérés"
 msgid "Allow notifications despite password protection"
 msgstr "Autoriser les notifications malgré la protection par mot de passe"
 
+msgid "Allow this device to share this connection"
+msgstr "Autoriser cet appareil à partager cette connexion"
+
 msgid "Allowed background functions"
 msgstr "Fonctions d’arrière-plan autorisées"
 
@@ -1808,13 +1811,22 @@ msgstr "Connecté"
 msgid "Connecting to the online accounts"
 msgstr "Connexion aux comptes en ligne"
 
+msgid "Connection already accepted."
+msgstr "Connexion déjà acceptée."
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr ""
 "Les connexions disponibles n’ont pas pu être détectées. Vérifiez le serveur "
 "et les identifiants de connexion."
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr "Connexion proposée. Acceptez-la sur l’autre ordinateur."
+
 msgid "Connection ready"
 msgstr "Connexion prête"
+
+msgid "Connection sharing was rejected."
+msgstr "Le partage de connexion a été refusé."
 
 msgid "Contact"
 msgstr "Contact"
@@ -1977,6 +1989,9 @@ msgstr "Créer un modèle POT gettext"
 
 msgid "Create a new appointment immediately"
 msgstr "Créer immédiatement un nouveau rendez-vous"
+
+msgid "Create a separate connection to this computer?"
+msgstr "Créer une connexion indépendante à cet ordinateur ?"
 
 msgid "Create an empty printable template"
 msgstr "Créer un modèle vierge imprimable"
@@ -5814,6 +5829,15 @@ msgstr "Partager l’adresse"
 msgid "Share appointment"
 msgstr "Partager le rendez-vous"
 
+msgid "Share connection"
+msgstr "Partager la connexion"
+
+msgid "Share connection with"
+msgstr "Partager la connexion avec"
+
+msgid "Share this connection with the selected device?"
+msgstr "Partager cette connexion avec l’appareil sélectionné ?"
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr "Partager explicitement cette entrée avec %(branch)s ?"
 
@@ -5826,11 +5850,17 @@ msgstr "Partager explicitement cette entrée avec cette branche ?"
 msgid "Share together"
 msgstr "Partager ensemble"
 
+msgid "Shared connection"
+msgstr "Connexion partagée"
+
 msgid "Shared credentials"
 msgstr "Identifiants partagés"
 
 msgid "Shared note"
 msgstr "Note partagée"
+
+msgid "Sharing this connection is not allowed."
+msgstr "Le partage de cette connexion n’est pas autorisé."
 
 msgid "Shift planner"
 msgstr "Planning des services"
@@ -6639,6 +6669,9 @@ msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr ""
 "Le fichier complet est conservé dans cette note (jusqu’à 8 mégaoctets)."
 
+msgid "The connection could not be shared."
+msgstr "Impossible de partager la connexion."
+
 msgid "The connection settings could not be saved."
 msgstr "Les paramètres de connexion n’ont pas pu être enregistrés."
 
@@ -6801,6 +6834,9 @@ msgstr "Les jours fériés et vacances ont été importés."
 
 msgid "The holidays were removed."
 msgstr "Les jours fériés et vacances ont été supprimés."
+
+msgid "The home computer needs a reachable Internet address."
+msgstr "L’ordinateur familial nécessite une adresse Internet accessible."
 
 msgid "The import exceeds the supported limits."
 msgstr "L’importation dépasse les limites prises en charge."
@@ -7697,6 +7733,9 @@ msgstr "Trop de fichiers d’appairage sont encore valides."
 
 msgid "Too many pairing requests are awaiting confirmation."
 msgstr "Trop de demandes d’appairage attendent une confirmation."
+
+msgid "Too many pairing requests are waiting."
+msgstr "Trop de demandes d’association en attente."
 
 msgid "Too many regions were selected."
 msgstr "Trop de régions ont été sélectionnées."

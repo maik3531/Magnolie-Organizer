@@ -604,6 +604,9 @@ msgstr "Všechny spolkové země"
 msgid "Allow notifications despite password protection"
 msgstr "Povolit oznámení i při ochraně heslem"
 
+msgid "Allow this device to share this connection"
+msgstr "Povolit zařízení sdílet toto spojení"
+
 msgid "Also disclose appointments marked as confidential"
 msgstr "Zpřístupnit také schůzky označené jako důvěrné"
 
@@ -1450,13 +1453,22 @@ msgstr "Připojit přes KDE Connect"
 msgid "Connected"
 msgstr "Připojeno"
 
+msgid "Connection already accepted."
+msgstr "Spojení již přijato."
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr ""
 "Vyhledání dostupných připojení se nezdařilo. Zkontrolujte server a "
 "přihlašovací údaje."
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr "Spojení nabídnuto. Přijměte je na druhém počítači."
+
 msgid "Connection ready"
 msgstr "Připojení je připravené"
+
+msgid "Connection sharing was rejected."
+msgstr "Sdílení spojení bylo odmítnuto."
 
 msgid "Contact"
 msgstr "Kontakt"
@@ -1560,6 +1572,9 @@ msgstr "Nejprve vytvořte kreslicí list na vlastní kartě."
 
 msgid "Create a new appointment immediately"
 msgstr "Okamžitě vytvořit novou schůzku"
+
+msgid "Create a separate connection to this computer?"
+msgstr "Vytvořit vlastní spojení s tímto počítačem?"
 
 msgid "Create an empty printable template"
 msgstr "Vytvořit prázdnou tisknutelnou šablonu"
@@ -4714,6 +4729,15 @@ msgstr "Sdílet adresu"
 msgid "Share appointment"
 msgstr "Sdílet schůzku"
 
+msgid "Share connection"
+msgstr "Sdílet spojení"
+
+msgid "Share connection with"
+msgstr "Sdílet spojení se zařízením"
+
+msgid "Share this connection with the selected device?"
+msgstr "Sdílet spojení s vybraným zařízením?"
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr "Sdílet tuto položku výslovně s %(branch)s?"
 
@@ -4726,11 +4750,17 @@ msgstr "Sdílet tuto položku výslovně s touto větví?"
 msgid "Share together"
 msgstr "Sdílet společně"
 
+msgid "Shared connection"
+msgstr "Sdílené spojení"
+
 msgid "Shared credentials"
 msgstr "Sdílené přihlašovací údaje"
 
 msgid "Shared note"
 msgstr "Sdílená poznámka"
+
+msgid "Sharing this connection is not allowed."
+msgstr "Sdílení tohoto spojení není povoleno."
 
 msgid "Shift planner"
 msgstr "Plánovač směn"
@@ -5336,6 +5366,9 @@ msgstr "Celý archiv je prázdný."
 msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr "V této poznámce je uložen celý soubor (až 8 megabajtů)."
 
+msgid "The connection could not be shared."
+msgstr "Spojení se nepodařilo sdílet."
+
 msgid "The connection to the phone was interrupted during pairing."
 msgstr "Spojení s telefonem bylo během párování přerušeno."
 
@@ -5424,6 +5457,9 @@ msgstr "Svátky byly importovány."
 
 msgid "The holidays were removed."
 msgstr "Svátky byly odstraněny."
+
+msgid "The home computer needs a reachable Internet address."
+msgstr "Domácí počítač potřebuje dosažitelnou internetovou adresu."
 
 msgid "The import exceeds the supported limits."
 msgstr "Import překračuje podporované limity."
@@ -6037,6 +6073,9 @@ msgstr "Příliš mnoho neúspěšných pokusů – počkejte %(duration)s."
 
 msgid "Too many failed attempts. Wait a moment."
 msgstr "Příliš mnoho neúspěšných pokusů. Chvíli počkejte."
+
+msgid "Too many pairing requests are waiting."
+msgstr "Příliš mnoho čekajících žádostí o párování."
 
 msgid "Too many regions were selected."
 msgstr "Bylo vybráno příliš mnoho regionů."

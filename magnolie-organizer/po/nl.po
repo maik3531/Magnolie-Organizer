@@ -806,6 +806,9 @@ msgstr "Alle deelstaten"
 msgid "Allow notifications despite password protection"
 msgstr "Meldingen toestaan ondanks wachtwoordbeveiliging"
 
+msgid "Allow this device to share this connection"
+msgstr "Dit apparaat toestaan deze verbinding te delen"
+
 msgid "Allowed background functions"
 msgstr "Toegestane achtergrondfuncties"
 
@@ -1781,13 +1784,22 @@ msgstr "Verbonden"
 msgid "Connecting to the online accounts"
 msgstr "Verbinding maken met de online-accounts"
 
+msgid "Connection already accepted."
+msgstr "Verbinding al geaccepteerd."
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr ""
 "Het zoeken naar beschikbare verbindingen is mislukt. Controleer de server en "
 "de inloggegevens."
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr "Verbinding aangeboden. Accepteer op de andere computer."
+
 msgid "Connection ready"
 msgstr "Verbinding gereed"
+
+msgid "Connection sharing was rejected."
+msgstr "Het delen van de verbinding is geweigerd."
 
 msgid "Contact"
 msgstr "Contact"
@@ -1947,6 +1959,9 @@ msgstr "Gettext-POT-sjabloon maken"
 
 msgid "Create a new appointment immediately"
 msgstr "Direct een nieuwe afspraak maken"
+
+msgid "Create a separate connection to this computer?"
+msgstr "Een eigen verbinding met deze computer maken?"
 
 msgid "Create an empty printable template"
 msgstr "Een lege afdrukbare sjabloon maken"
@@ -5736,6 +5751,15 @@ msgstr "Adres delen"
 msgid "Share appointment"
 msgstr "Afspraak delen"
 
+msgid "Share connection"
+msgstr "Verbinding delen"
+
+msgid "Share connection with"
+msgstr "Verbinding delen met"
+
+msgid "Share this connection with the selected device?"
+msgstr "Deze verbinding delen met het geselecteerde apparaat?"
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr "Dit item expliciet delen met %(branch)s?"
 
@@ -5748,11 +5772,17 @@ msgstr "Dit item expliciet delen met deze tak?"
 msgid "Share together"
 msgstr "Samen delen"
 
+msgid "Shared connection"
+msgstr "Gedeelde verbinding"
+
 msgid "Shared credentials"
 msgstr "Gedeelde aanmeldgegevens"
 
 msgid "Shared note"
 msgstr "Gedeelde notitie"
+
+msgid "Sharing this connection is not allowed."
+msgstr "Deze verbinding mag niet worden gedeeld."
 
 msgid "Shift planner"
 msgstr "Dienstplanner"
@@ -6547,6 +6577,9 @@ msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr ""
 "Het volledige bestand wordt in deze notitie opgeslagen (tot 8 megabyte)."
 
+msgid "The connection could not be shared."
+msgstr "De verbinding kon niet worden gedeeld."
+
 msgid "The connection settings could not be saved."
 msgstr "De verbindingsinstellingen konden niet worden opgeslagen."
 
@@ -6708,6 +6741,9 @@ msgstr "De feestdagen zijn geïmporteerd."
 
 msgid "The holidays were removed."
 msgstr "De feestdagen zijn verwijderd."
+
+msgid "The home computer needs a reachable Internet address."
+msgstr "De thuiscomputer heeft een bereikbaar internetadres nodig."
 
 msgid "The import exceeds the supported limits."
 msgstr "De import overschrijdt de ondersteunde limieten."
@@ -7587,6 +7623,9 @@ msgstr "Er zijn nog te veel geldige koppelingsbestanden."
 
 msgid "Too many pairing requests are awaiting confirmation."
 msgstr "Er wachten te veel koppelingsverzoeken op bevestiging."
+
+msgid "Too many pairing requests are waiting."
+msgstr "Te veel wachtende koppelverzoeken."
 
 msgid "Too many regions were selected."
 msgstr "Er zijn te veel regio's geselecteerd."

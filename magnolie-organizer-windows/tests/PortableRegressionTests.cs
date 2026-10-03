@@ -213,6 +213,12 @@ try
               Enumerable.Range(0, 120).All(_ => coordinatorA.RequestAllowed("192.0.2.2", false)) &&
               !coordinatorA.RequestAllowed("192.0.2.2", false),
             "60-Sekunden-Limits entsprechen Linux für Paarung und allgemeine Anfragen");
+        Check(Enumerable.Range(0, 12).All(_ => coordinatorA.RequestAllowed("192.0.2.3", false)) &&
+              Enumerable.Range(0, 8).All(_ => coordinatorA.RequestAllowed("::ffff:192.0.2.3", true)) &&
+              !coordinatorA.RequestAllowed("192.0.2.3", true) &&
+              Enumerable.Range(0, 100).All(_ => coordinatorA.RequestAllowed("192.0.2.3", false)) &&
+              !coordinatorA.RequestAllowed("192.0.2.3", false),
+            "Nachrichten verbrauchen kein Paarungskontingent; beide Arten teilen weiterhin das Gesamtlimit");
         Check(MagnolienbaumCoordinator.MaxMessageBytes == 40 * 1024 * 1024 &&
               MagnolienbaumCoordinator.RequestBodyLimit("/magnolie/v1/nachricht") == 40 * 1024 * 1024 &&
               MagnolienbaumCoordinator.RequestBodyLimit("/magnolie/v2/nachricht") == 40 * 1024 * 1024 &&
@@ -307,7 +313,8 @@ try
         var livePairingFile = coordinatorA.CreatePairingFile("127.0.0.1", portA);
         await coordinatorB.ImportPairingFileAsync(livePairingFile);
         Check(eventsB.Last(item => item.Name == "App.baumPaarungsdatei").Payload["ok"]!.GetValue<bool>(),
-            "v2-Paarung über echten TCP-HTTP-Listener");
+            "v2-Paarung über echten TCP-HTTP-Listener: " +
+            eventsB.Last(item => item.Name == "App.baumPaarungsdatei").Payload["fehler"]);
         await coordinatorA.SendAsync(idB, "notiz", JsonNode.Parse("""{"freigabeId":"fs-a","titel":"FS von A"}""")!);
         await coordinatorB.SendAsync(idA, "termin", JsonNode.Parse("""{"id":"fs-b","titel":"FS von B"}""")!);
         await coordinatorA.ReportStatusAsync(); await coordinatorB.ReportStatusAsync();

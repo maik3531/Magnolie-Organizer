@@ -13030,6 +13030,113 @@ def baum_paarungslink(dokument):
         b"=").decode("ascii")
 
 
+def baum_weitergabe_erlauben(zustand, kennung, oeffentlich, erlaubt):
+    partner = next((p for p in zustand.get("partner", [])
+                    if p.get("kennung") == kennung), None)
+    if (type(erlaubt) is not bool or not partner or not partner.get("bestaetigt")
+            or partner.get("oeffentlich") != oeffentlich):
+        raise RuntimeError(_("The pairing request is invalid."))
+    partner["weitergabeErlaubt"] = erlaubt
+    if not erlaubt:
+        zustand["paarungen"] = [p for p in zustand.get("paarungen", [])
+                               if p.get("weitergabeVon") != kennung]
+    return partner
+
+
+def baum_verbindungsfreigabe_erzeugen(zustand, geber_kennung, geber_oeffentlich,
+                                      ziel, adresse, port=BAUM_PORT, jetzt=None):
+    """Mint a one-use invitation for one new device; never copy an existing identity."""
+    geber = baum_partner(zustand, geber_kennung)
+    if (not geber or not geber.get("bestaetigt") or not geber.get("weitergabeErlaubt") or
+            geber.get("oeffentlich") != geber_oeffentlich):
+        raise RuntimeError(_("This branch has not been confirmed."))
+    if (not isinstance(ziel, dict) or set(ziel) != {"kennung", "name", "oeffentlich", "port"} or
+            not isinstance(ziel.get("kennung"), str) or not 1 <= len(ziel["kennung"]) <= 32 or
+            ziel["kennung"] in {zustand.get("kennung"), geber_kennung} or
+            not baum_oeffentlicher_schluessel_gueltig(ziel.get("oeffentlich")) or
+            ziel.get("oeffentlich") in {zustand.get("oeffentlich"), geber_oeffentlich}):
+        raise RuntimeError(_("The pairing request is invalid."))
+    document, invitation = baum_paarungsdatei_erzeugen(zustand, adresse, port, jetzt=jetzt)
+    invitation.update(weitergabeVon=geber_kennung, weitergabeSchluessel=geber_oeffentlich,
+        zielKennung=ziel["kennung"], zielOeffentlich=ziel["oeffentlich"])
+    return document
+
+
+def baum_weitergabe_anfrage(zustand, partner, anfrage, jetzt=None):
+    import copy
+    import hashlib
+    jetzt = int(time.time() if jetzt is None else jetzt)
+    if (not partner.get("bestaetigt") or
+            not any(p is partner for p in zustand.get("partner", []))):
+        raise RuntimeError(_("This branch has not been confirmed."))
+    if not isinstance(anfrage, dict):
+        raise RuntimeError(_("The pairing request is invalid."))
+    kennung = anfrage.get("id", "")
+    _baum_b64url_lesen(kennung, 16)
+    if anfrage.get("aktion") == "einladung":
+        if (set(anfrage) != {"aktion", "id", "ziel", "adresse", "port"} or
+                not partner.get("weitergabeErlaubt")):
+            raise RuntimeError(_("Sharing this connection is not allowed."))
+        digest = hashlib.sha256(_baum_kanonisch(anfrage)).hexdigest().upper()
+        previous = next((e for e in zustand.get("paarungen", [])
+                         if e.get("weitergabeAnfrage") == kennung and
+                         e.get("weitergabeVon") == partner["kennung"]), None)
+        if previous:
+            if (previous.get("weitergabeHash") != digest or
+                    previous.get("weitergabeSchluessel") != partner["oeffentlich"] or
+                    previous.get("gueltigBis", 0) <= jetzt):
+                raise RuntimeError(_("The pairing request is invalid."))
+            return copy.deepcopy(previous["weitergabeDatei"])
+        document = baum_verbindungsfreigabe_erzeugen(zustand, partner["kennung"],
+            partner["oeffentlich"], anfrage["ziel"], anfrage["adresse"], anfrage["port"], jetzt)
+        created = next(e for e in zustand["paarungen"] if e["paarung"] == document["paarung"])
+        created.update(weitergabeAnfrage=kennung, weitergabeHash=digest,
+                       weitergabeDatei=copy.deepcopy(document))
+        return document
+    if anfrage.get("aktion") == "angebot":
+        ziel = anfrage.get("ziel")
+        if (set(anfrage) != {"aktion", "id", "datei", "ziel"} or not isinstance(ziel, dict) or
+                ziel.get("kennung") != zustand["kennung"] or ziel.get("oeffentlich") != zustand["oeffentlich"]):
+            raise RuntimeError(_("The pairing request is invalid."))
+        document = baum_paarungsdatei_pruefen(anfrage["datei"], jetzt)
+        if document["einlader"]["kennung"] == zustand["kennung"]:
+            raise RuntimeError(_("The pairing request is invalid."))
+        completed = next((e for e in zustand.get("weitergabeAbschluesse", []) if e["id"] == kennung and e["gueltigBis"] > jetzt), None)
+        if completed:
+            if (completed["von"] != partner["kennung"] or completed["schluessel"] != partner["oeffentlich"] or
+                    completed["home"] != document["einlader"]["kennung"] or completed["homeSchluessel"] != document["einlader"]["oeffentlich"]):
+                raise RuntimeError(_("The pairing request is invalid."))
+            linked = baum_partner(zustand, completed["home"])
+            if completed["angenommen"] and (not linked or not linked.get("bestaetigt") or linked["oeffentlich"] != completed["homeSchluessel"]):
+                raise RuntimeError(_("The pairing request is invalid."))
+            return {"id": kennung, "wartet": False, "angenommen": completed["angenommen"]}
+        offers = [e for e in zustand.get("weitergabeAngebote", []) if e["datei"]["gueltigBis"] > jetzt]
+        previous = next((e for e in offers if e["id"] == kennung), None)
+        offer = {"id": kennung, "von": partner["kennung"], "schluessel": partner["oeffentlich"],
+                 "datei": copy.deepcopy(document), "ziel": copy.deepcopy(ziel)}
+        if previous is not None and {k: v for k, v in previous.items() if k != "anfrage"} != offer:
+            raise RuntimeError(_("The pairing request is invalid."))
+        if previous is None:
+            if len(offers) >= 8:
+                raise RuntimeError(_("Too many pairing requests are waiting."))
+            offers.append(offer)
+        zustand["weitergabeAngebote"] = offers
+        return {"id": kennung, "wartet": True}
+    raise RuntimeError(_("Unknown endpoint."))
+
+
+def baum_weitergabe_abschliessen(zustand, angebot, angenommen, jetzt=None):
+    jetzt = int(time.time() if jetzt is None else jetzt)
+    receipts = [e for e in zustand.get("weitergabeAbschluesse", []) if e["gueltigBis"] > jetzt]
+    if len(receipts) >= 100:
+        raise RuntimeError(_("Too many pairing requests are waiting."))
+    receipts.append({"id": angebot["id"], "von": angebot["von"], "schluessel": angebot["schluessel"],
+        "home": angebot["datei"]["einlader"]["kennung"], "homeSchluessel": angebot["datei"]["einlader"]["oeffentlich"],
+        "angenommen": angenommen, "gueltigBis": jetzt + 1800})
+    zustand["weitergabeAbschluesse"] = receipts
+    zustand["weitergabeAngebote"].remove(angebot)
+
+
 def baum_paarungsqr(dokument):
     """Stellt dieselbe Paarungsdatei als QR-Link dar, ohne neues Vertrauen."""
     import io
@@ -13125,6 +13232,10 @@ def baum_paarungsanfrage_annehmen(zustand, anfrage, adresse="", jetzt=None):
     for alt in zustand.get("paarungenVerbraucht", []):
         if (alt.get("paarung") == anfrage.get("paarung")
                 and alt.get("anfrageHash") == anfrage_hash):
+            if alt.get("zielKennung"):
+                ziel = baum_partner(zustand, alt["zielKennung"])
+                if not ziel or not ziel.get("bestaetigt") or ziel.get("oeffentlich") != alt.get("zielOeffentlich"):
+                    raise RuntimeError(_("The pairing request is invalid."))
             return alt["antwort"]
     einladung = next((e for e in zustand.get("paarungen", [])
                        if e.get("paarung") == anfrage.get("paarung")), None)
@@ -13135,6 +13246,13 @@ def baum_paarungsanfrage_annehmen(zustand, anfrage, adresse="", jetzt=None):
     zweig = anfrage["zweig"]
     if (not zweig.get("kennung")
             or not baum_oeffentlicher_schluessel_gueltig(zweig.get("oeffentlich"))):
+        raise RuntimeError(_("The pairing request is invalid."))
+    delegiert = bool(einladung.get("weitergabeVon"))
+    geber = baum_partner(zustand, einladung.get("weitergabeVon")) if delegiert else None
+    if delegiert and (not geber or not geber.get("bestaetigt") or not geber.get("weitergabeErlaubt") or
+            geber.get("oeffentlich") != einladung.get("weitergabeSchluessel") or
+            zweig.get("kennung") != einladung.get("zielKennung") or
+            zweig.get("oeffentlich") != einladung.get("zielOeffentlich")):
         raise RuntimeError(_("The pairing request is invalid."))
     kern = dict(anfrage)
     beweis = _baum_b64url_lesen(kern.pop("beweis"), 32)
@@ -13148,6 +13266,12 @@ def baum_paarungsanfrage_annehmen(zustand, anfrage, adresse="", jetzt=None):
         partner.update({"bestaetigt": True, "wartet": False,
                         "protokoll": "baum-fs1", "paarungsart": "datei-v2",
                         "vertraut": True})
+        partner["wartetFern"] = False
+        if delegiert:
+            partner["vertraut"] = bool(geber.get("vertraut"))
+            partner["weitergabeVon"] = geber["kennung"]
+            partner["weitergabeSchluessel"] = geber["oeffentlich"]
+            partner["weitergabeErlaubt"] = False
     antwort_kern = {"magnolie": "baum-paarung-2-antwort",
                     "paarung": anfrage["paarung"], "nonce": anfrage["nonce"],
                     "zweig": {"kennung": zustand.get("kennung") or "",
@@ -13159,9 +13283,12 @@ def baum_paarungsanfrage_annehmen(zustand, anfrage, adresse="", jetzt=None):
         geheimnis, b"magnolie-pair-response-v2\0", antwort_kern))
     zustand["paarungen"] = [e for e in zustand.get("paarungen", [])
                              if e.get("paarung") != anfrage["paarung"]]
-    zustand.setdefault("paarungenVerbraucht", []).append({
+    beleg = {
         "paarung": anfrage["paarung"], "anfrageHash": anfrage_hash,
-        "antwort": antwort, "behaltenBis": jetzt + 86400})
+        "antwort": antwort, "behaltenBis": jetzt + 86400}
+    if delegiert:
+        beleg.update(zielKennung=partner["kennung"], zielOeffentlich=partner["oeffentlich"])
+    zustand.setdefault("paarungenVerbraucht", []).append(beleg)
     zustand["paarungenVerbraucht"] = zustand["paarungenVerbraucht"][-100:]
     return antwort
 
@@ -13502,12 +13629,12 @@ def baum_partner_aufnehmen(zustand, name, kennung, oeffentlich, adresse="",
         raise RuntimeError(_("The public key is invalid."))
     vorhanden = baum_partner(zustand, kennung)
     if vorhanden:
-        if (vorhanden.get("bestaetigt") and vorhanden.get("oeffentlich") and
+        if ((vorhanden.get("bestaetigt") or vorhanden.get("anfrageAusgehend")) and vorhanden.get("oeffentlich") and
                 vorhanden.get("oeffentlich") != oeffentlich):
             raise RuntimeError(_(
                 "The key of this branch has changed. Remove the old connection first "
                 "and compare the new fingerprint particularly carefully."))
-        if vorhanden.get("bestaetigt"):
+        if vorhanden.get("bestaetigt") or vorhanden.get("anfrageAusgehend"):
             return vorhanden
         vorhanden["name"] = name or vorhanden.get("name") or ""
         vorhanden["oeffentlich"] = oeffentlich
@@ -13538,6 +13665,53 @@ def baum_partner_aufnehmen(zustand, name, kennung, oeffentlich, adresse="",
     }
     zustand.setdefault("partner", []).append(neu)
     return neu
+
+
+def baum_paarungsanfrage_vormerken(zustand, antwort, adresse, erwarteter_fingerabdruck):
+    """An explicit Internet request pins its recipient, not an unverified discovery."""
+    erwartet = baum_fingerabdruck_normieren(erwarteter_fingerabdruck)
+    if not erwartet:
+        raise RuntimeError(_("The entered fingerprint is incomplete."))
+    if (not isinstance(antwort, dict) or not antwort.get("kennung") or
+            not baum_oeffentlicher_schluessel_gueltig(antwort.get("oeffentlich"))):
+        raise RuntimeError(_("The other branch did not send a valid key."))
+    if fingerabdruck(antwort["oeffentlich"]) != erwartet:
+        raise RuntimeError(_("The pairing request is invalid."))
+    partner = baum_partner_aufnehmen(zustand, str(antwort.get("name") or "")[:60],
+        str(antwort["kennung"])[:32], antwort["oeffentlich"], adresse, antwort.get("port") or BAUM_PORT)
+    if not partner.get("bestaetigt"):
+        partner.update(anfrageAusgehend=True, wartetFern=True, wartet=False, paarungsart="anfrage-pin-v1")
+    return partner
+
+
+def baum_paarungsbestaetigung_pruefen(zustand, partner, sender=None):
+    """A valid FS1 response proves the pinned recipient accepted this branch."""
+    if not partner.get("anfrageAusgehend") or partner.get("bestaetigt"):
+        return False
+    sende = sender or _baum_http_json_senden
+    for host, port in baum_partner_endpunkte(partner):
+        sitzung = None
+        try:
+            start, privat = fs_start_bauen(zustand, partner)
+            antwort = sende(baum_url(host, port, "/magnolie/v2/sitzung"), start)
+            sitzung = fs_antwort_oeffnen(zustand, partner, start, antwort, privat)
+            return True
+        except Exception:
+            continue
+        finally:
+            if sitzung:
+                fs_sitzung_loeschen(sitzung)
+    return False
+
+
+def baum_paarungsanfrage_abschliessen(zustand, kennung, oeffentlich, eigene_kennung, eigen_oeffentlich):
+    partner = baum_partner(zustand, kennung)
+    if (not partner or partner.get("oeffentlich") != oeffentlich or
+            zustand.get("kennung") != eigene_kennung or zustand.get("oeffentlich") != eigen_oeffentlich or
+            not partner.get("anfrageAusgehend") or partner.get("bestaetigt")):
+        return False
+    partner.update(bestaetigt=True, wartet=False, wartetFern=False, protokoll="baum-fs1")
+    return True
 
 
 def baum_partner_einstellungen(partner, vertraut, fern_adresse="",
@@ -13779,6 +13953,33 @@ def _baum_http_json_senden(adresse, inhalt, zeitgrenze=6):
         if len(roh) > BAUM_HTTP_PAARUNG_MAX:
             raise RuntimeError(_("The response is too large."))
         return json.loads(roh.decode("utf-8"))
+
+
+def baum_weitergabe_rpc(zustand, partner, anfrage, sender=None):
+    import hashlib
+    sende = sender or _baum_http_json_senden
+    letzter_fehler = None
+    for host, port in baum_partner_endpunkte(partner):
+        start, privat = fs_start_bauen(zustand, partner)
+        sitzung = None
+        try:
+            basis = baum_url(host, port)
+            antwort = sende(basis + "/magnolie/v2/sitzung", start)
+            sitzung = fs_antwort_oeffnen(zustand, partner, start, antwort, privat)
+            mid = _fs_b64(os.urandom(16))
+            umschlag = umschlag_bauen_fs(sitzung, zustand["kennung"], partner["kennung"], anfrage, mid)
+            antwort = sende(basis + "/magnolie/v2/weitergabe", umschlag)
+            inhalt, erhaltene_id = umschlag_oeffnen_fs(sitzung, zustand["kennung"], partner["kennung"], antwort)
+            if (erhaltene_id != mid or inhalt.get("anfrageHash") != hashlib.sha256(_baum_kanonisch(anfrage)).hexdigest().upper()):
+                raise RuntimeError(_("The pairing request is invalid."))
+            return inhalt["ergebnis"]
+        except Exception as fehler:
+            letzter_fehler = fehler
+        finally:
+            if sitzung:
+                fs_sitzung_loeschen(sitzung)
+            privat = None
+    raise RuntimeError(_("The connection could not be shared.")) from letzter_fehler
 
 
 def baum_senden_fs(zustand, partner, art, inhalt, transport_id,
@@ -14193,10 +14394,11 @@ class BaumDienst(object):
     def __init__(self, hole_zustand, sichere_zustand, bei_nachricht=None,
                  bei_paarung=None, port=BAUM_PORT, sperre=None,
                  http_zeitgrenze=BAUM_HTTP_GESAMT_SEKUNDEN,
-                 http_pro_adresse=BAUM_HTTP_PRO_ADRESSE_MAX):
+                 http_pro_adresse=BAUM_HTTP_PRO_ADRESSE_MAX, bei_weitergabe=None):
         self.hole_zustand = hole_zustand
         self.sichere_zustand = sichere_zustand
         self.bei_nachricht = bei_nachricht
+        self.bei_weitergabe = bei_weitergabe
         self.bei_paarung = bei_paarung
         self.port = BAUM_PORT if port is None else int(port)
         self.http_zeitgrenze = max(0.1, float(http_zeitgrenze))
@@ -14213,25 +14415,35 @@ class BaumDienst(object):
         self._suche_sperre = threading.Lock()
         self._such_ergebnisse = None
         self._anfragen = {}
+        self._paarungsanfragen = {}
         self._fs_sitzungen = {}
 
     def _anfrage_erlaubt(self, adresse, paarung=False):
         import time
         adresse = baum_quelladresse_normieren(adresse)
         jetzt = time.monotonic()
-        grenze = 8 if paarung else 120
         fenster = 60.0
         with self._anfragen_sperre:
             zeiten = [z for z in self._anfragen.get(adresse, [])
                       if jetzt - z < fenster]
-            if len(zeiten) >= grenze:
+            if len(zeiten) >= 120:
                 self._anfragen[adresse] = zeiten
                 return False
+            if paarung:
+                paarungszeiten = [z for z in self._paarungsanfragen.get(adresse, [])
+                                  if jetzt - z < fenster]
+                self._paarungsanfragen[adresse] = paarungszeiten
+                if len(paarungszeiten) >= 8:
+                    return False
+                paarungszeiten.append(jetzt)
             zeiten.append(jetzt)
             self._anfragen[adresse] = zeiten
             if len(self._anfragen) > 1000:
                 self._anfragen = {a: z for a, z in self._anfragen.items()
                                   if z and jetzt - z[-1] < fenster}
+            if len(self._paarungsanfragen) > 1000:
+                self._paarungsanfragen = {a: z for a, z in self._paarungsanfragen.items()
+                                         if z and jetzt - z[-1] < fenster}
             return True
 
     def behandeln(self, pfad, nachricht, quelle, bereits_begrenzt=False):
@@ -14277,9 +14489,13 @@ class BaumDienst(object):
                         raise RuntimeError(_("The Magnolienbaum inbox could not be saved."))
                     return 200, receipt
                 elif pfad == "/magnolie/v2/paarung":
+                    import copy
+                    kandidat = copy.deepcopy(zustand)
                     antwort = baum_paarungsanfrage_annehmen(
-                        zustand, nachricht, quelle)
-                    self.sichere_zustand(zustand)
+                        kandidat, nachricht, quelle)
+                    if self.sichere_zustand(kandidat) is False:
+                        raise RuntimeError(_("The Magnolienbaum inbox could not be saved."))
+                    zustand.clear(); zustand.update(kandidat)
                 elif pfad == "/magnolie/v2/sitzung":
                     import time as _zeit
                     partner = baum_partner(
@@ -14300,9 +14516,36 @@ class BaumDienst(object):
                         raise RuntimeError(_("This secure session already exists."))
                     self._fs_sitzungen[sitzung["sid"]] = {
                         "sitzung": sitzung, "partner": partner["kennung"],
+                        "partnerSchluessel": partner["oeffentlich"],
+                        "eigenerSchluessel": zustand["oeffentlich"],
                         "adresse": baum_quelladresse_normieren(quelle),
                         "ablauf": jetzt_mono + BAUM_FS_SITZUNG_SEKUNDEN}
                     return 200, antwort
+                elif pfad == "/magnolie/v2/weitergabe":
+                    import copy
+                    import hashlib
+                    offen = self._fs_sitzungen.pop(str(nachricht.get("sid") or ""), None)
+                    if not offen:
+                        raise RuntimeError(_("The secure session is unknown or expired."))
+                    try:
+                        partner = baum_partner(zustand, offen["partner"])
+                        if (offen["ablauf"] <= time.monotonic() or offen["adresse"] != baum_quelladresse_normieren(quelle) or
+                                not partner or not partner.get("bestaetigt") or partner["oeffentlich"] != offen["partnerSchluessel"] or
+                                zustand["oeffentlich"] != offen["eigenerSchluessel"]):
+                            raise RuntimeError(_("The pairing request is invalid."))
+                        inhalt, transport_id = umschlag_oeffnen_fs(offen["sitzung"], zustand["kennung"], partner["kennung"], nachricht)
+                        kandidat = copy.deepcopy(zustand)
+                        ergebnis = baum_weitergabe_anfrage(kandidat, baum_partner(kandidat, partner["kennung"]), inhalt)
+                        antwort = umschlag_bauen_fs(offen["sitzung"], zustand["kennung"], partner["kennung"],
+                            {"anfrageHash": hashlib.sha256(_baum_kanonisch(inhalt)).hexdigest().upper(), "ergebnis": ergebnis}, transport_id)
+                        if self.sichere_zustand(kandidat) is False:
+                            raise RuntimeError(_("The Magnolienbaum inbox could not be saved."))
+                        zustand.clear(); zustand.update(kandidat)
+                        if self.bei_weitergabe:
+                            self.bei_weitergabe()
+                        return 200, antwort
+                    finally:
+                        fs_sitzung_loeschen(offen["sitzung"])
                 elif pfad == "/magnolie/v2/nachricht":
                     import time as _zeit
                     sitzungs_id = str(nachricht.get("sid") or "")
@@ -14670,7 +14913,10 @@ def baum_anfragen(adresse, port, eigener_zustand, zeitgrenze=6,
         ziel, data=daten, headers={"Content-Type": "application/json"})
     with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(
             anfrage, timeout=zeitgrenze) as antwort:
-        ergebnis = json.loads(antwort.read().decode("utf-8"))
+        roh = antwort.read(BAUM_HTTP_PAARUNG_MAX + 1)
+        if len(roh) > BAUM_HTTP_PAARUNG_MAX:
+            raise RuntimeError(_("The response is too large."))
+        ergebnis = json.loads(roh.decode("utf-8"))
     if not baum_oeffentlicher_schluessel_gueltig(ergebnis.get("oeffentlich")):
         raise RuntimeError(_("The other branch did not send a valid key."))
     erhalten = fingerabdruck(ergebnis.get("oeffentlich"))
@@ -20366,7 +20612,7 @@ class Fenster(_FENSTER_BASIS):
                 target=lambda: self._baum_paaren(
                     nachricht.get("adresse") or "",
                     int(nachricht.get("port") or BAUM_PORT),
-                    nachricht.get("fingerabdruck") or ""),
+                    nachricht.get("fingerabdruck") or "", nachricht.get("anfrage") is True),
                 daemon=True).start()
 
         elif befehl == "baum_internet_adresse":
@@ -20377,7 +20623,7 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(
                 target=lambda: self._baum_bestaetigen(
                     nachricht.get("kennung") or "",
-                    bool(nachricht.get("ja"))), daemon=True).start()
+                    bool(nachricht.get("ja")), nachricht.get("fingerabdruck") or ""), daemon=True).start()
 
         elif befehl == "baum_entfernen":
             threading.Thread(
@@ -20412,6 +20658,17 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=lambda: self.antwort(
                 "App.loBenutzer", libreoffice_benutzerdaten()),
                 daemon=True).start()
+
+        elif befehl == "baum_weitergabe_erlauben":
+            threading.Thread(target=lambda: self._baum_weitergabe_erlauben(
+                nachricht.get("kennung"), nachricht.get("fingerabdruck"), nachricht.get("erlaubt")), daemon=True).start()
+
+        elif befehl == "baum_weitergeben":
+            threading.Thread(target=lambda: self._baum_weitergeben(nachricht.get("kennung"), nachricht.get("ziel"),
+                nachricht.get("fingerabdruck"), nachricht.get("zielFingerabdruck")), daemon=True).start()
+
+        elif befehl == "baum_weitergabe_annehmen":
+            threading.Thread(target=lambda: self._baum_weitergabe_annehmen(nachricht.get("id"), nachricht.get("ja") is True), daemon=True).start()
 
         elif befehl == "baum_partner_einstellungen":
             threading.Thread(
@@ -22520,6 +22777,7 @@ class Fenster(_FENSTER_BASIS):
             neuer_dienst = BaumDienst(
                 self._baum_zustand, self._baum_sichern,
                 bei_nachricht=self._baum_empfangen,
+                bei_weitergabe=self._baum_stand_melden,
                 bei_paarung=lambda *_: self._baum_kontakt_faehigkeiten_anmelden(),
                 port=int(zustand.get("port") or BAUM_PORT),
                 sperre=self._baum_sperre)
@@ -22586,6 +22844,7 @@ class Fenster(_FENSTER_BASIS):
             geaendert = False
             try:
                 geaendert = bool(self._baum_post_lauf().get("geaendert"))
+                geaendert = self._baum_paarungsanfragen_pruefen() or geaendert
                 geaendert = self._baum_briefkasten_poll() or geaendert
             except Exception as fehler:
                 debug_ausnahme("tree.outbox.failed", error=fehler)
@@ -22598,6 +22857,35 @@ class Fenster(_FENSTER_BASIS):
                 GLib.idle_add(fertig)
         threading.Thread(target=arbeiten, daemon=True).start()
         return True
+
+    def _baum_paarungsanfragen_pruefen(self):
+        if self._gesperrt or self._baum_post_stop:
+            return False
+        with self._baum_sperre:
+            zustand = self._baum_zustand()
+            if not zustand or not zustand.get("an"):
+                return False
+            jetzt = time.monotonic()
+            termine = getattr(self, "_baum_paarungsproben", {})
+            self._baum_paarungsproben = termine
+            partner = next((p for p in zustand.get("partner", []) if p.get("anfrageAusgehend") and
+                not p.get("bestaetigt") and termine.get(p.get("kennung"), 0) <= jetzt), None)
+            if partner is None:
+                return False
+            termine[partner["kennung"]] = jetzt + 30
+            eigener_stand, ziel = dict(zustand), dict(partner)
+        if not baum_paarungsbestaetigung_pruefen(eigener_stand, ziel):
+            return False
+        with self._baum_sperre:
+            aktuell = self._baum_zustand()
+            if self._gesperrt or self._baum_post_stop or not aktuell or not aktuell.get("an"):
+                return False
+            if not baum_paarungsanfrage_abschliessen(aktuell, ziel["kennung"], ziel["oeffentlich"],
+                    eigener_stand["kennung"], eigener_stand["oeffentlich"]):
+                return False
+            self._baum_sichern(aktuell)
+            self._baum_kontakt_faehigkeiten_anmelden(baum_partner(aktuell, ziel["kennung"]))
+            return True
 
     def _baum_briefkasten_poll(self):
         if self._gesperrt:
@@ -22774,6 +23062,12 @@ class Fenster(_FENSTER_BASIS):
                 "fernPort": int(p.get("fernPort") or BAUM_PORT),
                 "bestaetigt": bool(p.get("bestaetigt")),
                 "wartet": bool(p.get("wartet")),
+                "anfrageAusgehend": bool(p.get("anfrageAusgehend")),
+                "wartetFern": bool(p.get("wartetFern")),
+                "weitergabeErlaubt": bool(p.get("weitergabeErlaubt")),
+                "weitergabeVon": p.get("weitergabeVon") or "",
+                "weitergabeQuelle": next((s["kennung"] for s in zustand.get("partner", []) if s.get("bestaetigt") and
+                    s.get("kennung") == p.get("weitergabeVon") and s.get("oeffentlich") == p.get("weitergabeSchluessel")), ""),
                 "protokoll": p.get("protokoll") or "baum-1",
                 "paarungsart": p.get("paarungsart") or "lokal-v1",
                 "code": paarungs_code(zustand.get("oeffentlich"),
@@ -22784,6 +23078,12 @@ class Fenster(_FENSTER_BASIS):
             "post": len(post),
             "postOffen": len([s for s in post if not s.get("aufgegeben")]),
             "eingang": baum_eingang_lesen(kennwort=self._kennwort),
+            "weitergabeAngebote": [{"id": e["id"], "von": e["von"],
+                "name": e["datei"]["einlader"]["name"],
+                "fingerabdruck": fingerabdruck(e["datei"]["einlader"]["oeffentlich"])}
+                for e in zustand.get("weitergabeAngebote", []) if e["datei"]["gueltigBis"] > time.time()
+                and any(p.get("kennung") == e["von"] and p.get("bestaetigt") and p.get("oeffentlich") == e["schluessel"]
+                        for p in zustand.get("partner", []))],
             "fehler": (getattr(self, "_baum_fehler", "") or
                        (_("Delivery status uncertain") if any(s.get("unsicher") for s in post) else "")),
         }
@@ -22930,7 +23230,7 @@ class Fenster(_FENSTER_BASIS):
                 "ok": False, "art": "importiert", "fehler":
                     fehler_deutsch(fehler, _("Importing the pairing file"))})
 
-    def _baum_paaren(self, adresse, port, erwarteter_fingerabdruck=""):
+    def _baum_paaren(self, adresse, port, erwarteter_fingerabdruck="", anfrage=False):
         zustand = self._baum_zustand()
         if not zustand:
             self.antwort("App.baumPaarung",
@@ -22938,17 +23238,23 @@ class Fenster(_FENSTER_BASIS):
                           "fehler": _("The Magnolienbaum is not available.")})
             return
         try:
+            if anfrage and not baum_fingerabdruck_normieren(erwarteter_fingerabdruck):
+                raise RuntimeError(_("The entered fingerprint is incomplete."))
+            eigene_kennung, eigen_oeffentlich = zustand.get("kennung"), zustand.get("oeffentlich")
             adresse = baum_host_normieren(adresse)
             antwort = baum_anfragen(adresse, port, zustand,
                                     erwarteter_fingerabdruck=
                                     erwarteter_fingerabdruck)
             with self._baum_sperre:
-                partner = baum_partner_aufnehmen(
-                    zustand, antwort.get("name") or "",
-                    antwort.get("kennung") or "",
-                    antwort.get("oeffentlich") or "", adresse,
-                    antwort.get("port") or port)
-                if not partner.get("bestaetigt"):
+                zustand = self._baum_zustand()
+                if (self._gesperrt or not zustand or zustand.get("kennung") != eigene_kennung or
+                        zustand.get("oeffentlich") != eigen_oeffentlich):
+                    raise RuntimeError(_("The pairing request is invalid."))
+                partner = (baum_paarungsanfrage_vormerken(zustand, antwort, adresse, erwarteter_fingerabdruck)
+                    if anfrage else baum_partner_aufnehmen(zustand, antwort.get("name") or "",
+                        antwort.get("kennung") or "", antwort.get("oeffentlich") or "", adresse,
+                        antwort.get("port") or port))
+                if not partner.get("bestaetigt") and not anfrage:
                     partner["wartet"] = True
                 self._baum_sichern(zustand)
         except Exception as fehler:
@@ -22962,8 +23268,12 @@ class Fenster(_FENSTER_BASIS):
         self.antwort("App.baumPaarung", {
             "ok": True, "fehler": "",
             "kennung": partner["kennung"], "name": partner["name"],
+            "anfrage": anfrage, "bereitsBestaetigt": bool(partner.get("bestaetigt")),
             "code": code,
             "fingerabdruck": fingerabdruck(partner["oeffentlich"])})
+        self._baum_stand_melden()
+        if anfrage:
+            self._baum_post_aktivieren()
 
     def _baum_internet_adresse(self):
         try:
@@ -22976,11 +23286,16 @@ class Fenster(_FENSTER_BASIS):
                                   {"error": fehler_kurz(fehler)}}
         self.antwort("App.baumInternet", ergebnis)
 
-    def _baum_bestaetigen(self, kennung, ja):
+    def _baum_bestaetigen(self, kennung, ja, erwarteter_fingerabdruck=""):
         with self._baum_sperre:
             zustand = self._baum_zustand()
             partner = baum_partner(zustand, kennung) if zustand else None
             if not partner:
+                self._baum_stand_melden()
+                return
+            if erwarteter_fingerabdruck and (
+                    baum_fingerabdruck_normieren(erwarteter_fingerabdruck) != fingerabdruck(partner.get("oeffentlich"))):
+                self._baum_fehler = _("The pairing request is invalid.")
                 self._baum_stand_melden()
                 return
             if ja:
@@ -23005,6 +23320,133 @@ class Fenster(_FENSTER_BASIS):
             if not baum_post_schreiben(post, kennwort=self._kennwort):
                 raise RuntimeError(_("The Magnolienbaum outbox could not be saved."))
             self._baum_sichern(zustand)
+        self._baum_stand_melden()
+
+    def _baum_weitergabe_erlauben(self, kennung, fingerprint, erlaubt):
+        import copy
+        try:
+            with self._baum_sperre:
+                zustand = self._baum_zustand()
+                kandidat = copy.deepcopy(zustand)
+                partner = baum_partner(kandidat, kennung)
+                if (not partner or not baum_fingerabdruck_normieren(fingerprint or "") or
+                        fingerabdruck(partner["oeffentlich"]) != baum_fingerabdruck_normieren(fingerprint)):
+                    raise RuntimeError(_("The pairing request is invalid."))
+                baum_weitergabe_erlauben(kandidat, kennung, partner["oeffentlich"], erlaubt)
+                self._baum_sichern(kandidat)
+                zustand.clear(); zustand.update(kandidat)
+            self.antwort("App.baumPartnerEinstellungen", {"ok": True, "fehler": ""})
+        except Exception as fehler:
+            self.antwort("App.baumPartnerEinstellungen", {"ok": False, "fehler": fehler_kurz(fehler)})
+        self._baum_stand_melden()
+
+    def _baum_weitergabe_aktuell(self, eigen, partner):
+        zustand = self._baum_zustand()
+        aktuell = baum_partner(zustand, partner["kennung"]) if zustand else None
+        if (self._gesperrt or not zustand or not zustand.get("an") or not aktuell or not aktuell.get("bestaetigt") or
+                aktuell.get("oeffentlich") != partner["oeffentlich"] or
+                any(zustand.get(k) != eigen.get(k) for k in ("kennung", "oeffentlich"))):
+            raise RuntimeError(_("The pairing request is invalid."))
+        return zustand
+
+    def _baum_weitergeben(self, kennung, ziel, fingerprint, ziel_fingerprint):
+        import copy
+        try:
+            with self._baum_sperre:
+                eigen = copy.deepcopy(self._baum_zustand())
+                home = baum_partner(eigen, kennung)
+                recipient = baum_partner(eigen, ziel)
+                if (not home or not recipient or kennung == ziel or not home.get("bestaetigt") or not recipient.get("bestaetigt") or
+                        fingerabdruck(home["oeffentlich"]) != baum_fingerabdruck_normieren(fingerprint or "") or
+                        fingerabdruck(recipient["oeffentlich"]) != baum_fingerabdruck_normieren(ziel_fingerprint or "")):
+                    raise RuntimeError(_("The pairing request is invalid."))
+                if not home.get("fernAdresse"):
+                    raise RuntimeError(_("The home computer needs a reachable Internet address."))
+                zustand = self._baum_weitergabe_aktuell(eigen, home)
+                jetzt = int(time.time())
+                pending = copy.deepcopy([e for e in zustand.get("weitergabeAusgang", []) if e["gueltigBis"] > jetzt])
+                operation = next((e for e in pending if e["home"] == kennung and e["ziel"] == ziel and
+                    e["homeSchluessel"] == home["oeffentlich"] and e["zielSchluessel"] == recipient["oeffentlich"]), None)
+                if operation is None:
+                    if len(pending) >= 8:
+                        raise RuntimeError(_("Too many pairing requests are waiting."))
+                    request = {"aktion": "einladung", "id": _baum_b64url(os.urandom(16)),
+                        "ziel": {k: recipient[k] for k in ("kennung", "name", "oeffentlich", "port")},
+                        "adresse": home["fernAdresse"], "port": int(home.get("fernPort") or BAUM_PORT)}
+                    operation = {"home": kennung, "ziel": ziel, "homeSchluessel": home["oeffentlich"],
+                        "zielSchluessel": recipient["oeffentlich"], "gueltigBis": jetzt + 900, "anfrage": request}
+                    pending.append(operation)
+                    kandidat = copy.deepcopy(zustand); kandidat["weitergabeAusgang"] = pending
+                    self._baum_sichern(kandidat); zustand.clear(); zustand.update(kandidat)
+                request = copy.deepcopy(operation["anfrage"])
+            document = baum_weitergabe_rpc(eigen, home, request)
+            baum_paarungsdatei_pruefen(document)
+            if any(document["einlader"].get(k) != home.get(k) for k in ("kennung", "oeffentlich")):
+                raise RuntimeError(_("The pairing request is invalid."))
+            with self._baum_sperre:
+                self._baum_weitergabe_aktuell(eigen, home)
+                self._baum_weitergabe_aktuell(eigen, recipient)
+            offered = baum_weitergabe_rpc(eigen, recipient, {"aktion": "angebot", "id": request["id"],
+                "ziel": request["ziel"], "datei": document})
+            with self._baum_sperre:
+                self._baum_weitergabe_aktuell(eigen, recipient)
+            if not offered.get("wartet") and not offered.get("angenommen"):
+                raise RuntimeError(_("Connection sharing was rejected."))
+            self.antwort("App.baumWeitergabe", {"ok": True, "wartet": bool(offered.get("wartet")), "fehler": ""})
+        except Exception as fehler:
+            self.antwort("App.baumWeitergabe", {"ok": False, "fehler": fehler_kurz(fehler)})
+        self._baum_stand_melden()
+
+    def _baum_weitergabe_angebot(self, zustand, kennung):
+        if self._gesperrt or not zustand or not zustand.get("an"):
+            raise RuntimeError(_("The pairing request is invalid."))
+        offer = next((e for e in zustand.get("weitergabeAngebote", []) if e["id"] == kennung), None)
+        peer = baum_partner(zustand, offer["von"]) if offer else None
+        if (not offer or not peer or not peer.get("bestaetigt") or peer["oeffentlich"] != offer["schluessel"] or
+                any(offer["ziel"].get(k) != zustand.get(k) for k in ("kennung", "oeffentlich"))):
+            raise RuntimeError(_("The pairing request is invalid."))
+        baum_paarungsdatei_pruefen(offer["datei"])
+        return offer
+
+    def _baum_weitergabe_annehmen(self, kennung, ja):
+        import copy
+        try:
+            with self._baum_sperre:
+                zustand = self._baum_zustand()
+                eigen = copy.deepcopy(zustand)
+                offer = self._baum_weitergabe_angebot(zustand, kennung)
+                if not ja:
+                    kandidat = copy.deepcopy(zustand)
+                    baum_weitergabe_abschliessen(kandidat, next(e for e in kandidat["weitergabeAngebote"] if e["id"] == kennung), False)
+                    self._baum_sichern(kandidat); zustand.clear(); zustand.update(kandidat)
+                    self._baum_stand_melden(); return
+                document = copy.deepcopy(offer["datei"])
+                request = offer.get("anfrage") or baum_paarungsanfrage_bauen(eigen, document)
+                offer["anfrage"] = copy.deepcopy(request); self._baum_sichern(zustand)
+            url = baum_url(document["ziel"]["adresse"], document["ziel"]["port"], "/magnolie/v2/paarung")
+            try:
+                response = _baum_http_json_senden(url, request)
+            except Exception:
+                response = _baum_http_json_senden(url, request)
+            baum_paarungsantwort_pruefen(document, request, response)
+            with self._baum_sperre:
+                zustand = self._baum_zustand()
+                self._baum_weitergabe_aktuell(eigen, baum_partner(eigen, offer["von"]))
+                self._baum_weitergabe_angebot(zustand, kennung)
+                kandidat = copy.deepcopy(zustand)
+                identity = document["einlader"]
+                peer = baum_partner_aufnehmen(kandidat, identity["name"], identity["kennung"], identity["oeffentlich"],
+                    document["ziel"]["adresse"], identity["port"])
+                if not peer.get("bestaetigt"):
+                    peer.update(bestaetigt=True, wartet=False, vertraut=False, protokoll="baum-fs1", paarungsart="datei-v2")
+                peer.update(fernAdresse=document["ziel"]["adresse"], fernPort=document["ziel"]["port"])
+                baum_weitergabe_abschliessen(kandidat, next(e for e in kandidat["weitergabeAngebote"] if e["id"] == kennung), True)
+                self._baum_sichern(kandidat); zustand.clear(); zustand.update(kandidat)
+                self._baum_kontakt_faehigkeiten_anmelden(baum_partner(zustand, identity["kennung"]))
+            self.antwort("App.baumPaarungsdatei", {"ok": True, "art": "importiert", "name": identity["name"], "fehler": "",
+                "weitergabe": True, "kennung": identity["kennung"]})
+        except Exception as fehler:
+            self.antwort("App.baumWeitergabe", {"ok": False, "fehler": fehler_kurz(fehler)})
         self._baum_stand_melden()
 
     def _baum_partner_einstellungen(self, kennung, vertraut, fern_adresse, fern_port,

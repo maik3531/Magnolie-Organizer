@@ -581,6 +581,9 @@ msgstr "Todos los estados federados"
 msgid "Allow notifications despite password protection"
 msgstr "Permitir notificaciones pese a la protección con contraseña"
 
+msgid "Allow this device to share this connection"
+msgstr "Permitir que este dispositivo comparta esta conexión"
+
 msgid "Also disclose appointments marked as confidential"
 msgstr "Mostrar también las citas marcadas como confidenciales"
 
@@ -1450,13 +1453,22 @@ msgstr "Conectar mediante KDE Connect"
 msgid "Connected"
 msgstr "Conectado"
 
+msgid "Connection already accepted."
+msgstr "Conexión ya aceptada."
+
 msgid "Connection discovery failed. Check the server and credentials."
 msgstr ""
 "No se han podido detectar las conexiones disponibles. Compruebe el servidor "
 "y los datos de acceso."
 
+msgid "Connection offered. Accept it on the other computer."
+msgstr "Conexión ofrecida. Acéptela en el otro ordenador."
+
 msgid "Connection ready"
 msgstr "Conexión lista"
+
+msgid "Connection sharing was rejected."
+msgstr "Se rechazó la conexión compartida."
 
 msgid "Contact"
 msgstr "Contacto"
@@ -1566,6 +1578,9 @@ msgstr "Cree primero una hoja de dibujo en la pestaña personalizada."
 
 msgid "Create a new appointment immediately"
 msgstr "Crear una cita nueva inmediatamente"
+
+msgid "Create a separate connection to this computer?"
+msgstr "¿Crear una conexión independiente con este ordenador?"
 
 msgid "Create an empty printable template"
 msgstr "Crear una plantilla imprimible vacía"
@@ -4756,6 +4771,15 @@ msgstr "Compartir dirección"
 msgid "Share appointment"
 msgstr "Compartir cita"
 
+msgid "Share connection"
+msgstr "Compartir conexión"
+
+msgid "Share connection with"
+msgstr "Compartir conexión con"
+
+msgid "Share this connection with the selected device?"
+msgstr "¿Compartir esta conexión con el dispositivo seleccionado?"
+
 msgid "Share this entry explicitly with %(branch)s?"
 msgstr "¿Compartir explícitamente esta entrada con %(branch)s?"
 
@@ -4768,11 +4792,17 @@ msgstr "¿Compartir explícitamente esta entrada con esta rama?"
 msgid "Share together"
 msgstr "Compartir juntos"
 
+msgid "Shared connection"
+msgstr "Conexión compartida"
+
 msgid "Shared credentials"
 msgstr "Credenciales compartidas"
 
 msgid "Shared note"
 msgstr "Nota compartida"
+
+msgid "Sharing this connection is not allowed."
+msgstr "No está permitido compartir esta conexión."
 
 msgid "Shift planner"
 msgstr "Planificador de turnos"
@@ -5393,6 +5423,9 @@ msgstr "El archivo completo está vacío."
 msgid "The complete file is stored in this note (up to 8 megabytes)."
 msgstr "El archivo completo se guarda en esta nota (hasta 8 megabytes)."
 
+msgid "The connection could not be shared."
+msgstr "No se pudo compartir la conexión."
+
 msgid "The connection to the phone was interrupted during pairing."
 msgstr "La conexión con el teléfono se interrumpió durante el emparejamiento."
 
@@ -5481,6 +5514,9 @@ msgstr "Se importaron los festivos."
 
 msgid "The holidays were removed."
 msgstr "Se eliminaron los festivos."
+
+msgid "The home computer needs a reachable Internet address."
+msgstr "El ordenador de casa necesita una dirección de Internet accesible."
 
 msgid "The import exceeds the supported limits."
 msgstr "La importación supera los límites admitidos."
@@ -6110,6 +6146,9 @@ msgstr "Demasiados intentos fallidos; espera %(duration)s."
 
 msgid "Too many failed attempts. Wait a moment."
 msgstr "Demasiados intentos fallidos. Espera un momento."
+
+msgid "Too many pairing requests are waiting."
+msgstr "Demasiadas solicitudes de emparejamiento pendientes."
 
 msgid "Too many regions were selected."
 msgstr "Se han seleccionado demasiadas regiones."
