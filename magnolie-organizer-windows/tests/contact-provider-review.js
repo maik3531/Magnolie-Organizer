@@ -1,8 +1,9 @@
 "use strict";
 const assert = require("node:assert/strict"), fs = require("node:fs"), path = require("node:path");
 const { webcrypto } = require("node:crypto"), { JSDOM } = require("jsdom");
-const web = fs.existsSync(path.resolve(__dirname, "../../magnolie-organizer/web/index.html"))
-  ? path.resolve(__dirname, "../../magnolie-organizer/web") : require("./web-test-roots")[0];
+// Linux EDS/DAV stores deferred per-card provider reviews. Windows native
+// conflict handling is exercised separately by contact-sync-conflicts.js.
+const web = path.resolve(__dirname, "../../magnolie-organizer/web");
 const tick = () => new Promise(r => setTimeout(r, 5));
 async function check(mode) {
   const dom = new JSDOM(fs.readFileSync(path.join(web, "index.html"), "utf8"), {

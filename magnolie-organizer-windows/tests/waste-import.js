@@ -12,7 +12,7 @@ fixture=json.loads((root/'contracts/waste-calendar-v1.json').read_text())
 print(json.dumps(m.muell_import_lesen(fixture['ics'].encode(),'waste.ics')))
 `;
 let parsed;
-if (fs.existsSync(path.join(root, "magnolie-organizer/pruefungen/modul_laden.py"))) {
+if (process.env.MAGNOLIE_WASTE_NATIVE !== "windows" && fs.existsSync(path.join(root, "magnolie-organizer/pruefungen/modul_laden.py"))) {
   parsed = spawnSync(process.env.MAGNOLIE_PYTHON || "python3", ["-c", python, root], { encoding: "utf8",
     env: { ...process.env, HOME: scratch, XDG_CONFIG_HOME: scratch, XDG_DATA_HOME: scratch, XDG_CACHE_HOME: scratch,
       XDG_STATE_HOME: scratch, XDG_RUNTIME_DIR: scratch, DBUS_SESSION_BUS_ADDRESS: "unix:path=/nonexistent-waste-fixture" } });
@@ -59,7 +59,7 @@ async function check(web, mode) {
     };
     const original = JSON.stringify(T.daten().muelltermine), appointments = JSON.stringify(T.daten().termine);
     const payload = mode === "bulk" ? { ...fixture, termine: Array.from({ length: 130 }, (_, i) => ({ ...fixture.termine[0],
-      uid: "bulk-" + i, datum: new Date(Date.UTC(2026, 0, i + 1)).toISOString().slice(0, 10) })) } : mode === "csv" ? { muellFormat: "csv", muellQuelle: "waste:csv:" + "b".repeat(64), datei: "waste.csv",
+      uid: "bulk-" + i, datum: new Date(Date.UTC(2026, 0, i + 1)).toISOString().slice(0, 10), icsRoundtrip: [] })) } : mode === "csv" ? { muellFormat: "csv", muellQuelle: "waste:csv:" + "b".repeat(64), datei: "waste.csv",
       zeilen: [["Datum", "Abfallart", "Ort", "Notiz"], ["12.01.2026", "Biotonne", "CSV point", "Keep CSV note"],
         ["13.01.2026", "Gelbe Tonne", "CSV point", ""]] } : fixture;
     const pending = begin(payload);
@@ -110,6 +110,10 @@ async function check(web, mode) {
     if (mode === "ics") {
       T.oeffneEinstellungen(); w.document.querySelector("#einst-tab-kalender").click();
       const corrected = JSON.parse(JSON.stringify(payload)); corrected.termine[0].datum = "2026-01-14";
+      // A newly parsed corrected ICS also carries corrected raw DTSTART/DTEND.
+      if (Array.isArray(corrected.termine[0].icsRoundtrip)) corrected.termine[0].icsRoundtrip =
+        corrected.termine[0].icsRoundtrip.map(line => /^DTSTART[;:]/.test(line) ? line.replace("20260112", "20260114") :
+          /^DTEND[;:]/.test(line) ? line.replace("20260113", "20260115") : line);
       const update = begin(corrected); w.document.querySelector("[data-muell-import-anwenden]").click(); await update;
       assert.equal(T.muelltermineAm("2026-01-12").filter(m => m.art === "residual").length, 0);
       assert.equal(T.muelltermineAm("2026-01-14").filter(m => m.art === "residual").length, 1);

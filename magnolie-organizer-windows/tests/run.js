@@ -22,7 +22,11 @@ for (const test of ["ui-bugfixes.js", "aur-sms-regressions.js", "planner-sms-reg
   "month-recurrence-stability.js", "birthday-display.js", "waste-import.js", "baum-contact-batch.js", "baum-contact-review.js", "baum-contact-time.js", "contact-import-identity.js", "baum-note-identity.js", "tree-connection-sharing.js", "personal-note-dates.js", "personal-note-identities.js", "personal-note-mode.js", "journal-selection.js", "bundled-handbook-update.js", "structured-appointment-parity.js", "handbook-smoke.js", "handbook-windows-variants.js",
    "native-integration-smoke.js", "contact-sync-cleanup.js", "contact-sync-conflicts.js", "contact-sync-time.js", "contact-provider-review.js", "contact-duplicate-review.js", "contact-field-review.js", "contact-address-choice.js", "contact-person-editor.js", "contact-import-transaction.js", "contact-file-review.js", "contact-file-batch.js", "contact-file-time.js", "contact-photo-cache.js", "kde-contact-import.js", "account-management-ui.js", "managed-account-adapter.js", "thunderbird-bridge.js", "full-parity-contract.js", "linux-live-parity.js",
   "nsis-installer-fixture.js", "installer-publication.js", "manifest-policy.js", "release-audit.js"]) {
-  const result = spawnSync(process.execPath, [path.join(__dirname, test),
+   if (test === "contact-provider-review.js" && !fs.existsSync(path.resolve(root, "../magnolie-organizer/web/index.html"))) {
+     console.log("NOT APPLICABLE contact-provider-review.js: Linux EDS/DAV adapter; Windows native conflicts have their own test.");
+     continue;
+   }
+   const result = spawnSync(process.execPath, [path.join(__dirname, test),
     ...(test === "aur-sms-regressions.js" ? [] : [version, installerName])], {
     stdio: "inherit",
     env: { ...process.env, MAGNOLIE_PYTHON: python }
