@@ -8,4 +8,13 @@ Features:
 * Optional encrypted sharing with paired Magnolie Organizer installations on Linux and Windows.
 * Twenty interface languages.
 
-No account or cloud service is required to use the notebook. Network and phone integration features are optional and require the corresponding pairing or Android permissions. Magnolie Organizer is a separate, free desktop application.
+No account or cloud service is required to use the notebook. Magnolie Organizer is a separate, free desktop application.
+
+Optional connections and permissions:
+* Discover Organizer or Magnolienbaum devices on the local network using UDP broadcast and Android network service discovery (NSD/mDNS). Discovery announces connection details; it does not authorize another device to read your notes. Pairing requires confirmation.
+* Share and synchronize selected notes and tasks with paired devices over encrypted connections. Bluetooth/RFCOMM can be enabled as a data fallback when the operating system and the paired devices support it; automatic Personal Sync remains Wi-Fi-only.
+* Allow a paired desktop to request outgoing calls on this phone, show incoming-call information, and request answering or ending a call. These actions depend on Android permissions and system restrictions. Call-related permissions include phone state, phone-number access and, where Android requires it for caller identification, call-log access.
+* Read Android contacts and their available photos, import reviewed contact cards, or synchronize contacts with a permitted branch. Contact writing needs its own Android permission. Read-only desktop access does not write phone contacts.
+* Optionally mirror the titles and text of notifications from apps you choose to the paired desktop. This requires enabling Magnolie Notes in Android’s notification-access settings and selecting the apps to share; it does not grant unrestricted access to those apps’ private data.
+
+These integrations are opt-in through pairing, feature choices and the relevant Android permission or access prompts. They are not required for local note-taking. You can disable a feature, revoke its permission or remove a paired device. Bluetooth data transport is separate from any system-managed hands-free call-audio connection. Magnolie Notes does not provide native SMS or RCS messaging.

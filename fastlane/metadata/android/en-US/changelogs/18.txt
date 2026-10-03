@@ -1,0 +1,1 @@
+Optional one-way note import from Notes to each paired Organizer, preserving attachments and existing copies. Simpler per-computer sync controls. Explicit read-only contact/photo access for your selected own computer, with Android permission and reviewed desktop imports. Improved contact handling and permission checks. Update Organizer for the new negotiated features.

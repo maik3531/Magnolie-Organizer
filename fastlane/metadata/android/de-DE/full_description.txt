@@ -8,4 +8,13 @@ Funktionen:
 * Optionaler verschlüsselter Austausch mit gekoppelten Magnolie-Organizer-Installationen unter Linux und Windows.
 * Zwanzig Oberflächensprachen.
 
-Das Notizbuch benötigt weder ein Konto noch einen Cloud-Dienst. Netzwerk- und Telefonfunktionen sind optional und erfordern die jeweilige Kopplung oder Android-Berechtigung. Magnolie Organizer ist eine separate, freie Desktop-Anwendung.
+Das Notizbuch benötigt weder ein Konto noch einen Cloud-Dienst. Magnolie Organizer ist eine separate, freie Desktop-Anwendung.
+
+Optionale Verbindungen und Berechtigungen:
+* Organizer- und Magnolienbaum-Geräte im lokalen Netz über UDP-Broadcast und Android-Diensterkennung (NSD/mDNS) finden. Die Suche kündigt Verbindungsdaten an und erlaubt anderen Geräten noch keinen Zugriff auf Notizen. Eine Kopplung muss bestätigt werden.
+* Ausgewählte Notizen und Aufgaben über verschlüsselte Verbindungen mit gekoppelten Geräten teilen und abgleichen. Bluetooth/RFCOMM lässt sich bei entsprechender System- und Geräteunterstützung als Datenrückfallweg einschalten; automatischer Personal Sync bleibt auf WLAN beschränkt.
+* Einem gekoppelten Desktop erlauben, ausgehende Anrufe auf diesem Telefon anzufordern, Informationen über eingehende Anrufe anzuzeigen sowie Annehmen oder Beenden eines Gesprächs anzufordern. Android-Berechtigungen und Systemgrenzen gelten weiterhin. Dafür können Telefonstatus, Telefonnummernzugriff und – soweit Android dies für die Anruferkennung verlangt – Zugriff auf die Anrufliste erforderlich sein.
+* Android-Kontakte und vorhandene Fotos lesen, geprüfte Kontaktkarten importieren oder Kontakte mit einem freigegebenen Zweig abgleichen. Das Schreiben von Kontakten benötigt eine eigene Android-Berechtigung. Der reine Desktop-Lesezugriff verändert keine Telefonkontakte.
+* Optional Titel und Text der Benachrichtigungen selbst ausgewählter Apps an den gekoppelten Desktop weitergeben. Dazu müssen Magnolie Notes in Androids Benachrichtigungszugriff und die gewünschten Apps freigegeben werden. Das gewährt keinen allgemeinen Zugriff auf private Daten dieser Apps.
+
+Diese Integrationen werden durch Kopplung, Funktionsauswahl und die jeweiligen Android-Berechtigungs- oder Zugriffsabfragen freigegeben. Für lokale Notizen sind sie nicht erforderlich. Funktionen und Berechtigungen lassen sich abschalten oder Kopplungen entfernen. Bluetooth-Datenübertragung ist von einer systemverwalteten Freisprech-Audioverbindung getrennt. Magnolie Notes bietet keinen eigenen SMS- oder RCS-Nachrichtendienst.
