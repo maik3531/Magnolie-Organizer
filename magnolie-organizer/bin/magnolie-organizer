@@ -11320,8 +11320,10 @@ def gesundheit_ods_pruefen(tabellen):
     gesamt_zeilen = 0
 
     def diagramm_pruefen(diagramm):
+        nonlocal gesamt
         if (not isinstance(diagramm, dict) or
-                set(diagramm) != {"titel", "serien"}):
+                set(diagramm) not in ({"titel", "serien"},
+                                     {"titel", "serien", "spalten", "zeilen"})):
             raise ValueError(_("The ODS columns are invalid."))
         titel = diagramm["titel"]
         serien = diagramm["serien"]
@@ -11356,7 +11358,24 @@ def gesundheit_ods_pruefen(tabellen):
                 neue_punkte.append([punkt[0], float(punkt[1])])
             neue_serien.append({"name": name.strip(), "farbe": farbe.lower(),
                                 "punkte": neue_punkte})
-        return {"titel": titel.strip(), "serien": neue_serien}
+        ergebnis = {"titel": titel.strip(), "serien": neue_serien}
+        if "spalten" in diagramm:
+            spalten = diagramm["spalten"]
+            zeilen = diagramm["zeilen"]
+            if (not isinstance(spalten, list) or len(spalten) != len(serien) + 1 or
+                    any(not isinstance(wert, str) or not wert.strip() or len(wert) > 160
+                        for wert in spalten) or
+                    not isinstance(zeilen, list) or len(zeilen) > ODS_MAX_ZEILEN or
+                    any(not isinstance(zeile, list) or len(zeile) != len(spalten) or
+                        any(not isinstance(wert, str) or len(wert) > ODS_MAX_ZEICHEN
+                            for wert in zeile) for zeile in zeilen)):
+                raise ValueError(_("The ODS columns are invalid."))
+            gesamt += sum(len(wert) for wert in spalten) + sum(
+                len(wert) for zeile in zeilen for wert in zeile)
+            if gesamt > ODS_MAX_GESAMT:
+                raise ValueError(_("The ODS export is too large."))
+            ergebnis.update(spalten=list(spalten), zeilen=[list(zeile) for zeile in zeilen])
+        return ergebnis
 
     for tabelle in tabellen:
         if isinstance(tabelle, dict) and set(tabelle) == {"titel", "diagramme"}:

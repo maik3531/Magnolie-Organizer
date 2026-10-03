@@ -7457,7 +7457,21 @@ with zipfile.ZipFile(io.BytesIO(gesundheit_einzel_diagramm)) as einzel_archiv:
            "Pictures/gesundheit-diagramm-1.svg" in einzel_inhalt,
            "ein einzelner Gesundheitsverlauf stellt Messwertliste und Diagramm nebeneinander")
 
+regional_diagramm = dict(gesundheit_diagramm, spalten=["Date", "Systolique", "Diastolique"],
+                         zeilen=[["04/10/2026", "125,5", "82"]])
+regional_tabellen = [{"titel": "Mesures", "links": ["Date", "Heure", "Valeur"],
+                     "rechts": ["Notes"], "zeilen": [["04/10/2026", "02:35 PM", "6,5", "Texte personnel"]]},
+                    {"titel": "Historique", "diagramme": [regional_diagramm]}]
+with zipfile.ZipFile(io.BytesIO(m.gesundheit_ods_bytes(regional_tabellen))) as regional_archiv:
+    regional_xml = ET.fromstring(regional_archiv.read("content.xml"))
+    regional_texte = list(regional_xml.itertext())
+    pruefe(all(wert in regional_texte for wert in ["04/10/2026", "02:35 PM", "6,5", "Texte personnel"]),
+           "ODS bewahrt regionale Datums-/Uhrzeit-/Zahlenanzeige und eigene Texte")
+pruefe(m.gesundheit_ods_pruefen(regional_tabellen)[1]["diagramme"][0]["zeilen"] == regional_diagramm["zeilen"],
+       "lokalisierte Diagrammtabellen bleiben getrennt von numerischen Kurvenwerten erhalten")
+
 gesundheit_fehlerfaelle = [
+    [{"titel": "Historique", "diagramme": [dict(regional_diagramm, zeilen=[["falsche Breite"]])]}],
     [],
     [{"titel": "Vital/werte", "links": ["A"], "rechts": ["B"],
       "zeilen": [["", ""]]}],

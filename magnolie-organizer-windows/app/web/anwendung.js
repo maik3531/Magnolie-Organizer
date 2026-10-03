@@ -10205,7 +10205,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           (!j.kontaktId && namen.has(kanonischerText(j.name))))) || null);
       const werte = {
         nachname: k.nachname, vorname: k.vorname, firma: k.firma,
-        geburtstag: jahrestagDatumText(jahrestag),
+        geburtstag: jahrestag ? (hatBekanntesJahr(jahrestag.datum)
+          ? fmtPunkt(jahrestag.datum) : fmtTagMonat(jahrestag.datum)) : "",
         strasse: hauptanschrift.strasse || "",
         plzOrt: ((hauptanschrift.plz || "") + " " +
           (hauptanschrift.ort || "")).trim(), land: hauptanschrift.land || "",
@@ -19438,6 +19439,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const tabellen = [];
     const text = (wert) => wert === null || wert === undefined || Number(wert) === 0
       ? "" : String(wert);
+    const zahl = (wert) => text(wert) === "" ? "" : zahlText(wert);
+    const messwert = (key, wert) => zahl(gesundheitAnzeigeWert(key, wert));
     const leerzeile = (breite) => Array.from({ length: breite }, () => "");
     const doppelt = (werte, spalten, abbilden) => {
       const quelle = optionen.leer ? [] : werte.map(abbilden);
@@ -19454,40 +19457,40 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const nachArt = (art) => eintraege.filter((eintrag) => eintrag._gesundheitArt === art);
     if (optionen.vital) {
       const spalten = [_('Date'), _('Time'), _('Pulse'), _('Blood pressure'),
-        "Temp. " + gesundheitEinheitKurz("temperatur"),
+        _("Temperature") + " " + gesundheitEinheitKurz("temperatur"),
         _("Weight") + " " + gesundheitEinheitKurz("gewicht"),
         _("Height") + " " + gesundheitEinheitKurz("groesse"), _('BMI')];
       tabellen.push({ titel: _("Vital signs"), links: spalten, rechts: spalten,
-        zeilen: doppelt(nachArt("vital"), spalten, (e) => [text(e.datum), text(e.zeit),
-          text(e.puls), e.systolisch && e.diastolisch
-            ? text(e.systolisch) + "/" + text(e.diastolisch) : "",
-          gesundheitAnzeigeWert("temperatur", e.temperatur),
-          gesundheitAnzeigeWert("gewicht", e.gewicht),
-          gesundheitAnzeigeWert("groesse", e.groesse),
-          gesundheitBmi(e) ? gesundheitBmi(e).toFixed(1) : ""]) });
+        zeilen: doppelt(nachArt("vital"), spalten, (e) => [fmtPunkt(e.datum), zeitText(e.datum, e.zeit),
+          zahl(e.puls), e.systolisch && e.diastolisch
+            ? zahl(e.systolisch) + "/" + zahl(e.diastolisch) : "",
+          messwert("temperatur", e.temperatur),
+          messwert("gewicht", e.gewicht),
+          messwert("groesse", e.groesse),
+          gesundheitBmi(e) ? zahlText(Number(gesundheitBmi(e).toFixed(1))) : ""]) });
     }
     if (optionen.blutzucker) {
       const spalten = [_('Date'), _('Time'), _('Blood glucose value'), _('Unit'), _('IE'),
         _('Measurement context')];
-      const werte = optionen.leer ? [] : nachArt("blutzucker").map((e) => [text(e.datum),
-        text(e.zeit), text(e.wert), text(e.einheit), text(e.ie), text(e.kontext)]);
+      const werte = optionen.leer ? [] : nachArt("blutzucker").map((e) => [fmtPunkt(e.datum),
+        zeitText(e.datum, e.zeit), zahl(e.wert), text(e.einheit), zahl(e.ie), text(e.kontext)]);
       if (optionen.schema) {
         const schema = DATEN.gesundheit.insulinschema;
         const rechts = [_('Medication'), _('Dose type'), _('Blood glucose scheme'), _('IE')];
         const schemaZeilen = [];
-        if (schema.basisAn) schemaZeilen.push(["", _("Basal units"), "", text(schema.basisEinheiten)]);
+        if (schema.basisAn) schemaZeilen.push(["", _("Basal units"), "", zahl(schema.basisEinheiten)]);
         for (const [praefix, titel] of [["langzeit", _("Long-acting insulin")],
           ["kurzzeit", _("Short-acting insulin")]]) {
           const name = schema[praefix + "Insulin"] || titel;
           if (schema[praefix + "Modus"] === "fixed") {
-            schemaZeilen.push([name, _("Fixed units"), "", text(schema[praefix + "FestEinheiten"])]);
+            schemaZeilen.push([name, _("Fixed units"), "", zahl(schema[praefix + "FestEinheiten"])]);
           } else {
             for (const regel of schema[praefix + "Regeln"] || []) {
               const ergebnis = insulinRegelEinheiten(schema, regel);
               const rechnung = schema.basisAn && schema.basisEinheiten && regel.operator !== "="
-                ? " (" + schema.basisEinheiten + " " + regel.operator + " " + regel.ie + ")" : "";
-              schemaZeilen.push([name, _("Scheme"), "BZ " + regel.vergleich + " " +
-                regel.wert + " mmol/L", ergebnis + rechnung]);
+                ? " (" + zahlText(schema.basisEinheiten) + " " + regel.operator + " " + zahlText(regel.ie) + ")" : "";
+              schemaZeilen.push([name, _("Scheme"), _("Blood glucose") + " " + regel.vergleich + " " +
+                zahlText(regel.wert) + " mmol/L", zahlText(ergebnis) + rechnung]);
             }
           }
         }
@@ -19505,8 +19508,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           links: spalten, rechts: rechts, zeilen: zeilen });
       } else {
         tabellen.push({ titel: _("Blood glucose table"), links: spalten, rechts: spalten,
-          zeilen: doppelt(nachArt("blutzucker"), spalten, (e) => [text(e.datum), text(e.zeit),
-            text(e.wert), text(e.einheit), text(e.ie), text(e.kontext)]) });
+          zeilen: doppelt(nachArt("blutzucker"), spalten, (e) => [fmtPunkt(e.datum), zeitText(e.datum, e.zeit),
+            zahl(e.wert), text(e.einheit), zahl(e.ie), text(e.kontext)]) });
       }
     }
     if (optionen.medikamente) {
@@ -19532,11 +19535,19 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         ["blood-glucose", _("Blood glucose")]];
       const auswahl = optionen.verlauf === "all" ? arten
         : [arten.find(([id]) => id === optionen.verlaufWert) || arten[0]];
-      const diagramm = ([id, name]) => ({ titel: name,
-        serien: gesundheitDruckSerien(id, optionen).map((serie) => ({
+      const diagramm = ([id, name]) => {
+        const serien = gesundheitDruckSerien(id, optionen).map((serie) => ({
           name: serie.name, farbe: serie.farbe,
           punkte: serie.punkte.map((punkt) => [punkt[0], Number(punkt[1])])
-        })) });
+        }));
+        const daten = Array.from(new Set(serien.flatMap(serie => serie.punkte.map(punkt => punkt[0])))).sort();
+        return { titel: name, serien,
+          spalten: [_("Date"), ...serien.map(serie => serie.name)],
+          zeilen: daten.map(datum => [fmtPunkt(datum), ...serien.map(serie => {
+            const punkt = serie.punkte.find(wert => wert[0] === datum);
+            return punkt ? zahlText(Math.round(punkt[1] * 10) / 10) : "";
+          })]) };
+      };
       if (optionen.verlauf === "all") {
         tabellen.push({ titel: _("Health history charts"), diagramme: auswahl.map(diagramm) });
         return { cmd: "gesundheit_ods", tabellen: tabellen };
@@ -19548,7 +19559,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           serie.punkte.map((punkt) => punkt[0])))).sort();
         let werte = daten.map((datum) => [fmtPunkt(datum)].concat(serien.map((serie) => {
           const punkt = serie.punkte.find((eintrag) => eintrag[0] === datum);
-          return punkt ? String(Math.round(punkt[1] * 10) / 10) : "";
+          return punkt ? zahlText(Math.round(punkt[1] * 10) / 10) : "";
         })));
         if (!werte.length) werte = Array.from({ length: 20 }, () => leerzeile(spalten.length));
         tabellen.push({ titel: _("History") + " · " + name, rechtsTitel: name,

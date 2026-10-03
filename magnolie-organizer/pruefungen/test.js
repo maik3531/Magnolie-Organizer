@@ -3049,9 +3049,9 @@ function knopfMit(text, wurzel) {
   "Gesundheits-ODS bildet keine getrennten A4-Doppeltabellen");
   const deutscheGesundheitsOds = T.gesundheitOdsNutzlast({ leer: true, vital: true,
     blutzucker: false, medikamente: true }, []);
-  assert.ok(deutscheGesundheitsOds.tabellen[0].links.includes("Temp. °C") &&
+  assert.ok(deutscheGesundheitsOds.tabellen[0].links.includes("Temperatur °C") &&
     deutscheGesundheitsOds.tabellen[1].rechts.includes("Besonder-\nheiten"),
-  "ODS-Köpfe kürzen Temperatur oder trennen Besonderheiten nicht druckgerecht");
+  "ODS-Köpfe übersetzen Temperatur oder trennen Besonderheiten nicht druckgerecht");
   Array.from(enSD.querySelectorAll(".gesundheit-symbolknopf"))
     .find((button) => button.title === "Medication plan").click();
   assert.ok(enSD.querySelector(".medikament-links") && enSD.querySelector(".medikament-rechts"),

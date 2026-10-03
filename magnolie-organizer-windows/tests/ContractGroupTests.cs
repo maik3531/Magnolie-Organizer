@@ -463,6 +463,31 @@ internal static class ContractGroupTests
         TestAssert.That((string?)frame.Attribute(svg + "width") == "12.5cm" && (string?)frame.Attribute(svg + "height") == "11.4cm" &&
                         chartArea.Descendants(table + "table-cell").Count() == 0,
             "Das SVG liegt nicht vollständig innerhalb der 13,2 x 12 cm großen Diagrammfläche oder überdeckt Tabellenzellen.");
+        using var localized = JsonDocument.Parse("""
+            {"tabellen":[{"titel":"Historique","diagramme":[{"titel":"Glycémie",
+              "serien":[{"name":"Glycémie","farbe":"#4f887b","punkte":[["2026-10-04",6.5],["2026-10-05",7.1]]}],
+              "spalten":["Date","Glycémie"],"zeilen":[["04/10/2026","6,5"],["05/10/2026","7,1"]]}]}]}
+            """);
+        var previousCulture = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
+            using var localizedZip = new ZipArchive(new MemoryStream(DocumentExportService.CreateSpreadsheet(
+                DocumentExportService.ReadHealthSheets(localized.RootElement))));
+            using var localizedContent = localizedZip.GetEntry("content.xml")!.Open();
+            var localizedXml = XDocument.Load(localizedContent);
+            TestAssert.That(localizedXml.Descendants().Any(node => node.Value == "6,5") &&
+                localizedXml.Descendants().Any(node => node.Value == "04/10/2026") &&
+                !localizedXml.Descendants().Any(node => node.Value == "Datum"),
+                "ODS chart tables discarded the application's localized headings or values.");
+            using var picture = localizedZip.Entries.Single(entry => entry.FullName.EndsWith(".svg")).Open();
+            var geometry = XDocument.Load(picture).Descendants().Single(node => node.Name.LocalName == "polyline");
+            foreach (var pair in geometry.Attribute("points")!.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                TestAssert.That(pair.Split(',').Length == 2 && pair.Split(',').All(value =>
+                    double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _)),
+                    "Regional decimal separators corrupted SVG chart coordinates.");
+        }
+        finally { System.Globalization.CultureInfo.CurrentCulture = previousCulture; }
         return Task.CompletedTask;
     }
 

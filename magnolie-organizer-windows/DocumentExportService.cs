@@ -318,7 +318,7 @@ internal static class DocumentExportService
         var result = new List<DocumentSheet>();
         foreach (var table in tables.EnumerateArray())
         {
-            var title = Value(table, "titel") is { Length: > 0 } value ? value : "Gesundheit";
+            var title = Value(table, "titel") is { Length: > 0 } value ? value : NativeLocalization.Gettext("Health");
             if (table.TryGetProperty("diagramme", out var charts))
             {
                 result.AddRange(ReadChartSheets(title, charts));
@@ -615,7 +615,7 @@ internal static class DocumentExportService
                 var ordered = series.Points.OrderBy(point => point.Key, StringComparer.Ordinal).ToArray();
                 var elements = new List<XElement>();
                 if (ordered.Length > 0) elements.Add(new XElement(svgNamespace + "polyline", new XAttribute("fill", "none"), new XAttribute("stroke", color),
-                    new XAttribute("stroke-width", "3"), new XAttribute("points", string.Join(" ", ordered.Select(point => $"{X(point.Key):0.##},{Y(point.Value):0.##}")))));
+                    new XAttribute("stroke-width", "3"), new XAttribute("points", string.Join(" ", ordered.Select(point => FormattableString.Invariant($"{X(point.Key):0.##},{Y(point.Value):0.##}"))))));
                 elements.AddRange(ordered.Select(point => new XElement(svgNamespace + "circle", new XAttribute("cx", X(point.Key)), new XAttribute("cy", Y(point.Value)),
                     new XAttribute("r", "4"), new XAttribute("fill", color))));
                 elements.Add(new XElement(svgNamespace + "text", new XAttribute("x", left + index * 180), new XAttribute("y", "330"),
@@ -702,7 +702,16 @@ internal static class DocumentExportService
             var dates = chart.Series.SelectMany(series => series.Points.Keys).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
             var rows = dates.Select(date => (IReadOnlyList<string>)new[] { date }.Concat(chart.Series.Select(series =>
                 series.Points.TryGetValue(date, out var point) ? point.ToString("G15", CultureInfo.InvariantCulture) : "")).Concat(new[] { "", "" }).ToArray()).Take(20).ToList();
-            var columns = new[] { "Datum" }.Concat(chart.Series.Select(series => series.Name)).Concat(new[] { "", "" }).ToArray();
+            var columns = new[] { NativeLocalization.Gettext("Date") }.Concat(chart.Series.Select(series => series.Name)).Concat(new[] { "", "" }).ToArray();
+            if (element.TryGetProperty("spalten", out _))
+            {
+                var headings = StringArray(element, "spalten");
+                if (headings.Length != chart.Series.Count + 1 || headings.Any(text => string.IsNullOrWhiteSpace(text) || text.Length > 160))
+                    throw new ArgumentException(NativeLocalization.Gettext("The ODS columns are invalid."));
+                columns = headings.Concat(new[] { "", "" }).ToArray();
+                rows = ReadRows(element, "zeilen", headings.Length).Take(20)
+                    .Select(row => (IReadOnlyList<string>)row.Concat(new[] { "", "" }).ToArray()).ToList();
+            }
             while (rows.Count < 20) rows.Add(Enumerable.Repeat("", columns.Length).ToArray());
             var leftSpan = columns.Length - 2;
             yield return new DocumentSheet($"{parentTitle} · {chart.Title}", columns, rows,
