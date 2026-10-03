@@ -49,10 +49,10 @@ internal static class TelefonProtocolTests
             "Legacy-SMS/call_control wird noch beworben.");
         var control = JsonNode.Parse(File.ReadAllText(copiedControl))!.AsObject();
         TestAssert.That(control["desktop_capabilities"]!["device_status"]!["versions"]!.AsArray()
-            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4 }) &&
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 5 }) &&
             control["android_capabilities"]!["device_status"]!["versions"]!.AsArray()
             .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3 }),
-            "Der Telefon-Control-Vertrag bewirbt nicht auf beiden Seiten Gerätestatus v3.");
+            "Der Telefon-Control-Vertrag muss Basis-Gerätestatus v3 und desktopseitig die optionale Kontaktlesefassung v5 enthalten.");
         TestAssert.That(control["desktop_capabilities"]!["personal_tasks_sync"]!["versions"]!.AsArray()
             .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 6 }) &&
             control["android_capabilities"]!["personal_tasks_sync"]!["versions"]!.AsArray()
