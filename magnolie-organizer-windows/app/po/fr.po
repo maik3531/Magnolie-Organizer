@@ -1465,9 +1465,6 @@ msgstr ""
 msgid "Connection ready"
 msgstr "Connexion prête"
 
-msgid "Consider deletions during manual synchronization"
-msgstr "Synchronisation des contacts"
-
 msgid "Contact"
 msgstr "Contact"
 
@@ -3502,6 +3499,13 @@ msgstr "Notes"
 msgid "Notes and special instructions"
 msgstr "Notes et instructions particulières"
 
+msgid ""
+"Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
+"synchronization or start manually."
+msgstr ""
+"Les notes et tâches sont synchronisées avec cet appareil associé. Choisissez "
+"la synchronisation Wi-Fi automatique ou lancez-la manuellement."
+
 msgid "Nothing found."
 msgstr "Aucun résultat."
 
@@ -4919,6 +4923,9 @@ msgstr "Masquer cette alerte"
 
 msgid "Skip assistant"
 msgstr "Ignorer l'assistant"
+
+msgid "Skip deletions"
+msgstr "Ignorer les suppressions"
 
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
@@ -7164,6 +7171,9 @@ msgstr[1] "… et %(count)s autres éléments qui seront également imprimés."
 
 msgid "＋ Add appointment"
 msgstr "＋ Ajouter un rendez-vous"
+
+#~ msgid "Consider deletions during manual synchronization"
+#~ msgstr "Synchronisation des contacts"
 
 #~ msgid ""
 #~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."

@@ -1360,9 +1360,6 @@ msgstr "未能找到可用的连接。请检查服务器和登录信息。"
 msgid "Connection ready"
 msgstr "连接已就绪"
 
-msgid "Consider deletions during manual synchronization"
-msgstr "联系人同步"
-
 msgid "Contact"
 msgstr "联系人"
 
@@ -3294,6 +3291,11 @@ msgstr "便笺"
 msgid "Notes and special instructions"
 msgstr "备注和特别说明"
 
+msgid ""
+"Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
+"synchronization or start manually."
+msgstr "笔记和任务会与此已配对设备同步。请选择自动 Wi-Fi 同步或手动启动。"
+
 msgid "Nothing found."
 msgstr "未找到任何内容。"
 
@@ -4612,6 +4614,9 @@ msgstr "关闭此提醒"
 
 msgid "Skip assistant"
 msgstr "跳过助手"
+
+msgid "Skip deletions"
+msgstr "跳过删除"
 
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
@@ -6682,6 +6687,9 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
+
+#~ msgid "Consider deletions during manual synchronization"
+#~ msgstr "联系人同步"
 
 #~ msgid ""
 #~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."

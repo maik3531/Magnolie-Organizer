@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_status_keine_verbindung">Ingen etablert tilkobling</string>
+    <string name="personal_sync_simple">Notater og oppgaver synkroniseres med denne parede enheten. Velg automatisk Wi-Fi-synkronisering eller start manuelt.</string>
+    <string name="personal_sync_skip_deletions">Hopp over sletting</string>
     <string name="personal_note_direction_update">Oppdater begge enhetene for å velge retning for notater.</string>
     <string name="personal_note_direction">Synkroniseringsretning for notater</string>
     <string name="personal_note_two_way">Toveissynkronisering</string>

@@ -1010,18 +1010,16 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                         },
                         beiPersonalEigen = { if (it) telefonWerk.initializePersonalDefaults()
                             else telefonWerk.setPersonalSync(false, false, false, false, false) },
-                        beiPersonalNotizen = { telefonWerk.setPersonalSync(telefonZustand.personalOwnDevice, it,
-                            telefonZustand.personalTasksEnabled, telefonZustand.personalAutoWifi, telefonZustand.personalDeletionsEnabled) },
                         beiPersonalNotizrichtung = { runCatching { telefonWerk.setPersonalNotesMode(it) }
                             .onFailure { sage(zusammenhang.fehlertext(it)) } },
-                        beiPersonalAufgaben = { telefonWerk.setPersonalSync(telefonZustand.personalOwnDevice,
-                            telefonZustand.personalNotesEnabled, it, telefonZustand.personalAutoWifi, telefonZustand.personalDeletionsEnabled) },
-                        beiPersonalAutoWlan = { telefonWerk.setPersonalSync(telefonZustand.personalOwnDevice,
-                            telefonZustand.personalNotesEnabled, telefonZustand.personalTasksEnabled, it, telefonZustand.personalDeletionsEnabled) },
-                        beiPersonalLoeschungen = { telefonWerk.setPersonalSync(telefonZustand.personalOwnDevice,
-                            telefonZustand.personalNotesEnabled, telefonZustand.personalTasksEnabled,
-                            telefonZustand.personalAutoWifi, it) },
-                        beiPersonalJetzt = { runCatching { telefonWerk.personalSyncNow() }
+                        beiPersonalAutoWlan = { runCatching { telefonWerk.setPersonalSyncMode(it, !telefonZustand.personalDeletionsEnabled) }
+                            .onFailure { sage(zusammenhang.fehlertext(it)) } },
+                        beiPersonalLoeschungen = { runCatching { telefonWerk.setPersonalSyncMode(telefonZustand.personalAutoWifi, !it) }
+                            .onFailure { sage(zusammenhang.fehlertext(it)) } },
+                        beiPersonalJetzt = { runCatching {
+                            telefonWerk.setPersonalSyncMode(telefonZustand.personalAutoWifi, !telefonZustand.personalDeletionsEnabled, reconnectAfterChange = false)
+                            telefonWerk.personalSyncNow()
+                        }
                             .onFailure { sage(it.message.orEmpty()) } },
                         beiPersonalEntscheidung = telefonWerk::personalDeletionDecision,
                         beiCustomSync = { runCatching { telefonWerk.setCustomSync(it) }

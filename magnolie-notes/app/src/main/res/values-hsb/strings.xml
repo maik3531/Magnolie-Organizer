@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_status_keine_verbindung">Žadyn wobstejacy zwisk</string>
+    <string name="personal_sync_simple">Noticy a nadawki so z tutym koplowanym gratom synchronizuja. Wubjerće awtomatisku WLAN-synchronizaciju abo startujće manuelnje.</string>
+    <string name="personal_sync_skip_deletions">Zhašenja wuwostajić</string>
     <string name="personal_note_direction_update">Aktualizujće wobě grataj, zo byšće směr noticow wubrali.</string>
     <string name="personal_note_direction">Směr synchronizacije noticow</string>
     <string name="personal_note_two_way">Synchronizacija we woběmaj směromaj</string>

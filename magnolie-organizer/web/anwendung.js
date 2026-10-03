@@ -1416,9 +1416,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return personalCustomKette;
   }
   function personalCustomSenden(peer, trigger, force = false) {
+    if (!registerAktiv("custom")) return Promise.resolve(false);
     const bestand = DATEN.personalSync;
     personalCustomKette = personalCustomKette.catch(() => {}).then(async () => {
-      if (DATEN.personalSync !== bestand || gesperrt || !initialisiert || !antwortErhalten) return false;
+      if (DATEN.personalSync !== bestand || gesperrt || !initialisiert || !antwortErhalten || !registerAktiv("custom")) return false;
       const scopes = peer.custom_sync || {}, local = scopes.local, remote = scopes.remote;
       const versions = peer.capabilities?.items?.personal_tasks_sync?.versions || [];
       if (!local || !remote || !personalSyncCustomAllowed(remote, local, versions, [4],
@@ -1487,13 +1488,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         (row.upsert ? batch.upserts : batch.deletions).push(row.upsert || row.deletion);
       }
       if (batch.upserts.length || batch.deletions.length) batches.push(batch);
-      if (DATEN.personalSync !== ps || gesperrt || !initialisiert || !antwortErhalten) return false;
+      if (DATEN.personalSync !== ps || gesperrt || !initialisiert || !antwortErhalten || !registerAktiv("custom")) return false;
       ps.custom_revision = revision; ps.custom_entities = current;
       await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
-      if (DATEN.personalSync !== ps || gesperrt) return false;
-      for (const inhalt of batches) if (Bruecke.sende({ cmd: "personal_sync_senden", kennung: peer.device_id,
-        art: "personal_sync.custom_batch", inhalt: inhalt }) === false)
-        throw new Error(_("Personal synchronization failed."));
+      if (DATEN.personalSync !== ps || gesperrt || !registerAktiv("custom")) return false;
+      for (const inhalt of batches) {
+        if (DATEN.personalSync !== ps || gesperrt || !registerAktiv("custom")) return false;
+        if (Bruecke.sende({ cmd: "personal_sync_senden", kennung: peer.device_id,
+            art: "personal_sync.custom_batch", inhalt: inhalt }) === false)
+          throw new Error(_("Personal synchronization failed."));
+      }
       if (trigger === "auto_wifi") {
         const previousHash = ps.custom_auto_hash;
         ps.custom_auto_hash = signature;
@@ -1991,10 +1995,68 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   const geraeteKennungen = new Map();
   const geraeteKennungenAnfragen = new Map();
   const telefonStandardAnfragen = new Map();
+  const personalSyncBetriebWartend = new Map();
+  let personalDesktopFeatureRequest = null;
+  function personalDesktopFeaturesSenden() {
+    if (!initialisiert || !antwortErhalten || gesperrt || !telefonStand) return;
+    const customTab = registerAktiv("custom"), baumAktiv = !!baumStand?.an;
+    const current = telefonStand.desktop_features || {};
+    if (current.custom_tab === customTab && current.tree === baumAktiv) {
+      personalDesktopFeatureRequest = null; return;
+    }
+    const signature = JSON.stringify([customTab, baumAktiv]);
+    if (personalDesktopFeatureRequest?.bestand === DATEN.personalSync &&
+        personalDesktopFeatureRequest.signature === signature && personalDesktopFeatureRequest.until > performance.now()) return;
+    if (Bruecke.sende({ cmd: "personal_sync_desktop_features", customTab: customTab, baumAktiv: baumAktiv }))
+      personalDesktopFeatureRequest = { bestand: DATEN.personalSync, signature, until: performance.now() + 10000 };
+  }
+  function personalSyncBetriebPruefen() {
+    for (const [id, pending] of personalSyncBetriebWartend) {
+      const peer = (telefonStand?.peers || []).find(value => value.device_id === id);
+      const invalid = gesperrt || DATEN.personalSync !== pending.bestand || !peer ||
+        String(peer.fingerprint || "") !== pending.fingerprint;
+      const grants = peer?.local_grants?.grants || {};
+      const ready = peer?.own_device && peer.auto_wifi === pending.auto &&
+        grants.personal_notes_sync === true && grants.personal_tasks_sync === true &&
+        grants.personal_deletions_sync === !pending.skip;
+      if (invalid || ready) {
+        clearTimeout(pending.timer); personalSyncBetriebWartend.delete(id);
+        if (invalid) pending.reject(new Error(_("Personal synchronization failed.")));
+        else pending.resolve(peer);
+      }
+    }
+  }
+  function personalSyncBetriebSetzen(peer, auto, skip) {
+    if (!peer || gesperrt) return Promise.reject(new Error(_("Personal synchronization failed.")));
+    const previous = personalSyncBetriebWartend.get(peer.device_id);
+    if (previous) {
+      clearTimeout(previous.timer); personalSyncBetriebWartend.delete(peer.device_id);
+      const error = new Error(_("Cancel")); error.personalSyncCancelled = true; previous.reject(error);
+    }
+    return new Promise((resolve, reject) => {
+      const pending = { auto: !!auto, skip: !!skip, bestand: DATEN.personalSync,
+        fingerprint: String(peer.fingerprint || ""), resolve, reject };
+      pending.timer = setTimeout(() => {
+        if (personalSyncBetriebWartend.get(peer.device_id) !== pending) return;
+        personalSyncBetriebWartend.delete(peer.device_id); reject(new Error(_("Personal synchronization failed.")));
+      }, 15000);
+      personalSyncBetriebWartend.set(peer.device_id, pending);
+      if (Bruecke.sende({ cmd: "personal_sync_betrieb", kennung: peer.device_id,
+          autoWlan: pending.auto, loeschungenAuslassen: pending.skip }) === false) {
+        clearTimeout(pending.timer); personalSyncBetriebWartend.delete(peer.device_id);
+        reject(new Error(_("Personal synchronization failed."))); return;
+      }
+      Bruecke.sende({ cmd: "telefon_stand" });
+    });
+  }
+  function personalSyncBetriebFehler(error) {
+    if (!error.personalSyncCancelled) zettel(String(error.message || error));
+  }
   function telefonStandardsAnwenden() {
     const peers = telefonStand?.peers || [];
     if (peers.length !== 1 || telefonStand.binding_conflict) return;
     const peer = peers[0];
+    if (personalSyncBetriebWartend.has(peer.device_id)) return;
     if (!["offline", "online_wifi", "online_bluetooth"].includes(peer.state)) return;
     const senden = (name, vorhanden, nachricht) => {
       const key = peer.device_id + "\u0000" + (peer.fingerprint || "") + "\u0000" + name;
@@ -2002,18 +2064,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if ((telefonStandardAnfragen.get(key) || 0) > performance.now()) return;
       if (Bruecke.sende(nachricht)) telefonStandardAnfragen.set(key, performance.now() + 10000);
     };
-    if (!peer.own_device) {
-      for (const name of ["personal_notes_sync", "personal_tasks_sync", "selected_notifications_readonly"])
-        senden(name, peer.local_grants?.grants?.[name], { cmd: "telefon_freigabe",
-          kennung: peer.device_id, name: name, an: true });
-    }
-    senden("own", peer.own_device, { cmd: "personal_sync_einstellungen",
-      kennung: peer.device_id, eigen: true, autoWlan: true });
+    senden("own", peer.own_device, { cmd: "personal_sync_betrieb",
+      kennung: peer.device_id, autoWlan: true, loeschungenAuslassen: false });
   }
   function personalSyncBereit(peer) {
     if (!peer?.own_device || !peer.remote_own_device) return false;
     const lokal = peer.local_grants?.grants || {}, fern = peer.grants?.grants || {};
-    return !!(["personal_notes_sync", "personal_tasks_sync"].some(name => lokal[name] && fern[name]) ||
+    return !!(["personal_notes_sync", "personal_tasks_sync"].some(name => fern[name]) ||
       peer.custom_sync?.local?.enabled && peer.custom_sync?.remote?.enabled &&
       peer.capabilities?.items?.personal_tasks_sync?.available &&
       peer.capabilities.items.personal_tasks_sync.versions?.includes(4));
@@ -2185,7 +2242,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     };
     let personalSyncKnopf = null;
     if (peer) {
-      let eigen = true, auto = !!peer.auto_wifi;
+      let auto = !!peer.auto_wifi;
       const personalStand = el("p", "einst-hinweis");
       personalStand.dataset.personalSyncPeer = kennung;
       const zeigePersonalStand = (aktuell) => {
@@ -2203,26 +2260,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
             ? String(aktuell.personal_sync_report.state) : _("Deletions are not synchronized yet.");
       };
       zeigePersonalStand(peer);
-      const inhaltHaken = [];
-      for (const [name, text] of [["personal_notes_sync", _("Synchronize notes and notebooks")],
-        ["personal_tasks_sync", _("Synchronize tasks")],
-        ["personal_deletions_sync", _("Consider deletions during manual synchronization")]]) {
-        const haken = personalHak(text,
-        !!(peer.local_grants && peer.local_grants.grants && peer.local_grants.grants[name]),
-        (an) => { peer.local_grants.grants[name] = an;
-          zeigePersonalStand(peer);
-          Bruecke.sende({ cmd: "telefon_freigabe", kennung: kennung, name: name, an: an });
-          Bruecke.sende({ cmd: "telefon_stand" }); });
-        haken.dataset.personalGrantPeer = kennung; haken.dataset.personalGrantName = name;
-        inhaltHaken.push(haken);
-      }
-      const inhaltWahl = el("div", "druck-wahlkopf personal-sync-wahl");
-      const waehleInhalte = (an) => {
-        for (const haken of inhaltHaken) if (haken.checked !== an) haken.click();
-      };
-      inhaltWahl.append(knopf(_("All"), "klein", () => waehleInhalte(true)),
-        knopf(_("None"), "klein", () => waehleInhalte(false)));
-      personal.append(inhaltWahl);
+      personal.append(el("p", "einst-hinweis", _("Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi synchronization or start manually.")));
+      const skipHaken = personalHak(_("Skip deletions"), peer.local_grants?.grants?.personal_deletions_sync !== true,
+        (skip) => personalSyncBetriebSetzen(personalSyncNotizPeer(kennung) || peer,
+          !!(personalSyncNotizPeer(kennung) || peer).auto_wifi, skip).catch(personalSyncBetriebFehler));
+      skipHaken.dataset.personalSkipDeletionsPeer = kennung;
       const notizRichtung = el("select", "");
       notizRichtung.dataset.personalNoteModePeer = kennung;
       notizRichtung.setAttribute("aria-label", _("Note synchronization direction"));
@@ -2265,14 +2307,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         ? _("Both devices must opt in. Turning this off pauses reminders and updates from the custom tab but keeps copies. Linked text blocks are not shared.")
         : _("This device does not support synchronization of the custom tab."));
       customNote.dataset.personalCustomNote = kennung; personal.append(customNote);
+      custom.parentElement.hidden = !registerAktiv("custom"); customNote.hidden = !registerAktiv("custom");
       const autoHaken = personalHak(_("Automatically synchronize over Wi-Fi"), auto, (an) => {
-        auto = an; peer.auto_wifi = an;
-        Bruecke.sende({ cmd: "personal_sync_einstellungen", kennung: kennung, eigen: eigen, autoWlan: an });
+        auto = an;
+        personalSyncBetriebSetzen(personalSyncNotizPeer(kennung) || peer, an, skipHaken.checked)
+          .then(aktuell => { if (an) return personalSyncAutoBeiSicheremWlan(aktuell, true); })
+          .catch(personalSyncBetriebFehler);
       });
       autoHaken.dataset.personalAutoPeer = kennung;
       personalSyncKnopf = knopf(_("Synchronize now"), "hauptknopf", () => {
         const aktuell = (telefonStand && telefonStand.peers || []).find((p) => p.device_id === kennung);
-        personalSyncSenden(aktuell || peer, "manual").catch((fehler) => zettel(String(fehler.message || fehler)));
+        personalSyncBetriebSetzen(aktuell || peer, !!(aktuell || peer).auto_wifi, skipHaken.checked)
+          .then(bereit => personalSyncSenden(bereit, "manual")).catch(personalSyncBetriebFehler);
       });
       personalSyncKnopf.dataset.personalSyncAction = kennung;
       personalSyncKnopf.disabled = !personalSyncBereit(peer);
@@ -21331,6 +21377,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     registerGruppe.append(registerAuswahl, customFelder);
     customAn.addEventListener("change", () => {
       a.customTab.enabled = customAn.checked; customFelder.hidden = !customAn.checked;
+      personalDesktopFeaturesSenden();
       if (!customAn.checked && zustand.sektion === "custom") zustand.sektion = "kalender";
       planeSpeichern(); zeichneAlles();
     });
@@ -28275,6 +28322,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     },
     telefonStand(nutzlast) {
       telefonStand = nutzlast || null;
+      personalSyncBetriebPruefen();
+      personalDesktopFeaturesSenden();
       document.querySelectorAll('[data-kde-zeichen-input]').forEach(node => {
         node.disabled = !Bruecke.vorhanden || !telefonStand?.kdeconnect?.digitizer_available || !telefonStand.kdeconnect.digitizer_device_id;
       });
@@ -28287,6 +28336,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       document.querySelectorAll("[data-personal-grant-peer], [data-personal-auto-peer]").forEach(input => {
         const peer = (telefonStand?.peers || []).find(p => p.device_id === (input.dataset.personalGrantPeer || input.dataset.personalAutoPeer));
         if (peer) input.checked = input.dataset.personalGrantName ? !!peer.local_grants?.grants?.[input.dataset.personalGrantName] : !!peer.auto_wifi;
+      });
+      document.querySelectorAll("[data-personal-skip-deletions-peer]").forEach(input => {
+        const peer = (telefonStand?.peers || []).find(p => p.device_id === input.dataset.personalSkipDeletionsPeer);
+        if (peer) input.checked = peer.local_grants?.grants?.personal_deletions_sync !== true;
       });
       document.querySelectorAll("[data-personal-sync-action]").forEach(button => {
         button.disabled = !personalSyncBereit((telefonStand?.peers || []).find(peer => peer.device_id === button.dataset.personalSyncAction));
@@ -28341,11 +28394,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         const supported = peer?.capabilities?.items?.personal_tasks_sync?.available === true &&
           (peer.capabilities.items.personal_tasks_sync.versions || []).includes(4);
         if (node.dataset.personalCustomPeer) {
+          node.parentElement.hidden = !registerAktiv("custom");
           node.disabled = !supported; node.checked = peer?.custom_sync?.local?.enabled === true;
           node.parentElement.lastChild.textContent = " " + personalCustomBeschriftung();
-        } else node.textContent = supported
+        } else { node.hidden = !registerAktiv("custom"); node.textContent = supported
           ? _("Both devices must opt in. Turning this off pauses reminders and updates from the custom tab but keeps copies. Linked text blocks are not shared.")
-          : _("This device does not support synchronization of the custom tab.");
+          : _("This device does not support synchronization of the custom tab."); }
       });
       const vorhandene = new Set();
       for (const peer of (telefonStand && telefonStand.peers || [])) {
@@ -29086,6 +29140,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (gesperrt) return;
       const warAktiv = !!(baumStand && baumStand.an);
       baumStand = nutzlast || null;
+      personalDesktopFeaturesSenden();
       if (warAktiv !== !!(baumStand && baumStand.an) &&
         zustand.sektion === "notizen") zeichneAlles();
       if (baumStand && (baumStand.eingang || []).length) {

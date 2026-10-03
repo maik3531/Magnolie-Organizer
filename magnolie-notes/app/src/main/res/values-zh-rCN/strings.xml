@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_status_keine_verbindung">当前没有连接</string>
+    <string name="personal_sync_simple">笔记和任务会与此已配对设备同步。请选择自动 Wi-Fi 同步或手动启动。</string>
+    <string name="personal_sync_skip_deletions">跳过删除</string>
     <string name="personal_note_direction_update">请更新两台设备以选择笔记传输方向。</string>
     <string name="personal_note_direction">笔记同步方向</string>
     <string name="personal_note_two_way">双向同步</string>

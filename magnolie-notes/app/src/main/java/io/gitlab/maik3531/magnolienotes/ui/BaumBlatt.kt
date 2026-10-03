@@ -64,6 +64,7 @@ import io.gitlab.maik3531.magnolienotes.telefon.TelefonUiZustand
 import io.gitlab.maik3531.magnolienotes.telefon.TelefonVerbindungsstatus
 import io.gitlab.maik3531.magnolienotes.telefon.GefundenerDesktop
 import io.gitlab.maik3531.magnolienotes.telefon.PersonalNoteMode
+import io.gitlab.maik3531.magnolienotes.telefon.PersonalDesktopFeatures
 import kotlinx.serialization.json.*
 
 /** Alles, was das Baumblatt an Handlungen anbietet. */
@@ -124,9 +125,7 @@ class Telefonhandlungen(
     val beiBenachrichtigungsApp: (String) -> Unit,
     val beiPersonalEigen: (Boolean) -> Unit,
     val beiIdentifierSharing: (Boolean) -> Unit,
-    val beiPersonalNotizen: (Boolean) -> Unit,
     val beiPersonalNotizrichtung: (String) -> Unit,
-    val beiPersonalAufgaben: (Boolean) -> Unit,
     val beiPersonalAutoWlan: (Boolean) -> Unit,
     val beiPersonalLoeschungen: (Boolean) -> Unit,
     val beiPersonalJetzt: () -> Unit,
@@ -158,6 +157,10 @@ fun BaumBlatt(
     var loeschWarnung by remember { mutableStateOf<String?>(null) }
     var entfernenWarnung by remember { mutableStateOf<String?>(null) }
     val peerScope = telefon.peer?.let { it.device_id + ":" + it.static_public }
+    var baumOffen by remember(peerScope) { mutableStateOf(false) }
+    val baumSichtbar = PersonalDesktopFeatures.treeVisible(telefon.peer,
+        zustand.dienstAn || zustand.partner.isNotEmpty(), zustand.eingang.isNotEmpty() || zustand.kontaktEingang.isNotEmpty())
+    LaunchedEffect(baumSichtbar) { if (!baumSichtbar) baumOffen = false }
     val noteImportMode = PersonalNoteMode.importing(telefon.peer?.personal_note_policy, telefon.peer?.remote_personal_note_policy)
     val activeProposals = bestand.personalSync.pending_proposals.filter {
         it.source_device == telefon.peer?.device_id && (!noteImportMode || it.kind == "task") }
@@ -216,7 +219,7 @@ fun BaumBlatt(
             val verbindungsstatus = when (telefon.connection) {
                 TelefonVerbindungsstatus.STOPPED -> stringResource(R.string.telefon_status_aus)
                 TelefonVerbindungsstatus.PAIRED -> stringResource(R.string.telefon_status_gepaart)
-                TelefonVerbindungsstatus.DISCOVERING -> stringResource(R.string.telefon_dienst_sucht)
+                TelefonVerbindungsstatus.DISCOVERING -> stringResource(R.string.telefon_status_keine_verbindung)
                 TelefonVerbindungsstatus.HANDSHAKING, TelefonVerbindungsstatus.AUTHENTICATING ->
                     stringResource(R.string.telefon_dienst_verbindet, telefon.pairingName)
                 TelefonVerbindungsstatus.CODE_PENDING -> stringResource(R.string.telefon_status_code)
@@ -225,7 +228,7 @@ fun BaumBlatt(
                 TelefonVerbindungsstatus.ONLINE_BLUETOOTH -> stringResource(R.string.telefon_dienst_bluetooth,
                     telefon.peer?.display_name.orEmpty())
                 TelefonVerbindungsstatus.ERROR -> stringResource(R.string.telefon_status_fehler)
-                else -> stringResource(R.string.telefon_status_getrennt)
+                else -> stringResource(R.string.telefon_status_keine_verbindung)
             }
             Wertzeile(stringResource(R.string.telefon_status), verbindungsstatus)
             if (telefon.enabled && telefon.connection != TelefonVerbindungsstatus.CODE_PENDING) {
@@ -328,60 +331,62 @@ fun BaumBlatt(
                     telefonHandlungen.beiPersonalEigen(true)
             }
             if (telefon.personalOwnDevice) {
-                Schalterzeile(stringResource(R.string.device_identifiers_share), telefon.peer?.identifier_sharing_enabled == true,
-                    telefonHandlungen.beiIdentifierSharing)
                 Text(stringResource(R.string.device_identifiers_explanation), fontSize = 12.sp)
+                if (telefon.peer?.identifier_sharing_enabled != true)
+                    Papierknopf(stringResource(R.string.telefon_anruf_berechtigungen)) {
+                        telefonHandlungen.beiIdentifierSharing(true)
+                    }
             }
-            Schalterzeile(stringResource(R.string.personal_sync_notizen), telefon.personalNotesEnabled,
-                telefonHandlungen.beiPersonalNotizen)
-            val noteModeSupported = telefon.peer?.remote_personal_notes_sync_available == true &&
-                PersonalNoteMode.VERSION in (telefon.peer?.remote_personal_notes_sync_versions ?: emptyList()) &&
-                PersonalNoteMode.VERSION in io.gitlab.maik3531.magnolienotes.telefon.TelefonCapabilities.phase1().getValue("personal_notes_sync").versions
-            if (noteModeSupported) {
-                Text(stringResource(R.string.personal_note_direction), fontWeight = FontWeight.Bold)
-                Schalterzeile(stringResource(R.string.personal_note_import), telefon.personalNotesMode == PersonalNoteMode.IMPORT,
-                    { telefonHandlungen.beiPersonalNotizrichtung(if (it) PersonalNoteMode.IMPORT else PersonalNoteMode.TWO_WAY) })
-                Text(stringResource(if (noteImportMode) R.string.personal_note_import else R.string.personal_note_two_way), fontSize = 12.sp)
-                Text(stringResource(R.string.personal_note_direction_hint), fontSize = 12.sp)
-            } else Text(stringResource(R.string.personal_note_direction_update), fontSize = 12.sp)
-            Schalterzeile(stringResource(R.string.personal_sync_aufgaben), telefon.personalTasksEnabled,
-                telefonHandlungen.beiPersonalAufgaben)
-            val customSupported = telefon.peer?.remote_personal_tasks_sync_available == true && 4 in (telefon.peer?.remote_personal_tasks_sync_versions ?: emptyList()) &&
-                4 in io.gitlab.maik3531.magnolienotes.telefon.TelefonCapabilities.phase1().getValue("personal_tasks_sync").versions
-            if (customSupported) Schalterzeile(stringResource(R.string.personal_custom_optin),
-                bestand.personalCustom.local?.get("enabled")?.jsonPrimitive?.booleanOrNull == true, telefonHandlungen.beiCustomSync)
-            else Text(stringResource(R.string.personal_custom_unsupported), fontSize = 12.sp)
-            Text(stringResource(R.string.personal_custom_explanation), fontSize = 12.sp)
-            Text(stringResource(R.string.personal_custom_privacy), fontSize = 12.sp)
-            if (bestand.personalCustom.local?.get("enabled")?.jsonPrimitive?.booleanOrNull == true &&
-                bestand.personalCustom.remote?.get("enabled")?.jsonPrimitive?.booleanOrNull != true)
-                Text(stringResource(R.string.baum_wartet), fontSize = 12.sp)
-            Schalterzeile(stringResource(R.string.personal_sync_auto_wlan), telefon.personalAutoWifi,
-                telefonHandlungen.beiPersonalAutoWlan)
-            Schalterzeile(stringResource(R.string.personal_sync_loeschungen), telefon.personalDeletionsEnabled,
-                telefonHandlungen.beiPersonalLoeschungen)
-            Lederknopf(stringResource(R.string.personal_sync_jetzt), modifier = Modifier.fillMaxWidth(),
-                aktiv = telefon.personalOwnDevice && telefon.peer?.remote_own_device == true &&
-                    ((telefon.personalNotesEnabled && telefon.peer?.remote_personal_notes_sync_granted == true) ||
-                        (telefon.personalTasksEnabled && telefon.peer?.remote_personal_tasks_sync_granted == true) ||
-                        (customSupported && bestand.personalCustom.local?.get("enabled")?.jsonPrimitive?.booleanOrNull == true &&
-                            bestand.personalCustom.remote?.get("enabled")?.jsonPrimitive?.booleanOrNull == true)),
-                beiKlick = telefonHandlungen.beiPersonalJetzt)
-            Text(telefon.personalSyncReport.ifBlank { stringResource(R.string.personal_sync_keine_loeschung) },
-                fontFamily = FontFamily.SansSerif, fontSize = 11.sp, lineHeight = 16.sp, color = Magnolie.braunHell)
-            if (activeProposals.isNotEmpty()) Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Papierknopf(stringResource(R.string.personal_sync_alle_loeschen)) {
-                    requestMass("delete", activeProposals) }
-                Papierknopf(stringResource(R.string.personal_sync_alle_wiederherstellen)) {
-                    requestMass("restore", activeProposals) }
-            }
-            activeProposals.forEach { proposal ->
-                Text("${lokalisierterText(TechnischeWerteLokalisierung.art(proposal.kind))}: ${proposal.label.ifBlank { proposal.id }}",
-                    fontFamily = FontFamily.SansSerif, fontSize = 12.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Papierknopf(stringResource(R.string.personal_sync_entscheiden)) {
-                        personalRemember = false; personalProposal = proposal }
+            if (telefon.peer?.state == "paired") {
+                Text(stringResource(R.string.personal_sync_simple), fontSize = 12.sp)
+                val noteModeSupported = telefon.peer?.remote_personal_notes_sync_available == true &&
+                    PersonalNoteMode.VERSION in (telefon.peer?.remote_personal_notes_sync_versions ?: emptyList()) &&
+                    PersonalNoteMode.VERSION in io.gitlab.maik3531.magnolienotes.telefon.TelefonCapabilities.phase1().getValue("personal_notes_sync").versions
+                if (noteModeSupported) {
+                    Text(stringResource(R.string.personal_note_direction), fontWeight = FontWeight.Bold)
+                    Schalterzeile(stringResource(R.string.personal_note_import), telefon.personalNotesMode == PersonalNoteMode.IMPORT,
+                        { telefonHandlungen.beiPersonalNotizrichtung(if (it) PersonalNoteMode.IMPORT else PersonalNoteMode.TWO_WAY) })
+                    Text(stringResource(if (noteImportMode) R.string.personal_note_import else R.string.personal_note_two_way), fontSize = 12.sp)
+                    Text(stringResource(R.string.personal_note_direction_hint), fontSize = 12.sp)
+                } else Text(stringResource(R.string.personal_note_direction_update), fontSize = 12.sp)
+                val customSupported = telefon.peer?.remote_personal_tasks_sync_available == true && 4 in (telefon.peer?.remote_personal_tasks_sync_versions ?: emptyList()) &&
+                    4 in io.gitlab.maik3531.magnolienotes.telefon.TelefonCapabilities.phase1().getValue("personal_tasks_sync").versions
+                if (customSupported && PersonalDesktopFeatures.customAvailable(telefon.peer!!)) {
+                    Schalterzeile(stringResource(R.string.personal_custom_optin),
+                        bestand.personalCustom.local?.get("enabled")?.jsonPrimitive?.booleanOrNull == true, telefonHandlungen.beiCustomSync)
+                    Text(stringResource(R.string.personal_custom_explanation), fontSize = 12.sp)
+                    Text(stringResource(R.string.personal_custom_privacy), fontSize = 12.sp)
+                    if (bestand.personalCustom.local?.get("enabled")?.jsonPrimitive?.booleanOrNull == true &&
+                        bestand.personalCustom.remote?.get("enabled")?.jsonPrimitive?.booleanOrNull != true)
+                        Text(stringResource(R.string.baum_wartet), fontSize = 12.sp)
+                }
+                Schalterzeile(stringResource(R.string.personal_sync_auto_wlan), telefon.personalAutoWifi,
+                    telefonHandlungen.beiPersonalAutoWlan)
+                Schalterzeile(stringResource(R.string.personal_sync_skip_deletions), !telefon.personalDeletionsEnabled,
+                    { telefonHandlungen.beiPersonalLoeschungen(!it) })
+                Lederknopf(stringResource(R.string.personal_sync_jetzt), modifier = Modifier.fillMaxWidth(),
+                    aktiv = telefon.personalOwnDevice && telefon.peer?.remote_own_device == true &&
+                        ((telefon.peer?.remote_personal_notes_sync_granted == true) ||
+                            (telefon.peer?.remote_personal_tasks_sync_granted == true) ||
+                            (customSupported && bestand.personalCustom.local?.get("enabled")?.jsonPrimitive?.booleanOrNull == true &&
+                                bestand.personalCustom.remote?.get("enabled")?.jsonPrimitive?.booleanOrNull == true)),
+                    beiKlick = telefonHandlungen.beiPersonalJetzt)
+                Text(telefon.personalSyncReport.ifBlank { stringResource(R.string.personal_sync_keine_loeschung) },
+                    fontFamily = FontFamily.SansSerif, fontSize = 11.sp, lineHeight = 16.sp, color = Magnolie.braunHell)
+                if (activeProposals.isNotEmpty()) Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Papierknopf(stringResource(R.string.personal_sync_alle_loeschen)) {
+                        requestMass("delete", activeProposals) }
+                    Papierknopf(stringResource(R.string.personal_sync_alle_wiederherstellen)) {
+                        requestMass("restore", activeProposals) }
+                }
+                activeProposals.forEach { proposal ->
+                    Text("${lokalisierterText(TechnischeWerteLokalisierung.art(proposal.kind))}: ${proposal.label.ifBlank { proposal.id }}",
+                        fontFamily = FontFamily.SansSerif, fontSize = 12.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Papierknopf(stringResource(R.string.personal_sync_entscheiden)) {
+                            personalRemember = false; personalProposal = proposal }
+                    }
                 }
             }
             Text(stringResource(R.string.personal_custom_title), fontWeight = FontWeight.Bold)
@@ -415,8 +420,12 @@ fun BaumBlatt(
                 }
             }
         }
+        if (!baumSichtbar) return@Column
         Box(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp)
             .height(1.dp).background(Magnolie.braun))
+        Papierknopf((if (baumOffen) "▾ " else "▸ ") + stringResource(R.string.baum_ueberschrift),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)) { baumOffen = !baumOffen }
+        if (!baumOffen) return@Column
         Abschnitt(
             ueberschrift = stringResource(R.string.baum_ueberschrift),
             hinweis = stringResource(R.string.baum_erklaerung)

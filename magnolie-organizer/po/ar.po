@@ -1904,9 +1904,6 @@ msgstr "تعذّر اكتشاف الاتصال. تحقق من الخادم وب�
 msgid "Connection ready"
 msgstr "الاتصال جاهز"
 
-msgid "Consider deletions during manual synchronization"
-msgstr "مزامنة جهات الاتصال"
-
 msgid "Contact"
 msgstr "جهة اتصال"
 
@@ -4256,6 +4253,13 @@ msgstr "ملاحظات"
 msgid "Notes and special instructions"
 msgstr "ملاحظات وتعليمات خاصة"
 
+msgid ""
+"Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
+"synchronization or start manually."
+msgstr ""
+"تُزامن الملاحظات والمهام مع هذا الجهاز المقترن. اختر المزامنة التلقائية عبر "
+"Wi-Fi أو ابدأ يدوياً."
+
 msgid "Nothing can be encrypted without a password."
 msgstr "لا يمكن تشفير شيء من دون كلمة مرور."
 
@@ -5893,6 +5897,9 @@ msgstr "إسكات هذا التنبيه"
 
 msgid "Skip assistant"
 msgstr "تخطي المساعد"
+
+msgid "Skip deletions"
+msgstr "تجاهل الحذف"
 
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
@@ -8640,6 +8647,9 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
+
+#~ msgid "Consider deletions during manual synchronization"
+#~ msgstr "مزامنة جهات الاتصال"
 
 #~ msgid ""
 #~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."

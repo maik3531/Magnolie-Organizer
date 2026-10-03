@@ -183,10 +183,28 @@ class BackgroundLifecycleTest {
         work.initializePersonalDefaults()
         assertTrue(storage.personalOwnDevice()); assertTrue(storage.personalNotesEnabled())
         assertTrue(storage.personalTasksEnabled()); assertTrue(storage.personalAutoWifi())
+        assertTrue(storage.personalDeletionsEnabled())
         assertTrue(queue.hasKind(peer.device_id, "personal_sync.settings"))
-        work.setPersonalSync(true, false, false, false)
+        work.setPersonalSync(true, false, false, false, deletions = false)
         work.initializePersonalDefaults()
         assertFalse(storage.personalNotesEnabled()); assertFalse(storage.personalTasksEnabled()); assertFalse(storage.personalAutoWifi())
+        assertFalse(storage.personalDeletionsEnabled())
+    }
+
+    @Test fun oneSyncModeChoicePreservesRemoteConsentAndNoteDirection() = fixture { storage, work, _ ->
+        val direction = PersonalNoteMode.create(PersonalNoteMode.IMPORT)
+        val peer = TelefonPeer(UUID.randomUUID().toString(), "Computer", TelefonKrypto.b64(ByteArray(32)),
+            own_device = true, remote_own_device = false, personal_note_policy = direction)
+        storage.savePeer(peer)
+        storage.setPersonalSync(true, false, false, false, false)
+        work.setPersonalSyncMode(false, true, reconnectAfterChange = false)
+        assertTrue(storage.personalNotesEnabled()); assertTrue(storage.personalTasksEnabled())
+        assertFalse(storage.personalAutoWifi()); assertFalse(storage.personalDeletionsEnabled())
+        assertFalse(storage.peers().peer!!.remote_own_device)
+        assertEquals(direction, storage.peers().peer!!.personal_note_policy)
+        work.setPersonalSyncMode(true, false, reconnectAfterChange = false)
+        assertTrue(storage.personalAutoWifi()); assertTrue(storage.personalDeletionsEnabled())
+        assertEquals(direction, storage.peers().peer!!.personal_note_policy)
     }
 
     @Test fun oneCallChoiceControlsAllFeaturesButCannotGrantAndroidPermissions() = fixture { storage, work, _ ->

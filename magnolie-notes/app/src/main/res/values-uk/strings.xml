@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_status_keine_verbindung">Немає встановленого з’єднання</string>
+    <string name="personal_sync_simple">Нотатки й завдання синхронізуються з цим сполученим пристроєм. Виберіть автоматичну синхронізацію Wi-Fi або запускайте вручну.</string>
+    <string name="personal_sync_skip_deletions">Пропускати видалення</string>
     <string name="personal_note_direction_update">Оновіть обидва пристрої, щоб вибрати напрямок передавання нотаток.</string>
     <string name="personal_note_direction">Напрямок синхронізації нотаток</string>
     <string name="personal_note_two_way">Двостороння синхронізація</string>

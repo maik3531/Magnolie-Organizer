@@ -263,12 +263,20 @@ class TelefonWerk private constructor(private val context: Context, private val 
         closeTransport(); modulesChanged()
     }
 
-    fun refreshModules() {
-        safePeer()?.takeIf { it.identifier_sharing_enabled }?.let { peer ->
-            val mask = identifierPermissionMask()
-            if (mask and 1 == 0 || mask and peer.identifier_permission_mask != peer.identifier_permission_mask)
-                setIdentifierSharingEnabled(false)
-        }
+    @Synchronized private fun refreshOwnIdentifierPermission(): Boolean {
+        val peer = safePeer() ?: return false
+        val mask = identifierPermissionMask()
+        val enabled = peer.state == "paired" && peer.own_device && mask and 1 != 0
+        val sharedMask = if (enabled) mask else 0
+        if (peer.identifier_sharing_enabled == enabled && peer.identifier_permission_mask == sharedMask) return false
+        storage.savePeer(peer.copy(identifier_sharing_enabled = enabled, identifier_permission_mask = sharedMask))
+        identifierPermissions = mask
+        identifierEpoch++; identifierPermissionTicket = null; identifierRequests.clear()
+        return true
+    }
+
+    @Synchronized fun refreshModules() {
+        if (refreshOwnIdentifierPermission()) controlStateChanged(reconnectAfterChange = false)
         refreshCustomAuthorization()
         val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
         val apps = runCatching { @Suppress("DEPRECATION") context.packageManager.queryIntentActivities(launcher, 0)
@@ -295,8 +303,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
         callPermissionSnapshot = callPermissions
         if (!TelefonModulStatus.dialPermissions(context)) synchronized(captureLock) { outgoingScope = null }
         val permissions = identifierPermissionMask()
-        if (safePeer()?.identifier_sharing_enabled == true && identifierPermissions and permissions != identifierPermissions)
-            setIdentifierSharingEnabled(false)
+        if (identifierPermissions and permissions != identifierPermissions) {
+            identifierEpoch++; identifierPermissionTicket = null; identifierRequests.clear()
+            closeTransport()
+        }
         identifierPermissions = permissions
         if (context.checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED ||
             storage.incomingNumberEnabled() && context.checkSelfPermission(Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) {
@@ -354,7 +364,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
     fun setAnswerCallsEnabled(value: Boolean) { storage.setAnswerCallsEnabled(value); modulesChanged() }
     @Synchronized fun initializePersonalDefaults(reconnectAfterChange: Boolean = true) {
         if (safePeer()?.state != "paired" || storage.personalOwnDevice()) return
-        setPersonalSync(true, true, true, true, reconnectAfterChange = reconnectAfterChange)
+        setPersonalSyncMode(true, false, reconnectAfterChange)
+    }
+
+    @Synchronized fun setPersonalSyncMode(autoWifi: Boolean, skipDeletions: Boolean, reconnectAfterChange: Boolean = true) {
+        check(safePeer()?.state == "paired")
+        setPersonalSync(true, true, true, autoWifi, !skipDeletions, reconnectAfterChange)
     }
 
     @Synchronized fun setPersonalSync(own: Boolean, notes: Boolean, tasks: Boolean, autoWifi: Boolean,
@@ -1227,6 +1242,25 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val peer = safePeer()?.takeIf { it.device_id == sessionPeer.device_id && it.static_public == sessionPeer.static_public }
             ?: throw TelefonProtokollFehler("Unbekannte Gegenstelle.")
         val kind = runCatching { message.string("kind") }.getOrDefault("")
+        if (kind == PersonalDesktopFeatures.KIND) {
+            var featuresChanged = false
+            val result = runCatching {
+                TelefonNachrichten.validate(message)
+                require(noteSession?.capabilitiesReceived == true && peer.own_device && peer.remote_own_device &&
+                    peer.remote_personal_tasks_sync_available && PersonalDesktopFeatures.VERSION in peer.remote_personal_tasks_sync_versions &&
+                    PersonalDesktopFeatures.VERSION in TelefonCapabilities.phase1().getValue("personal_tasks_sync").versions)
+                if (queue.duplicateResult(peer.device_id, message.string("message_id")) != null)
+                    check(queue.receivedMatches(peer.device_id, message))
+                val body = PersonalDesktopFeatures.accept(peer.remote_desktop_features, message["body"] as JsonObject)
+                storage.savePeer(peer.copy(remote_desktop_features = body))
+                featuresChanged = peer.remote_desktop_features != body
+                queue.receive(peer.device_id, message)
+            }.getOrElse { "rejected" to if (it is java.io.IOException || it is android.database.sqlite.SQLiteException)
+                "temporary_failure" else "invalid_schema" }
+            refreshModules()
+            if (featuresChanged) Erinnerung.customNeuStellen(context)
+            send(TelefonNachrichten.ack(message.string("message_id"), result.first, result.second)); return
+        }
         if (kind == PersonalNoteMode.KIND) {
             val result = runCatching {
                 TelefonNachrichten.validate(message)
@@ -1664,7 +1698,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         .map { (it as JsonPrimitive).content.toInt() }.filter { it in 1..3 || it == PersonalNoteMode.VERSION }.distinct().sorted(),
                     remote_personal_notes_sync_available = ((items["personal_notes_sync"] as JsonObject)["available"] as JsonPrimitive).booleanOrNull == true,
                     remote_personal_tasks_sync_versions = ((items["personal_tasks_sync"] as JsonObject)["versions"] as JsonArray)
-                        .map { (it as JsonPrimitive).content.toInt() }.filter { it in 1..4 }.distinct().sorted(),
+                        .map { (it as JsonPrimitive).content.toInt() }.filter { it in 1..4 || it == PersonalDesktopFeatures.VERSION }.distinct().sorted(),
                     remote_personal_tasks_sync_available = ((items["personal_tasks_sync"] as JsonObject)["available"] as JsonPrimitive).booleanOrNull == true)
             } else {
                 val grants = body["grants"] as JsonObject
@@ -1979,7 +2013,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 initial = true
                 state = state.copy(local = customSettings(false, 1))
             }
-            state.copy(active = customSupported(peer) && peer.own_device && peer.remote_own_device)
+            state.copy(active = customSupported(peer) && PersonalDesktopFeatures.customAvailable(peer) && peer.own_device && peer.remote_own_device)
         }
         if (initial) queue.queue(peer.device_id, "personal_sync.custom_settings", ablage.bestand.value.personalCustom.local!!, 86_400_000)
         Erinnerung.customNeuStellen(context)

@@ -9,6 +9,8 @@ internal static class PersonalSyncTests
     internal static async Task RunAsync()
     {
         PersonalCustomConsentTests.Run();
+        PersonalSyncModeTests.Run();
+        PersonalDesktopFeaturesTests.Run();
         await PersonalNoteModeTests.RunAsync();
         var resource = Path.Combine(AppContext.BaseDirectory, "resources", "personal-sync-contract.json");
         TestAssert.That(File.Exists(resource), "Repository-lokaler Personal-Sync-Vertrag fehlt.");

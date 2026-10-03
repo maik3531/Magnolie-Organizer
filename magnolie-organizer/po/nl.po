@@ -1789,9 +1789,6 @@ msgstr ""
 msgid "Connection ready"
 msgstr "Verbinding gereed"
 
-msgid "Consider deletions during manual synchronization"
-msgstr "Contactsynchronisatie"
-
 msgid "Contact"
 msgstr "Contact"
 
@@ -4193,6 +4190,13 @@ msgstr "Notities"
 msgid "Notes and special instructions"
 msgstr "Notities en bijzondere instructies"
 
+msgid ""
+"Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
+"synchronization or start manually."
+msgstr ""
+"Notities en taken synchroniseren met dit gekoppelde apparaat. Kies "
+"automatische Wi-Fi-synchronisatie of start handmatig."
+
 msgid "Nothing can be encrypted without a password."
 msgstr "Zonder wachtwoord kan niets worden versleuteld."
 
@@ -5837,6 +5841,9 @@ msgstr "Deze melding dempen"
 
 msgid "Skip assistant"
 msgstr "Assistent overslaan"
+
+msgid "Skip deletions"
+msgstr "Verwijderingen overslaan"
 
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
@@ -8644,6 +8651,9 @@ msgstr[1] "… en %(count)s extra items die ook worden afgedrukt."
 
 msgid "＋ Add appointment"
 msgstr "＋ Afspraak toevoegen"
+
+#~ msgid "Consider deletions during manual synchronization"
+#~ msgstr "Contactsynchronisatie"
 
 #~ msgid ""
 #~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."

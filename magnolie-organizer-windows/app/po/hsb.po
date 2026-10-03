@@ -1500,9 +1500,6 @@ msgstr ""
 msgid "Connection ready"
 msgstr "Zwisk je přihotowany"
 
-msgid "Consider deletions during manual synchronization"
-msgstr "Hašenja při manuelnej synchronizaciji wobkedźbować"
-
 msgid "Contact"
 msgstr "Kontakt"
 
@@ -3510,6 +3507,13 @@ msgstr "Notice"
 msgid "Notes and special instructions"
 msgstr "Přispomnjenki a wosebite instrukcije"
 
+msgid ""
+"Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
+"synchronization or start manually."
+msgstr ""
+"Noticy a nadawki so z tutym koplowanym gratom synchronizuja. Wubjerće "
+"awtomatisku WLAN-synchronizaciju abo startujće manuelnje."
+
 msgid "Nothing found."
 msgstr "Ničo namakane."
 
@@ -4901,6 +4905,9 @@ msgstr "Tutu zdźělenku zněmić"
 
 msgid "Skip assistant"
 msgstr "Asistent přeskočić"
+
+msgid "Skip deletions"
+msgstr "Zhašenja wuwostajić"
 
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
@@ -7099,6 +7106,9 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
+
+#~ msgid "Consider deletions during manual synchronization"
+#~ msgstr "Hašenja při manuelnej synchronizaciji wobkedźbować"
 
 #~ msgid ""
 #~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."

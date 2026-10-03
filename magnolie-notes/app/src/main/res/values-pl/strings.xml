@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_status_keine_verbindung">Brak nawiązanego połączenia</string>
+    <string name="personal_sync_simple">Notatki i zadania synchronizują się z tym sparowanym urządzeniem. Wybierz automatyczną synchronizację Wi-Fi lub uruchamiaj ją ręcznie.</string>
+    <string name="personal_sync_skip_deletions">Pomijaj usuwanie</string>
     <string name="personal_note_direction_update">Zaktualizuj oba urządzenia, aby wybrać kierunek przesyłania notatek.</string>
     <string name="personal_note_direction">Kierunek synchronizacji notatek</string>
     <string name="personal_note_two_way">Synchronizacja dwukierunkowa</string>

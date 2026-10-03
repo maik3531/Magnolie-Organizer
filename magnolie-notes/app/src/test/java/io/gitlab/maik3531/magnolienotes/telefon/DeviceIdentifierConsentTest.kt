@@ -64,8 +64,22 @@ class DeviceIdentifierConsentTest {
         work.completeIdentifierPermission(token, true)
         assertFalse(storage.peers().peer!!.identifier_sharing_enabled)
         val revoked = work.beginIdentifierPermission()!!
-        work.setIdentifierSharingEnabled(false)
+        work.setPersonalSync(false, false, false, false, false)
         work.completeIdentifierPermission(revoked, true)
+        assertFalse(storage.peers().peer!!.identifier_sharing_enabled)
+    }
+
+    @Test fun ownDeviceUsesExistingAndroidPermissionWithoutAnotherApplicationSwitch() {
+        Shadows.shadowOf(context as Application).grantPermissions(Manifest.permission.READ_PHONE_NUMBERS)
+        work.refreshModules()
+        assertTrue(storage.peers().peer!!.identifier_sharing_enabled)
+        val peer = storage.peers().peer!!
+        storage.savePeer(peer.copy(own_device = false))
+        work.refreshModules()
+        assertFalse(storage.peers().peer!!.identifier_sharing_enabled)
+        storage.savePeer(peer.copy(own_device = true))
+        Shadows.shadowOf(context as Application).denyPermissions(Manifest.permission.READ_PHONE_NUMBERS)
+        work.refreshModules()
         assertFalse(storage.peers().peer!!.identifier_sharing_enabled)
     }
 

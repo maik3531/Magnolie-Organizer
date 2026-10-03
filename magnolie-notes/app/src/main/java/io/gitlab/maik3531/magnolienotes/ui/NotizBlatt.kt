@@ -392,9 +392,9 @@ fun NotizEditor(
 
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Lederknopf(stringResource(R.string.sichern), aktiv = !speichert) { sichern() }
-                    Papierknopf(
+                    if (partnernamen.isNotEmpty()) Papierknopf(
                         stringResource(R.string.notiz_teilen),
-                        aktiv = partnernamen.isNotEmpty() && !speichert
+                        aktiv = !speichert
                     ) { fragtTeilen = true }
                     Papierknopf(stringResource(R.string.loeschen), aktiv = !speichert) { fragtLoeschen = true }
                 }

@@ -73,6 +73,8 @@ internal static class BridgeDispatcherContract
         ["telefon_anruf_lautstaerke_wiederherstellen"] = S(T("callRef")),
         ["personal_sync_einstellungen"] = S(T("kennung"), B("eigen"), B("autoWlan")),
         ["personal_sync_notizrichtung"] = S(T("kennung"), T("modus")),
+        ["personal_sync_betrieb"] = S(T("kennung"), B("autoWlan"), B("loeschungenAuslassen")),
+        ["personal_sync_desktop_features"] = S(B("customTab"), B("baumAktiv")),
         ["personal_sync_senden"] = S(T("kennung"), T("art"), J("inhalt")),
         ["personal_sync_lauf_senden"] = S(T("kennung"), J("request"), A("batches"), A("sources"), O("report", JsonValueKind.Object), O("commit", JsonValueKind.Object)),
         ["personal_sync_attachment_index"] = S(T("kennung"), T("runId"), B("reply"), T("recordsHash"), A("sources")),

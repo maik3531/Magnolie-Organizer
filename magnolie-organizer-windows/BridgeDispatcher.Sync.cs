@@ -726,6 +726,7 @@ internal sealed partial class BridgeDispatcher
             ["binding_conflict"] = backend["binding_conflict"]?.DeepClone(),
             ["error"] = TelefonError(backend["fehler"]?.GetValue<string>() ?? ""),
             ["peers"] = peers,
+            ["desktop_features"] = telefon.DesktopFeatures(),
             ["capabilities"] = backend["capabilities"]?.DeepClone(),
             ["call_audio"] = WindowsBluetoothRadio.CallRoutingCapability(),
             ["bluetooth"] = new JsonObject { ["available"] = TelefonBluetoothSupport.Available,

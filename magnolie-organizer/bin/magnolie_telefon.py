@@ -82,7 +82,7 @@ def desktop_capabilities(revision=1, bluetooth_available=False,
                        "reason": "available" if available else (
                            bluetooth_reason if name == "transport.bluetooth_rfcomm"
                            else "not_implemented"),
-                         "versions": [1, 2, 3, 4] if name == "personal_tasks_sync" else
+                         "versions": [1, 2, 3, 4, 6] if name == "personal_tasks_sync" else
                                       [1, 2, 3, 4] if name == "device_status" else
                                        [1, 2, 3, 5] if name == "personal_notes_sync" else
                                      [2] if name == "incoming_call_state" else [1]}
@@ -497,6 +497,27 @@ class PhoneStore:
             raise RuntimeError("Das Telefon ist nicht gekoppelt.")
         return json.loads(json.dumps(peer.get("note_sync", {})))
 
+    def desktop_features(self):
+        with sqlite3.connect(self.database_path) as db:
+            row = db.execute("SELECT value FROM meta WHERE key='desktop_features:local'").fetchone()
+        if not row:
+            return {}
+        value = strict_json(self._decrypt(row[0], "desktop_features", "local"))
+        return personal_sync_contract.validate_desktop_features(value)
+
+    def set_desktop_features(self, custom_tab, tree):
+        if type(custom_tab) is not bool or type(tree) is not bool:
+            raise ValueError("invalid desktop features")
+        previous = self.desktop_features()
+        if previous and previous["custom_tab"] == custom_tab and previous["tree"] == tree:
+            return previous
+        value = personal_sync_contract.validate_desktop_features({"format": 6,
+            "revision": self.next_revision("desktop_features"), "custom_tab": custom_tab, "tree": tree})
+        with sqlite3.connect(self.database_path) as db:
+            db.execute("INSERT OR REPLACE INTO meta VALUES('desktop_features:local',?)",
+                (self._encrypt(canonical(value), "desktop_features", "local"),))
+        return value
+
     def set_note_settings(self, peer_id, policy, remote=False):
         """Persist peer-bound consent before a settings ACK; caller holds service lock."""
         peer = self.sole_peer(peer_id)
@@ -700,10 +721,10 @@ class PhoneStore:
             raise ValueError("invalid message lifetime")
         if transport_policy not in {"any", "wifi_only"}:
             raise ValueError("invalid transport policy")
-        if kind == personal_sync_contract.NOTE_MODE_KIND:
-            personal_sync_contract.validate_note_settings(body)
+        if kind in {personal_sync_contract.NOTE_MODE_KIND, personal_sync_contract.DESKTOP_FEATURES_KIND}:
+            validate_personal_sync_body(kind, body)
             if ttl_ms > DAY_MS:
-                raise ValueError("invalid note settings lifetime")
+                raise ValueError("invalid personal control lifetime")
         if kind == "personal_sync.deletion_proposals":
             self.remember_personal_proposal_kinds(peer_id, body, True)
         message = {"type": "message", "v": 1, "message_id": str(uuid.uuid4()),
@@ -711,7 +732,7 @@ class PhoneStore:
                    "body": body}
         encrypted = self._encrypt(canonical(message), "outbox", message["message_id"])
         with sqlite3.connect(self.database_path) as db:
-            if kind == personal_sync_contract.NOTE_MODE_KIND:
+            if kind in {personal_sync_contract.NOTE_MODE_KIND, personal_sync_contract.DESKTOP_FEATURES_KIND}:
                 db.execute("DELETE FROM outbox WHERE peer_id=? AND kind=?", (peer_id, kind))
             size = db.execute("SELECT COALESCE(SUM(length(payload)),0) FROM outbox").fetchone()[0]
             if size + len(encrypted) > 50 * 1024 * 1024:
@@ -783,7 +804,7 @@ class PhoneStore:
             rows = db.execute("SELECT message_id,payload FROM outbox WHERE peer_id=? AND "
                               "expires_ms>? AND next_attempt_ms<=? AND (transport_policy='any' OR ?='wifi') "
                               "ORDER BY CASE WHEN kind IN ('capabilities.update','grants.update','personal_sync.settings',"
-                              "'personal_sync.note_settings','personal_sync.custom_settings') THEN 0 ELSE 1 END,created_ms LIMIT 32", (peer_id, now, now, transport)).fetchall()
+                              "'personal_sync.note_settings','personal_sync.desktop_features','personal_sync.custom_settings') THEN 0 ELSE 1 END,created_ms LIMIT 32", (peer_id, now, now, transport)).fetchall()
         return [strict_json(self._decrypt(payload, "outbox", message_id))
                 for message_id, payload in rows]
 
@@ -2121,6 +2142,7 @@ class PhoneService:
                                self.store.active_auto_run(peer_id)),
                            "personal_sync_report": personal["last_report"]})
         return {"possible": True, "enabled": self.enabled,
+                "desktop_features": self.store.desktop_features(),
                 "listening": bool(self.server), "port": PORT,
                 "device_id": self.store.identity["device_id"],
                 "display_name": self.store.identity["display_name"],
@@ -2642,6 +2664,38 @@ class PhoneService:
                 and peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {}).get("available") is True
                 and 4 in peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {}).get("versions", []))
 
+    def _desktop_features_supported(self, peer):
+        remote = peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {})
+        return (6 in desktop_capabilities()["items"]["personal_tasks_sync"]["versions"] and
+                remote.get("available") is True and 6 in remote.get("versions", []))
+
+    def _queue_desktop_features(self, peer_id, channel=None):
+        peer = self.store.sole_peer(peer_id)
+        channel = channel or self.connections.get(peer_id)
+        if (not peer or not channel or not self._desktop_features_supported(peer) or
+                self._note_controls_for(channel).get("capabilities.update") != peer.get("capabilities")):
+            return
+        personal = peer.get("personal_sync", {})
+        if not personal.get("own_device") or not personal.get("remote_own_device"):
+            return
+        body = self.store.desktop_features()
+        if body:
+            message = self.store.queue(peer_id, personal_sync_contract.DESKTOP_FEATURES_KIND, body, DAY_MS)
+            self._send_message(channel, peer_id, message)
+
+    def set_desktop_features(self, custom_tab, tree):
+        with self.lock:
+            previous = self.store.desktop_features()
+            current = self.store.set_desktop_features(custom_tab, tree)
+            if previous == current:
+                return
+            for peer in self.store.peers:
+                if not custom_tab:
+                    self.store.remove_kind(peer["device_id"], "personal_sync.custom_batch")
+                    self.store.remove_kind(peer["device_id"], "personal_sync.custom_request")
+                self._queue_desktop_features(peer["device_id"])
+        self.callback("status", self.report())
+
     def _note_supported(self, peer):
         remote = peer.get("capabilities", {}).get("items", {}).get("personal_notes_sync", {})
         return (5 in desktop_capabilities()["items"]["personal_notes_sync"]["versions"] and
@@ -2773,6 +2827,8 @@ class PhoneService:
         custom = peer.get("custom_sync", {})
         if kind == "personal_sync.custom_settings":
             return not outgoing or body == custom.get("local")
+        if self.store.desktop_features().get("custom_tab") is False:
+            return False
         personal = peer.get("personal_sync", {})
         return custom_scope_allowed(custom.get("remote" if outgoing else "local"),
             custom.get("local" if outgoing else "remote"), [4], [4],
@@ -2841,6 +2897,40 @@ class PhoneService:
         with self.lock:
             return self._set_personal_sync(peer_id, own_device, auto_wifi)
 
+    def set_personal_sync_mode(self, peer_id, auto_wifi, skip_deletions):
+        if type(auto_wifi) is not bool or type(skip_deletions) is not bool:
+            raise ValueError("invalid synchronization mode")
+        with self.lock:
+            peer = self.store.sole_peer(peer_id)
+            if not peer or peer.get("state") != "paired":
+                raise RuntimeError("Das Telefon ist nicht gekoppelt.")
+            previous = json.loads(json.dumps(peer))
+            grants = json.loads(json.dumps(peer["local_grants"]))
+            grants["revision"] = self.store.next_revision("grants.update")
+            grants["grants"].update(personal_notes_sync=True, personal_tasks_sync=True,
+                                   personal_deletions_sync=not skip_deletions)
+            personal = dict(peer["personal_sync"], own_device=True, auto_wifi=auto_wifi)
+            if not peer["personal_sync"].get("own_device"):
+                grants["grants"]["selected_notifications_readonly"] = True
+                peer.setdefault("call_audio", {"prefer_pc": True})
+            peer["local_grants"], peer["personal_sync"] = grants, personal
+            try:
+                self.store.save_peers()
+            except Exception:
+                peer.clear(); peer.update(previous)
+                raise
+            if skip_deletions:
+                self.store.purge_personal_deletion_wire(peer_id)
+            for kind, body in (("grants.update", grants),
+                               ("personal_sync.settings", {"format": 1, "own_device": True})):
+                self.store.remove_kind(peer_id, kind)
+                message = self.store.queue(peer_id, kind, body, DAY_MS)
+                channel = self.connections.get(peer_id)
+                if channel:
+                    self._send_message(channel, peer_id, message)
+            self._queue_desktop_features(peer_id)
+        self.callback("status", self.report())
+
     def _set_personal_sync(self, peer_id, own_device, auto_wifi=False):
         peer = self.store.peer(peer_id)
         if not peer or peer.get("state") != "paired":
@@ -2864,6 +2954,7 @@ class PhoneService:
         self.store.remove_kind(peer_id, "personal_sync.settings")
         self.store.queue(peer_id, "personal_sync.settings",
                          {"format": 1, "own_device": bool(own_device)}, DAY_MS)
+        self._queue_desktop_features(peer_id)
         self.callback("status", self.report())
 
     def send_personal_sync(self, peer_id, kind, body, trigger="manual"):
@@ -3188,6 +3279,18 @@ class PhoneService:
         policy = self.store.outbox_policy(peer_id, message.get("message_id", ""))
         if policy == "invalid" or policy == "wifi_only" and self.connection_transports.get(peer_id) != "wifi":
             return False
+        if message.get("kind") == personal_sync_contract.DESKTOP_FEATURES_KIND:
+            peer = self.store.sole_peer(peer_id)
+            if not peer or self._note_controls_for(channel).get("capabilities.update") != peer.get("capabilities"):
+                return False
+            if not self._desktop_features_supported(peer) or message["body"] != self.store.desktop_features():
+                self.store.acknowledge(peer_id, message["message_id"])
+                return False
+            personal = peer.get("personal_sync", {})
+            if not personal.get("own_device") or not personal.get("remote_own_device"):
+                return False
+            channel.send(message); self.store.mark_attempt(peer_id, message["message_id"])
+            return True
         if message.get("kind") == personal_sync_contract.NOTE_MODE_KIND:
             peer = self.store.sole_peer(peer_id)
             if peer and self._note_controls_for(channel).get("capabilities.update") != peer.get("capabilities"):
@@ -4055,6 +4158,8 @@ class PhoneService:
                 self._observe_note_control(peer, channel, kind, payload["body"])
                 if kind == "capabilities.update":
                     self._queue_note_settings(peer["device_id"], channel)
+                if kind in {"capabilities.update", "personal_sync.settings"}:
+                    self._queue_desktop_features(peer["device_id"], channel)
             if kind.startswith("personal_sync.") and kind != "personal_sync.settings":
                 try:
                     value = validate_personal_sync_body(kind, payload["body"])
@@ -4494,6 +4599,8 @@ class PhoneService:
             self._observe_note_control(peer, channel, kind, payload["body"])
             if kind == "capabilities.update":
                 self._queue_note_settings(peer["device_id"], channel)
+            if kind in {"capabilities.update", "personal_sync.settings"}:
+                self._queue_desktop_features(peer["device_id"], channel)
         channel.send({"type": "ack", "message_id": payload["message_id"],
                       "status": status, "error": error})
 

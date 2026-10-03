@@ -1747,9 +1747,6 @@ msgstr "जुड़ने के लिए सेवा नहीं मिल 
 msgid "Connection ready"
 msgstr "कनेक्शन तैयार है"
 
-msgid "Consider deletions during manual synchronization"
-msgstr "संपर्क सिंक्रनाइज़ेशन"
-
 msgid "Contact"
 msgstr "संपर्क"
 
@@ -4087,6 +4084,13 @@ msgstr "नोट्स"
 msgid "Notes and special instructions"
 msgstr "टिप्पणियाँ और विशेष निर्देश"
 
+msgid ""
+"Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
+"synchronization or start manually."
+msgstr ""
+"नोट और कार्य इस जोड़े गए डिवाइस से सिंक्रनाइज़ होते हैं। स्वचालित Wi-Fi सिंक्रनाइज़ेशन चुनें "
+"या मैन्युअल रूप से शुरू करें।"
+
 msgid "Nothing can be encrypted without a password."
 msgstr "पासवर्ड के बिना कुछ भी एन्क्रिप्ट नहीं किया जा सकता।"
 
@@ -5674,6 +5678,9 @@ msgstr "यह सूचना शांत करें"
 
 msgid "Skip assistant"
 msgstr "सहायक छोड़ें"
+
+msgid "Skip deletions"
+msgstr "हटाना छोड़ें"
 
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
@@ -8368,6 +8375,9 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
+
+#~ msgid "Consider deletions during manual synchronization"
+#~ msgstr "संपर्क सिंक्रनाइज़ेशन"
 
 #~ msgid ""
 #~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."

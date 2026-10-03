@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_status_keine_verbindung">Няма ўсталяванага злучэння</string>
+    <string name="personal_sync_simple">Нататкі і задачы сінхранізуюцца з гэтай спалучанай прыладай. Выберыце аўтаматычную сінхранізацыю Wi-Fi або запускайце ўручную.</string>
+    <string name="personal_sync_skip_deletions">Прапускаць выдаленні</string>
     <string name="personal_note_direction_update">Абнавіце абедзве прылады, каб выбраць напрамак перадачы нататак.</string>
     <string name="personal_note_direction">Напрамак сінхранізацыі нататак</string>
     <string name="personal_note_two_way">Двухбаковая сінхранізацыя</string>

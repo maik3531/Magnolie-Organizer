@@ -228,6 +228,9 @@ internal fun sanitizeLegacyPeer(value: JsonObject): Pair<JsonObject, Boolean> {
         if (policy != null && policy != kotlinx.serialization.json.JsonNull)
             PersonalNoteMode.validate(policy as? JsonObject ?: throw TelefonProtokollFehler("Ungültige Notizrichtung."))
     }
+    peer["remote_desktop_features"]?.takeUnless { it == kotlinx.serialization.json.JsonNull }?.let {
+        PersonalDesktopFeatures.validate(it as? JsonObject ?: throw TelefonProtokollFehler("Ungültige Desktop-Funktionen."))
+    }
     val sanitized = peer.filterKeys { it !in legacy }.toMutableMap()
     var migrated = peer.keys.any { it in legacy }
     for (name in setOf("remote_incoming_call_number_granted", "remote_end_call_granted",

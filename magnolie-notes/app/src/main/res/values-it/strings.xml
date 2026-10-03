@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_status_keine_verbindung">Nessuna connessione attiva</string>
+    <string name="personal_sync_simple">Note e attività si sincronizzano con questo dispositivo associato. Scegli la sincronizzazione Wi-Fi automatica o avviala manualmente.</string>
+    <string name="personal_sync_skip_deletions">Ignora le eliminazioni</string>
     <string name="personal_note_direction_update">Aggiorna entrambi i dispositivi per scegliere la direzione delle note.</string>
     <string name="personal_note_direction">Direzione di sincronizzazione delle note</string>
     <string name="personal_note_two_way">Sincronizzazione bidirezionale</string>

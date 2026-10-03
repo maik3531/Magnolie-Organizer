@@ -49,6 +49,26 @@ def projection_hash(value):
 
 NOTE_MODE_VERSION = 5
 NOTE_MODE_KIND = "personal_sync.note_settings"
+DESKTOP_FEATURES_VERSION = 6
+DESKTOP_FEATURES_KIND = "personal_sync.desktop_features"
+
+
+def validate_desktop_features(body):
+    if (not isinstance(body, dict) or set(body) != {"format", "revision", "custom_tab", "tree"}
+            or type(body.get("format")) is not int or body["format"] != DESKTOP_FEATURES_VERSION
+            or type(body.get("revision")) is not int or not 1 <= body["revision"] <= MAX_SAFE_INTEGER
+            or type(body.get("custom_tab")) is not bool or type(body.get("tree")) is not bool):
+        raise ValueError("invalid desktop features")
+    return body
+
+
+def accept_desktop_features(current, incoming):
+    validate_desktop_features(incoming)
+    if current is not None:
+        validate_desktop_features(current)
+        if incoming["revision"] < current["revision"] or incoming["revision"] == current["revision"] and incoming != current:
+            raise ValueError("stale desktop features")
+    return dict(incoming)
 
 
 def validate_note_settings(body):
@@ -549,6 +569,8 @@ def validate_record(record, format=1):
 
 
 def validate_body(kind, body):
+    if kind == DESKTOP_FEATURES_KIND:
+        return validate_desktop_features(body)
     if not isinstance(body, dict):
         raise ValueError("invalid personal sync body")
     if kind == NOTE_MODE_KIND:

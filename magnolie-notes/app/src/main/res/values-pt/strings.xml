@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_status_keine_verbindung">Nenhuma ligação estabelecida</string>
+    <string name="personal_sync_simple">Notas e tarefas são sincronizadas com este dispositivo emparelhado. Escolha a sincronização Wi-Fi automática ou inicie manualmente.</string>
+    <string name="personal_sync_skip_deletions">Ignorar eliminações</string>
     <string name="personal_note_direction_update">Atualize ambos os dispositivos para escolher a direção das notas.</string>
     <string name="personal_note_direction">Direção de sincronização das notas</string>
     <string name="personal_note_two_way">Sincronização bidirecional</string>

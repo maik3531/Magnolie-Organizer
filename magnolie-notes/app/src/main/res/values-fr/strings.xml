@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_status_keine_verbindung">Aucune connexion établie</string>
+    <string name="personal_sync_simple">Les notes et tâches sont synchronisées avec cet appareil associé. Choisissez la synchronisation Wi-Fi automatique ou lancez-la manuellement.</string>
+    <string name="personal_sync_skip_deletions">Ignorer les suppressions</string>
     <string name="personal_note_direction_update">Mettez les deux appareils à jour pour choisir le sens de transfert des notes.</string>
     <string name="personal_note_direction">Sens de synchronisation des notes</string>
     <string name="personal_note_two_way">Synchronisation bidirectionnelle</string>

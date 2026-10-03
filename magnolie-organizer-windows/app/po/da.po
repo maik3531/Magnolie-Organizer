@@ -1438,9 +1438,6 @@ msgstr ""
 msgid "Connection ready"
 msgstr "Forbindelsen er klar"
 
-msgid "Consider deletions during manual synchronization"
-msgstr "Kontaktsynkronisering"
-
 msgid "Contact"
 msgstr "Kontakt"
 
@@ -3434,6 +3431,13 @@ msgstr "Noter"
 msgid "Notes and special instructions"
 msgstr "Bemærkninger og særlige anvisninger"
 
+msgid ""
+"Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
+"synchronization or start manually."
+msgstr ""
+"Noter og opgaver synkroniseres med denne parrede enhed. Vælg automatisk Wi-"
+"Fi-synkronisering eller start manuelt."
+
 msgid "Nothing found."
 msgstr "Intet fundet."
 
@@ -4806,6 +4810,9 @@ msgstr "Dæmp denne besked"
 
 msgid "Skip assistant"
 msgstr "Spring assistenten over"
+
+msgid "Skip deletions"
+msgstr "Spring sletninger over"
 
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
@@ -6991,6 +6998,9 @@ msgstr[1] "… og %(count)s elementer mere, som også bliver udskrevet."
 
 msgid "＋ Add appointment"
 msgstr "＋ Tilføj aftale"
+
+#~ msgid "Consider deletions during manual synchronization"
+#~ msgstr "Kontaktsynkronisering"
 
 #~ msgid ""
 #~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."

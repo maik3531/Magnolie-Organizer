@@ -187,6 +187,21 @@ internal sealed class TelefonStore
         }
     }
 
+    internal void SetPersonalSyncMode(string peerId, bool autoWifi, bool skipDeletions)
+    {
+        lock (gate)
+        {
+            if (!LoadPeers().Any(peer => peer.Id == peerId && peer.State == "paired")) throw new InvalidOperationException("Unknown personal-sync peer.");
+            var settings = LoadSettings(); var all = settings["personal_sync"] as JsonObject ?? new JsonObject(); settings["personal_sync"] = all;
+            var value = all[peerId] as JsonObject ?? new JsonObject { ["remote_own_device"] = false }; all[peerId] = value;
+            if (value["own_device"]?.GetValue<bool>() != true) settings["selected_notifications_readonly"] = true;
+            value["own_device"] = true; value["auto_wifi"] = autoWifi;
+            settings["personal_notes_sync"] = true; settings["personal_tasks_sync"] = true;
+            settings["personal_deletions_sync"] = !skipDeletions;
+            SaveSettings(settings);
+        }
+    }
+
     internal JsonObject NoteSettings(string peerId)
     {
         lock (gate)
@@ -198,6 +213,53 @@ internal sealed class TelefonStore
             foreach (var name in new[] { "local", "remote" }) if (settings[name] is JsonObject policy) PersonalSyncContract.ValidateNoteSettings(policy);
             return settings;
         }
+    }
+
+    internal JsonObject DesktopFeatures()
+    {
+        lock (gate)
+        {
+            const string key = "desktop_features:local";
+            using var connection = OpenDatabase(); connection.Open(); using var command = connection.CreateCommand();
+            command.CommandText = "SELECT value FROM meta WHERE key=$key"; command.Parameters.AddWithValue("$key", key);
+            if (command.ExecuteScalar() is not byte[] encrypted) return new JsonObject();
+            var value = JsonNode.Parse(Open("desktop_features", key, encrypted))!.AsObject();
+            PersonalSyncContract.ValidateDesktopFeatures(value); return value;
+        }
+    }
+
+    internal bool SetDesktopFeatures(bool customTab, bool tree)
+    {
+        lock (gate)
+        {
+            var previous = DesktopFeatures();
+            if (previous["custom_tab"]?.GetValue<bool>() == customTab && previous["tree"]?.GetValue<bool>() == tree) return false;
+            var value = new JsonObject { ["format"] = PersonalSyncContract.DesktopFeaturesVersion,
+                ["revision"] = NextOwnRevision("features"), ["custom_tab"] = customTab, ["tree"] = tree };
+            PersonalSyncContract.ValidateDesktopFeatures(value);
+            const string key = "desktop_features:local";
+            using var connection = OpenDatabase(); connection.Open(); using var command = connection.CreateCommand();
+            command.CommandText = "INSERT OR REPLACE INTO meta(key,value) VALUES($key,$value)";
+            command.Parameters.AddWithValue("$key", key); command.Parameters.AddWithValue("$value", Seal("desktop_features", key, TelefonCrypto.Canonical(value)));
+            command.ExecuteNonQuery();
+            if (!customTab)
+            {
+                using var pause = connection.CreateCommand();
+                pause.CommandText = "DELETE FROM outbox WHERE kind IN ('personal_sync.custom_batch','personal_sync.custom_request')";
+                pause.ExecuteNonQuery();
+            }
+            return true;
+        }
+    }
+
+    internal bool DesktopFeaturesSupported(string peerId)
+    {
+        var peer = LoadPeers().SingleOrDefault(value => value.Id == peerId && value.State == "paired");
+        return peer?.Capabilities["personal_tasks_sync"]?["available"]?.GetValue<bool>() == true &&
+            TelefonProtocolContract.DesktopCapabilities()["items"]?["personal_tasks_sync"]?["versions"] is JsonArray local &&
+            local.Any(value => TelefonProtocolContract.Integer(value) == PersonalSyncContract.DesktopFeaturesVersion) &&
+            peer.Capabilities["personal_tasks_sync"]?["versions"] is JsonArray remote &&
+            remote.Any(value => TelefonProtocolContract.Integer(value) == PersonalSyncContract.DesktopFeaturesVersion);
     }
 
     internal void SetNoteSettings(string peerId, JsonObject body, bool remote)
@@ -350,6 +412,7 @@ internal sealed class TelefonStore
             if (RestoreFenced || !CustomSupported(peerId)) return false;
             var settings = CustomSettings(peerId);
             if (kind == "personal_sync.custom_settings") return !outgoing || JsonNode.DeepEquals(body, settings["local"]);
+            if (DesktopFeatures()["custom_tab"]?.GetValue<bool>() == false) return false;
             var personal = PersonalSettings(peerId);
             return PersonalSyncContract.CustomScopeAllowed(settings[outgoing ? "remote" : "local"] as JsonObject,
                 settings[outgoing ? "local" : "remote"] as JsonObject, [4], [4], personal.OwnDevice, personal.RemoteOwnDevice,
@@ -644,7 +707,7 @@ internal sealed class TelefonStore
         {
             if (RestoreFenced) throw new InvalidOperationException("restore_unavailable");
             using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
-            if (kind is "personal_sync.custom_settings" or "personal_sync.settings" or PersonalSyncContract.NoteModeKind)
+            if (kind is "personal_sync.custom_settings" or "personal_sync.settings" or PersonalSyncContract.NoteModeKind or PersonalSyncContract.DesktopFeaturesKind)
             {
                 using var replace = connection.CreateCommand(); replace.Transaction = transaction;
                 replace.CommandText = "DELETE FROM outbox WHERE peer_id=$peer AND kind=$kind";
@@ -670,7 +733,7 @@ internal sealed class TelefonStore
             if (RestoreFenced) return [];
             using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction(); using var command = connection.CreateCommand();
             if (transport is not ("wifi" or "bluetooth")) throw new ArgumentOutOfRangeException(nameof(transport));
-            command.Transaction = transaction; command.CommandText = "SELECT message_id,kind,payload,attempts,transport_policy FROM outbox WHERE peer_id=$peer AND expires_ms>=$now AND next_attempt_ms<=$now AND (transport_policy='any' OR $transport='wifi') ORDER BY CASE kind WHEN 'capabilities.update' THEN 0 WHEN 'grants.update' THEN 1 WHEN 'personal_sync.settings' THEN 2 WHEN 'personal_sync.note_settings' THEN 3 WHEN 'personal_sync.custom_settings' THEN 4 ELSE 5 END,created_ms";
+            command.Transaction = transaction; command.CommandText = "SELECT message_id,kind,payload,attempts,transport_policy FROM outbox WHERE peer_id=$peer AND expires_ms>=$now AND next_attempt_ms<=$now AND (transport_policy='any' OR $transport='wifi') ORDER BY CASE kind WHEN 'capabilities.update' THEN 0 WHEN 'grants.update' THEN 1 WHEN 'personal_sync.settings' THEN 2 WHEN 'personal_sync.note_settings' THEN 3 WHEN 'personal_sync.desktop_features' THEN 4 WHEN 'personal_sync.custom_settings' THEN 5 ELSE 6 END,created_ms";
             command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$now", now); command.Parameters.AddWithValue("$transport", transport);
             var queued = new List<(string Id, string Kind, byte[] Payload, int Attempts, string Policy)>();
             using (var reader = command.ExecuteReader()) while (reader.Read()) queued.Add((reader.GetString(0), reader.GetString(1), (byte[])reader[2], reader.GetInt32(3), reader.GetString(4)));
@@ -786,7 +849,7 @@ internal sealed class TelefonStore
 
     internal long NextOwnRevision(string name)
     {
-        if (name is not ("capabilities" or "grants")) throw new ArgumentOutOfRangeException(nameof(name));
+        if (name is not ("capabilities" or "grants" or "features")) throw new ArgumentOutOfRangeException(nameof(name));
         lock (gate)
         {
             using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();

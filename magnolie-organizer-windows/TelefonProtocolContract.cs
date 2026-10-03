@@ -47,7 +47,7 @@ internal static class TelefonProtocolContract
         ["dial_request"] = Capability(true, "available", 1, 2), ["end_call"] = Capability(true, "available", 1),
         ["incoming_call_number"] = Capability(true, "available", 1), ["incoming_call_state"] = Capability(true, "available", 2),
         ["personal_deletions_sync"] = Capability(true, "available", 1), ["personal_notes_sync"] = Capability(true, "available", 1, 2, 3, 5),
-        ["personal_tasks_sync"] = Capability(true, "available", 1, 2, 3, 4), ["selected_notifications_readonly"] = Capability(false, "not_implemented", 1),
+        ["personal_tasks_sync"] = Capability(true, "available", 1, 2, 3, 4, 6), ["selected_notifications_readonly"] = Capability(false, "not_implemented", 1),
         ["transport.bluetooth_rfcomm"] = Capability(TelefonBluetoothSupport.Available, TelefonBluetoothSupport.Reason, 1)
     }};
 
@@ -102,7 +102,7 @@ internal static class TelefonMessageContract
 {
     private static readonly HashSet<string> Kinds = new(StringComparer.Ordinal) { "capabilities.update", "grants.update", "device_status.request", "device_status.report",
         "dial_request.command", "dial_request.result", "selected_notifications_readonly.event", "incoming_call_state.event", "answer_call.command", "answer_call.result", "end_call.command", "end_call.result",
-        "personal_sync.custom_settings", "personal_sync.custom_request", "personal_sync.custom_batch", PersonalSyncContract.NoteModeKind };
+        "personal_sync.custom_settings", "personal_sync.custom_request", "personal_sync.custom_batch", PersonalSyncContract.NoteModeKind, PersonalSyncContract.DesktopFeaturesKind };
     internal static void ValidateMessage(JsonObject message, long now, bool receiving)
     {
         var id = "00000000-0000-0000-0000-000000000000";
@@ -123,6 +123,7 @@ internal static class TelefonMessageContract
             else if (kind == "selected_notifications_readonly.event") { Maximum(ttl, 86_400_000); TelefonMessagingContract.Validate(kind, body); }
             else if (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal)) { Maximum(ttl, 86_400_000); PersonalSyncContract.ValidateCustomBody(kind, body); }
             else if (kind == PersonalSyncContract.NoteModeKind) { Maximum(ttl, 86_400_000); PersonalSyncContract.ValidateNoteSettings(body); }
+            else if (kind == PersonalSyncContract.DesktopFeaturesKind) { Maximum(ttl, 86_400_000); PersonalSyncContract.ValidateDesktopFeatures(body); }
             else if (TelefonProtocolContract.PersonalKinds.Contains(kind)) { Maximum(ttl, kind == "personal_sync.request" ? 3_600_000 : 86_400_000); PersonalSyncContract.ValidateBody(kind, body); }
             else { Maximum(ttl, kind is "answer_call.command" or "end_call.command" ? 10_000 : 60_000); TelefonCallContract.Validate(kind, body); }
             if (TelefonCrypto.Canonical(message).Length > 262_144) throw new TelefonMessageException(id, "too_large");

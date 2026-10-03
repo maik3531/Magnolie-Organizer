@@ -14,7 +14,7 @@ const consent = JSON.parse(fs.readFileSync(path.join(root, 'contracts/personal-c
     const helpers = source.slice(source.indexOf('  function personalSyncKanonisch('), source.indexOf('  function personalSyncAutoEntscheidung('));
     const sender = source.slice(source.indexOf('  let personalCustomKette ='), source.indexOf('  async function personalSyncSenden('));
     const sent = [], errors = []; let saves = 0;
-    const data = { personalSync: { actor_id: consent.source_id }, einstellungen: { regional: { timeZone: 'America/New_York' }, erinnerung: { vorlauf: 15 } },
+    const data = { personalSync: { actor_id: consent.source_id }, einstellungen: { allgemein: { customTab: { enabled: true } }, regional: { timeZone: 'America/New_York' }, erinnerung: { vorlauf: 15 } },
       customOrganizer: { modules: [
         { id: 'module-1', type: 'appointments', title: 'Garden', reminders: true, items: [
           { id: 'custom-item-1', title: 'Water plants', note: 'Own item note only', date: '2028-01-31', time: '09:00',
@@ -31,7 +31,8 @@ const consent = JSON.parse(fs.readFileSync(path.join(root, 'contracts/personal-c
       Bruecke: { sende: x => { assert(saves > 0); sent.push(JSON.parse(JSON.stringify(x))); } },
       nachDauerhaftemSpeichern: action => { saves++; action(); } });
     const zone = source.slice(source.indexOf('  function organizerZeitzone('), source.indexOf('  const ZEITZONEN_FORMATIERER'));
-    ctx.personalCustomSenden = vm.runInContext(helpers + zone + sender + '\npersonalCustomSenden;', ctx);
+    const tab = source.slice(source.indexOf('  function registerAktiv('), source.indexOf('  function customTabName('));
+    ctx.personalCustomSenden = vm.runInContext(helpers + tab + zone + sender + '\npersonalCustomSenden;', ctx);
     const acknowledge = vm.runInContext('personalCustomBestaetigt', ctx);
     const canonical = vm.runInContext('personalSyncKanonisch', ctx);
     assert.equal(canonical(JSON.parse('{"n":-0,"ordinal":-1}')), '{"n":0,"ordinal":-1}');
@@ -43,6 +44,10 @@ const consent = JSON.parse(fs.readFileSync(path.join(root, 'contracts/personal-c
       custom_sync: { local: consent.remote, remote: consent.local } };
     assert.equal(await ctx.personalCustomSenden({ ...peer, custom_sync: {} }, 'manual'), false);
     assert.equal(sent.length, 0);
+    data.einstellungen.allgemein.customTab.enabled = false;
+    assert.equal(await ctx.personalCustomSenden(peer, 'manual'), false);
+    assert.equal(sent.length, 0, 'a hidden Custom tab must not send its data');
+    data.einstellungen.allgemein.customTab.enabled = true;
     assert.equal(await ctx.personalCustomSenden(peer, 'manual'), true);
     const first = sent.at(-1).inhalt;
     assert.equal(first.upserts[0].value.timezone, 'America/New_York');

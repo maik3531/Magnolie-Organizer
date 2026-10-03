@@ -50,7 +50,7 @@ for (const command of [
   "telefon_anruf_anzeigen", "telefon_anruf_lautstaerke_wiederherstellen",
   "telefon_sms_benachrichtigen", "telefon_meldung_anzeigen",
   "kde_pairing_start", "kde_pairing_confirm", "kde_pairing_complete",
-  "kde_reconnect", "kde_sms_senden", "personal_sync_einstellungen",
+  "kde_reconnect", "kde_sms_senden", "personal_sync_betrieb", "personal_sync_notizrichtung", "personal_sync_desktop_features",
   "personal_sync_senden", "personal_sync_lauf_senden",
   "personal_sync_attachment_index", "telefon_personal_sync_commit"
 ]) assert.ok(application.includes(`cmd: "${command}"`),

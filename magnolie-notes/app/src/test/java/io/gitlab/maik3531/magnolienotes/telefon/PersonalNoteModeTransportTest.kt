@@ -134,6 +134,9 @@ class PersonalNoteModeTransportTest {
                     val peer = storage.peers().peer!!
                     assertTrue(session.ready(peer.personal_note_policy, peer.remote_personal_note_policy))
                     assertTrue(PersonalNoteMode.importing(peer.personal_note_policy, peer.remote_personal_note_policy))
+                    assertTrue(peer.remote_desktop_features!!.long("revision") >= 2)
+                    assertFalse(PersonalDesktopFeatures.customAvailable(peer))
+                    assertFalse(PersonalDesktopFeatures.treeVisible(peer, independent = false, pending = false))
                     assertEquals(listOf("phone-note"), documents.notizen().map { it.id })
                     assertEquals("Phone formatting", documents.notizen().single().text)
                     assertEquals(1, documents.notizen().single().anhaenge.size)

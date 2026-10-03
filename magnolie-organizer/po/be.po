@@ -1819,9 +1819,6 @@ msgstr ""
 msgid "Connection ready"
 msgstr "Злучэнне падрыхтаванае"
 
-msgid "Consider deletions during manual synchronization"
-msgstr "Улічваць выдаленні пры сінхранізацыі ўручную"
-
 msgid "Contact"
 msgstr "Кантакт"
 
@@ -4198,6 +4195,13 @@ msgstr "Нататкі"
 msgid "Notes and special instructions"
 msgstr "Нататкі і асаблівыя ўказанні"
 
+msgid ""
+"Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
+"synchronization or start manually."
+msgstr ""
+"Нататкі і задачы сінхранізуюцца з гэтай спалучанай прыладай. Выберыце "
+"аўтаматычную сінхранізацыю Wi-Fi або запускайце ўручную."
+
 msgid "Nothing can be encrypted without a password."
 msgstr "Без пароля нічога нельга зашыфраваць."
 
@@ -5825,6 +5829,9 @@ msgstr "Выключыць гэтае апавяшчэнне"
 
 msgid "Skip assistant"
 msgstr "Прапусціць памочнік"
+
+msgid "Skip deletions"
+msgstr "Прапускаць выдаленні"
 
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
@@ -8585,6 +8592,9 @@ msgstr[2] "… і яшчэ %(count)s элементы, якія таксама �
 
 msgid "＋ Add appointment"
 msgstr "＋ Дадаць сустрэчу"
+
+#~ msgid "Consider deletions during manual synchronization"
+#~ msgstr "Улічваць выдаленні пры сінхранізацыі ўручную"
 
 #~ msgid ""
 #~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."

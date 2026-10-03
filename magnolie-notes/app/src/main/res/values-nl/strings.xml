@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_status_keine_verbindung">Geen bestaande verbinding</string>
+    <string name="personal_sync_simple">Notities en taken synchroniseren met dit gekoppelde apparaat. Kies automatische Wi-Fi-synchronisatie of start handmatig.</string>
+    <string name="personal_sync_skip_deletions">Verwijderingen overslaan</string>
     <string name="personal_note_direction_update">Werk beide apparaten bij om de richting voor notities te kiezen.</string>
     <string name="personal_note_direction">Synchronisatierichting voor notities</string>
     <string name="personal_note_two_way">Synchronisatie in beide richtingen</string>

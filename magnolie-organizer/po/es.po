@@ -1805,9 +1805,6 @@ msgstr ""
 msgid "Connection ready"
 msgstr "Conexión lista"
 
-msgid "Consider deletions during manual synchronization"
-msgstr "Sincronización de contactos"
-
 msgid "Contact"
 msgstr "Contacto"
 
@@ -4215,6 +4212,13 @@ msgstr "Notas"
 msgid "Notes and special instructions"
 msgstr "Notas e instrucciones especiales"
 
+msgid ""
+"Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
+"synchronization or start manually."
+msgstr ""
+"Las notas y tareas se sincronizan con este dispositivo emparejado. Elija la "
+"sincronización Wi-Fi automática o iníciela manualmente."
+
 msgid "Nothing can be encrypted without a password."
 msgstr "No se puede cifrar nada sin una contraseña."
 
@@ -5864,6 +5868,9 @@ msgstr "Silenciar esta alerta"
 
 msgid "Skip assistant"
 msgstr "Omitir el asistente"
+
+msgid "Skip deletions"
+msgstr "Omitir eliminaciones"
 
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
@@ -8687,6 +8694,9 @@ msgstr[1] "… y %(count)s elementos más que también se imprimirán."
 
 msgid "＋ Add appointment"
 msgstr "＋ Añadir cita"
+
+#~ msgid "Consider deletions during manual synchronization"
+#~ msgstr "Sincronización de contactos"
 
 #~ msgid ""
 #~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."

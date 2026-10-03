@@ -1178,16 +1178,16 @@ const statusButton = Array.from(window.document.querySelectorAll("button"))
   .find((button) => button.textContent.includes("Gerätestatus"));
 assert.ok(statusButton, "dynamic device status action is missing");
 statusButton.click();
-assert.ok(window.document.querySelectorAll("#geraet-dialog .telefon-freigaben input").length >= 4,
-  "device grants and personal synchronization settings are missing");
+assert.ok(window.document.querySelector("#geraet-dialog [data-personal-auto-peer]") &&
+  window.document.querySelector("#geraet-dialog [data-personal-skip-deletions-peer]"),
+  "automatic/manual operation or the deletion exception is missing");
 const personalDetails = window.document.querySelector("#geraet-dialog details.telefon-personal-sync");
 assert.ok(personalDetails && !personalDetails.open &&
   personalDetails.querySelector("summary").textContent.includes(
     window.MagnolieI18n.gettext("Personal synchronization")),
 "personal synchronization is not presented as closed details");
-assert.deepStrictEqual(Array.from(personalDetails.querySelectorAll(".personal-sync-wahl button"))
-  .map((button) => button.textContent), ["Alle", "Keine"],
-"personal synchronization does not offer all/none controls");
+assert.strictEqual(personalDetails.querySelectorAll(".personal-sync-wahl button, [data-personal-grant-name]").length, 0,
+  "redundant individual scope/all-none controls remain in personal synchronization");
 window.App.geraetStatus({ kennung: "phone-1", status: { online: true,
   model: "Pixel 9", manufacturer: "Google", app_version: "1.0.7", os_version: "16",
   battery_percent: 73, charging: "charging", network_transport: "wifi" } });

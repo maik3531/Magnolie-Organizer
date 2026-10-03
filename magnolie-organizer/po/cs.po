@@ -1808,9 +1808,6 @@ msgstr ""
 msgid "Connection ready"
 msgstr "Připojení je připravené"
 
-msgid "Consider deletions during manual synchronization"
-msgstr "Synchronizace kontaktů"
-
 msgid "Contact"
 msgstr "Kontakt"
 
@@ -4182,6 +4179,13 @@ msgstr "Poznámky"
 msgid "Notes and special instructions"
 msgstr "Poznámky a zvláštní pokyny"
 
+msgid ""
+"Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
+"synchronization or start manually."
+msgstr ""
+"Poznámky a úkoly se synchronizují s tímto spárovaným zařízením. Zvolte "
+"automatickou synchronizaci Wi-Fi nebo ji spusťte ručně."
+
 msgid "Nothing can be encrypted without a password."
 msgstr "Bez hesla nelze nic zašifrovat."
 
@@ -5800,6 +5804,9 @@ msgstr "Ztišit toto upozornění"
 
 msgid "Skip assistant"
 msgstr "Přeskočit průvodce"
+
+msgid "Skip deletions"
+msgstr "Vynechat mazání"
 
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
@@ -8550,6 +8557,9 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid "Consider deletions during manual synchronization"
+#~ msgstr "Synchronizace kontaktů"
 
 #~ msgid ""
 #~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."

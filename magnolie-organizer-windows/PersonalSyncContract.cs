@@ -20,6 +20,7 @@ internal static class PersonalSyncContract
     {
         switch (kind)
         {
+            case DesktopFeaturesKind: ValidateDesktopFeatures(body); break;
             case NoteModeKind: ValidateNoteSettings(body); break;
             case "personal_sync.settings":
                 Exact(body, "format", "own_device"); Number(body, "format", 1, 1); Bool(body, "own_device"); break;
@@ -39,6 +40,29 @@ internal static class PersonalSyncContract
 
     internal const int NoteModeVersion = 5;
     internal const string NoteModeKind = "personal_sync.note_settings";
+    internal const int DesktopFeaturesVersion = 6;
+    internal const string DesktopFeaturesKind = "personal_sync.desktop_features";
+
+    internal static void ValidateDesktopFeatures(JsonObject body)
+    {
+        Exact(body, "format", "revision", "custom_tab", "tree");
+        Number(body, "format", DesktopFeaturesVersion, DesktopFeaturesVersion);
+        Number(body, "revision", 1, MaximumSafeInteger); Bool(body, "custom_tab"); Bool(body, "tree");
+    }
+
+    internal static JsonObject AcceptDesktopFeatures(JsonObject? current, JsonObject incoming)
+    {
+        ValidateDesktopFeatures(incoming);
+        if (current is not null)
+        {
+            ValidateDesktopFeatures(current);
+            var revision = TelefonProtocolContract.Integer(incoming["revision"]);
+            var previous = TelefonProtocolContract.Integer(current["revision"]);
+            if (revision < previous || revision == previous && !JsonNode.DeepEquals(current, incoming))
+                throw new InvalidDataException("Stale desktop features.");
+        }
+        return incoming.DeepClone().AsObject();
+    }
 
     internal static void ValidateNoteSettings(JsonObject body)
     {

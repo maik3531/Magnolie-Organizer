@@ -1406,9 +1406,6 @@ msgstr ""
 msgid "Connection ready"
 msgstr "接続の準備ができました"
 
-msgid "Consider deletions during manual synchronization"
-msgstr "連絡先の同期"
-
 msgid "Contact"
 msgstr "連絡先"
 
@@ -3401,6 +3398,13 @@ msgstr "メモ"
 msgid "Notes and special instructions"
 msgstr "メモと特記事項"
 
+msgid ""
+"Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
+"synchronization or start manually."
+msgstr ""
+"ノートとタスクをこのペアリング済みデバイスと同期します。自動 Wi-Fi 同期を選ぶ"
+"か、手動で開始してください。"
+
 msgid "Nothing found."
 msgstr "何も見つかりませんでした。"
 
@@ -4747,6 +4751,9 @@ msgstr "この通知を消す"
 
 msgid "Skip assistant"
 msgstr "アシスタントをスキップ"
+
+msgid "Skip deletions"
+msgstr "削除を同期しない"
 
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
@@ -6905,6 +6912,9 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
+
+#~ msgid "Consider deletions during manual synchronization"
+#~ msgstr "連絡先の同期"
 
 #~ msgid ""
 #~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."

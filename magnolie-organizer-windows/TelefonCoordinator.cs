@@ -542,6 +542,19 @@ internal sealed class TelefonCoordinator : IDisposable
     }
 
     internal JsonObject CustomSettings(string id) => store.CustomSettings(id);
+    internal JsonObject DesktopFeatures() => store.DesktopFeatures();
+
+    internal async Task SetDesktopFeaturesAsync(bool customTab, bool tree)
+    {
+        bool changed;
+        await store.NotePolicyGate.WaitAsync();
+        try { changed = store.SetDesktopFeatures(customTab, tree); }
+        finally { store.NotePolicyGate.Release(); }
+        if (!changed) return;
+        TelefonConnection[] connections; lock (gate) connections = online.Values.ToArray();
+        foreach (var connection in connections) await connection.SendDesktopFeaturesAsync();
+        await ReportStatusAsync();
+    }
 
     internal bool NoteDirectionAllowed(string id, string kind, JsonObject body, bool outgoing)
     {
@@ -594,7 +607,33 @@ internal sealed class TelefonCoordinator : IDisposable
     internal async Task SetPersonalSyncAsync(string id, bool ownDevice, bool autoWifi)
     {
         RequireSolePeer(id); if (!ownDevice) personalSync.PurgeProtocol(id); store.SetPersonalSettings(id, ownDevice: ownDevice, autoWifi: ownDevice && autoWifi);
-        TelefonConnection? connection; lock (gate) online.TryGetValue(id, out connection); if (connection is not null) await connection.SendMessageAsync("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = ownDevice }, 86_400_000); await ReportStatusAsync();
+        TelefonConnection? connection; lock (gate) online.TryGetValue(id, out connection);
+        if (connection is not null)
+        {
+            await connection.SendMessageAsync("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = ownDevice }, 86_400_000);
+            await connection.SendDesktopFeaturesAsync();
+        }
+        await ReportStatusAsync();
+    }
+
+    internal async Task SetPersonalSyncModeAsync(string id, bool autoWifi, bool skipDeletions)
+    {
+        RequireSolePeer(id);
+        long revision; TelefonConnection? connection;
+        lock (gate)
+        {
+            store.SetPersonalSyncMode(id, autoWifi, skipDeletions);
+            if (skipDeletions) personalSync.PurgeDeletionProtocol(id);
+            revision = store.NextOwnRevision("grants");
+            online.TryGetValue(id, out connection);
+        }
+        if (connection is not null)
+        {
+            await connection.SendGrantsAsync(revision, store.LocalGrants());
+            await connection.SendMessageAsync("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true }, 86_400_000);
+            await connection.SendDesktopFeaturesAsync();
+        }
+        await ReportStatusAsync();
     }
 
     internal bool CommitPersonalSync(string id, string messageId, string commitToken, string outcome)
@@ -1451,6 +1490,24 @@ internal sealed class TelefonConnection : IDisposable
         if (queued) await PumpOutboxAsync();
     }
 
+    internal async Task SendDesktopFeaturesAsync()
+    {
+        var queued = false;
+        await store.NotePolicyGate.WaitAsync(cancellation);
+        try
+        {
+            var personal = store.PersonalSettings(peer.Id);
+            if (!freshCapabilities || !freshOwnSettings || !personal.OwnDevice || !personal.RemoteOwnDevice ||
+                !store.DesktopFeaturesSupported(peer.Id)) return;
+            var body = store.DesktopFeatures();
+            if (body.Count == 0) return;
+            store.Enqueue(peer.Id, PersonalSyncContract.DesktopFeaturesKind, body, 86_400_000, Now());
+            queued = true;
+        }
+        finally { store.NotePolicyGate.Release(); }
+        if (queued) await PumpOutboxAsync();
+    }
+
     private string? NotePolicyError(string kind, JsonObject body, bool outgoing)
     {
         var kinds = kind == "personal_sync.deletion_decision" ? store.PersonalDecisionKinds(peer.Id, body, outgoing) : null;
@@ -1643,6 +1700,8 @@ internal sealed class TelefonConnection : IDisposable
         }
         if (plain["kind"]?.GetValue<string>() == "capabilities.update" && ack.Status is "accepted" or "duplicate")
             await SendNoteSettingsAsync();
+        if (plain["kind"]?.GetValue<string>() is "capabilities.update" or "personal_sync.settings" && ack.Status is "accepted" or "duplicate")
+            await SendDesktopFeaturesAsync();
         await SendPlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = ack.MessageId, ["status"] = ack.Status, ["error"] = ack.Error });
         if (!wasNoteReady && NotePolicyReady && noteReady is not null) await noteReady();
     }
@@ -1704,6 +1763,15 @@ internal sealed class TelefonConnection : IDisposable
         var now = Now(); foreach (var item in store.Due(peer.Id, now, transport: transport))
         {
             var kind = item.Message["kind"]!.GetValue<string>(); var body = item.Message["body"]!.AsObject();
+            if (kind == PersonalSyncContract.DesktopFeaturesKind)
+            {
+                if (!freshCapabilities || !freshOwnSettings) continue;
+                var personal = store.PersonalSettings(peer.Id);
+                if (!personal.OwnDevice || !personal.RemoteOwnDevice) continue;
+                if (!store.DesktopFeaturesSupported(peer.Id) || !JsonNode.DeepEquals(body, store.DesktopFeatures()))
+                { store.CompleteOutbox(peer.Id, item.Id); continue; }
+                await SendPlainAsync(item.Message); store.MarkAttempt(item.Id, item.Attempts, now); continue;
+            }
             if (kind == PersonalSyncContract.NoteModeKind)
             {
                 if (!freshCapabilities) continue;

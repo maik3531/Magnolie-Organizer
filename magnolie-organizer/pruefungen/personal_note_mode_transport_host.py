@@ -32,6 +32,7 @@ def main():
         service.store.peers.append(peer)
         service.store.save_peers()
         service.store.set_note_settings(PHONE, sync.note_settings("phone_import"))
+        service.set_desktop_features(True, True)
 
         def receive(event, payload):
             if event == "personal_sync_attachment_index":
@@ -87,6 +88,7 @@ def main():
                 for message in service.store.pending(PHONE):
                     service._send_message(channel, PHONE, message)
                 requested = False
+                features_paused = False
                 last_ping = time.monotonic()
                 deadline = time.monotonic() + 40
                 while time.monotonic() < deadline:
@@ -118,10 +120,16 @@ def main():
                         channel.send({"type": "ping", "ping_id": str(uuid.uuid4()), "sent_ms": phone.now_ms()})
                         last_ping = time.monotonic()
                     if imported and receipt["replayed"] and peer["personal_sync"]["last_report"].get("state") == "complete":
+                        if not features_paused:
+                            features_paused = True
+                            service.set_desktop_features(False, False)
+                            continue
+                        if service.store.has_kind(PHONE, sync.DESKTOP_FEATURES_KIND):
+                            continue
                         assert imported == ["phone-note"], imported
                         assert not service.store.ready_personal_batches()
                         channel.send({"type": "close", "reason": "normal"})
-                        print("Python V5 import, attachment, lost ACK replay, durable commit and reverse-note suppression passed.", flush=True)
+                        print("Python import, lost ACK replay, attachment, durable commit, reverse-note suppression and desktop availability passed.", flush=True)
                         return
                 raise TimeoutError("V5 note transport did not finish")
 

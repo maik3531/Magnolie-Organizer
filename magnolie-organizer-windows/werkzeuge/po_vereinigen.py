@@ -10,6 +10,34 @@ import sys
 import tempfile
 
 ERGÄNZUNGEN = {
+    "Skip deletions": {
+        "de": "Löschungen auslassen", "fr": "Ignorer les suppressions", "es": "Omitir eliminaciones", "it": "Ignora le eliminazioni",
+        "nl": "Verwijderingen overslaan", "pt": "Ignorar eliminações", "ru": "Не учитывать удаления", "uk": "Пропускати видалення",
+        "be": "Прапускаць выдаленні", "cs": "Vynechat mazání", "pl": "Pomijaj usuwanie", "hsb": "Zhašenja wuwostajić",
+        "da": "Spring sletninger over", "nb": "Hopp over sletting", "tr": "Silmeleri atla", "hi": "हटाना छोड़ें",
+        "ar": "تجاهل الحذف", "ja": "削除を同期しない", "zh_CN": "跳过删除",
+    },
+    "Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi synchronization or start manually.": {
+        "de": "Notizen und Aufgaben werden mit diesem gekoppelten Gerät abgeglichen. Wählen Sie automatischen WLAN-Abgleich oder starten Sie manuell.",
+        "fr": "Les notes et tâches sont synchronisées avec cet appareil associé. Choisissez la synchronisation Wi-Fi automatique ou lancez-la manuellement.",
+        "es": "Las notas y tareas se sincronizan con este dispositivo emparejado. Elija la sincronización Wi-Fi automática o iníciela manualmente.",
+        "it": "Note e attività si sincronizzano con questo dispositivo associato. Scegli la sincronizzazione Wi-Fi automatica o avviala manualmente.",
+        "nl": "Notities en taken synchroniseren met dit gekoppelde apparaat. Kies automatische Wi-Fi-synchronisatie of start handmatig.",
+        "pt": "Notas e tarefas são sincronizadas com este dispositivo emparelhado. Escolha a sincronização Wi-Fi automática ou inicie manualmente.",
+        "ru": "Заметки и задачи синхронизируются с этим сопряжённым устройством. Выберите автоматическую синхронизацию по Wi-Fi или запускайте вручную.",
+        "uk": "Нотатки й завдання синхронізуються з цим сполученим пристроєм. Виберіть автоматичну синхронізацію Wi-Fi або запускайте вручну.",
+        "be": "Нататкі і задачы сінхранізуюцца з гэтай спалучанай прыладай. Выберыце аўтаматычную сінхранізацыю Wi-Fi або запускайце ўручную.",
+        "cs": "Poznámky a úkoly se synchronizují s tímto spárovaným zařízením. Zvolte automatickou synchronizaci Wi-Fi nebo ji spusťte ručně.",
+        "pl": "Notatki i zadania synchronizują się z tym sparowanym urządzeniem. Wybierz automatyczną synchronizację Wi-Fi lub uruchamiaj ją ręcznie.",
+        "hsb": "Noticy a nadawki so z tutym koplowanym gratom synchronizuja. Wubjerće awtomatisku WLAN-synchronizaciju abo startujće manuelnje.",
+        "da": "Noter og opgaver synkroniseres med denne parrede enhed. Vælg automatisk Wi-Fi-synkronisering eller start manuelt.",
+        "nb": "Notater og oppgaver synkroniseres med denne parede enheten. Velg automatisk Wi-Fi-synkronisering eller start manuelt.",
+        "tr": "Notlar ve görevler bu eşleştirilmiş cihazla eşitlenir. Otomatik Wi-Fi eşitlemesini seçin veya elle başlatın.",
+        "hi": "नोट और कार्य इस जोड़े गए डिवाइस से सिंक्रनाइज़ होते हैं। स्वचालित Wi-Fi सिंक्रनाइज़ेशन चुनें या मैन्युअल रूप से शुरू करें।",
+        "ar": "تُزامن الملاحظات والمهام مع هذا الجهاز المقترن. اختر المزامنة التلقائية عبر Wi-Fi أو ابدأ يدوياً.",
+        "ja": "ノートとタスクをこのペアリング済みデバイスと同期します。自動 Wi-Fi 同期を選ぶか、手動で開始してください。",
+        "zh_CN": "笔记和任务会与此已配对设备同步。请选择自动 Wi-Fi 同步或手动启动。",
+    },
     "Keep": {
         "de": "Behalten", "fr": "Conserver", "es": "Conservar", "it": "Mantieni", "nl": "Behouden", "pt": "Manter",
         "ru": "Оставить", "cs": "Ponechat", "pl": "Zachowaj", "hsb": "Wobchować", "da": "Behold", "nb": "Behold",

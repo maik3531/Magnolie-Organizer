@@ -27,6 +27,7 @@ internal static class PersonalNoteModeTransportHost
             store.SetPersonalSettings(phone, ownDevice: true, remoteOwnDevice: false);
             store.SetLocalGrant("personal_notes_sync", true); store.SetLocalGrant("personal_tasks_sync", true);
             store.SetNoteSettings(phone, PersonalSyncContract.NoteSettings("phone_import"), false);
+            store.SetDesktopFeatures(true, true);
             var imported = 0;
             var complete = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             TelefonCoordinator? coordinator = null;
@@ -104,9 +105,21 @@ internal static class PersonalNoteModeTransportHost
                 await complete.Task.WaitAsync(deadline.Token);
                 TestAssert.That(imported == 1 && personal.ReadyBatches(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Count == 0,
                     "The native import was duplicated or not committed.");
+                await coordinator.SetDesktopFeaturesAsync(false, false);
+                bool FeaturesPending()
+                {
+                    using var database = store.OpenDatabase(); database.Open(); using var query = database.CreateCommand();
+                    query.CommandText = "SELECT COUNT(*) FROM outbox WHERE peer_id=$peer AND kind='personal_sync.desktop_features'";
+                    query.Parameters.AddWithValue("$peer", phone); return Convert.ToInt64(query.ExecuteScalar()) != 0;
+                }
+                while (FeaturesPending())
+                {
+                    if (receive.IsCompleted) await receive;
+                    await Task.Delay(5, deadline.Token);
+                }
                 var send = typeof(TelefonConnection).GetMethod("SendPlainAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
                 await (Task)send.Invoke(connection, [new JsonObject { ["type"] = "close", ["reason"] = "normal" }])!;
-                Console.WriteLine("C# V5 import, attachment, durable commit and reverse-note suppression passed.");
+                Console.WriteLine("C# import, attachment, durable commit, reverse-note suppression and desktop availability passed.");
             }
             finally
             {

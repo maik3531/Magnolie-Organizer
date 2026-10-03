@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_status_keine_verbindung">現在の接続はありません</string>
+    <string name="personal_sync_simple">ノートとタスクをこのペアリング済みデバイスと同期します。自動 Wi-Fi 同期を選ぶか、手動で開始してください。</string>
+    <string name="personal_sync_skip_deletions">削除を同期しない</string>
     <string name="personal_note_direction_update">ノートの転送方向を選ぶには両方のデバイスを更新してください。</string>
     <string name="personal_note_direction">ノートの同期方向</string>
     <string name="personal_note_two_way">双方向同期</string>

@@ -20259,6 +20259,15 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=lambda: self._personal_sync_notizrichtung(
                 nachricht.get("kennung") or "", nachricht.get("modus") or ""), daemon=True).start()
 
+        elif befehl == "personal_sync_betrieb":
+            threading.Thread(target=lambda: self._personal_sync_betrieb(
+                nachricht.get("kennung") or "", nachricht.get("autoWlan"),
+                nachricht.get("loeschungenAuslassen")), daemon=True).start()
+
+        elif befehl == "personal_sync_desktop_features":
+            threading.Thread(target=lambda: self._personal_sync_desktop_features(
+                nachricht.get("customTab"), nachricht.get("baumAktiv")), daemon=True).start()
+
         elif befehl == "personal_sync_senden":
             threading.Thread(target=lambda: self._personal_sync_senden(
                 nachricht.get("kennung") or "", nachricht.get("art") or "",
@@ -22046,6 +22055,26 @@ class Fenster(_FENSTER_BASIS):
             if not self._telefon:
                 raise RuntimeError(_("The phone connection is not available."))
             self._telefon.set_note_mode(kennung, modus)
+            self._telefon_fehler = ""
+        except Exception as fehler:
+            self._telefon_fehler = fehler_deutsch(fehler, "Persönlicher Sync")
+        self._telefon_stand_melden()
+
+    def _personal_sync_betrieb(self, kennung, auto_wlan, loeschungen_auslassen):
+        try:
+            if not self._telefon:
+                raise RuntimeError(_("The phone connection is not available."))
+            self._telefon.set_personal_sync_mode(kennung, auto_wlan, loeschungen_auslassen)
+            self._telefon_fehler = ""
+        except Exception as fehler:
+            self._telefon_fehler = fehler_deutsch(fehler, "Persönlicher Sync")
+        self._telefon_stand_melden()
+
+    def _personal_sync_desktop_features(self, custom_tab, baum_aktiv):
+        try:
+            if not self._telefon:
+                raise RuntimeError(_("The phone connection is not available."))
+            self._telefon.set_desktop_features(custom_tab, baum_aktiv)
             self._telefon_fehler = ""
         except Exception as fehler:
             self._telefon_fehler = fehler_deutsch(fehler, "Persönlicher Sync")

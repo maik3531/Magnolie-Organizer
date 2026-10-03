@@ -19,8 +19,8 @@ internal static class TelefonProtocolTests
             .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4 }),
             "Device status negotiation must include v4 without new capability names.");
         TestAssert.That(capabilities["items"]!["personal_tasks_sync"]!["versions"]!.AsArray()
-            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4 }),
-            "Ordinary tasks v1-v3 and separate Custom v4 capability are missing.");
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 6 }),
+            "Ordinary tasks v1-v3, Custom v4 or desktop feature v6 capability is missing.");
         TestAssert.That(!capabilities["items"]!["transport.bluetooth_rfcomm"]!["available"]!.GetValue<bool>() &&
             capabilities["items"]!["transport.bluetooth_rfcomm"]!["reason"]!.GetValue<string>() == "os_restricted" &&
             capabilities["items"]!["incoming_call_state"]!["versions"]!.AsArray().Single()!.GetValue<int>() == 2,
@@ -54,10 +54,10 @@ internal static class TelefonProtocolTests
             .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3 }),
             "Der Telefon-Control-Vertrag bewirbt nicht auf beiden Seiten Gerätestatus v3.");
         TestAssert.That(control["desktop_capabilities"]!["personal_tasks_sync"]!["versions"]!.AsArray()
-            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4 }) &&
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 6 }) &&
             control["android_capabilities"]!["personal_tasks_sync"]!["versions"]!.AsArray()
-            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4 }),
-            "Control vectors must advertise ordinary task versions and separate Custom support.");
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 6 }),
+            "Control vectors must advertise ordinary task, Custom and desktop feature support.");
         foreach (var name in new[] { "device_status_v1", "device_status_v2", "device_status_v3" })
             TelefonDeviceStatusContract.ValidateReport(control[name]!);
         var requestId = "123e4567-e89b-42d3-a456-426614174000";

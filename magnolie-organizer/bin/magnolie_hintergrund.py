@@ -786,6 +786,8 @@ def _request_shape(operation, arguments):
         "phone_current_identifier_event": {"payload"},
         "phone_set_grant": {"peer_id", "name", "enabled"},
         "phone_set_personal_sync": {"peer_id", "own_device", "auto_wifi"},
+        "phone_set_personal_sync_mode": {"peer_id", "auto_wifi", "skip_deletions"},
+        "phone_set_desktop_features": {"custom_tab", "tree"},
         "phone_set_note_mode": {"peer_id", "mode"},
         "phone_send_personal_sync": {"peer_id", "kind", "body", "trigger"},
         "phone_send_personal_sync_run": {"peer_id", "request", "batches", "sources",
@@ -834,6 +836,14 @@ def _request_shape(operation, arguments):
             or not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", arguments["peer_id"])
             or arguments.get("mode") not in ("two_way", "phone_import")):
         raise IPCError("invalid note direction")
+    if operation == "phone_set_personal_sync_mode" and (
+            set(arguments) != allowed[operation] or type(arguments.get("auto_wifi")) is not bool
+            or type(arguments.get("skip_deletions")) is not bool or not isinstance(arguments.get("peer_id"), str)
+            or not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", arguments["peer_id"])):
+        raise IPCError("invalid synchronization mode")
+    if operation == "phone_set_desktop_features" and (
+            set(arguments) != allowed[operation] or type(arguments.get("custom_tab")) is not bool or type(arguments.get("tree")) is not bool):
+        raise IPCError("invalid desktop features")
     if operation in ("status", "discover"):
         timeout = arguments.get("timeout", 0.25 if operation == "status" else 0.7)
         if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not 0 <= timeout <= 5:
@@ -1223,6 +1233,8 @@ class IPCServer:
             "phone_current_identifier_event": ("current_identifier_event", ("payload",)),
             "phone_set_grant": ("set_grant", ("peer_id", "name", "enabled")),
             "phone_set_personal_sync": ("set_personal_sync", ("peer_id", "own_device", "auto_wifi")),
+            "phone_set_personal_sync_mode": ("set_personal_sync_mode", ("peer_id", "auto_wifi", "skip_deletions")),
+            "phone_set_desktop_features": ("set_desktop_features", ("custom_tab", "tree")),
             "phone_set_note_mode": ("set_note_mode", ("peer_id", "mode")),
             "phone_send_personal_sync": ("send_personal_sync", ("peer_id", "kind", "body", "trigger")),
             "phone_send_personal_sync_run": ("send_personal_sync_run",
@@ -1586,6 +1598,10 @@ class PhoneServiceProxy:
                           own_device=bool(own_device), auto_wifi=bool(auto_wifi))
     def set_note_mode(self, peer_id, mode):
         return self._call("set_note_mode", peer_id=peer_id, mode=mode)
+    def set_personal_sync_mode(self, peer_id, auto_wifi, skip_deletions):
+        return self._call("set_personal_sync_mode", peer_id=peer_id, auto_wifi=auto_wifi, skip_deletions=skip_deletions)
+    def set_desktop_features(self, custom_tab, tree):
+        return self._call("set_desktop_features", custom_tab=custom_tab, tree=tree)
     def send_personal_sync(self, peer_id, kind, body, trigger="manual"):
         return self._call("send_personal_sync", peer_id=peer_id, kind=kind,
                           body=body, trigger=trigger)

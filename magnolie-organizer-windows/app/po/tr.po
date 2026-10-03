@@ -1438,9 +1438,6 @@ msgstr "Bağlantı bulunamadı. Sunucuyu ve giriş bilgilerini kontrol edin."
 msgid "Connection ready"
 msgstr "Bağlantı hazır"
 
-msgid "Consider deletions during manual synchronization"
-msgstr "Kişi eşzamanlama"
-
 msgid "Contact"
 msgstr "Kişi"
 
@@ -3431,6 +3428,13 @@ msgstr "Notlar"
 msgid "Notes and special instructions"
 msgstr "Notlar ve özel talimatlar"
 
+msgid ""
+"Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
+"synchronization or start manually."
+msgstr ""
+"Notlar ve görevler bu eşleştirilmiş cihazla eşitlenir. Otomatik Wi-Fi "
+"eşitlemesini seçin veya elle başlatın."
+
 msgid "Nothing found."
 msgstr "Hiçbir şey bulunamadı."
 
@@ -4804,6 +4808,9 @@ msgstr "Bu uyarıyı sessize al"
 
 msgid "Skip assistant"
 msgstr "Asistanı atla"
+
+msgid "Skip deletions"
+msgstr "Silmeleri atla"
 
 msgid ""
 "Small action buttons appear on each contact card. You can hide anything you "
@@ -6983,6 +6990,9 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
+
+#~ msgid "Consider deletions during manual synchronization"
+#~ msgstr "Kişi eşzamanlama"
 
 #~ msgid ""
 #~ "%(cards)s merged. Copies are stored under “Duplicates” in the recycle bin."

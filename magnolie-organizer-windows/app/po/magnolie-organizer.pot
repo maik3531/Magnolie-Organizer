@@ -1353,9 +1353,6 @@ msgstr ""
 msgid "Connection ready"
 msgstr ""
 
-msgid "Consider deletions during manual synchronization"
-msgstr ""
-
 msgid "Contact"
 msgstr ""
 
@@ -3235,6 +3232,11 @@ msgstr ""
 msgid "Notes and special instructions"
 msgstr ""
 
+msgid ""
+"Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
+"synchronization or start manually."
+msgstr ""
+
 msgid "Nothing found."
 msgstr ""
 
@@ -4536,6 +4538,9 @@ msgid "Silence this alert"
 msgstr ""
 
 msgid "Skip assistant"
+msgstr ""
+
+msgid "Skip deletions"
 msgstr ""
 
 msgid ""

@@ -39,6 +39,7 @@ async function boot(web) {
     "nachDauerhaftemSpeichern, personalCustomSenden, personalCustomBestaetigt, personalSyncSenden, speichereJetzt: speichereJetzt,"));
   await tick();
   w.App.init({ daten: { personalSync: { actor_id: consent.source_id },
+    einstellungen: { allgemein: { customTab: { enabled: true } } },
     notizen: [{ id: "note", titel: "Synthetic", text: "original", html: "original" }],
     customOrganizer: { modules: [{ id: "tasks", type: "tasks", title: "Synthetic", items:
       Array.from({ length: 70 }, (_, i) => ({ id: "item-" + i, title: "Task " + i })) }] } },
@@ -151,6 +152,18 @@ const cases = [
     const locked = b.saves().at(-1);
     b.w.App.init({ gesperrt: true }); b.ack(locked);
     assert.equal(effect, 1); assert.equal(error, 2, "one throwing callback must not strand other waiters");
+  }],
+  ["Custom tab disabled during save stops the pending handoff", async b => {
+    const count = b.saves().length;
+    const pending = b.t.personalCustomSenden(peer, "manual");
+    for (let i = 0; i < 1000 && b.saves().length === count; i++) await tick();
+    assert.ok(b.saves().length > count);
+    b.t.daten().einstellungen.allgemein.customTab.enabled = false;
+    b.ack();
+    assert.equal((await b.settle(pending)).value, false);
+    assert.equal(b.batches().length, 0);
+    b.t.daten().einstellungen.allgemein.customTab.enabled = true;
+    assert.equal((await b.settle(b.t.personalCustomSenden(peer, "manual"))).value, true);
   }],
   ...[1, 2].map(rejected => ["AUR06 local rejection at batch " + rejected + ", retry and scoped receipt", async b => {
     b.rejectBatch(rejected);

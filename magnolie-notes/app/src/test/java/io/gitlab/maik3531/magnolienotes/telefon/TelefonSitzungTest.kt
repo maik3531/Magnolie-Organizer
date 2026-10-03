@@ -84,7 +84,7 @@ class TelefonSitzungTest {
             (grants["grants"] as JsonObject).keys)
         assertEquals(listOf("1", "2", "3"), (((capabilities["items"] as JsonObject)["device_status"] as JsonObject)
             ["versions"] as kotlinx.serialization.json.JsonArray).map { (it as JsonPrimitive).content })
-        assertEquals(listOf("1", "2", "3", "4"), (((capabilities["items"] as JsonObject)["personal_tasks_sync"] as JsonObject)
+        assertEquals(listOf("1", "2", "3", "4", "6"), (((capabilities["items"] as JsonObject)["personal_tasks_sync"] as JsonObject)
             ["versions"] as kotlinx.serialization.json.JsonArray).map { (it as JsonPrimitive).content })
         assertEquals(false, ((grants["grants"] as JsonObject)["dial_request"] as JsonPrimitive).content.toBoolean())
     }
