@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_kontakte_lesen">Permitir que este ordenador lea contactos y fotos</string>
+    <string name="telefon_kontakte_lesen_hinweis">Solo lectura para el ordenador propio seleccionado. Los campos requieren una vista previa; las fotos elegidas siguen protegidas. No se modifican contactos del teléfono.</string>
     <string name="telefon_status_keine_verbindung">Ninguna conexión establecida</string>
     <string name="personal_sync_simple">Las notas y tareas se sincronizan con este dispositivo emparejado. Elija la sincronización Wi-Fi automática o iníciela manualmente.</string>
     <string name="personal_sync_skip_deletions">Omitir eliminaciones</string>

@@ -20,6 +20,7 @@ if (args.FirstOrDefault() == "--scoped-call-host") return await OutgoingDialTest
 
 if (args.FirstOrDefault() == "--personal-custom-host") return await PersonalCustomTransportTests.HostAsync();
 if (args.FirstOrDefault() == "--personal-note-mode-host") return await PersonalNoteModeTransportHost.RunAsync();
+if (args.FirstOrDefault() == "--phone-contact-read-host") return await PhoneContactReadTests.HostAsync();
 
 if (args.FirstOrDefault() == "--phone-bt-native-probe") return await TelefonBluetoothNativeProbe.RunAsync();
 
@@ -72,6 +73,7 @@ runner.Add("Recovery comparison / unchanged photo allocations", RecoveryComparis
 runner.Add("Magnolienbaum discovery / allowed UDP port / active listener", MagnolienbaumDiscoveryTests.RunAsync);
 runner.Add("Magnolienbaum Kontakte / Fotos / manuelle Löschvorschläge", ContractGroupTests.TreeContactsAsync);
 runner.Add("Telefonverbindung / Crypto / Pairingcode / Rahmen / Verträge", TelefonProtocolTests.RunAsync);
+runner.Add("Notes contacts / read-only / bounded pages / source binding", PhoneContactReadTests.RunAsync);
 runner.Add("Telefon WLAN invitations / bounded discovery", TelefonInvitationTests.RunAsync);
 runner.Add("Telefon Bluetooth first pairing / target binding", TelefonBluetoothSetupTests.RunAsync);
 runner.Add("Telefon setup startup lifecycle / Finish / Skip / rollback", PhoneStartupLifecycleTests.RunAsync);

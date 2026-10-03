@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_kontakte_lesen">Allow this computer to read contacts and photos</string>
+    <string name="telefon_kontakte_lesen_hinweis">Read-only access for the selected own computer. Contact fields require an import preview; existing chosen photos remain protected. No phone contacts are changed.</string>
     <string name="telefon_status_keine_verbindung">No existing connection</string>
     <string name="personal_sync_simple">Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi synchronization or start manually.</string>
     <string name="personal_sync_skip_deletions">Skip deletions</string>

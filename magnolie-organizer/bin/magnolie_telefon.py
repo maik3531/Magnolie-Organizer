@@ -15,6 +15,7 @@ import subprocess
 import tempfile
 import threading
 import magnolie_personal_sync as personal_sync_contract
+import magnolie_phone_contacts as phone_contacts
 from magnolie_personal_sync import CUSTOM_KINDS, validate_custom_body, accept_custom_settings, custom_scope_allowed
 import time
 import unicodedata
@@ -83,7 +84,7 @@ def desktop_capabilities(revision=1, bluetooth_available=False,
                            bluetooth_reason if name == "transport.bluetooth_rfcomm"
                            else "not_implemented"),
                          "versions": [1, 2, 3, 4, 6] if name == "personal_tasks_sync" else
-                                      [1, 2, 3, 4] if name == "device_status" else
+                                      [1, 2, 3, 4, 5] if name == "device_status" else
                                        [1, 2, 3, 5] if name == "personal_notes_sync" else
                                      [2] if name == "incoming_call_state" else [1]}
     return {"revision": revision, "items": items}
@@ -2069,6 +2070,7 @@ class PhoneService:
         self.note_sessions = weakref.WeakKeyDictionary()
         self.note_controls = weakref.WeakKeyDictionary()
         self.status_requests = {}
+        self.contact_requests = {}
         self.identifier_requests = {}
         self.transient_identifiers = {}
         self.lock = threading.RLock()
@@ -2122,6 +2124,8 @@ class PhoneService:
                 "remote_own_device": False, "auto_wifi": False, "last_report": {}})
             peers.append({"device_id": peer_id, "display_name": peer.get("display_name", ""),
                           "fingerprint": fingerprint(unb64(peer["static_public"], 32)),
+                           "contacts_read_available": self.contacts_available(peer_id),
+                           "contacts_fingerprint": hashlib.sha256(unb64(peer["static_public"], 32)).hexdigest(),
                            "state": "online_" + transport if transport else "offline",
                            "transport": transport,
                            "connection_error": self.connection_errors.get(peer_id, ""),
@@ -2521,6 +2525,121 @@ class PhoneService:
         self.wifi_missing_since[peer_id] = time.monotonic()
         self.bluetooth_retry_at.pop(peer_id, None)
         self.callback("status", self.report())
+
+    def _contact_peer(self, peer_id, channel=None):
+        peer = self.store.sole_peer(peer_id)
+        current_channel = self.connections.get(peer_id)
+        if (not self.enabled or not self.personal_sync_available() or not peer or peer.get("state") != "paired" or
+                not current_channel or channel is not None and current_channel is not channel):
+            return None
+        personal = peer.get("personal_sync", {})
+        capability = peer.get("capabilities", {}).get("items", {}).get("device_status", {})
+        if (personal.get("own_device") is not True or personal.get("remote_own_device") is not True or
+                capability.get("available") is not True or phone_contacts.VERSION not in capability.get("versions", []) or
+                peer.get("grants", {}).get("grants", {}).get("device_status") is not True or
+                peer.get("local_grants", desktop_grants()).get("grants", {}).get("device_status") is not True):
+            return None
+        controls = self._note_controls_for(current_channel)
+        if (controls.get("capabilities.update") != peer.get("capabilities") or controls.get("grants.update") != peer.get("grants") or
+                controls.get("personal_sync.settings") != {"format": 1, "own_device": True}):
+            return None
+        return peer
+
+    def contacts_available(self, peer_id):
+        with self.lock:
+            return self._contact_peer(peer_id) is not None
+
+    def contact_source_current(self, peer_id, fingerprint):
+        with self.lock:
+            current = self._contact_peer(peer_id)
+            return bool(current and hashlib.sha256(unb64(current["static_public"], 32)).hexdigest() == fingerprint)
+
+    def read_contacts(self, peer_id, uids=None):
+        with self.lock:
+            peer = self._contact_peer(peer_id)
+            if not peer:
+                raise PermissionError("contacts_not_granted")
+            channel = self.connections[peer_id]
+            public_key = peer["static_public"]
+        if uids is not None:
+            phone_contacts.validate_request({"version": 5, "request_id": str(uuid.uuid4()), "action": "cards", "offset": 0, "uids": uids})
+        deadline = time.monotonic() + 8
+
+        def page(action, offset, selected):
+            request_id = str(uuid.uuid4())
+            body = {"version": 5, "request_id": request_id, "action": action, "offset": offset, "uids": selected}
+            phone_contacts.validate_request(body)
+            entry = {"peer": peer_id, "key": public_key, "channel": channel, "request": body,
+                     "deadline": deadline, "event": threading.Event(), "result": None}
+            try:
+                with self.lock:
+                    current = self._contact_peer(peer_id, channel)
+                    if (len(self.contact_requests) >= 8 or not current or current["static_public"] != public_key or
+                            time.monotonic() >= deadline):
+                        raise PermissionError("contacts_not_granted")
+                    self.contact_requests[request_id] = entry
+                    created = now_ms()
+                    channel.send({"type": "message", "v": 1, "message_id": str(uuid.uuid4()), "kind": "device_status.request",
+                        "created_ms": created, "expires_ms": created + 8000, "body": body})
+                if not entry["event"].wait(max(0, deadline - time.monotonic())):
+                    raise TimeoutError("contacts_read_timeout")
+                return entry["result"]
+            finally:
+                with self.lock:
+                    self.contact_requests.pop(request_id, None)
+
+        contacts = []
+        if uids is not None:
+            for uid in uids:
+                contacts.extend(page("cards", 0, [uid])["contacts"])
+        else:
+            total = None
+            seen = set()
+            while total is None or len(contacts) < total:
+                result = page("index", len(contacts), [])
+                if total is not None and result["total"] != total:
+                    raise ValueError("contact_index_changed")
+                total = result["total"]
+                for item in result["contacts"]:
+                    if item["uid"] in seen:
+                        raise ValueError("contact_index_changed")
+                    seen.add(item["uid"]); contacts.append(item)
+        with self.lock:
+            current = self._contact_peer(peer_id, channel)
+            if not current or current["static_public"] != public_key:
+                raise PermissionError("contacts_not_granted")
+        return {"device_id": "notes:" + peer_id, "fingerprint": hashlib.sha256(unb64(public_key, 32)).hexdigest(),
+            "contacts": [dict({k: v for k, v in item.items() if k != "timestamp"}, modified_ms=item["timestamp"]) for item in contacts]}
+
+    def _receive_contacts(self, peer, channel, payload):
+        error = "invalid_schema"
+        try:
+            report = phone_contacts.validate_report(payload["body"])
+            with self.lock:
+                request = self.contact_requests.get(report["request_id"])
+                current = self._contact_peer(peer["device_id"], channel)
+                error = "not_granted"
+                if (not current or current["static_public"] != peer["static_public"] or not request or
+                        (request["peer"], request["key"], request["channel"]) != (peer["device_id"], peer["static_public"], channel)):
+                    raise PermissionError
+                error = "expired"
+                if time.monotonic() >= request["deadline"] or now_ms() >= payload["expires_ms"]:
+                    raise PermissionError
+                error = "invalid_schema"
+                expected = request["request"]
+                if (payload["expires_ms"] - payload["created_ms"] > 60000 or report["action"] != expected["action"] or
+                        report["offset"] != expected["offset"] or report["action"] == "cards" and
+                        set(expected["uids"]) != {item["uid"] for item in report["contacts"]}):
+                    raise ValueError
+                request["result"] = json.loads(json.dumps(report))
+                request["event"].set()
+                channel.send({"type": "ack", "message_id": payload["message_id"], "status": "accepted", "error": "none"})
+                return
+        except ValueError:
+            error = "invalid_schema"
+        except PermissionError:
+            pass
+        channel.send({"type": "ack", "message_id": payload["message_id"], "status": "rejected", "error": error})
 
     def request_status(self, peer_id, include_identifiers=True, request_id=None):
         if type(include_identifiers) is not bool:
@@ -4149,6 +4268,9 @@ class PhoneService:
                     raise ValueError("conflicting personal sync format")
             if policy == "wifi_only" and self.connection_transports.get(peer["device_id"]) != "wifi":
                 raise ValueError("wifi-only run received on bluetooth")
+        if kind == "device_status.report" and payload["body"].get("version") == phone_contacts.VERSION:
+            self._receive_contacts(peer, channel, payload)
+            return
         if kind == "device_status.report" and ("identifiers" in payload["body"] or "version" in payload["body"]):
             self._receive_identifiers(peer, channel, payload)
             return

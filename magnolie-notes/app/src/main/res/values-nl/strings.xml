@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_kontakte_lesen">Deze computer toestaan contacten en foto’s te lezen</string>
+    <string name="telefon_kontakte_lesen_hinweis">Alleen lezen voor de geselecteerde eigen computer. Contactvelden vereisen een importvoorbeeld; gekozen foto’s blijven beschermd. Telefooncontacten worden niet gewijzigd.</string>
     <string name="telefon_status_keine_verbindung">Geen bestaande verbinding</string>
     <string name="personal_sync_simple">Notities en taken synchroniseren met dit gekoppelde apparaat. Kies automatische Wi-Fi-synchronisatie of start handmatig.</string>
     <string name="personal_sync_skip_deletions">Verwijderingen overslaan</string>

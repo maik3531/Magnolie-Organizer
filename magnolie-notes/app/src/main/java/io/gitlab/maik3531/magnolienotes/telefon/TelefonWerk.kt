@@ -229,6 +229,31 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
     }
 
+    internal var contactReadSource: ContactReadSource = ContactReadAndroid(context)
+    private var contactPermissionTicket: Triple<String, Pair<String, String>, Long>? = null
+    @Synchronized fun beginContactReadPermission(deviceId: String, publicKey: String): String? {
+        val peer = safePeer()?.takeIf { it.own_device && it.state == "paired" } ?: return null
+        if (peer.device_id != deviceId || peer.static_public != publicKey) return null
+        val token = UUID.randomUUID().toString()
+        contactPermissionTicket = Triple(token, peer.device_id to peer.static_public, pairingGeneration)
+        return token
+    }
+    @Synchronized fun completeContactReadPermission(token: String, granted: Boolean) {
+        val ticket = contactPermissionTicket; contactPermissionTicket = null
+        val peer = safePeer() ?: return
+        if (granted && peer.own_device && peer.state == "paired" && ContactReadAndroid(context).permission() &&
+            ticket?.first == token && ticket.second == (peer.device_id to peer.static_public) &&
+            ticket.third == pairingGeneration) setContactReadEnabled(true, peer.device_id, peer.static_public)
+    }
+    @Synchronized fun setContactReadEnabled(enabled: Boolean, deviceId: String, publicKey: String) {
+        val peer = safePeer() ?: return
+        if (peer.device_id != deviceId || peer.static_public != publicKey) return
+        contactPermissionTicket = null
+        check(!enabled || peer.own_device && peer.state == "paired" && ContactReadAndroid(context).permission())
+        storage.savePeer(peer.copy(contacts_read_enabled = enabled))
+        closeTransport(); modulesChanged()
+    }
+
     private var identifierEpoch = 0L
     private var identifierPermissionTicket: Triple<String, String, Long>? = null
     private var identifierPermissions = identifierPermissionMask()
@@ -375,7 +400,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     @Synchronized fun setPersonalSync(own: Boolean, notes: Boolean, tasks: Boolean, autoWifi: Boolean,
                          deletions: Boolean = storage.personalDeletionsEnabled(), reconnectAfterChange: Boolean = true) {
         val peer = safePeer()
-        if (!own) { identifierEpoch++; identifierPermissionTicket = null; identifierRequests.clear(); closeTransport() }
+        if (!own) { identifierEpoch++; identifierPermissionTicket = null; identifierRequests.clear(); contactPermissionTicket = null; closeTransport() }
         if (!own) pauseCustom()
         if (peer != null && !own) queue.purgePersonal(peer.device_id)
         else if (peer != null) queue.purgePersonalModules(peer.device_id,
@@ -393,6 +418,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         storage.setPersonalSync(own, notes, tasks, autoWifi, deletions)
         if (peer != null) {
             storage.savePeer(peer.copy(own_device = own, identifier_sharing_enabled = own && peer.identifier_sharing_enabled, personal_notes_sync_granted = own && notes,
+                contacts_read_enabled = own && peer.contacts_read_enabled,
                 personal_tasks_sync_granted = own && tasks, personal_deletions_sync_granted = own && deletions))
             queue.removeKind(peer.device_id, "personal_sync.settings")
             queue.queue(peer.device_id, "personal_sync.settings", buildJsonObject {
@@ -1220,6 +1246,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     internal fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                 generation: Long) {
+        if (message["kind"] == JsonPrimitive("device_status.request") &&
+            (message["body"] as? JsonObject)?.get("version") == JsonPrimitive(ContactRead.VERSION)) {
+            receiveContactRead(sessionPeer, message, channel, generation)
+            return
+        }
         val replies = mutableListOf<JsonObject>()
         val epoch = identifierEpoch
         val permissions = identifierPermissionMask()
@@ -1231,6 +1262,34 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         System.currentTimeMillis() < message.long("expires_ms")) channel.send(reply)
                 }
             } else channel.send(reply)
+        }
+    }
+
+    private fun receiveContactRead(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
+        val messageId = runCatching { message.string("message_id") }.getOrDefault("00000000-0000-0000-0000-000000000000")
+        try { TelefonNachrichten.validate(message) } catch (_: Exception) {
+            channel.send(TelefonNachrichten.ack(messageId, "rejected", "invalid_schema")); return
+        }
+        val reader = contactReadSource
+        fun authorized(current: TelefonPeer, expected: PersonalNoteSession? = null): PersonalNoteSession {
+            val session = noteSessions[channel]
+            if (session == null || expected != null && session !== expected || !session.capabilitiesReceived ||
+                !session.grantsReceived || !session.ownSettingsReceived || !ContactRead.allowed(current, reader.permission()) ||
+                System.currentTimeMillis() >= message.long("expires_ms")) throw SecurityException("contacts_not_granted")
+            return session
+        }
+        try {
+            val session = peerEffect(sessionPeer, generation) { authorized(it) }
+            val response = reader.read(message["body"] as JsonObject)
+            peerEffect(sessionPeer, generation) { current ->
+                authorized(current, session)
+                val receipt = queue.receive(current.device_id, message)
+                if (receipt.first in setOf("accepted", "duplicate"))
+                    channel.send(TelefonNachrichten.message("device_status.report", response, 60_000))
+                channel.send(TelefonNachrichten.ack(messageId, receipt.first, receipt.second))
+            }
+        } catch (error: Exception) {
+            channel.send(TelefonNachrichten.ack(messageId, "rejected", if (error is SecurityException || !reader.permission()) "not_granted" else "temporary_failure"))
         }
     }
 
@@ -2108,7 +2167,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
             queue.queue(peer.device_id, "capabilities.update", TelefonNachrichten.capabilities(peer.capabilities_revision,
                 TelefonCapabilities.phase1(notifications, dialRequest, TelefonModulStatus.dialResolvable(context),
                     dialPermission, callState, incomingNumber, answerCalls, endCalls,
-                    identifiers = peer.own_device && peer.identifier_sharing_enabled && identifierPermissionMask() and 1 != 0)), 86_400_000)
+                    identifiers = peer.own_device && peer.identifier_sharing_enabled && identifierPermissionMask() and 1 != 0,
+                    contactRead = peer.own_device && peer.remote_own_device && peer.contacts_read_enabled && ContactReadAndroid(context).permission())), 86_400_000)
         }
         if (!queue.hasKind(peer.device_id, "grants.update")) {
             peer = peer.copy(grants_revision = peer.grants_revision + 1); storage.savePeer(peer)

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_kontakte_lesen">Diesem Rechner das Lesen von Kontakten und Fotos erlauben</string>
+    <string name="telefon_kontakte_lesen_hinweis">Nur Lesezugriff für den ausgewählten eigenen Rechner. Kontaktfelder benötigen eine Importvorschau; selbst gewählte Fotos bleiben geschützt. Telefonkontakte werden nicht verändert.</string>
     <string name="telefon_status_keine_verbindung">Keine bestehende Verbindung</string>
     <string name="personal_sync_simple">Notizen und Aufgaben werden mit diesem gekoppelten Gerät abgeglichen. Wählen Sie automatischen WLAN-Abgleich oder starten Sie manuell.</string>
     <string name="personal_sync_skip_deletions">Löschungen auslassen</string>

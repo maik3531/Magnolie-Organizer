@@ -152,6 +152,7 @@ install -m 0644 "$WURZEL/bin/magnolie_asset.py" "$APPDIR/usr/bin/magnolie_asset.
 install -m 0644 "$WURZEL/bin/magnolie_telefon.py" "$APPDIR/usr/bin/magnolie_telefon.py"
 install -m 0644 "$WURZEL/bin/magnolie_anruf_audio.py" "$APPDIR/usr/bin/magnolie_anruf_audio.py"
 install -m 0644 "$WURZEL/bin/magnolie_phone_region.py" "$APPDIR/usr/bin/magnolie_phone_region.py"
+install -m 0644 "$WURZEL/bin/magnolie_phone_contacts.py" "$APPDIR/usr/bin/magnolie_phone_contacts.py"
 install -m 0644 "$WURZEL/bin/magnolie_recurrence.py" "$APPDIR/usr/bin/magnolie_recurrence.py"
 install -m 0644 "$WURZEL/bin/magnolie_kdeconnect.py" "$APPDIR/usr/bin/magnolie_kdeconnect.py"
 install -m 0644 "$WURZEL/bin/magnolie_digitizer.py" "$APPDIR/usr/bin/magnolie_digitizer.py"

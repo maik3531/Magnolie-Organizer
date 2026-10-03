@@ -16,8 +16,8 @@ internal static class TelefonProtocolTests
         TestAssert.That(TelefonProtocolContract.ValidateCapabilities(capabilities) == 1 && capabilities["items"]!.AsObject().Count == 11,
             "Granulare Telefon-Capabilities fehlen.");
         TestAssert.That(capabilities["items"]!["device_status"]!["versions"]!.AsArray()
-            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4 }),
-            "Device status negotiation must include v4 without new capability names.");
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 5 }),
+            "Device status negotiation must include identifier v4 and explicitly authorized contact reads v5 without new capability names.");
         TestAssert.That(capabilities["items"]!["personal_tasks_sync"]!["versions"]!.AsArray()
             .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 6 }),
             "Ordinary tasks v1-v3, Custom v4 or desktop feature v6 capability is missing.");

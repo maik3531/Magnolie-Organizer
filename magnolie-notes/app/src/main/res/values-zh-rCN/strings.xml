@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_kontakte_lesen">允许此电脑读取联系人和照片</string>
+    <string name="telefon_kontakte_lesen_hinweis">仅向所选的本人电脑提供只读访问。联系人字段需要导入预览；已选择的照片仍受保护。不会更改手机联系人。</string>
     <string name="telefon_status_keine_verbindung">当前没有连接</string>
     <string name="personal_sync_simple">笔记和任务会与此已配对设备同步。请选择自动 Wi-Fi 同步或手动启动。</string>
     <string name="personal_sync_skip_deletions">跳过删除</string>

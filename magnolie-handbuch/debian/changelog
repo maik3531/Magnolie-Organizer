@@ -1,3 +1,11 @@
+magnolie-handbuch (2.0.26) unstable; urgency=medium
+
+  * Beschreibt den Drei-Rechner-Ablauf samt Internetvoraussetzungen in 20 Sprachen.
+  * Erläutert Notizimport, Kontakt-Lesezugriff, Notfallkontakte und Müllkalenderimport.
+  * Aktualisiert Versions- und Paketverweise für Organizer 2.0.26.
+
+ -- Maik Walter <maik3531@gmail.com>  Sat, 03 Oct 2026 15:12:00 +0200
+
 magnolie-handbuch (2.0.25) unstable; urgency=medium
 
   * Verhindert leere Linux-PDF-Seiten nach Auswahl des virtuellen Dateidruckers.

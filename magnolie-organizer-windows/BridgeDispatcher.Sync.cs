@@ -599,11 +599,13 @@ internal sealed partial class BridgeDispatcher
                 if (requested.GetArrayLength() is < 1 or > 5) throw new InvalidDataException("invalid_contact_batch");
                 uids = JsonNode.Parse(requested.GetRawText())!.AsArray();
             }
-            var result = uids is not null
-                ? await kdeConnectSms.ContactVcardsAsync(uids, Text(message, "device_id"), deadline.Token)
-                : await kdeConnectSms.ContactIndexAsync(Text(message, "device_id"), deadline.Token);
+            var deviceId = Text(message, "device_id");
+            var notes = deviceId.StartsWith("notes:", StringComparison.Ordinal);
+            var result = notes ? await telefon.ReadContactsAsync(deviceId[6..], uids, deadline.Token) : uids is not null
+                ? await kdeConnectSms.ContactVcardsAsync(uids, deviceId, deadline.Token)
+                : await kdeConnectSms.ContactIndexAsync(deviceId, deadline.Token);
             if (uids is not null && fullContacts)
-                KdeContactImport.Project(result, Text(message, "device_id"), KdeConnectProtocol.ContactUids(uids, 5));
+                KdeContactImport.Project(result, deviceId, KdeConnectProtocol.ContactUids(uids, 5), notes ? "notes" : "kde");
             else if (uids is not null)
             {
                 foreach (var item in result["contacts"]!.AsArray().OfType<JsonObject>())
@@ -616,7 +618,7 @@ internal sealed partial class BridgeDispatcher
                         item[field] = contact[field]?.DeepClone();
                 }
             }
-            if (fullContacts && !currentPlainTextAvailable) throw new InvalidOperationException("locked");
+            if (!currentPlainTextAvailable || notes && !telefon.ContactSourceCurrent(deviceId[6..], result["fingerprint"]!.GetValue<string>())) throw new InvalidOperationException("locked");
             result["ok"] = true; result["requestId"] = requestId;
             if (fullContacts) await form.SendAsync("App.telefonKontakte", result);
             else await form.SendAsync("App.kontaktFotos", result);
@@ -694,6 +696,8 @@ internal sealed partial class BridgeDispatcher
                 ["state"] = peer.State == "pair_commit_pending" ? "pair_commit_pending" : transport is "wifi" or "bluetooth" ? "online_" + transport : "offline",
                 ["transport"] = transport,
                 ["fingerprint"] = TelefonCrypto.Fingerprint(peer.PublicKey),
+                ["contacts_read_available"] = status?["contacts_read_available"]?.GetValue<bool>() == true,
+                ["contacts_fingerprint"] = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(peer.PublicKey)).ToLowerInvariant(),
                 ["last_contact_ms"] = peer.LastSeenMs,
                 ["capabilities"] = new JsonObject { ["revision"] = peer.CapabilityRevision,
                     ["items"] = peer.Capabilities.DeepClone() },

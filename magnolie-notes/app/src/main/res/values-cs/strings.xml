@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_kontakte_lesen">Povolit tomuto počítači číst kontakty a fotografie</string>
+    <string name="telefon_kontakte_lesen_hinweis">Pouze čtení pro vybraný vlastní počítač. Pole vyžadují náhled importu; vybrané fotografie zůstávají chráněny. Kontakty telefonu se nemění.</string>
     <string name="telefon_status_keine_verbindung">Žádné navázané spojení</string>
     <string name="personal_sync_simple">Poznámky a úkoly se synchronizují s tímto spárovaným zařízením. Zvolte automatickou synchronizaci Wi-Fi nebo ji spusťte ručně.</string>
     <string name="personal_sync_skip_deletions">Vynechat mazání</string>

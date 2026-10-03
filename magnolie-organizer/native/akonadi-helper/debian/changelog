@@ -1,3 +1,9 @@
+magnolie-organizer-kde (2.0.26) unstable; urgency=medium
+
+  * Gleicht die optionale Akonadi-Erweiterung an Magnolie Organizer 2.0.26 an.
+
+ -- Maik Walter <maik3531@gmail.com>  Sat, 03 Oct 2026 15:12:00 +0200
+
 magnolie-organizer-kde (2.0.25) unstable; urgency=medium
 
   * Gleicht die Paketfassung an den Prüfstand Magnolie Organizer 2.0.25 an.

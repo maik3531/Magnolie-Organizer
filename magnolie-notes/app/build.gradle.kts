@@ -54,8 +54,8 @@ android {
         applicationId = "io.gitlab.maik3531.magnolienotes"
         minSdk = 26
         targetSdk = 35
-        versionCode = 17
-        versionName = "1.0.17"
+        versionCode = 18
+        versionName = "1.0.18"
         testInstrumentationRunner = "io.gitlab.maik3531.magnolienotes.MagnolieTestRunner"
         resourceConfigurations += listOf(
             "ar", "be", "cs", "da", "de", "en", "es", "fr", "hi", "hsb",
@@ -185,7 +185,7 @@ tasks.withType<Test>().configureEach {
     workingDir = rootDir
     val cross = providers.gradleProperty("magnolieCrossTests").orNull == "true"
     val crossClasses = listOf("*.TelefonWlanInvitationTest", "*.TelefonBluetoothSetupTest",
-        "*.BaumReceiptInteropTest", "*.LiveprobeTest", "*.PersonalCustomTransportTest", "*.PersonalNoteModeTransportTest")
+        "*.BaumReceiptInteropTest", "*.LiveprobeTest", "*.PersonalCustomTransportTest", "*.PersonalNoteModeTransportTest", "*.ContactReadTransportTest")
     filter {
         crossClasses.forEach { if (cross) includeTestsMatching(it) else excludeTestsMatching(it) }
     }

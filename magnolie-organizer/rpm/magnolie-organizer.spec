@@ -33,7 +33,7 @@
 %endif
 
 Name:           magnolie-organizer
-Version:        2.0.25
+Version:        2.0.26
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
@@ -84,7 +84,7 @@ done < po/LINGUAS
 
 %check
 set -eu
-/usr/bin/python3 -m py_compile bin/%{name} bin/magnolie_telefon.py bin/magnolie_phone_region.py bin/magnolie_kdeconnect.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_akonadi.py bin/magnolie_crash.py bin/magnolie_asset.py bin/magnolie_setup_state.py bin/magnolie_setup_ui.py bin/magnolie_recurrence.py werkzeuge/*.py pruefungen/*.py
+/usr/bin/python3 -m py_compile bin/%{name} bin/magnolie_telefon.py bin/magnolie_phone_region.py bin/magnolie_phone_contacts.py bin/magnolie_kdeconnect.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_akonadi.py bin/magnolie_crash.py bin/magnolie_asset.py bin/magnolie_setup_state.py bin/magnolie_setup_ui.py bin/magnolie_recurrence.py werkzeuge/*.py pruefungen/*.py
 while read -r language; do
     test -n "$language" || continue
     /usr/bin/python3 werkzeuge/katalog_pruefen.py \
@@ -150,6 +150,7 @@ install -Dpm 0644 bin/magnolie_asset.py %{buildroot}%{_bindir}/magnolie_asset.py
 install -Dpm 0644 bin/magnolie_setup_state.py %{buildroot}%{_bindir}/magnolie_setup_state.py
 install -Dpm 0644 bin/magnolie_setup_ui.py %{buildroot}%{_bindir}/magnolie_setup_ui.py
 install -Dpm 0644 bin/magnolie_phone_region.py %{buildroot}%{_bindir}/magnolie_phone_region.py
+install -Dpm 0644 bin/magnolie_phone_contacts.py %{buildroot}%{_bindir}/magnolie_phone_contacts.py
 install -Dpm 0644 bin/magnolie_recurrence.py %{buildroot}%{_bindir}/magnolie_recurrence.py
 
 install -d %{buildroot}%{_datadir}/%{name}/web/i18n
@@ -220,7 +221,7 @@ bindir = root / "usr/bin"
 for name in ("magnolie-organizer", "magnolie_telefon.py",
               "magnolie_kdeconnect.py", "magnolie_hintergrund.py", "magnolie_personal_sync.py",
               "magnolie_nextcloud.py", "magnolie_cloud_backup.py", "magnolie_akonadi.py",
-              "magnolie_setup_state.py", "magnolie_setup_ui.py", "magnolie_phone_region.py"):
+              "magnolie_setup_state.py", "magnolie_setup_ui.py", "magnolie_phone_region.py", "magnolie_phone_contacts.py"):
     ast.parse((bindir / name).read_text(encoding="utf-8"), filename=name)
 sys.path.insert(0, str(bindir))
 import magnolie_personal_sync
@@ -261,6 +262,7 @@ done
 %{_bindir}/magnolie_setup_state.py
 %{_bindir}/magnolie_setup_ui.py
 %{_bindir}/magnolie_phone_region.py
+%{_bindir}/magnolie_phone_contacts.py
 %{_bindir}/magnolie_recurrence.py
 %{_datadir}/%{name}/
 %{_datadir}/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop

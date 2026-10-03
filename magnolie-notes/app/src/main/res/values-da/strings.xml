@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_kontakte_lesen">Tillad denne computer at læse kontakter og billeder</string>
+    <string name="telefon_kontakte_lesen_hinweis">Kun læsning for den valgte egen computer. Kontaktfelter kræver en importvisning; valgte billeder forbliver beskyttede. Telefonens kontakter ændres ikke.</string>
     <string name="telefon_status_keine_verbindung">Ingen etableret forbindelse</string>
     <string name="personal_sync_simple">Noter og opgaver synkroniseres med denne parrede enhed. Vælg automatisk Wi-Fi-synkronisering eller start manuelt.</string>
     <string name="personal_sync_skip_deletions">Spring sletninger over</string>

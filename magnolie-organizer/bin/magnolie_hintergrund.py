@@ -783,6 +783,8 @@ def _request_shape(operation, arguments):
         "phone_set_bluetooth": {"peer_id", "enabled", "address"},
         "phone_set_call_audio": {"peer_id", "prefer_pc", "address", "echo_cancel"},
         "phone_request_status": {"peer_id", "request_id"},
+        "phone_read_contacts": {"peer_id", "uids"},
+        "phone_contact_source_current": {"peer_id", "fingerprint"},
         "phone_current_identifier_event": {"payload"},
         "phone_set_grant": {"peer_id", "name", "enabled"},
         "phone_set_personal_sync": {"peer_id", "own_device", "auto_wifi"},
@@ -1219,6 +1221,10 @@ class IPCServer:
             raise IPCError("phone service is not owned by the background service")
         if operation == "phone_request_status":
             return phone.request_status(arguments["peer_id"], request_id=arguments.get("request_id"))
+        if operation == "phone_read_contacts":
+            return phone.read_contacts(arguments["peer_id"], arguments.get("uids"))
+        if operation == "phone_contact_source_current":
+            return phone.contact_source_current(arguments["peer_id"], arguments["fingerprint"])
         if operation == "phone_set_call_audio":
             return phone.set_call_audio(arguments["peer_id"], arguments["prefer_pc"], arguments.get("address"), arguments.get("echo_cancel"))
         calls = {
@@ -1589,6 +1595,12 @@ class PhoneServiceProxy:
         return self._call("set_call_audio", **arguments)
     def request_status(self, peer_id, request_id=None):
         return self._call("request_status", peer_id=peer_id, request_id=request_id)
+
+    def read_contacts(self, peer_id, uids=None):
+        return self._call("read_contacts", peer_id=peer_id, uids=uids)
+
+    def contact_source_current(self, peer_id, fingerprint):
+        return self._call("contact_source_current", peer_id=peer_id, fingerprint=fingerprint)
     def current_identifier_event(self, payload):
         return self._call("current_identifier_event", payload=payload)
     def set_grant(self, peer_id, name, enabled):

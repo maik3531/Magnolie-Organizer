@@ -23,7 +23,7 @@ async function run(web, data, remote, options = {}) {
   const done = new Set(), timers = new Set(), requests = [];
   let resumed = false;
   if (options.beforeStart) options.beforeStart(b);
-  b.w.App.telefonStand(status);
+  b.w.App.telefonStand(options.status || status);
   const deadline = Date.now() + 10000;
   try {
     do {
@@ -40,7 +40,7 @@ async function run(web, data, remote, options = {}) {
           const timer = b.timers.find(t => t.delay === 12000 && !t.cancelled);
           assert.ok(timer); timer.fn(); timer.cancelled = true; continue;
         }
-        b.w.App.kontaktFotos({ ok: true, requestId: message.requestId, device_id: device,
+        b.w.App.kontaktFotos({ ok: true, requestId: message.requestId, device_id: options.device || device,
           fingerprint: message.uids && options.changedSource ? "b".repeat(64) : fingerprint,
           contacts: message.uids ? remote.filter(k => message.uids.includes(k.uid)) :
             remote.map(k => ({ uid: k.uid, modified_ms: k.modified_ms })) });
@@ -74,6 +74,22 @@ async function run(web, data, remote, options = {}) {
       { uid: "ambiguous", modified_ms: 1, foto: photo, email: "shared@example.org" }
     ];
     const first = await run(web, base, remote);
+    const notesPeer = { device_id: "11111111-1111-4111-8111-111111111111", state: "online_wifi", own_device: true,
+      remote_own_device: true, contacts_read_available: true, contacts_fingerprint: fingerprint };
+    const notesStatus = { enabled: true, peers: [notesPeer], kdeconnect: { contacts_available: false } };
+    const notesDevice = "notes:" + notesPeer.device_id;
+    const notes = await run(web, base, remote, { status: notesStatus, device: notesDevice });
+    assert.equal(notes.data.kontakte[0].foto, photo);
+    assert.equal(notes.data.kontakte[0].vorname, "Original");
+    assert.equal(notes.data.kontakte[1].foto, "");
+    assert.equal(notes.data.kontakte[2].foto, other);
+    assert(notes.requests.every(request => request.device_id === notesDevice), "Notes photo reads must retain their own device namespace");
+    const revokedNotes = await run(web, base, remote, { status: notesStatus, device: notesDevice, beforeReply: b =>
+      b.w.App.telefonStand({ ...notesStatus, peers: [{ ...notesPeer, contacts_read_available: false }] }) });
+    assert.equal(revokedNotes.data.kontakte[0].foto, "", "revoking contact reads must reject an in-flight Notes photo");
+    const unavailableNotes = await run(web, base, remote, { status: { ...notesStatus,
+      peers: [{ ...notesPeer, contacts_read_available: false }] }, device: notesDevice });
+    assert.equal(unavailableNotes.requests.length, 0, "pairing alone must not start contact reads");
     assert.equal(first.data.kontakte[0].foto, photo, "normalised phone number must match without importing a contact");
     assert.equal(first.data.kontakte[0].vorname, "Original");
     assert.equal(first.data.kontakte[1].foto, "", "explicit photo removal stays protected");

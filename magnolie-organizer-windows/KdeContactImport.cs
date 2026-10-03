@@ -11,15 +11,16 @@ internal static class KdeContactImport
     private static readonly Regex Fingerprint = new("^[a-fA-F0-9]{64}$", RegexOptions.CultureInvariant);
     private static readonly Regex TransportProperty = new("^(?:[^:;.]+\\.)?(?:PHOTO|UID|REV|VERSION|BEGIN|END|PRODID)[;:]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-    internal static string Binding(string deviceId, string fingerprint, string uid)
+    internal static string Binding(string deviceId, string fingerprint, string uid, string provider = "kde")
     {
+        if (provider is not ("kde" or "notes")) throw new InvalidDataException("invalid_contact_source");
         if (deviceId.Length is < 1 or > 200 || deviceId.Any(char.IsControl) || fingerprint.Length != 64 || !Fingerprint.IsMatch(fingerprint) ||
             uid.Length is < 1 or > 1024 || uid.Any(char.IsControl)) throw new InvalidDataException("invalid_contact_source");
-        var bytes = Utf8.GetBytes("kde-contact-v1\0" + deviceId + "\0" + fingerprint.ToLowerInvariant() + "\0" + uid);
-        return "urn:magnolie:import:kde:" + Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+        var bytes = Utf8.GetBytes(provider + "-contact-v1\0" + deviceId + "\0" + fingerprint.ToLowerInvariant() + "\0" + uid);
+        return "urn:magnolie:import:" + provider + ":" + Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
     }
 
-    internal static void Project(JsonObject result, string expectedDevice, IReadOnlyCollection<string> requested)
+    internal static void Project(JsonObject result, string expectedDevice, IReadOnlyCollection<string> requested, string provider = "kde")
     {
         var device = result["device_id"]!.GetValue<string>();
         var fingerprint = result["fingerprint"]!.GetValue<string>();
@@ -45,7 +46,7 @@ internal static class KdeContactImport
                     parameters.Remove(name);
             item.Remove("vcard");
             item["kontakt"] = selected;
-            item["bindung"] = Binding(device, fingerprint, uid);
+            item["bindung"] = Binding(device, fingerprint, uid, provider);
         }
     }
 }

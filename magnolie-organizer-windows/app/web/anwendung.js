@@ -15,170 +15,150 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.25";
+const FASSUNG = "2.0.26";
 const S = (x) => (x === undefined || x === null) ? "" : String(x);
-const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.25";
+const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.26";
 
 const NEU_IN_DIESER_FASSUNG = {
   "de": [
     "Neu in dieser Version",
-    "Gleiche vorhandene Notizen werden nach erfolgreichem Abgleich zusammengeführt",
-    "Kontaktbilder aus unterstützten KDE-Verbindungen werden zwischengespeichert; manuelle Bilder bleiben geschützt",
-    "Uhrzeiten fortlaufend eingeben: 2015 wird zu 20:15",
-    "Neue Aufgaben verwenden einen ausgewählten Kalender mit Aufgabenunterstützung",
-    "Magnolie Notes 1.0.17 — unverändert"
+    "Magnolie Notes 1.0.18: optionaler Notizimport nur Notes → Organizer je Rechner, einfachere Abgleichbedienung und erhaltene Anhänge.",
+    "Kontakte und Fotos: feldweise Importvorschau, Bildalternativen und freigegebener Lesezugriff über Notes oder KDE Connect.",
+    "Bestehende Baumverbindungen an einen weiteren Rechner mit eigener Identität weitergeben. Direkter Internetbetrieb benötigt weiterhin erreichbare Verbindungswege.",
+    "Müllkalender aus ICS/CSV importieren, Notfallkontakte verknüpfen und Kartenziele auswählen. Handbuch in allen 20 Sprachen aktualisiert."
   ],
   "en": [
     "What's new in this version",
-    "Existing matching notes are merged after successful synchronization",
-    "Contact photos from supported KDE connections are cached; manual pictures stay protected",
-    "Enter times continuously: 2015 becomes 20:15",
-    "New tasks use a selected calendar that supports tasks",
-    "Magnolie Notes 1.0.17 — unchanged"
+    "Magnolie Notes 1.0.18: optional Notes → Organizer note import for each computer, with simpler synchronization controls and preserved attachments.",
+    "Contacts and photos: field-by-field import preview, photo alternatives and authorized read-only access through Notes or KDE Connect.",
+    "Forward an existing tree connection to another computer with its own identity. Direct Internet use still requires reachable routes.",
+    "Import waste calendars from ICS/CSV; link emergency contacts and choose map destinations. Handbook updated in all 20 languages."
   ],
   "fr": [
     "Nouveautés de cette version",
-    "Les notes existantes identiques sont fusionnées après une synchronisation réussie",
-    "Les photos des contacts des connexions KDE prises en charge sont mises en cache ; les images choisies manuellement restent protégées",
-    "Saisissez les heures sans interruption : 2015 devient 20:15",
-    "Les nouvelles tâches utilisent un calendrier sélectionné prenant en charge les tâches",
-    "Magnolie Notes 1.0.17 — inchangé"
+    "Magnolie Notes 1.0.18 : import facultatif des notes uniquement Notes → Organizer par ordinateur, commandes simplifiées et pièces jointes préservées.",
+    "Contacts et photos : aperçu champ par champ, choix d’images et lecture autorisée via Notes ou KDE Connect.",
+    "Transmettez une connexion existante de l’arbre à un autre ordinateur avec sa propre identité. Internet direct exige toujours des chemins accessibles.",
+    "Import des collectes ICS/CSV, contacts d’urgence liés et choix des destinations cartographiques. Manuel actualisé dans les 20 langues."
   ],
   "es": [
     "Novedades de esta versión",
-    "Las notas existentes iguales se combinan después de una sincronización correcta",
-    "Las fotos de contactos de conexiones KDE compatibles se guardan en caché; las imágenes elegidas manualmente quedan protegidas",
-    "Introduzca la hora seguida: 2015 se convierte en 20:15",
-    "Las tareas nuevas utilizan un calendario seleccionado compatible con tareas",
-    "Magnolie Notes 1.0.17 — sin cambios"
+    "Magnolie Notes 1.0.18: importación opcional de notas solo Notes → Organizer por ordenador, controles simplificados y adjuntos conservados.",
+    "Contactos y fotos: vista previa campo a campo, alternativas de imagen y lectura autorizada mediante Notes o KDE Connect.",
+    "Comparta una conexión existente del árbol con otro ordenador de identidad propia. Internet directo sigue necesitando rutas accesibles.",
+    "Importe recogidas ICS/CSV, vincule contactos de emergencia y elija destinos del mapa. Manual actualizado en los 20 idiomas."
   ],
   "it": [
     "Novità di questa versione",
-    "Le note esistenti uguali vengono unite dopo una sincronizzazione riuscita",
-    "Le foto dei contatti delle connessioni KDE supportate vengono memorizzate nella cache; le immagini scelte manualmente restano protette",
-    "Inserisci l’ora senza interruzioni: 2015 diventa 20:15",
-    "Le nuove attività utilizzano un calendario selezionato che supporta le attività",
-    "Magnolie Notes 1.0.17 — invariato"
+    "Magnolie Notes 1.0.18: importazione facoltativa delle note solo Notes → Organizer per computer, controlli semplificati e allegati conservati.",
+    "Contatti e foto: anteprima campo per campo, immagini alternative e lettura autorizzata tramite Notes o KDE Connect.",
+    "Condividi una connessione esistente dell’albero con un altro computer dotato di identità propria. Internet diretto richiede percorsi raggiungibili.",
+    "Importa raccolte ICS/CSV, collega contatti di emergenza e scegli destinazioni sulla mappa. Manuale aggiornato nelle 20 lingue."
   ],
   "nl": [
     "Nieuw in deze versie",
-    "Bestaande gelijke notities worden na geslaagde synchronisatie samengevoegd",
-    "Contactfoto’s uit ondersteunde KDE-verbindingen worden gecachet; handmatig gekozen afbeeldingen blijven beschermd",
-    "Voer tijden achter elkaar in: 2015 wordt 20:15",
-    "Nieuwe taken gebruiken een geselecteerde agenda die taken ondersteunt",
-    "Magnolie Notes 1.0.17 — ongewijzigd"
+    "Magnolie Notes 1.0.18: optionele notitie-import alleen Notes → Organizer per computer, eenvoudiger bediening en behouden bijlagen.",
+    "Contacten en foto’s: importvoorbeeld per veld, alternatieve afbeeldingen en toegestane leestoegang via Notes of KDE Connect.",
+    "Deel een bestaande boomverbinding met een andere computer met eigen identiteit. Direct internetgebruik vereist bereikbare routes.",
+    "Importeer afvalkalenders uit ICS/CSV, koppel noodcontacten en kies kaartbestemmingen. Handleiding bijgewerkt in alle 20 talen."
   ],
   "pt": [
     "Novidades desta versão",
-    "Notas existentes iguais são combinadas após uma sincronização bem-sucedida",
-    "Fotos de contactos de ligações KDE compatíveis são guardadas em cache; imagens escolhidas manualmente permanecem protegidas",
-    "Introduza a hora seguida: 2015 torna-se 20:15",
-    "Novas tarefas usam um calendário selecionado que suporta tarefas",
-    "Magnolie Notes 1.0.17 — sem alterações"
+    "Magnolie Notes 1.0.18: importação opcional de notas apenas Notes → Organizer por computador, controlos simplificados e anexos preservados.",
+    "Contactos e fotografias: pré-visualização por campo, imagens alternativas e leitura autorizada via Notes ou KDE Connect.",
+    "Partilhe uma ligação existente da árvore com outro computador de identidade própria. Internet direto exige caminhos acessíveis.",
+    "Importe recolhas ICS/CSV, ligue contactos de emergência e escolha destinos no mapa. Manual atualizado nos 20 idiomas."
   ],
   "ru": [
     "Новое в этой версии",
-    "Существующие одинаковые заметки объединяются после успешной синхронизации",
-    "Фотографии контактов из поддерживаемых подключений KDE сохраняются в кэше; выбранные вручную изображения защищены",
-    "Вводите время подряд: 2015 превращается в 20:15",
-    "Новые задачи используют выбранный календарь с поддержкой задач",
-    "Magnolie Notes 1.0.17 — без изменений"
+    "Magnolie Notes 1.0.18: необязательный импорт заметок только Notes → Organizer для каждого компьютера, упрощённое управление и сохранение вложений.",
+    "Контакты и фотографии: просмотр импорта по полям, выбор изображений и разрешённое чтение через Notes или KDE Connect.",
+    "Передача существующего соединения дерева другому компьютеру с собственной идентичностью. Прямой интернет требует доступных маршрутов.",
+    "Импорт вывоза отходов ICS/CSV, связанные экстренные контакты и выбор адреса для карты. Руководство обновлено на всех 20 языках."
   ],
   "cs": [
     "Co je nového v této verzi",
-    "Existující shodné poznámky se sloučí po úspěšné synchronizaci",
-    "Fotografie kontaktů z podporovaných připojení KDE se ukládají do mezipaměti; ručně zvolené obrázky zůstávají chráněné",
-    "Čas zadávejte souvisle: 2015 se změní na 20:15",
-    "Nové úkoly používají vybraný kalendář podporující úkoly",
-    "Magnolie Notes 1.0.17 — beze změn"
+    "Magnolie Notes 1.0.18: volitelný import poznámek pouze Notes → Organizer pro každý počítač, jednodušší ovládání a zachované přílohy.",
+    "Kontakty a fotografie: náhled importu po polích, alternativní obrázky a povolené čtení přes Notes nebo KDE Connect.",
+    "Sdílení existujícího spojení stromu s dalším počítačem s vlastní identitou. Přímý internet vyžaduje dosažitelné cesty.",
+    "Import svozu odpadu ICS/CSV, propojené nouzové kontakty a výběr adresy pro mapu. Příručka aktualizována ve všech 20 jazycích."
   ],
   "pl": [
     "Nowości w tej wersji",
-    "Istniejące jednakowe notatki są łączone po udanej synchronizacji",
-    "Zdjęcia kontaktów z obsługiwanych połączeń KDE są buforowane; obrazy wybrane ręcznie pozostają chronione",
-    "Wpisuj godzinę ciągiem: 2015 zmienia się w 20:15",
-    "Nowe zadania korzystają z wybranego kalendarza obsługującego zadania",
-    "Magnolie Notes 1.0.17 — bez zmian"
+    "Magnolie Notes 1.0.18: opcjonalny import notatek tylko Notes → Organizer dla każdego komputera, prostsze sterowanie i zachowane załączniki.",
+    "Kontakty i zdjęcia: podgląd importu według pól, alternatywne obrazy i dozwolony odczyt przez Notes lub KDE Connect.",
+    "Udostępnianie istniejącego połączenia drzewa innemu komputerowi z własną tożsamością. Bezpośredni internet wymaga osiągalnych tras.",
+    "Import odbioru odpadów ICS/CSV, powiązane kontakty alarmowe i wybór adresu mapy. Podręcznik zaktualizowany we wszystkich 20 językach."
   ],
   "hsb": [
     "Nowe w tutej wersiji",
-    "Eksistowace samsne noticy so po wuspěšnej synchronizaciji zjednoća",
-    "Kontaktowe fota z podpěrowanych KDE-zwiskow so w pufrowaku składuja; manuelnje wubrane wobrazy wostanu škitane",
-    "Zapodajće čas bjez přestawki: 2015 so na 20:15 změni",
-    "Nowe nadawki wužiwaja wubranu protyku, kotraž nadawki podpěruje",
-    "Magnolie Notes 1.0.17 — njezměnjeny"
+    "Magnolie Notes 1.0.18: opcionalny import noticow jenož Notes → Organizer za kóždy ličak, jednoriše wobslužowanje a zachowane přiwěški.",
+    "Kontakty a fota: importowy přehlad po polach, alternativne wobrazy a dowolene čitanje přez Notes abo KDE Connect.",
+    "Wobstejacy zwisk štoma na dalši ličak ze swójskej identitu dale dać. Direktny internet sej přistupne ruty žada.",
+    "Import wotwoženja wotpadkow ICS/CSV, zwjazane nuzowe kontakty a wuběr adresy za kartu. Přiručka we wšěch 20 rěčach aktualizowana."
   ],
   "da": [
     "Nyt i denne version",
-    "Eksisterende ens noter sammenflettes efter vellykket synkronisering",
-    "Kontaktfotos fra understøttede KDE-forbindelser gemmes i cache; manuelt valgte billeder forbliver beskyttede",
-    "Indtast klokkeslæt fortløbende: 2015 bliver til 20:15",
-    "Nye opgaver bruger en valgt kalender med opgaveunderstøttelse",
-    "Magnolie Notes 1.0.17 — uændret"
+    "Magnolie Notes 1.0.18: valgfri noteimport kun Notes → Organizer pr. computer, enklere kontroller og bevarede vedhæftninger.",
+    "Kontakter og billeder: importvisning felt for felt, alternative billeder og tilladt læsning via Notes eller KDE Connect.",
+    "Del en eksisterende træforbindelse med en anden computer med egen identitet. Direkte internet kræver tilgængelige ruter.",
+    "Importér affaldskalendere fra ICS/CSV, tilknyt nødkontakter og vælg kortmål. Håndbogen er opdateret på alle 20 sprog."
   ],
   "nb": [
     "Nytt i denne versjonen",
-    "Eksisterende like notater slås sammen etter vellykket synkronisering",
-    "Kontaktbilder fra støttede KDE-forbindelser mellomlagres; manuelt valgte bilder forblir beskyttet",
-    "Skriv klokkeslett fortløpende: 2015 blir til 20:15",
-    "Nye oppgaver bruker en valgt kalender som støtter oppgaver",
-    "Magnolie Notes 1.0.17 — uendret"
+    "Magnolie Notes 1.0.18: valgfri notatimport kun Notes → Organizer per datamaskin, enklere kontroller og bevarte vedlegg.",
+    "Kontakter og bilder: importvisning felt for felt, alternative bilder og tillatt lesing via Notes eller KDE Connect.",
+    "Del en eksisterende tretilkobling med en annen datamaskin med egen identitet. Direkte Internett krever tilgjengelige ruter.",
+    "Importer avfallskalendere fra ICS/CSV, koble nødkontakter og velg kartmål. Håndboken er oppdatert på alle 20 språk."
   ],
   "hi": [
     "इस संस्करण में नया",
-    "सफल सिंक्रनाइज़ेशन के बाद मौजूदा समान नोट एक साथ मिलाए जाते हैं",
-    "समर्थित KDE कनेक्शन से संपर्क फ़ोटो कैश में रखे जाते हैं; स्वयं चुनी गई तस्वीरें सुरक्षित रहती हैं",
-    "समय लगातार लिखें: 2015 से 20:15 बनता है",
-    "नए कार्य चुने हुए ऐसे कैलेंडर का उपयोग करते हैं जो कार्यों का समर्थन करता है",
-    "Magnolie Notes 1.0.17 — अपरिवर्तित"
+    "Magnolie Notes 1.0.18: हर कंप्यूटर के लिए वैकल्पिक केवल Notes → Organizer नोट आयात, सरल नियंत्रण और सुरक्षित अटैचमेंट।",
+    "संपर्क और फ़ोटो: फ़ील्ड के अनुसार आयात पूर्वावलोकन, वैकल्पिक तस्वीरें और Notes या KDE Connect से अधिकृत पढ़ना।",
+    "मौजूदा ट्री कनेक्शन अपनी पहचान वाले दूसरे कंप्यूटर से साझा करें। सीधे इंटरनेट के लिए पहुँच योग्य मार्ग जरूरी हैं।",
+    "ICS/CSV कचरा कैलेंडर आयात, जुड़े आपातकालीन संपर्क और नक्शे का गंतव्य चयन। हैंडबुक सभी 20 भाषाओं में अपडेट है।"
   ],
   "zh-cn": [
     "此版本的新功能",
-    "成功同步后合并已有的相同笔记",
-    "缓存受支持的 KDE 连接中的联系人照片，并保护手动选择的图片",
-    "连续输入时间：2015 会变为 20:15",
-    "新任务使用已选中且支持任务的日历",
-    "Magnolie Notes 1.0.17 — 未更改"
+    "Magnolie Notes 1.0.18：可为每台电脑选择仅 Notes → Organizer 的笔记导入，简化同步操作并保留附件。",
+    "联系人与照片：逐字段导入预览、备选图片，以及通过 Notes 或 KDE Connect 的已授权只读访问。",
+    "将已有树连接分享给具有独立身份的另一台电脑。直接互联网连接仍需要可访问的路径。",
+    "导入 ICS/CSV 垃圾收运日历、关联紧急联系人并选择地图目的地。手册已更新全部20种语言。"
   ],
   "ja": [
     "このバージョンの新機能",
-    "同期が成功すると、既存の同じ内容のノートを統合します",
-    "対応する KDE 接続の連絡先写真をキャッシュし、手動で選んだ画像を保護します",
-    "時刻を続けて入力できます：2015 は 20:15 になります",
-    "新しいタスクには、選択済みのタスク対応カレンダーを使用します",
-    "Magnolie Notes 1.0.17 — 変更なし"
+    "Magnolie Notes 1.0.18：コンピューターごとにNotes → Organizerのみのノート取り込みを選択でき、操作を簡略化し添付ファイルを保持します。",
+    "連絡先と写真：項目別のインポート確認、写真の選択肢、NotesまたはKDE Connectによる許可済みの読み取り。",
+    "既存のツリー接続を独自の識別情報を持つ別のコンピューターへ共有できます。直接のインターネット接続には到達可能な経路が必要です。",
+    "ICS/CSVごみ収集カレンダーの取り込み、緊急連絡先のリンク、地図の目的地選択。ハンドブックを全20言語で更新しました。"
   ],
   "ar": [
     "ما الجديد في هذا الإصدار",
-    "تُدمج الملاحظات الموجودة المتطابقة بعد نجاح المزامنة",
-    "تُحفظ صور جهات الاتصال من اتصالات KDE المدعومة مؤقتًا مع حماية الصور المختارة يدويًا",
-    "أدخل الوقت متصلًا: يتحول 2015 إلى 20:15",
-    "تستخدم المهام الجديدة تقويمًا محددًا يدعم المهام",
-    "Magnolie Notes 1.0.17 — دون تغيير"
+    "Magnolie Notes 1.0.18: استيراد اختياري للملاحظات فقط من Notes إلى Organizer لكل حاسوب، مع تحكم أبسط ومرفقات محفوظة.",
+    "جهات الاتصال والصور: معاينة الاستيراد حسب الحقول، صور بديلة وقراءة مصرّحة عبر Notes أو KDE Connect.",
+    "شارك اتصال الشجرة القائم مع حاسوب آخر بهوية مستقلة. الإنترنت المباشر يتطلب مسارات قابلة للوصول.",
+    "استيراد تقاويم النفايات ICS/CSV وربط جهات الطوارئ واختيار وجهات الخرائط. تحديث الدليل باللغات العشرين."
   ],
   "uk": [
     "Нове в цій версії",
-    "Наявні однакові нотатки об’єднуються після успішної синхронізації",
-    "Фотографії контактів із підтримуваних з’єднань KDE кешуються; вибрані вручну зображення залишаються захищеними",
-    "Вводьте час послідовно: 2015 перетворюється на 20:15",
-    "Нові завдання використовують вибраний календар із підтримкою завдань",
-    "Magnolie Notes 1.0.17 — без змін"
+    "Magnolie Notes 1.0.18: необов’язковий імпорт нотаток лише Notes → Organizer для кожного комп’ютера, простіше керування й збереження вкладень.",
+    "Контакти й фотографії: перегляд імпорту за полями, вибір зображень і дозволене читання через Notes або KDE Connect.",
+    "Передавання наявного з’єднання дерева іншому комп’ютеру з власною ідентичністю. Прямий інтернет потребує доступних маршрутів.",
+    "Імпорт вивезення відходів ICS/CSV, пов’язані екстрені контакти й вибір адреси для карти. Посібник оновлено всіма 20 мовами."
   ],
   "be": [
     "Што новага ў гэтай версіі",
-    "Наяўныя аднолькавыя нататкі аб’ядноўваюцца пасля паспяховай сінхранізацыі",
-    "Фатаграфіі кантактаў з падтрымліваемых злучэнняў KDE захоўваюцца ў кэшы; выбраныя ўручную выявы застаюцца абароненымі",
-    "Уводзьце час паслядоўна: 2015 ператвараецца ў 20:15",
-    "Новыя задачы выкарыстоўваюць выбраны каляндар з падтрымкай задач",
-    "Magnolie Notes 1.0.17 — без змен"
+    "Magnolie Notes 1.0.18: неабавязковы імпарт нататак толькі Notes → Organizer для кожнага камп’ютара, прасцейшае кіраванне і захаванне ўкладанняў.",
+    "Кантакты і фатаграфіі: прагляд імпарту па палях, выбар выяў і дазволенае чытанне праз Notes або KDE Connect.",
+    "Перадача існуючага злучэння дрэва іншаму камп’ютару з уласнай ідэнтычнасцю. Прамы інтэрнэт патрабуе даступных маршрутаў.",
+    "Імпарт вывазу адходаў ICS/CSV, звязаныя экстраныя кантакты і выбар адраса для карты. Дапаможнік абноўлены на ўсіх 20 мовах."
   ],
   "tr": [
     "Bu sürümdeki yenilikler",
-    "Başarılı eşitlemeden sonra mevcut aynı notlar birleştirilir",
-    "Desteklenen KDE bağlantılarındaki kişi fotoğrafları önbelleğe alınır; elle seçilen resimler korunur",
-    "Saati kesintisiz girin: 2015, 20:15 olur",
-    "Yeni görevler, görevleri destekleyen seçili bir takvimi kullanır",
-    "Magnolie Notes 1.0.17 — değişmedi"
+    "Magnolie Notes 1.0.18: bilgisayar başına isteğe bağlı yalnız Notes → Organizer not aktarımı, daha basit kontroller ve korunan ekler.",
+    "Kişiler ve fotoğraflar: alan bazlı içe aktarma önizlemesi, alternatif resimler ve Notes veya KDE Connect üzerinden izinli okuma.",
+    "Mevcut ağaç bağlantısını kendi kimliğine sahip başka bilgisayarla paylaşın. Doğrudan İnternet erişilebilir yollar gerektirir.",
+    "ICS/CSV atık takvimlerini içe aktarın, acil durum kişilerini bağlayın ve harita hedeflerini seçin. Kılavuz 20 dilde güncellendi."
   ]
 };
 if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes version mismatch");
@@ -4519,8 +4499,17 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     });
   }
 
+  function kontaktDatenQuelle() {
+    if (telefonStand?.kdeconnect?.contacts_available) return telefonStand.kdeconnect;
+    const notes = (telefonStand?.peers || []).filter(p => p.contacts_read_available === true &&
+      p.own_device === true && p.remote_own_device === true && /^online_/.test(p.state || ""));
+    if (notes.length !== 1) return null;
+    return { contacts_available: true, contacts_device_id: "notes:" + notes[0].device_id,
+      contacts_fingerprint: notes[0].contacts_fingerprint || "", provider: "notes" };
+  }
+
   function planeKontaktFotoAbruf() {
-    const quelle = telefonStand?.kdeconnect;
+    const quelle = kontaktDatenQuelle();
     const beschaeftigt = () => aktiverEditor || syncLaeuft || kdeKontaktLauf ||
       (typeof kontaktSyncPruefungLauf !== "undefined" && kontaktSyncPruefungLauf) ||
       document.querySelector(".baum-kontakt-konflikt, .sync-kontakt-konflikt, .kontakt-import-schleier, .kontakt-datei-pruefung, .kontakt-assistent-schleier");
@@ -4531,17 +4520,18 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (beschaeftigt()) {
       clearTimeout(kontaktFotoTimer); kontaktFotoTimer = setTimeout(planeKontaktFotoAbruf, 60000); return;
     }
-    if (kontaktFotoKontext?.daten !== DATEN || kontaktFotoKontext.deviceId !== quelle.contacts_device_id) {
-      kontaktFotoKontext = { daten: DATEN, deviceId: quelle.contacts_device_id };
+    if (kontaktFotoKontext?.daten !== DATEN || kontaktFotoKontext.deviceId !== quelle.contacts_device_id ||
+        kontaktFotoKontext.sourceFingerprint !== (quelle.contacts_fingerprint || "")) {
+      kontaktFotoKontext = { daten: DATEN, deviceId: quelle.contacts_device_id, sourceFingerprint: quelle.contacts_fingerprint || "" };
       kontaktFotoLauf = null; kontaktFotoNaechsterAbruf = 0;
     }
     if (kontaktFotoLauf || Date.now() < kontaktFotoNaechsterAbruf) return;
     clearTimeout(kontaktFotoTimer);
-    const lauf = { daten: DATEN, epoch: DATEN.syncEpoch, deviceId: quelle.contacts_device_id };
+    const lauf = { daten: DATEN, epoch: DATEN.syncEpoch, deviceId: quelle.contacts_device_id, sourceFingerprint: quelle.contacts_fingerprint || "" };
     kontaktFotoLauf = lauf;
     const gueltig = () => kontaktFotoLauf === lauf && DATEN === lauf.daten && DATEN.syncEpoch === lauf.epoch &&
       !gesperrt && !beschaeftigt() && DATEN.einstellungen.adressen.foto &&
-      telefonStand?.kdeconnect?.contacts_available && telefonStand.kdeconnect.contacts_device_id === lauf.deviceId;
+      kontaktDatenQuelle()?.contacts_device_id === lauf.deviceId && (kontaktDatenQuelle()?.contacts_fingerprint || "") === lauf.sourceFingerprint;
     const zuordnungen = () => JSON.stringify(DATEN.kontakte.map(k => [k.id, kontaktTelefone(k),
       emailListe(k).map(kontaktFotoMailSchluessel), k.fotoManuell === true]));
     (async () => {
@@ -4552,6 +4542,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (!gueltig()) return;
       if (index.contacts.length > 20000 || !/^[a-f0-9]{64}$/i.test(index.fingerprint || "")) throw new Error("invalid_contact_index");
       const fingerprint = index.fingerprint.toLowerCase(), jetzt = Date.now();
+      if (lauf.sourceFingerprint && fingerprint !== lauf.sourceFingerprint) throw new Error("contact_source_changed");
       const alt = DATEN.kontaktFotoCache;
       const wiederverwenden = alt?.deviceId === lauf.deviceId && alt.fingerprint === fingerprint && alt.mappingHash === mappingHash;
       const cache = new Map((wiederverwenden && Array.isArray(alt.entries) ? alt.entries.slice(0, 20000) : [])
@@ -6362,7 +6353,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const Q = (x) => x && typeof x === "object" ? JSON.parse(JSON.stringify(x)) : {};
     const importBindungen = (werte) => Array.from(new Set((Array.isArray(werte) ? werte : [])
       .map((wert) => String(wert || "").trim().toLowerCase())
-      .filter((wert) => /^urn:magnolie:import:(?:android|kde):[0-9a-f]{64}$/.test(wert)))).slice(-32);
+      .filter((wert) => /^urn:magnolie:import:(?:android|kde|notes):[0-9a-f]{64}$/.test(wert)))).slice(-32);
     d.customOrganizer = normalisiereCustomOrganizer(roh.customOrganizer);
     d.termine = normalisiereTermine(roh.termine);
     for (const a of Array.isArray(roh.aufgaben) ? roh.aufgaben : []) {
@@ -21565,7 +21556,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       status.textContent = _("Checking online accounts …");
     }
     baueNextcloudKonto(wurzel);
-    const telefonKontakte = abschnitt(_("Phone contacts (KDE Connect)"),
+    const telefonKontakte = abschnitt(_("Contacts") + " (KDE Connect / Magnolie Notes)",
       _("Preview contacts from the paired phone. Changes are saved only in Organizer; no contacts are deleted."));
     const abrufen = knopf(_("Import preview"), "", () => starteKdeKontaktImport());
     abrufen.id = "kde-kontakte-abrufen";
@@ -21771,7 +21762,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function kdeKontaktPlan(karte, kontakte, index = kdeKontaktIndex(kontakte)) {
     const bindung = karte.bindung;
-    if (!/^urn:magnolie:import:kde:[0-9a-f]{64}$/.test(bindung || "") ||
+    if (!/^urn:magnolie:import:(?:kde|notes):[0-9a-f]{64}$/.test(bindung || "") ||
         !karte.kontakt || typeof karte.kontakt !== "object") throw new Error(_("The offered entry is incomplete."));
     const eingang = karte.kontakt;
     const kandidaten = [...new Set([...(index.bindungen.get(bindung) || []),
@@ -21827,15 +21818,16 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         document.querySelector(".baum-kontakt-konflikt, .sync-kontakt-konflikt, .kontakt-assistent-schleier")) {
       zettel(_("Please wait …")); return;
     }
-    const quelle = telefonStand?.kdeconnect;
+    const quelle = kontaktDatenQuelle();
     if (!quelle?.contacts_available || !quelle.contacts_device_id) {
       Bruecke.sende({ cmd: "telefon_stand" }); zettel(_("The phone is no longer connected.")); return;
     }
-    const lauf = { daten: DATEN, epoch: DATEN.syncEpoch, deviceId: quelle.contacts_device_id, beendet: false };
+    const lauf = { daten: DATEN, epoch: DATEN.syncEpoch, deviceId: quelle.contacts_device_id,
+      sourceFingerprint: quelle.contacts_fingerprint || "", beendet: false };
     kdeKontaktLauf = lauf;
     const gueltig = () => !lauf.beendet && kdeKontaktLauf === lauf && DATEN === lauf.daten && !gesperrt &&
       DATEN.syncEpoch === lauf.epoch && !syncLaeuft && !aktiverEditor &&
-      telefonStand?.kdeconnect?.contacts_available && telefonStand.kdeconnect.contacts_device_id === lauf.deviceId;
+      kontaktDatenQuelle()?.contacts_device_id === lauf.deviceId && (kontaktDatenQuelle()?.contacts_fingerprint || "") === lauf.sourceFingerprint;
     const schleier = el("div", "eingabe-schleier kontakt-import-schleier");
     const dialog = el("section", "eingabe-dialog kontakt-import-dialog");
     dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
@@ -21853,7 +21845,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const abbrechen = knopf(_("Cancel"), "", schliessen);
     const anwenden = knopf(_("Apply"), "hauptknopf", () => {}); anwenden.disabled = true;
     const knoepfe = el("div", "dialog-knoepfe"); knoepfe.append(anwenden, abbrechen);
-    dialog.append(el("h2", null, _("Phone contacts (KDE Connect)")), status, liste, knoepfe);
+    dialog.append(el("h2", null, quelle.provider === "notes" ? _("Contacts") + " (Magnolie Notes)" : _("Phone contacts (KDE Connect)")), status, liste, knoepfe);
     schleier.append(dialog); document.body.append(schleier);
     registriereModal(schleier, dialog, { anfang: abbrechen, schliessen });
     try {
@@ -21864,6 +21856,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (!gueltig() || !/^[a-f0-9]{64}$/i.test(index.fingerprint || "") || index.contacts.length > 20000)
         throw new Error(_("The offered entry is incomplete."));
       const fingerprint = index.fingerprint.toLowerCase(), ids = index.contacts.map(k => k.uid);
+      if (lauf.sourceFingerprint && fingerprint !== lauf.sourceFingerprint) throw new Error(_("Conflict"));
       // System-KDE timestamps describe cache writes, not necessarily contact edits.
       const indexStand = antwort => kanonischerEntwurf(antwort.contacts.map(k => [k.uid, index.native_cache === true ? 0 : k.modified_ms])
         .sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
@@ -21880,7 +21873,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         umfang += new Blob([JSON.stringify(antwort.contacts)]).size;
         if (umfang > 64 * 1024 * 1024) throw new Error(_("The offered entry is incomplete."));
         for (const karte of antwort.contacts) {
-          const bindung = "urn:magnolie:import:kde:" + await kontaktFotoHash("kde-contact-v1\0" + lauf.deviceId + "\0" + fingerprint + "\0" + karte.uid);
+          const provider = quelle.provider === "notes" ? "notes" : "kde";
+          const bindung = "urn:magnolie:import:" + provider + ":" + await kontaktFotoHash(provider + "-contact-v1\0" + lauf.deviceId + "\0" + fingerprint + "\0" + karte.uid);
           if (karte.bindung !== bindung) throw new Error(_("Conflict"));
           karte.hash = await kontaktFotoHash(kanonischerEntwurf(karte.kontakt)); karten.push(karte);
         }
@@ -21890,7 +21884,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const kontaktIndex = kdeKontaktIndex(DATEN.kontakte);
       const plaene = karten.map(k => kdeKontaktPlan(k, DATEN.kontakte, kontaktIndex));
       const beschreibe = wert => Array.isArray(wert) ? wert.map(beschreibe).join(" · ") :
-        typeof wert === "string" ? wert : wert?.wert ? [wert.label, wert.wert].filter(Boolean).join(": ") : JSON.stringify(wert ?? "");
+        typeof wert === "string" ? wert : wert?.wert ? [wert.dienst ? sozialerDienstName(String(wert.dienst).toLowerCase()) : wert.label, wert.wert].filter(Boolean).join(": ") : JSON.stringify(wert ?? "");
       let seite = 0;
       function zeichnen() {
         liste.textContent = "";
@@ -23921,7 +23915,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
     const kde = telefonStand.kdeconnect || {};
     const kdeBlock = el("div", "telefon-kdeconnect");
-    const kontakteVerweis = knopf(_("Phone contacts (KDE Connect)"), "", () => {
+    const kontakteVerweis = knopf(_("Contacts") + " (KDE Connect / Magnolie Notes)", "", () => {
       einstSeite = "sync"; baueEinstellungen(); $("#kde-kontakte-abrufen")?.focus();
     });
     kontakteVerweis.id = "kde-telefonkontakte-verweis"; kdeBlock.append(kontakteVerweis);
@@ -26957,7 +26951,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         if (plan.lokalzeit && plan.lokalzeit !== plan.quellzeit)
           plan.neuereEntscheidung = plan.lokalzeit > plan.quellzeit ? "keep" : "newer";
       }
-      const bereich = quelle || (plan.karte.importBindungen || []).filter(b => /^urn:magnolie:import:(android|kde):[a-f0-9]{64}$/.test(b)).sort().join("|");
+      const bereich = quelle || (plan.karte.importBindungen || []).filter(b => /^urn:magnolie:import:(android|kde|notes):[a-f0-9]{64}$/.test(b)).sort().join("|");
       if (!bereich || providerZiel) return;
       const { geaendert, ...inhalt } = plan.karte;
       plan.hash = await personalSyncHash(kanonischerEntwurf(["kontakt_import", bereich, inhalt]));
@@ -28150,8 +28144,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       });
       if (aktivesZeichenziel && (!telefonStand?.kdeconnect?.digitizer_available ||
           telefonStand.kdeconnect.digitizer_device_id !== aktivesZeichenziel.deviceId)) beendeTabletEingabe();
-      if (kdeKontaktLauf && (!telefonStand?.kdeconnect?.contacts_available ||
-          telefonStand.kdeconnect.contacts_device_id !== kdeKontaktLauf.deviceId)) kdeKontaktLauf.abbrechen();
+      if (kdeKontaktLauf && (kontaktDatenQuelle()?.contacts_device_id !== kdeKontaktLauf.deviceId ||
+          (kontaktDatenQuelle()?.contacts_fingerprint || "") !== kdeKontaktLauf.sourceFingerprint)) kdeKontaktLauf.abbrechen();
       planeKontaktFotoAbruf();
       telefonStandardsAnwenden();
       document.querySelectorAll("[data-personal-grant-peer], [data-personal-auto-peer]").forEach(input => {

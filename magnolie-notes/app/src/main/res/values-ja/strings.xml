@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_kontakte_lesen">このコンピューターに連絡先と写真の読み取りを許可</string>
+    <string name="telefon_kontakte_lesen_hinweis">選択した自分のコンピューターへの読み取り専用アクセスです。連絡先の項目はインポート前に確認し、選択済みの写真は保護します。電話の連絡先は変更しません。</string>
     <string name="telefon_status_keine_verbindung">現在の接続はありません</string>
     <string name="personal_sync_simple">ノートとタスクをこのペアリング済みデバイスと同期します。自動 Wi-Fi 同期を選ぶか、手動で開始してください。</string>
     <string name="personal_sync_skip_deletions">削除を同期しない</string>

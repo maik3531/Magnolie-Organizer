@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_kontakte_lesen">Zezwól komputerowi na odczyt kontaktów i zdjęć</string>
+    <string name="telefon_kontakte_lesen_hinweis">Tylko odczyt dla wybranego własnego komputera. Pola wymagają podglądu importu; wybrane zdjęcia są chronione. Kontakty telefonu nie są zmieniane.</string>
     <string name="telefon_status_keine_verbindung">Brak nawiązanego połączenia</string>
     <string name="personal_sync_simple">Notatki i zadania synchronizują się z tym sparowanym urządzeniem. Wybierz automatyczną synchronizację Wi-Fi lub uruchamiaj ją ręcznie.</string>
     <string name="personal_sync_skip_deletions">Pomijaj usuwanie</string>

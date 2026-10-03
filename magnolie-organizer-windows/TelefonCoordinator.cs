@@ -231,6 +231,117 @@ internal sealed class TelefonCoordinator : IDisposable
         await ReportStatusAsync();
     }
 
+    private sealed record ContactReadWait(string PeerId, byte[] PublicKey, TelefonConnection Connection,
+        JsonObject Request, TaskCompletionSource<JsonObject> Completion, long Deadline, CancellationToken Cancellation);
+    private readonly Dictionary<string, ContactReadWait> contactReads = new(StringComparer.Ordinal);
+
+    internal bool ContactReadAvailable(string id)
+    {
+        lock (gate) return online.TryGetValue(id, out var connection) && connection.ContactReadReady;
+    }
+
+    internal bool ContactSourceCurrent(string id, string fingerprint)
+    {
+        lock (gate) return ContactReadAvailable(id) && Peers.Any(peer => peer.Id == id &&
+            Convert.ToHexString(SHA256.HashData(peer.PublicKey)).ToLowerInvariant() == fingerprint);
+    }
+
+    internal async Task<JsonObject> ReadContactsAsync(string id, JsonArray? uids, CancellationToken cancellation)
+    {
+        cancellation.ThrowIfCancellationRequested();
+        TelefonConnection connection;
+        TelefonPeer peer;
+        lock (gate)
+        {
+            if (!online.TryGetValue(id, out connection!) || !connection.ContactReadReady)
+                throw new InvalidOperationException("contacts_not_granted");
+            peer = Peers.Single(value => value.Id == id);
+        }
+        var requested = uids?.Select(value => value!.GetValue<string>()).ToArray();
+        if (requested is not null && (requested.Length is < 1 or > 5 || requested.Distinct().Count() != requested.Length || requested.Any(value => !PhoneContactRead.ValidUid(value))))
+            throw new InvalidDataException("invalid_contact_batch");
+        var contacts = new JsonArray(); var seen = new HashSet<string>(StringComparer.Ordinal); int? total = null;
+        async Task<JsonObject> Page(string action, int offset, string? uid)
+        {
+            cancellation.ThrowIfCancellationRequested();
+            var requestId = Guid.NewGuid().ToString("D");
+            var body = new JsonObject { ["version"] = PhoneContactRead.Version, ["request_id"] = requestId, ["action"] = action,
+                ["offset"] = offset, ["uids"] = uid is null ? new JsonArray() : new JsonArray(JsonValue.Create(uid)) };
+            PhoneContactRead.ValidateRequest(body);
+            var completion = new TaskCompletionSource<JsonObject>(TaskCreationOptions.RunContinuationsAsynchronously);
+            lock (gate)
+            {
+                if (contactReads.Count >= 8 || !online.TryGetValue(id, out var current) || !ReferenceEquals(current, connection) || !connection.ContactReadReady)
+                    throw new InvalidOperationException("contacts_not_granted");
+                contactReads.Add(requestId, new ContactReadWait(id, peer.PublicKey.ToArray(), connection, body.DeepClone().AsObject(), completion,
+                    Environment.TickCount64 + 8_000, cancellation));
+            }
+            try
+            {
+                cancellation.ThrowIfCancellationRequested();
+                await connection.SendMessageAsync("device_status.request", body, 8_000);
+                return await completion.Task.WaitAsync(TimeSpan.FromSeconds(8), cancellation);
+            }
+            finally { lock (gate) contactReads.Remove(requestId); }
+        }
+        if (requested is not null)
+        {
+            foreach (var uid in requested)
+            {
+                var page = await Page("cards", 0, uid);
+                foreach (var value in page["contacts"]!.AsArray()) contacts.Add(value!.DeepClone());
+            }
+        }
+        else
+        {
+            do
+            {
+                var page = await Page("index", contacts.Count, null);
+                var count = checked((int)TelefonProtocolContract.Integer(page["total"]));
+                if (total is not null && total != count) throw new InvalidDataException("contact_index_changed");
+                total = count;
+                foreach (var value in page["contacts"]!.AsArray())
+                {
+                    if (!seen.Add(value!["uid"]!.GetValue<string>())) throw new InvalidDataException("contact_index_changed");
+                    contacts.Add(value.DeepClone());
+                }
+            } while (contacts.Count < total);
+        }
+        lock (gate)
+        {
+            if (!online.TryGetValue(id, out var current) || !ReferenceEquals(current, connection) || !connection.ContactReadReady ||
+                !Peers.Any(value => value.Id == id && value.PublicKey.SequenceEqual(peer.PublicKey))) throw new InvalidOperationException("contacts_not_granted");
+        }
+        foreach (var contact in contacts.OfType<JsonObject>())
+        { contact["modified_ms"] = contact["timestamp"]!.DeepClone(); contact.Remove("timestamp"); }
+        return new JsonObject { ["device_id"] = "notes:" + id,
+            ["fingerprint"] = Convert.ToHexString(SHA256.HashData(peer.PublicKey)).ToLowerInvariant(), ["contacts"] = contacts };
+    }
+
+    private TelefonAck AcceptContactRead(TelefonPeer peer, JsonObject message, JsonObject body)
+    {
+        PhoneContactRead.ValidateReport(body);
+        lock (gate)
+        {
+            var messageId = message["message_id"]!.GetValue<string>();
+            var id = body["request_id"]!.GetValue<string>();
+            if (!contactReads.TryGetValue(id, out var pending) || pending.PeerId != peer.Id || !pending.PublicKey.SequenceEqual(peer.PublicKey) ||
+                !online.TryGetValue(peer.Id, out var connection) || !ReferenceEquals(connection, pending.Connection) || !connection.ContactReadReady)
+                return new TelefonAck(messageId, "rejected", "not_granted");
+            if (pending.Cancellation.IsCancellationRequested || Environment.TickCount64 >= pending.Deadline || Now() >= TelefonProtocolContract.Integer(message["expires_ms"]))
+                return new TelefonAck(messageId, "rejected", "expired");
+            var request = pending.Request;
+            if (!JsonNode.DeepEquals(request["action"], body["action"]) || !JsonNode.DeepEquals(request["offset"], body["offset"]))
+                return new TelefonAck(messageId, "rejected", "invalid_schema");
+            if (request["action"]!.GetValue<string>() == "cards" &&
+                !request["uids"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal)
+                    .SetEquals(body["contacts"]!.AsArray().Select(value => value!["uid"]!.GetValue<string>())))
+                return new TelefonAck(messageId, "rejected", "invalid_schema");
+            pending.Completion.TrySetResult(body.DeepClone().AsObject());
+            return new TelefonAck(messageId, "accepted", "none");
+        }
+    }
+
     internal async Task RequestDeviceStatusAsync(string id, string? requestId = null)
     {
         store.PurgeIdentifiers(id);
@@ -713,6 +824,7 @@ internal sealed class TelefonCoordinator : IDisposable
             kennung = peer.Id, name = peer.Name, fingerabdruck = TelefonCrypto.Fingerprint(peer.PublicKey),
             state = peer.State,
             online = IsOnline(peer.Id), transport = OnlineTransport(peer.Id),
+            contacts_read_available = ContactReadAvailable(peer.Id),
             dial_request = IsOnline(peer.Id) && RemoteCapability(peer, "dial_request") && peer.Grants["dial_request"]?.GetValue<bool>() == true,
             bluetooth_address = store.BluetoothAddress(peer.Id),
             zuletzt = peer.LastSeenMs, bluetooth = new { available = TelefonBluetoothSupport.Available,
@@ -1249,6 +1361,8 @@ internal sealed class TelefonCoordinator : IDisposable
         }
         if (TelefonProtocolContract.PersonalKinds.Contains(kind)) return await HandlePersonalMessageAsync(peer, message, body, transport);
         if (kind != "device_status.report") return null;
+        if (TelefonProtocolContract.TryInteger(body["version"], out var contactVersion) && contactVersion == PhoneContactRead.Version)
+            return AcceptContactRead(peer, message, body);
         TelefonDeviceStatusContract.ValidateReport(body); var status = body.DeepClone().AsObject();
         if (body.ContainsKey("identifiers"))
         {
@@ -1459,6 +1573,19 @@ internal sealed class TelefonCoordinator : IDisposable
 internal sealed class TelefonConnection : IDisposable
 {
     private bool freshCapabilities, freshGrants, freshOwnSettings;
+    internal bool ContactReadReady
+    {
+        get
+        {
+            if (!freshCapabilities || !freshGrants || !freshOwnSettings || cancellation.IsCancellationRequested || store.RestoreFenced) return false;
+            var current = store.LoadPeers().FirstOrDefault(value => value.Id == peer.Id && value.PublicKey.SequenceEqual(peer.PublicKey));
+            if (current is null || current.State != "paired" || current.Grants["device_status"]?.GetValue<bool>() != true || store.LocalGrants()["device_status"]?.GetValue<bool>() != true ||
+                !TelefonCoordinator.RemoteCapability(current, "device_status") ||
+                current.Capabilities["device_status"]?["versions"] is not JsonArray versions || !versions.Any(value => value?.GetValue<int>() == PhoneContactRead.Version)) return false;
+            var own = store.PersonalSettings(peer.Id);
+            return own.OwnDevice && own.RemoteOwnDevice;
+        }
+    }
     private JsonObject? sentNotePolicy, receivedNotePolicy;
     internal bool NotePolicyReady
     {
@@ -1556,6 +1683,14 @@ internal sealed class TelefonConnection : IDisposable
     internal async Task SendMessageAsync(string kind, JsonObject body, long ttl)
     {
         var now = Now();
+        if (kind == "device_status.request" && TelefonProtocolContract.TryInteger(body["version"], out var contactVersion) && contactVersion == PhoneContactRead.Version)
+        {
+            PhoneContactRead.ValidateRequest(body);
+            if (!ContactReadReady || ttl is < 1 or > 60_000) throw new InvalidOperationException("contacts_not_granted");
+            await SendPlainAsync(new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"),
+                ["kind"] = kind, ["created_ms"] = now, ["expires_ms"] = now + ttl, ["body"] = body.DeepClone() });
+            return;
+        }
         if (kind == "device_status.request" && TelefonProtocolContract.TryInteger(body["version"], out var statusVersion) && statusVersion == 4)
         {
             var message = new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"),

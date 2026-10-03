@@ -31,6 +31,7 @@ data class TelefonPeer(
     val remote_device_status_versions: List<Int> = listOf(1),
     val identifier_sharing_enabled: Boolean = false,
     val identifier_permission_mask: Int = 0,
+    val contacts_read_enabled: Boolean = false,
     val remote_dial_request_granted: Boolean = false,
     val remote_dial_request_available: Boolean = false,
     val remote_dial_request_versions: List<Int> = listOf(1),
@@ -168,8 +169,9 @@ object TelefonCapabilities {
                dialResolvable: Boolean = false, dialPermission: Boolean = false,
                incomingCalls: Boolean = false,
                incomingNumber: Boolean = false, answerCalls: Boolean = false,
-                endCalls: Boolean = false, identifiers: Boolean = false) = linkedMapOf(
-        "device_status" to TelefonCapability(true, "available", if (identifiers) listOf(1, 2, 3, 4) else listOf(1, 2, 3)),
+                 endCalls: Boolean = false, identifiers: Boolean = false, contactRead: Boolean = false) = linkedMapOf(
+        "device_status" to TelefonCapability(true, "available", listOf(1, 2, 3) +
+            (if (identifiers) listOf(4) else emptyList()) + (if (contactRead) listOf(ContactRead.VERSION) else emptyList())),
         "selected_notifications_readonly" to TelefonCapability(notifications, if (notifications) "available" else "disabled"),
         "dial_request" to TelefonCapability(dialRequest && dialResolvable && dialPermission,
             if (dialRequest && dialResolvable && dialPermission) "available" else if (!dialResolvable) "os_restricted"

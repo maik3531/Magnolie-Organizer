@@ -178,7 +178,7 @@ def test_native_photo_bridge_uses_bound_cache_without_importing_other_fields(sou
     (cache / '1.vcf').write_text('BEGIN:VCARD\nVERSION:3.0\nFN:Do not import\n'
         'TEL:+491701234567\nPHOTO;TYPE=PNG;ENCODING=b:iVBORw0KGgo=\nEND:VCARD\n')
     replies = []
-    host = SimpleNamespace(antwort=lambda name, value: replies.append(value))
+    host = SimpleNamespace(_gesperrt=False, antwort=lambda name, value: replies.append(value))
     app.Fenster._kontakt_fotos_lesen(host, dict(requestId='fixture', device_id=backend.bus.ids[0], uids=['1']))
     assert replies[0]['ok'] and replies[0]['fingerprint'] == fingerprint
     contact = replies[0]['contacts'][0]

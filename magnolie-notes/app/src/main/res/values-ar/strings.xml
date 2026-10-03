@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_kontakte_lesen">السماح لهذا الحاسوب بقراءة جهات الاتصال والصور</string>
+    <string name="telefon_kontakte_lesen_hinweis">قراءة فقط لحاسوبك المحدد. تتطلب الحقول معاينة الاستيراد؛ وتبقى الصور المختارة محمية. لا تُغيّر جهات اتصال الهاتف.</string>
     <string name="telefon_status_keine_verbindung">لا يوجد اتصال قائم</string>
     <string name="personal_sync_simple">تُزامن الملاحظات والمهام مع هذا الجهاز المقترن. اختر المزامنة التلقائية عبر Wi-Fi أو ابدأ يدوياً.</string>
     <string name="personal_sync_skip_deletions">تجاهل الحذف</string>

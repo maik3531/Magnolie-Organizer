@@ -12,15 +12,18 @@ const plain = value => JSON.parse(JSON.stringify(value));
 const binding = "urn:magnolie:import:kde:" + "a".repeat(64);
 const card = values => ({ bindung: binding, hash: "b".repeat(64), kontakt: values });
 
-async function preview(web, data, mode = "apply") {
+async function preview(web, data, mode = "apply", provider = "kde") {
   const b = await harness.exports.boot(web, { ...data, einstellungen: { adressen: { foto: false } } });
-  const device = "paired", fingerprint = "a".repeat(64), uid = "remote-one";
-  const remote = { uid, bindung: "urn:magnolie:import:kde:" + createHash("sha256").update(
-    "kde-contact-v1\0" + device + "\0" + fingerprint + "\0" + uid).digest("hex"),
-    kontakt: { vorname: "Remote", email: "one@example.org", firma: "Company" } };
+  const device = provider === "notes" ? "notes:11111111-1111-4111-8111-111111111111" : "paired", fingerprint = "a".repeat(64), uid = "remote-one";
+  const remote = { uid, bindung: "urn:magnolie:import:" + provider + ":" + createHash("sha256").update(
+    provider + "-contact-v1\0" + device + "\0" + fingerprint + "\0" + uid).digest("hex"),
+    kontakt: { vorname: "Remote", email: "one@example.org", firma: "Company",
+      ...(provider === "notes" ? { sozialeMedien: [{ dienst: "whatsapp", wert: "+49123456789" }] } : {}) } };
   try {
     b.t.daten().einstellungen.adressen.foto = false;
-    b.w.App.telefonStand({ peers: [], kdeconnect: { contacts_available: true, contacts_device_id: device } });
+    b.w.App.telefonStand(provider === "notes" ? { peers: [{ device_id: device.slice(6), state: "online_wifi", own_device: true,
+      remote_own_device: true, contacts_read_available: true, contacts_fingerprint: fingerprint }], kdeconnect: { contacts_available: false } } :
+      { peers: [], kdeconnect: { contacts_available: true, contacts_device_id: device } });
     const before = plain(b.t.daten().kontakte), done = new Set();
     let clicked = false, completed = false, indexRequests = 0;
     b.t.kdeStart().then(() => { completed = true; });
@@ -59,6 +62,11 @@ async function preview(web, data, mode = "apply") {
           assert.equal(dialog.querySelector(".hauptknopf").disabled, true); return before;
         }
         assert.ok(dialog.querySelector("details"), dialog.textContent);
+        if (provider === "notes") {
+          assert(dialog.textContent.includes("Magnolie Notes"), "the preview must identify its Notes source");
+          if (!before.length) assert(dialog.textContent.includes("WhatsApp"),
+            "Actual messenger assignment must be visible before first import: " + dialog.textContent);
+        }
         clicked = true;
         if (mode === "device-changed") {
           b.w.App.telefonStand({ peers: [], kdeconnect: { contacts_available: true, contacts_device_id: "other-phone" } });
@@ -136,6 +144,13 @@ async function preview(web, data, mode = "apply") {
       console.log("OK KDE-Kontaktvorschau und Quellbindung:", web);
     } finally { b.close(); }
     const imported = await preview(web, {});
+    const notesImported = await preview(web, {}, "apply", "notes");
+    assert.equal(notesImported.kontakte[0].sozialeMedien[0].dienst, "whatsapp");
+    assert(notesImported.kontakte[0].importBindungen[0].startsWith("urn:magnolie:import:notes:"));
+    const notesRepeated = await preview(web, notesImported, "apply", "notes");
+    assert.equal(notesRepeated.kontakte[0].id, notesImported.kontakte[0].id, "repeated Notes import must retain the same local card");
+    for (const mode of ["cancel", "source-changed", "snapshot-error", "device-changed"])
+      await preview(web, {}, mode, "notes");
     imported.kontakte[0].vorname = "Local edit";
     const repeated = await preview(web, imported);
     assert.equal(repeated.kontakte[0].id, imported.kontakte[0].id);

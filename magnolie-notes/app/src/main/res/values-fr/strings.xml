@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_kontakte_lesen">Autoriser cet ordinateur à lire les contacts et photos</string>
+    <string name="telefon_kontakte_lesen_hinweis">Lecture seule pour votre ordinateur sélectionné. Les champs passent par un aperçu d’importation ; les photos choisies restent protégées. Aucun contact du téléphone n’est modifié.</string>
     <string name="telefon_status_keine_verbindung">Aucune connexion établie</string>
     <string name="personal_sync_simple">Les notes et tâches sont synchronisées avec cet appareil associé. Choisissez la synchronisation Wi-Fi automatique ou lancez-la manuellement.</string>
     <string name="personal_sync_skip_deletions">Ignorer les suppressions</string>

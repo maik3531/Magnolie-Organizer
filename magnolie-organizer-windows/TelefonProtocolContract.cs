@@ -43,7 +43,7 @@ internal static class TelefonProtocolContract
 
     internal static JsonObject DesktopCapabilities() => new() { ["revision"] = 1, ["items"] = new JsonObject
     {
-        ["answer_call"] = Capability(true, "available", 1), ["device_status"] = Capability(true, "available", 1, 2, 3, 4),
+        ["answer_call"] = Capability(true, "available", 1), ["device_status"] = Capability(true, "available", 1, 2, 3, 4, 5),
         ["dial_request"] = Capability(true, "available", 1, 2), ["end_call"] = Capability(true, "available", 1),
         ["incoming_call_number"] = Capability(true, "available", 1), ["incoming_call_state"] = Capability(true, "available", 2),
         ["personal_deletions_sync"] = Capability(true, "available", 1), ["personal_notes_sync"] = Capability(true, "available", 1, 2, 3, 5),
@@ -119,7 +119,7 @@ internal static class TelefonMessageContract
             if (kind == "capabilities.update") { Maximum(ttl, 86_400_000); TelefonProtocolContract.ValidateCapabilities(body); }
             else if (kind == "grants.update") { Maximum(ttl, 86_400_000); TelefonProtocolContract.ValidateGrants(body); }
             else if (kind == "device_status.request") { Maximum(ttl, 60_000); TelefonDeviceStatusContract.ValidateRequest(body); }
-            else if (kind == "device_status.report") { Maximum(ttl, 300_000); TelefonDeviceStatusContract.ValidateReport(body); }
+            else if (kind == "device_status.report") { Maximum(ttl, TelefonProtocolContract.TryInteger(body["version"], out var statusVersion) && statusVersion == 5 ? 60_000 : 300_000); TelefonDeviceStatusContract.ValidateReport(body); }
             else if (kind == "selected_notifications_readonly.event") { Maximum(ttl, 86_400_000); TelefonMessagingContract.Validate(kind, body); }
             else if (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal)) { Maximum(ttl, 86_400_000); PersonalSyncContract.ValidateCustomBody(kind, body); }
             else if (kind == PersonalSyncContract.NoteModeKind) { Maximum(ttl, 86_400_000); PersonalSyncContract.ValidateNoteSettings(body); }

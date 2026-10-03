@@ -1,3 +1,13 @@
+magnolie-organizer (2.0.26) unstable; urgency=medium
+
+  * Ergänzt den einseitigen Notes-Import und vereinfacht den Geräteabgleich.
+  * Prüft Kontaktübernahmen feldweise und erhält gewählte Fotos und Anhänge.
+  * Liest freigegebene Notes-Kontakte und Fotos über die eigene Telefonverbindung.
+  * Gibt Baumverbindungen zielgebunden an einen eigenständigen Rechner weiter.
+  * Importiert Müllkalender aus ICS/CSV und verknüpft lokale Notfallkontakte.
+
+ -- Maik Walter <maik3531@gmail.com>  Sat, 03 Oct 2026 15:12:00 +0200
+
 magnolie-organizer (2.0.25) unstable; urgency=medium
 
   * Veröffentlicht die seit 2.0.24 gesicherten und geprüften Korrekturen.

@@ -45,7 +45,9 @@ interface KontaktSchreiber {
 class AndroidKontakte(private val context: Context, private val konto: android.accounts.Account? = null) : KontaktSchreiber {
     private val resolver get() = context.contentResolver
 
-    fun snapshot(): KontaktSnapshot {
+    fun snapshot(lookupKeys: Set<String>? = null): KontaktSnapshot {
+      require(lookupKeys == null || lookupKeys.size <= 5)
+      if (lookupKeys?.isEmpty() == true) return KontaktSnapshot(emptyList(), true)
       return try {
         val rawZuKontakt = linkedMapOf<Long, Long>()
         val rawVersionen = mutableMapOf<Long, Long>()
@@ -63,12 +65,16 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
         } ?: return KontaktSnapshot(emptyList(), false)
         val lookup = mutableMapOf<Long, String>()
         val geaendert = mutableMapOf<Long, Long>()
-        val contactFilter = if (konto == null) null else if (rawZuKontakt.isEmpty()) "0" else
+        val accountFilter = if (konto == null) null else if (rawZuKontakt.isEmpty()) "0" else
             "${Contacts._ID} IN (${rawZuKontakt.values.distinct().joinToString(",")})"
+        val contactFilter = listOfNotNull(accountFilter, lookupKeys?.let {
+            "${Contacts.LOOKUP_KEY} IN (${it.joinToString(",") { "?" }})"
+        }).takeIf { it.isNotEmpty() }?.joinToString(" AND ")
+        val contactArgs = lookupKeys?.toTypedArray()
         val contactCursor = try {
-            resolver.query(Contacts.CONTENT_URI, arrayOf(Contacts._ID, Contacts.LOOKUP_KEY, Contacts.CONTACT_LAST_UPDATED_TIMESTAMP), contactFilter, null, null)
+            resolver.query(Contacts.CONTENT_URI, arrayOf(Contacts._ID, Contacts.LOOKUP_KEY, Contacts.CONTACT_LAST_UPDATED_TIMESTAMP), contactFilter, contactArgs, null)
         } catch (_: IllegalArgumentException) {
-            resolver.query(Contacts.CONTENT_URI, arrayOf(Contacts._ID, Contacts.LOOKUP_KEY), contactFilter, null, null)
+            resolver.query(Contacts.CONTENT_URI, arrayOf(Contacts._ID, Contacts.LOOKUP_KEY), contactFilter, contactArgs, null)
         }
         contactCursor?.use { c ->
             while (c.moveToNext()) {
@@ -77,11 +83,12 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
                     else c.getLong(2).takeIf { it in 0..253402300799999L } ?: 0
             }
         } ?: return KontaktSnapshot(emptyList(), false)
+        if (lookupKeys != null) rawZuKontakt.entries.removeAll { it.value !in lookup }
         val daten = rawZuKontakt.keys.associateWith { BauKontakt() }.toMutableMap()
         val spalten = arrayOf(Data.RAW_CONTACT_ID, Data.MIMETYPE, Data.DATA1, Data.DATA2,
             Data.DATA3, Data.DATA4, Data.DATA5, Data.DATA6, Data.DATA7, Data.DATA8, Data.DATA9, Data.DATA10,
             Data.DATA15)
-        val dataFilter = if (konto == null) null else if (rawZuKontakt.isEmpty()) "0" else
+        val dataFilter = if (konto == null && lookupKeys == null) null else if (rawZuKontakt.isEmpty()) "0" else
             "${Data.RAW_CONTACT_ID} IN (${rawZuKontakt.keys.joinToString(",")})"
         resolver.query(Data.CONTENT_URI, spalten, dataFilter, null, null)?.use { c ->
             while (c.moveToNext()) {

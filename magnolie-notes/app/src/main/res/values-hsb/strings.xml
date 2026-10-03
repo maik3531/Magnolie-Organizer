@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_kontakte_lesen">Tutomu ličakej čitanje kontaktow a fotow dowolić</string>
+    <string name="telefon_kontakte_lesen_hinweis">Jenož čitanje za wubrany swójski ličak. Kontaktowe pola sej importowy přehlad žadaja; wubrane fota wostanu škitane. Telefonowe kontakty so njeměnja.</string>
     <string name="telefon_status_keine_verbindung">Žadyn wobstejacy zwisk</string>
     <string name="personal_sync_simple">Noticy a nadawki so z tutym koplowanym gratom synchronizuja. Wubjerće awtomatisku WLAN-synchronizaciju abo startujće manuelnje.</string>
     <string name="personal_sync_skip_deletions">Zhašenja wuwostajić</string>

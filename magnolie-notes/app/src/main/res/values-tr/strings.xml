@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_kontakte_lesen">Bu bilgisayarın kişileri ve fotoğrafları okumasına izin ver</string>
+    <string name="telefon_kontakte_lesen_hinweis">Seçilen kendi bilgisayarınız için salt okunur erişim. Kişi alanları içe aktarma önizlemesi gerektirir; seçilmiş fotoğraflar korunur. Telefon kişileri değiştirilmez.</string>
     <string name="telefon_status_keine_verbindung">Kurulmuş bağlantı yok</string>
     <string name="personal_sync_simple">Notlar ve görevler bu eşleştirilmiş cihazla eşitlenir. Otomatik Wi-Fi eşitlemesini seçin veya elle başlatın.</string>
     <string name="personal_sync_skip_deletions">Silmeleri atla</string>

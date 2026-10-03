@@ -66,6 +66,7 @@
     <Compile Include="..\MagnolienbaumFs1.cs" Link="MagnolienbaumFs1.cs" />
     <Compile Include="..\TelefonCrypto.cs" Link="TelefonCrypto.cs" />
     <Compile Include="..\TelefonDeviceStatusContract.cs" Link="TelefonDeviceStatusContract.cs" />
+    <Compile Include="..\PhoneContactRead.cs" Link="PhoneContactRead.cs" />
     <Compile Include="..\TelefonMessagingContract.cs" Link="TelefonMessagingContract.cs" />
     <Compile Include="..\TelefonCallContract.cs" Link="TelefonCallContract.cs" />
     <Compile Include="..\PersonalSyncContract.cs" Link="PersonalSyncContract.cs" />

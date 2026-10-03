@@ -125,6 +125,7 @@ class Telefonhandlungen(
     val beiBenachrichtigungsApp: (String) -> Unit,
     val beiPersonalEigen: (Boolean) -> Unit,
     val beiIdentifierSharing: (Boolean) -> Unit,
+    val beiKontakteLesen: (String, String, Boolean) -> Unit,
     val beiPersonalNotizrichtung: (String) -> Unit,
     val beiPersonalAutoWlan: (Boolean) -> Unit,
     val beiPersonalLoeschungen: (Boolean) -> Unit,
@@ -331,6 +332,9 @@ fun BaumBlatt(
                     telefonHandlungen.beiPersonalEigen(true)
             }
             if (telefon.personalOwnDevice) {
+                Schalterzeile(stringResource(R.string.telefon_kontakte_lesen), telefon.peer?.contacts_read_enabled == true,
+                    { enabled -> telefon.peer?.let { telefonHandlungen.beiKontakteLesen(it.device_id, it.static_public, enabled) } })
+                Text(stringResource(R.string.telefon_kontakte_lesen_hinweis), fontSize = 12.sp)
                 Text(stringResource(R.string.device_identifiers_explanation), fontSize = 12.sp)
                 if (telefon.peer?.identifier_sharing_enabled != true)
                     Papierknopf(stringResource(R.string.telefon_anruf_berechtigungen)) {

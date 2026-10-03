@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_kontakte_lesen">इस कंप्यूटर को संपर्क और फ़ोटो पढ़ने दें</string>
+    <string name="telefon_kontakte_lesen_hinweis">चुने हुए अपने कंप्यूटर के लिए केवल पढ़ने की अनुमति। संपर्क फ़ील्ड के लिए आयात पूर्वावलोकन जरूरी है; चुने हुए फ़ोटो सुरक्षित रहते हैं। फ़ोन के संपर्क नहीं बदलते।</string>
     <string name="telefon_status_keine_verbindung">कोई मौजूदा कनेक्शन नहीं</string>
     <string name="personal_sync_simple">नोट और कार्य इस जोड़े गए डिवाइस से सिंक्रनाइज़ होते हैं। स्वचालित Wi-Fi सिंक्रनाइज़ेशन चुनें या मैन्युअल रूप से शुरू करें।</string>
     <string name="personal_sync_skip_deletions">हटाना छोड़ें</string>

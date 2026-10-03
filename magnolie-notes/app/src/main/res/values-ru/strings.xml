@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="telefon_kontakte_lesen">Разрешить компьютеру читать контакты и фотографии</string>
+    <string name="telefon_kontakte_lesen_hinweis">Только чтение для выбранного собственного компьютера. Поля проходят предпросмотр импорта; выбранные фотографии защищены. Контакты телефона не изменяются.</string>
     <string name="telefon_status_keine_verbindung">Нет установленного соединения</string>
     <string name="personal_sync_simple">Заметки и задачи синхронизируются с этим сопряжённым устройством. Выберите автоматическую синхронизацию по Wi-Fi или запускайте вручную.</string>
     <string name="personal_sync_skip_deletions">Не учитывать удаления</string>

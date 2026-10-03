@@ -112,7 +112,7 @@ if __name__ == "__main__":
     _crash_component = ("background-service" if any(argument in (
         "--hintergrunddienst", "--background-service") for argument in sys.argv[1:])
         else "organizer")
-    _crash_reporting_install("magnolie-organizer", "2.0.25", _crash_component)
+    _crash_reporting_install("magnolie-organizer", "2.0.26", _crash_component)
 if any(argument in ("--hintergrunddienst", "--background-service")
        for argument in sys.argv[1:]):
     from magnolie_hintergrund import daemon_main
@@ -248,7 +248,7 @@ def tray_system_verfuegbar(desktop=None, aktivierte_erweiterungen=None):
 PROGRAMM_NAME = "magnolie-organizer"
 HANDBUCH_NAME = "magnolie-handbuch"
 FENSTER_TITEL = "Magnolie Organizer"
-PROGRAMM_FASSUNG = "2.0.25"
+PROGRAMM_FASSUNG = "2.0.26"
 ALTER_NAME = "organizer-klassik"
 I18N_DOMAIN = "magnolie-organizer"
 
@@ -421,17 +421,19 @@ KONTAKT_FELDER = ["nachname", "vorname", "firma", "strasse", "plz", "ort",
                     "jubilaeum", "anzeigename", "vcardRoundtrip", "vcardParameter"]
 
 
-def kde_kontakt_bindung(device_id, fingerprint, uid_wert):
+def kde_kontakt_bindung(device_id, fingerprint, uid_wert, provider="kde"):
+    if provider not in {"kde", "notes"}:
+        raise ValueError("invalid_contact_source")
     if (not isinstance(device_id, str) or not 1 <= len(device_id.encode("utf-16-le")) // 2 <= 200 or
             not isinstance(uid_wert, str) or not 1 <= len(uid_wert.encode("utf-16-le")) // 2 <= 1024 or
             any(unicodedata.category(char) == "Cc" for char in device_id + uid_wert) or
             not isinstance(fingerprint, str) or not re.fullmatch(r"[a-fA-F0-9]{64}", fingerprint)):
         raise ValueError("invalid_contact_source")
-    source = "kde-contact-v1\0" + device_id + "\0" + fingerprint.lower() + "\0" + uid_wert
-    return "urn:magnolie:import:kde:" + hashlib.sha256(source.encode("utf-8")).hexdigest()
+    source = provider + "-contact-v1\0" + device_id + "\0" + fingerprint.lower() + "\0" + uid_wert
+    return "urn:magnolie:import:" + provider + ":" + hashlib.sha256(source.encode("utf-8")).hexdigest()
 
 
-def kde_kontakte_projizieren(result, device_id, requested):
+def kde_kontakte_projizieren(result, device_id, requested, provider="kde"):
     cards = result.get("contacts")
     if (result.get("device_id") != device_id or not isinstance(cards, list) or
             len(cards) != len(requested)):
@@ -456,7 +458,7 @@ def kde_kontakte_projizieren(result, device_id, requested):
                                            if not transport.match(key + ":")}
         del item["vcard"]
         item["kontakt"] = selected
-        item["bindung"] = kde_kontakt_bindung(device_id, result.get("fingerprint"), uid_wert)
+        item["bindung"] = kde_kontakt_bindung(device_id, result.get("fingerprint"), uid_wert, provider)
     return result
 
 
@@ -22108,16 +22110,19 @@ class Fenster(_FENSTER_BASIS):
         request_id = nachricht.get("requestId", "")
         vollstaendig = nachricht.get("cmd") == "telefon_kontakte"
         try:
-            if vollstaendig and getattr(self, "_gesperrt", True):
+            if getattr(self, "_gesperrt", True):
                 raise ValueError("locked")
             device_id = nachricht.get("device_id")
             if not isinstance(device_id, str) or not 1 <= len(device_id) <= 200:
                 raise ValueError("invalid_contact_device")
-            backend = _kdeconnect_backend()
+            notes = device_id.startswith("notes:")
+            backend = None if notes else _kdeconnect_backend()
+            result = self._telefon.read_contacts(device_id[6:], nachricht.get("uids")) if notes else None
             if "uids" in nachricht:
-                result = backend.contact_vcards(nachricht["uids"], device_id)
+                if not notes:
+                    result = backend.contact_vcards(nachricht["uids"], device_id)
                 if vollstaendig:
-                    kde_kontakte_projizieren(result, device_id, nachricht["uids"])
+                    kde_kontakte_projizieren(result, device_id, nachricht["uids"], "notes" if notes else "kde")
                 else:
                     for item in result["contacts"]:
                         contacts = vcf_lesen(item["vcard"])["kontakte"]
@@ -22126,8 +22131,11 @@ class Fenster(_FENSTER_BASIS):
                         del item["vcard"]
                         for field in ("foto", "telefone", "telefon", "mobil", "email", "emails", "emailEintraege"):
                             item[field] = contacts[0].get(field)
-            else:
+            elif not notes:
                 result = backend.contact_uids(device_id)
+            if (getattr(self, "_gesperrt", True) or notes and
+                    not self._telefon.contact_source_current(device_id[6:], result.get("fingerprint"))):
+                raise ValueError("contact_source_changed")
             result.update(ok=True, requestId=request_id)
             if vollstaendig:
                 if getattr(self, "_gesperrt", True):

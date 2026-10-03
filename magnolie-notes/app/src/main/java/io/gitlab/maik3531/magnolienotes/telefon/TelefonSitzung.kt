@@ -69,7 +69,10 @@ object TelefonNachrichten {
         val body = message["body"] as? JsonObject ?: fail()
         when (message.string("kind")) {
             "device_status.request" -> {
-                if (body.keys == setOf("request_id")) uuid(body.string("request_id"))
+                if (body["version"] == JsonPrimitive(ContactRead.VERSION)) {
+                    try { ContactRead.validateRequest(body) } catch (_: Exception) { fail() }
+                }
+                else if (body.keys == setOf("request_id")) uuid(body.string("request_id"))
                 else if (body.keys == setOf("request_id", "version", "include_identifiers")) {
                     uuid(body.string("request_id"))
                     if (body.long("version") != 4L || (body["include_identifiers"] as? JsonPrimitive)?.let {

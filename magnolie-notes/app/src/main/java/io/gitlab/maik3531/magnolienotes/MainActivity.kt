@@ -531,6 +531,14 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     fun kontakteSchreibbar() = kontakteLesbar() &&
         zusammenhang.checkSelfPermission(Manifest.permission.WRITE_CONTACTS) == PackageManager.PERMISSION_GRANTED
 
+    var contactReadPermissionToken by remember { mutableStateOf("") }
+    val contactReadPermission = androidx.activity.compose.rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()) { granted ->
+        telefonWerk.completeContactReadPermission(contactReadPermissionToken, granted)
+        contactReadPermissionToken = ""
+        if (!granted) sage(zusammenhang.getString(R.string.baum_kontakte_berechtigung))
+    }
+
     fun kontaktLauf(kennung: String) {
         faden.launch {
             val ergebnis = withContext(Dispatchers.IO) { runCatching { werk.kontakteSynchronisieren(kennung) } }
@@ -1010,6 +1018,14 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                         },
                         beiPersonalEigen = { if (it) telefonWerk.initializePersonalDefaults()
                             else telefonWerk.setPersonalSync(false, false, false, false, false) },
+                        beiKontakteLesen = { deviceId, publicKey, enabled ->
+                            if (!enabled || kontakteLesbar()) runCatching { telefonWerk.setContactReadEnabled(enabled, deviceId, publicKey) }
+                                .onFailure { sage(zusammenhang.fehlertext(it)) }
+                            else if (contactReadPermissionToken.isEmpty()) telefonWerk.beginContactReadPermission(deviceId, publicKey)?.let { token ->
+                                contactReadPermissionToken = token
+                                contactReadPermission.launch(Manifest.permission.READ_CONTACTS)
+                            }
+                        },
                         beiPersonalNotizrichtung = { runCatching { telefonWerk.setPersonalNotesMode(it) }
                             .onFailure { sage(zusammenhang.fehlertext(it)) } },
                         beiPersonalAutoWlan = { runCatching { telefonWerk.setPersonalSyncMode(it, !telefonZustand.personalDeletionsEnabled) }
