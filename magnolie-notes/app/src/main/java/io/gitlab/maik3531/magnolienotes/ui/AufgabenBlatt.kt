@@ -454,7 +454,8 @@ fun AufgabenEditor(
                         "−", beschreibung = stringResource(R.string.aufgabe_stunde_verringern)
                     ) { if (stunde > 0) aendern(aufgabe.copy(erinnerungsMinute = aufgabe.erinnerungsMinute - 60)) }
                     Text(
-                        erinnerungsUhrzeit(stunde),
+                        Zeit.erinnerungsUhrzeit(androidx.compose.ui.platform.LocalContext.current,
+                            aufgabe.erinnerungsMinute),
                         fontFamily = FontFamily.Monospace, fontSize = 15.sp, color = Magnolie.tinte
                     )
                     Rundknopf(
@@ -582,12 +583,4 @@ private fun Datumfeld(wert: String, beiAenderung: (String) -> Unit) {
             Papierknopf(stringResource(R.string.aufgabe_ohne_kopf)) { beiAenderung("") }
         }
     }
-}
-
-private fun erinnerungsUhrzeit(stunde: Int): String {
-    val kalender = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, stunde)
-        set(Calendar.MINUTE, 0)
-    }
-    return java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(kalender.time)
 }

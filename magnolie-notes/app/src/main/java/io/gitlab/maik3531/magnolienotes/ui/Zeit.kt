@@ -1,5 +1,8 @@
 package io.gitlab.maik3531.magnolienotes.ui
 
+import android.content.Context
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -7,17 +10,32 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Tag und Uhrzeit, wie sie im Organizer stehen: Datum in Ziffern, Uhrzeit
- * vierstellig, dazwischen ein Mittelpunkt.
+ * Lokalisierte Datumsangaben und Androids gewähltes 12-/24-Stundenformat.
  */
 object Zeit {
 
     private fun form(muster: String) = SimpleDateFormat(muster, Locale.getDefault())
 
-    fun uhrzeit(millis: Long): String = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(millis))
+    fun uhrzeit(context: Context, millis: Long): String =
+        android.text.format.DateFormat.getTimeFormat(context).format(Date(millis))
+
+    @Composable
+    fun uhrzeit(millis: Long): String = uhrzeit(LocalContext.current, millis)
+
+    fun erinnerungsUhrzeit(context: Context, minute: Int): String {
+        require(minute in 0..1439)
+        val kalender = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, minute / 60)
+            set(Calendar.MINUTE, minute % 60)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        return uhrzeit(context, kalender.timeInMillis)
+    }
 
     fun datum(millis: Long): String = DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(millis))
 
+    @Composable
     fun tagUndUhrzeit(millis: Long): String =
         datum(millis) + " · " + uhrzeit(millis)
 

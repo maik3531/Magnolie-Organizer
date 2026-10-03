@@ -118,10 +118,10 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
         }
         Abschnitt(ueberschrift = stringResource(R.string.journal_titel),
             hinweis = stringResource(R.string.journal_hinweis)) {
-            Wertzeile(stringResource(R.string.journal_zuletzt), zustand.last?.let(Zeit::tagUndUhrzeit)
+            Wertzeile(stringResource(R.string.journal_zuletzt), zustand.last?.let { Zeit.tagUndUhrzeit(it) }
                 ?: stringResource(R.string.baum_nie))
             val next = zustand.interval.millis?.let { i -> zustand.last?.plus(i) }
-            Wertzeile(stringResource(R.string.journal_naechste), next?.let(Zeit::tagUndUhrzeit)
+            Wertzeile(stringResource(R.string.journal_naechste), next?.let { Zeit.tagUndUhrzeit(it) }
                 ?: stringResource(R.string.journal_aus))
             Wertzeile(stringResource(R.string.journal_status), zustand.status.ifBlank {
                 stringResource(R.string.journal_bereit) })
@@ -195,7 +195,7 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
                         ?.let(handlungen.beiAutoAufbewahrung)
                 })
             Wertzeile(stringResource(R.string.auto_backup_letzter_erfolg),
-                handlungen.autoSicherung.letzterErfolg?.let(Zeit::tagUndUhrzeit)
+                handlungen.autoSicherung.letzterErfolg?.let { Zeit.tagUndUhrzeit(it) }
                     ?: stringResource(R.string.baum_nie))
             Wertzeile(stringResource(R.string.journal_status), autoStatusText(handlungen.autoSicherung.status))
             Lederknopf(stringResource(R.string.auto_backup_jetzt), modifier = Modifier.fillMaxWidth(),
@@ -211,7 +211,7 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
                     val domaene = lokalisierterText(TechnischeWerteLokalisierung.journalDomaene(entry.domain))
                     val zusammenfassung = lokalisierterText(
                         TechnischeWerteLokalisierung.journalZusammenfassung(entry.summary))
-                    Text(JournalRegeln.zeitpunkt(entry)?.let(Zeit::tagUndUhrzeit)
+                    Text(JournalRegeln.zeitpunkt(entry)?.let { Zeit.tagUndUhrzeit(it) }
                         ?: stringResource(R.string.aufgabe_kein_datum),
                         fontFamily = FontFamily.Serif, fontWeight = FontWeight.Bold, color = Magnolie.tinte)
                     Text("$grund · $domaene · ${groesse(entry.payload.size)} · ${stringResource(R.string.journal_integritaet)}",
