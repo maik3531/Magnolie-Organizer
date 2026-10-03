@@ -2565,7 +2565,7 @@ class PhoneService:
             phone_contacts.validate_request({"version": 5, "request_id": str(uuid.uuid4()), "action": "cards", "offset": 0, "uids": uids})
         deadline = time.monotonic() + 8
 
-        def page(action, offset, selected):
+        def read_page(action, offset, selected):
             request_id = str(uuid.uuid4())
             body = {"version": 5, "request_id": request_id, "action": action, "offset": offset, "uids": selected}
             phone_contacts.validate_request(body)
@@ -2591,12 +2591,12 @@ class PhoneService:
         contacts = []
         if uids is not None:
             for uid in uids:
-                contacts.extend(page("cards", 0, [uid])["contacts"])
+                contacts.extend(read_page("cards", 0, [uid])["contacts"])
         else:
             total = None
             seen = set()
             while total is None or len(contacts) < total:
-                result = page("index", len(contacts), [])
+                result = read_page("index", len(contacts), [])
                 if total is not None and result["total"] != total:
                     raise ValueError("contact_index_changed")
                 total = result["total"]

@@ -22,6 +22,9 @@ SMS_TERMS = json.loads(Path(__file__).with_name("sms-localized-terms.json").read
 def _preserves_token(value, token, locale, source):
     if token in value:
         return True
+    # Exact reviewed German compound, not a general exemption for brand names.
+    if (token, locale, source) == ("KDE Connect", "de", "Use KDE Connect drawing tablet"):
+        return value == "KDE-Connect-Zeichentablett verwenden"
     if token != "SMS" or locale not in SMS_TERMS["locales"] or source not in SMS_TERMS["messages"]:
         return False
     return value == SMS_TERMS["locales"][locale][SMS_TERMS["messages"].index(source)]
@@ -32,6 +35,9 @@ def test_localized_sms_terms_are_exact_not_a_general_token_exemption():
     assert not _preserves_token("Plannen bevestigen", "SMS", "nl", "Confirm SMS plans")
     assert not _preserves_token("短信", "SMS", "zh_CN", "Unknown SMS message")
     assert not _preserves_token("蓝牙", "Bluetooth", "zh_CN", "Bluetooth")
+    assert _preserves_token("KDE-Connect-Zeichentablett verwenden", "KDE Connect", "de", "Use KDE Connect drawing tablet")
+    assert not _preserves_token("Zeichentablett verwenden", "KDE Connect", "de", "Use KDE Connect drawing tablet")
+    assert not _preserves_token("KDE-Connect-Zeichentablett verwenden", "KDE Connect", "de", "Other KDE Connect action")
     windows = ROOT.parent / "magnolie-organizer-windows/tests/resources/sms-localized-terms.json"
     if windows.exists():
         assert json.loads(windows.read_text()) == SMS_TERMS
