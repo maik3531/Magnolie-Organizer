@@ -17,6 +17,28 @@ internal static class ReminderPersistenceTests
         try
         {
             var state = Path.Combine(root, "erinnerungen.json");
+            foreach (var clock in new[] { "h12", "h23" })
+            {
+                var regionalData = """
+                    {"einstellungen":{"regional":{"language":"en","formatLocale":"en-US","hourCycle":"CLOCK","timeZone":"UTC"},
+                      "sicherheit":{"erinnernTrotzKennwort":true},"erinnerung":{"an":true,"verpasste":true}},
+                     "termine":[{"id":"eight","titel":"TimedEight","datum":"2026-10-04","zeit":"08:00"},
+                       {"id":"all","titel":"AllDay","datum":"2026-10-04","zeit":""},
+                       {"id":"pm","titel":"Afternoon","datum":"2026-10-04","zeit":"14:35"}]}
+                    """.Replace("CLOCK", clock);
+                var notices = new List<ReminderNotice>();
+                using var scheduler = new ReminderScheduler(Path.Combine(root, clock + ".json"), notices.Add);
+                scheduler.UpdateData(ReminderScheduler.SelectBackgroundData(regionalData)!);
+                scheduler.RunOnce(new DateTime(2026, 10, 4, 14, 36, 0, DateTimeKind.Utc));
+                var morning = notices.Single(notice => notice.Body.StartsWith("TimedEight\n")).Body;
+                var afternoon = notices.Single(notice => notice.Body.StartsWith("Afternoon\n")).Body;
+                var allDay = notices.Single(notice => notice.Body.StartsWith("AllDay\n")).Body;
+                TestAssert.That(morning.Contains("8:00") && !allDay.Contains(':'),
+                    "An actual 08:00 appointment must retain its clock; an all-day entry must not invent one.");
+                TestAssert.That(clock == "h12" ? afternoon.Contains("2:35") && afternoon.Contains("PM")
+                    : afternoon.Contains("14:35") && !afternoon.Contains("PM"),
+                    "Native notification did not retain the configured clock format through the background projection.");
+            }
             const string data = """
                 {"einstellungen":{"erinnerung":{"an":true,"vorlauf":15,"verpasste":true,"art":"notification"}},
                  "termine":[{"id":"auszeit","datum":"2026-08-12","zeit":"09:00","titel":"Nach Neustart","standardErinnerung":true}]}

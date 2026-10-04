@@ -8085,7 +8085,7 @@ def erinnerungstext(eintrag):
         if eintrag.get("wer"):
             rumpf += " – " + eintrag["wer"]
         return eintrag.get("kopf") or _("Task is due"), rumpf
-    wann = eintrag.get("zeit") or ""
+    wann = uhrzeit_kurz(eintrag.get("zeit") or "")
     tage = int(eintrag.get("individuelleTage") or 0)
     if tage and not eintrag.get("verpasst"):
         return (_("Appointment reminder"), "%s – %s" % (
@@ -9610,6 +9610,92 @@ def erinnerungslauf(jetzt=None, als_wecker=False):
 # ---------------------------------------------------------------------------
 # Adressen weiterverwenden: Brief, Karte, E-Post und Druck
 # ---------------------------------------------------------------------------
+
+@lru_cache(maxsize=1)
+def _icu_uhrzeit_api():
+    """Use the installed WebKit runtime's ICU without changing process locales."""
+    import ctypes as c
+    import ctypes.util
+    bibliothek = ctypes.util.find_library("icui18n")
+    if not bibliothek:
+        raise OSError("ICU time formatting unavailable")
+    lib = c.CDLL(bibliothek)
+    version = re.search(r"\.so\.(\d+)", bibliothek)
+    suffix = "_" + version.group(1) if version else ""
+    u = c.POINTER(c.c_uint16)
+    status = c.POINTER(c.c_int32)
+
+    def api(name, ergebnis, argumente):
+        funktion = getattr(lib, name + suffix, None) or getattr(lib, name)
+        funktion.restype, funktion.argtypes = ergebnis, argumente
+        return funktion
+
+    return c, (
+        api("udatpg_open", c.c_void_p, [c.c_char_p, status]),
+        api("udatpg_getBestPattern", c.c_int32, [c.c_void_p, u, c.c_int32, u, c.c_int32, status]),
+        api("udatpg_close", None, [c.c_void_p]),
+        api("udat_open", c.c_void_p, [c.c_int32, c.c_int32, c.c_char_p, u, c.c_int32, u, c.c_int32, status]),
+        api("udat_format", c.c_int32, [c.c_void_p, c.c_double, u, c.c_int32, c.c_void_p, status]),
+        api("udat_close", None, [c.c_void_p]))
+
+
+def uhrzeit_kurz(wert):
+    """Regional minute display; canonical scheduling values are never changed."""
+    treffer = re.fullmatch(r"([01][0-9]|2[0-3]):([0-5][0-9])(?::[0-5][0-9])?", str(wert))
+    if not treffer:
+        return str(wert or "")
+    stunde, minute = map(int, treffer.groups())
+    gebiet = str(_REGIONAL.get("formatLocale") or "system")
+    if gebiet == "system":
+        gebiet = os.environ.get("LC_ALL") or os.environ.get("LC_TIME") or os.environ.get("LANG") or "en_US"
+    elif _REGIONAL.get("language") not in (None, "", "system"):
+        teile = gebiet.replace("_", "-").split("-")
+        region = next((teil for teil in teile[1:] if len(teil) == 2 or teil.isdigit()), "")
+        gebiet = str(_REGIONAL["language"]).replace("_", "-").split("-")[0] + ("-" + region if region else "")
+    gebiet = gebiet.split(".", 1)[0].split("@", 1)[0].replace("-", "_")
+    zyklus = _REGIONAL.get("hourCycle", "system")
+    try:
+        c, (pg_open, pg_best, pg_close, dt_open, dt_format, dt_close) = _icu_uhrzeit_api()
+
+        def unicode_puffer(text):
+            return (c.c_uint16 * (len(text.encode("utf-16-le")) // 2)).from_buffer_copy(text.encode("utf-16-le"))
+
+        status = c.c_int32(0)
+        muster = (c.c_uint16 * 128)()
+        skelett = unicode_puffer({"h12": "hm", "h23": "Hm"}.get(zyklus, "jm"))
+        generator = pg_open(gebiet.encode("ascii"), c.byref(status))
+        if not generator or status.value > 0:
+            if generator:
+                pg_close(generator)
+            raise ValueError("ICU pattern unavailable")
+        try:
+            laenge = pg_best(generator, skelett, len(skelett), muster, 128, c.byref(status))
+        finally:
+            pg_close(generator)
+        if status.value > 0 or not 0 < laenge < 128:
+            raise ValueError("ICU pattern invalid")
+        status.value = 0
+        zone = unicode_puffer("UTC")
+        formatter = dt_open(-2, -2, gebiet.encode("ascii"), zone, len(zone), muster, laenge, c.byref(status))
+        if not formatter or status.value > 0:
+            if formatter:
+                dt_close(formatter)
+            raise ValueError("ICU clock unavailable")
+        ausgabe = (c.c_uint16 * 128)()
+        try:
+            laenge = dt_format(formatter, 946684800000 + (stunde * 60 + minute) * 60000,
+                               ausgabe, 128, None, c.byref(status))
+        finally:
+            dt_close(formatter)
+        if status.value > 0 or not 0 < laenge < 128:
+            raise ValueError("ICU clock invalid")
+        return bytes(ausgabe)[:laenge * 2].decode("utf-16-le")
+    except (OSError, AttributeError, UnicodeError, ValueError):
+        # Headless installations without WebKit/ICU still honor explicit h12.
+        if zyklus == "h12":
+            return "%d:%02d %s" % (stunde % 12 or 12, minute, "AM" if stunde < 12 else "PM")
+        return "%02d:%02d" % (stunde, minute)
+
 
 def datum_kurz(wert):
     """Formatiert ein Datum nach dem früh verfügbaren Formatgebiet."""

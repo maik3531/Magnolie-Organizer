@@ -131,7 +131,7 @@ internal sealed class ReminderScheduler : IDisposable
                  "id", "uid", "icsQuelleId", "syncKalenderUid", "name", "datum", "typ"),
             ["einstellungen"] = new JsonObject
             {
-                ["regional"] = SelectFields(Child(settings, "regional"), "timeZone"),
+                ["regional"] = SelectFields(Child(settings, "regional"), "timeZone", "language", "formatLocale", "hourCycle"),
                 ["erinnerung"] = SelectFields(Child(settings, "erinnerung"),
                     "an", "vorlauf", "verpasste", "aufgaben", "art", "stil", "jahrestage")
             }
@@ -183,7 +183,8 @@ internal sealed class ReminderScheduler : IDisposable
     }
 
     internal static IReadOnlyList<(string Key, DateTime Start, DateTime Due)> DueAppointments(
-        string json, DateTime now, Dictionary<string, string>? titles = null, Dictionary<string, string>? errors = null)
+        string json, DateTime now, Dictionary<string, string>? titles = null, Dictionary<string, string>? errors = null,
+        Dictionary<string, bool>? allDay = null)
     {
         using var document = JsonDocument.Parse(json);
         var root = document.RootElement;
@@ -232,6 +233,8 @@ internal sealed class ReminderScheduler : IDisposable
                 }
                 if (titles is not null && occurrence.Summary is not null)
                     foreach (var due in result.Skip(resultStart)) titles[due.Item1] = CalendarRecurrence.TextValue(occurrence.Summary);
+                if (allDay is not null)
+                    foreach (var due in result.Skip(resultStart)) allDay[due.Item1] = occurrence.AllDay;
             }
         }
         return result;
@@ -264,9 +267,10 @@ internal sealed class ReminderScheduler : IDisposable
             var style = Text(reminder, "stil") == "magnolie" ? "magnolie" : "system";
             var titles = new Dictionary<string, string>(StringComparer.Ordinal);
             var errors = new Dictionary<string, string>(StringComparer.Ordinal);
-            IEnumerable<(string Key, DateTime Start, DateTime Due)> dueItems = DueAppointments(snapshot, now, titles, errors);
+            var allDay = new Dictionary<string, bool>(StringComparer.Ordinal);
+            IEnumerable<(string Key, DateTime Start, DateTime Due)> dueItems = DueAppointments(snapshot, now, titles, errors, allDay);
             if (!reminder.TryGetProperty("aufgaben", out var tasksEnabled) || tasksEnabled.ValueKind != JsonValueKind.False)
-                dueItems = dueItems.Concat(DueTasks(document.RootElement, reminder, now, titles, errors));
+                dueItems = dueItems.Concat(DueTasks(document.RootElement, reminder, now, titles, errors, allDay));
             dueItems = dueItems.Concat(DueAnniversaries(document.RootElement, reminder, now));
             ExpansionErrors = errors;
             var previousError = LastError;
@@ -285,7 +289,7 @@ internal sealed class ReminderScheduler : IDisposable
                     continue;
                 }
                 var title = titles.GetValueOrDefault(due.Key) ?? FindTitle(document.RootElement, due.Key);
-                var when = due.Start.ToString(due.Start.TimeOfDay == TimeSpan.FromHours(8) ? "d" : "g", CultureInfo.CurrentCulture);
+                var when = FormatReminderTime(document.RootElement, due.Start, allDay.GetValueOrDefault(due.Key));
                 var heading = due.Key.StartsWith("aufgabe:", StringComparison.Ordinal) ? NativeLocalization.Gettext("Task") : NativeLocalization.Gettext("Appointment");
                 pending.Add((due.Key, new ReminderNotice(heading, $"{title}\n{when}", kind, style)));
             }
@@ -319,8 +323,38 @@ internal sealed class ReminderScheduler : IDisposable
         finally { Volatile.Write(ref running, 0); }
     }
 
+    internal static string FormatReminderTime(JsonElement root, DateTime start, bool allDay)
+    {
+        var regional = Child(Child(root, "einstellungen"), "regional");
+        var culture = CultureInfo.CurrentCulture;
+        var region = Text(regional, "formatLocale").Replace('_', '-');
+        if (region.Length > 0 && region != "system")
+        {
+            var language = Text(regional, "language").Replace('_', '-').Split('-')[0];
+            if (language.Length > 0 && language != "system")
+            {
+                var territory = region.Split('-').Skip(1).FirstOrDefault(part => part.Length == 2 || part.All(char.IsDigit));
+                region = language + (territory is null ? "" : "-" + territory);
+            }
+            try { culture = CultureInfo.GetCultureInfo(region); }
+            catch (CultureNotFoundException) { /* Keep the system's regional format. */ }
+        }
+        var date = start.ToString("d", culture);
+        if (allDay) return date;
+        var pattern = culture.DateTimeFormat.ShortTimePattern;
+        if (Text(regional, "hourCycle") == "h12")
+        {
+            pattern = pattern.Replace('H', 'h');
+            if (!pattern.Contains('t')) pattern += " tt";
+        }
+        else if (Text(regional, "hourCycle") == "h23")
+            pattern = pattern.Replace('h', 'H').Replace("tt", "").Replace("t", "").Trim();
+        return date + " " + start.ToString(pattern, culture);
+    }
+
     internal static IReadOnlyList<(string Key, DateTime Start, DateTime Due)> DueTasks(
-        JsonElement root, JsonElement reminder, DateTime now, Dictionary<string, string>? titles = null, Dictionary<string, string>? errors = null)
+        JsonElement root, JsonElement reminder, DateTime now, Dictionary<string, string>? titles = null, Dictionary<string, string>? errors = null,
+        Dictionary<string, bool>? allDay = null)
     {
         if (!root.TryGetProperty("aufgaben", out var tasks) || tasks.ValueKind != JsonValueKind.Array)
             return Array.Empty<(string, DateTime, DateTime)>();
@@ -361,6 +395,8 @@ internal sealed class ReminderScheduler : IDisposable
                 }
                 if (titles is not null && occurrence.Summary is not null)
                     foreach (var entry in result.Skip(resultStart)) titles[entry.Item1] = CalendarRecurrence.TextValue(occurrence.Summary);
+                if (allDay is not null)
+                    foreach (var entry in result.Skip(resultStart)) allDay[entry.Item1] = occurrence.AllDay;
             }
         }
         return result;
