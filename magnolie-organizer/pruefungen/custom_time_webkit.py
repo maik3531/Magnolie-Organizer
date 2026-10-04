@@ -53,7 +53,7 @@ def serve(request):
         return
     data = asset.read_bytes()
     if name == "anwendung.js":
-        data = data.replace(b"window.OrganizerTest = {", b"window.OrganizerTest = { oeffneCustomEintrag, oeffneTerminBlatt, oeffneSmsPlanung, pruefeSmsPlanung, beendeModal,")
+        data = data.replace(b"window.OrganizerTest = {", b"window.OrganizerTest = { eingabe, oeffneCustomEintrag, oeffneTerminBlatt, oeffneSmsPlanung, pruefeSmsPlanung, beendeModal,")
     request.finish(Gio.MemoryInputStream.new_from_bytes(GLib.Bytes.new(data)), len(data),
                    mimetypes.guess_type(name)[0] or "application/octet-stream")
 
@@ -201,6 +201,24 @@ completed = False
 try:
     if args.regional_only:
         regional_field = '#custom-eintrag-schleier .zeitfeld'
+        for catalog in sorted((web / "i18n").glob("*.js")):
+            evaluate(catalog.read_text() + "; return true;")
+        roundtrips = evaluate("""
+let count = 0;
+for (const locale of ['en-US','de-DE','fr-FR','es-ES','it-IT','nl-NL','pt-PT','ru-RU','cs-CZ','pl-PL',
+  'hsb-DE','da-DK','nb-NO','hi-IN','zh-CN','ja-JP','ar-EG','uk-UA','be-BY','tr-TR']) {
+  MagnolieI18n.setLocale(locale);
+  Object.assign(OrganizerTest.daten().einstellungen.regional, {formatLocale:locale, hourCycle:'h12'});
+  for (const time of ['00:00','00:35','11:59','12:00','14:35','23:59']) {
+    const field = OrganizerTest.eingabe('time', time);
+    const visible = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').get.call(field);
+    if (field.value !== time || !field.checkValidity()) throw new Error(locale + ': ' + time + ' -> ' + visible + ' -> ' + field.value);
+    count++;
+  }
+}
+return count;
+""")
+        results.append({"case": "twenty-language-native-roundtrip", "count": roundtrips})
         evaluate("MagnolieI18n.setLocale('en'); Object.assign(OrganizerTest.daten().einstellungen.regional, {formatLocale:'en-US', hourCycle:'h12'}); return true;")
         for kind in ("appointments", "tasks"):
             for text, expected in (("12:05 AM", "00:05"), ("12:05 PM", "12:05"),
