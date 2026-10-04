@@ -13,10 +13,14 @@ data class ZeitPausenlauf(
     val alarm: ZeitPausenwecker? = null,
     val replaced: Set<Long> = emptySet(),
     val pendingNotices: Set<Long> = emptySet(),
-    val fixedEnds: Map<Long, Long> = emptyMap()
+    val fixedEnds: Map<Long, Long> = emptyMap(),
+    val endAlarm: ZeitFeierabendwecker = ZeitFeierabendwecker(),
+    val baseMinutes: Long = 0
 ) {
     fun validate(entry: Zeiteintrag): ZeitPausenlauf {
         require(entry.endMinute == null && !entry.deleted)
+        endAlarm.validate()
+        require(baseMinutes in 0..(Zeiteintrag.MAX_MINUTE - entry.startMinute))
         require(fixed.size <= 16)
         fixed.forEach { it.validate() }
         require(manual.all { it.start >= entry.startMinute && it.end in it.start..Zeiteintrag.MAX_MINUTE })
@@ -28,9 +32,12 @@ data class ZeitPausenlauf(
         return this
     }
 
-    fun calculate(entry: Zeiteintrag, now: Long): ZeitPausen.Ergebnis = ZeitPausen.calculate(
-        entry.startMinute, maxOf(entry.startMinute, entry.pauseMinute ?: entry.startMinute, now), entry.zone,
-        fixed, manual.map { it.start to it.end }, entry.pauseMinute, replaced, fixedEnds)
+    fun calculate(entry: Zeiteintrag, now: Long): ZeitPausen.Ergebnis {
+        val result = ZeitPausen.calculate(entry.startMinute,
+            maxOf(entry.startMinute, entry.pauseMinute ?: entry.startMinute, now), entry.zone,
+            fixed, manual.map { it.start to it.end }, entry.pauseMinute, replaced, fixedEnds)
+        return result.copy(minutes = Math.addExact(baseMinutes, result.minutes))
+    }
 
     fun evaluated(entry: Zeiteintrag, now: Long): ZeitPausenlauf {
         val replacements = calculate(entry, now).replacements
@@ -44,5 +51,19 @@ data class ZeitPausenlauf(
     fun project(entry: Zeiteintrag, now: Long): Zeiteintrag {
         val active = entry.pauseMinute?.let { (now - it).coerceAtLeast(0) } ?: 0
         return entry.copy(pauseMinutes = calculate(entry, now).minutes - active).validate()
+    }
+
+    fun nextEndAlarmMinute(entry: Zeiteintrag, now: Long): Long? {
+        if (endAlarm.fired || entry.endMinute != null || entry.deleted) return null
+        val projected = project(entry, now)
+        if (endAlarm.due(projected, now)) return now
+        endAlarm.clockDue(entry)?.let { return it }
+        val target = endAlarm.workedMinutes ?: return null
+        val remaining = target - if (endAlarm.includePauses) projected.grossMinutes(now) else projected.totalMinutes(now)
+        if (endAlarm.includePauses) return now + remaining
+        if (entry.pauseMinute != null) return null
+        val fixedEnd = calculate(entry, now).activeFixed.maxOfOrNull { it.second } ?: now
+        // Future breaks may move this estimate. Delivery always rechecks actual worked time.
+        return fixedEnd + remaining
     }
 }

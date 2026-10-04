@@ -323,7 +323,8 @@ class Wecker : BroadcastReceiver() {
         if (absicht.action !in setOf(Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED,
                 Intent.ACTION_TIMEZONE_CHANGED, Intent.ACTION_TIME_CHANGED,
                   "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED", ERLEDIGT, Erinnerung.AKTION, Erinnerung.CUSTOM,
-                  io.gitlab.maik3531.magnolienotes.zeit.ZeitWecker.AKTION)) return
+                  io.gitlab.maik3531.magnolienotes.zeit.ZeitWecker.AKTION,
+                  io.gitlab.maik3531.magnolienotes.zeit.ZeitWecker.FEIERABEND)) return
         val ergebnis = goAsync()
         val handler = android.os.Handler(android.os.Looper.getMainLooper())
         val fertig = java.util.concurrent.atomic.AtomicBoolean()
@@ -346,6 +347,9 @@ class Wecker : BroadcastReceiver() {
 
     internal fun verarbeite(zusammenhang: Context, absicht: Intent) {
         when (absicht.action) {
+            io.gitlab.maik3531.magnolienotes.zeit.ZeitWecker.FEIERABEND ->
+                io.gitlab.maik3531.magnolienotes.zeit.ZeitWecker.meldenFeierabend(zusammenhang,
+                    absicht.getStringExtra("aufgabe") ?: return, absicht.getLongExtra("weckzeit", -1))
             io.gitlab.maik3531.magnolienotes.zeit.ZeitWecker.AKTION ->
                 io.gitlab.maik3531.magnolienotes.zeit.ZeitWecker.melden(zusammenhang,
                     absicht.getStringExtra("aufgabe") ?: return, absicht.getLongExtra("weckzeit", -1))

@@ -45,4 +45,8 @@
     <string name="zeit_pausen_neustart">Değişiklikler yeni kayıtlara uygulanır.</string>
     <string name="zeit_pause_ersetzt">Elle başlattığınız mola, planlanmış molanın tamamının yerini alır.</string>
     <string name="zeit_pause_wecksignal">Seçilen mola süresinin bitiminden bir dakika önce uyarı.</string>
+    <string name="zeit_feierabend">Mesai bitiş alarmı</string>
+    <string name="zeit_pausen_einrechnen">Molaları dahil et</string>
+    <string name="zeit_automatisch_beenden">Kaydı otomatik olarak bitir</string>
+    <string name="zeit_feierabend_signal">Seçilen mesai bitiş hedefine ulaşıldı.</string>
 </resources>

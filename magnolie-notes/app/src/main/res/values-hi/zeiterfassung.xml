@@ -45,4 +45,8 @@
     <string name="zeit_pausen_neustart">बदलाव नए रिकॉर्ड पर लागू होंगे।</string>
     <string name="zeit_pause_ersetzt">आपका मैन्युअल विराम पूरे निर्धारित विराम की जगह लेता है।</string>
     <string name="zeit_pause_wecksignal">चुनी गई विराम अवधि समाप्त होने से एक मिनट पहले संकेत।</string>
+    <string name="zeit_feierabend">काम समाप्ति का अलार्म</string>
+    <string name="zeit_pausen_einrechnen">विराम शामिल करें</string>
+    <string name="zeit_automatisch_beenden">रिकॉर्डिंग अपने आप बंद करें</string>
+    <string name="zeit_feierabend_signal">चुना गया काम समाप्ति का लक्ष्य पूरा हो गया है।</string>
 </resources>

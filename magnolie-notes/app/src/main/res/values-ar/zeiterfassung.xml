@@ -45,4 +45,8 @@
     <string name="zeit_pausen_neustart">تسري التغييرات على التسجيلات الجديدة.</string>
     <string name="zeit_pause_ersetzt">تحل استراحتك اليدوية محل فترة الراحة المجدولة بالكامل.</string>
     <string name="zeit_pause_wecksignal">تنبيه قبل انتهاء مدة الراحة المحددة بدقيقة واحدة.</string>
+    <string name="zeit_feierabend">منبه نهاية العمل</string>
+    <string name="zeit_pausen_einrechnen">احتساب فترات الراحة</string>
+    <string name="zeit_automatisch_beenden">إيقاف التسجيل تلقائيًا</string>
+    <string name="zeit_feierabend_signal">تم بلوغ هدف نهاية العمل المحدد.</string>
 </resources>

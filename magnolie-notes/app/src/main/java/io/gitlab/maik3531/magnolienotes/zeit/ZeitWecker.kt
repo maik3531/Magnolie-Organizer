@@ -17,12 +17,14 @@ import io.gitlab.maik3531.magnolienotes.daten.Ablage
 /** Reuses the existing alarm receiver/worker and exact-alarm permission fallback. */
 object ZeitWecker {
     const val AKTION = "io.gitlab.maik3531.magnolienotes.ZEIT_PAUSE"
+    const val FEIERABEND = "io.gitlab.maik3531.magnolienotes.ZEIT_FEIERABEND"
     const val CHANNEL = "magnolie_time_alarms"
 
-    private fun absicht(context: Context, id: String = "", expected: Long = -1): PendingIntent =
+    private fun absicht(context: Context, id: String = "", expected: Long = -1,
+                        alarmAction: String = AKTION): PendingIntent =
         PendingIntent.getBroadcast(context, 0, Intent(context, Wecker::class.java).apply {
-            action = AKTION
-            data = Uri.parse("magnolie://time/pause-alarm")
+            action = alarmAction
+            data = Uri.parse("magnolie://time/" + if (alarmAction == AKTION) "pause-alarm" else "end-alarm")
             putExtra("aufgabe", id)
             putExtra("weckzeit", expected)
         }, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
@@ -36,6 +38,11 @@ object ZeitWecker {
             .minByOrNull { it.second }
         if (next == null) manager.cancel(absicht(context))
         else Erinnerung.stellen(manager, maxOf(now, next.second), absicht(context, next.first, next.second))
+        val end = state.pauseRuns.mapNotNull { (id, run) ->
+            run.nextEndAlarmMinute(state.entries.single { it.id == id }, now / 60000)?.let { id to it * 60000 }
+        }.minByOrNull { it.second }
+        if (end == null) manager.cancel(absicht(context, alarmAction = FEIERABEND))
+        else Erinnerung.stellen(manager, maxOf(now, end.second), absicht(context, end.first, end.second, FEIERABEND))
     }
 
     fun melden(context: Context, id: String, expected: Long, now: Long = System.currentTimeMillis(),
@@ -54,21 +61,37 @@ object ZeitWecker {
                 state.copy(pauseRuns = state.pauseRuns + (id to run.copy(alarm = fired)))
             }
             // The atomic encrypted save above must succeed before any audible notification.
-            if (claimed) {
-                val manager = context.getSystemService(NotificationManager::class.java)
-                if (manager.getNotificationChannel(CHANNEL) == null) manager.createNotificationChannel(
-                    NotificationChannel(CHANNEL, context.getString(R.string.zeit_titel), NotificationManager.IMPORTANCE_HIGH))
-                val open = PendingIntent.getActivity(context, ZeitDienst.ID,
-                    Intent(context, MainActivity::class.java).putExtra(MainActivity.ZEIGE_ZEITERFASSUNG, true)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
-                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-                manager.notify("time-pause-$id", 0, Notification.Builder(context, CHANNEL)
-                    .setSmallIcon(R.drawable.ic_zeiterfassung)
-                    .setContentTitle(context.getString(R.string.zeit_titel))
-                    .setContentText(context.getString(R.string.zeit_pause_wecksignal))
-                    .setContentIntent(open).setAutoCancel(true).setOnlyAlertOnce(true)
-                    .setVisibility(Notification.VISIBILITY_PRIVATE).setCategory(Notification.CATEGORY_ALARM).build())
-            }
+            if (claimed) notify(context, "time-pause-$id", R.string.zeit_pause_wecksignal)
             neuStellen(context, now, storage)
         }
+
+    fun meldenFeierabend(context: Context, id: String, expected: Long, now: Long = System.currentTimeMillis(),
+                        storage: Ablage = Ablage.hole(context)) = synchronized(Ablage.SCHREIBSPERRE) {
+        if (expected < 0 || expected > now) return@synchronized
+        var claimed = false
+        storage.aendereZeiterfassung { original ->
+            val state = original.evaluatePauses(now / 60000)
+            val next = state.claimEndAlarm(id, now)
+            claimed = next != state
+            next
+        }
+        if (claimed) notify(context, "time-end-$id", R.string.zeit_feierabend_signal)
+        neuStellen(context, now, storage)
+    }
+
+    private fun notify(context: Context, tag: String, text: Int) {
+        val manager = context.getSystemService(NotificationManager::class.java)
+        if (manager.getNotificationChannel(CHANNEL) == null) manager.createNotificationChannel(
+            NotificationChannel(CHANNEL, context.getString(R.string.zeit_titel), NotificationManager.IMPORTANCE_HIGH))
+        val open = PendingIntent.getActivity(context, ZeitDienst.ID,
+            Intent(context, MainActivity::class.java).putExtra(MainActivity.ZEIGE_ZEITERFASSUNG, true)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        manager.notify(tag, 0, Notification.Builder(context, CHANNEL)
+            .setSmallIcon(R.drawable.ic_zeiterfassung)
+            .setContentTitle(context.getString(R.string.zeit_titel))
+            .setContentText(context.getString(text))
+            .setContentIntent(open).setAutoCancel(true).setOnlyAlertOnce(true)
+            .setVisibility(Notification.VISIBILITY_PRIVATE).setCategory(Notification.CATEGORY_ALARM).build())
+    }
 }

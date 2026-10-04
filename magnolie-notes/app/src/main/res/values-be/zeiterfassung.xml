@@ -45,4 +45,8 @@
     <string name="zeit_pausen_neustart">Змены дзейнічаюць для новых запісаў.</string>
     <string name="zeit_pause_ersetzt">Ваш ручны перапынак замяняе ўвесь запланаваны перапынак.</string>
     <string name="zeit_pause_wecksignal">Сігнал за хвіліну да заканчэння выбранай працягласці перапынку.</string>
+    <string name="zeit_feierabend">Будзільнік заканчэння працы</string>
+    <string name="zeit_pausen_einrechnen">Улічваць перапынкі</string>
+    <string name="zeit_automatisch_beenden">Аўтаматычна спыняць улік</string>
+    <string name="zeit_feierabend_signal">Выбраная мэта заканчэння працы дасягнута.</string>
 </resources>

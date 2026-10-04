@@ -20,12 +20,15 @@ data class ZeiterfassungStand(
     val conflicts: Map<String, List<Zeiteintrag>> = emptyMap(),
     val wifi: ZeitWlanAutomatik = ZeitWlanAutomatik(),
     val fixedPauses: List<ZeitPausenfenster> = emptyList(),
-    val pauseRuns: Map<String, ZeitPausenlauf> = emptyMap()
+    val pauseRuns: Map<String, ZeitPausenlauf> = emptyMap(),
+    val endAlarm: ZeitFeierabendwecker = ZeitFeierabendwecker()
 ) {
     fun validate(): ZeiterfassungStand {
         require(reportName.length <= 240)
         calendar.validate()
         wifi.validate()
+        endAlarm.validate()
+        require(!endAlarm.fired)
         require(fixedPauses.size <= 16)
         fixedPauses.forEach { it.validate() }
         pauseRuns.forEach { (id, run) -> run.validate(entries.single { it.id == id }) }
@@ -74,7 +77,8 @@ data class ZeiterfassungStand(
         check(entries.none { !it.deleted && it.endMinute == null })
         require(entry.endMinute == null && entry.pauseMinute == null && entry.pauseMinutes == 0L)
         require(!entry.deleted && entry.clock.isEmpty())
-        return store(entry).copy(pauseRuns = pauseRuns + (entry.id to ZeitPausenlauf(fixed = fixedPauses.toList()))).validate()
+        return store(entry).copy(pauseRuns = pauseRuns + (entry.id to ZeitPausenlauf(
+            fixed = fixedPauses.toList(), endAlarm = endAlarm))).validate()
     }
 
     fun projected(entry: Zeiteintrag, now: Long = Zeiteintrag.currentMinute()): Zeiteintrag =
@@ -119,7 +123,16 @@ data class ZeiterfassungStand(
         check(entries.firstOrNull { it.id == expected.id } == expected)
         if (expected.endMinute != null || expected.deleted) return this
         val now = nowMs / 60000
-        return replace(expected, projected(expected, now).finish(now, nowMs))
+        return store(projected(expected, now).finish(now, nowMs), nowMs)
+    }
+
+    fun claimEndAlarm(id: String, nowMs: Long = System.currentTimeMillis()): ZeiterfassungStand {
+        val entry = entries.firstOrNull { it.id == id } ?: return this
+        val run = pauseRuns[id] ?: return this
+        val now = nowMs / 60000
+        if (!run.endAlarm.due(projected(entry, now), now)) return this
+        return if (run.endAlarm.autoStop) finish(entry, nowMs)
+        else copy(pauseRuns = pauseRuns + (id to run.copy(endAlarm = run.endAlarm.copy(fired = true)))).validate()
     }
 
     fun startFromWifi(observedSsid: String, observedMs: Long, nowMs: Long, activity: String): ZeiterfassungStand {
@@ -190,7 +203,7 @@ data class ZeiterfassungStand(
     fun suppressIncoming(entry: Zeiteintrag): Boolean = entry.id in removedIds ||
         YearMonth.from(entry.localStart()).toString() in removedMonths
 
-    private fun store(entry: Zeiteintrag): ZeiterfassungStand {
+    private fun store(entry: Zeiteintrag, stoppedMs: Long = System.currentTimeMillis()): ZeiterfassungStand {
         check(counter < MAX_COUNTER)
         val localActor = actor.ifEmpty { UUID.randomUUID().toString() }
         val next = counter + 1
@@ -199,11 +212,19 @@ data class ZeiterfassungStand(
         val old = entries.firstOrNull { it.id == entry.id }
         val keepRun = old != null && !entry.deleted && entry.endMinute == null && old.startMinute == entry.startMinute &&
             old.zone == entry.zone && old.pauseMinute == entry.pauseMinute && old.pauseMinutes == entry.pauseMinutes
+        val priorRun = pauseRuns[entry.id]
+        val updatedRuns = when {
+            keepRun -> pauseRuns
+            priorRun != null && !entry.deleted && entry.endMinute == null -> pauseRuns + (entry.id to ZeitPausenlauf(
+                baseMinutes = entry.pauseMinutes, endAlarm = priorRun.endAlarm,
+                alarm = priorRun.alarm?.takeIf { it.startedMs / 60000 == entry.pauseMinute }))
+            else -> pauseRuns - entry.id
+        }
         return copy(actor = localActor, counter = next,
             entries = entries.filterNot { it.id == entry.id } + stamped,
-            pauseRuns = if (keepRun) pauseRuns else pauseRuns - entry.id,
+            pauseRuns = updatedRuns,
             removedMonths = removedMonths - YearMonth.from(entry.localStart()).toString(),
-            wifi = if (wasRunning && entry.endMinute != null) wifi.afterStop(entry.id, System.currentTimeMillis()) else wifi).validate()
+            wifi = if (wasRunning && entry.endMinute != null) wifi.afterStop(entry.id, stoppedMs) else wifi).validate()
     }
 
     companion object {

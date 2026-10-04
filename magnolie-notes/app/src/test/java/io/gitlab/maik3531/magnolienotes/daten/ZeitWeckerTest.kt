@@ -114,4 +114,25 @@ class ZeitWeckerTest {
         ZeitWecker.neuStellen(context, started, storage)
         assertTrue(manager.scheduledAlarms.isEmpty())
     }
+
+    @Test fun endOfWorkAlarmUsesTheSameDurableDeliveryPathAndAutomaticStopCancelsAllTargets() = fixture { context, storage, reopen ->
+        storage.aendereZeiterfassung { state -> state.copy(pauseRuns = state.pauseRuns.mapValues { (_, run) ->
+            run.copy(endAlarm = ZeitFeierabendwecker(workedMinutes = 150, includePauses = true, autoStop = true))
+        }) }
+        val entry = storage.bestand.value.zeiterfassung.entries.single()
+        val target = (entry.startMinute + 150) * 60000
+        ZeitWecker.neuStellen(context, started, storage)
+        val alarms = shadowOf(context.getSystemService(AlarmManager::class.java))
+        assertEquals(ZeitWecker.FEIERABEND, shadowOf(alarms.scheduledAlarms.single().operation).savedIntent.action)
+        assertEquals(target, alarms.scheduledAlarms.single().triggerAtMs)
+        ZeitWecker.meldenFeierabend(context, entry.id, target, target, storage)
+        assertEquals(target / 60000, reopen().bestand.value.zeiterfassung.entries.single().endMinute)
+        assertEquals(target + 60 * 60000, reopen().bestand.value.zeiterfassung.wifi.blockedUntilMs)
+        val notifications = context.getSystemService(NotificationManager::class.java)
+        assertEquals(1, shadowOf(notifications).allNotifications.size)
+        notifications.cancelAll()
+        ZeitWecker.meldenFeierabend(context, entry.id, target, target + 1000, reopen())
+        assertTrue(shadowOf(notifications).allNotifications.isEmpty())
+        assertTrue(alarms.scheduledAlarms.isEmpty())
+    }
 }

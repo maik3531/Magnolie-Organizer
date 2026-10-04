@@ -45,4 +45,8 @@
     <string name="zeit_pausen_neustart">Wijzigingen gelden voor nieuwe registraties.</string>
     <string name="zeit_pause_ersetzt">Je handmatige pauze vervangt de volledige geplande pauze.</string>
     <string name="zeit_pause_wecksignal">Signaal één minuut voor het einde van de gekozen pauzeduur.</string>
+    <string name="zeit_feierabend">Alarm voor einde werktijd</string>
+    <string name="zeit_pausen_einrechnen">Pauzes meetellen</string>
+    <string name="zeit_automatisch_beenden">Registratie automatisch beëindigen</string>
+    <string name="zeit_feierabend_signal">Het gekozen doel voor einde werktijd is bereikt.</string>
 </resources>

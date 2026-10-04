@@ -45,4 +45,8 @@
     <string name="zeit_pausen_neustart">Změny platí pro nové záznamy.</string>
     <string name="zeit_pause_ersetzt">Vaše ruční přestávka nahrazuje celou plánovanou přestávku.</string>
     <string name="zeit_pause_wecksignal">Signál minutu před uplynutím zvolené délky přestávky.</string>
+    <string name="zeit_feierabend">Budík konce práce</string>
+    <string name="zeit_pausen_einrechnen">Započítat přestávky</string>
+    <string name="zeit_automatisch_beenden">Automaticky ukončit měření</string>
+    <string name="zeit_feierabend_signal">Bylo dosaženo zvoleného cíle konce práce.</string>
 </resources>

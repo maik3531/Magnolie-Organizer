@@ -118,6 +118,7 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                 ZeiterfassungsOptionen(stand.enabled, speichert, beiAktiv)
                 ZeitPausenOptionen(stand, speichert, speichern)
+                ZeitFeierabendOptionen(stand, speichert, speichern)
                 ZeitMonate(stand, speichert, speichern, beiPapierkorb)
             }
         } else if (ansicht == "history") {

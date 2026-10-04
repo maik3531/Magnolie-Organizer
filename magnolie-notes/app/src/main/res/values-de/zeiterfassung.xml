@@ -45,4 +45,8 @@
     <string name="zeit_pausen_neustart">Änderungen gelten für neue Erfassungen.</string>
     <string name="zeit_pause_ersetzt">Deine manuelle Pause ersetzt die gesamte feste Pause.</string>
     <string name="zeit_pause_wecksignal">Signal eine Minute vor der gewählten Pausendauer.</string>
+    <string name="zeit_feierabend">Feierabendwecker</string>
+    <string name="zeit_pausen_einrechnen">Pausen mitzählen</string>
+    <string name="zeit_automatisch_beenden">Erfassung automatisch beenden</string>
+    <string name="zeit_feierabend_signal">Das gewählte Feierabendziel ist erreicht.</string>
 </resources>

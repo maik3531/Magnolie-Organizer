@@ -45,4 +45,8 @@
     <string name="zeit_pausen_neustart">変更は新しい記録に適用されます。</string>
     <string name="zeit_pause_ersetzt">手動で開始した休憩が定時休憩全体に置き換わります。</string>
     <string name="zeit_pause_wecksignal">選択した休憩時間が終わる1分前に通知します。</string>
+    <string name="zeit_feierabend">退勤アラーム</string>
+    <string name="zeit_pausen_einrechnen">休憩を含める</string>
+    <string name="zeit_automatisch_beenden">記録を自動的に終了する</string>
+    <string name="zeit_feierabend_signal">設定した退勤の目標に達しました。</string>
 </resources>
