@@ -40,4 +40,9 @@
     <string name="zeit_druck_uhrzeit">Time</string><string name="zeit_drucken">Print</string>
     <string name="zeit_alle_tage">All days</string><string name="zeit_druck_zeitumstellung">Clock change (min)</string>
     <string name="zeit_druck_fehler">Printing could not be started.</string>
+    <string name="zeit_feste_pausen">Scheduled breaks</string>
+    <string name="zeit_feste_pause_neu">Add break window</string>
+    <string name="zeit_pausen_neustart">Changes apply to new recordings.</string>
+    <string name="zeit_pause_ersetzt">Your manual pause replaces the entire scheduled break.</string>
+    <string name="zeit_pause_wecksignal">Signal one minute before the selected pause duration.</string>
 </resources>

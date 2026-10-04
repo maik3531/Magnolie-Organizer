@@ -16,6 +16,34 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 class ZeiterfassungAblageTest {
+    @Test fun fixedPauseSnapshotAndPreciseManualAnchorSurviveEncryptedStorage() {
+        val directory = Files.createTempDirectory("magnolie-time-fixed-").toFile()
+        try {
+            val context = object : ContextWrapper(ApplicationProvider.getApplicationContext<Context>()) {
+                override fun getApplicationContext(): Context = this
+                override fun getFilesDir(): File = directory
+            }
+            val key = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
+            fun ms(time: String) = java.time.Instant.parse("2026-10-04T${time}Z").toEpochMilli()
+            val first = Ablage.fuerTest(context) { key }
+            first.aendereZeiterfassung { it.copy(enabled = true, fixedPauses = listOf(ZeitPausenfenster(720, 750)))
+                .start(Zeiteintrag(startMinute = ms("08:00:00") / 60000, zone = "UTC")) }
+            first.aendereZeiterfassung { it.pause(it.entries.single(), ms("11:55:17")) }
+            first.aendereZeiterfassung { it.evaluatePauses(ms("12:00:00") / 60000) }
+            val restarted = Ablage.fuerTest(context) { key }
+            assertEquals(first.bestand.value.zeiterfassung, restarted.bestand.value.zeiterfassung)
+            val paused = restarted.bestand.value.zeiterfassung
+            assertEquals(ms("12:24:17"), paused.pauseRuns.values.single().alarm!!.warningMs())
+            val draft = ZeitEntwurf(paused.entries.single(), pauseRun = paused.pauseRuns.values.single())
+            restarted.setzeZeitEntwurf(draft)
+            restarted.sichereEntwurf()
+            assertEquals(draft, Ablage.fuerTest(context) { key }.entwurf.value.zeit)
+            restarted.aendereZeiterfassung { it.resume(it.entries.single(), ms("12:10:00")) }
+            restarted.aendereZeiterfassung { it.finish(it.entries.single(), ms("17:00:00")) }
+            assertEquals(15L, Ablage.fuerTest(context) { key }.bestand.value.zeiterfassung.entries.single().pauseMinutes)
+        } finally { directory.deleteRecursively() }
+    }
+
     @Test fun runningPauseSurvivesEncryptedRestartAndDisabledFeature() {
         val directory = Files.createTempDirectory("magnolie-time-record-").toFile()
         try {

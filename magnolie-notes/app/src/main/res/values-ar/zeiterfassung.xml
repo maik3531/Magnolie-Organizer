@@ -40,4 +40,9 @@
     <string name="zeit_druck_uhrzeit">الوقت</string><string name="zeit_drucken">طباعة</string>
     <string name="zeit_alle_tage">كل الأيام</string><string name="zeit_druck_zeitumstellung">تغيير الساعة (دقيقة)</string>
     <string name="zeit_druck_fehler">تعذر بدء الطباعة.</string>
+    <string name="zeit_feste_pausen">فترات الراحة المجدولة</string>
+    <string name="zeit_feste_pause_neu">إضافة فترة راحة</string>
+    <string name="zeit_pausen_neustart">تسري التغييرات على التسجيلات الجديدة.</string>
+    <string name="zeit_pause_ersetzt">تحل استراحتك اليدوية محل فترة الراحة المجدولة بالكامل.</string>
+    <string name="zeit_pause_wecksignal">تنبيه قبل انتهاء مدة الراحة المحددة بدقيقة واحدة.</string>
 </resources>

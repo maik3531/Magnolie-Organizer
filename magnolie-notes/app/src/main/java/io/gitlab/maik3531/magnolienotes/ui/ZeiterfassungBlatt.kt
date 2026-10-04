@@ -21,6 +21,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -79,6 +80,7 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
     })
     val confirm = stringResource(R.string.zeit_bestaetigen)
     @Composable fun karte(entry: Zeiteintrag, bearbeiten: Boolean) {
+        val displayed = stand.projected(entry, now)
         Abschnitt(entry.type.ifBlank { context.getString(R.string.zeit_titel) },
             modifier = if (bearbeiten) Modifier.clickable(enabled = !speichert, role = Role.Button) {
                 beiBearbeiten(entry, false)
@@ -88,9 +90,9 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
             fun date(minute: Long) = DateFormat.getDateFormat(context).apply { timeZone = zone }.format(Date(minute * 60000))
             Wertzeile(stringResource(R.string.zeit_beginn), date(entry.startMinute) + " · " + time(entry.startMinute))
             Wertzeile(stringResource(R.string.zeit_ende), entry.endMinute?.let { date(it) + " · " + time(it) }
-                ?: stringResource(if (entry.pauseMinute == null) R.string.zeit_laufend else R.string.zeit_pause_aktiv))
-            Wertzeile(stringResource(R.string.zeit_gesamt), Zeiteintrag.duration(entry.totalMinutes(now), locale))
-            Wertzeile(stringResource(R.string.zeit_pause), java.text.NumberFormat.getIntegerInstance(locale).format(entry.pausedMinutes(now)))
+                ?: stringResource(if (stand.isPaused(entry, now)) R.string.zeit_pause_aktiv else R.string.zeit_laufend))
+            Wertzeile(stringResource(R.string.zeit_gesamt), Zeiteintrag.duration(displayed.totalMinutes(now), locale))
+            Wertzeile(stringResource(R.string.zeit_pause), java.text.NumberFormat.getIntegerInstance(locale).format(displayed.pausedMinutes(now)))
             if (entry.note.isNotBlank()) Text(entry.note, modifier = Modifier.padding(vertical = 6.dp))
             if (bearbeiten) Papierknopf(stringResource(R.string.zeit_korrektur), aktiv = !speichert) { beiBearbeiten(entry, false) }
         }
@@ -115,6 +117,7 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
         if (ansicht == "settings") {
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                 ZeiterfassungsOptionen(stand.enabled, speichert, beiAktiv)
+                ZeitPausenOptionen(stand, speichert, speichern)
                 ZeitMonate(stand, speichert, speichern, beiPapierkorb)
             }
         } else if (ansicht == "history") {
@@ -135,17 +138,68 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
                 if (current == null) {
                     val entry = Zeiteintrag(id = startId, startMinute = Zeiteintrag.currentMinute(), type = suggestion)
                     speichern({ it.start(entry) }, { startId = UUID.randomUUID().toString() })
-                } else speichern({ it.replace(current, current.finish()) }, {})
+                } else speichern({ it.finish(current) }, {})
             }
             if (current != null) {
-                val paused = current.pauseMinute != null
+                val paused = stand.isPaused(current, now)
                 BestaetigungsSchieber(stringResource(if (paused) R.string.zeit_fortsetzen else R.string.zeit_pausieren),
                     confirm, "${current.id}:${current.clock}:pause", !speichert) {
-                    speichern({ it.replace(current, if (paused) current.resume() else current.pause()) }, {})
+                    speichern({ if (paused) it.resume(current) else it.pause(current) }, {})
                 }
             }
         } }
         if (current != null) item(key = current.id) { karte(current, false) }
+        val pauseAlarm = current?.let { stand.pauseRuns[it.id]?.alarm }
+        if (current != null && pauseAlarm != null) item {
+            Abschnitt(stringResource(R.string.zeit_pause)) {
+                fun select(minutes: Int?) {
+                    speichern({ state ->
+                        val run = state.pauseRuns[current.id] ?: error("pause ended")
+                        check(run.alarm == pauseAlarm)
+                        state.copy(pauseRuns = state.pauseRuns + (current.id to run.copy(alarm = pauseAlarm.select(minutes))))
+                    }, {})
+                }
+                val label = stringResource(R.string.aufgabe_erinnern)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(label, modifier = Modifier.weight(1f))
+                    Switch(checked = pauseAlarm.minutes != null, enabled = !speichert,
+                        onCheckedChange = { select(if (it) 15 else null) },
+                        modifier = Modifier.semantics { contentDescription = label })
+                }
+                if (pauseAlarm.minutes != null) {
+                    Row(Modifier.fillMaxWidth()) {
+                        io.gitlab.maik3531.magnolienotes.daten.ZeitPausenwecker.CHOICES.forEach { minutes ->
+                            Papierknopf(java.text.NumberFormat.getIntegerInstance(locale).format(minutes),
+                                modifier = Modifier.weight(1f), aktiv = !speichert, ausgewaehlt = pauseAlarm.minutes == minutes) {
+                                select(minutes)
+                            }
+                        }
+                    }
+                    Text(stringResource(R.string.zeit_pause_wecksignal))
+                    val manager = context.getSystemService(android.app.AlarmManager::class.java)
+                    if (android.os.Build.VERSION.SDK_INT >= 31 && !manager.canScheduleExactAlarms()) {
+                        Text(stringResource(R.string.aufgabe_wecker_hinweis))
+                        Papierknopf(stringResource(R.string.aufgabe_wecker_erlauben), aktiv = !speichert) {
+                            context.startActivity(android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                                android.net.Uri.parse("package:" + context.packageName)))
+                        }
+                    }
+                }
+            }
+        }
+        val pending = current?.let { stand.pauseRuns[it.id]?.pendingNotices }.orEmpty()
+        if (current != null && pending.isNotEmpty()) item {
+            Abschnitt(stringResource(R.string.zeit_feste_pausen)) {
+                Text(stringResource(R.string.zeit_pause_ersetzt))
+                Papierknopf(stringResource(R.string.ok), aktiv = !speichert) {
+                    speichern({ state ->
+                        val run = state.pauseRuns[current.id]
+                        if (run == null) state else state.copy(pauseRuns = state.pauseRuns +
+                            (current.id to run.copy(pendingNotices = run.pendingNotices - pending)))
+                    }, {})
+                }
+            }
+        }
         }
     }
 }

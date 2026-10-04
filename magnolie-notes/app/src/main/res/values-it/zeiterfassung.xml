@@ -40,4 +40,9 @@
     <string name="zeit_druck_uhrzeit">Ora</string><string name="zeit_drucken">Stampa</string>
     <string name="zeit_alle_tage">Tutti i giorni</string><string name="zeit_druck_zeitumstellung">Cambio d’ora (min)</string>
     <string name="zeit_druck_fehler">Impossibile avviare la stampa.</string>
+    <string name="zeit_feste_pausen">Pause programmate</string>
+    <string name="zeit_feste_pause_neu">Aggiungi intervallo di pausa</string>
+    <string name="zeit_pausen_neustart">Le modifiche si applicano alle nuove registrazioni.</string>
+    <string name="zeit_pause_ersetzt">La pausa manuale sostituisce tutta la pausa programmata.</string>
+    <string name="zeit_pause_wecksignal">Segnale un minuto prima della fine della durata di pausa scelta.</string>
 </resources>

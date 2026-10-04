@@ -40,4 +40,9 @@
     <string name="zeit_druck_uhrzeit">समय</string><string name="zeit_drucken">प्रिंट</string>
     <string name="zeit_alle_tage">सभी दिन</string><string name="zeit_druck_zeitumstellung">घड़ी का बदलाव (मिनट)</string>
     <string name="zeit_druck_fehler">प्रिंट शुरू नहीं हो सका।</string>
+    <string name="zeit_feste_pausen">निर्धारित विराम</string>
+    <string name="zeit_feste_pause_neu">विराम की समयावधि जोड़ें</string>
+    <string name="zeit_pausen_neustart">बदलाव नए रिकॉर्ड पर लागू होंगे।</string>
+    <string name="zeit_pause_ersetzt">आपका मैन्युअल विराम पूरे निर्धारित विराम की जगह लेता है।</string>
+    <string name="zeit_pause_wecksignal">चुनी गई विराम अवधि समाप्त होने से एक मिनट पहले संकेत।</string>
 </resources>

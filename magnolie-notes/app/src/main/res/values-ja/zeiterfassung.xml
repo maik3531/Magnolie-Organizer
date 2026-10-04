@@ -40,4 +40,9 @@
     <string name="zeit_druck_uhrzeit">時刻</string><string name="zeit_drucken">印刷</string>
     <string name="zeit_alle_tage">すべての日</string><string name="zeit_druck_zeitumstellung">時計の調整（分）</string>
     <string name="zeit_druck_fehler">印刷を開始できませんでした。</string>
+    <string name="zeit_feste_pausen">定時休憩</string>
+    <string name="zeit_feste_pause_neu">休憩時間帯を追加</string>
+    <string name="zeit_pausen_neustart">変更は新しい記録に適用されます。</string>
+    <string name="zeit_pause_ersetzt">手動で開始した休憩が定時休憩全体に置き換わります。</string>
+    <string name="zeit_pause_wecksignal">選択した休憩時間が終わる1分前に通知します。</string>
 </resources>

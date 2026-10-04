@@ -40,4 +40,9 @@
     <string name="zeit_druck_uhrzeit">Tid</string><string name="zeit_drucken">Skriv ut</string>
     <string name="zeit_alle_tage">Alle dager</string><string name="zeit_druck_zeitumstellung">Klokkeomstilling (min)</string>
     <string name="zeit_druck_fehler">Utskriften kunne ikke startes.</string>
+    <string name="zeit_feste_pausen">Planlagte pauser</string>
+    <string name="zeit_feste_pause_neu">Legg til pauseintervall</string>
+    <string name="zeit_pausen_neustart">Endringer gjelder for nye registreringer.</string>
+    <string name="zeit_pause_ersetzt">Den manuelle pausen din erstatter hele den planlagte pausen.</string>
+    <string name="zeit_pause_wecksignal">Signal ett minutt før den valgte pauselengden er over.</string>
 </resources>

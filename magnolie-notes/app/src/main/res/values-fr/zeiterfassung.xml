@@ -40,4 +40,9 @@
     <string name="zeit_druck_uhrzeit">Heure</string><string name="zeit_drucken">Imprimer</string>
     <string name="zeit_alle_tage">Tous les jours</string><string name="zeit_druck_zeitumstellung">Changement d’heure (min)</string>
     <string name="zeit_druck_fehler">Impossible de lancer l’impression.</string>
+    <string name="zeit_feste_pausen">Pauses planifiées</string>
+    <string name="zeit_feste_pause_neu">Ajouter une plage de pause</string>
+    <string name="zeit_pausen_neustart">Les modifications s’appliquent aux nouveaux enregistrements.</string>
+    <string name="zeit_pause_ersetzt">Votre pause manuelle remplace toute la pause planifiée.</string>
+    <string name="zeit_pause_wecksignal">Signal une minute avant la fin de la durée de pause choisie.</string>
 </resources>

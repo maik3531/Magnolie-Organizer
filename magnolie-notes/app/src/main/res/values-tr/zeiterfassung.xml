@@ -40,4 +40,9 @@
     <string name="zeit_druck_uhrzeit">Saat</string><string name="zeit_drucken">Yazdır</string>
     <string name="zeit_alle_tage">Tüm günler</string><string name="zeit_druck_zeitumstellung">Saat değişimi (dk)</string>
     <string name="zeit_druck_fehler">Yazdırma başlatılamadı.</string>
+    <string name="zeit_feste_pausen">Planlanmış molalar</string>
+    <string name="zeit_feste_pause_neu">Mola zaman aralığı ekle</string>
+    <string name="zeit_pausen_neustart">Değişiklikler yeni kayıtlara uygulanır.</string>
+    <string name="zeit_pause_ersetzt">Elle başlattığınız mola, planlanmış molanın tamamının yerini alır.</string>
+    <string name="zeit_pause_wecksignal">Seçilen mola süresinin bitiminden bir dakika önce uyarı.</string>
 </resources>

@@ -27,8 +27,9 @@ class ForegroundServiceContractTest {
         assertEquals(setOf(
             "android.permission.FOREGROUND_SERVICE",
             "android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE",
+            "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
         ), foregroundPermissions.toSet())
-        assertEquals(2, foregroundPermissions.size)
+        assertEquals(3, foregroundPermissions.size)
         assertEquals(1, permissions.count { it == "android.permission.CHANGE_NETWORK_STATE" })
 
         val services = document.getElementsByTagName("service").let { nodes ->
@@ -40,6 +41,18 @@ class ForegroundServiceContractTest {
         }
         assertEquals("connectedDevice", services[".baum.BaumDienst"])
         assertEquals("connectedDevice", services[".telefon.TelefonDienst"])
+        assertEquals("specialUse", services[".zeit.ZeitDienst"])
+        val timeService = document.getElementsByTagName("service").let { nodes ->
+            (0 until nodes.length).map { nodes.item(it) as Element }
+                .single { it.getAttributeNS(android, "name") == ".zeit.ZeitDienst" }
+        }
+        assertEquals("false", timeService.getAttributeNS(android, "exported"))
+        assertTrue(timeService.getElementsByTagName("property").let { nodes ->
+            (0 until nodes.length).map { nodes.item(it) as Element }.any {
+                it.getAttributeNS(android, "name") == "android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" &&
+                    it.getAttributeNS(android, "value").isNotBlank()
+            }
+        })
 
         val baum = project.resolve(
             "src/main/java/io/gitlab/maik3531/magnolienotes/baum/BaumDienst.kt").readText()

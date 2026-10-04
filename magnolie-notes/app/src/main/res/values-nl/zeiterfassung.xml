@@ -40,4 +40,9 @@
     <string name="zeit_druck_uhrzeit">Tijd</string><string name="zeit_drucken">Afdrukken</string>
     <string name="zeit_alle_tage">Alle dagen</string><string name="zeit_druck_zeitumstellung">Klokwijziging (min)</string>
     <string name="zeit_druck_fehler">Het afdrukken kon niet worden gestart.</string>
+    <string name="zeit_feste_pausen">Geplande pauzes</string>
+    <string name="zeit_feste_pause_neu">Pauzevenster toevoegen</string>
+    <string name="zeit_pausen_neustart">Wijzigingen gelden voor nieuwe registraties.</string>
+    <string name="zeit_pause_ersetzt">Je handmatige pauze vervangt de volledige geplande pauze.</string>
+    <string name="zeit_pause_wecksignal">Signaal één minuut voor het einde van de gekozen pauzeduur.</string>
 </resources>

@@ -13,13 +13,18 @@ data class ZeitEntwurf(
     val pauseEdited: Boolean = false,
     val kind: String = original.type,
     val note: String = original.note,
-    val duration: String? = null
+    val duration: String? = null,
+    val pauseRun: ZeitPausenlauf? = null
 ) {
     fun pauseMinutes(now: Long): Long =
-        if (!pauseEdited && original.pauseMinute != null && duration == null)
+        if (!pauseEdited && pauseRun != null && duration == null)
+            pauseRun.project(original, end ?: now).pausedMinutes(end ?: now)
+        else if (!pauseEdited && original.pauseMinute != null && duration == null)
             original.pausedMinutes(end ?: now) else digits(pause).trim().ifBlank { "0" }.toLong()
 
     fun record(now: Long = Zeiteintrag.currentMinute(), changed: Long = System.currentTimeMillis()): Zeiteintrag {
+        if (pauseRun != null && !pauseEdited && duration == null && start == original.startMinute && end == original.endMinute)
+            return original.copy(type = kind.trim(), note = note, modifiedMs = changed).validate()
         val pauses = pauseMinutes(now)
         val correctedEnd = duration?.let { text ->
             val match = Regex("([0-9]+):([0-5][0-9])").matchEntire(digits(text).trim()) ?: error("duration")

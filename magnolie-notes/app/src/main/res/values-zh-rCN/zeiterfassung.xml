@@ -40,4 +40,9 @@
     <string name="zeit_druck_uhrzeit">时间</string><string name="zeit_drucken">打印</string>
     <string name="zeit_alle_tage">所有日期</string><string name="zeit_druck_zeitumstellung">时钟调整（分钟）</string>
     <string name="zeit_druck_fehler">无法开始打印。</string>
+    <string name="zeit_feste_pausen">定时休息</string>
+    <string name="zeit_feste_pause_neu">添加休息时段</string>
+    <string name="zeit_pausen_neustart">更改适用于新记录。</string>
+    <string name="zeit_pause_ersetzt">手动开始的休息将替代整个定时休息时段。</string>
+    <string name="zeit_pause_wecksignal">在所选休息时长结束前一分钟提醒。</string>
 </resources>

@@ -47,6 +47,7 @@ object Erinnerung {
 
     /** Stellt alle Wecker neu. Alte Wecker derselben Aufgabe werden ersetzt. */
     fun allesNeuStellen(zusammenhang: Context) {
+        io.gitlab.maik3531.magnolienotes.zeit.ZeitWecker.neuStellen(zusammenhang)
         customNeuStellen(zusammenhang)
         val ablage = Ablage.hole(zusammenhang)
         val wecker = zusammenhang.getSystemService(AlarmManager::class.java) ?: return
@@ -134,7 +135,7 @@ object Erinnerung {
         customNeuStellen(context)
     }
 
-    private fun stellen(wecker: AlarmManager, zeitpunkt: Long, absicht: PendingIntent) {
+    internal fun stellen(wecker: AlarmManager, zeitpunkt: Long, absicht: PendingIntent) {
         // Genau wecken, wo es erlaubt ist; sonst lieber ungenau als gar nicht.
         val genauErlaubt = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
             wecker.canScheduleExactAlarms()
@@ -321,7 +322,8 @@ class Wecker : BroadcastReceiver() {
     override fun onReceive(zusammenhang: Context, absicht: Intent) {
         if (absicht.action !in setOf(Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED,
                 Intent.ACTION_TIMEZONE_CHANGED, Intent.ACTION_TIME_CHANGED,
-                 "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED", ERLEDIGT, Erinnerung.AKTION, Erinnerung.CUSTOM)) return
+                  "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED", ERLEDIGT, Erinnerung.AKTION, Erinnerung.CUSTOM,
+                  io.gitlab.maik3531.magnolienotes.zeit.ZeitWecker.AKTION)) return
         val ergebnis = goAsync()
         val handler = android.os.Handler(android.os.Looper.getMainLooper())
         val fertig = java.util.concurrent.atomic.AtomicBoolean()
@@ -344,6 +346,9 @@ class Wecker : BroadcastReceiver() {
 
     internal fun verarbeite(zusammenhang: Context, absicht: Intent) {
         when (absicht.action) {
+            io.gitlab.maik3531.magnolienotes.zeit.ZeitWecker.AKTION ->
+                io.gitlab.maik3531.magnolienotes.zeit.ZeitWecker.melden(zusammenhang,
+                    absicht.getStringExtra("aufgabe") ?: return, absicht.getLongExtra("weckzeit", -1))
             Erinnerung.CUSTOM -> Erinnerung.customMelden(zusammenhang,
                 absicht.getStringExtra("aufgabe") ?: return, absicht.getLongExtra("weckzeit", -1))
             Intent.ACTION_BOOT_COMPLETED,

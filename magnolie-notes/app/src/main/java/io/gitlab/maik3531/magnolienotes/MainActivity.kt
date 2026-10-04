@@ -115,6 +115,7 @@ class MainActivity : ComponentActivity() {
 
     private val gewuenschteAufgabe = mutableStateOf<String?>(null)
     internal val gewuenschtesCustom = mutableStateOf<Intent?>(null)
+    internal val gewuenschteZeit = mutableStateOf(false)
     internal val qrPaarung = mutableStateOf<String?>(null)
     internal val bestaetigteQrPaarung = mutableStateOf<String?>(null)
     internal val benachrichtigungsFreigabe = registerForActivityResult(
@@ -130,6 +131,7 @@ class MainActivity : ComponentActivity() {
             @Suppress("DEPRECATION")
             val custom = zustand.getParcelable<Intent>(CUSTOM_ZIEL)
             gewuenschtesCustom.value = CustomNavigation.anfrage(this, custom)
+            gewuenschteZeit.value = zustand.getBoolean(ZEIGE_ZEITERFASSUNG, false)
         } else {
             empfangeAbsicht(intent)
         }
@@ -140,6 +142,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         if ((application as MagnolieApp).startZustand.value == StartZustand.Bereit) {
             runCatching { TelefonWerk.get(this).runtimePermissionsChanged() }
+            runCatching { io.gitlab.maik3531.magnolienotes.zeit.ZeitDienst.refresh(this, Ablage.hole(this).bestand.value.zeiterfassung) }
         }
     }
 
@@ -158,8 +161,10 @@ class MainActivity : ComponentActivity() {
             return
         }
         // Ordinary reminders have no data URI. A foreign URI cannot inject an editor ID.
-        if (absicht?.data == null && absicht?.action in listOf(null, Intent.ACTION_MAIN))
+        if (absicht?.data == null && absicht?.action in listOf(null, Intent.ACTION_MAIN)) {
             gewuenschteAufgabe.value = absicht?.getStringExtra(ZEIGE_AUFGABE)
+            if (absicht?.getBooleanExtra(ZEIGE_ZEITERFASSUNG, false) == true) gewuenschteZeit.value = true
+        }
         empfangePaarungsLink(absicht)
     }
 
@@ -177,6 +182,7 @@ class MainActivity : ComponentActivity() {
         qrPaarung.value?.let { zustand.putString(QR_PAARUNG, it) }
         bestaetigteQrPaarung.value?.let { zustand.putString(QR_PAARUNG_BESTAETIGT, it) }
         gewuenschtesCustom.value?.let { zustand.putParcelable(CUSTOM_ZIEL, it) }
+        zustand.putBoolean(ZEIGE_ZEITERFASSUNG, gewuenschteZeit.value)
         super.onSaveInstanceState(zustand)
     }
 
@@ -196,6 +202,7 @@ class MainActivity : ComponentActivity() {
     companion object {
         /** Über welche Aufgabe die Benachrichtigung sprach. */
         const val ZEIGE_AUFGABE = "zeige_aufgabe"
+        const val ZEIGE_ZEITERFASSUNG = "zeige_zeiterfassung"
         private const val QR_LINK_VERBRAUCHT = "qr_link_verbraucht"
         private const val QR_PAARUNG = "qr_paarung"
         private const val QR_PAARUNG_BESTAETIGT = "qr_paarung_bestaetigt"
@@ -248,7 +255,7 @@ private fun MainActivity.Startblatt(gewuenschteAufgabe: androidx.compose.runtime
     }
     when (val aktuell = zustand) {
         StartZustand.Laden -> Ladeblatt()
-        StartZustand.Bereit -> Hauptblatt(gewuenschteAufgabe, gewuenschtesCustom)
+        StartZustand.Bereit -> Hauptblatt(gewuenschteAufgabe, gewuenschtesCustom, gewuenschteZeit)
         is StartZustand.Fehler -> RecoveryBlatt(
             art = aktuell.art,
             erneut = { (application as MagnolieApp).starten() },
@@ -371,7 +378,8 @@ class PortableExportVertrag : ActivityResultContract<String, Uri?>() {
 
 @Composable
 private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState<String?>,
-                      gewuenschtesCustom: androidx.compose.runtime.MutableState<Intent?>) {
+                      gewuenschtesCustom: androidx.compose.runtime.MutableState<Intent?>,
+                      gewuenschteZeit: androidx.compose.runtime.MutableState<Boolean>) {
     val zusammenhang = LocalContext.current
     val ablage = remember { Ablage.hole(zusammenhang) }
     val werk = remember { Baumwerk.hole(zusammenhang) }
@@ -393,8 +401,20 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     val offeneNotiz = entwurf.notiz
     val offeneAufgabe = entwurf.aufgabe
     val offeneZeit = entwurf.zeit
+    LaunchedEffect(gewuenschteZeit.value, entwurf) {
+        if (gewuenschteZeit.value && entwurf == io.gitlab.maik3531.magnolienotes.daten.EditorEntwurf()) {
+            blatt = 6; zeitAnsicht = "tracking"; gewuenschteZeit.value = false
+        }
+    }
     LaunchedEffect(offeneZeit?.original?.id) { if (offeneZeit != null) { blatt = 6; zeitAnsicht = "history" } }
     var editorSpeichert by remember { mutableStateOf(false) }
+    val zeitLaeuft = bestand.zeiterfassung.entries.any { !it.deleted && it.endMinute == null }
+    LaunchedEffect(zeitLaeuft) {
+        if (!zeitLaeuft) withContext(Dispatchers.IO) {
+            io.gitlab.maik3531.magnolienotes.zeit.ZeitWecker.neuStellen(zusammenhang)
+        }
+        runCatching { io.gitlab.maik3531.magnolienotes.zeit.ZeitDienst.refresh(zusammenhang, bestand.zeiterfassung) }
+    }
     var anhangZiel by rememberSaveable { mutableStateOf<String?>(null) }
     var anhangSpeicherZiel by rememberSaveable { mutableStateOf<String?>(null) }
     var anhangEreignis by remember { mutableStateOf<AnhangEreignis?>(null) }
@@ -954,7 +974,8 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     zeitAnsicht, { zeitAnsicht = it }, { an -> zeitSpeichern({ it.copy(enabled = an) }, {}) },
                     { blatt = 4 }) { entry, neu ->
                     ablage.setzeZeitEntwurf(io.gitlab.maik3531.magnolienotes.daten.ZeitEntwurf(entry, neu,
-                        pause = entry.pausedMinutes().toString()))
+                        pause = bestand.zeiterfassung.projected(entry).pausedMinutes().toString(),
+                        pauseRun = bestand.zeiterfassung.pauseRuns[entry.id]))
                 }
                 0 -> NotizBlatt(
                     notizen = bestand.notizen,

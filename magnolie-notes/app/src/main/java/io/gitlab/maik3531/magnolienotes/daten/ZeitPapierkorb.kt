@@ -11,7 +11,9 @@ data class ZeitPapierkorb(
     @EncodeDefault val id: String = UUID.randomUUID().toString(),
     @EncodeDefault val removedMs: Long = System.currentTimeMillis(),
     val entries: List<Zeiteintrag>,
-    val month: String? = null
+    val month: String? = null,
+    val conflicts: Map<String, List<Zeiteintrag>> = emptyMap(),
+    val pauseRuns: Map<String, ZeitPausenlauf> = emptyMap()
 ) {
     val expiresMs: Long get() = Math.addExact(removedMs, RETENTION_MS)
 

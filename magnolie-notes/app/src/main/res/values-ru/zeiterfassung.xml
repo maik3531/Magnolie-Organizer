@@ -40,4 +40,9 @@
     <string name="zeit_druck_uhrzeit">Время</string><string name="zeit_drucken">Печать</string>
     <string name="zeit_alle_tage">Все дни</string><string name="zeit_druck_zeitumstellung">Перевод часов (мин)</string>
     <string name="zeit_druck_fehler">Не удалось начать печать.</string>
+    <string name="zeit_feste_pausen">Запланированные перерывы</string>
+    <string name="zeit_feste_pause_neu">Добавить интервал перерыва</string>
+    <string name="zeit_pausen_neustart">Изменения применяются к новым записям.</string>
+    <string name="zeit_pause_ersetzt">Ваш ручной перерыв заменяет весь запланированный перерыв.</string>
+    <string name="zeit_pause_wecksignal">Сигнал за минуту до окончания выбранной длительности перерыва.</string>
 </resources>

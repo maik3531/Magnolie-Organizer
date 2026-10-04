@@ -40,4 +40,9 @@
     <string name="zeit_druck_uhrzeit">Uhrzeit</string><string name="zeit_drucken">Drucken</string>
     <string name="zeit_alle_tage">Alle Tage</string><string name="zeit_druck_zeitumstellung">Zeitumstellung (Min.)</string>
     <string name="zeit_druck_fehler">Der Druck konnte nicht gestartet werden.</string>
+    <string name="zeit_feste_pausen">Feste Pausen</string>
+    <string name="zeit_feste_pause_neu">Pausenfenster hinzufügen</string>
+    <string name="zeit_pausen_neustart">Änderungen gelten für neue Erfassungen.</string>
+    <string name="zeit_pause_ersetzt">Deine manuelle Pause ersetzt die gesamte feste Pause.</string>
+    <string name="zeit_pause_wecksignal">Signal eine Minute vor der gewählten Pausendauer.</string>
 </resources>

@@ -40,4 +40,9 @@
     <string name="zeit_druck_uhrzeit">Čas</string><string name="zeit_drucken">Ćišćeć</string>
     <string name="zeit_alle_tage">Wšě dny</string><string name="zeit_druck_zeitumstellung">Časowe přestajenje (min)</string>
     <string name="zeit_druck_fehler">Ćišćenje njeda so startować.</string>
+    <string name="zeit_feste_pausen">Planowane přestawki</string>
+    <string name="zeit_feste_pause_neu">Čas přestawki přidać</string>
+    <string name="zeit_pausen_neustart">Změny płaća za nowe zapisy.</string>
+    <string name="zeit_pause_ersetzt">Waša manuelna přestawka narunuje cyłu planowanu přestawku.</string>
+    <string name="zeit_pause_wecksignal">Signal jednu mjeńšinu před kóncom wubraneje doby přestawki.</string>
 </resources>

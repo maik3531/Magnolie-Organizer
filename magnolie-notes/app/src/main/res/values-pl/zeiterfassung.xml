@@ -40,4 +40,9 @@
     <string name="zeit_druck_uhrzeit">Godzina</string><string name="zeit_drucken">Drukuj</string>
     <string name="zeit_alle_tage">Wszystkie dni</string><string name="zeit_druck_zeitumstellung">Zmiana czasu (min)</string>
     <string name="zeit_druck_fehler">Nie udało się rozpocząć drukowania.</string>
+    <string name="zeit_feste_pausen">Zaplanowane przerwy</string>
+    <string name="zeit_feste_pause_neu">Dodaj przedział przerwy</string>
+    <string name="zeit_pausen_neustart">Zmiany dotyczą nowych rejestracji.</string>
+    <string name="zeit_pause_ersetzt">Twoja ręczna przerwa zastępuje całą zaplanowaną przerwę.</string>
+    <string name="zeit_pause_wecksignal">Sygnał minutę przed upływem wybranego czasu przerwy.</string>
 </resources>
