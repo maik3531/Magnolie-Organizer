@@ -371,7 +371,7 @@ internal static class DocumentExportService
         else
         {
             if (sheet.Groups is { Count: > 0 }) table.Add(MergedRow(sheet.Groups, "ceGroup", "roHeading"));
-            table.Add(Row(sheet.Columns, HeadingStyle(sheet), "roHeading"));
+            table.Add(Row(sheet.Columns, HeadingStyle(sheet), sheet.Layout == "year" ? "roYearHeading" : "roHeading"));
         }
         for (var rowIndex = 0; rowIndex < sheet.Rows.Count; rowIndex++)
         {
@@ -475,7 +475,7 @@ internal static class DocumentExportService
     {
         var styles = new XElement(Office + "automatic-styles",
             RowStyle("roTitle", "0.9cm"), RowStyle("roHeading", "0.75cm"), RowStyle("roData", "0.75cm", true),
-            RowStyle("roHealth", "0.6cm"), RowStyle("roYear", "0.43cm"), RowStyle("roMonth", "2.5cm"),
+            RowStyle("roHealth", "0.6cm"), RowStyle("roYear", "0.61cm"), RowStyle("roYearHeading", "0.61cm"), RowStyle("roMonth", "2.5cm"),
             CellStyleElement("ceTitle", "#ffffff", "#29231d", "none", "15pt", true, "left", "middle", "Liberation Serif"),
             CellStyleElement("ceMonthTitle", "#5c3f25", "#ffffff", "none", "17pt", true, "center", "middle", "Liberation Sans"),
             CellStyleElement("ceHeading", "#f0e4ec", "#4c2740", "0.03cm solid #9b6386", "7pt", true, "center", "middle"),

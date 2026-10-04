@@ -488,6 +488,37 @@ internal static class ContractGroupTests
                     "Regional decimal separators corrupted SVG chart coordinates.");
         }
         finally { System.Globalization.CultureInfo.CurrentCulture = previousCulture; }
+        var yearColumns = Enumerable.Range(1, 12).Select(month => new DateTime(2026, month, 1)
+            .ToString("MMMM", System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+        var yearRows = Enumerable.Range(1, 31).Select(day => (IReadOnlyList<string>)Enumerable.Range(1, 12)
+            .Select(month => day <= DateTime.DaysInMonth(2026, month) ? $"{day} " + new DateTime(2026, month, day)
+                .ToString("ddd", System.Globalization.CultureInfo.InvariantCulture) : "").ToArray()).ToArray();
+        var yearBytes = DocumentExportService.CreateSpreadsheet(new[] {
+            new DocumentSheet("Year planner 2026", yearColumns, yearRows, Layout: "year") });
+        using (var yearArchive = new ZipArchive(new MemoryStream(yearBytes)))
+        {
+            using var yearContent = yearArchive.GetEntry("content.xml")!.Open();
+            var yearXml = XDocument.Load(yearContent);
+            XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+            string Height(string name) => yearXml.Descendants(style + "style").Single(element =>
+                (string?)element.Attribute(style + "name") == name).Element(style + "table-row-properties")!
+                .Attribute(style + "row-height")!.Value;
+            TestAssert.That(Height("roYear") == "0.61cm" && Height("roYear") == Height("roYearHeading"),
+                "Year day rows must match the month-heading height.");
+            TestAssert.That(yearXml.Descendants(table + "table-row").Skip(1).First()
+                .Attribute(table + "style-name")!.Value == "roYearHeading", "Year heading uses the wrong row style.");
+        }
+        var output = Environment.GetEnvironmentVariable("MAGNOLIE_ODS_FIXTURE_OUTPUT");
+        if (!string.IsNullOrEmpty(output))
+        {
+            if (!Directory.Exists(output)) throw new DirectoryNotFoundException(output);
+            File.WriteAllBytes(Path.Combine(output, "year-windows.ods"), yearBytes);
+            var monthRows = Enumerable.Range(0, 6).Select(week => (IReadOnlyList<string>)Enumerable.Range(0, 8)
+                .Select(column => column == 0 ? (40 + week).ToString() : (week * 7 + column).ToString()).ToArray()).ToArray();
+            File.WriteAllBytes(Path.Combine(output, "month-windows.ods"), DocumentExportService.CreateSpreadsheet(new[] {
+                new DocumentSheet("October 2026", new[] { "CW", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" },
+                    monthRows, Layout: "month") }));
+        }
         return Task.CompletedTask;
     }
 

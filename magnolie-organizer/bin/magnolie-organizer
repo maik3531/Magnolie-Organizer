@@ -10983,6 +10983,298 @@ def magnolie_logo_pfad():
                  if os.path.isfile(pfad)), "")
 
 
+def zeiterfassung_ods_bytes(bericht):
+    """Original Magnolie monthly sheet; formulas use minutes and explicit DST adjustment."""
+    import calendar
+    from zoneinfo import ZoneInfo
+    if not isinstance(bericht, dict):
+        raise ValueError(_("The ODS columns are invalid."))
+
+    def text(wert, maximum=160):
+        if not isinstance(wert, str) or len(wert) > maximum:
+            raise ValueError(_("An ODS cell is too long."))
+        return wert
+
+    monat = text(bericht.get("month"), 7)
+    if not re.fullmatch(r"[0-9]{4}-(?:0[1-9]|1[0-2])", monat) or monat.startswith("0000"):
+        raise ValueError(_("The ODS title is invalid."))
+    jahr, monatszahl = map(int, monat.split("-"))
+    tage_im_monat = calendar.monthrange(jahr, monatszahl)[1]
+    drucktage = bericht.get("days", list(range(1, tage_im_monat + 1)))
+    if (not isinstance(drucktage, list) or not drucktage or
+            any(type(tag) is not int or not 1 <= tag <= tage_im_monat for tag in drucktage) or
+            len(set(drucktage)) != len(drucktage)):
+        raise ValueError(_("The ODS row count is invalid."))
+    drucktage = sorted(drucktage)
+    name = text(bericht.get("name", ""), 240)
+    monatsname = text(bericht.get("monthTitle"))
+    labels = bericht.get("labels")
+    if not isinstance(labels, dict) or set(labels) != {"title", "name", "date", "signature", "total", "clock", "columns"}:
+        raise ValueError(_("The ODS columns are invalid."))
+    for key in ("title", "name", "date", "signature", "total", "clock"):
+        if not text(labels[key]).strip():
+            raise ValueError(_("The ODS columns are invalid."))
+    spalten = labels["columns"]
+    if not isinstance(spalten, list) or len(spalten) != 10 or any(not text(wert).strip() for wert in spalten):
+        raise ValueError(_("The ODS columns are invalid."))
+    gebiet = text(bericht.get("locale"), 32)
+    if not re.fullmatch(r"[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*", gebiet):
+        raise ValueError(_("The ODS columns are invalid."))
+    ziffern = text(bericht.get("digits"), 10)
+    if len(ziffern) != 10 or any(unicodedata.digit(zeichen, -1) != index for index, zeichen in enumerate(ziffern)):
+        raise ValueError(_("The ODS columns are invalid."))
+    wochentage, perioden = bericht.get("weekdays"), bericht.get("periods")
+    if (not isinstance(wochentage, list) or len(wochentage) != 7 or
+            not isinstance(perioden, list) or len(perioden) != 2):
+        raise ValueError(_("The ODS columns are invalid."))
+    for wert in wochentage + perioden:
+        text(wert, 64)
+
+    def teile_pruefen(teile, zeit):
+        erlaubt = {"literal", "hour", "minute", "dayPeriod"} if zeit else {"literal", "year", "month", "day", "weekday"}
+        pflicht = {"hour", "minute"} if zeit else {"year", "month", "day"}
+        if not isinstance(teile, list) or not 3 <= len(teile) <= 16:
+            raise ValueError(_("The ODS columns are invalid."))
+        gesehen = set()
+        for teil in teile:
+            if not isinstance(teil, dict) or set(teil) != {"type", "value"} or teil["type"] not in erlaubt:
+                raise ValueError(_("The ODS columns are invalid."))
+            text(teil["value"], 64)
+            if teil["type"] != "literal":
+                if teil["type"] in gesehen:
+                    raise ValueError(_("The ODS columns are invalid."))
+                gesehen.add(teil["type"])
+        if not pflicht <= gesehen:
+            raise ValueError(_("The ODS columns are invalid."))
+        return teile
+
+    datum_teile = teile_pruefen(bericht.get("dateParts"), False)
+    zeit_teile = teile_pruefen(bericht.get("timeParts"), True)
+    # This is a projection of existing Organizer calendar settings, not another
+    # region preference. Disabled holidays leave Sunday styling intact.
+    kalender = bericht.get("calendar", {})
+    if not isinstance(kalender, dict):
+        raise ValueError(_("The ODS columns are invalid."))
+    feiertage = {}
+    if kalender.get("enabled") is True:
+        land = text(kalender.get("country"), 2).upper()
+        regionen = kalender.get("regions", [])
+        termine = kalender.get("holidays", [])
+        if (not re.fullmatch(r"[A-Z]{2}", land) or not isinstance(regionen, list) or
+                len(regionen) > 64 or not isinstance(termine, list) or len(termine) > 2048):
+            raise ValueError(_("The ODS columns are invalid."))
+        def region_code(wert):
+            wert = text(wert, 64).strip().upper()
+            return wert if '-' in wert else land + '-' + wert
+        auswahl = {region_code(wert) for wert in regionen if wert}
+        for feiertag in termine:
+            if not isinstance(feiertag, dict):
+                raise ValueError(_("The ODS columns are invalid."))
+            if text(feiertag.get("country"), 2).upper() != land:
+                continue
+            datum = text(feiertag.get("date"), 10)
+            if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", datum):
+                raise ValueError(_("The ODS columns are invalid."))
+            datetime.strptime(datum, "%Y-%m-%d")
+            scopes = feiertag.get("regions", [])
+            if not isinstance(scopes, list) or len(scopes) > 64:
+                raise ValueError(_("The ODS columns are invalid."))
+            if not auswahl or feiertag.get("nationwide") is True or auswahl.intersection(region_code(wert) for wert in scopes):
+                bezeichnung = text(feiertag.get("name"))
+                if bezeichnung not in feiertage.setdefault(datum, []):
+                    feiertage[datum].append(bezeichnung)
+    zwoelf = any(teil["type"] == "dayPeriod" for teil in zeit_teile)
+    uebersetze_ziffern = str.maketrans("0123456789", ziffern)
+
+    def zahl(wert):
+        return str(wert).translate(uebersetze_ziffern)
+
+    def dauer(minuten):
+        return ("%d:%02d" % divmod(minuten, 60)).translate(uebersetze_ziffern)
+
+    def formatiere(wert, teile):
+        werte = {"year": "%04d" % wert.year, "month": "%02d" % wert.month, "day": "%02d" % wert.day,
+                 "hour": "%02d" % ((wert.hour % 12 or 12) if zwoelf else wert.hour), "minute": "%02d" % wert.minute,
+                 "weekday": wochentage[(wert.weekday() + 1) % 7], "dayPeriod": perioden[wert.hour >= 12]}
+        return "".join(teil["value"] if teil["type"] == "literal" else
+                       werte[teil["type"]].translate(uebersetze_ziffern) for teil in teile)
+
+    eintraege = bericht.get("entries")
+    if not isinstance(eintraege, list) or len(eintraege) > ODS_MAX_ZEILEN - 31:
+        raise ValueError(_("The ODS row count is invalid."))
+    tage = {}
+    ids = set()
+    gesamtzeichen = 0
+    for eintrag in eintraege:
+        if not isinstance(eintrag, dict):
+            raise ValueError(_("The ODS columns are invalid."))
+        kennung = eintrag.get("id")
+        if not isinstance(kennung, str) or str(uuid.UUID(kennung)) != kennung or kennung in ids:
+            raise ValueError(_("The ODS columns are invalid."))
+        ids.add(kennung)
+        if eintrag.get("deleted") is True:
+            continue
+        start, ende, pause = eintrag.get("startMinute"), eintrag.get("endMinute"), eintrag.get("pauseMinutes", 0)
+        if (type(start) is not int or not 0 <= start <= 4223371679 or type(pause) is not int or not 0 <= pause <= 4223371679 - start or
+                ende is not None and (type(ende) is not int or not start <= ende <= 4223371679 or pause > ende - start)):
+            raise ValueError(_("The ODS columns are invalid."))
+        zone = ZoneInfo(text(eintrag.get("zone"), 160))
+        von = datetime.fromtimestamp(start * 60, timezone.utc).astimezone(zone)
+        bis = datetime.fromtimestamp(ende * 60, timezone.utc).astimezone(zone) if ende is not None else None
+        art, notiz = text(eintrag.get("type", ""), 120), text(eintrag.get("note", ""), 20000)
+        gesamtzeichen += len(art) + len(notiz)
+        if gesamtzeichen > ODS_MAX_GESAMT:
+            raise ValueError(_("The ODS export is too large."))
+        if (von.year, von.month) == (jahr, monatszahl):
+            anpassung = int((bis.utcoffset() - von.utcoffset()).total_seconds() // 60) if bis else 0
+            tage.setdefault(von.day, []).append((von, bis, pause, art, notiz, str(zone), anpassung,
+                                               ende - start if ende is not None else None))
+    for eintraege_am_tag in tage.values():
+        eintraege_am_tag.sort(key=lambda eintrag: eintrag[0].timestamp())
+
+    ns = ('xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" '
+          'xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" '
+          'xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" '
+          'xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" '
+          'xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0" '
+          'xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" '
+          'xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2"')
+    esc = _ods_xml_text
+    hintergrund = ""
+
+    def zelle(inhalt="", stil="cell", attribute=""):
+        if hintergrund and stil in {"cell", "date", "clock", "duration", "integer"}:
+            stil += hintergrund
+        return '<table:table-cell table:style-name="%s" %s><text:p>%s</text:p></table:table-cell>' % (
+            stil, attribute or 'office:value-type="string"', '<text:line-break/>'.join(esc(inhalt).split('\n')))
+
+    def dezimal(wert):
+        return format(wert, ".15g")
+
+    def formel(form, minuten=None, ganzzahl=False, stil="duration"):
+        attribute = 'table:formula="%s" ' % esc("of:=" + form)
+        if minuten is None:
+            return zelle("", stil, attribute + 'office:value-type="string"')
+        return zelle(zahl(minuten) if ganzzahl else dauer(minuten), stil,
+                     attribute + 'office:value-type="float" office:value="%s"' % dezimal(minuten if ganzzahl else minuten / 1440))
+
+    def datumzelle(wert):
+        return zelle(formatiere(wert, datum_teile), "date", 'office:value-type="date" office:date-value="%s"' % wert.date().isoformat())
+
+    def zeitzelle(wert):
+        return zelle() if wert is None else zelle(formatiere(wert, zeit_teile), "clock",
+            'office:value-type="time" office:time-value="PT%dH%dM"' % (wert.hour, wert.minute))
+
+    def nummer(wert):
+        return zelle(zahl(wert), "integer", 'office:value-type="float" office:value="%s"' % wert)
+
+    def zeile(zellen, stil="row"):
+        return '<table:table-row table:style-name="%s">%s</table:table-row>' % (stil, ''.join(zellen))
+
+    def banner(inhalt, stil):
+        return zeile([zelle(inhalt, stil, 'office:value-type="string" table:number-columns-spanned="10"')] +
+                     ['<table:covered-table-cell/>'] * 9 + [zelle()], "banner")
+
+    rumpf = []
+    brutto_summe = pause_summe = netto_summe = 0
+    for tag in drucktage:
+        tagesdatum = datetime(jahr, monatszahl, tag)
+        tagesfeiertage = feiertage.get(tagesdatum.date().isoformat(), [])
+        hintergrund = "Holiday" if tagesfeiertage else "Sunday" if tagesdatum.weekday() == 6 else ""
+        for von, bis, pause, art, notiz, zone, anpassung, brutto in tage.get(tag, [
+                (datetime(jahr, monatszahl, tag), None, 0, "", "", "", 0, None)]):
+            n = 7 + len(rumpf)
+            delta = 'ROUND(([.D%d]+[.E%d]-[.A%d]-[.C%d])*1440-[.J%d];0)' % ((n,) * 5)
+            gross_formula = 'IF(COUNT([.A%d];[.C%d];[.D%d];[.E%d])=4;IF(%s<0;NA();%s/1440);"")' % (n, n, n, n, delta, delta)
+            pause_formula = 'IF([.F%d]="";"";IF(AND(ISNUMBER([.G%d]);[.G%d]>=0;MOD([.G%d];1)=0);[.G%d]/1440;NA()))' % ((n,) * 5)
+            net_formula = 'IF([.F%d]="";"";IF([.K%d]>[.F%d];NA();[.F%d]-[.K%d]))' % ((n,) * 5)
+            echte_zeile = bool(zone)
+            netto = brutto - pause if brutto is not None else None
+            rumpf.append(zeile([datumzelle(von), zelle(art), zeitzelle(von if echte_zeile else None),
+                datumzelle(bis or von), zeitzelle(bis), formel(gross_formula, brutto), nummer(pause),
+                formel(net_formula, netto), zelle('\n'.join(wert for wert in (notiz, *tagesfeiertage, zone) if wert)), nummer(anpassung),
+                formel(pause_formula, pause if brutto is not None else None)]))
+            if brutto is not None:
+                brutto_summe += brutto
+                pause_summe += pause
+                netto_summe += netto
+    hintergrund = ""
+    letzte = 6 + len(rumpf)
+    summen = zeile([zelle(labels["total"], "header")] + [zelle()] * 4 + [
+        formel('SUM([.F7:.F%d])' % letzte, brutto_summe),
+        formel('SUM([.K7:.K%d])*1440' % letzte, pause_summe, True, "integer"),
+        formel('SUM([.H7:.H%d])' % letzte, netto_summe), zelle(), zelle(), zelle()], "banner")
+    sprach_teile = gebiet.split('-')
+    land = next((wert.upper() for wert in sprach_teile[1:] if len(wert) == 2), "")
+    locale_attr = 'number:language="%s"' % esc(sprach_teile[0]) + (' number:country="%s"' % land if land else '')
+
+    def datenstil(name, teile, zeit=False):
+        typen = {"year": "year", "month": "month", "day": "day", "weekday": "day-of-week", "hour": "hours", "minute": "minutes"}
+        teile_xml = []
+        for teil in teile:
+            typ = teil["type"]
+            if typ == "literal": teile_xml.append('<number:text>%s</number:text>' % esc(teil["value"]))
+            elif typ == "dayPeriod": teile_xml.append('<number:am-pm/>')
+            else: teile_xml.append('<number:%s number:style="%s"/>' % (typen[typ], "short" if typ == "weekday" else "long"))
+        art = "time" if zeit else "date"
+        return '<number:%s-style style:name="%s" %s>%s</number:%s-style>' % (art, name, locale_attr, ''.join(teile_xml), art)
+
+    stile = [datenstil("dateFormat", datum_teile), datenstil("clockFormat", zeit_teile, True),
+        '<number:time-style style:name="durationFormat" number:truncate-on-overflow="false" %s><number:hours number:style="long"/><number:text>:</number:text><number:minutes number:style="long"/></number:time-style>' % locale_attr,
+        '<number:number-style style:name="integerFormat" %s><number:number number:decimal-places="0" number:min-integer-digits="1"/></number:number-style>' % locale_attr,
+        '<style:style style:name="cell" style:family="table-cell"><style:table-cell-properties fo:padding="0.07cm" fo:border-bottom="0.01cm solid #c9baa0" style:vertical-align="middle" fo:wrap-option="wrap"/><style:text-properties fo:font-size="8pt" fo:color="#3d2a1d"/></style:style>',
+        '<style:style style:name="row" style:family="table-row"><style:table-row-properties style:min-row-height="0.40cm" style:use-optimal-row-height="true"/></style:style>',
+        '<style:style style:name="banner" style:family="table-row"><style:table-row-properties style:min-row-height="0.7cm" style:use-optimal-row-height="true"/></style:style>',
+        '<style:style style:name="sheet" style:family="table" style:master-page-name="Magnolie"><style:table-properties style:writing-mode="%s"/></style:style>' % ('rl-tb' if sprach_teile[0] == 'ar' else 'lr-tb')]
+    def zellstil(stilname, data_style="", farbe="", size="8pt", textfarbe="#3d2a1d", fett=False):
+        # Automatic styles cannot inherit from other automatic styles in Calc.
+        # Repeat the complete cell properties and number-format association.
+        return ('<style:style style:name="%s" style:family="table-cell"%s>'
+                '<style:table-cell-properties fo:padding="0.07cm" fo:border-bottom="0.01cm solid #c9baa0" '
+                'style:vertical-align="middle" fo:wrap-option="wrap"%s/>'
+                '<style:text-properties fo:font-size="%s" fo:color="%s"%s/></style:style>') % (
+                    stilname, ' style:data-style-name="%s"' % data_style if data_style else "",
+                    ' fo:background-color="%s"' % farbe if farbe else "", size, textfarbe,
+                    ' fo:font-weight="bold"' if fett else "")
+    zahlenstile = {"date": "dateFormat", "clock": "clockFormat", "duration": "durationFormat", "integer": "integerFormat"}
+    for style, data_style in zahlenstile.items():
+        stile.append(zellstil(style, data_style))
+    for suffix, farbe in (("Sunday", "#f4efe5"), ("Holiday", "#e8f0eb")):
+        for style in ("cell", "date", "clock", "duration", "integer"):
+            stile.append(zellstil(style + suffix, zahlenstile.get(style, ""), farbe))
+    for style, size, fill, color in (("title", "20pt", "#f8f1e1", "#4b3022"), ("header", "9pt", "#5b3927", "#f6e5b7")):
+        stile.append(zellstil(style, farbe=fill, size=size, textfarbe=color, fett=True))
+    breiten = [3.0, 3.0, 1.8, 3.0, 1.8, 1.6, 1.8, 1.8, 4.7, 2.2, 1.0]
+    for index, breite in enumerate(breiten):
+        stile.append('<style:style style:name="col%d" style:family="table-column"><style:table-column-properties style:column-width="%.1fcm"/></style:style>' % (index, breite))
+    spalten_xml = ''.join('<table:table-column table:style-name="col%d"%s/>' % (index, ' table:visibility="collapse"' if index == 10 else '') for index in range(11))
+    gruppen = zeile([zelle(), zelle(), zelle(labels["clock"], "header", 'office:value-type="string" table:number-columns-spanned="3"'),
+                    '<table:covered-table-cell/>', '<table:covered-table-cell/>'] + [zelle()] * 6)
+    kopf = zeile([zelle(wert, "header") for wert in spalten] + [zelle()], "banner")
+    content = ('<?xml version="1.0" encoding="UTF-8"?><office:document-content %s office:version="1.2"><office:automatic-styles>%s</office:automatic-styles>'
+        '<office:body><office:spreadsheet><table:table table:name="%s" table:style-name="sheet" table:print-ranges="\'%s\'.A1:J%d">%s%s%s%s%s'
+        '<table:table-header-rows>%s%s</table:table-header-rows>%s%s%s%s</table:table></office:spreadsheet></office:body></office:document-content>') % (
+            ns, ''.join(stile), monat, monat, letzte + 4, spalten_xml,
+            banner(labels["title"], "title"), banner(labels["name"] + ': ' + name, "cell"), banner(monatsname, "cell"), zeile([zelle()] * 11),
+            gruppen, kopf, ''.join(rumpf), summen, zeile([zelle()] * 11),
+            banner(labels["date"] + ': ____________________     ' + labels["signature"] + ': ____________________', "cell"))
+    styles = ('<?xml version="1.0" encoding="UTF-8"?><office:document-styles %s office:version="1.2"><office:automatic-styles>'
+        '<style:page-layout style:name="Page"><style:page-layout-properties fo:page-width="29.7cm" fo:page-height="21cm" style:print-orientation="landscape" '
+        'fo:margin="1cm" style:scale-to-X="1" style:scale-to-Y="0"/></style:page-layout></office:automatic-styles><office:master-styles>'
+        '<style:master-page style:name="Magnolie" style:page-layout-name="Page"/></office:master-styles></office:document-styles>') % ns
+    manifest = ('<?xml version="1.0" encoding="UTF-8"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2">'
+        '<manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.spreadsheet"/>'
+        '<manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/>'
+        '<manifest:file-entry manifest:full-path="styles.xml" manifest:media-type="text/xml"/></manifest:manifest>')
+    ausgabe = io.BytesIO()
+    with zipfile.ZipFile(ausgabe, "w") as archiv:
+        archiv.writestr("mimetype", "application/vnd.oasis.opendocument.spreadsheet", compress_type=zipfile.ZIP_STORED)
+        for pfad, inhalt in (("content.xml", content), ("styles.xml", styles), ("META-INF/manifest.xml", manifest)):
+            ET.fromstring(inhalt)
+            archiv.writestr(pfad, inhalt.encode("utf-8"), compress_type=zipfile.ZIP_DEFLATED)
+    return ausgabe.getvalue()
+
+
 def adressen_ods_bytes(titel, spalten, zeilen, logo_pfad=None,
                        zellstile=None, kompakt=False, kalenderinhalte=None):
     """Erzeugt ein vollständiges OpenDocument Spreadsheet im Speicher."""
@@ -11203,7 +11495,7 @@ def adressen_ods_bytes(titel, spalten, zeilen, logo_pfad=None,
         '<style:table-row-properties style:row-height="2.792cm" '
         'style:use-optimal-row-height="false"/></style:style>'
         '<style:style style:name="calendarYearRow" style:family="table-row">'
-        '<style:table-row-properties style:row-height="0.43cm" '
+        '<style:table-row-properties style:row-height="0.61cm" '
         'style:use-optimal-row-height="false"/></style:style>'
         '<style:style style:name="calendarMonthDate" style:family="text">'
         '<style:text-properties fo:font-weight="bold" fo:font-size="10pt"/></style:style>'
