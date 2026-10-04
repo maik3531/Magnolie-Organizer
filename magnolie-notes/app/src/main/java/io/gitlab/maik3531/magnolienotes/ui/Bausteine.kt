@@ -237,7 +237,8 @@ fun Register(
     blaetter: List<String>,
     gewaehlt: Int,
     beiWahl: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    symbole: List<Int> = blaetter.indices.toList()
 ) {
     // Ab Android 15 zeichnen Apps grundsätzlich bis unter die Systemleisten.
     // Das Leder darf dorthin reichen, die Reiter selbst nicht: sonst liegen
@@ -271,7 +272,7 @@ fun Register(
             ) {
                 val farbe = if (aktiv) Magnolie.leder else Magnolie.gold
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Registersymbol(platz, farbe)
+                    Registersymbol(symbole.getOrElse(platz) { platz }, farbe)
                     Spacer(Modifier.height(2.dp))
                     Text(
                         name,
@@ -316,6 +317,25 @@ private fun Registersymbol(platz: Int, farbe: Color) {
                 linie(mitte, 3f, mitte, size.height - 3f)
                 linie(mitte, 8f, 5f, 5f); linie(mitte, 11f, size.width - 5f, 7f)
                 drawCircle(farbe, 1.8f, Offset(5f, 5f)); drawCircle(farbe, 1.8f, Offset(size.width - 5f, 7f))
+            }
+            5 -> {
+                drawCircle(farbe, size.width * 0.28f, Offset(mitte, mitte), style = strich)
+                drawCircle(farbe, size.width * 0.10f, Offset(mitte, mitte), style = strich)
+                repeat(8) { index ->
+                    val angle = index * kotlin.math.PI / 4
+                    linie(mitte + (kotlin.math.cos(angle) * size.width * 0.28).toFloat(),
+                        mitte + (kotlin.math.sin(angle) * size.height * 0.28).toFloat(),
+                        mitte + (kotlin.math.cos(angle) * size.width * 0.43).toFloat(),
+                        mitte + (kotlin.math.sin(angle) * size.height * 0.43).toFloat())
+                }
+            }
+            6 -> {
+                drawRoundRect(farbe, Offset(size.width * 0.08f, size.height * 0.30f),
+                    Size(size.width * 0.84f, size.height * 0.60f), CornerRadius(2f, 2f), style = strich)
+                drawRoundRect(farbe, Offset(size.width * 0.33f, size.height * 0.10f),
+                    Size(size.width * 0.34f, size.height * 0.20f), CornerRadius(2f, 2f), style = strich)
+                linie(size.width * 0.08f, size.height * 0.53f, size.width * 0.92f, size.height * 0.53f)
+                linie(mitte, size.height * 0.49f, mitte, size.height * 0.65f)
             }
             else -> {
                 drawRoundRect(farbe, Offset(3f, 4f), Size(size.width - 6f, size.height - 7f),

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">Улік часу</string>
+    <string name="zeit_art">Дзейнасць</string>
+    <string name="zeit_beginn">Пачатак</string>
+    <string name="zeit_ende">Канец</string>
+    <string name="zeit_pause">Перапынак (хвіліны)</string>
+    <string name="zeit_gesamt">Агульны час</string>
+    <string name="zeit_starten">Перасуньце для пачатку</string>
+    <string name="zeit_pausieren">Перасуньце для паўзы</string>
+    <string name="zeit_fortsetzen">Перасуньце для працягу</string>
+    <string name="zeit_beenden">Перасуньце для завяршэння</string>
+    <string name="zeit_bestaetigen">Пацвердзіць</string>
+    <string name="zeit_frueh">Ранішняя змена</string>
+    <string name="zeit_spaet">Вячэрняя змена</string>
+    <string name="zeit_nacht">Начная змена</string>
+    <string name="zeit_neu">Ручны запіс</string>
+    <string name="zeit_leer">Час яшчэ не запісаны.</string>
+    <string name="zeit_korrektur">Змяніць запіс</string>
+    <string name="zeit_ungueltig">Праверце даты, час і перапынак. Выбраны мясцовы час павінен існаваць у гэтым часавым поясе.</string>
+    <string name="zeit_speichern_fehler">Не ўдалося захаваць запіс. Адкрыйце яго зноў і паўтарыце спробу.</string>
+    <string name="zeit_einstellungen">Налады</string>
+    <string name="zeit_aktiv">Уключыць улік часу</string>
+    <string name="zeit_hinweis">Пры выключэнні наяўныя запісы захоўваюцца.</string>
+    <string name="zeit_laufend">Ідзе запіс</string>
+    <string name="zeit_pause_aktiv">Паўза</string>
+    <string name="zeit_systemrechte">Дазволы праграмы</string>
+    <string name="zeit_benachrichtigungen">Апавяшчэнні</string>
+    <string name="zeit_menue">Меню ўліку часу</string>
+    <string name="zeit_optionen">Налады ўліку часу</string>
+    <string name="zeit_erfasste">Запісаны час</string>
+    <string name="zeit_loeschen_frage">Перамясціць гэты запіс у сметніцу Notes на 30 дзён? Запісы ў Organizer застануцца.</string>
+    <string name="zeit_papierkorb_bis">У сметніцы да %1$s</string>
+    <string name="zeit_monat">Месяц</string>
+    <string name="zeit_monat_entfernen">Выдаліць месяц з Notes</string>
+    <string name="zeit_monat_entfernen_frage">Перамясціць запісы гэтага месяца ў сметніцу Notes на 30 дзён? Запісы ў Organizer застануцца.</string>
+    <string name="zeit_druck_name">Імя</string><string name="zeit_druck_datum">Дата</string>
+    <string name="zeit_druck_enddatum">Дата заканчэння</string><string name="zeit_druck_stunden">Гадзіны</string>
+    <string name="zeit_druck_unterschrift">Подпіс</string><string name="zeit_druck_summe">Разам</string>
+    <string name="zeit_druck_uhrzeit">Час</string><string name="zeit_drucken">Друк</string>
+    <string name="zeit_alle_tage">Усе дні</string><string name="zeit_druck_zeitumstellung">Перавод гадзінніка (хв)</string>
+    <string name="zeit_druck_fehler">Не ўдалося пачаць друк.</string>
+</resources>

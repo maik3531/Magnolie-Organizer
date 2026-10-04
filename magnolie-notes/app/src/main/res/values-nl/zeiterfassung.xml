@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">Tijdregistratie</string>
+    <string name="zeit_art">Activiteit</string>
+    <string name="zeit_beginn">Begin</string>
+    <string name="zeit_ende">Einde</string>
+    <string name="zeit_pause">Pauze (minuten)</string>
+    <string name="zeit_gesamt">Totale tijd</string>
+    <string name="zeit_starten">Schuif om te starten</string>
+    <string name="zeit_pausieren">Schuif om te pauzeren</string>
+    <string name="zeit_fortsetzen">Schuif om te hervatten</string>
+    <string name="zeit_beenden">Schuif om te stoppen</string>
+    <string name="zeit_bestaetigen">Bevestigen</string>
+    <string name="zeit_frueh">Vroege dienst</string>
+    <string name="zeit_spaet">Late dienst</string>
+    <string name="zeit_nacht">Nachtdienst</string>
+    <string name="zeit_neu">Handmatige invoer</string>
+    <string name="zeit_leer">Nog geen tijd geregistreerd.</string>
+    <string name="zeit_korrektur">Registratie bewerken</string>
+    <string name="zeit_ungueltig">Controleer datums, tijden en pauze. De gekozen lokale tijd moet bestaan in deze tijdzone.</string>
+    <string name="zeit_speichern_fehler">De registratie kon niet worden opgeslagen. Open deze opnieuw en probeer het nogmaals.</string>
+    <string name="zeit_einstellungen">Instellingen</string>
+    <string name="zeit_aktiv">Tijdregistratie inschakelen</string>
+    <string name="zeit_hinweis">Bestaande registraties blijven behouden bij uitschakelen.</string>
+    <string name="zeit_laufend">Actief</string>
+    <string name="zeit_pause_aktiv">Gepauzeerd</string>
+    <string name="zeit_systemrechte">App-machtigingen</string>
+    <string name="zeit_benachrichtigungen">Meldingen</string>
+    <string name="zeit_menue">Menu tijdregistratie</string>
+    <string name="zeit_optionen">Instellingen voor tijdregistratie</string>
+    <string name="zeit_erfasste">Geregistreerde tijden</string>
+    <string name="zeit_loeschen_frage">Deze registratie 30 dagen in de prullenbak van Notes bewaren? Registraties in Organizer blijven behouden.</string>
+    <string name="zeit_papierkorb_bis">In de prullenbak tot %1$s</string>
+    <string name="zeit_monat">Maand</string>
+    <string name="zeit_monat_entfernen">Maand uit Notes verwijderen</string>
+    <string name="zeit_monat_entfernen_frage">De registraties van deze maand 30 dagen in de prullenbak van Notes bewaren? Registraties in Organizer blijven behouden.</string>
+    <string name="zeit_druck_name">Naam</string><string name="zeit_druck_datum">Datum</string>
+    <string name="zeit_druck_enddatum">Einddatum</string><string name="zeit_druck_stunden">Uren</string>
+    <string name="zeit_druck_unterschrift">Handtekening</string><string name="zeit_druck_summe">Totaal</string>
+    <string name="zeit_druck_uhrzeit">Tijd</string><string name="zeit_drucken">Afdrukken</string>
+    <string name="zeit_alle_tage">Alle dagen</string><string name="zeit_druck_zeitumstellung">Klokwijziging (min)</string>
+    <string name="zeit_druck_fehler">Het afdrukken kon niet worden gestart.</string>
+</resources>

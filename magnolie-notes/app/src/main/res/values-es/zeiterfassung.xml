@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">Registro de tiempo</string>
+    <string name="zeit_art">Actividad</string>
+    <string name="zeit_beginn">Inicio</string>
+    <string name="zeit_ende">Fin</string>
+    <string name="zeit_pause">Pausa (minutos)</string>
+    <string name="zeit_gesamt">Tiempo total</string>
+    <string name="zeit_starten">Desliza para iniciar</string>
+    <string name="zeit_pausieren">Desliza para pausar</string>
+    <string name="zeit_fortsetzen">Desliza para reanudar</string>
+    <string name="zeit_beenden">Desliza para finalizar</string>
+    <string name="zeit_bestaetigen">Confirmar</string>
+    <string name="zeit_frueh">Turno de mañana</string>
+    <string name="zeit_spaet">Turno de tarde</string>
+    <string name="zeit_nacht">Turno de noche</string>
+    <string name="zeit_neu">Entrada manual</string>
+    <string name="zeit_leer">Aún no hay tiempos registrados.</string>
+    <string name="zeit_korrektur">Editar registro</string>
+    <string name="zeit_ungueltig">Comprueba las fechas, las horas y la pausa. La hora local seleccionada debe existir en esta zona horaria.</string>
+    <string name="zeit_speichern_fehler">No se pudo guardar el registro. Vuelve a abrirlo e inténtalo de nuevo.</string>
+    <string name="zeit_einstellungen">Ajustes</string>
+    <string name="zeit_aktiv">Activar el registro de tiempo</string>
+    <string name="zeit_hinweis">Al desactivarlo se conservan los registros existentes.</string>
+    <string name="zeit_laufend">En curso</string>
+    <string name="zeit_pause_aktiv">En pausa</string>
+    <string name="zeit_systemrechte">Permisos de la aplicación</string>
+    <string name="zeit_benachrichtigungen">Notificaciones</string>
+    <string name="zeit_menue">Menú de registro de tiempo</string>
+    <string name="zeit_optionen">Ajustes del registro de tiempo</string>
+    <string name="zeit_erfasste">Tiempos registrados</string>
+    <string name="zeit_loeschen_frage">¿Mover este registro a la papelera de Notes durante 30 días? Los registros de Organizer se conservan.</string>
+    <string name="zeit_papierkorb_bis">En la papelera hasta %1$s</string>
+    <string name="zeit_monat">Mes</string>
+    <string name="zeit_monat_entfernen">Quitar el mes de Notes</string>
+    <string name="zeit_monat_entfernen_frage">¿Mover los registros de este mes a la papelera de Notes durante 30 días? Los registros de Organizer se conservan.</string>
+    <string name="zeit_druck_name">Nombre</string><string name="zeit_druck_datum">Fecha</string>
+    <string name="zeit_druck_enddatum">Fecha de fin</string><string name="zeit_druck_stunden">Horas</string>
+    <string name="zeit_druck_unterschrift">Firma</string><string name="zeit_druck_summe">Total</string>
+    <string name="zeit_druck_uhrzeit">Hora</string><string name="zeit_drucken">Imprimir</string>
+    <string name="zeit_alle_tage">Todos los días</string><string name="zeit_druck_zeitumstellung">Cambio de hora (min)</string>
+    <string name="zeit_druck_fehler">No se pudo iniciar la impresión.</string>
+</resources>

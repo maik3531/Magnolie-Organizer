@@ -78,6 +78,10 @@ import io.gitlab.maik3531.magnolienotes.ui.AnhangEreignis
 import io.gitlab.maik3531.magnolienotes.ui.Register
 import io.gitlab.maik3531.magnolienotes.ui.JournalBlatt
 import io.gitlab.maik3531.magnolienotes.ui.JournalHandlungen
+import io.gitlab.maik3531.magnolienotes.ui.EinstellungenBlatt
+import io.gitlab.maik3531.magnolienotes.ui.ZeiterfassungBlatt
+import io.gitlab.maik3531.magnolienotes.ui.ZeiteintragEditor
+import io.gitlab.maik3531.magnolienotes.ui.ZeitSpeichern
 import io.gitlab.maik3531.magnolienotes.journal.AndroidJournal
 import io.gitlab.maik3531.magnolienotes.sicherung.AndroidAutoSicherung
 import io.gitlab.maik3531.magnolienotes.AnhangDatei
@@ -384,9 +388,12 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     val telefonZustand by telefonWerk.state.collectAsState()
 
     var blatt by rememberSaveable { mutableStateOf(0) }
+    var zeitAnsicht by rememberSaveable { mutableStateOf("tracking") }
     val entwurf by ablage.entwurf.collectAsState()
     val offeneNotiz = entwurf.notiz
     val offeneAufgabe = entwurf.aufgabe
+    val offeneZeit = entwurf.zeit
+    LaunchedEffect(offeneZeit?.original?.id) { if (offeneZeit != null) { blatt = 6; zeitAnsicht = "history" } }
     var editorSpeichert by remember { mutableStateOf(false) }
     var anhangZiel by rememberSaveable { mutableStateOf<String?>(null) }
     var anhangSpeicherZiel by rememberSaveable { mutableStateOf<String?>(null) }
@@ -430,6 +437,29 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     var portableFehler by remember { mutableStateOf(false) }
 
     fun sage(text: String) = Toast.makeText(zusammenhang, text, Toast.LENGTH_LONG).show()
+
+    var zeitSpeichert by remember { mutableStateOf(false) }
+    val zeitSpeichern: ZeitSpeichern = { change, success ->
+        if (!zeitSpeichert) {
+            zeitSpeichert = true
+            faden.launch {
+                try {
+                    withContext(Dispatchers.IO) { ablage.aendereZeiterfassung(change) }
+                    success()
+                } catch (error: kotlinx.coroutines.CancellationException) {
+                    throw error
+                } catch (_: Exception) {
+                    sage(zusammenhang.getString(R.string.zeit_speichern_fehler))
+                } finally { zeitSpeichert = false }
+            }
+        }
+    }
+
+    LaunchedEffect(blatt) {
+        if (blatt == 4) withContext(Dispatchers.IO) {
+            runCatching { ablage.aendereZeiterfassung { it.purgeExpired() } }
+        }
+    }
 
     fun kontaktUebernahmeLaden(id: String, getrennt: Boolean = false, sammel: Boolean = false) {
         if (kontaktUebernahmeLaeuft || kontaktUebernahme != null) return
@@ -751,6 +781,39 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                 (if (zweig.adresse.isNotBlank()) "  ·  " + zweig.adresse else ""))
         }
 
+    if (offeneZeit != null) {
+        Scaffold(topBar = { Einband(stringResource(R.string.zeit_titel)) }) { rand ->
+            Box(Modifier.fillMaxSize().padding(rand)) {
+                ZeiteintragEditor(offeneZeit,
+                    aktuell = { ablage.entwurf.value.zeit ?: offeneZeit },
+                    speichert = editorSpeichert,
+                    beiAenderung = {
+                        if (!editorSpeichert && ablage.entwurf.value.zeit?.original?.id == offeneZeit.original.id)
+                            ablage.setzeZeitEntwurf(it)
+                    },
+                    abbrechen = {
+                        val erwartet = ablage.entwurf.value
+                        editorAktion { ablage.beendeEntwurf(erwartet) }
+                    },
+                    beiSichern = { draft, replacement ->
+                        val erwartet = io.gitlab.maik3531.magnolienotes.daten.EditorEntwurf(zeit = draft)
+                        editorAktion {
+                            ablage.aendereZeiterfassung { it.replace(if (draft.neu) null else draft.original, replacement) }
+                            ablage.beendeEntwurf(erwartet)
+                        }
+                    },
+                    beiLoeschen = { draft ->
+                        val erwartet = io.gitlab.maik3531.magnolienotes.daten.EditorEntwurf(zeit = draft)
+                        editorAktion {
+                            ablage.aendereZeiterfassung { it.removeLocal(listOf(draft.original)) }
+                            ablage.beendeEntwurf(erwartet)
+                        }
+                    })
+            }
+        }
+        return
+    }
+
     val offeneA = offeneAufgabe
     if (offeneA != null) {
         AufgabenEditor(
@@ -856,25 +919,43 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     Scaffold(
         topBar = { Einband(stringResource(R.string.app_name)) },
         bottomBar = {
+            val ids = if (bestand.zeiterfassung.enabled) listOf(0, 1, 6, 5) else listOf(0, 1, 5)
             Register(
-                blaetter = listOf(
-                    stringResource(R.string.blatt_notizen),
-                    stringResource(R.string.blatt_aufgaben),
-                    stringResource(R.string.blatt_einfuhr),
-                    stringResource(R.string.blatt_baum),
-                    stringResource(R.string.blatt_journal)
-                ),
-                gewaehlt = blatt,
-                beiWahl = { blatt = it }
+                blaetter = ids.map { id -> stringResource(when (id) {
+                    0 -> R.string.blatt_notizen
+                    1 -> R.string.blatt_aufgaben
+                    6 -> R.string.zeit_titel
+                    else -> R.string.zeit_einstellungen
+                }) },
+                gewaehlt = ids.indexOf(blatt).takeIf { it >= 0 } ?: ids.lastIndex,
+                beiWahl = { blatt = ids[it] },
+                symbole = ids
             )
         }
     ) { rand ->
         // Aus einem anderen Reiter fuehrt Zurueck zuerst auf die Notizen; erst
         // von dort verlaesst man die App. Das entspricht dem, was Android-
         // Benutzer erwarten.
-        BackHandler(enabled = blatt != 0) { blatt = 0 }
+        BackHandler(enabled = blatt != 0) { blatt = if (blatt in 2..4) 5 else 0 }
         Box(Modifier.fillMaxSize().padding(rand)) {
             when (blatt) {
+                5 -> EinstellungenBlatt(bestand.zeiterfassung.enabled, zeitSpeichert,
+                    beiZeiterfassung = { an -> zeitSpeichern({ it.copy(enabled = an) }, {}) },
+                    beiBlatt = { blatt = it },
+                    beiRechten = {
+                        zusammenhang.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.parse("package:" + zusammenhang.packageName)))
+                    },
+                    beiBenachrichtigungen = {
+                        zusammenhang.startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            .putExtra(Settings.EXTRA_APP_PACKAGE, zusammenhang.packageName))
+                    })
+                6 -> ZeiterfassungBlatt(bestand.zeiterfassung, zeitSpeichert, zeitSpeichern,
+                    zeitAnsicht, { zeitAnsicht = it }, { an -> zeitSpeichern({ it.copy(enabled = an) }, {}) },
+                    { blatt = 4 }) { entry, neu ->
+                    ablage.setzeZeitEntwurf(io.gitlab.maik3531.magnolienotes.daten.ZeitEntwurf(entry, neu,
+                        pause = entry.pausedMinutes().toString()))
+                }
                 0 -> NotizBlatt(
                     notizen = bestand.notizen,
                     notizbuecher = bestand.notizbuecher,
@@ -1221,7 +1302,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                         }
                     )
                 )
-                else -> JournalBlatt(journalZustand, bestand, JournalHandlungen(
+                4 -> JournalBlatt(journalZustand, bestand, JournalHandlungen(
                     beiIntervall = journal::intervalSetzen,
                     beiMaximum = journal::maximumSetzen,
                     beiJetzt = { faden.launch(Dispatchers.IO) { runCatching { journal.appSnapshot("manual", true) } } },
@@ -1318,6 +1399,9 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     beiAutoIntervall = autoSicherung::intervallSetzen,
                     beiAutoAufbewahrung = autoSicherung::aufbewahrungSetzen,
                     beiAutoJetzt = autoSicherung::jetztTesten,
+                    zeitSpeichert = zeitSpeichert,
+                    beiZeitWiederherstellen = { id -> zeitSpeichern({ it.restoreLocal(id) }, {}) },
+                    beiZeitLoeschen = { id -> zeitSpeichern({ it.permanentlyRemoveLocal(id) }, {}) },
                 ))
             }
         }

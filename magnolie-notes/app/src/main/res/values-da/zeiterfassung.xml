@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">Tidsregistrering</string>
+    <string name="zeit_art">Aktivitet</string>
+    <string name="zeit_beginn">Start</string>
+    <string name="zeit_ende">Slut</string>
+    <string name="zeit_pause">Pause (minutter)</string>
+    <string name="zeit_gesamt">Samlet tid</string>
+    <string name="zeit_starten">Skub for at starte</string>
+    <string name="zeit_pausieren">Skub for at sætte på pause</string>
+    <string name="zeit_fortsetzen">Skub for at fortsætte</string>
+    <string name="zeit_beenden">Skub for at afslutte</string>
+    <string name="zeit_bestaetigen">Bekræft</string>
+    <string name="zeit_frueh">Morgenvagt</string>
+    <string name="zeit_spaet">Aftenvagt</string>
+    <string name="zeit_nacht">Nattevagt</string>
+    <string name="zeit_neu">Manuel registrering</string>
+    <string name="zeit_leer">Der er endnu ikke registreret tid.</string>
+    <string name="zeit_korrektur">Rediger registrering</string>
+    <string name="zeit_ungueltig">Kontrollér datoer, tidspunkter og pause. Det valgte lokale tidspunkt skal findes i denne tidszone.</string>
+    <string name="zeit_speichern_fehler">Registreringen kunne ikke gemmes. Åbn den igen, og prøv på ny.</string>
+    <string name="zeit_einstellungen">Indstillinger</string>
+    <string name="zeit_aktiv">Aktivér tidsregistrering</string>
+    <string name="zeit_hinweis">Eksisterende registreringer bevares, når funktionen slås fra.</string>
+    <string name="zeit_laufend">I gang</string>
+    <string name="zeit_pause_aktiv">På pause</string>
+    <string name="zeit_systemrechte">Apptilladelser</string>
+    <string name="zeit_benachrichtigungen">Notifikationer</string>
+    <string name="zeit_menue">Menu til tidsregistrering</string>
+    <string name="zeit_optionen">Indstillinger for tidsregistrering</string>
+    <string name="zeit_erfasste">Registrerede tider</string>
+    <string name="zeit_loeschen_frage">Flyt denne registrering til papirkurven i Notes i 30 dage? Registreringer i Organizer bevares.</string>
+    <string name="zeit_papierkorb_bis">I papirkurven indtil %1$s</string>
+    <string name="zeit_monat">Måned</string>
+    <string name="zeit_monat_entfernen">Fjern måneden fra Notes</string>
+    <string name="zeit_monat_entfernen_frage">Flyt denne måneds registreringer til papirkurven i Notes i 30 dage? Registreringer i Organizer bevares.</string>
+    <string name="zeit_druck_name">Navn</string><string name="zeit_druck_datum">Dato</string>
+    <string name="zeit_druck_enddatum">Slutdato</string><string name="zeit_druck_stunden">Timer</string>
+    <string name="zeit_druck_unterschrift">Underskrift</string><string name="zeit_druck_summe">I alt</string>
+    <string name="zeit_druck_uhrzeit">Tid</string><string name="zeit_drucken">Udskriv</string>
+    <string name="zeit_alle_tage">Alle dage</string><string name="zeit_druck_zeitumstellung">Tidsomstilling (min)</string>
+    <string name="zeit_druck_fehler">Udskrivningen kunne ikke startes.</string>
+</resources>

@@ -336,12 +336,14 @@ data class Bestand(
     val papierkorb: List<PapierkorbEintrag> = emptyList(),
     val papierkorbEinstellungen: PapierkorbEinstellungen = PapierkorbEinstellungen(),
     val personalSync: PersonalSyncState = PersonalSyncState(),
-    val personalCustom: PersonalCustomState = PersonalCustomState()
+    val personalCustom: PersonalCustomState = PersonalCustomState(),
+    val zeiterfassung: ZeiterfassungStand = ZeiterfassungStand()
 )
 
 /** A single active editor, stored separately so typing never rewrites the whole Bestand. */
 @Serializable
-data class EditorEntwurf(val notiz: Notiz? = null, val aufgabe: Aufgabe? = null)
+data class EditorEntwurf(val notiz: Notiz? = null, val aufgabe: Aufgabe? = null,
+                        val zeit: ZeitEntwurf? = null)
 
 /** Die Sinnbilder, mit denen eine Notiz in der Liste steht. */
 object Symbol {

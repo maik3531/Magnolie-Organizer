@@ -9,11 +9,11 @@ import org.junit.Test
 class RegisterLayoutTest {
     private val root = File(requireNotNull(System.getProperty("user.dir")))
 
-    @Test fun `fuenf Register bleiben gleich hoch und einzeilig`() {
+    @Test fun `konfigurierbare Register bleiben gleich hoch und einzeilig`() {
         val source = File(root,
             "app/src/main/java/io/gitlab/maik3531/magnolienotes/ui/Bausteine.kt").readText()
         assertTrue(source.contains(".height(58.dp)"))
-        assertTrue(source.contains("Registersymbol(platz, farbe)"))
+        assertTrue(source.contains("Registersymbol(symbole.getOrElse(platz) { platz }, farbe)"))
         assertTrue(source.contains("maxLines = 1"))
         assertFalse(source.contains("maxLines = if (lang) 2 else 1"))
         assertTrue(source.contains("role = Role.Tab") && source.contains("selected = aktiv"))

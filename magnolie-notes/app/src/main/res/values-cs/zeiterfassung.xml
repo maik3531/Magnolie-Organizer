@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">Evidence času</string>
+    <string name="zeit_art">Činnost</string>
+    <string name="zeit_beginn">Začátek</string>
+    <string name="zeit_ende">Konec</string>
+    <string name="zeit_pause">Přestávka (minuty)</string>
+    <string name="zeit_gesamt">Celkový čas</string>
+    <string name="zeit_starten">Posunutím zahájíte</string>
+    <string name="zeit_pausieren">Posunutím pozastavíte</string>
+    <string name="zeit_fortsetzen">Posunutím pokračujete</string>
+    <string name="zeit_beenden">Posunutím ukončíte</string>
+    <string name="zeit_bestaetigen">Potvrdit</string>
+    <string name="zeit_frueh">Ranní směna</string>
+    <string name="zeit_spaet">Odpolední směna</string>
+    <string name="zeit_nacht">Noční směna</string>
+    <string name="zeit_neu">Ruční záznam</string>
+    <string name="zeit_leer">Zatím není zaznamenán žádný čas.</string>
+    <string name="zeit_korrektur">Upravit záznam</string>
+    <string name="zeit_ungueltig">Zkontrolujte data, časy a přestávku. Vybraný místní čas musí v tomto časovém pásmu existovat.</string>
+    <string name="zeit_speichern_fehler">Záznam se nepodařilo uložit. Otevřete jej znovu a opakujte pokus.</string>
+    <string name="zeit_einstellungen">Nastavení</string>
+    <string name="zeit_aktiv">Zapnout evidenci času</string>
+    <string name="zeit_hinweis">Vypnutím se stávající záznamy zachovají.</string>
+    <string name="zeit_laufend">Probíhá</string>
+    <string name="zeit_pause_aktiv">Pozastaveno</string>
+    <string name="zeit_systemrechte">Oprávnění aplikace</string>
+    <string name="zeit_benachrichtigungen">Oznámení</string>
+    <string name="zeit_menue">Nabídka evidence času</string>
+    <string name="zeit_optionen">Nastavení evidence času</string>
+    <string name="zeit_erfasste">Zaznamenané časy</string>
+    <string name="zeit_loeschen_frage">Přesunout tento záznam na 30 dní do koše Notes? Záznamy v Organizer zůstanou zachovány.</string>
+    <string name="zeit_papierkorb_bis">V koši do %1$s</string>
+    <string name="zeit_monat">Měsíc</string>
+    <string name="zeit_monat_entfernen">Odebrat měsíc z Notes</string>
+    <string name="zeit_monat_entfernen_frage">Přesunout záznamy tohoto měsíce na 30 dní do koše Notes? Záznamy v Organizer zůstanou zachovány.</string>
+    <string name="zeit_druck_name">Jméno</string><string name="zeit_druck_datum">Datum</string>
+    <string name="zeit_druck_enddatum">Datum konce</string><string name="zeit_druck_stunden">Hodiny</string>
+    <string name="zeit_druck_unterschrift">Podpis</string><string name="zeit_druck_summe">Součet</string>
+    <string name="zeit_druck_uhrzeit">Čas</string><string name="zeit_drucken">Tisk</string>
+    <string name="zeit_alle_tage">Všechny dny</string><string name="zeit_druck_zeitumstellung">Změna času (min)</string>
+    <string name="zeit_druck_fehler">Tisk se nepodařilo spustit.</string>
+</resources>

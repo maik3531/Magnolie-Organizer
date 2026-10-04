@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">时间记录</string>
+    <string name="zeit_art">活动类型</string>
+    <string name="zeit_beginn">开始</string>
+    <string name="zeit_ende">结束</string>
+    <string name="zeit_pause">休息（分钟）</string>
+    <string name="zeit_gesamt">总时长</string>
+    <string name="zeit_starten">滑动以开始</string>
+    <string name="zeit_pausieren">滑动以暂停</string>
+    <string name="zeit_fortsetzen">滑动以继续</string>
+    <string name="zeit_beenden">滑动以结束</string>
+    <string name="zeit_bestaetigen">确认</string>
+    <string name="zeit_frueh">早班</string>
+    <string name="zeit_spaet">晚班</string>
+    <string name="zeit_nacht">夜班</string>
+    <string name="zeit_neu">手动添加</string>
+    <string name="zeit_leer">尚无时间记录。</string>
+    <string name="zeit_korrektur">编辑记录</string>
+    <string name="zeit_ungueltig">请检查日期、时间和休息时长。所选的当地时间必须在此时区中存在。</string>
+    <string name="zeit_speichern_fehler">无法保存记录。请重新打开并重试。</string>
+    <string name="zeit_einstellungen">设置</string>
+    <string name="zeit_aktiv">启用时间记录</string>
+    <string name="zeit_hinweis">关闭后仍会保留现有记录。</string>
+    <string name="zeit_laufend">进行中</string>
+    <string name="zeit_pause_aktiv">已暂停</string>
+    <string name="zeit_systemrechte">应用权限</string>
+    <string name="zeit_benachrichtigungen">通知</string>
+    <string name="zeit_menue">时间记录菜单</string>
+    <string name="zeit_optionen">时间记录设置</string>
+    <string name="zeit_erfasste">已记录的时间</string>
+    <string name="zeit_loeschen_frage">将此记录移至 Notes 回收站并保留 30 天？Organizer 中的记录将保留。</string>
+    <string name="zeit_papierkorb_bis">在回收站中保留至 %1$s</string>
+    <string name="zeit_monat">月份</string>
+    <string name="zeit_monat_entfernen">从 Notes 移除此月份</string>
+    <string name="zeit_monat_entfernen_frage">将此月份的记录移至 Notes 回收站并保留 30 天？Organizer 中的记录将保留。</string>
+    <string name="zeit_druck_name">姓名</string><string name="zeit_druck_datum">日期</string>
+    <string name="zeit_druck_enddatum">结束日期</string><string name="zeit_druck_stunden">小时</string>
+    <string name="zeit_druck_unterschrift">签名</string><string name="zeit_druck_summe">合计</string>
+    <string name="zeit_druck_uhrzeit">时间</string><string name="zeit_drucken">打印</string>
+    <string name="zeit_alle_tage">所有日期</string><string name="zeit_druck_zeitumstellung">时钟调整（分钟）</string>
+    <string name="zeit_druck_fehler">无法开始打印。</string>
+</resources>

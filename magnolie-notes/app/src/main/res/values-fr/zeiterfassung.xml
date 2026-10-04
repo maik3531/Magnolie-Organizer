@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">Suivi du temps</string>
+    <string name="zeit_art">Activité</string>
+    <string name="zeit_beginn">Début</string>
+    <string name="zeit_ende">Fin</string>
+    <string name="zeit_pause">Pause (minutes)</string>
+    <string name="zeit_gesamt">Temps total</string>
+    <string name="zeit_starten">Glisser pour démarrer</string>
+    <string name="zeit_pausieren">Glisser pour suspendre</string>
+    <string name="zeit_fortsetzen">Glisser pour reprendre</string>
+    <string name="zeit_beenden">Glisser pour terminer</string>
+    <string name="zeit_bestaetigen">Confirmer</string>
+    <string name="zeit_frueh">Service du matin</string>
+    <string name="zeit_spaet">Service du soir</string>
+    <string name="zeit_nacht">Service de nuit</string>
+    <string name="zeit_neu">Saisie manuelle</string>
+    <string name="zeit_leer">Aucun temps enregistré.</string>
+    <string name="zeit_korrektur">Modifier la saisie</string>
+    <string name="zeit_ungueltig">Vérifiez les dates, les heures et la pause. L’heure locale choisie doit exister dans ce fuseau horaire.</string>
+    <string name="zeit_speichern_fehler">Impossible d’enregistrer la saisie. Rouvrez-la et réessayez.</string>
+    <string name="zeit_einstellungen">Paramètres</string>
+    <string name="zeit_aktiv">Activer le suivi du temps</string>
+    <string name="zeit_hinweis">La désactivation conserve les saisies existantes.</string>
+    <string name="zeit_laufend">En cours</string>
+    <string name="zeit_pause_aktiv">En pause</string>
+    <string name="zeit_systemrechte">Autorisations de l’application</string>
+    <string name="zeit_benachrichtigungen">Notifications</string>
+    <string name="zeit_menue">Menu du suivi du temps</string>
+    <string name="zeit_optionen">Paramètres du suivi du temps</string>
+    <string name="zeit_erfasste">Temps enregistrés</string>
+    <string name="zeit_loeschen_frage">Placer cette saisie dans la corbeille de Notes pendant 30 jours ? Les saisies dans Organizer sont conservées.</string>
+    <string name="zeit_papierkorb_bis">Dans la corbeille jusqu’au %1$s</string>
+    <string name="zeit_monat">Mois</string>
+    <string name="zeit_monat_entfernen">Retirer le mois de Notes</string>
+    <string name="zeit_monat_entfernen_frage">Placer les saisies de ce mois dans la corbeille de Notes pendant 30 jours ? Les saisies dans Organizer sont conservées.</string>
+    <string name="zeit_druck_name">Nom</string><string name="zeit_druck_datum">Date</string>
+    <string name="zeit_druck_enddatum">Date de fin</string><string name="zeit_druck_stunden">Heures</string>
+    <string name="zeit_druck_unterschrift">Signature</string><string name="zeit_druck_summe">Total</string>
+    <string name="zeit_druck_uhrzeit">Heure</string><string name="zeit_drucken">Imprimer</string>
+    <string name="zeit_alle_tage">Tous les jours</string><string name="zeit_druck_zeitumstellung">Changement d’heure (min)</string>
+    <string name="zeit_druck_fehler">Impossible de lancer l’impression.</string>
+</resources>

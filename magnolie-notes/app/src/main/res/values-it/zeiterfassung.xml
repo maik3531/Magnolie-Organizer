@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">Registrazione del tempo</string>
+    <string name="zeit_art">Attività</string>
+    <string name="zeit_beginn">Inizio</string>
+    <string name="zeit_ende">Fine</string>
+    <string name="zeit_pause">Pausa (minuti)</string>
+    <string name="zeit_gesamt">Tempo totale</string>
+    <string name="zeit_starten">Scorri per iniziare</string>
+    <string name="zeit_pausieren">Scorri per sospendere</string>
+    <string name="zeit_fortsetzen">Scorri per riprendere</string>
+    <string name="zeit_beenden">Scorri per terminare</string>
+    <string name="zeit_bestaetigen">Conferma</string>
+    <string name="zeit_frueh">Turno del mattino</string>
+    <string name="zeit_spaet">Turno del pomeriggio</string>
+    <string name="zeit_nacht">Turno di notte</string>
+    <string name="zeit_neu">Inserimento manuale</string>
+    <string name="zeit_leer">Nessun tempo ancora registrato.</string>
+    <string name="zeit_korrektur">Modifica registrazione</string>
+    <string name="zeit_ungueltig">Controlla date, orari e pausa. L’ora locale scelta deve esistere in questo fuso orario.</string>
+    <string name="zeit_speichern_fehler">Impossibile salvare la registrazione. Riaprila e riprova.</string>
+    <string name="zeit_einstellungen">Impostazioni</string>
+    <string name="zeit_aktiv">Attiva la registrazione del tempo</string>
+    <string name="zeit_hinweis">La disattivazione conserva le registrazioni esistenti.</string>
+    <string name="zeit_laufend">In corso</string>
+    <string name="zeit_pause_aktiv">In pausa</string>
+    <string name="zeit_systemrechte">Autorizzazioni dell’app</string>
+    <string name="zeit_benachrichtigungen">Notifiche</string>
+    <string name="zeit_menue">Menu della registrazione del tempo</string>
+    <string name="zeit_optionen">Impostazioni della registrazione del tempo</string>
+    <string name="zeit_erfasste">Tempi registrati</string>
+    <string name="zeit_loeschen_frage">Spostare questa registrazione nel cestino di Notes per 30 giorni? Le registrazioni in Organizer vengono conservate.</string>
+    <string name="zeit_papierkorb_bis">Nel cestino fino al %1$s</string>
+    <string name="zeit_monat">Mese</string>
+    <string name="zeit_monat_entfernen">Rimuovi il mese da Notes</string>
+    <string name="zeit_monat_entfernen_frage">Spostare le registrazioni di questo mese nel cestino di Notes per 30 giorni? Le registrazioni in Organizer vengono conservate.</string>
+    <string name="zeit_druck_name">Nome</string><string name="zeit_druck_datum">Data</string>
+    <string name="zeit_druck_enddatum">Data di fine</string><string name="zeit_druck_stunden">Ore</string>
+    <string name="zeit_druck_unterschrift">Firma</string><string name="zeit_druck_summe">Totale</string>
+    <string name="zeit_druck_uhrzeit">Ora</string><string name="zeit_drucken">Stampa</string>
+    <string name="zeit_alle_tage">Tutti i giorni</string><string name="zeit_druck_zeitumstellung">Cambio d’ora (min)</string>
+    <string name="zeit_druck_fehler">Impossibile avviare la stampa.</string>
+</resources>

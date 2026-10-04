@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">Облік часу</string>
+    <string name="zeit_art">Діяльність</string>
+    <string name="zeit_beginn">Початок</string>
+    <string name="zeit_ende">Кінець</string>
+    <string name="zeit_pause">Перерва (хвилини)</string>
+    <string name="zeit_gesamt">Загальний час</string>
+    <string name="zeit_starten">Посуньте для початку</string>
+    <string name="zeit_pausieren">Посуньте для паузи</string>
+    <string name="zeit_fortsetzen">Посуньте для продовження</string>
+    <string name="zeit_beenden">Посуньте для завершення</string>
+    <string name="zeit_bestaetigen">Підтвердити</string>
+    <string name="zeit_frueh">Ранкова зміна</string>
+    <string name="zeit_spaet">Вечірня зміна</string>
+    <string name="zeit_nacht">Нічна зміна</string>
+    <string name="zeit_neu">Ручний запис</string>
+    <string name="zeit_leer">Час ще не записано.</string>
+    <string name="zeit_korrektur">Змінити запис</string>
+    <string name="zeit_ungueltig">Перевірте дати, час і перерву. Вибраний місцевий час має існувати в цьому часовому поясі.</string>
+    <string name="zeit_speichern_fehler">Не вдалося зберегти запис. Відкрийте його знову та повторіть спробу.</string>
+    <string name="zeit_einstellungen">Налаштування</string>
+    <string name="zeit_aktiv">Увімкнути облік часу</string>
+    <string name="zeit_hinweis">Після вимкнення наявні записи зберігаються.</string>
+    <string name="zeit_laufend">Триває запис</string>
+    <string name="zeit_pause_aktiv">Пауза</string>
+    <string name="zeit_systemrechte">Дозволи застосунку</string>
+    <string name="zeit_benachrichtigungen">Сповіщення</string>
+    <string name="zeit_menue">Меню обліку часу</string>
+    <string name="zeit_optionen">Налаштування обліку часу</string>
+    <string name="zeit_erfasste">Записаний час</string>
+    <string name="zeit_loeschen_frage">Перемістити цей запис до кошика Notes на 30 днів? Записи в Organizer збережуться.</string>
+    <string name="zeit_papierkorb_bis">У кошику до %1$s</string>
+    <string name="zeit_monat">Місяць</string>
+    <string name="zeit_monat_entfernen">Видалити місяць із Notes</string>
+    <string name="zeit_monat_entfernen_frage">Перемістити записи цього місяця до кошика Notes на 30 днів? Записи в Organizer збережуться.</string>
+    <string name="zeit_druck_name">Ім’я</string><string name="zeit_druck_datum">Дата</string>
+    <string name="zeit_druck_enddatum">Дата завершення</string><string name="zeit_druck_stunden">Години</string>
+    <string name="zeit_druck_unterschrift">Підпис</string><string name="zeit_druck_summe">Разом</string>
+    <string name="zeit_druck_uhrzeit">Час</string><string name="zeit_drucken">Друк</string>
+    <string name="zeit_alle_tage">Усі дні</string><string name="zeit_druck_zeitumstellung">Переведення годинника (хв)</string>
+    <string name="zeit_druck_fehler">Не вдалося розпочати друк.</string>
+</resources>

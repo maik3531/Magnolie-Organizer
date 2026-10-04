@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">Учёт времени</string>
+    <string name="zeit_art">Деятельность</string>
+    <string name="zeit_beginn">Начало</string>
+    <string name="zeit_ende">Окончание</string>
+    <string name="zeit_pause">Перерыв (минуты)</string>
+    <string name="zeit_gesamt">Общее время</string>
+    <string name="zeit_starten">Сдвиньте для начала</string>
+    <string name="zeit_pausieren">Сдвиньте для паузы</string>
+    <string name="zeit_fortsetzen">Сдвиньте для продолжения</string>
+    <string name="zeit_beenden">Сдвиньте для завершения</string>
+    <string name="zeit_bestaetigen">Подтвердить</string>
+    <string name="zeit_frueh">Утренняя смена</string>
+    <string name="zeit_spaet">Вечерняя смена</string>
+    <string name="zeit_nacht">Ночная смена</string>
+    <string name="zeit_neu">Ручная запись</string>
+    <string name="zeit_leer">Время ещё не записано.</string>
+    <string name="zeit_korrektur">Изменить запись</string>
+    <string name="zeit_ungueltig">Проверьте даты, время и перерыв. Выбранное местное время должно существовать в этом часовом поясе.</string>
+    <string name="zeit_speichern_fehler">Не удалось сохранить запись. Откройте её заново и повторите попытку.</string>
+    <string name="zeit_einstellungen">Настройки</string>
+    <string name="zeit_aktiv">Включить учёт времени</string>
+    <string name="zeit_hinweis">При отключении существующие записи сохраняются.</string>
+    <string name="zeit_laufend">Идёт запись</string>
+    <string name="zeit_pause_aktiv">Пауза</string>
+    <string name="zeit_systemrechte">Разрешения приложения</string>
+    <string name="zeit_benachrichtigungen">Уведомления</string>
+    <string name="zeit_menue">Меню учёта времени</string>
+    <string name="zeit_optionen">Настройки учёта времени</string>
+    <string name="zeit_erfasste">Записанное время</string>
+    <string name="zeit_loeschen_frage">Переместить эту запись в корзину Notes на 30 дней? Записи в Organizer сохранятся.</string>
+    <string name="zeit_papierkorb_bis">В корзине до %1$s</string>
+    <string name="zeit_monat">Месяц</string>
+    <string name="zeit_monat_entfernen">Удалить месяц из Notes</string>
+    <string name="zeit_monat_entfernen_frage">Переместить записи этого месяца в корзину Notes на 30 дней? Записи в Organizer сохранятся.</string>
+    <string name="zeit_druck_name">Имя</string><string name="zeit_druck_datum">Дата</string>
+    <string name="zeit_druck_enddatum">Дата окончания</string><string name="zeit_druck_stunden">Часы</string>
+    <string name="zeit_druck_unterschrift">Подпись</string><string name="zeit_druck_summe">Итого</string>
+    <string name="zeit_druck_uhrzeit">Время</string><string name="zeit_drucken">Печать</string>
+    <string name="zeit_alle_tage">Все дни</string><string name="zeit_druck_zeitumstellung">Перевод часов (мин)</string>
+    <string name="zeit_druck_fehler">Не удалось начать печать.</string>
+</resources>

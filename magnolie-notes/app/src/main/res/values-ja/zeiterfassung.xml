@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">時間記録</string>
+    <string name="zeit_art">活動の種類</string>
+    <string name="zeit_beginn">開始</string>
+    <string name="zeit_ende">終了</string>
+    <string name="zeit_pause">休憩（分）</string>
+    <string name="zeit_gesamt">合計時間</string>
+    <string name="zeit_starten">スライドして開始</string>
+    <string name="zeit_pausieren">スライドして一時停止</string>
+    <string name="zeit_fortsetzen">スライドして再開</string>
+    <string name="zeit_beenden">スライドして終了</string>
+    <string name="zeit_bestaetigen">確認</string>
+    <string name="zeit_frueh">早番</string>
+    <string name="zeit_spaet">遅番</string>
+    <string name="zeit_nacht">夜勤</string>
+    <string name="zeit_neu">手動で追加</string>
+    <string name="zeit_leer">時間の記録はまだありません。</string>
+    <string name="zeit_korrektur">記録を編集</string>
+    <string name="zeit_ungueltig">日付、時刻、休憩を確認してください。選択した現地時刻がこのタイムゾーンに存在する必要があります。</string>
+    <string name="zeit_speichern_fehler">記録を保存できませんでした。開き直して、もう一度お試しください。</string>
+    <string name="zeit_einstellungen">設定</string>
+    <string name="zeit_aktiv">時間記録を有効にする</string>
+    <string name="zeit_hinweis">無効にしても既存の記録は保持されます。</string>
+    <string name="zeit_laufend">記録中</string>
+    <string name="zeit_pause_aktiv">一時停止中</string>
+    <string name="zeit_systemrechte">アプリの権限</string>
+    <string name="zeit_benachrichtigungen">通知</string>
+    <string name="zeit_menue">時間記録メニュー</string>
+    <string name="zeit_optionen">時間記録の設定</string>
+    <string name="zeit_erfasste">記録済みの時間</string>
+    <string name="zeit_loeschen_frage">この記録を Notes のごみ箱に移して30日間保持しますか？Organizer の記録は保持されます。</string>
+    <string name="zeit_papierkorb_bis">ごみ箱で %1$s まで保持</string>
+    <string name="zeit_monat">月</string>
+    <string name="zeit_monat_entfernen">この月を Notes から削除</string>
+    <string name="zeit_monat_entfernen_frage">この月の記録を Notes のごみ箱に移して30日間保持しますか？Organizer の記録は保持されます。</string>
+    <string name="zeit_druck_name">氏名</string><string name="zeit_druck_datum">日付</string>
+    <string name="zeit_druck_enddatum">終了日</string><string name="zeit_druck_stunden">時間</string>
+    <string name="zeit_druck_unterschrift">署名</string><string name="zeit_druck_summe">合計</string>
+    <string name="zeit_druck_uhrzeit">時刻</string><string name="zeit_drucken">印刷</string>
+    <string name="zeit_alle_tage">すべての日</string><string name="zeit_druck_zeitumstellung">時計の調整（分）</string>
+    <string name="zeit_druck_fehler">印刷を開始できませんでした。</string>
+</resources>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">समय रिकॉर्डिंग</string>
+    <string name="zeit_art">गतिविधि</string>
+    <string name="zeit_beginn">शुरुआत</string>
+    <string name="zeit_ende">समाप्ति</string>
+    <string name="zeit_pause">विराम (मिनट)</string>
+    <string name="zeit_gesamt">कुल समय</string>
+    <string name="zeit_starten">शुरू करने के लिए खिसकाएँ</string>
+    <string name="zeit_pausieren">विराम के लिए खिसकाएँ</string>
+    <string name="zeit_fortsetzen">जारी रखने के लिए खिसकाएँ</string>
+    <string name="zeit_beenden">समाप्त करने के लिए खिसकाएँ</string>
+    <string name="zeit_bestaetigen">पुष्टि करें</string>
+    <string name="zeit_frueh">सुबह की पाली</string>
+    <string name="zeit_spaet">शाम की पाली</string>
+    <string name="zeit_nacht">रात की पाली</string>
+    <string name="zeit_neu">मैन्युअल प्रविष्टि</string>
+    <string name="zeit_leer">अभी कोई समय दर्ज नहीं है।</string>
+    <string name="zeit_korrektur">प्रविष्टि संपादित करें</string>
+    <string name="zeit_ungueltig">तिथियाँ, समय और विराम जाँचें। चुना गया स्थानीय समय इस समय क्षेत्र में मौजूद होना चाहिए।</string>
+    <string name="zeit_speichern_fehler">प्रविष्टि सहेजी नहीं जा सकी। इसे फिर से खोलकर दोबारा कोशिश करें।</string>
+    <string name="zeit_einstellungen">सेटिंग</string>
+    <string name="zeit_aktiv">समय रिकॉर्डिंग चालू करें</string>
+    <string name="zeit_hinweis">बंद करने पर मौजूदा प्रविष्टियाँ बनी रहती हैं।</string>
+    <string name="zeit_laufend">जारी है</string>
+    <string name="zeit_pause_aktiv">विराम पर</string>
+    <string name="zeit_systemrechte">ऐप की अनुमतियाँ</string>
+    <string name="zeit_benachrichtigungen">सूचनाएँ</string>
+    <string name="zeit_menue">समय रिकॉर्डिंग मेन्यू</string>
+    <string name="zeit_optionen">समय रिकॉर्डिंग की सेटिंग</string>
+    <string name="zeit_erfasste">दर्ज किए गए समय</string>
+    <string name="zeit_loeschen_frage">यह प्रविष्टि 30 दिनों के लिए Notes के कूड़ेदान में भेजें? Organizer की प्रविष्टियाँ बनी रहेंगी।</string>
+    <string name="zeit_papierkorb_bis">कूड़ेदान में %1$s तक</string>
+    <string name="zeit_monat">महीना</string>
+    <string name="zeit_monat_entfernen">महीने को Notes से हटाएँ</string>
+    <string name="zeit_monat_entfernen_frage">इस महीने की प्रविष्टियाँ 30 दिनों के लिए Notes के कूड़ेदान में भेजें? Organizer की प्रविष्टियाँ बनी रहेंगी।</string>
+    <string name="zeit_druck_name">नाम</string><string name="zeit_druck_datum">दिनांक</string>
+    <string name="zeit_druck_enddatum">समाप्ति की तारीख</string><string name="zeit_druck_stunden">घंटे</string>
+    <string name="zeit_druck_unterschrift">हस्ताक्षर</string><string name="zeit_druck_summe">कुल</string>
+    <string name="zeit_druck_uhrzeit">समय</string><string name="zeit_drucken">प्रिंट</string>
+    <string name="zeit_alle_tage">सभी दिन</string><string name="zeit_druck_zeitumstellung">घड़ी का बदलाव (मिनट)</string>
+    <string name="zeit_druck_fehler">प्रिंट शुरू नहीं हो सका।</string>
+</resources>

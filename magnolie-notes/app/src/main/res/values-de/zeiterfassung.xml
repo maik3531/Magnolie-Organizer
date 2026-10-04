@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">Zeiterfassung</string>
+    <string name="zeit_art">Art</string>
+    <string name="zeit_beginn">Beginn</string>
+    <string name="zeit_ende">Ende</string>
+    <string name="zeit_pause">Pause (Minuten)</string>
+    <string name="zeit_gesamt">Gesamtzeit</string>
+    <string name="zeit_starten">Zum Starten schieben</string>
+    <string name="zeit_pausieren">Zum Pausieren schieben</string>
+    <string name="zeit_fortsetzen">Zum Beenden der Pause schieben</string>
+    <string name="zeit_beenden">Zum Beenden schieben</string>
+    <string name="zeit_bestaetigen">Bestätigen</string>
+    <string name="zeit_frueh">Frühdienst</string>
+    <string name="zeit_spaet">Spätdienst</string>
+    <string name="zeit_nacht">Nachtdienst</string>
+    <string name="zeit_neu">Manueller Eintrag</string>
+    <string name="zeit_leer">Noch keine Zeiten erfasst.</string>
+    <string name="zeit_korrektur">Eintrag bearbeiten</string>
+    <string name="zeit_ungueltig">Bitte Datum, Uhrzeit und Pause prüfen. Die gewählte Ortszeit muss in dieser Zeitzone existieren.</string>
+    <string name="zeit_speichern_fehler">Der Eintrag konnte nicht gespeichert werden. Bitte neu öffnen und erneut versuchen.</string>
+    <string name="zeit_einstellungen">Einstellungen</string>
+    <string name="zeit_aktiv">Zeiterfassung einschalten</string>
+    <string name="zeit_hinweis">Beim Ausschalten bleiben vorhandene Einträge erhalten.</string>
+    <string name="zeit_laufend">Läuft</string>
+    <string name="zeit_pause_aktiv">Pausiert</string>
+    <string name="zeit_systemrechte">App-Berechtigungen</string>
+    <string name="zeit_benachrichtigungen">Benachrichtigungen</string>
+    <string name="zeit_menue">Zeiterfassungsmenü</string>
+    <string name="zeit_optionen">Zeiterfassungs-Einstellungen</string>
+    <string name="zeit_erfasste">Erfasste Zeiten</string>
+    <string name="zeit_loeschen_frage">Diesen Eintrag für 30 Tage in den Papierkorb von Notes verschieben? Einträge im Organizer bleiben erhalten.</string>
+    <string name="zeit_papierkorb_bis">Im Papierkorb bis %1$s</string>
+    <string name="zeit_monat">Monat</string>
+    <string name="zeit_monat_entfernen">Monat aus Notes entfernen</string>
+    <string name="zeit_monat_entfernen_frage">Die Einträge dieses Monats für 30 Tage in den Papierkorb von Notes verschieben? Einträge im Organizer bleiben erhalten.</string>
+    <string name="zeit_druck_name">Name</string><string name="zeit_druck_datum">Datum</string>
+    <string name="zeit_druck_enddatum">Enddatum</string><string name="zeit_druck_stunden">Stunden</string>
+    <string name="zeit_druck_unterschrift">Unterschrift</string><string name="zeit_druck_summe">Summe</string>
+    <string name="zeit_druck_uhrzeit">Uhrzeit</string><string name="zeit_drucken">Drucken</string>
+    <string name="zeit_alle_tage">Alle Tage</string><string name="zeit_druck_zeitumstellung">Zeitumstellung (Min.)</string>
+    <string name="zeit_druck_fehler">Der Druck konnte nicht gestartet werden.</string>
+</resources>

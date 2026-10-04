@@ -66,6 +66,9 @@ class JournalHandlungen(
     val beiAutoIntervall: (AutoSicherungsIntervall) -> Unit,
     val beiAutoAufbewahrung: (Int) -> Unit,
     val beiAutoJetzt: () -> Unit,
+    val zeitSpeichert: Boolean = false,
+    val beiZeitWiederherstellen: (String) -> Unit = {},
+    val beiZeitLoeschen: (String) -> Unit = {},
 )
 
 @Composable
@@ -75,6 +78,7 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
     var loeschen by remember { mutableStateOf<SnapshotManifest?>(null) }
     var papierkorbLoeschen by remember { mutableStateOf<String?>(null) }
     var papierkorbLeeren by remember { mutableStateOf(false) }
+    var zeitLoeschen by remember { mutableStateOf<String?>(null) }
     var kontaktKonflikt by remember { mutableStateOf<Pair<SnapshotManifest, String>?>(null) }
     var maximumText by remember(zustand.maximum) { mutableStateOf(zustand.maximum.toString()) }
     var exportPasswort by remember { mutableStateOf<String?>(null) }
@@ -88,6 +92,14 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
         JournalIntervall.ZWOELF_STUNDEN, JournalIntervall.TAEGLICH, JournalIntervall.WOECHENTLICH)
     val intervalNamen = listOf(R.string.journal_aus, R.string.journal_6h, R.string.journal_12h,
         R.string.journal_taeglich, R.string.journal_woechentlich)
+    zeitLoeschen?.let { id ->
+        AlertDialog(onDismissRequest = { zeitLoeschen = null },
+            title = { Text(stringResource(R.string.papierkorb_endgueltig_titel)) },
+            text = { Text(stringResource(R.string.papierkorb_endgueltig_hinweis)) },
+            confirmButton = { TextButton(onClick = { zeitLoeschen = null; handlungen.beiZeitLoeschen(id) }) {
+                Text(stringResource(R.string.loeschen))
+            } }, dismissButton = { TextButton(onClick = { zeitLoeschen = null }) { Text(stringResource(R.string.abbrechen)) } })
+    }
     Column(Modifier.fillMaxSize().background(Magnolie.papier).verticalScroll(rememberScrollState())) {
         Abschnitt(ueberschrift = stringResource(R.string.papierkorb_titel),
             hinweis = stringResource(R.string.papierkorb_hinweis)) {
@@ -114,6 +126,25 @@ fun JournalBlatt(zustand: JournalZustand, bestand: Bestand, handlungen: JournalH
             }
             if (bestand.papierkorb.isNotEmpty()) {
                 Papierknopf(stringResource(R.string.papierkorb_leeren)) { papierkorbLeeren = true }
+            }
+        }
+        val zeitPapierkorb = bestand.zeiterfassung.trash.filter { it.expiresMs > System.currentTimeMillis() }
+        if (zeitPapierkorb.isNotEmpty()) Abschnitt(stringResource(R.string.zeit_erfasste) + " · " + stringResource(R.string.papierkorb_titel)) {
+            val locale = androidx.compose.ui.platform.LocalContext.current.resources.configuration.locales[0]
+            zeitPapierkorb.forEach { item ->
+                val title = item.month?.let { month ->
+                    java.time.format.DateTimeFormatter.ofPattern(
+                        android.text.format.DateFormat.getBestDateTimePattern(locale, "yMMMM"), locale)
+                        .format(java.time.YearMonth.parse(month).atDay(1))
+                } ?: item.entries.first().type.ifBlank { stringResource(R.string.zeit_titel) }
+                Text(title, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.zeit_papierkorb_bis, Zeit.tagUndUhrzeit(item.expiresMs)))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Papierknopf(stringResource(R.string.journal_restore), aktiv = !handlungen.zeitSpeichert) {
+                        handlungen.beiZeitWiederherstellen(item.id)
+                    }
+                    Papierknopf(stringResource(R.string.papierkorb_endgueltig_titel), aktiv = !handlungen.zeitSpeichert) { zeitLoeschen = item.id }
+                }
             }
         }
         Abschnitt(ueberschrift = stringResource(R.string.journal_titel),

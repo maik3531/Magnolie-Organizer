@@ -11222,7 +11222,7 @@ def zeiterfassung_ods_bytes(bericht):
     stile = [datenstil("dateFormat", datum_teile), datenstil("clockFormat", zeit_teile, True),
         '<number:time-style style:name="durationFormat" number:truncate-on-overflow="false" %s><number:hours number:style="long"/><number:text>:</number:text><number:minutes number:style="long"/></number:time-style>' % locale_attr,
         '<number:number-style style:name="integerFormat" %s><number:number number:decimal-places="0" number:min-integer-digits="1"/></number:number-style>' % locale_attr,
-        '<style:style style:name="cell" style:family="table-cell"><style:table-cell-properties fo:padding="0.07cm" fo:border-bottom="0.01cm solid #c9baa0" style:vertical-align="middle" fo:wrap-option="wrap"/><style:text-properties fo:font-size="8pt" fo:color="#3d2a1d"/></style:style>',
+        '<style:style style:name="cell" style:family="table-cell"><style:table-cell-properties fo:padding="0.05cm" fo:border-bottom="0.01cm solid #c9baa0" style:vertical-align="middle" fo:wrap-option="wrap"/><style:text-properties fo:font-size="8pt" fo:color="#3d2a1d"/></style:style>',
         '<style:style style:name="row" style:family="table-row"><style:table-row-properties style:min-row-height="0.40cm" style:use-optimal-row-height="true"/></style:style>',
         '<style:style style:name="banner" style:family="table-row"><style:table-row-properties style:min-row-height="0.7cm" style:use-optimal-row-height="true"/></style:style>',
         '<style:style style:name="sheet" style:family="table" style:master-page-name="Magnolie"><style:table-properties style:writing-mode="%s"/></style:style>' % ('rl-tb' if sprach_teile[0] == 'ar' else 'lr-tb')]
@@ -11230,7 +11230,7 @@ def zeiterfassung_ods_bytes(bericht):
         # Automatic styles cannot inherit from other automatic styles in Calc.
         # Repeat the complete cell properties and number-format association.
         return ('<style:style style:name="%s" style:family="table-cell"%s>'
-                '<style:table-cell-properties fo:padding="0.07cm" fo:border-bottom="0.01cm solid #c9baa0" '
+                '<style:table-cell-properties fo:padding="0.05cm" fo:border-bottom="0.01cm solid #c9baa0" '
                 'style:vertical-align="middle" fo:wrap-option="wrap"%s/>'
                 '<style:text-properties fo:font-size="%s" fo:color="%s"%s/></style:style>') % (
                     stilname, ' style:data-style-name="%s"' % data_style if data_style else "",

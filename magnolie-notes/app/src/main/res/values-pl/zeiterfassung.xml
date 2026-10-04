@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">Ewidencja czasu</string>
+    <string name="zeit_art">Aktywność</string>
+    <string name="zeit_beginn">Początek</string>
+    <string name="zeit_ende">Koniec</string>
+    <string name="zeit_pause">Przerwa (minuty)</string>
+    <string name="zeit_gesamt">Łączny czas</string>
+    <string name="zeit_starten">Przesuń, aby rozpocząć</string>
+    <string name="zeit_pausieren">Przesuń, aby wstrzymać</string>
+    <string name="zeit_fortsetzen">Przesuń, aby wznowić</string>
+    <string name="zeit_beenden">Przesuń, aby zakończyć</string>
+    <string name="zeit_bestaetigen">Potwierdź</string>
+    <string name="zeit_frueh">Zmiana poranna</string>
+    <string name="zeit_spaet">Zmiana popołudniowa</string>
+    <string name="zeit_nacht">Zmiana nocna</string>
+    <string name="zeit_neu">Wpis ręczny</string>
+    <string name="zeit_leer">Nie zarejestrowano jeszcze czasu.</string>
+    <string name="zeit_korrektur">Edytuj wpis</string>
+    <string name="zeit_ungueltig">Sprawdź daty, godziny i przerwę. Wybrana godzina lokalna musi istnieć w tej strefie czasowej.</string>
+    <string name="zeit_speichern_fehler">Nie udało się zapisać wpisu. Otwórz go ponownie i spróbuj jeszcze raz.</string>
+    <string name="zeit_einstellungen">Ustawienia</string>
+    <string name="zeit_aktiv">Włącz ewidencję czasu</string>
+    <string name="zeit_hinweis">Wyłączenie zachowuje istniejące wpisy.</string>
+    <string name="zeit_laufend">W toku</string>
+    <string name="zeit_pause_aktiv">Wstrzymano</string>
+    <string name="zeit_systemrechte">Uprawnienia aplikacji</string>
+    <string name="zeit_benachrichtigungen">Powiadomienia</string>
+    <string name="zeit_menue">Menu ewidencji czasu</string>
+    <string name="zeit_optionen">Ustawienia ewidencji czasu</string>
+    <string name="zeit_erfasste">Zarejestrowane czasy</string>
+    <string name="zeit_loeschen_frage">Przenieść ten wpis do kosza Notes na 30 dni? Wpisy w Organizer zostaną zachowane.</string>
+    <string name="zeit_papierkorb_bis">W koszu do %1$s</string>
+    <string name="zeit_monat">Miesiąc</string>
+    <string name="zeit_monat_entfernen">Usuń miesiąc z Notes</string>
+    <string name="zeit_monat_entfernen_frage">Przenieść wpisy z tego miesiąca do kosza Notes na 30 dni? Wpisy w Organizer zostaną zachowane.</string>
+    <string name="zeit_druck_name">Imię i nazwisko</string><string name="zeit_druck_datum">Data</string>
+    <string name="zeit_druck_enddatum">Data zakończenia</string><string name="zeit_druck_stunden">Godziny</string>
+    <string name="zeit_druck_unterschrift">Podpis</string><string name="zeit_druck_summe">Suma</string>
+    <string name="zeit_druck_uhrzeit">Godzina</string><string name="zeit_drucken">Drukuj</string>
+    <string name="zeit_alle_tage">Wszystkie dni</string><string name="zeit_druck_zeitumstellung">Zmiana czasu (min)</string>
+    <string name="zeit_druck_fehler">Nie udało się rozpocząć drukowania.</string>
+</resources>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">Registo de tempo</string>
+    <string name="zeit_art">Atividade</string>
+    <string name="zeit_beginn">Início</string>
+    <string name="zeit_ende">Fim</string>
+    <string name="zeit_pause">Pausa (minutos)</string>
+    <string name="zeit_gesamt">Tempo total</string>
+    <string name="zeit_starten">Deslize para iniciar</string>
+    <string name="zeit_pausieren">Deslize para pausar</string>
+    <string name="zeit_fortsetzen">Deslize para retomar</string>
+    <string name="zeit_beenden">Deslize para terminar</string>
+    <string name="zeit_bestaetigen">Confirmar</string>
+    <string name="zeit_frueh">Turno da manhã</string>
+    <string name="zeit_spaet">Turno da tarde</string>
+    <string name="zeit_nacht">Turno da noite</string>
+    <string name="zeit_neu">Entrada manual</string>
+    <string name="zeit_leer">Ainda não há tempos registados.</string>
+    <string name="zeit_korrektur">Editar registo</string>
+    <string name="zeit_ungueltig">Verifique as datas, as horas e a pausa. A hora local escolhida deve existir neste fuso horário.</string>
+    <string name="zeit_speichern_fehler">Não foi possível guardar o registo. Volte a abri-lo e tente novamente.</string>
+    <string name="zeit_einstellungen">Definições</string>
+    <string name="zeit_aktiv">Ativar o registo de tempo</string>
+    <string name="zeit_hinweis">A desativação mantém os registos existentes.</string>
+    <string name="zeit_laufend">Em curso</string>
+    <string name="zeit_pause_aktiv">Em pausa</string>
+    <string name="zeit_systemrechte">Permissões da aplicação</string>
+    <string name="zeit_benachrichtigungen">Notificações</string>
+    <string name="zeit_menue">Menu do registo de tempo</string>
+    <string name="zeit_optionen">Definições do registo de tempo</string>
+    <string name="zeit_erfasste">Tempos registados</string>
+    <string name="zeit_loeschen_frage">Mover este registo para o lixo de Notes durante 30 dias? Os registos no Organizer são mantidos.</string>
+    <string name="zeit_papierkorb_bis">No lixo até %1$s</string>
+    <string name="zeit_monat">Mês</string>
+    <string name="zeit_monat_entfernen">Remover o mês de Notes</string>
+    <string name="zeit_monat_entfernen_frage">Mover os registos deste mês para o lixo de Notes durante 30 dias? Os registos no Organizer são mantidos.</string>
+    <string name="zeit_druck_name">Nome</string><string name="zeit_druck_datum">Data</string>
+    <string name="zeit_druck_enddatum">Data de fim</string><string name="zeit_druck_stunden">Horas</string>
+    <string name="zeit_druck_unterschrift">Assinatura</string><string name="zeit_druck_summe">Total</string>
+    <string name="zeit_druck_uhrzeit">Hora</string><string name="zeit_drucken">Imprimir</string>
+    <string name="zeit_alle_tage">Todos os dias</string><string name="zeit_druck_zeitumstellung">Mudança de hora (min)</string>
+    <string name="zeit_druck_fehler">Não foi possível iniciar a impressão.</string>
+</resources>

@@ -255,6 +255,7 @@ class Ablage private constructor(
         val baumStand = lesen(baumDatei, Baumzustand())
         _bestand.value = notizStand.wert.let { gelesen ->
             val sauber = PapierkorbLogik.bereinigen(gelesen).copy(
+                zeiterfassung = gelesen.zeiterfassung.validate().purgeExpired(),
                 aufgaben = AufgabenHierarchie.normalisieren(gelesen.aufgaben))
             if (sauber.notizbuecher.isEmpty()) {
                 sauber.copy(notizbuecher = listOf(Notizbuch(STANDARD_BUCH, standardBuchName)))
@@ -262,7 +263,8 @@ class Ablage private constructor(
         }
         _baum.value = io.gitlab.maik3531.magnolienotes.baum.Paarung.bereinigen(baumStand.wert)
         val entwurfStand = lesen(entwurfDatei, EditorEntwurf())
-        require(entwurfStand.wert.notiz == null || entwurfStand.wert.aufgabe == null)
+        require(listOf(entwurfStand.wert.notiz, entwurfStand.wert.aufgabe, entwurfStand.wert.zeit).count { it != null } <= 1)
+        entwurfStand.wert.zeit?.original?.validate()
         _entwurf.value = entwurfStand.wert
         gesicherterEntwurf = entwurfStand.wert
         if (entwurfStand.klartext) schreiben(entwurfDatei,
@@ -287,6 +289,10 @@ class Ablage private constructor(
 
     fun setzeAufgabenEntwurf(aufgabe: Aufgabe?) = synchronized(sperre) {
         schreibbar(); _entwurf.value = EditorEntwurf(aufgabe = aufgabe)
+    }
+
+    fun setzeZeitEntwurf(zeit: ZeitEntwurf?) = synchronized(sperre) {
+        schreibbar(); _entwurf.value = EditorEntwurf(zeit = zeit)
     }
 
     /** Debounced on IO while typing; flushed at the Activity lifecycle boundary. No Binder payload. */
@@ -414,6 +420,14 @@ class Ablage private constructor(
     // --------------------------------------------------------------- Aufgaben
 
     fun aufgaben(): List<Aufgabe> = _bestand.value.aufgaben
+
+    /** Publish state only after the encrypted atomic write has succeeded. */
+    fun aendereZeiterfassung(change: (ZeiterfassungStand) -> ZeiterfassungStand) = synchronized(sperre) {
+        schreibbar()
+        val next = change(_bestand.value.zeiterfassung.purgeExpired()).validate()
+        if (next != _bestand.value.zeiterfassung) schreibeBestand(_bestand.value.copy(zeiterfassung = next))
+        next
+    }
 
     fun personalCustomChange(change: (PersonalCustomState) -> PersonalCustomState) = synchronized(sperre) {
         val next = change(_bestand.value.personalCustom)
@@ -729,6 +743,7 @@ class Ablage private constructor(
             if (wiederherstellung.istAbgeschlossen(operationId)) return@synchronized false
             val neuBestand = json.decodeFromString(Bestand.serializer(), notizenJson).let {
                 it.copy(aufgaben = AufgabenHierarchie.normalisieren(it.aufgaben),
+                    zeiterfassung = it.zeiterfassung.validate(),
                     personalCustom = PersonalCustom.restore(_bestand.value.personalCustom, it.personalCustom),
                     personalSync = it.personalSync.copy(pending_proposals = emptyList(), pending_decisions = emptyList()))
             }

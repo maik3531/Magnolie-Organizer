@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">Zaman takibi</string>
+    <string name="zeit_art">Etkinlik</string>
+    <string name="zeit_beginn">Başlangıç</string>
+    <string name="zeit_ende">Bitiş</string>
+    <string name="zeit_pause">Mola (dakika)</string>
+    <string name="zeit_gesamt">Toplam süre</string>
+    <string name="zeit_starten">Başlatmak için kaydırın</string>
+    <string name="zeit_pausieren">Duraklatmak için kaydırın</string>
+    <string name="zeit_fortsetzen">Sürdürmek için kaydırın</string>
+    <string name="zeit_beenden">Bitirmek için kaydırın</string>
+    <string name="zeit_bestaetigen">Onayla</string>
+    <string name="zeit_frueh">Sabah vardiyası</string>
+    <string name="zeit_spaet">Akşam vardiyası</string>
+    <string name="zeit_nacht">Gece vardiyası</string>
+    <string name="zeit_neu">Elle kayıt</string>
+    <string name="zeit_leer">Henüz süre kaydedilmedi.</string>
+    <string name="zeit_korrektur">Kaydı düzenle</string>
+    <string name="zeit_ungueltig">Tarihleri, saatleri ve molayı kontrol edin. Seçilen yerel saat bu saat diliminde mevcut olmalıdır.</string>
+    <string name="zeit_speichern_fehler">Kayıt kaydedilemedi. Yeniden açıp tekrar deneyin.</string>
+    <string name="zeit_einstellungen">Ayarlar</string>
+    <string name="zeit_aktiv">Zaman takibini etkinleştir</string>
+    <string name="zeit_hinweis">Kapatıldığında mevcut kayıtlar korunur.</string>
+    <string name="zeit_laufend">Devam ediyor</string>
+    <string name="zeit_pause_aktiv">Duraklatıldı</string>
+    <string name="zeit_systemrechte">Uygulama izinleri</string>
+    <string name="zeit_benachrichtigungen">Bildirimler</string>
+    <string name="zeit_menue">Zaman takibi menüsü</string>
+    <string name="zeit_optionen">Zaman takibi ayarları</string>
+    <string name="zeit_erfasste">Kaydedilen süreler</string>
+    <string name="zeit_loeschen_frage">Bu kayıt 30 günlüğüne Notes çöp kutusuna taşınsın mı? Organizer kayıtları korunur.</string>
+    <string name="zeit_papierkorb_bis">Çöp kutusunda tutulacağı tarih: %1$s</string>
+    <string name="zeit_monat">Ay</string>
+    <string name="zeit_monat_entfernen">Ayı Notes’tan kaldır</string>
+    <string name="zeit_monat_entfernen_frage">Bu ayın kayıtları 30 günlüğüne Notes çöp kutusuna taşınsın mı? Organizer kayıtları korunur.</string>
+    <string name="zeit_druck_name">Ad</string><string name="zeit_druck_datum">Tarih</string>
+    <string name="zeit_druck_enddatum">Bitiş tarihi</string><string name="zeit_druck_stunden">Saat</string>
+    <string name="zeit_druck_unterschrift">İmza</string><string name="zeit_druck_summe">Toplam</string>
+    <string name="zeit_druck_uhrzeit">Saat</string><string name="zeit_drucken">Yazdır</string>
+    <string name="zeit_alle_tage">Tüm günler</string><string name="zeit_druck_zeitumstellung">Saat değişimi (dk)</string>
+    <string name="zeit_druck_fehler">Yazdırma başlatılamadı.</string>
+</resources>

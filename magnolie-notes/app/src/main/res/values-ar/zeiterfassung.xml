@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">تتبع الوقت</string>
+    <string name="zeit_art">النشاط</string>
+    <string name="zeit_beginn">البداية</string>
+    <string name="zeit_ende">النهاية</string>
+    <string name="zeit_pause">الاستراحة (بالدقائق)</string>
+    <string name="zeit_gesamt">الوقت الإجمالي</string>
+    <string name="zeit_starten">اسحب للبدء</string>
+    <string name="zeit_pausieren">اسحب للإيقاف المؤقت</string>
+    <string name="zeit_fortsetzen">اسحب للاستئناف</string>
+    <string name="zeit_beenden">اسحب للإنهاء</string>
+    <string name="zeit_bestaetigen">تأكيد</string>
+    <string name="zeit_frueh">الوردية الصباحية</string>
+    <string name="zeit_spaet">الوردية المسائية</string>
+    <string name="zeit_nacht">الوردية الليلية</string>
+    <string name="zeit_neu">إدخال يدوي</string>
+    <string name="zeit_leer">لم يتم تسجيل أي وقت بعد.</string>
+    <string name="zeit_korrektur">تعديل السجل</string>
+    <string name="zeit_ungueltig">تحقق من التواريخ والأوقات والاستراحة. يجب أن يكون الوقت المحلي المحدد موجودًا في هذه المنطقة الزمنية.</string>
+    <string name="zeit_speichern_fehler">تعذر حفظ السجل. افتحه مجددًا وحاول مرة أخرى.</string>
+    <string name="zeit_einstellungen">الإعدادات</string>
+    <string name="zeit_aktiv">تفعيل تتبع الوقت</string>
+    <string name="zeit_hinweis">تبقى السجلات الموجودة محفوظة عند إيقاف التتبع.</string>
+    <string name="zeit_laufend">قيد التشغيل</string>
+    <string name="zeit_pause_aktiv">متوقف مؤقتًا</string>
+    <string name="zeit_systemrechte">أذونات التطبيق</string>
+    <string name="zeit_benachrichtigungen">الإشعارات</string>
+    <string name="zeit_menue">قائمة تتبع الوقت</string>
+    <string name="zeit_optionen">إعدادات تتبع الوقت</string>
+    <string name="zeit_erfasste">الأوقات المسجلة</string>
+    <string name="zeit_loeschen_frage">نقل هذا السجل إلى سلة محذوفات Notes لمدة 30 يومًا؟ ستبقى سجلات Organizer محفوظة.</string>
+    <string name="zeit_papierkorb_bis">في سلة المحذوفات حتى %1$s</string>
+    <string name="zeit_monat">الشهر</string>
+    <string name="zeit_monat_entfernen">إزالة الشهر من Notes</string>
+    <string name="zeit_monat_entfernen_frage">نقل سجلات هذا الشهر إلى سلة محذوفات Notes لمدة 30 يومًا؟ ستبقى سجلات Organizer محفوظة.</string>
+    <string name="zeit_druck_name">الاسم</string><string name="zeit_druck_datum">التاريخ</string>
+    <string name="zeit_druck_enddatum">تاريخ الانتهاء</string><string name="zeit_druck_stunden">الساعات</string>
+    <string name="zeit_druck_unterschrift">التوقيع</string><string name="zeit_druck_summe">المجموع</string>
+    <string name="zeit_druck_uhrzeit">الوقت</string><string name="zeit_drucken">طباعة</string>
+    <string name="zeit_alle_tage">كل الأيام</string><string name="zeit_druck_zeitumstellung">تغيير الساعة (دقيقة)</string>
+    <string name="zeit_druck_fehler">تعذر بدء الطباعة.</string>
+</resources>

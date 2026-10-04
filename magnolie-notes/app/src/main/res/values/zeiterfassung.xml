@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">Time tracking</string>
+    <string name="zeit_art">Activity</string>
+    <string name="zeit_beginn">Start</string>
+    <string name="zeit_ende">End</string>
+    <string name="zeit_pause">Pause (minutes)</string>
+    <string name="zeit_gesamt">Total time</string>
+    <string name="zeit_starten">Slide to start</string>
+    <string name="zeit_pausieren">Slide to pause</string>
+    <string name="zeit_fortsetzen">Slide to resume</string>
+    <string name="zeit_beenden">Slide to finish</string>
+    <string name="zeit_bestaetigen">Confirm</string>
+    <string name="zeit_frueh">Early shift</string>
+    <string name="zeit_spaet">Late shift</string>
+    <string name="zeit_nacht">Night shift</string>
+    <string name="zeit_neu">Manual entry</string>
+    <string name="zeit_leer">No time recorded yet.</string>
+    <string name="zeit_korrektur">Edit record</string>
+    <string name="zeit_ungueltig">Check the dates, times and pause. The selected local time must exist in this time zone.</string>
+    <string name="zeit_speichern_fehler">The entry could not be saved. Reload it and try again.</string>
+    <string name="zeit_einstellungen">Settings</string>
+    <string name="zeit_aktiv">Enable time tracking</string>
+    <string name="zeit_hinweis">Turning tracking off keeps existing records.</string>
+    <string name="zeit_laufend">Running</string>
+    <string name="zeit_pause_aktiv">Paused</string>
+    <string name="zeit_systemrechte">App permissions</string>
+    <string name="zeit_benachrichtigungen">Notifications</string>
+    <string name="zeit_menue">Time tracking menu</string>
+    <string name="zeit_optionen">Time tracking settings</string>
+    <string name="zeit_erfasste">Recorded times</string>
+    <string name="zeit_loeschen_frage">Move this record to the Notes trash for 30 days? Organizer entries are kept.</string>
+    <string name="zeit_papierkorb_bis">Kept in trash until %1$s</string>
+    <string name="zeit_monat">Month</string>
+    <string name="zeit_monat_entfernen">Remove month from Notes</string>
+    <string name="zeit_monat_entfernen_frage">Move this month’s records to the Notes trash for 30 days? Organizer entries are kept.</string>
+    <string name="zeit_druck_name">Name</string><string name="zeit_druck_datum">Date</string>
+    <string name="zeit_druck_enddatum">End date</string><string name="zeit_druck_stunden">Hours</string>
+    <string name="zeit_druck_unterschrift">Signature</string><string name="zeit_druck_summe">Total</string>
+    <string name="zeit_druck_uhrzeit">Time</string><string name="zeit_drucken">Print</string>
+    <string name="zeit_alle_tage">All days</string><string name="zeit_druck_zeitumstellung">Clock change (min)</string>
+    <string name="zeit_druck_fehler">Printing could not be started.</string>
+</resources>

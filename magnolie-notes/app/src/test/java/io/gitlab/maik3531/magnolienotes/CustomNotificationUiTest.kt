@@ -133,6 +133,14 @@ class CustomNotificationUiTest {
             it.config.getOrNull(SemanticsProperties.Role) == Role.Tab
     }
 
+    private fun clickText(resource: Int) {
+        val text = app.getString(resource)
+        fun contains(node: SemanticsNode): Boolean = node.config.getOrNull(SemanticsProperties.Text)
+            ?.any { it.text == text } == true || node.children.any(::contains)
+        nodes().first { it.config.getOrNull(SemanticsActions.OnClick) != null && contains(it) }
+            .config.getOrNull(SemanticsActions.OnClick)!!.action!!.invoke()
+    }
+
     private fun awaitEditorClose() {
         // Rendering virtual frames does not wait for the real Dispatchers.IO save.
         val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
@@ -150,7 +158,7 @@ class CustomNotificationUiTest {
     }
 
     private fun assertCustomVisibleAndReadOnly(saved: Notiz? = null) {
-        assertEquals(true, tab(R.string.blatt_baum).config.getOrNull(SemanticsProperties.Selected))
+        assertEquals(true, tab(R.string.zeit_einstellungen).config.getOrNull(SemanticsProperties.Selected))
         val target = nodes().single { node -> node.config.getOrNull(SemanticsProperties.Text)
             ?.any { it.text.contains("Water plants") } == true }
         assertTrue("Custom text must be scrolled into the viewport", target.boundsInRoot.height > 0 && target.boundsInRoot.top >= 0)
@@ -172,9 +180,13 @@ class CustomNotificationUiTest {
 
     @Test fun warmNotificationLeavesAnotherTabAndFocusesCustomContent() {
         launch()
-        tab(R.string.blatt_einfuhr).config.getOrNull(SemanticsActions.OnClick)!!.action!!.invoke()
+        tab(R.string.zeit_einstellungen).config.getOrNull(SemanticsActions.OnClick)!!.action!!.invoke()
         frames()
-        assertEquals(true, tab(R.string.blatt_einfuhr).config.getOrNull(SemanticsProperties.Selected))
+        clickText(R.string.blatt_einfuhr)
+        frames()
+        assertEquals(true, tab(R.string.zeit_einstellungen).config.getOrNull(SemanticsProperties.Selected))
+        assertTrue(nodes().any { it.config.getOrNull(SemanticsProperties.Text)
+            ?.any { text -> text.text == app.getString(R.string.einfuhr_datei_knopf) } == true })
         controller!!.newIntent(intent())
         frames()
         assertCustomVisibleAndReadOnly()
@@ -193,6 +205,134 @@ class CustomNotificationUiTest {
         controller!!.get().onBackPressedDispatcher.onBackPressed()
         awaitEditorClose()
         assertCustomVisibleAndReadOnly(draft)
+    }
+
+    @Test fun settingsGroupImportTreeAndBackupAndDisablingTimePreservesTheRunningRecord() {
+        ablage.aendereZeiterfassung { it.copy(enabled = true).start(Zeiteintrag(startMinute = Zeiteintrag.currentMinute())) }
+        val saved = ablage.bestand.value.zeiterfassung.entries.single()
+        launch()
+        assertEquals(4, nodes().count { it.config.getOrNull(SemanticsProperties.Role) == Role.Tab })
+        tab(R.string.zeit_titel).config.getOrNull(SemanticsActions.OnClick)!!.action!!.invoke()
+        frames()
+        assertEquals(true, tab(R.string.zeit_titel).config.getOrNull(SemanticsProperties.Selected))
+        tab(R.string.zeit_einstellungen).config.getOrNull(SemanticsActions.OnClick)!!.action!!.invoke()
+        frames()
+        for (resource in listOf(R.string.blatt_einfuhr, R.string.blatt_baum, R.string.blatt_journal))
+            assertTrue(nodes().any { it.config.getOrNull(SemanticsProperties.Text)
+                ?.any { text -> text.text == app.getString(resource) } == true })
+        clickText(R.string.zeit_aktiv)
+        val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
+        while (ablage.bestand.value.zeiterfassung.enabled && System.nanoTime() < deadline) {
+            frames(); Thread.sleep(5)
+        }
+        frames()
+        assertFalse(ablage.bestand.value.zeiterfassung.enabled)
+        assertEquals(saved, ablage.bestand.value.zeiterfassung.entries.single())
+        assertEquals(3, nodes().count { it.config.getOrNull(SemanticsProperties.Role) == Role.Tab })
+    }
+
+    @Test fun timeSliderAcceptsFinalReleasePositionButRejectsTapsPartialDragsAndCancellation() {
+        ablage.aendereZeiterfassung { it.copy(enabled = true) }
+        launch()
+        tab(R.string.zeit_titel).config.getOrNull(SemanticsActions.OnClick)!!.action!!.invoke()
+        frames()
+        val slider = nodes().first { it.config.getOrNull(SemanticsProperties.ContentDescription) ==
+            listOf(app.getString(R.string.zeit_starten)) &&
+            it.config.getOrNull(SemanticsProperties.ProgressBarRangeInfo) != null }
+        val bounds = slider.boundsInRoot
+        assertEquals(1, nodes().count { it.config.getOrNull(SemanticsProperties.ProgressBarRangeInfo) != null })
+        val content = controller!!.get().findViewById<ViewGroup>(android.R.id.content).getChildAt(0)
+        fun gesture(fraction: Float, cancel: Boolean = false) {
+            val downTime = android.os.SystemClock.uptimeMillis()
+            val startX = bounds.left + 12f
+            val endX = startX + (bounds.right - 4f - startX) * fraction
+            fun send(action: Int, x: Float, time: Long) {
+                val event = android.view.MotionEvent.obtain(downTime, time, action, x, bounds.center.y, 0)
+                event.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
+                content.dispatchTouchEvent(event)
+                event.recycle()
+            }
+            send(android.view.MotionEvent.ACTION_DOWN, startX, downTime)
+            shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(600))
+            // No intermediate MOVE: exercise Android's coalesced final position.
+            send(if (cancel) android.view.MotionEvent.ACTION_CANCEL else android.view.MotionEvent.ACTION_UP,
+                endX, downTime + 600)
+            frames()
+        }
+        gesture(0f)
+        assertTrue(ablage.bestand.value.zeiterfassung.entries.isEmpty())
+        gesture(0.5f)
+        assertTrue(ablage.bestand.value.zeiterfassung.entries.isEmpty())
+        gesture(1f, cancel = true)
+        assertTrue(ablage.bestand.value.zeiterfassung.entries.isEmpty())
+        gesture(1f)
+        val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
+        while (ablage.bestand.value.zeiterfassung.entries.isEmpty() && System.nanoTime() < deadline) {
+            frames(); Thread.sleep(5)
+        }
+        assertEquals(1, ablage.bestand.value.zeiterfassung.entries.size)
+        frames()
+        fun control(resource: Int) = nodes().first {
+            it.config.getOrNull(SemanticsProperties.ContentDescription) == listOf(app.getString(resource)) &&
+                it.config.getOrNull(SemanticsProperties.ProgressBarRangeInfo) != null
+        }
+        fun confirm(resource: Int, finished: () -> Boolean) {
+            assertTrue(control(resource).config.getOrNull(SemanticsActions.SetProgress)!!.action!!.invoke(1f))
+            frames()
+            assertTrue(control(resource).config.getOrNull(SemanticsActions.CustomActions)!!.single().action())
+            val until = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
+            while (!finished() && System.nanoTime() < until) { frames(); Thread.sleep(5) }
+            frames()
+            assertTrue(finished())
+        }
+        assertEquals(2, nodes().count { it.config.getOrNull(SemanticsProperties.ProgressBarRangeInfo) != null })
+        assertEquals(bounds.top, control(R.string.zeit_beenden).boundsInRoot.top, 1f)
+        val pauseTop = control(R.string.zeit_pausieren).boundsInRoot.top
+        confirm(R.string.zeit_pausieren) { ablage.bestand.value.zeiterfassung.entries.single().pauseMinute != null }
+        assertEquals(pauseTop, control(R.string.zeit_fortsetzen).boundsInRoot.top, 1f)
+        confirm(R.string.zeit_fortsetzen) { ablage.bestand.value.zeiterfassung.entries.single().pauseMinute == null }
+        confirm(R.string.zeit_beenden) { ablage.bestand.value.zeiterfassung.entries.single().endMinute != null }
+        assertEquals(1, nodes().count { it.config.getOrNull(SemanticsProperties.ProgressBarRangeInfo) != null })
+        assertEquals(bounds.top, control(R.string.zeit_starten).boundsInRoot.top, 1f)
+    }
+
+    @Test fun timeDraftDefersNotificationNavigationAndIsSavedThroughEncryptedDraftStorage() {
+        ablage.aendereZeiterfassung { it.copy(enabled = true).replace(null,
+            Zeiteintrag(startMinute = 1000, endMinute = 1060, type = "Original activity")) }
+        val original = ablage.bestand.value.zeiterfassung.entries.single()
+        ablage.setzeZeitEntwurf(ZeitEntwurf(original, kind = "Pending time edit"))
+        launch(intent())
+        assertNotNull(controller!!.get().gewuenschtesCustom.value)
+        assertTrue(nodes().any { it.config.getOrNull(SemanticsProperties.EditableText)?.text == "Pending time edit" })
+        assertEquals("Original activity", ablage.bestand.value.zeiterfassung.entries.single().type)
+        ablage.sichereEntwurf()
+        assertEquals("Pending time edit", ablage.entwurf.value.zeit?.kind)
+        clickText(R.string.sichern)
+        awaitEditorClose()
+        assertEquals("Pending time edit", ablage.bestand.value.zeiterfassung.entries.single().type)
+        assertCustomVisibleAndReadOnly()
+    }
+
+    @Test fun recoveryPageRestoresALocallyRemovedTimeMonth() {
+        ablage.aendereZeiterfassung { it.copy(enabled = true).replace(null,
+            Zeiteintrag(startMinute = 1000, endMinute = 1060, zone = "UTC", type = "Saved activity")) }
+        val saved = ablage.bestand.value.zeiterfassung.entries.single()
+        ablage.aendereZeiterfassung { it.removeLocal(listOf(saved), month = "1970-01") }
+        launch()
+        tab(R.string.zeit_einstellungen).config.getOrNull(SemanticsActions.OnClick)!!.action!!.invoke()
+        frames()
+        clickText(R.string.blatt_journal)
+        frames()
+        assertTrue(nodes().any { it.config.getOrNull(SemanticsProperties.Text)
+            ?.any { text -> text.text.contains(app.getString(R.string.zeit_erfasste)) } == true })
+        clickText(R.string.journal_restore)
+        val until = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
+        while (ablage.bestand.value.zeiterfassung.entries.isEmpty() && System.nanoTime() < until) {
+            frames(); Thread.sleep(5)
+        }
+        assertEquals(listOf(saved), ablage.bestand.value.zeiterfassung.entries)
+        assertTrue(ablage.bestand.value.zeiterfassung.trash.isEmpty())
+        assertFalse(ablage.bestand.value.zeiterfassung.suppressIncoming(saved))
     }
 
     private fun invalidatedWhileEditing(change: (PersonalCustomState) -> PersonalCustomState) {

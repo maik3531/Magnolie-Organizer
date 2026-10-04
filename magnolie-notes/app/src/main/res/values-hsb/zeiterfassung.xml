@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="zeit_titel">Zapisywanje časa</string>
+    <string name="zeit_art">Činitosć</string>
+    <string name="zeit_beginn">Spočatk</string>
+    <string name="zeit_ende">Kónc</string>
+    <string name="zeit_pause">Přestawka (mjeńšiny)</string>
+    <string name="zeit_gesamt">Cyłkowny čas</string>
+    <string name="zeit_starten">Za start přesunyć</string>
+    <string name="zeit_pausieren">Za přestawku přesunyć</string>
+    <string name="zeit_fortsetzen">Za pokročowanje přesunyć</string>
+    <string name="zeit_beenden">Za zakónčenje přesunyć</string>
+    <string name="zeit_bestaetigen">Wobkrućić</string>
+    <string name="zeit_frueh">Ranja změna</string>
+    <string name="zeit_spaet">Wječorna změna</string>
+    <string name="zeit_nacht">Nócna změna</string>
+    <string name="zeit_neu">Manuelny zapisk</string>
+    <string name="zeit_leer">Hišće žadyn čas zapisany.</string>
+    <string name="zeit_korrektur">Zapisk wobdźěłać</string>
+    <string name="zeit_ungueltig">Přepruwće datumy, časy a přestawku. Wubrany lokalny čas dyrbi w tutej časowej conje eksistować.</string>
+    <string name="zeit_speichern_fehler">Zapisk njeda so składować. Wočińće jón znowa a spytajće hišće raz.</string>
+    <string name="zeit_einstellungen">Nastajenja</string>
+    <string name="zeit_aktiv">Zapisywanje časa zapinać</string>
+    <string name="zeit_hinweis">Při wupinjenju so eksistowace zapiski wobchowaja.</string>
+    <string name="zeit_laufend">Běži</string>
+    <string name="zeit_pause_aktiv">Přestawka</string>
+    <string name="zeit_systemrechte">Prawa aplikacije</string>
+    <string name="zeit_benachrichtigungen">Zdźělenki</string>
+    <string name="zeit_menue">Meni zapisywanja časa</string>
+    <string name="zeit_optionen">Nastajenja zapisywanja časa</string>
+    <string name="zeit_erfasste">Zapisane časy</string>
+    <string name="zeit_loeschen_frage">Tutón zapisk za 30 dnjow do papjernika Notes přesunyć? Zapiski w Organizer so wobchowaja.</string>
+    <string name="zeit_papierkorb_bis">W papjerniku hač do %1$s</string>
+    <string name="zeit_monat">Měsac</string>
+    <string name="zeit_monat_entfernen">Měsac z Notes wotstronić</string>
+    <string name="zeit_monat_entfernen_frage">Zapiski tutoho měsaca za 30 dnjow do papjernika Notes přesunyć? Zapiski w Organizer so wobchowaja.</string>
+    <string name="zeit_druck_name">Mjeno</string><string name="zeit_druck_datum">Datum</string>
+    <string name="zeit_druck_enddatum">Kónčny datum</string><string name="zeit_druck_stunden">Hodźiny</string>
+    <string name="zeit_druck_unterschrift">Podpismo</string><string name="zeit_druck_summe">Suma</string>
+    <string name="zeit_druck_uhrzeit">Čas</string><string name="zeit_drucken">Ćišćeć</string>
+    <string name="zeit_alle_tage">Wšě dny</string><string name="zeit_druck_zeitumstellung">Časowe přestajenje (min)</string>
+    <string name="zeit_druck_fehler">Ćišćenje njeda so startować.</string>
+</resources>
