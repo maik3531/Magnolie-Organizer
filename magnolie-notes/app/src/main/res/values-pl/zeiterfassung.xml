@@ -49,4 +49,13 @@
     <string name="zeit_pausen_einrechnen">Wliczaj przerwy</string>
     <string name="zeit_automatisch_beenden">Automatycznie zakończ rejestrowanie</string>
     <string name="zeit_feierabend_signal">Osiągnięto wybrany cel końca pracy.</string>
+    <string name="zeit_wlan_titel">Automatyczny start przez Wi-Fi</string>
+    <string name="zeit_wlan_warten">Oczekiwanie na wybraną sieć Wi-Fi</string>
+    <string name="zeit_wlan_hinweis">Uruchamia się, gdy wybrany SSID jest widoczny, bez łączenia i logowania. Powiadomienie monitorowania pozostaje widoczne. Po ponownym uruchomieniu urządzenia otwórz aplikację.</string>
+    <string name="zeit_wlan_suchen">Znajdź widoczne sieci Wi-Fi</string>
+    <string name="zeit_wlan_sperre">Blokada po każdym zatrzymaniu (minuty)</string>
+    <string name="zeit_wlan_neustart">Po blokadzie nowe wykrycie może uruchomić kolejny zapis, nawet jeśli sieć była cały czas widoczna.</string>
+    <string name="zeit_wlan_rechte">Android wymaga skanowania Wi-Fi, zgody na dokładną lokalizację i usług lokalizacji. System może opóźniać skanowanie.</string>
+    <string name="zeit_wlan_system">Ustawienia Wi-Fi Androida</string>
+    <string name="zeit_wlan_ort">Ustawienia lokalizacji Androida</string>
 </resources>

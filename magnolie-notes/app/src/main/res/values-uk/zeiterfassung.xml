@@ -49,4 +49,13 @@
     <string name="zeit_pausen_einrechnen">Враховувати перерви</string>
     <string name="zeit_automatisch_beenden">Автоматично завершувати облік</string>
     <string name="zeit_feierabend_signal">Вибраної мети завершення роботи досягнуто.</string>
+    <string name="zeit_wlan_titel">Автозапуск через Wi-Fi</string>
+    <string name="zeit_wlan_warten">Очікування вибраної мережі Wi-Fi</string>
+    <string name="zeit_wlan_hinweis">Запускається за видимості вибраного SSID без підключення та входу. Сповіщення спостереження залишається видимим. Після перезапуску пристрою знову відкрийте застосунок.</string>
+    <string name="zeit_wlan_suchen">Знайти видимі мережі Wi-Fi</string>
+    <string name="zeit_wlan_sperre">Блокування після кожного зупинення (хвилини)</string>
+    <string name="zeit_wlan_neustart">Після блокування нове виявлення може розпочати новий запис, навіть якщо мережа весь час залишалася видимою.</string>
+    <string name="zeit_wlan_rechte">Android потребує пошуку Wi-Fi, дозволу на точне місцезнаходження та служб геолокації. Система може затримувати пошук.</string>
+    <string name="zeit_wlan_system">Налаштування Wi-Fi Android</string>
+    <string name="zeit_wlan_ort">Налаштування місцезнаходження Android</string>
 </resources>

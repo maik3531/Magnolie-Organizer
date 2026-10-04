@@ -49,4 +49,13 @@
     <string name="zeit_pausen_einrechnen">休憩を含める</string>
     <string name="zeit_automatisch_beenden">記録を自動的に終了する</string>
     <string name="zeit_feierabend_signal">設定した退勤の目標に達しました。</string>
+    <string name="zeit_wlan_titel">Wi-Fiによる自動開始</string>
+    <string name="zeit_wlan_warten">選択したWi-Fiを待機中</string>
+    <string name="zeit_wlan_hinweis">選択したSSIDが検出されると、接続やログインなしで開始します。監視通知は表示されたままになります。端末を再起動した後はアプリを開いてください。</string>
+    <string name="zeit_wlan_suchen">検出可能なWi-Fiを検索</string>
+    <string name="zeit_wlan_sperre">終了ごとの待機時間（分）</string>
+    <string name="zeit_wlan_neustart">待機時間後に新しく検出されると、ネットワークが継続して見えていた場合も新しい記録を開始できます。</string>
+    <string name="zeit_wlan_rechte">AndroidではWi-Fiスキャン、正確な位置情報の許可、位置情報サービスが必要です。システムによりスキャンが遅れる場合があります。</string>
+    <string name="zeit_wlan_system">AndroidのWi-Fi設定</string>
+    <string name="zeit_wlan_ort">Androidの位置情報設定</string>
 </resources>

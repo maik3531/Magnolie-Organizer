@@ -3,6 +3,7 @@ Magnolie Notes ist ein lokales Notizbuch mit Aufgabenliste für Android. Notizen
 Funktionen:
 * Notizen mit Erstellungs- und Änderungsdatum, Notizbüchern und Anhängen.
 * Aufgaben mit Fälligkeit, Dringlichkeit und optionalen Erinnerungen.
+* Optionale lokale Zeiterfassung mit festen und manuellen Pausen, Pausenweckern, verschlüsseltem Verlauf und Monatsdruck.
 * Übernahme geteilter Texte und unterstützter Notizexporte.
 * Lokal verschlüsselte Speicherung und selbst verwaltete Sicherungen.
 * Optionaler verschlüsselter Austausch mit gekoppelten Magnolie-Organizer-Installationen unter Linux und Windows.
@@ -16,5 +17,6 @@ Optionale Verbindungen und Berechtigungen:
 * Einem gekoppelten Desktop erlauben, ausgehende Anrufe auf diesem Telefon anzufordern, Informationen über eingehende Anrufe anzuzeigen sowie Annehmen oder Beenden eines Gesprächs anzufordern. Android-Berechtigungen und Systemgrenzen gelten weiterhin. Dafür können Telefonstatus, Telefonnummernzugriff und – soweit Android dies für die Anruferkennung verlangt – Zugriff auf die Anrufliste erforderlich sein.
 * Android-Kontakte und vorhandene Fotos lesen, geprüfte Kontaktkarten importieren oder Kontakte mit einem freigegebenen Zweig abgleichen. Das Schreiben von Kontakten benötigt eine eigene Android-Berechtigung. Der reine Desktop-Lesezugriff verändert keine Telefonkontakte.
 * Optional Titel und Text der Benachrichtigungen selbst ausgewählter Apps an den gekoppelten Desktop weitergeben. Dazu müssen Magnolie Notes in Androids Benachrichtigungszugriff und die gewünschten Apps freigegeben werden. Das gewährt keinen allgemeinen Zugriff auf private Daten dieser Apps.
+* Optionaler Zeiterfassungsstart bei sichtbarer gewählter WLAN-SSID, ohne Verbindung oder Anmeldung. Android benötigt dafür genauen Standortzugriff und aktivierte Standortdienste. Notes liest WLAN-Beobachtungen, keine GPS-Koordinaten. Eine dauerhafte Benachrichtigung zeigt die Bereitschaft; Android kann Suchläufe verzögern. Nach einem Geräteneustart die App zur erneuten Aktivierung öffnen.
 
 Diese Integrationen werden durch Kopplung, Funktionsauswahl und die jeweiligen Android-Berechtigungs- oder Zugriffsabfragen freigegeben. Für lokale Notizen sind sie nicht erforderlich. Funktionen und Berechtigungen lassen sich abschalten oder Kopplungen entfernen. Bluetooth-Datenübertragung ist von einer systemverwalteten Freisprech-Audioverbindung getrennt. Magnolie Notes bietet keinen eigenen SMS- oder RCS-Nachrichtendienst.

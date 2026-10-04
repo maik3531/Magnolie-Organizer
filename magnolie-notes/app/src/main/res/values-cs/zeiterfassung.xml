@@ -49,4 +49,13 @@
     <string name="zeit_pausen_einrechnen">Započítat přestávky</string>
     <string name="zeit_automatisch_beenden">Automaticky ukončit měření</string>
     <string name="zeit_feierabend_signal">Bylo dosaženo zvoleného cíle konce práce.</string>
+    <string name="zeit_wlan_titel">Automatický start přes Wi-Fi</string>
+    <string name="zeit_wlan_warten">Čekání na vybranou Wi-Fi</string>
+    <string name="zeit_wlan_hinweis">Spustí se, když je vybrané SSID viditelné, bez připojení nebo přihlášení. Oznámení sledování zůstává viditelné. Po restartu zařízení aplikaci znovu otevřete.</string>
+    <string name="zeit_wlan_suchen">Najít viditelné sítě Wi-Fi</string>
+    <string name="zeit_wlan_sperre">Blokování po každém ukončení (minuty)</string>
+    <string name="zeit_wlan_neustart">Po blokování může nové zjištění spustit další záznam, i když síť zůstala stále viditelná.</string>
+    <string name="zeit_wlan_rechte">Android vyžaduje vyhledávání Wi-Fi, oprávnění k přesné poloze a služby určování polohy. Systém může vyhledávání zpozdit.</string>
+    <string name="zeit_wlan_system">Nastavení Wi-Fi v Androidu</string>
+    <string name="zeit_wlan_ort">Nastavení polohy v Androidu</string>
 </resources>

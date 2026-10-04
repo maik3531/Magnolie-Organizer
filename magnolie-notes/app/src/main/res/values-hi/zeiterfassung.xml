@@ -49,4 +49,13 @@
     <string name="zeit_pausen_einrechnen">विराम शामिल करें</string>
     <string name="zeit_automatisch_beenden">रिकॉर्डिंग अपने आप बंद करें</string>
     <string name="zeit_feierabend_signal">चुना गया काम समाप्ति का लक्ष्य पूरा हो गया है।</string>
+    <string name="zeit_wlan_titel">Wi-Fi से अपने आप शुरू करें</string>
+    <string name="zeit_wlan_warten">चुने गए Wi-Fi की प्रतीक्षा</string>
+    <string name="zeit_wlan_hinweis">चुना गया SSID दिखाई देने पर बिना कनेक्शन या लॉगिन के शुरू होता है। निगरानी की सूचना दिखाई देती रहती है। डिवाइस फिर से शुरू करने के बाद ऐप खोलें।</string>
+    <string name="zeit_wlan_suchen">दिखाई देने वाले Wi-Fi नेटवर्क खोजें</string>
+    <string name="zeit_wlan_sperre">हर बार रोकने के बाद अवरोध (मिनट)</string>
+    <string name="zeit_wlan_neustart">अवरोध के बाद नई पहचान से नया रिकॉर्ड शुरू हो सकता है, भले ही नेटवर्क लगातार दिखाई देता रहा हो।</string>
+    <string name="zeit_wlan_rechte">Android को Wi-Fi खोज, सटीक स्थान की अनुमति और स्थान सेवाएँ चाहिए। सिस्टम खोज में देरी कर सकता है।</string>
+    <string name="zeit_wlan_system">Android की Wi-Fi सेटिंग</string>
+    <string name="zeit_wlan_ort">Android की स्थान सेटिंग</string>
 </resources>

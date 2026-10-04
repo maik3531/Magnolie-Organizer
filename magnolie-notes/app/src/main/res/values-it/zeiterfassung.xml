@@ -49,4 +49,13 @@
     <string name="zeit_pausen_einrechnen">Includi le pause</string>
     <string name="zeit_automatisch_beenden">Termina automaticamente la registrazione</string>
     <string name="zeit_feierabend_signal">È stato raggiunto l’obiettivo di fine lavoro scelto.</string>
+    <string name="zeit_wlan_titel">Avvio automatico tramite Wi-Fi</string>
+    <string name="zeit_wlan_warten">In attesa del Wi-Fi scelto</string>
+    <string name="zeit_wlan_hinweis">Si avvia quando il SSID scelto è visibile, senza connessione o accesso. Una notifica di monitoraggio resta visibile. Riapri l’app dopo il riavvio del dispositivo.</string>
+    <string name="zeit_wlan_suchen">Cerca reti Wi-Fi visibili</string>
+    <string name="zeit_wlan_sperre">Blocco dopo ogni arresto (minuti)</string>
+    <string name="zeit_wlan_neustart">Dopo il blocco, un nuovo rilevamento può avviare un’altra registrazione anche se la rete è rimasta visibile.</string>
+    <string name="zeit_wlan_rechte">Android richiede la ricerca Wi-Fi, il permesso di posizione precisa e i servizi di localizzazione. Il sistema può ritardare le ricerche.</string>
+    <string name="zeit_wlan_system">Impostazioni Wi-Fi di Android</string>
+    <string name="zeit_wlan_ort">Impostazioni di posizione di Android</string>
 </resources>

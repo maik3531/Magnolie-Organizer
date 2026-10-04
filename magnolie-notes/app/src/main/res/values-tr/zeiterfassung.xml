@@ -49,4 +49,13 @@
     <string name="zeit_pausen_einrechnen">Molaları dahil et</string>
     <string name="zeit_automatisch_beenden">Kaydı otomatik olarak bitir</string>
     <string name="zeit_feierabend_signal">Seçilen mesai bitiş hedefine ulaşıldı.</string>
+    <string name="zeit_wlan_titel">Wi-Fi ile otomatik başlatma</string>
+    <string name="zeit_wlan_warten">Seçilen Wi-Fi bekleniyor</string>
+    <string name="zeit_wlan_hinweis">Seçilen SSID göründüğünde bağlantı veya oturum açmadan başlar. İzleme bildirimi görünür kalır. Cihaz yeniden başlatıldıktan sonra uygulamayı açın.</string>
+    <string name="zeit_wlan_suchen">Görünür Wi-Fi ağlarını bul</string>
+    <string name="zeit_wlan_sperre">Her durdurmadan sonra bekleme (dakika)</string>
+    <string name="zeit_wlan_neustart">Beklemeden sonra yeni bir algılama, ağ sürekli görünür kalsa bile yeni bir kayıt başlatabilir.</string>
+    <string name="zeit_wlan_rechte">Android için Wi-Fi taraması, kesin konum izni ve konum hizmetleri gerekir. Sistem taramaları geciktirebilir.</string>
+    <string name="zeit_wlan_system">Android Wi-Fi ayarları</string>
+    <string name="zeit_wlan_ort">Android konum ayarları</string>
 </resources>

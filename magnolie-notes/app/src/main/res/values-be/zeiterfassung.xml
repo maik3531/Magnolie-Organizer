@@ -49,4 +49,13 @@
     <string name="zeit_pausen_einrechnen">Улічваць перапынкі</string>
     <string name="zeit_automatisch_beenden">Аўтаматычна спыняць улік</string>
     <string name="zeit_feierabend_signal">Выбраная мэта заканчэння працы дасягнута.</string>
+    <string name="zeit_wlan_titel">Аўтазапуск праз Wi-Fi</string>
+    <string name="zeit_wlan_warten">Чаканне выбранай сеткі Wi-Fi</string>
+    <string name="zeit_wlan_hinweis">Запускаецца пры бачнасці выбранага SSID без падключэння і ўваходу. Апавяшчэнне назірання застаецца бачным. Пасля перазапуску прылады зноў адкрыйце праграму.</string>
+    <string name="zeit_wlan_suchen">Знайсці бачныя сеткі Wi-Fi</string>
+    <string name="zeit_wlan_sperre">Блакіроўка пасля кожнага спынення (хвіліны)</string>
+    <string name="zeit_wlan_neustart">Пасля блакіроўкі новае выяўленне можа пачаць новы запіс, нават калі сетка заставалася бачнай.</string>
+    <string name="zeit_wlan_rechte">Android патрабуе пошуку Wi-Fi, дазволу на дакладнае месцазнаходжанне і службаў месцазнаходжання. Сістэма можа затрымліваць пошук.</string>
+    <string name="zeit_wlan_system">Налады Wi-Fi Android</string>
+    <string name="zeit_wlan_ort">Налады месцазнаходжання Android</string>
 </resources>

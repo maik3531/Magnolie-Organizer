@@ -49,4 +49,13 @@
     <string name="zeit_pausen_einrechnen">Include pauses</string>
     <string name="zeit_automatisch_beenden">Stop tracking automatically</string>
     <string name="zeit_feierabend_signal">The selected end-of-work target has been reached.</string>
+    <string name="zeit_wlan_titel">Wi-Fi automatic start</string>
+    <string name="zeit_wlan_warten">Waiting for selected Wi-Fi</string>
+    <string name="zeit_wlan_hinweis">Starts when the selected SSID is visible, without connecting or logging in. A monitoring notification stays visible. Open the app again after restarting the device.</string>
+    <string name="zeit_wlan_suchen">Find visible Wi-Fi networks</string>
+    <string name="zeit_wlan_sperre">Pause after every stop (minutes)</string>
+    <string name="zeit_wlan_neustart">After the pause, a fresh scan may start a new record even if the network stayed visible.</string>
+    <string name="zeit_wlan_rechte">Android needs Wi-Fi scanning, precise location permission and location services. Scans can be delayed by the system.</string>
+    <string name="zeit_wlan_system">Android Wi-Fi settings</string>
+    <string name="zeit_wlan_ort">Android location settings</string>
 </resources>

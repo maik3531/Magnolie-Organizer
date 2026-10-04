@@ -49,4 +49,13 @@
     <string name="zeit_pausen_einrechnen">Учитывать перерывы</string>
     <string name="zeit_automatisch_beenden">Автоматически завершать учёт</string>
     <string name="zeit_feierabend_signal">Выбранная цель окончания работы достигнута.</string>
+    <string name="zeit_wlan_titel">Автозапуск по Wi-Fi</string>
+    <string name="zeit_wlan_warten">Ожидание выбранной сети Wi-Fi</string>
+    <string name="zeit_wlan_hinweis">Запускается при обнаружении выбранного SSID без подключения и входа. Уведомление наблюдения остаётся видимым. После перезапуска устройства снова откройте приложение.</string>
+    <string name="zeit_wlan_suchen">Найти видимые сети Wi-Fi</string>
+    <string name="zeit_wlan_sperre">Блокировка после каждой остановки (минуты)</string>
+    <string name="zeit_wlan_neustart">После блокировки новое обнаружение может начать новую запись, даже если сеть всё время оставалась видимой.</string>
+    <string name="zeit_wlan_rechte">Android требует поиска Wi-Fi, разрешения на точное местоположение и служб геолокации. Система может задерживать поиск.</string>
+    <string name="zeit_wlan_system">Настройки Wi-Fi Android</string>
+    <string name="zeit_wlan_ort">Настройки местоположения Android</string>
 </resources>

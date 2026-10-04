@@ -49,4 +49,13 @@
     <string name="zeit_pausen_einrechnen">Přestawki sobu ličić</string>
     <string name="zeit_automatisch_beenden">Zapisowanje awtomatisce skónčić</string>
     <string name="zeit_feierabend_signal">Wubrany cil kónca dźěła je docpěty.</string>
+    <string name="zeit_wlan_titel">Awtomatiski start přez WLAN</string>
+    <string name="zeit_wlan_warten">Čakanje na wubrany WLAN</string>
+    <string name="zeit_wlan_hinweis">Startuje, hdyž je wubrany SSID widźomny, bjez zwiska abo přizjewjenja. Zdźělenka wo wobkedźbowanju wostawa widźomna. Po znowastartowanju grata aplikaciju znowa wočińće.</string>
+    <string name="zeit_wlan_suchen">Widźomne WLAN-syće pytać</string>
+    <string name="zeit_wlan_sperre">Zawrjenje po kóždym skónčenju (mjeńšiny)</string>
+    <string name="zeit_wlan_neustart">Po zawrjenju móže nowe namakanje nowy zapis startować, samo hdyž je syć stajnje widźomna była.</string>
+    <string name="zeit_wlan_rechte">Android trjeba WLAN-pytanje, dowolnosć za dokładne stejnišćo a stejnišćowe słužby. System móže pytanje wokomdźić.</string>
+    <string name="zeit_wlan_system">WLAN-nastajenja Androida</string>
+    <string name="zeit_wlan_ort">Stejnišćowe nastajenja Androida</string>
 </resources>

@@ -49,4 +49,13 @@
     <string name="zeit_pausen_einrechnen">计入休息时间</string>
     <string name="zeit_automatisch_beenden">自动结束记录</string>
     <string name="zeit_feierabend_signal">已达到所选的下班目标。</string>
+    <string name="zeit_wlan_titel">Wi-Fi自动开始</string>
+    <string name="zeit_wlan_warten">等待所选Wi-Fi</string>
+    <string name="zeit_wlan_hinweis">检测到所选SSID时开始，无需连接或登录。监测通知会持续显示。设备重启后请重新打开应用。</string>
+    <string name="zeit_wlan_suchen">查找可见Wi-Fi网络</string>
+    <string name="zeit_wlan_sperre">每次停止后的等待时间（分钟）</string>
+    <string name="zeit_wlan_neustart">等待结束后，新的扫描结果可启动新记录，即使网络一直可见。</string>
+    <string name="zeit_wlan_rechte">Android需要Wi-Fi扫描、精确位置权限和位置服务。系统可能延迟扫描。</string>
+    <string name="zeit_wlan_system">Android Wi-Fi设置</string>
+    <string name="zeit_wlan_ort">Android位置设置</string>
 </resources>

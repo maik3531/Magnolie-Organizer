@@ -28,8 +28,9 @@ class ForegroundServiceContractTest {
             "android.permission.FOREGROUND_SERVICE",
             "android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE",
             "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
+            "android.permission.FOREGROUND_SERVICE_LOCATION",
         ), foregroundPermissions.toSet())
-        assertEquals(3, foregroundPermissions.size)
+        assertEquals(4, foregroundPermissions.size)
         assertEquals(1, permissions.count { it == "android.permission.CHANGE_NETWORK_STATE" })
 
         val services = document.getElementsByTagName("service").let { nodes ->
@@ -41,7 +42,7 @@ class ForegroundServiceContractTest {
         }
         assertEquals("connectedDevice", services[".baum.BaumDienst"])
         assertEquals("connectedDevice", services[".telefon.TelefonDienst"])
-        assertEquals("specialUse", services[".zeit.ZeitDienst"])
+        assertEquals(setOf("specialUse", "location"), services[".zeit.ZeitDienst"]?.split('|')?.toSet())
         val timeService = document.getElementsByTagName("service").let { nodes ->
             (0 until nodes.length).map { nodes.item(it) as Element }
                 .single { it.getAttributeNS(android, "name") == ".zeit.ZeitDienst" }

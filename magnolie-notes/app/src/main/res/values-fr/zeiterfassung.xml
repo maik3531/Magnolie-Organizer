@@ -49,4 +49,13 @@
     <string name="zeit_pausen_einrechnen">Inclure les pauses</string>
     <string name="zeit_automatisch_beenden">Arrêter le suivi automatiquement</string>
     <string name="zeit_feierabend_signal">L’objectif de fin de travail choisi est atteint.</string>
+    <string name="zeit_wlan_titel">Démarrage automatique par Wi-Fi</string>
+    <string name="zeit_wlan_warten">Attente du Wi-Fi choisi</string>
+    <string name="zeit_wlan_hinweis">Démarre lorsque le SSID choisi est visible, sans connexion ni authentification. Une notification de surveillance reste visible. Rouvrez l’application après le redémarrage de l’appareil.</string>
+    <string name="zeit_wlan_suchen">Rechercher les réseaux Wi-Fi visibles</string>
+    <string name="zeit_wlan_sperre">Blocage après chaque arrêt (minutes)</string>
+    <string name="zeit_wlan_neustart">Après le blocage, une nouvelle détection peut lancer un autre enregistrement, même si le réseau est resté visible.</string>
+    <string name="zeit_wlan_rechte">Android exige la recherche Wi-Fi, l’autorisation de localisation précise et les services de localisation. Le système peut retarder les recherches.</string>
+    <string name="zeit_wlan_system">Paramètres Wi-Fi Android</string>
+    <string name="zeit_wlan_ort">Paramètres de localisation Android</string>
 </resources>

@@ -119,6 +119,7 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
                 ZeiterfassungsOptionen(stand.enabled, speichert, beiAktiv)
                 ZeitPausenOptionen(stand, speichert, speichern)
                 ZeitFeierabendOptionen(stand, speichert, speichern)
+                ZeitWlanOptionen(stand, speichert, speichern)
                 ZeitMonate(stand, speichert, speichern, beiPapierkorb)
             }
         } else if (ansicht == "history") {

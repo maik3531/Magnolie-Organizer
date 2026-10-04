@@ -3,6 +3,7 @@ Magnolie Notes is a local notebook and task list for Android. Organize notes in 
 Features:
 * Notes with creation and modification dates, notebooks and attachments.
 * Tasks with due dates, priorities and optional reminders.
+* Optional local time tracking with scheduled and manual pauses, pause alarms, encrypted history and monthly printing.
 * Import shared text and supported exported note files.
 * Local encrypted storage and user-controlled backups.
 * Optional encrypted sharing with paired Magnolie Organizer installations on Linux and Windows.
@@ -16,5 +17,6 @@ Optional connections and permissions:
 * Allow a paired desktop to request outgoing calls on this phone, show incoming-call information, and request answering or ending a call. These actions depend on Android permissions and system restrictions. Call-related permissions include phone state, phone-number access and, where Android requires it for caller identification, call-log access.
 * Read Android contacts and their available photos, import reviewed contact cards, or synchronize contacts with a permitted branch. Contact writing needs its own Android permission. Read-only desktop access does not write phone contacts.
 * Optionally mirror the titles and text of notifications from apps you choose to the paired desktop. This requires enabling Magnolie Notes in Android’s notification-access settings and selecting the apps to share; it does not grant unrestricted access to those apps’ private data.
+* Optional time-tracking autostart can detect a selected visible Wi-Fi SSID without connecting or logging in. Android requires precise location permission and location services for these scans. Notes reads Wi-Fi observations, not GPS coordinates. An ongoing notification shows monitoring; Android may delay scans. Open the app after a device restart to resume monitoring.
 
 These integrations are opt-in through pairing, feature choices and the relevant Android permission or access prompts. They are not required for local note-taking. You can disable a feature, revoke its permission or remove a paired device. Bluetooth data transport is separate from any system-managed hands-free call-audio connection. Magnolie Notes does not provide native SMS or RCS messaging.

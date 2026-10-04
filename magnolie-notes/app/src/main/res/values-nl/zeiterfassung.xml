@@ -49,4 +49,13 @@
     <string name="zeit_pausen_einrechnen">Pauzes meetellen</string>
     <string name="zeit_automatisch_beenden">Registratie automatisch beëindigen</string>
     <string name="zeit_feierabend_signal">Het gekozen doel voor einde werktijd is bereikt.</string>
+    <string name="zeit_wlan_titel">Automatisch starten via wifi</string>
+    <string name="zeit_wlan_warten">Wachten op gekozen wifi</string>
+    <string name="zeit_wlan_hinweis">Start wanneer de gekozen SSID zichtbaar is, zonder verbinding of aanmelding. Een bewakingsmelding blijft zichtbaar. Open de app opnieuw nadat het apparaat opnieuw is opgestart.</string>
+    <string name="zeit_wlan_suchen">Zichtbare wifinetwerken zoeken</string>
+    <string name="zeit_wlan_sperre">Blokkering na elke stop (minuten)</string>
+    <string name="zeit_wlan_neustart">Na de blokkering kan een nieuwe detectie een nieuwe registratie starten, ook als het netwerk zichtbaar bleef.</string>
+    <string name="zeit_wlan_rechte">Android heeft wifi-scans, toestemming voor precieze locatie en locatieservices nodig. Het systeem kan scans vertragen.</string>
+    <string name="zeit_wlan_system">Android-wifi-instellingen</string>
+    <string name="zeit_wlan_ort">Android-locatie-instellingen</string>
 </resources>

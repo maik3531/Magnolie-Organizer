@@ -49,4 +49,13 @@
     <string name="zeit_pausen_einrechnen">Ta med pauser</string>
     <string name="zeit_automatisch_beenden">Avslutt registreringen automatisk</string>
     <string name="zeit_feierabend_signal">Det valgte målet for arbeidsslutt er nådd.</string>
+    <string name="zeit_wlan_titel">Automatisk start via Wi-Fi</string>
+    <string name="zeit_wlan_warten">Venter på valgt Wi-Fi</string>
+    <string name="zeit_wlan_hinweis">Starter når valgt SSID er synlig, uten tilkobling eller innlogging. Et overvåkningsvarsel forblir synlig. Åpne appen igjen etter omstart av enheten.</string>
+    <string name="zeit_wlan_suchen">Finn synlige Wi-Fi-nettverk</string>
+    <string name="zeit_wlan_sperre">Sperretid etter hver stopp (minutter)</string>
+    <string name="zeit_wlan_neustart">Etter sperretiden kan en ny oppdagelse starte en ny registrering, selv om nettverket har vært synlig hele tiden.</string>
+    <string name="zeit_wlan_rechte">Android trenger Wi-Fi-søk, tillatelse til nøyaktig posisjon og posisjonstjenester. Systemet kan forsinke søk.</string>
+    <string name="zeit_wlan_system">Androids Wi-Fi-innstillinger</string>
+    <string name="zeit_wlan_ort">Androids posisjonsinnstillinger</string>
 </resources>

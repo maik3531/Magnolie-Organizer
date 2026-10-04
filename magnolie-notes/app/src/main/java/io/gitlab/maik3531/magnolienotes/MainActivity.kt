@@ -409,7 +409,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     LaunchedEffect(offeneZeit?.original?.id) { if (offeneZeit != null) { blatt = 6; zeitAnsicht = "history" } }
     var editorSpeichert by remember { mutableStateOf(false) }
     val zeitLaeuft = bestand.zeiterfassung.entries.any { !it.deleted && it.endMinute == null }
-    LaunchedEffect(zeitLaeuft) {
+    LaunchedEffect(zeitLaeuft, bestand.zeiterfassung.enabled, bestand.zeiterfassung.wifi.enabled) {
         if (!zeitLaeuft) withContext(Dispatchers.IO) {
             io.gitlab.maik3531.magnolienotes.zeit.ZeitWecker.neuStellen(zusammenhang)
         }
