@@ -2537,9 +2537,9 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(Array.from(enSD.querySelectorAll(
     "#einstellungen-inhalt details.einst-gruppe > summary"),
   (summary) => summary.textContent),
-  ["Week numbers", "Weather", "Shift planner", "Cycle calendar", "Vacation planner",
+  ["Week numbers", "Weather", "Time tracking", "Shift planner", "Cycle calendar", "Vacation planner",
     "Waste collection calendar", "Health"],
-  "die voreingestellte Gesundheitsgruppe fehlt in den Kalendereinstellungen");
+  "die Zeiterfassungs- oder Gesundheitsgruppe fehlt in den Kalendereinstellungen");
   assert.ok(Array.from(enSD.querySelectorAll("#einstellungen-inhalt details.einst-gruppe"))
     .every((details) => !details.open),
   "Kalendergruppen sind beim Öffnen nicht vollständig geschlossen");
