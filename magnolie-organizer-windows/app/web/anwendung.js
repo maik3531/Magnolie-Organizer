@@ -28195,7 +28195,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             if (modus === "new") {
               const z = mitBaumKontaktEntwurf(daten, () => mergeKontakte([karte], ""));
               neueZiele.set(plan.neuId, daten.kontakte[daten.kontakte.length - 1].id);
-              await kontaktZeitAusQuelle(daten.kontakte[daten.kontakte.length - 1], karte, plan.quellzeit, "", 0, daten);
+              const neuerKontakt = daten.kontakte[daten.kontakte.length - 1];
+              if (kontaktZeitGueltig(plan.quellzeit)) await kontaktZeitAusQuelle(neuerKontakt, karte, plan.quellzeit, "", 0, daten);
+              else delete neuerKontakt.kontaktZeit;
               zaehlung.neu += z.neu; continue;
             }
             const vorher = personalSyncKanonisch(kontaktBaumInhalt(ziel, 2, false).kontakt);
