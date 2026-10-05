@@ -84,6 +84,14 @@ function baueTermine(anzahl) {
   const dom = new JSDOM(html, { runScripts: "dangerously",
     url: "https://organizer.test/", pretendToBeVisual: true });
   const w = dom.window, d = w.document;
+  Object.defineProperty(w, "crypto", { value: require("node:crypto").webcrypto });
+  w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
+  w.__MAGNOLIE_BRUECKE__ = "loadTest";
+  w.webkit = { messageHandlers: { loadTest: { postMessage(text) {
+    const message = JSON.parse(text);
+    if (message.cmd === "speichern") queueMicrotask(() => w.App.gespeichert({ id: message.id, ok: true }));
+    if (message.cmd === "mutations_snapshot") queueMicrotask(() => w.App.mutationsSnapshot({ token: message.token, ok: true }));
+  } } } };
   w.eval(i18nJs);
   w.eval(deJs);
   w.MagnolieI18n.setLocale("de");
@@ -112,7 +120,9 @@ function baueTermine(anzahl) {
   for (let i = 0; i < ANZAHL; i++) {
     const nach = nachnamen[i % nachnamen.length];
     const kontakt = { id: "k" + i, uid: "mag-k" + i + "@x",
-      nachname: nach, vorname: vornamen[i % vornamen.length],
+      // Distinct synthetic people: ambiguous same-name reviews are covered by
+      // the contact batch tests, not by this full-book rendering benchmark.
+      nachname: nach + " " + i, vorname: vornamen[i % vornamen.length],
       firma: i % 3 === 0 ? nach + " GmbH" : "",
       strasse: "Hauptstraße " + (1 + (i % 199)),
       plz: "47051", ort: "Duisburg",
@@ -157,10 +167,23 @@ function baueTermine(anzahl) {
   }
 
   console.log("\nDie übrigen Bereiche (je %d Einträge)", ANZAHL);
-  messe("alles übernehmen und zeichnen", () => {
-    w.App.importErgebnis({ art: "lotus", abgebrochen: false,
+  await messeAsync("alles übernehmen und zeichnen", async () => {
+    const importiert = w.App.importErgebnis({ art: "lotus", abgebrochen: false,
       kontakte: kontakte, aufgaben: aufgaben, notizen: notizen,
       jahrestage: jahrestage });
+    const deadline = Date.now() + 20000;
+    while (d.querySelector("[data-import-anwenden]")?.disabled && Date.now() < deadline)
+      await new Promise(resolve => setTimeout(resolve, 1));
+    const bestaetigen = d.querySelector("[data-import-anwenden]");
+    if (!bestaetigen || bestaetigen.disabled) throw new Error("Die Kontaktimport-Vorschau wurde nicht rechtzeitig bedienbar.");
+    bestaetigen.click();
+    let importTimeout;
+    try {
+      await Promise.race([importiert, new Promise((_, reject) => {
+        importTimeout = setTimeout(() => reject(new Error("Kontaktimport nicht abgeschlossen: " +
+          (d.querySelector("#kontakt-import-schleier")?.textContent || d.body.textContent).slice(-1200))), 30000);
+      })]);
+    } finally { clearTimeout(importTimeout); }
     T.wechsel("adressen");
   }, 20000);
   pruefe(T.daten().kontakte.length === ANZAHL,

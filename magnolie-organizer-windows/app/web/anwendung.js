@@ -16026,7 +16026,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (!kontaktZeitGueltig(zeit)) return false;
     const inhalt = kontaktBaumInhalt(kontakt, 2, false).kontakt;
     const hash = await personalSyncHash(inhalt);
-    if (DATEN !== bestand || gesperrt || !daten.kontakte.includes(kontakt) ||
+    if (DATEN !== bestand || gesperrt || daten.kontakte.at(-1) !== kontakt && !daten.kontakte.includes(kontakt) ||
         !kontaktZeitInhaltGleich(kontaktBaumInhalt(kontakt, 2, false).kontakt, inhalt)) return false;
     kontakt.kontaktZeit = { zeit, hash };
     if (daten === DATEN) planeSpeichern();
@@ -16038,7 +16038,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const nachher = personalSyncKanonisch(kontaktBaumInhalt(kontakt, 2, false).kontakt);
     const quelle = personalSyncKanonisch(kontaktBaumInhalt(karte, 2, false).kontakt);
     const bisher = await kontaktInhaltszeit(kontakt);
-    if (DATEN !== bestand || gesperrt || !daten.kontakte.includes(kontakt) ||
+    if (DATEN !== bestand || gesperrt || daten.kontakte.at(-1) !== kontakt && !daten.kontakte.includes(kontakt) ||
         personalSyncKanonisch(kontaktBaumInhalt(kontakt, 2, false).kontakt) !== nachher) return;
     if (nachher === quelle) {
       if (kontaktZeitGueltig(zeit)) {
@@ -28183,7 +28183,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
               zaehlung.doppelt++; continue;
             }
             if (plan.hash) daten.kontaktImportAblehnungen = daten.kontaktImportAblehnungen.filter(h => h !== plan.hash);
-            const ziel = daten.kontakte.find(k => k.id === (neueZiele.get(plan.zielId) || plan.zielId));
+            const ziel = modus === "new" ? null : daten.kontakte.find(k => k.id === (neueZiele.get(plan.zielId) || plan.zielId));
             if (modus !== "new" && !ziel) throw new Error(_("Conflict"));
             const karte = kopie(plan.karte);
             if (modus === "keep") {
@@ -28266,12 +28266,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function mergeKontakte(liste, zielId = null) {
     const z = { neu: 0, doppelt: 0, fotos: 0, emails: 0 };
     const indexe = { bindungen: new Map(), uids: new Map(), mails: new Map(), telefone: new Map() };
-    for (const kontakt of DATEN.kontakte) indexiereKontakt(indexe, kontakt);
+    if (zielId === null) for (const kontakt of DATEN.kontakte) indexiereKontakt(indexe, kontakt);
     for (const k of liste || []) {
       if (!k) continue;
       const importGeburtstag = kanonischesGeburtsdatum(String(k.geburtstag || ""),
         k.geburtstagJahrUnbekannt);
-      const vorhanden = zielId === null ? findeImportKontakt(k, indexe) :
+      const vorhanden = zielId === "" ? null : zielId === null ? findeImportKontakt(k, indexe) :
         DATEN.kontakte.find(kontakt => kontakt.id === zielId);
       if (vorhanden) {
         const foto = sauberesFoto(k.foto);
