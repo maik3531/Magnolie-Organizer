@@ -33,14 +33,14 @@ Speicherung und bewusst freigegebener Datenaustausch.
 
 | Plattform | Empfohlenes Paket | Alternative |
 |---|---|---|
-| Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.25-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.25-x86_64.AppImage) · [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.25_all.deb) |
-| Windows 10/11 x64 | [Installationsprogramm](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.25-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.25-x64.zip) |
-| Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.17.apk) | Android 8.0 oder neuer |
-| Handbuch | [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.25_all.deb) | Optionale Komponente des Windows-Installers |
+| Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.26-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.26-x86_64.AppImage) · [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.26_all.deb) |
+| Windows 10/11 x64 | [Installationsprogramm](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.26-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.26-x64.zip) |
+| Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.18.apk) | Android 8.0 oder neuer |
+| Handbuch | [Debian-Paket](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.26_all.deb) | Optionale Komponente des Windows-Installers |
 
 ### DEB-Hauptprogramm – auch für KDE Plasma
 
-**`magnolie-organizer_2.0.25_all.deb` ist das vollständige Hauptprogramm.**
+**`magnolie-organizer_2.0.26_all.deb` ist das vollständige Hauptprogramm.**
 Es wird auch unter KDE Plasma verwendet, beispielsweise auf Kubuntu oder
 Ubuntu-basiertem TuxedoOS; die Wahl zwischen GNOME, Cinnamon, Xfce und KDE
 erfordert kein anderes Hauptpaket.
@@ -56,7 +56,7 @@ wird die Installation abgewiesen. Bei einzeln heruntergeladenen DEBs beide
 Dateien gemeinsam installieren:
 
 ```bash
-sudo apt install ./magnolie-organizer_2.0.25_all.deb ./magnolie-organizer-kde_2.0.25_amd64.deb
+sudo apt install ./magnolie-organizer_2.0.26_all.deb ./magnolie-organizer-kde_2.0.26_amd64.deb
 ```
 
 Für den Organizer auf KDE allein genügt das Hauptpaket. Das Zusatzpaket wird
@@ -64,8 +64,8 @@ nur für den Zugriff auf die dort eingerichteten KDE-Kalender/-Adressbücher ben
 
 | Distribution | KDE-Integrations-Zusatz (amd64 / x86_64; Hauptprogramm erforderlich) |
 |---|---|
-| Debian 13, Ubuntu / Kubuntu 24.04 und 26.04, Linux Mint 22 | [KDE-Zusatz-DEB](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde_2.0.25_amd64.deb) |
-| Fedora 42 | [KDE-Zusatz-RPM](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde-2.0.25-1.fc42.x86_64.rpm) |
+| Debian 13, Ubuntu / Kubuntu 24.04 und 26.04, Linux Mint 22 | [KDE-Zusatz-DEB](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde_2.0.26_amd64.deb) |
+| Fedora 42 | [KDE-Zusatz-RPM](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde-2.0.26-1.fc42.x86_64.rpm) |
 
 Das optionale KDE-DEB wählt eines von drei internen nativen Backends anhand der
 bereits konfigurierten KDE-Pakete und ihrer vollständigen ABI-Abhängigkeiten.
@@ -124,8 +124,8 @@ SHA-256-Prüfsummen und Quellarchive liegen in der
 | Magnolie Notes für Android | Kotlin, Jetpack Compose | [`magnolie-notes`](magnolie-notes/) |
 | Magnolie-Handbuch | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch`](magnolie-handbuch/) |
 
-Das Repository enthält die veröffentlichten Quellen für Organizer 2.0.25
-und Notes 1.0.17. Fertige
+Das Repository enthält die veröffentlichten Quellen für Organizer 2.0.26
+und Notes 1.0.18. Fertige
 Pakete bleiben auf der Releases-Seite und belasten nicht die Git-Historie.
 
 ## Sicherheit und Datenschutz
