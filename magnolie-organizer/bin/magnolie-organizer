@@ -11187,7 +11187,7 @@ def zeiterfassung_ods_bytes(bericht):
         return zelle(formatiere(wert, datum_teile), "date", 'office:value-type="date" office:date-value="%s"' % wert.date().isoformat())
 
     def zeitzelle(wert):
-        return zelle() if wert is None else zelle(formatiere(wert, zeit_teile), "clock",
+        return zelle("", "clock") if wert is None else zelle(formatiere(wert, zeit_teile), "clock",
             'office:value-type="time" office:time-value="PT%dH%dM"' % (wert.hour, wert.minute))
 
     def nummer(wert):
@@ -11216,7 +11216,7 @@ def zeiterfassung_ods_bytes(bericht):
             echte_zeile = bool(zone)
             netto = brutto - pause if brutto is not None else None
             rumpf.append(zeile([datumzelle(von), zelle(art), zeitzelle(von if echte_zeile else None),
-                datumzelle(bis or von), zeitzelle(bis), formel(gross_formula, brutto), nummer(pause),
+                datumzelle(bis or von), zeitzelle(bis), formel(gross_formula, brutto), nummer(pause) if echte_zeile else zelle("", "integer"),
                 formel(net_formula, netto), zelle('\n'.join(wert for wert in (notiz, *tagesfeiertage, zone) if wert)), nummer(anpassung),
                 formel(pause_formula, pause if brutto is not None else None)]))
             if brutto is not None:
@@ -11224,7 +11224,17 @@ def zeiterfassung_ods_bytes(bericht):
                 pause_summe += pause
                 netto_summe += netto
     hintergrund = ""
-    letzte = 6 + len(rumpf)
+    leerzeilen = []
+    for index in range(max(0, 40 - len(rumpf))):
+        n = 7 + len(rumpf) + index
+        delta = 'ROUND(([.D%d]+[.E%d]-[.A%d]-[.C%d])*1440-[.J%d];0)' % ((n,) * 5)
+        gross_formula = 'IF(COUNT([.A%d];[.C%d];[.D%d];[.E%d])=4;IF(%s<0;NA();%s/1440);"")' % (n, n, n, n, delta, delta)
+        pause_formula = 'IF([.F%d]="";"";IF(AND(ISNUMBER([.G%d]);[.G%d]>=0;MOD([.G%d];1)=0);[.G%d]/1440;NA()))' % ((n,) * 5)
+        net_formula = 'IF([.F%d]="";"";IF([.K%d]>[.F%d];NA();[.F%d]-[.K%d]))' % ((n,) * 5)
+        end_date = 'IF(ISNUMBER([.A%d]);[.A%d]+IF(AND(ISNUMBER([.C%d]);ISNUMBER([.E%d]);[.E%d]<[.C%d]);1;0);"")' % ((n,) * 6)
+        leerzeilen.append(zeile([zelle("", "date"), zelle(), zeitzelle(None), formel(end_date, stil="date"), zeitzelle(None),
+            formel(gross_formula), zelle("", "integer"), formel(net_formula), zelle(), nummer(0), formel(pause_formula)]))
+    letzte = 6 + len(rumpf) + len(leerzeilen)
     summen = zeile([zelle(labels["total"], "header")] + [zelle()] * 4 + [
         formel('SUM([.F7:.F%d])' % letzte, brutto_summe),
         formel('SUM([.K7:.K%d])*1440' % letzte, pause_summe, True, "integer"),
@@ -11248,31 +11258,34 @@ def zeiterfassung_ods_bytes(bericht):
         '<number:time-style style:name="durationFormat" number:truncate-on-overflow="false" %s><number:hours number:style="long"/><number:text>:</number:text><number:minutes number:style="long"/></number:time-style>' % locale_attr,
         '<number:number-style style:name="integerFormat" %s><number:number number:decimal-places="0" number:min-integer-digits="1"/></number:number-style>' % locale_attr,
         '<style:style style:name="cell" style:family="table-cell"><style:table-cell-properties fo:padding="0.05cm" fo:border-bottom="0.01cm solid #c9baa0" style:vertical-align="middle" fo:wrap-option="wrap"/><style:text-properties fo:font-size="8pt" fo:color="#3d2a1d"/></style:style>',
-        '<style:style style:name="row" style:family="table-row"><style:table-row-properties style:min-row-height="0.40cm" style:use-optimal-row-height="true"/></style:style>',
+        '<style:style style:name="row" style:family="table-row"><style:table-row-properties style:min-row-height="0.50cm" style:use-optimal-row-height="true"/></style:style>',
         '<style:style style:name="banner" style:family="table-row"><style:table-row-properties style:min-row-height="0.7cm" style:use-optimal-row-height="true"/></style:style>',
         '<style:style style:name="sheet" style:family="table" style:master-page-name="Magnolie"><style:table-properties style:writing-mode="%s"/></style:style>' % ('rl-tb' if sprach_teile[0] == 'ar' else 'lr-tb')]
     def zellstil(stilname, data_style="", farbe="", size="8pt", textfarbe="#3d2a1d", fett=False):
         # Automatic styles cannot inherit from other automatic styles in Calc.
         # Repeat the complete cell properties and number-format association.
         return ('<style:style style:name="%s" style:family="table-cell"%s>'
-                '<style:table-cell-properties fo:padding="0.05cm" fo:border-bottom="0.01cm solid #c9baa0" '
+                '<style:table-cell-properties fo:padding="0.025cm" fo:border="0.02cm solid #000000" '
                 'style:vertical-align="middle" fo:wrap-option="wrap"%s/>'
                 '<style:text-properties fo:font-size="%s" fo:color="%s"%s/></style:style>') % (
                     stilname, ' style:data-style-name="%s"' % data_style if data_style else "",
                     ' fo:background-color="%s"' % farbe if farbe else "", size, textfarbe,
                     ' fo:font-weight="bold"' if fett else "")
     zahlenstile = {"date": "dateFormat", "clock": "clockFormat", "duration": "durationFormat", "integer": "integerFormat"}
+    grundfarben = {"date": "#ffffcc", "clock": "#ffffcc", "duration": "#ffcc99", "integer": "#ccffff"}
     for style, data_style in zahlenstile.items():
-        stile.append(zellstil(style, data_style))
+        stile.append(zellstil(style, data_style, grundfarben[style], textfarbe="#000000"))
     for suffix, farbe in (("Sunday", "#f4efe5"), ("Holiday", "#e8f0eb")):
         for style in ("cell", "date", "clock", "duration", "integer"):
-            stile.append(zellstil(style + suffix, zahlenstile.get(style, ""), farbe))
-    for style, size, fill, color in (("title", "20pt", "#f8f1e1", "#4b3022"), ("header", "9pt", "#5b3927", "#f6e5b7")):
+            stile.append(zellstil(style + suffix, zahlenstile.get(style, ""), farbe if style == "date" else grundfarben.get(style, "#ffffff"), textfarbe="#000000"))
+    for style, size, fill, color in (("title", "12pt", "#ffffff", "#000000"), ("header", "8pt", "#ffffff", "#000000")):
         stile.append(zellstil(style, farbe=fill, size=size, textfarbe=color, fett=True))
-    breiten = [3.0, 3.0, 1.8, 3.0, 1.8, 1.6, 1.8, 1.8, 4.7, 2.2, 1.0]
+    # Six visible columns match the original template. Metadata and formula
+    # helpers remain available in hidden columns of the editable spreadsheet.
+    breiten = [5.846, 3.0, 1.342, 3.0, 1.453, 2.265, 2.247, 2.265, 4.7, 2.2, 1.0]
     for index, breite in enumerate(breiten):
-        stile.append('<style:style style:name="col%d" style:family="table-column"><style:table-column-properties style:column-width="%.1fcm"/></style:style>' % (index, breite))
-    spalten_xml = ''.join('<table:table-column table:style-name="col%d"%s/>' % (index, ' table:visibility="collapse"' if index == 10 else '') for index in range(11))
+        stile.append('<style:style style:name="col%d" style:family="table-column"><style:table-column-properties style:column-width="%.3fcm"/></style:style>' % (index, breite))
+    spalten_xml = ''.join('<table:table-column table:style-name="col%d"%s/>' % (index, ' table:visibility="collapse"' if index in {1, 3, 8, 9, 10} else '') for index in range(11))
     gruppen = zeile([zelle(), zelle(), zelle(labels["clock"], "header", 'office:value-type="string" table:number-columns-spanned="3"'),
                     '<table:covered-table-cell/>', '<table:covered-table-cell/>'] + [zelle()] * 6)
     kopf = zeile([zelle(wert, "header") for wert in spalten] + [zelle()], "banner")
@@ -11280,12 +11293,12 @@ def zeiterfassung_ods_bytes(bericht):
         '<office:body><office:spreadsheet><table:table table:name="%s" table:style-name="sheet" table:print-ranges="\'%s\'.A1:J%d">%s%s%s%s%s'
         '<table:table-header-rows>%s%s</table:table-header-rows>%s%s%s%s</table:table></office:spreadsheet></office:body></office:document-content>') % (
             ns, ''.join(stile), monat, monat, letzte + 4, spalten_xml,
-            banner(labels["title"], "title"), banner(labels["name"] + ': ' + name, "cell"), banner(monatsname, "cell"), zeile([zelle()] * 11),
-            gruppen, kopf, ''.join(rumpf), summen, zeile([zelle()] * 11),
+            banner(labels["title"], "title"), banner(monatsname, "cell"), banner(labels["name"] + ': ' + name, "cell"), zeile([zelle()] * 11),
+             gruppen, kopf, ''.join(rumpf) + ('<table:table-row-group>' + ''.join(leerzeilen) + '</table:table-row-group>' if leerzeilen else ''), summen, zeile([zelle()] * 11),
             banner(labels["date"] + ': ____________________     ' + labels["signature"] + ': ____________________', "cell"))
     styles = ('<?xml version="1.0" encoding="UTF-8"?><office:document-styles %s office:version="1.2"><office:automatic-styles>'
-        '<style:page-layout style:name="Page"><style:page-layout-properties fo:page-width="29.7cm" fo:page-height="21cm" style:print-orientation="landscape" '
-        'fo:margin="1cm" style:scale-to-X="1" style:scale-to-Y="0"/></style:page-layout></office:automatic-styles><office:master-styles>'
+        '<style:page-layout style:name="Page"><style:page-layout-properties fo:page-width="21cm" fo:page-height="29.7cm" style:print-orientation="portrait" '
+        'fo:margin-top="0.5cm" fo:margin-bottom="0.5cm" fo:margin-left="2cm" fo:margin-right="2cm" style:scale-to-X="1" style:scale-to-Y="0"/></style:page-layout></office:automatic-styles><office:master-styles>'
         '<style:master-page style:name="Magnolie" style:page-layout-name="Page"/></office:master-styles></office:document-styles>') % ns
     manifest = ('<?xml version="1.0" encoding="UTF-8"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2">'
         '<manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.spreadsheet"/>'

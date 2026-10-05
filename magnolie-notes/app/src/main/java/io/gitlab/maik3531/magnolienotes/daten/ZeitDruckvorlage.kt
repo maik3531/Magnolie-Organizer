@@ -14,9 +14,9 @@ data class ZeitDruckTexte(val title: String, val name: String, val date: String,
                          val signature: String, val total: String, val clock: String,
                          val columns: List<String>)
 
-/** Same A4 landscape geometry, colors, columns and totals as the editable ODS. */
+/** Portrait timesheet following the user's original ODS layout. */
 object ZeitDruckvorlage {
-    val columnWidths = listOf(3.0, 3.0, 1.8, 3.0, 1.8, 1.6, 1.8, 1.8, 4.7, 2.2)
+    val columnWidths = listOf(5.846, 1.342, 1.453, 2.265, 2.247, 2.265)
 
     fun html(month: YearMonth, days: Set<Int>, entries: List<Zeiteintrag>, name: String,
              calendar: ZeitKalender, texts: ZeitDruckTexte, locale: Locale, use24HourClock: Boolean): String {
@@ -43,6 +43,7 @@ object ZeitDruckvorlage {
         var gross = 0L
         var pauses = 0L
         var total = 0L
+        var rowCount = 0
         val rows = buildString {
             for (day in days.sorted()) {
                 val date = month.atDay(day)
@@ -55,40 +56,36 @@ object ZeitDruckvorlage {
                     val finished = entry?.endMinute != null
                     val elapsed = if (finished) entry!!.grossMinutes() else 0L
                     val paused = entry?.pauseMinutes ?: 0L
-                    val adjustment = if (finished) {
-                        java.time.temporal.ChronoUnit.MINUTES.between(start.withSecond(0), end!!.withSecond(0)) - elapsed
-                    } else 0
                     if (finished) { gross += elapsed; pauses += paused; total += elapsed - paused }
                     append("<tr class=\"$style\">")
-                    append(cell(dateFormat.format(stamp(start)), "number"))
-                    append(cell(entry?.type.orEmpty()))
+                    rowCount++
+                    append(cell(dateFormat.format(stamp(start))))
                     append(cell(if (entry == null) "" else clockFormat.format(stamp(start)), "number"))
-                    append(cell(dateFormat.format(stamp(end ?: start)), "number"))
                     append(cell(end?.let { clockFormat.format(stamp(it)) }.orEmpty(), "number"))
                     append(cell(if (finished) duration(elapsed) else "", "number"))
-                    append(cell(number.format(paused), "number"))
+                    append(cell(if (entry == null) "" else number.format(paused), "number"))
                     append(cell(if (finished) duration(elapsed - paused) else "", "number"))
-                    append(cell((listOf(entry?.note.orEmpty()) + holidays + listOf(entry?.zone.orEmpty()))
-                        .filter { it.isNotEmpty() }.joinToString("\n")))
-                    append(cell(number.format(adjustment), "number"))
                     append("</tr>")
                 }
             }
+            repeat((40 - rowCount).coerceAtLeast(0)) { append("<tr>" + cell("").repeat(6) + "</tr>") }
         }
         val direction = if (locale.language == "ar") "rtl" else "ltr"
-        val columns = columnWidths.joinToString("") { "<col style=\"width:${String.format(Locale.ROOT, "%.1f", it)}cm\">" }
-        val headers = texts.columns.joinToString("") { "<th>${esc(it)}</th>" }
+        val columns = columnWidths.joinToString("") { "<col style=\"width:${String.format(Locale.ROOT, "%.3f", it)}cm\">" }
+        val headers = listOf(0, 2, 4, 5, 6, 7).joinToString("") { "<th>${esc(texts.columns[it])}</th>" }
         return """<!doctype html><html lang="${esc(locale.toLanguageTag())}" dir="$direction"><head><meta charset="utf-8">
-<style>@page{size:A4 landscape;margin:1cm}*{box-sizing:border-box}body{margin:0;font-family:sans-serif;font-size:8pt;line-height:1.05;color:#3d2a1d}
-table{width:24.7cm;border-collapse:collapse;table-layout:fixed}td,th{padding:.05cm;vertical-align:middle;overflow-wrap:anywhere;border-bottom:.01cm solid #c9baa0}
-thead{display:table-header-group}tr{break-inside:avoid}td{height:.4cm}th{font-size:9pt;text-align:start;background:#5b3927;color:#f6e5b7}
-.title{background:#f8f1e1;color:#4b3022;font-size:20pt;font-weight:bold}.number{text-align:right}.sunday td{background:#f4efe5}.holiday td{background:#e8f0eb}
-.heading{width:24.7cm}.heading div{padding:.05cm;border-bottom:.01cm solid #c9baa0}.gap{height:.4cm}.signature{margin-top:.4cm;break-inside:avoid}
+<style>@page{size:A4 portrait;margin:.5cm 2cm}*{box-sizing:border-box}body{margin:0;font-family:"Arial Narrow","Liberation Sans Narrow",sans-serif;font-size:8pt;line-height:1.05;color:#000}
+table{width:15.418cm;border-collapse:collapse;table-layout:fixed}td,th{padding:.025cm;vertical-align:middle;overflow-wrap:anywhere}
+thead{display:table-header-group}tr{break-inside:avoid}tbody td{height:.5cm;border:.02cm solid #000;background:#ffffcc}th{font-size:8pt;text-align:center;background:#fff;color:#000}
+tbody td:nth-child(4),tbody td:nth-child(6){background:#ffcc99}tbody td:nth-child(5){background:#ccffff}tbody tr:first-child td{border-top:.06cm solid #000}tbody td:first-child{border-left:.06cm solid #000}tbody td:last-child{border-right:.06cm solid #000}
+.title{font-size:12pt;font-weight:bold;text-align:center}.number{text-align:right}.sunday td:first-child{font-weight:bold}.holiday td:first-child{background:#e8f0eb}
+.heading{width:15.418cm;margin-bottom:.6cm}.heading div{padding:.15cm}.heading div:not(.title):not(.gap){max-width:9cm;border-bottom:.02cm solid #000}.gap{height:.2cm}.signature{margin-top:.6cm;break-inside:avoid}.totals td{border-top:.5cm solid #fff;font-weight:bold}
+.sunday td:first-child{background:#f4efe5}.number{font-size:7pt;white-space:nowrap}.totals td{border-top:.04cm solid #000;height:.8cm}.totals td:first-child{background:white;border-left:0}.totals td:nth-child(2),.totals td:nth-child(4){background:#ffcc99}.totals td:nth-child(3){background:#ccffff}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>
-<div class="heading"><div class="title">${esc(texts.title)}</div><div>${esc(texts.name)}: ${esc(name)}</div>
-<div>${esc(monthFormat.format(stamp(month.atDay(1).atStartOfDay())))}</div><div class="gap"></div></div>
-<table>$columns<thead><tr><td colspan="2"></td><th colspan="3">${esc(texts.clock)}</th><td colspan="5"></td></tr><tr>$headers</tr></thead>
-<tbody>$rows<tr><th>${esc(texts.total)}</th><td colspan="4"></td>${cell(duration(gross), "number")}${cell(number.format(pauses), "number")}${cell(duration(total), "number")}<td colspan="2"></td></tr></tbody></table>
+<div class="heading"><div class="title">${esc(texts.title)}</div><div>${esc(monthFormat.format(stamp(month.atDay(1).atStartOfDay())))}</div>
+<div>${esc(texts.name)}: ${esc(name)}</div><div class="gap"></div></div>
+<table>$columns<thead><tr><td></td><th colspan="2">${esc(texts.clock)}</th><td colspan="3"></td></tr><tr>$headers</tr></thead>
+<tbody>$rows<tr class="totals"><td colspan="3">${esc(texts.total)}</td>${cell(duration(gross), "number")}${cell(number.format(pauses), "number")}${cell(duration(total), "number")}</tr></tbody></table>
 <div class="signature">${esc(texts.date)}: ____________________ &nbsp; ${esc(texts.signature)}: ____________________</div></body></html>"""
     }
 }

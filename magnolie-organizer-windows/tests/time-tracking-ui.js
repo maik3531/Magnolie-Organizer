@@ -93,7 +93,11 @@ for (const web of sources) {
   assert.equal(selected.sheet.calendar.enabled, false);
   assert.equal(Object.hasOwn(d.zeiterfassung.entries[0], "localStartMinute"), false, "Print projection must not change synchronized data");
   const printed = new JSDOM(t.zeitDruckSeite(selected.sheet));
-  assert.equal(printed.window.document.querySelectorAll("tbody tr").length, 2, "Only the selected day and final total are printed");
+  const rows = Array.from(printed.window.document.querySelectorAll("tbody tr:not(.totals)"));
+  assert.equal(rows.length, 40, "Template retains its blank writing rows");
+  assert.equal(rows.filter(row => row.cells[0].textContent.trim()).length, 1, "Only the selected day is populated");
+  assert.equal(printed.window.document.querySelectorAll("thead tr:last-child th").length, 6);
+  assert.match(t.zeitDruckSeite(selected.sheet), /A4 portrait/);
   assert.ok(printed.window.document.querySelector("tr.sunday"));
   assert.equal(printed.window.document.querySelectorAll("tr.holiday").length, 0);
   assert.match(printed.window.document.body.textContent, /168:30/);
@@ -152,7 +156,7 @@ for (const web of sources) {
     pauseMinutes: 0, zone: "Africa/Monrovia" }];
   const historic = t.zeitOdsNutzlast(1972, 0, "", [6]).sheet;
   assert.equal(historic.entries[0].localStartMinute, minute("1972-01-06T23:15:00Z"));
-  assert.match(t.zeitDruckSeite(historic), /<td class="number">45<\/td>/);
+  assert.match(t.zeitDruckSeite(historic), /<td class="number">02:00<\/td>/);
   dom.window.close();
   console.log(path.relative(path.resolve(__dirname, "../.."), web) + ": time calendar and editor passed");
 }

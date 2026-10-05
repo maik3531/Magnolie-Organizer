@@ -108,14 +108,14 @@ internal static partial class DocumentExportService
             new XElement(Text + "p", value.Split('\n').SelectMany((line, index) => index == 0 ? new object[] { line } : new object[] { new XElement(Text + "line-break"), line })));
         XElement DateCell(DateTime value) => Cell(Display(value, dateParts), "date", new XAttribute(Office + "value-type", "date"),
             new XAttribute(Office + "date-value", value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
-        XElement ClockCell(DateTimeOffset? value) => value is null ? Cell() : Cell(Display(value.Value.DateTime, timeParts), "clock",
+        XElement ClockCell(DateTimeOffset? value) => value is null ? Cell("", "clock") : Cell(Display(value.Value.DateTime, timeParts), "clock",
             new XAttribute(Office + "value-type", "time"), new XAttribute(Office + "time-value", $"PT{value.Value.Hour}H{value.Value.Minute}M"));
         XElement Integer(long value) => Cell(LocalDigits(value.ToString(CultureInfo.InvariantCulture)), "integer", new XAttribute(Office + "value-type", "float"), new XAttribute(Office + "value", value));
         XElement FormulaCell(string formula, long? minutes, bool integer = false) => minutes is null
             ? Cell("", "duration", new XAttribute(Table + "formula", "of:=" + formula))
             : Cell(integer ? LocalDigits(minutes.Value.ToString(CultureInfo.InvariantCulture)) : Duration(minutes.Value), integer ? "integer" : "duration",
                 new XAttribute(Table + "formula", "of:=" + formula), new XAttribute(Office + "value-type", "float"), new XAttribute(Office + "value", integer ? minutes.Value : minutes.Value / 1440d));
-        XElement Row(IEnumerable<XElement> cells) => new(Table + "table-row", cells);
+        XElement Row(IEnumerable<XElement> cells) => new(Table + "table-row", new XAttribute(Table + "style-name", "row"), cells);
         XElement Banner(string value, string style = "cell") => Row(new[] { Cell(value, style, new XAttribute(Table + "number-columns-spanned", 10)) }
             .Concat(Enumerable.Range(0, 9).Select(_ => new XElement(Table + "covered-table-cell"))).Append(Cell()));
         var bodyRows = new List<XElement>(); long grossTotal = 0, pauseTotal = 0, netTotal = 0;
@@ -134,25 +134,38 @@ internal static partial class DocumentExportService
                 var adjustment = value.End is null ? 0 : (long)((value.End.Value.DateTime.AddSeconds(-value.End.Value.Second) -
                     value.Start.DateTime.AddSeconds(-value.Start.Second)).TotalMinutes - value.Gross!.Value);
                 bodyRows.Add(Row(new[] { DateCell(value.Start.DateTime), Cell(value.Activity), ClockCell(value.Zone.Length > 0 ? value.Start : null),
-                    DateCell((value.End ?? value.Start).DateTime), ClockCell(value.End), FormulaCell(grossFormula, value.Gross), Integer(value.Pause),
+                    DateCell((value.End ?? value.Start).DateTime), ClockCell(value.End), FormulaCell(grossFormula, value.Gross), value.Zone.Length > 0 ? Integer(value.Pause) : Cell("", "integer"),
                     FormulaCell(netFormula, value.Gross - value.Pause), Cell(string.Join("\n", new[] { value.Note }.Concat(holidayNames).Append(value.Zone).Where(text => text.Length > 0))),
                     Integer(adjustment), FormulaCell(pauseFormula, value.Gross is null ? null : value.Pause) }));
                 if (value.Gross is not null) { grossTotal += value.Gross.Value; pauseTotal += value.Pause; netTotal += value.Gross.Value - value.Pause; }
             }
         }
-        suffix = ""; var last = 6 + bodyRows.Count;
+        suffix = "";
+        var blanks = new XElement(Table + "table-row-group");
+        for (var index = bodyRows.Count; index < 40; index++)
+        {
+            var n = 7 + index;
+            var delta = $"ROUND(([.D{n}]+[.E{n}]-[.A{n}]-[.C{n}])*1440-[.J{n}];0)";
+            var grossFormula = $"IF(COUNT([.A{n}];[.C{n}];[.D{n}];[.E{n}])=4;IF({delta}<0;NA();{delta}/1440);\"\")";
+            var pauseFormula = $"IF([.F{n}]=\"\";\"\";IF(AND(ISNUMBER([.G{n}]);[.G{n}]>=0;MOD([.G{n}];1)=0);[.G{n}]/1440;NA()))";
+            var netFormula = $"IF([.F{n}]=\"\";\"\";IF([.K{n}]>[.F{n}];NA();[.F{n}]-[.K{n}]))";
+            var endDate = $"of:=IF(ISNUMBER([.A{n}]);[.A{n}]+IF(AND(ISNUMBER([.C{n}]);ISNUMBER([.E{n}]);[.E{n}]<[.C{n}]);1;0);\"\")";
+            blanks.Add(Row(new[] { Cell("", "date"), Cell(), ClockCell(null), Cell("", "date", new XAttribute(Table + "formula", endDate)), ClockCell(null),
+                FormulaCell(grossFormula, null), Cell("", "integer"), FormulaCell(netFormula, null), Cell(), Integer(0), FormulaCell(pauseFormula, null) }));
+        }
+        var last = 6 + Math.Max(40, bodyRows.Count);
         var automatic = TimeStyles(language, country, dateParts, timeParts);
-        var widths = new[] { 3d, 3, 1.8, 3, 1.8, 1.6, 1.8, 1.8, 4.7, 2.2, 1 };
+        var widths = new[] { 5.846, 3, 1.342, 3, 1.453, 2.265, 2.247, 2.265, 4.7, 2.2, 1 };
         for (var i = 0; i < widths.Length; i++) automatic.Add(new XElement(Style + "style", new XAttribute(Style + "name", "col" + i),
-            new XAttribute(Style + "family", "table-column"), new XElement(Style + "table-column-properties", new XAttribute(Style + "column-width", widths[i].ToString("0.0", CultureInfo.InvariantCulture) + "cm"))));
+            new XAttribute(Style + "family", "table-column"), new XElement(Style + "table-column-properties", new XAttribute(Style + "column-width", widths[i].ToString("0.000", CultureInfo.InvariantCulture) + "cm"))));
         var table = new XElement(Table + "table", new XAttribute(Table + "name", month), new XAttribute(Table + "style-name", "sheet"),
             new XAttribute(Table + "print-ranges", $"'{month}'.A1:J{last + 4}"),
-            Enumerable.Range(0, 11).Select(i => new XElement(Table + "table-column", new XAttribute(Table + "style-name", "col" + i), i == 10 ? new XAttribute(Table + "visibility", "collapse") : null)),
-            Banner(Required(labels, "title"), "title"), Banner(Required(labels, "name") + ": " + Required(report, "name", 240)), Banner(Required(report, "monthTitle")),
+            Enumerable.Range(0, 11).Select(i => new XElement(Table + "table-column", new XAttribute(Table + "style-name", "col" + i), i is 1 or 3 or 8 or 9 or 10 ? new XAttribute(Table + "visibility", "collapse") : null)),
+            Banner(Required(labels, "title"), "title"), Banner(Required(report, "monthTitle")), Banner(Required(labels, "name") + ": " + Required(report, "name", 240)),
             Row(Enumerable.Range(0, 11).Select(_ => Cell())),
             new XElement(Table + "table-header-rows", Row(new[] { Cell(), Cell(), Cell(Required(labels, "clock"), "header", new XAttribute(Table + "number-columns-spanned", 3)),
                 new XElement(Table + "covered-table-cell"), new XElement(Table + "covered-table-cell") }.Concat(Enumerable.Range(0, 6).Select(_ => Cell()))),
-                Row(headings.Select(value => Cell(value, "header")).Append(Cell()))), bodyRows,
+                Row(headings.Select(value => Cell(value, "header")).Append(Cell()))), bodyRows, blanks.HasElements ? blanks : null,
             Row(new[] { Cell(Required(labels, "total"), "header") }.Concat(Enumerable.Range(0, 4).Select(_ => Cell())).Concat(new[] {
                 FormulaCell($"SUM([.F7:.F{last}])", grossTotal), FormulaCell($"SUM([.K7:.K{last}])*1440", pauseTotal, true),
                 FormulaCell($"SUM([.H7:.H{last}])", netTotal), Cell(), Cell(), Cell() })), Row(Enumerable.Range(0, 11).Select(_ => Cell())),
@@ -161,8 +174,9 @@ internal static partial class DocumentExportService
             new XAttribute(XNamespace.Xmlns + "of", Formula), new XAttribute(Office + "version", "1.2"), automatic, new XElement(Office + "body", new XElement(Office + "spreadsheet", table))));
         var styles = new XDocument(new XElement(Office + "document-styles", NamespaceAttributes(), new XAttribute(Office + "version", "1.2"),
             new XElement(Office + "automatic-styles", new XElement(Style + "page-layout", new XAttribute(Style + "name", "Page"),
-                new XElement(Style + "page-layout-properties", new XAttribute(Fo + "page-width", "29.7cm"), new XAttribute(Fo + "page-height", "21cm"),
-                    new XAttribute(Style + "print-orientation", "landscape"), new XAttribute(Fo + "margin", "1cm"), new XAttribute(Style + "scale-to-X", 1), new XAttribute(Style + "scale-to-Y", 0)))),
+                new XElement(Style + "page-layout-properties", new XAttribute(Fo + "page-width", "21cm"), new XAttribute(Fo + "page-height", "29.7cm"),
+                    new XAttribute(Style + "print-orientation", "portrait"), new XAttribute(Fo + "margin-top", "0.5cm"), new XAttribute(Fo + "margin-bottom", "0.5cm"),
+                    new XAttribute(Fo + "margin-left", "2cm"), new XAttribute(Fo + "margin-right", "2cm"), new XAttribute(Style + "scale-to-X", 1), new XAttribute(Style + "scale-to-Y", 0)))),
             new XElement(Office + "master-styles", new XElement(Style + "master-page", new XAttribute(Style + "name", "Magnolie"), new XAttribute(Style + "page-layout-name", "Page")))));
         using var output = new MemoryStream();
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create, true))
@@ -233,13 +247,16 @@ internal static partial class DocumentExportService
                 new XElement(Style + "table-properties", new XAttribute(Style + "writing-mode", language == "ar" ? "rl-tb" : "lr-tb"))));
         foreach (var suffix in new[] { "", "Sunday", "Holiday" }) foreach (var kind in new[] { "cell", "date", "clock", "duration", "integer" })
         {
-            var style = CellStyleElement(kind + suffix, suffix == "Sunday" ? "#f4efe5" : suffix == "Holiday" ? "#e8f0eb" : "#ffffff", "#3d2a1d", "none", "8pt", false, kind == "cell" ? "left" : "right", "middle");
-            style.Element(Style + "table-cell-properties")!.SetAttributeValue(Fo + "padding", "0.05cm");
-            style.Element(Style + "table-cell-properties")!.SetAttributeValue(Fo + "border-bottom", "0.01cm solid #c9baa0");
+            var fill = kind switch { "date" or "clock" => "#ffffcc", "duration" => "#ffcc99", "integer" => "#ccffff", _ => "#ffffff" };
+            if (kind == "date" && suffix.Length > 0) fill = suffix == "Sunday" ? "#f4efe5" : "#e8f0eb";
+            var style = CellStyleElement(kind + suffix, fill, "#000000", "0.02cm solid #000000", "8pt", false, kind is "cell" or "date" ? "left" : "right", "middle");
+            style.Element(Style + "table-cell-properties")!.SetAttributeValue(Fo + "padding", "0.025cm");
             if (kind != "cell") style.Add(new XAttribute(Style + "data-style-name", kind + "Format"));
             styles.Add(style);
         }
-        foreach (var heading in new[] { ("title", "20pt", "#f8f1e1", "#4b3022"), ("header", "9pt", "#5b3927", "#f6e5b7") })
+        styles.Add(new XElement(Style + "style", new XAttribute(Style + "name", "row"), new XAttribute(Style + "family", "table-row"),
+            new XElement(Style + "table-row-properties", new XAttribute(Style + "min-row-height", "0.50cm"), new XAttribute(Style + "use-optimal-row-height", true))));
+        foreach (var heading in new[] { ("title", "12pt", "#ffffff", "#000000"), ("header", "8pt", "#ffffff", "#000000") })
         {
             var style = CellStyleElement(heading.Item1, heading.Item3, heading.Item4, "none", heading.Item2, true, "left", "middle");
             style.Element(Style + "table-cell-properties")!.SetAttributeValue(Fo + "padding", "0.05cm");

@@ -39,6 +39,16 @@ internal static class TimeSheetExportTests
         XNamespace office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
         XNamespace number = "urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0";
         var rows = xml.Descendants(table + "table").Single().Elements(table + "table-row").ToArray();
+        var visible = xml.Descendants(table + "table-column").Select((column, index) => (column, index))
+            .Where(value => (string?)value.column.Attribute(table + "visibility") != "collapse").Select(value => value.index);
+        TestAssert.That(visible.SequenceEqual(new[] { 0, 2, 4, 5, 6, 7 }), "Portrait template must expose exactly six columns.");
+        var blankRows = xml.Descendants(table + "table-row-group").Single().Elements(table + "table-row").ToArray();
+        TestAssert.That(blankRows.Length == 9 && blankRows.All(row => new[] { 3, 5, 7, 10 }.All(index =>
+            row.Elements(table + "table-cell").ElementAt(index).Attribute(table + "formula") is not null)), "Blank writing rows need editable time formulas.");
+        using var stylesStream = archive.GetEntry("styles.xml")!.Open();
+        XNamespace style = "urn:oasis:names:tc:opendocument:xmlns:style:1.0";
+        TestAssert.That((string?)XDocument.Load(stylesStream).Descendants(style + "page-layout-properties").Single().Attribute(style + "print-orientation") == "portrait",
+            "Timesheet must print in portrait orientation.");
         TestAssert.That(rows.Length == 38 && xml.Descendants().Any(node => node.Value == "168:30"), "Monthly time report lost free days or wrapped its duration.");
         TestAssert.That(xml.Descendants(number + "am-pm").Any() && !xml.Descendants(number + "seconds").Any(), "Time clock format omitted AM/PM or added seconds.");
         var first = rows[4].Elements(table + "table-cell").ToArray();

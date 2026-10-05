@@ -11613,27 +11613,31 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         const start = entry ? zeitDatumTeile(entry.startMinute, entry.zone) : { year: datum.getUTCFullYear(), month: datum.getUTCMonth() + 1, day };
         const end = entry?.endMinute != null ? zeitDatumTeile(entry.endMinute, entry.zone) : null;
         const minuten = end ? entry.endMinute - entry.startMinute : null, pausen = entry?.pauseMinutes || 0;
-        const differenz = end ? Math.trunc((zeitZivilMillis({ ...end, second: 0 }) - zeitZivilMillis({ ...start, second: 0 })) / 60000 - minuten) : 0;
         if (end) { brutto += minuten; pause += pausen; netto += minuten - pausen; }
-        zeilen += `<tr class="${klasse}">` + zelle(anzeigen(start, sheet.dateParts), "number") + zelle(entry?.type || "") +
-          zelle(entry ? anzeigen(start, sheet.timeParts) : "", "number") + zelle(anzeigen(end || start, sheet.dateParts), "number") +
-          zelle(end ? anzeigen(end, sheet.timeParts) : "", "number") + zelle(end ? dauer(minuten) : "", "number") + zelle(nummer(pausen), "number") +
-          zelle(end ? dauer(minuten - pausen) : "", "number") + zelle([entry?.note, ...feiertage, entry?.zone].filter(Boolean).join("\n")) +
-          zelle(nummer(differenz), "number") + "</tr>";
+        zeilen += `<tr class="${klasse}">` + zelle(anzeigen(start, sheet.dateParts)) +
+          zelle(entry ? anzeigen(start, sheet.timeParts) : "", "number") +
+          zelle(end ? anzeigen(end, sheet.timeParts) : "", "number") + zelle(end ? dauer(minuten) : "", "number") +
+          zelle(entry ? nummer(pausen) : "", "number") + zelle(end ? dauer(minuten - pausen) : "", "number") + "</tr>";
       }
     }
-    const labels = sheet.labels, widths = [3.3, 3, 2.7, 3.3, 2.7, 1.6, 1.8, 1.8, 3.6, 2.2];
+    // Geometry and column colors follow the user's original September ODS.
+    const labels = sheet.labels, widths = [5.846, 1.342, 1.453, 2.265, 2.247, 2.265];
+    const columns = [0, 2, 4, 5, 6, 7].map(index => labels.columns[index]);
+    const rowCount = (zeilen.match(/<tr /g) || []).length;
+    for (let row = rowCount; row < 40; row++) zeilen += "<tr>" + zelle("").repeat(6) + "</tr>";
     return zeitDruckUmbrechen(`<!doctype html><html lang="${sicher(sheet.locale)}" dir="${sheet.locale.startsWith("ar") ? "rtl" : "ltr"}"><head><meta charset="utf-8"><style>
-@page{size:A4 landscape;margin:1cm}*{box-sizing:border-box}body{margin:0;font-family:sans-serif;font-size:8pt;line-height:1.05;color:#3d2a1d}
-table{width:26cm;border-collapse:collapse;table-layout:fixed}td,th{padding:.05cm;vertical-align:middle;overflow-wrap:anywhere;border-bottom:.01cm solid #c9baa0}
-thead{display:table-header-group;break-inside:avoid}tr{break-inside:avoid}td{height:.4cm}th{font-size:8pt;text-align:start;background:#5b3927;color:#f6e5b7}
-.title{background:#f8f1e1;color:#4b3022;font-size:20pt;font-weight:bold}.number{text-align:right}.sunday td{background:#f4efe5}.holiday td{background:#e8f0eb}
-.heading{width:26cm}.heading div{padding:.05cm;border-bottom:.01cm solid #c9baa0}.gap{height:.2cm}.signature{margin-top:.2cm;break-inside:avoid}
+@page{size:A4 portrait;margin:.5cm 2cm}*{box-sizing:border-box}body{margin:0;font-family:"Arial Narrow","Liberation Sans Narrow",sans-serif;font-size:8pt;line-height:1.05;color:#000}
+table{width:15.418cm;border-collapse:collapse;table-layout:fixed}td,th{padding:.025cm;vertical-align:middle;overflow-wrap:anywhere}
+thead{display:table-header-group;break-inside:avoid}tr{break-inside:avoid}tbody td{height:.5cm;border:.02cm solid #000;background:#ffffcc}th{font-size:8pt;text-align:center;background:#fff;color:#000}
+tbody td:nth-child(4),tbody td:nth-child(6){background:#ffcc99}tbody td:nth-child(5){background:#ccffff}tbody tr:first-child td{border-top:.06cm solid #000}tbody td:first-child{border-left:.06cm solid #000}tbody td:last-child{border-right:.06cm solid #000}
+.title{font-size:12pt;font-weight:bold;text-align:center}.number{text-align:right}.sunday td:first-child{font-weight:bold}.holiday td:first-child{background:#e8f0eb}
+.heading{width:15.418cm;margin-bottom:.6cm}.heading div{padding:.15cm}.heading div:not(.title):not(.gap){max-width:9cm;border-bottom:.02cm solid #000}.gap{height:.2cm}.signature{margin-top:.6cm;break-inside:avoid}.totals td{border-top:.5cm solid #fff;font-weight:bold}
+.sunday td:first-child{background:#f4efe5}.number{font-size:7pt;white-space:nowrap}.totals td{border-top:.04cm solid #000;height:.8cm}.totals td:first-child{background:white;border-left:0}.totals td:nth-child(2),.totals td:nth-child(4){background:#ffcc99}.totals td:nth-child(3){background:#ccffff}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="heading"><div class="title">${sicher(labels.title)}</div>
-<div>${sicher(labels.name)}: ${sicher(sheet.name)}</div><div>${sicher(sheet.monthTitle)}</div><div class="gap"></div></div><table>
-${widths.map(width => `<col style="width:${width}cm">`).join("")}<thead><tr><td colspan="2"></td><th colspan="3">${sicher(labels.clock)}</th><td colspan="5"></td></tr>
-<tr>${labels.columns.map(value => `<th>${sicher(value)}</th>`).join("")}</tr></thead><tbody>${zeilen}<tr><th>${sicher(labels.total)}</th><td colspan="4"></td>
-${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(netto), "number")}<td colspan="2"></td></tr></tbody></table>
+<div>${sicher(sheet.monthTitle)}</div><div>${sicher(labels.name)}: ${sicher(sheet.name)}</div><div class="gap"></div></div><table>
+${widths.map(width => `<col style="width:${width}cm">`).join("")}<thead><tr><td></td><th colspan="2">${sicher(labels.clock)}</th><td colspan="3"></td></tr>
+<tr>${columns.map(value => `<th>${sicher(value)}</th>`).join("")}</tr></thead><tbody>${zeilen}<tr class="totals"><td colspan="3">${sicher(labels.total)}</td>
+${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(netto), "number")}</tr></tbody></table>
  <div class="signature">${sicher(labels.date)}: ____________________ &nbsp; ${sicher(labels.signature)}: ____________________</div></body></html>`);
   }
 
@@ -11641,18 +11645,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     // WebKit does not repeat table-header-group when printing. Measure with the
     // actual browser fonts, then emit explicit pages with their own column heads.
     const doc = new DOMParser().parseFromString(html, "text/html"), host = document.createElement("div");
-    host.style.cssText = "position:fixed;left:-100000px;top:0;visibility:hidden;width:26cm";
+    host.style.cssText = "position:fixed;left:-100000px;top:0;visibility:hidden;width:15.418cm";
     host.lang = doc.documentElement.lang; host.dir = doc.documentElement.dir;
     const shadow = host.attachShadow({ mode: "closed" });
     shadow.innerHTML = "<style>" + doc.querySelector("style").textContent.replace(/body\{/g, ":host{") + "</style>" + doc.body.innerHTML;
-    // Leave 1.5 cm of the 19 cm printable height for native print-metric rounding.
-    const meter = document.createElement("div"); meter.style.height = "17.5cm"; shadow.append(meter);
+    // Reserve room for native print-metric rounding inside the portrait page.
+    const meter = document.createElement("div"); meter.style.height = "26cm"; shadow.append(meter);
     document.body.append(host);
     try {
       const table = shadow.querySelector("table"), body = table.querySelector("tbody"), heading = shadow.querySelector(".heading");
       const signature = shadow.querySelector(".signature"), head = table.querySelector("thead");
       const limit = meter.getBoundingClientRect().height - 4, headHeight = head.getBoundingClientRect().height;
-      const headingHeight = heading.getBoundingClientRect().height;
+      const headingHeight = heading.getBoundingClientRect().height + parseFloat(getComputedStyle(heading).marginBottom || 0);
       const signatureHeight = signature.getBoundingClientRect().height + parseFloat(getComputedStyle(signature).marginTop);
       const rows = Array.from(body.children, node => ({ node, height: node.getBoundingClientRect().height }));
       if (limit <= 0 || rows.some(row => row.height <= 0)) return html; // Non-layout contract test environments.

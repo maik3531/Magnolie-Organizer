@@ -167,7 +167,10 @@ and the ODS. Elapsed durations and sums are independent of the clock convention:
 they do not wrap at 12 or 24 hours and contain no seconds. Pause input is an
 explicit number of minutes.
 
-A normal monthly sheet must fit one printed A4 page. Additional records flow to
+A normal monthly sheet must fit one printed A4 portrait page, following the
+original user-supplied timesheet: month/name above six visible columns (date,
+start, end, gross hours, pause, net working time), with pale-yellow input cells,
+orange hour totals, cyan pauses and totals/signature below. Additional records flow to
 further A4 pages at readable text size, with repeated column headings and final
 totals/signature after the last record. Never truncate extra records or scale an
 arbitrarily long month to one page. Verify actual rendered PDF pagination, not
@@ -177,9 +180,10 @@ printing/export when the selection is empty. Changing the month resets to that
 month's valid days. Preview, printing and ODS use the same selection.
 HTML printing measures rows with browser fonts in an isolated shadow tree and
 emits explicit page sections, because WebKit does not repeat table headers by
-itself. Long notes continue on additional rows without repeating numeric values.
-The 26-cm HTML table gives regional dates and AM/PM labels room without changing
-the elapsed-duration calculation. A native print-metric allowance is reserved
+itself. Activity, end-date, zone, notes and clock-adjustment metadata remain in
+the records and editable ODS helper columns rather than widening the printed sheet.
+The 15.418-cm table follows the supplied template's column geometry; compact
+unbroken clock text accommodates regional AM/PM labels. A native print-metric allowance is reserved
 vertically; font size is not reduced to squeeze arbitrary overflow onto one page.
 Set paper size, orientation and margins in the document and initial Android
 print attributes so supported print services use the intended format by default.

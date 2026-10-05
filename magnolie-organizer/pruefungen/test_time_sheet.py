@@ -82,6 +82,32 @@ def test_duration_does_not_wrap_and_clock_format_is_independent(native):
         assert duration_style.get('{%s}truncate-on-overflow' % NS['number']) == 'false'
 
 
+def test_print_layout_matches_portrait_template_with_six_visible_columns(native):
+    archive = ZipFile(BytesIO(native.zeiterfassung_ods_bytes(report())))
+    content = ET.fromstring(archive.read('content.xml'))
+    styles = ET.fromstring(archive.read('styles.xml'))
+    style = 'urn:oasis:names:tc:opendocument:xmlns:style:1.0'
+    fo = 'urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0'
+    page = styles.find('.//{%s}page-layout-properties' % style)
+    assert page.get('{%s}print-orientation' % style) == 'portrait'
+    assert page.get('{%s}page-width' % fo) == '21cm'
+    assert page.get('{%s}page-height' % fo) == '29.7cm'
+    columns = content.findall('.//table:table-column', NS)
+    visible = [i for i, col in enumerate(columns) if col.get('{%s}visibility' % NS['table']) != 'collapse']
+    assert visible == [0, 2, 4, 5, 6, 7]
+    blank_rows = content.findall('.//table:table-row-group/table:table-row', NS)
+    assert len(blank_rows) == 9
+    for row in blank_rows:
+        cells = row.findall('table:table-cell', NS)
+        assert all(cells[index].get('{%s}formula' % NS['table']) for index in (3, 5, 7, 10))
+        assert all(not ''.join(cells[index].itertext()) for index in visible)
+    total = content.find('.//table:table', NS).findall('table:table-row', NS)[-3]
+    assert total.findall('table:table-cell', NS)[5].get('{%s}formula' % NS['table']) == 'of:=SUM([.F7:.F46])'
+    for kind, color in [('date', '#ffffcc'), ('clock', '#ffffcc'), ('duration', '#ffcc99'), ('integer', '#ccffff')]:
+        cell = next(item for item in content.findall('.//{%s}style' % style) if item.get('{%s}name' % style) == kind)
+        assert cell.find('{%s}table-cell-properties' % style).get('{%s}background-color' % fo) == color
+
+
 def test_selected_days_limit_rows_and_totals_without_losing_multiple_entries(native):
     data = report([record('2026-10-01T08:00:00Z', '2026-10-01T09:00:00Z'),
                    record('2026-10-02T08:00:00Z', '2026-10-02T16:00:00Z'),

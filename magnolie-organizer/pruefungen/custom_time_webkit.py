@@ -227,10 +227,10 @@ def print_time_pdf(html, name, markers, labels, overflow=False):
         settings.set("output-uri", pdf.as_uri())
         page = Gtk.PageSetup.new()
         page.set_paper_size(Gtk.PaperSize.new("iso_a4"))
-        page.set_orientation(Gtk.PageOrientation.LANDSCAPE)
+        page.set_orientation(Gtk.PageOrientation.PORTRAIT)
         settings.set_orientation(page.get_orientation())
         for side in ("top", "bottom", "left", "right"):
-            getattr(page, "set_" + side + "_margin")(10, Gtk.Unit.MM)
+            getattr(page, "set_" + side + "_margin")(5 if side in ("top", "bottom") else 20, Gtk.Unit.MM)
         operation.set_page_setup(page)
         operation.set_print_settings(settings)
         operation.connect("failed", lambda _op, error: errors.append(str(error)))
@@ -251,7 +251,7 @@ def print_time_pdf(html, name, markers, labels, overflow=False):
     pages = int(re.search(r"^Pages:\s+(\d+)", info, re.M)[1])
     assert pages > 1 if overflow else pages == 1, (name, info)
     dimensions = re.search(r"Page size:\s+([\d.]+) x ([\d.]+) pts \(A4\)", info)
-    assert dimensions and abs(float(dimensions[1]) - 841.89) < 1 and abs(float(dimensions[2]) - 595.28) < 1, info
+    assert dimensions and abs(float(dimensions[1]) - 595.28) < 1 and abs(float(dimensions[2]) - 841.89) < 1, info
     assert all(marker in text for marker in markers), (name, text)
     boxes = ET.fromstring(subprocess.check_output(["pdftotext", "-bbox", str(pdf), "-"]))
     for page in boxes.findall(".//{*}page"):
@@ -353,16 +353,22 @@ for (let day=1; day<=31; day++) for (let slot=0; slot<""" + str(count) + """; sl
     localStartMinute:start, localEndMinute:start+270, pauseMinutes:30, note:'',
     type:'ENTRY-'+String(sheet.entries.length+1).padStart(3,'0')});
 }
-let markers=sheet.entries.map(e=>e.type);
+let markers=[];
 if(!sheet.entries.length) {
   markers=Array.from({length:160},(_,i)=>'LINE-'+String(i+1).padStart(3,'0'));
   const start=Date.UTC(2026,9,13,8)/60000; sheet.days=[13];
   sheet.entries=[{...source,id:crypto.randomUUID(),startMinute:start,endMinute:start+270,
     localStartMinute:start,localEndMinute:start+270,pauseMinutes:30,zone:'UTC',note:markers.join('\\n'),type:'LONGNOTE'}];
 }
-return {html:OrganizerTest.zeitDruckSeite(sheet), markers, labels:sheet.labels};
+const html=OrganizerTest.zeitDruckSeite(sheet);
+const parsed=new DOMParser().parseFromString(html,'text/html');
+const printed=Array.from(parsed.querySelectorAll('tbody tr:not(.totals)'));
+if (printed.length!==Math.max(40,sheet.entries.length)) throw new Error('Timesheet record rows lost or duplicated');
+if (parsed.querySelector('thead tr:last-child').children.length!==6) throw new Error('Template must have six visible columns');
+if (html.includes('ENTRY-') || html.includes('LINE-')) throw new Error('Internal record details leaked into compact timesheet');
+return {html, markers:[], labels:sheet.labels};
 """)
-            results.append(print_time_pdf(rendered["html"], name, rendered["markers"], rendered["labels"], overflow=count != 1))
+            results.append(print_time_pdf(rendered["html"], name, rendered["markers"], rendered["labels"], overflow=count > 1))
         completed = True
         print(f"Native time-tracking calendar, keyboard, restart and ODS handoff passed: {web}", flush=True)
         sys.exit(0)

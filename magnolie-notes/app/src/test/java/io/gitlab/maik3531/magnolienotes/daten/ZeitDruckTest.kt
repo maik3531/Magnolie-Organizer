@@ -25,10 +25,9 @@ class ZeitDruckTest {
             ZeitKalender(), labels, Locale.US, false)
         assertTrue(html.contains("09:00"))
         assertTrue(html.contains("08:30"))
-        assertTrue(html.contains("-60"))
         assertTrue(html.contains("PM"))
         assertTrue(html.contains("AM"))
-        assertTrue(html.contains("&lt;script&gt;example&lt;/script&gt;"))
+        assertFalse(html.contains("example")) // Activity is not a column of the supplied timesheet.
         assertFalse(html.contains("<script>"))
         assertTrue(html.contains("A &amp; B"))
     }
@@ -41,10 +40,13 @@ class ZeitDruckTest {
         val html = ZeitDruckvorlage.html(YearMonth.of(2026, 10), setOf(1), listOf(first, other), "",
             ZeitKalender(), labels, Locale.US, true)
         assertTrue(html.contains("168:30"))
-        assertTrue(html.contains("Included"))
+        assertTrue(html.contains("169:00"))
+        assertFalse(html.contains("170:00"))
         assertFalse(html.contains("Excluded"))
         assertTrue(html.contains("table-header-group"))
-        assertTrue(html.contains("A4 landscape"))
+        assertTrue(html.contains("A4 portrait"))
+        assertEquals(6, ZeitDruckvorlage.columnWidths.size)
+        assertEquals(15.418, ZeitDruckvorlage.columnWidths.sum(), 0.001)
     }
 
     @Test fun inheritedRegionAndOffSwitchControlOnlyHolidayClassification() {
@@ -63,13 +65,13 @@ class ZeitDruckTest {
         assertFalse(html.contains(national.name))
     }
 
-    @Test fun printJobStartsWithA4LandscapeAndDocumentMargins() {
+    @Test fun printJobStartsWithTemplatePortraitAndDocumentMargins() {
         val attributes = ZeitDrucken.attributes()
-        assertFalse(attributes.mediaSize!!.isPortrait)
-        assertEquals(11690, attributes.mediaSize!!.widthMils)
-        assertEquals(8270, attributes.mediaSize!!.heightMils)
-        assertEquals(394, attributes.minMargins!!.leftMils)
-        assertEquals(394, attributes.minMargins!!.topMils)
+        assertTrue(attributes.mediaSize!!.isPortrait)
+        assertEquals(8270, attributes.mediaSize!!.widthMils)
+        assertEquals(11690, attributes.mediaSize!!.heightMils)
+        assertEquals(787, attributes.minMargins!!.leftMils)
+        assertEquals(197, attributes.minMargins!!.topMils)
     }
 
     @Test fun reportMonthStaysGregorianAndHistoricalOffsetRoundingMatchesTheMinuteCells() {
@@ -82,7 +84,6 @@ class ZeitDruckTest {
         val html = ZeitDruckvorlage.html(YearMonth.of(1972, 1), setOf(6), listOf(entry), "",
             ZeitKalender(), labels, Locale.US, true)
         assertTrue(html.contains("23:15"))
-        assertTrue(html.contains("<td class=\"number\">45</td>"))
         assertTrue(html.contains("02:00"))
     }
 }

@@ -16,8 +16,8 @@ import android.webkit.WebViewClient
 /** Local document only; the Android print service supplies printer/PDF selection. */
 object ZeitDrucken {
     fun attributes(): PrintAttributes = PrintAttributes.Builder()
-        .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asLandscape())
-        .setMinMargins(PrintAttributes.Margins(394, 394, 394, 394))
+        .setMediaSize(PrintAttributes.MediaSize.ISO_A4.asPortrait())
+        .setMinMargins(PrintAttributes.Margins(787, 197, 787, 197))
         .setColorMode(PrintAttributes.COLOR_MODE_COLOR).build()
 
     fun starten(context: Context, html: String, title: String, beiFehler: (Throwable) -> Unit) {
@@ -51,6 +51,7 @@ object ZeitDrucken {
                     }
                     checkNotNull(context.getSystemService(PrintManager::class.java).print(title, adapter, attributes()))
                 } catch (error: Exception) {
+                    android.util.Log.e("MagnolieTimePrint", "Could not open Android print dialog", error)
                     web.destroy()
                     beiFehler(error)
                 }
@@ -58,6 +59,7 @@ object ZeitDrucken {
 
             override fun onReceivedError(web: WebView, request: WebResourceRequest, error: WebResourceError) {
                 if (request.isForMainFrame && !submitted) {
+                    android.util.Log.e("MagnolieTimePrint", "Local document load failed: ${error.errorCode}: ${error.description}")
                     submitted = true
                     web.destroy()
                     beiFehler(IllegalStateException(error.description.toString()))
