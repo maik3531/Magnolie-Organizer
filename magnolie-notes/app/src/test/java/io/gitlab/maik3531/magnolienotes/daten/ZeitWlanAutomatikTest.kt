@@ -61,4 +61,16 @@ class ZeitWlanAutomatikTest {
         val manual = finished.start(Zeiteintrag(startMinute = record.startMinute + 2))
         assertEquals(2, manual.entries.size)
     }
+
+    @Test fun stoppingARestoredOpenRecordIsANewEventRatherThanAReplayOfItsEarlierRemoval() {
+        val start = 1800000000000L
+        var state = ZeiterfassungStand(enabled = true).start(Zeiteintrag(startMinute = start / 60000))
+        state = state.removeLocal(state.entries, start + 60000)
+        val oldDeadline = state.wifi.blockedUntilMs
+        state = state.restoreLocal(state.trash.single().id, start + 120000)
+        state = state.finish(state.entries.single(), start + 180000)
+        assertTrue(state.wifi.blockedUntilMs > oldDeadline)
+        assertEquals(start + 180000 + 60 * 60000, state.wifi.blockedUntilMs)
+        assertEquals(state.wifi, state.wifi.afterStop(state.entries.single().id, start + 900000))
+    }
 }

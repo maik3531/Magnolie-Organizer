@@ -3,7 +3,7 @@ Magnolie Notes is a local notebook and task list for Android. Organize notes in 
 Features:
 * Notes with creation and modification dates, notebooks and attachments.
 * Tasks with due dates, priorities and optional reminders.
-* Optional local time tracking with scheduled and manual pauses, pause alarms, encrypted history and monthly printing.
+* Optional time tracking with scheduled and manual pauses, alarms, encrypted history and monthly printing. Synchronize time records with your own Organizer after both devices opt in; local Notes removals do not delete Organizer records. Region and holidays are inherited from Organizer.
 * Import shared text and supported exported note files.
 * Local encrypted storage and user-controlled backups.
 * Optional encrypted sharing with paired Magnolie Organizer installations on Linux and Windows.

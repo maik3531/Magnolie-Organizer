@@ -59,6 +59,7 @@ import io.gitlab.maik3531.magnolienotes.daten.Ablage
 import io.gitlab.maik3531.magnolienotes.daten.Notiz
 import io.gitlab.maik3531.magnolienotes.daten.GeprueftesPortableArchiv
 import io.gitlab.maik3531.magnolienotes.daten.PortableArchiv
+import io.gitlab.maik3531.magnolienotes.daten.ZeiterfassungStand
 import io.gitlab.maik3531.magnolienotes.einfuhr.Einfuhr
 import io.gitlab.maik3531.magnolienotes.einfuhr.Einfuhrergebnis
 import io.gitlab.maik3531.magnolienotes.ui.AufgabenBlatt
@@ -459,12 +460,12 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     fun sage(text: String) = Toast.makeText(zusammenhang, text, Toast.LENGTH_LONG).show()
 
     var zeitSpeichert by remember { mutableStateOf(false) }
-    val zeitSpeichern: ZeitSpeichern = { change, success ->
+    fun zeitAendern(change: (ZeiterfassungStand) -> ZeiterfassungStand, success: () -> Unit, vorher: () -> Unit = {}) {
         if (!zeitSpeichert) {
             zeitSpeichert = true
             faden.launch {
                 try {
-                    withContext(Dispatchers.IO) { ablage.aendereZeiterfassung(change) }
+                    withContext(Dispatchers.IO) { vorher(); ablage.aendereZeiterfassung(change) }
                     success()
                 } catch (error: kotlinx.coroutines.CancellationException) {
                     throw error
@@ -473,6 +474,10 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                 } finally { zeitSpeichert = false }
             }
         }
+    }
+    val zeitSpeichern: ZeitSpeichern = { change, success -> zeitAendern(change, success) }
+    val zeitAktiv: (Boolean) -> Unit = { an ->
+        zeitAendern({ it.copy(enabled = an) }, {}, { if (!an) telefonWerk.pauseTimeSync() })
     }
 
     LaunchedEffect(blatt) {
@@ -960,7 +965,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
         Box(Modifier.fillMaxSize().padding(rand)) {
             when (blatt) {
                 5 -> EinstellungenBlatt(bestand.zeiterfassung.enabled, zeitSpeichert,
-                    beiZeiterfassung = { an -> zeitSpeichern({ it.copy(enabled = an) }, {}) },
+                    beiZeiterfassung = zeitAktiv,
                     beiBlatt = { blatt = it },
                     beiRechten = {
                         zusammenhang.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
@@ -971,7 +976,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                             .putExtra(Settings.EXTRA_APP_PACKAGE, zusammenhang.packageName))
                     })
                 6 -> ZeiterfassungBlatt(bestand.zeiterfassung, zeitSpeichert, zeitSpeichern,
-                    zeitAnsicht, { zeitAnsicht = it }, { an -> zeitSpeichern({ it.copy(enabled = an) }, {}) },
+                    zeitAnsicht, { zeitAnsicht = it }, zeitAktiv,
                     { blatt = 4 }) { entry, neu ->
                     ablage.setzeZeitEntwurf(io.gitlab.maik3531.magnolienotes.daten.ZeitEntwurf(entry, neu,
                         pause = bestand.zeiterfassung.projected(entry).pausedMinutes().toString(),
@@ -1141,6 +1146,8 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                             .onFailure { sage(it.message.orEmpty()) } },
                         beiPersonalEntscheidung = telefonWerk::personalDeletionDecision,
                         beiCustomSync = { runCatching { telefonWerk.setCustomSync(it) }
+                            .onFailure { sage(zusammenhang.fehlertext(it)) } },
+                        beiTimeSync = { runCatching { telefonWerk.setTimeSync(it) }
                             .onFailure { sage(zusammenhang.fehlertext(it)) } },
                         beiCustomEntscheidung = { id, revision, delete -> runCatching {
                             telefonWerk.customDeletionDecision(id, revision, delete)
@@ -1330,7 +1337,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     beiWiederherstellen = { id, op, force ->
                         val entry = journalZustand.entries.firstOrNull { it.uuid == id }
                         if (entry?.domain == "android-app-data") {
-                            faden.launch(Dispatchers.IO) { runCatching { journal.restoreApp(id, op) }
+                            faden.launch(Dispatchers.IO) { runCatching { telefonWerk.pauseTimeSync(); journal.restoreApp(id, op) }
                                 .onFailure { withContext(Dispatchers.Main) { sage(zusammenhang.fehlertext(it)) } } }
                             true
                         } else runCatching { journal.restoreContacts(id, op, force) ==
@@ -1398,6 +1405,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                             portableLaeuft = true
                             faden.launch {
                                 val ergebnis = withContext(Dispatchers.IO) { runCatching {
+                                    telefonWerk.pauseTimeSync()
                                     check(journal.restorePortable(
                                         geprueft, UUID.randomUUID().toString()))
                                 } }

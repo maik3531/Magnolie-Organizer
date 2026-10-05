@@ -671,6 +671,10 @@ msgstr "Hesap türü"
 msgid "Active call"
 msgstr "Etkin arama"
 
+msgctxt "time tracking"
+msgid "Activity"
+msgstr "Etkinlik"
+
 msgid "Add"
 msgstr "Ekle"
 
@@ -787,6 +791,10 @@ msgstr "Tümü"
 
 msgid "All cantons"
 msgstr "Tüm kantonlar"
+
+msgctxt "time tracking"
+msgid "All days"
+msgstr "Tüm günler"
 
 msgid "All entries"
 msgstr "Tüm kayıtlar"
@@ -1472,6 +1480,14 @@ msgstr "Şimdi denetle"
 msgid "Check spelling (red wavy lines)"
 msgstr "Yazımı denetle (kırmızı dalgalı çizgiler)"
 
+msgctxt "time tracking"
+msgid ""
+"Check the dates, times and pause. The selected local time must exist in this "
+"time zone."
+msgstr ""
+"Tarihleri, saatleri ve molayı kontrol edin. Seçilen yerel saat bu saat "
+"diliminde mevcut olmalıdır."
+
 msgid "Check the value and discuss repeated deviations with a doctor."
 msgstr "Değeri kontrol edin ve tekrarlanan sapmaları bir doktorla görüşün."
 
@@ -1649,6 +1665,10 @@ msgid ""
 msgstr ""
 "Mevcut bir randevuya tıklamak her iki durumda da onu düzenlemek için açar. "
 "Bu ayar yalnızca kutunun boş bir alanına tıkladığınızda geçerlidir."
+
+msgctxt "time tracking"
+msgid "Clock change (min)"
+msgstr "Saat değişimi (dk)"
 
 msgid "Close"
 msgstr "Kapat"
@@ -2071,6 +2091,10 @@ msgstr "Veri: bulunamadı – Organizer’ı bir kez açın."
 msgid "Date"
 msgstr "Tarih"
 
+msgctxt "time tracking"
+msgid "Date"
+msgstr "Tarih"
+
 msgid "Date format"
 msgstr "Tarih biçimi"
 
@@ -2374,6 +2398,10 @@ msgstr "Süre"
 msgid "Early shift"
 msgstr "Erken vardiya"
 
+msgctxt "time tracking"
+msgid "Early shift"
+msgstr "Sabah vardiyası"
+
 msgid "Edit"
 msgstr "Düzenle"
 
@@ -2394,6 +2422,10 @@ msgstr "Not defterini düzenle"
 
 msgid "Edit notebook group"
 msgstr "Not defteri grubunu düzenle"
+
+msgctxt "time tracking"
+msgid "Edit record"
+msgstr "Kaydı düzenle"
 
 msgid "Edit task"
 msgstr "Görevi düzenle"
@@ -2486,6 +2518,10 @@ msgstr ""
 msgid "Enable this SMS plan"
 msgstr "Bu SMS planını etkinleştir"
 
+msgctxt "time tracking"
+msgid "Enable time tracking"
+msgstr "Zaman takibini etkinleştir"
+
 msgid "Enable tray applet"
 msgstr "Sistem tepsisi uygulamacığını etkinleştir"
 
@@ -2506,6 +2542,14 @@ msgstr "Şifrelenmiş arşiv girdileri desteklenmiyor."
 
 msgid "Encrypting the data"
 msgstr "Veriler şifreleniyor"
+
+msgctxt "time tracking"
+msgid "End"
+msgstr "Bitiş"
+
+msgctxt "time tracking"
+msgid "End date"
+msgstr "Bitiş tarihi"
 
 msgid "Ending the call"
 msgstr "Arama sonlandırılıyor"
@@ -2983,6 +3027,10 @@ msgstr "Ev ziyareti"
 msgid "Hours"
 msgstr "Saat"
 
+msgctxt "time tracking"
+msgid "Hours"
+msgstr "Saat"
+
 msgid "How the calendar should behave when you click a day."
 msgstr "Bir güne tıkladığınızda takvimin nasıl davranacağı."
 
@@ -3313,6 +3361,10 @@ msgstr "Son eşitleme: %(date)s, %(time)s."
 msgid "Late shift"
 msgstr "Geç vardiya"
 
+msgctxt "time tracking"
+msgid "Late shift"
+msgstr "Akşam vardiyası"
+
 msgid "Latest alarm monitor entries:"
 msgstr "Alarm izleyicisinin son kayıtları:"
 
@@ -3556,6 +3608,10 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Özel"
 
+msgctxt "time tracking"
+msgid "Manual entry"
+msgstr "Elle kayıt"
+
 msgid "Manual only"
 msgstr "Yalnızca elle"
 
@@ -3687,6 +3743,10 @@ msgstr "KDE Connect SMS'lerini izle ve bildirimleri göster"
 msgid "Month"
 msgstr "Ay"
 
+msgctxt "time tracking"
+msgid "Month"
+msgstr "Ay"
+
 msgid "Month calendar"
 msgstr "Aylık takvim"
 
@@ -3748,6 +3808,10 @@ msgstr ""
 msgid "Multiple calendars"
 msgstr "Birden çok takvim"
 
+msgid "Name"
+msgstr "Ad"
+
+msgctxt "time tracking"
 msgid "Name"
 msgstr "Ad"
 
@@ -3919,6 +3983,10 @@ msgstr "Gece"
 msgid "Night shift"
 msgstr "Gece vardiyası"
 
+msgctxt "time tracking"
+msgid "Night shift"
+msgstr "Gece vardiyası"
+
 msgid "No"
 msgstr "Hayır"
 
@@ -4044,20 +4112,6 @@ msgid ""
 msgstr ""
 "Bu bilgisayarda okunabilir Evolution veya Thunderbird deposu bulunamadı."
 
-msgid ""
-"No regional data is retrieved without a selected canton. With “All”, each "
-"entry shows its canton and matching periods are combined."
-msgstr ""
-"Bir kanton seçilmeden bölgesel veri alınmaz. “Tümü” seçildiğinde her girdi "
-"kendi kantonunu gösterir ve aynı dönemler birleştirilir."
-
-msgid ""
-"No regional data is retrieved without a selected state. With “All”, each "
-"entry shows its state and matching periods are combined."
-msgstr ""
-"Bir eyalet seçilmeden bölgesel veri alınmaz. “Tümü” seçildiğinde her girdi "
-"kendi eyaletini gösterir ve aynı dönemler birleştirilir."
-
 msgid "No scheme row matches this blood glucose value."
 msgstr "Bu kan şekeri değeriyle eşleşen şema satırı yok."
 
@@ -4097,6 +4151,10 @@ msgstr "Henüz görev bağlanmadı."
 #, python-format
 msgid "No text viewer was found. The log is located at: %s"
 msgstr "Metin görüntüleyici bulunamadı. Günlük şurada: %s"
+
+msgctxt "time tracking"
+msgid "No time recorded yet."
+msgstr "Henüz süre kaydedilmedi."
 
 msgid "No update check has been performed yet."
 msgstr "Henüz güncelleme denetimi yapılmadı."
@@ -4623,6 +4681,14 @@ msgstr "Yapıştır"
 msgid "Patch"
 msgstr "Flaster"
 
+msgctxt "time tracking"
+msgid "Pause (minutes)"
+msgstr "Mola (dakika)"
+
+msgctxt "time tracking"
+msgid "Paused"
+msgstr "Duraklatıldı"
+
 msgid "Paused — review required"
 msgstr "Duraklatıldı — inceleme gerekli"
 
@@ -4943,6 +5009,9 @@ msgstr "Korunan arşiv parolası kullanılamıyor."
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "Diğer dalın genel IPv4 veya IPv6 adresi"
 
+msgid "Public holidays"
+msgstr "Resmî tatiller"
+
 msgid ""
 "Public holidays and school holidays are governed regionally. Choose which "
 "ones apply here."
@@ -5014,6 +5083,10 @@ msgstr "KDE Connect ile al"
 
 msgid "Reconnect"
 msgstr "Yeniden bağlan"
+
+msgctxt "time tracking"
+msgid "Recorded times"
+msgstr "Kaydedilen süreler"
 
 msgid "Recovery snapshot created."
 msgstr "Kurtarma anlık görüntüsü oluşturuldu."
@@ -5339,6 +5412,10 @@ msgstr ""
 msgid "Run the optional background service"
 msgstr "İsteğe bağlı arka plan hizmetini çalıştır"
 
+msgctxt "time tracking"
+msgid "Running"
+msgstr "Devam ediyor"
+
 msgid "S"
 msgstr "S"
 
@@ -5602,14 +5679,8 @@ msgstr "Önce bir şey seçin."
 msgid "Select what you want to print on the left."
 msgstr "Solda yazdırmak istediğiniz öğeleri seçin."
 
-msgid "Select your canton first or enable “All cantons”."
-msgstr "Önce kantonunuzu seçin veya “Tüm kantonlar” seçeneğini etkinleştirin."
-
 msgid "Select your phone"
 msgstr "Telefonunuzu seçin"
-
-msgid "Select your state first or enable “All states”."
-msgstr "Önce eyaletinizi seçin veya “Tüm eyaletler” seçeneğini etkinleştirin."
 
 msgid "Select, preview, print, export or delete health records"
 msgstr "Sağlık kayıtlarını seçin, önizleyin, yazdırın, dışa aktarın veya silin"
@@ -5804,6 +5875,10 @@ msgstr "Aylık görünümde hafta numaralarını göster"
 msgid "Show week numbers in the planner"
 msgstr "Planlayıcıda hafta numaralarını göster"
 
+msgctxt "time tracking"
+msgid "Signature"
+msgstr "İmza"
+
 msgid "Silence this alert"
 msgstr "Bu uyarıyı sessize al"
 
@@ -5909,6 +5984,10 @@ msgstr "Sprey"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
+
+msgctxt "time tracking"
+msgid "Start"
+msgstr "Başlangıç"
 
 msgid "Start Magnolie"
 msgstr "Magnolie'yi başlat"
@@ -6592,6 +6671,10 @@ msgstr "Girilen parmak izi eksik."
 
 msgid "The entry could not be found."
 msgstr "Kayıt bulunamadı."
+
+msgctxt "time tracking"
+msgid "The entry could not be saved. Reload it and try again."
+msgstr "Kayıt kaydedilemedi. Yeniden açıp tekrar deneyin."
 
 msgid "The file could not be read."
 msgstr "Dosya okunamadı."
@@ -7466,8 +7549,16 @@ msgstr "Ticino"
 msgid "Time"
 msgstr "Saat"
 
+msgctxt "time tracking"
+msgid "Time"
+msgstr "Saat"
+
 msgid "Time format"
 msgstr "Saat biçimi"
+
+msgctxt "time tracking"
+msgid "Time tracking"
+msgstr "Zaman takibi"
 
 msgid "Time zone"
 msgstr "Saat dilimi"
@@ -7523,6 +7614,14 @@ msgstr "Çok fazla tamamlanmamış senkronizasyon işlemi var."
 msgid "Top level"
 msgstr "Üst düzey"
 
+msgctxt "time tracking"
+msgid "Total"
+msgstr "Toplam"
+
+msgctxt "time tracking"
+msgid "Total time"
+msgstr "Toplam süre"
+
 msgid "Transfer received text to the clipboard"
 msgstr "Alınan metni panoya aktar"
 
@@ -7540,6 +7639,10 @@ msgstr "Geri dön"
 
 msgid "Turn forward"
 msgstr "İleri git"
+
+msgctxt "time tracking"
+msgid "Turning tracking off keeps existing records."
+msgstr "Kapatıldığında mevcut kayıtlar korunur."
 
 msgid "Two days back"
 msgstr "İki gün geri"
@@ -8026,6 +8129,13 @@ msgstr ""
 
 msgid "With photo"
 msgstr "Fotoğraflı"
+
+msgid ""
+"Without a selected region, all available public holidays of the country "
+"apply. School holidays need a region or the All selection."
+msgstr ""
+"Bölge seçilmezse ülkenin mevcut tüm resmî tatilleri geçerlidir. Okul "
+"tatilleri için bir bölge veya Tümü seçilmelidir."
 
 msgid ""
 "Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
@@ -8565,6 +8675,28 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected canton. With “All”, each "
+#~ "entry shows its canton and matching periods are combined."
+#~ msgstr ""
+#~ "Bir kanton seçilmeden bölgesel veri alınmaz. “Tümü” seçildiğinde her "
+#~ "girdi kendi kantonunu gösterir ve aynı dönemler birleştirilir."
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected state. With “All”, each "
+#~ "entry shows its state and matching periods are combined."
+#~ msgstr ""
+#~ "Bir eyalet seçilmeden bölgesel veri alınmaz. “Tümü” seçildiğinde her "
+#~ "girdi kendi eyaletini gösterir ve aynı dönemler birleştirilir."
+
+#~ msgid "Select your canton first or enable “All cantons”."
+#~ msgstr ""
+#~ "Önce kantonunuzu seçin veya “Tüm kantonlar” seçeneğini etkinleştirin."
+
+#~ msgid "Select your state first or enable “All states”."
+#~ msgstr ""
+#~ "Önce eyaletinizi seçin veya “Tüm eyaletler” seçeneğini etkinleştirin."
 
 #~ msgid "Consider deletions during manual synchronization"
 #~ msgstr "Kişi eşzamanlama"

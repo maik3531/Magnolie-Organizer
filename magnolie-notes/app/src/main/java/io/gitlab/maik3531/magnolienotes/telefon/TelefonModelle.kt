@@ -63,7 +63,9 @@ data class TelefonPeer(
     val saved_bluetooth: Boolean = false,
     val personal_note_policy: JsonObject? = null,
     val remote_personal_note_policy: JsonObject? = null,
-    val remote_desktop_features: JsonObject? = null
+    val remote_desktop_features: JsonObject? = null,
+    val personal_time_policy: JsonObject? = null,
+    val remote_personal_time_policy: JsonObject? = null
 )
 
 @Serializable
@@ -181,7 +183,7 @@ object TelefonCapabilities {
         "answer_call" to TelefonCapability(answerCalls, if (answerCalls) "available" else "disabled"),
         "end_call" to TelefonCapability(endCalls, if (endCalls) "available" else if (Build.VERSION.SDK_INT < 28) "os_restricted" else "disabled", listOf(1, 2)),
         "personal_notes_sync" to TelefonCapability(true, "available", listOf(1, 2, 3, 5)),
-        "personal_tasks_sync" to TelefonCapability(true, "available", listOf(1, 2, 3, 4, 6)),
+        "personal_tasks_sync" to TelefonCapability(true, "available", listOf(1, 2, 3, 4, 6, 7)),
         "personal_deletions_sync" to TelefonCapability(true, "available"),
         "transport.bluetooth_rfcomm" to TelefonCapability(true, "available")
     )

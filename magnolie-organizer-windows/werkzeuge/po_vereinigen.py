@@ -8,8 +8,37 @@ import re
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
+import xml.etree.ElementTree as ET
 
 ERGÄNZUNGEN = {
+    "Public holidays": {
+        "de": "Feiertage", "fr": "Jours fériés", "es": "Festivos", "it": "Festività", "nl": "Feestdagen", "pt": "Feriados",
+        "ru": "Праздничные дни", "uk": "Святкові дні", "be": "Святочныя дні", "cs": "Státní svátky", "pl": "Dni świąteczne",
+        "hsb": "Swjate dny", "da": "Helligdage", "nb": "Helligdager", "tr": "Resmî tatiller", "hi": "सार्वजनिक अवकाश",
+        "ar": "العطلات الرسمية", "ja": "祝日", "zh_CN": "公共假日",
+    },
+    "Without a selected region, all available public holidays of the country apply. School holidays need a region or the All selection.": {
+        "de": "Ohne ausgewählte Region gelten alle verfügbaren Feiertage des Landes. Schulferien benötigen eine Region oder die Auswahl Alle.",
+        "fr": "Sans région choisie, tous les jours fériés disponibles du pays s’appliquent. Les vacances scolaires nécessitent une région ou le choix Toutes.",
+        "es": "Sin una región elegida se aplican todos los festivos disponibles del país. Las vacaciones escolares requieren una región o la opción Todas.",
+        "it": "Senza una regione selezionata valgono tutte le festività disponibili del paese. Le vacanze scolastiche richiedono una regione o la scelta Tutte.",
+        "nl": "Zonder gekozen regio gelden alle beschikbare feestdagen van het land. Schoolvakanties vereisen een regio of de keuze Alle.",
+        "pt": "Sem uma região escolhida aplicam-se todos os feriados disponíveis do país. As férias escolares exigem uma região ou a opção Todas.",
+        "ru": "Без выбранного региона учитываются все доступные праздники страны. Для школьных каникул нужен регион или выбор Все.",
+        "uk": "Без вибраного регіону враховуються всі доступні свята країни. Для шкільних канікул потрібен регіон або вибір Усі.",
+        "be": "Без выбранага рэгіёна ўлічваюцца ўсе даступныя святы краіны. Для школьных канікул патрэбны рэгіён або выбар Усе.",
+        "cs": "Bez vybraného regionu platí všechny dostupné svátky země. Školní prázdniny vyžadují region nebo volbu Všechny.",
+        "pl": "Bez wybranego regionu obowiązują wszystkie dostępne święta kraju. Ferie szkolne wymagają regionu lub opcji Wszystkie.",
+        "hsb": "Bjez wubraneho regiona płaća wšě k dispoziciji stejace swjate dny kraja. Šulske prózdniny region abo wuběr Wšě trjebaja.",
+        "da": "Uden valgt region gælder alle tilgængelige helligdage i landet. Skoleferier kræver en region eller valget Alle.",
+        "nb": "Uten valgt region gjelder alle tilgjengelige helligdager i landet. Skoleferier krever en region eller valget Alle.",
+        "tr": "Bölge seçilmezse ülkenin mevcut tüm resmî tatilleri geçerlidir. Okul tatilleri için bir bölge veya Tümü seçilmelidir.",
+        "hi": "क्षेत्र नहीं चुना होने पर देश के सभी उपलब्ध सार्वजनिक अवकाश लागू होते हैं। स्कूल की छुट्टियों के लिए क्षेत्र या सभी चुनना ज़रूरी है।",
+        "ar": "دون اختيار منطقة تُحتسب جميع العطلات الرسمية المتاحة في البلد. تتطلب العطلات المدرسية منطقة أو اختيار الكل.",
+        "ja": "地域を選ばない場合、その国で利用できるすべての祝日を対象とします。学校休暇には地域または「すべて」の選択が必要です。",
+        "zh_CN": "未选择地区时，采用该国所有可用公共假日。学校假期需要选择地区或“全部”。",
+    },
     "Allow this device to share this connection": {
         "de": "Diesem Gerät die Weitergabe dieser Verbindung erlauben", "fr": "Autoriser cet appareil à partager cette connexion", "es": "Permitir que este dispositivo comparta esta conexión", "it": "Consenti a questo dispositivo di condividere la connessione", "nl": "Dit apparaat toestaan deze verbinding te delen", "pt": "Permitir que este dispositivo partilhe esta ligação", "ru": "Разрешить устройству передавать это соединение", "uk": "Дозволити пристрою передавати це з’єднання", "be": "Дазволіць прыладзе перадаваць гэтае злучэнне", "cs": "Povolit zařízení sdílet toto spojení", "pl": "Zezwól urządzeniu na udostępnianie tego połączenia", "hsb": "Tutomu gratej dale daće tutoho zwiska dowolić", "da": "Tillad denne enhed at dele forbindelsen", "nb": "Tillat denne enheten å dele tilkoblingen", "tr": "Bu cihazın bu bağlantıyı paylaşmasına izin ver", "hi": "इस डिवाइस को यह कनेक्शन साझा करने दें", "ar": "السماح لهذا الجهاز بمشاركة هذا الاتصال", "ja": "このデバイスに接続の共有を許可", "zh_CN": "允许此设备分享此连接",
     },
@@ -1022,11 +1051,32 @@ def quoted(name, wert):
     return name + " " + json.dumps(wert, ensure_ascii=False)
 
 
+def zeiterfassung_katalog(sprache):
+    """Reuse reviewed time-tracking labels from the canonical Notes resources.
+
+    Standalone desktop archives use their committed PO entries; the sibling
+    source is only an optional maintainer-time translation seed.
+    """
+    res = Path(__file__).resolve().parents[2] / "magnolie-notes/app/src/main/res"
+    basis = res / "values/zeiterfassung.xml"
+    ordner = "values-zh-rCN" if sprache == "zh_CN" else "values-" + sprache
+    ziel = res / ordner / "zeiterfassung.xml"
+    if not basis.is_file() or not ziel.is_file():
+        return {}
+    englisch = {node.attrib["name"]: node.text or "" for node in ET.parse(basis).getroot().findall("string")}
+    lokal = {node.attrib["name"]: node.text or "" for node in ET.parse(ziel).getroot().findall("string")}
+    return {"time tracking\x04" + text: lokal[name] for name, text in englisch.items()
+            if name in lokal and "%" not in text}
+
+
 def haupt(argv):
     if len(argv) != 7:
         raise SystemExit("Aufruf: po_vereinigen.py VORLAGE.pot AKTUELL.po ALT.js ALT-NATIV.json SPRACHE ZIEL.po")
     vorlage, aktuell, alt, alt_nativ, sprache, ziel = argv[1:]
     aktuelle = po_katalog(aktuell)
+    zeit = zeiterfassung_katalog(sprache)
+    gemeinsam_pfad = Path(__file__).resolve().parents[2] / "magnolie-organizer/po" / (sprache + ".po")
+    gemeinsam = po_katalog(str(gemeinsam_pfad)) if gemeinsam_pfad.is_file() and gemeinsam_pfad.resolve() != Path(aktuell).resolve() else {}
     alte = js_katalog(alt)
     with open(alt_nativ, encoding="utf-8") as datei:
         alte.update(json.load(datei)["locales"][sprache])
@@ -1050,7 +1100,7 @@ def haupt(argv):
         if plural is None:
             # Existing PO translations are authoritative; generated catalogs
             # and explicit additions only fill missing entries.
-            wert = aktuelle.get(key) or alte.get(key) or ERGÄNZUNGEN.get(key, {}).get(sprache)
+            wert = aktuelle.get(key) or alte.get(key) or ERGÄNZUNGEN.get(key, {}).get(sprache) or zeit.get(key) or gemeinsam.get(key)
             if not isinstance(wert, str) or not wert:
                 raise ValueError("Übersetzung fehlt: " + key)
             ersetzt = re.sub(r'^msgstr ""(?:\n".*")*', lambda _: quoted("msgstr", wert), block,

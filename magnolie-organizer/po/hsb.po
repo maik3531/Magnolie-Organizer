@@ -748,6 +748,10 @@ msgstr "Kontowy typ"
 msgid "Active call"
 msgstr "Aktualne zawołanje"
 
+msgctxt "time tracking"
+msgid "Activity"
+msgstr "Činitosć"
+
 msgid "Add"
 msgstr "Přidać"
 
@@ -864,6 +868,10 @@ msgstr "Wšitko"
 
 msgid "All cantons"
 msgstr "Wšě kantony"
+
+msgctxt "time tracking"
+msgid "All days"
+msgstr "Wšě dny"
 
 msgid "All entries"
 msgstr "Wšě zapiski"
@@ -1548,6 +1556,14 @@ msgstr "Nětko přepruwować"
 msgid "Check spelling (red wavy lines)"
 msgstr "Prawopis přepruwować (čerwjene žołmjate linije)"
 
+msgctxt "time tracking"
+msgid ""
+"Check the dates, times and pause. The selected local time must exist in this "
+"time zone."
+msgstr ""
+"Přepruwće datumy, časy a přestawku. Wubrany lokalny čas dyrbi w tutej "
+"časowej conje eksistować."
+
 msgid "Check the value and discuss repeated deviations with a doctor."
 msgstr "Hódnotu přepruwujće a wospjetne wotchilenja z lěkarjom wobjednajće."
 
@@ -1726,6 +1742,10 @@ msgstr ""
 "Kliknjenje na eksistowacy termin wočini jón we woběmaj padomaj za "
 "wobdźěłanje. Tute nastajenje płaći jenož, hdyž kliknjeće na prózdne městno w "
 "polu."
+
+msgctxt "time tracking"
+msgid "Clock change (min)"
+msgstr "Časowe přestajenje (min)"
 
 msgid "Close"
 msgstr "Začinić"
@@ -2152,6 +2172,10 @@ msgstr "Daty: njenamakane – wočińće Organizator jónkróć."
 msgid "Date"
 msgstr "Datum"
 
+msgctxt "time tracking"
+msgid "Date"
+msgstr "Datum"
+
 msgid "Date format"
 msgstr "Datumowy format"
 
@@ -2466,6 +2490,10 @@ msgstr "Traće"
 msgid "Early shift"
 msgstr "Zažna směna"
 
+msgctxt "time tracking"
+msgid "Early shift"
+msgstr "Ranja změna"
+
 msgid "Edit"
 msgstr "Wobdźěłać"
 
@@ -2486,6 +2514,10 @@ msgstr "Noticowy zešiwk wobdźěłać"
 
 msgid "Edit notebook group"
 msgstr "Skupinu noticowych zešiwkow wobdźěłać"
+
+msgctxt "time tracking"
+msgid "Edit record"
+msgstr "Zapisk wobdźěłać"
 
 msgid "Edit task"
 msgstr "Nadawk wobdźěłać"
@@ -2577,6 +2609,10 @@ msgstr ""
 msgid "Enable this SMS plan"
 msgstr "Tutón SMS-plan aktiwizować"
 
+msgctxt "time tracking"
+msgid "Enable time tracking"
+msgstr "Zapisywanje časa zapinać"
+
 msgid "Enable tray applet"
 msgstr "Aplet systemoweho pola zmóžnić"
 
@@ -2597,6 +2633,14 @@ msgstr "Zaklučowane zapiski archiwa so njepodpěruja."
 
 msgid "Encrypting the data"
 msgstr "Daty so zaklučuja"
+
+msgctxt "time tracking"
+msgid "End"
+msgstr "Kónc"
+
+msgctxt "time tracking"
+msgid "End date"
+msgstr "Kónčny datum"
 
 msgid "Ending the call"
 msgstr "Zawołanje so kónči"
@@ -3074,6 +3118,10 @@ msgstr "Domjaca wopyt"
 msgid "Hours"
 msgstr "Hodźiny"
 
+msgctxt "time tracking"
+msgid "Hours"
+msgstr "Hodźiny"
+
 msgid "How the calendar should behave when you click a day."
 msgstr "Kak ma so protyka zadźeržeć, hdyž na dźeń kliknjeće."
 
@@ -3403,6 +3451,10 @@ msgstr "Posledni raz synchronizowane: %(date)s, %(time)s."
 msgid "Late shift"
 msgstr "Pozdna směna"
 
+msgctxt "time tracking"
+msgid "Late shift"
+msgstr "Wječorna změna"
+
 msgid "Latest alarm monitor entries:"
 msgstr "Najnowše zapiski alarmoweho dohladowaka:"
 
@@ -3647,6 +3699,10 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Swójske"
 
+msgctxt "time tracking"
+msgid "Manual entry"
+msgstr "Manuelny zapisk"
+
 msgid "Manual only"
 msgstr "Jenož manuelnje"
 
@@ -3778,6 +3834,10 @@ msgstr "SMS KDE Connect dohladować a zdźělenki pokazać"
 msgid "Month"
 msgstr "Měsac"
 
+msgctxt "time tracking"
+msgid "Month"
+msgstr "Měsac"
+
 msgid "Month calendar"
 msgstr "Měsačna protyka"
 
@@ -3839,6 +3899,10 @@ msgstr ""
 msgid "Multiple calendars"
 msgstr "Wjacore protyki"
 
+msgid "Name"
+msgstr "Mjeno"
+
+msgctxt "time tracking"
 msgid "Name"
 msgstr "Mjeno"
 
@@ -4010,6 +4074,10 @@ msgstr "Nóc"
 msgid "Night shift"
 msgstr "Nócna směna"
 
+msgctxt "time tracking"
+msgid "Night shift"
+msgstr "Nócna změna"
+
 msgid "No"
 msgstr "Ně"
 
@@ -4138,20 +4206,6 @@ msgid ""
 msgstr ""
 "Na tutym ličaku žane čitajomne składy Evolution abo Thunderbird namakane."
 
-msgid ""
-"No regional data is retrieved without a selected canton. With “All”, each "
-"entry shows its canton and matching periods are combined."
-msgstr ""
-"Bjez wubraneho kantona so regionalne daty njewotwołuja. Z „Wšě“ pokazuje "
-"kóždy zapisk swój kanton a samsne doby so zjednoća."
-
-msgid ""
-"No regional data is retrieved without a selected state. With “All”, each "
-"entry shows its state and matching periods are combined."
-msgstr ""
-"Bjez wubraneho zwjazkoweho kraja so regionalne daty njewotwołuja. Z „Wšě“ "
-"pokazuje kóždy zapisk swój zwjazkowy kraj a samsne doby so zjednoća."
-
 msgid "No scheme row matches this blood glucose value."
 msgstr "Žana linka šemy tutej hódnoće krawneho cokora njewotpowěduje."
 
@@ -4191,6 +4245,10 @@ msgstr "Hišće žadyn nadawk zwjazany."
 #, python-format
 msgid "No text viewer was found. The log is located at: %s"
 msgstr "Žadyn tekstowy wobhladowak namakany. Protokol je tu: %s"
+
+msgctxt "time tracking"
+msgid "No time recorded yet."
+msgstr "Hišće žadyn čas zapisany."
 
 msgid "No update check has been performed yet."
 msgstr "Hišće žana kontrola aktualizacijow njebě přewjedźena."
@@ -4734,6 +4792,14 @@ msgstr "Zasadźić"
 msgid "Patch"
 msgstr "Pflaster"
 
+msgctxt "time tracking"
+msgid "Pause (minutes)"
+msgstr "Přestawka (mjeńšiny)"
+
+msgctxt "time tracking"
+msgid "Paused"
+msgstr "Přestawka"
+
 msgid "Paused — review required"
 msgstr "Zastajene — přepruwowanje trěbne"
 
@@ -5068,6 +5134,9 @@ msgstr "Škitane archiwowe hesło njeje k dispoziciji."
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "Zjawna IPv4- abo IPv6-adresa druheho hałuza"
 
+msgid "Public holidays"
+msgstr "Swjate dny"
+
 msgid ""
 "Public holidays and school holidays are governed regionally. Choose which "
 "ones apply here."
@@ -5139,6 +5208,10 @@ msgstr "Z KDE Connect přijimać"
 
 msgid "Reconnect"
 msgstr "Znowa zwjazać"
+
+msgctxt "time tracking"
+msgid "Recorded times"
+msgstr "Zapisane časy"
 
 msgid "Recovery snapshot created."
 msgstr "Stworjeny wotnowjenski wobraz."
@@ -5463,6 +5536,10 @@ msgstr ""
 msgid "Run the optional background service"
 msgstr "Opcionalnu słužbu w pozadku wuwjesć"
 
+msgctxt "time tracking"
+msgid "Running"
+msgstr "Běži"
+
 msgid "S"
 msgstr "S"
 
@@ -5729,14 +5806,8 @@ msgstr "Wubjerće najprjedy něšto."
 msgid "Select what you want to print on the left."
 msgstr "Wubjerće nalěwo, što chceće ćišćeć."
 
-msgid "Select your canton first or enable “All cantons”."
-msgstr "Wubjerće najprjedy swój kanton abo zmóžńće „Wšě kantony“."
-
 msgid "Select your phone"
 msgstr "Wubjerće swój telefon"
-
-msgid "Select your state first or enable “All states”."
-msgstr "Wubjerće najprjedy swój zwjazkowy kraj abo zmóžńće „Wšě kraje“."
 
 msgid "Select, preview, print, export or delete health records"
 msgstr "Strowotne zapiski wubrać, přehladować, ćišćeć, eksportować abo zhašeć"
@@ -5931,6 +6002,10 @@ msgstr "Tydźenske čisła w měsačnym napohladźe pokazać"
 msgid "Show week numbers in the planner"
 msgstr "Tydźenske čisła w planowaku pokazać"
 
+msgctxt "time tracking"
+msgid "Signature"
+msgstr "Podpismo"
+
 msgid "Silence this alert"
 msgstr "Tutu zdźělenku zněmić"
 
@@ -6035,6 +6110,10 @@ msgstr "Sprej"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
+
+msgctxt "time tracking"
+msgid "Start"
+msgstr "Spočatk"
 
 msgid "Start Magnolie"
 msgstr "Magnolie startować"
@@ -6728,6 +6807,10 @@ msgstr "Zapodaty porstowy wotćišć njeje dospołny."
 
 msgid "The entry could not be found."
 msgstr "Zapisk njebu namakany."
+
+msgctxt "time tracking"
+msgid "The entry could not be saved. Reload it and try again."
+msgstr "Zapisk njeda so składować. Wočińće jón znowa a spytajće hišće raz."
 
 msgid "The file could not be read."
 msgstr "Dataj njehodźeše so čitać."
@@ -7612,8 +7695,16 @@ msgstr "Tessin"
 msgid "Time"
 msgstr "Čas"
 
+msgctxt "time tracking"
+msgid "Time"
+msgstr "Čas"
+
 msgid "Time format"
 msgstr "Časowy format"
+
+msgctxt "time tracking"
+msgid "Time tracking"
+msgstr "Zapisywanje časa"
 
 msgid "Time zone"
 msgstr "Časowe pasmo"
@@ -7667,6 +7758,14 @@ msgstr "Přewjele njedokónčenych synchronizacijow."
 msgid "Top level"
 msgstr "Najwyša runina"
 
+msgctxt "time tracking"
+msgid "Total"
+msgstr "Suma"
+
+msgctxt "time tracking"
+msgid "Total time"
+msgstr "Cyłkowny čas"
+
 msgid "Transfer received text to the clipboard"
 msgstr "Přijaty tekst do mjezyskłada přenjesć"
 
@@ -7684,6 +7783,10 @@ msgstr "Wróćo"
 
 msgid "Turn forward"
 msgstr "Doprědka"
+
+msgctxt "time tracking"
+msgid "Turning tracking off keeps existing records."
+msgstr "Při wupinjenju so eksistowace zapiski wobchowaja."
 
 msgid "Two days back"
 msgstr "Dwaj dnaj wróćo"
@@ -8171,6 +8274,13 @@ msgstr ""
 
 msgid "With photo"
 msgstr "Z fotom"
+
+msgid ""
+"Without a selected region, all available public holidays of the country "
+"apply. School holidays need a region or the All selection."
+msgstr ""
+"Bjez wubraneho regiona płaća wšě k dispoziciji stejace swjate dny kraja. "
+"Šulske prózdniny region abo wuběr Wšě trjebaja."
 
 msgid ""
 "Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
@@ -8726,6 +8836,26 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected canton. With “All”, each "
+#~ "entry shows its canton and matching periods are combined."
+#~ msgstr ""
+#~ "Bjez wubraneho kantona so regionalne daty njewotwołuja. Z „Wšě“ pokazuje "
+#~ "kóždy zapisk swój kanton a samsne doby so zjednoća."
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected state. With “All”, each "
+#~ "entry shows its state and matching periods are combined."
+#~ msgstr ""
+#~ "Bjez wubraneho zwjazkoweho kraja so regionalne daty njewotwołuja. Z „Wšě“ "
+#~ "pokazuje kóždy zapisk swój zwjazkowy kraj a samsne doby so zjednoća."
+
+#~ msgid "Select your canton first or enable “All cantons”."
+#~ msgstr "Wubjerće najprjedy swój kanton abo zmóžńće „Wšě kantony“."
+
+#~ msgid "Select your state first or enable “All states”."
+#~ msgstr "Wubjerće najprjedy swój zwjazkowy kraj abo zmóžńće „Wšě kraje“."
 
 #~ msgid "Consider deletions during manual synchronization"
 #~ msgstr "Hašenja při manuelnej synchronizaciji wobkedźbować"

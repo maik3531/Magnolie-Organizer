@@ -634,6 +634,10 @@ msgstr "アカウントの種類"
 msgid "Active call"
 msgstr "通話中"
 
+msgctxt "time tracking"
+msgid "Activity"
+msgstr "活動の種類"
+
 msgid "Add"
 msgstr "追加"
 
@@ -750,6 +754,10 @@ msgstr "すべて"
 
 msgid "All cantons"
 msgstr "すべての州"
+
+msgctxt "time tracking"
+msgid "All days"
+msgstr "すべての日"
 
 msgid "All entries"
 msgstr "すべての項目"
@@ -1434,6 +1442,14 @@ msgstr "今すぐ確認"
 msgid "Check spelling (red wavy lines)"
 msgstr "スペルチェック（赤い波線）"
 
+msgctxt "time tracking"
+msgid ""
+"Check the dates, times and pause. The selected local time must exist in this "
+"time zone."
+msgstr ""
+"日付、時刻、休憩を確認してください。選択した現地時刻がこのタイムゾーンに存在"
+"する必要があります。"
+
 msgid "Check the value and discuss repeated deviations with a doctor."
 msgstr "値を確認し、異常が繰り返される場合は医師に相談してください。"
 
@@ -1607,6 +1623,10 @@ msgid ""
 msgstr ""
 "既存の予定をクリックすると、どちらの場合も編集用に開きます。この設定は、枠内"
 "の空白部分をクリックした場合だけ適用されます。"
+
+msgctxt "time tracking"
+msgid "Clock change (min)"
+msgstr "時計の調整（分）"
 
 msgid "Close"
 msgstr "閉じる"
@@ -2033,6 +2053,10 @@ msgstr "データ: 見つかりません – Organizer を一度開いてくだ�
 msgid "Date"
 msgstr "日付"
 
+msgctxt "time tracking"
+msgid "Date"
+msgstr "日付"
+
 msgid "Date format"
 msgstr "日付形式"
 
@@ -2334,6 +2358,10 @@ msgstr "通話時間"
 msgid "Early shift"
 msgstr "早番"
 
+msgctxt "time tracking"
+msgid "Early shift"
+msgstr "早番"
+
 msgid "Edit"
 msgstr "編集"
 
@@ -2354,6 +2382,10 @@ msgstr "ノートブックを編集"
 
 msgid "Edit notebook group"
 msgstr "ノートブックグループを編集"
+
+msgctxt "time tracking"
+msgid "Edit record"
+msgstr "記録を編集"
 
 msgid "Edit task"
 msgstr "タスクを編集"
@@ -2445,6 +2477,10 @@ msgstr ""
 msgid "Enable this SMS plan"
 msgstr "この SMS 予約を有効にする"
 
+msgctxt "time tracking"
+msgid "Enable time tracking"
+msgstr "時間記録を有効にする"
+
 msgid "Enable tray applet"
 msgstr "トレイアプレットを有効化"
 
@@ -2465,6 +2501,14 @@ msgstr "暗号化されたアーカイブ内の項目はサポートされてい
 
 msgid "Encrypting the data"
 msgstr "データを暗号化しています"
+
+msgctxt "time tracking"
+msgid "End"
+msgstr "終了"
+
+msgctxt "time tracking"
+msgid "End date"
+msgstr "終了日"
 
 msgid "Ending the call"
 msgstr "通話を終了中"
@@ -2940,6 +2984,10 @@ msgstr "訪問"
 msgid "Hours"
 msgstr "時間"
 
+msgctxt "time tracking"
+msgid "Hours"
+msgstr "時間"
+
 msgid "How the calendar should behave when you click a day."
 msgstr "日付をクリックしたときのカレンダーの動作。"
 
@@ -3274,6 +3322,10 @@ msgstr "最終同期: %(date)s、%(time)s。"
 msgid "Late shift"
 msgstr "遅番"
 
+msgctxt "time tracking"
+msgid "Late shift"
+msgstr "遅番"
+
 msgid "Latest alarm monitor entries:"
 msgstr "アラーム監視の最新エントリ:"
 
@@ -3517,6 +3569,10 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "カスタム"
 
+msgctxt "time tracking"
+msgid "Manual entry"
+msgstr "手動で追加"
+
 msgid "Manual only"
 msgstr "手動のみ"
 
@@ -3646,6 +3702,10 @@ msgstr "KDE Connect SMS を監視して通知を表示する"
 msgid "Month"
 msgstr "月"
 
+msgctxt "time tracking"
+msgid "Month"
+msgstr "月"
+
 msgid "Month calendar"
 msgstr "月間カレンダー"
 
@@ -3709,6 +3769,10 @@ msgstr "複数のカレンダー"
 
 msgid "Name"
 msgstr "名前"
+
+msgctxt "time tracking"
+msgid "Name"
+msgstr "氏名"
 
 msgid "Name / occasion"
 msgstr "名前 / 用途"
@@ -3879,6 +3943,10 @@ msgstr "夜"
 msgid "Night shift"
 msgstr "夜勤"
 
+msgctxt "time tracking"
+msgid "Night shift"
+msgstr "夜勤"
+
 msgid "No"
 msgstr "いいえ"
 
@@ -4011,20 +4079,6 @@ msgstr ""
 "このコンピューターには読み取り可能な Evolution または Thunderbird のストアが"
 "見つかりませんでした。"
 
-msgid ""
-"No regional data is retrieved without a selected canton. With “All”, each "
-"entry shows its canton and matching periods are combined."
-msgstr ""
-"カントンを選択しない限り地域データは取得されません。「すべて」を選ぶと各項目"
-"にカントンが表示され、同じ期間はまとめられます。"
-
-msgid ""
-"No regional data is retrieved without a selected state. With “All”, each "
-"entry shows its state and matching periods are combined."
-msgstr ""
-"州を選択しない限り地域データは取得されません。「すべて」を選ぶと各項目に州が"
-"表示され、同じ期間はまとめられます。"
-
 msgid "No scheme row matches this blood glucose value."
 msgstr "この血糖値に該当するスキーム行はありません。"
 
@@ -4064,6 +4118,10 @@ msgstr "まだタスクが関連付けられていません。"
 #, python-format
 msgid "No text viewer was found. The log is located at: %s"
 msgstr "テキストビューアーが見つかりませんでした。ログは次の場所にあります：%s"
+
+msgctxt "time tracking"
+msgid "No time recorded yet."
+msgstr "時間の記録はまだありません。"
 
 msgid "No update check has been performed yet."
 msgstr "更新確認はまだ実行されていません。"
@@ -4584,6 +4642,14 @@ msgstr "貼り付け"
 msgid "Patch"
 msgstr "貼付剤"
 
+msgctxt "time tracking"
+msgid "Pause (minutes)"
+msgstr "休憩（分）"
+
+msgctxt "time tracking"
+msgid "Paused"
+msgstr "一時停止中"
+
 msgid "Paused — review required"
 msgstr "一時停止中 — 確認が必要"
 
@@ -4890,6 +4956,9 @@ msgstr "保護されたアーカイブパスワードを利用できません。
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "相手側ブランチの公開 IPv4 または IPv6 アドレス"
 
+msgid "Public holidays"
+msgstr "祝日"
+
 msgid ""
 "Public holidays and school holidays are governed regionally. Choose which "
 "ones apply here."
@@ -4957,6 +5026,10 @@ msgstr "KDE Connect で受信"
 
 msgid "Reconnect"
 msgstr "再接続"
+
+msgctxt "time tracking"
+msgid "Recorded times"
+msgstr "記録済みの時間"
 
 msgid "Recovery snapshot created."
 msgstr "リカバリスナップショットが作成されました。"
@@ -5277,6 +5350,10 @@ msgstr ""
 msgid "Run the optional background service"
 msgstr "オプションのバックグラウンドサービスを実行"
 
+msgctxt "time tracking"
+msgid "Running"
+msgstr "記録中"
+
 msgid "S"
 msgstr "S"
 
@@ -5540,14 +5617,8 @@ msgstr "先に何か選択してください。"
 msgid "Select what you want to print on the left."
 msgstr "左側で印刷する内容を選択してください。"
 
-msgid "Select your canton first or enable “All cantons”."
-msgstr "先にカントンを選択するか、「すべてのカントン」を有効にしてください。"
-
 msgid "Select your phone"
 msgstr "携帯電話を選んでください"
-
-msgid "Select your state first or enable “All states”."
-msgstr "先に州を選択するか、「すべての州」を有効にしてください。"
 
 msgid "Select, preview, print, export or delete health records"
 msgstr "健康記録を選択、プレビュー、印刷、エクスポート、または削除"
@@ -5740,6 +5811,10 @@ msgstr "月表示に週番号を表示"
 msgid "Show week numbers in the planner"
 msgstr "プランナーに週番号を表示"
 
+msgctxt "time tracking"
+msgid "Signature"
+msgstr "署名"
+
 msgid "Silence this alert"
 msgstr "この通知を消す"
 
@@ -5843,6 +5918,10 @@ msgstr "スプレー剤"
 
 msgid "St. Gallen"
 msgstr "ザンクト・ガレン"
+
+msgctxt "time tracking"
+msgid "Start"
+msgstr "開始"
 
 msgid "Start Magnolie"
 msgstr "Magnolie を起動"
@@ -6535,6 +6614,10 @@ msgstr "入力されたフィンガープリントが不完全です。"
 
 msgid "The entry could not be found."
 msgstr "項目が見つかりませんでした。"
+
+msgctxt "time tracking"
+msgid "The entry could not be saved. Reload it and try again."
+msgstr "記録を保存できませんでした。開き直して、もう一度お試しください。"
 
 msgid "The file could not be read."
 msgstr "ファイルを読み取れませんでした。"
@@ -7411,8 +7494,16 @@ msgstr "ティチーノ"
 msgid "Time"
 msgstr "時刻"
 
+msgctxt "time tracking"
+msgid "Time"
+msgstr "時刻"
+
 msgid "Time format"
 msgstr "時刻形式"
+
+msgctxt "time tracking"
+msgid "Time tracking"
+msgstr "時間記録"
 
 msgid "Time zone"
 msgstr "タイムゾーン"
@@ -7468,6 +7559,14 @@ msgstr "未完了の同期処理が多すぎます。"
 msgid "Top level"
 msgstr "最上位"
 
+msgctxt "time tracking"
+msgid "Total"
+msgstr "合計"
+
+msgctxt "time tracking"
+msgid "Total time"
+msgstr "合計時間"
+
 msgid "Transfer received text to the clipboard"
 msgstr "受信したテキストをクリップボードに転送"
 
@@ -7485,6 +7584,10 @@ msgstr "戻す"
 
 msgid "Turn forward"
 msgstr "進める"
+
+msgctxt "time tracking"
+msgid "Turning tracking off keeps existing records."
+msgstr "無効にしても既存の記録は保持されます。"
 
 msgid "Two days back"
 msgstr "2日前"
@@ -7968,6 +8071,13 @@ msgstr ""
 
 msgid "With photo"
 msgstr "写真あり"
+
+msgid ""
+"Without a selected region, all available public holidays of the country "
+"apply. School holidays need a region or the All selection."
+msgstr ""
+"地域を選ばない場合、その国で利用できるすべての祝日を対象とします。学校休暇に"
+"は地域または「すべて」の選択が必要です。"
 
 msgid ""
 "Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
@@ -8496,6 +8606,27 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected canton. With “All”, each "
+#~ "entry shows its canton and matching periods are combined."
+#~ msgstr ""
+#~ "カントンを選択しない限り地域データは取得されません。「すべて」を選ぶと各項"
+#~ "目にカントンが表示され、同じ期間はまとめられます。"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected state. With “All”, each "
+#~ "entry shows its state and matching periods are combined."
+#~ msgstr ""
+#~ "州を選択しない限り地域データは取得されません。「すべて」を選ぶと各項目に州"
+#~ "が表示され、同じ期間はまとめられます。"
+
+#~ msgid "Select your canton first or enable “All cantons”."
+#~ msgstr ""
+#~ "先にカントンを選択するか、「すべてのカントン」を有効にしてください。"
+
+#~ msgid "Select your state first or enable “All states”."
+#~ msgstr "先に州を選択するか、「すべての州」を有効にしてください。"
 
 #~ msgid "Consider deletions during manual synchronization"
 #~ msgstr "連絡先の同期"

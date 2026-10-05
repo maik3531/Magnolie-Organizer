@@ -662,6 +662,10 @@ msgstr "खाते का प्रकार"
 msgid "Active call"
 msgstr "सक्रिय कॉल"
 
+msgctxt "time tracking"
+msgid "Activity"
+msgstr "गतिविधि"
+
 msgid "Add"
 msgstr "जोड़ें"
 
@@ -776,6 +780,10 @@ msgstr "सभी"
 
 msgid "All cantons"
 msgstr "सभी कैंटन"
+
+msgctxt "time tracking"
+msgid "All days"
+msgstr "सभी दिन"
 
 msgid "All entries"
 msgstr "सभी प्रविष्टियाँ"
@@ -1449,6 +1457,13 @@ msgstr "अभी जाँचें"
 msgid "Check spelling (red wavy lines)"
 msgstr "वर्तनी जाँचें (लाल लहरदार रेखाएँ)"
 
+msgctxt "time tracking"
+msgid ""
+"Check the dates, times and pause. The selected local time must exist in this "
+"time zone."
+msgstr ""
+"तिथियाँ, समय और विराम जाँचें। चुना गया स्थानीय समय इस समय क्षेत्र में मौजूद होना चाहिए।"
+
 msgid "Check the value and discuss repeated deviations with a doctor."
 msgstr "मान की जाँच करें और बार-बार होने वाले विचलनों के बारे में डॉक्टर से चर्चा करें।"
 
@@ -1616,6 +1631,10 @@ msgid ""
 msgstr ""
 "मौजूदा अपॉइंटमेंट पर क्लिक करने से दोनों स्थितियों में वह संपादन के लिए खुलता है। यह सेटिंग "
 "केवल तब लागू होती है जब आप बॉक्स के खाली क्षेत्र पर क्लिक करते हैं।"
+
+msgctxt "time tracking"
+msgid "Clock change (min)"
+msgstr "घड़ी का बदलाव (मिनट)"
 
 msgid "Close"
 msgstr "बंद करें"
@@ -2031,6 +2050,10 @@ msgstr "डेटा: नहीं मिला – Organizer को एक ब�
 msgid "Date"
 msgstr "दिनांक"
 
+msgctxt "time tracking"
+msgid "Date"
+msgstr "दिनांक"
+
 msgid "Date format"
 msgstr "तारीख़ का प्रारूप"
 
@@ -2327,6 +2350,10 @@ msgstr "अवधि"
 msgid "Early shift"
 msgstr "सुबह की शिफ़्ट"
 
+msgctxt "time tracking"
+msgid "Early shift"
+msgstr "सुबह की पाली"
+
 msgid "Edit"
 msgstr "संपादित करें"
 
@@ -2347,6 +2374,10 @@ msgstr "नोटबुक संपादित करें"
 
 msgid "Edit notebook group"
 msgstr "नोटबुक समूह संपादित करें"
+
+msgctxt "time tracking"
+msgid "Edit record"
+msgstr "प्रविष्टि संपादित करें"
 
 msgid "Edit task"
 msgstr "कार्य संपादित करें"
@@ -2436,6 +2467,10 @@ msgstr "यहाँ टैबलेट इनपुट चालू करे�
 msgid "Enable this SMS plan"
 msgstr "यह SMS योजना चालू करें"
 
+msgctxt "time tracking"
+msgid "Enable time tracking"
+msgstr "समय रिकॉर्डिंग चालू करें"
+
 msgid "Enable tray applet"
 msgstr "सिस्टम ट्रे एप्लेट सक्षम करें"
 
@@ -2455,6 +2490,14 @@ msgstr "एन्क्रिप्ट की गई आर्काइव प�
 
 msgid "Encrypting the data"
 msgstr "डेटा एन्क्रिप्ट किया जा रहा है"
+
+msgctxt "time tracking"
+msgid "End"
+msgstr "समाप्ति"
+
+msgctxt "time tracking"
+msgid "End date"
+msgstr "समाप्ति की तारीख"
 
 msgid "Ending the call"
 msgstr "कॉल समाप्त की जा रही है"
@@ -2924,6 +2967,10 @@ msgstr "घर पर मुलाक़ात"
 msgid "Hours"
 msgstr "घंटे"
 
+msgctxt "time tracking"
+msgid "Hours"
+msgstr "घंटे"
+
 msgid "How the calendar should behave when you click a day."
 msgstr "किसी दिन पर क्लिक करने पर कैलेंडर कैसे व्यवहार करे।"
 
@@ -3250,6 +3297,10 @@ msgstr "अंतिम सिंक्रनाइज़ेशन: %(date)s, %(
 msgid "Late shift"
 msgstr "देर की शिफ़्ट"
 
+msgctxt "time tracking"
+msgid "Late shift"
+msgstr "शाम की पाली"
+
 msgid "Latest alarm monitor entries:"
 msgstr "अलार्म मॉनिटर की नवीनतम प्रविष्टियाँ:"
 
@@ -3493,6 +3544,10 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "कस्टम"
 
+msgctxt "time tracking"
+msgid "Manual entry"
+msgstr "मैन्युअल प्रविष्टि"
+
 msgid "Manual only"
 msgstr "केवल मैन्युअल"
 
@@ -3622,6 +3677,10 @@ msgstr "KDE Connect SMS की निगरानी करें और सू�
 msgid "Month"
 msgstr "महीना"
 
+msgctxt "time tracking"
+msgid "Month"
+msgstr "महीना"
+
 msgid "Month calendar"
 msgstr "मासिक कैलेंडर"
 
@@ -3681,6 +3740,10 @@ msgstr ""
 msgid "Multiple calendars"
 msgstr "एकाधिक कैलेंडर"
 
+msgid "Name"
+msgstr "नाम"
+
+msgctxt "time tracking"
 msgid "Name"
 msgstr "नाम"
 
@@ -3851,6 +3914,10 @@ msgstr "रात"
 msgid "Night shift"
 msgstr "रात की शिफ्ट"
 
+msgctxt "time tracking"
+msgid "Night shift"
+msgstr "रात की पाली"
+
 msgid "No"
 msgstr "नहीं"
 
@@ -3974,20 +4041,6 @@ msgid ""
 "No readable Evolution or Thunderbird stores were found on this computer."
 msgstr "इस कंप्यूटर पर Evolution या Thunderbird का कोई पढ़ने योग्य स्टोर नहीं मिला।"
 
-msgid ""
-"No regional data is retrieved without a selected canton. With “All”, each "
-"entry shows its canton and matching periods are combined."
-msgstr ""
-"कैंटन चुने बिना क्षेत्रीय डेटा प्राप्त नहीं किया जाता। “सभी” चुनने पर हर प्रविष्टि अपना कैंटन "
-"दिखाती है और मेल खाने वाली अवधियाँ मिला दी जाती हैं।"
-
-msgid ""
-"No regional data is retrieved without a selected state. With “All”, each "
-"entry shows its state and matching periods are combined."
-msgstr ""
-"राज्य चुने बिना क्षेत्रीय डेटा प्राप्त नहीं किया जाता। “सभी” चुनने पर हर प्रविष्टि अपना "
-"राज्य दिखाती है और मेल खाने वाली अवधियाँ मिला दी जाती हैं।"
-
 msgid "No scheme row matches this blood glucose value."
 msgstr "कोई भी योजना पंक्ति इस रक्त शर्करा मान से मेल नहीं खाती।"
 
@@ -4027,6 +4080,10 @@ msgstr "अभी कोई कार्य लिंक नहीं है।"
 #, python-format
 msgid "No text viewer was found. The log is located at: %s"
 msgstr "कोई टेक्स्ट व्यूअर नहीं मिला। लॉग यहाँ है: %s"
+
+msgctxt "time tracking"
+msgid "No time recorded yet."
+msgstr "अभी कोई समय दर्ज नहीं है।"
 
 msgid "No update check has been performed yet."
 msgstr "अभी तक अपडेट जाँच नहीं की गई है।"
@@ -4545,6 +4602,14 @@ msgstr "चिपकाएँ"
 msgid "Patch"
 msgstr "पैच"
 
+msgctxt "time tracking"
+msgid "Pause (minutes)"
+msgstr "विराम (मिनट)"
+
+msgctxt "time tracking"
+msgid "Paused"
+msgstr "विराम पर"
+
 msgid "Paused — review required"
 msgstr "रुका हुआ — समीक्षा ज़रूरी है"
 
@@ -4860,6 +4925,9 @@ msgstr "सुरक्षित संग्रह पासवर्ड उप
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "दूसरी शाखा का सार्वजनिक IPv4 या IPv6 पता"
 
+msgid "Public holidays"
+msgstr "सार्वजनिक अवकाश"
+
 msgid ""
 "Public holidays and school holidays are governed regionally. Choose which "
 "ones apply here."
@@ -4929,6 +4997,10 @@ msgstr "KDE Connect से प्राप्त करें"
 
 msgid "Reconnect"
 msgstr "रिकनेक्ट"
+
+msgctxt "time tracking"
+msgid "Recorded times"
+msgstr "दर्ज किए गए समय"
 
 msgid "Recovery snapshot created."
 msgstr "रिकवरी स्नैपशॉट बनाया गया।"
@@ -5242,6 +5314,10 @@ msgstr ""
 msgid "Run the optional background service"
 msgstr "वैकल्पिक पृष्ठभूमि सेवा चलाएँ"
 
+msgctxt "time tracking"
+msgid "Running"
+msgstr "जारी है"
+
 msgid "S"
 msgstr "S"
 
@@ -5503,14 +5579,8 @@ msgstr "पहले कुछ चुनें।"
 msgid "Select what you want to print on the left."
 msgstr "बाईं ओर चुनें कि क्या प्रिंट करना है।"
 
-msgid "Select your canton first or enable “All cantons”."
-msgstr "पहले अपना कैंटन चुनें या “सभी कैंटन” चालू करें।"
-
 msgid "Select your phone"
 msgstr "अपना फ़ोन चुनें"
-
-msgid "Select your state first or enable “All states”."
-msgstr "पहले अपना राज्य चुनें या “सभी राज्य” चालू करें।"
 
 msgid "Select, preview, print, export or delete health records"
 msgstr "स्वास्थ्य रिकॉर्ड चुनें, पूर्वावलोकन करें, प्रिंट करें, निर्यात करें या हटाएँ"
@@ -5703,6 +5773,10 @@ msgstr "मासिक दृश्य में सप्ताह संख�
 msgid "Show week numbers in the planner"
 msgstr "प्लानर में सप्ताह संख्या दिखाएँ"
 
+msgctxt "time tracking"
+msgid "Signature"
+msgstr "हस्ताक्षर"
+
 msgid "Silence this alert"
 msgstr "यह सूचना शांत करें"
 
@@ -5806,6 +5880,10 @@ msgstr "स्प्रे"
 
 msgid "St. Gallen"
 msgstr "सेंट गैलेन"
+
+msgctxt "time tracking"
+msgid "Start"
+msgstr "शुरुआत"
 
 msgid "Start Magnolie"
 msgstr "Magnolie शुरू करें"
@@ -6475,6 +6553,10 @@ msgstr "दर्ज किया गया फ़िंगरप्रिंट
 
 msgid "The entry could not be found."
 msgstr "प्रविष्टि नहीं मिली।"
+
+msgctxt "time tracking"
+msgid "The entry could not be saved. Reload it and try again."
+msgstr "प्रविष्टि सहेजी नहीं जा सकी। इसे फिर से खोलकर दोबारा कोशिश करें।"
 
 msgid "The file could not be read."
 msgstr "फ़ाइल पढ़ी नहीं जा सकी।"
@@ -7334,8 +7416,16 @@ msgstr "टिचीनो"
 msgid "Time"
 msgstr "समय"
 
+msgctxt "time tracking"
+msgid "Time"
+msgstr "समय"
+
 msgid "Time format"
 msgstr "समय प्रारूप"
+
+msgctxt "time tracking"
+msgid "Time tracking"
+msgstr "समय रिकॉर्डिंग"
 
 msgid "Time zone"
 msgstr "समय क्षेत्र"
@@ -7389,6 +7479,14 @@ msgstr "समन्वयन की बहुत अधिक प्रक्�
 msgid "Top level"
 msgstr "मुख्य स्तर"
 
+msgctxt "time tracking"
+msgid "Total"
+msgstr "कुल"
+
+msgctxt "time tracking"
+msgid "Total time"
+msgstr "कुल समय"
+
 msgid "Transfer received text to the clipboard"
 msgstr "प्राप्त टेक्स्ट को क्लिपबोर्ड पर भेजें"
 
@@ -7406,6 +7504,10 @@ msgstr "पीछे जाएँ"
 
 msgid "Turn forward"
 msgstr "आगे जाएँ"
+
+msgctxt "time tracking"
+msgid "Turning tracking off keeps existing records."
+msgstr "बंद करने पर मौजूदा प्रविष्टियाँ बनी रहती हैं।"
 
 msgid "Two days back"
 msgstr "दो दिन पीछे"
@@ -7885,6 +7987,13 @@ msgstr ""
 
 msgid "With photo"
 msgstr "फ़ोटो सहित"
+
+msgid ""
+"Without a selected region, all available public holidays of the country "
+"apply. School holidays need a region or the All selection."
+msgstr ""
+"क्षेत्र नहीं चुना होने पर देश के सभी उपलब्ध सार्वजनिक अवकाश लागू होते हैं। स्कूल की छुट्टियों के "
+"लिए क्षेत्र या सभी चुनना ज़रूरी है।"
 
 msgid ""
 "Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
@@ -8414,6 +8523,26 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected canton. With “All”, each "
+#~ "entry shows its canton and matching periods are combined."
+#~ msgstr ""
+#~ "कैंटन चुने बिना क्षेत्रीय डेटा प्राप्त नहीं किया जाता। “सभी” चुनने पर हर प्रविष्टि अपना "
+#~ "कैंटन दिखाती है और मेल खाने वाली अवधियाँ मिला दी जाती हैं।"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected state. With “All”, each "
+#~ "entry shows its state and matching periods are combined."
+#~ msgstr ""
+#~ "राज्य चुने बिना क्षेत्रीय डेटा प्राप्त नहीं किया जाता। “सभी” चुनने पर हर प्रविष्टि अपना "
+#~ "राज्य दिखाती है और मेल खाने वाली अवधियाँ मिला दी जाती हैं।"
+
+#~ msgid "Select your canton first or enable “All cantons”."
+#~ msgstr "पहले अपना कैंटन चुनें या “सभी कैंटन” चालू करें।"
+
+#~ msgid "Select your state first or enable “All states”."
+#~ msgstr "पहले अपना राज्य चुनें या “सभी राज्य” चालू करें।"
 
 #~ msgid "Consider deletions during manual synchronization"
 #~ msgstr "संपर्क सिंक्रनाइज़ेशन"

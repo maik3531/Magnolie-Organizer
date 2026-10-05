@@ -1,5 +1,7 @@
 magnolie-organizer (2.0.26) unstable; urgency=medium
 
+  * Ergänzt Zeiterfassung, eigenen Geräteabgleich, Kalender-Koffer und Monatsdruck/ODS.
+  * Berücksichtigt regionale Uhrzeiten und Feiertage sowie korrigierte Planer-Zeilen.
   * Ergänzt den einseitigen Notes-Import und vereinfacht den Geräteabgleich.
   * Prüft Kontaktübernahmen feldweise und erhält gewählte Fotos und Anhänge.
   * Liest freigegebene Notes-Kontakte und Fotos über die eigene Telefonverbindung.

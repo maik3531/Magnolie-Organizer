@@ -708,6 +708,10 @@ msgstr "Тип облікового запису"
 msgid "Active call"
 msgstr "Активний виклик"
 
+msgctxt "time tracking"
+msgid "Activity"
+msgstr "Діяльність"
+
 msgid "Add"
 msgstr "Додати"
 
@@ -823,6 +827,10 @@ msgstr "Усі"
 
 msgid "All cantons"
 msgstr "Усі кантони"
+
+msgctxt "time tracking"
+msgid "All days"
+msgstr "Усі дні"
 
 msgid "All entries"
 msgstr "Усі записи"
@@ -1510,6 +1518,14 @@ msgstr "Перевірити зараз"
 msgid "Check spelling (red wavy lines)"
 msgstr "Перевіряти правопис (червоні хвилясті лінії)"
 
+msgctxt "time tracking"
+msgid ""
+"Check the dates, times and pause. The selected local time must exist in this "
+"time zone."
+msgstr ""
+"Перевірте дати, час і перерву. Вибраний місцевий час має існувати в цьому "
+"часовому поясі."
+
 msgid "Check the value and discuss repeated deviations with a doctor."
 msgstr "Перевірте значення та обговоріть із лікарем повторювані відхилення."
 
@@ -1684,6 +1700,10 @@ msgid ""
 msgstr ""
 "Клацання на наявній зустрічі в обох випадках відкриває її для редагування. "
 "Це налаштування діє лише під час клацання на порожній ділянці поля."
+
+msgctxt "time tracking"
+msgid "Clock change (min)"
+msgstr "Переведення годинника (хв)"
 
 msgid "Close"
 msgstr "Закрити"
@@ -2107,6 +2127,10 @@ msgstr "Дані: не знайдено – відкрийте Organizer оди�
 msgid "Date"
 msgstr "Дата"
 
+msgctxt "time tracking"
+msgid "Date"
+msgstr "Дата"
+
 msgid "Date format"
 msgstr "Формат дати"
 
@@ -2410,6 +2434,10 @@ msgstr "Тривалість"
 msgid "Early shift"
 msgstr "Рання зміна"
 
+msgctxt "time tracking"
+msgid "Early shift"
+msgstr "Ранкова зміна"
+
 msgid "Edit"
 msgstr "Редагувати"
 
@@ -2430,6 +2458,10 @@ msgstr "Редагувати блокнот"
 
 msgid "Edit notebook group"
 msgstr "Редагувати групу блокнотів"
+
+msgctxt "time tracking"
+msgid "Edit record"
+msgstr "Змінити запис"
 
 msgid "Edit task"
 msgstr "Редагувати завдання"
@@ -2522,6 +2554,10 @@ msgstr ""
 msgid "Enable this SMS plan"
 msgstr "Увімкнути цей план SMS"
 
+msgctxt "time tracking"
+msgid "Enable time tracking"
+msgstr "Увімкнути облік часу"
+
 msgid "Enable tray applet"
 msgstr "Увімкнути аплет системного лотка"
 
@@ -2542,6 +2578,14 @@ msgstr "Зашифровані записи архіву не підтримую
 
 msgid "Encrypting the data"
 msgstr "Шифрування даних"
+
+msgctxt "time tracking"
+msgid "End"
+msgstr "Кінець"
+
+msgctxt "time tracking"
+msgid "End date"
+msgstr "Дата завершення"
 
 msgid "Ending the call"
 msgstr "Завершення дзвінка"
@@ -3019,6 +3063,10 @@ msgstr "Домашній візит"
 msgid "Hours"
 msgstr "Години"
 
+msgctxt "time tracking"
+msgid "Hours"
+msgstr "Години"
+
 msgid "How the calendar should behave when you click a day."
 msgstr "Як календар має поводитися під час клацання на дні."
 
@@ -3350,6 +3398,10 @@ msgstr "Остання синхронізація: %(date)s, %(time)s."
 msgid "Late shift"
 msgstr "Пізня зміна"
 
+msgctxt "time tracking"
+msgid "Late shift"
+msgstr "Вечірня зміна"
+
 msgid "Latest alarm monitor entries:"
 msgstr "Останні записи монітора нагадувань:"
 
@@ -3594,6 +3646,10 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Власне"
 
+msgctxt "time tracking"
+msgid "Manual entry"
+msgstr "Ручний запис"
+
 msgid "Manual only"
 msgstr "Лише вручну"
 
@@ -3725,6 +3781,10 @@ msgstr "Відстежувати SMS у KDE Connect і показувати сп
 msgid "Month"
 msgstr "Місяць"
 
+msgctxt "time tracking"
+msgid "Month"
+msgstr "Місяць"
+
 msgid "Month calendar"
 msgstr "Місячний календар"
 
@@ -3786,6 +3846,10 @@ msgstr ""
 msgid "Multiple calendars"
 msgstr "Кілька календарів"
 
+msgid "Name"
+msgstr "Ім’я"
+
+msgctxt "time tracking"
 msgid "Name"
 msgstr "Ім’я"
 
@@ -3957,6 +4021,10 @@ msgstr "Ніч"
 msgid "Night shift"
 msgstr "Нічна зміна"
 
+msgctxt "time tracking"
+msgid "Night shift"
+msgstr "Нічна зміна"
+
 msgid "No"
 msgstr "Ні"
 
@@ -4085,21 +4153,6 @@ msgstr ""
 "На цьому комп’ютері не знайдено доступних для читання сховищ Evolution або "
 "Thunderbird."
 
-msgid ""
-"No regional data is retrieved without a selected canton. With “All”, each "
-"entry shows its canton and matching periods are combined."
-msgstr ""
-"Без вибраного кантону регіональні дані не завантажуються. Якщо вибрати "
-"«Усі», кожен запис показує свій кантон, а однакові періоди об’єднуються."
-
-msgid ""
-"No regional data is retrieved without a selected state. With “All”, each "
-"entry shows its state and matching periods are combined."
-msgstr ""
-"Без вибраної федеральної землі регіональні дані не завантажуються. Якщо "
-"вибрати «Усі», кожен запис показує свою землю, а однакові періоди "
-"об’єднуються."
-
 msgid "No scheme row matches this blood glucose value."
 msgstr "Жоден рядок схеми не відповідає цьому значенню глюкози в крові."
 
@@ -4139,6 +4192,10 @@ msgstr "Завдання ще не пов’язано."
 #, python-format
 msgid "No text viewer was found. The log is located at: %s"
 msgstr "Переглядача тексту не знайдено. Журнал розташовано в: %s"
+
+msgctxt "time tracking"
+msgid "No time recorded yet."
+msgstr "Час ще не записано."
 
 msgid "No update check has been performed yet."
 msgstr "Перевірку оновлень ще не виконано."
@@ -4676,6 +4733,14 @@ msgstr "Вставити"
 msgid "Patch"
 msgstr "Пластир"
 
+msgctxt "time tracking"
+msgid "Pause (minutes)"
+msgstr "Перерва (хвилини)"
+
+msgctxt "time tracking"
+msgid "Paused"
+msgstr "Пауза"
+
 msgid "Paused — review required"
 msgstr "Призупинено — потрібна перевірка"
 
@@ -4999,6 +5064,9 @@ msgstr "Захищений пароль архіву недоступний."
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "Публічна адреса IPv4 або IPv6 іншої гілки"
 
+msgid "Public holidays"
+msgstr "Святкові дні"
+
 msgid ""
 "Public holidays and school holidays are governed regionally. Choose which "
 "ones apply here."
@@ -5069,6 +5137,10 @@ msgstr "Отримувати через KDE Connect"
 
 msgid "Reconnect"
 msgstr "Повторне підключення"
+
+msgctxt "time tracking"
+msgid "Recorded times"
+msgstr "Записаний час"
 
 msgid "Recovery snapshot created."
 msgstr "Знімок відновлення створено."
@@ -5389,6 +5461,10 @@ msgstr ""
 msgid "Run the optional background service"
 msgstr "Запустити необов’язкову фонову службу"
 
+msgctxt "time tracking"
+msgid "Running"
+msgstr "Триває запис"
+
 msgid "S"
 msgstr "S"
 
@@ -5653,14 +5729,8 @@ msgstr "Спочатку щось виберіть."
 msgid "Select what you want to print on the left."
 msgstr "Ліворуч виберіть, що потрібно надрукувати."
 
-msgid "Select your canton first or enable “All cantons”."
-msgstr "Спочатку виберіть кантон або ввімкніть «Усі кантони»."
-
 msgid "Select your phone"
 msgstr "Виберіть свій телефон"
-
-msgid "Select your state first or enable “All states”."
-msgstr "Спочатку виберіть федеральну землю або ввімкніть «Усі землі»."
 
 msgid "Select, preview, print, export or delete health records"
 msgstr ""
@@ -5859,6 +5929,10 @@ msgstr "Показувати номери тижнів у місячному п�
 msgid "Show week numbers in the planner"
 msgstr "Показувати номери тижнів у планувальнику"
 
+msgctxt "time tracking"
+msgid "Signature"
+msgstr "Підпис"
+
 msgid "Silence this alert"
 msgstr "Вимкнути це сповіщення"
 
@@ -5962,6 +6036,10 @@ msgstr "Спрей"
 
 msgid "St. Gallen"
 msgstr "Санкт-Галлен"
+
+msgctxt "time tracking"
+msgid "Start"
+msgstr "Початок"
 
 msgid "Start Magnolie"
 msgstr "Запустити Magnolie"
@@ -6650,6 +6728,10 @@ msgstr "Введений відбиток неповний."
 
 msgid "The entry could not be found."
 msgstr "Запис не знайдено."
+
+msgctxt "time tracking"
+msgid "The entry could not be saved. Reload it and try again."
+msgstr "Не вдалося зберегти запис. Відкрийте його знову та повторіть спробу."
 
 msgid "The file could not be read."
 msgstr "Не вдалося прочитати файл."
@@ -7532,8 +7614,16 @@ msgstr "Тічино"
 msgid "Time"
 msgstr "Час"
 
+msgctxt "time tracking"
+msgid "Time"
+msgstr "Час"
+
 msgid "Time format"
 msgstr "Формат часу"
+
+msgctxt "time tracking"
+msgid "Time tracking"
+msgstr "Облік часу"
 
 msgid "Time zone"
 msgstr "Часовий пояс"
@@ -7588,6 +7678,14 @@ msgstr "Забагато незавершених сеансів синхрон�
 msgid "Top level"
 msgstr "Верхній рівень"
 
+msgctxt "time tracking"
+msgid "Total"
+msgstr "Разом"
+
+msgctxt "time tracking"
+msgid "Total time"
+msgstr "Загальний час"
+
 msgid "Transfer received text to the clipboard"
 msgstr "Перенести отриманий текст до буфера обміну"
 
@@ -7605,6 +7703,10 @@ msgstr "Назад"
 
 msgid "Turn forward"
 msgstr "Уперед"
+
+msgctxt "time tracking"
+msgid "Turning tracking off keeps existing records."
+msgstr "Після вимкнення наявні записи зберігаються."
 
 msgid "Two days back"
 msgstr "На два дні назад"
@@ -8091,6 +8193,13 @@ msgstr ""
 
 msgid "With photo"
 msgstr "З фотографією"
+
+msgid ""
+"Without a selected region, all available public holidays of the country "
+"apply. School holidays need a region or the All selection."
+msgstr ""
+"Без вибраного регіону враховуються всі доступні свята країни. Для шкільних "
+"канікул потрібен регіон або вибір Усі."
 
 msgid ""
 "Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
@@ -8638,6 +8747,27 @@ msgstr[2] "… і ще %(count)s елементи, які також буде н
 
 msgid "＋ Add appointment"
 msgstr "＋ Додати зустріч"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected canton. With “All”, each "
+#~ "entry shows its canton and matching periods are combined."
+#~ msgstr ""
+#~ "Без вибраного кантону регіональні дані не завантажуються. Якщо вибрати "
+#~ "«Усі», кожен запис показує свій кантон, а однакові періоди об’єднуються."
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected state. With “All”, each "
+#~ "entry shows its state and matching periods are combined."
+#~ msgstr ""
+#~ "Без вибраної федеральної землі регіональні дані не завантажуються. Якщо "
+#~ "вибрати «Усі», кожен запис показує свою землю, а однакові періоди "
+#~ "об’єднуються."
+
+#~ msgid "Select your canton first or enable “All cantons”."
+#~ msgstr "Спочатку виберіть кантон або ввімкніть «Усі кантони»."
+
+#~ msgid "Select your state first or enable “All states”."
+#~ msgstr "Спочатку виберіть федеральну землю або ввімкніть «Усі землі»."
 
 #~ msgid "Consider deletions during manual synchronization"
 #~ msgstr "Враховувати видалення під час синхронізації вручну"

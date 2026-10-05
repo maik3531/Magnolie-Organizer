@@ -132,6 +132,7 @@ class Telefonhandlungen(
     val beiPersonalJetzt: () -> Unit,
     val beiPersonalEntscheidung: (String, String) -> String,
     val beiCustomSync: (Boolean) -> Unit,
+    val beiTimeSync: (Boolean) -> Unit,
     val beiCustomEntscheidung: (String, Long, Boolean) -> Unit
 )
 
@@ -364,6 +365,15 @@ fun BaumBlatt(
                         bestand.personalCustom.remote?.get("enabled")?.jsonPrimitive?.booleanOrNull != true)
                         Text(stringResource(R.string.baum_wartet), fontSize = 12.sp)
                 }
+                val timeSupported = telefon.peer?.remote_personal_tasks_sync_available == true &&
+                    7 in (telefon.peer?.remote_personal_tasks_sync_versions ?: emptyList()) &&
+                    7 in io.gitlab.maik3531.magnolienotes.telefon.TelefonCapabilities.phase1().getValue("personal_tasks_sync").versions
+                val timeEnabled = telefon.peer?.personal_time_policy?.get("enabled")?.jsonPrimitive?.booleanOrNull == true
+                val remoteTimeEnabled = telefon.peer?.remote_personal_time_policy?.get("enabled")?.jsonPrimitive?.booleanOrNull == true
+                if (bestand.zeiterfassung.enabled && (timeSupported || timeEnabled)) {
+                    Schalterzeile(stringResource(R.string.zeit_titel), timeEnabled, telefonHandlungen.beiTimeSync)
+                    if (timeEnabled && !remoteTimeEnabled) Text(stringResource(R.string.baum_wartet), fontSize = 12.sp)
+                }
                 Schalterzeile(stringResource(R.string.personal_sync_auto_wlan), telefon.personalAutoWifi,
                     telefonHandlungen.beiPersonalAutoWlan)
                 Schalterzeile(stringResource(R.string.personal_sync_skip_deletions), !telefon.personalDeletionsEnabled,
@@ -373,7 +383,8 @@ fun BaumBlatt(
                         ((telefon.peer?.remote_personal_notes_sync_granted == true) ||
                             (telefon.peer?.remote_personal_tasks_sync_granted == true) ||
                             (customSupported && bestand.personalCustom.local?.get("enabled")?.jsonPrimitive?.booleanOrNull == true &&
-                                bestand.personalCustom.remote?.get("enabled")?.jsonPrimitive?.booleanOrNull == true)),
+                                 bestand.personalCustom.remote?.get("enabled")?.jsonPrimitive?.booleanOrNull == true) ||
+                             (timeSupported && timeEnabled && remoteTimeEnabled && bestand.zeiterfassung.enabled)),
                     beiKlick = telefonHandlungen.beiPersonalJetzt)
                 Text(telefon.personalSyncReport.ifBlank { stringResource(R.string.personal_sync_keine_loeschung) },
                     fontFamily = FontFamily.SansSerif, fontSize = 11.sp, lineHeight = 16.sp, color = Magnolie.braunHell)

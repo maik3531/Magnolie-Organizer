@@ -475,6 +475,10 @@ msgstr "Tipo de conta"
 msgid "Active call"
 msgstr "Chamada ativa"
 
+msgctxt "time tracking"
+msgid "Activity"
+msgstr "Atividade"
+
 msgid "Add"
 msgstr "Adicionar"
 
@@ -560,6 +564,10 @@ msgstr "Tudo"
 
 msgid "All cantons"
 msgstr "Todos os cantões"
+
+msgctxt "time tracking"
+msgid "All days"
+msgstr "Todos os dias"
 
 msgid "All entries"
 msgstr "Todos os registos"
@@ -1157,6 +1165,14 @@ msgstr "Verificar agora"
 msgid "Check spelling (red wavy lines)"
 msgstr "Verificar ortografia (linhas onduladas vermelhas)"
 
+msgctxt "time tracking"
+msgid ""
+"Check the dates, times and pause. The selected local time must exist in this "
+"time zone."
+msgstr ""
+"Verifique as datas, as horas e a pausa. A hora local escolhida deve existir "
+"neste fuso horário."
+
 msgid "Check the value and discuss repeated deviations with a doctor."
 msgstr "Verifique o valor e fale com um médico sobre desvios repetidos."
 
@@ -1317,6 +1333,10 @@ msgid ""
 msgstr ""
 "Clicar num compromisso existente abre-o para edição em ambos os casos. Esta "
 "definição aplica-se apenas quando clica numa área vazia da caixa."
+
+msgctxt "time tracking"
+msgid "Clock change (min)"
+msgstr "Mudança de hora (min)"
 
 msgid "Close"
 msgstr "Fechar"
@@ -1665,6 +1685,10 @@ msgstr "Danificado"
 msgid "Date"
 msgstr "Data"
 
+msgctxt "time tracking"
+msgid "Date"
+msgstr "Data"
+
 msgid "Date format"
 msgstr "Formato da data"
 
@@ -1950,6 +1974,10 @@ msgstr "Duração"
 msgid "Early shift"
 msgstr "Turno da manhã"
 
+msgctxt "time tracking"
+msgid "Early shift"
+msgstr "Turno da manhã"
+
 msgid "Edit"
 msgstr "Editar"
 
@@ -1970,6 +1998,10 @@ msgstr "Editar bloco de notas"
 
 msgid "Edit notebook group"
 msgstr "Editar grupo de blocos de notas"
+
+msgctxt "time tracking"
+msgid "Edit record"
+msgstr "Editar registo"
 
 msgid "Edit task"
 msgstr "Editar tarefa"
@@ -2059,6 +2091,10 @@ msgstr ""
 msgid "Enable this SMS plan"
 msgstr "Ativar este plano de SMS"
 
+msgctxt "time tracking"
+msgid "Enable time tracking"
+msgstr "Ativar o registo de tempo"
+
 msgid "Enable tray applet"
 msgstr "Ativar aplicação da área de notificação"
 
@@ -2073,6 +2109,14 @@ msgid ""
 msgstr ""
 "Ativar este plano permite enviar o seu SMS em atraso enquanto o agendamento "
 "estiver ativado."
+
+msgctxt "time tracking"
+msgid "End"
+msgstr "Fim"
+
+msgctxt "time tracking"
+msgid "End date"
+msgstr "Data de fim"
 
 msgid "Enjoy getting organized!"
 msgstr "Boa organização!"
@@ -2503,6 +2547,10 @@ msgstr "Visita domiciliária"
 msgid "Hours"
 msgstr "Horas"
 
+msgctxt "time tracking"
+msgid "Hours"
+msgstr "Horas"
+
 msgid "How lovely that you chose Magnolie"
 msgstr "Que bom ter escolhido o Magnolie"
 
@@ -2768,6 +2816,10 @@ msgstr "Última sincronização: %(date)s, %(time)s."
 msgid "Late shift"
 msgstr "Turno da tarde"
 
+msgctxt "time tracking"
+msgid "Late shift"
+msgstr "Turno da tarde"
+
 msgid "Lead time"
 msgstr "Antecedência"
 
@@ -2959,6 +3011,10 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Personalizado"
 
+msgctxt "time tracking"
+msgid "Manual entry"
+msgstr "Entrada manual"
+
 msgid "Manual only"
 msgstr "Apenas manualmente"
 
@@ -3084,6 +3140,10 @@ msgstr "Segunda-feira"
 msgid "Month"
 msgstr "Mês"
 
+msgctxt "time tracking"
+msgid "Month"
+msgstr "Mês"
+
 msgid "Month calendar"
 msgstr "Calendário mensal"
 
@@ -3145,6 +3205,10 @@ msgstr ""
 msgid "Multiple calendars"
 msgstr "Vários calendários"
 
+msgid "Name"
+msgstr "Nome"
+
+msgctxt "time tracking"
 msgid "Name"
 msgstr "Nome"
 
@@ -3265,6 +3329,10 @@ msgstr "Noite"
 msgid "Night shift"
 msgstr "Turno da noite"
 
+msgctxt "time tracking"
+msgid "Night shift"
+msgstr "Turno da noite"
+
 msgid "No"
 msgstr "No"
 
@@ -3374,22 +3442,6 @@ msgstr "Nenhuma foto selecionada"
 msgid "No public IP address was found."
 msgstr "Não foi encontrado nenhum endereço IP público."
 
-msgid ""
-"No regional data is retrieved without a selected canton. With “All”, each "
-"entry shows its canton and matching periods are combined."
-msgstr ""
-"Sem um cantão selecionado, não são obtidos dados regionais. Com «Todos», "
-"cada entrada mostra o respetivo cantão e os períodos coincidentes são "
-"combinados."
-
-msgid ""
-"No regional data is retrieved without a selected state. With “All”, each "
-"entry shows its state and matching periods are combined."
-msgstr ""
-"Sem um estado selecionado, não são obtidos dados regionais. Com «Todos», "
-"cada entrada mostra o respetivo estado e os períodos coincidentes são "
-"combinados."
-
 msgid "No scheme row matches this blood glucose value."
 msgstr "Nenhuma linha do esquema corresponde a este valor de glicemia."
 
@@ -3419,6 +3471,10 @@ msgstr "Sem tabela (apenas evolução)"
 
 msgid "No task linked yet."
 msgstr "Ainda não existe uma tarefa associada."
+
+msgctxt "time tracking"
+msgid "No time recorded yet."
+msgstr "Ainda não há tempos registados."
 
 msgid "No update check has been performed yet."
 msgstr "Ainda não foi efetuada nenhuma verificação de atualizações."
@@ -3867,6 +3923,14 @@ msgstr "Colar"
 msgid "Patch"
 msgstr "Adesivo"
 
+msgctxt "time tracking"
+msgid "Pause (minutes)"
+msgstr "Pausa (minutos)"
+
+msgctxt "time tracking"
+msgid "Paused"
+msgstr "Em pausa"
+
 msgid "Paused — review required"
 msgstr "Em pausa — revisão necessária"
 
@@ -4185,6 +4249,9 @@ msgstr "A palavra-passe protegida do arquivo não está disponível."
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "Endereço IPv4 ou IPv6 público do outro ramo"
 
+msgid "Public holidays"
+msgstr "Feriados"
+
 msgid ""
 "Public holidays and school holidays are governed regionally. Choose which "
 "ones apply here."
@@ -4227,6 +4294,10 @@ msgstr "Motivo"
 
 msgid "Reconnect"
 msgstr "Reconectar"
+
+msgctxt "time tracking"
+msgid "Recorded times"
+msgstr "Tempos registados"
 
 msgid "Recovery snapshot created."
 msgstr "Instantâneo de recuperação criado."
@@ -4474,6 +4545,10 @@ msgstr "Percurso"
 msgid "Route: calculate directions immediately"
 msgstr "Percurso: calcular imediatamente as direções"
 
+msgctxt "time tracking"
+msgid "Running"
+msgstr "Em curso"
+
 msgid "S"
 msgstr "R"
 
@@ -4687,14 +4762,8 @@ msgstr "Selecione primeiro alguma coisa."
 msgid "Select what you want to print on the left."
 msgstr "Selecione à esquerda o que pretende imprimir."
 
-msgid "Select your canton first or enable “All cantons”."
-msgstr "Selecione primeiro o seu cantão ou ative «Todos os cantões»."
-
 msgid "Select your phone"
 msgstr "Selecione o seu telefone"
-
-msgid "Select your state first or enable “All states”."
-msgstr "Selecione primeiro o seu estado ou ative «Todos os estados»."
 
 msgid "Select, preview, print, export or delete health records"
 msgstr ""
@@ -4884,6 +4953,10 @@ msgstr ""
 "Falha ao iniciar sessão. Verifique a conta e o método de autenticação "
 "exigido pelo fornecedor."
 
+msgctxt "time tracking"
+msgid "Signature"
+msgstr "Assinatura"
+
 msgid "Signed in to Microsoft."
 msgstr "Entrou na Microsoft."
 
@@ -4979,6 +5052,10 @@ msgstr "Spray"
 
 msgid "St. Gallen"
 msgstr "São Galo"
+
+msgctxt "time tracking"
+msgid "Start"
+msgstr "Início"
 
 msgid "Start Magnolie"
 msgstr "Iniciar o Magnolie"
@@ -5265,8 +5342,17 @@ msgstr "A resposta do Nextcloud estava incompleta."
 msgid "The Nextcloud settings are invalid."
 msgstr "As definições do Nextcloud não são válidas."
 
+msgid "The ODS columns are invalid."
+msgstr "As colunas ODS são inválidas."
+
 msgid "The ODS export is too large."
 msgstr "A exportação ODS é demasiado grande."
+
+msgid "The ODS row count is invalid."
+msgstr "O número de linhas ODS é inválido."
+
+msgid "The ODS title is invalid."
+msgstr "O título ODS é inválido."
 
 msgid "The Organizer chooses a suitable installed application."
 msgstr "O Organizador escolhe uma aplicação instalada adequada."
@@ -5465,6 +5551,10 @@ msgstr "A data de fim não pode ser anterior à data de início."
 
 msgid "The entry could not be found."
 msgstr "Não foi possível encontrar a entrada."
+
+msgctxt "time tracking"
+msgid "The entry could not be saved. Reload it and try again."
+msgstr "Não foi possível guardar o registo. Volte a abri-lo e tente novamente."
 
 msgid "The export data is missing."
 msgstr "Os dados de exportação estão faltando."
@@ -6100,8 +6190,16 @@ msgstr "Ticino"
 msgid "Time"
 msgstr "Hora"
 
+msgctxt "time tracking"
+msgid "Time"
+msgstr "Hora"
+
 msgid "Time format"
 msgstr "Formato da hora"
+
+msgctxt "time tracking"
+msgid "Time tracking"
+msgstr "Registo de tempo"
 
 msgid "Time zone"
 msgstr "Fuso horário"
@@ -6145,6 +6243,14 @@ msgstr "Há demasiadas sincronizações por concluir."
 msgid "Top level"
 msgstr "Nível superior"
 
+msgctxt "time tracking"
+msgid "Total"
+msgstr "Total"
+
+msgctxt "time tracking"
+msgid "Total time"
+msgstr "Tempo total"
+
 msgid "Tray applet"
 msgstr "Aplicação da área de notificação"
 
@@ -6159,6 +6265,10 @@ msgstr "Voltar"
 
 msgid "Turn forward"
 msgstr "Avançar"
+
+msgctxt "time tracking"
+msgid "Turning tracking off keeps existing records."
+msgstr "A desativação mantém os registos existentes."
 
 msgid "Two days back"
 msgstr "Recuar dois dias"
@@ -6624,6 +6734,13 @@ msgstr ""
 
 msgid "With photo"
 msgstr "Com foto"
+
+msgid ""
+"Without a selected region, all available public holidays of the country "
+"apply. School holidays need a region or the All selection."
+msgstr ""
+"Sem uma região escolhida aplicam-se todos os feriados disponíveis do país. "
+"As férias escolares exigem uma região ou a opção Todas."
 
 msgid ""
 "Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
@@ -7111,6 +7228,28 @@ msgstr[1] "… e mais %(count)s entradas que também serão impressas."
 
 msgid "＋ Add appointment"
 msgstr "＋ Adicionar compromisso"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected canton. With “All”, each "
+#~ "entry shows its canton and matching periods are combined."
+#~ msgstr ""
+#~ "Sem um cantão selecionado, não são obtidos dados regionais. Com «Todos», "
+#~ "cada entrada mostra o respetivo cantão e os períodos coincidentes são "
+#~ "combinados."
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected state. With “All”, each "
+#~ "entry shows its state and matching periods are combined."
+#~ msgstr ""
+#~ "Sem um estado selecionado, não são obtidos dados regionais. Com «Todos», "
+#~ "cada entrada mostra o respetivo estado e os períodos coincidentes são "
+#~ "combinados."
+
+#~ msgid "Select your canton first or enable “All cantons”."
+#~ msgstr "Selecione primeiro o seu cantão ou ative «Todos os cantões»."
+
+#~ msgid "Select your state first or enable “All states”."
+#~ msgstr "Selecione primeiro o seu estado ou ative «Todos os estados»."
 
 #~ msgid "Consider deletions during manual synchronization"
 #~ msgstr "Sincronização de contactos"

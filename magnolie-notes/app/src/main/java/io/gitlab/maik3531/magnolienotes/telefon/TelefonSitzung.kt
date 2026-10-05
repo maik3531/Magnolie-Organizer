@@ -96,6 +96,10 @@ object TelefonNachrichten {
             "grants.update" -> { if (expires - created > 86_400_000L) fail(); validateGrants(body) }
             PersonalNoteMode.KIND -> { if (expires - created > 86_400_000L) fail(); PersonalNoteMode.validate(body) }
             PersonalDesktopFeatures.KIND -> { if (expires - created > 86_400_000L) fail(); PersonalDesktopFeatures.validate(body) }
+            TimeSyncProtokoll.SETTINGS, TimeSyncProtokoll.REQUEST, TimeSyncProtokoll.BATCH -> {
+                if (expires - created > 86_400_000L) fail()
+                TimeSyncProtokoll.validate(message.string("kind"), body, fromOrganizer = true)
+            }
             "personal_sync.custom_settings", "personal_sync.custom_request", "personal_sync.custom_batch" -> {
                 if (expires - created > 86_400_000L) fail(); PersonalSyncProtokoll.validateCustomBody(message.string("kind"), body)
             }

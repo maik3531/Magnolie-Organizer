@@ -184,8 +184,11 @@ tasks.configureEach {
 tasks.withType<Test>().configureEach {
     workingDir = rootDir
     val cross = providers.gradleProperty("magnolieCrossTests").orNull == "true"
+    // These explicit tests launch external Python sources and a separately built
+    // Windows test host; unchanged Kotlin classes are not evidence they still pass.
+    if (cross) outputs.upToDateWhen { false }
     val crossClasses = listOf("*.TelefonWlanInvitationTest", "*.TelefonBluetoothSetupTest",
-        "*.BaumReceiptInteropTest", "*.LiveprobeTest", "*.PersonalCustomTransportTest", "*.PersonalNoteModeTransportTest", "*.ContactReadTransportTest")
+        "*.BaumReceiptInteropTest", "*.LiveprobeTest", "*.PersonalCustomTransportTest", "*.PersonalNoteModeTransportTest", "*.TimeSyncTransportTest", "*.ContactReadTransportTest")
     filter {
         crossClasses.forEach { if (cross) includeTestsMatching(it) else excludeTestsMatching(it) }
     }

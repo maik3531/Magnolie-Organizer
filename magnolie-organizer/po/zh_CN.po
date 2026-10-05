@@ -613,6 +613,10 @@ msgstr "账户类型"
 msgid "Active call"
 msgstr "当前通话"
 
+msgctxt "time tracking"
+msgid "Activity"
+msgstr "活动类型"
+
 msgid "Add"
 msgstr "添加"
 
@@ -727,6 +731,10 @@ msgstr "全部"
 
 msgid "All cantons"
 msgstr "所有州"
+
+msgctxt "time tracking"
+msgid "All days"
+msgstr "所有日期"
 
 msgid "All entries"
 msgstr "所有条目"
@@ -1387,6 +1395,12 @@ msgstr "立即检查"
 msgid "Check spelling (red wavy lines)"
 msgstr "检查拼写（红色波浪线）"
 
+msgctxt "time tracking"
+msgid ""
+"Check the dates, times and pause. The selected local time must exist in this "
+"time zone."
+msgstr "请检查日期、时间和休息时长。所选的当地时间必须在此时区中存在。"
+
 msgid "Check the value and discuss repeated deviations with a doctor."
 msgstr "请检查该数值；如反复出现偏差，请咨询医生。"
 
@@ -1549,6 +1563,10 @@ msgid ""
 msgstr ""
 "在这两种情况下，点击已有约会都会打开它进行编辑。此设置仅在点击框内空白区域时"
 "生效。"
+
+msgctxt "time tracking"
+msgid "Clock change (min)"
+msgstr "时钟调整（分钟）"
 
 msgid "Close"
 msgstr "关闭"
@@ -1960,6 +1978,10 @@ msgstr "数据：未找到 – 请先打开一次 Organizer。"
 msgid "Date"
 msgstr "日期"
 
+msgctxt "time tracking"
+msgid "Date"
+msgstr "日期"
+
 msgid "Date format"
 msgstr "日期格式"
 
@@ -2248,6 +2270,10 @@ msgstr "时长"
 msgid "Early shift"
 msgstr "早班"
 
+msgctxt "time tracking"
+msgid "Early shift"
+msgstr "早班"
+
 msgid "Edit"
 msgstr "编辑"
 
@@ -2268,6 +2294,10 @@ msgstr "编辑笔记本"
 
 msgid "Edit notebook group"
 msgstr "编辑笔记本组"
+
+msgctxt "time tracking"
+msgid "Edit record"
+msgstr "编辑记录"
 
 msgid "Edit task"
 msgstr "编辑任务"
@@ -2357,6 +2387,10 @@ msgstr "在此启用绘图板输入，然后在手机的 KDE Connect 中打开�
 msgid "Enable this SMS plan"
 msgstr "启用此短信计划"
 
+msgctxt "time tracking"
+msgid "Enable time tracking"
+msgstr "启用时间记录"
+
 msgid "Enable tray applet"
 msgstr "启用系统托盘小程序"
 
@@ -2375,6 +2409,14 @@ msgstr "不支持加密的归档条目。"
 
 msgid "Encrypting the data"
 msgstr "正在加密数据"
+
+msgctxt "time tracking"
+msgid "End"
+msgstr "结束"
+
+msgctxt "time tracking"
+msgid "End date"
+msgstr "结束日期"
 
 msgid "Ending the call"
 msgstr "正在结束通话"
@@ -2837,6 +2879,10 @@ msgstr "上门拜访"
 msgid "Hours"
 msgstr "小时"
 
+msgctxt "time tracking"
+msgid "Hours"
+msgstr "小时"
+
 msgid "How the calendar should behave when you click a day."
 msgstr "点击某一天时日历应如何响应。"
 
@@ -3157,6 +3203,10 @@ msgstr "上次同步：%(date)s，%(time)s。"
 msgid "Late shift"
 msgstr "晚班"
 
+msgctxt "time tracking"
+msgid "Late shift"
+msgstr "晚班"
+
 msgid "Latest alarm monitor entries:"
 msgstr "最新提醒监控器记录："
 
@@ -3395,6 +3445,10 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "自定义"
 
+msgctxt "time tracking"
+msgid "Manual entry"
+msgstr "手动添加"
+
 msgid "Manual only"
 msgstr "仅手动"
 
@@ -3522,6 +3576,10 @@ msgstr "监控 KDE Connect SMS 并显示通知"
 msgid "Month"
 msgstr "月"
 
+msgctxt "time tracking"
+msgid "Month"
+msgstr "月份"
+
 msgid "Month calendar"
 msgstr "月历"
 
@@ -3581,6 +3639,10 @@ msgstr "多个日历"
 
 msgid "Name"
 msgstr "名称"
+
+msgctxt "time tracking"
+msgid "Name"
+msgstr "姓名"
 
 msgid "Name / occasion"
 msgstr "名称 / 场合"
@@ -3747,6 +3809,10 @@ msgstr "夜间"
 msgid "Night shift"
 msgstr "夜班"
 
+msgctxt "time tracking"
+msgid "Night shift"
+msgstr "夜班"
+
 msgid "No"
 msgstr "否"
 
@@ -3867,20 +3933,6 @@ msgid ""
 "No readable Evolution or Thunderbird stores were found on this computer."
 msgstr "此电脑上未找到可读取的 Evolution 或 Thunderbird 数据存储。"
 
-msgid ""
-"No regional data is retrieved without a selected canton. With “All”, each "
-"entry shows its canton and matching periods are combined."
-msgstr ""
-"未选择州（canton）时不会获取区域数据。选择“全部”后，每个条目会显示其所属州，"
-"并合并相同的时段。"
-
-msgid ""
-"No regional data is retrieved without a selected state. With “All”, each "
-"entry shows its state and matching periods are combined."
-msgstr ""
-"未选择联邦州时不会获取区域数据。选择“全部”后，每个条目会显示其联邦州，并合并"
-"相同的时段。"
-
 msgid "No scheme row matches this blood glucose value."
 msgstr "没有与此血糖值匹配的方案行。"
 
@@ -3920,6 +3972,10 @@ msgstr "尚未关联任务。"
 #, python-format
 msgid "No text viewer was found. The log is located at: %s"
 msgstr "未找到文本查看器。日志位于：%s"
+
+msgctxt "time tracking"
+msgid "No time recorded yet."
+msgstr "尚无时间记录。"
 
 msgid "No update check has been performed yet."
 msgstr "尚未执行更新检查。"
@@ -4421,6 +4477,14 @@ msgstr "粘贴"
 msgid "Patch"
 msgstr "贴剂"
 
+msgctxt "time tracking"
+msgid "Pause (minutes)"
+msgstr "休息（分钟）"
+
+msgctxt "time tracking"
+msgid "Paused"
+msgstr "已暂停"
+
 msgid "Paused — review required"
 msgstr "已暂停 — 需要审核"
 
@@ -4723,6 +4787,9 @@ msgstr "受保护的存档密码不可用。"
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "另一分支的公网 IPv4 或 IPv6 地址"
 
+msgid "Public holidays"
+msgstr "公共假日"
+
 msgid ""
 "Public holidays and school holidays are governed regionally. Choose which "
 "ones apply here."
@@ -4789,6 +4856,10 @@ msgstr "通过 KDE Connect 接收"
 
 msgid "Reconnect"
 msgstr "重新连接"
+
+msgctxt "time tracking"
+msgid "Recorded times"
+msgstr "已记录的时间"
 
 msgid "Recovery snapshot created."
 msgstr "已创建恢复快照。"
@@ -5092,6 +5163,10 @@ msgstr "以可见方式运行下载的安装程序，并保持手动组件处于
 msgid "Run the optional background service"
 msgstr "运行可选的后台服务"
 
+msgctxt "time tracking"
+msgid "Running"
+msgstr "进行中"
+
 msgid "S"
 msgstr "S"
 
@@ -5349,14 +5424,8 @@ msgstr "请先选择内容。"
 msgid "Select what you want to print on the left."
 msgstr "请在左侧选择要打印的内容。"
 
-msgid "Select your canton first or enable “All cantons”."
-msgstr "请先选择州（canton），或启用“所有州”。"
-
 msgid "Select your phone"
 msgstr "选择您的手机"
-
-msgid "Select your state first or enable “All states”."
-msgstr "请先选择联邦州，或启用“所有联邦州”。"
 
 msgid "Select, preview, print, export or delete health records"
 msgstr "选择、预览、打印、导出或删除健康记录"
@@ -5549,6 +5618,10 @@ msgstr "在月视图中显示周数"
 msgid "Show week numbers in the planner"
 msgstr "在计划器中显示周数"
 
+msgctxt "time tracking"
+msgid "Signature"
+msgstr "签名"
+
 msgid "Silence this alert"
 msgstr "关闭此提醒"
 
@@ -5648,6 +5721,10 @@ msgstr "喷雾剂"
 
 msgid "St. Gallen"
 msgstr "圣加仑"
+
+msgctxt "time tracking"
+msgid "Start"
+msgstr "开始"
 
 msgid "Start Magnolie"
 msgstr "启动 Magnolie"
@@ -6303,6 +6380,10 @@ msgstr "输入的指纹不完整。"
 
 msgid "The entry could not be found."
 msgstr "找不到该条目。"
+
+msgctxt "time tracking"
+msgid "The entry could not be saved. Reload it and try again."
+msgstr "无法保存记录。请重新打开并重试。"
 
 msgid "The file could not be read."
 msgstr "无法读取文件。"
@@ -7135,8 +7216,16 @@ msgstr "提契诺"
 msgid "Time"
 msgstr "时间"
 
+msgctxt "time tracking"
+msgid "Time"
+msgstr "时间"
+
 msgid "Time format"
 msgstr "时间格式"
+
+msgctxt "time tracking"
+msgid "Time tracking"
+msgstr "时间记录"
 
 msgid "Time zone"
 msgstr "时区"
@@ -7190,6 +7279,14 @@ msgstr "尚未完成的同步操作过多。"
 msgid "Top level"
 msgstr "顶层"
 
+msgctxt "time tracking"
+msgid "Total"
+msgstr "合计"
+
+msgctxt "time tracking"
+msgid "Total time"
+msgstr "总时长"
+
 msgid "Transfer received text to the clipboard"
 msgstr "将收到的文本传送到剪贴板"
 
@@ -7207,6 +7304,10 @@ msgstr "向后"
 
 msgid "Turn forward"
 msgstr "向前"
+
+msgctxt "time tracking"
+msgid "Turning tracking off keeps existing records."
+msgstr "关闭后仍会保留现有记录。"
 
 msgid "Two days back"
 msgstr "后退两天"
@@ -7667,6 +7768,11 @@ msgstr ""
 
 msgid "With photo"
 msgstr "带照片"
+
+msgid ""
+"Without a selected region, all available public holidays of the country "
+"apply. School holidays need a region or the All selection."
+msgstr "未选择地区时，采用该国所有可用公共假日。学校假期需要选择地区或“全部”。"
 
 msgid ""
 "Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
@@ -8182,6 +8288,26 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected canton. With “All”, each "
+#~ "entry shows its canton and matching periods are combined."
+#~ msgstr ""
+#~ "未选择州（canton）时不会获取区域数据。选择“全部”后，每个条目会显示其所属"
+#~ "州，并合并相同的时段。"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected state. With “All”, each "
+#~ "entry shows its state and matching periods are combined."
+#~ msgstr ""
+#~ "未选择联邦州时不会获取区域数据。选择“全部”后，每个条目会显示其联邦州，并合"
+#~ "并相同的时段。"
+
+#~ msgid "Select your canton first or enable “All cantons”."
+#~ msgstr "请先选择州（canton），或启用“所有州”。"
+
+#~ msgid "Select your state first or enable “All states”."
+#~ msgstr "请先选择联邦州，或启用“所有联邦州”。"
 
 #~ msgid "Consider deletions during manual synchronization"
 #~ msgstr "联系人同步"

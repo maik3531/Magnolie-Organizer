@@ -5,6 +5,8 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.file.Files
@@ -128,6 +130,18 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
     }
 
     @Synchronized
+    fun revokeTimeSync(): Set<String> {
+        val current = peers()
+        if (current.all().none { it.personal_time_policy != null }) return emptySet()
+        fun paused(peer: TelefonPeer): TelefonPeer = peer.personal_time_policy?.let { policy ->
+            peer.copy(personal_time_policy = TimeSyncProtokoll.newSettings(false,
+                policy.getValue("revision").jsonPrimitive.long + 1))
+        } ?: peer
+        savePeers(current.copy(peer = current.peer?.let(::paused), other_peers = current.other_peers.map(::paused)))
+        return current.all().mapTo(mutableSetOf()) { it.device_id }
+    }
+
+    @Synchronized
     fun selectPeer(id: String?) {
         val selected = peers().select(id)
         check(settings.edit().putString("pending_computer_selection", id.orEmpty()).commit())
@@ -230,6 +244,11 @@ internal fun sanitizeLegacyPeer(value: JsonObject): Pair<JsonObject, Boolean> {
     }
     peer["remote_desktop_features"]?.takeUnless { it == kotlinx.serialization.json.JsonNull }?.let {
         PersonalDesktopFeatures.validate(it as? JsonObject ?: throw TelefonProtokollFehler("Ungültige Desktop-Funktionen."))
+    }
+    for (name in listOf("personal_time_policy", "remote_personal_time_policy")) {
+        peer[name]?.takeUnless { it == kotlinx.serialization.json.JsonNull }?.let {
+            TimeSyncProtokoll.settings(it as? JsonObject ?: throw TelefonProtokollFehler("Ungültige Zeiterfassungsfreigabe."))
+        }
     }
     val sanitized = peer.filterKeys { it !in legacy }.toMutableMap()
     var migrated = peer.keys.any { it in legacy }

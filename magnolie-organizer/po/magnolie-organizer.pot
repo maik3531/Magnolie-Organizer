@@ -637,6 +637,10 @@ msgstr ""
 msgid "Active call"
 msgstr ""
 
+msgctxt "time tracking"
+msgid "Activity"
+msgstr ""
+
 msgid "Add"
 msgstr ""
 
@@ -750,6 +754,10 @@ msgid "All"
 msgstr ""
 
 msgid "All cantons"
+msgstr ""
+
+msgctxt "time tracking"
+msgid "All days"
 msgstr ""
 
 msgid "All entries"
@@ -1394,6 +1402,12 @@ msgstr ""
 msgid "Check spelling (red wavy lines)"
 msgstr ""
 
+msgctxt "time tracking"
+msgid ""
+"Check the dates, times and pause. The selected local time must exist in this "
+"time zone."
+msgstr ""
+
 msgid "Check the value and discuss repeated deviations with a doctor."
 msgstr ""
 
@@ -1546,6 +1560,10 @@ msgstr ""
 msgid ""
 "Clicking an existing appointment opens it for editing in both cases. This "
 "setting applies only when you click an empty area in the box."
+msgstr ""
+
+msgctxt "time tracking"
+msgid "Clock change (min)"
 msgstr ""
 
 msgid "Close"
@@ -1954,6 +1972,10 @@ msgstr ""
 msgid "Date"
 msgstr ""
 
+msgctxt "time tracking"
+msgid "Date"
+msgstr ""
+
 msgid "Date format"
 msgstr ""
 
@@ -2241,6 +2263,10 @@ msgstr ""
 msgid "Early shift"
 msgstr ""
 
+msgctxt "time tracking"
+msgid "Early shift"
+msgstr ""
+
 msgid "Edit"
 msgstr ""
 
@@ -2260,6 +2286,10 @@ msgid "Edit notebook"
 msgstr ""
 
 msgid "Edit notebook group"
+msgstr ""
+
+msgctxt "time tracking"
+msgid "Edit record"
 msgstr ""
 
 msgid "Edit task"
@@ -2348,6 +2378,10 @@ msgstr ""
 msgid "Enable this SMS plan"
 msgstr ""
 
+msgctxt "time tracking"
+msgid "Enable time tracking"
+msgstr ""
+
 msgid "Enable tray applet"
 msgstr ""
 
@@ -2365,6 +2399,14 @@ msgid "Encrypted archive entries are not supported."
 msgstr ""
 
 msgid "Encrypting the data"
+msgstr ""
+
+msgctxt "time tracking"
+msgid "End"
+msgstr ""
+
+msgctxt "time tracking"
+msgid "End date"
 msgstr ""
 
 msgid "Ending the call"
@@ -2812,6 +2854,10 @@ msgstr ""
 msgid "Hours"
 msgstr ""
 
+msgctxt "time tracking"
+msgid "Hours"
+msgstr ""
+
 msgid "How the calendar should behave when you click a day."
 msgstr ""
 
@@ -3119,6 +3165,10 @@ msgstr ""
 msgid "Late shift"
 msgstr ""
 
+msgctxt "time tracking"
+msgid "Late shift"
+msgstr ""
+
 msgid "Latest alarm monitor entries:"
 msgstr ""
 
@@ -3353,6 +3403,10 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr ""
 
+msgctxt "time tracking"
+msgid "Manual entry"
+msgstr ""
+
 msgid "Manual only"
 msgstr ""
 
@@ -3471,6 +3525,10 @@ msgstr ""
 msgid "Month"
 msgstr ""
 
+msgctxt "time tracking"
+msgid "Month"
+msgstr ""
+
 msgid "Month calendar"
 msgstr ""
 
@@ -3528,6 +3586,10 @@ msgstr ""
 msgid "Multiple calendars"
 msgstr ""
 
+msgid "Name"
+msgstr ""
+
+msgctxt "time tracking"
 msgid "Name"
 msgstr ""
 
@@ -3689,6 +3751,10 @@ msgstr ""
 msgid "Night shift"
 msgstr ""
 
+msgctxt "time tracking"
+msgid "Night shift"
+msgstr ""
+
 msgid "No"
 msgstr ""
 
@@ -3804,16 +3870,6 @@ msgid ""
 "No readable Evolution or Thunderbird stores were found on this computer."
 msgstr ""
 
-msgid ""
-"No regional data is retrieved without a selected canton. With “All”, each "
-"entry shows its canton and matching periods are combined."
-msgstr ""
-
-msgid ""
-"No regional data is retrieved without a selected state. With “All”, each "
-"entry shows its state and matching periods are combined."
-msgstr ""
-
 msgid "No scheme row matches this blood glucose value."
 msgstr ""
 
@@ -3852,6 +3908,10 @@ msgstr ""
 
 #, python-format
 msgid "No text viewer was found. The log is located at: %s"
+msgstr ""
+
+msgctxt "time tracking"
+msgid "No time recorded yet."
 msgstr ""
 
 msgid "No update check has been performed yet."
@@ -4348,6 +4408,14 @@ msgstr ""
 msgid "Patch"
 msgstr ""
 
+msgctxt "time tracking"
+msgid "Pause (minutes)"
+msgstr ""
+
+msgctxt "time tracking"
+msgid "Paused"
+msgstr ""
+
 msgid "Paused — review required"
 msgstr ""
 
@@ -4652,6 +4720,9 @@ msgstr ""
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr ""
 
+msgid "Public holidays"
+msgstr ""
+
 msgid ""
 "Public holidays and school holidays are governed regionally. Choose which "
 "ones apply here."
@@ -4716,6 +4787,10 @@ msgid "Receive with KDE Connect"
 msgstr ""
 
 msgid "Reconnect"
+msgstr ""
+
+msgctxt "time tracking"
+msgid "Recorded times"
 msgstr ""
 
 msgid "Recovery snapshot created."
@@ -5016,6 +5091,10 @@ msgstr ""
 msgid "Run the optional background service"
 msgstr ""
 
+msgctxt "time tracking"
+msgid "Running"
+msgstr ""
+
 msgid "S"
 msgstr ""
 
@@ -5269,13 +5348,7 @@ msgstr ""
 msgid "Select what you want to print on the left."
 msgstr ""
 
-msgid "Select your canton first or enable “All cantons”."
-msgstr ""
-
 msgid "Select your phone"
-msgstr ""
-
-msgid "Select your state first or enable “All states”."
 msgstr ""
 
 msgid "Select, preview, print, export or delete health records"
@@ -5469,6 +5542,10 @@ msgstr ""
 msgid "Show week numbers in the planner"
 msgstr ""
 
+msgctxt "time tracking"
+msgid "Signature"
+msgstr ""
+
 msgid "Silence this alert"
 msgstr ""
 
@@ -5567,6 +5644,10 @@ msgid "Spray"
 msgstr ""
 
 msgid "St. Gallen"
+msgstr ""
+
+msgctxt "time tracking"
+msgid "Start"
 msgstr ""
 
 msgid "Start Magnolie"
@@ -6203,6 +6284,10 @@ msgid "The entered fingerprint is incomplete."
 msgstr ""
 
 msgid "The entry could not be found."
+msgstr ""
+
+msgctxt "time tracking"
+msgid "The entry could not be saved. Reload it and try again."
 msgstr ""
 
 msgid "The file could not be read."
@@ -6998,7 +7083,15 @@ msgstr ""
 msgid "Time"
 msgstr ""
 
+msgctxt "time tracking"
+msgid "Time"
+msgstr ""
+
 msgid "Time format"
+msgstr ""
+
+msgctxt "time tracking"
+msgid "Time tracking"
 msgstr ""
 
 msgid "Time zone"
@@ -7053,6 +7146,14 @@ msgstr ""
 msgid "Top level"
 msgstr ""
 
+msgctxt "time tracking"
+msgid "Total"
+msgstr ""
+
+msgctxt "time tracking"
+msgid "Total time"
+msgstr ""
+
 msgid "Transfer received text to the clipboard"
 msgstr ""
 
@@ -7069,6 +7170,10 @@ msgid "Turn back"
 msgstr ""
 
 msgid "Turn forward"
+msgstr ""
+
+msgctxt "time tracking"
+msgid "Turning tracking off keeps existing records."
 msgstr ""
 
 msgid "Two days back"
@@ -7507,6 +7612,11 @@ msgid ""
 msgstr ""
 
 msgid "With photo"
+msgstr ""
+
+msgid ""
+"Without a selected region, all available public holidays of the country "
+"apply. School holidays need a region or the All selection."
 msgstr ""
 
 msgid ""

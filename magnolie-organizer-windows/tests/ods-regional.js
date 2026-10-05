@@ -64,7 +64,20 @@ for (const web of roots) {
       assert.ok(translated, language + ": " + key);
       if (language !== "en") assert.ok(catalogs.get(language)[key], language + ": missing " + key);
     }
+    const timeSheet = t.zeitOdsNutzlast(2026, 9).sheet;
+    assert.equal(timeSheet.labels.columns.length, 10);
+    assert.equal(timeSheet.weekdays.length, 7);
+    assert.equal(timeSheet.digits.length, 10);
+    assert.ok(!timeSheet.timeParts.some(part => part.type === "second"));
+    for (const key of ["Time tracking", "Activity", "Start", "End date", "End", "Hours", "Pause (minutes)",
+      "Total time", "Date", "Signature", "Total", "Time", "Name", "Clock change (min)"]) {
+      assert.ok(w.MagnolieI18n.pgettext("time tracking", key), language + ": " + key);
+      if (language !== "en") assert.ok(catalogs.get(language)["time tracking\u0004" + key], language + ": missing time label " + key);
+    }
   }
+  w.MagnolieI18n.setLocale("ar");
+  Object.assign(t.daten().einstellungen.regional, { formatLocale: "ar-SA", hourCycle: "h12" });
+  assert.equal(t.zeitOdsNutzlast(2026, 9).sheet.dateParts.find(part => part.type === "year").value, "٢٠٠٦");
   dom.window.close();
   console.log(path.relative(path.resolve(__dirname, "../.."), web) + ": regional ODS payloads passed");
 }

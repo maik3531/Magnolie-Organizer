@@ -675,6 +675,10 @@ msgstr "Tipo di account"
 msgid "Active call"
 msgstr "Chiamata attiva"
 
+msgctxt "time tracking"
+msgid "Activity"
+msgstr "Attività"
+
 msgid "Add"
 msgstr "Aggiungi"
 
@@ -793,6 +797,10 @@ msgstr "Tutti"
 
 msgid "All cantons"
 msgstr "Tutti i cantoni"
+
+msgctxt "time tracking"
+msgid "All days"
+msgstr "Tutti i giorni"
 
 msgid "All entries"
 msgstr "Tutte le voci"
@@ -1486,6 +1494,14 @@ msgstr "Controlla ora"
 msgid "Check spelling (red wavy lines)"
 msgstr "Controlla ortografia (sottolineatura ondulata rossa)"
 
+msgctxt "time tracking"
+msgid ""
+"Check the dates, times and pause. The selected local time must exist in this "
+"time zone."
+msgstr ""
+"Controlla date, orari e pausa. L’ora locale scelta deve esistere in questo "
+"fuso orario."
+
 msgid "Check the value and discuss repeated deviations with a doctor."
 msgstr ""
 "Controllare il valore e consultare un medico se le anomalie si ripetono."
@@ -1665,6 +1681,10 @@ msgstr ""
 "In entrambi i casi, facendo clic su un appuntamento esistente lo si apre per "
 "modificarlo. Questa impostazione si applica solo quando fai clic su un’area "
 "vuota del riquadro."
+
+msgctxt "time tracking"
+msgid "Clock change (min)"
+msgstr "Cambio d’ora (min)"
 
 msgid "Close"
 msgstr "Chiudi"
@@ -2099,6 +2119,10 @@ msgstr "Dati: non trovati – apri una volta l’organizer."
 msgid "Date"
 msgstr "Data"
 
+msgctxt "time tracking"
+msgid "Date"
+msgstr "Data"
+
 msgid "Date format"
 msgstr "Formato della data"
 
@@ -2404,6 +2428,10 @@ msgstr "Durata"
 msgid "Early shift"
 msgstr "Turno mattutino"
 
+msgctxt "time tracking"
+msgid "Early shift"
+msgstr "Turno del mattino"
+
 msgid "Edit"
 msgstr "Modifica"
 
@@ -2424,6 +2452,10 @@ msgstr "Modifica taccuino"
 
 msgid "Edit notebook group"
 msgstr "Modifica gruppo di taccuini"
+
+msgctxt "time tracking"
+msgid "Edit record"
+msgstr "Modifica registrazione"
 
 msgid "Edit task"
 msgstr "Modifica attività"
@@ -2516,6 +2548,10 @@ msgstr ""
 msgid "Enable this SMS plan"
 msgstr "Attiva questo piano SMS"
 
+msgctxt "time tracking"
+msgid "Enable time tracking"
+msgstr "Attiva la registrazione del tempo"
+
 msgid "Enable tray applet"
 msgstr "Abilita applet dell’area di notifica"
 
@@ -2536,6 +2572,14 @@ msgstr "Le voci di archivio cifrate non sono supportate."
 
 msgid "Encrypting the data"
 msgstr "Cifratura dei dati"
+
+msgctxt "time tracking"
+msgid "End"
+msgstr "Fine"
+
+msgctxt "time tracking"
+msgid "End date"
+msgstr "Data di fine"
 
 msgid "Ending the call"
 msgstr "Chiusura della chiamata"
@@ -3018,6 +3062,10 @@ msgstr "Visita a domicilio"
 msgid "Hours"
 msgstr "Ore"
 
+msgctxt "time tracking"
+msgid "Hours"
+msgstr "Ore"
+
 msgid "How the calendar should behave when you click a day."
 msgstr "Come deve comportarsi il calendario quando fai clic su un giorno."
 
@@ -3352,6 +3400,10 @@ msgstr "Ultima sincronizzazione: %(date)s, %(time)s."
 msgid "Late shift"
 msgstr "Turno pomeridiano"
 
+msgctxt "time tracking"
+msgid "Late shift"
+msgstr "Turno del pomeriggio"
+
 msgid "Latest alarm monitor entries:"
 msgstr "Ultime voci del monitor dei promemoria:"
 
@@ -3597,6 +3649,10 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Personalizzato"
 
+msgctxt "time tracking"
+msgid "Manual entry"
+msgstr "Inserimento manuale"
+
 msgid "Manual only"
 msgstr "Solo manualmente"
 
@@ -3729,6 +3785,10 @@ msgstr "Monitora gli SMS di KDE Connect e mostra le notifiche"
 msgid "Month"
 msgstr "Mese"
 
+msgctxt "time tracking"
+msgid "Month"
+msgstr "Mese"
+
 msgid "Month calendar"
 msgstr "Calendario mensile"
 
@@ -3790,6 +3850,10 @@ msgstr ""
 msgid "Multiple calendars"
 msgstr "Più calendari"
 
+msgid "Name"
+msgstr "Nome"
+
+msgctxt "time tracking"
 msgid "Name"
 msgstr "Nome"
 
@@ -3964,6 +4028,10 @@ msgstr "Notte"
 msgid "Night shift"
 msgstr "Turno notturno"
 
+msgctxt "time tracking"
+msgid "Night shift"
+msgstr "Turno di notte"
+
 msgid "No"
 msgstr "No"
 
@@ -4091,22 +4159,6 @@ msgstr ""
 "Su questo computer non sono stati trovati archivi Evolution o Thunderbird "
 "leggibili."
 
-msgid ""
-"No regional data is retrieved without a selected canton. With “All”, each "
-"entry shows its canton and matching periods are combined."
-msgstr ""
-"Senza un cantone selezionato non vengono recuperati dati regionali. Con "
-"«Tutti», ogni voce mostra il proprio cantone e i periodi corrispondenti "
-"vengono uniti."
-
-msgid ""
-"No regional data is retrieved without a selected state. With “All”, each "
-"entry shows its state and matching periods are combined."
-msgstr ""
-"Senza uno stato federato selezionato non vengono recuperati dati regionali. "
-"Con «Tutti», ogni voce mostra il proprio stato e i periodi corrispondenti "
-"vengono uniti."
-
 msgid "No scheme row matches this blood glucose value."
 msgstr "Nessuna riga dello schema corrisponde a questo valore glicemico."
 
@@ -4148,6 +4200,10 @@ msgid "No text viewer was found. The log is located at: %s"
 msgstr ""
 "Non è stato trovato alcun visualizzatore di testo. Il registro si trova in: "
 "%s"
+
+msgctxt "time tracking"
+msgid "No time recorded yet."
+msgstr "Nessun tempo ancora registrato."
 
 msgid "No update check has been performed yet."
 msgstr "Non è stato ancora effettuato alcun controllo degli aggiornamenti."
@@ -4690,6 +4746,14 @@ msgstr "Incolla"
 msgid "Patch"
 msgstr "Cerotto"
 
+msgctxt "time tracking"
+msgid "Pause (minutes)"
+msgstr "Pausa (minuti)"
+
+msgctxt "time tracking"
+msgid "Paused"
+msgstr "In pausa"
+
 msgid "Paused — review required"
 msgstr "In pausa — verifica richiesta"
 
@@ -5024,6 +5088,9 @@ msgstr "La password protetta dell’archivio non è disponibile."
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "Indirizzo IPv4 o IPv6 pubblico dell’altro ramo"
 
+msgid "Public holidays"
+msgstr "Festività"
+
 msgid ""
 "Public holidays and school holidays are governed regionally. Choose which "
 "ones apply here."
@@ -5093,6 +5160,10 @@ msgstr "Ricevi con KDE Connect"
 
 msgid "Reconnect"
 msgstr "Riconnettiti"
+
+msgctxt "time tracking"
+msgid "Recorded times"
+msgstr "Tempi registrati"
 
 msgid "Recovery snapshot created."
 msgstr "Istantanea di ripristino creata."
@@ -5423,6 +5494,10 @@ msgstr ""
 msgid "Run the optional background service"
 msgstr "Eseguire il servizio in background facoltativo"
 
+msgctxt "time tracking"
+msgid "Running"
+msgstr "In corso"
+
 msgid "S"
 msgstr "B"
 
@@ -5687,15 +5762,8 @@ msgstr "Seleziona prima qualcosa."
 msgid "Select what you want to print on the left."
 msgstr "Seleziona a sinistra ciò che vuoi stampare."
 
-msgid "Select your canton first or enable “All cantons”."
-msgstr "Seleziona prima il tuo cantone o attiva «Tutti i cantoni»."
-
 msgid "Select your phone"
 msgstr "Seleziona il tuo telefono"
-
-msgid "Select your state first or enable “All states”."
-msgstr ""
-"Seleziona prima il tuo stato federato o attiva «Tutti gli stati federati»."
 
 msgid "Select, preview, print, export or delete health records"
 msgstr ""
@@ -5894,6 +5962,10 @@ msgstr "Mostra i numeri di settimana nella vista mensile"
 msgid "Show week numbers in the planner"
 msgstr "Mostra i numeri di settimana nel pianificatore"
 
+msgctxt "time tracking"
+msgid "Signature"
+msgstr "Firma"
+
 msgid "Silence this alert"
 msgstr "Silenzia questo avviso"
 
@@ -5998,6 +6070,10 @@ msgstr "Spray"
 
 msgid "St. Gallen"
 msgstr "San Gallo"
+
+msgctxt "time tracking"
+msgid "Start"
+msgstr "Inizio"
 
 msgid "Start Magnolie"
 msgstr "Avvia Magnolie"
@@ -6704,6 +6780,10 @@ msgstr "L’impronta inserita è incompleta."
 
 msgid "The entry could not be found."
 msgstr "Impossibile trovare la voce."
+
+msgctxt "time tracking"
+msgid "The entry could not be saved. Reload it and try again."
+msgstr "Impossibile salvare la registrazione. Riaprila e riprova."
 
 msgid "The file could not be read."
 msgstr "Impossibile leggere il file."
@@ -7623,8 +7703,16 @@ msgstr "Ticino"
 msgid "Time"
 msgstr "Ora"
 
+msgctxt "time tracking"
+msgid "Time"
+msgstr "Ora"
+
 msgid "Time format"
 msgstr "Formato dell'ora"
+
+msgctxt "time tracking"
+msgid "Time tracking"
+msgstr "Registrazione del tempo"
 
 msgid "Time zone"
 msgstr "Fuso orario"
@@ -7679,6 +7767,14 @@ msgstr "Ci sono troppe sincronizzazioni non ancora completate."
 msgid "Top level"
 msgstr "Livello principale"
 
+msgctxt "time tracking"
+msgid "Total"
+msgstr "Totale"
+
+msgctxt "time tracking"
+msgid "Total time"
+msgstr "Tempo totale"
+
 msgid "Transfer received text to the clipboard"
 msgstr "Trasferisci il testo ricevuto negli appunti"
 
@@ -7696,6 +7792,10 @@ msgstr "Indietro"
 
 msgid "Turn forward"
 msgstr "Avanti"
+
+msgctxt "time tracking"
+msgid "Turning tracking off keeps existing records."
+msgstr "La disattivazione conserva le registrazioni esistenti."
 
 msgid "Two days back"
 msgstr "Due giorni indietro"
@@ -8189,6 +8289,13 @@ msgstr ""
 
 msgid "With photo"
 msgstr "Con foto"
+
+msgid ""
+"Without a selected region, all available public holidays of the country "
+"apply. School holidays need a region or the All selection."
+msgstr ""
+"Senza una regione selezionata valgono tutte le festività disponibili del "
+"paese. Le vacanze scolastiche richiedono una regione o la scelta Tutte."
 
 msgid ""
 "Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
@@ -8731,6 +8838,29 @@ msgstr[1] "… e %(count)s altri elementi che verranno anch’essi stampati."
 
 msgid "＋ Add appointment"
 msgstr "＋ Aggiungi appuntamento"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected canton. With “All”, each "
+#~ "entry shows its canton and matching periods are combined."
+#~ msgstr ""
+#~ "Senza un cantone selezionato non vengono recuperati dati regionali. Con "
+#~ "«Tutti», ogni voce mostra il proprio cantone e i periodi corrispondenti "
+#~ "vengono uniti."
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected state. With “All”, each "
+#~ "entry shows its state and matching periods are combined."
+#~ msgstr ""
+#~ "Senza uno stato federato selezionato non vengono recuperati dati "
+#~ "regionali. Con «Tutti», ogni voce mostra il proprio stato e i periodi "
+#~ "corrispondenti vengono uniti."
+
+#~ msgid "Select your canton first or enable “All cantons”."
+#~ msgstr "Seleziona prima il tuo cantone o attiva «Tutti i cantoni»."
+
+#~ msgid "Select your state first or enable “All states”."
+#~ msgstr ""
+#~ "Seleziona prima il tuo stato federato o attiva «Tutti gli stati federati»."
 
 #~ msgid "Consider deletions during manual synchronization"
 #~ msgstr "Sincronizzazione dei contatti"

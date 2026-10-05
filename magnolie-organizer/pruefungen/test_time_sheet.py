@@ -109,6 +109,36 @@ def test_regional_cached_text_and_open_records(native):
         native.zeiterfassung_ods_bytes(data)
 
 
+def test_fixed_offset_zones_keep_original_labels_and_actual_utc_order(native):
+    data = report([record('2026-10-01T00:00:00Z', '2026-10-01T01:00:00Z', zone='UTC+05:30'),
+                   record('2026-10-01T02:00:00Z', '2026-10-01T03:00:00Z')])
+    data['days'] = [1]
+    rows = unpack(native, data).find('.//table:table', NS).findall('table:table-row', NS)[4:-3]
+    cells = [row.findall('table:table-cell', NS) for row in rows]
+    assert ''.join(cells[0][2].itertext()) == '05:30 AM'
+    assert ''.join(cells[1][2].itertext()) == '02:00 AM'
+    assert 'UTC+05:30' in ''.join(cells[0][8].itertext())
+    data['entries'][0]['zone'] = 'UTC+18:00'
+    assert '06:00 PM' in list(unpack(native, data).itertext())
+
+
+def test_clock_adjustment_matches_minute_cells_even_for_historical_second_offsets(native):
+    data = report([record('1972-01-07T00:00:00Z', '1972-01-07T02:00:00Z', zone='Africa/Monrovia')], twelve=False)
+    data.update(month='1972-01', monthTitle='January 1972', days=[6])
+    cells = unpack(native, data).find('.//table:table', NS).findall('table:table-row', NS)[4].findall('table:table-cell', NS)
+    assert ''.join(cells[2].itertext()) == '23:15'
+    assert ''.join(cells[4].itertext()) == '02:00'
+    assert cells[9].get('{%s}value' % NS['office']) == '45'
+    assert float(cells[5].get('{%s}value' % NS['office'])) == pytest.approx(120 / 1440)
+    entry = data['entries'][0]
+    entry['localStartMinute'] = int(datetime.fromisoformat('1972-01-06T23:15:00+00:00').timestamp() // 60)
+    entry['localEndMinute'] = entry['endMinute']
+    projected = unpack(native, data).find('.//table:table', NS).findall('table:table-row', NS)[4].findall('table:table-cell', NS)
+    assert projected[9].get('{%s}value' % NS['office']) == '45'
+    entry['localStartMinute'] += 60
+    with pytest.raises(ValueError): unpack(native, data)
+
+
 @pytest.mark.parametrize('enabled,regions,expected', [
     (True, ['DE-TH'], True), (True, ['TH'], True), (True, ['DE-BY'], False),
     (True, [], True), (False, [], False), (False, ['DE-TH'], False)])

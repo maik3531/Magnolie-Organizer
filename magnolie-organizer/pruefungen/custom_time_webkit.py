@@ -7,12 +7,15 @@ Only the test export is injected; the time widget and handlers are unmodified.
 import argparse
 import hashlib
 import json
+import locale
 import mimetypes
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
 import time
+import xml.etree.ElementTree as ET
 from urllib.parse import urlsplit
 
 import gi
@@ -28,6 +31,7 @@ parser.add_argument("--before", action="store_true")
 parser.add_argument("--locale", choices=("de", "en"), default="de")
 parser.add_argument("--all-locales", action="store_true")
 parser.add_argument("--regional-only", action="store_true")
+parser.add_argument("--tracking-only", action="store_true")
 args = parser.parse_args()
 assert os.environ.get("MAGNOLIE_TIME_ISOLATED") == "1", "Use custom_time_isolated.sh"
 assert not Path("/dev/dri").exists() and not list(Path("/dev").glob("nvidia*"))
@@ -72,10 +76,12 @@ window.Date = class extends RealDate {
   static now() { return new RealDate('2026-09-13T09:22:00Z').getTime(); }
 };
 window.timeSaves = [];
+window.timeSheets = [];
 window.testCommands = [];
 window.webkit = {messageHandlers: {timeTest: {postMessage(text) {
   const message = JSON.parse(text);
   testCommands.push(message.cmd);
+  if (message.cmd === 'zeit_ods') timeSheets.push(message.sheet);
   if (message.cmd === 'speichern') {
     timeSaves.push(JSON.parse(message.text));
     setTimeout(() => App.gespeichert({id: message.id, ok: true}), 0);
@@ -167,7 +173,7 @@ def screenshot(name):
                                        window.get_allocated_width(), window.get_allocated_height())
     pixbuf.savev(str(args.output / (name + ".png")), "png", [], [])
     metrics = evaluate("""
-const dialog = [...document.querySelectorAll('.eingabe-dialog')].at(-1);
+const dialog = document.querySelector('.druck-blatt') || [...document.querySelectorAll('.eingabe-dialog')].at(-1);
 const r = dialog?.getBoundingClientRect();
 const fields = dialog ? [...dialog.querySelectorAll('input[type="time"], button, label, .einst-warnung, .einst-hinweis')]
   .filter(n => n.getClientRects().length) : [];
@@ -195,10 +201,171 @@ def load(data=None):
     wait(1500)
 
 
+def print_time_pdf(html, name, markers, labels, overflow=False):
+    # Same native file-printer path as planner_print_files.py, inside this sandbox.
+    locale.setlocale(locale.LC_MESSAGES, "C")
+    Gtk.Settings.get_default().set_property("gtk-print-backends", "file")
+    pdf = args.output / (name + ".pdf")
+    (args.output / (name + ".html")).write_text(html)
+    print_view = WebKit2.WebView.new_with_context(context)
+    print_view.get_settings().set_enable_javascript(False)
+    print_view.get_settings().set_print_backgrounds(True)
+    print_view.get_settings().set_hardware_acceleration_policy(WebKit2.HardwareAccelerationPolicy.NEVER)
+    print_window = Gtk.OffscreenWindow()
+    print_window.add(print_view)
+    print_window.show_all()
+    loop, errors, operations = GLib.MainLoop(), [], []
+
+    def loaded(_view, event):
+        if event != WebKit2.LoadEvent.FINISHED or operations:
+            return
+        operation = WebKit2.PrintOperation.new(print_view)
+        operations.append(operation)
+        settings = Gtk.PrintSettings.new()
+        settings.set_printer("Print to File")
+        settings.set("output-file-format", "pdf")
+        settings.set("output-uri", pdf.as_uri())
+        page = Gtk.PageSetup.new()
+        page.set_paper_size(Gtk.PaperSize.new("iso_a4"))
+        page.set_orientation(Gtk.PageOrientation.LANDSCAPE)
+        settings.set_orientation(page.get_orientation())
+        for side in ("top", "bottom", "left", "right"):
+            getattr(page, "set_" + side + "_margin")(10, Gtk.Unit.MM)
+        operation.set_page_setup(page)
+        operation.set_print_settings(settings)
+        operation.connect("failed", lambda _op, error: errors.append(str(error)))
+        operation.connect("finished", lambda _op: loop.quit())
+        operation.print_()
+
+    print_view.connect("load-changed", loaded)
+    timer = GLib.timeout_add_seconds(30, lambda: (errors.append("Print timeout"), loop.quit(), False)[-1])
+    print_view.load_html(html, "magnolie-organizer://app/")
+    loop.run()
+    if not errors:
+        GLib.source_remove(timer)
+    print_window.destroy()
+    assert not errors and pdf.is_file(), errors
+    info = subprocess.check_output(["pdfinfo", str(pdf)], text=True)
+    text = subprocess.check_output(["pdftotext", "-layout", str(pdf), "-"], text=True)
+    (args.output / (name + ".txt")).write_text(text)
+    pages = int(re.search(r"^Pages:\s+(\d+)", info, re.M)[1])
+    assert pages > 1 if overflow else pages == 1, (name, info)
+    dimensions = re.search(r"Page size:\s+([\d.]+) x ([\d.]+) pts \(A4\)", info)
+    assert dimensions and abs(float(dimensions[1]) - 841.89) < 1 and abs(float(dimensions[2]) - 595.28) < 1, info
+    assert all(marker in text for marker in markers), (name, text)
+    boxes = ET.fromstring(subprocess.check_output(["pdftotext", "-bbox", str(pdf), "-"]))
+    for page in boxes.findall(".//{*}page"):
+        assert all(0 <= float(word.get("xMin")) < float(word.get("xMax")) <= float(page.get("width")) and
+            0 <= float(word.get("yMin")) < float(word.get("yMax")) <= float(page.get("height"))
+            for word in page.findall(".//{*}word")), (name, "Text outside the paper")
+    page_texts = [page for page in text.split("\f") if page.strip()]
+    shaped = any("\u0900" <= char <= "\u097f" or "\u0600" <= char <= "\u06ff" or "\u3000" <= char <= "\u9fff"
+        for char in labels["columns"][2])
+    if shaped:
+        # Poppler drops some Indic/CJK glyph mappings and reorders Arabic. Keep
+        # raster evidence instead of treating its plain-text output as glyph loss.
+        assert labels["columns"][2] in html and labels["signature"] in html
+        subprocess.run(["pdftoppm", "-singlefile", "-r", "120", "-png", str(pdf), str(pdf.with_suffix(""))],
+            check=True, capture_output=True, timeout=30)
+    else:
+        assert all(labels["columns"][2] in page for page in page_texts), (name, "Missing repeated column header")
+        assert labels["signature"] in page_texts[-1] and labels["total"] in page_texts[-1]
+        assert all(labels["signature"] not in page and labels["total"] not in page for page in page_texts[:-1])
+    return {"case": name, "pages": pages, "complete": True, "labelsExtractable": not shaped}
+
+
 load()
 results = []
 completed = False
 try:
+    if args.tracking_only:
+        click("#deckel", offset=200)
+        wait(1000)
+        evaluate("""
+MagnolieI18n.setLocale('en');
+const d = OrganizerTest.daten();
+Object.assign(d.einstellungen.regional, {formatLocale:'en-US', hourCycle:'h12', timeZone:'UTC'});
+d.zeiterfassung = {enabled:true, actor:'11111111-1111-4111-8111-111111111111', counter:1, conflicts:{}, reportName:'Synthetic name',
+  entries:[{id:'22222222-2222-4222-8222-222222222222',startMinute:Date.parse('2026-09-13T08:00:00Z')/60000,
+    endMinute:Date.parse('2026-09-13T17:00:00Z')/60000,pauseMinute:null,pauseMinutes:30,zone:'UTC',
+    type:'Recorded activity',note:'Synthetic time record',modifiedMs:1,deleted:false,
+    clock:{'11111111-1111-4111-8111-111111111111':1},pausePlan:null}]};
+OrganizerTest.wechsel('planer'); OrganizerTest.wechsel('kalender');
+return true;
+""")
+        screenshot("tracking-calendar")
+        click('.zeit-marke[data-zeit-tag="2026-09-13"]')
+        click("#zeit-von-zeit")
+        xdo("key", "ctrl+a")
+        xdo("type", "--clearmodifiers", "--delay", "60", "08:15 AM")
+        xdo("key", "Tab")
+        assert evaluate("return document.querySelector('#zeit-von-zeit').value;") == "08:15"
+        click("#zeit-dauer")
+        xdo("key", "ctrl+a")
+        xdo("type", "--clearmodifiers", "--delay", "60", "168:30")
+        assert evaluate("return document.querySelector('#zeit-bis-zeit').value;") == "09:15"
+        screenshot("tracking-editor")
+        click("#zeit-editor-schleier .hauptknopf")
+        assert not evaluate("return !!document.querySelector('#zeit-editor-schleier');")
+        evaluate("OrganizerTest.speichereJetzt(); return true;")
+        wait(300)
+        saved = evaluate("return timeSaves.at(-1);")
+        entry = saved["zeiterfassung"]["entries"][0]
+        assert entry["endMinute"] - entry["startMinute"] - entry["pauseMinutes"] == 168 * 60 + 30
+        assert not saved["termine"]
+        load(saved)
+        assert evaluate("return OrganizerTest.daten().zeiterfassung.entries[0].id;") == entry["id"]
+        evaluate("""
+OrganizerTest.zustand().planer.jahr=2026; OrganizerTest.zustand().kalender.monat=8;
+OrganizerTest.oeffneDruckvorschau(null,'planer'); return true;
+""")
+        click("#planer-druck-art")
+        xdo("key", "End", "Return")
+        assert evaluate("return document.querySelector('#planer-druck-art').value;") == "time"
+        screenshot("tracking-print")
+        click("#zeit-druck-alle-tage", offset=6)
+        assert evaluate("return document.querySelector('#druck-schleier .ods-knopf').disabled;")
+        click('[data-zeit-druck-tag="13"]', offset=6)
+        screenshot("tracking-print-selected")
+        click("#druck-schleier .ods-knopf")
+        sheet = evaluate("return timeSheets.at(-1);")
+        assert sheet["month"] == "2026-09" and sheet["days"] == [13]
+        assert sheet["entries"][0]["id"] == entry["id"]
+        (args.output / "time-sheet-payload.json").write_text(json.dumps(sheet, ensure_ascii=False, indent=2))
+        results.append({"case":"tracking-calendar-keyboard-restart-ods", "entry":entry, "month":sheet["month"]})
+        cases = [(None, 1, "tracking-month"), (None, 3, "tracking-overflow"), (None, 0, "tracking-long-note")]
+        if args.all_locales:
+            for catalog in sorted((web / "i18n").glob("*.js")):
+                evaluate(catalog.read_text() + "; return true;")
+            cases.extend((language, 1, "tracking-month-" + language) for language in
+                ("en-US", "de-DE", "fr-FR", "es-ES", "it-IT", "nl-NL", "pt-PT", "ru-RU", "cs-CZ", "pl-PL",
+                 "hsb-DE", "da-DK", "nb-NO", "hi-IN", "zh-CN", "ja-JP", "ar-EG", "uk-UA", "be-BY", "tr-TR"))
+        for language, count, name in cases:
+            if language:
+                evaluate("MagnolieI18n.setLocale(" + json.dumps(language) + "); Object.assign(OrganizerTest.daten().einstellungen.regional, " +
+                    json.dumps({"formatLocale": language, "hourCycle": "h12"}) + "); return true;")
+            rendered = evaluate("""
+const sheet = OrganizerTest.zeitOdsNutzlast(2026,9).sheet;
+const source = OrganizerTest.daten().zeiterfassung.entries[0]; sheet.entries = [];
+for (let day=1; day<=31; day++) for (let slot=0; slot<""" + str(count) + """; slot++) {
+  const start = Date.UTC(2026,9,day,6+slot*5)/60000;
+  sheet.entries.push({...source, id:crypto.randomUUID(), startMinute:start, endMinute:start+270,
+    localStartMinute:start, localEndMinute:start+270, pauseMinutes:30, note:'',
+    type:'ENTRY-'+String(sheet.entries.length+1).padStart(3,'0')});
+}
+let markers=sheet.entries.map(e=>e.type);
+if(!sheet.entries.length) {
+  markers=Array.from({length:160},(_,i)=>'LINE-'+String(i+1).padStart(3,'0'));
+  const start=Date.UTC(2026,9,13,8)/60000; sheet.days=[13];
+  sheet.entries=[{...source,id:crypto.randomUUID(),startMinute:start,endMinute:start+270,
+    localStartMinute:start,localEndMinute:start+270,pauseMinutes:30,zone:'UTC',note:markers.join('\\n'),type:'LONGNOTE'}];
+}
+return {html:OrganizerTest.zeitDruckSeite(sheet), markers, labels:sheet.labels};
+""")
+            results.append(print_time_pdf(rendered["html"], name, rendered["markers"], rendered["labels"], overflow=count != 1))
+        completed = True
+        print(f"Native time-tracking calendar, keyboard, restart and ODS handoff passed: {web}", flush=True)
+        sys.exit(0)
     if args.regional_only:
         regional_field = '#custom-eintrag-schleier .zeitfeld'
         for catalog in sorted((web / "i18n").glob("*.js")):

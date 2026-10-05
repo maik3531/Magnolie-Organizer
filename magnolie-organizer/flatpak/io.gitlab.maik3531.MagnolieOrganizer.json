@@ -32,6 +32,7 @@
         "install -m 0755 bin/magnolie-organizer /app/bin/magnolie-organizer",
         "install -m 0644 bin/magnolie_telefon.py bin/magnolie_anruf_audio.py bin/magnolie_phone_region.py bin/magnolie_phone_contacts.py bin/magnolie_kdeconnect.py bin/magnolie_digitizer.py bin/magnolie_hintergrund.py bin/magnolie_personal_sync.py bin/magnolie_nextcloud.py bin/magnolie_cloud_backup.py bin/magnolie_akonadi.py bin/magnolie_crash.py bin/magnolie_asset.py bin/magnolie_setup_state.py bin/magnolie_setup_ui.py bin/magnolie_recurrence.py /app/bin/",
         "install -m 0644 bin/magnolie_personal_sync.py /app/lib/magnolie-organizer/magnolie_personal_sync.py",
+        "install -m 0644 bin/magnolie_time_sync.py /app/bin/magnolie_time_sync.py",
         "cp -a web/. /app/share/magnolie-organizer/web/",
         "python3 -c 'import json,re,pathlib; v=re.search(r\"^[^(]+\\(([^)]+)\\)\",pathlib.Path(\"debian/changelog\").read_text()).group(1); pathlib.Path(\"/app/share/magnolie-organizer/version.json\").write_text(json.dumps({\"version\":v})+\"\\n\")'",
         "install -m 0644 klang/erinnerung.wav /app/share/magnolie-organizer/klang/erinnerung.wav",

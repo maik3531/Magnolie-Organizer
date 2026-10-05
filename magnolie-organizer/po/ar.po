@@ -817,6 +817,10 @@ msgstr "نوع الحساب"
 msgid "Active call"
 msgstr "مكالمة نشطة"
 
+msgctxt "time tracking"
+msgid "Activity"
+msgstr "النشاط"
+
 msgid "Add"
 msgstr "إضافة"
 
@@ -931,6 +935,10 @@ msgstr "الكل"
 
 msgid "All cantons"
 msgstr "كل الكانتونات"
+
+msgctxt "time tracking"
+msgid "All days"
+msgstr "كل الأيام"
 
 msgid "All entries"
 msgstr "كل السجلات"
@@ -1604,6 +1612,14 @@ msgstr "التحقق الآن"
 msgid "Check spelling (red wavy lines)"
 msgstr "تدقيق الإملاء (خطوط حمراء متموجة)"
 
+msgctxt "time tracking"
+msgid ""
+"Check the dates, times and pause. The selected local time must exist in this "
+"time zone."
+msgstr ""
+"تحقق من التواريخ والأوقات والاستراحة. يجب أن يكون الوقت المحلي المحدد موجودًا "
+"في هذه المنطقة الزمنية."
+
 msgid "Check the value and discuss repeated deviations with a doctor."
 msgstr "تحقّق من القيمة وناقش الانحرافات المتكررة مع الطبيب."
 
@@ -1773,6 +1789,10 @@ msgid ""
 msgstr ""
 "يؤدي النقر على موعد موجود إلى فتحه للتحرير في الحالتين. ينطبق هذا الإعداد "
 "فقط عند النقر على مساحة فارغة في المربع."
+
+msgctxt "time tracking"
+msgid "Clock change (min)"
+msgstr "تغيير الساعة (دقيقة)"
 
 msgid "Close"
 msgstr "إغلاق"
@@ -2190,6 +2210,10 @@ msgstr "البيانات: غير موجودة – افتح Organizer مرة وا
 msgid "Date"
 msgstr "التاريخ"
 
+msgctxt "time tracking"
+msgid "Date"
+msgstr "التاريخ"
+
 msgid "Date format"
 msgstr "تنسيق التاريخ"
 
@@ -2496,6 +2520,10 @@ msgstr "المدة"
 msgid "Early shift"
 msgstr "وردية مبكرة"
 
+msgctxt "time tracking"
+msgid "Early shift"
+msgstr "الوردية الصباحية"
+
 msgid "Edit"
 msgstr "تحرير"
 
@@ -2516,6 +2544,10 @@ msgstr "تحرير دفتر الملاحظات"
 
 msgid "Edit notebook group"
 msgstr "تحرير مجموعة دفاتر الملاحظات"
+
+msgctxt "time tracking"
+msgid "Edit record"
+msgstr "تعديل السجل"
 
 msgid "Edit task"
 msgstr "تحرير المهمة"
@@ -2605,6 +2637,10 @@ msgstr "فعّل إدخال اللوح هنا، ثم افتح لوح الرسم 
 msgid "Enable this SMS plan"
 msgstr "تفعيل خطة الرسالة هذه"
 
+msgctxt "time tracking"
+msgid "Enable time tracking"
+msgstr "تفعيل تتبع الوقت"
+
 msgid "Enable tray applet"
 msgstr "تمكين بريمج صينية النظام"
 
@@ -2623,6 +2659,14 @@ msgstr "إدخالات الأرشيف المشفرة غير مدعومة."
 
 msgid "Encrypting the data"
 msgstr "جارٍ تشفير البيانات"
+
+msgctxt "time tracking"
+msgid "End"
+msgstr "النهاية"
+
+msgctxt "time tracking"
+msgid "End date"
+msgstr "تاريخ الانتهاء"
 
 msgid "Ending the call"
 msgstr "جارٍ إنهاء المكالمة"
@@ -3091,6 +3135,10 @@ msgstr "زيارة منزلية"
 msgid "Hours"
 msgstr "ساعات"
 
+msgctxt "time tracking"
+msgid "Hours"
+msgstr "الساعات"
+
 msgid "How the calendar should behave when you click a day."
 msgstr "كيفية تصرف التقويم عند النقر على يوم."
 
@@ -3417,6 +3465,10 @@ msgstr "آخر مزامنة: %(date)s، %(time)s."
 msgid "Late shift"
 msgstr "وردية متأخرة"
 
+msgctxt "time tracking"
+msgid "Late shift"
+msgstr "الوردية المسائية"
+
 msgid "Latest alarm monitor entries:"
 msgstr "أحدث إدخالات مراقب التنبيهات:"
 
@@ -3660,6 +3712,10 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "مخصص"
 
+msgctxt "time tracking"
+msgid "Manual entry"
+msgstr "إدخال يدوي"
+
 msgid "Manual only"
 msgstr "يدوي فقط"
 
@@ -3789,6 +3845,10 @@ msgstr "مراقبة رسائل SMS في KDE Connect وإظهار الإشعار
 msgid "Month"
 msgstr "الشهر"
 
+msgctxt "time tracking"
+msgid "Month"
+msgstr "الشهر"
+
 msgid "Month calendar"
 msgstr "تقويم الشهر"
 
@@ -3850,6 +3910,10 @@ msgstr ""
 msgid "Multiple calendars"
 msgstr "تقاويم متعددة"
 
+msgid "Name"
+msgstr "الاسم"
+
+msgctxt "time tracking"
 msgid "Name"
 msgstr "الاسم"
 
@@ -4020,6 +4084,10 @@ msgstr "الليل"
 msgid "Night shift"
 msgstr "نوبة ليلية"
 
+msgctxt "time tracking"
+msgid "Night shift"
+msgstr "الوردية الليلية"
+
 msgid "No"
 msgstr "لا"
 
@@ -4143,20 +4211,6 @@ msgid ""
 msgstr ""
 "لم يُعثر على مخازن Evolution أو Thunderbird قابلة للقراءة على هذا الحاسوب."
 
-msgid ""
-"No regional data is retrieved without a selected canton. With “All”, each "
-"entry shows its canton and matching periods are combined."
-msgstr ""
-"لا تُجلب البيانات الإقليمية من دون اختيار كانتون. ومع «الكل» يُظهر كل عنصر "
-"كانتونه وتُدمج الفترات المتطابقة."
-
-msgid ""
-"No regional data is retrieved without a selected state. With “All”, each "
-"entry shows its state and matching periods are combined."
-msgstr ""
-"لا تُجلب البيانات الإقليمية من دون اختيار ولاية. ومع «الكل» يُظهر كل عنصر "
-"ولايته وتُدمج الفترات المتطابقة."
-
 msgid "No scheme row matches this blood glucose value."
 msgstr "لا يطابق أي صف في المخطط قيمة سكر الدم هذه."
 
@@ -4196,6 +4250,10 @@ msgstr "لم تُربط أي مهمة بعد."
 #, python-format
 msgid "No text viewer was found. The log is located at: %s"
 msgstr "لم يُعثر على عارض نصوص. السجل موجود في: %s"
+
+msgctxt "time tracking"
+msgid "No time recorded yet."
+msgstr "لم يتم تسجيل أي وقت بعد."
 
 msgid "No update check has been performed yet."
 msgstr "لم يُجرَ فحص للتحديثات بعد."
@@ -4739,6 +4797,14 @@ msgstr "لصق"
 msgid "Patch"
 msgstr "لصقة"
 
+msgctxt "time tracking"
+msgid "Pause (minutes)"
+msgstr "الاستراحة (بالدقائق)"
+
+msgctxt "time tracking"
+msgid "Paused"
+msgstr "متوقف مؤقتًا"
+
 msgid "Paused — review required"
 msgstr "متوقفة مؤقتًا — المراجعة مطلوبة"
 
@@ -5072,6 +5138,9 @@ msgstr "كلمة مرور الأرشيف المحمية غير متاحة."
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "عنوان IPv4 أو IPv6 العام للفرع الآخر"
 
+msgid "Public holidays"
+msgstr "العطلات الرسمية"
+
 msgid ""
 "Public holidays and school holidays are governed regionally. Choose which "
 "ones apply here."
@@ -5143,6 +5212,10 @@ msgstr "الاستقبال عبر KDE Connect"
 
 msgid "Reconnect"
 msgstr "أعد الاتصال"
+
+msgctxt "time tracking"
+msgid "Recorded times"
+msgstr "الأوقات المسجلة"
 
 msgid "Recovery snapshot created."
 msgstr "تم إنشاء لقطة استعادة."
@@ -5454,6 +5527,10 @@ msgstr "قم بتشغيل المثبت الذي تم تنزيله بشكل مر�
 msgid "Run the optional background service"
 msgstr "تشغيل خدمة الخلفية الاختيارية"
 
+msgctxt "time tracking"
+msgid "Running"
+msgstr "قيد التشغيل"
+
 msgid "S"
 msgstr "S"
 
@@ -5721,14 +5798,8 @@ msgstr "حدد شيئًا أولًا."
 msgid "Select what you want to print on the left."
 msgstr "حدد على اليسار ما تريد طباعته."
 
-msgid "Select your canton first or enable “All cantons”."
-msgstr "حدد الكانتون أولًا أو فعّل «كل الكانتونات»."
-
 msgid "Select your phone"
 msgstr "اختر هاتفك"
-
-msgid "Select your state first or enable “All states”."
-msgstr "حدد الولاية أولًا أو فعّل «كل الولايات»."
 
 msgid "Select, preview, print, export or delete health records"
 msgstr "تحديد السجلات الصحية أو معاينتها أو طباعتها أو تصديرها أو حذفها"
@@ -5922,6 +5993,10 @@ msgstr "إظهار أرقام الأسابيع في العرض الشهري"
 msgid "Show week numbers in the planner"
 msgstr "إظهار أرقام الأسابيع في المخطِّط"
 
+msgctxt "time tracking"
+msgid "Signature"
+msgstr "التوقيع"
+
 msgid "Silence this alert"
 msgstr "إسكات هذا التنبيه"
 
@@ -6025,6 +6100,10 @@ msgstr "بخاخ"
 
 msgid "St. Gallen"
 msgstr "سانت غالن"
+
+msgctxt "time tracking"
+msgid "Start"
+msgstr "البداية"
 
 msgid "Start Magnolie"
 msgstr "بدء Magnolie"
@@ -6707,6 +6786,10 @@ msgstr "البصمة المدخلة غير مكتملة."
 
 msgid "The entry could not be found."
 msgstr "تعذر العثور على الإدخال."
+
+msgctxt "time tracking"
+msgid "The entry could not be saved. Reload it and try again."
+msgstr "تعذر حفظ السجل. افتحه مجددًا وحاول مرة أخرى."
 
 msgid "The file could not be read."
 msgstr "تعذر قراءة الملف."
@@ -7570,8 +7653,16 @@ msgstr "تيتشينو"
 msgid "Time"
 msgstr "الوقت"
 
+msgctxt "time tracking"
+msgid "Time"
+msgstr "الوقت"
+
 msgid "Time format"
 msgstr "تنسيق الوقت"
+
+msgctxt "time tracking"
+msgid "Time tracking"
+msgstr "تتبع الوقت"
 
 msgid "Time zone"
 msgstr "المنطقة الزمنية"
@@ -7625,6 +7716,14 @@ msgstr "هناك عدد كبير جدًا من عمليات المزامنة غ�
 msgid "Top level"
 msgstr "المستوى الأعلى"
 
+msgctxt "time tracking"
+msgid "Total"
+msgstr "المجموع"
+
+msgctxt "time tracking"
+msgid "Total time"
+msgstr "الوقت الإجمالي"
+
 msgid "Transfer received text to the clipboard"
 msgstr "نقل النص المستلم إلى الحافظة"
 
@@ -7642,6 +7741,10 @@ msgstr "رجوع"
 
 msgid "Turn forward"
 msgstr "تقدّم"
+
+msgctxt "time tracking"
+msgid "Turning tracking off keeps existing records."
+msgstr "تبقى السجلات الموجودة محفوظة عند إيقاف التتبع."
 
 msgid "Two days back"
 msgstr "قبل يومين"
@@ -8120,6 +8223,13 @@ msgstr ""
 
 msgid "With photo"
 msgstr "مع صورة"
+
+msgid ""
+"Without a selected region, all available public holidays of the country "
+"apply. School holidays need a region or the All selection."
+msgstr ""
+"دون اختيار منطقة تُحتسب جميع العطلات الرسمية المتاحة في البلد. تتطلب العطلات "
+"المدرسية منطقة أو اختيار الكل."
 
 msgid ""
 "Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
@@ -8686,6 +8796,26 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected canton. With “All”, each "
+#~ "entry shows its canton and matching periods are combined."
+#~ msgstr ""
+#~ "لا تُجلب البيانات الإقليمية من دون اختيار كانتون. ومع «الكل» يُظهر كل عنصر "
+#~ "كانتونه وتُدمج الفترات المتطابقة."
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected state. With “All”, each "
+#~ "entry shows its state and matching periods are combined."
+#~ msgstr ""
+#~ "لا تُجلب البيانات الإقليمية من دون اختيار ولاية. ومع «الكل» يُظهر كل عنصر "
+#~ "ولايته وتُدمج الفترات المتطابقة."
+
+#~ msgid "Select your canton first or enable “All cantons”."
+#~ msgstr "حدد الكانتون أولًا أو فعّل «كل الكانتونات»."
+
+#~ msgid "Select your state first or enable “All states”."
+#~ msgstr "حدد الولاية أولًا أو فعّل «كل الولايات»."
 
 #~ msgid "Consider deletions during manual synchronization"
 #~ msgstr "مزامنة جهات الاتصال"

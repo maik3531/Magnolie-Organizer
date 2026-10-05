@@ -1844,10 +1844,10 @@ def _holer(url):
     gerufen.append(url)
     if "PublicHolidays" in url and "2026" in url:
         return _json.dumps([
-            {"startDate": "2026-01-01", "endDate": "2026-01-01",
+            {"startDate": "2026-01-01", "endDate": "2026-01-01", "nationwide": True,
              "name": [{"language": "EN", "text": "New Year"},
                       {"language": "DE", "text": "Neujahr"}]},
-            {"startDate": "2026-10-03", "endDate": "2026-10-03",
+            {"startDate": "2026-10-03", "endDate": "2026-10-03", "nationwide": True,
              "name": [{"language": "DE", "text": "Tag der Deutschen Einheit"}]},
             {"startDate": "kaputt", "name": [{"language": "DE", "text": "Unfug"}]},
             {"startDate": "2026-12-25", "name": []},
@@ -1985,13 +1985,19 @@ pruefe(len(erg["feiertage"]) == 4,
 pruefe(all("alle Bundesländer" in f["name"] for f in erg["feiertage"]),
        "zusammengefasste Einträge nennen ihre regionale Geltung")
 
-try:
-    m.feiertage_abrufen(
-        "DE", "", [2026], True, _holer, region_erforderlich=True)
-    pruefe(False, "Land allein müsste bei regionalen Angaben abgewiesen werden")
-except RuntimeError as f:
-    pruefe("Bundesland" in str(f) and "Alle Bundesländer" in str(f),
-           "ohne Bundesland kommt ein verständlicher Hinweis")
+gerufen.clear()
+ohne_region = m.feiertage_abrufen("DE", "", [2026], True, _holer, region_erforderlich=True)
+pruefe(len(ohne_region["feiertage"]) == 2 and all("PublicHolidays" in url and "subdivisionCode" not in url for url in gerufen),
+       "ohne Bundesland werden alle verfügbaren Landesfeiertage, aber keine unbestimmten Schulferien abgerufen")
+pruefe(all(wert["country"] == "DE" and wert["nationwide"] and wert["regions"] == [] for wert in ohne_region["feiertage"]),
+       "Feiertage behalten Land und landesweiten Geltungsbereich als strukturierte Daten")
+regionale_probe = m.feiertage_abrufen("DE", "", [2026], False, lambda _url: _json.dumps([
+    {"startDate": "2026-08-15", "name": "Synthetic regional holiday", "nationwide": False,
+     "subdivisions": [{"code": "DE-BY"}, {"code": "DE-SL"}]}]))
+pruefe(regionale_probe["feiertage"][0]["country"] == "DE" and
+       regionale_probe["feiertage"][0]["regions"] == ["DE-BY", "DE-SL"] and
+       regionale_probe["feiertage"][0]["nationwide"] is False,
+       "regionaler Geltungsbereich bleibt auch beim Abruf ohne Bundesland erhalten")
 
 gerufen.clear()
 erg = m.feiertage_abrufen("DE", "", [2026], False, _holer)

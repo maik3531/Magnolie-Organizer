@@ -6,7 +6,6 @@ import android.icu.util.TimeZone
 import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.YearMonth
-import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.Date
 import java.util.Locale
@@ -29,6 +28,7 @@ object ZeitDruckvorlage {
             .sortedBy { it.startMinute }.groupBy { it.localStart().dayOfMonth }
         val patterns = DateTimePatternGenerator.getInstance(locale)
         fun formatter(skeleton: String) = SimpleDateFormat(patterns.getBestPattern(skeleton), locale).apply {
+            this.calendar = android.icu.util.GregorianCalendar(TimeZone.getTimeZone("UTC"), locale)
             timeZone = TimeZone.getTimeZone("UTC")
         }
         val dateFormat = formatter("EEEyyyyMMdd")
@@ -56,10 +56,7 @@ object ZeitDruckvorlage {
                     val elapsed = if (finished) entry!!.grossMinutes() else 0L
                     val paused = entry?.pauseMinutes ?: 0L
                     val adjustment = if (finished) {
-                        val zone = ZoneId.of(entry!!.zone)
-                        val before = java.time.Instant.ofEpochSecond(entry.startMinute * 60).atZone(zone).offset.totalSeconds
-                        val after = java.time.Instant.ofEpochSecond(entry.endMinute!! * 60).atZone(zone).offset.totalSeconds
-                        (after - before) / 60
+                        java.time.temporal.ChronoUnit.MINUTES.between(start.withSecond(0), end!!.withSecond(0)) - elapsed
                     } else 0
                     if (finished) { gross += elapsed; pauses += paused; total += elapsed - paused }
                     append("<tr class=\"$style\">")

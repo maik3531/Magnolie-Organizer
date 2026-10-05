@@ -33,7 +33,7 @@ data class ZeitEntwurf(
         } ?: end
         return original.copy(startMinute = start, endMinute = correctedEnd, pauseMinutes = pauses,
             pauseMinute = if (correctedEnd == null && original.pauseMinute != null) now else null,
-            type = kind.trim(), note = note, modifiedMs = changed).validate()
+            type = kind.trim(), note = note, modifiedMs = changed, pausePlan = null).validate()
     }
 
     companion object {

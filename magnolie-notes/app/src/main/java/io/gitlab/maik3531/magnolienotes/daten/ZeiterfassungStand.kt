@@ -82,10 +82,23 @@ data class ZeiterfassungStand(
     }
 
     fun projected(entry: Zeiteintrag, now: Long = Zeiteintrag.currentMinute()): Zeiteintrag =
-        pauseRuns[entry.id]?.project(entry, now) ?: entry
+        pauseRuns[entry.id]?.project(entry, now) ?: entry.pausePlan?.project(entry, now) ?: entry
 
     fun isPaused(entry: Zeiteintrag, now: Long = Zeiteintrag.currentMinute()): Boolean =
-        entry.pauseMinute != null || pauseRuns[entry.id]?.calculate(entry, now)?.activeFixed?.isNotEmpty() == true
+        entry.pauseMinute != null || (pauseRuns[entry.id]?.calculate(entry, now)
+            ?: entry.pausePlan?.calculate(entry, now))?.activeFixed?.isNotEmpty() == true
+
+    /** Persist a causal version when shared calculation data changes, never a rendered clock value. */
+    fun prepareSharedPlans(nowMs: Long = System.currentTimeMillis()): ZeiterfassungStand {
+        var state = this
+        for (entry in entries) {
+            val run = pauseRuns[entry.id] ?: continue
+            val plan = run.sharedPlan()
+            if (entry.pausePlan != plan) state = state.store(entry.copy(pausePlan = plan,
+                modifiedMs = maxOf(entry.modifiedMs, nowMs)))
+        }
+        return state.validate()
+    }
 
     /** Evaluation only persists newly observed replacements, never a per-minute clock tick. */
     fun evaluatePauses(now: Long = Zeiteintrag.currentMinute()): ZeiterfassungStand = copy(
@@ -96,7 +109,8 @@ data class ZeiterfassungStand(
         if (expected.endMinute != null || expected.deleted) return this
         val now = nowMs / 60000
         if (isPaused(expected, now)) return this
-        val run = pauseRuns[expected.id] ?: return replace(expected, expected.pause(now, nowMs))
+        val run = pauseRuns[expected.id] ?: expected.pausePlan?.let { ZeitPausenlauf().follow(expected) }
+            ?: return replace(expected, expected.pause(now, nowMs))
         val evaluated = run.evaluated(expected, now)
         val record = evaluated.project(expected, now).pause(now, nowMs)
         return store(record).copy(pauseRuns = pauseRuns + (record.id to evaluated.copy(
@@ -107,7 +121,8 @@ data class ZeiterfassungStand(
         check(entries.firstOrNull { it.id == expected.id } == expected)
         if (expected.endMinute != null || expected.deleted) return this
         val now = nowMs / 60000
-        val run = pauseRuns[expected.id] ?: return replace(expected, expected.resume(now, nowMs))
+        val run = pauseRuns[expected.id] ?: expected.pausePlan?.let { ZeitPausenlauf().follow(expected) }
+            ?: return replace(expected, expected.resume(now, nowMs))
         val evaluated = run.evaluated(expected, now)
         val result = evaluated.calculate(expected, now)
         if (expected.pauseMinute == null && result.activeFixed.isEmpty()) return this
@@ -175,13 +190,15 @@ data class ZeiterfassungStand(
         val removed = entries.filter { it.id in ids }
         val clean = purgeExpired(now)
         if (removed.isEmpty()) return clean
+        val archived = ZeitPapierkorb(removedMs = now, entries = removed, month = month,
+            conflicts = conflicts.filterKeys { it in ids }, pauseRuns = pauseRuns.filterKeys { it in ids })
         return clean.copy(entries = entries.filterNot { it.id in ids }, removedIds = removedIds + ids,
             removedMonths = if (month == null) removedMonths else removedMonths + month,
-            trash = clean.trash + ZeitPapierkorb(removedMs = now, entries = removed, month = month,
-                conflicts = conflicts.filterKeys { it in ids }, pauseRuns = pauseRuns.filterKeys { it in ids }),
+            trash = clean.trash + archived,
             conflicts = conflicts - ids,
             pauseRuns = pauseRuns - ids,
-            wifi = removed.filter { it.endMinute == null }.fold(wifi) { value, record -> value.afterStop(record.id, now) }).validate()
+            wifi = removed.filter { it.endMinute == null }.fold(wifi) { value, record ->
+                value.afterStop(record.id, now, "remove:${archived.id}:${record.id}") }).validate()
     }
 
     fun purgeExpired(now: Long = System.currentTimeMillis()): ZeiterfassungStand =
@@ -224,7 +241,7 @@ data class ZeiterfassungStand(
             entries = entries.filterNot { it.id == entry.id } + stamped,
             pauseRuns = updatedRuns,
             removedMonths = removedMonths - YearMonth.from(entry.localStart()).toString(),
-            wifi = if (wasRunning && entry.endMinute != null) wifi.afterStop(entry.id, stoppedMs) else wifi).validate()
+            wifi = if (wasRunning && entry.endMinute != null) wifi.afterStop(entry.id, stoppedMs, ZeitWlanAutomatik.stopEvent(stamped)) else wifi).validate()
     }
 
     companion object {

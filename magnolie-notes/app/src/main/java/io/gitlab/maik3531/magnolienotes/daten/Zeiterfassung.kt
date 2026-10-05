@@ -25,7 +25,8 @@ data class Zeiteintrag(
     @kotlinx.serialization.EncodeDefault
     val modifiedMs: Long = System.currentTimeMillis(),
     val deleted: Boolean = false,
-    val clock: Map<String, Long> = emptyMap()
+    val clock: Map<String, Long> = emptyMap(),
+    val pausePlan: ZeitPausenplan? = null
 ) {
     fun validate(): Zeiteintrag {
         require(runCatching { UUID.fromString(id).toString() == id && id[14] == '4' }.getOrDefault(false))
@@ -39,6 +40,7 @@ data class Zeiteintrag(
             runCatching { UUID.fromString(actor).toString() == actor }.getOrDefault(false) && counter in 1L..9007199254740991L
         })
         ZoneId.of(zone)
+        pausePlan?.validate(this)
         return this
     }
 
@@ -68,12 +70,12 @@ data class Zeiteintrag(
         validate(); if (deleted || endMinute != null) return this
         require(at >= startMinute)
         val resumed = resume(at, changed)
-        return resumed.copy(endMinute = at, modifiedMs = changed).validate()
+        return resumed.copy(endMinute = at, modifiedMs = changed, pausePlan = null).validate()
     }
 
     fun corrected(start: Long, end: Long, pauses: Long, kind: String, text: String,
                   changed: Long = System.currentTimeMillis()): Zeiteintrag = copy(startMinute = start, endMinute = end,
-        pauseMinute = null, pauseMinutes = pauses, type = kind.trim(), note = text, modifiedMs = changed).validate()
+        pauseMinute = null, pauseMinutes = pauses, type = kind.trim(), note = text, modifiedMs = changed, pausePlan = null).validate()
 
     companion object {
         const val MAX_MINUTE = 4223371679L

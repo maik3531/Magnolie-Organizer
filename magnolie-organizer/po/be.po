@@ -707,6 +707,10 @@ msgstr "Тып уліковага запісу"
 msgid "Active call"
 msgstr "Актыўны выклік"
 
+msgctxt "time tracking"
+msgid "Activity"
+msgstr "Дзейнасць"
+
 msgid "Add"
 msgstr "Дадаць"
 
@@ -822,6 +826,10 @@ msgstr "Усе"
 
 msgid "All cantons"
 msgstr "Усе кантоны"
+
+msgctxt "time tracking"
+msgid "All days"
+msgstr "Усе дні"
 
 msgid "All entries"
 msgstr "Усе запісы"
@@ -1509,6 +1517,14 @@ msgstr "Праверыць зараз"
 msgid "Check spelling (red wavy lines)"
 msgstr "Правяраць правапіс (чырвоныя хвалістыя лініі)"
 
+msgctxt "time tracking"
+msgid ""
+"Check the dates, times and pause. The selected local time must exist in this "
+"time zone."
+msgstr ""
+"Праверце даты, час і перапынак. Выбраны мясцовы час павінен існаваць у гэтым "
+"часавым поясе."
+
 msgid "Check the value and discuss repeated deviations with a doctor."
 msgstr "Праверце значэнне і абмяркуйце з лекарам паўторныя адхіленні."
 
@@ -1685,6 +1701,10 @@ msgid ""
 msgstr ""
 "Націск на існуючую сустрэчу ў абодвух выпадках адкрывае яе для рэдагавання. "
 "Гэта налада дзейнічае толькі пры націску на пустую вобласць поля."
+
+msgctxt "time tracking"
+msgid "Clock change (min)"
+msgstr "Перавод гадзінніка (хв)"
 
 msgid "Close"
 msgstr "Закрыць"
@@ -2108,6 +2128,10 @@ msgstr "Даныя: не знойдзены – адкрыйце Organizer ад�
 msgid "Date"
 msgstr "Дата"
 
+msgctxt "time tracking"
+msgid "Date"
+msgstr "Дата"
+
 msgid "Date format"
 msgstr "Фармат даты"
 
@@ -2411,6 +2435,10 @@ msgstr "Працягласць"
 msgid "Early shift"
 msgstr "Ранняя змена"
 
+msgctxt "time tracking"
+msgid "Early shift"
+msgstr "Ранішняя змена"
+
 msgid "Edit"
 msgstr "Рэдагаваць"
 
@@ -2431,6 +2459,10 @@ msgstr "Рэдагаваць нататнік"
 
 msgid "Edit notebook group"
 msgstr "Рэдагаваць групу нататнікаў"
+
+msgctxt "time tracking"
+msgid "Edit record"
+msgstr "Змяніць запіс"
 
 msgid "Edit task"
 msgstr "Рэдагаваць заданне"
@@ -2523,6 +2555,10 @@ msgstr ""
 msgid "Enable this SMS plan"
 msgstr "Уключыць гэты план SMS"
 
+msgctxt "time tracking"
+msgid "Enable time tracking"
+msgstr "Уключыць улік часу"
+
 msgid "Enable tray applet"
 msgstr "Уключыць аплет сістэмнага трэя"
 
@@ -2543,6 +2579,14 @@ msgstr "Зашыфраваныя запісы архіва не падтрымл
 
 msgid "Encrypting the data"
 msgstr "Шыфраванне даных"
+
+msgctxt "time tracking"
+msgid "End"
+msgstr "Канец"
+
+msgctxt "time tracking"
+msgid "End date"
+msgstr "Дата заканчэння"
 
 msgid "Ending the call"
 msgstr "Завяршэнне званка"
@@ -3018,6 +3062,10 @@ msgstr "Хатні візіт"
 msgid "Hours"
 msgstr "Гадзіны"
 
+msgctxt "time tracking"
+msgid "Hours"
+msgstr "Гадзіны"
+
 msgid "How the calendar should behave when you click a day."
 msgstr "Як каляндар павінен паводзіць сябе пры націску на дзень."
 
@@ -3349,6 +3397,10 @@ msgstr "Апошняя сінхранізацыя: %(date)s, %(time)s."
 msgid "Late shift"
 msgstr "Позняя змена"
 
+msgctxt "time tracking"
+msgid "Late shift"
+msgstr "Вячэрняя змена"
+
 msgid "Latest alarm monitor entries:"
 msgstr "Апошнія запісы манітора напамінаў:"
 
@@ -3593,6 +3645,10 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Уласнае"
 
+msgctxt "time tracking"
+msgid "Manual entry"
+msgstr "Ручны запіс"
+
 msgid "Manual only"
 msgstr "Толькі ўручную"
 
@@ -3724,6 +3780,10 @@ msgstr "Адсочваць SMS KDE Connect і паказваць апавяшч�
 msgid "Month"
 msgstr "Месяц"
 
+msgctxt "time tracking"
+msgid "Month"
+msgstr "Месяц"
+
 msgid "Month calendar"
 msgstr "Месячны каляндар"
 
@@ -3785,6 +3845,10 @@ msgstr ""
 msgid "Multiple calendars"
 msgstr "Некалькі календароў"
 
+msgid "Name"
+msgstr "Імя"
+
+msgctxt "time tracking"
 msgid "Name"
 msgstr "Імя"
 
@@ -3956,6 +4020,10 @@ msgstr "Ноч"
 msgid "Night shift"
 msgstr "Начная змена"
 
+msgctxt "time tracking"
+msgid "Night shift"
+msgstr "Начная змена"
+
 msgid "No"
 msgstr "Не"
 
@@ -4084,21 +4152,6 @@ msgstr ""
 "На гэтым камп’ютары не знойдзены даступныя для чытання сховішчы Evolution "
 "або Thunderbird."
 
-msgid ""
-"No regional data is retrieved without a selected canton. With “All”, each "
-"entry shows its canton and matching periods are combined."
-msgstr ""
-"Без выбранага кантона рэгіянальныя даныя не атрымліваюцца. Пры выбары «Усе» "
-"кожны запіс паказвае свой кантон, а аднолькавыя перыяды аб’ядноўваюцца."
-
-msgid ""
-"No regional data is retrieved without a selected state. With “All”, each "
-"entry shows its state and matching periods are combined."
-msgstr ""
-"Без выбранай федэральнай зямлі рэгіянальныя даныя не атрымліваюцца. Пры "
-"выбары «Усе» кожны запіс паказвае сваю зямлю, а аднолькавыя перыяды "
-"аб’ядноўваюцца."
-
 msgid "No scheme row matches this blood glucose value."
 msgstr "Ніводзін радок схемы не адпавядае гэтаму значэнню глюкозы ў крыві."
 
@@ -4138,6 +4191,10 @@ msgstr "Задача яшчэ не звязана."
 #, python-format
 msgid "No text viewer was found. The log is located at: %s"
 msgstr "Праглядальнік тэксту не знойдзены. Журнал знаходзіцца ў: %s"
+
+msgctxt "time tracking"
+msgid "No time recorded yet."
+msgstr "Час яшчэ не запісаны."
 
 msgid "No update check has been performed yet."
 msgstr "Праверка абнаўленняў яшчэ не выконвалася."
@@ -4670,6 +4727,14 @@ msgstr "Уставіць"
 msgid "Patch"
 msgstr "Пластыр"
 
+msgctxt "time tracking"
+msgid "Pause (minutes)"
+msgstr "Перапынак (хвіліны)"
+
+msgctxt "time tracking"
+msgid "Paused"
+msgstr "Паўза"
+
 msgid "Paused — review required"
 msgstr "Прыпынена — патрэбна праверка"
 
@@ -4994,6 +5059,9 @@ msgstr "Абаронены пароль архіва недаступны."
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "Публічны адрас IPv4 або IPv6 іншай галіны"
 
+msgid "Public holidays"
+msgstr "Святочныя дні"
+
 msgid ""
 "Public holidays and school holidays are governed regionally. Choose which "
 "ones apply here."
@@ -5064,6 +5132,10 @@ msgstr "Атрымліваць праз KDE Connect"
 
 msgid "Reconnect"
 msgstr "Зноў падключыцеся"
+
+msgctxt "time tracking"
+msgid "Recorded times"
+msgstr "Запісаны час"
 
 msgid "Recovery snapshot created."
 msgstr "Зроблена здымак аднаўлення."
@@ -5387,6 +5459,10 @@ msgstr ""
 msgid "Run the optional background service"
 msgstr "Запусціць неабавязковую фонавую службу"
 
+msgctxt "time tracking"
+msgid "Running"
+msgstr "Ідзе запіс"
+
 msgid "S"
 msgstr "S"
 
@@ -5651,14 +5727,8 @@ msgstr "Спачатку нешта выберыце."
 msgid "Select what you want to print on the left."
 msgstr "Злева выберыце, што хочаце надрукаваць."
 
-msgid "Select your canton first or enable “All cantons”."
-msgstr "Спачатку выберыце кантон або ўключыце «Усе кантоны»."
-
 msgid "Select your phone"
 msgstr "Выберыце свой тэлефон"
-
-msgid "Select your state first or enable “All states”."
-msgstr "Спачатку выберыце федэральную зямлю або ўключыце «Усе землі»."
 
 msgid "Select, preview, print, export or delete health records"
 msgstr ""
@@ -5854,6 +5924,10 @@ msgstr "Паказваць нумары тыдняў у месячным выг�
 msgid "Show week numbers in the planner"
 msgstr "Паказваць нумары тыдняў у планавальніку"
 
+msgctxt "time tracking"
+msgid "Signature"
+msgstr "Подпіс"
+
 msgid "Silence this alert"
 msgstr "Выключыць гэтае апавяшчэнне"
 
@@ -5957,6 +6031,10 @@ msgstr "Спрэй"
 
 msgid "St. Gallen"
 msgstr "Санкт-Гален"
+
+msgctxt "time tracking"
+msgid "Start"
+msgstr "Пачатак"
 
 msgid "Start Magnolie"
 msgstr "Запусціць Magnolie"
@@ -6640,6 +6718,10 @@ msgstr "Уведзены адбітак няпоўны."
 
 msgid "The entry could not be found."
 msgstr "Запіс не знойдзены."
+
+msgctxt "time tracking"
+msgid "The entry could not be saved. Reload it and try again."
+msgstr "Не ўдалося захаваць запіс. Адкрыйце яго зноў і паўтарыце спробу."
 
 msgid "The file could not be read."
 msgstr "Не ўдалося прачытаць файл."
@@ -7524,8 +7606,16 @@ msgstr "Тычына"
 msgid "Time"
 msgstr "Час"
 
+msgctxt "time tracking"
+msgid "Time"
+msgstr "Час"
+
 msgid "Time format"
 msgstr "Фармат часу"
+
+msgctxt "time tracking"
+msgid "Time tracking"
+msgstr "Улік часу"
 
 msgid "Time zone"
 msgstr "Гадзінны пояс"
@@ -7580,6 +7670,14 @@ msgstr "Зашмат незавершаных сеансаў сінхраніз�
 msgid "Top level"
 msgstr "Верхні ўзровень"
 
+msgctxt "time tracking"
+msgid "Total"
+msgstr "Разам"
+
+msgctxt "time tracking"
+msgid "Total time"
+msgstr "Агульны час"
+
 msgid "Transfer received text to the clipboard"
 msgstr "Перанесці атрыманы тэкст у буфер абмену"
 
@@ -7597,6 +7695,10 @@ msgstr "Назад"
 
 msgid "Turn forward"
 msgstr "Наперад"
+
+msgctxt "time tracking"
+msgid "Turning tracking off keeps existing records."
+msgstr "Пры выключэнні наяўныя запісы захоўваюцца."
 
 msgid "Two days back"
 msgstr "На два дні назад"
@@ -8086,6 +8188,13 @@ msgstr ""
 
 msgid "With photo"
 msgstr "З фота"
+
+msgid ""
+"Without a selected region, all available public holidays of the country "
+"apply. School holidays need a region or the All selection."
+msgstr ""
+"Без выбранага рэгіёна ўлічваюцца ўсе даступныя святы краіны. Для школьных "
+"канікул патрэбны рэгіён або выбар Усе."
 
 msgid ""
 "Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
@@ -8631,6 +8740,28 @@ msgstr[2] "… і яшчэ %(count)s элементы, якія таксама �
 
 msgid "＋ Add appointment"
 msgstr "＋ Дадаць сустрэчу"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected canton. With “All”, each "
+#~ "entry shows its canton and matching periods are combined."
+#~ msgstr ""
+#~ "Без выбранага кантона рэгіянальныя даныя не атрымліваюцца. Пры выбары "
+#~ "«Усе» кожны запіс паказвае свой кантон, а аднолькавыя перыяды "
+#~ "аб’ядноўваюцца."
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected state. With “All”, each "
+#~ "entry shows its state and matching periods are combined."
+#~ msgstr ""
+#~ "Без выбранай федэральнай зямлі рэгіянальныя даныя не атрымліваюцца. Пры "
+#~ "выбары «Усе» кожны запіс паказвае сваю зямлю, а аднолькавыя перыяды "
+#~ "аб’ядноўваюцца."
+
+#~ msgid "Select your canton first or enable “All cantons”."
+#~ msgstr "Спачатку выберыце кантон або ўключыце «Усе кантоны»."
+
+#~ msgid "Select your state first or enable “All states”."
+#~ msgstr "Спачатку выберыце федэральную зямлю або ўключыце «Усе землі»."
 
 #~ msgid "Consider deletions during manual synchronization"
 #~ msgstr "Улічваць выдаленні пры сінхранізацыі ўручную"

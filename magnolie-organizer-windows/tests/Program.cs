@@ -20,6 +20,7 @@ if (args.FirstOrDefault() == "--scoped-call-host") return await OutgoingDialTest
 
 if (args.FirstOrDefault() == "--personal-custom-host") return await PersonalCustomTransportTests.HostAsync();
 if (args.FirstOrDefault() == "--personal-note-mode-host") return await PersonalNoteModeTransportHost.RunAsync();
+if (args.FirstOrDefault() == "--time-sync-host") return await TimeSyncTransportHost.RunAsync();
 if (args.FirstOrDefault() == "--phone-contact-read-host") return await PhoneContactReadTests.HostAsync();
 if (args.FirstOrDefault() == "--waste-import-fixture")
 {
@@ -65,6 +66,10 @@ runner.Add("Notizanhänge / Data-URL / Dateinamen", AttachmentFileTests.RunAsync
 runner.Add("ICS / VCF / LDIF / Claws / Lotus / Thunderbird", ContractGroupTests.ExchangeAsync);
 runner.Add("Thunderbird local.sqlite Schema 23", ThunderbirdSchema23Tests.RunAsync);
 runner.Add("ODS Paket / XML / Styles / Geometrie / Chart", ContractGroupTests.OdsAsync);
+runner.Add("Time sync / v7 consent and strict records", TimeSyncContractTests.RunAsync);
+runner.Add("Time sync / encrypted staging and durable receipts", TimeSyncStoreTests.RunAsync);
+        runner.Add("Time sheet / formulas and regional layout", TimeSheetExportTests.RunAsync);
+        runner.Add("Holiday scope / country and subdivision metadata", OpenHolidayDataTests.RunAsync);
 runner.Add("ODT Brief / MIME / Paket / Dateiendung", ContractGroupTests.OdtAsync);
 runner.Add("Windows Contacts / Graph / OAuth / Token", WindowsContactGraphTests.RunAsync);
 runner.Add("Reminder / Serien", ContractGroupTests.RemindersAsync);

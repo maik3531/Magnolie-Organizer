@@ -120,6 +120,7 @@ internal fun shouldStartPersonalSyncOnSecureWifi(
 
 class TelefonWerk private constructor(private val context: Context, private val storage: TelefonAblage) {
     private val noteSessions = java.util.WeakHashMap<TelefonSecureChannel, PersonalNoteSession>()
+    private val timePolicyFailed = mutableSetOf<String>()
 
     private fun noteModeSupported(peer: TelefonPeer) = peer.remote_personal_notes_sync_available &&
         PersonalNoteMode.VERSION in peer.remote_personal_notes_sync_versions &&
@@ -399,9 +400,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     @Synchronized fun setPersonalSync(own: Boolean, notes: Boolean, tasks: Boolean, autoWifi: Boolean,
                          deletions: Boolean = storage.personalDeletionsEnabled(), reconnectAfterChange: Boolean = true) {
-        val peer = safePeer()
+        var peer = safePeer()
         if (!own) { identifierEpoch++; identifierPermissionTicket = null; identifierRequests.clear(); contactPermissionTicket = null; closeTransport() }
         if (!own) pauseCustom()
+        if (!own) peer = peer?.let(::pauseTime)
         if (peer != null && !own) queue.purgePersonal(peer.device_id)
         else if (peer != null) queue.purgePersonalModules(peer.device_id,
             buildSet { if (!notes) add("notes"); if (!tasks) add("tasks") })
@@ -445,9 +447,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     @Synchronized fun personalSyncNow(trigger: String = "manual") {
         val peer = safePeer() ?: throw TelefonProtokollFehler("Kein eigener Rechner gekoppelt.")
+        val time = requestTimeSync(trigger)
         val custom = requestCustom(trigger)
-        if (custom && !(peer.personal_notes_sync_granted && peer.remote_personal_notes_sync_granted) &&
-            !(peer.personal_tasks_sync_granted && peer.remote_personal_tasks_sync_granted)) return
+        if ((custom || time) && !(peer.personal_notes_sync_granted && peer.remote_personal_notes_sync_granted) &&
+            !(peer.personal_tasks_sync_granted && peer.remote_personal_tasks_sync_granted)) {
+            activeTransport?.second?.let { runCatching { it.close() } } ?: reconnect()
+            return
+        }
         if (!peer.own_device || !peer.remote_own_device) throw TelefonProtokollFehler("Eigenes Gerät ist nicht beidseitig bestätigt.")
         if (trigger == "auto_wifi" && activeTransport?.first != TelefonTransportArt.WIFI)
             throw TelefonProtokollFehler("Automatischer persönlicher Sync läuft nur im WLAN.")
@@ -1301,6 +1307,46 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val peer = safePeer()?.takeIf { it.device_id == sessionPeer.device_id && it.static_public == sessionPeer.static_public }
             ?: throw TelefonProtokollFehler("Unbekannte Gegenstelle.")
         val kind = runCatching { message.string("kind") }.getOrDefault("")
+        if (kind in TimeSyncProtokoll.KINDS) {
+            val result = runCatching {
+                TelefonNachrichten.validate(message)
+                check(timeControlsReady(peer, noteSession))
+                val body = message["body"] as JsonObject
+                TimeSyncProtokoll.validate(kind, body, fromOrganizer = true)
+                val previous = queue.duplicateResult(peer.device_id, message.string("message_id"))
+                if (previous != null) check(queue.receivedMatches(peer.device_id, message))
+                if (kind == TimeSyncProtokoll.SETTINGS) {
+                    val remote = TimeSyncProtokoll.acceptSettings(peer.remote_personal_time_policy, body)
+                    saveTimePolicy(peer, peer.personal_time_policy, remote)
+                    noteSession!!.timeReceived = body
+                } else {
+                    check(timeTransmissionAllowed(peer, body, noteSession, outgoing = false))
+                    if (previous != null) return@runCatching previous
+                    if (kind == TimeSyncProtokoll.REQUEST) check(queueTimeSnapshot(peer, body.string("trigger")))
+                    else {
+                        val records = TimeSyncProtokoll.decodeRecords(body, fromOrganizer = true)
+                        val calendar = (body["calendar"] as? JsonObject)?.let(TimeSyncProtokoll::decodeCalendar)
+                        val updated = Ablage.hole(context).aendereZeiterfassung { state ->
+                            val merged = io.gitlab.maik3531.magnolienotes.daten.ZeiterfassungAbgleich.merge(
+                                state, records, fromOrganizer = true).state
+                            if (calendar == null) merged else merged.copy(calendar = calendar)
+                        }
+                        runCatching {
+                            io.gitlab.maik3531.magnolienotes.zeit.ZeitWecker.neuStellen(context)
+                            io.gitlab.maik3531.magnolienotes.zeit.ZeitDienst.refresh(context, updated)
+                        }.onFailure { _state.value = _state.value.copy(error = it.message.orEmpty()) }
+                    }
+                }
+                // Ablage's encrypted atomic write must return before accepting the receipt.
+                queue.receive(peer.device_id, message)
+            }.getOrElse { "rejected" to when (it) {
+                is java.io.IOException, is android.database.sqlite.SQLiteException -> "temporary_failure"
+                is IllegalArgumentException, is TelefonProtokollFehler -> "invalid_schema"
+                else -> "not_granted"
+            } }
+            send(TelefonNachrichten.ack(message.string("message_id"), result.first, result.second))
+            refreshModules(); return
+        }
         if (kind == PersonalDesktopFeatures.KIND) {
             var featuresChanged = false
             val result = runCatching {
@@ -1452,7 +1498,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     if (!remoteOwn) pauseCustom()
                     if (!remoteOwn) queue.purgePersonal(peer.device_id)
                     identifierEpoch++; identifierPermissionTicket = null; identifierRequests.clear()
-                    storage.savePeer(current.copy(remote_own_device = remoteOwn))
+                    val updated = if (remoteOwn) current else pauseTime(current)
+                    storage.savePeer(updated.copy(remote_own_device = remoteOwn))
                     return@runCatching queue.receive(peer.device_id, message)
                 }
                 if (!personalSyncTransmissionAllowed(current, kind, body))
@@ -1757,7 +1804,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         .map { (it as JsonPrimitive).content.toInt() }.filter { it in 1..3 || it == PersonalNoteMode.VERSION }.distinct().sorted(),
                     remote_personal_notes_sync_available = ((items["personal_notes_sync"] as JsonObject)["available"] as JsonPrimitive).booleanOrNull == true,
                     remote_personal_tasks_sync_versions = ((items["personal_tasks_sync"] as JsonObject)["versions"] as JsonArray)
-                        .map { (it as JsonPrimitive).content.toInt() }.filter { it in 1..4 || it == PersonalDesktopFeatures.VERSION }.distinct().sorted(),
+                        .map { (it as JsonPrimitive).content.toInt() }.filter {
+                            it in 1..4 || it == PersonalDesktopFeatures.VERSION || it == TimeSyncProtokoll.VERSION }.distinct().sorted(),
                     remote_personal_tasks_sync_available = ((items["personal_tasks_sync"] as JsonObject)["available"] as JsonPrimitive).booleanOrNull == true)
             } else {
                 val grants = body["grants"] as JsonObject
@@ -1976,12 +2024,25 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private fun sendDue(peer: TelefonPeer, channel: TelefonSecureChannel, generation: Long, controlsOnly: Boolean): Set<String> {
         val controls = mutableSetOf<String>()
         val transport = activeTransport?.first ?: throw TelefonProtokollFehler("Keine aktive Transportart.")
+        peerEffect(peer, generation) { current -> queueTimeSettings(current, noteSessions[channel]) }
         queue.due(peer.device_id, transport).forEach { entry ->
             synchronized(this) {
                 val current = peerEffect(peer, generation) { it }
                 if (!serviceRunning || !storage.enabled()) return controls
                 val kind = entry.payload.string("kind")
-                if (controlsOnly && kind !in setOf("capabilities.update", "grants.update", "personal_sync.settings", PersonalNoteMode.KIND)) return@forEach
+                if (controlsOnly && kind !in setOf("capabilities.update", "grants.update", "personal_sync.settings", PersonalNoteMode.KIND, TimeSyncProtokoll.SETTINGS)) return@forEach
+                if (kind in TimeSyncProtokoll.KINDS) {
+                    val session = noteSessions[channel]
+                    if (!timeControlsReady(current, session)) return@forEach
+                    val body = entry.payload["body"] as JsonObject
+                    if (kind == TimeSyncProtokoll.SETTINGS) {
+                        if (body != current.personal_time_policy) { queue.acknowledge(peer.device_id, entry.messageId); return@forEach }
+                    } else if (!timeTransmissionAllowed(current, body, session, outgoing = true)) return@forEach
+                    TimeSyncProtokoll.validate(kind, body, fromOrganizer = false)
+                    channel.send(entry.payload)
+                    if (kind == TimeSyncProtokoll.SETTINGS) session!!.timeSent = body
+                    queue.sent(entry.messageId, queue.attempts(entry.messageId)); return@forEach
+                }
                 if (kind == PersonalNoteMode.KIND) {
                     if (noteSessions[channel]?.capabilitiesReceived != true) return@forEach
                     val body = entry.payload["body"] as JsonObject
@@ -2042,6 +2103,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             peerEffect(peer, generation) { queue.sent(entry.messageId, queue.attempts(entry.messageId)) }
             if (entry.payload.string("kind") in setOf("capabilities.update", "grants.update")) controls += entry.messageId
         }
+        if (!controlsOnly) peerEffect(peer, generation) { current -> queueAutomaticTime(current, noteSessions[channel]) }
         return controls
     }
 
@@ -2053,6 +2115,116 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     Ablage.hole(context).personalSyncDecisionStopped(ack.decisionId, ack.state)
             }
         }
+    }
+
+    private fun timeSupported(peer: TelefonPeer) = peer.remote_personal_tasks_sync_available &&
+        TimeSyncProtokoll.VERSION in peer.remote_personal_tasks_sync_versions &&
+        TimeSyncProtokoll.VERSION in TelefonCapabilities.phase1().getValue("personal_tasks_sync").versions
+
+    private fun timeControlsReady(peer: TelefonPeer, session: PersonalNoteSession?) =
+        peer.device_id !in timePolicyFailed && timeSupported(peer) && peer.own_device && peer.remote_own_device &&
+            session?.capabilitiesReceived == true && session.grantsReceived && session.ownSettingsReceived
+
+    private fun timeTransmissionAllowed(peer: TelefonPeer, body: JsonObject, session: PersonalNoteSession?, outgoing: Boolean): Boolean {
+        if (!timeControlsReady(peer, session) || !Ablage.hole(context).bestand.value.zeiterfassung.enabled ||
+            session?.timeReady(peer.personal_time_policy, peer.remote_personal_time_policy) != true) return false
+        if (body["trigger"]?.jsonPrimitive?.content == "auto_wifi" && activeTransport?.first != TelefonTransportArt.WIFI) return false
+        return TimeSyncProtokoll.allowed(body, if (outgoing) peer.remote_personal_time_policy else peer.personal_time_policy,
+            if (outgoing) peer.personal_time_policy else peer.remote_personal_time_policy,
+            true, true, true, listOf(7), listOf(7))
+    }
+
+    private fun saveTimePolicy(peer: TelefonPeer, local: JsonObject?, remote: JsonObject?): TelefonPeer {
+        local?.let(TimeSyncProtokoll::settings); remote?.let(TimeSyncProtokoll::settings)
+        val next = peer.copy(personal_time_policy = local, remote_personal_time_policy = remote)
+        try {
+            storage.savePeer(next)
+            if (local != peer.personal_time_policy || remote != peer.remote_personal_time_policy ||
+                local?.get("enabled") == JsonPrimitive(false) || remote?.get("enabled") == JsonPrimitive(false)) {
+                queue.removeKind(peer.device_id, TimeSyncProtokoll.REQUEST)
+                queue.removeKind(peer.device_id, TimeSyncProtokoll.BATCH)
+            }
+            if (local != peer.personal_time_policy) queue.removeKind(peer.device_id, TimeSyncProtokoll.SETTINGS)
+            timePolicyFailed.remove(peer.device_id)
+        } catch (error: Exception) { timePolicyFailed.add(peer.device_id); throw error }
+        return next
+    }
+
+    private fun queueTimeSettings(peer: TelefonPeer, session: PersonalNoteSession?) {
+        if (!timeControlsReady(peer, session)) return
+        val current = if (peer.personal_time_policy == null) saveTimePolicy(peer, TimeSyncProtokoll.newSettings(), peer.remote_personal_time_policy) else peer
+        val local = current.personal_time_policy!!
+        if (session?.timeSent != local && !queue.hasKind(peer.device_id, TimeSyncProtokoll.SETTINGS))
+            queue.queue(peer.device_id, TimeSyncProtokoll.SETTINGS, local, 86_400_000)
+    }
+
+    private fun pauseTime(peer: TelefonPeer): TelefonPeer {
+        val local = peer.personal_time_policy
+        val next = if (local == null) peer else saveTimePolicy(peer,
+            TimeSyncProtokoll.newSettings(false, local.long("revision") + 1), peer.remote_personal_time_policy)
+        TimeSyncProtokoll.KINDS.forEach { queue.removeKind(peer.device_id, it) }
+        return next
+    }
+
+    @Synchronized fun setTimeSync(enabled: Boolean) {
+        val peer = safePeer() ?: throw TelefonProtokollFehler("Kein eigener Rechner gekoppelt.")
+        check(!enabled || timeSupported(peer) && peer.own_device && Ablage.hole(context).bestand.value.zeiterfassung.enabled)
+        val local = peer.personal_time_policy
+        if (local?.get("enabled") == JsonPrimitive(enabled) && peer.device_id !in timePolicyFailed) return
+        saveTimePolicy(peer, TimeSyncProtokoll.newSettings(enabled, (local?.long("revision") ?: 0) + 1), peer.remote_personal_time_policy)
+        modulesChanged()
+    }
+
+    @Synchronized fun pauseTimeSync() {
+        val peers = storage.peers().all()
+        if (peers.none { it.personal_time_policy != null }) return
+        closeTransport()
+        val ids = peers.map { it.device_id }
+        timePolicyFailed.addAll(ids)
+        storage.revokeTimeSync()
+        for (id in ids) TimeSyncProtokoll.KINDS.forEach { queue.removeKind(id, it) }
+        noteSessions.values.forEach { it.timeSent = null; it.timeReceived = null; it.timeSnapshot = null }
+        timePolicyFailed.removeAll(ids.toSet())
+        refreshModules()
+    }
+
+    private fun queueTimeSnapshot(peer: TelefonPeer, trigger: String): Boolean {
+        val local = peer.personal_time_policy ?: return false
+        val remote = peer.remote_personal_time_policy ?: return false
+        if (!timeSupported(peer) || !peer.own_device || !peer.remote_own_device ||
+            local["enabled"] != JsonPrimitive(true) || remote["enabled"] != JsonPrimitive(true)) return false
+        if (trigger == "auto_wifi" && activeTransport?.first != TelefonTransportArt.WIFI) return false
+        val state = Ablage.hole(context).bestand.value.zeiterfassung
+        if (!state.enabled) return false
+        val packets = TimeSyncProtokoll.batches(local, remote, state.entries.filterNot { it.deleted }, trigger)
+        for (body in packets) queue.queue(peer.device_id, TimeSyncProtokoll.BATCH, body, 86_400_000,
+            transportPolicy = if (trigger == "auto_wifi") "wifi_only" else "any")
+        return true
+    }
+
+    private fun requestTimeSync(trigger: String): Boolean {
+        val peer = safePeer() ?: return false
+        if (!queueTimeSnapshot(peer, trigger)) return false
+        queue.removeKind(peer.device_id, TimeSyncProtokoll.REQUEST)
+        queue.queue(peer.device_id, TimeSyncProtokoll.REQUEST,
+            TimeSyncProtokoll.request(peer.personal_time_policy!!, peer.remote_personal_time_policy!!, trigger), 86_400_000,
+            transportPolicy = if (trigger == "auto_wifi") "wifi_only" else "any")
+        return true
+    }
+
+    private fun queueAutomaticTime(peer: TelefonPeer, session: PersonalNoteSession?) {
+        if (!storage.personalAutoWifi() || activeTransport?.first != TelefonTransportArt.WIFI || session == null) return
+        val local = peer.personal_time_policy ?: return
+        val remote = peer.remote_personal_time_policy ?: return
+        val header = TimeSyncProtokoll.request(local, remote, "auto_wifi")
+        if (!timeTransmissionAllowed(peer, header, session, outgoing = true)) return
+        runCatching {
+            val entries = Ablage.hole(context).bestand.value.zeiterfassung.entries.filterNot { it.deleted }
+            val snapshot = JsonObject(header + ("entries" to TimeSyncProtokoll.encodeRecords(entries)))
+            val digest = java.util.Base64.getEncoder().encodeToString(java.security.MessageDigest.getInstance("SHA-256")
+                .digest(TelefonKanonisch.bytes(snapshot)))
+            if (digest != session.timeSnapshot && requestTimeSync("auto_wifi")) session.timeSnapshot = digest
+        }.onFailure { _state.value = _state.value.copy(error = it.message.orEmpty()) }
     }
 
     private fun customSupported(peer: TelefonPeer) = peer.remote_personal_tasks_sync_available && 4 in peer.remote_personal_tasks_sync_versions &&

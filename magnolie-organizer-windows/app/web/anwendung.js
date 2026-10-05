@@ -22,6 +22,7 @@ const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.26";
 const NEU_IN_DIESER_FASSUNG = {
   "de": [
     "Neu in dieser Version",
+    "Zeiterfassung: Pausen, optionaler WLAN-Start und Wecker, Abgleich eigener Geräte, Kalender-Koffer, Monatsdruck und bearbeitbare ODS. Regionale Uhrzeiten und Organizer-Feiertage werden berücksichtigt.",
     "Magnolie Notes 1.0.18: optionaler Notizimport nur Notes → Organizer je Rechner, einfachere Abgleichbedienung und erhaltene Anhänge.",
     "Kontakte und Fotos: feldweise Importvorschau, Bildalternativen und freigegebener Lesezugriff über Notes oder KDE Connect.",
     "Bestehende Baumverbindungen an einen weiteren Rechner mit eigener Identität weitergeben. Direkter Internetbetrieb benötigt weiterhin erreichbare Verbindungswege.",
@@ -29,6 +30,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "en": [
     "What's new in this version",
+    "Time tracking: pauses, optional Wi-Fi start and alarms, own-device synchronization, calendar briefcases, monthly printing and editable ODS. Regional clocks and Organizer holidays are respected.",
     "Magnolie Notes 1.0.18: optional Notes → Organizer note import for each computer, with simpler synchronization controls and preserved attachments.",
     "Contacts and photos: field-by-field import preview, photo alternatives and authorized read-only access through Notes or KDE Connect.",
     "Forward an existing tree connection to another computer with its own identity. Direct Internet use still requires reachable routes.",
@@ -36,6 +38,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "fr": [
     "Nouveautés de cette version",
+    "Suivi du temps : pauses, démarrage Wi-Fi et alarmes facultatifs, synchronisation des appareils personnels, mallettes du calendrier, impression mensuelle et ODS modifiable. Formats horaires régionaux et jours fériés d’Organizer respectés.",
     "Magnolie Notes 1.0.18 : import facultatif des notes uniquement Notes → Organizer par ordinateur, commandes simplifiées et pièces jointes préservées.",
     "Contacts et photos : aperçu champ par champ, choix d’images et lecture autorisée via Notes ou KDE Connect.",
     "Transmettez une connexion existante de l’arbre à un autre ordinateur avec sa propre identité. Internet direct exige toujours des chemins accessibles.",
@@ -43,6 +46,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "es": [
     "Novedades de esta versión",
+    "Control horario: pausas, inicio Wi-Fi y alarmas opcionales, sincronización de dispositivos propios, maletines del calendario, impresión mensual y ODS editable. Respeta horas regionales y festivos de Organizer.",
     "Magnolie Notes 1.0.18: importación opcional de notas solo Notes → Organizer por ordenador, controles simplificados y adjuntos conservados.",
     "Contactos y fotos: vista previa campo a campo, alternativas de imagen y lectura autorizada mediante Notes o KDE Connect.",
     "Comparta una conexión existente del árbol con otro ordenador de identidad propia. Internet directo sigue necesitando rutas accesibles.",
@@ -50,6 +54,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "it": [
     "Novità di questa versione",
+    "Rilevamento del tempo: pause, avvio Wi-Fi e sveglie facoltativi, sincronizzazione dei propri dispositivi, valigette nel calendario, stampa mensile e ODS modificabile. Rispetta orari regionali e festività di Organizer.",
     "Magnolie Notes 1.0.18: importazione facoltativa delle note solo Notes → Organizer per computer, controlli semplificati e allegati conservati.",
     "Contatti e foto: anteprima campo per campo, immagini alternative e lettura autorizzata tramite Notes o KDE Connect.",
     "Condividi una connessione esistente dell’albero con un altro computer dotato di identità propria. Internet diretto richiede percorsi raggiungibili.",
@@ -57,6 +62,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "nl": [
     "Nieuw in deze versie",
+    "Tijdregistratie: pauzes, optionele wifi-start en alarmen, synchronisatie van eigen apparaten, kalenderkoffers, maandafdrukken en bewerkbare ODS. Regionale tijden en Organizer-feestdagen worden gevolgd.",
     "Magnolie Notes 1.0.18: optionele notitie-import alleen Notes → Organizer per computer, eenvoudiger bediening en behouden bijlagen.",
     "Contacten en foto’s: importvoorbeeld per veld, alternatieve afbeeldingen en toegestane leestoegang via Notes of KDE Connect.",
     "Deel een bestaande boomverbinding met een andere computer met eigen identiteit. Direct internetgebruik vereist bereikbare routes.",
@@ -64,6 +70,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "pt": [
     "Novidades desta versão",
+    "Controlo de tempo: pausas, início Wi-Fi e alarmes opcionais, sincronização de dispositivos próprios, pastas no calendário, impressão mensal e ODS editável. Respeita horas regionais e feriados de Organizer.",
     "Magnolie Notes 1.0.18: importação opcional de notas apenas Notes → Organizer por computador, controlos simplificados e anexos preservados.",
     "Contactos e fotografias: pré-visualização por campo, imagens alternativas e leitura autorizada via Notes ou KDE Connect.",
     "Partilhe uma ligação existente da árvore com outro computador de identidade própria. Internet direto exige caminhos acessíveis.",
@@ -71,6 +78,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "ru": [
     "Новое в этой версии",
+    "Учёт времени: перерывы, необязательный запуск по Wi-Fi и будильники, синхронизация собственных устройств, портфели в календаре, месячная печать и редактируемый ODS. Учитываются региональный формат времени и праздники Organizer.",
     "Magnolie Notes 1.0.18: необязательный импорт заметок только Notes → Organizer для каждого компьютера, упрощённое управление и сохранение вложений.",
     "Контакты и фотографии: просмотр импорта по полям, выбор изображений и разрешённое чтение через Notes или KDE Connect.",
     "Передача существующего соединения дерева другому компьютеру с собственной идентичностью. Прямой интернет требует доступных маршрутов.",
@@ -78,6 +86,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "cs": [
     "Co je nového v této verzi",
+    "Měření času: přestávky, volitelný start Wi-Fi a budíky, synchronizace vlastních zařízení, kufříky v kalendáři, měsíční tisk a upravitelný ODS. Respektuje regionální čas a svátky Organizeru.",
     "Magnolie Notes 1.0.18: volitelný import poznámek pouze Notes → Organizer pro každý počítač, jednodušší ovládání a zachované přílohy.",
     "Kontakty a fotografie: náhled importu po polích, alternativní obrázky a povolené čtení přes Notes nebo KDE Connect.",
     "Sdílení existujícího spojení stromu s dalším počítačem s vlastní identitou. Přímý internet vyžaduje dosažitelné cesty.",
@@ -85,6 +94,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "pl": [
     "Nowości w tej wersji",
+    "Rejestracja czasu: przerwy, opcjonalny start Wi-Fi i alarmy, synchronizacja własnych urządzeń, teczki w kalendarzu, wydruk miesięczny i edytowalny ODS. Uwzględnia regionalny czas i święta Organizer.",
     "Magnolie Notes 1.0.18: opcjonalny import notatek tylko Notes → Organizer dla każdego komputera, prostsze sterowanie i zachowane załączniki.",
     "Kontakty i zdjęcia: podgląd importu według pól, alternatywne obrazy i dozwolony odczyt przez Notes lub KDE Connect.",
     "Udostępnianie istniejącego połączenia drzewa innemu komputerowi z własną tożsamością. Bezpośredni internet wymaga osiągalnych tras.",
@@ -92,6 +102,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "hsb": [
     "Nowe w tutej wersiji",
+    "Časowe zapisowanje: přestawki, opcionalny WLAN-start a budźaki, synchronizacija swójskich gratow, kufry w kalendarju, měsačny ćišć a wobdźěłujomny ODS. Regionalne časy a swjatki Organizera so wobkedźbuja.",
     "Magnolie Notes 1.0.18: opcionalny import noticow jenož Notes → Organizer za kóždy ličak, jednoriše wobslužowanje a zachowane přiwěški.",
     "Kontakty a fota: importowy přehlad po polach, alternativne wobrazy a dowolene čitanje přez Notes abo KDE Connect.",
     "Wobstejacy zwisk štoma na dalši ličak ze swójskej identitu dale dać. Direktny internet sej přistupne ruty žada.",
@@ -99,6 +110,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "da": [
     "Nyt i denne version",
+    "Tidsregistrering: pauser, valgfri Wi-Fi-start og alarmer, synkronisering af egne enheder, kalenderkufferter, månedsudskrift og redigerbar ODS. Regionale klokkeslæt og Organizer-helligdage følges.",
     "Magnolie Notes 1.0.18: valgfri noteimport kun Notes → Organizer pr. computer, enklere kontroller og bevarede vedhæftninger.",
     "Kontakter og billeder: importvisning felt for felt, alternative billeder og tilladt læsning via Notes eller KDE Connect.",
     "Del en eksisterende træforbindelse med en anden computer med egen identitet. Direkte internet kræver tilgængelige ruter.",
@@ -106,6 +118,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "nb": [
     "Nytt i denne versjonen",
+    "Tidsregistrering: pauser, valgfri Wi-Fi-start og alarmer, synkronisering av egne enheter, kalenderkofferter, månedsutskrift og redigerbar ODS. Regionale klokkeslett og Organizer-helligdager følges.",
     "Magnolie Notes 1.0.18: valgfri notatimport kun Notes → Organizer per datamaskin, enklere kontroller og bevarte vedlegg.",
     "Kontakter og bilder: importvisning felt for felt, alternative bilder og tillatt lesing via Notes eller KDE Connect.",
     "Del en eksisterende tretilkobling med en annen datamaskin med egen identitet. Direkte Internett krever tilgjengelige ruter.",
@@ -113,6 +126,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "hi": [
     "इस संस्करण में नया",
+    "समय ट्रैकिंग: विराम, वैकल्पिक Wi-Fi शुरुआत और अलार्म, अपने डिवाइस का सिंक, कैलेंडर ब्रीफ़केस, मासिक प्रिंट और संपादन योग्य ODS। क्षेत्रीय समय और Organizer की छुट्टियों का पालन होता है।",
     "Magnolie Notes 1.0.18: हर कंप्यूटर के लिए वैकल्पिक केवल Notes → Organizer नोट आयात, सरल नियंत्रण और सुरक्षित अटैचमेंट।",
     "संपर्क और फ़ोटो: फ़ील्ड के अनुसार आयात पूर्वावलोकन, वैकल्पिक तस्वीरें और Notes या KDE Connect से अधिकृत पढ़ना।",
     "मौजूदा ट्री कनेक्शन अपनी पहचान वाले दूसरे कंप्यूटर से साझा करें। सीधे इंटरनेट के लिए पहुँच योग्य मार्ग जरूरी हैं।",
@@ -120,6 +134,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "zh-cn": [
     "此版本的新功能",
+    "时间记录：休息、可选Wi-Fi开始与提醒、自有设备同步、日历公文包、月度打印及可编辑ODS。遵循地区时间格式和Organizer节假日设置。",
     "Magnolie Notes 1.0.18：可为每台电脑选择仅 Notes → Organizer 的笔记导入，简化同步操作并保留附件。",
     "联系人与照片：逐字段导入预览、备选图片，以及通过 Notes 或 KDE Connect 的已授权只读访问。",
     "将已有树连接分享给具有独立身份的另一台电脑。直接互联网连接仍需要可访问的路径。",
@@ -127,6 +142,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "ja": [
     "このバージョンの新機能",
+    "時間記録：休憩、任意のWi-Fi開始とアラーム、自分の端末間の同期、カレンダーのかばん表示、月別印刷、編集可能なODSに対応。地域の時刻形式とOrganizerの祝日を反映します。",
     "Magnolie Notes 1.0.18：コンピューターごとにNotes → Organizerのみのノート取り込みを選択でき、操作を簡略化し添付ファイルを保持します。",
     "連絡先と写真：項目別のインポート確認、写真の選択肢、NotesまたはKDE Connectによる許可済みの読み取り。",
     "既存のツリー接続を独自の識別情報を持つ別のコンピューターへ共有できます。直接のインターネット接続には到達可能な経路が必要です。",
@@ -134,6 +150,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "ar": [
     "ما الجديد في هذا الإصدار",
+    "تتبع الوقت: استراحات وبدء Wi-Fi ومنبهات اختيارية، ومزامنة أجهزتك، وحقائب التقويم، وطباعة شهرية وODS قابل للتحرير. تُراعى الأوقات الإقليمية وعطلات Organizer.",
     "Magnolie Notes 1.0.18: استيراد اختياري للملاحظات فقط من Notes إلى Organizer لكل حاسوب، مع تحكم أبسط ومرفقات محفوظة.",
     "جهات الاتصال والصور: معاينة الاستيراد حسب الحقول، صور بديلة وقراءة مصرّحة عبر Notes أو KDE Connect.",
     "شارك اتصال الشجرة القائم مع حاسوب آخر بهوية مستقلة. الإنترنت المباشر يتطلب مسارات قابلة للوصول.",
@@ -141,6 +158,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "uk": [
     "Нове в цій версії",
+    "Облік часу: перерви, необов’язковий запуск Wi-Fi та будильники, синхронізація власних пристроїв, портфелі в календарі, місячний друк і редагований ODS. Враховуються регіональний час і свята Organizer.",
     "Magnolie Notes 1.0.18: необов’язковий імпорт нотаток лише Notes → Organizer для кожного комп’ютера, простіше керування й збереження вкладень.",
     "Контакти й фотографії: перегляд імпорту за полями, вибір зображень і дозволене читання через Notes або KDE Connect.",
     "Передавання наявного з’єднання дерева іншому комп’ютеру з власною ідентичністю. Прямий інтернет потребує доступних маршрутів.",
@@ -148,6 +166,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "be": [
     "Што новага ў гэтай версіі",
+    "Улік часу: перапынкі, неабавязковы запуск Wi-Fi і будзільнікі, сінхранізацыя ўласных прылад, партфелі ў календары, месячны друк і рэдагавальны ODS. Улічваюцца рэгіянальны час і святы Organizer.",
     "Magnolie Notes 1.0.18: неабавязковы імпарт нататак толькі Notes → Organizer для кожнага камп’ютара, прасцейшае кіраванне і захаванне ўкладанняў.",
     "Кантакты і фатаграфіі: прагляд імпарту па палях, выбар выяў і дазволенае чытанне праз Notes або KDE Connect.",
     "Перадача існуючага злучэння дрэва іншаму камп’ютару з уласнай ідэнтычнасцю. Прамы інтэрнэт патрабуе даступных маршрутаў.",
@@ -155,6 +174,7 @@ const NEU_IN_DIESER_FASSUNG = {
   ],
   "tr": [
     "Bu sürümdeki yenilikler",
+    "Zaman takibi: molalar, isteğe bağlı Wi-Fi başlangıcı ve alarmlar, kendi cihazlarını eşitleme, takvim çantaları, aylık yazdırma ve düzenlenebilir ODS. Bölgesel saatler ve Organizer tatilleri dikkate alınır.",
     "Magnolie Notes 1.0.18: bilgisayar başına isteğe bağlı yalnız Notes → Organizer not aktarımı, daha basit kontroller ve korunan ekler.",
     "Kişiler ve fotoğraflar: alan bazlı içe aktarma önizlemesi, alternatif resimler ve Notes veya KDE Connect üzerinden izinli okuma.",
     "Mevcut ağaç bağlantısını kendi kimliğine sahip başka bilgisayarla paylaşın. Doğrudan İnternet erişilebilir yollar gerektirir.",
@@ -331,6 +351,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   function leereDaten() {
     return { version: 6, termine: [], aufgaben: [], kontakte: [], notizen: [],
       customOrganizer: { version: 3, modules: [] },
+      zeiterfassung: { enabled: false, actor: "", counter: 0, entries: [], conflicts: {}, reportName: "" },
       notizgruppen: [{ id: NOTIZ_STANDARD_GRUPPE, name: _("General") }],
       notizbuecher: [{ id: NOTIZ_STANDARD_BUCH, gruppeId: NOTIZ_STANDARD_GRUPPE,
         name: _("Loose Notes") }], jahrestage: [],
@@ -344,7 +365,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       einstellungen: { sync: { kalenderUid: "", kalenderUids: [],
           adressbuchUid: "", beimStart: false, kontaktNeuereBevorzugen: false },
         ort: { land: "", landName: "", region: "", regionName: "",
-          alleRegionen: false, ferien: true, abgerufen: 0, jahre: [] },
+          alleRegionen: false, feiertage: true, ferien: true, abgerufen: 0, jahre: [] },
         allgemein: { drucken: true, hilfsrahmen: false, kalenderAuswahl: false,
           wetter: false,
           wetterDarstellung: "temperature", wetterIntervall: 180,
@@ -1545,6 +1566,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (trigger === "manual") for (const key of personalSyncVertagteBatches.keys())
       if (key.startsWith(peer.device_id + "\u0000")) personalSyncVertagteBatches.delete(key);
     const bestand = DATEN.personalSync;
+    const zeit = await zeitAbgleichSenden(peer.device_id, trigger);
     const custom = await personalCustomSenden(peer, trigger);
     if (DATEN.personalSync !== bestand) throw new Error(_("Personal synchronization failed."));
     const modules = vorbereitet ? vorbereitet.modules.slice() : [];
@@ -1552,6 +1574,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (!vorbereitet && local.personal_notes_sync && remote.personal_notes_sync && personalSyncNotizBereit(peer)) modules.push("notes");
     if (!vorbereitet && local.personal_tasks_sync && remote.personal_tasks_sync) modules.push("tasks");
     if (!modules.length && custom) return "custom";
+    if (!modules.length && zeit) return "time_tracking";
     if (!peer.own_device || !peer.remote_own_device || !modules.length)
       throw new Error(_("Personal synchronization failed."));
     if (trigger === "auto_wifi" && peer.transport !== "wifi")
@@ -2284,6 +2307,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         : _("This device does not support synchronization of the custom tab."));
       customNote.dataset.personalCustomNote = kennung; personal.append(customNote);
       custom.parentElement.hidden = !registerAktiv("custom"); customNote.hidden = !registerAktiv("custom");
+      const zeit = personalHak(pgettext("time tracking", "Time tracking"), peer.time_sync?.local?.enabled === true, enabled => {
+        const aktuell = (telefonStand?.peers || []).find(p => p.device_id === kennung);
+        if (aktuell?.time_sync) aktuell.time_sync.ready = false;
+        Bruecke.sende({ cmd: "personal_sync_senden", kennung, art: "personal_sync.time_settings", inhalt: { enabled } });
+        Bruecke.sende({ cmd: "telefon_stand" });
+      });
+      zeit.dataset.personalTimePeer = kennung;
+      zeit.disabled = peer.time_sync?.supported !== true || !DATEN.zeiterfassung.enabled;
       const autoHaken = personalHak(_("Automatically synchronize over Wi-Fi"), auto, (an) => {
         auto = an;
         personalSyncBetriebSetzen(personalSyncNotizPeer(kennung) || peer, an, skipHaken.checked)
@@ -2297,7 +2328,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           .then(bereit => personalSyncSenden(bereit, "manual")).catch(personalSyncBetriebFehler);
       });
       personalSyncKnopf.dataset.personalSyncAction = kennung;
-      personalSyncKnopf.disabled = !personalSyncBereit(peer);
+      personalSyncKnopf.disabled = !personalSyncBereit(peer) && !zeitAbgleichPeer(kennung);
       personal.append(personalStand);
     }
     /* Telefonbild und Akku stehen neben der Merkmalliste statt darüber:
@@ -5071,10 +5102,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   const PAPIERKORB_ARTEN = {
     appointment: _("Appointments"), contact: _("Contacts"), task: _("Tasks"),
     note: _("Notes"), notebook: _("Notebooks"), attachment: _("Attachments"),
-    anniversary: _("Anniversaries"), duplicate: _("Duplicates"), custom: _("Custom")
+    anniversary: _("Anniversaries"), duplicate: _("Duplicates"), custom: _("Custom"),
+    time_tracking: pgettext("time tracking", "Time tracking")
   };
 
   function papierkorbAnzahl(art, anzahl) {
+    if (art === "time_tracking") return pgettext("time tracking", "Recorded times") + ": " + zahlText(anzahl);
     const formen = {
       appointment: ["%(count)s appointment", "%(count)s appointments"],
       contact: ["%(count)s contact", "%(count)s contacts"],
@@ -5100,7 +5133,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       kontakt: "contact", contact: "contact", aufgabe: "task", task: "task",
       notiz: "note", note: "note", jahrestag: "anniversary",
       notizbuch: "notebook", notebook: "notebook", anhang: "attachment", attachment: "attachment",
-      anniversary: "anniversary", duplikat: "duplicate", duplicate: "duplicate", custom: "custom" }, "");
+      anniversary: "anniversary", duplikat: "duplicate", duplicate: "duplicate", custom: "custom", time_tracking: "time_tracking" }, "");
     if (!art) return null;
     const stueck = { id: uid(), art: art, name: name || _("(unnamed)"),
       geloescht: Date.now(),
@@ -5124,6 +5157,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   /* Ein Stück aus dem Papierkorb zurück ins Buch */
   function ausDemPapierkorb(stueck) {
+    if (stueck.art === "time_tracking") {
+      const aktuell = DATEN.zeiterfassung.entries.find(wert => wert.id === stueck.eintrag.id) || null;
+      if (aktuell && !aktuell.deleted) return false;
+      DATEN.zeiterfassung = zeitErsetze(DATEN.zeiterfassung, aktuell, { ...kopie(stueck.eintrag), deleted: false });
+      DATEN.papierkorb = DATEN.papierkorb.filter(wert => wert.id !== stueck.id);
+      return true;
+    }
     if (stueck.art === "custom") {
       const modul = kopie(stueck.eintrag);
       let bestand = DATEN.customOrganizer.modules.find((wert) => wert.id === modul.id);
@@ -6226,6 +6266,402 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return { version: 3, modules: modules };
   }
 
+  function zeitPruefen(bedingung) {
+    if (!bedingung) throw new Error(pgettext("time tracking", "Check the dates, times and pause. The selected local time must exist in this time zone."));
+  }
+
+  function zeitZahl(wert, von, bis) {
+    zeitPruefen(Number.isSafeInteger(wert) && wert >= von && wert <= bis);
+    return wert;
+  }
+
+  function zeitObjekt(wert) {
+    zeitPruefen(wert && typeof wert === "object" && !Array.isArray(wert));
+    return wert;
+  }
+
+  function zeitKennung(wert) {
+    zeitPruefen(typeof wert === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(wert));
+    return wert;
+  }
+
+  function zeitTextPruefen(wert, maximum) {
+    zeitPruefen(typeof wert === "string" && wert.length <= maximum);
+    personalSyncKanonisch(wert); // Reject unpaired UTF-16 surrogates like both native contracts.
+    return wert;
+  }
+
+  function zeitFesterOffset(zone) {
+    if (["UTC", "GMT", "UT", "Z"].includes(zone)) return 0;
+    const treffer = /^(?:UTC|GMT|UT)?([+-])([0-9]{2})(?::([0-9]{2}))?$/.exec(zone);
+    if (!treffer) return null;
+    const stunden = Number(treffer[2]), minuten = Number(treffer[3] || 0);
+    zeitPruefen(stunden <= 18 && minuten <= 59 && (stunden !== 18 || minuten === 0));
+    return (stunden * 60 + minuten) * (treffer[1] === "-" ? -1 : 1);
+  }
+
+  const ZEIT_ERFASSUNG_FORMATIERER = new Map();
+  const ZEIT_ERFASSUNG_OFFSETS = new Map();
+
+  function zeitDatumTeile(minute, zone) {
+    const offset = zeitFesterOffset(zone);
+    if (offset !== null) {
+      const datum = new Date((minute + offset) * 60000);
+      return { year: datum.getUTCFullYear(), month: datum.getUTCMonth() + 1, day: datum.getUTCDate(),
+        hour: datum.getUTCHours(), minute: datum.getUTCMinutes(), second: datum.getUTCSeconds() };
+    }
+    if (!ZEIT_ERFASSUNG_FORMATIERER.has(zone)) {
+      if (ZEIT_ERFASSUNG_FORMATIERER.size >= 128) ZEIT_ERFASSUNG_FORMATIERER.clear();
+      ZEIT_ERFASSUNG_FORMATIERER.set(zone, new Intl.DateTimeFormat("en-CA-u-ca-gregory-nu-latn", {
+        timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+      }));
+    }
+    const teile = {};
+    for (const teil of ZEIT_ERFASSUNG_FORMATIERER.get(zone).formatToParts(new Date(minute * 60000))) {
+      if (teil.type !== "literal") teile[teil.type] = Number(teil.value);
+    }
+    return teile;
+  }
+
+  function zeitZivilMillis(teile) {
+    const datum = new Date(0);
+    datum.setUTCFullYear(teile.year, teile.month - 1, teile.day);
+    datum.setUTCHours(teile.hour || 0, teile.minute || 0, teile.second || 0, 0);
+    return +datum;
+  }
+
+  function zeitLokaleMinute(teile, zone, referenz = null, lueckeVerschieben = false) {
+    const ziel = zeitZivilMillis(teile), datum = new Date(ziel);
+    zeitPruefen(Number.isFinite(ziel) && datum.getUTCFullYear() === teile.year &&
+      datum.getUTCMonth() + 1 === teile.month && datum.getUTCDate() === teile.day &&
+      datum.getUTCHours() === (teile.hour || 0) && datum.getUTCMinutes() === (teile.minute || 0));
+    const fest = zeitFesterOffset(zone);
+    if (fest !== null) return Math.floor(ziel / 60000 - fest);
+    const schluessel = zone + "|" + teile.year + "-" + teile.month + "-" + teile.day;
+    if (!ZEIT_ERFASSUNG_OFFSETS.has(schluessel)) {
+      const mitte = zeitZivilMillis({ year: teile.year, month: teile.month, day: teile.day });
+      const offsets = new Set();
+      for (let tag = -3; tag <= 3; tag++) {
+        const zeit = mitte + tag * 86400000;
+        offsets.add(zeitZivilMillis(zeitDatumTeile(zeit / 60000, zone)) - zeit);
+      }
+      if (ZEIT_ERFASSUNG_OFFSETS.size >= 4096) ZEIT_ERFASSUNG_OFFSETS.clear();
+      ZEIT_ERFASSUNG_OFFSETS.set(schluessel, Array.from(offsets));
+    }
+    const kandidaten = ZEIT_ERFASSUNG_OFFSETS.get(schluessel).map(offset => ({
+      offset, zeit: ziel - offset, lokal: zeitZivilMillis(zeitDatumTeile((ziel - offset) / 60000, zone))
+    }));
+    const genau = kandidaten.filter(wert => wert.lokal === ziel).sort((a, b) => a.zeit - b.zeit);
+    if (genau.length) {
+      const offset = referenz === null ? null : zeitZivilMillis(zeitDatumTeile(referenz, zone)) - referenz * 60000;
+      return Math.floor((genau.find(wert => wert.offset === offset) || genau[0]).zeit / 60000);
+    }
+    zeitPruefen(lueckeVerschieben);
+    const danach = kandidaten.filter(wert => wert.lokal > ziel).sort((a, b) => a.lokal - b.lokal || a.zeit - b.zeit);
+    zeitPruefen(danach.length > 0);
+    return Math.floor(danach[0].zeit / 60000);
+  }
+
+  function zeitMinuten(eintrag, jetzt = Math.floor(Date.now() / 60000)) {
+    zeitPruefeEintrag(eintrag); zeitZahl(jetzt, 0, 4223371679);
+    const brutto = Math.max(0, (eintrag.endMinute ?? jetzt) - eintrag.startMinute);
+    const plan = eintrag.pausePlan;
+    if (!plan) {
+      const pause = eintrag.pauseMinutes + (eintrag.pauseMinute === null ? 0 : Math.max(0, jetzt - eintrag.pauseMinute));
+      return { grossMinutes: brutto, pauseMinutes: pause, totalMinutes: Math.max(0, brutto - pause), paused: eintrag.pauseMinute !== null };
+    }
+    const von = eintrag.startMinute, bis = Math.max(von, eintrag.pauseMinute ?? von, jetzt), intervalle = [];
+    const hinzufuegen = (start, ende) => {
+      const links = Math.max(von, start), rechts = Math.min(bis, ende);
+      if (rechts > links) intervalle.push([links, rechts]);
+    };
+    for (const pause of plan.manual) hinzufuegen(pause.start, pause.end);
+    if (eintrag.pauseMinute !== null) hinzufuegen(eintrag.pauseMinute, bis);
+    let pausiert = eintrag.pauseMinute !== null;
+    if (plan.fixed.length) {
+      const anfang = zeitDatumTeile(von, eintrag.zone), ende = zeitDatumTeile(bis, eintrag.zone);
+      const ersterTag = zeitZivilMillis({ year: anfang.year, month: anfang.month, day: anfang.day }) - 86400000;
+      const letzterTag = zeitZivilMillis({ year: ende.year, month: ende.month, day: ende.day });
+      zeitPruefen((letzterTag - ersterTag) / 86400000 <= 3660);
+      const ersetzt = new Set(plan.replaced);
+      for (let tag = ersterTag; tag <= letzterTag; tag += 86400000) for (const fenster of plan.fixed) {
+        const datum = new Date(tag), endDatum = new Date(tag + (fenster.end < fenster.start ? 86400000 : 0));
+        const lokal = (wert, minute) => ({ year: wert.getUTCFullYear(), month: wert.getUTCMonth() + 1,
+          day: wert.getUTCDate(), hour: Math.floor(minute / 60), minute: minute % 60 });
+        const start = zeitLokaleMinute(lokal(datum, fenster.start), eintrag.zone, null, true);
+        const geplant = zeitLokaleMinute(lokal(endDatum, fenster.end), eintrag.zone, null, true);
+        const stop = Math.min(geplant, plan.fixedEnds[start] ?? geplant);
+        if (stop <= von || start > bis || stop <= start || ersetzt.has(start)) continue;
+        if (plan.manual.some(pause => pause.start <= start && pause.end > start) ||
+            eintrag.pauseMinute !== null && eintrag.pauseMinute <= start) continue;
+        zeitPruefen(!plan.manual.some(pause => pause.start > start && pause.start < stop) &&
+          (eintrag.pauseMinute === null || eintrag.pauseMinute <= start || eintrag.pauseMinute >= stop));
+        hinzufuegen(start, stop);
+        if (start <= bis && bis < stop) pausiert = true;
+      }
+    }
+    let summe = plan.baseMinutes, links = 0, rechts = 0;
+    for (const [start, ende] of intervalle.sort((a, b) => a[0] - b[0])) {
+      if (start > rechts) { summe += rechts - links; links = start; rechts = ende; }
+      else rechts = Math.max(rechts, ende);
+    }
+    summe += rechts - links;
+    return { grossMinutes: brutto, pauseMinutes: summe, totalMinutes: Math.max(0, brutto - summe), paused: pausiert };
+  }
+
+  function zeitPruefeEintrag(roh) {
+    zeitObjekt(roh); zeitKennung(roh.id);
+    const maximum = 4223371679, start = zeitZahl(roh.startMinute, 0, maximum);
+    zeitZahl(roh.pauseMinutes, 0, maximum - start);
+    zeitZahl(roh.modifiedMs, 0, 253402300799999);
+    zeitPruefen(roh.endMinute === null || zeitZahl(roh.endMinute, start, maximum) - start >= roh.pauseMinutes);
+    zeitPruefen(roh.pauseMinute === null || roh.endMinute === null &&
+      zeitZahl(roh.pauseMinute, start, maximum) - start >= roh.pauseMinutes);
+    zeitPruefen(typeof roh.deleted === "boolean");
+    zeitTextPruefen(roh.type, 120); zeitTextPruefen(roh.note, 20000); zeitTextPruefen(roh.zone, 160);
+    try { zeitDatumTeile(start, roh.zone); } catch (_fehler) { zeitPruefen(false); }
+    const clock = zeitObjekt(roh.clock), akteure = Object.keys(clock);
+    zeitPruefen(akteure.length >= 1 && akteure.length <= 32);
+    for (const actor of akteure) { zeitKennung(actor); zeitZahl(clock[actor], 1, 9007199254740991); }
+    if (roh.pausePlan != null) {
+      const plan = zeitObjekt(roh.pausePlan);
+      zeitPruefen(roh.endMinute === null && !roh.deleted);
+      zeitPruefen(Object.keys(plan).sort().join(",") === "baseMinutes,fixed,fixedEnds,manual,replaced");
+      zeitZahl(plan.baseMinutes, 0, maximum - start);
+      zeitPruefen(Array.isArray(plan.fixed) && plan.fixed.length <= 16 && Array.isArray(plan.manual) && plan.manual.length <= 10000);
+      for (const fenster of plan.fixed) {
+        zeitObjekt(fenster); zeitPruefen(Object.keys(fenster).sort().join(",") === "end,start");
+        zeitZahl(fenster.start, 0, 1439); zeitZahl(fenster.end, 0, 1439); zeitPruefen(fenster.start !== fenster.end);
+      }
+      let ende = start;
+      for (const pause of plan.manual) {
+        zeitObjekt(pause); zeitPruefen(Object.keys(pause).sort().join(",") === "end,start");
+        zeitZahl(pause.start, ende, maximum); ende = zeitZahl(pause.end, pause.start, maximum);
+        zeitPruefen(roh.pauseMinute === null || ende <= roh.pauseMinute);
+      }
+      zeitPruefen(Array.isArray(plan.replaced) && plan.replaced.length <= 60000);
+      let vorher = -1;
+      for (const minute of plan.replaced) { zeitZahl(minute, 0, maximum); zeitPruefen(minute > vorher); vorher = minute; }
+      zeitObjekt(plan.fixedEnds); zeitPruefen(Object.keys(plan.fixedEnds).length <= 60000);
+      for (const [anfang, ende] of Object.entries(plan.fixedEnds)) {
+        zeitPruefen(/^(?:0|[1-9][0-9]*)$/.test(anfang));
+        zeitZahl(ende, zeitZahl(Number(anfang), 0, maximum), maximum);
+      }
+    }
+    return kopie(roh);
+  }
+
+  function normalisiereZeiterfassung(roh) {
+    const wert = roh == null ? {} : zeitObjekt(roh);
+    const stand = { enabled: wert.enabled === true, actor: wert.actor ?? "", counter: wert.counter ?? 0,
+      entries: [], conflicts: {}, reportName: wert.reportName ?? "" };
+    zeitPruefen(wert.enabled === undefined || typeof wert.enabled === "boolean");
+    zeitTextPruefen(stand.actor, 36); zeitTextPruefen(stand.reportName, 240); zeitZahl(stand.counter, 0, 9007199254740991);
+    zeitPruefen(wert.entries === undefined || Array.isArray(wert.entries));
+    const ids = new Set();
+    for (const rohEintrag of wert.entries || []) {
+      const eintrag = zeitPruefeEintrag(rohEintrag);
+      zeitPruefen(!ids.has(eintrag.id)); ids.add(eintrag.id); stand.entries.push(eintrag);
+    }
+    if (stand.actor) zeitKennung(stand.actor);
+    else zeitPruefen(stand.counter === 0 && stand.entries.length === 0);
+    for (const eintrag of stand.entries) zeitPruefen((eintrag.clock[stand.actor] || 0) <= stand.counter);
+    const konflikte = wert.conflicts === undefined ? {} : zeitObjekt(wert.conflicts);
+    zeitPruefen(Object.keys(konflikte).length <= 10000);
+    for (const [id, versionen] of Object.entries(konflikte)) {
+      zeitPruefen(ids.has(id) && Array.isArray(versionen) && versionen.length >= 1 && versionen.length <= 16);
+      stand.conflicts[id] = versionen.map((version) => {
+        zeitPruefen(version.id === id); return zeitPruefeEintrag(version);
+      });
+    }
+    return stand;
+  }
+
+  function zeitZiffern(wert) {
+    return String(wert).replace(/[\u0660-\u0669\u06f0-\u06f9\u0966-\u096f\uff10-\uff19]/g, zeichen => {
+      const code = zeichen.charCodeAt(0), basis = [0x660, 0x6f0, 0x966, 0xff10].find(wert => code >= wert && code <= wert + 9);
+      return String(code - basis);
+    });
+  }
+
+  function zeitDauer(wert, gebiet = formatGebiet()) {
+    zeitZahl(wert, 0, 4223371679);
+    return new Intl.NumberFormat(gebiet, { useGrouping: false }).format(Math.floor(wert / 60)) + ":" +
+      new Intl.NumberFormat(gebiet, { useGrouping: false, minimumIntegerDigits: 2 }).format(wert % 60);
+  }
+
+  function zeitDauerLesen(text) {
+    const treffer = /^([0-9]+):([0-5][0-9])$/.exec(zeitZiffern(text).trim());
+    zeitPruefen(treffer);
+    return zeitZahl(Number(treffer[1]) * 60 + Number(treffer[2]), 0, 4223371679);
+  }
+
+  function zeitInhalt(eintrag) {
+    return personalSyncKanonisch({ ...eintrag, clock: {}, modifiedMs: 0, pausePlan: eintrag.pausePlan ?? null });
+  }
+
+  function zeitErsetze(stand, erwartet, ersatz) {
+    normalisiereZeiterfassung(stand);
+    const aktuell = stand.entries.find(wert => wert.id === ersatz.id) || null;
+    if (aktuell && zeitInhalt(aktuell) === zeitInhalt(ersatz)) return stand;
+    if (personalSyncKanonisch(aktuell) !== personalSyncKanonisch(erwartet))
+      throw new Error(pgettext("time tracking", "The entry could not be saved. Reload it and try again."));
+    if (!aktuell) zeitPruefen(stand.enabled && ersatz.endMinute !== null && !ersatz.deleted);
+    if (aktuell && aktuell.endMinute !== null && !aktuell.deleted) zeitPruefen(ersatz.endMinute !== null);
+    const actor = stand.actor || anrufClientRef(), clock = {};
+    for (const key of new Set(Object.keys(aktuell?.clock || {}).concat(Object.keys(ersatz.clock || {})))) {
+      clock[key] = Math.max(aktuell?.clock?.[key] || 0, ersatz.clock?.[key] || 0);
+    }
+    const counter = zeitZahl(Math.max(stand.counter, clock[actor] || 0) + 1, 1, 9007199254740991);
+    clock[actor] = counter;
+    const eintrag = zeitPruefeEintrag({ ...ersatz, clock, modifiedMs: Date.now(), pausePlan: ersatz.pausePlan ?? null });
+    return normalisiereZeiterfassung({ ...stand, actor, counter,
+      entries: stand.entries.filter(wert => wert.id !== eintrag.id).concat(eintrag) });
+  }
+
+  function zeitDominiert(links, rechts) {
+    return Object.entries(rechts).every(([actor, counter]) => (links[actor] || 0) >= counter);
+  }
+
+  function zeitVereinigteUhr(links, rechts) {
+    return Object.fromEntries([...new Set(Object.keys(links).concat(Object.keys(rechts)))].map(actor =>
+      [actor, Math.max(links[actor] || 0, rechts[actor] || 0)]));
+  }
+
+  function zeitAbgleichPeer(id, body = null, trigger = "manual") {
+    if (gesperrt || !initialisiert || !antwortErhalten || !DATEN.zeiterfassung.enabled) return null;
+    const peer = (telefonStand?.peers || []).find(wert => wert.device_id === id), scope = peer?.time_sync;
+    if (!peer || !peer.own_device || !peer.remote_own_device || scope?.ready !== true ||
+        scope.local?.enabled !== true || scope.remote?.enabled !== true ||
+        !(peer.contacts_fingerprint || peer.fingerprint)) return null;
+    if (trigger === "auto_wifi" && peer.transport !== "wifi") return null;
+    if (body && (body.format !== 7 || body.sender_epoch !== scope.remote.epoch || body.receiver_epoch !== scope.local.epoch ||
+        body.sender_revision !== scope.remote.revision || body.receiver_revision !== scope.local.revision)) return null;
+    return peer;
+  }
+
+  function zeitAbgleichTicket(peer) {
+    return JSON.stringify([peer.device_id, peer.contacts_fingerprint || peer.fingerprint,
+      peer.time_sync.local, peer.time_sync.remote]);
+  }
+
+  const zeitAutoHash = new Map(), zeitAutoLauf = new Map();
+  function zeitAbgleichAutomatisch() {
+    for (const peer of telefonStand?.peers || []) {
+      const id = peer.device_id;
+      if (!peer.auto_wifi || !zeitAbgleichPeer(id, null, "auto_wifi")) { zeitAutoHash.delete(id); continue; }
+      if (zeitAutoLauf.has(id)) continue;
+      const bestand = DATEN, ticket = zeitAbgleichTicket(peer);
+      const arbeit = Promise.resolve().then(async () => {
+        const hash = await personalSyncHash({ ticket, entries: kopie(DATEN.zeiterfassung.entries), calendar: zeitKalenderProjektion() });
+        if (DATEN !== bestand || zeitAutoHash.get(id) === hash) return;
+        const aktuell = zeitAbgleichPeer(id, null, "auto_wifi");
+        if (!aktuell?.auto_wifi || zeitAbgleichTicket(aktuell) !== ticket) return;
+        if (await zeitAbgleichSenden(id, "auto_wifi")) zeitAutoHash.set(id, hash);
+      }).catch(() => App.personalSyncFehler({})).finally(() => {
+        if (zeitAutoLauf.get(id) === arbeit) zeitAutoLauf.delete(id);
+      });
+      zeitAutoLauf.set(id, arbeit);
+    }
+  }
+
+  async function zeitAbgleichSenden(id, trigger = "manual", anfordern = true) {
+    const peer = zeitAbgleichPeer(id, null, trigger);
+    if (!peer) return false;
+    const bestand = DATEN, ticket = zeitAbgleichTicket(peer);
+    await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+    const aktuell = zeitAbgleichPeer(id, null, trigger);
+    if (DATEN !== bestand || !aktuell || zeitAbgleichTicket(aktuell) !== ticket) return false;
+    const header = { format: 7, trigger, sender_epoch: aktuell.time_sync.local.epoch,
+      receiver_epoch: aktuell.time_sync.remote.epoch, sender_revision: aktuell.time_sync.local.revision,
+      receiver_revision: aktuell.time_sync.remote.revision };
+    const entries = kopie(DATEN.zeiterfassung.entries);
+    zeitPruefen(entries.length <= 10000 && new Set(entries.map(entry => entry.id)).size === entries.length);
+    entries.forEach(zeitPruefeEintrag);
+    const packets = []; let packet = { ...header, entries: [], calendar: zeitKalenderProjektion() };
+    const fits = value => new TextEncoder().encode(JSON.stringify(value)).length <= 192 * 1024;
+    zeitPruefen(fits(packet));
+    for (const entry of entries) {
+      const candidate = { ...packet, entries: [...packet.entries, entry] };
+      if (candidate.entries.length > 32 || !fits(candidate)) {
+        if (packet.entries.length || packet.calendar) packets.push(packet);
+        packet = { ...header, entries: [entry] }; zeitPruefen(fits(packet));
+      } else packet = candidate;
+    }
+    if (packet.entries.length || packet.calendar || !packets.length) packets.push(packet);
+    for (const inhalt of packets) Bruecke.sende({ cmd: "personal_sync_senden", kennung: id, art: "personal_sync.time_batch", inhalt });
+    if (anfordern) Bruecke.sende({ cmd: "personal_sync_senden", kennung: id,
+      art: "personal_sync.time_request", inhalt: header });
+    return true;
+  }
+
+  async function zeitAbgleichEmpfangen(nutzlast) {
+    const body = nutzlast?.body, id = nutzlast?.device_id;
+    const antwort = erfolgreich => Bruecke.sende({ cmd: "telefon_personal_sync_commit", kennung: id,
+      messageId: nutzlast.pending_message_id, token: nutzlast.commit_token, erfolgreich });
+    try {
+      const peer = zeitAbgleichPeer(id, body, body?.trigger);
+      zeitPruefen(!!peer && typeof nutzlast.commit_token === "string" && typeof nutzlast.pending_message_id === "string");
+      const bestand = DATEN, ticket = zeitAbgleichTicket(peer);
+      DATEN.zeiterfassung = zeitAbgleichen(DATEN.zeiterfassung, body.entries).state;
+      await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+      const aktuell = zeitAbgleichPeer(id, body, body.trigger);
+      antwort(DATEN === bestand && !!aktuell && zeitAbgleichTicket(aktuell) === ticket);
+      if (DATEN === bestand) zeichneAlles();
+    } catch (fehler) { antwort(false); App.personalSyncFehler({}); }
+  }
+
+  function zeitAbgleichen(stand, eintraege) {
+    normalisiereZeiterfassung(stand);
+    zeitPruefen(Array.isArray(eintraege) && eintraege.length <= 32 && new Set(eintraege.map(wert => wert.id)).size === eintraege.length);
+    if (!eintraege.length) return { state: stand, outcomes: {} };
+    const records = new Map(stand.entries.map(wert => [wert.id, wert])), conflicts = kopie(stand.conflicts), outcomes = {};
+    const actor = stand.actor || anrufClientRef(); let counter = stand.counter;
+    for (const roh of eintraege) {
+      const remote = zeitPruefeEintrag(roh); zeitPruefen(!remote.deleted);
+      counter = Math.max(counter, remote.clock[actor] || 0);
+      const local = records.get(remote.id);
+      const gleich = local && zeitInhalt(local) === zeitInhalt(remote);
+      const gleicheUhr = local && personalSyncKanonisch(local.clock) === personalSyncKanonisch(remote.clock);
+      if (!local) { records.set(remote.id, remote); outcomes[remote.id] = "applied"; }
+      else if (gleich) {
+        records.set(remote.id, { ...local, clock: zeitVereinigteUhr(local.clock, remote.clock), modifiedMs: Math.max(local.modifiedMs, remote.modifiedMs) });
+        outcomes[remote.id] = "same_content";
+      } else if (zeitDominiert(local.clock, remote.clock) && !gleicheUhr) outcomes[remote.id] = "older";
+      else if (!local.deleted && zeitDominiert(remote.clock, local.clock) && !gleicheUhr) {
+        records.set(remote.id, remote); outcomes[remote.id] = "applied";
+      } else {
+        const versionen = conflicts[remote.id] || [];
+        if (!versionen.some(wert => personalSyncKanonisch(wert.clock) === personalSyncKanonisch(remote.clock) && zeitInhalt(wert) === zeitInhalt(remote))) {
+          zeitPruefen(versionen.length < 16); conflicts[remote.id] = versionen.concat(remote);
+        }
+        outcomes[remote.id] = "conflict";
+      }
+    }
+    for (const [id, versionen] of Object.entries(conflicts)) {
+      const local = records.get(id);
+      const offen = versionen.filter(wert => !(zeitDominiert(local.clock, wert.clock) &&
+        (personalSyncKanonisch(local.clock) !== personalSyncKanonisch(wert.clock) || zeitInhalt(local) === zeitInhalt(wert))));
+      if (offen.length) conflicts[id] = offen; else delete conflicts[id];
+    }
+    return { state: normalisiereZeiterfassung({ ...stand, actor, counter, entries: [...records.values()], conflicts }), outcomes };
+  }
+
+  function zeitKonfliktLoesen(stand, id, auswahl, erwartet, erwartetLokal) {
+    normalisiereZeiterfassung(stand);
+    const local = stand.entries.find(wert => wert.id === id), versionen = stand.conflicts[id] || [];
+    zeitPruefen(local && versionen.length && personalSyncKanonisch(versionen) === personalSyncKanonisch(erwartet));
+    zeitPruefen(personalSyncKanonisch(local) === personalSyncKanonisch(erwartetLokal));
+    zeitPruefen([local, ...versionen].some(wert => personalSyncKanonisch(wert) === personalSyncKanonisch(auswahl)));
+    const clock = versionen.reduce((wert, version) => zeitVereinigteUhr(wert, version.clock), local.clock);
+    const counter = zeitZahl(Math.max(stand.counter, clock[stand.actor] || 0) + 1, 1, 9007199254740991);
+    clock[stand.actor] = counter;
+    const entry = zeitPruefeEintrag({ ...auswahl, clock, modifiedMs: Date.now() }), conflicts = { ...stand.conflicts };
+    delete conflicts[id];
+    return normalisiereZeiterfassung({ ...stand, counter, conflicts, entries: stand.entries.map(wert => wert.id === id ? entry : wert) });
+  }
+
   function normalisiereTermine(liste, zusammenfassen = true) {
     const d = { termine: [] }, roh = { termine: liste };
     const Z = (x) => {
@@ -6355,6 +6791,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       .map((wert) => String(wert || "").trim().toLowerCase())
       .filter((wert) => /^urn:magnolie:import:(?:android|kde|notes):[0-9a-f]{64}$/.test(wert)))).slice(-32);
     d.customOrganizer = normalisiereCustomOrganizer(roh.customOrganizer);
+    d.zeiterfassung = normalisiereZeiterfassung(roh.zeiterfassung);
     d.termine = normalisiereTermine(roh.termine);
     for (const a of Array.isArray(roh.aufgaben) ? roh.aufgaben : []) {
       if (!a) continue;
@@ -6610,7 +7047,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           { ferien: "school-holiday", "school-holiday": "school-holiday",
             feiertag: "public-holiday", "public-holiday": "public-holiday" },
           "public-holiday"),
-        region: S(f.region), regionName: S(f.regionName) });
+        region: S(f.region), regionName: S(f.regionName),
+        country: /^[A-Z]{2}$/.test(S(f.country)) ? f.country : "", nationwide: f.nationwide === true,
+        regions: Array.isArray(f.regions) ? [...new Set(f.regions.map(S).filter(wert => /^[A-Z0-9-]{1,64}$/.test(wert)))] : [] });
     }
 
     for (const urlaub of (Array.isArray(roh.urlaube) ? roh.urlaube : []).slice(0, 256)) {
@@ -6790,6 +7229,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     o.regionName = S(or.regionName);
     o.alleRegionen = !!or.alleRegionen;
     o.ferien = or.ferien === undefined ? true : !!or.ferien;
+    o.feiertage = or.feiertage !== false;
     o.setupFerienAbruf = or.setupFerienAbruf === true && o.ferien;
     o.abgerufen = N(or.abgerufen);
     o.jahre = (Array.isArray(or.jahre) ? or.jahre : [])
@@ -7041,11 +7481,16 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         kontakt: "contact", contact: "contact", aufgabe: "task", task: "task",
         notiz: "note", note: "note", jahrestag: "anniversary",
         notizbuch: "notebook", notebook: "notebook", anhang: "attachment", attachment: "attachment",
-        anniversary: "anniversary", duplikat: "duplicate", duplicate: "duplicate", custom: "custom" }, "");
+        anniversary: "anniversary", duplikat: "duplicate", duplicate: "duplicate", custom: "custom", time_tracking: "time_tracking" }, "");
       if (!art) continue;
       const listen = { appointment: "termine", contact: "kontakte", task: "aufgaben",
         note: "notizen", notebook: "notizbuecher", anniversary: "jahrestage", duplicate: "kontakte" };
       const liste = listen[art];
+      if (art === "time_tracking") {
+        d.papierkorb.push({ id: S(s.id) || uid(), art, name: S(s.name), geloescht: N(s.geloescht) || Date.now(),
+          parent_id: "", notiz_zuordnungen: {}, eintrag: zeitPruefeEintrag(s.eintrag) });
+        continue;
+      }
       if (art === "custom") {
         if (!["notes", "appointments", "tasks"].includes(s.eintrag.type) || !Array.isArray(s.eintrag.items)) continue;
         d.papierkorb.push({ id: S(s.id) || uid(), art, name: S(s.name),
@@ -9144,6 +9589,25 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return verz;
   }
 
+  function feiertagRegionen(eintrag) {
+    return eintrag.regions?.length ? eintrag.regions : String(eintrag.region || "").split(",").filter(Boolean);
+  }
+
+  function feiertagLand(eintrag) {
+    if (/^[A-Z]{2}$/.test(eintrag.country || "")) return eintrag.country;
+    const codes = feiertagRegionen(eintrag), laender = new Set(codes.map(code => /^([A-Z]{2})-/.exec(code)?.[1] || ""));
+    return codes.length && laender.size === 1 && !laender.has("") ? [...laender][0] : "";
+  }
+
+  function feiertagPasstZurRegion(eintrag, nachweis = false) {
+    const ort = DATEN.einstellungen.ort, land = feiertagLand(eintrag);
+    if (ort.feiertage === false || nachweis && (!land || !ort.land)) return false;
+    if (land && land !== ort.land) return false;
+    if (!land || ort.alleRegionen || !ort.region || eintrag.nationwide === true) return true;
+    const norm = code => code.includes("-") ? code : land + "-" + code;
+    return feiertagRegionen(eintrag).some(code => norm(code) === norm(ort.region));
+  }
+
   function feiertageAm(iso, vergangeneEinblenden, synchronisierte) {
     const liste = (feiertagVerzeichnis().get(iso) || []).slice();
     const ferienVorhanden = new Set(liste.filter((f) => f.art === "school-holiday")
@@ -9166,7 +9630,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       }
     }
     return ferienTagesweiseZusammenfassen(liste).filter((f) =>
-      f.art !== "school-holiday" || (DATEN.einstellungen.ort.ferien &&
+      f.art === "public-holiday" ? feiertagPasstZurRegion(f) : f.art !== "school-holiday" || (DATEN.einstellungen.ort.ferien &&
         (vergangeneEinblenden || !vergangenAusgeblendet(iso, "school-holiday"))));
   }
 
@@ -9542,22 +10006,267 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return schicht.name + " · " + von + "–" + bis;
   }
 
+  function zeitErfassungTexte() {
+    return { title: pgettext("time tracking", "Time tracking"), activity: pgettext("time tracking", "Activity"),
+      start: pgettext("time tracking", "Start"), end: pgettext("time tracking", "End"),
+      pause: pgettext("time tracking", "Pause (minutes)"), total: pgettext("time tracking", "Total time"),
+      running: pgettext("time tracking", "Running"), paused: pgettext("time tracking", "Paused"),
+      edit: pgettext("time tracking", "Edit record"), create: pgettext("time tracking", "Manual entry"),
+      history: pgettext("time tracking", "Recorded times"), empty: pgettext("time tracking", "No time recorded yet."),
+      date: pgettext("time tracking", "Date"), clock: pgettext("time tracking", "Time"),
+      month: pgettext("time tracking", "Month"), name: pgettext("time tracking", "Name") };
+  }
+
+  function zeitErfassungTag(minute, zone) {
+    const teile = zeitDatumTeile(minute, zone);
+    return String(teile.year).padStart(4, "0") + "-" + pad2(teile.month) + "-" + pad2(teile.day);
+  }
+
+  function zeitErfassungAnzeige(minute, zone, datum = false) {
+    if (minute === null) return zeitErfassungTexte().running;
+    const offset = zeitFesterOffset(zone), optionen = { hour: "2-digit", minute: "2-digit",
+      timeZone: offset === null ? zone : "UTC", calendar: "gregory" };
+    if (datum) Object.assign(optionen, { year: "numeric", month: "2-digit", day: "2-digit" });
+    const stunden = DATEN.einstellungen.regional.hourCycle;
+    if (stunden && stunden !== "system") optionen.hourCycle = stunden;
+    return datumText(new Date((minute + (offset || 0)) * 60000), optionen);
+  }
+
+  function zeitErfassungHinweis(eintrag, mitDatum = false) {
+    const tag = zeitErfassungTag(eintrag.startMinute, eintrag.zone);
+    const andererTag = eintrag.endMinute !== null && zeitErfassungTag(eintrag.endMinute, eintrag.zone) !== tag;
+    return (eintrag.type || zeitErfassungTexte().title) + " · " + zeitErfassungAnzeige(eintrag.startMinute, eintrag.zone, mitDatum) +
+      "–" + zeitErfassungAnzeige(eintrag.endMinute, eintrag.zone, mitDatum || andererTag);
+  }
+
+  let zeitIndexQuelle = null, zeitIndex = new Map();
+  function zeitErfassungenAm(iso) {
+    const stand = DATEN.zeiterfassung;
+    if (!stand.enabled) return [];
+    if (zeitIndexQuelle !== stand.entries) {
+      zeitIndex = new Map(); zeitIndexQuelle = stand.entries;
+      for (const eintrag of stand.entries) if (!eintrag.deleted) {
+        const tag = zeitErfassungTag(eintrag.startMinute, eintrag.zone);
+        if (!zeitIndex.has(tag)) zeitIndex.set(tag, []);
+        zeitIndex.get(tag).push(eintrag);
+      }
+    }
+    return zeitIndex.get(iso) || [];
+  }
+
+  function loescheZeiterfassung(erwartet) {
+    const jetzt = Math.floor(Date.now() / 60000), archiv = kopie(erwartet);
+    if (archiv.endMinute === null) {
+      archiv.pauseMinutes = zeitMinuten(archiv, jetzt).pauseMinutes;
+      archiv.endMinute = jetzt; archiv.pauseMinute = null; archiv.pausePlan = null;
+    }
+    const marker = { id: erwartet.id, startMinute: 0, endMinute: 0, pauseMinute: null, pauseMinutes: 0,
+      zone: "UTC", type: "", note: "", modifiedMs: Date.now(), deleted: true, clock: erwartet.clock, pausePlan: null };
+    const naechster = zeitErsetze(DATEN.zeiterfassung, erwartet, marker);
+    if (naechster === DATEN.zeiterfassung) return;
+    inDenPapierkorb("time_tracking", archiv, zeitErfassungHinweis(archiv, true));
+    DATEN.zeiterfassung = naechster;
+    planeSpeichern(); zeichneAlles();
+  }
+
+  function oeffneZeiterfassungEditor(id = "", vorgabe = isoHeute()) {
+    return navigiereMitGuard(() => {
+      const original = id ? DATEN.zeiterfassung.entries.find(wert => wert.id === id && !wert.deleted) : null;
+      if (id && !original) return;
+      const kennung = original?.id || anrufClientRef();
+      const texte = zeitErfassungTexte(), jetzt = Math.floor(Date.now() / 60000);
+      const zone = original?.zone || organizerZeitzone() || new Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      const aktuell = zeitDatumTeile(jetzt, zone), datum = vorgabe.split("-").map(Number);
+      const anfang = original?.startMinute ?? zeitLokaleMinute({ year: datum[0], month: datum[1], day: datum[2], hour: aktuell.hour, minute: aktuell.minute }, zone);
+      const ende = original ? original.endMinute : anfang;
+      const summen = original ? zeitMinuten(original, jetzt) : { pauseMinutes: 0, totalMinutes: 0 };
+      const schleier = el("div", "eingabe-schleier"), dialog = el("div", "eingabe-dialog zeit-dialog");
+      schleier.id = "zeit-editor-schleier";
+      const titel = el("h3", null, original ? texte.edit : texte.create);
+      titel.id = "zeit-editor-titel"; dialog.setAttribute("aria-labelledby", titel.id);
+      dialog.append(titel);
+      const hhmm = minute => { const t = zeitDatumTeile(minute, zone); return pad2(t.hour) + ":" + pad2(t.minute); };
+      const feld = (typ, wert, key, label) => {
+        const element = eingabe(typ, wert); element.id = "zeit-" + key;
+        element.setAttribute("aria-label", label); return element;
+      };
+      const stunde = zeitDatumTeile(anfang, zone).hour;
+      const vorgeschlagen = stunde >= 4 && stunde <= 11 ? pgettext("time tracking", "Early shift")
+        : stunde >= 12 && stunde <= 19 ? pgettext("time tracking", "Late shift") : pgettext("time tracking", "Night shift");
+      const art = feld("text", original ? original.type : vorgeschlagen, "art", texte.activity); art.maxLength = 120;
+      const vonDatum = feld("date", zeitErfassungTag(anfang, zone), "von-datum", texte.start + " · " + texte.date);
+      const vonZeit = feld("time", hhmm(anfang), "von-zeit", texte.start + " · " + texte.clock);
+      const bisDatum = feld("date", zeitErfassungTag(ende ?? anfang, zone), "bis-datum", texte.end + " · " + texte.date);
+      const bisZeit = feld("time", ende === null ? "" : hhmm(ende), "bis-zeit", texte.end + " · " + texte.clock);
+      bisZeit.placeholder = texte.running;
+      const pause = feld("text", new Intl.NumberFormat(formatGebiet(), { useGrouping: false }).format(summen.pauseMinutes), "pause", texte.pause);
+      const dauer = feld("text", zeitDauer(summen.totalMinutes), "dauer", texte.total);
+      const notiz = feld("textarea", original?.note || "", "notiz", _("Note")); notiz.maxLength = 20000;
+      const von = el("div", "zeit-datumzeit"), bis = el("div", "zeit-datumzeit");
+      von.append(vonDatum, vonZeit); bis.append(bisDatum, bisZeit);
+      dialog.append(formZeile(texte.activity, art), formZeile(texte.start, von), formZeile(texte.end, bis),
+        el("p", "einst-hinweis", zone), formZeile(texte.pause, pause), formZeile(texte.total, dauer), formZeile(_("Note"), notiz));
+      const zeitFelder = () => [datumswert(vonDatum), vonZeit.value, datumswert(bisDatum), bisZeit.value,
+        zeitZiffern(pause.value).trim(), zeitZiffern(dauer.value).trim()];
+      const vorher = JSON.stringify(zeitFelder().slice(0, 5));
+      let dauerGeaendert = false, editor = null;
+      let vonReferenz = anfang, bisReferenz = ende;
+      const lesen = (datumFeld, zeitFeld, referenz) => {
+        zeitPruefen(gueltigesISO(datumswert(datumFeld)) && /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(zeitFeld.value));
+        const d = datumswert(datumFeld).split("-").map(Number), z = zeitFeld.value.split(":").map(Number);
+        return zeitLokaleMinute({ year: d[0], month: d[1], day: d[2], hour: z[0], minute: z[1] }, zone, referenz);
+      };
+      const pausenzahl = () => {
+        const text = zeitZiffern(pause.value).trim() || "0"; zeitPruefen(/^[0-9]+$/.test(text));
+        return zeitZahl(Number(text), 0, 4223371679);
+      };
+      const berechnen = () => {
+        try {
+          const start = lesen(vonDatum, vonZeit, vonReferenz); vonReferenz = start;
+          if (dauerGeaendert) {
+            const end = zeitZahl(start + pausenzahl() + zeitDauerLesen(dauer.value), start, 4223371679);
+            bisReferenz = end; setzeDatumswert(bisDatum, zeitErfassungTag(end, zone)); bisZeit.value = hhmm(end);
+          } else {
+            const end = bisZeit.value ? lesen(bisDatum, bisZeit, bisReferenz) : Math.floor(Date.now() / 60000);
+            if (bisZeit.value) bisReferenz = end;
+            dauer.value = zeitDauer(Math.max(0, end - start - pausenzahl()));
+          }
+        } catch (_unvollstaendig) { /* Keep partial input editable; Save validates it. */ }
+      };
+      dauer.dataset.editorTransient = "true";
+      dauer.addEventListener("input", () => { dauerGeaendert = true; berechnen(); });
+      pause.addEventListener("input", berechnen);
+      for (const element of [vonDatum, vonZeit, bisDatum, bisZeit]) for (const event of ["input", "change"])
+        element.addEventListener(event, () => { dauerGeaendert = false; berechnen(); });
+      const schliessen = () => { if (aktiverEditor === editor) aktiverEditor = null; beendeModal(schleier); schleier.remove(); };
+      const speichern = () => {
+        try {
+          const jetzt = Math.floor(Date.now() / 60000);
+          let ersatz = original ? kopie(original) : { id: kennung, startMinute: anfang, endMinute: ende,
+            pauseMinute: null, pauseMinutes: 0, zone, type: "", note: "", modifiedMs: Date.now(), deleted: false, clock: {} };
+          if (!original || JSON.stringify(zeitFelder().slice(0, 5)) !== vorher || dauerGeaendert) {
+            zeitPruefen(pruefeZeitfelder(vonZeit, bisZeit));
+            const start = lesen(vonDatum, vonZeit, vonReferenz);
+            const pausen = pausenzahl();
+            const end = dauerGeaendert ? start + pausen + zeitDauerLesen(dauer.value)
+              : bisZeit.value ? lesen(bisDatum, bisZeit, bisReferenz) : null;
+            ersatz = { ...ersatz, startMinute: start, endMinute: end, pauseMinutes: pausen,
+              pauseMinute: end === null && original?.pauseMinute != null ? jetzt : null, pausePlan: null };
+          }
+          ersatz.type = art.value.trim(); ersatz.note = notiz.value;
+          DATEN.zeiterfassung = zeitErsetze(DATEN.zeiterfassung, original || null, ersatz);
+          planeSpeichern(); schliessen(); zeichneAlles();
+        } catch (fehler) { zettel(fehler.message || pgettext("time tracking", "The entry could not be saved. Reload it and try again.")); }
+      };
+      const knoepfe = el("div", "dialog-knoepfe");
+      if (original) knoepfe.append(knopf(_("Delete"), "rot", async () => {
+        if (!await frage(_("Delete") + ": " + zeitErfassungHinweis(original, true) + "?", _("Delete"))) return;
+        try { loescheZeiterfassung(original); schliessen(); }
+        catch (fehler) { zettel(fehler.message); }
+      }));
+      knoepfe.append(knopf(_("Cancel"), "", schliessen), knopf(_("Save"), "hauptknopf", speichern));
+      dialog.append(knoepfe); schleier.append(dialog); document.body.append(schleier);
+      editor = registriereFormEditor(dialog, speichern, schliessen, () => dauerGeaendert ? dauer.value : null);
+      registriereModal(schleier, dialog, { anfang: art, schliessen: () => navigiereMitGuard(schliessen) });
+    });
+  }
+
+  function oeffneZeiterfassungKonflikt(id) {
+    return navigiereMitGuard(() => {
+      const local = DATEN.zeiterfassung.entries.find(wert => wert.id === id), versionen = DATEN.zeiterfassung.conflicts[id] || [];
+      if (!local || !versionen.length) return;
+      const texte = zeitErfassungTexte(), schleier = el("div", "eingabe-schleier"), dialog = el("div", "eingabe-dialog zeit-dialog");
+      schleier.id = "zeit-konflikt-schleier"; dialog.setAttribute("aria-label", _("Conflict"));
+      const schliessen = () => { beendeModal(schleier); schleier.remove(); };
+      dialog.append(el("h3", null, _("Conflict") + " · " + texte.title));
+      for (const version of [local, ...versionen]) {
+        const karte = el("section", "zeit-konflikt-karte");
+        karte.append(el("h4", null, version.deleted ? _("Delete") : zeitErfassungHinweis(version, true)));
+        if (!version.deleted) {
+          const minuten = zeitMinuten(version);
+          karte.append(el("p", null, texte.pause + ": " + zahlText(minuten.pauseMinutes) + " · " + texte.total + ": " + zeitDauer(minuten.totalMinutes)),
+            el("p", "zeit-konflikt-notiz", version.note));
+        }
+        karte.append(knopf(version.deleted ? _("Delete") : _("Keep"), "", () => {
+          try {
+            DATEN.zeiterfassung = zeitKonfliktLoesen(DATEN.zeiterfassung, id, version, versionen, local);
+            planeSpeichern(); schliessen(); zeichneAlles();
+          } catch (fehler) { zettel(fehler.message); }
+        }));
+        dialog.append(karte);
+      }
+      const zu = knopf(_("Cancel"), "", schliessen); dialog.append(zu);
+      schleier.append(dialog); document.body.append(schleier);
+      registriereModal(schleier, dialog, { anfang: zu, schliessen });
+    });
+  }
+
+  function oeffneZeiterfassungVerlauf(vorgabe = "") {
+    return navigiereMitGuard(() => {
+      const texte = zeitErfassungTexte(), schleier = el("div", "eingabe-schleier"), dialog = el("div", "eingabe-dialog zeit-dialog");
+      schleier.id = "zeit-verlauf-schleier"; dialog.setAttribute("aria-label", texte.history);
+      const monate = [...new Set(DATEN.zeiterfassung.entries.filter(wert => !wert.deleted)
+        .map(wert => zeitErfassungTag(wert.startMinute, wert.zone).slice(0, 7)))].sort().reverse();
+      const aktuell = vorgabe.slice(0, 7) || monate[0] || isoHeute().slice(0, 7);
+      if (!monate.includes(aktuell)) monate.unshift(aktuell);
+      const monat = auswahlFeld(monate.map(wert => [wert, datumText(new Date(wert + "-01T12:00:00Z"),
+        { year: "numeric", month: "long", timeZone: "UTC", calendar: "gregory" })]), aktuell);
+      const liste = el("div", "zeit-verlauf-liste");
+      const konflikte = el("div", "zeit-verlauf-liste");
+      for (const id of Object.keys(DATEN.zeiterfassung.conflicts)) {
+        const eintrag = DATEN.zeiterfassung.entries.find(wert => wert.id === id);
+        konflikte.append(knopf(_("Conflict") + " · " + (eintrag.deleted ? _("Delete") : zeitErfassungHinweis(eintrag, true)), "", () => {
+          schliessen(); oeffneZeiterfassungKonflikt(id);
+        }));
+      }
+      const schliessen = () => { beendeModal(schleier); schleier.remove(); };
+      const frischen = () => {
+        liste.textContent = "";
+        const eintraege = DATEN.zeiterfassung.entries.filter(wert => !wert.deleted &&
+          zeitErfassungTag(wert.startMinute, wert.zone).startsWith(monat.value + "-")).sort((a, b) => b.startMinute - a.startMinute);
+        if (!eintraege.length) liste.append(el("p", "leer-hinweis", texte.empty));
+        for (const eintrag of eintraege) liste.append(knopf(zeitErfassungHinweis(eintrag, true), "zeit-verlauf-eintrag", () => {
+          schliessen(); oeffneZeiterfassungEditor(eintrag.id);
+        }));
+      };
+      monat.addEventListener("change", frischen);
+      const neu = knopf(texte.create, "", () => { schliessen(); oeffneZeiterfassungEditor("", monat.value + "-01"); });
+      neu.disabled = !DATEN.zeiterfassung.enabled;
+      const zu = knopf(_("Close"), "", schliessen);
+      dialog.append(el("h3", null, texte.history), konflikte, formZeile(texte.month, monat), liste, neu, zu);
+      schleier.append(dialog); document.body.append(schleier);
+      registriereModal(schleier, dialog, { anfang: monat, schliessen }); frischen();
+    });
+  }
+
   function tagmarkenStreifen(iso, kompakt) {
     const inhalt = tagmarkenAm(iso);
     const urlaube = urlaubeAm(iso);
     const muelltermine = muelltermineAm(iso);
     const gesundheit = gesundheitsMarkenAm(iso);
+    const zeiten = zeitErfassungenAm(iso);
     if (!inhalt.schicht && !inhalt.zyklus.length && !urlaube.length && !muelltermine.length &&
-      !gesundheit.length) return null;
+      !gesundheit.length && !zeiten.length) return null;
     const streifen = el("div", "tagmarken-streifen" + (kompakt ? " kompakt" : ""));
     if (inhalt.schicht) {
       const schicht = el("span", "schicht-marke");
       schicht.style.setProperty("--markenfarbe", inhalt.schicht.farbe);
-      schicht.append(sinnbild("koffer", kompakt ? 10 : 13),
-        document.createTextNode(kompakt ? inhalt.schicht.name
-          : schichtZeitText(inhalt.schicht, iso)));
+      if (!zeiten.length) schicht.append(sinnbild("koffer", kompakt ? 10 : 13));
+      schicht.append(document.createTextNode(kompakt ? inhalt.schicht.name : schichtZeitText(inhalt.schicht, iso)));
       schicht.title = schichtZeitText(inhalt.schicht, iso);
       streifen.append(schicht);
+    }
+    if (zeiten.length) {
+      const marke = el("button", "zeit-marke"); marke.type = "button"; marke.dataset.zeitTag = iso;
+      marke.title = zeiten.map(wert => zeitErfassungHinweis(wert)).join("\n");
+      marke.setAttribute("aria-label", zeitErfassungTexte().title + ": " + marke.title);
+      marke.append(sinnbild("koffer", kompakt ? 10 : 13));
+      marke.addEventListener("click", ev => {
+        ev.preventDefault(); ev.stopPropagation();
+        if (zeiten.length === 1) oeffneZeiterfassungEditor(zeiten[0].id);
+        else oeffneZeiterfassungVerlauf(iso);
+      });
+      streifen.append(marke);
     }
     for (const marker of inhalt.zyklus) {
       const span = el("span", "zyklus-marke", marker.symbol);
@@ -10572,6 +11281,190 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       "</tr></thead><tbody>" + rumpf + "</tbody></table></body></html>";
   }
 
+  function zeitKalenderProjektion(monat = "") {
+    const ort = DATEN.einstellungen.ort, country = /^[A-Z]{2}$/.test(ort.land || "") ? ort.land : "";
+    const result = { enabled: ort.feiertage !== false && !!country, country,
+      regions: country && !ort.alleRegionen && ort.region ? [ort.region] : [], holidays: [] };
+    if (!result.enabled) return result;
+    const gesehen = new Set();
+    for (const wert of DATEN.feiertage) {
+      if (wert.art !== "public-holiday" || !feiertagPasstZurRegion(wert, true)) continue;
+      const von = monat && wert.von < monat + "-01" ? monat + "-01" : wert.von;
+      const ende = Date.parse((wert.bis || wert.von) + "T12:00:00Z");
+      for (let zeit = Date.parse(von + "T12:00:00Z"); zeit <= ende; zeit += 86400000) {
+        const date = new Date(zeit).toISOString().slice(0, 10);
+        if (monat && !date.startsWith(monat + "-")) break;
+        let name = String(wert.name).slice(0, 160);
+        if (/[\uD800-\uDBFF]$/.test(name)) name = name.slice(0, -1);
+        const regions = feiertagRegionen(wert).slice(0, 64);
+        const eintrag = { date, name, country: feiertagLand(wert), nationwide: wert.nationwide === true, regions };
+        const key = personalSyncKanonisch(eintrag);
+        if (!gesehen.has(key)) { gesehen.add(key); result.holidays.push(eintrag); }
+        zeitPruefen(result.holidays.length <= 2048);
+      }
+    }
+    return result;
+  }
+
+  function zeitOdsNutzlast(jahr, monat, name = DATEN.zeiterfassung.reportName, tage = null) {
+    zeitZahl(jahr, 1, 9999); zeitZahl(monat, 0, 11);
+    const datum = new Date(zeitZivilMillis({ year: jahr, month: monat + 1, day: 1 }));
+    const anzahl = new Date(zeitZivilMillis({ year: jahr, month: monat + 2, day: 1 }) - 86400000).getUTCDate();
+    const schluessel = String(jahr).padStart(4, "0") + "-" + pad2(monat + 1), locale = formatGebiet() || navigator.language || "en";
+    const labels = { title: pgettext("time tracking", "Time tracking"), name: pgettext("time tracking", "Name"),
+      date: pgettext("time tracking", "Date"), signature: pgettext("time tracking", "Signature"),
+      total: pgettext("time tracking", "Total"), clock: pgettext("time tracking", "Time"),
+      columns: [pgettext("time tracking", "Date"), pgettext("time tracking", "Activity"), pgettext("time tracking", "Start"),
+        pgettext("time tracking", "End date"), pgettext("time tracking", "End"), pgettext("time tracking", "Hours"),
+        pgettext("time tracking", "Pause (minutes)"), pgettext("time tracking", "Total time"), _("Note"),
+        pgettext("time tracking", "Clock change (min)")] };
+    const dateFormat = new Intl.DateTimeFormat(locale, { timeZone: "UTC", calendar: "gregory",
+      weekday: "short", year: "numeric", month: "2-digit", day: "2-digit" });
+    const cycle = DATEN.einstellungen.regional.hourCycle;
+    const timeFormat = new Intl.DateTimeFormat(locale, { timeZone: "UTC", hour: "2-digit", minute: "2-digit",
+      ...(cycle && cycle !== "system" ? { hourCycle: cycle } : {}) });
+    const parts = format => format.formatToParts(new Date(Date.UTC(2006, 10, 22, 13, 45))).map(part => ({ type: part.type, value: part.value }));
+    const dayPeriod = new Intl.DateTimeFormat(locale, { timeZone: "UTC", hour: "2-digit", hourCycle: "h12" });
+    const payload = { month: schluessel, name: String(name || ""), locale, labels,
+      monthTitle: new Intl.DateTimeFormat(locale, { timeZone: "UTC", calendar: "gregory", month: "long", year: "numeric" }).format(datum),
+      digits: Array.from({ length: 10 }, (_, n) => new Intl.NumberFormat(locale, { useGrouping: false }).format(n)).join(""),
+      weekdays: Array.from({ length: 7 }, (_, day) => new Intl.DateTimeFormat(locale, { timeZone: "UTC", weekday: "short" }).format(new Date(Date.UTC(2024, 5, 2 + day)))),
+      periods: [1, 13].map(hour => dayPeriod.formatToParts(new Date(Date.UTC(2024, 5, 2, hour))).find(part => part.type === "dayPeriod")?.value || ""),
+      dateParts: parts(dateFormat), timeParts: parts(timeFormat), days: tage || Array.from({ length: anzahl }, (_, n) => n + 1),
+      calendar: zeitKalenderProjektion(schluessel),
+      entries: DATEN.zeiterfassung.entries.filter(entry => !entry.deleted && zeitErfassungTag(entry.startMinute, entry.zone).startsWith(schluessel + "-"))
+        .map(entry => ({ ...entry, localStartMinute: Math.floor(zeitZivilMillis(zeitDatumTeile(entry.startMinute, entry.zone)) / 60000),
+          localEndMinute: entry.endMinute === null ? null : Math.floor(zeitZivilMillis(zeitDatumTeile(entry.endMinute, entry.zone)) / 60000) })) };
+    zeitTextPruefen(payload.name, 240);
+    zeitPruefen(payload.entries.length <= 9969 && payload.days.length > 0 && new Set(payload.days).size === payload.days.length &&
+      payload.days.every(day => Number.isInteger(day) && day >= 1 && day <= anzahl));
+    return { cmd: "zeit_ods", sheet: payload };
+  }
+
+  function zeitDruckSeite(sheet) {
+    const sicher = wert => String(wert ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    const zelle = (wert, klasse = "") => `<td class="${klasse}">${sicher(wert).replace(/\n/g, "<br>")}</td>`;
+    const ziffern = wert => String(wert).replace(/[0-9]/g, zeichen => sheet.digits[Number(zeichen)]);
+    const dauer = minuten => ziffern(String(Math.floor(minuten / 60)).padStart(2, "0") + ":" + pad2(minuten % 60));
+    const nummer = wert => ziffern(wert);
+    const anzeigen = (teile, parts) => parts.map(part => {
+      if (part.type === "literal") return part.value;
+      if (part.type === "weekday") return sheet.weekdays[new Date(zeitZivilMillis(teile)).getUTCDay()];
+      if (part.type === "dayPeriod") return sheet.periods[(teile.hour || 0) >= 12 ? 1 : 0];
+      let wert = teile[part.type];
+      if (part.type === "hour" && parts.some(item => item.type === "dayPeriod")) wert = (wert + 11) % 12 + 1;
+      return ziffern(String(wert).padStart(part.type === "year" ? 4 : 2, "0"));
+    }).join("");
+    const eintraege = new Map();
+    for (const entry of [...sheet.entries].sort((a, b) => a.startMinute - b.startMinute)) {
+      const day = zeitDatumTeile(entry.startMinute, entry.zone).day;
+      if (!eintraege.has(day)) eintraege.set(day, []); eintraege.get(day).push(entry);
+    }
+    let brutto = 0, pause = 0, netto = 0, zeilen = "";
+    for (const day of [...sheet.days].sort((a, b) => a - b)) {
+      const iso = sheet.month + "-" + pad2(day), datum = new Date(iso + "T12:00:00Z");
+      const feiertage = sheet.calendar.enabled ? sheet.calendar.holidays.filter(item => item.date === iso).map(item => item.name) : [];
+      const klasse = feiertage.length ? "holiday" : datum.getUTCDay() === 0 ? "sunday" : "";
+      for (const entry of eintraege.get(day) || [null]) {
+        const start = entry ? zeitDatumTeile(entry.startMinute, entry.zone) : { year: datum.getUTCFullYear(), month: datum.getUTCMonth() + 1, day };
+        const end = entry?.endMinute != null ? zeitDatumTeile(entry.endMinute, entry.zone) : null;
+        const minuten = end ? entry.endMinute - entry.startMinute : null, pausen = entry?.pauseMinutes || 0;
+        const differenz = end ? Math.trunc((zeitZivilMillis({ ...end, second: 0 }) - zeitZivilMillis({ ...start, second: 0 })) / 60000 - minuten) : 0;
+        if (end) { brutto += minuten; pause += pausen; netto += minuten - pausen; }
+        zeilen += `<tr class="${klasse}">` + zelle(anzeigen(start, sheet.dateParts), "number") + zelle(entry?.type || "") +
+          zelle(entry ? anzeigen(start, sheet.timeParts) : "", "number") + zelle(anzeigen(end || start, sheet.dateParts), "number") +
+          zelle(end ? anzeigen(end, sheet.timeParts) : "", "number") + zelle(end ? dauer(minuten) : "", "number") + zelle(nummer(pausen), "number") +
+          zelle(end ? dauer(minuten - pausen) : "", "number") + zelle([entry?.note, ...feiertage, entry?.zone].filter(Boolean).join("\n")) +
+          zelle(nummer(differenz), "number") + "</tr>";
+      }
+    }
+    const labels = sheet.labels, widths = [3.3, 3, 2.7, 3.3, 2.7, 1.6, 1.8, 1.8, 3.6, 2.2];
+    return zeitDruckUmbrechen(`<!doctype html><html lang="${sicher(sheet.locale)}" dir="${sheet.locale.startsWith("ar") ? "rtl" : "ltr"}"><head><meta charset="utf-8"><style>
+@page{size:A4 landscape;margin:1cm}*{box-sizing:border-box}body{margin:0;font-family:sans-serif;font-size:8pt;line-height:1.05;color:#3d2a1d}
+table{width:26cm;border-collapse:collapse;table-layout:fixed}td,th{padding:.05cm;vertical-align:middle;overflow-wrap:anywhere;border-bottom:.01cm solid #c9baa0}
+thead{display:table-header-group;break-inside:avoid}tr{break-inside:avoid}td{height:.4cm}th{font-size:8pt;text-align:start;background:#5b3927;color:#f6e5b7}
+.title{background:#f8f1e1;color:#4b3022;font-size:20pt;font-weight:bold}.number{text-align:right}.sunday td{background:#f4efe5}.holiday td{background:#e8f0eb}
+.heading{width:26cm}.heading div{padding:.05cm;border-bottom:.01cm solid #c9baa0}.gap{height:.2cm}.signature{margin-top:.2cm;break-inside:avoid}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><div class="heading"><div class="title">${sicher(labels.title)}</div>
+<div>${sicher(labels.name)}: ${sicher(sheet.name)}</div><div>${sicher(sheet.monthTitle)}</div><div class="gap"></div></div><table>
+${widths.map(width => `<col style="width:${width}cm">`).join("")}<thead><tr><td colspan="2"></td><th colspan="3">${sicher(labels.clock)}</th><td colspan="5"></td></tr>
+<tr>${labels.columns.map(value => `<th>${sicher(value)}</th>`).join("")}</tr></thead><tbody>${zeilen}<tr><th>${sicher(labels.total)}</th><td colspan="4"></td>
+${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(netto), "number")}<td colspan="2"></td></tr></tbody></table>
+ <div class="signature">${sicher(labels.date)}: ____________________ &nbsp; ${sicher(labels.signature)}: ____________________</div></body></html>`);
+  }
+
+  function zeitDruckUmbrechen(html) {
+    // WebKit does not repeat table-header-group when printing. Measure with the
+    // actual browser fonts, then emit explicit pages with their own column heads.
+    const doc = new DOMParser().parseFromString(html, "text/html"), host = document.createElement("div");
+    host.style.cssText = "position:fixed;left:-100000px;top:0;visibility:hidden;width:26cm";
+    host.lang = doc.documentElement.lang; host.dir = doc.documentElement.dir;
+    const shadow = host.attachShadow({ mode: "closed" });
+    shadow.innerHTML = "<style>" + doc.querySelector("style").textContent.replace(/body\{/g, ":host{") + "</style>" + doc.body.innerHTML;
+    // Leave 1.5 cm of the 19 cm printable height for native print-metric rounding.
+    const meter = document.createElement("div"); meter.style.height = "17.5cm"; shadow.append(meter);
+    document.body.append(host);
+    try {
+      const table = shadow.querySelector("table"), body = table.querySelector("tbody"), heading = shadow.querySelector(".heading");
+      const signature = shadow.querySelector(".signature"), head = table.querySelector("thead");
+      const limit = meter.getBoundingClientRect().height - 4, headHeight = head.getBoundingClientRect().height;
+      const headingHeight = heading.getBoundingClientRect().height;
+      const signatureHeight = signature.getBoundingClientRect().height + parseFloat(getComputedStyle(signature).marginTop);
+      const rows = Array.from(body.children, node => ({ node, height: node.getBoundingClientRect().height }));
+      if (limit <= 0 || rows.some(row => row.height <= 0)) return html; // Non-layout contract test environments.
+      const columns = table.querySelector("colgroup").outerHTML, pages = [];
+      let current = [], used = headingHeight + headHeight;
+      const append = (row, height, last) => {
+        if (current.length && used + height + (last ? signatureHeight : 0) > limit) {
+          pages.push(current); current = []; used = headHeight;
+        }
+        current.push(row); used += height;
+      };
+      body.replaceChildren();
+      const maxRow = limit - headHeight - Math.max(headingHeight, signatureHeight);
+      for (let index = 0; index < rows.length; index++) {
+        const { node, height } = rows[index], last = index === rows.length - 1;
+        if (height <= maxRow) { append(node.outerHTML, height, last); continue; }
+        // Long notes flow into continuation rows; hours and pauses occur only
+        // once. Split Unicode code points rather than dropping or clipping text.
+        const remaining = Array.from(node.children, cell => Array.from(Array.from(cell.childNodes,
+          child => child.nodeName === "BR" ? "\n" : child.textContent).join("")));
+        while (remaining.some(text => text.length)) {
+          const fragment = node.cloneNode(true);
+          for (const cell of fragment.children) cell.replaceChildren();
+          body.replaceChildren(fragment);
+          for (let col = 0; col < remaining.length; col++) {
+            const cell = fragment.children[col], text = remaining[col];
+            const fill = count => {
+              cell.replaceChildren();
+              text.slice(0, count).join("").split("\n").forEach((line, lineIndex) => {
+                if (lineIndex) cell.append(document.createElement("br"));
+                cell.append(document.createTextNode(line));
+              });
+            };
+            let low = 0, high = text.length;
+            while (low < high) {
+              const middle = Math.ceil((low + high) / 2); fill(middle);
+              if (fragment.getBoundingClientRect().height <= maxRow) low = middle; else high = middle - 1;
+            }
+            let count = Math.min(text.length, Math.max(1, low));
+            const lineEnd = text.slice(0, count).lastIndexOf("\n") + 1;
+            if (count < text.length && lineEnd > count / 2) count = lineEnd;
+            fill(count); text.splice(0, count);
+          }
+          append(fragment.outerHTML, fragment.getBoundingClientRect().height, last && remaining.every(text => !text.length));
+        }
+      }
+      pages.push(current);
+      doc.querySelector("style").textContent += ".time-page+.time-page{break-before:page;page-break-before:always}";
+      doc.body.innerHTML = pages.map((page, index) => '<section class="time-page">' + (index ? "" : heading.outerHTML) +
+        "<table>" + columns + head.outerHTML + "<tbody>" + page.join("") + "</tbody></table>" +
+        (index === pages.length - 1 ? signature.outerHTML : "") + "</section>").join("");
+      return "<!doctype html>" + doc.documentElement.outerHTML;
+    } finally { host.remove(); }
+  }
+
   function oeffnePlanerDruckvorschau() {
     const schleier = el("div", "druck-schleier");
     schleier.id = "druck-schleier";
@@ -10598,19 +11491,68 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const links = el("div", "druck-links planer-druck-optionen");
     links.append(el("div", "druck-titel", _("Print")));
     const artWahl = auswahlFeld([
-      ["year", _("Year calendar")], ["month", _("Month calendar")]
+      ["year", _("Year calendar")], ["month", _("Month calendar")], ["time", pgettext("time tracking", "Time tracking")]
     ], "year");
     artWahl.id = "planer-druck-art";
     const monatWahl = auswahlFeld(Array.from({ length: 12 }, (_wert, monat) =>
       [String(monat), monatsName(monat)]), String(wahl.monat));
     monatWahl.id = "planer-druck-monat";
     const monatZeile = formZeile(_("Month"), monatWahl);
-    links.append(formZeile(_("Calendar layout"), artWahl), monatZeile,
-      el("p", "einst-hinweis", _("The year calendar shows all twelve months; the " +
-        "month calendar provides more room for entries.")));
+    const zeitName = eingabe("text", DATEN.zeiterfassung.reportName); zeitName.maxLength = 240; zeitName.id = "zeit-druck-name";
+    const zeitNameZeile = formZeile(pgettext("time tracking", "Name"), zeitName);
+    const zeitTageZeile = el("div", "zeit-druck-tage"), alleTageZeile = el("label", "hak");
+    const alleTage = document.createElement("input"); alleTage.type = "checkbox"; alleTage.id = "zeit-druck-alle-tage";
+    const tageRaster = el("div", "zeit-druck-tageraster");
+    alleTageZeile.append(alleTage, document.createTextNode(" " + pgettext("time tracking", "All days")));
+    zeitTageZeile.append(alleTageZeile, tageRaster);
+    let tageMonat = "";
+    alleTage.addEventListener("change", () => {
+      for (const hak of tageRaster.querySelectorAll("input")) hak.checked = alleTage.checked;
+      frischen();
+    });
+    const kalenderHinweis = el("p", "einst-hinweis", _("The year calendar shows all twelve months; the " +
+      "month calendar provides more room for entries."));
+    links.append(formZeile(_("Calendar layout"), artWahl), monatZeile, zeitNameZeile, zeitTageZeile, kalenderHinweis);
     const vorschau = el("div", "druck-vorschau planer-druck-vorschau");
     let modell = voll;
     const frischen = () => {
+      zeitNameZeile.style.display = wahl.art === "time" ? "" : "none";
+      zeitTageZeile.style.display = wahl.art === "time" ? "" : "none";
+      kalenderHinweis.style.display = wahl.art === "time" ? "none" : "";
+      for (const zeile of links.querySelectorAll(".planer-druck-option")) {
+        zeile.style.display = wahl.art === "time" || zeile.dataset.nurMonat && wahl.art !== "month" ? "none" : "";
+      }
+      if (wahl.art === "time") {
+        const monat = zustand.planer.jahr + "-" + pad2(wahl.monat + 1);
+        if (tageMonat !== monat) {
+          tageMonat = monat; tageRaster.textContent = "";
+          const anzahl = new Date(zeitZivilMillis({ year: zustand.planer.jahr, month: wahl.monat + 2, day: 1 }) - 86400000).getUTCDate();
+          for (let tag = 1; tag <= anzahl; tag++) {
+            const hak = document.createElement("input"), label = el("label", "hak");
+            hak.type = "checkbox"; hak.checked = true; hak.dataset.zeitDruckTag = String(tag);
+            hak.setAttribute("aria-label", datumText(new Date(zeitZivilMillis({ year: zustand.planer.jahr, month: wahl.monat + 1, day: tag })),
+              { year: "numeric", month: "long", day: "numeric", timeZone: "UTC", calendar: "gregory" }));
+            hak.addEventListener("change", frischen);
+            label.append(hak, document.createTextNode(" " + zahlText(tag))); tageRaster.append(label);
+          }
+        }
+        const tage = Array.from(tageRaster.querySelectorAll("input:checked"), hak => Number(hak.dataset.zeitDruckTag));
+        alleTage.checked = tage.length === tageRaster.childElementCount;
+        alleTage.indeterminate = tage.length > 0 && !alleTage.checked;
+        monatZeile.style.display = "";
+        if (!tage.length) { modell = null; vorschau.textContent = ""; druckKnopf.disabled = odsKnopf.disabled = true; return; }
+        const payload = zeitOdsNutzlast(zustand.planer.jahr, wahl.monat, zeitName.value, tage);
+        modell = { art: "time", sheet: payload.sheet };
+        monatZeile.style.display = ""; vorschau.textContent = "";
+        const rahmen = document.createElement("iframe"); rahmen.className = "zeit-druck-rahmen";
+        rahmen.title = payload.sheet.labels.title; rahmen.setAttribute("sandbox", "");
+        rahmen.srcdoc = zeitDruckSeite(payload.sheet).replace("</style>", "@media screen{body{zoom:.6}}</style>");
+        vorschau.append(rahmen); vorschau.setAttribute("aria-busy", "false");
+        kopf.querySelector("h2").textContent = uebersetzt("Print · %(title)s", { title: payload.sheet.labels.title + " · " + payload.sheet.monthTitle });
+        druckKnopf.disabled = odsKnopf.disabled = false;
+        return;
+      }
+      kopf.querySelector("h2").textContent = uebersetzt("Print · %(title)s", { title: uebersetzt("Year planner %(year)s", { year: zustand.planer.jahr }) });
       modell = wahl.art === "month"
         ? planerMonatsModell(zustand.planer.jahr, wahl.monat, wahl)
         : planerKalenderModell(zustand.planer.jahr, wahl);
@@ -10625,6 +11567,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     };
     artWahl.addEventListener("change", () => { wahl.art = artWahl.value; frischen(); });
     monatWahl.addEventListener("change", () => { wahl.monat = Number(monatWahl.value); frischen(); });
+    zeitName.addEventListener("input", frischen);
     const fuegeOptionHinzu = (schluessel, text, nurMonat) => {
       const hak = document.createElement("input");
       hak.type = "checkbox";
@@ -10659,13 +11602,15 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const fuss = el("div", "knopfreihe druck-fuss");
     const druckKnopf = bildknopf("drucken", _("Print now"), () => {
       if (!Bruecke.vorhanden) { nurImProgramm(); return; }
-      Bruecke.sende({ cmd: "drucken", html: planerDruckSeite(modell) });
+      if (modell.art === "time") { DATEN.zeiterfassung.reportName = zeitName.value; planeSpeichern(); }
+      Bruecke.sende({ cmd: "drucken", html: modell.art === "time" ? zeitDruckSeite(modell.sheet) : planerDruckSeite(modell) });
       schliessen();
     });
     fuss.append(druckKnopf);
     const odsKnopf = bildknopf("tabelle", _("ODS"), () => {
       if (!Bruecke.vorhanden) { nurImProgramm(); return; }
-      Bruecke.sende(planerOdsNutzlast(modell));
+      if (modell.art === "time") { DATEN.zeiterfassung.reportName = zeitName.value; planeSpeichern(); }
+      Bruecke.sende(modell.art === "time" ? { cmd: "zeit_ods", sheet: modell.sheet } : planerOdsNutzlast(modell));
       schliessen();
     }, _("Open planner as an ODS spreadsheet"));
     odsKnopf.classList.add("ods-knopf");
@@ -24488,6 +25433,25 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       return { details: details, hak: hak, inhalt: inhalt };
     };
 
+    const zeitGruppe = definitionsGruppe("kalender-gruppe-zeiterfassung",
+      pgettext("time tracking", "Time tracking"), DATEN.zeiterfassung.enabled, pgettext("time tracking", "Enable time tracking"));
+    zeitGruppe.hak.id = "kalender-zeiterfassung";
+    zeitGruppe.hak.addEventListener("change", () => {
+      DATEN.zeiterfassung.enabled = zeitGruppe.hak.checked;
+      if (!DATEN.zeiterfassung.enabled) for (const peer of telefonStand?.peers || []) {
+        if (peer.time_sync?.local?.enabled !== true) continue;
+        peer.time_sync.ready = false;
+        Bruecke.sende({ cmd: "personal_sync_senden", kennung: peer.device_id,
+          art: "personal_sync.time_settings", inhalt: { enabled: false } });
+      }
+      zeitGruppe.inhalt.style.display = DATEN.zeiterfassung.enabled ? "" : "none";
+      planeSpeichern(); zeichneAlles();
+    });
+    zeitGruppe.inhalt.append(el("p", "einst-hinweis", pgettext("time tracking", "Turning tracking off keeps existing records.")),
+      knopf(pgettext("time tracking", "Recorded times"), "", () => oeffneZeiterfassungVerlauf()),
+      knopf(pgettext("time tracking", "Manual entry"), "", () => oeffneZeiterfassungEditor()));
+    ab.append(zeitGruppe.details);
+
     const schichtGruppe = definitionsGruppe("kalender-gruppe-schichtplaner",
       _("Shift planner"), !!k.schichtplanerAn, _("Enable shift planner"));
     const zeichneSchichten = () => {
@@ -26173,11 +27137,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       regionZeile.append(formZeile(
         land.code === "CH" ? _("Canton") : _("State"), wahl), alleZeile);
       regionZeile.append(el("p", "einst-hinweis",
-        land.code === "CH"
-          ? _("No regional data is retrieved without a selected canton. With “All”, " +
-              "each entry shows its canton and matching periods are combined.")
-          : _("No regional data is retrieved without a selected state. With “All”, " +
-              "each entry shows its state and matching periods are combined.")));
+        _("Without a selected region, all available public holidays of the country apply. School holidays need a region or the All selection.")));
       wirkung();
     };
 
@@ -26193,6 +27153,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       regionenZeigen();
     });
     regionenZeigen();
+    const feiertageHak = document.createElement("input"); feiertageHak.type = "checkbox";
+    feiertageHak.id = "ort-feiertage"; feiertageHak.checked = o.feiertage !== false;
+    feiertageHak.addEventListener("change", () => { o.feiertage = feiertageHak.checked; planeSpeichern(); zeichneAlles(); });
+    const feiertageZeile = el("label", "hak");
+    feiertageZeile.append(feiertageHak, document.createTextNode(" " + _("Public holidays"))); ab.append(feiertageZeile);
     wurzel.append(ab);
 
     /* Abruf */
@@ -26308,12 +27273,6 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       zettel(_("School holidays are not available for this region."));
       return;
     }
-    if (land && land.regionen.length && !o.region && !o.alleRegionen) {
-      zettel(land.code === "CH"
-        ? _("Select your canton first or enable “All cantons”.")
-        : _("Select your state first or enable “All states”."));
-      return;
-    }
     if (feiertageLaufen) return;
     feiertageLaufen = true;
     feiertageAnfrage = { daten: DATEN, land: o.land, region: o.region, ferien: o.ferien,
@@ -26322,7 +27281,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (knopfFeld) knopfFeld.disabled = true;
     const stand = $("#ort-stand");
     if (stand) stand.textContent = _("Retrieving holidays …");
-    Bruecke.sende({ cmd: "feiertage", land: o.land, region: o.region,
+    Bruecke.sende({ cmd: "feiertage", land: o.land, region: o.alleRegionen ? "" : o.region,
       regionen: o.alleRegionen && land ? land.regionen : [],
       regionErforderlich: !!(land && land.regionen.length),
       jahre: jahre, ferien: !!o.ferien });
@@ -28372,12 +29331,17 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       telefonStandSignatur = telefonSignatur;
       if (telefonGeaendert && einstSeite === "baum" &&
           !$("#einstellungen-schleier").classList.contains("verborgen")) baueEinstellungen();
+      zeitAbgleichAutomatisch();
     },
     personalCustomRequest(nutzlast) {
       const peer = (telefonStand?.peers || []).find((p) => p.device_id === nutzlast.device_id);
       if (peer) personalCustomSenden(peer, nutzlast.trigger, true).catch(() => App.personalSyncFehler({}));
     },
     personalCustomAck(nutzlast) { personalCustomBestaetigt(nutzlast).catch(() => App.personalSyncFehler({})); },
+    personalTimeRequest(nutzlast) {
+      zeitAbgleichSenden(nutzlast.device_id, nutzlast.trigger, false).catch(() => App.personalSyncFehler({}));
+    },
+    personalTimeBatch(nutzlast) { return zeitAbgleichEmpfangen(nutzlast); },
     personalSync(nutzlast) {
       nutzlast = nutzlast || {};
       const body = nutzlast.body || {}, kind = nutzlast.kind || "";
@@ -28532,6 +29496,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (kind === "personal_sync.batch") personalSyncBatchKette = batchArbeit;
     },
     personalSyncFehler(nutzlast) {
+      zeitAutoHash.clear();
       zettel((nutzlast || {}).fehler || _("Personal synchronization failed."));
     },
     personalSyncDecisionAccepted(nutzlast) {
@@ -29236,7 +30201,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             "school-holiday": "school-holiday", feiertag: "public-holiday",
             "public-holiday": "public-holiday" }, "public-holiday"),
           region: String(f.region || ""),
-          regionName: String(f.regionName || "") });
+          regionName: String(f.regionName || ""),
+          country: /^[A-Z]{2}$/.test(f.country || "") ? f.country : anfrage?.land || "",
+          nationwide: f.nationwide === true,
+          regions: Array.isArray(f.regions) ? [...new Set(f.regions.map(S).filter(wert => /^[A-Z0-9-]{1,64}$/.test(wert)))] : [] });
       }
       o.abgerufen = Date.now();
       o.setupFerienAbruf = false;
@@ -29605,6 +30573,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           time: pad2(d.stunde) + ":" + pad2(d.minute)
         }), true);
         pumpeSpeichern();
+        zeitAbgleichAutomatisch();
       } else {
         speicherFehlgeschlagen(ergebnis.fehler, erledigt);
       }
@@ -29719,6 +30688,19 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     sortiereKontakte: sortiereKontakte,
     jahrestageAm: jahrestageAm,
     feiertageAm: feiertageAm,
+    zeitErsetze: zeitErsetze,
+    zeitMinuten: zeitMinuten,
+    zeitErfassungenAm: zeitErfassungenAm,
+    tagmarkenStreifen: tagmarkenStreifen,
+    oeffneZeiterfassungEditor: oeffneZeiterfassungEditor,
+    oeffneZeiterfassungVerlauf: oeffneZeiterfassungVerlauf,
+    zeitKalenderProjektion: zeitKalenderProjektion,
+    zeitOdsNutzlast: zeitOdsNutzlast,
+    zeitDruckSeite: zeitDruckSeite,
+    loescheZeiterfassung: loescheZeiterfassung,
+    zeitAbgleichen: zeitAbgleichen,
+    zeitKonfliktLoesen: zeitKonfliktLoesen,
+    oeffneZeiterfassungKonflikt: oeffneZeiterfassungKonflikt,
     urlaubeAm: urlaubeAm,
     muelltermineAm: muelltermineAm,
     gesundheitsMarkenAm: gesundheitsMarkenAm,

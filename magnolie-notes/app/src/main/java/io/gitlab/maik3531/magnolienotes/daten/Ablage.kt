@@ -424,7 +424,7 @@ class Ablage private constructor(
     /** Publish state only after the encrypted atomic write has succeeded. */
     fun aendereZeiterfassung(change: (ZeiterfassungStand) -> ZeiterfassungStand) = synchronized(sperre) {
         schreibbar()
-        val next = change(_bestand.value.zeiterfassung.purgeExpired()).validate()
+        val next = change(_bestand.value.zeiterfassung.purgeExpired()).prepareSharedPlans().validate()
         if (next != _bestand.value.zeiterfassung) schreibeBestand(_bestand.value.copy(zeiterfassung = next))
         next
     }

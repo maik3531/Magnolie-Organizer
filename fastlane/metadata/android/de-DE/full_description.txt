@@ -3,7 +3,7 @@ Magnolie Notes ist ein lokales Notizbuch mit Aufgabenliste für Android. Notizen
 Funktionen:
 * Notizen mit Erstellungs- und Änderungsdatum, Notizbüchern und Anhängen.
 * Aufgaben mit Fälligkeit, Dringlichkeit und optionalen Erinnerungen.
-* Optionale lokale Zeiterfassung mit festen und manuellen Pausen, Pausenweckern, verschlüsseltem Verlauf und Monatsdruck.
+* Optionale Zeiterfassung mit festen und manuellen Pausen, Weckern, verschlüsseltem Verlauf und Monatsdruck. Zeitabgleich mit dem eigenen Organizer nach Freigabe auf beiden Geräten; lokale Notes-Entfernungen löschen keine Organizer-Einträge. Region und Feiertage werden vom Organizer übernommen.
 * Übernahme geteilter Texte und unterstützter Notizexporte.
 * Lokal verschlüsselte Speicherung und selbst verwaltete Sicherungen.
 * Optionaler verschlüsselter Austausch mit gekoppelten Magnolie-Organizer-Installationen unter Linux und Windows.

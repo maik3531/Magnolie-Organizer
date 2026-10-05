@@ -8,7 +8,7 @@ using System.Text.Json.Nodes;
 
 namespace MagnolieOrganizer.Windows;
 
-internal sealed class TelefonCoordinator : IDisposable
+internal sealed partial class TelefonCoordinator : IDisposable
 {
     internal const int Port = 8741;
     internal const string ServiceType = "_magnolie-phone._tcp.local.";
@@ -624,6 +624,7 @@ internal sealed class TelefonCoordinator : IDisposable
 
     internal async Task<string> SendPersonalSyncAsync(string id, string kind, JsonObject body)
     {
+        if (TimeSyncContract.IsKind(kind)) return await SendTimeBridgeAsync(id, kind, body);
         if (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal))
         {
             PersonalSyncContract.ValidateCustomBody(kind, body); RequireSolePeer(id);
@@ -756,6 +757,7 @@ internal sealed class TelefonCoordinator : IDisposable
 
     private bool CommitPersonalSyncUnderNotePolicy(string id, string messageId, string commitToken, string outcome)
     {
+        if (IsTimeCommit(id, messageId, commitToken)) return CommitTimeSync(id, messageId, commitToken, outcome == "applied");
         if (outcome is not ("applied" or "conflict" or "restore_unavailable" or "invalid" or "temporary" or "timeout")) throw new InvalidDataException(T("The personal synchronization result is invalid."));
         if (outcome == "timeout") outcome = "temporary";
         if (outcome == "applied")
@@ -1278,6 +1280,7 @@ internal sealed class TelefonCoordinator : IDisposable
             await ReportStatusAsync(); return null;
         }
         if (message["body"] is not JsonObject body) return null;
+        if (TimeSyncContract.IsKind(kind)) return await HandleTimeMessageAsync(peer, message, body);
         if (kind == PersonalSyncContract.NoteModeKind) { await ReportStatusAsync(); return null; }
         if (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal))
         {
@@ -1570,7 +1573,7 @@ internal sealed class TelefonCoordinator : IDisposable
     public void Dispose() => ShutdownAsync().GetAwaiter().GetResult();
 }
 
-internal sealed class TelefonConnection : IDisposable
+internal sealed partial class TelefonConnection : IDisposable
 {
     private bool freshCapabilities, freshGrants, freshOwnSettings;
     internal bool ContactReadReady
@@ -1738,6 +1741,11 @@ internal sealed class TelefonConnection : IDisposable
             store.CompleteOutbox(peer.Id, id!); return;
         }
         if (type != "message") throw new InvalidDataException("Unbekanntes Steuerobjekt.");
+        if (TimeSyncContract.IsKind(plain["kind"]?.GetValue<string>()))
+        {
+            await HandleTimeMessageAsync(plain);
+            return;
+        }
         var wasNoteReady = NotePolicyReady;
         var now = Now(); TelefonAck ack;
         if (plain["kind"]?.GetValue<string>() == PersonalSyncContract.NoteModeKind)
@@ -1837,6 +1845,8 @@ internal sealed class TelefonConnection : IDisposable
             await SendNoteSettingsAsync();
         if (plain["kind"]?.GetValue<string>() is "capabilities.update" or "personal_sync.settings" && ack.Status is "accepted" or "duplicate")
             await SendDesktopFeaturesAsync();
+        if (plain["kind"]?.GetValue<string>() is "capabilities.update" or "grants.update" or "personal_sync.settings" && ack.Status is "accepted" or "duplicate")
+            await SendTimeSettingsAsync();
         await SendPlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = ack.MessageId, ["status"] = ack.Status, ["error"] = ack.Error });
         if (!wasNoteReady && NotePolicyReady && noteReady is not null) await noteReady();
     }
@@ -1898,6 +1908,21 @@ internal sealed class TelefonConnection : IDisposable
         var now = Now(); foreach (var item in store.Due(peer.Id, now, transport: transport))
         {
             var kind = item.Message["kind"]!.GetValue<string>(); var body = item.Message["body"]!.AsObject();
+            if (TimeSyncContract.IsKind(kind))
+            {
+                if (!TimeControlsReady) continue;
+                if (kind == TimeSyncContract.Settings)
+                {
+                    if (!JsonNode.DeepEquals(store.TimeSettings(peer.Id)["local"], body))
+                    { store.CompleteOutbox(peer.Id, item.Id); continue; }
+                }
+                else if (!TimeAllowed(body, true)) continue;
+                if (kind == TimeSyncContract.Batch && !store.TimeBatchTurn(peer.Id, item.Id)) continue;
+                if (kind == TimeSyncContract.Request && !store.TimeBatchTurn(peer.Id)) continue;
+                await SendPlainAsync(item.Message);
+                if (kind == TimeSyncContract.Settings) sentTimePolicy = body.DeepClone().AsObject();
+                store.MarkAttempt(item.Id, item.Attempts, now); continue;
+            }
             if (kind == PersonalSyncContract.DesktopFeaturesKind)
             {
                 if (!freshCapabilities || !freshOwnSettings) continue;

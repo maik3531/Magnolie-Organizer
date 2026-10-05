@@ -28,6 +28,7 @@
     <Compile Include="..\ExchangeCodec.cs" Link="ExchangeCodec.cs" />
     <Compile Include="..\ThunderbirdCalendarImporter.cs" Link="ThunderbirdCalendarImporter.cs" />
     <Compile Include="..\DocumentExportService.cs" Link="DocumentExportService.cs" />
+    <Compile Include="..\DocumentExportService.Time.cs" Link="DocumentExportService.Time.cs" />
     <Compile Include="..\GesamtarchivService.cs" Link="GesamtarchivService.cs" />
     <Compile Include="..\ContactSyncModels.cs" Link="ContactSyncModels.cs" />
     <Compile Include="..\KdeContactImport.cs" Link="KdeContactImport.cs" />
@@ -70,9 +71,14 @@
     <Compile Include="..\TelefonMessagingContract.cs" Link="TelefonMessagingContract.cs" />
     <Compile Include="..\TelefonCallContract.cs" Link="TelefonCallContract.cs" />
     <Compile Include="..\PersonalSyncContract.cs" Link="PersonalSyncContract.cs" />
+    <Compile Include="..\TimeSyncContract.cs" Link="TimeSyncContract.cs" />
+    <Compile Include="..\OpenHolidayData.cs" Link="OpenHolidayData.cs" />
     <Compile Include="..\PersonalSyncStore.cs" Link="PersonalSyncStore.cs" />
     <Compile Include="..\TelefonProtocolContract.cs" Link="TelefonProtocolContract.cs" />
     <Compile Include="..\TelefonStore.cs" Link="TelefonStore.cs" />
+    <Compile Include="..\TelefonStore.Time.cs" Link="TelefonStore.Time.cs" />
+    <Compile Include="..\TelefonConnection.Time.cs" Link="TelefonConnection.Time.cs" />
+    <Compile Include="..\TelefonCoordinator.Time.cs" Link="TelefonCoordinator.Time.cs" />
     <Compile Include="..\TelefonCoordinator.cs" Link="TelefonCoordinator.cs" />
     <Compile Include="..\TelefonMdnsPublisher.cs" Link="TelefonMdnsPublisher.cs" />
     <Compile Include="..\TelefonInvitation.cs" Link="TelefonInvitation.cs" />

@@ -17,6 +17,7 @@ import threading
 import magnolie_personal_sync as personal_sync_contract
 import magnolie_phone_contacts as phone_contacts
 from magnolie_personal_sync import CUSTOM_KINDS, validate_custom_body, accept_custom_settings, custom_scope_allowed
+import magnolie_time_sync as time_sync_contract
 import time
 import unicodedata
 import uuid
@@ -83,7 +84,7 @@ def desktop_capabilities(revision=1, bluetooth_available=False,
                        "reason": "available" if available else (
                            bluetooth_reason if name == "transport.bluetooth_rfcomm"
                            else "not_implemented"),
-                         "versions": [1, 2, 3, 4, 6] if name == "personal_tasks_sync" else
+                         "versions": [1, 2, 3, 4, 6, 7] if name == "personal_tasks_sync" else
                                       [1, 2, 3, 4, 5] if name == "device_status" else
                                        [1, 2, 3, 5] if name == "personal_notes_sync" else
                                      [2] if name == "incoming_call_state" else [1]}
@@ -444,6 +445,13 @@ class PhoneStore:
                 raise RuntimeError("Telefon-Gegenstellenliste ist beschaedigt.")
             for policy in settings.values():
                 personal_sync_contract.validate_note_settings(policy)
+        if isinstance(peer, dict) and "time_sync" in peer:
+            common.add("time_sync")
+            settings = peer["time_sync"]
+            if not isinstance(settings, dict) or not set(settings) <= {"local", "remote"}:
+                raise RuntimeError("Invalid time synchronization settings.")
+            for policy in settings.values():
+                time_sync_contract.validate_settings(policy)
         pending = {"pending_transcript", "pending_phone_finish_proof",
                    "pending_desktop_finish_proof", "pending_expires_ms"}
         if (not isinstance(peer, dict) or peer.get("state") not in {
@@ -505,6 +513,123 @@ class PhoneStore:
             return {}
         value = strict_json(self._decrypt(row[0], "desktop_features", "local"))
         return personal_sync_contract.validate_desktop_features(value)
+
+    def time_settings(self, peer_id, allow_failed=False):
+        if not allow_failed and peer_id in getattr(self, "time_policy_failed", set()):
+            raise RuntimeError("Time synchronization settings could not be saved.")
+        peer = self.sole_peer(peer_id)
+        if not peer or peer.get("state") != "paired":
+            raise RuntimeError("Das Telefon ist nicht gekoppelt.")
+        return json.loads(json.dumps(peer.get("time_sync", {})))
+
+    def set_time_settings(self, peer_id, policy, remote=False):
+        """Peer-bound encrypted policy; a changed epoch invalidates queued work."""
+        peer = self.sole_peer(peer_id)
+        if not peer or peer.get("state") != "paired":
+            raise RuntimeError("Das Telefon ist nicht gekoppelt.")
+        previous = peer.get("time_sync")
+        settings = dict(previous or {})
+        side = "remote" if remote else "local"
+        settings[side] = time_sync_contract.accept_settings(settings.get(side), policy)
+        peer["time_sync"] = json.loads(json.dumps(settings))
+        try:
+            self.save_peers()
+            if settings != previous or not policy["enabled"]:
+                self.purge_time(peer_id)
+        except Exception:
+            if previous is None:
+                peer.pop("time_sync", None)
+            else:
+                peer["time_sync"] = previous
+            self.time_policy_failed = getattr(self, "time_policy_failed", set()) | {peer_id}
+            raise
+        self.time_policy_failed = getattr(self, "time_policy_failed", set()) - {peer_id}
+
+    def purge_time(self, peer_id):
+        with sqlite3.connect(self.database_path) as db:
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("DELETE FROM time_batch WHERE peer_id=?", (peer_id,))
+            db.execute("DELETE FROM inbox WHERE peer_id=? AND kind=? AND state='staged'",
+                       (peer_id, time_sync_contract.BATCH))
+            db.execute("DELETE FROM outbox WHERE peer_id=? AND kind IN (?,?)",
+                       (peer_id, time_sync_contract.REQUEST, time_sync_contract.BATCH))
+
+    def time_batch_turn(self, peer_id, message_id=None):
+        """One unacknowledged desktop batch keeps calendar projections ordered."""
+        with sqlite3.connect(self.database_path) as db:
+            row = db.execute("SELECT message_id FROM outbox WHERE peer_id=? AND kind=? AND expires_ms>? ORDER BY created_ms,rowid LIMIT 1",
+                             (peer_id, time_sync_contract.BATCH, now_ms())).fetchone()
+        return row is None if message_id is None else row is not None and row[0] == message_id
+
+    def supersede_wifi_time(self, peer_id):
+        with sqlite3.connect(self.database_path) as db:
+            db.execute("DELETE FROM outbox WHERE peer_id=? AND transport_policy='wifi_only' AND kind IN (?,?)",
+                       (peer_id, time_sync_contract.BATCH, time_sync_contract.REQUEST))
+
+    def stage_time_batch(self, peer_id, message):
+        """No receipt is accepted until the document-save callback commits this token."""
+        peer = self.sole_peer(peer_id)
+        self.time_settings(peer_id)  # Failed policy persistence blocks new work.
+        if (set(message) != {"type", "v", "message_id", "kind", "created_ms", "expires_ms", "body"}
+                or message["type"] != "message" or type(message["v"]) is not int or message["v"] != 1
+                or message["kind"] != time_sync_contract.BATCH or not valid_uuid(message["message_id"], 4)
+                or not valid_timestamp(message["created_ms"]) or not valid_timestamp(message["expires_ms"])
+                or not 0 < message["expires_ms"] - message["created_ms"] <= DAY_MS
+                or message["created_ms"] > now_ms() + CLOCK_SKEW_MS or message["expires_ms"] <= now_ms()):
+            raise ValueError("invalid time batch envelope")
+        time_sync_contract.validate(time_sync_contract.BATCH, message["body"], False)
+        message_id = message["message_id"]
+        primary = peer_id + ":" + message_id
+        value = {"message": message, "owner": peer["static_public"], "token": b64(os.urandom(32))}
+        with sqlite3.connect(self.database_path) as db:
+            db.execute("BEGIN IMMEDIATE")
+            seen = db.execute("SELECT payload,state FROM inbox WHERE peer_id=? AND message_id=?",
+                              (peer_id, message_id)).fetchone()
+            if seen and strict_json(self._decrypt(seen[0], "inbox", message_id)) != message:
+                raise ValueError("conflicting time batch identity")
+            if seen and seen[1] == "accepted":
+                raise RuntimeError("Time batch already committed.")
+            old = db.execute("SELECT payload FROM time_batch WHERE peer_id=? AND message_id=?",
+                             (peer_id, message_id)).fetchone()
+            if old:
+                value = strict_json(self._decrypt(old[0], "time_batch", primary))
+                if value["message"] != message or value["owner"] != peer["static_public"]:
+                    raise ValueError("conflicting time batch identity")
+            else:
+                if db.execute("SELECT COUNT(*) FROM time_batch WHERE peer_id=?", (peer_id,)).fetchone()[0] >= 128:
+                    raise RuntimeError("Too many uncommitted time batches.")
+                db.execute("INSERT INTO time_batch VALUES(?,?,?,?)", (peer_id, message_id, message["expires_ms"],
+                    self._encrypt(canonical(value), "time_batch", primary)))
+                db.execute("INSERT OR IGNORE INTO inbox VALUES(?,?,?,?,?,?,?)", (message_id, peer_id,
+                    message["kind"], now_ms(), message["expires_ms"], self._encrypt(canonical(message), "inbox", message_id), "staged"))
+        return {"device_id": peer_id, "body": json.loads(json.dumps(message["body"])),
+                "pending_message_id": message_id, "commit_token": value["token"]}
+
+    def commit_time_batch(self, peer_id, message_id, token, authorize):
+        """Caller holds the session lock and rechecks live authorization before ACK."""
+        peer = self.sole_peer(peer_id)
+        policies = self.time_settings(peer_id)
+        with sqlite3.connect(self.database_path) as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT payload,expires_ms FROM time_batch WHERE peer_id=? AND message_id=?",
+                             (peer_id, message_id)).fetchone()
+            if not row or row[1] <= now_ms():
+                return False
+            value = strict_json(self._decrypt(row[0], "time_batch", peer_id + ":" + message_id))
+            message = value["message"]
+            personal = peer.get("personal_sync", {})
+            policy_current = (personal.get("own_device") is True and personal.get("remote_own_device") is True and
+                all(policies.get(side, {}).get("enabled") is True and
+                    all(message["body"].get(direction + "_" + key) == policies[side][key] for key in ("epoch", "revision"))
+                    for side, direction in (("local", "receiver"), ("remote", "sender"))))
+            if (not isinstance(token, str) or not hmac.compare_digest(value["token"], token)
+                    or value["owner"] != peer["static_public"] or message["message_id"] != message_id
+                    or message["expires_ms"] <= now_ms() or not policy_current or not authorize(message)):
+                return False
+            db.execute("UPDATE inbox SET state='accepted' WHERE peer_id=? AND message_id=?", (peer_id, message_id))
+            db.execute("INSERT OR REPLACE INTO dedupe VALUES(?,?,?,?,?)", (message_id, peer_id, "accepted", "none", now_ms()))
+            db.execute("DELETE FROM time_batch WHERE peer_id=? AND message_id=?", (peer_id, message_id))
+        return True
 
     def set_desktop_features(self, custom_tab, tree):
         if type(custom_tab) is not bool or type(tree) is not bool:
@@ -640,6 +765,9 @@ class PhoneStore:
                 peer_id TEXT NOT NULL,message_id TEXT NOT NULL,kind TEXT NOT NULL,
                 received_ms INTEGER NOT NULL,expires_ms INTEGER NOT NULL,payload BLOB NOT NULL,
                 commit_token TEXT NOT NULL,PRIMARY KEY(peer_id,message_id));
+              CREATE TABLE IF NOT EXISTS time_batch(
+                peer_id TEXT NOT NULL,message_id TEXT NOT NULL,expires_ms INTEGER NOT NULL,
+                payload BLOB NOT NULL,PRIMARY KEY(peer_id,message_id));
                CREATE TABLE IF NOT EXISTS personal_attachment_transfer(
                 peer_id TEXT NOT NULL,run_id TEXT NOT NULL,reply INTEGER NOT NULL,
                 records_hash TEXT NOT NULL,sha256 TEXT NOT NULL,direction TEXT NOT NULL,
@@ -912,6 +1040,7 @@ class PhoneStore:
                            (peer_id, *kinds))
             db.execute("DELETE FROM personal_batch WHERE peer_id=?", (peer_id,))
             db.execute("DELETE FROM personal_domain WHERE peer_id=?", (peer_id,))
+            db.execute("DELETE FROM time_batch WHERE peer_id=?", (peer_id,))
             db.execute("DELETE FROM personal_attachment_chunk WHERE peer_id=?", (peer_id,))
             db.execute("DELETE FROM personal_attachment_transfer WHERE peer_id=?", (peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_run:%s:%%" % peer_id,))
@@ -1533,6 +1662,7 @@ class PhoneStore:
             db.execute("DELETE FROM dedupe WHERE seen_ms<?", (now - 90 * DAY_MS,))
             db.execute("DELETE FROM personal_batch WHERE expires_ms<=? OR received_ms<?", (now, now - DAY_MS))
             db.execute("DELETE FROM personal_domain WHERE expires_ms<=? OR received_ms<?", (now, now - DAY_MS))
+            db.execute("DELETE FROM time_batch WHERE expires_ms<=?", (now,))
             db.execute("DELETE FROM personal_attachment_chunk WHERE EXISTS (SELECT 1 FROM personal_attachment_transfer t WHERE t.peer_id=personal_attachment_chunk.peer_id AND t.run_id=personal_attachment_chunk.run_id AND t.reply=personal_attachment_chunk.reply AND t.records_hash=personal_attachment_chunk.records_hash AND t.sha256=personal_attachment_chunk.sha256 AND t.direction=personal_attachment_chunk.direction AND t.expires_ms<=?)", (now,))
             db.execute("DELETE FROM personal_attachment_transfer WHERE expires_ms<=?", (now,))
             db.execute("DELETE FROM command_effect WHERE first_seen_ms<?", (now - 90 * DAY_MS,))
@@ -2068,6 +2198,7 @@ class PhoneService:
         self.pairing_attempt_active = False
         self.connections = {}
         self.note_sessions = weakref.WeakKeyDictionary()
+        self.time_sessions = weakref.WeakKeyDictionary()
         self.note_controls = weakref.WeakKeyDictionary()
         self.status_requests = {}
         self.contact_requests = {}
@@ -2139,6 +2270,7 @@ class PhoneService:
                              "call_audio": dict(peer.get("call_audio", {}), address=self._call_audio_address(peer)),
                             "custom_sync": peer.get("custom_sync", {}),
                             "note_sync": self.note_status(peer_id),
+                            "time_sync": self.time_status(peer_id),
                             "own_device": personal["own_device"] and not binding_conflict,
                            "remote_own_device": personal["remote_own_device"],
                            "auto_wifi": personal["auto_wifi"],
@@ -2475,7 +2607,7 @@ class PhoneService:
         self.store.save_peers()
         with sqlite3.connect(self.store.database_path) as db:
             db.execute("BEGIN IMMEDIATE")
-            for table in ("outbox", "inbox", "dedupe", "personal_batch", "personal_domain",
+            for table in ("outbox", "inbox", "dedupe", "personal_batch", "personal_domain", "time_batch",
                           "personal_attachment_chunk", "personal_attachment_transfer"):
                 db.execute("DELETE FROM %s WHERE peer_id=?" % table, (peer_id,))
             db.execute("DELETE FROM command_effect WHERE peer_id=? OR peer_id=''", (peer_id,))
@@ -2783,6 +2915,127 @@ class PhoneService:
                 and peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {}).get("available") is True
                 and 4 in peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {}).get("versions", []))
 
+    def _time_supported(self, peer):
+        remote = peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {})
+        return (time_sync_contract.VERSION in desktop_capabilities()["items"]["personal_tasks_sync"]["versions"]
+                and remote.get("available") is True and time_sync_contract.VERSION in remote.get("versions", []))
+
+    def _time_controls_ready(self, peer, channel):
+        if peer["device_id"] in getattr(self.store, "time_policy_failed", set()):
+            return False
+        if channel is None or self.connections.get(peer["device_id"]) is not channel:
+            return False
+        controls = self._note_controls_for(channel)
+        personal = peer.get("personal_sync", {})
+        return (self._time_supported(peer) and personal.get("own_device") is True and personal.get("remote_own_device") is True
+            and controls.get("capabilities.update") == peer.get("capabilities")
+            and controls.get("grants.update") == peer.get("grants")
+            and controls.get("personal_sync.settings") == {"format": 1, "own_device": True})
+
+    def _time_session(self, peer, channel):
+        owner = (peer["device_id"], peer["static_public"])
+        session = self.time_sessions.setdefault(channel, {"owner": owner, "sent": None, "received": None})
+        if session["owner"] != owner:
+            raise PermissionError("Time session identity changed.")
+        return session
+
+    def _time_allowed(self, peer_id, body, outgoing=False, channel=None):
+        peer = self.store.sole_peer(peer_id)
+        channel = channel or self.connections.get(peer_id)
+        if not peer or not self._time_controls_ready(peer, channel) or not self.personal_sync_available():
+            return False
+        try:
+            policy = self.store.time_settings(peer_id)
+            session = self._time_session(peer, channel)
+            local, remote = policy.get("local"), policy.get("remote")
+            if local is None or remote is None or session["sent"] != local or session["received"] != remote:
+                return False
+            if body.get("trigger") == "auto_wifi" and self.connection_transports.get(peer_id) != "wifi":
+                return False
+            return time_sync_contract.allowed(body, remote if outgoing else local, local if outgoing else remote,
+                True, True, True, [7], [7])
+        except (RuntimeError, PermissionError):
+            return False
+
+    def _queue_time_settings(self, peer_id, channel=None, force=False):
+        peer = self.store.sole_peer(peer_id)
+        channel = channel or self.connections.get(peer_id)
+        if not peer or not self._time_controls_ready(peer, channel):
+            return
+        policy = self.store.time_settings(peer_id)
+        local = policy.get("local")
+        if local is None:
+            local = time_sync_contract.new_settings()
+            self.store.set_time_settings(peer_id, local)
+        session = self._time_session(peer, channel)
+        if force or session["sent"] != local:
+            self.store.remove_kind(peer_id, time_sync_contract.SETTINGS)
+            message = self.store.queue(peer_id, time_sync_contract.SETTINGS, local, DAY_MS)
+            self._send_message(channel, peer_id, message)
+
+    def set_time_sync(self, peer_id, enabled):
+        with self.lock:
+            peer = self.store.sole_peer(peer_id)
+            if type(enabled) is not bool or not peer or enabled and not self._time_supported(peer):
+                raise ValueError("Time synchronization is not supported.")
+            if enabled and not peer.get("personal_sync", {}).get("own_device"):
+                raise PermissionError("Time synchronization requires an own device.")
+            local = self.store.time_settings(peer_id, allow_failed=True).get("local")
+            if local and local["enabled"] == enabled and peer_id not in getattr(self.store, "time_policy_failed", set()):
+                return
+            self.store.set_time_settings(peer_id, time_sync_contract.new_settings(enabled, local["revision"] + 1 if local else 1))
+            self._queue_time_settings(peer_id, force=True)
+        self.callback("status", self.report())
+
+    def _pause_time(self, peer_id):
+        policies = self.store.time_settings(peer_id, allow_failed=True)
+        local = policies.get("local")
+        if local:
+            self.store.set_time_settings(peer_id, time_sync_contract.new_settings(False, local["revision"] + 1))
+        self.store.purge_time(peer_id)
+        self.store.remove_kind(peer_id, time_sync_contract.SETTINGS)
+
+    def time_status(self, peer_id):
+        peer = self.store.sole_peer(peer_id)
+        if not peer:
+            return {"supported": False, "ready": False}
+        try:
+            policies = self.store.time_settings(peer_id, allow_failed=True)
+            ready = False
+            if policies.get("local") and policies.get("remote"):
+                ready = self._time_allowed(peer_id, time_sync_contract.request_body(policies["local"], policies["remote"]), outgoing=True)
+            return dict(policies, supported=self._time_supported(peer), ready=ready)
+        except RuntimeError:
+            return {"supported": self._time_supported(peer), "ready": False}
+
+    def send_time_records(self, peer_id, entries, calendar=None, trigger="manual"):
+        with self.lock:
+            policies = self.store.time_settings(peer_id)
+            header = time_sync_contract.request_body(policies.get("local"), policies.get("remote"), trigger)
+            if not self._time_allowed(peer_id, header, outgoing=True):
+                raise PermissionError("Time synchronization is not permitted.")
+            packets = time_sync_contract.batches(policies["local"], policies["remote"], entries, calendar, trigger)
+            if trigger == "manual" and self.connection_transports.get(peer_id) == "bluetooth":
+                self.store.supersede_wifi_time(peer_id)
+            messages = [self.store.queue(peer_id, time_sync_contract.BATCH, body, DAY_MS,
+                "wifi_only" if trigger == "auto_wifi" else "any") for body in packets]
+            channel = self.connections.get(peer_id)
+            if channel:
+                for message in messages:
+                    self._send_message(channel, peer_id, message)
+            return [message["message_id"] for message in messages]
+
+    def commit_time_sync(self, peer_id, message_id, token, success):
+        with self.lock:
+            channel = self.connections.get(peer_id)
+            if success is not True or channel is None:
+                return False
+            committed = self.store.commit_time_batch(peer_id, message_id, token,
+                lambda message: self._time_allowed(peer_id, message["body"], channel=channel))
+            if committed:
+                channel.send({"type": "ack", "message_id": message_id, "status": "accepted", "error": "none"})
+            return committed
+
     def _desktop_features_supported(self, peer):
         remote = peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {})
         return (6 in desktop_capabilities()["items"]["personal_tasks_sync"]["versions"] and
@@ -2873,6 +3126,7 @@ class PhoneService:
         if body == expected:
             try:
                 self.note_controls.setdefault(channel, {})[kind] = json.loads(json.dumps(body))
+                self._queue_time_settings(peer["device_id"], channel)
             except TypeError:
                 return
 
@@ -3064,6 +3318,7 @@ class PhoneService:
         if not own_device:
             self._purge_identifiers(peer_id)
             self._pause_custom(peer_id)
+            self._pause_time(peer_id)
             self.store.purge_personal(peer_id)
         peer["personal_sync"] = {"own_device": bool(own_device),
             "remote_own_device": previous.get("remote_own_device", False),
@@ -3081,6 +3336,27 @@ class PhoneService:
             return self._send_personal_sync(peer_id, kind, body, trigger)
 
     def _send_personal_sync(self, peer_id, kind, body, trigger="manual"):
+        if kind in time_sync_contract.KINDS:
+            if not isinstance(body, dict):
+                raise ValueError("invalid time bridge payload")
+            if kind == time_sync_contract.SETTINGS:
+                if set(body) != {"enabled"}:
+                    raise ValueError("invalid time settings choice")
+                self.set_time_sync(peer_id, body["enabled"])
+                return None
+            time_sync_contract.validate(kind, body, True)
+            if not self._time_allowed(peer_id, body, outgoing=True):
+                raise PermissionError("Time synchronization is not permitted.")
+            trigger = body["trigger"]
+            if kind == time_sync_contract.BATCH and trigger == "manual" and self.connection_transports.get(peer_id) == "bluetooth":
+                self.store.supersede_wifi_time(peer_id)
+            if kind == time_sync_contract.REQUEST:
+                self.store.remove_kind(peer_id, time_sync_contract.REQUEST)
+            message = self.store.queue(peer_id, kind, body, DAY_MS, "wifi_only" if trigger == "auto_wifi" else "any")
+            channel = self.connections.get(peer_id)
+            if channel:
+                self._send_message(channel, peer_id, message)
+            return message["message_id"]
         if kind in CUSTOM_KINDS:
             return self.send_custom_sync(peer_id, kind, body)
         if kind not in PERSONAL_DATA_KINDS:
@@ -3398,6 +3674,26 @@ class PhoneService:
         policy = self.store.outbox_policy(peer_id, message.get("message_id", ""))
         if policy == "invalid" or policy == "wifi_only" and self.connection_transports.get(peer_id) != "wifi":
             return False
+        if message.get("kind") in time_sync_contract.KINDS:
+            peer = self.store.sole_peer(peer_id)
+            if not peer or not self._time_controls_ready(peer, channel):
+                return False
+            if message["kind"] == time_sync_contract.SETTINGS:
+                if message["body"] != self.store.time_settings(peer_id).get("local"):
+                    self.store.acknowledge(peer_id, message["message_id"])
+                    return False
+            elif not self._time_allowed(peer_id, message["body"], outgoing=True, channel=channel):
+                return False
+            if message["kind"] == time_sync_contract.BATCH and not self.store.time_batch_turn(peer_id, message["message_id"]):
+                return False
+            if message["kind"] == time_sync_contract.REQUEST and not self.store.time_batch_turn(peer_id):
+                return False
+            time_sync_contract.validate(message["kind"], message["body"], True)
+            channel.send(message)
+            if message["kind"] == time_sync_contract.SETTINGS:
+                self._time_session(peer, channel)["sent"] = json.loads(json.dumps(message["body"]))
+            self.store.mark_attempt(peer_id, message["message_id"])
+            return True
         if message.get("kind") == personal_sync_contract.DESKTOP_FEATURES_KIND:
             peer = self.store.sole_peer(peer_id)
             if not peer or self._note_controls_for(channel).get("capabilities.update") != peer.get("capabilities"):
@@ -3468,6 +3764,11 @@ class PhoneService:
             return self._commit_personal_sync(peer_id, message_id, token, success)
 
     def _commit_personal_sync(self, peer_id, message_id, token, success):
+        with sqlite3.connect(self.store.database_path) as db:
+            time_pending = db.execute("SELECT 1 FROM time_batch WHERE peer_id=? AND message_id=?",
+                                      (peer_id, message_id)).fetchone()
+        if time_pending:
+            return self.commit_time_sync(peer_id, message_id, token, success)
         if success:
             for stored_peer, payload in self.store.ready_personal_domains():
                 if stored_peer == peer_id and payload["pending_message_id"] == message_id and payload["commit_token"] == token:
@@ -4158,6 +4459,44 @@ class PhoneService:
                 or payload["created_ms"] > received + CLOCK_SKEW_MS):
             raise ValueError("invalid message")
         kind = payload["kind"]
+        if kind in time_sync_contract.KINDS:
+            status, error = "accepted", "none"
+            try:
+                time_sync_contract.validate(kind, payload["body"], False)
+                if payload["expires_ms"] <= received or payload["expires_ms"] - payload["created_ms"] > DAY_MS:
+                    raise ValueError("expired time message")
+                with self.lock:
+                    current = self.store.sole_peer(peer["device_id"])
+                    if not current or current["static_public"] != peer["static_public"] or not self._time_controls_ready(current, channel):
+                        raise PermissionError
+                    value = payload["body"]
+                    previous = self.store.dedupe_result(peer["device_id"], payload["message_id"])
+                    if previous and not self.store.received_matches(peer["device_id"], payload):
+                        raise ValueError("conflicting time message identity")
+                    if kind == time_sync_contract.SETTINGS:
+                        self.store.set_time_settings(peer["device_id"], value, remote=True)
+                        self._time_session(current, channel)["received"] = json.loads(json.dumps(value))
+                        self._queue_time_settings(peer["device_id"], channel)
+                    elif not self._time_allowed(peer["device_id"], value, channel=channel):
+                        raise PermissionError
+                    elif previous:
+                        status, error = previous
+                    elif kind == time_sync_contract.BATCH:
+                        staged = self.store.stage_time_batch(peer["device_id"], payload)
+                        self.callback("personal_time_batch", staged)
+                        return  # Only commit_time_sync may accept this batch.
+                    elif kind == time_sync_contract.REQUEST:
+                        self.callback("personal_time_request", {"device_id": peer["device_id"], "trigger": value["trigger"]})
+                    self.store.remember_message(peer["device_id"], payload, status, error)
+            except PermissionError:
+                status, error = "rejected", "not_granted"
+            except (ValueError, TypeError):
+                status, error = "rejected", "invalid_schema"
+            except (OSError, RuntimeError, sqlite3.Error):
+                status, error = "rejected", "temporary_failure"
+            channel.send({"type": "ack", "message_id": payload["message_id"], "status": status, "error": error})
+            self.callback("status", self.report())
+            return
         if kind == personal_sync_contract.NOTE_MODE_KIND:
             status, error = "accepted", "none"
             try:
@@ -4501,6 +4840,7 @@ class PhoneService:
                     if not value["own_device"]:
                         self._purge_identifiers(peer["device_id"])
                         self._pause_custom(peer["device_id"])
+                        self._pause_time(peer["device_id"])
                         self.store.purge_personal(peer["device_id"])
                     personal["remote_own_device"] = value["own_device"]
                     self.store.save_peers()

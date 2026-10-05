@@ -71,4 +71,18 @@ class ZeitDruckTest {
         assertEquals(394, attributes.minMargins!!.leftMils)
         assertEquals(394, attributes.minMargins!!.topMils)
     }
+
+    @Test fun reportMonthStaysGregorianAndHistoricalOffsetRoundingMatchesTheMinuteCells() {
+        val arabic = ZeitDruckvorlage.html(YearMonth.of(2026, 10), setOf(1), emptyList(), "",
+            ZeitKalender(), labels, Locale.forLanguageTag("ar-SA"), false)
+        assertTrue(arabic.contains("٢٠٢٦"))
+        assertFalse(arabic.contains("١٤٤٨"))
+        val entry = Zeiteintrag(startMinute = minute("1972-01-07T00:00:00Z"), endMinute = minute("1972-01-07T02:00:00Z"),
+            zone = "Africa/Monrovia")
+        val html = ZeitDruckvorlage.html(YearMonth.of(1972, 1), setOf(6), listOf(entry), "",
+            ZeitKalender(), labels, Locale.US, true)
+        assertTrue(html.contains("23:15"))
+        assertTrue(html.contains("<td class=\"number\">45</td>"))
+        assertTrue(html.contains("02:00"))
+    }
 }

@@ -707,6 +707,7 @@ internal sealed partial class BridgeDispatcher
                 ["own_device"] = personal?["own_device"]?.GetValue<bool>() == true,
                 ["custom_sync"] = telefon.CustomSettings(peer.Id),
                 ["note_sync"] = telefon.NoteSettings(peer.Id),
+                ["time_sync"] = telefon.TimeSettings(peer.Id),
                 ["remote_own_device"] = personal?["remote_own_device"]?.GetValue<bool>() == true,
                 ["auto_wifi"] = personal?["auto_wifi"]?.GetValue<bool>() == true,
                 ["personal_sync_active_auto"] = false,
@@ -853,7 +854,7 @@ internal sealed partial class BridgeDispatcher
         var body = Object(message, "inhalt");
         var kind = Text(message, "art");
         try { await telefon.SendPersonalSyncAsync(Text(message, "kennung"), kind, body); }
-        catch (Exception error) when (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal))
+        catch (Exception error) when (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal) || TimeSyncContract.IsKind(kind))
         { throw new InvalidOperationException(T("Personal synchronization failed."), error); }
     }
 

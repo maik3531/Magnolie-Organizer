@@ -53,6 +53,20 @@ data class ZeitPausenlauf(
         return entry.copy(pauseMinutes = calculate(entry, now).minutes - active).validate()
     }
 
+    fun sharedPlan(): ZeitPausenplan? = if (fixed.isEmpty()) null else
+        ZeitPausenplan(fixed, manual, replaced, fixedEnds, baseMinutes)
+
+    /** Remote edits carry calculation data, never another device's alarm choices. */
+    fun follow(entry: Zeiteintrag): ZeitPausenlauf? {
+        if (entry.deleted || entry.endMinute != null) return null
+        val plan = entry.pausePlan
+        return copy(fixed = plan?.fixed.orEmpty(), manual = plan?.manual.orEmpty(),
+            replaced = plan?.replaced.orEmpty(), fixedEnds = plan?.fixedEnds.orEmpty(),
+            baseMinutes = plan?.baseMinutes ?: entry.pauseMinutes,
+            pendingNotices = pendingNotices.intersect(plan?.replaced.orEmpty()),
+            alarm = alarm?.takeIf { entry.pauseMinute == it.startedMs / 60000 }).validate(entry)
+    }
+
     fun nextEndAlarmMinute(entry: Zeiteintrag, now: Long): Long? {
         if (endAlarm.fired || entry.endMinute != null || entry.deleted) return null
         val projected = project(entry, now)

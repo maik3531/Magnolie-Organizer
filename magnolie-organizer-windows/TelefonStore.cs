@@ -6,7 +6,7 @@ using Microsoft.Data.Sqlite;
 
 namespace MagnolieOrganizer.Windows;
 
-internal sealed class TelefonStore
+internal sealed partial class TelefonStore
 {
     internal const long MaximumMessageTtlMs = 30L * 24 * 60 * 60 * 1000;
     private const long OutboxLimitBytes = 50L * 1024 * 1024;
@@ -32,6 +32,7 @@ internal sealed class TelefonStore
             identifierRequests.Clear(); transientIdentifiers.Clear();
             files.WriteRecoverableJson(RestoreFencePath, new JsonObject
             { ["token"] = token ?? Guid.NewGuid().ToString("D"), ["before"] = ProfileHash(files.Read(paths.Data)) }.ToJsonString());
+            foreach (var peer in LoadPeers().Where(value => value.State == "paired")) PauseTime(peer.Id);
         }
     }
 
@@ -184,6 +185,7 @@ internal sealed class TelefonStore
         if (ownDevice.HasValue) value["own_device"] = ownDevice.Value; if (remoteOwnDevice.HasValue) value["remote_own_device"] = remoteOwnDevice.Value; if (autoWifi.HasValue) value["auto_wifi"] = autoWifi.Value;
         if (value["own_device"]?.GetValue<bool>() != true) value["auto_wifi"] = false; SaveSettings(settings);
         if (ownDevice == false || remoteOwnDevice == false) PauseCustom(peerId);
+        if (ownDevice == false || remoteOwnDevice == false) PauseTime(peerId);
         }
     }
 
@@ -675,15 +677,16 @@ internal sealed class TelefonStore
             // Revoke authorization before modifying recoverable pairing/settings files.
             using (var db = OpenDatabase())
             {
-                db.Open(); using var revoke = db.CreateCommand(); revoke.CommandText = "DELETE FROM meta WHERE key IN ($key,$notes)";
+                db.Open(); using var revoke = db.CreateCommand(); revoke.CommandText = "DELETE FROM meta WHERE key IN ($key,$notes) OR key LIKE $time";
                 revoke.Parameters.AddWithValue("$key", "personal_custom:" + peerId + ":consent");
-                revoke.Parameters.AddWithValue("$notes", "personal_note_mode:" + peerId + ":consent"); revoke.ExecuteNonQuery();
+                revoke.Parameters.AddWithValue("$notes", "personal_note_mode:" + peerId + ":consent");
+                revoke.Parameters.AddWithValue("$time", "personal_time:" + peerId + ":%"); revoke.ExecuteNonQuery();
             }
             SavePeers(LoadPeers().Where(peer => peer.Id != peerId));
             RemoveStatus(peerId);
             var settings = LoadSettings(); if (settings["personal_sync"] is JsonObject personal) { personal.Remove(peerId); SaveSettings(settings); }
             using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
-            foreach (var table in new[] { "outbox", "inbox", "dedupe", "command_effect", "personal_batch", "personal_domain", "personal_attachment_chunk", "personal_attachment_transfer" })
+            foreach (var table in new[] { "outbox", "inbox", "dedupe", "command_effect", "personal_batch", "personal_domain", "time_batch", "personal_attachment_chunk", "personal_attachment_transfer" })
             { using var command = connection.CreateCommand(); command.Transaction = transaction; command.CommandText = $"DELETE FROM {table} WHERE peer_id=$id"; command.Parameters.AddWithValue("$id", peerId); command.ExecuteNonQuery(); }
             using (var meta = connection.CreateCommand()) { meta.Transaction = transaction; meta.CommandText = "DELETE FROM meta WHERE key LIKE $prefix OR key=$active OR key=$status OR key LIKE $request"; meta.Parameters.AddWithValue("$prefix", "personal_%:" + peerId + ":%"); meta.Parameters.AddWithValue("$active", "personal_active_auto:" + peerId); meta.Parameters.AddWithValue("$status", "device_status:" + peerId); meta.Parameters.AddWithValue("$request", "status_request:" + peerId + ":%"); meta.ExecuteNonQuery(); }
             transaction.Commit();
@@ -1002,6 +1005,7 @@ internal sealed class TelefonStore
             Execute(connection, transaction, "DELETE FROM command_effect WHERE first_seen_ms<$now-7776000000", now);
             Execute(connection, transaction, "DELETE FROM personal_batch WHERE expires_ms<=$now OR received_ms<$now-86400000", now);
             Execute(connection, transaction, "DELETE FROM personal_domain WHERE expires_ms<=$now OR received_ms<$now-86400000", now);
+            Execute(connection, transaction, "DELETE FROM time_batch WHERE expires_ms<=$now", now);
             Execute(connection, transaction, "DELETE FROM personal_attachment_chunk WHERE NOT EXISTS (SELECT 1 FROM personal_attachment_transfer t WHERE t.peer_id=personal_attachment_chunk.peer_id AND t.run_id=personal_attachment_chunk.run_id AND t.reply=personal_attachment_chunk.reply AND t.records_hash=personal_attachment_chunk.records_hash AND t.sha256=personal_attachment_chunk.sha256 AND t.direction=personal_attachment_chunk.direction) OR EXISTS (SELECT 1 FROM personal_attachment_transfer t WHERE t.peer_id=personal_attachment_chunk.peer_id AND t.run_id=personal_attachment_chunk.run_id AND t.reply=personal_attachment_chunk.reply AND t.records_hash=personal_attachment_chunk.records_hash AND t.sha256=personal_attachment_chunk.sha256 AND t.direction=personal_attachment_chunk.direction AND t.expires_ms<=$now)", now);
             Execute(connection, transaction, "DELETE FROM personal_attachment_transfer WHERE expires_ms<=$now OR NOT EXISTS (SELECT 1 FROM meta WHERE key='personal_run:'||personal_attachment_transfer.peer_id||':'||personal_attachment_transfer.run_id)", now);
             Execute(connection, transaction, "DELETE FROM personal_batch WHERE NOT EXISTS (SELECT 1 FROM meta WHERE key='personal_run:'||personal_batch.peer_id||':'||personal_batch.run_id)", now);
@@ -1204,6 +1208,8 @@ internal sealed class TelefonStore
     {
         using var connection = OpenDatabase(); connection.Open(); using var command = connection.CreateCommand();
         command.CommandText = "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; CREATE TABLE IF NOT EXISTS outbox(message_id TEXT PRIMARY KEY,peer_id TEXT NOT NULL,kind TEXT NOT NULL,created_ms INTEGER NOT NULL,expires_ms INTEGER NOT NULL,payload BLOB NOT NULL,attempts INTEGER NOT NULL,next_attempt_ms INTEGER NOT NULL,last_error TEXT NOT NULL,transport_policy TEXT NOT NULL DEFAULT 'any'); CREATE INDEX IF NOT EXISTS outbox_due ON outbox(peer_id,next_attempt_ms); CREATE TABLE IF NOT EXISTS inbox(message_id TEXT NOT NULL,peer_id TEXT NOT NULL,kind TEXT NOT NULL,received_ms INTEGER NOT NULL,expires_ms INTEGER NOT NULL,payload BLOB NOT NULL,state TEXT NOT NULL,PRIMARY KEY(peer_id,message_id)); CREATE TABLE IF NOT EXISTS dedupe(message_id TEXT NOT NULL,peer_id TEXT NOT NULL,result TEXT NOT NULL,error TEXT NOT NULL,seen_ms INTEGER NOT NULL,PRIMARY KEY(peer_id,message_id)); CREATE TABLE IF NOT EXISTS command_effect(client_ref TEXT PRIMARY KEY,state TEXT NOT NULL,first_seen_ms INTEGER NOT NULL,peer_id TEXT NOT NULL DEFAULT ''); CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value BLOB NOT NULL); CREATE TABLE IF NOT EXISTS personal_batch(peer_id TEXT NOT NULL,run_id TEXT NOT NULL,reply INTEGER NOT NULL,sequence INTEGER NOT NULL,batch_id TEXT NOT NULL UNIQUE,message_id TEXT NOT NULL UNIQUE,received_ms INTEGER NOT NULL,expires_ms INTEGER NOT NULL,payload BLOB NOT NULL,last INTEGER NOT NULL,commit_token TEXT NOT NULL,PRIMARY KEY(peer_id,run_id,reply,sequence)); CREATE TABLE IF NOT EXISTS personal_domain(peer_id TEXT NOT NULL,message_id TEXT NOT NULL,kind TEXT NOT NULL,received_ms INTEGER NOT NULL,expires_ms INTEGER NOT NULL,payload BLOB NOT NULL,commit_token TEXT NOT NULL,PRIMARY KEY(peer_id,message_id)); CREATE TABLE IF NOT EXISTS personal_attachment_transfer(peer_id TEXT NOT NULL,run_id TEXT NOT NULL,reply INTEGER NOT NULL,records_hash TEXT NOT NULL,sha256 TEXT NOT NULL,direction TEXT NOT NULL,size INTEGER NOT NULL,mime TEXT NOT NULL,transport_policy TEXT NOT NULL,expires_ms INTEGER NOT NULL,complete INTEGER NOT NULL DEFAULT 0,metadata BLOB NOT NULL,PRIMARY KEY(peer_id,run_id,reply,records_hash,sha256,direction)); CREATE TABLE IF NOT EXISTS personal_attachment_chunk(peer_id TEXT NOT NULL,run_id TEXT NOT NULL,reply INTEGER NOT NULL,records_hash TEXT NOT NULL,sha256 TEXT NOT NULL,direction TEXT NOT NULL,chunk_index INTEGER NOT NULL,payload BLOB NOT NULL,PRIMARY KEY(peer_id,run_id,reply,records_hash,sha256,direction,chunk_index));";
+        command.ExecuteNonQuery();
+        command.CommandText = "CREATE TABLE IF NOT EXISTS time_batch(peer_id TEXT NOT NULL,message_id TEXT NOT NULL,expires_ms INTEGER NOT NULL,payload BLOB NOT NULL,PRIMARY KEY(peer_id,message_id))";
         command.ExecuteNonQuery();
         using var columns = connection.CreateCommand(); columns.CommandText = "PRAGMA table_info(outbox)"; using var reader = columns.ExecuteReader(); var names = new HashSet<string>(StringComparer.Ordinal); while (reader.Read()) names.Add(reader.GetString(1)); reader.Close();
         if (!names.Contains("transport_policy")) { using var alter = connection.CreateCommand(); alter.CommandText = "ALTER TABLE outbox ADD COLUMN transport_policy TEXT NOT NULL DEFAULT 'any'"; alter.ExecuteNonQuery(); }

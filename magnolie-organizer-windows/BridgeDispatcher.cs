@@ -171,6 +171,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "adressen_ods": await CreateSpreadsheetAsync(message, "Adressen", "Magnolie-Adressen.ods"); break;
                     case "planer_ods": await CreateSpreadsheetAsync(message, "Planer", "Magnolie-Planer.ods"); break;
                     case "gesundheit_ods": await CreateHealthSpreadsheetAsync(message); break;
+                    case "zeit_ods": await CreateTimeSpreadsheetAsync(message); break;
                     case "eds_status": await ContactSourcesAsync(); break;
                     case "internet_konto_anmelden": await SignInInternetAccountAsync(message); break;
                     case "internet_konten_status": await InternetAccountStatusAsync(); break;
@@ -1781,9 +1782,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             if (regions.Count > 26) throw new ArgumentException(T("Too many regions were selected."));
             if (region.Length > 0) regions.Clear();
             if (Boolean(message, "regionErforderlich") && region.Length == 0 && regions.Count == 0)
-                throw new ArgumentException(country == "CH"
-                    ? T("Select your canton first or enable “All cantons”.")
-                    : T("Select your state first or enable “All states”."));
+                includeSchool = false;
             var targets = region.Length > 0
                 ? new[] { new HolidayRegion(region, "") }
                 : regions.Count > 0 ? regions.ToArray() : new[] { new HolidayRegion("", "") };
@@ -1818,7 +1817,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
                         .Distinct(StringComparer.CurrentCultureIgnoreCase).Order(StringComparer.CurrentCultureIgnoreCase).ToArray();
                     var codes = group.Select(item => item.region).Where(code => code.Length > 0)
                         .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
-                    if (regions.Count == 0 || names.Length == 0) return first;
+                    var nationwide = group.Any(item => item.nationwide);
+                    var scopes = group.SelectMany(item => item.regions).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+                    if (regions.Count == 0 || names.Length == 0) return first with { nationwide = nationwide, regions = scopes };
                     string suffix;
                     if (names.Length == allRegionNames.Count) suffix = country == "CH" ? T("all cantons") : T("all states");
                     else if (names.Length > allRegionNames.Count / 2)
@@ -1829,7 +1830,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     }
                     else suffix = string.Join(", ", names);
                     return new HolidayEntry(first.von, first.bis, $"{first.name} ({suffix})", first.art,
-                        string.Join(",", codes), suffix);
+                        string.Join(",", codes), suffix, country, nationwide, scopes);
                 }).OrderBy(item => item.von).ThenBy(item => item.name).ToArray();
             var report = clean.Length == 0 ? T("The service returned no entries for this selection.") : T("The holidays were imported.");
             await form.SendAsync("App.feiertageErgebnis", new { feiertage = clean, bericht = report, jahre = years });
@@ -1867,19 +1868,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
         buffer.Position = 0;
         using var document = await JsonDocument.ParseAsync(buffer);
-        var data = document.RootElement;
-        if (data.ValueKind == JsonValueKind.Object && data.TryGetProperty("data", out var nested)) data = nested;
-        if (data.ValueKind != JsonValueKind.Array) return checked((int)buffer.Length);
-        foreach (var item in data.EnumerateArray())
-        {
-            var from = PropertyText(item, "startDate")[..Math.Min(10, PropertyText(item, "startDate").Length)];
-            var toText = PropertyText(item, "endDate");
-            var to = toText.Length >= 10 ? toText[..10] : from;
-            var name = LocalizedName(item, language);
-            if (DateOnly.TryParseExact(from, "yyyy-MM-dd", CultureInfo.InvariantCulture,
-                    DateTimeStyles.None, out _) && name.Length > 0)
-                target.Add(new HolidayEntry(from, to, name, kind, region.Code, region.Name));
-        }
+        target.AddRange(OpenHolidayData.Parse(document.RootElement, kind, country, region.Code, region.Name, language));
         return checked((int)buffer.Length);
     }
 
@@ -2070,29 +2059,26 @@ internal sealed partial class BridgeDispatcher : IDisposable
         catch (Exception error) { await form.SendAsync("App.adressWeg", new { ok = false, pfad = "", womit = "", fehler = error.Message }); }
     }
 
-    private async Task WriteAndOpenSpreadsheetAsync(byte[] bytes, string fileName)
+    private async Task CreateTimeSpreadsheetAsync(JsonElement message)
+    {
+        try
+        {
+            var report = message.GetProperty("sheet");
+            var bytes = DocumentExportService.CreateTimeSpreadsheet(report);
+            await WriteAndOpenSpreadsheetAsync(bytes, "Magnolie-Zeiterfassung-" + report.GetProperty("month").GetString() + ".ods", unique: true);
+        }
+        catch (Exception error) { await form.SendAsync("App.adressWeg", new { ok = false, pfad = "", womit = "", fehler = error.Message }); }
+    }
+
+    private async Task WriteAndOpenSpreadsheetAsync(byte[] bytes, string fileName, bool unique = false)
     {
         var directory = Path.Combine(Path.GetTempPath(), "Magnolie Organizer", "Tabellen");
+        if (unique) directory = Path.Combine(directory, Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         var file = Path.Combine(directory, fileName);
         await File.WriteAllBytesAsync(file, bytes);
         var opened = ShellLauncher.OpenLocalFile(file, directory);
         await form.SendAsync("App.adressWeg", new { ok = opened, pfad = file, womit = opened ? "system" : "", fehler = opened ? "" : T("The spreadsheet was created but could not be opened.") });
-    }
-
-    private static string LocalizedName(JsonElement item, string language)
-    {
-        if (!item.TryGetProperty("name", out var names)) return "";
-        if (names.ValueKind == JsonValueKind.String) return names.GetString() ?? "";
-        if (names.ValueKind != JsonValueKind.Array) return "";
-        var fallback = "";
-        foreach (var name in names.EnumerateArray())
-        {
-            var text = PropertyText(name, "text");
-            if (fallback.Length == 0) fallback = text;
-            if (PropertyText(name, "language").Equals(language, StringComparison.OrdinalIgnoreCase)) return text;
-        }
-        return fallback;
     }
 
     private static string FirstValue(JsonElement element, string name)
@@ -2277,7 +2263,5 @@ internal sealed partial class BridgeDispatcher : IDisposable
         throw new ArgumentException(T("The port must be between 1 and 65535."));
     }
 
-    private sealed record HolidayEntry(string von, string bis, string name, string art,
-        string region, string regionName);
     private sealed record HolidayRegion(string Code, string Name);
 }

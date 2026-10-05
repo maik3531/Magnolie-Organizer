@@ -63,6 +63,11 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
     var now by remember { mutableStateOf(Zeiteintrag.currentMinute()) }
     var startId by rememberSaveable { mutableStateOf(UUID.randomUUID().toString()) }
     var menuOffen by remember { mutableStateOf(false) }
+    var konflikt by remember { mutableStateOf<ZeitKonfliktAuswahl?>(null) }
+    fun pruefen(entry: Zeiteintrag) {
+        val versions = stand.conflicts[entry.id].orEmpty()
+        if (versions.isNotEmpty()) konflikt = ZeitKonfliktAuswahl(entry, versions.toList())
+    }
     LaunchedEffect(Unit) {
         while (true) {
             now = Zeiteintrag.currentMinute()
@@ -85,7 +90,7 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
             modifier = if (bearbeiten) Modifier.clickable(enabled = !speichert, role = Role.Button) {
                 beiBearbeiten(entry, false)
             } else Modifier) {
-            val zone = TimeZone.getTimeZone(entry.zone)
+            val zone = TimeZone.getTimeZone(ZoneId.of(entry.zone))
             fun time(minute: Long) = DateFormat.getTimeFormat(context).apply { timeZone = zone }.format(Date(minute * 60000))
             fun date(minute: Long) = DateFormat.getDateFormat(context).apply { timeZone = zone }.format(Date(minute * 60000))
             Wertzeile(stringResource(R.string.zeit_beginn), date(entry.startMinute) + " · " + time(entry.startMinute))
@@ -95,6 +100,8 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
             Wertzeile(stringResource(R.string.zeit_pause), java.text.NumberFormat.getIntegerInstance(locale).format(displayed.pausedMinutes(now)))
             if (entry.note.isNotBlank()) Text(entry.note, modifier = Modifier.padding(vertical = 6.dp))
             if (bearbeiten) Papierknopf(stringResource(R.string.zeit_korrektur), aktiv = !speichert) { beiBearbeiten(entry, false) }
+            if (!stand.conflicts[entry.id].isNullOrEmpty())
+                Papierknopf(stringResource(R.string.baum_kontakt_konflikt), aktiv = !speichert) { pruefen(entry) }
         }
     }
     val seiten = listOf("tracking" to R.string.zeit_titel, "settings" to R.string.zeit_optionen,
@@ -132,6 +139,14 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
                     if (entries.isEmpty()) Text(stringResource(R.string.zeit_leer))
                 } }
                 items(entries, key = { it.id }) { entry -> karte(entry, true) }
+                items(stand.entries.filter { it.deleted && !stand.conflicts[it.id].isNullOrEmpty() },
+                    key = { "conflict:${it.id}" }) { entry ->
+                    Abschnitt(stringResource(R.string.baum_kontakt_konflikt)) {
+                        val alternative = stand.conflicts.getValue(entry.id).firstOrNull { !it.deleted }
+                        Text(alternative?.type?.ifBlank { null } ?: stringResource(R.string.zeit_titel))
+                        Papierknopf(stringResource(R.string.personal_sync_geaendert_titel), aktiv = !speichert) { pruefen(entry) }
+                    }
+                }
             }
         } else LazyColumn(Modifier.weight(1f)) {
         item { Abschnitt(stringResource(R.string.zeit_titel)) {
@@ -204,6 +219,7 @@ fun ZeiterfassungBlatt(stand: ZeiterfassungStand, speichert: Boolean, speichern:
         }
         }
     }
+    konflikt?.let { ZeitKonfliktDialog(it, now, speichert, speichern) { konflikt = null } }
 }
 
 @Composable

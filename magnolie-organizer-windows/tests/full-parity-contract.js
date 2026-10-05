@@ -10,7 +10,8 @@ const read = file => fs.readFileSync(path.join(root, file), "utf8");
 const windowsUi = read("app/web/anwendung.js");
 const windowsDispatcher = fs.readdirSync(root).filter(file => /^BridgeDispatcher(?:\.[A-Za-z]+)?\.cs$/.test(file))
   .map(read).join("\n") + read("MainForm.cs");
-const windowsCallbacks = windowsDispatcher + read("TelefonCoordinator.cs") + read("MagnolienbaumCoordinator.cs");
+const windowsCallbacks = windowsDispatcher + fs.readdirSync(root)
+  .filter(file => /^(?:Telefon|Magnolienbaum)Coordinator(?:\.[A-Za-z]+)?\.cs$/.test(file)).map(read).join("\n");
 const windowsSchemas = read("BridgeDispatcherContract.cs");
 const fixture = JSON.parse(process.env.MAGNOLIE_PARITY_FIXTURE
   ? fs.readFileSync(process.env.MAGNOLIE_PARITY_FIXTURE, "utf8") : read("tests/resources/linux-parity-contract.json"));

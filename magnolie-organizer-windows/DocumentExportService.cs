@@ -14,7 +14,7 @@ internal sealed record DocumentSheet(string Name, IReadOnlyList<string> Columns,
     IReadOnlyList<IReadOnlyList<string>>? CellStyles = null,
     IReadOnlyList<IReadOnlyList<IReadOnlyList<string>>>? TextColors = null, DocumentChart? Chart = null);
 
-internal static class DocumentExportService
+internal static partial class DocumentExportService
 {
     private static readonly XNamespace Office = "urn:oasis:names:tc:opendocument:xmlns:office:1.0";
     private static readonly XNamespace Text = "urn:oasis:names:tc:opendocument:xmlns:text:1.0";

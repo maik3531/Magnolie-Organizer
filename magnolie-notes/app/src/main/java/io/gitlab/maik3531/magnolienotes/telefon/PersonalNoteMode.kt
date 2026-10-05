@@ -123,6 +123,12 @@ internal class PersonalNoteSession {
     var capabilitiesReceived = false
     var grantsReceived = false
     var ownSettingsReceived = false
+    var timeSent: JsonObject? = null
+    var timeReceived: JsonObject? = null
+    var timeSnapshot: String? = null
+
+    fun timeReady(local: JsonObject?, remote: JsonObject?) = capabilitiesReceived && grantsReceived && ownSettingsReceived &&
+        local != null && remote != null && local == timeSent && remote == timeReceived
 
     fun ready(local: JsonObject?, remote: JsonObject?) = capabilitiesReceived && grantsReceived && ownSettingsReceived &&
         PersonalNoteMode.samePolicy(local, sent) &&

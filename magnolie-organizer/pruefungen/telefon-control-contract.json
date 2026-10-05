@@ -8,7 +8,7 @@
     "incoming_call_state": {"available":false,"reason":"disabled","versions":[2]},
     "personal_notes_sync": {"available":true,"reason":"available","versions":[1,2,3,5]},
     "personal_deletions_sync": {"available":true,"reason":"available","versions":[1]},
-    "personal_tasks_sync": {"available":true,"reason":"available","versions":[1,2,3,4,6]},
+    "personal_tasks_sync": {"available":true,"reason":"available","versions":[1,2,3,4,6,7]},
     "selected_notifications_readonly": {"available":false,"reason":"disabled","versions":[1]},
     "transport.bluetooth_rfcomm": {"available":true,"reason":"available","versions":[1]}
   },
@@ -22,7 +22,7 @@
     "incoming_call_state": {"available":true,"reason":"available","versions":[2]},
     "personal_notes_sync": {"available":true,"reason":"available","versions":[1,2,3,5]},
     "personal_deletions_sync": {"available":true,"reason":"available","versions":[1]},
-    "personal_tasks_sync": {"available":true,"reason":"available","versions":[1,2,3,4,6]},
+    "personal_tasks_sync": {"available":true,"reason":"available","versions":[1,2,3,4,6,7]},
     "selected_notifications_readonly": {"available":false,"reason":"not_implemented","versions":[1]},
     "transport.bluetooth_rfcomm": {"available":true,"reason":"available","versions":[1]}
   },

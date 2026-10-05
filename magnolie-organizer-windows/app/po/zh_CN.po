@@ -435,6 +435,10 @@ msgstr "账户类型"
 msgid "Active call"
 msgstr "当前通话"
 
+msgctxt "time tracking"
+msgid "Activity"
+msgstr "活动类型"
+
 msgid "Add"
 msgstr "添加"
 
@@ -519,6 +523,10 @@ msgstr "全部"
 
 msgid "All cantons"
 msgstr "所有州"
+
+msgctxt "time tracking"
+msgid "All days"
+msgstr "所有日期"
 
 msgid "All entries"
 msgstr "所有条目"
@@ -1095,6 +1103,12 @@ msgstr "立即检查"
 msgid "Check spelling (red wavy lines)"
 msgstr "检查拼写（红色波浪线）"
 
+msgctxt "time tracking"
+msgid ""
+"Check the dates, times and pause. The selected local time must exist in this "
+"time zone."
+msgstr "请检查日期、时间和休息时长。所选的当地时间必须在此时区中存在。"
+
 msgid "Check the value and discuss repeated deviations with a doctor."
 msgstr "请检查该数值；如反复出现偏差，请咨询医生。"
 
@@ -1241,6 +1255,10 @@ msgid ""
 msgstr ""
 "在这两种情况下，点击已有约会都会打开它进行编辑。此设置仅在点击框内空白区域时"
 "生效。"
+
+msgctxt "time tracking"
+msgid "Clock change (min)"
+msgstr "时钟调整（分钟）"
 
 msgid "Close"
 msgstr "关闭"
@@ -1564,6 +1582,10 @@ msgstr "损坏的"
 msgid "Date"
 msgstr "日期"
 
+msgctxt "time tracking"
+msgid "Date"
+msgstr "日期"
+
 msgid "Date format"
 msgstr "日期格式"
 
@@ -1832,6 +1854,10 @@ msgstr "时长"
 msgid "Early shift"
 msgstr "早班"
 
+msgctxt "time tracking"
+msgid "Early shift"
+msgstr "早班"
+
 msgid "Edit"
 msgstr "编辑"
 
@@ -1852,6 +1878,10 @@ msgstr "编辑笔记本"
 
 msgid "Edit notebook group"
 msgstr "编辑笔记本组"
+
+msgctxt "time tracking"
+msgid "Edit record"
+msgstr "编辑记录"
 
 msgid "Edit task"
 msgstr "编辑任务"
@@ -1938,6 +1968,10 @@ msgstr "在此启用绘图板输入，然后在手机的 KDE Connect 中打开�
 msgid "Enable this SMS plan"
 msgstr "启用此短信计划"
 
+msgctxt "time tracking"
+msgid "Enable time tracking"
+msgstr "启用时间记录"
+
 msgid "Enable tray applet"
 msgstr "启用系统托盘小程序"
 
@@ -1950,6 +1984,14 @@ msgstr "启用垃圾收集日历"
 msgid ""
 "Enabling this plan allows its overdue SMS to be sent while scheduling is on."
 msgstr "启用此计划后，在短信定时功能开启时，其已过期的短信也可发送。"
+
+msgctxt "time tracking"
+msgid "End"
+msgstr "结束"
+
+msgctxt "time tracking"
+msgid "End date"
+msgstr "结束日期"
 
 msgid "Enjoy getting organized!"
 msgstr "祝您整理顺利！"
@@ -2362,6 +2404,10 @@ msgstr "上门拜访"
 msgid "Hours"
 msgstr "小时"
 
+msgctxt "time tracking"
+msgid "Hours"
+msgstr "小时"
+
 msgid "How lovely that you chose Magnolie"
 msgstr "很高兴您选择了 Magnolie"
 
@@ -2620,6 +2666,10 @@ msgstr "上次同步：%(date)s，%(time)s。"
 msgid "Late shift"
 msgstr "晚班"
 
+msgctxt "time tracking"
+msgid "Late shift"
+msgstr "晚班"
+
 msgid "Lead time"
 msgstr "提前时间"
 
@@ -2802,6 +2852,10 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "自定义"
 
+msgctxt "time tracking"
+msgid "Manual entry"
+msgstr "手动添加"
+
 msgid "Manual only"
 msgstr "仅手动"
 
@@ -2924,6 +2978,10 @@ msgstr "星期一"
 msgid "Month"
 msgstr "月"
 
+msgctxt "time tracking"
+msgid "Month"
+msgstr "月份"
+
 msgid "Month calendar"
 msgstr "月历"
 
@@ -2983,6 +3041,10 @@ msgstr "多个日历"
 
 msgid "Name"
 msgstr "名称"
+
+msgctxt "time tracking"
+msgid "Name"
+msgstr "姓名"
 
 msgid "Name / occasion"
 msgstr "名称 / 场合"
@@ -3098,6 +3160,10 @@ msgstr "夜间"
 msgid "Night shift"
 msgstr "夜班"
 
+msgctxt "time tracking"
+msgid "Night shift"
+msgstr "夜班"
+
 msgid "No"
 msgstr "否"
 
@@ -3201,20 +3267,6 @@ msgstr "未选择照片"
 msgid "No public IP address was found."
 msgstr "未找到公网 IP 地址。"
 
-msgid ""
-"No regional data is retrieved without a selected canton. With “All”, each "
-"entry shows its canton and matching periods are combined."
-msgstr ""
-"未选择州（canton）时不会获取区域数据。选择“全部”后，每个条目会显示其所属州，"
-"并合并相同的时段。"
-
-msgid ""
-"No regional data is retrieved without a selected state. With “All”, each "
-"entry shows its state and matching periods are combined."
-msgstr ""
-"未选择联邦州时不会获取区域数据。选择“全部”后，每个条目会显示其联邦州，并合并"
-"相同的时段。"
-
 msgid "No scheme row matches this blood glucose value."
 msgstr "没有与此血糖值匹配的方案行。"
 
@@ -3244,6 +3296,10 @@ msgstr "无表格（仅趋势图）"
 
 msgid "No task linked yet."
 msgstr "尚未关联任务。"
+
+msgctxt "time tracking"
+msgid "No time recorded yet."
+msgstr "尚无时间记录。"
 
 msgid "No update check has been performed yet."
 msgstr "尚未执行更新检查。"
@@ -3667,6 +3723,14 @@ msgstr "粘贴"
 msgid "Patch"
 msgstr "贴剂"
 
+msgctxt "time tracking"
+msgid "Pause (minutes)"
+msgstr "休息（分钟）"
+
+msgctxt "time tracking"
+msgid "Paused"
+msgstr "已暂停"
+
 msgid "Paused — review required"
 msgstr "已暂停 — 需要审核"
 
@@ -3967,6 +4031,9 @@ msgstr "受保护的存档密码不可用。"
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "另一分支的公网 IPv4 或 IPv6 地址"
 
+msgid "Public holidays"
+msgstr "公共假日"
+
 msgid ""
 "Public holidays and school holidays are governed regionally. Choose which "
 "ones apply here."
@@ -4006,6 +4073,10 @@ msgstr "原因"
 
 msgid "Reconnect"
 msgstr "重新连接"
+
+msgctxt "time tracking"
+msgid "Recorded times"
+msgstr "已记录的时间"
 
 msgid "Recovery snapshot created."
 msgstr "已创建恢复快照。"
@@ -4237,6 +4308,10 @@ msgstr "路线"
 msgid "Route: calculate directions immediately"
 msgstr "路线：立即计算导航"
 
+msgctxt "time tracking"
+msgid "Running"
+msgstr "进行中"
+
 msgid "S"
 msgstr "S"
 
@@ -4444,14 +4519,8 @@ msgstr "请先选择内容。"
 msgid "Select what you want to print on the left."
 msgstr "请在左侧选择要打印的内容。"
 
-msgid "Select your canton first or enable “All cantons”."
-msgstr "请先选择州（canton），或启用“所有州”。"
-
 msgid "Select your phone"
 msgstr "选择您的手机"
-
-msgid "Select your state first or enable “All states”."
-msgstr "请先选择联邦州，或启用“所有联邦州”。"
 
 msgid "Select, preview, print, export or delete health records"
 msgstr "选择、预览、打印、导出或删除健康记录"
@@ -4633,6 +4702,10 @@ msgid ""
 "provider."
 msgstr "登录失败。请检查账户及提供商要求的身份验证方式。"
 
+msgctxt "time tracking"
+msgid "Signature"
+msgstr "签名"
+
 msgid "Signed in to Microsoft."
 msgstr "已登录 Microsoft。"
 
@@ -4723,6 +4796,10 @@ msgstr "喷雾剂"
 
 msgid "St. Gallen"
 msgstr "圣加仑"
+
+msgctxt "time tracking"
+msgid "Start"
+msgstr "开始"
 
 msgid "Start Magnolie"
 msgstr "启动 Magnolie"
@@ -4999,8 +5076,17 @@ msgstr "Nextcloud 返回的信息不完整。"
 msgid "The Nextcloud settings are invalid."
 msgstr "Nextcloud 设置无效。"
 
+msgid "The ODS columns are invalid."
+msgstr "ODS 列无效。"
+
 msgid "The ODS export is too large."
 msgstr "ODS 导出内容过大。"
+
+msgid "The ODS row count is invalid."
+msgstr "ODS 行数无效。"
+
+msgid "The ODS title is invalid."
+msgstr "ODS 标题无效。"
 
 msgid "The Organizer chooses a suitable installed application."
 msgstr "Organizer 会选择合适的已安装应用。"
@@ -5179,6 +5265,10 @@ msgstr "结束日期不能早于开始日期。"
 
 msgid "The entry could not be found."
 msgstr "找不到该条目。"
+
+msgctxt "time tracking"
+msgid "The entry could not be saved. Reload it and try again."
+msgstr "无法保存记录。请重新打开并重试。"
 
 msgid "The export data is missing."
 msgstr "导出数据缺失。"
@@ -5768,8 +5858,16 @@ msgstr "提契诺"
 msgid "Time"
 msgstr "时间"
 
+msgctxt "time tracking"
+msgid "Time"
+msgstr "时间"
+
 msgid "Time format"
 msgstr "时间格式"
+
+msgctxt "time tracking"
+msgid "Time tracking"
+msgstr "时间记录"
 
 msgid "Time zone"
 msgstr "时区"
@@ -5811,6 +5909,14 @@ msgstr "尚未完成的同步操作过多。"
 msgid "Top level"
 msgstr "顶层"
 
+msgctxt "time tracking"
+msgid "Total"
+msgstr "合计"
+
+msgctxt "time tracking"
+msgid "Total time"
+msgstr "总时长"
+
 msgid "Tray applet"
 msgstr "系统托盘小程序"
 
@@ -5825,6 +5931,10 @@ msgstr "向后"
 
 msgid "Turn forward"
 msgstr "向前"
+
+msgctxt "time tracking"
+msgid "Turning tracking off keeps existing records."
+msgstr "关闭后仍会保留现有记录。"
 
 msgid "Two days back"
 msgstr "后退两天"
@@ -6259,6 +6369,11 @@ msgstr ""
 
 msgid "With photo"
 msgstr "带照片"
+
+msgid ""
+"Without a selected region, all available public holidays of the country "
+"apply. School holidays need a region or the All selection."
+msgstr "未选择地区时，采用该国所有可用公共假日。学校假期需要选择地区或“全部”。"
 
 msgid ""
 "Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
@@ -6726,6 +6841,26 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected canton. With “All”, each "
+#~ "entry shows its canton and matching periods are combined."
+#~ msgstr ""
+#~ "未选择州（canton）时不会获取区域数据。选择“全部”后，每个条目会显示其所属"
+#~ "州，并合并相同的时段。"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected state. With “All”, each "
+#~ "entry shows its state and matching periods are combined."
+#~ msgstr ""
+#~ "未选择联邦州时不会获取区域数据。选择“全部”后，每个条目会显示其联邦州，并合"
+#~ "并相同的时段。"
+
+#~ msgid "Select your canton first or enable “All cantons”."
+#~ msgstr "请先选择州（canton），或启用“所有州”。"
+
+#~ msgid "Select your state first or enable “All states”."
+#~ msgstr "请先选择联邦州，或启用“所有联邦州”。"
 
 #~ msgid "Consider deletions during manual synchronization"
 #~ msgstr "联系人同步"

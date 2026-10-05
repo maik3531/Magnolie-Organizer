@@ -664,6 +664,10 @@ msgstr "Kontotype"
 msgid "Active call"
 msgstr "Aktivt opkald"
 
+msgctxt "time tracking"
+msgid "Activity"
+msgstr "Aktivitet"
+
 msgid "Add"
 msgstr "Tilføj"
 
@@ -780,6 +784,10 @@ msgstr "Alle"
 
 msgid "All cantons"
 msgstr "Alle kantoner"
+
+msgctxt "time tracking"
+msgid "All days"
+msgstr "Alle dage"
 
 msgid "All entries"
 msgstr "Alle poster"
@@ -1467,6 +1475,14 @@ msgstr "Kontrollér nu"
 msgid "Check spelling (red wavy lines)"
 msgstr "Kontrollér stavning (røde bølgelinjer)"
 
+msgctxt "time tracking"
+msgid ""
+"Check the dates, times and pause. The selected local time must exist in this "
+"time zone."
+msgstr ""
+"Kontrollér datoer, tidspunkter og pause. Det valgte lokale tidspunkt skal "
+"findes i denne tidszone."
+
 msgid "Check the value and discuss repeated deviations with a doctor."
 msgstr "Kontrollér værdien, og drøft gentagne afvigelser med en læge."
 
@@ -1640,6 +1656,10 @@ msgid ""
 msgstr ""
 "Et klik på en eksisterende aftale åbner den i begge tilfælde til redigering. "
 "Indstillingen gælder kun, når du klikker på et tomt område i feltet."
+
+msgctxt "time tracking"
+msgid "Clock change (min)"
+msgstr "Tidsomstilling (min)"
 
 msgid "Close"
 msgstr "Luk"
@@ -2068,6 +2088,10 @@ msgstr "Data: ikke fundet – åbn Organizer én gang."
 msgid "Date"
 msgstr "Dato"
 
+msgctxt "time tracking"
+msgid "Date"
+msgstr "Dato"
+
 msgid "Date format"
 msgstr "Datoformat"
 
@@ -2367,6 +2391,10 @@ msgstr "Varighed"
 msgid "Early shift"
 msgstr "Tidlig vagt"
 
+msgctxt "time tracking"
+msgid "Early shift"
+msgstr "Morgenvagt"
+
 msgid "Edit"
 msgstr "Rediger"
 
@@ -2387,6 +2415,10 @@ msgstr "Rediger notesbog"
 
 msgid "Edit notebook group"
 msgstr "Rediger notesbogsgruppe"
+
+msgctxt "time tracking"
+msgid "Edit record"
+msgstr "Rediger registrering"
 
 msgid "Edit task"
 msgstr "Rediger opgave"
@@ -2479,6 +2511,10 @@ msgstr ""
 msgid "Enable this SMS plan"
 msgstr "Aktivér denne SMS-plan"
 
+msgctxt "time tracking"
+msgid "Enable time tracking"
+msgstr "Aktivér tidsregistrering"
+
 msgid "Enable tray applet"
 msgstr "Aktivér panelapplet"
 
@@ -2499,6 +2535,14 @@ msgstr "Krypterede arkivposter understøttes ikke."
 
 msgid "Encrypting the data"
 msgstr "Krypterer dataene"
+
+msgctxt "time tracking"
+msgid "End"
+msgstr "Slut"
+
+msgctxt "time tracking"
+msgid "End date"
+msgstr "Slutdato"
 
 msgid "Ending the call"
 msgstr "Afslutter opkaldet"
@@ -2976,6 +3020,10 @@ msgstr "Hjemmebesøg"
 msgid "Hours"
 msgstr "Timer"
 
+msgctxt "time tracking"
+msgid "Hours"
+msgstr "Timer"
+
 msgid "How the calendar should behave when you click a day."
 msgstr "Hvordan kalenderen skal opføre sig, når du klikker på en dag."
 
@@ -3308,6 +3356,10 @@ msgstr "Sidst synkroniseret: %(date)s, %(time)s."
 msgid "Late shift"
 msgstr "Sen vagt"
 
+msgctxt "time tracking"
+msgid "Late shift"
+msgstr "Aftenvagt"
+
 msgid "Latest alarm monitor entries:"
 msgstr "Seneste poster fra alarmovervågningen:"
 
@@ -3552,6 +3604,10 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Brugerdefineret"
 
+msgctxt "time tracking"
+msgid "Manual entry"
+msgstr "Manuel registrering"
+
 msgid "Manual only"
 msgstr "Kun manuelt"
 
@@ -3683,6 +3739,10 @@ msgstr "Overvåg KDE Connect-SMS'er og vis meddelelser"
 msgid "Month"
 msgstr "Måned"
 
+msgctxt "time tracking"
+msgid "Month"
+msgstr "Måned"
+
 msgid "Month calendar"
 msgstr "Månedskalender"
 
@@ -3744,6 +3804,10 @@ msgstr ""
 msgid "Multiple calendars"
 msgstr "Flere kalendere"
 
+msgid "Name"
+msgstr "Navn"
+
+msgctxt "time tracking"
 msgid "Name"
 msgstr "Navn"
 
@@ -3916,6 +3980,10 @@ msgstr "Nat"
 msgid "Night shift"
 msgstr "Nattevagt"
 
+msgctxt "time tracking"
+msgid "Night shift"
+msgstr "Nattevagt"
+
 msgid "No"
 msgstr "Nej"
 
@@ -4043,20 +4111,6 @@ msgstr ""
 "Der blev ikke fundet nogen læsbare Evolution- eller Thunderbird-lagre på "
 "denne computer."
 
-msgid ""
-"No regional data is retrieved without a selected canton. With “All”, each "
-"entry shows its canton and matching periods are combined."
-msgstr ""
-"Der hentes ingen regionale data uden en valgt kanton. Med „Alle“ viser hver "
-"post sin kanton, og sammenfaldende perioder slås sammen."
-
-msgid ""
-"No regional data is retrieved without a selected state. With “All”, each "
-"entry shows its state and matching periods are combined."
-msgstr ""
-"Der hentes ingen regionale data uden en valgt delstat. Med „Alle“ viser hver "
-"post sin delstat, og sammenfaldende perioder slås sammen."
-
 msgid "No scheme row matches this blood glucose value."
 msgstr "Ingen skemarække matcher denne blodsukkerværdi."
 
@@ -4096,6 +4150,10 @@ msgstr "Der er endnu ikke tilknyttet nogen opgave."
 #, python-format
 msgid "No text viewer was found. The log is located at: %s"
 msgstr "Der blev ikke fundet nogen tekstfremviser. Loggen findes her: %s"
+
+msgctxt "time tracking"
+msgid "No time recorded yet."
+msgstr "Der er endnu ikke registreret tid."
 
 msgid "No update check has been performed yet."
 msgstr "Der er endnu ikke udført nogen opdateringskontrol."
@@ -4625,6 +4683,14 @@ msgstr "Indsæt"
 msgid "Patch"
 msgstr "Plaster"
 
+msgctxt "time tracking"
+msgid "Pause (minutes)"
+msgstr "Pause (minutter)"
+
+msgctxt "time tracking"
+msgid "Paused"
+msgstr "På pause"
+
 msgid "Paused — review required"
 msgstr "Sat på pause — kræver kontrol"
 
@@ -4945,6 +5011,9 @@ msgstr "Den beskyttede arkivadgangskode er ikke tilgængelig."
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "Offentlig IPv4- eller IPv6-adresse på den anden gren"
 
+msgid "Public holidays"
+msgstr "Helligdage"
+
 msgid ""
 "Public holidays and school holidays are governed regionally. Choose which "
 "ones apply here."
@@ -5013,6 +5082,10 @@ msgstr "Modtag med KDE Connect"
 
 msgid "Reconnect"
 msgstr "Tilslut igen"
+
+msgctxt "time tracking"
+msgid "Recorded times"
+msgstr "Registrerede tider"
 
 msgid "Recovery snapshot created."
 msgstr "Gendannelsesøjebliksbillede oprettet."
@@ -5337,6 +5410,10 @@ msgstr ""
 msgid "Run the optional background service"
 msgstr "Kør den valgfrie baggrundstjeneste"
 
+msgctxt "time tracking"
+msgid "Running"
+msgstr "I gang"
+
 msgid "S"
 msgstr "S"
 
@@ -5600,14 +5677,8 @@ msgstr "Vælg først noget."
 msgid "Select what you want to print on the left."
 msgstr "Vælg til venstre, hvad du vil udskrive."
 
-msgid "Select your canton first or enable “All cantons”."
-msgstr "Vælg først din kanton, eller aktivér „Alle kantoner“."
-
 msgid "Select your phone"
 msgstr "Vælg din telefon"
-
-msgid "Select your state first or enable “All states”."
-msgstr "Vælg først din delstat, eller aktivér „Alle delstater“."
 
 msgid "Select, preview, print, export or delete health records"
 msgstr "Vælg, forhåndsvis, udskriv, eksportér eller slet sundhedsoptegnelser"
@@ -5801,6 +5872,10 @@ msgstr "Vis ugenumre i månedsvisningen"
 msgid "Show week numbers in the planner"
 msgstr "Vis ugenumre i planlæggeren"
 
+msgctxt "time tracking"
+msgid "Signature"
+msgstr "Underskrift"
+
 msgid "Silence this alert"
 msgstr "Dæmp denne besked"
 
@@ -5905,6 +5980,10 @@ msgstr "Spray"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
+
+msgctxt "time tracking"
+msgid "Start"
+msgstr "Start"
 
 msgid "Start Magnolie"
 msgstr "Start Magnolie"
@@ -6592,6 +6671,10 @@ msgstr "Det indtastede fingeraftryk er ufuldstændigt."
 
 msgid "The entry could not be found."
 msgstr "Posten blev ikke fundet."
+
+msgctxt "time tracking"
+msgid "The entry could not be saved. Reload it and try again."
+msgstr "Registreringen kunne ikke gemmes. Åbn den igen, og prøv på ny."
 
 msgid "The file could not be read."
 msgstr "Filen kunne ikke læses."
@@ -7478,8 +7561,16 @@ msgstr "Ticino"
 msgid "Time"
 msgstr "Tid"
 
+msgctxt "time tracking"
+msgid "Time"
+msgstr "Tid"
+
 msgid "Time format"
 msgstr "Tidsformat"
+
+msgctxt "time tracking"
+msgid "Time tracking"
+msgstr "Tidsregistrering"
 
 msgid "Time zone"
 msgstr "Tidszone"
@@ -7535,6 +7626,14 @@ msgstr "Der er for mange uafsluttede synkroniseringer."
 msgid "Top level"
 msgstr "Øverste niveau"
 
+msgctxt "time tracking"
+msgid "Total"
+msgstr "I alt"
+
+msgctxt "time tracking"
+msgid "Total time"
+msgstr "Samlet tid"
+
 msgid "Transfer received text to the clipboard"
 msgstr "Overfør modtaget tekst til udklipsholderen"
 
@@ -7552,6 +7651,10 @@ msgstr "Tilbage"
 
 msgid "Turn forward"
 msgstr "Frem"
+
+msgctxt "time tracking"
+msgid "Turning tracking off keeps existing records."
+msgstr "Eksisterende registreringer bevares, når funktionen slås fra."
 
 msgid "Two days back"
 msgstr "To dage tilbage"
@@ -8038,6 +8141,13 @@ msgstr ""
 
 msgid "With photo"
 msgstr "Med foto"
+
+msgid ""
+"Without a selected region, all available public holidays of the country "
+"apply. School holidays need a region or the All selection."
+msgstr ""
+"Uden valgt region gælder alle tilgængelige helligdage i landet. Skoleferier "
+"kræver en region eller valget Alle."
 
 msgid ""
 "Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
@@ -8577,6 +8687,26 @@ msgstr[1] "… og %(count)s elementer mere, som også bliver udskrevet."
 
 msgid "＋ Add appointment"
 msgstr "＋ Tilføj aftale"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected canton. With “All”, each "
+#~ "entry shows its canton and matching periods are combined."
+#~ msgstr ""
+#~ "Der hentes ingen regionale data uden en valgt kanton. Med „Alle“ viser "
+#~ "hver post sin kanton, og sammenfaldende perioder slås sammen."
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected state. With “All”, each "
+#~ "entry shows its state and matching periods are combined."
+#~ msgstr ""
+#~ "Der hentes ingen regionale data uden en valgt delstat. Med „Alle“ viser "
+#~ "hver post sin delstat, og sammenfaldende perioder slås sammen."
+
+#~ msgid "Select your canton first or enable “All cantons”."
+#~ msgstr "Vælg først din kanton, eller aktivér „Alle kantoner“."
+
+#~ msgid "Select your state first or enable “All states”."
+#~ msgstr "Vælg først din delstat, eller aktivér „Alle delstater“."
 
 #~ msgid "Consider deletions during manual synchronization"
 #~ msgstr "Kontaktsynkronisering"

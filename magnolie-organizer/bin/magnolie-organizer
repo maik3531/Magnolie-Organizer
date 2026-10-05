@@ -10986,13 +10986,15 @@ def magnolie_logo_pfad():
 def zeiterfassung_ods_bytes(bericht):
     """Original Magnolie monthly sheet; formulas use minutes and explicit DST adjustment."""
     import calendar
+    from datetime import timedelta
     from zoneinfo import ZoneInfo
     if not isinstance(bericht, dict):
         raise ValueError(_("The ODS columns are invalid."))
 
     def text(wert, maximum=160):
-        if not isinstance(wert, str) or len(wert) > maximum:
+        if not isinstance(wert, str) or len(wert.encode("utf-16-le")) // 2 > maximum:
             raise ValueError(_("An ODS cell is too long."))
+        wert.encode("utf-8")
         return wert
 
     monat = text(bericht.get("month"), 7)
@@ -11090,7 +11092,7 @@ def zeiterfassung_ods_bytes(bericht):
         return str(wert).translate(uebersetze_ziffern)
 
     def dauer(minuten):
-        return ("%d:%02d" % divmod(minuten, 60)).translate(uebersetze_ziffern)
+        return ("%02d:%02d" % divmod(minuten, 60)).translate(uebersetze_ziffern)
 
     def formatiere(wert, teile):
         werte = {"year": "%04d" % wert.year, "month": "%02d" % wert.month, "day": "%02d" % wert.day,
@@ -11098,6 +11100,15 @@ def zeiterfassung_ods_bytes(bericht):
                  "weekday": wochentage[(wert.weekday() + 1) % 7], "dayPeriod": perioden[wert.hour >= 12]}
         return "".join(teil["value"] if teil["type"] == "literal" else
                        werte[teil["type"]].translate(uebersetze_ziffern) for teil in teile)
+
+    def lokale_projektion(eintrag, wert, feld):
+        if wert is None or feld not in eintrag:
+            return wert
+        minute = eintrag[feld]
+        nativ = int(wert.replace(tzinfo=timezone.utc, second=0, microsecond=0).timestamp() // 60)
+        if type(minute) is not int or not -1080 <= minute <= 4223371679 + 1080 or abs(minute - nativ) > 1:
+            raise ValueError(_("The ODS columns are invalid."))
+        return datetime.fromtimestamp(minute * 60, timezone.utc)
 
     eintraege = bericht.get("entries")
     if not isinstance(eintraege, list) or len(eintraege) > ODS_MAX_ZEILEN - 31:
@@ -11118,19 +11129,33 @@ def zeiterfassung_ods_bytes(bericht):
         if (type(start) is not int or not 0 <= start <= 4223371679 or type(pause) is not int or not 0 <= pause <= 4223371679 - start or
                 ende is not None and (type(ende) is not int or not start <= ende <= 4223371679 or pause > ende - start)):
             raise ValueError(_("The ODS columns are invalid."))
-        zone = ZoneInfo(text(eintrag.get("zone"), 160))
+        zonenname = text(eintrag.get("zone"), 160)
+        offset = re.fullmatch(r"(?:UTC|GMT|UT)?([+-])([0-9]{2})(?::([0-9]{2}))?", zonenname)
+        if zonenname in {"UTC", "GMT", "UT", "Z"}:
+            zone = timezone.utc
+        elif offset:
+            stunden, minuten = int(offset[2]), int(offset[3] or "0")
+            if stunden > 18 or minuten > 59 or stunden == 18 and minuten:
+                raise ValueError(_("The ODS columns are invalid."))
+            zone = timezone(timedelta(minutes=(stunden * 60 + minuten) * (-1 if offset[1] == "-" else 1)))
+        else:
+            zone = ZoneInfo(zonenname)
         von = datetime.fromtimestamp(start * 60, timezone.utc).astimezone(zone)
         bis = datetime.fromtimestamp(ende * 60, timezone.utc).astimezone(zone) if ende is not None else None
+        von = lokale_projektion(eintrag, von, "localStartMinute")
+        bis = lokale_projektion(eintrag, bis, "localEndMinute")
         art, notiz = text(eintrag.get("type", ""), 120), text(eintrag.get("note", ""), 20000)
-        gesamtzeichen += len(art) + len(notiz)
+        gesamtzeichen += (len(art.encode("utf-16-le")) + len(notiz.encode("utf-16-le"))) // 2
         if gesamtzeichen > ODS_MAX_GESAMT:
             raise ValueError(_("The ODS export is too large."))
         if (von.year, von.month) == (jahr, monatszahl):
-            anpassung = int((bis.utcoffset() - von.utcoffset()).total_seconds() // 60) if bis else 0
-            tage.setdefault(von.day, []).append((von, bis, pause, art, notiz, str(zone), anpassung,
-                                               ende - start if ende is not None else None))
+            anpassung = (int((bis.replace(tzinfo=None, second=0, microsecond=0) -
+                              von.replace(tzinfo=None, second=0, microsecond=0)).total_seconds() // 60) -
+                         (ende - start)) if bis else 0
+            tage.setdefault(von.day, []).append((von, bis, pause, art, notiz, zonenname, anpassung,
+                                               ende - start if ende is not None else None, start))
     for eintraege_am_tag in tage.values():
-        eintraege_am_tag.sort(key=lambda eintrag: eintrag[0].timestamp())
+        eintraege_am_tag.sort(key=lambda eintrag: eintrag[-1])
 
     ns = ('xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" '
           'xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" '
@@ -11181,8 +11206,8 @@ def zeiterfassung_ods_bytes(bericht):
         tagesdatum = datetime(jahr, monatszahl, tag)
         tagesfeiertage = feiertage.get(tagesdatum.date().isoformat(), [])
         hintergrund = "Holiday" if tagesfeiertage else "Sunday" if tagesdatum.weekday() == 6 else ""
-        for von, bis, pause, art, notiz, zone, anpassung, brutto in tage.get(tag, [
-                (datetime(jahr, monatszahl, tag), None, 0, "", "", "", 0, None)]):
+        for von, bis, pause, art, notiz, zone, anpassung, brutto, _start in tage.get(tag, [
+                (datetime(jahr, monatszahl, tag), None, 0, "", "", "", 0, None, 0)]):
             n = 7 + len(rumpf)
             delta = 'ROUND(([.D%d]+[.E%d]-[.A%d]-[.C%d])*1440-[.J%d];0)' % ((n,) * 5)
             gross_formula = 'IF(COUNT([.A%d];[.C%d];[.D%d];[.E%d])=4;IF(%s<0;NA();%s/1440);"")' % (n, n, n, n, delta, delta)
@@ -12126,6 +12151,17 @@ def gesundheit_ods_bytes(tabellen):
         for name, daten in bilder:
             archiv.writestr(name, daten, compress_type=zipfile.ZIP_DEFLATED)
     return ausgabe.getvalue()
+
+
+def zeiterfassung_ods_exportieren(bericht, starter=None, welcher=None):
+    try:
+        daten = zeiterfassung_ods_bytes(bericht)
+        ordner = _temporaerer_ausgabeordner("magnolie-zeiterfassung-ods-")
+        pfad = os.path.join(ordner, "Magnolie-Zeiterfassung-%s.ods" % bericht["month"])
+        _private_ausgabe_schreiben(pfad, daten, binaer=True)
+    except (OSError, ValueError, TypeError, KeyError, ET.ParseError) as fehler:
+        return {"ok": False, "pfad": "", "womit": "", "fehler": str(fehler)}
+    return ods_oeffnen(pfad, starter=starter, welcher=welcher)
 
 
 def gesundheit_ods_schreiben(tabellen, ordner=None, dateiname=None):
@@ -16737,7 +16773,12 @@ def _openholidays_auswerten(rohtext, art):
             continue
         if not _ist_iso(bis) or bis < von:
             bis = von
-        eintraege.append({"von": von, "bis": bis, "name": name, "art": art})
+        regionen = sorted({wert["code"].strip().upper()
+                           for wert in satz.get("subdivisions", []) if isinstance(wert, dict)
+                           and isinstance(wert.get("code"), str)
+                           and re.fullmatch(r"[A-Z0-9-]{1,64}", wert["code"].strip().upper())}) if isinstance(satz.get("subdivisions", []), list) else []
+        eintraege.append({"von": von, "bis": bis, "name": name, "art": art,
+                          "nationwide": satz.get("nationwide") is True, "regions": regionen})
     return eintraege
 
 
@@ -16774,9 +16815,7 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
     if region and regions_liste:
         regions_liste = []
     if region_erforderlich and not region and not regions_liste:
-        raise RuntimeError(_("Select your canton first or enable “All cantons”.")
-                           if land == "CH" else
-                           _("Select your state first or enable “All states”."))
+        ferien = False  # Country-wide public holidays remain available without a subdivision.
 
     ziele = [(region, "")] if region else (regions_liste or [("", "")])
     from magnolie_setup_ui import REGIONS_BY_COUNTRY, school_holiday_region
@@ -16814,6 +16853,9 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
                         continue      # Schulferien sind nicht überall gepflegt
                     raise
                 for eintrag in eintraege:
+                    eintrag["country"] = land
+                    if not eintrag["nationwide"] and not eintrag["regions"] and region_code:
+                        eintrag["regions"] = [region_code]
                     eintrag["region"] = region_code
                     eintrag["regionName"] = region_name
                     gesammelt.append(eintrag)
@@ -16825,7 +16867,10 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
         schluessel = (e["von"], e["bis"], kanonischer_text(e["name"]), e["art"])
         gruppe = gruppen.setdefault(schluessel, {
             "von": e["von"], "bis": e["bis"], "name": e["name"],
-            "art": e["art"], "regionen": set(), "codes": set()})
+            "art": e["art"], "regionen": set(), "codes": set(), "country": land,
+            "nationwide": False, "scopes": set()})
+        gruppe["nationwide"] = gruppe["nationwide"] or e["nationwide"]
+        gruppe["scopes"].update(e["regions"])
         if e.get("regionName"):
             gruppe["regionen"].add(e["regionName"])
         if e.get("region"):
@@ -16836,6 +16881,7 @@ def feiertage_abrufen(land, region, jahre, ferien=True, holer=None,
     for gruppe in gruppen.values():
         namen = sorted(gruppe.pop("regionen"), key=str.casefold)
         codes = sorted(gruppe.pop("codes"))
+        gruppe["regions"] = sorted(gruppe.pop("scopes"))
         if regions_liste and namen:
             if len(namen) == len(alle_namen):
                 zusatz = (_("all cantons") if land == "CH" else _("all states"))
@@ -19492,6 +19538,9 @@ class Fenster(_FENSTER_BASIS):
         self._cloud_sicherung_secrets = ArchiveSecretStore()
         self._cloud_sicherung_sperre = threading.Lock()
         self._daten_sperre = threading.RLock()
+        self._zeit_abgleich_ausgang = queue.Queue()
+        self._zeit_abgleich_ausgang_sperre = threading.Lock()
+        self._zeit_abgleich_ausgang_aktiv = False
         self._speicher_auftraege = queue.Queue()
         self._speicher_laeuft = False
         self._speicher_thread = threading.Thread(
@@ -20914,11 +20963,12 @@ class Fenster(_FENSTER_BASIS):
                 nachricht.get("customTab"), nachricht.get("baumAktiv")), daemon=True).start()
 
         elif befehl == "personal_sync_senden":
-            threading.Thread(target=lambda: self._personal_sync_senden(
-                nachricht.get("kennung") or "", nachricht.get("art") or "",
-                nachricht.get("inhalt") or {},
-                (nachricht.get("inhalt") or {}).get("trigger") or "manual"),
-                daemon=True).start()
+            argumente = (nachricht.get("kennung") or "", nachricht.get("art") or "",
+                nachricht.get("inhalt") or {}, (nachricht.get("inhalt") or {}).get("trigger") or "manual")
+            if argumente[1] in ("personal_sync.time_batch", "personal_sync.time_request"):
+                self._zeit_abgleich_senden_geordnet(argumente)
+            else:
+                threading.Thread(target=self._personal_sync_senden, args=argumente, daemon=True).start()
 
         elif befehl == "personal_sync_lauf_senden":
             threading.Thread(target=lambda: self._personal_sync_lauf_senden(
@@ -21106,6 +21156,10 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=lambda: self.antwort(
                 "App.adressWeg", gesundheit_ods_exportieren(
                     nachricht.get("tabellen"))), daemon=True).start()
+
+        elif befehl == "zeit_ods":
+            threading.Thread(target=lambda: self.antwort(
+                "App.adressWeg", zeiterfassung_ods_exportieren(nachricht.get("sheet"))), daemon=True).start()
 
         elif befehl == "planer_ods":
             threading.Thread(target=lambda: self.antwort(
@@ -21697,6 +21751,15 @@ class Fenster(_FENSTER_BASIS):
         self._journal_timer = GLib.timeout_add_seconds(15 * 60,
                                                        self._journal_periodisch)
 
+    def _zeit_abgleich_pausieren(self):
+        """Revoke time consent durably before replacing the application document."""
+        telefon = getattr(self, "_telefon", None)
+        if telefon is None:
+            return
+        for peer in telefon.report().get("peers", []):
+            if peer.get("time_sync", {}).get("local", {}).get("enabled") is True:
+                telefon.send_personal_sync(peer["device_id"], "personal_sync.time_settings", {"enabled": False})
+
     def _journal_wiederherstellen(self, snapshot_id, bereiche=None, modus="replace"):
         if (getattr(self, "_operation_laeuft", False) or
                 getattr(self, "_sync_laeuft", False)):
@@ -21717,6 +21780,7 @@ class Fenster(_FENSTER_BASIS):
                     raise ValueError(_("The save request is invalid."))
                 daten = journal_restore_daten(
                     gelesen["daten"], self._aktuelle_daten, bereiche, modus)
+                Fenster._zeit_abgleich_pausieren(self)
                 klar = json.dumps(daten, ensure_ascii=False, indent=1)
                 atomar_text_schreiben(daten_datei(), self._vielleicht_verschluesseln(klar))
                 self._aktuelle_daten = daten
@@ -22089,6 +22153,7 @@ class Fenster(_FENSTER_BASIS):
                     aktuell = json.loads(entschluesseln(roh, getattr(self, "_kennwort", ""))
                                          if ist_verschluesselt(roh) else roh)
                 gelesen["daten"] = journal_restore_daten(gelesen["daten"], aktuell)
+                Fenster._zeit_abgleich_pausieren(self)
                 klar = json.dumps(gelesen["daten"], ensure_ascii=False, indent=1)
                 if ziel_kennwort:
                     (neue_dateien["daten.json"], daten_dek,
@@ -22226,6 +22291,7 @@ class Fenster(_FENSTER_BASIS):
                 if os.path.isfile(daten_datei()) and not vorher["snapshotId"]:
                     raise OSError("Der bisherige Datenbestand konnte nicht gesichert werden.")
                 importiert = journal_restore_daten(importiert, lokal)
+                Fenster._zeit_abgleich_pausieren(self)
                 klar = json.dumps(importiert, ensure_ascii=False, indent=1)
                 if self._kennwort:
                     gespeichert = daten_verschluesseln(
@@ -22338,6 +22404,10 @@ class Fenster(_FENSTER_BASIS):
                     mit_aktion=False, eigene_schleife=False) and False)
         elif art == "personal_custom_request":
             self.antwort("App.personalCustomRequest", nutzlast)
+        elif art == "personal_time_request":
+            self.antwort("App.personalTimeRequest", nutzlast)
+        elif art == "personal_time_batch":
+            self.antwort("App.personalTimeBatch", nutzlast)
         elif art == "personal_custom_ack":
             self.antwort("App.personalCustomAck", nutzlast)
         elif art == "personal_sync":
@@ -22703,6 +22773,26 @@ class Fenster(_FENSTER_BASIS):
             self._telefon_fehler = fehler_deutsch(fehler, "Persönlicher Sync")
         self._telefon_stand_melden()
 
+    def _zeit_abgleich_senden_geordnet(self, argumente):
+        # GUI order must survive asynchronous RPC dispatch, including calendar
+        # snapshots. Consent changes stay on their independent revocation path.
+        with self._zeit_abgleich_ausgang_sperre:
+            self._zeit_abgleich_ausgang.put(argumente)
+            if self._zeit_abgleich_ausgang_aktiv:
+                return
+            self._zeit_abgleich_ausgang_aktiv = True
+
+        def senden():
+            while True:
+                with self._zeit_abgleich_ausgang_sperre:
+                    try:
+                        auftrag = self._zeit_abgleich_ausgang.get_nowait()
+                    except queue.Empty:
+                        self._zeit_abgleich_ausgang_aktiv = False
+                        return
+                self._personal_sync_senden(*auftrag)
+        threading.Thread(target=senden, daemon=True).start()
+
     def _personal_sync_senden(self, kennung, art, inhalt, trigger):
         try:
             if not self._telefon:
@@ -22710,7 +22800,7 @@ class Fenster(_FENSTER_BASIS):
             self._telefon.send_personal_sync(kennung, art, inhalt, trigger)
         except Exception as fehler:
             self.antwort("App.personalSyncFehler", {"fehler": _("Personal synchronization failed.")
-                if art.startswith("personal_sync.custom_") else fehler_deutsch(fehler, "Persönlicher Sync")})
+                if art.startswith(("personal_sync.custom_", "personal_sync.time_")) else fehler_deutsch(fehler, "Persönlicher Sync")})
 
     def _personal_sync_notizrichtung(self, kennung, modus):
         try:

@@ -501,6 +501,10 @@ msgstr "Typ účtu"
 msgid "Active call"
 msgstr "Aktivní hovor"
 
+msgctxt "time tracking"
+msgid "Activity"
+msgstr "Činnost"
+
 msgid "Add"
 msgstr "Přidat"
 
@@ -585,6 +589,10 @@ msgstr "Vše"
 
 msgid "All cantons"
 msgstr "Všechny kantony"
+
+msgctxt "time tracking"
+msgid "All days"
+msgstr "Všechny dny"
 
 msgid "All entries"
 msgstr "Všechny záznamy"
@@ -1174,6 +1182,14 @@ msgstr "Zkontrolovat nyní"
 msgid "Check spelling (red wavy lines)"
 msgstr "Kontrolovat pravopis (červené vlnovky)"
 
+msgctxt "time tracking"
+msgid ""
+"Check the dates, times and pause. The selected local time must exist in this "
+"time zone."
+msgstr ""
+"Zkontrolujte data, časy a přestávku. Vybraný místní čas musí v tomto časovém "
+"pásmu existovat."
+
 msgid "Check the value and discuss repeated deviations with a doctor."
 msgstr "Zkontrolujte hodnotu a opakované odchylky konzultujte s lékařem."
 
@@ -1330,6 +1346,10 @@ msgid ""
 msgstr ""
 "Kliknutím na existující schůzku ji v obou případech otevřete pro úpravy. "
 "Toto nastavení platí pouze při kliknutí na prázdné místo v poli."
+
+msgctxt "time tracking"
+msgid "Clock change (min)"
+msgstr "Změna času (min)"
 
 msgid "Close"
 msgstr "Zavřít"
@@ -1665,6 +1685,10 @@ msgstr "Poškozený"
 msgid "Date"
 msgstr "Datum"
 
+msgctxt "time tracking"
+msgid "Date"
+msgstr "Datum"
+
 msgid "Date format"
 msgstr "Formát data"
 
@@ -1948,6 +1972,10 @@ msgstr "Doba trvání"
 msgid "Early shift"
 msgstr "Ranní směna"
 
+msgctxt "time tracking"
+msgid "Early shift"
+msgstr "Ranní směna"
+
 msgid "Edit"
 msgstr "Upravit"
 
@@ -1968,6 +1996,10 @@ msgstr "Upravit zápisník"
 
 msgid "Edit notebook group"
 msgstr "Upravit skupinu zápisníků"
+
+msgctxt "time tracking"
+msgid "Edit record"
+msgstr "Upravit záznam"
 
 msgid "Edit task"
 msgstr "Upravit úkol"
@@ -2056,6 +2088,10 @@ msgstr ""
 msgid "Enable this SMS plan"
 msgstr "Povolit tento plán SMS"
 
+msgctxt "time tracking"
+msgid "Enable time tracking"
+msgstr "Zapnout evidenci času"
+
 msgid "Enable tray applet"
 msgstr "Povolit aplet oznamovací oblasti"
 
@@ -2070,6 +2106,14 @@ msgid ""
 msgstr ""
 "Povolením tohoto plánu umožníte odeslání jeho zpožděné SMS, když je "
 "plánování zapnuté."
+
+msgctxt "time tracking"
+msgid "End"
+msgstr "Konec"
+
+msgctxt "time tracking"
+msgid "End date"
+msgstr "Datum konce"
 
 msgid "Enjoy getting organized!"
 msgstr "Ať se vám dobře organizuje!"
@@ -2494,6 +2538,10 @@ msgstr "Návštěva doma"
 msgid "Hours"
 msgstr "Hodiny"
 
+msgctxt "time tracking"
+msgid "Hours"
+msgstr "Hodiny"
+
 msgid "How lovely that you chose Magnolie"
 msgstr "Jsme rádi, že jste si vybrali Magnolie"
 
@@ -2757,6 +2805,10 @@ msgstr "Poslední synchronizace: %(date)s, %(time)s."
 msgid "Late shift"
 msgstr "Odpolední směna"
 
+msgctxt "time tracking"
+msgid "Late shift"
+msgstr "Odpolední směna"
+
 msgid "Lead time"
 msgstr "Předstih"
 
@@ -2948,6 +3000,10 @@ msgctxt "recovery snapshot reason"
 msgid "Manual"
 msgstr "Vlastní"
 
+msgctxt "time tracking"
+msgid "Manual entry"
+msgstr "Ruční záznam"
+
 msgid "Manual only"
 msgstr "Pouze ručně"
 
@@ -3072,6 +3128,10 @@ msgstr "Pondělí"
 msgid "Month"
 msgstr "Měsíc"
 
+msgctxt "time tracking"
+msgid "Month"
+msgstr "Měsíc"
+
 msgid "Month calendar"
 msgstr "Měsíční kalendář"
 
@@ -3133,6 +3193,10 @@ msgstr ""
 msgid "Multiple calendars"
 msgstr "Více kalendářů"
 
+msgid "Name"
+msgstr "Jméno"
+
+msgctxt "time tracking"
 msgid "Name"
 msgstr "Jméno"
 
@@ -3251,6 +3315,10 @@ msgstr "Noc"
 msgid "Night shift"
 msgstr "Noční směna"
 
+msgctxt "time tracking"
+msgid "Night shift"
+msgstr "Noční směna"
+
 msgid "No"
 msgstr "Ne"
 
@@ -3357,20 +3425,6 @@ msgstr "Nebyla vybrána žádná fotografie"
 msgid "No public IP address was found."
 msgstr "Nebyla nalezena žádná veřejná IP adresa."
 
-msgid ""
-"No regional data is retrieved without a selected canton. With “All”, each "
-"entry shows its canton and matching periods are combined."
-msgstr ""
-"Bez vybraného kantonu se regionální data nenačítají. Při volbě „Vše“ se u "
-"každé položky zobrazí její kanton a shodná období se sloučí."
-
-msgid ""
-"No regional data is retrieved without a selected state. With “All”, each "
-"entry shows its state and matching periods are combined."
-msgstr ""
-"Bez vybrané spolkové země se regionální data nenačítají. Při volbě „Vše“ se "
-"u každé položky zobrazí její spolková země a shodná období se sloučí."
-
 msgid "No scheme row matches this blood glucose value."
 msgstr "Tomuto údaji krevní glukózy neodpovídá žádný řádek schématu."
 
@@ -3400,6 +3454,10 @@ msgstr "Bez tabulky (pouze průběh)"
 
 msgid "No task linked yet."
 msgstr "Zatím není připojen žádný úkol."
+
+msgctxt "time tracking"
+msgid "No time recorded yet."
+msgstr "Zatím není zaznamenán žádný čas."
 
 msgid "No update check has been performed yet."
 msgstr "Kontrola aktualizací zatím nebyla provedena."
@@ -3840,6 +3898,14 @@ msgstr "Vložit"
 msgid "Patch"
 msgstr "Náplast"
 
+msgctxt "time tracking"
+msgid "Pause (minutes)"
+msgstr "Přestávka (minuty)"
+
+msgctxt "time tracking"
+msgid "Paused"
+msgstr "Pozastaveno"
+
 msgid "Paused — review required"
 msgstr "Pozastaveno — vyžaduje kontrolu"
 
@@ -4155,6 +4221,9 @@ msgstr "Chráněné heslo archivu není dostupné."
 msgid "Public IPv4 or IPv6 address of the other branch"
 msgstr "Veřejná adresa IPv4 nebo IPv6 druhé větve"
 
+msgid "Public holidays"
+msgstr "Státní svátky"
+
 msgid ""
 "Public holidays and school holidays are governed regionally. Choose which "
 "ones apply here."
@@ -4197,6 +4266,10 @@ msgstr "Důvod"
 
 msgid "Reconnect"
 msgstr "Znovu se připojte"
+
+msgctxt "time tracking"
+msgid "Recorded times"
+msgstr "Zaznamenané časy"
 
 msgid "Recovery snapshot created."
 msgstr "Snímek obnovy byl vytvořen."
@@ -4439,6 +4512,10 @@ msgstr "Trasa"
 msgid "Route: calculate directions immediately"
 msgstr "Trasa: ihned vypočítat pokyny"
 
+msgctxt "time tracking"
+msgid "Running"
+msgstr "Probíhá"
+
 msgid "S"
 msgstr "S"
 
@@ -4651,14 +4728,8 @@ msgstr "Nejprve něco vyberte."
 msgid "Select what you want to print on the left."
 msgstr "Vlevo vyberte, co chcete vytisknout."
 
-msgid "Select your canton first or enable “All cantons”."
-msgstr "Nejprve vyberte kanton nebo zapněte „Všechny kantony“."
-
 msgid "Select your phone"
 msgstr "Vyberte svůj telefon"
-
-msgid "Select your state first or enable “All states”."
-msgstr "Nejprve vyberte spolkovou zemi nebo zapněte „Všechny země“."
 
 msgid "Select, preview, print, export or delete health records"
 msgstr ""
@@ -4847,6 +4918,10 @@ msgstr ""
 "Přihlášení se nezdařilo. Zkontrolujte účet a způsob ověření požadovaný "
 "poskytovatelem."
 
+msgctxt "time tracking"
+msgid "Signature"
+msgstr "Podpis"
+
 msgid "Signed in to Microsoft."
 msgstr "Přihlášeni k Microsoftu."
 
@@ -4941,6 +5016,10 @@ msgstr "Sprej"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
+
+msgctxt "time tracking"
+msgid "Start"
+msgstr "Začátek"
 
 msgid "Start Magnolie"
 msgstr "Spustit Magnolie"
@@ -5225,8 +5304,17 @@ msgstr "Odpověď Nextcloudu byla neúplná."
 msgid "The Nextcloud settings are invalid."
 msgstr "Nastavení Nextcloud je neplatné."
 
+msgid "The ODS columns are invalid."
+msgstr "Sloupce ODS jsou neplatné."
+
 msgid "The ODS export is too large."
 msgstr "Export ODS je příliš velký."
+
+msgid "The ODS row count is invalid."
+msgstr "Počet řádků ODS je neplatný."
+
+msgid "The ODS title is invalid."
+msgstr "Název ODS je neplatný."
 
 msgid "The Organizer chooses a suitable installed application."
 msgstr "Organizér vybere vhodnou nainstalovanou aplikaci."
@@ -5416,6 +5504,10 @@ msgstr "Datum konce nemůže být před datem začátku."
 
 msgid "The entry could not be found."
 msgstr "Položka nebyla nalezena."
+
+msgctxt "time tracking"
+msgid "The entry could not be saved. Reload it and try again."
+msgstr "Záznam se nepodařilo uložit. Otevřete jej znovu a opakujte pokus."
 
 msgid "The export data is missing."
 msgstr "Chybí exportní data."
@@ -6042,8 +6134,16 @@ msgstr "Ticino"
 msgid "Time"
 msgstr "Čas"
 
+msgctxt "time tracking"
+msgid "Time"
+msgstr "Čas"
+
 msgid "Time format"
 msgstr "Formát času"
+
+msgctxt "time tracking"
+msgid "Time tracking"
+msgstr "Evidence času"
 
 msgid "Time zone"
 msgstr "Časové pásmo"
@@ -6086,6 +6186,14 @@ msgstr "Příliš mnoho nedokončených synchronizací."
 msgid "Top level"
 msgstr "Nejvyšší úroveň"
 
+msgctxt "time tracking"
+msgid "Total"
+msgstr "Součet"
+
+msgctxt "time tracking"
+msgid "Total time"
+msgstr "Celkový čas"
+
 msgid "Tray applet"
 msgstr "Applet oznamovací oblasti"
 
@@ -6100,6 +6208,10 @@ msgstr "Vrátit zpět"
 
 msgid "Turn forward"
 msgstr "Posunout vpřed"
+
+msgctxt "time tracking"
+msgid "Turning tracking off keeps existing records."
+msgstr "Vypnutím se stávající záznamy zachovají."
 
 msgid "Two days back"
 msgstr "O dva dny zpět"
@@ -6556,6 +6668,13 @@ msgstr ""
 
 msgid "With photo"
 msgstr "S fotografií"
+
+msgid ""
+"Without a selected region, all available public holidays of the country "
+"apply. School holidays need a region or the All selection."
+msgstr ""
+"Bez vybraného regionu platí všechny dostupné svátky země. Školní prázdniny "
+"vyžadují region nebo volbu Všechny."
 
 msgid ""
 "Without a shell; {ziel}, {wert}, and {nummer} can be used as placeholders. "
@@ -7047,6 +7166,26 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected canton. With “All”, each "
+#~ "entry shows its canton and matching periods are combined."
+#~ msgstr ""
+#~ "Bez vybraného kantonu se regionální data nenačítají. Při volbě „Vše“ se u "
+#~ "každé položky zobrazí její kanton a shodná období se sloučí."
+
+#~ msgid ""
+#~ "No regional data is retrieved without a selected state. With “All”, each "
+#~ "entry shows its state and matching periods are combined."
+#~ msgstr ""
+#~ "Bez vybrané spolkové země se regionální data nenačítají. Při volbě „Vše“ "
+#~ "se u každé položky zobrazí její spolková země a shodná období se sloučí."
+
+#~ msgid "Select your canton first or enable “All cantons”."
+#~ msgstr "Nejprve vyberte kanton nebo zapněte „Všechny kantony“."
+
+#~ msgid "Select your state first or enable “All states”."
+#~ msgstr "Nejprve vyberte spolkovou zemi nebo zapněte „Všechny země“."
 
 #~ msgid "Consider deletions during manual synchronization"
 #~ msgstr "Synchronizace kontaktů"

@@ -1,8 +1,8 @@
 {
   "schema": "magnolie-linux-parity-v1",
   "sources": {
-    "web/anwendung.js": "f40c8916e89773311a1da4493e5435880e2c3b3572abb697648f12387838e9f3",
-    "bin/magnolie-organizer": "c1cd9febdf95891c40009fe30c4286e2427e1aa05aaceafe5ca72d88ea8405c4"
+    "web/anwendung.js": "8fdcab417132037fc907b2ec0ec07669d29117ae90ddc358422d7e8f1ba55cd8",
+    "bin/magnolie-organizer": "5bd4aa4ed4d39b33d043d459b57112b76aee7771266220572bc920eafa4f2059"
   },
   "commands": [
     "ablage_holen",
@@ -118,7 +118,8 @@
     "update_pruefen",
     "vorschlaege",
     "wetter",
-    "wort_merken"
+    "wort_merken",
+    "zeit_ods"
   ],
   "callbacks": [
     "ablage",
@@ -157,6 +158,8 @@
     "personalCustomRequest",
     "personalSync",
     "personalSyncFehler",
+    "personalTimeBatch",
+    "personalTimeRequest",
     "protokollStand",
     "regionalErgebnis",
     "sicherungAusgewaehlt",
@@ -335,6 +338,78 @@
     [
       [
         "cmd",
+        "\"personal_sync_senden\""
+      ],
+      [
+        "kennung",
+        "kennung"
+      ],
+      [
+        "art",
+        "\"personal_sync.time_settings\""
+      ],
+      [
+        "inhalt",
+        "{ enabled }"
+      ]
+    ],
+    [
+      [
+        "cmd",
+        "\"personal_sync_senden\""
+      ],
+      [
+        "kennung",
+        "id"
+      ],
+      [
+        "art",
+        "\"personal_sync.time_batch\""
+      ],
+      [
+        "inhalt",
+        "inhalt"
+      ]
+    ],
+    [
+      [
+        "cmd",
+        "\"personal_sync_senden\""
+      ],
+      [
+        "kennung",
+        "id"
+      ],
+      [
+        "art",
+        "\"personal_sync.time_request\""
+      ],
+      [
+        "inhalt",
+        "header"
+      ]
+    ],
+    [
+      [
+        "cmd",
+        "\"personal_sync_senden\""
+      ],
+      [
+        "kennung",
+        "peer.device_id"
+      ],
+      [
+        "art",
+        "\"personal_sync.time_settings\""
+      ],
+      [
+        "inhalt",
+        "{ enabled: false }"
+      ]
+    ],
+    [
+      [
+        "cmd",
         "\"personal_sync_lauf_senden\""
       ],
       [
@@ -399,5 +474,5 @@
       ]
     ]
   ],
-  "contractSha256": "1d974d224d3440f4584ea9c1d3af35089fef53486d7dd2561447340238e244d3"
+  "contractSha256": "5f39a9d07e4a698a16e72fea0f749358b0b3e2ffa0db31b653bda5b5f8079828"
 }
