@@ -500,6 +500,9 @@ msgstr "Anhang-URI hinzufügen"
 msgid "Add attendee"
 msgstr "Teilnehmer hinzufügen"
 
+msgid "Add contact group"
+msgstr "Personengruppe hinzufügen"
+
 msgid "Add cycle marker"
 msgstr "Zyklusmarkierung hinzufügen"
 
@@ -1350,6 +1353,9 @@ msgstr ""
 "Fällen zum Bearbeiten. Gemeint ist hier nur der Klick auf eine freie Stelle "
 "im Kästchen."
 
+msgid "Client"
+msgstr "Klient"
+
 msgctxt "time tracking"
 msgid "Clock change (min)"
 msgstr "Zeitumstellung (Min.)"
@@ -1513,6 +1519,9 @@ msgstr "Visitenkarten (*.vcf)"
 
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Kontakt-Löschvorschläge wurden durch die Sicherheitsgrenze blockiert."
+
+msgid "Contact groups"
+msgstr "Personengruppen"
 
 msgid "Contact photo preview"
 msgstr "Vorschau des Kontaktfotos"
@@ -1931,6 +1940,9 @@ msgstr "Darstellung"
 msgid "Do not retrieve weather without a location"
 msgstr "Wetter ohne Ort nicht abrufen"
 
+msgid "Doctor"
+msgstr "Arzt"
+
 msgid "Doctor appointment"
 msgstr "Arztbesuch"
 
@@ -2274,6 +2286,9 @@ msgstr "Fahrenheit (°F)"
 
 msgid "Failed"
 msgstr "Fehlgeschlagen"
+
+msgid "Family"
+msgstr "Familie"
 
 msgid "Fasting"
 msgstr "Nüchtern"
@@ -2741,6 +2756,9 @@ msgstr "Installierte Handbuchfassung: %(version)s."
 
 msgid "Insulin scheme"
 msgstr "Insulinschema"
+
+msgid "Insurance"
+msgstr "Versicherung"
 
 msgid "Integrity"
 msgstr "Unversehrtheit"
@@ -6296,6 +6314,9 @@ msgstr "Summe"
 msgctxt "time tracking"
 msgid "Total time"
 msgstr "Gesamtzeit"
+
+msgid "Tradesperson"
+msgstr "Handwerker"
 
 msgid "Tray applet"
 msgstr "Tray-Applet"

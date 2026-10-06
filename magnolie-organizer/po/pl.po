@@ -734,6 +734,9 @@ msgstr "Dodaj URI załącznika"
 msgid "Add attendee"
 msgstr "Dodaj uczestnika"
 
+msgid "Add contact group"
+msgstr "Dodaj grupę kontaktów"
+
 msgid "Add cycle marker"
 msgstr "Dodaj znacznik cyklu"
 
@@ -1715,6 +1718,9 @@ msgstr ""
 "Kliknięcie istniejącego spotkania w obu przypadkach otwiera je do edycji. To "
 "ustawienie dotyczy tylko kliknięcia pustego miejsca w polu."
 
+msgid "Client"
+msgstr "Klient"
+
 msgctxt "time tracking"
 msgid "Clock change (min)"
 msgstr "Zmiana czasu (min)"
@@ -1896,6 +1902,9 @@ msgstr "Karty kontaktów (*.vcf)"
 
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Propozycje usunięcia kontaktów zablokowano limitem bezpieczeństwa."
+
+msgid "Contact groups"
+msgstr "Grupy kontaktów"
 
 msgid "Contact photo preview"
 msgstr "Podgląd zdjęcia kontaktu"
@@ -2390,6 +2399,9 @@ msgstr "Ekran: brak"
 msgid "Do not retrieve weather without a location"
 msgstr "Nie pobieraj pogody bez lokalizacji"
 
+msgid "Doctor"
+msgstr "Lekarz"
+
 msgid "Doctor appointment"
 msgstr "Wizyta u lekarza"
 
@@ -2777,6 +2789,9 @@ msgstr "Fahrenheit (°F)"
 
 msgid "Failed"
 msgstr "Niepowodzenie"
+
+msgid "Family"
+msgstr "Rodzina"
 
 msgid "Fasting"
 msgstr "Na czczo"
@@ -3300,6 +3315,9 @@ msgstr "Zainstalowana wersja ręczna: %(version)s."
 
 msgid "Insulin scheme"
 msgstr "Schemat insulinoterapii"
+
+msgid "Insurance"
+msgstr "Ubezpieczenie"
 
 msgid "Integrity"
 msgstr "Integralność"
@@ -7731,6 +7749,9 @@ msgstr "Suma"
 msgctxt "time tracking"
 msgid "Total time"
 msgstr "Łączny czas"
+
+msgid "Tradesperson"
+msgstr "Rzemieślnik"
 
 msgid "Transfer received text to the clipboard"
 msgstr "Przenieś odebrany tekst do schowka"

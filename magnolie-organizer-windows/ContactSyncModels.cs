@@ -50,17 +50,33 @@ internal static class ContactFields
     internal static string ContentHash(JsonObject contact) => SyncBaseline.Hash(ContentProjection(contact), Names);
 
     internal static string ConflictContentHash(JsonObject contact)
-        => SyncBaseline.Hash(ConflictProjection(contact), Names);
+        => SyncBaseline.Hash(ConflictProjection(contact), Names.Append("gruppen").ToArray());
 
     internal static JsonObject ConflictProjection(JsonObject contact)
     {
+        var groups = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var line in (contact["vcardRoundtrip"] as JsonArray ?? []).OfType<JsonValue>())
+        {
+            if (!line.TryGetValue<string>(out var text)) continue;
+            var match = System.Text.RegularExpressions.Regex.Match(text, @"^(?:[A-Za-z0-9-]+\.)?CATEGORIES(?:;[^:]*)?:(.*)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (!match.Success) continue;
+            var part = new System.Text.StringBuilder(); var escaped = false;
+            foreach (var character in match.Groups[1].Value + ",") {
+                if (escaped) { part.Append(character is 'n' or 'N' ? ' ' : character); escaped = false; }
+                else if (character == '\\') escaped = true;
+                else if (character == ',') { var value = part.ToString().Trim(); if (value.Length > 0) groups.Add(value); part.Clear(); }
+                else part.Append(character);
+            }
+        }
         var copy = contact.DeepClone().AsObject();
         copy["foto"] = "";
         if (copy["vcardRoundtrip"] is JsonArray lines)
             copy["vcardRoundtrip"] = new JsonArray(lines.Where(line => line is JsonValue value && value.TryGetValue<string>(out var text) &&
-                !System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:[A-Za-z0-9-]+\.)?(?:PHOTO|REV|PRODID|VERSION|UID|N|FN|TEL|EMAIL|ADR|BDAY|ORG|NOTE|X-ABLABEL|X-EVOLUTION-WEBDAV-ETAG)[;:]", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                !System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:[A-Za-z0-9-]+\.)?(?:PHOTO|REV|PRODID|VERSION|UID|N|FN|TEL|EMAIL|ADR|BDAY|ORG|NOTE|X-ABLABEL|X-EVOLUTION-WEBDAV-ETAG|CATEGORIES)[;:]", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
                 .Select(line => line!.DeepClone()).ToArray());
-        return ContentProjection(copy);
+        var projection = ContentProjection(copy);
+        projection["gruppen"] = new JsonArray(groups.Select(value => JsonValue.Create(value)).ToArray());
+        return projection;
     }
 
     internal static bool NonConflicting(JsonNode? left, JsonNode? right)

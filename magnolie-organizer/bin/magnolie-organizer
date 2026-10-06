@@ -6253,8 +6253,14 @@ def _kontakt_konflikt_inhalt(obj):
         inhalt.pop(feld, None)
     inhalt["telefone"] = sorted(_kontakt_telefone(obj))
     inhalt["emails"] = sorted({wert.casefold() for wert in _email_liste(obj)})
+    groups = set()
+    for line in obj.get('vcardRoundtrip') or []:
+        prop = _prop_zerlegen(line) if isinstance(line, str) else None
+        if prop and prop[0] == 'CATEGORIES':
+            groups.update(_ical_unescape(value).strip() for value in _semikolon_teile(prop[2], ','))
+    inhalt['gruppen'] = sorted(value for value in groups if value)
     inhalt["vcardRoundtrip"] = sorted(zeile for zeile in obj.get("vcardRoundtrip") or []
-        if not re.match(r"^(?:[A-Za-z0-9-]+\.)?(?:PHOTO|REV|PRODID|VERSION|UID|N|FN|TEL|EMAIL|ADR|BDAY|ORG|NOTE|X-ABLABEL|X-EVOLUTION-WEBDAV-ETAG)[;:]", zeile, re.I))
+        if not re.match(r"^(?:[A-Za-z0-9-]+\.)?(?:PHOTO|REV|PRODID|VERSION|UID|N|FN|TEL|EMAIL|ADR|BDAY|ORG|NOTE|X-ABLABEL|X-EVOLUTION-WEBDAV-ETAG|CATEGORIES)[;:]", zeile, re.I))
     def normal(wert):
         if wert is None or wert == "": return None
         if isinstance(wert, dict):

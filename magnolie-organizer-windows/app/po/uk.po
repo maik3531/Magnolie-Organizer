@@ -525,6 +525,9 @@ msgstr "Додати URI вкладення"
 msgid "Add attendee"
 msgstr "Додати учасника"
 
+msgid "Add contact group"
+msgstr "Додати групу контактів"
+
 msgid "Add cycle marker"
 msgstr "Додати позначку циклу"
 
@@ -1364,6 +1367,9 @@ msgstr ""
 "Клацання на наявній зустрічі в обох випадках відкриває її для редагування. "
 "Це налаштування діє лише під час клацання на порожній ділянці поля."
 
+msgid "Client"
+msgstr "Клієнт"
+
 msgctxt "time tracking"
 msgid "Clock change (min)"
 msgstr "Переведення годинника (хв)"
@@ -1521,6 +1527,9 @@ msgstr "Картки контактів (*.vcf)"
 
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Пропозиції видалення контактів заблоковано межею безпеки."
+
+msgid "Contact groups"
+msgstr "Групи контактів"
 
 msgid "Contact photo preview"
 msgstr "Попередній перегляд фото контакту"
@@ -1931,6 +1940,9 @@ msgstr "Дисплей"
 msgid "Do not retrieve weather without a location"
 msgstr "Не отримувати погоду без місця"
 
+msgid "Doctor"
+msgstr "Лікар"
+
 msgid "Doctor appointment"
 msgstr "Прийом у лікаря"
 
@@ -2269,6 +2281,9 @@ msgstr "Фаренгейт (°F)"
 
 msgid "Failed"
 msgstr "Не вдалося"
+
+msgid "Family"
+msgstr "Сім’я"
 
 msgid "Fasting"
 msgstr "Натще"
@@ -2732,6 +2747,9 @@ msgstr "Встановлена ручна версія: %(version)s."
 
 msgid "Insulin scheme"
 msgstr "Схема інсулінотерапії"
+
+msgid "Insurance"
+msgstr "Страхування"
 
 msgid "Integrity"
 msgstr "Цілісність"
@@ -6241,6 +6259,9 @@ msgstr "Разом"
 msgctxt "time tracking"
 msgid "Total time"
 msgstr "Загальний час"
+
+msgid "Tradesperson"
+msgstr "Майстер"
 
 msgid "Tray applet"
 msgstr "Аплет системного лотка"

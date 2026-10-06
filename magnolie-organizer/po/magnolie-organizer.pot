@@ -662,6 +662,9 @@ msgstr ""
 msgid "Add attendee"
 msgstr ""
 
+msgid "Add contact group"
+msgstr ""
+
 msgid "Add cycle marker"
 msgstr ""
 
@@ -1567,6 +1570,9 @@ msgid ""
 "setting applies only when you click an empty area in the box."
 msgstr ""
 
+msgid "Client"
+msgstr ""
+
 msgctxt "time tracking"
 msgid "Clock change (min)"
 msgstr ""
@@ -1736,6 +1742,9 @@ msgid "Contact cards (*.vcf)"
 msgstr ""
 
 msgid "Contact deletion proposals were blocked by the safety limit."
+msgstr ""
+
+msgid "Contact groups"
 msgstr ""
 
 msgid "Contact photo preview"
@@ -2212,6 +2221,9 @@ msgstr ""
 msgid "Do not retrieve weather without a location"
 msgstr ""
 
+msgid "Doctor"
+msgstr ""
+
 msgid "Doctor appointment"
 msgstr ""
 
@@ -2576,6 +2588,9 @@ msgid "Fahrenheit (°F)"
 msgstr ""
 
 msgid "Failed"
+msgstr ""
+
+msgid "Family"
 msgstr ""
 
 msgid "Fasting"
@@ -3059,6 +3074,9 @@ msgid "Installed manual version: %(version)s."
 msgstr ""
 
 msgid "Insulin scheme"
+msgstr ""
+
+msgid "Insurance"
 msgstr ""
 
 msgid "Integrity"
@@ -7170,6 +7188,9 @@ msgstr ""
 
 msgctxt "time tracking"
 msgid "Total time"
+msgstr ""
+
+msgid "Tradesperson"
 msgstr ""
 
 msgid "Transfer received text to the clipboard"

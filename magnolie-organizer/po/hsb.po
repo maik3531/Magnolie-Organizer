@@ -773,6 +773,9 @@ msgstr "URI přiwěška přidać"
 msgid "Add attendee"
 msgstr "Wobdźělnika přidać"
 
+msgid "Add contact group"
+msgstr "Skupinu kontaktow přidać"
+
 msgid "Add cycle marker"
 msgstr "Cykusowe znamjo přidać"
 
@@ -1751,6 +1754,9 @@ msgstr ""
 "wobdźěłanje. Tute nastajenje płaći jenož, hdyž kliknjeće na prózdne městno w "
 "polu."
 
+msgid "Client"
+msgstr "Klient"
+
 msgctxt "time tracking"
 msgid "Clock change (min)"
 msgstr "Časowe přestajenje (min)"
@@ -1931,6 +1937,9 @@ msgstr "Kontaktne karty (*.vcf)"
 
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Namjety za zhašenje kontaktow su so přez wěstotnu hranicu blokowali."
+
+msgid "Contact groups"
+msgstr "Skupiny kontaktow"
 
 msgid "Contact photo preview"
 msgstr "Přehlad kontaktneho fota"
@@ -2435,6 +2444,9 @@ msgstr "Wobrazowka: žana"
 msgid "Do not retrieve weather without a location"
 msgstr "Bjez městna wjedro njewotwołać"
 
+msgid "Doctor"
+msgstr "Lěkar"
+
 msgid "Doctor appointment"
 msgstr "Termin pola lěkarja"
 
@@ -2821,6 +2833,9 @@ msgstr "Fahrenheit (°F)"
 
 msgid "Failed"
 msgstr "Zwrěšćić"
+
+msgid "Family"
+msgstr "Swójba"
 
 msgid "Fasting"
 msgstr "Na lačny žaludk"
@@ -3345,6 +3360,9 @@ msgstr "Instalowana manualna wersija: %(version)s."
 
 msgid "Insulin scheme"
 msgstr "Insulinowa šema"
+
+msgid "Insurance"
+msgstr "Zawěsćenje"
 
 msgid "Integrity"
 msgstr "Integrita"
@@ -7783,6 +7801,9 @@ msgstr "Suma"
 msgctxt "time tracking"
 msgid "Total time"
 msgstr "Cyłkowny čas"
+
+msgid "Tradesperson"
+msgstr "Rjemjeslnik"
 
 msgid "Transfer received text to the clipboard"
 msgstr "Přijaty tekst do mjezyskłada přenjesć"

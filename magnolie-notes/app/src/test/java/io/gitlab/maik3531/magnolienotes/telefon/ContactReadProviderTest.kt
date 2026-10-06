@@ -14,6 +14,8 @@ import android.provider.ContactsContract.RawContacts
 import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.provider.ContactsContract.CommonDataKinds.Photo
 import android.provider.ContactsContract.CommonDataKinds.StructuredName
+import android.provider.ContactsContract.CommonDataKinds.GroupMembership
+import android.provider.ContactsContract.Groups
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.serialization.json.*
 import org.junit.Assert.*
@@ -57,6 +59,7 @@ class ContactReadProviderTest {
         assertTrue(card.contains("PHOTO;ENCODING=b;TYPE=JPEG:/9j"))
         assertTrue(card.contains("X-MAGNOLIE-SOZIALES-MEDIUM:"))
         assertTrue(card.contains("whatsapp"))
+        assertTrue(card.contains("CATEGORIES:Fixture\\, group"))
         assertTrue(provider.sawSelection)
         assertEquals(2, provider.rawReads)
     }
@@ -69,11 +72,18 @@ class ContactReadProviderTest {
         assertTrue(provider.queries.isEmpty())
     }
 
+    @Test fun rejectsChangedGroupTitleDuringReadWithoutInferringNames() {
+        provider.changeGroup = true
+        assertTrue(runCatching { ContactReadAndroid(context).read(request("cards")) }.isFailure)
+    }
+
     class ReadOnlyProvider : ContentProvider() {
         val queries = mutableListOf<String>()
         var rawReads = 0
         var changeVersion = false
         var sawSelection = false
+        var groupReads = 0
+        var changeGroup = false
         override fun onCreate() = true
         override fun getType(uri: Uri): String? = null
         override fun insert(uri: Uri, values: ContentValues?): Uri? = error("read-only query attempted an insert")
@@ -97,7 +107,8 @@ class ContactReadProviderTest {
                 }
                 "/data" -> if (selection.orEmpty().contains(Data.MIMETYPE)) {
                     assertEquals("10", selectionArgs!!.first())
-                    listOf(mapOf(Data.MIMETYPE to "vnd.android.cursor.item/vnd.com.whatsapp.profile", Data.DATA1 to "49123456789@s.whatsapp.net"))
+                    if (selectionArgs[1] == GroupMembership.CONTENT_ITEM_TYPE) listOf(mapOf(GroupMembership.GROUP_ROW_ID to 7L))
+                    else listOf(mapOf(Data.MIMETYPE to "vnd.android.cursor.item/vnd.com.whatsapp.profile", Data.DATA1 to "49123456789@s.whatsapp.net"))
                 } else {
                     assertTrue(selection.orEmpty().contains("IN (1)"))
                     listOf(mapOf(Data.RAW_CONTACT_ID to 1L, Data.MIMETYPE to StructuredName.CONTENT_ITEM_TYPE,
@@ -106,6 +117,7 @@ class ContactReadProviderTest {
                         mapOf(Data.RAW_CONTACT_ID to 1L, Data.MIMETYPE to Photo.CONTENT_ITEM_TYPE, Data.DATA15 to Base64.getDecoder().decode(
                             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")))
                 }
+                "/groups" -> { groupReads++; listOf(mapOf(Groups.TITLE to if (changeGroup && groupReads > 1) "Changed group" else "Fixture, group")) }
                 else -> error("unexpected contact URI")
             }
             return MatrixCursor(columns).apply { rows.forEach { row -> addRow(columns.map { row[it] }.toTypedArray()) } }

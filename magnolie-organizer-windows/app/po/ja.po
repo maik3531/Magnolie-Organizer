@@ -466,6 +466,9 @@ msgstr "添付ファイルの URI を追加"
 msgid "Add attendee"
 msgstr "出席者を追加"
 
+msgid "Add contact group"
+msgstr "連絡先グループを追加"
+
 msgid "Add cycle marker"
 msgstr "周期マーカーを追加"
 
@@ -1298,6 +1301,9 @@ msgstr ""
 "既存の予定をクリックすると、どちらの場合も編集用に開きます。この設定は、枠内"
 "の空白部分をクリックした場合だけ適用されます。"
 
+msgid "Client"
+msgstr "顧客"
+
 msgctxt "time tracking"
 msgid "Clock change (min)"
 msgstr "時計の調整（分）"
@@ -1459,6 +1465,9 @@ msgstr "連絡先カード (*.vcf)"
 
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "連絡先の削除提案は安全上の制限によりブロックされました。"
+
+msgid "Contact groups"
+msgstr "連絡先グループ"
 
 msgid "Contact photo preview"
 msgstr "連絡先写真のプレビュー"
@@ -1870,6 +1879,9 @@ msgstr "ディスプレイ"
 msgid "Do not retrieve weather without a location"
 msgstr "場所が未指定の場合は天気を取得しない"
 
+msgid "Doctor"
+msgstr "医師"
+
 msgid "Doctor appointment"
 msgstr "通院予定"
 
@@ -2205,6 +2217,9 @@ msgstr "華氏 (°F)"
 
 msgid "Failed"
 msgstr "失敗しました"
+
+msgid "Family"
+msgstr "家族"
 
 msgid "Fasting"
 msgstr "空腹時"
@@ -2668,6 +2683,9 @@ msgstr "インストールされたマニュアルバージョン：%(version)s�
 
 msgid "Insulin scheme"
 msgstr "インスリン投与計画"
+
+msgid "Insurance"
+msgstr "保険"
 
 msgid "Integrity"
 msgstr "誠実さ"
@@ -6130,6 +6148,9 @@ msgstr "合計"
 msgctxt "time tracking"
 msgid "Total time"
 msgstr "合計時間"
+
+msgid "Tradesperson"
+msgstr "職人"
 
 msgid "Tray applet"
 msgstr "システムトレイアプレット"

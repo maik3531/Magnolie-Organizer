@@ -842,6 +842,9 @@ msgstr "إضافة URI للمرفق"
 msgid "Add attendee"
 msgstr "إضافة حاضر"
 
+msgid "Add contact group"
+msgstr "إضافة مجموعة جهات اتصال"
+
 msgid "Add cycle marker"
 msgstr "إضافة علامة الدورة"
 
@@ -1797,6 +1800,9 @@ msgstr ""
 "يؤدي النقر على موعد موجود إلى فتحه للتحرير في الحالتين. ينطبق هذا الإعداد "
 "فقط عند النقر على مساحة فارغة في المربع."
 
+msgid "Client"
+msgstr "العميل"
+
 msgctxt "time tracking"
 msgid "Clock change (min)"
 msgstr "تغيير الساعة (دقيقة)"
@@ -1975,6 +1981,9 @@ msgstr "بطاقات جهات الاتصال (*.vcf)"
 
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "حُظرت مقترحات حذف جهات الاتصال بسبب حد الأمان."
+
+msgid "Contact groups"
+msgstr "مجموعات جهات الاتصال"
 
 msgid "Contact photo preview"
 msgstr "معاينة صورة جهة الاتصال"
@@ -2468,6 +2477,9 @@ msgstr "العرض: لا شيء"
 msgid "Do not retrieve weather without a location"
 msgstr "عدم جلب الطقس من دون موقع"
 
+msgid "Doctor"
+msgstr "الطبيب"
+
 msgid "Doctor appointment"
 msgstr "موعد طبيب"
 
@@ -2843,6 +2855,9 @@ msgstr "فهرنهايت (°F)"
 
 msgid "Failed"
 msgstr "فشل"
+
+msgid "Family"
+msgstr "العائلة"
 
 msgid "Fasting"
 msgstr "على الريق"
@@ -3362,6 +3377,9 @@ msgstr "الإصدار اليدوي المثبت: %(version)s."
 
 msgid "Insulin scheme"
 msgstr "نظام جرعات الإنسولين"
+
+msgid "Insurance"
+msgstr "التأمين"
 
 msgid "Integrity"
 msgstr "النزاهة"
@@ -7743,6 +7761,9 @@ msgstr "المجموع"
 msgctxt "time tracking"
 msgid "Total time"
 msgstr "الوقت الإجمالي"
+
+msgid "Tradesperson"
+msgstr "الحرفي"
 
 msgid "Transfer received text to the clipboard"
 msgstr "نقل النص المستلم إلى الحافظة"

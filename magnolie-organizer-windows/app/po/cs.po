@@ -523,6 +523,9 @@ msgstr "Přidat URI přílohy"
 msgid "Add attendee"
 msgstr "Přidat účastníka"
 
+msgid "Add contact group"
+msgstr "Přidat skupinu kontaktů"
+
 msgid "Add cycle marker"
 msgstr "Přidat značku cyklu"
 
@@ -1355,6 +1358,9 @@ msgstr ""
 "Kliknutím na existující schůzku ji v obou případech otevřete pro úpravy. "
 "Toto nastavení platí pouze při kliknutí na prázdné místo v poli."
 
+msgid "Client"
+msgstr "Klient"
+
 msgctxt "time tracking"
 msgid "Clock change (min)"
 msgstr "Změna času (min)"
@@ -1512,6 +1518,9 @@ msgstr "Kontaktní karty (*.vcf)"
 
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Návrhy odstranění kontaktů byly zablokovány bezpečnostním limitem."
+
+msgid "Contact groups"
+msgstr "Skupiny kontaktů"
 
 msgid "Contact photo preview"
 msgstr "Náhled kontaktní fotografie"
@@ -1924,6 +1933,9 @@ msgstr "Zobrazení"
 msgid "Do not retrieve weather without a location"
 msgstr "Bez umístění nenačítat počasí"
 
+msgid "Doctor"
+msgstr "Lékař"
+
 msgid "Doctor appointment"
 msgstr "Návštěva lékaře"
 
@@ -2261,6 +2273,9 @@ msgstr "Fahrenheita (°F)"
 
 msgid "Failed"
 msgstr "Nepodařilo se"
+
+msgid "Family"
+msgstr "Rodina"
 
 msgid "Fasting"
 msgstr "Nalačno"
@@ -2723,6 +2738,9 @@ msgstr "Instalovaná verze manuálu: %(version)s."
 
 msgid "Insulin scheme"
 msgstr "Inzulinové schéma"
+
+msgid "Insurance"
+msgstr "Pojištění"
 
 msgid "Integrity"
 msgstr "Integrita"
@@ -6211,6 +6229,9 @@ msgstr "Součet"
 msgctxt "time tracking"
 msgid "Total time"
 msgstr "Celkový čas"
+
+msgid "Tradesperson"
+msgstr "Řemeslník"
 
 msgid "Tray applet"
 msgstr "Applet oznamovací oblasti"

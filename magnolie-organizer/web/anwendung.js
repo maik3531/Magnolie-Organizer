@@ -7523,6 +7523,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         "first-name": "first-name" }, "last-name");
     za.foto = Number(ad.fotoVoreinstellung) >= 1 ? !!ad.foto : true;
     za.fotoVoreinstellung = 1;
+    za.personengruppenAn = ad.personengruppenAn === true;
     za.smsBenachrichtigungDauer = [0, 15, 30, 60, 120].includes(
       Number(ad.smsBenachrichtigungDauer)) ? Number(ad.smsBenachrichtigungDauer) : 60;
     za.smsSchedulingEnabled = ad.smsSchedulingEnabled === true;
@@ -12330,6 +12331,33 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
      Nachname zuerst gewohnt – manche mögen es lieber nach Vornamen. */
   function nachVornamen() {
     return DATEN.einstellungen.adressen.sortierung === "first-name";
+  }
+
+  function kontaktGruppen(kontakt) {
+    const groups = [];
+    for (const line of kontakt?.vcardRoundtrip || []) {
+      const match = /^(?:[A-Za-z0-9-]+\.)?CATEGORIES(?:;[^:]*)?:(.*)$/i.exec(line);
+      if (!match) continue;
+      let part = "", escaped = false;
+      for (const char of match[1] + ",") {
+        if (escaped) { part += char === "n" || char === "N" ? " " : char; escaped = false; }
+        else if (char === "\\") escaped = true;
+        else if (char === ",") { const value = part.replace(/[\x00-\x1f\x7f]/g, " ").trim(); if (value) groups.push(value); part = ""; }
+        else part += char;
+      }
+    }
+    return [...new Set(groups)];
+  }
+
+  function setzeKontaktGruppen(kontakt, groups) {
+    const values = [...new Set(groups.map(value => String(value).replace(/[\x00-\x1f\x7f]/g, " ").trim()).filter(Boolean))];
+    kontakt.vcardRoundtrip = (kontakt.vcardRoundtrip || []).filter(line => !/^(?:[A-Za-z0-9-]+\.)?CATEGORIES[;:]/i.test(line));
+    if (values.length) kontakt.vcardRoundtrip.push("CATEGORIES:" + values.map(value => value.replace(/\\/g, "\\\\").replace(/,/g, "\\,").replace(/;/g, "\\;")).join(","));
+  }
+
+  function kontaktGruppenName(value) {
+    const presets = { Family: _("Family"), Work: _("Work"), Client: _("Client"), Tradesperson: _("Tradesperson"), Insurance: _("Insurance"), Doctor: _("Doctor") };
+    return Object.prototype.hasOwnProperty.call(presets, value) ? presets[value] : value;
   }
 
   function kontaktName(k) {
@@ -17213,6 +17241,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const telefonSuche = telefonSchluessel(suche);
       liste = DATEN.kontakte.filter((k) => {
         const text = [k.nachname, k.vorname, k.anzeigename, k.firma, k.notiz, k.geburtstag, k.jubilaeum,
+          DATEN.einstellungen.adressen.personengruppenAn ? kontaktGruppen(k).map(kontaktGruppenName).join(" ") : "",
           k.geburtstag ? datumAnzeige(k.geburtstag) : "",
           aufgeloesteKontaktpersonen(k).map((p) => [p.name, p.telefon, p.status, kontaktpersonZusatzWerte(p).map(w => w[1]).join(" ")].join(" ")).join(" "),
           anschriftListe(k).map((a) => [anschriftBezeichnung(a), a.strasse, a.plz,
@@ -17382,6 +17411,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     const kopfText = el("div", "kontakt-kopf-text");
     kopfText.append(el("h3", null, kontaktName(k)));
+    if (DATEN.einstellungen.adressen.personengruppenAn && kontaktGruppen(k).length)
+      kopfText.append(el("div", "k-label", kontaktGruppen(k).map(kontaktGruppenName).join(" · ")));
     if (k.firma) kopfText.append(el("div", "k-firma", k.firma));
     kopf.append(kopfText);
     karte.append(kopf);
@@ -18281,7 +18312,27 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }));
     weitere.append(kontaktAufgabeKopf, kontaktAufgabeKasten);
     zeichneKontaktAufgaben();
+    const gruppenVorher = kontaktGruppen(k || {}); let personengruppen = gruppenVorher.slice(), gruppenGeaendert = false;
+    if (DATEN.einstellungen.adressen.personengruppenAn) {
+      const gruppenWahl = document.createElement("select"); gruppenWahl.multiple = true; gruppenWahl.size = 4;
+      gruppenWahl.id = "kontakt-personengruppen";
+      const values = [...new Set(["Family", "Work", "Client", "Tradesperson", "Insurance", "Doctor", ...DATEN.kontakte.flatMap(kontaktGruppen), ...personengruppen])];
+      const render = () => { gruppenWahl.replaceChildren(); for (const value of values) {
+        const option = el("option", null, kontaktGruppenName(value)); option.value = value; option.selected = personengruppen.includes(value); gruppenWahl.append(option);
+      } };
+      render();
+      gruppenWahl.addEventListener("change", () => { personengruppen = [...gruppenWahl.selectedOptions].map(option => option.value); gruppenGeaendert = true; });
+      const eigeneGruppe = eingabe("text", ""); eigeneGruppe.maxLength = 80; eigeneGruppe.id = "kontakt-eigene-personengruppe";
+      const hinzufuegen = knopf(_("Add contact group"), "klein", () => {
+        const value = eigeneGruppe.value.trim(); if (!value) return;
+        if (!values.includes(value)) values.push(value);
+        personengruppen = [...new Set([...personengruppen, value])]; gruppenGeaendert = true;
+        eigeneGruppe.value = ""; render();
+      }); hinzufuegen.type = "button";
+      weitere.append(formZeile(_("Contact groups"), gruppenWahl), eigeneGruppe, hinzufuegen);
+    }
     const weitereGefuellt = vorhandeneEreignisse.length > 0 ||
+      DATEN.einstellungen.adressen.personengruppenAn && personengruppen.length > 0 ||
       sozialeMedienListe({ sozialeMedien: sozialeMedien }).length > 0 ||
       kontaktpersonen.some(
         (person) => person.name || person.telefon || person.status);
@@ -18303,7 +18354,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       telefone: kopie(telefone), anschriften: kopie(anschriften),
       emailEintraege: kopie(emailEintraege), kontaktpersonen: kopie(kontaktpersonen),
       sozialeMedien: kopie(sozialeMedien), ereignisse: kopie(ereignisse),
-      termine: kopie(kontaktTermine), aufgaben: kopie(kontaktAufgaben)
+      termine: kopie(kontaktTermine), aufgaben: kopie(kontaktAufgaben), personengruppen: personengruppen.slice()
     });
     let gespeichertesZiel = k || null;
 
@@ -18360,6 +18411,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         geaendert: Date.now()
       };
       let ziel = k ? DATEN.kontakte.find(item => item.id === k.id) : null;
+      if (gruppenGeaendert && ziel && kanonischerEntwurf(kontaktGruppen(ziel)) !== kanonischerEntwurf(gruppenVorher)) {
+        zettel(_("Conflict")); return false;
+      }
       const inhaltVorher = ziel ? personalSyncKanonisch(kontaktBaumInhalt(ziel, 2, false).kontakt) : "";
       const felder = Object.keys(werte).filter(key => key !== "geaendert").concat(
         ["telefone", "telefon", "mobil", "anschriften", "strasse", "plz", "ort", "land",
@@ -18380,6 +18434,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       setzeAnschriftListe(ziel, anschriften);
       setzeKontaktpersonen(ziel, kontaktpersonen);
       setzeSozialeMedien(ziel, sozialeMedien);
+      if (gruppenGeaendert) setzeKontaktGruppen(ziel, personengruppen);
       const ereignisName = [ziel.vorname, ziel.nachname].filter(Boolean).join(" ") || ziel.firma;
       const behalten = new Set();
       for (const ereignis of ereignisse) {
@@ -23660,7 +23715,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function kontaktKonfliktRestfelder(k) {
     return (k.vcardRoundtrip || []).filter(s =>
-      !/^(?:[A-Za-z0-9-]+\.)?(?:PHOTO|REV|PRODID|VERSION|UID|N|FN|TEL|EMAIL|ADR|BDAY|ORG|NOTE|X-ABLABEL|X-EVOLUTION-WEBDAV-ETAG)[;:]/i.test(s)).slice().sort();
+      !/^(?:[A-Za-z0-9-]+\.)?(?:PHOTO|REV|PRODID|VERSION|UID|N|FN|TEL|EMAIL|ADR|BDAY|ORG|NOTE|X-ABLABEL|X-EVOLUTION-WEBDAV-ETAG|CATEGORIES)[;:]/i.test(s)).slice().sort();
   }
 
   function kontaktKonfliktInhalt(k) {
@@ -23668,7 +23723,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     basis.telefone = [...new Set(telefonListe(k).map(e => telefonSchluessel(e.wert)))].sort();
     basis.emails = [...new Set(emailEintragListe(k).map(e => kanonischerText(e.wert)))].sort();
     return kanonischerEntwurf([basis, kontaktpersonenListe(k),
-      sozialeMedienListe(k), kontaktKonfliktRestfelder(k)]);
+      sozialeMedienListe(k), kontaktKonfliktRestfelder(k), kontaktGruppen(k).slice().sort()]);
   }
 
   function kontaktKonfliktNurErgaenzungen(ziel, karte) {
@@ -26860,6 +26915,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     fotoZeile.append(fotoHak,
       document.createTextNode(" " + _("With photo")));
     ab.append(fotoZeile);
+    const gruppenHak = document.createElement("input"); gruppenHak.type = "checkbox";
+    gruppenHak.id = "adressen-personengruppen"; gruppenHak.checked = a.personengruppenAn === true;
+    const gruppenZeile = el("label", "hak");
+    gruppenZeile.append(gruppenHak, document.createTextNode(" " + _("Contact groups"))); ab.append(gruppenZeile);
+    gruppenHak.addEventListener("change", () => { a.personengruppenAn = gruppenHak.checked; planeSpeichern(); zeichneAlles(); });
     ab.append(el("p", "einst-hinweis",
       _("When selected, you can assign a photo to each person. Embedded photos are " +
         "preserved during import, export and synchronization with an online address " +
@@ -28390,7 +28450,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         [_("Address"), anschriftListe(k).map(e => [e.strasse, e.plz, e.ort, e.region, e.land].filter(Boolean).join(", ")).join("\n")],
         [_("Emergency contacts"), kontaktpersonenListe(k).map(e => [e.name, e.telefon, e.status].filter(Boolean).join(" · ")).join("\n")],
         [_("Social media"), sozialeMedienListe(k).map(e => [e.label, e.wert].filter(Boolean).join(": ")).join("\n")],
-        [_("vCard / iPhone / iCloud"), restfelder(k).join("\n")]
+        [_("vCard / iPhone / iCloud"), restfelder(k).join("\n")],
+        [_("Contact groups"), kontaktGruppen(k).map(kontaktGruppenName).join("\n")]
       ];
       const beschreibe = k => beschreibeFelder(k).filter(([, wert]) => wert).map(([titel, wert]) => titel + ": " + wert).join("\n\n");
       const zeichnen = () => {
@@ -31077,6 +31138,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     notizlinienGrundlinie: notizlinienGrundlinie,
     aktualisiereNotizlinien: aktualisiereNotizlinien,
     baueEinstellungen: baueEinstellungen,
+    kontaktGruppen: kontaktGruppen,
+    setzeKontaktGruppen: setzeKontaktGruppen,
     smsTextAnpassen: smsTextAnpassen,
     pruefeSmsPlanung: pruefeSmsPlanung,
     aktualisiereSmsPlanung: aktualisiereSmsPlanung,

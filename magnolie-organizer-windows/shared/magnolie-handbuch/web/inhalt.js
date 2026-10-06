@@ -1845,16 +1845,6 @@ for (const sprache of Object.keys(NOTES_ZEITERFASSUNG_HILFE)) {
   NOTES_ZEITERFASSUNG_HILFE[sprache] += ZEITERFASSUNG_ABGLEICH_HILFE[sprache];
 }
 HANDBUCH_ANHAENGE["android-notes-navigation"] = { ersetzen: true, inhalt: NOTES_ZEITERFASSUNG_HILFE };
-for (const seite of window.HANDBUCH_SEITEN) {
-  const anhang = HANDBUCH_ANHAENGE[seite.id];
-  if (!anhang) continue;
-  seite.inhaltAnhang = anhang.inhalt || Object.fromEntries(Object.entries(anhang)
-    .filter(([schluessel]) => !["entfernen", "ersetzen"].includes(schluessel)));
-  seite.inhaltAnhangNeutral = Boolean(anhang.neutral);
-  seite.inhaltAnhangErsetzt = Boolean(anhang.ersetzen);
-  if (anhang.entfernen) seite.entferneBildManifest = anhang.entfernen;
-}
-MagnolieI18n.registerBook(window.HANDBUCH_SEITEN);
 
 // Optional cycle reminders (#79).
 HANDBUCH_ANHAENGE["planner-shift-planner"] = {
@@ -1879,3 +1869,37 @@ HANDBUCH_ANHAENGE["planner-shift-planner"] = {
   "zh-cn": "<h3>预计下次月经</h3><p>除非在下方启用，否则通知关闭。</p><ul><li>估计下次月经</li><li>提示异常周期间隔</li></ul><p>至少需要记录三次开始日期。相隔不超过三天的出血日视为同一次；中位数只使用14–60天的间隔。</p><p><b>差值（天）: 7</b></p>",
   "en": "<h3>Estimated next period</h3><p>Notifications are off unless enabled below.</p><ul><li>Estimate the next period</li><li>Report unusual cycle intervals</li></ul><p>At least three recorded starts are needed. Bleeding days up to three days apart form one episode; only intervals of 14–60 days enter the median.</p><p><b>Difference (days): 7</b></p>"
 };
+
+// Optional contact groups (#87).
+HANDBUCH_ANHAENGE["contact-details-and-anniversaries"] = {
+  "de": "<h3>Personengruppen</h3><p><b>Einstellungen ▸ Adressen ▸ Personengruppen</b></p><p><b>Weitere Felder</b>: Familie · Arbeit · Klient · Handwerker · Versicherung · Arzt</p><p><b>Personengruppe hinzufügen</b></p>",
+  "fr": "<h3>Groupes de contacts</h3><p><b>Paramètres ▸ Contacts ▸ Groupes de contacts</b></p><p><b>Autres champs</b>: Famille · Travail · Client · Artisan · Assurance · Médecin</p><p><b>Ajouter un groupe de contacts</b></p>",
+  "es": "<h3>Grupos de contactos</h3><p><b>Ajustes ▸ Contactos ▸ Grupos de contactos</b></p><p><b>Más campos</b>: Familia · Trabajo · Cliente · Profesional de oficios · Seguro · Médico</p><p><b>Añadir grupo de contactos</b></p>",
+  "it": "<h3>Gruppi di contatti</h3><p><b>Impostazioni ▸ Contatti ▸ Gruppi di contatti</b></p><p><b>Altri campi</b>: Famiglia · Lavoro · Cliente · Artigiano · Assicurazione · Medico</p><p><b>Aggiungi gruppo di contatti</b></p>",
+  "nl": "<h3>Contactgroepen</h3><p><b>Instellingen ▸ Contacten ▸ Contactgroepen</b></p><p><b>Meer velden</b>: Familie · Werk · Cliënt · Vakpersoon · Verzekering · Arts</p><p><b>Contactgroep toevoegen</b></p>",
+  "pt": "<h3>Grupos de contactos</h3><p><b>Definições ▸ Contactos ▸ Grupos de contactos</b></p><p><b>Mais campos</b>: Família · Trabalho · Cliente · Profissional de ofícios · Seguro · Médico</p><p><b>Adicionar grupo de contactos</b></p>",
+  "ru": "<h3>Группы контактов</h3><p><b>Настройки ▸ Контакты ▸ Группы контактов</b></p><p><b>Дополнительные поля</b>: Семья · Работа · Клиент · Мастер · Страхование · Врач</p><p><b>Добавить группу контактов</b></p>",
+  "uk": "<h3>Групи контактів</h3><p><b>Налаштування ▸ Контакти ▸ Групи контактів</b></p><p><b>Додаткові поля</b>: Сім’я · Робота · Клієнт · Майстер · Страхування · Лікар</p><p><b>Додати групу контактів</b></p>",
+  "be": "<h3>Групы кантактаў</h3><p><b>Налады ▸ Кантакты ▸ Групы кантактаў</b></p><p><b>Дадатковыя палі</b>: Сям’я · Праца · Кліент · Майстар · Страхаванне · Лекар</p><p><b>Дадаць групу кантактаў</b></p>",
+  "cs": "<h3>Skupiny kontaktů</h3><p><b>Nastavení ▸ Kontakty ▸ Skupiny kontaktů</b></p><p><b>Další pole</b>: Rodina · Práce · Klient · Řemeslník · Pojištění · Lékař</p><p><b>Přidat skupinu kontaktů</b></p>",
+  "pl": "<h3>Grupy kontaktów</h3><p><b>Ustawienia ▸ Kontakty ▸ Grupy kontaktów</b></p><p><b>Więcej pól</b>: Rodzina · Praca · Klient · Rzemieślnik · Ubezpieczenie · Lekarz</p><p><b>Dodaj grupę kontaktów</b></p>",
+  "hsb": "<h3>Skupiny kontaktow</h3><p><b>Nastajenja ▸ Kontakty ▸ Skupiny kontaktow</b></p><p><b>Dalše pola</b>: Swójba · Dźěło · Klient · Rjemjeslnik · Zawěsćenje · Lěkar</p><p><b>Skupinu kontaktow přidać</b></p>",
+  "da": "<h3>Kontaktgrupper</h3><p><b>Indstillinger ▸ Kontakter ▸ Kontaktgrupper</b></p><p><b>Flere felter</b>: Familie · Arbejde · Klient · Håndværker · Forsikring · Læge</p><p><b>Tilføj kontaktgruppe</b></p>",
+  "nb": "<h3>Kontaktgrupper</h3><p><b>Innstillinger ▸ Kontakter ▸ Kontaktgrupper</b></p><p><b>Flere felt</b>: Familie · Arbeid · Klient · Håndverker · Forsikring · Lege</p><p><b>Legg til kontaktgruppe</b></p>",
+  "tr": "<h3>Kişi grupları</h3><p><b>Ayarlar ▸ Kişiler ▸ Kişi grupları</b></p><p><b>Daha fazla alan</b>: Aile · İş · Müşteri · Zanaatkâr · Sigorta · Doktor</p><p><b>Kişi grubu ekle</b></p>",
+  "hi": "<h3>संपर्क समूह</h3><p><b>सेटिंग्स ▸ संपर्क ▸ संपर्क समूह</b></p><p><b>और फ़ील्ड</b>: परिवार · कार्य · क्लाइंट · कारीगर · बीमा · डॉक्टर</p><p><b>संपर्क समूह जोड़ें</b></p>",
+  "ar": "<h3>مجموعات جهات الاتصال</h3><p><b>الإعدادات ▸ جهات الاتصال ▸ مجموعات جهات الاتصال</b></p><p><b>حقول إضافية</b>: العائلة · العمل · العميل · الحرفي · التأمين · الطبيب</p><p><b>إضافة مجموعة جهات اتصال</b></p>",
+  "ja": "<h3>連絡先グループ</h3><p><b>設定 ▸ 連絡先 ▸ 連絡先グループ</b></p><p><b>その他の項目</b>: 家族 · 仕事 · 顧客 · 職人 · 保険 · 医師</p><p><b>連絡先グループを追加</b></p>",
+  "zh-cn": "<h3>联系人分组</h3><p><b>设置 ▸ 联系人 ▸ 联系人分组</b></p><p><b>更多字段</b>: 家人 · 工作 · 客户 · 工匠 · 保险 · 医生</p><p><b>添加联系人分组</b></p>",
+  "en": "<h3>Contact groups</h3><p><b>Settings ▸ Contacts ▸ Contact groups</b></p><p><b>More fields</b>: Family · Work · Client · Tradesperson · Insurance · Doctor</p><p><b>Add contact group</b></p>"
+};
+for (const seite of window.HANDBUCH_SEITEN) {
+  const anhang = HANDBUCH_ANHAENGE[seite.id];
+  if (!anhang) continue;
+  seite.inhaltAnhang = anhang.inhalt || Object.fromEntries(Object.entries(anhang)
+    .filter(([schluessel]) => !["entfernen", "ersetzen"].includes(schluessel)));
+  seite.inhaltAnhangNeutral = Boolean(anhang.neutral);
+  seite.inhaltAnhangErsetzt = Boolean(anhang.ersetzen);
+  if (anhang.entfernen) seite.entferneBildManifest = anhang.entfernen;
+}
+MagnolieI18n.registerBook(window.HANDBUCH_SEITEN);

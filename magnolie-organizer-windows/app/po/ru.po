@@ -527,6 +527,9 @@ msgstr "Добавить URI вложения"
 msgid "Add attendee"
 msgstr "Добавить участника"
 
+msgid "Add contact group"
+msgstr "Добавить группу контактов"
+
 msgid "Add cycle marker"
 msgstr "Добавить отметку цикла"
 
@@ -1372,6 +1375,9 @@ msgstr ""
 "редактирования. Эта настройка действует только при щелчке по пустому месту в "
 "поле."
 
+msgid "Client"
+msgstr "Клиент"
+
 msgctxt "time tracking"
 msgid "Clock change (min)"
 msgstr "Перевод часов (мин)"
@@ -1528,6 +1534,9 @@ msgstr "Карточки контактов (*.vcf)"
 
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Предложения удаления контактов заблокированы пределом безопасности."
+
+msgid "Contact groups"
+msgstr "Группы контактов"
 
 msgid "Contact photo preview"
 msgstr "Предпросмотр фотографии контакта"
@@ -1940,6 +1949,9 @@ msgstr "Дисплей"
 msgid "Do not retrieve weather without a location"
 msgstr "Не получать погоду без местоположения"
 
+msgid "Doctor"
+msgstr "Врач"
+
 msgid "Doctor appointment"
 msgstr "Приём у врача"
 
@@ -2278,6 +2290,9 @@ msgstr "Фаренгейт (°F)"
 
 msgid "Failed"
 msgstr "Неуспешный"
+
+msgid "Family"
+msgstr "Семья"
 
 msgid "Fasting"
 msgstr "Натощак"
@@ -2743,6 +2758,9 @@ msgstr "Установленная версия вручную: %(version)s."
 
 msgid "Insulin scheme"
 msgstr "Схема инсулинотерапии"
+
+msgid "Insurance"
+msgstr "Страхование"
 
 msgid "Integrity"
 msgstr "Честность"
@@ -6257,6 +6275,9 @@ msgstr "Итого"
 msgctxt "time tracking"
 msgid "Total time"
 msgstr "Общее время"
+
+msgid "Tradesperson"
+msgstr "Мастер"
 
 msgid "Tray applet"
 msgstr "Апплет области уведомлений"

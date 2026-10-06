@@ -638,6 +638,9 @@ msgstr "添加附件 URI"
 msgid "Add attendee"
 msgstr "添加参与者"
 
+msgid "Add contact group"
+msgstr "添加联系人分组"
+
 msgid "Add cycle marker"
 msgstr "添加周期标记"
 
@@ -1571,6 +1574,9 @@ msgstr ""
 "在这两种情况下，点击已有约会都会打开它进行编辑。此设置仅在点击框内空白区域时"
 "生效。"
 
+msgid "Client"
+msgstr "客户"
+
 msgctxt "time tracking"
 msgid "Clock change (min)"
 msgstr "时钟调整（分钟）"
@@ -1743,6 +1749,9 @@ msgstr "联系人卡片 (*.vcf)"
 
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "联系人删除建议已被安全限制阻止。"
+
+msgid "Contact groups"
+msgstr "联系人分组"
 
 msgid "Contact photo preview"
 msgstr "联系人照片预览"
@@ -2218,6 +2227,9 @@ msgstr "显示：无"
 msgid "Do not retrieve weather without a location"
 msgstr "没有位置时不获取天气"
 
+msgid "Doctor"
+msgstr "医生"
+
 msgid "Doctor appointment"
 msgstr "就医预约"
 
@@ -2590,6 +2602,9 @@ msgstr "华氏度 (°F)"
 
 msgid "Failed"
 msgstr "失败"
+
+msgid "Family"
+msgstr "家人"
 
 msgid "Fasting"
 msgstr "空腹"
@@ -3100,6 +3115,9 @@ msgstr "已安装的手动版本：%(version)s。"
 
 msgid "Insulin scheme"
 msgstr "胰岛素给药方案"
+
+msgid "Insurance"
+msgstr "保险"
 
 msgid "Integrity"
 msgstr "诚信"
@@ -7306,6 +7324,9 @@ msgstr "合计"
 msgctxt "time tracking"
 msgid "Total time"
 msgstr "总时长"
+
+msgid "Tradesperson"
+msgstr "工匠"
 
 msgid "Transfer received text to the clipboard"
 msgstr "将收到的文本传送到剪贴板"

@@ -8,6 +8,8 @@ import android.graphics.BitmapFactory
 import android.provider.ContactsContract.Contacts
 import android.provider.ContactsContract.Data
 import android.provider.ContactsContract.CommonDataKinds.Im
+import android.provider.ContactsContract.CommonDataKinds.GroupMembership
+import android.provider.ContactsContract.Groups
 import io.gitlab.maik3531.magnolienotes.baum.AndroidKontakte
 import io.gitlab.maik3531.magnolienotes.baum.AndroidKontakt
 import kotlinx.serialization.json.JsonObject
@@ -49,10 +51,12 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
         }
         val snapshot = AndroidKontakte(context).snapshot(uids.toSet())
         require(snapshot.vollstaendig && snapshot.kontakte.map { it.lookupKey }.toSet() == uids.toSet())
+        val groupsByContact = mutableMapOf<Long, List<String>>()
         val cards = uids.map { uid ->
             val contact = snapshot.kontakte.single { it.lookupKey == uid }
             val social = messengerRows(contact.contactId)
-            val card = vcard(contact, thumbnail(contact.daten.foto), social)
+            val groups = groupRows(contact.contactId); groupsByContact[contact.contactId] = groups
+            val card = vcard(contact, thumbnail(contact.daten.foto), social, groups)
             buildJsonObject {
                 put("uid", JsonPrimitive(uid)); put("timestamp", JsonPrimitive(contact.providerGeaendert))
                 put("vcard", JsonPrimitive(card))
@@ -65,8 +69,30 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
             after.kontakte.any { it.lookupKey == before.lookupKey && it.providerGeaendert == before.providerGeaendert &&
                 it.rawVersionen == before.rawVersionen }
         })
+        require(groupsByContact.all { (id, groups) -> groupRows(id) == groups })
         check(permission())
         return ContactRead.report(request, cards.size, cards)
+    }
+
+    private fun groupRows(contactId: Long): List<String> {
+        val ids = mutableSetOf<Long>()
+        context.contentResolver.query(Data.CONTENT_URI, arrayOf(GroupMembership.GROUP_ROW_ID),
+            "${Data.CONTACT_ID}=? AND ${Data.MIMETYPE}=?", arrayOf(contactId.toString(), GroupMembership.CONTENT_ITEM_TYPE), null)?.use { cursor ->
+            while (cursor.moveToNext()) {
+                if (!cursor.isNull(0)) cursor.getLong(0).takeIf { it > 0 }?.let(ids::add)
+                require(ids.size <= ContactRead.MAX_CONTACTS)
+            }
+        } ?: return emptyList()
+        val names = mutableSetOf<String>()
+        for (chunk in ids.sorted().chunked(256)) context.contentResolver.query(Groups.CONTENT_URI,
+            arrayOf(Groups.TITLE), "${Groups.DELETED}=0 AND ${Groups._ID} IN (${chunk.joinToString(",") { "?" }})",
+            chunk.map(Long::toString).toTypedArray(), null)?.use { cursor ->
+            while (cursor.moveToNext()) {
+                val title = cursor.getString(0).orEmpty().trim()
+                if (title.isNotEmpty() && !title.any(Char::isISOControl)) names.add(title)
+            }
+        }
+        return names.sorted()
     }
 
     private fun messengerRows(contactId: Long): List<JsonObject> {
@@ -124,7 +150,7 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
             return buildJsonObject { put("dienst", JsonPrimitive(service.lowercase())); put("wert", JsonPrimitive(identifier)) }
         }
 
-        fun vcard(contact: AndroidKontakt, jpegBase64: String, social: List<JsonObject>): String {
+        fun vcard(contact: AndroidKontakt, jpegBase64: String, social: List<JsonObject>, groups: List<String> = emptyList()): String {
             fun text(value: String) = value.replace("\\", "\\\\").replace("\r\n", "\n").replace("\r", "\n")
                 .replace("\n", "\\n").replace(";", "\\;").replace(",", "\\,")
             fun type(value: String): String {
@@ -147,6 +173,7 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
             if (data.notiz.isNotEmpty()) lines += "NOTE:" + text(data.notiz)
             if (data.geburtstag.isNotEmpty()) lines += "BDAY:" + text(data.geburtstag)
             if (data.jubilaeum.isNotEmpty()) lines += "ANNIVERSARY:" + text(data.jubilaeum)
+            if (groups.isNotEmpty()) lines += "CATEGORIES:" + groups.distinct().joinToString(",", transform = ::text)
             data.telefone.forEach { lines += "TEL${type(it.art)}:" + text(it.wert) }
             data.emailEintraege.forEach { lines += "EMAIL${type(it.art)}:" + text(it.wert) }
             data.anschriften.forEach { lines += "ADR${type(it.art)}:;;${text(it.strasse)};${text(it.ort)};${text(it.region)};${text(it.plz)};${text(it.land)}" }

@@ -687,6 +687,9 @@ msgstr "अटैचमेंट URI जोड़ें"
 msgid "Add attendee"
 msgstr "प्रतिभागी जोड़ें"
 
+msgid "Add contact group"
+msgstr "संपर्क समूह जोड़ें"
+
 msgid "Add cycle marker"
 msgstr "चक्र चिह्न जोड़ें"
 
@@ -1639,6 +1642,9 @@ msgstr ""
 "मौजूदा अपॉइंटमेंट पर क्लिक करने से दोनों स्थितियों में वह संपादन के लिए खुलता है। यह सेटिंग "
 "केवल तब लागू होती है जब आप बॉक्स के खाली क्षेत्र पर क्लिक करते हैं।"
 
+msgid "Client"
+msgstr "क्लाइंट"
+
 msgctxt "time tracking"
 msgid "Clock change (min)"
 msgstr "घड़ी का बदलाव (मिनट)"
@@ -1815,6 +1821,9 @@ msgstr "संपर्क कार्ड (*.vcf)"
 
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "संपर्क हटाने के प्रस्ताव सुरक्षा सीमा द्वारा रोके गए।"
+
+msgid "Contact groups"
+msgstr "संपर्क समूह"
 
 msgid "Contact photo preview"
 msgstr "संपर्क फ़ोटो पूर्वावलोकन"
@@ -2298,6 +2307,9 @@ msgstr "डिस्प्ले: कोई नहीं"
 msgid "Do not retrieve weather without a location"
 msgstr "स्थान के बिना मौसम प्राप्त न करें"
 
+msgid "Doctor"
+msgstr "डॉक्टर"
+
 msgid "Doctor appointment"
 msgstr "डॉक्टर का अपॉइंटमेंट"
 
@@ -2676,6 +2688,9 @@ msgstr "फ़ारेनहाइट (°F)"
 
 msgid "Failed"
 msgstr "असफल"
+
+msgid "Family"
+msgstr "परिवार"
 
 msgid "Fasting"
 msgstr "खाली पेट"
@@ -3194,6 +3209,9 @@ msgstr "स्थापित मैनुअल संस्करण: %(versio
 
 msgid "Insulin scheme"
 msgstr "इंसुलिन खुराक योजना"
+
+msgid "Insurance"
+msgstr "बीमा"
 
 msgid "Integrity"
 msgstr "ईमानदारी"
@@ -7506,6 +7524,9 @@ msgstr "कुल"
 msgctxt "time tracking"
 msgid "Total time"
 msgstr "कुल समय"
+
+msgid "Tradesperson"
+msgstr "कारीगर"
 
 msgid "Transfer received text to the clipboard"
 msgstr "प्राप्त टेक्स्ट को क्लिपबोर्ड पर भेजें"

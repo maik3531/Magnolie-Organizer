@@ -498,6 +498,9 @@ msgstr "URI van bijlage toevoegen"
 msgid "Add attendee"
 msgstr "Deelnemer toevoegen"
 
+msgid "Add contact group"
+msgstr "Contactgroep toevoegen"
+
 msgid "Add cycle marker"
 msgstr "Cyclusmarkering toevoegen"
 
@@ -1343,6 +1346,9 @@ msgstr ""
 "om te bewerken. Deze instelling geldt alleen wanneer u op een leeg gedeelte "
 "van het vak klikt."
 
+msgid "Client"
+msgstr "Cliënt"
+
 msgctxt "time tracking"
 msgid "Clock change (min)"
 msgstr "Klokwijziging (min)"
@@ -1507,6 +1513,9 @@ msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr ""
 "Voorstellen om contacten te verwijderen zijn door de veiligheidslimiet "
 "geblokkeerd."
+
+msgid "Contact groups"
+msgstr "Contactgroepen"
 
 msgid "Contact photo preview"
 msgstr "Voorbeeld contactfoto"
@@ -1928,6 +1937,9 @@ msgstr "Weergave"
 msgid "Do not retrieve weather without a location"
 msgstr "Geen weer ophalen zonder locatie"
 
+msgid "Doctor"
+msgstr "Arts"
+
 msgid "Doctor appointment"
 msgstr "Doktersafspraak"
 
@@ -2268,6 +2280,9 @@ msgstr "Fahrenheit (°F)"
 
 msgid "Failed"
 msgstr "Mislukt"
+
+msgid "Family"
+msgstr "Familie"
 
 msgid "Fasting"
 msgstr "Nuchter"
@@ -2735,6 +2750,9 @@ msgstr "Geïnstalleerde versie van de handleiding: %(version)s."
 
 msgid "Insulin scheme"
 msgstr "Insulineschema"
+
+msgid "Insurance"
+msgstr "Verzekering"
 
 msgid "Integrity"
 msgstr "Integriteit"
@@ -6274,6 +6292,9 @@ msgstr "Totaal"
 msgctxt "time tracking"
 msgid "Total time"
 msgstr "Totale tijd"
+
+msgid "Tradesperson"
+msgstr "Vakpersoon"
 
 msgid "Tray applet"
 msgstr "Systeemvak-applet"

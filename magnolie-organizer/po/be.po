@@ -732,6 +732,9 @@ msgstr "Дадаць URI далучэння"
 msgid "Add attendee"
 msgstr "Дадаць удзельніка"
 
+msgid "Add contact group"
+msgstr "Дадаць групу кантактаў"
+
 msgid "Add cycle marker"
 msgstr "Дадаць пазнаку цыклу"
 
@@ -1710,6 +1713,9 @@ msgstr ""
 "Націск на існуючую сустрэчу ў абодвух выпадках адкрывае яе для рэдагавання. "
 "Гэта налада дзейнічае толькі пры націску на пустую вобласць поля."
 
+msgid "Client"
+msgstr "Кліент"
+
 msgctxt "time tracking"
 msgid "Clock change (min)"
 msgstr "Перавод гадзінніка (хв)"
@@ -1889,6 +1895,9 @@ msgstr "Карткі кантактаў (*.vcf)"
 
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Прапановы выдалення кантактаў заблакаваны мяжой бяспекі."
+
+msgid "Contact groups"
+msgstr "Групы кантактаў"
 
 msgid "Contact photo preview"
 msgstr "Папярэдні прагляд фота кантакту"
@@ -2381,6 +2390,9 @@ msgstr "Дысплей: няма"
 msgid "Do not retrieve weather without a location"
 msgstr "Не атрымліваць надвор’е без месцазнаходжання"
 
+msgid "Doctor"
+msgstr "Лекар"
+
 msgid "Doctor appointment"
 msgstr "Прыём у лекара"
 
@@ -2766,6 +2778,9 @@ msgstr "Фарэнгейт (°F)"
 
 msgid "Failed"
 msgstr "Не атрымалася"
+
+msgid "Family"
+msgstr "Сям’я"
 
 msgid "Fasting"
 msgstr "Нашча"
@@ -3290,6 +3305,9 @@ msgstr "Усталяваная ручная версія: %(version)s."
 
 msgid "Insulin scheme"
 msgstr "Схема інсулінатэрапіі"
+
+msgid "Insurance"
+msgstr "Страхаванне"
 
 msgid "Integrity"
 msgstr "Сумленнасць"
@@ -7695,6 +7713,9 @@ msgstr "Разам"
 msgctxt "time tracking"
 msgid "Total time"
 msgstr "Агульны час"
+
+msgid "Tradesperson"
+msgstr "Майстар"
 
 msgid "Transfer received text to the clipboard"
 msgstr "Перанесці атрыманы тэкст у буфер абмену"

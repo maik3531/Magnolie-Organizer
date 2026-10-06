@@ -696,6 +696,9 @@ msgstr "Ek URI’si ekle"
 msgid "Add attendee"
 msgstr "Katılımcı ekle"
 
+msgid "Add contact group"
+msgstr "Kişi grubu ekle"
+
 msgid "Add cycle marker"
 msgstr "Döngü işareti ekle"
 
@@ -1673,6 +1676,9 @@ msgstr ""
 "Mevcut bir randevuya tıklamak her iki durumda da onu düzenlemek için açar. "
 "Bu ayar yalnızca kutunun boş bir alanına tıkladığınızda geçerlidir."
 
+msgid "Client"
+msgstr "Müşteri"
+
 msgctxt "time tracking"
 msgid "Clock change (min)"
 msgstr "Saat değişimi (dk)"
@@ -1851,6 +1857,9 @@ msgstr "Kişi kartları (*.vcf)"
 
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Kişi silme önerileri güvenlik sınırı tarafından engellendi."
+
+msgid "Contact groups"
+msgstr "Kişi grupları"
 
 msgid "Contact photo preview"
 msgstr "Kişi fotoğrafı önizlemesi"
@@ -2342,6 +2351,9 @@ msgstr "Ekran: yok"
 msgid "Do not retrieve weather without a location"
 msgstr "Konum olmadan hava durumu alınmasın"
 
+msgid "Doctor"
+msgstr "Doktor"
+
 msgid "Doctor appointment"
 msgstr "Doktor randevusu"
 
@@ -2729,6 +2741,9 @@ msgstr "Fahrenhayt (°F)"
 
 msgid "Failed"
 msgstr "Başarısız"
+
+msgid "Family"
+msgstr "Aile"
 
 msgid "Fasting"
 msgstr "Açlık"
@@ -3253,6 +3268,9 @@ msgstr "Yüklü kılavuz sürümü: %(version)s."
 
 msgid "Insulin scheme"
 msgstr "İnsülin doz şeması"
+
+msgid "Insurance"
+msgstr "Sigorta"
 
 msgid "Integrity"
 msgstr "Bütünlük"
@@ -7638,6 +7656,9 @@ msgstr "Toplam"
 msgctxt "time tracking"
 msgid "Total time"
 msgstr "Toplam süre"
+
+msgid "Tradesperson"
+msgstr "Zanaatkâr"
 
 msgid "Transfer received text to the clipboard"
 msgstr "Alınan metni panoya aktar"

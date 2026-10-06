@@ -497,6 +497,9 @@ msgstr "Adicionar URI de anexo"
 msgid "Add attendee"
 msgstr "Adicionar participante"
 
+msgid "Add contact group"
+msgstr "Adicionar grupo de contactos"
+
 msgid "Add cycle marker"
 msgstr "Adicionar marcador do ciclo"
 
@@ -1342,6 +1345,9 @@ msgstr ""
 "Clicar num compromisso existente abre-o para edição em ambos os casos. Esta "
 "definição aplica-se apenas quando clica numa área vazia da caixa."
 
+msgid "Client"
+msgstr "Cliente"
+
 msgctxt "time tracking"
 msgid "Clock change (min)"
 msgstr "Mudança de hora (min)"
@@ -1507,6 +1513,9 @@ msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr ""
 "As propostas de eliminação de contactos foram bloqueadas pelo limite de "
 "segurança."
+
+msgid "Contact groups"
+msgstr "Grupos de contactos"
 
 msgid "Contact photo preview"
 msgstr "Pré-visualização da foto do contacto"
@@ -1926,6 +1935,9 @@ msgstr "Ecrã"
 msgid "Do not retrieve weather without a location"
 msgstr "Não obter meteorologia sem uma localização"
 
+msgid "Doctor"
+msgstr "Médico"
+
 msgid "Doctor appointment"
 msgstr "Consulta médica"
 
@@ -2268,6 +2280,9 @@ msgstr "Fahrenheit (°F)"
 
 msgid "Failed"
 msgstr "Falhou"
+
+msgid "Family"
+msgstr "Família"
 
 msgid "Fasting"
 msgstr "Em jejum"
@@ -2735,6 +2750,9 @@ msgstr "Versão instalada do manual: %(version)s."
 
 msgid "Insulin scheme"
 msgstr "Esquema de insulinoterapia"
+
+msgid "Insurance"
+msgstr "Seguro"
 
 msgid "Integrity"
 msgstr "Integridade"
@@ -6269,6 +6287,9 @@ msgstr "Total"
 msgctxt "time tracking"
 msgid "Total time"
 msgstr "Tempo total"
+
+msgid "Tradesperson"
+msgstr "Profissional de ofícios"
 
 msgid "Tray applet"
 msgstr "Aplicação da área de notificação"

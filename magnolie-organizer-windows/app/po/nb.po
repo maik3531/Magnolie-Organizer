@@ -495,6 +495,9 @@ msgstr "Legg til URI for vedlegg"
 msgid "Add attendee"
 msgstr "Legg til deltaker"
 
+msgid "Add contact group"
+msgstr "Legg til kontaktgruppe"
+
 msgid "Add cycle marker"
 msgstr "Legg til syklusmarkør"
 
@@ -1335,6 +1338,9 @@ msgstr ""
 "redigering. Denne innstillingen gjelder bare når du klikker på et tomt "
 "område i feltet."
 
+msgid "Client"
+msgstr "Klient"
+
 msgctxt "time tracking"
 msgid "Clock change (min)"
 msgstr "Klokkeomstilling (min)"
@@ -1495,6 +1501,9 @@ msgstr "Kontaktkort (*.vcf)"
 
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Forslag om sletting av kontakter ble blokkert av sikkerhetsgrensen."
+
+msgid "Contact groups"
+msgstr "Kontaktgrupper"
 
 msgid "Contact photo preview"
 msgstr "Forhåndsvisning av kontaktbilde"
@@ -1905,6 +1914,9 @@ msgstr "Skjerm"
 msgid "Do not retrieve weather without a location"
 msgstr "Ikke hent vær uten en plassering"
 
+msgid "Doctor"
+msgstr "Lege"
+
 msgid "Doctor appointment"
 msgstr "Legetime"
 
@@ -2246,6 +2258,9 @@ msgstr "Fahrenheit (°F)"
 
 msgid "Failed"
 msgstr "Mislyktes"
+
+msgid "Family"
+msgstr "Familie"
 
 msgid "Fasting"
 msgstr "Fastende"
@@ -2710,6 +2725,9 @@ msgstr "Installert håndbokversjon: %(version)s."
 
 msgid "Insulin scheme"
 msgstr "Insulinskjema"
+
+msgid "Insurance"
+msgstr "Forsikring"
 
 msgid "Integrity"
 msgstr "Integritet"
@@ -6208,6 +6226,9 @@ msgstr "Totalt"
 msgctxt "time tracking"
 msgid "Total time"
 msgstr "Samlet tid"
+
+msgid "Tradesperson"
+msgstr "Håndverker"
 
 msgid "Tray applet"
 msgstr "Systemstatusapplet"
