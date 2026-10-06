@@ -9,6 +9,8 @@ import io.gitlab.maik3531.magnolienotes.daten.Ablage
 import io.gitlab.maik3531.magnolienotes.daten.PortableArchiv
 import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.nio.ByteBuffer
+import java.nio.charset.CodingErrorAction
 import java.util.zip.ZipInputStream
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -111,11 +113,19 @@ object Einfuhr {
         wann: Long,
         zusammenhang: Context? = null
     ): List<Rohnotiz> {
+        require(roh.size <= DATEI_MAX) { "Import size limit exceeded" }
         val klein = name.lowercase()
         if (PortableArchiv.istArchiv(roh)) throw GesamtarchivNichtUnterstuetzt()
         if (istZip(roh)) return lokalisiere(ausZip(roh, name, zusammenhang), zusammenhang)
 
-        val text = roh.toString(Charsets.UTF_8)
+        require(roh.size <= EINTRAG_MAX) { "Text import size limit exceeded" }
+        val text = Charsets.UTF_8.newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+            .decode(ByteBuffer.wrap(roh)).toString().removePrefix("\uFEFF")
+        require(text.none { it < ' ' && it !in "\t\r\n" || it == '\u007f' }) {
+            "Binary content is not a note export"
+        }
         val angeschaut = text.take(4000)
         if (istGesamtarchiv(text, klein.endsWith(".magnolie"))) {
             throw GesamtarchivNichtUnterstuetzt()

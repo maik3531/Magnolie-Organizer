@@ -15,6 +15,20 @@ import java.util.zip.ZipOutputStream
  */
 class EinfuhrTest {
 
+    @Test fun `Binaerbilder auch mit Textdateinamen werden vor dem Parser abgewiesen`() {
+        for (bytes in listOf(byteArrayOf(0xff.toByte(), 0xd8.toByte(), 0xff.toByte()),
+            byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47, 13, 10, 26, 10),
+            "GIF89a\u0000binary".toByteArray(), byteArrayOf(0xc3.toByte(), 0x28))) {
+            for (name in listOf("image.png", "notes.txt", "export.json")) {
+                assertThrows(Exception::class.java) { Einfuhr.ausInhalt(bytes, name, 0) }
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            Einfuhr.ausInhalt(ByteArray(8 * 1024 * 1024 + 1) { 65 }, "large.txt", 0)
+        }
+        assertTrue(Einfuhr.ausInhalt("\uFEFFGrüße\nمرحبا\t你好".toByteArray(), "notes.txt", 0).single().text.contains("Grüße"))
+    }
+
     private fun lies(text: String, name: String, wann: Long = 1_700_000_000_000L) =
         Einfuhr.ausInhalt(text.toByteArray(Charsets.UTF_8), name, wann)
 
