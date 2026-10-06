@@ -12,13 +12,13 @@ internal sealed class KdeDigitizerState
     internal const string EventPacket = "kdeconnect.digitizer";
     private int width, height;
     private int? x, y;
-    private bool active, touching;
+    private bool active, touching, fingerContact;
     private string tool = "Pen";
     private double pressure;
 
     internal void Reset()
     {
-        width = height = 0; x = y = null; active = touching = false; tool = "Pen"; pressure = 0;
+        width = height = 0; x = y = null; active = touching = fingerContact = false; tool = "Pen"; pressure = 0;
     }
 
     internal JsonObject Accept(string type, JsonObject body)
@@ -48,9 +48,17 @@ internal sealed class KdeDigitizerState
             var nextY = body.ContainsKey("y") ? Integer(body, "y", -1000000, 1000000) : y;
             var nextPressure = body.ContainsKey("pressure") ? body["pressure"]!.GetValue<double>() : pressure;
             if (!double.IsFinite(nextPressure) || nextPressure is < 0 or > 8) throw new InvalidDataException("invalid_digitizer_pressure");
-            // Finger drawing uses pressure deltas while Android's draw button
-            // is held. An explicit release/proximity-exit always takes priority.
-            if (body.ContainsKey("active") && !nextActive || body.ContainsKey("touching") && !nextTouching)
+            // Finger down has a full contact signature, unlike stylus hover.
+            var fingerDown = body.ContainsKey("active") && nextActive &&
+                body.ContainsKey("touching") && !nextTouching && body.ContainsKey("tool") && nextTool == "Pen" &&
+                body.ContainsKey("x") && body.ContainsKey("y") && body.ContainsKey("pressure");
+            if (fingerDown) fingerContact = true;
+            else if (body.ContainsKey("active") && !nextActive || body.ContainsKey("touching")) fingerContact = false;
+            if (fingerContact)
+            {
+                nextTouching = nextActive; nextPressure = nextActive ? 1 : 0;
+            }
+            else if (body.ContainsKey("active") && !nextActive || body.ContainsKey("touching") && !nextTouching)
             {
                 nextTouching = false; nextPressure = 0;
             }

@@ -17,6 +17,7 @@ class DigitizerState:
         self.width = self.height = 0
         self.x = self.y = None
         self.active = self.touching = False
+        self.finger_contact = False
         self.tool = 'Pen'
         self.pressure = 0.0
 
@@ -66,10 +67,19 @@ class DigitizerState:
             self.diagnostics['explicit_contact'] += int(body.get('touching') is True)
             self.diagnostics['pressure_updates'] += int('pressure' in body)
             self.diagnostics['positive_pressure'] += int('pressure' in body and pressure > 0)
-            # Android finger drawing sends pressure deltas while its draw
-            # button is held, without a new touching=True packet. Explicit
-            # release/proximity-exit still wins over any retained pressure.
-            if 'active' in body and not active or 'touching' in body and not touching:
+            # Android finger ACTION_DOWN includes this full contact signature;
+            # stylus hover-enter only sends active and coordinates. Track the
+            # actual finger contact so the phone's extra draw button is optional.
+            finger_down = (body.get('active') is True and body.get('touching') is False
+                           and body.get('tool') == 'Pen' and
+                           all(field in body for field in ('x', 'y', 'pressure')))
+            if finger_down:
+                self.finger_contact = True
+            elif 'active' in body and not active or 'touching' in body:
+                self.finger_contact = False
+            if self.finger_contact:
+                touching, pressure = active, 1.0 if active else 0.0
+            elif 'active' in body and not active or 'touching' in body and not touching:
                 touching, pressure = False, 0.0
             elif 'touching' not in body and 'pressure' in body:
                 touching = pressure > 0

@@ -37,16 +37,27 @@ def test_invalid_packet_resets_session(body):
         state.accept(EVENT_PACKET, dict(active=True, touching=True, x=1, y=1))
 
 
-def test_android_finger_draw_button_uses_pressure_deltas_and_preserves_hover():
+def test_android_finger_contact_draws_without_button_and_lifting_splits_strokes():
     state = DigitizerState(); start(state)
-    assert not state.accept(EVENT_PACKET, dict(active=True, touching=False, tool='Pen', x=20, y=30, pressure=0))['touching']
-    assert not state.accept(EVENT_PACKET, dict(x=30, pressure=0))['touching']
+    assert state.accept(EVENT_PACKET, dict(active=True, touching=False, tool='Pen', x=20, y=30, pressure=0))['touching']
+    assert state.accept(EVENT_PACKET, dict(x=30, pressure=0))['touching']
     down = state.accept(EVENT_PACKET, dict(x=40, pressure=1))
     assert down['touching'] and down['pressure'] == 1
     assert state.accept(EVENT_PACKET, dict(x=50))['touching']
-    assert not state.accept(EVENT_PACKET, dict(x=60, pressure=0))['touching']
+    assert state.accept(EVENT_PACKET, dict(x=60, pressure=0))['touching']
     assert not state.accept(EVENT_PACKET, dict(active=False, touching=False))['active']
     assert not state.accept(EVENT_PACKET, dict(active=True, x=70))['touching']
+    assert state.accept(EVENT_PACKET, dict(active=True, touching=False, tool='Pen', x=80, y=40, pressure=0))['touching']
+    assert not start(state)['touching']
+
+
+def test_stylus_hover_is_not_misclassified_as_finger_contact():
+    state = DigitizerState(); start(state)
+    assert not state.accept(EVENT_PACKET, dict(active=True, x=20, y=30))['touching']
+    assert not state.accept(EVENT_PACKET, dict(tool='Pen', x=30, y=40))['touching']
+    assert state.accept(EVENT_PACKET, dict(active=True, touching=True, tool='Pen', x=30, y=40, pressure=0.2))['touching']
+    assert not state.accept(EVENT_PACKET, dict(active=True, touching=False))['touching']
+    assert not state.accept(EVENT_PACKET, dict(tool='Pen', x=50, y=60))['touching']
 
 
 def test_explicit_release_clears_pressure_even_if_packet_contains_pressure():

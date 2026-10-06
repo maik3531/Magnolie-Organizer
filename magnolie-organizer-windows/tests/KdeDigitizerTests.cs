@@ -34,15 +34,19 @@ internal static class KdeDigitizerTests
         Start();
         TestAssert.That(Send(KdeDigitizerState.EventPacket, "{\"pressure\":1.2}")["pressure"]!.GetValue<double>() == 1, "Pressure above one was not clamped.");
         Start();
-        TestAssert.That(!Send(KdeDigitizerState.EventPacket,
+        TestAssert.That(Send(KdeDigitizerState.EventPacket,
             """{"active":true,"touching":false,"tool":"Pen","x":20,"y":30,"pressure":0}""")["touching"]!.GetValue<bool>(),
-            "Finger movement without the draw button must hover.");
+            "Finger down must draw without the phone's extra draw button.");
         TestAssert.That(Send(KdeDigitizerState.EventPacket, """{"x":40,"pressure":1}""")["touching"]!.GetValue<bool>(),
             "Android draw-button pressure must start finger drawing without a touching delta.");
         TestAssert.That(Send(KdeDigitizerState.EventPacket, """{"x":50}""")["touching"]!.GetValue<bool>(),
             "Coordinate-only deltas must keep a drawing stroke active.");
-        TestAssert.That(!Send(KdeDigitizerState.EventPacket, """{"pressure":0}""")["touching"]!.GetValue<bool>(),
-            "Releasing the draw button must stop finger drawing.");
+        TestAssert.That(Send(KdeDigitizerState.EventPacket, """{"pressure":0}""")["touching"]!.GetValue<bool>(),
+            "A finger still on the screen must continue drawing without pressure.");
+        TestAssert.That(!Send(KdeDigitizerState.EventPacket, """{"active":false,"touching":false}""")["touching"]!.GetValue<bool>(),
+            "Lifting the finger must end its stroke.");
+        TestAssert.That(!Send(KdeDigitizerState.EventPacket, """{"active":true,"x":70,"y":30}""")["touching"]!.GetValue<bool>(),
+            "Stylus hover after lifting must not draw.");
         Send(KdeDigitizerState.EventPacket, """{"touching":true,"pressure":1}""");
         var released = Send(KdeDigitizerState.EventPacket, """{"touching":false,"pressure":1}""");
         TestAssert.That(!released["touching"]!.GetValue<bool>() && released["pressure"]!.GetValue<double>() == 0,
