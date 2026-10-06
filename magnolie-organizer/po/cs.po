@@ -1040,6 +1040,14 @@ msgstr "Před spaním"
 msgid "At least one health view must remain enabled."
 msgstr "Alespoň jedno zobrazení zdraví musí zůstat povolené."
 
+msgid ""
+"At least three recorded starts are needed. Bleeding days up to three days "
+"apart form one episode; only intervals of 14–60 days enter the median."
+msgstr ""
+"Jsou potřeba alespoň tři zaznamenané začátky. Dny krvácení vzdálené nejvýše "
+"tři dny tvoří jednu epizodu; do mediánu se započítávají pouze intervaly 14–"
+"60 dní."
+
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Najednou lze exportovat nejvýše 5 000 kontaktů."
 
@@ -2072,13 +2080,8 @@ msgstr "Vyjmout"
 msgid "Cycle calendar"
 msgstr "Kalendář cyklu"
 
-msgid ""
-"Cycle markers are stored only in your local Organizer data and do not send "
-"notifications."
-msgstr ""
-"Návrhy mohou odstranit jen jednotlivě potvrzené propojené kontakty. Povolit "
-"je pro tuto větev?Značky cyklu se ukládají pouze v místních datech "
-"Organizéru a neposílají oznámení."
+msgid "Cycle interval changed"
+msgstr "Interval cyklu se změnil"
 
 msgid "Czechia"
 msgstr "Česko"
@@ -2326,6 +2329,9 @@ msgstr "Vytáčení…"
 
 msgid "Diastolic"
 msgstr "Diastolický"
+
+msgid "Difference (days)"
+msgstr "Odchylka (dny)"
 
 msgid "Digit %(digit)s"
 msgstr "Číslice %(digit)s"
@@ -2674,6 +2680,12 @@ msgstr "Chyba"
 #, python-format
 msgid "Error: %s"
 msgstr "Chyba: %s"
+
+msgid "Estimate the next period"
+msgstr "Odhadovat příští menstruaci"
+
+msgid "Estimated next period"
+msgstr "Odhad příští menstruace"
 
 msgid "Evening"
 msgstr "Večer"
@@ -4309,6 +4321,9 @@ msgid ""
 "available."
 msgstr "Oznámení jsou k dispozici pouze v nainstalované aplikaci."
 
+msgid "Notifications are off unless enabled below."
+msgstr "Oznámení jsou vypnutá, dokud je níže nezapnete."
+
 msgid "Notify, then unlock (recommended)"
 msgstr "Oznámit, potom odemknout (doporučeno)"
 
@@ -5289,6 +5304,9 @@ msgstr "Vyměňte úplně"
 
 msgid "Reply"
 msgstr "Odpověď"
+
+msgid "Report unusual cycle intervals"
+msgstr "Hlásit neobvyklé intervaly cyklu"
 
 #, python-format
 msgid "Reported (%(method)s): %(title)s – %(body)s"
@@ -8706,6 +8724,14 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid ""
+#~ "Cycle markers are stored only in your local Organizer data and do not "
+#~ "send notifications."
+#~ msgstr ""
+#~ "Návrhy mohou odstranit jen jednotlivě potvrzené propojené kontakty. "
+#~ "Povolit je pro tuto větev?Značky cyklu se ukládají pouze v místních "
+#~ "datech Organizéru a neposílají oznámení."
 
 #~ msgid ""
 #~ "No regional data is retrieved without a selected canton. With “All”, each "

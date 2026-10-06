@@ -1000,6 +1000,13 @@ msgstr "Ved sengetid"
 msgid "At least one health view must remain enabled."
 msgstr "Mindst én sundhedsvisning skal forblive aktiveret."
 
+msgid ""
+"At least three recorded starts are needed. Bleeding days up to three days "
+"apart form one episode; only intervals of 14–60 days enter the median."
+msgstr ""
+"Mindst tre registrerede starter kræves. Blødningsdage med op til tre dages "
+"mellemrum udgør én episode; kun intervaller på 14–60 dage indgår i medianen."
+
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Der kan højst eksporteres 5.000 kontakter ad gangen."
 
@@ -2043,13 +2050,8 @@ msgstr "Klip"
 msgid "Cycle calendar"
 msgstr "Cykluskalender"
 
-msgid ""
-"Cycle markers are stored only in your local Organizer data and do not send "
-"notifications."
-msgstr ""
-"Sletningsforslag kan kun fjerne individuelt bekræftede tilknyttede "
-"kontakter. Aktivér dem for denne gren?Cyklusmarkører gemmes kun i dine "
-"lokale Organizer-data og sender ikke meddelelser."
+msgid "Cycle interval changed"
+msgstr "Cyklusinterval ændret"
 
 msgid "Czechia"
 msgstr "Tjekkiet"
@@ -2292,6 +2294,9 @@ msgstr "Ringer…"
 
 msgid "Diastolic"
 msgstr "Diastolisk"
+
+msgid "Difference (days)"
+msgstr "Afvigelse (dage)"
 
 msgid "Digit %(digit)s"
 msgstr "Ciffer %(digit)s"
@@ -2643,6 +2648,12 @@ msgstr "Fejl"
 #, python-format
 msgid "Error: %s"
 msgstr "Fejl: %s"
+
+msgid "Estimate the next period"
+msgstr "Anslå næste menstruation"
+
+msgid "Estimated next period"
+msgstr "Anslået næste menstruation"
 
 msgid "Evening"
 msgstr "Aften"
@@ -4286,6 +4297,9 @@ msgstr ""
 "Notifikationer kan kun vises. Det er ikke muligt at svare eller udføre "
 "fjernhandlinger."
 
+msgid "Notifications are off unless enabled below."
+msgstr "Meddelelser er slået fra, medmindre de aktiveres nedenfor."
+
 msgid "Notify, then unlock (recommended)"
 msgstr "Giv besked, og lås derefter op (anbefales)"
 
@@ -5262,6 +5276,9 @@ msgstr "Udskift helt"
 
 msgid "Reply"
 msgstr "Besvar"
+
+msgid "Report unusual cycle intervals"
+msgstr "Meld usædvanlige cyklusintervaller"
 
 #, python-format
 msgid "Reported (%(method)s): %(title)s – %(body)s"
@@ -8687,6 +8704,14 @@ msgstr[1] "… og %(count)s elementer mere, som også bliver udskrevet."
 
 msgid "＋ Add appointment"
 msgstr "＋ Tilføj aftale"
+
+#~ msgid ""
+#~ "Cycle markers are stored only in your local Organizer data and do not "
+#~ "send notifications."
+#~ msgstr ""
+#~ "Sletningsforslag kan kun fjerne individuelt bekræftede tilknyttede "
+#~ "kontakter. Aktivér dem for denne gren?Cyklusmarkører gemmes kun i dine "
+#~ "lokale Organizer-data og sender ikke meddelelser."
 
 #~ msgid ""
 #~ "No regional data is retrieved without a selected canton. With “All”, each "

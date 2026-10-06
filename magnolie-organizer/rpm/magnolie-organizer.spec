@@ -143,6 +143,7 @@ install -Dpm 0644 bin/magnolie_digitizer.py %{buildroot}%{_bindir}/magnolie_digi
 install -Dpm 0644 bin/magnolie_hintergrund.py %{buildroot}%{_bindir}/magnolie_hintergrund.py
 install -Dpm 0644 bin/magnolie_personal_sync.py %{buildroot}%{_bindir}/magnolie_personal_sync.py
 install -Dpm 0644 bin/magnolie_time_sync.py %{buildroot}%{_bindir}/magnolie_time_sync.py
+install -Dpm 0644 bin/magnolie_cycle.py %{buildroot}%{_bindir}/magnolie_cycle.py
 install -Dpm 0644 bin/magnolie_nextcloud.py %{buildroot}%{_bindir}/magnolie_nextcloud.py
 install -Dpm 0644 bin/magnolie_cloud_backup.py %{buildroot}%{_bindir}/magnolie_cloud_backup.py
 install -Dpm 0644 bin/magnolie_akonadi.py %{buildroot}%{_bindir}/magnolie_akonadi.py
@@ -221,7 +222,7 @@ root = pathlib.Path(r"%{buildroot}")
 bindir = root / "usr/bin"
 for name in ("magnolie-organizer", "magnolie_telefon.py",
               "magnolie_kdeconnect.py", "magnolie_hintergrund.py", "magnolie_personal_sync.py",
-              "magnolie_time_sync.py",
+              "magnolie_time_sync.py", "magnolie_cycle.py",
               "magnolie_nextcloud.py", "magnolie_cloud_backup.py", "magnolie_akonadi.py",
               "magnolie_setup_state.py", "magnolie_setup_ui.py", "magnolie_phone_region.py", "magnolie_phone_contacts.py"):
     ast.parse((bindir / name).read_text(encoding="utf-8"), filename=name)
@@ -257,6 +258,7 @@ done
 %{_bindir}/magnolie_hintergrund.py
 %{_bindir}/magnolie_personal_sync.py
 %{_bindir}/magnolie_time_sync.py
+%{_bindir}/magnolie_cycle.py
 %{_bindir}/magnolie_nextcloud.py
 %{_bindir}/magnolie_cloud_backup.py
 %{_bindir}/magnolie_akonadi.py

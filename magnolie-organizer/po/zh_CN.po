@@ -941,6 +941,13 @@ msgstr "睡前"
 msgid "At least one health view must remain enabled."
 msgstr "必须至少保留一个健康视图。"
 
+msgid ""
+"At least three recorded starts are needed. Bleeding days up to three days "
+"apart form one episode; only intervals of 14–60 days enter the median."
+msgstr ""
+"至少需要记录三次开始日期。相隔不超过三天的出血日视为同一次；中位数只使用14–60"
+"天的间隔。"
+
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "一次最多可导出 5,000 个联系人。"
 
@@ -1936,10 +1943,8 @@ msgstr "剪切"
 msgid "Cycle calendar"
 msgstr "周期日历"
 
-msgid ""
-"Cycle markers are stored only in your local Organizer data and do not send "
-"notifications."
-msgstr "周期标记只保存在本地 Organizer 数据中，不会发送通知。"
+msgid "Cycle interval changed"
+msgstr "周期间隔已变化"
 
 msgid "Czechia"
 msgstr "捷克"
@@ -2174,6 +2179,9 @@ msgstr "正在拨号…"
 
 msgid "Diastolic"
 msgstr "舒张压"
+
+msgid "Difference (days)"
+msgstr "差值（天）"
 
 msgid "Digit %(digit)s"
 msgstr "数字 %(digit)s"
@@ -2511,6 +2519,12 @@ msgstr "错误"
 #, python-format
 msgid "Error: %s"
 msgstr "错误：%s"
+
+msgid "Estimate the next period"
+msgstr "估计下次月经"
+
+msgid "Estimated next period"
+msgstr "预计下次月经"
 
 msgid "Evening"
 msgstr "傍晚"
@@ -4101,6 +4115,9 @@ msgid ""
 "available."
 msgstr "通知仅在已安装的应用中可用。"
 
+msgid "Notifications are off unless enabled below."
+msgstr "除非在下方启用，否则通知关闭。"
+
 msgid "Notify, then unlock (recommended)"
 msgstr "先通知，再解锁（推荐）"
 
@@ -5025,6 +5042,9 @@ msgstr "完全更换"
 
 msgid "Reply"
 msgstr "回复"
+
+msgid "Report unusual cycle intervals"
+msgstr "提示异常周期间隔"
 
 #, python-format
 msgid "Reported (%(method)s): %(title)s – %(body)s"
@@ -8288,6 +8308,11 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
+
+#~ msgid ""
+#~ "Cycle markers are stored only in your local Organizer data and do not "
+#~ "send notifications."
+#~ msgstr "周期标记只保存在本地 Organizer 数据中，不会发送通知。"
 
 #~ msgid ""
 #~ "No regional data is retrieved without a selected canton. With “All”, each "

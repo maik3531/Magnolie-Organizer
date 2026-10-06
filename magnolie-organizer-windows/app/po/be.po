@@ -762,6 +762,14 @@ msgstr "Перад сном"
 msgid "At least one health view must remain enabled."
 msgstr "Павінен заставацца ўключаным прынамсі адзін від раздзела здароўя."
 
+msgid ""
+"At least three recorded starts are needed. Bleeding days up to three days "
+"apart form one episode; only intervals of 14–60 days enter the median."
+msgstr ""
+"Патрэбныя прынамсі тры запісаныя пачаткі. Дні крывацёку з прамежкамі да трох "
+"дзён утвараюць адзін эпізод; у медыяну ўваходзяць толькі інтэрвалы 14–60 "
+"дзён."
+
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "За адзін раз можна экспартаваць не больш за 5 000 кантактаў."
 
@@ -1661,13 +1669,8 @@ msgstr "Выразаць"
 msgid "Cycle calendar"
 msgstr "Каляндар цыклу"
 
-msgid ""
-"Cycle markers are stored only in your local Organizer data and do not send "
-"notifications."
-msgstr ""
-"Прапановы могуць выдаляць толькі асобна пацверджаныя звязаныя кантакты. "
-"Уключыць іх для гэтай галіны?Пазнакі цыклу захоўваюцца толькі ў вашых "
-"лакальных даных Organizer і не дасылаюць апавяшчэнняў."
+msgid "Cycle interval changed"
+msgstr "Інтэрвал цыклу змяніўся"
 
 msgid "Czechia"
 msgstr "Чэхія"
@@ -1899,6 +1902,9 @@ msgstr "Набор нумара…"
 
 msgid "Diastolic"
 msgstr "Дыясталічны"
+
+msgid "Difference (days)"
+msgstr "Адхіленне (дні)"
 
 msgid "Digit %(digit)s"
 msgstr "Лічба %(digit)s"
@@ -2203,6 +2209,12 @@ msgstr "Справы"
 
 msgid "Error"
 msgstr "Памылка"
+
+msgid "Estimate the next period"
+msgstr "Ацэньваць пачатак наступнай менструацыі"
+
+msgid "Estimated next period"
+msgstr "Чаканая наступная менструацыя"
 
 msgid "Evening"
 msgstr "Вечар"
@@ -3575,6 +3587,9 @@ msgid ""
 "available."
 msgstr "Апавяшчэнні даступныя толькі ва ўсталяванай праграме."
 
+msgid "Notifications are off unless enabled below."
+msgstr "Апавяшчэнні выключаны, пакуль не ўключаны ніжэй."
+
 msgid "ODS"
 msgstr "ODS"
 
@@ -4436,6 +4451,9 @@ msgstr "Паўтарыце для пацверджання"
 
 msgid "Replace completely"
 msgstr "Замяніць цалкам"
+
+msgid "Report unusual cycle intervals"
+msgstr "Паведамляць пра незвычайныя інтэрвалы"
 
 msgid "Requires a Nextcloud account."
 msgstr "Патрабуецца ўліковы запіс Nextcloud."
@@ -7201,6 +7219,14 @@ msgstr[2] "… і яшчэ %(count)s элементы, якія таксама �
 
 msgid "＋ Add appointment"
 msgstr "＋ Дадаць сустрэчу"
+
+#~ msgid ""
+#~ "Cycle markers are stored only in your local Organizer data and do not "
+#~ "send notifications."
+#~ msgstr ""
+#~ "Прапановы могуць выдаляць толькі асобна пацверджаныя звязаныя кантакты. "
+#~ "Уключыць іх для гэтай галіны?Пазнакі цыклу захоўваюцца толькі ў вашых "
+#~ "лакальных даных Organizer і не дасылаюць апавяшчэнняў."
 
 #~ msgid ""
 #~ "No regional data is retrieved without a selected canton. With “All”, each "

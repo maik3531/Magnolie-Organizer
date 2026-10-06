@@ -1050,6 +1050,14 @@ msgstr "Перед сном"
 msgid "At least one health view must remain enabled."
 msgstr "Должен быть включён хотя бы один вид раздела здоровья."
 
+msgid ""
+"At least three recorded starts are needed. Bleeding days up to three days "
+"apart form one episode; only intervals of 14–60 days enter the median."
+msgstr ""
+"Нужно не менее трёх записанных начал. Дни кровотечения с промежутками до "
+"трёх дней считаются одним эпизодом; в медиану входят только интервалы 14–60 "
+"дней."
+
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "За один раз можно экспортировать не более 5 000 контактов."
 
@@ -2093,13 +2101,8 @@ msgstr "Вырезать"
 msgid "Cycle calendar"
 msgstr "Календарь цикла"
 
-msgid ""
-"Cycle markers are stored only in your local Organizer data and do not send "
-"notifications."
-msgstr ""
-"Предложения могут удалять только отдельно подтверждённые связанные контакты. "
-"Включить их для этой ветви?Отметки цикла хранятся только в локальных данных "
-"Органайзера и не отправляют уведомления."
+msgid "Cycle interval changed"
+msgstr "Интервал цикла изменился"
 
 msgid "Czechia"
 msgstr "Чехия"
@@ -2347,6 +2350,9 @@ msgstr "Набор номера…"
 
 msgid "Diastolic"
 msgstr "Диастолическое"
+
+msgid "Difference (days)"
+msgstr "Отклонение (дни)"
 
 msgid "Digit %(digit)s"
 msgstr "Цифра %(digit)s"
@@ -2697,6 +2703,12 @@ msgstr "Ошибка"
 #, python-format
 msgid "Error: %s"
 msgstr "Ошибка: %s"
+
+msgid "Estimate the next period"
+msgstr "Оценивать начало следующей менструации"
+
+msgid "Estimated next period"
+msgstr "Ожидаемая следующая менструация"
 
 msgid "Evening"
 msgstr "Вечер"
@@ -4343,6 +4355,9 @@ msgid ""
 "available."
 msgstr "Уведомления доступны только в установленном приложении."
 
+msgid "Notifications are off unless enabled below."
+msgstr "Уведомления выключены, пока не включены ниже."
+
 msgid "Notify, then unlock (recommended)"
 msgstr "Уведомить, затем разблокировать (рекомендуется)"
 
@@ -5337,6 +5352,9 @@ msgstr "Заменить полностью"
 
 msgid "Reply"
 msgstr "Отвечать"
+
+msgid "Report unusual cycle intervals"
+msgstr "Сообщать о необычных интервалах цикла"
 
 #, python-format
 msgid "Reported (%(method)s): %(title)s – %(body)s"
@@ -8784,6 +8802,14 @@ msgstr[2] "… и ещё %(count)s записи, которые также бу�
 
 msgid "＋ Add appointment"
 msgstr "＋ Добавить встречу"
+
+#~ msgid ""
+#~ "Cycle markers are stored only in your local Organizer data and do not "
+#~ "send notifications."
+#~ msgstr ""
+#~ "Предложения могут удалять только отдельно подтверждённые связанные "
+#~ "контакты. Включить их для этой ветви?Отметки цикла хранятся только в "
+#~ "локальных данных Органайзера и не отправляют уведомления."
 
 #~ msgid ""
 #~ "No regional data is retrieved without a selected canton. With “All”, each "

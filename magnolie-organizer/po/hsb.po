@@ -1085,6 +1085,14 @@ msgstr "Před spanjom"
 msgid "At least one health view must remain enabled."
 msgstr "Znajmjeńša jedyn napohlad strowoty dyrbi zmóžnjeny wostać."
 
+msgid ""
+"At least three recorded starts are needed. Bleeding days up to three days "
+"apart form one episode; only intervals of 14–60 days enter the median."
+msgstr ""
+"Trjebaja so znajmjeńša tři zapisane spočatki. Krwawjenske dny z interwalom "
+"hač do třoch dnjow tworia jedyn wuskyt; jenož interwale 14–60 dnjow do "
+"mediana zachadźeja."
+
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Najwjace 5.000 kontaktow hodźi so naraz eksportować."
 
@@ -2127,13 +2135,8 @@ msgstr "Wutřihać"
 msgid "Cycle calendar"
 msgstr "Cykusowa protyka"
 
-msgid ""
-"Cycle markers are stored only in your local Organizer data and do not send "
-"notifications."
-msgstr ""
-"Namjety smědźa jenož jednotliwje wobkrućene zwjazane kontakty zhašeć. Za "
-"tutu hału habilitować?Cykusowe znamjenja składuja so jenož w lokalnych "
-"datach Organizatora a njepósćelu zdźělenki."
+msgid "Cycle interval changed"
+msgstr "Interwal cyklusa so změnił"
 
 msgid "Czechia"
 msgstr "Čěska"
@@ -2389,6 +2392,9 @@ msgstr "Woła so…"
 
 msgid "Diastolic"
 msgstr "Diastoliski"
+
+msgid "Difference (days)"
+msgstr "Wotchilenje (dny)"
 
 msgid "Digit %(digit)s"
 msgstr "Cyfra %(digit)s"
@@ -2739,6 +2745,12 @@ msgstr "Fehler"
 #, python-format
 msgid "Error: %s"
 msgstr "Zmylk: %s"
+
+msgid "Estimate the next period"
+msgstr "Přichodnu menstruaciju wobličić"
+
+msgid "Estimated next period"
+msgstr "Wobličena přichodna menstruacija"
 
 msgid "Evening"
 msgstr "Wječor"
@@ -4378,6 +4390,9 @@ msgid ""
 "available."
 msgstr "Zdźělenki su jenož w instalowanym nałoženju k dispoziciji."
 
+msgid "Notifications are off unless enabled below."
+msgstr "Zdźělenki su znjemóžnjene, doniž je deleka njezmóžniće."
+
 msgid "Notify, then unlock (recommended)"
 msgstr "Zdźělić, potom wotključeć (doporučene)"
 
@@ -5389,6 +5404,9 @@ msgstr "Dospołnje narunać"
 
 msgid "Reply"
 msgstr "Wotmołwić"
+
+msgid "Report unusual cycle intervals"
+msgstr "Njewšědne interwale cyklusa zdźělić"
 
 #, python-format
 msgid "Reported (%(method)s): %(title)s – %(body)s"
@@ -8836,6 +8854,14 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
+
+#~ msgid ""
+#~ "Cycle markers are stored only in your local Organizer data and do not "
+#~ "send notifications."
+#~ msgstr ""
+#~ "Namjety smědźa jenož jednotliwje wobkrućene zwjazane kontakty zhašeć. Za "
+#~ "tutu hału habilitować?Cykusowe znamjenja składuja so jenož w lokalnych "
+#~ "datach Organizatora a njepósćelu zdźělenki."
 
 #~ msgid ""
 #~ "No regional data is retrieved without a selected canton. With “All”, each "

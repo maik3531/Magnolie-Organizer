@@ -706,6 +706,11 @@ msgstr ""
 msgid "At least one health view must remain enabled."
 msgstr ""
 
+msgid ""
+"At least three recorded starts are needed. Bleeding days up to three days "
+"apart form one episode; only intervals of 14–60 days enter the median."
+msgstr ""
+
 msgid "At most 5,000 contacts can be exported at once."
 msgstr ""
 
@@ -1541,9 +1546,7 @@ msgstr ""
 msgid "Cycle calendar"
 msgstr ""
 
-msgid ""
-"Cycle markers are stored only in your local Organizer data and do not send "
-"notifications."
+msgid "Cycle interval changed"
 msgstr ""
 
 msgid "Czechia"
@@ -1766,6 +1769,9 @@ msgid "Dialing…"
 msgstr ""
 
 msgid "Diastolic"
+msgstr ""
+
+msgid "Difference (days)"
 msgstr ""
 
 msgid "Digit %(digit)s"
@@ -2053,6 +2059,12 @@ msgid "Errands"
 msgstr ""
 
 msgid "Error"
+msgstr ""
+
+msgid "Estimate the next period"
+msgstr ""
+
+msgid "Estimated next period"
 msgstr ""
 
 msgid "Evening"
@@ -3344,6 +3356,9 @@ msgid ""
 "available."
 msgstr ""
 
+msgid "Notifications are off unless enabled below."
+msgstr ""
+
 msgid "ODS"
 msgstr ""
 
@@ -4150,6 +4165,9 @@ msgid "Repeat for confirmation"
 msgstr ""
 
 msgid "Replace completely"
+msgstr ""
+
+msgid "Report unusual cycle intervals"
 msgstr ""
 
 msgid "Requires a Nextcloud account."

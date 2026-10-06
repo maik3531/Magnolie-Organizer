@@ -120,6 +120,7 @@ internal sealed class ReminderScheduler : IDisposable
             }
         }
         tasks.AddRange(SelectCustomEntries(root, "tasks"));
+        appointments.AddRange(CycleCalendar.Reminders(root));
         var settings = Child(root, "einstellungen");
         var selected = new Dictionary<string, object?>
         {

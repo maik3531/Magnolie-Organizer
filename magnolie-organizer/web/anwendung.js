@@ -7682,6 +7682,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     d.einstellungen.kalender.vergangeneJahrestage = !!kal.vergangeneJahrestage;
     d.einstellungen.kalender.vergangeneFerien = !!kal.vergangeneFerien;
     d.einstellungen.kalender.schichtplanerAn = !!kal.schichtplanerAn;
+    const zyklusErinnerungen = kal.zyklusErinnerungen || {};
+    d.einstellungen.kalender.zyklusErinnerungen = {
+      prognose: zyklusErinnerungen.prognose === true, abweichung: zyklusErinnerungen.abweichung === true,
+      vorlauf: Number.isInteger(zyklusErinnerungen.vorlauf) && zyklusErinnerungen.vorlauf >= 0 && zyklusErinnerungen.vorlauf <= 30 ? zyklusErinnerungen.vorlauf : 1,
+      abweichungTage: Number.isInteger(zyklusErinnerungen.abweichungTage) && zyklusErinnerungen.abweichungTage >= 1 && zyklusErinnerungen.abweichungTage <= 30 ? zyklusErinnerungen.abweichungTage : 7
+    };
     d.einstellungen.kalender.zykluskalenderAn = !!kal.zykluskalenderAn;
     d.einstellungen.kalender.urlaubsplanerAn = !!kal.urlaubsplanerAn;
     d.einstellungen.kalender.muellkalenderAn = !!kal.muellkalenderAn;
@@ -13068,6 +13074,32 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     planeSpeichern();
   }
 
+  function zyklusStatistik(daten = DATEN) {
+    const ids = new Set((daten.zyklusmarker || []).filter(marker => ["bleeding-light", "bleeding-medium", "bleeding-heavy"].includes(marker.art)).map(marker => marker.id));
+    const dates = [...new Set((daten.tagmarken || []).filter(mark => gueltigesISO(mark.datum) && (mark.zyklusIds || []).some(id => ids.has(id))).map(mark => mark.datum))].sort();
+    const days = iso => Date.parse(iso + "T12:00:00Z") / 86400000;
+    const starts = []; let previous = null;
+    for (const day of dates) { if (previous === null || days(day) - days(previous) > 3) starts.push(day); previous = day; }
+    const intervals = starts.slice(1).map((day, index) => days(day) - days(starts[index]));
+    const valid = values => values.filter(value => value >= 14 && value <= 60).slice(-12).sort((a, b) => a - b);
+    const median = values => values.length >= 2 ? Math.round((values[Math.floor((values.length - 1) / 2)] + values[Math.floor(values.length / 2)]) / 2) : null;
+    const length = median(valid(intervals)), baseline = median(valid(intervals.slice(0, -1)));
+    const prediction = length === null ? "" : new Date(Date.parse(starts.at(-1) + "T12:00:00Z") + length * 86400000).toISOString().slice(0, 10);
+    return { starts, intervals, length, predicted: gueltigesISO(prediction) ? prediction : null, baseline, latest: intervals.at(-1) ?? null };
+  }
+
+  function zyklusTermineFuerErinnerung() {
+    const k = DATEN.einstellungen.kalender, options = k.zyklusErinnerungen || {}, stats = zyklusStatistik();
+    if (!k.zykluskalenderAn) return [];
+    const result = [];
+    if (options.prognose && stats.predicted) result.push({ id: "cycle-estimate:" + stats.starts.at(-1) + ":" + stats.predicted,
+      datum: stats.predicted, zeit: "08:00", titel: _("Estimated next period"), standardErinnerung: false, individuelleErinnerungTage: options.vorlauf ?? 1 });
+    if (options.abweichung && stats.baseline !== null && Math.abs(stats.latest - stats.baseline) >= (options.abweichungTage ?? 7))
+      result.push({ id: "cycle-deviation:" + stats.starts.at(-1) + ":" + stats.latest, datum: stats.starts.at(-1), zeit: "08:00",
+        titel: _("Cycle interval changed"), standardErinnerung: false, individuelleErinnerungTage: 0 });
+    return result;
+  }
+
   function customTermineFuerErinnerung() {
     const termine = [];
     for (const modul of DATEN.customOrganizer.modules || []) {
@@ -13078,7 +13110,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           standardErinnerung: true, wiederholung: leseWiederholung(item.wiederholung) });
       }
     }
-    return termine;
+    return termine.concat(zyklusTermineFuerErinnerung());
   }
 
   function customAufgabenFuerErinnerung() {
@@ -25851,7 +25883,27 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         _("Choose a phase or bleeding intensity. Assign it to the complete date range " +
           "in the new appointment sheet.")), auswahl, liste, plus,
         el("p", "einst-hinweis",
-          _("Cycle markers are stored only in your local Organizer data and do not send notifications.")));
+          _("Notifications are off unless enabled below.")));
+      const options = k.zyklusErinnerungen;
+      const prediction = document.createElement("input"), deviation = document.createElement("input");
+      prediction.type = deviation.type = "checkbox";
+      prediction.checked = options.prognose; deviation.checked = options.abweichung;
+      const lead = eingabe("number", String(options.vorlauf)); lead.min = "0"; lead.max = "30";
+      const threshold = eingabe("number", String(options.abweichungTage)); threshold.min = "1"; threshold.max = "30";
+      const predictionLabel = el("label", "hak"), deviationLabel = el("label", "hak");
+      predictionLabel.style.display = deviationLabel.style.display = "block";
+      predictionLabel.append(prediction, document.createTextNode(" " + _("Estimate the next period")));
+      deviationLabel.append(deviation, document.createTextNode(" " + _("Report unusual cycle intervals")));
+      const change = () => {
+        if (!lead.reportValidity() || !threshold.reportValidity()) return;
+        Object.assign(options, { prognose: prediction.checked, abweichung: deviation.checked,
+          vorlauf: Number(lead.value), abweichungTage: Number(threshold.value) });
+        planeSpeichern();
+      };
+      [prediction, deviation, lead, threshold].forEach(input => input.addEventListener("change", change));
+      zyklusGruppe.inhalt.append(predictionLabel, formZeile(_("Lead time"), lead), deviationLabel,
+        formZeile(_("Difference (days)"), threshold), el("p", "einst-hinweis",
+          _("At least three recorded starts are needed. Bleeding days up to three days apart form one episode; only intervals of 14–60 days enter the median.")));
     };
     zyklusGruppe.hak.id = "kalender-zykluskalender";
     zyklusGruppe.hak.addEventListener("change", () => {
@@ -31048,6 +31100,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     oeffneZeiterfassungEditor: oeffneZeiterfassungEditor,
     oeffneZeiterfassungVerlauf: oeffneZeiterfassungVerlauf,
     zeitKalenderProjektion: zeitKalenderProjektion,
+    zyklusStatistik: zyklusStatistik,
+    zyklusTermineFuerErinnerung: zyklusTermineFuerErinnerung,
     zeitOdsNutzlast: zeitOdsNutzlast,
     zeitDruckSeite: zeitDruckSeite,
     loescheZeiterfassung: loescheZeiterfassung,

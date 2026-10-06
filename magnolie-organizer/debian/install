@@ -3,6 +3,7 @@ bin/magnolie_telefon.py                usr/bin
 bin/magnolie_anruf_audio.py            usr/bin
 bin/magnolie_personal_sync.py          usr/bin
 bin/magnolie_time_sync.py              usr/bin
+bin/magnolie_cycle.py                  usr/bin
 bin/magnolie_personal_sync.py          usr/lib/magnolie-organizer
 bin/magnolie_kdeconnect.py             usr/bin
 bin/magnolie_digitizer.py              usr/bin

@@ -846,6 +846,13 @@ msgstr "عند وقت النوم"
 msgid "At least one health view must remain enabled."
 msgstr "يجب إبقاء عرض صحي واحد على الأقل مفعّلًا."
 
+msgid ""
+"At least three recorded starts are needed. Bleeding days up to three days "
+"apart form one episode; only intervals of 14–60 days enter the median."
+msgstr ""
+"يلزم تسجيل ثلاث بدايات على الأقل. أيام النزف التي تفصلها ثلاثة أيام كحد أقصى "
+"تُعد فترة واحدة؛ تدخل الفواصل من 14 إلى 60 يومًا فقط في الوسيط."
+
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "يمكن تصدير 5,000 جهة اتصال كحد أقصى في المرة الواحدة."
 
@@ -1724,10 +1731,8 @@ msgstr "قص"
 msgid "Cycle calendar"
 msgstr "تقويم الدورة"
 
-msgid ""
-"Cycle markers are stored only in your local Organizer data and do not send "
-"notifications."
-msgstr "تُحفظ علامات الدورة فقط في بيانات Organizer المحلية ولا ترسل إشعارات."
+msgid "Cycle interval changed"
+msgstr "تغير الفاصل بين الدورات"
 
 msgid "Czechia"
 msgstr "التشيك"
@@ -1965,6 +1970,9 @@ msgstr "جارٍ الاتصال…"
 
 msgid "Diastolic"
 msgstr "الانبساطي"
+
+msgid "Difference (days)"
+msgstr "الاختلاف (أيام)"
 
 msgid "Digit %(digit)s"
 msgstr "الرقم %(digit)s"
@@ -2260,6 +2268,12 @@ msgstr "مهام خارجية"
 
 msgid "Error"
 msgstr "خطأ"
+
+msgid "Estimate the next period"
+msgstr "تقدير الدورة التالية"
+
+msgid "Estimated next period"
+msgstr "موعد الدورة التالية المتوقع"
 
 msgid "Evening"
 msgstr "المساء"
@@ -3613,6 +3627,9 @@ msgid ""
 "available."
 msgstr "الإشعارات متاحة فقط في التطبيق المثبّت."
 
+msgid "Notifications are off unless enabled below."
+msgstr "الإشعارات معطلة ما لم تُفعّل أدناه."
+
 msgid "ODS"
 msgstr "ODS"
 
@@ -4486,6 +4503,9 @@ msgstr "أعد الإدخال للتأكيد"
 
 msgid "Replace completely"
 msgstr "استبدال تماما"
+
+msgid "Report unusual cycle intervals"
+msgstr "الإبلاغ عن الفواصل غير المعتادة"
 
 msgid "Requires a Nextcloud account."
 msgstr "يتطلب حساب Nextcloud."
@@ -7234,6 +7254,12 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
+
+#~ msgid ""
+#~ "Cycle markers are stored only in your local Organizer data and do not "
+#~ "send notifications."
+#~ msgstr ""
+#~ "تُحفظ علامات الدورة فقط في بيانات Organizer المحلية ولا ترسل إشعارات."
 
 #~ msgid ""
 #~ "No regional data is retrieved without a selected canton. With “All”, each "

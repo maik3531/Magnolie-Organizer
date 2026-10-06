@@ -737,6 +737,14 @@ msgstr "Voor het slapengaan"
 msgid "At least one health view must remain enabled."
 msgstr "Minstens één gezondheidsweergave moet ingeschakeld blijven."
 
+msgid ""
+"At least three recorded starts are needed. Bleeding days up to three days "
+"apart form one episode; only intervals of 14–60 days enter the median."
+msgstr ""
+"Minstens drie vastgelegde begindagen zijn nodig. Bloedingsdagen met "
+"hoogstens drie dagen ertussen vormen één episode; alleen intervallen van 14–"
+"60 dagen tellen mee voor de mediaan."
+
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Er kunnen maximaal 5.000 contacten tegelijk worden geëxporteerd."
 
@@ -1651,12 +1659,8 @@ msgstr "Knippen"
 msgid "Cycle calendar"
 msgstr "Cycluskalender"
 
-msgid ""
-"Cycle markers are stored only in your local Organizer data and do not send "
-"notifications."
-msgstr ""
-"Cyclusmarkeringen worden alleen in uw lokale Organizer-gegevens opgeslagen "
-"en sturen geen meldingen."
+msgid "Cycle interval changed"
+msgstr "Cyclusinterval gewijzigd"
 
 msgid "Czechia"
 msgstr "Tsjechië"
@@ -1893,6 +1897,9 @@ msgstr "Bellen…"
 
 msgid "Diastolic"
 msgstr "Diastolisch"
+
+msgid "Difference (days)"
+msgstr "Verschil (dagen)"
 
 msgid "Digit %(digit)s"
 msgstr "Cijfer %(digit)s"
@@ -2200,6 +2207,12 @@ msgstr "Boodschappen"
 
 msgid "Error"
 msgstr "Fout"
+
+msgid "Estimate the next period"
+msgstr "Volgende menstruatie schatten"
+
+msgid "Estimated next period"
+msgstr "Geschatte volgende menstruatie"
 
 msgid "Evening"
 msgstr "Avond"
@@ -3578,6 +3591,9 @@ msgstr ""
 "Meldingen worden alleen weergegeven; antwoorden en externe acties zijn niet "
 "beschikbaar."
 
+msgid "Notifications are off unless enabled below."
+msgstr "Meldingen staan uit tenzij ze hieronder worden ingeschakeld."
+
 msgid "ODS"
 msgstr "ODS"
 
@@ -4442,6 +4458,9 @@ msgstr "Herhalen ter bevestiging"
 
 msgid "Replace completely"
 msgstr "Volledig vervangen"
+
+msgid "Report unusual cycle intervals"
+msgstr "Ongewone cyclusintervallen melden"
 
 msgid "Requires a Nextcloud account."
 msgstr "Vereist een Nextcloud-account."
@@ -7236,6 +7255,13 @@ msgstr[1] "… en %(count)s extra items die ook worden afgedrukt."
 
 msgid "＋ Add appointment"
 msgstr "＋ Afspraak toevoegen"
+
+#~ msgid ""
+#~ "Cycle markers are stored only in your local Organizer data and do not "
+#~ "send notifications."
+#~ msgstr ""
+#~ "Cyclusmarkeringen worden alleen in uw lokale Organizer-gegevens "
+#~ "opgeslagen en sturen geen meldingen."
 
 #~ msgid ""
 #~ "No regional data is retrieved without a selected canton. With “All”, each "

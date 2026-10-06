@@ -1017,6 +1017,14 @@ msgstr "Al acostarse"
 msgid "At least one health view must remain enabled."
 msgstr "Debe permanecer activada al menos una vista de salud."
 
+msgid ""
+"At least three recorded starts are needed. Bleeding days up to three days "
+"apart form one episode; only intervals of 14–60 days enter the median."
+msgstr ""
+"Se necesitan al menos tres inicios registrados. Los días de sangrado "
+"separados por hasta tres días forman un episodio; solo los intervalos de 14–"
+"60 días entran en la mediana."
+
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Se pueden exportar como máximo 5.000 contactos a la vez."
 
@@ -2076,12 +2084,8 @@ msgstr "Cortar"
 msgid "Cycle calendar"
 msgstr "Calendario del ciclo"
 
-msgid ""
-"Cycle markers are stored only in your local Organizer data and do not send "
-"notifications."
-msgstr ""
-"Las marcas del ciclo se guardan solo en los datos locales del Organizador y "
-"no envían notificaciones."
+msgid "Cycle interval changed"
+msgstr "Intervalo del ciclo cambiado"
 
 msgid "Czechia"
 msgstr "Chequia"
@@ -2329,6 +2333,9 @@ msgstr "Marcando…"
 
 msgid "Diastolic"
 msgstr "Diastólica"
+
+msgid "Difference (days)"
+msgstr "Diferencia (días)"
 
 msgid "Digit %(digit)s"
 msgstr "Dígito %(digit)s"
@@ -2685,6 +2692,12 @@ msgstr "Error"
 #, python-format
 msgid "Error: %s"
 msgstr "Error: %s"
+
+msgid "Estimate the next period"
+msgstr "Estimar la próxima menstruación"
+
+msgid "Estimated next period"
+msgstr "Próxima menstruación estimada"
 
 msgid "Evening"
 msgstr "Tarde"
@@ -4343,6 +4356,9 @@ msgstr ""
 "Las notificaciones son solo informativas; no se puede responder ni realizar "
 "acciones remotas."
 
+msgid "Notifications are off unless enabled below."
+msgstr "Las notificaciones están desactivadas salvo que se activen abajo."
+
 msgid "Notify, then unlock (recommended)"
 msgstr "Notificar y después desbloquear (recomendado)"
 
@@ -5343,6 +5359,9 @@ msgstr "Reemplazar completamente"
 
 msgid "Reply"
 msgstr "Responder"
+
+msgid "Report unusual cycle intervals"
+msgstr "Avisar de intervalos inusuales"
 
 #, python-format
 msgid "Reported (%(method)s): %(title)s – %(body)s"
@@ -8841,6 +8860,13 @@ msgstr[1] "… y %(count)s elementos más que también se imprimirán."
 
 msgid "＋ Add appointment"
 msgstr "＋ Añadir cita"
+
+#~ msgid ""
+#~ "Cycle markers are stored only in your local Organizer data and do not "
+#~ "send notifications."
+#~ msgstr ""
+#~ "Las marcas del ciclo se guardan solo en los datos locales del Organizador "
+#~ "y no envían notificaciones."
 
 #~ msgid ""
 #~ "No regional data is retrieved without a selected canton. With “All”, each "

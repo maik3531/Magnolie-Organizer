@@ -701,6 +701,13 @@ msgstr "就寝時"
 msgid "At least one health view must remain enabled."
 msgstr "健康管理の表示を 1 つ以上有効にしておく必要があります。"
 
+msgid ""
+"At least three recorded starts are needed. Bleeding days up to three days "
+"apart form one episode; only intervals of 14–60 days enter the median."
+msgstr ""
+"記録された開始日が3回以上必要です。間隔が3日以内の出血日は同じ期間とし、中央"
+"値には14〜60日の間隔だけを使用します。"
+
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "一度にエクスポートできる連絡先は最大 5,000 件です。"
 
@@ -1599,11 +1606,8 @@ msgstr "切り取り"
 msgid "Cycle calendar"
 msgstr "周期カレンダー"
 
-msgid ""
-"Cycle markers are stored only in your local Organizer data and do not send "
-"notifications."
-msgstr ""
-"周期マーカーはローカルの Organizer データだけに保存され、通知は送信しません。"
+msgid "Cycle interval changed"
+msgstr "周期の間隔が変化しました"
 
 msgid "Czechia"
 msgstr "チェコ"
@@ -1835,6 +1839,9 @@ msgstr "発信中…"
 
 msgid "Diastolic"
 msgstr "拡張期血圧"
+
+msgid "Difference (days)"
+msgstr "差（日）"
 
 msgid "Digit %(digit)s"
 msgstr "数字 %(digit)s"
@@ -2137,6 +2144,12 @@ msgstr "用事"
 
 msgid "Error"
 msgstr "エラー"
+
+msgid "Estimate the next period"
+msgstr "次の月経を推定する"
+
+msgid "Estimated next period"
+msgstr "次の月経の推定日"
 
 msgid "Evening"
 msgstr "夕方"
@@ -3510,6 +3523,9 @@ msgid ""
 "available."
 msgstr "通知はインストール済みアプリでのみ利用できます。"
 
+msgid "Notifications are off unless enabled below."
+msgstr "以下で有効にしない限り通知は無効です。"
+
 msgid "ODS"
 msgstr "ODS"
 
@@ -4343,6 +4359,9 @@ msgstr "確認のためもう一度入力"
 
 msgid "Replace completely"
 msgstr "完全に交換してください"
+
+msgid "Report unusual cycle intervals"
+msgstr "通常と異なる周期の間隔を通知する"
 
 msgid "Requires a Nextcloud account."
 msgstr "Nextcloud アカウントが必要です。"
@@ -7070,6 +7089,13 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
+
+#~ msgid ""
+#~ "Cycle markers are stored only in your local Organizer data and do not "
+#~ "send notifications."
+#~ msgstr ""
+#~ "周期マーカーはローカルの Organizer データだけに保存され、通知は送信しませ"
+#~ "ん。"
 
 #~ msgid ""
 #~ "No regional data is retrieved without a selected canton. With “All”, each "

@@ -736,6 +736,13 @@ msgstr "Yatmadan önce"
 msgid "At least one health view must remain enabled."
 msgstr "En az bir sağlık görünümü etkin kalmalıdır."
 
+msgid ""
+"At least three recorded starts are needed. Bleeding days up to three days "
+"apart form one episode; only intervals of 14–60 days enter the median."
+msgstr ""
+"En az üç kayıtlı başlangıç gerekir. Aralarında en çok üç gün bulunan kanama "
+"günleri tek dönem sayılır; medyana yalnızca 14–60 günlük aralıklar katılır."
+
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Tek seferde en fazla 5.000 kişi dışa aktarılabilir."
 
@@ -1630,13 +1637,8 @@ msgstr "Kes"
 msgid "Cycle calendar"
 msgstr "Döngü takvimi"
 
-msgid ""
-"Cycle markers are stored only in your local Organizer data and do not send "
-"notifications."
-msgstr ""
-"Silme önerileri yalnızca tek tek onaylanmış bağlı kişileri kaldırabilir. Bu "
-"dal için etkinleştirilsin mi?Döngü işaretleri yalnızca yerel Organizer "
-"verilerinizde saklanır ve bildirim göndermez."
+msgid "Cycle interval changed"
+msgstr "Döngü aralığı değişti"
 
 msgid "Czechia"
 msgstr "Çekya"
@@ -1867,6 +1869,9 @@ msgstr "Aranıyor…"
 
 msgid "Diastolic"
 msgstr "Diyastolik"
+
+msgid "Difference (days)"
+msgstr "Sapma (gün)"
 
 msgid "Digit %(digit)s"
 msgstr "Rakam %(digit)s"
@@ -2173,6 +2178,12 @@ msgstr "Yapılacak işler"
 
 msgid "Error"
 msgstr "Hata"
+
+msgid "Estimate the next period"
+msgstr "Sonraki adeti tahmin et"
+
+msgid "Estimated next period"
+msgstr "Tahmini sonraki adet"
 
 msgid "Evening"
 msgstr "Akşam"
@@ -3542,6 +3553,9 @@ msgstr ""
 "Bildirimler yalnızca görüntülenebilir; yanıtlama ve uzaktan işlemler "
 "kullanılamaz."
 
+msgid "Notifications are off unless enabled below."
+msgstr "Aşağıda etkinleştirilmedikçe bildirimler kapalıdır."
+
 msgid "ODS"
 msgstr "ODS"
 
@@ -4397,6 +4411,9 @@ msgstr "Onaylamak için yineleyin"
 
 msgid "Replace completely"
 msgstr "Tamamen değiştirin"
+
+msgid "Report unusual cycle intervals"
+msgstr "Olağandışı döngü aralıklarını bildir"
 
 msgid "Requires a Nextcloud account."
 msgstr "Nextcloud hesabı gerektirir."
@@ -7148,6 +7165,14 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
+
+#~ msgid ""
+#~ "Cycle markers are stored only in your local Organizer data and do not "
+#~ "send notifications."
+#~ msgstr ""
+#~ "Silme önerileri yalnızca tek tek onaylanmış bağlı kişileri kaldırabilir. "
+#~ "Bu dal için etkinleştirilsin mi?Döngü işaretleri yalnızca yerel Organizer "
+#~ "verilerinizde saklanır ve bildirim göndermez."
 
 #~ msgid ""
 #~ "No regional data is retrieved without a selected canton. With “All”, each "

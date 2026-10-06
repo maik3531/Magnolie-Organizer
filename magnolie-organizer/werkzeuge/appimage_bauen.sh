@@ -159,6 +159,7 @@ install -m 0644 "$WURZEL/bin/magnolie_digitizer.py" "$APPDIR/usr/bin/magnolie_di
 install -m 0644 "$WURZEL/bin/magnolie_hintergrund.py" "$APPDIR/usr/bin/magnolie_hintergrund.py"
 install -m 0644 "$WURZEL/bin/magnolie_personal_sync.py" "$APPDIR/usr/bin/magnolie_personal_sync.py"
 install -m 0644 "$WURZEL/bin/magnolie_time_sync.py" "$APPDIR/usr/bin/magnolie_time_sync.py"
+install -m 0644 "$WURZEL/bin/magnolie_cycle.py" "$APPDIR/usr/bin/magnolie_cycle.py"
 install -m 0644 "$WURZEL/bin/magnolie_nextcloud.py" "$APPDIR/usr/bin/magnolie_nextcloud.py"
 install -m 0644 "$WURZEL/bin/magnolie_cloud_backup.py" "$APPDIR/usr/bin/magnolie_cloud_backup.py"
 install -m 0644 "$WURZEL/bin/magnolie_akonadi.py" "$APPDIR/usr/bin/magnolie_akonadi.py"

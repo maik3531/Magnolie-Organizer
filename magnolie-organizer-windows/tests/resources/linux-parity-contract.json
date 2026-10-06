@@ -1,8 +1,8 @@
 {
   "schema": "magnolie-linux-parity-v1",
   "sources": {
-    "web/anwendung.js": "5c4eab9f38129ecdcd02be2e53bb3bf8b6ebf3f4a888235eeba00d051f84ce8b",
-    "bin/magnolie-organizer": "5bd4aa4ed4d39b33d043d459b57112b76aee7771266220572bc920eafa4f2059"
+    "web/anwendung.js": "6a0f606d56b49b46d13a66c326c65879908c6150e2e7c5b86b45ad0c2cb59c87",
+    "bin/magnolie-organizer": "a2483b6538a59b21055ed0b04fc3d48a9725d4bb9d620138282bc227d8b42713"
   },
   "commands": [
     "ablage_holen",
@@ -360,6 +360,60 @@
       ],
       [
         "kennung",
+        "kennung"
+      ],
+      [
+        "art",
+        "\"personal_sync.time_settings\""
+      ],
+      [
+        "inhalt",
+        "{ enabled: false }"
+      ]
+    ],
+    [
+      [
+        "cmd",
+        "\"personal_sync_senden\""
+      ],
+      [
+        "kennung",
+        "kennung"
+      ],
+      [
+        "art",
+        "\"personal_sync.time_settings\""
+      ],
+      [
+        "inhalt",
+        "{ enabled: true }"
+      ]
+    ],
+    [
+      [
+        "cmd",
+        "\"personal_sync_senden\""
+      ],
+      [
+        "kennung",
+        "peer.device_id"
+      ],
+      [
+        "art",
+        "\"personal_sync.time_settings\""
+      ],
+      [
+        "inhalt",
+        "{ enabled: true }"
+      ]
+    ],
+    [
+      [
+        "cmd",
+        "\"personal_sync_senden\""
+      ],
+      [
+        "kennung",
         "id"
       ],
       [
@@ -474,5 +528,5 @@
       ]
     ]
   ],
-  "contractSha256": "5f39a9d07e4a698a16e72fea0f749358b0b3e2ffa0db31b653bda5b5f8079828"
+  "contractSha256": "a0f3417e1dad10fe1e746e5fa8254cf48d8a95679ef8725150e515754ac52520"
 }

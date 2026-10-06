@@ -7160,6 +7160,8 @@ def _custom_erinnerungseintraege(daten):
                 aufgaben.append({"id": erinnerungs_id, "titel": titel,
                     "faellig": item["due"], "faelligZeit": str(item.get("time") or "")[:5],
                     "erledigt": bool(item.get("done")), "erinnern": True})
+    from magnolie_cycle import cycle_reminders
+    termine.extend(cycle_reminders(daten, _))
     return termine, aufgaben
 
 

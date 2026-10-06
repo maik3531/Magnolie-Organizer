@@ -85,6 +85,7 @@ LD_LIBRARY_PATH="$APPDIR/usr/lib/x86_64-linux-gnu:$APPDIR/usr/lib" \
 test -f "$APPDIR/usr/bin/magnolie_telefon.py"
 test -f "$APPDIR/usr/bin/magnolie_personal_sync.py"
 test -f "$APPDIR/usr/bin/magnolie_time_sync.py"
+test -f "$APPDIR/usr/bin/magnolie_cycle.py"
 test -f "$APPDIR/usr/bin/magnolie_nextcloud.py"
 test -f "$APPDIR/usr/bin/magnolie_cloud_backup.py"
 test -f "$APPDIR/usr/bin/magnolie_akonadi.py"

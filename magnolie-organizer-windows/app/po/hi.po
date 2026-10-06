@@ -723,6 +723,13 @@ msgstr "सोने के समय"
 msgid "At least one health view must remain enabled."
 msgstr "कम से कम एक स्वास्थ्य दृश्य सक्षम रहना चाहिए।"
 
+msgid ""
+"At least three recorded starts are needed. Bleeding days up to three days "
+"apart form one episode; only intervals of 14–60 days enter the median."
+msgstr ""
+"कम से कम तीन दर्ज शुरुआत चाहिए। अधिकतम तीन दिन के अंतर वाले रक्तस्राव के दिन एक अवधि "
+"हैं; मध्यिका में केवल 14–60 दिन के अंतर शामिल हैं।"
+
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "एक बार में अधिकतम 5,000 संपर्क निर्यात किए जा सकते हैं।"
 
@@ -1598,10 +1605,8 @@ msgstr "काटें"
 msgid "Cycle calendar"
 msgstr "चक्र कैलेंडर"
 
-msgid ""
-"Cycle markers are stored only in your local Organizer data and do not send "
-"notifications."
-msgstr "चक्र चिह्न केवल आपके स्थानीय Organizer डेटा में सहेजे जाते हैं और सूचनाएँ नहीं भेजते।"
+msgid "Cycle interval changed"
+msgstr "चक्र का अंतर बदला"
 
 msgid "Czechia"
 msgstr "चेकिया"
@@ -1830,6 +1835,9 @@ msgstr "डायल किया जा रहा है…"
 
 msgid "Diastolic"
 msgstr "डायस्टोलिक"
+
+msgid "Difference (days)"
+msgstr "अंतर (दिन)"
 
 msgid "Digit %(digit)s"
 msgstr "अंक %(digit)s"
@@ -2126,6 +2134,12 @@ msgstr "काम-काज"
 
 msgid "Error"
 msgstr "गलती"
+
+msgid "Estimate the next period"
+msgstr "अगली माहवारी का अनुमान लगाएँ"
+
+msgid "Estimated next period"
+msgstr "अगली माहवारी का अनुमान"
 
 msgid "Evening"
 msgstr "शाम"
@@ -3479,6 +3493,9 @@ msgid ""
 "available."
 msgstr "सूचनाएँ केवल स्थापित अनुप्रयोग में उपलब्ध हैं।"
 
+msgid "Notifications are off unless enabled below."
+msgstr "नीचे चालू किए बिना सूचनाएँ बंद रहती हैं।"
+
 msgid "ODS"
 msgstr "ODS"
 
@@ -4323,6 +4340,9 @@ msgstr "पुष्टि के लिए फिर दर्ज करें"
 
 msgid "Replace completely"
 msgstr "पूरी तरह से बदलें"
+
+msgid "Report unusual cycle intervals"
+msgstr "असामान्य चक्र-अंतर की सूचना दें"
 
 msgid "Requires a Nextcloud account."
 msgstr "Nextcloud खाता आवश्यक है।"
@@ -7031,6 +7051,11 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
+
+#~ msgid ""
+#~ "Cycle markers are stored only in your local Organizer data and do not "
+#~ "send notifications."
+#~ msgstr "चक्र चिह्न केवल आपके स्थानीय Organizer डेटा में सहेजे जाते हैं और सूचनाएँ नहीं भेजते।"
 
 #~ msgid ""
 #~ "No regional data is retrieved without a selected canton. With “All”, each "

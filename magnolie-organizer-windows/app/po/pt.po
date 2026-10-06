@@ -736,6 +736,14 @@ msgstr "Ao deitar"
 msgid "At least one health view must remain enabled."
 msgstr "Pelo menos uma vista de saúde tem de permanecer ativada."
 
+msgid ""
+"At least three recorded starts are needed. Bleeding days up to three days "
+"apart form one episode; only intervals of 14–60 days enter the median."
+msgstr ""
+"São necessários pelo menos três inícios registados. Dias de sangramento "
+"separados por até três dias formam um episódio; apenas intervalos de 14–60 "
+"dias entram na mediana."
+
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Só é possível exportar até 5.000 contactos de cada vez."
 
@@ -1651,12 +1659,8 @@ msgstr "Cortar"
 msgid "Cycle calendar"
 msgstr "Calendário do ciclo"
 
-msgid ""
-"Cycle markers are stored only in your local Organizer data and do not send "
-"notifications."
-msgstr ""
-"Os marcadores do ciclo são guardados apenas nos dados locais do seu "
-"Organizador e não enviam notificações."
+msgid "Cycle interval changed"
+msgstr "Intervalo do ciclo alterado"
 
 msgid "Czechia"
 msgstr "Chéquia"
@@ -1891,6 +1895,9 @@ msgstr "A marcar…"
 
 msgid "Diastolic"
 msgstr "Diastólica"
+
+msgid "Difference (days)"
+msgstr "Diferença (dias)"
 
 msgid "Digit %(digit)s"
 msgstr "Dígito %(digit)s"
@@ -2200,6 +2207,12 @@ msgstr "Recados"
 
 msgid "Error"
 msgstr "Erro"
+
+msgid "Estimate the next period"
+msgstr "Estimar a próxima menstruação"
+
+msgid "Estimated next period"
+msgstr "Próxima menstruação estimada"
 
 msgid "Evening"
 msgstr "Fim da tarde"
@@ -3579,6 +3592,9 @@ msgstr ""
 "As notificações são apenas para visualização; não é possível responder nem "
 "executar ações remotas."
 
+msgid "Notifications are off unless enabled below."
+msgstr "As notificações estão desligadas salvo ativação abaixo."
+
 msgid "ODS"
 msgstr "ODS"
 
@@ -4444,6 +4460,9 @@ msgstr "Repetir para confirmar"
 
 msgid "Replace completely"
 msgstr "Substitua completamente"
+
+msgid "Report unusual cycle intervals"
+msgstr "Avisar sobre intervalos invulgares"
 
 msgid "Requires a Nextcloud account."
 msgstr "Requer uma conta Nextcloud."
@@ -7228,6 +7247,13 @@ msgstr[1] "… e mais %(count)s entradas que também serão impressas."
 
 msgid "＋ Add appointment"
 msgstr "＋ Adicionar compromisso"
+
+#~ msgid ""
+#~ "Cycle markers are stored only in your local Organizer data and do not "
+#~ "send notifications."
+#~ msgstr ""
+#~ "Os marcadores do ciclo são guardados apenas nos dados locais do seu "
+#~ "Organizador e não enviam notificações."
 
 #~ msgid ""
 #~ "No regional data is retrieved without a selected canton. With “All”, each "

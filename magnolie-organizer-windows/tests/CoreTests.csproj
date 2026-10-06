@@ -38,6 +38,7 @@
     <Compile Include="..\WindowsContactStore.cs" Link="WindowsContactStore.cs" />
     <Compile Include="..\GraphContactService.cs" Link="GraphContactService.cs" />
     <Compile Include="..\ReminderScheduler.cs" Link="ReminderScheduler.cs" />
+    <Compile Include="..\CycleCalendar.cs" Link="CycleCalendar.cs" />
     <Compile Include="..\CalendarRecurrence.cs" Link="CalendarRecurrence.cs" />
     <Compile Include="..\WindowsPaths.cs" Link="WindowsPaths.cs" />
     <Compile Include="..\CloudBackupService.cs" Link="CloudBackupService.cs" />

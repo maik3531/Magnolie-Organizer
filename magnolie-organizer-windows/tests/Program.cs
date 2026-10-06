@@ -73,6 +73,7 @@ runner.Add("Time sync / encrypted staging and durable receipts", TimeSyncStoreTe
 runner.Add("ODT Brief / MIME / Paket / Dateiendung", ContractGroupTests.OdtAsync);
 runner.Add("Windows Contacts / Graph / OAuth / Token", WindowsContactGraphTests.RunAsync);
 runner.Add("Reminder / Serien", ContractGroupTests.RemindersAsync);
+runner.Add("Cycle calendar / explicit markers and optional forecasts", CycleCalendarTests.RunAsync);
 runner.Add("Reminder / Neustart / Kennwort / DST", ReminderPersistenceTests.RunAsync);
 runner.Add("Anniversary reminder / text / independent dismissal", AnniversaryReminderTests.RunAsync);
 runner.Add("Tray-Persistenz / Autostart", ContractGroupTests.TrayAsync);

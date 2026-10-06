@@ -733,6 +733,14 @@ msgstr "Ved sengetid"
 msgid "At least one health view must remain enabled."
 msgstr "Minst én helsevisning må være aktivert."
 
+msgid ""
+"At least three recorded starts are needed. Bleeding days up to three days "
+"apart form one episode; only intervals of 14–60 days enter the median."
+msgstr ""
+"Minst tre registrerte starter kreves. Blødningsdager med opptil tre dagers "
+"mellomrom utgjør én episode; bare intervaller på 14–60 dager inngår i "
+"medianen."
+
 msgid "At most 5,000 contacts can be exported at once."
 msgstr "Maksimalt 5 000 kontakter kan eksporteres om gangen."
 
@@ -1635,13 +1643,8 @@ msgstr "Klipp ut"
 msgid "Cycle calendar"
 msgstr "Sykluskalender"
 
-msgid ""
-"Cycle markers are stored only in your local Organizer data and do not send "
-"notifications."
-msgstr ""
-"Sletteforslag kan bare fjerne individuelt bekreftede tilknyttede kontakter. "
-"Aktivere dem for denne grenen?Syklusmarkører lagres bare i dine lokale "
-"Organizer-data og sender ikke varsler."
+msgid "Cycle interval changed"
+msgstr "Syklusintervallet er endret"
 
 msgid "Czechia"
 msgstr "Tsjekkia"
@@ -1871,6 +1874,9 @@ msgstr "Ringer…"
 
 msgid "Diastolic"
 msgstr "Diastolisk"
+
+msgid "Difference (days)"
+msgstr "Avvik (dager)"
 
 msgid "Digit %(digit)s"
 msgstr "Siffer %(digit)s"
@@ -2179,6 +2185,12 @@ msgstr "Ærender"
 
 msgid "Error"
 msgstr "Feil"
+
+msgid "Estimate the next period"
+msgstr "Anslå neste menstruasjon"
+
+msgid "Estimated next period"
+msgstr "Anslått neste menstruasjon"
 
 msgid "Evening"
 msgstr "Kveld"
@@ -3549,6 +3561,9 @@ msgstr ""
 "Varsler kan bare vises. Det er ikke mulig å svare eller utføre "
 "fjernhandlinger."
 
+msgid "Notifications are off unless enabled below."
+msgstr "Varsler er av med mindre de aktiveres nedenfor."
+
 msgid "ODS"
 msgstr "ODS"
 
@@ -4403,6 +4418,9 @@ msgstr "Gjenta for å bekrefte"
 
 msgid "Replace completely"
 msgstr "Bytt helt ut"
+
+msgid "Report unusual cycle intervals"
+msgstr "Varsle om uvanlige syklusintervaller"
 
 msgid "Requires a Nextcloud account."
 msgstr "Krever en Nextcloud-konto."
@@ -7160,6 +7178,14 @@ msgstr[1] "… og %(count)s elementer til som også blir skrevet ut."
 
 msgid "＋ Add appointment"
 msgstr "＋ Legg til avtale"
+
+#~ msgid ""
+#~ "Cycle markers are stored only in your local Organizer data and do not "
+#~ "send notifications."
+#~ msgstr ""
+#~ "Sletteforslag kan bare fjerne individuelt bekreftede tilknyttede "
+#~ "kontakter. Aktivere dem for denne grenen?Syklusmarkører lagres bare i "
+#~ "dine lokale Organizer-data og sender ikke varsler."
 
 #~ msgid ""
 #~ "No regional data is retrieved without a selected canton. With “All”, each "
