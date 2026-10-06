@@ -2725,6 +2725,7 @@ class KDEConnectSMSBackend:
             digitizers = self._digitizer_connections()
             result["digitizer_available"] = len(digitizers) == 1
             result["digitizer_device_id"] = digitizers[0]["identity"]["deviceId"] if len(digitizers) == 1 else ""
+            result["digitizer_protocol"] = dict(digitizers[0]["worker"].digitizer.diagnostics) if len(digitizers) == 1 else {}
             if capable:
                 capabilities = capable[0]["identity"]["incomingCapabilities"]
                 result["history_available"] = (SMS_REQUEST_CONVERSATIONS_TYPE in capabilities

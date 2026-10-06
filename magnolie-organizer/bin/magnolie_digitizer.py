@@ -9,6 +9,8 @@ EVENT_PACKET = 'kdeconnect.digitizer'
 
 class DigitizerState:
     def __init__(self):
+        self.diagnostics = dict(events=0, explicit_contact=0, positive_pressure=0,
+                                pressure_updates=0, rejected=0)
         self.reset()
 
     def reset(self):
@@ -60,6 +62,10 @@ class DigitizerState:
             pressure = body.get('pressure', self.pressure)
             if type(pressure) not in (int, float) or not math.isfinite(pressure) or not 0 <= pressure <= 8:
                 raise ValueError('invalid_digitizer_pressure')
+            self.diagnostics['events'] += 1
+            self.diagnostics['explicit_contact'] += int(body.get('touching') is True)
+            self.diagnostics['pressure_updates'] += int('pressure' in body)
+            self.diagnostics['positive_pressure'] += int('pressure' in body and pressure > 0)
             # Android finger drawing sends pressure deltas while its draw
             # button is held, without a new touching=True packet. Explicit
             # release/proximity-exit still wins over any retained pressure.
@@ -71,6 +77,7 @@ class DigitizerState:
             self.x, self.y, self.pressure = x, y, max(0, min(1, pressure))
             return self.sample()
         except (ValueError, TypeError, OverflowError):
+            self.diagnostics['rejected'] += 1
             self.reset()
             raise ValueError('invalid_digitizer_packet') from None
 

@@ -60,6 +60,14 @@ def test_explicit_release_clears_pressure_even_if_packet_contains_pressure():
     assert not exited['touching'] and exited['pressure'] == 0
 
 
+def test_diagnostics_distinguish_raw_pressure_from_normalized_release_without_positions():
+    state = DigitizerState(); start(state)
+    state.accept(EVENT_PACKET, dict(active=True, touching=False, x=20, y=30, pressure=1))
+    assert state.sample()['pressure'] == 0
+    assert state.diagnostics == dict(events=1, explicit_contact=0, positive_pressure=1,
+                                     pressure_updates=1, rejected=0)
+
+
 def test_new_session_clears_previous_pen_state_and_clamps_real_pressure():
     state = DigitizerState(); start(state)
     assert state.accept(EVENT_PACKET, dict(active=True, touching=True, x=10, y=20, pressure=1.2))['pressure'] == 1
