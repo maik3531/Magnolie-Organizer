@@ -18953,6 +18953,7 @@ _ORGANIZER_RESSOURCEN = {
     "/i18n.js": ("i18n.js", "application/javascript"),
     "/i18n-start.js": ("i18n-start.js", "application/javascript"),
     "/anwendung.js": ("anwendung.js", "application/javascript"),
+    "/zeichenblatt.js": ("zeichenblatt.js", "application/javascript"),
 }
 _ORGANIZER_RESSOURCEN.update({
     "/i18n/%s.js" % sprache: ("i18n/%s.js" % sprache, "application/javascript")

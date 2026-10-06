@@ -5981,7 +5981,7 @@ try:
     os.makedirs(os.path.join(web_probe, "i18n"))
     os.makedirs(os.path.join(web_probe, "schriften"))
     feste_web_dateien = ("index.html", "stil.css", "i18n.js", "i18n-en.js",
-                         "i18n-start.js", "anwendung.js")
+                         "i18n-start.js", "anwendung.js", "zeichenblatt.js")
     katalog_dateien = tuple("i18n/%s.js" % sprache
                             for sprache in m.UNTERSTUETZTE_SPRACHEN)
     for web_name in feste_web_dateien + katalog_dateien:
@@ -6030,6 +6030,10 @@ try:
     pruefe(ressource and ressource[0] == os.path.join(web_probe, "index.html") and
            ressource[1] == "text/html",
            "nur der feste Organizer-Ursprung liefert die Hauptoberfläche")
+    zeichnen = m.organizer_ressource("magnolie-organizer://app/zeichenblatt.js", web_probe)
+    pruefe(zeichnen and zeichnen[0] == os.path.join(web_probe, "zeichenblatt.js") and
+           zeichnen[1] == "application/javascript",
+           "das interne URI-Schema liefert das Zeichenblatt-Modul")
     pruefe(all(m.organizer_ressource(
         "magnolie-organizer://app/i18n/%s.js" % sprache, web_probe)
         for sprache in m.UNTERSTUETZTE_SPRACHEN),
