@@ -39,6 +39,15 @@ class TelefonComputerTest {
         assertThrows(NoSuchElementException::class.java) { loaded.select("unknown") }
     }
 
+    @Test fun explicitlySelectedOfflineComputerDoesNotJumpToAvailableComputer() {
+        val nearbyOffice = GefundenerDesktop(office.device_id, "Computer", "192.0.2.2", "")
+        assertNull(knownReconnectTarget(home, listOf(home, office), listOf(nearbyOffice), home.device_id))
+        assertEquals(nearbyOffice, knownReconnectTarget(home, listOf(home, office), listOf(nearbyOffice)))
+        val selected = TelefonBestand(peer = office, other_peers = listOf(home)).select(home.device_id)
+        assertEquals(home.device_id, selected.peer!!.device_id)
+        assertEquals(listOf(office), selected.remember(null).all())
+    }
+
     @Test fun corruptOrUnknownArchivedComputerFieldsAreRejected() {
         val value = JsonObject((TelefonKanonisch.json.encodeToJsonElement(TelefonBestand.serializer(), TelefonBestand(peer = home, other_peers = listOf(office))) as JsonObject) +
             ("storage_version" to JsonPrimitive(1)))

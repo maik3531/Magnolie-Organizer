@@ -82,8 +82,9 @@ internal fun <T> replayPendingPersonalDeletions(
 internal fun organizerPairingAllowed(current: TelefonPeer?, deviceId: String): Boolean =
     current == null || current.device_id == deviceId
 
-internal fun knownReconnectTarget(current: TelefonPeer, saved: List<TelefonPeer>, found: List<GefundenerDesktop>): GefundenerDesktop? {
-    val known = found.filter { desktop -> saved.any { it.device_id == desktop.deviceId && it.state == "paired" } }
+internal fun knownReconnectTarget(current: TelefonPeer, saved: List<TelefonPeer>, found: List<GefundenerDesktop>, explicitSelection: String? = null): GefundenerDesktop? {
+    val known = found.filter { desktop -> (explicitSelection == null || desktop.deviceId == explicitSelection) &&
+        saved.any { it.device_id == desktop.deviceId && it.state == "paired" } }
     return known.firstOrNull { it.deviceId == current.device_id } ?: known.firstOrNull()
 }
 
@@ -985,9 +986,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
         _state.value = _state.value.copy(peer = null, pairedComputers = savedComputers(), connection = TelefonVerbindungsstatus.OFFLINE)
     }
 
-    @Synchronized fun selectComputer(id: String?) {
+    @Volatile private var explicitlySelectedComputer: String? = null
+
+    @Synchronized fun selectComputer(id: String?, explicit: Boolean = true) {
         val target = id?.let { wanted -> storage.peers().all().firstOrNull { it.device_id == wanted } }
         if (id != null && target == null) return
+        if (explicit) explicitlySelectedComputer = id
         val current = safePeer()
         if (current?.device_id == id && pending.get() == null) return
         pairingGeneration++; lifecycleGeneration++; identifierEpoch++
@@ -1044,15 +1048,15 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 var direct: TelefonRoehre? = null
                 if (wifiAvailable && host.isNotBlank()) direct = runCatching { TelefonTcpRoehre(host, 1_200) }.getOrNull()
                 if (direct == null && wifiAvailable) {
-                    val saved = if (peer.state == "paired") savedComputers() else listOf(peer)
+                    val saved = if (peer.state == "paired" && explicitlySelectedComputer != peer.device_id) savedComputers() else listOf(peer)
                     val found = TelefonEntdeckung.suchen(context, peerId = peer.device_id,
                         pairedIds = saved.filter { it.state == "paired" }.map { it.device_id }.toSet())
-                    val target = knownReconnectTarget(peer, saved, found)
+                    val target = knownReconnectTarget(peer, saved, found, explicitlySelectedComputer)
                         ?: found.firstOrNull { it.deviceId == peer.device_id }
                     if (target != null && target.deviceId != peer.device_id) {
                         synchronized(this) {
                             if (generation == pairingGeneration && safePeer()?.device_id == peer.device_id)
-                                selectComputer(target.deviceId)
+                                selectComputer(target.deviceId, explicit = false)
                         }
                         return@thread
                     }
