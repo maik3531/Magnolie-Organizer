@@ -6244,6 +6244,119 @@ def _sync_inhalt_hash(obj, felder):
         separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
+def _kontakt_konflikt_inhalt(obj):
+    """Compare contact information, never photo choices or serialization dates."""
+    inhalt = _sync_inhalt(obj, KONTAKT_FELDER)
+    inhalt.pop("foto", None)
+    inhalt.pop("vcardParameter", None)
+    for feld in ("telefon", "mobil", "telefone", "email", "emails", "emailEintraege"):
+        inhalt.pop(feld, None)
+    inhalt["telefone"] = sorted(_kontakt_telefone(obj))
+    inhalt["emails"] = sorted({wert.casefold() for wert in _email_liste(obj)})
+    inhalt["vcardRoundtrip"] = sorted(zeile for zeile in obj.get("vcardRoundtrip") or []
+        if not re.match(r"^(?:[A-Za-z0-9-]+\.)?(?:PHOTO|REV|PRODID|VERSION|UID|N|FN|TEL|EMAIL|ADR|BDAY|ORG|NOTE|X-ABLABEL|X-EVOLUTION-WEBDAV-ETAG)[;:]", zeile, re.I))
+    def normal(wert):
+        if wert is None or wert == "": return None
+        if isinstance(wert, dict):
+            return {k: normal(v) for k, v in sorted(wert.items()) if normal(v) is not None}
+        if isinstance(wert, list):
+            return sorted((normal(v) for v in wert), key=lambda v: json.dumps(v, sort_keys=True)) or None
+        return wert
+    return normal(inhalt)
+
+
+def _kontakt_nur_ergaenzungen(obj, fern):
+    def kompatibel(alt, neu):
+        if alt is None or neu is None: return True
+        if isinstance(alt, dict): return all(kompatibel(v, neu.get(k)) for k, v in alt.items())
+        if isinstance(alt, list): return not neu or all(v in neu for v in alt)
+        return alt == neu
+    return kompatibel(_kontakt_konflikt_inhalt(obj), _kontakt_konflikt_inhalt(fern))
+
+
+def _kontakt_ergaenzungen_uebernehmen(obj, fern):
+    for feld in KONTAKT_FELDER:
+        if feld not in ('foto', 'vcardRoundtrip', 'vcardParameter') and not obj.get(feld) and fern.get(feld):
+            obj[feld] = json.loads(json.dumps(fern[feld]))
+    emails = _email_eintraege_vereinigen(obj, fern)
+    obj['emailEintraege'] = emails; obj['emails'] = [e['wert'] for e in emails]
+    obj['email'] = obj['emails'][0] if obj['emails'] else ''
+    _telefone_setzen(obj, _telefone_vereinigen(obj, fern))
+    _anschriften_setzen(obj, _anschriften_vereinigen(obj, fern))
+    _kontaktpersonen_setzen(obj, _kontaktpersonen_vereinigen(obj, fern))
+    obj['sozialeMedien'] = _soziale_medien_vereinigen(obj, fern)
+    obj['vcardRoundtrip'] = list(dict.fromkeys((obj.get('vcardRoundtrip') or []) + (fern.get('vcardRoundtrip') or [])))
+    _kontakt_foto_merke(obj, fern.get('foto'), 'system')
+
+
+def _kontakt_ergaenzungs_schluessel(obj):
+    keys = [('uid', uid) for uid in ((obj.get('kontaktAliase') or {}).get('uids') or [])]
+    name = _kontakt_name_schluessel(obj)
+    if name:
+        keys.extend(('mail', name, wert.casefold()) for wert in _email_liste(obj))
+        keys.extend(('phone', name, wert) for wert in _kontakt_telefone(obj))
+    return keys
+
+
+def _kontakt_ergaenzung_indexieren(index, obj):
+    for key in _kontakt_ergaenzungs_schluessel(obj):
+        index.setdefault(key, {})[id(obj)] = obj
+
+
+def _kontakt_passende_ergaenzung(karten, fern, index=None):
+    name = _kontakt_name_schluessel(fern)
+    mails = {wert.casefold() for wert in _email_liste(fern)}
+    telefone = _kontakt_telefone(fern)
+    if index is not None:
+        keys = [('uid', fern.get('uid'))]
+        keys.extend(('mail', name, wert) for wert in mails)
+        keys.extend(('phone', name, wert) for wert in telefone)
+        candidates = {}
+        for key in keys: candidates.update(index.get(key, {}))
+        karten = candidates.values()
+    passend = [obj for obj in karten if
+        (fern.get('uid') in ((obj.get('kontaktAliase') or {}).get('uids') or []) or
+         name and name == _kontakt_name_schluessel(obj) and (
+             mails & {wert.casefold() for wert in _email_liste(obj)} or telefone & _kontakt_telefone(obj))) and
+        (_kontakt_nur_ergaenzungen(obj, fern) or _kontakt_nur_ergaenzungen(fern, obj))]
+    return passend[0] if len(passend) == 1 else None
+
+
+def _kontakt_uid_alias(obj, uid):
+    if uid and uid != obj.get('uid'):
+        aliases = obj.setdefault('kontaktAliase', {})
+        aliases['uids'] = list(dict.fromkeys((aliases.get('uids') or []) + [uid]))
+
+
+def _kontakte_gleiche_karten_buendeln(karten):
+    index, result = {}, []
+    for obj in karten:
+        passend = _kontakt_passende_ergaenzung(result, obj, index)
+        if passend is None:
+            result.append(obj); _kontakt_ergaenzung_indexieren(index, obj); continue
+        _kontakt_ergaenzungen_uebernehmen(passend, obj)
+        if not passend.get('syncQuellen') and obj.get('syncQuellen') and obj.get('uid'):
+            previous_uid = passend.get('uid'); passend['uid'] = obj['uid']
+            _kontakt_uid_alias(passend, previous_uid)
+        _kontakt_uid_alias(passend, obj.get('uid'))
+        passend['sync'] = bool(passend.get('sync') or obj.get('sync'))
+        aliases = passend.setdefault('kontaktAliase', {})
+        aliases['uids'] = list(dict.fromkeys((aliases.get('uids') or []) + ((obj.get('kontaktAliase') or {}).get('uids') or [])))
+        aliases['uids'] = [uid for uid in aliases['uids'] if uid != passend.get('uid')]
+        aliases['ids'] = list(dict.fromkeys((aliases.get('ids') or []) +
+            ((obj.get('kontaktAliase') or {}).get('ids') or []) + ([obj['id']] if obj.get('id') and obj.get('id') != passend.get('id') else [])))
+        for name in ('syncQuellen', 'kontaktProviderKonflikte'):
+            passend[name] = dict(obj.get(name) or {}, **(passend.get(name) or {}))
+            if not passend[name]: passend.pop(name, None)
+        for name in ('importBindungen', 'importHerkunfte'):
+            values = list(dict.fromkeys((passend.get(name) or []) + (obj.get(name) or [])))
+            if values: passend[name] = values
+        if not passend.get('foto') and obj.get('foto') and not passend.get('fotoManuell'):
+            passend['foto'] = obj['foto']; _kontakt_foto_merke(passend, obj['foto'], 'system')
+        _kontakt_ergaenzung_indexieren(index, passend)
+    return result
+
+
 def _sync_inhalt_format(felder):
     return "linux-calendar-2" if felder is TERMIN_FELDER or felder == TERMIN_FELDER else "linux-1"
 
@@ -6320,6 +6433,7 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
     Liefert (neue_lokal, anlegen, aendern, loeschen_uids, zaehler).
     Bei gleichem Eintrag gewinnt die zuletzt geänderte Seite.
     """
+    if felder == KONTAKT_FELDER: lokal = _kontakte_gleiche_karten_buendeln(lokal)
     zaehler = {"lokal_neu": 0, "lokal_geaendert": 0, "lokal_geloescht": 0,
                "remote_neu": 0, "remote_geaendert": 0, "remote_geloescht": 0,
                "konflikte": 0}
@@ -6348,6 +6462,20 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
         u = obj["uid"]
         gesehen.add(u)
         fern = entfernt.get(u)
+        kontakt_identisch = felder == KONTAKT_FELDER and fern is not None and _kontakt_nur_ergaenzungen(obj, fern)
+        if kontakt_identisch:
+            _kontakt_ergaenzungen_uebernehmen(obj, fern)
+            quelle = kontakt_quelle or (dav[0] if dav else None)
+            if quelle and (obj.get("kontaktProviderKonflikte") or {}).get(quelle):
+                del obj["kontaktProviderKonflikte"][quelle]
+                if not obj["kontaktProviderKonflikte"]: obj.pop("kontaktProviderKonflikte", None)
+            if kontakt_quelle:
+                if not kontakt_nur_lesen and _kontakt_konflikt_inhalt(obj) != _kontakt_konflikt_inhalt(fern):
+                    aendern.append(obj)
+                    zaehler["remote_geaendert"] += 1
+                _kontakt_eds_baseline(obj, kontakt_quelle, fern)
+                neue_lokal.append(obj)
+                continue
         if kontakt_quelle and (obj.get("kontaktProviderKonflikte") or {}).get(kontakt_quelle):
             _kontakt_provider_pruefung(obj, fern, kontakt_quelle, {"href": u},
                                       transport="eds", nur_lesen=kontakt_nur_lesen)
@@ -6420,7 +6548,7 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                     vergleich_fern = fern
                     if "foto" in felder and obj.get("fotoManuell") is True:
                         vergleich_fern = dict(fern, foto=obj.get("foto") or "")
-                    if remote_neu and lokal_neu and (
+                    if remote_neu and lokal_neu and not kontakt_identisch and (
                             _sync_inhalt_hash(obj, felder) != _sync_inhalt_hash(vergleich_fern, felder)):
                         if felder == KONTAKT_FELDER:
                             _kontakt_provider_pruefung(obj, fern, quelle, aktuell, baseline=alt)
@@ -6578,6 +6706,9 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
             obj["sync"] = True
             neue_lokal.append(obj)
 
+    kontakt_index = {}
+    if felder == KONTAKT_FELDER:
+        for obj in neue_lokal: _kontakt_ergaenzung_indexieren(kontakt_index, obj)
     for u, fern in entfernt.items():
         if u in gesehen:
             continue
@@ -6587,6 +6718,13 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                 zaehler["remote_geloescht"] += 1
                 continue
             # drüben nach unserer Löschung geändert -> wiederbeleben
+        if felder == KONTAKT_FELDER:
+            passend = _kontakt_passende_ergaenzung(neue_lokal, fern, kontakt_index)
+            if passend is not None:
+                _kontakt_ergaenzungen_uebernehmen(passend, fern)
+                _kontakt_uid_alias(passend, u)
+                _kontakt_ergaenzung_indexieren(kontakt_index, passend)
+                continue
         neu = dict(fern)
         if "email" in felder or "emails" in felder:
             email_eintraege = _email_eintraege(neu)
@@ -6605,6 +6743,7 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
         neu["sync"] = True
         neu.setdefault("geaendert", 0)
         neue_lokal.append(neu)
+        if felder == KONTAKT_FELDER: _kontakt_ergaenzung_indexieren(kontakt_index, neu)
         zaehler["lokal_neu"] += 1
 
     if felder == AUFGABE_FELDER:
@@ -18839,16 +18978,22 @@ def kontakt_snapshot_hash(kontakte):
 
 def kontakte_erster_sync(lokal, entfernt, dav=None, kontakt_quelle="", kontakt_nur_lesen=False):
     """Additiver Erstimport ohne lokale oder entfernte Löschungen/Schreibvorgänge."""
+    lokal = _kontakte_gleiche_karten_buendeln(lokal)
     if dav or kontakt_quelle:
         for obj in lokal:
             fern = entfernt.get(obj.get("uid"))
             if fern is None:
                 continue
-            vergleich = dict(fern, foto=obj.get("foto") or "") if obj.get("fotoManuell") is True else fern
-            if _sync_inhalt_hash(obj, KONTAKT_FELDER) != _sync_inhalt_hash(vergleich, KONTAKT_FELDER):
+            if not _kontakt_nur_ergaenzungen(obj, fern):
                 _kontakt_provider_pruefung(obj, fern, dav[0] if dav else kontakt_quelle,
                     ((dav[2] or {}).get(obj.get("uid")) or {}) if dav else {"href": obj.get("uid")},
                     transport="dav" if dav else "eds", nur_lesen=kontakt_nur_lesen)
+            else:
+                quelle = dav[0] if dav else kontakt_quelle
+                _kontakt_ergaenzungen_uebernehmen(obj, fern)
+                if (obj.get("kontaktProviderKonflikte") or {}).get(quelle):
+                    del obj["kontaktProviderKonflikte"][quelle]
+                    if not obj["kontaktProviderKonflikte"]: obj.pop("kontaktProviderKonflikte", None)
     kontakte_vor_sync_zuordnen(lokal, entfernt)
     vorher = {id(obj): json.dumps(obj, ensure_ascii=False, sort_keys=True)
               for obj in lokal}
@@ -18883,12 +19028,21 @@ def kontakte_erster_sync(lokal, entfernt, dav=None, kontakt_quelle="", kontakt_n
         if json.dumps(zusammen[0], ensure_ascii=False, sort_keys=True) != vorher[id(obj)]:
             geaendert += 1
     neu = 0
+    kontakt_index = {}
+    for obj in ergebnis: _kontakt_ergaenzung_indexieren(kontakt_index, obj)
     for uid_wert, fern in entfernt.items():
         if uid_wert in gesehen:
+            continue
+        passend = _kontakt_passende_ergaenzung(ergebnis, fern, kontakt_index)
+        if passend is not None:
+            _kontakt_ergaenzungen_uebernehmen(passend, fern)
+            _kontakt_uid_alias(passend, uid_wert)
+            _kontakt_ergaenzung_indexieren(kontakt_index, passend)
             continue
         obj = dict(fern)
         obj["sync"] = True
         ergebnis.append(obj)
+        _kontakt_ergaenzung_indexieren(kontakt_index, obj)
         neu += 1
     return ergebnis, {"lokalNeu": neu, "lokalAktualisiert": geaendert,
                       "remoteAnlegen": 0, "remoteAendern": 0,
@@ -20873,6 +21027,8 @@ class Fenster(_FENSTER_BASIS):
                  nachricht.get("kennung") or "", nachricht.get("requestId")), daemon=True).start()
 
         elif befehl == "kde_zeichnen":
+            self._hintergrund_gui_sichtbarkeit(self.get_visible())
+            _kde_gui_bereitschaft(self._organizer_vertraut() and not self._gesperrt)
             self._zeichen_revision = getattr(self, '_zeichen_revision', 0) + 1
             if not hasattr(self, '_zeichen_sperre'):
                 self._zeichen_sperre = threading.Lock()
@@ -22578,14 +22734,20 @@ class Fenster(_FENSTER_BASIS):
                 if revision != self._zeichen_revision:
                     return
                 backend = _kdeconnect_backend()
+                if enabled:
+                    if not _HINTERGRUND_GUI_BEREIT or not _HINTERGRUND_GUI_SICHTBAR:
+                        raise ValueError('digitizer_foreground_required')
+                    if hasattr(backend, 'set_visible'): backend.set_visible(True)
+                    if hasattr(backend, 'set_ready'): backend.set_ready(not self._gesperrt)
                 result = backend.set_digitizer_target(device_id, token, enabled,
                     permitted=lambda: not self._gesperrt and revision == self._zeichen_revision)
                 if revision != self._zeichen_revision:
                     backend.set_digitizer_target(device_id, token, False)
                     return
             self.antwort("App.zeichenEingabeStand", dict(ok=True, token=token, enabled=result.get('enabled') is True))
-        except Exception:
-            self.antwort("App.zeichenEingabeStand", dict(ok=False, token=token, enabled=False))
+        except Exception as fehler:
+            print("Magnolie drawing activation rejected: %s: %s" % (type(fehler).__name__, fehler), file=sys.stderr)
+            self.antwort("App.zeichenEingabeStand", dict(ok=False, token=token, enabled=False, error=str(fehler)))
 
     def _kontakt_fotos_lesen(self, nachricht):
         request_id = nachricht.get("requestId", "")

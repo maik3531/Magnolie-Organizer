@@ -32,6 +32,13 @@ async function check(mode) {
       { id: "other", uid: "same", vorname: "Other", nachname: "Person" }
     ] } });
     const T = w.OrganizerTest;
+    if (mode.startsWith("batch-")) {
+      const other = T.daten().kontakte[1]; other.uid = "other-uid";
+      other.syncQuellen = { [source]: { id: "/other.vcf", etag: "v1" } };
+      other.kontaktProviderKonflikte = { [source]: { transport: "dav", entfernt: false,
+        kontakt: { uid: "other-uid", vorname: "RemoteOther", nachname: "Person" },
+        mapping: { id: "/other.vcf", etag: "v2", inhaltFormat: "linux-1", inhaltSha256: "other-remote" } } };
+    }
     T.zustand().adressen.buchstabe = "P"; T.zustand().adressen.auswahlId = "local";
     w.document.querySelector('.registerknopf[title="Contacts"]').click();
     const button = w.document.querySelector("[data-provider-konflikt]"); assert.ok(button, "pending provider conflict is not reachable from the contact card");
@@ -43,13 +50,22 @@ async function check(mode) {
       assert.equal(choice.querySelector('option[value="new"]'), null);
       assert.equal(choice.querySelector('option[value="skip"]'), null);
       assert.equal(w.document.querySelector("[data-import-ziel]").disabled, true);
+      if (mode.startsWith("batch-")) {
+        const all = w.document.querySelector("[data-import-rest]");
+        for (let n = 0; n < 200 && all.disabled; n++) await tick();
+        assert.equal(all.disabled, false); all.checked = true; all.dispatchEvent(new w.Event("change"));
+      }
       if (mode === "cancel") [...w.document.querySelectorAll(".kontakt-datei-pruefung button")].find(b => b.textContent === "Cancel").click();
       else { choice.value = mode.endsWith("keep") ? "keep" : mode === "merge" ? "merge" : "replace"; choice.dispatchEvent(new w.Event("change")); w.document.querySelector("[data-import-anwenden]").click(); }
     }
     for (let n = 0; n < 200 && !["cancel", "stale", "snapshot-error"].includes(mode) && T.daten().kontakte[0].kontaktProviderKonflikte; n++) await tick();
     await tick(); await tick();
     const local = T.daten().kontakte[0];
-    assert.equal(T.daten().kontakte.length, 2); assert.equal(T.daten().kontakte[1].vorname, "Other");
+    assert.equal(T.daten().kontakte.length, 2); assert.equal(T.daten().kontakte[1].vorname, mode === "batch-replace" ? "RemoteOther" : "Other");
+    if (mode.startsWith("batch-")) {
+      assert.equal(T.daten().kontakte[1].kontaktProviderKonflikte, undefined);
+      assert.equal(T.daten().kontakte[1].syncQuellen[source].etag, "v2");
+    }
     assert.equal(local.id, "local"); assert.equal(local.uid, "same");
     if (["cancel", "stale", "snapshot-error"].includes(mode)) {
       assert.equal(local.vorname, "Local"); assert.ok(local.kontaktProviderKonflikte);
@@ -64,6 +80,6 @@ async function check(mode) {
     }
   } finally { w.close(); }
 }
-(async () => { for (const mode of ["replace", "merge", "keep", "cancel", "stale", "snapshot-error", "deleted", "eds-keep", "eds-replace", "eds-deleted"]) await check(mode);
+(async () => { for (const mode of ["replace", "merge", "keep", "cancel", "stale", "snapshot-error", "deleted", "eds-keep", "eds-replace", "eds-deleted", "batch-keep", "batch-replace"]) await check(mode);
   console.log("CONTACT PROVIDER REVIEW PASSED: explicit target, source baseline, cancellation, deletion restoration");
 })().catch(error => { console.error(error); process.exitCode = 1; });

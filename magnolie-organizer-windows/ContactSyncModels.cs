@@ -49,6 +49,49 @@ internal static class ContactFields
     // Empty parameters are not content; nonempty provider extensions still are.
     internal static string ContentHash(JsonObject contact) => SyncBaseline.Hash(ContentProjection(contact), Names);
 
+    internal static string ConflictContentHash(JsonObject contact)
+        => SyncBaseline.Hash(ConflictProjection(contact), Names);
+
+    internal static JsonObject ConflictProjection(JsonObject contact)
+    {
+        var copy = contact.DeepClone().AsObject();
+        copy["foto"] = "";
+        if (copy["vcardRoundtrip"] is JsonArray lines)
+            copy["vcardRoundtrip"] = new JsonArray(lines.Where(line => line is JsonValue value && value.TryGetValue<string>(out var text) &&
+                !System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:[A-Za-z0-9-]+\.)?(?:PHOTO|REV|PRODID|VERSION|UID|N|FN|TEL|EMAIL|ADR|BDAY|ORG|NOTE|X-ABLABEL|X-EVOLUTION-WEBDAV-ETAG)[;:]", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                .Select(line => line!.DeepClone()).ToArray());
+        return ContentProjection(copy);
+    }
+
+    internal static bool NonConflicting(JsonNode? left, JsonNode? right)
+    {
+        static bool Empty(JsonNode? value) => value is null || value.ToJsonString() is "\"\"" or "[]" or "{}" or "false" or "0";
+        if (Empty(left) || Empty(right)) return true;
+        if (left is JsonObject a && right is JsonObject b) return a.All(pair => NonConflicting(pair.Value, b[pair.Key]));
+        if (left is JsonArray x && right is JsonArray y)
+            return x.All(value => y.Any(other => JsonNode.DeepEquals(value, other))) || y.All(value => x.Any(other => JsonNode.DeepEquals(value, other)));
+        return JsonNode.DeepEquals(left, right);
+    }
+
+    internal static JsonObject MergeAdditions(JsonObject existing, JsonObject incoming)
+    {
+        JsonNode? Merge(JsonNode? a, JsonNode? b)
+        {
+            if (a is null || a.ToJsonString() is "\"\"" or "[]" or "{}") return b?.DeepClone();
+            if (b is null || b.ToJsonString() is "\"\"" or "[]" or "{}") return a.DeepClone();
+            if (a is JsonObject left && b is JsonObject right)
+            {
+                var result = left.DeepClone().AsObject();
+                foreach (var pair in right) result[pair.Key] = Merge(left[pair.Key], pair.Value);
+                return result;
+            }
+            if (a is JsonArray x && b is JsonArray y)
+                return new JsonArray(x.Concat(y.Where(value => !x.Any(old => JsonNode.DeepEquals(old, value)))).Select(value => value?.DeepClone()).ToArray());
+            return a.DeepClone();
+        }
+        return Merge(existing, incoming)!.AsObject();
+    }
+
     internal static JsonObject ContentProjection(JsonObject contact)
     {
         static JsonNode? Normalize(JsonNode? value)
@@ -641,13 +684,13 @@ internal sealed class ContactSyncEngine
                 var remoteChanged = priorEtag.Length > 0 || other.ETag.Length > 0
                     ? priorEtag != other.ETag : (mapping?["geaendert"]?.GetValue<long>() ?? lastSync) != other.Modified;
                 var localChanged = ContactFields.Dirty(item, mapping, other.Data);
-                var conflictingChanges = remoteChanged && localChanged &&
-                    ContactFields.ContentHash(item) != ContactFields.ContentHash(other.Data);
-                if (conflictingChanges && item["fotoManuell"] is JsonValue photoChoice && photoChoice.TryGetValue<bool>(out var pinnedPhoto) && pinnedPhoto)
+                var sameContact = ContactFields.NonConflicting(ContactFields.ConflictProjection(item), ContactFields.ConflictProjection(other.Data));
+                var incomingData = sameContact ? ContactFields.MergeAdditions(item, other.Data) : other.Data;
+                var conflictingChanges = remoteChanged && localChanged && !sameContact;
+                if (sameContact && item["syncKonflikte"] is JsonObject resolved)
                 {
-                    var withoutPhotoDifference = other.Data.DeepClone().AsObject();
-                    withoutPhotoDifference["foto"] = item["foto"]?.DeepClone();
-                    conflictingChanges = ContactFields.ContentHash(item) != ContactFields.ContentHash(withoutPhotoDifference);
+                    resolved.Remove(source);
+                    if (resolved.Count == 0) item.Remove("syncKonflikte");
                 }
                 var repairBirthday = birthdayRepairs.Contains(other.Id) ||
                     ContactFields.Text(item, "geburtstag").Length > 0 && ContactFields.Text(other.Data, "geburtstag").Length == 0 &&
@@ -657,7 +700,7 @@ internal sealed class ContactSyncEngine
                 {
                     if (other.Modified > localTime)
                     {
-                        ContactFields.CopyRemoteFields(item, other.Data, source); item["geaendert"] = other.Modified;
+                        ContactFields.CopyRemoteFields(item, incomingData, source); item["geaendert"] = other.Modified;
                     }
                     ContactFields.SetSource(item, source, other, remoteBaseline: true);
                 }
@@ -675,7 +718,7 @@ internal sealed class ContactSyncEngine
                 }
                 else if (remoteChanged)
                 {
-                    ContactFields.CopyRemoteFields(item, other.Data, source); item["geaendert"] = other.Modified;
+                    ContactFields.CopyRemoteFields(item, incomingData, source); item["geaendert"] = other.Modified;
                     ContactFields.SetSource(item, source, other); updated++;
                 }
                 else if (localChanged)
@@ -730,8 +773,37 @@ internal sealed class ContactSyncEngine
                 catch { errors++; break; }
             }
 
+        string ContactName(JsonObject card) => string.Join('\u001f', new[] { "vorname", "nachname", "firma" }.Select(field => ContactFields.Text(card, field).ToUpperInvariant()));
+        var identityIndex = new Dictionary<string, HashSet<JsonObject>>(StringComparer.Ordinal);
+        void IndexCard(JsonObject card)
+        {
+            var name = ContactName(card);
+            foreach (var key in ContactFields.StrongKeys(card).Select(key => "value:" + name + ":" + key)
+                .Concat((card["kontaktAliase"]?["uids"] as JsonArray ?? []).Select(uid => "alias:" + uid?.GetValue<string>())))
+            {
+                if (!identityIndex.TryGetValue(key, out var cards)) identityIndex[key] = cards = [];
+                cards.Add(card);
+            }
+        }
+        foreach (var card in local.OfType<JsonObject>()) IndexCard(card);
         foreach (var other in remoteById.Values)
         {
+            var incomingUid = ContactFields.Text(other.Data, "uid");
+            var keys = ContactFields.StrongKeys(other.Data).Select(key => "value:" + ContactName(other.Data) + ":" + key)
+                .Append("alias:" + incomingUid);
+            var matches = keys.SelectMany(key => identityIndex.GetValueOrDefault(key) ?? []).Distinct().ToArray();
+            if (matches.Length == 1 && ContactFields.NonConflicting(ContactFields.ConflictProjection(matches[0]), ContactFields.ConflictProjection(other.Data)))
+            {
+                var existing = matches[0];
+                ContactFields.CopyRemoteFields(existing, ContactFields.MergeAdditions(existing, other.Data), source);
+                ContactFields.RememberPhoto(existing, ContactFields.Text(other.Data, "foto"), "system");
+                var aliases = existing["kontaktAliase"] as JsonObject ?? new JsonObject();
+                var uids = aliases["uids"] as JsonArray ?? new JsonArray();
+                if (incomingUid.Length > 0 && incomingUid != ContactFields.Text(existing, "uid") && !uids.Any(uid => uid?.GetValue<string>() == incomingUid)) uids.Add(incomingUid);
+                aliases["uids"] = uids; existing["kontaktAliase"] = aliases;
+                IndexCard(existing);
+                continue;
+            }
             var item = other.Data.DeepClone().AsObject();
             item["id"] = Guid.NewGuid().ToString("N");
             if (ContactFields.Text(item, "uid").Length == 0)
@@ -746,6 +818,7 @@ internal sealed class ContactSyncEngine
             }
             ContactFields.SetSource(item, source, importedRemote);
             local.Add(item); imported++;
+            IndexCard(item);
         }
 
         return new ContactSyncResult(local, dead, new ContactSyncCounts(imported, exported, updated, deleted, errors, conflicts));

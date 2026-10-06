@@ -32,6 +32,51 @@ def test_concurrent_contact_change_stages_without_duplicate_or_provider_write(na
     assert contacts[0]["syncQuellen"] == before["syncQuellen"], "post-sync bookkeeping acknowledged an unresolved conflict"
 
 
+@pytest.mark.parametrize("first", [False, True])
+def test_identical_contact_metadata_and_photo_do_not_remain_pending(native, first):
+    source = "eds:synthetic"
+    local = {"id": "local", "uid": "person", "vorname": "Same", "geaendert": 10,
+             "foto": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==", "fotoManuell": True,
+             "vcardRoundtrip": ["REV:20260101T000000Z", "PRODID:old"]}
+    remote = {"uid": "person", "vorname": "Same", "geaendert": 99,
+              "foto": "data:image/gif;base64,R0lGODlhAQABAIAAAAD/AP///ywAAAAAAQABAAACAUwAOw==",
+              "vcardRoundtrip": ["REV:20261006T000000Z", "PRODID:new", "PHOTO:https://example.invalid/photo"]}
+    native._kontakt_provider_pruefung(local, remote, source, {"href": "person"}, transport="eds")
+    if first:
+        contacts, _ = native.kontakte_erster_sync([local], {"person": remote}, kontakt_quelle=source)
+    else:
+        contacts, create, change, delete, count = native.sync_merge([local], {"person": remote}, [], 20,
+            native.KONTAKT_FELDER, kontakt_quelle=source)
+        assert not create and not change and not delete and count["konflikte"] == 0
+    assert len(contacts) == 1 and not contacts[0].get("kontaktProviderKonflikte")
+    assert contacts[0]["foto"] == local["foto"]
+    assert any(item["foto"] == remote["foto"] for item in contacts[0]["fotoAlternativen"])
+
+
+@pytest.mark.parametrize("first", [False, True])
+def test_same_person_with_another_uid_and_photo_is_not_imported_twice(native, first):
+    local = {"id": "local", "uid": "one", "vorname": "Synthetic", "nachname": "Person",
+             "email": "person@example.test", "telefon": "+491711234567", "sync": True}
+    remote = dict(local, uid="two", foto="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==")
+    incoming = {"one": dict(local), "two": remote}
+    if first: contacts, _ = native.kontakte_erster_sync([local], incoming)
+    else: contacts, *_ = native.sync_merge([local], incoming, [], 0, native.KONTAKT_FELDER)
+    assert len(contacts) == 1
+    assert contacts[0]["uid"] == "one"
+    assert "two" in contacts[0]["kontaktAliase"]["uids"]
+    assert any(item["foto"] == remote["foto"] for item in contacts[0]["fotoAlternativen"])
+
+
+def test_existing_same_person_cards_are_consolidated_without_remote_deletion(native):
+    first = {"id": "first", "uid": "one", "vorname": "Synthetic", "nachname": "Person",
+             "email": "person@example.test", "telefon": "+491711234567", "sync": True}
+    second = dict(first, id="second", uid="two", foto="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==")
+    contacts, create, change, delete, _ = native.sync_merge([first, second], {"one": dict(first), "two": dict(second)}, [], 0, native.KONTAKT_FELDER)
+    assert len(contacts) == 1 and not create and not delete
+    assert "second" in contacts[0]["kontaktAliase"]["ids"]
+    assert contacts[0]["foto"] == second["foto"]
+
+
 def test_remote_deletion_during_pending_review_does_not_delete_or_recreate_contact(native):
     source, local, remote, metadata = conflict(native)
     contacts, *_ = native.sync_merge([local], {"person": remote}, [], 20, native.KONTAKT_FELDER,
@@ -98,9 +143,9 @@ def test_eds_content_baselines_distinguish_one_sided_and_concurrent_changes(nati
         native.KONTAKT_FELDER, kontakt_quelle=source)
     assert not create and not delete
     if local_changed and remote_changed:
-        assert not change and contacts[0]["notiz"] == "Local note"
-        assert not contacts[0]["firma"]
-        assert contacts[0]["kontaktProviderKonflikte"][source]["transport"] == "eds"
+        assert len(change) == 1 and contacts[0]["notiz"] == "Local note"
+        assert contacts[0]["firma"] == "Remote company"
+        assert not contacts[0].get("kontaktProviderKonflikte")
     elif local_changed:
         assert len(change) == 1 and contacts[0]["notiz"] == "Local note"
     elif remote_changed:

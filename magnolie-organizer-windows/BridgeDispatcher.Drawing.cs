@@ -20,9 +20,9 @@ internal sealed partial class BridgeDispatcher
             lock (drawingGate) drawingFrames.Clear();
             await form.SendAsync("App.zeichenEingabeStand", new { ok = true, token, enabled });
         }
-        catch (Exception)
+        catch (Exception error)
         {
-            await form.SendAsync("App.zeichenEingabeStand", new { ok = false, token, enabled = false });
+            await form.SendAsync("App.zeichenEingabeStand", new { ok = false, token, enabled = false, error = error.Message });
         }
     }
 

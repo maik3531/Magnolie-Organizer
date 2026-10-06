@@ -5,7 +5,7 @@ const file = path.join(__dirname, "desktop-state-regressions.js");
 const harness = new Module(file, module); harness.filename = file; harness.paths = Module._nodeModulePaths(__dirname);
 const source = fs.readFileSync(file, "utf8").split("async function run(web)")[0].replace(
   'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));',
-  'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8").replace("speichereJetzt: speichereJetzt,", "embedDrawing: fuegeZeichenblattInNotiz, drawingController: id => aktiveZeichenblaetter.get(id)?.editor, drawingTrash: sichereCustomPapierkorb, speichereJetzt: speichereJetzt,"));');
+   'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8").replace("speichereJetzt: speichereJetzt,", "drawingRedraw: zeichneAlles, embedDrawing: fuegeZeichenblattInNotiz, drawingController: id => aktiveZeichenblaetter.get(id)?.editor, drawingTrash: sichereCustomPapierkorb, speichereJetzt: speichereJetzt,"));');
 harness._compile(source + "\nmodule.exports={boot,roots};", file);
 const plain = value => JSON.parse(JSON.stringify(value));
 (async () => {
@@ -39,11 +39,17 @@ const plain = value => JSON.parse(JSON.stringify(value));
       assert.match(b.t.druckStoff("custom").html(module), /<img[^>]+data:image\/png/,
         "Printed custom sheets must include the drawing, not only its title");
       b.w.App.telefonStand({ peers: [], kdeconnect: { digitizer_available: true, digitizer_device_id: "tablet" } });
-      const tablet = b.w.document.querySelector('[data-kde-zeichen-input]');
+      let tablet = b.w.document.querySelector('[data-kde-zeichen-input]');
       assert.equal(tablet.disabled, false);
       tablet.checked = true; tablet.dispatchEvent(new b.w.Event("change"));
       const arm = b.messages.findLast(message => message.cmd === "kde_zeichnen" && message.enabled);
       assert.ok(arm && arm.device_id === "tablet");
+      const oldTablet = tablet;
+      b.t.drawingRedraw();
+      tablet = b.w.document.querySelector('[data-kde-zeichen-input]');
+      assert.notEqual(tablet, oldTablet, "Redraw must recreate the real controls for this regression");
+      assert.equal(tablet.checked, true, "A status redraw must not turn off drawing input");
+      assert.equal(b.messages.filter(message => message.cmd === "kde_zeichnen" && !message.enabled && message.token === arm.token).length, 0);
       const points = [{ active: true, touching: true, tool: "Pen", x: 0.3, y: 0.4, pressure: 0.5 },
         { active: true, touching: false, tool: "Pen", x: 0.3, y: 0.4, pressure: 0 }];
       b.w.App.zeichenEingabe({ token: "old-target", device_id: "tablet", events: points });

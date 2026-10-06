@@ -1457,7 +1457,7 @@ msgid "Confirmation"
 msgstr "Konfirmation"
 
 msgid "Conflict"
-msgstr "Konfirmation"
+msgstr "Konflikt"
 
 msgid "Connect"
 msgstr "Bekannt machen"

@@ -12717,7 +12717,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function zeichneAlles() {
     sichereNotizSnapshot();
     if (aktiverEditor && aktiverEditor.element && editorIstGeaendert()) return;
-    beendeZeicheneingabe();
+    beendeZeicheneingabe(true);
     beendeGesundheitReserve();
     const vorher = document.activeElement && document.activeElement.dataset
       ? document.activeElement.dataset.fokus || "" : "";
@@ -12735,6 +12735,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       custom: zeichneCustomOrganizer
     };
     (zeichner[zustand.sektion] || zeichneKalender)();
+    if (aktivesZeichenziel && !aktivesZeichenziel.canvas.isConnected) beendeTabletEingabe();
     const druckKnopf = $("#knopf-drucken");
     if (druckKnopf) {
         const direktDrucken = ["planer", "gesundheit"].includes(zustand.sektion);
@@ -12749,6 +12750,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const ziel = fokusElement(naechsterFokus || vorher);
     naechsterFokus = "";
     if (ziel) ziel.focus();
+    else if (aktivesZeichenziel?.canvas.isConnected) aktivesZeichenziel.canvas.focus();
   }
 
   function aktualisiereTrayZaehler() {
@@ -13002,8 +13004,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     Bruecke.sende({ cmd: "kde_zeichnen", enabled: false, device_id: ziel.deviceId, token: ziel.token });
   }
 
-  function beendeZeicheneingabe() {
-    beendeTabletEingabe();
+  function beendeZeicheneingabe(erhalten = false) {
+    if (!erhalten) beendeTabletEingabe();
     for (const { canvas, editor } of aktiveZeichenblaetter.values()) {
       editor.destroy(); canvas.width = canvas.width;
     }
@@ -13064,6 +13066,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     tablet.dataset.kdeZeichenInput = "true";
     const quelle = telefonStand?.kdeconnect;
     tablet.disabled = !Bruecke.vorhanden || !quelle?.digitizer_available || !quelle.digitizer_device_id;
+    const fortsetzen = aktivesZeichenziel?.modul === modul && !tablet.disabled &&
+      aktivesZeichenziel.deviceId === quelle.digitizer_device_id;
+    if (fortsetzen) {
+      tablet.checked = true;
+      Object.assign(aktivesZeichenziel, { canvas, editor, schalter: tablet });
+    }
     const tabletZeile = el("label", "hak");
     tabletZeile.append(tablet, document.createTextNode(" " + _("Use KDE Connect drawing tablet")));
     tablet.addEventListener("change", () => {
@@ -13084,6 +13092,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
     });
     ziel.append(werkzeuge, tabletZeile, canvas, status);
+    if (fortsetzen) canvas.focus();
   }
 
   function zeichneCustomModul(modul, ziel, begriffe = [], vorschau = false) {
@@ -23321,7 +23330,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const werte = {};
     for (const feld of ["vorname", "nachname", "anzeigename", "firma", "notiz", "foto", "jubilaeum"])
       werte[feld] = String(kontakt[feld] || "").trim();
-    if (ohneFoto) werte.foto = "";
+    // Images are selected through photo alternatives, never contact conflicts.
+    werte.foto = "";
     werte.geburtstag = kanonischesGeburtsdatum(String(kontakt.geburtstag || ""), kontakt.geburtstagJahrUnbekannt);
     const art = e => String(e.label || telefonArt(e) || "");
     const sortiert = liste => liste.map(kanonischerEntwurf).sort();
@@ -23331,6 +23341,30 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       [art(e), ...["strasse", "plz", "ort", "region", "land"].map(f => String(e[f] || "").trim())]));
     werte.namen = (kontakt.vcardRoundtrip || []).filter(s => /^(?:[A-Za-z0-9-]+\.)?(?:N|FN)[;:]/i.test(s)).slice().sort();
     return alsObjekt ? werte : kanonischerEntwurf(werte);
+  }
+
+  function kontaktKonfliktRestfelder(k) {
+    return (k.vcardRoundtrip || []).filter(s =>
+      !/^(?:[A-Za-z0-9-]+\.)?(?:PHOTO|REV|PRODID|VERSION|UID|N|FN|TEL|EMAIL|ADR|BDAY|ORG|NOTE|X-ABLABEL|X-EVOLUTION-WEBDAV-ETAG)[;:]/i.test(s)).slice().sort();
+  }
+
+  function kontaktKonfliktInhalt(k) {
+    const basis = baumKontaktVergleich(k, true, true); delete basis.namen;
+    basis.telefone = [...new Set(telefonListe(k).map(e => telefonSchluessel(e.wert)))].sort();
+    basis.emails = [...new Set(emailEintragListe(k).map(e => kanonischerText(e.wert)))].sort();
+    return kanonischerEntwurf([basis, kontaktpersonenListe(k),
+      sozialeMedienListe(k), kontaktKonfliktRestfelder(k)]);
+  }
+
+  function kontaktKonfliktNurErgaenzungen(ziel, karte) {
+    const vergleichen = (alt, neu) => {
+      if (alt == null || alt === "" || neu == null || neu === "") return true;
+      if (Array.isArray(alt)) return !neu?.length || alt.every(wert => neu.some(e => kanonischerEntwurf(e) === kanonischerEntwurf(wert)));
+      if (typeof alt === "object") return Object.keys(alt).every(key => vergleichen(alt[key], neu?.[key]));
+      return alt === neu;
+    };
+    const alt = JSON.parse(kontaktKonfliktInhalt(ziel)), neu = JSON.parse(kontaktKonfliktInhalt(karte));
+    return alt.every((wert, index) => vergleichen(wert, neu[index]));
   }
 
   function baumKontaktIndexiere(index, kontakt) {
@@ -25452,9 +25486,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       planeSpeichern(); zeichneAlles();
     });
     zeitGruppe.inhalt.append(el("p", "einst-hinweis", pgettext("time tracking", "Turning tracking off keeps existing records.")),
-      knopf(pgettext("time tracking", "Recorded times"), "", () => oeffneZeiterfassungVerlauf()),
-      knopf(pgettext("time tracking", "Manual entry"), "", () => oeffneZeiterfassungEditor()));
-    ab.append(zeitGruppe.details);
+      knopf(pgettext("time tracking", "Recorded times"), "", () => oeffneZeiterfassungVerlauf()));
+    const zeitBereich = el("div", "einst-unteroptionen"); zeitBereich.id = "kalender-gruppe-zeiterfassung";
+    zeitBereich.append(zeitGruppe.details.children[1], zeitGruppe.inhalt);
 
     const schichtGruppe = definitionsGruppe("kalender-gruppe-schichtplaner",
       _("Shift planner"), !!k.schichtplanerAn, _("Enable shift planner"));
@@ -25475,12 +25509,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       schichtVorlage("late", _("Late shift"), "14:00", "22:00", "#6b789c");
       schichtVorlage("night", _("Night shift"), "22:00", "06:00", "#4c5279");
       const eigeneSchicht = knopf(_("Custom"), "klein", () => {
+        if (DATEN.zeiterfassung.enabled) { oeffneZeiterfassungEditor(); return; }
         DATEN.schichten.push({ id: uid(), name: "", von: "", bis: "",
           farbe: "#8b6a35", art: "custom" });
         zeichneSchichten();
       });
       eigeneSchicht.type = "button";
-      auswahl.append(eigeneSchicht);
+      eigeneSchicht.dataset.schichtBenutzerdefiniert = "true";
+      zeitBereich.querySelector('[data-schicht-benutzerdefiniert]')?.remove();
+      zeitBereich.append(eigeneSchicht);
       const liste = el("div", "marken-liste");
       DATEN.schichten.forEach((schicht, index) => {
         const zeile = el("div", "marken-zeile schicht-definition");
@@ -25535,6 +25572,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       zeichneAlles();
     });
     zeichneSchichten();
+    schichtGruppe.details.append(zeitBereich);
     ab.append(schichtGruppe.details);
 
     const zyklusGruppe = definitionsGruppe("kalender-gruppe-zykluskalender",
@@ -26319,13 +26357,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const anderer = gruppe.slice(1).find(k => dublettenSchluessel(k).some(key => keys.has(key)));
     if (!anderer) return;
     try {
-      if ([ziel, anderer].some(k => Object.keys(k.kontaktProviderKonflikte || {}).length ||
+      const kompatibel = kontaktKonfliktNurErgaenzungen(ziel, anderer) || kontaktKonfliktNurErgaenzungen(anderer, ziel);
+      if (!kompatibel && [ziel, anderer].some(k => Object.keys(k.kontaktProviderKonflikte || {}).length ||
           Object.keys(k.syncKonflikte || {}).length)) throw new Error(_("Conflict"));
       for (const [quelle, bindung] of Object.entries(anderer.syncQuellen || {})) {
         const alt = ziel.syncQuellen?.[quelle];
-        if (alt?.id && bindung?.id && alt.id !== bindung.id) throw new Error(_("Conflict"));
+        if (!kompatibel && alt?.id && bindung?.id && alt.id !== bindung.id) throw new Error(_("Conflict"));
       }
-      if (Object.keys(ziel.syncQuellen || {}).length && Object.keys(anderer.syncQuellen || {}).length &&
+      if (!kompatibel && Object.keys(ziel.syncQuellen || {}).length && Object.keys(anderer.syncQuellen || {}).length &&
           ziel.uid && anderer.uid && ziel.uid !== anderer.uid) throw new Error(_("Conflict"));
       const karte = kopie(anderer); karte.vcardRev = await kontaktInhaltszeit(anderer);
       if (!gueltig()) return;
@@ -26664,12 +26703,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     jtAmTag.checked = !!e.jahrestage.amTag;
     const jtAmTagZeile = el("label", "hak");
     jtAmTagZeile.id = "erinnerung-jahrestage-amtag-zeile";
+    jtAmTagZeile.style.display = "block";
     jtAmTagZeile.append(jtAmTag,
       document.createTextNode(" " + _("Remind me again on the day itself")));
     const jtAuto = document.createElement("input");
     jtAuto.type = "checkbox"; jtAuto.id = "erinnerung-jahrestage-auto-ausblenden";
     jtAuto.checked = e.jahrestage.autoAusblenden === true;
     const jtAutoZeile = el("label", "hak");
+    jtAutoZeile.style.display = "block";
     jtAutoZeile.append(jtAuto, document.createTextNode(" " + _("Automatically dismiss anniversary reminders")));
     const jtDauerHinweis = el("p", "einst-hinweis",
       _("By default, anniversary reminders stay visible until you close them. This setting is independent of appointment reminders."));
@@ -27989,8 +28030,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const index = { bindungen: new Map(), uids: new Map(), mails: new Map(), telefone: new Map() };
     const namen = new Map();
     bestand.kontakte.forEach(k => { indexiereKontakt(index, k); baumKontaktIndexiere(namen, k); });
-    const inhalt = k => kanonischerEntwurf([baumKontaktVergleich(k), kontaktpersonenListe(k),
-      sozialeMedienListe(k), k.vcardRoundtrip || [], k.vcardParameter || {}]);
+    const restfelder = kontaktKonfliktRestfelder, inhalt = kontaktKonfliktInhalt;
     const plaene = (liste || []).filter(Boolean).map(roh => {
       const karte = kopie(roh);
       const herkunft = kontaktKonfliktHerkunft(roh, _("Incoming"));
@@ -28013,11 +28053,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         indexiereKontakt(index, vorschau); baumKontaktIndexiere(namen, vorschau);
       }
       const adressZiel = ziel || (kandidaten.length === 1 ? kandidaten[0] : null);
+      const ergaenzung = !!ziel && kontaktKonfliktNurErgaenzungen(ziel, karte);
       const alteAdressen = anschriftListe(adressZiel || {});
       const auswahl = { felder: {}, listen: { anschriften: Object.fromEntries(anschriftListe(karte).map((a, nr) =>
-        [nr, alteAdressen.length && !alteAdressen.some(b => kanonischerEntwurf(a) === kanonischerEntwurf(b)) ? "" : "add"])) } };
+        [nr, !ergaenzung && alteAdressen.length && !alteAdressen.some(b => kanonischerEntwurf(a) === kanonischerEntwurf(b)) ? "" : "add"])) } };
       return { karte, kandidaten, neuId, quellzeit, herkunft, auswahl, eindeutig: !!ziel, zielId: kandidaten.length === 1 ? kandidaten[0].id : "",
-        modus: nurAblehnen ? "skip" : !kandidaten.length ? "new" : ziel && inhalt(ziel) === inhalt(karte) ? "keep" : "" };
+        ergaenzung, modus: nurAblehnen ? "skip" : !kandidaten.length ? "new" : ziel && inhalt(ziel) === inhalt(karte) ? "keep" : ergaenzung ? "merge" : "" };
     });
     const ablehnungen = new Set(bestand.kontaktImportAblehnungen || []);
     const hashes = Promise.all(plaene.map(async plan => {
@@ -28057,15 +28098,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         [_("Address"), anschriftListe(k).map(e => [e.strasse, e.plz, e.ort, e.region, e.land].filter(Boolean).join(", ")).join("\n")],
         [_("Emergency contacts"), kontaktpersonenListe(k).map(e => [e.name, e.telefon, e.status].filter(Boolean).join(" · ")).join("\n")],
         [_("Social media"), sozialeMedienListe(k).map(e => [e.label, e.wert].filter(Boolean).join(": ")).join("\n")],
-        [_("Photo"), k.foto ? _("Photo available") : _("No photo selected")],
-        [_("vCard / iPhone / iCloud"), (k.vcardRoundtrip || []).map(s => /^(?:[A-Za-z0-9-]+\.)?PHOTO[;:]/i.test(s) ? _("Photo available") : s).join("\n")]
+        [_("vCard / iPhone / iCloud"), restfelder(k).join("\n")]
       ];
       const beschreibe = k => beschreibeFelder(k).filter(([, wert]) => wert).map(([titel, wert]) => titel + ": " + wert).join("\n\n");
       const zeichnen = () => {
         zeilen.textContent = "";
         for (const plan of plaene.slice(seite * 25, (seite + 1) * 25)) {
           const zeile = el("details"), zielWahl = auswahlFeld([["", _("New contact")],
-            ...plan.kandidaten.map(k => [k.id, kontaktName(k) + " · " + (emailListe(k)[0] || "")])], plan.zielId);
+            ...plan.kandidaten.map(k => [k.id, kontaktName(k)])], plan.zielId);
           const wahl = auswahlFeld([["", _("Conflict")], ["new", _("New contact")], ["skip", _("Reject")],
             ["keep", _("Keep existing")], ["merge", _("Merge")], ["replace", _("Replace completely")], ["newer", _("Use newer version")]]
               .filter(([modus]) => !providerZiel || !["new", "skip"].includes(modus)), plan.modus);
@@ -28082,11 +28122,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             vorher.textContent = ziel ? beschreibe(ziel) : "";
             lokalQuelle.textContent = ziel ? kontaktKonfliktHerkunft(ziel, _("Saved")) : _("Saved");
             vergleich.textContent = "";
-            if (ziel) {
+            if (ziel && !plan.ergaenzung) {
               const alt = beschreibeFelder(ziel), neu = beschreibeFelder(plan.karte);
               alt.forEach(([feld, wert], index) => {
-                const gegenwert = neu[index][1];
+                let gegenwert = neu[index][1];
                 if (feld === _("Photo") ? (ziel.foto || "") === (plan.karte.foto || "") : (wert || "") === (gegenwert || "")) return;
+                if ([_ ("Phone numbers"), _ ("Email addresses"), _ ("Address"), _ ("Emergency contacts"), _ ("Social media"), _ ("vCard / iPhone / iCloud")].includes(feld)) {
+                  const links = String(wert || "").split("\n"), rechts = String(gegenwert || "").split("\n");
+                  wert = links.filter(text => text && !rechts.includes(text)).join("\n");
+                  gegenwert = rechts.filter(text => text && !links.includes(text)).join("\n");
+                  if (!wert && !gegenwert) return;
+                }
                 const unterschied = el("section", "kontakt-feldunterschied");
                 unterschied.dataset.kontaktUnterschied = feld;
                 unterschied.append(el("strong", null, feld + " · " + _("Conflict")));
@@ -28138,7 +28184,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
               });
             }
             if (!plan.eindeutig) neuer.title = _("Reliable modification times are not available for both versions.");
-            zeithinweis.textContent = neuer.title;
+            zeithinweis.textContent = "";
           };
           zielWahl.dataset.importZiel = String(plaene.indexOf(plan));
           wahl.dataset.importEntscheidung = String(plaene.indexOf(plan));
@@ -28149,6 +28195,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
               for (const anderer of plaene) if (anderer.eindeutig && !anderer.modus && !anderer.gewaehlt &&
                   (plan.modus !== "newer" || anderer.neuereEntscheidung)) {
                 anderer.modus = plan.modus; anderer.gewaehlt = true;
+                anderer.auswahl.felder = kopie(plan.auswahl.felder);
+                if (plan.modus === "merge") for (const feld of Object.keys(BAUM_KONTAKT_LISTEN)) {
+                  const regel = BAUM_KONTAKT_LISTEN[feld], ziel = anderer.kandidaten.find(k => k.id === anderer.zielId);
+                  const vorgaben = Object.values(plan.auswahl.listen[feld] || {});
+                  const vorgabe = vorgaben.length && vorgaben.every(wert => wert === vorgaben[0]) && ["keep", "add"].includes(vorgaben[0]) ? vorgaben[0] : null;
+                  if (vorgabe && ziel) regel.lesen(anderer.karte).forEach((eintrag, nr) => {
+                    if (!regel.lesen(ziel).some(wert => kanonischerEntwurf(wert) === kanonischerEntwurf(eintrag)))
+                      (anderer.auswahl.listen[feld] ||= {})[nr] = vorgabe;
+                  });
+                }
               }
               zeilen.querySelectorAll("[data-import-entscheidung]").forEach(feld => {
                 feld.value = plaene[Number(feld.dataset.importEntscheidung)].modus;
@@ -28157,8 +28213,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             zeichnen();
           });
           zeile.open = !plan.modus;
-          zeile.append(el("summary", null, kontaktName(plan.karte)), vergleich, zielWahl, wahl, zeithinweis,
-            lokalQuelle, vorher, fernQuelle, el("pre", null, beschreibe(plan.karte)));
+          zeile.append(el("summary", null, kontaktName(plan.karte)), vergleich, zielWahl, wahl, zeithinweis);
+          if (!plan.kandidaten.length) zeile.append(fernQuelle, el("pre", null, beschreibe(plan.karte)));
           zeilen.append(zeile); aktualisieren();
         }
         const navigation = el("div", "knopfreihe");
@@ -28246,6 +28302,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         } catch (error) { status.textContent = String(error.message || error); }
       });
       anwenden.dataset.importAnwenden = "true";
+      rest.addEventListener("change", () => {
+        if (!rest.checked || !hashesFertig) return;
+        const index = plaene.findIndex(plan => plan.gewaehlt && plan.eindeutig && plan.modus && plan.modus !== "skip");
+        const feld = zeilen.querySelector('[data-import-entscheidung="' + index + '"]');
+        if (feld) feld.dispatchEvent(new Event("change"));
+      });
       knoepfe.append(anwenden, knopf(_("Cancel"), "", () => schliessen(null)));
       dialog.append(el("h2", null, _("Contacts")), el("p", null,
         uebersetztMehrzahl("Preview: %(count)s contact", "Preview: %(count)s contacts", plaene.length)), restZeile, zeilen, status, knoepfe);
@@ -29182,7 +29244,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     },
     zeichenEingabeStand(nutzlast) {
       if (!aktivesZeichenziel || nutzlast?.token !== aktivesZeichenziel.token) return;
-      if (!nutzlast.ok || !nutzlast.enabled) { beendeTabletEingabe(); zettel(_("The phone is no longer connected.")); }
+      if (!nutzlast.ok || !nutzlast.enabled) { beendeTabletEingabe(); zettel(nutzlast.error || _("The phone is no longer connected.")); }
     },
     zeichenEingabe(nutzlast) {
       const ziel = aktivesZeichenziel;
@@ -31014,8 +31076,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const aktualisiereHeutigenTag = () => {
       const heute = isoHeute();
       if (heute !== letzterTag) {
+        if (editorIstGeaendert()) return;
         letzterTag = heute;
-        if (initialisiert) zeichneAlles();
+        if (initialisiert) {
+          const h = organizerDatumzeitTeile(new Date());
+          Object.assign(zustand.kalender, { jahr: h.jahr, monat: h.monat - 1, tag: heute, uebersichtAb: heute, bearbeiteId: null });
+          zeichneAlles();
+        }
       }
     };
     setInterval(aktualisiereHeutigenTag, 30000);

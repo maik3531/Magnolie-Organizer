@@ -285,10 +285,26 @@ internal static class WindowsContactGraphTests
             photoResult.Contacts[0]!["fotoAlternativen"]!.AsArray().Count == 1,
             "A pinned photo-only change produced a provider conflict or replaced the chosen picture.");
         photoRemote.Data["notiz"] = "Different source content";
+        var addition = await new ContactSyncEngine().SyncAsync(source, new JsonArray(photoLocal.DeepClone()), [], 0,
+            new YearlessUnsupportedRemote(photoRemote));
+        TestAssert.That(addition.Counts.Conflicts == 0 && ContactFields.Text(addition.Contacts[0]!.AsObject(), "notiz") == "Different source content",
+            "A newly added note must be accepted without a conflict.");
+        photoLocal["notiz"] = "Existing local note";
         var realConflict = await new ContactSyncEngine().SyncAsync(source, new JsonArray(photoLocal.DeepClone()), [], 0,
             new YearlessUnsupportedRemote(photoRemote));
         TestAssert.That(realConflict.Counts.Conflicts == 1,
             "Ignoring a pinned photo also suppressed unrelated contact differences.");
+        var identityOne = photoBefore.Data.DeepClone().AsObject();
+        identityOne["email"] = "synthetic@example.test"; identityOne["uid"] = "identity-one";
+        var identityTwo = identityOne.DeepClone().AsObject();
+        identityTwo["uid"] = "identity-two"; identityTwo["foto"] = "data:image/png;base64,BwgJ";
+        var alternativeSource = new YearlessUnsupportedRemote(new RemoteContact("source-one", "v1", 10, identityOne, true),
+            new RemoteContact("source-two", "v1", 10, identityTwo, true));
+        var singlePerson = await new ContactSyncEngine().SyncAsync(source, [], [], 0, alternativeSource, additiveOnly: true);
+        TestAssert.That(singlePerson.Contacts.Count == 1 && singlePerson.Counts.Conflicts == 0 &&
+            singlePerson.Contacts[0]!["fotoAlternativen"]!.AsArray().Count == 1, "Photo alternatives created duplicate contact cards.");
+        var repeatedPerson = await new ContactSyncEngine().SyncAsync(source, singlePerson.Contacts, [], 0, alternativeSource, additiveOnly: true);
+        TestAssert.That(repeatedPerson.Contacts.Count == 1, "Alias identity was reimported as a second person.");
         var local = tree.DeepClone().AsObject();
         foreach (var pair in group["metadata"]!.AsObject()) local[pair.Key] = pair.Value?.DeepClone();
         var deletion = group["deletions"]![0]!.AsObject();

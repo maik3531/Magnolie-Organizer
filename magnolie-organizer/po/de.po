@@ -1795,7 +1795,7 @@ msgid "Confirming KDE Connect reception"
 msgstr "Empfang über KDE Connect wird bestätigt"
 
 msgid "Conflict"
-msgstr "Konfirmation"
+msgstr "Konflikt"
 
 msgid "Connect"
 msgstr "Bekannt machen"
