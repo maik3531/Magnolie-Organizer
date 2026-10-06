@@ -738,6 +738,37 @@ def test_candidate_cache_fast_discovery_and_expiry_use_fake_clock():
         assert backend._next_broadcast == 405.0
 
 
+def test_confirmed_live_android_link_does_not_get_replaced_by_periodic_discovery():
+    now = [100.0]
+    device_id = "a" * 32
+    secure = kde.validate_identity(identity(device_id), True)
+    with tempfile.TemporaryDirectory() as root:
+        backend = kde.KDEConnectSMSBackend(root, clock=lambda: now[0], backoff=[5])
+        backend.store.peers[device_id] = {"paired": True}
+        with mock.patch.object(backend, "_broadcast") as broadcast, \
+             mock.patch.object(backend, "_reconnect_pinned") as reconnect:
+            backend._broadcast_due(now[0])
+            assert broadcast.call_count == 1
+            connection = FakeConnection()
+            worker = backend._remember_connection(connection, secure, start=False, direction="incoming")
+            for _tick in range(20):
+                now[0] += 10
+                backend._broadcast_due(now[0])
+            assert broadcast.call_count == 1 and reconnect.call_count == 1
+            assert not worker.stopped.is_set() and not connection.closed
+            backend._pairing_pending = True
+            now[0] += 10
+            backend._broadcast_due(now[0])
+            assert broadcast.call_count == 2, "Explicit pairing must still discover other devices"
+            backend._pairing_pending = False
+            backend.store.peers["b" * 32] = {"paired": True}
+            now[0] += 10
+            backend._broadcast_due(now[0])
+            assert broadcast.call_count == 3, "An offline paired device must remain discoverable"
+            backend._worker_died(device_id, worker)
+            assert not backend._discovery_blocked(now[0]), "A genuinely lost link must reconnect"
+
+
 def test_android_link_stops_discovery_pairing_and_replacement_stays_bounded():
     now = [100.0]
     device_id = "a" * 32

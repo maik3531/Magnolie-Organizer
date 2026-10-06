@@ -2102,7 +2102,18 @@ class KDEConnectSMSBackend:
                 active_unconfirmed = {device_id for device_id, entry
                     in self._connections.items() if not self._is_confirmed(device_id)
                     and self._worker_alive(entry["worker"])}
-                return bool(active_unconfirmed or candidate_ids & set(self._connecting))
+                active_confirmed = {device_id for device_id, entry
+                    in self._connections.items() if self._is_confirmed(device_id)
+                    and self._worker_alive(entry["worker"])}
+                confirmed = {device_id for device_id in self.store.peers
+                    if self._is_confirmed(device_id)}
+                # Android treats a fresh desktop announcement as an invitation
+                # to replace its TCP channel. Do not announce repeatedly when
+                # every paired device already has a live authenticated link.
+                # Offline peers and an explicit new pairing still need discovery.
+                all_connected = bool(confirmed) and confirmed <= active_confirmed
+                return bool(active_unconfirmed or candidate_ids & set(self._connecting) or
+                    all_connected and not self._pairing_pending and not candidate_ids)
 
     def _reschedule_discovery(self, immediate=True):
         with self._state_lock:
