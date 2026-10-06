@@ -83,7 +83,7 @@ def validate_note_settings(body):
     return body
 
 
-def note_settings(mode="two_way", revision=1, peer_epoch=""):
+def note_settings(mode="phone_import", revision=1, peer_epoch=""):
     return validate_note_settings({"format": NOTE_MODE_VERSION, "mode": mode, "revision": revision,
                                    "epoch": str(uuid.uuid4()), "peer_epoch": peer_epoch})
 

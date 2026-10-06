@@ -70,7 +70,8 @@ class PersonalNoteModeTest {
     private fun list(field: String, vararg kinds: String) = buildJsonObject { put(field, JsonArray(kinds.map(::record))) }
 
     @Test fun policyRequiresAnExactTypedSchemaAndFreshRevisions() {
-        val first = PersonalNoteMode.create()
+        assertEquals(JsonPrimitive(PersonalNoteMode.IMPORT), PersonalNoteMode.create()["mode"])
+        val first = PersonalNoteMode.create(PersonalNoteMode.TWO_WAY)
         assertEquals(first, PersonalNoteMode.accept(null, first))
         assertEquals(first, PersonalNoteMode.accept(first, first))
         for (bad in listOf(
@@ -96,7 +97,7 @@ class PersonalNoteModeTest {
 
     @Test fun bothPoliciesNeedFreshConnectionEchoesAndEitherSideCanRequestImport() {
         val phone = PersonalNoteMode.create(PersonalNoteMode.IMPORT)
-        val desktop = PersonalNoteMode.create()
+        val desktop = PersonalNoteMode.create(PersonalNoteMode.TWO_WAY)
         assertTrue(PersonalNoteMode.importing(phone, desktop))
         assertTrue(PersonalNoteMode.importing(desktop, phone))
         assertFalse(PersonalNoteMode.importing(desktop, desktop))

@@ -704,7 +704,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         try
         {
             var settings = store.NoteSettings(id); var old = settings["local"] as JsonObject;
-            if ((old?["mode"]?.GetValue<string>() ?? "two_way") == mode) return;
+            if ((old?["mode"]?.GetValue<string>() ?? "phone_import") == mode) return;
             var policy = PersonalSyncContract.NoteSettings(mode, checked((old?["revision"]?.GetValue<long>() ?? 0) + 1),
                 settings["remote"]?["epoch"]?.GetValue<string>() ?? "");
             store.SetNoteSettings(id, policy, false);

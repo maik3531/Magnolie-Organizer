@@ -5,6 +5,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import java.io.File
@@ -139,6 +140,23 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
         } ?: peer
         savePeers(current.copy(peer = current.peer?.let(::paused), other_peers = current.other_peers.map(::paused)))
         return current.all().mapTo(mutableSetOf()) { it.device_id }
+    }
+
+    @Synchronized
+    fun enableOwnDeviceTimeSync(): Set<String> {
+        val current = peers()
+        val ids = mutableSetOf<String>()
+        fun enabled(peer: TelefonPeer): TelefonPeer {
+            if (!peer.own_device || peer.state != "paired") return peer
+            ids.add(peer.device_id)
+            val local = peer.personal_time_policy
+            if (local?.get("enabled") == JsonPrimitive(true)) return peer
+            return peer.copy(personal_time_policy = TimeSyncProtokoll.newSettings(true,
+                (local?.get("revision")?.jsonPrimitive?.long ?: 0) + 1))
+        }
+        val next = current.copy(peer = current.peer?.let(::enabled), other_peers = current.other_peers.map(::enabled))
+        if (ids.isNotEmpty()) savePeers(next)
+        return ids
     }
 
     @Synchronized

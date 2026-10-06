@@ -6303,7 +6303,7 @@ def _kontakt_ergaenzung_indexieren(index, obj):
         index.setdefault(key, {})[id(obj)] = obj
 
 
-def _kontakt_passende_ergaenzung(karten, fern, index=None):
+def _kontakt_passende_ergaenzung(karten, fern, index=None, mit_ersetzung=False):
     name = _kontakt_name_schluessel(fern)
     mails = {wert.casefold() for wert in _email_liste(fern)}
     telefone = _kontakt_telefone(fern)
@@ -6318,7 +6318,7 @@ def _kontakt_passende_ergaenzung(karten, fern, index=None):
         (fern.get('uid') in ((obj.get('kontaktAliase') or {}).get('uids') or []) or
          name and name == _kontakt_name_schluessel(obj) and (
              mails & {wert.casefold() for wert in _email_liste(obj)} or telefone & _kontakt_telefone(obj))) and
-        (_kontakt_nur_ergaenzungen(obj, fern) or _kontakt_nur_ergaenzungen(fern, obj))]
+        (mit_ersetzung or _kontakt_nur_ergaenzungen(obj, fern) or _kontakt_nur_ergaenzungen(fern, obj))]
     return passend[0] if len(passend) == 1 else None
 
 
@@ -6719,8 +6719,17 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                 continue
             # drüben nach unserer Löschung geändert -> wiederbeleben
         if felder == KONTAKT_FELDER:
-            passend = _kontakt_passende_ergaenzung(neue_lokal, fern, kontakt_index)
+            passend = _kontakt_passende_ergaenzung(neue_lokal, fern, kontakt_index, mit_ersetzung=True)
             if passend is not None:
+                if not (_kontakt_nur_ergaenzungen(passend, fern) or _kontakt_nur_ergaenzungen(fern, passend)):
+                    quelle = kontakt_quelle or (dav[0] if dav else "import:contact")
+                    meta = ((dav[2] or {}).get(u) or {}) if dav else {"href": u}
+                    _kontakt_provider_pruefung(passend, fern, quelle, meta,
+                        transport="dav" if dav else "eds", nur_lesen=kontakt_nur_lesen)
+                    _kontakt_uid_alias(passend, u)
+                    _kontakt_ergaenzung_indexieren(kontakt_index, passend)
+                    zaehler["konflikte"] += 1
+                    continue
                 _kontakt_ergaenzungen_uebernehmen(passend, fern)
                 _kontakt_uid_alias(passend, u)
                 _kontakt_ergaenzung_indexieren(kontakt_index, passend)
@@ -19033,8 +19042,16 @@ def kontakte_erster_sync(lokal, entfernt, dav=None, kontakt_quelle="", kontakt_n
     for uid_wert, fern in entfernt.items():
         if uid_wert in gesehen:
             continue
-        passend = _kontakt_passende_ergaenzung(ergebnis, fern, kontakt_index)
+        passend = _kontakt_passende_ergaenzung(ergebnis, fern, kontakt_index, mit_ersetzung=True)
         if passend is not None:
+            if not (_kontakt_nur_ergaenzungen(passend, fern) or _kontakt_nur_ergaenzungen(fern, passend)):
+                quelle = kontakt_quelle or (dav[0] if dav else "import:contact")
+                meta = ((dav[2] or {}).get(uid_wert) or {}) if dav else {"href": uid_wert}
+                _kontakt_provider_pruefung(passend, fern, quelle, meta,
+                    transport="dav" if dav else "eds", nur_lesen=kontakt_nur_lesen)
+                _kontakt_uid_alias(passend, uid_wert)
+                _kontakt_ergaenzung_indexieren(kontakt_index, passend)
+                continue
             _kontakt_ergaenzungen_uebernehmen(passend, fern)
             _kontakt_uid_alias(passend, uid_wert)
             _kontakt_ergaenzung_indexieren(kontakt_index, passend)

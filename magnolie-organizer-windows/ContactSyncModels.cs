@@ -804,6 +804,18 @@ internal sealed class ContactSyncEngine
                 IndexCard(existing);
                 continue;
             }
+            if (matches.Length == 1)
+            {
+                var existing = matches[0];
+                var mappingHolder = new JsonObject();
+                ContactFields.SetSource(mappingHolder, source, other, remoteBaseline: true);
+                var pending = existing["syncKonflikte"] as JsonObject ?? new JsonObject();
+                pending[source] = new JsonObject { ["kontakt"] = other.Data.DeepClone(),
+                    ["mapping"] = ContactFields.Source(mappingHolder, source)!.DeepClone() };
+                existing["syncKonflikte"] = pending;
+                conflicts++;
+                continue;
+            }
             var item = other.Data.DeepClone().AsObject();
             item["id"] = Guid.NewGuid().ToString("N");
             if (ContactFields.Text(item, "uid").Length == 0)

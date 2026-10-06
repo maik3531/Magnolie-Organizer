@@ -2271,7 +2271,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         ["phone_import", _("Import Notes → Organizer only")]]) {
         const option = el("option", "", title); option.value = value; notizRichtung.append(option);
       }
-      notizRichtung.value = peer.note_sync?.local?.mode || "two_way";
+      notizRichtung.value = peer.note_sync?.local?.mode || "phone_import";
       notizRichtung.disabled = peer.note_sync?.supported !== true;
       notizRichtung.addEventListener("change", () => {
         notizRichtung.disabled = true;
@@ -2315,6 +2315,21 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       });
       zeit.dataset.personalTimePeer = kennung;
       zeit.disabled = peer.time_sync?.supported !== true || !DATEN.zeiterfassung.enabled;
+      zeit.parentElement.hidden = true;
+      const zeitRichtung = auswahlFeld([["phone_import", _("Import Notes → Organizer only")], ["two_way", _("Two-way synchronization")]],
+        DATEN.einstellungen.sync.timeDirections?.[kennung] || "phone_import");
+      zeitRichtung.dataset.personalTimeDirectionPeer = kennung;
+      zeitRichtung.disabled = peer.time_sync?.supported !== true;
+      zeitRichtung.addEventListener("change", () => {
+        DATEN.einstellungen.sync.timeDirections ||= {};
+        DATEN.einstellungen.sync.timeDirections[kennung] = zeitRichtung.value;
+        planeSpeichern(); zeitAutoHash.delete(kennung);
+        if (peer.time_sync?.local?.enabled) {
+          Bruecke.sende({ cmd: "personal_sync_senden", kennung, art: "personal_sync.time_settings", inhalt: { enabled: false } });
+          Bruecke.sende({ cmd: "personal_sync_senden", kennung, art: "personal_sync.time_settings", inhalt: { enabled: true } });
+        }
+      });
+      personal.append(formZeile(pgettext("time tracking", "Time tracking"), zeitRichtung));
       const autoHaken = personalHak(_("Automatically synchronize over Wi-Fi"), auto, (an) => {
         auto = an;
         personalSyncBetriebSetzen(personalSyncNotizPeer(kennung) || peer, an, skipHaken.checked)
@@ -6543,7 +6558,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
 
   function zeitAbgleichTicket(peer) {
     return JSON.stringify([peer.device_id, peer.contacts_fingerprint || peer.fingerprint,
-      peer.time_sync.local, peer.time_sync.remote]);
+      peer.time_sync.local, peer.time_sync.remote, DATEN.einstellungen.sync.timeDirections?.[peer.device_id] || "phone_import"]);
   }
 
   const zeitAutoHash = new Map(), zeitAutoLauf = new Map();
@@ -6566,6 +6581,24 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
   }
 
+  const zeitAutomatischeFreigaben = new Map();
+  function zeitAbgleichVonNotesAktivieren() {
+    for (const peer of telefonStand?.peers || []) {
+      if (!peer.own_device || !peer.remote_own_device || !/^online_/.test(peer.state || "") ||
+          peer.time_sync?.supported !== true || peer.time_sync.remote?.enabled !== true) continue;
+      const local = peer.time_sync.local;
+      if (local?.enabled === false && Number(local.revision) > 1) continue;
+      if (!DATEN.zeiterfassung.enabled) { DATEN.zeiterfassung.enabled = true; planeSpeichern(); }
+      if (local?.enabled === true) continue;
+      const key = JSON.stringify([peer.device_id, local?.epoch, local?.revision]);
+      if (Date.now() - (zeitAutomatischeFreigaben.get(key) || 0) < 10000) continue;
+      zeitAutomatischeFreigaben.set(key, Date.now());
+      personalDesktopFeaturesSenden();
+      Bruecke.sende({ cmd: "personal_sync_senden", kennung: peer.device_id,
+        art: "personal_sync.time_settings", inhalt: { enabled: true } });
+    }
+  }
+
   async function zeitAbgleichSenden(id, trigger = "manual", anfordern = true) {
     const peer = zeitAbgleichPeer(id, null, trigger);
     if (!peer) return false;
@@ -6576,7 +6609,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const header = { format: 7, trigger, sender_epoch: aktuell.time_sync.local.epoch,
       receiver_epoch: aktuell.time_sync.remote.epoch, sender_revision: aktuell.time_sync.local.revision,
       receiver_revision: aktuell.time_sync.remote.revision };
-    const entries = kopie(DATEN.zeiterfassung.entries);
+    const direction = DATEN.einstellungen.sync.timeDirections?.[id] || "phone_import";
+    const entries = direction === "two_way" ? kopie(DATEN.zeiterfassung.entries) : [];
     zeitPruefen(entries.length <= 10000 && new Set(entries.map(entry => entry.id)).size === entries.length);
     entries.forEach(zeitPruefeEintrag);
     const packets = []; let packet = { ...header, entries: [], calendar: zeitKalenderProjektion() };
@@ -7221,6 +7255,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     d.einstellungen.sync.beimStart = !!sy.beimStart;
     d.einstellungen.sync.erfolgsmeldungen = sy.erfolgsmeldungen === true;
     d.einstellungen.sync.kontaktNeuereBevorzugen = sy.kontaktNeuereBevorzugen === true;
+    d.einstellungen.sync.timeDirections = Object.fromEntries(Object.entries(sy.timeDirections || {})
+      .filter(([id, direction]) => /^[A-Za-z0-9._-]{1,200}$/.test(id) && !["__proto__", "constructor", "prototype"].includes(id) && ["two_way", "phone_import"].includes(direction)));
     const or = (e.ort && typeof e.ort === "object") ? e.ort : {};
     const o = d.einstellungen.ort;
     o.land = S(or.land).toUpperCase();
@@ -29276,6 +29312,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     },
     telefonStand(nutzlast) {
       telefonStand = nutzlast || null;
+      zeitAbgleichVonNotesAktivieren();
       personalSyncBetriebPruefen();
       personalDesktopFeaturesSenden();
       document.querySelectorAll('[data-kde-zeichen-input]').forEach(node => {

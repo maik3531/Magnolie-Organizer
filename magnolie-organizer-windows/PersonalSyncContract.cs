@@ -72,7 +72,7 @@ internal static class PersonalSyncContract
         if (String(body, "peer_epoch").Length > 0) Uuid4(String(body, "peer_epoch"));
     }
 
-    internal static JsonObject NoteSettings(string mode = "two_way", long revision = 1, string peerEpoch = "")
+    internal static JsonObject NoteSettings(string mode = "phone_import", long revision = 1, string peerEpoch = "")
     {
         var result = new JsonObject { ["format"] = NoteModeVersion, ["mode"] = mode, ["revision"] = revision,
             ["epoch"] = Guid.NewGuid().ToString("D"), ["peer_epoch"] = peerEpoch };

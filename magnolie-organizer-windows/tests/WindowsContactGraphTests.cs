@@ -305,6 +305,13 @@ internal static class WindowsContactGraphTests
             singlePerson.Contacts[0]!["fotoAlternativen"]!.AsArray().Count == 1, "Photo alternatives created duplicate contact cards.");
         var repeatedPerson = await new ContactSyncEngine().SyncAsync(source, singlePerson.Contacts, [], 0, alternativeSource, additiveOnly: true);
         TestAssert.That(repeatedPerson.Contacts.Count == 1, "Alias identity was reimported as a second person.");
+        identityOne["strasse"] = "Existing street 1"; identityTwo["strasse"] = "New street 2";
+        var changedAliasSource = new YearlessUnsupportedRemote(new RemoteContact("source-one", "v1", 10, identityOne, true),
+            new RemoteContact("source-two", "v1", 10, identityTwo, true));
+        var changedAlias = await new ContactSyncEngine().SyncAsync(source, [], [], 0, changedAliasSource, additiveOnly: true);
+        TestAssert.That(changedAlias.Contacts.Count == 1 && changedAlias.Counts.Conflicts == 1 &&
+            ContactFields.Text(changedAlias.Contacts[0]!.AsObject(), "strasse") == "Existing street 1",
+            "A changed address on the same person must be reviewed, not create a second card.");
         var local = tree.DeepClone().AsObject();
         foreach (var pair in group["metadata"]!.AsObject()) local[pair.Key] = pair.Value?.DeepClone();
         var deletion = group["deletions"]![0]!.AsObject();

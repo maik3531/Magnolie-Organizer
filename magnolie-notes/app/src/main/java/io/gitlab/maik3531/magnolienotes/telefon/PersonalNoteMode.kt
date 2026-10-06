@@ -25,7 +25,7 @@ object PersonalNoteMode {
         if (body.string("peer_epoch").isNotEmpty()) TelefonNachrichten.uuid4(body.string("peer_epoch"))
     }
 
-    fun create(mode: String = TWO_WAY, revision: Long = 1, peerEpoch: String = ""): JsonObject = buildJsonObject {
+    fun create(mode: String = IMPORT, revision: Long = 1, peerEpoch: String = ""): JsonObject = buildJsonObject {
         put("format", JsonPrimitive(VERSION)); put("mode", JsonPrimitive(mode)); put("revision", JsonPrimitive(revision))
         put("epoch", JsonPrimitive(UUID.randomUUID().toString())); put("peer_epoch", JsonPrimitive(peerEpoch))
     }.also(::validate)

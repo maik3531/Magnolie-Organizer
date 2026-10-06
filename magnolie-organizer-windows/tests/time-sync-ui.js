@@ -26,7 +26,41 @@ async function check(web, scenario) {
     w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
     w.App.init({ daten: { zeiterfassung: { enabled: true } }, neu: false });
     const t = w.OrganizerTest, saves = () => messages.filter(value => value.cmd === "speichern");
+    if (!["phone-import", "notes-activation"].includes(scenario))
+      t.daten().einstellungen.sync.timeDirections = { [peer.device_id]: "two_way" };
     t.speichereJetzt(); w.App.gespeichert({ id: saves().at(-1).id, ok: true });
+    if (scenario === "notes-activation") {
+      t.daten().zeiterfassung.enabled = false;
+      const active = { ...plain(peer), state: "online_wifi", time_sync: { ...plain(peer.time_sync), ready: false,
+        local: { ...plain(local), enabled: false } } };
+      w.App.telefonStand({ peers: [active] });
+      assert.equal(t.daten().zeiterfassung.enabled, true);
+      assert.equal(messages.filter(value => value.art === "personal_sync.time_settings" && value.inhalt.enabled).length, 1);
+      w.App.telefonStand({ peers: [plain(active)] });
+      assert.equal(messages.filter(value => value.art === "personal_sync.time_settings" && value.inhalt.enabled).length, 1);
+      t.daten().zeiterfassung.enabled = false;
+      active.time_sync.local.revision = 2;
+      w.App.telefonStand({ peers: [plain(active)] });
+      assert.equal(t.daten().zeiterfassung.enabled, false, "An explicit later opt-out must be respected");
+      return;
+    }
+    if (scenario === "phone-import") {
+      w.App.telefonStand({ peers: [plain(peer)] });
+      t.daten().zeiterfassung.entries = [plain(entry)];
+      t.daten().notizen = Array.from({ length: 30000 }, (_, n) => ({ id: "local-note-" + n, text: "Private desktop note", titel: "Local", anhaenge: [] }));
+      w.App.personalTimeRequest({ device_id: peer.device_id, trigger: "manual" });
+      const handled = new Set();
+      for (let step = 0; step < 50; step++) {
+        for (const save of saves()) if (!handled.has(save.id)) { handled.add(save.id); w.App.gespeichert({ id: save.id, ok: true }); }
+        await tick();
+      }
+      const batches = messages.filter(value => value.art === "personal_sync.time_batch");
+      assert.ok(batches.length);
+      assert.ok(batches.every(value => value.inhalt.entries.length === 0), "Default import direction must not return desktop time records");
+      assert.ok(batches.some(value => value.inhalt.calendar), "Inherited calendar settings remain independent of record direction");
+      assert.equal(messages.filter(value => value.art === "personal_sync.batch").length, 0, "Time synchronization must not transfer 30000 desktop notes");
+      return;
+    }
     if (scenario === "packets") {
       w.App.telefonStand({ peers: [plain(peer)] });
       const records = Array.from({ length: 65 }, () => ({ ...plain(entry), id: webcrypto.randomUUID(), note: "😀".repeat(10000) }));
@@ -110,6 +144,6 @@ async function check(web, scenario) {
   const roots = [path.resolve(__dirname, "../app/web")];
   const linux = path.resolve(__dirname, "../../magnolie-organizer/web");
   if (fs.existsSync(path.join(linux, "anwendung.js"))) roots.push(linux);
-  for (const web of roots) for (const scenario of ["commit", "failed", "revoked", "identity", "restore", "auto", "packets"]) await check(web, scenario);
+   for (const web of roots) for (const scenario of ["commit", "failed", "revoked", "identity", "restore", "auto", "packets", "phone-import", "notes-activation"]) await check(web, scenario);
   console.log(`TIME SYNC UI PASSED (${roots.length} frontends: durable save, failure, revocation, identity and restore)`);
 })().catch(error => { console.error(error); process.exitCode = 1; });

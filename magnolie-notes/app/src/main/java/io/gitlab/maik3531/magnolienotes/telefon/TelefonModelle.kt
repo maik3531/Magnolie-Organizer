@@ -133,7 +133,7 @@ data class TelefonUiZustand(
     val personalTasksEnabled: Boolean = false,
     val personalAutoWifi: Boolean = false,
     val personalDeletionsEnabled: Boolean = false,
-    val personalNotesMode: String = PersonalNoteMode.TWO_WAY,
+    val personalNotesMode: String = PersonalNoteMode.IMPORT,
     val personalSyncReport: String = "",
     val selectedPackages: Set<String> = emptySet(),
     val notificationApps: List<TelefonApp> = emptyList(),

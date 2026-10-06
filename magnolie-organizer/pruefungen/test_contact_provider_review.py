@@ -77,6 +77,19 @@ def test_existing_same_person_cards_are_consolidated_without_remote_deletion(nat
     assert contacts[0]["foto"] == second["foto"]
 
 
+@pytest.mark.parametrize("first", [False, True])
+def test_other_source_identity_with_replacement_stages_on_same_person(native, first):
+    local = {"id": "local", "uid": "one", "vorname": "Synthetic", "nachname": "Person",
+             "email": "person@example.test", "strasse": "Existing street 1", "sync": True}
+    changed = dict(local, uid="two", strasse="New street 2")
+    incoming = {"one": dict(local), "two": changed}
+    if first: contacts, _ = native.kontakte_erster_sync([local], incoming, kontakt_quelle="eds:synthetic")
+    else: contacts, *_ = native.sync_merge([local], incoming, [], 0, native.KONTAKT_FELDER, kontakt_quelle="eds:synthetic")
+    assert len(contacts) == 1
+    assert contacts[0]["strasse"] == "Existing street 1"
+    assert contacts[0]["kontaktProviderKonflikte"]["eds:synthetic"]["kontakt"]["strasse"] == "New street 2"
+
+
 def test_remote_deletion_during_pending_review_does_not_delete_or_recreate_contact(native):
     source, local, remote, metadata = conflict(native)
     contacts, *_ = native.sync_merge([local], {"person": remote}, [], 20, native.KONTAKT_FELDER,

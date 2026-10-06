@@ -320,7 +320,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             answerCallsEnabled = storage.answerCallsEnabled(), personalOwnDevice = storage.personalOwnDevice(),
             personalNotesEnabled = storage.personalNotesEnabled(), personalTasksEnabled = storage.personalTasksEnabled(),
             personalAutoWifi = storage.personalAutoWifi(), personalDeletionsEnabled = storage.personalDeletionsEnabled(),
-            personalNotesMode = safePeer()?.personal_note_policy?.string("mode") ?: PersonalNoteMode.TWO_WAY,
+            personalNotesMode = safePeer()?.personal_note_policy?.string("mode") ?: PersonalNoteMode.IMPORT,
             personalSyncReport = storage.personalSyncReport())
     }
 
@@ -436,7 +436,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val peer = safePeer() ?: throw TelefonProtokollFehler("Kein eigener Rechner gekoppelt.")
         require(noteModeSupported(peer) || mode == PersonalNoteMode.TWO_WAY)
         val previous = peer.personal_note_policy
-        if ((previous?.string("mode") ?: PersonalNoteMode.TWO_WAY) == mode) return
+        if ((previous?.string("mode") ?: PersonalNoteMode.IMPORT) == mode) return
         val policy = PersonalNoteMode.create(mode, (previous?.long("revision") ?: 0) + 1,
             peer.remote_personal_note_policy?.string("epoch").orEmpty())
         storage.savePeer(peer.copy(personal_note_policy = policy))
@@ -2156,7 +2156,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     private fun queueTimeSettings(peer: TelefonPeer, session: PersonalNoteSession?) {
         if (!timeControlsReady(peer, session)) return
-        val current = if (peer.personal_time_policy == null) saveTimePolicy(peer, TimeSyncProtokoll.newSettings(), peer.remote_personal_time_policy) else peer
+        val current = if (peer.personal_time_policy == null) saveTimePolicy(peer,
+            TimeSyncProtokoll.newSettings(peer.own_device && Ablage.hole(context).bestand.value.zeiterfassung.enabled), peer.remote_personal_time_policy) else peer
         val local = current.personal_time_policy!!
         if (session?.timeSent != local && !queue.hasKind(peer.device_id, TimeSyncProtokoll.SETTINGS))
             queue.queue(peer.device_id, TimeSyncProtokoll.SETTINGS, local, 86_400_000)
@@ -2190,6 +2191,17 @@ class TelefonWerk private constructor(private val context: Context, private val 
         noteSessions.values.forEach { it.timeSent = null; it.timeReceived = null; it.timeSnapshot = null }
         timePolicyFailed.removeAll(ids.toSet())
         refreshModules()
+    }
+
+    @Synchronized fun enableOwnDeviceTimeSync() {
+        if (!Ablage.hole(context).bestand.value.zeiterfassung.enabled) return
+        val ids = storage.enableOwnDeviceTimeSync()
+        for (id in ids) {
+            TimeSyncProtokoll.KINDS.forEach { queue.removeKind(id, it) }
+            timePolicyFailed.remove(id)
+        }
+        noteSessions.values.forEach { it.timeSent = null; it.timeSnapshot = null }
+        modulesChanged()
     }
 
     private fun queueTimeSnapshot(peer: TelefonPeer, trigger: String): Boolean {

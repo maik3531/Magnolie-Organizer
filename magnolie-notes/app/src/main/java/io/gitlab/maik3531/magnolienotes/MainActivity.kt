@@ -477,7 +477,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     }
     val zeitSpeichern: ZeitSpeichern = { change, success -> zeitAendern(change, success) }
     val zeitAktiv: (Boolean) -> Unit = { an ->
-        zeitAendern({ it.copy(enabled = an) }, {}, { if (!an) telefonWerk.pauseTimeSync() })
+        zeitAendern({ it.copy(enabled = an) }, { if (an) telefonWerk.enableOwnDeviceTimeSync() }, { if (!an) telefonWerk.pauseTimeSync() })
     }
 
     LaunchedEffect(blatt) {
