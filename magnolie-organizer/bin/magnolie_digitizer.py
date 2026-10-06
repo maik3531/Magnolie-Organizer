@@ -60,6 +60,13 @@ class DigitizerState:
             pressure = body.get('pressure', self.pressure)
             if type(pressure) not in (int, float) or not math.isfinite(pressure) or not 0 <= pressure <= 8:
                 raise ValueError('invalid_digitizer_pressure')
+            # Android finger drawing sends pressure deltas while its draw
+            # button is held, without a new touching=True packet. Explicit
+            # release/proximity-exit still wins over any retained pressure.
+            if 'active' in body and not active or 'touching' in body and not touching:
+                touching, pressure = False, 0.0
+            elif 'touching' not in body and 'pressure' in body:
+                touching = pressure > 0
             self.active, self.touching, self.tool = active, active and touching, tool
             self.x, self.y, self.pressure = x, y, max(0, min(1, pressure))
             return self.sample()

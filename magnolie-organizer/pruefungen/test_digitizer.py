@@ -37,6 +37,29 @@ def test_invalid_packet_resets_session(body):
         state.accept(EVENT_PACKET, dict(active=True, touching=True, x=1, y=1))
 
 
+def test_android_finger_draw_button_uses_pressure_deltas_and_preserves_hover():
+    state = DigitizerState(); start(state)
+    assert not state.accept(EVENT_PACKET, dict(active=True, touching=False, tool='Pen', x=20, y=30, pressure=0))['touching']
+    assert not state.accept(EVENT_PACKET, dict(x=30, pressure=0))['touching']
+    down = state.accept(EVENT_PACKET, dict(x=40, pressure=1))
+    assert down['touching'] and down['pressure'] == 1
+    assert state.accept(EVENT_PACKET, dict(x=50))['touching']
+    assert not state.accept(EVENT_PACKET, dict(x=60, pressure=0))['touching']
+    assert not state.accept(EVENT_PACKET, dict(active=False, touching=False))['active']
+    assert not state.accept(EVENT_PACKET, dict(active=True, x=70))['touching']
+
+
+def test_explicit_release_clears_pressure_even_if_packet_contains_pressure():
+    state = DigitizerState(); start(state)
+    state.accept(EVENT_PACKET, dict(active=True, touching=True, x=20, y=30, pressure=1))
+    released = state.accept(EVENT_PACKET, dict(touching=False, pressure=1))
+    assert not released['touching'] and released['pressure'] == 0
+    assert not state.accept(EVENT_PACKET, dict(x=40))['touching']
+    state.accept(EVENT_PACKET, dict(touching=True, pressure=1))
+    exited = state.accept(EVENT_PACKET, dict(active=False))
+    assert not exited['touching'] and exited['pressure'] == 0
+
+
 def test_new_session_clears_previous_pen_state_and_clamps_real_pressure():
     state = DigitizerState(); start(state)
     assert state.accept(EVENT_PACKET, dict(active=True, touching=True, x=10, y=20, pressure=1.2))['pressure'] == 1

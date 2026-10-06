@@ -48,6 +48,14 @@ internal sealed class KdeDigitizerState
             var nextY = body.ContainsKey("y") ? Integer(body, "y", -1000000, 1000000) : y;
             var nextPressure = body.ContainsKey("pressure") ? body["pressure"]!.GetValue<double>() : pressure;
             if (!double.IsFinite(nextPressure) || nextPressure is < 0 or > 8) throw new InvalidDataException("invalid_digitizer_pressure");
+            // Finger drawing uses pressure deltas while Android's draw button
+            // is held. An explicit release/proximity-exit always takes priority.
+            if (body.ContainsKey("active") && !nextActive || body.ContainsKey("touching") && !nextTouching)
+            {
+                nextTouching = false; nextPressure = 0;
+            }
+            else if (!body.ContainsKey("touching") && body.ContainsKey("pressure"))
+                nextTouching = nextPressure > 0;
             active = nextActive; touching = active && nextTouching; tool = nextTool;
             x = nextX; y = nextY; pressure = Math.Clamp(nextPressure, 0, 1);
             return Sample();

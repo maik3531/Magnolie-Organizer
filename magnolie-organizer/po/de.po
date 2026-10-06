@@ -4793,7 +4793,7 @@ msgid "Pay invoice"
 msgstr "Rechnung bezahlen"
 
 msgid "Pen"
-msgstr "Pen"
+msgstr "Stift"
 
 msgid "Pending SMS messages"
 msgstr "Ausstehende SMS"
