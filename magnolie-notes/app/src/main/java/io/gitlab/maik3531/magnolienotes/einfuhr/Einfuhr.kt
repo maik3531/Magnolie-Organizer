@@ -28,6 +28,15 @@ import kotlinx.serialization.json.JsonPrimitive
  */
 object Einfuhr {
 
+    /** Provider without a specific export MIME use octet-stream; content is
+     * still checked independently. Never offer image/audio/video wildcards. */
+    fun dateiMimeTypen(): Array<String> = arrayOf(
+        "text/plain", "text/markdown", "text/x-markdown", "text/html", "text/xml",
+        "application/json", "application/xml", "application/zip",
+        "application/x-zip-compressed", "application/octet-stream",
+        "application/vnd.samsung.sdoc", "application/vnd.samsung.sdocx"
+    )
+
     private const val DATEI_MAX = 64L * 1024 * 1024
     private const val EINTRAG_MAX = 8L * 1024 * 1024
     private const val ARCHIV_ENTPACKT_MAX = 64L * 1024 * 1024

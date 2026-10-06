@@ -1027,7 +1027,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                 2 -> EinfuhrBlatt(
                     ergebnis = einfuhrergebnis,
                     laeuft = einfuhrLaeuft,
-                    beiDatei = { dateiWaehler.launch(arrayOf("*/*")) },
+                    beiDatei = { dateiWaehler.launch(Einfuhr.dateiMimeTypen()) },
                     beiOrdner = { ordnerWaehler.launch(null) }
                 )
 

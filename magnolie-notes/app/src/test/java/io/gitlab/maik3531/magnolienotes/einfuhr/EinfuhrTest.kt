@@ -32,6 +32,21 @@ class EinfuhrTest {
     private fun lies(text: String, name: String, wann: Long = 1_700_000_000_000L) =
         Einfuhr.ausInhalt(text.toByteArray(Charsets.UTF_8), name, wann)
 
+    @Test fun `Dateiauswahl bietet Exporte aber keine Bilder oder Medien an`() {
+        val typen = Einfuhr.dateiMimeTypen().toSet()
+        assertTrue(typen.containsAll(setOf("text/plain", "text/markdown", "application/json", "application/zip")))
+        assertTrue(typen.none { it == "*/*" || it.startsWith("image/") || it.startsWith("audio/") || it.startsWith("video/") })
+    }
+
+    @Test fun `Bild als Textdatei im ZIP wird ohne Teilimport abgewiesen`() {
+        val puffer = ByteArrayOutputStream()
+        ZipOutputStream(puffer).use { zip ->
+            zip.putNextEntry(ZipEntry("valid.txt")); zip.write("Valid synthetic text".toByteArray()); zip.closeEntry()
+            zip.putNextEntry(ZipEntry("image.txt")); zip.write(byteArrayOf(0xff.toByte(), 0xd8.toByte(), 0xff.toByte())); zip.closeEntry()
+        }
+        assertThrows(Exception::class.java) { Einfuhr.ausInhalt(puffer.toByteArray(), "export.zip", 0) }
+    }
+
     @Test
     fun `Google Keep JSON wird mit Datum und Uhrzeit uebernommen`() {
         val keep = """
