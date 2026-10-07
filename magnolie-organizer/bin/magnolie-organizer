@@ -6468,6 +6468,10 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
         u = obj["uid"]
         gesehen.add(u)
         fern = entfernt.get(u)
+        # Compatible provider additions can normalize phone/email structures.
+        # Compare the persisted DAV baseline with the user's pre-merge state.
+        kontakt_lokal_hash = (_sync_inhalt_hash(obj, felder)
+                              if dav is not None and felder == KONTAKT_FELDER else None)
         kontakt_identisch = felder == KONTAKT_FELDER and fern is not None and _kontakt_nur_ergaenzungen(obj, fern)
         if kontakt_identisch:
             _kontakt_ergaenzungen_uebernehmen(obj, fern)
@@ -6547,7 +6551,7 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
                 if alt.get("etag") and aktuell.get("etag"):
                     remote_neu = alt["etag"] != aktuell["etag"]
                     # Migrate shipped timestamp-only mappings conservatively.
-                    lokal_hash = _sync_inhalt_hash(obj, felder)
+                    lokal_hash = kontakt_lokal_hash or _sync_inhalt_hash(obj, felder)
                     lokal_neu = (lokal_hash != zuordnung["inhaltSha256"] if
                                   zuordnung.get("inhaltFormat") == _sync_inhalt_format(felder) and zuordnung.get("inhaltSha256") else remote_neu or
                                   lokal_hash != _sync_inhalt_hash(fern, felder))
