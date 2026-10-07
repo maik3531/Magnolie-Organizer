@@ -11,11 +11,11 @@ Package: magnolie-organizer
 Architecture: all
 Depends: ${misc:Depends}, python3 (>= 3.9), gettext, python3-gi, python3-gi-cairo, gir1.2-gtk-3.0, gir1.2-webkit2-4.1 | gir1.2-webkit2-4.0,
  python3-enchant, python3-cryptography, python3-openssl, python3-phonenumbers, python3-qrcode, python3-zeroconf,
- gir1.2-notify-0.7, tzdata
+ gir1.2-notify-0.7, tzdata,
+ gir1.2-ecal-2.0, gir1.2-ebook-1.2, gir1.2-edataserver-1.2
 Replaces: magnolie-handbuch (<< 2.0.10)
 Breaks: magnolie-handbuch (<< 2.0.10)
-Recommends: gir1.2-ecal-2.0, gir1.2-ebook-1.2, gir1.2-edataserver-1.2,
- hunspell-de-de, hunspell-en-us, libnotify-bin,
+Recommends: hunspell-de-de, hunspell-en-us, libnotify-bin,
  gir1.2-ayatanaappindicator3-0.1, xdg-utils
 Suggests: bluez, gnome-shell-extension-appindicator, gir1.2-xapp-1.0,
    magnolie-organizer-kde,
