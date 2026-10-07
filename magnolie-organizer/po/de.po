@@ -2808,9 +2808,12 @@ msgstr "Datei"
 msgid "File could not be read: %s"
 msgstr "Datei nicht lesbar: %s"
 
-#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Datei in Downloads gespeichert: %(name)s"
+
+#, python-format
+msgid "File saved: %(name)s"
+msgstr "Datei gespeichert: %(name)s"
 
 msgid "Fill with stored values"
 msgstr "Mit gespeicherten Werten ausfüllen"
@@ -5182,6 +5185,9 @@ msgstr "Bereit."
 
 msgid "Reason"
 msgstr "Grund"
+
+msgid "Receive files"
+msgstr "Dateien empfangen"
 
 msgid "Receive files in Downloads"
 msgstr "Dateien in Downloads empfangen"
@@ -7632,6 +7638,9 @@ msgstr ""
 "So sehen Ihre Notizen aus: <b>fett</b>, <i>kursiv</i>, <u>unterstrichen</u> "
 "und <s>durchgestrichen</s>."
 
+msgid "This is my own phone"
+msgstr "Dies ist mein eigenes Telefon"
+
 msgid "This is not a Magnolienbaum message."
 msgstr "Das ist keine Nachricht des Magnolienbaums."
 
@@ -9039,9 +9048,6 @@ msgstr "＋ Termin hinzufügen"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Dieser Status stammt aus Magnolie Notes, nicht aus KDE Connect."
-
-#~ msgid "This is my own phone"
-#~ msgstr "Dies ist mein eigenes Telefon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

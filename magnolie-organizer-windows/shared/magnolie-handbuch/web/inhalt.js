@@ -1058,6 +1058,29 @@ const HANDBUCH_GEORDNET = window.HANDBUCH_SEITEN
   .concat(window.HANDBUCH_SEITEN.filter((seite) => HANDBUCH_ERGAENZUNGEN.has(seite.id)));
 window.HANDBUCH_SEITEN.splice(0, window.HANDBUCH_SEITEN.length, ...HANDBUCH_GEORDNET);
 const HANDBUCH_IDS = new Set();
+// Linux file reception without opening the book (#105).
+const KDE_DATEIEMPFANG = {
+  en: "KDE Connect file reception on Linux: Accept saves to the configured folder. With destination selection enabled, Accept opens only a small folder chooser. Cancel or Reject discards the file; the Organizer main window is not opened.",
+  de: "KDE-Connect-Dateiempfang unter Linux: Annehmen speichert im eingestellten Ordner. Bei aktivierter Zielauswahl öffnet Annehmen nur eine kleine Ordnerauswahl. Abbrechen oder Ablehnen verwirft die Datei; das Organizer-Hauptfenster wird nicht geöffnet.",
+  fr: "Réception de fichiers KDE Connect sous Linux : Accepter enregistre dans le dossier configuré. Si le choix de destination est activé, seul un petit sélecteur de dossier s’ouvre. Annuler ou Refuser abandonne le fichier sans ouvrir la fenêtre principale.",
+  es: "Recepción de archivos KDE Connect en Linux: Aceptar guarda en la carpeta configurada. Con la selección de destino activada, solo se abre un pequeño selector de carpetas. Cancelar o Rechazar descarta el archivo sin abrir la ventana principal.",
+  it: "Ricezione di file KDE Connect su Linux: Accetta salva nella cartella configurata. Se la scelta della destinazione è attiva, si apre solo un piccolo selettore di cartelle. Annulla o Rifiuta scarta il file senza aprire la finestra principale.",
+  nl: "KDE Connect-bestandsontvangst op Linux: Accepteren slaat op in de ingestelde map. Bij ingeschakelde doelkeuze opent alleen een kleine mapkiezer. Annuleren of Weigeren verwerpt het bestand zonder het hoofdvenster te openen.",
+  pt: "Receção de ficheiros KDE Connect no Linux: Aceitar guarda na pasta configurada. Com a escolha do destino ativada, abre apenas um pequeno seletor de pastas. Cancelar ou Rejeitar descarta o ficheiro sem abrir a janela principal.",
+  ru: "Приём файлов KDE Connect в Linux: Принять сохраняет в настроенную папку. Если включён выбор назначения, открывается только небольшой диалог выбора папки. Отмена или Отклонить удаляет ожидающий файл, не открывая главное окно.",
+  uk: "Приймання файлів KDE Connect у Linux: Прийняти зберігає в налаштовану теку. Якщо вибір призначення ввімкнено, відкривається лише невеликий діалог вибору теки. Скасувати або Відхилити відкидає файл без відкриття головного вікна.",
+  be: "Прыём файлаў KDE Connect у Linux: Прыняць захоўвае ў наладжаную папку. Калі выбар прызначэння ўключаны, адкрываецца толькі невялікі дыялог выбару папкі. Скасаваць або Адхіліць адкідае файл без адкрыцця галоўнага акна.",
+  cs: "Příjem souborů KDE Connect v Linuxu: Přijmout uloží do nastavené složky. Je-li zapnut výběr cíle, otevře se pouze malé okno pro výběr složky. Zrušit nebo Odmítnout zahodí soubor bez otevření hlavního okna.",
+  pl: "Odbieranie plików KDE Connect w Linuksie: Akceptuj zapisuje w ustawionym folderze. Przy włączonym wyborze miejsca otwiera się tylko małe okno wyboru folderu. Anuluj lub Odrzuć odrzuca plik bez otwierania głównego okna.",
+  hsb: "Přijimanje datajow KDE Connect pod Linuxom: Přiwzać składuje do nastajeneho rjadowaka. Při zmóžnjenym wuběrje ciloweho rjadowaka so jenož mały dialog wočini. Přetorhnyć abo Wotpokazać dataju zaćisnje, bjez wočinjenja hłowneho wokna.",
+  da: "KDE Connect-filmodtagelse på Linux: Acceptér gemmer i den indstillede mappe. Når valg af destination er aktiveret, åbnes kun en lille mappevælger. Annuller eller Afvis kasserer filen uden at åbne hovedvinduet.",
+  nb: "KDE Connect-filmottak på Linux: Godta lagrer i den innstilte mappen. Når valg av mål er aktivert, åpnes bare en liten mappevelger. Avbryt eller Avvis forkaster filen uten å åpne hovedvinduet.",
+  tr: "Linux’ta KDE Connect dosya alımı: Kabul et, ayarlanan klasöre kaydeder. Hedef seçimi açıksa yalnızca küçük bir klasör seçici açılır. İptal veya Reddet, ana pencereyi açmadan dosyayı atar.",
+  hi: "Linux पर KDE Connect फ़ाइल प्राप्ति: स्वीकार करें से तय फ़ोल्डर में सहेजा जाता है। गंतव्य चयन चालू होने पर केवल छोटा फ़ोल्डर चयन संवाद खुलता है। रद्द करें या अस्वीकार करें से फ़ाइल हटा दी जाती है; मुख्य विंडो नहीं खुलती।",
+  ar: "استقبال ملفات KDE Connect على Linux: يحفظ القبول في المجلد المحدد. عند تفعيل اختيار الوجهة، يُفتح مربع صغير لاختيار المجلد فقط. يلغي الإلغاء أو الرفض الملف دون فتح النافذة الرئيسية.",
+  ja: "LinuxでのKDE Connectファイル受信：「承認」で設定済みフォルダーに保存します。保存先の選択が有効なら、小さなフォルダー選択画面だけを開きます。「キャンセル」または「拒否」でファイルを破棄し、メイン画面は開きません。",
+  "zh-cn": "Linux上的KDE Connect文件接收：接受后保存到设置的文件夹。启用目标选择时，只打开一个小型文件夹选择对话框。取消或拒绝会丢弃文件，不会打开主窗口。"
+};
 for (const seite of window.HANDBUCH_SEITEN) {
   seite.id = seite.id || seite.titel.toLowerCase()
     .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -1893,6 +1916,9 @@ HANDBUCH_ANHAENGE["contact-details-and-anniversaries"] = {
   "zh-cn": "<h3>联系人分组</h3><p><b>设置 ▸ 联系人 ▸ 联系人分组</b></p><p><b>更多字段</b>: 家人 · 工作 · 客户 · 工匠 · 保险 · 医生</p><p><b>添加联系人分组</b></p>",
   "en": "<h3>Contact groups</h3><p><b>Settings ▸ Contacts ▸ Contact groups</b></p><p><b>More fields</b>: Family · Work · Client · Tradesperson · Insurance · Doctor</p><p><b>Add contact group</b></p>"
 };
+for (const [sprache, text] of Object.entries(KDE_DATEIEMPFANG)) {
+  HANDBUCH_ANHAENGE["linux-background-service"].inhalt[sprache] += `<p>${text}</p>`;
+}
 for (const seite of window.HANDBUCH_SEITEN) {
   const anhang = HANDBUCH_ANHAENGE[seite.id];
   if (!anhang) continue;

@@ -5999,6 +5999,9 @@ msgstr ""
 "メモは次のように表示されます：<b>太字</b>、<i>斜体</i>、<u>下線</u>、<s>取り"
 "消し線</s>。"
 
+msgid "This is my own phone"
+msgstr "これは自分の携帯電話です"
+
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
 "occurrences in this series."
@@ -7220,9 +7223,6 @@ msgstr "＋ 予定を追加"
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr ""
 #~ "この状態は KDE Connect ではなく Magnolie Notes から取得されています。"
-
-#~ msgid "This is my own phone"
-#~ msgstr "これは自分の携帯電話です"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

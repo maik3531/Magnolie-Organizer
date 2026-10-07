@@ -2823,9 +2823,12 @@ msgstr "Файл"
 msgid "File could not be read: %s"
 msgstr "Не удалось прочитать файл: %s"
 
-#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Файл сохранён в папке «Загрузки»: %(name)s"
+
+#, python-format
+msgid "File saved: %(name)s"
+msgstr "Файл сохранён: %(name)s"
 
 msgid "Fill with stored values"
 msgstr "Заполнить сохранёнными значениями"
@@ -5181,6 +5184,9 @@ msgstr "Готово."
 
 msgid "Reason"
 msgstr "Причина"
+
+msgid "Receive files"
+msgstr "Получать файлы"
 
 msgid "Receive files in Downloads"
 msgstr "Принимать файлы в папку «Загрузки»"
@@ -7580,6 +7586,9 @@ msgstr ""
 "Ваши заметки выглядят так: <b>жирный</b>, <i>курсив</i>, <u>подчёркнутый</u> "
 "и <s>зачёркнутый</s> текст."
 
+msgid "This is my own phone"
+msgstr "Это мой личный телефон"
+
 msgid "This is not a Magnolienbaum message."
 msgstr "Это не сообщение Magnolienbaum."
 
@@ -9003,9 +9012,6 @@ msgstr "＋ Добавить встречу"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Это состояние поступает из Magnolie Notes, а не из KDE Connect."
-
-#~ msgid "This is my own phone"
-#~ msgstr "Это мой личный телефон"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

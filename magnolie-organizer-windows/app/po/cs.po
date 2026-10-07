@@ -6082,6 +6082,9 @@ msgstr ""
 "Takto vypadají vaše poznámky: <b>tučně</b>, <i>kurzívou</i>, <u>podtrženě</"
 "u> a <s>přeškrtnutě</s>."
 
+msgid "This is my own phone"
+msgstr "Toto je můj vlastní telefon"
+
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
 "occurrences in this series."
@@ -7321,9 +7324,6 @@ msgstr "＋ Přidat schůzku"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Tento stav pochází z Magnolie Notes, nikoli z KDE Connect."
-
-#~ msgid "This is my own phone"
-#~ msgstr "Toto je můj vlastní telefon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

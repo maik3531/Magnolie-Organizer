@@ -5816,6 +5816,9 @@ msgid ""
 msgstr ""
 "您的便笺会这样显示：<b>粗体</b>、<i>斜体</i>、<u>下划线</u>和<s>删除线</s>。"
 
+msgid "This is my own phone"
+msgstr "这是我本人的手机"
+
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
 "occurrences in this series."
@@ -6982,9 +6985,6 @@ msgstr "＋ 添加约会"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "此状态来自 Magnolie Notes，而非 KDE Connect。"
-
-#~ msgid "This is my own phone"
-#~ msgstr "这是我本人的手机"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

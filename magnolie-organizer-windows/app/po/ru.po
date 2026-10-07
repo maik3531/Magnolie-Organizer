@@ -6126,6 +6126,9 @@ msgstr ""
 "Ваши заметки выглядят так: <b>жирный</b>, <i>курсив</i>, <u>подчёркнутый</u> "
 "и <s>зачёркнутый</s> текст."
 
+msgid "This is my own phone"
+msgstr "Это мой личный телефон"
+
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
 "occurrences in this series."
@@ -7381,9 +7384,6 @@ msgstr "＋ Добавить встречу"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Это состояние поступает из Magnolie Notes, а не из KDE Connect."
-
-#~ msgid "This is my own phone"
-#~ msgstr "Это мой личный телефон"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

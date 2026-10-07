@@ -2768,9 +2768,12 @@ msgstr "Fil"
 msgid "File could not be read: %s"
 msgstr "Filen kunne ikke læses: %s"
 
-#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Fil gemt i Hentede filer: %(name)s"
+
+#, python-format
+msgid "File saved: %(name)s"
+msgstr "Fil gemt: %(name)s"
 
 msgid "Fill with stored values"
 msgstr "Udfyld med gemte værdier"
@@ -5105,6 +5108,9 @@ msgstr "Klar."
 
 msgid "Reason"
 msgstr "Årsag"
+
+msgid "Receive files"
+msgstr "Modtag filer"
 
 msgid "Receive files in Downloads"
 msgstr "Modtag filer i Hentede filer"
@@ -7496,6 +7502,9 @@ msgstr ""
 "Sådan ser dine noter ud: <b>fed</b>, <i>kursiv</i>, <u>understreget</u> og "
 "<s>gennemstreget</s>."
 
+msgid "This is my own phone"
+msgstr "Dette er min egen telefon"
+
 msgid "This is not a Magnolienbaum message."
 msgstr "Dette er ikke en Magnolienbaum-besked."
 
@@ -8894,9 +8903,6 @@ msgstr "＋ Tilføj aftale"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Denne status kommer fra Magnolie Notes, ikke KDE Connect."
-
-#~ msgid "This is my own phone"
-#~ msgstr "Dette er min egen telefon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

@@ -2720,9 +2720,12 @@ msgstr "फ़ाइल"
 msgid "File could not be read: %s"
 msgstr "फ़ाइल पढ़ी नहीं जा सकी: %s"
 
-#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "फ़ाइल डाउनलोड में सहेजी गई: %(name)s"
+
+#, python-format
+msgid "File saved: %(name)s"
+msgstr "फ़ाइल सहेजी गई: %(name)s"
 
 msgid "Fill with stored values"
 msgstr "संग्रहित मानों से भरें"
@@ -5023,6 +5026,9 @@ msgstr "तैयार।"
 
 msgid "Reason"
 msgstr "कारण"
+
+msgid "Receive files"
+msgstr "फ़ाइलें प्राप्त करें"
 
 msgid "Receive files in Downloads"
 msgstr "फ़ाइलें डाउनलोड में प्राप्त करें"
@@ -7356,6 +7362,9 @@ msgid ""
 msgstr ""
 "आपके नोट ऐसे दिखते हैं: <b>बोल्ड</b>, <i>इटैलिक</i>, <u>रेखांकित</u> और <s>कटा हुआ</s>।"
 
+msgid "This is my own phone"
+msgstr "यह मेरा अपना फ़ोन है"
+
 msgid "This is not a Magnolienbaum message."
 msgstr "यह Magnolienbaum संदेश नहीं है।"
 
@@ -8730,9 +8739,6 @@ msgstr "＋ अपॉइंटमेंट जोड़ें"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "यह स्थिति Magnolie Notes से आती है, KDE Connect से नहीं।"
-
-#~ msgid "This is my own phone"
-#~ msgstr "यह मेरा अपना फ़ोन है"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

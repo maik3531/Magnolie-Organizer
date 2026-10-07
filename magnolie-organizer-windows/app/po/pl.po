@@ -6134,6 +6134,9 @@ msgstr ""
 "Tak wyglądają notatki: <b>pogrubienie</b>, <i>kursywa</i>, <u>podkreślenie</"
 "u> i <s>przekreślenie</s>."
 
+msgid "This is my own phone"
+msgstr "To mój własny telefon"
+
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
 "occurrences in this series."
@@ -7388,9 +7391,6 @@ msgstr "＋ Dodaj spotkanie"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Ten stan pochodzi z Magnolie Notes, a nie z KDE Connect."
-
-#~ msgid "This is my own phone"
-#~ msgstr "To mój własny telefon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

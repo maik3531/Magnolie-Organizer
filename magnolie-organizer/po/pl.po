@@ -2821,9 +2821,12 @@ msgstr "Plik"
 msgid "File could not be read: %s"
 msgstr "Nie można odczytać pliku: %s"
 
-#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Plik zapisano w Pobranych: %(name)s"
+
+#, python-format
+msgid "File saved: %(name)s"
+msgstr "Plik zapisany: %(name)s"
 
 msgid "Fill with stored values"
 msgstr "Wypełnij zapisanymi wartościami"
@@ -5169,6 +5172,9 @@ msgstr "Gotowe."
 
 msgid "Reason"
 msgstr "Powód"
+
+msgid "Receive files"
+msgstr "Odbieraj pliki"
 
 msgid "Receive files in Downloads"
 msgstr "Odbieraj pliki do Pobranych"
@@ -7577,6 +7583,9 @@ msgstr ""
 "Tak wyglądają notatki: <b>pogrubienie</b>, <i>kursywa</i>, <u>podkreślenie</"
 "u> i <s>przekreślenie</s>."
 
+msgid "This is my own phone"
+msgstr "To mój własny telefon"
+
 msgid "This is not a Magnolienbaum message."
 msgstr "To nie jest wiadomość Magnolienbaum."
 
@@ -9000,9 +9009,6 @@ msgstr "＋ Dodaj spotkanie"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Ten stan pochodzi z Magnolie Notes, a nie z KDE Connect."
-
-#~ msgid "This is my own phone"
-#~ msgstr "To mój własny telefon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

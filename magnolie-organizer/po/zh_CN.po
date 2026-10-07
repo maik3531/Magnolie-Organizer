@@ -2634,9 +2634,12 @@ msgstr "文件"
 msgid "File could not be read: %s"
 msgstr "无法读取文件：%s"
 
-#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "文件已保存到“下载”：%(name)s"
+
+#, python-format
+msgid "File saved: %(name)s"
+msgstr "文件已保存：%(name)s"
 
 msgid "Fill with stored values"
 msgstr "填入已存储的数值"
@@ -4882,6 +4885,9 @@ msgstr "就绪。"
 
 msgid "Reason"
 msgstr "原因"
+
+msgid "Receive files"
+msgstr "接收文件"
 
 msgid "Receive files in Downloads"
 msgstr "在“下载”中接收文件"
@@ -7162,6 +7168,9 @@ msgid ""
 msgstr ""
 "您的便笺会这样显示：<b>粗体</b>、<i>斜体</i>、<u>下划线</u>和<s>删除线</s>。"
 
+msgid "This is my own phone"
+msgstr "这是我本人的手机"
+
 msgid "This is not a Magnolienbaum message."
 msgstr "这不是 Magnolienbaum 消息。"
 
@@ -8484,9 +8493,6 @@ msgstr "＋ 添加约会"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "此状态来自 Magnolie Notes，而非 KDE Connect。"
-
-#~ msgid "This is my own phone"
-#~ msgstr "这是我本人的手机"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

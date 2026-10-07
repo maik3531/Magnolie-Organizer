@@ -2810,9 +2810,12 @@ msgstr "Файл"
 msgid "File could not be read: %s"
 msgstr "Не ўдалося прачытаць файл: %s"
 
-#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Файл захаваны ў «Спампоўках»: %(name)s"
+
+#, python-format
+msgid "File saved: %(name)s"
+msgstr "Файл захаваны: %(name)s"
 
 msgid "Fill with stored values"
 msgstr "Запоўніць захаванымі значэннямі"
@@ -5156,6 +5159,9 @@ msgstr "Гатова."
 
 msgid "Reason"
 msgstr "Прычына"
+
+msgid "Receive files"
+msgstr "Атрымліваць файлы"
 
 msgid "Receive files in Downloads"
 msgstr "Атрымліваць файлы ў «Спампоўкі»"
@@ -7538,6 +7544,9 @@ msgstr ""
 "Так выглядаюць вашы нататкі: <b>тлусты</b>, <i>курсіўны</i>, <u>падкрэслены</"
 "u> і <s>закрэслены</s> тэкст."
 
+msgid "This is my own phone"
+msgstr "Гэта мой асабісты тэлефон"
+
 msgid "This is not a Magnolienbaum message."
 msgstr "Гэта не паведамленне Magnolienbaum."
 
@@ -8957,9 +8966,6 @@ msgstr "＋ Дадаць сустрэчу"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Гэты стан паходзіць з Magnolie Notes, а не з KDE Connect."
-
-#~ msgid "This is my own phone"
-#~ msgstr "Гэта мой асабісты тэлефон"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

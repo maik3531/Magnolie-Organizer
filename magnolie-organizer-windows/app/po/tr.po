@@ -6062,6 +6062,9 @@ msgstr ""
 "Notlarınız şöyle görünür: <b>kalın</b>, <i>italik</i>, <u>altı çizili</u> ve "
 "<s>üstü çizili</s>."
 
+msgid "This is my own phone"
+msgstr "Bu benim kendi telefonum"
+
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
 "occurrences in this series."
@@ -7302,9 +7305,6 @@ msgstr "＋ Randevu ekle"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Bu durum KDE Connect'ten değil, Magnolie Notes'tan geliyor."
-
-#~ msgid "This is my own phone"
-#~ msgstr "Bu benim kendi telefonum"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

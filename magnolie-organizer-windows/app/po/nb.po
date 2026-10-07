@@ -6076,6 +6076,9 @@ msgstr ""
 "Slik ser notatene dine ut: <b>fet</b>, <i>kursiv</i>, <u>understreket</u> og "
 "<s>gjennomstreket</s>."
 
+msgid "This is my own phone"
+msgstr "Dette er min egen telefon"
+
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
 "occurrences in this series."
@@ -7312,9 +7315,6 @@ msgstr "＋ Legg til avtale"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Denne statusen kommer fra Magnolie Notes, ikke KDE Connect."
-
-#~ msgid "This is my own phone"
-#~ msgstr "Dette er min egen telefon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

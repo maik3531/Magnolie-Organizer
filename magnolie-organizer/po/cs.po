@@ -2801,9 +2801,12 @@ msgstr "Soubor"
 msgid "File could not be read: %s"
 msgstr "Soubor nelze přečíst: %s"
 
-#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Soubor uložen do složky Stažené: %(name)s"
+
+#, python-format
+msgid "File saved: %(name)s"
+msgstr "Soubor uložen: %(name)s"
 
 msgid "Fill with stored values"
 msgstr "Vyplnit uloženými hodnotami"
@@ -5133,6 +5136,9 @@ msgstr "Připraveno."
 
 msgid "Reason"
 msgstr "Důvod"
+
+msgid "Receive files"
+msgstr "Přijímat soubory"
 
 msgid "Receive files in Downloads"
 msgstr "Přijímat soubory do složky Stažené"
@@ -7511,6 +7517,9 @@ msgstr ""
 "Takto vypadají vaše poznámky: <b>tučně</b>, <i>kurzívou</i>, <u>podtrženě</"
 "u> a <s>přeškrtnutě</s>."
 
+msgid "This is my own phone"
+msgstr "Toto je můj vlastní telefon"
+
 msgid "This is not a Magnolienbaum message."
 msgstr "Toto není zpráva Magnolienbaum."
 
@@ -8918,9 +8927,6 @@ msgstr "＋ Přidat schůzku"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Tento stav pochází z Magnolie Notes, nikoli z KDE Connect."
-
-#~ msgid "This is my own phone"
-#~ msgstr "Toto je můj vlastní telefon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

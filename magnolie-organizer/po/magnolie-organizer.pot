@@ -2621,8 +2621,11 @@ msgstr ""
 msgid "File could not be read: %s"
 msgstr ""
 
-#, python-format
 msgid "File saved in Downloads: %(name)s"
+msgstr ""
+
+#, python-format
+msgid "File saved: %(name)s"
 msgstr ""
 
 msgid "Fill with stored values"
@@ -4811,6 +4814,9 @@ msgid "Ready."
 msgstr ""
 
 msgid "Reason"
+msgstr ""
+
+msgid "Receive files"
 msgstr ""
 
 msgid "Receive files in Downloads"
@@ -7031,6 +7037,9 @@ msgstr ""
 msgid ""
 "This is how your notes look: <b>bold</b>, <i>italic</i>, <u>underlined</u> "
 "and <s>struck through</s>."
+msgstr ""
+
+msgid "This is my own phone"
 msgstr ""
 
 msgid "This is not a Magnolienbaum message."

@@ -2734,9 +2734,12 @@ msgstr "ファイル"
 msgid "File could not be read: %s"
 msgstr "ファイルを読み取れませんでした: %s"
 
-#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "ダウンロードにファイルを保存しました: %(name)s"
+
+#, python-format
+msgid "File saved: %(name)s"
+msgstr "ファイルを保存しました：%(name)s"
 
 msgid "Fill with stored values"
 msgstr "保存済みの値を入力"
@@ -5051,6 +5054,9 @@ msgstr "準備完了。"
 
 msgid "Reason"
 msgstr "理由"
+
+msgid "Receive files"
+msgstr "ファイルを受信"
 
 msgid "Receive files in Downloads"
 msgstr "ダウンロードでファイルを受信"
@@ -7431,6 +7437,9 @@ msgstr ""
 "メモは次のように表示されます：<b>太字</b>、<i>斜体</i>、<u>下線</u>、<s>取り"
 "消し線</s>。"
 
+msgid "This is my own phone"
+msgstr "これは自分の携帯電話です"
+
 msgid "This is not a Magnolienbaum message."
 msgstr "これは Magnolienbaum のメッセージではありません。"
 
@@ -8813,9 +8822,6 @@ msgstr "＋ 予定を追加"
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr ""
 #~ "この状態は KDE Connect ではなく Magnolie Notes から取得されています。"
-
-#~ msgid "This is my own phone"
-#~ msgstr "これは自分の携帯電話です"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

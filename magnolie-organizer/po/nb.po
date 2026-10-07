@@ -2771,9 +2771,12 @@ msgstr "Fil"
 msgid "File could not be read: %s"
 msgstr "Filen kunne ikke leses: %s"
 
-#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Filen er lagret i Nedlastinger: %(name)s"
+
+#, python-format
+msgid "File saved: %(name)s"
+msgstr "Fil lagret: %(name)s"
 
 msgid "Fill with stored values"
 msgstr "Fyll ut med lagrede verdier"
@@ -5103,6 +5106,9 @@ msgstr "Klar."
 
 msgid "Reason"
 msgstr "Årsak"
+
+msgid "Receive files"
+msgstr "Motta filer"
 
 msgid "Receive files in Downloads"
 msgstr "Motta filer i Nedlastinger"
@@ -7501,6 +7507,9 @@ msgstr ""
 "Slik ser notatene dine ut: <b>fet</b>, <i>kursiv</i>, <u>understreket</u> og "
 "<s>gjennomstreket</s>."
 
+msgid "This is my own phone"
+msgstr "Dette er min egen telefon"
+
 msgid "This is not a Magnolienbaum message."
 msgstr "Dette er ikke en Magnolienbaum-melding."
 
@@ -8901,9 +8910,6 @@ msgstr "＋ Legg til avtale"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Denne statusen kommer fra Magnolie Notes, ikke KDE Connect."
-
-#~ msgid "This is my own phone"
-#~ msgstr "Dette er min egen telefon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

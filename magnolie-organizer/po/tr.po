@@ -2773,9 +2773,12 @@ msgstr "Dosya"
 msgid "File could not be read: %s"
 msgstr "Dosya okunamadı: %s"
 
-#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Dosya İndirilenler'e kaydedildi: %(name)s"
+
+#, python-format
+msgid "File saved: %(name)s"
+msgstr "Dosya kaydedildi: %(name)s"
 
 msgid "Fill with stored values"
 msgstr "Kayıtlı değerlerle doldur"
@@ -5106,6 +5109,9 @@ msgstr "Hazır."
 
 msgid "Reason"
 msgstr "Neden"
+
+msgid "Receive files"
+msgstr "Dosyaları al"
 
 msgid "Receive files in Downloads"
 msgstr "Dosyaları İndirilenler'e al"
@@ -7484,6 +7490,9 @@ msgstr ""
 "Notlarınız şöyle görünür: <b>kalın</b>, <i>italik</i>, <u>altı çizili</u> ve "
 "<s>üstü çizili</s>."
 
+msgid "This is my own phone"
+msgstr "Bu benim kendi telefonum"
+
 msgid "This is not a Magnolienbaum message."
 msgstr "Bu bir Magnolienbaum iletisi değil."
 
@@ -8886,9 +8895,6 @@ msgstr "＋ Randevu ekle"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Bu durum KDE Connect'ten değil, Magnolie Notes'tan geliyor."
-
-#~ msgid "This is my own phone"
-#~ msgstr "Bu benim kendi telefonum"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

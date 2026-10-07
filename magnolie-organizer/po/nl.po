@@ -2796,9 +2796,12 @@ msgstr "Bestand"
 msgid "File could not be read: %s"
 msgstr "Bestand kon niet worden gelezen: %s"
 
-#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Bestand opgeslagen in Downloads: %(name)s"
+
+#, python-format
+msgid "File saved: %(name)s"
+msgstr "Bestand opgeslagen: %(name)s"
 
 msgid "Fill with stored values"
 msgstr "Vullen met opgeslagen waarden"
@@ -5162,6 +5165,9 @@ msgstr "Gereed."
 
 msgid "Reason"
 msgstr "Reden"
+
+msgid "Receive files"
+msgstr "Bestanden ontvangen"
 
 msgid "Receive files in Downloads"
 msgstr "Bestanden ontvangen in Downloads"
@@ -7600,6 +7606,9 @@ msgstr ""
 "Zo zien uw notities eruit: <b>vet</b>, <i>cursief</i>, <u>onderstreept</u> "
 "en <s>doorgehaald</s>."
 
+msgid "This is my own phone"
+msgstr "Dit is mijn eigen telefoon"
+
 msgid "This is not a Magnolienbaum message."
 msgstr "Dit is geen Magnolienbaum-bericht."
 
@@ -9018,9 +9027,6 @@ msgstr "＋ Afspraak toevoegen"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Deze status is afkomstig van Magnolie Notes, niet van KDE Connect."
-
-#~ msgid "This is my own phone"
-#~ msgstr "Dit is mijn eigen telefoon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

@@ -2865,9 +2865,12 @@ msgstr "Dataja"
 msgid "File could not be read: %s"
 msgstr "Dataj njeda so čitać: %s"
 
-#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Dataja je so w Zećehnjenjach składowała: %(name)s"
+
+#, python-format
+msgid "File saved: %(name)s"
+msgstr "Dataja składowana: %(name)s"
 
 msgid "Fill with stored values"
 msgstr "Ze składowanymi hódnotami wupjelnić"
@@ -5232,6 +5235,9 @@ msgstr "Hotowo."
 
 msgid "Reason"
 msgstr "Přičina"
+
+msgid "Receive files"
+msgstr "Dataje přijimać"
 
 msgid "Receive files in Downloads"
 msgstr "Dataje do Zećehnjenjow přijimać"
@@ -7630,6 +7636,9 @@ msgstr ""
 "Tak waše notice wupadaja: <b>tučne</b>, <i>kursiwne</i>, <u>podšmórnjene</u> "
 "a <s>přešmórnjene</s>."
 
+msgid "This is my own phone"
+msgstr "To je mój swójski telefon"
+
 msgid "This is not a Magnolienbaum message."
 msgstr "To njeje powěsć Magnolienbaum."
 
@@ -9056,9 +9065,6 @@ msgstr "＋ Termin přidać"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Tutón staw pochadźa z Magnolie Notes, nic z KDE Connect."
-
-#~ msgid "This is my own phone"
-#~ msgstr "To je mój swójski telefon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

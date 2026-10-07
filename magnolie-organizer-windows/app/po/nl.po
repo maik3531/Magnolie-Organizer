@@ -6140,6 +6140,9 @@ msgstr ""
 "Zo zien uw notities eruit: <b>vet</b>, <i>cursief</i>, <u>onderstreept</u> "
 "en <s>doorgehaald</s>."
 
+msgid "This is my own phone"
+msgstr "Dit is mijn eigen telefoon"
+
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
 "occurrences in this series."
@@ -7394,9 +7397,6 @@ msgstr "＋ Afspraak toevoegen"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Deze status is afkomstig van Magnolie Notes, niet van KDE Connect."
-
-#~ msgid "This is my own phone"
-#~ msgstr "Dit is mijn eigen telefoon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

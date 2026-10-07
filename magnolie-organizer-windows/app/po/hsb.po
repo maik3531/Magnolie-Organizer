@@ -6168,6 +6168,9 @@ msgstr ""
 "Tak waše notice wupadaja: <b>tučne</b>, <i>kursiwne</i>, <u>podšmórnjene</u> "
 "a <s>přešmórnjene</s>."
 
+msgid "This is my own phone"
+msgstr "To je mój swójski telefon"
+
 msgid ""
 "This is one occurrence of a recurring appointment. Changes apply to all "
 "occurrences in this series."
@@ -7426,9 +7429,6 @@ msgstr "＋ Termin přidać"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Tutón staw pochadźa z Magnolie Notes, nic z KDE Connect."
-
-#~ msgid "This is my own phone"
-#~ msgstr "To je mój swójski telefon"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "

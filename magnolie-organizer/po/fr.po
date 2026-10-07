@@ -2830,9 +2830,12 @@ msgstr "Fichier"
 msgid "File could not be read: %s"
 msgstr "Impossible de lire le fichier : %s"
 
-#, python-format
 msgid "File saved in Downloads: %(name)s"
 msgstr "Fichier enregistré dans Téléchargements : %(name)s"
+
+#, python-format
+msgid "File saved: %(name)s"
+msgstr "Fichier enregistré : %(name)s"
 
 msgid "Fill with stored values"
 msgstr "Remplir avec les valeurs enregistrées"
@@ -5230,6 +5233,9 @@ msgstr "Prêt."
 
 msgid "Reason"
 msgstr "Motif"
+
+msgid "Receive files"
+msgstr "Recevoir des fichiers"
 
 msgid "Receive files in Downloads"
 msgstr "Recevoir les fichiers dans Téléchargements"
@@ -7707,6 +7713,9 @@ msgstr ""
 "Voici à quoi ressemblent vos notes : <b>gras</b>, <i>italique</i>, "
 "<u>soulignées</u> et <s>barrées</s>."
 
+msgid "This is my own phone"
+msgstr "C’est mon propre téléphone"
+
 msgid "This is not a Magnolienbaum message."
 msgstr "Ceci n’est pas un message Magnolienbaum."
 
@@ -9145,9 +9154,6 @@ msgstr "＋ Ajouter un rendez-vous"
 
 #~ msgid "This status comes from Magnolie Notes, not KDE Connect."
 #~ msgstr "Cet état provient de Magnolie Notes, et non de KDE Connect."
-
-#~ msgid "This is my own phone"
-#~ msgstr "C’est mon propre téléphone"
 
 #~ msgid ""
 #~ "Online account integration is not available on this system. Install it "
