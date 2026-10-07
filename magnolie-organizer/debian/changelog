@@ -1,3 +1,16 @@
+magnolie-organizer (2.0.27) unstable; urgency=medium
+
+  * Stabilisiert aktive KDE-Verbindungen und direkte Fingerzeichnung mit Absetzen.
+  * Vereinfacht Kontaktkonflikte und übernimmt reine Ergänzungen ohne Rückfrage.
+  * Ergänzt optionale Personengruppen und getrennt einschaltbare Zykluserinnerungen.
+  * Vereinigt Zeiterfassung im Schichtdienst-Planer und korrigiert den Tray-Tageswechsel.
+  * Aktualisiert Notes auf 1.0.19 mit Binärimportabwehr und gefilterter Dateiauswahl.
+  * Macht die Eigengerätewahl im Erstassistenten ausdrücklich auswählbar.
+  * Empfängt KDE-Dateien mit eigener Ordnerauswahl ohne Organizer-Hauptfenster.
+  * Meldet Systemkonten-Ladefehler und verlangt die benötigten EDS-GI-Namespaces.
+
+ -- Maik Walter <maik3531@gmail.com>  Wed, 07 Oct 2026 00:19:58 +0200
+
 magnolie-organizer (2.0.26) unstable; urgency=medium
 
   * Ergänzt Zeiterfassung, eigenen Geräteabgleich, Kalender-Koffer und Monatsdruck/ODS.

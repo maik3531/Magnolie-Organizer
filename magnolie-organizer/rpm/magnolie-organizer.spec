@@ -33,7 +33,7 @@
 %endif
 
 Name:           magnolie-organizer
-Version:        2.0.26
+Version:        2.0.27
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 

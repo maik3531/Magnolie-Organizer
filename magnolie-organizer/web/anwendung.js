@@ -15,170 +15,150 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.26";
+const FASSUNG = "2.0.27";
 const S = (x) => (x === undefined || x === null) ? "" : String(x);
 
-const NEU_IN_DIESER_FASSUNG_FASSUNG = "2.0.26";
+const NEU_IN_DIESER_FASSUNG_FASSUNG = "2.0.27";
 const NEU_IN_DIESER_FASSUNG = {
   "de": [
     "Neu in dieser Version",
-    "Zeiterfassung: Pausen, optionaler WLAN-Start und Wecker, Abgleich eigener Geräte, Kalender-Koffer, Monatsdruck und bearbeitbare ODS. Regionale Uhrzeiten und Organizer-Feiertage werden berücksichtigt.",
-    "Magnolie Notes 1.0.18: optionaler Notizimport nur Notes → Organizer je Rechner, einfachere Abgleichbedienung und erhaltene Anhänge.",
-    "Kontakte und Fotos: feldweise Importvorschau, Bildalternativen und freigegebener Lesezugriff über Notes oder KDE Connect.",
-    "Bestehende Baumverbindungen an einen weiteren Rechner mit eigener Identität weitergeben. Direkter Internetbetrieb benötigt weiterhin erreichbare Verbindungswege.",
-    "Müllkalender aus ICS/CSV importieren, Notfallkontakte verknüpfen und Kartenziele auswählen. Handbuch in allen 20 Sprachen aktualisiert."
+    "Stabile KDE-Verbindungen und direkte Fingerzeichnung mit getrennten Strichen",
+    "Übersichtlichere Kontaktprüfung, optionale Personengruppen und Zykluserinnerungen",
+    "Zeiterfassung im Schichtdienst-Planer und korrigierter Kalendertag beim Zurückholen aus dem Tray",
+    "Magnolie Notes 1.0.19: binärsicherer Import mit Dateifilter, Offline-Rechnerauswahl und Notes-Import als Vorgabe"
   ],
   "en": [
     "What's new in this version",
-    "Time tracking: pauses, optional Wi-Fi start and alarms, own-device synchronization, calendar briefcases, monthly printing and editable ODS. Regional clocks and Organizer holidays are respected.",
-    "Magnolie Notes 1.0.18: optional Notes → Organizer note import for each computer, with simpler synchronization controls and preserved attachments.",
-    "Contacts and photos: field-by-field import preview, photo alternatives and authorized read-only access through Notes or KDE Connect.",
-    "Forward an existing tree connection to another computer with its own identity. Direct Internet use still requires reachable routes.",
-    "Import waste calendars from ICS/CSV; link emergency contacts and choose map destinations. Handbook updated in all 20 languages."
+    "Stable KDE connections and direct finger drawing with separate strokes",
+    "Clearer contact review, optional contact groups and cycle reminders",
+    "Time tracking integrated into the shift planner and corrected calendar return from the tray",
+    "Magnolie Notes 1.0.19: binary-safe import with a file filter, offline computer selection and Notes-to-Organizer import by default"
   ],
   "fr": [
     "Nouveautés de cette version",
-    "Suivi du temps : pauses, démarrage Wi-Fi et alarmes facultatifs, synchronisation des appareils personnels, mallettes du calendrier, impression mensuelle et ODS modifiable. Formats horaires régionaux et jours fériés d’Organizer respectés.",
-    "Magnolie Notes 1.0.18 : import facultatif des notes uniquement Notes → Organizer par ordinateur, commandes simplifiées et pièces jointes préservées.",
-    "Contacts et photos : aperçu champ par champ, choix d’images et lecture autorisée via Notes ou KDE Connect.",
-    "Transmettez une connexion existante de l’arbre à un autre ordinateur avec sa propre identité. Internet direct exige toujours des chemins accessibles.",
-    "Import des collectes ICS/CSV, contacts d’urgence liés et choix des destinations cartographiques. Manuel actualisé dans les 20 langues."
+    "Connexions KDE stables et dessin direct au doigt avec traits séparés",
+    "Vérification des contacts plus claire, groupes facultatifs et rappels de cycle",
+    "Suivi du temps intégré au planning des équipes et retour corrigé au calendrier depuis la zone de notification",
+    "Magnolie Notes 1.0.19 : import protégé contre les fichiers binaires avec filtre, sélection des ordinateurs hors ligne et import Notes vers Organizer par défaut"
   ],
   "es": [
     "Novedades de esta versión",
-    "Control horario: pausas, inicio Wi-Fi y alarmas opcionales, sincronización de dispositivos propios, maletines del calendario, impresión mensual y ODS editable. Respeta horas regionales y festivos de Organizer.",
-    "Magnolie Notes 1.0.18: importación opcional de notas solo Notes → Organizer por ordenador, controles simplificados y adjuntos conservados.",
-    "Contactos y fotos: vista previa campo a campo, alternativas de imagen y lectura autorizada mediante Notes o KDE Connect.",
-    "Comparta una conexión existente del árbol con otro ordenador de identidad propia. Internet directo sigue necesitando rutas accesibles.",
-    "Importe recogidas ICS/CSV, vincule contactos de emergencia y elija destinos del mapa. Manual actualizado en los 20 idiomas."
+    "Conexiones KDE estables y dibujo directo con el dedo y trazos separados",
+    "Revisión de contactos más clara, grupos opcionales y recordatorios del ciclo",
+    "Registro de tiempo integrado en el planificador de turnos y vuelta corregida al calendario desde la bandeja",
+    "Magnolie Notes 1.0.19: importación segura frente a archivos binarios con filtro, selección de equipos sin conexión e importación desde Notes por defecto"
   ],
   "it": [
     "Novità di questa versione",
-    "Rilevamento del tempo: pause, avvio Wi-Fi e sveglie facoltativi, sincronizzazione dei propri dispositivi, valigette nel calendario, stampa mensile e ODS modificabile. Rispetta orari regionali e festività di Organizer.",
-    "Magnolie Notes 1.0.18: importazione facoltativa delle note solo Notes → Organizer per computer, controlli semplificati e allegati conservati.",
-    "Contatti e foto: anteprima campo per campo, immagini alternative e lettura autorizzata tramite Notes o KDE Connect.",
-    "Condividi una connessione esistente dell’albero con un altro computer dotato di identità propria. Internet diretto richiede percorsi raggiungibili.",
-    "Importa raccolte ICS/CSV, collega contatti di emergenza e scegli destinazioni sulla mappa. Manuale aggiornato nelle 20 lingue."
+    "Connessioni KDE stabili e disegno diretto con il dito a tratti separati",
+    "Verifica dei contatti più chiara, gruppi facoltativi e promemoria del ciclo",
+    "Registrazione del tempo integrata nel pianificatore dei turni e ritorno corretto al calendario dalla barra di sistema",
+    "Magnolie Notes 1.0.19: importazione protetta dai file binari con filtro, scelta dei computer offline e importazione da Notes predefinita"
   ],
   "nl": [
     "Nieuw in deze versie",
-    "Tijdregistratie: pauzes, optionele wifi-start en alarmen, synchronisatie van eigen apparaten, kalenderkoffers, maandafdrukken en bewerkbare ODS. Regionale tijden en Organizer-feestdagen worden gevolgd.",
-    "Magnolie Notes 1.0.18: optionele notitie-import alleen Notes → Organizer per computer, eenvoudiger bediening en behouden bijlagen.",
-    "Contacten en foto’s: importvoorbeeld per veld, alternatieve afbeeldingen en toegestane leestoegang via Notes of KDE Connect.",
-    "Deel een bestaande boomverbinding met een andere computer met eigen identiteit. Direct internetgebruik vereist bereikbare routes.",
-    "Importeer afvalkalenders uit ICS/CSV, koppel noodcontacten en kies kaartbestemmingen. Handleiding bijgewerkt in alle 20 talen."
+    "Stabiele KDE-verbindingen en rechtstreeks tekenen met de vinger in afzonderlijke streken",
+    "Duidelijkere contactcontrole, optionele contactgroepen en cyclusherinneringen",
+    "Tijdregistratie in de dienstenplanner en correcte kalenderdag bij terugkeer vanuit het systeemvak",
+    "Magnolie Notes 1.0.19: binaire bestanden veilig geweigerd met bestandsfilter, offline computers kiezen en standaard import vanuit Notes"
   ],
   "pt": [
     "Novidades desta versão",
-    "Controlo de tempo: pausas, início Wi-Fi e alarmes opcionais, sincronização de dispositivos próprios, pastas no calendário, impressão mensal e ODS editável. Respeita horas regionais e feriados de Organizer.",
-    "Magnolie Notes 1.0.18: importação opcional de notas apenas Notes → Organizer por computador, controlos simplificados e anexos preservados.",
-    "Contactos e fotografias: pré-visualização por campo, imagens alternativas e leitura autorizada via Notes ou KDE Connect.",
-    "Partilhe uma ligação existente da árvore com outro computador de identidade própria. Internet direto exige caminhos acessíveis.",
-    "Importe recolhas ICS/CSV, ligue contactos de emergência e escolha destinos no mapa. Manual atualizado nos 20 idiomas."
+    "Ligações KDE estáveis e desenho direto com o dedo em traços separados",
+    "Verificação de contactos mais clara, grupos opcionais e lembretes do ciclo",
+    "Registo de tempo integrado no planeador de turnos e regresso corrigido ao calendário pela área de notificação",
+    "Magnolie Notes 1.0.19: importação protegida contra ficheiros binários com filtro, seleção de computadores offline e importação do Notes por predefinição"
   ],
   "ru": [
     "Новое в этой версии",
-    "Учёт времени: перерывы, необязательный запуск по Wi-Fi и будильники, синхронизация собственных устройств, портфели в календаре, месячная печать и редактируемый ODS. Учитываются региональный формат времени и праздники Organizer.",
-    "Magnolie Notes 1.0.18: необязательный импорт заметок только Notes → Organizer для каждого компьютера, упрощённое управление и сохранение вложений.",
-    "Контакты и фотографии: просмотр импорта по полям, выбор изображений и разрешённое чтение через Notes или KDE Connect.",
-    "Передача существующего соединения дерева другому компьютеру с собственной идентичностью. Прямой интернет требует доступных маршрутов.",
-    "Импорт вывоза отходов ICS/CSV, связанные экстренные контакты и выбор адреса для карты. Руководство обновлено на всех 20 языках."
+    "Стабильные соединения KDE и рисование пальцем с отдельными штрихами",
+    "Более понятная проверка контактов, необязательные группы и напоминания о цикле",
+    "Учёт времени в планировщике смен и исправленный возврат к текущему дню из трея",
+    "Magnolie Notes 1.0.19: защита импорта от двоичных файлов и фильтр, выбор компьютеров офлайн и импорт из Notes по умолчанию"
   ],
   "cs": [
     "Co je nového v této verzi",
-    "Měření času: přestávky, volitelný start Wi-Fi a budíky, synchronizace vlastních zařízení, kufříky v kalendáři, měsíční tisk a upravitelný ODS. Respektuje regionální čas a svátky Organizeru.",
-    "Magnolie Notes 1.0.18: volitelný import poznámek pouze Notes → Organizer pro každý počítač, jednodušší ovládání a zachované přílohy.",
-    "Kontakty a fotografie: náhled importu po polích, alternativní obrázky a povolené čtení přes Notes nebo KDE Connect.",
-    "Sdílení existujícího spojení stromu s dalším počítačem s vlastní identitou. Přímý internet vyžaduje dosažitelné cesty.",
-    "Import svozu odpadu ICS/CSV, propojené nouzové kontakty a výběr adresy pro mapu. Příručka aktualizována ve všech 20 jazycích."
+    "Stabilní připojení KDE a přímé kreslení prstem s oddělenými tahy",
+    "Přehlednější kontrola kontaktů, volitelné skupiny a připomínky cyklu",
+    "Evidence času v plánovači směn a opravený návrat ke kalendáři z oznamovací oblasti",
+    "Magnolie Notes 1.0.19: ochrana importu před binárními soubory a filtr, výběr offline počítačů a výchozí import z Notes"
   ],
   "pl": [
     "Nowości w tej wersji",
-    "Rejestracja czasu: przerwy, opcjonalny start Wi-Fi i alarmy, synchronizacja własnych urządzeń, teczki w kalendarzu, wydruk miesięczny i edytowalny ODS. Uwzględnia regionalny czas i święta Organizer.",
-    "Magnolie Notes 1.0.18: opcjonalny import notatek tylko Notes → Organizer dla każdego komputera, prostsze sterowanie i zachowane załączniki.",
-    "Kontakty i zdjęcia: podgląd importu według pól, alternatywne obrazy i dozwolony odczyt przez Notes lub KDE Connect.",
-    "Udostępnianie istniejącego połączenia drzewa innemu komputerowi z własną tożsamością. Bezpośredni internet wymaga osiągalnych tras.",
-    "Import odbioru odpadów ICS/CSV, powiązane kontakty alarmowe i wybór adresu mapy. Podręcznik zaktualizowany we wszystkich 20 językach."
+    "Stabilne połączenia KDE i bezpośrednie rysowanie palcem oddzielnymi kreskami",
+    "Czytelniejsza kontrola kontaktów, opcjonalne grupy i przypomnienia o cyklu",
+    "Rejestracja czasu w planerze zmian i poprawiony powrót do kalendarza z zasobnika",
+    "Magnolie Notes 1.0.19: ochrona importu przed plikami binarnymi i filtr, wybór komputerów offline oraz domyślny import z Notes"
   ],
   "hsb": [
     "Nowe w tutej wersiji",
-    "Časowe zapisowanje: přestawki, opcionalny WLAN-start a budźaki, synchronizacija swójskich gratow, kufry w kalendarju, měsačny ćišć a wobdźěłujomny ODS. Regionalne časy a swjatki Organizera so wobkedźbuja.",
-    "Magnolie Notes 1.0.18: opcionalny import noticow jenož Notes → Organizer za kóždy ličak, jednoriše wobslužowanje a zachowane přiwěški.",
-    "Kontakty a fota: importowy přehlad po polach, alternativne wobrazy a dowolene čitanje přez Notes abo KDE Connect.",
-    "Wobstejacy zwisk štoma na dalši ličak ze swójskej identitu dale dać. Direktny internet sej přistupne ruty žada.",
-    "Import wotwoženja wotpadkow ICS/CSV, zwjazane nuzowe kontakty a wuběr adresy za kartu. Přiručka we wšěch 20 rěčach aktualizowana."
+    "Stabilne KDE-zwiski a kreslenje z porstom z dźělenymi čarami",
+    "Přehladniša kontrola kontaktow, opcionalne skupiny a dopomnjeća na cyklus",
+    "Časowe registrowanje w planowaku směnow a porjedźeny nawrót ke kalendarjej ze systemoweho wobłuka",
+    "Magnolie Notes 1.0.19: škit impor­ta před binarnymi datajemi a filter, wuběr offline ličakow a standardny import z Notes"
   ],
   "da": [
     "Nyt i denne version",
-    "Tidsregistrering: pauser, valgfri Wi-Fi-start og alarmer, synkronisering af egne enheder, kalenderkufferter, månedsudskrift og redigerbar ODS. Regionale klokkeslæt og Organizer-helligdage følges.",
-    "Magnolie Notes 1.0.18: valgfri noteimport kun Notes → Organizer pr. computer, enklere kontroller og bevarede vedhæftninger.",
-    "Kontakter og billeder: importvisning felt for felt, alternative billeder og tilladt læsning via Notes eller KDE Connect.",
-    "Del en eksisterende træforbindelse med en anden computer med egen identitet. Direkte internet kræver tilgængelige ruter.",
-    "Importér affaldskalendere fra ICS/CSV, tilknyt nødkontakter og vælg kortmål. Håndbogen er opdateret på alle 20 sprog."
+    "Stabile KDE-forbindelser og direkte fingertegning med adskilte streger",
+    "Tydeligere kontaktkontrol, valgfrie grupper og cykluspåmindelser",
+    "Tidsregistrering i vagtplanlæggeren og rettet kalenderdato ved tilbagevenden fra systembakken",
+    "Magnolie Notes 1.0.19: importbeskyttelse mod binære filer med filter, valg af offline computere og import fra Notes som standard"
   ],
   "nb": [
     "Nytt i denne versjonen",
-    "Tidsregistrering: pauser, valgfri Wi-Fi-start og alarmer, synkronisering av egne enheter, kalenderkofferter, månedsutskrift og redigerbar ODS. Regionale klokkeslett og Organizer-helligdager følges.",
-    "Magnolie Notes 1.0.18: valgfri notatimport kun Notes → Organizer per datamaskin, enklere kontroller og bevarte vedlegg.",
-    "Kontakter og bilder: importvisning felt for felt, alternative bilder og tillatt lesing via Notes eller KDE Connect.",
-    "Del en eksisterende tretilkobling med en annen datamaskin med egen identitet. Direkte Internett krever tilgjengelige ruter.",
-    "Importer avfallskalendere fra ICS/CSV, koble nødkontakter og velg kartmål. Håndboken er oppdatert på alle 20 språk."
+    "Stabile KDE-forbindelser og direkte fingertegning med separate streker",
+    "Tydeligere kontaktkontroll, valgfrie grupper og sykluspåminnelser",
+    "Tidsregistrering i skiftplanleggeren og rettet kalenderdato ved tilbakekomst fra systemfeltet",
+    "Magnolie Notes 1.0.19: importbeskyttelse mot binære filer med filter, valg av frakoblede datamaskiner og import fra Notes som standard"
   ],
   "hi": [
     "इस संस्करण में नया",
-    "समय ट्रैकिंग: विराम, वैकल्पिक Wi-Fi शुरुआत और अलार्म, अपने डिवाइस का सिंक, कैलेंडर ब्रीफ़केस, मासिक प्रिंट और संपादन योग्य ODS। क्षेत्रीय समय और Organizer की छुट्टियों का पालन होता है।",
-    "Magnolie Notes 1.0.18: हर कंप्यूटर के लिए वैकल्पिक केवल Notes → Organizer नोट आयात, सरल नियंत्रण और सुरक्षित अटैचमेंट।",
-    "संपर्क और फ़ोटो: फ़ील्ड के अनुसार आयात पूर्वावलोकन, वैकल्पिक तस्वीरें और Notes या KDE Connect से अधिकृत पढ़ना।",
-    "मौजूदा ट्री कनेक्शन अपनी पहचान वाले दूसरे कंप्यूटर से साझा करें। सीधे इंटरनेट के लिए पहुँच योग्य मार्ग जरूरी हैं।",
-    "ICS/CSV कचरा कैलेंडर आयात, जुड़े आपातकालीन संपर्क और नक्शे का गंतव्य चयन। हैंडबुक सभी 20 भाषाओं में अपडेट है।"
+    "स्थिर KDE कनेक्शन और अलग-अलग स्ट्रोक के साथ सीधे उंगली से चित्र बनाना",
+    "अधिक स्पष्ट संपर्क समीक्षा, वैकल्पिक संपर्क समूह और चक्र अनुस्मारक",
+    "शिफ्ट योजनाकार में समय रिकॉर्डिंग और सिस्टम ट्रे से लौटने पर सही कैलेंडर दिन",
+    "Magnolie Notes 1.0.19: बाइनरी फ़ाइलों से सुरक्षित आयात और फ़ाइल फ़िल्टर, ऑफलाइन कंप्यूटर चयन तथा डिफ़ॉल्ट Notes आयात"
   ],
   "zh-cn": [
     "此版本的新功能",
-    "时间记录：休息、可选Wi-Fi开始与提醒、自有设备同步、日历公文包、月度打印及可编辑ODS。遵循地区时间格式和Organizer节假日设置。",
-    "Magnolie Notes 1.0.18：可为每台电脑选择仅 Notes → Organizer 的笔记导入，简化同步操作并保留附件。",
-    "联系人与照片：逐字段导入预览、备选图片，以及通过 Notes 或 KDE Connect 的已授权只读访问。",
-    "将已有树连接分享给具有独立身份的另一台电脑。直接互联网连接仍需要可访问的路径。",
-    "导入 ICS/CSV 垃圾收运日历、关联紧急联系人并选择地图目的地。手册已更新全部20种语言。"
+    "稳定的 KDE 连接和可抬指分段的直接手指绘图",
+    "更清晰的联系人审核、可选联系人分组和周期提醒",
+    "将时间记录整合到排班计划，并修正从托盘返回时的日历日期",
+    "Magnolie Notes 1.0.19：带文件筛选的安全导入，拒绝二进制文件、选择离线电脑并默认从 Notes 导入"
   ],
   "ja": [
     "このバージョンの新機能",
-    "時間記録：休憩、任意のWi-Fi開始とアラーム、自分の端末間の同期、カレンダーのかばん表示、月別印刷、編集可能なODSに対応。地域の時刻形式とOrganizerの祝日を反映します。",
-    "Magnolie Notes 1.0.18：コンピューターごとにNotes → Organizerのみのノート取り込みを選択でき、操作を簡略化し添付ファイルを保持します。",
-    "連絡先と写真：項目別のインポート確認、写真の選択肢、NotesまたはKDE Connectによる許可済みの読み取り。",
-    "既存のツリー接続を独自の識別情報を持つ別のコンピューターへ共有できます。直接のインターネット接続には到達可能な経路が必要です。",
-    "ICS/CSVごみ収集カレンダーの取り込み、緊急連絡先のリンク、地図の目的地選択。ハンドブックを全20言語で更新しました。"
+    "安定したKDE接続と、指を離して区切れる直接指描き",
+    "連絡先の確認を改善し、任意の連絡先グループと周期リマインダーを追加",
+    "シフトプランナーに時間記録を統合し、トレイから戻る際のカレンダー日付を修正",
+    "Magnolie Notes 1.0.19：バイナリファイルを拒否するインポートとファイルフィルター、オフラインPCの選択、Notesからの既定インポート"
   ],
   "ar": [
     "ما الجديد في هذا الإصدار",
-    "تتبع الوقت: استراحات وبدء Wi-Fi ومنبهات اختيارية، ومزامنة أجهزتك، وحقائب التقويم، وطباعة شهرية وODS قابل للتحرير. تُراعى الأوقات الإقليمية وعطلات Organizer.",
-    "Magnolie Notes 1.0.18: استيراد اختياري للملاحظات فقط من Notes إلى Organizer لكل حاسوب، مع تحكم أبسط ومرفقات محفوظة.",
-    "جهات الاتصال والصور: معاينة الاستيراد حسب الحقول، صور بديلة وقراءة مصرّحة عبر Notes أو KDE Connect.",
-    "شارك اتصال الشجرة القائم مع حاسوب آخر بهوية مستقلة. الإنترنت المباشر يتطلب مسارات قابلة للوصول.",
-    "استيراد تقاويم النفايات ICS/CSV وربط جهات الطوارئ واختيار وجهات الخرائط. تحديث الدليل باللغات العشرين."
+    "اتصالات KDE مستقرة ورسم مباشر بالإصبع بضربات منفصلة",
+    "مراجعة أوضح لجهات الاتصال ومجموعات اختيارية وتذكيرات الدورة",
+    "تسجيل الوقت ضمن مخطط الورديات وتصحيح يوم التقويم عند العودة من علبة النظام",
+    "Magnolie Notes 1.0.19: استيراد محمي من الملفات الثنائية مع مرشح ملفات واختيار الحواسيب غير المتصلة والاستيراد من Notes افتراضياً"
   ],
   "uk": [
     "Нове в цій версії",
-    "Облік часу: перерви, необов’язковий запуск Wi-Fi та будильники, синхронізація власних пристроїв, портфелі в календарі, місячний друк і редагований ODS. Враховуються регіональний час і свята Organizer.",
-    "Magnolie Notes 1.0.18: необов’язковий імпорт нотаток лише Notes → Organizer для кожного комп’ютера, простіше керування й збереження вкладень.",
-    "Контакти й фотографії: перегляд імпорту за полями, вибір зображень і дозволене читання через Notes або KDE Connect.",
-    "Передавання наявного з’єднання дерева іншому комп’ютеру з власною ідентичністю. Прямий інтернет потребує доступних маршрутів.",
-    "Імпорт вивезення відходів ICS/CSV, пов’язані екстрені контакти й вибір адреси для карти. Посібник оновлено всіма 20 мовами."
+    "Стабільні з’єднання KDE та малювання пальцем окремими штрихами",
+    "Зрозуміліша перевірка контактів, необов’язкові групи та нагадування про цикл",
+    "Облік часу в планувальнику змін і виправлене повернення до поточного дня з трея",
+    "Magnolie Notes 1.0.19: захист імпорту від двійкових файлів і фільтр, вибір комп’ютерів офлайн та імпорт із Notes за замовчуванням"
   ],
   "be": [
     "Што новага ў гэтай версіі",
-    "Улік часу: перапынкі, неабавязковы запуск Wi-Fi і будзільнікі, сінхранізацыя ўласных прылад, партфелі ў календары, месячны друк і рэдагавальны ODS. Улічваюцца рэгіянальны час і святы Organizer.",
-    "Magnolie Notes 1.0.18: неабавязковы імпарт нататак толькі Notes → Organizer для кожнага камп’ютара, прасцейшае кіраванне і захаванне ўкладанняў.",
-    "Кантакты і фатаграфіі: прагляд імпарту па палях, выбар выяў і дазволенае чытанне праз Notes або KDE Connect.",
-    "Перадача існуючага злучэння дрэва іншаму камп’ютару з уласнай ідэнтычнасцю. Прамы інтэрнэт патрабуе даступных маршрутаў.",
-    "Імпарт вывазу адходаў ICS/CSV, звязаныя экстраныя кантакты і выбар адраса для карты. Дапаможнік абноўлены на ўсіх 20 мовах."
+    "Стабільныя злучэнні KDE і маляванне пальцам асобнымі штрыхамі",
+    "Больш зразумелая праверка кантактаў, неабавязковыя групы і напаміны пра цыкл",
+    "Улік часу ў планавальніку змен і выпраўленае вяртанне да бягучага дня з трэя",
+    "Magnolie Notes 1.0.19: абарона імпарту ад двайковых файлаў і фільтр, выбар камп’ютараў афлайн і імпарт з Notes па змаўчанні"
   ],
   "tr": [
     "Bu sürümdeki yenilikler",
-    "Zaman takibi: molalar, isteğe bağlı Wi-Fi başlangıcı ve alarmlar, kendi cihazlarını eşitleme, takvim çantaları, aylık yazdırma ve düzenlenebilir ODS. Bölgesel saatler ve Organizer tatilleri dikkate alınır.",
-    "Magnolie Notes 1.0.18: bilgisayar başına isteğe bağlı yalnız Notes → Organizer not aktarımı, daha basit kontroller ve korunan ekler.",
-    "Kişiler ve fotoğraflar: alan bazlı içe aktarma önizlemesi, alternatif resimler ve Notes veya KDE Connect üzerinden izinli okuma.",
-    "Mevcut ağaç bağlantısını kendi kimliğine sahip başka bilgisayarla paylaşın. Doğrudan İnternet erişilebilir yollar gerektirir.",
-    "ICS/CSV atık takvimlerini içe aktarın, acil durum kişilerini bağlayın ve harita hedeflerini seçin. Kılavuz 20 dilde güncellendi."
+    "Kararlı KDE bağlantıları ve ayrı çizgilerle doğrudan parmak çizimi",
+    "Daha anlaşılır kişi incelemesi, isteğe bağlı kişi grupları ve döngü hatırlatmaları",
+    "Vardiya planlayıcısına entegre zaman takibi ve sistem tepsisinden dönüşte düzeltilmiş takvim günü",
+    "Magnolie Notes 1.0.19: dosya filtresiyle ikili dosyalara karşı güvenli içe aktarma, çevrimdışı bilgisayar seçimi ve varsayılan Notes içe aktarımı"
   ]
 };
 if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
