@@ -176,9 +176,8 @@ const releaseNotes = Function(`"use strict"; return (${releaseNotesSource});`)()
 assert.strictEqual(Object.keys(releaseNotes).length, 20, "What's New does not cover every locale");
 assert.ok(releaseNotes.en.length >= 2 && Object.values(releaseNotes).every((items) => items.length === releaseNotes.en.length && items.every(text => typeof text === "string" && text.length > 0)),
    "What's New locales do not contain the complete current bullet set");
-assert.ok(releaseNotes.en.some(text => text.includes("Notes → Organizer")) &&
-  releaseNotes.en.some(text => text.includes("read-only access")) &&
-  releaseNotes.en.some(text => text.includes("ICS/CSV")) &&
+assert.ok(releaseNotes.en.some(text => /Notes(?: → |-to-)Organizer/.test(text)) &&
+  releaseNotes.en.some(text => /Magnolie Notes \d+\.\d+\.\d+/.test(text)) &&
   !releaseNotes.en.some(text => /Linux|Debian|Wayland|AppImage/.test(text)),
 "Windows What's New content is stale or describes Linux-only changes");
 assert.match(fs.readFileSync(path.join(root, "LIESMICH.md"), "utf8"),
