@@ -654,6 +654,13 @@ internal sealed class FirstRunSetupForm : Form
             devices.SelectedIndex = prompt.Kind == "select" ? -1 : 0;
             body.Controls.Add(devices);
             if (prompt.Code.Length > 0) body.Controls.Add(Label(prompt.Code, bold: true));
+            CheckBox? ownPhone = null;
+            if (prompt.CanMarkOwn)
+            {
+                ownPhone = new CheckBox { Name = "setup-own-phone", Text = T("This is my own phone"),
+                    AutoSize = true, Checked = false };
+                body.Controls.Add(ownPhone);
+            }
             if (prompt.CanMarkOwn) body.Controls.Add(Label(T("Personal synchronization") + "\n" +
                 T("Synchronize notes and notebooks") + "\n" + T("Synchronize tasks") + "\n" + T("Automatically synchronize over Wi-Fi")));
             var accept = new Button { Text = T("Confirm"), AutoSize = true, DialogResult = DialogResult.OK };
@@ -662,7 +669,7 @@ internal sealed class FirstRunSetupForm : Form
             dialog.CancelButton = cancel;
             var result = dialog.ShowDialog(this);
             completion.TrySetResult(result != DialogResult.OK || devices.SelectedItem is not SetupSource selected ? null :
-                prompt.Kind == "select" ? selected.Uid : "accept");
+                prompt.Kind == "select" ? selected.Uid : ownPhone?.Checked == true ? "accept-own" : "accept");
         }
         if (InvokeRequired) BeginInvoke((Action)Show); else Show();
         return completion.Task;
@@ -888,6 +895,11 @@ internal sealed class FirstRunSetupForm : Form
             if (!result.Authenticated || phoneServices?.Capabilities.Any(c => c.Transport == transport && c.Available && c.CanAutoStart) != true) continue;
             phoneStartupTransports.Add(transport);
             panel.Controls.Add(Note(T("Start required phone background services automatically") + ": " + result.Name));
+        }
+        if (phoneStartupTransports.Count > 0)
+        {
+            autostart.Checked = true;
+            autostart.Enabled = false;
         }
         panel.Controls.Add(Note(T("Weather requests are sent to wttr.in. Your own address in Contacts is used first, followed by local LibreOffice user data. If neither contains a location and retrieval without one is allowed, wttr.in estimates the location from your internet connection's public IP address.")));
         return panel;

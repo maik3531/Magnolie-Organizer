@@ -15,6 +15,7 @@ internal static class FirstRunSetupUiSelfTest
             VerifySkip(Path.Combine(root, "skip-native"));
             VerifyComplete(Path.Combine(root, "complete-native"));
             VerifyAutomaticPhoneServices(Path.Combine(root, "automatic-phone-services"));
+            VerifyOwnPhonePrompt(Path.Combine(root, "own-phone-prompt"));
             VerifyHolidayLanguages(Path.Combine(root, "holidays-native"));
             Console.WriteLine("WINDOWS-FIRST-RUN-UI-OK");
             return 0;
@@ -184,13 +185,68 @@ internal static class FirstRunSetupUiSelfTest
         Application.DoEvents();
         Test(IntField(form, "page") == 6 && !Descendants(Field<Panel>(form, "pageHost")).OfType<CheckBox>()
             .Any(box => box.Text.StartsWith(NativeLocalization.Gettext("Start required phone background services automatically"), StringComparison.Ordinal)),
-            "Die Kopplung verlangt noch einen zusätzlichen Dienst-Schalter.");
+             "Die Kopplung verlangt noch einen zusätzlichen Dienst-Schalter.");
+        var automatic = Descendants(Field<Panel>(form, "pageHost")).OfType<CheckBox>().Single(box =>
+            box.Text == NativeLocalization.Gettext("Start Magnolie with Windows in the notification area (tray)"));
+        Test(automatic.Checked && !automatic.Enabled,
+            "Required phone startup was saved differently from its displayed checkbox.");
         Field<Button>(form, "next").PerformClick();
         Application.DoEvents();
         Test(form.DialogResult == DialogResult.OK && form.Selections?.PhoneBackgroundServices.SequenceEqual(["wifi"]) == true &&
             phone.Committed.SequenceEqual(["wifi"]) && form.Selections.Autostart && form.Selections.Tray,
             "Unterstützte Dienste wurden nicht automatisch übernommen oder eine nicht unterstützte Variante wurde gestartet.");
         Console.WriteLine("WINDOWS-FIRST-RUN-AUTO-SERVICES-OK");
+    }
+
+    private static void VerifyOwnPhonePrompt(string root)
+    {
+        var paths = new WindowsPaths(root);
+        paths.EnsureDirectories();
+        var state = new FirstRunSetupState(paths);
+        state.Begin();
+        using var form = new FirstRunSetupForm(paths, state);
+        form.Show(); Application.DoEvents();
+        var method = typeof(FirstRunSetupForm).GetMethod("ShowPhonePromptAsync",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        foreach (var (canOwn, selected, cancel) in new[] {
+                     (true, false, false), (true, true, false), (false, false, false), (true, true, true) })
+        {
+            Exception? failure = null;
+            var handled = false;
+            var deadline = DateTime.UtcNow.AddSeconds(8);
+            using var timer = new System.Windows.Forms.Timer { Interval = 50 };
+            timer.Tick += (_, _) =>
+            {
+                var dialog = Application.OpenForms.Cast<Form>().FirstOrDefault(window => window != form &&
+                    window.Text == NativeLocalization.Gettext("Phone connection"));
+                if (dialog is null) return;
+                try
+                {
+                    if (DateTime.UtcNow > deadline) throw new TimeoutException("Phone prompt deadline");
+                    var checkbox = Descendants(dialog).OfType<CheckBox>().SingleOrDefault(box => box.Name == "setup-own-phone");
+                    Test((checkbox is not null) == canOwn, "Own-device choice did not match the available capability.");
+                    if (checkbox is not null)
+                    {
+                        Test(!checkbox.Checked, "Own-device consent must start unchecked.");
+                        checkbox.Checked = selected;
+                    }
+                    handled = true;
+                    dialog.DialogResult = cancel ? DialogResult.Cancel : DialogResult.OK;
+                }
+                catch (Exception error) { failure = error; dialog.DialogResult = DialogResult.Cancel; }
+                timer.Stop(); dialog.Close();
+            };
+            timer.Start();
+            var task = (Task<string?>)method.Invoke(form, [new SetupPhonePrompt("confirm",
+                [new SetupSource("synthetic-phone", "Synthetic phone")], "123 456", canOwn)])!;
+            timer.Stop();
+            if (failure is not null) throw failure;
+            Test(handled && task.IsCompletedSuccessfully, "Native phone prompt was not exercised.");
+            Test(task.Result == (cancel ? null : canOwn && selected ? "accept-own" : "accept"),
+                "Native phone prompt lost the explicit choice or granted it after cancel.");
+        }
+        form.Close();
+        Console.WriteLine("WINDOWS-FIRST-RUN-OWN-PHONE-OK");
     }
 
     private static void VerifyWindow(FirstRunSetupForm form)
@@ -205,8 +261,10 @@ internal static class FirstRunSetupUiSelfTest
 
     private static void VerifyHolidayLanguages(string root)
     {
-        foreach (var language in new[] { "en", "de", "fr", "es", "it", "nl", "pt", "ru", "cs", "pl", "hsb", "da", "nb", "hi", "zh_CN", "ja", "ar", "uk", "be", "tr" })
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        foreach (var language in new[] { "be", "en", "de", "fr", "es", "it", "nl", "pt", "ru", "cs", "pl", "hsb", "da", "nb", "hi", "zh_CN", "ja", "ar", "uk", "tr" })
         {
+            Console.WriteLine($"WINDOWS-FIRST-RUN-HOLIDAY-BEGIN {language} elapsedMs={elapsed.ElapsedMilliseconds}");
             var paths = new WindowsPaths(Path.Combine(root, language));
             var state = new FirstRunSetupState(paths);
             state.Begin();
@@ -239,6 +297,7 @@ internal static class FirstRunSetupUiSelfTest
             Test(!Descendants(form).OfType<CheckBox>().Single(c => c.Name == "setup-school-holidays").Visible,
                 "A mismatched country must not offer holiday retrieval.");
             form.Close();
+            Console.WriteLine($"WINDOWS-FIRST-RUN-HOLIDAY-END {language} elapsedMs={elapsed.ElapsedMilliseconds}");
             Test(!JsonSerializer.Deserialize<FirstRunSetupMarker>(new AtomicStore().ReadRecoverableJson(paths.FirstRunSetup)!)!.Selections.SchoolHolidays,
                 "Closing native setup persisted staged consent.");
         }

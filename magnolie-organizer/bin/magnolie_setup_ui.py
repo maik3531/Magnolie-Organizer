@@ -914,13 +914,18 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
                 devices.set_active(0)
             area.pack_start(devices, False, False, 0)
             area.pack_start(Gtk.Label(label=request.get("code", "")), False, False, 0)
+            own_phone = None
             if request.get("canMarkOwn"):
+                own_phone = Gtk.CheckButton(label=tr("This is my own phone"))
+                own_phone.set_active(False)
+                area.pack_start(own_phone, False, False, 0)
                 area.pack_start(Gtk.Label(label="\n".join((tr("Personal synchronization"),
                     tr("Synchronize notes and notebooks"), tr("Synchronize tasks"),
                     tr("Automatically synchronize over Wi-Fi"))), wrap=True), False, False, 0)
             prompt.show_all()
             if prompt.run() == Gtk.ResponseType.OK and devices.get_active_id():
-                answer[0] = devices.get_active_id() if request["kind"] == "select" else "accept"
+                answer[0] = devices.get_active_id() if request["kind"] == "select" else (
+                    "accept-own" if own_phone is not None and own_phone.get_active() else "accept")
             prompt.destroy()
             event.set()
             return False
