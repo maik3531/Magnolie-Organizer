@@ -151,7 +151,7 @@ for bibliothek in "$APPDIR/usr/lib/$ECAL_SONAME" \
     ! printf '%s\n' "$aufloesung" | grep -E \
         'lib(ecal|edataserver|ical|camel|ebook|edata-book|ebackend)[^ ]* => /(usr/)?lib/'
 done
-python3 - "$APPDIR/usr/lib/libwebkit2gtk-4.0.so.0" <<'PY'
+python3 - "$APPDIR/usr/lib/libwebkit2gtk-4.0.so.37" <<'PY'
 import pathlib
 import sys
 

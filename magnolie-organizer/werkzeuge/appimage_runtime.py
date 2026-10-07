@@ -65,7 +65,8 @@ def launch(appdir, args):
         shutil.copy2(appdir / "usr/bin/xdg-dbus-proxy", runtime / "p")
         bwrap = sandbox_helper(env, runtime / 'b')
         (runtime / "w").symlink_to(appdir / f"usr/lib/webkit2gtk-{webkit_api}", target_is_directory=True)
-        library = appdir / f"usr/lib/libwebkit2gtk-{webkit_api}.so.0"
+        soname = "libwebkit2gtk-4.0.so.37" if webkit_api == "4.0" else "libwebkit2gtk-4.1.so.0"
+        library = appdir / "usr/lib" / soname
         data = library.read_bytes()
         for old, new in ((f"/proc/self/cwd//./usr/lib/webkit2gtk-{webkit_api}", runtime / "w"),
                          ("/usr/bin/bwrap", bwrap),

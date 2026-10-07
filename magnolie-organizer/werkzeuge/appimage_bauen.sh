@@ -381,7 +381,7 @@ done
 # WebKitGTK contains an absolute Debian helper-process path and no longer
 # honors WEBKIT_EXEC_PATH. AppRun starts in APPDIR, so this equal-length path
 # remains valid regardless of the AppImage mount directory.
-python3 - "$APPDIR/usr/lib/libwebkit2gtk-4.0.so.0" <<'PY'
+python3 - "$APPDIR/usr/lib/libwebkit2gtk-4.0.so.37" <<'PY'
 import pathlib
 import sys
 

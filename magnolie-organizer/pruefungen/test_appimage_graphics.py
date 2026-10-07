@@ -32,7 +32,8 @@ class GraphicsTests(unittest.TestCase):
                 (app / 'usr/bin' / name).write_bytes(name.encode())
                 (app / 'usr/bin' / name).chmod(0o755)
             data = f'/proc/self/cwd//./usr/lib/webkit2gtk-{api}\0/usr/bin/bwrap\0/usr/bin/xdg-dbus-proxy\0'.encode()
-            library = app / f'usr/lib/libwebkit2gtk-{api}.so.0'
+            soname = 'libwebkit2gtk-4.0.so.37' if api == '4.0' else 'libwebkit2gtk-4.1.so.0'
+            library = app / 'usr/lib' / soname
             library.write_bytes(data)
             locations = []
             def started(command, env):
