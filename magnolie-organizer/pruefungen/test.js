@@ -2537,12 +2537,22 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(Array.from(enSD.querySelectorAll(
     "#einstellungen-inhalt details.einst-gruppe > summary"),
   (summary) => summary.textContent),
-  ["Week numbers", "Weather", "Time tracking", "Shift planner", "Cycle calendar", "Vacation planner",
+  ["Week numbers", "Weather", "Shift planner", "Cycle calendar", "Vacation planner",
     "Waste collection calendar", "Health"],
-  "die Zeiterfassungs- oder Gesundheitsgruppe fehlt in den Kalendereinstellungen");
+  "die Schichtdienst- oder Gesundheitsgruppe fehlt in den Kalendereinstellungen");
   assert.ok(Array.from(enSD.querySelectorAll("#einstellungen-inhalt details.einst-gruppe"))
     .every((details) => !details.open),
   "Kalendergruppen sind beim Öffnen nicht vollständig geschlossen");
+  assert.ok(enSD.querySelector("#kalender-gruppe-schichtplaner #kalender-zeiterfassung") &&
+    Array.from(enSD.querySelectorAll("#kalender-gruppe-schichtplaner button"))
+      .some((button) => button.textContent === "Recorded times"),
+  "die integrierten Zeiterfassungsoptionen fehlen im Schichtdienst");
+  enSD.querySelector("#kalender-zeiterfassung").click();
+  assert.ok(enST.daten().zeiterfassung.enabled && !enST.daten().einstellungen.kalender.schichtplanerAn,
+    "Zeiterfassung muss unabhängig von Schichtvorlagen einschaltbar bleiben");
+  enSD.querySelector("#kalender-zeiterfassung").click();
+  assert.strictEqual(enST.daten().zeiterfassung.enabled, false,
+    "die integrierte Zeiterfassung lässt sich nicht wieder ausschalten");
   enSD.querySelector("#kalender-schichtplaner").click();
   Array.from(enSD.querySelectorAll("#kalender-gruppe-schichtplaner button"))
     .find((button) => button.textContent.includes("Add shift")).click();
@@ -2774,9 +2784,8 @@ function knopfMit(text, wurzel) {
     enNeu.querySelector(".ueber-neu-fassung")?.textContent === webFassung &&
     enNeu.querySelectorAll("ul > li").length === neuInhalte.en.length - 1 &&
     neuInhalte.en.slice(1).every(text => enNeu.textContent.includes(text)) &&
-    neuInhalte.en.some(text => text.includes("Notes → Organizer")) &&
-    neuInhalte.en.some(text => text.includes("ICS/CSV")) &&
-    neuInhalte.en.join(" ").includes("Magnolie Notes 1.0.18") &&
+    neuInhalte.en.some(text => /Notes(?: → |-to-)Organizer/.test(text)) &&
+    neuInhalte.en.some(text => /Magnolie Notes \d+\.\d+\.\d+/.test(text)) &&
     js.includes('const NEU_IN_DIESER_FASSUNG_FASSUNG = "' + webFassung + '";') &&
     js.includes("NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG"),
   "kompakte englische Versionshinweise fehlen oder sind nicht semantisch gegliedert");
