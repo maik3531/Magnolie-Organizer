@@ -287,7 +287,8 @@ def _logo_path(script_directory):
 
 def run_setup(Gtk, Gdk, translate, write_state, script_directory,
               read_libreoffice=None, internet_accounts=None, prepare_import=None,
-              discover_connection=None, commit_connection=None, phone_services=None):
+              discover_connection=None, commit_connection=None, phone_services=None,
+              internet_accounts_error=""):
     from gi.repository import GLib
     language = _read_language()
     translator = [_translation(language, script_directory)]
@@ -868,7 +869,13 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
         account_checks.append((account, widget))
         widget.connect("toggled", system_account_toggled, account)
         source_list.pack_start(widget, False, False, 0)
-    if not account_checks:
+    if internet_accounts_error:
+        source_list.pack_start(label("That did not work.", "setup-note"), False, False, 0)
+        detail = Gtk.Label(label=str(internet_accounts_error))
+        detail.set_xalign(0)
+        detail.set_line_wrap(True)
+        source_list.pack_start(detail, False, False, 0)
+    elif not account_checks:
         source_list.pack_start(label("No system internet accounts were found.", "setup-note"),
                                False, False, 0)
     source_scroll.add_with_viewport(source_list)

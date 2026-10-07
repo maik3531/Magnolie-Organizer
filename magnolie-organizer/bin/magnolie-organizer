@@ -18309,22 +18309,33 @@ def akonadi_quellen_status():
                 "fehler": str(fehler)}
 
 
-def setup_internetkonten():
-    """Liefert lokale Systemkonten für die direkte Auswahl im Erstassistenten."""
+def setup_internetkonten_status():
+    """Keep discovery failures distinct from a successful empty account list."""
     ergebnis = []
+    fehler = ""
     try:
         if eds_laden():
             kalender, buecher = eds_quellen(eds_registry())
             ergebnis.extend(dict(eintrag, kind="calendar") for eintrag in kalender)
             ergebnis.extend(dict(eintrag, kind="addressbook") for eintrag in buecher)
-    except Exception as fehler:
-        debug_ausnahme("setup.system-accounts.failed", error=fehler)
+        else:
+            fehler = _EDS.get("fehler") or _("That did not work.")
+    except Exception as ursache:
+        debug_ausnahme("setup.system-accounts.failed", error=ursache)
+        fehler = str(ursache)
     akonadi = akonadi_quellen_status()
     ergebnis.extend(dict(eintrag, kind="calendar")
                     for eintrag in akonadi.get("kalender", []))
     ergebnis.extend(dict(eintrag, kind="addressbook")
                     for eintrag in akonadi.get("adressbuecher", []))
-    return ergebnis
+    if akonadi.get("fehler"):
+        fehler = "\n".join(filter(None, (fehler, akonadi["fehler"])))
+    return {"accounts": ergebnis, "error": fehler}
+
+
+def setup_internetkonten():
+    """Compatibility list API for callers that only need source choices."""
+    return setup_internetkonten_status()["accounts"]
 
 
 def _sync_quellenname(registry, uid, akonadi_quellen=None):
@@ -26212,11 +26223,13 @@ def haupt():
         setup_phones = SetupPhoneServices(daten_verzeichnis, local_device_name,
             lambda: background_daemon_status() != "stopped", _)
         try:
+            systemkonten = setup_internetkonten_status()
             setup_auswahl = run_setup(
                 Gtk, Gdk, _, setup_write_state,
                 os.path.dirname(os.path.realpath(__file__)),
                 read_libreoffice=libreoffice_benutzerdaten,
-                internet_accounts=setup_internetkonten(),
+                internet_accounts=systemkonten["accounts"],
+                internet_accounts_error=systemkonten["error"],
                 prepare_import=setup_services.prepare_import,
                 discover_connection=setup_services.discover,
                 commit_connection=setup_services.commit_connection, phone_services=setup_phones)
