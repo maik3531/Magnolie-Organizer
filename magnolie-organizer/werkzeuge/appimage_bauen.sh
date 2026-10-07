@@ -82,7 +82,7 @@ APP_TYPELIBS="
 GLib-2.0 GObject-2.0 Gio-2.0 GModule-2.0
 cairo-1.0 freetype2-2.0 xlib-2.0 HarfBuzz-0.0
 Atk-1.0 GdkPixbuf-2.0 Pango-1.0 Gdk-3.0 Gtk-3.0
-    JavaScriptCore-4.1 Soup-2.4 Soup-3.0 Json-1.0 libxml2-2.0 WebKit2-4.1
+    JavaScriptCore-4.0 Soup-2.4 Json-1.0 libxml2-2.0 WebKit2-4.0
 Gst-1.0 AyatanaAppIndicator3-0.1 AppIndicator3-0.1 XApp-1.0 Notify-0.7
     GData-0.0 Goa-1.0 $EDS_TYPELIBS
 "
@@ -255,8 +255,8 @@ default = default_provider
 [default_provider]
 activate = 1
 EOF
-[ ! -d /usr/lib/$MULTIARCH/webkit2gtk-4.1 ] || \
-    cp -a /usr/lib/$MULTIARCH/webkit2gtk-4.1 "$APPDIR/usr/lib/"
+[ ! -d /usr/lib/$MULTIARCH/webkit2gtk-4.0 ] || \
+    cp -a /usr/lib/$MULTIARCH/webkit2gtk-4.0 "$APPDIR/usr/lib/"
 
 cp -a "$WURZEL/web/." "$APPDIR/usr/share/magnolie-organizer/web/"
 HANDBUCH=${MAGNOLIE_HANDBUCH_SOURCE:-"$(dirname "$WURZEL")/magnolie-handbuch"}
@@ -350,6 +350,19 @@ typelib_pfad="$APPDIR/usr/lib/$MULTIARCH/girepository-1.0"
     printf '%s\n' "ECal-2.0.typelib verweist nicht auf $ECAL_SONAME." >&2
     exit 1
 }
+# A valid ELF closure alone does not detect incompatible GI Soup namespaces.
+# Load the UI and both EDS clients together, exactly as the application does.
+LD_LIBRARY_PATH="$APPDIR/usr/lib/$MULTIARCH:$APPDIR/usr/lib" \
+GI_TYPELIB_PATH="$typelib_pfad" PYTHONHOME="$APPDIR/usr" \
+PYTHONPATH="$APPDIR/usr/lib/python3/dist-packages" \
+"$APPDIR/usr/bin/python3" -S - <<'PY'
+import gi
+gi.require_version("WebKit2", "4.0")
+gi.require_version("ECal", "2.0")
+gi.require_version("EBook", "1.2")
+from gi.repository import WebKit2, ECal, EBook
+print("AppImage WebKit/EDS GI namespace compatibility: OK")
+PY
 for soname in $EDS_SONAMES libnotify.so.4; do
     [ -f "$APPDIR/usr/lib/$soname" ] || {
         printf '%s\n' "linuxdeploy-Closure ist unvollstaendig: $soname fehlt." >&2
@@ -365,16 +378,16 @@ for bibliothek in "$APPDIR/usr/lib/$ECAL_SONAME" \
     fi
 done
 
-# WebKitGTK 4.1 contains an absolute Debian helper-process path and no longer
+# WebKitGTK contains an absolute Debian helper-process path and no longer
 # honors WEBKIT_EXEC_PATH. AppRun starts in APPDIR, so this equal-length path
 # remains valid regardless of the AppImage mount directory.
-python3 - "$APPDIR/usr/lib/libwebkit2gtk-4.1.so.0" <<'PY'
+python3 - "$APPDIR/usr/lib/libwebkit2gtk-4.0.so.0" <<'PY'
 import pathlib
 import sys
 
 pfad = pathlib.Path(sys.argv[1])
-alt = b"/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1"
-neu = b"/proc/self/cwd//./usr/lib/webkit2gtk-4.1"
+alt = b"/usr/lib/x86_64-linux-gnu/webkit2gtk-4.0"
+neu = b"/proc/self/cwd//./usr/lib/webkit2gtk-4.0"
 if len(alt) != len(neu):
     raise SystemExit("Interner WebKit-Ersatzpfad hat die falsche Laenge.")
 daten = pfad.read_bytes()
@@ -443,8 +456,11 @@ export FONTCONFIG_FILE="$FONTCONFIG_PATH/fonts.conf"
 # can opt into the conservative XWayland/software-transfer fallback.
 : "${MAGNOLIE_GRAPHICS_COMPAT:=0}"
 export MAGNOLIE_GRAPHICS_COMPAT
-export WEBKIT_EXEC_PATH="$APPDIR/usr/lib/webkit2gtk-4.1"
-export WEBKIT_INJECTED_BUNDLE_PATH="$APPDIR/usr/lib/webkit2gtk-4.1/injected-bundle"
+# Jammy EDS requires Soup 2.4; WebKit API 4.0 uses the same Soup namespace.
+# Explicit selection prevents GI from finding a host WebKit API 4.1 typelib.
+export MAGNOLIE_WEBKIT_API=4.0
+export WEBKIT_EXEC_PATH="$APPDIR/usr/lib/webkit2gtk-4.0"
+export WEBKIT_INJECTED_BUNDLE_PATH="$APPDIR/usr/lib/webkit2gtk-4.0/injected-bundle"
 export XDG_DATA_DIRS="$APPDIR/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
 export MAGNOLIE_ORGANIZER_WEB="$APPDIR/usr/share/magnolie-organizer/web"
 export MAGNOLIE_HANDBUCH_WEB="$APPDIR/usr/share/magnolie-handbuch/web"

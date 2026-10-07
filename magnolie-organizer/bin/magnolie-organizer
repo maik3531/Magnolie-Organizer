@@ -170,7 +170,7 @@ WEBKIT_FEHLER = None
 if GTK_OK:
     try:
         try:
-            gi.require_version("WebKit2", "4.1")
+            gi.require_version("WebKit2", os.environ.get("MAGNOLIE_WEBKIT_API", "4.1"))
         except ValueError:
             gi.require_version("WebKit2", "4.0")
         from gi.repository import WebKit2

@@ -16,7 +16,8 @@ spec.loader.exec_module(packer)
 def test_bundled_handbook_has_own_program_assets_and_all_locales(tmp_path):
     source = ROOT.parent / 'magnolie-handbuch'
     appdir = tmp_path / 'AppDir'
-    packer.bundle(appdir, source, '2.0.19')
+    version = json.loads((source / 'web/version.json').read_text())['version']
+    packer.bundle(appdir, source, version)
     program = appdir / 'usr/lib/magnolie-handbuch/magnolie-handbuch'
     assert (appdir / 'usr/bin/magnolie-handbuch').stat().st_mode & 0o111
     assert (appdir / 'usr/share/magnolie-handbuch/web/index.html').is_file()
@@ -31,7 +32,7 @@ def test_bundled_handbook_has_own_program_assets_and_all_locales(tmp_path):
                MAGNOLIE_HANDBUCH_LOCALE=str(appdir / 'usr/share/locale'))
     result = subprocess.run([sys.executable, str(program), '--version'], env=env,
                             capture_output=True, text=True, timeout=20, check=True)
-    assert result.stdout.strip() == '2.0.19'
+    assert result.stdout.strip() == version
 
 
 @pytest.mark.parametrize('mounted', [True, False])

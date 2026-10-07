@@ -41,6 +41,9 @@ def launch(appdir, args):
             arg in {"--help", "--hilfe", "-h", "--version", "-V"} for arg in args[1:]):
         os.execv(str(appdir / "usr/bin/python3"), [str(appdir / "usr/bin/python3"), *args])
     env = dict(os.environ)
+    webkit_api = env.get("MAGNOLIE_WEBKIT_API", "4.1")
+    if webkit_api not in {"4.0", "4.1"}:
+        raise RuntimeError("Unsupported bundled WebKit API")
     env["LD_PRELOAD"] = select(appdir)
     env["WEBKIT_FORCE_SANDBOX"] = "1"
     env.pop("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", None)
@@ -61,10 +64,10 @@ def launch(appdir, args):
         shutil.copy2(appdir / "usr/bin/bwrap", runtime / "b")
         shutil.copy2(appdir / "usr/bin/xdg-dbus-proxy", runtime / "p")
         bwrap = sandbox_helper(env, runtime / 'b')
-        (runtime / "w").symlink_to(appdir / "usr/lib/webkit2gtk-4.1", target_is_directory=True)
-        library = appdir / "usr/lib/libwebkit2gtk-4.1.so.0"
+        (runtime / "w").symlink_to(appdir / f"usr/lib/webkit2gtk-{webkit_api}", target_is_directory=True)
+        library = appdir / f"usr/lib/libwebkit2gtk-{webkit_api}.so.0"
         data = library.read_bytes()
-        for old, new in (("/proc/self/cwd//./usr/lib/webkit2gtk-4.1", runtime / "w"),
+        for old, new in ((f"/proc/self/cwd//./usr/lib/webkit2gtk-{webkit_api}", runtime / "w"),
                          ("/usr/bin/bwrap", bwrap),
                          ("/usr/bin/xdg-dbus-proxy", runtime / "p")):
             data = relocate(data, old, new)

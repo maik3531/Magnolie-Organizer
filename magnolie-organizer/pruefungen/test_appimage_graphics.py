@@ -13,6 +13,12 @@ spec.loader.exec_module(graphics)
 
 class GraphicsTests(unittest.TestCase):
     def test_private_helpers_do_not_depend_on_usr_bin_sandbox_mount(self):
+        self.verify_private_helpers("4.1")
+
+    def test_soup2_compatible_webkit_keeps_private_sandbox_helpers(self):
+        self.verify_private_helpers("4.0")
+
+    def verify_private_helpers(self, api):
         sys.path.insert(0, str(Path(__file__).parents[1] / 'werkzeuge'))
         try:
             import appimage_runtime as runtime
@@ -21,12 +27,12 @@ class GraphicsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             app = Path(directory)
             (app / 'usr/bin').mkdir(parents=True)
-            (app / 'usr/lib/webkit2gtk-4.1').mkdir(parents=True)
+            (app / f'usr/lib/webkit2gtk-{api}').mkdir(parents=True)
             for name in ('bwrap', 'xdg-dbus-proxy'):
                 (app / 'usr/bin' / name).write_bytes(name.encode())
                 (app / 'usr/bin' / name).chmod(0o755)
-            data = b'/proc/self/cwd//./usr/lib/webkit2gtk-4.1\0/usr/bin/bwrap\0/usr/bin/xdg-dbus-proxy\0'
-            library = app / 'usr/lib/libwebkit2gtk-4.1.so.0'
+            data = f'/proc/self/cwd//./usr/lib/webkit2gtk-{api}\0/usr/bin/bwrap\0/usr/bin/xdg-dbus-proxy\0'.encode()
+            library = app / f'usr/lib/libwebkit2gtk-{api}.so.0'
             library.write_bytes(data)
             locations = []
             def started(command, env):
@@ -42,7 +48,7 @@ class GraphicsTests(unittest.TestCase):
                 return Mock(wait=lambda: 0)
             with patch.object(runtime, 'select', return_value=''), \
                     patch.object(runtime, 'sandbox_helper', side_effect=lambda env, bundled: bundled), \
-                    patch.object(runtime.os, 'environ', {'LD_LIBRARY_PATH':str(app / 'usr/lib')}), \
+                    patch.object(runtime.os, 'environ', {'LD_LIBRARY_PATH':str(app / 'usr/lib'), 'MAGNOLIE_WEBKIT_API':api}), \
                     patch.object(runtime.subprocess, 'Popen', side_effect=started):
                 self.assertEqual(runtime.launch(app, ['probe.py']), 0)
             self.assertEqual(library.read_bytes(), data)

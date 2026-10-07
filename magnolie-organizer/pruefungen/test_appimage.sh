@@ -118,8 +118,8 @@ test -d "$APPDIR/usr/lib/x86_64-linux-gnu/ossl-modules"
 test -n "$(find "$APPDIR/usr/lib/x86_64-linux-gnu/ossl-modules" -type f -print -quit)"
 test -f "$APPDIR/usr/share/themes/Adwaita/gtk-3.0/gtk.css"
 test -f "$APPDIR/usr/share/glib-2.0/schemas/gschemas.compiled"
-test -x "$APPDIR/usr/lib/webkit2gtk-4.1/WebKitNetworkProcess"
-test -x "$APPDIR/usr/lib/webkit2gtk-4.1/WebKitWebProcess"
+test -x "$APPDIR/usr/lib/webkit2gtk-4.0/WebKitNetworkProcess"
+test -x "$APPDIR/usr/lib/webkit2gtk-4.0/WebKitWebProcess"
 if test -f "$APPDIR/usr/lib/libecal-2.0.so.3"; then
     ECAL_SONAME=libecal-2.0.so.3
     EBOOK_SONAME=libebook-1.2.so.21
@@ -151,13 +151,13 @@ for bibliothek in "$APPDIR/usr/lib/$ECAL_SONAME" \
     ! printf '%s\n' "$aufloesung" | grep -E \
         'lib(ecal|edataserver|ical|camel|ebook|edata-book|ebackend)[^ ]* => /(usr/)?lib/'
 done
-python3 - "$APPDIR/usr/lib/libwebkit2gtk-4.1.so.0" <<'PY'
+python3 - "$APPDIR/usr/lib/libwebkit2gtk-4.0.so.0" <<'PY'
 import pathlib
 import sys
 
 daten = pathlib.Path(sys.argv[1]).read_bytes()
-assert b"/usr/lib/x86_64-linux-gnu/webkit2gtk-4.1" not in daten
-assert b"/proc/self/cwd//./usr/lib/webkit2gtk-4.1" in daten
+assert b"/usr/lib/x86_64-linux-gnu/webkit2gtk-4.0" not in daten
+assert b"/proc/self/cwd//./usr/lib/webkit2gtk-4.0" in daten
 PY
 
 # Validate the isolated configuration with the exact bundled fontconfig/expat.
