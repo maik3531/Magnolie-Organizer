@@ -25295,7 +25295,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     };
     kdeBlock.append(el("h4", null, _("Receive with KDE Connect")),
       el("p", "einst-hinweis", _("Incoming files are always confirmed. Clipboard text is confirmed unless automatic acceptance is explicitly enabled.")));
-    empfangOption(_("Receive files in Downloads"), "dateien");
+    empfangOption(_("Receive files"), "dateien");
     const ordnerBeiAnnahme = document.createElement("input");
     ordnerBeiAnnahme.type = "checkbox";
     ordnerBeiAnnahme.id = "kde-empfang-ordner-bei-annahme";

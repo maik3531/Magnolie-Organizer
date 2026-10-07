@@ -1848,6 +1848,26 @@ class NativeNotifications:
                     pass
             raise
 
+    def choose_directory(self):
+        """Small native destination chooser; never starts the Organizer UI."""
+        try:
+            import gi
+            gi.require_version("Gtk", "3.0")
+            from gi.repository import Gtk
+            initialized = Gtk.init_check([])
+            if not (initialized[0] if isinstance(initialized, tuple) else initialized):
+                return ""
+            dialog = Gtk.FileChooserDialog(title=_("Choose folder …"),
+                action=Gtk.FileChooserAction.SELECT_FOLDER)
+            dialog.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL,
+                               _("Accept"), Gtk.ResponseType.OK)
+            try:
+                return (dialog.get_filename() or "") if dialog.run() == Gtk.ResponseType.OK else ""
+            finally:
+                dialog.destroy()
+        except Exception:
+            return ""
+
     def open_call_action(self, token):
         if not isinstance(token, str) or not re.fullmatch(r"[0-9a-f]{64}", token):
             return
@@ -1951,23 +1971,24 @@ class DaemonEvents:
                 return False
             name = _safe_text(payload.get("name"), 180) or _("File")
             size = payload.get("size") if isinstance(payload.get("size"), int) else 0
-            decide = self._decision(lambda accepted: (
-                backend.accept_receive(receive_id) if accepted else
-                backend.reject_receive(receive_id)))
             title, body = _("Incoming KDE Connect file"), "%s (%d bytes)" % (name, size)
             choose_directory = self.settings.get("kde_choose_directory") is True
-            if choose_directory:
-                shown = self.notifications.show(title, body,
-                    (("open", _("Start Organizer"), self.notifications.open_organizer),),
-                    key=receive_id)
-                forward_decision = True
-            else:
-                shown = self.notifications.show(title, body, (
-                         ("accept", _("Accept"), lambda: decide(True)),
-                         ("reject", _("Reject"), lambda: decide(False))),
-                    on_close=lambda: decide(False), key=receive_id)
+            def accept_file(accepted):
+                if not accepted:
+                    return backend.reject_receive(receive_id)
+                if choose_directory:
+                    directory = self.notifications.choose_directory()
+                    if not directory:
+                        return backend.reject_receive(receive_id)
+                    return backend.accept_receive(receive_id, directory)
+                return backend.accept_receive(receive_id)
+            decide = self._decision(accept_file)
+            shown = self.notifications.show(title, body, (
+                     ("accept", _("Accept"), lambda: decide(True)),
+                     ("reject", _("Reject"), lambda: decide(False))),
+                on_close=lambda: decide(False), key=receive_id)
             if not shown:
-                if choose_directory or self.gui_present():
+                if self.gui_present():
                     self.notifications.show(title, body, key=receive_id)
                     forward_decision = True
                 else:
@@ -2016,7 +2037,7 @@ class DaemonEvents:
         elif event == "file_ready":
             name = _safe_text(payload.get("name"), 180) or _("Unknown file")
             self.notifications.show(_("Magnolie Organizer"),
-                _("File saved in Downloads: %(name)s") % {"name": name})
+                _("File saved: %(name)s") % {"name": name})
         elif event == "receive_error":
             self.notifications.show(_("Magnolie Organizer"),
                                     _("KDE Connect reception failed."))

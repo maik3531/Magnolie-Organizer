@@ -621,9 +621,10 @@ def test_actionless_decisions_fall_back_to_visible_gui_without_rejecting():
     assert all(not actions for _title, _body, actions, _close in notifications.items[1::2])
 
 
-def test_file_destination_choice_opens_gui_instead_of_accepting_natively():
+def test_file_destination_choice_accepts_through_native_chooser_without_main_gui():
     backend = FakeBackend()
     notifications = RecordedNotifications()
+    notifications.choose_directory = lambda: "/tmp/synthetic-destination"
     published = []
     events = background.DaemonEvents(lambda: backend, {
         "permissions": {"kde_incoming_files": True},
@@ -633,10 +634,41 @@ def test_file_destination_choice_opens_gui_instead_of_accepting_natively():
         lambda event, payload: published.append((event, payload)), lambda: False)
     events("file_proposal", {"id": "f" * 32, "name": "document.pdf", "size": 7})
     assert backend.calls == []
-    assert len(notifications.items[-1][2]) == 1
-    assert notifications.items[-1][2][0][0] == "open"
-    assert published == [("file_proposal", {
-        "id": "f" * 32, "name": "document.pdf", "size": 7})]
+    assert [action[0] for action in notifications.items[-1][2]] == ["accept", "reject"]
+    assert published == []
+    notifications.items[-1][2][0][2]()
+    assert backend.calls == [("accept_receive", "f" * 32, "/tmp/synthetic-destination")]
+    assert notifications.opened == 0
+    notifications.items[-1][2][0][2]()
+    assert len(backend.calls) == 1
+
+
+def test_file_destination_cancel_rejects_without_starting_main_gui():
+    backend = FakeBackend()
+    notifications = RecordedNotifications()
+    notifications.choose_directory = lambda: ""
+    events = background.DaemonEvents(lambda: backend, {
+        "permissions": {"kde_incoming_files": True}, "kde_device_id": "a" * 32,
+        "kde_download_directory": "/tmp", "kde_file_enabled": True,
+        "kde_choose_directory": True}, notifications, ImmediateGLib)
+    events("file_proposal", {"id": "f" * 32, "name": "document.pdf", "size": 7})
+    notifications.items[-1][2][0][2]()
+    assert backend.calls == [("reject_receive", "f" * 32)]
+    assert notifications.opened == 0
+
+
+def test_actionless_folder_choice_without_gui_rejects_instead_of_orphaning_proposal():
+    backend = FakeBackend()
+    notifications = ActionlessNotifications()
+    published = []
+    events = background.DaemonEvents(lambda: backend, {
+        "permissions": {"kde_incoming_files": True}, "kde_device_id": "a" * 32,
+        "kde_download_directory": "/tmp", "kde_file_enabled": True,
+        "kde_choose_directory": True}, notifications, ImmediateGLib,
+        lambda event, payload: published.append((event, payload)), lambda: False)
+    events("file_proposal", {"id": "f" * 32, "name": "document.pdf", "size": 7})
+    assert backend.calls == [("reject_receive", "f" * 32)]
+    assert published == [] and notifications.opened == 0
 
 
 def test_missing_native_action_capability_rejects_decisions_fail_closed():
