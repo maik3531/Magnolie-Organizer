@@ -94,6 +94,10 @@ async function run(web, data, remote, options = {}) {
     assert.equal(first.data.kontakte[0].vorname, "Original");
     assert.equal(first.data.kontakte[1].foto, "", "explicit photo removal stays protected");
     assert.equal(first.data.kontakte[2].foto, other, "unknown legacy photo origin stays protected");
+    assert(first.data.kontakte[1].fotoAlternativen.some(image => image.foto === photo), "explicit removal prevented discovering an alternate phone image");
+    assert(first.data.kontakte[2].fotoAlternativen.some(image => image.foto === photo), "existing other-source image prevented discovering phone alternative");
+    assert.equal(first.data.kontakte[2].fotoQuelle, undefined, "phone alternative seized the displayed other-source image binding");
+    assert(notes.data.kontakte[2].fotoAlternativen.some(image => image.foto === photo && image.quellen.includes("Magnolie Notes")), "Notes alternative lost its actual source label");
     assert.equal(first.data.kontakte[3].foto, ""); assert.equal(first.data.kontakte[4].foto, "");
     assert.equal(first.data.kontakte.length, 5);
     assert.equal(first.data.kontakte[0].fotoQuelle.fingerprint, fingerprint);
@@ -101,6 +105,9 @@ async function run(web, data, remote, options = {}) {
     assert.ok(first.saves.some(d => d.kontakte[0].foto === photo), "photo and cache must be durably submitted together");
     const replay = await run(web, first.data, remote);
     assert.equal(replay.requests.filter(r => r.uids).length, 0, "restart must reuse unchanged cached photos");
+    const legacyCache = plain(first.data); legacyCache.kontaktFotoCache.version = 1;
+    const reindexed = await run(web, legacyCache, remote);
+    assert.equal(reindexed.requests.filter(request => request.uids).length, remote.length, "old skip-protected cache prevented first alternative discovery");
     const changed = remote.map((r, i) => i ? r : { ...r, modified_ms: 2, foto: other });
     const refreshed = await run(web, replay.data, changed);
     assert.equal(refreshed.data.kontakte[0].foto, other, "changed source refreshes its own unchanged cached image");
@@ -124,7 +131,9 @@ async function run(web, data, remote, options = {}) {
     const disabled = await run(web, base, remote, { beforeReply: b => { b.t.daten().einstellungen.adressen.foto = false; } });
     assert.equal(disabled.data.kontakte[0].foto, "");
     const protectedOnly = await run(web, { kontakte: base.kontakte.slice(1, 3) }, remote);
-    assert.equal(protectedOnly.requests.length, 0, "no phone fetch when all local photos are protected");
+    assert(protectedOnly.requests.some(request => request.uids), "protected photos must still discover alternatives");
+    assert.equal(protectedOnly.data.kontakte[0].foto, ""); assert.equal(protectedOnly.data.kontakte[1].foto, other);
+    assert(protectedOnly.data.kontakte[1].fotoAlternativen.some(image => image.foto === photo));
     const differentMailbox = await run(web, { kontakte: [{ id: "mail", email: "jose@example.org" }] },
       [{ uid: "accent", modified_ms: 1, foto: photo, email: "josé@example.org" }]);
     assert.equal(differentMailbox.data.kontakte[0].foto, "", "email accents must not be folded into another mailbox");

@@ -4808,7 +4808,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (!initialisiert || gesperrt || !DATEN.einstellungen.adressen.foto ||
         !quelle?.contacts_available || !quelle.contacts_device_id ||
         DATEN.syncMetadaten?.ersteSyncLoeschungsfrei || DATEN.syncNachRestore?.loeschungsfrei ||
-        DATEN.syncNachRestore?.additiv || !DATEN.kontakte.some(k => !k.fotoManuell && (!k.foto || k.fotoQuelle))) return;
+        DATEN.syncNachRestore?.additiv || !DATEN.kontakte.some(k => kontaktTelefone(k).length ||
+          emailListe(k).length || k.fotoQuelle?.deviceId === quelle.contacts_device_id)) return;
     if (beschaeftigt()) {
       clearTimeout(kontaktFotoTimer); kontaktFotoTimer = setTimeout(planeKontaktFotoAbruf, 60000); return;
     }
@@ -4836,7 +4837,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const fingerprint = index.fingerprint.toLowerCase(), jetzt = Date.now();
       if (lauf.sourceFingerprint && fingerprint !== lauf.sourceFingerprint) throw new Error("contact_source_changed");
       const alt = DATEN.kontaktFotoCache;
-      const wiederverwenden = alt?.deviceId === lauf.deviceId && alt.fingerprint === fingerprint && alt.mappingHash === mappingHash;
+      const wiederverwenden = alt?.version === 2 && alt.deviceId === lauf.deviceId && alt.fingerprint === fingerprint && alt.mappingHash === mappingHash;
       const cache = new Map((wiederverwenden && Array.isArray(alt.entries) ? alt.entries.slice(0, 20000) : [])
         .filter(e => e && typeof e.uid === "string").map(e => [e.uid, e]));
       const vorhanden = new Set(), offen = [];
@@ -4878,27 +4879,31 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           const kandidaten = gebunden.length ? gebunden : [...new Set([
             ...emailListe(karte).map(wert => indexe.mails.get(kontaktFotoMailSchluessel(wert))),
             ...kontaktTelefone(karte).map(wert => indexe.telefone.get(wert))].filter(k => k !== undefined))];
-          if (kandidaten.length !== 1 || !kandidaten[0] || kandidaten[0].fotoManuell) continue;
+          if (kandidaten.length !== 1 || !kandidaten[0]) continue;
           const kontakt = kandidaten[0], bisher = kontakt.foto || "";
+          let anzeigen = !kontakt.fotoManuell && !bisher && !kontakt.fotoQuelle;
           if (kontakt.fotoQuelle) {
             const meta = kontakt.fotoQuelle;
-            if (meta.deviceId !== lauf.deviceId || meta.fingerprint !== fingerprint || meta.uid !== eintrag.uid ||
-                meta.hash !== await kontaktFotoHash(bisher)) continue;
-          } else if (bisher) continue;
+            anzeigen = !kontakt.fotoManuell && meta.deviceId === lauf.deviceId && meta.fingerprint === fingerprint &&
+              meta.uid === eintrag.uid && meta.hash === await kontaktFotoHash(bisher);
+          }
           const klein = await new Promise(resolve => kontaktFotoSkalieren(foto, resolve, true));
           if (!klein) { cache.get(eintrag.uid).photoAvailable = false; continue; }
-          aenderungen.push({ kontakt, bisher, foto: klein, meta: { deviceId: lauf.deviceId, fingerprint,
+          aenderungen.push({ kontakt, bisher, anzeigen, foto: klein, meta: { deviceId: lauf.deviceId, fingerprint,
             uid: eintrag.uid, modified_ms: eintrag.modified_ms, hash: await kontaktFotoHash(klein) } });
         }
         if (!gueltig() || zuordnungen() !== lokalStand) return;
         let geaendert = false;
-        for (const { kontakt, bisher, foto, meta } of aenderungen) {
-          if (kontakt.fotoManuell || kontakt.foto !== bisher || !DATEN.kontakte.includes(kontakt)) continue;
-          if (uebernehmeKontaktFoto(kontakt, foto, "KDE Connect", true)) geaendert = true;
-          if (foto !== bisher) kontakt.geaendert = Date.now();
-          kontakt.fotoQuelle = meta;
+        for (const { kontakt, bisher, anzeigen, foto, meta } of aenderungen) {
+          if (kontakt.foto !== bisher || !DATEN.kontakte.includes(kontakt)) continue;
+          const quelle = lauf.deviceId.startsWith("notes:") ? "Magnolie Notes" : "KDE Connect";
+          if (uebernehmeKontaktFoto(kontakt, foto, quelle, anzeigen)) geaendert = true;
+          if (anzeigen) {
+            if (foto !== bisher) kontakt.geaendert = Date.now();
+            kontakt.fotoQuelle = meta;
+          }
         }
-        DATEN.kontaktFotoCache = { version: 1, deviceId: lauf.deviceId, fingerprint, mappingHash, entries: [...cache.values()] };
+        DATEN.kontaktFotoCache = { version: 2, deviceId: lauf.deviceId, fingerprint, mappingHash, entries: [...cache.values()] };
         await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
         if (geaendert && gueltig()) zeichneAlles();
         await new Promise(resolve => setTimeout(resolve, 1000));
