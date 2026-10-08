@@ -2,6 +2,7 @@ package io.gitlab.maik3531.magnolienotes.telefon
 
 import android.Manifest
 import android.content.Context
+import android.content.ContentUris
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -56,7 +57,7 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
             val contact = snapshot.kontakte.single { it.lookupKey == uid }
             val social = messengerRows(contact.contactId)
             val groups = groupRows(contact.contactId); groupsByContact[contact.contactId] = groups
-            val card = vcard(contact, thumbnail(contact.daten.foto), social, groups)
+            val card = vcard(contact, displayPhoto(contact), social, groups)
             buildJsonObject {
                 put("uid", JsonPrimitive(uid)); put("timestamp", JsonPrimitive(contact.providerGeaendert))
                 put("vcard", JsonPrimitive(card))
@@ -113,6 +114,32 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
     private fun thumbnail(data: String): String {
         if (data.isEmpty()) return ""
         val bytes = Base64.getDecoder().decode(data.substringAfter(","))
+        return thumbnailBytes(bytes)
+    }
+
+    private fun displayPhoto(contact: AndroidKontakt): String {
+        // The aggregated contact's selected display picture can differ from
+        // the first nonempty photo among its linked raw-account contacts.
+        val stream = try {
+            Contacts.openContactPhotoInputStream(context.contentResolver,
+                ContentUris.withAppendedId(Contacts.CONTENT_URI, contact.contactId), true)
+        } catch (_: java.io.IOException) { null }
+        if (stream == null) return thumbnail(contact.daten.foto)
+        val bytes = stream.use { input ->
+            val output = ByteArrayOutputStream()
+            val buffer = ByteArray(8192)
+            while (true) {
+                val length = input.read(buffer)
+                if (length < 0) break
+                require(output.size() + length <= 8 * 1024 * 1024)
+                output.write(buffer, 0, length)
+            }
+            output.toByteArray()
+        }
+        return if (bytes.isEmpty()) thumbnail(contact.daten.foto) else thumbnailBytes(bytes)
+    }
+
+    private fun thumbnailBytes(bytes: ByteArray): String {
         require(bytes.size <= 8 * 1024 * 1024)
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)

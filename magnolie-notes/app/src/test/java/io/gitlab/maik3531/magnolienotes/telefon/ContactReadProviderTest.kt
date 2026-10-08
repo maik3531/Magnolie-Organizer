@@ -5,9 +5,14 @@ import android.app.Application
 import android.content.ContentProvider
 import android.content.ContentValues
 import android.content.Context
+import android.content.pm.ProviderInfo
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
+import android.os.ParcelFileDescriptor
 import android.provider.ContactsContract.Contacts
 import android.provider.ContactsContract.Data
 import android.provider.ContactsContract.RawContacts
@@ -29,6 +34,7 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowContentResolver
 import java.util.Base64
 import java.util.UUID
+import java.io.ByteArrayOutputStream
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class)
@@ -40,6 +46,7 @@ class ContactReadProviderTest {
         context = ApplicationProvider.getApplicationContext()
         Shadows.shadowOf(context as Application).grantPermissions(Manifest.permission.READ_CONTACTS)
         provider = ReadOnlyProvider()
+        provider.attachInfo(context, ProviderInfo().apply { authority = "com.android.contacts"; exported = true })
         ShadowContentResolver.registerProviderInternal("com.android.contacts", provider)
     }
     private fun request(action: String) = buildJsonObject {
@@ -77,6 +84,22 @@ class ContactReadProviderTest {
         assertTrue(runCatching { ContactReadAndroid(context).read(request("cards")) }.isFailure)
     }
 
+    @Test fun selectedAggregatedContactPhotoWinsOverLinkedAccountPhoto() {
+        val bitmap = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888)
+        bitmap.eraseColor(Color.BLUE)
+        provider.displayPhoto = ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
+        bitmap.recycle()
+        val result = ContactReadAndroid(context).read(request("cards"))
+        val card = (result["contacts"] as JsonArray).single().jsonObject.string("vcard").replace("\r\n ", "")
+        val photo = card.lineSequence().first { it.startsWith("PHOTO;") }.substringAfter(':')
+        val bytes = Base64.getDecoder().decode(photo)
+        val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        val colour = decoded.getPixel(0, 0)
+        assertTrue(Color.blue(colour) > 240 && Color.red(colour) < 20 && Color.green(colour) < 20)
+        decoded.recycle()
+        assertTrue(provider.photoUris.contains("/contacts/10/display_photo"))
+    }
+
     class ReadOnlyProvider : ContentProvider() {
         val queries = mutableListOf<String>()
         var rawReads = 0
@@ -84,11 +107,21 @@ class ContactReadProviderTest {
         var sawSelection = false
         var groupReads = 0
         var changeGroup = false
+        var displayPhoto: ByteArray? = null
+        val photoUris = mutableListOf<String>()
         override fun onCreate() = true
         override fun getType(uri: Uri): String? = null
         override fun insert(uri: Uri, values: ContentValues?): Uri? = error("read-only query attempted an insert")
         override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?): Int = error("read-only query attempted an update")
         override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int = error("read-only query attempted a deletion")
+        override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
+            assertEquals("r", mode);photoUris += uri.path.orEmpty()
+            val bytes = displayPhoto ?: throw java.io.FileNotFoundException()
+            assertEquals("/contacts/10/display_photo", uri.path)
+            val pipe = ParcelFileDescriptor.createPipe()
+            ParcelFileDescriptor.AutoCloseOutputStream(pipe[1]).use { it.write(bytes) }
+            return pipe[0]
+        }
         override fun query(uri: Uri, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?): Cursor {
             val columns = projection ?: error("projection required")
             queries += uri.path.orEmpty()
@@ -118,6 +151,7 @@ class ContactReadProviderTest {
                             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")))
                 }
                 "/groups" -> { groupReads++; listOf(mapOf(Groups.TITLE to if (changeGroup && groupReads > 1) "Changed group" else "Fixture, group")) }
+                "/contacts/10/photo" -> emptyList()
                 else -> error("unexpected contact URI")
             }
             return MatrixCursor(columns).apply { rows.forEach { row -> addRow(columns.map { row[it] }.toTypedArray()) } }

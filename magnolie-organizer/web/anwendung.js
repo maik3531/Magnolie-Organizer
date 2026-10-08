@@ -4792,12 +4792,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function kontaktDatenQuelle() {
-    if (telefonStand?.kdeconnect?.contacts_available) return telefonStand.kdeconnect;
     const notes = (telefonStand?.peers || []).filter(p => p.contacts_read_available === true &&
       p.own_device === true && p.remote_own_device === true && /^online_/.test(p.state || ""));
-    if (notes.length !== 1) return null;
-    return { contacts_available: true, contacts_device_id: "notes:" + notes[0].device_id,
+    // A confirmed, explicitly readable Notes source reads current Android
+    // provider data, unlike an older KDE vCard cache. Do not create a new
+    // connection or guess among multiple phones to obtain that source.
+    if (notes.length === 1) return { contacts_available: true, contacts_device_id: "notes:" + notes[0].device_id,
       contacts_fingerprint: notes[0].contacts_fingerprint || "", provider: "notes" };
+    return telefonStand?.kdeconnect?.contacts_available ? telefonStand.kdeconnect : null;
   }
 
   function planeKontaktFotoAbruf() {

@@ -84,6 +84,11 @@ async function run(web, data, remote, options = {}) {
     assert.equal(notes.data.kontakte[1].foto, "");
     assert.equal(notes.data.kontakte[2].foto, other);
     assert(notes.requests.every(request => request.device_id === notesDevice), "Notes photo reads must retain their own device namespace");
+    const directProvider = await run(web, base, remote, { status: { ...notesStatus, kdeconnect: status.kdeconnect }, device: notesDevice });
+    assert(directProvider.requests.every(request => request.device_id === notesDevice), "current authorized Android provider lost to older KDE cache");
+    const ambiguousSources = await run(web, base, remote, { status: { ...notesStatus, kdeconnect: status.kdeconnect,
+      peers: [notesPeer, { ...notesPeer, device_id: "22222222-2222-4222-8222-222222222222" }] } });
+    assert(ambiguousSources.requests.every(request => request.device_id === device), "multiple readable phones must not be guessed");
     const revokedNotes = await run(web, base, remote, { status: notesStatus, device: notesDevice, beforeReply: b =>
       b.w.App.telefonStand({ ...notesStatus, peers: [{ ...notesPeer, contacts_read_available: false }] }) });
     assert.equal(revokedNotes.data.kontakte[0].foto, "", "revoking contact reads must reject an in-flight Notes photo");
