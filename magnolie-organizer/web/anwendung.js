@@ -4677,7 +4677,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function kontaktFuerAustausch(kontakt) {
-    const aus = kopie(kontakt);
+    const privat = new Set(["fotoAlternativen", "fotoQuellen", "fotoQuelle", "fotoManuell", "baumKontakt",
+      "kontaktZeit", "kontaktAliase", "kontaktProviderKonflikte", "syncQuellen", "syncKonflikte", "kdeImportStaende"]);
+    // Exclude private galleries and bindings before accessing their values,
+    // not after copying the complete contact into an exchange payload.
+    const aus = kopie(Object.fromEntries(Object.keys(kontakt).filter(key => !privat.has(key))
+      .map(key => [key, kontakt[key]])));
     setzeKontaktpersonen(aus, aufgeloesteKontaktpersonen(kontakt).map(person => {
       const { kontaktId, verknuepfungFehlt, ...werte } = person; return werte;
     }));
