@@ -1,30 +1,30 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <update>
   <name>Magnolie Organizer</name>
-  <version>2.0.26</version>
-  <deb>https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/magnolie-organizer_2.0.26_all.deb</deb>
-  <source>https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/magnolie-organizer_2.0.26.tar.xz</source>
+  <version>2.0.27</version>
+  <deb>https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/magnolie-organizer_2.0.27_all.deb</deb>
+  <source>https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/magnolie-organizer_2.0.27.tar.xz</source>
   <manual>
-    <version>2.0.26</version>
+    <version>2.0.27</version>
     <linux>
-      <deb>https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/magnolie-handbuch_2.0.26_all.deb</deb>
-      <sha256>34e537bde01d8f3d8f152109f488154dfba431df539c791bd37fff1ada093e4a</sha256>
+      <deb>https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/magnolie-handbuch_2.0.27_all.deb</deb>
+      <sha256>f5a7d04741b81c6b9d5e19a6e98c31453272099134960af3f552bfd520a0a21c</sha256>
     </linux>
     <windows>
-      <url>https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/Magnolie-Organizer-Windows-2.0.26-Setup-x64.exe</url>
-      <sha256>127d0d83e10933258470b5b5d3e0fa5604a29818a2027f4e66c78b12c2ac3d1c</sha256>
+      <url>https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/Magnolie-Organizer-Windows-2.0.27-Setup-x64.exe</url>
+      <sha256>d86e819f4c08b2c6ccca5c02f99ac03e2edd54ff2f52624f71d25230e5df14bb</sha256>
     </windows>
   </manual>
   <appimage>
     <architecture>x86_64</architecture>
-    <url>https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/Magnolie-Organizer-2.0.26-x86_64.AppImage</url>
-    <sha256>2b1d414b81297aed358b6de4af82f44b16f906bc360d09d390b76af1872aa5cc</sha256>
+    <url>https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/Magnolie-Organizer-2.0.27-x86_64.AppImage</url>
+    <sha256>78effe5797d672b00d2ff1a0b3a1faafff3c001dabdb5020cc5dfeffaaf94c58</sha256>
   </appimage>
   <windows>
-    <version>2.0.26</version>
-    <url>https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/Magnolie-Organizer-Windows-2.0.26-Setup-x64.exe</url>
-    <sha256>127d0d83e10933258470b5b5d3e0fa5604a29818a2027f4e66c78b12c2ac3d1c</sha256>
+    <version>2.0.27</version>
+    <url>https://gitlab.com/maik3531/mint-forgs/-/raw/main/Magnolie-Organitzer/Magnolie-Organizer-Windows-2.0.27-Setup-x64.exe</url>
+    <sha256>d86e819f4c08b2c6ccca5c02f99ac03e2edd54ff2f52624f71d25230e5df14bb</sha256>
   </windows>
-  <sha256>953f4e1c4734723c1f8d7453a5e83678c1fe74a4beb98e7a8934b89451db2081</sha256>
-  <signature>L/CZI4wXkcGErhNZJfth/t12mrzhZofG9W3md+ITbYwFoQ6fTLVE8EPaompxzl26qtzfaThqYwaAuOMR/vUiBA==</signature>
+  <sha256>cbda6e49003ff6b240aeda694bda962f1834c6bec0faa509460b32f061e30e2a</sha256>
+  <signature>oZ7QB3R8V4mqrUFmt/2O4UqZPN4g72Ge/REEOSEULwgrYvesP2sCo6r9895WDvGoBIBQr0ZJb9t39kIDKywwCA==</signature>
 </update>

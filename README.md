@@ -40,14 +40,14 @@ sharing first.
 
 | Platform | Recommended package | Alternative |
 |---|---|---|
-| Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.26-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.26-x86_64.AppImage) · [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.26_all.deb) |
-| Windows 10/11 x64 | [Setup](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.26-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.26-x64.zip) |
-| Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.18.apk) | Android 8.0 or newer |
-| Handbook | [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.26_all.deb) | Included as an optional Windows component |
+| Linux | [Flatpak x86_64](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.27-x86_64.flatpak) | [AppImage](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-2.0.27-x86_64.AppImage) · [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer_2.0.27_all.deb) |
+| Windows 10/11 x64 | [Setup](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.27-Setup-x64.exe) | [Portable ZIP](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Organizer-Windows-2.0.27-x64.zip) |
+| Android | [Magnolie Notes APK](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/Magnolie-Notes-1.0.19.apk) | Android 8.0 or newer |
+| Handbook | [Debian package](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-handbuch_2.0.27_all.deb) | Included as an optional Windows component |
 
 ### Main DEB application – including KDE Plasma
 
-**`magnolie-organizer_2.0.26_all.deb` contains the complete application.**
+**`magnolie-organizer_2.0.27_all.deb` contains the complete application.**
 Use it on KDE Plasma as well, including Kubuntu or Ubuntu-based TuxedoOS.
 GNOME, Cinnamon, Xfce and KDE use the same main package.
 
@@ -61,7 +61,7 @@ installation is rejected if that dependency cannot be satisfied. When using
 downloaded DEBs, install both files together:
 
 ```bash
-sudo apt install ./magnolie-organizer_2.0.26_all.deb ./magnolie-organizer-kde_2.0.26_amd64.deb
+sudo apt install ./magnolie-organizer_2.0.27_all.deb ./magnolie-organizer-kde_2.0.27_amd64.deb
 ```
 
 The main package alone is sufficient to run Organizer on KDE. The add-on is
@@ -69,8 +69,8 @@ only needed to access calendars/address books configured in KDE.
 
 | Distribution | KDE integration add-on (amd64 / x86_64; main application required) |
 |---|---|
-| Debian 13, Ubuntu / Kubuntu 24.04 and 26.04, Linux Mint 22 | [KDE add-on DEB](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde_2.0.26_amd64.deb) |
-| Fedora 42 | [KDE add-on RPM](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde-2.0.26-1.fc42.x86_64.rpm) |
+| Debian 13, Ubuntu / Kubuntu 24.04 and 26.04, Linux Mint 22 | [KDE add-on DEB](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde_2.0.27_amd64.deb) |
+| Fedora 42 | [KDE add-on RPM](https://github.com/maik3531/Magnolie-Organizer/releases/latest/download/magnolie-organizer-kde-2.0.27-1.fc42.x86_64.rpm) |
 
 The optional KDE DEB selects one of three internal native backends from the
 existing, configured KDE packages and their complete ABI dependencies. It does not
@@ -129,7 +129,7 @@ SHA-256 checksums and source archives are attached to the
 | Magnolie Notes for Android | Kotlin, Jetpack Compose | [`magnolie-notes`](magnolie-notes/) |
 | Magnolie Handbook | Python, GTK, HTML/CSS/JavaScript | [`magnolie-handbuch`](magnolie-handbuch/) |
 
-The repository contains the sources for release 2.0.26 / Notes 1.0.18; generated
+The repository contains the sources for release 2.0.27 / Notes 1.0.19; generated
 packages are kept on the Releases page rather than in Git history.
 
 ## Security and privacy
