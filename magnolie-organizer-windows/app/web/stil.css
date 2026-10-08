@@ -1411,7 +1411,10 @@ body[data-hilfsrahmen="an"] .mm-tag:focus-visible {
   min-width: 0;
 }
 
-.kontakt-kopf-text { min-width: 0; }
+.kontakt-kopf-text { flex: 1; min-width: 0; }
+.kontakt-kopf-text h3, .k-firma {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 .kontakt-foto {
   width: 92px;
@@ -1501,9 +1504,12 @@ body[data-hilfsrahmen="an"] .mm-tag:focus-visible {
 
 .k-zeilen {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: minmax(0, min(35%, 12em)) minmax(0, 1fr);
   gap: 5px 16px;
-  align-items: baseline;
+  align-items: start;
+}
+.k-zeilen > .k-label {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
 .k-label {
@@ -1513,7 +1519,10 @@ body[data-hilfsrahmen="an"] .mm-tag:focus-visible {
   color: var(--braun-hell);
 }
 
-.k-wert { word-break: break-word; }
+.k-wert {
+  min-width: 0; max-width: 100%; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
 
 .k-notiz {
   margin-top: 14px;
@@ -1523,6 +1532,7 @@ body[data-hilfsrahmen="an"] .mm-tag:focus-visible {
   border-radius: 7px;
   font-size: 13.5px;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .kontakt-weitere {
@@ -3661,9 +3671,27 @@ body[data-pruefung="an"] #notiz-titel {
   text-decoration: underline dotted;
   text-underline-offset: 2px;
   cursor: pointer;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: start;
 }
 
 .post-anschrift:hover { color: var(--rot); text-decoration-style: solid; }
+
+/* Compact screen values stay complete in the print preview and on paper. */
+.druck-schleier :is(.k-wert, .k-firma, .kontakt-kopf-text h3, .post-anschrift) {
+  white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere;
+}
+@media print {
+  :is(.k-wert, .k-firma, .kontakt-kopf-text h3, .post-anschrift) {
+    white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere;
+  }
+}
 
 /* ------------------------------- Druckvorschau ---------------------------- */
 

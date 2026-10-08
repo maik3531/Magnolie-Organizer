@@ -1720,6 +1720,36 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return e;
   }
 
+  const ueberlaengenTooltipBasis = new WeakMap();
+  function zeigeVollenGekuerztenWert(event) {
+    let node = event.target instanceof Element ? event.target : event.target?.parentElement;
+    for (let tiefe = 0; node && tiefe < 6; tiefe++, node = node.parentElement) {
+      // Editable controls retain their normal scrolling/selection behaviour;
+      // in particular never expose password input through a generated tooltip.
+      if (node.matches("input, textarea, select")) return;
+      const style = getComputedStyle(node);
+      const gekuerzt = style.textOverflow === "ellipsis" && node.clientWidth > 0 &&
+        (node.scrollWidth > node.clientWidth + 1 || node.scrollHeight > node.clientHeight + 1);
+      const alterTitel = ueberlaengenTooltipBasis.get(node);
+      if (!gekuerzt) {
+        if (alterTitel !== undefined) {
+          if (alterTitel) node.title = alterTitel; else node.removeAttribute("title");
+          ueberlaengenTooltipBasis.delete(node);
+        }
+        continue;
+      }
+      const text = node.textContent.trim();
+      if (!text) continue;
+      const basis = alterTitel === undefined ? node.title : alterTitel;
+      if (basis.includes(text)) return;
+      if (alterTitel === undefined) ueberlaengenTooltipBasis.set(node, basis);
+      node.title = text + (basis ? "\n" + basis : "");
+      return;
+    }
+  }
+  document.addEventListener("mouseover", zeigeVollenGekuerztenWert, { passive: true });
+  document.addEventListener("focusin", zeigeVollenGekuerztenWert);
+
   function knopf(text, klasse, fn) {
     const b = el("button", "knopf" + (klasse ? " " + klasse : ""), text);
     b.type = "button";
