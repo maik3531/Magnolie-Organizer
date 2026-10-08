@@ -2700,6 +2700,49 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return [...bilder.values()];
   }
 
+  function kontaktFotoDarstellung(image, foto) {
+    const format = String(foto || "").match(/^data:image\/(jpeg|png|webp);base64,/i)?.[1]?.toLowerCase();
+    if (!format || !image.naturalWidth || !image.naturalHeight) return null;
+    try {
+      // Animated pictures must remain separate even if their first frame matches.
+      if (format !== "jpeg") {
+        const roh = atob(foto.split(",", 2)[1]);
+        if (format === "png" ? roh.includes("acTL") : roh.includes("ANIM")) return null;
+      }
+      const canvas = document.createElement("canvas"); canvas.width = canvas.height = 64;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) return null;
+      context.drawImage(image, 0, 0, 64, 64);
+      return { format, breite: image.naturalWidth, hoehe: image.naturalHeight,
+        pixel: context.getImageData(0, 0, 64, 64).data };
+    } catch (_) { return null; }
+  }
+
+  function gleicheKontaktFotoDarstellung(a, b) {
+    if (!a || !b || a.pixel.length !== 16384 || b.pixel.length !== 16384) return false;
+    const verh = a.breite * b.hoehe / (b.breite * a.hoehe);
+    if (!Number.isFinite(verh) || Math.abs(verh - 1) > 0.01) return false;
+    let summe = 0, maximum = 0;
+    const vorzeichen = [0, 0, 0], bloecke = new Float64Array(64 * 3);
+    for (let pixel = 0; pixel < 4096; pixel++) {
+      const offset = pixel * 4;
+      if (a.pixel[offset + 3] !== b.pixel[offset + 3]) return false;
+      const block = (Math.floor(pixel / 64 / 8) * 8 + Math.floor(pixel % 64 / 8)) * 3;
+      for (let kanal = 0; kanal < 3; kanal++) {
+        const delta = a.pixel[offset + 3] ? a.pixel[offset + kanal] - b.pixel[offset + kanal] : 0;
+        const betrag = Math.abs(delta);
+        summe += betrag; maximum = Math.max(maximum, betrag);
+        vorzeichen[kanal] += delta; bloecke[block + kanal] += delta;
+      }
+    }
+    if (!summe) return true;
+    // Lossless variants need exact pixels. For JPEG copies accept only small,
+    // spatially balanced codec noise, not a colour change or a local edit.
+    return (a.format === "jpeg" || b.format === "jpeg") && maximum <= 32 &&
+      summe / 12288 <= 3 && vorzeichen.every(wert => Math.abs(wert) / 4096 <= 0.65) &&
+      bloecke.every(wert => Math.abs(wert) / 64 <= 4);
+  }
+
   function speichereKontaktFotoVarianten(kontakt, bilder) {
     const quellen = bilder.find(bild => bild.foto === kontakt.foto)?.quellen || [];
     const alternativen = bilder.filter(bild => bild.foto !== kontakt.foto);
@@ -17075,15 +17118,55 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         nachDauerhaftemSpeichern(() => { if (gueltig()) schliessen(); }, melden);
       }, melden);
     };
+    const fotoOptionen = [];
+    const zusammenfassen = () => {
+      if (!gueltig() || laeuft || fotoOptionen.some(option => !option.geladen)) return;
+      const gruppen = [];
+      for (const option of fotoOptionen) {
+        // Every member must match: do not merge a chain of progressively
+        // different photos just because neighbouring versions look similar.
+        const gruppe = gruppen.find(g => g.every(alt => gleicheKontaktFotoDarstellung(alt.darstellung, option.darstellung)));
+        if (gruppe) {
+          const fokus = option.button.contains(document.activeElement);
+          gruppe.push(option); option.button.remove();
+          if (fokus) gruppe[0].button.focus();
+        }
+        else gruppen.push([option]);
+      }
+      for (const gruppe of gruppen) {
+        const quellen = [...new Set(gruppe.flatMap(option => option.bild.quellen))].map(quelle =>
+          quelle === "local" ? _("Local image") : quelle === "import" ? _("Import") :
+            quelle === "system" ? _("Online address book") : quelle);
+        gruppe[0].label.textContent = quellen.join(" · ") || _("Photo");
+      }
+      // This changes only gallery presentation, never stored originals or
+      // the explicit selection, contact fields and provider baselines.
+      galerie.dataset.fotoVerglichen = "true";
+    };
     for (const [index, bild] of kontaktFotoVarianten(k).entries()) {
       const button = knopf("", "kontakt-foto-option", () => anwenden(bild.foto));
       button.dataset.fotoIndex = String(index);
       button.setAttribute("aria-pressed", String(bild.foto === k.foto));
       const image = document.createElement("img"); image.loading = "lazy"; image.decoding = "async";
-      image.src = bild.foto; image.alt = _("Photo");
+      image.alt = _("Photo");
       const quellen = bild.quellen.map(quelle => quelle === "local" ? _("Local image") :
         quelle === "import" ? _("Import") : quelle === "system" ? _("Online address book") : quelle);
-      button.append(image, el("span", null, quellen.join(" · ") || _("Photo")));
+      const label = el("span", null, quellen.join(" · ") || _("Photo"));
+      const option = { button, label, bild, geladen: index >= 32, darstellung: null };
+      fotoOptionen.push(option);
+      if (index < 32) {
+        image.loading = "eager";
+        image.addEventListener("load", () => {
+          if (!gueltig() || laeuft) return;
+          option.darstellung = kontaktFotoDarstellung(image, bild.foto);
+          option.geladen = true; zusammenfassen();
+        }, { once: true });
+        image.addEventListener("error", () => {
+          option.geladen = true; zusammenfassen();
+        }, { once: true });
+      }
+      image.src = bild.foto;
+      button.append(image, label);
       galerie.append(button);
     }
     datei.addEventListener("change", () => {
