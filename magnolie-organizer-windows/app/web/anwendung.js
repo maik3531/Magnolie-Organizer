@@ -29799,7 +29799,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
               token: nutzlast.commit_token, erfolgreich: true });
           }
           if (!editorIstGeaendert()) zeichneAlles();
-          zettel(_("Personal synchronization complete. Deletions are not synchronized yet."));
+          if (DATEN.einstellungen.sync.erfolgsmeldungen === true)
+            zettel(_("Personal synchronization complete. Deletions are not synchronized yet."));
         }
       }).catch((fehler) => {
         if (kind === "personal_sync.batch" && fehler.personalSyncDeferred) {
