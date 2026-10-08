@@ -232,7 +232,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
     }
 
     private sealed record ContactReadWait(string PeerId, byte[] PublicKey, TelefonConnection Connection,
-        JsonObject Request, TaskCompletionSource<JsonObject> Completion, long Deadline, CancellationToken Cancellation);
+        JsonObject Request, string MessageId, TaskCompletionSource<JsonObject> Completion, long Deadline, CancellationToken Cancellation);
     private readonly Dictionary<string, ContactReadWait> contactReads = new(StringComparer.Ordinal);
 
     internal bool ContactReadAvailable(string id)
@@ -265,6 +265,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         {
             cancellation.ThrowIfCancellationRequested();
             var requestId = Guid.NewGuid().ToString("D");
+            var messageId = Guid.NewGuid().ToString("D");
             var body = new JsonObject { ["version"] = PhoneContactRead.Version, ["request_id"] = requestId, ["action"] = action,
                 ["offset"] = offset, ["uids"] = uid is null ? new JsonArray() : new JsonArray(JsonValue.Create(uid)) };
             PhoneContactRead.ValidateRequest(body);
@@ -273,13 +274,13 @@ internal sealed partial class TelefonCoordinator : IDisposable
             {
                 if (contactReads.Count >= 8 || !online.TryGetValue(id, out var current) || !ReferenceEquals(current, connection) || !connection.ContactReadReady)
                     throw new InvalidOperationException("contacts_not_granted");
-                contactReads.Add(requestId, new ContactReadWait(id, peer.PublicKey.ToArray(), connection, body.DeepClone().AsObject(), completion,
+                contactReads.Add(requestId, new ContactReadWait(id, peer.PublicKey.ToArray(), connection, body.DeepClone().AsObject(), messageId, completion,
                     Environment.TickCount64 + 8_000, cancellation));
             }
             try
             {
                 cancellation.ThrowIfCancellationRequested();
-                await connection.SendMessageAsync("device_status.request", body, 8_000);
+                await connection.SendMessageAsync("device_status.request", body, 8_000, messageId);
                 return await completion.Task.WaitAsync(TimeSpan.FromSeconds(8), cancellation);
             }
             finally { lock (gate) contactReads.Remove(requestId); }
@@ -316,6 +317,20 @@ internal sealed partial class TelefonCoordinator : IDisposable
         { contact["modified_ms"] = contact["timestamp"]!.DeepClone(); contact.Remove("timestamp"); }
         return new JsonObject { ["device_id"] = "notes:" + id,
             ["fingerprint"] = Convert.ToHexString(SHA256.HashData(peer.PublicKey)).ToLowerInvariant(), ["contacts"] = contacts };
+    }
+
+    private bool RejectContactRead(TelefonConnection source, TelefonPeer peer, TelefonAck ack)
+    {
+        lock (gate)
+        {
+            var pending = contactReads.Values.FirstOrDefault(value => value.MessageId == ack.MessageId && value.PeerId == peer.Id);
+            if (ack.Status != "rejected" || pending is null || pending.Completion.Task.IsCompleted ||
+                !pending.PublicKey.SequenceEqual(peer.PublicKey) || !ReferenceEquals(pending.Connection, source) ||
+                !online.TryGetValue(peer.Id, out var current) || !ReferenceEquals(current, source) ||
+                !Peers.Any(value => value.Id == peer.Id && value.PublicKey.SequenceEqual(pending.PublicKey)) ||
+                pending.Cancellation.IsCancellationRequested || Environment.TickCount64 >= pending.Deadline) return false;
+            return pending.Completion.TrySetException(new IOException("contacts_read_" + ack.Error));
+        }
     }
 
     private TelefonAck AcceptContactRead(TelefonPeer peer, JsonObject message, JsonObject body)
@@ -1208,7 +1223,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
             connection = new TelefonConnection(peer, stream, sid, material, store,
                 (source, message) => HandleMessageAsync(source, message, transport), cancellation, transport,
                 body => emit("App.personalCustomAck", new { device_id = peer.Id, body }), AuthorizeCall, SendCall,
-                async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); });
+                async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); }, RejectContactRead);
             var capabilityRevision = store.NextOwnRevision("capabilities"); var grantRevision = store.NextOwnRevision("grants");
             await connection.InitializeAsync(capabilityRevision);
             lock (gate)
@@ -1652,12 +1667,14 @@ internal sealed partial class TelefonConnection : IDisposable
     private readonly Func<TelefonPeer, string, JsonObject, string?>? authorizeCall;
     private readonly Func<TelefonConnection, TelefonPeer, JsonObject, Action, bool>? sendCall;
     private readonly Func<Task>? noteReady;
+    private readonly Func<TelefonConnection, TelefonPeer, TelefonAck, bool>? rejectContactRead;
     internal string RemoteCloseReason { get; private set; } = "";
     internal string Transport => transport;
     internal TelefonConnection(TelefonPeer peer, Stream stream, byte[] sid, byte[] material, TelefonStore store, Func<TelefonPeer, JsonObject, Task<TelefonAck?>> receive, CancellationToken cancellation, string transport, Func<JsonObject, Task>? customAccepted = null,
         Func<TelefonPeer, string, JsonObject, string?>? authorizeCall = null,
-        Func<TelefonConnection, TelefonPeer, JsonObject, Action, bool>? sendCall = null, Func<Task>? noteReady = null)
-    { this.noteReady = noteReady; this.authorizeCall = authorizeCall; this.sendCall = sendCall; this.customAccepted = customAccepted; this.peer = peer; this.stream = stream; this.sid = sid.ToArray(); receiveKey = material[..32]; receivePrefix = material[32..36]; sendKey = material[36..68]; sendPrefix = material[68..72]; this.store = store; this.receive = receive; this.cancellation = cancellation; this.transport = transport; lastReceivedMs = lastSentMs = Now(); }
+        Func<TelefonConnection, TelefonPeer, JsonObject, Action, bool>? sendCall = null, Func<Task>? noteReady = null,
+        Func<TelefonConnection, TelefonPeer, TelefonAck, bool>? rejectContactRead = null)
+    { this.rejectContactRead = rejectContactRead; this.noteReady = noteReady; this.authorizeCall = authorizeCall; this.sendCall = sendCall; this.customAccepted = customAccepted; this.peer = peer; this.stream = stream; this.sid = sid.ToArray(); receiveKey = material[..32]; receivePrefix = material[32..36]; sendKey = material[36..68]; sendPrefix = material[68..72]; this.store = store; this.receive = receive; this.cancellation = cancellation; this.transport = transport; lastReceivedMs = lastSentMs = Now(); }
     internal async Task RunAsync()
     {
         Task<JsonObject>? read = null;
@@ -1683,14 +1700,15 @@ internal sealed partial class TelefonConnection : IDisposable
             TelefonProtocolContract.Integer(ready["capabilities_revision"]) < 1 || TelefonProtocolContract.Integer(ready["last_received_seq"]) != -1 ||
             !Guid.TryParseExact(ready["connection_id"]?.GetValue<string>(), "D", out _)) throw new InvalidDataException("Ungültiges session_ready.");
     }
-    internal async Task SendMessageAsync(string kind, JsonObject body, long ttl)
+    internal async Task SendMessageAsync(string kind, JsonObject body, long ttl, string? contactMessageId = null)
     {
         var now = Now();
         if (kind == "device_status.request" && TelefonProtocolContract.TryInteger(body["version"], out var contactVersion) && contactVersion == PhoneContactRead.Version)
         {
             PhoneContactRead.ValidateRequest(body);
             if (!ContactReadReady || ttl is < 1 or > 60_000) throw new InvalidOperationException("contacts_not_granted");
-            await SendPlainAsync(new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"),
+            if (contactMessageId is not null && !TelefonProtocolContract.IsUuidV4(contactMessageId)) throw new InvalidDataException("invalid_contact_message");
+            await SendPlainAsync(new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = contactMessageId ?? Guid.NewGuid().ToString("D"),
                 ["kind"] = kind, ["created_ms"] = now, ["expires_ms"] = now + ttl, ["body"] = body.DeepClone() });
             return;
         }
@@ -1725,6 +1743,7 @@ internal sealed partial class TelefonConnection : IDisposable
         {
             TelefonProtocolContract.ExactObject(plain, "type", "message_id", "status", "error"); var id = plain["message_id"]?.GetValue<string>(); var status = plain["status"]?.GetValue<string>(); var error = plain["error"]?.GetValue<string>();
             if (!TelefonProtocolContract.IsUuidV4(id) || status is not ("accepted" or "duplicate" or "rejected") || (status == "rejected" ? error is not ("expired" or "invalid_schema" or "unsupported" or "not_granted" or "too_large" or "temporary_failure" or "permanent_failure" or "restore_unavailable" or "conflict") : error != "none")) throw new InvalidDataException("Ungültiges Ack.");
+            if (status == "rejected" && rejectContactRead?.Invoke(this, peer, new TelefonAck(id!, status, error!)) == true) return;
             var queued = store.OutboxMessage(peer.Id, id!);
             if (status is "accepted" or "duplicate" && queued?["kind"]?.GetValue<string>() == "personal_sync.custom_batch" &&
                 queued["body"] is JsonObject customBody && customBody["deletions"] is JsonArray { Count: > 0 } && customAccepted is not null)

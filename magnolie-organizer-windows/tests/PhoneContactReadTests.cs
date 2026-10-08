@@ -8,7 +8,7 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class PhoneContactReadTests
 {
-    internal static Task RunAsync()
+    internal static async Task RunAsync()
     {
         var request = new JsonObject { ["version"] = 5, ["request_id"] = Guid.NewGuid().ToString("D"),
             ["action"] = "index", ["offset"] = 0, ["uids"] = new JsonArray() };
@@ -26,7 +26,65 @@ internal static class PhoneContactReadTests
         var fingerprint = new string('a', 64);
         TestAssert.That(KdeContactImport.Binding("notes:fixture", fingerprint, "uid", "notes") !=
             KdeContactImport.Binding("notes:fixture", fingerprint, "uid"), "KDE and Notes source bindings collided.");
-        return Task.CompletedTask;
+        await RejectedReadBindingAsync();
+    }
+
+    private static async Task RejectedReadBindingAsync()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "contact-ack-test-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var paths = new WindowsPaths(root);
+            var store = new TelefonStore(paths, Enumerable.Repeat((byte)19, 32).ToArray());
+            var peer = new TelefonPeer("22222222-2222-4222-8222-222222222222", "Fixture", Enumerable.Repeat((byte)112, 32).ToArray());
+            store.SavePeers([peer]);
+            using var coordinator = new TelefonCoordinator(paths, (_, _) => Task.CompletedTask, dataStore: store);
+            var reject = typeof(TelefonCoordinator).GetMethod("RejectContactRead", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            using var stream = new MemoryStream();
+            using var connection = new TelefonConnection(peer, stream, new byte[32], new byte[72], store,
+                (_, _) => Task.FromResult<TelefonAck?>(null), CancellationToken.None, "wifi",
+                rejectContactRead: (source, sender, ack) => (bool)reject.Invoke(coordinator, [source, sender, ack])!);
+            using var otherStream = new MemoryStream();
+            using var other = new TelefonConnection(peer, otherStream, new byte[32], new byte[72], store,
+                (_, _) => Task.FromResult<TelefonAck?>(null), CancellationToken.None, "wifi");
+            var online = (IDictionary<string, TelefonConnection>)typeof(TelefonCoordinator)
+                .GetField("online", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator)!;
+            online[peer.Id] = connection;
+            var requests = (System.Collections.IDictionary)typeof(TelefonCoordinator)
+                .GetField("contactReads", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator)!;
+            var waitType = typeof(TelefonCoordinator).GetNestedType("ContactReadWait", BindingFlags.NonPublic)!;
+            foreach (var change in new[] { "none", "other_message", "other_channel", "rekey", "expired", "accepted", "completed" })
+            {
+                var messageId = Guid.NewGuid().ToString("D");
+                var completion = new TaskCompletionSource<JsonObject>(TaskCreationOptions.RunContinuationsAsynchronously);
+                if (change == "completed") completion.SetResult(new JsonObject());
+                var key = change == "rekey" ? new byte[32] : peer.PublicKey.ToArray();
+                var deadline = Environment.TickCount64 + (change == "expired" ? -1 : 8_000);
+                var wait = Activator.CreateInstance(waitType, peer.Id, key, connection, new JsonObject(), messageId,
+                    completion, deadline, CancellationToken.None)!;
+                requests["fixture"] = wait;
+                var ack = new TelefonAck(change == "other_message" ? Guid.NewGuid().ToString("D") : messageId,
+                    change == "accepted" ? "accepted" : "rejected", change == "accepted" ? "none" : "temporary_failure");
+                var handled = (bool)reject.Invoke(coordinator, [change == "other_channel" ? other : connection, peer, ack])!;
+                TestAssert.That(handled == (change == "none") && completion.Task.IsFaulted == (change == "none"),
+                    "A contact rejection released the wrong request: " + change);
+                if (completion.Task.IsFaulted) _ = completion.Task.Exception;
+                requests.Clear();
+            }
+            var pendingMessage = Guid.NewGuid().ToString("D");
+            var receiver = new TaskCompletionSource<JsonObject>(TaskCreationOptions.RunContinuationsAsynchronously);
+            requests["fixture"] = Activator.CreateInstance(waitType, peer.Id, peer.PublicKey.ToArray(), connection, new JsonObject(),
+                pendingMessage, receiver, Environment.TickCount64 + 8_000, CancellationToken.None)!;
+            await connection.HandlePlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = pendingMessage,
+                ["status"] = "rejected", ["error"] = "temporary_failure" });
+            TestAssert.That(receiver.Task.IsFaulted, "Validated connection acknowledgement never reached the contact waiter.");
+            _ = receiver.Task.Exception;
+        }
+        finally
+        {
+            Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+        }
     }
 
     internal static async Task<int> HostAsync()

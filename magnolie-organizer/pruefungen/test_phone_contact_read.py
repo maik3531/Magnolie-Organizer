@@ -64,3 +64,32 @@ def test_reply_requires_current_key_scope_channel_and_exact_selection(private, c
     assert pending["event"].is_set() == (change == "none")
     assert channel.sent[-1]["status"] == ("accepted" if change == "none" else "rejected")
     assert not service.store.status(peer_id), "contact fields must not enter the normal status cache"
+
+
+@pytest.mark.parametrize("change", ["none", "other_message", "other_channel", "rekey", "expired", "accepted", "completed"])
+def test_rejected_contact_ack_releases_only_the_bound_unfinished_request(private, change):
+    service = phone.PhoneService(str(private / "phone"), "Fixture")
+    peer_id = "22222222-2222-4222-8222-222222222222"
+    peer = {"device_id": peer_id, "display_name": "Fixture", "static_public": phone.b64(b"p" * 32), "state": "paired",
+            "grants": phone.desktop_grants(), "local_grants": phone.desktop_grants(), "capabilities": phone.desktop_capabilities(),
+            "last_contact_ms": 0, "bluetooth": {"enabled": False, "address": ""},
+            "personal_sync": {"own_device": True, "remote_own_device": True, "auto_wifi": False, "last_report": {}}}
+    service.store.peers.append(peer); service.store.save_peers()
+    channel = Channel(); service.connections[peer_id] = channel
+    body = request("cards", ["lookup:1"])
+    message_id = str(uuid.uuid4())
+    pending = {"peer": peer_id, "key": peer["static_public"], "channel": channel, "request": body,
+               "message_id": message_id, "deadline": phone.time.monotonic() + 8,
+               "event": threading.Event(), "result": None, "error": None}
+    service.contact_requests[body["request_id"]] = pending
+    if change == "other_message": message_id = str(uuid.uuid4())
+    if change == "other_channel": channel = Channel()
+    if change == "rekey": pending["key"] = phone.b64(b"q" * 32)
+    if change == "expired": pending["deadline"] = phone.time.monotonic() - 1
+    if change == "completed": pending["result"] = {"already": "validated"}
+    ack = {"type": "ack", "message_id": message_id,
+           "status": "accepted" if change == "accepted" else "rejected",
+           "error": "none" if change == "accepted" else "temporary_failure"}
+    service._payload(peer, channel, ack)
+    assert pending["event"].is_set() == (change == "none")
+    assert pending["error"] == ("temporary_failure" if change == "none" else None)

@@ -2699,10 +2699,12 @@ class PhoneService:
 
         def read_page(action, offset, selected):
             request_id = str(uuid.uuid4())
+            message_id = str(uuid.uuid4())
             body = {"version": 5, "request_id": request_id, "action": action, "offset": offset, "uids": selected}
             phone_contacts.validate_request(body)
             entry = {"peer": peer_id, "key": public_key, "channel": channel, "request": body,
-                     "deadline": deadline, "event": threading.Event(), "result": None}
+                      "deadline": deadline, "event": threading.Event(), "result": None,
+                      "message_id": message_id, "error": None}
             try:
                 with self.lock:
                     current = self._contact_peer(peer_id, channel)
@@ -2711,10 +2713,12 @@ class PhoneService:
                         raise PermissionError("contacts_not_granted")
                     self.contact_requests[request_id] = entry
                     created = now_ms()
-                    channel.send({"type": "message", "v": 1, "message_id": str(uuid.uuid4()), "kind": "device_status.request",
+                    channel.send({"type": "message", "v": 1, "message_id": message_id, "kind": "device_status.request",
                         "created_ms": created, "expires_ms": created + 8000, "body": body})
                 if not entry["event"].wait(max(0, deadline - time.monotonic())):
                     raise TimeoutError("contacts_read_timeout")
+                if entry["error"]:
+                    raise RuntimeError("contacts_read_" + entry["error"])
                 return entry["result"]
             finally:
                 with self.lock:
@@ -4431,6 +4435,18 @@ class PhoneService:
                     or payload["error"] not in ACK_ERRORS
                     or (payload["status"] != "rejected") != (payload["error"] == "none")):
                 raise ValueError("invalid ack")
+            if payload["status"] == "rejected":
+                with self.lock:
+                    for request in self.contact_requests.values():
+                        if (request.get("message_id") == payload["message_id"] and
+                                (request["peer"], request["key"], request["channel"]) ==
+                                (peer["device_id"], peer["static_public"], channel) and
+                                self.connections.get(peer["device_id"]) is channel and
+                                (self.store.peer(peer["device_id"]) or {}).get("static_public") == request["key"] and
+                                time.monotonic() < request["deadline"] and request["result"] is None):
+                            request["error"] = payload["error"]
+                            request["event"].set()
+                            return
             ack_policy = self.store.outbox_policy(peer["device_id"], payload["message_id"])
             if ack_policy == "expired":
                 raise ValueError("acknowledgement for expired message or run")
