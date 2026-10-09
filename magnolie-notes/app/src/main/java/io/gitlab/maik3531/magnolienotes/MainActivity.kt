@@ -11,6 +11,8 @@ import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -40,6 +42,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -73,6 +76,7 @@ import io.gitlab.maik3531.magnolienotes.telefon.TelefonWerk
 import io.gitlab.maik3531.magnolienotes.ui.EinfuhrBlatt
 import io.gitlab.maik3531.magnolienotes.ui.Einband
 import io.gitlab.maik3531.magnolienotes.ui.MagnolieThema
+import io.gitlab.maik3531.magnolienotes.ui.Magnolie
 import io.gitlab.maik3531.magnolienotes.ui.NotizBlatt
 import io.gitlab.maik3531.magnolienotes.ui.NotizEditor
 import io.gitlab.maik3531.magnolienotes.ui.AnhangEreignis
@@ -124,6 +128,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(zustand: Bundle?) {
         super.onCreate(zustand)
+        // Ein gemeinsamer Insets-Vertrag auf älteren Geräten und ab Android 15:
+        // helle Systemknöpfe auf Leder, ohne die Sichtbarkeit der Leisten zu ändern.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(Magnolie.lederDunkel.toArgb()),
+            navigationBarStyle = SystemBarStyle.dark(Magnolie.lederDunkel.toArgb())
+        )
         if (zustand?.getBoolean(QR_LINK_VERBRAUCHT) == true) {
             if (intent?.data == null && intent?.action in listOf(null, Intent.ACTION_MAIN))
                 gewuenschteAufgabe.value = intent?.getStringExtra(ZEIGE_AUFGABE)

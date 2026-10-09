@@ -4,8 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
@@ -95,7 +98,17 @@ private val schrift = Typography(
 
 @Composable
 fun MagnolieThema(inhalt: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = farben, typography = schrift, content = inhalt)
+    MaterialTheme(colorScheme = farben, typography = schrift) {
+        // Android 15 kann die Navigationsleiste transparent erzwingen. Ihr
+        // sichtbarer Bereich gehört zum Einband, nicht zum Papier eines Editors.
+        // Das Padding verbraucht die tatsächlichen Insets für alle Kinder:
+        // Register/Editoren reservieren sie nicht doppelt, eine verborgene Leiste
+        // reserviert nichts und seitliche Knöpfe im Querformat bleiben frei.
+        Box(Modifier.fillMaxSize().background(Magnolie.lederDunkel)
+            .windowInsetsPadding(WindowInsets.navigationBars)) {
+            inhalt()
+        }
+    }
 }
 
 /** Der Ledereinband als Hintergrund – für Kopfleiste und Register. */
