@@ -18161,11 +18161,21 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const gruppenWahl = document.createElement("select"); gruppenWahl.multiple = true; gruppenWahl.size = 4;
       gruppenWahl.id = "kontakt-personengruppen";
       const values = [...new Set(["Family", "Work", "Client", "Tradesperson", "Insurance", "Doctor", ...DATEN.kontakte.flatMap(kontaktGruppen), ...personengruppen])];
-      const render = () => { gruppenWahl.replaceChildren(); for (const value of values) {
+      const render = () => { gruppenWahl.replaceChildren();
+        const ohneGruppe = el("option", null, _("No contact group")); ohneGruppe.value = "";
+        ohneGruppe.selected = personengruppen.length === 0; gruppenWahl.append(ohneGruppe);
+        for (const value of values) {
         const option = el("option", null, kontaktGruppenName(value)); option.value = value; option.selected = personengruppen.includes(value); gruppenWahl.append(option);
       } };
       render();
-      gruppenWahl.addEventListener("change", () => { personengruppen = [...gruppenWahl.selectedOptions].map(option => option.value); gruppenGeaendert = true; });
+      gruppenWahl.addEventListener("change", () => {
+        const auswahl = [...gruppenWahl.selectedOptions].map(option => option.value);
+        // The empty option either clears existing groups or yields to the first
+        // group selected alongside the previous empty/default choice (Ctrl-click).
+        personengruppen = auswahl.includes("") && personengruppen.length
+          ? [] : auswahl.filter(Boolean);
+        gruppenGeaendert = true; render();
+      });
       const eigeneGruppe = eingabe("text", ""); eigeneGruppe.maxLength = 80; eigeneGruppe.id = "kontakt-eigene-personengruppe";
       const hinzufuegen = knopf(_("Add contact group"), "klein", () => {
         const value = eigeneGruppe.value.trim(); if (!value) return;

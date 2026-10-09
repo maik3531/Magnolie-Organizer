@@ -1868,6 +1868,9 @@ msgstr ""
 "Voorstellen om contacten te verwijderen zijn door de veiligheidslimiet "
 "geblokkeerd."
 
+msgid "No contact group"
+msgstr "Geen contactgroep"
+
 msgid "Contact groups"
 msgstr "Contactgroepen"
 

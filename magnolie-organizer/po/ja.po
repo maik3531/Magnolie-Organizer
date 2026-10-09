@@ -1818,6 +1818,9 @@ msgstr "連絡先カード (*.vcf)"
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "連絡先の削除提案は安全上の制限によりブロックされました。"
 
+msgid "No contact group"
+msgstr "連絡先グループなし"
+
 msgid "Contact groups"
 msgstr "連絡先グループ"
 

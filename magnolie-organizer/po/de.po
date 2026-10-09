@@ -1877,6 +1877,9 @@ msgstr "Visitenkarten (*.vcf)"
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Kontakt-Löschvorschläge wurden durch die Sicherheitsgrenze blockiert."
 
+msgid "No contact group"
+msgstr "Ohne Personengruppe"
+
 msgid "Contact groups"
 msgstr "Personengruppen"
 

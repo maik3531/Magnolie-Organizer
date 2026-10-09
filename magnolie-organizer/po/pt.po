@@ -1880,6 +1880,9 @@ msgstr ""
 "As propostas de eliminação de contactos foram bloqueadas pelo limite de "
 "segurança."
 
+msgid "No contact group"
+msgstr "Sem grupo de contactos"
+
 msgid "Contact groups"
 msgstr "Grupos de contactos"
 

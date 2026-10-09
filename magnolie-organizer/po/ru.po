@@ -1906,6 +1906,9 @@ msgstr "Карточки контактов (*.vcf)"
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Предложения удаления контактов заблокированы пределом безопасности."
 
+msgid "No contact group"
+msgstr "Без группы контактов"
+
 msgid "Contact groups"
 msgstr "Группы контактов"
 

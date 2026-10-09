@@ -1858,6 +1858,9 @@ msgstr "Kişi kartları (*.vcf)"
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Kişi silme önerileri güvenlik sınırı tarafından engellendi."
 
+msgid "No contact group"
+msgstr "Kişi grubu yok"
+
 msgid "Contact groups"
 msgstr "Kişi grupları"
 

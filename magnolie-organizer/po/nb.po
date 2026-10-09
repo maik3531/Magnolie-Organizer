@@ -1854,6 +1854,9 @@ msgstr "Kontaktkort (*.vcf)"
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Forslag om sletting av kontakter ble blokkert av sikkerhetsgrensen."
 
+msgid "No contact group"
+msgstr "Ingen kontaktgruppe"
+
 msgid "Contact groups"
 msgstr "Kontaktgrupper"
 

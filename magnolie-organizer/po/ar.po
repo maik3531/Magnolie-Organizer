@@ -1982,6 +1982,9 @@ msgstr "بطاقات جهات الاتصال (*.vcf)"
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "حُظرت مقترحات حذف جهات الاتصال بسبب حد الأمان."
 
+msgid "No contact group"
+msgstr "بلا مجموعة جهات اتصال"
+
 msgid "Contact groups"
 msgstr "مجموعات جهات الاتصال"
 

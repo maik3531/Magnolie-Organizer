@@ -1938,6 +1938,9 @@ msgstr "Kontaktne karty (*.vcf)"
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Namjety za zhašenje kontaktow su so přez wěstotnu hranicu blokowali."
 
+msgid "No contact group"
+msgstr "Bjez kontaktneje skupiny"
+
 msgid "Contact groups"
 msgstr "Skupiny kontaktow"
 

@@ -1885,6 +1885,9 @@ msgstr "Kontaktní karty (*.vcf)"
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Návrhy odstranění kontaktů byly zablokovány bezpečnostním limitem."
 
+msgid "No contact group"
+msgstr "Bez skupiny kontaktů"
+
 msgid "Contact groups"
 msgstr "Skupiny kontaktů"
 

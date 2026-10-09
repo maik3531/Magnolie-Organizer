@@ -1896,6 +1896,9 @@ msgstr "Карткі кантактаў (*.vcf)"
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Прапановы выдалення кантактаў заблакаваны мяжой бяспекі."
 
+msgid "No contact group"
+msgstr "Без групы кантактаў"
+
 msgid "Contact groups"
 msgstr "Групы кантактаў"
 

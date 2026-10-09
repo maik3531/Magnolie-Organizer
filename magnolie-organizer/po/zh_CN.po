@@ -1750,6 +1750,9 @@ msgstr "联系人卡片 (*.vcf)"
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "联系人删除建议已被安全限制阻止。"
 
+msgid "No contact group"
+msgstr "无联系人分组"
+
 msgid "Contact groups"
 msgstr "联系人分组"
 

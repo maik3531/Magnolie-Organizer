@@ -1822,6 +1822,9 @@ msgstr "संपर्क कार्ड (*.vcf)"
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "संपर्क हटाने के प्रस्ताव सुरक्षा सीमा द्वारा रोके गए।"
 
+msgid "No contact group"
+msgstr "कोई संपर्क समूह नहीं"
+
 msgid "Contact groups"
 msgstr "संपर्क समूह"
 

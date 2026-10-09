@@ -3814,6 +3814,9 @@ msgstr ""
 msgid "No calendars found."
 msgstr ""
 
+msgid "No contact group"
+msgstr ""
+
 msgid "No data was found."
 msgstr ""
 
