@@ -1388,6 +1388,15 @@ body[data-hilfsrahmen="an"] .mm-tag:focus-visible {
   min-width: 0;
 }
 
+.kontakt-editor-profilkopf {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14em), 1fr));
+  gap: 12px; min-width: 0;
+}
+.kontakt-editor-profilkopf > .formzeile, .kontakt-editor-gruppen { min-width: 0; margin: 0; }
+.kontakt-editor-profilkopf .kontakt-foto-wahl { flex-wrap: wrap; }
+.kontakt-editor-gruppen select, .kontakt-editor-gruppen input { width: 100%; min-width: 0; box-sizing: border-box; }
+.kontakt-editor-gruppen .knopf { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+
 .kontakt-foto-platzhalter {
   width: 76px;
   height: 92px;

@@ -17990,7 +17990,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     form.append(anschriftVorschlaege);
     zeichneAnschriften();
 
+    const profilKopf = el("div", "kontakt-editor-profilkopf");
+    form.append(profilKopf);
     if (DATEN.einstellungen.adressen.foto) {
+      profilKopf.classList.add("mit-foto");
       const fotoKasten = el("div", "kontakt-foto-wahl");
       const vorschau = document.createElement("img");
       vorschau.className = "kontakt-foto vorschau";
@@ -18048,7 +18051,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const bedienung = el("div", "kontakt-foto-bedienung");
       bedienung.append(status, fotoKnopf, datei);
       fotoKasten.append(vorschau, platzhalter, bedienung);
-      form.append(formZeile(_("Photo"), fotoKasten));
+      profilKopf.append(formZeile(_("Photo"), fotoKasten));
       frischen();
     }
 
@@ -18418,7 +18421,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     weitere.append(kontaktAufgabeKopf, kontaktAufgabeKasten);
     zeichneKontaktAufgaben();
     const gruppenVorher = kontaktGruppen(k || {}); let personengruppen = gruppenVorher.slice(), gruppenGeaendert = false;
-    if (DATEN.einstellungen.adressen.personengruppenAn) {
+    {
+      const gruppenKasten = el("div", "kontakt-editor-gruppen");
       const gruppenWahl = document.createElement("select"); gruppenWahl.multiple = true; gruppenWahl.size = 4;
       gruppenWahl.id = "kontakt-personengruppen";
       const values = [...new Set(["Family", "Work", "Client", "Tradesperson", "Insurance", "Doctor", ...DATEN.kontakte.flatMap(kontaktGruppen), ...personengruppen])];
@@ -18434,10 +18438,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         personengruppen = [...new Set([...personengruppen, value])]; gruppenGeaendert = true;
         eigeneGruppe.value = ""; render();
       }); hinzufuegen.type = "button";
-      weitere.append(formZeile(_("Contact groups"), gruppenWahl), eigeneGruppe, hinzufuegen);
+      gruppenKasten.append(formZeile(_("Contact groups"), gruppenWahl), eigeneGruppe, hinzufuegen);
+      profilKopf.append(gruppenKasten);
     }
     const weitereGefuellt = vorhandeneEreignisse.length > 0 ||
-      DATEN.einstellungen.adressen.personengruppenAn && personengruppen.length > 0 ||
       sozialeMedienListe({ sozialeMedien: sozialeMedien }).length > 0 ||
       kontaktpersonen.some(
         (person) => person.name || person.telefon || person.status);
@@ -18539,7 +18543,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       setzeAnschriftListe(ziel, anschriften);
       setzeKontaktpersonen(ziel, kontaktpersonen);
       setzeSozialeMedien(ziel, sozialeMedien);
-      if (gruppenGeaendert) setzeKontaktGruppen(ziel, personengruppen);
+      if (gruppenGeaendert) {
+        setzeKontaktGruppen(ziel, personengruppen);
+        // Choosing a group is the explicit opt-in to showing/searching it;
+        // the empty/default configuration itself is left unchanged.
+        if (personengruppen.length) DATEN.einstellungen.adressen.personengruppenAn = true;
+      }
       const ereignisName = [ziel.vorname, ziel.nachname].filter(Boolean).join(" ") || ziel.firma;
       const behalten = new Set();
       for (const ereignis of ereignisse) {

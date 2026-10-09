@@ -37,6 +37,30 @@ for (const web of require("./web-test-roots")) {
     assert.ok(w.document.querySelector("#inhalt-links .liste").textContent.includes("Synthetic"), "Group names must participate in search");
     t.setzeKontaktGruppen(card, Array.from({ length: 40 }, (_, n) => "Imported group " + n));
     assert.equal(t.kontaktGruppen(card).length, 40, "Imported groups must not be silently trimmed");
+    w.App.init({ neu: false, regional: { language: "en" }, daten: {
+      kontakte: [{ id: "empty", vorname: "Empty", nachname: "Group", vcardRoundtrip: [] }],
+      einstellungen: { adressen: { personengruppenAn: false } } } });
+    t.zustand().adressen.buchstabe = "G"; t.zustand().adressen.auswahlId = "empty";
+    t.zustand().adressen.suche = "";
+    t.zustand().sektion = "kalender";
+    t.wechsel("adressen");
+    assert.ok(!w.document.querySelector(".kontakt-kopf-text .k-label"), "Unassigned contact shows an empty group label");
+    [...w.document.querySelectorAll("button")].find(button => button.textContent === "Edit").click();
+    const direct = w.document.querySelector("#kontakt-personengruppen");
+    assert.ok(direct && direct.closest(".kontakt-editor-profilkopf"), "Group assignment missing next to photo in editor header");
+    assert.ok(!direct.closest(".kontakt-weitere"), "Group assignment remains hidden in More fields");
+    assert.strictEqual(t.daten().einstellungen.adressen.personengruppenAn, false, "Opening editor silently enabled groups");
+    [...direct.options].forEach(option => { option.selected = option.value === "Family"; });
+    direct.dispatchEvent(new w.Event("change"));
+    [...w.document.querySelectorAll("button")].find(button => button.textContent === "Save changes").click();
+    assert.ok(t.kontaktGruppen(t.daten().kontakte.find(item => item.id === "empty")).includes("Family"));
+    assert.ok(w.document.querySelector(".kontakt-kopf-text .k-label").textContent.includes("Family"), "Explicitly selected group is still invisible");
+    [...w.document.querySelectorAll("button")].find(button => button.textContent === "Edit").click();
+    const clear = w.document.querySelector("#kontakt-personengruppen");
+    [...clear.options].forEach(option => { option.selected = false; });
+    clear.dispatchEvent(new w.Event("change"));
+    [...w.document.querySelectorAll("button")].find(button => button.textContent === "Save changes").click();
+    assert.ok(!w.document.querySelector(".kontakt-kopf-text .k-label"), "Removing last group leaves a visible placeholder");
   } finally { w.close(); }
 }
 console.log("CONTACT GROUPS PASSED: opt-in, imported categories, escaping, labels and preservation");
