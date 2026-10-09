@@ -25,6 +25,7 @@ for (const web of require("./web-test-roots")) {
     [...w.document.querySelectorAll("button")].find(button => button.textContent === "Edit").click();
     const picker = w.document.querySelector("#kontakt-personengruppen");
     assert.ok(picker && picker.multiple);
+    assert.equal(picker.size, 3, "Group chooser must show three entries");
     assert.ok([...picker.options].some(option => option.value === "Doctor"));
     const own = w.document.querySelector("#kontakt-eigene-personengruppe"); own.value = "Own new group";
     [...w.document.querySelectorAll("button")].find(button => button.textContent === "Add contact group").click();
@@ -76,8 +77,11 @@ for (const web of require("./web-test-roots")) {
     cleared.dispatchEvent(new w.Event("change"));
     assert.deepEqual(Array.from(cleared.selectedOptions, option => option.value), ["Family", "Work"]);
     cleared.options[0].selected = true;
+    const stableOption = [...cleared.options].find(option => option.value === "Work");
     cleared.dispatchEvent(new w.Event("change"));
     assert.deepEqual(Array.from(cleared.selectedOptions, option => option.value), [""]);
+    assert.equal([...cleared.options].find(option => option.value === "Work"), stableOption,
+      "Changing selection rebuilt native options and reset scrolling/focus");
     const ownAfterClear = w.document.querySelector("#kontakt-eigene-personengruppe");
     ownAfterClear.value = "Custom group";
     [...w.document.querySelectorAll("button")].find(button => button.textContent === "Add contact group").click();

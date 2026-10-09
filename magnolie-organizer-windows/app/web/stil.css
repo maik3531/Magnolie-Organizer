@@ -1468,12 +1468,18 @@ body[data-hilfsrahmen="an"] .mm-tag:focus-visible {
 
 .kontakt-editor-profilkopf {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14em), 1fr));
-  gap: 12px; min-width: 0;
+  gap: 12px; min-width: 0; margin-bottom: 12px;
 }
 .kontakt-editor-profilkopf > .formzeile, .kontakt-editor-gruppen { min-width: 0; margin: 0; }
 .kontakt-editor-profilkopf .kontakt-foto-wahl { flex-wrap: wrap; }
 .kontakt-editor-gruppen select, .kontakt-editor-gruppen input { width: 100%; min-width: 0; box-sizing: border-box; }
 .kontakt-editor-gruppen .knopf { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+#kontakt-personengruppen { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+#kontakt-personengruppen.kontakt-gruppen-scrollt { scrollbar-color: var(--linie-stark) transparent; }
+#kontakt-personengruppen::-webkit-scrollbar { width: 3px; }
+#kontakt-personengruppen::-webkit-scrollbar-track { background: transparent; }
+#kontakt-personengruppen::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
+#kontakt-personengruppen.kontakt-gruppen-scrollt::-webkit-scrollbar-thumb { background: var(--linie-stark); }
 
 .kontakt-foto-platzhalter {
   width: 76px;
