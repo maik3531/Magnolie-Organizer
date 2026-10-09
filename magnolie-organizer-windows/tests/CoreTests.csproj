@@ -72,6 +72,7 @@
     <Compile Include="..\TelefonMessagingContract.cs" Link="TelefonMessagingContract.cs" />
     <Compile Include="..\TelefonCallContract.cs" Link="TelefonCallContract.cs" />
     <Compile Include="..\PersonalSyncContract.cs" Link="PersonalSyncContract.cs" />
+    <Compile Include="..\SharedSyncSettings.cs" Link="SharedSyncSettings.cs" />
     <Compile Include="..\TimeSyncContract.cs" Link="TimeSyncContract.cs" />
     <Compile Include="..\OpenHolidayData.cs" Link="OpenHolidayData.cs" />
     <Compile Include="..\PersonalSyncStore.cs" Link="PersonalSyncStore.cs" />

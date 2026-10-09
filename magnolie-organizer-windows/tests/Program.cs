@@ -52,6 +52,7 @@ if (args.FirstOrDefault() == "--published-release-audit")
 }
 
 var runner = new TestRunner();
+runner.Add("Shared synchronization settings / one choice / peer scope / convergence", SharedSyncSettingsTests.RunAsync);
 runner.Add("Baum synchronization snapshot continuity", BaumSyncSnapshotTests.RunAsync);
 runner.Add("Background lifecycle regressions", BackgroundLifecycleTests.RunAsync);
 runner.Add("Native sync safety / baselines / mailbox / recovery", NativeSyncSafetyTests.RunAsync);
