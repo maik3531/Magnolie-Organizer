@@ -940,28 +940,32 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return entfernt.size;
   }
 
-  async function personalSyncSnapshot(module, format = 1, peerId = "") {
+  async function personalSyncSnapshot(module, format = 1, peerId = "", options = {}) {
     sichereNotizSnapshot();
     const ps = DATEN.personalSync;
     if (!ps.actor_id) ps.actor_id = crypto.randomUUID();
     const kandidaten = [];
+    const selection = options.selection || null;
+    const selectedNotes = module.includes("notes") ? DATEN.notizen.filter(personalSyncEigeneNotiz).filter(n =>
+      !selection || selection.notes.has(personalSyncNotizWireId(n.id))) : [];
+    const selectedBooks = new Set(selectedNotes.map(n => n.notizbuchId || NOTIZ_STANDARD_BUCH));
     if (peerId && ps.peer_device_id !== peerId) {
       ps.peer_device_id = peerId; ps.restoration_requests = [];
       Object.values(ps.entities).forEach((meta) => { meta.acknowledged_by_peer = false; });
     }
     if (module.includes("notes")) {
-      DATEN.notizbuecher.forEach((x) => kandidaten.push(["notebook", x]));
-      DATEN.notizen.filter(personalSyncEigeneNotiz).forEach((x) => kandidaten.push(["note", x]));
+      DATEN.notizbuecher.filter(x => !selection || selectedBooks.has(x.id)).forEach((x) => kandidaten.push(["notebook", x]));
+      selectedNotes.forEach((x) => kandidaten.push(["note", x]));
     }
     if (module.includes("tasks")) DATEN.aufgaben.filter((x) =>
-      !x.vonZweig && !x.fremdId && !x.delegiertAn && !x.herkunft).forEach((x) => kandidaten.push(["task", x]));
+      !x.vonZweig && !x.fremdId && !x.delegiertAn && !x.herkunft && (!selection || selection.tasks.has(x.id))).forEach((x) => kandidaten.push(["task", x]));
     const projiziert = new Set(kandidaten.map(([art, objekt]) => art + "\u0000" + (["note", "notebook"].includes(art) ? personalSyncNotizWireId(objekt.id, art) : objekt.id)));
     const vorhanden = new Set([
       ...DATEN.notizen.map(n => "note\u0000" + personalSyncNotizWireId(n.id)),
       ...DATEN.aufgaben.map(t => "task\u0000" + t.id), ...DATEN.notizbuecher.map(b => "notebook\u0000" + personalSyncNotizWireId(b.id, "notebook"))
     ]);
     const anhangVorhanden = new Set();
-    if (format >= 2 && module.includes("notes")) for (const notiz of DATEN.notizen) {
+    if (format >= 2 && module.includes("notes")) for (const notiz of selectedNotes) {
       if (!personalSyncEigeneNotiz(notiz)) continue;
       for (const anhang of (notiz.anhaenge || [])) anhangVorhanden.add(
         "attachment\u0000" + personalSyncNotizWireId(notiz.id) + "\u0000" + personalSyncAnhangId(personalSyncNotizWireId(notiz.id), anhang.id));
@@ -969,6 +973,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const erlaubte = new Set(module.includes("notes") ? ["note", "notebook"] : []);
     if (module.includes("tasks")) erlaubte.add("task");
     for (const [key, alt] of Object.entries(ps.entities)) {
+      if (options.independentRemovals === true) continue;
       const art = key.split("\u0000", 1)[0];
       const anhangWeg = format >= 2 && module.includes("notes") && art === "attachment" && !anhangVorhanden.has(key);
       const teile = key.split("\u0000");
@@ -1018,7 +1023,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       records.push({ kind: art, id: String(id), state: "live", clock: meta.clock,
         hash: meta.hash, modified_ms: meta.modified_ms, value: wert });
     }
-    if (format >= 2 && module.includes("notes")) for (const notiz of DATEN.notizen) {
+    if (format >= 2 && module.includes("notes")) for (const notiz of selectedNotes) {
       if (!personalSyncEigeneNotiz(notiz)) continue;
       for (const anhang of (notiz.anhaenge || [])) {
         const parentId = personalSyncNotizWireId(notiz.id);

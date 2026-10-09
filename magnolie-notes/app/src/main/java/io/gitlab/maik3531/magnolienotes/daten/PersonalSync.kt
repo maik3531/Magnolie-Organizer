@@ -100,6 +100,9 @@ data class PersonalSyncSnapshot(
     val attachments: Map<String, PersonalSync.AttachmentSnapshot>
 )
 
+/** Wire identities selected before content/attachment materialization. */
+data class PersonalContentSelection(val notes: Set<String>, val tasks: Set<String>)
+
 data class PersonalSyncResult(
     val bestand: Bestand,
     val conflicts: Int = 0,
@@ -398,15 +401,17 @@ object PersonalSync {
 
     fun reconcile(input: Bestand, modules: Set<String>, format: Int = 1,
                   peerId: String = input.personalSync.peer_device_id,
-                  nowMs: Long = System.currentTimeMillis()): Pair<Bestand, List<PersonalSyncRecord>> {
+                  nowMs: Long = System.currentTimeMillis(), selection: PersonalContentSelection? = null,
+                  independentRemovals: Boolean = false): Pair<Bestand, List<PersonalSyncRecord>> {
         require(format in 1..3)
         var state = input.personalSync
         val actor = state.actor_id.takeIf(uuid4::matches) ?: UUID.randomUUID().toString()
         var counter = state.counter.coerceAtLeast(0)
         val entities = state.entities.toMutableMap()
-        val projected = projections(input, modules, format)
+        val projected = projections(input, modules, format, selection)
         val projectedAttachments = if (format >= 2 && "notes" in modules) input.notizen
-            .filter(::ownNote).flatMap { note -> note.anhaenge.mapNotNull { attachment ->
+            .filter { ownNote(it) && (selection == null || noteWireId(state, it.id) in selection.notes) }
+            .flatMap { note -> note.anhaenge.mapNotNull { attachment ->
                 wireAttachment(state, noteWireId(state, note.id), attachment)?.let { snapshot ->
                     "attachment\u0000${noteWireId(state, note.id)}\u0000${snapshot.descriptor.text("attachment_id")}" to Triple(note, attachment, snapshot)
                 }
@@ -432,7 +437,7 @@ object PersonalSync {
                 "note\u0000$parent" !in projected
             }
             if ((kind in eligibleKinds && key !in projected || attachmentGone) && key !in present && !parentGone &&
-                old.state == "live" && old.acknowledged_by_peer && old.peer_device_id == peerId) {
+                old.state == "live" && old.acknowledged_by_peer && old.peer_device_id == peerId && !independentRemovals) {
                 counter++
                 val clock = mergeOptional(old.clock, PersonalSyncClock(actor, counter))
                 val parts = key.split('\u0000'); val id = parts.last()
@@ -481,15 +486,23 @@ object PersonalSync {
         (clock + item).groupBy { it.actor_id }.mapValues { it.value.maxOf(PersonalSyncClock::counter) }
             .entries.sortedWith { a, b -> compareUtf8(a.key, b.key) }.map { PersonalSyncClock(it.key, it.value) }
 
-    private fun projections(input: Bestand, modules: Set<String>, format: Int): Map<String, JsonObject> {
+    fun livePersonalContent(input: Bestand): PersonalContentSelection = PersonalContentSelection(
+        input.notizen.filter(::ownNote).mapTo(mutableSetOf()) { noteWireId(input.personalSync, it.id) },
+        input.aufgaben.filter(::ownTask).mapTo(mutableSetOf()) { it.id })
+
+    private fun ownTask(task: Aufgabe) = task.vonZweig.isBlank() && task.fremdId.isBlank() && task.delegiertAn.isBlank() && task.herkunft.isBlank()
+
+    private fun projections(input: Bestand, modules: Set<String>, format: Int, selection: PersonalContentSelection? = null): Map<String, JsonObject> {
         val result = linkedMapOf<String, JsonObject>()
         if ("notes" in modules) {
-            input.notizbuecher.forEach { result["notebook\u0000${noteWireId(input.personalSync, it.id, "notebook")}"] = notebookValue(it) }
-            input.notizen.filter(::ownNote).forEach { result["note\u0000${noteWireId(input.personalSync, it.id)}"] = noteValue(it, format, input.personalSync) }
+            val notes = input.notizen.filter { ownNote(it) && (selection == null || noteWireId(input.personalSync, it.id) in selection.notes) }
+            val books = notes.mapTo(mutableSetOf()) { it.notizbuchId }
+            input.notizbuecher.filter { selection == null || it.id in books }
+                .forEach { result["notebook\u0000${noteWireId(input.personalSync, it.id, "notebook")}"] = notebookValue(it) }
+            notes.forEach { result["note\u0000${noteWireId(input.personalSync, it.id)}"] = noteValue(it, format, input.personalSync) }
         }
-        if ("tasks" in modules) AufgabenHierarchie.normalisieren(input.aufgaben.filter {
-            it.vonZweig.isBlank() && it.fremdId.isBlank() && it.delegiertAn.isBlank() && it.herkunft.isBlank()
-        }).forEach {
+        if ("tasks" in modules) AufgabenHierarchie.normalisieren(input.aufgaben.filter(::ownTask))
+            .filter { selection == null || it.id in selection.tasks }.forEach {
             result["task\u0000${it.id}"] = taskValue(it, format)
         }
         return result
