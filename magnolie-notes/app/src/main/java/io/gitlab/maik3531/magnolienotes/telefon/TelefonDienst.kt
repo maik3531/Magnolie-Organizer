@@ -7,8 +7,6 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ServiceInfo
-import android.os.Build
 import android.os.IBinder
 import android.net.ConnectivityManager
 import android.net.Network
@@ -17,6 +15,7 @@ import android.net.NetworkRequest
 import io.gitlab.maik3531.magnolienotes.MainActivity
 import io.gitlab.maik3531.magnolienotes.MagnolieApp
 import io.gitlab.maik3531.magnolienotes.R
+import io.gitlab.maik3531.magnolienotes.VerbindungsHinweis
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -46,13 +45,13 @@ class TelefonDienst : Service() {
             startJob?.cancel()
             TelefonAblage.get(this).setEnabled(false)
             TelefonWerk.get(this).serviceStopped()
-            stopForeground(STOP_FOREGROUND_REMOVE); stopSelf(); return START_NOT_STICKY
+            VerbindungsHinweis.entfernen(this); stopSelf(); return START_NOT_STICKY
         }
         foreground()
         if (startJob?.isActive == true) return START_STICKY
         startJob = scope.launch {
             if (!(application as MagnolieApp).awaitReady()) {
-                stopForeground(STOP_FOREGROUND_REMOVE)
+                VerbindungsHinweis.entfernen(this@TelefonDienst)
                 stopSelf(startId)
                 return@launch
             }
@@ -61,7 +60,7 @@ class TelefonDienst : Service() {
             werk = current
             val started = runCatching { withContext(Dispatchers.IO) { current.serviceStarted() } }
             if (started.isFailure) {
-                stopForeground(STOP_FOREGROUND_REMOVE); stopSelf(); return@launch
+                VerbindungsHinweis.entfernen(this@TelefonDienst); stopSelf(); return@launch
             }
             listenForWifi()
             launch(Dispatchers.IO) {
@@ -80,6 +79,7 @@ class TelefonDienst : Service() {
         connectivity = null
         werk?.serviceStopped()
         werk = null
+        VerbindungsHinweis.entfernen(this)
         super.onDestroy()
     }
 
@@ -112,9 +112,8 @@ class TelefonDienst : Service() {
         }
         val notification = Notification.Builder(this, CHANNEL).setContentTitle(getString(R.string.telefon_titel))
             .setContentText(text).setSmallIcon(R.drawable.ic_baum).setContentIntent(open)
-            .addAction(0, getString(R.string.telefon_trennen), stop).setOngoing(true).build()
-        if (Build.VERSION.SDK_INT >= 34) startForeground(ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
-        else startForeground(ID, notification)
+            .addAction(0, getString(R.string.telefon_trennen), stop).setOngoing(true).setOnlyAlertOnce(true).build()
+        VerbindungsHinweis.aktualisieren(this, VerbindungsHinweis.Quelle.TELEFON, notification)
     }
     private fun channel() {
         val manager = getSystemService(NotificationManager::class.java) ?: return
@@ -124,7 +123,6 @@ class TelefonDienst : Service() {
     companion object {
         const val STOP = "io.gitlab.maik3531.magnolienotes.telefon.STOP"
         private const val CHANNEL = "magnolie_phone"
-        private const val ID = 8741
         fun start(context: Context) { TelefonAblage.get(context).setEnabled(true); context.startForegroundService(Intent(context, TelefonDienst::class.java)) }
         fun stop(context: Context) {
             TelefonAblage.get(context).setEnabled(false)

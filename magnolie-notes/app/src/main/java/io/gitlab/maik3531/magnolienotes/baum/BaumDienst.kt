@@ -7,14 +7,13 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ServiceInfo
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import android.os.Build
 import android.os.IBinder
 import io.gitlab.maik3531.magnolienotes.MainActivity
 import io.gitlab.maik3531.magnolienotes.MagnolieApp
 import io.gitlab.maik3531.magnolienotes.R
+import io.gitlab.maik3531.magnolienotes.VerbindungsHinweis
 import io.gitlab.maik3531.magnolienotes.journal.AndroidJournal
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -97,11 +96,12 @@ class BaumDienst : Service() {
         if ((application as MagnolieApp).startZustand.value == io.gitlab.maik3531.magnolienotes.StartZustand.Bereit) {
             Baumwerk.hole(this).dienstAnhalten()
         }
+        VerbindungsHinweis.entfernen(this)
         super.onDestroy()
     }
 
     private fun beenden() {
-        stopForeground(STOP_FOREGROUND_REMOVE)
+        VerbindungsHinweis.entfernen(this)
         stopSelf()
     }
 
@@ -116,12 +116,9 @@ class BaumDienst : Service() {
             .setSmallIcon(R.drawable.ic_baum)
             .setContentIntent(oeffnen)
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .build()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(HINWEIS_ID, hinweis, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
-        } else {
-            startForeground(HINWEIS_ID, hinweis)
-        }
+        VerbindungsHinweis.aktualisieren(this, VerbindungsHinweis.Quelle.BAUM, hinweis)
     }
 
     private fun kanalAnlegen() {
@@ -143,7 +140,6 @@ class BaumDienst : Service() {
 
     companion object {
         private const val KANAL = "magnolienbaum"
-        private const val HINWEIS_ID = 8737
         const val ANHALTEN = "io.gitlab.maik3531.magnolienotes.ANHALTEN"
 
         fun starten(zusammenhang: Context, bluetooth: Boolean = false) {

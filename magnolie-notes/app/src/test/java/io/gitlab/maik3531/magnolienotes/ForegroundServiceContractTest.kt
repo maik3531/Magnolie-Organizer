@@ -61,8 +61,12 @@ class ForegroundServiceContractTest {
             "src/main/java/io/gitlab/maik3531/magnolienotes/telefon/TelefonDienst.kt").readText()
 
         assertFalse("foregroundServiceType=\"dataSync\"" in manifest)
-        assertTrue("FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE" in baum)
-        assertTrue("FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE" in telefon)
+        val gemeinsamerHinweis = project.resolve(
+            "src/main/java/io/gitlab/maik3531/magnolienotes/VerbindungsHinweis.kt").readText()
+        assertTrue("VerbindungsHinweis.Quelle.BAUM" in baum)
+        assertTrue("VerbindungsHinweis.Quelle.TELEFON" in telefon)
+        assertTrue("FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE" in gemeinsamerHinweis)
+        assertFalse("FOREGROUND_SERVICE_TYPE_DATA_SYNC" in gemeinsamerHinweis)
         assertFalse("FOREGROUND_SERVICE_TYPE_DATA_SYNC" in baum)
         assertFalse("FOREGROUND_SERVICE_TYPE_DATA_SYNC" in telefon)
     }
