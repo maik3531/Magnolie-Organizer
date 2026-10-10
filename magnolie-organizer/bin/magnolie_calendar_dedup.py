@@ -6,12 +6,69 @@ performs provider writes and never treats matching names alone as proof.
 from collections import Counter, defaultdict
 from datetime import datetime
 import hashlib
+import json
+import os
+from pathlib import Path
 import re
+import tempfile
 
 from magnolie_recurrence import properties
 
 METADATA = frozenset({"UID", "DTSTAMP", "CREATED", "LAST-MODIFIED", "SEQUENCE",
-    "X-EVOLUTION-CALDAV-ETAG", "X-EVOLUTION-ALARM-UID", "X-LIC-ERROR"})
+    "X-EVOLUTION-CALDAV-ETAG", "X-EVOLUTION-ALARM-UID"})
+
+
+class CleanupArchive:
+    """Encrypted, bounded per-source recovery proof outside the live sync queue."""
+    MAX_BYTES = 16 * 1024 * 1024
+
+    def __init__(self, directory, binding, key_provider):
+        self.directory = Path(directory)
+        self.aad = b"magnolie-calendar-cleanup-v1\0" + binding.encode("utf-8")
+        self.path = self.directory / ("calendar-cleanup-" + hashlib.sha256(self.aad).hexdigest() + ".aes")
+        self.key_provider = key_provider
+        self.lock = None
+
+    def exists(self): return self.path.exists()
+
+    def __enter__(self):
+        import fcntl
+        self.directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+        fd = os.open(str(self.path) + ".lock", os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
+        try: fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except Exception: os.close(fd); raise
+        self.lock = fd
+        return self
+
+    def __exit__(self, *args):
+        import fcntl
+        if self.lock is not None:
+            fcntl.flock(self.lock, fcntl.LOCK_UN); os.close(self.lock); self.lock = None
+
+    def load(self):
+        if not self.path.exists(): return {}
+        if self.path.is_symlink(): raise ValueError("invalid calendar cleanup archive")
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        with self.path.open("rb") as stream: raw = stream.read(self.MAX_BYTES + 1)
+        if not 28 <= len(raw) <= self.MAX_BYTES: raise ValueError("invalid calendar cleanup archive size")
+        return json.loads(AESGCM(self.key_provider()).decrypt(raw[:12], raw[12:], self.aad))
+
+    def save(self, state):
+        if self.lock is None or self.path.is_symlink(): raise ValueError("calendar cleanup archive is not owned")
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        clear = json.dumps(state, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        if len(clear) + 28 > self.MAX_BYTES: raise ValueError("calendar cleanup archive limit exceeded")
+        nonce = os.urandom(12); raw = nonce + AESGCM(self.key_provider()).encrypt(nonce, clear, self.aad)
+        fd, temp = tempfile.mkstemp(prefix=".calendar-cleanup-", dir=self.directory)
+        try:
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(raw); stream.flush(); os.fsync(stream.fileno())
+            os.chmod(temp, 0o600); os.replace(temp, self.path)
+            parent = os.open(self.directory, os.O_RDONLY | os.O_DIRECTORY)
+            try: os.fsync(parent)
+            finally: os.close(parent)
+        finally:
+            if os.path.exists(temp): os.unlink(temp)
 
 
 def _tree(text):
@@ -147,3 +204,59 @@ def rebind_local(local, plan):
             for field in ("uid", "icsSerienUid"):
                 if item.get(field) in plan["removeUids"]: item[field] = plan["keepUid"]
     return local
+
+
+def apply_birthdays(local, texts, source_uid, source_key, *, read_current, remove,
+                    load_state, save_state, type_id=lambda value: str(value or "").casefold()):
+    """Apply only a fresh proven plan, with a durable pre-delete backup and alias proof.
+
+    Provider adapters supply conditional/conflict-failing removal. A read failure
+    must raise; only a confirmed absent object may be returned as None.
+    """
+    state = load_state()
+    if not state: state = {"version": 1, "sourceUid": source_uid, "sourceKey": source_key, "operations": {}}
+    if (not isinstance(state, dict) or set(state) != {"version", "sourceUid", "sourceKey", "operations"} or
+            state["version"] != 1 or state["sourceUid"] != source_uid or state["sourceKey"] != source_key or
+            not isinstance(state["operations"], dict)):
+        raise ValueError("invalid calendar cleanup journal")
+    local_index = defaultdict(list)
+    referenced = set()
+    for item in local:
+        local_index[(str(item.get("kontaktId") or ""), item.get("datum"))].append(item)
+        referenced.update(_source_uids(item, source_uid, source_key))
+    recovered = 0
+    # Finish an interrupted removal only from a previously durable exact plan.
+    for uid, operation in state["operations"].items():
+        required = {"phase", "plan", "keepText", "removeText"}
+        if not isinstance(operation, dict) or set(operation) != required or operation["phase"] not in {"prepared", "removed"}:
+            raise ValueError("invalid calendar cleanup operation")
+        plan = operation["plan"]
+        if (not isinstance(plan, dict) or plan.get("sourceUid") != source_uid or plan.get("sourceKey") != source_key or
+                plan.get("removeUids") != [uid] or uid == plan.get("keepUid")):
+            raise ValueError("invalid calendar cleanup identity")
+        if uid not in referenced: continue
+        if read_current(uid) is None and read_current(plan["keepUid"]) is not None:
+            if operation["phase"] != "removed":
+                operation["phase"] = "removed"; save_state(state)
+            rebind_local(local_index.get((plan["contactId"], plan["date"]), []), plan)
+            recovered += 1
+    plans = plan_birthdays(local, texts, source_uid, source_key, type_id)
+    count = 0
+    for plan in plans:
+        for uid in plan["removeUids"]:
+            keeper = read_current(plan["keepUid"]); extra = read_current(uid)
+            if keeper is None or extra is None:
+                raise ValueError("calendar cleanup snapshot changed")
+            if hashlib.sha256(keeper.encode()).hexdigest() != plan["hashes"][plan["keepUid"]] or hashlib.sha256(extra.encode()).hexdigest() != plan["hashes"][uid]:
+                raise ValueError("calendar cleanup component changed")
+            single = dict(plan, removeUids=[uid])
+            state["operations"][uid] = {"phase": "prepared", "plan": single, "keepText": keeper, "removeText": extra}
+            save_state(state)  # Must succeed before the first provider mutation.
+            remove(uid)
+            if read_current(uid) is not None or read_current(plan["keepUid"]) is None:
+                raise ValueError("calendar cleanup readback failed")
+            state["operations"][uid]["phase"] = "removed"
+            save_state(state)
+            rebind_local(local_index.get((single["contactId"], single["date"]), []), single)
+            count += 1
+    return {"removed": count, "recovered": recovered}

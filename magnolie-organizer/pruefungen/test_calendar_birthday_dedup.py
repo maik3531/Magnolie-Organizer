@@ -49,6 +49,7 @@ def test_different_reminders_details_finite_rules_and_exceptions_remain_untouche
                     event("copy").replace("FREQ=YEARLY", "FREQ=YEARLY;COUNT=4"),
                     event("copy", extra="RECURRENCE-ID;VALUE=DATE:20260510\r\n"),
                     event("copy", extra="EXDATE;VALUE=DATE:20270510\r\n"),
+                    event("copy", extra="X-LIC-ERROR:Unparsed provider field\r\n"),
                     event("copy", extra="ATTENDEE:mailto:fixture@example.invalid\r\n")):
         assert plan(texts=[event("original"), changed]) == []
 

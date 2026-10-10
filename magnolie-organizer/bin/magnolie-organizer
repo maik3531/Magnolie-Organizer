@@ -96,6 +96,7 @@ if __name__ == "__main__" and "--call-action" in sys.argv[1:]:
     from magnolie_hintergrund import call_action_main
     sys.exit(call_action_main(sys.argv[1:]))
 from magnolie_recurrence import Rule as IcsRule, date_time as ics_date_time, duration_end as ics_duration_end, expand_calendar, properties as ics_properties, calendar_zones, timezone_definition
+import magnolie_calendar_dedup as kalender_dubletten
 from magnolie_setup_state import (classify as setup_classify,
     classify_and_adopt as setup_classify_and_adopt,
     assistant_required as setup_assistant_required,
@@ -18623,6 +18624,48 @@ def eds_event_loeschen(client, uid_wert):
         client.remove_object_sync(uid_wert, None, ECal.ObjModType.ALL, None)
 
 
+def eds_event_text_lesen(client, uid_wert):
+    _eds_client_online(client)
+    try:
+        result = _eds_mit_frist(lambda cancel: client.get_object_sync(uid_wert, None, cancel), schritt="calendar-cleanup-object-read")
+    except Exception:
+        if eds_event_fehlend_bestaetigt(client, uid_wert): return None
+        raise
+    if not isinstance(result, tuple) or len(result) != 2 or result[0] is not True or result[1] is None:
+        raise RuntimeError(_("The calendar backend reported an incomplete result."))
+    _eds_client_online(client)
+    return result[1].as_ical_string()
+
+
+def eds_event_loeschen_abgesichert(client, uid_wert):
+    _eds_client_online(client)
+    ECal = _EDS["ECal"]
+    if not hasattr(ECal.OperationFlags, "CONFLICT_FAIL"):
+        raise ValueError("EDS conflict-failing removal is unavailable")
+    flags = ECal.OperationFlags.CONFLICT_FAIL | ECal.OperationFlags.DISABLE_ITIP_MESSAGE
+    cancel = Gio.Cancellable()
+    timer = threading.Timer(EDS_OPERATION_TIMEOUT, cancel.cancel); timer.daemon = True; timer.start()
+    try:
+        if client.remove_object_sync(uid_wert, None, ECal.ObjModType.ALL, flags, cancel) is not True:
+            raise RuntimeError(_("The calendar backend reported an incomplete result."))
+        _eds_client_online(client)
+    finally: timer.cancel()
+
+
+def eds_geburtstagsdubletten_bereinigen(client, quelle_uid, quellen_id, jahrestage, texte, sync_epoch):
+    plans = kalender_dubletten.plan_birthdays(jahrestage, texte, quelle_uid, quellen_id, jahrestag_typ_id)
+    archive = kalender_dubletten.CleanupArchive(daten_verzeichnis(), quellen_id + "\0" + str(sync_epoch or ""), _sync_transaktionsschluessel)
+    if not plans and not archive.exists(): return {"removed": 0, "recovered": 0}
+    # No mutation until the entire ordinary parser also accepts the provider snapshot.
+    if any(ics_lesen(text).get("uebersprungen") for text in texte):
+        raise RuntimeError(_("The calendar backend reported an incomplete result."))
+    with archive:
+        return kalender_dubletten.apply_birthdays(jahrestage, texte, quelle_uid, quellen_id,
+            read_current=lambda uid: eds_event_text_lesen(client, uid),
+            remove=lambda uid: eds_event_loeschen_abgesichert(client, uid),
+            load_state=archive.load, save_state=archive.save, type_id=jahrestag_typ_id)
+
+
 def eds_buch_client(registry, quellen_uid, akonadi_quellen=None):
     if quellen_uid.startswith("akonadi-addressbook:"):
         quelle = ((akonadi_quellen if akonadi_quellen is not None else
@@ -25298,7 +25341,17 @@ class Fenster(_FENSTER_BASIS):
                 fern = {}
                 fern_gelesen = []
                 gesperrte_serien = set()
-                for text in eds_events_lesen(client):
+                remote_texte = eds_events_lesen(client)
+                if not ist_akonadi and not loeschungsfrei and kalender_schreibbar.get(quelle_uid):
+                    bereinigt = eds_geburtstagsdubletten_bereinigen(client, quelle_uid, quellenpraefix + quelle_uid,
+                        jahrestage, remote_texte, daten.get("syncEpoch") or sync_meta.get("syncEpoch"))
+                    if bereinigt["removed"] or bereinigt["recovered"]:
+                        remote_texte = eds_events_lesen(client)
+                    if bereinigt["removed"]:
+                        bericht.append(_sync_satz("%s · %s" % (quelle_name, _("Anniversaries")),
+                            {"lokal_neu": 0, "lokal_geaendert": 0, "lokal_geloescht": 0,
+                             "remote_neu": 0, "remote_geaendert": 0, "remote_geloescht": bereinigt["removed"]}, 0))
+                for text in remote_texte:
                     gelesen = ics_lesen(text)
                     if gelesen.get("uebersprungen"):
                         raise RuntimeError(_(
