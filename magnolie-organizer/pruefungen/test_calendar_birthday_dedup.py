@@ -38,6 +38,12 @@ def test_known_kcalendarcore_wrapper_preserves_unknown_metadata_barrier():
         assert plan(texts=[wrapped("original"), wrapped("copy", marker)]) == []
 
 
+def test_unicode_survivor_order_matches_utf8_contract():
+    bmp, supplementary = "\ue000", "\U00010000"
+    result = plan(items=[local(supplementary), local(bmp)], texts=[event(supplementary), event(bmp)])
+    assert len(result) == 1 and result[0]["keepUid"] == bmp and result[0]["removeUids"] == [supplementary]
+
+
 def test_yearless_contact_preserves_explicit_unknown_year_annotation():
     items = [local("old-copy", "--05-10"), local("correct", "--05-10")]
     texts = [event("old-copy", "20260510", "20260511"), event("correct", "20000510", "20000511", "X-MAGNOLIE-DATE:--05-10\r\n", created="20260101T000000Z")]

@@ -31,6 +31,9 @@ internal static class CalendarBirthdayCleanupTests
         var local = new JsonArray(Local(resources[0]), Local(resources[1]));
         var plans = CalendarBirthdayCleanup.PlanCleanup(local, resources, Source.Uid);
         TestAssert.That(plans.Count == 1 && plans[0].KeepUid == "original" && plans[0].RemoveUid == "copy", "No exact bound birthday plan.");
+        var unicode = new[] { Resource("\U00010000"), Resource("\uE000") };
+        var unicodePlan = CalendarBirthdayCleanup.PlanCleanup(new JsonArray(Local(unicode[0]), Local(unicode[1])), unicode, Source.Uid).Single();
+        TestAssert.That(unicodePlan.KeepUid == "\uE000" && unicodePlan.RemoveUid == "\U00010000", "Unicode survivor choice differs from Python/UTF-8 order.");
         var kde = resources.Select(item => item with { Text = item.Text.Replace("VERSION:2.0\r\n", "VERSION:2.0\r\nX-KDE-ICAL-IMPLEMENTATION-VERSION:1.0\r\n") }).ToArray();
         TestAssert.That(CalendarBirthdayCleanup.PlanCleanup(local, kde, Source.Uid).Count == 1, "Known KCalendarCore serializer marker blocked cleanup.");
         TestAssert.That(CalendarBirthdayCleanup.PlanCleanup(local, [kde[0], kde[1] with { Text = kde[1].Text.Replace("IMPLEMENTATION-VERSION:1.0", "IMPLEMENTATION-VERSION:2.0") }], Source.Uid).Count == 0, "Unknown serializer semantics were discarded.");

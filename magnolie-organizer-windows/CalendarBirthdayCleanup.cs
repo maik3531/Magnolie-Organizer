@@ -44,6 +44,8 @@ internal static class CalendarBirthdayCleanup
         { "UID", "DTSTAMP", "CREATED", "LAST-MODIFIED", "SEQUENCE", "X-EVOLUTION-CALDAV-ETAG", "X-EVOLUTION-ALARM-UID" };
     private static string Text(JsonObject value, string key) => ContactFields.Text(value, key);
     private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
+    // Python orders Unicode scalar strings like UTF-8, not UTF-16 code units.
+    private static string Utf8OrderKey(string value) => Convert.ToHexString(Encoding.UTF8.GetBytes(value));
     private static bool Birthday(string value) => value.Equals("birthday", StringComparison.OrdinalIgnoreCase) || value.Equals("Geburtstag", StringComparison.OrdinalIgnoreCase);
 
     private static Node Parse(string text)
@@ -150,7 +152,7 @@ internal static class CalendarBirthdayCleanup
             if (matches.Any(candidate => !group.Any(item => Uids(item).Contains(candidate.Uid) && Text(ContactFields.Source(item, source)!, "id") == Key(candidate.Resource.Href, candidate.Uid)))) continue;
             var exact = matches.Select(item => Canonical(item.Event)).Distinct(StringComparer.Ordinal).Count() == 1;
             var unknown = group.Key.Date.StartsWith("--", StringComparison.Ordinal) && matches.All(item => One(item.Event, "X-MAGNOLIE-DATE") is "" || One(item.Event, "X-MAGNOLIE-DATE") == group.Key.Date) && matches.Select(item => Canonical(item.Event, true)).Distinct(StringComparer.Ordinal).Count() == 1;
-            var keeper = matches.Where(item => item.Date == group.Key.Date).OrderBy(item => One(item.Event, "CREATED"), StringComparer.Ordinal).ThenBy(item => item.Uid, StringComparer.Ordinal).FirstOrDefault();
+            var keeper = matches.Where(item => item.Date == group.Key.Date).OrderBy(item => Utf8OrderKey(One(item.Event, "CREATED")), StringComparer.Ordinal).ThenBy(item => Utf8OrderKey(item.Uid), StringComparer.Ordinal).FirstOrDefault();
             if (keeper is null || !(exact || unknown)) continue;
             plans.AddRange(matches.Where(item => item.Uid != keeper.Uid).Select(item => new Plan(group.Key.Contact, group.Key.Date, keeper.Uid, item.Uid, keeper.Resource, item.Resource)));
         }
