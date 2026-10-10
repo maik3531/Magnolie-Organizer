@@ -7,11 +7,17 @@ import java.util.UUID
 /** Current physical-phone membership; callers supply fresh authenticated owner/grant evidence. */
 internal object PhoneContentScope {
     const val VERSION = 10
+    const val KIND = "personal_sync.content_scope"
     const val MAX_MEMBERS = 50000
     private const val MIN_CHUNK = 32
     private const val MAX_CHUNK = 256
     private const val MAX_PARTS = (MAX_MEMBERS + MIN_CHUNK - 1) / MIN_CHUNK
     private const val MAX_REVISION = 9_007_199_254_740_991L
+    fun supported(peer: TelefonPeer, local: Map<String, TelefonCapability>): Boolean =
+        peer.remote_personal_notes_sync_available && peer.remote_personal_tasks_sync_available &&
+            VERSION in peer.remote_personal_notes_sync_versions && VERSION in peer.remote_personal_tasks_sync_versions &&
+            local["personal_notes_sync"]?.let { it.available && VERSION in it.versions } == true &&
+            local["personal_tasks_sync"]?.let { it.available && VERSION in it.versions } == true
     private val idOrder = Comparator<String> { a, b ->
         val left = a.toByteArray(Charsets.UTF_8); val right = b.toByteArray(Charsets.UTF_8)
         var compared = 0

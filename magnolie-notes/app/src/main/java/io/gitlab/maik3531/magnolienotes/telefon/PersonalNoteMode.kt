@@ -128,6 +128,21 @@ internal class PersonalNoteSession {
     var timeSnapshot: String? = null
     var sharedSent: JsonObject? = null
     var sharedReceived: JsonObject? = null
+    var localContentScope: JsonObject? = null
+    var contentScopeSelection: io.gitlab.maik3531.magnolienotes.daten.PersonalContentSelection? = null
+    val contentScopeMessages = mutableMapOf<String, Int>()
+    val contentScopeAccepted = mutableSetOf<Int>()
+    var contentScopeFailed = false
+
+    /** False keeps the same queued control for its bounded temporary-failure retry. */
+    fun acknowledgeContentScope(id: String, status: String, error: String): Boolean {
+        val part = contentScopeMessages[id] ?: return true
+        if (status == "rejected" && error == "temporary_failure") return false
+        contentScopeMessages.remove(id)
+        if (status in setOf("accepted", "duplicate")) contentScopeAccepted.add(part)
+        else contentScopeFailed = true
+        return true
+    }
 
     fun timeReady(local: JsonObject?, remote: JsonObject?) = capabilitiesReceived && grantsReceived && ownSettingsReceived &&
         local != null && remote != null && local == timeSent && remote == timeReceived

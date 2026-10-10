@@ -1760,6 +1760,11 @@ internal sealed partial class TelefonConnection : IDisposable
             store.CompleteOutbox(peer.Id, id!); return;
         }
         if (type != "message") throw new InvalidDataException("Unbekanntes Steuerobjekt.");
+        if (plain["kind"]?.GetValue<string>() == PhoneContentScope.Kind)
+        {
+            await HandleContentScopeAsync(plain);
+            return;
+        }
         if (plain["kind"]?.GetValue<string>() == SharedSyncSettings.Kind)
         {
             await HandleSharedSettingsAsync(plain);

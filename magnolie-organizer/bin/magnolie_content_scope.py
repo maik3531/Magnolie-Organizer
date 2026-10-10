@@ -8,12 +8,26 @@ import uuid
 import magnolie_personal_sync as personal
 
 VERSION = 10
+KIND = "personal_sync.content_scope"
 MAX_MEMBERS = 50000
 MIN_CHUNK = 32
 MAX_CHUNK = 256
 MAX_PARTS = math.ceil(MAX_MEMBERS / MIN_CHUNK)
 PART_BYTES = 192 * 1024
 KINDS = {"note": "notes", "task": "tasks"}
+
+
+def supported(local_items, remote_items):
+    for items in (local_items, remote_items):
+        if not isinstance(items, dict):
+            return False
+        for name in ("personal_notes_sync", "personal_tasks_sync"):
+            item = items.get(name)
+            if (not isinstance(item, dict) or item.get("available") is not True or
+                    not isinstance(item.get("versions"), list) or
+                    not any(type(value) is int and value == VERSION for value in item["versions"])):
+                return False
+    return True
 
 
 def identifier(value):

@@ -97,6 +97,7 @@ object TelefonNachrichten {
             PersonalNoteMode.KIND -> { if (expires - created > 86_400_000L) fail(); PersonalNoteMode.validate(body) }
             PersonalDesktopFeatures.KIND -> { if (expires - created > 86_400_000L) fail(); PersonalDesktopFeatures.validate(body) }
             SharedSyncSettings.KIND -> { if (expires - created > 86_400_000L) fail(); SharedSyncSettings.validate(body) }
+            PhoneContentScope.KIND -> { if (expires - created > 60_000L) fail(); PhoneContentScope.validatePart(body) }
             TimeSyncProtokoll.SETTINGS, TimeSyncProtokoll.REQUEST, TimeSyncProtokoll.BATCH -> {
                 if (expires - created > 86_400_000L) fail()
                 TimeSyncProtokoll.validate(message.string("kind"), body, fromOrganizer = true)

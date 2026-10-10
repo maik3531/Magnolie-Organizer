@@ -5,6 +5,22 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PhoneContentScopeTest {
+    @Test fun scopeReceiptsKeepTemporaryRetriesButStopTerminalRequeueLoops() {
+        val session = PersonalNoteSession()
+        session.contentScopeMessages["first"] = 0; session.contentScopeMessages["second"] = 1
+        assertFalse(session.acknowledgeContentScope("first", "rejected", "temporary_failure"))
+        assertEquals(0, session.contentScopeMessages["first"])
+        assertTrue(session.contentScopeAccepted.isEmpty())
+        assertTrue(session.acknowledgeContentScope("first", "accepted", "none"))
+        assertEquals(setOf(0), session.contentScopeAccepted)
+        assertFalse(session.contentScopeFailed)
+        assertTrue(session.acknowledgeContentScope("second", "rejected", "invalid_schema"))
+        assertTrue(session.contentScopeFailed)
+        val replacement = PersonalNoteSession()
+        assertTrue(replacement.acknowledgeContentScope("first", "accepted", "none"))
+        assertTrue(replacement.contentScopeAccepted.isEmpty())
+    }
+
     @Test fun sessionGatesPartialAndStaleGenerationsAndRejectsOtherConnections() {
         val session = PhoneContentScope.Session("peer", "key", 1)
         val first = PhoneContentScope.create((0 until 100).map { "note-%03d".format(it) }, emptyList())

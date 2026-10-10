@@ -111,5 +111,10 @@ class SharedSyncStorageTest {
         assertTrue(runCatching { queue.queue(expected.peerActor, SharedSyncSettings.KIND, body, 86_400_001) }.isFailure)
         val invalid = TelefonNachrichten.message(SharedSyncSettings.KIND, body, 86_400_001)
         assertTrue(runCatching { TelefonNachrichten.validate(invalid) }.isFailure)
+        val manifest = PhoneContentScope.create(listOf("mobile-note"), listOf("mobile-task"))
+        val scopeMessage = queue.queue(expected.peerActor, PhoneContentScope.KIND, PhoneContentScope.chunks(manifest).single(), 60_000)
+        TelefonNachrichten.validate(scopeMessage)
+        assertEquals("accepted" to "none", queue.receive(expected.peerActor, scopeMessage))
+        assertTrue(runCatching { queue.queue(expected.peerActor, PhoneContentScope.KIND, PhoneContentScope.chunks(manifest).single(), 60_001) }.isFailure)
     }
 }

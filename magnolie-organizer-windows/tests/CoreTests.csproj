@@ -83,6 +83,7 @@
     <Compile Include="..\TelefonStore.Shared.cs" Link="TelefonStore.Shared.cs" />
     <Compile Include="..\TelefonConnection.Time.cs" Link="TelefonConnection.Time.cs" />
     <Compile Include="..\TelefonConnection.Shared.cs" Link="TelefonConnection.Shared.cs" />
+    <Compile Include="..\TelefonConnection.Scope.cs" Link="TelefonConnection.Scope.cs" />
     <Compile Include="..\TelefonCoordinator.Time.cs" Link="TelefonCoordinator.Time.cs" />
     <Compile Include="..\TelefonCoordinator.cs" Link="TelefonCoordinator.cs" />
     <Compile Include="..\TelefonMdnsPublisher.cs" Link="TelefonMdnsPublisher.cs" />

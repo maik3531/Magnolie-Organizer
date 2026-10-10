@@ -19,6 +19,7 @@ import magnolie_phone_contacts as phone_contacts
 from magnolie_personal_sync import CUSTOM_KINDS, validate_custom_body, accept_custom_settings, custom_scope_allowed
 import magnolie_time_sync as time_sync_contract
 import magnolie_shared_sync as shared_sync_contract
+import magnolie_content_scope as content_scope_contract
 import time
 import unicodedata
 import uuid
@@ -2249,6 +2250,7 @@ class PhoneService:
         self.note_sessions = weakref.WeakKeyDictionary()
         self.time_sessions = weakref.WeakKeyDictionary()
         self.shared_sessions = weakref.WeakKeyDictionary()
+        self.content_scope_sessions = weakref.WeakKeyDictionary()
         self.note_controls = weakref.WeakKeyDictionary()
         self.status_requests = {}
         self.contact_requests = {}
@@ -3028,6 +3030,29 @@ class PhoneService:
             self._queue_shared_settings(peer_id)
         self.callback("status", self.report())
         return result
+
+    def _content_scope_ready_controls(self, peer, channel):
+        if (not self._shared_controls_ready(peer, channel) or not self.shared_settings_ready(peer["device_id"]) or
+                not content_scope_contract.supported(desktop_capabilities()["items"], peer.get("capabilities", {}).get("items", {}))):
+            return False
+        local = peer.get("local_grants", {}).get("grants", {})
+        remote = peer.get("grants", {}).get("grants", {})
+        if any(local.get(name) is not True or remote.get(name) is not True
+               for name in ("personal_notes_sync", "personal_tasks_sync")):
+            return False
+        body = self.store.shared_settings(peer["device_id"], peer["static_public"])
+        return shared_sync_contract.effective(body).get("content_mode") == "phone_scope"
+
+    def current_content_scope(self, peer_id, expected_public, claimed):
+        with self.lock:
+            peer = self.store.sole_peer(peer_id)
+            channel = self.connections.get(peer_id)
+            if (not peer or peer["static_public"] != expected_public or not self._content_scope_ready_controls(peer, channel)):
+                raise PermissionError("Content scope controls are not current.")
+            session = self.content_scope_sessions.get(channel)
+            if session is None:
+                raise PermissionError("Content scope has not been received on this connection.")
+            return session.current((peer_id, expected_public, id(channel)), claimed)
 
     def _time_supported(self, peer):
         remote = peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {})
@@ -4598,6 +4623,31 @@ class PhoneService:
                 or payload["created_ms"] > received + CLOCK_SKEW_MS):
             raise ValueError("invalid message")
         kind = payload["kind"]
+        if kind == content_scope_contract.KIND:
+            status, error = "accepted", "none"
+            try:
+                content_scope_contract.validate_part(payload["body"])
+                if payload["expires_ms"] <= received or payload["expires_ms"] - payload["created_ms"] > 60000:
+                    raise ValueError("expired content scope")
+                with self.lock:
+                    current = self.store.sole_peer(peer["device_id"])
+                    if (not current or current["static_public"] != peer["static_public"] or
+                            not self._content_scope_ready_controls(current, channel)):
+                        raise PermissionError
+                    if self.store.dedupe_result(peer["device_id"], payload["message_id"]) and not self.store.received_matches(peer["device_id"], payload):
+                        raise ValueError("conflicting content scope message identity")
+                    binding = (peer["device_id"], peer["static_public"], id(channel))
+                    session = self.content_scope_sessions.setdefault(channel, content_scope_contract.ScopeSession(binding))
+                    session.receive(binding, payload["body"])
+                    self.store.remember_message(peer["device_id"], payload, status, error)
+            except PermissionError:
+                status, error = "rejected", "not_granted"
+            except (ValueError, TypeError):
+                status, error = "rejected", "invalid_schema"
+            except (OSError, RuntimeError, sqlite3.Error):
+                status, error = "rejected", "temporary_failure"
+            channel.send({"type": "ack", "message_id": payload["message_id"], "status": status, "error": error})
+            return
         if kind == shared_sync_contract.KIND:
             status, error = "accepted", "none"
             try:

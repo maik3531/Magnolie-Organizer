@@ -187,6 +187,39 @@ class TelefonWerk private constructor(private val context: Context, private val 
         queue.queue(peer.device_id, SharedSyncSettings.KIND, body, 86_400_000)
     }
 
+    private fun contentScopeControlsReady(peer: TelefonPeer, session: PersonalNoteSession?): Boolean {
+        if (session?.contentScopeFailed == true || !sharedControlsReady(peer, session) || !PhoneContentScope.supported(peer, TelefonCapabilities.phase1()) ||
+            !peer.personal_notes_sync_granted || !peer.remote_personal_notes_sync_granted ||
+            !peer.personal_tasks_sync_granted || !peer.remote_personal_tasks_sync_granted) return false
+        val settings = sharedPreferences.read(sharedBinding(peer)) ?: return false
+        return session?.sharedSent == settings && session.sharedReceived == settings &&
+            SharedSyncSettings.effective(settings)["content_mode"] == JsonPrimitive("phone_scope")
+    }
+
+    private fun queueContentScope(peer: TelefonPeer, session: PersonalNoteSession?) {
+        if (!contentScopeControlsReady(peer, session) || session == null) return
+        val live = PersonalSync.livePersonalContent(Ablage.hole(context).bestand.value)
+        val previous = session.localContentScope
+        val current = if (previous != null && session.contentScopeSelection == live) previous
+            else if (previous == null) PhoneContentScope.create(live.notes, live.tasks)
+            else PhoneContentScope.advance(previous, live.notes, live.tasks)
+        session.contentScopeSelection = live
+        if (current != previous) {
+            queue.removeKind(peer.device_id, PhoneContentScope.KIND)
+            session.localContentScope = current
+            session.contentScopeMessages.clear(); session.contentScopeAccepted.clear()
+        }
+        if (queue.hasKind(peer.device_id, PhoneContentScope.KIND)) return
+        val partCount = maxOf(1, (live.notes.size + live.tasks.size + 255) / 256)
+        if (session.contentScopeAccepted.size == partCount) return
+        val parts = PhoneContentScope.chunks(current)
+        session.contentScopeMessages.clear()
+        for ((index, part) in parts.withIndex()) if (index !in session.contentScopeAccepted) {
+            val message = queue.queue(peer.device_id, PhoneContentScope.KIND, part, 60_000)
+            session.contentScopeMessages[message.string("message_id")] = index
+        }
+    }
+
     @Synchronized internal fun changeSharedSetting(deviceId: String, publicKey: String, field: String,
                                                   value: JsonElement, initial: Map<String, JsonElement> = emptyMap()): JsonObject =
         synchronized(Ablage.SCHREIBSPERRE) {
@@ -1254,8 +1287,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
                             val policy = queue.outboxPolicy(peer.device_id, payload.string("message_id"))
                             if (policy == "invalid" || transport == TelefonTransportArt.BLUETOOTH && policy == "wifi_only")
                                 throw TelefonProtokollFehler("WLAN-gebundene Bestätigung über Bluetooth.")
-                            peerEffect(peer, generation) { handleAck(it.device_id, payload.string("message_id"), payload.string("status"),
-                                payload.string("error")) }
+                            peerEffect(peer, generation) {
+                                if (!noteSession.acknowledgeContentScope(payload.string("message_id"),
+                                        payload.string("status"), payload.string("error"))) return@peerEffect
+                                handleAck(it.device_id, payload.string("message_id"), payload.string("status"), payload.string("error"))
+                            }
                         }
                         "message" -> receiveMessage(peer, payload, channel, generation)
                         "close" -> return
@@ -1861,11 +1897,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     remote_answer_call_available = ((items["answer_call"] as JsonObject)["available"] as JsonPrimitive).content.toBooleanStrict(),
                     remote_end_call_available = ((items["end_call"] as JsonObject)["available"] as JsonPrimitive).content.toBooleanStrict(),
                     remote_personal_notes_sync_versions = ((items["personal_notes_sync"] as JsonObject)["versions"] as JsonArray)
-                        .map { (it as JsonPrimitive).content.toInt() }.filter { it in 1..3 || it == PersonalNoteMode.VERSION || it == SharedSyncSettings.VERSION }.distinct().sorted(),
+                        .map { (it as JsonPrimitive).content.toInt() }.filter { it in 1..3 || it == PersonalNoteMode.VERSION || it == SharedSyncSettings.VERSION || it == PhoneContentScope.VERSION }.distinct().sorted(),
                     remote_personal_notes_sync_available = ((items["personal_notes_sync"] as JsonObject)["available"] as JsonPrimitive).booleanOrNull == true,
                     remote_personal_tasks_sync_versions = ((items["personal_tasks_sync"] as JsonObject)["versions"] as JsonArray)
                         .map { (it as JsonPrimitive).content.toInt() }.filter {
-                            it in 1..4 || it == PersonalDesktopFeatures.VERSION || it == TimeSyncProtokoll.VERSION || it == SharedSyncSettings.VERSION }.distinct().sorted(),
+                            it in 1..4 || it == PersonalDesktopFeatures.VERSION || it == TimeSyncProtokoll.VERSION || it == SharedSyncSettings.VERSION || it == PhoneContentScope.VERSION }.distinct().sorted(),
                     remote_personal_tasks_sync_available = ((items["personal_tasks_sync"] as JsonObject)["available"] as JsonPrimitive).booleanOrNull == true)
             } else {
                 val grants = body["grants"] as JsonObject
@@ -2086,12 +2122,25 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val transport = activeTransport?.first ?: throw TelefonProtokollFehler("Keine aktive Transportart.")
         peerEffect(peer, generation) { current -> queueTimeSettings(current, noteSessions[channel]) }
         peerEffect(peer, generation) { current -> queueSharedSettings(current, noteSessions[channel]) }
+        peerEffect(peer, generation) { current -> queueContentScope(current, noteSessions[channel]) }
         queue.due(peer.device_id, transport).forEach { entry ->
             synchronized(this) {
                 val current = peerEffect(peer, generation) { it }
                 if (!serviceRunning || !storage.enabled()) return controls
                 val kind = entry.payload.string("kind")
-                if (controlsOnly && kind !in setOf("capabilities.update", "grants.update", "personal_sync.settings", PersonalNoteMode.KIND, TimeSyncProtokoll.SETTINGS, SharedSyncSettings.KIND)) return@forEach
+                if (controlsOnly && kind !in setOf("capabilities.update", "grants.update", "personal_sync.settings", PersonalNoteMode.KIND, TimeSyncProtokoll.SETTINGS, SharedSyncSettings.KIND, PhoneContentScope.KIND)) return@forEach
+                if (kind == PhoneContentScope.KIND) {
+                    val session = noteSessions[channel]
+                    if (!contentScopeControlsReady(current, session)) return@forEach
+                    val manifest = session?.localContentScope ?: return@forEach
+                    val body = entry.payload["body"] as JsonObject
+                    if (listOf("epoch", "revision", "scope_hash").any { body[it] != manifest[it] } ||
+                        entry.messageId !in session.contentScopeMessages) {
+                        queue.acknowledge(peer.device_id, entry.messageId); return@forEach
+                    }
+                    PhoneContentScope.validatePart(body)
+                    channel.send(entry.payload); queue.sent(entry.messageId, queue.attempts(entry.messageId)); return@forEach
+                }
                 if (kind == SharedSyncSettings.KIND) {
                     val session = noteSessions[channel]
                     if (!sharedControlsReady(current, session)) return@forEach

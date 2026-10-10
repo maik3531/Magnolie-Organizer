@@ -8,6 +8,7 @@ namespace MagnolieOrganizer.Windows;
 internal static class PhoneContentScope
 {
     internal const int Version = 10;
+    internal const string Kind = "personal_sync.content_scope";
     internal const int MaximumMembers = 50000;
     private const int MinimumChunk = 32;
     private const int MaximumChunk = 256;
@@ -15,6 +16,15 @@ internal static class PhoneContentScope
     private const long MaximumRevision = 9007199254740991;
     private static readonly UTF8Encoding Utf8 = new(false, true);
     private static readonly IComparer<string> IdOrder = Comparer<string>.Create((a, b) => Utf8.GetBytes(a).AsSpan().SequenceCompareTo(Utf8.GetBytes(b)));
+
+    internal static bool Supported(JsonObject local, JsonObject remote)
+    {
+        static bool Marked(JsonObject items) => new[] { "personal_notes_sync", "personal_tasks_sync" }.All(name =>
+            items[name] is JsonObject item && item["available"] is JsonValue enabled && enabled.TryGetValue<bool>(out var available) &&
+            available && item["versions"] is JsonArray versions && versions.Any(value =>
+                TelefonProtocolContract.TryInteger(value, out var marker) && marker == Version));
+        return Marked(local) && Marked(remote);
+    }
 
     private static string Text(JsonObject value, string field) => value[field] is JsonValue raw && raw.TryGetValue<string>(out var text)
         ? text : throw new InvalidDataException("Scope text missing.");

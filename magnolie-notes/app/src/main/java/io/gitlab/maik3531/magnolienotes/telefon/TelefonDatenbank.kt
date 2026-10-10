@@ -151,6 +151,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
               transportPolicy: String = "any"): JsonObject {
         require(transportPolicy in setOf("any", "wifi_only"))
         if (kind == SharedSyncSettings.KIND) { SharedSyncSettings.validate(body); require(ttlMs <= 86_400_000) }
+        if (kind == PhoneContentScope.KIND) { PhoneContentScope.validatePart(body); require(ttlMs <= 60_000) }
         val message = TelefonNachrichten.message(kind, body, ttlMs, now)
         writableInsert(peerId, message, transportPolicy = transportPolicy)
         return message
