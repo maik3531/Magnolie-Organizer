@@ -33,6 +33,12 @@ Content is not rewritten to acquire the lock. The operation requires a complete
 item with a loaded GID and both change/delete rights. A failed revision check,
 binding check or commit rolls back the transaction.
 
+New callers can query `capabilities` with the same source binding as `snapshot`;
+`revisionGuardedDelete:true` advertises the transactional guard. Automatic birthday
+cleanup uses the distinct `delete-guarded` command (the `delete` request fields).
+An older or replaced helper therefore cannot silently perform an unguarded fallback.
+Existing `status` and snapshot response schemas remain compatible.
+
 The opt-in `guarded-delete-test` executable exercises a post-fetch revision
 conflict, rollback after DELETE but before commit, and a successful current-revision
 deletion. It takes the JSON binding of a newly created synthetic calendar or

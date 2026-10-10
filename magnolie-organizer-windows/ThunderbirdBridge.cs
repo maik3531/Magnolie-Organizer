@@ -95,10 +95,10 @@ internal static class ThunderbirdBridge
         { return 1; } // Never send diagnostics to stdout: it is a framed channel.
     }
 
-    internal static async Task<JsonObject> CallAsync(JsonObject request, CancellationToken token, int connectTimeout = 1500, bool managed = false)
+    internal static async Task<JsonObject> CallAsync(JsonObject request, CancellationToken token, int connectTimeout = 1500, bool managed = false, string? testPipeName = null)
     {
         var id = Guid.NewGuid().ToString("N"); request["id"] = id; request["version"] = 1;
-        using var pipe = new NamedPipeClientStream(".", PipeName + (managed ? "-accounts" : ""), PipeDirection.InOut,
+        using var pipe = new NamedPipeClientStream(".", testPipeName ?? PipeName + (managed ? "-accounts" : ""), PipeDirection.InOut,
             PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
         await pipe.ConnectAsync(connectTimeout, token).ConfigureAwait(false);
         await WriteFrameAsync(pipe, JsonSerializer.SerializeToUtf8Bytes(request), MaximumRequestBytes, token).ConfigureAwait(false);
@@ -132,11 +132,11 @@ internal static class ThunderbirdBridge
         return result;
     }
 
-    internal static NextcloudDavClient CreateClient(NextcloudDavSource source, NextcloudSyncJournal journal, string transactionId)
+    internal static NextcloudDavClient CreateClient(NextcloudDavSource source, NextcloudSyncJournal journal, string transactionId, string? testPipeName = null)
     {
         var context = new NextcloudMailboxContext(new NextcloudMailboxSettings(true, false,
             source.Href.GetLeftPart(UriPartial.Authority), "Thunderbird") { AccountType = "generic-dav" }, null);
-        return new NextcloudDavClient(context, new HttpClient(new ThunderbirdHttpHandler(source))
+        return new NextcloudDavClient(context, new HttpClient(new ThunderbirdHttpHandler(source, testPipeName))
             { Timeout = TimeSpan.FromSeconds(90) }, journal, transactionId);
     }
 
@@ -192,7 +192,7 @@ internal static class ThunderbirdBridge
         File.Delete(manifestPath);
     }
 
-    private sealed class ThunderbirdHttpHandler(NextcloudDavSource source) : HttpMessageHandler
+    private sealed class ThunderbirdHttpHandler(NextcloudDavSource source, string? testPipeName) : HttpMessageHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -205,7 +205,7 @@ internal static class ThunderbirdBridge
                 ["method"] = request.Method.Method, ["headers"] = headers,
                 ["body"] = request.Content is null ? "" : await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false),
                 ["contentType"] = request.Content?.Headers.ContentType?.MediaType ?? "application/xml"
-            }, cancellationToken, managed: IsManagedSource(source.Uid)).ConfigureAwait(false);
+            }, cancellationToken, managed: IsManagedSource(source.Uid), testPipeName: testPipeName).ConfigureAwait(false);
             var status = response["status"]!.GetValue<int>();
             if (status is < 200 or > 599) throw new InvalidDataException();
             var result = new HttpResponseMessage((HttpStatusCode)status)

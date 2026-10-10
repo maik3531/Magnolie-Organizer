@@ -194,7 +194,12 @@ def plan_birthdays(local, texts, source_uid, source_key, type_id=lambda value: s
         for text, root, events in resources:
             if len(events) != 1 or root["kind"] not in {"VEVENT", "VCALENDAR"}: continue
             if root["kind"] == "VCALENDAR" and any(child["kind"] != "VEVENT" for child in root["children"]): continue
-            if root["kind"] == "VCALENDAR" and any(name not in {"VERSION", "PRODID", "CALSCALE"} for name, _, _ in root["properties"]): continue
+            if root["kind"] == "VCALENDAR":
+                if any(name not in {"VERSION", "PRODID", "CALSCALE", "X-KDE-ICAL-IMPLEMENTATION-VERSION"} for name, _, _ in root["properties"]): continue
+                # KCalendarCore adds this serializer marker to ordinary snapshots.
+                # Unknown versions/parameters remain protected; keep the full raw backup.
+                kde_version = _values(root).get("X-KDE-ICAL-IMPLEMENTATION-VERSION", [])
+                if kde_version and kde_version != [({}, "1.0")]: continue
             event = events[0]; vals = _values(event); uid = _one(vals, "UID")
             if not uid or counts[uid] != 1: continue
             if any(field in vals for field in ("RECURRENCE-ID", "RDATE", "EXDATE", "EXRULE", "ATTENDEE", "ORGANIZER")): continue

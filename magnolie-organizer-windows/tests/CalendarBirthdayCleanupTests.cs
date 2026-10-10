@@ -1,7 +1,9 @@
 using System.Net;
+using System.IO.Pipes;
 using System.Security;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using MagnolieOrganizer.Windows;
 
@@ -15,11 +17,11 @@ internal static class CalendarBirthdayCleanupTests
         "\r\nRRULE:FREQ=YEARLY\r\nSUMMARY:Synthetic\r\nX-MAGNOLIE-TYPE-ID:birthday\r\nCREATED:" + (uid == "original" ? "20200101" : "20260101") +
         "T000000Z\r\n" + extra + "BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:Synthetic reminder\r\nTRIGGER:" + trigger + "\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
     private static NextcloudDavObject Resource(string uid, string? text = null) => new(new Uri(Source.Href, uid + ".ics"), "\"" + uid + "-1\"", text ?? Event(uid));
-    private static JsonObject Local(NextcloudDavObject resource, string contact = "contact")
+    private static JsonObject Local(NextcloudDavObject resource, string contact = "contact", string? sourceUid = null)
     {
         var item = ExchangeCodec.ParseIcs(resource.Text).Jahrestage[0]!.DeepClone().AsObject();
         item["kontaktId"] = contact; item["id"] = "local-" + ContactFields.Text(item, "uid");
-        NextcloudCalendarSync.SetSource(item, Source.Uid, NextcloudCalendarSync.RemoteKey(resource.Href, item), resource.ETag);
+        NextcloudCalendarSync.SetSource(item, sourceUid ?? Source.Uid, NextcloudCalendarSync.RemoteKey(resource.Href, item), resource.ETag);
         item["syncQuellen"]!["eds:other"] = new JsonObject { ["id"] = "keep-other-" + ContactFields.Text(item, "uid") };
         return item;
     }
@@ -29,6 +31,9 @@ internal static class CalendarBirthdayCleanupTests
         var local = new JsonArray(Local(resources[0]), Local(resources[1]));
         var plans = CalendarBirthdayCleanup.PlanCleanup(local, resources, Source.Uid);
         TestAssert.That(plans.Count == 1 && plans[0].KeepUid == "original" && plans[0].RemoveUid == "copy", "No exact bound birthday plan.");
+        var kde = resources.Select(item => item with { Text = item.Text.Replace("VERSION:2.0\r\n", "VERSION:2.0\r\nX-KDE-ICAL-IMPLEMENTATION-VERSION:1.0\r\n") }).ToArray();
+        TestAssert.That(CalendarBirthdayCleanup.PlanCleanup(local, kde, Source.Uid).Count == 1, "Known KCalendarCore serializer marker blocked cleanup.");
+        TestAssert.That(CalendarBirthdayCleanup.PlanCleanup(local, [kde[0], kde[1] with { Text = kde[1].Text.Replace("IMPLEMENTATION-VERSION:1.0", "IMPLEMENTATION-VERSION:2.0") }], Source.Uid).Count == 0, "Unknown serializer semantics were discarded.");
         TestAssert.That(CalendarBirthdayCleanup.PlanCleanup(local, [resources[0] with { ETag = "\"new-revision\"" }, resources[1]], Source.Uid).Count == 0,
             "Cleanup consumed a remote revision before the ordinary merge imported it.");
         foreach (var text in new[] { Event("copy", trigger: "-PT30M"), Event("copy", "DESCRIPTION:Different\r\n"),
@@ -51,6 +56,8 @@ internal static class CalendarBirthdayCleanupTests
         await RuntimeAsync(crash: true);
         await RuntimeAsync(conflict: true);
         await RuntimeAsync(weakEtag: true);
+        await RuntimeAsync(bridge: true);
+        await RuntimeAsync(bridge: true, conflict: true);
         if (OperatingSystem.IsWindows())
         {
             var root = Path.Combine(Path.GetTempPath(), "magnolie-birthday135-dpapi-" + Guid.NewGuid().ToString("N"));
@@ -67,18 +74,19 @@ internal static class CalendarBirthdayCleanupTests
         }
     }
 
-    private static async Task RuntimeAsync(bool crash = false, bool conflict = false, bool weakEtag = false)
+    private static async Task RuntimeAsync(bool crash = false, bool conflict = false, bool weakEtag = false, bool bridge = false)
     {
         var root = Path.Combine(Path.GetTempPath(), "magnolie-birthday135-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try
         {
             var protector = new Protector();
+            var source = bridge ? Source with { Uid = "thunderbird-calendar:synthetic-profile:calendar" } : Source;
             var journal = new NextcloudSyncJournal(Path.Combine(root, "sync"), protector);
-            var archive = journal.BirthdayArchive(Source.Uid, "epoch");
+            var archive = journal.BirthdayArchive(source.Uid, "epoch");
             var remote = new Dictionary<string, NextcloudDavObject> { ["original"] = Resource("original"), ["copy"] = Resource("copy") };
             if (weakEtag) remote["copy"] = remote["copy"] with { ETag = "W/\"weak\"" };
-            var items = new JsonArray(Local(remote["original"]), Local(remote["copy"]));
+            var items = new JsonArray(Local(remote["original"], sourceUid: source.Uid), Local(remote["copy"], sourceUid: source.Uid));
             var deletes = 0;
             var settings = new NextcloudMailboxSettingsStore(Path.Combine(root, "settings"), Path.Combine(root, "secret"), protector);
             settings.Save(new NextcloudMailboxSettings(true, "https://cloud.example/nc", "synthetic")); settings.SetApplicationPassword("fixture");
@@ -95,12 +103,14 @@ internal static class CalendarBirthdayCleanupTests
                 if (crash) throw new IOException("Synthetic interruption after DELETE");
                 return new HttpResponseMessage(HttpStatusCode.NoContent);
             }));
-            using var client = new NextcloudDavClient(settings, http);
+            await using var relay = bridge ? new BridgeRelay(source, http) : null;
+            using var client = bridge ? ThunderbirdBridge.CreateClient(source, journal, new string('b', 64), relay!.Name)
+                : new NextcloudDavClient(settings, http);
             var engine = new NextcloudCalendarSync(client, archive);
-            var first = await engine.SyncAsync(Source, [], items, [], 0, true, CancellationToken.None);
+            var first = await engine.SyncAsync(source, [], items, [], 0, true, CancellationToken.None);
             TestAssert.That(deletes == 0 && !archive.Exists && first.Jahrestage.Count == 2, "Additive first run deleted birthdays.");
             NextcloudCalendarResult? result = null;
-            try { result = await engine.SyncAsync(Source, [], items, [], 1, false, CancellationToken.None); }
+            try { result = await engine.SyncAsync(source, [], items, [], 1, false, CancellationToken.None); }
             catch (Exception error) when ((crash && error is IOException) || (conflict && error is InvalidOperationException) || (weakEtag && error is InvalidDataException)) { }
             if (conflict || weakEtag)
             {
@@ -111,18 +121,18 @@ internal static class CalendarBirthdayCleanupTests
             {
                 TestAssert.That(result is null && archive.Load()["operations"]!["copy"]!["phase"]!.GetValue<string>() == "prepared", "Interrupted deletion lost its recovery plan.");
                 crash = false;
-                engine = new NextcloudCalendarSync(client, journal.BirthdayArchive(Source.Uid, "epoch"));
-                result = await engine.SyncAsync(Source, [], items, [], 1, false, CancellationToken.None);
+                engine = new NextcloudCalendarSync(client, journal.BirthdayArchive(source.Uid, "epoch"));
+                result = await engine.SyncAsync(source, [], items, [], 1, false, CancellationToken.None);
             }
             TestAssert.That(result is not null && deletes == 1 && remote.Count == 1 && result.Jahrestage.Count == 2 &&
                 result.Jahrestage.OfType<JsonObject>().All(item => ContactFields.Text(item, "uid") == "original"), "Cleanup did not retain the original series and rebind both local aliases.");
             TestAssert.That(ContactFields.Source(result!.Jahrestage[1]!.AsObject(), "eds:other")?["id"]?.GetValue<string>() == "keep-other-copy", "Cleanup changed another source.");
             journal.Delete();
             TestAssert.That(archive.Exists, "Ordinary transaction completion removed cleanup proof.");
-            var replay = await engine.SyncAsync(Source, [], result.Jahrestage, [], 2, false, CancellationToken.None);
+            var replay = await engine.SyncAsync(source, [], result.Jahrestage, [], 2, false, CancellationToken.None);
             TestAssert.That(deletes == 1 && replay.Exported == 0 && replay.Updated == 0, "Replay recreated or rewrote a birthday.");
             remote["original"] = remote["original"] with { Text = remote["original"].Text.Replace("SUMMARY:Synthetic", "SUMMARY:Remote changed"), ETag = "\"v2\"" };
-            var updated = await engine.SyncAsync(Source, [], replay.Jahrestage, [], 3, false, CancellationToken.None);
+            var updated = await engine.SyncAsync(source, [], replay.Jahrestage, [], 3, false, CancellationToken.None);
             TestAssert.That(updated.Jahrestage.OfType<JsonObject>().All(item => ContactFields.Text(item, "name") == "Remote changed"), "Remote survivor update did not reach both aliases.");
             using (archive.Acquire())
             {
@@ -130,9 +140,54 @@ internal static class CalendarBirthdayCleanupTests
                 try { using var second = archive.Acquire(); } catch (IOException) { rejected = true; }
                 TestAssert.That(rejected, "Cleanup allowed concurrent archive owners.");
             }
-            TestAssert.That(!journal.BirthdayArchive(Source.Uid, "other-epoch").Exists, "Restore epoch reused a cleanup archive.");
+            TestAssert.That(!journal.BirthdayArchive(source.Uid, "other-epoch").Exists, "Restore epoch reused a cleanup archive.");
+            if (bridge)
+            {
+                var other = source.Uid.Replace("synthetic-profile", "other-profile");
+                TestAssert.That(!journal.BirthdayArchive(other, "epoch").Exists &&
+                    CalendarBirthdayCleanup.PlanCleanup(items, remote.Values.ToArray(), other).Count == 0,
+                    "Another Thunderbird profile adopted the cleanup binding.");
+            }
         }
         finally { Directory.Delete(root, true); }
+    }
+    private sealed class BridgeRelay : IAsyncDisposable
+    {
+        internal string Name { get; } = "magnolie-birthday-bridge-" + Guid.NewGuid().ToString("N");
+        private readonly CancellationTokenSource stop = new();
+        private readonly Task run;
+        internal BridgeRelay(NextcloudDavSource source, HttpClient provider)
+        {
+            run = Task.Run(async () =>
+            {
+                while (!stop.IsCancellationRequested)
+                {
+                    using var pipe = new NamedPipeServerStream(Name, PipeDirection.InOut, 1,
+                        PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+                    await pipe.WaitForConnectionAsync(stop.Token);
+                    var request = JsonNode.Parse(await ThunderbirdBridge.ReadFrameAsync(pipe, ThunderbirdBridge.MaximumRequestBytes, stop.Token))!.AsObject();
+                    TestAssert.That(request["source"]?.GetValue<string>() == source.Uid && request["op"]?.GetValue<string>() == "http", "Bridge lost its profile-bound source.");
+                    using var message = new HttpRequestMessage(new HttpMethod(request["method"]!.GetValue<string>()), request["url"]!.GetValue<string>());
+                    foreach (var header in request["headers"]!.AsObject())
+                    {
+                        TestAssert.That(header.Key is "Depth" or "If-Match" or "If-None-Match", "Credentials crossed the bridge.");
+                        message.Headers.TryAddWithoutValidation(header.Key, header.Value!.GetValue<string>());
+                    }
+                    message.Content = new StringContent(request["body"]!.GetValue<string>());
+                    using var response = await provider.SendAsync(message, stop.Token);
+                    var reply = new JsonObject { ["version"] = 1, ["id"] = request["id"]!.DeepClone(), ["ok"] = true,
+                        ["status"] = (int)response.StatusCode, ["body"] = await response.Content.ReadAsStringAsync(stop.Token),
+                        ["etag"] = response.Headers.ETag?.ToString() ?? "" };
+                    await ThunderbirdBridge.WriteFrameAsync(pipe, JsonSerializer.SerializeToUtf8Bytes(reply), ThunderbirdBridge.MaximumResponseBytes, stop.Token);
+                }
+            });
+        }
+        public async ValueTask DisposeAsync()
+        {
+            stop.Cancel();
+            try { await run; } catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
+            stop.Dispose();
+        }
     }
     private sealed class Handler(Func<HttpRequestMessage, HttpResponseMessage> reply) : HttpMessageHandler
     {

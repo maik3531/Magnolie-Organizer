@@ -449,6 +449,40 @@ class AkonadiClient:
         self.modify(_logical_uid(content, self.kind), content)
 
     def delete(self, logical_uid):
+        return self._delete(logical_uid, "delete")
+
+    def guarded_delete_supported(self):
+        if self.generation is None or self.instance is None:
+            return False
+        try:
+            response = self._call({"command": "capabilities"})
+        except AkonadiError:
+            return False
+        return (set(response) == {"ok", "revisionGuardedDelete"}
+                and response["ok"] is True
+                and response["revisionGuardedDelete"] is True)
+
+    def current_event_text(self, logical_uid):
+        if self.kind != "calendar":
+            raise ValueError("current_event_text requires a calendar client")
+        logical_uid = _short_text(logical_uid, "logical UID", MAX_UID)
+        self._items = None
+        self._snapshot()  # A complete fresh snapshot is the absence proof.
+        group = self._items.get(logical_uid, [])
+        if not group:
+            return None
+        if len(group) != 1:
+            raise AkonadiProtocolError("recurrence instances changed during cleanup")
+        return group[0]["content"]
+
+    def delete_guarded(self, logical_uid):
+        if self.generation is None or self.instance is None:
+            raise AkonadiProtocolError("guarded deletion needs a database binding")
+        # Distinct command: replacing/downgrading a helper after the capability
+        # query cannot silently fall back to an older unguarded delete.
+        return self._delete(logical_uid, "delete-guarded")
+
+    def _delete(self, logical_uid, command):
         logical_uid = _short_text(logical_uid, "logical UID", MAX_UID)
         self._snapshot()
         if logical_uid not in self._items:
@@ -457,7 +491,7 @@ class AkonadiClient:
         if len(group) != 1:
             raise ValueError("recurrence instances are read only")
         current = group[0]
-        response = self._call({"command": "delete", "id": current["id"],
+        response = self._call({"command": command, "id": current["id"],
                                "revision": current["revision"]})
         if set(response) != {"ok"}:
             raise AkonadiProtocolError("invalid delete response")

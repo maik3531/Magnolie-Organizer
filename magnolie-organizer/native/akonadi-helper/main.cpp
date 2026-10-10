@@ -608,7 +608,8 @@ QJsonObject dispatch(const QJsonObject &request)
     }
     const QString command = commandValue.toString();
     if (QStringList{QStringLiteral("status"), QStringLiteral("snapshot"), QStringLiteral("create"),
-                    QStringLiteral("modify"), QStringLiteral("delete"), QStringLiteral("exists")}.contains(command)) {
+                    QStringLiteral("modify"), QStringLiteral("delete"), QStringLiteral("exists"),
+                    QStringLiteral("capabilities"), QStringLiteral("delete-guarded")}.contains(command)) {
         // Query the bus daemon only. Creating the first KDE job can start a
         // missing server, so never create a job without an existing service.
         auto bus = QDBusConnection::sessionBus().interface();
@@ -622,6 +623,13 @@ QJsonObject dispatch(const QJsonObject &request)
         requireKeys(request, {"command"});
         return statusCommand();
     }
+    if (command == QLatin1String("capabilities")) {
+        requireKeys(request, {"command", "kind", "collection", "generation", "instance"});
+        verifyServerBinding(request);
+        parseKind(request);
+        integerValue(request, "collection", 1, MaxExactJsonInteger);
+        return {{QStringLiteral("ok"), true}, {QStringLiteral("revisionGuardedDelete"), true}};
+    }
     if (command == QLatin1String("snapshot")) {
         return snapshotCommand(request);
     }
@@ -631,7 +639,7 @@ QJsonObject dispatch(const QJsonObject &request)
     if (command == QLatin1String("modify")) {
         return modifyCommand(request);
     }
-    if (command == QLatin1String("delete")) {
+    if (command == QLatin1String("delete") || command == QLatin1String("delete-guarded")) {
         return deleteCommand(request);
     }
     if (command == QLatin1String("exists")) {

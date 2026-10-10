@@ -18679,6 +18679,24 @@ def eds_geburtstagsdubletten_bereinigen(client, quelle_uid, quellen_id, jahresta
             load_state=archive.load, save_state=archive.save, type_id=jahrestag_typ_id)
 
 
+def akonadi_geburtstagsdubletten_bereinigen(client, quelle_uid, quellen_id, jahrestage, texte, sync_epoch):
+    plans = kalender_dubletten.plan_birthdays(jahrestage, texte, quelle_uid, quellen_id, jahrestag_typ_id)
+    binding = quellen_id + "\0" + str(sync_epoch or "") + "\0" + json.dumps(
+        [client.generation, client.instance], ensure_ascii=True, separators=(",", ":"))
+    archive = kalender_dubletten.CleanupArchive(daten_verzeichnis(), binding, _sync_transaktionsschluessel)
+    if not plans and not archive.exists():
+        return {"removed": 0, "recovered": 0}
+    if not client.guarded_delete_supported():
+        return {"removed": 0, "recovered": 0}
+    if any(ics_lesen(text).get("uebersprungen") for text in texte):
+        raise RuntimeError(_("The calendar backend reported an incomplete result."))
+    with archive:
+        return kalender_dubletten.apply_birthdays(
+            jahrestage, texte, quelle_uid, quellen_id, read_current=client.current_event_text,
+            remove=client.delete_guarded, load_state=archive.load, save_state=archive.save,
+            type_id=jahrestag_typ_id)
+
+
 def dav_geburtstagsdubletten_bereinigen(dav, quelle, jahrestage, resources, sync_epoch):
     uid = quelle["uid"]
     texte = [resource["data"] for resource in resources]
@@ -25393,8 +25411,11 @@ class Fenster(_FENSTER_BASIS):
                 fern_gelesen = []
                 gesperrte_serien = set()
                 remote_texte = eds_events_lesen(client)
-                if not ist_akonadi and not loeschungsfrei and kalender_schreibbar.get(quelle_uid):
-                    bereinigt = eds_geburtstagsdubletten_bereinigen(client, quelle_uid, quellenpraefix + quelle_uid,
+                bereinigung_erlaubt = ({"change", "delete"} <= rechte if ist_akonadi
+                                      else kalender_schreibbar.get(quelle_uid))
+                if not loeschungsfrei and bereinigung_erlaubt:
+                    bereinigen = akonadi_geburtstagsdubletten_bereinigen if ist_akonadi else eds_geburtstagsdubletten_bereinigen
+                    bereinigt = bereinigen(client, quelle_uid, quellenpraefix + quelle_uid,
                         jahrestage, remote_texte, daten.get("syncEpoch") or sync_meta.get("syncEpoch"))
                     if bereinigt["removed"] or bereinigt["recovered"]:
                         remote_texte = eds_events_lesen(client)

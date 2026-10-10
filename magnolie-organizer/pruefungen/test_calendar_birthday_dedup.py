@@ -30,6 +30,14 @@ def test_known_contact_and_exact_remote_semantics_keep_original_uid_and_full_ala
     assert set(result[0]["hashes"]) == {"original", "copy"}
 
 
+def test_known_kcalendarcore_wrapper_preserves_unknown_metadata_barrier():
+    def wrapped(uid, marker="X-KDE-ICAL-IMPLEMENTATION-VERSION:1.0"):
+        return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n" + marker + "\r\n" + event(uid) + "END:VCALENDAR\r\n"
+    assert len(plan(texts=[wrapped("original"), wrapped("copy")])) == 1
+    for marker in ("X-KDE-ICAL-IMPLEMENTATION-VERSION:2.0", "X-KDE-ICAL-IMPLEMENTATION-VERSION;UNKNOWN=1:1.0", "METHOD:PUBLISH"):
+        assert plan(texts=[wrapped("original"), wrapped("copy", marker)]) == []
+
+
 def test_yearless_contact_preserves_explicit_unknown_year_annotation():
     items = [local("old-copy", "--05-10"), local("correct", "--05-10")]
     texts = [event("old-copy", "20260510", "20260511"), event("correct", "20000510", "20000511", "X-MAGNOLIE-DATE:--05-10\r\n", created="20260101T000000Z")]

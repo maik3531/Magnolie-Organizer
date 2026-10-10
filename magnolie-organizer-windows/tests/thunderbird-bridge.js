@@ -8,6 +8,8 @@ const { JSDOM } = require("jsdom");
 async function main() {
   const dom = new JSDOM("");
   const requests = [];
+  const calendarFixtures = [];
+  let calendarStatus = 207;
   const base = "https://dav.example/book/";
   let incomplete = false;
   const response = text => ({ status: 207, text, dom: new dom.window.DOMParser().parseFromString(text, "text/xml") });
@@ -25,10 +27,19 @@ async function main() {
     "ExtensionCommon.sys.mjs": { ExtensionCommon: { ExtensionAPI: class {} } },
     "MailServices.sys.mjs": { MailServices: { ab: { directories: [{ dirType: 102, readOnly: false, fileName: "test.sqlite", UID: "book", dirName: "Test" }] } } },
     "CardDAVDirectory.sys.mjs": { CardDAVDirectory: { forFile: () => book } },
-    "calUtils.sys.mjs": { cal: { manager: { getCalendars: () => [] } } },
-    "CalDavRequest.sys.mjs": { CalDavGenericRequest: class {} }
+    "calUtils.sys.mjs": { cal: { manager: { getCalendars: () => calendarFixtures } } },
+    "CalDavRequest.sys.mjs": { CalDavGenericRequest: class {
+      constructor(session, calendar, method, uri, headers, body, contentType) {
+        assert.equal(session, calendar.session);
+        this.request = { url: uri.spec, method, headers, body, contentType };
+      }
+      async commit() {
+        requests.push(this.request);
+        return { status: calendarStatus, text: "synthetic provider response", getHeader: () => '"calendar-v1"' };
+      }
+    } }
   };
-  const context = vm.createContext({ URL, TextEncoder, Services: { prefs: { getStringPref: () => "profile-one", getBoolPref: () => false } },
+  const context = vm.createContext({ URL, TextEncoder, Services: { io: { newURI: spec => ({ spec }) }, prefs: { getStringPref: () => "profile-one", getBoolPref: () => false } },
     Ci: { nsIAbManager: { CARDDAV_DIRECTORY_TYPE: 102 } }, ChromeUtils: {
       importESModule: uri => modules[uri.split("/").at(-1)], importGlobalProperties() {}
     } });
@@ -60,6 +71,35 @@ async function main() {
   assert.equal(requests.length, count, "invalid bridge input reached a provider");
   await api.request({ ...request, method: "DELETE", url: base + "a.vcf", headers: { "If-Match": '"v1"' } });
   assert.equal(requests.at(-1).headers["If-Match"], '"v1"');
+  const calendarBase = "https://dav.example/calendar/";
+  const calendarFixture = { id: "calendar", type: "caldav", name: "Synthetic calendar", readOnly: false,
+    uri: { spec: calendarBase }, disabled: false, wrappedJSObject: { session: {} },
+    getProperty(key) { return key === "disabled" ? this.disabled : true; } };
+  calendarFixtures.push(calendarFixture);
+  const calendarSource = (await api.request({ version: 1, id, op: "sources" })).sources.find(item => item.kind === "calendar");
+  assert.equal(calendarSource.uid, "thunderbird-calendar:profile-one:calendar");
+  const calendarRequest = { version: 1, id, op: "http", source: calendarSource.uid,
+    method: "REPORT", url: calendarBase, headers: { Depth: "1" }, body: "<calendar-query/>" };
+  assert.equal((await api.request(calendarRequest)).body, "synthetic provider response");
+  calendarStatus = 204;
+  const deletion = { ...calendarRequest, method: "DELETE", url: calendarBase + "duplicate.ics", body: "", headers: { "If-Match": '"calendar-v1"' } };
+  assert.equal((await api.request(deletion)).status, 204);
+  assert.equal(requests.at(-1).headers["If-Match"], '"calendar-v1"');
+  const calendarCalls = requests.length;
+  for (const invalid of [{ source: "thunderbird-calendar:other-profile:calendar" },
+    { url: "https://dav.example/other/duplicate.ics" }, { url: calendarBase }, { headers: {} }])
+    await assert.rejects(api.request({ ...deletion, ...invalid }));
+  calendarFixture.disabled = true;
+  await assert.rejects(api.request(deletion), /missing-source/);
+  calendarFixture.disabled = false;
+  calendarFixture.readOnly = true;
+  await assert.rejects(api.request(deletion), /missing-source/);
+  calendarFixture.readOnly = false;
+  assert.equal(requests.length, calendarCalls);
+  calendarStatus = 412;
+  assert.equal((await api.request(deletion)).status, 412, "revision conflict must reach the organizer unchanged");
+  calendarStatus = 503;
+  assert.equal((await api.request(calendarRequest)).status, 503, "failed REPORT is not an empty calendar");
   const prefs=new Map();
   const makeBook=email=>({dirType:102,URI:email,
     getStringValue:key=>key==="carddav.username"?email:"https://www.googleapis.com/carddav/v1/principals/"+email});

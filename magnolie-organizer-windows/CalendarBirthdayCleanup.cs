@@ -115,7 +115,9 @@ internal static class CalendarBirthdayCleanup
             foreach (var resource in resources)
             {
                 var root = Parse(resource.Text); var events = Events(root).ToArray();
-                if (events.Length != 1 || root.Children.Any(child => child.Kind != "VEVENT") || root.Properties.Any(property => property.Name is not ("VERSION" or "PRODID" or "CALSCALE"))) continue;
+                if (events.Length != 1 || root.Children.Any(child => child.Kind != "VEVENT") || root.Properties.Any(property => property.Name is not ("VERSION" or "PRODID" or "CALSCALE" or "X-KDE-ICAL-IMPLEMENTATION-VERSION"))) continue;
+                var kdeVersion = root.Properties.Where(property => property.Name == "X-KDE-ICAL-IMPLEMENTATION-VERSION").ToArray();
+                if (kdeVersion.Length > 1 || kdeVersion.Any(property => property.Value != "1.0" || property.Parameters.Length != 0)) continue;
                 var node = events[0]; var uid = One(node, "UID");
                 if (node.Properties.Any(property => property.Name is "RECURRENCE-ID" or "RDATE" or "EXDATE" or "EXRULE" or "ATTENDEE" or "ORGANIZER") || One(node, "RRULE").ToUpperInvariant() != "FREQ=YEARLY" || One(node, "STATUS").ToUpperInvariant() is not ("" or "CONFIRMED") || node.Children.Any(child => child.Kind != "VALARM")) continue;
                 var kind = new[] { "X-MAGNOLIE-TYPE-ID", "X-MAGNOLIE-JAHRESTAG-TYP", "X-MAGNOLIE-TYP" }.Select(key => One(node, key)).FirstOrDefault(value => value.Length > 0) ?? "";
