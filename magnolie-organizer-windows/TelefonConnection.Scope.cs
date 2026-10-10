@@ -6,23 +6,40 @@ internal sealed partial class TelefonConnection
 {
     private PhoneContentScope.Session? receivedContentScope;
     private string ScopePublicKey => Convert.ToHexString(peer.PublicKey);
-    private bool ContentScopeControlsReady
+    private bool ContentScopeSelected
     {
         get
         {
-            if (!SharedSettingsReady) return false;
-            var current = store.LoadPeers().SingleOrDefault(value => value.Id == peer.Id && value.PublicKey.SequenceEqual(peer.PublicKey));
-            if (current is null || !PhoneContentScope.Supported(SharedLocalCapabilities(), current.Capabilities)) return false;
-            if (new[] { "personal_notes_sync", "personal_tasks_sync" }.Any(name =>
-                    store.LocalGrants()[name]?.GetValue<bool>() != true || current.Grants[name]?.GetValue<bool>() != true)) return false;
             var settings = store.SharedSettings(peer.Id, peer.PublicKey);
             return settings is not null && SharedSyncSettings.Effective(settings)["content_mode"]?.GetValue<string>() == "phone_scope";
         }
     }
 
+    private bool ContentScopeAuthorized
+    {
+        get
+        {
+            if (!SharedControlsReady) return false;
+            var current = store.LoadPeers().SingleOrDefault(value => value.Id == peer.Id && value.PublicKey.SequenceEqual(peer.PublicKey));
+            if (current is null || !PhoneContentScope.Supported(SharedLocalCapabilities(), current.Capabilities)) return false;
+            if (new[] { "personal_notes_sync", "personal_tasks_sync" }.Any(name =>
+                    store.LocalGrants()[name]?.GetValue<bool>() != true || current.Grants[name]?.GetValue<bool>() != true)) return false;
+            return ContentScopeSelected;
+        }
+    }
+
+    private bool ContentScopeControlsReady => ContentScopeAuthorized && SharedSettingsReady;
+
+    private void RequireContentScopeControls()
+    {
+        if (!ContentScopeAuthorized) throw new InvalidOperationException("Current content scope is unauthorized.");
+        if (!SharedSettingsReady) throw new IOException("Shared preference agreement is pending.");
+    }
+
     internal JsonObject CurrentContentScope(JsonObject claimed)
     {
-        if (!ContentScopeControlsReady || receivedContentScope is null)
+        RequireContentScopeControls();
+        if (receivedContentScope is null)
             throw new InvalidOperationException("Current content scope is unavailable.");
         // The session object is owned by this TelefonConnection, not a persisted global map.
         return receivedContentScope.Current(peer.Id, ScopePublicKey, 0, claimed);
@@ -87,7 +104,13 @@ internal sealed partial class TelefonConnection
     private Task SendScopedOrPlainAsync(JsonObject message)
     {
         var manifest = DataContentScope(message["kind"]!.GetValue<string>(), message["body"]!.AsObject());
-        if (manifest is null) return SendPlainAsync(message);
+        if (manifest is null)
+        {
+            if (ContentScopeSelected && TelefonProtocolContract.PersonalKinds.Contains(message["kind"]!.GetValue<string>()) &&
+                message["kind"]!.GetValue<string>() != "personal_sync.settings")
+                throw new InvalidOperationException("Scoped preference does not permit raw content fallback.");
+            return SendPlainAsync(message);
+        }
         var wrapped = message.DeepClone().AsObject(); wrapped["kind"] = PhoneContentScope.DataKind;
         wrapped["body"] = PhoneContentScope.Wrap(message["kind"]!.GetValue<string>(), message["body"]!.AsObject(), manifest);
         return SendPlainAsync(wrapped);
@@ -96,7 +119,7 @@ internal sealed partial class TelefonConnection
     private async Task HandleContentScopeAsync(JsonObject message)
     {
         var now = Now(); TelefonMessageContract.ValidateMessage(message, now, true);
-        var ack = store.CommitIncoming(peer.Id, message, now, (_, _) => ContentScopeControlsReady ? null : "not_granted",
+        var ack = store.CommitIncoming(peer.Id, message, now, (_, _) => ContentScopeAuthorized ? null : "not_granted",
             deferAcceptance: true, reauthorizeDuplicates: true);
         if (ack.Status is "accepted" or "duplicate" && !store.ReceivedMatches(peer.Id, message))
             ack = new TelefonAck(ack.MessageId, "rejected", "invalid_schema");
@@ -107,7 +130,7 @@ internal sealed partial class TelefonConnection
                 await store.NotePolicyGate.WaitAsync(cancellation);
                 try
                 {
-                    if (!ContentScopeControlsReady) throw new InvalidOperationException("not_granted");
+                    RequireContentScopeControls();
                     if (TelefonProtocolContract.Integer(message["expires_ms"]) <= now) throw new InvalidDataException("Expired scope frame.");
                     receivedContentScope ??= new PhoneContentScope.Session(peer.Id, ScopePublicKey, 0);
                     receivedContentScope.Receive(peer.Id, ScopePublicKey, 0, message["body"]!.AsObject());

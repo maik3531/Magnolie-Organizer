@@ -81,6 +81,47 @@ def test_legacy_public_capabilities_do_not_enable_scoped_transfer():
     assert not scope.supported(items, items)
 
 
+def test_settings_agreement_gap_is_retryable_without_raw_content_fallback(tmp_path, monkeypatch):
+    service, peer, channel = fixture(tmp_path, monkeypatch)
+    manifest = scope.create(["mobile-note"], ["task"])
+    service._payload(peer, channel, frame(scope.chunks(manifest)[0]))
+    changed = service.store.change_shared_setting(peer["device_id"], peer["static_public"], "time_enabled", True)
+    assert not service.shared_settings_ready(peer["device_id"])
+    part = frame(scope.chunks(manifest)[0])
+    request = {"format": 3, "run_id": str(uuid.uuid4()), "trigger": "manual", "modules": ["notes", "tasks"]}
+    wrapped = message(scope.wrap("personal_sync.request", request, manifest)); wrapped["kind"] = scope.DATA_KIND
+    for packet in (part, wrapped):
+        service._payload(peer, channel, packet)
+        assert channel.sent[-1]["status"] == "rejected" and channel.sent[-1]["error"] == "temporary_failure"
+    assert service.store.personal_run(peer["device_id"], request["run_id"]) == {}
+    raw = dict(message(request), kind="personal_sync.request", body=dict(request, run_id=str(uuid.uuid4())))
+    service._payload(peer, channel, raw)
+    assert channel.sent[-1]["error"] == "not_granted"
+    assert service.store.personal_run(peer["device_id"], raw["body"]["run_id"]) == {}
+    legacy = dict(request, run_id=str(uuid.uuid4()))
+    service.store.remember_personal_run(peer["device_id"], legacy, phone.now_ms() + 60000)
+    outgoing = service.store.queue(peer["device_id"], "personal_sync.request", legacy, 60000)
+    count = len(channel.sent)
+    assert service._send_message(channel, peer["device_id"], outgoing) is False
+    assert len(channel.sent) == count
+    service._payload(peer, channel, message(changed))
+    assert service.shared_settings_ready(peer["device_id"])
+    for packet in (part, wrapped):
+        service._payload(peer, channel, packet)
+        assert channel.sent[-1]["status"] in {"accepted", "duplicate"}
+    assert service.current_content_scope(peer["device_id"], peer["static_public"], scope.reference(manifest)) == manifest
+
+
+def test_persisted_scope_choice_survives_capability_downgrade_without_raw_fallback(tmp_path, monkeypatch):
+    service, peer, channel = fixture(tmp_path, monkeypatch)
+    for name in ("personal_notes_sync", "personal_tasks_sync"):
+        peer["capabilities"]["items"][name]["versions"].remove(shared.VERSION)
+    request = {"format": 3, "run_id": str(uuid.uuid4()), "trigger": "manual", "modules": ["notes", "tasks"]}
+    service._payload(peer, channel, dict(message(request), kind="personal_sync.request"))
+    assert channel.sent[-1]["status"] == "rejected" and channel.sent[-1]["error"] == "not_granted"
+    assert service.store.personal_run(peer["device_id"], request["run_id"]) == {}
+
+
 def test_scoped_data_dispatch_persists_run_and_never_accepts_unwrapped_reuse(tmp_path, monkeypatch):
     service, peer, channel = fixture(tmp_path, monkeypatch)
     manifest = scope.create(["mobile-note"], ["task"])

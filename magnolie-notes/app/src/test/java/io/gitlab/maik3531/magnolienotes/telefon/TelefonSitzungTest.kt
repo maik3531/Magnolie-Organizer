@@ -14,6 +14,17 @@ import org.junit.Test
 import java.io.File
 
 class TelefonSitzungTest {
+    @Test fun `closed channel rejects delayed wakeups without emitting a frame`() {
+        val output = java.io.ByteArrayOutputStream()
+        val sendKey = ByteArray(32) { 1 }; val receiveKey = ByteArray(32) { 2 }
+        val channel = TelefonSecureChannel(java.io.ByteArrayInputStream(ByteArray(0)), output,
+            ByteArray(16) { 3 }, sendKey, ByteArray(4) { 4 }, receiveKey, ByteArray(4) { 5 })
+        channel.close()
+        assertThrows(TelefonProtokollFehler::class.java) { channel.send(buildJsonObject { put("type", JsonPrimitive("ping")) }) }
+        assertEquals(0, output.size())
+        assertArrayEquals(ByteArray(32), sendKey); assertArrayEquals(ByteArray(32), receiveKey)
+    }
+
     @Test fun `Organizerbindung vergleicht nur kryptografische device id`() {
         val peer = TelefonPeer("22222222-2222-4222-8222-222222222222", "Gleicher Name", "pin")
         assertTrue(organizerPairingAllowed(null, "33333333-3333-4333-8333-333333333333"))

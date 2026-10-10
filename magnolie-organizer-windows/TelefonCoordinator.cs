@@ -1696,6 +1696,8 @@ internal sealed partial class TelefonConnection : IDisposable
         try { if (DataContentScope(kind, body) is not null) return null; }
         catch (InvalidOperationException) { return "not_granted"; }
         catch (InvalidDataException) { return "invalid_schema"; }
+        catch (IOException) { return "temporary_failure"; }
+        if (ContentScopeSelected) return "not_granted";
         var kinds = kind == "personal_sync.deletion_decision" ? store.PersonalDecisionKinds(peer.Id, body, outgoing) : null;
         if (PersonalSyncContract.NoteMessageUsesNotes(kind, body, kinds) && !NotePolicyReady) return "temporary_failure";
         return PersonalSyncContract.NoteDirectionAllowed("desktop", outgoing, kind, body, store.NoteImportMode(peer.Id), kinds) ? null : "not_granted";
@@ -1874,7 +1876,7 @@ internal sealed partial class TelefonConnection : IDisposable
                 if (!dataKind.StartsWith("personal_sync.custom_", StringComparison.Ordinal))
                 {
                     var reference = new PersonalSyncStore(store).ScopedRunReference(peer.Id, peer.PublicKey, dataBody["run_id"]!.GetValue<string>(), now);
-                    if (!JsonNode.DeepEquals(reference, scopedReference) || scopedReference is null && ContentScopeControlsReady) return "not_granted";
+                    if (!JsonNode.DeepEquals(reference, scopedReference) || scopedReference is null && ContentScopeSelected) return "not_granted";
                 }
                 return AuthorizePersonal(dataKind, dataBody);
             }, deferAcceptance: true, reauthorizeDuplicates: true);

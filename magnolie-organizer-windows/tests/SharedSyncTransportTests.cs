@@ -1,10 +1,30 @@
 using System.Text.Json.Nodes;
+using System.Buffers.Binary;
+using System.Security.Cryptography;
 using MagnolieOrganizer.Windows;
 
 namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class SharedSyncTransportTests
 {
+    private static async Task<IReadOnlyList<JsonObject>> DrainAsync(MemoryStream wire)
+    {
+        using var input = new MemoryStream(wire.ToArray()); wire.SetLength(0); wire.Position = 0;
+        var result = new List<JsonObject>();
+        while (input.Position < input.Length)
+        {
+            var envelope = await TelefonCoordinator.ReadFrameAsync(input, 1_048_576, CancellationToken.None);
+            var cipher = Convert.FromBase64String(envelope["ciphertext"]!.GetValue<string>());
+            envelope.Remove("ciphertext");
+            var nonce = new byte[12]; BinaryPrimitives.WriteUInt64BigEndian(nonce.AsSpan(4), (ulong)TelefonProtocolContract.Integer(envelope["seq"]));
+            var clear = new byte[cipher.Length - 16];
+            using var aes = new AesGcm(new byte[32], 16);
+            aes.Decrypt(nonce, cipher.AsSpan(0, clear.Length), cipher.AsSpan(clear.Length), clear, TelefonCrypto.Canonical(envelope));
+            result.Add(JsonNode.Parse(clear)!.AsObject());
+        }
+        return result;
+    }
+
     private static JsonObject Message(string kind, JsonObject body)
     {
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -44,7 +64,7 @@ internal static class SharedSyncTransportTests
                 }
                 return Task.FromResult<TelefonAck?>(null);
             }
-            TelefonConnection Connect(bool supported = true) => new TelefonConnection(peer, new MemoryStream(), new byte[16], new byte[72],
+            TelefonConnection Connect(bool supported = true, MemoryStream? wire = null) => new TelefonConnection(peer, wire ?? new MemoryStream(), new byte[16], new byte[72],
                 store, Receive, CancellationToken.None, "wifi") { SharedLocalCapabilities = () => (supported ? negotiated : publicCapabilities)["items"]!.DeepClone().AsObject() };
             var caps = Message("capabilities.update", negotiated);
             var allowed = TelefonProtocolContract.DesktopGrants(); allowed["personal_notes_sync"] = true; allowed["personal_tasks_sync"] = true;
@@ -87,7 +107,8 @@ internal static class SharedSyncTransportTests
                 await oldVersion.HandlePlainAsync(Message(SharedSyncSettings.Kind, remote));
                 TestAssert.That(!oldVersion.SharedSettingsReady, "One-sided capability negotiated common settings.");
             }
-            using (var scoped = Connect())
+            using var scopeWire = new MemoryStream();
+            using (var scoped = Connect(wire: scopeWire))
             {
                 await scoped.HandlePlainAsync(caps); await scoped.HandlePlainAsync(grants); await scoped.HandlePlainAsync(own);
                 await scoped.HandlePlainAsync(update);
@@ -109,6 +130,40 @@ internal static class SharedSyncTransportTests
                 TestAssert.Throws<InvalidOperationException>(() => scoped.CurrentContentScope(PhoneContentScope.Reference(manifest)), "New incomplete scope kept old membership authorized.");
                 foreach (var part in nextParts.Skip(1)) await scoped.HandlePlainAsync(Message(PhoneContentScope.Kind, part));
                 TestAssert.That(JsonNode.DeepEquals(next, scoped.CurrentContentScope(PhoneContentScope.Reference(next))), "Updated wire membership did not become current.");
+                var changedTime = store.ChangeSharedSetting(peer.Id, peer.PublicKey, "time_enabled", JsonValue.Create(true)!);
+                TestAssert.That(!scoped.SharedSettingsReady, "Time change did not require a fresh settings echo.");
+                await DrainAsync(scopeWire);
+                var retryPart = Message(PhoneContentScope.Kind, nextParts[0]);
+                var pendingRequest = new JsonObject { ["format"] = 3, ["run_id"] = Guid.NewGuid().ToString("D"),
+                    ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
+                var retryRequest = Message(PhoneContentScope.DataKind, PhoneContentScope.Wrap("personal_sync.request", pendingRequest, next));
+                foreach (var packet in new[] { retryPart, retryRequest })
+                {
+                    await scoped.HandlePlainAsync(packet);
+                    var ack = (await DrainAsync(scopeWire)).Last(value => value["type"]?.GetValue<string>() == "ack");
+                    TestAssert.That(ack["status"]?.GetValue<string>() == "rejected" && ack["error"]?.GetValue<string>() == "temporary_failure", "Settings gap became a terminal scope failure.");
+                }
+                var pendingRuns = new PersonalSyncStore(store);
+                var raw = pendingRequest.DeepClone().AsObject(); raw["run_id"] = Guid.NewGuid().ToString("D");
+                await scoped.HandlePlainAsync(Message("personal_sync.request", raw));
+                TestAssert.That((await DrainAsync(scopeWire)).Last()["error"]?.GetValue<string>() == "not_granted" &&
+                    pendingRuns.LoadRun(peer.Id, raw["run_id"]!.GetValue<string>(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) is null,
+                    "A settings gap admitted raw legacy data.");
+                var legacy = raw.DeepClone().AsObject(); legacy["run_id"] = Guid.NewGuid().ToString("D");
+                var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                pendingRuns.RememberRun(peer.Id, legacy, now, now + 60000);
+                store.Enqueue(peer.Id, "personal_sync.request", legacy, 60000, now);
+                await scoped.PumpOutboxNowAsync();
+                TestAssert.That(!(await DrainAsync(scopeWire)).Any(value => value["kind"]?.GetValue<string>() == "personal_sync.request"), "A settings gap sent unscoped content.");
+                var echoed = SharedSyncSettings.Merge(choice, changedTime, peer.Id, actor);
+                await scoped.HandlePlainAsync(Message(SharedSyncSettings.Kind, echoed));
+                TestAssert.That(scoped.SharedSettingsReady, "Settings echo did not restore content readiness.");
+                foreach (var packet in new[] { retryPart, retryRequest })
+                {
+                    await scoped.HandlePlainAsync(packet);
+                    var ack = (await DrainAsync(scopeWire)).Last(value => value["type"]?.GetValue<string>() == "ack");
+                    TestAssert.That(ack["status"]?.GetValue<string>() is "accepted" or "duplicate", "Temporary scope failure poisoned the original message ID.");
+                }
                 var request = new JsonObject { ["format"] = 3, ["run_id"] = Guid.NewGuid().ToString("D"),
                     ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
                 var wrappedRequest = Message(PhoneContentScope.DataKind, PhoneContentScope.Wrap("personal_sync.request", request, next));
@@ -143,6 +198,15 @@ internal static class SharedSyncTransportTests
                 TestAssert.That(rejectedAck && store.OutboxMessage(peer.Id, queued) is not null, "Stale scope ACK removed queued content.");
                 using var otherConnection = Connect();
                 TestAssert.Throws<InvalidOperationException>(() => otherConnection.CurrentContentScope(PhoneContentScope.Reference(next)), "Other connection inherited current membership.");
+                using var downgradedWire = new MemoryStream();
+                using var downgraded = Connect(false, downgradedWire);
+                await downgraded.HandlePlainAsync(caps); await downgraded.HandlePlainAsync(grants); await downgraded.HandlePlainAsync(own);
+                await DrainAsync(downgradedWire);
+                var downgradedRequest = request.DeepClone().AsObject(); downgradedRequest["run_id"] = Guid.NewGuid().ToString("D");
+                await downgraded.HandlePlainAsync(Message("personal_sync.request", downgradedRequest));
+                TestAssert.That((await DrainAsync(downgradedWire)).Last()["error"]?.GetValue<string>() == "not_granted" &&
+                    runs.LoadRun(peer.Id, downgradedRequest["run_id"]!.GetValue<string>(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) is null,
+                    "Capability downgrade bypassed the persisted scope choice.");
             }
         }
         finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }

@@ -4,6 +4,8 @@ import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import java.security.MessageDigest
 
 internal data class SharedSettingsBinding(val localActor: String, val peerActor: String, val peerPublic: String)
@@ -78,4 +80,34 @@ internal class SharedSyncStorage(
 
     fun merge(expected: SharedSettingsBinding, incoming: JsonObject, initial: Map<String, JsonElement> = emptyMap()) =
         update(expected, initial) { SharedSyncSettings.merge(it, incoming, expected.localActor, expected.peerActor) }
+
+    fun localContentScope(expected: SharedSettingsBinding, restoreEpoch: String, notes: Collection<String>, tasks: Collection<String>): JsonObject =
+        withWriteTransaction(expected) {
+            val key = key(expected).replaceFirst("personal_shared_settings:", "personal_local_scope:").removeSuffix(":consent")
+            val previous = query("meta", arrayOf("value"), "key=?", arrayOf(key), null, null, null).use { cursor ->
+                if (!cursor.moveToFirst()) return@use null
+                val clear = storage.decryptPayload(cursor.getBlob(0), "local_content_scope", key)
+                try {
+                    val value = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject
+                    TelefonNachrichten.exact(value, setOf("restore_epoch", "manifest"))
+                    require((value["restore_epoch"] as? JsonPrimitive)?.isString == true)
+                    PhoneContentScope.validate(value.getValue("manifest") as JsonObject)
+                    value
+                } finally { clear.fill(0) }
+            }
+            val old = previous?.get("manifest") as? JsonObject
+            val manifest = when {
+                old == null -> PhoneContentScope.create(notes, tasks)
+                previous?.get("restore_epoch") != JsonPrimitive(restoreEpoch) -> PhoneContentScope.create(notes, tasks, old.long("revision") + 1)
+                else -> PhoneContentScope.advance(old, notes, tasks)
+            }
+            if (manifest != old) {
+                val value = buildJsonObject { put("restore_epoch", JsonPrimitive(restoreEpoch)); put("manifest", manifest) }
+                val clear = TelefonKanonisch.bytes(value)
+                val sealed = try { storage.encryptPayload(clear, "local_content_scope", key) } finally { clear.fill(0) }
+                insertWithOnConflict("meta", null, ContentValues().apply { put("key", key); put("value", sealed) },
+                    SQLiteDatabase.CONFLICT_REPLACE).also { check(it != -1L) }
+            }
+            manifest
+        }
 }

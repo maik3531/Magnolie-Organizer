@@ -3111,8 +3111,14 @@ class PhoneService:
         self.callback("status", self.report())
         return result
 
-    def _content_scope_ready_controls(self, peer, channel):
-        if (not self._shared_controls_ready(peer, channel) or not self.shared_settings_ready(peer["device_id"]) or
+    def _uses_scoped_content(self, peer):
+        if not peer:
+            return False
+        body = self.store.shared_settings(peer["device_id"], peer["static_public"])
+        return body is not None and shared_sync_contract.effective(body).get("content_mode") == "phone_scope"
+
+    def _content_scope_authorized(self, peer, channel):
+        if (not self._shared_controls_ready(peer, channel) or
                 not content_scope_contract.supported(desktop_capabilities()["items"], peer.get("capabilities", {}).get("items", {}))):
             return False
         local = peer.get("local_grants", {}).get("grants", {})
@@ -3120,15 +3126,24 @@ class PhoneService:
         if any(local.get(name) is not True or remote.get(name) is not True
                for name in ("personal_notes_sync", "personal_tasks_sync")):
             return False
-        body = self.store.shared_settings(peer["device_id"], peer["static_public"])
-        return shared_sync_contract.effective(body).get("content_mode") == "phone_scope"
+        return self._uses_scoped_content(peer)
+
+    def _content_scope_ready_controls(self, peer, channel):
+        return self._content_scope_authorized(peer, channel) and self.shared_settings_ready(peer["device_id"])
+
+    def _require_content_scope_controls(self, peer, channel):
+        if not self._content_scope_authorized(peer, channel):
+            raise PermissionError("Content scope controls are not authorized.")
+        if not self.shared_settings_ready(peer["device_id"]):
+            raise RuntimeError("Shared preference agreement is pending.")
 
     def current_content_scope(self, peer_id, expected_public, claimed):
         with self.lock:
             peer = self.store.sole_peer(peer_id)
             channel = self.connections.get(peer_id)
-            if (not peer or peer["static_public"] != expected_public or not self._content_scope_ready_controls(peer, channel)):
+            if not peer or peer["static_public"] != expected_public:
                 raise PermissionError("Content scope controls are not current.")
+            self._require_content_scope_controls(peer, channel)
             session = self.content_scope_sessions.get(channel)
             if session is None:
                 raise PermissionError("Content scope has not been received on this connection.")
@@ -3418,6 +3433,8 @@ class PhoneService:
             if self._scoped_data_manifest(peer_id, kind, body, channel) is not None:
                 return None
             peer = self.store.sole_peer(peer_id)
+            if self._uses_scoped_content(peer):
+                return "not_granted"
             if peer and not self._note_supported(peer) and not self.store.note_settings(peer_id):
                 return None  # Existing pre-V5 consent contract remains unchanged.
             kinds = self.store.personal_decision_kinds(peer_id, body, outgoing) if kind == "personal_sync.deletion_decision" else None
@@ -4014,6 +4031,15 @@ class PhoneService:
                     or not needed or any(not local.get(name) or not remote.get(name) for name in needed)):
                 self.store.acknowledge(peer_id, message["message_id"])
                 return False
+        if message["kind"] in PERSONAL_DATA_KINDS:
+            current = self.store.sole_peer(peer_id)
+            if self._uses_scoped_content(current):
+                reference = self.store.scoped_run_reference(peer_id, current["static_public"], message["body"]["run_id"])
+                if reference is None:
+                    self.store.acknowledge(peer_id, message["message_id"])
+                    return False
+                if not self._content_scope_ready_controls(current, channel):
+                    return False
         manifest = self._scoped_data_manifest(peer_id, message["kind"], message.get("body", {}), channel)
         if manifest is not None:
             wire = dict(message, kind=content_scope_contract.DATA_KIND,
@@ -4776,9 +4802,9 @@ class PhoneService:
                     raise ValueError("expired content scope")
                 with self.lock:
                     current = self.store.sole_peer(peer["device_id"])
-                    if (not current or current["static_public"] != peer["static_public"] or
-                            not self._content_scope_ready_controls(current, channel)):
+                    if not current or current["static_public"] != peer["static_public"]:
                         raise PermissionError
+                    self._require_content_scope_controls(current, channel)
                     if self.store.dedupe_result(peer["device_id"], payload["message_id"]) and not self.store.received_matches(peer["device_id"], payload):
                         raise ValueError("conflicting content scope message identity")
                     binding = (peer["device_id"], peer["static_public"], id(channel))
@@ -4932,7 +4958,7 @@ class PhoneService:
             with self.lock:
                 scope = self.store.scoped_run_reference(peer["device_id"], peer["static_public"], value["run_id"])
                 if (scope != scoped_reference or scoped_reference is None and
-                        self._content_scope_ready_controls(self.store.sole_peer(peer["device_id"]), channel)):
+                        self._uses_scoped_content(self.store.sole_peer(peer["device_id"]))):
                     channel.send({"type": "ack", "message_id": payload["message_id"], "status": "rejected", "error": "not_granted"})
                     return
                 error = self._note_policy_error(peer["device_id"], kind, value, False, channel)

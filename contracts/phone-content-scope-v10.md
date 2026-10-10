@@ -5,7 +5,8 @@ Refs #131; shared preferences #130; explicit Organizer admission #132.
 Capability 10 is not advertised until content-run binding, preference application
 and the UI are integrated. Current implementations include membership codecs,
 current-connection assembly, optional snapshot filtering, a Notes commit-boundary
-recheck, and the membership control sender/receivers. These components alone do
+recheck, membership control sender/receivers, and a durable Notes manual-run
+starter with scope/request receipt barriers. These components alone do
 not constitute an activated end-to-end scoped synchronization feature.
 
 ## Meaning
@@ -95,6 +96,27 @@ message IDs. Temporary rejection retains the same queued control for bounded
 retry; terminal rejection closes that scope session rather than generating an
 unbounded sequence of new messages. Old/foreign acknowledgments do not mark a
 new session's parts accepted.
+
+Notes persists unchanged membership under the paired key and local restore epoch,
+so reconnecting does not invent a new scope reference for an unfinished run. A
+membership change or restore rotates the reference and discards only stale scoped
+run/transport/staging state, preserving documents and unrelated messages. The
+60-second bound applies to control-message delivery, not to a new periodic lease
+for already accepted membership on the same connection.
+
+A local manual start waits for the current scope-part receipts. Its run binding,
+outgoing request identity, batches and declared attachment snapshots are stored
+atomically. Batches cannot overtake the request or be sent before its accepted/
+duplicate receipt. Temporary rejection retains the exact original message;
+terminal request rejection cancels that run's transient state. Session reset
+requires fresh scope-part receipts even when membership itself is unchanged.
+
+A stored `phone_scope` choice never authorizes raw legacy content as a fallback
+while settings echoes are pending or a peer loses capability support. When the
+current identity, permissions and scope choice remain authorized, a temporary
+shared-settings disagreement defers scoped controls/data instead of permanently
+rejecting them. Separate time-setting changes do not change the run's content-
+policy binding.
 
 ## Data selection and commit
 

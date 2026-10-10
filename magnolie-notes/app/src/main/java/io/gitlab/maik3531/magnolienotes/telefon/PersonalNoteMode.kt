@@ -130,6 +130,8 @@ internal class PersonalNoteSession {
     var sharedReceived: JsonObject? = null
     var localContentScope: JsonObject? = null
     var contentScopeSelection: io.gitlab.maik3531.magnolienotes.daten.PersonalContentSelection? = null
+    var contentScopeRestoreEpoch: String? = null
+    var contentScopePreference: JsonObject? = null
     val contentScopeMessages = mutableMapOf<String, Int>()
     val contentScopeAccepted = mutableSetOf<Int>()
     var contentScopeFailed = false

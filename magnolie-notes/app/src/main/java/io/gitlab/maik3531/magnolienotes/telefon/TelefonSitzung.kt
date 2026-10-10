@@ -277,8 +277,10 @@ class TelefonSecureChannel(
 ) : AutoCloseable {
     private var sendSequence = 0L
     private var receiveSequence = 0L
+    private var closed = false
 
     @Synchronized fun send(payload: JsonObject) {
+        if (closed) throw TelefonProtokollFehler("Die sichere Sitzung ist beendet.")
         val clear = TelefonKanonisch.bytes(payload)
         if (clear.size > TelefonParameter.ANWENDUNG_MAX) throw TelefonProtokollFehler("Anwendungsnachricht ist zu groß.")
         val header = header(sendSequence, "phone_to_desktop")
@@ -310,7 +312,7 @@ class TelefonSecureChannel(
         put("seq", JsonPrimitive(sequence)); put("dir", JsonPrimitive(direction))
     }
 
-    override fun close() { sendKey.fill(0); receiveKey.fill(0) }
+    @Synchronized override fun close() { closed = true; sendKey.fill(0); receiveKey.fill(0) }
 
     private object Base64Length {
         fun any(value: String): Int {
