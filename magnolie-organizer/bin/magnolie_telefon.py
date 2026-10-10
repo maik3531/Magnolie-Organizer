@@ -977,7 +977,7 @@ class PhoneStore:
             return strict_json(self._decrypt(row[1], "outbox", message_id))["body"]["decision_id"]
         return ""
 
-    def outbox_policy(self, peer_id, message_id):
+    def outbox_policy(self, peer_id, message_id, scope_check=None):
         with sqlite3.connect(self.database_path) as db:
             row = db.execute("SELECT transport_policy,kind,payload,expires_ms FROM outbox WHERE peer_id=? AND message_id=?",
                               (peer_id, message_id)).fetchone()
@@ -991,7 +991,12 @@ class PhoneStore:
         body = message.get("body", {})
         try:
             durable = self.run_policy(peer_id, body.get("run_id", ""))
-        except ValueError:
+            peer = self.peer(peer_id)
+            if peer is not None:
+                reference = self.scoped_run_reference(peer_id, peer["static_public"], body.get("run_id", ""))
+                if reference is not None and scope_check is not None:
+                    scope_check(reference)
+        except (ValueError, PermissionError):
             return "invalid"
         if durable == "expired":
             return "expired"
@@ -3129,6 +3134,27 @@ class PhoneService:
                 raise PermissionError("Content scope has not been received on this connection.")
             return session.current((peer_id, expected_public, id(channel)), claimed)
 
+    def _scoped_data_manifest(self, peer_id, kind, body, channel=None):
+        if not isinstance(body, dict) or not body.get("run_id"):
+            return None
+        peer = self.store.sole_peer(peer_id)
+        if not peer:
+            return None
+        reference = self.store.scoped_run_reference(peer_id, peer["static_public"], body["run_id"])
+        if reference is None:
+            return None
+        if kind not in content_scope_contract.DATA_KINDS:
+            raise PermissionError("Scoped runs do not transmit deletion decisions.")
+        if channel is not None and self.connections.get(peer_id) is not channel:
+            raise PermissionError("Scoped data connection changed.")
+        manifest = self.current_content_scope(peer_id, peer["static_public"], reference)
+        if kind == "personal_sync.batch":
+            allowed = {"note": set(manifest["members"]["notes"]), "task": set(manifest["members"]["tasks"])}
+            if any(record.get("kind") in allowed and record.get("id") not in allowed[record["kind"]]
+                   for record in body.get("records", [])):
+                raise PermissionError("Record outside current phone membership.")
+        return manifest
+
     def _time_supported(self, peer):
         remote = peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {})
         return (time_sync_contract.VERSION in desktop_capabilities()["items"]["personal_tasks_sync"]["versions"]
@@ -3381,12 +3407,16 @@ class PhoneService:
         self.callback("status", self.report())
 
     def _note_direction_allowed(self, peer_id, kind, body, outgoing):
+        if self._scoped_data_manifest(peer_id, kind, body) is not None:
+            return True
         kinds = self.store.personal_decision_kinds(peer_id, body, outgoing) if kind == "personal_sync.deletion_decision" else None
         return personal_sync_contract.note_direction_allowed("desktop", outgoing, kind, body,
             self._note_importing(peer_id), kinds)
 
     def _note_policy_error(self, peer_id, kind, body, outgoing, channel=None):
         try:
+            if self._scoped_data_manifest(peer_id, kind, body, channel) is not None:
+                return None
             peer = self.store.sole_peer(peer_id)
             if peer and not self._note_supported(peer) and not self.store.note_settings(peer_id):
                 return None  # Existing pre-V5 consent contract remains unchanged.
@@ -3395,6 +3425,8 @@ class PhoneService:
                 return "temporary_failure"
             if not self._note_direction_allowed(peer_id, kind, body, outgoing):
                 return "not_granted"
+        except PermissionError:
+            return "not_granted"
         except RuntimeError:
             return "temporary_failure"
         return None
@@ -3982,7 +4014,13 @@ class PhoneService:
                     or not needed or any(not local.get(name) or not remote.get(name) for name in needed)):
                 self.store.acknowledge(peer_id, message["message_id"])
                 return False
-        channel.send(message)
+        manifest = self._scoped_data_manifest(peer_id, message["kind"], message.get("body", {}), channel)
+        if manifest is not None:
+            wire = dict(message, kind=content_scope_contract.DATA_KIND,
+                        body=content_scope_contract.wrap(message["kind"], message["body"], manifest))
+            channel.send(wire)
+        else:
+            channel.send(message)
         self.store.mark_attempt(peer_id, message["message_id"])
         return True
 
@@ -4640,7 +4678,7 @@ class PhoneService:
                 continue
             self._start_handler(sock, "bluetooth:" + peer_id, "bluetooth")
 
-    def _payload(self, peer, channel, payload):
+    def _payload(self, peer, channel, payload, scoped_reference=None):
         if payload.get("type") in ("ping", "pong") and set(payload) == {
                 "type", "ping_id", "sent_ms"}:
             if (not valid_uuid(payload["ping_id"], 4)
@@ -4670,12 +4708,13 @@ class PhoneService:
                             request["error"] = payload["error"]
                             request["event"].set()
                             return
-            ack_policy = self.store.outbox_policy(peer["device_id"], payload["message_id"])
+            ack_policy = self.store.outbox_policy(peer["device_id"], payload["message_id"],
+                scope_check=lambda reference: self.current_content_scope(peer["device_id"], peer["static_public"], reference))
             if ack_policy == "expired":
                 raise ValueError("acknowledgement for expired message or run")
             if (ack_policy == "invalid" or ack_policy == "wifi_only"
                     and self.connection_transports.get(peer["device_id"]) != "wifi"):
-                raise ValueError("wifi-only acknowledgement received on bluetooth")
+                raise ValueError("acknowledgement violates current transport or content scope policy")
             if payload["status"] == "rejected" and payload["error"] == "temporary_failure":
                 return
             decision_id = self.store.acknowledge(peer["device_id"], payload["message_id"],
@@ -4698,6 +4737,37 @@ class PhoneService:
                 or payload["created_ms"] > received + CLOCK_SKEW_MS):
             raise ValueError("invalid message")
         kind = payload["kind"]
+        if kind == content_scope_contract.DATA_KIND:
+            try:
+                wrapped = content_scope_contract.validate_data(payload["body"])
+                if (payload["expires_ms"] <= received or payload["expires_ms"] - payload["created_ms"] >
+                        (3600000 if wrapped["kind"] == "personal_sync.request" else DAY_MS)):
+                    raise ValueError("expired or excessive scoped message lifetime")
+                with self.lock:
+                    current = self.store.sole_peer(peer["device_id"])
+                    if not current or current["static_public"] != peer["static_public"] or self.connections.get(peer["device_id"]) is not channel:
+                        raise PermissionError("Scoped data peer changed.")
+                    manifest = self.current_content_scope(peer["device_id"], peer["static_public"], wrapped["scope"])
+                    inner_kind, body = content_scope_contract.unwrap(wrapped, manifest)
+                    inner_message = dict(payload, kind=inner_kind, body=body)
+                    if self.store.dedupe_result(peer["device_id"], payload["message_id"]) and not self.store.received_matches(peer["device_id"], inner_message):
+                        raise ValueError("conflicting scoped data message identity")
+                    if inner_kind == "personal_sync.request":
+                        self.store.remember_scoped_run(peer["device_id"], peer["static_public"], body, wrapped["scope"], payload["expires_ms"])
+                    elif self.store.scoped_run_reference(peer["device_id"], peer["static_public"], body["run_id"]) != wrapped["scope"]:
+                        raise PermissionError("Scoped run binding missing or different.")
+                # The ordinary data path retains its staging, receipts and commit handling.
+                # Never hold the service lock while that path waits for the GUI commit.
+                self._payload(peer, channel, inner_message, scoped_reference=wrapped["scope"])
+                return
+            except PermissionError:
+                error = "not_granted"
+            except (ValueError, TypeError, KeyError):
+                error = "invalid_schema"
+            except (OSError, RuntimeError, sqlite3.Error):
+                error = "temporary_failure"
+            channel.send({"type": "ack", "message_id": payload["message_id"], "status": "rejected", "error": error})
+            return
         if kind == content_scope_contract.KIND:
             status, error = "accepted", "none"
             try:
@@ -4860,6 +4930,11 @@ class PhoneService:
         if kind in PERSONAL_DATA_KINDS:
             value = validate_personal_sync_body(kind, payload["body"])
             with self.lock:
+                scope = self.store.scoped_run_reference(peer["device_id"], peer["static_public"], value["run_id"])
+                if (scope != scoped_reference or scoped_reference is None and
+                        self._content_scope_ready_controls(self.store.sole_peer(peer["device_id"]), channel)):
+                    channel.send({"type": "ack", "message_id": payload["message_id"], "status": "rejected", "error": "not_granted"})
+                    return
                 error = self._note_policy_error(peer["device_id"], kind, value, False, channel)
             if error:
                 channel.send({"type": "ack", "message_id": payload["message_id"], "status": "rejected", "error": error})
