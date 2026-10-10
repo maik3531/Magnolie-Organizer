@@ -511,9 +511,9 @@ internal sealed class NextcloudCardDavRemote(NextcloudDavClient client, Nextclou
 internal sealed record NextcloudCalendarResult(JsonArray Termine, JsonArray Jahrestage, JsonArray Tombstones,
     int Imported, int Exported, int Updated, int Deleted, int Conflicts);
 
-internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
+internal sealed class NextcloudCalendarSync(NextcloudDavClient client, CalendarBirthdayArchive? cleanupArchive = null)
 {
-    private static readonly string[] Fields = ["uid", "datum", "endDatum", "zeit", "endZeit", "titel", "notiz", "kategorien",
+    internal static readonly string[] Fields = ["uid", "datum", "endDatum", "zeit", "endZeit", "titel", "notiz", "kategorien",
         "ort", "vertraulich", "vorlaeufig", "kostenstelle", "kunde", "standardErinnerung", "individuelleErinnerungTage",
         "wiederholung", "erinnern", "vorlaufTage", "name", "typ", "icsRoundtrip", "icsKomplex", "icsSerienUid", "icsSequence",
         "icsAusnahmen", "icsAusnahmeTermine", "icsZusatzDaten", "icsZusatzTermine", "icsStatus", "icsEndeFehlt", "icsNullDauer"];
@@ -526,7 +526,17 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
         var remote = new Dictionary<string, (NextcloudDavObject Object, JsonObject Data, bool Anniversary)>(StringComparer.Ordinal);
         var birthdayRepairs = new HashSet<string>(StringComparer.Ordinal);
         var uids = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var item in await client.ReadCalendarAsync(source, cancellationToken).ConfigureAwait(false))
+        var snapshot = await client.ReadCalendarAsync(source, cancellationToken).ConfigureAwait(false);
+        var mergedBirthdays = new HashSet<string>(StringComparer.Ordinal);
+        if (!additiveOnly && cleanupArchive is not null)
+        {
+            if (snapshot.Select(item => ExchangeCodec.ParseIcs(item.Text))
+                .Any(parsed => parsed.FehlerhafteTermine > 0 || parsed.FehlerhafteAufgaben > 0))
+                throw new InvalidDataException("Ein CalDAV-Objekt wurde nicht vollständig gelesen.");
+            mergedBirthdays = await CalendarBirthdayCleanup.ApplyAsync(client, source, localAnniversaries, snapshot, cleanupArchive, cancellationToken).ConfigureAwait(false);
+            if (mergedBirthdays.Count > 0) snapshot = await client.ReadCalendarAsync(source, cancellationToken).ConfigureAwait(false);
+        }
+        foreach (var item in snapshot)
         {
             var parsed = ExchangeCodec.ParseIcs(item.Text);
             var values = parsed.Termine.OfType<JsonObject>().Select(value => (Value: value, Anniversary: false))
@@ -546,6 +556,11 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
         }
         var observedEtags = remote.Values.GroupBy(item => item.Object.Href)
             .ToDictionary(group => group.Key, group => group.First().Object.ETag);
+        foreach (var aliases in localAnniversaries.OfType<JsonObject>()
+                     .Where(item => mergedBirthdays.Contains(ContactFields.Text(item, "uid")))
+                     .GroupBy(item => ContactFields.Text(item, "uid")))
+            if (aliases.Select(item => (ContactFields.Text(item, "kontaktId"), SyncBaseline.Hash(item, Fields))).Distinct().Count() > 1)
+                throw new InvalidDataException("Merged birthday aliases contain different local changes.");
         if (!additiveOnly) foreach (var tombstone in dead.OfType<JsonObject>())
         {
             var mapping = ContactFields.Source(tombstone, source.Uid);
@@ -598,11 +613,27 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
 
         async Task MergeArray(JsonArray values, bool anniversary)
         {
+            var processedBirthdays = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
             foreach (var value in values.OfType<JsonObject>().ToArray())
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var uid = ContactFields.Text(value, "uid"); if (uid.Length == 0) { uid = $"mag-{Guid.NewGuid():N}@magnolie-organizer"; value["uid"] = uid; }
                 var mapping = ContactFields.Source(value, source.Uid); var id = mapping?["id"]?.GetValue<string>() ?? "";
+                if (anniversary && mergedBirthdays.Contains(uid))
+                {
+                    if (processedBirthdays.TryGetValue(uid, out var processed))
+                    {
+                        // Semantic equality was checked before the first ordinary
+                        // write; propagate a remote update without copying personal IDs.
+                        CopyCalendar(value, new JsonObject(processed.Where(pair => Fields.Contains(pair.Key))
+                            .Select(pair => new KeyValuePair<string, JsonNode?>(pair.Key, pair.Value?.DeepClone()))));
+                        var sources = value["syncQuellen"] as JsonObject ?? new JsonObject();
+                        value["syncQuellen"] = sources;
+                        sources[source.Uid] = ContactFields.Source(processed, source.Uid)?.DeepClone();
+                        continue;
+                    }
+                    processedBirthdays[uid] = value;
+                }
                 if (additiveOnly && id.Length == 0)
                 {
                     var match = remote.FirstOrDefault(pair => pair.Value.Anniversary == anniversary &&
@@ -670,15 +701,15 @@ internal sealed class NextcloudCalendarSync(NextcloudDavClient client)
         }
     }
 
-    private static string RemoteKey(Uri href, JsonObject value) => href.AbsoluteUri + "#" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(ContactFields.Text(value, "uid")))).ToLowerInvariant();
-    private static void SetSource(JsonObject value, string source, string id, string etag, JsonObject? baseline = null)
+    internal static string RemoteKey(Uri href, JsonObject value) => href.AbsoluteUri + "#" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(ContactFields.Text(value, "uid")))).ToLowerInvariant();
+    internal static void SetSource(JsonObject value, string source, string id, string etag, JsonObject? baseline = null)
     {
         var all = value["syncQuellen"] as JsonObject ?? new JsonObject(); value["syncQuellen"] = all;
         all[source] = new JsonObject { ["id"] = id, ["etag"] = etag, ["geaendert"] = value["geaendert"]?.DeepClone(), ["eigen"] = true,
             ["inhaltFormat"] = "windows-1", ["inhaltSha256"] = SyncBaseline.Hash(baseline ?? value, Fields) };
         value["syncKalenderUid"] = source; value["sync"] = true;
     }
-    private static void CopyCalendar(JsonObject target, JsonObject source)
+    internal static void CopyCalendar(JsonObject target, JsonObject source)
     {
         foreach (var key in target.Select(item => item.Key).Where(key => key.StartsWith("ics", StringComparison.Ordinal) && !source.ContainsKey(key)).ToArray()) target.Remove(key);
         foreach (var item in source) if (item.Key is not ("id" or "syncQuellen" or "sync")) target[item.Key] = item.Value?.DeepClone();

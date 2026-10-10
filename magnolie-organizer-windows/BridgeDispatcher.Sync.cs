@@ -385,7 +385,9 @@ internal sealed partial class BridgeDispatcher
                     // HTTP clients bound individual requests. A calendar can
                     // legitimately need many such requests; it shares only the
                     // cancellable overall run lifetime, not one request budget.
-                    var calendarResult = await new NextcloudCalendarSync(calendarClient!).SyncAsync(calendar,
+                    var birthdayArchive = ThunderbirdBridge.IsSource(calendar.Uid) ? null :
+                        syncJournal.BirthdayArchive(calendar.Uid, originalEpoch);
+                    var calendarResult = await new NextcloudCalendarSync(calendarClient!, birthdayArchive).SyncAsync(calendar,
                         calendarTerms, calendarAnniversaries, calendarTombstones, calendarCursor,
                         additiveOnly || firstCalendarRun, operation.Token);
                     foreach (var item in calendarResult.Termine) remainingTerms.Add(item?.DeepClone());

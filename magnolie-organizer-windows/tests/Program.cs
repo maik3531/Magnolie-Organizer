@@ -86,6 +86,7 @@ runner.Add("Wetterstandort / LibreOffice / Datenschutz", WeatherLocationTests.Ru
 runner.Add("Magnolienbaum Crypto / Pairing / FS1 / Replay / Queues / Netzwerk", ContractGroupTests.TreeAsync);
 runner.Add("Magnolienbaum Nextcloud / WebDAV / Authentisierung", NextcloudMailboxTests.RunAsync);
 runner.Add("Nextcloud CalDAV / CardDAV / Discovery / ETag / Sicherheit", NextcloudDavTests.RunAsync);
+runner.Add("Calendar birthday cleanup", CalendarBirthdayCleanupTests.RunAsync);
 runner.Add("Thunderbird bridge / framing / provider identity", ThunderbirdBridgeTests.RunAsync);
 runner.Add("Managed internet accounts / isolated profiles", ManagedInternetAccountsTests.RunAsync);
 runner.Add("Recovery comparison / unchanged photo allocations", RecoveryComparisonAllocationTests.RunAsync);

@@ -92,6 +92,12 @@ internal sealed class NextcloudSyncJournal
         new NextcloudSyncJournal(path + ".creates", protector).Load() is { } saved &&
         saved.Id == transactionId && saved.Payload[href.AbsoluteUri] is JsonObject;
 
+    internal CalendarBirthdayArchive BirthdayArchive(string source, string epoch)
+    {
+        var binding = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source + "\0" + epoch))).ToLowerInvariant();
+        return new CalendarBirthdayArchive(path + ".calendar-cleanup-" + binding, binding, protector);
+    }
+
     internal void Delete()
     {
         if (File.Exists(path)) File.Delete(path);
