@@ -402,6 +402,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             delete("personal_attachment_chunk", "peer_id=?", arrayOf(peerId))
             delete("personal_attachment_transfer", "peer_id=?", arrayOf(peerId))
             delete("meta", "key LIKE ?", arrayOf("personal_run:$peerId:%"))
+            delete("meta", "key LIKE ?", arrayOf("personal_scope:$peerId:%"))
             delete("meta", "key LIKE ?", arrayOf("personal_report:$peerId:%"))
         }
     }
@@ -423,6 +424,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                     delete(table, "peer_id=? AND run_id=?", arrayOf(peerId, runId))
                 delete("personal_run", "peer_id=? AND run_id=?", arrayOf(peerId, runId))
                 delete("meta", "key LIKE ?", arrayOf("personal_report:$peerId:$runId%"))
+                delete("meta", "key=?", arrayOf("personal_scope:$peerId:$runId"))
             }
         }
         // Encrypted wire rows cannot be classified in SQL; remove only rows whose decrypted run is revoked.
@@ -844,10 +846,15 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     }
 
     fun rememberPersonalRun(peerId: String, body: JsonObject, wireExpiresMs: Long,
-                            now: Long = System.currentTimeMillis()) {
+                             now: Long = System.currentTimeMillis()) {
+        rememberPersonalRunInDatabase(helper.writableDatabase, peerId, body, wireExpiresMs, now)
+    }
+
+    private fun rememberPersonalRunInDatabase(db: SQLiteDatabase, peerId: String, body: JsonObject,
+                                              wireExpiresMs: Long, now: Long) {
         val runId = body.string("run_id"); val key = "personal_run:$peerId:$runId"
         val trigger = body.string("trigger"); if (trigger !in setOf("manual", "auto_wifi")) throw TelefonProtokollFehler("Ungültiger Personal-Sync-Trigger.")
-        helper.writableDatabase.inTransaction {
+        db.inTransaction {
             val existing = authenticatedRun(peerId, runId, this)
             if (existing != null) {
                 if (existing.second != body) throw TelefonProtokollFehler("Widersprüchlicher Personal-Sync-Lauf.")
@@ -869,6 +876,67 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             }
             insertOrThrow("personal_run", null, values)
         }
+    }
+
+    private fun contentPolicyHash(settings: JsonObject): String {
+        require(SharedSyncSettings.effective(settings)["content_mode"] == JsonPrimitive("phone_scope"))
+        val fields = settings.getValue("settings") as JsonObject
+        return MessageDigest.getInstance("SHA-256").digest(TelefonKanonisch.bytes(fields.getValue("content_mode") as JsonObject))
+            .joinToString("") { "%02x".format(it.toInt() and 255) }
+    }
+
+    private fun readScopeRun(db: SQLiteDatabase, peerId: String, runId: String): JsonObject? {
+        val key = "personal_scope:$peerId:$runId"
+        return db.query("meta", arrayOf("value"), "key=?", arrayOf(key), null, null, null).use {
+            if (!it.moveToFirst()) return@use null
+            val clear = storage.decryptPayload(it.getBlob(0), "personal_scope", key)
+            try {
+                val value = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject
+                TelefonNachrichten.exact(value, setOf("peer_key", "local_actor", "scope", "content_policy", "restore_epoch"))
+                PhoneContentScope.validateReference(value.getValue("scope") as JsonObject)
+                value
+            } finally { clear.fill(0) }
+        }
+    }
+
+    internal fun rememberScopedRun(binding: SharedSettingsBinding, shared: SharedSyncStorage, request: JsonObject,
+                                   reference: JsonObject, wireExpiresMs: Long, now: Long = System.currentTimeMillis()) {
+        PersonalSyncProtokoll.validate("personal_sync.request", request); PhoneContentScope.validateReference(reference)
+        require(request.long("format") == 3L && wireExpiresMs > now)
+        val runId = request.string("run_id"); val peerId = binding.peerActor; val key = "personal_scope:$peerId:$runId"
+        shared.withWriteTransaction(binding) {
+            val settings = requireNotNull(shared.read(binding))
+            val policyHash = contentPolicyHash(settings)
+            val marker = buildJsonObject {
+                put("peer_key", JsonPrimitive(binding.peerPublic)); put("local_actor", JsonPrimitive(binding.localActor))
+                put("scope", reference); put("content_policy", JsonPrimitive(policyHash)); put("restore_epoch", JsonPrimitive(restoreEpoch()))
+            }
+            val existing = authenticatedRun(peerId, runId, this)
+            val oldScope = readScopeRun(this, peerId, runId)
+            require((existing == null) == (oldScope == null)) { "Cannot change between legacy and scoped run" }
+            if (existing != null) {
+                require(existing.second == request && oldScope == marker && existing.first.expiresMs > now && wireExpiresMs <= existing.first.expiresMs)
+                return@withWriteTransaction
+            }
+            rememberPersonalRunInDatabase(this, peerId, request, wireExpiresMs, now)
+            val clear = TelefonKanonisch.bytes(marker)
+            val sealed = try { storage.encryptPayload(clear, "personal_scope", key) } finally { clear.fill(0) }
+            insertOrThrow("meta", null, ContentValues().apply { put("key", key); put("value", sealed) })
+            check(policyHash == contentPolicyHash(requireNotNull(shared.read(binding))))
+            shared.requireWritable(binding)
+        }
+    }
+
+    internal fun scopedRunReference(binding: SharedSettingsBinding, shared: SharedSyncStorage, runId: String,
+                                    now: Long = System.currentTimeMillis()): JsonObject? {
+        shared.requireWritable(binding)
+        val settings = requireNotNull(shared.read(binding))
+        val marker = readScopeRun(helper.readableDatabase, binding.peerActor, runId) ?: return null
+        val run = authenticatedRun(binding.peerActor, runId)
+        check(marker["peer_key"] == JsonPrimitive(binding.peerPublic) && marker["local_actor"] == JsonPrimitive(binding.localActor) &&
+            marker["restore_epoch"] == JsonPrimitive(restoreEpoch()) && marker["content_policy"] == JsonPrimitive(contentPolicyHash(settings)) &&
+            run != null && run.first.expiresMs > now) { "Scoped run is no longer current" }
+        return marker.getValue("scope") as JsonObject
     }
 
     private fun authenticatedRun(peerId: String, runId: String,
@@ -1067,6 +1135,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                     for (table in listOf("personal_run", "personal_batch", "personal_attachment_transfer", "personal_attachment_chunk"))
                         delete(table, "peer_id=? AND run_id=?", arrayOf(peerId, runId))
                     delete("meta", "key=?", arrayOf("personal_report:$peerId:$runId"))
+                    delete("meta", "key=?", arrayOf("personal_scope:$peerId:$runId"))
                 }
             }
         }

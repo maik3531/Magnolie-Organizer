@@ -1089,8 +1089,8 @@ internal sealed partial class TelefonStore
             using var delete = connection.CreateCommand(); delete.Transaction = transaction; delete.CommandText = "DELETE FROM personal_domain WHERE peer_id=$peer AND message_id=$id";
             delete.Parameters.AddWithValue("$peer", peerId); delete.Parameters.AddWithValue("$id", id); delete.ExecuteNonQuery();
         }
-        using var meta = connection.CreateCommand(); meta.Transaction = transaction; meta.CommandText = "DELETE FROM meta WHERE key=$run OR key LIKE $report OR key LIKE $applied";
-        meta.Parameters.AddWithValue("$run", $"personal_run:{peerId}:{runId}"); meta.Parameters.AddWithValue("$report", $"personal_report:{peerId}:{runId}%"); meta.Parameters.AddWithValue("$applied", $"personal_applied:{peerId}:{runId}%"); meta.ExecuteNonQuery();
+        using var meta = connection.CreateCommand(); meta.Transaction = transaction; meta.CommandText = "DELETE FROM meta WHERE key=$run OR key=$scope OR key LIKE $report OR key LIKE $applied";
+        meta.Parameters.AddWithValue("$run", $"personal_run:{peerId}:{runId}"); meta.Parameters.AddWithValue("$scope", $"personal_scope:{peerId}:{runId}"); meta.Parameters.AddWithValue("$report", $"personal_report:{peerId}:{runId}%"); meta.Parameters.AddWithValue("$applied", $"personal_applied:{peerId}:{runId}%"); meta.ExecuteNonQuery();
     }
 
     private static void DeleteOutbox(SqliteConnection connection, SqliteTransaction transaction, string peerId, string messageId)

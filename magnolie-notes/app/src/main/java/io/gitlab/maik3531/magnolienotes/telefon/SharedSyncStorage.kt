@@ -42,6 +42,16 @@ internal class SharedSyncStorage(
         return value
     }
 
+    @Synchronized fun requireWritable(expected: SharedSettingsBinding) {
+        check(!restoreBlocked()) { "restore_unavailable" }
+        key(expected)
+    }
+
+    @Synchronized fun <T> withWriteTransaction(expected: SharedSettingsBinding, action: SQLiteDatabase.() -> T): T {
+        requireWritable(expected)
+        return database().inTransaction { action().also { requireWritable(expected) } }
+    }
+
     @Synchronized private fun update(expected: SharedSettingsBinding, initial: Map<String, JsonElement>,
                                      apply: (JsonObject) -> JsonObject): JsonObject {
         check(!restoreBlocked()) { "restore_unavailable" }

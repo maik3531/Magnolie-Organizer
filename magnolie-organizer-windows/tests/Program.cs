@@ -56,6 +56,7 @@ runner.Add("Shared synchronization settings / one choice / peer scope / converge
 runner.Add("Shared preference storage / encryption / binding / restore", SharedSyncStorageTests.RunAsync);
 runner.Add("Shared preference transport / fresh controls / replay / reconnect", SharedSyncTransportTests.RunAsync);
 runner.Add("Phone content scope / subset updates / removal / bounded manifests", PhoneContentScopeTests.RunAsync);
+runner.Add("Scoped run storage / immutable membership / separate time choice", ScopedRunStorageTests.RunAsync);
 runner.Add("Baum synchronization snapshot continuity", BaumSyncSnapshotTests.RunAsync);
 runner.Add("Background lifecycle regressions", BackgroundLifecycleTests.RunAsync);
 runner.Add("Native sync safety / baselines / mailbox / recovery", NativeSyncSafetyTests.RunAsync);

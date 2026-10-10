@@ -1050,6 +1050,7 @@ class PhoneStore:
             db.execute("DELETE FROM personal_attachment_chunk WHERE peer_id=?", (peer_id,))
             db.execute("DELETE FROM personal_attachment_transfer WHERE peer_id=?", (peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_run:%s:%%" % peer_id,))
+            db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_scope:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_applied:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_report:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_proposal_kind:%s:%%" % peer_id,))
@@ -1074,7 +1075,7 @@ class PhoneStore:
             for run_id in runs:
                 for table in ("personal_batch", "personal_attachment_chunk", "personal_attachment_transfer"):
                     db.execute("DELETE FROM %s WHERE peer_id=? AND run_id=?" % table, (peer_id, run_id))
-                for prefix in ("personal_run", "personal_report", "personal_local_index", "personal_applied"):
+                for prefix in ("personal_run", "personal_scope", "personal_report", "personal_local_index", "personal_applied"):
                     db.execute("DELETE FROM meta WHERE key LIKE ?", ("%s:%s:%s%%" % (prefix, peer_id, run_id),))
             for table in ("outbox", "inbox", "personal_domain"):
                 rows = db.execute("SELECT message_id,payload FROM %s WHERE peer_id=?" % table,
@@ -1515,6 +1516,75 @@ class PhoneStore:
         with sqlite3.connect(self.database_path) as db:
             db.execute("INSERT OR IGNORE INTO meta(key,value) VALUES(?,?)", (key, value))
 
+    def remember_scoped_run(self, peer_id, expected_public, request, reference, claimed_expires_ms):
+        """Atomically bind the ordinary run to the current paired content preference.
+
+        Current-connection scope evidence is checked by the service before calling;
+        this persisted record cannot reconstruct that evidence after reconnect.
+        """
+        validate_personal_sync_body("personal_sync.request", request)
+        if request.get("format") != 3:
+            raise ValueError("scoped runs require record format 3")
+        content_scope_contract.validate_reference(reference)
+        shared_key, local = self._shared_settings_binding(peer_id, expected_public)
+        run_id = request["run_id"]
+        run_key = "personal_run:%s:%s" % (peer_id, run_id)
+        scope_key = "personal_scope:%s:%s" % (peer_id, run_id)
+        now = now_ms()
+        if not valid_timestamp(claimed_expires_ms) or claimed_expires_ms <= now:
+            raise ValueError("expired scoped run")
+        with sqlite3.connect(self.database_path) as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT value FROM meta WHERE key=?", (shared_key,)).fetchone()
+            if row is None:
+                raise PermissionError("shared preferences unavailable")
+            settings = strict_json(self._decrypt(row[0], "shared_settings", shared_key))
+            shared_sync_contract.scoped(settings, local, peer_id)
+            if shared_sync_contract.effective(settings).get("content_mode") != "phone_scope":
+                raise PermissionError("current content mode is not scoped")
+            # Time changes must not invalidate a note/task membership run.
+            policy = hashlib.sha256(canonical(settings["settings"]["content_mode"])).hexdigest()
+            binding = {"peer_key": expected_public, "local_actor": local, "scope": reference, "content_policy": policy}
+            existing_run = db.execute("SELECT value FROM meta WHERE key=?", (run_key,)).fetchone()
+            existing_scope = db.execute("SELECT value FROM meta WHERE key=?", (scope_key,)).fetchone()
+            if bool(existing_run) != bool(existing_scope):
+                raise ValueError("run identity cannot change between scoped and legacy")
+            if existing_run:
+                stored_run = strict_json(self._decrypt(existing_run[0], "personal_run", run_key))
+                stored_scope = strict_json(self._decrypt(existing_scope[0], "personal_scope", scope_key))
+                if (stored_run.get("body") != request or stored_scope != binding or
+                        stored_run.get("expires_ms", 0) <= now or claimed_expires_ms > stored_run["expires_ms"]):
+                    raise ValueError("conflicting or expired scoped run")
+                return
+            run = {"body": request, "created_ms": now, "expires_ms": min(now + DAY_MS, claimed_expires_ms)}
+            self._shared_settings_binding(peer_id, expected_public)
+            db.execute("INSERT INTO meta(key,value) VALUES(?,?)", (run_key, self._encrypt(canonical(run), "personal_run", run_key)))
+            db.execute("INSERT INTO meta(key,value) VALUES(?,?)", (scope_key, self._encrypt(canonical(binding), "personal_scope", scope_key)))
+
+    def scoped_run_reference(self, peer_id, expected_public, run_id):
+        shared_key, local = self._shared_settings_binding(peer_id, expected_public)
+        scope_key = "personal_scope:%s:%s" % (peer_id, run_id)
+        with sqlite3.connect(self.database_path) as db:
+            row = db.execute("SELECT value FROM meta WHERE key=?", (scope_key,)).fetchone()
+            if row is None:
+                return None
+            stored = strict_json(self._decrypt(row[0], "personal_scope", scope_key))
+            if set(stored) != {"peer_key", "local_actor", "scope", "content_policy"}:
+                raise ValueError("invalid scoped run binding")
+            content_scope_contract.validate_reference(stored["scope"])
+            settings_row = db.execute("SELECT value FROM meta WHERE key=?", (shared_key,)).fetchone()
+            if settings_row is None:
+                raise PermissionError("shared preferences unavailable")
+            settings = strict_json(self._decrypt(settings_row[0], "shared_settings", shared_key))
+        shared_sync_contract.scoped(settings, local, peer_id)
+        run = self._personal_run_record(peer_id, run_id)
+        if (stored["peer_key"] != expected_public or stored["local_actor"] != local or
+                shared_sync_contract.effective(settings).get("content_mode") != "phone_scope" or
+                stored["content_policy"] != hashlib.sha256(canonical(settings["settings"]["content_mode"])).hexdigest() or
+                run is None or run["expires_ms"] <= now_ms()):
+            raise PermissionError("scoped run is no longer current")
+        return stored["scope"]
+
     def active_auto_run(self, peer_id):
         key = "personal_active_auto:" + peer_id
         with sqlite3.connect(self.database_path) as db:
@@ -1742,6 +1812,10 @@ class PhoneStore:
                      "wifi_only" if trigger == "auto_wifi" else "any"))
                 db.execute("DELETE FROM meta WHERE key IN (?,?)", (
                     "personal_active_auto:" + peer_id, "personal_run:%s:%s" % (peer_id, run_id)))
+
+        with sqlite3.connect(self.database_path) as db:
+            db.execute("DELETE FROM meta WHERE key LIKE 'personal_scope:%' AND substr(key,16) NOT IN "
+                       "(SELECT substr(key,14) FROM meta WHERE key LIKE 'personal_run:%')")
 
     def remember_command(self, peer_id, client_ref, state):
         with sqlite3.connect(self.database_path) as db:
@@ -2671,6 +2745,7 @@ class PhoneService:
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_local_index:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_proposal_kind:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("shared_settings:%s:%%" % peer_id,))
+            db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_scope:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key=?", ("personal_active_auto:" + peer_id,))
         self.connection_transports.pop(peer_id, None)
         self.connection_errors.pop(peer_id, None)

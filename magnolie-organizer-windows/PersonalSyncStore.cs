@@ -38,6 +38,67 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         return new PersonalSyncRun(runId, body["trigger"]!.GetValue<string>() == "auto_wifi" ? "wifi_only" : "any", expires, expires <= now, body.DeepClone().AsObject());
     }
 
+    internal void RememberScopedRun(string peerId, byte[] expectedPublic, JsonObject request, JsonObject reference, long now, long expires)
+    {
+        if (store.RestoreFenced) throw new InvalidOperationException("restore_unavailable");
+        PersonalSyncContract.ValidateBody("personal_sync.request", request); PhoneContentScope.ValidateReference(reference);
+        if (request["format"]!.GetValue<int>() != 3 || expires <= now) throw new InvalidDataException("Invalid scoped run.");
+        using var db = store.OpenDatabase(); db.Open(); using var transaction = db.BeginTransaction();
+        var settings = store.SharedSettings(peerId, expectedPublic) ?? throw new InvalidOperationException("Shared preferences unavailable.");
+        if (SharedSyncSettings.Effective(settings)["content_mode"]?.GetValue<string>() != "phone_scope")
+            throw new InvalidOperationException("Current content mode is not scoped.");
+        var identity = store.LoadOrCreateIdentity(); var actor = identity.Id;
+        CryptographicOperations.ZeroMemory(identity.PrivateKey);
+        var policy = Convert.ToHexString(SHA256.HashData(TelefonCrypto.Canonical(settings["settings"]!["content_mode"]!.AsObject()))).ToLowerInvariant();
+        var binding = new JsonObject { ["peer_key"] = Convert.ToHexString(expectedPublic), ["local_actor"] = actor,
+            ["scope"] = reference.DeepClone(), ["content_policy"] = policy };
+        var runId = request["run_id"]!.GetValue<string>(); var runKey = RunKey(peerId, runId); var scopeKey = $"personal_scope:{peerId}:{runId}";
+        JsonObject? Read(string key, string type)
+        {
+            using var query = db.CreateCommand(); query.Transaction = transaction; query.CommandText = "SELECT value FROM meta WHERE key=$key";
+            query.Parameters.AddWithValue("$key", key);
+            return query.ExecuteScalar() is byte[] raw ? JsonNode.Parse(store.Open(type, key, raw))!.AsObject() : null;
+        }
+        var oldRun = Read(runKey, "personal_run"); var oldScope = Read(scopeKey, "personal_scope");
+        if ((oldRun is null) != (oldScope is null)) throw new InvalidDataException("Cannot reinterpret a legacy run as scoped.");
+        if (oldRun is not null)
+        {
+            if (!JsonNode.DeepEquals(oldRun["body"], request) || !JsonNode.DeepEquals(oldScope, binding) ||
+                TelefonProtocolContract.Integer(oldRun["expires_ms"]) <= now || expires > TelefonProtocolContract.Integer(oldRun["expires_ms"]))
+                throw new InvalidDataException("Conflicting or expired scoped run.");
+            transaction.Commit(); return;
+        }
+        var run = new JsonObject { ["body"] = request.DeepClone(), ["created_ms"] = now, ["expires_ms"] = Math.Min(checked(now + RunLifetimeMs), expires) };
+        foreach (var item in new[] { (Key: runKey, Type: "personal_run", Value: run), (Key: scopeKey, Type: "personal_scope", Value: binding) })
+        {
+            using var insert = db.CreateCommand(); insert.Transaction = transaction; insert.CommandText = "INSERT INTO meta(key,value) VALUES($key,$value)";
+            insert.Parameters.AddWithValue("$key", item.Key); insert.Parameters.AddWithValue("$value", store.Seal(item.Type, item.Key, TelefonCrypto.Canonical(item.Value)));
+            insert.ExecuteNonQuery();
+        }
+        if (store.RestoreFenced || !JsonNode.DeepEquals(settings, store.SharedSettings(peerId, expectedPublic)))
+            throw new InvalidOperationException("Shared scope binding changed.");
+        transaction.Commit();
+    }
+
+    internal JsonObject? ScopedRunReference(string peerId, byte[] expectedPublic, string runId, long now)
+    {
+        var settings = store.SharedSettings(peerId, expectedPublic) ?? throw new InvalidOperationException("Shared preferences unavailable.");
+        var binding = ReadMeta($"personal_scope:{peerId}:{runId}", "personal_scope");
+        if (binding is null) return null;
+        TelefonProtocolContract.ExactObject(binding, "peer_key", "local_actor", "scope", "content_policy");
+        var scope = binding["scope"] as JsonObject ?? throw new InvalidDataException("Scope reference missing.");
+        PhoneContentScope.ValidateReference(scope);
+        var identity = store.LoadOrCreateIdentity(); var actor = identity.Id;
+        CryptographicOperations.ZeroMemory(identity.PrivateKey);
+        var policy = Convert.ToHexString(SHA256.HashData(TelefonCrypto.Canonical(settings["settings"]!["content_mode"]!.AsObject()))).ToLowerInvariant();
+        var run = LoadRun(peerId, runId, now);
+        if (store.RestoreFenced || binding["peer_key"]?.GetValue<string>() != Convert.ToHexString(expectedPublic) ||
+            binding["local_actor"]?.GetValue<string>() != actor || binding["content_policy"]?.GetValue<string>() != policy ||
+            SharedSyncSettings.Effective(settings)["content_mode"]?.GetValue<string>() != "phone_scope" || run is null || run.Expired)
+            throw new InvalidOperationException("Scoped run is no longer current.");
+        return scope.DeepClone().AsObject();
+    }
+
     internal IReadOnlyList<PersonalSyncRun> CurrentRuns(string peerId, long now)
     {
         var ids = new List<string>(); using (var connection = store.OpenDatabase())
@@ -68,7 +129,7 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         foreach (var item in expired)
         {
             foreach (var table in new[] { "personal_batch", "personal_attachment_chunk", "personal_attachment_transfer" }) DeleteRun(database, transaction, table, item.PeerId, item.RunId);
-            using var meta = database.CreateCommand(); meta.Transaction = transaction; meta.CommandText = "DELETE FROM meta WHERE key=$key OR key LIKE $report OR key LIKE $applied"; meta.Parameters.AddWithValue("$key", item.Key); meta.Parameters.AddWithValue("$report", $"personal_report:{item.PeerId}:{item.RunId}%"); meta.Parameters.AddWithValue("$applied", $"personal_applied:{item.PeerId}:{item.RunId}%"); meta.ExecuteNonQuery();
+            using var meta = database.CreateCommand(); meta.Transaction = transaction; meta.CommandText = "DELETE FROM meta WHERE key=$key OR key=$scope OR key LIKE $report OR key LIKE $applied"; meta.Parameters.AddWithValue("$key", item.Key); meta.Parameters.AddWithValue("$scope", $"personal_scope:{item.PeerId}:{item.RunId}"); meta.Parameters.AddWithValue("$report", $"personal_report:{item.PeerId}:{item.RunId}%"); meta.Parameters.AddWithValue("$applied", $"personal_applied:{item.PeerId}:{item.RunId}%"); meta.ExecuteNonQuery();
         }
         transaction.Commit();
     }

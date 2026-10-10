@@ -25,10 +25,12 @@ class SharedSyncStorageTest {
     private var current: SharedSettingsBinding? = expected
     private var restoring = false
     private var failSeal = false
+    private var failScopeSeal = false
     private val secret = SecretKeySpec(ByteArray(32) { 29 }, "AES")
     private val codec = object : TelefonPayloadStorage {
         override fun encryptPayload(clear: ByteArray, type: String, id: String): ByteArray {
             check(!failSeal) { "synthetic seal failure" }
+            check(!failScopeSeal || type != "personal_scope") { "synthetic scope seal failure" }
             val cipher = Cipher.getInstance("AES/GCM/NoPadding")
             cipher.init(Cipher.ENCRYPT_MODE, secret); cipher.updateAAD("$type\u0000$id".toByteArray())
             return cipher.iv + cipher.doFinal(clear)
@@ -116,5 +118,41 @@ class SharedSyncStorageTest {
         TelefonNachrichten.validate(scopeMessage)
         assertEquals("accepted" to "none", queue.receive(expected.peerActor, scopeMessage))
         assertTrue(runCatching { queue.queue(expected.peerActor, PhoneContentScope.KIND, PhoneContentScope.chunks(manifest).single(), 60_001) }.isFailure)
+    }
+
+    @Test fun scopedRunPersistsExactMembershipAndTimeChangesRemainIndependent() {
+        val shared = store(); shared.change(expected, "content_mode", JsonPrimitive("phone_scope"))
+        val queue = TelefonQueue(context, codec)
+        val request = buildJsonObject { put("format", 3); put("run_id", "55555555-5555-4555-8555-555555555555")
+            put("trigger", "manual"); put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks")))) }
+        val runId = request.getValue("run_id").jsonPrimitive.content
+        val reference = PhoneContentScope.reference(PhoneContentScope.create(listOf("note"), listOf("task")))
+        val now = System.currentTimeMillis(); val expires = now + 60000
+        queue.rememberScopedRun(expected, shared, request, reference, expires, now)
+        val reopened = TelefonQueue(context, codec)
+        assertEquals(reference, reopened.scopedRunReference(expected, store(), runId, now))
+        assertEquals(request, reopened.personalRun(expected.peerActor, runId))
+        reopened.rememberScopedRun(expected, shared, request, reference, expires, now)
+        assertTrue(runCatching { reopened.rememberScopedRun(expected, shared, request, reference, expires + 1, now) }.isFailure)
+        val changed = JsonObject(reference + ("scope_revision" to JsonPrimitive(2)))
+        assertTrue(runCatching { reopened.rememberScopedRun(expected, shared, request, changed, expires, now) }.isFailure)
+        shared.change(expected, "time_mode", JsonPrimitive("two_way"))
+        assertEquals(reference, reopened.scopedRunReference(expected, shared, runId, now))
+        shared.change(expected, "content_mode", JsonPrimitive("two_way"))
+        assertTrue(runCatching { reopened.scopedRunReference(expected, shared, runId, now) }.isFailure)
+        shared.change(expected, "content_mode", JsonPrimitive("phone_scope"))
+        assertTrue(runCatching { reopened.scopedRunReference(expected, shared, runId, now) }.isFailure)
+        val fresh = JsonObject(request + ("run_id" to JsonPrimitive("66666666-6666-4666-8666-666666666666")))
+        failScopeSeal = true
+        assertTrue(runCatching { reopened.rememberScopedRun(expected, shared, fresh, reference, expires, now) }.isFailure)
+        failScopeSeal = false
+        assertNull(reopened.personalRun(expected.peerActor, fresh.getValue("run_id").jsonPrimitive.content))
+        assertNull(reopened.scopedRunReference(expected, shared, fresh.getValue("run_id").jsonPrimitive.content, now))
+        reopened.rememberScopedRun(expected, shared, fresh, reference, expires, now)
+        restoring = true
+        assertTrue(runCatching { reopened.scopedRunReference(expected, shared, fresh.getValue("run_id").jsonPrimitive.content, now) }.isFailure)
+        restoring = false
+        reopened.purgePersonalModules(expected.peerActor, setOf("notes"))
+        assertNull(reopened.scopedRunReference(expected, shared, fresh.getValue("run_id").jsonPrimitive.content, now))
     }
 }
