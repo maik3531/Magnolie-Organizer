@@ -5,6 +5,22 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PhoneContentScopeTest {
+    @Test fun dataEnvelopePreservesRecordSchemaAndRejectsStaleScopeDeletionOrNestedControls() {
+        val manifest = PhoneContentScope.create(listOf("mobile-note"), listOf("mobile-task"))
+        val request = buildJsonObject { put("format", 3); put("run_id", "55555555-5555-4555-8555-555555555555")
+            put("trigger", "manual"); put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks")))) }
+        val wrapped = PhoneContentScope.wrap("personal_sync.request", request, manifest)
+        assertEquals("personal_sync.request" to request, PhoneContentScope.unwrap(wrapped, manifest))
+        assertTrue(runCatching { PhoneContentScope.unwrap(wrapped, PhoneContentScope.advance(manifest, emptyList(), emptyList())) }.isFailure)
+        for (kind in listOf("personal_sync.deletion_proposals", "personal_sync.deletion_decision", SharedSyncSettings.KIND, PhoneContentScope.DATA_KIND)) {
+            val invalid = JsonObject(wrapped + ("kind" to JsonPrimitive(kind)))
+            assertTrue(runCatching { PhoneContentScope.validateData(invalid) }.isFailure)
+        }
+        val reference = JsonObject(wrapped.getValue("scope").jsonObject + ("scope_revision" to JsonPrimitive(true)))
+        assertTrue(runCatching { PhoneContentScope.validateData(JsonObject(wrapped + ("scope" to reference))) }.isFailure)
+        assertTrue(runCatching { PhoneContentScope.wrap("personal_sync.request", JsonObject(request + ("format" to JsonPrimitive(1))), manifest) }.isFailure)
+    }
+
     @Test fun scopeReceiptsKeepTemporaryRetriesButStopTerminalRequeueLoops() {
         val session = PersonalNoteSession()
         session.contentScopeMessages["first"] = 0; session.contentScopeMessages["second"] = 1

@@ -9,6 +9,9 @@ import magnolie_personal_sync as personal
 
 VERSION = 10
 KIND = "personal_sync.content_scope"
+DATA_KIND = "personal_sync.scoped_data"
+DATA_KINDS = frozenset({"personal_sync.request", "personal_sync.batch", "personal_sync.report",
+                        "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result"})
 MAX_MEMBERS = 50000
 MIN_CHUNK = 32
 MAX_CHUNK = 256
@@ -94,6 +97,41 @@ def require_current(body, manifest):
     if (not isinstance(body, dict) or type(body.get("scope_revision")) is not int
             or any(body.get(field) != value for field, value in expected.items())):
         raise ValueError("stale or different content scope")
+
+
+def validate_reference(value):
+    if (not isinstance(value, dict) or set(value) != {"scope_epoch", "scope_revision", "scope_hash"}
+            or not isinstance(value.get("scope_epoch"), str) or not personal.UUID4.fullmatch(value["scope_epoch"])
+            or type(value.get("scope_revision")) is not int or not 1 <= value["scope_revision"] <= personal.MAX_SAFE_INTEGER
+            or not isinstance(value.get("scope_hash"), str) or not personal.HASH.fullmatch(value["scope_hash"])):
+        raise ValueError("invalid content scope reference")
+    return value
+
+
+def validate_data(value):
+    if (not isinstance(value, dict) or set(value) != {"format", "scope", "kind", "body"}
+            or type(value.get("format")) is not int or value["format"] != VERSION
+            or not isinstance(value.get("kind"), str) or value["kind"] not in DATA_KINDS or not isinstance(value.get("body"), dict)):
+        raise ValueError("invalid scoped data envelope")
+    validate_reference(value["scope"])
+    expected_format = 2 if value["kind"].startswith("personal_sync.attachment_") else 3
+    if type(value["body"].get("format")) is not int or value["body"]["format"] != expected_format:
+        raise ValueError("invalid scoped record format")
+    personal.validate_body(value["kind"], value["body"])
+    if len(personal.canonical(value)) > personal.MAX_PACKET:
+        raise ValueError("scoped data envelope too large")
+    return value
+
+
+def wrap(kind, body, manifest):
+    """Keep legacy record schemas unchanged; bind the entire message to membership."""
+    return validate_data({"format": VERSION, "scope": reference(manifest), "kind": kind, "body": copy.deepcopy(body)})
+
+
+def unwrap(value, manifest):
+    validate_data(value)
+    require_current(value["scope"], manifest)
+    return value["kind"], copy.deepcopy(value["body"])
 
 
 def validate_part(body):

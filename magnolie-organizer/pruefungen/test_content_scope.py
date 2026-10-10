@@ -12,6 +12,34 @@ def record(kind, identity, text="", notebook=""):
 
 
 class PhoneContentScopeTest(unittest.TestCase):
+    def test_scoped_wrapper_keeps_existing_record_schema_but_requires_exact_membership(self):
+        manifest = scope.create(["mobile-note"], ["task"])
+        request = {"format": 3, "run_id": "55555555-5555-4555-8555-555555555555",
+                   "trigger": "manual", "modules": ["notes", "tasks"]}
+        wrapped = scope.wrap("personal_sync.request", request, manifest)
+        self.assertEqual(("personal_sync.request", request), scope.unwrap(wrapped, manifest))
+        request["modules"].clear()
+        self.assertEqual(["notes", "tasks"], wrapped["body"]["modules"])
+        with self.assertRaises(ValueError):
+            scope.unwrap(wrapped, scope.advance(manifest, [], []))
+        for field, value in (("scope_revision", True), ("scope_hash", "0"), ("scope_epoch", "invalid")):
+            bad = copy.deepcopy(wrapped); bad["scope"][field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                scope.validate_data(bad)
+
+    def test_scoped_wrapper_rejects_deletion_side_effects_unknown_fields_and_legacy_formats(self):
+        manifest = scope.create([], [])
+        request = {"format": 3, "run_id": "55555555-5555-4555-8555-555555555555",
+                   "trigger": "manual", "modules": ["notes"]}
+        wrapped = scope.wrap("personal_sync.request", request, manifest)
+        for kind in ("personal_sync.deletion_proposals", "personal_sync.deletion_decision", "personal_sync.shared_settings", scope.DATA_KIND):
+            with self.subTest(kind=kind), self.assertRaises(ValueError):
+                scope.validate_data(dict(wrapped, kind=kind))
+        with self.assertRaises(ValueError):
+            scope.validate_data(dict(wrapped, additional=True))
+        with self.assertRaises(ValueError):
+            scope.wrap("personal_sync.request", dict(request, format=1), manifest)
+
     def test_organizer_updates_of_current_phone_notes_return_without_unrelated_content(self):
         manifest = scope.create(["mobile-note"], ["mobile-task"])
         records = [record("note", "mobile-note", "Organizer addition", "shared-book"),

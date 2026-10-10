@@ -104,6 +104,15 @@ must persist this exact reference with the run and apply it to replies, attachme
 retry/ACK processing and final application, rather than accepting a loose list of
 IDs from the UI.
 
+The scoped data codec uses a distinct `personal_sync.scoped_data` message body
+with exactly `format: 10`, `scope` (that reference), `kind` (the inner kind), and
+`body` (the unchanged inner data body). Request, batch and report bodies use
+record format 3; attachment request/chunk/result bodies keep format 2. The complete
+wrapper is limited to 256 KiB. Legacy record schemas are not relaxed to accept
+arbitrary extra fields. Controls, recursively wrapped messages and deletion
+proposals/decisions are not allowed inner kinds. The codec alone does not permit
+dispatch: current scope and immutable durable run binding remain required.
+
 Snapshots filter member IDs **before** materializing or hashing unrelated note
 contents and attachments. Notebooks are included only when needed by selected
 notes. Task parent/child relationships must remain valid without silently admitting

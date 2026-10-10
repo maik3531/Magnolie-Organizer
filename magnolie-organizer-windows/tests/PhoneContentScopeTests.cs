@@ -14,6 +14,23 @@ internal static class PhoneContentScopeTests
         TestAssert.That(golden["scope_hash"]!.GetValue<string>() == "589f36e8c7d673b4e24e3bebc8a020441d9e313a465f2f8f011b9cebb596fdc2",
             "Scope hash or UTF-8 identity ordering disagrees with the Python golden.");
         var manifest = PhoneContentScope.Create(["mobile-note"], ["mobile-task"]);
+        var request = new JsonObject { ["format"] = 3, ["run_id"] = "55555555-5555-4555-8555-555555555555",
+            ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
+        var wrapped = PhoneContentScope.Wrap("personal_sync.request", request, manifest);
+        var unwrapped = PhoneContentScope.Unwrap(wrapped, manifest);
+        TestAssert.That(unwrapped.Kind == "personal_sync.request" && JsonNode.DeepEquals(request, unwrapped.Body), "Scoped wrapper changed record request schema.");
+        request["modules"]!.AsArray().Clear();
+        TestAssert.That(wrapped["body"]!["modules"]!.AsArray().Count == 2, "Scoped wrapper retained mutable caller body.");
+        TestAssert.Throws<InvalidDataException>(() => PhoneContentScope.Unwrap(wrapped, PhoneContentScope.Advance(manifest, [], [])), "Stale scoped payload was accepted.");
+        foreach (var forbidden in new[] { "personal_sync.deletion_proposals", "personal_sync.deletion_decision", SharedSyncSettings.Kind, PhoneContentScope.DataKind })
+        {
+            var wrongKind = wrapped.DeepClone().AsObject(); wrongKind["kind"] = forbidden;
+            TestAssert.Throws<InvalidDataException>(() => PhoneContentScope.ValidateData(wrongKind), "Scoped envelope allowed deletion or nested controls.");
+        }
+        var wrongReference = wrapped.DeepClone().AsObject(); wrongReference["scope"]!["scope_revision"] = true;
+        TestAssert.Throws<InvalidDataException>(() => PhoneContentScope.ValidateData(wrongReference), "Boolean scope reference accepted.");
+        var oldFormat = wrapped["body"]!.DeepClone().AsObject(); oldFormat["format"] = 1;
+        TestAssert.Throws<InvalidDataException>(() => PhoneContentScope.Wrap("personal_sync.request", oldFormat, manifest), "Scoped request reused legacy format.");
         var records = new[] { Record("note", "mobile-note", "Organizer addition", "shared-book"),
             Record("note", "organizer-only", "Private organizer text", "private-book"), Record("task", "mobile-task"),
             Record("task", "organizer-task"), Record("notebook", "shared-book"), Record("notebook", "private-book") };

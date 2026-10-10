@@ -8,6 +8,9 @@ import java.util.UUID
 internal object PhoneContentScope {
     const val VERSION = 10
     const val KIND = "personal_sync.content_scope"
+    const val DATA_KIND = "personal_sync.scoped_data"
+    private val dataKinds = setOf("personal_sync.request", "personal_sync.batch", "personal_sync.report",
+        "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result")
     const val MAX_MEMBERS = 50000
     private const val MIN_CHUNK = 32
     private const val MAX_CHUNK = 256
@@ -80,6 +83,31 @@ internal object PhoneContentScope {
         val expected = reference(manifest)
         require(number(body, "scope_revision") == number(expected, "scope_revision") &&
             text(body, "scope_epoch") == text(expected, "scope_epoch") && text(body, "scope_hash") == text(expected, "scope_hash"))
+    }
+    fun validateReference(value: JsonObject) {
+        TelefonNachrichten.exact(value, setOf("scope_epoch", "scope_revision", "scope_hash"))
+        TelefonNachrichten.uuid4(text(value, "scope_epoch"))
+        require(number(value, "scope_revision") in 1..MAX_REVISION && Regex("[0-9a-f]{64}").matches(text(value, "scope_hash")))
+    }
+    fun validateData(value: JsonObject): JsonObject {
+        TelefonNachrichten.exact(value, setOf("format", "scope", "kind", "body"))
+        val kind = text(value, "kind")
+        require(number(value, "format") == VERSION.toLong() && kind in dataKinds)
+        val scope = value["scope"] as? JsonObject ?: error("Scope reference missing")
+        val body = value["body"] as? JsonObject ?: error("Scoped data missing")
+        validateReference(scope)
+        require(number(body, "format") == if (kind.startsWith("personal_sync.attachment_")) 2L else 3L)
+        PersonalSyncProtokoll.validate(kind, body)
+        require(TelefonKanonisch.bytes(value).size <= 256 * 1024)
+        return value
+    }
+    fun wrap(kind: String, body: JsonObject, manifest: JsonObject): JsonObject = validateData(buildJsonObject {
+        put("format", VERSION); put("scope", reference(manifest)); put("kind", kind)
+        put("body", TelefonKanonisch.json.parseToJsonElement(body.toString()))
+    })
+    fun unwrap(value: JsonObject, manifest: JsonObject): Pair<String, JsonObject> {
+        validateData(value); requireCurrent(value.getValue("scope").jsonObject, manifest)
+        return text(value, "kind") to TelefonKanonisch.json.parseToJsonElement(value.getValue("body").toString()).jsonObject
     }
     fun validatePart(body: JsonObject): JsonObject {
         TelefonNachrichten.exact(body, setOf("format", "epoch", "revision", "scope_hash", "part", "parts", "members")); header(body)

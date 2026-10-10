@@ -9,6 +9,9 @@ internal static class PhoneContentScope
 {
     internal const int Version = 10;
     internal const string Kind = "personal_sync.content_scope";
+    internal const string DataKind = "personal_sync.scoped_data";
+    private static readonly HashSet<string> DataKinds = ["personal_sync.request", "personal_sync.batch", "personal_sync.report",
+        "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result"];
     internal const int MaximumMembers = 50000;
     private const int MinimumChunk = 32;
     private const int MaximumChunk = 256;
@@ -90,6 +93,37 @@ internal static class PhoneContentScope
         if (Number(body, "scope_revision") != Number(expected, "scope_revision") ||
             Text(body, "scope_epoch") != Text(expected, "scope_epoch") || Text(body, "scope_hash") != Text(expected, "scope_hash"))
             throw new InvalidDataException("Stale or different content scope.");
+    }
+
+    internal static void ValidateReference(JsonObject value)
+    {
+        TelefonProtocolContract.ExactObject(value, "scope_epoch", "scope_revision", "scope_hash");
+        var hash = Text(value, "scope_hash");
+        if (!TelefonProtocolContract.IsUuidV4(Text(value, "scope_epoch")) || Number(value, "scope_revision") is < 1 or > MaximumRevision ||
+            hash.Length != 64 || hash.Any(letter => !"0123456789abcdef".Contains(letter))) throw new InvalidDataException("Invalid scope reference.");
+    }
+
+    internal static JsonObject ValidateData(JsonObject value)
+    {
+        TelefonProtocolContract.ExactObject(value, "format", "scope", "kind", "body");
+        var kind = Text(value, "kind");
+        if (Number(value, "format") != Version || !DataKinds.Contains(kind) || value["scope"] is not JsonObject scope || value["body"] is not JsonObject body)
+            throw new InvalidDataException("Invalid scoped data envelope.");
+        ValidateReference(scope);
+        if (Number(body, "format") != (kind.StartsWith("personal_sync.attachment_", StringComparison.Ordinal) ? 2 : 3))
+            throw new InvalidDataException("Invalid scoped record format.");
+        PersonalSyncContract.ValidateBody(kind, body);
+        if (TelefonCrypto.Canonical(value).Length > 256 * 1024) throw new InvalidDataException("Scoped data envelope too large.");
+        return value;
+    }
+
+    internal static JsonObject Wrap(string kind, JsonObject body, JsonObject manifest) => ValidateData(new JsonObject
+    { ["format"] = Version, ["scope"] = Reference(manifest), ["kind"] = kind, ["body"] = body.DeepClone() });
+
+    internal static (string Kind, JsonObject Body) Unwrap(JsonObject value, JsonObject manifest)
+    {
+        ValidateData(value); RequireCurrent(value["scope"]!.AsObject(), manifest);
+        return (Text(value, "kind"), value["body"]!.DeepClone().AsObject());
     }
 
     internal static JsonObject ValidatePart(JsonObject part)
