@@ -940,7 +940,29 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return entfernt.size;
   }
 
+  async function personalSyncScopeAusManifest(manifest) {
+    const exact = (value, keys) => value && typeof value === "object" && !Array.isArray(value) &&
+      Object.keys(value).length === keys.length && keys.every(key => Object.prototype.hasOwnProperty.call(value, key));
+    if (!exact(manifest, ["format", "epoch", "revision", "scope_hash", "members"]) || manifest.format !== 10 ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(manifest.epoch) ||
+        !Number.isSafeInteger(manifest.revision) || manifest.revision < 1 ||
+        !/^[0-9a-f]{64}$/.test(manifest.scope_hash) || !exact(manifest.members, ["notes", "tasks"]))
+      throw new Error(_("Personal synchronization failed."));
+    const members = { notes: [], tasks: [] };
+    for (const name of ["notes", "tasks"]) {
+      const ids = manifest.members[name];
+      if (!Array.isArray(ids) || ids.some(id => typeof id !== "string" || !id || id !== id.trim() || id.includes("\u0000") || new TextEncoder().encode(id).length > 160) ||
+          new Set(ids).size !== ids.length || ids.some((id, index) => index > 0 && personalSyncUtf8(ids[index - 1], id) >= 0))
+        throw new Error(_("Personal synchronization failed."));
+      members[name] = ids.slice();
+    }
+    if (members.notes.length + members.tasks.length > 50000 || await personalSyncHash(members) !== manifest.scope_hash)
+      throw new Error(_("Personal synchronization failed."));
+    return { notes: new Set(members.notes), tasks: new Set(members.tasks) };
+  }
+
   async function personalSyncSnapshot(module, format = 1, peerId = "", options = {}) {
+    options.guard?.();
     sichereNotizSnapshot();
     const ps = DATEN.personalSync;
     if (!ps.actor_id) ps.actor_id = crypto.randomUUID();
@@ -1007,12 +1029,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         wert.attachments = anhaenge.slice(0, 64).map((x) => x.descriptor);
       }
       let hash = await personalSyncHash(wert);
+      options.guard?.();
       if (!meta || meta.hash !== hash) {
         ps.counter += 1;
         const modified = art === "notebook" ? 0 : Date.now();
         if (art !== "notebook") objekt.personalGeaendert = modified;
         wert.modified_ms = modified;
         hash = await personalSyncHash(wert);
+        options.guard?.();
         const clock = personalSyncVereinige(meta && Array.isArray(meta.clock) ? meta.clock : [],
           [{ actor_id: ps.actor_id, counter: ps.counter }]);
         meta = { clock: clock, hash: hash, modified_ms: modified, conflict: false, state: "live",
@@ -1278,7 +1302,15 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
   }
 
-  async function personalSyncAnwenden(records, attachmentData = {}, format = 1, peerId = "", modules = ["notes", "tasks"]) {
+  async function personalSyncAnwenden(records, attachmentData = {}, format = 1, peerId = "", modules = ["notes", "tasks"], options = {}) {
+    options.guard?.();
+    const selection = options.selection || null;
+    if (selection) {
+      const books = new Set(records.filter(record => record.kind === "note").map(record => record.value?.notebook_id).filter(Boolean));
+      if (new Set(records.map(record => record.kind + "\u0000" + record.id)).size !== records.length || records.some(record =>
+          record.kind === "note" ? !selection.notes.has(record.id) : record.kind === "task" ? !selection.tasks.has(record.id) :
+          record.kind !== "notebook" || !books.has(record.id))) throw new Error(_("Personal synchronization failed."));
+    }
     // Validate the whole batch before changing clocks or applying its first record.
     for (const record of records) {
       if (await personalSyncHash(record.value) !== record.hash) throw new Error(_("Personal synchronization failed."));
@@ -1290,20 +1322,23 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       }
     }
     sichereNotizSnapshot();
-    const importModus = personalSyncNotizImport(personalSyncNotizPeer(peerId));
-    if (modules.includes("notes") && !importModus) vereinigeBestehendeNotizen();
-    let eigeneRecords = await personalSyncSnapshot(modules, format, peerId);
+    options.guard?.();
+    const importModus = !selection && personalSyncNotizImport(personalSyncNotizPeer(peerId));
+    if (modules.includes("notes") && !importModus && !selection) vereinigeBestehendeNotizen();
+    let eigeneRecords = await personalSyncSnapshot(modules, format, peerId, options);
     let buecherZugeordnet = false;
-    if (modules.includes("notes")) for (const record of records) if (record.kind === "notebook")
+    if (modules.includes("notes") && !selection) for (const record of records) if (record.kind === "notebook")
       buecherZugeordnet = personalSyncBuchZuordnen(record) || buecherZugeordnet;
-    if (buecherZugeordnet) eigeneRecords = await personalSyncSnapshot(modules, format, peerId);
+    if (buecherZugeordnet) eigeneRecords = await personalSyncSnapshot(modules, format, peerId, options);
     const eigeneWerte = new Map(eigeneRecords.map(record => [record.kind + "\u0000" + record.id, record.value]));
     const importWahl = importModus ? await personalSyncImportKonflikte(records, eigeneWerte, peerId) : new Map();
     let konflikte = 0, anlagen = 0;
     for (const eingang of records) {
+      options.guard?.();
       if (eingang.kind === "note" && DATEN.notizen.some(n => !personalSyncEigeneNotiz(n) &&
           (n.id === eingang.id || personalSyncNotizWireId(n.id) === personalSyncNotizId(eingang.id)))) { konflikte++; continue; }
-      const record = personalSyncNotizZuordnen(eingang, eigeneWerte);
+      const record = selection ? Object.assign({}, eingang, { id: ["note", "notebook"].includes(eingang.kind)
+        ? personalSyncNotizId(eingang.id, eingang.kind) : eingang.id }) : personalSyncNotizZuordnen(eingang, eigeneWerte);
       if (record.kind === "note" && eigeneWerte.has("note\u0000" + record.id))
         personalSyncAnhaengeZuordnen(record.id, eigeneWerte.get("note\u0000" + record.id), record.value);
       const key = record.kind + "\u0000" + record.id, lokal = DATEN.personalSync.entities[key];
@@ -1344,6 +1379,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       }
       const merged = personalSyncVereinige(lokal.clock, record.clock), remoteWins = record.hash < lokal.hash;
       const loser = remoteWins ? lokal.hash : record.hash, konfliktId = await personalSyncKonfliktId(record.kind, record.id, loser);
+      options.guard?.();
       if (remoteWins) {
         const liste = record.kind === "note" ? DATEN.notizen : record.kind === "task" ? DATEN.aufgaben : DATEN.notizbuecher;
         const original = liste.find((x) => x.id === (["note", "notebook"].includes(record.kind) ? personalSyncNotizLokalId(record.id, record.kind) : record.id));
@@ -1368,7 +1404,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         modified_ms: remoteWins ? lokal.modified_ms : record.modified_ms, conflict: true };
       konflikte += 1;
     }
-    if (modules.includes("notes") && !importModus && vereinigeBestehendeNotizen()) await personalSyncSnapshot(modules, format, peerId);
+    if (modules.includes("notes") && !importModus && !selection && vereinigeBestehendeNotizen()) await personalSyncSnapshot(modules, format, peerId, options);
     return { conflicts: konflikte, attachments: anlagen };
   }
 
@@ -29761,23 +29797,40 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         return;
       }
       const format = [1, 2, 3].includes(body.format) ? body.format : 1;
-      const arbeit = kind === "personal_sync.batch" ? personalSyncBatchKette.then(() => personalSyncAnwenden(body.records || [], body.attachment_data || {}, format, peer.device_id, modules))
+      let scopeSelection = null;
+      const scopeGuard = () => {
+        if (DATEN.personalSync !== syncBestand || gesperrt || !nutzlast.content_scope_fingerprint ||
+            personalSyncNotizPeer(peer.device_id)?.fingerprint !== nutzlast.content_scope_fingerprint)
+          throw new Error(_("Personal synchronization failed."));
+      };
+      const arbeit = kind === "personal_sync.batch" ? personalSyncBatchKette.then(async () => {
+        if (nutzlast.content_scope) { scopeGuard(); scopeSelection = await personalSyncScopeAusManifest(nutzlast.content_scope); scopeGuard(); }
+        return personalSyncAnwenden(body.records || [], body.attachment_data || {}, format, peer.device_id, modules,
+          scopeSelection ? { selection: scopeSelection, independentRemovals: true, guard: scopeGuard } : {});
+      })
         : Promise.resolve({ conflicts: 0, attachments: 0 });
       const batchArbeit = arbeit.then(async (ergebnis) => {
         const antwort = kind === "personal_sync.batch" && body.reply === false;
-        const records = antwort ? personalSyncNotizAusgang(peer, await personalSyncSnapshot(modules, format, peer.device_id)) : [];
+        if (scopeSelection) scopeGuard();
+        const records = !antwort ? [] : scopeSelection
+          ? await personalSyncSnapshot(modules, format, peer.device_id, { selection: scopeSelection, independentRemovals: true, guard: scopeGuard })
+          : personalSyncNotizAusgang(peer, await personalSyncSnapshot(modules, format, peer.device_id));
         const responseChunks = antwort ? personalSyncPakete(records, body.run_id, true, format) : [];
         const aggregate = antwort && format >= 2 ? await personalSyncHash(responseChunks.flat()) : "";
+        if (scopeSelection) scopeGuard();
         if (kind === "personal_sync.batch") JSON.stringify(DATEN);
         if (!DATEN.personalSync.applied_batches.includes(nutzlast.commit_token)) DATEN.personalSync.applied_batches.push(nutzlast.commit_token);
         DATEN.personalSync.applied_batches = DATEN.personalSync.applied_batches.slice(-500);
         const importedKeys = new Set((body.records || []).map(record => record.kind + "\u0000" +
           (["note", "notebook"].includes(record.kind) ? personalSyncNotizId(record.id, record.kind) : record.id)));
+        const scopedAckKeys = scopeSelection ? new Set([...importedKeys, ...records.map(record => record.kind + "\u0000" + record.id)]) : null;
         Object.entries(DATEN.personalSync.entities).forEach(([key, meta]) => {
+          if (scopedAckKeys && !scopedAckKeys.has(key)) return;
           if (personalSyncNotizImport(personalSyncNotizPeer(peer)) && key.split("\u0000")[0] !== "task" && !importedKeys.has(key)) return;
           if (meta.state !== "deleted") { meta.peer_device_id = peer.device_id; meta.acknowledged_by_peer = true; }
         });
         await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+        if (scopeSelection) scopeGuard();
         {
           const sentRecords = responseChunks.flat();
           const localAttachments = sentRecords.filter((x) => x.kind === "note").reduce((sum, record) => {
@@ -29847,7 +29900,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (personalSyncVertagteBatches.size > 500) personalSyncVertagteBatches.delete(personalSyncVertagteBatches.keys().next().value);
           Bruecke.sende({ cmd: "telefon_personal_sync_commit", kennung: peer.device_id,
             messageId: nutzlast.pending_message_id, token: nutzlast.commit_token, erfolgreich: false });
-        } else App.personalSyncFehler({ fehler: String(fehler.message || fehler) });
+        } else {
+          if (kind === "personal_sync.batch" && nutzlast.content_scope) Bruecke.sende({ cmd: "telefon_personal_sync_commit",
+            kennung: peer.device_id, messageId: nutzlast.pending_message_id, token: nutzlast.commit_token, erfolgreich: false });
+          App.personalSyncFehler({ fehler: String(fehler.message || fehler) });
+        }
       });
       if (kind === "personal_sync.batch") personalSyncBatchKette = batchArbeit;
     },
@@ -31139,6 +31196,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     personalSyncHash: personalSyncHash,
     personalSyncAutoEntscheidung: personalSyncAutoEntscheidung,
     personalSyncSnapshot: personalSyncSnapshot,
+    personalSyncScopeAusManifest: personalSyncScopeAusManifest,
     personalSyncNotizImport: personalSyncNotizImport,
     personalSyncNotizBereit: personalSyncNotizBereit,
     personalSyncNotizAusgang: personalSyncNotizAusgang,

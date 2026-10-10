@@ -4041,7 +4041,7 @@ class PhoneService:
                         return False
             for stored_peer, aggregate in self.store.ready_personal_batches():
                 if stored_peer == peer_id and aggregate["message_id"] == message_id and aggregate["commit_token"] == token:
-                    if self._note_policy_error(peer_id, "personal_sync.batch", {"records": aggregate["records"]}, False):
+                    if self._note_policy_error(peer_id, "personal_sync.batch", {"run_id": aggregate["run_id"], "records": aggregate["records"]}, False):
                         return False
         if not success:
             if (not self.store.has_personal_batch(peer_id, message_id, token)
@@ -4091,11 +4091,11 @@ class PhoneService:
                 continue
             self.personal_dispatched.add(payload["commit_token"])
             payload["transport"] = "wifi"
-            self.callback("personal_sync", payload)
+            self._emit_personal_sync(payload)
         for peer_id, aggregate in self.store.ready_personal_batches():
             if self.store.sole_peer(peer_id) is None:
                 continue
-            if self._note_policy_error(peer_id, "personal_sync.batch", {"records": aggregate["records"]}, False):
+            if self._note_policy_error(peer_id, "personal_sync.batch", {"run_id": aggregate["run_id"], "records": aggregate["records"]}, False):
                 continue
             token = aggregate.pop("commit_token")
             if token in self.personal_dispatched:
@@ -4107,7 +4107,7 @@ class PhoneService:
                 continue
             self.personal_dispatched.add(token)
             aggregate.pop("messages")
-            self.callback("personal_sync", {"device_id": peer_id, "transport": "wifi",
+            self._emit_personal_sync({"device_id": peer_id, "transport": "wifi",
                 "kind": "personal_sync.batch", "commit_token": token,
                 "pending_message_id": message_id, "body": {
                     "format": format, "run_id": aggregate["run_id"], "batch_id": str(uuid.uuid4()),
@@ -4121,7 +4121,7 @@ class PhoneService:
             return self._prepare_format2_aggregate_locked(peer_id, aggregate, transport)
 
     def _prepare_format2_aggregate_locked(self, peer_id, aggregate, transport):
-        if self._note_policy_error(peer_id, "personal_sync.batch", {"records": aggregate["records"]}, False):
+        if self._note_policy_error(peer_id, "personal_sync.batch", {"run_id": aggregate["run_id"], "records": aggregate["records"]}, False):
             return False
         messages = aggregate.get("messages", [])
         body = messages[-1]["body"] if messages else {}
@@ -5314,7 +5314,7 @@ class PhoneService:
                     if dispatch:
                         with self.lock:
                             if self._note_policy_error(peer["device_id"], kind, value, False, channel) is None:
-                                self.callback("personal_sync", staged)
+                                self._emit_personal_sync(staged)
                             else:
                                 self.personal_dispatched.discard(token)
                                 self.personal_commit_events.pop(token, None)
@@ -5364,7 +5364,7 @@ class PhoneService:
                         if dispatch:
                             self.personal_dispatched.add(token)
                     if dispatch:
-                        self.callback("personal_sync", {"device_id": peer["device_id"],
+                        self._emit_personal_sync({"device_id": peer["device_id"],
                             "transport": self.connection_transports.get(peer["device_id"], ""),
                             "kind": kind, "commit_token": token,
                             "pending_message_id": pending_message_id, "body": dict(value,
@@ -5415,7 +5415,7 @@ class PhoneService:
                     if value["state"] in {"complete", "partial", "blocked", "failed"}:
                         self.store.finish_auto_run(peer["device_id"], value["run_id"])
                 if kind != "personal_sync.request" and kind not in PERSONAL_ATTACHMENT_KINDS:
-                    self.callback("personal_sync", {"device_id": peer["device_id"],
+                    self._emit_personal_sync({"device_id": peer["device_id"],
                         "transport": self.connection_transports.get(peer["device_id"], ""),
                         "kind": kind, "body": value})
             except PermissionError:
@@ -5433,6 +5433,29 @@ class PhoneService:
                 self._queue_desktop_features(peer["device_id"], channel)
         channel.send({"type": "ack", "message_id": payload["message_id"],
                       "status": status, "error": error})
+
+    def _emit_personal_sync(self, payload):
+        with self.lock:
+            try:
+                body = payload.get("body", {})
+                manifest = self._scoped_data_manifest(payload["device_id"], payload["kind"], body)
+                if manifest is not None:
+                    if payload["kind"] == "personal_sync.batch" and content_scope_contract.filter_records(body["records"], manifest) != body["records"]:
+                        raise PermissionError("Unrelated notebook in scoped aggregate.")
+                    peer = self.store.sole_peer(payload["device_id"])
+                    if peer is None:
+                        raise PermissionError("Scoped event peer disappeared.")
+                    payload = dict(payload, content_scope=manifest,
+                                   content_scope_fingerprint=fingerprint(unb64(peer["static_public"], 32)))
+            except (PermissionError, ValueError):
+                token = payload.get("commit_token")
+                self.personal_dispatched.discard(token)
+                event = self.personal_commit_events.get(token)
+                if event:
+                    event.set()
+                return False
+            self.callback("personal_sync", payload)
+            return True
 
     def _publish(self):
         self._unpublish()

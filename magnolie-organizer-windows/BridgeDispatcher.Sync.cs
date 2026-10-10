@@ -959,6 +959,12 @@ internal sealed partial class BridgeDispatcher
         var peerId = message["device_id"]?.GetValue<string>() ?? "";
         var kind = message["kind"]?.GetValue<string>() ?? "";
         var body = message["body"] as JsonObject ?? new JsonObject();
+        var scopeContext = telefon.ScopedEventContext(peerId, kind, body);
+        if (message.ContainsKey("content_scope") && (scopeContext is null ||
+            !JsonNode.DeepEquals(message["content_scope"], scopeContext["content_scope"]) ||
+            !JsonNode.DeepEquals(message["content_scope_fingerprint"], scopeContext["content_scope_fingerprint"])))
+            throw new InvalidOperationException("Scoped event changed before delivery to the UI.");
+        if (scopeContext is not null) foreach (var (field, value) in scopeContext) message[field] = value!.DeepClone();
         if (kind == "personal_sync.request")
         {
             lock (personalSyncGate) personalSyncRequests[PersonalRunKey(peerId, body["run_id"]!.GetValue<string>())] = body.DeepClone().AsObject();

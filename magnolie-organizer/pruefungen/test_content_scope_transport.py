@@ -137,3 +137,32 @@ def test_outgoing_scoped_data_wraps_current_member_and_blocks_other_notes(tmp_pa
                           (peer["device_id"], sent["message_id"])).fetchone()[0] == 1
     with pytest.raises((PermissionError, ValueError)):
         service.send_personal_sync(peer["device_id"], "personal_sync.batch", body)
+
+
+def test_complete_phone_batch_reaches_gui_with_scope_and_exact_commit_guard(tmp_path, monkeypatch):
+    service, peer, channel = fixture(tmp_path, monkeypatch)
+    manifest = scope.create(["mobile-note"], ["task"])
+    service._payload(peer, channel, frame(scope.chunks(manifest)[0]))
+    run_id = str(uuid.uuid4()); request = {"format": 3, "run_id": run_id, "trigger": "manual", "modules": ["notes", "tasks"]}
+    request_message = message(scope.wrap("personal_sync.request", request, manifest)); request_message["kind"] = scope.DATA_KIND
+    service._payload(peer, channel, request_message)
+    import magnolie_personal_sync as personal
+    value = {"title": "Mobile", "text": "Phone edit", "html": "", "notebook_id": "", "symbol": "note",
+             "created_ms": 1, "modified_ms": 2, "attachments": []}
+    record = {"kind": "note", "id": "mobile-note", "state": "live", "clock": [{"actor_id": peer["device_id"], "counter": 1}],
+              "hash": personal.projection_hash(value), "modified_ms": 2, "value": value}
+    body = {"format": 3, "run_id": run_id, "batch_id": str(uuid.uuid4()), "sequence": 0, "last": True,
+            "reply": False, "records": [record], "records_hash": personal.records_hash([record])}
+    deliveries = []
+    def applied(event, payload):
+        if event != "personal_sync": return
+        deliveries.append(payload)
+        assert payload["content_scope"] == manifest
+        assert payload["body"]["records"] == [record]
+        assert service.commit_personal_sync(peer["device_id"], payload["pending_message_id"], payload["commit_token"], True)
+    service.callback = applied
+    batch_message = message(scope.wrap("personal_sync.batch", body, manifest)); batch_message["kind"] = scope.DATA_KIND
+    service._payload(peer, channel, batch_message)
+    assert len(deliveries) == 1
+    service._payload(peer, channel, batch_message)
+    assert len(deliveries) == 1

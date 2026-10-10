@@ -708,6 +708,30 @@ internal sealed partial class TelefonCoordinator : IDisposable
         return result;
     }
 
+    internal JsonObject? ScopedEventContext(string id, string kind, JsonObject body)
+    {
+        var current = store.LoadPeers().FirstOrDefault(value => value.Id == id);
+        if (current is null || body["run_id"] is not JsonValue runValue || !runValue.TryGetValue<string>(out var run) ||
+            personalSync.ScopedRunReference(id, current.PublicKey, run, Now()) is null) return null;
+        TelefonConnection? connection; lock (gate) online.TryGetValue(id, out connection);
+        var manifest = connection?.DataContentScope(kind, body) ?? throw new InvalidOperationException("Current content scope is unavailable.");
+        if (kind == "personal_sync.batch")
+        {
+            var records = body["records"]!.AsArray().Select(value => value!.AsObject()).ToArray();
+            if (PhoneContentScope.FilterRecords(records, manifest).Count != records.Length)
+                throw new InvalidOperationException("Unrelated notebook in scoped aggregate.");
+        }
+        return new JsonObject { ["content_scope"] = manifest, ["content_scope_fingerprint"] = TelefonCrypto.Fingerprint(current.PublicKey) };
+    }
+
+    private Task EmitPersonalSyncAsync(object payload)
+    {
+        var message = JsonSerializer.SerializeToNode(payload)!.AsObject();
+        var scope = ScopedEventContext(message["device_id"]!.GetValue<string>(), message["kind"]!.GetValue<string>(), message["body"]!.AsObject());
+        if (scope is not null) foreach (var (field, value) in scope) message[field] = value!.DeepClone();
+        return emit("App.telefonPersonalSync", message);
+    }
+
     private bool NoteApplicationAllowed(string id, string kind, JsonObject body)
     {
         if (!NoteDirectionAllowed(id, kind, body, false)) return false;
@@ -1421,7 +1445,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         var settings = store.PersonalSettings(peer.Id); if (!settings.OwnDevice || !settings.RemoteOwnDevice) return new TelefonAck(id, "rejected", "not_granted");
         if (body["format"]?.GetValue<int>() == 2 && !SupportsPersonalFormat2(peer)) return new TelefonAck(id, "rejected", "invalid_schema");
         if (body["format"]?.GetValue<int>() == 3 && grants.Any(name => !SupportsPersonalFormat(peer, name, 3))) return new TelefonAck(id, "rejected", "invalid_schema");
-        if (kind == "personal_sync.request") { personalSync.RememberRun(peer.Id, body, now, message["expires_ms"]!.GetValue<long>()); await emit("App.telefonPersonalSync", new { device_id = peer.Id, transport, kind, body }); return null; }
+        if (kind == "personal_sync.request") { personalSync.RememberRun(peer.Id, body, now, message["expires_ms"]!.GetValue<long>()); await EmitPersonalSyncAsync(new { device_id = peer.Id, transport, kind, body }); return null; }
         if (kind == "personal_sync.batch")
         {
             var staged = personalSync.StageBatch(peer.Id, message, transport, now);
@@ -1458,7 +1482,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
             personalSync.CompleteOutgoingAttachment(peer.Id, body["run_id"]!.GetValue<string>(), body["reply"]!.GetValue<bool>(), body["records_hash"]!.GetValue<string>(), body["sha256"]!.GetValue<string>(), now);
             await ReleasePersonalReportAsync(peer.Id, body["run_id"]!.GetValue<string>()); return new TelefonAck(id, "accepted", "none", true);
         }
-        await emit("App.telefonPersonalSync", new { device_id = peer.Id, transport, kind, body }); return null;
+        await EmitPersonalSyncAsync(new { device_id = peer.Id, transport, kind, body }); return null;
     }
 
     private async Task<bool> CompleteOrRequestAttachmentsAsync(PersonalSyncStagedBatch staged, bool requestMissing,
@@ -1484,7 +1508,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
             }
         }
         if (!NoteApplicationAllowed(staged.PeerId, "personal_sync.batch", noteBody)) return false;
-        await emit("App.telefonPersonalSync", new { device_id = staged.PeerId, transport, kind = "personal_sync.batch", pending_message_id = staged.PendingMessageId, commit_token = staged.CommitToken, body = new { format = staged.Format, run_id = staged.RunId, reply = staged.Reply, records = staged.Records, records_hash = staged.RecordsHash } });
+        await EmitPersonalSyncAsync(new { device_id = staged.PeerId, transport, kind = "personal_sync.batch", pending_message_id = staged.PendingMessageId, commit_token = staged.CommitToken, body = new { format = staged.Format, run_id = staged.RunId, reply = staged.Reply, records = staged.Records, records_hash = staged.RecordsHash } });
         if (staged.RecordsHash.Length == 64)
             foreach (var hash in staged.Records.OfType<JsonObject>().SelectMany(record => (record["value"]?["attachments"] as JsonArray ?? []).OfType<JsonObject>()).Select(value => value["sha256"]!.GetValue<string>()).Distinct(StringComparer.Ordinal))
                 await SendPersonalSyncAsync(staged.PeerId, "personal_sync.attachment_result", new JsonObject { ["format"] = 2, ["run_id"] = staged.RunId, ["reply"] = staged.Reply, ["records_hash"] = staged.RecordsHash, ["sha256"] = hash, ["state"] = "complete", ["error"] = "none" });
@@ -1500,7 +1524,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
 
     private Task EmitPersonalIntentAsync(PersonalSyncDecisionIntent intent, string transport) =>
         NoteApplicationAllowed(intent.PeerId, intent.Kind, intent.Body)
-            ? emit("App.telefonPersonalSync", new { device_id = intent.PeerId, transport, kind = intent.Kind, pending_message_id = intent.PendingMessageId, commit_token = intent.CommitToken, body = intent.Body })
+            ? EmitPersonalSyncAsync(new { device_id = intent.PeerId, transport, kind = intent.Kind, pending_message_id = intent.PendingMessageId, commit_token = intent.CommitToken, body = intent.Body })
             : Task.CompletedTask;
 
     private TelefonConnection RequireOnline(string id, string capability, bool localGrant)
