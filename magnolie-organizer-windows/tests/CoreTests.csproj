@@ -80,6 +80,7 @@
     <Compile Include="..\TelefonProtocolContract.cs" Link="TelefonProtocolContract.cs" />
     <Compile Include="..\TelefonStore.cs" Link="TelefonStore.cs" />
     <Compile Include="..\TelefonStore.Time.cs" Link="TelefonStore.Time.cs" />
+    <Compile Include="..\TelefonStore.Shared.cs" Link="TelefonStore.Shared.cs" />
     <Compile Include="..\TelefonConnection.Time.cs" Link="TelefonConnection.Time.cs" />
     <Compile Include="..\TelefonCoordinator.Time.cs" Link="TelefonCoordinator.Time.cs" />
     <Compile Include="..\TelefonCoordinator.cs" Link="TelefonCoordinator.cs" />

@@ -18,6 +18,7 @@ import magnolie_personal_sync as personal_sync_contract
 import magnolie_phone_contacts as phone_contacts
 from magnolie_personal_sync import CUSTOM_KINDS, validate_custom_body, accept_custom_settings, custom_scope_allowed
 import magnolie_time_sync as time_sync_contract
+import magnolie_shared_sync as shared_sync_contract
 import time
 import unicodedata
 import uuid
@@ -1764,6 +1765,50 @@ class PhoneStore:
                        (key, str(revision).encode("ascii")))
         return revision
 
+    def _shared_settings_binding(self, peer_id, expected_public):
+        peer = self.peer(peer_id)
+        if (not peer or peer.get("state") != "paired" or peer.get("static_public") != expected_public):
+            raise PermissionError("shared_settings_peer_changed")
+        public = unb64(expected_public, 32)
+        key = "shared_settings:%s:%s" % (peer_id, hashlib.sha256(public).hexdigest())
+        return key, self.identity["device_id"]
+
+    def shared_settings(self, peer_id, expected_public):
+        """Read private preference metadata only; never initialize or grant on preview."""
+        key, local = self._shared_settings_binding(peer_id, expected_public)
+        with sqlite3.connect(self.database_path) as db:
+            row = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+        if row is None:
+            return None
+        body = strict_json(self._decrypt(row[0], "shared_settings", key))
+        return shared_sync_contract.scoped(body, local, peer_id)
+
+    def _shared_settings_update(self, peer_id, expected_public, apply, initial=None):
+        key, local = self._shared_settings_binding(peer_id, expected_public)
+        with sqlite3.connect(self.database_path) as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+            previous = (strict_json(self._decrypt(row[0], "shared_settings", key)) if row else
+                        shared_sync_contract.create(local, initial))
+            updated = apply(previous, local)
+            shared_sync_contract.scoped(updated, local, peer_id)
+            # The caller holds the service's peer/session lock. Also fail closed
+            # if the current binding changed while decoding/merging metadata.
+            if self._shared_settings_binding(peer_id, expected_public)[0] != key:
+                raise PermissionError("shared_settings_peer_changed")
+            if row is None or updated != previous:
+                sealed = self._encrypt(canonical(updated), "shared_settings", key)
+                db.execute("INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)", (key, sealed))
+        return updated
+
+    def change_shared_setting(self, peer_id, expected_public, field, value, initial=None):
+        return self._shared_settings_update(peer_id, expected_public,
+            lambda body, local: shared_sync_contract.change(body, local, peer_id, field, value), initial)
+
+    def merge_shared_settings(self, peer_id, expected_public, incoming, initial=None):
+        return self._shared_settings_update(peer_id, expected_public,
+            lambda body, local: shared_sync_contract.merge(body, incoming, local, peer_id), initial)
+
 
 class SecureChannel:
     def __init__(self, sock, sid, send_key, send_prefix, receive_key, receive_prefix):
@@ -2618,6 +2663,7 @@ class PhoneService:
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_report:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_local_index:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key LIKE ?", ("personal_proposal_kind:%s:%%" % peer_id,))
+            db.execute("DELETE FROM meta WHERE key LIKE ?", ("shared_settings:%s:%%" % peer_id,))
             db.execute("DELETE FROM meta WHERE key=?", ("personal_active_auto:" + peer_id,))
         self.connection_transports.pop(peer_id, None)
         self.connection_errors.pop(peer_id, None)

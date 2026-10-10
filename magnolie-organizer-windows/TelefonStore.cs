@@ -87,7 +87,7 @@ internal sealed partial class TelefonStore
             using var command = connection.CreateCommand(); command.Transaction = transaction;
             // Do not resurrect pre-fence commands, receive tokens or batches on abort.
             // Keep effect/dedupe and consent high-water marks so old work cannot replay.
-            command.CommandText = "DELETE FROM outbox; DELETE FROM inbox; DELETE FROM personal_batch; DELETE FROM personal_domain; DELETE FROM personal_attachment_chunk; DELETE FROM personal_attachment_transfer; DELETE FROM meta WHERE key NOT LIKE 'own_revision_%' AND key NOT GLOB 'personal_custom:*:consent' AND key NOT GLOB 'personal_note_mode:*:consent' AND key != 'restore_epoch';";
+            command.CommandText = "DELETE FROM outbox; DELETE FROM inbox; DELETE FROM personal_batch; DELETE FROM personal_domain; DELETE FROM personal_attachment_chunk; DELETE FROM personal_attachment_transfer; DELETE FROM meta WHERE key NOT LIKE 'own_revision_%' AND key NOT GLOB 'personal_custom:*:consent' AND key NOT GLOB 'personal_note_mode:*:consent' AND key NOT GLOB 'personal_shared_settings:*:consent' AND key != 'restore_epoch';";
             command.ExecuteNonQuery(); transaction.Commit();
             ReleaseRestore(token);
         }
@@ -114,7 +114,7 @@ internal sealed partial class TelefonStore
             using var transaction = connection.BeginTransaction();
             using var command = connection.CreateCommand(); command.Transaction = transaction;
             // Content restore must not reset the live pairing's consent high-water marks.
-            command.CommandText = "DELETE FROM outbox; DELETE FROM inbox; DELETE FROM dedupe; DELETE FROM command_effect; DELETE FROM personal_batch; DELETE FROM personal_domain; DELETE FROM personal_attachment_chunk; DELETE FROM personal_attachment_transfer; DELETE FROM meta WHERE key NOT LIKE 'own_revision_%' AND key NOT GLOB 'personal_custom:*:consent' AND key NOT GLOB 'personal_note_mode:*:consent'; INSERT INTO meta(key,value) VALUES('restore_epoch',$epoch);";
+            command.CommandText = "DELETE FROM outbox; DELETE FROM inbox; DELETE FROM dedupe; DELETE FROM command_effect; DELETE FROM personal_batch; DELETE FROM personal_domain; DELETE FROM personal_attachment_chunk; DELETE FROM personal_attachment_transfer; DELETE FROM meta WHERE key NOT LIKE 'own_revision_%' AND key NOT GLOB 'personal_custom:*:consent' AND key NOT GLOB 'personal_note_mode:*:consent' AND key NOT GLOB 'personal_shared_settings:*:consent'; INSERT INTO meta(key,value) VALUES('restore_epoch',$epoch);";
             command.Parameters.AddWithValue("$epoch", Encoding.UTF8.GetBytes(epoch)); command.ExecuteNonQuery();
             restoreCheckpoint?.Invoke("before-phone-commit");
             transaction.Commit();
@@ -677,10 +677,11 @@ internal sealed partial class TelefonStore
             // Revoke authorization before modifying recoverable pairing/settings files.
             using (var db = OpenDatabase())
             {
-                db.Open(); using var revoke = db.CreateCommand(); revoke.CommandText = "DELETE FROM meta WHERE key IN ($key,$notes) OR key LIKE $time";
+                db.Open(); using var revoke = db.CreateCommand(); revoke.CommandText = "DELETE FROM meta WHERE key IN ($key,$notes) OR key LIKE $time OR key LIKE $shared";
                 revoke.Parameters.AddWithValue("$key", "personal_custom:" + peerId + ":consent");
                 revoke.Parameters.AddWithValue("$notes", "personal_note_mode:" + peerId + ":consent");
-                revoke.Parameters.AddWithValue("$time", "personal_time:" + peerId + ":%"); revoke.ExecuteNonQuery();
+                revoke.Parameters.AddWithValue("$time", "personal_time:" + peerId + ":%");
+                revoke.Parameters.AddWithValue("$shared", "personal_shared_settings:" + peerId + ":%"); revoke.ExecuteNonQuery();
             }
             SavePeers(LoadPeers().Where(peer => peer.Id != peerId));
             RemoveStatus(peerId);
