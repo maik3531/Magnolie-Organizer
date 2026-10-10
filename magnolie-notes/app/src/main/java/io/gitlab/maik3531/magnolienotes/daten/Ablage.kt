@@ -693,6 +693,19 @@ class Ablage private constructor(
         durable
     }
 
+    internal fun personalSyncApplyScopedOnce(records: List<PersonalSyncRecord>, attachments: Map<String, Anhang>,
+                                            batchKey: String, expectedLive: PersonalContentSelection,
+                                            peerId: String, format: Int = 3): PersonalSyncResult? = synchronized(sperre) {
+        schreibbar()
+        if (batchKey in _bestand.value.personalSync.applied_batches) return@synchronized null
+        val result = PersonalSync.applyScoped(_bestand.value, records, expectedLive, peerId, attachments, format)
+        val applied = (result.bestand.personalSync.applied_batches + batchKey).takeLast(500)
+        val durable = result.copy(bestand = result.bestand.copy(
+            personalSync = result.bestand.personalSync.copy(applied_batches = applied)))
+        schreibeBestand(durable.bestand)
+        durable
+    }
+
     fun vereinigeNotizenFuerSync(): Boolean = synchronized(sperre) {
         val neu = PersonalSync.compactNotes(_bestand.value)
         if (neu == _bestand.value) return@synchronized false

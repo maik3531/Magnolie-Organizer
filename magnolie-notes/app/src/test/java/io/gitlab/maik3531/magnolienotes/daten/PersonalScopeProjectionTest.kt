@@ -58,10 +58,25 @@ class PersonalScopeProjectionTest {
         val value = JsonObject(old.value + mapOf("text" to JsonPrimitive("Organizer addition"), "modified_ms" to JsonPrimitive(1000L)))
         val incoming = old.copy(value = value, hash = PersonalSync.hash(value), modifiedMs = 1000L,
             clock = (old.clock + PersonalSyncClock(peer, 1)).sortedBy { it.actor_id })
-        val result = PersonalSync.apply(state, listOf(incoming), mergeNotes = false)
+        val result = PersonalSync.applyScoped(state, listOf(incoming), PersonalSync.livePersonalContent(state), peer)
         assertEquals("Organizer addition", result.bestand.notizen.first { it.id == "local-note" }.text)
         assertEquals(input.notizen.first { it.id == "organizer-only" }, result.bestand.notizen.first { it.id == "organizer-only" })
         assertEquals(input.notizen.size, result.bestand.notizen.size)
         assertEquals(1, result.received)
+    }
+
+    @Test fun removedPhoneCopyAndUnrelatedIncomingRecordsAreRejectedAtCommitBoundary() {
+        val (state, records) = PersonalSync.reconcile(fixture(), setOf("notes", "tasks"), 3, peer)
+        val expected = PersonalSync.livePersonalContent(state)
+        val removed = state.copy(notizen = state.notizen.filterNot { it.id == "local-note" })
+        assertTrue(runCatching { PersonalSync.applyScoped(removed, records, expected, peer) }.isFailure)
+        val note = records.first { it.kind == "note" }
+        assertTrue(runCatching { PersonalSync.applyScoped(state, listOf(note.copy(id = "not-present")), expected, peer) }.isFailure)
+        val task = records.first { it.kind == "task" }
+        assertTrue(runCatching { PersonalSync.applyScoped(state, listOf(task.copy(id = "not-present")), expected, peer) }.isFailure)
+        val book = records.first { it.kind == "notebook" }
+        assertTrue(runCatching { PersonalSync.applyScoped(state, listOf(book), expected, peer) }.isFailure)
+        assertTrue(runCatching { PersonalSync.applyScoped(state, listOf(note, note), expected, peer) }.isFailure)
+        assertEquals(fixture().notizen, state.notizen)
     }
 }

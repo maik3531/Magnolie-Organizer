@@ -667,6 +667,28 @@ object PersonalSync {
         return next.copy(entities = entities)
     }
 
+    /** Called inside the same storage lock as commit, after transport scope authorization. */
+    internal fun applyScoped(original: Bestand, records: List<PersonalSyncRecord>,
+                             expectedLive: PersonalContentSelection, peerId: String,
+                             attachments: Map<String, Anhang> = emptyMap(), format: Int = 3): PersonalSyncResult {
+        require(livePersonalContent(original) == expectedLive) { "Phone content scope changed before commit" }
+        require(records.map { it.kind to it.id }.distinct().size == records.size)
+        val books = records.filter { it.kind == "note" }.mapNotNull {
+            it.value.text("notebook_id").takeIf(String::isNotEmpty)
+        }.toSet()
+        for (record in records) require(when (record.kind) {
+            "note" -> record.id in expectedLive.notes
+            "task" -> record.id in expectedLive.tasks
+            "notebook" -> record.id in books
+            else -> false
+        }) { "Incoming record is outside the current phone content scope" }
+        val local = reconcile(original, setOf("notes", "tasks"), format, peerId,
+            selection = expectedLive, independentRemovals = true).first
+        // Scope identity is authoritative: do not merge unrelated physical notes by
+        // content while applying a selected update or widen the received selection.
+        return apply(local, records, attachments, mergeNotes = false)
+    }
+
     fun apply(original: Bestand, records: List<PersonalSyncRecord>,
               attachments: Map<String, Anhang> = emptyMap(),
               mergeNotes: Boolean = records.any { it.kind in setOf("note", "notebook") }): PersonalSyncResult {
