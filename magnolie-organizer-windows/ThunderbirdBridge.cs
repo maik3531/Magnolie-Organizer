@@ -111,10 +111,10 @@ internal static class ThunderbirdBridge
         return response;
     }
 
-    internal static async Task<IReadOnlyList<NextcloudDavSource>> SourcesAsync(CancellationToken token, bool managed = false)
+    internal static async Task<IReadOnlyList<NextcloudDavSource>> SourcesAsync(CancellationToken token, bool managed = false, string? testPipeName = null)
     {
         JsonObject response;
-        try { response = await CallAsync(new JsonObject { ["op"] = "sources" }, token, managed: managed).ConfigureAwait(false); }
+        try { response = await CallAsync(new JsonObject { ["op"] = "sources" }, token, managed: managed, testPipeName: testPipeName).ConfigureAwait(false); }
         catch (Exception error) when (error is IOException or TimeoutException) { throw new ThunderbirdBridgeException(error); }
         if (response["sources"] is not JsonArray values || values.Count > 1000) throw new InvalidDataException();
         var result = new List<NextcloudDavSource>();

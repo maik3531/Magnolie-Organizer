@@ -151,6 +151,87 @@ internal static class CalendarBirthdayCleanupTests
         }
         finally { Directory.Delete(root, true); }
     }
+
+    internal static async Task<int> RunBridgeLiveAsync()
+    {
+        var pipe = Environment.GetEnvironmentVariable("MAGNOLIE_BIRTHDAY_TEST_PIPE") ?? "";
+        var expected = new Uri(Environment.GetEnvironmentVariable("MAGNOLIE_BIRTHDAY_TEST_CALENDAR") ?? "");
+        if (!pipe.StartsWith("magnolie-bridge137-", StringComparison.Ordinal) || expected.Scheme != "https" ||
+            expected.IdnHost != "magnolie-nextcloud-test.invalid" ||
+            !expected.AbsolutePath.StartsWith("/remote.php/dav/calendars/magnolie-test-", StringComparison.Ordinal) ||
+            !expected.Segments[^1].StartsWith("birthday137-", StringComparison.Ordinal))
+            throw new InvalidOperationException("An isolated bridge and disposable test calendar are required.");
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-birthday137-live-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+        try
+        {
+            NextcloudDavSource? source = null;
+            for (var attempt = 0; attempt < 20 && source is null; attempt++)
+            {
+                try
+                {
+                    var sources = await ThunderbirdBridge.SourcesAsync(timeout.Token, testPipeName: pipe);
+                    source = sources.SingleOrDefault(item => item.Kind == "calendar" && item.Href == expected);
+                }
+                catch (ThunderbirdBridgeException) when (!timeout.IsCancellationRequested) { }
+                if (source is null) await Task.Delay(750, timeout.Token);
+            }
+            if (source is null) throw new InvalidOperationException("The isolated browser source did not become ready.");
+            var journal = new NextcloudSyncJournal(Path.Combine(root, "journal"));
+            var archive = journal.BirthdayArchive(source.Uid, "synthetic-live-epoch");
+            using var client = ThunderbirdBridge.CreateClient(source, journal, new string('c', 64), pipe);
+            TestAssert.That((await client.ReadCalendarAsync(source, timeout.Token)).Count == 0, "The test calendar was not empty.");
+            var prefix = "birthday137-" + Guid.NewGuid().ToString("N") + "-";
+            try
+            {
+                foreach (var suffix in new[] { "original", "copy", "distinct-a", "distinct-b" })
+                {
+                    var text = Event(suffix, trigger: suffix == "distinct-b" ? "-PT30M" : "-PT10M")
+                        .Replace("UID:" + suffix + "\r\n", "UID:" + prefix + suffix + "\r\n")
+                        .Replace("BEGIN:VEVENT\r\n", "BEGIN:VEVENT\r\nDTSTAMP:20261010T000000Z\r\n");
+                    await client.CreateAsync(source, prefix + suffix, ".ics", "text/calendar", text, timeout.Token);
+                }
+                var before = await client.ReadCalendarAsync(source, timeout.Token);
+                var local = new JsonArray(before.Select(resource => (JsonNode)Local(resource,
+                    CalendarBirthdayCleanup.Index([resource]).Keys.Single().Contains("distinct-", StringComparison.Ordinal) ? "two" : "one", source.Uid)).ToArray());
+                var writes = 0;
+                client.BeforeMutation = () => { writes++; TestAssert.That(archive.Exists, "Live DELETE preceded the protected archive."); return Task.CompletedTask; };
+                var engine = new NextcloudCalendarSync(client, archive);
+                var result = await engine.SyncAsync(source, [], local, [], 1, false, timeout.Token);
+                var after = await client.ReadCalendarAsync(source, timeout.Token);
+                TestAssert.That(writes == 1 && after.Count == 3 && before.Count == 4 && after.All(resource => before.Contains(resource)),
+                    "Live bridge changed unrelated bytes/ETags or did not delete exactly one duplicate.");
+                TestAssert.That(result.Jahrestage.OfType<JsonObject>().Where(item => ContactFields.Text(item, "kontaktId") == "one")
+                    .All(item => ContactFields.Text(item, "uid") == prefix + "original"), "Live bridge lost survivor identity.");
+                writes = 0;
+                var replay = await engine.SyncAsync(source, [], result.Jahrestage, [], 2, false, timeout.Token);
+                var repeated = await client.ReadCalendarAsync(source, timeout.Token);
+                TestAssert.That(writes == 0 && repeated.Count == 3 && repeated.All(after.Contains), "Live bridge replay rewrote the calendar.");
+                Console.WriteLine("THUNDERBIRD BIRTHDAY137 LIVE PASS: 4 created, 1 duplicate removed, 3 unchanged survivors, aliases rebound, replay 0 writes");
+                return 0;
+            }
+            finally
+            {
+                client.BeforeMutation = null;
+                using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                foreach (var resource in await client.ReadCalendarAsync(source, cleanup.Token))
+                {
+                    var uids = CalendarBirthdayCleanup.Index([resource]).Keys;
+                    if (uids.Count == 1 && uids.Single().StartsWith(prefix, StringComparison.Ordinal))
+                        await client.DeleteAsync(resource.Href, resource.ETag, cleanup.Token);
+                }
+            }
+        }
+        finally
+        {
+            using var shutdown = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            try { await ThunderbirdBridge.CallAsync(new JsonObject { ["op"] = "shutdown" }, shutdown.Token, managed: true, testPipeName: pipe); }
+            catch (Exception error) when (error is IOException or TimeoutException or OperationCanceledException) { }
+            Directory.Delete(root, true);
+        }
+    }
+
     private sealed class BridgeRelay : IAsyncDisposable
     {
         internal string Name { get; } = "magnolie-birthday-bridge-" + Guid.NewGuid().ToString("N");

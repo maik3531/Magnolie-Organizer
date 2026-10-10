@@ -2,6 +2,7 @@ using MagnolieOrganizer.Windows.Tests;
 
 if (args.FirstOrDefault() == "--dav-live") return await NextcloudDavLiveTests.RunAsync();
 if (args.FirstOrDefault() == "--thunderbird-live") return await NextcloudDavLiveTests.RunAsync(thunderbird: true);
+if (args.FirstOrDefault() == "--birthday-thunderbird-live") return await CalendarBirthdayCleanupTests.RunBridgeLiveAsync();
 if (args.FirstOrDefault() == "--thunderbird-readonly") return await NextcloudDavLiveTests.ReadOnlyAsync();
 if (args.FirstOrDefault() == "--managed-accounts-readonly") return await NextcloudDavLiveTests.ReadOnlyAsync(managed: true);
 if (args.FirstOrDefault() == "--contact-identity-audit" && args.Length == 2) return await WindowsContactGraphTests.AuditIdentityAsync(args[1]);
