@@ -37,7 +37,7 @@ def test_policy_replay_and_equivocation():
     policy = sync.note_settings()
     echoed = sync.note_settings_echo(policy, sync.note_settings())
     assert sync.accept_note_settings(policy, echoed) == echoed
-    for invalid in (dict(policy, revision=0), dict(policy, mode="phone_import"),
+    for invalid in (dict(policy, revision=0), dict(policy, mode="two_way"),
                     dict(policy, revision=2), dict(policy, epoch=sync.note_settings()["epoch"])):
         with pytest.raises(ValueError):
             sync.accept_note_settings(policy, invalid)
@@ -205,9 +205,10 @@ def test_native_notes_wait_but_tasks_remain_independent(tmp_path, monkeypatch):
     assert not service._send_message(channel, peer_id, message)
     assert len(channel.sent) == before
     assert service._note_policy_error(peer_id, "personal_sync.batch", {"records": [{"kind": "task"}]}, True) is None
+    service.set_note_mode(peer_id, "two_way")
     local = service.store.note_settings(peer_id)["local"]
     service._payload(service.store.peer(peer_id), channel,
-        note_packet(sync.NOTE_MODE_KIND, sync.note_settings(peer_epoch=local["epoch"])))
+        note_packet(sync.NOTE_MODE_KIND, sync.note_settings("two_way", peer_epoch=local["epoch"])))
     assert service._note_ready(peer_id)
     service.set_note_mode(peer_id, "phone_import")
     assert not service._note_ready(peer_id)
@@ -225,10 +226,12 @@ def test_direction_choice_reaches_daemon_through_real_ipc(tmp_path, monkeypatch)
         server = background.IPCServer(FakeBackend(), socket, phone_backend=service).start()
         try:
             proxy = background.PhoneServiceProxy(socket)
+            initial = copy.deepcopy(service.store.note_settings(peer_id)["local"])
             proxy.set_note_mode(peer_id, "phone_import")
             assert service.store.note_settings(peer_id)["local"]["mode"] == "phone_import"
+            assert service.store.note_settings(peer_id)["local"] == initial
             proxy.set_note_mode(peer_id, "two_way")
-            assert service.store.note_settings(peer_id)["local"]["revision"] == 3
+            assert service.store.note_settings(peer_id)["local"]["revision"] == initial["revision"] + 1
             for peer, mode in ((peer_id, True), (peer_id, "unknown"), ("unknown-peer", "phone_import")):
                 with pytest.raises(background.IPCError):
                     proxy.set_note_mode(peer, mode)
