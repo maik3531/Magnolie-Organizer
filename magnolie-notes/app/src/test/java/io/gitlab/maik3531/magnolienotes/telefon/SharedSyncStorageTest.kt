@@ -96,4 +96,20 @@ class SharedSyncStorageTest {
         assertTrue(runCatching { store.merge(expected, JsonObject(remote + ("settings" to JsonObject(fields)))) }.isFailure)
         assertEquals(before, store.read(expected))
     }
+
+    @Test fun controlUsesExistingEncryptedQueueAndReceiptWithBoundedWireLifetime() {
+        val queue = TelefonQueue(context, codec)
+        val body = SharedSyncSettings.create(expected.localActor)
+        val message = queue.queue(expected.peerActor, SharedSyncSettings.KIND, body, 60_000)
+        TelefonNachrichten.validate(message)
+        assertEquals(message, queue.due(expected.peerActor, TelefonTransportArt.WIFI).single().payload)
+        assertEquals("accepted" to "none", queue.receive(expected.peerActor, message))
+        assertEquals("duplicate" to "none", queue.receive(expected.peerActor, message))
+        assertTrue(queue.receivedMatches(expected.peerActor, message))
+        val changed = SharedSyncSettings.change(body, expected.localActor, expected.peerActor, "content_mode", JsonPrimitive("two_way"))
+        assertFalse(queue.receivedMatches(expected.peerActor, JsonObject(message + ("body" to changed))))
+        assertTrue(runCatching { queue.queue(expected.peerActor, SharedSyncSettings.KIND, body, 86_400_001) }.isFailure)
+        val invalid = TelefonNachrichten.message(SharedSyncSettings.KIND, body, 86_400_001)
+        assertTrue(runCatching { TelefonNachrichten.validate(invalid) }.isFailure)
+    }
 }

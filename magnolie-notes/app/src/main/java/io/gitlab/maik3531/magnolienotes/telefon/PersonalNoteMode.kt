@@ -126,6 +126,8 @@ internal class PersonalNoteSession {
     var timeSent: JsonObject? = null
     var timeReceived: JsonObject? = null
     var timeSnapshot: String? = null
+    var sharedSent: JsonObject? = null
+    var sharedReceived: JsonObject? = null
 
     fun timeReady(local: JsonObject?, remote: JsonObject?) = capabilitiesReceived && grantsReceived && ownSettingsReceived &&
         local != null && remote != null && local == timeSent && remote == timeReceived

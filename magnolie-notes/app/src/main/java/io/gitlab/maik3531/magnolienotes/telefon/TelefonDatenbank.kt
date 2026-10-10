@@ -144,9 +144,13 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                                        private val restoreEpoch: () -> String = { "" }) {
     private val helper = TelefonDatenbank(context.applicationContext)
 
+    internal fun sharedSettingsStorage(binding: () -> SharedSettingsBinding?, restoreBlocked: () -> Boolean) =
+        SharedSyncStorage({ helper.writableDatabase }, storage, binding, restoreBlocked)
+
     fun queue(peerId: String, kind: String, body: JsonObject, ttlMs: Long, now: Long = System.currentTimeMillis(),
               transportPolicy: String = "any"): JsonObject {
         require(transportPolicy in setOf("any", "wifi_only"))
+        if (kind == SharedSyncSettings.KIND) { SharedSyncSettings.validate(body); require(ttlMs <= 86_400_000) }
         val message = TelefonNachrichten.message(kind, body, ttlMs, now)
         writableInsert(peerId, message, transportPolicy = transportPolicy)
         return message

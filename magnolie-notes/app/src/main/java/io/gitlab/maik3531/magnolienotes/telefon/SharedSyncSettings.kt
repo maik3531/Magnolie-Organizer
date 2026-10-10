@@ -14,6 +14,16 @@ internal object SharedSyncSettings {
     private val enums = mapOf("content_mode" to setOf("phone_import", "phone_scope", "two_way"),
         "time_mode" to setOf("phone_import", "two_way"), "auto_mode" to setOf("manual", "wifi", "connection"))
 
+    fun supported(peer: TelefonPeer, local: Map<String, TelefonCapability>): Boolean =
+        peer.remote_personal_notes_sync_available && peer.remote_personal_tasks_sync_available &&
+            VERSION in peer.remote_personal_notes_sync_versions && VERSION in peer.remote_personal_tasks_sync_versions &&
+            local["personal_notes_sync"]?.let { it.available && VERSION in it.versions } == true &&
+            local["personal_tasks_sync"]?.let { it.available && VERSION in it.versions } == true
+
+    fun controlsReady(peer: TelefonPeer, local: Map<String, TelefonCapability>, session: PersonalNoteSession?): Boolean =
+        peer.state == "paired" && peer.own_device && peer.remote_own_device && supported(peer, local) &&
+            session?.capabilitiesReceived == true && session.grantsReceived && session.ownSettingsReceived
+
     private fun value(field: String, value: JsonElement): JsonPrimitive {
         require(field in defaults)
         val primitive = value as? JsonPrimitive ?: error("Invalid common function value")

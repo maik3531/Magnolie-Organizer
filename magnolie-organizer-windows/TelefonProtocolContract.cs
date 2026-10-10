@@ -103,7 +103,7 @@ internal static class TelefonMessageContract
     private static readonly HashSet<string> Kinds = new(StringComparer.Ordinal) { "capabilities.update", "grants.update", "device_status.request", "device_status.report",
         "dial_request.command", "dial_request.result", "selected_notifications_readonly.event", "incoming_call_state.event", "answer_call.command", "answer_call.result", "end_call.command", "end_call.result",
         "personal_sync.custom_settings", "personal_sync.custom_request", "personal_sync.custom_batch", PersonalSyncContract.NoteModeKind, PersonalSyncContract.DesktopFeaturesKind,
-        TimeSyncContract.Settings, TimeSyncContract.Request, TimeSyncContract.Batch };
+        TimeSyncContract.Settings, TimeSyncContract.Request, TimeSyncContract.Batch, SharedSyncSettings.Kind };
     internal static void ValidateMessage(JsonObject message, long now, bool receiving)
     {
         var id = "00000000-0000-0000-0000-000000000000";
@@ -125,6 +125,7 @@ internal static class TelefonMessageContract
             else if (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal)) { Maximum(ttl, 86_400_000); PersonalSyncContract.ValidateCustomBody(kind, body); }
             else if (kind == PersonalSyncContract.NoteModeKind) { Maximum(ttl, 86_400_000); PersonalSyncContract.ValidateNoteSettings(body); }
             else if (kind == PersonalSyncContract.DesktopFeaturesKind) { Maximum(ttl, 86_400_000); PersonalSyncContract.ValidateDesktopFeatures(body); }
+            else if (kind == SharedSyncSettings.Kind) { Maximum(ttl, 86_400_000); SharedSyncSettings.Validate(body); }
             else if (TimeSyncContract.IsKind(kind)) { Maximum(ttl, 86_400_000); TimeSyncContract.Validate(kind, body, !receiving); }
             else if (TelefonProtocolContract.PersonalKinds.Contains(kind)) { Maximum(ttl, kind == "personal_sync.request" ? 3_600_000 : 86_400_000); PersonalSyncContract.ValidateBody(kind, body); }
             else { Maximum(ttl, kind is "answer_call.command" or "end_call.command" ? 10_000 : 60_000); TelefonCallContract.Validate(kind, body); }

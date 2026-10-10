@@ -12,6 +12,15 @@ internal static class SharedSyncSettings
     { ["content_mode"] = "phone_scope", ["auto_mode"] = "manual", ["skip_deletions"] = true,
       ["custom_enabled"] = false, ["time_enabled"] = false, ["time_mode"] = "phone_import" };
 
+    internal static bool Supported(JsonObject local, JsonObject remote)
+    {
+        static bool Marked(JsonObject items) => new[] { "personal_notes_sync", "personal_tasks_sync" }.All(name =>
+            items[name] is JsonObject item && item["available"] is JsonValue enabled && enabled.TryGetValue<bool>(out var available) &&
+            available && item["versions"] is JsonArray versions && versions.Any(value =>
+                TelefonProtocolContract.TryInteger(value, out var marker) && marker == Version));
+        return Marked(local) && Marked(remote);
+    }
+
     private static void Actor(string value)
     { if (!TelefonProtocolContract.IsUuidV4(value)) throw new InvalidDataException("Invalid shared settings actor."); }
     private static void Value(string field, JsonNode? value)

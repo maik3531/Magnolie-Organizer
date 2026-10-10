@@ -711,7 +711,7 @@ internal sealed partial class TelefonStore
         {
             if (RestoreFenced) throw new InvalidOperationException("restore_unavailable");
             using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
-            if (kind is "personal_sync.custom_settings" or "personal_sync.settings" or PersonalSyncContract.NoteModeKind or PersonalSyncContract.DesktopFeaturesKind)
+            if (kind is "personal_sync.custom_settings" or "personal_sync.settings" or PersonalSyncContract.NoteModeKind or PersonalSyncContract.DesktopFeaturesKind or SharedSyncSettings.Kind)
             {
                 using var replace = connection.CreateCommand(); replace.Transaction = transaction;
                 replace.CommandText = "DELETE FROM outbox WHERE peer_id=$peer AND kind=$kind";

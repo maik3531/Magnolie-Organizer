@@ -855,6 +855,10 @@ class PhoneStore:
             validate_personal_sync_body(kind, body)
             if ttl_ms > DAY_MS:
                 raise ValueError("invalid personal control lifetime")
+        if kind == shared_sync_contract.KIND:
+            shared_sync_contract.validate(body)
+            if ttl_ms > DAY_MS:
+                raise ValueError("invalid shared settings lifetime")
         if kind == "personal_sync.deletion_proposals":
             self.remember_personal_proposal_kinds(peer_id, body, True)
         message = {"type": "message", "v": 1, "message_id": str(uuid.uuid4()),
@@ -862,7 +866,7 @@ class PhoneStore:
                    "body": body}
         encrypted = self._encrypt(canonical(message), "outbox", message["message_id"])
         with sqlite3.connect(self.database_path) as db:
-            if kind in {personal_sync_contract.NOTE_MODE_KIND, personal_sync_contract.DESKTOP_FEATURES_KIND}:
+            if kind in {personal_sync_contract.NOTE_MODE_KIND, personal_sync_contract.DESKTOP_FEATURES_KIND, shared_sync_contract.KIND}:
                 db.execute("DELETE FROM outbox WHERE peer_id=? AND kind=?", (peer_id, kind))
             size = db.execute("SELECT COALESCE(SUM(length(payload)),0) FROM outbox").fetchone()[0]
             if size + len(encrypted) > 50 * 1024 * 1024:
@@ -2244,6 +2248,7 @@ class PhoneService:
         self.connections = {}
         self.note_sessions = weakref.WeakKeyDictionary()
         self.time_sessions = weakref.WeakKeyDictionary()
+        self.shared_sessions = weakref.WeakKeyDictionary()
         self.note_controls = weakref.WeakKeyDictionary()
         self.status_requests = {}
         self.contact_requests = {}
@@ -2965,6 +2970,65 @@ class PhoneService:
                 and peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {}).get("available") is True
                 and 4 in peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {}).get("versions", []))
 
+    def _shared_controls_ready(self, peer, channel):
+        if (not peer or channel is None or self.connections.get(peer["device_id"]) is not channel or
+                not self.personal_sync_available() or not shared_sync_contract.supported(
+                    desktop_capabilities()["items"], peer.get("capabilities", {}).get("items", {}))):
+            return False
+        personal = peer.get("personal_sync", {})
+        controls = self._note_controls_for(channel)
+        return (personal.get("own_device") is True and personal.get("remote_own_device") is True and
+                controls.get("capabilities.update") == peer.get("capabilities") and
+                controls.get("grants.update") == peer.get("grants") and
+                controls.get("personal_sync.settings") == {"format": 1, "own_device": True})
+
+    def _shared_session(self, peer, channel):
+        owner = (peer["device_id"], peer["static_public"])
+        session = self.shared_sessions.setdefault(channel, {"owner": owner, "sent": None, "received": None})
+        if session["owner"] != owner:
+            raise PermissionError("Shared settings connection identity changed.")
+        return session
+
+    def _queue_shared_settings(self, peer_id, channel=None):
+        peer = self.store.sole_peer(peer_id)
+        channel = channel or self.connections.get(peer_id)
+        if not self._shared_controls_ready(peer, channel):
+            return
+        body = self.store.shared_settings(peer_id, peer["static_public"])
+        # Initialization is explicit: the eventual UI/controller supplies the current
+        # whole preference state, including its separate time direction, once.
+        if body is None:
+            return
+        session = self._shared_session(peer, channel)
+        if session["sent"] == body:
+            return
+        self.store.remove_kind(peer_id, shared_sync_contract.KIND)
+        message = self.store.queue(peer_id, shared_sync_contract.KIND, body, DAY_MS)
+        self._send_message(channel, peer_id, message)
+
+    def shared_settings_ready(self, peer_id):
+        with self.lock:
+            peer = self.store.sole_peer(peer_id)
+            channel = self.connections.get(peer_id)
+            if not self._shared_controls_ready(peer, channel):
+                return False
+            body = self.store.shared_settings(peer_id, peer["static_public"])
+            session = self._shared_session(peer, channel)
+            return body is not None and session["sent"] == body and session["received"] == body
+
+    def change_shared_setting(self, peer_id, expected_public, field, value, initial=None):
+        with self.lock:
+            peer = self.store.sole_peer(peer_id)
+            if (not peer or peer["static_public"] != expected_public or
+                    not peer.get("personal_sync", {}).get("own_device") or
+                    not shared_sync_contract.supported(desktop_capabilities()["items"],
+                        peer.get("capabilities", {}).get("items", {}))):
+                raise PermissionError("Shared preferences are unavailable for this paired device.")
+            result = self.store.change_shared_setting(peer_id, expected_public, field, value, initial)
+            self._queue_shared_settings(peer_id)
+        self.callback("status", self.report())
+        return result
+
     def _time_supported(self, peer):
         remote = peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {})
         return (time_sync_contract.VERSION in desktop_capabilities()["items"]["personal_tasks_sync"]["versions"]
@@ -3177,6 +3241,7 @@ class PhoneService:
             try:
                 self.note_controls.setdefault(channel, {})[kind] = json.loads(json.dumps(body))
                 self._queue_time_settings(peer["device_id"], channel)
+                self._queue_shared_settings(peer["device_id"], channel)
             except TypeError:
                 return
 
@@ -3724,6 +3789,18 @@ class PhoneService:
         policy = self.store.outbox_policy(peer_id, message.get("message_id", ""))
         if policy == "invalid" or policy == "wifi_only" and self.connection_transports.get(peer_id) != "wifi":
             return False
+        if message.get("kind") == shared_sync_contract.KIND:
+            peer = self.store.sole_peer(peer_id)
+            if not self._shared_controls_ready(peer, channel):
+                return False
+            shared_sync_contract.validate(message["body"])
+            if message["body"] != self.store.shared_settings(peer_id, peer["static_public"]):
+                self.store.acknowledge(peer_id, message["message_id"])
+                return False
+            channel.send(message)
+            self._shared_session(peer, channel)["sent"] = json.loads(json.dumps(message["body"]))
+            self.store.mark_attempt(peer_id, message["message_id"])
+            return True
         if message.get("kind") in time_sync_contract.KINDS:
             peer = self.store.sole_peer(peer_id)
             if not peer or not self._time_controls_ready(peer, channel):
@@ -4521,6 +4598,35 @@ class PhoneService:
                 or payload["created_ms"] > received + CLOCK_SKEW_MS):
             raise ValueError("invalid message")
         kind = payload["kind"]
+        if kind == shared_sync_contract.KIND:
+            status, error = "accepted", "none"
+            try:
+                shared_sync_contract.validate(payload["body"])
+                if payload["expires_ms"] <= received or payload["expires_ms"] - payload["created_ms"] > DAY_MS:
+                    raise ValueError("expired shared settings")
+                with self.lock:
+                    current = self.store.sole_peer(peer["device_id"])
+                    if (not current or current["static_public"] != peer["static_public"] or
+                            not self._shared_controls_ready(current, channel)):
+                        raise PermissionError
+                    if self.store.shared_settings(peer["device_id"], peer["static_public"]) is None:
+                        raise RuntimeError("Local shared preferences have not been initialized.")
+                    previous = self.store.dedupe_result(peer["device_id"], payload["message_id"])
+                    if previous and not self.store.received_matches(peer["device_id"], payload):
+                        raise ValueError("conflicting shared settings identity")
+                    self.store.merge_shared_settings(peer["device_id"], peer["static_public"], payload["body"])
+                    self._shared_session(current, channel)["received"] = json.loads(json.dumps(payload["body"]))
+                    self.store.remember_message(peer["device_id"], payload, status, error)
+                    self._queue_shared_settings(peer["device_id"], channel)
+            except PermissionError:
+                status, error = "rejected", "not_granted"
+            except (ValueError, TypeError):
+                status, error = "rejected", "invalid_schema"
+            except (OSError, RuntimeError, sqlite3.Error):
+                status, error = "rejected", "temporary_failure"
+            channel.send({"type": "ack", "message_id": payload["message_id"], "status": status, "error": error})
+            self.callback("status", self.report())
+            return
         if kind in time_sync_contract.KINDS:
             status, error = "accepted", "none"
             try:

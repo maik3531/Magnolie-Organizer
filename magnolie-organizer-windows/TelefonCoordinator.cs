@@ -1760,6 +1760,11 @@ internal sealed partial class TelefonConnection : IDisposable
             store.CompleteOutbox(peer.Id, id!); return;
         }
         if (type != "message") throw new InvalidDataException("Unbekanntes Steuerobjekt.");
+        if (plain["kind"]?.GetValue<string>() == SharedSyncSettings.Kind)
+        {
+            await HandleSharedSettingsAsync(plain);
+            return;
+        }
         if (TimeSyncContract.IsKind(plain["kind"]?.GetValue<string>()))
         {
             await HandleTimeMessageAsync(plain);
@@ -1866,6 +1871,8 @@ internal sealed partial class TelefonConnection : IDisposable
             await SendDesktopFeaturesAsync();
         if (plain["kind"]?.GetValue<string>() is "capabilities.update" or "grants.update" or "personal_sync.settings" && ack.Status is "accepted" or "duplicate")
             await SendTimeSettingsAsync();
+        if (plain["kind"]?.GetValue<string>() is "capabilities.update" or "grants.update" or "personal_sync.settings" && ack.Status is "accepted" or "duplicate")
+            await SendSharedSettingsAsync();
         await SendPlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = ack.MessageId, ["status"] = ack.Status, ["error"] = ack.Error });
         if (!wasNoteReady && NotePolicyReady && noteReady is not null) await noteReady();
     }
@@ -1927,6 +1934,14 @@ internal sealed partial class TelefonConnection : IDisposable
         var now = Now(); foreach (var item in store.Due(peer.Id, now, transport: transport))
         {
             var kind = item.Message["kind"]!.GetValue<string>(); var body = item.Message["body"]!.AsObject();
+            if (kind == SharedSyncSettings.Kind)
+            {
+                if (!SharedControlsReady) continue;
+                if (!JsonNode.DeepEquals(body, store.SharedSettings(peer.Id, peer.PublicKey)))
+                { store.CompleteOutbox(peer.Id, item.Id); continue; }
+                await SendPlainAsync(item.Message); sentSharedSettings = body.DeepClone().AsObject();
+                store.MarkAttempt(item.Id, item.Attempts, now); continue;
+            }
             if (TimeSyncContract.IsKind(kind))
             {
                 if (!TimeControlsReady) continue;

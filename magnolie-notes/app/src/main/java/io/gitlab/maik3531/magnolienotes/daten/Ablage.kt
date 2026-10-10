@@ -229,6 +229,8 @@ class Ablage private constructor(
         if (recoveryErforderlich) throw StartFehler(StartFehlerArt.RECOVERY)
     }
 
+    internal fun synchronisationsSchreibbar(): Boolean = synchronized(sperre) { !recoveryErforderlich }
+
     private fun paarCommit(notizen: String, baum: String, operationId: String) {
         schreibbar()
         try { wiederherstellung.commit(notizen, baum, operationId) }

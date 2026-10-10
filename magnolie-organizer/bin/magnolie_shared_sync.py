@@ -14,6 +14,19 @@ ENUMS = {"content_mode": {"phone_import", "phone_scope", "two_way"}, "time_mode"
          "auto_mode": {"manual", "wifi", "connection"}}
 
 
+def supported(local_items, remote_items):
+    for items in (local_items, remote_items):
+        if not isinstance(items, dict):
+            return False
+        for name in ("personal_notes_sync", "personal_tasks_sync"):
+            item = items.get(name)
+            if (not isinstance(item, dict) or item.get("available") is not True or
+                    not isinstance(item.get("versions"), list) or
+                    not any(type(value) is int and value == VERSION for value in item["versions"])):
+                return False
+    return True
+
+
 def actor(value):
     if not isinstance(value, str) or not ACTOR.fullmatch(value):
         raise ValueError("invalid shared settings actor")

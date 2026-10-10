@@ -5,6 +5,26 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class SharedSyncSettingsTest {
+    @Test fun negotiatedFeatureStillRequiresCurrentOwnDeviceAndAllSessionControls() {
+        val local = mapOf("personal_notes_sync" to TelefonCapability(true, "available", listOf(1, 2, 3, 5, 9)),
+            "personal_tasks_sync" to TelefonCapability(true, "available", listOf(1, 2, 3, 4, 6, 7, 9)))
+        val peer = TelefonPeer("22222222-2222-4222-8222-222222222222", "Synthetic", "key",
+            own_device = true, remote_own_device = true, remote_personal_notes_sync_available = true,
+            remote_personal_tasks_sync_available = true, remote_personal_notes_sync_versions = listOf(9),
+            remote_personal_tasks_sync_versions = listOf(9))
+        val session = PersonalNoteSession()
+        assertFalse(SharedSyncSettings.controlsReady(peer, local, session))
+        session.capabilitiesReceived = true; session.grantsReceived = true
+        assertFalse(SharedSyncSettings.controlsReady(peer, local, session))
+        session.ownSettingsReceived = true
+        assertTrue(SharedSyncSettings.controlsReady(peer, local, session))
+        assertFalse(SharedSyncSettings.controlsReady(peer.copy(own_device = false), local, session))
+        assertFalse(SharedSyncSettings.controlsReady(peer.copy(remote_own_device = false), local, session))
+        assertFalse(SharedSyncSettings.controlsReady(peer.copy(remote_personal_notes_sync_versions = listOf(5)), local, session))
+        assertFalse(SharedSyncSettings.controlsReady(peer, local, PersonalNoteSession()))
+        assertFalse("Unfinished shared feature must not be advertised", SharedSyncSettings.supported(peer, TelefonCapabilities.phase1()))
+    }
+
     private val a = "11111111-1111-4111-8111-111111111111"
     private val b = "22222222-2222-4222-8222-222222222222"
     private val c = "33333333-3333-4333-8333-333333333333"

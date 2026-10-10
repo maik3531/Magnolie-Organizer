@@ -11,6 +11,7 @@ import android.telecom.TelecomManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -167,6 +168,37 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private val discovering = AtomicBoolean(false)
     private val connecting = AtomicBoolean(false)
     private val queue = TelefonQueue(context, storage) { Ablage.hole(context).baum.value.syncEpoch }
+    private val sharedActor by lazy { storage.identity(Build.MODEL.orEmpty()).let { (identity, secret) ->
+        secret.fill(0); identity.device_id } }
+    private val sharedPreferences by lazy { queue.sharedSettingsStorage({
+        safePeer()?.takeIf { it.state == "paired" }?.let { SharedSettingsBinding(sharedActor, it.device_id, it.static_public) }
+    }, { !Ablage.hole(context).synchronisationsSchreibbar() }) }
+
+    private fun sharedBinding(peer: TelefonPeer) = SharedSettingsBinding(sharedActor, peer.device_id, peer.static_public)
+
+    private fun sharedControlsReady(peer: TelefonPeer, session: PersonalNoteSession?) =
+        SharedSyncSettings.controlsReady(peer, TelefonCapabilities.phase1(), session) &&
+            Ablage.hole(context).synchronisationsSchreibbar()
+
+    private fun queueSharedSettings(peer: TelefonPeer, session: PersonalNoteSession?) {
+        if (!sharedControlsReady(peer, session)) return
+        val body = sharedPreferences.read(sharedBinding(peer)) ?: return
+        if (session?.sharedSent == body || queue.hasKind(peer.device_id, SharedSyncSettings.KIND)) return
+        queue.queue(peer.device_id, SharedSyncSettings.KIND, body, 86_400_000)
+    }
+
+    @Synchronized internal fun changeSharedSetting(deviceId: String, publicKey: String, field: String,
+                                                  value: JsonElement, initial: Map<String, JsonElement> = emptyMap()): JsonObject =
+        synchronized(Ablage.SCHREIBSPERRE) {
+            val peer = safePeer()?.takeIf { it.device_id == deviceId && it.static_public == publicKey && it.own_device }
+                ?: throw TelefonProtokollFehler("Unbekannte Gegenstelle.")
+            check(SharedSyncSettings.supported(peer, TelefonCapabilities.phase1()))
+            val result = sharedPreferences.change(sharedBinding(peer), field, value, initial)
+            queue.removeKind(peer.device_id, SharedSyncSettings.KIND)
+            // Reconnect uses the existing authenticated-control exchange before sending.
+            activeTransport?.second?.let { runCatching { it.close() } } ?: reconnect()
+            result
+        }
     private val bluetooth = TelefonBluetooth(context)
     internal var bluetoothListenerFactory: () -> TelefonRfcommListener = bluetooth::listen
     internal val bluetoothPairingRequest = MutableStateFlow<TelefonBluetoothAnfrage?>(null)
@@ -1311,6 +1343,30 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val peer = safePeer()?.takeIf { it.device_id == sessionPeer.device_id && it.static_public == sessionPeer.static_public }
             ?: throw TelefonProtokollFehler("Unbekannte Gegenstelle.")
         val kind = runCatching { message.string("kind") }.getOrDefault("")
+        if (kind == SharedSyncSettings.KIND) {
+            val result = runCatching {
+                TelefonNachrichten.validate(message)
+                check(sharedControlsReady(peer, noteSession))
+                val body = message["body"] as JsonObject
+                if (queue.duplicateResult(peer.device_id, message.string("message_id")) != null)
+                    require(queue.receivedMatches(peer.device_id, message))
+                synchronized(Ablage.SCHREIBSPERRE) {
+                    val binding = sharedBinding(peer)
+                    if (sharedPreferences.read(binding) == null)
+                        throw java.io.IOException("Local shared preferences have not been initialized")
+                    sharedPreferences.merge(binding, body)
+                    queue.removeKind(peer.device_id, SharedSyncSettings.KIND)
+                    noteSession!!.sharedReceived = body
+                    queue.receive(peer.device_id, message)
+                }
+            }.getOrElse { "rejected" to when (it) {
+                is java.io.IOException, is android.database.sqlite.SQLiteException -> "temporary_failure"
+                is IllegalArgumentException, is TelefonProtokollFehler -> "invalid_schema"
+                else -> "not_granted"
+            } }
+            send(TelefonNachrichten.ack(message.string("message_id"), result.first, result.second))
+            refreshModules(); return
+        }
         if (kind in TimeSyncProtokoll.KINDS) {
             val result = runCatching {
                 TelefonNachrichten.validate(message)
@@ -1805,11 +1861,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     remote_answer_call_available = ((items["answer_call"] as JsonObject)["available"] as JsonPrimitive).content.toBooleanStrict(),
                     remote_end_call_available = ((items["end_call"] as JsonObject)["available"] as JsonPrimitive).content.toBooleanStrict(),
                     remote_personal_notes_sync_versions = ((items["personal_notes_sync"] as JsonObject)["versions"] as JsonArray)
-                        .map { (it as JsonPrimitive).content.toInt() }.filter { it in 1..3 || it == PersonalNoteMode.VERSION }.distinct().sorted(),
+                        .map { (it as JsonPrimitive).content.toInt() }.filter { it in 1..3 || it == PersonalNoteMode.VERSION || it == SharedSyncSettings.VERSION }.distinct().sorted(),
                     remote_personal_notes_sync_available = ((items["personal_notes_sync"] as JsonObject)["available"] as JsonPrimitive).booleanOrNull == true,
                     remote_personal_tasks_sync_versions = ((items["personal_tasks_sync"] as JsonObject)["versions"] as JsonArray)
                         .map { (it as JsonPrimitive).content.toInt() }.filter {
-                            it in 1..4 || it == PersonalDesktopFeatures.VERSION || it == TimeSyncProtokoll.VERSION }.distinct().sorted(),
+                            it in 1..4 || it == PersonalDesktopFeatures.VERSION || it == TimeSyncProtokoll.VERSION || it == SharedSyncSettings.VERSION }.distinct().sorted(),
                     remote_personal_tasks_sync_available = ((items["personal_tasks_sync"] as JsonObject)["available"] as JsonPrimitive).booleanOrNull == true)
             } else {
                 val grants = body["grants"] as JsonObject
@@ -2029,12 +2085,24 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val controls = mutableSetOf<String>()
         val transport = activeTransport?.first ?: throw TelefonProtokollFehler("Keine aktive Transportart.")
         peerEffect(peer, generation) { current -> queueTimeSettings(current, noteSessions[channel]) }
+        peerEffect(peer, generation) { current -> queueSharedSettings(current, noteSessions[channel]) }
         queue.due(peer.device_id, transport).forEach { entry ->
             synchronized(this) {
                 val current = peerEffect(peer, generation) { it }
                 if (!serviceRunning || !storage.enabled()) return controls
                 val kind = entry.payload.string("kind")
-                if (controlsOnly && kind !in setOf("capabilities.update", "grants.update", "personal_sync.settings", PersonalNoteMode.KIND, TimeSyncProtokoll.SETTINGS)) return@forEach
+                if (controlsOnly && kind !in setOf("capabilities.update", "grants.update", "personal_sync.settings", PersonalNoteMode.KIND, TimeSyncProtokoll.SETTINGS, SharedSyncSettings.KIND)) return@forEach
+                if (kind == SharedSyncSettings.KIND) {
+                    val session = noteSessions[channel]
+                    if (!sharedControlsReady(current, session)) return@forEach
+                    val body = entry.payload["body"] as JsonObject
+                    if (body != sharedPreferences.read(sharedBinding(current))) {
+                        queue.acknowledge(peer.device_id, entry.messageId); return@forEach
+                    }
+                    SharedSyncSettings.validate(body)
+                    channel.send(entry.payload); session!!.sharedSent = body
+                    queue.sent(entry.messageId, queue.attempts(entry.messageId)); return@forEach
+                }
                 if (kind in TimeSyncProtokoll.KINDS) {
                     val session = noteSessions[channel]
                     if (!timeControlsReady(current, session)) return@forEach
