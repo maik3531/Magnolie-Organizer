@@ -82,9 +82,9 @@ internal sealed class PersonalSyncStore(TelefonStore store)
 
     internal JsonObject? ScopedRunReference(string peerId, byte[] expectedPublic, string runId, long now)
     {
-        var settings = store.SharedSettings(peerId, expectedPublic) ?? throw new InvalidOperationException("Shared preferences unavailable.");
         var binding = ReadMeta($"personal_scope:{peerId}:{runId}", "personal_scope");
         if (binding is null) return null;
+        var settings = store.SharedSettings(peerId, expectedPublic) ?? throw new InvalidOperationException("Shared preferences unavailable.");
         TelefonProtocolContract.ExactObject(binding, "peer_key", "local_actor", "scope", "content_policy");
         var scope = binding["scope"] as JsonObject ?? throw new InvalidDataException("Scope reference missing.");
         PhoneContentScope.ValidateReference(scope);

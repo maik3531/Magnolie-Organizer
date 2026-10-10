@@ -109,6 +109,38 @@ internal static class SharedSyncTransportTests
                 TestAssert.Throws<InvalidOperationException>(() => scoped.CurrentContentScope(PhoneContentScope.Reference(manifest)), "New incomplete scope kept old membership authorized.");
                 foreach (var part in nextParts.Skip(1)) await scoped.HandlePlainAsync(Message(PhoneContentScope.Kind, part));
                 TestAssert.That(JsonNode.DeepEquals(next, scoped.CurrentContentScope(PhoneContentScope.Reference(next))), "Updated wire membership did not become current.");
+                var request = new JsonObject { ["format"] = 3, ["run_id"] = Guid.NewGuid().ToString("D"),
+                    ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
+                var wrappedRequest = Message(PhoneContentScope.DataKind, PhoneContentScope.Wrap("personal_sync.request", request, next));
+                await scoped.HandlePlainAsync(wrappedRequest);
+                var runs = new PersonalSyncStore(store); var runId = request["run_id"]!.GetValue<string>();
+                TestAssert.That(JsonNode.DeepEquals(PhoneContentScope.Reference(next), runs.ScopedRunReference(peer.Id, peer.PublicKey, runId,
+                    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())), "Scoped data dispatcher did not bind its request.");
+                var rawRequest = Message("personal_sync.request", request);
+                await scoped.HandlePlainAsync(rawRequest);
+                using (var db = store.OpenDatabase())
+                {
+                    db.Open(); using var query = db.CreateCommand(); query.CommandText = "SELECT result FROM dedupe WHERE peer_id=$peer AND message_id=$id";
+                    query.Parameters.AddWithValue("$peer", peer.Id); query.Parameters.AddWithValue("$id", rawRequest["message_id"]!.GetValue<string>());
+                    TestAssert.That((string?)query.ExecuteScalar() == "rejected", "Raw request reused a scoped run without its wrapper.");
+                }
+                var alteredData = wrappedRequest.DeepClone().AsObject();
+                alteredData["body"]!["body"]!["run_id"] = Guid.NewGuid().ToString("D");
+                await scoped.HandlePlainAsync(alteredData);
+                TestAssert.That(runs.LoadRun(peer.Id, alteredData["body"]!["body"]!["run_id"]!.GetValue<string>(), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()) is null,
+                    "Altered message identity created another scoped run before rejection.");
+                var records = new JsonArray();
+                var emptyBatch = new JsonObject { ["format"] = 3, ["run_id"] = runId, ["batch_id"] = Guid.NewGuid().ToString("D"),
+                    ["sequence"] = 0, ["last"] = true, ["reply"] = true, ["records"] = records,
+                    ["records_hash"] = PersonalSyncContract.RecordsHash(records) };
+                var queued = store.Enqueue(peer.Id, "personal_sync.batch", emptyBatch, 60000, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                await scoped.PumpOutboxNowAsync();
+                var removed = PhoneContentScope.Advance(next, [], []);
+                await scoped.HandlePlainAsync(Message(PhoneContentScope.Kind, PhoneContentScope.Chunks(removed).Single()));
+                var rejectedAck = false;
+                try { await scoped.HandlePlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = queued, ["status"] = "accepted", ["error"] = "none" }); }
+                catch (Exception error) when (error is InvalidOperationException or InvalidDataException) { rejectedAck = true; }
+                TestAssert.That(rejectedAck && store.OutboxMessage(peer.Id, queued) is not null, "Stale scope ACK removed queued content.");
                 using var otherConnection = Connect();
                 TestAssert.Throws<InvalidOperationException>(() => otherConnection.CurrentContentScope(PhoneContentScope.Reference(next)), "Other connection inherited current membership.");
             }

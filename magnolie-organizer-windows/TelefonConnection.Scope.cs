@@ -28,6 +28,71 @@ internal sealed partial class TelefonConnection
         return receivedContentScope.Current(peer.Id, ScopePublicKey, 0, claimed);
     }
 
+    internal JsonObject? DataContentScope(string kind, JsonObject body)
+    {
+        if (body["run_id"] is not JsonValue id || !id.TryGetValue<string>(out var runId)) return null;
+        var reference = new PersonalSyncStore(store).ScopedRunReference(peer.Id, peer.PublicKey, runId, Now());
+        if (reference is null) return null;
+        if (kind is not ("personal_sync.request" or "personal_sync.batch" or "personal_sync.report" or
+            "personal_sync.attachment_request" or "personal_sync.attachment_chunk" or "personal_sync.attachment_result"))
+            throw new InvalidOperationException("Scoped runs do not transmit deletion decisions.");
+        var manifest = CurrentContentScope(reference);
+        if (kind == "personal_sync.batch")
+        {
+            var notes = manifest["members"]!["notes"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+            var tasks = manifest["members"]!["tasks"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+            foreach (var value in body["records"]!.AsArray())
+            {
+                var record = value!.AsObject(); var type = record["kind"]!.GetValue<string>(); var recordId = record["id"]!.GetValue<string>();
+                if (type == "note" && !notes.Contains(recordId) || type == "task" && !tasks.Contains(recordId))
+                    throw new InvalidOperationException("Record outside current phone membership.");
+            }
+        }
+        return manifest;
+    }
+
+    private async Task HandleScopedDataAsync(JsonObject message)
+    {
+        TelefonMessageContract.ValidateMessage(message, Now(), true);
+        var id = message["message_id"]!.GetValue<string>(); var wrapped = message["body"]!.AsObject();
+        string error;
+        try
+        {
+            JsonObject inner;
+            await store.NotePolicyGate.WaitAsync(cancellation);
+            try
+            {
+                if (TelefonProtocolContract.Integer(message["expires_ms"]) <= Now()) throw new InvalidDataException("Scoped message expired.");
+                var manifest = CurrentContentScope(wrapped["scope"]!.AsObject());
+                var (kind, body) = PhoneContentScope.Unwrap(wrapped, manifest);
+                inner = message.DeepClone().AsObject(); inner["kind"] = kind; inner["body"] = body;
+                if (store.HasIncomingReceipt(peer.Id, id) && !store.ReceivedMatches(peer.Id, inner))
+                    throw new InvalidDataException("Conflicting scoped message identity.");
+                var runs = new PersonalSyncStore(store);
+                if (kind == "personal_sync.request")
+                    runs.RememberScopedRun(peer.Id, peer.PublicKey, body, wrapped["scope"]!.AsObject(), Now(), TelefonProtocolContract.Integer(message["expires_ms"]));
+                else if (!JsonNode.DeepEquals(wrapped["scope"], runs.ScopedRunReference(peer.Id, peer.PublicKey, body["run_id"]!.GetValue<string>(), Now())))
+                    throw new InvalidOperationException("Scoped run binding missing or different.");
+            }
+            finally { store.NotePolicyGate.Release(); }
+            await HandlePlainBoundAsync(inner, wrapped["scope"]!.AsObject());
+            return;
+        }
+        catch (InvalidDataException) { error = "invalid_schema"; }
+        catch (InvalidOperationException) { error = "not_granted"; }
+        catch (IOException) { error = "temporary_failure"; }
+        await SendPlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = id, ["status"] = "rejected", ["error"] = error });
+    }
+
+    private Task SendScopedOrPlainAsync(JsonObject message)
+    {
+        var manifest = DataContentScope(message["kind"]!.GetValue<string>(), message["body"]!.AsObject());
+        if (manifest is null) return SendPlainAsync(message);
+        var wrapped = message.DeepClone().AsObject(); wrapped["kind"] = PhoneContentScope.DataKind;
+        wrapped["body"] = PhoneContentScope.Wrap(message["kind"]!.GetValue<string>(), message["body"]!.AsObject(), manifest);
+        return SendPlainAsync(wrapped);
+    }
+
     private async Task HandleContentScopeAsync(JsonObject message)
     {
         var now = Now(); TelefonMessageContract.ValidateMessage(message, now, true);

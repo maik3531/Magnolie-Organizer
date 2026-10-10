@@ -946,6 +946,14 @@ internal sealed partial class TelefonStore
         }
     }
 
+    internal bool HasIncomingReceipt(string peerId, string messageId)
+    {
+        using var db = OpenDatabase(); db.Open(); using var query = db.CreateCommand();
+        query.CommandText = "SELECT 1 FROM dedupe WHERE peer_id=$peer AND message_id=$id";
+        query.Parameters.AddWithValue("$peer", peerId); query.Parameters.AddWithValue("$id", messageId);
+        return query.ExecuteScalar() is not null;
+    }
+
     internal void MarkIncomingRejected(string peerId, string messageId, string error, long now)
     {
         using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();

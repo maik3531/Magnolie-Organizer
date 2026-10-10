@@ -685,6 +685,15 @@ internal sealed partial class TelefonCoordinator : IDisposable
 
     internal bool NoteDirectionAllowed(string id, string kind, JsonObject body, bool outgoing)
     {
+        if (body["run_id"] is JsonValue runId && runId.TryGetValue<string>(out var run))
+        {
+            var current = store.LoadPeers().FirstOrDefault(value => value.Id == id);
+            if (current is not null && personalSync.ScopedRunReference(id, current.PublicKey, run, Now()) is not null)
+            {
+                TelefonConnection? scoped; lock (gate) online.TryGetValue(id, out scoped);
+                return scoped?.DataContentScope(kind, body) is not null;
+            }
+        }
         if (!store.NoteImportMode(id)) return true;
         return PersonalSyncContract.NoteDirectionAllowed("desktop", outgoing, kind, body, true,
             kind == "personal_sync.deletion_decision" ? store.PersonalDecisionKinds(id, body, outgoing) : null);
@@ -702,6 +711,11 @@ internal sealed partial class TelefonCoordinator : IDisposable
     private bool NoteApplicationAllowed(string id, string kind, JsonObject body)
     {
         if (!NoteDirectionAllowed(id, kind, body, false)) return false;
+        if (body["run_id"] is JsonValue runId && runId.TryGetValue<string>(out var run))
+        {
+            var current = store.LoadPeers().FirstOrDefault(value => value.Id == id);
+            if (current is not null && personalSync.ScopedRunReference(id, current.PublicKey, run, Now()) is not null) return true;
+        }
         var settings = store.NoteSettings(id);
         if (!store.NoteModeSupported(id) && settings.Count == 0) return true;
         var kinds = kind == "personal_sync.deletion_decision" ? store.PersonalDecisionKinds(id, body, false) : null;
@@ -1655,6 +1669,9 @@ internal sealed partial class TelefonConnection : IDisposable
 
     private string? NotePolicyError(string kind, JsonObject body, bool outgoing)
     {
+        try { if (DataContentScope(kind, body) is not null) return null; }
+        catch (InvalidOperationException) { return "not_granted"; }
+        catch (InvalidDataException) { return "invalid_schema"; }
         var kinds = kind == "personal_sync.deletion_decision" ? store.PersonalDecisionKinds(peer.Id, body, outgoing) : null;
         if (PersonalSyncContract.NoteMessageUsesNotes(kind, body, kinds) && !NotePolicyReady) return "temporary_failure";
         return PersonalSyncContract.NoteDirectionAllowed("desktop", outgoing, kind, body, store.NoteImportMode(peer.Id), kinds) ? null : "not_granted";
@@ -1725,7 +1742,9 @@ internal sealed partial class TelefonConnection : IDisposable
     internal Task PumpOutboxNowAsync() => PumpOutboxAsync();
     internal Task SendCapabilitiesAsync(long revision) { var value = TelefonProtocolContract.DesktopCapabilities(); value["revision"] = revision; return SendMessageAsync("capabilities.update", value, 86_400_000); }
     internal Task SendGrantsAsync(long revision, JsonObject grants) => SendMessageAsync("grants.update", new JsonObject { ["revision"] = revision, ["grants"] = grants.DeepClone() }, 86_400_000);
-    internal async Task HandlePlainAsync(JsonObject plain)
+    internal Task HandlePlainAsync(JsonObject plain) => HandlePlainBoundAsync(plain, null);
+
+    private async Task HandlePlainBoundAsync(JsonObject plain, JsonObject? scopedReference)
     {
         var type = plain["type"]?.GetValue<string>();
         if (type == "ping")
@@ -1751,6 +1770,7 @@ internal sealed partial class TelefonConnection : IDisposable
                     ["revision"] = customBody["revision"]!.DeepClone(), ["deletions"] = customBody["deletions"]!.DeepClone() });
             if (queued?["kind"]?.GetValue<string>() is string queuedKind && TelefonProtocolContract.PersonalKinds.Contains(queuedKind) && queuedKind != "personal_sync.settings")
             {
+                DataContentScope(queuedKind, queued["body"]!.AsObject());
                 store.AcknowledgePersonalOutbox(peer.Id, id!, status!, error!, Now()); return;
             }
             if (status == "rejected" && error == "temporary_failure")
@@ -1760,6 +1780,11 @@ internal sealed partial class TelefonConnection : IDisposable
             store.CompleteOutbox(peer.Id, id!); return;
         }
         if (type != "message") throw new InvalidDataException("Unbekanntes Steuerobjekt.");
+        if (plain["kind"]?.GetValue<string>() == PhoneContentScope.DataKind)
+        {
+            await HandleScopedDataAsync(plain);
+            return;
+        }
         if (plain["kind"]?.GetValue<string>() == PhoneContentScope.Kind)
         {
             await HandleContentScopeAsync(plain);
@@ -1821,7 +1846,14 @@ internal sealed partial class TelefonConnection : IDisposable
         else if (plain["kind"]?.GetValue<string>() is string kind &&
             (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal) || TelefonProtocolContract.PersonalKinds.Contains(kind) && kind is not "personal_sync.settings"))
         {
-            ack = store.CommitIncoming(peer.Id, plain, now, AuthorizePersonal, deferAcceptance: true, reauthorizeDuplicates: true);
+            ack = store.CommitIncoming(peer.Id, plain, now, (dataKind, dataBody) => {
+                if (!dataKind.StartsWith("personal_sync.custom_", StringComparison.Ordinal))
+                {
+                    var reference = new PersonalSyncStore(store).ScopedRunReference(peer.Id, peer.PublicKey, dataBody["run_id"]!.GetValue<string>(), now);
+                    if (!JsonNode.DeepEquals(reference, scopedReference) || scopedReference is null && ContentScopeControlsReady) return "not_granted";
+                }
+                return AuthorizePersonal(dataKind, dataBody);
+            }, deferAcceptance: true, reauthorizeDuplicates: true);
             if (ack.Process)
             {
                 try
@@ -1996,7 +2028,7 @@ internal sealed partial class TelefonConnection : IDisposable
             {
                 if (!await SendCallPlainAsync(item.Message)) store.CompleteOutbox(peer.Id, item.Id);
             }
-            else await SendPlainAsync(item.Message);
+            else await SendScopedOrPlainAsync(item.Message);
             store.MarkAttempt(item.Id, item.Attempts, now);
         }
     }
