@@ -147,6 +147,16 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     internal fun sharedSettingsStorage(binding: () -> SharedSettingsBinding?, restoreBlocked: () -> Boolean) =
         SharedSyncStorage({ helper.writableDatabase }, storage, binding, restoreBlocked)
 
+    internal fun containsScopedRun(peerId: String, runId: String): Boolean = helper.readableDatabase.query(
+        "meta", arrayOf("key"), "key=?", arrayOf("personal_scope:$peerId:$runId"), null, null, null, "1").use { it.moveToFirst() }
+
+    internal fun outboxPersonalMessage(peerId: String, messageId: String): JsonObject? = helper.readableDatabase.query(
+        "outbox", arrayOf("kind", "payload"), "peer_id=? AND message_id=?", arrayOf(peerId, messageId), null, null, null).use {
+        if (!it.moveToFirst() || it.getString(0) !in PERSONAL_SYNC_DATA_KINDS) return@use null
+        val clear = storage.decryptPayload(it.getBlob(1), "outbox", messageId)
+        try { TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject } finally { clear.fill(0) }
+    }
+
     fun queue(peerId: String, kind: String, body: JsonObject, ttlMs: Long, now: Long = System.currentTimeMillis(),
               transportPolicy: String = "any"): JsonObject {
         require(transportPolicy in setOf("any", "wifi_only"))
@@ -929,9 +939,9 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
 
     internal fun scopedRunReference(binding: SharedSettingsBinding, shared: SharedSyncStorage, runId: String,
                                     now: Long = System.currentTimeMillis()): JsonObject? {
+        val marker = readScopeRun(helper.readableDatabase, binding.peerActor, runId) ?: return null
         shared.requireWritable(binding)
         val settings = requireNotNull(shared.read(binding))
-        val marker = readScopeRun(helper.readableDatabase, binding.peerActor, runId) ?: return null
         val run = authenticatedRun(binding.peerActor, runId)
         check(marker["peer_key"] == JsonPrimitive(binding.peerPublic) && marker["local_actor"] == JsonPrimitive(binding.localActor) &&
             marker["restore_epoch"] == JsonPrimitive(restoreEpoch()) && marker["content_policy"] == JsonPrimitive(contentPolicyHash(settings)) &&

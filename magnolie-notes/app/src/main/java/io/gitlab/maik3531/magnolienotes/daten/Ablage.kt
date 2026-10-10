@@ -663,6 +663,20 @@ class Ablage private constructor(
 
     fun personalSyncCounter(): Long = synchronized(sperre) { _bestand.value.personalSync.counter }
 
+    internal fun personalSyncScopedSnapshot(selection: PersonalContentSelection, peerId: String): PersonalSyncSnapshot = synchronized(sperre) {
+        schreibbar()
+        require(PersonalSync.livePersonalContent(_bestand.value) == selection)
+        val (next, records) = PersonalSync.reconcile(_bestand.value, setOf("notes", "tasks"), 3, peerId,
+            selection = selection, independentRemovals = true)
+        if (next != _bestand.value) schreibeBestand(next)
+        val attachments = linkedMapOf<String, PersonalSync.AttachmentSnapshot>()
+        next.notizen.filter { PersonalSync.ownNote(it) && PersonalSync.noteWireId(next.personalSync, it.id) in selection.notes }
+            .flatMap { it.anhaenge }.forEach { attachment -> PersonalSync.attachmentDescriptor(attachment)?.let { snapshot ->
+                attachments[(snapshot.descriptor["sha256"] as JsonPrimitive).content] = snapshot
+            } }
+        PersonalSyncSnapshot(records, attachments)
+    }
+
     fun personalSyncAcknowledge(peerId: String) = synchronized(sperre) {
         val durable = PersonalSync.acknowledge(_bestand.value, peerId)
         if (durable != _bestand.value) schreibeBestand(durable)

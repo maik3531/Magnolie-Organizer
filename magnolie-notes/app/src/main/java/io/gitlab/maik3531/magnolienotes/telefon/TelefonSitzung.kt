@@ -98,6 +98,10 @@ object TelefonNachrichten {
             PersonalDesktopFeatures.KIND -> { if (expires - created > 86_400_000L) fail(); PersonalDesktopFeatures.validate(body) }
             SharedSyncSettings.KIND -> { if (expires - created > 86_400_000L) fail(); SharedSyncSettings.validate(body) }
             PhoneContentScope.KIND -> { if (expires - created > 60_000L) fail(); PhoneContentScope.validatePart(body) }
+            PhoneContentScope.DATA_KIND -> {
+                PhoneContentScope.validateData(body)
+                if (expires - created > if (body.string("kind") == "personal_sync.request") 3_600_000L else 86_400_000L) fail()
+            }
             TimeSyncProtokoll.SETTINGS, TimeSyncProtokoll.REQUEST, TimeSyncProtokoll.BATCH -> {
                 if (expires - created > 86_400_000L) fail()
                 TimeSyncProtokoll.validate(message.string("kind"), body, fromOrganizer = true)
