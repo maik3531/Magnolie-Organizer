@@ -19,7 +19,14 @@ internal static class SharedSyncStorageTests
             var peer = new TelefonPeer(Guid.NewGuid().ToString("D"), "Synthetic", publicKey);
             store.SavePeers([peer]); var beforeGrants = store.LocalGrants().DeepClone(); var beforeMode = store.PersonalSettings(peer.Id);
             TestAssert.That(store.SharedSettings(peer.Id, publicKey) is null, "Preview initialized common preference metadata.");
+            var initial = new JsonObject { ["content_mode"] = "phone_import", ["auto_mode"] = "wifi", ["skip_deletions"] = true,
+                ["custom_enabled"] = false, ["time_enabled"] = true, ["time_mode"] = "phone_import" };
+            var seeded = store.InitializeSharedSettings(peer.Id, publicKey, initial);
+            TestAssert.That(JsonNode.DeepEquals(SharedSyncSettings.Effective(seeded), initial) &&
+                seeded["settings"]!.AsObject().All(field => field.Value!.AsObject().All(edit => TelefonProtocolContract.Integer(edit.Value!["counter"]) == 0)),
+                "Initialization changed a legacy choice or turned migration into an explicit edit.");
             var body = store.ChangeSharedSetting(peer.Id, publicKey, "content_mode", JsonValue.Create("two_way")!);
+            TestAssert.That(JsonNode.DeepEquals(body, store.InitializeSharedSettings(peer.Id, publicKey, initial)), "A repeated initializer overwrote the user's newer choice.");
             var reopened = new TelefonStore(paths, key);
             TestAssert.That(JsonNode.DeepEquals(body, reopened.SharedSettings(peer.Id, publicKey)) &&
                 store.PersonalSettings(peer.Id) == beforeMode && JsonNode.DeepEquals(beforeGrants, store.LocalGrants()) &&

@@ -1885,6 +1885,10 @@ class PhoneStore:
                 db.execute("INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)", (key, sealed))
         return updated
 
+    def initialize_shared_settings(self, peer_id, expected_public, initial):
+        """Explicit controller migration; a saved choice always wins over a new seed."""
+        return self._shared_settings_update(peer_id, expected_public, lambda body, _local: body, initial)
+
     def change_shared_setting(self, peer_id, expected_public, field, value, initial=None):
         return self._shared_settings_update(peer_id, expected_public,
             lambda body, local: shared_sync_contract.change(body, local, peer_id, field, value), initial)

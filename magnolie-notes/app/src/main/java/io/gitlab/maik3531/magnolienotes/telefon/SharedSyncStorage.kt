@@ -75,6 +75,9 @@ internal class SharedSyncStorage(
         }
     }
 
+    fun initialize(expected: SharedSettingsBinding, initial: Map<String, JsonElement>) =
+        update(expected, initial) { it }
+
     fun change(expected: SharedSettingsBinding, field: String, value: JsonElement, initial: Map<String, JsonElement> = emptyMap()) =
         update(expected, initial) { SharedSyncSettings.change(it, expected.localActor, expected.peerActor, field, value) }
 

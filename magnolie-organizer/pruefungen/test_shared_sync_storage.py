@@ -27,6 +27,19 @@ def test_preview_never_initializes_metadata_or_changes_any_permissions(tmp_path)
         assert db.execute("SELECT COUNT(*) FROM meta WHERE key LIKE 'shared_settings:%'").fetchone()[0] == 0
 
 
+def test_explicit_initialization_preserves_legacy_choices_at_zero_and_never_reseeds(tmp_path):
+    service, peer_id, public = fixture(tmp_path)
+    before = copy.deepcopy(service.store.peer(peer_id))
+    initial = {"content_mode": "phone_import", "auto_mode": "wifi", "skip_deletions": True,
+               "custom_enabled": False, "time_enabled": True, "time_mode": "phone_import"}
+    body = service.store.initialize_shared_settings(peer_id, public, initial)
+    assert shared.effective(body) == initial
+    assert all(edit["counter"] == 0 for field in body["settings"].values() for edit in field.values())
+    changed = service.store.change_shared_setting(peer_id, public, "content_mode", "phone_scope")
+    assert service.store.initialize_shared_settings(peer_id, public, dict(initial, content_mode="two_way")) == changed
+    assert service.store.peer(peer_id) == before and service.store.pending(peer_id) == []
+
+
 def test_one_local_change_is_encrypted_and_survives_reopen_without_granting(tmp_path):
     service, peer_id, public = fixture(tmp_path)
     before = copy.deepcopy(service.store.peer(peer_id))

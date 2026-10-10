@@ -102,6 +102,12 @@ reads must not initialize preferences or grant access. Unpair removes metadata;
 restoring application content must not roll back preference revision evidence.
 Saved preference metadata does not itself authorize any transfer.
 
+The stores expose an explicit initializer for a controller-supplied initial
+snapshot. It records migration values at counter zero, including a saved legacy
+`phone_import` choice. Calling it again never reseeds an existing register or
+overwrites a later edit. It creates neither data grants nor outgoing messages;
+reading a preview and establishing a connection do not call this initializer.
+
 ## Current-connection evidence
 
 Receipt requires the current authenticated peer/key/session, freshly exchanged

@@ -63,6 +63,19 @@ class SharedSyncStorageTest {
         helper.readableDatabase.rawQuery("SELECT COUNT(*) FROM outbox", null).use { it.moveToFirst(); assertEquals(0, it.getInt(0)) }
     }
 
+    @Test fun explicitInitializationPreservesLegacyChoicesAtZeroAndNeverReseeds() {
+        val shared = store()
+        val initial = mapOf("content_mode" to JsonPrimitive("phone_import"), "auto_mode" to JsonPrimitive("wifi"),
+            "skip_deletions" to JsonPrimitive(true), "custom_enabled" to JsonPrimitive(false),
+            "time_enabled" to JsonPrimitive(true), "time_mode" to JsonPrimitive("phone_import"))
+        val body = shared.initialize(expected, initial)
+        assertEquals(initial, SharedSyncSettings.effective(body))
+        assertTrue(body.getValue("settings").jsonObject.values.all { field -> field.jsonObject.values.all { it.jsonObject.long("counter") == 0L } })
+        val changed = shared.change(expected, "content_mode", JsonPrimitive("phone_scope"))
+        assertEquals(changed, shared.initialize(expected, initial + ("content_mode" to JsonPrimitive("two_way"))))
+        helper.readableDatabase.rawQuery("SELECT COUNT(*) FROM outbox", null).use { it.moveToFirst(); assertEquals(0, it.getInt(0)) }
+    }
+
     @Test fun remoteChoiceAndEchoPersistExactlyOneCommonState() {
         val store = store(); val value = store.change(expected, "content_mode", JsonPrimitive("two_way"))
         var remote = SharedSyncSettings.merge(SharedSyncSettings.create(expected.peerActor), value, expected.peerActor, expected.localActor)

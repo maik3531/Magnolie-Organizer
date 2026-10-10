@@ -55,6 +55,15 @@ internal sealed partial class TelefonStore
         }
     }
 
+    internal JsonObject InitializeSharedSettings(string peerId, byte[] expectedPublic, JsonObject initial)
+    {
+        lock (gate)
+        {
+            if (RestoreFenced) throw new InvalidOperationException("restore_unavailable");
+            return SharedSettings(peerId, expectedPublic) ?? UpdateSharedSettings(peerId, expectedPublic, (body, _) => body, initial);
+        }
+    }
+
     internal JsonObject ChangeSharedSetting(string peerId, byte[] expectedPublic, string field, JsonNode value, JsonObject? initial = null) =>
         UpdateSharedSettings(peerId, expectedPublic, (body, actor) => SharedSyncSettings.Change(body, actor, peerId, field, value), initial);
 
