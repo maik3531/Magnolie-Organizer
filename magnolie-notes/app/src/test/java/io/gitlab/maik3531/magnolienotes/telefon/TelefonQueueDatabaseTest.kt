@@ -143,6 +143,21 @@ class TelefonQueueDatabaseTest {
             ("body" to TelefonNachrichten.grants(2)))))
     }
 
+    @Test fun `temporary failure retains legacy data and controls with their original message IDs`() {
+        val now = System.currentTimeMillis()
+        val run = uuid(60)
+        queue.rememberPersonalRun("peer", request(run), now + 60000, now)
+        val data = queue.queue("peer", "personal_sync.request", request(run), 60000, now)
+        val control = queue.queue("peer", "grants.update", TelefonNachrichten.grants(), 60000, now)
+        for (message in listOf(data, control)) {
+            val id = message.string("message_id")
+            queue.acknowledge("peer", id, "rejected", "temporary_failure")
+            assertEquals(message, queue.due("peer", TelefonTransportArt.WIFI, now + 1).single { it.messageId == id }.payload)
+            queue.acknowledge("peer", id, "accepted", "none")
+            assertFalse(queue.due("peer", TelefonTransportArt.WIFI, now + 1).any { it.messageId == id })
+        }
+    }
+
     private fun decisionBody(index: Int, runId: String = uuid(40 + index)) = buildJsonObject {
         put("format", JsonPrimitive(1)); put("run_id", JsonPrimitive(runId)); put("decision_id", JsonPrimitive(uuid(80 + index)))
         put("decisions", JsonArray(listOf(buildJsonObject {

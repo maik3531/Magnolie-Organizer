@@ -223,7 +223,7 @@ object TelefonNachrichten {
         val status = value.string("status"); val error = value.string("error")
         if (status !in setOf("accepted", "duplicate", "rejected") || (status != "rejected" && error != "none") ||
             (status == "rejected" && error !in setOf("expired", "invalid_schema", "unsupported", "not_granted",
-                "too_large", "permanent_failure", "restore_unavailable", "conflict"))) fail()
+                "too_large", "temporary_failure", "permanent_failure", "restore_unavailable", "conflict"))) fail()
     }
 
     fun duplicateAck(result: String, error: String): Pair<String, String> =

@@ -255,6 +255,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                     as JsonObject)["decision_id"] as JsonPrimitive).content } finally { clear.fill(0) }
             } }
         if (decisionId == null) {
+            if (status == "rejected" && error == "temporary_failure") return@inTransaction null
             delete("outbox", "peer_id=? AND message_id=?", arrayOf(peerId, messageId))
             return@inTransaction null
         }
