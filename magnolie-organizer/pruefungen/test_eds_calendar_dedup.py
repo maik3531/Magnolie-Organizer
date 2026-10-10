@@ -26,6 +26,35 @@ class Probe:
         self.nutzlast = nutzlast
 
 
+def test_typed_object_not_found_requires_exact_eds_domain_code_and_online(monkeypatch):
+    class NativeError(Exception):
+        def __init__(self, domain, code): self.domain = domain; self.code = code
+        def matches(self, domain, code): return (self.domain, self.code) == (domain, code)
+    class Client:
+        online = True
+        error = NativeError(41, 1)
+        disconnect = False
+        def is_online(self): return self.online
+        def get_objects_for_uid_sync(self, uid, cancel):
+            if self.disconnect: self.online = False
+            raise self.error
+    fake = type("ECal", (), {"Client": type("Api", (), {"error_quark": staticmethod(lambda: 41)}),
+                             "ClientError": type("Code", (), {"OBJECT_NOT_FOUND": 1})})
+    monkeypatch.setattr(m, "GLib", type("GLib", (), {"Error": NativeError}))
+    monkeypatch.setitem(m._EDS, "ECal", fake)
+    client = Client()
+    assert m.eds_event_fehlend_bestaetigt(client, "missing") is True
+    for error in (NativeError(42, 1), NativeError(41, 2), RuntimeError("Object not found")):
+        client.error = error
+        try: m.eds_event_fehlend_bestaetigt(client, "missing")
+        except RuntimeError: pass
+        else: raise AssertionError("An unrelated error was accepted as absence")
+    client.error = NativeError(41, 1); client.disconnect = True
+    try: m.eds_event_fehlend_bestaetigt(client, "missing")
+    except RuntimeError: pass
+    else: raise AssertionError("A disconnected backend confirmed absence")
+
+
 def test_calendar_connect_wait_is_shorter_than_outer_timeout(monkeypatch):
     calls = []
 

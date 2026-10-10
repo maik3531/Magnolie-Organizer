@@ -18529,6 +18529,16 @@ def eds_events_lesen(client):
     return texte
 
 
+def _eds_objekt_nicht_gefunden(fehler):
+    ECal = _EDS.get("ECal")
+    if GLib is None or ECal is None or not isinstance(fehler, GLib.Error):
+        return False
+    try:
+        return fehler.matches(ECal.Client.error_quark(), ECal.ClientError.OBJECT_NOT_FOUND)
+    except (AttributeError, TypeError):
+        return False
+
+
 def eds_event_fehlend_bestaetigt(client, uid_wert):
     """Bestätigt eine Fernlöschung unabhängig vom vollständigen Listenabruf."""
     if isinstance(client, AkonadiClient):
@@ -18541,6 +18551,9 @@ def eds_event_fehlend_bestaetigt(client, uid_wert):
     try:
         ergebnis = lesen(uid_wert, None)
     except Exception as fehler:
+        if _eds_objekt_nicht_gefunden(fehler):
+            _eds_client_online(client)
+            return True
         raise RuntimeError(_(
             "A missing appointment could not be verified: %s") % fehler) from fehler
     if isinstance(ergebnis, tuple):
