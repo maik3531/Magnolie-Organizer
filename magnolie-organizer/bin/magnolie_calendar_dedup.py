@@ -1,7 +1,7 @@
 """Conservative per-calendar plans for duplicate Magnolie birthday series.
 
-Only explicit local contact/source bindings establish identity. This module never
-performs provider writes and never treats matching names alone as proof.
+Only explicit local contact/source bindings establish identity. Provider writes
+require a durable plan and never use matching names alone as proof.
 """
 from collections import Counter, defaultdict
 from datetime import datetime
@@ -93,6 +93,60 @@ def _events(node):
     result = [node] if node["kind"] == "VEVENT" else []
     for child in node["children"]: result.extend(_events(child))
     return result
+
+
+class DavBirthdayProvider:
+    """Resolve logical UIDs through complete REPORTs; delete with a fresh strong ETag."""
+
+    def __init__(self, dav, collection, resources):
+        self.dav = dav
+        self.collection = collection
+        self.current = self.index(resources)
+
+    @staticmethod
+    def index(resources):
+        result, hrefs = {}, set()
+        for resource in resources:
+            href = resource["href"]
+            if not href or href in hrefs:
+                raise ValueError("ambiguous calendar resource location")
+            hrefs.add(href)
+            root = _tree(resource["data"])
+            if root["kind"] != "VCALENDAR":
+                raise ValueError("invalid DAV calendar resource")
+            # Master and detached instances may share a UID within one resource.
+            # The planner protects such resources from deletion.
+            uids = {_one(_values(event), "UID") for event in _events(root)}
+            for uid in uids:
+                if not uid or uid in result:
+                    raise ValueError("ambiguous calendar resource UID")
+                result[uid] = resource
+        return result
+
+    def read_current(self, uid):
+        # A complete successful REPORT confirms absence and also finds moved hrefs.
+        self.current = self.index(self.dav.report(self.collection, "calendar"))
+        resource = self.current.get(uid)
+        return resource["data"] if resource is not None else None
+
+    def remove(self, uid):
+        resource = self.current[uid]
+        etag = resource.get("etag")
+        if not isinstance(etag, str) or not re.fullmatch(r'"[^"\x00-\x20\x7f]*"', etag):
+            raise ValueError("calendar cleanup requires a strong DAV ETag")
+        self.dav.delete(resource["href"], etag)
+
+    def rebind_resources(self, local, source_uid):
+        for item in local:
+            if item.get("syncKalenderUid") != source_uid and item.get("icsQuelleId") != source_uid:
+                continue
+            resource = self.current.get(item.get("uid"))
+            if resource is None:
+                continue
+            item["davHref"], item["davEtag"] = resource["href"], resource["etag"]
+            source = (item.get("syncQuellen") or {}).get(source_uid)
+            if isinstance(source, dict):
+                source.update(id=resource["href"], etag=resource["etag"])
 
 
 def _values(event):

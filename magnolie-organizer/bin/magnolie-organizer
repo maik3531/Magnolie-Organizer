@@ -18679,6 +18679,37 @@ def eds_geburtstagsdubletten_bereinigen(client, quelle_uid, quellen_id, jahresta
             load_state=archive.load, save_state=archive.save, type_id=jahrestag_typ_id)
 
 
+def dav_geburtstagsdubletten_bereinigen(dav, quelle, jahrestage, resources, sync_epoch):
+    uid = quelle["uid"]
+    texte = [resource["data"] for resource in resources]
+    # DAV source IDs are hrefs, not VEVENT UIDs. Require an explicit logical-UID
+    # binding to this calendar; never interpret an href as another event's UID.
+    lokal = [dict(item, syncQuellen={key: value for key, value in
+             (item.get("syncQuellen") or {}).items() if key != uid}) for item in jahrestage]
+    plans = kalender_dubletten.plan_birthdays(lokal, texte, uid, uid, jahrestag_typ_id)
+    archive = kalender_dubletten.CleanupArchive(
+        daten_verzeichnis(), uid + "\0" + str(sync_epoch or ""), _sync_transaktionsschluessel)
+    if not plans and not archive.exists():
+        return {"removed": 0, "recovered": 0}
+    if any(ics_lesen(text).get("uebersprungen") for text in texte):
+        raise RuntimeError(_("The Nextcloud calendar was not read completely."))
+    provider = kalender_dubletten.DavBirthdayProvider(dav, quelle["href"], resources)
+    with archive:
+        result = kalender_dubletten.apply_birthdays(
+            lokal, texte, uid, uid, read_current=provider.read_current,
+            remove=provider.remove, load_state=archive.load, save_state=archive.save,
+            type_id=jahrestag_typ_id)
+        geaendert = []
+        for item, neu in zip(jahrestage, lokal):
+            if any(item.get(field) != neu.get(field) for field in ("uid", "icsSerienUid")):
+                for field in ("uid", "icsSerienUid"):
+                    if field in neu:
+                        item[field] = neu[field]
+                geaendert.append(item)
+        provider.rebind_resources(geaendert, uid)
+        return result
+
+
 def eds_buch_client(registry, quellen_uid, akonadi_quellen=None):
     if quellen_uid.startswith("akonadi-addressbook:"):
         quelle = ((akonadi_quellen if akonadi_quellen is not None else
@@ -24550,6 +24581,13 @@ class Fenster(_FENSTER_BASIS):
             for uid in kal_uids:
                 quelle = _nextcloud_quelle(dav, "calendar", uid)
                 resources = dav.report(quelle["href"], "calendar")
+                basis = kalender_meta.get(uid) if isinstance(kalender_meta.get(uid), dict) else {}
+                if basis.get("initialisiert") and not restore_additiv and not quelle.get("readOnly"):
+                    cleanup = dav_geburtstagsdubletten_bereinigen(
+                        dav, quelle, jahrestage, resources,
+                        daten.get("syncEpoch") or sync_meta.get("syncEpoch"))
+                    if cleanup["removed"] or cleanup["recovered"]:
+                        resources = dav.report(quelle["href"], "calendar")
                 fern, remote_meta, remote_data = {}, {}, {}
                 komplexe_serien = set()
                 for resource in resources:
