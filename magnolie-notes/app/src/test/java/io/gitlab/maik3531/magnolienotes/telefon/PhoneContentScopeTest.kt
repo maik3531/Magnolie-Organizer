@@ -5,6 +5,29 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PhoneContentScopeTest {
+    @Test fun sessionGatesPartialAndStaleGenerationsAndRejectsOtherConnections() {
+        val session = PhoneContentScope.Session("peer", "key", 1)
+        val first = PhoneContentScope.create((0 until 100).map { "note-%03d".format(it) }, emptyList())
+        val pieces = PhoneContentScope.chunks(first, 32)
+        assertNull(session.receive("peer", "key", 1, pieces.last()))
+        assertTrue(runCatching { session.current("peer", "key", 1, PhoneContentScope.reference(first)) }.isFailure)
+        pieces.dropLast(1).forEach { session.receive("peer", "key", 1, it) }
+        assertEquals(first, session.current("peer", "key", 1, PhoneContentScope.reference(first)))
+        assertTrue(runCatching { session.current("peer", "key", 2, PhoneContentScope.reference(first)) }.isFailure)
+        assertTrue(runCatching { session.receive("other", "key", 1, pieces.first()) }.isFailure)
+        val second = PhoneContentScope.advance(first, (0 until 100).map { "new-%03d".format(it) }, emptyList())
+        val newer = PhoneContentScope.chunks(second, 32)
+        assertNull(session.receive("peer", "key", 1, newer.first()))
+        assertTrue(runCatching { session.current("peer", "key", 1, PhoneContentScope.reference(first)) }.isFailure)
+        assertNull(session.receive("peer", "key", 1, pieces.first()))
+        newer.drop(1).forEach { session.receive("peer", "key", 1, it) }
+        assertEquals(second, session.current("peer", "key", 1, PhoneContentScope.reference(second)))
+        val changed = JsonObject(newer.first() + ("scope_hash" to JsonPrimitive("0".repeat(64))))
+        assertTrue(runCatching { session.receive("peer", "key", 1, changed) }.isFailure)
+        assertTrue(runCatching { session.current("peer", "key", 1, PhoneContentScope.reference(second)) }.isFailure)
+        assertTrue(runCatching { session.receive("peer", "key", 1, newer.first()) }.isFailure)
+    }
+
     private fun record(kind: String, id: String, text: String = "", notebook: String = "") = buildJsonObject {
         put("kind", kind); put("id", id); put("state", "live")
         put("value", buildJsonObject { put("text", text); put("notebook_id", notebook) })

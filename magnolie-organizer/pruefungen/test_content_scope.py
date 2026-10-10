@@ -88,6 +88,46 @@ class PhoneContentScopeTest(unittest.TestCase):
         removed = {"kind": "note", "id": "mobile-note", "state": "deleted"}
         self.assertEqual([live], scope.filter_records([live, removed], scope.create(["mobile-note"], [])))
 
+    def test_session_requires_complete_current_generation_and_connection_binding(self):
+        binding = ("peer", "public-key", "connection-1")
+        session = scope.ScopeSession(binding)
+        first = scope.create(["note-%03d" % n for n in range(100)], [])
+        pieces = scope.chunks(first, 32)
+        self.assertIsNone(session.receive(binding, pieces[-1]))
+        with self.assertRaises(PermissionError):
+            session.current(binding, scope.reference(first))
+        for part in pieces[:-1]:
+            session.receive(binding, part)
+        self.assertEqual(first, session.current(binding, scope.reference(first)))
+        with self.assertRaises(PermissionError):
+            session.current(("peer", "public-key", "connection-2"), scope.reference(first))
+        second = scope.advance(first, ["updated-%03d" % n for n in range(100)], [])
+        updated = scope.chunks(second, 32)
+        self.assertIsNone(session.receive(binding, updated[0]))
+        with self.assertRaises(PermissionError):
+            session.current(binding, scope.reference(first))
+        self.assertIsNone(session.receive(binding, pieces[0]))
+        for part in updated[1:]:
+            session.receive(binding, part)
+        self.assertEqual(second, session.current(binding, scope.reference(second)))
+        exposed = session.current(binding, scope.reference(second)); exposed["members"]["notes"].clear()
+        self.assertEqual(second, session.current(binding, scope.reference(second)))
+
+    def test_conflicting_session_frame_closes_gate_until_new_connection(self):
+        binding = ("peer", "key", "connection")
+        session = scope.ScopeSession(binding)
+        first = scope.create(["mobile-note"], [])
+        part = scope.chunks(first)[0]; session.receive(binding, part)
+        tampered = copy.deepcopy(part); tampered["members"][0]["id"] = "foreign-note"
+        with self.assertRaises(ValueError):
+            session.receive(binding, tampered)
+        with self.assertRaises(PermissionError):
+            session.current(binding, scope.reference(first))
+        with self.assertRaises(ValueError):
+            session.receive(binding, part)
+        fresh = scope.ScopeSession(("peer", "key", "new-connection"))
+        self.assertEqual(first, fresh.receive(fresh.binding, part))
+
 
 if __name__ == "__main__":
     unittest.main()

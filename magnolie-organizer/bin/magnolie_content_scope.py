@@ -2,6 +2,7 @@
 """Bounded current-phone content membership. Fresh authenticated binding is a caller gate."""
 
 import hashlib
+import copy
 import math
 import uuid
 import magnolie_personal_sync as personal
@@ -158,3 +159,62 @@ def filter_records(records, manifest):
     selected_keys = {(record["kind"], record["id"]) for record in selected}
     return [record for record in records if record.get("state") == "live" and (record.get("kind"), record.get("id")) in selected_keys or
             record.get("kind") == "notebook" and record.get("state") == "live" and record.get("id") in notebooks]
+
+
+class ScopeSession:
+    """Connection-local receive evidence. Persisted manifests alone cannot authorize a reply.
+
+    The transport supplies an immutable (peer ID, public key, connection generation)
+    binding after authentication, capability negotiation and grants validation.
+    A new incomplete generation closes the gate until all its parts agree.
+    """
+    def __init__(self, binding):
+        if not isinstance(binding, tuple) or len(binding) != 3 or any(value is None for value in binding):
+            raise ValueError("invalid scope session binding")
+        self.binding = binding
+        self._header = None
+        self._parts = {}
+        self._manifest = None
+        self._failed = False
+
+    def receive(self, binding, part):
+        if binding != self.binding:
+            raise PermissionError("content scope session changed")
+        if self._failed:
+            raise ValueError("content scope session failed")
+        try:
+            validate_part(part)
+            header = {field: part[field] for field in ("format", "epoch", "revision", "scope_hash", "parts")}
+            if self._header is not None:
+                if header["revision"] < self._header["revision"]:
+                    return None  # Reordered old frame never reopens or replaces the current generation.
+                if header["revision"] == self._header["revision"] and header != self._header:
+                    raise ValueError("conflicting scope generation")
+                if header["revision"] > self._header["revision"] and header["epoch"] == self._header["epoch"]:
+                    raise ValueError("scope epoch reused for changed membership")
+            if header != self._header:
+                self._header = header
+                self._parts = {}
+                self._manifest = None
+            previous = self._parts.get(part["part"])
+            if previous is not None and previous != part:
+                raise ValueError("conflicting scope part replay")
+            if previous is None:
+                # Bounded even when a dishonest sender claims too many full chunks.
+                if sum(len(value["members"]) for value in self._parts.values()) + len(part["members"]) > MAX_MEMBERS:
+                    raise ValueError("content scope session too large")
+                self._parts[part["part"]] = copy.deepcopy(part)
+            if len(self._parts) == header["parts"]:
+                self._manifest = assemble(self._parts.values())
+            return copy.deepcopy(self._manifest)
+        except Exception:
+            self._failed = True
+            self._manifest = None
+            self._parts.clear()
+            raise
+
+    def current(self, binding, claimed):
+        if binding != self.binding or self._failed or self._manifest is None:
+            raise PermissionError("content scope is not current on this connection")
+        require_current(claimed, self._manifest)
+        return copy.deepcopy(self._manifest)

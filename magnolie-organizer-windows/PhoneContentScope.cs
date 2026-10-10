@@ -154,4 +154,61 @@ internal static class PhoneContentScope
         return records.Where(record => Text(record, "state") == "live" && (selected.Contains((Text(record, "kind"), Text(record, "id"))) ||
             Text(record, "kind") == "notebook" && notebooks.Contains(Text(record, "id")))).ToArray();
     }
+
+    /// <summary>Fresh authenticated connection evidence, never reconstructed from a saved manifest.</summary>
+    internal sealed class Session(string peerId, string publicKey, long generation)
+    {
+        private JsonObject? header, manifest;
+        private readonly Dictionary<long, JsonObject> pieces = new();
+        private bool failed;
+        private int memberCount;
+        private void Bound(string peer, string key, long current)
+        {
+            if (peer != peerId || key != publicKey || current != generation)
+                throw new InvalidOperationException("Content scope connection changed.");
+        }
+
+        internal JsonObject? Receive(string peer, string key, long current, JsonObject part)
+        {
+            Bound(peer, key, current);
+            if (failed) throw new InvalidDataException("Scope session failed.");
+            try
+            {
+                ValidatePart(part);
+                var shape = new JsonObject();
+                foreach (var field in new[] { "format", "epoch", "revision", "scope_hash", "parts" }) shape[field] = part[field]!.DeepClone();
+                if (header is not null)
+                {
+                    if (Number(shape, "revision") < Number(header, "revision")) return null;
+                    if (Number(shape, "revision") == Number(header, "revision") && !JsonNode.DeepEquals(shape, header) ||
+                        Number(shape, "revision") > Number(header, "revision") && Text(shape, "epoch") == Text(header, "epoch"))
+                        throw new InvalidDataException("Conflicting scope generation.");
+                }
+                if (!JsonNode.DeepEquals(header, shape))
+                { header = shape; pieces.Clear(); manifest = null; memberCount = 0; }
+                var index = Number(part, "part");
+                if (pieces.TryGetValue(index, out var previous))
+                {
+                    if (!JsonNode.DeepEquals(previous, part)) throw new InvalidDataException("Conflicting scope replay.");
+                }
+                else
+                {
+                    memberCount += part["members"]!.AsArray().Count;
+                    if (memberCount > MaximumMembers) throw new InvalidDataException("Scope session too large.");
+                    pieces[index] = part.DeepClone().AsObject();
+                }
+                if (pieces.Count == Number(shape, "parts")) manifest = Assemble(pieces.Values);
+                return manifest?.DeepClone().AsObject();
+            }
+            catch { failed = true; manifest = null; pieces.Clear(); memberCount = 0; throw; }
+        }
+
+        internal JsonObject Current(string peer, string key, long current, JsonObject claimed)
+        {
+            Bound(peer, key, current);
+            if (failed || manifest is null) throw new InvalidOperationException("Scope is not current on this connection.");
+            RequireCurrent(claimed, manifest);
+            return manifest.DeepClone().AsObject();
+        }
+    }
 }

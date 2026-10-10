@@ -137,4 +137,50 @@ internal object PhoneContentScope {
         return records.filter { record -> text(record, "state") == "live" &&
             ((text(record, "kind") to text(record, "id")) in selected || text(record, "kind") == "notebook" && text(record, "id") in notebooks) }
     }
+
+    /** A persisted manifest is not fresh proof on a new connection. */
+    class Session(private val peerId: String, private val publicKey: String, private val generation: Long) {
+        private var header: JsonObject? = null
+        private var manifest: JsonObject? = null
+        private val pieces = mutableMapOf<Long, JsonObject>()
+        private var failed = false
+        private var memberCount = 0
+        private fun bound(peer: String, key: String, current: Long) {
+            check(peer == peerId && key == publicKey && current == generation) { "Content scope connection changed" }
+        }
+        private fun copy(value: JsonObject) = TelefonKanonisch.json.parseToJsonElement(value.toString()).jsonObject
+
+        fun receive(peer: String, key: String, current: Long, part: JsonObject): JsonObject? {
+            bound(peer, key, current); check(!failed) { "Scope session failed" }
+            try {
+                validatePart(part)
+                val shape = JsonObject(listOf("format", "epoch", "revision", "scope_hash", "parts").associateWith(part::getValue))
+                val old = header
+                if (old != null) {
+                    if (number(shape, "revision") < number(old, "revision")) return null
+                    require(number(shape, "revision") != number(old, "revision") || shape == old)
+                    require(number(shape, "revision") <= number(old, "revision") || text(shape, "epoch") != text(old, "epoch"))
+                }
+                if (shape != header) { header = shape; pieces.clear(); manifest = null; memberCount = 0 }
+                val index = number(part, "part"); val previous = pieces[index]
+                if (previous != null) require(previous == part)
+                else {
+                    memberCount += part.getValue("members").jsonArray.size
+                    require(memberCount <= MAX_MEMBERS)
+                    pieces[index] = copy(part)
+                }
+                if (pieces.size.toLong() == number(shape, "parts")) manifest = assemble(pieces.values.toList())
+                return manifest?.let(::copy)
+            } catch (error: Exception) {
+                failed = true; manifest = null; pieces.clear(); memberCount = 0; throw error
+            }
+        }
+
+        fun current(peer: String, key: String, current: Long, claimed: JsonObject): JsonObject {
+            bound(peer, key, current)
+            check(!failed && manifest != null) { "Scope is not current on this connection" }
+            val result = requireNotNull(manifest); requireCurrent(claimed, result)
+            return copy(result)
+        }
+    }
 }

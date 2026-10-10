@@ -44,6 +44,24 @@ internal static class PhoneContentScopeTests
         var empty = PhoneContentScope.Create([], []);
         TestAssert.That(PhoneContentScope.FilterRecords(records, empty).Count == 0 && JsonNode.DeepEquals(empty, PhoneContentScope.Assemble(PhoneContentScope.Chunks(empty))),
             "Empty scope expanded to whole-library permission.");
+        var session = new PhoneContentScope.Session("peer", "key", 1);
+        TestAssert.That(session.Receive("peer", "key", 1, chunks[^1]) is null, "Partial scope authorized a reply.");
+        TestAssert.Throws<InvalidOperationException>(() => session.Current("peer", "key", 1, PhoneContentScope.Reference(large)), "Partial session was ready.");
+        foreach (var part in chunks.SkipLast(1)) session.Receive("peer", "key", 1, part);
+        TestAssert.That(JsonNode.DeepEquals(large, session.Current("peer", "key", 1, PhoneContentScope.Reference(large))), "Complete scope did not become ready.");
+        TestAssert.Throws<InvalidOperationException>(() => session.Current("peer", "key", 2, PhoneContentScope.Reference(large)), "Other connection reused scope evidence.");
+        TestAssert.Throws<InvalidOperationException>(() => session.Receive("other", "key", 1, chunks[0]), "Other peer supplied a scope part.");
+        var next = PhoneContentScope.Advance(large, Enumerable.Range(0, 100).Select(n => $"new-{n:D3}"), []);
+        var nextParts = PhoneContentScope.Chunks(next, 32);
+        TestAssert.That(session.Receive("peer", "key", 1, nextParts[0]) is null, "Incomplete newer scope kept the old gate open.");
+        TestAssert.Throws<InvalidOperationException>(() => session.Current("peer", "key", 1, PhoneContentScope.Reference(large)), "Old scope remained current after a new partial generation.");
+        TestAssert.That(session.Receive("peer", "key", 1, chunks[0]) is null, "Old generation displaced current partial generation.");
+        foreach (var part in nextParts.Skip(1)) session.Receive("peer", "key", 1, part);
+        TestAssert.That(JsonNode.DeepEquals(next, session.Current("peer", "key", 1, PhoneContentScope.Reference(next))), "New scope did not complete.");
+        var corrupt = nextParts[0].DeepClone().AsObject(); corrupt["scope_hash"] = new string('0', 64);
+        TestAssert.Throws<InvalidDataException>(() => session.Receive("peer", "key", 1, corrupt), "Conflicting generation did not fail the session.");
+        TestAssert.Throws<InvalidOperationException>(() => session.Current("peer", "key", 1, PhoneContentScope.Reference(next)), "Failed session remained ready.");
+        TestAssert.Throws<InvalidDataException>(() => session.Receive("peer", "key", 1, nextParts[0]), "Failed session revived without reconnect.");
         return Task.CompletedTask;
     }
 }
