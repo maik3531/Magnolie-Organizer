@@ -8,6 +8,7 @@
 #include <Akonadi/ItemFetchScope>
 #include <Akonadi/ItemModifyJob>
 #include <Akonadi/ServerManager>
+#include "guarded-delete.h"
 
 #include <KCalendarCore/Event>
 #include <KCalendarCore/ICalFormat>
@@ -226,6 +227,7 @@ Akonadi::Item fetchItem(qint64 id)
 {
     auto job = std::make_unique<Akonadi::ItemFetchJob>(Akonadi::Item(id));
     job->fetchScope().fetchFullPayload();
+    job->fetchScope().setFetchGid(true);
     job->fetchScope().setAncestorRetrieval(Akonadi::ItemFetchScope::Parent);
     runJob(job.get(), QStringLiteral("full item fetch"));
     if (job->items().size() != 1) {
@@ -568,8 +570,7 @@ QJsonObject deleteCommand(const QJsonObject &request)
         throw ProtocolError(QStringLiteral("item revision does not match"));
     }
     itemUid(item, kind);
-    auto job = std::make_unique<Akonadi::ItemDeleteJob>(item);
-    runJob(job.get(), QStringLiteral("item deletion"));
+    deleteItemRevisionGuarded(item, collection, [&request]() { verifyServerBinding(request); });
     verifyServerBinding(request);
     return {{QStringLiteral("ok"), true}};
 }

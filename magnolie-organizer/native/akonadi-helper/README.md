@@ -26,6 +26,18 @@ and calendar snapshots include events only. Item responses contain `id`,
 generation and instance values come from `status` and bind every later
 operation to the same Akonadi database.
 
+Deletion uses a dedicated Akonadi session and a single server transaction. A
+metadata-only STORE reasserts the loaded GID and checks the expected revision
+under the server's row lock; collection ownership is checked again before DELETE.
+Content is not rewritten to acquire the lock. The operation requires a complete
+item with a loaded GID and both change/delete rights. A failed revision check,
+binding check or commit rolls back the transaction.
+
+The opt-in `guarded-delete-test` executable exercises a post-fetch revision
+conflict, rollback after DELETE but before commit, and a successful current-revision
+deletion. It takes the JSON binding of a newly created synthetic calendar or
+address book, including `syntheticResource`; it is not a session-free CTest case.
+
 Build and stage it with:
 
 ```sh

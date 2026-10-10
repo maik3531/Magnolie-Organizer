@@ -67,4 +67,8 @@ if(BUILD_TESTING)
     target_link_libraries(serialization-test PRIVATE
         ${QT_CORE} ${AKONADI_CORE} ${CALENDAR_CORE} ${CONTACTS_CORE})
     add_test(NAME serialization COMMAND serialization-test)
+    # Requires an explicitly supplied disposable native Akonadi collection.
+    add_executable(guarded-delete-test guarded-delete-test.cpp)
+    target_link_libraries(guarded-delete-test PRIVATE
+        ${QT_CORE} ${AKONADI_CORE} ${CALENDAR_CORE} ${CONTACTS_CORE})
 endif()
