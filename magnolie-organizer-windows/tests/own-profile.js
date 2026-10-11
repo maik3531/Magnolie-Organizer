@@ -22,6 +22,10 @@ harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[
       assert.equal(b.t.daten().eigenesProfil.data.vorname, "My own name");
       assert.equal(JSON.stringify(b.t.daten().kontakte), unchanged);
       assert.equal(b.t.normalisiere(b.t.daten()).eigenesProfil.data.vorname, "My own name");
+      const card = b.w.document.querySelector(".kontakt-karte"); assert.ok(card);
+      assert.ok(card.querySelector('[aria-label="Choose contact photo"]'));
+      assert.equal(button(card, "Call"), undefined); assert.equal(button(card, "SMS"), undefined);
+      button(card, "Edit").click();
       form = b.w.document.querySelector(".eigenes-profil");
       assert.equal(button(form, "Compare with LibreOffice"), undefined);
       assert.ok(form.firstElementChild.classList.contains("eigenes-profil-kopf"));
@@ -39,8 +43,15 @@ harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[
       assert.ok(numberRequest);
       b.w.App.geraetStatus({ kennung: numberRequest.kennung, status: { request_id: numberRequest.requestId,
         identifiers_peer_fingerprint: "test-key", identifiers: { phone_number: { status: "available", value: "+49123456789" } } } });
-      button(b.w.document.querySelector(".eigenes-profil"), "Save").click();
       assert.equal(b.t.daten().eigenesProfil.data.mobil, "+49123456789");
+      button(b.w.document.querySelector(".kontakt-karte"), "Send").click();
+      const sending = b.w.document.querySelector(".eigenes-profil-senden");
+      const options = [...sending.querySelectorAll('input[type="checkbox"]')];
+      options.forEach((input, index) => { input.checked = index === 0; });
+      button(sending, "Send").click();
+      const exported = b.messages.findLast(value => value.cmd === "exportieren");
+      assert.deepEqual(Object.keys(exported.daten.kontakte[0]).sort(), ["firma", "nachname", "vorname"]);
+      assert.equal(exported.daten.kontakte[0].vorname, "My own name");
       assert.equal(JSON.stringify(b.t.daten().kontakte), unchanged);
       console.log("Eigenprofil getrennt, Foto oben und Office-Fallback bestanden:", web);
     } finally { b.close(); }

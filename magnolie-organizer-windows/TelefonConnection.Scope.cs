@@ -52,11 +52,12 @@ internal sealed partial class TelefonConnection
 
     internal JsonObject? DataContentScope(string kind, JsonObject body)
     {
+        if (kind == "personal_sync.deletion_decision") return null;
         if (body["run_id"] is not JsonValue id || !id.TryGetValue<string>(out var runId)) return null;
         var reference = new PersonalSyncStore(store).ScopedRunReference(peer.Id, peer.PublicKey, runId, Now());
         if (reference is null) return null;
         if (kind is not ("personal_sync.request" or "personal_sync.batch" or "personal_sync.report" or
-            "personal_sync.attachment_request" or "personal_sync.attachment_chunk" or "personal_sync.attachment_result"))
+            "personal_sync.attachment_request" or "personal_sync.attachment_chunk" or "personal_sync.attachment_result" or "personal_sync.deletion_proposals"))
             throw new InvalidOperationException("Scoped runs do not transmit deletion decisions.");
         var manifest = CurrentContentScope(reference);
         if (kind == "personal_sync.batch")
@@ -70,7 +71,32 @@ internal sealed partial class TelefonConnection
                     throw new InvalidOperationException("Record outside current phone membership.");
             }
         }
+        if (kind == "personal_sync.deletion_proposals")
+        {
+            var values = SharedSyncSettings.Effective(store.SharedSettings(peer.Id, peer.PublicKey) ?? throw new InvalidOperationException("Shared settings missing."));
+            if (values["skip_deletions"]!.GetValue<bool>()) throw new InvalidOperationException("Deletion transfer disabled.");
+            var notes = manifest["members"]!["notes"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet();
+            var tasks = manifest["members"]!["tasks"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet();
+            foreach (var node in body["proposals"]!.AsArray())
+            {
+                var item = node!.AsObject(); var type = item["kind"]!.GetValue<string>();
+                var valid = type == "attachment" ? notes.Contains(item["parent_id"]!.GetValue<string>()) :
+                    type == "note" ? notes.Contains(item["id"]!.GetValue<string>()) : type == "task" && tasks.Contains(item["id"]!.GetValue<string>());
+                if (!valid) throw new InvalidOperationException("Deletion outside phone collection.");
+            }
+        }
         return manifest;
+    }
+
+    internal bool ScopedDeletionAllowed(string kind, JsonObject body, bool outgoing)
+    {
+        if (!ContentScopeControlsReady) return false;
+        var current = store.SharedSettings(peer.Id, peer.PublicKey);
+        if (current is null || SharedSyncSettings.Effective(current)["skip_deletions"]!.GetValue<bool>()) return false;
+        if (kind == "personal_sync.deletion_proposals") return outgoing && DataContentScope(kind, body) is not null;
+        return kind == "personal_sync.deletion_decision" && !outgoing &&
+            new PersonalSyncStore(store).ScopedRunReference(peer.Id, peer.PublicKey, body["run_id"]!.GetValue<string>(), Now()) is not null &&
+            body["decisions"]!.AsArray().All(value => value!["decision"]!.GetValue<string>() == "delete");
     }
 
     private async Task HandleScopedDataAsync(JsonObject message)

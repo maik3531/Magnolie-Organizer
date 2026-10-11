@@ -6,6 +6,7 @@ namespace MagnolieOrganizer.Windows;
 internal static class PhoneContactRead
 {
     internal const int Version = 5;
+    internal const int ProfileVersion = 7;
     internal const int PageSize = 128;
     internal const int MaximumContacts = 10_000;
     internal const int MaximumCardBytes = 96 * 1024;
@@ -18,10 +19,15 @@ internal static class PhoneContactRead
     internal static string[] ValidateRequest(JsonObject value)
     {
         TelefonProtocolContract.ExactObject(value, "version", "request_id", "action", "offset", "uids");
-        if (Number(value, "version") != Version || !TelefonProtocolContract.IsUuidV4(Text(value, "request_id")) || value["uids"] is not JsonArray array)
+        if (Number(value, "version") is not (Version or ProfileVersion) || !TelefonProtocolContract.IsUuidV4(Text(value, "request_id")) || value["uids"] is not JsonArray array)
             throw new InvalidDataException("invalid_contact_request");
         var uids = array.Select(node => node!.GetValue<string>()).ToArray();
         var action = Text(value, "action"); var offset = Number(value, "offset");
+        if (Number(value, "version") == ProfileVersion)
+        {
+            if (action != "profile" || offset != 0 || uids.Length != 0) throw new InvalidDataException("invalid_profile_request");
+            return uids;
+        }
         if (uids.Any(uid => !ValidUid(uid)) || uids.Distinct(StringComparer.Ordinal).Count() != uids.Length ||
             !(action == "index" && offset is >= 0 and <= MaximumContacts && uids.Length == 0 ||
               action == "cards" && offset == 0 && uids.Length is >= 1 and <= 5)) throw new InvalidDataException("invalid_contact_request");
@@ -30,6 +36,18 @@ internal static class PhoneContactRead
 
     internal static void ValidateReport(JsonObject value)
     {
+        if (Number(value, "version") == ProfileVersion)
+        {
+            TelefonProtocolContract.ExactObject(value, "version", "request_id", "action", "offset", "total", "contacts", "profile");
+            var profile = TelefonProtocolContract.ExactObject(value["profile"]!, "state", "vcard");
+            var state = Text(profile, "state"); var card = Text(profile, "vcard");
+            if (!TelefonProtocolContract.IsUuidV4(Text(value, "request_id")) || Text(value, "action") != "profile" || Number(value, "offset") != 0 ||
+                value["contacts"] is not JsonArray empty || empty.Count != 0 || state is not ("available" or "unavailable") ||
+                Number(value, "total") != (state == "available" ? 1 : 0) || state == "unavailable" && card.Length != 0 ||
+                state == "available" && (!card.StartsWith("BEGIN:VCARD\r\n") || !card.EndsWith("END:VCARD\r\n") || Encoding.UTF8.GetByteCount(card) > MaximumCardBytes))
+                throw new InvalidDataException("invalid_profile_report");
+            return;
+        }
         TelefonProtocolContract.ExactObject(value, "version", "request_id", "action", "offset", "total", "contacts");
         if (Number(value, "version") != Version || !TelefonProtocolContract.IsUuidV4(Text(value, "request_id")) || value["contacts"] is not JsonArray contacts)
             throw new InvalidDataException("invalid_contact_report");

@@ -139,6 +139,17 @@ internal static class RecoveryJournalTests
                 "Ein beschädigter Snapshot wurde als gültiges Deduplizierungsziel wiederverwendet.");
 
             var contact = journal.Create(data, SnapshotReason.PreContact, "2.0.2");
+            var grouped = new RecoveryJournal(Path.Combine(root, "grouped-points"), Path.Combine(root, "grouped-settings.json"), clock: () => now);
+            var groupedData = new JsonObject { ["einstellungen"] = new JsonObject { ["allgemein"] = new JsonObject {
+                ["wiederherstellungsmodus"] = "interval", ["wiederherstellungsminuten"] = 30 } }, ["notizen"] = new JsonArray() };
+            var groupedFirst = grouped.Create(groupedData, SnapshotReason.PreChange, "2.0.27");
+            now = now.AddMinutes(10); groupedData["notizen"] = new JsonArray(new JsonObject { ["id"] = "changed", ["titel"] = "Changed" });
+            TestAssert.That(grouped.Create(groupedData, SnapshotReason.PreContact, "2.0.27").Id == groupedFirst.Id,
+                "Changed content produced another snapshot inside the configured interval.");
+            TestAssert.That(grouped.Create(groupedData, SnapshotReason.Manual, "2.0.27").Id != groupedFirst.Id &&
+                grouped.Create(groupedData, SnapshotReason.PreRestore, "2.0.27").Id != groupedFirst.Id, "Manual/restore points were suppressed.");
+            now = now.AddMinutes(21);
+            TestAssert.That(grouped.Create(groupedData, SnapshotReason.PreChange, "2.0.27").Id != groupedFirst.Id, "No new interval snapshot after expiry.");
             TestAssert.That(contact.Reason == "pre-contact", "Der allgemeine Kontaktgrund ist nicht plattformstabil.");
             var contactManifestPath = Path.Combine(contact.Directory, "manifest.json");
             var legacyManifest = JsonNode.Parse(File.ReadAllText(contactManifestPath))!.AsObject();

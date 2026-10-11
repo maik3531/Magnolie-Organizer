@@ -784,6 +784,7 @@ def _request_shape(operation, arguments):
         "phone_set_call_audio": {"peer_id", "prefer_pc", "address", "echo_cancel"},
         "phone_request_status": {"peer_id", "request_id"},
         "phone_read_contacts": {"peer_id", "uids"},
+        "phone_read_own_profile": {"peer_id"},
         "phone_contact_source_current": {"peer_id", "fingerprint"},
         "phone_current_identifier_event": {"payload"},
         "phone_set_grant": {"peer_id", "name", "enabled"},
@@ -1240,6 +1241,8 @@ class IPCServer:
             raise IPCError("phone service is not owned by the background service")
         if operation == "phone_request_status":
             return phone.request_status(arguments["peer_id"], request_id=arguments.get("request_id"))
+        if operation == "phone_read_own_profile":
+            return phone.read_own_profile(arguments["peer_id"])
         if operation == "phone_read_contacts":
             return phone.read_contacts(arguments["peer_id"], arguments.get("uids"))
         if operation == "phone_contact_source_current":
@@ -1617,6 +1620,9 @@ class PhoneServiceProxy:
         return self._call("set_call_audio", **arguments)
     def request_status(self, peer_id, request_id=None):
         return self._call("request_status", peer_id=peer_id, request_id=request_id)
+
+    def read_own_profile(self, peer_id):
+        return self._call("read_own_profile", peer_id=peer_id)
 
     def read_contacts(self, peer_id, uids=None):
         return self._call("read_contacts", peer_id=peer_id, uids=uids)

@@ -6,6 +6,7 @@ import io.gitlab.maik3531.magnolienotes.baum.KontaktWert
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -69,5 +70,22 @@ class ContactReadTest {
         assertNull(ContactReadAndroid.profileLink("https://www.instagram.com/"))
         assertNull(ContactReadAndroid.profileLink("https://facebook.com/"))
         assertNull(ContactReadAndroid.profileLink("https://example.invalid/someone"))
+    }
+    @Test fun threemaUsesItsActualAndroidProviderIdentityInsteadOfAnOrdinaryPhoneNumber() {
+        assertEquals("threema", ContactReadAndroid.messenger("vnd.android.cursor.item/vnd.ch.threema.app.profile", "A1B2C3D4", "", "")!!.string("dienst"))
+        assertEquals("A1B2C3D4", ContactReadAndroid.messenger("vnd.android.cursor.item/vnd.ch.threema.app.work.profile", "A1B2C3D4", "", "")!!.string("wert"))
+        assertNull(ContactReadAndroid.messenger("vnd.android.cursor.item/phone_v2", "+49123456789", "", "Threema"))
+        assertNull(ContactReadAndroid.messenger("vnd.android.cursor.item/vnd.ch.threema.app.profile", "+49123456789", "", ""))
+    }
+
+    @Test fun ownProfileIsASeparateResourceWithoutAnOrdinaryContactIdentity() {
+        val request = buildJsonObject { put("version", JsonPrimitive(7)); put("request_id", JsonPrimitive("11111111-1111-4111-8111-111111111111"))
+            put("action", JsonPrimitive("profile")); put("offset", JsonPrimitive(0)); put("uids", JsonArray(emptyList())) }
+        assertTrue(ContactRead.validateRequest(request).isEmpty())
+        val available = ContactRead.profileReport(request, "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Own profile\r\nEND:VCARD\r\n")
+        assertEquals("1", available["total"]!!.toString()); assertTrue((available["contacts"] as JsonArray).isEmpty())
+        assertEquals("profile", available.string("action"))
+        assertEquals("0", ContactRead.profileReport(request, "")["total"]!!.toString())
+        assertTrue(runCatching { ContactRead.validateRequest(JsonObject(request + ("uids" to JsonArray(listOf(JsonPrimitive("ordinary-contact")))))) }.isFailure)
     }
 }

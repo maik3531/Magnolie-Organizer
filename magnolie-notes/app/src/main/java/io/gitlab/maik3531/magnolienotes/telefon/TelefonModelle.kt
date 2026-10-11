@@ -177,7 +177,7 @@ object TelefonCapabilities {
                incomingNumber: Boolean = false, answerCalls: Boolean = false,
                  endCalls: Boolean = false, identifiers: Boolean = false, contactRead: Boolean = false) = linkedMapOf(
         "device_status" to TelefonCapability(true, "available", listOf(1, 2, 3) +
-            (if (identifiers) listOf(4) else emptyList()) + (if (contactRead) listOf(ContactRead.VERSION) else emptyList())),
+             (if (identifiers) listOf(4) else emptyList()) + (if (contactRead) listOf(ContactRead.VERSION, ContactRead.PROFILE_VERSION) else emptyList())),
         "selected_notifications_readonly" to TelefonCapability(notifications, if (notifications) "available" else "disabled"),
         "dial_request" to TelefonCapability(dialRequest && dialResolvable && dialPermission,
             if (dialRequest && dialResolvable && dialPermission) "available" else if (!dialResolvable) "os_restricted"

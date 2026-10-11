@@ -617,6 +617,9 @@ internal sealed partial class BridgeDispatcher
                     item.Remove("vcard");
                     foreach (var field in new[] { "foto", "telefone", "telefon", "mobil", "email", "emails", "emailEintraege", "sozialeMedien" })
                         item[field] = contact[field]?.DeepClone();
+                    item["gruppenZeilen"] = new JsonArray((contact["vcardRoundtrip"] as JsonArray ?? new JsonArray()).Where(line =>
+                        System.Text.RegularExpressions.Regex.IsMatch(line?.GetValue<string>() ?? "", @"^(?:[A-Za-z0-9-]+\.)?CATEGORIES[;:]",
+                            System.Text.RegularExpressions.RegexOptions.IgnoreCase)).Select(line => line!.DeepClone()).ToArray());
                 }
             }
             if (!currentPlainTextAvailable || notes && !telefon.ContactSourceCurrent(deviceId[6..], result["fingerprint"]!.GetValue<string>())) throw new InvalidOperationException("locked");

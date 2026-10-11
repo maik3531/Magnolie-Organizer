@@ -10,7 +10,7 @@ internal object PhoneContentScope {
     const val KIND = "personal_sync.content_scope"
     const val DATA_KIND = "personal_sync.scoped_data"
     private val dataKinds = setOf("personal_sync.request", "personal_sync.batch", "personal_sync.report",
-        "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result")
+        "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result", "personal_sync.deletion_proposals")
     const val MAX_MEMBERS = 50000
     private const val MIN_CHUNK = 32
     private const val MAX_CHUNK = 256
@@ -96,7 +96,7 @@ internal object PhoneContentScope {
         val scope = value["scope"] as? JsonObject ?: error("Scope reference missing")
         val body = value["body"] as? JsonObject ?: error("Scoped data missing")
         validateReference(scope)
-        require(number(body, "format") == if (kind.startsWith("personal_sync.attachment_")) 2L else 3L)
+        require(number(body, "format") == if (kind == "personal_sync.deletion_proposals") 1L else if (kind.startsWith("personal_sync.attachment_")) 2L else 3L)
         PersonalSyncProtokoll.validate(kind, body)
         require(TelefonKanonisch.bytes(value).size <= 256 * 1024)
         return value

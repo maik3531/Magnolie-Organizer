@@ -11,7 +11,7 @@ VERSION = 10
 KIND = "personal_sync.content_scope"
 DATA_KIND = "personal_sync.scoped_data"
 DATA_KINDS = frozenset({"personal_sync.request", "personal_sync.batch", "personal_sync.report",
-                        "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result"})
+                        "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result", "personal_sync.deletion_proposals"})
 MAX_MEMBERS = 50000
 MIN_CHUNK = 32
 MAX_CHUNK = 256
@@ -114,7 +114,7 @@ def validate_data(value):
             or not isinstance(value.get("kind"), str) or value["kind"] not in DATA_KINDS or not isinstance(value.get("body"), dict)):
         raise ValueError("invalid scoped data envelope")
     validate_reference(value["scope"])
-    expected_format = 2 if value["kind"].startswith("personal_sync.attachment_") else 3
+    expected_format = 1 if value["kind"] == "personal_sync.deletion_proposals" else 2 if value["kind"].startswith("personal_sync.attachment_") else 3
     if type(value["body"].get("format")) is not int or value["body"]["format"] != expected_format:
         raise ValueError("invalid scoped record format")
     personal.validate_body(value["kind"], value["body"])

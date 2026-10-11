@@ -1000,7 +1000,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const erlaubte = new Set(module.includes("notes") ? ["note", "notebook"] : []);
     if (module.includes("tasks")) erlaubte.add("task");
     for (const [key, alt] of Object.entries(ps.entities)) {
-      if (options.independentRemovals === true) continue;
+      if (options.independentRemovals === true) {
+        if (!options.propagateSelectedDeletions || !selection) continue;
+        const parts = key.split("\u0000");
+        if (!(parts[0] === "note" && selection.notes.has(parts[1]) || parts[0] === "task" && selection.tasks.has(parts[1]) ||
+            parts[0] === "attachment" && selection.notes.has(parts[1]))) continue;
+      }
       const art = key.split("\u0000", 1)[0];
       const anhangWeg = format >= 2 && module.includes("notes") && art === "attachment" && !anhangVorhanden.has(key);
       const teile = key.split("\u0000");
@@ -1081,6 +1086,25 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   const personalPhoneCollections = new Map();
+  let personalScopedWakeTimer = null;
+  function weckeAutomatischenNotesAbgleich(kind, id, deletion = false) {
+    const data = DATEN;
+    const peer = (telefonStand?.peers || []).find(value => value.shared_sync?.values?.content_mode === "phone_scope" && value.own_device &&
+      value.remote_own_device && value.shared_sync.values.auto_mode !== "manual" && (!deletion || value.shared_sync.values.skip_deletions === false) &&
+      (value.shared_sync.values.auto_mode !== "wifi" || value.state === "online_wifi"));
+    const collection = peer && personalPhoneCollections.get(peer.device_id);
+    if (gesperrt || !peer || collection?.fingerprint !== peer.fingerprint || !collection[kind === "note" ? "notes" : "tasks"].has(id)) return;
+    clearTimeout(personalScopedWakeTimer);
+    personalScopedWakeTimer = setTimeout(() => {
+      if (DATEN !== data || gesperrt) return;
+      nachDauerhaftemSpeichern(() => {
+        const current = personalSyncNotizPeer(peer.device_id);
+        if (DATEN === data && !gesperrt && current?.fingerprint === peer.fingerprint && current.shared_sync?.ready)
+          Bruecke.sende({ cmd: "personal_sync_gemeinsam_start", kennung: peer.device_id, fingerabdruck: peer.fingerprint,
+            initial: gemeinsameSyncWerte(current) });
+      });
+    }, 1000);
+  }
   function personalAdmissionPeer() {
     const peers = (telefonStand?.peers || []).filter(peer => peer.state === "paired" || peer.own_device);
     return peers.length === 1 && peers[0].shared_sync?.supported &&
@@ -1147,6 +1171,16 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       return chars.slice(0, 8).join("") + "-" + chars.slice(8, 12).join("") + "-" +
         chars.slice(12, 16).join("") + "-" + chars.slice(16, 20).join("") + "-" + chars.slice(20).join("");
     });
+  }
+
+  function personalSyncProposals(peerId, modules) {
+    return Object.entries(DATEN.personalSync.entities).filter(([key, meta]) => meta.state === "deleted" &&
+      meta.peer_device_id === peerId && meta.status !== "resolved" && meta.proposal_id &&
+      modules.includes(key.startsWith("task\u0000") ? "tasks" : "notes")).map(([key, meta]) => {
+        const parts = key.split("\u0000"); return { proposal_id: meta.proposal_id, kind: parts[0], id: parts[parts.length - 1],
+          parent_id: String(meta.parent_id || ""), clock: meta.clock, prior_hash: meta.prior_hash, deleted_ms: meta.deleted_ms,
+          label: String(meta.label || "").replace(/[\x00-\x1f\x7f]/g, " ").slice(0, 120) };
+      }).sort((a, b) => personalSyncUtf8(a.proposal_id, b.proposal_id));
   }
 
   function personalSyncProposalId(peerId, art, id, parentId, clock, hash) {
@@ -3961,7 +3995,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     sms.fehler = nutzlast.ok === true ? "" : String(nutzlast.error || "").slice(0, 1000); planeSpeichern();
   }
 
-  function oeffneSmsDialog(kontakt, vorauswahl) {
+  function oeffneSmsDialog(kontakt, vorauswahl, deviceId = "", vorlage = "") {
     const nummern = telefonListe(kontakt).filter((eintrag) =>
       eintrag.typen.some((typ) => ["CELL", "MOBILE"].includes(typ)));
     const kde = telefonStand && telefonStand.kdeconnect;
@@ -3984,6 +4018,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     option.textContent = "KDE Connect" + (kde && kde.available ? "" : " (" + _("Offline") + ")");
     geraet.append(option);
     const text = document.createElement("textarea"); text.className = "feld sms-eingabe";
+    text.value = vorlage;
     text.maxLength = 5000; text.placeholder = _("Message text");
     text.setAttribute("aria-label", _("Message text"));
     const verlauf = el("div", "sms-verlauf"); verlauf.setAttribute("aria-label", _("SMS history"));
@@ -4844,7 +4879,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const fingerprint = index.fingerprint.toLowerCase(), jetzt = Date.now();
       if (lauf.sourceFingerprint && fingerprint !== lauf.sourceFingerprint) throw new Error("contact_source_changed");
       const alt = DATEN.kontaktFotoCache;
-      const wiederverwenden = alt?.version === 3 && alt.deviceId === lauf.deviceId && alt.fingerprint === fingerprint && alt.mappingHash === mappingHash;
+      const wiederverwenden = alt?.version === 4 && alt.deviceId === lauf.deviceId && alt.fingerprint === fingerprint && alt.mappingHash === mappingHash;
       const cache = new Map((wiederverwenden && Array.isArray(alt.entries) ? alt.entries.slice(0, 20000) : [])
         .filter(e => e && typeof e.uid === "string").map(e => [e.uid, e]));
       const vorhanden = new Set(), offen = [];
@@ -4888,7 +4923,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           if (kandidaten.length !== 1 || !kandidaten[0]) continue;
           const kontakt = kandidaten[0], bisher = kontakt.foto || "";
           const social = sozialeMedienListe(karte);
-          if (social.length) socialUpdates.push({ kontakt, social });
+          if (social.length || Array.isArray(karte.gruppenZeilen)) socialUpdates.push({ kontakt, social,
+            groups: Array.isArray(karte.gruppenZeilen) ? kontaktGruppen({ vcardRoundtrip: karte.gruppenZeilen }) : null });
           if (!foto) continue;
           let anzeigen = !kontakt.fotoManuell && !bisher && !kontakt.fotoQuelle;
           if (kontakt.fotoQuelle) {
@@ -4903,10 +4939,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         }
         if (!gueltig() || zuordnungen() !== lokalStand) return;
         let geaendert = false;
-        for (const { kontakt, social } of socialUpdates) {
+        for (const { kontakt, social, groups } of socialUpdates) {
           if (!DATEN.kontakte.includes(kontakt)) continue;
           const old = sozialeMedienListe(kontakt), combined = sozialeMedienListe({ sozialeMedien: [...old, ...social] });
           if (JSON.stringify(old) !== JSON.stringify(combined)) { kontakt.sozialeMedien = combined; geaendert = true; }
+          if (Array.isArray(groups)) {
+            const next = [...new Set([...kontaktGruppen(kontakt), ...groups.filter(value => typeof value === "string" && value.trim()).map(value => value.trim())])];
+            if (JSON.stringify(kontaktGruppen(kontakt)) !== JSON.stringify(next)) { setzeKontaktGruppen(kontakt, next); geaendert = true; }
+          }
         }
         for (const { kontakt, bisher, anzeigen, foto, meta } of aenderungen) {
           if (kontakt.foto !== bisher || !DATEN.kontakte.includes(kontakt)) continue;
@@ -4917,7 +4957,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             kontakt.fotoQuelle = meta;
           }
         }
-        DATEN.kontaktFotoCache = { version: 3, deviceId: lauf.deviceId, fingerprint, mappingHash, entries: [...cache.values()] };
+        DATEN.kontaktFotoCache = { version: 4, deviceId: lauf.deviceId, fingerprint, mappingHash, entries: [...cache.values()] };
         await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
         if (geaendert && gueltig()) zeichneAlles();
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -5408,6 +5448,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   /* Alles Gelöschte kommt zuerst in den Papierkorb – erst von dort geht es
      endgültig fort. */
   function inDenPapierkorb(art, eintrag, name, parentId = "", zuordnungen = {}) {
+    if (art === "notiz") weckeAutomatischenNotesAbgleich("note", personalSyncNotizWireId(eintrag.id), true);
+    if (art === "aufgabe") weckeAutomatischenNotesAbgleich("task", eintrag.id, true);
     if (!DATEN.einstellungen.papierkorb.an) return null;
     art = enumWert(art, { termin: "appointment", appointment: "appointment",
       kontakt: "contact", contact: "contact", aufgabe: "task", task: "task",
@@ -7652,6 +7694,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     d.einstellungen.allgemein.wiederherstellungsintervall =
       ["off", "6h", "12h", "daily", "weekly"].includes(al.wiederherstellungsintervall)
         ? al.wiederherstellungsintervall : "weekly";
+    d.einstellungen.allgemein.wiederherstellungsmodus = al.wiederherstellungsmodus === "interval" ? "interval" : "change";
+    d.einstellungen.allgemein.wiederherstellungsminuten = Math.max(1, Math.min(1440, Math.round(Number(al.wiederherstellungsminuten) || 30)));
     d.einstellungen.allgemein.wiederherstellungsanzahl =
       Math.max(1, Math.min(100, Math.round(Number(al.wiederherstellungsanzahl) || 20)));
     d.einstellungen.allgemein.wiederherstellungsaufbewahrung =
@@ -10687,6 +10731,29 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   /* Kleine Zeichen im Stil des Buches – schlichte Striche, keine bunten
      Bildchen, damit sie zum Papier passen. */
   const SINNBILDER = {
+    "draw-pen": "M5 19l2-6L17 3l4 4-10 10z M7 13l4 4 M5 19l-1 2 3-1",
+    "draw-quill": "M5 20L17 4l3 2-3 8-7 5z M6 20l8-10 M15 5l2 3",
+    "draw-brush": "M9 15l8-12 4 3-10 10 M9 15c-4-1-6 3-6 6 5 0 8-1 8-5z",
+    "draw-marker": "M6 14L16 4l5 5-10 10z M6 14l5 5-4 2-3-3z",
+    "draw-eraser": "M3 14l11-11 7 7-11 11H7z M7 10l7 7 M10 21h11",
+    "draw-select": "M3 8V3h5 M16 3h5v5 M21 16v5h-5 M8 21H3v-5",
+    "draw-cut": "M7 14L20 3 M7 10l13 11 M5 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M5 16a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
+    "draw-fill": "M5 7l9-4 7 11-10 5z M5 7l6 12 M3 21h18 M17 17l2 4",
+    "draw-paste": "M8 4H5v17h14V4h-3 M8 3h8v4H8z M8 12h8 M8 16h6",
+    "draw-undo": "M9 5L3 10l6 5 M3 10h12a6 6 0 0 1 0 12",
+    "draw-redo": "M15 5l6 5-6 5 M21 10H9a6 6 0 0 0 0 12",
+    "draw-new": "M5 3h10l4 4v14H5z M15 3v5h4 M8 14h8 M12 10v8",
+    "draw-save": "M4 3h14l3 3v15H4z M8 3v6h9V3 M8 21v-8h9v8",
+    "draw-size": "M3 9V3h6 M15 3h6v6 M21 15v6h-6 M9 21H3v-6 M8 8l-5-5 M16 16l5 5",
+    "draw-clear": "M4 7h16 M8 7V3h8v4 M6 7l1 14h10l1-14 M10 11v6 M14 11v6",
+    "draw-gradient": "M3 4h18v16H3z M6 5v14 M9 5v14 M13 5v14 M18 5v14",
+    "draw-rotate": "M5 8a8 8 0 1 1-1 9 M5 3v5h5 M9 11h6v6H9z",
+    "draw-move": "M12 2v20 M2 12h20 M9 5l3-3 3 3 M9 19l3 3 3-3 M5 9l-3 3 3 3 M19 9l3 3-3 3",
+    "draw-zoom-in": "M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M15 15l7 7 M6 10h8 M10 6v8",
+    "draw-zoom-out": "M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M15 15l7 7 M6 10h8",
+    "draw-shape": "M3 3h9v9H3z M16 11l6 10H10z",
+    "draw-rectangle": "M3 5h18v14H3z", "draw-ellipse": "M12 4a9 8 0 1 0 0 16 9 8 0 0 0 0-16z",
+    "draw-triangle": "M12 3l10 18H2z", "draw-line": "M3 20L21 4",
     notiz: "M6 3h12v18H6z M9 8h6 M9 12h6 M9 16h4",
     einkauf: "M4 10h16l-2 10H6z M8 10V6a4 4 0 0 1 8 0v4",
     aufgabe: "M5 4h14v16H5z M8 12l3 3 6-7",
@@ -10813,12 +10880,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   let kontaktKartenAuswahlSchliessen = null;
-  function zeigeKarte(k) {
+  function zeigeKarte(k, nurStandort = false) {
     if (gesperrt || kontaktKartenAuswahlSchliessen) return false;
     const ea = DATEN.einstellungen.adressen;
     /* Zuerst das Naheliegende prüfen: Ohne Ausgangspunkt hat eine Route
        keinen Sinn – das ist die hilfreichere Meldung. */
-    if (ea.route && !eigeneAnschriftTaugt()) {
+    if (!nurStandort && ea.route && !eigeneAnschriftTaugt()) {
       zettel(_("Your own address is required as the starting point for a route. " +
         "Enter it under Settings ▸ Contacts."));
       return false;
@@ -10833,7 +10900,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const adresse = ziel.adresse;
       return Bruecke.sende({ cmd: "karte", kontakt: { vorname: "", nachname: ziel.name, firma: "",
         ...adresse, anschriften: [kopie(adresse)] }, dienst: ea.karten || "google",
-        land: adresse.land || ea.land || "Deutschland", route: !!ea.route, absender: ea.absender || "" });
+        land: adresse.land || ea.land || "Deutschland", route: !nurStandort && !!ea.route, absender: ea.absender || "" });
     };
     if (ziele.length === 1) { senden(ziele[0]); return true; }
     const schleier = el("div", "eingabe-schleier kontakt-karten-auswahl"), dialog = el("div", "eingabe-dialog");
@@ -13398,7 +13465,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return bild.outerHTML;
   }
 
-  function zeichneZeichenblatt(modul, ziel, vorschau = false) {
+  function neuesZeichenblatt(page = "right") {
+    const modules = DATEN.customOrganizer.modules;
+    const count = modules.filter(module => module.type === "drawing").length;
+    const drawing = { id: uid(), type: "drawing", title: _("Drawing sheet") + " " + (count + 1),
+      page, order: modules.length, items: [], drawing: window.MagnolieZeichnen.create(), modified_ms: Date.now() };
+    modules.push(drawing); zustand.custom.drawingIds ||= {}; zustand.custom.drawingIds[page] = drawing.id;
+    customModulGeaendert(drawing); return drawing;
+  }
+
+  function zeichneZeichenblatt(modul, ziel, vorschau = false, navigate = null) {
     const canvas = document.createElement("canvas");
     canvas.className = "custom-zeichenblatt"; canvas.tabIndex = 0;
     canvas.setAttribute("aria-label", modul.title || _("Drawing sheet"));
@@ -13414,6 +13490,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ziel.append(bild); return;
     }
     const werkzeuge = el("div", "knopfreihe zeichen-werkzeuge"), status = el("p", "einst-hinweis");
+    const iconButton = (name, label, action) => { const button = knopf("", "zeichen-symbol", action);
+      button.title = label; button.setAttribute("aria-label", label); button.append(sinnbild("draw-" + name, 23)); return button; };
+    const sheets = DATEN.customOrganizer.modules.filter(value => value.type === "drawing" && value.page === modul.page);
+    const sheetChoice = auswahlFeld(sheets.map(value => [value.id, value.title || _("Drawing sheet")]), modul.id);
+    sheetChoice.setAttribute("aria-label", _("Drawing sheet"));
+    sheetChoice.addEventListener("change", () => { zustand.custom.drawingIds ||= {}; zustand.custom.drawingIds[modul.page] = sheetChoice.value;
+      if (navigate) navigate(sheetChoice.value); else zeichneAlles(); });
+    werkzeuge.append(sheetChoice, iconButton("new", _("New drawing sheet"), () => { const sheet = neuesZeichenblatt(modul.page);
+      if (navigate) navigate(sheet.id); else zeichneAlles(); }));
     const zeichenflaeche = el("div", "custom-zeichenflaeche");
     zeichenflaeche.append(canvas);
     let zurueck, wieder;
@@ -13425,10 +13510,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }, () => { status.textContent = _("The drawing limit has been reached."); }, zeichenflaeche);
     aktiveZeichenblaetter.set(modul.id, { canvas, editor, modul });
     const werkzeug = auswahlFeld([["pen", _("Pen")], ["quill", _("Calligraphy pen")], ["brush", _("Brush")],
-      ["highlighter", _("Highlighter")], ["eraser", _("Eraser")]], "pen");
+      ["highlighter", _("Highlighter")], ["eraser", _("Eraser")], ["select", _("Select")],
+      ["rectangle", _("Rectangle")], ["ellipse", _("Ellipse")], ["triangle", _("Triangle")], ["line", _("Line")], ["move", _("Move selection")]], "pen");
     werkzeug.setAttribute("aria-label", _("Drawing tool"));
     const toolChoices = { pen: { width: 4, color: "#1d2433" }, quill: { width: 12, color: "#1d2433" },
-      brush: { width: 10, color: "#1d2433" }, highlighter: { width: 20, color: "#ffcf33" }, eraser: { width: 16, color: "#1d2433" } };
+      brush: { width: 10, color: "#1d2433" }, highlighter: { width: 20, color: "#ffcf33" }, eraser: { width: 16, color: "#1d2433" }, select: { width: 4, color: "#1d2433" } };
+    for (const shape of ["rectangle", "ellipse", "triangle", "line", "move"]) toolChoices[shape] = { width: 4, color: "#1d2433" };
     let currentTool = "pen";
     werkzeug.addEventListener("change", () => {
       toolChoices[currentTool] = { width: Number(breite.value), color: farbe.value };
@@ -13438,6 +13525,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       farbe.disabled = currentTool === "eraser"; editor.setColor(farbe.value);
       editor.setWidth(Number(breite.value));
       widthValue.textContent = breite.value;
+      for (const button of werkzeuge.querySelectorAll("[data-zeichen-werkzeug]")) button.setAttribute("aria-pressed", String(button.dataset.zeichenWerkzeug === currentTool));
     });
     const farbe = eingabe("color", "#1d2433"); farbe.setAttribute("aria-label", _("Color"));
     farbe.addEventListener("input", () => editor.setColor(farbe.value));
@@ -13446,22 +13534,62 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     breite.setAttribute("aria-label", _("Line width")); breite.addEventListener("input", () => {
       editor.setWidth(Number(breite.value)); widthValue.textContent = breite.value;
     });
-    zurueck = knopf(_("Undo"), "klein", () => editor.undo()); zurueck.disabled = !editor.canUndo();
-    wieder = knopf(_("Redo"), "klein", () => editor.redo()); wieder.disabled = !editor.canRedo();
-    const exportieren = knopf(_("Export PNG"), "klein", () => {
-      const daten = editor.exportPng(), name = (modul.title || "Magnolie") + ".png";
-      if (Bruecke.vorhanden) Bruecke.sende({ cmd: "notiz_anhang_datei", id: naechsteAnhangDateiId++, aktion: "speichern", name, daten });
-      else { const link = document.createElement("a"); link.href = daten; link.download = name; link.click(); }
+    zurueck = iconButton("undo", _("Undo"), () => editor.undo()); zurueck.disabled = !editor.canUndo();
+    wieder = iconButton("redo", _("Redo"), () => editor.redo()); wieder.disabled = !editor.canRedo();
+    const exportieren = iconButton("save", _("Save as…"), () => {
+      const png = editor.exportPng(), svg = editor.exportSvg(), name = modul.title || "Magnolie";
+      if (Bruecke.vorhanden) Bruecke.sende({ cmd: "zeichenblatt_exportieren", png, svg, name });
+      else { const link = document.createElement("a"); link.href = png; link.download = name + ".png"; link.click(); }
     });
-    werkzeuge.append(werkzeug, farbe, breite, widthValue, zurueck, wieder,
-      knopf(_("Clear"), "klein", () => editor.clear()), exportieren,
-      knopf(_("Export SVG"), "klein", () => {
-        const svg = editor.exportSvg(), name = (modul.title || "Magnolie") + ".svg";
-        if (Bruecke.vorhanden) Bruecke.sende({ cmd: "zeichenblatt_svg_speichern", svg, name });
-        else { const a = document.createElement("a"); a.href = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg); a.download = name; a.click(); }
-      }),
-      knopf(_("Print"), "klein", () => Bruecke.sende({ cmd: "drucken", html:
-        "<!doctype html><html><head><meta charset='utf-8'><style>svg{max-width:100%;height:auto}body{margin:0}</style></head><body>" + editor.exportSvg() + "</body></html>" })));
+    const blattgroesse = iconButton("size", _("Sheet size"), () => {
+      const overlay = el("div", "eingabe-schleier"), dialog = el("div", "eingabe-dialog");
+      const close = () => { beendeModal(overlay); overlay.remove(); };
+      const w = eingabe("number", String(modul.drawing.width)), h = eingabe("number", String(modul.drawing.height));
+      for (const field of [w, h]) { field.min = "200"; field.max = "4096"; field.step = "1"; }
+      const preset = auswahlFeld([["custom", _("Custom")], ["portrait", _("Portrait")], ["landscape", _("Landscape")], ["square", _("Square")]], "custom");
+      preset.addEventListener("change", () => { const size = { portrait: [1200, 1697], landscape: [1697, 1200], square: [1200, 1200] }[preset.value];
+        if (size) { w.value = String(size[0]); h.value = String(size[1]); } });
+      const buttons = el("div", "dialog-knoepfe"); buttons.append(knopf(_("Cancel"), "", close), knopf(_("Apply"), "haupt", () => {
+        if (editor.setSize(Number(w.value), Number(h.value))) close();
+      }));
+      dialog.append(el("h2", null, _("Sheet size")), preset, formZeile(_("Width"), w), formZeile(_("Height"), h), buttons);
+      overlay.append(dialog); document.body.append(overlay); registriereModal(overlay, dialog, { anfang: preset, schliessen: close });
+    });
+    for (const [tool, label, icon] of [["pen", _("Pen"), "pen"], ["quill", _("Calligraphy pen"), "quill"], ["brush", _("Brush"), "brush"],
+      ["highlighter", _("Highlighter"), "marker"], ["eraser", _("Eraser"), "eraser"], ["select", _("Select"), "select"]]) {
+      const button = iconButton(icon, label, () => { werkzeug.value = tool; werkzeug.dispatchEvent(new Event("change")); });
+      button.dataset.zeichenWerkzeug = tool; button.setAttribute("aria-pressed", String(tool === currentTool)); werkzeuge.append(button);
+    }
+    const endColor = eingabe("color", "#fffdf7"); endColor.title = _("Gradient end color"); endColor.setAttribute("aria-label", endColor.title);
+    const forms = iconButton("shape", _("Insert shape"), () => {
+      const overlay = el("div", "eingabe-schleier"), dialog = el("div", "eingabe-dialog");
+      const close = () => { beendeModal(overlay); overlay.remove(); };
+      const choices = el("div", "knopfreihe");
+      for (const [shape, label] of [["rectangle", _("Rectangle")], ["ellipse", _("Ellipse")], ["triangle", _("Triangle")], ["line", _("Line")]])
+        choices.append(iconButton(shape, label, () => { werkzeug.value = shape; werkzeug.dispatchEvent(new Event("change")); close(); canvas.focus(); }));
+      dialog.append(el("h2", null, _("Insert shape")), choices, knopf(_("Cancel"), "", close)); overlay.append(dialog); document.body.append(overlay);
+      registriereModal(overlay, dialog, { anfang: choices.querySelector("button"), schliessen: close });
+    });
+    const transform = rotate => {
+      const overlay = el("div", "eingabe-schleier"), dialog = el("div", "eingabe-dialog");
+      const close = () => { beendeModal(overlay); overlay.remove(); };
+      const x = eingabe("number", rotate ? "90" : "10"), y = eingabe("number", "0"), error = el("p", "einst-warnung");
+      dialog.append(el("h2", null, rotate ? _("Rotate selection") : _("Move selection")), formZeile(rotate ? _("Angle") : "X", x));
+      if (!rotate) dialog.append(formZeile("Y", y));
+      const buttons = el("div", "dialog-knoepfe"); buttons.append(knopf(_("Cancel"), "", close), knopf(_("Apply"), "haupt", () => {
+        if (editor.transformSelection(rotate ? Number(x.value) : 0, rotate ? 0 : Number(x.value), rotate ? 0 : Number(y.value))) close();
+        else error.textContent = _("Select complete strokes that fit inside the sheet.");
+      }));
+      dialog.append(error, buttons); overlay.append(dialog); document.body.append(overlay); registriereModal(overlay, dialog, { anfang: x, schliessen: close });
+    };
+    werkzeuge.append(farbe, endColor, breite, widthValue, forms, iconButton("cut", _("Cut selection"), () => editor.cut()),
+      iconButton("fill", _("Fill selection"), () => editor.fillSelection()), iconButton("paste", _("Paste"), () => editor.paste()), zurueck, wieder,
+      iconButton("gradient", _("Fill with gradient"), () => editor.fillSelection(endColor.value)),
+      iconButton("rotate", _("Rotate selection"), () => transform(true)), iconButton("move", _("Move selection"), () => { werkzeug.value = "move"; werkzeug.dispatchEvent(new Event("change")); canvas.focus(); }),
+      iconButton("zoom-in", _("Zoom in"), () => editor.setZoom(Math.min(4, editor.getZoom() * 1.25))),
+      iconButton("zoom-out", _("Zoom out"), () => editor.setZoom(Math.max(.25, editor.getZoom() / 1.25))),
+      iconButton("size", _("Fit to view"), () => editor.setZoom(1)),
+      iconButton("clear", _("Clear"), () => editor.clear()), blattgroesse, exportieren);
     const tablet = document.createElement("input"); tablet.type = "checkbox";
     tablet.dataset.kdeZeichenInput = "true";
     const quelle = telefonStand?.kdeconnect;
@@ -13674,7 +13802,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const begriffe = suchBegriffe(suchZustand.custom);
     const modules = (DATEN.customOrganizer.modules || []).slice().sort((a, b) =>
       a.page.localeCompare(b.page) || a.order - b.order);
-    for (const modul of modules) zeichneCustomModul(modul, ziele[modul.page], begriffe);
+    for (const modul of modules) {
+      if (modul.type === "drawing") {
+        zustand.custom.drawingIds ||= {};
+        const selected = modules.find(value => value.id === zustand.custom.drawingIds[modul.page] && value.type === "drawing" && value.page === modul.page) ||
+          modules.find(value => value.type === "drawing" && value.page === modul.page);
+        if (selected !== modul) continue;
+      }
+      zeichneCustomModul(modul, ziele[modul.page], begriffe);
+    }
     customSeitenLayout(ziele);
     if (!modules.length) ziele.left.append(el("p", "leer-hinweis",
       _("Customize") + ": " + [_("Appointments"), _("Text block"), _("Tasks"), _("Drawing sheet")].join(" · ")));
@@ -17245,9 +17381,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const kontakt = z.auswahlId ? DATEN.kontakte.find((k) => k.id === z.auswahlId) : null;
     if (z.modus === "bearbeiten" && !kontakt) z.modus = "ansehen";
 
-    if (z.modus === "eigenes-profil") {
+    if (["eigenes-profil", "eigenes-profil-bearbeiten"].includes(z.modus)) {
       baueKopf("rechts", _("Own profile"), "", []);
-      spalte.append(eigenesProfilFormular());
+      spalte.append(DATEN.eigenesProfil?.data && z.modus !== "eigenes-profil-bearbeiten"
+        ? kontaktKarte(DATEN.eigenesProfil.data, true) : eigenesProfilFormular());
+      if (z.modus === "eigenes-profil" && DATEN.eigenesProfil?.data) eigenesProfilTelefonAnfordern();
     } else if (z.modus === "neu" || (z.modus === "bearbeiten" && kontakt)) {
       baueKopf("rechts", z.modus === "neu" ? _("New contact") : _("Edit contact"), "", []);
       spalte.classList.add("formular-spalte");
@@ -17291,6 +17429,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   let eigenesProfilOfficeAnfrage = null;
+  let eigenesProfilTelefonAnfrage = null;
+  const eigenesProfilTelefonGelesen = new Set();
+  function eigenesProfilTelefonAnfordern(fallback = () => {}) {
+    const peers = (telefonStand?.peers || []).filter(peer => peer.own_device && peer.remote_own_device && /^online_/.test(peer.state || "") &&
+      peer.capabilities?.items?.device_status?.versions?.includes(7));
+    if (peers.length !== 1 || gesperrt) { fallback(); return; }
+    const peer = peers[0], key = peer.device_id + ":" + peer.fingerprint;
+    if (eigenesProfilTelefonGelesen.has(key) || eigenesProfilTelefonAnfrage) { fallback(); return; }
+    const requestId = crypto.randomUUID();
+    eigenesProfilTelefonAnfrage = { requestId, peer: peer.device_id, fingerprint: peer.fingerprint, data: DATEN, fallback };
+    eigenesProfilTelefonGelesen.add(key);
+    Bruecke.sende({ cmd: "eigenes_profil_telefon", kennung: peer.device_id, requestId });
+  }
   let eigenesProfilTelefonKontext = null, eigenesProfilNummerAnfrage = null;
   function eigenesProfilNummerAnfordern() {
     const peers = (telefonStand?.peers || []).filter(peer => peer.own_device && peer.remote_own_device && /^online_/.test(peer.state || ""));
@@ -17361,6 +17512,57 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     Bruecke.sende({ cmd: "eigenes_profil_office", requestId, operation: "read", felder: {}, stamp: "" });
   }
 
+  function eigenesProfilSenden() {
+    const profile = DATEN.eigenesProfil, data = DATEN;
+    if (gesperrt || !profile?.data) return;
+    const overlay = el("div", "eingabe-schleier"), dialog = el("div", "eingabe-dialog eigenes-profil-senden");
+    const close = () => { beendeModal(overlay); overlay.remove(); };
+    const selected = {}, choices = el("div", "eigenes-profil-feldauswahl");
+    for (const [key, label] of [["name", _("Name")], ["address", _("Address")], ["email", _("Email")],
+      ["phone", _("Phone")], ["photo", _("Photo")], ["social", _("Social media")]]) {
+      const input = document.createElement("input"); input.type = "checkbox"; input.checked = ["name", "email", "phone"].includes(key);
+      selected[key] = input; const row = el("label", "hak"); row.append(input, document.createTextNode(" " + label)); choices.append(row);
+    }
+    const channel = auswahlFeld([["vcf", _("Export vCard")], ["sms", "SMS"], ["whatsapp", "WhatsApp"]], "vcf");
+    const recipient = auswahlFeld([["", _("Choose a contact")], ...DATEN.kontakte.map(contact => [contact.id, kontaktName(contact)])], "");
+    const recipientRow = formZeile(_("Contact"), recipient);
+    const update = () => { recipientRow.hidden = channel.value === "vcf"; selected.photo.disabled = channel.value !== "vcf"; };
+    channel.addEventListener("change", update); update();
+    const submit = () => {
+      if (gesperrt || DATEN !== data || DATEN.eigenesProfil !== profile) { close(); return; }
+      const source = profile.data, card = {};
+      if (selected.name.checked) for (const key of ["vorname", "nachname", "firma"]) card[key] = source[key] || "";
+      if (selected.address.checked) card.anschriften = anschriftListe(source);
+      if (selected.email.checked) card.emailEintraege = emailEintragListe(source);
+      if (selected.phone.checked) card.telefone = telefonListe(source);
+      if (selected.social.checked) card.sozialeMedien = sozialeMedienListe(source);
+      if (channel.value === "vcf") {
+        if (selected.photo.checked) card.foto = source.foto || "";
+        Bruecke.sende({ cmd: "exportieren", art: "vcf-adressen", daten: { kontakte: [card] } }); close(); return;
+      }
+      const contact = DATEN.kontakte.find(value => value.id === recipient.value);
+      if (!contact) { recipient.focus(); return; }
+      const text = [[card.vorname, card.nachname].filter(Boolean).join(" "), card.firma || "",
+        ...anschriftListe(card).map(value => [value.strasse, [value.plz, value.ort].filter(Boolean).join(" "), value.land].filter(Boolean).join("\n")),
+        ...emailListe(card), ...telefonListe(card).map(value => value.wert),
+        ...sozialeMedienListe(card).map(value => sozialerDienstName(value.dienst) + ": " + value.wert)].filter(Boolean).join("\n");
+      if (!text.trim()) return;
+      if (channel.value === "sms") {
+        if (!smsNummern(contact).length) { zettel(_("No phone number available.")); return; }
+        close(); oeffneSmsDialog(contact, "", "", text); return;
+      }
+      const whatsapp = sozialeMedienListe(contact).find(value => value.dienst === "whatsapp");
+      if (!whatsapp) { zettel(_("No WhatsApp profile available for this contact.")); return; }
+      const number = telefonSchluessel(whatsapp.wert);
+      if (!/^\+[1-9][0-9]+$/.test(number)) return;
+      const url = "https://wa.me/" + number.slice(1) + "?text=" + encodeURIComponent(text);
+      close(); oeffneSozial({ dienst: "custom", wert: url });
+    };
+    const buttons = el("div", "dialog-knoepfe"); buttons.append(knopf(_("Cancel"), "", close), knopf(_("Send"), "haupt", submit));
+    dialog.append(el("h2", null, _("Share selected details")), choices, formZeile(_("Send via"), channel), recipientRow, buttons);
+    overlay.append(dialog); document.body.append(overlay); registriereModal(overlay, dialog, { anfang: channel, schliessen: close });
+  }
+
   function eigenesProfilFormular() {
     const saved = DATEN.eigenesProfil;
     const form = el("div", "formular eigenes-profil");
@@ -17407,7 +17609,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       draft.sozialeMedien = sozialeMedienListe({ sozialeMedien: social });
       DATEN.eigenesProfil = { version: 1, kind: "own_profile", id: saved?.id || "self-profile-" + uid(), data: draft,
         created_ms: saved?.created_ms || Date.now(), modified_ms: Date.now() };
-      planeSpeichern(); aktiverEditor = null; zeichneAlles(); return true;
+      planeSpeichern(); aktiverEditor = null; zustand.adressen.modus = "eigenes-profil"; zeichneAlles(); return true;
     };
     const exportCard = () => {
       const card = {};
@@ -17427,6 +17629,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
     }));
     form.append(buttons);
+    const readOffice = () => {
     const requestId = crypto.randomUUID();
     eigenesProfilOfficeAnfrage = { requestId, receive: result => {
       if (!form.isConnected || !result.ok) return;
@@ -17437,7 +17640,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
     } };
     Bruecke.sende({ cmd: "eigenes_profil_office", requestId, operation: "read", felder: {}, stamp: "" });
+    };
     eigenesProfilTelefonKontext = { form, draft, fields, data: DATEN };
+    eigenesProfilTelefonAnfordern(readOffice);
     eigenesProfilNummerAnfordern();
     registriereFormEditor(form, store, () => { aktiverEditor = null; zustand.adressen.modus = "ansehen"; zeichneAlles(); },
       () => ({ foto: draft.foto, social }));
@@ -17543,8 +17748,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   let kontaktFotoDialogSchliessen = null;
-  function oeffneKontaktFotoAuswahl(k) {
-    if (gesperrt || !DATEN.kontakte.includes(k)) return;
+  function oeffneKontaktFotoAuswahl(k, eigenesProfil = false) {
+    const vorhanden = () => eigenesProfil ? DATEN.eigenesProfil?.data === k : DATEN.kontakte.includes(k);
+    if (gesperrt || !vorhanden()) return;
     kontaktFotoDialogSchliessen?.();
     const bestand = DATEN, schleier = el("div", "eingabe-schleier kontakt-foto-dialog");
     const dialog = el("section", "eingabe-dialog"), galerie = el("div", "kontakt-foto-galerie");
@@ -17552,7 +17758,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     datei.type = "file"; datei.accept = "image/jpeg,image/png,image/webp,image/gif";
     datei.className = "datei-versteckt"; datei.tabIndex = -1;
     let geschlossen = false, laeuft = false, leseFolge = 0;
-    const gueltig = () => !geschlossen && !gesperrt && DATEN === bestand && DATEN.kontakte.includes(k);
+    const gueltig = () => !geschlossen && !gesperrt && DATEN === bestand && vorhanden();
     const schliessen = () => {
       geschlossen = true; leseFolge++;
       beendeModal(schleier); schleier.remove();
@@ -17571,7 +17777,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (!gueltig()) return;
         const vorher = k.foto;
         waehleKontaktFoto(k, foto, quelle); k.geaendert = Date.now();
-        if (k.foto !== vorher) merkeKontaktInhaltszeit(k, k.geaendert).catch(() => {});
+        if (eigenesProfil) DATEN.eigenesProfil.modified_ms = k.geaendert;
+        else if (k.foto !== vorher) merkeKontaktInhaltszeit(k, k.geaendert).catch(() => {});
         planeSpeichern(); zeichneAlles();
         nachDauerhaftemSpeichern(() => { if (gueltig()) schliessen(); }, melden);
       }, melden);
@@ -17646,11 +17853,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     registriereModal(schleier, dialog, { anfang: galerie.querySelector("button") || knoepfe.querySelector("button"), schliessen });
   }
 
-  function kontaktKarte(k) {
+  function kontaktKarte(k, eigenesProfil = false) {
     const karte = el("div", "kontakt-karte");
     const kopf = el("div", "kontakt-kopf");
     if (DATEN.einstellungen.adressen.foto) {
-      const auswahl = knopf("", "kontakt-foto-auswahl", () => oeffneKontaktFotoAuswahl(k));
+      const auswahl = knopf("", "kontakt-foto-auswahl", () => oeffneKontaktFotoAuswahl(k, eigenesProfil));
       auswahl.title = _("Choose contact photo"); auswahl.setAttribute("aria-label", _("Choose contact photo"));
       if (k.foto) {
         const foto = document.createElement("img");
@@ -17749,20 +17956,20 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         _("Open this address as a letter in LibreOffice")));
     }
     if (ea.karte && kontaktKartenZiele(k).length) {
-      wege.append(bildknopf("karte", ea.route ? _("Route") : _("Map"),
-        () => zeigeKarte(k),
+      wege.append(bildknopf("karte", !eigenesProfil && ea.route ? _("Route") : _("Map"),
+        () => zeigeKarte(k, eigenesProfil),
         ea.route ? _("Calculate the route to this address")
           : _("Show this address on the map")));
     }
     const ersteEmail = emailListe(k)[0] || "";
-    if (ersteEmail) {
+    if (ersteEmail && !eigenesProfil) {
       wege.append(bildknopf("post", _("Message"), () => schreibePost(k, ersteEmail),
         uebersetzt("Write a message to %(address)s", { address: ersteEmail })));
     }
     const anrufnummern = anrufbareNummern(k);
     const mobilnummern = telefonListe(k).filter((eintrag) =>
       eintrag.typen.some((typ) => ["CELL", "MOBILE"].includes(typ)));
-    if (anrufnummern.length) {
+    if (anrufnummern.length && !eigenesProfil) {
       const anruf = bildknopf("telefon", _("Call"),
         () => fuehreKontaktKommunikationAus(k, "anruf"),
         _("Call this contact using Magnolie Notes or the assigned application"));
@@ -17772,7 +17979,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       });
       wege.append(anruf);
     }
-    if (mobilnummern.length) {
+    if (mobilnummern.length && !eigenesProfil) {
       const sms = bildknopf("sms", "SMS", () => fuehreKontaktKommunikationAus(k, "sms"),
         _("Write an SMS using KDE Connect or the assigned application"));
       sms.classList.add("kontakt-sms");
@@ -17781,6 +17988,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       });
       wege.append(sms);
     }
+    if (eigenesProfil) wege.append(bildknopf("post", _("Send"), eigenesProfilSenden));
     if (ea.sozialeSymbole) {
       for (const eintrag of sozialeMedienListe(k)) {
         if (!["phone", "sms"].includes(eintrag.dienst)) wege.append(sozialknopf(eintrag));
@@ -17790,6 +17998,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
     const knoepfe = el("div", "form-knoepfe");
     knoepfe.style.marginTop = "18px";
+    if (eigenesProfil) {
+      knoepfe.append(knopf(_("Edit"), "", () => { zustand.adressen.modus = "eigenes-profil-bearbeiten"; zeichneAlles(); }));
+      karte.append(knoepfe); return karte;
+    }
     const syncKonflikte = Object.keys(k.syncKonflikte || {});
     if (syncKonflikte.length) {
       const pruefen = knopf(_("Conflict") + " (" + syncKonflikte.length + ")", "klein", () =>
@@ -18849,15 +19061,21 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (zeichenblattAuswahlSchliessen) return;
     const bestand = DATEN;
     const zeichnungen = DATEN.customOrganizer.modules.filter(modul => modul.type === "drawing" && window.MagnolieZeichnen?.valid(modul.drawing));
-    if (!zeichnungen.length) { zettel(_("Create a drawing sheet in the custom tab first.")); return; }
+    if (!zeichnungen.length) zeichnungen.push(neuesZeichenblatt());
     const schleier = el("div", "eingabe-schleier"), dialog = el("section", "eingabe-dialog");
     dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
     const auswahl = auswahlFeld(zeichnungen.map((modul, index) => [modul.id, modul.title || _("Drawing sheet") + " " + (index + 1)]), zeichnungen[0].id);
     auswahl.setAttribute("aria-label", _("Drawing sheet"));
-    const vorschau = el("div"), status = el("p", "einst-warnung");
-    const zeichnen = () => { vorschau.replaceChildren(); const modul = zeichnungen.find(wert => wert.id === auswahl.value); if (modul) zeichneZeichenblatt(modul, vorschau, true); };
+    const vorschau = el("div", "notiz-zeichen-editor"), status = el("p", "einst-warnung");
+    const navigate = id => {
+      const sheet = DATEN.customOrganizer.modules.find(value => value.id === id);
+      if (sheet && !zeichnungen.some(value => value.id === id)) { zeichnungen.push(sheet); const option = el("option", null, sheet.title); option.value = id; auswahl.append(option); }
+      auswahl.value = id; zeichnen();
+    };
+    const zeichnen = () => { beendeZeicheneingabe(); vorschau.replaceChildren(); const modul = zeichnungen.find(wert => wert.id === auswahl.value);
+      if (modul) zeichneZeichenblatt(modul, vorschau, false, navigate); };
     auswahl.addEventListener("change", zeichnen); zeichnen();
-    const schliessen = () => { beendeModal(schleier); schleier.remove(); zeichenblattAuswahlSchliessen = null; };
+    const schliessen = () => { beendeZeicheneingabe(); beendeModal(schleier); schleier.remove(); zeichenblattAuswahlSchliessen = null; };
     zeichenblattAuswahlSchliessen = schliessen;
     const einfuegen = knopf(_("Embed"), "hauptknopf", () => {
       if (gesperrt || DATEN !== bestand || !DATEN.notizen.includes(notiz)) { schliessen(); return; }
@@ -19373,10 +19591,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       z.gruppeId = erstes.gruppeId;
     }
 
-    const legeSeiteAn = (title = "", sendToNotes = false) => {
+    const legeSeiteAn = (title = "", sendToNotes = false, symbol = "notiz") => {
       const jetzt = Date.now();
       const n = { id: uid(), titel: title, text: "", html: "", anhaenge: [],
-        notizbuchId: z.notizbuchId, symbol: "notiz", geaendert: isoHeute(), angelegt: jetzt,
+        notizbuchId: z.notizbuchId, symbol, geaendert: isoHeute(), angelegt: jetzt,
         personalGeaendert: jetzt, baumFreigabe: null, baumGeaendert: 0,
         baumVersion: 0, baumQuelle: "" };
       DATEN.notizen.push(n);
@@ -19388,18 +19606,28 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (sendToNotes) personalAdmissionQueue("note", n.id).catch(personalSyncBetriebFehler);
     };
     const neuKnopf = knopf(_("New page"), "klein", () => {
-      if (!personalAdmissionPeer()) { legeSeiteAn(); return; }
       const overlay = el("div", "eingabe-schleier"), dialog = el("div", "eingabe-dialog");
       const close = () => { beendeModal(overlay); overlay.remove(); };
       const title = eingabe("text", ""), send = eingabe("checkbox", "");
       // A per-creation choice: never stored as a preference for the next note.
       send.checked = false;
       send.disabled = !personalAdmissionPeer()?.shared_sync?.ready;
-      const label = el("label", "checkzeile"); label.append(send, document.createTextNode(" " + _("Send this new note to Notes")));
-      dialog.append(el("h2", null, _("New page")), formZeile(_("Title"), title), label);
+      const label = el("label", "hak notes-sendehak"); label.append(send, document.createTextNode(" " + _("Send this new note to Notes")));
+      label.hidden = !personalAdmissionPeer();
+      let symbol = "notiz";
+      const symbols = el("div", "notiz-symbol-auswahl"); symbols.setAttribute("role", "radiogroup"); symbols.setAttribute("aria-label", _("Symbol"));
+      for (const [value, name] of [["notiz", _("Note")], ["einkauf", _("Shopping")], ["aufgabe", _("Task")], ["termin", _("Appointment")],
+        ["idee", _("Idea")], ["reise", _("Travel")], ["rezept", _("Recipe")], ["geld", _("Money")], ["arbeit", _("Work")],
+        ["person", _("Person")], ["gesundheit", _("Health")], ["zitat", _("Quote")]]) {
+        const button = knopf("", "notiz-symbol-option", () => { symbol = value;
+          for (const option of symbols.children) option.setAttribute("aria-checked", String(option === button)); });
+        button.append(sinnbild(value, 24)); button.setAttribute("role", "radio"); button.setAttribute("aria-label", name); button.title = name;
+        button.setAttribute("aria-checked", String(value === symbol)); symbols.append(button);
+      }
+      dialog.append(el("h2", null, _("New page")), formZeile(_("Title"), title), symbols, label);
       const buttons = el("div", "dialog-knoepfe");
       buttons.append(knopf(_("Cancel"), "", close), knopf(_("Create"), "haupt", () => {
-        const value = title.value, selected = send.checked; close(); legeSeiteAn(value, selected);
+        const value = title.value, selected = !label.hidden && send.checked; close(); legeSeiteAn(value, selected, symbol);
       }));
       dialog.append(buttons); overlay.append(dialog); document.body.append(overlay);
       overlay.addEventListener("click", event => { if (event.target === overlay) close(); });
@@ -19498,7 +19726,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       haupt.type = "button";
       fokusMarke(haupt, "notiz:" + n.id);
       if (n.id === z.auswahlId) haupt.setAttribute("aria-current", "true");
-      const obm = el("div", "obm", n.titel || _("Untitled"));
+      const obm = el("div", "obm", n.titel?.trim() || (n.text || "").trim().split("\n")[0].slice(0, 80) || _("Untitled"));
       const anhangText = n.anhaenge.length ? " · " + uebersetztMehrzahl(
         "%(count)s attachment", "%(count)s attachments", n.anhaenge.length) : "";
       const unt = el("div", "unt", uebersetzt("Page %(page)s", { page: i + 1 }) +
@@ -19748,8 +19976,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       notiz.geaendert = isoHeute();
       notiz.personalGeaendert = Date.now();
       markiereGemeinsameNotiz(notiz);
-      if (notizRefs.obm) notizRefs.obm.textContent = notiz.titel || _("Untitled");
+      if (notizRefs.obm) notizRefs.obm.textContent = notiz.titel?.trim() || (notiz.text || "").trim().split("\n")[0].slice(0, 80) || _("Untitled");
       planeSpeichern();
+      weckeAutomatischenNotesAbgleich("note", personalSyncNotizWireId(notiz.id));
     };
     const snapshot = () => {
       const neuerHtmlStand = { textErmitteln: true };
@@ -23295,6 +23524,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function baueSeiteSicherungen(wurzel) {
+    const preferences = DATEN.einstellungen.allgemein;
+    const journal = abschnitt(_("Recovery journal"), "");
+    const mode = auswahlFeld([["change", _("Every change")], ["interval", _("Group changes by time interval")]], preferences.wiederherstellungsmodus || "change");
+    mode.id = "journal-modus";
+    const minutes = eingabe("number", String(preferences.wiederherstellungsminuten || 30)); minutes.min = "1"; minutes.max = "1440"; minutes.step = "1";
+    const intervalRow = formZeile(_("Interval in minutes"), minutes); intervalRow.hidden = mode.value !== "interval";
+    mode.addEventListener("change", () => { preferences.wiederherstellungsmodus = mode.value; intervalRow.hidden = mode.value !== "interval"; planeSpeichern(); });
+    minutes.addEventListener("change", () => { preferences.wiederherstellungsminuten = Math.max(1, Math.min(1440, Math.round(Number(minutes.value) || 30)));
+      minutes.value = String(preferences.wiederherstellungsminuten); planeSpeichern(); });
+    journal.append(formZeile(_("Create recovery points"), mode), intervalRow,
+      el("p", "einst-hinweis", _("Manual recovery points and recovery points before restoring are always created.")));
+    wurzel.append(journal);
     const abs = abschnitt(_("Recovery snapshots"),
       _("Every saved change is protected automatically by a private, integrity-checked snapshot."));
     if (journalStand.status && !["ok", "off", "due", "scheduled"].includes(journalStand.status)) {
@@ -30219,6 +30460,28 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         anfrage.reject(new Error("contact_response_failed"));
       else anfrage.resolve(nutzlast);
     },
+    eigenesProfilTelefon(result) {
+      const request = eigenesProfilTelefonAnfrage;
+      if (!request || result?.requestId !== request.requestId || result.device_id !== request.peer) return;
+      eigenesProfilTelefonAnfrage = null;
+      const peer = telefonStand?.peers?.find(value => value.device_id === request.peer);
+      if (DATEN !== request.data || gesperrt || peer?.fingerprint !== request.fingerprint) return;
+      if (result.ok && result.fingerprint === request.fingerprint && result.data) {
+        const context = eigenesProfilTelefonKontext;
+        const draft = context?.form.isConnected && context.data === DATEN ? context.draft : DATEN.eigenesProfil?.data;
+        if (draft) {
+          let changed = false;
+          for (const key of ["vorname", "nachname", "firma", "strasse", "plz", "ort", "land", "email", "telefon", "mobil", "foto"]) {
+            if (!String(draft[key] || "").trim() && typeof result.data[key] === "string" && result.data[key]) {
+              draft[key] = result.data[key]; changed = true;
+              if (context?.form.isConnected && context.fields[key]) context.fields[key].value = draft[key];
+            }
+          }
+          if (changed && draft === DATEN.eigenesProfil?.data) { DATEN.eigenesProfil.modified_ms = Date.now(); planeSpeichern(); zeichneAlles(); }
+        }
+      }
+      request.fallback();
+    },
     eigenesProfilOffice(nutzlast) {
       if (eigenesProfilOfficeAnfrage?.requestId !== nutzlast?.requestId) return;
       const request = eigenesProfilOfficeAnfrage; eigenesProfilOfficeAnfrage = null; request.receive(nutzlast);
@@ -30442,14 +30705,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const arbeit = kind === "personal_sync.batch" ? personalSyncBatchKette.then(async () => {
         if (nutzlast.content_scope) { scopeGuard(); scopeSelection = await personalSyncScopeAusManifest(nutzlast.content_scope); scopeGuard(); }
         return personalSyncAnwenden(body.records || [], body.attachment_data || {}, format, peer.device_id, modules,
-          scopeSelection ? { selection: scopeSelection, independentRemovals: true, guard: scopeGuard } : {});
+          scopeSelection ? { selection: scopeSelection, independentRemovals: true,
+            propagateSelectedDeletions: peer.shared_sync?.values?.skip_deletions === false, guard: scopeGuard } : {});
       })
         : Promise.resolve({ conflicts: 0, attachments: 0 });
       const batchArbeit = arbeit.then(async (ergebnis) => {
         const antwort = kind === "personal_sync.batch" && body.reply === false;
         if (scopeSelection) scopeGuard();
         const records = !antwort ? [] : scopeSelection
-          ? await personalSyncSnapshot(modules, format, peer.device_id, { selection: scopeSelection, independentRemovals: true, guard: scopeGuard })
+          ? await personalSyncSnapshot(modules, format, peer.device_id, { selection: scopeSelection, independentRemovals: true,
+            propagateSelectedDeletions: peer.shared_sync?.values?.skip_deletions === false, guard: scopeGuard })
           : personalSyncNotizAusgang(peer, await personalSyncSnapshot(modules, format, peer.device_id));
         const responseChunks = antwort ? personalSyncPakete(records, body.run_id, true, format) : [];
         const aggregate = antwort && format >= 2 ? await personalSyncHash(responseChunks.flat()) : "";
@@ -30525,6 +30790,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             if (kind === "personal_sync.batch") Bruecke.sende({ cmd: "telefon_personal_sync_commit",
               kennung: nutzlast.device_id, messageId: nutzlast.pending_message_id,
               token: nutzlast.commit_token, erfolgreich: true });
+          }
+          if (antwort && peer.shared_sync?.values?.skip_deletions === false) {
+            const pending = personalSyncProposals(peer.device_id, modules).filter(item => !scopeSelection ||
+              item.kind === "note" && scopeSelection.notes.has(item.id) || item.kind === "task" && scopeSelection.tasks.has(item.id) ||
+              item.kind === "attachment" && scopeSelection.notes.has(item.parent_id));
+            for (let offset = 0; offset < pending.length; offset += 32) Bruecke.sende({ cmd: "personal_sync_senden", kennung: peer.device_id,
+              art: "personal_sync.deletion_proposals", inhalt: { format: 1, run_id: body.run_id, proposal_batch_id: crypto.randomUUID(),
+                sequence: offset / 32, last: offset + 32 >= pending.length, proposals: pending.slice(offset, offset + 32) } });
           }
           if (!editorIstGeaendert()) zeichneAlles();
           if (DATEN.einstellungen.sync.erfolgsmeldungen === true)

@@ -129,8 +129,23 @@ with exactly `format: 10`, `scope` (that reference), `kind` (the inner kind), an
 record format 3; attachment request/chunk/result bodies keep format 2. The complete
 wrapper is limited to 256 KiB. Legacy record schemas are not relaxed to accept
 arbitrary extra fields. Controls, recursively wrapped messages and deletion
-proposals/decisions are not allowed inner kinds. The codec alone does not permit
+decisions are not allowed inner kinds. Organizer-to-Notes deletion proposals use
+the existing format-1 body inside the current scope wrapper, only when shared
+`skip_deletions` is false and bilateral deletion grants are present. The codec alone does not permit
 dispatch: current scope and immutable durable run binding remain required.
+
+Deletion proposals refer only to current note/task members or attachments of a
+current note. Missing desktop entries are marked before applying a phone snapshot,
+so that snapshot cannot undo an explicit desktop deletion. Notes resolves an
+unchanged copy after the corresponding run report through its existing clock/hash
+checked decision path; independently edited content remains a conflict.
+
+The existing raw deletion decision finalizes the original bound run after physical
+membership changes. Only a `delete` decision is allowed in this direction. Run
+cleanup retains a queued completion only under the same peer/key, local restore
+epoch and content-policy binding; stale ordinary content remains blocked.
+Phone-to-Organizer deletion proposals remain excluded in `phone_scope`. Checking
+`skip_deletions` disables desktop-to-phone removal too.
 
 Snapshots filter member IDs **before** materializing or hashing unrelated note
 contents and attachments. Notebooks are included only when needed by selected

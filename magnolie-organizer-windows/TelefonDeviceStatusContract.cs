@@ -19,7 +19,7 @@ internal static class TelefonDeviceStatusContract
     internal static void ValidateRequest(JsonNode node)
     {
         var value = node as JsonObject ?? throw new InvalidDataException("Der Gerätestatus ist kein Objekt.");
-        if (TelefonProtocolContract.TryInteger(value["version"], out var contactVersion) && contactVersion == PhoneContactRead.Version)
+        if (TelefonProtocolContract.TryInteger(value["version"], out var contactVersion) && contactVersion is PhoneContactRead.Version or PhoneContactRead.ProfileVersion)
         { PhoneContactRead.ValidateRequest(value); return; }
         if (FieldsAre(value, new HashSet<string> { "request_id", "version", "include_identifiers" }))
         {
@@ -34,7 +34,7 @@ internal static class TelefonDeviceStatusContract
     internal static void ValidateReport(JsonNode node)
     {
         var value = node as JsonObject ?? throw new InvalidDataException("Der Gerätestatus ist kein Objekt.");
-        if (TelefonProtocolContract.TryInteger(value["version"], out var contactVersion) && contactVersion == PhoneContactRead.Version)
+        if (TelefonProtocolContract.TryInteger(value["version"], out var contactVersion) && contactVersion is PhoneContactRead.Version or PhoneContactRead.ProfileVersion)
         { PhoneContactRead.ValidateReport(value); return; }
         var version = FieldsAre(value, ReportV4Fields) ? 4 : FieldsAre(value, ReportV3Fields) ? 3 : FieldsAre(value, ReportV2Fields) ? 2 : FieldsAre(value, ReportFields) ? 1 : 0;
         if (version == 0) throw new InvalidDataException("Der Gerätestatus enthält unbekannte oder fehlende Felder.");

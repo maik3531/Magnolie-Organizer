@@ -1,5 +1,24 @@
 # Read-only Notes contacts through the paired phone channel (#62 / #23)
 
+## Separate own-profile extension (device-status version 7, #146)
+
+The same bounded authenticated resource transport supports an explicit
+`version: 7, action: "profile", offset: 0, uids: []` query. It requires the own-device
+contact-read authorization and negotiated profile support. Notes reads Android's
+`ContactsContract.Profile.CONTENT_URI` and profile data URI, validates the profile
+ID and rechecks its header. It does not look up an ordinary contact by name or
+number. Samsung data is available only when exposed by this real provider API.
+
+The reply keeps `contacts: []` and adds a separate `profile` object with exactly
+`state: "available"|"unavailable"` and `vcard`; `total` is respectively 1 or 0.
+The card is bounded by the existing card limit. The desktop projects this only
+into its separate own-profile model, never its ordinary contact import/sync store.
+An unavailable profile falls back to existing Office data for missing fields.
+Removing authorization, changing the paired key/channel or expiring the request
+invalidates the pending resource reply as with ordinary read-only contacts.
+
+## Ordinary contact resource (version 5)
+
 Device-status version 5 adds a bounded read-only contact-resource query to the
 existing authenticated phone channel. The original capability/grant name sets
 remain unchanged for compatibility with older peers. Ordinary status requests

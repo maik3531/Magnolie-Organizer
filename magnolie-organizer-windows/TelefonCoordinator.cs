@@ -246,7 +246,9 @@ internal sealed partial class TelefonCoordinator : IDisposable
             Convert.ToHexString(SHA256.HashData(peer.PublicKey)).ToLowerInvariant() == fingerprint);
     }
 
-    internal async Task<JsonObject> ReadContactsAsync(string id, JsonArray? uids, CancellationToken cancellation)
+    internal Task<JsonObject> ReadOwnProfileAsync(string id, CancellationToken cancellation) => ReadContactsAsync(id, null, cancellation, true);
+
+    internal async Task<JsonObject> ReadContactsAsync(string id, JsonArray? uids, CancellationToken cancellation, bool ownProfile = false)
     {
         cancellation.ThrowIfCancellationRequested();
         TelefonConnection connection;
@@ -266,7 +268,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
             cancellation.ThrowIfCancellationRequested();
             var requestId = Guid.NewGuid().ToString("D");
             var messageId = Guid.NewGuid().ToString("D");
-            var body = new JsonObject { ["version"] = PhoneContactRead.Version, ["request_id"] = requestId, ["action"] = action,
+            var body = new JsonObject { ["version"] = ownProfile ? PhoneContactRead.ProfileVersion : PhoneContactRead.Version, ["request_id"] = requestId, ["action"] = action,
                 ["offset"] = offset, ["uids"] = uid is null ? new JsonArray() : new JsonArray(JsonValue.Create(uid)) };
             PhoneContactRead.ValidateRequest(body);
             var completion = new TaskCompletionSource<JsonObject>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -285,7 +287,14 @@ internal sealed partial class TelefonCoordinator : IDisposable
             }
             finally { lock (gate) contactReads.Remove(requestId); }
         }
-        if (requested is not null)
+        JsonObject? profile = null;
+        if (ownProfile)
+        {
+            if (peer.Capabilities["device_status"]?["versions"] is not JsonArray versions || !versions.Any(value => value?.GetValue<int>() == PhoneContactRead.ProfileVersion))
+                throw new InvalidOperationException("own_profile_not_supported");
+            profile = (await Page("profile", 0, null))["profile"]!.DeepClone().AsObject();
+        }
+        else if (requested is not null)
         {
             foreach (var uid in requested)
             {
@@ -315,6 +324,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         }
         foreach (var contact in contacts.OfType<JsonObject>())
         { contact["modified_ms"] = contact["timestamp"]!.DeepClone(); contact.Remove("timestamp"); }
+        if (ownProfile) return new JsonObject { ["device_id"] = id, ["fingerprint"] = TelefonCrypto.Fingerprint(peer.PublicKey), ["profile"] = profile };
         return new JsonObject { ["device_id"] = "notes:" + id,
             ["fingerprint"] = Convert.ToHexString(SHA256.HashData(peer.PublicKey)).ToLowerInvariant(), ["contacts"] = contacts };
     }
@@ -685,6 +695,14 @@ internal sealed partial class TelefonCoordinator : IDisposable
 
     internal bool NoteDirectionAllowed(string id, string kind, JsonObject body, bool outgoing)
     {
+        lock (gate)
+        {
+            var deletionPeer = store.LoadPeers().SingleOrDefault(value => value.Id == id);
+            var preferences = deletionPeer is null ? null : store.SharedSettings(id, deletionPeer.PublicKey);
+            if (preferences is not null && SharedSyncSettings.Effective(preferences)["content_mode"]!.GetValue<string>() == "phone_scope" &&
+                kind is "personal_sync.deletion_proposals" or "personal_sync.deletion_decision")
+                return online.GetValueOrDefault(id)?.ScopedDeletionAllowed(kind, body, outgoing) == true;
+        }
         var request = kind == "personal_sync.request" ? body : body["run_id"] is JsonValue value && value.TryGetValue<string>(out var itemRun)
             ? personalSync.LoadRun(id, itemRun, Now())?.Request : null;
         if (request?["send_item"] is JsonObject)
@@ -1426,7 +1444,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         }
         if (TelefonProtocolContract.PersonalKinds.Contains(kind)) return await HandlePersonalMessageAsync(peer, message, body, transport);
         if (kind != "device_status.report") return null;
-        if (TelefonProtocolContract.TryInteger(body["version"], out var contactVersion) && contactVersion == PhoneContactRead.Version)
+        if (TelefonProtocolContract.TryInteger(body["version"], out var contactVersion) && contactVersion is PhoneContactRead.Version or PhoneContactRead.ProfileVersion)
             return AcceptContactRead(peer, message, body);
         TelefonDeviceStatusContract.ValidateReport(body); var status = body.DeepClone().AsObject();
         if (body.ContainsKey("identifiers"))
@@ -1705,6 +1723,8 @@ internal sealed partial class TelefonConnection : IDisposable
 
     private string? NotePolicyError(string kind, JsonObject body, bool outgoing)
     {
+        if (ContentScopeSelected && kind is "personal_sync.deletion_proposals" or "personal_sync.deletion_decision")
+            return ScopedDeletionAllowed(kind, body, outgoing) ? null : "not_granted";
         if (SingleItemRun(kind, body)) return SingleItemAllowed && (kind != "personal_sync.request" || outgoing) ? null : "not_granted";
         try { if (DataContentScope(kind, body) is not null) return null; }
         catch (InvalidOperationException) { return "not_granted"; }
@@ -1890,7 +1910,8 @@ internal sealed partial class TelefonConnection : IDisposable
                 if (!dataKind.StartsWith("personal_sync.custom_", StringComparison.Ordinal))
                 {
                     var reference = new PersonalSyncStore(store).ScopedRunReference(peer.Id, peer.PublicKey, dataBody["run_id"]!.GetValue<string>(), now);
-                    if (!JsonNode.DeepEquals(reference, scopedReference) || scopedReference is null && ContentScopeSelected && !SingleItemRun(dataKind, dataBody)) return "not_granted";
+                    var deletionReceipt = dataKind == "personal_sync.deletion_decision" && ScopedDeletionAllowed(dataKind, dataBody, false);
+                    if (!deletionReceipt && (!JsonNode.DeepEquals(reference, scopedReference) || scopedReference is null && ContentScopeSelected && !SingleItemRun(dataKind, dataBody))) return "not_granted";
                 }
                 return AuthorizePersonal(dataKind, dataBody);
             }, deferAcceptance: true, reauthorizeDuplicates: true);

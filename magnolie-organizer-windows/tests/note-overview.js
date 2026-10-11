@@ -58,8 +58,16 @@ harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[
         findButton(b.w.document.querySelector("#kopf-links"), "New page").click();
         const dialog = b.w.document.querySelector(".eingabe-dialog"), checkbox = dialog.querySelector('input[type="checkbox"]');
         assert.ok(checkbox); assert.equal(checkbox.checked, false); assert.equal(checkbox.disabled, false);
+        assert.equal(dialog.querySelector(".notes-sendehak").firstElementChild, checkbox);
+        assert.equal(dialog.querySelectorAll('[role="radio"]').length, 12);
         checkbox.checked = true; findButton(dialog, "Cancel").click();
       }
+      findButton(b.w.document.querySelector("#kopf-links"), "New page").click();
+      const creation = b.w.document.querySelector(".eingabe-dialog");
+      creation.querySelector('[role="radio"][aria-label="Health"]').click();
+      creation.querySelector('input[type="text"]').value = "Symbol test";
+      findButton(creation, "Create").click();
+      assert.equal(b.t.daten().notizen.find(note => note.titel === "Symbol test").symbol, "gesundheit");
       peer.shared_sync.values.content_mode = "two_way";
       b.w.App.telefonStand({ peers: [peer] });
       assert.equal(findButton(menu("older"), "Send to Notes"), undefined);

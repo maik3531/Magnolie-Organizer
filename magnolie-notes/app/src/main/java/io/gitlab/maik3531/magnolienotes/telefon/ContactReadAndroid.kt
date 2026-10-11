@@ -32,6 +32,7 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
     override fun read(request: JsonObject): JsonObject {
         check(permission())
         val uids = ContactRead.validateRequest(request)
+        if (request.string("action") == "profile") return ContactRead.profileReport(request, readOwnProfile())
         if (request.string("action") == "index") {
             val entries = mutableListOf<Pair<String, Long>>()
             context.contentResolver.query(Contacts.CONTENT_URI,
@@ -79,6 +80,46 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
         return ContactRead.report(request, cards.size, cards)
     }
 
+    private fun readOwnProfile(): String {
+        val uri = android.provider.ContactsContract.Profile.CONTENT_URI
+        fun header(): List<String>? = context.contentResolver.query(uri,
+            arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY, Contacts.CONTACT_LAST_UPDATED_TIMESTAMP), null, null, null)?.use {
+            if (!it.moveToFirst() || !android.provider.ContactsContract.isProfileId(it.getLong(0))) null
+            else listOf(it.getString(0).orEmpty(), it.getString(1).orEmpty(), it.getString(2).orEmpty())
+        }
+        return try {
+            val initial = header() ?: return ""
+            fun escape(text: String) = text.replace("\\", "\\\\").replace("\r\n", "\n").replace("\r", "\n")
+                .replace("\n", "\\n").replace(";", "\\;").replace(",", "\\,")
+            val lines = mutableListOf("BEGIN:VCARD", "VERSION:3.0", "FN:" + escape(initial[1]))
+            context.contentResolver.query(android.net.Uri.withAppendedPath(uri, "data"),
+                arrayOf(Data.MIMETYPE, Data.DATA1, Data.DATA2, Data.DATA3, Data.DATA4, Data.DATA7, Data.DATA8, Data.DATA9, Data.DATA10, Data.DATA15),
+                null, null, null)?.use { cursor ->
+                var count = 0
+                while (cursor.moveToNext()) {
+                    require(++count <= 1000)
+                    fun text(index: Int) = cursor.getString(index).orEmpty()
+                    when (text(0)) {
+                        android.provider.ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE ->
+                            lines.add("N:" + escape(text(3)) + ";" + escape(text(2)) + ";;;")
+                        android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE ->
+                            lines.add("TEL;TYPE=" + (if (text(2) == "2") "CELL" else "VOICE") + ":" + escape(text(1)))
+                        android.provider.ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE -> lines.add("EMAIL:" + escape(text(1)))
+                        android.provider.ContactsContract.CommonDataKinds.Organization.CONTENT_ITEM_TYPE -> lines.add("ORG:" + escape(text(1)))
+                        android.provider.ContactsContract.CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE ->
+                            lines.add("ADR:;;" + listOf(text(4), text(5), text(6), text(7), text(8)).joinToString(";", transform = ::escape))
+                        android.provider.ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE -> {
+                            val bytes = cursor.getBlob(9)
+                            if (bytes != null && bytes.isNotEmpty()) lines.add("PHOTO;ENCODING=b;TYPE=JPEG:" + thumbnailBytes(bytes))
+                        }
+                    }
+                }
+            } ?: return ""
+            check(permission() && header() == initial)
+            (lines + "END:VCARD").joinToString("\r\n", postfix = "\r\n").takeIf { it.toByteArray().size <= ContactRead.MAX_CARD_BYTES } ?: ""
+        } catch (_: SecurityException) { "" } catch (_: IllegalArgumentException) { "" }
+    }
+
     private fun groupRows(contactId: Long): List<String> {
         val ids = mutableSetOf<Long>()
         context.contentResolver.query(Data.CONTENT_URI, arrayOf(GroupMembership.GROUP_ROW_ID),
@@ -102,9 +143,10 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
 
     private fun messengerRows(contactId: Long): List<JsonObject> {
         val result = mutableListOf<JsonObject>()
+        val types = listOf(Im.CONTENT_ITEM_TYPE, "vnd.android.cursor.item/vnd.com.whatsapp.profile", Website.CONTENT_ITEM_TYPE) + threemaProfileTypes
         context.contentResolver.query(Data.CONTENT_URI,
-            arrayOf(Data.MIMETYPE, Data.DATA1, Im.PROTOCOL, Im.CUSTOM_PROTOCOL), "${Data.CONTACT_ID}=? AND ${Data.MIMETYPE} IN (?,?,?)",
-            arrayOf(contactId.toString(), Im.CONTENT_ITEM_TYPE, "vnd.android.cursor.item/vnd.com.whatsapp.profile", Website.CONTENT_ITEM_TYPE), null)?.use { cursor ->
+            arrayOf(Data.MIMETYPE, Data.DATA1, Im.PROTOCOL, Im.CUSTOM_PROTOCOL), "${Data.CONTACT_ID}=? AND ${Data.MIMETYPE} IN (${types.joinToString(",") { "?" }})",
+            (listOf(contactId.toString()) + types).toTypedArray(), null)?.use { cursor ->
             while (cursor.moveToNext()) {
                 val row = messenger(cursor.getString(0).orEmpty(), cursor.getString(1).orEmpty(),
                     cursor.getString(2).orEmpty(), cursor.getString(3).orEmpty()) ?: continue
@@ -164,6 +206,10 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
     }
 
     companion object {
+        // Threema's AndroidContactUtil stores the actual identity in DATA1.
+        private val threemaProfileTypes = listOf("ch.threema.app", "ch.threema.app.work", "ch.threema.app.green", "ch.threema.app.onprem",
+            "ch.threema.app.blue", "ch.threema.app.hms", "ch.threema.app.work.hms", "ch.threema.app.libre")
+            .map { "vnd.android.cursor.item/vnd.$it.profile" }
         fun messenger(mime: String, value: String, protocol: String, custom: String): JsonObject? {
             if (mime == Website.CONTENT_ITEM_TYPE) return profileLink(value)
             val service: String
@@ -178,6 +224,10 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
                     else -> return null
                 }
                 service = "WhatsApp"
+            } else if (mime in threemaProfileTypes) {
+                identifier = value.trim().uppercase()
+                if (!Regex("(?:[A-Z0-9]{8}|\\*[A-Z0-9]{7})").matches(identifier)) return null
+                service = "Threema"
             } else if (mime == Im.CONTENT_ITEM_TYPE && protocol == Im.PROTOCOL_CUSTOM.toString()) {
                 service = listOf("WhatsApp", "Signal", "Telegram", "Threema", "Facebook", "Instagram", "Teams",
                     "Snapchat", "TikTok", "YouTube", "Mastodon", "X", "LinkedIn", "Reddit")

@@ -20654,22 +20654,33 @@ class Fenster(_FENSTER_BASIS):
         dialog.destroy()
         return pfad
 
-    def _datei_speichern(self, titel, vorschlag, filter_liste):
+    def _datei_speichern(self, titel, vorschlag, filter_liste, mit_format=False):
         dialog = Gtk.FileChooserDialog(title=titel, parent=self,
                                        action=Gtk.FileChooserAction.SAVE)
         dialog.add_buttons(_("Cancel"), Gtk.ResponseType.CANCEL,
                            _("Save"), Gtk.ResponseType.ACCEPT)
         dialog.set_do_overwrite_confirmation(True)
         dialog.set_current_name(vorschlag)
+        formats = {}
         for name, muster in filter_liste:
             f = Gtk.FileFilter()
             f.set_name(name)
             f.add_pattern(muster)
             dialog.add_filter(f)
+            formats[f] = muster
+        if mit_format:
+            def format_geaendert(chooser, _spec):
+                muster = formats.get(chooser.get_filter(), "*.png")
+                name = chooser.get_current_name()
+                base, extension = os.path.splitext(name)
+                if extension.lower() in (".png", ".svg"):
+                    chooser.set_current_name(base + muster[1:])
+            dialog.connect("notify::filter", format_geaendert)
         antwort = dialog.run()
         pfad = dialog.get_filename() if antwort == Gtk.ResponseType.ACCEPT else None
+        muster = formats.get(dialog.get_filter(), "*.png")
         dialog.destroy()
-        return pfad
+        return (pfad, muster) if mit_format else pfad
 
     def _ordner_waehlen(self, titel, vorwahl="", standard=""):
         dialog = Gtk.FileChooserDialog(
@@ -21036,6 +21047,8 @@ class Fenster(_FENSTER_BASIS):
             self.bei_notiz_anhang_datei(nachricht)
         elif befehl == "zeichenblatt_svg_speichern":
             self.bei_zeichenblatt_svg_speichern(nachricht)
+        elif befehl == "zeichenblatt_exportieren":
+            self.bei_zeichenblatt_exportieren(nachricht)
 
         elif befehl == "eds_status":
             threading.Thread(target=self._eds_status_arbeit, daemon=True).start()
@@ -21285,6 +21298,8 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=self._personal_sync_gemeinsam, args=(nachricht,), daemon=True).start()
         elif befehl == "eigenes_profil_office":
             threading.Thread(target=self._eigenes_profil_office, args=(nachricht,), daemon=True).start()
+        elif befehl == "eigenes_profil_telefon":
+            threading.Thread(target=self._eigenes_profil_telefon, args=(nachricht,), daemon=True).start()
 
         elif befehl == "personal_sync_desktop_features":
             threading.Thread(target=lambda: self._personal_sync_desktop_features(
@@ -21596,6 +21611,23 @@ class Fenster(_FENSTER_BASIS):
         nutzlast["kontaktQuelle"] = "datei:" + hashlib.sha256(
             os.path.abspath(pfad).encode("utf-8")).hexdigest()
         melden(nutzlast)
+
+    def bei_zeichenblatt_exportieren(self, nachricht):
+        try:
+            from magnolie_drawing_svg import validated_bytes
+            svg = validated_bytes(nachricht.get("svg"))
+            png = notiz_anhang_dekodieren(nachricht.get("png"), "drawing.png")
+            if png["mime"] != "image/png":
+                raise ValueError("Invalid drawing format")
+            name = os.path.splitext(os.path.basename(str(nachricht.get("name") or "Magnolie")))[0] + ".png"
+            path, pattern = self._datei_speichern(_("Save as…"), name, [("PNG (*.png)", "*.png"), ("SVG (*.svg)", "*.svg")], mit_format=True)
+            if path:
+                extension = os.path.splitext(path)[1].lower()
+                if extension not in (".png", ".svg"):
+                    extension = pattern[1:]; path += extension
+                atomar_binaer_schreiben(path, svg if extension == ".svg" else png["daten"])
+        except Exception as error:
+            self.antwort("App.fehler", {"fehler": fehler_deutsch(error, _("Drawing sheet"))})
 
     def bei_zeichenblatt_svg_speichern(self, nachricht):
         try:
@@ -22004,6 +22036,16 @@ class Fenster(_FENSTER_BASIS):
             if not isinstance(daten, dict):
                 raise RuntimeError(_("The current organizer data is incomplete."))
             allgemein = (daten.get("einstellungen") or {}).get("allgemein") or {}
+            if str(grund).startswith("pre-") and grund != "pre-restore" and allgemein.get("wiederherstellungsmodus") == "interval":
+                try:
+                    minuten = max(1, min(1440, int(allgemein.get("wiederherstellungsminuten", 30))))
+                except (ValueError, TypeError):
+                    minuten = 30
+                letzter = next((stand for stand in journal_liste(integritaet=False)
+                                if str(stand.get("reason", "")).startswith("pre-") and stand.get("reason") != "pre-restore"), None)
+                if letzter and (_journal_zeit(None) - _journal_zeit(letzter["createdAt"])).total_seconds() < minuten * 60:
+                    journal_snapshot_lesen(letzter["snapshotId"], self._kennwort)
+                    return letzter
             modus, maximum, tage = _journal_aufbewahrung(allgemein)
             return journal_snapshot_erzeugen(daten, grund, self._kennwort,
                                               maximum=maximum if modus == "count" else None,
@@ -22947,6 +22989,8 @@ class Fenster(_FENSTER_BASIS):
                         del item["vcard"]
                         for field in ("foto", "telefone", "telefon", "mobil", "email", "emails", "emailEintraege", "sozialeMedien"):
                             item[field] = contacts[0].get(field)
+                        item["gruppenZeilen"] = [line for line in contacts[0].get("vcardRoundtrip", [])
+                            if isinstance(line, str) and re.match(r"^(?:[A-Za-z0-9-]+\.)?CATEGORIES[;:]", line, re.I)]
             elif not notes:
                 result = backend.contact_uids(device_id)
             if (getattr(self, "_gesperrt", True) or notes and
@@ -23170,6 +23214,25 @@ class Fenster(_FENSTER_BASIS):
         except Exception as fehler:
             self._telefon_fehler = fehler_deutsch(fehler, "Persönlicher Sync")
         self._telefon_stand_melden()
+
+    def _eigenes_profil_telefon(self, nachricht):
+        result = {"requestId": nachricht.get("requestId", ""), "ok": False, "device_id": nachricht.get("kennung", "")}
+        try:
+            if self._gesperrt:
+                raise ValueError("locked")
+            read = self._telefon.read_own_profile(nachricht.get("kennung", ""))
+            result["fingerprint"] = read["fingerprint"]
+            if read["profile"]["state"] == "available":
+                contacts = vcf_lesen(read["profile"]["vcard"])["kontakte"]
+                if len(contacts) != 1 or self._gesperrt:
+                    raise ValueError("invalid_profile")
+                data = contacts[0]
+                for key in ("id", "uid", "sync", "importBindungen", "baumKontakt"):
+                    data.pop(key, None)
+                result.update(ok=True, data=data)
+        except Exception:
+            pass  # Unavailable Android/OEM profile uses the existing Office fallback.
+        self.antwort("App.eigenesProfilTelefon", result)
 
     def _eigenes_profil_office(self, nachricht):
         try:

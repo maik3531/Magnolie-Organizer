@@ -27,7 +27,7 @@ def test_bridge_exposes_only_photo_and_matching_fields(native, monkeypatch):
     name, response = replies[-1]
     assert name == 'App.kontaktFotos' and response['ok'] is True
     contact = response['contacts'][0]
-    assert set(contact) == {'uid', 'foto', 'telefone', 'telefon', 'mobil', 'email', 'emails', 'emailEintraege', 'sozialeMedien'}
+    assert set(contact) == {'uid', 'foto', 'telefone', 'telefon', 'mobil', 'email', 'emails', 'emailEintraege', 'sozialeMedien', 'gruppenZeilen'}
     assert contact['foto'].startswith('data:image/png;base64,')
     assert contact['email'] == 'fixture@example.org'
     assert host._kontakt_fotos_laeuft is False

@@ -20,6 +20,117 @@ msgstr ""
 msgid "Send to Notes"
 msgstr "An Notes senden"
 
+msgid "Sheet size"
+msgstr "Blattgröße"
+
+msgid "New drawing sheet"
+msgstr "Neues Zeichenblatt"
+
+msgid "Cut selection"
+msgstr "Auswahl ausschneiden"
+
+msgid "Fill selection"
+msgstr "Auswahl füllen"
+
+msgid "Fill with gradient"
+msgstr "Mit Farbverlauf füllen"
+
+msgid "Gradient end color"
+msgstr "Endfarbe des Farbverlaufs"
+
+msgid "Insert shape"
+msgstr "Form einfügen"
+
+msgid "Rectangle"
+msgstr "Rechteck"
+
+msgid "Ellipse"
+msgstr "Ellipse"
+
+msgid "Triangle"
+msgstr "Dreieck"
+
+msgid "Line"
+msgstr "Linie"
+
+msgid "Rotate selection"
+msgstr "Auswahl drehen"
+
+msgid "Move selection"
+msgstr "Auswahl verschieben"
+
+msgid "Angle"
+msgstr "Winkel"
+
+msgid "Zoom in"
+msgstr "Vergrößern"
+
+msgid "Zoom out"
+msgstr "Verkleinern"
+
+msgid "Fit to view"
+msgstr "Ansicht einpassen"
+
+msgid "Select complete strokes that fit inside the sheet."
+msgstr "Wählen Sie vollständige Striche aus, die in das Blatt passen."
+
+msgid "Portrait"
+msgstr "Hochformat"
+
+msgid "Landscape"
+msgstr "Querformat"
+
+msgid "Square"
+msgstr "Quadrat"
+
+msgid "Width"
+msgstr "Breite"
+
+msgid "Recovery journal"
+msgstr "Wiederherstellungsjournal"
+
+msgid "Every change"
+msgstr "Jede Änderung"
+
+msgid "Group changes by time interval"
+msgstr "Änderungen im Zeitintervall bündeln"
+
+msgid "Interval in minutes"
+msgstr "Intervall in Minuten"
+
+msgid "Create recovery points"
+msgstr "Wiederherstellungspunkte anlegen"
+
+msgid "Manual recovery points and recovery points before restoring are always created."
+msgstr "Manuelle Wiederherstellungspunkte und Punkte vor einer Wiederherstellung werden immer angelegt."
+
+msgid "Send via"
+msgstr "Senden über"
+
+msgid "Choose a contact"
+msgstr "Kontakt auswählen"
+
+msgid "No phone number available."
+msgstr "Keine Telefonnummer vorhanden."
+
+msgid "No WhatsApp profile available for this contact."
+msgstr "Für diesen Kontakt ist kein WhatsApp-Profil vorhanden."
+
+msgid "Idea"
+msgstr "Idee"
+
+msgid "Travel"
+msgstr "Reise"
+
+msgid "Recipe"
+msgstr "Rezept"
+
+msgid "Money"
+msgstr "Geld"
+
+msgid "Quote"
+msgstr "Zitat"
+
 msgid "Calligraphy pen"
 msgstr "Feder"
 

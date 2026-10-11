@@ -114,6 +114,15 @@ internal sealed class RecoveryJournal
         EnsureSafeRoot();
         var now = clock().ToUniversalTime();
         var reasonText = ReasonText(reason);
+        var preferences = data["einstellungen"]?["allgemein"] as JsonObject;
+        if (reasonText.StartsWith("pre-", StringComparison.Ordinal) && reason != SnapshotReason.PreRestore &&
+            preferences?["wiederherstellungsmodus"]?.GetValue<string>() == "interval")
+        {
+            var minutes = preferences["wiederherstellungsminuten"] is JsonValue raw && raw.TryGetValue<int>(out var configured)
+                ? Math.Clamp(configured, 1, 1440) : 30;
+            var previous = List().FirstOrDefault(item => item.Reason.StartsWith("pre-", StringComparison.Ordinal) && item.Reason != "pre-restore" && item.Integrity == "ok");
+            if (previous is not null && now - previous.CreatedUtc < TimeSpan.FromMinutes(minutes)) return Verify(previous.Id);
+        }
         var snapshotData = data.DeepClone().AsObject();
         var archive = GesamtarchivService.Create(snapshotData, "windows", appVersion, created: now);
         // Hash the normalized content, not the archive envelope's changing timestamp.

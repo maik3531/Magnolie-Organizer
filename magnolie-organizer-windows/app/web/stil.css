@@ -1414,6 +1414,7 @@ body[data-hilfsrahmen="an"] .mm-tag:focus-visible {
 .kontakt-kopf-text { flex: 1; min-width: 0; }
 .kontakt-kopf-text h3, .k-firma {
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding-bottom: .18em;
 }
 
 .kontakt-foto {
@@ -2841,6 +2842,12 @@ textarea::-webkit-scrollbar-track,
 .notiz-zeilentext { display: block; min-width: 0; }
 .notiz-tag-zahl { margin-inline-start: auto; font-weight: normal; }
 .notiz-tag-trenner { flex: 1 1 20px; height: 1px; background: var(--linie); }
+.notes-sendehak { display: flex; align-items: center; justify-content: flex-start; gap: 8px; }
+.notes-sendehak[hidden] { display: none; }
+.notes-sendehak > input[type="checkbox"] { flex: 0 0 auto; width: auto; margin: 0; }
+.notiz-symbol-auswahl { display: flex; flex-wrap: wrap; gap: 5px; margin-block: 12px; }
+.notiz-symbol-option { padding: 7px; }
+.notiz-symbol-option[aria-checked="true"] { outline: 2px solid var(--braun); outline-offset: -2px; }
 .notiz-tageszeile { margin-bottom: 2px; }
 .notiz-tageszeile > .haupt { padding: 7px 3px; }
 .notiz-tageszeile .notiz-sinnbild { border: 1px solid var(--braun-hell); border-radius: 50%; padding: 5px; width: 34px; height: 34px; box-sizing: border-box; }
@@ -2871,6 +2878,10 @@ textarea::-webkit-scrollbar-track,
 .zeichen-werkzeuge > input[type="color"] { flex: 0 0 36px; width: 36px; height: 30px; padding: 2px; }
 .zeichen-werkzeuge > input[type="range"] { flex: 0 1 90px; width: 90px; min-width: 50px; }
 .zeichen-breite { min-width: 2em; text-align: end; font-variant-numeric: tabular-nums; }
+.zeichen-symbol { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 4px; flex: 0 0 34px; }
+.zeichen-symbol[aria-pressed="true"] { outline: 2px solid var(--braun); outline-offset: -2px; }
+.notiz-zeichen-editor { display: flex; flex-direction: column; height: min(60vh, 540px); min-height: 250px; }
+.eingabe-dialog:has(.notiz-zeichen-editor) { width: min(920px, 94vw); max-width: 94vw; }
 .eigenes-profil-kopf { display: flex; flex-direction: column; align-items: center; margin-bottom: 12px; }
 .eigenes-profil-kopf img { width: 96px; height: 96px; object-fit: cover; }
 

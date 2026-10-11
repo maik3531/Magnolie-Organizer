@@ -30,6 +30,35 @@ class Channel:
     def send(self, message): self.sent.append(copy.deepcopy(message))
 
 
+def test_own_profile_uses_explicit_profile_resource_without_normal_contact_rows(private):
+    service = phone.PhoneService(str(private / "phone"), "Fixture")
+    service.enabled = True
+    peer_id = "22222222-2222-4222-8222-222222222222"
+    peer = {"device_id": peer_id, "display_name": "Fixture", "static_public": phone.b64(b"p" * 32), "state": "paired",
+            "grants": phone.desktop_grants(), "local_grants": phone.desktop_grants(), "capabilities": phone.desktop_capabilities(),
+            "last_contact_ms": 0, "bluetooth": {"enabled": False, "address": ""},
+            "personal_sync": {"own_device": True, "remote_own_device": True, "auto_wifi": False, "last_report": {}}}
+    service.store.peers.append(peer); service.store.save_peers()
+    class ProfileChannel(Channel):
+        def send(self, message):
+            super().send(message)
+            if message.get("kind") == "device_status.request":
+                body = message["body"]
+                assert body["version"] == 7 and body["action"] == "profile" and body["uids"] == []
+                report = {key: value for key, value in body.items() if key != "uids"}
+                report.update(total=1, contacts=[], profile={"state": "available", "vcard": "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Own fixture\r\nEND:VCARD\r\n"})
+                now = phone.now_ms()
+                service._receive_contacts(peer, self, {"type": "message", "v": 1, "kind": "device_status.report",
+                    "message_id": str(uuid.uuid4()), "created_ms": now, "expires_ms": now + 60000, "body": report})
+    channel = ProfileChannel(); service.connections[peer_id] = channel
+    service.note_controls[channel] = copy.deepcopy({"capabilities.update": peer["capabilities"], "grants.update": peer["grants"],
+        "personal_sync.settings": {"format": 1, "own_device": True}})
+    result = service.read_own_profile(peer_id)
+    assert "contacts" not in result and result["profile"]["state"] == "available"
+    assert result["fingerprint"] == phone.fingerprint(phone.unb64(peer["static_public"], 32))
+    assert not service.store.status(peer_id)
+
+
 @pytest.mark.parametrize("change", ["none", "unrequested", "rekey", "permission", "replacement_channel", "expired", "wrong_uid", "old_capabilities"])
 def test_reply_requires_current_key_scope_channel_and_exact_selection(private, change):
     service = phone.PhoneService(str(private / "phone"), "Fixture")

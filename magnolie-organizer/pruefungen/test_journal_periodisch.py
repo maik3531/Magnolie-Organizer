@@ -1,6 +1,9 @@
 import importlib.machinery
 import importlib.util
 import os
+import threading
+from datetime import datetime, timezone, timedelta
+from types import SimpleNamespace
 
 
 PROGRAM = os.path.join(os.path.dirname(__file__), "..", "bin", "magnolie-organizer")
@@ -33,3 +36,30 @@ def test_periodic_maintenance_expires_old_snapshots_without_new_snapshot(monkeyp
 
     assert m.Fenster._journal_periodisch(Probe()) is True
     assert calls == [{"maximum": None, "tage": 14}, "reported"]
+
+
+def test_changed_documents_share_interval_snapshot_but_manual_and_restore_do_not(monkeypatch):
+    now = datetime(2026, 10, 11, 10, tzinfo=timezone.utc)
+    snapshots = []
+    original_time = m._journal_zeit
+    monkeypatch.setattr(m, "_journal_zeit", lambda value=None: now if value is None else original_time(value))
+    monkeypatch.setattr(m, "journal_liste", lambda **_kwargs: list(reversed(snapshots)))
+    checked = []
+    monkeypatch.setattr(m, "journal_snapshot_lesen", lambda ident, _password: checked.append(ident))
+    def create(data, reason, _password, **_kwargs):
+        item = {"snapshotId": str(len(snapshots)), "reason": reason, "createdAt": now.isoformat(), "title": data["title"]}
+        snapshots.append(item); return item
+    monkeypatch.setattr(m, "journal_snapshot_erzeugen", create)
+    host = SimpleNamespace(_daten_sperre=threading.RLock(), _kennwort="", _aktuelle_daten={"title": "Before",
+        "einstellungen": {"allgemein": {"wiederherstellungsmodus": "interval", "wiederherstellungsminuten": 30}}})
+    first = m.Fenster._journal_snapshot(host, "pre-change")
+    host._aktuelle_daten["title"] = "Changed"; now += timedelta(minutes=10)
+    assert m.Fenster._journal_snapshot(host, "pre-contact") == first
+    assert checked == [first["snapshotId"]]
+    assert m.Fenster._journal_snapshot(host, "manual")["reason"] == "manual"
+    assert m.Fenster._journal_snapshot(host, "pre-restore")["reason"] == "pre-restore"
+    now += timedelta(minutes=21)
+    assert m.Fenster._journal_snapshot(host, "pre-change")["snapshotId"] != first["snapshotId"]
+    host._aktuelle_daten["einstellungen"]["allgemein"]["wiederherstellungsmodus"] = "change"
+    host._aktuelle_daten["title"] = "Every changed document"
+    assert m.Fenster._journal_snapshot(host, "pre-contact")["title"] == "Every changed document"

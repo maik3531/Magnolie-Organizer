@@ -69,7 +69,7 @@ async function run(web, data, remote, options = {}) {
     ], einstellungen: { regional: { homeCountry: "DE" } } };
     const remote = [
       { uid: "phone-one", modified_ms: 1, foto: photo, telefon: "+49 170 1234567", vorname: "Must not import",
-        sozialeMedien: [{ dienst: "whatsapp", wert: "+491701234567" }] },
+        sozialeMedien: [{ dienst: "whatsapp", wert: "+491701234567" }], gruppenZeilen: ["CATEGORIES:Familie"] },
       { uid: "phone-two", modified_ms: 1, foto: photo, telefon: "+491701234568" },
       { uid: "phone-three", modified_ms: 1, foto: photo, telefon: "+491701234569" },
       { uid: "ambiguous", modified_ms: 1, foto: photo, email: "shared@example.org" }
@@ -83,6 +83,7 @@ async function run(web, data, remote, options = {}) {
     assert.equal(notes.data.kontakte[0].foto, photo);
     assert.equal(notes.data.kontakte[0].vorname, "Original");
     assert.deepEqual(notes.data.kontakte[0].sozialeMedien, [{ dienst: "whatsapp", wert: "+491701234567" }]);
+    assert.ok(notes.data.kontakte[0].vcardRoundtrip.includes("CATEGORIES:Familie"));
     assert.equal(notes.data.kontakte[1].foto, "");
     assert.equal(notes.data.kontakte[2].foto, other);
     assert(notes.requests.every(request => request.device_id === notesDevice), "Notes photo reads must retain their own device namespace");

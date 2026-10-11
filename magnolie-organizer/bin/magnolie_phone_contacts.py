@@ -4,6 +4,7 @@ import re
 import unicodedata
 
 VERSION = 5
+PROFILE_VERSION = 7
 PAGE_SIZE = 128
 MAX_CONTACTS = 10000
 MAX_CARD_BYTES = 96 * 1024
@@ -28,7 +29,9 @@ def _integer(value, minimum, maximum):
 
 
 def _header(value):
-    _integer(value["version"], VERSION, VERSION)
+    _integer(value["version"], VERSION, PROFILE_VERSION)
+    if value["version"] not in (VERSION, PROFILE_VERSION):
+        raise ValueError("invalid_contact_schema")
     if not isinstance(value["request_id"], str) or not UUID4.fullmatch(value["request_id"]):
         raise ValueError("invalid_contact_request")
 
@@ -38,6 +41,10 @@ def validate_request(value):
     _header(value)
     offset = _integer(value["offset"], 0, MAX_CONTACTS)
     uids = value["uids"]
+    if value["version"] == PROFILE_VERSION:
+        if value["action"] != "profile" or offset != 0 or uids != []:
+            raise ValueError("invalid_profile_request")
+        return value
     if not isinstance(uids, list) or not all(valid_uid(uid) for uid in uids) or len(set(uids)) != len(uids):
         raise ValueError("invalid_contact_batch")
     if not (value["action"] == "index" and not uids or value["action"] == "cards" and offset == 0 and 1 <= len(uids) <= 5):
@@ -46,6 +53,19 @@ def validate_request(value):
 
 
 def validate_report(value):
+    if isinstance(value, dict) and value.get("version") == PROFILE_VERSION:
+        _exact(value, ("version", "request_id", "action", "offset", "total", "contacts", "profile"))
+        _header(value)
+        profile = value["profile"]
+        _exact(profile, ("state", "vcard"))
+        card = profile["vcard"]
+        if (value["action"] != "profile" or type(value["offset"]) is not int or value["offset"] != 0 or value["contacts"] != [] or
+                profile["state"] not in ("available", "unavailable") or not isinstance(card, str) or
+                type(value["total"]) is not int or value["total"] != int(profile["state"] == "available") or
+                (profile["state"] == "unavailable" and card) or
+                (profile["state"] == "available" and (not card.startswith("BEGIN:VCARD\r\n") or not card.endswith("END:VCARD\r\n") or len(card.encode("utf-8")) > MAX_CARD_BYTES))):
+            raise ValueError("invalid_profile_report")
+        return value
     _exact(value, ("version", "request_id", "action", "offset", "total", "contacts"))
     _header(value)
     total = _integer(value["total"], 0, MAX_CONTACTS)

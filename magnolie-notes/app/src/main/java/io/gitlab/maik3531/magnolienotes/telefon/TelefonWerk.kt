@@ -141,6 +141,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     private fun noteDirectionAllowed(peer: TelefonPeer, outgoing: Boolean, kind: String, body: JsonObject,
                                      session: PersonalNoteSession? = null): Boolean {
+        if (usesScopedContent(peer) && kind in setOf("personal_sync.deletion_proposals", "personal_sync.deletion_decision")) {
+            if (!contentScopeControlsReady(peer, session) || commonValues(peer)?.get("skip_deletions") != JsonPrimitive(false) ||
+                queue.scopedRunReference(sharedBinding(peer), sharedPreferences, body.string("run_id")) == null) return false
+            return if (kind == "personal_sync.deletion_proposals") !outgoing else outgoing &&
+                (body["decisions"] as JsonArray).all { (it as JsonObject)["decision"] == JsonPrimitive("delete") }
+        }
         if (singleItemRun(peer, kind, body)) return contentScopeControlsReady(peer, session) &&
             (kind != "personal_sync.request" || !outgoing)
         if (scopedDataManifest(peer, kind, body, session) != null) return true
@@ -288,6 +294,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
 
     private fun scopedDataManifest(peer: TelefonPeer, kind: String, body: JsonObject, session: PersonalNoteSession?): JsonObject? {
+        if (kind == "personal_sync.deletion_decision") return null;
         val runId = (body["run_id"] as? JsonPrimitive)?.content ?: return null
         if (!queue.containsScopedRun(peer.device_id, runId)) return null
         check(contentScopeControlsReady(peer, session))
@@ -297,7 +304,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val manifest = requireNotNull(session?.localContentScope)
             PhoneContentScope.requireCurrent(reference, manifest)
             check(kind in setOf("personal_sync.request", "personal_sync.batch", "personal_sync.report",
-                "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result"))
+                "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result", "personal_sync.deletion_proposals"))
             if (kind == "personal_sync.batch") {
                 val members = manifest.getValue("members") as JsonObject
                 val notes = (members.getValue("notes") as JsonArray).map { (it as JsonPrimitive).content }.toSet()
@@ -400,7 +407,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private fun applyCommonPreferences() {
         val peer = safePeer()?.takeIf { it.own_device } ?: return
         val values = commonValues(peer) ?: return
-        val deletions = values["skip_deletions"] == JsonPrimitive(false) && values["content_mode"] != JsonPrimitive("phone_scope")
+        val deletions = values["skip_deletions"] == JsonPrimitive(false)
         val autoWifi = values["auto_mode"] == JsonPrimitive("wifi")
         if (peer.personal_deletions_sync_granted != deletions || storage.personalAutoWifi() != autoWifi)
             setPersonalSync(true, peer.personal_notes_sync_granted, peer.personal_tasks_sync_granted, autoWifi, deletions, false)
@@ -729,12 +736,15 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
     }
 
-    @Synchronized fun personalDeletionDecision(proposalId: String, decision: String): String = synchronized(Ablage.SCHREIBSPERRE) {
+    @Synchronized fun personalDeletionDecision(proposalId: String, decision: String): String = resolvePersonalDeletion(proposalId, decision, true)
+
+    private fun resolvePersonalDeletion(proposalId: String, decision: String, reconnectAfter: Boolean): String = synchronized(Ablage.SCHREIBSPERRE) {
         require(decision in setOf("delete", "restore", "delete_changed"))
         val peer = safePeer() ?: return "missing"
         val proposal = Ablage.hole(context).bestand.value.personalSync.pending_proposals
             .firstOrNull { it.proposal_id == proposalId } ?: return "missing"
-        if (proposal.kind != "task" && PersonalNoteMode.importing(peer.personal_note_policy, peer.remote_personal_note_policy)) return "blocked"
+        if (proposal.kind != "task" && (commonValues(peer)?.get("content_mode") == JsonPrimitive("phone_import") ||
+            commonValues(peer) == null && PersonalNoteMode.importing(peer.personal_note_policy, peer.remote_personal_note_policy))) return "blocked"
         if (!peer.own_device || !peer.remote_own_device || !peer.personal_deletions_sync_granted ||
             !peer.remote_personal_deletions_sync_granted) return "blocked"
         val moduleAllowed = if (proposal.kind == "task") peer.personal_tasks_sync_granted && peer.remote_personal_tasks_sync_granted
@@ -755,9 +765,18 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         put("actor_id", JsonPrimitive(it.actor_id)); put("counter", JsonPrimitive(it.counter)) } }))
                 })))
             }, policy)
-            activeTransport?.second?.let { runCatching { it.close() } } ?: reconnect()
+            if (reconnectAfter) activeTransport?.second?.let { runCatching { it.close() } } ?: reconnect()
         }
         return result
+    }
+
+    private fun autoResolveCommonDeletes(peer: TelefonPeer, runId: String) {
+        val values = commonValues(peer) ?: return
+        if (values["skip_deletions"] != JsonPrimitive(false) || values["content_mode"] == JsonPrimitive("phone_import") ||
+            !queue.personalRunMarked(peer.device_id, runId, "reported")) return
+        for (proposal in Ablage.hole(context).bestand.value.personalSync.pending_proposals.filter {
+            it.source_device == peer.device_id && it.run_id == runId && it.kind in setOf("note", "task", "attachment") })
+            resolvePersonalDeletion(proposal.proposal_id, "delete", false)
     }
 
     @Synchronized private fun replayPendingDeletionDecisions() {
@@ -1531,7 +1550,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     internal fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                 generation: Long) {
         if (message["kind"] == JsonPrimitive("device_status.request") &&
-            (message["body"] as? JsonObject)?.get("version") == JsonPrimitive(ContactRead.VERSION)) {
+            (message["body"] as? JsonObject)?.get("version") in setOf(JsonPrimitive(ContactRead.VERSION), JsonPrimitive(ContactRead.PROFILE_VERSION))) {
             receiveContactRead(sessionPeer, message, channel, generation)
             return
         }
@@ -1985,6 +2004,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         storage.setPersonalSyncLastCounter(Ablage.hole(context).personalSyncCounter())
                     }
                     queue.markPersonalRun(peer.device_id, body.string("run_id"), "reported")
+                    autoResolveCommonDeletes(peer, body.string("run_id"))
                 }
                 if (kind == "personal_sync.deletion_proposals") {
                     val proposals = PersonalSyncProtokoll.decodeDeletionProposals(body).map { value ->
@@ -1996,6 +2016,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         Ablage.hole(context).personalSyncStageProposals(body.string("run_id"), peer.device_id, proposals)
                     }
                     storage.setPersonalSyncReport("${proposals.size} Löschungen warten auf manuelle Bestätigung.")
+                    autoResolveCommonDeletes(peer, body.string("run_id"))
                 }
                 if (kind == "personal_sync.deletion_decision") {
                     val decisions = PersonalSyncProtokoll.decodeDeletionDecisions(body)
@@ -2508,7 +2529,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     val decisionKinds = if (kind == "personal_sync.deletion_decision") noteDecisionKinds(current, body, true) else null
                     if (queue.containsScopedRun(current.device_id, body.string("run_id")) && !contentScopeControlsReady(current, noteSessions[channel])) return@forEach
                     val scopeManifest = scopedDataManifest(current, kind, body, noteSessions[channel])
-                    if (scopeManifest == null && usesScopedContent(current) && !singleItemRun(current, kind, body)) {
+                    val deletionReceipt = kind == "personal_sync.deletion_decision" && noteDirectionAllowed(current, true, kind, body, noteSessions[channel])
+                    if (scopeManifest == null && usesScopedContent(current) && !singleItemRun(current, kind, body) && !deletionReceipt) {
                         queue.acknowledge(peer.device_id, entry.messageId); return@forEach
                     }
                     if (scopeManifest != null) {

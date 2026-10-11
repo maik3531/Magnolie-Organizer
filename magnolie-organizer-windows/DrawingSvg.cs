@@ -15,7 +15,7 @@ internal static class DrawingSvg
         if (document.Root?.Name != ns + "svg") throw new InvalidDataException("Invalid drawing SVG root.");
         foreach (var node in document.Root.DescendantsAndSelf())
         {
-            if (node.Name.Namespace != ns || node.Name.LocalName is not ("svg" or "defs" or "mask" or "g" or "path" or "rect") || node.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value)))
+            if (node.Name.Namespace != ns || node.Name.LocalName is not ("svg" or "defs" or "mask" or "g" or "path" or "rect" or "linearGradient" or "stop") || node.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value)))
                 throw new InvalidDataException("Unsupported drawing SVG element.");
             foreach (var attribute in node.Attributes())
             {
@@ -23,12 +23,13 @@ internal static class DrawingSvg
                 var name = attribute.Name.LocalName; var raw = attribute.Value;
                 var allowed = attribute.Name.NamespaceName.Length == 0 && (name switch
                 {
-                    "x" or "y" or "width" or "height" or "stroke-width" or "opacity" or "viewBox" => Regex.IsMatch(raw, "^[0-9. +%-]+$"),
-                    "d" => Regex.IsMatch(raw, "^[MLAZ0-9. +,-]+$"),
-                    "fill" or "stroke" => Regex.IsMatch(raw, "^(#[0-9a-fA-F]{6}|white|none)$"),
-                    "id" => Regex.IsMatch(raw, "^erase[0-9]+$"),
+                    "x" or "y" or "width" or "height" or "stroke-width" or "opacity" or "viewBox" or "x1" or "y1" or "x2" or "y2" or "offset" => Regex.IsMatch(raw, "^[0-9. +%-]+$"),
+                    "d" => Regex.IsMatch(raw, "^[MLACZ0-9. +,-]+$"),
+                    "fill" => Regex.IsMatch(raw, @"^(#[0-9a-fA-F]{6}|white|none|url\(#gradient[0-9]+\))$"),
+                    "stroke" or "stop-color" => Regex.IsMatch(raw, "^(#[0-9a-fA-F]{6}|white|none)$"),
+                    "id" => Regex.IsMatch(raw, "^(erase|gradient)[0-9]+$"),
                     "mask" => Regex.IsMatch(raw, @"^url\(#erase[0-9]+\)$"),
-                    "maskUnits" => raw == "userSpaceOnUse",
+                    "maskUnits" or "gradientUnits" => raw == "userSpaceOnUse",
                     "stroke-linecap" or "stroke-linejoin" => raw == "round",
                     _ => false
                 });

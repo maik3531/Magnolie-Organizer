@@ -82,7 +82,7 @@ internal sealed partial class TelefonCoordinator
                 var body = store.SharedSettings(id, peer.PublicKey);
                 if (body is null) return;
                 var values = SharedSyncSettings.Effective(body);
-                var deletions = !values["skip_deletions"]!.GetValue<bool>() && values["content_mode"]!.GetValue<string>() != "phone_scope";
+                var deletions = !values["skip_deletions"]!.GetValue<bool>();
                 if (store.LocalGrants()["personal_deletions_sync"]?.GetValue<bool>() != deletions) deletionChoice = deletions;
                 var auto = values["auto_mode"]!.GetValue<string>() == "wifi";
                 if (store.PersonalSettings(id).AutoWifi != auto) store.SetPersonalSettings(id, autoWifi: auto);

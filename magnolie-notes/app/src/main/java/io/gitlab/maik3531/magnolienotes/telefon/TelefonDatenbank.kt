@@ -1057,7 +1057,8 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             while (cursor.moveToNext()) {
                 val runId = cursor.getString(0).substringAfterLast(':')
                 val marker = requireNotNull(readScopeRun(helper.readableDatabase, binding.peerActor, runId))
-                if (reference == null || policy == null || marker["scope"] != reference || marker["peer_key"] != JsonPrimitive(binding.peerPublic) ||
+                val finishingDeletion = reference != null && policy != null && hasDeletionReceipt(binding.peerActor, runId)
+                if (reference == null || policy == null || marker["scope"] != reference && !finishingDeletion || marker["peer_key"] != JsonPrimitive(binding.peerPublic) ||
                     marker["local_actor"] != JsonPrimitive(binding.localActor) || marker["content_policy"] != JsonPrimitive(policy) ||
                     marker["restore_epoch"] != JsonPrimitive(restoreEpoch())) stale.add(runId)
             }
@@ -1072,6 +1073,20 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             }
         }
         return stale
+    }
+
+    private fun hasDeletionReceipt(peerId: String, runId: String): Boolean = helper.readableDatabase.query("outbox",
+        arrayOf("message_id", "payload"), "peer_id=? AND kind=?", arrayOf(peerId, "personal_sync.deletion_decision"), null, null, null).use { cursor ->
+        var found = false
+        while (cursor.moveToNext()) {
+            val clear = storage.decryptPayload(cursor.getBlob(1), "outbox", cursor.getString(0))
+            try {
+                val body = (TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject)["body"] as JsonObject
+                if (body["run_id"] == JsonPrimitive(runId) && (body["decisions"] as JsonArray).all {
+                    (it as JsonObject)["decision"] == JsonPrimitive("delete") }) found = true
+            } finally { clear.fill(0) }
+        }
+        found
     }
 
     private fun authenticatedRun(peerId: String, runId: String,

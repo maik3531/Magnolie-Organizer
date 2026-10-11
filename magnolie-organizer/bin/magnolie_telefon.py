@@ -88,7 +88,7 @@ def desktop_capabilities(revision=1, bluetooth_available=False,
                            bluetooth_reason if name == "transport.bluetooth_rfcomm"
                            else "not_implemented"),
                          "versions": [1, 2, 3, 4, 6, 7, 9, 10] if name == "personal_tasks_sync" else
-                                      [1, 2, 3, 4, 5] if name == "device_status" else
+                                       [1, 2, 3, 4, 5, 7] if name == "device_status" else
                                        [1, 2, 3, 5, 9, 10] if name == "personal_notes_sync" else
                                      [2] if name == "incoming_call_state" else [1]}
     return {"revision": revision, "items": items}
@@ -2829,7 +2829,10 @@ class PhoneService:
             current = self._contact_peer(peer_id)
             return bool(current and hashlib.sha256(unb64(current["static_public"], 32)).hexdigest() == fingerprint)
 
-    def read_contacts(self, peer_id, uids=None):
+    def read_own_profile(self, peer_id):
+        return self.read_contacts(peer_id, own_profile=True)
+
+    def read_contacts(self, peer_id, uids=None, own_profile=False):
         with self.lock:
             peer = self._contact_peer(peer_id)
             if not peer:
@@ -2843,7 +2846,7 @@ class PhoneService:
         def read_page(action, offset, selected):
             request_id = str(uuid.uuid4())
             message_id = str(uuid.uuid4())
-            body = {"version": 5, "request_id": request_id, "action": action, "offset": offset, "uids": selected}
+            body = {"version": 7 if own_profile else 5, "request_id": request_id, "action": action, "offset": offset, "uids": selected}
             phone_contacts.validate_request(body)
             entry = {"peer": peer_id, "key": public_key, "channel": channel, "request": body,
                       "deadline": deadline, "event": threading.Event(), "result": None,
@@ -2868,7 +2871,14 @@ class PhoneService:
                     self.contact_requests.pop(request_id, None)
 
         contacts = []
-        if uids is not None:
+        profile = None
+        if own_profile:
+            with self.lock:
+                current = self._contact_peer(peer_id, channel)
+                if not current or phone_contacts.PROFILE_VERSION not in current["capabilities"]["items"]["device_status"]["versions"]:
+                    raise PermissionError("own_profile_not_supported")
+            profile = read_page("profile", 0, [])["profile"]
+        elif uids is not None:
             for uid in uids:
                 contacts.extend(read_page("cards", 0, [uid])["contacts"])
         else:
@@ -2887,6 +2897,8 @@ class PhoneService:
             current = self._contact_peer(peer_id, channel)
             if not current or current["static_public"] != public_key:
                 raise PermissionError("contacts_not_granted")
+        if own_profile:
+            return {"device_id": peer_id, "fingerprint": fingerprint(unb64(public_key, 32)), "profile": profile}
         return {"device_id": "notes:" + peer_id, "fingerprint": hashlib.sha256(unb64(public_key, 32)).hexdigest(),
             "contacts": [dict({k: v for k, v in item.items() if k != "timestamp"}, modified_ms=item["timestamp"]) for item in contacts]}
 
@@ -3138,7 +3150,7 @@ class PhoneService:
         if not peer or peer.get("personal_sync", {}).get("own_device") is not True:
             return
         values = shared_sync_contract.effective(body)
-        deletions = not values["skip_deletions"] and values["content_mode"] != "phone_scope"
+        deletions = not values["skip_deletions"]
         if peer.get("local_grants", {}).get("grants", {}).get("personal_deletions_sync", False) != deletions:
             self.set_grant(peer_id, "personal_deletions_sync", deletions)
         auto_wifi = values["auto_mode"] == "wifi"
@@ -3240,6 +3252,8 @@ class PhoneService:
             return session.current((peer_id, expected_public, id(channel)), claimed)
 
     def _scoped_data_manifest(self, peer_id, kind, body, channel=None):
+        if kind == "personal_sync.deletion_decision":
+            return None  # Acknowledges a prior proposal; physical membership already changed.
         if not isinstance(body, dict) or not body.get("run_id"):
             return None
         peer = self.store.sole_peer(peer_id)
@@ -3258,6 +3272,16 @@ class PhoneService:
             if any(record.get("kind") in allowed and record.get("id") not in allowed[record["kind"]]
                    for record in body.get("records", [])):
                 raise PermissionError("Record outside current phone membership.")
+        if kind == "personal_sync.deletion_proposals":
+            settings = self.store.shared_settings(peer_id, peer["static_public"])
+            if settings is None or shared_sync_contract.effective(settings)["skip_deletions"]:
+                raise PermissionError("Deletion transfer is disabled.")
+            allowed = {"note": set(manifest["members"]["notes"]), "task": set(manifest["members"]["tasks"])}
+            for item in body.get("proposals", []):
+                valid = item.get("parent_id") in allowed["note"] if item.get("kind") == "attachment" else \
+                    item.get("kind") in allowed and item.get("id") in allowed[item["kind"]]
+                if not valid:
+                    raise PermissionError("Deletion outside the current phone collection.")
         return manifest
 
     def _time_supported(self, peer):
@@ -3524,6 +3548,15 @@ class PhoneService:
         return isinstance(request.get("send_item"), dict)
 
     def _note_direction_allowed(self, peer_id, kind, body, outgoing):
+        if kind in ("personal_sync.deletion_proposals", "personal_sync.deletion_decision"):
+            peer = self.store.sole_peer(peer_id)
+            if self._uses_scoped_content(peer):
+                if not self._content_scope_ready_controls(peer, self.connections.get(peer_id)):
+                    return False
+                if kind == "personal_sync.deletion_proposals":
+                    return outgoing and self._scoped_data_manifest(peer_id, kind, body) is not None
+                return not outgoing and self.store.scoped_run_reference(peer_id, peer["static_public"], body.get("run_id", "")) is not None and \
+                    all(item.get("decision") == "delete" for item in body.get("decisions", []))
         if self._single_item_run(peer_id, kind, body):
             peer = self.store.sole_peer(peer_id)
             return (kind != "personal_sync.request" or outgoing) and self._content_scope_ready_controls(peer, self.connections.get(peer_id))
@@ -3542,6 +3575,8 @@ class PhoneService:
 
     def _note_policy_error(self, peer_id, kind, body, outgoing, channel=None):
         try:
+            if kind in ("personal_sync.deletion_proposals", "personal_sync.deletion_decision") and self._uses_scoped_content(self.store.sole_peer(peer_id)):
+                return None if self._note_direction_allowed(peer_id, kind, body, outgoing) else "not_granted"
             if self._single_item_run(peer_id, kind, body):
                 return None if self._note_direction_allowed(peer_id, kind, body, outgoing) else "not_granted"
             if self._scoped_data_manifest(peer_id, kind, body, channel) is not None:
@@ -5091,7 +5126,9 @@ class PhoneService:
             value = validate_personal_sync_body(kind, payload["body"])
             with self.lock:
                 scope = self.store.scoped_run_reference(peer["device_id"], peer["static_public"], value["run_id"])
-                if (scope != scoped_reference or scoped_reference is None and
+                if kind == "personal_sync.deletion_decision" and self._note_direction_allowed(peer["device_id"], kind, value, False):
+                    scope = scoped_reference
+                if (scope != scoped_reference or scoped_reference is None and kind != "personal_sync.deletion_decision" and
                         self._uses_scoped_content(self.store.sole_peer(peer["device_id"])) and
                         not self._single_item_run(peer["device_id"], kind, value)):
                     channel.send({"type": "ack", "message_id": payload["message_id"], "status": "rejected", "error": "not_granted"})
@@ -5136,7 +5173,7 @@ class PhoneService:
                     raise ValueError("conflicting personal sync format")
             if policy == "wifi_only" and self.connection_transports.get(peer["device_id"]) != "wifi":
                 raise ValueError("wifi-only run received on bluetooth")
-        if kind == "device_status.report" and payload["body"].get("version") == phone_contacts.VERSION:
+        if kind == "device_status.report" and payload["body"].get("version") in (phone_contacts.VERSION, phone_contacts.PROFILE_VERSION):
             self._receive_contacts(peer, channel, payload)
             return
         if kind == "device_status.report" and ("identifiers" in payload["body"] or "version" in payload["body"]):

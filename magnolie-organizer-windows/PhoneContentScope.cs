@@ -11,7 +11,7 @@ internal static class PhoneContentScope
     internal const string Kind = "personal_sync.content_scope";
     internal const string DataKind = "personal_sync.scoped_data";
     private static readonly HashSet<string> DataKinds = ["personal_sync.request", "personal_sync.batch", "personal_sync.report",
-        "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result"];
+        "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result", "personal_sync.deletion_proposals"];
     internal const int MaximumMembers = 50000;
     private const int MinimumChunk = 32;
     private const int MaximumChunk = 256;
@@ -110,7 +110,7 @@ internal static class PhoneContentScope
         if (Number(value, "format") != Version || !DataKinds.Contains(kind) || value["scope"] is not JsonObject scope || value["body"] is not JsonObject body)
             throw new InvalidDataException("Invalid scoped data envelope.");
         ValidateReference(scope);
-        if (Number(body, "format") != (kind.StartsWith("personal_sync.attachment_", StringComparison.Ordinal) ? 2 : 3))
+        if (Number(body, "format") != (kind == "personal_sync.deletion_proposals" ? 1 : kind.StartsWith("personal_sync.attachment_", StringComparison.Ordinal) ? 2 : 3))
             throw new InvalidDataException("Invalid scoped record format.");
         PersonalSyncContract.ValidateBody(kind, body);
         if (TelefonCrypto.Canonical(value).Length > 256 * 1024) throw new InvalidDataException("Scoped data envelope too large.");

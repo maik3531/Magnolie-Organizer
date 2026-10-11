@@ -13,7 +13,8 @@ const plain = value => JSON.parse(JSON.stringify(value));
     const b = await harness.exports.boot(web);
     try {
       b.w.HTMLCanvasElement.prototype.getContext = function () {
-        return { save() {}, restore() {}, clearRect() {}, drawImage() {}, beginPath() {}, closePath() {}, arc() {}, fill() {}, moveTo() {}, lineTo() {}, stroke() {} };
+        return { save() {}, restore() {}, clearRect() {}, drawImage() {}, beginPath() {}, closePath() {}, arc() {}, fill() {}, moveTo() {}, lineTo() {}, stroke() {},
+          bezierCurveTo() {}, createLinearGradient() { return { addColorStop() {} }; } };
       };
       b.w.HTMLCanvasElement.prototype.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1200, height: 800 });
       b.w.HTMLCanvasElement.prototype.toDataURL = () => "data:image/png;base64,iVBORw0KGgo=";
@@ -34,9 +35,9 @@ const plain = value => JSON.parse(JSON.stringify(value));
       assert.equal(module.drawing.strokes.length, 1);
       const saved = plain(b.t.normalisiere(b.t.daten()));
       assert.deepEqual(saved.customOrganizer.modules[0].drawing, plain(module.drawing));
-      [...b.w.document.querySelectorAll(".custom-modul-drawing button")].find(button => button.textContent === "Export PNG").click();
-      assert.ok(b.messages.some(message => message.cmd === "notiz_anhang_datei" && Number.isInteger(message.id) && message.id > 0 &&
-        message.aktion === (web.includes("windows") ? "speichern" : "save") && message.daten.startsWith("data:image/png")));
+       b.w.document.querySelector('.custom-modul-drawing button[aria-label="Save as…"]').click();
+       assert.ok(b.messages.some(message => message.cmd === "zeichenblatt_exportieren" && message.png.startsWith("data:image/png") && message.svg.startsWith("<svg")));
+       assert.equal(b.w.document.querySelector('.custom-modul-drawing button[aria-label="Print"]'), null);
       assert.match(b.t.druckStoff("custom").html(module), /<img[^>]+data:image\/png/,
         "Printed custom sheets must include the drawing, not only its title");
       b.w.App.telefonStand({ peers: [], kdeconnect: { digitizer_available: true, digitizer_device_id: "tablet" } });
@@ -65,7 +66,7 @@ const plain = value => JSON.parse(JSON.stringify(value));
       b.t.embedDrawing(note);
       const dialog = [...b.w.document.querySelectorAll(".eingabe-dialog")].find(element =>
         [...element.querySelectorAll("button")].some(button => button.textContent === "Embed"));
-      assert.ok(dialog && dialog.querySelector("img"));
+      assert.ok(dialog && dialog.querySelector("canvas"));
       [...dialog.querySelectorAll("button")].find(button => button.textContent === "Embed").click();
       assert.equal(note.anhaenge.length, 1);
       assert.equal(note.anhaenge[0].art, "image");

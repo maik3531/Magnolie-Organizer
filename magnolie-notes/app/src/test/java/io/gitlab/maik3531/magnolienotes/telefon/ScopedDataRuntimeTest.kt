@@ -39,6 +39,8 @@ class ScopedDataRuntimeTest {
     @Test fun independentTimeChangeDefersScopedDataWithoutAdmittingRawFallback() = exercise("time")
     @Test fun selectedOrganizerNoteCanBeSentAgainAfterDeletingItsPhoneCopy() = exercise("single")
     @Test fun ownershipControlAndItsAckDoNotRequireContentRunId() = exercise("ownership")
+    @Test fun organizerDeletionRemovesPhoneCopyAndKeepsItsAcknowledgmentAcrossMembershipChange() = exercise("delete")
+    @Test fun skippingDeletionsKeepsThePhoneCopy() = exercise("skip-delete")
 
     private fun exercise(mode: String) {
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -67,6 +69,7 @@ class ScopedDataRuntimeTest {
             val peer = TelefonPeer(peerId, "Synthetic desktop", TelefonKrypto.b64(ByteArray(32) { 23 }),
                 own_device = true, remote_own_device = true, personal_notes_sync_granted = true, personal_tasks_sync_granted = true,
                 remote_personal_notes_sync_granted = true, remote_personal_tasks_sync_granted = true,
+                personal_deletions_sync_granted = mode in setOf("delete", "skip-delete"), remote_personal_deletions_sync_granted = mode in setOf("delete", "skip-delete"),
                 remote_personal_notes_sync_available = true, remote_personal_tasks_sync_available = true,
                 remote_personal_notes_sync_versions = listOf(1, 2, 3, 5, 9, 10), remote_personal_tasks_sync_versions = listOf(1, 2, 3, 4, 6, 7, 9, 10))
             storage.savePeer(peer)
@@ -86,7 +89,8 @@ class ScopedDataRuntimeTest {
                 override fun close() { closed.incrementAndGet() }
             }
             val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
-            val local = work.changeSharedSetting(peerId, peer.static_public, "content_mode", JsonPrimitive("phone_scope"))
+            var local = work.changeSharedSetting(peerId, peer.static_public, "content_mode", JsonPrimitive("phone_scope"))
+            if (mode == "delete") local = work.changeSharedSetting(peerId, peer.static_public, "skip_deletions", JsonPrimitive(false))
             field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
             val identity = storage.identity("Synthetic"); val actor = identity.first.device_id; identity.second.fill(0)
             val shared = SharedSyncSettings.merge(SharedSyncSettings.create(peerId), local, peerId, actor)
@@ -123,6 +127,29 @@ class ScopedDataRuntimeTest {
                 fun ackScope() { session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { ack(it) } }
                 fun scoped(messages: List<JsonObject>) = messages.filter { it["kind"] == JsonPrimitive(PhoneContentScope.DATA_KIND) }
                 val manifest = requireNotNull(session.localContentScope)
+                if (mode in setOf("delete", "skip-delete")) {
+                    val original = documents.personalSyncSnapshot(setOf("notes"), 3).single { it.kind == "note" }
+                    val run = UUID.randomUUID().toString()
+                    val request = buildJsonObject { put("format", 3); put("run_id", run); put("trigger", "manual"); put("modules", JsonArray(listOf(JsonPrimitive("notes")))) }
+                    work.receiveMessage(peer, TelefonNachrichten.message(PhoneContentScope.DATA_KIND,
+                        PhoneContentScope.wrap("personal_sync.request", request, manifest), 60000), channel, 0)
+                    queue.markPersonalRun(peerId, run, "reported")
+                    val proposal = buildJsonObject {
+                        put("proposal_id", UUID.randomUUID().toString()); put("kind", "note"); put("id", "phone-note"); put("parent_id", "")
+                        put("clock", JsonArray((original.clock + io.gitlab.maik3531.magnolienotes.daten.PersonalSyncClock(peerId, 1)).sortedBy { it.actor_id }
+                            .map { buildJsonObject { put("actor_id", it.actor_id); put("counter", it.counter) } }))
+                        put("prior_hash", original.hash); put("deleted_ms", System.currentTimeMillis()); put("label", "Mobile")
+                    }
+                    val proposals = buildJsonObject { put("format", 1); put("run_id", run); put("proposal_batch_id", UUID.randomUUID().toString())
+                        put("sequence", 0); put("last", true); put("proposals", JsonArray(listOf(proposal))) }
+                    work.receiveMessage(peer, TelefonNachrichten.message(PhoneContentScope.DATA_KIND,
+                        PhoneContentScope.wrap("personal_sync.deletion_proposals", proposals, manifest), 60000), channel, 0)
+                    if (mode == "skip-delete") { assertNotNull(documents.notiz("phone-note")); return@use }
+                    assertNull(documents.notiz("phone-note"))
+                    pump.invoke(work, peer, channel, 0L, false)
+                    assertTrue("Deletion completion was discarded with its previous membership", sent().any { it["kind"] == JsonPrimitive("personal_sync.deletion_decision") })
+                    return@use
+                }
                 if (ownership != null) {
                     assertTrue(sent().any { it["message_id"] == ownership["message_id"] && it["kind"] == JsonPrimitive("personal_sync.settings") })
                     ack(ownership.string("message_id"))

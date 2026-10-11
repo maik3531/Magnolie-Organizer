@@ -154,6 +154,21 @@ internal sealed partial class BridgeDispatcher : IDisposable
                             Filter = "SVG (*.svg)|*.svg", DefaultExt = "svg", AddExtension = true, OverwritePrompt = true })
                             if (svgDialog.ShowDialog(form) == DialogResult.OK) await File.WriteAllBytesAsync(svgDialog.FileName, svgBytes);
                         break;
+                    case "zeichenblatt_exportieren":
+                    {
+                        var vector = DrawingSvg.Validate(Text(message, "svg"));
+                        var raster = AttachmentFile.Parse(Text(message, "png"), "drawing.png");
+                        using var drawingDialog = new SaveFileDialog { Title = T("Save as…"),
+                            FileName = Path.GetFileNameWithoutExtension(Text(message, "name")),
+                            Filter = "PNG (*.png)|*.png|SVG (*.svg)|*.svg", DefaultExt = "png", AddExtension = true, OverwritePrompt = true };
+                        if (drawingDialog.ShowDialog(form) == DialogResult.OK)
+                        {
+                            var extension = Path.GetExtension(drawingDialog.FileName).ToLowerInvariant();
+                            var svg = extension == ".svg" || extension.Length == 0 && drawingDialog.FilterIndex == 2;
+                            await File.WriteAllBytesAsync(drawingDialog.FileName, svg ? vector : raster.Bytes);
+                        }
+                        break;
+                    }
                     case "update_oeffnen": await OpenValidatedResultAsync("App.updateGeoeffnet",
                         Text(message, "url"), updates.IsValidatedReleaseUrl); break;
                     case "handbuch_herunterladen": await DownloadManualAsync(message); break;
@@ -292,6 +307,25 @@ internal sealed partial class BridgeDispatcher : IDisposable
                             await form.SendAsync("App.eigenesProfilOffice", result);
                         }
                         catch (Exception error) { await form.SendAsync("App.eigenesProfilOffice", new { requestId, ok = false, fehler = error.Message }); }
+                        break;
+                    }
+                    case "eigenes_profil_telefon":
+                    {
+                        var requestId = Text(message, "requestId"); var peerId = Text(message, "kennung");
+                        try
+                        {
+                            if (!currentPlainTextAvailable) throw new InvalidOperationException("locked");
+                            var source = await telefon.ReadOwnProfileAsync(peerId, CancellationToken.None);
+                            var profile = source["profile"]!.AsObject();
+                            if (profile["state"]!.GetValue<string>() != "available") throw new InvalidOperationException("unavailable");
+                            var parsed = ExchangeCodec.ParseVCard(profile["vcard"]!.GetValue<string>());
+                            if (parsed.Kontakte.Count != 1 || !currentPlainTextAvailable) throw new InvalidDataException("invalid_profile");
+                            var data = parsed.Kontakte[0]!.DeepClone().AsObject();
+                            foreach (var key in new[] { "id", "uid", "sync", "importBindungen", "baumKontakt" }) data.Remove(key);
+                            await form.SendAsync("App.eigenesProfilTelefon", new { requestId, device_id = peerId,
+                                fingerprint = source["fingerprint"]!.GetValue<string>(), ok = true, data });
+                        }
+                        catch { await form.SendAsync("App.eigenesProfilTelefon", new { requestId, device_id = peerId, ok = false }); }
                         break;
                     }
                     case "personal_sync_attachment_index": await IndexPersonalSyncAttachmentsAsync(message); break;

@@ -4,10 +4,12 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 /** Optional, explicitly authorized read-only device-status resource, version 5. */
 object ContactRead {
     const val VERSION = 5
+    const val PROFILE_VERSION = 7
     const val PAGE_SIZE = 128
     const val MAX_CONTACTS = 10_000
     const val MAX_CARD_BYTES = 96 * 1024
@@ -24,13 +26,14 @@ object ContactRead {
 
     fun validateRequest(value: JsonObject): List<String> {
         require(value.keys == setOf("version", "request_id", "action", "offset", "uids"))
-        require(value.long("version") == VERSION.toLong() && uuid4.matches(value.string("request_id")))
+        require(value.long("version") in setOf(VERSION.toLong(), PROFILE_VERSION.toLong()) && uuid4.matches(value.string("request_id")))
         val action = value.string("action")
         val offset = value.long("offset")
         val uids = (value["uids"] as? JsonArray ?: error("invalid_contact_batch")).map {
             (it as? JsonPrimitive)?.takeIf { node -> node.isString }?.content ?: error("invalid_contact_uid")
         }
         require(uids.all(::validUid) && uids.distinct().size == uids.size)
+        if (value.long("version") == PROFILE_VERSION.toLong()) { require(action == "profile" && offset == 0L && uids.isEmpty()); return uids }
         require((action == "index" && offset in 0L..MAX_CONTACTS.toLong() && uids.isEmpty()) ||
             (action == "cards" && offset == 0L && uids.size in 1..5))
         return uids
@@ -46,6 +49,18 @@ object ContactRead {
     }
 
     fun validateReport(value: JsonObject) {
+        if (value["version"] == JsonPrimitive(PROFILE_VERSION)) {
+            require(value.keys == setOf("version", "request_id", "action", "offset", "total", "contacts", "profile"))
+            require(uuid4.matches(value.string("request_id")) && value.string("action") == "profile" && value.long("offset") == 0L &&
+                (value["contacts"] as JsonArray).isEmpty())
+            val profile = value["profile"] as JsonObject
+            require(profile.keys == setOf("state", "vcard") && profile.string("state") in setOf("available", "unavailable"))
+            val card = profile.string("vcard")
+            require(value.long("total") == if (profile.string("state") == "available") 1L else 0L)
+            require(if (profile.string("state") == "available") card.startsWith("BEGIN:VCARD\r\n") && card.endsWith("END:VCARD\r\n") &&
+                card.toByteArray().size <= MAX_CARD_BYTES else card.isEmpty())
+            require(TelefonKanonisch.bytes(value).size <= MAX_REPORT_BYTES); return
+        }
         require(value.keys == setOf("version", "request_id", "action", "offset", "total", "contacts"))
         require(value.long("version") == VERSION.toLong() && uuid4.matches(value.string("request_id")))
         val action = value.string("action")
@@ -69,4 +84,9 @@ object ContactRead {
         }
         require(TelefonKanonisch.bytes(value).size <= MAX_REPORT_BYTES)
     }
+    fun profileReport(request: JsonObject, card: String): JsonObject = buildJsonObject {
+        put("version", PROFILE_VERSION); put("request_id", request.getValue("request_id")); put("action", "profile"); put("offset", 0)
+        put("total", if (card.isEmpty()) 0 else 1); put("contacts", JsonArray(emptyList()))
+        put("profile", buildJsonObject { put("state", if (card.isEmpty()) "unavailable" else "available"); put("vcard", card) })
+    }.also(::validateReport)
 }
