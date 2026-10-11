@@ -46,6 +46,7 @@ class ContactReadTest {
         assertNull(ContactReadAndroid.messenger("vnd.android.cursor.item/phone_v2", "+49123456789", "", ""))
         assertEquals("+49123456789", ContactReadAndroid.messenger("vnd.android.cursor.item/vnd.com.whatsapp.profile", "+49123456789", "", "")!!.string("wert"))
         assertNull(ContactReadAndroid.messenger("vnd.android.cursor.item/phone_v2", "+49123456789", "", "WhatsApp"))
+        assertEquals("+49123456789", ContactReadAndroid.messenger("vnd.android.cursor.item/vnd.com.whatsapp.profile", "49123456789", "", "")!!.string("wert"))
         val social = ContactReadAndroid.messenger("vnd.android.cursor.item/vnd.com.whatsapp.profile", "49123456789@s.whatsapp.net", "", "")!!
         assertEquals("whatsapp", social.string("dienst"))
         assertEquals("+49123456789", social.string("wert"))

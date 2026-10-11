@@ -174,6 +174,7 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
                 identifier = when {
                     Regex("[0-9]{5,20}@s\\.whatsapp\\.net").matches(value) -> "+" + value.substringBefore('@')
                     Regex("\\+[0-9]{5,20}").matches(value) -> value
+                    Regex("[0-9]{5,20}").matches(value) -> "+$value"
                     else -> return null
                 }
                 service = "WhatsApp"

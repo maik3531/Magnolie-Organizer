@@ -30,6 +30,7 @@ internal sealed partial class TelefonConnection
 
     private bool ContentScopeControlsReady => ContentScopeAuthorized && SharedSettingsReady;
     internal bool SingleItemAllowed => ContentScopeControlsReady;
+    internal Func<JsonObject, Task>? CollectionChanged { get; set; }
     private bool SingleItemRun(string kind, JsonObject body) =>
         (kind == "personal_sync.request" ? body : body["run_id"] is JsonValue id && id.TryGetValue<string>(out var run)
             ? new PersonalSyncStore(store).LoadRun(peer.Id, run, Now())?.Request : null)?["send_item"] is JsonObject;
@@ -123,6 +124,7 @@ internal sealed partial class TelefonConnection
 
     private async Task HandleContentScopeAsync(JsonObject message)
     {
+        JsonObject? collection = null;
         var now = Now(); TelefonMessageContract.ValidateMessage(message, now, true);
         var ack = store.CommitIncoming(peer.Id, message, now, (_, _) => ContentScopeAuthorized ? null : "not_granted",
             deferAcceptance: true, reauthorizeDuplicates: true);
@@ -138,7 +140,7 @@ internal sealed partial class TelefonConnection
                     RequireContentScopeControls();
                     if (TelefonProtocolContract.Integer(message["expires_ms"]) <= now) throw new InvalidDataException("Expired scope frame.");
                     receivedContentScope ??= new PhoneContentScope.Session(peer.Id, ScopePublicKey, 0);
-                    receivedContentScope.Receive(peer.Id, ScopePublicKey, 0, message["body"]!.AsObject());
+                    collection = receivedContentScope.Receive(peer.Id, ScopePublicKey, 0, message["body"]!.AsObject());
                     if (ack.Process) store.MarkIncomingProcessed(peer.Id, ack.MessageId, now);
                 }
                 finally { store.NotePolicyGate.Release(); }
@@ -148,5 +150,8 @@ internal sealed partial class TelefonConnection
         catch (IOException) { ack = new TelefonAck(ack.MessageId, "rejected", "temporary_failure"); }
         catch (InvalidOperationException) { ack = new TelefonAck(ack.MessageId, "rejected", "not_granted"); }
         await SendPlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = ack.MessageId, ["status"] = ack.Status, ["error"] = ack.Error });
+        if (collection is not null && ack.Status is "accepted" or "duplicate" && CollectionChanged is not null)
+            await CollectionChanged(new JsonObject { ["device_id"] = peer.Id, ["fingerprint"] = TelefonCrypto.Fingerprint(peer.PublicKey),
+                ["members"] = collection["members"]!.DeepClone() });
     }
 }

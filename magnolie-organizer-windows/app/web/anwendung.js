@@ -917,6 +917,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       }
       // The personal side already existed; a foreign tree-only note never gains it here.
       merkeNotizZusammenfuehrung(bleibt, gruppe, "identical_content");
+      const created = gruppe.map(note => Number(note.angelegt)).filter(value => value > 0);
+      if (created.length) bleibt.angelegt = Math.min(...created);
       bleibt.persoenlichVerknuepft = gruppe.some(personalSyncEigeneNotiz);
       if (freigaben.length) {
         const partner = [...new Set(freigaben.flatMap(n => n.baumFreigabe.partner || []))];
@@ -1078,6 +1080,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return records;
   }
 
+  const personalPhoneCollections = new Map();
   function personalAdmissionPeer() {
     const peers = (telefonStand?.peers || []).filter(peer => peer.state === "paired" || peer.own_device);
     return peers.length === 1 && peers[0].shared_sync?.supported &&
@@ -1117,6 +1120,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
   function personalAdmissionMenuItem(menu, kind, object) {
     if (!personalAdmissionPeer() || !personalAdmissionEligible(kind, object)) return;
+    const peer = personalAdmissionPeer(), collection = personalPhoneCollections.get(peer.device_id);
+    if (collection?.fingerprint === peer.fingerprint && collection[kind === "note" ? "notes" : "tasks"].has(
+        kind === "note" ? personalSyncNotizWireId(object.id) : object.id)) return;
     const button = knopf(_("Send to Notes"), "vm-eintrag", () => {
       menu.remove(); navigiereMitGuard(() => personalAdmissionQueue(kind, object.id).catch(personalSyncBetriebFehler));
     });
@@ -1417,7 +1423,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (["note", "notebook"].includes(record.kind) && eigeneWerte.has(key)) {
         if (personalSyncNotizInhalt(eigeneWerte.get(key), false, record.kind === "note" ? record.id : "") ===
             personalSyncNotizInhalt(record.value, false, record.kind === "note" ? record.id : "")) {
-          const remoteWins = record.hash < lokal.hash;
+          const localCreated = Number(eigeneWerte.get(key)?.created_ms) || 0, remoteCreated = Number(record.value.created_ms) || 0;
+          const remoteWins = record.kind === "note" && localCreated !== remoteCreated && (localCreated > 0 || remoteCreated > 0)
+            ? remoteCreated > 0 && (localCreated <= 0 || remoteCreated < localCreated) : record.hash < lokal.hash;
           if (remoteWins) { personalSyncSetze(record, record.id, false, attachmentData); eigeneWerte.set(key, record.value); }
           DATEN.personalSync.entities[key] = { ...lokal, clock: personalSyncVereinige(lokal.clock, record.clock),
             hash: remoteWins ? record.hash : lokal.hash,
@@ -2168,8 +2176,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if ((telefonStandardAnfragen.get(key) || 0) > performance.now()) return;
       if (Bruecke.sende(nachricht)) telefonStandardAnfragen.set(key, performance.now() + 10000);
     };
-    senden("own", peer.own_device, { cmd: "personal_sync_betrieb",
-      kennung: peer.device_id, autoWlan: true, loeschungenAuslassen: false });
+    // Status refresh must never create ownership or sharing consent.
     const anrufe = DATEN.einstellungen.adressen.kommunikation.anruf.art === "magnolie";
     for (const name of ["incoming_call_state", "incoming_call_number", "answer_call", "end_call"])
       senden("calls:" + name, (peer.local_grants?.grants?.[name] === true) === anrufe, {
@@ -2924,38 +2931,39 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         const roh = atob(foto.split(",", 2)[1]);
         if (format === "png" ? roh.includes("acTL") : roh.includes("ANIM")) return null;
       }
-      const canvas = document.createElement("canvas"); canvas.width = canvas.height = 64;
+      const canvas = document.createElement("canvas"); canvas.width = canvas.height = 32;
       const context = canvas.getContext("2d", { willReadFrequently: true });
       if (!context) return null;
-      context.drawImage(image, 0, 0, 64, 64);
+      context.imageSmoothingEnabled = true; context.imageSmoothingQuality = "high";
+      context.drawImage(image, 0, 0, 32, 32);
       return { format, breite: image.naturalWidth, hoehe: image.naturalHeight,
-        pixel: context.getImageData(0, 0, 64, 64).data };
+        pixel: context.getImageData(0, 0, 32, 32).data };
     } catch (_) { return null; }
   }
 
   function gleicheKontaktFotoDarstellung(a, b) {
-    if (!a || !b || a.pixel.length !== 16384 || b.pixel.length !== 16384) return false;
+    if (!a || !b || a.pixel.length !== 4096 || b.pixel.length !== 4096) return false;
     const verh = a.breite * b.hoehe / (b.breite * a.hoehe);
     if (!Number.isFinite(verh) || Math.abs(verh - 1) > 0.01) return false;
-    let summe = 0, maximum = 0;
-    const vorzeichen = [0, 0, 0], bloecke = new Float64Array(64 * 3);
-    for (let pixel = 0; pixel < 4096; pixel++) {
+    let summe = 0, grosseAbweichungen = 0;
+    const vorzeichen = [0, 0, 0], bloecke = new Float64Array(16 * 3);
+    for (let pixel = 0; pixel < 1024; pixel++) {
       const offset = pixel * 4;
       if (a.pixel[offset + 3] !== b.pixel[offset + 3]) return false;
-      const block = (Math.floor(pixel / 64 / 8) * 8 + Math.floor(pixel % 64 / 8)) * 3;
+      const block = (Math.floor(pixel / 32 / 8) * 4 + Math.floor(pixel % 32 / 8)) * 3;
       for (let kanal = 0; kanal < 3; kanal++) {
         const delta = a.pixel[offset + 3] ? a.pixel[offset + kanal] - b.pixel[offset + kanal] : 0;
         const betrag = Math.abs(delta);
-        summe += betrag; maximum = Math.max(maximum, betrag);
+        summe += betrag; if (betrag > 64) grosseAbweichungen++;
         vorzeichen[kanal] += delta; bloecke[block + kanal] += delta;
       }
     }
     if (!summe) return true;
     // Lossless variants need exact pixels. For JPEG copies accept only small,
     // spatially balanced codec noise, not a colour change or a local edit.
-    return (a.format === "jpeg" || b.format === "jpeg") && maximum <= 32 &&
-      summe / 12288 <= 3 && vorzeichen.every(wert => Math.abs(wert) / 4096 <= 0.65) &&
-      bloecke.every(wert => Math.abs(wert) / 64 <= 4);
+    return (a.format === "jpeg" || b.format === "jpeg") && grosseAbweichungen <= 92 &&
+      summe / 3072 <= 6 && vorzeichen.every(wert => Math.abs(wert) / 1024 <= 2) &&
+      bloecke.every(wert => Math.abs(wert) / 64 <= 8);
   }
 
   function speichereKontaktFotoVarianten(kontakt, bilder) {
@@ -4836,7 +4844,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const fingerprint = index.fingerprint.toLowerCase(), jetzt = Date.now();
       if (lauf.sourceFingerprint && fingerprint !== lauf.sourceFingerprint) throw new Error("contact_source_changed");
       const alt = DATEN.kontaktFotoCache;
-      const wiederverwenden = alt?.version === 2 && alt.deviceId === lauf.deviceId && alt.fingerprint === fingerprint && alt.mappingHash === mappingHash;
+      const wiederverwenden = alt?.version === 3 && alt.deviceId === lauf.deviceId && alt.fingerprint === fingerprint && alt.mappingHash === mappingHash;
       const cache = new Map((wiederverwenden && Array.isArray(alt.entries) ? alt.entries.slice(0, 20000) : [])
         .filter(e => e && typeof e.uid === "string").map(e => [e.uid, e]));
       const vorhanden = new Set(), offen = [];
@@ -4868,11 +4876,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         indexe.mails.clear();
         for (const kontakt of DATEN.kontakte) for (const mail of emailListe(kontakt))
           setzeKontaktIndex(indexe.mails, kontaktFotoMailSchluessel(mail), kontakt);
-        const aenderungen = [];
+        const aenderungen = [], socialUpdates = [];
         for (const { eintrag, karte } of antworten) {
           const foto = sauberesFoto(karte?.foto);
           cache.set(eintrag.uid, { uid: eintrag.uid, modified_ms: eintrag.modified_ms, checkedAt: Date.now(), photoAvailable: !!foto });
-          if (!foto) continue;
           const gebunden = DATEN.kontakte.filter(k => k.fotoQuelle?.deviceId === lauf.deviceId &&
             k.fotoQuelle.fingerprint === fingerprint && k.fotoQuelle.uid === eintrag.uid);
           const kandidaten = gebunden.length ? gebunden : [...new Set([
@@ -4880,6 +4887,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             ...kontaktTelefone(karte).map(wert => indexe.telefone.get(wert))].filter(k => k !== undefined))];
           if (kandidaten.length !== 1 || !kandidaten[0]) continue;
           const kontakt = kandidaten[0], bisher = kontakt.foto || "";
+          const social = sozialeMedienListe(karte);
+          if (social.length) socialUpdates.push({ kontakt, social });
+          if (!foto) continue;
           let anzeigen = !kontakt.fotoManuell && !bisher && !kontakt.fotoQuelle;
           if (kontakt.fotoQuelle) {
             const meta = kontakt.fotoQuelle;
@@ -4893,6 +4903,11 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         }
         if (!gueltig() || zuordnungen() !== lokalStand) return;
         let geaendert = false;
+        for (const { kontakt, social } of socialUpdates) {
+          if (!DATEN.kontakte.includes(kontakt)) continue;
+          const old = sozialeMedienListe(kontakt), combined = sozialeMedienListe({ sozialeMedien: [...old, ...social] });
+          if (JSON.stringify(old) !== JSON.stringify(combined)) { kontakt.sozialeMedien = combined; geaendert = true; }
+        }
         for (const { kontakt, bisher, anzeigen, foto, meta } of aenderungen) {
           if (kontakt.foto !== bisher || !DATEN.kontakte.includes(kontakt)) continue;
           const quelle = lauf.deviceId.startsWith("notes:") ? "Magnolie Notes" : "KDE Connect";
@@ -4902,7 +4917,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             kontakt.fotoQuelle = meta;
           }
         }
-        DATEN.kontaktFotoCache = { version: 2, deviceId: lauf.deviceId, fingerprint, mappingHash, entries: [...cache.values()] };
+        DATEN.kontaktFotoCache = { version: 3, deviceId: lauf.deviceId, fingerprint, mappingHash, entries: [...cache.values()] };
         await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
         if (geaendert && gueltig()) zeichneAlles();
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -10672,6 +10687,18 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   /* Kleine Zeichen im Stil des Buches – schlichte Striche, keine bunten
      Bildchen, damit sie zum Papier passen. */
   const SINNBILDER = {
+    notiz: "M6 3h12v18H6z M9 8h6 M9 12h6 M9 16h4",
+    einkauf: "M4 10h16l-2 10H6z M8 10V6a4 4 0 0 1 8 0v4",
+    aufgabe: "M5 4h14v16H5z M8 12l3 3 6-7",
+    termin: "M4 6h16v14H4z M4 10h16 M8 3v6 M16 3v6 M8 14h2 M14 14h2",
+    idee: "M8 15c-5-6-1-12 4-12s9 6 4 12l-1 3H9z M9 21h6",
+    reise: "M3 12l7-2V4l2-2 2 2v6l7 2v2l-7-1v6l3 2v1l-5-1-5 1v-1l3-2v-6l-7 1z",
+    rezept: "M5 12h14c0 6-3 9-7 9s-7-3-7-9z M8 3v5 M12 2v6 M16 3v5",
+    geld: "M3 6h18v12H3z M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z",
+    arbeit: "M4 8h16v12H4z M8 8V4h8v4 M4 13h16 M10 12v3h4v-3",
+    person: "M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M5 21v-3a7 7 0 0 1 14 0v3",
+    gesundheit: "M3 12h4l2-6 4 12 3-6h5",
+    zitat: "M5 6h6v7l-4 5 M13 6h6v7l-4 5",
     brief: "M3 6h18v12H3z M3 6l9 7 9-7",
     karte: "M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z M12 10.5a1.8 " +
       "1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6z",
@@ -13386,7 +13413,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       bild.alt = modul.title || _("Drawing sheet"); bild.style.width = "100%";
       ziel.append(bild); return;
     }
-    const werkzeuge = el("div", "knopfreihe"), status = el("p", "einst-hinweis");
+    const werkzeuge = el("div", "knopfreihe zeichen-werkzeuge"), status = el("p", "einst-hinweis");
     const zeichenflaeche = el("div", "custom-zeichenflaeche");
     zeichenflaeche.append(canvas);
     let zurueck, wieder;
@@ -13400,15 +13427,25 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const werkzeug = auswahlFeld([["pen", _("Pen")], ["quill", _("Calligraphy pen")], ["brush", _("Brush")],
       ["highlighter", _("Highlighter")], ["eraser", _("Eraser")]], "pen");
     werkzeug.setAttribute("aria-label", _("Drawing tool"));
+    const toolChoices = { pen: { width: 4, color: "#1d2433" }, quill: { width: 12, color: "#1d2433" },
+      brush: { width: 10, color: "#1d2433" }, highlighter: { width: 20, color: "#ffcf33" }, eraser: { width: 16, color: "#1d2433" } };
+    let currentTool = "pen";
     werkzeug.addEventListener("change", () => {
+      toolChoices[currentTool] = { width: Number(breite.value), color: farbe.value };
+      currentTool = werkzeug.value;
       editor.setTool(werkzeug.value);
-      breite.value = String({ pen: 4, quill: 12, brush: 10, highlighter: 20, eraser: 16 }[werkzeug.value]);
+      breite.value = String(toolChoices[currentTool].width); farbe.value = toolChoices[currentTool].color;
+      farbe.disabled = currentTool === "eraser"; editor.setColor(farbe.value);
       editor.setWidth(Number(breite.value));
+      widthValue.textContent = breite.value;
     });
     const farbe = eingabe("color", "#1d2433"); farbe.setAttribute("aria-label", _("Color"));
     farbe.addEventListener("input", () => editor.setColor(farbe.value));
     const breite = eingabe("range", "4"); breite.min = "1"; breite.max = "40"; breite.step = "1";
-    breite.setAttribute("aria-label", _("Line width")); breite.addEventListener("input", () => editor.setWidth(Number(breite.value)));
+    const widthValue = el("output", "zeichen-breite", breite.value);
+    breite.setAttribute("aria-label", _("Line width")); breite.addEventListener("input", () => {
+      editor.setWidth(Number(breite.value)); widthValue.textContent = breite.value;
+    });
     zurueck = knopf(_("Undo"), "klein", () => editor.undo()); zurueck.disabled = !editor.canUndo();
     wieder = knopf(_("Redo"), "klein", () => editor.redo()); wieder.disabled = !editor.canRedo();
     const exportieren = knopf(_("Export PNG"), "klein", () => {
@@ -13416,7 +13453,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "notiz_anhang_datei", id: naechsteAnhangDateiId++, aktion: "speichern", name, daten });
       else { const link = document.createElement("a"); link.href = daten; link.download = name; link.click(); }
     });
-    werkzeuge.append(werkzeug, farbe, breite, zurueck, wieder,
+    werkzeuge.append(werkzeug, farbe, breite, widthValue, zurueck, wieder,
       knopf(_("Clear"), "klein", () => editor.clear()), exportieren,
       knopf(_("Export SVG"), "klein", () => {
         const svg = editor.exportSvg(), name = (modul.title || "Magnolie") + ".svg";
@@ -17254,6 +17291,32 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   let eigenesProfilOfficeAnfrage = null;
+  let eigenesProfilTelefonKontext = null, eigenesProfilNummerAnfrage = null;
+  function eigenesProfilNummerAnfordern() {
+    const peers = (telefonStand?.peers || []).filter(peer => peer.own_device && peer.remote_own_device && /^online_/.test(peer.state || ""));
+    if (eigenesProfilNummerAnfrage?.until < Date.now()) eigenesProfilNummerAnfrage = null;
+    if (gesperrt || peers.length !== 1 || eigenesProfilNummerAnfrage ||
+        eigenesProfilTelefonKontext?.form.isConnected && eigenesProfilTelefonKontext.fields.mobil.value.trim()) return;
+    const peer = peers[0], requestId = crypto.randomUUID();
+    eigenesProfilNummerAnfrage = { peer: peer.device_id, fingerprint: peer.fingerprint, requestId, data: DATEN, until: Date.now() + 60000 };
+    Bruecke.sende({ cmd: "telefon_status_anfordern", kennung: peer.device_id, requestId });
+  }
+  function eigenesProfilNummerUebernehmen(value) {
+    const request = eigenesProfilNummerAnfrage, status = value?.status;
+    if (!request || request.peer !== value?.kennung || status?.request_id !== request.requestId) return;
+    eigenesProfilNummerAnfrage = null;
+    const peer = telefonStand?.peers?.find(peer => peer.device_id === request.peer);
+    const number = status.identifiers?.phone_number;
+    if (gesperrt || DATEN !== request.data || request.until < Date.now() || !peer?.own_device || !peer.remote_own_device ||
+        peer.fingerprint !== request.fingerprint || status.identifiers_peer_fingerprint !== request.fingerprint ||
+        number?.status !== "available" || typeof number.value !== "string" || !number.value.trim()) return;
+    const context = eigenesProfilTelefonKontext;
+    if (context?.data === DATEN && context.form.isConnected && !context.fields.mobil.value.trim()) {
+      context.draft.mobil = number.value; context.fields.mobil.value = number.value;
+    } else if (DATEN.eigenesProfil?.data && !DATEN.eigenesProfil.data.mobil) {
+      DATEN.eigenesProfil.data.mobil = number.value; planeSpeichern();
+    }
+  }
   function eigenesProfilOfficeVergleich(draft, fields, form) {
     const requestId = crypto.randomUUID();
     eigenesProfilOfficeAnfrage = { requestId, receive: result => {
@@ -17319,7 +17382,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (!form.isConnected) return;
       draft.foto = value; photo.src = value; photo.hidden = !value;
     }); });
-    form.append(photo, formZeile(_("Photo"), choose));
+    const photoHeader = el("div", "kontakt-editor-profilkopf eigenes-profil-kopf");
+    photoHeader.append(photo, formZeile(_("Photo"), choose)); form.prepend(photoHeader);
     const social = sozialeMedienListe(draft), socialArea = el("div", "eigenes-profil-sozial");
     const socialDraw = () => {
       socialArea.replaceChildren();
@@ -17356,14 +17420,25 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       Bruecke.sende({ cmd: "export", art: "vcf-adressen", daten: [card] });
     };
     const buttons = el("div", "knopfreihe");
-    buttons.append(knopf(_("Save"), "haupt", store), knopf(_("Export vCard"), "", exportCard),
-      knopf(_("Compare with LibreOffice"), "", () => eigenesProfilOfficeVergleich(draft, fields, form)));
+    buttons.append(knopf(_("Save"), "haupt", store), knopf(_("Export vCard"), "", exportCard));
     if (saved) buttons.append(knopf(_("Delete own profile"), "", async () => {
       if (await frage(_("Delete your own profile?")) && DATEN.eigenesProfil === saved) {
         delete DATEN.eigenesProfil; planeSpeichern(); aktiverEditor = null; zeichneAlles();
       }
     }));
     form.append(buttons);
+    const requestId = crypto.randomUUID();
+    eigenesProfilOfficeAnfrage = { requestId, receive: result => {
+      if (!form.isConnected || !result.ok) return;
+      // No readable phone profile: use Office for missing fields, never overwrite edits.
+      for (const [key, office] of [["vorname", "givenname"], ["nachname", "sn"], ["firma", "o"], ["strasse", "street"],
+        ["plz", "postalcode"], ["ort", "l"], ["land", "c"], ["email", "mail"], ["telefon", "telephonenumber"]]) {
+        if (!fields[key].value.trim() && result.felder?.[office]) { draft[key] = result.felder[office]; fields[key].value = draft[key]; }
+      }
+    } };
+    Bruecke.sende({ cmd: "eigenes_profil_office", requestId, operation: "read", felder: {}, stamp: "" });
+    eigenesProfilTelefonKontext = { form, draft, fields, data: DATEN };
+    eigenesProfilNummerAnfordern();
     registriereFormEditor(form, store, () => { aktiverEditor = null; zustand.adressen.modus = "ansehen"; zeichneAlles(); },
       () => ({ foto: draft.foto, social }));
     return form;
@@ -18721,6 +18796,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       });
     }));
     const formularInhalt = el("div", "kontakt-form-inhalt");
+    let scrollTimer;
+    formularInhalt.addEventListener("scroll", () => {
+      formularInhalt.classList.add("wird-gescrollt"); clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => formularInhalt.classList.remove("wird-gescrollt"), 700);
+    }, { passive: true });
     for (const kind of Array.from(form.children)) {
       if (kind.tagName !== "LEGEND") formularInhalt.append(kind);
     }
@@ -19222,8 +19302,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (age === 0) return _("Today");
     if (age === 1) return _("Yesterday");
     const locale = (document.documentElement.lang || "en").replace(/_/g, "-");
-    return new Intl.DateTimeFormat(locale, age > 1 && age < 7 ? { weekday: "long" } :
-      { day: "numeric", month: "long", ...(date.getFullYear() !== now.getFullYear() ? { year: "numeric" } : {}) }).format(date);
+    return new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long",
+      ...(date.getFullYear() !== now.getFullYear() ? { year: "numeric" } : {}) }).format(date);
   }
 
   function notizAnsichtsMenue(event, redraw) {
@@ -19242,14 +19322,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       properties.setAttribute("role", "menuitem"); menu.append(properties, el("div", "vm-trenner"));
     }
     option(_("Default view"), wahl.view === "default", () => { wahl.view = "default"; });
-    option(_("Group by day"), wahl.view === "days", () => { wahl.view = "days"; });
+    option(_("Group by day"), wahl.view === "days", () => { wahl.view = "days"; wahl.sort = "created_desc"; });
     menu.append(el("div", "vm-trenner"));
     for (const [value, title] of [["manual", _("Page order")], ["created_desc", _("Newest first")],
       ["created_asc", _("Oldest first")], ["modified_desc", _("Recently modified")], ["title", _("Title")]])
       option(title, wahl.sort === value, () => { wahl.sort = value; });
-    menu.append(el("div", "vm-trenner"));
-    option(_("Expand day groups by default"), !wahl.collapsed, () => { wahl.collapsed = false; wahl.groups = {}; });
-    option(_("Collapse day groups by default"), wahl.collapsed, () => { wahl.collapsed = true; wahl.groups = {}; });
+    if (wahl.view === "days") {
+      menu.append(el("div", "vm-trenner"));
+      option(wahl.collapsed ? _("Expand day groups by default") : _("Collapse day groups by default"), false,
+        () => { wahl.collapsed = !wahl.collapsed; wahl.groups = {}; });
+    }
     document.body.append(menu);
     menu.style.left = Math.max(6, Math.min(event.clientX || 6, window.innerWidth - menu.offsetWidth - 8)) + "px";
     menu.style.top = Math.max(6, Math.min(event.clientY || 6, window.innerHeight - menu.offsetHeight - 8)) + "px";
@@ -19410,6 +19492,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     let sichtbareNotizen = 0;
     const baueNotizzeile = (n, i) => {
       const zeile = el("li", "zeile" + (n.id === z.auswahlId ? " aktiv" : ""));
+      if (notizUebersichtWahl().view === "days") zeile.classList.add("notiz-tageszeile");
       zeile.dataset.notizId = n.id;
       const haupt = el("button", "haupt zeilen-aktion");
       haupt.type = "button";
@@ -19421,7 +19504,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const unt = el("div", "unt", uebersetzt("Page %(page)s", { page: i + 1 }) +
         anhangText + " · " + uebersetzt("modified %(date)s",
           { date: fmtPunkt(n.geaendert) }));
-      haupt.append(obm, unt);
+      const symbol = sinnbild(SINNBILDER[n.symbol] ? n.symbol : "datei", 28);
+      symbol.classList.add("notiz-sinnbild");
+      const text = el("span", "notiz-zeilentext"); text.append(obm, unt);
+      haupt.append(symbol, text);
       zeile.append(haupt);
       if (n.id === z.auswahlId) notizRefs.obm = obm;
       const x = el("button", "loesch-x", "✕");
@@ -19454,6 +19540,34 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const scroll = uebersicht.scrollTop;
     uebersicht.replaceChildren(); sichtbareNotizen = 0;
     const wahl = notizUebersichtWahl();
+    if (wahl.view === "days") {
+      const pages = sortiereNotizseiten(DATEN.notizen.filter(note => !suchbegriffe.length || sucht([note.titel, note.text,
+        DATEN.notizbuecher.find(book => book.id === note.notizbuchId)?.name || ""])), wahl);
+      const indices = new Map(DATEN.notizen.map((note, index) => [note.id, index]));
+      const days = new Map();
+      for (const note of pages) {
+        const timestamp = notizZeitpunkt(note), day = timestamp ? isoVon(new Date(timestamp)) : "";
+        if (!days.has(day)) days.set(day, []); days.get(day).push(note);
+      }
+      const list = el("ul", "liste notiz-seiten"); uebersicht.append(list);
+      zeigeHaeppchen("notiz-tage-alle", [...days.keys()].sort((a, b) => wahl.sort === "created_asc" ? a.localeCompare(b) : b.localeCompare(a)), list, day => {
+        const entry = el("li", "notiz-tagesgruppe"), key = "all:" + day;
+        const body = el("ul", "liste notiz-tag-seiten"), header = el("div", "notiz-tag-kopf");
+        const arrow = el("span", "notiz-tag-pfeil");
+        const fill = () => { if (!body.dataset.gefuellt) { body.dataset.gefuellt = "1";
+          zeigeHaeppchen("notiz-tag-" + key, days.get(day), body, note => baueNotizzeile(note, indices.get(note.id))); } };
+        body.hidden = Object.prototype.hasOwnProperty.call(wahl.groups, key) ? wahl.groups[key] : wahl.collapsed;
+        const state = () => { header.setAttribute("aria-expanded", String(!body.hidden)); arrow.textContent = body.hidden ? "▸" : "▾"; if (!body.hidden) fill(); };
+        const toggle = () => { body.hidden = !body.hidden; wahl.groups[key] = body.hidden; state(); planeSpeichern(); };
+        header.setAttribute("role", "button"); header.tabIndex = 0;
+        header.append(el("span", null, notizTagesname(day)), el("span", "notiz-tag-trenner"), el("span", "notiz-tag-zahl", String(days.get(day).length)), arrow);
+        header.addEventListener("click", toggle);
+        header.addEventListener("keydown", event => { if (["Enter", " "].includes(event.key)) { event.preventDefault(); toggle(); } });
+        state(); entry.append(header, body); return entry;
+      });
+      if (!pages.length) list.append(el("li", "leer-hinweis", _("Nothing found.")));
+      uebersicht.scrollTop = scroll; return;
+    }
     for (const gruppe of DATEN.notizgruppen) {
       const gruppenBuecher = DATEN.notizbuecher.filter((x) => x.gruppeId === gruppe.id);
       const passendeBuecher = gruppenBuecher.filter((buch) => {
@@ -19523,12 +19637,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
               const pages = tage.get(day), body = el("ul", "liste notiz-tag-seiten");
               const fuellen = () => { if (body.dataset.gefuellt) return; body.dataset.gefuellt = "1";
                 zeigeHaeppchen("notiz-tag-" + groupKey, pages, body, note => baueNotizzeile(note, ordnung.get(note.id))); };
-              const header = knopf("", "notiz-tag-kopf", () => {
+               const header = el("div", "notiz-tag-kopf");
+               header.setAttribute("role", "button"); header.tabIndex = 0;
+               const umschalten = () => {
                 wahl.groups[groupKey] = !body.hidden; body.hidden = wahl.groups[groupKey];
                 header.setAttribute("aria-expanded", String(!body.hidden)); arrow.textContent = body.hidden ? "▸" : "▾";
                 if (!body.hidden) fuellen();
                 planeSpeichern();
-              });
+               };
+               header.addEventListener("click", umschalten);
+               header.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); umschalten(); } });
               body.hidden = Object.prototype.hasOwnProperty.call(wahl.groups, groupKey) ? wahl.groups[groupKey] : wahl.collapsed;
               const arrow = el("span", "notiz-tag-pfeil", body.hidden ? "▸" : "▾");
               header.setAttribute("aria-expanded", String(!body.hidden));
@@ -25101,7 +25219,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     });
     ab.append(anZeile);
     nameFeld.addEventListener("change", () => {
-      if (anHak.checked) {
+      if (anHak.checked && baumStand?.an === true) {
         Bruecke.sende({ cmd: "baum_ein", an: true, name: nameFeld.value });
       }
     });
@@ -30063,6 +30181,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     },
     geraetStatus(nutzlast) {
       nutzlast = nutzlast || {};
+      eigenesProfilNummerUebernehmen(nutzlast);
       if (nutzlast.fehler) { zettel(nutzlast.fehler); return; }
       if (offenesGeraet === String(nutzlast.kennung || "")) {
         zeichneGeraeteStatus(nutzlast.status);
@@ -30104,8 +30223,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (eigenesProfilOfficeAnfrage?.requestId !== nutzlast?.requestId) return;
       const request = eigenesProfilOfficeAnfrage; eigenesProfilOfficeAnfrage = null; request.receive(nutzlast);
     },
+    personalSyncCollection(value) {
+      if (!value?.device_id || typeof value.fingerprint !== "string" || !Array.isArray(value.members?.notes) || !Array.isArray(value.members?.tasks)) return;
+      personalPhoneCollections.set(value.device_id, { fingerprint: value.fingerprint,
+        notes: new Set(value.members.notes), tasks: new Set(value.members.tasks) });
+    },
     telefonStand(nutzlast) {
       telefonStand = nutzlast || null;
+      if (DATEN.eigenesProfil?.data && !DATEN.eigenesProfil.data.mobil || eigenesProfilTelefonKontext?.form.isConnected)
+        eigenesProfilNummerAnfordern();
       initialisiereGemeinsameSyncWerte();
       aktualisiereGemeinsameSyncFelder();
       zeitAbgleichVonNotesAktivieren();

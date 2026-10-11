@@ -23,19 +23,26 @@ harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[
       assert.equal(JSON.stringify(b.t.daten().kontakte), unchanged);
       assert.equal(b.t.normalisiere(b.t.daten()).eigenesProfil.data.vorname, "My own name");
       form = b.w.document.querySelector(".eigenes-profil");
-      button(form, "Compare with LibreOffice").click();
+      assert.equal(button(form, "Compare with LibreOffice"), undefined);
+      assert.ok(form.firstElementChild.classList.contains("eigenes-profil-kopf"));
       const request = b.messages.findLast(value => value.cmd === "eigenes_profil_office");
       assert.equal(request.operation, "read");
-      b.w.App.eigenesProfilOffice({ requestId: request.requestId, ok: true, felder: { givenname: "Office name" }, stamp: "fixture" });
-      const dialog = b.w.document.querySelector(".eingabe-dialog");
-      assert.match(dialog.textContent, /My own name/); assert.match(dialog.textContent, /Office name/);
-      dialog.querySelector("select").value = "import";
-      button(dialog, "Apply").click();
-      assert.equal(b.t.daten().eigenesProfil.data.vorname, "My own name", "Comparison must not save a profile draft implicitly");
+      b.w.App.eigenesProfilOffice({ requestId: request.requestId, ok: true, felder: { givenname: "Office name", sn: "Fallback" }, stamp: "fixture" });
+      assert.equal(b.t.daten().eigenesProfil.data.vorname, "My own name", "Fallback must not overwrite existing profile fields");
       button(form, "Save").click();
-      assert.equal(b.t.daten().eigenesProfil.data.vorname, "Office name");
+      assert.equal(b.t.daten().eigenesProfil.data.vorname, "My own name");
+      assert.equal(b.t.daten().eigenesProfil.data.nachname, "Fallback");
+      b.w.App.telefonStand({ peers: [{ device_id: "22222222-2222-4222-8222-222222222222", fingerprint: "test-key",
+        state: "online_wifi", own_device: true, remote_own_device: true, capabilities: { items: {} },
+        local_grants: { grants: {} }, grants: { grants: {} } }] });
+      const numberRequest = b.messages.findLast(value => value.cmd === "telefon_status_anfordern");
+      assert.ok(numberRequest);
+      b.w.App.geraetStatus({ kennung: numberRequest.kennung, status: { request_id: numberRequest.requestId,
+        identifiers_peer_fingerprint: "test-key", identifiers: { phone_number: { status: "available", value: "+49123456789" } } } });
+      button(b.w.document.querySelector(".eigenes-profil"), "Save").click();
+      assert.equal(b.t.daten().eigenesProfil.data.mobil, "+49123456789");
       assert.equal(JSON.stringify(b.t.daten().kontakte), unchanged);
-      console.log("Eigenprofil getrennt und Office-Vergleich bestanden:", web);
+      console.log("Eigenprofil getrennt, Foto oben und Office-Fallback bestanden:", web);
     } finally { b.close(); }
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

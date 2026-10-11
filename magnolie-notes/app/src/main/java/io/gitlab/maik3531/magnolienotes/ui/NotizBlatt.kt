@@ -86,10 +86,11 @@ fun NotizBlatt(
             it.titel.contains(suche, true) || it.text.contains(suche, true)
         }
     }
-    // Neueste zuerst, nach Tagen zusammengefasst.
+    // Original creation day, shared with the Organizer's day view.
+    fun erstellt(notiz: Notiz) = notiz.angelegt.takeIf { it > 0 } ?: notiz.geaendert
     val nachTagen = remember(gesucht) {
-        gesucht.sortedByDescending { it.geaendert }
-            .groupBy { Zeit.tagesschluessel(it.geaendert) }
+        gesucht.sortedByDescending { erstellt(it) }
+            .groupBy { Zeit.tagesschluessel(erstellt(it)) }
             .toList()
     }
     val heute = stringResource(R.string.heute)
@@ -129,7 +130,7 @@ fun NotizBlatt(
             contentPadding = PaddingValues(bottom = 28.dp)
         ) {
             nachTagen.forEach { (_, tagesnotizen) ->
-                val wann = tagesnotizen.first().geaendert
+                val wann = erstellt(tagesnotizen.first())
                 item(key = "tag-" + Zeit.tagesschluessel(wann)) {
                     Row(
                         Modifier.fillMaxWidth()

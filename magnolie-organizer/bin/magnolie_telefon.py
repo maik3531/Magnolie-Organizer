@@ -4940,8 +4940,11 @@ class PhoneService:
                         raise ValueError("conflicting content scope message identity")
                     binding = (peer["device_id"], peer["static_public"], id(channel))
                     session = self.content_scope_sessions.setdefault(channel, content_scope_contract.ScopeSession(binding))
-                    session.receive(binding, payload["body"])
+                    manifest = session.receive(binding, payload["body"])
                     self.store.remember_message(peer["device_id"], payload, status, error)
+                    if manifest is not None:
+                        self.callback("personal_collection", {"device_id": peer["device_id"],
+                            "fingerprint": fingerprint(unb64(peer["static_public"], 32)), "members": manifest["members"]})
             except PermissionError:
                 status, error = "rejected", "not_granted"
             except (ValueError, TypeError):

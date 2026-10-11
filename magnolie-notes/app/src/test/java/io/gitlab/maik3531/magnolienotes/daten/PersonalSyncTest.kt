@@ -14,6 +14,22 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PersonalSyncTest {
+    @Test fun `identical notes created on different days keep the older creation date on both devices`() {
+        val actor = "11111111-1111-4111-8111-111111111111"
+        val peer = "22222222-2222-4222-8222-222222222222"
+        for (sameId in listOf(false, true)) {
+            fun initial(id: String, device: String, created: Long) = PersonalSync.reconcile(
+                Bestand(notizen = listOf(Notiz(id, titel = "Same", text = "Text", angelegt = created, geaendert = created + 10)),
+                    personalSync = PersonalSyncState(actor_id = device)), setOf("notes"), 3)
+            val a = initial("note", actor, 1000)
+            val b = initial(if (sameId) "note" else "other-note", peer, 2000)
+            val first = PersonalSync.apply(a.first, b.second)
+            val second = PersonalSync.apply(b.first, a.second)
+            assertEquals(0, first.conflicts); assertEquals(0, second.conflicts)
+            assertEquals(1000L, first.bestand.notizen.single().angelegt)
+            assertEquals(1000L, second.bestand.notizen.single().angelegt)
+        }
+    }
     @Test fun `matching attached notes rekeys attachment parents and preserves deletion history`() {
         val actor = "11111111-1111-4111-8111-111111111111"
         val peer = "22222222-2222-4222-8222-222222222222"
@@ -185,7 +201,8 @@ class PersonalSyncTest {
             assertEquals(0, result.conflicts); assertEquals(1, result.bestand.notizen.size)
             assertEquals(1, result.bestand.notizen.single().anhaenge.size)
             val next = PersonalSync.reconcile(result.bestand, setOf("notes"), format)
-            assertEquals(if (remoteWins) remote.hash else local.hash, next.second.single { it.kind == "note" }.hash)
+            assertEquals(local.hash, next.second.single { it.kind == "note" }.hash)
+            assertEquals(note.angelegt, result.bestand.notizen.single().angelegt)
             val repeated = PersonalSync.apply(next.first, listOf(remote), attachments)
             assertEquals(0, repeated.conflicts); assertEquals(1, repeated.bestand.notizen.size)
             val changedValue = JsonObject(remote.value + ("html" to JsonPrimitive("<b>Same content</b>")))

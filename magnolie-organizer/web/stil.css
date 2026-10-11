@@ -1591,8 +1591,9 @@ body[data-hilfsrahmen="an"] .mm-tag:focus-visible {
   min-height: 0;
   width: 100%;
   overflow-x: auto;
-  overflow-y: scroll;
-  scrollbar-gutter: stable;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
   padding: 0 5px 4px 0;
 }
 
@@ -1600,6 +1601,10 @@ body[data-hilfsrahmen="an"] .kontakt-form-inhalt :focus-visible {
   outline-offset: -2px;
   box-shadow: inset 0 0 0 2px rgba(138, 109, 59, 0.18);
 }
+.kontakt-form-inhalt.wird-gescrollt { scrollbar-color: var(--braun-hell) transparent; }
+.kontakt-form-inhalt::-webkit-scrollbar { width: 3px; height: 3px; }
+.kontakt-form-inhalt::-webkit-scrollbar-thumb { background: transparent; }
+.kontakt-form-inhalt.wird-gescrollt::-webkit-scrollbar-thumb { background: var(--braun-hell); }
 
 .kontakt-formular .formzeile { margin-bottom: 6px; }
 .kontakt-formular .kontakt-mehrfach-kopf { margin: 5px 0 4px; }
@@ -2738,7 +2743,18 @@ textarea::-webkit-scrollbar-track,
 .notiz-uebersicht.wird-gescrollt::-webkit-scrollbar-thumb { background: var(--braun-hell); }
 .notiz-tagesgruppe { list-style: none; min-width: 0; }
 .notiz-tag-kopf { display: flex; align-items: center; gap: 8px; width: 100%; text-align: start; font-weight: 600; }
+.notiz-tag-kopf { padding: 8px 3px 4px; cursor: pointer; }
+.notiz-tageszeile, .notiz-tageszeile.aktiv { border: 0; box-shadow: none; background: transparent; border-radius: 0; }
+.notiz-tageszeile > .haupt { display: flex; align-items: center; gap: 9px; border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+.notiz-tageszeile.aktiv > .haupt { background: rgba(90, 70, 48, .09); }
+.notiz-sinnbild { flex: 0 0 auto; }
+.notiz-seiten .haupt.zeilen-aktion { display: flex; align-items: center; gap: 9px; }
+.notiz-zeilentext { display: block; min-width: 0; }
 .notiz-tag-zahl { margin-inline-start: auto; font-weight: normal; }
+.notiz-tag-trenner { flex: 1 1 20px; height: 1px; background: var(--linie); }
+.notiz-tageszeile { margin-bottom: 2px; }
+.notiz-tageszeile > .haupt { padding: 7px 3px; }
+.notiz-tageszeile .notiz-sinnbild { border: 1px solid var(--braun-hell); border-radius: 50%; padding: 5px; width: 34px; height: 34px; box-sizing: border-box; }
 .notiz-tag-pfeil { width: 1em; text-align: center; }
 .notiz-tag-seiten[hidden] { display: none; }
 .notiz-eigenschaften { max-height: 85vh; overflow: auto; }
@@ -2761,6 +2777,13 @@ textarea::-webkit-scrollbar-track,
 .custom-zeichenflaeche canvas { max-width: none; }
 .custom-modul-drawing > .knopfreihe { flex: 0 0 auto; flex-wrap: wrap; padding-block: 6px; }
 .custom-modul-drawing > .einst-hinweis { flex: 0 0 auto; margin-block: 6px 0; }
+.zeichen-werkzeuge { align-items: center; gap: 6px; }
+.zeichen-werkzeuge > select { width: auto; max-width: 155px; }
+.zeichen-werkzeuge > input[type="color"] { flex: 0 0 36px; width: 36px; height: 30px; padding: 2px; }
+.zeichen-werkzeuge > input[type="range"] { flex: 0 1 90px; width: 90px; min-width: 50px; }
+.zeichen-breite { min-width: 2em; text-align: end; font-variant-numeric: tabular-nums; }
+.eigenes-profil-kopf { display: flex; flex-direction: column; align-items: center; margin-bottom: 12px; }
+.eigenes-profil-kopf img { width: 96px; height: 96px; object-fit: cover; }
 
 .custom-modul {
   margin: 0 0 14px;
@@ -4232,11 +4255,13 @@ body[data-pruefung="an"] #notiz-titel {
 .bearbeiten-menue::before { display: none; }
 
 .bearbeiten-menue .vm-eintrag {
+  border: 0; border-radius: 0; box-shadow: none; background: transparent;
   display: flex;
   align-items: center;
   gap: 9px;
   font-size: 13.5px;
 }
+.bearbeiten-menue .vm-eintrag:hover, .bearbeiten-menue .vm-eintrag:focus { background: rgba(90, 70, 48, .14); }
 
 .bearbeiten-menue .vm-eintrag:first-of-type { margin-top: 0; }
 

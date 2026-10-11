@@ -953,7 +953,18 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     }
 
     Scaffold(
-        topBar = { Einband(stringResource(R.string.app_name)) },
+        topBar = { Einband(stringResource(R.string.app_name), rechts = {
+            io.gitlab.maik3531.magnolienotes.ui.TelefonKopf(telefonZustand,
+                sync = { runCatching {
+                    if (telefonZustand.sharedPreferencesSupported) telefonZustand.peer?.let { peer ->
+                        telefonWerk.configureCommonPreferences(peer.device_id, peer.static_public,
+                            gemeinsameSyncAnfangswerte(telefonZustand, bestand))
+                    }
+                    telefonWerk.personalSyncNow()
+                }.onFailure { sage(zusammenhang.fehlertext(it)) } },
+                computer = { id -> runCatching { telefonWerk.selectComputer(id) }.onFailure { sage(zusammenhang.fehlertext(it)) }
+                    if (id == null) blatt = 3 })
+        }) },
         bottomBar = {
             val ids = if (bestand.zeiterfassung.enabled) listOf(0, 1, 6, 5) else listOf(0, 1, 5)
             Register(

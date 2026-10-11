@@ -575,6 +575,7 @@ object PersonalSync {
                 anhangPartner = partners.filter { partner -> shared.filter { partner in it.baumFreigabe!!.partner }
                     .all { partner in it.baumFreigabe!!.anhangPartner } })
             replacements[keeper.id] = keeper.copy(baumFreigabe = share,
+                angelegt = group.map { it.angelegt }.filter { it > 0 }.minOrNull() ?: keeper.angelegt,
                 baumVersion = group.maxOf { it.baumVersion }, baumGeaendert = group.maxOf { it.baumGeaendert },
                 baumQuelle = keeper.baumQuelle.ifBlank { shared.firstOrNull()?.baumQuelle.orEmpty() },
                 persoenlichVerknuepft = group.any(::ownNote),
@@ -838,11 +839,14 @@ object PersonalSync {
                             // Keep wire hashes and clocks exact; only the conflict
                             // decision ignores timestamps and legacy template paths. Preserve local
                             // attachments not represented by this wire value.
-                            if (remoteWins) notes = notes.filterNot { it.id == id } +
+                            val remoteCreated = remote.value.longValue("created_ms")
+                            val sameContentRemoteWins = if (local.angelegt != remoteCreated && (local.angelegt > 0 || remoteCreated > 0))
+                                remoteCreated > 0 && (local.angelegt <= 0 || remoteCreated < local.angelegt) else remoteWins
+                            if (sameContentRemoteWins) notes = notes.filterNot { it.id == id } +
                                 receiveNote(remote.copy(id = id), local, additive = true)
                             entities[key] = localMeta.copy(clock = merged,
-                                hash = if (remoteWins) remote.hash else localMeta.hash,
-                                modified_ms = if (remoteWins) remote.modifiedMs else localMeta.modified_ms, conflict = false)
+                                hash = if (sameContentRemoteWins) remote.hash else localMeta.hash,
+                                modified_ms = if (sameContentRemoteWins) remote.modifiedMs else localMeta.modified_ms, conflict = false)
                             continue
                         }
                     }

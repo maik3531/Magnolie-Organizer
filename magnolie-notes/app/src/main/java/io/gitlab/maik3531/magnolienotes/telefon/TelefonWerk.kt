@@ -2487,6 +2487,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 val policy = queue.outboxPolicy(peer.device_id, entry.messageId)
                 if (policy == "invalid" || transport == TelefonTransportArt.BLUETOOTH && policy == "wifi_only")
                     return@forEach
+                if (kind == "personal_sync.settings") {
+                    // Ownership is a control message, not a content run.
+                    channel.send(entry.payload)
+                    queue.sent(entry.messageId, queue.attempts(entry.messageId))
+                    return@forEach
+                }
                 if (kind.startsWith("personal_sync.")) {
                     val body = entry.payload["body"] as JsonObject
                     if (kind.startsWith("personal_sync.custom_")) {
@@ -2539,7 +2545,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
         peerEffect(expected, generation) { peer ->
             val status = payload.string("status"); val error = payload.string("error")
             queue.outboxPersonalMessage(peer.device_id, id)?.let { queued ->
-                if (queue.containsScopedRun(peer.device_id, (queued.getValue("body") as JsonObject).string("run_id"))) {
+                val runId = ((queued.getValue("body") as JsonObject)["run_id"] as? JsonPrimitive)?.content
+                if (runId != null && queue.containsScopedRun(peer.device_id, runId)) {
                     if (queue.acknowledgeScopedRequest(peer.device_id, id, status, error)) return@peerEffect
                     if (status == "rejected" && error == "temporary_failure") return@peerEffect
                 }

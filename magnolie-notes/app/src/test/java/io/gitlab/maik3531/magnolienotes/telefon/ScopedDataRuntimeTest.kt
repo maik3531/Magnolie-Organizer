@@ -38,6 +38,7 @@ class ScopedDataRuntimeTest {
     @Test fun manualStartWaitsForScopeAndRequestReceiptsAndResumesOnlyAfterFreshSessionControls() = exercise("manual")
     @Test fun independentTimeChangeDefersScopedDataWithoutAdmittingRawFallback() = exercise("time")
     @Test fun selectedOrganizerNoteCanBeSentAgainAfterDeletingItsPhoneCopy() = exercise("single")
+    @Test fun ownershipControlAndItsAckDoNotRequireContentRunId() = exercise("ownership")
 
     private fun exercise(mode: String) {
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -98,6 +99,8 @@ class ScopedDataRuntimeTest {
                 work.receiveMessage(peer, TelefonNachrichten.message(SharedSyncSettings.KIND, shared, 60000), channel, 0)
                 val pump = TelefonWerk::class.java.getDeclaredMethod("sendDue", TelefonPeer::class.java, TelefonSecureChannel::class.java,
                     Long::class.javaPrimitiveType, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
+                val ownership = if (mode == "ownership") TelefonNachrichten.message("personal_sync.settings",
+                    buildJsonObject { put("format", 1); put("own_device", true) }, 60000).also { queue.queuePrepared(peerId, it) } else null
                 pump.invoke(work, peer, channel, 0L, false); pump.invoke(work, peer, channel, 0L, false)
                 assertEquals(shared, session.sharedReceived); assertEquals(shared, session.sharedSent)
                 fun sent(): List<JsonObject> {
@@ -120,6 +123,12 @@ class ScopedDataRuntimeTest {
                 fun ackScope() { session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { ack(it) } }
                 fun scoped(messages: List<JsonObject>) = messages.filter { it["kind"] == JsonPrimitive(PhoneContentScope.DATA_KIND) }
                 val manifest = requireNotNull(session.localContentScope)
+                if (ownership != null) {
+                    assertTrue(sent().any { it["message_id"] == ownership["message_id"] && it["kind"] == JsonPrimitive("personal_sync.settings") })
+                    ack(ownership.string("message_id"))
+                    assertNull(queue.outboxPersonalMessage(peerId, ownership.string("message_id")))
+                    return@use
+                }
                 if (mode == "single") {
                     val selected = documents.personalSyncSnapshot(setOf("notes"), 3).first { it.kind == "note" }.copy(id = "organizer-note")
                     repeat(2) {

@@ -615,7 +615,7 @@ internal sealed partial class BridgeDispatcher
                     if (parsed.Kontakte.Count != 1) throw new InvalidDataException("invalid_contact_vcard");
                     var contact = parsed.Kontakte[0]!.AsObject();
                     item.Remove("vcard");
-                    foreach (var field in new[] { "foto", "telefone", "telefon", "mobil", "email", "emails", "emailEintraege" })
+                    foreach (var field in new[] { "foto", "telefone", "telefon", "mobil", "email", "emails", "emailEintraege", "sozialeMedien" })
                         item[field] = contact[field]?.DeepClone();
                 }
             }

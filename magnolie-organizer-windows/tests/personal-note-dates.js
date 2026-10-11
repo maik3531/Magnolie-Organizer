@@ -32,7 +32,8 @@ async function check(web) {
       assert.equal(result.conflicts, 0); assert.equal(T.daten().notizen.length, 1);
       assert.equal(T.daten().notizen[0].anhaenge.length, 1, "timestamp convergence removed an unrepresented attachment");
       const snapshot = (await T.personalSyncSnapshot(["notes"], format, "peer")).find(r => r.kind === "note");
-      assert.equal(snapshot.hash, remoteWins ? remote.hash : baseline.hash, "wire hash disagrees with the retained value");
+       assert.equal(snapshot.hash, baseline.hash, "Older creation date must be retained regardless of hash ordering");
+       assert.equal(snapshot.value.created_ms, 1);
       assert.equal((await T.personalSyncAnwenden([remote], attachments, format, "peer", ["notes"])).conflicts, 0);
       assert.equal(T.daten().notizen.length, 1);
       const changedValue = { ...remote.value, html: "<b>Same content</b>" };

@@ -22762,6 +22762,8 @@ class Fenster(_FENSTER_BASIS):
             self.antwort("App.personalSyncAttachmentIndex", nutzlast)
         elif art == "personal_decision_accepted":
             self.antwort("App.personalSyncDecisionAccepted", nutzlast)
+        elif art == "personal_collection":
+            self.antwort("App.personalSyncCollection", nutzlast)
         if art in ("status", "paired", "device_status"):
             self._telefon_stand_melden()
 
@@ -22943,7 +22945,7 @@ class Fenster(_FENSTER_BASIS):
                         if len(contacts) != 1:
                             raise ValueError("invalid_contact_vcard")
                         del item["vcard"]
-                        for field in ("foto", "telefone", "telefon", "mobil", "email", "emails", "emailEintraege"):
+                        for field in ("foto", "telefone", "telefon", "mobil", "email", "emails", "emailEintraege", "sozialeMedien"):
                             item[field] = contacts[0].get(field)
             elif not notes:
                 result = backend.contact_uids(device_id)

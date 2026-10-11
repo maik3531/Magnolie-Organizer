@@ -27,7 +27,7 @@ def test_bridge_exposes_only_photo_and_matching_fields(native, monkeypatch):
     name, response = replies[-1]
     assert name == 'App.kontaktFotos' and response['ok'] is True
     contact = response['contacts'][0]
-    assert set(contact) == {'uid', 'foto', 'telefone', 'telefon', 'mobil', 'email', 'emails', 'emailEintraege'}
+    assert set(contact) == {'uid', 'foto', 'telefone', 'telefon', 'mobil', 'email', 'emails', 'emailEintraege', 'sozialeMedien'}
     assert contact['foto'].startswith('data:image/png;base64,')
     assert contact['email'] == 'fixture@example.org'
     assert host._kontakt_fotos_laeuft is False
@@ -86,5 +86,6 @@ def test_notes_source_is_separate_read_only_and_revalidated(native, monkeypatch,
             assert card["bindung"].startswith("urn:magnolie:import:notes:")
             assert card["kontakt"]["sozialeMedien"][0]["dienst"] == "whatsapp"
         else:
-            assert "kontakt" not in card and "notiz" not in card and "sozialeMedien" not in card
+            assert "kontakt" not in card and "notiz" not in card
+            assert card["sozialeMedien"] == [{"dienst": "whatsapp", "wert": "+491701234567"}]
             assert card["foto"].startswith("data:image/png;base64,")
