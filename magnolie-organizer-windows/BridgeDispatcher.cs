@@ -148,6 +148,12 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "ordner_waehlen": await SelectFolderAsync(); break;
                     case "drucken": form.ShowPrintDialog(Text(message, "html")); break;
                     case "notiz_anhang_datei": await HandleAttachmentFileAsync(message); break;
+                    case "zeichenblatt_svg_speichern":
+                        var svgBytes = DrawingSvg.Validate(Text(message, "svg"));
+                        using (var svgDialog = new SaveFileDialog { Title = T("Save"), FileName = Path.GetFileName(Text(message, "name")),
+                            Filter = "SVG (*.svg)|*.svg", DefaultExt = "svg", AddExtension = true, OverwritePrompt = true })
+                            if (svgDialog.ShowDialog(form) == DialogResult.OK) await File.WriteAllBytesAsync(svgDialog.FileName, svgBytes);
+                        break;
                     case "update_oeffnen": await OpenValidatedResultAsync("App.updateGeoeffnet",
                         Text(message, "url"), updates.IsValidatedReleaseUrl); break;
                     case "handbuch_herunterladen": await DownloadManualAsync(message); break;
@@ -196,7 +202,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "graph_anmelden": await SignInGraphAsync(); break;
                     case "graph_abmelden": await SignOutGraphAsync(); break;
                     case "lo_benutzer":
-                        await form.SendAsync("App.loBenutzer", await Task.Run(() => LibreOfficeUserData.Read()));
+                        await form.SendAsync("App.loBenutzer", await Task.Run(() => PersonalUserData()));
                         break;
                     case "tray_einstellungen":
                         if (message.TryGetProperty("einstellungen", out var tray)) await form.ApplyTraySettingsAsync(tray);
@@ -262,10 +268,32 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "telefon_anruf_lautstaerke_wiederherstellen": break;
                     case "personal_sync_einstellungen": await telefon.SetPersonalSyncAsync(Text(message, "kennung"), Boolean(message, "eigen"), Boolean(message, "autoWlan")); break;
                     case "personal_sync_notizrichtung": await telefon.SetNoteModeAsync(Text(message, "kennung"), Text(message, "modus")); break;
+                    case "personal_sync_gemeinsam_initialisieren":
+                        await telefon.SetCommonPreferencesAsync(Text(message, "kennung"), Text(message, "fingerabdruck"),
+                            JsonNode.Parse(message.GetProperty("initial").GetRawText())!.AsObject()); break;
+                    case "personal_sync_gemeinsam_start":
+                        await telefon.StartCommonSyncAsync(Text(message, "kennung"), Text(message, "fingerabdruck"),
+                            JsonNode.Parse(message.GetProperty("initial").GetRawText())!.AsObject()); break;
+                    case "personal_sync_gemeinsam_aendern":
+                        await telefon.SetCommonPreferencesAsync(Text(message, "kennung"), Text(message, "fingerabdruck"),
+                            JsonNode.Parse(message.GetProperty("initial").GetRawText())!.AsObject(), Text(message, "feld"),
+                            JsonNode.Parse(message.GetProperty("wert").GetRawText())); break;
                     case "personal_sync_betrieb": await telefon.SetPersonalSyncModeAsync(Text(message, "kennung"), Boolean(message, "autoWlan"), Boolean(message, "loeschungenAuslassen")); break;
                     case "personal_sync_desktop_features": await telefon.SetDesktopFeaturesAsync(Boolean(message, "customTab"), Boolean(message, "baumAktiv")); break;
                     case "personal_sync_senden": await SendPersonalSyncAsync(message); break;
                     case "personal_sync_lauf_senden": await SendPersonalSyncRunAsync(message); break;
+                    case "eigenes_profil_office":
+                    {
+                        var requestId = Text(message, "requestId");
+                        try
+                        {
+                            var fields = Object(message, "felder").ToDictionary(pair => pair.Key, pair => pair.Value!.GetValue<string>());
+                            var result = await Task.Run(() => LibreOfficeUserData.ExchangeProfile(requestId, Text(message, "operation"), fields, Text(message, "stamp")));
+                            await form.SendAsync("App.eigenesProfilOffice", result);
+                        }
+                        catch (Exception error) { await form.SendAsync("App.eigenesProfilOffice", new { requestId, ok = false, fehler = error.Message }); }
+                        break;
+                    }
                     case "personal_sync_attachment_index": await IndexPersonalSyncAttachmentsAsync(message); break;
                     case "telefon_personal_sync_commit": await CommitPersonalSyncAsync(message); break;
                     case "kde_sms_senden": await SendKdeSmsAsync(message); break;
@@ -1684,12 +1712,18 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
     }
 
+    private LibreOfficeUserDataResult PersonalUserData(string purpose = "address")
+    {
+        var profile = string.IsNullOrEmpty(currentPlainText) ? null : JsonNode.Parse(currentPlainText)?["eigenesProfil"] as JsonObject;
+        return OwnProfileFallback.Resolve(LibreOfficeUserData.Read(), profile, purpose);
+    }
+
     private async Task FetchWeatherAsync(JsonElement message)
     {
         var identifier = Integer(message, "kennung");
         var allowApproximate = !message.TryGetProperty("ohneOrtAbrufen", out var approximate) ||
                                approximate.ValueKind != JsonValueKind.False;
-        var weatherLocation = WeatherLocationSelector.Select(Text(message, "ort"), allowApproximate);
+        var weatherLocation = WeatherLocationSelector.Select(Text(message, "ort"), allowApproximate, () => PersonalUserData("location"));
         if (!weatherLocation.ShouldFetch)
         {
             await form.SendAsync("App.wetterErgebnis", new

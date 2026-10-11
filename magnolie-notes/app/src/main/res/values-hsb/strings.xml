@@ -418,4 +418,9 @@
     <string name="kontakt_review_neueste">Nowšu wersiju wužiwać</string>
     <string name="kontakt_review_rest">Tutón wuběr na zbytk jednozmyslnje přirjadowanych konfliktow nałožić</string>
     <string name="kontakt_review_geburtsname">Rodźene mjeno: %1$s</string>
+    <string name="shared_sync_content">Noticy a nadawki</string>
+    <string name="shared_sync_notes_collection">Jenož wobsah Notes synchronizować</string>
+    <string name="shared_sync_all_content">Wšě noticy a nadawki synchronizować</string>
+    <string name="shared_sync_manual">Manuelnje</string>
+    <string name="shared_sync_time_direction">Směr synchronizacije časoweho zapisowanja</string>
 </resources>

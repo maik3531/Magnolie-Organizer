@@ -17,6 +17,141 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgid "Send to Notes"
+msgstr "An Notes senden"
+
+msgid "Calligraphy pen"
+msgstr "Feder"
+
+msgid "Brush"
+msgstr "Pinsel"
+
+msgid "Highlighter"
+msgstr "Textmarker"
+
+msgid "Export SVG"
+msgstr "Als SVG exportieren"
+
+msgid "Default view"
+msgstr "Vorgabeansicht"
+
+msgid "Group by day"
+msgstr "Nach Tagen gruppieren"
+
+msgid "Page order"
+msgstr "Seitenreihenfolge"
+
+msgid "Newest first"
+msgstr "Neueste zuerst"
+
+msgid "Oldest first"
+msgstr "Älteste zuerst"
+
+msgid "Recently modified"
+msgstr "Zuletzt geändert"
+
+msgid "Expand day groups by default"
+msgstr "Tagesgruppen standardmäßig aufklappen"
+
+msgid "Collapse day groups by default"
+msgstr "Tagesgruppen standardmäßig zuklappen"
+
+msgid "Properties"
+msgstr "Eigenschaften"
+
+msgid "Created"
+msgstr "Erstellt"
+
+msgid "Modified"
+msgstr "Geändert"
+
+msgid "No date recorded"
+msgstr "Kein Datum aufgezeichnet"
+
+msgid "Estimated from older data"
+msgstr "Aus älteren Daten abgeleitet"
+
+msgid "Merge history"
+msgstr "Zusammenführungsverlauf"
+
+msgid "No merge history recorded"
+msgstr "Kein Zusammenführungsverlauf aufgezeichnet"
+
+msgid "Merged"
+msgstr "Zusammengeführt"
+
+msgid "Undated"
+msgstr "Ohne Datum"
+
+msgid "Own profile"
+msgstr "Eigenes Profil"
+
+msgid "Share selected details"
+msgstr "Ausgewählte Angaben weitergeben"
+
+msgid "Compare with LibreOffice"
+msgstr "Mit LibreOffice abgleichen"
+
+msgid "Delete own profile"
+msgstr "Eigenes Profil löschen"
+
+msgid "Delete your own profile?"
+msgstr "Eigenes Profil löschen?"
+
+msgid "Changes to your own profile are saved with Save."
+msgstr "Änderungen am eigenen Profil werden mit „Speichern“ übernommen."
+
+msgid "LibreOffice user data updated."
+msgstr "LibreOffice-Benutzerdaten aktualisiert."
+
+msgid "Only the Notes collection"
+msgstr "Nur den Bestand auf dem Handy abgleichen"
+
+msgid "Synchronize all notes and tasks"
+msgstr "Alle Notizen und Aufgaben abgleichen"
+
+msgid "Notes and tasks"
+msgstr "Notizen und Aufgaben"
+
+msgid "Time synchronization direction"
+msgstr "Abgleichrichtung der Zeiterfassung"
+
+msgid "This profile format is not supported."
+msgstr "Dieses Profilformat wird nicht unterstützt."
+
+msgid "Address imported from own profile."
+msgstr "Anschrift aus dem eigenen Profil übernommen."
+
+msgid "Field"
+msgstr "Feld"
+
+msgid "Action"
+msgstr "Aktion"
+
+msgid "No LibreOffice user profile is available."
+msgstr "Es ist kein LibreOffice-Benutzerprofil verfügbar."
+
+msgid "LibreOffice user data changed. Compare the fields again."
+msgstr "Die LibreOffice-Benutzerdaten wurden geändert. Vergleichen Sie die Felder erneut."
+
+msgid "Close LibreOffice before updating its user data."
+msgstr "Schließen Sie LibreOffice, bevor Sie dessen Benutzerdaten ändern."
+
+msgid "The selected note contains attachments that cannot be sent."
+msgstr "Die ausgewählte Notiz enthält Anhänge, die nicht gesendet werden können."
+
+msgid "Send this new note to Notes"
+msgstr "Diese neue Notiz an Notes senden"
+
+msgid "Connect Notes before sending this entry."
+msgstr "Verbinden Sie Notes, bevor Sie diesen Eintrag senden."
+
+msgid "Only personal entries can be sent to Notes."
+msgstr "Nur persönliche Einträge können an Notes gesendet werden."
+
+msgid "The selected entry is too large to send."
+msgstr "Der ausgewählte Eintrag ist zu groß zum Senden."
+
 msgid " (filtered)"
 msgstr " (Auswahl)"
 

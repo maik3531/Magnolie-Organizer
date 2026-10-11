@@ -44,7 +44,8 @@ class ContactReadTest {
 
     @Test fun exportsReadableMessengerRowsWithoutGuessingMembership() {
         assertNull(ContactReadAndroid.messenger("vnd.android.cursor.item/phone_v2", "+49123456789", "", ""))
-        assertNull(ContactReadAndroid.messenger("vnd.android.cursor.item/vnd.com.whatsapp.profile", "+49123456789", "", ""))
+        assertEquals("+49123456789", ContactReadAndroid.messenger("vnd.android.cursor.item/vnd.com.whatsapp.profile", "+49123456789", "", "")!!.string("wert"))
+        assertNull(ContactReadAndroid.messenger("vnd.android.cursor.item/phone_v2", "+49123456789", "", "WhatsApp"))
         val social = ContactReadAndroid.messenger("vnd.android.cursor.item/vnd.com.whatsapp.profile", "49123456789@s.whatsapp.net", "", "")!!
         assertEquals("whatsapp", social.string("dienst"))
         assertEquals("+49123456789", social.string("wert"))
@@ -59,5 +60,13 @@ class ContactReadTest {
         val report = ContactRead.report(request("cards", uids = listOf("lookup:1")), 1, listOf(JsonObject(mapOf(
             "uid" to JsonPrimitive("lookup:1"), "timestamp" to JsonPrimitive(1700000000000), "vcard" to JsonPrimitive(card)))))
         ContactRead.validateReport(report)
+    }
+
+    @Test fun explicitWebsiteProfilesAreReadWithoutTurningServiceHomepagesIntoProfiles() {
+        assertEquals("instagram", ContactReadAndroid.profileLink("https://www.instagram.com/example_user/")!!.string("dienst"))
+        assertEquals("telegram", ContactReadAndroid.profileLink("https://t.me/example_user")!!.string("dienst"))
+        assertNull(ContactReadAndroid.profileLink("https://www.instagram.com/"))
+        assertNull(ContactReadAndroid.profileLink("https://facebook.com/"))
+        assertNull(ContactReadAndroid.profileLink("https://example.invalid/someone"))
     }
 }

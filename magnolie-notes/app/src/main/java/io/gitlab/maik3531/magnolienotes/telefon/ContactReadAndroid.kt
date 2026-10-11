@@ -10,6 +10,7 @@ import android.provider.ContactsContract.Contacts
 import android.provider.ContactsContract.Data
 import android.provider.ContactsContract.CommonDataKinds.Im
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership
+import android.provider.ContactsContract.CommonDataKinds.Website
 import android.provider.ContactsContract.Groups
 import io.gitlab.maik3531.magnolienotes.baum.AndroidKontakte
 import io.gitlab.maik3531.magnolienotes.baum.AndroidKontakt
@@ -34,7 +35,7 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
         if (request.string("action") == "index") {
             val entries = mutableListOf<Pair<String, Long>>()
             context.contentResolver.query(Contacts.CONTENT_URI,
-                arrayOf(Contacts.LOOKUP_KEY, Contacts.CONTACT_LAST_UPDATED_TIMESTAMP), null, null, null)?.use { cursor ->
+                arrayOf(Contacts.LOOKUP_KEY, Contacts.CONTACT_LAST_UPDATED_TIMESTAMP), "${Contacts.IS_USER_PROFILE}=0", null, null)?.use { cursor ->
                 while (cursor.moveToNext()) {
                     val uid = cursor.getString(0).orEmpty()
                     require(ContactRead.validUid(uid) && entries.size < ContactRead.MAX_CONTACTS)
@@ -53,9 +54,11 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
         val snapshot = AndroidKontakte(context).snapshot(uids.toSet())
         require(snapshot.vollstaendig && snapshot.kontakte.map { it.lookupKey }.toSet() == uids.toSet())
         val groupsByContact = mutableMapOf<Long, List<String>>()
+        val socialByContact = mutableMapOf<Long, List<JsonObject>>()
         val cards = uids.map { uid ->
             val contact = snapshot.kontakte.single { it.lookupKey == uid }
             val social = messengerRows(contact.contactId)
+            socialByContact[contact.contactId] = social
             val groups = groupRows(contact.contactId); groupsByContact[contact.contactId] = groups
             val card = vcard(contact, displayPhoto(contact), social, groups)
             buildJsonObject {
@@ -71,6 +74,7 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
                 it.rawVersionen == before.rawVersionen }
         })
         require(groupsByContact.all { (id, groups) -> groupRows(id) == groups })
+        require(socialByContact.all { (id, social) -> messengerRows(id) == social })
         check(permission())
         return ContactRead.report(request, cards.size, cards)
     }
@@ -99,8 +103,8 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
     private fun messengerRows(contactId: Long): List<JsonObject> {
         val result = mutableListOf<JsonObject>()
         context.contentResolver.query(Data.CONTENT_URI,
-            arrayOf(Data.MIMETYPE, Data.DATA1, Im.PROTOCOL, Im.CUSTOM_PROTOCOL), "${Data.CONTACT_ID}=? AND ${Data.MIMETYPE} IN (?,?)",
-            arrayOf(contactId.toString(), Im.CONTENT_ITEM_TYPE, "vnd.android.cursor.item/vnd.com.whatsapp.profile"), null)?.use { cursor ->
+            arrayOf(Data.MIMETYPE, Data.DATA1, Im.PROTOCOL, Im.CUSTOM_PROTOCOL), "${Data.CONTACT_ID}=? AND ${Data.MIMETYPE} IN (?,?,?)",
+            arrayOf(contactId.toString(), Im.CONTENT_ITEM_TYPE, "vnd.android.cursor.item/vnd.com.whatsapp.profile", Website.CONTENT_ITEM_TYPE), null)?.use { cursor ->
             while (cursor.moveToNext()) {
                 val row = messenger(cursor.getString(0).orEmpty(), cursor.getString(1).orEmpty(),
                     cursor.getString(2).orEmpty(), cursor.getString(3).orEmpty()) ?: continue
@@ -108,7 +112,7 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
                 require(result.size <= 100)
             }
         } ?: error("contacts_unavailable")
-        return result
+        return result.sortedBy { it.toString() }
     }
 
     private fun thumbnail(data: String): String {
@@ -161,20 +165,64 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
 
     companion object {
         fun messenger(mime: String, value: String, protocol: String, custom: String): JsonObject? {
+            if (mime == Website.CONTENT_ITEM_TYPE) return profileLink(value)
             val service: String
             val identifier: String
             if (mime == "vnd.android.cursor.item/vnd.com.whatsapp.profile") {
                 // A readable WhatsApp provider row, not a guessed membership
                 // based on another phone-number field.
-                if (!Regex("[0-9]{5,20}@s\\.whatsapp\\.net").matches(value)) return null
-                service = "WhatsApp"; identifier = "+" + value.substringBefore('@')
+                identifier = when {
+                    Regex("[0-9]{5,20}@s\\.whatsapp\\.net").matches(value) -> "+" + value.substringBefore('@')
+                    Regex("\\+[0-9]{5,20}").matches(value) -> value
+                    else -> return null
+                }
+                service = "WhatsApp"
             } else if (mime == Im.CONTENT_ITEM_TYPE && protocol == Im.PROTOCOL_CUSTOM.toString()) {
-                service = listOf("WhatsApp", "Signal", "Telegram", "Threema", "Facebook", "Instagram")
-                    .firstOrNull { it.equals(custom, ignoreCase = true) } ?: return null
+                service = listOf("WhatsApp", "Signal", "Telegram", "Threema", "Facebook", "Instagram", "Teams",
+                    "Snapchat", "TikTok", "YouTube", "Mastodon", "X", "LinkedIn", "Reddit")
+                    .firstOrNull { it.equals(custom.trim(), ignoreCase = true) }
+                    ?: if (custom.equals("Twitter", ignoreCase = true)) "X" else return null
                 identifier = value.trim()
                 if (identifier.isEmpty() || identifier.length > 2048 || identifier.any(Char::isISOControl)) return null
+                if (Regex("(?i)^https?://").containsMatchIn(identifier)) return profileLink(identifier, service.lowercase())
             } else return null
             return buildJsonObject { put("dienst", JsonPrimitive(service.lowercase())); put("wert", JsonPrimitive(identifier)) }
+        }
+
+        fun profileLink(raw: String, declared: String? = null): JsonObject? {
+            val value = raw.trim()
+            if (value.length !in 1..2048 || value.any(Char::isISOControl)) return null
+            val uri = runCatching { java.net.URI(value) }.getOrNull() ?: return null
+            if (uri.scheme?.lowercase() !in setOf("http", "https") || uri.rawUserInfo != null || uri.port !in setOf(-1, 80, 443)) return null
+            val host = uri.host?.lowercase()?.removePrefix("www.") ?: return null
+            val path = uri.path.orEmpty().trim('/'); val pieces = path.split('/').filter(String::isNotBlank)
+            var fragment: String? = null; var query: String? = null
+            fun single(pattern: String, excluded: Set<String> = emptySet()) = pieces.size == 1 && Regex(pattern).matches(pieces[0]) && pieces[0].lowercase() !in excluded
+            val service = when {
+                host == "instagram.com" && single("[A-Za-z0-9._]{1,30}", setOf("accounts", "explore", "direct", "stories", "reels", "reel", "p", "about")) -> "instagram"
+                host in setOf("facebook.com", "m.facebook.com") && path == "profile.php" -> {
+                    val id = uri.rawQuery.orEmpty().split('&').singleOrNull { it.startsWith("id=") }?.removePrefix("id=") ?: return null
+                    if (!Regex("[0-9]+").matches(id)) return null
+                    query = "id=$id"; "facebook"
+                }
+                host in setOf("facebook.com", "m.facebook.com") && single("[A-Za-z0-9.]+", setOf("login", "help", "pages", "groups", "watch", "share", "sharer", "privacy", "settings", "marketplace", "events", "photo", "photos", "reel")) -> "facebook"
+                host in setOf("facebook.com", "m.facebook.com") && pieces.size == 3 && pieces[0] == "people" && Regex("[0-9]+").matches(pieces[2]) -> "facebook"
+                host in setOf("x.com", "twitter.com") && single("[A-Za-z0-9_]{1,15}", setOf("home", "explore", "search", "settings", "intent", "i", "compose", "messages", "notifications")) -> "x"
+                host in setOf("t.me", "telegram.me") && single("[A-Za-z][A-Za-z0-9_]{4,31}", setOf("share", "joinchat", "addstickers", "proxy", "login")) -> "telegram"
+                host == "wa.me" && single("[0-9]{5,20}") -> "whatsapp"
+                host == "threema.id" && single("[A-Za-z0-9]{8}") -> "threema"
+                host == "signal.me" && Regex("p/\\+[0-9]{5,20}|eu/[A-Za-z0-9_-]+").matches(uri.fragment.orEmpty()) -> { fragment = uri.fragment; "signal" }
+                host == "linkedin.com" && pieces.size == 2 && pieces[0] in setOf("in", "company") -> "linkedin"
+                host == "youtube.com" && (single("@[A-Za-z0-9._-]+") || pieces.size == 2 && pieces[0] == "channel") -> "youtube"
+                host == "tiktok.com" && single("@[A-Za-z0-9._]+") -> "tiktok"
+                host == "snapchat.com" && pieces.size == 2 && pieces[0] == "add" -> "snapchat"
+                host == "reddit.com" && pieces.size == 2 && pieces[0] in setOf("u", "user") -> "reddit"
+                declared == "mastodon" && (single("@[A-Za-z0-9_.-]+") || pieces.size == 2 && pieces[0] == "users") -> "mastodon"
+                else -> return null
+            }
+            if (declared != null && declared != service) return null
+            val clean = java.net.URI("https", null, host, -1, uri.path.orEmpty(), query, fragment).toASCIIString()
+            return buildJsonObject { put("dienst", JsonPrimitive(service)); put("wert", JsonPrimitive(clean)) }
         }
 
         fun vcard(contact: AndroidKontakt, jpegBase64: String, social: List<JsonObject>, groups: List<String> = emptyList()): String {

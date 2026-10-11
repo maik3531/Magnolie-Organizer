@@ -57,6 +57,7 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
             "${RawContacts.DELETED}=0" + if (konto != null) " AND ${RawContacts.ACCOUNT_NAME}=? AND ${RawContacts.ACCOUNT_TYPE}=?" else "",
             konto?.let { arrayOf(it.name, it.type) }, null)?.use { c ->
             while (c.moveToNext()) {
+                if (ContactsContract.isProfileId(c.getLong(0)) || ContactsContract.isProfileId(c.getLong(1))) continue
                 rawZuKontakt[c.getLong(0)] = c.getLong(1)
                 if (c.getType(6) == android.database.Cursor.FIELD_TYPE_INTEGER) rawVersionen[c.getLong(0)] = c.getLong(6)
                 herkunft[c.getLong(0)] = KontaktHerkunft(c.getString(2).orEmpty(), c.getString(3).orEmpty(),
@@ -67,7 +68,7 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
         val geaendert = mutableMapOf<Long, Long>()
         val accountFilter = if (konto == null) null else if (rawZuKontakt.isEmpty()) "0" else
             "${Contacts._ID} IN (${rawZuKontakt.values.distinct().joinToString(",")})"
-        val contactFilter = listOfNotNull(accountFilter, lookupKeys?.let {
+        val contactFilter = listOfNotNull("${Contacts.IS_USER_PROFILE}=0", accountFilter, lookupKeys?.let {
             "${Contacts.LOOKUP_KEY} IN (${it.joinToString(",") { "?" }})"
         }).takeIf { it.isNotEmpty() }?.joinToString(" AND ")
         val contactArgs = lookupKeys?.toTypedArray()
@@ -83,12 +84,12 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
                     else c.getLong(2).takeIf { it in 0..253402300799999L } ?: 0
             }
         } ?: return KontaktSnapshot(emptyList(), false)
-        if (lookupKeys != null) rawZuKontakt.entries.removeAll { it.value !in lookup }
+        rawZuKontakt.entries.removeAll { it.value !in lookup }
         val daten = rawZuKontakt.keys.associateWith { BauKontakt() }.toMutableMap()
         val spalten = arrayOf(Data.RAW_CONTACT_ID, Data.MIMETYPE, Data.DATA1, Data.DATA2,
             Data.DATA3, Data.DATA4, Data.DATA5, Data.DATA6, Data.DATA7, Data.DATA8, Data.DATA9, Data.DATA10,
             Data.DATA15)
-        val dataFilter = if (konto == null && lookupKeys == null) null else if (rawZuKontakt.isEmpty()) "0" else
+        val dataFilter = if (rawZuKontakt.isEmpty()) "0" else
             "${Data.RAW_CONTACT_ID} IN (${rawZuKontakt.keys.joinToString(",")})"
         resolver.query(Data.CONTENT_URI, spalten, dataFilter, null, null)?.use { c ->
             while (c.moveToNext()) {
@@ -182,7 +183,8 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
 
     /** Stellt nur den im Snapshot gebundenen RawContact wieder her; niemals einen Namensfund. */
     fun wiederherstellen(stand: KontaktRohstand, konfliktBestaetigt: Boolean,
-                         operationId: String = ""): RestoreErgebnis = synchronized(PROVIDER_SPERRE) {
+                          operationId: String = ""): RestoreErgebnis = synchronized(PROVIDER_SPERRE) {
+        if (ContactsContract.isProfileId(stand.rawContactId)) return@synchronized RestoreErgebnis.NICHT_SCHREIBBAR
         if (stand.generatedByMagnolie && stand.action == "create") {
             if (stand.operationId.isBlank()) return@synchronized RestoreErgebnis.NICHT_SCHREIBBAR
             val raw = operationRaw(stand.operationId) ?: return@synchronized RestoreErgebnis.WIEDERHERGESTELLT
@@ -209,6 +211,7 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
     }
 
     fun loeschen(rawId: Long, lookupKey: String): Boolean {
+        if (ContactsContract.isProfileId(rawId)) return false
         val lokal = runCatching { liesRaw(rawId) }.getOrNull() ?: return false
         if (lokal.lookupKey != lookupKey) return false
         val op = ContentProviderOperation.newDelete(ContentUris.withAppendedId(RawContacts.CONTENT_URI, rawId)).build()

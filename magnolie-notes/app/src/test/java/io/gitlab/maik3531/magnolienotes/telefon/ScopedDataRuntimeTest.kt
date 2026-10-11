@@ -37,6 +37,7 @@ class ScopedDataRuntimeTest {
     @Test fun scopedOrganizerUpdateReachesExistingPhoneNoteButRemovedOrOtherNotesNeverAppear() = exercise("receive")
     @Test fun manualStartWaitsForScopeAndRequestReceiptsAndResumesOnlyAfterFreshSessionControls() = exercise("manual")
     @Test fun independentTimeChangeDefersScopedDataWithoutAdmittingRawFallback() = exercise("time")
+    @Test fun selectedOrganizerNoteCanBeSentAgainAfterDeletingItsPhoneCopy() = exercise("single")
 
     private fun exercise(mode: String) {
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -70,8 +71,7 @@ class ScopedDataRuntimeTest {
             storage.savePeer(peer)
             val work = TelefonWerk.get(context)
             runtimeWork = work
-            work.sharedLocalCapabilities = { TelefonCapabilities.phase1().mapValues { (name, capability) ->
-                if (name in setOf("personal_notes_sync", "personal_tasks_sync")) capability.copy(versions = capability.versions + listOf(9, 10)) else capability } }
+            work.sharedLocalCapabilities = { TelefonCapabilities.phase1() }
             field(TelefonWerk::class.java, "serviceRunning").setBoolean(work, true)
             (field(TelefonWerk::class.java, "connecting").get(work) as AtomicBoolean).set(true)
             val closed = AtomicInteger()
@@ -120,6 +120,26 @@ class ScopedDataRuntimeTest {
                 fun ackScope() { session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { ack(it) } }
                 fun scoped(messages: List<JsonObject>) = messages.filter { it["kind"] == JsonPrimitive(PhoneContentScope.DATA_KIND) }
                 val manifest = requireNotNull(session.localContentScope)
+                if (mode == "single") {
+                    val selected = documents.personalSyncSnapshot(setOf("notes"), 3).first { it.kind == "note" }.copy(id = "organizer-note")
+                    repeat(2) {
+                        val run = UUID.randomUUID().toString()
+                        val request = buildJsonObject {
+                            put("format", 3); put("run_id", run); put("trigger", "manual")
+                            put("modules", JsonArray(listOf(JsonPrimitive("notes"))))
+                            put("send_item", buildJsonObject { put("kind", "note"); put("id", selected.id) })
+                        }
+                        work.receiveMessage(peer, TelefonNachrichten.message("personal_sync.request", request, 60000), channel, 0)
+                        val batch = PersonalSyncProtokoll.batch(run, listOf(selected), 0, true, false, 3, PersonalSync.recordsHash(listOf(selected)))
+                        work.receiveMessage(peer, TelefonNachrichten.message("personal_sync.batch", batch, 60000), channel, 0)
+                        assertEquals(selected.value.getValue("text").jsonPrimitive.content, documents.notiz(selected.id)?.text)
+                        assertNotNull(documents.notiz("phone-note"))
+                        assertTrue(queue.readyPersonalBatches().isEmpty())
+                        documents.loescheNotiz(selected.id)
+                        assertNull(documents.notiz(selected.id))
+                    }
+                    return@use
+                }
                 if (mode == "manual") {
                     sent()
                     field(TelefonWerk::class.java, "activeChannel").set(work, channel)
@@ -191,7 +211,8 @@ class ScopedDataRuntimeTest {
                     assertEquals("not_granted", sent().last { it["type"] == JsonPrimitive("ack") }.string("error"))
                     assertNull(queue.personalRun(peerId, rawRun))
                     val previousCapabilities = work.sharedLocalCapabilities
-                    work.sharedLocalCapabilities = { TelefonCapabilities.phase1() }
+                    work.sharedLocalCapabilities = { TelefonCapabilities.phase1().mapValues { (_, capability) ->
+                        capability.copy(versions = capability.versions.filter { it < 9 }) } }
                     val downgradedRun = UUID.randomUUID().toString()
                     work.receiveMessage(peer, TelefonNachrichten.message("personal_sync.request",
                         JsonObject(request + ("run_id" to JsonPrimitive(downgradedRun))), 60000), channel, 0)

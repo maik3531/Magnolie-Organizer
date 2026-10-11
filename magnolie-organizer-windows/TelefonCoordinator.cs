@@ -685,6 +685,12 @@ internal sealed partial class TelefonCoordinator : IDisposable
 
     internal bool NoteDirectionAllowed(string id, string kind, JsonObject body, bool outgoing)
     {
+        var request = kind == "personal_sync.request" ? body : body["run_id"] is JsonValue value && value.TryGetValue<string>(out var itemRun)
+            ? personalSync.LoadRun(id, itemRun, Now())?.Request : null;
+        if (request?["send_item"] is JsonObject)
+        {
+            lock (gate) return (kind != "personal_sync.request" || outgoing) && online.GetValueOrDefault(id)?.SingleItemAllowed == true;
+        }
         if (body["run_id"] is JsonValue runId && runId.TryGetValue<string>(out var run))
         {
             var current = store.LoadPeers().FirstOrDefault(value => value.Id == id);
@@ -880,6 +886,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
             state = peer.State,
             online = IsOnline(peer.Id), transport = OnlineTransport(peer.Id),
             contacts_read_available = ContactReadAvailable(peer.Id),
+            shared_sync = SharedPreferences(peer.Id),
             dial_request = IsOnline(peer.Id) && RemoteCapability(peer, "dial_request") && peer.Grants["dial_request"]?.GetValue<bool>() == true,
             bluetooth_address = store.BluetoothAddress(peer.Id),
             zuletzt = peer.LastSeenMs, bluetooth = new { available = TelefonBluetoothSupport.Available,
@@ -1261,7 +1268,8 @@ internal sealed partial class TelefonCoordinator : IDisposable
             connection = new TelefonConnection(peer, stream, sid, material, store,
                 (source, message) => HandleMessageAsync(source, message, transport), cancellation, transport,
                 body => emit("App.personalCustomAck", new { device_id = peer.Id, body }), AuthorizeCall, SendCall,
-                async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); }, RejectContactRead);
+                async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); }, RejectContactRead)
+                { SharedLocalCapabilities = () => SharedLocalCapabilities(), SharedPreferencesChanged = () => ApplyCommonPreferencesAsync(peer.Id) };
             var capabilityRevision = store.NextOwnRevision("capabilities"); var grantRevision = store.NextOwnRevision("grants");
             await connection.InitializeAsync(capabilityRevision);
             lock (gate)
@@ -1648,6 +1656,7 @@ internal sealed partial class TelefonConnection : IDisposable
         get
         {
             if (!freshCapabilities || !freshGrants || !freshOwnSettings) return false;
+            if (store.SharedSettings(peer.Id, peer.PublicKey) is not null) return SharedSettingsReady;
             var settings = store.NoteSettings(peer.Id);
             if (!store.NoteModeSupported(peer.Id)) return !PersonalSyncContract.NoteImportMode(settings["local"] as JsonObject, settings["remote"] as JsonObject);
             return PersonalSyncContract.SameNotePolicy(settings["local"] as JsonObject, sentNotePolicy) &&
@@ -1663,6 +1672,8 @@ internal sealed partial class TelefonConnection : IDisposable
         try
         {
             if (!freshCapabilities || !store.NoteModeSupported(peer.Id)) return;
+            var currentPeer = store.LoadPeers().SingleOrDefault(item => item.Id == peer.Id);
+            if (currentPeer is not null && SharedSyncSettings.Supported(SharedLocalCapabilities(), currentPeer.Capabilities)) return;
             var settings = store.NoteSettings(peer.Id);
             var body = PersonalSyncContract.NoteSettingsEcho(settings["local"] as JsonObject ?? PersonalSyncContract.NoteSettings(), settings["remote"] as JsonObject);
             store.SetNoteSettings(peer.Id, body, false);
@@ -1693,11 +1704,13 @@ internal sealed partial class TelefonConnection : IDisposable
 
     private string? NotePolicyError(string kind, JsonObject body, bool outgoing)
     {
+        if (SingleItemRun(kind, body)) return SingleItemAllowed && (kind != "personal_sync.request" || outgoing) ? null : "not_granted";
         try { if (DataContentScope(kind, body) is not null) return null; }
         catch (InvalidOperationException) { return "not_granted"; }
         catch (InvalidDataException) { return "invalid_schema"; }
         catch (IOException) { return "temporary_failure"; }
         if (ContentScopeSelected) return "not_granted";
+        if (store.SharedSettings(peer.Id, peer.PublicKey) is not null && !SharedSettingsReady) return "temporary_failure";
         var kinds = kind == "personal_sync.deletion_decision" ? store.PersonalDecisionKinds(peer.Id, body, outgoing) : null;
         if (PersonalSyncContract.NoteMessageUsesNotes(kind, body, kinds) && !NotePolicyReady) return "temporary_failure";
         return PersonalSyncContract.NoteDirectionAllowed("desktop", outgoing, kind, body, store.NoteImportMode(peer.Id), kinds) ? null : "not_granted";
@@ -1876,7 +1889,7 @@ internal sealed partial class TelefonConnection : IDisposable
                 if (!dataKind.StartsWith("personal_sync.custom_", StringComparison.Ordinal))
                 {
                     var reference = new PersonalSyncStore(store).ScopedRunReference(peer.Id, peer.PublicKey, dataBody["run_id"]!.GetValue<string>(), now);
-                    if (!JsonNode.DeepEquals(reference, scopedReference) || scopedReference is null && ContentScopeSelected) return "not_granted";
+                    if (!JsonNode.DeepEquals(reference, scopedReference) || scopedReference is null && ContentScopeSelected && !SingleItemRun(dataKind, dataBody)) return "not_granted";
                 }
                 return AuthorizePersonal(dataKind, dataBody);
             }, deferAcceptance: true, reauthorizeDuplicates: true);
@@ -1997,6 +2010,12 @@ internal sealed partial class TelefonConnection : IDisposable
         var now = Now(); foreach (var item in store.Due(peer.Id, now, transport: transport))
         {
             var kind = item.Message["kind"]!.GetValue<string>(); var body = item.Message["body"]!.AsObject();
+            if (kind == SharedSyncSettings.StartKind)
+            {
+                if (!SharedSettingsReady) continue;
+                SharedSyncSettings.ValidateStart(body);
+                await SendPlainAsync(item.Message); store.MarkAttempt(item.Id, item.Attempts, now); continue;
+            }
             if (kind == SharedSyncSettings.Kind)
             {
                 if (!SharedControlsReady) continue;

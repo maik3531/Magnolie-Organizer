@@ -144,6 +144,9 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                                        private val restoreEpoch: () -> String = { "" }) {
     private val helper = TelefonDatenbank(context.applicationContext)
 
+    internal fun hasSharedSettings(peerId: String): Boolean = helper.readableDatabase.query("meta", arrayOf("key"),
+        "key LIKE ?", arrayOf("personal_shared_settings:$peerId:%:consent"), null, null, null, "1").use { it.moveToFirst() }
+
     internal fun sharedSettingsStorage(binding: () -> SharedSettingsBinding?, restoreBlocked: () -> Boolean) =
         SharedSyncStorage({ helper.writableDatabase }, storage, binding, restoreBlocked)
 

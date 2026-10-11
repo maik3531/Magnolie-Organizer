@@ -7,6 +7,22 @@ internal static class PersonalSyncModeTests
 {
     internal static void Run()
     {
+        var marked = JsonNode.Parse("""{"personal_notes_sync":{"available":true,"versions":[1,2,3,5,8]},"personal_tasks_sync":{"available":true,"versions":[1,2,3,4,6,7,8]}}""")!.AsObject();
+        TestAssert.That(PersonalSyncContract.AutoConnectionSupported(marked, marked), "Bilateral automatic connection feature not recognized.");
+        var old = marked.DeepClone().AsObject(); old["personal_tasks_sync"]!["versions"] = new JsonArray(1, 2, 3);
+        TestAssert.That(!PersonalSyncContract.AutoConnectionSupported(marked, old) &&
+            !PersonalSyncContract.AutoConnectionSupported(old, marked), "One-sided capability enabled automatic Bluetooth.");
+        var disabled = marked.DeepClone().AsObject(); disabled["personal_notes_sync"]!["available"] = false;
+        TestAssert.That(!PersonalSyncContract.AutoConnectionSupported(marked, disabled), "Unavailable feature was negotiated.");
+        TestAssert.That(PersonalSyncContract.AutomaticTrigger("wifi", false) == "auto_wifi" &&
+            PersonalSyncContract.AutomaticTrigger("bluetooth", false) is null &&
+            PersonalSyncContract.AutomaticTrigger("wifi", true) == "auto_connection" &&
+            PersonalSyncContract.AutomaticTrigger("bluetooth", true) == "auto_connection" &&
+            PersonalSyncContract.AutomaticTrigger("unknown", true) is null, "Legacy fallback or supported transport selection changed.");
+        TestAssert.That(!PersonalSyncContract.SyncTriggerAllowed("auto_connection", false) &&
+            PersonalSyncContract.SyncTriggerAllowed("auto_connection", true) &&
+            PersonalSyncContract.SyncTriggerAllowed("manual", false) &&
+            !PersonalSyncContract.SyncTriggerAllowed("unknown", true), "Unnegotiated automatic trigger accepted.");
         var root = Path.Combine(Path.GetTempPath(), "personal-mode-" + Guid.NewGuid().ToString("N"));
         var key = Enumerable.Repeat((byte)27, 32).ToArray();
         try

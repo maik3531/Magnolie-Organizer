@@ -491,4 +491,9 @@
     <string name="kontakt_review_neueste">Use the newer version</string>
     <string name="kontakt_review_rest">Apply this choice to remaining unambiguous conflicts</string>
     <string name="kontakt_review_geburtsname">Birth name: %1$s</string>
+    <string name="shared_sync_content">Notes and tasks</string>
+    <string name="shared_sync_notes_collection">Synchronize only the Notes collection</string>
+    <string name="shared_sync_all_content">Synchronize all notes and tasks</string>
+    <string name="shared_sync_manual">Manually</string>
+    <string name="shared_sync_time_direction">Time synchronization direction</string>
 </resources>

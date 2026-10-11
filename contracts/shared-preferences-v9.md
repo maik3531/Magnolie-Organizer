@@ -1,11 +1,10 @@
-# Shared function preferences (capability 9, implementation in progress)
+# Shared function preferences (capability 9)
 
 Refs #130; content membership #131 and explicit desktop admission #132.
 
-The codec, encrypted stores and message handlers are being implemented. Capability
-9 is **not advertised** until the preference application, Notes-content protocol
-and UI are integrated and verified. Recognizing a message schema is not permission
-to accept it from an older or unnegotiated peer.
+Capability 9 connects the common settings UI and existing function controllers on
+Notes and both desktop implementations. Both ends must support it; older peers
+continue using the previous settings protocol.
 
 ## User-facing behavior
 

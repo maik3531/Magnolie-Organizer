@@ -22,7 +22,7 @@ class SharedSyncSettingsTest {
         assertFalse(SharedSyncSettings.controlsReady(peer.copy(remote_own_device = false), local, session))
         assertFalse(SharedSyncSettings.controlsReady(peer.copy(remote_personal_notes_sync_versions = listOf(5)), local, session))
         assertFalse(SharedSyncSettings.controlsReady(peer, local, PersonalNoteSession()))
-        assertFalse("Unfinished shared feature must not be advertised", SharedSyncSettings.supported(peer, TelefonCapabilities.phase1()))
+        assertTrue(SharedSyncSettings.supported(peer, TelefonCapabilities.phase1()))
     }
 
     private val a = "11111111-1111-4111-8111-111111111111"

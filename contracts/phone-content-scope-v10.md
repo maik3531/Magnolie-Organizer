@@ -1,13 +1,10 @@
-# Notes collection membership (capability 10, implementation in progress)
+# Notes collection membership (capability 10)
 
 Refs #131; shared preferences #130; explicit Organizer admission #132.
 
-Capability 10 is not advertised until content-run binding, preference application
-and the UI are integrated. Current implementations include membership codecs,
-current-connection assembly, optional snapshot filtering, a Notes commit-boundary
-recheck, membership control sender/receivers, and a durable Notes manual-run
-starter with scope/request receipt barriers. These components alone do
-not constitute an activated end-to-end scoped synchronization feature.
+Capability 10 selects the live Notes collection for the shared `phone_scope`
+mode. Both ends must support it. The same existing content and attachment
+transfer is used for updates and for explicitly sending a selected Organizer item.
 
 ## Meaning
 
@@ -146,7 +143,22 @@ unnecessary notebook records are rejected. Content changes and the applied-batch
 receipt are written together. This gate is distinct from transport authentication;
 the caller must still validate the current peer, settings and scope reference.
 
-Explicit desktop admission needs a separate idempotent intent and receipt. It
-must not be implemented by allowing arbitrary missing IDs through the update-only
-commit gate. A background retry cannot revive a Notes entry that was subsequently
-removed; a new explicit user admission may do so.
+## Manual single-item sending (#132)
+
+“Send to Notes” uses the existing personal-sync request, batches, attachments and
+completion flow. A manual format-3 request may additionally contain
+`send_item: {kind: "note"|"task", id: "…"}`. Only that item and its required
+notebook are sent; the matching module is the sole requested module. Notes sends
+an empty reply rather than starting a library-wide exchange. Existing queue and
+batch handling apply; there is no separate admission protocol, receipt ledger or
+UI confirmation wait.
+
+Automatic scoped synchronization still covers only what is physically present
+on the phone. Deleting the phone copy removes it from that automatic collection
+and leaves the Organizer copy intact. A later explicit “Send to Notes” starts a
+new ordinary send and recreates the phone copy, even if it was sent and deleted
+before. There is no permanent resend restriction.
+
+Both desktop interfaces offer the action on personal note/task context menus.
+The new-page checkbox starts unchecked each time and is not saved as a default.
+Both controls are hidden in full-collection mode.

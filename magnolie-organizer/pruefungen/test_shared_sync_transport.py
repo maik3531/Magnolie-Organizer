@@ -19,13 +19,13 @@ class Channel:
         self.sent.append(copy.deepcopy(payload))
 
 
-def fixture(tmp_path, monkeypatch, negotiated=True):
+def fixture(tmp_path, monkeypatch, negotiated=True, initialize=True):
     original = phone.desktop_capabilities
     def capabilities(*args, **kwargs):
         value = original(*args, **kwargs)
-        if negotiated:
+        if not negotiated:
             for name in ("personal_notes_sync", "personal_tasks_sync"):
-                value["items"][name]["versions"].append(shared.VERSION)
+                value["items"][name]["versions"] = [version for version in value["items"][name]["versions"] if version < 9]
         return value
     monkeypatch.setattr(phone, "desktop_capabilities", capabilities)
     service, peer_id = _personal_service(tmp_path, lambda *_: None)
@@ -39,7 +39,7 @@ def fixture(tmp_path, monkeypatch, negotiated=True):
         "grants.update": copy.deepcopy(peer["grants"]),
         "personal_sync.settings": {"format": 1, "own_device": True}}
     service.personal_sync_available = lambda: True
-    body = service.store.change_shared_setting(peer_id, peer["static_public"], "content_mode", "phone_scope")
+    body = service.store.change_shared_setting(peer_id, peer["static_public"], "content_mode", "phone_scope") if initialize else None
     return service, peer, channel, body
 
 
@@ -102,6 +102,10 @@ def test_outgoing_old_snapshot_and_altered_replay_never_replace_new_choice(tmp_p
     assert service.store.shared_settings(peer["device_id"], peer["static_public"]) == accepted
 
 
-def test_public_capabilities_still_do_not_announce_unfinished_feature():
+def test_shared_feature_is_advertised_but_requires_support_on_both_sides():
     capabilities = phone.desktop_capabilities()["items"]
-    assert not shared.supported(capabilities, capabilities)
+    assert shared.supported(capabilities, capabilities)
+    legacy = copy.deepcopy(capabilities)
+    for item in legacy.values():
+        item["versions"] = [version for version in item["versions"] if version < 9]
+    assert not shared.supported(capabilities, legacy)

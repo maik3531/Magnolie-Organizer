@@ -413,4 +413,9 @@
     <string name="kontakt_review_neueste">Usa la versione più recente</string>
     <string name="kontakt_review_rest">Applica questa scelta ai conflitti rimanenti con corrispondenza univoca</string>
     <string name="kontakt_review_geburtsname">Cognome alla nascita: %1$s</string>
+    <string name="shared_sync_content">Note e attività</string>
+    <string name="shared_sync_notes_collection">Sincronizza solo gli elementi presenti in Notes</string>
+    <string name="shared_sync_all_content">Sincronizza tutte le note e attività</string>
+    <string name="shared_sync_manual">Manualmente</string>
+    <string name="shared_sync_time_direction">Direzione di sincronizzazione del rilevamento tempi</string>
 </resources>

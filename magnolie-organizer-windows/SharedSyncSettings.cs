@@ -7,6 +7,14 @@ internal static class SharedSyncSettings
 {
     internal const int Version = 9;
     internal const string Kind = "personal_sync.shared_settings";
+    internal const string StartKind = "personal_sync.shared_start";
+    internal static void ValidateStart(JsonObject body)
+    {
+        TelefonProtocolContract.ExactObject(body, "format", "request_id", "trigger");
+        if (TelefonProtocolContract.Integer(body["format"]) != Version ||
+            !TelefonProtocolContract.IsUuidV4(body["request_id"]?.GetValue<string>()) || body["trigger"]?.GetValue<string>() != "manual")
+            throw new InvalidDataException("Invalid shared synchronization start.");
+    }
     private const long MaximumCounter = 9007199254740991;
     private static readonly JsonObject Defaults = new()
     { ["content_mode"] = "phone_scope", ["auto_mode"] = "manual", ["skip_deletions"] = true,

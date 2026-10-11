@@ -433,6 +433,11 @@ internal static partial class ExchangeCodec
                 var mobile = phones.FirstOrDefault(entry =>
                     entry["typen"]?.AsArray().Any(type => type?.ToString().Equals("CELL", StringComparison.OrdinalIgnoreCase) == true) == true);
                 var revision = ParseVCardRevision(Value(values, "REV"));
+                var social = MagnolieJsonEntries(values, "X-MAGNOLIE-SOZIALES-MEDIUM");
+                foreach (var property in new[] { "URL", "IMPP", "X-SOCIALPROFILE", "X-SOCIAL-PROFILE" })
+                    foreach (var entry in Entries(values, property))
+                        if (SocialProfileMetadata.FromProperty(property, entry.Value, entry.Parameters) is { } profile &&
+                            !social.Any(existing => JsonNode.DeepEquals(existing, profile))) social.Add(profile);
                 var contact = new JsonObject
                 {
                     ["uid"] = Value(values, "UID"), ["nachname"] = lastName, ["vorname"] = firstName,
@@ -450,7 +455,7 @@ internal static partial class ExchangeCodec
                     ["kontaktpersonTelefon"] = Value(values, "X-MAGNOLIE-KONTAKTPERSON-TELEFON"),
                     ["kontaktpersonStatus"] = Value(values, "X-MAGNOLIE-KONTAKTPERSON-STATUS"),
                     ["kontaktpersonen"] = MagnolieJsonEntries(values, "X-MAGNOLIE-NOTFALLKONTAKT"),
-                    ["sozialeMedien"] = MagnolieJsonEntries(values, "X-MAGNOLIE-SOZIALES-MEDIUM"),
+                    ["sozialeMedien"] = social,
                     ["vcardRoundtrip"] = UnknownVCardLines(lines),
                     ["geaendert"] = revision != 0 ? revision : ParseTimestamp(Value(values, "REV")),
                     ["vcardRev"] = Entries(values, "REV").Count() == 1 ? revision : 0

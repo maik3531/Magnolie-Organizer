@@ -13,8 +13,9 @@ const plain = value => JSON.parse(JSON.stringify(value));
     const b = await harness.exports.boot(web);
     try {
       b.w.HTMLCanvasElement.prototype.getContext = function () {
-        return { save() {}, restore() {}, clearRect() {}, beginPath() {}, arc() {}, fill() {}, moveTo() {}, lineTo() {}, stroke() {} };
+        return { save() {}, restore() {}, clearRect() {}, drawImage() {}, beginPath() {}, closePath() {}, arc() {}, fill() {}, moveTo() {}, lineTo() {}, stroke() {} };
       };
+      b.w.HTMLCanvasElement.prototype.getBoundingClientRect = () => ({ left: 0, top: 0, width: 1200, height: 800 });
       b.w.HTMLCanvasElement.prototype.toDataURL = () => "data:image/png;base64,iVBORw0KGgo=";
       b.t.daten().einstellungen.allgemein.customTab.enabled = true;
       b.t.daten().customOrganizer.modules = [];

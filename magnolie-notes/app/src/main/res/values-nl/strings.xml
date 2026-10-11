@@ -390,4 +390,9 @@
     <string name="kontakt_review_neueste">De nieuwere versie gebruiken</string>
     <string name="kontakt_review_rest">Deze keuze toepassen op resterende eenduidig gekoppelde conflicten</string>
     <string name="kontakt_review_geburtsname">Geboortenaam: %1$s</string>
+    <string name="shared_sync_content">Notities en taken</string>
+    <string name="shared_sync_notes_collection">Alleen de inhoud van Notes synchroniseren</string>
+    <string name="shared_sync_all_content">Alle notities en taken synchroniseren</string>
+    <string name="shared_sync_manual">Handmatig</string>
+    <string name="shared_sync_time_direction">Synchronisatierichting van de tijdregistratie</string>
 </resources>

@@ -290,6 +290,9 @@ internal sealed partial class TelefonStore
 
     internal bool NoteImportMode(string peerId)
     {
+        var peer = LoadPeers().SingleOrDefault(value => value.Id == peerId && value.State == "paired");
+        var shared = peer is null ? null : SharedSettings(peerId, peer.PublicKey);
+        if (shared is not null) return SharedSyncSettings.Effective(shared)["content_mode"]!.GetValue<string>() == "phone_import";
         var settings = NoteSettings(peerId);
         return PersonalSyncContract.NoteImportMode(settings["local"] as JsonObject, settings["remote"] as JsonObject);
     }

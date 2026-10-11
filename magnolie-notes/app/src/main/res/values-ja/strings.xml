@@ -376,4 +376,9 @@
     <string name="kontakt_review_neueste">新しい版を使用</string>
     <string name="kontakt_review_rest">対応が明確な残りの競合にもこの選択を適用</string>
     <string name="kontakt_review_geburtsname">出生時の姓：%1$s</string>
+    <string name="shared_sync_content">メモとタスク</string>
+    <string name="shared_sync_notes_collection">Notes 内の項目のみ同期</string>
+    <string name="shared_sync_all_content">すべてのメモとタスクを同期</string>
+    <string name="shared_sync_manual">手動</string>
+    <string name="shared_sync_time_direction">時間記録の同期方向</string>
 </resources>

@@ -29,6 +29,10 @@ internal sealed partial class TelefonConnection
     }
 
     private bool ContentScopeControlsReady => ContentScopeAuthorized && SharedSettingsReady;
+    internal bool SingleItemAllowed => ContentScopeControlsReady;
+    private bool SingleItemRun(string kind, JsonObject body) =>
+        (kind == "personal_sync.request" ? body : body["run_id"] is JsonValue id && id.TryGetValue<string>(out var run)
+            ? new PersonalSyncStore(store).LoadRun(peer.Id, run, Now())?.Request : null)?["send_item"] is JsonObject;
 
     private void RequireContentScopeControls()
     {
@@ -107,7 +111,8 @@ internal sealed partial class TelefonConnection
         if (manifest is null)
         {
             if (ContentScopeSelected && TelefonProtocolContract.PersonalKinds.Contains(message["kind"]!.GetValue<string>()) &&
-                message["kind"]!.GetValue<string>() != "personal_sync.settings")
+                message["kind"]!.GetValue<string>() != "personal_sync.settings" &&
+                !SingleItemRun(message["kind"]!.GetValue<string>(), message["body"]!.AsObject()))
                 throw new InvalidOperationException("Scoped preference does not permit raw content fallback.");
             return SendPlainAsync(message);
         }

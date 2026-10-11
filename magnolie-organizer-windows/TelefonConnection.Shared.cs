@@ -6,6 +6,7 @@ internal sealed partial class TelefonConnection
 {
     private JsonObject? sentSharedSettings, receivedSharedSettings;
     internal Func<JsonObject> SharedLocalCapabilities { get; set; } = () => TelefonProtocolContract.DesktopCapabilities()["items"]!.AsObject();
+    internal Func<Task>? SharedPreferencesChanged { get; set; }
 
     private bool SharedControlsReady
     {
@@ -71,6 +72,7 @@ internal sealed partial class TelefonConnection
                     if (ack.Process) store.MarkIncomingProcessed(peer.Id, ack.MessageId, now);
                 }
                 finally { store.NotePolicyGate.Release(); }
+                if (SharedPreferencesChanged is not null) await SharedPreferencesChanged();
                 await SendSharedSettingsAsync();
             }
         }

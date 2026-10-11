@@ -418,4 +418,9 @@
     <string name="kontakt_review_neueste">Użyj nowszej wersji</string>
     <string name="kontakt_review_rest">Zastosuj ten wybór do pozostałych jednoznacznie dopasowanych konfliktów</string>
     <string name="kontakt_review_geburtsname">Nazwisko rodowe: %1$s</string>
+    <string name="shared_sync_content">Notatki i zadania</string>
+    <string name="shared_sync_notes_collection">Synchronizuj tylko zawartość Notes</string>
+    <string name="shared_sync_all_content">Synchronizuj wszystkie notatki i zadania</string>
+    <string name="shared_sync_manual">Ręcznie</string>
+    <string name="shared_sync_time_direction">Kierunek synchronizacji ewidencji czasu</string>
 </resources>

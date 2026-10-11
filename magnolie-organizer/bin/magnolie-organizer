@@ -5256,6 +5256,12 @@ def vcf_lesen(text, lokale_dateien=False):
                         kontaktpersonen.append(person)
                 except (TypeError, ValueError):
                     pass
+            elif name in ("URL", "IMPP", "X-SOCIALPROFILE", "X-SOCIAL-PROFILE"):
+                from magnolie_social_profiles import from_vcard
+                eintrag = from_vcard(name, _ical_unescape(wert), params)
+                if eintrag and eintrag not in soziale_medien:
+                    soziale_medien.append(eintrag)
+                vcard_roundtrip.append(zeile)
             elif name == "X-MAGNOLIE-SOZIALES-MEDIUM":
                 try:
                     eintrag = json.loads(_ical_unescape(wert))
@@ -16110,7 +16116,7 @@ def wetter_abrufen(ort="", holer=None, libreoffice_lader=None,
         plz = str(felder.get("postalcode") or "").strip()
         suchort = (plz + " " + stadt).strip()[:120]
         if suchort:
-            quelle = "libreoffice"
+            quelle = lo.get("quelle", "libreoffice")
     if not suchort:
         if not ohne_ort_abrufen:
             return {"ok": True, "ohneOrt": True, "ort": "", "quelle": "none",
@@ -21028,6 +21034,8 @@ class Fenster(_FENSTER_BASIS):
 
         elif befehl == "notiz_anhang_datei":
             self.bei_notiz_anhang_datei(nachricht)
+        elif befehl == "zeichenblatt_svg_speichern":
+            self.bei_zeichenblatt_svg_speichern(nachricht)
 
         elif befehl == "eds_status":
             threading.Thread(target=self._eds_status_arbeit, daemon=True).start()
@@ -21273,6 +21281,11 @@ class Fenster(_FENSTER_BASIS):
                 nachricht.get("kennung") or "", nachricht.get("autoWlan"),
                 nachricht.get("loeschungenAuslassen")), daemon=True).start()
 
+        elif befehl in ("personal_sync_gemeinsam_initialisieren", "personal_sync_gemeinsam_aendern", "personal_sync_gemeinsam_start"):
+            threading.Thread(target=self._personal_sync_gemeinsam, args=(nachricht,), daemon=True).start()
+        elif befehl == "eigenes_profil_office":
+            threading.Thread(target=self._eigenes_profil_office, args=(nachricht,), daemon=True).start()
+
         elif befehl == "personal_sync_desktop_features":
             threading.Thread(target=lambda: self._personal_sync_desktop_features(
                 nachricht.get("customTab"), nachricht.get("baumAktiv")), daemon=True).start()
@@ -21420,7 +21433,7 @@ class Fenster(_FENSTER_BASIS):
 
         elif befehl == "lo_benutzer":
             threading.Thread(target=lambda: self.antwort(
-                "App.loBenutzer", libreoffice_benutzerdaten()),
+                "App.loBenutzer", self._persoenliche_benutzerdaten()),
                 daemon=True).start()
 
         elif befehl == "baum_weitergabe_erlauben":
@@ -21583,6 +21596,19 @@ class Fenster(_FENSTER_BASIS):
         nutzlast["kontaktQuelle"] = "datei:" + hashlib.sha256(
             os.path.abspath(pfad).encode("utf-8")).hexdigest()
         melden(nutzlast)
+
+    def bei_zeichenblatt_svg_speichern(self, nachricht):
+        try:
+            from magnolie_drawing_svg import validated_bytes
+            daten = validated_bytes(nachricht.get("svg"))
+            name = os.path.basename(str(nachricht.get("name") or "Magnolie.svg"))
+            if not name.lower().endswith(".svg"):
+                name += ".svg"
+            pfad = self._datei_speichern(_("Save as…"), name, [(_("All files"), "*.svg")])
+            if pfad:
+                atomar_binaer_schreiben(pfad, daten)
+        except Exception as fehler:
+            self.antwort("App.fehler", {"fehler": fehler_deutsch(fehler, "SVG")})
 
     def bei_notiz_anhang_datei(self, nachricht, starter=None):
         kennung = nachricht.get("id")
@@ -23143,6 +23169,36 @@ class Fenster(_FENSTER_BASIS):
             self._telefon_fehler = fehler_deutsch(fehler, "Persönlicher Sync")
         self._telefon_stand_melden()
 
+    def _eigenes_profil_office(self, nachricht):
+        try:
+            from magnolie_office_profile import exchange
+            operation = nachricht.get("operation")
+            if operation not in ("read", "write"):
+                raise ValueError("Invalid profile operation.")
+            result = exchange(libreoffice_einstellungsdatei(),
+                              nachricht.get("felder", {}) if operation == "write" else None,
+                              nachricht.get("stamp", ""))
+        except Exception as error:
+            result = {"ok": False, "fehler": str(error)}
+        result["requestId"] = nachricht.get("requestId", "")
+        self.antwort("App.eigenesProfilOffice", result)
+
+    def _personal_sync_gemeinsam(self, nachricht):
+        try:
+            if not self._telefon:
+                raise RuntimeError(_("The phone connection is not available."))
+            if nachricht["cmd"] == "personal_sync_gemeinsam_start":
+                self._telefon.start_common_sync(nachricht["kennung"], nachricht["fingerabdruck"], nachricht["initial"])
+            elif nachricht["cmd"] == "personal_sync_gemeinsam_initialisieren":
+                self._telefon.initialize_common_preferences(nachricht["kennung"], nachricht["fingerabdruck"], nachricht["initial"])
+            else:
+                self._telefon.change_common_preference(nachricht["kennung"], nachricht["fingerabdruck"],
+                    nachricht["feld"], nachricht["wert"], nachricht["initial"])
+            self._telefon_fehler = ""
+        except Exception as fehler:
+            self._telefon_fehler = fehler_deutsch(fehler, "Persönlicher Sync")
+        self._telefon_stand_melden()
+
     def _personal_sync_desktop_features(self, custom_tab, baum_aktiv):
         try:
             if not self._telefon:
@@ -24404,11 +24460,18 @@ class Fenster(_FENSTER_BASIS):
                 fehler, _("Retrieving holidays"))}
         self.antwort("App.feiertageErgebnis", nutzlast)
 
+    def _persoenliche_benutzerdaten(self, zweck="address"):
+        from magnolie_own_profile import resolve
+        with self._daten_sperre:
+            profil = json.loads(json.dumps((self._aktuelle_daten or {}).get("eigenesProfil")))
+        return resolve(libreoffice_benutzerdaten(), profil, zweck)
+
     def _wetter_arbeit(self, nachricht):
         try:
             ohne_ort = nachricht.get("ohneOrtAbrufen")
             nutzlast = wetter_abrufen(
                 nachricht.get("ort") or "",
+                libreoffice_lader=lambda: self._persoenliche_benutzerdaten("location"),
                 ohne_ort_abrufen=True if ohne_ort is None else bool(ohne_ort))
         except Exception as fehler:
             nutzlast = {"ok": False, "fehler": fehler_deutsch(

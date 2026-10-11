@@ -26,6 +26,7 @@
     <Compile Include="..\CloudBackupWorker.cs" Link="CloudBackupWorker.cs" />
     <Compile Include="..\EncryptionService.cs" Link="EncryptionService.cs" />
     <Compile Include="..\ExchangeCodec.cs" Link="ExchangeCodec.cs" />
+    <Compile Include="..\SocialProfileMetadata.cs" Link="SocialProfileMetadata.cs" />
     <Compile Include="..\ThunderbirdCalendarImporter.cs" Link="ThunderbirdCalendarImporter.cs" />
     <Compile Include="..\DocumentExportService.cs" Link="DocumentExportService.cs" />
     <Compile Include="..\DocumentExportService.Time.cs" Link="DocumentExportService.Time.cs" />
@@ -48,6 +49,7 @@
     <Compile Include="..\RestoreSelection.cs" Link="RestoreSelection.cs" />
     <Compile Include="..\TraySettingsService.cs" Link="TraySettingsService.cs" />
     <Compile Include="..\LibreOfficeUserData.cs" Link="LibreOfficeUserData.cs" />
+    <Compile Include="..\OwnProfileFallback.cs" Link="OwnProfileFallback.cs" />
     <Compile Include="..\WeatherLocation.cs" Link="WeatherLocation.cs" />
     <Compile Include="..\WeatherRequests.cs" Link="WeatherRequests.cs" />
     <Compile Include="..\LogPresentation.cs" Link="LogPresentation.cs" />
@@ -87,6 +89,7 @@
     <Compile Include="..\TelefonConnection.Scope.cs" Link="TelefonConnection.Scope.cs" />
     <Compile Include="..\TelefonCoordinator.Time.cs" Link="TelefonCoordinator.Time.cs" />
     <Compile Include="..\TelefonCoordinator.cs" Link="TelefonCoordinator.cs" />
+    <Compile Include="..\TelefonCoordinator.Shared.cs" Link="TelefonCoordinator.Shared.cs" />
     <Compile Include="..\TelefonMdnsPublisher.cs" Link="TelefonMdnsPublisher.cs" />
     <Compile Include="..\TelefonInvitation.cs" Link="TelefonInvitation.cs" />
     <Compile Include="..\TelefonBluetoothClient.cs" Link="TelefonBluetoothClient.cs" />

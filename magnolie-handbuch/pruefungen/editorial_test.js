@@ -54,7 +54,9 @@ for (const platform of ["linux", "windows"]) {
       assert.ok(item.inhalt);
       if (language !== "en") assert.notEqual(item.inhalt, item._source.inhalt, `${language}/${id}`);
     }
-    for (const id of ["android-notes-navigation", "android-notes-edit-save-delete", "android-tasks-reminders"]) {
+    assert.ok(page("android-notes-navigation").inhaltAnhangErsetzt,
+      "Current navigation must replace the historical five-tab instructions.");
+    for (const id of ["android-notes-edit-save-delete", "android-tasks-reminders"]) {
       assert.ok(page(id).inhalt.includes("1.0.14") && page(id).inhalt.includes("1.0.13"));
     }
     for (const id of ["android-apk-transfer", "android-apk-install-update"]) {

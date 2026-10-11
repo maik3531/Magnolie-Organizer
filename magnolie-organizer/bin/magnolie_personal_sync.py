@@ -52,6 +52,39 @@ NOTE_MODE_KIND = "personal_sync.note_settings"
 DESKTOP_FEATURES_VERSION = 6
 DESKTOP_FEATURES_KIND = "personal_sync.desktop_features"
 
+# Marker8 extends automatic transport eligibility, not the record format.
+# Capability advertising and fresh-session authorization are separate gates.
+AUTO_CONNECTION_VERSION = 8
+AUTO_CONNECTION_TRIGGER = "auto_connection"
+SYNC_TRIGGERS = frozenset({"manual", "auto_wifi", AUTO_CONNECTION_TRIGGER})
+AUTOMATIC_TRIGGERS = frozenset({"auto_wifi", AUTO_CONNECTION_TRIGGER})
+
+
+def auto_connection_supported(local_items, remote_items):
+    def marked(items):
+        if not isinstance(items, dict):
+            return False
+        for name in ("personal_notes_sync", "personal_tasks_sync"):
+            item = items.get(name)
+            if (not isinstance(item, dict) or item.get("available") is not True
+                    or not isinstance(item.get("versions"), list)
+                    or not any(type(value) is int and value == AUTO_CONNECTION_VERSION for value in item["versions"])):
+                return False
+        return True
+    return marked(local_items) and marked(remote_items)
+
+
+def automatic_trigger(transport, negotiated):
+    if transport not in {"wifi", "bluetooth"}:
+        return None
+    if negotiated:
+        return AUTO_CONNECTION_TRIGGER
+    return "auto_wifi" if transport == "wifi" else None
+
+
+def sync_trigger_allowed(trigger, negotiated):
+    return trigger in SYNC_TRIGGERS and (trigger != AUTO_CONNECTION_TRIGGER or negotiated)
+
 
 def validate_desktop_features(body):
     if (not isinstance(body, dict) or set(body) != {"format", "revision", "custom_tab", "tree"}
@@ -579,10 +612,16 @@ def validate_body(kind, body):
         if set(body) != {"format", "own_device"} or body.get("format") != FORMAT or not isinstance(body.get("own_device"), bool):
             raise ValueError("invalid personal sync settings")
     elif kind == "personal_sync.request":
-        if (set(body) != {"format", "run_id", "trigger", "modules"} or body.get("format") not in FORMATS
+        if (set(body) != {"format", "run_id", "trigger", "modules"} | ({"send_item"} if "send_item" in body else set()) or body.get("format") not in FORMATS
                 or not UUID4.fullmatch(body.get("run_id", "")) or body.get("trigger") not in {"manual", "auto_wifi"}
                 or body.get("modules") not in (["notes"], ["tasks"], ["notes", "tasks"])):
             raise ValueError("invalid personal sync request")
+        if "send_item" in body:
+            item = body["send_item"]
+            if (body["format"] != 3 or body["trigger"] != "manual" or not isinstance(item, dict)
+                    or set(item) != {"kind", "id"} or item["kind"] not in {"note", "task"}
+                    or not _identifier(item["id"]) or body["modules"] != ["notes" if item["kind"] == "note" else "tasks"]):
+                raise ValueError("invalid single-item send")
     elif kind == "personal_sync.batch":
         format = body.get("format")
         fields = {"format", "run_id", "batch_id", "sequence", "last", "reply", "records"} | ({"records_hash"} if format >= 2 else set())

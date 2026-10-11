@@ -19,7 +19,7 @@ def fixture(tmp_path, monkeypatch):
     def capabilities(*args, **kwargs):
         result = original(*args, **kwargs)
         for name in ("personal_notes_sync", "personal_tasks_sync"):
-            result["items"][name]["versions"].append(scope.VERSION)
+            result["items"][name]["versions"] = sorted(set(result["items"][name]["versions"] + [scope.VERSION]))
         return result
     monkeypatch.setattr(phone, "desktop_capabilities", capabilities)
     peer["capabilities"] = capabilities()
@@ -76,9 +76,32 @@ def test_scope_cannot_bypass_current_choice_session_or_message_identity(tmp_path
     assert channel.sent[-1]["status"] == "rejected"
 
 
-def test_legacy_public_capabilities_do_not_enable_scoped_transfer():
+def test_scoped_transfer_requires_current_capabilities_on_both_sides():
     items = phone.desktop_capabilities()["items"]
-    assert not scope.supported(items, items)
+    assert scope.supported(items, items)
+    legacy = copy.deepcopy(items)
+    for item in legacy.values():
+        item["versions"] = [version for version in item["versions"] if version < 9]
+    assert not scope.supported(items, legacy)
+
+
+def test_manual_single_note_uses_existing_transfer_even_without_phone_membership(tmp_path, monkeypatch):
+    service, peer, channel = fixture(tmp_path, monkeypatch)
+    import magnolie_personal_sync as personal
+    value = {"title": "Selected", "text": "Send again", "html": "", "notebook_id": "", "symbol": "note",
+             "created_ms": 1, "modified_ms": 2, "attachments": []}
+    record = {"kind": "note", "id": "organizer-note", "state": "live", "clock": [{"actor_id": str(uuid.uuid4()), "counter": 1}],
+              "hash": personal.projection_hash(value), "modified_ms": 2, "value": value}
+    for _ in range(2):
+        run = str(uuid.uuid4())
+        request = {"format": 3, "run_id": run, "trigger": "manual", "modules": ["notes"],
+                   "send_item": {"kind": "note", "id": "organizer-note"}}
+        batch = {"format": 3, "run_id": run, "batch_id": str(uuid.uuid4()), "sequence": 0, "last": True,
+                 "reply": False, "records": [record], "records_hash": personal.records_hash([record])}
+        service.send_personal_sync_run(peer["device_id"], request, [batch], [])
+        outgoing = [item for item in channel.sent if item.get("body", {}).get("run_id") == run]
+        assert [item["kind"] for item in outgoing] == ["personal_sync.request", "personal_sync.batch"]
+        assert outgoing[-1]["body"]["records"] == [record]
 
 
 def test_settings_agreement_gap_is_retryable_without_raw_content_fallback(tmp_path, monkeypatch):

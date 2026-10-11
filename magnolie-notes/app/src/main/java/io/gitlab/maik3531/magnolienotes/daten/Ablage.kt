@@ -696,11 +696,26 @@ class Ablage private constructor(
             records.map { if (it.kind == "task") "tasks" else "notes" }.toSet(), 1)
 
     fun personalSyncApplyOnce(records: List<PersonalSyncRecord>, attachments: Map<String, Anhang>,
-                              batchKey: String, modules: Set<String>, format: Int): PersonalSyncResult? = synchronized(sperre) {
+                              batchKey: String, modules: Set<String>, format: Int,
+                              sendItem: Pair<String, String>? = null): PersonalSyncResult? = synchronized(sperre) {
         if (batchKey in _bestand.value.personalSync.applied_batches) return@synchronized null
         // Content, clocks, incoming changes and replay protection share one durable write.
-        val local = PersonalSync.reconcile(_bestand.value, modules, format).first
-        val result = PersonalSync.apply(local, records, attachments, mergeNotes = "notes" in modules)
+        var input = _bestand.value
+        val selection = sendItem?.let { (kind, id) ->
+            val target = records.single { it.kind == kind && it.id == id }
+            val book = (target.value["notebook_id"] as? JsonPrimitive)?.content
+            require(records.all { it == target || it.kind == "notebook" && it.id == book })
+            val live = PersonalSync.livePersonalContent(input)
+            if (if (kind == "note") id !in live.notes else id !in live.tasks) {
+                // A new manual send recreates the selected copy, including after phone deletion.
+                input = input.copy(personalSync = input.personalSync.copy(entities = input.personalSync.entities.filterKeys {
+                    it != "$kind\u0000$id" && !(kind == "note" && it.startsWith("attachment\u0000$id\u0000"))
+                }))
+            }
+            PersonalContentSelection(if (kind == "note") setOf(id) else emptySet(), if (kind == "task") setOf(id) else emptySet())
+        }
+        val local = PersonalSync.reconcile(input, modules, format, selection = selection, independentRemovals = sendItem != null).first
+        val result = PersonalSync.apply(local, records, attachments, mergeNotes = sendItem == null && "notes" in modules)
         val applied = (result.bestand.personalSync.applied_batches + batchKey).takeLast(500)
         val durable = result.copy(bestand = result.bestand.copy(
             personalSync = result.bestand.personalSync.copy(applied_batches = applied)))

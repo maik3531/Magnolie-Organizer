@@ -43,6 +43,27 @@ internal static class PersonalSyncContract
     internal const int DesktopFeaturesVersion = 6;
     internal const string DesktopFeaturesKind = "personal_sync.desktop_features";
 
+    // Capability marker only: existing record formats and Wi-Fi-only runs keep their meaning.
+    internal const int AutoConnectionVersion = 8;
+    internal const string AutoConnectionTrigger = "auto_connection";
+
+    internal static bool AutoConnectionSupported(JsonObject localItems, JsonObject remoteItems)
+    {
+        static bool Marked(JsonObject items) => new[] { "personal_notes_sync", "personal_tasks_sync" }.All(name =>
+            items[name] is JsonObject item && item["available"] is JsonValue available &&
+            available.TryGetValue<bool>(out var enabled) && enabled && item["versions"] is JsonArray versions &&
+            versions.Any(version => version is JsonValue value && value.TryGetValue<int>(out var marker) && marker == AutoConnectionVersion));
+        return Marked(localItems) && Marked(remoteItems);
+    }
+
+    internal static string? AutomaticTrigger(string transport, bool negotiated) => transport is not ("wifi" or "bluetooth")
+        ? null : negotiated ? AutoConnectionTrigger : transport == "wifi" ? "auto_wifi" : null;
+
+    internal static bool SyncTriggerAllowed(string trigger, bool negotiated) =>
+        trigger is "manual" or "auto_wifi" || trigger == AutoConnectionTrigger && negotiated;
+
+    internal static bool AutomaticTrigger(string trigger) => trigger is "auto_wifi" or AutoConnectionTrigger;
+
     internal static void ValidateDesktopFeatures(JsonObject body)
     {
         Exact(body, "format", "revision", "custom_tab", "tree");
@@ -358,9 +379,17 @@ internal static class PersonalSyncContract
 
     private static void ValidateRequest(JsonObject body)
     {
-        Exact(body, "format", "run_id", "trigger", "modules"); Number(body, "format", 1, 3); Uuid4(String(body, "run_id")); Enum(body, "trigger", "manual", "auto_wifi");
+        Exact(body, body.ContainsKey("send_item") ? ["format", "run_id", "trigger", "modules", "send_item"] : ["format", "run_id", "trigger", "modules"]);
+        Number(body, "format", 1, 3); Uuid4(String(body, "run_id")); Enum(body, "trigger", "manual", "auto_wifi");
         if (body["modules"] is not JsonArray modules || !new[] { "notes", "tasks", "notes\0tasks" }.Contains(string.Join("\0", modules.Select(item => String(item)))))
             throw new InvalidDataException("Personal-Sync-Module ungültig.");
+        if (body.ContainsKey("send_item"))
+        {
+            var item = body["send_item"]!.AsObject(); Exact(item, "kind", "id"); Enum(item, "kind", "note", "task");
+            if (Number(body, "format", 1, 3) != 3 || String(body, "trigger") != "manual" || !Identifier(String(item, "id")) ||
+                modules.Count != 1 || String(modules[0]) != (String(item, "kind") == "note" ? "notes" : "tasks"))
+                throw new InvalidDataException("Ungültiger Einzelversand.");
+        }
     }
 
     private static void ValidateBatch(JsonObject body)

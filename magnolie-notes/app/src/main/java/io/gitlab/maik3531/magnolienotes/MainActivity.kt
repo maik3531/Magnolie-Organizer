@@ -70,6 +70,7 @@ import io.gitlab.maik3531.magnolienotes.ui.AufgabenEditor
 import io.gitlab.maik3531.magnolienotes.ui.BaumBlatt
 import io.gitlab.maik3531.magnolienotes.ui.Baumhandlungen
 import io.gitlab.maik3531.magnolienotes.ui.Telefonhandlungen
+import io.gitlab.maik3531.magnolienotes.ui.gemeinsameSyncAnfangswerte
 import io.gitlab.maik3531.magnolienotes.telefon.TelefonDienst
 import io.gitlab.maik3531.magnolienotes.telefon.TelefonModulStatus
 import io.gitlab.maik3531.magnolienotes.telefon.TelefonWerk
@@ -1150,7 +1151,10 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                         beiPersonalLoeschungen = { runCatching { telefonWerk.setPersonalSyncMode(telefonZustand.personalAutoWifi, !it) }
                             .onFailure { sage(zusammenhang.fehlertext(it)) } },
                         beiPersonalJetzt = { runCatching {
-                            telefonWerk.setPersonalSyncMode(telefonZustand.personalAutoWifi, !telefonZustand.personalDeletionsEnabled, reconnectAfterChange = false)
+                            if (telefonZustand.sharedPreferencesSupported) telefonZustand.peer?.let { peer ->
+                                telefonWerk.configureCommonPreferences(peer.device_id, peer.static_public,
+                                    gemeinsameSyncAnfangswerte(telefonZustand, bestand))
+                            } else telefonWerk.setPersonalSyncMode(telefonZustand.personalAutoWifi, !telefonZustand.personalDeletionsEnabled, reconnectAfterChange = false)
                             telefonWerk.personalSyncNow()
                         }
                             .onFailure { sage(it.message.orEmpty()) } },
@@ -1161,7 +1165,11 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                             .onFailure { sage(zusammenhang.fehlertext(it)) } },
                         beiCustomEntscheidung = { id, revision, delete -> runCatching {
                             telefonWerk.customDeletionDecision(id, revision, delete)
-                        }.onFailure { sage(zusammenhang.fehlertext(it)) } }
+                        }.onFailure { sage(zusammenhang.fehlertext(it)) } },
+                        beiGemeinsameEinstellung = { field, value, initial -> telefonZustand.peer?.let { peer ->
+                            runCatching { telefonWerk.configureCommonPreferences(peer.device_id, peer.static_public, initial, field, value) }
+                                .onFailure { sage(zusammenhang.fehlertext(it)) }
+                        } }
                     ),
                     handlungen = Baumhandlungen(
                         beiName = { werk.benenne(it) },

@@ -97,6 +97,7 @@ object TelefonNachrichten {
             PersonalNoteMode.KIND -> { if (expires - created > 86_400_000L) fail(); PersonalNoteMode.validate(body) }
             PersonalDesktopFeatures.KIND -> { if (expires - created > 86_400_000L) fail(); PersonalDesktopFeatures.validate(body) }
             SharedSyncSettings.KIND -> { if (expires - created > 86_400_000L) fail(); SharedSyncSettings.validate(body) }
+            SharedSyncSettings.START_KIND -> { if (expires - created > 60_000L) fail(); SharedSyncSettings.validateStart(body) }
             PhoneContentScope.KIND -> { if (expires - created > 60_000L) fail(); PhoneContentScope.validatePart(body) }
             PhoneContentScope.DATA_KIND -> {
                 PhoneContentScope.validateData(body)

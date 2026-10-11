@@ -6,6 +6,14 @@ import re
 
 VERSION = 9
 KIND = "personal_sync.shared_settings"
+START_KIND = "personal_sync.shared_start"
+
+
+def validate_start(body):
+    if not isinstance(body, dict) or set(body) != {"format", "request_id", "trigger"} or type(body["format"]) is not int or body["format"] != VERSION or body["trigger"] != "manual":
+        raise ValueError("invalid shared synchronization start")
+    actor(body["request_id"])
+    return body
 MAX_COUNTER = 9007199254740991
 ACTOR = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 DEFAULTS = {"content_mode": "phone_scope", "auto_mode": "manual", "skip_deletions": True,

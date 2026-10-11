@@ -708,6 +708,7 @@ internal sealed partial class BridgeDispatcher
                 ["own_device"] = personal?["own_device"]?.GetValue<bool>() == true,
                 ["custom_sync"] = telefon.CustomSettings(peer.Id),
                 ["note_sync"] = telefon.NoteSettings(peer.Id),
+                ["shared_sync"] = telefon.SharedPreferences(peer.Id),
                 ["time_sync"] = telefon.TimeSettings(peer.Id),
                 ["remote_own_device"] = personal?["remote_own_device"]?.GetValue<bool>() == true,
                 ["auto_wifi"] = personal?["auto_wifi"]?.GetValue<bool>() == true,
@@ -869,7 +870,8 @@ internal sealed partial class BridgeDispatcher
         if (batches.Length == 0) throw new InvalidDataException(T("Personal synchronization batches are missing."));
         PersonalSyncContract.ValidateBody("personal_sync.request", request);
         foreach (var batch in batches) PersonalSyncContract.ValidateBody("personal_sync.batch", batch);
-        if (batches.Any(batch => !telefon.NoteDirectionAllowed(peerId, "personal_sync.batch", batch, true)))
+        if (batches.Any(batch => !telefon.NoteDirectionAllowed(peerId, request.ContainsKey("send_item") ? "personal_sync.request" : "personal_sync.batch",
+            request.ContainsKey("send_item") ? request : batch, true)))
             throw new InvalidOperationException(T("Personal synchronization is not permitted on both devices."));
         var runId = request["run_id"]!.GetValue<string>();
         if (batches.Any(batch => batch["run_id"]?.GetValue<string>() != runId ||

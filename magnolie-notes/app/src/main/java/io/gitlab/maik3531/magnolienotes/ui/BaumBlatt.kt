@@ -133,7 +133,8 @@ class Telefonhandlungen(
     val beiPersonalEntscheidung: (String, String) -> String,
     val beiCustomSync: (Boolean) -> Unit,
     val beiTimeSync: (Boolean) -> Unit,
-    val beiCustomEntscheidung: (String, Long, Boolean) -> Unit
+    val beiCustomEntscheidung: (String, Long, Boolean) -> Unit,
+    val beiGemeinsameEinstellung: (String, JsonElement, Map<String, JsonElement>) -> Unit = { _, _, _ -> }
 )
 
 @Composable
@@ -165,6 +166,7 @@ fun BaumBlatt(
     LaunchedEffect(baumSichtbar) { if (!baumSichtbar) baumOffen = false }
     val noteImportMode = PersonalNoteMode.importing(telefon.peer?.personal_note_policy, telefon.peer?.remote_personal_note_policy)
     val activeProposals = bestand.personalSync.pending_proposals.filter {
+        telefon.sharedPreferencesValues?.get("content_mode") != JsonPrimitive("phone_scope") &&
         it.source_device == telefon.peer?.device_id && (!noteImportMode || it.kind == "task") }
     var telefonEntfernenWarnung by remember(peerScope) { mutableStateOf(false) }
     val personalDecisions = remember(peerScope) { PersonalDeletionDecisions() }
@@ -343,20 +345,21 @@ fun BaumBlatt(
                     }
             }
             if (telefon.peer?.state == "paired") {
+                if (telefon.sharedPreferencesSupported) GemeinsameSyncEinstellungen(telefon, bestand, telefonHandlungen)
                 Text(stringResource(R.string.personal_sync_simple), fontSize = 12.sp)
                 val noteModeSupported = telefon.peer?.remote_personal_notes_sync_available == true &&
                     PersonalNoteMode.VERSION in (telefon.peer?.remote_personal_notes_sync_versions ?: emptyList()) &&
                     PersonalNoteMode.VERSION in io.gitlab.maik3531.magnolienotes.telefon.TelefonCapabilities.phase1().getValue("personal_notes_sync").versions
-                if (noteModeSupported) {
+                if (noteModeSupported && !telefon.sharedPreferencesSupported) {
                     Text(stringResource(R.string.personal_note_direction), fontWeight = FontWeight.Bold)
                     Schalterzeile(stringResource(R.string.personal_note_import), telefon.personalNotesMode == PersonalNoteMode.IMPORT,
                         { telefonHandlungen.beiPersonalNotizrichtung(if (it) PersonalNoteMode.IMPORT else PersonalNoteMode.TWO_WAY) })
                     Text(stringResource(if (noteImportMode) R.string.personal_note_import else R.string.personal_note_two_way), fontSize = 12.sp)
                     Text(stringResource(R.string.personal_note_direction_hint), fontSize = 12.sp)
-                } else Text(stringResource(R.string.personal_note_direction_update), fontSize = 12.sp)
+                } else if (!telefon.sharedPreferencesSupported) Text(stringResource(R.string.personal_note_direction_update), fontSize = 12.sp)
                 val customSupported = telefon.peer?.remote_personal_tasks_sync_available == true && 4 in (telefon.peer?.remote_personal_tasks_sync_versions ?: emptyList()) &&
                     4 in io.gitlab.maik3531.magnolienotes.telefon.TelefonCapabilities.phase1().getValue("personal_tasks_sync").versions
-                if (customSupported && PersonalDesktopFeatures.customAvailable(telefon.peer!!)) {
+                if (!telefon.sharedPreferencesSupported && customSupported && PersonalDesktopFeatures.customAvailable(telefon.peer!!)) {
                     Schalterzeile(stringResource(R.string.personal_custom_optin),
                         bestand.personalCustom.local?.get("enabled")?.jsonPrimitive?.booleanOrNull == true, telefonHandlungen.beiCustomSync)
                     Text(stringResource(R.string.personal_custom_explanation), fontSize = 12.sp)
@@ -370,14 +373,16 @@ fun BaumBlatt(
                     7 in io.gitlab.maik3531.magnolienotes.telefon.TelefonCapabilities.phase1().getValue("personal_tasks_sync").versions
                 val timeEnabled = telefon.peer?.personal_time_policy?.get("enabled")?.jsonPrimitive?.booleanOrNull == true
                 val remoteTimeEnabled = telefon.peer?.remote_personal_time_policy?.get("enabled")?.jsonPrimitive?.booleanOrNull == true
-                if (bestand.zeiterfassung.enabled && (timeSupported || timeEnabled)) {
+                if (!telefon.sharedPreferencesSupported && bestand.zeiterfassung.enabled && (timeSupported || timeEnabled)) {
                     Schalterzeile(stringResource(R.string.zeit_titel), timeEnabled, telefonHandlungen.beiTimeSync)
                     if (timeEnabled && !remoteTimeEnabled) Text(stringResource(R.string.baum_wartet), fontSize = 12.sp)
                 }
+                if (!telefon.sharedPreferencesSupported) {
                 Schalterzeile(stringResource(R.string.personal_sync_auto_wlan), telefon.personalAutoWifi,
                     telefonHandlungen.beiPersonalAutoWlan)
                 Schalterzeile(stringResource(R.string.personal_sync_skip_deletions), !telefon.personalDeletionsEnabled,
-                    { telefonHandlungen.beiPersonalLoeschungen(!it) })
+                     { telefonHandlungen.beiPersonalLoeschungen(!it) })
+                }
                 Lederknopf(stringResource(R.string.personal_sync_jetzt), modifier = Modifier.fillMaxWidth(),
                     aktiv = telefon.personalOwnDevice && telefon.peer?.remote_own_device == true &&
                         ((telefon.peer?.remote_personal_notes_sync_granted == true) ||

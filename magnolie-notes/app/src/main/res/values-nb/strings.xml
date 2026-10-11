@@ -396,4 +396,9 @@
     <string name="kontakt_review_neueste">Bruk den nyere versjonen</string>
     <string name="kontakt_review_rest">Bruk dette valget på gjenværende entydig tilordnede konflikter</string>
     <string name="kontakt_review_geburtsname">Fødenavn: %1$s</string>
+    <string name="shared_sync_content">Notater og oppgaver</string>
+    <string name="shared_sync_notes_collection">Synkroniser bare innholdet i Notes</string>
+    <string name="shared_sync_all_content">Synkroniser alle notater og oppgaver</string>
+    <string name="shared_sync_manual">Manuelt</string>
+    <string name="shared_sync_time_direction">Synkroniseringsretning for tidsregistrering</string>
 </resources>

@@ -425,4 +425,9 @@
     <string name="kontakt_review_neueste">Выкарыстаць навейшую версію</string>
     <string name="kontakt_review_rest">Ужыць гэты выбар да астатніх канфліктаў з адназначным супастаўленнем</string>
     <string name="kontakt_review_geburtsname">Прозвішча пры нараджэнні: %1$s</string>
+    <string name="shared_sync_content">Нататкі і задачы</string>
+    <string name="shared_sync_notes_collection">Сінхранізаваць толькі змесціва Notes</string>
+    <string name="shared_sync_all_content">Сінхранізаваць усе нататкі і задачы</string>
+    <string name="shared_sync_manual">Уручную</string>
+    <string name="shared_sync_time_direction">Кірунак сінхранізацыі ўліку часу</string>
 </resources>

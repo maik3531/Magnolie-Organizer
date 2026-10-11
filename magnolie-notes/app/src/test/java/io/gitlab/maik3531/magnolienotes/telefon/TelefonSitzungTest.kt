@@ -1,10 +1,12 @@
 package io.gitlab.maik3531.magnolienotes.telefon
 
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonArray
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -95,7 +97,7 @@ class TelefonSitzungTest {
             (grants["grants"] as JsonObject).keys)
         assertEquals(listOf("1", "2", "3"), (((capabilities["items"] as JsonObject)["device_status"] as JsonObject)
             ["versions"] as kotlinx.serialization.json.JsonArray).map { (it as JsonPrimitive).content })
-        assertEquals(listOf("1", "2", "3", "4", "6", "7"), (((capabilities["items"] as JsonObject)["personal_tasks_sync"] as JsonObject)
+        assertEquals(listOf("1", "2", "3", "4", "6", "7", "9", "10"), (((capabilities["items"] as JsonObject)["personal_tasks_sync"] as JsonObject)
             ["versions"] as kotlinx.serialization.json.JsonArray).map { (it as JsonPrimitive).content })
         assertEquals(false, ((grants["grants"] as JsonObject)["dial_request"] as JsonPrimitive).content.toBoolean())
     }
@@ -103,12 +105,17 @@ class TelefonSitzungTest {
     @Test fun `Control Vertrag entspricht gemeinsamem Golden`() {
         val golden = TelefonKanonisch.json.parseToJsonElement(
             File("app/src/test/resources/telefon-control-contract.json").readText()).jsonObject
-        // Keep the shared v1 fixture as an old-peer compatibility vector. Only the
-        // negotiated dial version list changes; the exact capability keys do not.
+        // Preserve the old-peer vector; current implementations additionally
+        // advertise scoped calls and the shared Notes collection.
         val legacy = golden.getValue("android_capabilities").jsonObject
         val scoped = JsonObject(legacy + ("dial_request" to JsonObject(legacy.getValue("dial_request").jsonObject +
             ("versions" to buildJsonArray { add(JsonPrimitive(1)); add(JsonPrimitive(2)) }))))
-        assertEquals(scoped, TelefonNachrichten.capabilities()["items"])
+        val current = JsonObject(scoped.mapValues { (name, value) ->
+            if (name in setOf("personal_notes_sync", "personal_tasks_sync")) JsonObject(value.jsonObject +
+                ("versions" to JsonArray(value.jsonObject.getValue("versions").jsonArray + listOf(JsonPrimitive(9), JsonPrimitive(10)))))
+            else value
+        })
+        assertEquals(current, TelefonNachrichten.capabilities()["items"])
         assertEquals(golden.getValue("android_grants"), TelefonNachrichten.grants()["grants"])
         TelefonNachrichten.validate(TelefonNachrichten.message("incoming_call_state.event",
             golden.getValue("incoming_call_state_v2").jsonObject, 60_000, 1_000), 1_000)

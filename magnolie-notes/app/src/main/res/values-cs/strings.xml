@@ -418,4 +418,9 @@
     <string name="kontakt_review_neueste">Použít novější verzi</string>
     <string name="kontakt_review_rest">Použít tuto volbu na zbývající jednoznačně přiřazené konflikty</string>
     <string name="kontakt_review_geburtsname">Rodné příjmení: %1$s</string>
+    <string name="shared_sync_content">Poznámky a úkoly</string>
+    <string name="shared_sync_notes_collection">Synchronizovat pouze obsah Notes</string>
+    <string name="shared_sync_all_content">Synchronizovat všechny poznámky a úkoly</string>
+    <string name="shared_sync_manual">Ručně</string>
+    <string name="shared_sync_time_direction">Směr synchronizace evidence času</string>
 </resources>

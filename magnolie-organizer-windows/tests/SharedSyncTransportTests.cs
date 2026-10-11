@@ -44,14 +44,14 @@ internal static class SharedSyncTransportTests
             store.SavePeers([peer]); store.SetPersonalSettings(peer.Id, ownDevice: true, remoteOwnDevice: true);
             store.SetLocalGrant("personal_notes_sync", true); store.SetLocalGrant("personal_tasks_sync", true);
             var body = store.ChangeSharedSetting(peer.Id, peer.PublicKey, "content_mode", JsonValue.Create("phone_scope")!);
-            var publicCapabilities = TelefonProtocolContract.DesktopCapabilities();
-            TestAssert.That(!SharedSyncSettings.Supported(publicCapabilities["items"]!.AsObject(), publicCapabilities["items"]!.AsObject()),
-                "Incomplete shared-preference activation was advertised.");
-            var negotiated = publicCapabilities.DeepClone().AsObject();
+            var negotiated = TelefonProtocolContract.DesktopCapabilities();
+            TestAssert.That(SharedSyncSettings.Supported(negotiated["items"]!.AsObject(), negotiated["items"]!.AsObject()),
+                "Shared-preference support was not advertised.");
+            var legacyCapabilities = negotiated.DeepClone().AsObject();
             foreach (var name in new[] { "personal_notes_sync", "personal_tasks_sync" })
             {
-                negotiated["items"]![name]!["versions"]!.AsArray().Add(SharedSyncSettings.Version);
-                negotiated["items"]![name]!["versions"]!.AsArray().Add(PhoneContentScope.Version);
+                legacyCapabilities["items"]![name]!["versions"] = new JsonArray(legacyCapabilities["items"]![name]!["versions"]!.AsArray()
+                    .Where(value => value!.GetValue<int>() < 9).Select(value => value!.DeepClone()).ToArray());
             }
             Task<TelefonAck?> Receive(TelefonPeer _, JsonObject message)
             {
@@ -65,7 +65,7 @@ internal static class SharedSyncTransportTests
                 return Task.FromResult<TelefonAck?>(null);
             }
             TelefonConnection Connect(bool supported = true, MemoryStream? wire = null) => new TelefonConnection(peer, wire ?? new MemoryStream(), new byte[16], new byte[72],
-                store, Receive, CancellationToken.None, "wifi") { SharedLocalCapabilities = () => (supported ? negotiated : publicCapabilities)["items"]!.DeepClone().AsObject() };
+                store, Receive, CancellationToken.None, "wifi") { SharedLocalCapabilities = () => (supported ? negotiated : legacyCapabilities)["items"]!.DeepClone().AsObject() };
             var caps = Message("capabilities.update", negotiated);
             var allowed = TelefonProtocolContract.DesktopGrants(); allowed["personal_notes_sync"] = true; allowed["personal_tasks_sync"] = true;
             var grants = Message("grants.update", new JsonObject { ["revision"] = 1, ["grants"] = allowed });
@@ -124,6 +124,17 @@ internal static class SharedSyncTransportTests
                 TestAssert.Throws<InvalidOperationException>(() => scoped.CurrentContentScope(PhoneContentScope.Reference(manifest)), "Incomplete wire scope authorized reply.");
                 foreach (var part in pieces.SkipLast(1)) await scoped.HandlePlainAsync(Message(PhoneContentScope.Kind, part));
                 TestAssert.That(JsonNode.DeepEquals(manifest, scoped.CurrentContentScope(PhoneContentScope.Reference(manifest))), "Complete authenticated wire scope did not become current.");
+                var single = new JsonObject { ["format"] = 3, ["run_id"] = Guid.NewGuid().ToString("D"),
+                    ["trigger"] = "manual", ["modules"] = new JsonArray("notes"),
+                    ["send_item"] = new JsonObject { ["kind"] = "note", ["id"] = "organizer-only" } };
+                var singleNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                new PersonalSyncStore(store).RememberRun(peer.Id, single, singleNow, singleNow + 60000);
+                var singleId = store.Enqueue(peer.Id, "personal_sync.request", single, 60000, singleNow);
+                await scoped.PumpOutboxNowAsync();
+                TestAssert.That((await DrainAsync(scopeWire)).Any(value => value["message_id"]?.GetValue<string>() == singleId &&
+                    value["kind"]?.GetValue<string>() == "personal_sync.request" && JsonNode.DeepEquals(value["body"], single)),
+                    "A manually selected Organizer-only note did not use the existing transfer.");
+                store.CompleteOutbox(peer.Id, singleId);
                 var next = PhoneContentScope.Advance(manifest, Enumerable.Range(0, 100).Select(n => $"updated-{n:D3}"), []);
                 var nextParts = PhoneContentScope.Chunks(next, 32);
                 await scoped.HandlePlainAsync(Message(PhoneContentScope.Kind, nextParts[0]));

@@ -141,11 +141,18 @@ object PersonalSyncProtokoll {
                 if (body.integer("format") != 1L || (body["own_device"] as? JsonPrimitive)?.booleanOrNull == null) fail()
             }
             "personal_sync.request" -> {
-                TelefonNachrichten.exact(body, setOf("format", "run_id", "trigger", "modules"))
+                TelefonNachrichten.exact(body, setOf("format", "run_id", "trigger", "modules") + if ("send_item" in body) setOf("send_item") else emptySet())
                 TelefonNachrichten.uuid4(body.string("run_id")); if (body.integer("format") !in 1L..3L ||
                     body.string("trigger") !in setOf("manual", "auto_wifi")) fail()
                 val modules = (body["modules"] as? JsonArray)?.map { (it as? JsonPrimitive)?.content } ?: fail()
                 if (modules !in listOf(listOf("notes"), listOf("tasks"), listOf("notes", "tasks"))) fail()
+                if ("send_item" in body) {
+                    val item = body["send_item"] as? JsonObject ?: fail()
+                    TelefonNachrichten.exact(item, setOf("kind", "id"))
+                    if (body.integer("format") != 3L || body.string("trigger") != "manual" ||
+                        item.string("kind") !in setOf("note", "task") || !identifier(item.string("id")) ||
+                        modules != listOf(if (item.string("kind") == "note") "notes" else "tasks")) fail()
+                }
             }
             "personal_sync.batch" -> decodeBatch(body)
             "personal_sync.report" -> validateReport(body)
@@ -251,7 +258,7 @@ object PersonalSyncProtokoll {
         }}))
     }
 
-    private fun decodeRecord(value: JsonObject, format: Int): PersonalSyncRecord {
+    internal fun decodeRecord(value: JsonObject, format: Int): PersonalSyncRecord {
         TelefonNachrichten.exact(value, setOf("kind", "id", "state", "clock", "hash", "modified_ms", "value"))
         val kind = value.string("kind"); val id = value.string("id"); val digest = value.string("hash")
         if (kind !in kinds || !identifier(id) || value.string("state") != "live" ||

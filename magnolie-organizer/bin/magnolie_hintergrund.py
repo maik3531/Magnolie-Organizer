@@ -791,6 +791,9 @@ def _request_shape(operation, arguments):
         "phone_set_personal_sync_mode": {"peer_id", "auto_wifi", "skip_deletions"},
         "phone_set_desktop_features": {"custom_tab", "tree"},
         "phone_set_note_mode": {"peer_id", "mode"},
+        "phone_initialize_common_preferences": {"peer_id", "fingerprint", "initial"},
+        "phone_start_common_sync": {"peer_id", "fingerprint", "initial"},
+        "phone_change_common_preference": {"peer_id", "fingerprint", "field", "value", "initial"},
         "phone_send_personal_sync": {"peer_id", "kind", "body", "trigger"},
         "phone_send_personal_sync_run": {"peer_id", "request", "batches", "sources",
             "trigger", "report"},
@@ -838,6 +841,22 @@ def _request_shape(operation, arguments):
             or not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", arguments["peer_id"])
             or arguments.get("mode") not in ("two_way", "phone_import")):
         raise IPCError("invalid note direction")
+    if operation in ("phone_initialize_common_preferences", "phone_change_common_preference", "phone_start_common_sync"):
+        if (set(arguments) != allowed[operation] or len(encoded.encode("utf-8")) > 4096 or
+                not isinstance(arguments.get("peer_id"), str) or
+                not re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}", arguments["peer_id"]) or
+                not isinstance(arguments.get("fingerprint"), str) or not 1 <= len(arguments["fingerprint"]) <= 128):
+            raise IPCError("invalid common preference request")
+        try:
+            import magnolie_shared_sync as shared
+            initial = arguments["initial"]
+            if not isinstance(initial, dict) or set(initial) != set(shared.DEFAULTS):
+                raise ValueError("incomplete initial preferences")
+            shared.create(arguments["peer_id"], initial)
+            if operation == "phone_change_common_preference":
+                shared.create(arguments["peer_id"], {arguments["field"]: arguments["value"]})
+        except (ValueError, TypeError, KeyError) as error:
+            raise IPCError("invalid common preference values") from error
     if operation == "phone_set_personal_sync_mode" and (
             set(arguments) != allowed[operation] or type(arguments.get("auto_wifi")) is not bool
             or type(arguments.get("skip_deletions")) is not bool or not isinstance(arguments.get("peer_id"), str)
@@ -1242,6 +1261,9 @@ class IPCServer:
             "phone_set_personal_sync_mode": ("set_personal_sync_mode", ("peer_id", "auto_wifi", "skip_deletions")),
             "phone_set_desktop_features": ("set_desktop_features", ("custom_tab", "tree")),
             "phone_set_note_mode": ("set_note_mode", ("peer_id", "mode")),
+            "phone_initialize_common_preferences": ("initialize_common_preferences", ("peer_id", "fingerprint", "initial")),
+            "phone_start_common_sync": ("start_common_sync", ("peer_id", "fingerprint", "initial")),
+            "phone_change_common_preference": ("change_common_preference", ("peer_id", "fingerprint", "field", "value", "initial")),
             "phone_send_personal_sync": ("send_personal_sync", ("peer_id", "kind", "body", "trigger")),
             "phone_send_personal_sync_run": ("send_personal_sync_run",
                 ("peer_id", "request", "batches", "sources", "trigger", "report")),
@@ -1610,6 +1632,15 @@ class PhoneServiceProxy:
                           own_device=bool(own_device), auto_wifi=bool(auto_wifi))
     def set_note_mode(self, peer_id, mode):
         return self._call("set_note_mode", peer_id=peer_id, mode=mode)
+
+    def initialize_common_preferences(self, peer_id, fingerprint, initial):
+        return self._call("initialize_common_preferences", peer_id=peer_id, fingerprint=fingerprint, initial=initial)
+
+    def start_common_sync(self, peer_id, fingerprint, initial):
+        return self._call("start_common_sync", peer_id=peer_id, fingerprint=fingerprint, initial=initial)
+
+    def change_common_preference(self, peer_id, fingerprint, field, value, initial):
+        return self._call("change_common_preference", peer_id=peer_id, fingerprint=fingerprint, field=field, value=value, initial=initial)
     def set_personal_sync_mode(self, peer_id, auto_wifi, skip_deletions):
         return self._call("set_personal_sync_mode", peer_id=peer_id, auto_wifi=auto_wifi, skip_deletions=skip_deletions)
     def set_desktop_features(self, custom_tab, tree):

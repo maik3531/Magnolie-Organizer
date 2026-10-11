@@ -46,8 +46,8 @@ internal static class TelefonProtocolContract
         ["answer_call"] = Capability(true, "available", 1), ["device_status"] = Capability(true, "available", 1, 2, 3, 4, 5),
         ["dial_request"] = Capability(true, "available", 1, 2), ["end_call"] = Capability(true, "available", 1),
         ["incoming_call_number"] = Capability(true, "available", 1), ["incoming_call_state"] = Capability(true, "available", 2),
-        ["personal_deletions_sync"] = Capability(true, "available", 1), ["personal_notes_sync"] = Capability(true, "available", 1, 2, 3, 5),
-        ["personal_tasks_sync"] = Capability(true, "available", 1, 2, 3, 4, 6, 7), ["selected_notifications_readonly"] = Capability(false, "not_implemented", 1),
+        ["personal_deletions_sync"] = Capability(true, "available", 1), ["personal_notes_sync"] = Capability(true, "available", 1, 2, 3, 5, 9, 10),
+        ["personal_tasks_sync"] = Capability(true, "available", 1, 2, 3, 4, 6, 7, 9, 10), ["selected_notifications_readonly"] = Capability(false, "not_implemented", 1),
         ["transport.bluetooth_rfcomm"] = Capability(TelefonBluetoothSupport.Available, TelefonBluetoothSupport.Reason, 1)
     }};
 
@@ -103,7 +103,7 @@ internal static class TelefonMessageContract
     private static readonly HashSet<string> Kinds = new(StringComparer.Ordinal) { "capabilities.update", "grants.update", "device_status.request", "device_status.report",
         "dial_request.command", "dial_request.result", "selected_notifications_readonly.event", "incoming_call_state.event", "answer_call.command", "answer_call.result", "end_call.command", "end_call.result",
         "personal_sync.custom_settings", "personal_sync.custom_request", "personal_sync.custom_batch", PersonalSyncContract.NoteModeKind, PersonalSyncContract.DesktopFeaturesKind,
-        TimeSyncContract.Settings, TimeSyncContract.Request, TimeSyncContract.Batch, SharedSyncSettings.Kind, PhoneContentScope.Kind, PhoneContentScope.DataKind };
+        TimeSyncContract.Settings, TimeSyncContract.Request, TimeSyncContract.Batch, SharedSyncSettings.Kind, SharedSyncSettings.StartKind, PhoneContentScope.Kind, PhoneContentScope.DataKind };
     internal static void ValidateMessage(JsonObject message, long now, bool receiving)
     {
         var id = "00000000-0000-0000-0000-000000000000";
@@ -126,6 +126,7 @@ internal static class TelefonMessageContract
             else if (kind == PersonalSyncContract.NoteModeKind) { Maximum(ttl, 86_400_000); PersonalSyncContract.ValidateNoteSettings(body); }
             else if (kind == PersonalSyncContract.DesktopFeaturesKind) { Maximum(ttl, 86_400_000); PersonalSyncContract.ValidateDesktopFeatures(body); }
             else if (kind == SharedSyncSettings.Kind) { Maximum(ttl, 86_400_000); SharedSyncSettings.Validate(body); }
+            else if (kind == SharedSyncSettings.StartKind) { Maximum(ttl, 60_000); SharedSyncSettings.ValidateStart(body); }
             else if (kind == PhoneContentScope.Kind) { Maximum(ttl, 60_000); PhoneContentScope.ValidatePart(body); }
             else if (kind == PhoneContentScope.DataKind) { PhoneContentScope.ValidateData(body); Maximum(ttl, body["kind"]!.GetValue<string>() == "personal_sync.request" ? 3_600_000 : 86_400_000); }
             else if (TimeSyncContract.IsKind(kind)) { Maximum(ttl, 86_400_000); TimeSyncContract.Validate(kind, body, !receiving); }

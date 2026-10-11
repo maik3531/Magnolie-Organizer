@@ -446,4 +446,9 @@
     <string name="kontakt_review_neueste">استخدام النسخة الأحدث</string>
     <string name="kontakt_review_rest">تطبيق هذا الاختيار على التعارضات المتبقية ذات المطابقة المؤكدة</string>
     <string name="kontakt_review_geburtsname">اسم العائلة عند الولادة: %1$s</string>
+    <string name="shared_sync_content">الملاحظات والمهام</string>
+    <string name="shared_sync_notes_collection">مزامنة المحتوى الموجود في Notes فقط</string>
+    <string name="shared_sync_all_content">مزامنة جميع الملاحظات والمهام</string>
+    <string name="shared_sync_manual">يدويًا</string>
+    <string name="shared_sync_time_direction">اتجاه مزامنة تتبع الوقت</string>
 </resources>

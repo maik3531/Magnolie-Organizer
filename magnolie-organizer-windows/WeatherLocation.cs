@@ -17,14 +17,15 @@ internal static class WeatherLocationSelector
 
         try
         {
-            var fields = (libreOfficeLoader ?? (() => LibreOfficeUserData.Read()))()?.Felder;
+            var source = (libreOfficeLoader ?? (() => LibreOfficeUserData.Read()))();
+            var fields = source?.Felder;
             if (fields is not null)
             {
                 fields.TryGetValue("postalcode", out var postalCode);
                 fields.TryGetValue("l", out var city);
                 location = Usable(string.Join(' ', new[] { postalCode, city }
                     .Where(value => !string.IsNullOrWhiteSpace(value))));
-                if (location.Length > 0) return new WeatherLocation(location, "libreoffice");
+                if (location.Length > 0) return new WeatherLocation(location, source?.Quelle ?? "libreoffice");
             }
         }
         catch (Exception)

@@ -728,7 +728,7 @@ object PersonalSync {
             }
             if (remote.kind == "note") {
                 var id = noteId(identities, remote.id)
-                if (entities["note\u0000$id"] == null && entities.keys.none { it.startsWith("attachment\u0000$id\u0000") }) {
+                if (mergeNotes && entities["note\u0000$id"] == null && entities.keys.none { it.startsWith("attachment\u0000$id\u0000") }) {
                     val format = if ("attachments" in remote.value) 2 else 1
                     val candidate = notes.filter { note ->
                         val meta = entities["note\u0000${noteWireId(identities, note.id)}"]

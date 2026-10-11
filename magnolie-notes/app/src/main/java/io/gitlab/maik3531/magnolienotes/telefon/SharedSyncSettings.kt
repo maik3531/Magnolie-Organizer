@@ -6,6 +6,13 @@ import kotlinx.serialization.json.*
 internal object SharedSyncSettings {
     const val VERSION = 9
     const val KIND = "personal_sync.shared_settings"
+    const val START_KIND = "personal_sync.shared_start"
+
+    fun validateStart(body: JsonObject) {
+        TelefonNachrichten.exact(body, setOf("format", "request_id", "trigger"))
+        require(body["format"] == JsonPrimitive(VERSION) && body["trigger"] == JsonPrimitive("manual"))
+        TelefonNachrichten.uuid4(body.string("request_id"))
+    }
     private const val MAX_COUNTER = 9_007_199_254_740_991L
     private val defaults = linkedMapOf("content_mode" to JsonPrimitive("phone_scope"),
         "auto_mode" to JsonPrimitive("manual"), "skip_deletions" to JsonPrimitive(true),

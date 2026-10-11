@@ -2,6 +2,7 @@
 """Unabhaengige Magnolie-Telefonverbindung (Protokollfassung 1)."""
 
 import base64
+import copy
 import hashlib
 import hmac
 import io
@@ -86,9 +87,9 @@ def desktop_capabilities(revision=1, bluetooth_available=False,
                        "reason": "available" if available else (
                            bluetooth_reason if name == "transport.bluetooth_rfcomm"
                            else "not_implemented"),
-                         "versions": [1, 2, 3, 4, 6, 7] if name == "personal_tasks_sync" else
+                         "versions": [1, 2, 3, 4, 6, 7, 9, 10] if name == "personal_tasks_sync" else
                                       [1, 2, 3, 4, 5] if name == "device_status" else
-                                       [1, 2, 3, 5] if name == "personal_notes_sync" else
+                                       [1, 2, 3, 5, 9, 10] if name == "personal_notes_sync" else
                                      [2] if name == "incoming_call_state" else [1]}
     return {"revision": revision, "items": items}
 
@@ -860,6 +861,10 @@ class PhoneStore:
             shared_sync_contract.validate(body)
             if ttl_ms > DAY_MS:
                 raise ValueError("invalid shared settings lifetime")
+        if kind == shared_sync_contract.START_KIND:
+            shared_sync_contract.validate_start(body)
+            if ttl_ms > 60000:
+                raise ValueError("invalid shared start lifetime")
         if kind == "personal_sync.deletion_proposals":
             self.remember_personal_proposal_kinds(peer_id, body, True)
         message = {"type": "message", "v": 1, "message_id": str(uuid.uuid4()),
@@ -2404,11 +2409,12 @@ class PhoneService:
                             "bluetooth_address": bluetooth["address"],
                              "call_audio": dict(peer.get("call_audio", {}), address=self._call_audio_address(peer)),
                             "custom_sync": peer.get("custom_sync", {}),
-                            "note_sync": self.note_status(peer_id),
+                             "note_sync": self.note_status(peer_id),
+                             "shared_sync": self.shared_settings_status(peer_id),
                             "time_sync": self.time_status(peer_id),
                             "own_device": personal["own_device"] and not binding_conflict,
                            "remote_own_device": personal["remote_own_device"],
-                           "auto_wifi": personal["auto_wifi"],
+                            "auto_wifi": personal["auto_wifi"],
                            "personal_sync_active_auto": bool(
                                self.store.active_auto_run(peer_id)),
                            "personal_sync_report": personal["last_report"]})
@@ -3085,6 +3091,7 @@ class PhoneService:
         # whole preference state, including its separate time direction, once.
         if body is None:
             return
+        self._apply_common_function_policies(peer_id, body)
         session = self._shared_session(peer, channel)
         if session["sent"] == body:
             return
@@ -3114,6 +3121,85 @@ class PhoneService:
             self._queue_shared_settings(peer_id)
         self.callback("status", self.report())
         return result
+
+    def shared_settings_status(self, peer_id):
+        with self.lock:
+            peer = self.store.peer(peer_id)
+            if not peer or peer.get("state") != "paired":
+                return {"supported": False, "initialized": False, "ready": False, "values": None}
+            body = self.store.shared_settings(peer_id, peer["static_public"])
+            return {"supported": shared_sync_contract.supported(desktop_capabilities()["items"],
+                        peer.get("capabilities", {}).get("items", {})),
+                    "initialized": body is not None, "ready": self.shared_settings_ready(peer_id),
+                    "values": shared_sync_contract.effective(body) if body is not None else None}
+
+    def _apply_common_function_policies(self, peer_id, body):
+        peer = self.store.sole_peer(peer_id)
+        if not peer or peer.get("personal_sync", {}).get("own_device") is not True:
+            return
+        values = shared_sync_contract.effective(body)
+        deletions = not values["skip_deletions"] and values["content_mode"] != "phone_scope"
+        if peer.get("local_grants", {}).get("grants", {}).get("personal_deletions_sync", False) != deletions:
+            self.set_grant(peer_id, "personal_deletions_sync", deletions)
+        auto_wifi = values["auto_mode"] == "wifi"
+        if peer["personal_sync"].get("auto_wifi") != auto_wifi:
+            peer["personal_sync"]["auto_wifi"] = auto_wifi
+            self.store.save_peers()
+        policies = self.store.time_settings(peer_id)
+        local = policies.get("local")
+        if self._time_supported(peer) and (local or values["time_enabled"]) and (local or {}).get("enabled") != values["time_enabled"]:
+            self.store.set_time_settings(peer_id, time_sync_contract.new_settings(values["time_enabled"], (local or {}).get("revision", 0) + 1))
+            self.store.remove_kind(peer_id, time_sync_contract.SETTINGS)
+        custom = copy.deepcopy(peer.get("custom_sync", {}))
+        local = custom.get("local")
+        if self._custom_supported(peer) and (local or values["custom_enabled"]) and (local or {}).get("enabled") != values["custom_enabled"]:
+            custom["local"] = self._custom_settings(values["custom_enabled"], (local or {}).get("revision", 0) + 1)
+            self._save_custom(peer, custom)
+            self.store.remove_kind(peer_id, "personal_sync.custom_settings")
+            self.store.queue(peer_id, "personal_sync.custom_settings", custom["local"], DAY_MS)
+
+    def _common_preference_peer(self, peer_id, expected_fingerprint, initial):
+        peer = self.store.sole_peer(peer_id)
+        if (not peer or fingerprint(unb64(peer["static_public"], 32)) != expected_fingerprint or
+                peer.get("personal_sync", {}).get("own_device") is not True or
+                not shared_sync_contract.supported(desktop_capabilities()["items"], peer.get("capabilities", {}).get("items", {}))):
+            raise PermissionError("Shared preferences are unavailable for this paired device.")
+        if not isinstance(initial, dict) or set(initial) != set(shared_sync_contract.DEFAULTS):
+            raise ValueError("A complete initial preference snapshot is required.")
+        shared_sync_contract.create(self.store.identity["device_id"], initial)
+        return peer
+
+    def initialize_common_preferences(self, peer_id, expected_fingerprint, initial):
+        with self.lock:
+            peer = self._common_preference_peer(peer_id, expected_fingerprint, initial)
+            self.store.initialize_shared_settings(peer_id, peer["static_public"], initial)
+            self._apply_common_function_policies(peer_id, self.store.shared_settings(peer_id, peer["static_public"]))
+            self._queue_shared_settings(peer_id)
+            result = self.shared_settings_status(peer_id)
+        self.callback("status", self.report())
+        return result
+
+    def change_common_preference(self, peer_id, expected_fingerprint, field, value, initial):
+        with self.lock:
+            peer = self._common_preference_peer(peer_id, expected_fingerprint, initial)
+            self.store.change_shared_setting(peer_id, peer["static_public"], field, value, initial)
+            self._apply_common_function_policies(peer_id, self.store.shared_settings(peer_id, peer["static_public"]))
+            self._queue_shared_settings(peer_id)
+            result = self.shared_settings_status(peer_id)
+        self.callback("status", self.report())
+        return result
+
+    def start_common_sync(self, peer_id, expected_fingerprint, initial):
+        self.initialize_common_preferences(peer_id, expected_fingerprint, initial)
+        with self.lock:
+            self._common_preference_peer(peer_id, expected_fingerprint, initial)
+            if self.store.has_kind(peer_id, shared_sync_contract.START_KIND):
+                return
+            message = self.store.queue(peer_id, shared_sync_contract.START_KIND,
+                {"format": 9, "request_id": str(uuid.uuid4()), "trigger": "manual"}, 60000)
+            channel = self.connections.get(peer_id)
+            if channel:
+                self._send_message(channel, peer_id, message)
 
     def _uses_scoped_content(self, peer):
         if not peer:
@@ -3339,12 +3425,16 @@ class PhoneService:
         try:
             settings = self.store.note_settings(peer_id)
             return dict(settings, supported=self._note_supported(peer),
-                importing=personal_sync_contract.note_import_mode(settings.get("local"), settings.get("remote")),
+                importing=self._note_importing(peer_id),
                 ready=self._note_ready(peer_id))
         except RuntimeError:
             return {"supported": self._note_supported(peer), "importing": True, "ready": False}
 
     def _note_importing(self, peer_id):
+        peer = self.store.peer(peer_id)
+        common = self.store.shared_settings(peer_id, peer["static_public"]) if peer and peer.get("state") == "paired" else None
+        if common is not None:
+            return shared_sync_contract.effective(common)["content_mode"] == "phone_import"
         settings = self.store.note_settings(peer_id)
         return personal_sync_contract.note_import_mode(settings.get("local"), settings.get("remote"))
 
@@ -3362,6 +3452,8 @@ class PhoneService:
         peer = self.store.sole_peer(peer_id)
         if not peer:
             return False
+        if self.store.shared_settings(peer_id, peer["static_public"]) is not None:
+            return self.shared_settings_ready(peer_id)
         channel = channel or self.connections.get(peer_id)
         controls = self._note_controls_for(channel)
         expected = {"capabilities.update": peer.get("capabilities"), "grants.update": peer.get("grants"),
@@ -3394,6 +3486,8 @@ class PhoneService:
         peer = self.store.sole_peer(peer_id)
         if not peer or not self._note_supported(peer):
             return
+        if shared_sync_contract.supported(desktop_capabilities()["items"], peer.get("capabilities", {}).get("items", {})):
+            return
         channel = channel or self.connections.get(peer_id)
         if not channel or self._note_controls_for(channel).get("capabilities.update") != peer.get("capabilities"):
             return
@@ -3425,20 +3519,38 @@ class PhoneService:
             self._queue_note_settings(peer_id, force=True)
         self.callback("status", self.report())
 
+    def _single_item_run(self, peer_id, kind, body):
+        request = body if kind == "personal_sync.request" else self.store.personal_run(peer_id, body.get("run_id", ""))
+        return isinstance(request.get("send_item"), dict)
+
     def _note_direction_allowed(self, peer_id, kind, body, outgoing):
+        if self._single_item_run(peer_id, kind, body):
+            peer = self.store.sole_peer(peer_id)
+            return (kind != "personal_sync.request" or outgoing) and self._content_scope_ready_controls(peer, self.connections.get(peer_id))
         if self._scoped_data_manifest(peer_id, kind, body) is not None:
             return True
+        peer = self.store.sole_peer(peer_id)
+        common = self.store.shared_settings(peer_id, peer["static_public"]) if peer else None
+        if common is not None:
+            if not self.shared_settings_ready(peer_id):
+                raise RuntimeError("Shared preference agreement is pending.")
+            if shared_sync_contract.effective(common)["content_mode"] == "phone_scope":
+                return False
         kinds = self.store.personal_decision_kinds(peer_id, body, outgoing) if kind == "personal_sync.deletion_decision" else None
         return personal_sync_contract.note_direction_allowed("desktop", outgoing, kind, body,
             self._note_importing(peer_id), kinds)
 
     def _note_policy_error(self, peer_id, kind, body, outgoing, channel=None):
         try:
+            if self._single_item_run(peer_id, kind, body):
+                return None if self._note_direction_allowed(peer_id, kind, body, outgoing) else "not_granted"
             if self._scoped_data_manifest(peer_id, kind, body, channel) is not None:
                 return None
             peer = self.store.sole_peer(peer_id)
             if self._uses_scoped_content(peer):
                 return "not_granted"
+            if peer and self.store.shared_settings(peer_id, peer["static_public"]) is not None and not self.shared_settings_ready(peer_id):
+                return "temporary_failure"
             if peer and not self._note_supported(peer) and not self.store.note_settings(peer_id):
                 return None  # Existing pre-V5 consent contract remains unchanged.
             kinds = self.store.personal_decision_kinds(peer_id, body, outgoing) if kind == "personal_sync.deletion_decision" else None
@@ -3721,13 +3833,20 @@ class PhoneService:
             raise ValueError("invalid format 2 run")
         for body in batches:
             validate_personal_sync_body("personal_sync.batch", body)
-            if not self._note_direction_allowed(peer_id, "personal_sync.batch", body, True):
+            if not self._note_direction_allowed(peer_id, "personal_sync.request" if "send_item" in request else "personal_sync.batch",
+                                                request if "send_item" in request else body, True):
                 raise RuntimeError("Note direction does not permit this batch.")
         if report is not None:
             validate_personal_sync_body("personal_sync.report", report)
             if report["format"] != format or report["run_id"] != request["run_id"]:
                 raise ValueError("inconsistent format 2 report")
         records = [record for body in batches for record in body["records"]]
+        if "send_item" in request and not batches[-1]["reply"]:
+            selected = request["send_item"]
+            target = [record for record in records if record["kind"] == selected["kind"] and record["id"] == selected["id"]]
+            if len(target) != 1 or any(record not in target and not (record["kind"] == "notebook" and
+                    record["id"] == target[0]["value"].get("notebook_id")) for record in records):
+                raise ValueError("single-item send contains unrelated content")
         if (any(body["format"] != format or body["run_id"] != request["run_id"] or
                 body["reply"] != batches[-1]["reply"] for body in batches)
                 or [body["sequence"] for body in batches] != list(range(len(batches)))
@@ -3942,6 +4061,14 @@ class PhoneService:
         policy = self.store.outbox_policy(peer_id, message.get("message_id", ""))
         if policy == "invalid" or policy == "wifi_only" and self.connection_transports.get(peer_id) != "wifi":
             return False
+        if message.get("kind") == shared_sync_contract.START_KIND:
+            peer = self.store.sole_peer(peer_id)
+            if not self._shared_controls_ready(peer, channel) or not self.shared_settings_ready(peer_id):
+                return False
+            shared_sync_contract.validate_start(message["body"])
+            channel.send(message)
+            self.store.mark_attempt(peer_id, message["message_id"])
+            return True
         if message.get("kind") == shared_sync_contract.KIND:
             peer = self.store.sole_peer(peer_id)
             if not self._shared_controls_ready(peer, channel):
@@ -4037,7 +4164,7 @@ class PhoneService:
                 return False
         if message["kind"] in PERSONAL_DATA_KINDS:
             current = self.store.sole_peer(peer_id)
-            if self._uses_scoped_content(current):
+            if self._uses_scoped_content(current) and not self._single_item_run(peer_id, message["kind"], message["body"]):
                 reference = self.store.scoped_run_reference(peer_id, current["static_public"], message["body"]["run_id"])
                 if reference is None:
                     self.store.acknowledge(peer_id, message["message_id"])
@@ -4962,7 +5089,8 @@ class PhoneService:
             with self.lock:
                 scope = self.store.scoped_run_reference(peer["device_id"], peer["static_public"], value["run_id"])
                 if (scope != scoped_reference or scoped_reference is None and
-                        self._uses_scoped_content(self.store.sole_peer(peer["device_id"]))):
+                        self._uses_scoped_content(self.store.sole_peer(peer["device_id"])) and
+                        not self._single_item_run(peer["device_id"], kind, value)):
                     channel.send({"type": "ack", "message_id": payload["message_id"], "status": "rejected", "error": "not_granted"})
                     return
                 error = self._note_policy_error(peer["device_id"], kind, value, False, channel)

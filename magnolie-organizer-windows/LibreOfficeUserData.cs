@@ -4,7 +4,7 @@ using System.Xml.Linq;
 namespace MagnolieOrganizer.Windows;
 
 internal sealed record LibreOfficeUserDataResult(bool Ok, IReadOnlyDictionary<string, string> Felder,
-    string Absender, string Fehler);
+    string Absender, string Fehler, string Quelle = "libreoffice");
 
 internal static class LibreOfficeUserData
 {
@@ -97,6 +97,49 @@ internal static class LibreOfficeUserData
 
     private static LibreOfficeUserDataResult Failure(string message) =>
         new(false, new Dictionary<string, string>(), "", message);
+
+    internal static object ExchangeProfile(string requestId, string operation, IReadOnlyDictionary<string, string> changes, string stamp, string? settingsPath = null)
+    {
+        var path = settingsPath ?? FindSettingsFile();
+        if (path.Length == 0) throw new IOException("No LibreOffice user profile is available.");
+        var original = new AtomicStore().Read(path, MaxFileBytes) ?? throw new IOException("No LibreOffice user profile is available.");
+        string Digest(string value) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
+        var current = Digest(original);
+        using var text = new StringReader(original);
+        using var reader = XmlReader.Create(text, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = MaxFileBytes });
+        var document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        XNamespace oor = "http://openoffice.org/2001/registry";
+        var items = document.Descendants().Where(node => node.Name.LocalName == "item" &&
+            ((string?)node.Attribute(oor + "path"))?.EndsWith("/org.openoffice.UserProfile/Data", StringComparison.Ordinal) == true).ToList();
+        if (operation == "write")
+        {
+            if (changes.Any(pair => !Interesting.Contains(pair.Key) || pair.Value.Length > 2000 || pair.Value.Contains('\0')))
+                throw new InvalidDataException("Invalid LibreOffice profile fields.");
+            if (current != stamp) throw new IOException("LibreOffice user data changed. Compare the fields again.");
+            if (File.Exists(Path.Combine(Path.GetDirectoryName(path)!, "..", ".lock")))
+                throw new IOException("Close LibreOffice before updating its user data.");
+            if (items.Count == 0)
+            {
+                var item = new XElement("item", new XAttribute(oor + "path", "/org.openoffice.UserProfile/Data"));
+                document.Root!.Add(item); items.Add(item);
+            }
+            foreach (var item in items) foreach (var prop in item.Elements().Where(node => node.Name.LocalName == "prop" &&
+                changes.ContainsKey((string?)node.Attribute(oor + "name") ?? "")).ToArray()) prop.Remove();
+            foreach (var pair in changes) items[0].Add(new XElement("prop", new XAttribute(oor + "name", pair.Key),
+                new XAttribute(oor + "op", "fuse"), new XElement("value", pair.Value)));
+            var updated = document.ToString(SaveOptions.DisableFormatting);
+            if (new AtomicStore().Read(path, MaxFileBytes) != original) throw new IOException("LibreOffice user data changed. Compare the fields again.");
+            new AtomicStore().Write(path, updated, MaxFileBytes); current = Digest(updated);
+        }
+        else if (operation != "read") throw new InvalidDataException("Invalid profile operation.");
+        var fields = new Dictionary<string, string>();
+        foreach (var item in items) foreach (var prop in item.Elements())
+        {
+            var key = (string?)prop.Attribute(oor + "name") ?? "";
+            if (Interesting.Contains(key)) fields[key] = prop.Elements().FirstOrDefault(node => node.Name.LocalName == "value")?.Value ?? "";
+        }
+        return new { requestId, ok = true, felder = fields, stamp = current };
+    }
     private static string Get(IReadOnlyDictionary<string, string> fields, string name) =>
         fields.TryGetValue(name, out var value) ? value : "";
     private static string Join(IReadOnlyDictionary<string, string> fields, params string[] names) =>

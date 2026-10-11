@@ -1155,10 +1155,10 @@ try {
     "android-notes-edit-save-delete", "android-tasks-reminders", "android-note-symbols-formatting"];
   assert.strictEqual(sourcePages.filter((page) => androidNotesIds.includes(page.id)).length, 5,
     "the Magnolie Notes route must contain exactly five pages");
-  for (const phrase of ["five tabs along the bottom", "Loose Notes", "Do not use Back to discard changes",
+  for (const phrase of ["The gear groups Import, Tree, Recovery and Android permissions", "Loose Notes", "Do not use Back to discard changes",
     "zero through fourteen", "no bold, italic, underline, list, heading, Markdown or rich-text toolbar"])
     assert.ok(englishText.includes(phrase), `English Magnolie Notes documentation missing: ${phrase}`);
-  for (const phrase of ["fünf Reitern am unteren Rand", "Lose Notizen", "Verwenden Sie Zurück nicht zum Verwerfen",
+  for (const phrase of ["Das Zahnrad bündelt Import, Baum, Wiederherstellung und Android-Rechte", "Lose Notizen", "Verwenden Sie Zurück nicht zum Verwerfen",
     "null bis vierzehn", "keine Werkzeugleiste für Fett, Kursiv, Unterstreichen, Listen, Überschriften, Markdown oder Rich Text"])
     assert.ok(germanText.includes(phrase), `German Magnolie Notes documentation missing: ${phrase}`);
   const androidImportIds = ["android-import-files-folders", "android-import-formats",

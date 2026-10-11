@@ -2729,6 +2729,38 @@ textarea::-webkit-scrollbar-track,
 .custom-text-allein .custom-text-karte,
 .custom-text-allein .custom-text-editor { flex: 1 1 auto; }
 .custom-text-allein .custom-text-editor { overflow-y: auto; }
+.notizen-uebersichtsseite { display: flex; flex-direction: column; overflow: hidden; }
+.notizen-uebersichtsseite > .notiz-suche-zeile { flex: 0 0 auto; }
+.notiz-uebersicht { flex: 1 1 auto; min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.notiz-uebersicht.wird-gescrollt { scrollbar-color: var(--braun-hell) transparent; }
+.notiz-uebersicht::-webkit-scrollbar { width: 3px; height: 3px; }
+.notiz-uebersicht::-webkit-scrollbar-thumb { background: transparent; }
+.notiz-uebersicht.wird-gescrollt::-webkit-scrollbar-thumb { background: var(--braun-hell); }
+.notiz-tagesgruppe { list-style: none; min-width: 0; }
+.notiz-tag-kopf { display: flex; align-items: center; gap: 8px; width: 100%; text-align: start; font-weight: 600; }
+.notiz-tag-zahl { margin-inline-start: auto; font-weight: normal; }
+.notiz-tag-pfeil { width: 1em; text-align: center; }
+.notiz-tag-seiten[hidden] { display: none; }
+.notiz-eigenschaften { max-height: 85vh; overflow: auto; }
+.notiz-eigenschaftsfelder { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 7px 18px; }
+.notiz-eigenschaftsfelder dt { font-weight: 600; }
+.notiz-eigenschaftsfelder dd { margin: 0; overflow-wrap: anywhere; }
+.notiz-zusammenfuehrungen { list-style: none; padding: 0; }
+.notiz-zusammenfuehrung { padding: 8px 0; border-top: 1px solid var(--linie); }
+.eigenes-profil-vergleich { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.eigenes-profil-vergleich th, .eigenes-profil-vergleich td { padding: 6px; text-align: start; vertical-align: top; overflow-wrap: anywhere; }
+.eigenes-profil-vergleich select { width: 100%; min-width: 0; }
+.seiten-inhalt.custom-zeichnen-allein {
+  grid-template-rows: minmax(0, 1fr);
+  align-content: stretch;
+  overflow: hidden;
+}
+.custom-modul-drawing { display: flex; flex-direction: column; min-height: 320px; }
+.custom-zeichnen-allein .custom-modul-drawing { min-height: 0; margin: 0; }
+.custom-zeichenflaeche { flex: 1 1 auto; min-height: 120px; min-width: 0; overflow: auto; background: #fffdf7; }
+.custom-zeichenflaeche canvas { max-width: none; }
+.custom-modul-drawing > .knopfreihe { flex: 0 0 auto; flex-wrap: wrap; padding-block: 6px; }
+.custom-modul-drawing > .einst-hinweis { flex: 0 0 auto; margin-block: 6px 0; }
 
 .custom-modul {
   margin: 0 0 14px;
