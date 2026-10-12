@@ -82,40 +82,79 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
 
     private fun readOwnProfile(): String {
         val uri = android.provider.ContactsContract.Profile.CONTENT_URI
-        fun header(): List<String>? = context.contentResolver.query(uri,
-            arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY, Contacts.CONTACT_LAST_UPDATED_TIMESTAMP), null, null, null)?.use {
-            if (!it.moveToFirst() || !android.provider.ContactsContract.isProfileId(it.getLong(0))) null
-            else listOf(it.getString(0).orEmpty(), it.getString(1).orEmpty(), it.getString(2).orEmpty())
+        fun queryHeader(columns: Array<String>): List<String>? = context.contentResolver.query(uri,
+            columns, null, null, null)?.use {
+            // The canonical Profile URI is the authoritative resource. Some OEM
+            // providers use ordinary positive IDs, not Android's reserved range.
+            if (it.count != 1 || !it.moveToFirst() || it.getLong(0) <= 0) null
+            else listOf(it.getString(0).orEmpty(), it.getString(1).orEmpty(),
+                if (columns.size > 2) it.getString(2).orEmpty() else "")
+        }
+        fun header(): List<String>? = try {
+            queryHeader(arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY, Contacts.CONTACT_LAST_UPDATED_TIMESTAMP))
+        } catch (_: IllegalArgumentException) {
+            queryHeader(arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY))
         }
         return try {
             val initial = header() ?: return ""
             fun escape(text: String) = text.replace("\\", "\\\\").replace("\r\n", "\n").replace("\r", "\n")
                 .replace("\n", "\\n").replace(";", "\\;").replace(",", "\\,")
-            val lines = mutableListOf("BEGIN:VCARD", "VERSION:3.0", "FN:" + escape(initial[1]))
-            context.contentResolver.query(android.net.Uri.withAppendedPath(uri, "data"),
+            fun rows(): List<String> {
+                val lines = mutableListOf<String>()
+                val types = mutableSetOf<String>()
+                context.contentResolver.query(android.net.Uri.withAppendedPath(uri, "data"),
                 arrayOf(Data.MIMETYPE, Data.DATA1, Data.DATA2, Data.DATA3, Data.DATA4, Data.DATA7, Data.DATA8, Data.DATA9, Data.DATA10, Data.DATA15),
                 null, null, null)?.use { cursor ->
                 var count = 0
                 while (cursor.moveToNext()) {
                     require(++count <= 1000)
                     fun text(index: Int) = cursor.getString(index).orEmpty()
-                    when (text(0)) {
+                    val mime = text(0); types.add(mime)
+                    when (mime) {
                         android.provider.ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE ->
                             lines.add("N:" + escape(text(3)) + ";" + escape(text(2)) + ";;;")
                         android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE ->
-                            lines.add("TEL;TYPE=" + (if (text(2) == "2") "CELL" else "VOICE") + ":" + escape(text(1)))
+                            lines.add("TEL;VALUE=text;TYPE=" + (if (text(2) == "2") "CELL" else "VOICE") + ":" + escape(text(1)))
                         android.provider.ContactsContract.CommonDataKinds.Email.CONTENT_ITEM_TYPE -> lines.add("EMAIL:" + escape(text(1)))
                         android.provider.ContactsContract.CommonDataKinds.Organization.CONTENT_ITEM_TYPE -> lines.add("ORG:" + escape(text(1)))
                         android.provider.ContactsContract.CommonDataKinds.StructuredPostal.CONTENT_ITEM_TYPE ->
                             lines.add("ADR:;;" + listOf(text(4), text(5), text(6), text(7), text(8)).joinToString(";", transform = ::escape))
-                        android.provider.ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE -> {
-                            val bytes = cursor.getBlob(9)
-                            if (bytes != null && bytes.isNotEmpty()) lines.add("PHOTO;ENCODING=b;TYPE=JPEG:" + thumbnailBytes(bytes))
-                        }
+                         android.provider.ContactsContract.CommonDataKinds.Photo.CONTENT_ITEM_TYPE -> {
+                            val photo = runCatching { cursor.getBlob(9)?.takeIf { it.isNotEmpty() }?.let(::thumbnailBytes) }.getOrNull()
+                            if (!photo.isNullOrEmpty()) lines.add("PHOTO:data:image/jpeg;base64," + photo)
+                         }
+                         android.provider.ContactsContract.CommonDataKinds.Event.CONTENT_ITEM_TYPE -> {
+                            val field = when (text(2).toIntOrNull()) {
+                                android.provider.ContactsContract.CommonDataKinds.Event.TYPE_BIRTHDAY -> "BDAY"
+                                android.provider.ContactsContract.CommonDataKinds.Event.TYPE_ANNIVERSARY -> "ANNIVERSARY"
+                                else -> null
+                            }
+                            val date = text(1).trim()
+                            if (field != null && Regex("(?:[0-9]{4}-[0-9]{2}-[0-9]{2}|--[0-9]{2}-?[0-9]{2})").matches(date))
+                                lines.add(field + ":" + date.replace("-", "").let { if (date.startsWith("--")) "--$it" else it })
+                         }
                     }
                 }
-            } ?: return ""
+                } ?: return emptyList()
+                // Capability metadata only: no medical values are transferred
+                // without a separate, explicitly requested medical-data path.
+                val medicalTypes = types.filter { it.contains("medical", true) || it.contains("emergency", true) }
+                if (medicalTypes.isNotEmpty()) lines.add("X-MAGNOLIE-PROFILE-MEDICAL-TYPES:" + medicalTypes.sorted().joinToString(",", transform = ::escape))
+                return lines
+            }
+            val data = rows()
+            val preferredPhoto = runCatching {
+                Contacts.openContactPhotoInputStream(context.contentResolver, uri, true)?.use { input ->
+                    val output = ByteArrayOutputStream(); val buffer = ByteArray(8192)
+                    while (true) { val length = input.read(buffer); if (length < 0) break
+                        require(output.size() + length <= 8 * 1024 * 1024); output.write(buffer, 0, length) }
+                    thumbnailBytes(output.toByteArray())
+                }
+            }.getOrNull()
             check(permission() && header() == initial)
+            if (initial[2].isEmpty()) check(rows() == data)
+            val lines = mutableListOf("BEGIN:VCARD", "VERSION:4.0", "FN:" + escape(initial[1]))
+            lines.addAll(if (preferredPhoto.isNullOrEmpty()) data else data.filterNot { it.startsWith("PHOTO:") } + ("PHOTO:data:image/jpeg;base64," + preferredPhoto))
             (lines + "END:VCARD").joinToString("\r\n", postfix = "\r\n").takeIf { it.toByteArray().size <= ContactRead.MAX_CARD_BYTES } ?: ""
         } catch (_: SecurityException) { "" } catch (_: IllegalArgumentException) { "" }
     }

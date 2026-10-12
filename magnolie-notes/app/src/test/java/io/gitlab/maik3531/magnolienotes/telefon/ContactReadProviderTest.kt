@@ -19,6 +19,7 @@ import android.provider.ContactsContract.RawContacts
 import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.provider.ContactsContract.CommonDataKinds.Photo
 import android.provider.ContactsContract.CommonDataKinds.StructuredName
+import android.provider.ContactsContract.CommonDataKinds.Event
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership
 import android.provider.ContactsContract.Groups
 import androidx.test.core.app.ApplicationProvider
@@ -100,6 +101,45 @@ class ContactReadProviderTest {
         assertTrue(provider.photoUris.contains("/contacts/10/display_photo"))
     }
 
+    private fun profileRequest() = buildJsonObject {
+        put("version", JsonPrimitive(7)); put("request_id", JsonPrimitive(UUID.randomUUID().toString()))
+        put("action", JsonPrimitive("profile")); put("offset", JsonPrimitive(0)); put("uids", JsonArray(emptyList()))
+    }
+
+    @Test fun canonicalOemProfileWithSmallIdExportsBirthdayAndPhotoWithoutOrdinaryContactQueries() {
+        provider.profileEnabled = true
+        val result = ContactReadAndroid(context).read(profileRequest())
+        val profile = result["profile"]!!.jsonObject
+        assertEquals("available", profile.string("state"))
+        val card = profile.string("vcard")
+        assertTrue(card.contains("BDAY:19800705"))
+        assertTrue(card.contains("PHOTO:data:image/jpeg;base64,/9j"))
+        assertFalse(card.contains("UID:"))
+        assertTrue(provider.queries.all { it.startsWith("/profile") })
+    }
+
+    @Test fun profileTimestampIsOptionalButChangedProfileIsNotReturned() {
+        provider.profileEnabled = true; provider.profileNoTimestamp = true
+        val available = ContactReadAndroid(context).read(profileRequest())["profile"]!!.jsonObject
+        assertEquals("available", available.string("state"))
+        assertTrue(provider.profileDataReads >= 2)
+        provider.profileHeaders = 0; provider.changeProfile = true
+        assertTrue(runCatching { ContactReadAndroid(context).read(profileRequest()) }.isFailure)
+    }
+
+    @Test fun profileDisplayPictureWinsAndMedicalValuesAreNotImplicitlyTransferred() {
+        provider.profileEnabled = true
+        val bitmap = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888); bitmap.eraseColor(Color.BLUE)
+        provider.displayPhoto = ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray(); bitmap.recycle()
+        val card = ContactReadAndroid(context).read(profileRequest())["profile"]!!.jsonObject.string("vcard")
+        val bytes = Base64.getDecoder().decode(card.lineSequence().first { it.startsWith("PHOTO:") }.substringAfter("base64,"))
+        val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size); val colour = decoded.getPixel(0, 0); decoded.recycle()
+        assertTrue(Color.blue(colour) > 240 && Color.red(colour) < 20)
+        assertTrue(provider.photoUris.contains("/profile/display_photo"))
+        assertTrue(card.contains("X-MAGNOLIE-PROFILE-MEDICAL-TYPES:"))
+        assertFalse(card.contains("private medical value"))
+    }
+
     class ReadOnlyProvider : ContentProvider() {
         val queries = mutableListOf<String>()
         var rawReads = 0
@@ -108,6 +148,11 @@ class ContactReadProviderTest {
         var groupReads = 0
         var changeGroup = false
         var displayPhoto: ByteArray? = null
+        var profileEnabled = false
+        var profileNoTimestamp = false
+        var profileHeaders = 0
+        var profileDataReads = 0
+        var changeProfile = false
         val photoUris = mutableListOf<String>()
         override fun onCreate() = true
         override fun getType(uri: Uri): String? = null
@@ -117,7 +162,7 @@ class ContactReadProviderTest {
         override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor {
             assertEquals("r", mode);photoUris += uri.path.orEmpty()
             val bytes = displayPhoto ?: throw java.io.FileNotFoundException()
-            assertEquals("/contacts/10/display_photo", uri.path)
+            assertTrue(uri.path in listOf("/contacts/10/display_photo", "/profile/display_photo"))
             val pipe = ParcelFileDescriptor.createPipe()
             ParcelFileDescriptor.AutoCloseOutputStream(pipe[1]).use { it.write(bytes) }
             return pipe[0]
@@ -126,6 +171,22 @@ class ContactReadProviderTest {
             val columns = projection ?: error("projection required")
             queries += uri.path.orEmpty()
             val rows: List<Map<String, Any?>> = when (uri.path) {
+                "/profile" -> {
+                    if (profileNoTimestamp && Contacts.CONTACT_LAST_UPDATED_TIMESTAMP in columns) throw IllegalArgumentException("unsupported profile timestamp column")
+                    profileHeaders++
+                    if (!profileEnabled) emptyList() else listOf(mapOf(Contacts._ID to 7L, Contacts.DISPLAY_NAME_PRIMARY to
+                        if (changeProfile && profileHeaders > 1) "Changed profile" else "Own Profile", Contacts.CONTACT_LAST_UPDATED_TIMESTAMP to 1700000000000L))
+                }
+                "/profile/data" -> {
+                    profileDataReads++
+                    listOf(mapOf(Data.MIMETYPE to StructuredName.CONTENT_ITEM_TYPE, Data.DATA2 to "Own", Data.DATA3 to "Profile"),
+                        mapOf(Data.MIMETYPE to Phone.CONTENT_ITEM_TYPE, Data.DATA1 to "+49123456789", Data.DATA2 to Phone.TYPE_MOBILE),
+                        mapOf(Data.MIMETYPE to Event.CONTENT_ITEM_TYPE, Data.DATA1 to "1980-07-05", Data.DATA2 to Event.TYPE_BIRTHDAY),
+                        mapOf(Data.MIMETYPE to Photo.CONTENT_ITEM_TYPE, Data.DATA15 to Base64.getDecoder().decode(
+                            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")),
+                        mapOf(Data.MIMETYPE to "vnd.samsung.profile.medical", Data.DATA1 to "private medical value"))
+                }
+                "/profile/photo" -> emptyList()
                 "/raw_contacts" -> {
                     rawReads++
                     listOf(mapOf(RawContacts._ID to 1L, RawContacts.CONTACT_ID to 10L, RawContacts.ACCOUNT_TYPE to "fixture",
