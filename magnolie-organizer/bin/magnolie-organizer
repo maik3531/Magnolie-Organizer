@@ -19065,9 +19065,14 @@ def eds_kontakte_lesen(client):
     fmt = _vcard_format()
     aus = {"remoteGesamt": len(liste), "serialisiert": 0, "geparst": 0,
            "gueltigeUids": 0, "fehler": [], "vollstaendig": True,
-           "texte": [], "kontakte": [], "geburtstage": []}
+           "texte": [], "kontakte": [], "geburtstage": [], "transportFotos": {}}
     uids = set()
     for nummer, kontakt in enumerate(liste, 1):
+        try:
+            original_fotos = [zeile for zeile in _entfalte_zeilen(kontakt.to_string(fmt))
+                if (prop := _prop_zerlegen(zeile)) and prop[0] == "PHOTO"]
+        except Exception:
+            original_fotos = []
         # Gnome-Kontakte/Evolution speichern Fotos häufig nur als Verweis
         # auf eine lokale Bilddatei. EDS kann diese Verweise vor der
         # vCard-Ausgabe in echte, übertragbare Bilddaten umwandeln.
@@ -19115,6 +19120,7 @@ def eds_kontakte_lesen(client):
         aus["texte"].append(text)
         aus["kontakte"].append(obj)
         aus["geburtstage"].extend(gelesen["geburtstage"])
+        aus["transportFotos"][uid_wert] = original_fotos
     aus["vollstaendig"] = not aus["fehler"] and (
         aus["remoteGesamt"] == aus["serialisiert"] == aus["geparst"] ==
         aus["gueltigeUids"])
@@ -19212,7 +19218,7 @@ def kontakte_erster_sync(lokal, entfernt, dav=None, kontakt_quelle="", kontakt_n
                       "remoteLoeschen": 0}
 
 
-def _eds_vcard_transportstand(vcard, entfernt=None):
+def _eds_vcard_transportstand(vcard, entfernt=None, original_fotos=None):
     """Use only the ETag from this sync's remote snapshot, not imported history."""
     name = "X-EVOLUTION-WEBDAV-ETAG"
     zeilen = []
@@ -19224,6 +19230,15 @@ def _eds_vcard_transportstand(vcard, entfernt=None):
         if isinstance(zeile, str) and (prop := _prop_zerlegen(zeile)) and prop[0] == name))
     if len(aktuelle) > 1:
         raise ValueError("The address book snapshot contains conflicting ETags.")
+    foto_zeilen = [(index, _prop_zerlegen(zeile)) for index, zeile in enumerate(zeilen)
+        if (prop := _prop_zerlegen(zeile)) and prop[0] == "PHOTO"]
+    if original_fotos and len(foto_zeilen) == 1:
+        index, prop = foto_zeilen[0]
+        foto = _vcard_foto(prop[2], prop[1])
+        if foto and foto == (entfernt or {}).get("foto"):
+            # EDS owns the unchanged photo's cache URI and provider parameters.
+            # Keep those instead of uploading the same image again as new data.
+            zeilen[index:index + 1] = original_fotos
     if aktuelle:
         ende = next((index for index, zeile in enumerate(zeilen)
                      if zeile.upper() == "END:VCARD"), len(zeilen))
@@ -25939,7 +25954,8 @@ class Fenster(_FENSTER_BASIS):
                     try:
                         text = vcard_text(obj)
                         if not isinstance(client, AkonadiClient):
-                            text = _eds_vcard_transportstand(text, fern.get(obj["uid"]))
+                            text = _eds_vcard_transportstand(text, fern.get(obj["uid"]),
+                                buch_lesen.get("transportFotos", {}).get(obj["uid"]))
                         eds_kontakt_aendern(client, text)
                         geschrieben.add(obj["uid"])
                         erfolgreich["aendern"] += 1

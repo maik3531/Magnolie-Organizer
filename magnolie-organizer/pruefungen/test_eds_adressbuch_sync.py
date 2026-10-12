@@ -50,6 +50,20 @@ def test_conflicting_remote_etags_are_not_silently_overwritten():
             'X-EVOLUTION-WEBDAV-ETAG:first', 'X-EVOLUTION-WEBDAV-ETAG:second']})
 
 
+def test_unchanged_eds_photo_retains_native_provider_representation():
+    photo = 'data:image/jpeg;base64,YWJj'
+    text = vcard().replace('END:VCARD', 'PHOTO;ENCODING=b;TYPE=JPEG:YWJj\r\nEND:VCARD')
+    original = ['PHOTO;VALUE=uri;X-EVOLUTION-WEBDAV-IMG-URL="https://example.test/photo":file:///synthetic-cache/photo.jpg']
+    remote = {'foto': photo, 'vcardRoundtrip': []}
+    result = m._eds_vcard_transportstand(text, remote, original)
+    assert m._entfalte_zeilen(result)[-2] == original[0]
+    assert 'ENCODING=b' not in result
+    # Replacing or removing the image remains an explicit real photo change.
+    changed = text.replace('YWJj', 'ZGVm')
+    assert 'ENCODING=b' in m._eds_vcard_transportstand(changed, remote, original)
+    assert 'PHOTO' not in m._eds_vcard_transportstand(vcard(), remote, original)
+
+
 class Kontakt:
     def __init__(self, text=None, fehler=None):
         self.text = text
