@@ -13650,9 +13650,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const x = eingabe("number", rotate ? "90" : "10"), y = eingabe("number", "0"), error = el("p", "einst-warnung");
       dialog.append(el("h2", null, rotate ? _("Rotate selection") : _("Move selection")), formZeile(rotate ? _("Angle") : "X", x));
       if (!rotate) dialog.append(formZeile("Y", y));
-      const buttons = el("div", "dialog-knoepfe"); buttons.append(knopf(_("Cancel"), "", close), knopf(_("Apply"), "haupt", () => {
-        if (editor.transformSelection(rotate ? Number(x.value) : 0, rotate ? 0 : Number(x.value), rotate ? 0 : Number(y.value))) close();
-        else error.textContent = _("Select complete strokes that fit inside the sheet.");
+      const buttons = el("div", "dialog-knoepfe"); buttons.append(knopf(_("Cancel"), "", close), knopf(_("Apply"), "haupt", async () => {
+        const wholeSheet = rotate && !editor.hasSelection();
+        if (wholeSheet) { try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { error.textContent = _("The file could not be read."); return; } }
+        if (!overlay.isConnected || !canvas.isConnected || gesperrt) return;
+        if (wholeSheet ? editor.rotateSheet(Number(x.value)) : editor.transformSelection(rotate ? Number(x.value) : 0, rotate ? 0 : Number(x.value), rotate ? 0 : Number(y.value))) { close(); canvas.focus(); }
+        else error.textContent = wholeSheet ? _("The drawing limit has been reached.") : _("Select complete strokes that fit inside the sheet.");
       }));
       dialog.append(error, buttons); overlay.append(dialog); document.body.append(overlay); registriereModal(overlay, dialog, { anfang: x, schliessen: close });
     };
@@ -13679,7 +13682,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const background = buffer.toDataURL("image/png");
         if (!window.MagnolieZeichnen.validImage(background)) { status.textContent = _("The file is larger than 8 megabytes."); return; }
         const ready = new Image(); ready.onload = () => { if (canvas.isConnected && !gesperrt && DATEN.customOrganizer.modules.includes(modul)) {
-          editor.replaceSheet({ version: 4, width: buffer.width, height: buffer.height, strokes: [], background }, ready); status.textContent = fileName;
+          editor.replaceSheet({ version: 4, width: buffer.width, height: buffer.height, strokes: [], background }, ready); status.textContent = fileName; canvas.focus();
         } }; ready.src = background;
       }; image.src = data;
     };
@@ -13705,7 +13708,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     openFile.addEventListener("change", () => {
       const sequence = ++openSequence;
       const file = openFile.files?.[0]; if (!file || file.size > 16 * 1024 * 1024) { status.textContent = _("The file is larger than 8 megabytes."); return; }
-      if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !editor.replaceSheet(JSON.parse(reader.result))) throw Error(); }
+      if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !editor.replaceSheet(JSON.parse(reader.result))) throw Error(); if (canvas.isConnected && !gesperrt) canvas.focus(); }
         catch (_) { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
       else if (/\.svg$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => {
         const requestId = anrufClientRef(), apply = () => { if (canvas.isConnected && !gesperrt) loadImage("data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(reader.result))), file.name); };

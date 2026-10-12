@@ -38,7 +38,8 @@
     if (!sheet || ![1, 2, 3, 4].includes(sheet.version) || !Number.isInteger(sheet.width) || !Number.isInteger(sheet.height) ||
         !finite(sheet.width, 1, sheet.version === 4 ? 65536 : 4096) || !finite(sheet.height, 1, sheet.version === 4 ? 65536 : 4096) || !Array.isArray(sheet.strokes) ||
         sheet.strokes.length > MAX_STROKES || sheet.background !== undefined && !validImage(sheet.background) ||
-        sheet.backgroundSpace !== undefined && (!Array.isArray(sheet.backgroundSpace) || sheet.backgroundSpace.length !== 2 || sheet.backgroundSpace.some(value => !Number.isInteger(value) || !finite(value, 1, sheet.version === 4 ? 65536 : 4096)))) return false;
+         sheet.backgroundSpace !== undefined && (!Array.isArray(sheet.backgroundSpace) || sheet.backgroundSpace.length !== 2 || sheet.backgroundSpace.some(value => !Number.isInteger(value) || !finite(value, 1, sheet.version === 4 ? 65536 : 4096)))) return false;
+    if (sheet.backgroundOffset !== undefined && (sheet.version !== 4 || !Array.isArray(sheet.backgroundOffset) || sheet.backgroundOffset.length !== 2 || sheet.backgroundOffset.some(value => !finite(value, 0, 65536)))) return false;
     let points = 0;
     for (const stroke of sheet.strokes) {
       if (!stroke || !(sheet.version === 1 ? ["pen", "eraser"] : TOOLS).includes(stroke.tool) || !/^#[0-9a-f]{6}$/i.test(stroke.color || "") ||
@@ -142,7 +143,7 @@
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.save(); context.setTransform?.(scale, 0, 0, scale, 0, 0);
     const background = imageFor(sheet);
-    if (background?.complete && background.naturalWidth) context.drawImage(background, 0, 0, ...(sheet.backgroundSpace || [sheet.width, sheet.height]));
+    if (background?.complete && background.naturalWidth) context.drawImage(background, ...(sheet.backgroundOffset || [0, 0]), ...(sheet.backgroundSpace || [sheet.width, sheet.height]));
     let markerLayer = null;
     for (const stroke of sheet.strokes) {
       if (stroke.tool === "highlighter") {
@@ -157,7 +158,8 @@
     if (!valid(sheet)) throw new Error("invalid_drawing");
     const number = value => String(Number(value.toFixed(4)));
     const backgroundSize = sheet.backgroundSpace || [sheet.width, sheet.height];
-    let content = sheet.background ? `<image href="${sheet.background}" x="0" y="0" width="${backgroundSize[0]}" height="${backgroundSize[1]}"/>` : "", definitions = "";
+    const backgroundOffset = sheet.backgroundOffset || [0, 0];
+    let content = sheet.background ? `<image href="${sheet.background}" x="${number(backgroundOffset[0])}" y="${number(backgroundOffset[1])}" width="${backgroundSize[0]}" height="${backgroundSize[1]}"/>` : "", definitions = "";
     sheet.strokes.forEach((stroke, index) => {
       let path = "", shapes = "";
       const color = stroke.tool === "eraser" ? "#000000" : stroke.color;
@@ -404,6 +406,55 @@
         if (secondColor && /^#[0-9a-f]{6}$/i.test(secondColor)) stroke.gradient = [color, secondColor];
         sheet.version = Math.max(3, sheet.version); sheet.strokes.push(stroke); undo.push({ type: "stroke", stroke }); redo.length = 0; count += 4;
         redraw(); prune(); notify(); return true;
+      },
+      hasSelection() {
+        if (!selection) return false;
+        const [a, b] = selection, left = Math.min(a[0], b[0]) * sheet.width, right = Math.max(a[0], b[0]) * sheet.width,
+          top = Math.min(a[1], b[1]) * sheet.height, bottom = Math.max(a[1], b[1]) * sheet.height;
+        return sheet.strokes.some(stroke => { const space = stroke.space || [sheet.width, sheet.height];
+          return stroke.points.every(p => p[0] * space[0] >= left && p[0] * space[0] <= right && p[1] * space[1] >= top && p[1] * space[1] <= bottom); });
+      },
+      rotateSheet(angle) {
+        if (!Number.isFinite(angle) || disposed) return false;
+        finish(); angle = (angle % 360 + 360) % 360; if (angle === 0) return true;
+        let cosine = Math.cos(angle * Math.PI / 180), sine = Math.sin(angle * Math.PI / 180);
+        if (Math.abs(cosine) < 1e-10) cosine = 0; if (Math.abs(sine) < 1e-10) sine = 0;
+        const bgSize = sheet.backgroundSpace || [sheet.width, sheet.height], bgOffset = sheet.backgroundOffset || [0, 0];
+        const oldWidth = Math.max(sheet.width, ...sheet.strokes.map(stroke => (stroke.space || [sheet.width, sheet.height])[0]), sheet.background ? bgOffset[0] + bgSize[0] : 0);
+        const oldHeight = Math.max(sheet.height, ...sheet.strokes.map(stroke => (stroke.space || [sheet.width, sheet.height])[1]), sheet.background ? bgOffset[1] + bgSize[1] : 0);
+        const w = Math.ceil(Math.abs(cosine) * oldWidth + Math.abs(sine) * oldHeight - 1e-9), h = Math.ceil(Math.abs(sine) * oldWidth + Math.abs(cosine) * oldHeight - 1e-9);
+        if (!finite(w, 1, 65536) || !finite(h, 1, 65536)) return false;
+        const rotatePoint = (x, y) => [(x - oldWidth / 2) * cosine - (y - oldHeight / 2) * sine + w / 2,
+          (x - oldWidth / 2) * sine + (y - oldHeight / 2) * cosine + h / 2];
+        const after = { ...JSON.parse(JSON.stringify(sheet)), version: 4, width: w, height: h };
+        after.strokes = sheet.strokes.map(stroke => {
+          const space = stroke.space || [sheet.width, sheet.height]; let points = stroke.points, type = stroke.tool;
+          if (SHAPES.includes(type) && type !== "line") {
+            const a = points[0], b = points[points.length - 1];
+            if (type === "rectangle") points = [a, [b[0], a[1], 1], b, [a[0], b[1], 1], a];
+            else if (type === "triangle") points = [[(a[0] + b[0]) / 2, a[1], 1], b, [a[0], b[1], 1], [(a[0] + b[0]) / 2, a[1], 1]];
+            else points = Array.from({ length: 65 }, (_, i) => [(a[0] + b[0]) / 2 + (b[0] - a[0]) / 2 * Math.cos(i * Math.PI / 32), (a[1] + b[1]) / 2 + (b[1] - a[1]) / 2 * Math.sin(i * Math.PI / 32), 1]);
+            type = "pen";
+          }
+          return { ...stroke, tool: type, space: [w, h],
+            ...(stroke.tool === "quill" ? { nibAngle: ((stroke.nibAngle ?? (stroke.renderVersion === 4 ? 0 : stroke.renderVersion === 3 ? 76 : 45)) + angle) % 360 } : {}),
+            points: points.map(p => { const [x, y] = rotatePoint(p[0] * space[0], p[1] * space[1]); return [Math.max(0, Math.min(1, x / w)), Math.max(0, Math.min(1, y / h)), p[2]]; }) };
+        });
+        let buffer = null;
+        if (sheet.background) {
+          const image = imageFor(sheet); if (!image?.complete || !image.naturalWidth) return false;
+          const corners = [[0, 0], [bgSize[0], 0], [bgSize[0], bgSize[1]], [0, bgSize[1]]].map(p => rotatePoint(p[0] + bgOffset[0], p[1] + bgOffset[1]));
+          const left = Math.max(0, Math.min(...corners.map(p => p[0]))), top = Math.max(0, Math.min(...corners.map(p => p[1])));
+          const bw = Math.ceil(Math.max(...corners.map(p => p[0])) - left - 1e-9), bh = Math.ceil(Math.max(...corners.map(p => p[1])) - top - 1e-9);
+          const factor = Math.min(image.naturalWidth / bgSize[0], image.naturalHeight / bgSize[1], 4096 / Math.max(bw, bh));
+          buffer = document.createElement("canvas"); buffer.width = Math.max(1, Math.round(bw * factor)); buffer.height = Math.max(1, Math.round(bh * factor));
+          const c = buffer.getContext("2d"); c.setTransform(factor, 0, 0, factor, -left * factor, -top * factor);
+          c.translate(w / 2, h / 2); c.rotate(angle * Math.PI / 180);
+          c.drawImage(image, bgOffset[0] - oldWidth / 2, bgOffset[1] - oldHeight / 2, ...bgSize);
+          after.background = buffer.toDataURL("image/png"); after.backgroundSpace = [bw, bh]; after.backgroundOffset = [left, top];
+          buffer.complete = true; buffer.naturalWidth = buffer.width; buffer.naturalHeight = buffer.height;
+        }
+        return this.replaceSheet(after, buffer);
       },
       transformSelection(angle = 0, dx = 0, dy = 0) {
         if (!selection || ![angle, dx, dy].every(Number.isFinite)) return false;
