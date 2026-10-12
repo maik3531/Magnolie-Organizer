@@ -140,6 +140,23 @@ class ContactReadProviderTest {
         assertFalse(card.contains("private medical value"))
     }
 
+    @Test fun oemProfileZeroIdAndExplicitSystemMarkerAreBothSupported() {
+        provider.profileEnabled = true; provider.profileId = 0
+        assertEquals("available", ContactReadAndroid(context).read(profileRequest())["profile"]!!.jsonObject.string("state"))
+        provider.profileEnabled = false; provider.markedProfile = true
+        val result = ContactReadAndroid(context).read(profileRequest())["profile"]!!.jsonObject
+        assertEquals("available", result.string("state"))
+        assertTrue(result.string("vcard").contains("BDAY:19800705"))
+        assertTrue(provider.sawOwnProfileMarker)
+    }
+
+    @Test fun ordinaryContactReturnedDespiteProfileFilterIsNotAcceptedAsOwnProfile() {
+        provider.profileEnabled = false; provider.markedProfile = false
+        assertEquals("unavailable", ContactReadAndroid(context).read(profileRequest())["profile"]!!.jsonObject.string("state"))
+        assertTrue(provider.sawOwnProfileMarker)
+        assertEquals(0, provider.profileDataReads)
+    }
+
     class ReadOnlyProvider : ContentProvider() {
         val queries = mutableListOf<String>()
         var rawReads = 0
@@ -149,6 +166,9 @@ class ContactReadProviderTest {
         var changeGroup = false
         var displayPhoto: ByteArray? = null
         var profileEnabled = false
+        var profileId = 7L
+        var markedProfile = false
+        var sawOwnProfileMarker = false
         var profileNoTimestamp = false
         var profileHeaders = 0
         var profileDataReads = 0
@@ -174,7 +194,7 @@ class ContactReadProviderTest {
                 "/profile" -> {
                     if (profileNoTimestamp && Contacts.CONTACT_LAST_UPDATED_TIMESTAMP in columns) throw IllegalArgumentException("unsupported profile timestamp column")
                     profileHeaders++
-                    if (!profileEnabled) emptyList() else listOf(mapOf(Contacts._ID to 7L, Contacts.DISPLAY_NAME_PRIMARY to
+                    if (!profileEnabled) emptyList() else listOf(mapOf(Contacts._ID to profileId, Contacts.DISPLAY_NAME_PRIMARY to
                         if (changeProfile && profileHeaders > 1) "Changed profile" else "Own Profile", Contacts.CONTACT_LAST_UPDATED_TIMESTAMP to 1700000000000L))
                 }
                 "/profile/data" -> {
@@ -193,13 +213,23 @@ class ContactReadProviderTest {
                         RawContacts.ACCOUNT_NAME to "Fixture", RawContacts.VERSION to if (changeVersion && rawReads > 1) 2L else 1L))
                 }
                 "/contacts" -> {
+                    if (selection == "${Contacts.IS_USER_PROFILE}=1") {
+                        sawOwnProfileMarker = true
+                        listOf(mapOf(Contacts._ID to 10L, Contacts.DISPLAY_NAME_PRIMARY to "Own Profile", Contacts.CONTACT_LAST_UPDATED_TIMESTAMP to 1700000000000L,
+                            Contacts.IS_USER_PROFILE to if (markedProfile) 1 else 0))
+                    } else {
                     if (selectionArgs != null) {
                         assertEquals(listOf("fixture-lookup"), selectionArgs.toList())
                         assertTrue(selection.orEmpty().contains(Contacts.LOOKUP_KEY)); sawSelection = true
                     }
                     listOf(mapOf(Contacts._ID to 10L, Contacts.LOOKUP_KEY to "fixture-lookup", Contacts.CONTACT_LAST_UPDATED_TIMESTAMP to 1700000000000L))
+                    }
                 }
-                "/data" -> if (selection.orEmpty().contains(Data.MIMETYPE)) {
+                "/data" -> if (selection == "${Data.CONTACT_ID}=?") {
+                    assertTrue(markedProfile); assertEquals(listOf("10"), selectionArgs!!.toList()); profileDataReads++
+                    listOf(mapOf(Data.MIMETYPE to StructuredName.CONTENT_ITEM_TYPE, Data.DATA2 to "Own", Data.DATA3 to "Profile"),
+                        mapOf(Data.MIMETYPE to Event.CONTENT_ITEM_TYPE, Data.DATA1 to "1980-07-05", Data.DATA2 to Event.TYPE_BIRTHDAY))
+                } else if (selection.orEmpty().contains(Data.MIMETYPE)) {
                     assertEquals("10", selectionArgs!!.first())
                     if (selectionArgs[1] == GroupMembership.CONTENT_ITEM_TYPE) listOf(mapOf(GroupMembership.GROUP_ROW_ID to 7L))
                     else listOf(mapOf(Data.MIMETYPE to "vnd.android.cursor.item/vnd.com.whatsapp.profile", Data.DATA1 to "49123456789@s.whatsapp.net"))

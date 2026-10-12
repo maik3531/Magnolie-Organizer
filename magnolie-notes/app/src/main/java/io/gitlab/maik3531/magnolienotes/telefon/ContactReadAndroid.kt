@@ -86,25 +86,44 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
             columns, null, null, null)?.use {
             // The canonical Profile URI is the authoritative resource. Some OEM
             // providers use ordinary positive IDs, not Android's reserved range.
-            if (it.count != 1 || !it.moveToFirst() || it.getLong(0) <= 0) null
+            if (it.count != 1 || !it.moveToFirst() || it.getLong(0) < 0) null
             else listOf(it.getString(0).orEmpty(), it.getString(1).orEmpty(),
-                if (columns.size > 2) it.getString(2).orEmpty() else "")
+                if (columns.size > 2) it.getString(2).orEmpty() else "", "profile")
         }
-        fun header(): List<String>? = try {
-            queryHeader(arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY, Contacts.CONTACT_LAST_UPDATED_TIMESTAMP))
-        } catch (_: IllegalArgumentException) {
-            queryHeader(arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY))
+        fun markedHeader(columns: Array<String>): List<String>? = context.contentResolver.query(Contacts.CONTENT_URI,
+            columns, "${Contacts.IS_USER_PROFILE}=1", null, null)?.use {
+            // Only an explicit system-owned profile marker authorizes this OEM
+            // route. Never select an ordinary contact by its name or phone.
+            if (it.count != 1 || !it.moveToFirst() || it.getLong(0) < 0 || it.getInt(columns.lastIndex) != 1) null
+            else listOf(it.getString(0).orEmpty(), it.getString(1).orEmpty(),
+                if (columns.size > 3) it.getString(2).orEmpty() else "", "marked")
+        }
+        fun header(): List<String>? {
+            val canonical = try {
+                queryHeader(arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY, Contacts.CONTACT_LAST_UPDATED_TIMESTAMP))
+            } catch (_: IllegalArgumentException) {
+                queryHeader(arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY))
+            }
+            if (canonical != null) return canonical
+            return try {
+                markedHeader(arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY, Contacts.CONTACT_LAST_UPDATED_TIMESTAMP, Contacts.IS_USER_PROFILE))
+            } catch (_: IllegalArgumentException) {
+                markedHeader(arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY, Contacts.IS_USER_PROFILE))
+            }
         }
         return try {
             val initial = header() ?: return ""
+            val sourceUri = if (initial[3] == "profile") uri else ContentUris.withAppendedId(Contacts.CONTENT_URI, initial[0].toLong())
+            val dataUri = if (initial[3] == "profile") android.net.Uri.withAppendedPath(uri, "data") else Data.CONTENT_URI
             fun escape(text: String) = text.replace("\\", "\\\\").replace("\r\n", "\n").replace("\r", "\n")
                 .replace("\n", "\\n").replace(";", "\\;").replace(",", "\\,")
             fun rows(): List<String> {
                 val lines = mutableListOf<String>()
                 val types = mutableSetOf<String>()
-                context.contentResolver.query(android.net.Uri.withAppendedPath(uri, "data"),
-                arrayOf(Data.MIMETYPE, Data.DATA1, Data.DATA2, Data.DATA3, Data.DATA4, Data.DATA7, Data.DATA8, Data.DATA9, Data.DATA10, Data.DATA15),
-                null, null, null)?.use { cursor ->
+                context.contentResolver.query(dataUri,
+                 arrayOf(Data.MIMETYPE, Data.DATA1, Data.DATA2, Data.DATA3, Data.DATA4, Data.DATA7, Data.DATA8, Data.DATA9, Data.DATA10, Data.DATA15),
+                if (initial[3] == "profile") null else "${Data.CONTACT_ID}=?",
+                if (initial[3] == "profile") null else arrayOf(initial[0]), null)?.use { cursor ->
                 var count = 0
                 while (cursor.moveToNext()) {
                     require(++count <= 1000)
@@ -144,7 +163,7 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
             }
             val data = rows()
             val preferredPhoto = runCatching {
-                Contacts.openContactPhotoInputStream(context.contentResolver, uri, true)?.use { input ->
+                Contacts.openContactPhotoInputStream(context.contentResolver, sourceUri, true)?.use { input ->
                     val output = ByteArrayOutputStream(); val buffer = ByteArray(8192)
                     while (true) { val length = input.read(buffer); if (length < 0) break
                         require(output.size() + length <= 8 * 1024 * 1024); output.write(buffer, 0, length) }
