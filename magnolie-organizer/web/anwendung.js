@@ -11003,6 +11003,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     "draw-undo": "M9 5L3 10l6 5 M3 10h12a6 6 0 0 1 0 12",
     "draw-redo": "M15 5l6 5-6 5 M21 10H9a6 6 0 0 0 0 12",
     "draw-new": "M5 3h10l4 4v14H5z M15 3v5h4 M8 14h8 M12 10v8",
+    "draw-close": "M6 6l12 12 M18 6L6 18",
     "draw-save": "M4 3h14l3 3v15H4z M8 3v6h9V3 M8 21v-8h9v8",
     "draw-size": "M3 9V3h6 M15 3h6v6 M21 15v6h-6 M9 21H3v-6 M8 8l-5-5 M16 16l5 5",
     "draw-clear": "M17 3L9 13 M6 11l7 7-5 4-6-6z M4 17l4 4 M6 15l4 4",
@@ -13751,6 +13752,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ziel.append(bild); return;
     }
     const werkzeuge = el("div", "knopfreihe zeichen-werkzeuge"), status = el("p", "einst-hinweis");
+    const einstellungen = el("div", "zeichen-einstellungen"), aktionen = el("div", "zeichen-aktionen");
+    const dokumentZeile = el("div", "zeichen-zeile zeichen-dokument"), zeichnenZeile = el("div", "zeichen-zeile zeichen-stifte");
+    aktionen.append(dokumentZeile, zeichnenZeile); werkzeuge.append(einstellungen, aktionen);
     const iconButton = (name, label, action) => { const button = knopf("", "zeichen-symbol", action);
       button.title = label; button.setAttribute("aria-label", label); button.append(sinnbild("draw-" + name, 23)); return button; };
     const choicesMenu = (event, choices) => {
@@ -13779,8 +13783,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     sheetChoice.setAttribute("aria-label", _("Drawing sheet"));
     sheetChoice.addEventListener("change", () => { zustand.custom.drawingIds ||= {}; zustand.custom.drawingIds[modul.page] = sheetChoice.value;
       if (navigate) navigate(sheetChoice.value); else zeichneAlles(); });
-    werkzeuge.append(sheetChoice, iconButton("new", _("New drawing sheet"), () => { const sheet = neuesZeichenblatt(modul.page);
-      if (navigate) navigate(sheet.id); else zeichneAlles(); }));
+    einstellungen.append(sheetChoice);
+    const neuesBlatt = iconButton("new", _("New drawing sheet"), () => { const sheet = neuesZeichenblatt(modul.page);
+      if (navigate) navigate(sheet.id); else zeichneAlles(); });
     const zeichenflaeche = el("div", "custom-zeichenflaeche");
     zeichenflaeche.append(canvas);
     let zurueck, wieder;
@@ -13811,11 +13816,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     });
     const farbe = eingabe("color", "#1d2433"); farbe.setAttribute("aria-label", _("Color"));
     farbe.addEventListener("input", () => editor.setColor(farbe.value));
-    const breite = eingabe("range", "4"); breite.min = "1"; breite.max = "40"; breite.step = "1";
+    const breite = eingabe("range", "4"); breite.min = ".5"; breite.max = "80"; breite.step = ".5";
     const widthValue = el("output", "zeichen-breite", breite.value);
     breite.setAttribute("aria-label", _("Line width")); breite.addEventListener("input", () => {
       editor.setWidth(Number(breite.value)); widthValue.textContent = breite.value;
     });
+    const breitenZeile = el("div", "zeichen-breitenwahl");
+    breitenZeile.append(iconButton("line", _("Line width"), () => numberDialog(_("Line width"), Number(breite.value), value => {
+      breite.value = String(value); breite.dispatchEvent(new Event("input")); }, .5, 80)), breite, widthValue);
+    einstellungen.append(breitenZeile);
     zurueck = iconButton("undo", _("Undo"), () => editor.undo()); zurueck.disabled = !editor.canUndo();
     wieder = iconButton("redo", _("Redo"), () => editor.redo()); wieder.disabled = !editor.canRedo();
     const exportieren = iconButton("save", _("Save as…"), async () => {
@@ -13849,10 +13858,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     variants(penButton, () => [...pens.map(([tool, label, icon]) => [label, () => { penChoice = tool; penButton.dataset.zeichenWerkzeug = tool;
       penButton.title = label; penButton.setAttribute("aria-label", label); penButton.replaceChildren(sinnbild("draw-" + icon, 23)); chooseTool(tool); }]),
       [_('Nib angle'), () => numberDialog(_("Nib angle"), editor.getNibAngle(), value => editor.setNibAngle(value))]]);
-    werkzeuge.append(penButton);
+    const auswahlWerkzeuge = [];
     for (const [tool, label, icon] of [["eraser", _("Eraser"), "eraser"], ["select", _("Select"), "select"]]) {
       const button = iconButton(icon, label, () => { werkzeug.value = tool; werkzeug.dispatchEvent(new Event("change")); });
-      button.dataset.zeichenWerkzeug = tool; button.setAttribute("aria-pressed", String(tool === currentTool)); werkzeuge.append(button);
+      button.dataset.zeichenWerkzeug = tool; button.setAttribute("aria-pressed", String(tool === currentTool)); auswahlWerkzeuge.push(button);
     }
     const endColor = eingabe("color", "#fffdf7"); endColor.title = _("Gradient end color"); endColor.setAttribute("aria-label", endColor.title);
     const forms = iconButton("shape", _("Insert shape"), () => {
@@ -13921,12 +13930,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       planeSpeichern(); beendeTabletEingabe(); const next = DATEN.customOrganizer.modules.find(value => value.type === "drawing" && value.page === modul.page);
       if (navigate) { if (next) navigate(next.id); else zeichenblattAuswahlSchliessen?.(); } else zeichneAlles();
     });
-    werkzeuge.append(moveButton, farbe, iconButton("line", _("Line width"), () => numberDialog(_("Line width"), Number(breite.value), value => { breite.value = String(value); editor.setWidth(value); widthValue.textContent = String(value); }, .5, 80)),
-      forms, iconButton("cut", _("Cut selection"), () => editor.cut()), fillButton, iconButton("paste", _("Paste"), () => editor.paste()), zurueck, wieder,
-      iconButton("rotate", _("Rotate selection"), () => transform(true)),
+    const schliessen = iconButton("close", _("Close"), () => {
+      if (navigate && zeichenblattAuswahlSchliessen) { zeichenblattAuswahlSchliessen(); return; }
+      if (aktivesZeichenziel?.modul === modul) beendeTabletEingabe();
+      editor.destroy(); aktiveZeichenblaetter.delete(modul.id); ziel.replaceChildren();
+      zeichneZeichenblatt(modul, ziel, true);
+      ziel.append(knopf(_("Edit"), "hauptknopf", () => { ziel.replaceChildren(); zeichneZeichenblatt(modul, ziel); }));
+    });
+    dokumentZeile.append(neuesBlatt, iconButton("open", _("Open"), () => openFile.click()), blattgroesse, exportieren, schliessen,
+      iconButton("clear", _("Clear"), () => editor.clear()), zurueck, wieder, iconButton("paste", _("Paste"), () => editor.paste()),
       iconButton("zoom-in", _("Zoom in"), () => editor.setZoom(Math.min(4, editor.getZoom() * 1.25))),
-      iconButton("zoom-out", _("Zoom out"), () => editor.setZoom(Math.max(.25, editor.getZoom() / 1.25))),
-      iconButton("clear", _("Clear"), () => editor.clear()), blattgroesse, exportieren, iconButton("open", _("Open"), () => openFile.click()), removeSheet);
+      iconButton("zoom-out", _("Zoom out"), () => editor.setZoom(Math.max(.25, editor.getZoom() / 1.25))));
+    zeichnenZeile.append(penButton, forms, fillButton, iconButton("rotate", _("Rotate selection"), () => transform(true)), moveButton,
+      ...auswahlWerkzeuge, iconButton("cut", _("Cut selection"), () => editor.cut()), farbe, removeSheet);
     ziel.append(openFile);
     const tablet = document.createElement("input"); tablet.type = "checkbox";
     tablet.hidden = true; ziel.append(tablet);

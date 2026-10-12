@@ -2787,11 +2787,14 @@ textarea::-webkit-scrollbar-track,
 .custom-zeichenflaeche canvas { max-width: none; }
 .custom-modul-drawing > .knopfreihe { flex: 0 0 auto; flex-wrap: wrap; padding-block: 6px; }
 .custom-modul-drawing > .einst-hinweis { flex: 0 0 auto; margin-block: 6px 0; }
-.custom-modul-drawing > .zeichen-werkzeuge, .zeichen-werkzeuge { display: grid; grid-template-rows: repeat(2, 30px); grid-auto-flow: column; grid-auto-columns: max-content; align-items: center; gap: 4px; overflow-x: auto; overflow-y: hidden; max-width: 100%; flex: 0 0 auto; padding-block: 6px; }
-.zeichen-werkzeuge > select { width: 80px; max-width: 80px; }
-.zeichen-werkzeuge > select, .zeichen-werkzeuge > input { height: 30px; min-height: 30px; max-height: 30px; margin: 0; box-sizing: border-box; }
-.zeichen-werkzeuge > input[type="color"] { flex: 0 0 36px; width: 36px; height: 30px; padding: 2px; }
-.zeichen-werkzeuge > input[type="range"] { flex: 0 1 90px; width: 90px; min-width: 50px; }
+.custom-modul-drawing > .zeichen-werkzeuge, .zeichen-werkzeuge { display: flex; flex-wrap: nowrap; align-items: start; gap: 8px; max-width: 100%; flex: 0 0 auto; padding-block: 6px; }
+.zeichen-einstellungen { display: grid; grid-template-rows: repeat(2, 32px); gap: 4px; flex: 0 0 clamp(140px, 25%, 210px); min-width: 140px; }
+.zeichen-einstellungen > select { width: 100%; min-width: 0; height: 32px; font-size: 14px; margin: 0; padding: 3px 6px; box-sizing: border-box; }
+.zeichen-breitenwahl { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.zeichen-breitenwahl input[type="range"] { flex: 1 1 auto; width: 80px; min-width: 50px; height: 30px; margin: 0; }
+.zeichen-aktionen { display: grid; grid-template-rows: repeat(2, 32px); gap: 4px; flex: 1 1 auto; min-width: 0; overflow-x: auto; overflow-y: hidden; }
+.zeichen-zeile { display: flex; flex-wrap: nowrap; justify-content: flex-end; align-items: center; gap: 4px; width: max-content; min-width: 100%; }
+.zeichen-zeile input[type="color"] { flex: 0 0 36px; width: 36px; height: 30px; padding: 2px; margin: 0; box-sizing: border-box; }
 .zeichen-breite { min-width: 2em; text-align: end; font-variant-numeric: tabular-nums; }
 .zeichen-symbol { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 3px; flex: 0 0 30px; }
 .zeichen-symbol[aria-pressed="true"] { outline: 2px solid var(--braun); outline-offset: -2px; }
