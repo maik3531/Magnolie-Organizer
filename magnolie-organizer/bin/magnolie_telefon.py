@@ -3175,15 +3175,19 @@ class PhoneService:
             self.store.remove_kind(peer_id, "personal_sync.custom_settings")
             self.store.queue(peer_id, "personal_sync.custom_settings", custom["local"], DAY_MS)
 
-    def _common_preference_peer(self, peer_id, expected_fingerprint, initial):
+    def _common_preference_peer(self, peer_id, expected_fingerprint, initial, activate=False):
         peer = self.store.sole_peer(peer_id)
         if (not peer or fingerprint(unb64(peer["static_public"], 32)) != expected_fingerprint or
-                peer.get("personal_sync", {}).get("own_device") is not True or
+                (not activate and peer.get("personal_sync", {}).get("own_device") is not True) or
                 not shared_sync_contract.supported(desktop_capabilities()["items"], peer.get("capabilities", {}).get("items", {}))):
             raise PermissionError("Shared preferences are unavailable for this paired device.")
         if not isinstance(initial, dict) or set(initial) != set(shared_sync_contract.DEFAULTS):
             raise ValueError("A complete initial preference snapshot is required.")
         shared_sync_contract.create(self.store.identity["device_id"], initial)
+        if activate and peer.get("personal_sync", {}).get("own_device") is not True:
+            # An explicit local synchronization choice replaces the old UI's
+            # set_personal_sync_mode call. A status/initialization never opts in.
+            self.set_personal_sync_mode(peer_id, initial["auto_mode"] == "wifi", initial["skip_deletions"])
         return peer
 
     def initialize_common_preferences(self, peer_id, expected_fingerprint, initial):
@@ -3198,7 +3202,8 @@ class PhoneService:
 
     def change_common_preference(self, peer_id, expected_fingerprint, field, value, initial):
         with self.lock:
-            peer = self._common_preference_peer(peer_id, expected_fingerprint, initial)
+            shared_sync_contract.setting_value(field, value)
+            peer = self._common_preference_peer(peer_id, expected_fingerprint, initial, activate=True)
             self.store.change_shared_setting(peer_id, peer["static_public"], field, value, initial)
             self._apply_common_function_policies(peer_id, self.store.shared_settings(peer_id, peer["static_public"]))
             self._queue_shared_settings(peer_id)
@@ -3207,8 +3212,9 @@ class PhoneService:
         return result
 
     def start_common_sync(self, peer_id, expected_fingerprint, initial):
-        self.initialize_common_preferences(peer_id, expected_fingerprint, initial)
         with self.lock:
+            self._common_preference_peer(peer_id, expected_fingerprint, initial, activate=True)
+            self.initialize_common_preferences(peer_id, expected_fingerprint, initial)
             self._common_preference_peer(peer_id, expected_fingerprint, initial)
             if self.store.has_kind(peer_id, shared_sync_contract.START_KIND):
                 return

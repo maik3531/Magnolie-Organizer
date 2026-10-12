@@ -51,3 +51,36 @@ def test_unsupported_peer_cannot_initialize_from_a_local_preview(tmp_path, monke
     with pytest.raises(PermissionError):
         service.initialize_common_preferences(peer["device_id"], fingerprint, shared.DEFAULTS)
     assert service.store.shared_settings(peer["device_id"], peer["static_public"]) is None
+
+
+@pytest.mark.parametrize("action", ["choice", "start"])
+def test_explicit_sync_action_enables_own_phone_but_status_and_invalid_choices_do_not(tmp_path, monkeypatch, action):
+    service, peer, _, _ = fixture(tmp_path, monkeypatch, initialize=False)
+    peer["personal_sync"]["own_device"] = False
+    peer["local_grants"]["grants"].update(personal_notes_sync=False, personal_tasks_sync=False)
+    service.store.save_peers()
+    peer_id = peer["device_id"]
+    fingerprint = phone.fingerprint(phone.unb64(peer["static_public"], 32))
+    initial = dict(shared.DEFAULTS)
+    assert not service.shared_settings_status(peer_id)["initialized"]
+    with pytest.raises(PermissionError):
+        service.initialize_common_preferences(peer_id, fingerprint, initial)
+    for field, value, key in [("content_mode", "invalid", fingerprint), ("auto_mode", "wifi", "stale")]:
+        with pytest.raises((ValueError, PermissionError)):
+            service.change_common_preference(peer_id, key, field, value, initial)
+    assert not peer["personal_sync"]["own_device"]
+    with tempfile.TemporaryDirectory(prefix="shared-optin-") as root:
+        socket = str(Path(root) / "bridge.sock")
+        server = background.IPCServer(FakeBackend(), socket, phone_backend=service).start()
+        try:
+            proxy = background.PhoneServiceProxy(socket)
+            if action == "choice":
+                result = proxy.change_common_preference(peer_id, fingerprint, "auto_mode", "wifi", initial)
+                assert result["initialized"] and result["values"]["auto_mode"] == "wifi"
+            else:
+                proxy.start_common_sync(peer_id, fingerprint, initial)
+                assert service.store.has_kind(peer_id, shared.START_KIND)
+            assert peer["personal_sync"]["own_device"]
+            assert all(peer["local_grants"]["grants"][field] for field in ("personal_notes_sync", "personal_tasks_sync"))
+        finally:
+            server.close()

@@ -46,6 +46,15 @@ for (const web of [path.join(__dirname, '../app/web'), path.join(__dirname, '../
     w.App.gemeinsameSyncGespeichert({ kennung: peer.device_id, feld: 'skip_deletions', requestId: failed.requestId,
       ok: false, fehler: 'Synthetic save failure' });
     assert.equal(skip.disabled, false); assert.equal(skip.checked, false, 'A failed write returns to the persisted choice');
+    const start = w.document.querySelector('[data-shared-sync-start]');
+    w.App.telefonStand({ peers: [{ ...structuredClone(peer), own_device: false,
+      shared_sync: { supported: true, initialized: false, ready: false, values: null } }] });
+    assert.equal(start.disabled, false, 'An explicit sync click must be able to activate the local side');
+    start.click();
+    assert.equal(sent.findLast(value => value.cmd === 'personal_sync_gemeinsam_start').initial.content_mode, 'phone_scope');
+    w.App.telefonStand({ peers: [{ ...structuredClone(peer), shared_sync: { ...changed, values: { ...changed.values, auto_mode: 'wifi' } } }] });
+    start.click();
+    assert.equal(sent.findLast(value => value.cmd === 'personal_sync_gemeinsam_start').initial.auto_mode, 'wifi', 'Start must use the current selection rather than the dialog-opening snapshot');
     w.App.telefonPairingCode({ attempt_id: 'attempt', code: '123 456', confirmation_required: false });
     let buttons = [...w.document.querySelectorAll('#telefon-pairing-dialog button')].map(button => button.textContent);
     assert.ok(!buttons.includes('Codes match'), 'The initiating desktop displays the code without a second approval');

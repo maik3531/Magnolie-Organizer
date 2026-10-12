@@ -2586,10 +2586,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const button = knopf(_("Synchronize now"), "hauptknopf", () => {
       const aktuell = personalSyncNotizPeer(id);
       if (!aktuell || aktuell.fingerprint !== fingerprint) return;
-      Bruecke.sende({ cmd: "personal_sync_gemeinsam_start", kennung: id, fingerabdruck: fingerprint, initial });
+      Bruecke.sende({ cmd: "personal_sync_gemeinsam_start", kennung: id, fingerabdruck: fingerprint, initial: gemeinsameSyncWerte(aktuell) });
     });
     button.dataset.sharedSyncStart = id; button.dataset.sharedSyncFingerprint = fingerprint;
-    button.disabled = !peer.own_device || !peer.remote_own_device || !/^online_/.test(peer.state || "");
+    button.disabled = !peer.remote_own_device || !/^online_/.test(peer.state || "");
     return button;
   }
 
@@ -2612,7 +2612,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     });
     document.querySelectorAll("[data-shared-sync-start]").forEach(button => {
       const peer = personalSyncNotizPeer(button.dataset.sharedSyncStart);
-      button.disabled = !peer || peer.fingerprint !== button.dataset.sharedSyncFingerprint || !peer.own_device ||
+      button.disabled = !peer || peer.fingerprint !== button.dataset.sharedSyncFingerprint ||
         !peer.remote_own_device || !/^online_/.test(peer.state || "") ||
         Array.from(gemeinsameSyncWartend.keys()).some(key => key.startsWith(peer.device_id + ":"));
     });

@@ -21,22 +21,32 @@ internal sealed partial class TelefonCoordinator
     }
 
     internal async Task SetCommonPreferencesAsync(string id, string expectedFingerprint, JsonObject initial,
-        string? field = null, JsonNode? value = null)
+        string? field = null, JsonNode? value = null, bool activate = false)
     {
         await store.NotePolicyGate.WaitAsync();
         TelefonConnection? connection;
+        long? activatedRevision = null;
         try
         {
             lock (gate)
             {
                 RequireSolePeer(id);
                 var peer = store.LoadPeers().Single(item => item.Id == id && item.State == "paired");
-                if (TelefonCrypto.Fingerprint(peer.PublicKey) != expectedFingerprint || !store.PersonalSettings(id).OwnDevice ||
+                if (TelefonCrypto.Fingerprint(peer.PublicKey) != expectedFingerprint ||
+                    (!(activate || field is not null) && !store.PersonalSettings(id).OwnDevice) ||
                     !SharedSyncSettings.Supported(SharedLocalCapabilities(), peer.Capabilities))
                     throw new InvalidOperationException("Shared preferences are unavailable for this paired device.");
                 var validated = SharedSyncSettings.Create(identity.Id, initial);
                 if (!initial.Select(pair => pair.Key).ToHashSet(StringComparer.Ordinal).SetEquals(SharedSyncSettings.Effective(validated).Select(pair => pair.Key)))
                     throw new InvalidDataException("A complete initial preference snapshot is required.");
+                if (field is not null) SharedSyncSettings.Change(validated, identity.Id, id, field,
+                    value ?? throw new InvalidDataException("Missing preference value."));
+                else if (value is not null) throw new InvalidDataException("Unexpected preference value.");
+                if (!store.PersonalSettings(id).OwnDevice)
+                {
+                    store.SetPersonalSyncMode(id, initial["auto_mode"]!.GetValue<string>() == "wifi", initial["skip_deletions"]!.GetValue<bool>());
+                    activatedRevision = store.NextOwnRevision("grants");
+                }
                 if (field is null)
                 {
                     if (value is not null) throw new InvalidDataException("Unexpected preference value.");
@@ -47,6 +57,12 @@ internal sealed partial class TelefonCoordinator
             }
         }
         finally { store.NotePolicyGate.Release(); }
+        if (connection is not null && activatedRevision is long revision)
+        {
+            await connection.SendGrantsAsync(revision, store.LocalGrants());
+            await connection.SendMessageAsync("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true }, 86_400_000);
+            await connection.SendDesktopFeaturesAsync();
+        }
         await ApplyCommonPreferencesAsync(id);
         if (connection is not null) await connection.SendSharedSettingsAsync();
         await ReportStatusAsync();
@@ -54,7 +70,7 @@ internal sealed partial class TelefonCoordinator
 
     internal async Task StartCommonSyncAsync(string id, string expectedFingerprint, JsonObject initial)
     {
-        await SetCommonPreferencesAsync(id, expectedFingerprint, initial);
+        await SetCommonPreferencesAsync(id, expectedFingerprint, initial, activate: true);
         TelefonConnection? connection;
         lock (gate)
         {
