@@ -11262,17 +11262,17 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const liste = DATEN.notizen.slice();
       return { titel: _("Notes"), wort: _("Pages"), liste: liste,
         anzahl: (wert) => uebersetztMehrzahl("%(count)s page", "%(count)s pages", wert),
-        name: (n) => n.titel || _("Untitled"),
+        name: notizAnzeigeTitel,
         karte: (n) => {
           const k = el("div", "druck-karte");
-          k.append(el("div", "dk-name", n.titel || _("Untitled")));
+          k.append(el("div", "dk-name", notizAnzeigeTitel(n)));
           const text = el("div", "dk-notiz");
           text.textContent = n.text || "";
           k.append(text);
           return k;
         },
         html: (n) => '<div class="karte"><div class="name">' +
-          sicher(n.titel || _("Untitled")) + "</div>" +
+          sicher(notizAnzeigeTitel(n)) + "</div>" +
           '<div class="notiz">' + sicher(n.text || "") + "</div></div>",
         vorgewaehlt: vorgewaehlt ? [vorgewaehlt.id] : [],
         loeschen: { schluessel: "notizen", art: "notiz" } };
@@ -19953,7 +19953,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     };
     const overlay = el("div", "eingabe-schleier"), dialog = el("div", "eingabe-dialog notiz-eigenschaften");
     const close = () => { beendeModal(overlay); overlay.remove(); };
-    dialog.append(el("h2", null, _("Properties")), el("h3", null, notiz.titel || _("Untitled")));
+    dialog.append(el("h2", null, _("Properties")), el("h3", null, notizAnzeigeTitel(notiz)));
     const fields = el("dl", "notiz-eigenschaftsfelder");
     const item = (name, value) => fields.append(el("dt", null, name), el("dd", null, value));
     item(_("Created"), zeit(notiz.angelegt) + (notiz.angelegtGeschaetzt ? " · " + _("Estimated from older data") : ""));
@@ -19977,6 +19977,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const done = knopf(_("Close"), "haupt", close); dialog.append(done); overlay.append(dialog); document.body.append(overlay);
     overlay.addEventListener("click", event => { if (event.target === overlay) close(); });
     registriereModal(overlay, dialog, { anfang: done, schliessen: close });
+  }
+
+  function notizAnzeigeTitel(notiz) {
+    const titel = String(notiz?.titel || "").trim();
+    if (titel) return titel;
+    let text = String(notiz?.text || "").trim();
+    if (!text && notiz?.html) {
+      const container = document.createElement("div"); container.innerHTML = saeubereHtml(notiz.html);
+      text = htmlZuText(container).trim();
+    }
+    const zeile = text.split(/\r?\n/).find(value => value.trim())?.replace(/\s+/g, " ").trim() || "";
+    const zeichen = Array.from(zeile);
+    return zeichen.length ? zeichen.slice(0, 80).join("") + (zeichen.length > 80 ? "…" : "") : _("Untitled");
   }
 
   function notizUebersichtWahl() {
@@ -20220,7 +20233,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       haupt.type = "button";
       fokusMarke(haupt, "notiz:" + n.id);
       if (n.id === z.auswahlId) haupt.setAttribute("aria-current", "true");
-      const obm = el("div", "obm", n.titel?.trim() || (n.text || "").trim().split("\n")[0].slice(0, 80) || _("Untitled"));
+      const obm = el("div", "obm", notizAnzeigeTitel(n));
       const anhangText = n.anhaenge.length ? " · " + uebersetztMehrzahl(
         "%(count)s attachment", "%(count)s attachments", n.anhaenge.length) : "";
       const unt = el("div", "unt", uebersetzt("Page %(page)s", { page: i + 1 }) +
@@ -20238,9 +20251,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       x.addEventListener("click", (ev) => {
         ev.stopPropagation();
         frage(uebersetzt("Delete this note page (“%(title)s”)?",
-          { title: n.titel || _("Untitled") })).then((ja) => {
+          { title: notizAnzeigeTitel(n) })).then((ja) => {
           if (!ja) return;
-          inDenPapierkorb("notiz", n, n.titel || _("Untitled"));
+          inDenPapierkorb("notiz", n, notizAnzeigeTitel(n));
           DATEN.notizen = DATEN.notizen.filter((x2) => x2.id !== n.id);
           if (z.auswahlId === n.id) z.auswahlId = null;
           const naechste = DATEN.notizen.find((wert) => wert.notizbuchId === n.notizbuchId);
@@ -20470,7 +20483,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       notiz.geaendert = isoHeute();
       notiz.personalGeaendert = Date.now();
       markiereGemeinsameNotiz(notiz);
-      if (notizRefs.obm) notizRefs.obm.textContent = notiz.titel?.trim() || (notiz.text || "").trim().split("\n")[0].slice(0, 80) || _("Untitled");
+      if (notizRefs.obm) notizRefs.obm.textContent = notizAnzeigeTitel(notiz);
       planeSpeichern();
       weckeAutomatischenNotesAbgleich("note", personalSyncNotizWireId(notiz.id));
     };

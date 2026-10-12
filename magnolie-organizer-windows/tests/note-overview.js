@@ -73,6 +73,17 @@ harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[
       assert.equal(findButton(menu("older"), "Send to Notes"), undefined);
       b.w.App.telefonStand({ peers: [{ ...peer, own_device: false }] });
       assert.ok(!b.messages.some(value => value.cmd === "personal_sync_betrieb"), "Status update must not enable ownership/sharing");
+      const choiceName = b.t.druckStoff('notizen').name;
+      const labels = Array.from({ length: 1000 }, (_, index) => choiceName({ titel: '', text: `Entry ${index}: distinct first line\nMore content` }));
+      assert.equal(new Set(labels).size, 1000, 'Untitled selection entries must be distinguishable without opening them');
+      assert.equal(choiceName({ titel: 'Existing title', text: 'Other preview' }), 'Existing title');
+      assert.equal(choiceName({ titel: '  ', text: '', html: '<p>Visible HTML preview</p><script>alert(1)</script>' }), 'Visible HTML preview');
+      assert.equal(choiceName({ text: '🙂'.repeat(81) }), '🙂'.repeat(80) + '…');
+      assert.equal(choiceName({ text: '' }), 'Untitled');
+      const untitled = b.t.daten().notizen.find(note => note.id === 'older');
+      untitled.titel = ''; untitled.text = 'Selection and list share this preview\nSecond line';
+      await b.t.wechsel('kalender'); await b.t.wechsel('notizen');
+      assert.equal(b.w.document.querySelector('[data-notiz-id="older"] .obm').textContent, choiceName(untitled));
       console.log("Notizansicht, Eigenschaften und Einzelversand-Bedienung bestanden:", web);
     } finally { b.close(); }
   }
