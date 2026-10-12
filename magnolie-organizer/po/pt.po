@@ -232,6 +232,11 @@ msgid_plural "%(count)s seconds"
 msgstr[0] "%(count)s segundo"
 msgstr[1] "%(count)s segundos"
 
+msgid "%(count)s source"
+msgid_plural "%(count)s sources"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "%(count)s task"
 msgid_plural "%(count)s tasks"
 msgstr[0] "%(count)s tarefa"
@@ -675,6 +680,9 @@ msgstr "De acordo com o idioma"
 msgid "Account type"
 msgstr "Tipo de conta"
 
+msgid "Action"
+msgstr ""
+
 msgid "Active call"
 msgstr "Chamada ativa"
 
@@ -753,6 +761,9 @@ msgstr "Livro de endereços"
 
 msgid "Address imported from LibreOffice."
 msgstr "Morada importada do LibreOffice."
+
+msgid "Address imported from own profile."
+msgstr ""
 
 msgid "Address supplement"
 msgstr "Complemento da morada"
@@ -889,6 +900,9 @@ msgstr "O Android restringe este identificador."
 
 msgid "Android version"
 msgstr "Versão do Android"
+
+msgid "Angle"
+msgstr ""
 
 msgid "Anniversaries"
 msgstr "Datas comemorativas"
@@ -1048,6 +1062,9 @@ msgstr "Autor"
 msgid "Authority appointment"
 msgstr "Compromisso em organismo público"
 
+msgid "Automatic"
+msgstr ""
+
 msgid "Automatic backup failed."
 msgstr "A cópia de segurança automática falhou."
 
@@ -1076,6 +1093,9 @@ msgstr "Escolher automaticamente uma aplicação adequada"
 
 msgid "Automatically dismiss anniversary reminders"
 msgstr "Ocultar automaticamente os lembretes de aniversários"
+
+msgid "Automatically over the current connection"
+msgstr ""
 
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Sincronizar automaticamente por Wi-Fi"
@@ -1316,6 +1336,9 @@ msgstr "Bremen"
 msgid "Browse…"
 msgstr "Procurar..."
 
+msgid "Brush"
+msgstr ""
+
 msgid "Burgenland"
 msgstr "Burgenland"
 
@@ -1440,6 +1463,9 @@ msgstr ""
 msgid "Call with %(name)s · %(date)s"
 msgstr "Chamada com %(name)s · %(date)s"
 
+msgid "Calligraphy pen"
+msgstr ""
+
 msgid "Cancel"
 msgstr "Cancelar"
 
@@ -1478,6 +1504,9 @@ msgstr "Alterar palavra-passe"
 
 msgid "Changes are applied automatically"
 msgstr "As alterações são aplicadas automaticamente"
+
+msgid "Changes to your own profile are saved with Save."
+msgstr ""
 
 msgid "Changing phone permission"
 msgstr "A alterar a permissão do telefone"
@@ -1551,10 +1580,11 @@ msgstr ""
 "organizador cria automaticamente uma cópia dos dados atuais. Uma cópia de "
 "segurança encriptada exige a respetiva palavra-passe."
 
-msgid "Choose a connection. Confirm pairing on the phone and this computer."
+msgid "Choose a connection. Confirm the pairing code on the other device."
 msgstr ""
-"Escolha um tipo de ligação. Confirme o emparelhamento no telefone e neste "
-"computador."
+
+msgid "Choose a contact"
+msgstr ""
 
 msgid "Choose a country first."
 msgstr "Escolha primeiro um país."
@@ -1716,6 +1746,12 @@ msgstr "Os códigos são diferentes"
 msgid "Codes match"
 msgstr "Os códigos correspondem"
 
+msgid "Collapse day groups by default"
+msgstr ""
+
+msgid "Colleagues"
+msgstr "Colegas"
+
 msgid "Color"
 msgstr "Cor"
 
@@ -1745,6 +1781,9 @@ msgid ""
 msgstr ""
 "Compare esta impressão digital com a do outro ramo, por exemplo por "
 "telefone, para confirmar a ligação."
+
+msgid "Compare with LibreOffice"
+msgstr ""
 
 msgid "Complete archive exported (password-protected)."
 msgstr "Arquivo completo exportado (protegido por palavra-passe)."
@@ -1803,6 +1842,9 @@ msgstr "Confirme que o código é igual nos dois dispositivos."
 msgid "Confirm the pairing request on the phone."
 msgstr "Confirme o pedido de emparelhamento no telefone."
 
+msgid "Confirm this code on the other device."
+msgstr ""
+
 msgid "Confirmation"
 msgstr "Confirmação"
 
@@ -1814,6 +1856,9 @@ msgstr "Confirmação"
 
 msgid "Connect"
 msgstr "Ligar"
+
+msgid "Connect Notes before sending this entry."
+msgstr ""
 
 msgid "Connect phone via WLAN"
 msgstr "Ligar o telefone por WLAN"
@@ -1879,9 +1924,6 @@ msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr ""
 "As propostas de eliminação de contactos foram bloqueadas pelo limite de "
 "segurança."
-
-msgid "No contact group"
-msgstr "Sem grupo de contactos"
 
 msgid "Contact groups"
 msgstr "Grupos de contactos"
@@ -2004,9 +2046,6 @@ msgstr "Criar"
 msgid "Create a backup copy of the data"
 msgstr "Criar uma cópia de segurança dos dados"
 
-msgid "Create a drawing sheet in the custom tab first."
-msgstr "Crie primeiro uma folha de desenho no separador personalizado."
-
 msgid "Create a gettext POT template"
 msgstr "Criar um modelo POT gettext"
 
@@ -2036,6 +2075,12 @@ msgstr "Criar bloco de notas"
 
 msgid "Create pairing file …"
 msgstr "Criar ficheiro de emparelhamento …"
+
+msgid "Create recovery points"
+msgstr ""
+
+msgid "Created"
+msgstr ""
 
 msgid "Creating a recovery snapshot"
 msgstr "A criar um instantâneo de recuperação"
@@ -2090,6 +2135,9 @@ msgstr "Personalizar blocos de notas"
 
 msgid "Cut"
 msgstr "Cortar"
+
+msgid "Cut selection"
+msgstr ""
 
 msgid "Cycle calendar"
 msgstr "Calendário do ciclo"
@@ -2166,6 +2214,9 @@ msgstr "Não foi possível iniciar o registo de depuração: %s"
 msgid "Decrypting the data"
 msgstr "A desencriptar os dados"
 
+msgid "Default view"
+msgstr ""
+
 msgid "Default: next to the data file"
 msgstr "Predefinição: junto ao ficheiro de dados"
 
@@ -2212,6 +2263,12 @@ msgstr "Eliminar o cartão de contacto «%(name)s»?"
 
 msgid "Delete cycle marker"
 msgstr "Eliminar marcador do ciclo"
+
+msgid "Delete drawing sheet"
+msgstr ""
+
+msgid "Delete drawing sheet?"
+msgstr ""
 
 msgid "Delete entries"
 msgstr "Eliminar entradas"
@@ -2484,6 +2541,9 @@ msgstr "Editar tarefa"
 msgid "Edit the website or application used"
 msgstr "Editar o site ou a aplicação utilizados"
 
+msgid "Ellipse"
+msgstr ""
+
 msgid "Email"
 msgstr "E-mail"
 
@@ -2558,13 +2618,6 @@ msgstr "Ativar lembretes para este bloco"
 
 msgid "Enable shift planner"
 msgstr "Ativar planeador de turnos"
-
-msgid ""
-"Enable tablet input here, then open the drawing tablet in KDE Connect on the "
-"phone."
-msgstr ""
-"Ative aqui a entrada por mesa digitalizadora e depois abra a mesa "
-"digitalizadora no KDE Connect do telefone."
 
 msgid "Enable this SMS plan"
 msgstr "Ativar este plano de SMS"
@@ -2707,6 +2760,9 @@ msgstr "Erro: %s"
 msgid "Estimate the next period"
 msgstr "Estimar a próxima menstruação"
 
+msgid "Estimated from older data"
+msgstr ""
+
 msgid "Estimated next period"
 msgstr "Próxima menstruação estimada"
 
@@ -2717,18 +2773,17 @@ msgstr "Fim da tarde"
 msgid "Event loop is not available: %s"
 msgstr "O ciclo de eventos não está disponível: %s"
 
+msgid "Every change"
+msgstr ""
+
 msgid "Every filled medication row requires a name."
 msgstr "Cada linha de medicamento preenchida requer um nome."
 
 msgid "Every filled row requires a valid date."
 msgstr "Cada linha preenchida requer uma data válida."
 
-msgid ""
-"Every saved change is protected automatically by a private, integrity-"
-"checked snapshot."
+msgid "Every program start"
 msgstr ""
-"Cada alteração guardada é protegida automaticamente por um instantâneo "
-"privado cuja integridade é verificada."
 
 msgid "Everything is done - the list is empty."
 msgstr "Está tudo concluído - a lista está vazia."
@@ -2756,11 +2811,11 @@ msgstr ""
 "Exatamente um telefone emparelhado e online com Magnolie Notes tem de "
 "permitir a marcação de números."
 
+msgid "Expand day groups by default"
+msgstr ""
+
 msgid "Export"
 msgstr "Exportar"
-
-msgid "Export PNG"
-msgstr "Exportar PNG"
 
 msgid "Export failed."
 msgstr "Falha ao exportar."
@@ -2770,6 +2825,9 @@ msgstr "Falha ao exportar: %(error)s"
 
 msgid "Export is available only in the installed application."
 msgstr "A exportação está disponível apenas na aplicação instalada."
+
+msgid "Export vCard"
+msgstr ""
 
 msgid "Extend sharing"
 msgstr "Ampliar partilha"
@@ -2804,6 +2862,9 @@ msgstr "Familiar (mulher)"
 msgid "Fertile days"
 msgstr "Dias férteis"
 
+msgid "Field"
+msgstr ""
+
 msgid "File"
 msgstr "Ficheiro"
 
@@ -2817,6 +2878,12 @@ msgstr "Ficheiro guardado em Transferências: %(name)s"
 #, python-format
 msgid "File saved: %(name)s"
 msgstr "Ficheiro guardado: %(name)s"
+
+msgid "Fill selection"
+msgstr ""
+
+msgid "Fill with gradient"
+msgstr ""
 
 msgid "Fill with stored values"
 msgstr "Preencher com os valores guardados"
@@ -2994,8 +3061,17 @@ msgstr "Ir para o calendário"
 msgid "Google Maps in the browser"
 msgstr "Google Maps no navegador"
 
+msgid "Gradient end color"
+msgstr ""
+
 msgid "Grisons"
 msgstr "Grisões"
+
+msgid "Group by day"
+msgstr ""
+
+msgid "Group changes by time interval"
+msgstr ""
 
 msgid "Group for %(notebook)s"
 msgstr "Grupo de %(notebook)s"
@@ -3072,6 +3148,9 @@ msgstr "Ocultar acesso à Internet"
 msgid "Hide past appointments"
 msgstr "Ocultar compromissos passados"
 
+msgid "Highlighter"
+msgstr ""
+
 msgid "History"
 msgstr "Histórico"
 
@@ -3117,6 +3196,9 @@ msgstr "UI"
 
 msgid "ISO week (week 1 contains the first Thursday)"
 msgstr "Semana ISO (a semana 1 contém a primeira quinta-feira)"
+
+msgid "Idea"
+msgstr ""
 
 msgid ""
 "If the year is unknown, enter only day and month.\n"
@@ -3295,6 +3377,9 @@ msgstr "Entrada"
 msgid "Insert link"
 msgstr "Inserir ligação"
 
+msgid "Insert shape"
+msgstr ""
+
 msgid "Install the packages, for example with:"
 msgstr "Instale os pacotes, por exemplo com:"
 
@@ -3413,6 +3498,9 @@ msgstr "Livro de endereços LDIF (.ldif) …"
 msgid "Landline"
 msgstr "Telefone fixo"
 
+msgid "Landscape"
+msgstr ""
+
 msgid "Language"
 msgstr "Idioma"
 
@@ -3459,6 +3547,9 @@ msgstr "Modelo de carta"
 msgid "LibreOffice is not opened or changed."
 msgstr "O LibreOffice não é aberto nem alterado."
 
+msgid "LibreOffice user data updated."
+msgstr ""
+
 #, python-format
 msgid "LibreOffice was not found. The letter is located at: %s"
 msgstr "O LibreOffice não foi encontrado. A carta encontra-se em: %s"
@@ -3468,6 +3559,9 @@ msgstr "Licença"
 
 msgid "Liechtenstein"
 msgstr "Listenstaine"
+
+msgid "Line"
+msgstr ""
 
 msgid "Line width"
 msgstr "Espessura do traço"
@@ -3695,6 +3789,9 @@ msgstr "Apenas manualmente"
 msgid "Manual version %(version)s is available."
 msgstr "Está disponível a versão %(version)s do manual."
 
+msgid "Manually"
+msgstr ""
+
 msgid "Manufacturer"
 msgstr "Fabricante"
 
@@ -3744,8 +3841,14 @@ msgstr "Unir"
 msgid "Merge duplicate contact cards"
 msgstr "Unir cartões de contacto duplicados"
 
+msgid "Merge history"
+msgstr ""
+
 msgid "Merge this pair individually"
 msgstr "Unir este par individualmente"
+
+msgid "Merged"
+msgstr ""
 
 msgid "Message"
 msgstr "Mensagem"
@@ -3810,11 +3913,17 @@ msgstr "Rede móvel"
 msgid "Model"
 msgstr "Modelo"
 
+msgid "Modified"
+msgstr ""
+
 msgid "Module"
 msgstr "Módulo"
 
 msgid "Monday"
 msgstr "Segunda-feira"
+
+msgid "Money"
+msgstr ""
 
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "Monitorizar os SMS do KDE Connect e mostrar notificações"
@@ -3868,6 +3977,9 @@ msgstr "Mover bloco de notas para outro grupo"
 msgid "Move notebook up"
 msgstr "Mover bloco de notas para cima"
 
+msgid "Move selection"
+msgstr ""
+
 msgid "Move the ticked entries to the wastebasket"
 msgstr "Mover as entradas assinaladas para o Lixo"
 
@@ -3876,6 +3988,9 @@ msgstr "Mover para o nível superior"
 
 msgid "Move up"
 msgstr "Mover para cima"
+
+msgid "Move view"
+msgstr ""
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -3984,6 +4099,9 @@ msgstr ""
 msgid "New contact"
 msgstr "Novo contacto"
 
+msgid "New drawing sheet"
+msgstr ""
+
 msgid "New group"
 msgstr "Novo grupo"
 
@@ -4004,6 +4122,9 @@ msgstr "Nova tarefa"
 
 msgid "New version %(version)s is available."
 msgstr "Está disponível a nova versão %(version)s."
+
+msgid "Newest first"
+msgstr ""
 
 msgid "Next"
 msgstr "Seguinte"
@@ -4056,6 +4177,9 @@ msgstr "Nextcloud retornou um redirecionamento que não foi seguido."
 msgid "Nextcloud returned an incomplete DAV result."
 msgstr "Nextcloud retornou um resultado DAV incompleto."
 
+msgid "Nib angle"
+msgstr ""
+
 msgid "Nidwalden"
 msgstr "Nidwalden"
 
@@ -4078,6 +4202,9 @@ msgstr "Não foi detetado nenhum livro de endereços do Claws Mail."
 msgid "No SMS messages are scheduled."
 msgstr "Não há mensagens SMS agendadas."
 
+msgid "No WhatsApp profile available for this contact."
+msgstr ""
+
 msgid "No address books found."
 msgstr "Não foram encontrados livros de endereços."
 
@@ -4097,8 +4224,14 @@ msgstr "Não há nenhum compromisso agendado."
 msgid "No calendars found."
 msgstr "Não foram encontrados calendários."
 
+msgid "No contact group"
+msgstr "Sem grupo de contactos"
+
 msgid "No data was found."
 msgstr "Não foram encontrados dados."
+
+msgid "No date recorded"
+msgstr ""
 
 msgid "No default voice subscription is available."
 msgstr "Nenhuma subscrição de voz predefinida disponível."
@@ -4145,6 +4278,9 @@ msgstr "Não foi encontrada nenhuma tarefa aberta correspondente."
 msgid "No measurements in this period."
 msgstr "Não existem medições neste período."
 
+msgid "No merge history recorded"
+msgstr ""
+
 msgid "No notebooks"
 msgstr "Sem blocos de notas"
 
@@ -4175,6 +4311,9 @@ msgid ""
 msgstr ""
 "Ainda não foram adicionadas pessoas. Utilize o botão Pessoas acima para "
 "adicionar responsáveis pelas tarefas."
+
+msgid "No phone number available."
+msgstr ""
 
 msgid "No phone paired yet."
 msgstr "Ainda não existe nenhum telefone emparelhado."
@@ -4318,6 +4457,9 @@ msgstr "Notas"
 msgid "Notes and special instructions"
 msgstr "Notas e instruções especiais"
 
+msgid "Notes and tasks"
+msgstr ""
+
 msgid ""
 "Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
 "synchronization or start manually."
@@ -4416,6 +4558,9 @@ msgstr "Offline"
 msgid "Ointment"
 msgstr "Pomada"
 
+msgid "Oldest first"
+msgstr ""
+
 msgid "One address book"
 msgstr "Um livro de endereços"
 
@@ -4507,6 +4652,12 @@ msgstr ""
 "Só é possível emparelhar um telefone do Magnolie Notes. Remova o telefone "
 "existente antes de mudar de dispositivo."
 
+msgid "Only personal entries can be sent to Notes."
+msgstr ""
+
+msgid "Only the Notes collection"
+msgstr ""
+
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
 "Magnolie paper style would often remain invisible there."
@@ -4589,6 +4740,9 @@ msgstr "Abrir a aplicação"
 
 msgid "Open the day in the daily view"
 msgstr "Abrir este dia na vista diária"
+
+msgid "Open the drawing tablet in KDE Connect on the paired phone."
+msgstr ""
 
 msgid "Open the phone connection screen and try again."
 msgstr "Abra o ecrã de ligação ao telefone e tente novamente."
@@ -4683,6 +4837,9 @@ msgstr "IP próprio da Internet"
 msgid "Own phone number (default voice SIM)"
 msgstr "O meu número (SIM de voz predefinido)"
 
+msgid "Own profile"
+msgstr ""
+
 msgid "Own window available: no"
 msgstr "Janela própria disponível: não"
 
@@ -4710,6 +4867,9 @@ msgstr "Página %(page)s"
 
 msgid "Page %(page)s of %(count)s"
 msgstr "Página %(page)s de %(count)s"
+
+msgid "Page order"
+msgstr ""
 
 msgid "Pages"
 msgstr "Páginas"
@@ -4789,6 +4949,9 @@ msgstr "Colar"
 
 msgid "Patch"
 msgstr "Adesivo"
+
+msgid "Patients"
+msgstr "Pacientes"
 
 msgctxt "time tracking"
 msgid "Pause (minutes)"
@@ -5010,6 +5173,9 @@ msgstr ""
 "A porta 8741 não está disponível. Não foi possível iniciar o serviço de "
 "escuta do telefone."
 
+msgid "Portrait"
+msgstr ""
+
 msgid "Possible duplicates among local and incoming contacts"
 msgstr "Possíveis duplicados entre contactos locais e recebidos"
 
@@ -5122,6 +5288,9 @@ msgstr ""
 msgid "Private"
 msgstr "Privado"
 
+msgid "Properties"
+msgstr ""
+
 msgid "Protected archive password unavailable."
 msgstr "A palavra-passe protegida do arquivo não está disponível."
 
@@ -5162,6 +5331,9 @@ msgstr "Em fila"
 msgid "Quit"
 msgstr "Sair"
 
+msgid "Quote"
+msgstr ""
+
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Endereço IPv4 ou IPv6 acessível deste computador"
 
@@ -5201,12 +5373,21 @@ msgstr "Receber ficheiros em Transferências"
 msgid "Receive with KDE Connect"
 msgstr "Receber com o KDE Connect"
 
+msgid "Recently modified"
+msgstr ""
+
+msgid "Recipe"
+msgstr ""
+
 msgid "Reconnect"
 msgstr "Reconectar"
 
 msgctxt "time tracking"
 msgid "Recorded times"
 msgstr "Tempos registados"
+
+msgid "Recovery journal"
+msgstr ""
 
 msgid "Recovery snapshot created."
 msgstr "Instantâneo de recuperação criado."
@@ -5216,6 +5397,9 @@ msgstr "Instantâneo de recuperação eliminado."
 
 msgid "Recovery snapshots"
 msgstr "Instantâneos de recuperação"
+
+msgid "Rectangle"
+msgstr ""
 
 msgid "Recycle bin"
 msgstr "Lixo"
@@ -5515,6 +5699,9 @@ msgstr "Renânia-Palatinado"
 msgid "Right page"
 msgstr "Página direita"
 
+msgid "Rotate selection"
+msgstr ""
+
 msgid "Route"
 msgstr "Percurso"
 
@@ -5797,6 +5984,9 @@ msgstr "Selecione pelo menos um ano."
 msgid "Select backup folder"
 msgstr "Selecionar pasta de cópias de segurança"
 
+msgid "Select complete strokes that fit inside the sheet."
+msgstr ""
+
 msgid "Select no more than three years."
 msgstr "Selecione no máximo três anos."
 
@@ -5822,6 +6012,9 @@ msgstr ""
 msgid "Selection options"
 msgstr "Opções de seleção"
 
+msgid "Send"
+msgstr ""
+
 msgid "Send SMS"
 msgstr "Enviar SMS"
 
@@ -5833,6 +6026,15 @@ msgstr "Enviar documentos"
 
 msgid "Send secure request"
 msgstr "Enviar pedido seguro"
+
+msgid "Send this new note to Notes"
+msgstr ""
+
+msgid "Send to Notes"
+msgstr ""
+
+msgid "Send via"
+msgstr ""
 
 msgid "Sending SMS with KDE Connect"
 msgstr "Enviando SMS com KDE Connect"
@@ -5895,6 +6097,9 @@ msgstr "Partilhar ligação"
 msgid "Share connection with"
 msgstr "Partilhar ligação com"
 
+msgid "Share selected details"
+msgstr ""
+
 msgid "Share this connection with the selected device?"
 msgstr "Partilhar esta ligação com o dispositivo selecionado?"
 
@@ -5921,6 +6126,9 @@ msgstr "Nota partilhada"
 
 msgid "Sharing this connection is not allowed."
 msgstr "A partilha desta ligação não está autorizada."
+
+msgid "Sheet size"
+msgstr ""
 
 msgid "Shift planner"
 msgstr "Planeador de turnos"
@@ -6112,6 +6320,9 @@ msgstr "Verificação ortográfica"
 msgid "Spray"
 msgstr "Spray"
 
+msgid "Square"
+msgstr ""
+
 msgid "St. Gallen"
 msgstr "São Galo"
 
@@ -6156,6 +6367,9 @@ msgstr "Região de formato"
 
 msgid "Status"
 msgstr "Status"
+
+msgid "Street"
+msgstr ""
 
 msgid "Street / house number"
 msgstr "Rua / número de porta"
@@ -6233,6 +6447,9 @@ msgstr ""
 "O estado de sincronização, as mensagens pendentes e os metadados desta "
 "ligação serão removidos. Os contactos já aceites e os dados locais "
 "permanecerão."
+
+msgid "Synchronize all notes and tasks"
+msgstr ""
 
 msgid "Synchronize automatically at startup"
 msgstr "Sincronizar automaticamente no arranque"
@@ -7321,6 +7538,9 @@ msgstr ""
 msgid "The selected contacts contain no values for these columns."
 msgstr "Os contactos selecionados não contêm valores para estas colunas."
 
+msgid "The selected entry is too large to send."
+msgstr ""
+
 msgid "The selected file is not a readable CSV file."
 msgstr "O ficheiro selecionado não é um ficheiro CSV legível."
 
@@ -7332,6 +7552,9 @@ msgstr "Os registos de saúde selecionados não contêm valores imprimíveis."
 
 msgid "The selected iCalendar file is incomplete."
 msgstr "O ficheiro iCalendar selecionado está incompleto."
+
+msgid "The selected note contains attachments that cannot be sent."
+msgstr ""
 
 msgid "The selected online account is disabled, offline or unreachable."
 msgstr "A conta online selecionada está desativada, offline ou inacessível."
@@ -7680,6 +7903,9 @@ msgstr "Datas comemorativas desta pessoa"
 msgid "This phone transport is unavailable."
 msgstr "Este tipo de ligação ao telefone está indisponível."
 
+msgid "This profile format is not supported."
+msgstr ""
+
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
 "published in the hope that it will be useful, but without any warranty. The "
@@ -7746,6 +7972,9 @@ msgstr "Hora"
 
 msgid "Time format"
 msgstr "Formato da hora"
+
+msgid "Time synchronization direction"
+msgstr ""
 
 msgctxt "time tracking"
 msgid "Time tracking"
@@ -7819,8 +8048,14 @@ msgstr "Profissional de ofícios"
 msgid "Transfer received text to the clipboard"
 msgstr "Transferir o texto recebido para a área de transferência"
 
+msgid "Travel"
+msgstr ""
+
 msgid "Tray applet"
 msgstr "Aplicação da área de notificação"
+
+msgid "Triangle"
+msgstr ""
 
 msgid "Trust and accept tasks and notes automatically"
 msgstr "Confiar e aceitar tarefas e notas automaticamente"
@@ -7880,6 +8115,12 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "Indisponível"
+
+msgid "Unchanged contents do not create another recovery point."
+msgstr ""
+
+msgid "Undated"
+msgstr ""
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -8312,6 +8553,9 @@ msgstr "Onde estão agora os seus contactos?"
 msgid "Whole month"
 msgstr "Mês inteiro"
 
+msgid "Width"
+msgstr ""
+
 msgid "Wife"
 msgstr "Mulher"
 
@@ -8406,6 +8650,9 @@ msgstr "Sim"
 msgid "Yes, the code matches"
 msgstr "Sim, o código coincide"
 
+msgid "Yesterday"
+msgstr ""
+
 msgid "You can also do this later in Settings."
 msgstr "Também pode fazer isto mais tarde nas Definições."
 
@@ -8440,6 +8687,12 @@ msgstr "Com os melhores cumprimentos,"
 
 msgid "ZIP archives (*.zip)"
 msgstr "Arquivos ZIP (*.zip)"
+
+msgid "Zoom in"
+msgstr ""
+
+msgid "Zoom out"
+msgstr ""
 
 msgid "Zug"
 msgstr "Zug"
@@ -8876,6 +9129,31 @@ msgstr[1] "… e mais %(count)s entradas que também serão impressas."
 
 msgid "＋ Add appointment"
 msgstr "＋ Adicionar compromisso"
+
+#~ msgid "Choose a connection. Confirm pairing on the phone and this computer."
+#~ msgstr ""
+#~ "Escolha um tipo de ligação. Confirme o emparelhamento no telefone e neste "
+#~ "computador."
+
+#~ msgid "Create a drawing sheet in the custom tab first."
+#~ msgstr "Crie primeiro uma folha de desenho no separador personalizado."
+
+#~ msgid ""
+#~ "Enable tablet input here, then open the drawing tablet in KDE Connect on "
+#~ "the phone."
+#~ msgstr ""
+#~ "Ative aqui a entrada por mesa digitalizadora e depois abra a mesa "
+#~ "digitalizadora no KDE Connect do telefone."
+
+#~ msgid ""
+#~ "Every saved change is protected automatically by a private, integrity-"
+#~ "checked snapshot."
+#~ msgstr ""
+#~ "Cada alteração guardada é protegida automaticamente por um instantâneo "
+#~ "privado cuja integridade é verificada."
+
+#~ msgid "Export PNG"
+#~ msgstr "Exportar PNG"
 
 #~ msgid ""
 #~ "Cycle markers are stored only in your local Organizer data and do not "

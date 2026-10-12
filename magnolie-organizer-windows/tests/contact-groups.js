@@ -27,6 +27,8 @@ for (const web of require("./web-test-roots")) {
     assert.ok(picker && picker.multiple);
     assert.equal(picker.size, 3, "Group chooser must show three entries");
     assert.ok([...picker.options].some(option => option.value === "Doctor"));
+    assert.ok([...picker.options].some(option => option.value === "Patients"), 'Patients must be a generally available group');
+    assert.ok([...picker.options].some(option => option.value === "Colleagues"));
     const own = w.document.querySelector("#kontakt-eigene-personengruppe"); own.value = "Own new group";
     [...w.document.querySelectorAll("button")].find(button => button.textContent === "Add contact group").click();
     assert.ok([...picker.selectedOptions].some(option => option.value === "Own new group"));
@@ -95,6 +97,24 @@ for (const web of require("./web-test-roots")) {
     t.zustand().sektion = "kalender"; t.wechsel("adressen");
     assert.deepEqual(Array.from(t.kontaktGruppen(t.daten().kontakte.find(item => item.id === "empty"))), []);
     assert.ok(!w.document.querySelector(".kontakt-kopf-text .k-label"), "Reload shows a no-group placeholder");
+    w.eval(fs.readFileSync(path.join(web, 'i18n/de.js'), 'utf8')); w.MagnolieI18n.setLocale('de');
+    const importedLines = ['CATEGORIES:MY CONTACTS,COWORKERS,Colleagues,PATIENTEN', 'X-UNKNOWN:keep'];
+    w.App.init({ neu: false, regional: { language: 'de' }, daten: {
+      kontakte: [{ id: 'google', uid: 'google-card', vorname: 'Synthetic', nachname: 'Person', vcardRoundtrip: importedLines.slice() }],
+      einstellungen: { adressen: { personengruppenAn: true } } } });
+    t.zustand().adressen.auswahlId = 'google'; t.zustand().adressen.buchstabe = 'P';
+    t.zustand().sektion = 'kalender'; t.wechsel('adressen');
+    assert.equal(w.document.querySelector('.kontakt-kopf-text .k-label').textContent, 'Kollegen · Patienten');
+    const google = t.daten().kontakte.find(value => value.id === 'google');
+    assert.deepEqual(Array.from(google.vcardRoundtrip), importedLines, 'Display must preserve original provider categories');
+    [...w.document.querySelectorAll('button')].find(button => button.textContent === w.MagnolieI18n.gettext('Edit')).click();
+    const translated = w.document.querySelector('#kontakt-personengruppen');
+    assert.deepEqual(Array.from(translated.selectedOptions, option => option.value), ['Colleagues', 'Patients']);
+    assert.equal(Array.from(translated.options).filter(option => option.textContent === 'Kollegen').length, 1, 'Provider and existing group must not become duplicate options');
+    assert.ok(!Array.from(translated.options).some(option => option.value === 'MY CONTACTS'));
+    t.setzeKontaktGruppen(google, ['Patients']);
+    assert.ok(google.vcardRoundtrip.some(line => line.includes('MY CONTACTS')), 'Changing personal groups must retain the hidden provider membership');
+    assert.deepEqual(Array.from(t.kontaktGruppen(google)), ['Patients']);
   } finally { w.close(); }
 }
 console.log("CONTACT GROUPS PASSED: opt-in, imported categories, escaping, labels and preservation");

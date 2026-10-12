@@ -232,6 +232,11 @@ msgid_plural "%(count)s seconds"
 msgstr[0] "%(count)s saniye"
 msgstr[1] "%(count)s saniye"
 
+msgid "%(count)s source"
+msgid_plural "%(count)s sources"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "%(count)s task"
 msgid_plural "%(count)s tasks"
 msgstr[0] "%(count)s görev"
@@ -668,6 +673,9 @@ msgstr "Dile göre"
 msgid "Account type"
 msgstr "Hesap türü"
 
+msgid "Action"
+msgstr ""
+
 msgid "Active call"
 msgstr "Etkin arama"
 
@@ -746,6 +754,9 @@ msgstr "Adres defteri"
 
 msgid "Address imported from LibreOffice."
 msgstr "Adres LibreOffice üzerinden içe aktarıldı."
+
+msgid "Address imported from own profile."
+msgstr ""
 
 msgid "Address supplement"
 msgstr "Ek adres bilgisi"
@@ -882,6 +893,9 @@ msgstr "Android bu cihaz tanımlayıcısını kısıtlıyor."
 
 msgid "Android version"
 msgstr "Android sürümü"
+
+msgid "Angle"
+msgstr ""
 
 msgid "Anniversaries"
 msgstr "Yıldönümleri"
@@ -1041,6 +1055,9 @@ msgstr "Yazar"
 msgid "Authority appointment"
 msgstr "Resmî kurum randevusu"
 
+msgid "Automatic"
+msgstr ""
+
 msgid "Automatic backup failed."
 msgstr "Otomatik yedekleme başarısız oldu."
 
@@ -1068,6 +1085,9 @@ msgstr "Uygun bir uygulamayı otomatik seç"
 
 msgid "Automatically dismiss anniversary reminders"
 msgstr "Yıldönümü hatırlatmalarını otomatik gizle"
+
+msgid "Automatically over the current connection"
+msgstr ""
 
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Wi-Fi üzerinden otomatik eşitle"
@@ -1306,6 +1326,9 @@ msgstr "Bremen"
 msgid "Browse…"
 msgstr "Gözat..."
 
+msgid "Brush"
+msgstr ""
+
 msgid "Burgenland"
 msgstr "Burgenland"
 
@@ -1426,6 +1449,9 @@ msgstr "Bu kişiyi Magnolie Notes veya atanmış uygulamayı kullanarak arayın"
 msgid "Call with %(name)s · %(date)s"
 msgstr "%(name)s ile arama · %(date)s"
 
+msgid "Calligraphy pen"
+msgstr ""
+
 msgid "Cancel"
 msgstr "İptal"
 
@@ -1464,6 +1490,9 @@ msgstr "Parolayı değiştir"
 
 msgid "Changes are applied automatically"
 msgstr "Değişiklikler otomatik uygulanır"
+
+msgid "Changes to your own profile are saved with Save."
+msgstr ""
 
 msgid "Changing phone permission"
 msgstr "Telefon izni değiştiriliyor"
@@ -1536,10 +1565,11 @@ msgstr ""
 "kopyasını otomatik olarak oluşturur. Şifrelenmiş bir yedek kendi parolasını "
 "gerektirir."
 
-msgid "Choose a connection. Confirm pairing on the phone and this computer."
+msgid "Choose a connection. Confirm the pairing code on the other device."
 msgstr ""
-"Bir bağlantı yöntemi seçin. Eşleştirmeyi hem telefonda hem bu bilgisayarda "
-"onaylayın."
+
+msgid "Choose a contact"
+msgstr ""
 
 msgid "Choose a country first."
 msgstr "Önce bir ülke seçin."
@@ -1701,6 +1731,12 @@ msgstr "Kodlar farklı"
 msgid "Codes match"
 msgstr "Kodlar eşleşiyor"
 
+msgid "Collapse day groups by default"
+msgstr ""
+
+msgid "Colleagues"
+msgstr "İş arkadaşları"
+
 msgid "Color"
 msgstr "Renk"
 
@@ -1729,6 +1765,9 @@ msgid ""
 msgstr ""
 "Bağlantıyı doğrulamak için bu parmak izini diğer daldakiyle, örneğin "
 "telefonla, karşılaştırın."
+
+msgid "Compare with LibreOffice"
+msgstr ""
 
 msgid "Complete archive exported (password-protected)."
 msgstr "Tam arşiv dışa aktarıldı (parola korumalı)."
@@ -1785,6 +1824,9 @@ msgstr "Kodun iki cihazda da aynı olduğunu onaylayın."
 msgid "Confirm the pairing request on the phone."
 msgstr "Telefondaki eşleştirme isteğini onaylayın."
 
+msgid "Confirm this code on the other device."
+msgstr ""
+
 msgid "Confirmation"
 msgstr "Onay"
 
@@ -1796,6 +1838,9 @@ msgstr "Onay"
 
 msgid "Connect"
 msgstr "Bağlan"
+
+msgid "Connect Notes before sending this entry."
+msgstr ""
 
 msgid "Connect phone via WLAN"
 msgstr "Telefonu WLAN üzerinden bağla"
@@ -1857,9 +1902,6 @@ msgstr "Kişi kartları (*.vcf)"
 
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Kişi silme önerileri güvenlik sınırı tarafından engellendi."
-
-msgid "No contact group"
-msgstr "Kişi grubu yok"
 
 msgid "Contact groups"
 msgstr "Kişi grupları"
@@ -1975,9 +2017,6 @@ msgstr "Oluştur"
 msgid "Create a backup copy of the data"
 msgstr "Verilerin yedek kopyasını oluştur"
 
-msgid "Create a drawing sheet in the custom tab first."
-msgstr "Önce özel sekmede bir çizim sayfası oluşturun."
-
 msgid "Create a gettext POT template"
 msgstr "gettext POT şablonu oluştur"
 
@@ -2007,6 +2046,12 @@ msgstr "Not defteri oluştur"
 
 msgid "Create pairing file …"
 msgstr "Eşleştirme dosyası oluştur …"
+
+msgid "Create recovery points"
+msgstr ""
+
+msgid "Created"
+msgstr ""
 
 msgid "Creating a recovery snapshot"
 msgstr "Kurtarma anlık görüntüsü oluşturuluyor"
@@ -2061,6 +2106,9 @@ msgstr "Not defterlerini özelleştir"
 
 msgid "Cut"
 msgstr "Kes"
+
+msgid "Cut selection"
+msgstr ""
 
 msgid "Cycle calendar"
 msgstr "Döngü takvimi"
@@ -2137,6 +2185,9 @@ msgstr "Hata ayıklama günlüğü başlatılamadı: %s"
 msgid "Decrypting the data"
 msgstr "Verilerin şifresi çözülüyor"
 
+msgid "Default view"
+msgstr ""
+
 msgid "Default: next to the data file"
 msgstr "Varsayılan: veri dosyasının yanında"
 
@@ -2181,6 +2232,12 @@ msgstr "“%(name)s” kişi kartı silinsin mi?"
 
 msgid "Delete cycle marker"
 msgstr "Döngü işaretini sil"
+
+msgid "Delete drawing sheet"
+msgstr ""
+
+msgid "Delete drawing sheet?"
+msgstr ""
 
 msgid "Delete entries"
 msgstr "Girdileri sil"
@@ -2453,6 +2510,9 @@ msgstr "Görevi düzenle"
 msgid "Edit the website or application used"
 msgstr "Kullanılan web sitesini veya uygulamayı düzenle"
 
+msgid "Ellipse"
+msgstr ""
+
 msgid "Email"
 msgstr "E-posta"
 
@@ -2527,13 +2587,6 @@ msgstr "Bu blok için hatırlatıcıları etkinleştir"
 
 msgid "Enable shift planner"
 msgstr "Vardiya planlayıcıyı etkinleştir"
-
-msgid ""
-"Enable tablet input here, then open the drawing tablet in KDE Connect on the "
-"phone."
-msgstr ""
-"Burada tablet girişini etkinleştirin, ardından telefondaki KDE Connect’te "
-"çizim tabletini açın."
 
 msgid "Enable this SMS plan"
 msgstr "Bu SMS planını etkinleştir"
@@ -2672,6 +2725,9 @@ msgstr "Hata: %s"
 msgid "Estimate the next period"
 msgstr "Sonraki adeti tahmin et"
 
+msgid "Estimated from older data"
+msgstr ""
+
 msgid "Estimated next period"
 msgstr "Tahmini sonraki adet"
 
@@ -2682,18 +2738,17 @@ msgstr "Akşam"
 msgid "Event loop is not available: %s"
 msgstr "Olay döngüsü kullanılamıyor: %s"
 
+msgid "Every change"
+msgstr ""
+
 msgid "Every filled medication row requires a name."
 msgstr "Doldurulan her ilaç satırında bir ad bulunmalıdır."
 
 msgid "Every filled row requires a valid date."
 msgstr "Doldurulan her satırda geçerli bir tarih bulunmalıdır."
 
-msgid ""
-"Every saved change is protected automatically by a private, integrity-"
-"checked snapshot."
+msgid "Every program start"
 msgstr ""
-"Kaydedilen her değişiklik, bütünlüğü denetlenmiş özel bir anlık görüntüyle "
-"otomatik olarak korunur."
 
 msgid "Everything is done - the list is empty."
 msgstr "Her şey tamam – liste boş."
@@ -2721,11 +2776,11 @@ msgstr ""
 "Eşleştirilmiş ve çevrimiçi Magnolie Notes telefonlarından tam olarak biri "
 "arama yapmaya izin vermelidir."
 
+msgid "Expand day groups by default"
+msgstr ""
+
 msgid "Export"
 msgstr "Dışa aktar"
-
-msgid "Export PNG"
-msgstr "PNG dışa aktar"
 
 msgid "Export failed."
 msgstr "Dışa aktarma başarısız oldu."
@@ -2735,6 +2790,9 @@ msgstr "Dışa aktarma başarısız oldu: %(error)s"
 
 msgid "Export is available only in the installed application."
 msgstr "Dışa aktarma yalnızca kurulu uygulamada kullanılabilir."
+
+msgid "Export vCard"
+msgstr ""
 
 msgid "Extend sharing"
 msgstr "Paylaşımı genişlet"
@@ -2769,6 +2827,9 @@ msgstr "Kadın akraba"
 msgid "Fertile days"
 msgstr "Doğurgan günler"
 
+msgid "Field"
+msgstr ""
+
 msgid "File"
 msgstr "Dosya"
 
@@ -2782,6 +2843,12 @@ msgstr "Dosya İndirilenler'e kaydedildi: %(name)s"
 #, python-format
 msgid "File saved: %(name)s"
 msgstr "Dosya kaydedildi: %(name)s"
+
+msgid "Fill selection"
+msgstr ""
+
+msgid "Fill with gradient"
+msgstr ""
 
 msgid "Fill with stored values"
 msgstr "Kayıtlı değerlerle doldur"
@@ -2958,8 +3025,17 @@ msgstr "Takvime git"
 msgid "Google Maps in the browser"
 msgstr "Tarayıcıda Google Maps"
 
+msgid "Gradient end color"
+msgstr ""
+
 msgid "Grisons"
 msgstr "Graubünden"
+
+msgid "Group by day"
+msgstr ""
+
+msgid "Group changes by time interval"
+msgstr ""
 
 msgid "Group for %(notebook)s"
 msgstr "%(notebook)s için grup"
@@ -3035,6 +3111,9 @@ msgstr "İnternet erişimini gizle"
 msgid "Hide past appointments"
 msgstr "Geçmiş randevuları gizle"
 
+msgid "Highlighter"
+msgstr ""
+
 msgid "History"
 msgstr "Geçmiş"
 
@@ -3080,6 +3159,9 @@ msgstr "IU"
 
 msgid "ISO week (week 1 contains the first Thursday)"
 msgstr "ISO haftası (1. hafta ilk perşembeyi içerir)"
+
+msgid "Idea"
+msgstr ""
 
 msgid ""
 "If the year is unknown, enter only day and month.\n"
@@ -3256,6 +3338,9 @@ msgstr "Girdi"
 msgid "Insert link"
 msgstr "Bağlantı ekle"
 
+msgid "Insert shape"
+msgstr ""
+
 msgid "Install the packages, for example with:"
 msgstr "Paketleri, örneğin şu komutla kurun:"
 
@@ -3372,6 +3457,9 @@ msgstr "LDIF adres defteri (.ldif) …"
 msgid "Landline"
 msgstr "Sabit telefon"
 
+msgid "Landscape"
+msgstr ""
+
 msgid "Language"
 msgstr "Dil"
 
@@ -3418,6 +3506,9 @@ msgstr "Mektup şablonu"
 msgid "LibreOffice is not opened or changed."
 msgstr "LibreOffice açılmadı veya değiştirilmedi."
 
+msgid "LibreOffice user data updated."
+msgstr ""
+
 #, python-format
 msgid "LibreOffice was not found. The letter is located at: %s"
 msgstr "LibreOffice bulunamadı. Mektup şurada: %s"
@@ -3427,6 +3518,9 @@ msgstr "Lisans"
 
 msgid "Liechtenstein"
 msgstr "Lihtenştayn"
+
+msgid "Line"
+msgstr ""
 
 msgid "Line width"
 msgstr "Çizgi kalınlığı"
@@ -3653,6 +3747,9 @@ msgstr "Yalnızca elle"
 msgid "Manual version %(version)s is available."
 msgstr "Kılavuzun %(version)s sürümü kullanılabilir."
 
+msgid "Manually"
+msgstr ""
+
 msgid "Manufacturer"
 msgstr "Üretici"
 
@@ -3702,8 +3799,14 @@ msgstr "Birleştir"
 msgid "Merge duplicate contact cards"
 msgstr "Yinelenen kişi kartlarını birleştir"
 
+msgid "Merge history"
+msgstr ""
+
 msgid "Merge this pair individually"
 msgstr "Bu çifti ayrı olarak birleştir"
+
+msgid "Merged"
+msgstr ""
 
 msgid "Message"
 msgstr "İleti"
@@ -3766,11 +3869,17 @@ msgstr "Mobil ağ"
 msgid "Model"
 msgstr "Model"
 
+msgid "Modified"
+msgstr ""
+
 msgid "Module"
 msgstr "Modül"
 
 msgid "Monday"
 msgstr "Pazartesi"
+
+msgid "Money"
+msgstr ""
 
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "KDE Connect SMS'lerini izle ve bildirimleri göster"
@@ -3824,6 +3933,9 @@ msgstr "Not defterini başka bir gruba taşı"
 msgid "Move notebook up"
 msgstr "Not defterini yukarı taşı"
 
+msgid "Move selection"
+msgstr ""
+
 msgid "Move the ticked entries to the wastebasket"
 msgstr "İşaretli girdileri çöp kutusuna taşı"
 
@@ -3832,6 +3944,9 @@ msgstr "Üst düzeye taşı"
 
 msgid "Move up"
 msgstr "Yukarı taşı"
+
+msgid "Move view"
+msgstr ""
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -3937,6 +4052,9 @@ msgstr ""
 msgid "New contact"
 msgstr "Yeni kişi"
 
+msgid "New drawing sheet"
+msgstr ""
+
 msgid "New group"
 msgstr "Yeni grup"
 
@@ -3957,6 +4075,9 @@ msgstr "Yeni görev"
 
 msgid "New version %(version)s is available."
 msgstr "Yeni %(version)s sürümü kullanılabilir."
+
+msgid "Newest first"
+msgstr ""
 
 msgid "Next"
 msgstr "İleri"
@@ -4009,6 +4130,9 @@ msgstr "Nextcloud, takip edilmeyen bir yönlendirme döndürdü."
 msgid "Nextcloud returned an incomplete DAV result."
 msgstr "Nextcloud eksik bir DAV sonucu döndürdü."
 
+msgid "Nib angle"
+msgstr ""
+
 msgid "Nidwalden"
 msgstr "Nidwalden"
 
@@ -4031,6 +4155,9 @@ msgstr "Claws Mail adres defteri algılanmadı."
 msgid "No SMS messages are scheduled."
 msgstr "Zamanlanmış SMS iletisi yok."
 
+msgid "No WhatsApp profile available for this contact."
+msgstr ""
+
 msgid "No address books found."
 msgstr "Adres defteri bulunamadı."
 
@@ -4050,8 +4177,14 @@ msgstr "Planlanmış bir randevu yok."
 msgid "No calendars found."
 msgstr "Takvim bulunamadı."
 
+msgid "No contact group"
+msgstr "Kişi grubu yok"
+
 msgid "No data was found."
 msgstr "Veri bulunamadı."
+
+msgid "No date recorded"
+msgstr ""
 
 msgid "No default voice subscription is available."
 msgstr "Varsayılan ses aboneliği yok."
@@ -4097,6 +4230,9 @@ msgstr "Eşleşen açık görev bulunamadı."
 msgid "No measurements in this period."
 msgstr "Bu dönemde ölçüm yok."
 
+msgid "No merge history recorded"
+msgstr ""
+
 msgid "No notebooks"
 msgstr "Not defteri yok"
 
@@ -4126,6 +4262,9 @@ msgid ""
 msgstr ""
 "Henüz kişi eklenmedi. Görevlerden sorumlu kişileri eklemek için yukarıdaki "
 "Kişiler düğmesini kullanın."
+
+msgid "No phone number available."
+msgstr ""
 
 msgid "No phone paired yet."
 msgstr "Henüz telefon eşleştirilmedi."
@@ -4262,6 +4401,9 @@ msgstr "Notlar"
 msgid "Notes and special instructions"
 msgstr "Notlar ve özel talimatlar"
 
+msgid "Notes and tasks"
+msgstr ""
+
 msgid ""
 "Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
 "synchronization or start manually."
@@ -4360,6 +4502,9 @@ msgstr "Çevrimdışı"
 msgid "Ointment"
 msgstr "Merhem"
 
+msgid "Oldest first"
+msgstr ""
+
 msgid "One address book"
 msgstr "Bir adres defteri"
 
@@ -4444,6 +4589,12 @@ msgstr ""
 "Yalnızca bir Magnolie Notes telefonu eşleştirilebilir. Cihaz değiştirmeden "
 "önce mevcut telefonu kaldırın."
 
+msgid "Only personal entries can be sent to Notes."
+msgstr ""
+
+msgid "Only the Notes collection"
+msgstr ""
+
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
 "Magnolie paper style would often remain invisible there."
@@ -4525,6 +4676,9 @@ msgstr "Uygulamayı aç"
 
 msgid "Open the day in the daily view"
 msgstr "Günü günlük görünümde aç"
+
+msgid "Open the drawing tablet in KDE Connect on the paired phone."
+msgstr ""
 
 msgid "Open the phone connection screen and try again."
 msgstr "Telefon bağlantısı ekranını açıp yeniden deneyin."
@@ -4619,6 +4773,9 @@ msgstr "Kendi internet IP’si"
 msgid "Own phone number (default voice SIM)"
 msgstr "Kendi numaram (varsayılan ses SIM’i)"
 
+msgid "Own profile"
+msgstr ""
+
 msgid "Own window available: no"
 msgstr "Bağımsız pencere kullanılabilir: hayır"
 
@@ -4646,6 +4803,9 @@ msgstr "Sayfa %(page)s"
 
 msgid "Page %(page)s of %(count)s"
 msgstr "Sayfa %(page)s / %(count)s"
+
+msgid "Page order"
+msgstr ""
 
 msgid "Pages"
 msgstr "Sayfalar"
@@ -4718,6 +4878,9 @@ msgstr "Yapıştır"
 
 msgid "Patch"
 msgstr "Flaster"
+
+msgid "Patients"
+msgstr "Hastalar"
 
 msgctxt "time tracking"
 msgid "Pause (minutes)"
@@ -4930,6 +5093,9 @@ msgstr ""
 "8741 numaralı bağlantı noktası kullanılamıyor. Telefon dinleyicisi "
 "başlatılamadı."
 
+msgid "Portrait"
+msgstr ""
+
 msgid "Possible duplicates among local and incoming contacts"
 msgstr "Yerel ve gelen kişiler arasındaki olası yinelenenler"
 
@@ -5041,6 +5207,9 @@ msgstr ""
 msgid "Private"
 msgstr "Özel"
 
+msgid "Properties"
+msgstr ""
+
 msgid "Protected archive password unavailable."
 msgstr "Korunan arşiv parolası kullanılamıyor."
 
@@ -5083,6 +5252,9 @@ msgstr "Kuyruğa alındı"
 msgid "Quit"
 msgstr "Çık"
 
+msgid "Quote"
+msgstr ""
+
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Bu bilgisayarın erişilebilir IPv4 veya IPv6 adresi"
 
@@ -5122,12 +5294,21 @@ msgstr "Dosyaları İndirilenler'e al"
 msgid "Receive with KDE Connect"
 msgstr "KDE Connect ile al"
 
+msgid "Recently modified"
+msgstr ""
+
+msgid "Recipe"
+msgstr ""
+
 msgid "Reconnect"
 msgstr "Yeniden bağlan"
 
 msgctxt "time tracking"
 msgid "Recorded times"
 msgstr "Kaydedilen süreler"
+
+msgid "Recovery journal"
+msgstr ""
 
 msgid "Recovery snapshot created."
 msgstr "Kurtarma anlık görüntüsü oluşturuldu."
@@ -5137,6 +5318,9 @@ msgstr "Kurtarma anlık görüntüsü silindi."
 
 msgid "Recovery snapshots"
 msgstr "Kurtarma anlık görüntüleri"
+
+msgid "Rectangle"
+msgstr ""
 
 msgid "Recycle bin"
 msgstr "Çöp kutusu"
@@ -5434,6 +5618,9 @@ msgstr "Renanya-Palatina"
 msgid "Right page"
 msgstr "Sağ sayfa"
 
+msgid "Rotate selection"
+msgstr ""
+
 msgid "Route"
 msgstr "Rota"
 
@@ -5714,6 +5901,9 @@ msgstr "En az bir yıl seçin."
 msgid "Select backup folder"
 msgstr "Yedekleme klasörünü seç"
 
+msgid "Select complete strokes that fit inside the sheet."
+msgstr ""
+
 msgid "Select no more than three years."
 msgstr "En fazla üç yıl seçin."
 
@@ -5736,6 +5926,9 @@ msgstr "Her kişi için boş olan seçili sütunlar otomatik olarak atlanır."
 msgid "Selection options"
 msgstr "Seçim seçenekleri"
 
+msgid "Send"
+msgstr ""
+
 msgid "Send SMS"
 msgstr "SMS gönder"
 
@@ -5747,6 +5940,15 @@ msgstr "Belgeleri gönder"
 
 msgid "Send secure request"
 msgstr "Güvenli istek gönder"
+
+msgid "Send this new note to Notes"
+msgstr ""
+
+msgid "Send to Notes"
+msgstr ""
+
+msgid "Send via"
+msgstr ""
 
 msgid "Sending SMS with KDE Connect"
 msgstr "SMS'yi KDE Connect ile gönderme"
@@ -5810,6 +6012,9 @@ msgstr "Bağlantıyı paylaş"
 msgid "Share connection with"
 msgstr "Bağlantının paylaşılacağı cihaz"
 
+msgid "Share selected details"
+msgstr ""
+
 msgid "Share this connection with the selected device?"
 msgstr "Bu bağlantı seçilen cihazla paylaşılsın mı?"
 
@@ -5836,6 +6041,9 @@ msgstr "Paylaşılan not"
 
 msgid "Sharing this connection is not allowed."
 msgstr "Bu bağlantının paylaşılmasına izin verilmedi."
+
+msgid "Sheet size"
+msgstr ""
 
 msgid "Shift planner"
 msgstr "Vardiya planlayıcı"
@@ -6026,6 +6234,9 @@ msgstr "Yazım denetimi"
 msgid "Spray"
 msgstr "Sprey"
 
+msgid "Square"
+msgstr ""
+
 msgid "St. Gallen"
 msgstr "St. Gallen"
 
@@ -6068,6 +6279,9 @@ msgstr "Biçim bölgesi"
 
 msgid "Status"
 msgstr "Durum"
+
+msgid "Street"
+msgstr ""
 
 msgid "Street / house number"
 msgstr "Sokak / kapı numarası"
@@ -6144,6 +6358,9 @@ msgid ""
 msgstr ""
 "Bu bağlantının eşitleme durumu, bekleyen mesajları ve meta verileri "
 "kaldırılır. Daha önce kabul edilen kişiler ve yerel veriler kalır."
+
+msgid "Synchronize all notes and tasks"
+msgstr ""
 
 msgid "Synchronize automatically at startup"
 msgstr "Başlangıçta otomatik eşitle"
@@ -7188,6 +7405,9 @@ msgstr ""
 msgid "The selected contacts contain no values for these columns."
 msgstr "Seçili kişiler bu sütunlar için herhangi bir değer içermiyor."
 
+msgid "The selected entry is too large to send."
+msgstr ""
+
 msgid "The selected file is not a readable CSV file."
 msgstr "Seçili dosya okunabilir bir CSV dosyası değil."
 
@@ -7199,6 +7419,9 @@ msgstr "Seçili sağlık kayıtlarında yazdırılabilir değer yok."
 
 msgid "The selected iCalendar file is incomplete."
 msgstr "Seçili iCalendar dosyası eksik."
+
+msgid "The selected note contains attachments that cannot be sent."
+msgstr ""
 
 msgid "The selected online account is disabled, offline or unreachable."
 msgstr "Seçilen çevrimiçi hesap devre dışı, çevrimdışı veya erişilemiyor."
@@ -7537,6 +7760,9 @@ msgstr "Bu kişinin yıldönümleri"
 msgid "This phone transport is unavailable."
 msgstr "Bu telefon bağlantı yöntemi kullanılamıyor."
 
+msgid "This profile format is not supported."
+msgstr ""
+
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
 "published in the hope that it will be useful, but without any warranty. The "
@@ -7602,6 +7828,9 @@ msgstr "Saat"
 
 msgid "Time format"
 msgstr "Saat biçimi"
+
+msgid "Time synchronization direction"
+msgstr ""
 
 msgctxt "time tracking"
 msgid "Time tracking"
@@ -7675,8 +7904,14 @@ msgstr "Zanaatkâr"
 msgid "Transfer received text to the clipboard"
 msgstr "Alınan metni panoya aktar"
 
+msgid "Travel"
+msgstr ""
+
 msgid "Tray applet"
 msgstr "Sistem tepsisi uygulamacığı"
+
+msgid "Triangle"
+msgstr ""
 
 msgid "Trust and accept tasks and notes automatically"
 msgstr "Güven ve görevlerle notları otomatik kabul et"
@@ -7736,6 +7971,12 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "Kullanılamıyor"
+
+msgid "Unchanged contents do not create another recovery point."
+msgstr ""
+
+msgid "Undated"
+msgstr ""
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -8164,6 +8405,9 @@ msgstr "Kişileriniz şu anda nerede?"
 msgid "Whole month"
 msgstr "Tüm ay"
 
+msgid "Width"
+msgstr ""
+
 msgid "Wife"
 msgstr "Eş"
 
@@ -8255,6 +8499,9 @@ msgstr "Evet"
 msgid "Yes, the code matches"
 msgstr "Evet, kod eşleşiyor"
 
+msgid "Yesterday"
+msgstr ""
+
 msgid "You can also do this later in Settings."
 msgstr "Bunu daha sonra Ayarlar'dan da yapabilirsiniz."
 
@@ -8289,6 +8536,12 @@ msgstr "Saygılarımla,"
 
 msgid "ZIP archives (*.zip)"
 msgstr "ZIP arşivleri (*.zip)"
+
+msgid "Zoom in"
+msgstr ""
+
+msgid "Zoom out"
+msgstr ""
 
 msgid "Zug"
 msgstr "Zug"
@@ -8725,6 +8978,31 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
+
+#~ msgid "Choose a connection. Confirm pairing on the phone and this computer."
+#~ msgstr ""
+#~ "Bir bağlantı yöntemi seçin. Eşleştirmeyi hem telefonda hem bu "
+#~ "bilgisayarda onaylayın."
+
+#~ msgid "Create a drawing sheet in the custom tab first."
+#~ msgstr "Önce özel sekmede bir çizim sayfası oluşturun."
+
+#~ msgid ""
+#~ "Enable tablet input here, then open the drawing tablet in KDE Connect on "
+#~ "the phone."
+#~ msgstr ""
+#~ "Burada tablet girişini etkinleştirin, ardından telefondaki KDE Connect’te "
+#~ "çizim tabletini açın."
+
+#~ msgid ""
+#~ "Every saved change is protected automatically by a private, integrity-"
+#~ "checked snapshot."
+#~ msgstr ""
+#~ "Kaydedilen her değişiklik, bütünlüğü denetlenmiş özel bir anlık "
+#~ "görüntüyle otomatik olarak korunur."
+
+#~ msgid "Export PNG"
+#~ msgstr "PNG dışa aktar"
 
 #~ msgid ""
 #~ "Cycle markers are stored only in your local Organizer data and do not "

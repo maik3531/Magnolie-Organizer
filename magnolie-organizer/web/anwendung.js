@@ -12699,7 +12699,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return DATEN.einstellungen.adressen.sortierung === "first-name";
   }
 
-  function kontaktGruppen(kontakt) {
+  function kontaktGruppenRoh(kontakt) {
     const groups = [];
     for (const line of kontakt?.vcardRoundtrip || []) {
       const match = /^(?:[A-Za-z0-9-]+\.)?CATEGORIES(?:;[^:]*)?:(.*)$/i.exec(line);
@@ -12715,14 +12715,22 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return [...new Set(groups)];
   }
 
+  function kontaktGruppen(kontakt) {
+    const aliases = { FAMILY: "Family", COWORKERS: "Colleagues", COLLEAGUES: "Colleagues", KOLLEGEN: "Colleagues",
+      PATIENTS: "Patients", PATIENTEN: "Patients" };
+    return [...new Set(kontaktGruppenRoh(kontakt).filter(value => value.toUpperCase() !== "MY CONTACTS")
+      .map(value => Object.prototype.hasOwnProperty.call(aliases, value.toUpperCase()) ? aliases[value.toUpperCase()] : value))];
+  }
+
   function setzeKontaktGruppen(kontakt, groups) {
-    const values = [...new Set(groups.map(value => String(value).replace(/[\x00-\x1f\x7f]/g, " ").trim()).filter(Boolean))];
+    const hidden = kontaktGruppenRoh(kontakt).filter(value => value.toUpperCase() === "MY CONTACTS");
+    const values = [...new Set([...hidden, ...groups.map(value => String(value).replace(/[\x00-\x1f\x7f]/g, " ").trim()).filter(Boolean)])];
     kontakt.vcardRoundtrip = (kontakt.vcardRoundtrip || []).filter(line => !/^(?:[A-Za-z0-9-]+\.)?CATEGORIES[;:]/i.test(line));
     if (values.length) kontakt.vcardRoundtrip.push("CATEGORIES:" + values.map(value => value.replace(/\\/g, "\\\\").replace(/,/g, "\\,").replace(/;/g, "\\;")).join(","));
   }
 
   function kontaktGruppenName(value) {
-    const presets = { Family: _("Family"), Work: _("Work"), Client: _("Client"), Tradesperson: _("Tradesperson"), Insurance: _("Insurance"), Doctor: _("Doctor") };
+    const presets = { Family: _("Family"), Work: _("Work"), Colleagues: _("Colleagues"), Patients: _("Patients"), Client: _("Client"), Tradesperson: _("Tradesperson"), Insurance: _("Insurance"), Doctor: _("Doctor") };
     return Object.prototype.hasOwnProperty.call(presets, value) ? presets[value] : value;
   }
 
@@ -19217,7 +19225,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         clearTimeout(gruppenScrollTimer);
         gruppenScrollTimer = setTimeout(() => gruppenWahl.classList.remove("kontakt-gruppen-scrollt"), 700);
       }, { passive: true });
-      const values = [...new Set(["Family", "Work", "Client", "Tradesperson", "Insurance", "Doctor", ...DATEN.kontakte.flatMap(kontaktGruppen), ...personengruppen])];
+      const values = [...new Set(["Family", "Work", "Colleagues", "Patients", "Client", "Tradesperson", "Insurance", "Doctor", ...DATEN.kontakte.flatMap(kontaktGruppen), ...personengruppen])];
       const render = () => { gruppenWahl.replaceChildren();
         const ohneGruppe = el("option", null, _("No contact group")); ohneGruppe.value = "";
         ohneGruppe.selected = personengruppen.length === 0; gruppenWahl.append(ohneGruppe);

@@ -206,6 +206,10 @@ msgid "%(count)s second"
 msgid_plural "%(count)s seconds"
 msgstr[0] "%(count)s 秒"
 
+msgid "%(count)s source"
+msgid_plural "%(count)s sources"
+msgstr[0] ""
+
 msgid "%(count)s task"
 msgid_plural "%(count)s tasks"
 msgstr[0] "タスク %(count)s 件"
@@ -631,6 +635,9 @@ msgstr "言語に応じて"
 msgid "Account type"
 msgstr "アカウントの種類"
 
+msgid "Action"
+msgstr ""
+
 msgid "Active call"
 msgstr "通話中"
 
@@ -709,6 +716,9 @@ msgstr "アドレス帳"
 
 msgid "Address imported from LibreOffice."
 msgstr "LibreOffice から住所をインポートしました。"
+
+msgid "Address imported from own profile."
+msgstr ""
 
 msgid "Address supplement"
 msgstr "住所の補足"
@@ -843,6 +853,9 @@ msgstr "Android がこの端末識別子を制限しています。"
 
 msgid "Android version"
 msgstr "Android バージョン"
+
+msgid "Angle"
+msgstr ""
 
 msgid "Anniversaries"
 msgstr "記念日"
@@ -1001,6 +1014,9 @@ msgstr "作成者"
 msgid "Authority appointment"
 msgstr "役所の予定"
 
+msgid "Automatic"
+msgstr ""
+
 msgid "Automatic backup failed."
 msgstr "自動バックアップに失敗しました。"
 
@@ -1028,6 +1044,9 @@ msgstr "適切なアプリケーションを自動選択"
 
 msgid "Automatically dismiss anniversary reminders"
 msgstr "記念日のリマインダーを自動的に非表示にする"
+
+msgid "Automatically over the current connection"
+msgstr ""
 
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Wi-Fi で自動的に同期する"
@@ -1266,6 +1285,9 @@ msgstr "ブレーメン"
 msgid "Browse…"
 msgstr "参照..."
 
+msgid "Brush"
+msgstr ""
+
 msgid "Burgenland"
 msgstr "ブルゲンラント州"
 
@@ -1389,6 +1411,9 @@ msgstr ""
 msgid "Call with %(name)s · %(date)s"
 msgstr "%(name)s との通話 · %(date)s"
 
+msgid "Calligraphy pen"
+msgstr ""
+
 msgid "Cancel"
 msgstr "キャンセル"
 
@@ -1427,6 +1452,9 @@ msgstr "パスワードを変更"
 
 msgid "Changes are applied automatically"
 msgstr "変更は自動的に反映されます"
+
+msgid "Changes to your own profile are saved with Save."
+msgstr ""
 
 msgid "Changing phone permission"
 msgstr "電話の権限を変更する"
@@ -1498,9 +1526,11 @@ msgstr ""
 "タのコピーを自動的に作成します。暗号化されたバックアップにはパスワードが必要"
 "です。"
 
-msgid "Choose a connection. Confirm pairing on the phone and this computer."
+msgid "Choose a connection. Confirm the pairing code on the other device."
 msgstr ""
-"接続方法を選び、携帯電話とこのパソコンの両方でペアリングを確認してください。"
+
+msgid "Choose a contact"
+msgstr ""
 
 msgid "Choose a country first."
 msgstr "最初に国を選択してください。"
@@ -1659,6 +1689,12 @@ msgstr "コードは異なる"
 msgid "Codes match"
 msgstr "コードが一致"
 
+msgid "Collapse day groups by default"
+msgstr ""
+
+msgid "Colleagues"
+msgstr "同僚"
+
 msgid "Color"
 msgstr "色"
 
@@ -1687,6 +1723,9 @@ msgid ""
 msgstr ""
 "接続を確認するため、このフィンガープリントを電話などで相手側のブランチと比較"
 "してください。"
+
+msgid "Compare with LibreOffice"
+msgstr ""
 
 msgid "Complete archive exported (password-protected)."
 msgstr "完全なアーカイブをエクスポートしました（パスワード保護あり）。"
@@ -1744,6 +1783,9 @@ msgstr "両方の機器でコードが一致していることを確認してく
 msgid "Confirm the pairing request on the phone."
 msgstr "電話でペアリング要求を確認してください。"
 
+msgid "Confirm this code on the other device."
+msgstr ""
+
 msgid "Confirmation"
 msgstr "確認"
 
@@ -1755,6 +1797,9 @@ msgstr "確認"
 
 msgid "Connect"
 msgstr "接続"
+
+msgid "Connect Notes before sending this entry."
+msgstr ""
 
 msgid "Connect phone via WLAN"
 msgstr "電話をWi-Fiで接続する"
@@ -1817,9 +1862,6 @@ msgstr "連絡先カード (*.vcf)"
 
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "連絡先の削除提案は安全上の制限によりブロックされました。"
-
-msgid "No contact group"
-msgstr "連絡先グループなし"
 
 msgid "Contact groups"
 msgstr "連絡先グループ"
@@ -1939,9 +1981,6 @@ msgstr "作成"
 msgid "Create a backup copy of the data"
 msgstr "データのバックアップコピーを作成"
 
-msgid "Create a drawing sheet in the custom tab first."
-msgstr "まずカスタムタブで描画シートを作成してください。"
-
 msgid "Create a gettext POT template"
 msgstr "gettext POT テンプレートを作成"
 
@@ -1971,6 +2010,12 @@ msgstr "ノートブックを作成"
 
 msgid "Create pairing file …"
 msgstr "ペアリングファイルを作成 …"
+
+msgid "Create recovery points"
+msgstr ""
+
+msgid "Created"
+msgstr ""
 
 msgid "Creating a recovery snapshot"
 msgstr "リカバリスナップショットの作成"
@@ -2025,6 +2070,9 @@ msgstr "ノートブックをカスタマイズ"
 
 msgid "Cut"
 msgstr "切り取り"
+
+msgid "Cut selection"
+msgstr ""
 
 msgid "Cycle calendar"
 msgstr "周期カレンダー"
@@ -2101,6 +2149,9 @@ msgstr "デバッグログを開始できませんでした: %s"
 msgid "Decrypting the data"
 msgstr "データを復号しています"
 
+msgid "Default view"
+msgstr ""
+
 msgid "Default: next to the data file"
 msgstr "既定: データファイルの隣"
 
@@ -2144,6 +2195,12 @@ msgstr "連絡先カード「%(name)s」を削除しますか？"
 
 msgid "Delete cycle marker"
 msgstr "周期マーカーを削除"
+
+msgid "Delete drawing sheet"
+msgstr ""
+
+msgid "Delete drawing sheet?"
+msgstr ""
 
 msgid "Delete entries"
 msgstr "項目を削除"
@@ -2415,6 +2472,9 @@ msgstr "タスクを編集"
 msgid "Edit the website or application used"
 msgstr "使用する Web サイトまたはアプリケーションを編集"
 
+msgid "Ellipse"
+msgstr ""
+
 msgid "Email"
 msgstr "メール"
 
@@ -2488,13 +2548,6 @@ msgstr "このブロックのリマインダーを有効にする"
 
 msgid "Enable shift planner"
 msgstr "シフトプランナーを有効化"
-
-msgid ""
-"Enable tablet input here, then open the drawing tablet in KDE Connect on the "
-"phone."
-msgstr ""
-"ここでタブレット入力を有効にしてから、電話の KDE Connect で描画タブレットを開"
-"いてください。"
 
 msgid "Enable this SMS plan"
 msgstr "この SMS 予約を有効にする"
@@ -2633,6 +2686,9 @@ msgstr "エラー: %s"
 msgid "Estimate the next period"
 msgstr "次の月経を推定する"
 
+msgid "Estimated from older data"
+msgstr ""
+
 msgid "Estimated next period"
 msgstr "次の月経の推定日"
 
@@ -2643,18 +2699,17 @@ msgstr "夕方"
 msgid "Event loop is not available: %s"
 msgstr "イベントループを利用できません: %s"
 
+msgid "Every change"
+msgstr ""
+
 msgid "Every filled medication row requires a name."
 msgstr "入力したすべての服薬行に薬の名前が必要です。"
 
 msgid "Every filled row requires a valid date."
 msgstr "入力したすべての行に有効な日付が必要です。"
 
-msgid ""
-"Every saved change is protected automatically by a private, integrity-"
-"checked snapshot."
+msgid "Every program start"
 msgstr ""
-"保存された変更はすべて、整合性が確認された非公開のスナップショットによって自"
-"動的に保護されます。"
 
 msgid "Everything is done - the list is empty."
 msgstr "すべて完了しました – リストは空です。"
@@ -2682,11 +2737,11 @@ msgstr ""
 "ペアリング済みでオンラインの Magnolie Notes 携帯電話のうち、発信を許可するも"
 "のがちょうど1台必要です。"
 
+msgid "Expand day groups by default"
+msgstr ""
+
 msgid "Export"
 msgstr "エクスポート"
-
-msgid "Export PNG"
-msgstr "PNG を書き出す"
 
 msgid "Export failed."
 msgstr "エクスポートに失敗しました。"
@@ -2696,6 +2751,9 @@ msgstr "エクスポートに失敗しました: %(error)s"
 
 msgid "Export is available only in the installed application."
 msgstr "エクスポートはインストール版アプリケーションでのみ利用できます。"
+
+msgid "Export vCard"
+msgstr ""
 
 msgid "Extend sharing"
 msgstr "共有を拡張"
@@ -2730,6 +2788,9 @@ msgstr "女性の親族"
 msgid "Fertile days"
 msgstr "妊娠しやすい日"
 
+msgid "Field"
+msgstr ""
+
 msgid "File"
 msgstr "ファイル"
 
@@ -2743,6 +2804,12 @@ msgstr "ダウンロードにファイルを保存しました: %(name)s"
 #, python-format
 msgid "File saved: %(name)s"
 msgstr "ファイルを保存しました：%(name)s"
+
+msgid "Fill selection"
+msgstr ""
+
+msgid "Fill with gradient"
+msgstr ""
 
 msgid "Fill with stored values"
 msgstr "保存済みの値を入力"
@@ -2918,8 +2985,17 @@ msgstr "カレンダーへ移動"
 msgid "Google Maps in the browser"
 msgstr "ブラウザーで Google Maps"
 
+msgid "Gradient end color"
+msgstr ""
+
 msgid "Grisons"
 msgstr "グラウビュンデン州"
+
+msgid "Group by day"
+msgstr ""
+
+msgid "Group changes by time interval"
+msgstr ""
 
 msgid "Group for %(notebook)s"
 msgstr "%(notebook)s のグループ"
@@ -2994,6 +3070,9 @@ msgstr "インターネットアクセスを隠す"
 msgid "Hide past appointments"
 msgstr "過去の予定を隠す"
 
+msgid "Highlighter"
+msgstr ""
+
 msgid "History"
 msgstr "推移"
 
@@ -3039,6 +3118,9 @@ msgstr "IU"
 
 msgid "ISO week (week 1 contains the first Thursday)"
 msgstr "ISO 週（第1週には最初の木曜日が含まれます）"
+
+msgid "Idea"
+msgstr ""
 
 msgid ""
 "If the year is unknown, enter only day and month.\n"
@@ -3215,6 +3297,9 @@ msgstr "入力"
 msgid "Insert link"
 msgstr "リンクを挿入"
 
+msgid "Insert shape"
+msgstr ""
+
 msgid "Install the packages, for example with:"
 msgstr "必要なパッケージをインストールしてください。例:"
 
@@ -3335,6 +3420,9 @@ msgstr "LDIFアドレス帳（.ldif）…"
 msgid "Landline"
 msgstr "固定電話"
 
+msgid "Landscape"
+msgstr ""
+
 msgid "Language"
 msgstr "言語"
 
@@ -3381,6 +3469,9 @@ msgstr "手紙テンプレート"
 msgid "LibreOffice is not opened or changed."
 msgstr "LibreOffice は開かれず、変更もされていません。"
 
+msgid "LibreOffice user data updated."
+msgstr ""
+
 #, python-format
 msgid "LibreOffice was not found. The letter is located at: %s"
 msgstr "LibreOffice が見つかりませんでした。手紙は次の場所にあります: %s"
@@ -3390,6 +3481,9 @@ msgstr "ライセンス"
 
 msgid "Liechtenstein"
 msgstr "リヒテンシュタイン"
+
+msgid "Line"
+msgstr ""
 
 msgid "Line width"
 msgstr "線の太さ"
@@ -3616,6 +3710,9 @@ msgstr "手動のみ"
 msgid "Manual version %(version)s is available."
 msgstr "マニュアル版 %(version)s が利用可能です。"
 
+msgid "Manually"
+msgstr ""
+
 msgid "Manufacturer"
 msgstr "製造業者"
 
@@ -3665,8 +3762,14 @@ msgstr "統合"
 msgid "Merge duplicate contact cards"
 msgstr "重複する連絡先カードを統合"
 
+msgid "Merge history"
+msgstr ""
+
 msgid "Merge this pair individually"
 msgstr "このペアを個別に統合"
+
+msgid "Merged"
+msgstr ""
 
 msgid "Message"
 msgstr "メッセージ"
@@ -3727,11 +3830,17 @@ msgstr "モバイルネットワーク"
 msgid "Model"
 msgstr "モデル"
 
+msgid "Modified"
+msgstr ""
+
 msgid "Module"
 msgstr "モジュール"
 
 msgid "Monday"
 msgstr "月曜日"
+
+msgid "Money"
+msgstr ""
 
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "KDE Connect SMS を監視して通知を表示する"
@@ -3785,6 +3894,9 @@ msgstr "ノートブックを別のグループへ移動"
 msgid "Move notebook up"
 msgstr "ノートブックを上へ移動"
 
+msgid "Move selection"
+msgstr ""
+
 msgid "Move the ticked entries to the wastebasket"
 msgstr "チェックした項目をゴミ箱へ移動"
 
@@ -3793,6 +3905,9 @@ msgstr "最上位へ移動"
 
 msgid "Move up"
 msgstr "上へ移動"
+
+msgid "Move view"
+msgstr ""
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -3899,6 +4014,9 @@ msgstr ""
 msgid "New contact"
 msgstr "新しい連絡先"
 
+msgid "New drawing sheet"
+msgstr ""
+
 msgid "New group"
 msgstr "新しいグループ"
 
@@ -3919,6 +4037,9 @@ msgstr "新しいタスク"
 
 msgid "New version %(version)s is available."
 msgstr "新しいバージョン %(version)s を利用できます。"
+
+msgid "Newest first"
+msgstr ""
 
 msgid "Next"
 msgstr "次へ"
@@ -3971,6 +4092,9 @@ msgstr "Nextcloud はフォローされなかったリダイレクトを返し�
 msgid "Nextcloud returned an incomplete DAV result."
 msgstr "Nextcloudは不完全なDAV結果を返しました。"
 
+msgid "Nib angle"
+msgstr ""
+
 msgid "Nidwalden"
 msgstr "ニトヴァルデン"
 
@@ -3993,6 +4117,9 @@ msgstr "Claws Mail のアドレス帳が検出されませんでした。"
 msgid "No SMS messages are scheduled."
 msgstr "予約されている SMS メッセージはありません。"
 
+msgid "No WhatsApp profile available for this contact."
+msgstr ""
+
 msgid "No address books found."
 msgstr "アドレス帳が見つかりませんでした。"
 
@@ -4012,8 +4139,14 @@ msgstr "予定は登録されていません。"
 msgid "No calendars found."
 msgstr "カレンダーが見つかりませんでした。"
 
+msgid "No contact group"
+msgstr "連絡先グループなし"
+
 msgid "No data was found."
 msgstr "データが見つかりませんでした。"
+
+msgid "No date recorded"
+msgstr ""
 
 msgid "No default voice subscription is available."
 msgstr "既定の音声契約がありません。"
@@ -4061,6 +4194,9 @@ msgstr "一致する未完了タスクが見つかりませんでした。"
 msgid "No measurements in this period."
 msgstr "この期間の測定値はありません。"
 
+msgid "No merge history recorded"
+msgstr ""
+
 msgid "No notebooks"
 msgstr "ノートブックなし"
 
@@ -4092,6 +4228,9 @@ msgid ""
 msgstr ""
 "担当者はまだ追加されていません。上の「担当者」ボタンを使って、タスクの担当者"
 "を追加してください。"
+
+msgid "No phone number available."
+msgstr ""
 
 msgid "No phone paired yet."
 msgstr "まだタスクが関連付けられていません。"
@@ -4232,6 +4371,9 @@ msgstr "メモ"
 msgid "Notes and special instructions"
 msgstr "メモと特記事項"
 
+msgid "Notes and tasks"
+msgstr ""
+
 msgid ""
 "Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
 "synchronization or start manually."
@@ -4328,6 +4470,9 @@ msgstr "オフライン"
 msgid "Ointment"
 msgstr "軟膏"
 
+msgid "Oldest first"
+msgstr ""
+
 msgid "One address book"
 msgstr "1 つのアドレス帳"
 
@@ -4406,6 +4551,12 @@ msgid ""
 msgstr ""
 "ペアリングできる Magnolie Notes 電話は1台だけです。デバイスを変更する前に既存"
 "の電話を削除してください。"
+
+msgid "Only personal entries can be sent to Notes."
+msgstr ""
+
+msgid "Only the Notes collection"
+msgstr ""
 
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
@@ -4488,6 +4639,9 @@ msgstr "アプリを開く"
 
 msgid "Open the day in the daily view"
 msgstr "日表示でこの日を開く"
+
+msgid "Open the drawing tablet in KDE Connect on the paired phone."
+msgstr ""
 
 msgid "Open the phone connection screen and try again."
 msgstr "電話接続の画面を開き、もう一度お試しください。"
@@ -4580,6 +4734,9 @@ msgstr "自分のインターネット IP"
 msgid "Own phone number (default voice SIM)"
 msgstr "自分の番号（既定の音声 SIM）"
 
+msgid "Own profile"
+msgstr ""
+
 msgid "Own window available: no"
 msgstr "独自ウィンドウ利用可能：いいえ"
 
@@ -4607,6 +4764,9 @@ msgstr "ページ %(page)s"
 
 msgid "Page %(page)s of %(count)s"
 msgstr "%(count)s ページ中 %(page)s ページ"
+
+msgid "Page order"
+msgstr ""
 
 msgid "Pages"
 msgstr "ページ"
@@ -4681,6 +4841,9 @@ msgstr "貼り付け"
 
 msgid "Patch"
 msgstr "貼付剤"
+
+msgid "Patients"
+msgstr "患者"
 
 msgctxt "time tracking"
 msgid "Pause (minutes)"
@@ -4885,6 +5048,9 @@ msgstr "ポーランド"
 msgid "Port 8741 is unavailable. The phone listener could not start."
 msgstr "ポート8741は使用できません。電話リスナーを開始できませんでした。"
 
+msgid "Portrait"
+msgstr ""
+
 msgid "Possible duplicates among local and incoming contacts"
 msgstr "ローカルおよび受信した連絡先内の重複候補"
 
@@ -4990,6 +5156,9 @@ msgstr "優先度 1 が最初に表示されます。期限切れのタスクは
 msgid "Private"
 msgstr "非公開"
 
+msgid "Properties"
+msgstr ""
+
 msgid "Protected archive password unavailable."
 msgstr "保護されたアーカイブパスワードを利用できません。"
 
@@ -5027,6 +5196,9 @@ msgstr "キューに入れられた"
 
 msgid "Quit"
 msgstr "終了"
+
+msgid "Quote"
+msgstr ""
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "このコンピューターに到達可能な IPv4 または IPv6 アドレス"
@@ -5067,12 +5239,21 @@ msgstr "ダウンロードでファイルを受信"
 msgid "Receive with KDE Connect"
 msgstr "KDE Connect で受信"
 
+msgid "Recently modified"
+msgstr ""
+
+msgid "Recipe"
+msgstr ""
+
 msgid "Reconnect"
 msgstr "再接続"
 
 msgctxt "time tracking"
 msgid "Recorded times"
 msgstr "記録済みの時間"
+
+msgid "Recovery journal"
+msgstr ""
 
 msgid "Recovery snapshot created."
 msgstr "リカバリスナップショットが作成されました。"
@@ -5082,6 +5263,9 @@ msgstr "リカバリスナップショットが削除されました。"
 
 msgid "Recovery snapshots"
 msgstr "リカバリースナップショット"
+
+msgid "Rectangle"
+msgstr ""
 
 msgid "Recycle bin"
 msgstr "ゴミ箱"
@@ -5374,6 +5558,9 @@ msgstr "ラインラント＝プファルツ"
 msgid "Right page"
 msgstr "右ページ"
 
+msgid "Rotate selection"
+msgstr ""
+
 msgid "Route"
 msgstr "経路"
 
@@ -5654,6 +5841,9 @@ msgstr "1 年以上選択してください。"
 msgid "Select backup folder"
 msgstr "バックアップフォルダーを選択"
 
+msgid "Select complete strokes that fit inside the sheet."
+msgstr ""
+
 msgid "Select no more than three years."
 msgstr "3 年以内で選択してください。"
 
@@ -5676,6 +5866,9 @@ msgstr "すべての連絡先で空になっている選択列は自動的に省
 msgid "Selection options"
 msgstr "選択オプション"
 
+msgid "Send"
+msgstr ""
+
 msgid "Send SMS"
 msgstr "SMSを送る"
 
@@ -5687,6 +5880,15 @@ msgstr "文書を送信"
 
 msgid "Send secure request"
 msgstr "安全なリクエストを送信"
+
+msgid "Send this new note to Notes"
+msgstr ""
+
+msgid "Send to Notes"
+msgstr ""
+
+msgid "Send via"
+msgstr ""
 
 msgid "Sending SMS with KDE Connect"
 msgstr "SMS を KDE Connect で送信する"
@@ -5748,6 +5950,9 @@ msgstr "接続を共有"
 msgid "Share connection with"
 msgstr "接続の共有先"
 
+msgid "Share selected details"
+msgstr ""
+
 msgid "Share this connection with the selected device?"
 msgstr "選択したデバイスと接続を共有しますか？"
 
@@ -5774,6 +5979,9 @@ msgstr "共有メモ"
 
 msgid "Sharing this connection is not allowed."
 msgstr "この接続の共有は許可されていません。"
+
+msgid "Sheet size"
+msgstr ""
 
 msgid "Shift planner"
 msgstr "シフトプランナー"
@@ -5962,6 +6170,9 @@ msgstr "スペルチェック"
 msgid "Spray"
 msgstr "スプレー剤"
 
+msgid "Square"
+msgstr ""
+
 msgid "St. Gallen"
 msgstr "ザンクト・ガレン"
 
@@ -6004,6 +6215,9 @@ msgstr "書式の地域"
 
 msgid "Status"
 msgstr "状態"
+
+msgid "Street"
+msgstr ""
 
 msgid "Street / house number"
 msgstr "通り / 番地"
@@ -6080,6 +6294,9 @@ msgid ""
 msgstr ""
 "この接続の同期状態、保留中のメッセージ、メタデータが削除されます。すでに受け"
 "入れた連絡先とローカルデータは保持されます。"
+
+msgid "Synchronize all notes and tasks"
+msgstr ""
 
 msgid "Synchronize automatically at startup"
 msgstr "起動時に自動同期"
@@ -7134,6 +7351,9 @@ msgstr ""
 msgid "The selected contacts contain no values for these columns."
 msgstr "選択した連絡先には、これらの列に値がありません。"
 
+msgid "The selected entry is too large to send."
+msgstr ""
+
 msgid "The selected file is not a readable CSV file."
 msgstr "選択したファイルは読み取り可能な CSV ファイルではありません。"
 
@@ -7145,6 +7365,9 @@ msgstr "選択した健康記録には印刷可能な値がありません。"
 
 msgid "The selected iCalendar file is incomplete."
 msgstr "選択した iCalendar ファイルは不完全です。"
+
+msgid "The selected note contains attachments that cannot be sent."
+msgstr ""
 
 msgid "The selected online account is disabled, offline or unreachable."
 msgstr "選択したオンラインアカウントは無効、オフライン、または到達不能です。"
@@ -7483,6 +7706,9 @@ msgstr "この人の記念日"
 msgid "This phone transport is unavailable."
 msgstr "この電話接続の方式は利用できません。"
 
+msgid "This profile format is not supported."
+msgstr ""
+
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
 "published in the hope that it will be useful, but without any warranty. The "
@@ -7549,6 +7775,9 @@ msgstr "時刻"
 
 msgid "Time format"
 msgstr "時刻形式"
+
+msgid "Time synchronization direction"
+msgstr ""
 
 msgctxt "time tracking"
 msgid "Time tracking"
@@ -7622,8 +7851,14 @@ msgstr "職人"
 msgid "Transfer received text to the clipboard"
 msgstr "受信したテキストをクリップボードに転送"
 
+msgid "Travel"
+msgstr ""
+
 msgid "Tray applet"
 msgstr "システムトレイアプレット"
+
+msgid "Triangle"
+msgstr ""
 
 msgid "Trust and accept tasks and notes automatically"
 msgstr "信頼してタスクとメモを自動的に受け入れる"
@@ -7683,6 +7918,12 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "利用できません"
+
+msgid "Unchanged contents do not create another recovery point."
+msgstr ""
+
+msgid "Undated"
+msgstr ""
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -8108,6 +8349,9 @@ msgstr "連絡先は現在どこにありますか？"
 msgid "Whole month"
 msgstr "1か月全体"
 
+msgid "Width"
+msgstr ""
+
 msgid "Wife"
 msgstr "妻"
 
@@ -8200,6 +8444,9 @@ msgstr "はい"
 msgid "Yes, the code matches"
 msgstr "はい、コードは一致します"
 
+msgid "Yesterday"
+msgstr ""
+
 msgid "You can also do this later in Settings."
 msgstr "この設定は後から「設定」でも行えます。"
 
@@ -8234,6 +8481,12 @@ msgstr "敬具"
 
 msgid "ZIP archives (*.zip)"
 msgstr "ZIP アーカイブ (*.zip)"
+
+msgid "Zoom in"
+msgstr ""
+
+msgid "Zoom out"
+msgstr ""
 
 msgid "Zug"
 msgstr "ツーク州"
@@ -8658,6 +8911,31 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
+
+#~ msgid "Choose a connection. Confirm pairing on the phone and this computer."
+#~ msgstr ""
+#~ "接続方法を選び、携帯電話とこのパソコンの両方でペアリングを確認してくださ"
+#~ "い。"
+
+#~ msgid "Create a drawing sheet in the custom tab first."
+#~ msgstr "まずカスタムタブで描画シートを作成してください。"
+
+#~ msgid ""
+#~ "Enable tablet input here, then open the drawing tablet in KDE Connect on "
+#~ "the phone."
+#~ msgstr ""
+#~ "ここでタブレット入力を有効にしてから、電話の KDE Connect で描画タブレット"
+#~ "を開いてください。"
+
+#~ msgid ""
+#~ "Every saved change is protected automatically by a private, integrity-"
+#~ "checked snapshot."
+#~ msgstr ""
+#~ "保存された変更はすべて、整合性が確認された非公開のスナップショットによって"
+#~ "自動的に保護されます。"
+
+#~ msgid "Export PNG"
+#~ msgstr "PNG を書き出す"
 
 #~ msgid ""
 #~ "Cycle markers are stored only in your local Organizer data and do not "

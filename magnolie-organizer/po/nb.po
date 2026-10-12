@@ -225,6 +225,11 @@ msgid_plural "%(count)s seconds"
 msgstr[0] "%(count)s sekund"
 msgstr[1] "%(count)s sekunder"
 
+msgid "%(count)s source"
+msgid_plural "%(count)s sources"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "%(count)s task"
 msgid_plural "%(count)s tasks"
 msgstr[0] "%(count)s oppgave"
@@ -660,6 +665,9 @@ msgstr "Etter språk"
 msgid "Account type"
 msgstr "Kontotype"
 
+msgid "Action"
+msgstr ""
+
 msgid "Active call"
 msgstr "Aktiv samtale"
 
@@ -738,6 +746,9 @@ msgstr "Adressebok"
 
 msgid "Address imported from LibreOffice."
 msgstr "Adresse importert fra LibreOffice."
+
+msgid "Address imported from own profile."
+msgstr ""
 
 msgid "Address supplement"
 msgstr "Adressetillegg"
@@ -873,6 +884,9 @@ msgstr "Android begrenser denne enhetsidentifikatoren."
 
 msgid "Android version"
 msgstr "Android-versjon"
+
+msgid "Angle"
+msgstr ""
 
 msgid "Anniversaries"
 msgstr "Merkedager"
@@ -1031,6 +1045,9 @@ msgstr "Forfatter"
 msgid "Authority appointment"
 msgstr "Avtale med offentlig myndighet"
 
+msgid "Automatic"
+msgstr ""
+
 msgid "Automatic backup failed."
 msgstr "Automatisk sikkerhetskopiering mislyktes."
 
@@ -1058,6 +1075,9 @@ msgstr "Velg automatisk et egnet program"
 
 msgid "Automatically dismiss anniversary reminders"
 msgstr "Skjul påminnelser om merkedager automatisk"
+
+msgid "Automatically over the current connection"
+msgstr ""
 
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Synkroniser automatisk via Wi-Fi"
@@ -1297,6 +1317,9 @@ msgstr "Bremen"
 msgid "Browse…"
 msgstr "Bla gjennom..."
 
+msgid "Brush"
+msgstr ""
+
 msgid "Burgenland"
 msgstr "Burgenland"
 
@@ -1420,6 +1443,9 @@ msgstr ""
 msgid "Call with %(name)s · %(date)s"
 msgstr "Samtale med %(name)s · %(date)s"
 
+msgid "Calligraphy pen"
+msgstr ""
+
 msgid "Cancel"
 msgstr "Avbryt"
 
@@ -1458,6 +1484,9 @@ msgstr "Endre passord"
 
 msgid "Changes are applied automatically"
 msgstr "Endringer brukes automatisk"
+
+msgid "Changes to your own profile are saved with Save."
+msgstr ""
 
 msgid "Changing phone permission"
 msgstr "Endrer telefontillatelse"
@@ -1530,9 +1559,11 @@ msgstr ""
 "Velg en sikkerhetskopifil. Før den gjenopprettes, lager Organizer automatisk "
 "en kopi av gjeldende data. En kryptert sikkerhetskopi krever passordet sitt."
 
-msgid "Choose a connection. Confirm pairing on the phone and this computer."
+msgid "Choose a connection. Confirm the pairing code on the other device."
 msgstr ""
-"Velg en tilkobling. Bekreft paringen på telefonen og på denne datamaskinen."
+
+msgid "Choose a contact"
+msgstr ""
 
 msgid "Choose a country first."
 msgstr "Velg et land først."
@@ -1693,6 +1724,12 @@ msgstr "Kodene er forskjellige"
 msgid "Codes match"
 msgstr "Kodene er like"
 
+msgid "Collapse day groups by default"
+msgstr ""
+
+msgid "Colleagues"
+msgstr "Kolleger"
+
 msgid "Color"
 msgstr "Farge"
 
@@ -1721,6 +1758,9 @@ msgid ""
 msgstr ""
 "Sammenlign dette fingeravtrykket med den andre grenen, for eksempel på "
 "telefon, for å bekrefte forbindelsen."
+
+msgid "Compare with LibreOffice"
+msgstr ""
 
 msgid "Complete archive exported (password-protected)."
 msgstr "Komplett arkiv eksportert (passordbeskyttet)."
@@ -1779,6 +1819,9 @@ msgstr "Bekreft at koden er lik på begge enhetene."
 msgid "Confirm the pairing request on the phone."
 msgstr "Bekreft paringsforespørselen på telefonen."
 
+msgid "Confirm this code on the other device."
+msgstr ""
+
 msgid "Confirmation"
 msgstr "Bekreftelse"
 
@@ -1790,6 +1833,9 @@ msgstr "Bekreftelse"
 
 msgid "Connect"
 msgstr "Koble til"
+
+msgid "Connect Notes before sending this entry."
+msgstr ""
 
 msgid "Connect phone via WLAN"
 msgstr "Koble til telefonen via WLAN"
@@ -1853,9 +1899,6 @@ msgstr "Kontaktkort (*.vcf)"
 
 msgid "Contact deletion proposals were blocked by the safety limit."
 msgstr "Forslag om sletting av kontakter ble blokkert av sikkerhetsgrensen."
-
-msgid "No contact group"
-msgstr "Ingen kontaktgruppe"
 
 msgid "Contact groups"
 msgstr "Kontaktgrupper"
@@ -1973,9 +2016,6 @@ msgstr "Opprett"
 msgid "Create a backup copy of the data"
 msgstr "Opprett en sikkerhetskopi av dataene"
 
-msgid "Create a drawing sheet in the custom tab first."
-msgstr "Opprett først et tegneark i den egendefinerte fanen."
-
 msgid "Create a gettext POT template"
 msgstr "Opprett en gettext POT-mal"
 
@@ -2005,6 +2045,12 @@ msgstr "Opprett notatbok"
 
 msgid "Create pairing file …"
 msgstr "Opprett paringsfil …"
+
+msgid "Create recovery points"
+msgstr ""
+
+msgid "Created"
+msgstr ""
 
 msgid "Creating a recovery snapshot"
 msgstr "Oppretter et gjenopprettingsøyeblikksbilde"
@@ -2059,6 +2105,9 @@ msgstr "Tilpass notatbøker"
 
 msgid "Cut"
 msgstr "Klipp ut"
+
+msgid "Cut selection"
+msgstr ""
 
 msgid "Cycle calendar"
 msgstr "Sykluskalender"
@@ -2135,6 +2184,9 @@ msgstr "Feilsøkingslogging kunne ikke startes: %s"
 msgid "Decrypting the data"
 msgstr "Dekrypterer dataene"
 
+msgid "Default view"
+msgstr ""
+
 msgid "Default: next to the data file"
 msgstr "Standard: ved siden av datafilen"
 
@@ -2178,6 +2230,12 @@ msgstr "Slett kontaktkortet «%(name)s»?"
 
 msgid "Delete cycle marker"
 msgstr "Slett syklusmarkør"
+
+msgid "Delete drawing sheet"
+msgstr ""
+
+msgid "Delete drawing sheet?"
+msgstr ""
 
 msgid "Delete entries"
 msgstr "Slett oppføringer"
@@ -2449,6 +2507,9 @@ msgstr "Rediger oppgave"
 msgid "Edit the website or application used"
 msgstr "Rediger nettstedet eller programmet som brukes"
 
+msgid "Ellipse"
+msgstr ""
+
 msgid "Email"
 msgstr "E-post"
 
@@ -2522,13 +2583,6 @@ msgstr "Aktiver påminnelser for denne blokken"
 
 msgid "Enable shift planner"
 msgstr "Aktiver skiftplanlegger"
-
-msgid ""
-"Enable tablet input here, then open the drawing tablet in KDE Connect on the "
-"phone."
-msgstr ""
-"Aktiver nettbrettinndata her, og åpne deretter tegnebrettet i KDE Connect på "
-"telefonen."
 
 msgid "Enable this SMS plan"
 msgstr "Aktiver denne SMS-planen"
@@ -2670,6 +2724,9 @@ msgstr "Feil: %s"
 msgid "Estimate the next period"
 msgstr "Anslå neste menstruasjon"
 
+msgid "Estimated from older data"
+msgstr ""
+
 msgid "Estimated next period"
 msgstr "Anslått neste menstruasjon"
 
@@ -2680,18 +2737,17 @@ msgstr "Kveld"
 msgid "Event loop is not available: %s"
 msgstr "Hendelsessløyfen er ikke tilgjengelig: %s"
 
+msgid "Every change"
+msgstr ""
+
 msgid "Every filled medication row requires a name."
 msgstr "Hver utfylte legemiddelrad må ha et navn."
 
 msgid "Every filled row requires a valid date."
 msgstr "Hver utfylte rad må ha en gyldig dato."
 
-msgid ""
-"Every saved change is protected automatically by a private, integrity-"
-"checked snapshot."
+msgid "Every program start"
 msgstr ""
-"Hver lagrede endring beskyttes automatisk av et privat øyeblikksbilde med "
-"kontrollert integritet."
 
 msgid "Everything is done - the list is empty."
 msgstr "Alt er ferdig – listen er tom."
@@ -2719,11 +2775,11 @@ msgstr ""
 "Nøyaktig én paret og tilkoblet telefon med Magnolie Notes må tillate "
 "oppringingsforespørsler."
 
+msgid "Expand day groups by default"
+msgstr ""
+
 msgid "Export"
 msgstr "Eksporter"
-
-msgid "Export PNG"
-msgstr "Eksporter PNG"
 
 msgid "Export failed."
 msgstr "Eksport mislyktes."
@@ -2733,6 +2789,9 @@ msgstr "Eksport mislyktes: %(error)s"
 
 msgid "Export is available only in the installed application."
 msgstr "Eksport er bare tilgjengelig i det installerte programmet."
+
+msgid "Export vCard"
+msgstr ""
 
 msgid "Extend sharing"
 msgstr "Utvid deling"
@@ -2767,6 +2826,9 @@ msgstr "Kvinnelig slektning"
 msgid "Fertile days"
 msgstr "Fruktbare dager"
 
+msgid "Field"
+msgstr ""
+
 msgid "File"
 msgstr "Fil"
 
@@ -2780,6 +2842,12 @@ msgstr "Filen er lagret i Nedlastinger: %(name)s"
 #, python-format
 msgid "File saved: %(name)s"
 msgstr "Fil lagret: %(name)s"
+
+msgid "Fill selection"
+msgstr ""
+
+msgid "Fill with gradient"
+msgstr ""
 
 msgid "Fill with stored values"
 msgstr "Fyll ut med lagrede verdier"
@@ -2955,8 +3023,17 @@ msgstr "Gå til kalender"
 msgid "Google Maps in the browser"
 msgstr "Google Maps i nettleseren"
 
+msgid "Gradient end color"
+msgstr ""
+
 msgid "Grisons"
 msgstr "Graubünden"
+
+msgid "Group by day"
+msgstr ""
+
+msgid "Group changes by time interval"
+msgstr ""
 
 msgid "Group for %(notebook)s"
 msgstr "Gruppe for %(notebook)s"
@@ -3031,6 +3108,9 @@ msgstr "Skjul internettilgang"
 msgid "Hide past appointments"
 msgstr "Skjul tidligere avtaler"
 
+msgid "Highlighter"
+msgstr ""
+
 msgid "History"
 msgstr "Forløp"
 
@@ -3077,6 +3157,9 @@ msgstr "IE"
 
 msgid "ISO week (week 1 contains the first Thursday)"
 msgstr "ISO-uke (uke 1 inneholder den første torsdagen)"
+
+msgid "Idea"
+msgstr ""
 
 msgid ""
 "If the year is unknown, enter only day and month.\n"
@@ -3253,6 +3336,9 @@ msgstr "Inndata"
 msgid "Insert link"
 msgstr "Sett inn lenke"
 
+msgid "Insert shape"
+msgstr ""
+
 msgid "Install the packages, for example with:"
 msgstr "Installer pakkene, for eksempel med:"
 
@@ -3370,6 +3456,9 @@ msgstr "LDIF-adressebok (.ldif) …"
 msgid "Landline"
 msgstr "Fasttelefon"
 
+msgid "Landscape"
+msgstr ""
+
 msgid "Language"
 msgstr "Språk"
 
@@ -3416,6 +3505,9 @@ msgstr "Brevmal"
 msgid "LibreOffice is not opened or changed."
 msgstr "LibreOffice åpnes eller endres ikke."
 
+msgid "LibreOffice user data updated."
+msgstr ""
+
 #, python-format
 msgid "LibreOffice was not found. The letter is located at: %s"
 msgstr "LibreOffice ble ikke funnet. Brevet ligger i: %s"
@@ -3425,6 +3517,9 @@ msgstr "Lisens"
 
 msgid "Liechtenstein"
 msgstr "Liechtenstein"
+
+msgid "Line"
+msgstr ""
 
 msgid "Line width"
 msgstr "Strektykkelse"
@@ -3652,6 +3747,9 @@ msgstr "Bare manuelt"
 msgid "Manual version %(version)s is available."
 msgstr "Håndbokversjon %(version)s er tilgjengelig."
 
+msgid "Manually"
+msgstr ""
+
 msgid "Manufacturer"
 msgstr "Produsent"
 
@@ -3701,8 +3799,14 @@ msgstr "Slå sammen"
 msgid "Merge duplicate contact cards"
 msgstr "Slå sammen dupliserte kontaktkort"
 
+msgid "Merge history"
+msgstr ""
+
 msgid "Merge this pair individually"
 msgstr "Slå sammen dette paret enkeltvis"
+
+msgid "Merged"
+msgstr ""
 
 msgid "Message"
 msgstr "Melding"
@@ -3765,11 +3869,17 @@ msgstr "Mobilnett"
 msgid "Model"
 msgstr "Modell"
 
+msgid "Modified"
+msgstr ""
+
 msgid "Module"
 msgstr "Modul"
 
 msgid "Monday"
 msgstr "Mandag"
+
+msgid "Money"
+msgstr ""
 
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "Overvåk KDE Connect-SMS og vis varsler"
@@ -3823,6 +3933,9 @@ msgstr "Flytt notatbok til en annen gruppe"
 msgid "Move notebook up"
 msgstr "Flytt notatbok opp"
 
+msgid "Move selection"
+msgstr ""
+
 msgid "Move the ticked entries to the wastebasket"
 msgstr "Flytt de avkryssede oppføringene til papirkurven"
 
@@ -3831,6 +3944,9 @@ msgstr "Flytt til øverste nivå"
 
 msgid "Move up"
 msgstr "Flytt opp"
+
+msgid "Move view"
+msgstr ""
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -3937,6 +4053,9 @@ msgstr ""
 msgid "New contact"
 msgstr "Ny kontakt"
 
+msgid "New drawing sheet"
+msgstr ""
+
 msgid "New group"
 msgstr "Ny gruppe"
 
@@ -3957,6 +4076,9 @@ msgstr "Ny oppgave"
 
 msgid "New version %(version)s is available."
 msgstr "Ny versjon %(version)s er tilgjengelig."
+
+msgid "Newest first"
+msgstr ""
 
 msgid "Next"
 msgstr "Neste"
@@ -4009,6 +4131,9 @@ msgstr "Nextcloud returnerte en omdirigering som ikke ble fulgt."
 msgid "Nextcloud returned an incomplete DAV result."
 msgstr "Nextcloud returnerte et ufullstendig DAV-resultat."
 
+msgid "Nib angle"
+msgstr ""
+
 msgid "Nidwalden"
 msgstr "Nidwalden"
 
@@ -4031,6 +4156,9 @@ msgstr "Fant ingen Claws Mail-adressebok."
 msgid "No SMS messages are scheduled."
 msgstr "Ingen SMS-meldinger er planlagt."
 
+msgid "No WhatsApp profile available for this contact."
+msgstr ""
+
 msgid "No address books found."
 msgstr "Ingen adressebøker funnet."
 
@@ -4050,8 +4178,14 @@ msgstr "Ingen avtale er planlagt."
 msgid "No calendars found."
 msgstr "Fant ingen kalendere."
 
+msgid "No contact group"
+msgstr "Ingen kontaktgruppe"
+
 msgid "No data was found."
 msgstr "Fant ingen data."
+
+msgid "No date recorded"
+msgstr ""
 
 msgid "No default voice subscription is available."
 msgstr "Intet standardabonnement for anrop er tilgjengelig."
@@ -4097,6 +4231,9 @@ msgstr "Fant ingen tilsvarende åpen oppgave."
 msgid "No measurements in this period."
 msgstr "Ingen målinger i denne perioden."
 
+msgid "No merge history recorded"
+msgstr ""
+
 msgid "No notebooks"
 msgstr "Ingen notatbøker"
 
@@ -4126,6 +4263,9 @@ msgid ""
 msgstr ""
 "Ingen personer er lagt til ennå. Bruk knappen Personer ovenfor for å legge "
 "til personer som er ansvarlige for oppgaver."
+
+msgid "No phone number available."
+msgstr ""
 
 msgid "No phone paired yet."
 msgstr "Ingen telefon er paret ennå."
@@ -4262,6 +4402,9 @@ msgstr "Notater"
 msgid "Notes and special instructions"
 msgstr "Merknader og spesielle anvisninger"
 
+msgid "Notes and tasks"
+msgstr ""
+
 msgid ""
 "Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
 "synchronization or start manually."
@@ -4361,6 +4504,9 @@ msgstr "Frakoblet"
 msgid "Ointment"
 msgstr "Salve"
 
+msgid "Oldest first"
+msgstr ""
+
 msgid "One address book"
 msgstr "Én adressebok"
 
@@ -4446,6 +4592,12 @@ msgstr ""
 "Bare én Magnolie Notes-telefon kan pares. Fjern den eksisterende telefonen "
 "før du bytter enhet."
 
+msgid "Only personal entries can be sent to Notes."
+msgstr ""
+
+msgid "Only the Notes collection"
+msgstr ""
+
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
 "Magnolie paper style would often remain invisible there."
@@ -4527,6 +4679,9 @@ msgstr "Åpne programmet"
 
 msgid "Open the day in the daily view"
 msgstr "Åpne dagen i dagsvisningen"
+
+msgid "Open the drawing tablet in KDE Connect on the paired phone."
+msgstr ""
 
 msgid "Open the phone connection screen and try again."
 msgstr "Åpne skjermen for telefontilkoblingen og prøv igjen."
@@ -4620,6 +4775,9 @@ msgstr "Egen internett-IP"
 msgid "Own phone number (default voice SIM)"
 msgstr "Mitt nummer (standard-SIM for anrop)"
 
+msgid "Own profile"
+msgstr ""
+
 msgid "Own window available: no"
 msgstr "Eget vindu tilgjengelig: nei"
 
@@ -4647,6 +4805,9 @@ msgstr "Side %(page)s"
 
 msgid "Page %(page)s of %(count)s"
 msgstr "Side %(page)s av %(count)s"
+
+msgid "Page order"
+msgstr ""
 
 msgid "Pages"
 msgstr "Sider"
@@ -4718,6 +4879,9 @@ msgstr "Lim inn"
 
 msgid "Patch"
 msgstr "Plaster"
+
+msgid "Patients"
+msgstr "Pasienter"
 
 msgctxt "time tracking"
 msgid "Pause (minutes)"
@@ -4930,6 +5094,9 @@ msgstr "Polen"
 msgid "Port 8741 is unavailable. The phone listener could not start."
 msgstr "Port 8741 er utilgjengelig. Telefonlytteren kunne ikke starte."
 
+msgid "Portrait"
+msgstr ""
+
 msgid "Possible duplicates among local and incoming contacts"
 msgstr "Mulige duplikater blant lokale og innkommende kontakter"
 
@@ -5040,6 +5207,9 @@ msgstr "Prioritet 1 vises først. Forfalte oppgaver vises i rødt."
 msgid "Private"
 msgstr "Privat"
 
+msgid "Properties"
+msgstr ""
+
 msgid "Protected archive password unavailable."
 msgstr "Det beskyttede arkivpassordet er utilgjengelig."
 
@@ -5080,6 +5250,9 @@ msgstr "I kø"
 msgid "Quit"
 msgstr "Avslutt"
 
+msgid "Quote"
+msgstr ""
+
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Tilgjengelig IPv4- eller IPv6-adresse til denne datamaskinen"
 
@@ -5119,12 +5292,21 @@ msgstr "Motta filer i Nedlastinger"
 msgid "Receive with KDE Connect"
 msgstr "Motta med KDE Connect"
 
+msgid "Recently modified"
+msgstr ""
+
+msgid "Recipe"
+msgstr ""
+
 msgid "Reconnect"
 msgstr "Koble til på nytt"
 
 msgctxt "time tracking"
 msgid "Recorded times"
 msgstr "Registrerte tider"
+
+msgid "Recovery journal"
+msgstr ""
 
 msgid "Recovery snapshot created."
 msgstr "Gjenopprettingsøyeblikksbilde opprettet."
@@ -5134,6 +5316,9 @@ msgstr "Gjenopprettingsøyeblikksbilde slettet."
 
 msgid "Recovery snapshots"
 msgstr "Gjenopprettingsøyeblikksbilder"
+
+msgid "Rectangle"
+msgstr ""
 
 msgid "Recycle bin"
 msgstr "Papirkurv"
@@ -5432,6 +5617,9 @@ msgstr "Rheinland-Pfalz"
 msgid "Right page"
 msgstr "Høyre side"
 
+msgid "Rotate selection"
+msgstr ""
+
 msgid "Route"
 msgstr "Rute"
 
@@ -5712,6 +5900,9 @@ msgstr "Velg minst ett år."
 msgid "Select backup folder"
 msgstr "Velg mappe for sikkerhetskopier"
 
+msgid "Select complete strokes that fit inside the sheet."
+msgstr ""
+
 msgid "Select no more than three years."
 msgstr "Velg ikke mer enn tre år."
 
@@ -5734,6 +5925,9 @@ msgstr "Valgte kolonner som er tomme for alle kontakter, utelates automatisk."
 msgid "Selection options"
 msgstr "Valgalternativer"
 
+msgid "Send"
+msgstr ""
+
 msgid "Send SMS"
 msgstr "Send SMS"
 
@@ -5745,6 +5939,15 @@ msgstr "Send dokumenter"
 
 msgid "Send secure request"
 msgstr "Send sikker forespørsel"
+
+msgid "Send this new note to Notes"
+msgstr ""
+
+msgid "Send to Notes"
+msgstr ""
+
+msgid "Send via"
+msgstr ""
 
 msgid "Sending SMS with KDE Connect"
 msgstr "Sender SMS med KDE Connect"
@@ -5807,6 +6010,9 @@ msgstr "Del tilkobling"
 msgid "Share connection with"
 msgstr "Del tilkobling med"
 
+msgid "Share selected details"
+msgstr ""
+
 msgid "Share this connection with the selected device?"
 msgstr "Dele tilkoblingen med den valgte enheten?"
 
@@ -5833,6 +6039,9 @@ msgstr "Delt notat"
 
 msgid "Sharing this connection is not allowed."
 msgstr "Deling av denne tilkoblingen er ikke tillatt."
+
+msgid "Sheet size"
+msgstr ""
 
 msgid "Shift planner"
 msgstr "Vaktplan"
@@ -6023,6 +6232,9 @@ msgstr "Stavekontroll"
 msgid "Spray"
 msgstr "Spray"
 
+msgid "Square"
+msgstr ""
+
 msgid "St. Gallen"
 msgstr "St. Gallen"
 
@@ -6065,6 +6277,9 @@ msgstr "Formatregion"
 
 msgid "Status"
 msgstr "Status"
+
+msgid "Street"
+msgstr ""
 
 msgid "Street / house number"
 msgstr "Gate / husnummer"
@@ -6141,6 +6356,9 @@ msgid ""
 msgstr ""
 "Synkroniseringsstatus, ventende meldinger og metadata for denne tilkoblingen "
 "fjernes. Allerede godtatte kontakter og lokale data beholdes."
+
+msgid "Synchronize all notes and tasks"
+msgstr ""
 
 msgid "Synchronize automatically at startup"
 msgstr "Synkroniser automatisk ved oppstart"
@@ -7203,6 +7421,9 @@ msgstr ""
 msgid "The selected contacts contain no values for these columns."
 msgstr "De valgte kontaktene inneholder ingen verdier for disse kolonnene."
 
+msgid "The selected entry is too large to send."
+msgstr ""
+
 msgid "The selected file is not a readable CSV file."
 msgstr "Den valgte filen er ikke en lesbar CSV-fil."
 
@@ -7215,6 +7436,9 @@ msgstr ""
 
 msgid "The selected iCalendar file is incomplete."
 msgstr "Den valgte iCalendar-filen er ufullstendig."
+
+msgid "The selected note contains attachments that cannot be sent."
+msgstr ""
 
 msgid "The selected online account is disabled, offline or unreachable."
 msgstr "Den valgte nettkontoen er deaktivert, frakoblet eller utilgjengelig."
@@ -7554,6 +7778,9 @@ msgstr "Denne personens jubileer"
 msgid "This phone transport is unavailable."
 msgstr "Denne tilkoblingsmåten for telefonen er ikke tilgjengelig."
 
+msgid "This profile format is not supported."
+msgstr ""
+
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
 "published in the hope that it will be useful, but without any warranty. The "
@@ -7620,6 +7847,9 @@ msgstr "Tid"
 
 msgid "Time format"
 msgstr "Tidsformat"
+
+msgid "Time synchronization direction"
+msgstr ""
 
 msgctxt "time tracking"
 msgid "Time tracking"
@@ -7693,8 +7923,14 @@ msgstr "Håndverker"
 msgid "Transfer received text to the clipboard"
 msgstr "Overfør mottatt tekst til utklippstavlen"
 
+msgid "Travel"
+msgstr ""
+
 msgid "Tray applet"
 msgstr "Systemstatusapplet"
+
+msgid "Triangle"
+msgstr ""
 
 msgid "Trust and accept tasks and notes automatically"
 msgstr "Klarer og godta oppgaver og notater automatisk"
@@ -7754,6 +7990,12 @@ msgstr "URI"
 
 msgid "Unavailable"
 msgstr "Ikke tilgjengelig"
+
+msgid "Unchanged contents do not create another recovery point."
+msgstr ""
+
+msgid "Undated"
+msgstr ""
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -8180,6 +8422,9 @@ msgstr "Hvor er kontaktene dine nå?"
 msgid "Whole month"
 msgstr "Hele måneden"
 
+msgid "Width"
+msgstr ""
+
 msgid "Wife"
 msgstr "Kone"
 
@@ -8272,6 +8517,9 @@ msgstr "Ja"
 msgid "Yes, the code matches"
 msgstr "Ja, koden stemmer"
 
+msgid "Yesterday"
+msgstr ""
+
 msgid "You can also do this later in Settings."
 msgstr "Du kan også gjøre dette senere i Innstillinger."
 
@@ -8306,6 +8554,12 @@ msgstr "Med vennlig hilsen"
 
 msgid "ZIP archives (*.zip)"
 msgstr "ZIP-arkiver (*.zip)"
+
+msgid "Zoom in"
+msgstr ""
+
+msgid "Zoom out"
+msgstr ""
 
 msgid "Zug"
 msgstr "Zug"
@@ -8742,6 +8996,31 @@ msgstr[1] "… og %(count)s elementer til som også blir skrevet ut."
 
 msgid "＋ Add appointment"
 msgstr "＋ Legg til avtale"
+
+#~ msgid "Choose a connection. Confirm pairing on the phone and this computer."
+#~ msgstr ""
+#~ "Velg en tilkobling. Bekreft paringen på telefonen og på denne "
+#~ "datamaskinen."
+
+#~ msgid "Create a drawing sheet in the custom tab first."
+#~ msgstr "Opprett først et tegneark i den egendefinerte fanen."
+
+#~ msgid ""
+#~ "Enable tablet input here, then open the drawing tablet in KDE Connect on "
+#~ "the phone."
+#~ msgstr ""
+#~ "Aktiver nettbrettinndata her, og åpne deretter tegnebrettet i KDE Connect "
+#~ "på telefonen."
+
+#~ msgid ""
+#~ "Every saved change is protected automatically by a private, integrity-"
+#~ "checked snapshot."
+#~ msgstr ""
+#~ "Hver lagrede endring beskyttes automatisk av et privat øyeblikksbilde med "
+#~ "kontrollert integritet."
+
+#~ msgid "Export PNG"
+#~ msgstr "Eksporter PNG"
 
 #~ msgid ""
 #~ "Cycle markers are stored only in your local Organizer data and do not "
