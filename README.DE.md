@@ -94,6 +94,44 @@ Die suffixierten 2.0.19-Dateien waren unveröffentlichte Testkandidaten und werd
 von dpkg höher als 2.0.19 einsortiert: Ihr Ersatz braucht eine ausdrückliche
 Downgrade-Entscheidung des Testers. Siehe [KDE-Anforderungen und Upgrade-Regeln](magnolie-organizer/native/akonadi-helper/DEB-TARGETS.md).
 
+### AppImage entfernen: Erinnerungen und Hintergrundstarts vorher abschalten
+
+Ein AppImage besitzt keinen Paket-Deinstallierer. Wenn Erinnerungen eingerichtet
+wurden, verwendet Magnolie in der Linux-Benutzersitzung unter anderem **systemd**:
+`magnolie-erinnerung.timer` startet `magnolie-erinnerung.service` regelmäßig.
+Die Unit enthält den Pfad zum AppImage. Ein Sitzung-Autostart kann ebenfalls
+eingerichtet sein. Das Löschen oder Verschieben der AppImage-Datei entfernt diese
+Einträge nicht; ein zurückgebliebener Timer kann dann jede Minute einen
+fehlgeschlagenen Start und neue Protokollmeldungen verursachen.
+
+**Vor dem Löschen** die eingerichteten Erinnerungen und Hintergrundstarts im
+Organizer abschalten und das Programm beenden. Wurde das AppImage schon gelöscht,
+die alten Benutzer-Units im Terminal **ohne `sudo`** deaktivieren:
+
+```bash
+systemctl --user disable --now magnolie-erinnerung.timer magnolie-erinnerung.service
+systemctl --user show magnolie-erinnerung.timer magnolie-erinnerung.service -p FragmentPath
+```
+
+Die zweite Zeile zeigt die tatsächlichen Unit-Dateien. Die von Magnolie erzeugten
+Einträge liegen normalerweise in `${XDG_CONFIG_HOME:-$HOME/.config}`. Wenn die
+angezeigten Pfade diese alten Magnolie-Einträge bestätigen, nur sie entfernen:
+
+```bash
+rm -f -- "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/magnolie-erinnerung.service" \
+          "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/magnolie-erinnerung.timer" \
+          "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/magnolie-erinnerung.desktop"
+systemctl --user reset-failed magnolie-erinnerung.service
+systemctl --user daemon-reload
+```
+
+`reset-failed` leert die Fehleranzeige dieses Dienstes; alte Journalmeldungen
+werden dadurch nicht gelöscht. Falls eine Unit an einem anderen Pfad liegt, den
+angezeigten `FragmentPath` prüfen. Persönliche Organizer-Dateien und Sicherungen
+müssen für diese Bereinigung nicht gelöscht werden. Bei einem AppImage-Update am
+besten einen festen Ablageort verwenden und den Dienst anschließend im neuen
+Organizer erneut einrichten, damit er auf die aktuelle Datei verweist.
+
 SHA-256-Prüfsummen und Quellarchive liegen in der
 [aktuellen Freigabe](https://github.com/maik3531/Magnolie-Organizer/releases/latest).
 

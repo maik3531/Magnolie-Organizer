@@ -99,6 +99,42 @@ preserve upgrades from released 1.0.0. The suffixed 2.0.19 files were unreleased
 candidates and sort above 2.0.19 in dpkg: replacing them requires an explicit tester
 downgrade decision. See [KDE requirements and upgrade policy](magnolie-organizer/native/akonadi-helper/DEB-TARGETS.md).
 
+### Removing an AppImage: disable reminders and background starts first
+
+An AppImage has no package uninstaller. When reminders are configured, Magnolie
+uses **systemd** in the Linux user session among its startup mechanisms:
+`magnolie-erinnerung.timer` regularly starts `magnolie-erinnerung.service`.
+The unit references the AppImage path. A session-autostart entry may also exist.
+Deleting or moving the AppImage does not remove these entries; a leftover timer
+can produce a failed start and new journal messages every minute.
+
+**Before deleting the file**, disable the configured reminders and background
+starts in Organizer, then exit the application. If the AppImage was already
+deleted, disable the old user units in a terminal **without `sudo`**:
+
+```bash
+systemctl --user disable --now magnolie-erinnerung.timer magnolie-erinnerung.service
+systemctl --user show magnolie-erinnerung.timer magnolie-erinnerung.service -p FragmentPath
+```
+
+The second command identifies the actual unit files. Magnolie-generated entries
+normally reside beneath `${XDG_CONFIG_HOME:-$HOME/.config}`. If the displayed
+paths confirm these old Magnolie entries, remove only those files:
+
+```bash
+rm -f -- "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/magnolie-erinnerung.service" \
+          "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/magnolie-erinnerung.timer" \
+          "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/magnolie-erinnerung.desktop"
+systemctl --user reset-failed magnolie-erinnerung.service
+systemctl --user daemon-reload
+```
+
+`reset-failed` clears this service's failed-state display, not previous
+journal entries. If a unit is stored elsewhere, inspect its displayed
+`FragmentPath`. Personal Organizer documents and backups do not need to be
+deleted. For AppImage updates, use a stable location and configure the service
+again in the new Organizer so it references the current file.
+
 SHA-256 checksums and source archives are attached to the
 [latest release](https://github.com/maik3531/Magnolie-Organizer/releases/latest).
 
