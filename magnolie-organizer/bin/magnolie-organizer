@@ -13261,7 +13261,7 @@ def baum_schluessel_erzeugen(name=""):
                                                        PublicFormat.Raw)
     return {
         "kennung": _zufallskennung(),
-        "name": name or _rechnername(),
+        "name": name or ("Linux-" + _rechnername())[:60],
         "geheim": base64.b64encode(roh_geheim).decode("ascii"),
         "oeffentlich": base64.b64encode(roh_oeffentlich).decode("ascii"),
         "an": False,
@@ -13298,6 +13298,8 @@ def _baum_zustand_pruefen(zustand):
     zustand.setdefault("partner", [])
     zustand.setdefault("port", BAUM_PORT)
     zustand.setdefault("an", False)
+    if zustand.get("name") == "Linux":
+        zustand["name"] = ("Linux-" + _rechnername())[:60]
     if type(zustand["an"]) is not bool:
         raise RuntimeError(_("The Magnolienbaum identity file is damaged."))
     for partner in zustand["partner"]:
