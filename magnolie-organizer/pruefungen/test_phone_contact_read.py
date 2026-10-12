@@ -30,7 +30,8 @@ class Channel:
     def send(self, message): self.sent.append(copy.deepcopy(message))
 
 
-def test_own_profile_uses_explicit_profile_resource_without_normal_contact_rows(private):
+@pytest.mark.parametrize("version", [7, 8])
+def test_own_profile_uses_explicit_profile_resource_without_normal_contact_rows(private, version):
     service = phone.PhoneService(str(private / "phone"), "Fixture")
     service.enabled = True
     peer_id = "22222222-2222-4222-8222-222222222222"
@@ -38,15 +39,19 @@ def test_own_profile_uses_explicit_profile_resource_without_normal_contact_rows(
             "grants": phone.desktop_grants(), "local_grants": phone.desktop_grants(), "capabilities": phone.desktop_capabilities(),
             "last_contact_ms": 0, "bluetooth": {"enabled": False, "address": ""},
             "personal_sync": {"own_device": True, "remote_own_device": True, "auto_wifi": False, "last_report": {}}}
+    if version == 7:
+        peer["capabilities"]["items"]["device_status"]["versions"].remove(8)
     service.store.peers.append(peer); service.store.save_peers()
     class ProfileChannel(Channel):
         def send(self, message):
             super().send(message)
             if message.get("kind") == "device_status.request":
                 body = message["body"]
-                assert body["version"] == 7 and body["action"] == "profile" and body["uids"] == []
+                assert body["version"] == version and body["action"] == "profile" and body["uids"] == []
                 report = {key: value for key, value in body.items() if key != "uids"}
                 report.update(total=1, contacts=[], profile={"state": "available", "vcard": "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Own fixture\r\nEND:VCARD\r\n"})
+                if version == 8:
+                    report["diagnostics"] = [{"stage": "canonical_header", "rows": 1, "outcome": "ok"}]
                 now = phone.now_ms()
                 service._receive_contacts(peer, self, {"type": "message", "v": 1, "kind": "device_status.report",
                     "message_id": str(uuid.uuid4()), "created_ms": now, "expires_ms": now + 60000, "body": report})
@@ -57,6 +62,22 @@ def test_own_profile_uses_explicit_profile_resource_without_normal_contact_rows(
     assert "contacts" not in result and result["profile"]["state"] == "available"
     assert result["fingerprint"] == phone.fingerprint(phone.unb64(peer["static_public"], 32))
     assert not service.store.status(peer_id)
+    if version == 8:
+        assert result["diagnostics"] == [{"stage": "canonical_header", "rows": 1, "outcome": "ok"}]
+
+
+def test_profile_diagnostic_contract_rejects_content_and_unbounded_results():
+    body = dict(request("profile"), version=8)
+    report = {key: value for key, value in body.items() if key != "uids"}
+    entry = {"stage": "canonical_header", "rows": 0, "outcome": "empty"}
+    report.update(total=0, contacts=[], profile={"state": "unavailable", "vcard": ""}, diagnostics=[entry])
+    contract.validate_report(report)
+    for bad in [dict(entry, message="private contact value"), dict(entry, rows=True), dict(entry, rows=1001),
+                dict(entry, outcome="unrecognized"), dict(entry, stage="personal-name")]:
+        with pytest.raises(ValueError):
+            contract.validate_report(dict(report, diagnostics=[bad]))
+    with pytest.raises(ValueError):
+        contract.validate_report(dict(report, diagnostics=[entry] * 33))
 
 
 @pytest.mark.parametrize("change", ["none", "unrequested", "rekey", "permission", "replacement_channel", "expired", "wrong_uid", "old_capabilities"])

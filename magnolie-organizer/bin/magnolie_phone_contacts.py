@@ -5,6 +5,10 @@ import unicodedata
 
 VERSION = 5
 PROFILE_VERSION = 7
+PROFILE_DIAGNOSTIC_VERSION = 8
+DIAGNOSTIC_STAGES = {"canonical_header", "marked_header", "data", "photo", "finish"}
+DIAGNOSTIC_OUTCOMES = {"ok", "no_cursor", "empty", "ambiguous", "invalid_identity", "permission_denied",
+                       "unsupported_or_invalid", "provider_changed", "too_large", "no_profile", "provider_failure"}
 PAGE_SIZE = 128
 MAX_CONTACTS = 10000
 MAX_CARD_BYTES = 96 * 1024
@@ -29,8 +33,8 @@ def _integer(value, minimum, maximum):
 
 
 def _header(value):
-    _integer(value["version"], VERSION, PROFILE_VERSION)
-    if value["version"] not in (VERSION, PROFILE_VERSION):
+    _integer(value["version"], VERSION, PROFILE_DIAGNOSTIC_VERSION)
+    if value["version"] not in (VERSION, PROFILE_VERSION, PROFILE_DIAGNOSTIC_VERSION):
         raise ValueError("invalid_contact_schema")
     if not isinstance(value["request_id"], str) or not UUID4.fullmatch(value["request_id"]):
         raise ValueError("invalid_contact_request")
@@ -41,7 +45,7 @@ def validate_request(value):
     _header(value)
     offset = _integer(value["offset"], 0, MAX_CONTACTS)
     uids = value["uids"]
-    if value["version"] == PROFILE_VERSION:
+    if value["version"] in (PROFILE_VERSION, PROFILE_DIAGNOSTIC_VERSION):
         if value["action"] != "profile" or offset != 0 or uids != []:
             raise ValueError("invalid_profile_request")
         return value
@@ -53,9 +57,20 @@ def validate_request(value):
 
 
 def validate_report(value):
-    if isinstance(value, dict) and value.get("version") == PROFILE_VERSION:
-        _exact(value, ("version", "request_id", "action", "offset", "total", "contacts", "profile"))
+    if isinstance(value, dict) and value.get("version") in (PROFILE_VERSION, PROFILE_DIAGNOSTIC_VERSION):
+        fields = ("version", "request_id", "action", "offset", "total", "contacts", "profile")
+        _exact(value, fields + (("diagnostics",) if value["version"] == PROFILE_DIAGNOSTIC_VERSION else ()))
         _header(value)
+        if value["version"] == PROFILE_DIAGNOSTIC_VERSION:
+            entries = value["diagnostics"]
+            if not isinstance(entries, list) or len(entries) > 32:
+                raise ValueError("invalid_profile_diagnostics")
+            for entry in entries:
+                _exact(entry, ("stage", "rows", "outcome"))
+                if (not isinstance(entry["stage"], str) or not isinstance(entry["outcome"], str) or
+                        entry["stage"] not in DIAGNOSTIC_STAGES or entry["outcome"] not in DIAGNOSTIC_OUTCOMES):
+                    raise ValueError("invalid_profile_diagnostics")
+                _integer(entry["rows"], -1, 1000)
         profile = value["profile"]
         _exact(profile, ("state", "vcard"))
         card = profile["vcard"]
@@ -65,6 +80,8 @@ def validate_report(value):
                 (profile["state"] == "unavailable" and card) or
                 (profile["state"] == "available" and (not card.startswith("BEGIN:VCARD\r\n") or not card.endswith("END:VCARD\r\n") or len(card.encode("utf-8")) > MAX_CARD_BYTES))):
             raise ValueError("invalid_profile_report")
+        if len(json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > MAX_REPORT_BYTES:
+            raise ValueError("contact_report_too_large")
         return value
     _exact(value, ("version", "request_id", "action", "offset", "total", "contacts"))
     _header(value)

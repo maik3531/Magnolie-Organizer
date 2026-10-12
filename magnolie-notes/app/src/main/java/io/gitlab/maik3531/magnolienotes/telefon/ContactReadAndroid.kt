@@ -32,7 +32,11 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
     override fun read(request: JsonObject): JsonObject {
         check(permission())
         val uids = ContactRead.validateRequest(request)
-        if (request.string("action") == "profile") return ContactRead.profileReport(request, readOwnProfile())
+        if (request.string("action") == "profile") {
+            val diagnostics = if (request["version"] == JsonPrimitive(ContactRead.PROFILE_DIAGNOSTIC_VERSION)) mutableListOf<JsonObject>() else null
+            val card = readOwnProfile(diagnostics)
+            return ContactRead.profileReport(request, card, diagnostics.orEmpty())
+        }
         if (request.string("action") == "index") {
             val entries = mutableListOf<Pair<String, Long>>()
             context.contentResolver.query(Contacts.CONTENT_URI,
@@ -80,44 +84,56 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
         return ContactRead.report(request, cards.size, cards)
     }
 
-    private fun readOwnProfile(): String {
-        val uri = android.provider.ContactsContract.Profile.CONTENT_URI
-        fun queryHeader(columns: Array<String>): List<String>? = context.contentResolver.query(uri,
-            columns, null, null, null)?.use {
-            // The canonical Profile URI is the authoritative resource. Some OEM
-            // providers use ordinary positive IDs, not Android's reserved range.
-            if (it.count != 1 || !it.moveToFirst() || it.getLong(0) < 0) null
-            else listOf(it.getString(0).orEmpty(), it.getString(1).orEmpty(),
-                if (columns.size > 2) it.getString(2).orEmpty() else "", "profile")
+    private fun readOwnProfile(diagnostics: MutableList<JsonObject>? = null): String {
+        var stage = "canonical_header"
+        fun observe(step: String, rows: Int, outcome: String) {
+            if (diagnostics != null && diagnostics.size < 32) diagnostics.add(buildJsonObject {
+                put("stage", JsonPrimitive(step)); put("rows", JsonPrimitive(rows.coerceIn(-1, 1000))); put("outcome", JsonPrimitive(outcome))
+            })
         }
-        fun markedHeader(columns: Array<String>): List<String>? = context.contentResolver.query(Contacts.CONTENT_URI,
-            columns, "${Contacts.IS_USER_PROFILE}=1", null, null)?.use {
-            // Only an explicit system-owned profile marker authorizes this OEM
-            // route. Never select an ordinary contact by its name or phone.
-            if (it.count != 1 || !it.moveToFirst() || it.getLong(0) < 0 || it.getInt(columns.lastIndex) != 1) null
-            else listOf(it.getString(0).orEmpty(), it.getString(1).orEmpty(),
-                if (columns.size > 3) it.getString(2).orEmpty() else "", "marked")
+        val uri = android.provider.ContactsContract.Profile.CONTENT_URI
+        fun headerQuery(columns: Array<String>, marked: Boolean): List<String>? {
+            stage = if (marked) "marked_header" else "canonical_header"
+            try {
+                val cursor = context.contentResolver.query(if (marked) Contacts.CONTENT_URI else uri, columns,
+                    if (marked) "${Contacts.IS_USER_PROFILE}=1" else null, null, null)
+                if (cursor == null) { observe(stage, -1, "no_cursor"); return null }
+                return cursor.use {
+                    val count = it.count
+                    if (count != 1 || !it.moveToFirst()) {
+                        observe(stage, count, if (count == 0) "empty" else "ambiguous"); null
+                    } else if (it.getLong(0) < 0 || marked && it.getInt(columns.lastIndex) != 1) {
+                        observe(stage, count, "invalid_identity"); null
+                    } else {
+                        observe(stage, count, "ok")
+                        listOf(it.getString(0).orEmpty(), it.getString(1).orEmpty(),
+                            if (columns.size > if (marked) 3 else 2) it.getString(2).orEmpty() else "", if (marked) "marked" else "profile")
+                    }
+                }
+            } catch (error: SecurityException) { observe(stage, -1, "permission_denied"); throw error }
+            catch (error: IllegalArgumentException) { observe(stage, -1, "unsupported_or_invalid"); throw error }
         }
         fun header(): List<String>? {
             val canonical = try {
-                queryHeader(arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY, Contacts.CONTACT_LAST_UPDATED_TIMESTAMP))
+                headerQuery(arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY, Contacts.CONTACT_LAST_UPDATED_TIMESTAMP), false)
             } catch (_: IllegalArgumentException) {
-                queryHeader(arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY))
+                headerQuery(arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY), false)
             }
             if (canonical != null) return canonical
             return try {
-                markedHeader(arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY, Contacts.CONTACT_LAST_UPDATED_TIMESTAMP, Contacts.IS_USER_PROFILE))
+                headerQuery(arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY, Contacts.CONTACT_LAST_UPDATED_TIMESTAMP, Contacts.IS_USER_PROFILE), true)
             } catch (_: IllegalArgumentException) {
-                markedHeader(arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY, Contacts.IS_USER_PROFILE))
+                headerQuery(arrayOf(Contacts._ID, Contacts.DISPLAY_NAME_PRIMARY, Contacts.IS_USER_PROFILE), true)
             }
         }
         return try {
-            val initial = header() ?: return ""
+            val initial = header() ?: run { observe("finish", -1, "no_profile"); return "" }
             val sourceUri = if (initial[3] == "profile") uri else ContentUris.withAppendedId(Contacts.CONTENT_URI, initial[0].toLong())
             val dataUri = if (initial[3] == "profile") android.net.Uri.withAppendedPath(uri, "data") else Data.CONTENT_URI
             fun escape(text: String) = text.replace("\\", "\\\\").replace("\r\n", "\n").replace("\r", "\n")
                 .replace("\n", "\\n").replace(";", "\\;").replace(",", "\\,")
             fun rows(): List<String> {
+                stage = "data"
                 val lines = mutableListOf<String>()
                 val types = mutableSetOf<String>()
                 context.contentResolver.query(dataUri,
@@ -153,8 +169,9 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
                                 lines.add(field + ":" + date.replace("-", "").let { if (date.startsWith("--")) "--$it" else it })
                          }
                     }
-                }
-                } ?: return emptyList()
+                 }
+                observe("data", count, "ok")
+                } ?: run { observe("data", -1, "no_cursor"); return emptyList() }
                 // Capability metadata only: no medical values are transferred
                 // without a separate, explicitly requested medical-data path.
                 val medicalTypes = types.filter { it.contains("medical", true) || it.contains("emergency", true) }
@@ -162,6 +179,7 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
                 return lines
             }
             val data = rows()
+            stage = "photo"
             val preferredPhoto = runCatching {
                 Contacts.openContactPhotoInputStream(context.contentResolver, sourceUri, true)?.use { input ->
                     val output = ByteArrayOutputStream(); val buffer = ByteArray(8192)
@@ -170,12 +188,24 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
                     thumbnailBytes(output.toByteArray())
                 }
             }.getOrNull()
+            observe("photo", if (preferredPhoto.isNullOrEmpty()) 0 else 1, "ok")
+            stage = "finish"
             check(permission() && header() == initial)
             if (initial[2].isEmpty()) check(rows() == data)
             val lines = mutableListOf("BEGIN:VCARD", "VERSION:4.0", "FN:" + escape(initial[1]))
             lines.addAll(if (preferredPhoto.isNullOrEmpty()) data else data.filterNot { it.startsWith("PHOTO:") } + ("PHOTO:data:image/jpeg;base64," + preferredPhoto))
-            (lines + "END:VCARD").joinToString("\r\n", postfix = "\r\n").takeIf { it.toByteArray().size <= ContactRead.MAX_CARD_BYTES } ?: ""
-        } catch (_: SecurityException) { "" } catch (_: IllegalArgumentException) { "" }
+            val card = (lines + "END:VCARD").joinToString("\r\n", postfix = "\r\n")
+            if (card.toByteArray().size > ContactRead.MAX_CARD_BYTES) { observe("finish", -1, "too_large"); "" }
+            else { observe("finish", -1, "ok"); card }
+        } catch (_: SecurityException) { observe(stage, -1, "permission_denied"); "" }
+        catch (_: IllegalArgumentException) { observe(stage, -1, "unsupported_or_invalid"); "" }
+        catch (error: IllegalStateException) {
+            if (diagnostics == null) throw error
+            observe(stage, -1, "provider_changed"); ""
+        } catch (error: Exception) {
+            if (diagnostics == null) throw error
+            observe(stage, -1, "provider_failure"); ""
+        }
     }
 
     private fun groupRows(contactId: Long): List<String> {

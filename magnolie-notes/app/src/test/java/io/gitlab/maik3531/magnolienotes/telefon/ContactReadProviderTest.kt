@@ -101,8 +101,8 @@ class ContactReadProviderTest {
         assertTrue(provider.photoUris.contains("/contacts/10/display_photo"))
     }
 
-    private fun profileRequest() = buildJsonObject {
-        put("version", JsonPrimitive(7)); put("request_id", JsonPrimitive(UUID.randomUUID().toString()))
+    private fun profileRequest(version: Int = 7) = buildJsonObject {
+        put("version", JsonPrimitive(version)); put("request_id", JsonPrimitive(UUID.randomUUID().toString()))
         put("action", JsonPrimitive("profile")); put("offset", JsonPrimitive(0)); put("uids", JsonArray(emptyList()))
     }
 
@@ -157,6 +157,23 @@ class ContactReadProviderTest {
         assertEquals(0, provider.profileDataReads)
     }
 
+    @Test fun profileDiagnosticsDescribeEmptyAndUnmarkedProviderResultsWithoutPersonalValues() {
+        val response = ContactReadAndroid(context).read(profileRequest(8))
+        assertEquals("unavailable", response["profile"]!!.jsonObject.string("state"))
+        val diagnostics = response["diagnostics"] as JsonArray
+        assertTrue(diagnostics.any { it.jsonObject.string("stage") == "canonical_header" && it.jsonObject.string("outcome") == "empty" })
+        assertTrue(diagnostics.any { it.jsonObject.string("stage") == "marked_header" && it.jsonObject.string("outcome") == "invalid_identity" })
+        assertTrue(diagnostics.all { it.jsonObject.keys == setOf("stage", "rows", "outcome") })
+        assertFalse(diagnostics.toString().contains("Own Profile"))
+    }
+
+    @Test fun profileDiagnosticsDescribePermissionFailureWithoutExposingItsMessage() {
+        provider.profilePermissionDenied = true
+        val response = ContactReadAndroid(context).read(profileRequest(8))
+        assertTrue((response["diagnostics"] as JsonArray).any { it.jsonObject.string("outcome") == "permission_denied" })
+        assertFalse(response.toString().contains("private provider message"))
+    }
+
     class ReadOnlyProvider : ContentProvider() {
         val queries = mutableListOf<String>()
         var rawReads = 0
@@ -168,6 +185,7 @@ class ContactReadProviderTest {
         var profileEnabled = false
         var profileId = 7L
         var markedProfile = false
+        var profilePermissionDenied = false
         var sawOwnProfileMarker = false
         var profileNoTimestamp = false
         var profileHeaders = 0
@@ -192,6 +210,7 @@ class ContactReadProviderTest {
             queries += uri.path.orEmpty()
             val rows: List<Map<String, Any?>> = when (uri.path) {
                 "/profile" -> {
+                    if (profilePermissionDenied) throw SecurityException("private provider message")
                     if (profileNoTimestamp && Contacts.CONTACT_LAST_UPDATED_TIMESTAMP in columns) throw IllegalArgumentException("unsupported profile timestamp column")
                     profileHeaders++
                     if (!profileEnabled) emptyList() else listOf(mapOf(Contacts._ID to profileId, Contacts.DISPLAY_NAME_PRIMARY to

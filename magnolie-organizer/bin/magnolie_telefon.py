@@ -88,7 +88,7 @@ def desktop_capabilities(revision=1, bluetooth_available=False,
                            bluetooth_reason if name == "transport.bluetooth_rfcomm"
                            else "not_implemented"),
                          "versions": [1, 2, 3, 4, 6, 7, 9, 10] if name == "personal_tasks_sync" else
-                                       [1, 2, 3, 4, 5, 7] if name == "device_status" else
+                                       [1, 2, 3, 4, 5, 7, 8] if name == "device_status" else
                                        [1, 2, 3, 5, 9, 10] if name == "personal_notes_sync" else
                                      [2] if name == "incoming_call_state" else [1]}
     return {"revision": revision, "items": items}
@@ -2851,7 +2851,9 @@ class PhoneService:
         def read_page(action, offset, selected):
             request_id = str(uuid.uuid4())
             message_id = str(uuid.uuid4())
-            body = {"version": 7 if own_profile else 5, "request_id": request_id, "action": action, "offset": offset, "uids": selected}
+            version = (phone_contacts.PROFILE_DIAGNOSTIC_VERSION if own_profile and phone_contacts.PROFILE_DIAGNOSTIC_VERSION in
+                       peer["capabilities"]["items"]["device_status"]["versions"] else phone_contacts.PROFILE_VERSION if own_profile else phone_contacts.VERSION)
+            body = {"version": version, "request_id": request_id, "action": action, "offset": offset, "uids": selected}
             phone_contacts.validate_request(body)
             entry = {"peer": peer_id, "key": public_key, "channel": channel, "request": body,
                       "deadline": deadline, "event": threading.Event(), "result": None,
@@ -2877,12 +2879,15 @@ class PhoneService:
 
         contacts = []
         profile = None
+        diagnostics = []
         if own_profile:
             with self.lock:
                 current = self._contact_peer(peer_id, channel)
-                if not current or phone_contacts.PROFILE_VERSION not in current["capabilities"]["items"]["device_status"]["versions"]:
+                if not current or not set(current["capabilities"]["items"]["device_status"]["versions"]) & {phone_contacts.PROFILE_VERSION, phone_contacts.PROFILE_DIAGNOSTIC_VERSION}:
                     raise PermissionError("own_profile_not_supported")
-            profile = read_page("profile", 0, [])["profile"]
+            result = read_page("profile", 0, [])
+            profile = result["profile"]
+            diagnostics = result.get("diagnostics", [])
         elif uids is not None:
             for uid in uids:
                 contacts.extend(read_page("cards", 0, [uid])["contacts"])
@@ -2903,7 +2908,10 @@ class PhoneService:
             if not current or current["static_public"] != public_key:
                 raise PermissionError("contacts_not_granted")
         if own_profile:
-            return {"device_id": peer_id, "fingerprint": fingerprint(unb64(public_key, 32)), "profile": profile}
+            result = {"device_id": peer_id, "fingerprint": fingerprint(unb64(public_key, 32)), "profile": profile}
+            if diagnostics:
+                result["diagnostics"] = diagnostics
+            return result
         return {"device_id": "notes:" + peer_id, "fingerprint": hashlib.sha256(unb64(public_key, 32)).hexdigest(),
             "contacts": [dict({k: v for k, v in item.items() if k != "timestamp"}, modified_ms=item["timestamp"]) for item in contacts]}
 
@@ -2923,7 +2931,7 @@ class PhoneService:
                     raise PermissionError
                 error = "invalid_schema"
                 expected = request["request"]
-                if (payload["expires_ms"] - payload["created_ms"] > 60000 or report["action"] != expected["action"] or
+                if (payload["expires_ms"] - payload["created_ms"] > 60000 or report["version"] != expected["version"] or report["action"] != expected["action"] or
                         report["offset"] != expected["offset"] or report["action"] == "cards" and
                         set(expected["uids"]) != {item["uid"] for item in report["contacts"]}):
                     raise ValueError
@@ -5187,7 +5195,7 @@ class PhoneService:
                     raise ValueError("conflicting personal sync format")
             if policy == "wifi_only" and self.connection_transports.get(peer["device_id"]) != "wifi":
                 raise ValueError("wifi-only run received on bluetooth")
-        if kind == "device_status.report" and payload["body"].get("version") in (phone_contacts.VERSION, phone_contacts.PROFILE_VERSION):
+        if kind == "device_status.report" and payload["body"].get("version") in (phone_contacts.VERSION, phone_contacts.PROFILE_VERSION, phone_contacts.PROFILE_DIAGNOSTIC_VERSION):
             self._receive_contacts(peer, channel, payload)
             return
         if kind == "device_status.report" and ("identifiers" in payload["body"] or "version" in payload["body"]):

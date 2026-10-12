@@ -1581,7 +1581,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     internal fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                 generation: Long) {
         if (message["kind"] == JsonPrimitive("device_status.request") &&
-            (message["body"] as? JsonObject)?.get("version") in setOf(JsonPrimitive(ContactRead.VERSION), JsonPrimitive(ContactRead.PROFILE_VERSION))) {
+            (message["body"] as? JsonObject)?.get("version") in setOf(JsonPrimitive(ContactRead.VERSION), JsonPrimitive(ContactRead.PROFILE_VERSION), JsonPrimitive(ContactRead.PROFILE_DIAGNOSTIC_VERSION))) {
             receiveContactRead(sessionPeer, message, channel, generation)
             return
         }

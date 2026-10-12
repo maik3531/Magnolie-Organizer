@@ -7,6 +7,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -90,5 +91,17 @@ class ContactReadTest {
         assertEquals("profile", available.string("action"))
         assertEquals("0", ContactRead.profileReport(request, "")["total"]!!.toString())
         assertTrue(runCatching { ContactRead.validateRequest(JsonObject(request + ("uids" to JsonArray(listOf(JsonPrimitive("ordinary-contact")))))) }.isFailure)
+    }
+
+    @Test fun profileDiagnosticExtensionIsBoundedAndDoesNotAllowArbitraryMessages() {
+        val request = buildJsonObject { put("version", JsonPrimitive(8)); put("request_id", JsonPrimitive("11111111-1111-4111-8111-111111111111"))
+            put("action", JsonPrimitive("profile")); put("offset", JsonPrimitive(0)); put("uids", JsonArray(emptyList())) }
+        val entry = buildJsonObject { put("stage", "canonical_header"); put("rows", 0); put("outcome", "empty") }
+        val report = ContactRead.profileReport(request, "", listOf(entry))
+        assertEquals(JsonPrimitive(8), report["version"])
+        for (bad in listOf(JsonObject(entry + ("message" to JsonPrimitive("personal data"))),
+            JsonObject(entry + ("outcome" to JsonPrimitive("unknown"))), JsonObject(entry + ("rows" to JsonPrimitive(1001)))))
+            assertTrue(runCatching { ContactRead.profileReport(request, "", listOf(bad)) }.isFailure)
+        assertTrue(runCatching { ContactRead.profileReport(request, "", List(33) { entry }) }.isFailure)
     }
 }
