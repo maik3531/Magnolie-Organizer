@@ -19212,11 +19212,30 @@ def kontakte_erster_sync(lokal, entfernt, dav=None, kontakt_quelle="", kontakt_n
                       "remoteLoeschen": 0}
 
 
+def _eds_vcard_transportstand(vcard, entfernt=None):
+    """Use only the ETag from this sync's remote snapshot, not imported history."""
+    name = "X-EVOLUTION-WEBDAV-ETAG"
+    zeilen = []
+    for zeile in _entfalte_zeilen(vcard):
+        prop = _prop_zerlegen(zeile)
+        if not prop or prop[0] != name:
+            zeilen.append(zeile)
+    aktuelle = list(dict.fromkeys(zeile for zeile in (entfernt or {}).get("vcardRoundtrip", [])
+        if isinstance(zeile, str) and (prop := _prop_zerlegen(zeile)) and prop[0] == name))
+    if len(aktuelle) > 1:
+        raise ValueError("The address book snapshot contains conflicting ETags.")
+    if aktuelle:
+        ende = next((index for index, zeile in enumerate(zeilen)
+                     if zeile.upper() == "END:VCARD"), len(zeilen))
+        zeilen[ende:ende] = aktuelle
+    return "\r\n".join(_falte(zeile) for zeile in zeilen) + "\r\n"
+
+
 def eds_kontakt_anlegen(client, vcard):
     if isinstance(client, AkonadiClient):
         return client.create(vcard)
     EBookContacts = _EDS["EBookContacts"]
-    kontakt = EBookContacts.Contact.new_from_vcard(vcard)
+    kontakt = EBookContacts.Contact.new_from_vcard(_eds_vcard_transportstand(vcard))
     def anlegen(abbruch):
         try:
             return client.add_contact_sync(kontakt, _buch_flags(), abbruch)
@@ -25918,7 +25937,10 @@ class Fenster(_FENSTER_BASIS):
                             fehler_ursache))
                 for obj in aendern:
                     try:
-                        eds_kontakt_aendern(client, vcard_text(obj))
+                        text = vcard_text(obj)
+                        if not isinstance(client, AkonadiClient):
+                            text = _eds_vcard_transportstand(text, fern.get(obj["uid"]))
+                        eds_kontakt_aendern(client, text)
                         geschrieben.add(obj["uid"])
                         erfolgreich["aendern"] += 1
                     except Exception as fehler_ursache:

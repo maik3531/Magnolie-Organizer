@@ -17,8 +17,37 @@ def vcard(uid="remote-1", name="Remote", rev="20260812T120000Z", birthday=""):
     uid_zeile = "UID:%s\r\n" % uid if uid is not None else ""
     birthday_line = "BDAY:%s\r\n" % birthday if birthday else ""
     return ("BEGIN:VCARD\r\nVERSION:3.0\r\n" + uid_zeile +
-            "N:%s;;;;\r\nFN:%s\r\nREV:%s\r\n" %
-            (name, name, rev) + birthday_line + "END:VCARD\r\n")
+             "N:%s;;;;\r\nFN:%s\r\nREV:%s\r\n" %
+             (name, name, rev) + birthday_line + "END:VCARD\r\n")
+
+
+def test_contact_upload_uses_only_current_snapshot_etag_and_preserves_content():
+    original = vcard(name="Jürgen", birthday="1980-05-06").replace("END:VCARD",
+        'EMAIL;TYPE=HOME:one@example.test\r\nEMAIL;TYPE=WORK:two@example.test\r\n'
+        'PHOTO;ENCODING=b;TYPE=JPEG:YWJj\r\nX-GENDER:unspecified\r\n'
+        'X-EVOLUTION-WEBDAV-ETAG:old\r\nX-EVOLUTION-WEBDAV-ETAG:current\r\n'
+        'X-EVOLUTION-WEBDAV-ETAG:other-source\r\nEND:VCARD')
+    remote = {"vcardRoundtrip": ['X-EVOLUTION-WEBDAV-ETAG:current']}
+    result = m._eds_vcard_transportstand(original, remote)
+    assert result.count('X-EVOLUTION-WEBDAV-ETAG:') == 1
+    assert 'X-EVOLUTION-WEBDAV-ETAG:current\r\n' in result
+    assert 'old' not in result and 'other-source' not in result
+    without_etags = lambda text: [line for line in m._entfalte_zeilen(text)
+        if not line.startswith('X-EVOLUTION-WEBDAV-ETAG:')]
+    assert without_etags(result) == without_etags(original)
+    assert remote == {"vcardRoundtrip": ['X-EVOLUTION-WEBDAV-ETAG:current']}
+
+
+def test_new_or_local_contact_never_inherits_foreign_transport_etags():
+    text = vcard().replace('END:VCARD', 'X-EVOLUTION-WEBDAV-ETAG:foreign\r\nEND:VCARD')
+    assert 'X-EVOLUTION-WEBDAV-ETAG' not in m._eds_vcard_transportstand(text)
+    assert m._eds_vcard_transportstand(vcard()) == vcard()
+
+
+def test_conflicting_remote_etags_are_not_silently_overwritten():
+    with pytest.raises(ValueError, match='conflicting ETags'):
+        m._eds_vcard_transportstand(vcard(), {"vcardRoundtrip": [
+            'X-EVOLUTION-WEBDAV-ETAG:first', 'X-EVOLUTION-WEBDAV-ETAG:second']})
 
 
 class Kontakt:
