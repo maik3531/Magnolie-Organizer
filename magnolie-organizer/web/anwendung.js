@@ -18281,7 +18281,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     const kopfText = el("div", "kontakt-kopf-text");
     kopfText.append(el("h3", null, kontaktName(k)));
-    if (DATEN.einstellungen.adressen.personengruppenAn && kontaktGruppen(k).length)
+    if (!eigenesProfil && DATEN.einstellungen.adressen.personengruppenAn && kontaktGruppen(k).length)
       kopfText.append(el("div", "k-label", kontaktGruppen(k).map(kontaktGruppenName).join(" · ")));
     if (k.firma) kopfText.append(el("div", "k-firma", k.firma));
     kopf.append(kopfText);
@@ -18369,7 +18369,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
     const wege = el("div", "k-wege");
     const ea = DATEN.einstellungen.adressen;
-    if (ea.brief && anschriften.length) {
+    if (!eigenesProfil && ea.brief && anschriften.length) {
       wege.append(bildknopf("brief", _("Letter"), () => schreibeBrief(k),
         _("Open this address as a letter in LibreOffice")));
     }
@@ -19207,7 +19207,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (!eigenesProfil) weitere.append(kontaktAufgabeKopf, kontaktAufgabeKasten);
     zeichneKontaktAufgaben();
     const gruppenVorher = kontaktGruppen(k || {}); let personengruppen = gruppenVorher.slice(), gruppenGeaendert = false;
-    {
+    if (!eigenesProfil) {
       const gruppenKasten = el("div", "kontakt-editor-gruppen");
       const gruppenWahl = document.createElement("select"); gruppenWahl.multiple = true; gruppenWahl.size = 3;
       gruppenWahl.id = "kontakt-personengruppen";

@@ -15,6 +15,7 @@ harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[
       button(b.w.document.querySelector("#kopf-links"), "Own profile").click();
       await new Promise(resolve => setImmediate(resolve));
       let form = b.w.document.querySelector(".eigenes-profil"); assert.ok(form);
+      assert.equal(form.querySelector('#kontakt-personengruppen'), null, 'Own-profile settings must not offer contact groups');
       assert.ok(form.classList.contains("kontakt-formular"), "Own profile must use the normal contact editor");
       const first = form.querySelector('#kontakt-vorname'); first.value = "My own name";
       first.dispatchEvent(new b.w.Event("input", { bubbles: true }));
@@ -78,12 +79,13 @@ harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[
     } finally { b.close(); }
     const photo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAIAAADYYG7QAAAARUlEQVR4nO3OsQEAEADAMPz/M7slI0NzQeYef1mvA7dCUkgKSSEpJIWkkBSSQlJICkkhKSSFpJAUkkJSSApJISkkhaSQHEnhAV+0eRpfAAAAAElFTkSuQmCC";
     const p = await harness.exports.boot(web, { eigenesProfil: { version: 1, kind: "own_profile", id: "self",
-      data: { vorname: "Saved", nachname: "Profile" } }, kontakte: [{ id: "ordinary", vorname: "Ordinary" }],
+      data: { vorname: "Saved", nachname: "Profile", vcardRoundtrip: ['CATEGORIES:Family'] } }, kontakte: [{ id: "ordinary", vorname: "Ordinary" }],
       jahrestage: [{ id: "unlinked", typ: "birthday", datum: "2000-01-02", name: "Unrelated" }] });
     try {
       const button = (root, label) => [...root.querySelectorAll("button")].find(value => value.textContent === label);
       const peerId = "22222222-2222-4222-8222-222222222222";
-      const ordinary = JSON.stringify([p.t.daten().kontakte, p.t.daten().jahrestage, p.t.daten().termine, p.t.daten().aufgaben]);
+       const ordinary = JSON.stringify([p.t.daten().kontakte, p.t.daten().jahrestage, p.t.daten().termine, p.t.daten().aufgaben]);
+       p.t.daten().einstellungen.adressen.personengruppenAn = true;
       p.w.App.telefonStand({ peers: [{ device_id: peerId, fingerprint: "own-key", state: "online_wifi", own_device: true,
         remote_own_device: true, capabilities: { items: { device_status: { versions: [5, 7] } } }, local_grants: { grants: {} }, grants: { grants: {} } }] });
       await p.t.wechsel("adressen"); button(p.w.document.querySelector("#kopf-links"), "Own profile").click();
@@ -106,7 +108,10 @@ harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[
       assert.equal(form.querySelectorAll(".kontakt-anschrift-strasse").length, 2);
       assert.equal(form.querySelector(".kontakt-foto.vorschau").src, photo);
       button(form, "Save").click();
-      const saved = p.t.daten().eigenesProfil.data;
+       const saved = p.t.daten().eigenesProfil.data;
+       const ownCard = p.w.document.querySelector('.kontakt-karte');
+       assert.equal(button(ownCard, 'Letter'), undefined, 'Own profile must not offer a letter to oneself');
+       assert.equal(ownCard.querySelector('.kontakt-kopf-text .k-label'), null, 'Own profile must not display contact groups');
       assert.equal(saved.vorname, "Manual"); assert.equal(saved.foto, photo);
       assert.equal(saved.id, undefined); assert.equal(saved.uid, undefined); assert.equal(saved.telefone.length, 2);
       assert.equal(JSON.stringify([p.t.daten().kontakte, p.t.daten().jahrestage, p.t.daten().termine, p.t.daten().aufgaben]), ordinary);
