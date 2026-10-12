@@ -17878,13 +17878,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return before !== kanonischerEntwurf(draft);
   }
   const eigenesProfilTelefonGelesen = new WeakMap();
-  function eigenesProfilTelefonAnfordern(fallback = () => {}) {
+  function eigenesProfilTelefonAnfordern(fallback = () => {}, force = false) {
     const peers = (telefonStand?.peers || []).filter(peer => peer.own_device && peer.remote_own_device && /^online_/.test(peer.state || "") &&
       peer.capabilities?.items?.device_status?.versions?.includes(7));
     if (peers.length !== 1 || gesperrt) { fallback(); return; }
     const peer = peers[0], key = peer.device_id + ":" + peer.fingerprint;
     const gelesen = eigenesProfilTelefonGelesen.get(DATEN) || new Set();
     eigenesProfilTelefonGelesen.set(DATEN, gelesen);
+    if (force) gelesen.delete(key);
+    if (peer.contacts_read_available === false) { fallback(); return; }
     if (gelesen.has(key) || eigenesProfilTelefonAnfrage) { fallback(); return; }
     const requestId = crypto.randomUUID();
     const request = { requestId, peer: peer.device_id, fingerprint: peer.fingerprint, data: DATEN, profile: DATEN.eigenesProfil, fallback, gelesen, key };
@@ -19538,7 +19540,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         } };
         Bruecke.sende({ cmd: "eigenes_profil_office", requestId, operation: "read", felder: {}, stamp: "" });
       };
-      setTimeout(() => { if (gueltig()) { eigenesProfilTelefonAnfordern(readOffice); eigenesProfilNummerAnfordern(); } }, 0);
+      setTimeout(() => { if (gueltig()) { eigenesProfilTelefonAnfordern(readOffice, true); eigenesProfilNummerAnfordern(); } }, 0);
     }
 
     setTimeout(() => fNach.focus(), 0);
@@ -30997,7 +30999,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       clearTimeout(request.timer); eigenesProfilTelefonAnfrage = null;
       const peer = telefonStand?.peers?.find(value => value.device_id === request.peer);
       if (DATEN !== request.data || DATEN.eigenesProfil !== request.profile || gesperrt || !peer?.own_device || !peer.remote_own_device || peer.fingerprint !== request.fingerprint) return;
-      request.gelesen.add(request.key);
+      if (result.ok || result.state === "unavailable") request.gelesen.add(request.key);
       if (result.ok && result.fingerprint === request.fingerprint && result.data) {
         const context = eigenesProfilTelefonKontext;
         if (context?.form.isConnected && context.data === DATEN && context.profile === DATEN.eigenesProfil) context.merge(result.data);
@@ -31035,6 +31037,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     },
     telefonStand(nutzlast) {
       telefonStand = nutzlast || null;
+      if (zustand.adressen.modus === "eigenes-profil" && DATEN.eigenesProfil?.data || eigenesProfilTelefonKontext?.form.isConnected)
+        eigenesProfilTelefonAnfordern();
       if (DATEN.eigenesProfil?.data && !DATEN.eigenesProfil.data.mobil || eigenesProfilTelefonKontext?.form.isConnected)
         eigenesProfilNummerAnfordern();
       initialisiereGemeinsameSyncWerte();

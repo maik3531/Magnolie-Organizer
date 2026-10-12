@@ -10643,6 +10643,13 @@ def _kde_gui_bereitschaft(bereit):
             backend, _HINTERGRUND_GUI_BEREIT, "magnolie-background-readiness")
 
 
+def _organizer_gui_bereitschaft(fenster, bereit):
+    _kde_gui_bereitschaft(bereit)
+    telefon = getattr(fenster, "_telefon", None)
+    if hasattr(telefon, "set_ready"):
+        _hintergrund_bereitschaft_senden(telefon, bereit, "magnolie-phone-readiness")
+
+
 def hintergrund_einstellungen_lesen():
     try:
         daemon_state = background_daemon_status()
@@ -20641,10 +20648,10 @@ class Fenster(_FENSTER_BASIS):
     def _bei_laden(self, ansicht, ereignis):
         if ereignis == WebKit2.LoadEvent.STARTED:
             self._organizer_geladen = False
-            _kde_gui_bereitschaft(False)
+            _organizer_gui_bereitschaft(self, False)
         elif ereignis == WebKit2.LoadEvent.COMMITTED:
             self._organizer_geladen = ansicht.get_uri() == self._organizer_uri
-            _kde_gui_bereitschaft(
+            _organizer_gui_bereitschaft(self,
                 self._organizer_vertraut() and not self._gesperrt)
 
     def _organizer_vertraut(self):
@@ -21251,7 +21258,7 @@ class Fenster(_FENSTER_BASIS):
 
         elif befehl == "kde_zeichnen":
             self._hintergrund_gui_sichtbarkeit(self.get_visible())
-            _kde_gui_bereitschaft(self._organizer_vertraut() and not self._gesperrt)
+            _organizer_gui_bereitschaft(self, self._organizer_vertraut() and not self._gesperrt)
             self._zeichen_revision = getattr(self, '_zeichen_revision', 0) + 1
             if not hasattr(self, '_zeichen_sperre'):
                 self._zeichen_sperre = threading.Lock()
@@ -22293,7 +22300,7 @@ class Fenster(_FENSTER_BASIS):
             self._ladefehler = _("The file could not be read.")
             debug_notiz("startup.data-failed", error=fehler)
             self._gesperrt = True
-            _kde_gui_bereitschaft(False)
+            _organizer_gui_bereitschaft(self, False)
             self.antwort("App.init", {"gesperrt": True, "neu": False,
                                       "ladeFehler": self._ladefehler,
                                       "handbuchInstalliert": handbuch_installiert(),
@@ -22310,7 +22317,7 @@ class Fenster(_FENSTER_BASIS):
                     duration_ms=round((time.monotonic() - start) * 1000, 1))
         if isinstance(daten, dict) and daten.get("magnolie") == KENNWORT_KENNUNG:
             self._gesperrt = True
-            _kde_gui_bereitschaft(False)
+            _organizer_gui_bereitschaft(self, False)
             self._tray_telefone_aktualisieren()
             zustand = sperre_lesen()
             erlaubt, sekunden = sperre_pruefen(zustand)
@@ -22328,7 +22335,7 @@ class Fenster(_FENSTER_BASIS):
                                           "WAYLAND_DISPLAY"))})
             return
         self._gesperrt = False
-        _kde_gui_bereitschaft(bool(getattr(
+        _organizer_gui_bereitschaft(self, bool(getattr(
             self, "_organizer_vertraut", lambda: False)()))
         echter_erststart = ist_neu
         gruppen = {}
@@ -22433,7 +22440,7 @@ class Fenster(_FENSTER_BASIS):
         self._daten_umschlag = daten_umschlag
         self._ladefehler = ""
         self._gesperrt = False
-        _kde_gui_bereitschaft(bool(getattr(
+        _organizer_gui_bereitschaft(self, bool(getattr(
             self, "_organizer_vertraut", lambda: False)()))
         self._aktuelle_daten = daten
         sperre_schreiben(sperre_zuruecksetzen())
@@ -22949,6 +22956,9 @@ class Fenster(_FENSTER_BASIS):
                     _hintergrund_sichtbarkeit_senden(
                         self._telefon, _HINTERGRUND_GUI_SICHTBAR,
                         "magnolie-phone-visibility")
+                    _hintergrund_bereitschaft_senden(
+                        self._telefon, _HINTERGRUND_GUI_BEREIT,
+                        "magnolie-phone-readiness")
                 if not gestartet:
                     self._telefon_fehler = _(
                         "Port 8741 is unavailable. The phone listener could not start.")
@@ -23053,7 +23063,7 @@ class Fenster(_FENSTER_BASIS):
                     if not _HINTERGRUND_GUI_BEREIT or not _HINTERGRUND_GUI_SICHTBAR:
                         raise ValueError('digitizer_foreground_required')
                     if hasattr(backend, 'set_visible'): backend.set_visible(True)
-                    if hasattr(backend, 'set_ready'): backend.set_ready(not self._gesperrt)
+                    if hasattr(backend, 'set_ready'): backend.set_ready(_HINTERGRUND_GUI_BEREIT and not self._gesperrt)
                 result = backend.set_digitizer_target(device_id, token, enabled,
                     permitted=lambda: not self._gesperrt and revision == self._zeichen_revision)
                 if revision != self._zeichen_revision:
@@ -23322,6 +23332,7 @@ class Fenster(_FENSTER_BASIS):
                 raise ValueError("locked")
             read = self._telefon.read_own_profile(nachricht.get("kennung", ""))
             result["fingerprint"] = read["fingerprint"]
+            result["state"] = read["profile"]["state"]
             if read["profile"]["state"] == "available":
                 contacts = vcf_lesen(read["profile"]["vcard"])["kontakte"]
                 if len(contacts) != 1 or self._gesperrt:

@@ -123,6 +123,26 @@ harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[
       button(form, "Save").click(); assert.equal(p.t.daten().eigenesProfil.data.foto, "");
       assert.equal(JSON.stringify(p.t.daten().kontakte), JSON.stringify(JSON.parse(ordinary)[0]));
       console.log("Normaler Eigenprofil-Editor: Mehrfachfelder, Fotoentwurf und Datentrennung bestanden:", web);
-    } finally { p.close(); }
+     } finally { p.close(); }
+     const r = await harness.exports.boot(web, { eigenesProfil: { version: 1, kind: 'own_profile', id: 'self-ready',
+       data: { vorname: 'Manual', mobil: '+49123456789' } } });
+     try {
+       const peer = { device_id: '22222222-2222-4222-8222-222222222222', fingerprint: 'ready-key', state: 'online_wifi',
+         own_device: true, remote_own_device: true, contacts_read_available: false,
+         capabilities: { items: { device_status: { versions: [5, 7] } } }, local_grants: { grants: {} }, grants: { grants: {} } };
+       r.w.App.telefonStand({ peers: [peer] }); await r.t.wechsel('adressen');
+       [...r.w.document.querySelectorAll('#kopf-links button')].find(button => button.textContent === 'Own profile').click();
+       assert.ok(!r.messages.some(message => message.cmd === 'eigenes_profil_telefon'), 'Do not consume the profile read before the connection is ready');
+       peer.contacts_read_available = true; r.w.App.telefonStand({ peers: [peer] });
+       const first = r.messages.findLast(message => message.cmd === 'eigenes_profil_telefon'); assert.ok(first);
+       r.w.App.eigenesProfilTelefon({ requestId: first.requestId, device_id: peer.device_id, ok: false });
+       r.w.App.telefonStand({ peers: [peer] });
+       const retry = r.messages.findLast(message => message.cmd === 'eigenes_profil_telefon');
+       assert.notEqual(retry.requestId, first.requestId, 'A temporary failed request must not permanently suppress the profile photo');
+       r.w.App.eigenesProfilTelefon({ requestId: retry.requestId, device_id: peer.device_id, fingerprint: peer.fingerprint,
+         ok: true, data: { vorname: 'Phone name', foto: photo } });
+       assert.equal(r.t.daten().eigenesProfil.data.foto, photo);
+       assert.equal(r.t.daten().eigenesProfil.data.vorname, 'Manual');
+     } finally { r.close(); }
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

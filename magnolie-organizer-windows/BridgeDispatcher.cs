@@ -355,7 +355,11 @@ internal sealed partial class BridgeDispatcher : IDisposable
                             if (!currentPlainTextAvailable) throw new InvalidOperationException("locked");
                             var source = await telefon.ReadOwnProfileAsync(peerId, CancellationToken.None);
                             var profile = source["profile"]!.AsObject();
-                            if (profile["state"]!.GetValue<string>() != "available") throw new InvalidOperationException("unavailable");
+                            if (profile["state"]!.GetValue<string>() != "available")
+                            {
+                                await form.SendAsync("App.eigenesProfilTelefon", new { requestId, device_id = peerId, ok = false, state = "unavailable" });
+                                break;
+                            }
                             var parsed = ExchangeCodec.ParseVCard(profile["vcard"]!.GetValue<string>());
                             if (parsed.Kontakte.Count != 1 || !currentPlainTextAvailable) throw new InvalidDataException("invalid_profile");
                             var data = parsed.Kontakte[0]!.DeepClone().AsObject();

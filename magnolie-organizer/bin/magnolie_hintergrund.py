@@ -956,6 +956,14 @@ class IPCServer:
                 self._gui_subscribers.items() if value[0] > now}
             return any(value[1] for value in self._gui_subscribers.values())
 
+    def gui_personal_ready(self):
+        now = time.monotonic()
+        with self._event_condition:
+            self._gui_subscribers = {key: value for key, value in
+                self._gui_subscribers.items() if value[0] > now}
+            return any(len(value) > 2 and value[1] and value[2]
+                       for value in self._gui_subscribers.values())
+
     def gui_connected(self):
         now = time.monotonic()
         with self._event_condition:
@@ -1522,6 +1530,8 @@ class PhoneServiceProxy:
         self._subscriber = os.urandom(16).hex()
         self._cursor = 0
         self._visible = None
+        self._ready = None
+        self._state_lock = threading.RLock()
 
     def _call(self, operation, **arguments):
         return ipc_request("phone_" + operation, arguments, self.path, timeout=30)
@@ -1550,6 +1560,10 @@ class PhoneServiceProxy:
             pass
 
     def set_visible(self, visible):
+        with self._state_lock:
+            return self._set_visible(visible)
+
+    def _set_visible(self, visible):
         visible = bool(visible)
         if self._visible is visible:
             return visible
@@ -1569,7 +1583,15 @@ class PhoneServiceProxy:
             try:
                 result = ipc_request("poll_events", {"after": cursor, "timeout": 1,
                     "subscriber": self._subscriber}, self.path, timeout=2)
-                cursor = max(cursor, int(result.get("cursor", cursor)))
+                if self._event_stop.is_set():
+                    return
+                cursor = max(0, int(result.get("cursor", cursor)))
+                # Notes-only GUIs own the same readiness lease as KDE GUIs.
+                # Reapply it after a daemon restart, without enabling new grants.
+                with self._state_lock:
+                    for operation, field, value in (("gui_visibility", "visible", self._visible), ("gui_readiness", "ready", self._ready)):
+                        if value is not None:
+                            ipc_request(operation, {"subscriber": self._subscriber, field: value}, self.path, timeout=1)
                 for item in result.get("events", ()):
                     if item.get("event") != "phone_event":
                         continue
@@ -1581,6 +1603,24 @@ class PhoneServiceProxy:
             except Exception:
                 if not daemon_available(self.path):
                     return
+
+    def set_ready(self, ready):
+        with self._state_lock:
+            return self._set_ready(ready)
+
+    def _set_ready(self, ready):
+        ready = bool(ready)
+        if self._ready is ready:
+            return ready
+        try:
+            result = ipc_request("gui_readiness", {"subscriber": self._subscriber,
+                "ready": ready}, self.path, timeout=1)
+            if result.get("ready") is ready:
+                self._ready = ready
+                return ready
+        except Exception:
+            pass
+        return False
 
     @property
     def enabled(self):
@@ -2389,7 +2429,7 @@ def daemon_main(_arguments=None, backend_factory=create_backend,
     def setup_phone(create):
         if holder["phone"] is None and create:
             holder["phone"] = server.phone_backend = make_phone()
-            holder["phone"].personal_sync_available = server.gui_present
+            holder["phone"].personal_sync_available = server.gui_personal_ready
         return holder["phone"]
 
     def apply_settings(value):
@@ -2414,7 +2454,7 @@ def daemon_main(_arguments=None, backend_factory=create_backend,
         if holder["phone"] is None and clean["enabled"] and clean[
                 "permissions"]["phone_monitor"]:
             holder["phone"] = server.phone_backend = make_phone()
-            holder["phone"].personal_sync_available = server.gui_present
+            holder["phone"].personal_sync_available = server.gui_personal_ready
         if holder["phone"] is not None:
             if clean["enabled"] and clean["permissions"]["phone_monitor"] and holder["phone"].store.settings()["enabled"]:
                 holder["phone"].enabled = True
@@ -2485,7 +2525,7 @@ def daemon_main(_arguments=None, backend_factory=create_backend,
         events.diagnostics = phone_events.diagnostics = diagnostics
         if settings["permissions"]["phone_monitor"]:
             phone = make_phone()
-            phone.personal_sync_available = server.gui_present
+            phone.personal_sync_available = server.gui_personal_ready
             holder["phone"] = server.phone_backend = phone
             if phone.enabled:
                 deadline = time.monotonic() + 3

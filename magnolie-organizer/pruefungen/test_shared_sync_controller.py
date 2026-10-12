@@ -84,3 +84,33 @@ def test_explicit_sync_action_enables_own_phone_but_status_and_invalid_choices_d
             assert all(peer["local_grants"]["grants"][field] for field in ("personal_notes_sync", "personal_tasks_sync"))
         finally:
             server.close()
+
+
+def test_notes_only_gui_readiness_enables_contact_read_without_kde_or_new_grants(tmp_path, monkeypatch):
+    service, peer, channel, _ = fixture(tmp_path, monkeypatch, initialize=False)
+    service.enabled = True  # Synthetic current connection, without a network listener.
+    peer['capabilities']['items']['device_status'] = {'available': True, 'reason': 'available', 'versions': [5, 7]}
+    peer['grants']['grants']['device_status'] = True
+    peer['local_grants']['grants']['device_status'] = True
+    service.note_controls[channel]['capabilities.update'] = copy.deepcopy(peer['capabilities'])
+    service.note_controls[channel]['grants.update'] = copy.deepcopy(peer['grants'])
+    before = copy.deepcopy(peer)
+    with tempfile.TemporaryDirectory(prefix='own-profile-ready-') as root:
+        socket = str(Path(root) / 'bridge.sock')
+        server = background.IPCServer(FakeBackend(), socket, phone_backend=service).start()
+        service.personal_sync_available = server.gui_personal_ready
+        proxy = background.PhoneServiceProxy(socket)
+        try:
+            proxy.start()
+            assert proxy.set_visible(True)
+            assert not service.contacts_available(peer['device_id'])
+            assert proxy.set_ready(True)
+            assert service.contacts_available(peer['device_id'])
+            assert proxy.set_ready(False) is False
+            assert not service.contacts_available(peer['device_id'])
+            assert proxy.set_ready(True)
+            assert proxy.set_visible(False) is False
+            assert not service.contacts_available(peer['device_id'])
+            assert peer == before, 'Readiness must not create consent or rewrite grants'
+        finally:
+            proxy.stop(); server.close()
