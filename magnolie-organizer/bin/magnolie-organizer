@@ -21104,6 +21104,9 @@ class Fenster(_FENSTER_BASIS):
                 ok = False
             self.antwort("App.zeichenSvgGeprueft", {"requestId": nachricht.get("requestId"), "ok": ok})
 
+        elif befehl == "zeichenblatt_pdf_oeffnen":
+            threading.Thread(target=self._zeichenblatt_pdf_oeffnen, args=(nachricht,), daemon=True).start()
+
         elif befehl == "eds_status":
             threading.Thread(target=self._eds_status_arbeit, daemon=True).start()
 
@@ -21665,6 +21668,20 @@ class Fenster(_FENSTER_BASIS):
         nutzlast["kontaktQuelle"] = "datei:" + hashlib.sha256(
             os.path.abspath(pfad).encode("utf-8")).hexdigest()
         melden(nutzlast)
+
+    def _zeichenblatt_pdf_oeffnen(self, nachricht):
+        result = {"requestId": nachricht.get("requestId", ""), "ok": False}
+        try:
+            if self._gesperrt:
+                raise ValueError("locked")
+            from magnolie_pdf import render_page
+            attachment = notiz_anhang_dekodieren(nachricht.get("daten"), "drawing.pdf")
+            if attachment["mime"] != "application/pdf":
+                raise ValueError("invalid PDF input")
+            result.update(render_page(attachment["daten"], nachricht.get("seite", 1)), ok=True)
+        except Exception:
+            result["fehler"] = _("The file could not be read.")
+        self.antwort("App.zeichenPdfGeoeffnet", result)
 
     def bei_zeichenblatt_exportieren(self, nachricht):
         try:

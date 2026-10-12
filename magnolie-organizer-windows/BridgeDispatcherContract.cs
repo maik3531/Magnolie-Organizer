@@ -27,6 +27,7 @@ internal static class BridgeDispatcherContract
         ["zeichenblatt_svg_speichern"] = S(T("svg"), T("name")),
         ["zeichenblatt_exportieren"] = S(T("svg"), T("png"), T("name"), O("json", JsonValueKind.String)),
         ["zeichenblatt_svg_pruefen"] = S(T("requestId"), T("svg")),
+        ["zeichenblatt_pdf_oeffnen"] = S(T("requestId"), T("daten"), N("seite")),
         ["update_oeffnen"] = S(T("url")), ["handbuch_herunterladen"] = S(T("url"), T("sha256"), O("version", JsonValueKind.String), O("platform", JsonValueKind.String)),
         ["handbuch_oeffnen"] = S(), ["protokoll_zeigen"] = S(), ["medikament_suchen"] = S(T("name")),
         ["mail"] = S(T("email"), T("name")), ["karte"] = S(J("kontakt"), T("land"), O("dienst", JsonValueKind.String), O("route", JsonValueKind.True, JsonValueKind.False), O("absender", JsonValueKind.String)),

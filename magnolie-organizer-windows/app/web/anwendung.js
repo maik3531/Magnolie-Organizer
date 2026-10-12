@@ -6497,7 +6497,9 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   const CUSTOM_MAX_MODULES = 4;
   const CUSTOM_MAX_ITEMS = 500;
   const aktiveZeichenblaetter = new Map();
+  const geschlosseneZeichenblaetter = new Set();
   const zeichenSvgAnfragen = new Map();
+  const zeichenPdfAnfragen = new Map();
   let aktivesZeichenziel = null;
   let zeichenblattAuswahlSchliessen = null;
 
@@ -13516,6 +13518,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       bild.alt = modul.title || _("Drawing sheet"); bild.style.width = "100%";
       ziel.append(bild); return;
     }
+    geschlosseneZeichenblaetter.delete(modul.id);
     const werkzeuge = el("div", "knopfreihe zeichen-werkzeuge"), status = el("p", "einst-hinweis");
     const einstellungen = el("div", "zeichen-einstellungen"), aktionen = el("div", "zeichen-aktionen");
     const dokumentZeile = el("div", "zeichen-zeile zeichen-dokument"), zeichnenZeile = el("div", "zeichen-zeile zeichen-stifte");
@@ -13547,6 +13550,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const sheetChoice = auswahlFeld(sheets.map(value => [value.id, value.title || _("Drawing sheet")]), modul.id);
     sheetChoice.setAttribute("aria-label", _("Drawing sheet"));
     sheetChoice.addEventListener("change", () => { zustand.custom.drawingIds ||= {}; zustand.custom.drawingIds[modul.page] = sheetChoice.value;
+      geschlosseneZeichenblaetter.delete(sheetChoice.value);
       if (navigate) navigate(sheetChoice.value); else zeichneAlles(); });
     einstellungen.append(sheetChoice);
     const neuesBlatt = iconButton("new", _("New drawing sheet"), () => { const sheet = neuesZeichenblatt(modul.page);
@@ -13663,7 +13667,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       dialog.append(el("h2", null, _("Fill with gradient")), formZeile(_("Color"), first), formZeile(_("Gradient end color"), endColor),
         knopf(_("Cancel"), "", close), knopf(_("Apply"), "haupt", () => { farbe.value = first.value; editor.setColor(first.value); editor.fillSelection(endColor.value); close(); }));
       overlay.append(dialog); document.body.append(overlay); registriereModal(overlay, dialog, { anfang: first, schliessen: close }); }]]);
-    const openFile = document.createElement("input"); openFile.type = "file"; openFile.accept = ".json,.svg,image/png,image/jpeg,image/webp,image/gif"; openFile.hidden = true;
+    const openFile = document.createElement("input"); openFile.type = "file"; openFile.accept = ".json,.svg,.pdf,.jpg,.jpeg,image/png,image/jpeg,image/webp,image/gif,application/pdf"; openFile.hidden = true;
+    let openSequence = 0;
     const loadImage = (data, fileName) => {
       const image = new Image(); image.onerror = () => { status.textContent = _("This image format cannot be used."); };
       image.onload = () => {
@@ -13678,7 +13683,27 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         } }; ready.src = background;
       }; image.src = data;
     };
+    const openPdf = (item, page, sequence, choosePage = true) => {
+      const requestId = anrufClientRef();
+      const current = () => sequence === openSequence && canvas.isConnected && !gesperrt && DATEN.customOrganizer.modules.includes(modul);
+      const pending = { receive(value) {
+        if (!current()) return;
+        if (!value.ok || !Number.isInteger(value.pages) || !value.data?.startsWith("data:image/png;base64,")) { status.textContent = value.fehler || _("The file could not be read."); return; }
+        if (choosePage && value.pages > 1) numberDialog(_("Page"), page, selection => {
+          if (!current()) return;
+          if (selection === page) loadImage(value.data, item.name);
+          else openPdf(item, selection, sequence, false);
+        }, 1, value.pages);
+        else loadImage(value.data, item.name);
+      } };
+      pending.timer = setTimeout(() => { if (zeichenPdfAnfragen.delete(requestId) && current()) status.textContent = _("The file could not be read."); }, 45000);
+      zeichenPdfAnfragen.set(requestId, pending);
+      if (Bruecke.sende({ cmd: "zeichenblatt_pdf_oeffnen", requestId, daten: item.daten, seite: page }) === false) {
+        clearTimeout(pending.timer); zeichenPdfAnfragen.delete(requestId); status.textContent = _("The file could not be read.");
+      }
+    };
     openFile.addEventListener("change", () => {
+      const sequence = ++openSequence;
       const file = openFile.files?.[0]; if (!file || file.size > 16 * 1024 * 1024) { status.textContent = _("The file is larger than 8 megabytes."); return; }
       if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !editor.replaceSheet(JSON.parse(reader.result))) throw Error(); }
         catch (_) { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
@@ -13686,21 +13711,26 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const requestId = anrufClientRef(), apply = () => { if (canvas.isConnected && !gesperrt) loadImage("data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(reader.result))), file.name); };
         zeichenSvgAnfragen.set(requestId, apply); setTimeout(() => zeichenSvgAnfragen.delete(requestId), 15000);
         Bruecke.sende({ cmd: "zeichenblatt_svg_pruefen", requestId, svg: String(reader.result) }); }; reader.readAsText(file); }
-      else notizAnhangLesen(file, "image", (item, error) => { if (error) status.textContent = error; else if (canvas.isConnected && !gesperrt) loadImage(item.daten, file.name); });
+      else if (/\.pdf$/i.test(file.name) || file.type === "application/pdf") notizAnhangLesen(file, "pdf", (item, error) => {
+        if (error) status.textContent = error; else if (sequence === openSequence && canvas.isConnected && !gesperrt) openPdf(item, 1, sequence);
+      });
+      else notizAnhangLesen(file, "image", (item, error) => { if (error) status.textContent = error; else if (sequence === openSequence && canvas.isConnected && !gesperrt) loadImage(item.daten, file.name); });
       openFile.value = "";
     });
     const removeSheet = iconButton("delete", _("Delete drawing sheet"), async () => {
       if (!await frage(_("Delete drawing sheet?")) || gesperrt || !DATEN.customOrganizer.modules.includes(modul)) return;
       sichereCustomPapierkorb(modul); DATEN.customOrganizer.modules = DATEN.customOrganizer.modules.filter(value => value !== modul);
-      planeSpeichern(); beendeTabletEingabe(); const next = DATEN.customOrganizer.modules.find(value => value.type === "drawing" && value.page === modul.page);
-      if (navigate) { if (next) navigate(next.id); else zeichenblattAuswahlSchliessen?.(); } else zeichneAlles();
+      planeSpeichern(); beendeTabletEingabe(); geschlosseneZeichenblaetter.delete(modul.id);
+      const next = DATEN.customOrganizer.modules.find(value => value.type === "drawing" && value.page === modul.page && !geschlosseneZeichenblaetter.has(value.id)) || neuesZeichenblatt(modul.page);
+      zustand.custom.drawingIds ||= {}; zustand.custom.drawingIds[modul.page] = next.id;
+      if (navigate) navigate(next.id); else zeichneAlles();
     });
     const schliessen = iconButton("close", _("Close"), () => {
-      if (navigate && zeichenblattAuswahlSchliessen) { zeichenblattAuswahlSchliessen(); return; }
       if (aktivesZeichenziel?.modul === modul) beendeTabletEingabe();
-      editor.destroy(); aktiveZeichenblaetter.delete(modul.id); ziel.replaceChildren();
-      zeichneZeichenblatt(modul, ziel, true);
-      ziel.append(knopf(_("Edit"), "hauptknopf", () => { ziel.replaceChildren(); zeichneZeichenblatt(modul, ziel); }));
+      editor.destroy(); aktiveZeichenblaetter.delete(modul.id); geschlosseneZeichenblaetter.add(modul.id);
+      const next = DATEN.customOrganizer.modules.find(value => value.type === "drawing" && value.page === modul.page && !geschlosseneZeichenblaetter.has(value.id)) || neuesZeichenblatt(modul.page);
+      zustand.custom.drawingIds ||= {}; zustand.custom.drawingIds[modul.page] = next.id;
+      if (navigate) navigate(next.id); else zeichneAlles();
     });
     dokumentZeile.append(neuesBlatt, iconButton("open", _("Open"), () => openFile.click()), blattgroesse, exportieren, schliessen,
       iconButton("clear", _("Clear"), () => editor.clear()), zurueck, wieder, iconButton("paste", _("Paste"), () => editor.paste()),
@@ -30758,6 +30788,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (value.ok && value.status?.initialized) peer.shared_sync = value.status;
       else if (!value.ok) zettel(value.fehler || _("Personal synchronization failed."));
       aktualisiereGemeinsameSyncFelder();
+    },
+    zeichenPdfGeoeffnet(value) {
+      const pending = zeichenPdfAnfragen.get(value?.requestId); zeichenPdfAnfragen.delete(value?.requestId);
+      if (!pending) return;
+      clearTimeout(pending.timer); pending.receive(value);
     },
     personalSyncCollection(value) {
       if (!value?.device_id || typeof value.fingerprint !== "string" || !Array.isArray(value.members?.notes) || !Array.isArray(value.members?.tasks)) return;

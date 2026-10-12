@@ -181,6 +181,18 @@ internal sealed partial class BridgeDispatcher : IDisposable
                         catch (Exception error) when (error is InvalidDataException or System.Xml.XmlException) { await form.SendAsync("App.zeichenSvgGeprueft", new { requestId, ok = false }); }
                         break;
                     }
+                    case "zeichenblatt_pdf_oeffnen":
+                    {
+                        var requestId = Text(message, "requestId");
+                        try
+                        {
+                            if (!currentPlainTextAvailable) throw new InvalidOperationException("locked");
+                            var preview = await PdfPreview.RenderAsync(Text(message, "daten"), message.GetProperty("seite").GetInt32());
+                            await form.SendAsync("App.zeichenPdfGeoeffnet", new { requestId, ok = true, pages = preview.Pages, page = preview.Page, data = preview.Data });
+                        }
+                        catch (Exception) { await form.SendAsync("App.zeichenPdfGeoeffnet", new { requestId, ok = false, fehler = T("The file could not be read.") }); }
+                        break;
+                    }
                     case "update_oeffnen": await OpenValidatedResultAsync("App.updateGeoeffnet",
                         Text(message, "url"), updates.IsValidatedReleaseUrl); break;
                     case "handbuch_herunterladen": await DownloadManualAsync(message); break;
