@@ -15,6 +15,7 @@ internal static class TelefonBluetoothSetupTests
         TestAssert.That(TelefonBluetoothClient.ValidAddress(Phone), "Canonical MAC rejected");
         foreach (var wrong in new[] { "http://127.0.0.1", "AA:BB", "AA:BB:CC:DD:EE:GG", "aa:bb:cc:dd:ee:01" })
             TestAssert.That(!TelefonBluetoothClient.ValidAddress(wrong), "Invalid Bluetooth target accepted");
+        await CounterpartOnlyAsync();
         if (Environment.GetEnvironmentVariable("MAGNOLIE_BLUETOOTH_INTEGRATION") != "1") return;
         var root = Path.Combine(Path.GetTempPath(), "magnolie-bt-negative-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -75,6 +76,60 @@ internal static class TelefonBluetoothSetupTests
         }
         finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); Directory.Delete(root, true); }
     }
+
+    private static async Task CounterpartOnlyAsync()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-pair-counterpart-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var paths = new WindowsPaths(root); var store = new TelefonStore(paths, RandomNumberGenerator.GetBytes(32));
+            JsonObject? challenge = null;
+            using var coordinator = new TelefonCoordinator(paths, (name, value) =>
+            {
+                var message = JsonSerializer.SerializeToNode(value)!.AsObject();
+                if (name == "App.telefonPaarung" && message["code"]?.GetValue<string>() is { Length: > 0 }) challenge = message;
+                return Task.CompletedTask;
+            }, dataStore: store, localOnly: true);
+            await coordinator.SwitchAsync(true);
+            var id = Guid.NewGuid().ToString(); var offer = coordinator.OpenBluetoothSetupPairing(id, Phone);
+            using var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
+            using var client = new TcpClient(); await client.ConnectAsync((IPEndPoint)listener.LocalEndpoint);
+            using var server = await listener.AcceptTcpClientAsync();
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+            var handler = coordinator.HandleStreamAsync(server.GetStream(), timeout.Token, "bluetooth", "bluetooth:" + Phone);
+            var phoneStatic = TelefonCrypto.GenerateX25519(); var phoneEphemeral = TelefonCrypto.GenerateX25519();
+            try
+            {
+                var init = new JsonObject { ["p"] = TelefonCrypto.Protocol, ["type"] = "pair_init", ["role"] = "phone",
+                    ["pairing_token"] = offer["token"]!.DeepClone(), ["device_id"] = id, ["display_name"] = "Synthetic phone",
+                    ["static_public"] = Convert.ToBase64String(phoneStatic.Public), ["ephemeral_public"] = Convert.ToBase64String(phoneEphemeral.Public),
+                    ["nonce"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)), ["versions"] = new JsonArray(1) };
+                var stream = client.GetStream(); await TelefonCoordinator.WriteFrameAsync(stream, init, timeout.Token);
+                var response = await TelefonCoordinator.ReadFrameAsync(stream, 65536, timeout.Token);
+                using var material = TelefonCrypto.Pairing(phoneEphemeral.Private, TelefonCrypto.StrictBase64(response, "ephemeral_public", 32),
+                    phoneStatic.Private, TelefonCrypto.StrictBase64(response, "static_public", 32), init, response);
+                while (challenge is null) await Task.Delay(5, timeout.Token);
+                TestAssert.That(challenge["code"]!.GetValue<string>() == material.Code && challenge["confirmation_required"]!.GetValue<bool>() == false,
+                    "Initiating Windows must display the matching code without a second approval");
+                TestAssert.That(store.LoadPeers().Count == 0, "Displaying a code must not persist trust");
+                JsonObject Proof(string phase) => new() { ["p"] = TelefonCrypto.Protocol, ["type"] = "pair_" + phase,
+                    ["side"] = "phone", ["transcript"] = Convert.ToBase64String(material.Transcript),
+                    ["proof"] = Convert.ToBase64String(TelefonCrypto.PairProof(material.Key, phase == "confirm" ? "confirm" : "finish", "phone", material.Transcript)) };
+                await TelefonCoordinator.WriteFrameAsync(stream, Proof("confirm"), timeout.Token);
+                var confirm = await TelefonCoordinator.ReadFrameAsync(stream, 65536, timeout.Token);
+                TestAssert.That(confirm["type"]!.GetValue<string>() == "pair_confirm", "Counterpart confirmation did not advance pairing");
+                await TelefonCoordinator.WriteFrameAsync(stream, Proof("finish"), timeout.Token);
+                var finish = await TelefonCoordinator.ReadFrameAsync(stream, 65536, timeout.Token);
+                await handler;
+                TestAssert.That(finish["type"]!.GetValue<string>() == "pair_finish" && store.LoadPeers().Single().State == "paired",
+                    "Pairing without an initiating-device confirmation did not finish");
+                TestAssert.That(!store.PersonalSettings(id).OwnDevice, "Code display must not invent desktop sharing consent");
+            }
+            finally { CryptographicOperations.ZeroMemory(phoneStatic.Private); CryptographicOperations.ZeroMemory(phoneEphemeral.Private); }
+        }
+        finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); Directory.Delete(root, true); }
+    }
     internal sealed class FakeOs(int port, string mode) : ITelefonBluetoothClient
     {
         internal bool Paired;
@@ -114,12 +169,12 @@ internal static class TelefonBluetoothSetupTests
             var platform = new PhoneStartupLifecycleTests.Platform(paths);
             using var setup = new FirstRunSetupPhoneServices(paths, store, os, platform, localOnly: true);
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(55));
-            var result = await setup.ConnectAsync("bluetooth", async prompt =>
+            var result = await setup.ConnectAsync("bluetooth", prompt =>
             {
-                if (prompt.Kind == "select") return Phone;
-                TestAssert.That(prompt.CanMarkOwn && prompt.Code.Length > 0, "No cryptographic confirmation prompt");
+                if (prompt.Kind == "select") return Task.FromResult<string?>(Phone);
+                TestAssert.That(prompt.Kind == "code" && !prompt.CanMarkOwn && prompt.Code.Length > 0, "No initiating-device code display");
                 Console.WriteLine("CODE " + prompt.Code);
-                return await Console.In.ReadLineAsync(timeout.Token) == "ACCEPT" ? "accept" : null;
+                return Task.FromResult<string?>("accept");
             }, timeout.Token);
             TestAssert.That(result.Authenticated && store.BluetoothAddress(result.DeviceId) == Phone && !store.PersonalSettings(result.DeviceId).OwnDevice,
                 "First Bluetooth result is unauthenticated or auto-owned");

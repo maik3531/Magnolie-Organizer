@@ -18,7 +18,7 @@ Disk = namedtuple("Disk", "total used free")
 
 
 assert m.JOURNAL_GRUENDE == {
-    "weekly", "manual", "pre-change", "pre-sync", "pre-restore", "pre-contact",
+    "weekly", "startup", "manual", "pre-change", "pre-sync", "pre-restore", "pre-contact",
     "pre-contact-import", "pre-contact-merge", "pre-contact-delete",
 }
 web_quelle = (Path(PFAD).resolve().parents[1] / "web" / "anwendung.js").read_text(
@@ -61,6 +61,30 @@ einstellungen["einstellungen"]["ansicht"] = "month"
 einstellungen["letzterSync"] = 123
 einstellungen["syncMetadaten"] = {"nextcloud": {"ausstehendeTransaktion": "test"}}
 assert not m.journal_inhalt_geaendert(vorher, einstellungen)
+with tempfile.TemporaryDirectory(prefix="magnolie-content-only-") as basis:
+    original = daten(2)
+    first = m.journal_snapshot_erzeugen(original, "pre-sync", basis=basis, disk_usage=disk)
+    metadata = copy.deepcopy(original)
+    metadata["termine"].reverse()
+    metadata["termine"][0]["geaendert"] = 123
+    metadata["kontakte"][0]["kdeImportStaende"] = {"revision": 123}
+    metadata["personalSync"] = {"revision": 123}
+    metadata["einstellungen"]["view"] = "changed preference"
+    later = m._journal_zeit(first["createdAt"]) + timedelta(days=60)
+    for reason in ("weekly", "startup", "pre-contact", "manual", "pre-restore"):
+        assert m.journal_snapshot_erzeugen(metadata, reason, basis=basis, jetzt=later, disk_usage=disk)["snapshotId"] == first["snapshotId"], reason
+    assert len(m.journal_liste(basis)) == 1 and m.journal_liste(basis)[0]["pinned"]
+    metadata["kontakte"][0]["vorname"] = "Real edit"
+    second = m.journal_snapshot_erzeugen(metadata, "pre-change", basis=basis, jetzt=later, disk_usage=disk)
+    assert second["snapshotId"] != first["snapshotId"]
+    third = m.journal_snapshot_erzeugen(original, "pre-change", basis=basis, jetzt=later + timedelta(minutes=1), disk_usage=disk)
+    assert third["snapshotId"] not in {first["snapshotId"], second["snapshotId"]} and len(m.journal_liste(basis)) == 3
+with tempfile.TemporaryDirectory(prefix="magnolie-content-encrypted-") as basis:
+    first = m.journal_snapshot_erzeugen(daten(), "pre-sync", "Rosenholz1896", basis=basis, disk_usage=disk)
+    metadata = daten(); metadata["personalSync"] = {"revision": 123}
+    assert m.journal_snapshot_erzeugen(metadata, "startup", "Rosenholz1896", basis=basis,
+        jetzt=m._journal_zeit(first["createdAt"]) + timedelta(days=60), disk_usage=disk)["snapshotId"] == first["snapshotId"]
+    assert len(m.journal_liste(basis)) == 1
 notiz_vorher = {"notizen": [{"id": "same", "titel": "Welcome", "text": "Content"}]}
 notiz_nachher = copy.deepcopy(notiz_vorher)
 notiz_nachher["notizen"][0].update(uid="other-source", angelegt=123, geaendert=456,

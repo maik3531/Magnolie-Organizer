@@ -381,4 +381,5 @@
     <string name="shared_sync_all_content">すべてのメモとタスクを同期</string>
     <string name="shared_sync_manual">手動</string>
     <string name="shared_sync_time_direction">時間記録の同期方向</string>
+    <string name="telefon_code_gegenstelle">もう一方の端末でこのコードを確認してください。</string>
 </resources>

@@ -812,7 +812,7 @@ JOURNAL_FASSUNG = 1
 JOURNAL_PAYLOAD_SCHEMA = 1
 JOURNAL_INTERVALLE = {"off": 0, "6h": 6 * 3600, "12h": 12 * 3600,
                       "daily": 86400, "weekly": 7 * 86400}
-JOURNAL_GRUENDE = {"weekly", "manual", "pre-change", "pre-sync", "pre-restore",
+JOURNAL_GRUENDE = {"weekly", "startup", "manual", "pre-change", "pre-sync", "pre-restore",
                    "pre-contact",
                    "pre-contact-import", "pre-contact-merge",
                    "pre-contact-delete"}
@@ -877,18 +877,24 @@ class BaumSyncSnapshot:
 
 def journal_inhalt_geaendert(vorher, nachher):
     """Nur Inhaltsänderungen lösen einen automatischen Vorher-Stand aus."""
-    betriebsfelder = {"einstellungen", "letzterSync", "letzteSyncs", "syncStatus",
+    betriebsfelder = {"version", "einstellungen", "letzterSync", "letzteSyncs", "syncStatus",
                      "syncMetadaten", "syncEpoch", "syncNachRestore", "syncAbgleichBasis", "syncAbgleichNachweis",
                      "personalSync", "kontaktFotoCache", "baumKontaktBestand", "baumKontaktErfolgreich", "baumKontaktLoeschStaende"}
     metadaten = {"uid", "geaendert", "angelegt", "personalGeaendert", "sync", "syncQuellen",
                  "syncKalenderUid", "davHref", "davEtag", "baumKontakt", "baumFreigabe",
                  "baumVersion", "baumQuelle", "baumGeaendert", "baumInhaltVersion", "persoenlichVerknuepft", "importBindungen", "importHerkunfte",
-                 "importKonflikt", "fotoQuelle", "fotoManuell", "kontaktZeit", "icsSequence", "icsAenderungszeitFehlt"}
+                 "importKonflikt", "fotoQuelle", "fotoManuell", "fotoAlternativen", "fotoQuellen", "kontaktAliase", "kdeImportStaende",
+                 "kontaktProviderKonflikte", "vcardRev", "kontaktZeit", "icsSequence", "icsAenderungszeitFehlt"}
 
     def inhalt(name, wert):
+        if name == "eigenesProfil" and isinstance(wert, dict):
+            return {key: inhalt("kontakte", [value])[0] if key == "data" else value
+                    for key, value in wert.items() if key not in {"created_ms", "modified_ms"}}
         if name in {"kontakte", "jahrestage", "notizen", "aufgaben", "termine"} and isinstance(wert, list):
-            return [{key: value for key, value in item.items() if key not in metadaten}
-                    if isinstance(item, dict) else item for item in wert]
+            cleaned = [{key: value for key, value in item.items() if key not in metadaten}
+                       if isinstance(item, dict) else item for item in wert]
+            ids = [item.get("id") if isinstance(item, dict) else None for item in cleaned]
+            return sorted(cleaned, key=lambda item: item["id"]) if all(isinstance(value, str) and value for value in ids) and len(set(ids)) == len(ids) else cleaned
         return wert
 
     return any(inhalt(name, vorher.get(name)) != inhalt(name, nachher.get(name))
@@ -1549,19 +1555,25 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
     zeit = _journal_zeit(jetzt)
     erstellt = zeit.isoformat(timespec="microseconds").replace("+00:00", "Z")
     quellhash = hashlib.sha256(_gesamtarchiv_kanonisch(archiv_daten)).hexdigest()
-    for alt in journal_liste(basis):
-        if ((alt.get("reason") == grund or grund == "pre-change" and
-             alt.get("reason") in {"pre-sync", "pre-contact", "pre-contact-import", "pre-contact-merge", "pre-contact-delete"}) and
-                alt.get("integrity") == "ok" and
-                alt.get("payload", {}).get("sourceSha256") == quellhash):
-            try:
-                if abs((zeit - _journal_zeit(alt["createdAt"])).total_seconds()) <= 900:
-                    geprueft, _gelesen = journal_snapshot_lesen(
-                        alt["snapshotId"], kennwort, basis)
-                    geprueft["deduplicated"] = True
-                    return geprueft
-            except (OSError, RuntimeError, ValueError, TypeError):
-                pass
+    staende = journal_liste(basis)
+    alt = staende[0] if staende else None
+    if alt and alt.get("integrity") == "ok":
+        try:
+            geprueft, gelesen = journal_snapshot_lesen(alt["snapshotId"], kennwort, basis)
+            if not journal_inhalt_geaendert(gelesen["daten"], archiv_daten):
+                if (grund == "manual" if pinned is None else pinned) and not geprueft.get("pinned"):
+                    manifest_pfad = os.path.join(geprueft["path"], "manifest.json")
+                    with open(manifest_pfad, encoding="utf-8") as datei:
+                        manifest = json.load(datei)
+                    manifest["pinned"] = True
+                    manifest["reason"] = "manual"
+                    atomar_text_schreiben(manifest_pfad, json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
+                    geprueft["pinned"] = True
+                    geprueft["reason"] = "manual"
+                geprueft["deduplicated"] = True
+                return geprueft
+        except (OSError, RuntimeError, ValueError, TypeError):
+            pass
     text = gesamtarchiv_erzeugen(archiv_daten, "linux", PROGRAMM_FASSUNG,
                                  kennwort=kennwort, erstellt=erstellt)
     payload = text.encode("utf-8")
@@ -21049,6 +21061,14 @@ class Fenster(_FENSTER_BASIS):
             self.bei_zeichenblatt_svg_speichern(nachricht)
         elif befehl == "zeichenblatt_exportieren":
             self.bei_zeichenblatt_exportieren(nachricht)
+        elif befehl == "zeichenblatt_svg_pruefen":
+            try:
+                from magnolie_drawing_svg import validated_bytes
+                validated_bytes(nachricht.get("svg"))
+                ok = True
+            except Exception:
+                ok = False
+            self.antwort("App.zeichenSvgGeprueft", {"requestId": nachricht.get("requestId"), "ok": ok})
 
         elif befehl == "eds_status":
             threading.Thread(target=self._eds_status_arbeit, daemon=True).start()
@@ -21620,12 +21640,18 @@ class Fenster(_FENSTER_BASIS):
             if png["mime"] != "image/png":
                 raise ValueError("Invalid drawing format")
             name = os.path.splitext(os.path.basename(str(nachricht.get("name") or "Magnolie")))[0] + ".png"
-            path, pattern = self._datei_speichern(_("Save as…"), name, [("PNG (*.png)", "*.png"), ("SVG (*.svg)", "*.svg")], mit_format=True)
+            editable = nachricht.get("json", "")
+            if editable and not isinstance(json.loads(editable), dict):
+                raise ValueError("Invalid drawing format")
+            filters = [("PNG (*.png)", "*.png"), ("SVG (*.svg)", "*.svg")]
+            if editable:
+                filters.append(("Magnolie JSON (*.json)", "*.json"))
+            path, pattern = self._datei_speichern(_("Save as…"), name, filters, mit_format=True)
             if path:
                 extension = os.path.splitext(path)[1].lower()
-                if extension not in (".png", ".svg"):
+                if extension not in (".png", ".svg", ".json"):
                     extension = pattern[1:]; path += extension
-                atomar_binaer_schreiben(path, svg if extension == ".svg" else png["daten"])
+                atomar_binaer_schreiben(path, editable.encode("utf-8") if extension == ".json" else svg if extension == ".svg" else png["daten"])
         except Exception as error:
             self.antwort("App.fehler", {"fehler": fehler_deutsch(error, _("Drawing sheet"))})
 
@@ -22036,16 +22062,21 @@ class Fenster(_FENSTER_BASIS):
             if not isinstance(daten, dict):
                 raise RuntimeError(_("The current organizer data is incomplete."))
             allgemein = (daten.get("einstellungen") or {}).get("allgemein") or {}
-            if str(grund).startswith("pre-") and grund != "pre-restore" and allgemein.get("wiederherstellungsmodus") == "interval":
+            erzeugungsmodus = allgemein.get("wiederherstellungsmodus", "change")
+            if str(grund).startswith("pre-") and grund != "pre-restore" and erzeugungsmodus in {"interval", "daily", "weekly", "startup"}:
                 try:
                     minuten = max(1, min(1440, int(allgemein.get("wiederherstellungsminuten", 30))))
                 except (ValueError, TypeError):
                     minuten = 30
-                letzter = next((stand for stand in journal_liste(integritaet=False)
-                                if str(stand.get("reason", "")).startswith("pre-") and stand.get("reason") != "pre-restore"), None)
-                if letzter and (_journal_zeit(None) - _journal_zeit(letzter["createdAt"])).total_seconds() < minuten * 60:
-                    journal_snapshot_lesen(letzter["snapshotId"], self._kennwort)
-                    return letzter
+                sekunden = {"daily": 86400, "weekly": 7 * 86400}.get(erzeugungsmodus, minuten * 60)
+                staende = journal_liste(integritaet=False)
+                letzter = staende[0] if staende else None
+                if letzter and (erzeugungsmodus == "startup" or (_journal_zeit(None) - _journal_zeit(letzter["createdAt"])).total_seconds() < sekunden):
+                    try:
+                        journal_snapshot_lesen(letzter["snapshotId"], self._kennwort)
+                        return letzter
+                    except (OSError, RuntimeError, ValueError, TypeError):
+                        pass
             modus, maximum, tage = _journal_aufbewahrung(allgemein)
             return journal_snapshot_erzeugen(daten, grund, self._kennwort,
                                               maximum=maximum if modus == "count" else None,
@@ -22106,18 +22137,36 @@ class Fenster(_FENSTER_BASIS):
         modus, maximum, tage = _journal_aufbewahrung(allgemein)
         staende = journal_liste(integritaet=False)
         try:
-            journal_retention(maximum=maximum if modus == "count" else None,
-                              tage=tage if modus == "days" else None)
+            wartung = getattr(self, "_journal_letzte_wartung", None)
+            if wartung is None or (_journal_zeit(None) - wartung).total_seconds() >= 900:
+                journal_retention(maximum=maximum if modus == "count" else None,
+                                  tage=tage if modus == "days" else None)
+                self._journal_letzte_wartung = _journal_zeit(None)
         except Exception as fehler:
             allgemein["wiederherstellungsstatus"] = str(fehler)
             debug_notiz("snapshot.retention.skipped", error=fehler)
         neue_staende = journal_liste(integritaet=False)
         bereinigt = len(neue_staende) != len(staende)
-        periodisch = next((s for s in neue_staende
-                           if s.get("reason") == "weekly"), None)
-        if journal_faellig(intervall, periodisch.get("createdAt") if periodisch else None):
+        erzeugungsmodus = allgemein.get("wiederherstellungsmodus", "change")
+        startup = not getattr(self, "_journal_start_geprueft", False)
+        if erzeugungsmodus != "startup":
+            self._journal_start_geprueft = True
+        try:
+            minuten = max(1, min(1440, int(allgemein.get("wiederherstellungsminuten", 30))))
+        except (ValueError, TypeError):
+            minuten = 30
+        sekunden = {"daily": 86400, "weekly": 7 * 86400, "interval": minuten * 60}.get(erzeugungsmodus)
+        letzte_pruefung = getattr(self, "_journal_letzte_pruefung", None)
+        letzter = _journal_zeit(neue_staende[0]["createdAt"]) if neue_staende else None
+        if letzte_pruefung and (letzter is None or letzte_pruefung > letzter):
+            letzter = letzte_pruefung
+        faellig = erzeugungsmodus == "startup" and startup or sekunden is not None and (
+            letzter is None or (_journal_zeit(None) - letzter).total_seconds() >= sekunden)
+        if faellig:
             try:
-                self._journal_snapshot("weekly")
+                self._journal_snapshot("startup" if erzeugungsmodus == "startup" else "weekly")
+                self._journal_start_geprueft = True
+                self._journal_letzte_pruefung = _journal_zeit(None)
                 allgemein["wiederherstellungsstatus"] = "ok"
             except Exception as fehler:
                 allgemein["wiederherstellungsstatus"] = str(fehler)
@@ -22131,7 +22180,7 @@ class Fenster(_FENSTER_BASIS):
         if self._journal_timer:
             return
         GLib.idle_add(lambda: (self._journal_periodisch(), False)[1])
-        self._journal_timer = GLib.timeout_add_seconds(15 * 60,
+        self._journal_timer = GLib.timeout_add_seconds(60,
                                                        self._journal_periodisch)
 
     def _zeit_abgleich_pausieren(self):
@@ -23249,6 +23298,8 @@ class Fenster(_FENSTER_BASIS):
         self.antwort("App.eigenesProfilOffice", result)
 
     def _personal_sync_gemeinsam(self, nachricht):
+        result = {"requestId": nachricht.get("requestId", ""), "kennung": nachricht.get("kennung", ""),
+                  "feld": nachricht.get("feld", ""), "ok": False}
         try:
             if not self._telefon:
                 raise RuntimeError(_("The phone connection is not available."))
@@ -23257,11 +23308,15 @@ class Fenster(_FENSTER_BASIS):
             elif nachricht["cmd"] == "personal_sync_gemeinsam_initialisieren":
                 self._telefon.initialize_common_preferences(nachricht["kennung"], nachricht["fingerabdruck"], nachricht["initial"])
             else:
-                self._telefon.change_common_preference(nachricht["kennung"], nachricht["fingerabdruck"],
+                result["status"] = self._telefon.change_common_preference(nachricht["kennung"], nachricht["fingerabdruck"],
                     nachricht["feld"], nachricht["wert"], nachricht["initial"])
             self._telefon_fehler = ""
+            result["ok"] = True
         except Exception as fehler:
             self._telefon_fehler = fehler_deutsch(fehler, "Persönlicher Sync")
+            result["fehler"] = self._telefon_fehler
+        if result["requestId"]:
+            self.antwort("App.gemeinsameSyncGespeichert", result)
         self._telefon_stand_melden()
 
     def _personal_sync_desktop_features(self, custom_tab, baum_aktiv):

@@ -409,4 +409,5 @@
     <string name="shared_sync_all_content">Sincronizar todas as notas e tarefas</string>
     <string name="shared_sync_manual">Manualmente</string>
     <string name="shared_sync_time_direction">Direção de sincronização do registo de tempo</string>
+    <string name="telefon_code_gegenstelle">Confirme este código no outro dispositivo.</string>
 </resources>

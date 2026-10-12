@@ -423,4 +423,5 @@
     <string name="shared_sync_all_content">Wšě noticy a nadawki synchronizować</string>
     <string name="shared_sync_manual">Manuelnje</string>
     <string name="shared_sync_time_direction">Směr synchronizacije časoweho zapisowanja</string>
+    <string name="telefon_code_gegenstelle">Wobkrućće tutón kod na druhim graće.</string>
 </resources>

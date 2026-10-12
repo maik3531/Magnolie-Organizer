@@ -16,10 +16,10 @@ object ContactRead {
     const val MAX_REPORT_BYTES = 128 * 1024
     private val uuid4 = Regex("[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
 
-    fun allowed(peer: TelefonPeer?, permission: Boolean): Boolean = peer != null && peer.state == "paired" &&
+    fun allowed(peer: TelefonPeer?, permission: Boolean, version: Int = VERSION): Boolean = version in setOf(VERSION, PROFILE_VERSION) && peer != null && peer.state == "paired" &&
         peer.own_device && peer.remote_own_device && peer.contacts_read_enabled && permission &&
         peer.device_status_granted && peer.remote_device_status_granted && peer.remote_device_status_available &&
-        VERSION in peer.remote_device_status_versions
+        version in peer.remote_device_status_versions
 
     fun validUid(value: String): Boolean = value.isNotEmpty() && value.codePointCount(0, value.length) <= 256 &&
         value.none(Char::isISOControl)

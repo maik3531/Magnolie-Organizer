@@ -50,8 +50,7 @@ internal fun GemeinsameSyncEinstellungen(telefon: TelefonUiZustand, bestand: Bes
     choice("auto_mode", stringResource(R.string.personal_sync_titel), listOf(
         "manual" to stringResource(R.string.shared_sync_manual),
         "wifi" to stringResource(R.string.personal_sync_auto_wlan)))
-    if (values["content_mode"] != JsonPrimitive("phone_scope"))
-        Schalterzeile(stringResource(R.string.personal_sync_skip_deletions), values["skip_deletions"] == JsonPrimitive(true)) { change("skip_deletions", JsonPrimitive(it)) }
+    Schalterzeile(stringResource(R.string.personal_sync_skip_deletions), values["skip_deletions"] == JsonPrimitive(true)) { change("skip_deletions", JsonPrimitive(it)) }
     Schalterzeile(stringResource(R.string.personal_custom_optin), values["custom_enabled"] == JsonPrimitive(true)) { change("custom_enabled", JsonPrimitive(it)) }
     Schalterzeile(stringResource(R.string.zeit_titel), values["time_enabled"] == JsonPrimitive(true)) { change("time_enabled", JsonPrimitive(it)) }
     choice("time_mode", stringResource(R.string.shared_sync_time_direction), listOf(

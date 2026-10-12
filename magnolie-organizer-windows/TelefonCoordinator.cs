@@ -155,7 +155,13 @@ internal sealed partial class TelefonCoordinator : IDisposable
     }
 
     internal void ConfirmPairing(string peerId, bool accepted)
-    { lock (gate) if (confirmations.Remove(peerId, out var completion)) completion.TrySetResult(accepted); }
+    {
+        lock (gate)
+        {
+            if (!accepted && setupPairing?.Target == peerId) setupPairing.Deadline.Cancel();
+            if (confirmations.Remove(peerId, out var completion)) completion.TrySetResult(accepted);
+        }
+    }
 
     internal JsonObject OpenSetupPairing(string target, IPAddress address)
     {
@@ -217,7 +223,12 @@ internal sealed partial class TelefonCoordinator : IDisposable
                 if (personalCommits.Remove(token, out var pending)) pending.Completion.TrySetResult("temporary");
             store.RemovePeer(id);
         }
-        connection?.Dispose();
+        if (connection is not null)
+        {
+            try { await connection.SendPlainAsync(new JsonObject { ["type"] = "close", ["reason"] = "unpaired" }); }
+            catch (Exception error) when (error is IOException or ObjectDisposedException or OperationCanceledException) { }
+            finally { connection.Dispose(); }
+        }
         await radioSwitch.ReleaseAllAsync(id).ConfigureAwait(false);
         lock (gate)
         {
@@ -1209,10 +1220,11 @@ internal sealed partial class TelefonCoordinator : IDisposable
         CryptographicOperations.ZeroMemory(ephemeral.Private);
         var confirmation = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         lock (gate) confirmations[peerId] = confirmation;
+        if (setup is not null) confirmation.TrySetResult(true);
         Log("", "pair_init", $"Paarung begonnen mit {peerId}; Code angezeigt.");
         await emit("App.telefonPaarung", new { offen = true, code = secrets.Code, kennung = peerId, name = peerName,
-            fingerabdruck = TelefonCrypto.Fingerprint(peerStatic), fehler = "", sekunden = 120 });
-        var phoneConfirm = await ReadFrameWithinAsync(stream, 65_536, TimeSpan.FromSeconds(30), cancellation);
+            fingerabdruck = TelefonCrypto.Fingerprint(peerStatic), fehler = "", sekunden = 120, confirmation_required = setup is null });
+        var phoneConfirm = await ReadFrameWithinAsync(stream, 65_536, TimeSpan.FromSeconds(120), cancellation);
         ValidateProof(phoneConfirm, "pair_confirm", "phone", "confirm", secrets);
         Log("", "pair_confirm", "Bestätigung des Telefons geprüft; warte auf Bestätigung am Rechner.");
         bool accepted;
@@ -2116,7 +2128,7 @@ internal sealed partial class TelefonConnection : IDisposable
         catch { stream.Dispose(); throw; }
         finally { writer.Release(); }
     }
-    private async Task SendPlainAsync(JsonObject value)
+    internal async Task SendPlainAsync(JsonObject value)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation); deadline.CancelAfter(TimeSpan.FromSeconds(15));
         await writer.WaitAsync(deadline.Token);

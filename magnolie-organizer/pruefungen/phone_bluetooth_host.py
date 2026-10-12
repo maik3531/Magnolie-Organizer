@@ -55,11 +55,12 @@ def main():
         setup = SetupPhoneServices(no_local, lambda: "Owned GUI", daemon_active=lambda: True, ipc=host.request)
         def prompt(value):
             if value["kind"] == "select": return PHONE
-            if not value.get("canMarkOwn"):
+            if value["kind"] == "confirm" and not value.get("canMarkOwn"):
                 print("OSPAIR", flush=True)
                 return "accept" if input() == "OSACCEPT" else None
             print("CODE " + value["code"], flush=True)
-            return "accept" if input() == "ACCEPT" else None
+            assert value["kind"] == "code" and not value.get("canMarkOwn")
+            return "accept"
         try:
             result = setup.connect("bluetooth", prompt)
             assert result["authenticated"] and setup.phone is None
@@ -103,9 +104,9 @@ def main():
         setup.phone._publish = lambda: None
         def prompt(value):
             if value["kind"] == "select": return PHONE
-            assert value.get("canMarkOwn") and value["code"]
+            assert value["kind"] == "code" and not value.get("canMarkOwn") and value["code"]
             print("CODE " + value["code"], flush=True)
-            return "accept" if input() == "ACCEPT" else None
+            return "accept"
         try:
             result = setup.connect("bluetooth", prompt)
             assert backend.connections == (3 if mode == "drop-finish" else 2), "Unexpected handshake connection count"

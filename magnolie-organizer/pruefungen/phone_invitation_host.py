@@ -17,6 +17,39 @@ from magnolie_telefon import PhoneService
 
 def main():
     platform, target, nonce, port, address = sys.argv[1:]
+    if platform in ("linux-phone-start", "linux-desktop-start"):
+        import magnolie_telefon as phone_module
+        phone_module.PORT = 0  # Owned ephemeral listener; never displace the user's phone service.
+        with tempfile.TemporaryDirectory(prefix="magnolie-phone-renew-") as root:
+            done = threading.Event()
+            service = None
+            def event(kind, value):
+                if kind == "pairing_code":
+                    assert value["confirmation_required"] == (platform == "linux-phone-start")
+                    print("CODE " + value["code"], flush=True)
+                    if value["confirmation_required"]:
+                        accepted = input() == "ACCEPT"
+                        service.confirm_pairing(value["attempt_id"], accepted)
+                        if not accepted:
+                            done.set()
+                elif kind == "paired":
+                    done.set()
+            service = PhoneService(root, "Owned desktop fixture", event)
+            service.enabled = True
+            service._publish = lambda: None
+            try:
+                service.start()
+                token = (service.open_setup_pairing(target, address)["token"] if platform == "linux-desktop-start"
+                         else service.open_pairing())
+                print("OFFER " + json.dumps({"deviceId": service.store.identity["device_id"],
+                    "name": "Owned desktop fixture", "host": address,
+                    "token": token, "port": service.server.getsockname()[1]}), flush=True)
+                assert done.wait(15), "Pairing did not finish"
+                print("RESULT paired" if service.store.peer(target) else "REJECTED", flush=True)
+                input()
+            finally:
+                service.stop()
+        return 0
     original_pair = PhoneService._pair
     pair_done = threading.Event()
     def checked_pair(self, sock, first, source=None):
@@ -57,8 +90,9 @@ def main():
                         assert any(d["uid"] == target for d in value["devices"])
                         return target
                     assert value["devices"][0]["uid"] == target
+                    assert value["kind"] == "code" and not value.get("canMarkOwn")
                     print("CODE " + value["code"], flush=True)
-                    return "accept" if input() == "ACCEPT" else None
+                    return "accept"
                 try:
                     result = setup.connect("wifi", prompt)
                     assert result["authenticated"] and result["deviceId"] == target and setup.phone is None
@@ -98,8 +132,9 @@ def main():
                         assert any(d["uid"] == target for d in value["devices"]), "Fixture phone not discovered"
                         return target
                     assert value["devices"][0]["uid"] == target
+                    assert value["kind"] == "code" and not value.get("canMarkOwn")
                     print("CODE " + value["code"], flush=True)
-                    return "accept" if input() == "ACCEPT" else None
+                    return "accept"
                 try:
                     result = setup.connect("wifi", prompt)
                     assert result["authenticated"] and result["deviceId"] == target

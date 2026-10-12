@@ -41,6 +41,8 @@ class ScopedDataRuntimeTest {
     @Test fun ownershipControlAndItsAckDoNotRequireContentRunId() = exercise("ownership")
     @Test fun organizerDeletionRemovesPhoneCopyAndKeepsItsAcknowledgmentAcrossMembershipChange() = exercise("delete")
     @Test fun skippingDeletionsKeepsThePhoneCopy() = exercise("skip-delete")
+    @Test fun sharedChoicesFromEitherDeviceConvergeWithoutOldEchoUndoingTheLatestChoice() = exercise("preferences")
+    @Test fun authenticatedUnpairClearsOnlyTheCurrentComputerAndKeepsPhoneContent() = exercise("unpair")
 
     private fun exercise(mode: String) {
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -127,6 +129,35 @@ class ScopedDataRuntimeTest {
                 fun ackScope() { session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { ack(it) } }
                 fun scoped(messages: List<JsonObject>) = messages.filter { it["kind"] == JsonPrimitive(PhoneContentScope.DATA_KIND) }
                 val manifest = requireNotNull(session.localContentScope)
+                if (mode == "preferences") {
+                    field(TelefonWerk::class.java, "activeChannel").set(work, channel)
+                    val latest = work.configureCommonPreferences(peerId, peer.static_public,
+                        SharedSyncSettings.effective(shared), "skip_deletions", JsonPrimitive(false))
+                    assertEquals(JsonPrimitive(false), work.state.value.sharedPreferencesValues?.get("skip_deletions"))
+                    work.receiveMessage(peer, TelefonNachrichten.message(SharedSyncSettings.KIND, shared, 60000), channel, 0)
+                    assertEquals(JsonPrimitive(false), work.state.value.sharedPreferencesValues?.get("skip_deletions"))
+                    val desktopChoice = SharedSyncSettings.change(SharedSyncSettings.merge(shared, latest, peerId, actor),
+                        peerId, actor, "auto_mode", JsonPrimitive("wifi"))
+                    work.receiveMessage(peer, TelefonNachrichten.message(SharedSyncSettings.KIND, desktopChoice, 60000), channel, 0)
+                    pump.invoke(work, peer, channel, 0L, false)
+                    assertEquals(SharedSyncSettings.effective(desktopChoice), work.state.value.sharedPreferencesValues)
+                    assertEquals(JsonPrimitive(false), work.state.value.sharedPreferencesValues?.get("skip_deletions"))
+                    assertEquals(desktopChoice, session.sharedSent)
+                    return@use
+                }
+                if (mode == "unpair") {
+                    val other = peer.copy(device_id = UUID.randomUUID().toString(), display_name = "Other computer")
+                    storage.savePeer(other); storage.selectPeer(peer.device_id)
+                    assertThrows(Exception::class.java) { work.handleSessionClose(other,
+                        buildJsonObject { put("type", "close"); put("reason", "unpaired") }, 0) }
+                    work.handleSessionClose(peer, buildJsonObject { put("type", "close"); put("reason", "normal") }, 0)
+                    assertNotNull(storage.peers().peer)
+                    work.handleSessionClose(peer, buildJsonObject { put("type", "close"); put("reason", "unpaired") }, 0)
+                    assertNull(storage.peers().peer)
+                    assertEquals(other.device_id, storage.peers().all().single().device_id)
+                    assertNotNull(documents.notiz("phone-note"))
+                    return@use
+                }
                 if (mode in setOf("delete", "skip-delete")) {
                     val original = documents.personalSyncSnapshot(setOf("notes"), 3).single { it.kind == "note" }
                     val run = UUID.randomUUID().toString()

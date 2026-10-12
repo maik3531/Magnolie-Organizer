@@ -39,7 +39,7 @@ internal object TelefonEinladungsVertrag {
         val name = text("name")
         require(name.codePointCount(0, name.length) in 1..60 && name.none { it.isISOControl() || Character.getType(it) == Character.FORMAT.toInt() })
         TelefonKrypto.b64(text("token"), 16)
-        return GefundenerDesktop(id, name, requireNotNull(source.hostAddress), text("token"))
+        return GefundenerDesktop(id, name, requireNotNull(source.hostAddress), text("token"), confirmationAtPhone = true)
     }
 }
 

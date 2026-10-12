@@ -139,11 +139,10 @@ class TelefonBluetoothSetupTest {
                 val secret = pending.javaClass.getDeclaredField("staticPrivate").apply { isAccessible = true }.get(pending) as ByteArray
                 waitFor { work.state.value.connection != TelefonVerbindungsstatus.CODE_PENDING }
                 assertNull(reference.get()); assertTrue(secret.all { it == 0.toByte() }); assertEquals("", work.state.value.pairingCode)
-                command("REJECT"); rejected(); return
+                rejected(); return
             }
-            command(if (mode == "code-decline") "REJECT" else "ACCEPT")
             if (mode == "code-decline") {
-                assertThrows(Exception::class.java) { work.confirmPairing(true) }
+                work.confirmPairing(false)
                 rejected(); return
             }
             if (mode == "drop-finish") assertThrows(java.io.IOException::class.java) { work.confirmPairing(true) }

@@ -808,7 +808,8 @@ internal sealed partial class BridgeDispatcher
             pendingTelefonPairingId = id;
             await form.SendAsync("App.telefonPairingCode", new { attempt_id = id, device_id = id,
                 display_name = message["name"]?.GetValue<string>() ?? "",
-                code, fingerprint = message["fingerabdruck"]?.GetValue<string>() ?? "" });
+                code, fingerprint = message["fingerabdruck"]?.GetValue<string>() ?? "",
+                confirmation_required = message["confirmation_required"]?.GetValue<bool>() != false });
         }
         else await form.SendAsync("App.telefonPairingOffen", new { port = TelefonCoordinator.Port,
             seconds = message["sekunden"]?.GetValue<int>() ?? 120 });

@@ -402,4 +402,5 @@
     <string name="shared_sync_all_content">Tüm notları ve görevleri eşitle</string>
     <string name="shared_sync_manual">Elle</string>
     <string name="shared_sync_time_direction">Zaman takibi eşitleme yönü</string>
+    <string name="telefon_code_gegenstelle">Bu kodu diğer cihazda onaylayın.</string>
 </resources>

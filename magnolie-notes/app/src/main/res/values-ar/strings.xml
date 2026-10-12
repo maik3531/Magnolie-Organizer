@@ -451,4 +451,5 @@
     <string name="shared_sync_all_content">مزامنة جميع الملاحظات والمهام</string>
     <string name="shared_sync_manual">يدويًا</string>
     <string name="shared_sync_time_direction">اتجاه مزامنة تتبع الوقت</string>
+    <string name="telefon_code_gegenstelle">أكّد هذا الرمز على الجهاز الآخر.</string>
 </resources>

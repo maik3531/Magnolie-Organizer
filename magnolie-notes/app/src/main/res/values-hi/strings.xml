@@ -401,4 +401,5 @@
     <string name="shared_sync_all_content">सभी नोट और कार्य सिंक करें</string>
     <string name="shared_sync_manual">मैन्युअल रूप से</string>
     <string name="shared_sync_time_direction">समय लेखन की सिंक दिशा</string>
+    <string name="telefon_code_gegenstelle">दूसरे डिवाइस पर इस कोड की पुष्टि करें।</string>
 </resources>

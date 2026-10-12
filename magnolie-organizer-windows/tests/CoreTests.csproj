@@ -56,6 +56,7 @@
     <Compile Include="..\RotatingLog.cs" Link="RotatingLog.cs" />
     <Compile Include="..\CrashReportWriter.cs" Link="CrashReportWriter.cs" />
     <Compile Include="..\AttachmentFile.cs" Link="AttachmentFile.cs" />
+    <Compile Include="..\DrawingSvg.cs" Link="DrawingSvg.cs" />
     <Compile Include="..\PhoneUri.cs" Link="PhoneUri.cs" />
     <Compile Include="..\MagnolienbaumCrypto.cs" Link="MagnolienbaumCrypto.cs" />
     <Compile Include="..\NextcloudMailbox.cs" Link="NextcloudMailbox.cs" />

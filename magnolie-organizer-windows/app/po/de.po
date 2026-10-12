@@ -1461,10 +1461,32 @@ msgstr ""
 "Organizer automatisch eine Kopie des aktuellen Bestands an. Für eine "
 "verschlüsselte Sicherung wird ihr Kennwort abgefragt."
 
-msgid "Choose a connection. Confirm pairing on the phone and this computer."
-msgstr ""
-"Wählen Sie eine Verbindungsart. Bestätigen Sie die Kopplung auf dem Telefon "
-"und auf diesem Computer."
+msgid "Choose a connection. Confirm the pairing code on the other device."
+msgstr "Wählen Sie eine Verbindungsart. Bestätigen Sie den Kopplungscode auf dem anderen Gerät."
+
+msgid "Confirm this code on the other device."
+msgstr "Bestätigen Sie diesen Code auf dem anderen Gerät."
+
+msgid "Every program start"
+msgstr "Bei jedem Programmstart"
+
+msgid "Unchanged contents do not create another recovery point."
+msgstr "Unveränderte Inhalte erzeugen keinen weiteren Wiederherstellungspunkt."
+
+msgid "Move view"
+msgstr "Ansicht verschieben"
+
+msgid "Nib angle"
+msgstr "Federwinkel"
+
+msgid "Delete drawing sheet"
+msgstr "Zeichenblatt löschen"
+
+msgid "Delete drawing sheet?"
+msgstr "Zeichenblatt löschen?"
+
+msgid "Open the drawing tablet in KDE Connect on the paired phone."
+msgstr "Öffnen Sie das Zeichentablett in KDE Connect auf dem gekoppelten Telefon."
 
 msgid "Choose a country first."
 msgstr "Bitte zuerst ein Land wählen."

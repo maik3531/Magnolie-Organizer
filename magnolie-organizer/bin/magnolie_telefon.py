@@ -2729,6 +2729,11 @@ class PhoneService:
         if context:
             context["decision"] = bool(accepted)
             context["event"].set()
+            if not accepted and context.get("socket"):
+                try:
+                    context["socket"].shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
 
     def remove(self, peer_id):
         with self.lock:
@@ -4557,13 +4562,16 @@ class PhoneService:
         transcript, key, code = pairing_material(pair_init, pair_response,
                                                   ephemeral, self.store.private)
         attempt_id = str(uuid.uuid4())
-        context = {"event": threading.Event(), "decision": None}
+        context = {"event": threading.Event(), "decision": True if setup else None, "socket": sock}
+        if setup:
+            context["event"].set()
         self.pairings[attempt_id] = context
         try:
             sock.settimeout(120)
             self.callback("pairing_code", {"attempt_id": attempt_id, "code": code,
                 "device_id": pair_init["device_id"], "display_name": pair_init["display_name"],
-                "fingerprint": fingerprint(unb64(pair_init["static_public"], 32))})
+                "fingerprint": fingerprint(unb64(pair_init["static_public"], 32)),
+                "confirmation_required": setup is None})
             phone_confirm = receive_frame(sock, PAIR_FRAME_MAX)
             expected = {"p": PROTOCOL, "type": "pair_confirm", "side": "phone",
                         "transcript": b64(transcript), "proof": b64(proof(

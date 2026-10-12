@@ -98,7 +98,8 @@ data class GefundenerDesktop(
     val host: String,
     val token: String,
     val port: Int = TelefonParameter.PORT,
-    val localAddress: java.net.InetAddress? = null
+    val localAddress: java.net.InetAddress? = null,
+    val confirmationAtPhone: Boolean = false
 )
 
 enum class TelefonVerbindungsstatus {
@@ -116,6 +117,7 @@ data class TelefonUiZustand(
     val pairedComputers: List<TelefonPeer> = emptyList(),
     val found: List<GefundenerDesktop> = emptyList(),
     val pairingCode: String = "",
+    val pairingConfirmationRequired: Boolean = true,
     val pairingFingerprint: String = "",
     val pairingName: String = "",
     val bluetoothSelecting: Boolean = false,

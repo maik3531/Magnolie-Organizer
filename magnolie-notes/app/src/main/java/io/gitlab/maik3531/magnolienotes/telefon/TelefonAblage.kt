@@ -130,6 +130,15 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
         savePeers(peers().remember(peer))
     }
 
+    /** Only the completed code-confirmation path may replace this pinned relationship. */
+    @Synchronized internal fun replaceConfirmedPeer(expected: TelefonPeer, replacement: TelefonPeer) {
+        val current = peers()
+        check(current.peer?.device_id == expected.device_id && current.peer.static_public == expected.static_public)
+        require(replacement.device_id == expected.device_id && replacement.state == "paired_unverified")
+        savePeers(current.remember(null).remember(replacement))
+        restoreComputerSettings(replacement)
+    }
+
     @Synchronized
     fun revokeTimeSync(): Set<String> {
         val current = peers()

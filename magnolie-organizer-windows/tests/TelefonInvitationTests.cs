@@ -21,18 +21,17 @@ internal static class TelefonInvitationTests
             var store = new TelefonStore(paths, RandomNumberGenerator.GetBytes(32));
             using var setup = new FirstRunSetupPhoneServices(paths, store);
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(40));
-            var result = await setup.ConnectAsync("wifi", async prompt =>
+            var result = await setup.ConnectAsync("wifi", prompt =>
             {
                 if (prompt.Kind == "select")
                 {
                     if (!prompt.Devices.Any(d => d.Uid == target)) throw new InvalidOperationException("Fixture phone not discovered");
                     Console.Error.WriteLine("Fixture phone discovered and explicitly selected");
-                    return target;
+                    return Task.FromResult<string?>(target);
                 }
-                if (prompt.Devices.Single().Uid != target || prompt.Code.Length == 0) throw new InvalidDataException();
+                if (prompt.Devices.Single().Uid != target || prompt.Code.Length == 0 || prompt.Kind != "code" || prompt.CanMarkOwn) throw new InvalidDataException();
                 Console.WriteLine("CODE " + prompt.Code);
-                var decision = await Console.In.ReadLineAsync(timeout.Token);
-                return decision == "ACCEPT" ? "accept" : null;
+                return Task.FromResult<string?>("accept");
             }, timeout.Token);
             if (!result.Authenticated || result.DeviceId != target || store.PersonalSettings(target).OwnDevice)
                 throw new InvalidDataException("Unauthenticated or auto-owned fixture phone");

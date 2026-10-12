@@ -77,6 +77,80 @@ class TelefonWlanInvitationTest {
     @Test fun `Linux Finish persists consent and daemon restart resumes only the authenticated route`() = live("linux-daemon-startup")
     @Test fun `Windows setup NSD invitation full Android pairing and authenticated session over real TCP`() = live("windows")
 
+    @Test fun `Notes initiated pairing is confirmed only at the Linux counterpart`() = phoneStarted(false, false)
+    @Test fun `fresh invitation renews a saved Linux pairing only after the counterpart confirms`() = phoneStarted(true, false)
+    @Test fun `cancelled renewal keeps the saved pairing and preferences`() = phoneStarted(true, true)
+    @Test fun `Linux initiated pairing is confirmed only at the Notes counterpart`() = phoneStarted(false, false, true)
+
+    private fun phoneStarted(renew: Boolean, cancel: Boolean, desktopStarted: Boolean = false) {
+        org.junit.Assume.assumeTrue(System.getenv("MAGNOLIE_WLAN_INTEGRATION") == "1")
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        context.getSharedPreferences("magnolie_phone_settings", Context.MODE_PRIVATE).edit().clear().commit()
+        File(context.filesDir, "telefon").deleteRecursively(); context.deleteDatabase("magnolie_phone.db")
+        val provider = object : Provider("RenewalFixture", 1.0, "Synthetic keys only") {
+            init { put("KeyStore.AndroidKeyStore", InvitationTestKeyStore::class.java.name) }
+        }
+        Security.insertProviderAt(provider, 1)
+        val storage = TelefonAblage::class.java.getDeclaredConstructor(Context::class.java).apply { isAccessible = true }.newInstance(context)
+        storage.setEnabled(true)
+        val work = TelefonWerk::class.java.getDeclaredConstructor(Context::class.java, TelefonAblage::class.java)
+            .apply { isAccessible = true }.newInstance(context, storage)
+        val script = File("../magnolie-organizer/pruefungen/phone_invitation_host.py").canonicalPath
+        val identity = storage.identity("Owned phone fixture").also { it.second.fill(0) }.first
+        val process = ProcessBuilder("python3", "-u", script, if (desktopStarted) "linux-desktop-start" else "linux-phone-start", identity.device_id, nonce, "0", address())
+            .redirectError(ProcessBuilder.Redirect.INHERIT).start()
+        val lines = java.util.concurrent.LinkedBlockingQueue<String>()
+        thread(isDaemon = true) { process.inputStream.bufferedReader().forEachLine { lines.put(it) } }
+        val input = process.outputStream.bufferedWriter()
+        var worker: Thread? = null
+        try {
+            val offer = lines.poll(8, TimeUnit.SECONDS) ?: error("No pairing offer")
+            assertTrue(offer, offer.startsWith("OFFER "))
+            val value = TelefonKanonisch.json.parseToJsonElement(offer.removePrefix("OFFER ")) as JsonObject
+            val desktop = GefundenerDesktop(value.string("deviceId"), value.string("name"), value.string("host"), value.string("token"),
+                value.long("port").toInt(), confirmationAtPhone = desktopStarted)
+            val previous = if (renew) TelefonPeer(desktop.deviceId, "Saved computer", TelefonKrypto.b64(ByteArray(32) { 23 }), own_device = true) else null
+            previous?.let { storage.savePeer(it); storage.setPersonalSync(true, true, true, false, false) }
+            val result = CompletableFuture<Unit>()
+            worker = thread(isDaemon = true) {
+                try { work.beginPairing(desktop) { TelefonTcpRoehre(desktop.host, port = desktop.port) }; result.complete(Unit) }
+                catch (error: Throwable) { result.completeExceptionally(error) }
+            }
+            val code = lines.poll(8, TimeUnit.SECONDS) ?: error("No desktop code")
+            val codeDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3)
+            while (work.state.value.pairingCode.isBlank() && !result.isDone && System.nanoTime() < codeDeadline) Thread.sleep(10)
+            assertEquals("CODE " + work.state.value.pairingCode, code)
+            assertEquals(desktopStarted, work.state.value.pairingConfirmationRequired)
+            assertEquals(previous, storage.peers().peer)
+            if (cancel) {
+                work.confirmPairing(false)
+                runCatching { result.get(5, TimeUnit.SECONDS) }
+                assertEquals(previous, storage.peers().peer)
+                assertTrue(storage.personalOwnDevice()); assertFalse(storage.personalAutoWifi())
+                input.write("REJECT\n"); input.flush()
+                assertEquals("REJECTED", lines.poll(8, TimeUnit.SECONDS))
+                input.write("STOP\n"); input.flush()
+                assertTrue(process.waitFor(5, TimeUnit.SECONDS))
+            } else {
+                if (desktopStarted) work.confirmPairing(true)
+                else { input.write("ACCEPT\n"); input.flush() }
+                result.get(8, TimeUnit.SECONDS)
+                assertEquals("RESULT paired", lines.poll(8, TimeUnit.SECONDS))
+                assertEquals("paired", storage.peers().peer?.state)
+                assertEquals(desktop.deviceId, storage.peers().peer?.device_id)
+                if (previous != null) assertNotEquals(previous.static_public, storage.peers().peer?.static_public)
+                assertEquals(1, storage.peers().all().size)
+                input.write("STOP\n"); input.flush()
+                assertTrue(process.waitFor(5, TimeUnit.SECONDS)); assertEquals(0, process.exitValue())
+            }
+        } finally {
+            work.serviceStopped()
+            if (process.isAlive) { process.destroy(); if (!process.waitFor(3, TimeUnit.SECONDS)) process.destroyForcibly() }
+            worker?.join(3000)
+            Security.removeProvider(provider.name)
+        }
+    }
+
     private fun address(): String = java.net.DatagramSocket().use {
         it.connect(InetAddress.getByName("192.0.2.1"), 9)
         require(TelefonEinladungsVertrag.local(it.localAddress))
@@ -177,7 +251,6 @@ class TelefonWlanInvitationTest {
             val code = lines.poll(8, TimeUnit.SECONDS) ?: error("No desktop code")
             assertEquals("CODE " + work.state.value.pairingCode, code)
             val input = process.outputStream.bufferedWriter()
-            input.write("ACCEPT\n"); input.flush()
             work.confirmPairing(true)
             val result = lines.poll(12, TimeUnit.SECONDS) ?: error("No authenticated setup result; phone=${work.state.value}")
             assertTrue(result, result.startsWith("RESULT "))

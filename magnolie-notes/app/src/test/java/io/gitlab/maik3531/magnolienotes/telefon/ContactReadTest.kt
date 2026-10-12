@@ -19,6 +19,9 @@ class ContactReadTest {
         val peer = TelefonPeer("computer", "Computer", "key", own_device = true, remote_own_device = true,
             contacts_read_enabled = true, remote_device_status_available = true, remote_device_status_versions = listOf(1, 5))
         assertTrue(ContactRead.allowed(peer, true))
+        assertFalse(ContactRead.allowed(peer, true, ContactRead.PROFILE_VERSION))
+        assertTrue(ContactRead.allowed(peer.copy(remote_device_status_versions = listOf(1, 5, 7)), true, ContactRead.PROFILE_VERSION))
+        assertFalse(ContactRead.allowed(peer.copy(remote_device_status_versions = listOf(1, 5, 7)), true, 6))
         assertFalse(ContactRead.allowed(peer, false))
         for (blocked in listOf(peer.copy(contacts_read_enabled = false), peer.copy(own_device = false),
             peer.copy(remote_own_device = false), peer.copy(remote_device_status_versions = listOf(1, 2, 3, 4)),

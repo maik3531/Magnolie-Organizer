@@ -8,7 +8,7 @@ namespace MagnolieOrganizer.Windows;
 
 internal enum SnapshotReason
 {
-    Periodic, Manual, PreChange, PreSync, PreContact, PreContactImport, PreContactMerge, PreContactDelete, PreRestore
+    Periodic, Startup, Manual, PreChange, PreSync, PreContact, PreContactImport, PreContactMerge, PreContactDelete, PreRestore
 }
 
 internal sealed record SnapshotInfo(
@@ -44,10 +44,22 @@ internal sealed class RecoveryJournal
     }
 
     internal SnapshotInfo Create(JsonObject data, SnapshotReason reason, string appVersion,
-        Func<string, string>? protect = null, string? syncEpoch = null)
+        Func<string, string>? protect = null, string? syncEpoch = null, Func<string, string>? unprotect = null)
     {
-        lock (gate) return Create(data, reason, appVersion, protect, syncEpoch, restoreLease: false);
+        lock (gate) return Create(data, reason, appVersion, protect, syncEpoch, unprotect, restoreLease: false);
     }
+
+    internal static string CreationMode(JsonObject data) => data["einstellungen"]?["allgemein"]?["wiederherstellungsmodus"]?.GetValue<string>() switch
+    {
+        "daily" => "daily", "weekly" => "weekly", "startup" => "startup", "interval" => "interval", _ => "change"
+    };
+
+    internal static TimeSpan? CreationPeriod(JsonObject data) => CreationMode(data) switch
+    {
+        "daily" => TimeSpan.FromDays(1), "weekly" => TimeSpan.FromDays(7),
+        "interval" => TimeSpan.FromMinutes(data["einstellungen"]?["allgemein"]?["wiederherstellungsminuten"] is JsonValue raw && raw.TryGetValue<int>(out var minutes)
+            ? Math.Clamp(minutes, 1, 1440) : 30), _ => null
+    };
 
     internal static bool HasRecoverableChanges(JsonObject previous, JsonObject proposed)
     {
@@ -55,12 +67,16 @@ internal sealed class RecoveryJournal
         // pre-change trigger ignores bookkeeping that does not change user content.
         foreach (var name in previous.Select(item => item.Key).Union(proposed.Select(item => item.Key)))
         {
-            if (name is "einstellungen" or "letzterSync" or "letzteSyncs" or "syncStatus" or
+            if (name is "version" or "einstellungen" or "letzterSync" or "letzteSyncs" or "syncStatus" or
                 "syncMetadaten" or "syncEpoch" or "syncNachRestore" or "syncAbgleichBasis" or "syncAbgleichNachweis" or
                 "personalSync" or "kontaktFotoCache" or "baumKontaktBestand" or "baumKontaktErfolgreich" or "baumKontaktLoeschStaende") continue;
             // Settings changes normally leave the content arrays identical.
             // Avoid cloning/normalizing every large photo just to prove equality.
             if (JsonNode.DeepEquals(previous[name], proposed[name])) continue;
+            if (name == "eigenesProfil" && previous[name] is JsonObject oldProfile && proposed[name] is JsonObject newProfile &&
+                oldProfile.Select(item => item.Key).Union(newProfile.Select(item => item.Key)).All(field =>
+                    field is "created_ms" or "modified_ms" || (field == "data" ? SameContent(oldProfile[field], newProfile[field], false) :
+                    JsonNode.DeepEquals(oldProfile[field], newProfile[field])))) continue;
             if (name == "geloescht" && previous[name] is JsonObject oldDeleted && proposed[name] is JsonObject newDeleted)
             {
                 static JsonObject WithoutConfirmedCleanup(JsonObject value)
@@ -78,7 +94,15 @@ internal sealed class RecoveryJournal
             if (name is "kontakte" or "jahrestage" or "notizen" or "aufgaben" or "termine" &&
                 previous[name] is JsonArray before && proposed[name] is JsonArray after)
             {
-                if (before.Count != after.Count || !before.Zip(after).All(pair => SameContent(pair.First, pair.Second, name == "kontakte"))) return true;
+                if (before.Count != after.Count) return true;
+                static string Id(JsonNode? node) => node is JsonObject item ? ContactFields.Text(item, "id") : "";
+                if (before.All(item => Id(item).Length > 0) && after.All(item => Id(item).Length > 0) &&
+                    before.Select(Id).Distinct().Count() == before.Count && after.Select(Id).Distinct().Count() == after.Count)
+                {
+                    var byId = after.ToDictionary(Id);
+                    if (!before.All(item => byId.TryGetValue(Id(item), out var candidate) && SameContent(item, candidate, name == "kontakte"))) return true;
+                }
+                else if (!before.Zip(after).All(pair => SameContent(pair.First, pair.Second, name == "kontakte"))) return true;
                 continue;
             }
             if (!JsonNode.DeepEquals(previous[name], proposed[name])) return true;
@@ -98,49 +122,53 @@ internal sealed class RecoveryJournal
                 field is "uid" or "geaendert" or "angelegt" or "personalGeaendert" or "sync" or "syncQuellen" or
                     "syncKalenderUid" or "davHref" or "davEtag" or "baumKontakt" or "baumFreigabe" or
                     "baumVersion" or "baumQuelle" or "baumGeaendert" or "baumInhaltVersion" or "persoenlichVerknuepft" or "importBindungen" or "importHerkunfte" or
-                    "importKonflikt" or "fotoQuelle" or "fotoManuell" or "kontaktAliase" or "kontaktZeit" or "icsSequence" or "icsAenderungszeitFehlt" || JsonNode.DeepEquals(left[field], right[field]));
+                    "importKonflikt" or "fotoQuelle" or "fotoManuell" or "fotoAlternativen" or "fotoQuellen" or "kontaktAliase" or "kdeImportStaende" or
+                    "kontaktProviderKonflikte" or "vcardRev" or "kontaktZeit" or "icsSequence" or "icsAenderungszeitFehlt" || JsonNode.DeepEquals(left[field], right[field]));
         }
     }
 
     internal SnapshotInfo CreateRestorePoint(JsonObject data, string appVersion,
-        Func<string, string>? protect = null, string? syncEpoch = null)
+        Func<string, string>? protect = null, string? syncEpoch = null, Func<string, string>? unprotect = null)
     {
-        lock (gate) return Create(data, SnapshotReason.PreRestore, appVersion, protect, syncEpoch, restoreLease: true);
+        lock (gate) return Create(data, SnapshotReason.PreRestore, appVersion, protect, syncEpoch, unprotect, restoreLease: true);
     }
 
     private SnapshotInfo Create(JsonObject data, SnapshotReason reason, string appVersion,
-        Func<string, string>? protect, string? syncEpoch, bool restoreLease)
+        Func<string, string>? protect, string? syncEpoch, Func<string, string>? unprotect, bool restoreLease)
     {
         EnsureSafeRoot();
         var now = clock().ToUniversalTime();
         var reasonText = ReasonText(reason);
-        var preferences = data["einstellungen"]?["allgemein"] as JsonObject;
-        if (reasonText.StartsWith("pre-", StringComparison.Ordinal) && reason != SnapshotReason.PreRestore &&
-            preferences?["wiederherstellungsmodus"]?.GetValue<string>() == "interval")
+        var latest = List().FirstOrDefault();
+        var mode = CreationMode(data); var period = CreationPeriod(data);
+        if (reasonText.StartsWith("pre-", StringComparison.Ordinal) && reason != SnapshotReason.PreRestore && latest is { Integrity: "ok" } &&
+            (mode == "startup" || period is not null && now - latest.CreatedUtc < period.Value))
         {
-            var minutes = preferences["wiederherstellungsminuten"] is JsonValue raw && raw.TryGetValue<int>(out var configured)
-                ? Math.Clamp(configured, 1, 1440) : 30;
-            var previous = List().FirstOrDefault(item => item.Reason.StartsWith("pre-", StringComparison.Ordinal) && item.Reason != "pre-restore" && item.Integrity == "ok");
-            if (previous is not null && now - previous.CreatedUtc < TimeSpan.FromMinutes(minutes)) return Verify(previous.Id);
+            return Verify(latest.Id);
         }
         var snapshotData = data.DeepClone().AsObject();
         var archive = GesamtarchivService.Create(snapshotData, "windows", appVersion, created: now);
         // Hash the normalized content, not the archive envelope's changing timestamp.
         var sourceHash = JsonNode.Parse(archive)!["sha256"]!.GetValue<string>();
         SnapshotInfo? duplicate = null;
-        foreach (var item in List().Where(item => (item.Reason == reasonText ||
-                     reason == SnapshotReason.PreChange && item.Reason is "pre-sync" or "pre-contact" or "pre-contact-import" or "pre-contact-merge" or "pre-contact-delete") &&
-                     now - item.CreatedUtc <= TimeSpan.FromMinutes(15) && SourceHash(item.Directory) == sourceHash))
+        if (latest is { Integrity: "ok" })
         {
-            try { duplicate = Verify(item.Id); break; }
-            catch (Exception error) when (error is IOException or InvalidDataException or JsonException)
+            try
             {
-                try { Delete(item.Id); }
-                catch (Exception deleteError) when (deleteError is IOException or UnauthorizedAccessException) { }
+                var previous = ReadPayload(latest.Id);
+                if (EncryptionService.IsEncrypted(previous) && unprotect is not null) previous = unprotect(previous);
+                if (!HasRecoverableChanges(GesamtarchivService.Read(previous).Daten, GesamtarchivService.Read(archive).Daten)) duplicate = Verify(latest.Id);
             }
+            catch (Exception error) when (error is IOException or InvalidDataException or JsonException or CryptographicException or InvalidOperationException) { }
         }
         if (duplicate is not null)
         {
+            if (reason == SnapshotReason.Manual && !duplicate.Pinned)
+            {
+                var manifest = ReadManifest(duplicate.Directory); manifest["pinned"] = true; manifest["reason"] = "manual";
+                store.Write(Path.Combine(duplicate.Directory, "manifest.json"), manifest.ToJsonString(Indented), 1024 * 1024);
+                duplicate = Verify(duplicate.Id);
+            }
             if (!restoreLease) return duplicate;
             WriteRestoreLease(duplicate.Directory);
             try { return ParseManifest(duplicate.Directory, verifyPayload: true); }
@@ -204,6 +232,11 @@ internal sealed class RecoveryJournal
     internal IReadOnlyList<SnapshotInfo> List()
     {
         lock (gate) return List(verifyPayload: true);
+    }
+
+    internal SnapshotInfo? NewestForSchedule()
+    {
+        lock (gate) return List(verifyPayload: false).FirstOrDefault();
     }
 
     private IReadOnlyList<SnapshotInfo> List(bool verifyPayload)
@@ -439,7 +472,7 @@ internal sealed class RecoveryJournal
         _ = CompressOld();
         var all = List().OrderByDescending(item => item.CreatedUtc).ToList();
         var settings = ReadSettings();
-        var protectedItems = all.Where(item => item.Integrity != "ok" || item.Reason == "manual" ||
+        var protectedItems = all.Where(item => item.Integrity != "ok" || item.Pinned ||
             File.Exists(Path.Combine(item.Directory, RestoreLeaseFile))).ToList();
         var keep = new HashSet<string>(protectedItems.Select(item => item.Id));
         if (Mode(settings) == "days")
@@ -560,7 +593,7 @@ internal sealed class RecoveryJournal
         return new SnapshotInfo(id, created, reason, size, hash, rootNode["syncEpoch"]?.GetValue<string>() ?? "",
             (rootNode["summary"] as JsonObject)?.DeepClone().AsObject() ?? new JsonObject(),
             payload["encrypted"]?.GetValue<bool>() ?? false,
-            reason == "manual" || File.Exists(Path.Combine(directory, RestoreLeaseFile)),
+            reason == "manual" || rootNode["pinned"]?.GetValue<bool>() == true || File.Exists(Path.Combine(directory, RestoreLeaseFile)),
             verifyPayload ? "ok" : "unchecked", payloadFile, directory);
         }
         catch (Exception error) when (error is FormatException or InvalidOperationException or OverflowException)
@@ -717,7 +750,7 @@ internal sealed class RecoveryJournal
     private static TimeSpan Duration(string value) => value switch { "6h" => TimeSpan.FromHours(6), "12h" => TimeSpan.FromHours(12), "daily" => TimeSpan.FromDays(1), _ => TimeSpan.FromDays(7) };
     private static string ReasonText(SnapshotReason reason) => reason switch
     {
-        SnapshotReason.Periodic => "weekly", SnapshotReason.Manual => "manual", SnapshotReason.PreChange => "pre-change",
+        SnapshotReason.Periodic => "weekly", SnapshotReason.Startup => "startup", SnapshotReason.Manual => "manual", SnapshotReason.PreChange => "pre-change",
         SnapshotReason.PreSync => "pre-sync",
         SnapshotReason.PreContact => "pre-contact", SnapshotReason.PreContactImport => "pre-contact-import",
         SnapshotReason.PreContactMerge => "pre-contact-merge", SnapshotReason.PreContactDelete => "pre-contact-delete",

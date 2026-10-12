@@ -245,9 +245,9 @@ fun BaumBlatt(
                     telefonHandlungen.beiRechner(null)
                 }
             }
+            if (telefon.enabled && telefon.connection != TelefonVerbindungsstatus.CODE_PENDING)
+                io.gitlab.maik3531.magnolienotes.telefon.TelefonEinladungsDialog(telefonHandlungen.beiVerbinden)
             if (telefon.enabled && telefon.peer == null) {
-                if (telefon.connection != TelefonVerbindungsstatus.CODE_PENDING)
-                    io.gitlab.maik3531.magnolienotes.telefon.TelefonEinladungsDialog(telefonHandlungen.beiVerbinden)
                 if (telefon.connection != TelefonVerbindungsstatus.CODE_PENDING)
                     io.gitlab.maik3531.magnolienotes.telefon.TelefonBluetoothSetupDialog()
                 telefon.found.forEach { desktop ->
@@ -265,9 +265,11 @@ fun BaumBlatt(
                 Text("${telefon.pairingName} · ${telefon.pairingFingerprint}", fontFamily = FontFamily.Monospace,
                     fontSize = 11.sp, color = Magnolie.braunHell)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Lederknopf(stringResource(R.string.telefon_code_stimmt)) { telefonHandlungen.beiCode(true) }
-                    Papierknopf(stringResource(R.string.telefon_code_falsch)) { telefonHandlungen.beiCode(false) }
+                    if (telefon.pairingConfirmationRequired)
+                        Lederknopf(stringResource(R.string.telefon_code_stimmt)) { telefonHandlungen.beiCode(true) }
+                    Papierknopf(stringResource(if (telefon.pairingConfirmationRequired) R.string.telefon_code_falsch else R.string.abbrechen)) { telefonHandlungen.beiCode(false) }
                 }
+                if (!telefon.pairingConfirmationRequired) Text(stringResource(R.string.telefon_code_gegenstelle), color = Magnolie.braun)
             }
             telefon.peer?.let { peer ->
                 Wertzeile(stringResource(R.string.telefon_kopplung), peer.display_name)

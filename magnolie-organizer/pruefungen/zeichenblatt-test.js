@@ -8,12 +8,14 @@ const plain = value => JSON.parse(JSON.stringify(value));
 const sheet = drawing.create();
 const widths = [], handlers = new Map();
 const context = { save() {}, restore() {}, clearRect() {}, beginPath() {}, arc() {}, fill() {}, moveTo() {}, lineTo() {},
+  drawImage() {}, closePath() {},
   stroke() { widths.push(this.lineWidth); } };
 const canvas = { width: 0, height: 0, style: {}, getContext: () => context,
   addEventListener: (name, handler) => handlers.set(name, handler),
   removeEventListener: name => handlers.delete(name),
   getBoundingClientRect: () => ({ left: 10, top: 20, width: 600, height: 400 }),
   focus() {}, setPointerCapture() {}, toDataURL: type => type };
+sandbox.document = { createElement: () => ({ ...canvas, style: {} }) };
 let changes = 0;
 const editor = drawing.attach(canvas, sheet, () => changes++);
 assert.equal(drawing.valid(sheet), true);
@@ -50,7 +52,7 @@ editor.destroy();
 assert.equal(handlers.size, 0);
 editor.remote({ active: true, touching: true, x: 0.5, y: 0.5, pressure: 1 });
 assert.equal(JSON.stringify(sheet), unchanged);
-for (const invalid of [{ ...before, version: 2 }, { ...before, width: 1000000 },
+for (const invalid of [{ ...before, version: 99 }, { ...before, width: 1000000 },
   { ...before, strokes: [{ ...before.strokes[0], points: [[Infinity, 0, 1]] }] },
   { ...before, strokes: [{ ...before.strokes[0], points: new Array(drawing.MAX_POINTS + 1).fill([0, 0, 1]) }] }]) {
   assert.equal(drawing.valid(invalid), false);

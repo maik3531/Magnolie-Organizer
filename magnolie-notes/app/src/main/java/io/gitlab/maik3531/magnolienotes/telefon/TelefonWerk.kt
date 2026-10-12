@@ -1106,20 +1106,23 @@ class TelefonWerk private constructor(private val context: Context, private val 
     fun beginPairing(desktop: GefundenerDesktop) {
         if (savedComputers().any { it.device_id == desktop.deviceId }) {
             selectComputer(desktop.deviceId)
-            return
+            if (desktop.token.isBlank()) return
         }
         beginPairing(desktop) { TelefonTcpRoehre(desktop.host, localAddress = desktop.localAddress) }
     }
 
     internal fun beginPairing(desktop: GefundenerDesktop, bluetoothAddress: String = "", open: () -> TelefonRoehre): Boolean {
-        val generation = pairingGeneration
         check(storage.enabled())
         val current = safePeer()
         if (!organizerPairingAllowed(current, desktop.deviceId))
             throw TelefonProtokollFehler(context.getString(io.gitlab.maik3531.magnolienotes.R.string.telefon_rechner_hinzufuegen))
-        if (current != null)
+        if (current != null && desktop.token.isBlank())
             throw TelefonProtokollFehler("Dieser Organizer ist bereits kryptografisch gekoppelt.")
         if (!pairing.compareAndSet(false, true)) return false
+        val generation = synchronized(this) {
+            if (current != null) { pairingGeneration++; lifecycleGeneration++; closeTransport() }
+            pairingGeneration
+        }
         var staticPrivate: ByteArray? = null
         var ephemeralPrivate: ByteArray? = null
         var socket: TelefonRoehre? = null
@@ -1171,14 +1174,17 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     throw java.io.IOException(context.getString(io.gitlab.maik3531.magnolienotes.R.string.telefon_status_getrennt))
                 }
                 synchronized(this) {
-                    check(generation == pairingGeneration && safePeer() == null)
-                    attempt = PendingPairing(connection, response, material, privateKey, ephemeralKey, desktop.host, bluetoothAddress, generation)
+                    check(generation == pairingGeneration && samePairingPeer(safePeer(), current))
+                    attempt = PendingPairing(connection, response, material, privateKey, ephemeralKey, desktop.host, bluetoothAddress, generation, current)
                     pending.getAndSet(attempt)?.close()
                     _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.CODE_PENDING,
-                        pairingCode = material.code, pairingName = responseName,
+                        pairingCode = material.code, pairingName = responseName, pairingConfirmationRequired = desktop.confirmationAtPhone,
                         pairingFingerprint = TelefonKrypto.fingerabdruck(TelefonKrypto.b64(response.string("static_public"), 32)))
                 }
             }
+            // The device initiating the request displays the code. Only its counterpart
+            // asks the user to compare it; the existing proof/finish exchange is unchanged.
+            if (!desktop.confirmationAtPhone) confirmPairing(true)
             return true
         } catch (error: Exception) {
             runCatching { socket?.close() }; staticPrivate?.fill(0); ephemeralPrivate?.fill(0)
@@ -1192,7 +1198,18 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     fun confirmPairing(matches: Boolean) {
         val pair = synchronized(this) {
-            (pending.getAndSet(null) ?: return).also { confirmingPairing = it }
+            val waiting = pending.getAndSet(null)
+            if (waiting == null) {
+                if (!matches && confirmingPairing != null) {
+                    pairingGeneration++; lifecycleGeneration++
+                    runCatching { confirmingPairing?.socket?.close() }
+                    _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.OFFLINE,
+                        pairingCode = "", pairingFingerprint = "", pairingName = "")
+                    pairing.set(false)
+                }
+                return
+            }
+            waiting.also { confirmingPairing = it }
         }
         try {
             if (!matches) {
@@ -1214,9 +1231,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 bluetooth_address = pair.bluetoothAddress, bluetooth_inbound = pair.bluetoothAddress.isNotBlank(),
                 pending_finish = TelefonKanonisch.text(phoneFinish), pending_finish_expires_ms = System.currentTimeMillis() + 600_000)
             synchronized(this) {
-                if (pair.generation != pairingGeneration || safePeer() != null)
+                if (pair.generation != pairingGeneration || !samePairingPeer(safePeer(), pair.previousPeer))
                     throw TelefonProtokollFehler("Ein Organizer ist bereits kryptografisch gekoppelt.")
-                storage.savePeer(peer)
+                if (pair.previousPeer == null) storage.savePeer(peer)
+                else storage.replaceConfirmedPeer(pair.previousPeer, peer)
+                pair.previousPeer?.let {
+                    queue.deletePeer(it.device_id)
+                    Ablage.hole(context).personalSyncRevokeDeletions(it.device_id)
+                }
             }
             TelefonRahmen.schreiben(pair.socket.output, phoneFinish)
             val finish = TelefonRahmen.lesen(pair.socket.input)
@@ -1459,6 +1481,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                             TelefonNachrichten.validateHeartbeat(payload)
                             channel.send(buildJsonObject { put("type", JsonPrimitive("pong")); put("ping_id", payload.getValue("ping_id")); put("sent_ms", payload.getValue("sent_ms")) })
                         }
+                        "close" -> { handleSessionClose(peer, payload, generation); return }
                         else -> throw TelefonProtokollFehler("Unbekannter sicherer Inhalt.")
                     }
                     controls.addAll(sendDue(peer, channel, generation, true))
@@ -1512,7 +1535,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                             handleSessionAck(peer, payload, noteSession, generation, transport)
                         }
                         "message" -> receiveMessage(peer, payload, channel, generation)
-                        "close" -> return
+                        "close" -> { handleSessionClose(peer, payload, generation); return }
                         else -> throw TelefonProtokollFehler("Unbekannter sicherer Inhalt.")
                     }
                     sendDue(peer, channel, generation)
@@ -1530,6 +1553,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
             staticPrivate.fill(0); runCatching { pipe.close() }
             if (generation == pairingGeneration && serviceRunning && storage.enabled()) _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.OFFLINE)
         }
+    }
+
+    // Called only for a frame received through the authenticated session channel.
+    @Synchronized internal fun handleSessionClose(expected: TelefonPeer, payload: JsonObject, generation: Long) {
+        TelefonNachrichten.exact(payload, setOf("type", "reason"))
+        require(payload.string("type") == "close" && payload.string("reason") in
+            setOf("normal", "shutdown", "better_transport", "unpaired", "protocol_upgrade"))
+        peerEffect(expected, generation) { if (payload.string("reason") == "unpaired") unpair() }
     }
 
     internal fun sessionEstablished(expected: TelefonPeer, generation: Long, transport: TelefonTransportArt,
@@ -1577,7 +1608,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         fun authorized(current: TelefonPeer, expected: PersonalNoteSession? = null): PersonalNoteSession {
             val session = noteSessions[channel]
             if (session == null || expected != null && session !== expected || !session.capabilitiesReceived ||
-                !session.grantsReceived || !session.ownSettingsReceived || !ContactRead.allowed(current, reader.permission()) ||
+                !session.grantsReceived || !session.ownSettingsReceived || !ContactRead.allowed(current, reader.permission(), (message["body"] as JsonObject).long("version").toInt()) ||
                 System.currentTimeMillis() >= message.long("expires_ms")) throw SecurityException("contacts_not_granted")
             return session
         }
@@ -2984,11 +3015,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private fun JsonObject.number(name: String) = (getValue(name) as? JsonPrimitive)?.takeIf { !it.isString }?.content?.toIntOrNull()
         ?: throw TelefonProtokollFehler("Falscher Feldtyp: $name")
     private fun safePeer() = runCatching { storage.peers().peer }.getOrNull()
+    private fun samePairingPeer(actual: TelefonPeer?, expected: TelefonPeer?) =
+        if (expected == null) actual == null else actual?.device_id == expected.device_id && actual.static_public == expected.static_public
     private fun savedComputers() = runCatching { storage.peers().all() }.getOrDefault(emptyList())
 
     private data class PendingPairing(val socket: TelefonRoehre, val response: JsonObject, val material: PaarungsMaterial,
         val staticPrivate: ByteArray, val ephemeralPrivate: ByteArray, val host: String, val bluetoothAddress: String = "",
-        val generation: Long = 0) {
+        val generation: Long = 0, val previousPeer: TelefonPeer? = null) {
         fun close() { runCatching { socket.close() }; material.schluessel.fill(0); staticPrivate.fill(0); ephemeralPrivate.fill(0) }
     }
 

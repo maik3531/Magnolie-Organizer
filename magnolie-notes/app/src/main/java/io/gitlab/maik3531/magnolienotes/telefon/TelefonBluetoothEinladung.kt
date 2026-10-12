@@ -29,7 +29,7 @@ internal object TelefonBluetoothEinladung {
             it.isISOControl() || Character.getType(it) == Character.FORMAT.toInt()
         })
         TelefonKrypto.b64(value.string("token"), 16)
-        return GefundenerDesktop(id, name, "", value.string("token"))
+        return GefundenerDesktop(id, name, "", value.string("token"), confirmationAtPhone = true)
     }
 }
 

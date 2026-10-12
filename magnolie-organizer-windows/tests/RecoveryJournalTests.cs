@@ -12,6 +12,7 @@ internal static class RecoveryJournalTests
         try
         {
             await TestLoadedOutboxQuarantine(root);
+            TestUnchangedContents(root);
             var syncJournal = new RecoveryJournal(Path.Combine(root, "sync-once"), Path.Combine(root, "sync-once.json"));
             var beforeSync = new JsonObject { ["kontakte"] = new JsonArray(new JsonObject { ["id"] = "before" }) };
             var explicitBefore = syncJournal.Create(beforeSync, SnapshotReason.PreContactImport, "2.0.22");
@@ -150,7 +151,8 @@ internal static class RecoveryJournalTests
                 grouped.Create(groupedData, SnapshotReason.PreRestore, "2.0.27").Id != groupedFirst.Id, "Manual/restore points were suppressed.");
             now = now.AddMinutes(21);
             TestAssert.That(grouped.Create(groupedData, SnapshotReason.PreChange, "2.0.27").Id != groupedFirst.Id, "No new interval snapshot after expiry.");
-            TestAssert.That(contact.Reason == "pre-contact", "Der allgemeine Kontaktgrund ist nicht plattformstabil.");
+            TestAssert.That(contact.Id == replacement.Id && contact.Reason == replacement.Reason,
+                "Ein anderer Auslöser erzeugte bei unverändertem Inhalt einen zusätzlichen Punkt.");
             var contactManifestPath = Path.Combine(contact.Directory, "manifest.json");
             var legacyManifest = JsonNode.Parse(File.ReadAllText(contactManifestPath))!.AsObject();
             legacyManifest["reason"] = "periodic";
@@ -353,6 +355,40 @@ internal static class RecoveryJournalTests
             }
         }
         finally { try { Directory.Delete(root, true); } catch { } }
+    }
+
+    private static void TestUnchangedContents(string root)
+    {
+        var now = new DateTimeOffset(2026, 10, 11, 12, 0, 0, TimeSpan.Zero);
+        var journal = new RecoveryJournal(Path.Combine(root, "content-only"), Path.Combine(root, "content-only-settings.json"), clock: () => now);
+        var original = JsonNode.Parse("{\"notizen\":[{\"id\":\"a\",\"titel\":\"A\",\"text\":\"Keep A\"},{\"id\":\"b\",\"titel\":\"B\",\"text\":\"Keep B\"}],\"kontakte\":[{\"id\":\"c\",\"vorname\":\"Same\"}]}")!.AsObject();
+        var first = journal.Create(original, SnapshotReason.PreSync, "2.0.27");
+        var metadata = original.DeepClone().AsObject();
+        metadata["notizen"] = new JsonArray(metadata["notizen"]!.AsArray().Reverse().Select(item => item!.DeepClone()).ToArray());
+        metadata["notizen"]![0]!["geaendert"] = 456;
+        metadata["kontakte"]![0]!["kdeImportStaende"] = new JsonObject { ["revision"] = 123 };
+        metadata["personalSync"] = new JsonObject { ["revision"] = 123 };
+        metadata["einstellungen"] = new JsonObject { ["view"] = "changed preference" };
+        now = now.AddDays(60);
+        foreach (var reason in new[] { SnapshotReason.Periodic, SnapshotReason.Startup, SnapshotReason.PreContact, SnapshotReason.Manual, SnapshotReason.PreRestore })
+            TestAssert.That(journal.Create(metadata, reason, "2.0.27").Id == first.Id, "Unchanged contents created a point: " + reason);
+        TestAssert.That(journal.List().Count == 1 && journal.Verify(first.Id).Pinned, "Manual reuse did not protect the existing point");
+        metadata["notizen"]![0]!["text"] = "Real content change";
+        var second = journal.Create(metadata, SnapshotReason.PreChange, "2.0.27");
+        TestAssert.That(second.Id != first.Id && journal.List().Count == 2, "Actual content change was suppressed");
+        now = now.AddMinutes(1);
+        var third = journal.Create(original, SnapshotReason.PreChange, "2.0.27");
+        TestAssert.That(third.Id != first.Id && third.Id != second.Id && journal.List().Count == 3,
+            "Returning to older contents reused a historical rather than the latest point");
+        var encryption = new EncryptionService();
+        _ = encryption.Enable("{}", "Rosenholz1896");
+        var encrypted = new RecoveryJournal(Path.Combine(root, "content-encrypted"), Path.Combine(root, "content-encrypted-settings.json"), clock: () => now);
+        var protectedPoint = encrypted.Create(original, SnapshotReason.PreSync, "2.0.27", encryption.EncryptData);
+        var changedMetadata = original.DeepClone().AsObject(); changedMetadata["personalSync"] = new JsonObject { ["revision"] = 99 };
+        now = now.AddDays(1);
+        TestAssert.That(encrypted.Create(changedMetadata, SnapshotReason.Startup, "2.0.27", encryption.EncryptData,
+            unprotect: encryption.DecryptDataWithSession).Id == protectedPoint.Id && encrypted.List().Count == 1,
+            "Encrypted unchanged contents created another point");
     }
 
     private static async Task TestLoadedOutboxQuarantine(string root)

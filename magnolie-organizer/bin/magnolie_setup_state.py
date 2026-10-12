@@ -359,6 +359,10 @@ class SetupPhoneServices:
                 except queue.Empty:
                     challenge = None
                 if challenge:
+                    if challenge.get("confirmation_required") is False:
+                        prompt({"kind": "code", "devices": [{"uid": challenge["device_id"], "name": challenge["display_name"]}],
+                                "code": challenge["code"]})
+                        continue
                     accepted = prompt({"kind": "confirm", "devices": [{"uid": challenge["device_id"], "name": challenge["display_name"]}],
                                        "code": challenge["code"], "canMarkOwn": True})
                     self.phone.confirm_pairing(challenge["attempt_id"], accepted in ("accept", "accept-own"))
@@ -470,6 +474,9 @@ class SetupPhoneServices:
                     if challenge["device_id"] != target:
                         self.phone.confirm_pairing(challenge["attempt_id"], False)
                         continue
+                    if challenge.get("confirmation_required") is False:
+                        prompt({"kind": "code", "devices": [{"uid": target, "name": challenge["display_name"]}], "code": challenge["code"]})
+                        continue
                     answer = prompt({"kind": "confirm", "devices": [{"uid": target, "name": challenge["display_name"]}],
                                      "code": challenge["code"], "canMarkOwn": True})
                     self.phone.confirm_pairing(challenge["attempt_id"], answer in ("accept", "accept-own"))
@@ -548,6 +555,9 @@ class SetupPhoneServices:
                 if challenge:
                     if challenge["device_id"] != selected:
                         self.phone.confirm_pairing(challenge["attempt_id"], False)
+                        continue
+                    if challenge.get("confirmation_required") is False:
+                        prompt({"kind": "code", "devices": [{"uid": selected, "name": challenge["display_name"]}], "code": challenge["code"]})
                         continue
                     accepted = prompt({"kind": "confirm", "devices": [{"uid": selected, "name": challenge["display_name"]}],
                                        "code": challenge["code"], "canMarkOwn": True})
@@ -959,7 +969,7 @@ class PhoneSetupSessions:
                 entry.update(state="connecting", transport=transport, target="", identity="", result=None, error="", operation_expires=self.clock() + 120)
                 def prompt(value):
                     devices = value.get("devices", [])
-                    if value.get("kind") not in ("select", "confirm") or not 1 <= len(devices) <= 32:
+                    if value.get("kind") not in ("select", "confirm", "code") or not 1 <= len(devices) <= 32:
                         raise RuntimeError("The selected phone changed. Try again.")
                     clean = {"id": os.urandom(16).hex(), "kind": value["kind"],
                         "devices": [{"uid": str(d["uid"]), "name": str(d["name"])[:120]} for d in devices],
@@ -970,7 +980,7 @@ class PhoneSetupSessions:
                     with self.lock:
                         self._check(owner, entry["token"])
                         if adapter.closed.is_set(): raise RuntimeError("Phone connection cancelled or timed out.")
-                        if clean["kind"] == "confirm" and (clean["canMarkOwn"] or transport == "kdeconnect"):
+                        if clean["kind"] == "code" or clean["kind"] == "confirm" and (clean["canMarkOwn"] or transport == "kdeconnect"):
                             if len(clean["devices"]) != 1: raise RuntimeError("The selected phone changed. Try again.")
                             entry["identity"] = clean["devices"][0]["uid"]
                         entry["prompt"] = request

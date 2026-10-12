@@ -113,6 +113,12 @@ internal sealed class FirstRunSetupPhoneServices(WindowsPaths paths, TelefonStor
             {
                 var id = challenge["kennung"]!.GetValue<string>();
                 if (selectedPhone is not null && selectedPhone != id) { phone.ConfirmPairing(id, false); continue; }
+                if (challenge["confirmation_required"]?.GetValue<bool>() == false)
+                {
+                    await prompt(new SetupPhonePrompt("code", [new SetupSource(id, challenge["name"]!.GetValue<string>())],
+                        challenge["code"]!.GetValue<string>())).WaitAsync(ct);
+                    continue;
+                }
                 var accepted = await prompt(new SetupPhonePrompt("confirm", [new SetupSource(id, challenge["name"]!.GetValue<string>())],
                     challenge["code"]!.GetValue<string>(), true)).WaitAsync(ct);
                 phone.ConfirmPairing(id, accepted is "accept" or "accept-own");
@@ -162,6 +168,12 @@ internal sealed class FirstRunSetupPhoneServices(WindowsPaths paths, TelefonStor
                 {
                     var id = challenge["kennung"]!.GetValue<string>();
                     if (id != available.Id) { phone.ConfirmPairing(id, false); continue; }
+                    if (challenge["confirmation_required"]?.GetValue<bool>() == false)
+                    {
+                        await prompt(new SetupPhonePrompt("code", [new SetupSource(id, challenge["name"]!.GetValue<string>())],
+                            challenge["code"]!.GetValue<string>())).WaitAsync(lifetime.Token);
+                        continue;
+                    }
                     var answer = await prompt(new("confirm", [new(id, challenge["name"]!.GetValue<string>())],
                         challenge["code"]!.GetValue<string>(), true)).WaitAsync(lifetime.Token);
                     phone.ConfirmPairing(id, answer is "accept" or "accept-own");

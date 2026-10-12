@@ -2,7 +2,7 @@
 
 This additive discovery mechanism does not authenticate a device. Trust still
 comes exclusively from the existing `magnolie-phone/1` pairing transcript,
-matching-code confirmation on both devices, confirmation/finish proofs, and the
+matching-code confirmation at the counterpart of the initiating device, confirmation/finish proofs, and the
 pinned forward-secret session. Existing phone-initiated clients remain compatible.
 Bluetooth first pairing and daemon setup IPC are outside this unit.
 
@@ -19,13 +19,23 @@ Bluetooth first pairing and daemon setup IPC are outside this unit.
 4. Android connects to the invitation TCP socket's actual source IPv4 address on
    port 8741, binding the outgoing pairing connection to the invitation's local
    interface. Neither a URL nor an advertised callback host is accepted.
-5. Both users compare and confirm the unchanged telephone verification code.
+5. Both screens show the unchanged telephone verification code. The initiating
+   desktop displays it without another approval button; confirm its match on Notes.
+   For a Notes-initiated request, Notes displays it and the desktop confirms it.
    Android checks that the actual desktop device ID equals the invited ID.
    Desktop checks the selected phone ID, source address and scoped pairing token.
 6. The existing pinned secure session reconnects. Setup returns authenticated
    connected status only after the selected peer is online over WLAN. The own-phone
-   flag is set only when explicitly checked on the PC confirmation, after that
-   authenticated result. No additional grant APIs are called.
+   flag and additional desktop permissions are configured separately after the
+   authenticated result; the display-only code prompt does not grant them.
+
+An accepted fresh invitation for an already saved computer can renew that one
+relationship through the same code/confirmation/finish exchange. Before code
+confirmation, cancellation preserves the saved pairing and its preferences.
+Replacement uses the existing atomic peer file and clears only that computer's
+old queued transport/settings state. An authenticated `close/unpaired` removes
+the current bound computer; an ordinary disconnect does not remove it. Neither
+path deletes already synchronized notes or tasks.
 
 The Linux callback is `SetupPhoneServices.connect("wifi", prompt)`, using
 `_connect_wifi`. Windows uses `FirstRunSetupPhoneServices.ConnectAsync("wifi", ...)`.

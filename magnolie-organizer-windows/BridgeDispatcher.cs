@@ -31,6 +31,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private string pendingKdePairingId = "";
     private readonly RecoveryJournal recovery;
     private readonly System.Threading.Timer recoveryTimer;
+    private bool startupRecoveryChecked;
+    private DateTimeOffset lastRecoveryMaintenance = DateTimeOffset.MinValue;
     private readonly byte[]? contributorHash = ReadContributorHash();
     private readonly WindowsUpdateService updates;
     private readonly CloudBackupService cloudBackups;
@@ -49,7 +51,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         LoadPersistentReminders();
         recovery = new RecoveryJournal(paths.RecoveryJournal, paths.RecoverySettings, store);
         recoveryTimer = new System.Threading.Timer(_ => QueueBackground(RunPeriodicSnapshotAsync), null,
-            TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(15));
+            TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
         http.DefaultRequestHeaders.UserAgent.ParseAdd($"Magnolie-Organizer-Windows/{AppVersion}");
         updates = new WindowsUpdateService(paths.Root);
         cloudBackups = new CloudBackupService(paths.CloudBackupPassword);
@@ -158,15 +160,25 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     {
                         var vector = DrawingSvg.Validate(Text(message, "svg"));
                         var raster = AttachmentFile.Parse(Text(message, "png"), "drawing.png");
+                        var editable = Text(message, "json");
+                        if (editable.Length > 0 && JsonNode.Parse(editable) is not JsonObject) throw new InvalidDataException("Invalid drawing format.");
                         using var drawingDialog = new SaveFileDialog { Title = T("Save as…"),
                             FileName = Path.GetFileNameWithoutExtension(Text(message, "name")),
-                            Filter = "PNG (*.png)|*.png|SVG (*.svg)|*.svg", DefaultExt = "png", AddExtension = true, OverwritePrompt = true };
+                            Filter = "PNG (*.png)|*.png|SVG (*.svg)|*.svg" + (editable.Length > 0 ? "|Magnolie JSON (*.json)|*.json" : ""), DefaultExt = "png", AddExtension = true, OverwritePrompt = true };
                         if (drawingDialog.ShowDialog(form) == DialogResult.OK)
                         {
                             var extension = Path.GetExtension(drawingDialog.FileName).ToLowerInvariant();
                             var svg = extension == ".svg" || extension.Length == 0 && drawingDialog.FilterIndex == 2;
-                            await File.WriteAllBytesAsync(drawingDialog.FileName, svg ? vector : raster.Bytes);
+                            var json = extension == ".json" || extension.Length == 0 && drawingDialog.FilterIndex == 3;
+                            await File.WriteAllBytesAsync(drawingDialog.FileName, json ? System.Text.Encoding.UTF8.GetBytes(editable) : svg ? vector : raster.Bytes);
                         }
+                        break;
+                    }
+                    case "zeichenblatt_svg_pruefen":
+                    {
+                        var requestId = Text(message, "requestId");
+                        try { _ = DrawingSvg.Validate(Text(message, "svg")); await form.SendAsync("App.zeichenSvgGeprueft", new { requestId, ok = true }); }
+                        catch (Exception error) when (error is InvalidDataException or System.Xml.XmlException) { await form.SendAsync("App.zeichenSvgGeprueft", new { requestId, ok = false }); }
                         break;
                     }
                     case "update_oeffnen": await OpenValidatedResultAsync("App.updateGeoeffnet",
@@ -290,9 +302,23 @@ internal sealed partial class BridgeDispatcher : IDisposable
                         await telefon.StartCommonSyncAsync(Text(message, "kennung"), Text(message, "fingerabdruck"),
                             JsonNode.Parse(message.GetProperty("initial").GetRawText())!.AsObject()); break;
                     case "personal_sync_gemeinsam_aendern":
-                        await telefon.SetCommonPreferencesAsync(Text(message, "kennung"), Text(message, "fingerabdruck"),
-                            JsonNode.Parse(message.GetProperty("initial").GetRawText())!.AsObject(), Text(message, "feld"),
-                            JsonNode.Parse(message.GetProperty("wert").GetRawText())); break;
+                    {
+                        var id = Text(message, "kennung"); var field = Text(message, "feld"); var requestId = Text(message, "requestId");
+                        try
+                        {
+                            await telefon.SetCommonPreferencesAsync(id, Text(message, "fingerabdruck"),
+                                JsonNode.Parse(message.GetProperty("initial").GetRawText())!.AsObject(), field,
+                                JsonNode.Parse(message.GetProperty("wert").GetRawText()));
+                            if (requestId.Length > 0) await form.SendAsync("App.gemeinsameSyncGespeichert", new {
+                                requestId, kennung = id, feld = field, ok = true, status = telefon.SharedPreferences(id) });
+                        }
+                        catch (Exception error)
+                        {
+                            if (requestId.Length == 0) throw;
+                            await form.SendAsync("App.gemeinsameSyncGespeichert", new { requestId, kennung = id, feld = field, ok = false, fehler = error.Message });
+                        }
+                        break;
+                    }
                     case "personal_sync_betrieb": await telefon.SetPersonalSyncModeAsync(Text(message, "kennung"), Boolean(message, "autoWlan"), Boolean(message, "loeschungenAuslassen")); break;
                     case "personal_sync_desktop_features": await telefon.SetDesktopFeaturesAsync(Boolean(message, "customTab"), Boolean(message, "baumAktiv")); break;
                     case "personal_sync_senden": await SendPersonalSyncAsync(message); break;
@@ -1244,7 +1270,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
         if (!currentPlainTextAvailable) throw new InvalidOperationException(T("The locked data cannot be backed up."));
         var data = JsonNode.Parse(currentPlainText) as JsonObject ?? throw new InvalidDataException(T("The data is invalid."));
         return recovery.Create(data, reason, AppVersion,
-            encryption.Session is null ? null : archive => encryption.EncryptData(archive));
+            encryption.Session is null ? null : archive => encryption.EncryptData(archive),
+            unprotect: text => EncryptionService.IsEncrypted(text) ? encryption.DecryptDataWithSession(text) : text);
     }
 
     private SnapshotInfo CreateRestorePoint()
@@ -1252,14 +1279,34 @@ internal sealed partial class BridgeDispatcher : IDisposable
         if (!currentPlainTextAvailable) throw new InvalidOperationException(T("The locked data cannot be backed up."));
         var data = JsonNode.Parse(currentPlainText) as JsonObject ?? throw new InvalidDataException(T("The data is invalid."));
         return recovery.CreateRestorePoint(data, AppVersion,
-            encryption.Session is null ? null : archive => encryption.EncryptData(archive));
+            encryption.Session is null ? null : archive => encryption.EncryptData(archive),
+            unprotect: text => EncryptionService.IsEncrypted(text) ? encryption.DecryptDataWithSession(text) : text);
     }
 
     private async Task RunPeriodicSnapshotAsync()
     {
         await RetryRestoreRepairAsync();
-        if (disposed || !currentPlainTextAvailable || !recovery.IsDue() || !await MutationGate.Global.WaitAsync(0)) return;
-        try { CreateSnapshot(SnapshotReason.Periodic); recovery.RecordPeriodicResult(true); }
+        if (disposed || !currentPlainTextAvailable || !await MutationGate.Global.WaitAsync(0)) return;
+        try
+        {
+            var now = DateTimeOffset.UtcNow;
+            if (now - lastRecoveryMaintenance >= TimeSpan.FromMinutes(15)) { recovery.Prune(); lastRecoveryMaintenance = now; }
+            var data = JsonNode.Parse(currentPlainText)!.AsObject();
+            var mode = RecoveryJournal.CreationMode(data); var period = RecoveryJournal.CreationPeriod(data);
+            var startup = !startupRecoveryChecked;
+            if (mode != "startup") startupRecoveryChecked = true;
+            if (mode == "change" || mode == "startup" && !startup) return;
+            if (period is not null)
+            {
+                var last = recovery.NewestForSchedule()?.CreatedUtc;
+                var checkedAt = recovery.Schedule().Last;
+                if (checkedAt > last || last is null) last = checkedAt;
+                if (last is not null && now - last.Value < period.Value) return;
+            }
+            CreateSnapshot(mode == "startup" ? SnapshotReason.Startup : SnapshotReason.Periodic);
+            startupRecoveryChecked = true;
+            recovery.RecordPeriodicResult(true);
+        }
         catch (Exception error) { recovery.RecordPeriodicResult(false, error.Message); }
         finally { MutationGate.Global.Release(); }
         await SendRecoveryStatusAsync();

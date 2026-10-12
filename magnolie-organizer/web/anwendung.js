@@ -2517,6 +2517,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   const gemeinsameSyncInitialisierung = new Map();
+  const gemeinsameSyncWartend = new Map();
   function initialisiereGemeinsameSyncWerte() {
     if (gesperrt || !DATEN?.einstellungen) return;
     for (const peer of telefonStand?.peers || []) {
@@ -2545,8 +2546,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const senden = (feld, wert) => {
       const aktuell = personalSyncNotizPeer(id);
       if (!aktuell || aktuell.fingerprint !== fingerprint) return;
-      Bruecke.sende({ cmd: "personal_sync_gemeinsam_aendern", kennung: id, fingerabdruck: fingerprint,
-        initial, feld, wert });
+      const key = id + ":" + feld, requestId = anrufClientRef();
+      const pending = { requestId, fingerprint, wert };
+      const previous = gemeinsameSyncWartend.get(key); if (previous) clearTimeout(previous.timer);
+      pending.timer = setTimeout(() => App.gemeinsameSyncGespeichert({ requestId, kennung: id, feld,
+        ok: false, fehler: _("Personal synchronization failed.") }), 15000);
+      gemeinsameSyncWartend.set(key, pending);
+      if (Bruecke.sende({ cmd: "personal_sync_gemeinsam_aendern", kennung: id, fingerabdruck: fingerprint,
+        initial: gemeinsameSyncWerte(aktuell), feld, wert, requestId }) === false)
+        App.gemeinsameSyncGespeichert({ requestId, kennung: id, feld, ok: false, fehler: _("Personal synchronization failed.") });
+      aktualisiereGemeinsameSyncFelder();
     };
     const select = (field, label, options) => {
       const input = auswahlFeld(options, initial[field]);
@@ -2566,7 +2575,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     select("auto_mode", _("Synchronization"), [["manual", _("Manually")], ["wifi", _("Automatically synchronize over Wi-Fi")],
       ...(peer.shared_sync.auto_connection_supported ? [["connection", _("Automatically over the current connection")]] : [])]);
     const deletions = check("skip_deletions", _("Skip deletions"));
-    deletions.dataset.sharedSyncDeletion = id; deletions.hidden = initial.content_mode === "phone_scope";
+    deletions.dataset.sharedSyncDeletion = id;
     const custom = check("custom_enabled", personalCustomBeschriftung()); custom.hidden = !registerAktiv("custom");
     check("time_enabled", pgettext("time tracking", "Time tracking"));
     select("time_mode", _("Time synchronization direction"), [["phone_import", _("Import Notes → Organizer only")], ["two_way", _("Two-way synchronization")]]);
@@ -2586,17 +2595,22 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       input.disabled = !peer || peer.fingerprint !== input.dataset.sharedSyncFingerprint || peer.shared_sync?.supported !== true;
       if (input.disabled) return;
       const values = gemeinsameSyncWerte(peer), field = input.dataset.sharedSyncField;
-      if (input.type === "checkbox") input.checked = values[field] === true;
-      else input.value = values[field];
+      const pending = gemeinsameSyncWartend.get(peer.device_id + ":" + field);
+      const waiting = pending?.fingerprint === peer.fingerprint;
+      input.disabled = waiting;
+      const value = waiting ? pending.wert : values[field];
+      if (input.type === "checkbox") input.checked = value === true;
+      else input.value = value;
     });
     document.querySelectorAll("[data-shared-sync-deletion]").forEach(row => {
       const peer = personalSyncNotizPeer(row.dataset.sharedSyncDeletion);
-      row.hidden = !peer || gemeinsameSyncWerte(peer).content_mode === "phone_scope";
+      row.hidden = !peer;
     });
     document.querySelectorAll("[data-shared-sync-start]").forEach(button => {
       const peer = personalSyncNotizPeer(button.dataset.sharedSyncStart);
       button.disabled = !peer || peer.fingerprint !== button.dataset.sharedSyncFingerprint || !peer.own_device ||
-        !peer.remote_own_device || !/^online_/.test(peer.state || "");
+        !peer.remote_own_device || !/^online_/.test(peer.state || "") ||
+        Array.from(gemeinsameSyncWartend.keys()).some(key => key.startsWith(peer.device_id + ":"));
     });
   }
 
@@ -6669,6 +6683,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   const CUSTOM_MAX_MODULES = 4;
   const CUSTOM_MAX_ITEMS = 500;
   const aktiveZeichenblaetter = new Map();
+  const zeichenSvgAnfragen = new Map();
   let aktivesZeichenziel = null;
   let zeichenblattAuswahlSchliessen = null;
 
@@ -7834,6 +7849,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     za.foto = Number(ad.fotoVoreinstellung) >= 1 ? !!ad.foto : true;
     za.fotoVoreinstellung = 1;
     za.personengruppenAn = ad.personengruppenAn === true;
+    za.eigenesProfilAn = ad.eigenesProfilAn !== false;
     za.smsBenachrichtigungDauer = [0, 15, 30, 60, 120].includes(
       Number(ad.smsBenachrichtigungDauer)) ? Number(ad.smsBenachrichtigungDauer) : 60;
     za.smsSchedulingEnabled = ad.smsSchedulingEnabled === true;
@@ -7894,7 +7910,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     d.einstellungen.allgemein.wiederherstellungsintervall =
       ["off", "6h", "12h", "daily", "weekly"].includes(al.wiederherstellungsintervall)
         ? al.wiederherstellungsintervall : "weekly";
-    d.einstellungen.allgemein.wiederherstellungsmodus = al.wiederherstellungsmodus === "interval" ? "interval" : "change";
+    d.einstellungen.allgemein.wiederherstellungsmodus = ["change", "daily", "weekly", "startup", "interval"].includes(al.wiederherstellungsmodus) ? al.wiederherstellungsmodus : "change";
     d.einstellungen.allgemein.wiederherstellungsminuten = Math.max(1, Math.min(1440, Math.round(Number(al.wiederherstellungsminuten) || 30)));
     d.einstellungen.allgemein.wiederherstellungsanzahl =
       Math.max(1, Math.min(100, Math.round(Number(al.wiederherstellungsanzahl) || 20)));
@@ -10989,7 +11005,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     "draw-new": "M5 3h10l4 4v14H5z M15 3v5h4 M8 14h8 M12 10v8",
     "draw-save": "M4 3h14l3 3v15H4z M8 3v6h9V3 M8 21v-8h9v8",
     "draw-size": "M3 9V3h6 M15 3h6v6 M21 15v6h-6 M9 21H3v-6 M8 8l-5-5 M16 16l5 5",
-    "draw-clear": "M4 7h16 M8 7V3h8v4 M6 7l1 14h10l1-14 M10 11v6 M14 11v6",
+    "draw-clear": "M17 3L9 13 M6 11l7 7-5 4-6-6z M4 17l4 4 M6 15l4 4",
+    "draw-delete": "M4 7h16 M8 7V3h8v4 M6 7l1 14h10l1-14 M10 11v6 M14 11v6",
+    "draw-open": "M3 7h7l2-3h8v5 M3 7v13h16l3-11H8l-3 11",
     "draw-gradient": "M3 4h18v16H3z M6 5v14 M9 5v14 M13 5v14 M18 5v14",
     "draw-rotate": "M5 8a8 8 0 1 1-1 9 M5 3v5h5 M9 11h6v6H9z",
     "draw-move": "M12 2v20 M2 12h20 M9 5l3-3 3 3 M9 19l3 3 3-3 M5 9l-3 3 3 3 M19 9l3 3-3 3",
@@ -13735,6 +13753,27 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const werkzeuge = el("div", "knopfreihe zeichen-werkzeuge"), status = el("p", "einst-hinweis");
     const iconButton = (name, label, action) => { const button = knopf("", "zeichen-symbol", action);
       button.title = label; button.setAttribute("aria-label", label); button.append(sinnbild("draw-" + name, 23)); return button; };
+    const choicesMenu = (event, choices) => {
+      event.preventDefault(); event.stopPropagation(); schliesseVorschlaege();
+      const menu = el("div", "vorschlags-menue bearbeiten-menue"); menu.id = "vorschlags-menue"; menu.setAttribute("role", "menu");
+      for (const [label, action] of choices) { const button = knopf(label, "vm-eintrag", () => { menu.remove(); action(); }); button.setAttribute("role", "menuitem"); menu.append(button); }
+      document.body.append(menu); const box = event.currentTarget.getBoundingClientRect();
+      menu.style.left = Math.max(6, Math.min(event.clientX || box.left, window.innerWidth - menu.offsetWidth - 8)) + "px";
+      menu.style.top = Math.max(6, Math.min(event.clientY || box.bottom, window.innerHeight - menu.offsetHeight - 8)) + "px";
+      menu.addEventListener("keydown", e => { const buttons = [...menu.querySelectorAll("button")], index = buttons.indexOf(document.activeElement);
+        if (e.key === "Escape") { e.preventDefault(); menu.remove(); }
+        if (["ArrowDown", "ArrowUp"].includes(e.key)) { e.preventDefault(); buttons[(index + (e.key === "ArrowDown" ? 1 : -1) + buttons.length) % buttons.length]?.focus(); } });
+      menu.querySelector("button")?.focus();
+    };
+    const variants = (button, choices) => { button.addEventListener("contextmenu", event => choicesMenu(event, choices()));
+      button.addEventListener("keydown", event => { if (event.key === "F10" && event.shiftKey) choicesMenu(event, choices()); }); };
+    const numberDialog = (label, initial, apply, min = 0, max = 360) => {
+      const overlay = el("div", "eingabe-schleier"), dialog = el("div", "eingabe-dialog"), value = eingabe("number", String(initial)); value.min = String(min); value.max = String(max);
+      const close = () => { beendeModal(overlay); overlay.remove(); };
+      dialog.append(el("h2", null, label), formZeile(label, value), knopf(_("Cancel"), "", close), knopf(_("Apply"), "haupt", () => {
+        const n = Number(value.value); if (Number.isFinite(n) && n >= min && n <= max) { apply(n); close(); } }));
+      overlay.append(dialog); document.body.append(overlay); registriereModal(overlay, dialog, { anfang: value, schliessen: close });
+    };
     const sheets = DATEN.customOrganizer.modules.filter(value => value.type === "drawing" && value.page === modul.page);
     const sheetChoice = auswahlFeld(sheets.map(value => [value.id, value.title || _("Drawing sheet")]), modul.id);
     sheetChoice.setAttribute("aria-label", _("Drawing sheet"));
@@ -13754,11 +13793,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     aktiveZeichenblaetter.set(modul.id, { canvas, editor, modul });
     const werkzeug = auswahlFeld([["pen", _("Pen")], ["quill", _("Calligraphy pen")], ["brush", _("Brush")],
       ["highlighter", _("Highlighter")], ["eraser", _("Eraser")], ["select", _("Select")],
-      ["rectangle", _("Rectangle")], ["ellipse", _("Ellipse")], ["triangle", _("Triangle")], ["line", _("Line")], ["move", _("Move selection")]], "pen");
+      ["rectangle", _("Rectangle")], ["ellipse", _("Ellipse")], ["triangle", _("Triangle")], ["line", _("Line")], ["move", _("Move selection")], ["pan", _("Move view")]], "pen");
     werkzeug.setAttribute("aria-label", _("Drawing tool"));
     const toolChoices = { pen: { width: 4, color: "#1d2433" }, quill: { width: 12, color: "#1d2433" },
       brush: { width: 10, color: "#1d2433" }, highlighter: { width: 20, color: "#ffcf33" }, eraser: { width: 16, color: "#1d2433" }, select: { width: 4, color: "#1d2433" } };
-    for (const shape of ["rectangle", "ellipse", "triangle", "line", "move"]) toolChoices[shape] = { width: 4, color: "#1d2433" };
+    for (const shape of ["rectangle", "ellipse", "triangle", "line", "move", "pan"]) toolChoices[shape] = { width: 4, color: "#1d2433" };
     let currentTool = "pen";
     werkzeug.addEventListener("change", () => {
       toolChoices[currentTool] = { width: Number(breite.value), color: farbe.value };
@@ -13779,9 +13818,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     });
     zurueck = iconButton("undo", _("Undo"), () => editor.undo()); zurueck.disabled = !editor.canUndo();
     wieder = iconButton("redo", _("Redo"), () => editor.redo()); wieder.disabled = !editor.canRedo();
-    const exportieren = iconButton("save", _("Save as…"), () => {
+    const exportieren = iconButton("save", _("Save as…"), async () => {
+      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { status.textContent = _("This image format cannot be used."); return; }
+      if (!canvas.isConnected || gesperrt || !DATEN.customOrganizer.modules.includes(modul)) return;
       const png = editor.exportPng(), svg = editor.exportSvg(), name = modul.title || "Magnolie";
-      if (Bruecke.vorhanden) Bruecke.sende({ cmd: "zeichenblatt_exportieren", png, svg, name });
+      if (Bruecke.vorhanden) Bruecke.sende({ cmd: "zeichenblatt_exportieren", png, svg, name, json: JSON.stringify(modul.drawing) });
       else { const link = document.createElement("a"); link.href = png; link.download = name + ".png"; link.click(); }
     });
     const blattgroesse = iconButton("size", _("Sheet size"), () => {
@@ -13789,17 +13830,27 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const close = () => { beendeModal(overlay); overlay.remove(); };
       const w = eingabe("number", String(modul.drawing.width)), h = eingabe("number", String(modul.drawing.height));
       for (const field of [w, h]) { field.min = "200"; field.max = "4096"; field.step = "1"; }
-      const preset = auswahlFeld([["custom", _("Custom")], ["portrait", _("Portrait")], ["landscape", _("Landscape")], ["square", _("Square")]], "custom");
+      const preset = auswahlFeld([["auto", _("Automatic")], ["custom", _("Custom")], ["portrait", _("Portrait")], ["landscape", _("Landscape")], ["square", _("Square")]], modul.drawing.autoSize === false ? "custom" : "auto");
       preset.addEventListener("change", () => { const size = { portrait: [1200, 1697], landscape: [1697, 1200], square: [1200, 1200] }[preset.value];
         if (size) { w.value = String(size[0]); h.value = String(size[1]); } });
       const buttons = el("div", "dialog-knoepfe"); buttons.append(knopf(_("Cancel"), "", close), knopf(_("Apply"), "haupt", () => {
+        if (preset.value === "auto") { editor.setAutoSize(true); close(); return; }
         if (editor.setSize(Number(w.value), Number(h.value))) close();
       }));
+      w.disabled = h.disabled = preset.value === "auto";
+      preset.addEventListener("change", () => { w.disabled = h.disabled = preset.value === "auto"; });
       dialog.append(el("h2", null, _("Sheet size")), preset, formZeile(_("Width"), w), formZeile(_("Height"), h), buttons);
       overlay.append(dialog); document.body.append(overlay); registriereModal(overlay, dialog, { anfang: preset, schliessen: close });
     });
-    for (const [tool, label, icon] of [["pen", _("Pen"), "pen"], ["quill", _("Calligraphy pen"), "quill"], ["brush", _("Brush"), "brush"],
-      ["highlighter", _("Highlighter"), "marker"], ["eraser", _("Eraser"), "eraser"], ["select", _("Select"), "select"]]) {
+    const chooseTool = tool => { werkzeug.value = tool; werkzeug.dispatchEvent(new Event("change")); canvas.focus(); };
+    const pens = [["pen", _("Pen"), "pen"], ["quill", _("Calligraphy pen"), "quill"], ["brush", _("Brush"), "brush"], ["highlighter", _("Highlighter"), "marker"]];
+    let penChoice = "pen";
+    const penButton = iconButton("pen", _("Pen"), () => chooseTool(penChoice)); penButton.dataset.zeichenWerkzeug = "pen";
+    variants(penButton, () => [...pens.map(([tool, label, icon]) => [label, () => { penChoice = tool; penButton.dataset.zeichenWerkzeug = tool;
+      penButton.title = label; penButton.setAttribute("aria-label", label); penButton.replaceChildren(sinnbild("draw-" + icon, 23)); chooseTool(tool); }]),
+      [_('Nib angle'), () => numberDialog(_("Nib angle"), editor.getNibAngle(), value => editor.setNibAngle(value))]]);
+    werkzeuge.append(penButton);
+    for (const [tool, label, icon] of [["eraser", _("Eraser"), "eraser"], ["select", _("Select"), "select"]]) {
       const button = iconButton(icon, label, () => { werkzeug.value = tool; werkzeug.dispatchEvent(new Event("change")); });
       button.dataset.zeichenWerkzeug = tool; button.setAttribute("aria-pressed", String(tool === currentTool)); werkzeuge.append(button);
     }
@@ -13813,6 +13864,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       dialog.append(el("h2", null, _("Insert shape")), choices, knopf(_("Cancel"), "", close)); overlay.append(dialog); document.body.append(overlay);
       registriereModal(overlay, dialog, { anfang: choices.querySelector("button"), schliessen: close });
     });
+    variants(forms, () => [["rectangle", _("Rectangle")], ["ellipse", _("Ellipse")], ["triangle", _("Triangle")], ["line", _("Line")]]
+      .map(([tool, label]) => [label, () => chooseTool(tool)]));
     const transform = rotate => {
       const overlay = el("div", "eingabe-schleier"), dialog = el("div", "eingabe-dialog");
       const close = () => { beendeModal(overlay); overlay.remove(); };
@@ -13825,15 +13878,58 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }));
       dialog.append(error, buttons); overlay.append(dialog); document.body.append(overlay); registriereModal(overlay, dialog, { anfang: x, schliessen: close });
     };
-    werkzeuge.append(farbe, endColor, breite, widthValue, forms, iconButton("cut", _("Cut selection"), () => editor.cut()),
-      iconButton("fill", _("Fill selection"), () => editor.fillSelection()), iconButton("paste", _("Paste"), () => editor.paste()), zurueck, wieder,
-      iconButton("gradient", _("Fill with gradient"), () => editor.fillSelection(endColor.value)),
-      iconButton("rotate", _("Rotate selection"), () => transform(true)), iconButton("move", _("Move selection"), () => { werkzeug.value = "move"; werkzeug.dispatchEvent(new Event("change")); canvas.focus(); }),
+    let moveChoice = "pan";
+    const moveButton = iconButton("move", _("Move view"), () => chooseTool(moveChoice)); moveButton.dataset.zeichenWerkzeug = "pan";
+    variants(moveButton, () => [[_('Move view'), () => { moveChoice = "pan"; moveButton.dataset.zeichenWerkzeug = "pan"; moveButton.title = _("Move view"); moveButton.setAttribute("aria-label", moveButton.title); chooseTool("pan"); }],
+      [_('Move selection'), () => { moveChoice = "move"; moveButton.dataset.zeichenWerkzeug = "move"; moveButton.title = _("Move selection"); moveButton.setAttribute("aria-label", moveButton.title); chooseTool("move"); }]]);
+    const fillButton = iconButton("fill", _("Fill selection"), () => editor.fillSelection());
+    variants(fillButton, () => [[_('Fill selection'), () => editor.fillSelection()], [_('Fill with gradient'), () => {
+      const overlay = el("div", "eingabe-schleier"), dialog = el("div", "eingabe-dialog"), first = eingabe("color", farbe.value);
+      const close = () => { beendeModal(overlay); overlay.remove(); };
+      dialog.append(el("h2", null, _("Fill with gradient")), formZeile(_("Color"), first), formZeile(_("Gradient end color"), endColor),
+        knopf(_("Cancel"), "", close), knopf(_("Apply"), "haupt", () => { farbe.value = first.value; editor.setColor(first.value); editor.fillSelection(endColor.value); close(); }));
+      overlay.append(dialog); document.body.append(overlay); registriereModal(overlay, dialog, { anfang: first, schliessen: close }); }]]);
+    const openFile = document.createElement("input"); openFile.type = "file"; openFile.accept = ".json,.svg,image/png,image/jpeg,image/webp,image/gif"; openFile.hidden = true;
+    const loadImage = (data, fileName) => {
+      const image = new Image(); image.onerror = () => { status.textContent = _("This image format cannot be used."); };
+      image.onload = () => {
+        if (!canvas.isConnected || gesperrt || !DATEN.customOrganizer.modules.includes(modul)) return;
+        const factor = Math.min(1, 4096 / Math.max(image.naturalWidth, image.naturalHeight));
+        const buffer = document.createElement("canvas"); buffer.width = Math.max(1, Math.round(image.naturalWidth * factor)); buffer.height = Math.max(1, Math.round(image.naturalHeight * factor));
+        buffer.getContext("2d").drawImage(image, 0, 0, buffer.width, buffer.height);
+        const background = buffer.toDataURL("image/png");
+        if (!window.MagnolieZeichnen.validImage(background)) { status.textContent = _("The file is larger than 8 megabytes."); return; }
+        const ready = new Image(); ready.onload = () => { if (canvas.isConnected && !gesperrt && DATEN.customOrganizer.modules.includes(modul)) {
+          editor.replaceSheet({ version: 4, width: buffer.width, height: buffer.height, strokes: [], background }, ready); status.textContent = fileName;
+        } }; ready.src = background;
+      }; image.src = data;
+    };
+    openFile.addEventListener("change", () => {
+      const file = openFile.files?.[0]; if (!file || file.size > 16 * 1024 * 1024) { status.textContent = _("The file is larger than 8 megabytes."); return; }
+      if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !editor.replaceSheet(JSON.parse(reader.result))) throw Error(); }
+        catch (_) { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
+      else if (/\.svg$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => {
+        const requestId = anrufClientRef(), apply = () => { if (canvas.isConnected && !gesperrt) loadImage("data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(reader.result))), file.name); };
+        zeichenSvgAnfragen.set(requestId, apply); setTimeout(() => zeichenSvgAnfragen.delete(requestId), 15000);
+        Bruecke.sende({ cmd: "zeichenblatt_svg_pruefen", requestId, svg: String(reader.result) }); }; reader.readAsText(file); }
+      else notizAnhangLesen(file, "image", (item, error) => { if (error) status.textContent = error; else if (canvas.isConnected && !gesperrt) loadImage(item.daten, file.name); });
+      openFile.value = "";
+    });
+    const removeSheet = iconButton("delete", _("Delete drawing sheet"), async () => {
+      if (!await frage(_("Delete drawing sheet?")) || gesperrt || !DATEN.customOrganizer.modules.includes(modul)) return;
+      sichereCustomPapierkorb(modul); DATEN.customOrganizer.modules = DATEN.customOrganizer.modules.filter(value => value !== modul);
+      planeSpeichern(); beendeTabletEingabe(); const next = DATEN.customOrganizer.modules.find(value => value.type === "drawing" && value.page === modul.page);
+      if (navigate) { if (next) navigate(next.id); else zeichenblattAuswahlSchliessen?.(); } else zeichneAlles();
+    });
+    werkzeuge.append(moveButton, farbe, iconButton("line", _("Line width"), () => numberDialog(_("Line width"), Number(breite.value), value => { breite.value = String(value); editor.setWidth(value); widthValue.textContent = String(value); }, .5, 80)),
+      forms, iconButton("cut", _("Cut selection"), () => editor.cut()), fillButton, iconButton("paste", _("Paste"), () => editor.paste()), zurueck, wieder,
+      iconButton("rotate", _("Rotate selection"), () => transform(true)),
       iconButton("zoom-in", _("Zoom in"), () => editor.setZoom(Math.min(4, editor.getZoom() * 1.25))),
       iconButton("zoom-out", _("Zoom out"), () => editor.setZoom(Math.max(.25, editor.getZoom() / 1.25))),
-      iconButton("size", _("Fit to view"), () => editor.setZoom(1)),
-      iconButton("clear", _("Clear"), () => editor.clear()), blattgroesse, exportieren);
+      iconButton("clear", _("Clear"), () => editor.clear()), blattgroesse, exportieren, iconButton("open", _("Open"), () => openFile.click()), removeSheet);
+    ziel.append(openFile);
     const tablet = document.createElement("input"); tablet.type = "checkbox";
+    tablet.hidden = true; ziel.append(tablet);
     tablet.dataset.kdeZeichenInput = "true";
     const quelle = telefonStand?.kdeconnect;
     tablet.disabled = !Bruecke.vorhanden || !quelle?.digitizer_available || !quelle.digitizer_device_id;
@@ -13856,13 +13952,24 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       canvas.focus();
     });
     if (quelle?.native) status.textContent = _("If your system KDE Connect supports tablet input, it can be used here like a normal pen.");
-    else status.textContent = _("Enable tablet input here, then open the drawing tablet in KDE Connect on the phone.");
+    else status.textContent = _("Open the drawing tablet in KDE Connect on the paired phone.");
     canvas.addEventListener("keydown", event => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
         event.preventDefault(); if (event.shiftKey) editor.redo(); else editor.undo();
       }
     });
-    ziel.append(werkzeuge, tabletZeile, zeichenflaeche, status);
+    ziel.append(werkzeuge, tablet, zeichenflaeche, status);
+    const activateTablet = () => {
+      const source = telefonStand?.kdeconnect;
+      tablet.disabled = !Bruecke.vorhanden || !source?.digitizer_available || !source.digitizer_device_id;
+      if (!canvas.isConnected || gesperrt || tablet.disabled || !DATEN.customOrganizer.modules.includes(modul)) return;
+      if (aktivesZeichenziel && aktivesZeichenziel.canvas !== canvas && document.activeElement !== canvas) return;
+      if (!aktivesZeichenziel || aktivesZeichenziel.canvas !== canvas || aktivesZeichenziel.deviceId !== source.digitizer_device_id) {
+        tablet.checked = true; tablet.dispatchEvent(new Event("change"));
+      }
+    };
+    Object.assign(aktiveZeichenblaetter.get(modul.id), { tablet, activateTablet });
+    canvas.addEventListener("focus", activateTablet); setTimeout(activateTablet, 0);
     if (fortsetzen) canvas.focus();
   }
 
@@ -17633,7 +17740,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const eigenesProfil = knopf(_("Own profile"), "klein", () => navigiereMitGuard(() => {
       z.modus = "eigenes-profil"; zeichneAlles();
     }));
-    baueKopf("links", _("Contacts"), "", [suchfeld, eigenesProfil, neuKnopf]);
+    baueKopf("links", _("Contacts"), "", [suchfeld, ...(DATEN.einstellungen.adressen.eigenesProfilAn !== false ? [eigenesProfil] : []), neuKnopf]);
     adrRefs.zaehler = $("#kopf-links .kopf-neben");
 
     const inhaltL = $("#inhalt-links");
@@ -17652,8 +17759,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
     if (["eigenes-profil", "eigenes-profil-bearbeiten"].includes(z.modus)) {
       baueKopf("rechts", _("Own profile"), "", []);
+      spalte.classList.add("formular-spalte");
       spalte.append(DATEN.eigenesProfil?.data && z.modus !== "eigenes-profil-bearbeiten"
-        ? kontaktKarte(DATEN.eigenesProfil.data, true) : eigenesProfilFormular());
+        ? kontaktKarte(DATEN.eigenesProfil.data, true) : kontaktFormular(DATEN.eigenesProfil?.data || {}, true));
       if (z.modus === "eigenes-profil" && DATEN.eigenesProfil?.data) eigenesProfilTelefonAnfordern();
     } else if (z.modus === "neu" || (z.modus === "bearbeiten" && kontakt)) {
       baueKopf("rechts", z.modus === "neu" ? _("New contact") : _("Edit contact"), "", []);
@@ -17699,24 +17807,46 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   let eigenesProfilOfficeAnfrage = null;
   let eigenesProfilTelefonAnfrage = null;
-  const eigenesProfilTelefonGelesen = new Set();
+  function erganzeEigenprofilDaten(draft, remote) {
+    const before = kanonischerEntwurf(draft);
+    for (const key of ["vorname", "nachname", "firma", "strasse", "plz", "ort", "land", "notiz", "geburtstag"])
+      if (!String(draft[key] || "").trim() && typeof remote[key] === "string" && remote[key]) draft[key] = remote[key];
+    let phones = telefonListe(draft);
+    if (!phones.length) phones = telefonListe(remote);
+    else if (typeof remote.mobil === "string" && remote.mobil.trim() && !phones.some(value => value.typen.includes("CELL"))) phones.push(...telefonListe({ mobil: remote.mobil }));
+    if (phones.length) setzeTelefonListe(draft, phones);
+    if (!emailListe(draft).length && emailEintragListe(remote).length) setzeEmailListe(draft, emailEintragListe(remote));
+    if (!anschriftListe(draft).length && anschriftListe(remote).length) setzeAnschriftListe(draft, anschriftListe(remote));
+    if (!draft.foto && !draft.fotoManuell && sauberesFoto(remote.foto)) draft.foto = sauberesFoto(remote.foto);
+    return before !== kanonischerEntwurf(draft);
+  }
+  const eigenesProfilTelefonGelesen = new WeakMap();
   function eigenesProfilTelefonAnfordern(fallback = () => {}) {
     const peers = (telefonStand?.peers || []).filter(peer => peer.own_device && peer.remote_own_device && /^online_/.test(peer.state || "") &&
       peer.capabilities?.items?.device_status?.versions?.includes(7));
     if (peers.length !== 1 || gesperrt) { fallback(); return; }
     const peer = peers[0], key = peer.device_id + ":" + peer.fingerprint;
-    if (eigenesProfilTelefonGelesen.has(key) || eigenesProfilTelefonAnfrage) { fallback(); return; }
+    const gelesen = eigenesProfilTelefonGelesen.get(DATEN) || new Set();
+    eigenesProfilTelefonGelesen.set(DATEN, gelesen);
+    if (gelesen.has(key) || eigenesProfilTelefonAnfrage) { fallback(); return; }
     const requestId = crypto.randomUUID();
-    eigenesProfilTelefonAnfrage = { requestId, peer: peer.device_id, fingerprint: peer.fingerprint, data: DATEN, fallback };
-    eigenesProfilTelefonGelesen.add(key);
-    Bruecke.sende({ cmd: "eigenes_profil_telefon", kennung: peer.device_id, requestId });
+    const request = { requestId, peer: peer.device_id, fingerprint: peer.fingerprint, data: DATEN, profile: DATEN.eigenesProfil, fallback, gelesen, key };
+    request.timer = setTimeout(() => {
+      if (eigenesProfilTelefonAnfrage !== request) return;
+      eigenesProfilTelefonAnfrage = null;
+      if (DATEN === request.data && DATEN.eigenesProfil === request.profile && !gesperrt) fallback();
+    }, 15000);
+    eigenesProfilTelefonAnfrage = request;
+    if (Bruecke.sende({ cmd: "eigenes_profil_telefon", kennung: peer.device_id, requestId }) === false) {
+      clearTimeout(request.timer); eigenesProfilTelefonAnfrage = null; fallback();
+    }
   }
   let eigenesProfilTelefonKontext = null, eigenesProfilNummerAnfrage = null;
   function eigenesProfilNummerAnfordern() {
     const peers = (telefonStand?.peers || []).filter(peer => peer.own_device && peer.remote_own_device && /^online_/.test(peer.state || ""));
     if (eigenesProfilNummerAnfrage?.until < Date.now()) eigenesProfilNummerAnfrage = null;
     if (gesperrt || peers.length !== 1 || eigenesProfilNummerAnfrage ||
-        eigenesProfilTelefonKontext?.form.isConnected && eigenesProfilTelefonKontext.fields.mobil.value.trim()) return;
+        eigenesProfilTelefonKontext?.form.isConnected && eigenesProfilTelefonKontext.hasMobile?.()) return;
     const peer = peers[0], requestId = crypto.randomUUID();
     eigenesProfilNummerAnfrage = { peer: peer.device_id, fingerprint: peer.fingerprint, requestId, data: DATEN, until: Date.now() + 60000 };
     Bruecke.sende({ cmd: "telefon_status_anfordern", kennung: peer.device_id, requestId });
@@ -17731,10 +17861,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         peer.fingerprint !== request.fingerprint || status.identifiers_peer_fingerprint !== request.fingerprint ||
         number?.status !== "available" || typeof number.value !== "string" || !number.value.trim()) return;
     const context = eigenesProfilTelefonKontext;
-    if (context?.data === DATEN && context.form.isConnected && !context.fields.mobil.value.trim()) {
-      context.draft.mobil = number.value; context.fields.mobil.value = number.value;
-    } else if (DATEN.eigenesProfil?.data && !DATEN.eigenesProfil.data.mobil) {
-      DATEN.eigenesProfil.data.mobil = number.value; planeSpeichern();
+    if (context?.data === DATEN && context.form.isConnected && context.profile === DATEN.eigenesProfil) {
+      context.merge({ mobil: number.value });
+    } else if (DATEN.eigenesProfil?.data && erganzeEigenprofilDaten(DATEN.eigenesProfil.data, { mobil: number.value })) {
+      DATEN.eigenesProfil.modified_ms = Date.now(); planeSpeichern();
     }
   }
   function eigenesProfilOfficeVergleich(draft, fields, form) {
@@ -17892,11 +18022,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     };
     const buttons = el("div", "knopfreihe");
     buttons.append(knopf(_("Save"), "haupt", store), knopf(_("Export vCard"), "", exportCard));
-    if (saved) buttons.append(knopf(_("Delete own profile"), "", async () => {
-      if (await frage(_("Delete your own profile?")) && DATEN.eigenesProfil === saved) {
-        delete DATEN.eigenesProfil; planeSpeichern(); aktiverEditor = null; zeichneAlles();
-      }
-    }));
     form.append(buttons);
     const readOffice = () => {
     const requestId = crypto.randomUUID();
@@ -18017,8 +18142,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   let kontaktFotoDialogSchliessen = null;
-  function oeffneKontaktFotoAuswahl(k, eigenesProfil = false) {
-    const vorhanden = () => eigenesProfil ? DATEN.eigenesProfil?.data === k : DATEN.kontakte.includes(k);
+  function oeffneKontaktFotoAuswahl(k, eigenesProfil = false, entwurf = null) {
+    const vorhanden = () => entwurf ? entwurf.gueltig() : eigenesProfil ? DATEN.eigenesProfil?.data === k : DATEN.kontakte.includes(k);
     if (gesperrt || !vorhanden()) return;
     kontaktFotoDialogSchliessen?.();
     const bestand = DATEN, schleier = el("div", "eingabe-schleier kontakt-foto-dialog");
@@ -18041,6 +18166,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     };
     const anwenden = (foto, quelle = "") => {
       if (!gueltig() || laeuft) return;
+      if (entwurf) { waehleKontaktFoto(k, foto, quelle); entwurf.anwenden(foto); schliessen(); return; }
       laeuft = true; dialog.querySelectorAll("button").forEach(button => { button.disabled = true; });
       mitMutationsSnapshot("pre-contact", () => {
         if (!gueltig()) return;
@@ -18414,10 +18540,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return details;
   }
 
-  function kontaktFormular(k) {
+  function kontaktFormular(k, eigenesProfil = false) {
+    const ownProfile = eigenesProfil ? DATEN.eigenesProfil : null;
+    const ownData = DATEN;
+    if (eigenesProfil) k = kopie(k || {});
     const z = zustand.adressen;
-    const form = el("fieldset", "formular kontakt-formular" + (k ? " bearbeiten" : " neu"));
+    const form = el("fieldset", "formular kontakt-formular" + (eigenesProfil ? " eigenes-profil" : "") + (k ? " bearbeiten" : " neu"));
     form.append(el("legend", null, _("Contact card")));
+    if (eigenesProfil && ownProfile && (ownProfile.version !== 1 || ownProfile.kind !== "own_profile")) {
+      form.append(el("p", "einst-warnung", _("This profile format is not supported."))); return form;
+    }
 
     const fNach = eingabe("text", k ? k.nachname : "");
     const fVor = eingabe("text", k ? k.vorname : "");
@@ -18618,6 +18750,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     form.append(anschriftVorschlaege);
     zeichneAnschriften();
 
+    let frischeProfilFoto = () => {};
     const profilKopf = el("div", "kontakt-editor-profilkopf");
     form.append(profilKopf);
     if (DATEN.einstellungen.adressen.foto) {
@@ -18637,6 +18770,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       datei.accept = "image/jpeg,image/png,image/webp,image/gif";
       let gewaehlterName = "";
       const fotoKnopf = knopf("", "klein", () => {
+        if (eigenesProfil) {
+          const draft = Object.assign({}, k, { foto: fotoWert });
+          oeffneKontaktFotoAuswahl(draft, true, {
+            gueltig: () => form.isConnected && DATEN === ownData && DATEN.eigenesProfil === ownProfile,
+            anwenden: value => { fotoLeseFolge++; fotoWert = value; fotoManuell = true; frischen(); }
+          }); return;
+        }
         if (fotoWert) {
           fotoLeseFolge++;
           fotoManuell = true;
@@ -18656,8 +18796,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         platzhalter.classList.toggle("verborgen", !!fotoWert);
         status.textContent = fotoWert ? (gewaehlterName || _("Photo available"))
           : _("No photo selected");
-        fotoKnopf.textContent = fotoWert ? _("Remove photo") : _("Choose photo…");
+        fotoKnopf.textContent = eigenesProfil ? _("Choose photo…") : fotoWert ? _("Remove photo") : _("Choose photo…");
       };
+      frischeProfilFoto = frischen;
       datei.addEventListener("change", () => {
         const bilddatei = datei.files && datei.files[0];
         if (!bilddatei) return;
@@ -18906,7 +19047,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }));
     weitere.append(kontaktpersonKopf, kontaktpersonKasten);
     zeichneKontaktpersonen();
-    const vorhandeneEreignisse = k
+    const vorhandeneEreignisse = eigenesProfil ? (k.profilJahrestage?.length ? kopie(k.profilJahrestage) :
+      k.geburtstag ? [{ typ: "birthday", datum: k.geburtstag, jahrUnbekannt: !!k.geburtstagJahrUnbekannt }] : []) : k
       ? DATEN.jahrestage.filter((j) => j.kontaktId === k.id) : [];
     const ereignisse = vorhandeneEreignisse.length
       ? vorhandeneEreignisse.map((j) => ({ id: j.id, typ: j.typ, datum: j.datum,
@@ -19007,7 +19149,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         kontaktTermine.push({ titel: "", datum: "", zeit: "09:00" });
         zeichneKontaktTermine();
       }));
-    weitere.append(kontaktTerminKopf, kontaktTerminKasten);
+    if (!eigenesProfil) weitere.append(kontaktTerminKopf, kontaktTerminKasten);
     zeichneKontaktTermine();
 
     const kontaktAufgabenVorschlaege = vorschlagsListe(
@@ -19046,7 +19188,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         kontaktAufgaben.push({ titel: "", datum: "" });
         zeichneKontaktAufgaben();
       }));
-    weitere.append(kontaktAufgabeKopf, kontaktAufgabeKasten);
+    if (!eigenesProfil) weitere.append(kontaktAufgabeKopf, kontaktAufgabeKasten);
     zeichneKontaktAufgaben();
     const gruppenVorher = kontaktGruppen(k || {}); let personengruppen = gruppenVorher.slice(), gruppenGeaendert = false;
     {
@@ -19165,6 +19307,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         fotoManuell: fotoManuell,
         geaendert: Date.now()
       };
+      if (eigenesProfil) {
+        if (DATEN !== ownData || DATEN.eigenesProfil !== ownProfile || gesperrt) { zettel(_("Conflict")); return false; }
+        const data = Object.assign({}, k, werte);
+        setzeTelefonListe(data, telefone); setzeAnschriftListe(data, anschriften); setzeKontaktpersonen(data, kontaktpersonen); setzeSozialeMedien(data, sozialeMedien);
+        if (gruppenGeaendert) setzeKontaktGruppen(data, personengruppen);
+        for (const key of ["id", "uid", "sync", "baumKontakt", "syncQuellen", "syncKonflikte", "importBindungen", "importHerkunfte",
+          "importKonflikt", "kontaktAliase", "kdeImportStaende", "kontaktZeit", "kontaktProviderKonflikte", "vcardRev"]) delete data[key];
+        data.profilJahrestage = ereignisse.filter(value => gueltigesJahresdatum(value.datum));
+        data.geburtstag = data.profilJahrestage.find(value => istGeburtstagTyp(value.typ))?.datum || "";
+        DATEN.eigenesProfil = { version: 1, kind: "own_profile", id: ownProfile?.id || "self-profile-" + uid(), data,
+          created_ms: ownProfile?.created_ms || Date.now(), modified_ms: Date.now() };
+        gespeichertesZiel = data; z.modus = "eigenes-profil"; planeSpeichern(); return true;
+      }
       let ziel = k ? DATEN.kontakte.find(item => item.id === k.id) : null;
       if (gruppenGeaendert && ziel && kanonischerEntwurf(kontaktGruppen(ziel)) !== kanonischerEntwurf(gruppenVorher)) {
         zettel(_("Conflict")); return false;
@@ -19255,11 +19410,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     });
 
     const knoepfe = el("div", "form-knoepfe kontakt-form-knoepfe");
-    knoepfe.append(knopf(k ? pgettext("contact action", "Save changes")
+    knoepfe.append(knopf(eigenesProfil ? _("Save") : k ? pgettext("contact action", "Save changes")
       : _("Create contact"), "", () => {
       if (!speichernFn()) return;
       aktiverEditor = null;
       editor.snapshot = leseEntwurf();
+      if (eigenesProfil) { z.modus = "eigenes-profil"; zeichneAlles(); return; }
       z.auswahlId = gespeichertesZiel.id;
       z.buchstabe = buchstabeVon(gespeichertesZiel);
       z.suche = "";
@@ -19268,7 +19424,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }));
     knoepfe.append(knopf(_("Cancel"), "", () => {
       navigiereMitGuard(() => {
-        z.modus = "ansehen";
+        z.modus = eigenesProfil ? "eigenes-profil" : "ansehen";
         zeichneAlles();
       });
     }));
@@ -19282,6 +19438,51 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (kind.tagName !== "LEGEND") formularInhalt.append(kind);
     }
     form.append(formularInhalt, knoepfe);
+
+    if (eigenesProfil) {
+      const gueltig = () => form.isConnected && DATEN === ownData && DATEN.eigenesProfil === ownProfile && !gesperrt;
+      const merge = remote => {
+        if (!gueltig()) return;
+        for (const [key, input] of [["vorname", fVor], ["nachname", fNach], ["firma", fFirma], ["notiz", fNotiz]])
+          if (!input.value.trim() && typeof remote[key] === "string") input.value = remote[key];
+        if (!telefone.some(value => String(value.wert || "").trim())) {
+          const incoming = telefonListe(remote); if (incoming.length) { telefone.splice(0, telefone.length, ...incoming); zeichneTelefone(); }
+        } else if (typeof remote.mobil === "string" && remote.mobil.trim() && !telefonListe({ telefone }).some(value => value.typen.includes("CELL"))) {
+          telefone.push(...telefonListe({ mobil: remote.mobil })); zeichneTelefone();
+        }
+        if (!emailEintraege.some(value => String(value.wert || "").trim())) {
+          const incoming = emailEintragListe(remote); if (incoming.length) { emailEintraege.splice(0, emailEintraege.length, ...incoming); zeichneEmails(); }
+        }
+        const incomingAddresses = anschriftListe(remote), incoming = incomingAddresses[0];
+        if (!anschriften.some(value => ["strasse", "plz", "ort", "land"].some(key => String(value[key] || "").trim())) && incomingAddresses.length) {
+          anschriften.splice(0, anschriften.length, ...incomingAddresses); zeichneAnschriften();
+        } else if (incoming) {
+          const target = anschriften[0];
+          for (const key of ["strasse", "plz", "ort", "land"]) if (!String(target[key] || "").trim()) target[key] = incoming[key] || "";
+          zeichneAnschriften();
+        }
+        if (!fotoWert && !fotoManuell && sauberesFoto(remote.foto)) { fotoWert = sauberesFoto(remote.foto); frischeProfilFoto(); }
+        if (!ereignisse.some(value => istGeburtstagTyp(value.typ)) && gueltigesJahresdatum(remote.geburtstag)) {
+          ereignisse.push({ typ: "birthday", datum: remote.geburtstag, jahrUnbekannt: gueltigesTeildatum(remote.geburtstag) }); zeichneEreignisse();
+        }
+      };
+      eigenesProfilTelefonKontext = { form, data: ownData, profile: ownProfile, merge,
+        hasMobile: () => telefonListe({ telefone }).some(value => value.typen.includes("CELL")) };
+      const readOffice = () => {
+        if (!gueltig()) return;
+        const requestId = crypto.randomUUID();
+        eigenesProfilOfficeAnfrage = { requestId, receive: result => {
+          if (!gueltig() || !result.ok) return;
+          const remote = {};
+          for (const [key, office] of [["vorname", "givenname"], ["nachname", "sn"], ["firma", "o"], ["strasse", "street"],
+            ["plz", "postalcode"], ["ort", "l"], ["land", "c"], ["email", "mail"], ["telefon", "telephonenumber"]])
+            if (typeof result.felder?.[office] === "string") remote[key] = result.felder[office];
+          merge(remote);
+        } };
+        Bruecke.sende({ cmd: "eigenes_profil_office", requestId, operation: "read", felder: {}, stamp: "" });
+      };
+      setTimeout(() => { if (gueltig()) { eigenesProfilTelefonAnfordern(readOffice); eigenesProfilNummerAnfordern(); } }, 0);
+    }
 
     setTimeout(() => fNach.focus(), 0);
     return form;
@@ -19333,19 +19534,23 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     auswahl.setAttribute("aria-label", _("Drawing sheet"));
     const vorschau = el("div", "notiz-zeichen-editor"), status = el("p", "einst-warnung");
     const navigate = id => {
+      for (let i = zeichnungen.length - 1; i >= 0; i--) if (!DATEN.customOrganizer.modules.includes(zeichnungen[i])) zeichnungen.splice(i, 1);
+      for (const option of Array.from(auswahl.options)) if (!zeichnungen.some(value => value.id === option.value)) option.remove();
       const sheet = DATEN.customOrganizer.modules.find(value => value.id === id);
       if (sheet && !zeichnungen.some(value => value.id === id)) { zeichnungen.push(sheet); const option = el("option", null, sheet.title); option.value = id; auswahl.append(option); }
       auswahl.value = id; zeichnen();
     };
-    const zeichnen = () => { beendeZeicheneingabe(); vorschau.replaceChildren(); const modul = zeichnungen.find(wert => wert.id === auswahl.value);
+    const zeichnen = () => { beendeZeicheneingabe(); vorschau.replaceChildren(); const modul = zeichnungen.find(wert => wert.id === auswahl.value && DATEN.customOrganizer.modules.includes(wert));
       if (modul) zeichneZeichenblatt(modul, vorschau, false, navigate); };
     auswahl.addEventListener("change", zeichnen); zeichnen();
     const schliessen = () => { beendeZeicheneingabe(); beendeModal(schleier); schleier.remove(); zeichenblattAuswahlSchliessen = null; };
     zeichenblattAuswahlSchliessen = schliessen;
-    const einfuegen = knopf(_("Embed"), "hauptknopf", () => {
+    const einfuegen = knopf(_("Embed"), "hauptknopf", async () => {
       if (gesperrt || DATEN !== bestand || !DATEN.notizen.includes(notiz)) { schliessen(); return; }
       const modul = DATEN.customOrganizer.modules.find(wert => wert.id === auswahl.value);
       if (!modul || !window.MagnolieZeichnen.valid(modul.drawing)) { status.textContent = _("This drawing cannot be edited in this version."); return; }
+      try { await window.MagnolieZeichnen.ready(modul.drawing); } catch (_) { status.textContent = _("This image format cannot be used."); return; }
+      if (!schleier.isConnected || gesperrt || DATEN !== bestand || !DATEN.customOrganizer.modules.includes(modul)) return;
       const canvas = document.createElement("canvas"); window.MagnolieZeichnen.render(canvas, modul.drawing);
       const daten = canvas.toDataURL("image/png");
       if (daten.length > 8 * 1024 * 1024 * 4 / 3) { status.textContent = _("The file is larger than 8 megabytes."); return; }
@@ -23804,7 +24009,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function journalGrund(grund) {
-    return ({ weekly: _("Scheduled"),
+    return ({ weekly: _("Scheduled"), startup: _("Every program start"),
       manual: pgettext("recovery snapshot reason", "Manual"), "pre-change": _("Before synchronization"),
       "pre-sync": _("Before synchronization"), "pre-restore": _("Before restore"),
       "pre-contact": _("Before synchronization"),
@@ -23816,18 +24021,28 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function baueSeiteSicherungen(wurzel) {
     const preferences = DATEN.einstellungen.allgemein;
     const journal = abschnitt(_("Recovery journal"), "");
-    const mode = auswahlFeld([["change", _("Every change")], ["interval", _("Group changes by time interval")]], preferences.wiederherstellungsmodus || "change");
+    const mode = auswahlFeld([["change", _("Every change")], ["daily", _("Daily")], ["weekly", _("Weekly")],
+      ["startup", _("Every program start")], ["interval", _("Group changes by time interval")]], preferences.wiederherstellungsmodus || "change");
     mode.id = "journal-modus";
-    const minutes = eingabe("number", String(preferences.wiederherstellungsminuten || 30)); minutes.min = "1"; minutes.max = "1440"; minutes.step = "1";
-    const intervalRow = formZeile(_("Interval in minutes"), minutes); intervalRow.hidden = mode.value !== "interval";
+    const minutes = eingabe("number", ""); minutes.id = "journal-zeitabstand";
+    const unit = auswahlFeld([["minutes", _("Minutes")], ["hours", _("Hours")]], (preferences.wiederherstellungsminuten || 30) % 60 === 0 ? "hours" : "minutes");
+    unit.id = "journal-zeitabstand-einheit";
+    minutes.setAttribute("aria-label", _("Interval")); unit.setAttribute("aria-label", _("Unit"));
+    const refreshInterval = () => {
+      const factor = unit.value === "hours" ? 60 : 1;
+      minutes.value = String((preferences.wiederherstellungsminuten || 30) / factor);
+      minutes.min = String(1 / factor); minutes.max = String(1440 / factor); minutes.step = factor === 60 ? "any" : "1";
+    };
+    refreshInterval(); unit.addEventListener("change", refreshInterval);
+    const tools = el("div", "knopfreihe"); tools.append(minutes, unit);
+    const intervalRow = formZeile(_("Interval"), tools); intervalRow.hidden = mode.value !== "interval";
     mode.addEventListener("change", () => { preferences.wiederherstellungsmodus = mode.value; intervalRow.hidden = mode.value !== "interval"; planeSpeichern(); });
-    minutes.addEventListener("change", () => { preferences.wiederherstellungsminuten = Math.max(1, Math.min(1440, Math.round(Number(minutes.value) || 30)));
-      minutes.value = String(preferences.wiederherstellungsminuten); planeSpeichern(); });
+    minutes.addEventListener("change", () => { preferences.wiederherstellungsminuten = Math.max(1, Math.min(1440, Math.round(Number(minutes.value) * (unit.value === "hours" ? 60 : 1) || 30)));
+      refreshInterval(); planeSpeichern(); });
     journal.append(formZeile(_("Create recovery points"), mode), intervalRow,
-      el("p", "einst-hinweis", _("Manual recovery points and recovery points before restoring are always created.")));
+      el("p", "einst-hinweis", _("Unchanged contents do not create another recovery point.")));
     wurzel.append(journal);
-    const abs = abschnitt(_("Recovery snapshots"),
-      _("Every saved change is protected automatically by a private, integrity-checked snapshot."));
+    const abs = abschnitt(_("Recovery snapshots"), "");
     if (journalStand.status && !["ok", "off", "due", "scheduled"].includes(journalStand.status)) {
       abs.append(el("p", "einst-warnung", journalStand.status));
     }
@@ -26414,12 +26629,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       el("div", "telefon-pairing-code", nutzlast.code || ""),
       el("p", null, String(nutzlast.display_name || _("Unknown phone"))),
       el("p", "baum-abdruck", nutzlast.fingerprint || ""),
-      el("p", "einst-hinweis", _("Confirm only if exactly the same six-digit code is shown on both devices.")));
+      el("p", "einst-hinweis", nutzlast.confirmation_required === false
+        ? _("Confirm this code on the other device.")
+        : _("Confirm only if exactly the same six-digit code is shown on both devices.")));
     const reihe = el("div", "dialog-knoepfe");
-    reihe.append(knopf(_("Codes differ"), "", () => {
+    reihe.append(knopf(nutzlast.confirmation_required === false ? _("Cancel") : _("Codes differ"), "", () => {
       Bruecke.sende({ cmd: "telefon_pairing_bestaetigen",
         attemptId: nutzlast.attempt_id, ja: false }); dialog.remove();
-    }), knopf(_("Codes match"), "hauptknopf", () => {
+    }));
+    if (nutzlast.confirmation_required !== false) reihe.append(knopf(_("Codes match"), "hauptknopf", () => {
       Bruecke.sende({ cmd: "telefon_pairing_bestaetigen",
         attemptId: nutzlast.attempt_id, ja: true });
       dialog.querySelector(".dialog-knoepfe").remove();
@@ -27844,6 +28062,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       planeSpeichern();
     });
     ab.append(formZeile(_("Your address"), absender));
+    const ownProfileSwitch = document.createElement("input"); ownProfileSwitch.type = "checkbox";
+    ownProfileSwitch.id = "adressen-eigenes-profil"; ownProfileSwitch.checked = a.eigenesProfilAn !== false;
+    ownProfileSwitch.addEventListener("change", () => {
+      a.eigenesProfilAn = ownProfileSwitch.checked;
+      if (!a.eigenesProfilAn && zustand.adressen.modus.startsWith("eigenes-profil")) zustand.adressen.modus = "ansehen";
+      planeSpeichern(); zeichneAlles();
+    });
+    const ownProfileRow = el("label", "hak"); ownProfileRow.append(ownProfileSwitch, document.createTextNode(" " + _("Own profile"))); ab.append(ownProfileRow);
 
     const holReihe = el("div", "knopfreihe");
     holReihe.append(knopf(_("Import from LibreOffice"), "", () => {
@@ -30663,6 +30889,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (!aktivesZeichenziel || nutzlast?.token !== aktivesZeichenziel.token) return;
       if (!nutzlast.ok || !nutzlast.enabled) { beendeTabletEingabe(); zettel(nutzlast.error || _("The phone is no longer connected.")); }
     },
+    zeichenSvgGeprueft(value) {
+      const apply = zeichenSvgAnfragen.get(value?.requestId); zeichenSvgAnfragen.delete(value?.requestId);
+      if (value?.ok) apply?.(); else if (apply) zettel(_("This image format cannot be used."));
+    },
     zeichenEingabe(nutzlast) {
       const ziel = aktivesZeichenziel;
       if (!ziel || nutzlast?.token !== ziel.token || nutzlast.device_id !== ziel.deviceId) return;
@@ -30694,20 +30924,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     eigenesProfilTelefon(result) {
       const request = eigenesProfilTelefonAnfrage;
       if (!request || result?.requestId !== request.requestId || result.device_id !== request.peer) return;
-      eigenesProfilTelefonAnfrage = null;
+      clearTimeout(request.timer); eigenesProfilTelefonAnfrage = null;
       const peer = telefonStand?.peers?.find(value => value.device_id === request.peer);
-      if (DATEN !== request.data || gesperrt || peer?.fingerprint !== request.fingerprint) return;
+      if (DATEN !== request.data || DATEN.eigenesProfil !== request.profile || gesperrt || !peer?.own_device || !peer.remote_own_device || peer.fingerprint !== request.fingerprint) return;
+      request.gelesen.add(request.key);
       if (result.ok && result.fingerprint === request.fingerprint && result.data) {
         const context = eigenesProfilTelefonKontext;
-        const draft = context?.form.isConnected && context.data === DATEN ? context.draft : DATEN.eigenesProfil?.data;
+        if (context?.form.isConnected && context.data === DATEN && context.profile === DATEN.eigenesProfil) context.merge(result.data);
+        const draft = context?.form.isConnected && context.data === DATEN ? null : DATEN.eigenesProfil?.data;
         if (draft) {
-          let changed = false;
-          for (const key of ["vorname", "nachname", "firma", "strasse", "plz", "ort", "land", "email", "telefon", "mobil", "foto"]) {
-            if (!String(draft[key] || "").trim() && typeof result.data[key] === "string" && result.data[key]) {
-              draft[key] = result.data[key]; changed = true;
-              if (context?.form.isConnected && context.fields[key]) context.fields[key].value = draft[key];
-            }
-          }
+          const changed = erganzeEigenprofilDaten(draft, result.data);
           if (changed && draft === DATEN.eigenesProfil?.data) { DATEN.eigenesProfil.modified_ms = Date.now(); planeSpeichern(); zeichneAlles(); }
         }
       }
@@ -30716,6 +30942,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     eigenesProfilOffice(nutzlast) {
       if (eigenesProfilOfficeAnfrage?.requestId !== nutzlast?.requestId) return;
       const request = eigenesProfilOfficeAnfrage; eigenesProfilOfficeAnfrage = null; request.receive(nutzlast);
+    },
+    gemeinsameSyncGespeichert(value) {
+      const key = value.kennung + ":" + value.feld, pending = gemeinsameSyncWartend.get(key);
+      if (!pending || pending.requestId !== value.requestId) return;
+      clearTimeout(pending.timer); gemeinsameSyncWartend.delete(key);
+      const peer = personalSyncNotizPeer(value.kennung);
+      if (peer?.fingerprint !== pending.fingerprint) return;
+      if (value.ok && value.status?.initialized) peer.shared_sync = value.status;
+      else if (!value.ok) zettel(value.fehler || _("Personal synchronization failed."));
+      aktualisiereGemeinsameSyncFelder();
     },
     personalSyncCollection(value) {
       if (!value?.device_id || typeof value.fingerprint !== "string" || !Array.isArray(value.members?.notes) || !Array.isArray(value.members?.tasks)) return;
@@ -30736,6 +30972,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       });
       if (aktivesZeichenziel && (!telefonStand?.kdeconnect?.digitizer_available ||
           telefonStand.kdeconnect.digitizer_device_id !== aktivesZeichenziel.deviceId)) beendeTabletEingabe();
+      for (const controller of aktiveZeichenblaetter.values()) controller.activateTablet?.();
       if (kdeKontaktLauf && (kontaktDatenQuelle()?.contacts_device_id !== kdeKontaktLauf.deviceId ||
           (kontaktDatenQuelle()?.contacts_fingerprint || "") !== kdeKontaktLauf.sourceFingerprint)) kdeKontaktLauf.abbrechen();
       planeKontaktFotoAbruf();

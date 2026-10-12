@@ -31,7 +31,7 @@ fun TelefonEinladungsDialog(onConnect: (GefundenerDesktop) -> Unit) {
         try {
             current = withContext(Dispatchers.IO) {
                 val storage = TelefonAblage.get(context)
-                check(storage.enabled() && storage.peers().peer == null)
+                check(storage.enabled())
                 val (identity, secret) = storage.identity(Build.MODEL.orEmpty())
                 secret.fill(0)
                 TelefonEinladungsEmpfang(identity.device_id, identity.display_name, { desktop ->

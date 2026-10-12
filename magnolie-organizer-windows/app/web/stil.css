@@ -2845,6 +2845,9 @@ textarea::-webkit-scrollbar-track,
 .notes-sendehak { display: flex; align-items: center; justify-content: flex-start; gap: 8px; }
 .notes-sendehak[hidden] { display: none; }
 .notes-sendehak > input[type="checkbox"] { flex: 0 0 auto; width: auto; margin: 0; }
+.eigenes-profil-feldauswahl { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-block: 12px 16px; }
+.eigenes-profil-feldauswahl > .hak { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+.eigenes-profil-feldauswahl > .hak input { width: auto; flex: 0 0 auto; margin: 0; }
 .notiz-symbol-auswahl { display: flex; flex-wrap: wrap; gap: 5px; margin-block: 12px; }
 .notiz-symbol-option { padding: 7px; }
 .notiz-symbol-option[aria-checked="true"] { outline: 2px solid var(--braun); outline-offset: -2px; }
@@ -2869,16 +2872,17 @@ textarea::-webkit-scrollbar-track,
 }
 .custom-modul-drawing { display: flex; flex-direction: column; min-height: 320px; }
 .custom-zeichnen-allein .custom-modul-drawing { min-height: 0; margin: 0; }
-.custom-zeichenflaeche { flex: 1 1 auto; min-height: 120px; min-width: 0; overflow: auto; background: #fffdf7; }
+.custom-zeichenflaeche { position: relative; flex: 1 1 auto; min-height: 120px; min-width: 0; overflow: hidden; background: #fffdf7; }
 .custom-zeichenflaeche canvas { max-width: none; }
 .custom-modul-drawing > .knopfreihe { flex: 0 0 auto; flex-wrap: wrap; padding-block: 6px; }
 .custom-modul-drawing > .einst-hinweis { flex: 0 0 auto; margin-block: 6px 0; }
-.zeichen-werkzeuge { align-items: center; gap: 6px; }
-.zeichen-werkzeuge > select { width: auto; max-width: 155px; }
+.custom-modul-drawing > .zeichen-werkzeuge, .zeichen-werkzeuge { display: grid; grid-template-rows: repeat(2, 30px); grid-auto-flow: column; grid-auto-columns: max-content; align-items: center; gap: 4px; overflow-x: auto; overflow-y: hidden; max-width: 100%; flex: 0 0 auto; padding-block: 6px; }
+.zeichen-werkzeuge > select { width: 80px; max-width: 80px; }
+.zeichen-werkzeuge > select, .zeichen-werkzeuge > input { height: 30px; min-height: 30px; max-height: 30px; margin: 0; box-sizing: border-box; }
 .zeichen-werkzeuge > input[type="color"] { flex: 0 0 36px; width: 36px; height: 30px; padding: 2px; }
 .zeichen-werkzeuge > input[type="range"] { flex: 0 1 90px; width: 90px; min-width: 50px; }
 .zeichen-breite { min-width: 2em; text-align: end; font-variant-numeric: tabular-nums; }
-.zeichen-symbol { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 4px; flex: 0 0 34px; }
+.zeichen-symbol { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 3px; flex: 0 0 30px; }
 .zeichen-symbol[aria-pressed="true"] { outline: 2px solid var(--braun); outline-offset: -2px; }
 .notiz-zeichen-editor { display: flex; flex-direction: column; height: min(60vh, 540px); min-height: 250px; }
 .eingabe-dialog:has(.notiz-zeichen-editor) { width: min(920px, 94vw); max-width: 94vw; }

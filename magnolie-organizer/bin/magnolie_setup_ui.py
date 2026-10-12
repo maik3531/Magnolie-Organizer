@@ -891,7 +891,7 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
     phone_actions.pack_start(kde_qr, False, False, 0)
     phone.pack_start(phone_actions, False, False, 9)
     phone_connect_buttons = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-    phone_status = label("Choose a connection. Confirm pairing on the phone and this computer.")
+    phone_status = label("Choose a connection. Confirm the pairing code on the other device.")
 
     def phone_prompt(request):
         event = threading.Event()
@@ -899,6 +899,12 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
 
         def show():
             if not alive[0]:
+                event.set()
+                return False
+            if request["kind"] == "code":
+                phone_status.set_text(request["devices"][0]["name"] + " · " + request.get("code", "") + "\n" +
+                                      tr("Confirm this code on the other device."))
+                answer[0] = "accept"
                 event.set()
                 return False
             prompt = Gtk.Dialog(title=tr("Phone connection"), transient_for=dialog, modal=True)

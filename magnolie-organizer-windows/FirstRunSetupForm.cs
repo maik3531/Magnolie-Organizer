@@ -53,6 +53,7 @@ internal sealed class FirstRunSetupForm : Form
     private readonly IFirstRunSetupPhoneServices? phoneServices;
     private readonly Dictionary<string, SetupPhoneResult> connectedPhones = new(StringComparer.Ordinal);
     private readonly HashSet<string> phoneStartupTransports = new(StringComparer.Ordinal);
+    private Label? phonePairingStatus;
     private readonly CancellationTokenSource setupCancellation = new();
     private readonly Dictionary<string, JsonObject> stagedImports = new(StringComparer.Ordinal);
     private readonly List<string> calendarUids = [];
@@ -603,7 +604,8 @@ internal sealed class FirstRunSetupForm : Form
         downloads.Controls.Add(PhoneDownload("KDE Connect", KdeConnectUrl, "phone-kde-connect-qr.png"));
         panel.Controls.Add(downloads);
         var connections = new FlowLayoutPanel { AutoSize = true, WrapContents = true, Width = 650 };
-        var status = Label(T("Choose a connection. Confirm pairing on the phone and this computer."));
+        var status = Label(T("Choose a connection. Confirm the pairing code on the other device."));
+        phonePairingStatus = status;
         foreach (var (transport, caption) in new[] { ("wifi", "Connect phone via WLAN"),
                      ("kdeconnect", "Connect via KDE Connect"), ("bluetooth", "Connect via Bluetooth") })
         {
@@ -644,6 +646,12 @@ internal sealed class FirstRunSetupForm : Form
         void Show()
         {
             if (IsDisposed || setupCancellation.IsCancellationRequested) { completion.TrySetResult(null); return; }
+            if (prompt.Kind == "code")
+            {
+                if (phonePairingStatus is { IsDisposed: false }) phonePairingStatus.Text =
+                    prompt.Devices[0].Name + " · " + prompt.Code + "\n" + T("Confirm this code on the other device.");
+                completion.TrySetResult("accept"); return;
+            }
             using var dialog = new Form { Text = T("Phone connection"), ClientSize = new Size(580, 340),
                 StartPosition = FormStartPosition.CenterParent, BackColor = Paper, Font = Font };
             var body = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoScroll = true, WrapContents = false,
