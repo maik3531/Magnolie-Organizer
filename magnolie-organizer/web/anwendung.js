@@ -26806,8 +26806,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       empfang.hidden = managed; auswahl(empfang, receiver.devices || []);
       empfang.value = receiver.selected_device_id || "";
       status.textContent = managed ? _("Incoming control uses the permissions configured in system KDE Connect.")
-        : receiver.ready ? _("Incoming phone control is ready while the Organizer is visible and unlocked.")
-        : _("Incoming control is inactive. Keep the Organizer visible and unlocked and select one paired device.");
+        : receiver.ready ? _("Incoming phone control is ready while the Organizer is running and unlocked, including tray mode.")
+        : _("Incoming control is inactive. Keep the Organizer running and unlocked and select one paired device.");
       setTimeout(pollInput, 3000);
     };
     setTimeout(pollInput, 0);

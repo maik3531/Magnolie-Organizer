@@ -977,7 +977,7 @@ class IPCServer:
     def backend(self, value):
         self._backend = value
         if value is not None and not getattr(value, 'native', False) and callable(getattr(type(value), 'configure_input', None)):
-            value.configure_input(permitted=self.gui_personal_ready)
+            value.configure_input(permitted=self.gui_input_ready)
 
     def _setup_phone(self, create):
         if self.phone_provider is not None:
@@ -1003,6 +1003,14 @@ class IPCServer:
                 self._gui_subscribers.items() if value[0] > now}
             return any(len(value) > 2 and value[1] and value[2]
                        for value in self._gui_subscribers.values())
+
+    def gui_input_ready(self):
+        """A live unlocked Organizer may control input while hidden in its tray."""
+        now = time.monotonic()
+        with self._event_condition:
+            self._gui_subscribers = {key: value for key, value in
+                self._gui_subscribers.items() if value[0] > now}
+            return any(len(value) > 2 and value[2] for value in self._gui_subscribers.values())
 
     def gui_connected(self):
         now = time.monotonic()

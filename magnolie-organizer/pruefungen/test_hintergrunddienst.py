@@ -274,7 +274,7 @@ def test_digitizer_ipc_requires_the_owning_visible_unlocked_gui_lease():
             backend.relay.disarm(); server.close()
 
 
-def test_late_input_backend_inherits_actual_gui_readiness_and_visibility():
+def test_late_input_backend_allows_unlocked_tray_but_stops_on_lock_close_and_expiry():
     class InputBackend(FakeBackend):
         native = False
         def configure_input(self, permitted=None):
@@ -294,11 +294,23 @@ def test_late_input_backend_inherits_actual_gui_readiness_and_visibility():
             call('gui_readiness', {'subscriber': subscriber, 'ready': True})
             call('gui_subscribe', {'subscriber': other})
             call('gui_visibility', {'subscriber': other, 'visible': True})
-            assert backend.permitted() is False, 'Different subscribers must not combine into a grant'
+            assert backend.permitted() is True, 'Unlocked running GUI must permit input in tray mode'
+            assert server.gui_personal_ready() is False, 'Tray input must not relax personal-data visibility'
             call('gui_visibility', {'subscriber': subscriber, 'visible': True})
             assert backend.permitted() is True
+            call('gui_visibility', {'subscriber': subscriber, 'visible': False})
+            assert backend.permitted() is True, 'Hiding into tray revoked input'
             call('gui_readiness', {'subscriber': subscriber, 'ready': False})
             assert backend.permitted() is False
+            call('gui_readiness', {'subscriber': subscriber, 'ready': True})
+            assert backend.permitted() is True
+            call('gui_unsubscribe', {'subscriber': subscriber})
+            assert backend.permitted() is False, 'Closed GUI kept granting input'
+            call('gui_subscribe', {'subscriber': subscriber})
+            call('gui_readiness', {'subscriber': subscriber, 'ready': True})
+            future = time.monotonic() + 120
+            with mock.patch.object(background.time, 'monotonic', return_value=future):
+                assert backend.permitted() is False, 'Expired GUI lease kept granting input'
         finally:
             server.close()
 

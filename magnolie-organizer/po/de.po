@@ -3455,6 +3455,27 @@ msgstr "KDE Connect-Kopplung"
 msgid "KDE Connect pairing failed."
 msgstr "KDE Connect-Kopplung fehlgeschlagen."
 
+msgid "Mouse and keyboard"
+msgstr "Maus und Tastatur"
+
+msgid "Incoming control device"
+msgstr "Gerät für die Ferneingabe"
+
+msgid "Pause incoming control for this session"
+msgstr "Ferneingabe für diese Sitzung pausieren"
+
+msgid "Remote control settings could not be applied."
+msgstr "Die Einstellungen für die Ferneingabe konnten nicht übernommen werden."
+
+msgid "Incoming control uses the permissions configured in system KDE Connect."
+msgstr "Die Ferneingabe verwendet die im systemeigenen KDE Connect eingerichteten Berechtigungen."
+
+msgid "Incoming phone control is ready while the Organizer is running and unlocked, including tray mode."
+msgstr "Die Steuerung vom Handy ist verfügbar, solange der Organizer läuft und entsperrt ist – auch im Infobereich."
+
+msgid "Incoming control is inactive. Keep the Organizer running and unlocked and select one paired device."
+msgstr "Die Ferneingabe ist nicht aktiv. Lassen Sie den Organizer laufen und entsperrt und wählen Sie ein gekoppeltes Gerät aus."
+
 msgid "KDE Connect phone paired."
 msgstr "KDE Connect-Telefon gekoppelt."
 
