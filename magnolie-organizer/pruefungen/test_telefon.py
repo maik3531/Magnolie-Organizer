@@ -167,6 +167,20 @@ def test_phone_identity_updates_display_name_without_replacing_keys():
         assert reopened.store.identity["display_name"] == "Magnolie Organizer (Neuer Name)"
 
 
+def test_known_phone_does_not_hide_automatic_pairing_discovery_after_restart():
+    with tempfile.TemporaryDirectory() as root, mock.patch.object(phone, 'PORT', 0):
+        service = phone.PhoneService(root, 'Fixture')
+        previous = _complete_peer()
+        service.store.peers = [previous]; service.store.save_peers()
+        try:
+            service.set_enabled(True)
+            assert service.pairing_token is not None, 'Known offline phone suppressed Desktop search'
+            assert service.report()['pairing'] is True
+            assert service.store.peers == [previous], 'Discovery changed existing trust'
+        finally:
+            service.set_enabled(False)
+
+
 def test_only_one_pairing_attempt_can_be_active():
     with tempfile.TemporaryDirectory() as root:
         service = phone.PhoneService(os.path.join(root, "telefon"), "Test desktop")

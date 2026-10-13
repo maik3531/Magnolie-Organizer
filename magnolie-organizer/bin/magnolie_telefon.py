@@ -2785,7 +2785,7 @@ class PhoneService:
         self.callback("status", self.report())
 
     def _ensure_pairing_available(self):
-        if self.enabled and self.server and not self.store.peers and not self.pairing_token:
+        if self.enabled and self.server and len(self.store.peers) <= 1 and not self.pairing_token:
             self.pairing_token = os.urandom(16)
             self.pairing_until = float("inf")
 
@@ -4644,6 +4644,7 @@ class PhoneService:
             self.pairings.pop(attempt_id, None)
         self.pairing_token = None
         self.pairing_until = 0
+        self._ensure_pairing_available()
         self._publish()
         self.callback("paired", {"device_id": peer["device_id"],
                                   "display_name": peer["display_name"]})

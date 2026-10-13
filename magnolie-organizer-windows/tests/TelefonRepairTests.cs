@@ -17,10 +17,10 @@ internal static class TelefonRepairTests
             var peer = new TelefonPeer("11111111-1111-4111-8111-111111111111", "Fixture", Enumerable.Repeat((byte)1, 32).ToArray());
             store.SavePeers([peer]);
             using var coordinator = new TelefonCoordinator(paths, (_, _) => Task.CompletedTask, dataStore: store, localOnly: true);
-            await coordinator.StartPairingAsync();
+            await coordinator.ResumeAsync();
             var token = (byte[]?)typeof(TelefonCoordinator).GetField("pairingToken", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator);
             TestAssert.That(token?.Length == 16 && store.LoadPeers().Single().Id == peer.Id,
-                "Opening explicit renewal removed the existing phone or refused its pairing window.");
+                "Known offline phone suppressed automatic Desktop search or changed existing trust.");
             // Confirmed renewal uses the existing pending-proof transaction, so
             // an old completion proof cannot finish the replacement pairing.
             var transcript = Enumerable.Repeat((byte)2, 32).ToArray();

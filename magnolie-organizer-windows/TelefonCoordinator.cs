@@ -1092,7 +1092,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
 
     private void EnsurePairingAvailableLocked()
     {
-        if (Enabled && serviceCancellation is not null && store.LoadPeers().Count == 0 && pairingToken is null)
+        if (Enabled && serviceCancellation is not null && store.LoadPeers().Count <= 1 && pairingToken is null)
         {
             pairingToken = RandomNumberGenerator.GetBytes(16);
             pairingUntil = long.MaxValue;
@@ -1256,7 +1256,8 @@ internal sealed partial class TelefonCoordinator : IDisposable
             throw new CryptographicException("Der Abschlussnachweis des Telefons passt nicht zur vorgemerkten Paarung.");
         await WriteFrameAsync(stream, desktopFinish, cancellation);
         Log("", "pair_finish", $"Paarung mit {peerId} abgeschlossen.");
-        lock (gate) { pairingToken = null; pairingUntil = 0; }
+        lock (gate) { pairingToken = null; pairingUntil = 0; EnsurePairingAvailableLocked(); }
+        if (mdns is not null) try { await mdns.AnnounceNowAsync(); } catch (SocketException) { }
         await emit("App.telefonPaarung", new { offen = false, fertig = true, code = "", kennung = peerId, name = peerName, fehler = "" });
         await ReportStatusAsync();
     }
