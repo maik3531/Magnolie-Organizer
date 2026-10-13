@@ -22127,7 +22127,7 @@ class Fenster(_FENSTER_BASIS):
             if not isinstance(daten, dict):
                 raise RuntimeError(_("The current organizer data is incomplete."))
             allgemein = (daten.get("einstellungen") or {}).get("allgemein") or {}
-            erzeugungsmodus = allgemein.get("wiederherstellungsmodus", "change")
+            erzeugungsmodus = allgemein.get("wiederherstellungsmodus", "weekly")
             if str(grund).startswith("pre-") and grund != "pre-restore" and erzeugungsmodus in {"interval", "daily", "weekly", "startup"}:
                 try:
                     minuten = max(1, min(1440, int(allgemein.get("wiederherstellungsminuten", 30))))
@@ -22212,7 +22212,7 @@ class Fenster(_FENSTER_BASIS):
             debug_notiz("snapshot.retention.skipped", error=fehler)
         neue_staende = journal_liste(integritaet=False)
         bereinigt = len(neue_staende) != len(staende)
-        erzeugungsmodus = allgemein.get("wiederherstellungsmodus", "change")
+        erzeugungsmodus = allgemein.get("wiederherstellungsmodus", "weekly")
         startup = not getattr(self, "_journal_start_geprueft", False)
         if erzeugungsmodus != "startup":
             self._journal_start_geprueft = True

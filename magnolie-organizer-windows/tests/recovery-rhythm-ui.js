@@ -6,8 +6,9 @@ harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[
 (async () => {
   for (const web of harness.exports.roots) {
     const b = await harness.exports.boot(web);
-    try {
-      b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-sicherheit").click();
+     try {
+       assert.equal(b.t.normalisiere({}).einstellungen.allgemein.wiederherstellungsmodus, "weekly");
+       b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-sicherheit").click();
       const mode = b.w.document.querySelector("#journal-modus");
       assert.deepEqual(Array.from(mode.options, option => option.value), ["change", "daily", "weekly", "startup", "interval"]);
       for (const value of ["daily", "weekly", "startup", "change", "interval"]) {

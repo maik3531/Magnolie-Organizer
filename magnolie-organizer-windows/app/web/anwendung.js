@@ -7712,7 +7712,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     d.einstellungen.allgemein.wiederherstellungsintervall =
       ["off", "6h", "12h", "daily", "weekly"].includes(al.wiederherstellungsintervall)
         ? al.wiederherstellungsintervall : "weekly";
-    d.einstellungen.allgemein.wiederherstellungsmodus = ["change", "daily", "weekly", "startup", "interval"].includes(al.wiederherstellungsmodus) ? al.wiederherstellungsmodus : "change";
+    d.einstellungen.allgemein.wiederherstellungsmodus = ["change", "daily", "weekly", "startup", "interval"].includes(al.wiederherstellungsmodus) ? al.wiederherstellungsmodus : "weekly";
     d.einstellungen.allgemein.wiederherstellungsminuten = Math.max(1, Math.min(1440, Math.round(Number(al.wiederherstellungsminuten) || 30)));
     d.einstellungen.allgemein.wiederherstellungsanzahl =
       Math.max(1, Math.min(100, Math.round(Number(al.wiederherstellungsanzahl) || 20)));
@@ -23804,7 +23804,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const preferences = DATEN.einstellungen.allgemein;
     const journal = abschnitt(_("Recovery journal"), "");
     const mode = auswahlFeld([["change", _("Every change")], ["daily", _("Daily")], ["weekly", _("Weekly")],
-      ["startup", _("Every program start")], ["interval", _("Group changes by time interval")]], preferences.wiederherstellungsmodus || "change");
+      ["startup", _("Every program start")], ["interval", _("Group changes by time interval")]], preferences.wiederherstellungsmodus || "weekly");
     mode.id = "journal-modus";
     const minutes = eingabe("number", ""); minutes.id = "journal-zeitabstand";
     const unit = auswahlFeld([["minutes", _("Minutes")], ["hours", _("Hours")]], (preferences.wiederherstellungsminuten || 30) % 60 === 0 ? "hours" : "minutes");

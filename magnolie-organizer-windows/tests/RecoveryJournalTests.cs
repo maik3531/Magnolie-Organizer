@@ -14,7 +14,11 @@ internal static class RecoveryJournalTests
             await TestLoadedOutboxQuarantine(root);
             TestUnchangedContents(root);
             var syncJournal = new RecoveryJournal(Path.Combine(root, "sync-once"), Path.Combine(root, "sync-once.json"));
-            var beforeSync = new JsonObject { ["kontakte"] = new JsonArray(new JsonObject { ["id"] = "before" }) };
+            var beforeSync = new JsonObject { ["kontakte"] = new JsonArray(new JsonObject { ["id"] = "before" }),
+                ["einstellungen"] = new JsonObject { ["allgemein"] = new JsonObject { ["wiederherstellungsmodus"] = "change" } } };
+            TestAssert.That(RecoveryJournal.CreationMode(new JsonObject()) == "weekly" &&
+                RecoveryJournal.CreationPeriod(new JsonObject()) == TimeSpan.FromDays(7), "Missing recovery preference must default to weekly.");
+            TestAssert.That(RecoveryJournal.CreationMode(beforeSync) == "change", "Explicit change preference was overridden.");
             var explicitBefore = syncJournal.Create(beforeSync, SnapshotReason.PreContactImport, "2.0.22");
             var automaticBefore = syncJournal.Create(beforeSync, SnapshotReason.PreChange, "2.0.22");
             TestAssert.That(explicitBefore.Id == automaticBefore.Id && syncJournal.List().Count == 1,
@@ -176,7 +180,8 @@ internal static class RecoveryJournalTests
             {
                 now = now.AddHours(1);
                 journal.Create(new JsonObject { ["termine"] = new JsonArray(
-                    new JsonObject { ["id"] = $"retention-{index}" }) }, SnapshotReason.PreSync, "2.0.2");
+                    new JsonObject { ["id"] = $"retention-{index}" }),
+                    ["einstellungen"] = new JsonObject { ["allgemein"] = new JsonObject { ["wiederherstellungsmodus"] = "change" } } }, SnapshotReason.PreSync, "2.0.2");
             }
             TestAssert.That(journal.List().Count == 3,
                 "Die gewählte Anzahl der Wiederherstellungspunkte wird nicht durchgesetzt.");
@@ -188,10 +193,12 @@ internal static class RecoveryJournalTests
             TestAssert.That(persistedJournal.Schedule() is { Mode: "days", Maximum: 9, Days: 2 },
                 "Die Aufbewahrungswahl überlebt keinen Neustart.");
             var expiring = journal.Create(new JsonObject { ["termine"] = new JsonArray(
-                new JsonObject { ["id"] = "days-old" }) }, SnapshotReason.PreSync, "2.0.2");
+                new JsonObject { ["id"] = "days-old" }),
+                ["einstellungen"] = new JsonObject { ["allgemein"] = new JsonObject { ["wiederherstellungsmodus"] = "change" } } }, SnapshotReason.PreSync, "2.0.2");
             now = now.AddDays(3);
             var current = journal.Create(new JsonObject { ["termine"] = new JsonArray(
-                new JsonObject { ["id"] = "days-current" }) }, SnapshotReason.PreSync, "2.0.2");
+                new JsonObject { ["id"] = "days-current" }),
+                ["einstellungen"] = new JsonObject { ["allgemein"] = new JsonObject { ["wiederherstellungsmodus"] = "change" } } }, SnapshotReason.PreSync, "2.0.2");
             TestAssert.That(journal.List().All(item => item.Id != expiring.Id) &&
                 journal.List().Any(item => item.Id == current.Id) && journal.List().Any(item => item.Id == manual.Id),
                 "Die tagebasierte Aufbewahrung entfernt junge oder angeheftete Stände nicht korrekt.");
@@ -362,13 +369,15 @@ internal static class RecoveryJournalTests
         var now = new DateTimeOffset(2026, 10, 11, 12, 0, 0, TimeSpan.Zero);
         var journal = new RecoveryJournal(Path.Combine(root, "content-only"), Path.Combine(root, "content-only-settings.json"), clock: () => now);
         var original = JsonNode.Parse("{\"notizen\":[{\"id\":\"a\",\"titel\":\"A\",\"text\":\"Keep A\"},{\"id\":\"b\",\"titel\":\"B\",\"text\":\"Keep B\"}],\"kontakte\":[{\"id\":\"c\",\"vorname\":\"Same\"}]}")!.AsObject();
+        original["einstellungen"] = new JsonObject { ["allgemein"] = new JsonObject { ["wiederherstellungsmodus"] = "change" } };
         var first = journal.Create(original, SnapshotReason.PreSync, "2.0.27");
         var metadata = original.DeepClone().AsObject();
         metadata["notizen"] = new JsonArray(metadata["notizen"]!.AsArray().Reverse().Select(item => item!.DeepClone()).ToArray());
         metadata["notizen"]![0]!["geaendert"] = 456;
         metadata["kontakte"]![0]!["kdeImportStaende"] = new JsonObject { ["revision"] = 123 };
         metadata["personalSync"] = new JsonObject { ["revision"] = 123 };
-        metadata["einstellungen"] = new JsonObject { ["view"] = "changed preference" };
+        metadata["einstellungen"] = new JsonObject { ["view"] = "changed preference",
+            ["allgemein"] = new JsonObject { ["wiederherstellungsmodus"] = "change" } };
         now = now.AddDays(60);
         foreach (var reason in new[] { SnapshotReason.Periodic, SnapshotReason.Startup, SnapshotReason.PreContact, SnapshotReason.Manual, SnapshotReason.PreRestore })
             TestAssert.That(journal.Create(metadata, reason, "2.0.27").Id == first.Id, "Unchanged contents created a point: " + reason);

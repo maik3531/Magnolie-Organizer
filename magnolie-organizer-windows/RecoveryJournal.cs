@@ -51,7 +51,7 @@ internal sealed class RecoveryJournal
 
     internal static string CreationMode(JsonObject data) => data["einstellungen"]?["allgemein"]?["wiederherstellungsmodus"]?.GetValue<string>() switch
     {
-        "daily" => "daily", "weekly" => "weekly", "startup" => "startup", "interval" => "interval", _ => "change"
+        "change" => "change", "daily" => "daily", "weekly" => "weekly", "startup" => "startup", "interval" => "interval", _ => "weekly"
     };
 
     internal static TimeSpan? CreationPeriod(JsonObject data) => CreationMode(data) switch
