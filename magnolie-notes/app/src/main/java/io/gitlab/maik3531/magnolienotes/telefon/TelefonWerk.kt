@@ -1478,7 +1478,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 val controlDeadline = TelefonPaarungsRoehre(pipe, 15_000)
                 val controls = sendDue(peer, channel, generation, true).toMutableSet()
                 try { while (controls.isNotEmpty() || peerEffect(peer, generation) {
-                        noteModeSupported(it) && it.personal_notes_sync_granted && it.remote_personal_notes_sync_granted && !noteModeReady(it, noteSession)
+                        // Common preferences may await the desktop controller's
+                        // complete local snapshot while its UI is in the tray.
+                        // Their convergence gates content, not FS1 connectivity.
+                        !usesCommonPreferences(it) && noteModeSupported(it) &&
+                            it.personal_notes_sync_granted && it.remote_personal_notes_sync_granted && !noteModeReady(it, noteSession)
                     }) {
                     val payload = channel.receive()
                     when (payload.string("type")) {

@@ -19,6 +19,21 @@ def main():
     platform, target, nonce, port, address = sys.argv[1:]
     if platform in ("linux-phone-start", "linux-desktop-start", "linux-renew-two-rounds"):
         import magnolie_telefon as phone_module
+        if os.environ.get('MAGNOLIE_CONTROL_TRACE') == '1':
+            original_send = phone_module.SecureChannel.send
+            original_receive = phone_module.SecureChannel.receive
+            def trace(direction, payload):
+                print('CONTROL', direction, payload.get('type'), payload.get('kind', ''),
+                      payload.get('status', ''), payload.get('error', ''), file=sys.stderr, flush=True)
+            def traced_send(channel, payload):
+                trace('desktop-send', payload)
+                return original_send(channel, payload)
+            def traced_receive(channel):
+                payload = original_receive(channel)
+                trace('desktop-receive', payload)
+                return payload
+            phone_module.SecureChannel.send = traced_send
+            phone_module.SecureChannel.receive = traced_receive
         phone_module.PORT = 0  # Owned ephemeral listener; never displace the user's phone service.
         with tempfile.TemporaryDirectory(prefix="magnolie-phone-renew-") as root:
             done = threading.Event()
@@ -49,6 +64,13 @@ def main():
                     assert done.wait(15), "Pairing did not finish"
                     print("RESULT paired" if service.store.peer(target) else "REJECTED", flush=True)
                     command = input()
+                    while command == 'INITIALIZE' and platform == 'linux-renew-two-rounds':
+                        peer = service.store.peer(target)
+                        service.initialize_common_preferences(target,
+                            phone_module.fingerprint(phone_module.unb64(peer['static_public'], 32)),
+                            dict(phone_module.shared_sync_contract.DEFAULTS))
+                        print('INITIALIZED', flush=True)
+                        command = input()
                     if command == 'RENEW' and round_number + 1 < rounds:
                         assert len(service.store.peers) == 1
                         done.clear()

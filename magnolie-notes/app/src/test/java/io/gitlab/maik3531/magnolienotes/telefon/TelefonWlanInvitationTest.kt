@@ -124,22 +124,53 @@ class TelefonWlanInvitationTest {
                 assertEquals("paired", storage.peers().peer?.state)
                 assertTrue(storage.personalOwnDevice()); assertTrue(storage.personalAutoWifi())
                 assertTrue(storage.peers().peer?.own_device == true)
-                java.net.Socket(desktop.host, desktop.port).use { socket ->
-                    socket.soTimeout = 5000
-                    val peer = storage.peers().peer!!
-                    val (local, privateKey) = storage.identity("Owned renewal phone")
-                    val secrets = try { TelefonSession.start(local, peer, privateKey) } finally { privateKey.fill(0) }
-                    TelefonRahmen.schreiben(socket.getOutputStream(), secrets.start)
-                    val response = TelefonRahmen.lesen(socket.getInputStream())
-                    TelefonSession.finish(secrets, response, local, peer, socket.getInputStream(), socket.getOutputStream()).use { channel ->
-                        channel.send(buildJsonObject {
-                            put("type", JsonPrimitive("session_ready")); put("connection_id", JsonPrimitive(UUID.randomUUID().toString()))
-                            put("capabilities_revision", JsonPrimitive(1)); put("last_received_seq", JsonPrimitive(-1))
-                        })
-                        val control = channel.receive()
-                        assertEquals("session_ready", control.string("type"))
-                        channel.send(buildJsonObject { put("type", JsonPrimitive("close")); put("reason", JsonPrimitive("normal")) })
+                // Exercise the production control/receipt negotiation and ONLINE
+                // transition, rather than ending after the low-level FS1 handshake.
+                TelefonWerk::class.java.getDeclaredField("serviceRunning")
+                    .apply { isAccessible = true }.setBoolean(work, true)
+                val session = TelefonWerk::class.java.declaredMethods.single { it.name == "session" }
+                    .apply { isAccessible = true }
+                val sessionResult = CompletableFuture<Unit>()
+                val sessionWorker = thread(isDaemon = true) {
+                    try {
+                        session.invoke(work, storage.peers().peer!!, TelefonTransportArt.WIFI,
+                            TelefonTcpRoehre(desktop.host, port = desktop.port), "", desktop.host, false, { Unit })
+                        sessionResult.complete(Unit)
+                    } catch (error: Throwable) { sessionResult.completeExceptionally(error) }
+                }
+                try {
+                    val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(18)
+                    while (work.state.value.connection != TelefonVerbindungsstatus.ONLINE_WIFI &&
+                        !sessionResult.isDone && System.nanoTime() < deadline) Thread.sleep(20)
+                    if (sessionResult.isCompletedExceptionally) sessionResult.get(1, TimeUnit.SECONDS)
+                    assertEquals("Round $round did not finish control negotiation: ${work.state.value.error}",
+                        TelefonVerbindungsstatus.ONLINE_WIFI, work.state.value.connection)
+                    assertTrue(storage.peers().peer!!.remote_own_device)
+                    assertTrue(storage.peers().peer!!.remote_personal_notes_sync_granted)
+                    // Simulate the real desktop controller supplying its whole
+                    // snapshot after a tray-only connection has become online.
+                    input.write("INITIALIZE\n"); input.flush()
+                    assertEquals("INITIALIZED", lines.poll(10, TimeUnit.SECONDS))
+                    val sharedDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15)
+                    while (!work.state.value.sharedPreferencesReady && !sessionResult.isDone &&
+                        System.nanoTime() < sharedDeadline) Thread.sleep(20)
+                    assertTrue("Round $round did not converge common preferences", work.state.value.sharedPreferencesReady)
+                    assertEquals(JsonPrimitive(if (round == 0) "phone_scope" else "two_way"),
+                        work.state.value.sharedPreferencesValues?.get("content_mode"))
+                    if (round == 0) {
+                        val peer = storage.peers().peer!!
+                        work.configureCommonPreferences(peer.device_id, peer.static_public,
+                            SharedSyncSettings.effective(SharedSyncSettings.create(identity.device_id)),
+                            "content_mode", JsonPrimitive("two_way"))
+                        val changedDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15)
+                        while (!work.state.value.sharedPreferencesReady && !sessionResult.isDone &&
+                            System.nanoTime() < changedDeadline) Thread.sleep(20)
+                        assertTrue("Manual direction did not converge", work.state.value.sharedPreferencesReady)
                     }
+                } finally {
+                    work.serviceStopped()
+                    sessionWorker.join(4000)
+                    assertFalse("Session worker survived cleanup", sessionWorker.isAlive)
                 }
                 if (round == 0) {
                     storage.setPersonalSync(true, true, true, true, false)

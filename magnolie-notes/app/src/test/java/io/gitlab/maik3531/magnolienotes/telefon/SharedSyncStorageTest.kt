@@ -85,7 +85,7 @@ class SharedSyncStorageTest {
         assertEquals(accepted, store.merge(expected, remote)); assertEquals(accepted, store.read(expected))
     }
 
-    @Test fun failedSealAndChangedBindingRollBackAndUnpairClearsState() {
+    @Test fun failedSealAndChangedBindingRollBackAndUnpairPreservesOnlyBoundChoices() {
         val store = store(); val before = store.change(expected, "content_mode", JsonPrimitive("two_way"))
         failSeal = true
         assertTrue(runCatching { store.change(expected, "auto_mode", JsonPrimitive("connection")) }.isFailure)
@@ -95,7 +95,11 @@ class SharedSyncStorageTest {
         assertNull(store.read(current!!))
         current = expected; assertEquals(before, store.read(expected))
         helper.deletePeer(expected.peerActor)
-        assertNull(store.read(expected))
+        assertEquals(before, store.read(expected))
+        current = null
+        assertTrue(runCatching { store.read(expected) }.isFailure)
+        current = expected.copy(peerPublic = TelefonKrypto.b64(ByteArray(32) { 41 }))
+        assertNull(store.read(current!!))
     }
 
     @Test fun restoreBarrierBlocksWritesWithoutResettingStoredChoice() {

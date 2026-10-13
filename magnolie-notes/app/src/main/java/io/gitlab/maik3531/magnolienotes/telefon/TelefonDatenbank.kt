@@ -68,7 +68,11 @@ class TelefonDatenbank(context: Context) : SQLiteOpenHelper(context, "magnolie_p
     fun deletePeer(peerId: String) = writableDatabase.inTransaction {
         listOf("outbox", "inbox", "dedupe", "personal_batch", "personal_run", "personal_attachment_chunk",
             "personal_attachment_transfer").forEach { delete(it, "peer_id=?", arrayOf(peerId)) }
-        delete("meta", "key LIKE ?", arrayOf("%:$peerId:%"))
+        // Retain function choices for a freshly confirmed pairing with the same
+        // UUID/public key. SharedSyncStorage authenticates that binding; this
+        // record carries neither Android permissions nor session authority.
+        delete("meta", "key LIKE ? AND key NOT GLOB ?", arrayOf("%:$peerId:%",
+            "personal_shared_settings:$peerId:*:consent"))
         delete("event_dedupe", null, null)
     }
 }
