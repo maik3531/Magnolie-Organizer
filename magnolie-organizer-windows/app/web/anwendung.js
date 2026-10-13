@@ -26373,10 +26373,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         stand + " · " + uebersetzt("WLAN listener on port %(port)s",
           { port: telefonStand.port || 8741 })));
       const reihe = el("div", "knopfreihe");
-      const verbinden = knopf(_("Connect phone via WLAN"), "hauptknopf", () => {
+      const verbinden = knopf((telefonStand.peers || []).length === 1 ? _("Renew pairing") : _("Connect phone via WLAN"), "hauptknopf", () => {
         Bruecke.sende({ cmd: "telefon_pairing_oeffnen" });
       });
-      verbinden.disabled = !!(telefonStand.peers || []).length;
+      verbinden.disabled = (telefonStand.peers || []).length > 1;
       reihe.append(verbinden);
       ab.append(reihe);
       if ((telefonStand.peers || []).length) ab.append(el("p", "einst-hinweis",

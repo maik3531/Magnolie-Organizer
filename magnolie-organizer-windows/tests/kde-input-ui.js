@@ -55,6 +55,14 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
       assert.equal(sent.some(value => value.cmd === "kde_input_senden" || value.cmd.startsWith("kde_medien_")), false);
       const count = sent.length; w.document.querySelector("#einstellungen-schleier").classList.add("verborgen");
       poll(); await flush(); assert.equal(sent.length, count);
+      w.App.telefonStand({ enabled: true, listening: true, peers: [{ device_id: phone.device_id,
+        display_name: "Notes fixture", fingerprint: "fixture", state: "paired" }],
+        kdeconnect: { available: true, peer_id: phone.device_id } });
+      w.OrganizerTest.baueEinstellungen();
+      const notes = w.document.querySelector(".telefon-karte");
+      const renew = [...notes.querySelectorAll("button")].find(value => value.textContent === "Renew pairing");
+      assert.ok(renew && !renew.disabled, "Known Notes phone cannot be confirmed again without removal");
+      renew.click(); assert.equal(sent.at(-1).cmd, "telefon_pairing_oeffnen");
       console.log("KDE incoming-only DOM PASS: " + web);
     } finally { dom.window.close(); }
   }

@@ -143,7 +143,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
     {
         store.Cleanup(Now());
         if (!Enabled) throw new InvalidOperationException(T("The Magnolie Notes phone connection is switched off."));
-        if (store.LoadPeers().Count != 0) throw new InvalidOperationException(T("Only one Magnolie Notes phone can be paired. Remove the existing phone before changing devices."));
+        if (store.LoadPeers().Count > 1) throw new InvalidOperationException(T("Only one Magnolie Notes phone can be paired. Remove the existing phone before changing devices."));
         await StartAsync();
         lock (gate)
         {
@@ -1234,6 +1234,13 @@ internal sealed partial class TelefonCoordinator : IDisposable
         lock (gate)
         {
         cancellation.ThrowIfCancellationRequested();
+        var current = store.LoadPeers();
+        if (current.Any(peer => peer.Id != peerId) || (existing is null) != (current.Count == 0) ||
+            current.Any(peer => !peer.PublicKey.SequenceEqual(peerStatic))) throw new CryptographicException("binding_changed");
+        if (online.Remove(peerId, out var previousConnection)) previousConnection.Dispose();
+        calls.Remove(peerId); RevokeDial(peerId); store.PurgeIdentifiers(peerId);
+        foreach (var token in personalCommits.Where(item => item.Value.PeerId == peerId).Select(item => item.Key).ToArray())
+            if (personalCommits.Remove(token, out var pending)) pending.Completion.TrySetResult("temporary");
         var bluetoothAddress = setup?.Address.StartsWith("bluetooth:", StringComparison.Ordinal) == true ? setup.Address[10..] : "";
         store.SavePending(new TelefonPeer(peerId, peerName, peerStatic, BluetoothAddress: bluetoothAddress), secrets.Transcript,
             TelefonCrypto.PairProof(secrets.Key, "finish", "phone", secrets.Transcript),

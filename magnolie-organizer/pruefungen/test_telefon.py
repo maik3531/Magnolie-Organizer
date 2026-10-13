@@ -197,8 +197,9 @@ def test_hard_phone_binding_uses_only_pinned_protocol_device_id():
         assert service.store.sole_peer(second_id) is None
         assert service.store.peer(first_id)["static_public"] == first["static_public"]
         service.enabled = True
-        with __import__("pytest").raises(RuntimeError, match="Only one Magnolie Notes phone"):
-            service.open_pairing()
+        with mock.patch.object(service, 'start'), mock.patch.object(service, '_publish'):
+            assert service.open_pairing()
+        assert service.store.sole_peer(first_id) is first
         service.remove(first_id)
         assert service.store.peers == []
         service.store.peers.append(_complete_peer(second_id, name="Same name"))

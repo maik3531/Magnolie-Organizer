@@ -2654,7 +2654,7 @@ class PhoneService:
     def open_pairing(self):
         if not self.enabled:
             raise RuntimeError("Die Magnolie-Telefonverbindung ist ausgeschaltet.")
-        if self.store.peers:
+        if len(self.store.peers) > 1:
             raise RuntimeError("Only one Magnolie Notes phone can be paired. Remove the existing phone before changing devices.")
         self.start()
         setup = getattr(self, "setup_pairing", None)
@@ -4563,7 +4563,9 @@ class PhoneService:
                 or not hmac.compare_digest(unb64(pair_init["pairing_token"], 16),
                                            self.pairing_token)):
             raise ValueError("pairing window closed")
-        if self.store.peers:
+        previous = self.store.peer(pair_init['device_id'])
+        if self.store.peers and (len(self.store.peers) != 1 or previous is None or
+                previous.get('static_public') != pair_init['static_public']):
             raise ValueError("phone binding already exists")
         ephemeral = X25519PrivateKey.generate()
         pair_response = {"p": PROTOCOL, "type": "pair_response",
@@ -4619,7 +4621,19 @@ class PhoneService:
             with self.lock:
                 if setup and (self.setup_pairing is not setup or time.monotonic() >= self.pairing_until):
                     raise ValueError("setup invitation expired")
-                self.store.peers.append(peer)
+                current = self.store.peer(pair_init['device_id'])
+                if current is not previous or any(item['device_id'] != pair_init['device_id'] for item in self.store.peers):
+                    raise ValueError('phone binding changed during confirmation')
+                self._purge_identifiers(pair_init['device_id'])
+                old_channel = self.connections.pop(pair_init['device_id'], None)
+                self.connection_transports.pop(pair_init['device_id'], None)
+                if old_channel is not None:
+                    try:
+                        old_channel.sock.shutdown(socket.SHUT_RDWR)
+                    except OSError:
+                        pass
+                    old_channel.sock.close()
+                self.store.peers = [peer]
                 self.store.save_peers()
             send_frame(sock, {"p": PROTOCOL, "type": "pair_confirm", "side": "desktop",
                 "transcript": b64(transcript), "proof": b64(proof(
