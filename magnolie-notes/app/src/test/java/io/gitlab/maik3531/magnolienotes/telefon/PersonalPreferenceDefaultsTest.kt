@@ -53,6 +53,16 @@ class PersonalPreferenceDefaultsTest {
         assertFalse(restored.personalDeletionsEnabled())
     }
 
+    @Test fun contactChoiceIsBoundToConfirmedComputerKeyAndManualDisableSurvivesReopen() {
+        val id = "11111111-1111-4111-8111-111111111111"
+        val key = TelefonKrypto.b64(ByteArray(32) { 3 })
+        storage().rememberContactReadChoice(id, key, true)
+        assertTrue(storage().rememberedContactReadChoice(id, key))
+        assertFalse(storage().rememberedContactReadChoice(id, TelefonKrypto.b64(ByteArray(32) { 4 })))
+        storage().rememberContactReadChoice(id, key, false)
+        assertFalse(storage().rememberedContactReadChoice(id, key))
+    }
+
     @Test fun newTreeIsEnabledButStoredDisableIsNotOverridden() {
         assertTrue(Baumzustand().dienstAn)
         assertFalse(Json.decodeFromString<Baumzustand>("""{"dienstAn":false}""").dienstAn)

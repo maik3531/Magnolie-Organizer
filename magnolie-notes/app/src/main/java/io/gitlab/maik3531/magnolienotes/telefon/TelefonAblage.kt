@@ -83,6 +83,13 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
     fun personalSyncLastAuto(): Long = settings.getLong("personal_sync_last_auto", 0)
     fun setPersonalSyncLastAuto(value: Long) { settings.edit().putLong("personal_sync_last_auto", value).commit() }
     fun personalSyncLastCounter(): Long = settings.getLong("personal_sync_last_counter", -1)
+    private fun contactChoiceKey(deviceId: String, publicKey: String): String =
+        "contact_read_choice_" + deviceId + "_" + TelefonKrypto.sha256(publicKey.toByteArray()).joinToString("") { "%02x".format(it) }
+    fun rememberContactReadChoice(deviceId: String, publicKey: String, enabled: Boolean) {
+        check(settings.edit().putBoolean(contactChoiceKey(deviceId, publicKey), enabled).commit())
+    }
+    fun rememberedContactReadChoice(deviceId: String, publicKey: String): Boolean =
+        settings.getBoolean(contactChoiceKey(deviceId, publicKey), false)
     fun setPersonalSyncLastCounter(value: Long) { settings.edit().putLong("personal_sync_last_counter", value).commit() }
     fun setPersonalSync(own: Boolean, notes: Boolean, tasks: Boolean, autoWifi: Boolean,
                         deletions: Boolean = personalDeletionsEnabled()) {
@@ -136,7 +143,8 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
         check(current.peer?.device_id == expected.device_id && current.peer.static_public == expected.static_public)
         require(replacement.device_id == expected.device_id && replacement.state == "paired_unverified")
         savePeers(current.remember(null).remember(replacement))
-        restoreComputerSettings(replacement)
+        // Confirmation replaces transport trust, not the user's saved choices.
+        // The new peer receives fresh grants only after its finish proof.
     }
 
     @Synchronized

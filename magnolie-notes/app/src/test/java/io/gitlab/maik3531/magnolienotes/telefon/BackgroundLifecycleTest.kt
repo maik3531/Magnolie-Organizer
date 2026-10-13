@@ -178,6 +178,25 @@ class BackgroundLifecycleTest {
         assertEquals(2, recovered.peers().all().size)
     }
 
+    @Test fun confirmedRenewalPreservesSavedPreferencesBeforeFreshPeerDefaults() = fixture { storage, work, _ ->
+        val key = TelefonKrypto.b64(ByteArray(32) { 9 })
+        val original = TelefonPeer(UUID.randomUUID().toString(), "Computer", key,
+            own_device = true, personal_notes_sync_granted = true, personal_tasks_sync_granted = true)
+        storage.savePeer(original)
+        storage.setPersonalSync(true, true, true, true, false)
+        val replacement = TelefonPeer(original.device_id, "Computer", key, state = "paired_unverified")
+        storage.replaceConfirmedPeer(original, replacement)
+        assertTrue(storage.personalOwnDevice()); assertTrue(storage.personalNotesEnabled())
+        assertTrue(storage.personalTasksEnabled()); assertTrue(storage.personalAutoWifi())
+        assertFalse(storage.personalDeletionsEnabled())
+        assertFalse(storage.peers().peer!!.own_device)
+        storage.savePeer(replacement.copy(state = "paired"))
+        work.initializePersonalDefaults(reconnectAfterChange = false)
+        assertTrue(storage.peers().peer!!.own_device)
+        assertTrue(storage.peers().peer!!.personal_notes_sync_granted)
+        assertTrue(storage.personalAutoWifi())
+    }
+
     @Test fun personalPairingDefaultsApplyOnceAndKeepLaterOptOuts() = fixture { storage, work, queue ->
         val peer = TelefonPeer(UUID.randomUUID().toString(), "Computer", TelefonKrypto.b64(ByteArray(32)), state = "paired_unverified")
         storage.savePeer(peer)

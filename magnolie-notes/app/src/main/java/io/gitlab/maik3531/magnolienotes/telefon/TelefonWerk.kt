@@ -498,6 +498,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         if (peer.device_id != deviceId || peer.static_public != publicKey) return
         contactPermissionTicket = null
         check(!enabled || peer.own_device && peer.state == "paired" && ContactReadAndroid(context).permission())
+        storage.rememberContactReadChoice(deviceId, publicKey, enabled)
         storage.savePeer(peer.copy(contacts_read_enabled = enabled))
         closeTransport(); modulesChanged()
     }
@@ -642,8 +643,15 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val notes = own && storage.personalNotesEnabled()
         val tasks = own && storage.personalTasksEnabled()
         val deletions = own && storage.personalDeletionsEnabled()
+        val contacts = own && ContactReadAndroid(context).permission() &&
+            (peer.contacts_read_enabled || storage.rememberedContactReadChoice(peer.device_id, peer.static_public))
+        val contactsChanged = peer.contacts_read_enabled != contacts
+        if (contactsChanged) storage.savePeer(peer.copy(contacts_read_enabled = contacts))
         if (peer.own_device == own && peer.personal_notes_sync_granted == notes &&
-            peer.personal_tasks_sync_granted == tasks && peer.personal_deletions_sync_granted == deletions) return
+            peer.personal_tasks_sync_granted == tasks && peer.personal_deletions_sync_granted == deletions) {
+            if (contactsChanged) modulesChanged(reconnectAfterChange)
+            return
+        }
         setPersonalSync(own, notes, tasks, storage.personalAutoWifi(), deletions, reconnectAfterChange)
     }
 
@@ -1294,6 +1302,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         synchronized(captureLock) {
             outgoingScope = null
             safePeer()?.let {
+                storage.rememberContactReadChoice(it.device_id, it.static_public, it.contacts_read_enabled)
                 Ablage.hole(context).personalSyncRevokeDeletions(it.device_id)
                 queue.deletePeer(it.device_id)
             }; storage.savePeer(null)

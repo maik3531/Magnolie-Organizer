@@ -82,6 +82,82 @@ class TelefonWlanInvitationTest {
     @Test fun `cancelled renewal keeps the saved pairing and preferences`() = phoneStarted(true, true)
     @Test fun `Linux initiated pairing is confirmed only at the Notes counterpart`() = phoneStarted(false, false, true)
 
+    @Test fun `phone removal then search renews the retained desktop binding over real TCP`() {
+        org.junit.Assume.assumeTrue(System.getenv("MAGNOLIE_WLAN_INTEGRATION") == "1")
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        context.getSharedPreferences("magnolie_phone_settings", Context.MODE_PRIVATE).edit().clear().commit()
+        File(context.filesDir, "telefon").deleteRecursively(); context.deleteDatabase("magnolie_phone.db")
+        val provider = object : Provider("TwoRoundRenewalFixture", 1.0, "Synthetic test keys") {
+            init { put("KeyStore.AndroidKeyStore", InvitationTestKeyStore::class.java.name) }
+        }
+        Security.insertProviderAt(provider, 1)
+        val storage = TelefonAblage::class.java.getDeclaredConstructor(Context::class.java).apply { isAccessible = true }.newInstance(context)
+        storage.setEnabled(true)
+        val work = TelefonWerk::class.java.getDeclaredConstructor(Context::class.java, TelefonAblage::class.java)
+            .apply { isAccessible = true }.newInstance(context, storage)
+        val identity = storage.identity("Owned renewal phone").also { it.second.fill(0) }.first
+        val script = File("../magnolie-organizer/pruefungen/phone_invitation_host.py").canonicalPath
+        val process = ProcessBuilder("python3", "-u", script, "linux-renew-two-rounds", identity.device_id, nonce, "0", address())
+            .redirectError(ProcessBuilder.Redirect.INHERIT).start()
+        val lines = java.util.concurrent.LinkedBlockingQueue<String>()
+        val reader = thread(isDaemon = true) { process.inputStream.bufferedReader().forEachLine { lines.put(it) } }
+        val input = process.outputStream.bufferedWriter()
+        try {
+            for (round in 0..1) {
+                val offerLine = lines.poll(10, TimeUnit.SECONDS) ?: error("Missing automatic renewal offer")
+                assertTrue(offerLine.startsWith("OFFER "))
+                val offer = TelefonKanonisch.json.parseToJsonElement(offerLine.removePrefix("OFFER ")) as JsonObject
+                val desktop = GefundenerDesktop(offer.string("deviceId"), offer.string("name"), offer.string("host"),
+                    offer.string("token"), offer.long("port").toInt())
+                val result = CompletableFuture<Unit>()
+                val worker = thread(isDaemon = true) {
+                    try { work.beginPairing(desktop) { TelefonTcpRoehre(desktop.host, port = desktop.port) }; result.complete(Unit) }
+                    catch (error: Throwable) { result.completeExceptionally(error) }
+                }
+                val code = lines.poll(10, TimeUnit.SECONDS) ?: error("Missing counterpart confirmation")
+                val until = System.nanoTime() + TimeUnit.SECONDS.toNanos(3)
+                while (work.state.value.pairingCode.isBlank() && System.nanoTime() < until) Thread.sleep(10)
+                assertEquals("CODE " + work.state.value.pairingCode, code)
+                input.write("ACCEPT\n"); input.flush(); result.get(10, TimeUnit.SECONDS)
+                assertEquals("RESULT paired", lines.poll(10, TimeUnit.SECONDS))
+                worker.join(3000); assertFalse(worker.isAlive)
+                assertEquals("paired", storage.peers().peer?.state)
+                assertTrue(storage.personalOwnDevice()); assertTrue(storage.personalAutoWifi())
+                assertTrue(storage.peers().peer?.own_device == true)
+                java.net.Socket(desktop.host, desktop.port).use { socket ->
+                    socket.soTimeout = 5000
+                    val peer = storage.peers().peer!!
+                    val (local, privateKey) = storage.identity("Owned renewal phone")
+                    val secrets = try { TelefonSession.start(local, peer, privateKey) } finally { privateKey.fill(0) }
+                    TelefonRahmen.schreiben(socket.getOutputStream(), secrets.start)
+                    val response = TelefonRahmen.lesen(socket.getInputStream())
+                    TelefonSession.finish(secrets, response, local, peer, socket.getInputStream(), socket.getOutputStream()).use { channel ->
+                        channel.send(buildJsonObject {
+                            put("type", JsonPrimitive("session_ready")); put("connection_id", JsonPrimitive(UUID.randomUUID().toString()))
+                            put("capabilities_revision", JsonPrimitive(1)); put("last_received_seq", JsonPrimitive(-1))
+                        })
+                        val control = channel.receive()
+                        assertEquals("session_ready", control.string("type"))
+                        channel.send(buildJsonObject { put("type", JsonPrimitive("close")); put("reason", JsonPrimitive("normal")) })
+                    }
+                }
+                if (round == 0) {
+                    storage.setPersonalSync(true, true, true, true, false)
+                    work.unpair()
+                    assertNull(storage.peers().peer)
+                    assertTrue(storage.personalOwnDevice()); assertTrue(storage.personalAutoWifi())
+                    input.write("RENEW\n"); input.flush()
+                }
+            }
+            input.write("STOP\n"); input.flush()
+            assertTrue(process.waitFor(5, TimeUnit.SECONDS)); assertEquals(0, process.exitValue())
+        } finally {
+            work.serviceStopped()
+            if (process.isAlive) { process.destroy(); if (!process.waitFor(3, TimeUnit.SECONDS)) process.destroyForcibly() }
+            reader.join(3000); Security.removeProvider(provider.name)
+        }
+    }
+
     private fun phoneStarted(renew: Boolean, cancel: Boolean, desktopStarted: Boolean = false) {
         org.junit.Assume.assumeTrue(System.getenv("MAGNOLIE_WLAN_INTEGRATION") == "1")
         val context = ApplicationProvider.getApplicationContext<Context>()

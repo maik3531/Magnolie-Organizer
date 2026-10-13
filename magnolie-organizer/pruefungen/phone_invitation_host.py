@@ -17,7 +17,7 @@ from magnolie_telefon import PhoneService
 
 def main():
     platform, target, nonce, port, address = sys.argv[1:]
-    if platform in ("linux-phone-start", "linux-desktop-start"):
+    if platform in ("linux-phone-start", "linux-desktop-start", "linux-renew-two-rounds"):
         import magnolie_telefon as phone_module
         phone_module.PORT = 0  # Owned ephemeral listener; never displace the user's phone service.
         with tempfile.TemporaryDirectory(prefix="magnolie-phone-renew-") as root:
@@ -25,7 +25,7 @@ def main():
             service = None
             def event(kind, value):
                 if kind == "pairing_code":
-                    assert value["confirmation_required"] == (platform == "linux-phone-start")
+                    assert value["confirmation_required"] == (platform != "linux-desktop-start")
                     print("CODE " + value["code"], flush=True)
                     if value["confirmation_required"]:
                         accepted = input() == "ACCEPT"
@@ -44,9 +44,21 @@ def main():
                 print("OFFER " + json.dumps({"deviceId": service.store.identity["device_id"],
                     "name": "Owned desktop fixture", "host": address,
                     "token": token, "port": service.server.getsockname()[1]}), flush=True)
-                assert done.wait(15), "Pairing did not finish"
-                print("RESULT paired" if service.store.peer(target) else "REJECTED", flush=True)
-                input()
+                rounds = 2 if platform == 'linux-renew-two-rounds' else 1
+                for round_number in range(rounds):
+                    assert done.wait(15), "Pairing did not finish"
+                    print("RESULT paired" if service.store.peer(target) else "REJECTED", flush=True)
+                    command = input()
+                    if command == 'RENEW' and round_number + 1 < rounds:
+                        assert len(service.store.peers) == 1
+                        done.clear()
+                        service._ensure_pairing_available()
+                        print("OFFER " + json.dumps({"deviceId": service.store.identity['device_id'],
+                            "name": "Owned desktop fixture", "host": address,
+                            "token": phone_module.b64(service.pairing_token), "port": service.server.getsockname()[1]}), flush=True)
+                    else:
+                        assert command == 'STOP'
+                        break
             finally:
                 service.stop()
         return 0
