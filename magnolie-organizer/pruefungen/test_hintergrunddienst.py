@@ -274,6 +274,35 @@ def test_digitizer_ipc_requires_the_owning_visible_unlocked_gui_lease():
             backend.relay.disarm(); server.close()
 
 
+def test_late_input_backend_inherits_actual_gui_readiness_and_visibility():
+    class InputBackend(FakeBackend):
+        native = False
+        def configure_input(self, permitted=None):
+            self.permitted = permitted
+
+    with tempfile.TemporaryDirectory() as root:
+        path = os.path.join(root, 'runtime', 'input.sock')
+        server = background.IPCServer(None, path).start()
+        backend = InputBackend()
+        subscriber, other = 'a' * 32, 'b' * 32
+        def call(operation, arguments):
+            return background.ipc_request(operation, arguments, path)
+        try:
+            server.backend = backend  # Actual daemon startup creates transport later.
+            assert callable(backend.permitted) and backend.permitted() is False
+            call('gui_subscribe', {'subscriber': subscriber})
+            call('gui_readiness', {'subscriber': subscriber, 'ready': True})
+            call('gui_subscribe', {'subscriber': other})
+            call('gui_visibility', {'subscriber': other, 'visible': True})
+            assert backend.permitted() is False, 'Different subscribers must not combine into a grant'
+            call('gui_visibility', {'subscriber': subscriber, 'visible': True})
+            assert backend.permitted() is True
+            call('gui_readiness', {'subscriber': subscriber, 'ready': False})
+            assert backend.permitted() is False
+        finally:
+            server.close()
+
+
 def test_idle_ipc_client_is_timed_out_without_holding_a_handler():
     with tempfile.TemporaryDirectory() as root, mock.patch.object(
             background, "IPC_READ_TIMEOUT", 0.05):

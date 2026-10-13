@@ -940,7 +940,7 @@ class IPCServer:
                  settings_setter=None, shutdown_callback=None,
                  operation_callback=None, phone_backend=None,
                  phone_event_getter=None):
-        self.backend = backend
+        self._backend = None
         self.path = path or socket_path()
         self.listener = None
         self.thread = None
@@ -957,8 +957,7 @@ class IPCServer:
         self._event_sequence = 0
         self._event_condition = threading.Condition()
         self._gui_subscribers = {}
-        if backend is not None and not getattr(backend, 'native', False) and callable(getattr(type(backend), 'configure_input', None)):
-            backend.configure_input(permitted=self.gui_personal_ready)
+        self.backend = backend
         self.lifecycle = "ready"
         self._handlers = threading.BoundedSemaphore(MAX_IPC_HANDLERS)
         self._mutation_lock = threading.RLock()
@@ -969,6 +968,16 @@ class IPCServer:
         from magnolie_setup_state import PhoneSetupSessions
         self.setup_sessions = PhoneSetupSessions(self._setup_phone, lambda: self.backend,
             data_directory, local_device_name, startup=self._setup_startup)
+
+    @property
+    def backend(self):
+        return self._backend
+
+    @backend.setter
+    def backend(self, value):
+        self._backend = value
+        if value is not None and not getattr(value, 'native', False) and callable(getattr(type(value), 'configure_input', None)):
+            value.configure_input(permitted=self.gui_personal_ready)
 
     def _setup_phone(self, create):
         if self.phone_provider is not None:

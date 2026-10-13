@@ -5972,6 +5972,7 @@ body[data-linien="aus"] #tb-notiz {
 .telefon-kde-karte h3 { color: #394654; }
 .telefon-kdeconnect { display: grid; gap: 9px; }
 .kde-medien { display: grid; gap: 6px; min-width: 0; }
+.kde-medien[hidden], .kde-medien [hidden] { display: none; }
 .kde-medien select, .kde-medien input { min-width: 0; max-width: 100%; box-sizing: border-box; }
 .kde-medien p { overflow-wrap: anywhere; }
 .kde-touchpad { min-height: 120px; padding: 12px; border: 1px solid var(--linie); border-radius: 6px; touch-action: none; user-select: none; }
