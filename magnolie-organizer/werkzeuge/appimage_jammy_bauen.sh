@@ -98,10 +98,14 @@ if [ ! -f "$MARKER" ] || [ "$(cat "$MARKER")" != "$BASIS_STAND" ]; then
         gir1.2-ecal-2.0 gir1.2-ebook-1.2 gir1.2-gstreamer-1.0 gir1.2-gtk-3.0 gir1.2-ical-3.0 \
         gir1.2-notify-0.7 gir1.2-webkit2-4.0 gir1.2-xapp-1.0 gobject-introspection \
         gnome-themes-extra-data libayatana-appindicator3-1 libglib2.0-bin libgtk-3-0 libwebkit2gtk-4.0-37 \
-        libxapp1 xapp python3 python3-cryptography python3-gi python3-gi-cairo \
+        libxapp1 libfakekey0 libxtst6 xapp python3 python3-cryptography python3-gi python3-gi-cairo \
         python3-ifaddr python3-openssl python3-phonenumbers \
         python3-qrcode python3-zeroconf tzdata
     printf '%s\n' "$BASIS_STAND" > "$MARKER"
+fi
+
+if [ ! -e "$ROOTFS/usr/lib/x86_64-linux-gnu/libfakekey.so.0" ]; then
+    apt_ausfuehren install -y --no-install-recommends libfakekey0 libxtst6
 fi
 
 "$PROOT" -0 -r "$ROOTFS" -b /dev -b /proc -b "$WURZEL" -b "$HANDBUCH" -b "$ARBEIT" \

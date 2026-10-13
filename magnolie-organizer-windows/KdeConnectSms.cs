@@ -30,6 +30,11 @@ internal sealed class KdeConnectSms : IDisposable
     internal IReadOnlyList<string> DigitizerDevices => native.DigitizerDevices;
     internal JsonObject MediaStatus(string deviceId) => native.MediaStatus(deviceId);
     internal JsonObject MediaDevices() => native.MediaDevices();
+    internal JsonObject InputStatus() => native.InputStatus();
+    internal void ConfigureInput(bool? enabled = null, string? deviceId = null, Func<bool>? permitted = null) =>
+        native.ConfigureInput(enabled, deviceId, permitted);
+    internal Task InputSendAsync(string deviceId, string token, JsonObject body, CancellationToken cancellationToken) =>
+        native.InputSendAsync(deviceId, token, body, cancellationToken);
     internal Task MediaCommandAsync(string deviceId, string token, string player, string action, long? value, CancellationToken cancellationToken) =>
         native.MediaCommandAsync(deviceId, token, player, action, value, cancellationToken);
     internal event Action<KdeDigitizerFrame>? DigitizerReceived

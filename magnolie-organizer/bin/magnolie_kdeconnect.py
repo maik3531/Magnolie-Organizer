@@ -19,6 +19,8 @@ import unicodedata
 from magnolie_digitizer import DigitizerState, DigitizerRelay, SESSION_PACKET as DIGITIZER_SESSION, EVENT_PACKET as DIGITIZER_EVENT
 from magnolie_kde_media import RemotePlayers, MEDIA_PACKET, MEDIA_REQUEST, command_body, player_list
 from magnolie_kde_mpris import DesktopMpris
+from magnolie_kde_input import InputTarget, input_body, INPUT_PACKET, KEYBOARD_STATE
+from magnolie_kde_input_x11 import X11Input
 import uuid
 from collections import deque
 from contextlib import closing
@@ -196,6 +198,7 @@ class KDEConnectNativeBackend:
         self._activation_attempted = False
         self._media_lock = threading.RLock()
         self._media_contexts = {}
+        self._input_contexts = {}
 
     def _call(self, owner, path, interface, method, signature=None, args=(), reply=None, deadline=None):
         if self.bus is None:
@@ -213,7 +216,7 @@ class KDEConnectNativeBackend:
                           'org.freedesktop.DBus', 'GetNameOwner', '(s)',
                           ('org.kde.kdeconnect',), '(s)', deadline=deadline)[0]
 
-    def _devices(self, owner, deadline=None):
+    def _devices(self, owner, deadline=None, include_desktops=False):
         deadline = deadline or time.monotonic() + 1.5
         ids = self._call(owner, '/modules/kdeconnect', 'org.kde.kdeconnect.daemon',
                          'devices', '(bb)', (False, True), '(as)', deadline=deadline)[0]
@@ -224,7 +227,8 @@ class KDEConnectNativeBackend:
             path = '/modules/kdeconnect/devices/' + device_id
             props = self._call(owner, path, 'org.freedesktop.DBus.Properties',
                                'GetAll', '(s)', ('org.kde.kdeconnect.device',), '(a{sv})', deadline=deadline)[0]
-            if props.get('isPaired') is not True or props.get('type') not in ('phone', 'tablet'):
+            if props.get('isPaired') is not True or props.get('type') not in (
+                    ('phone', 'tablet', 'desktop') if include_desktops else ('phone', 'tablet')):
                 continue
             reachable = props.get('isReachable') is True
             sms = reachable and self._call(owner, path, 'org.kde.kdeconnect.device',
@@ -232,7 +236,7 @@ class KDEConnectNativeBackend:
             name = props.get('name')
             devices.append({'device_id': device_id,
                 'device_name': ''.join(c for c in name if c.isprintable())[:128] if isinstance(name, str) else device_id,
-                'paired': True, 'reachable': reachable, 'sms_send': sms})
+                'paired': True, 'reachable': reachable, 'sms_send': sms, 'device_type': props.get('type')})
         if self._owner(deadline=deadline) != owner:
             raise ProtocolError(NATIVE_KDE_UNAVAILABLE)
         return devices
@@ -373,6 +377,100 @@ class KDEConnectNativeBackend:
                 self._call(owner, path, interface, 'seek', '(i)', (value,), '()', deadline=deadline)
             else:
                 self._call(owner, path, interface, 'sendAction', '(s)', (body['action'],), '()', deadline=deadline)
+            return {'ok': True, 'state': 'queued', 'device_id': device_id}
+
+    def _native_input_source(self, device_id, deadline):
+        if not isinstance(device_id, str) or not DEVICE_ID.fullmatch(device_id):
+            raise ProtocolError('invalid_input_device')
+        owner = self._owner(deadline=deadline)
+        devices = self._devices(owner, deadline=deadline, include_desktops=True)
+        device = next((item for item in devices if item['device_id'] == device_id and item['reachable']), None)
+        if device is None:
+            raise ProtocolError('remote_input_unavailable')
+        fingerprint = self._contact_fingerprint(device_id)
+        if self._owner(deadline=deadline) != owner:
+            raise ProtocolError('remote_input_source_changed')
+        return (owner, '/modules/kdeconnect/devices/' + device_id, fingerprint), device
+
+    def input_status(self):
+        deadline = time.monotonic() + 2.5
+        with self._media_lock:
+            owner = self._owner(deadline=deadline)
+            devices = self._devices(owner, deadline=deadline, include_desktops=True)
+            values = []
+            receiving = False
+            for device in devices:
+                if not device['reachable']:
+                    continue
+                path = '/modules/kdeconnect/devices/' + device['device_id']
+                def plugin(name):
+                    return self._call(owner, path, 'org.kde.kdeconnect.device', 'hasPlugin',
+                        '(s)', (name,), '(b)', deadline=deadline)[0] is True
+                try:
+                    receiving = receiving or plugin('kdeconnect_mousepad')
+                    pointer = device['device_type'] == 'desktop' and plugin('kdeconnect_remotecontrol')
+                    keyboard = plugin('kdeconnect_remotekeyboard')
+                    if keyboard:
+                        props = self._call(owner, path + '/remotekeyboard', 'org.freedesktop.DBus.Properties',
+                            'GetAll', '(s)', ('org.kde.kdeconnect.device.remotekeyboard',), '(a{sv})', deadline=deadline)[0]
+                        keyboard = props.get('remoteState') is True
+                    if not pointer and not keyboard:
+                        continue
+                    source = (owner, path, self._contact_fingerprint(device['device_id']))
+                    context = self._input_contexts.get(device['device_id'])
+                    if context is None or context[0] != source:
+                        context = (source, uuid.uuid4().hex)
+                        self._input_contexts[device['device_id']] = context
+                    values.append({'device_id': device['device_id'], 'device_name': device['device_name'],
+                        'pointer': pointer, 'keyboard': keyboard, 'token': context[1]})
+                except Exception:
+                    self._input_contexts.pop(device['device_id'], None)
+            if self._owner(deadline=deadline) != owner:
+                self._input_contexts.clear()
+                raise ProtocolError('remote_input_source_changed')
+            for key in set(self._input_contexts) - {item['device_id'] for item in values}:
+                self._input_contexts.pop(key, None)
+            return {'native': True, 'devices': values, 'receiver': {'system_managed': True,
+                'available': receiving, 'ready': None}}
+
+    def configure_input(self, enabled=None, device_id=None, permitted=None):
+        raise ProtocolError('input_permissions_managed_by_system_kdeconnect')
+
+    def input_send(self, device_id, token, body):
+        parsed = input_body(body)
+        with self._media_lock:
+            context = self._input_contexts.get(device_id)
+            if context is None or context[1] != token:
+                raise ProtocolError('remote_input_source_changed')
+            deadline = time.monotonic() + 2.5
+            source, device = self._native_input_source(device_id, deadline)
+            if source != context[0]:
+                self._input_contexts.pop(device_id, None)
+                raise ProtocolError('remote_input_source_changed')
+            owner, path, _fingerprint = source
+            keyboard = 'key' in parsed or 'specialKey' in parsed
+            plugin = 'kdeconnect_remotekeyboard' if keyboard else 'kdeconnect_remotecontrol'
+            if self._call(owner, path, 'org.kde.kdeconnect.device', 'hasPlugin', '(s)',
+                    (plugin,), '(b)', deadline=deadline)[0] is not True:
+                raise ProtocolError('remote_input_action_unavailable')
+            if keyboard:
+                interface = 'org.kde.kdeconnect.device.remotekeyboard'
+                props = self._call(owner, path + '/remotekeyboard', 'org.freedesktop.DBus.Properties',
+                    'GetAll', '(s)', (interface,), '(a{sv})', deadline=deadline)[0]
+                if props.get('remoteState') is not True:
+                    raise ProtocolError('remote_input_action_unavailable')
+                self._call(owner, path + '/remotekeyboard', interface, 'sendKeyPress',
+                    '(sibbbbb)', (parsed.get('key', ''), parsed.get('specialKey', 0),
+                        parsed.get('shift', False), parsed.get('ctrl', False), parsed.get('alt', False),
+                        parsed.get('super', False), False), '()', deadline=deadline)
+            else:
+                if device['device_type'] != 'desktop':
+                    raise ProtocolError('remote_input_action_unavailable')
+                variants = {key: self.glib.Variant('b' if type(value) is bool else
+                    'd' if key in ('dx', 'dy', 'x', 'y') else 'i' if type(value) is int else 's',
+                    float(value) if key in ('dx', 'dy', 'x', 'y') else value) for key, value in parsed.items()}
+                self._call(owner, path + '/remotecontrol', 'org.kde.kdeconnect.device.remotecontrol',
+                    'sendCommand', '(a{sv})', (variants,), '()', deadline=deadline)
             return {'ok': True, 'state': 'queued', 'device_id': device_id}
 
     def status(self, timeout=0.25):
@@ -1323,6 +1421,9 @@ class _ConnectionWorker:
         self.media = RemotePlayers()
         self.media_started = False
         self.local_media_started = False
+        self.remote_input_token = uuid.uuid4().hex
+        self.remote_keyboard = False
+        self.keyboard_sent = None
         self.diagnostics = {"last_packet_type": "", "parse_valid": 0,
             "parse_skipped": 0, "last_receive_ms": 0, "bootstrap_state": "idle"}
         self.thread = threading.Thread(target=self._run, daemon=True,
@@ -1335,6 +1436,7 @@ class _ConnectionWorker:
 
     def enable_sms(self):
         self.enable_media()
+        self.backend._input_keyboard_state(self)
         if self.sms_started:
             return
         self.sms_started = True
@@ -1410,6 +1512,9 @@ class _ConnectionWorker:
                 if packet.get('type') == MEDIA_REQUEST:
                     self.backend._local_media_packet(self, packet)
                     continue
+                if packet.get('type') in (INPUT_PACKET, KEYBOARD_STATE):
+                    self.backend._input_packet(self, packet)
+                    continue
                 if packet.get("type") in (DIGITIZER_SESSION, DIGITIZER_EVENT):
                     self.backend._digitizer_packet(self, packet)
                     continue
@@ -1425,6 +1530,7 @@ class _ConnectionWorker:
         finally:
             self.stopped.set()
             self.backend._digitizer_relay.disarm(owner=self)
+            self.backend._input_ended(self)
             with self.contacts_condition:
                 self.contacts_condition.notify_all()
             self.backend._worker_died(self.identity["deviceId"], self)
@@ -1605,6 +1711,11 @@ class KDEConnectSMSBackend:
         self.callback = callback or (lambda _event, _payload: None)
         self._digitizer_relay = DigitizerRelay(self._emit)
         self._local_media = None
+        self._input_sink = None
+        self._input_target = None
+        self._input_enabled = True
+        self._input_device = ''
+        self._input_permitted = lambda: False
         self.tcp_ports = tuple(tcp_ports or range(MIN_TCP_PORT, MAX_TCP_PORT + 1))
         self.udp_port = int(udp_port)
         self.backoff = tuple(backoff or RECONNECT_BACKOFF)
@@ -2007,6 +2118,10 @@ class KDEConnectSMSBackend:
             self.reason = ""
             if self._local_media is None:
                 self._local_media = DesktopMpris.create()
+            if self._input_sink is None:
+                self._input_sink = X11Input.create()
+                if self._input_sink is not None:
+                    self._input_target = InputTarget(self._input_sink)
             self._stop_event.clear()
             self._backoff_index = 0
             self._next_broadcast = self.clock()
@@ -2060,6 +2175,11 @@ class KDEConnectSMSBackend:
         for handler in handlers:
             if handler is not threading.current_thread():
                 handler.join(9)
+        if self._input_target is not None:
+            self._input_target.disarm()
+        if self._input_sink is not None:
+            self._input_sink.close()
+        self._input_sink = self._input_target = None
 
     def _stop_receive(self):
         self._transfer_stop.set()
@@ -2100,11 +2220,12 @@ class KDEConnectSMSBackend:
             while not self._stop_event.is_set():
                 now = self.clock()
                 self._expire_state(now)
+                self._refresh_input()
                 if now >= self._next_broadcast:
                     self._broadcast_due(now)
                 with self._state_lock:
                     sockets = [self._udp, self._listener, self._wake_read] + list(self._pending)
-                    timeout = max(0.05, min(1.0, self._next_broadcast - self.clock()))
+                    timeout = max(0.05, min(0.25 if self._input_sink else 1.0, self._next_broadcast - self.clock()))
                 try:
                     readable = select.select([item for item in sockets if item], [], [], timeout)[0]
                 except (OSError, ValueError):
@@ -2461,6 +2582,124 @@ class KDEConnectSMSBackend:
                     and not entry["worker"].stopped.is_set()
                     and {DIGITIZER_SESSION, DIGITIZER_EVENT} <= set(entry["identity"]["outgoingCapabilities"])]
 
+    def configure_input(self, enabled=None, device_id=None, permitted=None):
+        if enabled is not None and type(enabled) is not bool:
+            raise ProtocolError('invalid_input_setting')
+        if device_id is not None and (not isinstance(device_id, str) or device_id and not DEVICE_ID.fullmatch(device_id)):
+            raise ProtocolError('invalid_input_device')
+        if enabled is not None:
+            self._input_enabled = enabled
+        if device_id is not None:
+            self._input_device = device_id
+        if permitted is not None:
+            self._input_permitted = permitted
+        if self._input_target is not None:
+            self._input_target.disarm()
+        self._wake()
+        return {'enabled': self._input_enabled, 'device_id': self._input_device}
+
+    def _input_connections(self, device_id=None, incoming=False):
+        with self._connection_lock:
+            return [entry for key, entry in self._connections.items()
+                if (device_id is None or key == device_id) and self._is_confirmed(key)
+                and not entry['worker'].stopped.is_set() and self._media_pin_matches(key, entry)
+                and INPUT_PACKET in entry['identity']['outgoingCapabilities' if incoming else 'incomingCapabilities']]
+
+    def _refresh_input(self):
+        target = self._input_target
+        if target is None:
+            return
+        try:
+            entries = self._input_connections(self._input_device or None, incoming=True)
+            ready = self._input_enabled and self._input_permitted() is True
+            entry = entries[0] if ready and len(entries) == 1 else None
+            worker = entry['worker'] if entry else None
+            if target.owner is not worker:
+                target.disarm()
+                if worker is not None:
+                    device_id = worker.identity['deviceId']
+                    def permitted(entry=entry, device_id=device_id):
+                        return (self._input_enabled and self._input_permitted() is True
+                            and (not self._input_device or self._input_device == device_id)
+                            and any(current is entry for current in self._input_connections(device_id, incoming=True)))
+                    target.arm(worker, str(uuid.uuid4()), permitted)
+            target.expire()
+            if target.owner is None:
+                self._input_sink.release()
+            with self._connection_lock:
+                workers = [item['worker'] for item in self._connections.values()]
+            for current in workers:
+                self._input_keyboard_state(current)
+        except Exception:
+            # Lost OS access/GUI readiness cannot keep a receive target armed.
+            try:
+                target.disarm()
+            except Exception:
+                pass
+
+    def _input_keyboard_state(self, worker):
+        if not self._is_confirmed(worker.identity['deviceId']) or KEYBOARD_STATE not in worker.identity['incomingCapabilities']:
+            return
+        ready = bool(self._input_target is not None and self._input_target.owner is worker
+            and self._input_sink.status().get('keyboard') and self._input_target._allowed())
+        if worker.keyboard_sent != ready:
+            worker.send(network_packet(KEYBOARD_STATE, {'state': ready}))
+            worker.keyboard_sent = ready
+
+    def _input_ended(self, worker):
+        if self._input_target is not None:
+            try:
+                self._input_target.disarm(owner=worker)
+            except Exception:
+                pass
+
+    def _input_packet(self, worker, packet):
+        incoming = packet.get('type') == INPUT_PACKET
+        entries = self._input_connections(worker.identity['deviceId'], incoming=incoming)
+        if not entries or entries[0]['worker'] is not worker:
+            return
+        if not incoming:
+            body = packet.get('body')
+            if KEYBOARD_STATE in worker.identity['outgoingCapabilities'] and isinstance(body, dict) and type(body.get('state')) is bool:
+                worker.remote_keyboard = body['state']
+        elif self._input_target is not None:
+            try:
+                self._input_target.accept(worker, packet.get('body'))
+            except Exception:
+                self._input_keyboard_state(worker)
+
+    def input_status(self):
+        values = []
+        for entry in self._input_connections()[:64]:
+            identity, worker = entry['identity'], entry['worker']
+            values.append({'device_id': identity['deviceId'], 'device_name': identity['deviceName'],
+                'token': worker.remote_input_token, 'pointer': identity.get('deviceType') == 'desktop',
+                'keyboard': worker.remote_keyboard})
+        sink = self._input_sink.status() if self._input_sink else {'pointer': False, 'keyboard': False,
+            'reason': 'native_system_input_required' if os.environ.get('WAYLAND_DISPLAY') or
+            os.environ.get('XDG_SESSION_TYPE') == 'wayland' else 'input_backend_unavailable'}
+        owner = self._input_target.owner if self._input_target is not None else None
+        return {'native': False, 'devices': values, 'receiver': dict(sink,
+            enabled=self._input_enabled, ready=owner is not None,
+            devices=[{'device_id': entry['identity']['deviceId'], 'device_name': entry['identity']['deviceName']}
+                for entry in self._input_connections(incoming=True)[:64]],
+            device_id=owner.identity['deviceId'] if owner else '', selected_device_id=self._input_device)}
+
+    def input_send(self, device_id, token, body):
+        parsed = input_body(body)
+        with self._connection_lock:
+            entries = self._input_connections(device_id)
+            if len(entries) != 1:
+                raise ProtocolError('remote_input_unavailable')
+            entry, worker = entries[0], entries[0]['worker']
+            if token != worker.remote_input_token:
+                raise ProtocolError('remote_input_source_changed')
+            keyboard = 'key' in parsed or 'specialKey' in parsed
+            if keyboard and not worker.remote_keyboard or not keyboard and entry['identity'].get('deviceType') != 'desktop':
+                raise ProtocolError('remote_input_action_unavailable')
+            worker.send(network_packet(INPUT_PACKET, parsed))
+            return {'ok': True, 'state': 'queued', 'device_id': device_id}
+
     def _media_connections(self, device_id):
         if not isinstance(device_id, str) or not DEVICE_ID.fullmatch(device_id):
             raise ProtocolError('invalid_media_device')
@@ -2651,6 +2890,8 @@ class KDEConnectSMSBackend:
         if (self._local_media is not None and MEDIA_PACKET in identity['incomingCapabilities']
                 and MEDIA_REQUEST in identity['outgoingCapabilities']):
             return True
+        if INPUT_PACKET in identity['incomingCapabilities'] or self._input_sink is not None and INPUT_PACKET in identity['outgoingCapabilities']:
+            return True
         with self._state_lock:
             settings = self._receive_settings
             if identity["deviceId"] != settings["device_id"]:
@@ -2767,6 +3008,11 @@ class KDEConnectSMSBackend:
         incoming = [SMS_MESSAGES_TYPE, CONTACT_UIDS_RESPONSE, CONTACT_VCARDS_RESPONSE, DIGITIZER_SESSION, DIGITIZER_EVENT, MEDIA_PACKET]
         outgoing = [SMS_REQUEST_TYPE, SMS_REQUEST_CONVERSATIONS_TYPE,
                     SMS_REQUEST_CONVERSATION_TYPE, CONTACT_UIDS_REQUEST, CONTACT_VCARDS_REQUEST, MEDIA_REQUEST]
+        incoming.append(KEYBOARD_STATE)
+        outgoing.append(INPUT_PACKET)
+        if self._input_sink is not None:
+            incoming.append(INPUT_PACKET)
+            outgoing.append(KEYBOARD_STATE)
         if self._local_media is not None:
             incoming.append(MEDIA_REQUEST)
             outgoing.append(MEDIA_PACKET)

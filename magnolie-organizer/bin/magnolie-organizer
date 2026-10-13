@@ -21269,6 +21269,8 @@ class Fenster(_FENSTER_BASIS):
 
         elif befehl in ('kde_medien_geraete', 'kde_medien_stand', 'kde_medien_aktion'):
             threading.Thread(target=self._kde_medien, args=(nachricht,), daemon=True).start()
+        elif befehl in ('kde_input_stand', 'kde_input_einstellungen', 'kde_input_senden'):
+            threading.Thread(target=self._kde_input, args=(nachricht,), daemon=True).start()
 
         elif befehl in ("telefon_kontaktfotos", "telefon_kontakte"):
             request_id = nachricht.get("requestId")
@@ -23100,6 +23102,28 @@ class Fenster(_FENSTER_BASIS):
             self.antwort('App.kdeMedien', dict(result, ok=True, requestId=request_id))
         except Exception as error:
             self.antwort('App.kdeMedien', dict(ok=False, requestId=request_id, error=str(error)[:300]))
+
+    def _kde_input(self, nachricht):
+        request_id = nachricht.get('requestId')
+        if not isinstance(request_id, str) or not re.fullmatch(r'[0-9a-fA-F-]{36}', request_id):
+            return
+        try:
+            if self._gesperrt or not self._organizer_vertraut():
+                raise ValueError('locked')
+            backend = _kdeconnect_backend()
+            command = nachricht.get('cmd')
+            if command == 'kde_input_stand':
+                result = backend.input_status()
+            elif command == 'kde_input_einstellungen':
+                backend.configure_input(enabled=nachricht.get('enabled'), device_id=nachricht.get('device_id', ''))
+                result = backend.input_status()
+            else:
+                result = backend.input_send(nachricht.get('device_id'), nachricht.get('token'), nachricht.get('body'))
+            if self._gesperrt:
+                raise ValueError('locked')
+            self.antwort('App.kdeInput', dict(result, ok=True, requestId=request_id))
+        except Exception as error:
+            self.antwort('App.kdeInput', dict(ok=False, requestId=request_id, error=str(error)[:300]))
 
     def _kontakt_fotos_lesen(self, nachricht):
         request_id = nachricht.get("requestId", "")

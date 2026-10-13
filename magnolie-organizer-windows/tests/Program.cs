@@ -105,6 +105,7 @@ runner.Add("KDE Connect / Codec / P-256-Ablage / Pinning / Integration", KdeConn
 runner.Add("KDE contact import / projection / source binding", KdeContactImportTests.RunAsync);
 runner.Add("KDE digitizer / delta state / pressure / reset", KdeDigitizerTests.RunAsync);
 runner.Add("KDE media / player lifetime / bounded metadata / commands", KdeMediaTests.RunAsync);
+runner.Add("KDE input / bounded packets / target lifetime / presenter", KdeInputTests.RunAsync);
 runner.Add("Drawing SVG / inline PNG / external reference rejection", DrawingSvgTests.RunAsync);
 runner.Add("WebView2 / Handbuch-Start / Navigationssicherheit", WebViewStartupSourceTests.RunAsync);
 runner.Add("WebView2 / geschützte Assets / URI / Header", ProtectedAssetPolicyTests.RunAsync);

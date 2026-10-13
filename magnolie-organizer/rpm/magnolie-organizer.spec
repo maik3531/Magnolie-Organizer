@@ -59,6 +59,7 @@ Requires:       python(abi) >= 3.9
 Requires:       /usr/share/zoneinfo/Europe/Berlin
 Requires:       /usr/bin/xdg-open
 Requires:       %{magnolie_deps}
+Requires:       libfakekey.so.0()(64bit)
 Suggests:       magnolie-organizer-kde
 
 %description

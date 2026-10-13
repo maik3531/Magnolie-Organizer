@@ -33,6 +33,13 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
     private readonly KdeConnectIdentityStore store;
     private readonly KdeConnectLocalIdentity local;
     private readonly IKdeLocalMedia? localMedia;
+    private readonly KdeWindowsInput inputSink = new();
+    private readonly KdeInputTarget inputTarget;
+    private readonly object inputGate = new();
+    private Connection? inputOwner;
+    private bool inputEnabled = true;
+    private string inputDevice = "";
+    private Func<bool> inputPermitted = () => false;
     private readonly ConcurrentDictionary<string, PendingPairing> pending = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, Connection> active = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, Connection> staged = new(StringComparer.Ordinal);
@@ -90,6 +97,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         store = new KdeConnectIdentityStore(paths, protector);
         local = store.LoadOrCreate();
         localMedia = KdeLocalMedia.Create();
+        inputTarget = new(inputSink);
         TcpListener? allocatedListener = null;
         UdpClient? allocatedUdp = null;
         try
@@ -101,6 +109,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
             $"os={Environment.OSVersion} runtime={Environment.Version}");
         acceptTask = AcceptLoopAsync(lifetime.Token);
         discoveryTask = DiscoveryLoopAsync(lifetime.Token);
+        Track(InputWatchAsync(lifetime.Token));
         }
         catch
         {
@@ -436,6 +445,124 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         }
     }
 
+    internal void ConfigureInput(bool? enabled = null, string? deviceId = null, Func<bool>? permitted = null)
+    {
+        lock (inputGate)
+        {
+            if (enabled is not null) inputEnabled = enabled.Value;
+            if (deviceId is not null) inputDevice = deviceId;
+            if (permitted is not null) inputPermitted = permitted;
+            inputTarget.Disarm(); inputOwner = null;
+        }
+    }
+
+    private Connection[] InputConnections(bool incoming, string? deviceId = null)
+    {
+        var peers = store.LoadPeers();
+        return active.Values.Where(connection => !connection.Closed &&
+            (deviceId is null || connection.Identity.DeviceId == deviceId) &&
+            (incoming ? connection.Identity.OutgoingCapabilities : connection.Identity.IncomingCapabilities).Contains(KdeInputProtocol.Request) &&
+            peers.Any(peer => peer.Id == connection.Identity.DeviceId && peer.Paired &&
+                peer.CertificatePin == KdeConnectProtocol.CertificatePin(connection.Certificate))).ToArray();
+    }
+
+    private async Task InputWatchAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    lock (inputGate)
+                    {
+                        var entries = InputConnections(true, inputDevice.Length == 0 ? null : inputDevice);
+                        var next = entries.Length == 1 && inputEnabled && inputPermitted() && inputSink.Available ? entries[0] : null;
+                        if (!ReferenceEquals(inputOwner, next))
+                        {
+                            inputTarget.Disarm(); inputOwner = null;
+                            if (next is not null)
+                            {
+                                inputTarget.Arm(next, Guid.NewGuid().ToString(), () => inputEnabled && inputPermitted() &&
+                                    (inputDevice.Length == 0 || inputDevice == next.Identity.DeviceId) &&
+                                    InputConnections(true, next.Identity.DeviceId).Any(current => ReferenceEquals(current, next)));
+                                inputOwner = next;
+                            }
+                        }
+                        if (inputTarget.Expire()) inputOwner = null;
+                        if (inputOwner is null) inputSink.Release();
+                        foreach (var connection in active.Values) InputKeyboardState(connection);
+                    }
+                }
+                catch (Exception)
+                {
+                    lock (inputGate) { try { inputTarget.Disarm(); } catch (Exception) { } inputOwner = null; }
+                }
+                await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        finally { lock (inputGate) { try { inputTarget.Disarm(); } catch (Exception) { } inputOwner = null; } }
+    }
+
+    private void InputKeyboardState(Connection connection)
+    {
+        if (!connection.Identity.IncomingCapabilities.Contains(KdeInputProtocol.KeyboardState) ||
+            !store.LoadPeers().Any(peer => peer.Id == connection.Identity.DeviceId && peer.Paired)) return;
+        var ready = ReferenceEquals(inputOwner, connection) && inputEnabled && inputPermitted() && inputSink.Keyboard;
+        if (connection.KeyboardSent == ready) return;
+        connection.KeyboardSent = ready;
+        Track(connection.WriteAsync(KdeConnectProtocol.Encode(KdeInputProtocol.KeyboardState,
+            new JsonObject { ["state"] = ready }), lifetime.Token));
+    }
+
+    private void HandleInputPacket(Connection connection, KdeConnectPacket packet)
+    {
+        if (packet.Type == KdeInputProtocol.KeyboardState)
+        {
+            if (connection.Identity.OutgoingCapabilities.Contains(KdeInputProtocol.KeyboardState) &&
+                InputConnections(false, connection.Identity.DeviceId).Any(current => ReferenceEquals(current, connection)) &&
+                packet.Body["state"] is JsonValue state && state.TryGetValue<bool>(out var ready)) connection.RemoteKeyboard = ready;
+            return;
+        }
+        lock (inputGate)
+        {
+            try { inputTarget.Accept(connection, packet.Body); }
+            catch (Exception) { inputOwner = null; InputKeyboardState(connection); }
+        }
+    }
+
+    internal JsonObject InputStatus()
+    {
+        var devices = new JsonArray();
+        var incoming = new JsonArray();
+        foreach (var connection in InputConnections(true).Take(64))
+            incoming.Add(new JsonObject { ["device_id"] = connection.Identity.DeviceId, ["device_name"] = connection.Identity.DeviceName });
+        foreach (var connection in InputConnections(false).Take(64))
+            devices.Add(new JsonObject { ["device_id"] = connection.Identity.DeviceId, ["device_name"] = connection.Identity.DeviceName,
+                ["token"] = connection.InputToken, ["keyboard"] = connection.RemoteKeyboard, ["pointer"] = connection.Identity.DeviceType == "desktop" });
+        lock (inputGate)
+            return new JsonObject { ["native"] = false, ["devices"] = devices, ["receiver"] = new JsonObject {
+                ["pointer"] = inputSink.Available, ["keyboard"] = inputSink.Keyboard, ["enabled"] = inputEnabled,
+                ["ready"] = inputOwner is not null, ["device_id"] = inputOwner?.Identity.DeviceId ?? "", ["selected_device_id"] = inputDevice,
+                ["devices"] = incoming } };
+    }
+
+    internal Task InputSendAsync(string deviceId, string token, JsonObject body, CancellationToken cancellationToken)
+    {
+        var parsed = KdeInputProtocol.Input(body);
+        lock (activeGate)
+        {
+            var connections = InputConnections(false, deviceId);
+            if (connections.Length != 1 || connections[0].InputToken != token) throw new InvalidOperationException("remote_input_source_changed");
+            var connection = connections[0];
+            var keyboard = parsed.ContainsKey("key") || parsed.ContainsKey("specialKey");
+            if (keyboard ? !connection.RemoteKeyboard : connection.Identity.DeviceType != "desktop")
+                throw new InvalidOperationException("remote_input_action_unavailable");
+            return connection.WriteAsync(KdeConnectProtocol.Encode(KdeInputProtocol.Request, parsed), cancellationToken);
+        }
+    }
+
     internal Task MediaCommandAsync(string deviceId, string token, string player, string action, long? value, CancellationToken cancellationToken)
     {
         lock (activeGate)
@@ -702,7 +829,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         try
         {
             var identity = KdeConnectProtocol.Encode("kdeconnect.identity",
-                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null));
+                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null, localInputSupported: OperatingSystem.IsWindows()));
             _ = udp.SendAsync(identity, new IPEndPoint(IPAddress.Broadcast, KdeConnectProtocol.FirstPort));
             var addresses = Ipv4Broadcast.DirectedAddresses();
             foreach (var address in addresses)
@@ -719,7 +846,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         try
         {
             var identity = KdeConnectProtocol.Encode("kdeconnect.identity",
-                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null));
+                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null, localInputSupported: OperatingSystem.IsWindows()));
             _ = udp.SendAsync(identity, new IPEndPoint(address, KdeConnectProtocol.FirstPort));
             DebugLog("udp.reverse", $"remote={address}:{KdeConnectProtocol.FirstPort} tcp={ListenerPort}");
         }
@@ -864,7 +991,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
                Auch die sichere Kennung nach dem TLS-Aufbau sendet kein Ziel. Eingehend
                bleibt das Feld erlaubt - das Telefon schickt es selbst. */
             await network.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.identity",
-                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null)), token).ConfigureAwait(false);
+                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null, localInputSupported: OperatingSystem.IsWindows())), token).ConfigureAwait(false);
             DebugLog("outgoing.plain_identity_sent", $"device={device.Identity.DeviceId} targetVersion={KdeConnectProtocol.Version}");
             X509Certificate2? remoteCertificate = null;
             var tls = new SslStream(network, false, (_, certificate, _, _) => ValidateCertificate(
@@ -878,7 +1005,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
                 $"cipher={tls.NegotiatedCipherSuite} pin={KdeConnectProtocol.CertificatePin(remoteCertificate)[..12]} " +
                 $"elapsedMs={watch.ElapsedMilliseconds}");
             await tls.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.identity",
-                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null)), token).ConfigureAwait(false);
+                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null, localInputSupported: OperatingSystem.IsWindows())), token).ConfigureAwait(false);
             var secureIdentity = KdeConnectProtocol.ParseIdentity(await KdeConnectProtocol.ReadAsync(tls, token).ConfigureAwait(false));
             if (!string.Equals(secureIdentity.DeviceId, device.Identity.DeviceId, StringComparison.Ordinal))
                 throw new AuthenticationException("Die sichere KDE-Connect-Identität hat sich geändert.");
@@ -938,7 +1065,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
                 $"cipher={tls.NegotiatedCipherSuite} pin={KdeConnectProtocol.CertificatePin(remoteCertificate)[..12]} " +
                 $"elapsedMs={watch.ElapsedMilliseconds}");
             await tls.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.identity",
-                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null)), token).ConfigureAwait(false);
+                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null, localInputSupported: OperatingSystem.IsWindows())), token).ConfigureAwait(false);
             var secureIdentity = KdeConnectProtocol.ParseIdentity(await KdeConnectProtocol.ReadAsync(tls, token).ConfigureAwait(false));
             if (!string.Equals(secureIdentity.DeviceId, plainIdentity.DeviceId, StringComparison.Ordinal))
                 throw new AuthenticationException("Die sichere KDE-Connect-Identität hat sich geändert.");
@@ -1033,6 +1160,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
                 else if (packet.Type is KdeDigitizerState.SessionPacket or KdeDigitizerState.EventPacket) HandleDigitizerPacket(connection, packet);
                 else if (packet.Type == KdeMediaState.Packet) HandleMediaPacket(connection, packet);
                 else if (packet.Type == KdeMediaState.Request) await HandleLocalMediaAsync(connection, packet.Body, cancellationToken).ConfigureAwait(false);
+                else if (packet.Type is KdeInputProtocol.Request or KdeInputProtocol.KeyboardState) HandleInputPacket(connection, packet);
                 else if (packet.Type == KdeConnectProtocol.SmsMessages && connection.State.SmsStarted) HandleSmsPacket(connection, packet);
                 else if (KdeConnectProtocol.IsContactResponse(packet.Type))
                 {
@@ -1054,6 +1182,11 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         finally
         {
             EndDigitizerConnection(connection);
+            lock (inputGate)
+            {
+                if (ReferenceEquals(inputOwner, connection))
+                { try { inputTarget.Disarm(connection); } catch (Exception) { } inputOwner = null; }
+            }
             if (RemoveActive(connection)) { DebugLog("active.closed", $"device={connection.Identity.DeviceId} generation={connection.Generation}");
                 connection.Dispose(); ScheduleReconnect(false); EmitStatus(); }
             else if (RemoveStaged(connection))
@@ -1071,6 +1204,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
     private void EnableSms(Connection connection)
     {
         EnableMedia(connection);
+        lock (inputGate) InputKeyboardState(connection);
         lock (connection.State.Gate)
         {
             if (connection.State.SmsStarted) return;
@@ -1542,6 +1676,9 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         internal KdeDigitizerState Digitizer { get; } = new();
         internal KdeMediaState Media { get; } = new();
         internal bool LocalMediaStarted;
+        internal string InputToken { get; } = Guid.NewGuid().ToString("N");
+        internal bool RemoteKeyboard;
+        internal bool? KeyboardSent;
         internal object ContactGate { get; } = new();
         internal SemaphoreSlim ContactRequests { get; } = new(1, 1);
         internal TaskCompletionSource<JsonObject>? ContactReply;

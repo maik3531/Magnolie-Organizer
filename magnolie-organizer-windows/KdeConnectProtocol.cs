@@ -11,7 +11,7 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed record KdeConnectPacket(long Id, string Type, JsonObject Body);
 internal sealed record KdeConnectIdentity(string DeviceId, string DeviceName, int TcpPort,
-    string[] IncomingCapabilities, string[] OutgoingCapabilities);
+    string[] IncomingCapabilities, string[] OutgoingCapabilities, string DeviceType = "phone");
 internal sealed record KdeConnectNormalizedSms(string Text, int Units, int Segments, bool Changed);
 internal sealed record KdeConnectSmsMessage(string Id, string DeviceId, string ThreadId, string SmsId,
     string From, string[] Addresses, bool Group, string Text, long TimestampMs, bool Incoming);
@@ -131,20 +131,25 @@ internal static class KdeConnectProtocol
         return result;
     }
 
-    internal static JsonObject IdentityBody(string id, string name, int tcpPort, string? targetDeviceId = null, bool localMediaSupported = false)
+    internal static JsonObject IdentityBody(string id, string name, int tcpPort, string? targetDeviceId = null, bool localMediaSupported = false, bool localInputSupported = false)
     {
         var body = new JsonObject {
             ["deviceId"] = id, ["deviceName"] = name, ["protocolVersion"] = Version,
             ["deviceType"] = "desktop", ["tcpPort"] = tcpPort,
-            ["incomingCapabilities"] = new JsonArray(SmsMessages, ContactUidsResponse, ContactVcardsResponse, KdeMediaState.Packet,
+            ["incomingCapabilities"] = new JsonArray(SmsMessages, ContactUidsResponse, ContactVcardsResponse, KdeMediaState.Packet, KdeInputProtocol.KeyboardState,
                 KdeDigitizerState.SessionPacket, KdeDigitizerState.EventPacket),
-            ["outgoingCapabilities"] = new JsonArray(SmsRequest, SmsRequestConversations, SmsRequestConversation, KdeMediaState.Request,
+            ["outgoingCapabilities"] = new JsonArray(SmsRequest, SmsRequestConversations, SmsRequestConversation, KdeMediaState.Request, KdeInputProtocol.Request,
                 ContactUidsRequest, ContactVcardsRequest)
         };
         if (localMediaSupported)
         {
             body["incomingCapabilities"]!.AsArray().Add(KdeMediaState.Request);
             body["outgoingCapabilities"]!.AsArray().Add(KdeMediaState.Packet);
+        }
+        if (localInputSupported)
+        {
+            body["incomingCapabilities"]!.AsArray().Add(KdeInputProtocol.Request);
+            body["outgoingCapabilities"]!.AsArray().Add(KdeInputProtocol.KeyboardState);
         }
         if (!string.IsNullOrEmpty(targetDeviceId))
         { body["targetDeviceId"] = targetDeviceId; body["targetProtocolVersion"] = Version; }
@@ -174,7 +179,7 @@ internal static class KdeConnectProtocol
                 deviceType is not ("desktop" or "laptop" or "phone" or "smartphone" or "tablet" or "tv") ||
                 port is < FirstPort or > LastPort)
                 throw new InvalidDataException("Die sichere KDE-Connect-Identität ist ungültig oder inkompatibel.");
-            return new KdeConnectIdentity(id, name.Trim(), port, Strings(body["incomingCapabilities"]), Strings(body["outgoingCapabilities"]));
+            return new KdeConnectIdentity(id, name.Trim(), port, Strings(body["incomingCapabilities"]), Strings(body["outgoingCapabilities"]), body["deviceType"]!.GetValue<string>());
         }
         catch (Exception error) when (error is InvalidOperationException or FormatException or OverflowException)
         { throw new InvalidDataException("Die sichere KDE-Connect-Identität ist ungültig oder inkompatibel.", error); }

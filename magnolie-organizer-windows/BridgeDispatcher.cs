@@ -379,6 +379,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "kde_medien_geraete":
                     case "kde_medien_stand":
                     case "kde_medien_aktion": await KdeMediaAsync(message); break;
+                    case "kde_input_stand":
+                    case "kde_input_einstellungen":
+                    case "kde_input_senden": await KdeInputAsync(message); break;
                     case "kde_pairing_start":
                     case "kde_pairing_complete":
                     case "kde_paaren": await EnsureFirewallAsync(); await StartKdePairingAsync(message); break;

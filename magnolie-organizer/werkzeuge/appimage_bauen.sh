@@ -299,6 +299,9 @@ install -m 0644 "$WURZEL/werkzeuge/appimage_runtime.py" \
 [ ! -f "/usr/share/doc/python$PYTHON_VERSION/copyright" ] || install -m 0644 \
     "/usr/share/doc/python$PYTHON_VERSION/copyright" \
     "$APPDIR/usr/share/doc/magnolie-organizer/python-copyright"
+[ ! -f /usr/share/doc/libfakekey0/copyright ] || install -m 0644 \
+    /usr/share/doc/libfakekey0/copyright \
+    "$APPDIR/usr/share/doc/magnolie-organizer/libfakekey-copyright"
 
 for bibliothek in $EDS_BIBLIOTHEKEN \
     "/usr/lib/$MULTIARCH/libnotify.so.4" \
@@ -311,6 +314,8 @@ for bibliothek in $EDS_BIBLIOTHEKEN \
     "/usr/lib/$MULTIARCH/libstdc++.so.6" \
     "/usr/lib/$MULTIARCH/libwayland-client.so.0" \
     "/usr/lib/$MULTIARCH/libX11.so.6" \
+    "/usr/lib/$MULTIARCH/libXtst.so.6" \
+    "/usr/lib/$MULTIARCH/libfakekey.so.0" \
     "/usr/lib/$MULTIARCH/libxcb.so.1" \
     "/usr/lib/$MULTIARCH/libz.so.1" \
     "/usr/lib/$MULTIARCH/libxapp.so.1" \

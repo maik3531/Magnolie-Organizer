@@ -6066,6 +6066,8 @@ body[data-linien="aus"] #tb-notiz {
 .kde-medien { display: grid; gap: 6px; min-width: 0; }
 .kde-medien select, .kde-medien input { min-width: 0; max-width: 100%; box-sizing: border-box; }
 .kde-medien p { overflow-wrap: anywhere; }
+.kde-touchpad { min-height: 120px; padding: 12px; border: 1px solid var(--linie); border-radius: 6px; touch-action: none; user-select: none; }
+.kde-touchpad[aria-disabled="true"] { opacity: .5; }
 .telefon-kdeconnect > p { margin: 0; }
 .telefon-freigaben { display: grid; gap: 7px; margin: 12px 0; }
 .eingabe-dialog.sms-dialog {

@@ -26668,6 +26668,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (!nativesKde && !kde.peer_id) kdeBlock.append(el("p", "einst-hinweis",
       _("Pair a KDE Connect phone before enabling receive functions.")));
     baueKdeMedien(kdeBlock);
+    baueKdeEingabe(kdeBlock);
     kdeAb.append(kdeBlock);
     wurzel.append(kdeAb);
   }
@@ -26767,6 +26768,106 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       setTimeout(poll, 3000);
     };
     setTimeout(poll, 0);
+  }
+
+  function baueKdeEingabe(wurzel) {
+    const block = el("section", "kde-medien"); block.id = "kde-input";
+    const status = el("p", "einst-hinweis", _("Loading …"));
+    const empfang = document.createElement("select"), ziel = document.createElement("select");
+    empfang.setAttribute("aria-label", _("Incoming control device")); ziel.setAttribute("aria-label", _("Remote control device"));
+    const pause = document.createElement("input"); pause.type = "checkbox";
+    const pauseZeile = el("label", "hak"); pauseZeile.append(pause, document.createTextNode(" " + _("Pause incoming control for this session")));
+    const pad = el("div", "kde-touchpad", _("Touchpad")); pad.tabIndex = 0; pad.setAttribute("aria-label", _("Touchpad"));
+    const text = eingabe("text", ""); text.maxLength = 1024; text.setAttribute("aria-label", _("Keyboard text"));
+    const buttons = [], reihe = el("div", "knopfreihe");
+    let stand = null, busy = false, revision = 0, geste = null;
+    const peer = () => stand?.devices?.find(value => value.device_id === ziel.value);
+    const sichtbar = () => block.isConnected && !gesperrt && !block.closest("#einstellungen-schleier")?.classList.contains("verborgen");
+    const aktualisieren = () => {
+      const current = peer();
+      buttons.forEach(([button, kind]) => { button.disabled = busy || gesperrt || current?.[kind] !== true; });
+      text.disabled = busy || gesperrt || current?.keyboard !== true;
+      pad.setAttribute("aria-disabled", String(busy || gesperrt || current?.pointer !== true));
+    };
+    const senden = async body => {
+      const current = peer();
+      if (!sichtbar() || busy || !current?.token) return;
+      const rev = revision;
+      busy = true; aktualisieren();
+      const result = await kdeMedienAnfordern("kde_input_senden", { device_id: current.device_id, token: current.token, body });
+      if (!sichtbar() || rev !== revision) return;
+      busy = false;
+      if (!result.ok) { stand = null; geste = null; status.textContent = _("Remote control is unavailable. Check the connection and device permissions."); }
+      aktualisieren();
+      return result.ok;
+    };
+    const knopfEingabe = (name, kind, body) => {
+      const button = knopf(name, "", () => senden(body)); buttons.push([button, kind]); reihe.append(button);
+    };
+    knopfEingabe(_("Click"), "pointer", { singleclick: true });
+    knopfEingabe(_("Right click"), "pointer", { rightclick: true });
+    knopfEingabe(_("Scroll up"), "pointer", { scroll: true, dy: 120 });
+    knopfEingabe(_("Scroll down"), "pointer", { scroll: true, dy: -120 });
+    knopfEingabe(_("Backspace"), "keyboard", { specialKey: 1 });
+    knopfEingabe(_("Enter"), "keyboard", { specialKey: 12 });
+    const sendText = knopf(_("Send text"), "", async () => {
+      const value = text.value;
+      if (value && await senden({ key: value }) && text.value === value) text.value = "";
+    }); buttons.push([sendText, "keyboard"]);
+    pad.addEventListener("pointerdown", event => {
+      if (peer()?.pointer !== true || busy || !sichtbar() || event.button !== 0) return;
+      geste = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false, revision };
+      pad.setPointerCapture?.(event.pointerId); event.preventDefault();
+    });
+    pad.addEventListener("pointermove", event => {
+      if (!geste || event.pointerId !== geste.id || geste.revision !== revision || busy) return;
+      const dx = Math.max(-4096, Math.min(4096, event.clientX - geste.x)), dy = Math.max(-4096, Math.min(4096, event.clientY - geste.y));
+      if (!dx && !dy) return;
+      geste.x = event.clientX; geste.y = event.clientY; geste.moved = true; senden({ dx, dy });
+    });
+    pad.addEventListener("pointerup", event => {
+      if (!geste || event.pointerId !== geste.id) return;
+      const click = !geste.moved && geste.revision === revision; geste = null;
+      if (click) senden({ singleclick: true });
+    });
+    pad.addEventListener("pointercancel", () => { geste = null; });
+    pad.addEventListener("contextmenu", event => { event.preventDefault(); if (peer()?.pointer === true) senden({ rightclick: true }); });
+    ziel.addEventListener("change", () => { revision++; busy = false; geste = null; aktualisieren(); });
+    const konfigurieren = async () => {
+      const result = await kdeMedienAnfordern("kde_input_einstellungen", { enabled: !pause.checked, device_id: empfang.value });
+      if (sichtbar() && !result.ok) status.textContent = _("Remote control settings could not be applied.");
+    };
+    pause.addEventListener("change", konfigurieren); empfang.addEventListener("change", konfigurieren);
+    block.append(el("h4", null, _("Mouse and keyboard")), status, pauseZeile, empfang, ziel, pad, reihe, text, sendText);
+    wurzel.append(block); aktualisieren();
+    const auswahl = (select, items, automatisch = false) => {
+      const current = select.value;
+      const values = automatisch ? [{ device_id: "", device_name: _("Automatic") }, ...items] : items;
+      if (JSON.stringify(Array.from(select.options, option => [option.value, option.textContent])) !== JSON.stringify(values.map(value => [value.device_id, value.device_name]))) {
+        select.textContent = "";
+        values.forEach(value => { const option = document.createElement("option"); option.value = value.device_id; option.textContent = value.device_name; select.append(option); });
+        if (values.some(value => value.device_id === current)) select.value = current;
+      }
+    };
+    const pollInput = async () => {
+      if (!sichtbar()) return;
+      const result = await kdeMedienAnfordern("kde_input_stand");
+      if (!sichtbar()) return;
+      const previous = ziel.value, previousToken = peer()?.token;
+      stand = result.ok ? result : null;
+      const receiver = stand?.receiver || {};
+      pause.checked = receiver.enabled === false; pause.disabled = !!stand?.native || receiver.pointer !== true;
+      pauseZeile.hidden = !!stand?.native;
+      empfang.hidden = !!stand?.native; auswahl(empfang, receiver.devices || [], true);
+      empfang.value = receiver.selected_device_id || "";
+      auswahl(ziel, stand?.devices || []);
+      if (previous !== ziel.value || previousToken && previousToken !== peer()?.token) { revision++; geste = null; busy = false; }
+      status.textContent = stand?.native ? _("Incoming control uses the permissions configured in system KDE Connect.")
+        : receiver.ready ? _("Incoming phone control is ready while the Organizer is visible and unlocked.")
+        : _("Incoming control is inactive. Keep the Organizer visible and unlocked and select one paired device.");
+      aktualisieren(); setTimeout(pollInput, 3000);
+    };
+    setTimeout(pollInput, 0);
   }
 
   function telefonPairingDialog(nutzlast) {
@@ -31133,6 +31234,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (!request) return;
       clearTimeout(request.timer); kdeMedienAnfragen.delete(value.requestId); request.resolve(value);
     },
+    kdeInput(value) { App.kdeMedien(value); },
     personalSyncCollection(value) {
       if (!value?.device_id || typeof value.fingerprint !== "string" || !Array.isArray(value.members?.notes) || !Array.isArray(value.members?.tasks)) return;
       personalPhoneCollections.set(value.device_id, { fingerprint: value.fingerprint,

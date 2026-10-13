@@ -37,6 +37,8 @@
     <Compile Include="..\KdeDigitizerState.cs" Link="KdeDigitizerState.cs" />
     <Compile Include="..\KdeMediaState.cs" Link="KdeMediaState.cs" />
     <Compile Include="..\KdeLocalMedia.cs" Link="KdeLocalMedia.cs" />
+    <Compile Include="..\KdeInputState.cs" Link="KdeInputState.cs" />
+    <Compile Include="..\KdeWindowsInput.cs" Link="KdeWindowsInput.cs" />
     <Compile Include="..\ContactCleanupSnapshot.cs" Link="ContactCleanupSnapshot.cs" />
     <Compile Include="..\BaumSyncSnapshot.cs" Link="BaumSyncSnapshot.cs" />
     <Compile Include="..\WindowsContactStore.cs" Link="WindowsContactStore.cs" />

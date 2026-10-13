@@ -772,6 +772,8 @@ def _request_shape(operation, arguments):
         "contact_uids": {"device_id"}, "contact_vcards": {"uids", "device_id"},
         "media_devices": set(), "media_status": {"device_id"},
         "media_command": {"device_id", "token", "player", "action", "value"},
+        "input_status": set(), "configure_input": {"enabled", "device_id"},
+        "input_send": {"device_id", "token", "body"},
         "set_digitizer_target": {"device_id", "token", "enabled", "subscriber"},
         "begin_pairing": {"device_id", "replace_stored"},
         "complete_pairing": {"device_id"}, "confirm_pairing": {"code_matches"},
@@ -886,6 +888,19 @@ def _request_shape(operation, arguments):
                 command_body(arguments.get('player'), arguments.get('action'), arguments.get('value'))
             except (ValueError, TypeError) as error:
                 raise IPCError('invalid media command') from error
+    if operation == 'configure_input':
+        if type(arguments.get('enabled')) is not bool or not isinstance(arguments.get('device_id', ''), str) or \
+                arguments.get('device_id') and not re.fullmatch(r'[A-Za-z0-9_-]{32,38}', arguments['device_id']):
+            raise IPCError('invalid input setting')
+    if operation == 'input_send':
+        if (not isinstance(arguments.get('device_id'), str) or not re.fullmatch(r'[A-Za-z0-9_-]{32,38}', arguments['device_id']) or
+                not isinstance(arguments.get('token'), str) or not re.fullmatch(r'[a-f0-9]{32}', arguments['token'])):
+            raise IPCError('invalid input context')
+        from magnolie_kde_input import input_body
+        try:
+            input_body(arguments.get('body'))
+        except (ValueError, TypeError) as error:
+            raise IPCError('invalid input packet') from error
     if operation == "poll_events":
         after = arguments.get("after")
         timeout = arguments.get("timeout", 20)
@@ -942,6 +957,8 @@ class IPCServer:
         self._event_sequence = 0
         self._event_condition = threading.Condition()
         self._gui_subscribers = {}
+        if backend is not None and not getattr(backend, 'native', False) and callable(getattr(type(backend), 'configure_input', None)):
+            backend.configure_input(permitted=self.gui_personal_ready)
         self.lifecycle = "ready"
         self._handlers = threading.BoundedSemaphore(MAX_IPC_HANDLERS)
         self._mutation_lock = threading.RLock()
@@ -1512,6 +1529,15 @@ class KDEConnectProxy:
 
     def media_devices(self):
         return self._call('media_devices')
+
+    def input_status(self):
+        return self._call('input_status')
+
+    def configure_input(self, enabled=None, device_id=None, permitted=None):
+        return self._call('configure_input', enabled=enabled, device_id=device_id or '')
+
+    def input_send(self, device_id, token, body):
+        return self._call('input_send', device_id=device_id, token=token, body=body)
 
     def media_command(self, device_id, token, player, action, value=None):
         return self._call('media_command', device_id=device_id, token=token,

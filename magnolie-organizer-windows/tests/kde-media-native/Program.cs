@@ -5,6 +5,7 @@ using Windows.Media.Playback;
 using Windows.Storage;
 
 // Native feature probe: only the unique, silent player created here is controlled.
+if (args.Length == 1 && args[0] == "--isolated-input-window") return NativeInputProbe.Run();
 if (args.Length != 1 || args[0] != "--isolated-silent-player") return 2;
 var marker = "Magnolie-media-probe-" + Guid.NewGuid().ToString("N");
 var file = Path.Combine(Path.GetTempPath(), marker + ".wav");
