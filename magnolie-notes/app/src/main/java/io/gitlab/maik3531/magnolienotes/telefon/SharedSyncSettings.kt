@@ -15,9 +15,9 @@ internal object SharedSyncSettings {
     }
     private const val MAX_COUNTER = 9_007_199_254_740_991L
     private val defaults = linkedMapOf("content_mode" to JsonPrimitive("phone_scope"),
-        "auto_mode" to JsonPrimitive("manual"), "skip_deletions" to JsonPrimitive(true),
+        "auto_mode" to JsonPrimitive("wifi"), "skip_deletions" to JsonPrimitive(true),
         "custom_enabled" to JsonPrimitive(false), "time_enabled" to JsonPrimitive(false),
-        "time_mode" to JsonPrimitive("phone_import"))
+        "time_mode" to JsonPrimitive("two_way"))
     private val enums = mapOf("content_mode" to setOf("phone_import", "phone_scope", "two_way"),
         "time_mode" to setOf("phone_import", "two_way"), "auto_mode" to setOf("manual", "wifi", "connection"))
 

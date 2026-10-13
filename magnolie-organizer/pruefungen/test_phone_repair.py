@@ -30,6 +30,7 @@ def test_known_phone_renewal_requires_new_confirmation_and_keeps_existing_conten
     attempts = []; shown = threading.Event()
     service = phone.PhoneService(str(tmp_path / 'phone'), 'Fixture')
     previous = _complete_peer(init['device_id'], public=phone.unb64(init['static_public'], 32))
+    previous['personal_sync'].update(own_device=True, auto_wifi=True)
     service.store.peers = [previous]; service.store.save_peers()
     shared_key = 'shared_settings:' + init['device_id']
     with sqlite3.connect(service.store.database_path) as db:
@@ -91,6 +92,9 @@ def test_known_phone_renewal_requires_new_confirmation_and_keeps_existing_conten
         if accepted:
             assert current is not previous and 'paired' in events
             assert not any(current['grants']['grants'].values())
+            assert current['personal_sync']['own_device'] is True
+            assert current['personal_sync']['auto_wifi'] is True
+            assert current['personal_sync']['remote_own_device'] is False
         else:
             assert current is previous and 'paired' not in events
         assert hashlib.sha256(content.read_bytes()).hexdigest() == before

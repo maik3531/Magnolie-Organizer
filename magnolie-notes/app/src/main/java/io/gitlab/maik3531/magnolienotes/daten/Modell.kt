@@ -216,7 +216,7 @@ data class Baumzustand(
     val oeffentlich: String = "",
     val geheim: String = "",
     val port: Int = 8737,
-    val dienstAn: Boolean = false,
+    val dienstAn: Boolean = true,
     val bluetoothAn: Boolean = false,
     val automatischWlan: Boolean = false,
     val letzteAutoSync: Long = 0L,

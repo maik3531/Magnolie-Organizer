@@ -4601,16 +4601,24 @@ class PhoneService:
             sock.settimeout(10)
             expires = now_ms() + PAIR_COMMIT_MS
             peer = {}
+            local_preferences = previous.get('personal_sync', {}) if previous else {}
+            own = local_preferences.get('own_device', True) is True
+            auto_wifi = own and local_preferences.get('auto_wifi', True) is True
+            local_grants = (json.loads(json.dumps(previous.get('local_grants', desktop_grants())))
+                if previous else desktop_grants())
+            if previous is None:
+                for module in ('personal_notes_sync', 'personal_tasks_sync'):
+                    local_grants['grants'][module] = own
             peer.update({"device_id": pair_init["device_id"],
                          "display_name": pair_init["display_name"],
                          "static_public": pair_init["static_public"],
                           "state": "pair_commit_pending", "grants": {"revision": 0, "grants": {name: False for name in GRANT_NAMES}},
-                         "local_grants": desktop_grants(),
+                          "local_grants": local_grants,
                          "capabilities": {}, "last_contact_ms": 0,
                           "bluetooth": {"enabled": bool(setup and setup["address"].startswith("bluetooth:")),
                                         "address": setup["address"][10:] if setup and setup["address"].startswith("bluetooth:") else ""},
-                         "personal_sync": {"own_device": False, "remote_own_device": False,
-                                           "auto_wifi": False,
+                          "personal_sync": {"own_device": own, "remote_own_device": False,
+                                            "auto_wifi": auto_wifi,
                                            "last_report": {}},
                          "pending_transcript": b64(transcript),
                          "pending_phone_finish_proof": b64(proof(

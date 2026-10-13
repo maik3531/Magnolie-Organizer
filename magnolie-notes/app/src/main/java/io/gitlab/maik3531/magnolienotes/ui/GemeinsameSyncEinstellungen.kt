@@ -24,7 +24,7 @@ internal fun gemeinsameSyncAnfangswerte(telefon: TelefonUiZustand, bestand: Best
         "skip_deletions" to JsonPrimitive(!telefon.personalDeletionsEnabled),
         "custom_enabled" to JsonPrimitive(bestand.personalCustom.local?.get("enabled")?.jsonPrimitive?.booleanOrNull == true),
         "time_enabled" to JsonPrimitive(telefon.peer?.personal_time_policy?.get("enabled")?.jsonPrimitive?.booleanOrNull == true),
-        "time_mode" to JsonPrimitive(if (telefon.peer?.personal_time_policy?.get("enabled")?.jsonPrimitive?.booleanOrNull == true) "two_way" else "phone_import"))
+        "time_mode" to JsonPrimitive("two_way"))
 
 @Composable
 internal fun GemeinsameSyncEinstellungen(telefon: TelefonUiZustand, bestand: Bestand, handlungen: Telefonhandlungen) {

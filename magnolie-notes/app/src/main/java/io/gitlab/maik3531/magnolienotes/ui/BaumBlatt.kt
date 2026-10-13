@@ -332,10 +332,6 @@ fun BaumBlatt(
         ) {
             Text(stringResource(R.string.personal_sync_nicht_baum), fontFamily = FontFamily.SansSerif,
                 fontWeight = FontWeight.Bold, color = Magnolie.braun)
-            LaunchedEffect(telefon.peer?.device_id, telefon.personalOwnDevice) {
-                if (telefon.peer?.state == "paired" && !telefon.personalOwnDevice)
-                    telefonHandlungen.beiPersonalEigen(true)
-            }
             if (telefon.personalOwnDevice) {
                 Schalterzeile(stringResource(R.string.telefon_kontakte_lesen), telefon.peer?.contacts_read_enabled == true,
                     { enabled -> telefon.peer?.let { telefonHandlungen.beiKontakteLesen(it.device_id, it.static_public, enabled) } })

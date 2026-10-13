@@ -74,10 +74,10 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
     fun setIncomingNumberEnabled(value: Boolean) { settings.edit().putBoolean("incoming_number_enabled", value).commit() }
     fun setAnswerCallsEnabled(value: Boolean) { settings.edit().putBoolean("answer_calls_enabled", value).commit() }
     fun setSelectedPackages(value: Set<String>) { settings.edit().putStringSet("notification_packages", value).commit() }
-    fun personalOwnDevice(): Boolean = settings.getBoolean("personal_sync_own_device", false)
-    fun personalNotesEnabled(): Boolean = settings.getBoolean("personal_sync_notes", false)
-    fun personalTasksEnabled(): Boolean = settings.getBoolean("personal_sync_tasks", false)
-    fun personalAutoWifi(): Boolean = settings.getBoolean("personal_sync_auto_wifi", false)
+    fun personalOwnDevice(): Boolean = settings.getBoolean("personal_sync_own_device", true)
+    fun personalNotesEnabled(): Boolean = settings.getBoolean("personal_sync_notes", true)
+    fun personalTasksEnabled(): Boolean = settings.getBoolean("personal_sync_tasks", true)
+    fun personalAutoWifi(): Boolean = settings.getBoolean("personal_sync_auto_wifi", true)
     fun personalDeletionsEnabled(): Boolean = settings.getBoolean("personal_sync_deletions", false)
     fun personalSyncReport(): String = settings.getString("personal_sync_report", "").orEmpty()
     fun personalSyncLastAuto(): Long = settings.getLong("personal_sync_last_auto", 0)

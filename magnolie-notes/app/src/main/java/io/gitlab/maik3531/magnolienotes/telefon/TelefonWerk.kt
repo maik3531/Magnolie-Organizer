@@ -402,7 +402,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         "skip_deletions" to JsonPrimitive(!storage.personalDeletionsEnabled()),
         "custom_enabled" to JsonPrimitive(Ablage.hole(context).bestand.value.personalCustom.local?.get("enabled") == JsonPrimitive(true)),
         "time_enabled" to JsonPrimitive(peer.personal_time_policy?.get("enabled") == JsonPrimitive(true)),
-        "time_mode" to JsonPrimitive(if (peer.personal_time_policy?.get("enabled") == JsonPrimitive(true)) "two_way" else "phone_import"))
+        "time_mode" to JsonPrimitive("two_way"))
 
     private fun applyCommonPreferences() {
         val peer = safePeer()?.takeIf { it.own_device } ?: return
@@ -637,8 +637,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
     fun setAnswerCallsEnabled(value: Boolean) { storage.setAnswerCallsEnabled(value); modulesChanged() }
     @Synchronized fun initializePersonalDefaults(reconnectAfterChange: Boolean = true) {
-        if (safePeer()?.state != "paired" || storage.personalOwnDevice()) return
-        setPersonalSyncMode(true, false, reconnectAfterChange)
+        val peer = safePeer()?.takeIf { it.state == "paired" } ?: return
+        val own = storage.personalOwnDevice()
+        val notes = own && storage.personalNotesEnabled()
+        val tasks = own && storage.personalTasksEnabled()
+        val deletions = own && storage.personalDeletionsEnabled()
+        if (peer.own_device == own && peer.personal_notes_sync_granted == notes &&
+            peer.personal_tasks_sync_granted == tasks && peer.personal_deletions_sync_granted == deletions) return
+        setPersonalSync(own, notes, tasks, storage.personalAutoWifi(), deletions, reconnectAfterChange)
     }
 
     @Synchronized fun setPersonalSyncMode(autoWifi: Boolean, skipDeletions: Boolean, reconnectAfterChange: Boolean = true) {
@@ -1291,7 +1297,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 Ablage.hole(context).personalSyncRevokeDeletions(it.device_id)
                 queue.deletePeer(it.device_id)
             }; storage.savePeer(null)
-            storage.setPersonalSync(false, false, false, false)
+            // Unpair removes the peer and its runtime grants, not the user's
+            // saved synchronization choices (including a manual disable).
         }
         _state.value = _state.value.copy(peer = null, pairedComputers = savedComputers(), connection = TelefonVerbindungsstatus.OFFLINE)
     }

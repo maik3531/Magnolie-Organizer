@@ -16,6 +16,10 @@ internal static class TelefonRepairTests
             store.LoadOrCreateIdentity(); store.Enabled = true;
             var peer = new TelefonPeer("11111111-1111-4111-8111-111111111111", "Fixture", Enumerable.Repeat((byte)1, 32).ToArray());
             store.SavePeers([peer]);
+            var defaults = store.PersonalSettings(peer.Id);
+            TestAssert.That(defaults.OwnDevice && defaults.AutoWifi && !defaults.RemoteOwnDevice, "Fresh personal preferences have incorrect defaults.");
+            store.SetPersonalSettings(peer.Id, ownDevice: false, autoWifi: false);
+            TestAssert.That(!store.PersonalSettings(peer.Id).OwnDevice && !store.PersonalSettings(peer.Id).AutoWifi, "Manual preference disable was overridden.");
             using var coordinator = new TelefonCoordinator(paths, (_, _) => Task.CompletedTask, dataStore: store, localOnly: true);
             await coordinator.ResumeAsync();
             var token = (byte[]?)typeof(TelefonCoordinator).GetField("pairingToken", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator);

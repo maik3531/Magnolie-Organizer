@@ -152,7 +152,7 @@ internal sealed partial class TelefonStore
     {
         var settings = LoadSettings(); var grants = TelefonProtocolContract.DesktopGrants();
         foreach (var name in TelefonProtocolContract.GrantNames.Where(name => !TelefonProtocolContract.IsDesktopGranted(name)))
-            grants[name] = settings[name]?.GetValue<bool>() == true;
+            grants[name] = settings[name]?.GetValue<bool>() ?? (name is "personal_notes_sync" or "personal_tasks_sync");
         return grants;
     }
 
@@ -172,7 +172,8 @@ internal sealed partial class TelefonStore
     internal (bool OwnDevice, bool RemoteOwnDevice, bool AutoWifi) PersonalSettings(string peerId)
     {
         var value = LoadSettings()["personal_sync"]?[peerId] as JsonObject;
-        return (value?["own_device"]?.GetValue<bool>() == true, value?["remote_own_device"]?.GetValue<bool>() == true, value?["auto_wifi"]?.GetValue<bool>() == true);
+        var own = value?["own_device"]?.GetValue<bool>() ?? true;
+        return (own, value?["remote_own_device"]?.GetValue<bool>() == true, own && (value?["auto_wifi"]?.GetValue<bool>() ?? true));
     }
 
     internal void SetPersonalSettings(string peerId, bool? ownDevice = null, bool? remoteOwnDevice = null, bool? autoWifi = null)
