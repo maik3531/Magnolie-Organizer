@@ -131,16 +131,21 @@ internal static class KdeConnectProtocol
         return result;
     }
 
-    internal static JsonObject IdentityBody(string id, string name, int tcpPort, string? targetDeviceId = null)
+    internal static JsonObject IdentityBody(string id, string name, int tcpPort, string? targetDeviceId = null, bool localMediaSupported = false)
     {
         var body = new JsonObject {
             ["deviceId"] = id, ["deviceName"] = name, ["protocolVersion"] = Version,
             ["deviceType"] = "desktop", ["tcpPort"] = tcpPort,
-            ["incomingCapabilities"] = new JsonArray(SmsMessages, ContactUidsResponse, ContactVcardsResponse,
+            ["incomingCapabilities"] = new JsonArray(SmsMessages, ContactUidsResponse, ContactVcardsResponse, KdeMediaState.Packet,
                 KdeDigitizerState.SessionPacket, KdeDigitizerState.EventPacket),
-            ["outgoingCapabilities"] = new JsonArray(SmsRequest, SmsRequestConversations, SmsRequestConversation,
+            ["outgoingCapabilities"] = new JsonArray(SmsRequest, SmsRequestConversations, SmsRequestConversation, KdeMediaState.Request,
                 ContactUidsRequest, ContactVcardsRequest)
         };
+        if (localMediaSupported)
+        {
+            body["incomingCapabilities"]!.AsArray().Add(KdeMediaState.Request);
+            body["outgoingCapabilities"]!.AsArray().Add(KdeMediaState.Packet);
+        }
         if (!string.IsNullOrEmpty(targetDeviceId))
         { body["targetDeviceId"] = targetDeviceId; body["targetProtocolVersion"] = Version; }
         return body;

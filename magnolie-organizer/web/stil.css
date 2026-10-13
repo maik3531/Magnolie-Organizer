@@ -5971,6 +5971,9 @@ body[data-linien="aus"] #tb-notiz {
 }
 .telefon-kde-karte h3 { color: #394654; }
 .telefon-kdeconnect { display: grid; gap: 9px; }
+.kde-medien { display: grid; gap: 6px; min-width: 0; }
+.kde-medien select, .kde-medien input { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.kde-medien p { overflow-wrap: anywhere; }
 .telefon-kdeconnect > p { margin: 0; }
 .kde-empfang-option {
   display: flex;

@@ -32,6 +32,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
     private const int MaxCandidates = 256;
     private readonly KdeConnectIdentityStore store;
     private readonly KdeConnectLocalIdentity local;
+    private readonly IKdeLocalMedia? localMedia;
     private readonly ConcurrentDictionary<string, PendingPairing> pending = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, Connection> active = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, Connection> staged = new(StringComparer.Ordinal);
@@ -88,6 +89,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         debugLogPath = Path.Combine(paths.Logs, "kde-connect-debug.log");
         store = new KdeConnectIdentityStore(paths, protector);
         local = store.LoadOrCreate();
+        localMedia = KdeLocalMedia.Create();
         TcpListener? allocatedListener = null;
         UdpClient? allocatedUdp = null;
         try
@@ -400,6 +402,115 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
 
     internal IReadOnlyList<string> DigitizerDevices => DigitizerConnections().Select(connection => connection.Identity.DeviceId).ToArray();
 
+    private Connection MediaConnection(string deviceId)
+    {
+        if (!active.TryGetValue(deviceId, out var connection) || connection.Closed ||
+            !connection.Identity.IncomingCapabilities.Contains(KdeMediaState.Request) ||
+            !connection.Identity.OutgoingCapabilities.Contains(KdeMediaState.Packet) ||
+            !store.LoadPeers().Any(peer => peer.Id == deviceId && peer.Paired &&
+                peer.CertificatePin == KdeConnectProtocol.CertificatePin(connection.Certificate)))
+            throw new InvalidOperationException("media_unavailable");
+        return connection;
+    }
+
+    internal JsonObject MediaStatus(string deviceId)
+    {
+        lock (activeGate) return MediaConnection(deviceId).Media.Snapshot(deviceId);
+    }
+
+    internal JsonObject MediaDevices()
+    {
+        lock (activeGate)
+        {
+            var devices = new JsonArray();
+            foreach (var (id, connection) in active)
+            {
+                try
+                {
+                    if (ReferenceEquals(MediaConnection(id), connection))
+                        devices.Add(new JsonObject { ["device_id"] = id, ["device_name"] = connection.Identity.DeviceName });
+                }
+                catch (InvalidOperationException) { }
+            }
+            return new JsonObject { ["devices"] = devices };
+        }
+    }
+
+    internal Task MediaCommandAsync(string deviceId, string token, string player, string action, long? value, CancellationToken cancellationToken)
+    {
+        lock (activeGate)
+        {
+            var connection = MediaConnection(deviceId);
+            lock (connection.Media.Gate)
+                return connection.WriteAsync(KdeConnectProtocol.Encode(KdeMediaState.Request,
+                    connection.Media.Command(token, player, action, value)), cancellationToken);
+        }
+    }
+
+    private void EnableMedia(Connection connection)
+    {
+        if (localMedia is not null && connection.Identity.IncomingCapabilities.Contains(KdeMediaState.Packet) &&
+            connection.Identity.OutgoingCapabilities.Contains(KdeMediaState.Request))
+        {
+            lock (connection.Media.Gate)
+            {
+                if (!connection.LocalMediaStarted)
+                {
+                    connection.LocalMediaStarted = true;
+                    Track(HandleLocalMediaAsync(connection, new JsonObject { ["requestPlayerList"] = true }, lifetime.Token));
+                }
+            }
+        }
+        if (!connection.Identity.IncomingCapabilities.Contains(KdeMediaState.Request) ||
+            !connection.Identity.OutgoingCapabilities.Contains(KdeMediaState.Packet)) return;
+        lock (connection.Media.Gate)
+        {
+            if (connection.Media.Started) return;
+            connection.Media.Started = true;
+            Track(connection.WriteAsync(KdeConnectProtocol.Encode(KdeMediaState.Request,
+                new JsonObject { ["requestPlayerList"] = true }), lifetime.Token));
+        }
+    }
+
+    private void HandleMediaPacket(Connection connection, KdeConnectPacket packet)
+    {
+        lock (activeGate)
+        {
+            try
+            {
+                if (!ReferenceEquals(MediaConnection(connection.Identity.DeviceId), connection)) return;
+                foreach (var body in connection.Media.Accept(packet.Body))
+                    Track(connection.WriteAsync(KdeConnectProtocol.Encode(KdeMediaState.Request, body), lifetime.Token));
+            }
+            catch (InvalidDataException) { }
+            catch (InvalidOperationException) { }
+        }
+    }
+
+    private async Task HandleLocalMediaAsync(Connection connection, JsonObject body, CancellationToken cancellationToken)
+    {
+        bool Permitted()
+        {
+            lock (activeGate)
+                return !connection.Closed && active.TryGetValue(connection.Identity.DeviceId, out var current) &&
+                    ReferenceEquals(current, connection) && connection.Identity.OutgoingCapabilities.Contains(KdeMediaState.Request) &&
+                    connection.Identity.IncomingCapabilities.Contains(KdeMediaState.Packet) &&
+                    store.LoadPeers().Any(peer => peer.Id == connection.Identity.DeviceId && peer.Paired &&
+                        peer.CertificatePin == KdeConnectProtocol.CertificatePin(connection.Certificate));
+        }
+        if (localMedia is null || !Permitted()) return;
+        try
+        {
+            var replies = await localMedia.ReceiveAsync(body, Permitted, cancellationToken).ConfigureAwait(false);
+            foreach (var reply in replies)
+            {
+                if (!Permitted()) return;
+                await connection.WriteAsync(KdeConnectProtocol.Encode(KdeMediaState.Packet, reply), cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (Exception) { /* No control retry; other modules keep their transport. */ }
+    }
+
     internal void SetDigitizerTarget(string deviceId, string token, bool enabled)
     {
         if (!Guid.TryParse(token, out _)) throw new InvalidDataException("invalid_digitizer_target");
@@ -591,7 +702,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         try
         {
             var identity = KdeConnectProtocol.Encode("kdeconnect.identity",
-                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort));
+                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null));
             _ = udp.SendAsync(identity, new IPEndPoint(IPAddress.Broadcast, KdeConnectProtocol.FirstPort));
             var addresses = Ipv4Broadcast.DirectedAddresses();
             foreach (var address in addresses)
@@ -608,7 +719,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         try
         {
             var identity = KdeConnectProtocol.Encode("kdeconnect.identity",
-                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort));
+                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null));
             _ = udp.SendAsync(identity, new IPEndPoint(address, KdeConnectProtocol.FirstPort));
             DebugLog("udp.reverse", $"remote={address}:{KdeConnectProtocol.FirstPort} tcp={ListenerPort}");
         }
@@ -753,7 +864,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
                Auch die sichere Kennung nach dem TLS-Aufbau sendet kein Ziel. Eingehend
                bleibt das Feld erlaubt - das Telefon schickt es selbst. */
             await network.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.identity",
-                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort)), token).ConfigureAwait(false);
+                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null)), token).ConfigureAwait(false);
             DebugLog("outgoing.plain_identity_sent", $"device={device.Identity.DeviceId} targetVersion={KdeConnectProtocol.Version}");
             X509Certificate2? remoteCertificate = null;
             var tls = new SslStream(network, false, (_, certificate, _, _) => ValidateCertificate(
@@ -767,7 +878,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
                 $"cipher={tls.NegotiatedCipherSuite} pin={KdeConnectProtocol.CertificatePin(remoteCertificate)[..12]} " +
                 $"elapsedMs={watch.ElapsedMilliseconds}");
             await tls.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.identity",
-                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort)), token).ConfigureAwait(false);
+                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null)), token).ConfigureAwait(false);
             var secureIdentity = KdeConnectProtocol.ParseIdentity(await KdeConnectProtocol.ReadAsync(tls, token).ConfigureAwait(false));
             if (!string.Equals(secureIdentity.DeviceId, device.Identity.DeviceId, StringComparison.Ordinal))
                 throw new AuthenticationException("Die sichere KDE-Connect-Identität hat sich geändert.");
@@ -827,7 +938,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
                 $"cipher={tls.NegotiatedCipherSuite} pin={KdeConnectProtocol.CertificatePin(remoteCertificate)[..12]} " +
                 $"elapsedMs={watch.ElapsedMilliseconds}");
             await tls.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.identity",
-                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort)), token).ConfigureAwait(false);
+                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null)), token).ConfigureAwait(false);
             var secureIdentity = KdeConnectProtocol.ParseIdentity(await KdeConnectProtocol.ReadAsync(tls, token).ConfigureAwait(false));
             if (!string.Equals(secureIdentity.DeviceId, plainIdentity.DeviceId, StringComparison.Ordinal))
                 throw new AuthenticationException("Die sichere KDE-Connect-Identität hat sich geändert.");
@@ -873,6 +984,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
             $"replaced={(previous is not null)}");
         if (store.LoadPeers().Any(peer => peer.Id == connection.Identity.DeviceId && peer.Paired))
         {
+            EnableMedia(connection);
             if (connection.State.SmsStarted) ResumeSms(connection); else EnableSms(connection);
         }
         Track(MonitorAsync(connection, lifetime.Token)); EmitStatus(); return connection;
@@ -919,6 +1031,8 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
                     active.TryGetValue(connection.Identity.DeviceId, out var current) && ReferenceEquals(current, connection)).ConfigureAwait(false);
                 if (packet.Type == "kdeconnect.pair") await HandlePairPacketAsync(connection, packet, cancellationToken).ConfigureAwait(false);
                 else if (packet.Type is KdeDigitizerState.SessionPacket or KdeDigitizerState.EventPacket) HandleDigitizerPacket(connection, packet);
+                else if (packet.Type == KdeMediaState.Packet) HandleMediaPacket(connection, packet);
+                else if (packet.Type == KdeMediaState.Request) await HandleLocalMediaAsync(connection, packet.Body, cancellationToken).ConfigureAwait(false);
                 else if (packet.Type == KdeConnectProtocol.SmsMessages && connection.State.SmsStarted) HandleSmsPacket(connection, packet);
                 else if (KdeConnectProtocol.IsContactResponse(packet.Type))
                 {
@@ -956,6 +1070,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
 
     private void EnableSms(Connection connection)
     {
+        EnableMedia(connection);
         lock (connection.State.Gate)
         {
             if (connection.State.SmsStarted) return;
@@ -1425,6 +1540,8 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         internal int Port { get; } = port;
         internal SmsState State { get; } = new();
         internal KdeDigitizerState Digitizer { get; } = new();
+        internal KdeMediaState Media { get; } = new();
+        internal bool LocalMediaStarted;
         internal object ContactGate { get; } = new();
         internal SemaphoreSlim ContactRequests { get; } = new(1, 1);
         internal TaskCompletionSource<JsonObject>? ContactReply;

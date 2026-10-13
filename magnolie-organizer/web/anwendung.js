@@ -26667,8 +26667,106 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       "zwischenablageAutomatisch");
     if (!nativesKde && !kde.peer_id) kdeBlock.append(el("p", "einst-hinweis",
       _("Pair a KDE Connect phone before enabling receive functions.")));
+    baueKdeMedien(kdeBlock);
     kdeAb.append(kdeBlock);
     wurzel.append(kdeAb);
+  }
+
+  const kdeMedienAnfragen = new Map();
+  const kdeMedienSpieler = new Map();
+  let kdeMedienGeraet = "";
+  function kdeMedienAnfordern(cmd, args = {}) {
+    return new Promise(resolve => {
+      const requestId = crypto.randomUUID();
+      const timer = setTimeout(() => { kdeMedienAnfragen.delete(requestId); resolve({ ok: false }); }, 8000);
+      kdeMedienAnfragen.set(requestId, { resolve, timer });
+      if (!Bruecke.sende({ cmd, requestId, ...args })) {
+        clearTimeout(timer); kdeMedienAnfragen.delete(requestId); resolve({ ok: false });
+      }
+    });
+  }
+
+  function baueKdeMedien(wurzel) {
+    const block = el("section", "kde-medien"); block.id = "kde-medien";
+    const status = el("p", "einst-hinweis", _("Loading …"));
+    const geraet = document.createElement("select"), spieler = document.createElement("select");
+    geraet.setAttribute("aria-label", _("Device")); spieler.setAttribute("aria-label", _("Media player"));
+    const titel = el("p"), reihe = el("div", "knopfreihe");
+    let stand = null, revision = 0, busy = false;
+    const schalter = [];
+    const aktuell = () => stand?.players?.find(p => p.player === spieler.value);
+    const aktualisieren = () => {
+      const player = aktuell(), bereit = !gesperrt && !busy && stand?.ready && !!player;
+      schalter.forEach(([button, flag]) => { button.disabled = !bereit || flag && player?.[flag] === false; });
+      volumen.disabled = !bereit || typeof player?.volume !== "number";
+      position.disabled = !bereit || player?.canSeek !== true || !(player?.length > 0);
+      titel.textContent = player ? [player.title || player.nowPlaying, player.artist, player.album].filter(Boolean).join(" · ") : "";
+      if (document.activeElement !== volumen) volumen.value = String(player?.volume ?? 50);
+      if (document.activeElement !== position) {
+        position.max = String(player?.length || 0); position.value = String(player?.pos || 0);
+      }
+    };
+    const aktion = async (action, value) => {
+      if (!stand?.token || !aktuell() || busy || gesperrt) return;
+      const rev = revision;
+      const args = { device_id: geraet.value, token: stand.token, player: spieler.value, action };
+      if (value !== undefined) args.value = value;
+      busy = true; aktualisieren();
+      const result = await kdeMedienAnfordern("kde_medien_aktion", args);
+      if (!block.isConnected || rev !== revision || gesperrt) return;
+      busy = false;
+      if (!result.ok) { stand = null; status.textContent = _("Media control is unavailable. Check the connection and the media app on the phone."); }
+      aktualisieren();
+    };
+    for (const [name, action, flag] of [[_("Previous"), "Previous", "canGoPrevious"],
+      [_("Play"), "Play", "canPlay"], [_("Pause"), "Pause", "canPause"],
+      [_("Stop"), "Stop", ""], [_("Next"), "Next", "canGoNext"]]) {
+      const button = knopf(name, "", () => aktion(action)); schalter.push([button, flag]); reihe.append(button);
+    }
+    const volumen = eingabe("range", "50"); volumen.min = "0"; volumen.max = "100"; volumen.step = "1";
+    volumen.setAttribute("aria-label", _("Volume")); volumen.addEventListener("change", () => aktion("volume", Number(volumen.value)));
+    const position = eingabe("range", "0"); position.min = "0"; position.max = "0"; position.step = "1000";
+    position.setAttribute("aria-label", _("Playback position")); position.addEventListener("change", () => aktion("position", Number(position.value)));
+    const auswahl = (select, items, name, key) => {
+      const vorher = select.value || (select === geraet ? kdeMedienGeraet : kdeMedienSpieler.get(geraet.value)) || "";
+      if (JSON.stringify(Array.from(select.options, p => [p.value, p.textContent])) !== JSON.stringify(items.map(p => [p[key], p[name]]))) {
+        select.textContent = "";
+        items.forEach(p => { const option = document.createElement("option"); option.value = p[key]; option.textContent = p[name]; select.append(option); });
+        if (items.some(p => p[key] === vorher)) select.value = vorher;
+      }
+      select.disabled = !items.length;
+      if (select === geraet) kdeMedienGeraet = select.value;
+      else if (geraet.value) kdeMedienSpieler.set(geraet.value, select.value);
+    };
+    geraet.addEventListener("change", () => { kdeMedienGeraet = geraet.value; revision++; stand = null; busy = false; spieler.textContent = ""; aktualisieren(); });
+    spieler.addEventListener("change", () => { kdeMedienSpieler.set(geraet.value, spieler.value); aktualisieren(); });
+    block.append(el("h4", null, _("Media control")), geraet, spieler, status, titel, reihe,
+      el("label", null, _("Volume")), volumen, el("label", null, _("Playback position")), position);
+    wurzel.append(block); aktualisieren();
+    const poll = async () => {
+      if (!block.isConnected || block.closest("#einstellungen-schleier")?.classList.contains("verborgen")) return;
+      if (gesperrt) { stand = null; aktualisieren(); return; }
+      const rev = revision;
+      const devices = await kdeMedienAnfordern("kde_medien_geraete");
+      if (!block.isConnected || gesperrt) return;
+      if (rev === revision) {
+        const vorher = geraet.value;
+        auswahl(geraet, devices.ok && Array.isArray(devices.devices) ? devices.devices : [], "device_name", "device_id");
+        if (geraet.value !== vorher) { stand = null; spieler.textContent = ""; }
+        if (geraet.value) {
+          const id = geraet.value, result = await kdeMedienAnfordern("kde_medien_stand", { device_id: id });
+          if (!block.isConnected || gesperrt) return;
+          if (rev === revision && id === geraet.value) {
+            stand = result.ok && result.device_id === id ? result : null;
+            auswahl(spieler, stand?.players || [], "player", "player");
+          }
+        } else stand = null;
+        status.textContent = stand?.players?.length ? "" : _("No media player is available on the connected phone.");
+        aktualisieren();
+      }
+      setTimeout(poll, 3000);
+    };
+    setTimeout(poll, 0);
   }
 
   function telefonPairingDialog(nutzlast) {
@@ -31029,6 +31127,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const pending = zeichenPdfAnfragen.get(value?.requestId); zeichenPdfAnfragen.delete(value?.requestId);
       if (!pending) return;
       clearTimeout(pending.timer); pending.receive(value);
+    },
+    kdeMedien(value) {
+      const request = kdeMedienAnfragen.get(value?.requestId);
+      if (!request) return;
+      clearTimeout(request.timer); kdeMedienAnfragen.delete(value.requestId); request.resolve(value);
     },
     personalSyncCollection(value) {
       if (!value?.device_id || typeof value.fingerprint !== "string" || !Array.isArray(value.members?.notes) || !Array.isArray(value.members?.tasks)) return;

@@ -21267,6 +21267,9 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=self._zeichen_eingabe_setzen,
                              args=(nachricht, self._zeichen_revision), daemon=True).start()
 
+        elif befehl in ('kde_medien_geraete', 'kde_medien_stand', 'kde_medien_aktion'):
+            threading.Thread(target=self._kde_medien, args=(nachricht,), daemon=True).start()
+
         elif befehl in ("telefon_kontaktfotos", "telefon_kontakte"):
             request_id = nachricht.get("requestId")
             if not isinstance(request_id, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}", request_id):
@@ -23075,6 +23078,28 @@ class Fenster(_FENSTER_BASIS):
         except Exception as fehler:
             print("Magnolie drawing activation rejected: %s: %s" % (type(fehler).__name__, fehler), file=sys.stderr)
             self.antwort("App.zeichenEingabeStand", dict(ok=False, token=token, enabled=False, error=str(fehler)))
+
+    def _kde_medien(self, nachricht):
+        request_id = nachricht.get('requestId')
+        if not isinstance(request_id, str) or not re.fullmatch(r'[0-9a-fA-F-]{36}', request_id):
+            return
+        try:
+            if self._gesperrt or not self._organizer_vertraut():
+                raise ValueError('locked')
+            backend = _kdeconnect_backend()
+            command = nachricht.get('cmd')
+            if command == 'kde_medien_geraete':
+                result = backend.media_devices()
+            elif command == 'kde_medien_stand':
+                result = backend.media_status(nachricht.get('device_id'))
+            else:
+                result = backend.media_command(nachricht.get('device_id'), nachricht.get('token'),
+                    nachricht.get('player'), nachricht.get('action'), nachricht.get('value'))
+            if self._gesperrt:
+                raise ValueError('locked')
+            self.antwort('App.kdeMedien', dict(result, ok=True, requestId=request_id))
+        except Exception as error:
+            self.antwort('App.kdeMedien', dict(ok=False, requestId=request_id, error=str(error)[:300]))
 
     def _kontakt_fotos_lesen(self, nachricht):
         request_id = nachricht.get("requestId", "")

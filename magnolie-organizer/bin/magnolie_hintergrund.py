@@ -770,6 +770,8 @@ def _request_shape(operation, arguments):
         "gui_readiness": {"subscriber", "ready"},
         "send_sms": {"destination", "message", "device_id"},
         "contact_uids": {"device_id"}, "contact_vcards": {"uids", "device_id"},
+        "media_devices": set(), "media_status": {"device_id"},
+        "media_command": {"device_id", "token", "player", "action", "value"},
         "set_digitizer_target": {"device_id", "token", "enabled", "subscriber"},
         "begin_pairing": {"device_id", "replace_stored"},
         "complete_pairing": {"device_id"}, "confirm_pairing": {"code_matches"},
@@ -872,6 +874,18 @@ def _request_shape(operation, arguments):
             raise IPCError("invalid timeout")
     if operation == "set_settings" and not isinstance(arguments.get("settings"), dict):
         raise IPCError("settings must be an object")
+    if operation in ('media_status', 'media_command'):
+        if not isinstance(arguments.get('device_id'), str) or not re.fullmatch(
+                r'[A-Za-z0-9_-]{32,38}', arguments['device_id']):
+            raise IPCError('invalid media device')
+        if operation == 'media_command':
+            from magnolie_kde_media import command_body
+            if not isinstance(arguments.get('token'), str) or not re.fullmatch(r'[a-f0-9]{32}', arguments['token']):
+                raise IPCError('invalid media context')
+            try:
+                command_body(arguments.get('player'), arguments.get('action'), arguments.get('value'))
+            except (ValueError, TypeError) as error:
+                raise IPCError('invalid media command') from error
     if operation == "poll_events":
         after = arguments.get("after")
         timeout = arguments.get("timeout", 20)
@@ -1492,6 +1506,16 @@ class KDEConnectProxy:
 
     def contact_uids(self, device_id=None):
         return ipc_request("contact_uids", {"device_id": device_id}, self.path, timeout=8)
+
+    def media_status(self, device_id):
+        return self._call('media_status', device_id=device_id)
+
+    def media_devices(self):
+        return self._call('media_devices')
+
+    def media_command(self, device_id, token, player, action, value=None):
+        return self._call('media_command', device_id=device_id, token=token,
+                          player=player, action=action, value=value)
 
     def contact_vcards(self, uids, device_id=None):
         return ipc_request("contact_vcards", {"uids": uids, "device_id": device_id}, self.path, timeout=8)

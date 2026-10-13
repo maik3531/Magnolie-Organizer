@@ -20,10 +20,10 @@ internal static class KdeConnectTests
         var identity = KdeConnectProtocol.ParseIdentity(decoded);
         TestAssert.That(decoded.Id == 42 && identity.DeviceId == "phone_1234" && identity.TcpPort == 1716 &&
             identity.IncomingCapabilities.SequenceEqual(new[] { KdeConnectProtocol.SmsMessages,
-                KdeConnectProtocol.ContactUidsResponse, KdeConnectProtocol.ContactVcardsResponse,
+                KdeConnectProtocol.ContactUidsResponse, KdeConnectProtocol.ContactVcardsResponse, KdeMediaState.Packet,
                 KdeDigitizerState.SessionPacket, KdeDigitizerState.EventPacket }) &&
             identity.OutgoingCapabilities.SequenceEqual(new[] { KdeConnectProtocol.SmsRequest,
-                KdeConnectProtocol.SmsRequestConversations, KdeConnectProtocol.SmsRequestConversation,
+                KdeConnectProtocol.SmsRequestConversations, KdeConnectProtocol.SmsRequestConversation, KdeMediaState.Request,
                 KdeConnectProtocol.ContactUidsRequest, KdeConnectProtocol.ContactVcardsRequest }),
             "Protocol-v8-Identität verlor Paketkopf oder Fähigkeiten.");
 

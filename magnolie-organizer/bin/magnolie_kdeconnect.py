@@ -17,6 +17,8 @@ import threading
 import time
 import unicodedata
 from magnolie_digitizer import DigitizerState, DigitizerRelay, SESSION_PACKET as DIGITIZER_SESSION, EVENT_PACKET as DIGITIZER_EVENT
+from magnolie_kde_media import RemotePlayers, MEDIA_PACKET, MEDIA_REQUEST, command_body, player_list
+from magnolie_kde_mpris import DesktopMpris
 import uuid
 from collections import deque
 from contextlib import closing
@@ -192,6 +194,8 @@ class KDEConnectNativeBackend:
         self.pairing = None
         self.listening = False
         self._activation_attempted = False
+        self._media_lock = threading.RLock()
+        self._media_contexts = {}
 
     def _call(self, owner, path, interface, method, signature=None, args=(), reply=None, deadline=None):
         if self.bus is None:
@@ -209,8 +213,8 @@ class KDEConnectNativeBackend:
                           'org.freedesktop.DBus', 'GetNameOwner', '(s)',
                           ('org.kde.kdeconnect',), '(s)', deadline=deadline)[0]
 
-    def _devices(self, owner):
-        deadline = time.monotonic() + 1.5
+    def _devices(self, owner, deadline=None):
+        deadline = deadline or time.monotonic() + 1.5
         ids = self._call(owner, '/modules/kdeconnect', 'org.kde.kdeconnect.daemon',
                          'devices', '(bb)', (False, True), '(as)', deadline=deadline)[0]
         if not isinstance(ids, (list, tuple)) or len(ids) > 64:
@@ -257,6 +261,119 @@ class KDEConnectNativeBackend:
 
     def stop(self):
         return None
+
+    def _media_source(self, device_id, deadline=None):
+        if not isinstance(device_id, str) or not DEVICE_ID.fullmatch(device_id):
+            raise ProtocolError('invalid_media_device')
+        deadline = deadline or time.monotonic() + 2.5
+        owner = self._owner(deadline=deadline)
+        devices = self._devices(owner, deadline=deadline)
+        if not any(d['device_id'] == device_id and d['reachable'] for d in devices):
+            raise ProtocolError('media_unavailable')
+        path = '/modules/kdeconnect/devices/' + device_id
+        if self._call(owner, path, 'org.kde.kdeconnect.device', 'hasPlugin',
+                      '(s)', ('kdeconnect_mprisremote',), '(b)', deadline=deadline)[0] is not True:
+            raise ProtocolError('media_unavailable')
+        if self._owner(deadline=deadline) != owner:
+            raise ProtocolError('media_source_changed')
+        return owner, path + '/mprisremote'
+
+    def media_devices(self):
+        with self._media_lock:
+            deadline = time.monotonic() + 2.5
+            owner = self._owner(deadline=deadline)
+            values = []
+            for device in self._devices(owner, deadline=deadline):
+                if not device['reachable']:
+                    continue
+                try:
+                    supported = self._call(owner, '/modules/kdeconnect/devices/' + device['device_id'],
+                        'org.kde.kdeconnect.device', 'hasPlugin', '(s)', ('kdeconnect_mprisremote',), '(b)', deadline=deadline)[0]
+                except Exception:
+                    continue
+                if supported is not True:
+                    continue
+                values.append({'device_id': device['device_id'], 'device_name': device['device_name']})
+            if self._owner(deadline=deadline) != owner:
+                self._media_contexts.clear()
+                raise ProtocolError('media_source_changed')
+            for key in set(self._media_contexts) - {v['device_id'] for v in values}:
+                self._media_contexts.pop(key, None)
+            return {'devices': values}
+
+    def media_status(self, device_id):
+        with self._media_lock:
+            try:
+                deadline = time.monotonic() + 2.5
+                source = self._media_source(device_id, deadline=deadline)
+                owner, path = source
+                interface = 'org.kde.kdeconnect.device.mprisremote'
+                self._call(owner, path, interface, 'requestPlayerList', reply='()', deadline=deadline)
+                props = self._call(owner, path, 'org.freedesktop.DBus.Properties',
+                    'GetAll', '(s)', (interface,), '(a{sv})', deadline=deadline)[0]
+                names = player_list(props.get('playerList'))
+                if self._media_source(device_id, deadline=deadline) != source:
+                    raise ProtocolError('media_source_changed')
+                context = self._media_contexts.get(device_id)
+                if context is None or context[:2] != (source, tuple(names)):
+                    context = (source, tuple(names), uuid.uuid4().hex)
+                    self._media_contexts[device_id] = context
+                current = props.get('player')
+                state = RemotePlayers()
+                state.accept({'playerList': names})
+                if current in names:
+                    state.accept(dict({key: props[key] for key in
+                        ('title', 'artist', 'album', 'length', 'volume', 'canSeek', 'isPlaying')
+                        if key in props}, player=current, pos=props.get('position', 0)))
+                return dict(state.snapshot(device_id), token=context[2], ready=True, native=True)
+            except Exception:
+                self._media_contexts.pop(device_id, None)
+                raise
+
+    def media_command(self, device_id, token, player, action, value=None):
+        body = command_body(player, action, value)
+        if action in ('volume', 'position', 'seek') and not -2**31 <= value <= 2**31 - 1:
+            raise ProtocolError('invalid_media_value')
+        with self._media_lock:
+            deadline = time.monotonic() + 2.5
+            context = self._media_contexts.get(device_id)
+            if context is None or context[2] != token or player not in context[1]:
+                raise ProtocolError('media_source_changed')
+            try:
+                source = self._media_source(device_id, deadline=deadline)
+            except Exception:
+                self._media_contexts.pop(device_id, None)
+                raise
+            if source != context[0]:
+                self._media_contexts.pop(device_id, None)
+                raise ProtocolError('media_source_changed')
+            owner, path = context[0]
+            interface = 'org.kde.kdeconnect.device.mprisremote'
+            props = self._call(owner, path, 'org.freedesktop.DBus.Properties',
+                'GetAll', '(s)', (interface,), '(a{sv})', deadline=deadline)[0]
+            if tuple(player_list(props.get('playerList'))) != context[1]:
+                self._media_contexts.pop(device_id, None)
+                raise ProtocolError('media_source_changed')
+            self._call(owner, path, 'org.freedesktop.DBus.Properties', 'Set',
+                '(ssv)', (interface, 'player', self.glib.Variant('s', player)), '()', deadline=deadline)
+            if action in ('position', 'seek'):
+                current = self._call(owner, path, 'org.freedesktop.DBus.Properties',
+                    'GetAll', '(s)', (interface,), '(a{sv})', deadline=deadline)[0]
+                if current.get('player') != player or current.get('canSeek') is not True:
+                    raise ProtocolError('media_action_unavailable')
+            if action in ('volume', 'position'):
+                prop = 'volume' if action == 'volume' else 'position'
+                if value > 2**31 - 1:
+                    raise ProtocolError('invalid_media_value')
+                self._call(owner, path, 'org.freedesktop.DBus.Properties', 'Set',
+                    '(ssv)', (interface, prop, self.glib.Variant('i', value)), '()', deadline=deadline)
+            elif action == 'seek':
+                if not -2**31 <= value <= 2**31 - 1:
+                    raise ProtocolError('invalid_media_value')
+                self._call(owner, path, interface, 'seek', '(i)', (value,), '()', deadline=deadline)
+            else:
+                self._call(owner, path, interface, 'sendAction', '(s)', (body['action'],), '()', deadline=deadline)
+            return {'ok': True, 'state': 'queued', 'device_id': device_id}
 
     def status(self, timeout=0.25):
         running, reason, devices = False, '', []
@@ -1203,6 +1320,9 @@ class _ConnectionWorker:
         self.contacts_pending = None
         self.contacts_blocked = False
         self.digitizer = DigitizerState()
+        self.media = RemotePlayers()
+        self.media_started = False
+        self.local_media_started = False
         self.diagnostics = {"last_packet_type": "", "parse_valid": 0,
             "parse_skipped": 0, "last_receive_ms": 0, "bootstrap_state": "idle"}
         self.thread = threading.Thread(target=self._run, daemon=True,
@@ -1214,6 +1334,7 @@ class _ConnectionWorker:
             self.enable_sms()
 
     def enable_sms(self):
+        self.enable_media()
         if self.sms_started:
             return
         self.sms_started = True
@@ -1228,6 +1349,19 @@ class _ConnectionWorker:
         else:
             self.bootstrap = False
             self.diagnostics["bootstrap_state"] = "live"
+
+    def enable_media(self):
+        if (not self.local_media_started and self.backend._local_media is not None
+                and self.backend._is_confirmed(self.identity['deviceId'])
+                and MEDIA_PACKET in self.identity['incomingCapabilities']
+                and MEDIA_REQUEST in self.identity['outgoingCapabilities']):
+            self.local_media_started = True
+            self.backend._local_media_packet(self, network_packet(MEDIA_REQUEST, {'requestPlayerList': True}))
+        if (not self.media_started and self.backend._is_confirmed(self.identity['deviceId'])
+                and MEDIA_REQUEST in self.identity['incomingCapabilities']
+                and MEDIA_PACKET in self.identity['outgoingCapabilities']):
+            self.media_started = True
+            self.send(network_packet(MEDIA_REQUEST, {'requestPlayerList': True}))
 
     def send(self, packet):
         if self.stopped.is_set():
@@ -1269,6 +1403,12 @@ class _ConnectionWorker:
                     continue
                 if packet.get("type") == "kdeconnect.pair":
                     self.backend._pair_packet(self, packet)
+                    continue
+                if packet.get('type') == MEDIA_PACKET:
+                    self.backend._media_packet(self, packet)
+                    continue
+                if packet.get('type') == MEDIA_REQUEST:
+                    self.backend._local_media_packet(self, packet)
                     continue
                 if packet.get("type") in (DIGITIZER_SESSION, DIGITIZER_EVENT):
                     self.backend._digitizer_packet(self, packet)
@@ -1464,6 +1604,7 @@ class KDEConnectSMSBackend:
         self.socket_factory = socket_factory or socket.socket
         self.callback = callback or (lambda _event, _payload: None)
         self._digitizer_relay = DigitizerRelay(self._emit)
+        self._local_media = None
         self.tcp_ports = tuple(tcp_ports or range(MIN_TCP_PORT, MAX_TCP_PORT + 1))
         self.udp_port = int(udp_port)
         self.backoff = tuple(backoff or RECONNECT_BACKOFF)
@@ -1864,6 +2005,8 @@ class KDEConnectSMSBackend:
             self.listen_port = port
             self.listening = True
             self.reason = ""
+            if self._local_media is None:
+                self._local_media = DesktopMpris.create()
             self._stop_event.clear()
             self._backoff_index = 0
             self._next_broadcast = self.clock()
@@ -2318,6 +2461,89 @@ class KDEConnectSMSBackend:
                     and not entry["worker"].stopped.is_set()
                     and {DIGITIZER_SESSION, DIGITIZER_EVENT} <= set(entry["identity"]["outgoingCapabilities"])]
 
+    def _media_connections(self, device_id):
+        if not isinstance(device_id, str) or not DEVICE_ID.fullmatch(device_id):
+            raise ProtocolError('invalid_media_device')
+        with self._connection_lock:
+            return [entry for key, entry in self._connections.items()
+                if key == device_id and self._is_confirmed(key)
+                and self._media_pin_matches(key, entry)
+                and not entry['worker'].stopped.is_set()
+                and MEDIA_REQUEST in entry['identity']['incomingCapabilities']
+                and MEDIA_PACKET in entry['identity']['outgoingCapabilities']]
+
+    def _media_pin_matches(self, device_id, entry):
+        try:
+            stored = x509.load_pem_x509_certificate(self.store.peers[device_id]['certificate'].encode('ascii'))
+            certificate = entry.get('certificate')
+            return certificate is not None and certificate.fingerprint(hashes.SHA256()) == stored.fingerprint(hashes.SHA256())
+        except (KeyError, ValueError, TypeError):
+            return False
+
+    def media_status(self, device_id):
+        with self._connection_lock:
+            entries = self._media_connections(device_id)
+            if len(entries) != 1:
+                raise ProtocolError('media_unavailable')
+            worker = entries[0]['worker']
+            worker.enable_media()
+            return worker.media.snapshot(device_id)
+
+    def media_devices(self):
+        with self._connection_lock:
+            values = []
+            for key in self._connections:
+                entries = self._media_connections(key)
+                if entries:
+                    values.append({'device_id': key, 'device_name': entries[0]['identity']['deviceName']})
+            return {'devices': values}
+
+    def media_command(self, device_id, token, player, action, value=None):
+        with self._connection_lock:
+            entries = self._media_connections(device_id)
+            if len(entries) != 1:
+                raise ProtocolError('media_unavailable')
+            worker = entries[0]['worker']
+            with worker.media.lock:
+                body = worker.media.command(token, player, action, value)
+                worker.send(network_packet(MEDIA_REQUEST, body))
+            return {'ok': True, 'state': 'queued', 'device_id': device_id}
+
+    def _media_packet(self, worker, packet):
+        with self._connection_lock:
+            entries = self._media_connections(worker.identity['deviceId'])
+            if not entries or entries[0]['worker'] is not worker:
+                return
+            try:
+                requests = worker.media.accept(packet.get('body'))
+            except ValueError:
+                return
+            for body in requests:
+                worker.send(network_packet(MEDIA_REQUEST, body))
+
+    def _local_media_packet(self, worker, packet):
+        device_id = worker.identity['deviceId']
+        def permitted():
+            with self._connection_lock:
+                entry = self._connections.get(device_id)
+                return (entry is not None and entry['worker'] is worker
+                    and not worker.stopped.is_set() and self._is_confirmed(device_id)
+                    and self._media_pin_matches(device_id, entry)
+                    and MEDIA_REQUEST in worker.identity['outgoingCapabilities']
+                    and MEDIA_PACKET in worker.identity['incomingCapabilities'])
+        if self._local_media is None or not permitted():
+            return
+        try:
+            responses = self._local_media.receive(packet.get('body'), permitted=permitted)
+            with self._connection_lock:
+                if permitted():
+                    for body in responses:
+                        worker.send(network_packet(MEDIA_PACKET, body))
+        except Exception:
+            # An unavailable player or malformed request must not terminate SMS,
+            # contact reads or the paired transport; actions are never retried.
+            return
+
     def set_digitizer_target(self, device_id, token, enabled, permitted=None):
         if type(enabled) is not bool:
             raise ProtocolError('invalid_digitizer_target')
@@ -2418,6 +2644,12 @@ class KDEConnectSMSBackend:
 
     def _peer_useful(self, identity):
         if SMS_REQUEST_TYPE in identity["incomingCapabilities"]:
+            return True
+        if (MEDIA_REQUEST in identity['incomingCapabilities'] and
+                MEDIA_PACKET in identity['outgoingCapabilities']):
+            return True
+        if (self._local_media is not None and MEDIA_PACKET in identity['incomingCapabilities']
+                and MEDIA_REQUEST in identity['outgoingCapabilities']):
             return True
         with self._state_lock:
             settings = self._receive_settings
@@ -2532,7 +2764,12 @@ class KDEConnectSMSBackend:
         return result
 
     def identity_packet(self, target=None, tcp_port=None):
-        incoming = [SMS_MESSAGES_TYPE, CONTACT_UIDS_RESPONSE, CONTACT_VCARDS_RESPONSE, DIGITIZER_SESSION, DIGITIZER_EVENT]
+        incoming = [SMS_MESSAGES_TYPE, CONTACT_UIDS_RESPONSE, CONTACT_VCARDS_RESPONSE, DIGITIZER_SESSION, DIGITIZER_EVENT, MEDIA_PACKET]
+        outgoing = [SMS_REQUEST_TYPE, SMS_REQUEST_CONVERSATIONS_TYPE,
+                    SMS_REQUEST_CONVERSATION_TYPE, CONTACT_UIDS_REQUEST, CONTACT_VCARDS_REQUEST, MEDIA_REQUEST]
+        if self._local_media is not None:
+            incoming.append(MEDIA_REQUEST)
+            outgoing.append(MEDIA_PACKET)
         with self._state_lock:
             if self._receive_settings["clipboard_enabled"]:
                 incoming.extend((CLIPBOARD_TYPE, CLIPBOARD_CONNECT_TYPE))
@@ -2541,9 +2778,7 @@ class KDEConnectSMSBackend:
         body = {"deviceId": self.store.device_id, "deviceName": self.store.device_name,
                 "deviceType": "desktop", "protocolVersion": 8,
                 "incomingCapabilities": incoming,
-                "outgoingCapabilities": [SMS_REQUEST_TYPE,
-                    SMS_REQUEST_CONVERSATIONS_TYPE, SMS_REQUEST_CONVERSATION_TYPE,
-                    CONTACT_UIDS_REQUEST, CONTACT_VCARDS_REQUEST]}
+                "outgoingCapabilities": outgoing}
         if tcp_port is not None:
             body["tcpPort"] = tcp_port
         if target:

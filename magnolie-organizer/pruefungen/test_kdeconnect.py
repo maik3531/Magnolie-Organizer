@@ -232,10 +232,10 @@ def test_sms_capabilities_and_request_packet_goldens():
     with tempfile.TemporaryDirectory() as root:
         packet = kde.KDEConnectSMSBackend(root).identity_packet()
     assert packet["body"]["incomingCapabilities"] == [kde.SMS_MESSAGES_TYPE,
-        kde.CONTACT_UIDS_RESPONSE, kde.CONTACT_VCARDS_RESPONSE, kde.DIGITIZER_SESSION, kde.DIGITIZER_EVENT]
+        kde.CONTACT_UIDS_RESPONSE, kde.CONTACT_VCARDS_RESPONSE, kde.DIGITIZER_SESSION, kde.DIGITIZER_EVENT, kde.MEDIA_PACKET]
     assert packet["body"]["outgoingCapabilities"] == [kde.SMS_REQUEST_TYPE,
         kde.SMS_REQUEST_CONVERSATIONS_TYPE, kde.SMS_REQUEST_CONVERSATION_TYPE,
-        kde.CONTACT_UIDS_REQUEST, kde.CONTACT_VCARDS_REQUEST]
+        kde.CONTACT_UIDS_REQUEST, kde.CONTACT_VCARDS_REQUEST, kde.MEDIA_REQUEST]
     conversations = kde.request_conversations_packet()
     assert {"type": conversations["type"], "body": conversations["body"]} == {
         "type": "kdeconnect.sms.request_conversations", "body": {}}
@@ -1193,7 +1193,7 @@ def test_receive_capabilities_are_independent_opt_in_and_settings_are_strict():
     with tempfile.TemporaryDirectory() as root, tempfile.TemporaryDirectory() as downloads:
         backend = paired_backend(root)
         base = [kde.SMS_MESSAGES_TYPE, kde.CONTACT_UIDS_RESPONSE, kde.CONTACT_VCARDS_RESPONSE,
-                kde.DIGITIZER_SESSION, kde.DIGITIZER_EVENT]
+                kde.DIGITIZER_SESSION, kde.DIGITIZER_EVENT, kde.MEDIA_PACKET]
         assert backend.identity_packet()["body"]["incomingCapabilities"] == base
         configured = backend.configure_receive(clipboard_enabled=True,
             device_id="a" * 32, clipboard_mode="automatic")

@@ -18,6 +18,7 @@
     <Compile Include="..\AtomicStore.cs" Link="AtomicStore.cs" />
     <Compile Remove="callstate\**\*.cs" />
     <Compile Remove="notification-uninstall\**\*.cs" />
+    <Compile Remove="kde-media-native\**\*.cs" />
     <Compile Include="..\TelefonCallActions.cs" Link="TelefonCallActions.cs" />
     <Compile Include="..\DeadlineHttp.cs" Link="DeadlineHttp.cs" />
     <Compile Include="..\ProfileLease.cs" Link="ProfileLease.cs" />
@@ -34,6 +35,8 @@
     <Compile Include="..\ContactSyncModels.cs" Link="ContactSyncModels.cs" />
     <Compile Include="..\KdeContactImport.cs" Link="KdeContactImport.cs" />
     <Compile Include="..\KdeDigitizerState.cs" Link="KdeDigitizerState.cs" />
+    <Compile Include="..\KdeMediaState.cs" Link="KdeMediaState.cs" />
+    <Compile Include="..\KdeLocalMedia.cs" Link="KdeLocalMedia.cs" />
     <Compile Include="..\ContactCleanupSnapshot.cs" Link="ContactCleanupSnapshot.cs" />
     <Compile Include="..\BaumSyncSnapshot.cs" Link="BaumSyncSnapshot.cs" />
     <Compile Include="..\WindowsContactStore.cs" Link="WindowsContactStore.cs" />
