@@ -24,7 +24,7 @@ internal sealed record KdeConnectStatus(bool Available, int DeviceCount, string 
     bool HistoryAvailable, string BootstrapState, int ParseValid, int ParseSkipped, long LastReceiveMs,
     int PairingMismatchCount, int NextReconnectSeconds, string DeviceFingerprint = "");
 
-internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
+internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
 {
     private static readonly TimeSpan CandidateLifetime = TimeSpan.FromMinutes(5);
     private static readonly int[] ReconnectSeconds = [5, 15, 30, 60];
@@ -89,13 +89,14 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
     }
 
     internal KdeConnectDirectBackend(WindowsPaths paths, IKdeConnectSecretProtector? protector = null,
-        bool activeDiscovery = true)
+        bool activeDiscovery = true, IKdeFilesystemBrowser? filesystem = null)
     {
         this.activeDiscovery = activeDiscovery;
         logPath = Path.Combine(paths.Logs, "telefon.log");
         debugLogPath = Path.Combine(paths.Logs, "kde-connect-debug.log");
         store = new KdeConnectIdentityStore(paths, protector);
         local = store.LoadOrCreate();
+        this.filesystem = filesystem ?? new KdeWindowsFilesystemBrowser(paths.KdeConnect);
         localMedia = KdeLocalMedia.Create();
         inputTarget = new(inputSink);
         TcpListener? allocatedListener = null;
@@ -829,7 +830,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         try
         {
             var identity = KdeConnectProtocol.Encode("kdeconnect.identity",
-                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null, localInputSupported: OperatingSystem.IsWindows()));
+                OwnIdentity());
             _ = udp.SendAsync(identity, new IPEndPoint(IPAddress.Broadcast, KdeConnectProtocol.FirstPort));
             var addresses = Ipv4Broadcast.DirectedAddresses();
             foreach (var address in addresses)
@@ -846,7 +847,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         try
         {
             var identity = KdeConnectProtocol.Encode("kdeconnect.identity",
-                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null, localInputSupported: OperatingSystem.IsWindows()));
+                OwnIdentity());
             _ = udp.SendAsync(identity, new IPEndPoint(address, KdeConnectProtocol.FirstPort));
             DebugLog("udp.reverse", $"remote={address}:{KdeConnectProtocol.FirstPort} tcp={ListenerPort}");
         }
@@ -991,7 +992,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
                Auch die sichere Kennung nach dem TLS-Aufbau sendet kein Ziel. Eingehend
                bleibt das Feld erlaubt - das Telefon schickt es selbst. */
             await network.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.identity",
-                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null, localInputSupported: OperatingSystem.IsWindows())), token).ConfigureAwait(false);
+                OwnIdentity()), token).ConfigureAwait(false);
             DebugLog("outgoing.plain_identity_sent", $"device={device.Identity.DeviceId} targetVersion={KdeConnectProtocol.Version}");
             X509Certificate2? remoteCertificate = null;
             var tls = new SslStream(network, false, (_, certificate, _, _) => ValidateCertificate(
@@ -1005,7 +1006,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
                 $"cipher={tls.NegotiatedCipherSuite} pin={KdeConnectProtocol.CertificatePin(remoteCertificate)[..12]} " +
                 $"elapsedMs={watch.ElapsedMilliseconds}");
             await tls.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.identity",
-                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null, localInputSupported: OperatingSystem.IsWindows())), token).ConfigureAwait(false);
+                OwnIdentity()), token).ConfigureAwait(false);
             var secureIdentity = KdeConnectProtocol.ParseIdentity(await KdeConnectProtocol.ReadAsync(tls, token).ConfigureAwait(false));
             if (!string.Equals(secureIdentity.DeviceId, device.Identity.DeviceId, StringComparison.Ordinal))
                 throw new AuthenticationException("Die sichere KDE-Connect-Identität hat sich geändert.");
@@ -1065,7 +1066,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
                 $"cipher={tls.NegotiatedCipherSuite} pin={KdeConnectProtocol.CertificatePin(remoteCertificate)[..12]} " +
                 $"elapsedMs={watch.ElapsedMilliseconds}");
             await tls.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.identity",
-                KdeConnectProtocol.IdentityBody(local.Id, local.Name, ListenerPort, localMediaSupported: localMedia is not null, localInputSupported: OperatingSystem.IsWindows())), token).ConfigureAwait(false);
+                OwnIdentity()), token).ConfigureAwait(false);
             var secureIdentity = KdeConnectProtocol.ParseIdentity(await KdeConnectProtocol.ReadAsync(tls, token).ConfigureAwait(false));
             if (!string.Equals(secureIdentity.DeviceId, plainIdentity.DeviceId, StringComparison.Ordinal))
                 throw new AuthenticationException("Die sichere KDE-Connect-Identität hat sich geändert.");
@@ -1159,6 +1160,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
                 if (packet.Type == "kdeconnect.pair") await HandlePairPacketAsync(connection, packet, cancellationToken).ConfigureAwait(false);
                 else if (packet.Type is KdeDigitizerState.SessionPacket or KdeDigitizerState.EventPacket) HandleDigitizerPacket(connection, packet);
                 else if (packet.Type == KdeMediaState.Packet) HandleMediaPacket(connection, packet);
+                else if (packet.Type == KdeSftpDescription.Packet) HandleFilesystemPacket(connection, packet);
                 else if (packet.Type == KdeMediaState.Request) await HandleLocalMediaAsync(connection, packet.Body, cancellationToken).ConfigureAwait(false);
                 else if (packet.Type is KdeInputProtocol.Request or KdeInputProtocol.KeyboardState) HandleInputPacket(connection, packet);
                 else if (packet.Type == KdeConnectProtocol.SmsMessages && connection.State.SmsStarted) HandleSmsPacket(connection, packet);
@@ -1197,7 +1199,9 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
                     AbortPairing(connection.Identity.DeviceId, pairing, "failed", "network", false);
                 connection.Dispose(); EmitStatus();
             }
-            connection.Complete();
+            try { await filesystem.CloseAsync(connection.FilesystemToken).ConfigureAwait(false); }
+            catch (Exception) { DebugLog("filesystem.cleanup_failed", $"device={connection.Identity.DeviceId}"); }
+            finally { connection.Complete(); }
         }
     }
 
@@ -1652,6 +1656,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         foreach (var connection in staged.Values) connection.Dispose();
         foreach (var operation in pairingOperations.Values) operation.Dispose();
         active.Clear(); staged.Clear(); pending.Clear(); pairingOperations.Clear(); candidates.Clear(); connecting.Clear();
+        await filesystem.DisposeAsync().ConfigureAwait(false);
         try { await Task.WhenAll(acceptTask, discoveryTask).ConfigureAwait(false); } catch { }
         while (!backgroundTasks.IsEmpty)
         {
@@ -1679,6 +1684,12 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         internal string InputToken { get; } = Guid.NewGuid().ToString("N");
         internal bool RemoteKeyboard;
         internal bool? KeyboardSent;
+        internal string FilesystemToken { get; } = Guid.NewGuid().ToString("N");
+        internal object FilesystemGate { get; } = new();
+        internal SemaphoreSlim FilesystemRequests { get; } = new(1, 1);
+        internal TaskCompletionSource<KdeSftpDescription>? FilesystemReply;
+        internal long FilesystemDeadline;
+        internal volatile bool FilesystemBlocked;
         internal object ContactGate { get; } = new();
         internal SemaphoreSlim ContactRequests { get; } = new(1, 1);
         internal TaskCompletionSource<JsonObject>? ContactReply;
@@ -1704,6 +1715,7 @@ internal sealed class KdeConnectDirectBackend : IDisposable, IAsyncDisposable
         {
             if (Interlocked.Exchange(ref closed, 1) != 0) return;
             lock (ContactGate) { ContactReply?.TrySetCanceled(); ContactReply = null; }
+            lock (FilesystemGate) { FilesystemReply?.TrySetCanceled(); FilesystemReply = null; }
             Stream.Dispose(); client.Dispose(); Certificate.Dispose(); writes.Dispose();
         }
 

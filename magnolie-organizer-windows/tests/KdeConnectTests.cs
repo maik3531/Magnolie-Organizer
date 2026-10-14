@@ -876,8 +876,8 @@ internal static class KdeConnectTests
         catch (OperationCanceledException) { throw new InvalidOperationException(message); }
     }
 
-    private static async Task<(TcpClient Client, SslStream Stream)> ConnectIncomingPhoneAsync(
-        KdeConnectDirectBackend backend, string phoneId, X509Certificate2 certificate, bool contacts = false, bool digitizer = false)
+    internal static async Task<(TcpClient Client, SslStream Stream)> ConnectIncomingPhoneAsync(
+        KdeConnectDirectBackend backend, string phoneId, X509Certificate2 certificate, bool contacts = false, bool digitizer = false, bool filesystem = false)
     {
         var client = new TcpClient(AddressFamily.InterNetwork);
         await client.ConnectAsync(IPAddress.Loopback, backend.ListenerPort);
@@ -903,6 +903,11 @@ internal static class KdeConnectTests
             phoneIdentity["deviceType"] = "tablet";
             phoneIdentity["outgoingCapabilities"]!.AsArray().Add(KdeDigitizerState.SessionPacket);
             phoneIdentity["outgoingCapabilities"]!.AsArray().Add(KdeDigitizerState.EventPacket);
+        }
+        if (filesystem)
+        {
+            phoneIdentity["incomingCapabilities"]!.AsArray().Add(KdeSftpDescription.Request);
+            phoneIdentity["outgoingCapabilities"]!.AsArray().Add(KdeSftpDescription.Packet);
         }
         await tls.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.identity", phoneIdentity));
         return (client, tls);
@@ -953,7 +958,7 @@ internal static class KdeConnectTests
         throw new InvalidOperationException("Kein KDE-Connect-Testport ist frei.");
     }
 
-    private static X509Certificate2 Certificate(string name)
+    internal static X509Certificate2 Certificate(string name)
     {
         using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var request = new CertificateRequest("CN=" + name, key, HashAlgorithmName.SHA256);
@@ -964,7 +969,7 @@ internal static class KdeConnectTests
 #pragma warning restore SYSLIB0057
     }
 
-    private sealed class TestProtector : IKdeConnectSecretProtector
+    internal sealed class TestProtector : IKdeConnectSecretProtector
     {
         private readonly byte[] key = SHA256.HashData(Encoding.UTF8.GetBytes("portable-test-key"));
         public byte[] Protect(byte[] plain) => Transform(plain);

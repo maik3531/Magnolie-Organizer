@@ -44,6 +44,23 @@ Notizen, Kontakte, Schlüssel und Zugangsdaten gehören nicht in diesen Bericht.
 Der Organizer zeigt ihn vorübergehend an; er wird nicht in den Datenbestand
 oder die Gerätestatushistorie übernommen.
 
+## Telefon-Dateisystem über KDE Connect
+
+Unter **Einstellungen > KDE Connect** erscheint bei einer bestätigten aktuellen
+WLAN-Verbindung der Button **„Handyname Dateisystem“** mit dem tatsächlichen
+Telefonnamen. Er öffnet die vom Telefon bereitgestellten Ordner im Dateimanager.
+Ohne Netzwerkverbindung, bei reinem Bluetooth oder fehlender Dateisystemfunktion
+ist der Button ausgeblendet. Auf dem Telefon müssen die Speicherorte in der
+KDE-Connect-Dateisystemfunktion freigegeben sein.
+
+Mit einem vorhandenen systemseitigen KDE Connect wird dessen Dateisystemfunktion
+verwendet. Die direkte Magnolie-Verbindung nutzt unter Linux SSHFS und den
+registrierten Dateimanager; dafür müssen `sshfs` und `fusermount3` beziehungsweise
+`fusermount` vorhanden sein. Der SSH-Hostschlüssel wird aus dem bestätigten
+Telefonzertifikat geprüft. Sitzungspasswörter werden weder in die aufgerufene
+Adresse noch in Programmargumente geschrieben. Die eigenen temporären
+Einbindungen werden bei Verbindungsende ausgehängt.
+
 ## Tastatur und Hilfsrahmen
 
 Die kalender- und listenübergreifende Option **Barrierefreiheit: Hilfsrahmen**

@@ -131,7 +131,7 @@ internal static class KdeConnectProtocol
         return result;
     }
 
-    internal static JsonObject IdentityBody(string id, string name, int tcpPort, string? targetDeviceId = null, bool localMediaSupported = false, bool localInputSupported = false)
+    internal static JsonObject IdentityBody(string id, string name, int tcpPort, string? targetDeviceId = null, bool localMediaSupported = false, bool localInputSupported = false, bool filesystemSupported = false)
     {
         var body = new JsonObject {
             ["deviceId"] = id, ["deviceName"] = name, ["protocolVersion"] = Version,
@@ -141,6 +141,11 @@ internal static class KdeConnectProtocol
             ["outgoingCapabilities"] = new JsonArray(SmsRequest, SmsRequestConversations, SmsRequestConversation, KdeMediaState.Request, KdeInputProtocol.Request,
                 ContactUidsRequest, ContactVcardsRequest)
         };
+        if (filesystemSupported)
+        {
+            body["incomingCapabilities"]!.AsArray().Add(KdeSftpDescription.Packet);
+            body["outgoingCapabilities"]!.AsArray().Add(KdeSftpDescription.Request);
+        }
         if (localMediaSupported)
         {
             body["incomingCapabilities"]!.AsArray().Add(KdeMediaState.Request);

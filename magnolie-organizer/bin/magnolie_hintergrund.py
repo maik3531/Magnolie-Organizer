@@ -771,6 +771,7 @@ def _request_shape(operation, arguments):
         "send_sms": {"destination", "message", "device_id"},
         "contact_uids": {"device_id"}, "contact_vcards": {"uids", "device_id"},
         "media_devices": set(), "media_status": {"device_id"},
+        "filesystem_status": set(), "open_filesystem": {"device_id", "token"},
         "media_command": {"device_id", "token", "player", "action", "value"},
         "input_status": set(), "configure_input": {"enabled", "device_id"},
         "input_send": {"device_id", "token", "body"},
@@ -902,6 +903,11 @@ def _request_shape(operation, arguments):
             input_body(arguments.get('body'))
         except (ValueError, TypeError) as error:
             raise IPCError('invalid input packet') from error
+    if operation == 'open_filesystem':
+        if (set(arguments) != {'device_id', 'token'} or not isinstance(arguments.get('device_id'), str) or
+                not re.fullmatch(r'[A-Za-z0-9_-]{32,38}', arguments['device_id']) or
+                not isinstance(arguments.get('token'), str) or not re.fullmatch(r'[a-f0-9]{32}', arguments['token'])):
+            raise IPCError('invalid filesystem request')
     if operation == "poll_events":
         after = arguments.get("after")
         timeout = arguments.get("timeout", 20)
@@ -1552,6 +1558,12 @@ class KDEConnectProxy:
 
     def input_status(self):
         return self._call('input_status')
+
+    def filesystem_status(self):
+        return self._call('filesystem_status')
+
+    def open_filesystem(self, device_id, token):
+        return ipc_request('open_filesystem', {'device_id': device_id, 'token': token}, self.path, timeout=30)
 
     def configure_input(self, enabled=None, device_id=None, permitted=None):
         return self._call('configure_input', enabled=enabled, device_id=device_id or '')

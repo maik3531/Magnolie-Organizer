@@ -21,6 +21,7 @@ from magnolie_kde_media import RemotePlayers, MEDIA_PACKET, MEDIA_REQUEST, comma
 from magnolie_kde_mpris import DesktopMpris
 from magnolie_kde_input import InputTarget, input_body, INPUT_PACKET, KEYBOARD_STATE
 from magnolie_kde_input_x11 import X11Input
+from magnolie_kde_filesystem import SshfsBrowser, FilesystemError, description as filesystem_description, PACKET as FILESYSTEM_PACKET, REQUEST as FILESYSTEM_REQUEST
 import uuid
 from collections import deque
 from contextlib import closing
@@ -199,11 +200,13 @@ class KDEConnectNativeBackend:
         self._media_lock = threading.RLock()
         self._media_contexts = {}
         self._input_contexts = {}
+        self._filesystem_contexts = {}
+        self._filesystem_lock = threading.RLock()
 
-    def _call(self, owner, path, interface, method, signature=None, args=(), reply=None, deadline=None):
+    def _call(self, owner, path, interface, method, signature=None, args=(), reply=None, deadline=None, maximum=1500):
         if self.bus is None:
             raise ProtocolError(NATIVE_KDE_UNAVAILABLE)
-        timeout = 1500 if deadline is None else min(1500, int((deadline - time.monotonic()) * 1000))
+        timeout = maximum if deadline is None else min(maximum, int((deadline - time.monotonic()) * 1000))
         if timeout <= 0:
             raise TimeoutError(NATIVE_KDE_UNAVAILABLE)
         return self.bus.call_sync(owner, path, interface, method,
@@ -473,6 +476,70 @@ class KDEConnectNativeBackend:
                     'sendCommand', '(a{sv})', (variants,), '()', deadline=deadline)
             return {'ok': True, 'state': 'queued', 'device_id': device_id}
 
+    def _filesystem_source(self, device_id, deadline):
+        if not isinstance(device_id, str) or not DEVICE_ID.fullmatch(device_id):
+            raise ProtocolError('invalid_filesystem_device')
+        owner = self._owner(deadline=deadline)
+        path = '/modules/kdeconnect/devices/' + device_id
+        props = self._call(owner, path, 'org.freedesktop.DBus.Properties', 'GetAll', '(s)',
+            ('org.kde.kdeconnect.device',), '(a{sv})', deadline=deadline)[0]
+        addresses = props.get('reachableAddresses')
+        key = props.get('verificationKey')
+        if (props.get('isPaired') is not True or props.get('isReachable') is not True or props.get('type') not in ('phone', 'tablet') or
+                not isinstance(addresses, (list, tuple)) or not 1 <= len(addresses) <= 32 or
+                not isinstance(key, str) or not 1 <= len(key) <= 512):
+            raise ProtocolError('filesystem_wifi_unavailable')
+        ips = []
+        for address in addresses:
+            try:
+                value = ipaddress.ip_address(address)
+                if not value.is_unspecified and not value.is_multicast:
+                    ips.append(str(value))
+            except (ValueError, TypeError):
+                pass
+        if (not ips or self._call(owner, path, 'org.kde.kdeconnect.device', 'hasPlugin', '(s)',
+                ('kdeconnect_sftp',), '(b)', deadline=deadline)[0] is not True or self._owner(deadline=deadline) != owner):
+            raise ProtocolError('filesystem_wifi_unavailable')
+        return owner, path, key, tuple(sorted(ips))
+
+    def filesystem_status(self):
+        with self._filesystem_lock:
+            devices = []
+            try:
+                deadline = time.monotonic() + 2.5
+                owner = self._owner(deadline=deadline)
+                for device in self._devices(owner, deadline=deadline):
+                    try:
+                        source = self._filesystem_source(device['device_id'], deadline)
+                    except Exception:
+                        continue
+                    previous = self._filesystem_contexts.get(device['device_id'])
+                    token = previous[1] if previous and previous[0] == source else uuid.uuid4().hex
+                    self._filesystem_contexts[device['device_id']] = source, token
+                    devices.append({'device_id': device['device_id'], 'device_name': device['device_name'],
+                        'token': token, 'transport': 'wifi', 'available': True})
+            except Exception:
+                devices = []
+            for key in set(self._filesystem_contexts) - {value['device_id'] for value in devices}:
+                self._filesystem_contexts.pop(key, None)
+            return {'native': True, 'devices': devices}
+
+    def open_filesystem(self, device_id, token):
+        with self._filesystem_lock:
+            context = self._filesystem_contexts.get(device_id)
+            if context is None or context[1] != token:
+                raise ProtocolError('filesystem_source_changed')
+            deadline = time.monotonic() + 13
+            if self._filesystem_source(device_id, deadline) != context[0]:
+                self._filesystem_contexts.pop(device_id, None)
+                raise ProtocolError('filesystem_source_changed')
+            owner, path, _key, _addresses = context[0]
+            opened = self._call(owner, path + '/sftp', 'org.kde.kdeconnect.device.sftp', 'startBrowsing',
+                reply='(b)', deadline=deadline, maximum=12000)[0]
+            if opened is not True:
+                raise ProtocolError('filesystem_mount_failed')
+            return {'ok': True, 'state': 'opened', 'device_id': device_id}
+
     def status(self, timeout=0.25):
         running, reason, devices = False, '', []
         try:
@@ -501,7 +568,8 @@ class KDEConnectNativeBackend:
             'history_available': False, 'capabilities': {'sms_send': bool(capable),
                 'clipboard_receive': False, 'file_receive': False, 'sms_receive': False, 'sms_history': False, 'pairing': False},
             'capability_explanation': NATIVE_KDE_LIMIT,
-            'receive': dict(self.configure_receive(), pending_count=0, proposals=[])}
+            'receive': dict(self.configure_receive(), pending_count=0, proposals=[]),
+            'filesystem': self.filesystem_status()}
 
     @staticmethod
     def _contact_read(path, maximum, directory=None):
@@ -1424,6 +1492,11 @@ class _ConnectionWorker:
         self.remote_input_token = uuid.uuid4().hex
         self.remote_keyboard = False
         self.keyboard_sent = None
+        self.filesystem_token = uuid.uuid4().hex
+        self.filesystem_gate = threading.Lock()
+        self.filesystem_condition = threading.Condition()
+        self.filesystem_pending = None
+        self.filesystem_blocked = False
         self.diagnostics = {"last_packet_type": "", "parse_valid": 0,
             "parse_skipped": 0, "last_receive_ms": 0, "bootstrap_state": "idle"}
         self.thread = threading.Thread(target=self._run, daemon=True,
@@ -1477,6 +1550,8 @@ class _ConnectionWorker:
         self.stopped.set()
         with self.contacts_condition:
             self.contacts_condition.notify_all()
+        with self.filesystem_condition:
+            self.filesystem_condition.notify_all()
         self.connection.close()
         if (join and self.thread is not threading.current_thread()
                 and self.thread.is_alive()):
@@ -1508,6 +1583,9 @@ class _ConnectionWorker:
                     continue
                 if packet.get('type') == MEDIA_PACKET:
                     self.backend._media_packet(self, packet)
+                    continue
+                if packet.get('type') == FILESYSTEM_PACKET:
+                    self.backend._filesystem_packet(self, packet)
                     continue
                 if packet.get('type') == MEDIA_REQUEST:
                     self.backend._local_media_packet(self, packet)
@@ -1716,6 +1794,7 @@ class KDEConnectSMSBackend:
         self._input_enabled = True
         self._input_device = ''
         self._input_permitted = lambda: False
+        self._filesystem_browser = SshfsBrowser(self.store.directory)
         self.tcp_ports = tuple(tcp_ports or range(MIN_TCP_PORT, MAX_TCP_PORT + 1))
         self.udp_port = int(udp_port)
         self.backoff = tuple(backoff or RECONNECT_BACKOFF)
@@ -2131,7 +2210,9 @@ class KDEConnectSMSBackend:
             return True
 
     def stop(self):
+        self._stop_event.set()
         self._stop_receive()
+        self._filesystem_browser.close()
         with self._state_lock:
             thread = self._service_thread
             if thread is None:
@@ -2523,6 +2604,7 @@ class KDEConnectSMSBackend:
                 removed = self._connections.pop(device_id)
         if removed is not None:
             removed["worker"].close(join=True)
+            self._filesystem_browser.close(removed['worker'])
         else:
             connection.close()
 
@@ -2547,6 +2629,8 @@ class KDEConnectSMSBackend:
                     last_seen = cached[1] if cached else now
                     self._devices[device_id] = (device, last_seen, now + CANDIDATE_TTL)
         worker.connection.close()
+        if removed:
+            self._filesystem_browser.close(worker)
         if removed and not self._stop_event.is_set():
             self._reschedule_discovery(immediate=False)
 
@@ -2822,6 +2906,86 @@ class KDEConnectSMSBackend:
             return
         self._digitizer_relay.push(worker, sample)
 
+    def _filesystem_connections(self, device_id=None):
+        if self._stop_event.is_set():
+            return []
+        with self._connection_lock:
+            entries = []
+            for key, entry in self._connections.items():
+                worker = entry['worker']
+                if (device_id is not None and key != device_id or not self._is_confirmed(key) or
+                        not self._media_pin_matches(key, entry) or worker.stopped.is_set() or
+                        getattr(worker, 'filesystem_blocked', True) or
+                        entry['identity'].get('deviceType') not in ('phone', 'tablet') or
+                        FILESYSTEM_REQUEST not in entry['identity']['incomingCapabilities'] or
+                        FILESYSTEM_PACKET not in entry['identity']['outgoingCapabilities']):
+                    continue
+                try:
+                    ipaddress.ip_address(entry.get('address'))
+                except (ValueError, TypeError):
+                    continue
+                entries.append(entry)
+            return entries
+
+    def filesystem_status(self):
+        if not self._filesystem_browser.available():
+            return {'native': False, 'devices': []}
+        return {'native': False, 'devices': [{'device_id': entry['identity']['deviceId'],
+            'device_name': entry['identity']['deviceName'], 'token': entry['worker'].filesystem_token,
+            'transport': 'wifi', 'available': True} for entry in self._filesystem_connections()]}
+
+    def open_filesystem(self, device_id, token):
+        if not isinstance(device_id, str) or not DEVICE_ID.fullmatch(device_id):
+            raise ProtocolError('invalid_filesystem_device')
+        entries = self._filesystem_connections(device_id)
+        if len(entries) != 1 or entries[0]['worker'].filesystem_token != token or not self._filesystem_browser.available():
+            raise ProtocolError('filesystem_source_changed')
+        entry, worker = entries[0], entries[0]['worker']
+        def current():
+            return any(value['worker'] is worker and value['certificate'] == entry['certificate'] and
+                value['address'] == entry['address'] for value in self._filesystem_connections(device_id))
+        with worker.filesystem_gate:
+            try:
+                with worker.filesystem_condition:
+                    if not current():
+                        raise ProtocolError('filesystem_source_changed')
+                    request = {'deadline': time.monotonic() + 8, 'report': None, 'error': None}
+                    worker.filesystem_pending = request
+                    worker.send(network_packet(FILESYSTEM_REQUEST, {'startBrowsing': True}))
+                    while request['report'] is None and request['error'] is None:
+                        if not current():
+                            raise ProtocolError('filesystem_source_changed')
+                        remaining = request['deadline'] - time.monotonic()
+                        if remaining <= 0:
+                            worker.filesystem_blocked = True
+                            raise ProtocolError('filesystem_read_timeout')
+                        worker.filesystem_condition.wait(min(remaining, 0.25))
+                if request['error']:
+                    raise ProtocolError(request['error'])
+                if not current():
+                    raise ProtocolError('filesystem_source_changed')
+                result = self._filesystem_browser.open(worker, entry['address'], request['report'], entry['certificate'], current)
+                return dict(result, device_id=device_id)
+            finally:
+                with worker.filesystem_condition:
+                    worker.filesystem_pending = None
+
+    def _filesystem_packet(self, worker, packet):
+        entries = self._filesystem_connections(worker.identity['deviceId'])
+        if not any(value['worker'] is worker for value in entries):
+            return
+        with worker.filesystem_condition:
+            pending = worker.filesystem_pending
+            if pending is None or pending['report'] is not None or pending['error'] is not None or time.monotonic() >= pending['deadline']:
+                return
+            try:
+                if packet.get('type') != FILESYSTEM_PACKET or set(packet) != {'id', 'type', 'body'}:
+                    raise FilesystemError('invalid_filesystem_description')
+                pending['report'] = filesystem_description(packet['body'])
+            except FilesystemError:
+                pending['error'] = 'filesystem_unavailable'
+            worker.filesystem_condition.notify_all()
+
     def _contact_query(self, device_id, kind, body, response):
         connections = self._contact_connections(device_id)
         if len(connections) != 1:
@@ -3010,6 +3174,9 @@ class KDEConnectSMSBackend:
                     SMS_REQUEST_CONVERSATION_TYPE, CONTACT_UIDS_REQUEST, CONTACT_VCARDS_REQUEST, MEDIA_REQUEST]
         incoming.append(KEYBOARD_STATE)
         outgoing.append(INPUT_PACKET)
+        if self._filesystem_browser.available():
+            incoming.append(FILESYSTEM_PACKET)
+            outgoing.append(FILESYSTEM_REQUEST)
         if self._input_sink is not None:
             incoming.append(INPUT_PACKET)
             outgoing.append(KEYBOARD_STATE)
@@ -3202,6 +3369,7 @@ class KDEConnectSMSBackend:
             result["connection_direction"] = diagnostic.get("direction", "") if diagnostic else ""
             contacts = self._contact_connections()
             result["contacts_available"] = len(contacts) == 1
+            result['filesystem'] = self.filesystem_status()
             result["contacts_device_id"] = contacts[0]["identity"]["deviceId"] if len(contacts) == 1 else ""
             digitizers = self._digitizer_connections()
             result["digitizer_available"] = len(digitizers) == 1

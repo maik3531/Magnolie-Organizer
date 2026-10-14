@@ -26,6 +26,24 @@ Der vorübergehend angezeigte Bericht enthält die Notes-Version und höchstens
 Fehlerkennzeichen. Er enthält keine Nachrichten, Notizen, Kontakte, Schlüssel
 oder Zugangsdaten und wird nicht als Gerätestatushistorie gespeichert.
 
+## Telefon-Dateisystem über WLAN
+
+Unter **Einstellungen > KDE Connect** öffnet **„Handyname Dateisystem“** die
+freigegebenen Telefonordner im registrierten Dateimanager. Der tatsächliche
+Telefonname wird eingesetzt. Der Button erscheint bei einer aktuellen
+bestätigten WLAN-Verbindung, wenn das Telefon SFTP bereitstellt und der
+Windows-Mountprovider verfügbar ist. Bei Bluetooth, Trennung oder fehlendem
+Provider ist er ausgeblendet.
+
+Die Windows-Anbindung verwendet vorhandenes **SSHFS-Win und WinFsp**. Sie
+verändert deren Dienste oder die SSH-Einstellungen des Benutzers nicht. Jede
+Einbindung erhält ein eigenes temporäres Verzeichnis und eine eigene
+Hostschlüsseldatei mit dem Schlüssel des bestätigten Telefonzertifikats. Das
+Sitzungspasswort wird über die Standardeingabe übergeben und erscheint weder
+in der Adresse noch in den Programmargumenten. Erst wenn die eigene Einbindung
+bereit und die Gegenstelle weiterhin aktuell ist, wird der Dateimanager
+geöffnet. Bei Verbindungsende werden die eigenen Mountprozesse bereinigt.
+
 ## Windows-Technik
 
 - C# und WinForms aus .NET 8

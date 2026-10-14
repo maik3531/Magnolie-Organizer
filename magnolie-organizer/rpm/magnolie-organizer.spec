@@ -61,6 +61,7 @@ Requires:       /usr/bin/xdg-open
 Requires:       %{magnolie_deps}
 Requires:       libfakekey.so.0()(64bit)
 Suggests:       magnolie-organizer-kde
+Recommends:     /usr/bin/sshfs
 
 %description
 Magnolie Organizer combines a calendar, contacts, tasks, notes,
