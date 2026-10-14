@@ -6157,6 +6157,24 @@ msgstr "Mostrar botón de calendario en los campos de fecha"
 msgid "Show incoming call notifications"
 msgstr "Mostrar las notificaciones de llamadas entrantes"
 
+msgid "Developer options"
+msgstr "Opciones de desarrollador"
+
+msgid "Disable developer mode"
+msgstr "Desactivar el modo de desarrollador"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Leer los diagnósticos de Wi-Fi de Notes"
+
+msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "Active la depuración de Wi-Fi en las opciones de desarrollador de Notes en su propio teléfono vinculado."
+
+msgid "%(Handyname)s filesystem"
+msgstr "Sistema de archivos de %(Handyname)s"
+
+msgid "The phone filesystem could not be opened."
+msgstr "No se pudo abrir el sistema de archivos del teléfono."
+
 msgid "Show log"
 msgstr "Mostrar registro"
 

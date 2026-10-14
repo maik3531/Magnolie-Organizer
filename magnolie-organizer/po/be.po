@@ -6120,6 +6120,24 @@ msgstr "Паказваць кнопку календара ў палях дат�
 msgid "Show incoming call notifications"
 msgstr "Паказваць апавяшчэнні пра ўваходныя выклікі"
 
+msgid "Developer options"
+msgstr "Параметры распрацоўшчыка"
+
+msgid "Disable developer mode"
+msgstr "Выключыць рэжым распрацоўшчыка"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Прачытаць дыягностыку Wi-Fi Notes"
+
+msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "Уключыце адладку Wi-Fi ў параметрах распрацоўшчыка Notes на сваім спалучаным тэлефоне."
+
+msgid "%(Handyname)s filesystem"
+msgstr "Файлавая сістэма %(Handyname)s"
+
+msgid "The phone filesystem could not be opened."
+msgstr "Не ўдалося адкрыць файлавую сістэму тэлефона."
+
 msgid "Show log"
 msgstr "Паказаць журнал"
 

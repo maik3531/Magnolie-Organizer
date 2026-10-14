@@ -5121,6 +5121,24 @@ msgstr "Показати все"
 msgid "Show calendar button in date fields"
 msgstr "Показувати кнопку календаря в полях дати"
 
+msgid "Developer options"
+msgstr "Параметри розробника"
+
+msgid "Disable developer mode"
+msgstr "Вимкнути режим розробника"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Прочитати діагностику Wi-Fi Notes"
+
+msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "Увімкніть налагодження Wi-Fi у параметрах розробника Notes на власному сполученому телефоні."
+
+msgid "%(Handyname)s filesystem"
+msgstr "Файлова система %(Handyname)s"
+
+msgid "The phone filesystem could not be opened."
+msgstr "Не вдалося відкрити файлову систему телефона."
+
 msgid "Show log"
 msgstr "Показати журнал"
 

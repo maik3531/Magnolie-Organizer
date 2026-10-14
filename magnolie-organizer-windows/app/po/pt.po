@@ -5135,6 +5135,24 @@ msgstr "Mostrar tudo"
 msgid "Show calendar button in date fields"
 msgstr "Mostrar botão de calendário nos campos de data"
 
+msgid "Developer options"
+msgstr "Opções de desenvolvedor"
+
+msgid "Disable developer mode"
+msgstr "Desativar o modo de desenvolvedor"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Ler os diagnósticos de Wi-Fi do Notes"
+
+msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "Ative a depuração de Wi-Fi nas opções de desenvolvedor do Notes no seu próprio telefone emparelhado."
+
+msgid "%(Handyname)s filesystem"
+msgstr "Sistema de ficheiros de %(Handyname)s"
+
+msgid "The phone filesystem could not be opened."
+msgstr "Não foi possível abrir o sistema de ficheiros do telefone."
+
 msgid "Show log"
 msgstr "Mostrar registo"
 

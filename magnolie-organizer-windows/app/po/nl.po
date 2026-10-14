@@ -5132,6 +5132,24 @@ msgstr "Alles tonen"
 msgid "Show calendar button in date fields"
 msgstr "Kalenderknop in datumvelden tonen"
 
+msgid "Developer options"
+msgstr "Ontwikkelaarsopties"
+
+msgid "Disable developer mode"
+msgstr "Ontwikkelaarsmodus uitschakelen"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Wifi-diagnostiek van Notes uitlezen"
+
+msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "Schakel wifi-debugging in via de ontwikkelaarsopties van Notes op uw eigen gekoppelde telefoon."
+
+msgid "%(Handyname)s filesystem"
+msgstr "Bestandssysteem van %(Handyname)s"
+
+msgid "The phone filesystem could not be opened."
+msgstr "Het bestandssysteem van de telefoon kon niet worden geopend."
+
 msgid "Show log"
 msgstr "Logboek tonen"
 

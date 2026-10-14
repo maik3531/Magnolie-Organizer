@@ -6067,6 +6067,24 @@ msgstr "Vis kalenderknap i datofelter"
 msgid "Show incoming call notifications"
 msgstr "Vis meddelelser om indgående opkald"
 
+msgid "Developer options"
+msgstr "Udviklerindstillinger"
+
+msgid "Disable developer mode"
+msgstr "Deaktivér udviklertilstand"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Læs Wi-Fi-diagnosticering fra Notes"
+
+msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "Aktivér Wi-Fi-fejlfinding i Notes-udviklerindstillingerne på din egen parrede telefon."
+
+msgid "%(Handyname)s filesystem"
+msgstr "%(Handyname)s-filsystem"
+
+msgid "The phone filesystem could not be opened."
+msgstr "Telefonens filsystem kunne ikke åbnes."
+
 msgid "Show log"
 msgstr "Vis log"
 

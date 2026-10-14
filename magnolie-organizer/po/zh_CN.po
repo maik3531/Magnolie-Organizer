@@ -5820,6 +5820,24 @@ msgstr "在日期字段中显示日历按钮"
 msgid "Show incoming call notifications"
 msgstr "显示来电通知"
 
+msgid "Developer options"
+msgstr "开发者选项"
+
+msgid "Disable developer mode"
+msgstr "停用开发者模式"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "读取 Notes 的 Wi-Fi 诊断信息"
+
+msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "请在您自己的已配对手机上，进入 Notes 开发者选项并启用 Wi-Fi 调试。"
+
+msgid "%(Handyname)s filesystem"
+msgstr "%(Handyname)s 的文件系统"
+
+msgid "The phone filesystem could not be opened."
+msgstr "无法打开手机的文件系统。"
+
 msgid "Show log"
 msgstr "显示日志"
 

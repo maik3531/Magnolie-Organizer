@@ -6172,6 +6172,24 @@ msgstr "Kalenderschaltfläche in Datumsfeldern anzeigen"
 msgid "Show incoming call notifications"
 msgstr "Benachrichtigungen über eingehende Anrufe anzeigen"
 
+msgid "Developer options"
+msgstr "Entwickleroptionen"
+
+msgid "Disable developer mode"
+msgstr "Entwicklermodus deaktivieren"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Notes-WLAN-Diagnose auslesen"
+
+msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "Aktivieren Sie WLAN-Debug in den Notes-Entwickleroptionen auf Ihrem eigenen gekoppelten Telefon."
+
+msgid "%(Handyname)s filesystem"
+msgstr "%(Handyname)s Dateisystem"
+
+msgid "The phone filesystem could not be opened."
+msgstr "Das Telefon-Dateisystem konnte nicht geöffnet werden."
+
 msgid "Show log"
 msgstr "Protokoll anzeigen"
 

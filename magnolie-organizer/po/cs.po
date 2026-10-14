@@ -6098,6 +6098,24 @@ msgstr "Zobrazovat v polích data tlačítko kalendáře"
 msgid "Show incoming call notifications"
 msgstr "Zobrazovat oznámení o příchozích hovorech"
 
+msgid "Developer options"
+msgstr "Možnosti pro vývojáře"
+
+msgid "Disable developer mode"
+msgstr "Vypnout režim pro vývojáře"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Načíst diagnostiku Wi-Fi z Notes"
+
+msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "Zapněte ladění Wi-Fi v možnostech pro vývojáře Notes na svém spárovaném telefonu."
+
+msgid "%(Handyname)s filesystem"
+msgstr "Souborový systém %(Handyname)s"
+
+msgid "The phone filesystem could not be opened."
+msgstr "Souborový systém telefonu se nepodařilo otevřít."
+
 msgid "Show log"
 msgstr "Zobrazit protokol"
 

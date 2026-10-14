@@ -76,7 +76,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             if (command is "wetter" or "feiertage" or "update_pruefen" or "journal_liste" or "import_lokal" or
                 "update_herunterladen" or "eds_status" or "graph_anmelden" or "baum_suchen" or "baum_paaren" or "baum_briefkasten_pruefen" or "kde_sms_senden" or "cloud_sicherung_test" or
                 "baum_ein" or "baum_teilen" or "baum_delegieren" or "baum_rueckmeldung" or "baum_weitergeben" or "baum_weitergabe_annehmen" or "telefon_ein" or "telefon_verbindung_ein" or
-                "telefon_status_anfordern" or "telefon_waehlen" or "telefon_annehmen" or "telefon_auflegen" or
+                "telefon_status_anfordern" or "telefon_entwickler_diagnose" or "kde_dateisystem_stand" or "kde_dateisystem_oeffnen" or "telefon_waehlen" or "telefon_annehmen" or "telefon_auflegen" or
                 "sync" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
                 "telefon_oeffnen" or "telefon_verbinden" or "telefon_pairing_oeffnen" or "kde_pairing_start" or "kde_pairing_complete" or
                 "kde_paaren" or "kde_pairing_confirm" or "kde_paarung_bestaetigen" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or
@@ -292,6 +292,24 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "telefon_paarung_bestaetigen": ConfirmTelefonPairing(message); break;
                     case "telefon_entfernen": await RemoveTelefonAsync(Text(message, "kennung")); break;
                     case "telefon_status_anfordern": await telefon.RequestDeviceStatusAsync(Text(message, "kennung"), Text(message, "requestId")); break;
+                    case "kde_dateisystem_stand":
+                    case "kde_dateisystem_oeffnen":
+                        await KdeFilesystemAsync(message);
+                        break;
+                    case "telefon_entwickler_diagnose":
+                    {
+                        var requestId = Text(message, "requestId"); var kennung = Text(message, "kennung");
+                        try
+                        {
+                            if (!currentPlainTextAvailable) throw new InvalidOperationException("developer_diagnostics_unavailable");
+                            var diagnose = await telefon.ReadDeveloperDiagnosticsAsync(kennung, backgroundLifetime.Token);
+                            if (!currentPlainTextAvailable) throw new InvalidOperationException("developer_diagnostics_unavailable");
+                            await form.SendAsync("App.telefonEntwicklerDiagnose", new { requestId, kennung, ok = true, diagnose });
+                        }
+                        catch (Exception error)
+                        { await form.SendAsync("App.telefonEntwicklerDiagnose", new { requestId, kennung, ok = false, fehler = error.Message }); }
+                        break;
+                    }
                     case "telefon_oeffnen": await OpenDeviceAsync(Text(message, "kennung")); break;
                     case "telefon_freigabe": await telefon.SetGrantAsync(Text(message, "kennung"), Text(message, "name"), Boolean(message, "an")); break;
                     case "telefon_freigaben": await telefon.SetLocalGrantsAsync(Boolean(message, "smsEmpfangen"), Boolean(message, "benachrichtigungen")); break;

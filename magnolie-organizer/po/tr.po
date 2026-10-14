@@ -6069,6 +6069,24 @@ msgstr "Tarih alanlarında takvim düğmesini göster"
 msgid "Show incoming call notifications"
 msgstr "Gelen arama bildirimlerini göster"
 
+msgid "Developer options"
+msgstr "Geliştirici seçenekleri"
+
+msgid "Disable developer mode"
+msgstr "Geliştirici modunu devre dışı bırak"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Notes Wi-Fi tanılamasını oku"
+
+msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "Kendi eşleştirilmiş telefonunuzda Notes geliştirici seçeneklerinden Wi-Fi hata ayıklamayı etkinleştirin."
+
+msgid "%(Handyname)s filesystem"
+msgstr "%(Handyname)s dosya sistemi"
+
+msgid "The phone filesystem could not be opened."
+msgstr "Telefonun dosya sistemi açılamadı."
+
 msgid "Show log"
 msgstr "Günlüğü göster"
 

@@ -6148,6 +6148,24 @@ msgstr "Показывать кнопку календаря в полях да�
 msgid "Show incoming call notifications"
 msgstr "Показывать уведомления о входящих вызовах"
 
+msgid "Developer options"
+msgstr "Параметры разработчика"
+
+msgid "Disable developer mode"
+msgstr "Отключить режим разработчика"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Прочитать диагностику Wi-Fi Notes"
+
+msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "Включите отладку Wi-Fi в параметрах разработчика Notes на своём сопряжённом телефоне."
+
+msgid "%(Handyname)s filesystem"
+msgstr "Файловая система %(Handyname)s"
+
+msgid "The phone filesystem could not be opened."
+msgstr "Не удалось открыть файловую систему телефона."
+
 msgid "Show log"
 msgstr "Показать журнал"
 

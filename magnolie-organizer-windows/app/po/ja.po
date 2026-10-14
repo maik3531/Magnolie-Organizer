@@ -5025,6 +5025,24 @@ msgstr "すべて表示"
 msgid "Show calendar button in date fields"
 msgstr "日付欄にカレンダーボタンを表示"
 
+msgid "Developer options"
+msgstr "開発者向けオプション"
+
+msgid "Disable developer mode"
+msgstr "開発者モードを無効にする"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Notes の Wi-Fi 診断を読み取る"
+
+msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "ご自身のペアリング済みのスマートフォンで、Notes の開発者向けオプションから Wi-Fi デバッグを有効にしてください。"
+
+msgid "%(Handyname)s filesystem"
+msgstr "%(Handyname)s のファイルシステム"
+
+msgid "The phone filesystem could not be opened."
+msgstr "スマートフォンのファイルシステムを開けませんでした。"
+
 msgid "Show log"
 msgstr "ログを表示"
 

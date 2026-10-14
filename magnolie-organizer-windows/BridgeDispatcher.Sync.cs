@@ -644,6 +644,7 @@ internal sealed partial class BridgeDispatcher
         return new
         {
             available = status.Available,
+            filesystem = kdeConnectSms.FilesystemStatus(),
             contacts_available = contactDevices.Count == 1,
             contacts_device_id = contactDevices.Count == 1 ? contactDevices[0] : "",
             digitizer_available = digitizerDevices.Count == 1,

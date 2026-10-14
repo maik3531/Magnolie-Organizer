@@ -5,6 +5,24 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed partial class BridgeDispatcher
 {
+    private async Task KdeFilesystemAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId");
+        if (!Guid.TryParse(requestId, out _)) return;
+        try
+        {
+            if (!currentPlainTextAvailable) throw new InvalidOperationException("locked");
+            var result = Text(message, "cmd") == "kde_dateisystem_stand" ? kdeConnectSms.FilesystemStatus() :
+                await kdeConnectSms.OpenFilesystemAsync(Text(message, "device_id"), Text(message, "token"), backgroundLifetime.Token,
+                    () => currentPlainTextAvailable);
+            if (!currentPlainTextAvailable) throw new InvalidOperationException("locked");
+            result["ok"] = true; result["requestId"] = requestId;
+            await form.SendAsync("App.kdeMedien", result);
+        }
+        catch (Exception error)
+        { await form.SendAsync("App.kdeMedien", new { ok = false, requestId, error = error.Message }); }
+    }
+
     private async Task KdeMediaAsync(JsonElement message)
     {
         var requestId = Text(message, "requestId");

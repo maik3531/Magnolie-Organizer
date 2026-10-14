@@ -5975,6 +5975,24 @@ msgstr "तारीख फ़ील्ड में कैलेंडर ब�
 msgid "Show incoming call notifications"
 msgstr "आने वाली कॉल की सूचनाएँ दिखाएँ"
 
+msgid "Developer options"
+msgstr "डेवलपर विकल्प"
+
+msgid "Disable developer mode"
+msgstr "डेवलपर मोड बंद करें"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Notes के वाई-फ़ाई निदान पढ़ें"
+
+msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "अपने युग्मित फ़ोन पर Notes के डेवलपर विकल्पों में वाई-फ़ाई डिबगिंग चालू करें।"
+
+msgid "%(Handyname)s filesystem"
+msgstr "%(Handyname)s का फ़ाइल सिस्टम"
+
+msgid "The phone filesystem could not be opened."
+msgstr "फ़ोन का फ़ाइल सिस्टम नहीं खोला जा सका।"
+
 msgid "Show log"
 msgstr "लॉग दिखाएँ"
 

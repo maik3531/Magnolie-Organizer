@@ -5180,6 +5180,24 @@ msgstr "Wšě pokazać"
 msgid "Show calendar button in date fields"
 msgstr "Protykowe tłóčatko w datumowych polach pokazać"
 
+msgid "Developer options"
+msgstr "Wuwiwarske nastajenja"
+
+msgid "Disable developer mode"
+msgstr "Wuwiwarski modus znjemóžnić"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "WLAN diagnostiku Notes čitać"
+
+msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "Zmóžńće WLAN pytanje zmylkow we wuwiwarskich nastajenjach Notes na swojim spřaženym telefonje."
+
+msgid "%(Handyname)s filesystem"
+msgstr "Datajowy system %(Handyname)s"
+
+msgid "The phone filesystem could not be opened."
+msgstr "Datajowy system telefona njeda so wočinić."
+
 msgid "Show log"
 msgstr "Protokol pokazać"
 

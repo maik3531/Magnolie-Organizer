@@ -5184,6 +5184,24 @@ msgstr "إظهار الكل"
 msgid "Show calendar button in date fields"
 msgstr "إظهار زر التقويم في حقول التاريخ"
 
+msgid "Developer options"
+msgstr "خيارات المطوّر"
+
+msgid "Disable developer mode"
+msgstr "تعطيل وضع المطوّر"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "قراءة تشخيصات Wi-Fi في Notes"
+
+msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "فعّل تصحيح أخطاء Wi-Fi في خيارات المطوّر في Notes على هاتفك الشخصي المقترن."
+
+msgid "%(Handyname)s filesystem"
+msgstr "نظام ملفات %(Handyname)s"
+
+msgid "The phone filesystem could not be opened."
+msgstr "تعذّر فتح نظام ملفات الهاتف."
+
 msgid "Show log"
 msgstr "إظهار السجل"
 

@@ -7725,6 +7725,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     d.einstellungen.allgemein.handbuchHinweisGezeigt =
       !!al.handbuchHinweisGezeigt;
     d.einstellungen.allgemein.kontaktErsteinrichtungVersion = 1;
+    d.einstellungen.allgemein.entwicklermodus = al.entwicklermodus === true;
     d.einstellungen.allgemein.contributorFreigeschaltet =
       !!al.contributorFreigeschaltet;
     d.einstellungen.allgemein.notizAnhangHoehe =
@@ -23311,6 +23312,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   const EINST_SEITEN = [
+    { id: "entwickler", name: msgid("Developer options") },
     { id: "allgemein", name: msgid("General") },
     { id: "import", name: msgid("Import") },
     { id: "export", name: msgid("Export") },
@@ -23326,10 +23328,58 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   ];
 
   function sichtbareEinstSeiten() {
-    return EINST_SEITEN.filter((seite) => seite.id !== "adressen" || registerAktiv("adressen"));
+    return EINST_SEITEN.filter((seite) => (seite.id !== "entwickler" || DATEN.einstellungen.allgemein.entwicklermodus === true) &&
+      (seite.id !== "adressen" || registerAktiv("adressen")));
   }
 
   let einstSeite = "allgemein";
+  let entwicklerVersionsKlicks = 0;
+  let entwicklerDiagnoseAnfrage = null;
+
+  function entwicklerDiagnoseQuelle() {
+    const peers = telefonStand?.peers || [];
+    return peers.length === 1 && peers[0].state === "online_wifi" && peers[0].own_device &&
+      peers[0].remote_own_device ? peers[0] : null;
+  }
+
+  function telefonEntwicklerDiagnose(nutzlast) {
+    const request = entwicklerDiagnoseAnfrage, peer = entwicklerDiagnoseQuelle();
+    if (!request || nutzlast?.requestId !== request.id || nutzlast.kennung !== request.peer) return;
+    entwicklerDiagnoseAnfrage = null;
+    if (gesperrt || DATEN.einstellungen.allgemein.entwicklermodus !== true || !peer ||
+        peer.device_id !== request.peer || peer.fingerprint !== request.key || !request.output.isConnected) return;
+    request.button.disabled = false;
+    request.output.dataset.peer = request.peer; request.output.dataset.fingerprint = request.key;
+    request.output.textContent = nutzlast.ok === true && nutzlast.diagnose
+      ? JSON.stringify(nutzlast.diagnose, null, 2) : String(nutzlast.fehler || _("Phone connection failed."));
+  }
+
+  function baueSeiteEntwickler(wurzel) {
+    if (DATEN.einstellungen.allgemein.entwicklermodus !== true) return;
+    const ab = abschnitt(_("Developer options"));
+    const log = document.createElement("input"); log.type = "checkbox"; log.id = "erinnerung-protokoll-an";
+    log.checked = DATEN.einstellungen.erinnerung.protokoll === true;
+    const row = el("label", "hak"); row.append(log, document.createTextNode(" " + _("Keep a troubleshooting log")));
+    log.addEventListener("change", () => { DATEN.einstellungen.erinnerung.protokoll = log.checked; planeSpeichern(); speichereJetzt(); });
+    const show = knopf(_("Show log"), "", () => Bruecke.vorhanden ? Bruecke.sende({ cmd: "protokoll_zeigen" }) : zettel(_("The log is available only in the installed application.")));
+    show.id = "erinnerung-protokoll";
+    const output = el("pre", "entwickler-diagnose"); output.id = "entwickler-wlan-diagnose";
+    const read = knopf(_("Read Notes WLAN diagnostics"), "", () => {
+      const peer = entwicklerDiagnoseQuelle();
+      if (!peer || gesperrt || DATEN.einstellungen.allgemein.entwicklermodus !== true || !Bruecke.vorhanden) return;
+      const id = crypto.randomUUID(); read.disabled = true; output.textContent = "";
+      entwicklerDiagnoseAnfrage = { id, peer: peer.device_id, key: peer.fingerprint, output, button: read };
+      Bruecke.sende({ cmd: "telefon_entwickler_diagnose", kennung: peer.device_id, requestId: id });
+    });
+    read.id = "entwickler-wlan-lesen"; read.disabled = !entwicklerDiagnoseQuelle() || !Bruecke.vorhanden;
+    ab.append(el("p", "einst-hinweis", _("Enable WLAN debugging in Notes developer options on your own paired phone.")), read, output);
+    ab.append(row, show, knopf(_("Disable developer mode"), "", () => {
+      entwicklerDiagnoseAnfrage = null; output.textContent = "";
+      DATEN.einstellungen.allgemein.entwicklermodus = false;
+      DATEN.einstellungen.erinnerung.protokoll = false; entwicklerVersionsKlicks = 0;
+      planeSpeichern(); speichereJetzt(); einstSeite = "ueber"; baueEinstellungen();
+    })); wurzel.append(ab);
+  }
 
   function baueEinstellungen() {
     const wurzel = $("#einstellungen-inhalt");
@@ -23392,6 +23442,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     else if (einstSeite === "kalender") baueSeiteKalenderWahl(blatt);
     else if (einstSeite === "baum") baueSeiteBaum(blatt);
     else if (einstSeite === "ueber") baueSeiteUeber(blatt);
+    else if (einstSeite === "entwickler") baueSeiteEntwickler(blatt);
     else baueSeiteSchrift(blatt);
 
     if (rollposition > 0) requestAnimationFrame(() => { blatt.scrollTop = rollposition; });
@@ -26511,6 +26562,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       kdeBlock.append(el("p", "einst-warnung", gruende[kde.reason]));
     }
     baueKdeEingabe(kdeBlock);
+    baueKdeDateisystem(kdeBlock);
     kdeAb.append(kdeBlock);
     wurzel.append(kdeAb);
   }
@@ -26521,12 +26573,50 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function kdeMedienAnfordern(cmd, args = {}) {
     return new Promise(resolve => {
       const requestId = crypto.randomUUID();
-      const timer = setTimeout(() => { kdeMedienAnfragen.delete(requestId); resolve({ ok: false }); }, 8000);
+      const timer = setTimeout(() => { kdeMedienAnfragen.delete(requestId); resolve({ ok: false }); }, cmd === "kde_dateisystem_oeffnen" ? 30000 : 8000);
       kdeMedienAnfragen.set(requestId, { resolve, timer });
       if (!Bruecke.sende({ cmd, requestId, ...args })) {
         clearTimeout(timer); kdeMedienAnfragen.delete(requestId); resolve({ ok: false });
       }
     });
+  }
+
+  const kdeDateisystemAnsichten = new Set();
+  function baueKdeDateisystem(wurzel) {
+    const block = el("div", "knopfreihe"); block.id = "kde-dateisystem"; block.hidden = true;
+    wurzel.append(block);
+    let snapshot = [], busy = false, revision = 0, attached = false;
+    const sichtbar = () => block.isConnected && !gesperrt && !block.closest("#einstellungen-schleier")?.classList.contains("verborgen");
+    const render = value => {
+      if (block.isConnected) attached = true;
+      else if (attached) { kdeDateisystemAnsichten.delete(render); return; }
+      const devices = Array.isArray(value?.devices) ? value.devices.filter(device => device.available === true &&
+        device.transport === "wifi" && typeof device.device_name === "string" && device.device_name &&
+        /^[A-Za-z0-9_-]{32,38}$/.test(device.device_id || "") && /^[a-f0-9]{32}$/.test(device.token || "")) : [];
+      if (JSON.stringify(snapshot) === JSON.stringify(devices)) return;
+      snapshot = devices; revision++; block.textContent = ""; block.hidden = !devices.length;
+      for (const device of devices) {
+        const button = knopf(uebersetzt("%(Handyname)s filesystem", { Handyname: device.device_name }), "", async () => {
+          if (!sichtbar() || busy || !snapshot.some(item => item.device_id === device.device_id && item.token === device.token)) return;
+          const rev = revision; busy = true; block.querySelectorAll("button").forEach(node => { node.disabled = true; });
+          const result = await kdeMedienAnfordern("kde_dateisystem_oeffnen", { device_id: device.device_id, token: device.token });
+          busy = false;
+          block.querySelectorAll("button").forEach(node => { node.disabled = gesperrt; });
+          if (!sichtbar() || rev !== revision) return;
+          if (!result.ok) zettel(_("The phone filesystem could not be opened."));
+        });
+        button.dataset.kdeFilesystemDevice = device.device_id; button.disabled = busy; block.append(button);
+      }
+    };
+    kdeDateisystemAnsichten.add(render);
+    const poll = async () => {
+      if (!sichtbar()) { kdeDateisystemAnsichten.delete(render); return; }
+      const rev = revision, result = await kdeMedienAnfordern("kde_dateisystem_stand");
+      if (!sichtbar()) { kdeDateisystemAnsichten.delete(render); return; }
+      if (rev === revision) render(result.ok ? result : null);
+      setTimeout(poll, 3000);
+    };
+    render(telefonStand?.kdeconnect?.filesystem); setTimeout(poll, 0);
   }
 
   function baueKdeMedien(wurzel) {
@@ -26733,8 +26823,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     const kopfText = el("div");
     kopfText.append(el("div", "ueber-name", "Magnolie Organizer"));
-    kopfText.append(el("div", "ueber-fassung",
-      uebersetzt("Version %(version)s", { version: FASSUNG })));
+    const version = knopf(uebersetzt("Version %(version)s", { version: FASSUNG }), "ueber-fassung", () => {
+      if (DATEN.einstellungen.allgemein.entwicklermodus === true) return;
+      if (++entwicklerVersionsKlicks < 10) return;
+      DATEN.einstellungen.allgemein.entwicklermodus = true; entwicklerVersionsKlicks = 0;
+      planeSpeichern(); einstSeite = "entwickler"; baueEinstellungen();
+    });
+    version.id = "entwickler-version"; kopfText.append(version);
     kopf.append(blume, kopfText);
     links.append(kopf);
 
@@ -28347,19 +28442,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       felder.append(jtZeile, jtTageZeile, jtAmTagZeile, jtAutoZeile, jtDauerHinweis, jtHinweis);
     }
 
-    const protHak = document.createElement("input");
-    protHak.type = "checkbox";
-    protHak.id = "erinnerung-protokoll-an";
-    protHak.checked = !!e.protokoll;
-    const protZeile = el("label", "hak");
-    protZeile.append(protHak,
-      document.createTextNode(" " + _("Keep a troubleshooting log")));
-    felder.append(protZeile);
-    felder.append(el("p", "einst-hinweis",
-      _("The log records when the reminder service checked and what it reported. " +
-        "Entries older than 30 days are removed automatically, and the log never " +
-        "exceeds 200 lines.")));
-
     const stand = el("p", "sync-status");
     stand.id = "erinnerung-stand";
     felder.append(stand);
@@ -28370,23 +28452,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         _("This is how the organizer reminds you about an appointment."));
     });
     probeKnopf.id = "erinnerung-probe";
-    const protokollKnopf = knopf(_("Show log"), "", () => {
-      if (!Bruecke.vorhanden) {
-        zettel(_("The log is available only in the installed application."));
-        return;
-      }
-      Bruecke.sende({ cmd: "protokoll_zeigen" });
-    });
-    protokollKnopf.id = "erinnerung-protokoll";
-    reihe.append(probeKnopf, protokollKnopf);
+    reihe.append(probeKnopf);
     felder.append(reihe);
     ab.append(felder);
 
     const zeigen = () => {
       felder.classList.toggle("gesperrt", !anHak.checked);
       for (const feld of [vorlaufWahl, artWahl, stilWahl, verpasstHak,
-        weckHak, probeKnopf, protokollKnopf, jtHak, jtTage, jtAmTag, jtAuto,
-        protHak]) {
+        weckHak, probeKnopf, jtHak, jtTage, jtAmTag, jtAuto]) {
         feld.disabled = !anHak.checked;
       }
       /* Im Gewand des Systems bestimmt dieses über Ton und Aussehen. */
@@ -28421,7 +28494,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       e.jahrestage.tage = Number(jtTage.value) || 0;
       e.jahrestage.amTag = jtAmTag.checked;
       e.jahrestage.autoAusblenden = jtAuto.checked;
-      e.protokoll = protHak.checked;
       planeSpeichern();
       speichereJetzt();
       zeigen();
@@ -28444,7 +28516,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     jtTage.addEventListener("change", () => uebernehmen(false));
     jtAmTag.addEventListener("change", () => uebernehmen(false));
     jtAuto.addEventListener("change", () => uebernehmen(false));
-    protHak.addEventListener("change", () => uebernehmen(false));
     zeigen();
 
     if (!Bruecke.vorhanden) {
@@ -30952,8 +31023,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       personalPhoneCollections.set(value.device_id, { fingerprint: value.fingerprint,
         notes: new Set(value.members.notes), tasks: new Set(value.members.tasks) });
     },
+    telefonEntwicklerDiagnose,
     telefonStand(nutzlast) {
       telefonStand = nutzlast || null;
+      for (const render of kdeDateisystemAnsichten) render(telefonStand?.kdeconnect?.filesystem);
+      const diagnoseQuelle = entwicklerDiagnoseQuelle(), diagnoseAusgabe = $("#entwickler-wlan-diagnose");
+      if (entwicklerDiagnoseAnfrage && (!diagnoseQuelle || diagnoseQuelle.device_id !== entwicklerDiagnoseAnfrage.peer ||
+          diagnoseQuelle.fingerprint !== entwicklerDiagnoseAnfrage.key)) entwicklerDiagnoseAnfrage = null;
+      if (diagnoseAusgabe && (!diagnoseQuelle || diagnoseAusgabe.dataset.peer !== diagnoseQuelle.device_id ||
+          diagnoseAusgabe.dataset.fingerprint !== diagnoseQuelle.fingerprint)) diagnoseAusgabe.textContent = "";
+      const diagnoseKnopf = $("#entwickler-wlan-lesen");
+      if (diagnoseKnopf) diagnoseKnopf.disabled = !diagnoseQuelle || !Bruecke.vorhanden || !!entwicklerDiagnoseAnfrage;
       if (zustand.adressen.modus === "eigenes-profil" && DATEN.eigenesProfil?.data || eigenesProfilTelefonKontext?.form.isConnected)
         eigenesProfilTelefonAnfordern();
       if (DATEN.eigenesProfil?.data && !DATEN.eigenesProfil.data.mobil || eigenesProfilTelefonKontext?.form.isConnected)

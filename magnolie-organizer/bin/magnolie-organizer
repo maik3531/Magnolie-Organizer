@@ -21258,6 +21258,10 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=lambda: self._telefon_status_anfordern(
                  nachricht.get("kennung") or "", nachricht.get("requestId")), daemon=True).start()
 
+        elif befehl == "telefon_entwickler_diagnose":
+            threading.Thread(target=self._telefon_entwickler_diagnose,
+                             args=(nachricht,), daemon=True).start()
+
         elif befehl == "kde_zeichnen":
             self._hintergrund_gui_sichtbarkeit(self.get_visible())
             _organizer_gui_bereitschaft(self, self._organizer_vertraut() and not self._gesperrt)
@@ -21271,6 +21275,8 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=self._kde_medien, args=(nachricht,), daemon=True).start()
         elif befehl in ('kde_input_stand', 'kde_input_einstellungen', 'kde_input_senden'):
             threading.Thread(target=self._kde_input, args=(nachricht,), daemon=True).start()
+        elif befehl in ('kde_dateisystem_stand', 'kde_dateisystem_oeffnen'):
+            threading.Thread(target=self._kde_dateisystem, args=(nachricht,), daemon=True).start()
 
         elif befehl in ("telefon_kontaktfotos", "telefon_kontakte"):
             request_id = nachricht.get("requestId")
@@ -23125,6 +23131,22 @@ class Fenster(_FENSTER_BASIS):
         except Exception as error:
             self.antwort('App.kdeInput', dict(ok=False, requestId=request_id, error=str(error)[:300]))
 
+    def _kde_dateisystem(self, nachricht):
+        request_id = nachricht.get('requestId')
+        if not isinstance(request_id, str) or not re.fullmatch(r'[0-9a-fA-F-]{36}', request_id):
+            return
+        try:
+            if self._gesperrt or not self._organizer_vertraut():
+                raise ValueError('locked')
+            backend = _kdeconnect_backend()
+            result = (backend.open_filesystem(nachricht.get('device_id'), nachricht.get('token'))
+                if nachricht.get('cmd') == 'kde_dateisystem_oeffnen' else backend.filesystem_status())
+            if self._gesperrt or not self._organizer_vertraut():
+                raise ValueError('locked')
+            self.antwort('App.kdeMedien', dict(result, ok=True, requestId=request_id))
+        except Exception as error:
+            self.antwort('App.kdeMedien', dict(ok=False, requestId=request_id, error=str(error)[:300]))
+
     def _kontakt_fotos_lesen(self, nachricht):
         request_id = nachricht.get("requestId", "")
         vollstaendig = nachricht.get("cmd") == "telefon_kontakte"
@@ -23278,6 +23300,20 @@ class Fenster(_FENSTER_BASIS):
             self.antwort("App.geraetStatus", {
                 "kennung": kennung, "fehler": fehler_deutsch(
                     fehler, _("Requesting the device status"))})
+
+    def _telefon_entwickler_diagnose(self, nachricht):
+        result = {"requestId": nachricht.get("requestId"), "kennung": nachricht.get("kennung"), "ok": False}
+        try:
+            if self._gesperrt or not self._organizer_vertraut() or not self._telefon:
+                raise PermissionError("developer_diagnostics_unavailable")
+            result["diagnose"] = self._telefon.read_developer_diagnostics(nachricht.get("kennung") or "")
+            if self._gesperrt or not self._organizer_vertraut():
+                raise PermissionError("developer_diagnostics_unavailable")
+            result["ok"] = True
+        except Exception as fehler:
+            result.pop("diagnose", None)
+            result["fehler"] = str(fehler)
+        self.antwort("App.telefonEntwicklerDiagnose", result)
 
     def _telefon_entfernen(self, kennung):
         if self._telefon:

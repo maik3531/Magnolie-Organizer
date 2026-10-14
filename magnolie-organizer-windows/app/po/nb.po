@@ -5090,6 +5090,24 @@ msgstr "Vis alle"
 msgid "Show calendar button in date fields"
 msgstr "Vis kalenderknapp i datofelt"
 
+msgid "Developer options"
+msgstr "Utvikleralternativer"
+
+msgid "Disable developer mode"
+msgstr "Deaktiver utviklermodus"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Les Wi-Fi-diagnostikk fra Notes"
+
+msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "Aktiver Wi-Fi-feilsøking i utvikleralternativene i Notes på din egen parede telefon."
+
+msgid "%(Handyname)s filesystem"
+msgstr "Filsystemet til %(Handyname)s"
+
+msgid "The phone filesystem could not be opened."
+msgstr "Telefonens filsystem kunne ikke åpnes."
+
 msgid "Show log"
 msgstr "Vis logg"
 
