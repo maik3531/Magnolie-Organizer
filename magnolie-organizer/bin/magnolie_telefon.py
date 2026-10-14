@@ -2342,6 +2342,7 @@ class PhoneService:
         self.note_controls = weakref.WeakKeyDictionary()
         self.status_requests = {}
         self.contact_requests = {}
+        self.developer_requests = {}
         self.identifier_requests = {}
         self.transient_identifiers = {}
         self.lock = threading.RLock()
@@ -2944,6 +2945,103 @@ class PhoneService:
         except PermissionError:
             pass
         channel.send({"type": "ack", "message_id": payload["message_id"], "status": "rejected", "error": error})
+
+    def _developer_peer(self, peer_id, channel=None):
+        peer = self.store.sole_peer(peer_id)
+        current_channel = self.connections.get(peer_id)
+        if (not self.enabled or self.stop_event.is_set() or not peer or peer.get('state') != 'paired' or not current_channel or
+                channel is not None and current_channel is not channel or
+                self.connection_transports.get(peer_id) != 'wifi'):
+            return None
+        personal = peer.get('personal_sync', {})
+        capability = peer.get('capabilities', {}).get('items', {}).get('device_status', {})
+        controls = self._note_controls_for(current_channel)
+        if (personal.get('own_device') is not True or personal.get('remote_own_device') is not True or
+                capability.get('available') is not True or 11 not in capability.get('versions', []) or
+                peer.get('grants', {}).get('grants', {}).get('device_status') is not True or
+                peer.get('local_grants', desktop_grants()).get('grants', {}).get('device_status') is not True or
+                controls.get('capabilities.update') != peer.get('capabilities') or
+                controls.get('grants.update') != peer.get('grants') or
+                controls.get('personal_sync.settings') != {'format': 1, 'own_device': True}):
+            return None
+        return peer
+
+    def read_developer_diagnostics(self, peer_id):
+        """One bounded, ephemeral read over the currently pinned own-phone Wi-Fi session."""
+        request_id = str(uuid.uuid4())
+        with self.lock:
+            peer = self._developer_peer(peer_id)
+            channel = self.connections.get(peer_id)
+            if not peer or len(self.developer_requests) >= 8:
+                raise PermissionError('developer_diagnostics_unavailable')
+            message_id = str(uuid.uuid4())
+            entry = {'peer': peer_id, 'key': peer['static_public'], 'channel': channel,
+                'event': threading.Event(), 'result': None, 'deadline': time.monotonic() + 10,
+                'message_id': message_id, 'error': None}
+            self.developer_requests[request_id] = entry
+            created = now_ms()
+            try:
+                channel.send({'type': 'message', 'v': 1, 'message_id': message_id,
+                    'kind': 'device_status.request', 'created_ms': created, 'expires_ms': created + 10000,
+                    'body': {'request_id': request_id, 'version': 11}})
+            except Exception:
+                self.developer_requests.pop(request_id, None)
+                raise
+        try:
+            if not entry['event'].wait(10):
+                raise TimeoutError('developer_diagnostics_timeout_or_disabled')
+            with self.lock:
+                current = self._developer_peer(peer_id, channel)
+                if (not current or current['static_public'] != entry['key'] or
+                        time.monotonic() >= entry['deadline']):
+                    raise PermissionError('developer_diagnostics_source_changed')
+                if entry['error']:
+                    raise PermissionError('developer_diagnostics_' + entry['error'])
+                return copy.deepcopy(entry['result'])
+        finally:
+            with self.lock:
+                self.developer_requests.pop(request_id, None)
+
+    def _receive_developer_diagnostics(self, peer, channel, payload):
+        error = 'invalid_schema'
+        try:
+            body = payload['body']
+            if (set(body) != {'version', 'request_id', 'format', 'app_version', 'events'} or
+                    type(body['version']) is not int or body['version'] != 11 or
+                    not valid_uuid(body['request_id'], 4) or
+                    type(body['format']) is not int or body['format'] != 1 or
+                    not isinstance(body['app_version'], str) or not 1 <= len(body['app_version']) <= 80 or
+                    not isinstance(body['events'], list) or len(body['events']) > 128 or
+                    len(json.dumps(body).encode('utf-8')) > 65536):
+                raise ValueError
+            for event in body['events']:
+                if (not isinstance(event, dict) or set(event) != {'time_ms', 'stage', 'transport', 'failure'} or
+                        not valid_timestamp(event['time_ms']) or type(event['failure']) is not bool or
+                        not isinstance(event['stage'], str) or
+                        event['stage'] not in {'pair_begin', 'pair_confirmed', 'authenticating', 'secure_ready', 'online', 'closed', 'failed'} or
+                        not isinstance(event['transport'], str) or event['transport'] not in {'wifi', 'bluetooth'}):
+                    raise ValueError
+            with self.lock:
+                entry = self.developer_requests.get(body['request_id'])
+                current = self._developer_peer(peer['device_id'], channel)
+                error = 'not_granted'
+                if (not entry or not current or entry['result'] is not None or entry['error'] is not None or
+                        (entry['peer'], entry['key'], entry['channel']) !=
+                        (peer['device_id'], peer['static_public'], channel) or current['static_public'] != entry['key']):
+                    raise PermissionError
+                error = 'expired'
+                if (time.monotonic() >= entry['deadline'] or now_ms() >= payload['expires_ms'] or
+                        payload['expires_ms'] - payload['created_ms'] > 60000):
+                    raise PermissionError
+                entry['result'] = copy.deepcopy(body)
+                entry['event'].set()
+            channel.send({'type': 'ack', 'message_id': payload['message_id'], 'status': 'accepted', 'error': 'none'})
+            return
+        except ValueError:
+            error = 'invalid_schema'
+        except PermissionError:
+            pass
+        channel.send({'type': 'ack', 'message_id': payload['message_id'], 'status': 'rejected', 'error': error})
 
     def request_status(self, peer_id, include_identifiers=True, request_id=None):
         if type(include_identifiers) is not bool:
@@ -4935,7 +5033,7 @@ class PhoneService:
                 raise ValueError("invalid ack")
             if payload["status"] == "rejected":
                 with self.lock:
-                    for request in self.contact_requests.values():
+                    for request in list(self.contact_requests.values()) + list(self.developer_requests.values()):
                         if (request.get("message_id") == payload["message_id"] and
                                 (request["peer"], request["key"], request["channel"]) ==
                                 (peer["device_id"], peer["static_public"], channel) and
@@ -5218,6 +5316,9 @@ class PhoneService:
                     raise ValueError("conflicting personal sync format")
             if policy == "wifi_only" and self.connection_transports.get(peer["device_id"]) != "wifi":
                 raise ValueError("wifi-only run received on bluetooth")
+        if kind == 'device_status.report' and payload['body'].get('version') == 11:
+            self._receive_developer_diagnostics(peer, channel, payload)
+            return
         if kind == "device_status.report" and payload["body"].get("version") in (phone_contacts.VERSION, phone_contacts.PROFILE_VERSION, phone_contacts.PROFILE_DIAGNOSTIC_VERSION):
             self._receive_contacts(peer, channel, payload)
             return

@@ -23,6 +23,27 @@ zugeordnet. Die Kennung `io.gitlab.maik3531.MagnolieOrganizer` bleibt dabei für
 die Zuordnung vorhandener Installationen, Startmenüeinträge und Flatpak erhalten.
 Die neutralen Quelldateinamen sind von dieser Installationskennung getrennt.
 
+## Entwicklermodus und Notes-WLAN-Diagnose
+
+Unter **Einstellungen > Über** die Versionsnummer links zehnmal anklicken.
+Danach erscheint der zusätzliche Reiter **Entwickleroptionen**. Dort stehen
+**Protokoll für die Fehlersuche führen**, **Protokoll anzeigen** und
+**Entwicklermodus deaktivieren**. Deaktivieren schaltet auch das optionale
+Fehlersuchprotokoll aus.
+
+Für **Notes-WLAN-Diagnose auslesen** auf dem eigenen gekoppelten Telefon in den
+Notes-Einstellungen ebenfalls die Versionsnummer zehnmal antippen und in den
+Debug-Optionen **WLAN-Debug** einschalten. Die Auslese verwendet die bestehende
+verschlüsselte Magnolie-WLAN-Verbindung und die beidseitige Eigengeräte- und
+Gerätestatusfreigabe. Notes kann die Auslese durch Abschalten des WLAN-Debugs
+oder Entwicklermodus widerrufen. Bluetooth ist hierfür nicht zugelassen.
+
+Der technische Bericht enthält die Notes-Version und höchstens 128 Ereignisse
+mit Zeitpunkt, Verbindungsstufe, Transport und Fehlerkennzeichen. Nachrichten,
+Notizen, Kontakte, Schlüssel und Zugangsdaten gehören nicht in diesen Bericht.
+Der Organizer zeigt ihn vorübergehend an; er wird nicht in den Datenbestand
+oder die Gerätestatushistorie übernommen.
+
 ## Tastatur und Hilfsrahmen
 
 Die kalender- und listenübergreifende Option **Barrierefreiheit: Hilfsrahmen**

@@ -436,3 +436,20 @@ sodass *Sichern*, *Weitergeben* und *Löschen* immer erreichbar bleiben.
 * Es gibt kein CRDT: bei gleichzeitiger Änderung auf beiden Seiten gewinnt die
   höhere Fassung, die andere geht verloren. Das ist dasselbe Verhalten wie im
   Organizer.
+## Entwicklermodus und WLAN-Diagnose
+
+In den Einstellungen wird die installierte Notes-Version angezeigt. Die
+Versionsnummer zehnmal antippen, um **Debug-Optionen** einzublenden. Dort lässt
+sich **WLAN-Debug** ein- und ausschalten, der Bericht anzeigen und der
+**Entwicklermodus deaktivieren**. Die Einstellungen gelten nur für diese
+Installation und werden nicht durch übertragene Organizer-Inhalte aktiviert.
+
+Bei eingeschaltetem WLAN-Debug kann der eigene bestätigte Organizer den Bericht
+über die bestehende verschlüsselte WLAN-Sitzung auslesen. Beide Seiten müssen
+das Gerät als eigenes bestätigen und den Gerätestatus freigeben. Bluetooth
+ist dafür nicht zugelassen. Deaktivieren widerruft auch WLAN-Debug.
+
+Der Bericht ist auf 128 Ereignisse und 64 KiB begrenzt. Er enthält die installierte
+Version sowie technische Zeitpunkte, Verbindungsstufen, Transportarten und
+Fehlerkennzeichen. Notizen, Kontakte, Nachrichteninhalte und Zugangsdaten werden
+dabei nicht aufgezeichnet.

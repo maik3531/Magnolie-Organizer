@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="developer_version">الإصدار %1$s</string>
+    <string name="developer_options">خيارات المطوّر</string>
+    <string name="developer_disable">تعطيل وضع المطوّر</string>
+    <string name="developer_wifi">تصحيح أخطاء Wi-Fi</string>
+    <string name="developer_show">عرض التشخيصات</string>
+</resources>

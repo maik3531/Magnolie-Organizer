@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="developer_version">Wersija %1$s</string>
+    <string name="developer_options">Wuwiwarske nastajenja</string>
+    <string name="developer_disable">Wuwiwarski modus znjemóžnić</string>
+    <string name="developer_wifi">WLAN pytanje zmylkow</string>
+    <string name="developer_show">Diagnostiku pokazać</string>
+</resources>

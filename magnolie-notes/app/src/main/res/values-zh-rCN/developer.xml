@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="developer_version">版本 %1$s</string>
+    <string name="developer_options">开发者选项</string>
+    <string name="developer_disable">停用开发者模式</string>
+    <string name="developer_wifi">Wi-Fi 调试</string>
+    <string name="developer_show">显示诊断信息</string>
+</resources>

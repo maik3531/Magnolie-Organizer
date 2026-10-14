@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="developer_version">Verze %1$s</string>
+    <string name="developer_options">Možnosti pro vývojáře</string>
+    <string name="developer_disable">Vypnout režim pro vývojáře</string>
+    <string name="developer_wifi">Ladění Wi-Fi</string>
+    <string name="developer_show">Zobrazit diagnostiku</string>
+</resources>

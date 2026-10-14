@@ -23,6 +23,7 @@ if (args.FirstOrDefault() == "--personal-custom-host") return await PersonalCust
 if (args.FirstOrDefault() == "--personal-note-mode-host") return await PersonalNoteModeTransportHost.RunAsync();
 if (args.FirstOrDefault() == "--time-sync-host") return await TimeSyncTransportHost.RunAsync();
 if (args.FirstOrDefault() == "--phone-contact-read-host") return await PhoneContactReadTests.HostAsync();
+if (args.FirstOrDefault() == "--phone-developer-read-host") return await DeveloperDiagnosticsTests.HostAsync();
 if (args.FirstOrDefault() == "--waste-import-fixture")
 {
     var fixture = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(
@@ -98,6 +99,7 @@ runner.Add("Magnolienbaum Kontakte / Fotos / manuelle Löschvorschläge", Contra
 runner.Add("Telefonverbindung / Crypto / Pairingcode / Rahmen / Verträge", TelefonProtocolTests.RunAsync);
 runner.Add("Telefon renewal / existing binding / pending proofs", TelefonRepairTests.RunAsync);
 runner.Add("Notes contacts / read-only / bounded pages / source binding", PhoneContactReadTests.RunAsync);
+runner.Add("Developer diagnostics / own Wi-Fi / bounded reports / revocation", DeveloperDiagnosticsTests.RunAsync);
 runner.Add("Telefon WLAN invitations / bounded discovery", TelefonInvitationTests.RunAsync);
 runner.Add("Telefon Bluetooth first pairing / target binding", TelefonBluetoothSetupTests.RunAsync);
 runner.Add("Telefon setup startup lifecycle / Finish / Skip / rollback", PhoneStartupLifecycleTests.RunAsync);

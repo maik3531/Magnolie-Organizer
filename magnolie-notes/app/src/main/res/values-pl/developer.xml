@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="developer_version">Wersja %1$s</string>
+    <string name="developer_options">Opcje programistyczne</string>
+    <string name="developer_disable">Wyłącz tryb programistyczny</string>
+    <string name="developer_wifi">Debugowanie Wi-Fi</string>
+    <string name="developer_show">Pokaż diagnostykę</string>
+</resources>

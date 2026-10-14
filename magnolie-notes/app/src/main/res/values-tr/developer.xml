@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="developer_version">Sürüm %1$s</string>
+    <string name="developer_options">Geliştirici seçenekleri</string>
+    <string name="developer_disable">Geliştirici modunu devre dışı bırak</string>
+    <string name="developer_wifi">Wi-Fi hata ayıklama</string>
+    <string name="developer_show">Tanılamayı göster</string>
+</resources>

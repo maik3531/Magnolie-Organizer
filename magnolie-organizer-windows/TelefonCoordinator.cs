@@ -342,6 +342,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
 
     private bool RejectContactRead(TelefonConnection source, TelefonPeer peer, TelefonAck ack)
     {
+        if (RejectDeveloperRead(source, peer, ack)) return true;
         lock (gate)
         {
             var pending = contactReads.Values.FirstOrDefault(value => value.MessageId == ack.MessageId && value.PeerId == peer.Id);
@@ -1306,7 +1307,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
             connection = new TelefonConnection(peer, stream, sid, material, store,
                 (source, message) => HandleMessageAsync(source, message, transport), cancellation, transport,
                 body => emit("App.personalCustomAck", new { device_id = peer.Id, body }), AuthorizeCall, SendCall,
-                async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); }, RejectContactRead)
+                async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); }, RejectContactRead, AcceptDeveloperRead)
                 { SharedLocalCapabilities = () => SharedLocalCapabilities(), SharedPreferencesChanged = () => ApplyCommonPreferencesAsync(peer.Id),
                     CollectionChanged = value => emit("App.personalSyncCollection", value) };
             var capabilityRevision = store.NextOwnRevision("capabilities"); var grantRevision = store.NextOwnRevision("grants");
@@ -1765,13 +1766,15 @@ internal sealed partial class TelefonConnection : IDisposable
     private readonly Func<TelefonConnection, TelefonPeer, JsonObject, Action, bool>? sendCall;
     private readonly Func<Task>? noteReady;
     private readonly Func<TelefonConnection, TelefonPeer, TelefonAck, bool>? rejectContactRead;
+    private readonly Func<TelefonConnection, TelefonPeer, JsonObject, TelefonAck>? receiveDeveloper;
     internal string RemoteCloseReason { get; private set; } = "";
     internal string Transport => transport;
     internal TelefonConnection(TelefonPeer peer, Stream stream, byte[] sid, byte[] material, TelefonStore store, Func<TelefonPeer, JsonObject, Task<TelefonAck?>> receive, CancellationToken cancellation, string transport, Func<JsonObject, Task>? customAccepted = null,
         Func<TelefonPeer, string, JsonObject, string?>? authorizeCall = null,
         Func<TelefonConnection, TelefonPeer, JsonObject, Action, bool>? sendCall = null, Func<Task>? noteReady = null,
-        Func<TelefonConnection, TelefonPeer, TelefonAck, bool>? rejectContactRead = null)
-    { this.rejectContactRead = rejectContactRead; this.noteReady = noteReady; this.authorizeCall = authorizeCall; this.sendCall = sendCall; this.customAccepted = customAccepted; this.peer = peer; this.stream = stream; this.sid = sid.ToArray(); receiveKey = material[..32]; receivePrefix = material[32..36]; sendKey = material[36..68]; sendPrefix = material[68..72]; this.store = store; this.receive = receive; this.cancellation = cancellation; this.transport = transport; lastReceivedMs = lastSentMs = Now(); }
+        Func<TelefonConnection, TelefonPeer, TelefonAck, bool>? rejectContactRead = null,
+        Func<TelefonConnection, TelefonPeer, JsonObject, TelefonAck>? receiveDeveloper = null)
+    { this.receiveDeveloper = receiveDeveloper; this.rejectContactRead = rejectContactRead; this.noteReady = noteReady; this.authorizeCall = authorizeCall; this.sendCall = sendCall; this.customAccepted = customAccepted; this.peer = peer; this.stream = stream; this.sid = sid.ToArray(); receiveKey = material[..32]; receivePrefix = material[32..36]; sendKey = material[36..68]; sendPrefix = material[68..72]; this.store = store; this.receive = receive; this.cancellation = cancellation; this.transport = transport; lastReceivedMs = lastSentMs = Now(); }
     internal async Task RunAsync()
     {
         Task<JsonObject>? read = null;
@@ -1800,6 +1803,15 @@ internal sealed partial class TelefonConnection : IDisposable
     internal async Task SendMessageAsync(string kind, JsonObject body, long ttl, string? contactMessageId = null)
     {
         var now = Now();
+        if (kind == "device_status.request" && TelefonProtocolContract.TryInteger(body["version"], out var developerVersion) && developerVersion == 11)
+        {
+            TelefonDeveloperDiagnostics.ValidateRequest(body);
+            if (!DeveloperReadReady || ttl is < 1 or > 10000) throw new InvalidOperationException("developer_diagnostics_unavailable");
+            if (contactMessageId is not null && !TelefonProtocolContract.IsUuidV4(contactMessageId)) throw new InvalidDataException("invalid_developer_request");
+            await SendPlainAsync(new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = contactMessageId ?? Guid.NewGuid().ToString("D"),
+                ["kind"] = kind, ["created_ms"] = now, ["expires_ms"] = now + ttl, ["body"] = body.DeepClone() });
+            return;
+        }
         if (kind == "device_status.request" && TelefonProtocolContract.TryInteger(body["version"], out var contactVersion) && contactVersion == PhoneContactRead.Version)
         {
             PhoneContactRead.ValidateRequest(body);
@@ -1878,6 +1890,12 @@ internal sealed partial class TelefonConnection : IDisposable
         if (TimeSyncContract.IsKind(plain["kind"]?.GetValue<string>()))
         {
             await HandleTimeMessageAsync(plain);
+            return;
+        }
+        if (plain["kind"]?.GetValue<string>() == "device_status.report" && plain["body"] is JsonObject developerBody &&
+            TelefonProtocolContract.TryInteger(developerBody["version"], out var developerVersion) && developerVersion == 11)
+        {
+            await HandleDeveloperReportAsync(plain);
             return;
         }
         var wasNoteReady = NotePolicyReady;

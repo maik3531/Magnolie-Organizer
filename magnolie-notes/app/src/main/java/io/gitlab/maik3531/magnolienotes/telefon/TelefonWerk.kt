@@ -121,6 +121,7 @@ internal fun shouldStartPersonalSyncOnSecureWifi(
 }
 
 class TelefonWerk private constructor(private val context: Context, private val storage: TelefonAblage) {
+    private val developerDiagnostics = io.gitlab.maik3531.magnolienotes.Entwicklermodus(context)
     private val noteSessions = java.util.WeakHashMap<TelefonSecureChannel, PersonalNoteSession>()
     private val timePolicyFailed = mutableSetOf<String>()
 
@@ -1445,6 +1446,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val authenticationDeadline = if (transport == TelefonTransportArt.BLUETOOTH)
             TelefonPaarungsRoehre(pipe, 15_000) else null
         _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.AUTHENTICATING, error = "")
+        developerDiagnostics.ereignis("authenticating", if (transport == TelefonTransportArt.WIFI) "wifi" else "bluetooth")
         try {
             val secrets = TelefonSession.start(identity, peer, staticPrivate)
             TelefonRahmen.schreiben(pipe.output, secrets.start)
@@ -1458,6 +1460,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     put("capabilities_revision", JsonPrimitive(maxOf(1, peer.capabilities_revision))); put("last_received_seq", JsonPrimitive(-1))
                 })
                 TelefonNachrichten.validateReady(channel.receive())
+                developerDiagnostics.ereignis("secure_ready", if (transport == TelefonTransportArt.WIFI) "wifi" else "bluetooth")
                 authenticationDeadline?.disarm()
                 authenticated()
                 peerEffect(peer, generation) { current ->
@@ -1568,8 +1571,13 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     }
                 }
             }
+        } catch (error: Exception) {
+            if (serviceRunning && storage.enabled() && generation == pairingGeneration)
+                developerDiagnostics.ereignis("failed", if (transport == TelefonTransportArt.WIFI) "wifi" else "bluetooth", true)
+            throw error
         } finally {
             authenticationDeadline?.close()
+            developerDiagnostics.ereignis("closed", if (transport == TelefonTransportArt.WIFI) "wifi" else "bluetooth")
             staticPrivate.fill(0); runCatching { pipe.close() }
             if (generation == pairingGeneration && serviceRunning && storage.enabled()) _state.value = _state.value.copy(connection = TelefonVerbindungsstatus.OFFLINE)
         }
@@ -1595,11 +1603,17 @@ class TelefonWerk private constructor(private val context: Context, private val 
             _state.value = _state.value.copy(peer = peer, pairedComputers = savedComputers(), bluetoothSelecting = false, bluetoothEnabled = storage.bluetoothEnabled(),
                 bluetoothDevices = emptyList(), error = "", connection = if (transport == TelefonTransportArt.WIFI)
                     TelefonVerbindungsstatus.ONLINE_WIFI else TelefonVerbindungsstatus.ONLINE_BLUETOOTH)
+            developerDiagnostics.ereignis("online", if (transport == TelefonTransportArt.WIFI) "wifi" else "bluetooth")
             peer
         }
 
     internal fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                 generation: Long) {
+        if (message["kind"] == JsonPrimitive("device_status.request") &&
+            (message["body"] as? JsonObject)?.get("version") == JsonPrimitive(11)) {
+            receiveDeveloperRead(sessionPeer, message, channel, generation)
+            return
+        }
         if (message["kind"] == JsonPrimitive("device_status.request") &&
             (message["body"] as? JsonObject)?.get("version") in setOf(JsonPrimitive(ContactRead.VERSION), JsonPrimitive(ContactRead.PROFILE_VERSION), JsonPrimitive(ContactRead.PROFILE_DIAGNOSTIC_VERSION))) {
             receiveContactRead(sessionPeer, message, channel, generation)
@@ -1616,6 +1630,37 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         System.currentTimeMillis() < message.long("expires_ms")) channel.send(reply)
                 }
             } else channel.send(reply)
+        }
+    }
+
+    private fun receiveDeveloperRead(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
+        val messageId = runCatching { message.string("message_id") }.getOrDefault("00000000-0000-0000-0000-000000000000")
+        try { TelefonNachrichten.validate(message) } catch (_: Exception) {
+            channel.send(TelefonNachrichten.ack(messageId, "rejected", "invalid_schema")); return
+        }
+        var error = "not_granted"
+        try {
+            peerEffect(sessionPeer, generation) { current ->
+                val session = noteSessions[channel]
+                if (session == null || !session.capabilitiesReceived || !session.grantsReceived || !session.ownSettingsReceived ||
+                    !current.own_device || !current.remote_own_device || !current.device_status_granted ||
+                    !current.remote_device_status_granted || !current.remote_device_status_available ||
+                    activeTransport?.first != TelefonTransportArt.WIFI || !developerDiagnostics.wlan)
+                    throw SecurityException("developer_diagnostics_not_granted")
+                error = "expired"
+                if (System.currentTimeMillis() >= message.long("expires_ms")) throw SecurityException("developer_diagnostics_expired")
+                val requestId = (message["body"] as JsonObject).string("request_id")
+                val report = JsonObject(developerDiagnostics.bericht() + mapOf("version" to JsonPrimitive(11), "request_id" to JsonPrimitive(requestId)))
+                error = "not_granted"
+                if (!developerDiagnostics.wlan || noteSessions[channel] !== session || activeTransport?.first != TelefonTransportArt.WIFI)
+                    throw SecurityException("developer_diagnostics_not_granted")
+                channel.send(TelefonNachrichten.message("device_status.report", report, 60_000))
+                channel.send(TelefonNachrichten.ack(messageId, "accepted", "none"))
+            }
+        } catch (_: SecurityException) {
+            channel.send(TelefonNachrichten.ack(messageId, "rejected", error))
+        } catch (_: IllegalStateException) {
+            channel.send(TelefonNachrichten.ack(messageId, "rejected", "not_granted"))
         }
     }
 
@@ -2114,6 +2159,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 accepted
             }.getOrElse { "rejected" to "invalid_schema" }
             send(TelefonNachrichten.ack(message.string("message_id"), result.first, result.second)); return
+        }
+        if (kind == "device_status.request" && (message["body"] as? JsonObject)?.get("version") == JsonPrimitive(11)) {
+            // Diagnostics require the actual channel's fresh controls, not a cached peer alone.
+            send(TelefonNachrichten.ack(message.string("message_id"), "rejected", "not_granted")); return
         }
         val response = if (kind == "device_status.request" && peer.device_status_granted && peer.remote_device_status_granted &&
             peer.remote_device_status_available) runCatching {

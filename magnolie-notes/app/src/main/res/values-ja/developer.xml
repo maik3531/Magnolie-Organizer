@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="developer_version">バージョン %1$s</string>
+    <string name="developer_options">開発者向けオプション</string>
+    <string name="developer_disable">開発者モードを無効にする</string>
+    <string name="developer_wifi">Wi-Fi デバッグ</string>
+    <string name="developer_show">診断を表示</string>
+</resources>

@@ -787,6 +787,7 @@ def _request_shape(operation, arguments):
         "phone_set_bluetooth": {"peer_id", "enabled", "address"},
         "phone_set_call_audio": {"peer_id", "prefer_pc", "address", "echo_cancel"},
         "phone_request_status": {"peer_id", "request_id"},
+        "phone_read_developer_diagnostics": {"peer_id"},
         "phone_read_contacts": {"peer_id", "uids"},
         "phone_read_own_profile": {"peer_id"},
         "phone_contact_source_current": {"peer_id", "fingerprint"},
@@ -1299,6 +1300,8 @@ class IPCServer:
             return phone.request_status(arguments["peer_id"], request_id=arguments.get("request_id"))
         if operation == "phone_read_own_profile":
             return phone.read_own_profile(arguments["peer_id"])
+        if operation == "phone_read_developer_diagnostics":
+            return phone.read_developer_diagnostics(arguments["peer_id"])
         if operation == "phone_read_contacts":
             return phone.read_contacts(arguments["peer_id"], arguments.get("uids"))
         if operation == "phone_contact_source_current":
@@ -1730,6 +1733,9 @@ class PhoneServiceProxy:
 
     def read_own_profile(self, peer_id):
         return self._call("read_own_profile", peer_id=peer_id)
+
+    def read_developer_diagnostics(self, peer_id):
+        return self._call("read_developer_diagnostics", peer_id=peer_id)
 
     def read_contacts(self, peer_id, uids=None):
         return self._call("read_contacts", peer_id=peer_id, uids=uids)

@@ -6,6 +6,26 @@ aus Magnolie Organizer 2.0.0 übernommen. Ringbuch, Papier, Register, Abstände
 und alle zwanzig Sprachen bleiben erhalten; nur Contributor-Freischaltung und
 Branding sind Windows-spezifisch.
 
+## Entwicklermodus und Notes-WLAN-Diagnose
+
+Unter **Einstellungen > Über** die Versionsnummer links zehnmal anklicken.
+Der zusätzliche Reiter **Entwickleroptionen** enthält das optionale
+Fehlersuchprotokoll, **Protokoll anzeigen**, **Notes-WLAN-Diagnose auslesen**
+und **Entwicklermodus deaktivieren**. Deaktivieren schaltet auch das optionale
+Fehlersuchprotokoll aus.
+
+Auf dem eigenen gekoppelten Telefon in den Notes-Einstellungen die
+Versionsnummer ebenfalls zehnmal antippen und in den Debug-Optionen
+**WLAN-Debug** einschalten. Die Diagnose wird ausschließlich über die bestehende
+verschlüsselte Magnolie-WLAN-Sitzung mit beidseitiger Eigengeräte- und
+Gerätestatusfreigabe ausgelesen. Abschalten des WLAN-Debugs oder Entwicklermodus
+in Notes widerruft die Auslese; über Bluetooth ist sie nicht möglich.
+
+Der vorübergehend angezeigte Bericht enthält die Notes-Version und höchstens
+128 technische Ereignisse: Zeitpunkt, Verbindungsstufe, Transport und
+Fehlerkennzeichen. Er enthält keine Nachrichten, Notizen, Kontakte, Schlüssel
+oder Zugangsdaten und wird nicht als Gerätestatushistorie gespeichert.
+
 ## Windows-Technik
 
 - C# und WinForms aus .NET 8

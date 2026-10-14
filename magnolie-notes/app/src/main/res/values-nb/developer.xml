@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="developer_version">Versjon %1$s</string>
+    <string name="developer_options">Utvikleralternativer</string>
+    <string name="developer_disable">Deaktiver utviklermodus</string>
+    <string name="developer_wifi">Wi-Fi-feilsøking</string>
+    <string name="developer_show">Vis diagnostikk</string>
+</resources>

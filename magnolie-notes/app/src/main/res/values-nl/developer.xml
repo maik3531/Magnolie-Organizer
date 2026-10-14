@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="developer_version">Versie %1$s</string>
+    <string name="developer_options">Ontwikkelaarsopties</string>
+    <string name="developer_disable">Ontwikkelaarsmodus uitschakelen</string>
+    <string name="developer_wifi">Wifi-debugging</string>
+    <string name="developer_show">Diagnostiek weergeven</string>
+</resources>

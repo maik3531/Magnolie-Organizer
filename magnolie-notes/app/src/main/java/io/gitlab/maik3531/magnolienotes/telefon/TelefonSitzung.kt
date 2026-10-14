@@ -80,7 +80,7 @@ object TelefonNachrichten {
                 }
                 else {
                     exact(body, setOf("request_id", "version")); uuid(body.string("request_id"))
-                    if (body.long("version") !in 1L..3L) fail()
+                    if (body.long("version") !in 1L..3L && body.long("version") != 11L) fail()
                 }
                 if (expires - created > 60_000L) fail()
             }

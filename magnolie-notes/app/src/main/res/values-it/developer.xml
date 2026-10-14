@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="developer_version">Versione %1$s</string>
+    <string name="developer_options">Opzioni sviluppatore</string>
+    <string name="developer_disable">Disattiva la modalità sviluppatore</string>
+    <string name="developer_wifi">Debug Wi-Fi</string>
+    <string name="developer_show">Mostra diagnostica</string>
+</resources>

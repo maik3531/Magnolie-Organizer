@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="developer_version">Версия %1$s</string>
+    <string name="developer_options">Параметры разработчика</string>
+    <string name="developer_disable">Отключить режим разработчика</string>
+    <string name="developer_wifi">Отладка Wi-Fi</string>
+    <string name="developer_show">Показать диагностику</string>
+</resources>

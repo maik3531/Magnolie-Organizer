@@ -10,6 +10,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import io.gitlab.maik3531.magnolienotes.BuildConfig
+import io.gitlab.maik3531.magnolienotes.Entwicklermodus
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,8 +25,32 @@ import io.gitlab.maik3531.magnolienotes.R
 @Composable
 fun EinstellungenBlatt(zeiterfassungAn: Boolean, speichert: Boolean, beiZeiterfassung: (Boolean) -> Unit,
                        beiBlatt: (Int) -> Unit, beiRechten: () -> Unit, beiBenachrichtigungen: () -> Unit) {
+    val context = LocalContext.current
+    val developer = remember(context) { Entwicklermodus(context) }
+    var developerEnabled by remember { mutableStateOf(developer.an) }
+    var debugOpen by remember { mutableStateOf(false) }
+    var wifi by remember { mutableStateOf(developer.wlan) }
+    var report by remember { mutableStateOf<String?>(null) }
+    if (report != null) AlertDialog(onDismissRequest = { report = null },
+        title = { Text(stringResource(R.string.developer_show)) }, text = { Text(report!!) },
+        confirmButton = { Papierknopf("OK") { report = null } })
     Column(Modifier.fillMaxSize().background(Magnolie.papier).verticalScroll(rememberScrollState())) {
         Abschnitt(stringResource(R.string.zeit_einstellungen)) {
+            Papierknopf(stringResource(R.string.developer_version, BuildConfig.VERSION_NAME), Modifier.fillMaxWidth()) {
+                developerEnabled = developer.versionAngeklickt()
+            }
+            if (developerEnabled) Papierknopf(stringResource(R.string.developer_options), Modifier.fillMaxWidth()) { debugOpen = !debugOpen }
+            if (developerEnabled && debugOpen) {
+                Row(Modifier.fillMaxWidth().toggleable(wifi, role = Role.Checkbox, onValueChange = {
+                    developer.wlanSetzen(it); wifi = it
+                }), verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(wifi, null); Text(stringResource(R.string.developer_wifi))
+                }
+                if (wifi) Papierknopf(stringResource(R.string.developer_show), Modifier.fillMaxWidth()) { report = developer.bericht().toString() }
+                Papierknopf(stringResource(R.string.developer_disable), Modifier.fillMaxWidth()) {
+                    developer.deaktivieren(); developerEnabled = false; wifi = false; debugOpen = false; report = null
+                }
+            }
             Papierknopf(stringResource(R.string.blatt_einfuhr), Modifier.fillMaxWidth()) { beiBlatt(2) }
             Papierknopf(stringResource(R.string.blatt_baum), Modifier.fillMaxWidth()) { beiBlatt(3) }
             Papierknopf(stringResource(R.string.blatt_journal), Modifier.fillMaxWidth()) { beiBlatt(4) }
