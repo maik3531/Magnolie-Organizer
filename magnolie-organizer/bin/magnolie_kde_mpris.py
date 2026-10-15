@@ -1,4 +1,8 @@
-"""Use existing local MPRIS players; never launch a player (issue #28)."""
+"""Local MPRIS and an explicitly selected registered player (issue #28)."""
+import json
+import os
+import re
+import tempfile
 import threading
 import time
 
@@ -10,17 +14,102 @@ PROPERTIES = 'org.freedesktop.DBus.Properties'
 
 
 class DesktopMpris:
-    def __init__(self, bus, gio, glib):
+    def __init__(self, bus, gio, glib, directory=None):
         self.bus, self.gio, self.glib = bus, gio, glib
         self.lock = threading.RLock()
+        self.settings_path = os.path.join(directory, 'media-player.json') if directory else None
+        self.selected_apps = {'music': '', 'video': ''}
+        self.launch_pending = {}
+        loaded = False
+        if self.settings_path:
+            try:
+                with open(self.settings_path, 'rb') as stream:
+                    raw = stream.read(4097)
+                if len(raw) <= 4096:
+                    saved = json.loads(raw)
+                    loaded = isinstance(saved, dict)
+                    for slot in self.selected_apps:
+                        value = saved.get(slot, saved.get('application', '') if slot == 'music' else '')
+                        if self._valid_application(value): self.selected_apps[slot] = value
+            except (OSError, ValueError, TypeError, AttributeError):
+                pass
+        if not loaded:
+            apps = self._applications()
+            for slot, mime, category in (('music', 'audio/mpeg', 'Audio'), ('video', 'video/mp4', 'Video')):
+                default = (self.gio.AppInfo.get_default_for_type(mime, False)
+                    if hasattr(getattr(self.gio, 'AppInfo', None), 'get_default_for_type') else None)
+                identifier = default.get_id() if default is not None else None
+                if identifier not in apps:
+                    identifier = next((key for key, app in sorted(apps.items())
+                        if category in (app.get_categories() or '').split(';')), '')
+                self.selected_apps[slot] = identifier
 
     @classmethod
-    def create(cls):
+    def create(cls, directory=None):
         try:
             from gi.repository import Gio, GLib
-            return cls(Gio.bus_get_sync(Gio.BusType.SESSION, None), Gio, GLib)
+            return cls(Gio.bus_get_sync(Gio.BusType.SESSION, None), Gio, GLib, directory)
         except Exception:
             return None
+
+    @staticmethod
+    def _valid_application(value):
+        return isinstance(value, str) and (value == '' or re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,240}\.desktop', value) is not None)
+
+    def _applications(self):
+        if not hasattr(self.gio, 'AppInfo'):
+            return {}
+        result = {}
+        for app in self.gio.AppInfo.get_all():
+            identifier = app.get_id()
+            if (self._valid_application(identifier) and identifier and hasattr(app, 'get_categories')
+                    and 'Player' in (app.get_categories() or '').split(';') and not app.get_nodisplay()):
+                result[identifier] = app
+        return result
+
+    def settings(self):
+        with self.lock:
+            apps = self._applications()
+            return {'available': bool(apps), **self.selected_apps,
+                'applications': [{'id': identifier, 'name': app.get_display_name()}
+                    for identifier, app in sorted(apps.items())][:64]}
+
+    def configure(self, application, slot='music'):
+        with self.lock:
+            if slot not in self.selected_apps:
+                raise ValueError('invalid_media_slot')
+            if not self._valid_application(application) or application and application not in self._applications():
+                raise ValueError('media_application_unavailable')
+            selected = dict(self.selected_apps, **{slot: application})
+            if self.settings_path:
+                directory = os.path.dirname(self.settings_path)
+                fd, path = tempfile.mkstemp(prefix='.media-player-', dir=directory)
+                try:
+                    with os.fdopen(fd, 'wb') as stream:
+                        stream.write((json.dumps(selected) + '\n').encode())
+                        stream.flush(); os.fsync(stream.fileno())
+                    os.chmod(path, 0o600); os.replace(path, self.settings_path)
+                finally:
+                    if os.path.exists(path): os.unlink(path)
+            self.selected_apps = selected
+            self.launch_pending.pop(slot, None)
+            return self.settings()
+
+    def _selected(self):
+        apps = self._applications()
+        result = {}
+        for slot, identifier in self.selected_apps.items():
+            app = apps.get(identifier)
+            if app is not None:
+                name = 'Magnolie · ' + ('Musik · ' if slot == 'music' else 'Video · ') + app.get_display_name()
+                alias = name.encode('utf-8')[:240].decode('utf-8', errors='ignore')
+                result[alias] = (slot, identifier, app)
+        return result
+
+    @staticmethod
+    def _dormant(name):
+        return {'player': name, 'title': '', 'isPlaying': False, 'canPlay': True,
+            'canPause': False, 'canGoNext': False, 'canGoPrevious': False, 'canSeek': False}
 
     def _call(self, owner, path, interface, method, signature=None, args=(), reply=None, deadline=None):
         timeout = min(800, int(((deadline or time.monotonic() + 0.8) - time.monotonic()) * 1000))
@@ -37,6 +126,7 @@ class DesktopMpris:
         if not isinstance(names, (list, tuple)) or len(names) > 4096 or any(not isinstance(n, str) for n in names):
             raise ValueError('invalid_local_media_list')
         values = {}
+        selected = self._selected()
         for name in sorted(names):
             # Native KDE remote proxies must not be re-exported to their source.
             if (not isinstance(name, str) or not name.startswith('org.mpris.MediaPlayer2.')
@@ -50,7 +140,15 @@ class DesktopMpris:
                     (PLAYER,), '(a{sv})', deadline=deadline)[0]
                 if props.get('CanControl') is not True:
                     continue
-                values[name] = (owner, props)
+                if selected:
+                    root = self._call(owner, PATH, PROPERTIES, 'GetAll', '(s)',
+                        ('org.mpris.MediaPlayer2',), '(a{sv})', deadline=deadline)[0]
+                    entry = root.get('DesktopEntry')
+                    for alias, (_slot, identifier, _app) in selected.items():
+                        if entry in (identifier, identifier[:-8]):
+                            values[alias] = (owner, props)
+                else:
+                    values[name] = (owner, props)
             except Exception:
                 continue
             if len(values) == 32:
@@ -86,11 +184,30 @@ class DesktopMpris:
                 raise ValueError('local_media_source_changed')
             deadline = time.monotonic() + 2.0
             players = self._players(deadline)
+            selected = self._selected()
+            names = list(selected) if selected else list(players)
             if body.get('requestPlayerList') is True:
-                return [{'playerList': list(players), 'supportAlbumArtPayload': False}]
+                return [{'playerList': names, 'supportAlbumArtPayload': False}]
             name = player_name(body.get('player'))
+            if name in selected and name not in players:
+                slot, _identifier, app = selected[name]
+                actions = [key for key in ('action', 'setVolume', 'SetPosition', 'Seek') if key in body]
+                if len(actions) > 1:
+                    raise ValueError('invalid_local_media_request')
+                if actions:
+                    if actions != ['action'] or body['action'] not in ('Play', 'PlayPause'):
+                        raise ValueError('local_media_action_unavailable')
+                    if not permitted():
+                        raise ValueError('local_media_source_changed')
+                    if self.launch_pending.get(slot, 0) <= time.monotonic():
+                        # The registered desktop application supplies its own
+                        # launch command. Network packets supply only Play.
+                        if not app.launch([], None):
+                            raise ValueError('media_application_start_failed')
+                        self.launch_pending[slot] = time.monotonic() + 10
+                return [self._dormant(name)]
             if name not in players:
-                return [{'playerList': list(players)}]
+                return [{'playerList': names}]
             owner, props = players[name]
             actions = [key for key in ('action', 'setVolume', 'SetPosition', 'Seek') if key in body]
             if len(actions) > 1:

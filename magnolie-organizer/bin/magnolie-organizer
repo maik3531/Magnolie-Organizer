@@ -21275,6 +21275,8 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=self._kde_medien, args=(nachricht,), daemon=True).start()
         elif befehl in ('kde_input_stand', 'kde_input_einstellungen', 'kde_input_senden'):
             threading.Thread(target=self._kde_input, args=(nachricht,), daemon=True).start()
+        elif befehl in ('kde_player_stand', 'kde_player_waehlen'):
+            threading.Thread(target=self._kde_player, args=(nachricht,), daemon=True).start()
         elif befehl in ('kde_dateisystem_stand', 'kde_dateisystem_oeffnen'):
             threading.Thread(target=self._kde_dateisystem, args=(nachricht,), daemon=True).start()
 
@@ -23130,6 +23132,22 @@ class Fenster(_FENSTER_BASIS):
             self.antwort('App.kdeInput', dict(result, ok=True, requestId=request_id))
         except Exception as error:
             self.antwort('App.kdeInput', dict(ok=False, requestId=request_id, error=str(error)[:300]))
+
+    def _kde_player(self, nachricht):
+        request_id = nachricht.get('requestId')
+        if not isinstance(request_id, str) or not re.fullmatch(r'[0-9a-fA-F-]{36}', request_id):
+            return
+        try:
+            if self._gesperrt or not self._organizer_vertraut():
+                raise ValueError('locked')
+            backend = _kdeconnect_backend()
+            result = (backend.configure_media_player(nachricht.get('application'), nachricht.get('slot'))
+                if nachricht.get('cmd') == 'kde_player_waehlen' else backend.local_media_settings())
+            if self._gesperrt:
+                raise ValueError('locked')
+            self.antwort('App.kdePlayer', dict(result, ok=True, requestId=request_id))
+        except Exception as error:
+            self.antwort('App.kdePlayer', dict(ok=False, requestId=request_id, error=str(error)[:300]))
 
     def _kde_dateisystem(self, nachricht):
         request_id = nachricht.get('requestId')

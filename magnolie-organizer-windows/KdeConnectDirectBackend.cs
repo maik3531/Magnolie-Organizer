@@ -97,7 +97,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
         store = new KdeConnectIdentityStore(paths, protector);
         local = store.LoadOrCreate();
         this.filesystem = filesystem ?? new KdeWindowsFilesystemBrowser(paths.KdeConnect);
-        localMedia = KdeLocalMedia.Create();
+        localMedia = KdeLocalMedia.Create(paths.KdeConnect);
         inputTarget = new(inputSink);
         TcpListener? allocatedListener = null;
         UdpClient? allocatedUdp = null;
@@ -426,6 +426,15 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
     internal JsonObject MediaStatus(string deviceId)
     {
         lock (activeGate) return MediaConnection(deviceId).Media.Snapshot(deviceId);
+    }
+
+    internal JsonObject LocalMediaSettings() => localMedia?.Settings() ?? new JsonObject { ["available"] = false };
+    internal JsonObject ConfigureMediaPlayer(string slot, string application)
+    {
+        var result = localMedia?.Configure(slot, application) ?? throw new InvalidOperationException("local_media_unavailable");
+        foreach (var connection in active.Values)
+            Track(HandleLocalMediaAsync(connection, new JsonObject { ["requestPlayerList"] = true }, lifetime.Token));
+        return result;
     }
 
     internal JsonObject MediaDevices()

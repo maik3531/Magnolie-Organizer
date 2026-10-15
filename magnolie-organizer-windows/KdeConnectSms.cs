@@ -33,6 +33,8 @@ internal sealed class KdeConnectSms : IDisposable
     internal JsonObject FilesystemStatus() => native.FilesystemStatus();
     internal Task<JsonObject> OpenFilesystemAsync(string deviceId, string token, CancellationToken cancellation, Func<bool>? permitted = null) =>
         native.OpenFilesystemAsync(deviceId, token, cancellation, permitted);
+    internal JsonObject LocalMediaSettings() => native.LocalMediaSettings();
+    internal JsonObject ConfigureMediaPlayer(string slot, string application) => native.ConfigureMediaPlayer(slot, application);
     internal JsonObject InputStatus() => native.InputStatus();
     internal void ConfigureInput(bool? enabled = null, string? deviceId = null, Func<bool>? permitted = null) =>
         native.ConfigureInput(enabled, deviceId, permitted);

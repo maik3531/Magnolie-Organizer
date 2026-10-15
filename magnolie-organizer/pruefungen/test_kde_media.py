@@ -14,6 +14,45 @@ from test_kde_native import Bus, Variant, native
 from magnolie_kde_mpris import DesktopMpris, PLAYER
 
 
+def test_closed_registered_music_and_video_keep_independent_choices_and_launch_fences(tmp_path):
+    launched = []
+    class App:
+        def __init__(self, identifier): self.identifier = identifier
+        def get_id(self): return self.identifier
+        def get_categories(self): return 'AudioVideo;Player;'
+        def get_nodisplay(self): return False
+        def get_display_name(self): return 'Same display name'
+        def launch(self, files, context):
+            assert files == [] and context is None
+            launched.append(self.identifier)
+            return True
+    apps = [App('music.desktop'), App('video.desktop')]
+    gio = SimpleNamespace(AppInfo=SimpleNamespace(get_all=lambda: apps))
+    provider = DesktopMpris(None, gio, None, str(tmp_path))
+    provider._players = lambda _deadline: {}  # Both registered applications are closed.
+    provider.configure('music.desktop', 'music')
+    provider.configure('video.desktop', 'video')
+    names = provider.receive({'requestPlayerList': True})[0]['playerList']
+    assert len(names) == 2 and len(set(names)) == 2
+    for name in names:
+        assert provider.receive({'player': name, 'requestNowPlaying': True})[0]['canPlay']
+        with pytest.raises(ValueError, match='unavailable'):
+            provider.receive({'player': name, 'action': 'Pause'})
+        with pytest.raises(ValueError, match='source_changed'):
+            provider.receive({'player': name, 'action': 'Play'}, permitted=lambda: False)
+    assert launched == []
+    for name in names:
+        provider.receive({'player': name, 'action': 'Play'})
+        provider.receive({'player': name, 'action': 'Play'})
+    assert launched == ['music.desktop', 'video.desktop']
+    reopened = DesktopMpris(None, gio, None, str(tmp_path))
+    assert reopened.settings()['music'] == 'music.desktop'
+    assert reopened.configure('', 'music')['video'] == 'video.desktop'
+    with pytest.raises(ValueError): reopened.configure('/bin/sh', 'video')
+    with pytest.raises(ValueError): reopened.configure('music.desktop', 'shell')
+    assert reopened.settings()['video'] == 'video.desktop'
+
+
 def test_list_bootstrap_updates_removal_and_new_context():
     state = RemotePlayers()
     assert not state.snapshot('device')['ready']

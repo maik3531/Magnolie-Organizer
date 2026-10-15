@@ -395,6 +395,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "telefon_kontakte": await ReadContactPhotosAsync(message, fullContacts: true); break;
                     case "kde_zeichnen": await ConfigureDrawingInputAsync(message); break;
                     case "kde_medien_geraete":
+                    case "kde_player_stand":
+                    case "kde_player_waehlen":
                     case "kde_medien_stand":
                     case "kde_medien_aktion": await KdeMediaAsync(message); break;
                     case "kde_input_stand":

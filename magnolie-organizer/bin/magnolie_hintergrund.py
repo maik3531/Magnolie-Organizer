@@ -771,6 +771,7 @@ def _request_shape(operation, arguments):
         "send_sms": {"destination", "message", "device_id"},
         "contact_uids": {"device_id"}, "contact_vcards": {"uids", "device_id"},
         "media_devices": set(), "media_status": {"device_id"},
+        "local_media_settings": set(), "configure_media_player": {"application", "slot"},
         "filesystem_status": set(), "open_filesystem": {"device_id", "token"},
         "media_command": {"device_id", "token", "player", "action", "value"},
         "input_status": set(), "configure_input": {"enabled", "device_id"},
@@ -894,6 +895,12 @@ def _request_shape(operation, arguments):
         if type(arguments.get('enabled')) is not bool or not isinstance(arguments.get('device_id', ''), str) or \
                 arguments.get('device_id') and not re.fullmatch(r'[A-Za-z0-9_-]{32,38}', arguments['device_id']):
             raise IPCError('invalid input setting')
+    if operation == 'configure_media_player':
+        if arguments.get('slot') not in ('music', 'video'):
+            raise IPCError('invalid media slot')
+        value = arguments.get('application')
+        if not isinstance(value, str) or value and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,240}\.desktop', value):
+            raise IPCError('invalid media application')
     if operation == 'input_send':
         if (not isinstance(arguments.get('device_id'), str) or not re.fullmatch(r'[A-Za-z0-9_-]{32,38}', arguments['device_id']) or
                 not isinstance(arguments.get('token'), str) or not re.fullmatch(r'[a-f0-9]{32}', arguments['token'])):
@@ -1559,11 +1566,17 @@ class KDEConnectProxy:
     def input_status(self):
         return self._call('input_status')
 
+    def local_media_settings(self):
+        return self._call('local_media_settings')
+
     def filesystem_status(self):
         return self._call('filesystem_status')
 
     def open_filesystem(self, device_id, token):
         return ipc_request('open_filesystem', {'device_id': device_id, 'token': token}, self.path, timeout=30)
+
+    def configure_media_player(self, application, slot='music'):
+        return self._call('configure_media_player', application=application, slot=slot)
 
     def configure_input(self, enabled=None, device_id=None, permitted=None):
         return self._call('configure_input', enabled=enabled, device_id=device_id or '')

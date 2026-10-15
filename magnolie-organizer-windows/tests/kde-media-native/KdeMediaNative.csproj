@@ -11,6 +11,8 @@
   <ItemGroup>
     <Compile Include="../../KdeMediaState.cs" Link="KdeMediaState.cs" />
     <Compile Include="../../KdeLocalMedia.cs" Link="KdeLocalMedia.cs" />
+    <Compile Include="../../KdeRegisteredPlayers.cs" Link="KdeRegisteredPlayers.cs" />
+    <Compile Include="../../AtomicStore.cs" Link="AtomicStore.cs" />
     <Compile Include="../../KdeInputState.cs" Link="KdeInputState.cs" />
     <Compile Include="../../KdeWindowsInput.cs" Link="KdeWindowsInput.cs" />
   </ItemGroup>

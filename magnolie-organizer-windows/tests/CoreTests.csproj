@@ -39,6 +39,7 @@
     <Compile Include="..\KdeFilesystem.cs" Link="KdeFilesystem.cs" />
     <Compile Include="..\KdeConnectDirectBackend.Filesystem.cs" Link="KdeConnectDirectBackend.Filesystem.cs" />
     <Compile Include="..\KdeLocalMedia.cs" Link="KdeLocalMedia.cs" />
+    <Compile Include="..\KdeRegisteredPlayers.cs" Link="KdeRegisteredPlayers.cs" />
     <Compile Include="..\KdeInputState.cs" Link="KdeInputState.cs" />
     <Compile Include="..\KdeWindowsInput.cs" Link="KdeWindowsInput.cs" />
     <Compile Include="..\ContactCleanupSnapshot.cs" Link="ContactCleanupSnapshot.cs" />

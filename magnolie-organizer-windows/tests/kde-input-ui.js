@@ -11,6 +11,8 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
     const phone = { device_id: "a".repeat(32), device_name: "Phone" };
     let status = { native: false, receiver: { pointer: true, keyboard: true, enabled: true,
       ready: true, selected_device_id: "", devices: [phone] } };
+    let media = { available: true, music: "music.desktop", video: "video.desktop", applications: [
+      { id: "music.desktop", name: "Music fixture" }, { id: "video.desktop", name: "Video fixture" }] };
     try {
       Object.defineProperty(w, "crypto", { value: webcrypto }); w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
       w.setTimeout = (fn, ms) => { timers.set(++sequence, { fn, ms }); return sequence; };
@@ -20,6 +22,11 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
         const message = typeof value === "string" ? JSON.parse(value) : value; sent.push(message);
         if (message.cmd === "kde_input_stand") queueMicrotask(() => w.App.kdeInput({ ...status, ok: true, requestId: message.requestId }));
         if (message.cmd === "kde_input_einstellungen") queueMicrotask(() => w.App.kdeInput({ ok: true, requestId: message.requestId }));
+        if (message.cmd === "kde_player_stand") queueMicrotask(() => w.App.kdePlayer({ ...media, ok: true, requestId: message.requestId }));
+        if (message.cmd === "kde_player_waehlen") {
+          media = { ...media, [message.slot]: message.application };
+          queueMicrotask(() => w.App.kdePlayer({ ...media, ok: true, requestId: message.requestId }));
+        }
       } } } };
       w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8"));
       w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));
@@ -33,6 +40,16 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
         assert.ok(timer); timers.delete(timer[0]); timer[1].fn();
       };
       poll(); await flush();
+      const loadPlayers = [...timers].find(([, value]) => value.fn.name === "load" && value.fn.toString().includes("kde_player_stand"));
+      assert.ok(loadPlayers); timers.delete(loadPlayers[0]); loadPlayers[1].fn(); await flush();
+      const players = w.document.querySelector("#kde-local-players");
+      assert.equal(players.hidden, false);
+      const music = players.querySelector('#kde-player-music'), video = players.querySelector('#kde-player-video');
+      assert.equal(music.value, "music.desktop"); assert.equal(video.value, "video.desktop");
+      music.value = ""; music.dispatchEvent(new w.Event("change")); await flush();
+      assert.equal(sent.findLast(value => value.cmd === "kde_player_waehlen").slot, "music");
+      assert.equal(sent.findLast(value => value.cmd === "kde_player_waehlen").application, "");
+      assert.equal(video.value, "video.desktop", "Changing music overwrote video choice");
       const block = w.document.querySelector("#kde-input");
       assert.equal(block.hidden, false);
       assert.equal(w.document.querySelector("#kde-medien"), null, "Computer-to-phone media controls still displayed");

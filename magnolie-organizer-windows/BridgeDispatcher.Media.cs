@@ -32,7 +32,9 @@ internal sealed partial class BridgeDispatcher
             if (!currentPlainTextAvailable) throw new InvalidOperationException("locked");
             JsonObject result;
             var command = Text(message, "cmd");
-            if (command == "kde_medien_geraete") result = kdeConnectSms.MediaDevices();
+            if (command == "kde_player_stand") result = kdeConnectSms.LocalMediaSettings();
+            else if (command == "kde_player_waehlen") result = kdeConnectSms.ConfigureMediaPlayer(Text(message, "slot"), Text(message, "application"));
+            else if (command == "kde_medien_geraete") result = kdeConnectSms.MediaDevices();
             else if (command == "kde_medien_stand") result = kdeConnectSms.MediaStatus(Text(message, "device_id"));
             else
             {

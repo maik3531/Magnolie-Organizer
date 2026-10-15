@@ -26562,6 +26562,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       kdeBlock.append(el("p", "einst-warnung", gruende[kde.reason]));
     }
     baueKdeEingabe(kdeBlock);
+    baueKdeSpieler(kdeBlock);
     baueKdeDateisystem(kdeBlock);
     kdeAb.append(kdeBlock);
     wurzel.append(kdeAb);
@@ -26700,6 +26701,40 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       setTimeout(poll, 3000);
     };
     setTimeout(poll, 0);
+  }
+
+  function baueKdeSpieler(wurzel) {
+    const block = el("section", "kde-medien"); block.id = "kde-local-players"; block.hidden = true;
+    const status = el("p", "einst-hinweis");
+    block.append(el("h4", null, _("Media players")), status); wurzel.append(block);
+    const sichtbar = () => block.isConnected && !gesperrt && !block.closest("#einstellungen-schleier")?.classList.contains("verborgen");
+    const selectors = {};
+    for (const [slot, title] of [["music", _("Music player")], ["video", _("Video player")]]) {
+      const select = document.createElement("select"); select.id = "kde-player-" + slot; select.setAttribute("aria-label", title);
+      const row = el("label", "formzeile"); row.append(el("span", null, title), select); block.append(row); selectors[slot] = select;
+      select.addEventListener("change", async () => {
+        select.disabled = true;
+        const result = await kdeMedienAnfordern("kde_player_waehlen", { slot, application: select.value });
+        if (!sichtbar()) return;
+        select.disabled = false;
+        if (!result.ok) { select.value = select.dataset.saved || ""; status.textContent = _("Media player settings could not be applied."); }
+        else { select.dataset.saved = result[slot] || ""; status.textContent = ""; }
+      });
+    }
+    const load = async () => {
+      if (!sichtbar()) return;
+      const result = await kdeMedienAnfordern("kde_player_stand");
+      if (!sichtbar() || !result.ok || !result.available || !Array.isArray(result.applications)) return;
+      block.hidden = false;
+      status.textContent = _("The selected players are also offered on the phone while closed. Play starts the assigned application.");
+      for (const [slot, select] of Object.entries(selectors)) {
+        select.textContent = "";
+        const empty = document.createElement("option"); empty.value = ""; empty.textContent = _("None"); select.append(empty);
+        result.applications.forEach(app => { const option = document.createElement("option"); option.value = app.id; option.textContent = app.name; select.append(option); });
+        select.value = result[slot] || ""; select.dataset.saved = select.value;
+      }
+    };
+    setTimeout(load, 0);
   }
 
   function baueKdeEingabe(wurzel) {
@@ -31018,6 +31053,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       clearTimeout(request.timer); kdeMedienAnfragen.delete(value.requestId); request.resolve(value);
     },
     kdeInput(value) { App.kdeMedien(value); },
+    kdePlayer(value) { App.kdeMedien(value); },
     personalSyncCollection(value) {
       if (!value?.device_id || typeof value.fingerprint !== "string" || !Array.isArray(value.members?.notes) || !Array.isArray(value.members?.tasks)) return;
       personalPhoneCollections.set(value.device_id, { fingerprint: value.fingerprint,

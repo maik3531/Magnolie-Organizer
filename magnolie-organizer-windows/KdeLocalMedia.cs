@@ -9,11 +9,13 @@ namespace MagnolieOrganizer.Windows;
 internal interface IKdeLocalMedia
 {
     Task<IReadOnlyList<JsonObject>> ReceiveAsync(JsonObject body, Func<bool> permitted, CancellationToken cancellationToken);
+    JsonObject Settings() => new() { ["available"] = false };
+    JsonObject Configure(string slot, string application) => throw new InvalidOperationException("local_media_unavailable");
 }
 
 internal static class KdeLocalMedia
 {
-    internal static IKdeLocalMedia? Create()
+    internal static IKdeLocalMedia? Create(string? directory = null)
     {
 #if WINDOWS
         try
@@ -21,7 +23,7 @@ internal static class KdeLocalMedia
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(2));
             var manager = GlobalSystemMediaTransportControlsSessionManager.RequestAsync().AsTask(deadline.Token)
                 .ConfigureAwait(false).GetAwaiter().GetResult();
-            return new WindowsMedia(manager);
+            return new WindowsMedia(manager, new KdeRegisteredPlayers(directory));
         }
         catch (Exception) { return null; }
 #else
@@ -30,10 +32,12 @@ internal static class KdeLocalMedia
     }
 
 #if WINDOWS
-    private sealed class WindowsMedia(GlobalSystemMediaTransportControlsSessionManager manager) : IKdeLocalMedia
+    private sealed class WindowsMedia(GlobalSystemMediaTransportControlsSessionManager manager, KdeRegisteredPlayers registered) : IKdeLocalMedia
     {
         private readonly SemaphoreSlim gate = new(1, 1);
         private readonly Dictionary<GlobalSystemMediaTransportControlsSession, string> names = new();
+        public JsonObject Settings() => registered.Settings();
+        public JsonObject Configure(string slot, string application) => registered.Configure(slot, application);
 
         private static string DisplayName(string value)
         {
@@ -60,10 +64,15 @@ internal static class KdeLocalMedia
                 foreach (var old in names.Keys.Except(sessions).ToArray()) names.Remove(old);
                 foreach (var session in sessions)
                     if (!names.ContainsKey(session)) names.Add(session, DisplayName(session.SourceAppUserModelId) + " · " + Guid.NewGuid().ToString("N")[..8]);
-                var list = new JsonObject { ["playerList"] = new JsonArray(names.Values.Select(name => (JsonNode?)JsonValue.Create(name)).ToArray()), ["supportAlbumArtPayload"] = false };
+                var choices = registered.Choices();
+                var list = new JsonObject { ["playerList"] = new JsonArray((choices.Count > 0 ? choices.Keys.AsEnumerable() : names.Values)
+                    .Select(name => (JsonNode?)JsonValue.Create(name)).ToArray()), ["supportAlbumArtPayload"] = false };
                 if (body["requestPlayerList"]?.GetValue<bool>() == true) return [list];
                 var player = body["player"]?.GetValue<string>() ?? "";
-                var selected = names.FirstOrDefault(value => value.Value == player).Key;
+                var selected = choices.TryGetValue(player, out var assigned)
+                    ? sessions.FirstOrDefault(session => assigned.App.SessionIds.Contains(session.SourceAppUserModelId, StringComparer.OrdinalIgnoreCase))
+                    : choices.Count > 0 ? null : names.FirstOrDefault(value => value.Value == player).Key;
+                if (selected is null && choices.ContainsKey(player)) return [registered.Closed(player, body, permitted)];
                 if (selected is null) return [list];
                 var keys = new[] { "action", "setVolume", "SetPosition", "Seek" }.Where(body.ContainsKey).ToArray();
                 if (keys.Length > 1) throw new InvalidDataException("invalid_local_media_request");

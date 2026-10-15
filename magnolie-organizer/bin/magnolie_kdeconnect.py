@@ -395,6 +395,12 @@ class KDEConnectNativeBackend:
             raise ProtocolError('remote_input_source_changed')
         return (owner, '/modules/kdeconnect/devices/' + device_id, fingerprint), device
 
+    def local_media_settings(self):
+        return {'available': False, 'system_managed': True}
+
+    def configure_media_player(self, application, slot='music'):
+        raise ProtocolError('media_player_selection_managed_by_system')
+
     def input_status(self):
         deadline = time.monotonic() + 2.5
         with self._media_lock:
@@ -2196,7 +2202,7 @@ class KDEConnectSMSBackend:
             self.listening = True
             self.reason = ""
             if self._local_media is None:
-                self._local_media = DesktopMpris.create()
+                self._local_media = DesktopMpris.create(self.store.directory)
             if self._input_sink is None:
                 self._input_sink = X11Input.create()
                 if self._input_sink is not None:
@@ -2866,6 +2872,19 @@ class KDEConnectSMSBackend:
             # An unavailable player or malformed request must not terminate SMS,
             # contact reads or the paired transport; actions are never retried.
             return
+
+    def local_media_settings(self):
+        return self._local_media.settings() if self._local_media is not None else {'available': False}
+
+    def configure_media_player(self, application, slot='music'):
+        if self._local_media is None:
+            raise ProtocolError('local_media_unavailable')
+        result = self._local_media.configure(application, slot)
+        with self._connection_lock:
+            workers = [entry['worker'] for entry in self._connections.values()]
+        for worker in workers:
+            self._local_media_packet(worker, network_packet(MEDIA_REQUEST, {'requestPlayerList': True}))
+        return result
 
     def set_digitizer_target(self, device_id, token, enabled, permitted=None):
         if type(enabled) is not bool:

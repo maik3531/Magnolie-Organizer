@@ -64,6 +64,8 @@ internal static class BridgeDispatcherContract
         ["telefon_kontakte"] = S(T("requestId"), T("device_id"), O("uids", JsonValueKind.Array)),
         ["kde_zeichnen"] = S(T("token"), T("device_id"), B("enabled")),
         ["kde_medien_geraete"] = S(T("requestId")),
+        ["kde_player_stand"] = S(T("requestId")),
+        ["kde_player_waehlen"] = S(T("requestId"), T("slot"), T("application")),
         ["kde_input_stand"] = S(T("requestId")),
         ["kde_input_einstellungen"] = S(T("requestId"), B("enabled"), T("device_id")),
         ["kde_input_senden"] = S(T("requestId"), T("device_id"), T("token"), J("body")),
