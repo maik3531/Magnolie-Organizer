@@ -11,6 +11,12 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        if (args.Length == 1 && args[0] == "--mcp-stdio")
+        {
+            Environment.ExitCode = McpLocalServer.RunStdioAsync(new WindowsPaths().Root,
+                Console.OpenStandardInput(), Console.OpenStandardOutput(), CancellationToken.None).GetAwaiter().GetResult();
+            return;
+        }
         if (args.Length == 2 && args[1] == ThunderbirdBridge.ExtensionId &&
             (string.Equals(Path.GetFullPath(args[0]), ThunderbirdBridge.ManifestPath, StringComparison.OrdinalIgnoreCase) ||
              string.Equals(Path.GetFullPath(args[0]), ThunderbirdBridge.ManagedManifestPath, StringComparison.OrdinalIgnoreCase)))

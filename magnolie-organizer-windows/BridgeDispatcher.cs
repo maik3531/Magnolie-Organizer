@@ -116,7 +116,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
             {
                 switch (command)
                 {
-                    case "bereit": await InitializeAsync(); break;
+                    case "bereit": form.StartMcpServer(); await InitializeAsync(); break;
+                    case "mcp_antwort": form.McpReply(message); break;
                     case "entsperren": await UnlockAsync(Text(message, "kennwort")); break;
                     case "kennwort_setzen": await SetPasswordAsync(message); break;
                     case "kennwort_entfernen": await RemovePasswordAsync(message); break;

@@ -151,6 +151,7 @@ install -Dpm 0644 bin/magnolie_cloud_backup.py %{buildroot}%{_bindir}/magnolie_c
 install -Dpm 0644 bin/magnolie_akonadi.py %{buildroot}%{_bindir}/magnolie_akonadi.py
 install -Dpm 0644 bin/magnolie_crash.py %{buildroot}%{_bindir}/magnolie_crash.py
 install -Dpm 0644 bin/magnolie_asset.py %{buildroot}%{_bindir}/magnolie_asset.py
+install -Dpm 0644 bin/magnolie_mcp.py %{buildroot}%{_bindir}/magnolie_mcp.py
 install -Dpm 0644 bin/magnolie_calendar_dedup.py %{buildroot}%{_bindir}/magnolie_calendar_dedup.py
 install -Dpm 0644 bin/magnolie_content_scope.py %{buildroot}%{_bindir}/magnolie_content_scope.py
 install -Dpm 0644 bin/magnolie_drawing_svg.py %{buildroot}%{_bindir}/magnolie_drawing_svg.py
@@ -174,7 +175,7 @@ install -d %{buildroot}%{_datadir}/%{name}/web/i18n
 printf '{"version":"%{version}"}\n' > %{buildroot}%{_datadir}/%{name}/version.json
 install -d %{buildroot}%{_datadir}/%{name}/web/schriften
 install -pm 0644 web/schriften/Z003-MediumItalic.otf web/schriften/Z003-LIZENZ.txt %{buildroot}%{_datadir}/%{name}/web/schriften/
-install -pm 0644 web/index.html web/stil.css web/anwendung.js web/zeichenblatt.js \
+install -pm 0644 web/index.html web/stil.css web/anwendung.js web/zeichenblatt.js web/mcp-protocol.js \
     web/i18n.js web/i18n-start.js web/i18n-markers.js \
     web/i18n-en.js web/phone-metadata-LICENSE.txt web/phone-metadata-NOTICE.txt \
     %{buildroot}%{_datadir}/%{name}/web/
@@ -279,6 +280,7 @@ done
 %{_bindir}/magnolie_akonadi.py
 %{_bindir}/magnolie_crash.py
 %{_bindir}/magnolie_asset.py
+%{_bindir}/magnolie_mcp.py
 %{_bindir}/magnolie_calendar_dedup.py
 %{_bindir}/magnolie_content_scope.py
 %{_bindir}/magnolie_drawing_svg.py

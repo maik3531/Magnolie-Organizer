@@ -1,4 +1,6 @@
 using MagnolieOrganizer.Windows.Tests;
+if (args.Length == 2 && args[0] == "--mcp-stdio-fixture")
+    return await MagnolieOrganizer.Windows.McpLocalServer.RunStdioAsync(args[1], Console.OpenStandardInput(), Console.OpenStandardOutput(), CancellationToken.None);
 
 if (args.FirstOrDefault() == "--dav-live") return await NextcloudDavLiveTests.RunAsync();
 if (args.FirstOrDefault() == "--thunderbird-live") return await NextcloudDavLiveTests.RunAsync(thunderbird: true);
@@ -63,6 +65,7 @@ runner.Add("Baum synchronization snapshot continuity", BaumSyncSnapshotTests.Run
 runner.Add("Background lifecycle regressions", BackgroundLifecycleTests.RunAsync);
 runner.Add("Native sync safety / baselines / mailbox / recovery", NativeSyncSafetyTests.RunAsync);
 runner.Add("AtomicStore / Dateisicherheit", AtomicStoreTests.RunAsync);
+runner.Add("MCP local pipe / correlation / strict framing / cleanup", McpTransportTests.RunAsync);
 runner.Add("Wiederherstellungsjournal / Manifest / Tamper / Retention / Scheduler", RecoveryJournalTests.RunAsync);
 runner.Add("Cloud-Ordner-Sicherung / Policy / Retention / DPAPI", CloudBackupTests.RunAsync);
 runner.Add("Loganzeige / Contributor-Marker", LogPresentationTests.RunAsync);

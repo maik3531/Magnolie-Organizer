@@ -13,6 +13,7 @@ bin/magnolie_cloud_backup.py           usr/bin
 bin/magnolie_akonadi.py                usr/bin
 bin/magnolie_crash.py                  usr/bin
 bin/magnolie_asset.py                  usr/bin
+bin/magnolie_mcp.py                    usr/bin
 bin/magnolie_calendar_dedup.py         usr/bin
 bin/magnolie_content_scope.py          usr/bin
 bin/magnolie_drawing_svg.py            usr/bin
@@ -37,6 +38,7 @@ web/stil.css                          usr/share/magnolie-organizer/web
 web/kaffee-qr.mga                     usr/share/magnolie-organizer/web
 web/anwendung.js                      usr/share/magnolie-organizer/web
 web/zeichenblatt.js                    usr/share/magnolie-organizer/web
+web/mcp-protocol.js                    usr/share/magnolie-organizer/web
 web/phone-metadata-LICENSE.txt        usr/share/magnolie-organizer/web
 web/phone-metadata-NOTICE.txt         usr/share/magnolie-organizer/web
 web/i18n.js                           usr/share/magnolie-organizer/web

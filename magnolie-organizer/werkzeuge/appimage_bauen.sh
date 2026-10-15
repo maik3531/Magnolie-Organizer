@@ -149,6 +149,7 @@ done < "$WURZEL/po/LINGUAS"
 
 install -m 0755 "$WURZEL/bin/magnolie-organizer" "$APPDIR/usr/bin/magnolie-organizer"
 install -m 0644 "$WURZEL/bin/magnolie_asset.py" "$APPDIR/usr/bin/magnolie_asset.py"
+install -m 0644 "$WURZEL/bin/magnolie_mcp.py" "$APPDIR/usr/bin/magnolie_mcp.py"
 install -m 0644 "$WURZEL/bin/magnolie_calendar_dedup.py" "$APPDIR/usr/bin/magnolie_calendar_dedup.py"
 install -m 0644 "$WURZEL/bin/magnolie_content_scope.py" "$APPDIR/usr/bin/magnolie_content_scope.py"
 install -m 0644 "$WURZEL/bin/magnolie_drawing_svg.py" "$APPDIR/usr/bin/magnolie_drawing_svg.py"

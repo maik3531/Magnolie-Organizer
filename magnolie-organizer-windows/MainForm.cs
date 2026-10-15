@@ -15,6 +15,7 @@ internal sealed class MainForm : Form
     private readonly TraySettingsService traySettingsService;
     private TraySettings traySettings;
     private BridgeDispatcher? dispatcher;
+    private McpLocalServer? mcpServer;
     private bool allowClose;
     private bool closeRequested;
     private bool trayEnabled;
@@ -78,7 +79,7 @@ internal sealed class MainForm : Form
             await OpenHandbookAsync(manual);
         };
         FormClosing += OnFormClosing;
-        FormClosed += (_, _) => { closing.Cancel(); callAlert?.Close(); callNotifications.Dispose(); handbookForm?.Close(); dispatcher?.Dispose(); SaveWindowState(); trayIcon.Dispose(); };
+        FormClosed += (_, _) => { closing.Cancel(); mcpServer?.Dispose(); callAlert?.Close(); callNotifications.Dispose(); handbookForm?.Close(); dispatcher?.Dispose(); SaveWindowState(); trayIcon.Dispose(); };
         Resize += (_, _) =>
         {
             if (!fullscreen && !fullscreenTransition && WindowState != FormWindowState.Minimized)
@@ -394,6 +395,18 @@ internal sealed class MainForm : Form
             reminderWindows.Clear();
         }
         base.Dispose(disposing);
+    }
+
+    internal void StartMcpServer() => mcpServer ??= new McpLocalServer(paths.Root,
+        payload => SendAsync("App.mcpRequest", payload), session => SendAsync("App.mcpClose", session));
+
+    internal void McpReply(JsonElement message)
+    {
+        var session = message.GetProperty("session").GetString() ?? "";
+        var invocation = message.GetProperty("invocation").GetString() ?? "";
+        if (session.Length != 48 || invocation.Length != 48 ||
+            session.Any(character => !Uri.IsHexDigit(character)) || invocation.Any(character => !Uri.IsHexDigit(character))) return;
+        mcpServer?.Reply(session, invocation, message.GetProperty("response"));
     }
 
     internal Task SendAsync(string function, object payload) => SendAsync(function, payload, null);

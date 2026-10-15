@@ -1,0 +1,88 @@
+# Organizer MCP contract
+
+Implementation and complete product coverage are tracked in issue #170.
+This document describes the implemented tools; the remaining product operations
+are still being connected to the same interface.
+
+## Transport and session
+
+Start the desktop Organizer normally, then run the same executable with
+`--mcp-stdio` as the MCP client's stdio command. On Windows this is
+`Magnolie Organizer.exe --mcp-stdio`; on Linux it is
+`magnolie-organizer --mcp-stdio`. The command attaches to the running book for
+the same profile and account. It does not open another book or create a profile.
+
+The local connection uses a same-UID abstract Unix socket on Linux and a
+`CurrentUserOnly` named pipe on Windows. No TCP listener or bearer-token file is
+used. Losing the book connection ends the stdio client, including when its stdin
+remains open. Protocol records are newline-delimited UTF-8 JSON, at most 1 MiB
+including the newline. Normal diagnostics do not belong on protocol stdout.
+
+The client sends `initialize` with `protocolVersion`, `capabilities`, and
+`clientInfo` (`name` and `version`), then `notifications/initialized`.
+Supported versions are `2025-11-25`, `2025-06-18`, `2025-03-26`, and `2024-11-05`.
+An unsupported proposal receives the newest supported version for negotiation.
+`ping`, `tools/list`, `tools/call`, and `notifications/cancelled` are supported.
+Tool listings have up to 100 items; pass the returned `nextCursor` as `cursor`.
+Each session allows eight pending calls. Sessions and invocation correlations
+are ephemeral and independent of client-supplied JSON-RPC IDs.
+
+## Results and writes
+
+Successful tool calls return text JSON and the same object as `structuredContent`,
+with `isError: false`. Product failures return `isError: true` and a structured
+`code` and `message`. Invalid requests, unknown tools and invalid arguments use
+JSON-RPC errors. A locked or not-yet-open book rejects data access; status remains
+readable. Authorization is checked again before returning an operation's result.
+
+A successful product write includes `persisted: true` only after the existing
+native durable-save acknowledgement. A cancelled or timed-out call may already
+have reached the native operation. Read the affected state before retrying.
+Note creation accepts an optional caller-generated UUID: an existing ID returns
+`already_exists` rather than creating a duplicate. Note updates and deletions
+require the opaque `revision` from `organizer_note_read` as `expected_revision`.
+Concurrent changes produce `conflict` instead of overwriting the newer note.
+
+## Implemented tools
+
+| Tool | Operation |
+| --- | --- |
+| `organizer_status` | Live version, readiness, lock and pending-save status |
+| `organizer_data_read` | Product section; optional `id` lookup or array `offset`/`limit` pagination |
+| `organizer_settings_read` | Current product settings |
+| `organizer_note_read` | Note and revision token |
+| `organizer_note_create` | Plain-text note in an existing notebook; native save acknowledgement |
+| `organizer_note_update` | Revision-checked title, plain text or notebook change; attachments retained |
+| `organizer_note_delete` | Revision-checked product deletion and configured trash/sync policy |
+| `organizer_trash_restore` | Existing type-specific product restore handler |
+| `notes_diagnostics_read` | Ephemeral WLAN diagnostics through the confirmed own Notes connection |
+| `kde_media_devices` | Current supported media devices |
+| `kde_media_status` | Media state and fresh source token for `device_id` |
+| `kde_media_action` | Source-token-bound player action; finite action enum, no shell command |
+| `kde_players_read` | Registered music/video applications and current selection |
+| `kde_player_select` | Select a registered application for the `music` or `video` slot |
+| `kde_input_status` | Existing incoming-control status |
+| `kde_input_settings` | Existing paired-device incoming-control settings |
+| `kde_filesystem_status` | Current available filesystem devices and source tokens |
+| `kde_filesystem_open` | Existing WLAN/source-bound native filesystem opening |
+
+`tools/list` supplies the exact input schemas. The native providers retain their
+pairing, source-token, application-registration, availability and lock checks.
+Notes diagnostics additionally require desktop developer mode, Notes WLAN
+debugging, an own-phone Wi-Fi session and current device-status permissions.
+Diagnostic reports are returned through the call and are not added to book data.
+
+`organizer_data_read.section` uses the existing model keys: `termine`, `aufgaben`,
+`kontakte`, `notizen`, `customOrganizer`, `zeiterfassung`, `notizgruppen`,
+`notizbuecher`, `jahrestage`, `feiertage`, `urlaube`, `muelltermine`, `papierkorb`,
+`personen`, `schichten`, `smsVerlauf`, `smsPlanung`, `zyklusmarker`, `tagmarken`,
+`gesundheit`, and `eigenesProfil`. Returned IDs are the product's IDs.
+
+## Remaining coverage in #170
+
+The remaining work includes mutation handlers for the other product sections,
+settings changes, notebooks/groups and attachments, imports/exports and planners,
+recovery/backup operations, synchronization/accounts, Magnolienbaum operations,
+the remaining phone/KDE actions, and complete installed-product acceptance.
+The listed tools execute their current product operations; remaining functions
+are not represented by success-only placeholders.

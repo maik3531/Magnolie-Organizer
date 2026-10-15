@@ -91,6 +91,10 @@ def _grafik_kompatibilitaet_einrichten():
 _grafik_kompatibilitaet_einrichten()
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+if __name__ == "__main__" and sys.argv[1:] == ["--mcp-stdio"]:
+    from magnolie_mcp import stdio_main
+    sys.exit(stdio_main(os.path.join(os.environ.get("XDG_DATA_HOME") or
+        os.path.expanduser("~/.local/share"), "magnolie-organizer")))
 if __name__ == "__main__" and "--call-action" in sys.argv[1:]:
     # Dispatch before crash reporting, profile initialization, GTK or WebKit imports.
     from magnolie_hintergrund import call_action_main
@@ -19314,6 +19318,7 @@ _ORGANIZER_RESSOURCEN = {
     "/i18n-start.js": ("i18n-start.js", "application/javascript"),
     "/anwendung.js": ("anwendung.js", "application/javascript"),
     "/zeichenblatt.js": ("zeichenblatt.js", "application/javascript"),
+    "/mcp-protocol.js": ("mcp-protocol.js", "application/javascript"),
 }
 _ORGANIZER_RESSOURCEN.update({
     "/i18n/%s.js" % sprache: ("i18n/%s.js" % sprache, "application/javascript")
@@ -20583,6 +20588,10 @@ class Fenster(_FENSTER_BASIS):
         fenster_zustand_schreiben(self._fenster)
 
     def _bei_ende(self, *_egal):
+        mcp_server = getattr(self, "_mcp_server", None)
+        if mcp_server is not None:
+            mcp_server.close()
+            self._mcp_server = None
         if self._journal_timer:
             try:
                 GLib.source_remove(self._journal_timer)
@@ -20817,7 +20826,23 @@ class Fenster(_FENSTER_BASIS):
                 str(befehl or "").startswith("telefon_")) and self._gesperrt:
             return
 
-        if befehl == "bereit":
+        if befehl == "mcp_antwort":
+            mcp_server = getattr(self, "_mcp_server", None)
+            session, invocation = nachricht.get("session"), nachricht.get("invocation")
+            if (mcp_server is not None and isinstance(session, str) and isinstance(invocation, str)
+                    and re.fullmatch(r"[0-9a-f]{48}", session) and re.fullmatch(r"[0-9a-f]{48}", invocation)
+                    and "response" in nachricht):
+                mcp_server.reply(session, invocation, nachricht["response"])
+
+        elif befehl == "bereit":
+            if getattr(self, "_mcp_server", None) is None:
+                from magnolie_mcp import LocalServer
+                try:
+                    self._mcp_server = LocalServer(daten_verzeichnis(),
+                        lambda payload: self.antwort("App.mcpRequest", payload),
+                        lambda session: self.antwort("App.mcpClose", session))
+                except OSError as fehler:
+                    debug_notiz("mcp.listener-unavailable", error=type(fehler).__name__)
             self._oeffnen_oder_sperren()
             threading.Thread(target=lambda: self.antwort(
                 "App.backgroundSettings", hintergrund_einstellungen_lesen()),

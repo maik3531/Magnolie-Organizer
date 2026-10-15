@@ -106,6 +106,7 @@
     <Compile Include="..\WindowsTelefonBluetoothClient.cs" Link="WindowsTelefonBluetoothClient.cs" />
     <Compile Include="..\TelefonBluetoothTransport.cs" Link="TelefonBluetoothTransport.cs" Condition="$([System.String]::Copy('$(TargetFramework)').Contains('-windows'))" />
     <Compile Include="..\BridgeDispatcherContract.cs" Link="BridgeDispatcherContract.cs" />
+    <Compile Include="..\McpLocalServer.cs" Link="McpLocalServer.cs" />
     <Compile Include="..\WindowsUpdateService.cs" Link="WindowsUpdateService.cs" />
     <Compile Include="..\ProtectedAssetPolicy.cs" Link="ProtectedAssetPolicy.cs" />
     <Compile Include="..\KdeConnectProtocol.cs" Link="KdeConnectProtocol.cs" />

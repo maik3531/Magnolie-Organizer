@@ -19841,6 +19841,27 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     menu.querySelector("button")?.focus();
   }
 
+  function neueNotizDaten(titel, notizbuchId, symbol = "notiz", text = "") {
+    const jetzt = Date.now();
+    return { id: uid(), titel, text, html: textZuHtml(text), anhaenge: [],
+      notizbuchId, symbol, geaendert: isoHeute(), angelegt: jetzt,
+      personalGeaendert: jetzt, baumFreigabe: null, baumGeaendert: 0,
+      baumVersion: 0, baumQuelle: "" };
+  }
+
+  function notizAenderungMerken(notiz) {
+    notiz.geaendert = isoHeute();
+    notiz.personalGeaendert = Date.now();
+    markiereGemeinsameNotiz(notiz);
+  }
+
+  function entferneNotizSeite(notiz) {
+    const trash = inDenPapierkorb("notiz", notiz, notizAnzeigeTitel(notiz));
+    DATEN.notizen = DATEN.notizen.filter(item => item.id !== notiz.id);
+    if (zustand.notizen.auswahlId === notiz.id) zustand.notizen.auswahlId = null;
+    return trash;
+  }
+
   function zeichneNotizen() {
     const z = zustand.notizen;
     stelleNotizstrukturSicher();
@@ -19870,11 +19891,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
 
     const legeSeiteAn = (title = "", sendToNotes = false, symbol = "notiz") => {
-      const jetzt = Date.now();
-      const n = { id: uid(), titel: title, text: "", html: "", anhaenge: [],
-        notizbuchId: z.notizbuchId, symbol, geaendert: isoHeute(), angelegt: jetzt,
-        personalGeaendert: jetzt, baumFreigabe: null, baumGeaendert: 0,
-        baumVersion: 0, baumQuelle: "" };
+      const n = neueNotizDaten(title, z.notizbuchId, symbol);
       DATEN.notizen.push(n);
       z.auswahlId = n.id;
       planeSpeichern();
@@ -20024,9 +20041,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         frage(uebersetzt("Delete this note page (“%(title)s”)?",
           { title: notizAnzeigeTitel(n) })).then((ja) => {
           if (!ja) return;
-          inDenPapierkorb("notiz", n, notizAnzeigeTitel(n));
-          DATEN.notizen = DATEN.notizen.filter((x2) => x2.id !== n.id);
-          if (z.auswahlId === n.id) z.auswahlId = null;
+          entferneNotizSeite(n);
           const naechste = DATEN.notizen.find((wert) => wert.notizbuchId === n.notizbuchId);
           fokussiereNachZeichnen(naechste ? "notiz:" + naechste.id : "notiz-anpassen");
           planeSpeichern();
@@ -20251,9 +20266,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     flaeche.innerHTML = saeubereHtml(notiz.html, htmlStand) || textZuHtml(notiz.text);
 
     const geaendert = () => {
-      notiz.geaendert = isoHeute();
-      notiz.personalGeaendert = Date.now();
-      markiereGemeinsameNotiz(notiz);
+      notizAenderungMerken(notiz);
       if (notizRefs.obm) notizRefs.obm.textContent = notizAnzeigeTitel(notiz);
       planeSpeichern();
       weckeAutomatischenNotesAbgleich("note", personalSyncNotizWireId(notiz.id));
@@ -23343,6 +23356,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function telefonEntwicklerDiagnose(nutzlast) {
+    mcpNativeAntwort(nutzlast);
     const request = entwicklerDiagnoseAnfrage, peer = entwicklerDiagnoseQuelle();
     if (!request || nutzlast?.requestId !== request.id || nutzlast.kennung !== request.peer) return;
     entwicklerDiagnoseAnfrage = null;
@@ -32529,6 +32543,229 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
   };
 
+  const mcpSitzungen = new Map();
+  let mcpSchreibKette = Promise.resolve();
+  function mcpSchreiben(signal, mutation) {
+    const run = async () => {
+      if (signal.aborted || gesperrt || !initialisiert || !antwortErhalten)
+        throw new MagnolieMcp.ToolError("locked_or_cancelled", "Open and unlock the Organizer before writing");
+      sichereNotizSnapshot();
+      const bestand = DATEN;
+      const result = await mutation();
+      if (gesperrt || !initialisiert || !antwortErhalten || DATEN !== bestand)
+        throw new MagnolieMcp.ToolError("source_changed", "The book changed before the write could be confirmed");
+      planeSpeichern();
+      await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve,
+        () => reject(new MagnolieMcp.ToolError("save_failed", "The native save did not complete; check the current data before retrying"))));
+      // Preserve a form draft rather than redrawing it underneath its editor.
+      if (!gesperrt && !editorIstGeaendert()) zeichneAlles();
+      return { ...result, persisted: true };
+    };
+    const operation = mcpSchreibKette.then(run);
+    mcpSchreibKette = operation.catch(() => {});
+    return operation;
+  }
+  const mcpNativeAnfragen = new Map();
+  async function mcpPruefeNotiz(id, revision, signal) {
+    const note = DATEN.notizen.find(item => item.id === id);
+    if (!note) throw new MagnolieMcp.ToolError("not_found", "Note not found");
+    const before = JSON.stringify(note), actual = await personalSyncHash(before);
+    if (signal.aborted || gesperrt || DATEN.notizen.find(item => item.id === id) !== note ||
+        JSON.stringify(note) !== before || actual !== revision)
+      throw new MagnolieMcp.ToolError("conflict", "The note changed; read it again before writing");
+    return note;
+  }
+  function mcpNotizWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 };
+    const expected_revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    return [
+      { name: "organizer_note_read", description: "Read a note and its opaque revision token for conflict-checked updates or deletion.",
+        inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ id }) => {
+          const current = DATEN.notizen.find(note => note.id === id);
+          if (!current) throw new MagnolieMcp.ToolError("not_found", "Note not found");
+          const note = kopie(current);
+          return { note, revision: await personalSyncHash(JSON.stringify(note)) };
+        } },
+      { name: "organizer_note_update", description: "Update note title, plain text or notebook using the revision from organizer_note_read. Existing attachments are preserved. The native save must acknowledge success.",
+        inputSchema: { type: "object", properties: { id, expected_revision, title: { type: "string", maxLength: 1024 },
+          text: { type: "string", maxLength: 500000 }, notebook_id: id }, required: ["id", "expected_revision"],
+          anyOf: [{ required: ["title"] }, { required: ["text"] }, { required: ["notebook_id"] }], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+        call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const note = await mcpPruefeNotiz(args.id, args.expected_revision, signal);
+          if (args.notebook_id !== undefined && !DATEN.notizbuecher.some(book => book.id === args.notebook_id))
+            throw new MagnolieMcp.ToolError("not_found", "Notebook not found");
+          if (args.title !== undefined) note.titel = args.title;
+          if (args.text !== undefined) { note.text = args.text; note.html = textZuHtml(args.text); }
+          if (args.notebook_id !== undefined) note.notizbuchId = args.notebook_id;
+          notizAenderungMerken(note);
+          weckeAutomatischenNotesAbgleich("note", personalSyncNotizWireId(note.id));
+          return { id: note.id };
+        }) },
+      { name: "organizer_note_delete", description: "Delete a note with a current revision token, using the product trash and Notes synchronization policy. If trash is disabled, deletion is permanent.",
+        inputSchema: { type: "object", properties: { id, expected_revision }, required: ["id", "expected_revision"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+        call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const note = await mcpPruefeNotiz(args.id, args.expected_revision, signal);
+          const trash = entferneNotizSeite(note);
+          return { id: note.id, trash_id: trash?.id || null };
+        }) },
+      { name: "organizer_trash_restore", description: "Restore an existing trash item through the product restore handler, preserving its type-specific links and synchronization metadata.",
+        inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+        call: async ({ id }, signal) => mcpSchreiben(signal, () => {
+          const item = DATEN.papierkorb.find(item => item.id === id);
+          if (!item) throw new MagnolieMcp.ToolError("not_found", "Trash item not found");
+          if (!ausDemPapierkorb(item)) throw new MagnolieMcp.ToolError("conflict", "Trash item cannot be restored over the current data");
+          return { restored_id: item.eintrag.id, type: item.art };
+        }) }
+    ];
+  }
+  const mcpNotesQuellen = new WeakMap();
+  function mcpNativeAntwort(value) {
+    const pending = mcpNativeAnfragen.get(value?.requestId);
+    if (pending) pending.receive(value);
+  }
+  function mcpNotesDiagnose(signal) {
+    const peer = entwicklerDiagnoseQuelle();
+    if (!peer || DATEN.einstellungen.allgemein.entwicklermodus !== true)
+      throw new MagnolieMcp.ToolError("diagnostics_unavailable", "Enable developer mode and connect your confirmed own Notes phone over Wi-Fi");
+    const device = peer.device_id, fingerprint = peer.fingerprint, requestId = crypto.randomUUID();
+    mcpNotesQuellen.set(signal, { device, fingerprint });
+    return new Promise((resolve, reject) => {
+      let timer;
+      const finish = (value, error) => {
+        if (!mcpNativeAnfragen.delete(requestId)) return;
+        clearTimeout(timer); signal.removeEventListener("abort", abort);
+        error ? reject(error) : resolve(value);
+      };
+      const abort = () => finish(null, new MagnolieMcp.ToolError("cancelled", "Notes diagnostics cancelled"));
+      mcpNativeAnfragen.set(requestId, { receive: value => {
+        const current = entwicklerDiagnoseQuelle();
+        if (gesperrt || DATEN.einstellungen.allgemein.entwicklermodus !== true || !current ||
+            current.device_id !== device || current.fingerprint !== fingerprint || value.kennung !== device)
+          return finish(null, new MagnolieMcp.ToolError("source_changed", "Notes diagnostic source changed"));
+        if (value.ok !== true || !value.diagnose) return finish(null,
+          new MagnolieMcp.ToolError("diagnostics_unavailable", "Notes WLAN diagnostics are not available; check the phone debugging and device-status permissions"));
+        finish({ device_id: device, diagnostics: kopie(value.diagnose) });
+      } });
+      signal.addEventListener("abort", abort, { once: true });
+      timer = setTimeout(() => finish(null, new MagnolieMcp.ToolError("timeout", "Notes diagnostic request timed out")), 15000);
+      if (signal.aborted) abort();
+      else if (!Bruecke.sende({ cmd: "telefon_entwickler_diagnose", kennung: device, requestId }))
+        finish(null, new MagnolieMcp.ToolError("native_unavailable", "Native phone connection unavailable"));
+    });
+  }
+  function mcpKdeWerkzeuge() {
+    const text = { type: "string", minLength: 1, maxLength: 256 };
+    const device = { type: "string", pattern: "^[A-Za-z0-9_-]{32,38}$" };
+    const token = { type: "string", pattern: "^[a-f0-9]{32}$" };
+    const specs = [
+      ["kde_media_devices", "kde_medien_geraete", {}, [], true],
+      ["kde_media_status", "kde_medien_stand", { device_id: device }, ["device_id"], true],
+      ["kde_media_action", "kde_medien_aktion", { device_id: device, token, player: text,
+        action: { type: "string", enum: ["Play", "Pause", "Stop", "Next", "Previous", "volume", "position"] },
+        value: { type: "number", minimum: 0 } }, ["device_id", "token", "player", "action"], false],
+      ["kde_players_read", "kde_player_stand", {}, [], true],
+      ["kde_player_select", "kde_player_waehlen", { slot: { type: "string", enum: ["music", "video"] },
+        application: { type: "string", maxLength: 512 } }, ["slot", "application"], false],
+      ["kde_input_status", "kde_input_stand", {}, [], true],
+      ["kde_input_settings", "kde_input_einstellungen", { enabled: { type: "boolean" },
+        device_id: { type: "string", maxLength: 256 } }, ["enabled", "device_id"], false],
+      ["kde_filesystem_status", "kde_dateisystem_stand", {}, [], true],
+      ["kde_filesystem_open", "kde_dateisystem_oeffnen", { device_id: device, token }, ["device_id", "token"], false]
+    ];
+    return specs.map(([name, command, properties, required, readOnlyHint]) => ({ name,
+      description: "Run the existing native KDE Connect operation: " + command + ". Availability and paired-source checks remain enforced by the native provider.",
+      inputSchema: { type: "object", properties, required, additionalProperties: false },
+      annotations: { readOnlyHint, openWorldHint: !readOnlyHint },
+      call: async (args, signal) => {
+        if (signal.aborted) throw new MagnolieMcp.ToolError("cancelled", "Operation cancelled");
+        const result = await kdeMedienAnfordern(command, args);
+        if (result?.ok !== true) throw new MagnolieMcp.ToolError("native_operation_failed", "KDE Connect operation unavailable or rejected");
+        return kopie(result);
+      } }));
+  }
+  const mcpBereiche = ["termine", "aufgaben", "kontakte", "notizen", "customOrganizer", "zeiterfassung",
+    "notizgruppen", "notizbuecher", "jahrestage", "feiertage", "urlaube", "muelltermine", "papierkorb",
+    "personen", "schichten", "smsVerlauf", "smsPlanung", "zyklusmarker", "tagmarken", "gesundheit", "eigenesProfil"];
+  function mcpWerkzeuge() {
+    return [
+      ...mcpKdeWerkzeuge(),
+      ...mcpNotizWerkzeuge(),
+      { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
+        inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
+          text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
+          id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" } },
+          required: ["title", "text"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+        call: async ({ title, text, notebook_id, id }, signal) => mcpSchreiben(signal, () => {
+          stelleNotizstrukturSicher();
+          const notebook = notebook_id || DATEN.notizbuecher[0]?.id;
+          if (!DATEN.notizbuecher.some(book => book.id === notebook))
+            throw new MagnolieMcp.ToolError("not_found", "Notebook not found");
+          if (id && DATEN.notizen.some(note => note.id === id))
+            throw new MagnolieMcp.ToolError("already_exists", "Note ID already exists; read the existing note before retrying");
+          const note = neueNotizDaten(title, notebook, "notiz", text);
+          if (id) note.id = id;
+          DATEN.notizen.push(note);
+          return { id: note.id, notebook_id: notebook };
+        }) },
+      { name: "notes_diagnostics_read", description: "Read ephemeral WLAN diagnostics from the confirmed own Notes phone. Developer mode and current device-status grants are required on both sides.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: true }, call: async (_args, signal) => mcpNotesDiagnose(signal) },
+      { name: "organizer_status", description: "Read the live Organizer version, lock state and save state.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+        call: async () => ({ version: FASSUNG, ready: initialisiert && antwortErhalten, locked: gesperrt,
+          pendingSave: !!(speicherTimer || laufenderSpeicher || wartenderSpeicherText !== null) }) },
+      { name: "organizer_data_read", description: "Read a section of the live Organizer data. Array results are paginated; IDs remain the product IDs.",
+        inputSchema: { type: "object", properties: { section: { type: "string", enum: mcpBereiche },
+          offset: { type: "integer", minimum: 0, maximum: 10000000 }, limit: { type: "integer", minimum: 1, maximum: 200 },
+          id: { type: "string", minLength: 1, maxLength: 256 } }, required: ["section"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false },
+        call: async ({ section, offset = 0, limit = 100, id }) => {
+          const value = DATEN[section];
+          if (id !== undefined) {
+            if (!Array.isArray(value)) throw new MagnolieMcp.ToolError("invalid_section", "ID lookup requires a collection");
+            const item = value.find(entry => entry.id === id);
+            if (!item) throw new MagnolieMcp.ToolError("not_found", "Entry not found");
+            return { section, entry: kopie(item) };
+          }
+          return Array.isArray(value) ? { section, total: value.length, offset, entries: kopie(value.slice(offset, offset + limit)),
+            ...(offset + limit < value.length ? { nextOffset: offset + limit } : {}) } : { section, value: value === undefined ? null : kopie(value) };
+        } },
+      { name: "organizer_settings_read", description: "Read the current Organizer product settings.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => ({ settings: kopie(DATEN.einstellungen) }) }
+    ];
+  }
+  App.mcpClose = session => { mcpSitzungen.get(session)?.close(); mcpSitzungen.delete(session); };
+  App.mcpRequest = async payload => {
+    if (!Bruecke.vorhanden || !window.MagnolieMcp || !/^[0-9a-f]{48}$/.test(payload?.session || "") ||
+        !/^[0-9a-f]{48}$/.test(payload?.invocation || "")) return;
+    let session = mcpSitzungen.get(payload.session);
+    if (!session) {
+      if (mcpSitzungen.size >= 8) return;
+      session = MagnolieMcp.createSession({ tools: mcpWerkzeuge(), serverInfo: { name: "magnolie-organizer", version: FASSUNG },
+        authorize: async (name, _args, signal) => {
+          if (name !== "organizer_status" && (!initialisiert || !antwortErhalten || gesperrt))
+            throw new MagnolieMcp.ToolError("locked_or_not_ready", "Open and unlock the Organizer first");
+          if (name === "notes_diagnostics_read" && DATEN.einstellungen.allgemein.entwicklermodus !== true)
+            throw new MagnolieMcp.ToolError("developer_mode_disabled", "Enable Organizer developer mode first");
+          if (name === "notes_diagnostics_read" && mcpNotesQuellen.has(signal)) {
+            const expected = mcpNotesQuellen.get(signal), current = entwicklerDiagnoseQuelle();
+            if (!current || current.device_id !== expected.device || current.fingerprint !== expected.fingerprint)
+              throw new MagnolieMcp.ToolError("source_changed", "Notes diagnostic source changed");
+          }
+        } });
+      mcpSitzungen.set(payload.session, session);
+    }
+    const response = await session.dispatch(payload.message);
+    if (mcpSitzungen.get(payload.session) !== session) return;
+    Bruecke.sende({ cmd: "mcp_antwort", session: payload.session, invocation: payload.invocation, response });
+  };
   window.App = App;
 
   function findeTextUeberlaeufe(wurzel) {
