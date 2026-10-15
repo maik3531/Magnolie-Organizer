@@ -39,9 +39,11 @@ A successful product write includes `persisted: true` only after the existing
 native durable-save acknowledgement. A cancelled or timed-out call may already
 have reached the native operation. Read the affected state before retrying.
 Note creation accepts an optional caller-generated UUID: an existing ID returns
-`already_exists` rather than creating a duplicate. Note updates and deletions
-require the opaque `revision` from `organizer_note_read` as `expected_revision`.
-Concurrent changes produce `conflict` instead of overwriting the newer note.
+`already_exists` rather than creating a duplicate. Note and task updates and
+deletions require the opaque `revision` from the corresponding read tool as
+`expected_revision`. Concurrent changes produce `conflict` instead of overwriting
+the newer entry. An active unsaved editor draft produces `editor_busy`; reads
+remain available. Pristine editors are refreshed when a mutation is applied.
 
 ## Implemented tools
 
@@ -54,6 +56,11 @@ Concurrent changes produce `conflict` instead of overwriting the newer note.
 | `organizer_note_create` | Plain-text note in an existing notebook; native save acknowledgement |
 | `organizer_note_update` | Revision-checked title, plain text or notebook change; attachments retained |
 | `organizer_note_delete` | Revision-checked product deletion and configured trash/sync policy |
+| `organizer_task_read` | Task and revision token |
+| `organizer_task_create` | Local task, person assignments, reminder fields and parent hierarchy |
+| `organizer_task_update` | Revision-checked editor fields, retaining recurrence/provider metadata |
+| `organizer_task_delete` | Product trash/tombstones; children are promoted to the deleted task's parent |
+| `organizer_task_set_completed` | Complete or reopen a task; recurring masters produce one detached completed occurrence |
 | `organizer_trash_restore` | Existing type-specific product restore handler |
 | `notes_diagnostics_read` | Ephemeral WLAN diagnostics through the confirmed own Notes connection |
 | `kde_media_devices` | Current supported media devices |
@@ -72,6 +79,13 @@ Notes diagnostics additionally require desktop developer mode, Notes WLAN
 debugging, an own-phone Wi-Fi session and current device-status permissions.
 Diagnostic reports are returned through the call and are not added to book data.
 
+For recurring task completion, `as_of` selects the next occurrence on or after
+that local calendar date; it defaults to the book's current date. The existing
+recurrence worker is awaited. The returned `completed_id` identifies the changed
+entry, while a recurring master remains open. Linux and Windows retain their
+native instance-UID conventions. Repeating the old revision cannot complete a
+second occurrence. A detached completed instance can be reopened by its own ID.
+
 `organizer_data_read.section` uses the existing model keys: `termine`, `aufgaben`,
 `kontakte`, `notizen`, `customOrganizer`, `zeiterfassung`, `notizgruppen`,
 `notizbuecher`, `jahrestage`, `feiertage`, `urlaube`, `muelltermine`, `papierkorb`,
@@ -83,6 +97,7 @@ Diagnostic reports are returned through the call and are not added to book data.
 The remaining work includes mutation handlers for the other product sections,
 settings changes, notebooks/groups and attachments, imports/exports and planners,
 recovery/backup operations, synchronization/accounts, Magnolienbaum operations,
-the remaining phone/KDE actions, and complete installed-product acceptance.
+the remaining phone/KDE actions, bounded large-content reads, and complete
+installed-product acceptance.
 The listed tools execute their current product operations; remaining functions
 are not represented by success-only placeholders.

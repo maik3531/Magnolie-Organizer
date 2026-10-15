@@ -9590,6 +9590,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       document.body.setAttribute("aria-busy", String(pending));
       if (state.progress) state.progress.hidden = !pending;
       document.body.dataset.recurrenceState = pending ? "pending" : [...state.jobs.values()].some(v => v.status === "error") ? "error" : "ready";
+      document.dispatchEvent(new Event("magnolie-recurrence-progress"));
       if (!pending) document.dispatchEvent(new Event("magnolie-recurrence-ready"));
     };
     const fail = (code, result) => {
@@ -16461,6 +16462,41 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return aus;
   }
 
+  function neueAufgabeDaten(werte = {}) {
+    const jetzt = Date.now(), elternUid = String(werte.elternUid || "");
+    return { id: uid(), uid: "", elternUid,
+      reihenfolge: DATEN.aufgaben.filter(aufgabe => aufgabe.elternUid === elternUid).length,
+      titel: "", prio: 2, faellig: "", startDatum: "", startZeit: "", faelligZeit: "",
+      erledigt: false, notiz: "", personen: [], erinnern: false, vonTermin: "",
+      individuelleErinnerungTage: 0, herkunft: (baumStand && baumStand.kennung) || "",
+      vonZweig: "", fremdId: "", delegiertAn: "", angelegt: jetzt, geaendert: jetzt,
+      personalGeaendert: jetzt, vorlaufTage: 0, erinnerungsMinute: 480, ...werte };
+  }
+
+  function wendeAufgabenWerteAn(aufgabe, werte, zeitGeaendert =
+      ["faellig", "startDatum", "startZeit", "faelligZeit"].some(feld => (aufgabe[feld] || "") !== (werte[feld] || "")), elternGeaendert = true) {
+    Object.assign(aufgabe, werte);
+    if (zeitGeaendert) aufgabe.icsRoundtrip = (aufgabe.icsRoundtrip || []).filter(zeile => {
+      const eig = icsEigenschaft(zeile);
+      return !eig || !["DUE", "DTSTART", "DURATION"].includes(eig.name);
+    });
+    if (elternGeaendert) {
+      const parent = DATEN.aufgaben.find(item => item.uid === aufgabe.elternUid);
+      aufgabe.icsElternUid = aufgabenExterneUid(parent || {});
+      aufgabe.icsElternQuelleId = parent?.icsQuelleId || "";
+    }
+    aufgabe.geaendert = Date.now();
+    aufgabe.personalGeaendert = aufgabe.geaendert;
+  }
+
+  function loescheAufgabeDaten(aufgabe) {
+    const trash = inDenPapierkorb("aufgabe", aufgabe, aufgabe.titel);
+    merkeGeloescht("aufgaben", aufgabe);
+    entferneAufgabe(aufgabe);
+    if (zustand.aufgaben.bearbeiteId === aufgabe.id) zustand.aufgaben.bearbeiteId = null;
+    return trash;
+  }
+
   function entferneAufgabe(aufgabe) {
     const kinder = DATEN.aufgaben.filter((a) => a.elternUid === aufgabe.uid)
       .sort((a, b) => a.reihenfolge - b.reihenfolge || vergleicheTechnischeKennung(a.uid, b.uid));
@@ -17519,42 +17555,22 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         : zeitModus === "due" ? feldFaelligZeit.value : "";
       if (bearbeitet) {
         const zeitGeaendert = bearbeitet.faellig !== faellig || (bearbeitet.startDatum || "") !== startDatum || (bearbeitet.startZeit || "") !== startZeit || (bearbeitet.faelligZeit || "") !== faelligZeit;
-        bearbeitet.startDatum = zeitModus === "window" ? startDatum : bearbeitet.startDatum || "";
-        bearbeitet.titel = titel;
-        bearbeitet.prio = Number(feldPrio.value);
-        bearbeitet.faellig = faellig;
-        bearbeitet.startZeit = startZeit;
-        bearbeitet.faelligZeit = faelligZeit;
-        if (zeitGeaendert) bearbeitet.icsRoundtrip = (bearbeitet.icsRoundtrip || []).filter((zeile) => {
-          const eig = icsEigenschaft(zeile);
-          return !eig || !["DUE", "DTSTART", "DURATION"].includes(eig.name);
-        });
-        bearbeitet.notiz = feldNotiz.value;
-        bearbeitet.elternUid = elternWahl.value;
-        bearbeitet.icsElternUid = aufgabenExterneUid(DATEN.aufgaben.find(a => a.uid === elternWahl.value) || {});
-        bearbeitet.icsElternQuelleId = DATEN.aufgaben.find(a => a.uid === elternWahl.value)?.icsQuelleId || "";
-        bearbeitet.personen = Array.from(gewaehltePersonen);
-        bearbeitet.erinnern = erinnerHak.checked;
-        bearbeitet.individuelleErinnerungTage =
-          erinnerungsTageAusText(individuellFeld.value);
-        bearbeitet.geaendert = Date.now();
-        bearbeitet.personalGeaendert = bearbeitet.geaendert;
-        if (zweigWahl) bearbeitet.delegiertAn = zweigWahl.value;
+        wendeAufgabenWerteAn(bearbeitet, {
+          startDatum: zeitModus === "window" ? startDatum : bearbeitet.startDatum || "",
+          titel, prio: Number(feldPrio.value), faellig, startZeit, faelligZeit,
+          notiz: feldNotiz.value, elternUid: elternWahl.value, personen: Array.from(gewaehltePersonen),
+          erinnern: erinnerHak.checked, individuelleErinnerungTage: erinnerungsTageAusText(individuellFeld.value),
+          ...(zweigWahl ? { delegiertAn: zweigWahl.value } : {}) }, zeitGeaendert);
         schickeAnZweig(bearbeitet, zweigWahl ? zweigWahl.value : "");
       } else {
-        DATEN.aufgaben.push({ id: uid(), uid: "", elternUid: elternWahl.value,
-          reihenfolge: DATEN.aufgaben.filter((a) => a.elternUid === elternWahl.value).length,
+        DATEN.aufgaben.push(neueAufgabeDaten({ elternUid: elternWahl.value,
           titel: titel, prio: Number(feldPrio.value),
           faellig: faellig, startDatum: zeitModus === "window" ? startDatum : "", startZeit: startZeit, faelligZeit: faelligZeit,
           erledigt: false, notiz: feldNotiz.value,
           personen: Array.from(gewaehltePersonen),
-          erinnern: erinnerHak.checked, vonTermin: "",
+          erinnern: erinnerHak.checked,
           individuelleErinnerungTage: erinnerungsTageAusText(individuellFeld.value),
-          herkunft: (baumStand && baumStand.kennung) || "",
-          vonZweig: "", fremdId: "",
-          delegiertAn: zweigWahl ? zweigWahl.value : "",
-          angelegt: Date.now(), geaendert: Date.now(), personalGeaendert: Date.now(),
-          vorlaufTage: 0, erinnerungsMinute: 480 });
+          delegiertAn: zweigWahl ? zweigWahl.value : "" }));
         schickeAnZweig(DATEN.aufgaben[DATEN.aufgaben.length - 1],
           zweigWahl ? zweigWahl.value : "");
       }
@@ -17583,6 +17599,58 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       _("Priority 1 is listed first. Overdue tasks are shown in red.")));
 
     setzeEcken(null, "", null, "");
+  }
+
+  async function bereiteAufgabenInstanzUid(a, occurrence) {
+    const stamp = new Date(occurrence.icsOccurrence).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+    const value = occurrence.startZeit ? stamp : stamp.slice(0, 8);
+    const hash = await personalSyncHash([occurrence.startZeit ? {} : { VALUE: "DATE" }, value]);
+    return a.uid + "-magnolie-instanz-" + hash.slice(0, 16);
+  }
+
+  function wechsleAufgabenStatus(a, source, occurrence, preparedInstanceUid) {
+    if (!DATEN.aufgaben.includes(a)) return null;
+    let completedId = a.id;
+    if (!a.erledigt && istWiederkehrend(source)) {
+      if (!preparedInstanceUid || !occurrence || !Number.isFinite(occurrence.icsOccurrence)) return null;
+      const ganztag = !occurrence.startZeit;
+      const stamp = wert => new Date(wert).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+      const rid = ganztag ? ";VALUE=DATE:" + stamp(occurrence.icsOccurrence).slice(0, 8) : ":" + stamp(occurrence.icsOccurrence);
+      a.icsSerienUid = aufgabenExterneUid(a);
+      const raw = (occurrence.icsRoundtrip || a.icsRoundtrip || []).filter(line =>
+        !/^(?:BEGIN|END):VTODO$/i.test(line) && !/^(?:UID|RRULE|RDATE|EXDATE|EXRULE|RECURRENCE-ID|DTSTART|DUE|DURATION|STATUS|PERCENT-COMPLETE|COMPLETED)[;:]/i.test(line));
+      const ende = raw.findIndex(line => /^END:VTODO$/i.test(line));
+      raw.splice(ende < 0 ? raw.length : ende, 0, "RECURRENCE-ID" + rid,
+        ganztag ? "DTSTART;VALUE=DATE:" + occurrence.startDatum.replace(/-/g, "") : "DTSTART:" + stamp(occurrence.icsStartUtc),
+        ganztag ? "DUE;VALUE=DATE:" + occurrence.faellig.replace(/-/g, "") : "DUE:" + stamp(occurrence.icsEndUtc),
+        "STATUS:COMPLETED", "PERCENT-COMPLETE:100");
+      completedId = uid();
+      const suffix = preparedInstanceUid.slice(a.uid.length);
+      DATEN.aufgaben.push({ ...kopie(occurrence), id: completedId, uid: preparedInstanceUid,
+        icsSerienUid: a.icsSerienUid, icsImportUid: (a.icsImportUid || a.uid) + suffix,
+        icsRoundtrip: raw, icsAnzeigeZeitzone: organizerZeitzone(),
+        icsRangeOverrides: [], icsAusnahmen: [], icsAusnahmeTermine: [],
+        icsZusatzTermine: [], erledigt: true, erinnern: false, sync: false, syncQuellen: {},
+        geaendert: Date.now(), personalGeaendert: Date.now() });
+      const master = (a.icsRoundtrip || []).slice();
+      const position = master.findIndex(line => /^END:VTODO$/i.test(line));
+      master.splice(position < 0 ? master.length : position, 0, "EXDATE" + rid);
+      a.icsRoundtrip = master;
+    } else {
+      a.erledigt = !a.erledigt;
+      if ((a.icsRoundtrip || []).length) {
+        const raw = a.icsRoundtrip.filter(line => !/^(?:STATUS|PERCENT-COMPLETE|COMPLETED)[;:]/i.test(line));
+        const ende = raw.findIndex(line => /^END:VTODO$/i.test(line));
+        raw.splice(ende < 0 ? raw.length : ende, 0, "STATUS:" + (a.erledigt ? "COMPLETED" : "NEEDS-ACTION"),
+          "PERCENT-COMPLETE:" + (a.erledigt ? "100" : "0"));
+        a.icsRoundtrip = raw;
+      }
+    }
+    a.geaendert = Date.now();
+    a.personalGeaendert = a.geaendert;
+    schickeStandZurueck(a);
+    if (zustand.aufgaben.bearbeiteId === a.id) zustand.aufgaben.bearbeiteId = null;
+    return { id: a.id, completed_id: completedId, recurring: completedId !== a.id, changed: true };
   }
 
   function aufgabenZeile(a, istErledigt, heute, tiefe = 1) {
@@ -17617,10 +17685,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     let preparedInstanceUid = "";
     if (!istErledigt && istWiederkehrend(source) && occurrence && Number.isFinite(occurrence.icsOccurrence)) {
       kasten.disabled = true;
-      const stamp = new Date(occurrence.icsOccurrence).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
-      const value = occurrence.startZeit ? stamp : stamp.slice(0, 8);
-      personalSyncHash([occurrence.startZeit ? {} : { VALUE: "DATE" }, value]).then(hash => {
-        preparedInstanceUid = a.uid + "-magnolie-instanz-" + hash.slice(0, 16);
+      bereiteAufgabenInstanzUid(a, occurrence).then(value => {
+        preparedInstanceUid = value;
         if (kasten.isConnected) kasten.disabled = false;
       }).catch(() => zettel(_("Warning: The data could not be saved.")));
     }
@@ -17628,47 +17694,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ev.stopPropagation();
       navigiereMitGuard(() => {
       if (!DATEN.aufgaben.includes(a)) { zeichneAlles(); return; }
-      if (!a.erledigt && istWiederkehrend(source)) {
-        // Complete a detached instance, not the master and all future dates.
-        if (!preparedInstanceUid) return;
-        if (!occurrence || !Number.isFinite(occurrence.icsOccurrence)) return;
-        const ganztag = !occurrence.startZeit;
-        const stamp = (wert) => new Date(wert).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
-        const rid = ganztag ? ";VALUE=DATE:" + stamp(occurrence.icsOccurrence).slice(0, 8) : ":" + stamp(occurrence.icsOccurrence);
-        a.icsSerienUid = aufgabenExterneUid(a);
-        const raw = (occurrence.icsRoundtrip || a.icsRoundtrip || []).filter(line =>
-          !/^(?:BEGIN|END):VTODO$/i.test(line) && !/^(?:UID|RRULE|RDATE|EXDATE|EXRULE|RECURRENCE-ID|DTSTART|DUE|DURATION|STATUS|PERCENT-COMPLETE|COMPLETED)[;:]/i.test(line));
-        const ende = raw.findIndex(line => /^END:VTODO$/i.test(line));
-        raw.splice(ende < 0 ? raw.length : ende, 0, "RECURRENCE-ID" + rid,
-          ganztag ? "DTSTART;VALUE=DATE:" + occurrence.startDatum.replace(/-/g, "") : "DTSTART:" + stamp(occurrence.icsStartUtc),
-          ganztag ? "DUE;VALUE=DATE:" + occurrence.faellig.replace(/-/g, "") : "DUE:" + stamp(occurrence.icsEndUtc),
-          "STATUS:COMPLETED", "PERCENT-COMPLETE:100");
-        const id = uid();
-        const suffix = preparedInstanceUid.slice(a.uid.length);
-        DATEN.aufgaben.push({ ...kopie(occurrence), id, uid: preparedInstanceUid,
-          icsSerienUid: a.icsSerienUid, icsImportUid: (a.icsImportUid || a.uid) + suffix,
-          icsRoundtrip: raw, icsAnzeigeZeitzone: organizerZeitzone(),
-          icsRangeOverrides: [], icsAusnahmen: [], icsAusnahmeTermine: [],
-          icsZusatzTermine: [], erledigt: true, erinnern: false, sync: false, syncQuellen: {},
-          geaendert: Date.now(), personalGeaendert: Date.now() });
-        const master = (a.icsRoundtrip || []).slice();
-        const position = master.findIndex(line => /^END:VTODO$/i.test(line));
-        master.splice(position < 0 ? master.length : position, 0, "EXDATE" + rid);
-        a.icsRoundtrip = master;
-      } else {
-        a.erledigt = !a.erledigt;
-        if ((a.icsRoundtrip || []).length) {
-          const raw = a.icsRoundtrip.filter(line => !/^(?:STATUS|PERCENT-COMPLETE|COMPLETED)[;:]/i.test(line));
-          const ende = raw.findIndex(line => /^END:VTODO$/i.test(line));
-          raw.splice(ende < 0 ? raw.length : ende, 0, "STATUS:" + (a.erledigt ? "COMPLETED" : "NEEDS-ACTION"),
-            "PERCENT-COMPLETE:" + (a.erledigt ? "100" : "0"));
-          a.icsRoundtrip = raw;
-        }
-      }
-      a.geaendert = Date.now();
-      a.personalGeaendert = a.geaendert;
-      schickeStandZurueck(a);
-      if (z.bearbeiteId === a.id) z.bearbeiteId = null;
+      if (!wechsleAufgabenStatus(a, source, occurrence, preparedInstanceUid)) return;
       planeSpeichern();
       zeichneAlles();
       });
@@ -17748,10 +17774,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         { title: a.titel || _("untitled") })).then((ja) => {
         if (!ja) return;
         if (!DATEN.aufgaben.includes(a)) { zettel(_("Conflict")); zeichneAlles(); return; }
-        inDenPapierkorb("aufgabe", a, a.titel);
-        merkeGeloescht("aufgaben", a);
-        entferneAufgabe(a);
-        if (z.bearbeiteId === a.id) z.bearbeiteId = null;
+        loescheAufgabeDaten(a);
         const naechste = DATEN.aufgaben.slice().sort(sortiereAufgaben)[0];
         fokussiereNachZeichnen(naechste ? "aufgabe:" + naechste.id : "register:aufgaben");
         planeSpeichern();
@@ -32793,21 +32816,26 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   };
 
   const mcpSitzungen = new Map();
+  function mcpEditorPruefen() {
+    if (editorIstGeaendert()) throw new MagnolieMcp.ToolError("editor_busy", "Save or discard the current editor draft before an external write");
+  }
   let mcpSchreibKette = Promise.resolve();
   function mcpSchreiben(signal, mutation) {
     const run = async () => {
       if (signal.aborted || gesperrt || !initialisiert || !antwortErhalten)
         throw new MagnolieMcp.ToolError("locked_or_cancelled", "Open and unlock the Organizer before writing");
       sichereNotizSnapshot();
+      mcpEditorPruefen();
       const bestand = DATEN;
       const result = await mutation();
       if (gesperrt || !initialisiert || !antwortErhalten || DATEN !== bestand)
         throw new MagnolieMcp.ToolError("source_changed", "The book changed before the write could be confirmed");
       planeSpeichern();
-      await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve,
+      const gespeichert = new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve,
         () => reject(new MagnolieMcp.ToolError("save_failed", "The native save did not complete; check the current data before retrying"))));
-      // Preserve a form draft rather than redrawing it underneath its editor.
+      // Refresh a pristine editor immediately so a new draft starts from the new data.
       if (!gesperrt && !editorIstGeaendert()) zeichneAlles();
+      await gespeichert;
       return { ...result, persisted: true };
     };
     const operation = mcpSchreibKette.then(run);
@@ -32816,13 +32844,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
   const mcpNativeAnfragen = new Map();
   async function mcpPruefeNotiz(id, revision, signal) {
-    const note = DATEN.notizen.find(item => item.id === id);
-    if (!note) throw new MagnolieMcp.ToolError("not_found", "Note not found");
-    const before = JSON.stringify(note), actual = await personalSyncHash(before);
-    if (signal.aborted || gesperrt || DATEN.notizen.find(item => item.id === id) !== note ||
-        JSON.stringify(note) !== before || actual !== revision)
-      throw new MagnolieMcp.ToolError("conflict", "The note changed; read it again before writing");
-    return note;
+    return mcpPruefeEintrag("notizen", id, revision, signal);
+  }
+  async function mcpPruefeEintrag(section, id, revision, signal) {
+    const entry = DATEN[section].find(item => item.id === id);
+    if (!entry) throw new MagnolieMcp.ToolError("not_found", "Entry not found");
+    const before = JSON.stringify(entry), actual = await personalSyncHash(before);
+    if (signal.aborted || gesperrt || DATEN[section].find(item => item.id === id) !== entry ||
+        JSON.stringify(entry) !== before || actual !== revision)
+      throw new MagnolieMcp.ToolError("conflict", "The entry changed; read it again before writing");
+    mcpEditorPruefen();
+    return entry;
   }
   function mcpNotizWerkzeuge() {
     const id = { type: "string", minLength: 1, maxLength: 256 };
@@ -32868,6 +32900,153 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (!item) throw new MagnolieMcp.ToolError("not_found", "Trash item not found");
           if (!ausDemPapierkorb(item)) throw new MagnolieMcp.ToolError("conflict", "Trash item cannot be restored over the current data");
           return { restored_id: item.eintrag.id, type: item.art };
+        }) }
+    ];
+  }
+  function mcpAufgabenWerte(args, base) {
+    const task = kopie(base);
+    for (const [field, target] of Object.entries({ title: "titel", priority: "prio", due_date: "faellig",
+      start_date: "startDatum", start_time: "startZeit", due_time: "faelligZeit", note: "notiz",
+      reminder: "erinnern", reminder_days: "individuelleErinnerungTage" }))
+      if (Object.prototype.hasOwnProperty.call(args, field)) task[target] = field === "title" ? args[field].trim() : args[field];
+    for (const field of ["faellig", "startDatum"]) if (task[field] && !gueltigesISO(task[field]))
+      throw new MagnolieMcp.ToolError("invalid_date", "Task dates must be valid calendar dates");
+    if (task.startZeit && !task.startDatum || task.faelligZeit && !task.faellig ||
+        task.startDatum && task.faellig && (task.faellig < task.startDatum || task.faellig === task.startDatum &&
+          task.startZeit && task.faelligZeit && task.faelligZeit <= task.startZeit))
+      throw new MagnolieMcp.ToolError("invalid_time_range", "Task start and due dates/times are inconsistent");
+    if (args.persons !== undefined) {
+      const known = new Set(DATEN.personen.map(person => person.id));
+      if (args.persons.some(id => !known.has(id)))
+        throw new MagnolieMcp.ToolError("not_found", "Task person not found");
+      task.personen = [...new Set(args.persons)];
+    }
+    if (args.parent_id !== undefined) {
+      const parent = args.parent_id ? DATEN.aufgaben.find(item => item.id === args.parent_id) : null;
+      if (args.parent_id && !parent) throw new MagnolieMcp.ToolError("not_found", "Parent task not found");
+      const byUid = new Map(DATEN.aufgaben.map(item => [item.uid, item])), seen = new Set();
+      for (let current = parent; current; current = byUid.get(current.elternUid)) {
+        if (current.id === task.id || seen.has(current.uid))
+          throw new MagnolieMcp.ToolError("invalid_parent", "A task cannot be moved below itself or its descendants");
+        seen.add(current.uid);
+      }
+      task.elternUid = parent?.uid || "";
+      task.icsElternUid = aufgabenExterneUid(parent || {});
+      task.icsElternQuelleId = parent?.icsQuelleId || "";
+    }
+    return task;
+  }
+  async function mcpAufgabenVorkommen(source, date, signal) {
+    const key = JSON.stringify(["next", source, [date], organizerZeitzone()]);
+    const immediate = icsRuntime("next", source, [date]);
+    const job = icsRuntime.state?.jobs.get(key);
+    if (!job) {
+      if (typeof Worker === "function" && immediate === null)
+        throw new MagnolieMcp.ToolError("recurrence_unavailable", "Task recurrence worker queue is unavailable");
+      return immediate;
+    }
+    if (job.status === "ready") return job.result;
+    if (job.status === "error") throw new MagnolieMcp.ToolError("recurrence_unavailable", "Task recurrence calculation failed");
+    return new Promise((resolve, reject) => {
+      let timer, finished = false;
+      const finish = (result, error) => {
+        if (finished) return;
+        finished = true; clearTimeout(timer);
+        document.removeEventListener("magnolie-recurrence-progress", check);
+        signal.removeEventListener("abort", abort);
+        error ? reject(error) : resolve(result);
+      };
+      const abort = () => finish(null, new MagnolieMcp.ToolError("cancelled", "Task recurrence calculation cancelled"));
+      const check = () => {
+        const current = icsRuntime.state?.jobs.get(key);
+        if (current?.status === "pending") return;
+        if (current?.status === "ready") finish(current.result);
+        else finish(null, new MagnolieMcp.ToolError("recurrence_unavailable", "Task recurrence calculation failed"));
+      };
+      document.addEventListener("magnolie-recurrence-progress", check);
+      signal.addEventListener("abort", abort, { once: true });
+      timer = setTimeout(() => finish(null, new MagnolieMcp.ToolError("recurrence_timeout", "Task recurrence calculation timed out")), 25000);
+      if (signal.aborted) abort(); else check();
+    });
+  }
+  function mcpAufgabenWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 };
+    const revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const properties = { title: { type: "string", minLength: 1, maxLength: 1024, pattern: "\\S" },
+      priority: { type: "integer", enum: [1, 2, 3] }, note: { type: "string", maxLength: 500000 },
+      due_date: { type: "string", pattern: "^$|^\\d{4}-\\d{2}-\\d{2}$" },
+      start_date: { type: "string", pattern: "^$|^\\d{4}-\\d{2}-\\d{2}$" },
+      start_time: { type: "string", pattern: "^$|^(?:[01]\\d|2[0-3]):[0-5]\\d$" },
+      due_time: { type: "string", pattern: "^$|^(?:[01]\\d|2[0-3]):[0-5]\\d$" },
+      persons: { type: "array", items: id, maxItems: 1000 }, reminder: { type: "boolean" },
+      reminder_days: { type: "integer", minimum: 0, maximum: 7 }, parent_id: { type: "string", maxLength: 256 } };
+    return [
+      { name: "organizer_task_read", description: "Read a task and its opaque revision token for conflict-checked local changes.",
+        inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ id }) => {
+          const current = DATEN.aufgaben.find(task => task.id === id);
+          if (!current) throw new MagnolieMcp.ToolError("not_found", "Task not found");
+          const task = kopie(current);
+          return { task, revision: await personalSyncHash(JSON.stringify(task)) };
+        } },
+      { name: "organizer_task_create", description: "Create a local task through the same constructor and hierarchy normalization as the task editor. Success requires native durable saving.",
+        inputSchema: { type: "object", properties: { ...properties, id: { type: "string",
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" } }, required: ["title"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+        call: async (args, signal) => mcpSchreiben(signal, () => {
+          if (args.id && DATEN.aufgaben.some(task => task.id === args.id))
+            throw new MagnolieMcp.ToolError("already_exists", "Task ID already exists; read the existing task before retrying");
+          const task = mcpAufgabenWerte(args, neueAufgabeDaten());
+          if (args.id) task.id = args.id;
+          task.reihenfolge = DATEN.aufgaben.filter(item => item.elternUid === task.elternUid).length;
+          DATEN.aufgaben.push(task); normalisiereAufgabenGraph(DATEN.aufgaben);
+          return { id: task.id, uid: task.uid };
+        }) },
+      { name: "organizer_task_update", description: "Revision-checked task editor fields, preserving imported recurrence and provider metadata. Parent cycles and invalid dates are rejected.",
+        inputSchema: { type: "object", properties: { ...properties, id, expected_revision: revision },
+          required: ["id", "expected_revision"], anyOf: Object.keys(properties).map(field => ({ required: [field] })), additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+        call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const task = await mcpPruefeEintrag("aufgaben", args.id, args.expected_revision, signal);
+          const values = mcpAufgabenWerte(args, task);
+          wendeAufgabenWerteAn(task, values, undefined, args.parent_id !== undefined); normalisiereAufgabenGraph(DATEN.aufgaben);
+          schickeAnZweig(task, task.delegiertAn || "");
+          weckeAutomatischenNotesAbgleich("task", task.id);
+          return { id: task.id };
+        }) },
+      { name: "organizer_task_set_completed", description: "Revision-checked completion or reopening through the task editor's status handler. Completing a recurring master creates one detached completed occurrence on or after as_of and keeps future occurrences open.",
+        inputSchema: { type: "object", properties: { id, expected_revision: revision, completed: { type: "boolean" },
+          as_of: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" } }, required: ["id", "expected_revision", "completed"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+        call: async (args, signal) => mcpSchreiben(signal, async () => {
+          if (args.as_of !== undefined && !gueltigesISO(args.as_of)) throw new MagnolieMcp.ToolError("invalid_date", "Invalid occurrence date");
+          const task = await mcpPruefeEintrag("aufgaben", args.id, args.expected_revision, signal);
+          if (task.erledigt === args.completed) return { id: task.id, completed_id: task.id, completed: args.completed, recurring: false, changed: false };
+          const source = icsSerienAbstimmen(DATEN.aufgaben).find(item => item.id === task.id) || task;
+          let occurrence = null, prepared = "";
+          if (!task.erledigt && istWiederkehrend(source)) {
+            const before = JSON.stringify(DATEN.aufgaben);
+            occurrence = icsQuelle(source) ? await mcpAufgabenVorkommen(source, args.as_of || isoHeute(), signal) : task;
+            if (!occurrence || !Number.isFinite(occurrence.icsOccurrence)) throw new MagnolieMcp.ToolError("no_occurrence", "No task occurrence is available for completion");
+            prepared = await bereiteAufgabenInstanzUid(task, occurrence);
+            if (signal.aborted || gesperrt || !DATEN.aufgaben.includes(task) || JSON.stringify(DATEN.aufgaben) !== before)
+              throw new MagnolieMcp.ToolError("conflict", "The task series changed during occurrence preparation");
+            mcpEditorPruefen();
+          }
+          const result = wechsleAufgabenStatus(task, source, occurrence, prepared);
+          if (!result) throw new MagnolieMcp.ToolError("conflict", "The task changed before its status could be applied");
+          weckeAutomatischenNotesAbgleich("task", task.id);
+          if (result.completed_id !== task.id) weckeAutomatischenNotesAbgleich("task", result.completed_id);
+          return { ...result, completed: args.completed };
+        }) },
+      { name: "organizer_task_delete", description: "Revision-checked task deletion using the editor's trash, provider tombstones and child-promotion behavior. Children are promoted, not deleted.",
+        inputSchema: { type: "object", properties: { id, expected_revision: revision }, required: ["id", "expected_revision"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+        call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const task = await mcpPruefeEintrag("aufgaben", args.id, args.expected_revision, signal);
+          const promoted_children = DATEN.aufgaben.filter(item => item.elternUid === task.uid).map(item => item.id);
+          const trash = loescheAufgabeDaten(task);
+          return { id: task.id, trash_id: trash?.id || null, promoted_children };
         }) }
     ];
   }
@@ -32943,6 +33122,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return [
       ...mcpKdeWerkzeuge(),
       ...mcpNotizWerkzeuge(),
+      ...mcpAufgabenWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

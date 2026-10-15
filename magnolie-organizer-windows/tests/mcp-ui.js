@@ -1,12 +1,21 @@
 "use strict";
 const fs = require("node:fs"), path = require("node:path"), Module = require("node:module"), assert = require("node:assert/strict");
+const { createHash } = require("node:crypto");
 const file = path.join(__dirname, "desktop-state-regressions.js");
 const harness = new Module(file, module); harness.filename = file; harness.paths = Module._nodeModulePaths(__dirname);
 harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[0] + "\nmodule.exports={boot,roots};", file);
 const watchdog = setTimeout(() => { console.error("MCP UI test timed out"); process.exit(1); }, 15000);
 (async () => {
   for (const web of harness.exports.roots) {
-    const b = await harness.exports.boot(web, { notizen: [{ id: "fixture-note", titel: "Fixture", text: "Owned fixture only" }] });
+    const b = await harness.exports.boot(web, {
+      notizen: [{ id: "fixture-note", titel: "Fixture", text: "Owned fixture only" }],
+      aufgaben: [{ id: "imported-task", uid: "imported-fixture-uid", titel: "Imported fixture",
+        faellig: "2026-11-01", startDatum: "2026-11-01", startZeit: "08:00", faelligZeit: "09:00",
+        icsElternUid: "unresolved-owned-parent", icsElternQuelleId: "owned-source", icsQuelleId: "owned-source",
+        icsRoundtrip: ["BEGIN:VTODO", "UID:imported-fixture-uid", "DTSTART:20261101T080000Z", "DUE:20261101T090000Z",
+          "RRULE:FREQ=DAILY", "X-OWNED-FIXTURE:preserve", "END:VTODO"],
+        sync: true, syncQuellen: { fixture: { marker: "preserve" } } }]
+    });
     try {
       b.w.eval(fs.readFileSync(path.join(web, "mcp-protocol.js"), "utf8"));
       const session = "a".repeat(48);
@@ -60,7 +69,7 @@ const watchdog = setTimeout(() => { console.error("MCP UI test timed out"); proc
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
         const operation = call(request(id, "tools/call", { name, arguments: args }));
-        await saving;
+        await Promise.race([saving, operation.then(response => { throw new Error("Write settled before native ACK: " + JSON.stringify(response)); })]);
         b.ack();
         const response = await operation;
         assert.equal(response.result.isError, false, JSON.stringify(response));
@@ -84,6 +93,62 @@ const watchdog = setTimeout(() => { console.error("MCP UI test timed out"); proc
       const restored = await persisted(38, "organizer_trash_restore", { id: removed.trash_id });
       assert.equal(restored.restored_id, noteId);
       assert.equal(b.t.daten().notizen.find(note => note.id === noteId).titel, "Updated fixture");
+      const imported = (await call(request(40, "tools/call", { name: "organizer_task_read", arguments: { id: "imported-task" } }))).result.structuredContent;
+      await persisted(41, "organizer_task_update", { id: "imported-task", expected_revision: imported.revision, title: "Revised imported task" });
+      const preserved = b.t.daten().aufgaben.find(task => task.id === "imported-task");
+      assert.equal(preserved.syncQuellen.fixture.marker, "preserve");
+      assert.equal(preserved.icsElternUid, "unresolved-owned-parent");
+      assert.ok(preserved.icsRoundtrip.includes("DTSTART:20261101T080000Z"));
+      const importedNow = (await call(request(42, "tools/call", { name: "organizer_task_read", arguments: { id: "imported-task" } }))).result.structuredContent;
+      await persisted(43, "organizer_task_update", { id: "imported-task", expected_revision: importedNow.revision, due_time: "10:00" });
+      assert.ok(preserved.icsRoundtrip.includes("RRULE:FREQ=DAILY") && preserved.icsRoundtrip.includes("X-OWNED-FIXTURE:preserve"));
+      assert.ok(!preserved.icsRoundtrip.some(line => /^(DTSTART|DUE|DURATION)[;:]/.test(line)));
+      const badDate = await call(request(44, "tools/call", { name: "organizer_task_create", arguments: { title: "Invalid fixture", due_date: "2026-02-31" } }));
+      assert.equal(badDate.result.structuredContent.code, "invalid_date");
+      const parentId = "55555555-5555-4555-8555-555555555555", childId = "66666666-6666-4666-8666-666666666666";
+      const parent = await persisted(45, "organizer_task_create", { id: parentId, title: "Owned parent" });
+      await persisted(46, "organizer_task_create", { id: childId, title: "Owned child", parent_id: parentId });
+      assert.equal(b.t.daten().aufgaben.find(task => task.id === childId).elternUid, parent.uid);
+      const parentRead = (await call(request(47, "tools/call", { name: "organizer_task_read", arguments: { id: parentId } }))).result.structuredContent;
+      const cycle = await call(request(48, "tools/call", { name: "organizer_task_update", arguments: {
+        id: parentId, expected_revision: parentRead.revision, parent_id: childId } }));
+      assert.equal(cycle.result.structuredContent.code, "invalid_parent");
+      const taskRemoved = await persisted(49, "organizer_task_delete", { id: parentId, expected_revision: parentRead.revision });
+      assert.equal(taskRemoved.promoted_children[0], childId);
+      assert.equal(b.t.daten().aufgaben.find(task => task.id === childId).elternUid, "");
+      await persisted(50, "organizer_trash_restore", { id: taskRemoved.trash_id });
+      assert.ok(b.t.daten().aufgaben.some(task => task.id === parentId));
+      const toDelete = (await call(request(51, "tools/call", { name: "organizer_task_read", arguments: { id: "imported-task" } }))).result.structuredContent;
+      const completion = await persisted(54, "organizer_task_set_completed", { id: "imported-task",
+        expected_revision: toDelete.revision, completed: true, as_of: "2026-11-02" });
+      assert.equal(completion.recurring, true);
+      assert.equal(b.t.daten().aufgaben.find(task => task.id === "imported-task").erledigt, false);
+      const instance = b.t.daten().aufgaben.find(task => task.id === completion.completed_id);
+      assert.equal(instance.erledigt, true);
+      const recurrenceId = instance.icsRoundtrip.find(line => /^RECURRENCE-ID[;:]/.test(line));
+      const value = recurrenceId.slice(recurrenceId.lastIndexOf(":") + 1);
+      const expected = web === path.resolve(__dirname, "../app/web") ? "imported-fixture-uid#" + value :
+        "imported-fixture-uid-magnolie-instanz-" + createHash("sha256").update(JSON.stringify([
+          recurrenceId.includes(";VALUE=DATE:") ? { VALUE: "DATE" } : {}, value])).digest("hex").slice(0, 16);
+      assert.equal(instance.uid, expected, "MCP detached instance must match the native product identity contract");
+      assert.ok(preserved.icsRoundtrip.includes(recurrenceId.replace("RECURRENCE-ID", "EXDATE")));
+      const retryCompletion = await call(request(55, "tools/call", { name: "organizer_task_set_completed", arguments: {
+        id: "imported-task", expected_revision: toDelete.revision, completed: true, as_of: "2026-11-02" } }));
+      assert.equal(retryCompletion.result.structuredContent.code, "conflict");
+      const instanceRead = (await call(request(56, "tools/call", { name: "organizer_task_read", arguments: { id: instance.id } }))).result.structuredContent;
+      await persisted(57, "organizer_task_set_completed", { id: instance.id, expected_revision: instanceRead.revision, completed: false });
+      assert.equal(instance.erledigt, false);
+      const completedMaster = (await call(request(58, "tools/call", { name: "organizer_task_read", arguments: { id: "imported-task" } }))).result.structuredContent;
+      await persisted(52, "organizer_task_delete", { id: "imported-task", expected_revision: completedMaster.revision });
+      assert.ok(b.t.daten().geloescht.aufgaben.some(task => task.uid === "imported-fixture-uid" && task.syncQuellen.fixture.marker === "preserve"));
+      await b.t.wechsel("aufgaben");
+      b.input("#aufgabe-titel", "Owned unsaved draft");
+      const noteCount = b.t.daten().notizen.length;
+      const busy = await call(request(53, "tools/call", { name: "organizer_note_create", arguments: { title: "External fixture", text: "Must not overwrite the draft" } }));
+      assert.equal(busy.result.structuredContent.code, "editor_busy");
+      assert.equal(b.t.daten().notizen.length, noteCount);
+      assert.equal(b.w.document.querySelector("#aufgabe-titel").value, "Owned unsaved draft");
+      const leaving = b.t.wechsel("kalender"); b.answer("Discard"); await leaving;
       const failedSave = call(request(32, "tools/call", { name: "organizer_note_create", arguments: { title: "Failed fixture", text: "Check state" } }));
       await new Promise(resolve => setImmediate(resolve));
       b.ack(false);
@@ -131,7 +196,7 @@ const watchdog = setTimeout(() => { console.error("MCP UI test timed out"); proc
       assert.equal(status.result.structuredContent.locked, true);
       b.w.App.mcpClose(session);
       assert.equal((await call(request(8, "tools/list"))).error.code, -32002);
-      console.log("MCP product reads, Notes nonce/source gates, native KDE results, typed actions, lock revocation and session cleanup PASS " + web);
+      console.log("MCP note/task CRUD, recurrence identities, tombstones/hierarchy, draft guard, Notes source gates, native KDE results and session cleanup PASS " + web);
     } finally { b.close(); }
   }
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => clearTimeout(watchdog));
