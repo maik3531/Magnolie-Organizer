@@ -151,6 +151,19 @@ install -Dpm 0644 bin/magnolie_cloud_backup.py %{buildroot}%{_bindir}/magnolie_c
 install -Dpm 0644 bin/magnolie_akonadi.py %{buildroot}%{_bindir}/magnolie_akonadi.py
 install -Dpm 0644 bin/magnolie_crash.py %{buildroot}%{_bindir}/magnolie_crash.py
 install -Dpm 0644 bin/magnolie_asset.py %{buildroot}%{_bindir}/magnolie_asset.py
+install -Dpm 0644 bin/magnolie_calendar_dedup.py %{buildroot}%{_bindir}/magnolie_calendar_dedup.py
+install -Dpm 0644 bin/magnolie_content_scope.py %{buildroot}%{_bindir}/magnolie_content_scope.py
+install -Dpm 0644 bin/magnolie_drawing_svg.py %{buildroot}%{_bindir}/magnolie_drawing_svg.py
+install -Dpm 0644 bin/magnolie_kde_filesystem.py %{buildroot}%{_bindir}/magnolie_kde_filesystem.py
+install -Dpm 0644 bin/magnolie_kde_input.py %{buildroot}%{_bindir}/magnolie_kde_input.py
+install -Dpm 0644 bin/magnolie_kde_input_x11.py %{buildroot}%{_bindir}/magnolie_kde_input_x11.py
+install -Dpm 0644 bin/magnolie_kde_media.py %{buildroot}%{_bindir}/magnolie_kde_media.py
+install -Dpm 0644 bin/magnolie_kde_mpris.py %{buildroot}%{_bindir}/magnolie_kde_mpris.py
+install -Dpm 0644 bin/magnolie_office_profile.py %{buildroot}%{_bindir}/magnolie_office_profile.py
+install -Dpm 0644 bin/magnolie_own_profile.py %{buildroot}%{_bindir}/magnolie_own_profile.py
+install -Dpm 0644 bin/magnolie_pdf.py %{buildroot}%{_bindir}/magnolie_pdf.py
+install -Dpm 0644 bin/magnolie_shared_sync.py %{buildroot}%{_bindir}/magnolie_shared_sync.py
+install -Dpm 0644 bin/magnolie_social_profiles.py %{buildroot}%{_bindir}/magnolie_social_profiles.py
 install -Dpm 0644 bin/magnolie_setup_state.py %{buildroot}%{_bindir}/magnolie_setup_state.py
 install -Dpm 0644 bin/magnolie_setup_ui.py %{buildroot}%{_bindir}/magnolie_setup_ui.py
 install -Dpm 0644 bin/magnolie_phone_region.py %{buildroot}%{_bindir}/magnolie_phone_region.py
@@ -266,6 +279,19 @@ done
 %{_bindir}/magnolie_akonadi.py
 %{_bindir}/magnolie_crash.py
 %{_bindir}/magnolie_asset.py
+%{_bindir}/magnolie_calendar_dedup.py
+%{_bindir}/magnolie_content_scope.py
+%{_bindir}/magnolie_drawing_svg.py
+%{_bindir}/magnolie_kde_filesystem.py
+%{_bindir}/magnolie_kde_input.py
+%{_bindir}/magnolie_kde_input_x11.py
+%{_bindir}/magnolie_kde_media.py
+%{_bindir}/magnolie_kde_mpris.py
+%{_bindir}/magnolie_office_profile.py
+%{_bindir}/magnolie_own_profile.py
+%{_bindir}/magnolie_pdf.py
+%{_bindir}/magnolie_shared_sync.py
+%{_bindir}/magnolie_social_profiles.py
 %{_bindir}/magnolie_setup_state.py
 %{_bindir}/magnolie_setup_ui.py
 %{_bindir}/magnolie_phone_region.py
