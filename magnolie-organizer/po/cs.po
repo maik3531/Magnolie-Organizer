@@ -42,6 +42,9 @@ msgstr " od %(branch)s"
 msgid " – notification at the appointment time."
 msgstr " – upozornění v čase schůzky."
 
+msgid "%(Handyname)s filesystem"
+msgstr "Souborový systém %(Handyname)s"
+
 msgid ""
 "%(appointment)s\n"
 "Click to edit"
@@ -2381,6 +2384,12 @@ msgstr "Zubař MUDr. Hill — Náhled vašich záznamů"
 msgid "Determining public IP address…"
 msgstr "Zjišťování veřejné IP adresy…"
 
+msgid "Developer options"
+msgstr "Možnosti pro vývojáře"
+
+msgid "Device"
+msgstr "Zařízení"
+
 msgid "Device IMEI"
 msgstr "IMEI zařízení"
 
@@ -2410,6 +2419,9 @@ msgstr "Číslice %(digit)s"
 
 msgid "Direction"
 msgstr "Směr"
+
+msgid "Disable developer mode"
+msgstr "Vypnout režim pro vývojáře"
 
 msgid ""
 "Disabled: no listener, discovery, reconnect or phone tray entries are active."
@@ -2591,6 +2603,12 @@ msgstr "Povolte připojení telefonu Magnolie Notes"
 
 msgid "Enable SMS scheduling"
 msgstr "Povolit plánování SMS"
+
+msgid ""
+"Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr ""
+"Zapněte ladění Wi-Fi v možnostech pro vývojáře Notes na svém spárovaném "
+"telefonu."
 
 msgid "Enable cycle calendar"
 msgstr "Povolit kalendář cyklu"
@@ -3353,12 +3371,33 @@ msgstr "Příchozí soubory KDE Connect (vždy potvrdit)"
 msgid "Incoming call"
 msgstr "Příchozí hovor"
 
+msgid "Incoming control device"
+msgstr "Zařízení pro příchozí ovládání"
+
+msgid ""
+"Incoming control is inactive. Keep the Organizer running and unlocked and "
+"select one paired device."
+msgstr ""
+"Příchozí ovládání není aktivní. Nechte Organizer spuštěný a odemčený a "
+"vyberte spárované zařízení."
+
+msgid "Incoming control uses the permissions configured in system KDE Connect."
+msgstr ""
+"Příchozí ovládání používá oprávnění nastavená v systémovém KDE Connect."
+
 msgid ""
 "Incoming files are always confirmed. Clipboard text is confirmed unless "
 "automatic acceptance is explicitly enabled."
 msgstr ""
 "Příchozí soubory se vždy potvrzují. Text ze schránky se potvrzuje, pokud "
 "není výslovně povoleno automatické přijímání."
+
+msgid ""
+"Incoming phone control is ready while the Organizer is running and unlocked, "
+"including tray mode."
+msgstr ""
+"Ovládání z telefonu je připraveno, dokud je Organizer spuštěný a odemčený, "
+"také v oznamovací oblasti."
 
 msgid "Input"
 msgstr "Vstup"
@@ -3570,6 +3609,9 @@ msgstr "Posluchač se zastavil"
 
 msgid "Loading background settings"
 msgstr "Načítá se nastavení služby na pozadí"
+
+msgid "Loading …"
+msgstr "Načítání …"
 
 msgid "Loading…"
 msgstr "Načítání…"
@@ -3806,6 +3848,25 @@ msgstr "Kontext měření"
 msgid "Mecklenburg-Western Pomerania"
 msgstr "Meklenbursko-Přední Pomořansko"
 
+msgid "Media control"
+msgstr "Ovládání médií"
+
+msgid ""
+"Media control is unavailable. Check the connection and the media app on the "
+"phone."
+msgstr ""
+"Ovládání médií není dostupné. Zkontrolujte připojení a mediální aplikaci v "
+"telefonu."
+
+msgid "Media player"
+msgstr "Přehrávač médií"
+
+msgid "Media player settings could not be applied."
+msgstr "Nastavení přehrávače médií nelze použít."
+
+msgid "Media players"
+msgstr "Přehrávače médií"
+
 msgid "Medication"
 msgstr "Lék"
 
@@ -3940,6 +4001,9 @@ msgstr ""
 msgid "Morning"
 msgstr "Ráno"
 
+msgid "Mouse and keyboard"
+msgstr "Myš a klávesnice"
+
 msgid "Mouse wheel over times"
 msgstr "Kolečko myši nad časy"
 
@@ -3985,6 +4049,9 @@ msgstr ""
 
 msgid "Multiple calendars"
 msgstr "Více kalendářů"
+
+msgid "Music player"
+msgstr "Hudební přehrávač"
 
 msgid "Name"
 msgstr "Jméno"
@@ -4257,6 +4324,9 @@ msgstr "Nebyl nalezen žádný odpovídající otevřený úkol."
 
 msgid "No measurements in this period."
 msgstr "V tomto období nejsou žádná měření."
+
+msgid "No media player is available on the connected phone."
+msgstr "V připojeném telefonu není dostupný přehrávač médií."
 
 msgid "No merge history recorded"
 msgstr ""
@@ -4915,9 +4985,15 @@ msgstr "Náplast"
 msgid "Patients"
 msgstr "Pacienti"
 
+msgid "Pause"
+msgstr "Pozastavit"
+
 msgctxt "time tracking"
 msgid "Pause (minutes)"
 msgstr "Přestávka (minuty)"
+
+msgid "Pause incoming control for this session"
+msgstr "Pozastavit příchozí ovládání pro toto sezení"
 
 msgctxt "time tracking"
 msgid "Paused"
@@ -5065,6 +5141,12 @@ msgstr "Vyzvednout"
 msgid "Planner"
 msgstr "Plánovač"
 
+msgid "Play"
+msgstr "Přehrát"
+
+msgid "Playback position"
+msgstr "Pozice přehrávání"
+
 msgid "Please create a notebook in another group first."
 msgstr "Nejprve vytvořte zápisník v jiné skupině."
 
@@ -5191,6 +5273,9 @@ msgstr[2] "Náhled: %(count)s kontaktů"
 msgid "Previewing a recovery snapshot"
 msgstr "Zobrazení náhledu snímku obnovení"
 
+msgid "Previous"
+msgstr "Předchozí"
+
 msgid "Previous month"
 msgstr "Předchozí měsíc"
 
@@ -5287,6 +5372,9 @@ msgstr ""
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Dostupná adresa IPv4 nebo IPv6 tohoto počítače"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Načíst diagnostiku Wi-Fi z Notes"
 
 msgid "Read on phone"
 msgstr "Přečteno v telefonu"
@@ -5427,6 +5515,9 @@ msgstr "Připomínky: zapnuté"
 
 msgid "Reminds you about appointments even when the organizer is closed"
 msgstr "Připomíná schůzky, i když je organizér zavřený"
+
+msgid "Remote control settings could not be applied."
+msgstr "Nastavení dálkového ovládání nelze použít."
 
 msgid "Remote host name or IP address (optional)"
 msgstr "Název vzdáleného hostitele nebo IP adresa (volitelné)"
@@ -6098,24 +6189,6 @@ msgstr "Zobrazovat v polích data tlačítko kalendáře"
 msgid "Show incoming call notifications"
 msgstr "Zobrazovat oznámení o příchozích hovorech"
 
-msgid "Developer options"
-msgstr "Možnosti pro vývojáře"
-
-msgid "Disable developer mode"
-msgstr "Vypnout režim pro vývojáře"
-
-msgid "Read Notes WLAN diagnostics"
-msgstr "Načíst diagnostiku Wi-Fi z Notes"
-
-msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
-msgstr "Zapněte ladění Wi-Fi v možnostech pro vývojáře Notes na svém spárovaném telefonu."
-
-msgid "%(Handyname)s filesystem"
-msgstr "Souborový systém %(Handyname)s"
-
-msgid "The phone filesystem could not be opened."
-msgstr "Souborový systém telefonu se nepodařilo otevřít."
-
 msgid "Show log"
 msgstr "Zobrazit protokol"
 
@@ -6324,6 +6397,9 @@ msgstr "Oblast formátu"
 
 msgid "Status"
 msgstr "Postavení"
+
+msgid "Stop"
+msgstr "Zastavit"
 
 msgid "Street"
 msgstr ""
@@ -7085,15 +7161,6 @@ msgstr "Protokol se nepodařilo otevřít."
 msgid "The log is available only in the installed application."
 msgstr "Protokol je k dispozici pouze v nainstalované aplikaci."
 
-msgid ""
-"The log records when the reminder service checked and what it reported. "
-"Entries older than 30 days are removed automatically, and the log never "
-"exceeds 200 lines."
-msgstr ""
-"Protokol zaznamenává, kdy služba připomínek provedla kontrolu a co oznámila. "
-"Položky starší než 30 dní se automaticky odstraňují a protokol nikdy "
-"nepřesáhne 200 řádků."
-
 msgid "The mailbox backlog is too large."
 msgstr "Zpoždění ve schránce je příliš velké."
 
@@ -7278,6 +7345,9 @@ msgstr "Magnolienbaum není k dispozici."
 
 msgid "The phone connection was not authenticated."
 msgstr "Pro toto připojení nebyla ověřena totožnost telefonu."
+
+msgid "The phone filesystem could not be opened."
+msgstr "Souborový systém telefonu se nepodařilo otevřít."
 
 msgid "The phone function is not permitted or available."
 msgstr "Telefonní funkce není povolena nebo není dostupná."
@@ -7485,6 +7555,13 @@ msgstr "Vybraná cesta není běžný soubor."
 
 msgid "The selected phone changed. Try again."
 msgstr "Vybraný telefon se změnil. Zkuste to znovu."
+
+msgid ""
+"The selected players are also offered on the phone while closed. Play starts "
+"the assigned application."
+msgstr ""
+"Vybrané přehrávače se v telefonu nabízejí i zavřené. Přehrát spustí "
+"přiřazenou aplikaci."
 
 msgid "The selected source was not found. Select it again in Settings."
 msgstr "Vybraný zdroj nebyl nalezen. Vyberte jej znovu v Nastavení."
@@ -8254,6 +8331,9 @@ msgstr "Verze %(version)s je aktuální. Poslední kontrola: %(date)s."
 msgid "Via internet"
 msgstr "Přes internet"
 
+msgid "Video player"
+msgstr "Videopřehrávač"
+
 msgid "Vienna"
 msgstr "Vídeň"
 
@@ -8265,6 +8345,9 @@ msgstr "Životní funkce"
 
 msgid "Vital signs table"
 msgstr "Tabulka životních funkcí"
+
+msgid "Volume"
+msgstr "Hlasitost"
 
 msgid "Vorarlberg"
 msgstr "Vorarlbersko"
@@ -9031,6 +9114,15 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid ""
+#~ "The log records when the reminder service checked and what it reported. "
+#~ "Entries older than 30 days are removed automatically, and the log never "
+#~ "exceeds 200 lines."
+#~ msgstr ""
+#~ "Protokol zaznamenává, kdy služba připomínek provedla kontrolu a co "
+#~ "oznámila. Položky starší než 30 dní se automaticky odstraňují a protokol "
+#~ "nikdy nepřesáhne 200 řádků."
 
 #~ msgid "Choose a connection. Confirm pairing on the phone and this computer."
 #~ msgstr ""

@@ -43,6 +43,9 @@ msgstr " wot %(branch)s"
 msgid " – notification at the appointment time."
 msgstr " – zdźělenka k času termina."
 
+msgid "%(Handyname)s filesystem"
+msgstr "Datajowy system %(Handyname)s"
+
 msgid ""
 "%(appointment)s\n"
 "Click to edit"
@@ -2443,6 +2446,12 @@ msgstr "Zubny lěkar dr. Hill — Přehlad wašich zapiskow"
 msgid "Determining public IP address…"
 msgstr "Zjewna IP-adresa so zwěsća…"
 
+msgid "Developer options"
+msgstr "Wuwiwarske nastajenja"
+
+msgid "Device"
+msgstr "Grat"
+
 msgid "Device IMEI"
 msgstr "IMEI grata"
 
@@ -2472,6 +2481,9 @@ msgstr "Cyfra %(digit)s"
 
 msgid "Direction"
 msgstr "Richtung"
+
+msgid "Disable developer mode"
+msgstr "Wuwiwarski modus znjemóžnić"
 
 msgid ""
 "Disabled: no listener, discovery, reconnect or phone tray entries are active."
@@ -2655,6 +2667,12 @@ msgstr "Telefonowy zwisk Magnolie Notes zmóžnić"
 
 msgid "Enable SMS scheduling"
 msgstr "Planowanje SMS zmóžnić"
+
+msgid ""
+"Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr ""
+"Zmóžńće WLAN pytanje zmylkow we wuwiwarskich nastajenjach Notes na swojim "
+"spřaženym telefonje."
 
 msgid "Enable cycle calendar"
 msgstr "Cykusowu protyku zmóžnić"
@@ -3419,12 +3437,34 @@ msgstr "Dochadźace dataje KDE Connect (přeco wobkrućić)"
 msgid "Incoming call"
 msgstr "Dochadźace zawołanje"
 
+msgid "Incoming control device"
+msgstr "Grat za dochadźace wodźenje"
+
+msgid ""
+"Incoming control is inactive. Keep the Organizer running and unlocked and "
+"select one paired device."
+msgstr ""
+"Dochadźace wodźenje njeje aktiwne. Wostajće Organizer běžeć a wotewrjeny a "
+"wubjerće skoplowany grat."
+
+msgid "Incoming control uses the permissions configured in system KDE Connect."
+msgstr ""
+"Dochadźace wodźenje dowolnosće wužiwa, kotrež su w systemowym KDE Connect "
+"nastajene."
+
 msgid ""
 "Incoming files are always confirmed. Clipboard text is confirmed unless "
 "automatic acceptance is explicitly enabled."
 msgstr ""
 "Dochadźace dataje so přeco wobkrućeja. Tekst z mjezyskłada so wobkrući, "
 "chibazo je awtomatiske přiwzaće wuraznje zmóžnjene."
+
+msgid ""
+"Incoming phone control is ready while the Organizer is running and unlocked, "
+"including tray mode."
+msgstr ""
+"Wodźenje z telefona je přihotowane, dołhož Organizer běži a njeje zawrjeny, "
+"tež w systemowej lajsće."
 
 msgid "Input"
 msgstr "Zapodaće"
@@ -3635,6 +3675,9 @@ msgstr "Słuchar wosta stejo"
 
 msgid "Loading background settings"
 msgstr "Pozadkowe nastajenja so začituja"
+
+msgid "Loading …"
+msgstr "Začituje so …"
 
 msgid "Loading…"
 msgstr "Začituje so…"
@@ -3872,6 +3915,25 @@ msgstr "Kontekst měrjenja"
 msgid "Mecklenburg-Western Pomerania"
 msgstr "Mecklenburg-Předpomorska"
 
+msgid "Media control"
+msgstr "Medijowe wodźenje"
+
+msgid ""
+"Media control is unavailable. Check the connection and the media app on the "
+"phone."
+msgstr ""
+"Medijowe wodźenje njeje k dispoziciji. Přepruwujće zwisk a medijowu "
+"aplikaciju na telefonje."
+
+msgid "Media player"
+msgstr "Medijowy wothrawak"
+
+msgid "Media player settings could not be applied."
+msgstr "Nastajenja medijoweho wothrawaka njedachu so nałožić."
+
+msgid "Media players"
+msgstr "Medijowe wothrawaki"
+
 msgid "Medication"
 msgstr "Lěk"
 
@@ -4006,6 +4068,9 @@ msgstr ""
 msgid "Morning"
 msgstr "Rano"
 
+msgid "Mouse and keyboard"
+msgstr "Myš a tastatura"
+
 msgid "Mouse wheel over times"
 msgstr "Myšace kolesko nad časami"
 
@@ -4051,6 +4116,9 @@ msgstr ""
 
 msgid "Multiple calendars"
 msgstr "Wjacore protyki"
+
+msgid "Music player"
+msgstr "Hudźbny wothrawak"
 
 msgid "Name"
 msgstr "Mjeno"
@@ -4323,6 +4391,10 @@ msgstr "Žadyn hodźacy so wočinjenny nadawk namakany."
 
 msgid "No measurements in this period."
 msgstr "W tutej dobje měrjenja njejsu."
+
+msgid "No media player is available on the connected phone."
+msgstr ""
+"Na zwjazanym telefonje žadyn medijowy wothrawak k dispoziciji njesteji."
 
 msgid "No merge history recorded"
 msgstr ""
@@ -4996,9 +5068,15 @@ msgstr "Pflaster"
 msgid "Patients"
 msgstr "Pacienća"
 
+msgid "Pause"
+msgstr "Přestawka"
+
 msgctxt "time tracking"
 msgid "Pause (minutes)"
 msgstr "Přestawka (mjeńšiny)"
+
+msgid "Pause incoming control for this session"
+msgstr "Dochadźace wodźenje za tute posedźenje zastajić"
 
 msgctxt "time tracking"
 msgid "Paused"
@@ -5157,6 +5235,12 @@ msgstr "Wotewzać"
 msgid "Planner"
 msgstr "Planowak"
 
+msgid "Play"
+msgstr "Wothrać"
+
+msgid "Playback position"
+msgstr "Pozicija wothrawanja"
+
 msgid "Please create a notebook in another group first."
 msgstr "Prošu załožće najprjedy noticnik w druhej skupinje."
 
@@ -5285,6 +5369,9 @@ msgstr[3] "Přehlad: %(count)s kontaktow"
 msgid "Previewing a recovery snapshot"
 msgstr "Přehlad wuchowanskeho wobraza"
 
+msgid "Previous"
+msgstr "Předchadny"
+
 msgid "Previous month"
 msgstr "Předchadny měsac"
 
@@ -5385,6 +5472,9 @@ msgstr ""
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Docpějomna IPv4- abo IPv6-adresa tutoho ličaka"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "WLAN diagnostiku Notes čitać"
 
 msgid "Read on phone"
 msgstr "Na telefonje přečitana"
@@ -5526,6 +5616,9 @@ msgstr "Dopominanja: zmóžnjene"
 
 msgid "Reminds you about appointments even when the organizer is closed"
 msgstr "Dopomina na terminy tež, hdyž je organizator začinjeny"
+
+msgid "Remote control settings could not be applied."
+msgstr "Nastajenja dalokowodźenja njedachu so nałožić."
 
 msgid "Remote host name or IP address (optional)"
 msgstr "Mjeno zdaleneho hosta abo IP-adresa (na přeće)"
@@ -6199,24 +6292,6 @@ msgstr "Protykowe tłóčatko w datumowych polach pokazać"
 msgid "Show incoming call notifications"
 msgstr "Zdźělenki wo dochadźacych zawołanjach pokazać"
 
-msgid "Developer options"
-msgstr "Wuwiwarske nastajenja"
-
-msgid "Disable developer mode"
-msgstr "Wuwiwarski modus znjemóžnić"
-
-msgid "Read Notes WLAN diagnostics"
-msgstr "WLAN diagnostiku Notes čitać"
-
-msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
-msgstr "Zmóžńće WLAN pytanje zmylkow we wuwiwarskich nastajenjach Notes na swojim spřaženym telefonje."
-
-msgid "%(Handyname)s filesystem"
-msgstr "Datajowy system %(Handyname)s"
-
-msgid "The phone filesystem could not be opened."
-msgstr "Datajowy system telefona njeda so wočinić."
-
 msgid "Show log"
 msgstr "Protokol pokazać"
 
@@ -6426,6 +6501,9 @@ msgstr "Formatowy region"
 
 msgid "Status"
 msgstr "Staw"
+
+msgid "Stop"
+msgstr "Zastajić"
 
 msgid "Street"
 msgstr ""
@@ -7196,15 +7274,6 @@ msgstr "Protokol njehodźeše so wočinić."
 msgid "The log is available only in the installed application."
 msgstr "Protokol je jenož w instalowanym nałoženju k dispoziciji."
 
-msgid ""
-"The log records when the reminder service checked and what it reported. "
-"Entries older than 30 days are removed automatically, and the log never "
-"exceeds 200 lines."
-msgstr ""
-"Protokol registruje, hdy je słužba dopominanjow kontrolowała a što je "
-"zdźěliła. Zapiski starše hač 30 dnjow so awtomatisce wotstronja a protokol "
-"nima ženje wjace hač 200 linkow."
-
 msgid "The mailbox backlog is too large."
 msgstr "Zastatk listowych kašćikow je přewulki."
 
@@ -7394,6 +7463,9 @@ msgstr "Zwisk z telefonom k dispoziciji njeje."
 
 msgid "The phone connection was not authenticated."
 msgstr "Awtentifikacija zwiska z telefonom njeje so poradźiła."
+
+msgid "The phone filesystem could not be opened."
+msgstr "Datajowy system telefona njeda so wočinić."
 
 msgid "The phone function is not permitted or available."
 msgstr "Telefonowa funkcija njeje dowolena abo k dispoziciji njeje."
@@ -7602,6 +7674,13 @@ msgstr "Wubrana šćežka njeje regularny dataj."
 
 msgid "The selected phone changed. Try again."
 msgstr "Wubrany telefon je so změnił. Spytajće hišće raz."
+
+msgid ""
+"The selected players are also offered on the phone while closed. Play starts "
+"the assigned application."
+msgstr ""
+"Wubrane wothrawaki so na telefonje tež poskićeja, hdyž su začinjene. Wothrać "
+"přirjadowanu aplikaciju startuje."
 
 msgid "The selected source was not found. Select it again in Settings."
 msgstr "Wubrane žórło njeje so namakało. Wubjerće jo w Nastajenjach znowa."
@@ -8375,6 +8454,9 @@ msgstr "Wersija %(version)s je aktualna. Poslednje přepruwowanje: %(date)s."
 msgid "Via internet"
 msgstr "Přez internet"
 
+msgid "Video player"
+msgstr "Widejowothrawak"
+
 msgid "Vienna"
 msgstr "Wjeń"
 
@@ -8386,6 +8468,9 @@ msgstr "Witalne znamjenja"
 
 msgid "Vital signs table"
 msgstr "Tabela witalnych znamjenjow"
+
+msgid "Volume"
+msgstr "Hłósnosć"
 
 msgid "Vorarlberg"
 msgstr "Vorarlberg"
@@ -9160,6 +9245,15 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
+
+#~ msgid ""
+#~ "The log records when the reminder service checked and what it reported. "
+#~ "Entries older than 30 days are removed automatically, and the log never "
+#~ "exceeds 200 lines."
+#~ msgstr ""
+#~ "Protokol registruje, hdy je słužba dopominanjow kontrolowała a što je "
+#~ "zdźěliła. Zapiski starše hač 30 dnjow so awtomatisce wotstronja a "
+#~ "protokol nima ženje wjace hač 200 linkow."
 
 #~ msgid "Choose a connection. Confirm pairing on the phone and this computer."
 #~ msgstr ""

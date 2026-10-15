@@ -38,6 +38,9 @@ msgstr " 来自 %(branch)s"
 msgid " – notification at the appointment time."
 msgstr " – 在约会时间通知。"
 
+msgid "%(Handyname)s filesystem"
+msgstr "%(Handyname)s 的文件系统"
+
 msgid ""
 "%(appointment)s\n"
 "Click to edit"
@@ -1823,6 +1826,12 @@ msgstr "牙医 Hill 医生 — 您的条目预览"
 msgid "Determining public IP address…"
 msgstr "正在确定公共 IP 地址…"
 
+msgid "Developer options"
+msgstr "开发者选项"
+
+msgid "Device"
+msgstr "设备"
+
 msgid "Device IMEI"
 msgstr "设备 IMEI"
 
@@ -1858,6 +1867,9 @@ msgstr "数字 %(digit)s"
 
 msgid "Direction"
 msgstr "方向"
+
+msgid "Disable developer mode"
+msgstr "停用开发者模式"
 
 msgid ""
 "Disabled: no listener, discovery, reconnect or phone tray entries are active."
@@ -2020,6 +2032,10 @@ msgstr "启用 Magnolie Notes 电话连接"
 
 msgid "Enable SMS scheduling"
 msgstr "启用 SMS 定时发送"
+
+msgid ""
+"Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "请在您自己的已配对手机上，进入 Notes 开发者选项并启用 Wi-Fi 调试。"
 
 msgid "Enable cycle calendar"
 msgstr "启用周期日历"
@@ -2663,6 +2679,22 @@ msgstr "传入"
 msgid "Incoming call"
 msgstr "来电"
 
+msgid "Incoming control device"
+msgstr "传入控制设备"
+
+msgid ""
+"Incoming control is inactive. Keep the Organizer running and unlocked and "
+"select one paired device."
+msgstr "传入控制未启用。请保持Organizer运行并解锁，然后选择一个已配对设备。"
+
+msgid "Incoming control uses the permissions configured in system KDE Connect."
+msgstr "传入控制使用系统KDE Connect中配置的权限。"
+
+msgid ""
+"Incoming phone control is ready while the Organizer is running and unlocked, "
+"including tray mode."
+msgstr "Organizer运行并解锁时，可从手机进行控制，托盘模式下也可使用。"
+
 msgid "Input"
 msgstr "输入"
 
@@ -2845,6 +2877,9 @@ msgstr "暂定"
 msgid "Listener stopped"
 msgstr "监听器已停止"
 
+msgid "Loading …"
+msgstr "正在加载 …"
+
 msgid "Loading…"
 msgstr "正在加载…"
 
@@ -3024,6 +3059,23 @@ msgstr "测量情境"
 msgid "Mecklenburg-Western Pomerania"
 msgstr "梅克伦堡-前波美拉尼亚"
 
+msgid "Media control"
+msgstr "媒体控制"
+
+msgid ""
+"Media control is unavailable. Check the connection and the media app on the "
+"phone."
+msgstr "媒体控制不可用。请检查连接和手机上的媒体应用。"
+
+msgid "Media player"
+msgstr "媒体播放器"
+
+msgid "Media player settings could not be applied."
+msgstr "无法应用媒体播放器设置。"
+
+msgid "Media players"
+msgstr "媒体播放器"
+
 msgid "Medication"
 msgstr "药物"
 
@@ -3150,6 +3202,9 @@ msgstr "不止一部 Magnolie Notes 电话在线。断开除一部电话之外�
 msgid "Morning"
 msgstr "早晨"
 
+msgid "Mouse and keyboard"
+msgstr "鼠标和键盘"
+
 msgid "Mouse wheel over times"
 msgstr "在时间上滚动鼠标滚轮"
 
@@ -3193,6 +3248,9 @@ msgstr "已存储多部 Magnolie Notes 手机。个人同步已被阻止；请�
 
 msgid "Multiple calendars"
 msgstr "多个日历"
+
+msgid "Music player"
+msgstr "音乐播放器"
 
 msgid "Name"
 msgstr "名称"
@@ -3397,6 +3455,9 @@ msgstr "未找到匹配的未完成任务。"
 
 msgid "No measurements in this period."
 msgstr "此时间段内没有测量记录。"
+
+msgid "No media player is available on the connected phone."
+msgstr "已连接的手机上没有可用的媒体播放器。"
 
 msgid "No merge history recorded"
 msgstr ""
@@ -3929,9 +3990,15 @@ msgstr "贴剂"
 msgid "Patients"
 msgstr "患者"
 
+msgid "Pause"
+msgstr "暂停"
+
 msgctxt "time tracking"
 msgid "Pause (minutes)"
 msgstr "休息（分钟）"
+
+msgid "Pause incoming control for this session"
+msgstr "在本次会话中暂停传入控制"
 
 msgctxt "time tracking"
 msgid "Paused"
@@ -4067,6 +4134,12 @@ msgstr "接取"
 msgid "Planner"
 msgstr "计划器"
 
+msgid "Play"
+msgstr "播放"
+
+msgid "Playback position"
+msgstr "播放位置"
+
 msgid "Please create a notebook in another group first."
 msgstr "请先在其他分组中创建一个笔记本。"
 
@@ -4186,6 +4259,9 @@ msgid "Preview: %(count)s contact"
 msgid_plural "Preview: %(count)s contacts"
 msgstr[0] "预览：%(count)s 个联系人"
 
+msgid "Previous"
+msgstr "上一项"
+
 msgid "Previous month"
 msgstr "上个月"
 
@@ -4280,6 +4356,9 @@ msgstr ""
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "此电脑可访问的 IPv4 或 IPv6 地址"
 
+msgid "Read Notes WLAN diagnostics"
+msgstr "读取 Notes 的 Wi-Fi 诊断信息"
+
 msgid "Ready."
 msgstr "就绪。"
 
@@ -4358,6 +4437,9 @@ msgid ""
 "Reminders outside the application are available only in the installed "
 "version."
 msgstr "应用外提醒仅在已安装版本中可用。"
+
+msgid "Remote control settings could not be applied."
+msgstr "无法应用远程控制设置。"
 
 msgid "Remote host name or IP address (optional)"
 msgstr "远程主机名或 IP 地址（可选）"
@@ -4894,24 +4976,6 @@ msgstr "显示全部"
 msgid "Show calendar button in date fields"
 msgstr "在日期字段中显示日历按钮"
 
-msgid "Developer options"
-msgstr "开发者选项"
-
-msgid "Disable developer mode"
-msgstr "停用开发者模式"
-
-msgid "Read Notes WLAN diagnostics"
-msgstr "读取 Notes 的 Wi-Fi 诊断信息"
-
-msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
-msgstr "请在您自己的已配对手机上，进入 Notes 开发者选项并启用 Wi-Fi 调试。"
-
-msgid "%(Handyname)s filesystem"
-msgstr "%(Handyname)s 的文件系统"
-
-msgid "The phone filesystem could not be opened."
-msgstr "无法打开手机的文件系统。"
-
 msgid "Show log"
 msgstr "显示日志"
 
@@ -5102,6 +5166,9 @@ msgstr "格式区域"
 
 msgid "Status"
 msgstr "地位"
+
+msgid "Stop"
+msgstr "停止"
 
 msgid "Street"
 msgstr ""
@@ -5634,14 +5701,6 @@ msgstr "无法打开日志文件夹。"
 msgid "The log is available only in the installed application."
 msgstr "日志仅在已安装的应用中可用。"
 
-msgid ""
-"The log records when the reminder service checked and what it reported. "
-"Entries older than 30 days are removed automatically, and the log never "
-"exceeds 200 lines."
-msgstr ""
-"日志会记录提醒服务何时执行检查以及报告了什么。超过 30 天的记录会自动删除，日"
-"志始终不会超过 200 行。"
-
 msgid "The mailbox is reachable."
 msgstr "信箱可以访问。"
 
@@ -5754,6 +5813,9 @@ msgstr "只有安装版应用程序支持选择文件夹。"
 msgid "The phone connection was not authenticated."
 msgstr "手机连接未通过身份验证。"
 
+msgid "The phone filesystem could not be opened."
+msgstr "无法打开手机的文件系统。"
+
 msgid "The phone function is not permitted or available."
 msgstr "电话功能不允许或不可用。"
 
@@ -5864,6 +5926,11 @@ msgstr ""
 
 msgid "The selected phone changed. Try again."
 msgstr "所选手机已发生变化。请重试。"
+
+msgid ""
+"The selected players are also offered on the phone while closed. Play starts "
+"the assigned application."
+msgstr "所选播放器即使关闭，也会显示在手机上。播放会启动指定的应用。"
 
 msgid "The server denied access. Check this account's permissions."
 msgstr "服务器拒绝访问。请检查此账户的权限。"
@@ -6477,6 +6544,9 @@ msgstr "版本 %(version)s 已是最新。上次检查：%(date)s。"
 msgid "Via internet"
 msgstr "通过互联网"
 
+msgid "Video player"
+msgstr "视频播放器"
+
 msgid "Vienna"
 msgstr "维也纳"
 
@@ -6488,6 +6558,9 @@ msgstr "生命体征"
 
 msgid "Vital signs table"
 msgstr "生命体征表"
+
+msgid "Volume"
+msgstr "音量"
 
 msgid "Vorarlberg"
 msgstr "福拉尔贝格州"
@@ -7167,6 +7240,14 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
+
+#~ msgid ""
+#~ "The log records when the reminder service checked and what it reported. "
+#~ "Entries older than 30 days are removed automatically, and the log never "
+#~ "exceeds 200 lines."
+#~ msgstr ""
+#~ "日志会记录提醒服务何时执行检查以及报告了什么。超过 30 天的记录会自动删除，"
+#~ "日志始终不会超过 200 行。"
 
 #~ msgid "Choose a connection. Confirm pairing on the phone and this computer."
 #~ msgstr "请选择连接方式，并在手机和这台电脑上分别确认配对。"

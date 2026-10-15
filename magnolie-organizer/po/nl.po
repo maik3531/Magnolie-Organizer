@@ -42,6 +42,9 @@ msgstr " van %(branch)s"
 msgid " – notification at the appointment time."
 msgstr " – melding op het tijdstip van de afspraak."
 
+msgid "%(Handyname)s filesystem"
+msgstr "Bestandssysteem van %(Handyname)s"
+
 msgid ""
 "%(appointment)s\n"
 "Click to edit"
@@ -2370,6 +2373,12 @@ msgstr "Tandarts dr. Hill — Voorbeeld van uw items"
 msgid "Determining public IP address…"
 msgstr "Openbaar IP-adres bepalen…"
 
+msgid "Developer options"
+msgstr "Ontwikkelaarsopties"
+
+msgid "Device"
+msgstr "Apparaat"
+
 msgid "Device IMEI"
 msgstr "IMEI van apparaat"
 
@@ -2399,6 +2408,9 @@ msgstr "Cijfer %(digit)s"
 
 msgid "Direction"
 msgstr "Richting"
+
+msgid "Disable developer mode"
+msgstr "Ontwikkelaarsmodus uitschakelen"
 
 msgid ""
 "Disabled: no listener, discovery, reconnect or phone tray entries are active."
@@ -2582,6 +2594,12 @@ msgstr "Schakel Magnolie Notes-telefoonverbinding in"
 
 msgid "Enable SMS scheduling"
 msgstr "SMS-planning inschakelen"
+
+msgid ""
+"Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr ""
+"Schakel wifi-debugging in via de ontwikkelaarsopties van Notes op uw eigen "
+"gekoppelde telefoon."
 
 msgid "Enable cycle calendar"
 msgstr "Cycluskalender inschakelen"
@@ -3350,12 +3368,33 @@ msgstr "Inkomende KDE Connect-bestanden (altijd bevestigen)"
 msgid "Incoming call"
 msgstr "Inkomende oproep"
 
+msgid "Incoming control device"
+msgstr "Apparaat voor inkomende bediening"
+
+msgid ""
+"Incoming control is inactive. Keep the Organizer running and unlocked and "
+"select one paired device."
+msgstr ""
+"Inkomende bediening is niet actief. Houd de Organizer actief en ontgrendeld "
+"en selecteer een gekoppeld apparaat."
+
+msgid "Incoming control uses the permissions configured in system KDE Connect."
+msgstr ""
+"Inkomende bediening gebruikt de machtigingen van KDE Connect op het systeem."
+
 msgid ""
 "Incoming files are always confirmed. Clipboard text is confirmed unless "
 "automatic acceptance is explicitly enabled."
 msgstr ""
 "Inkomende bestanden worden altijd bevestigd. Klembordtekst wordt bevestigd, "
 "tenzij automatische acceptatie uitdrukkelijk is ingeschakeld."
+
+msgid ""
+"Incoming phone control is ready while the Organizer is running and unlocked, "
+"including tray mode."
+msgstr ""
+"Bediening vanaf de telefoon is gereed zolang de Organizer actief en "
+"ontgrendeld is, ook in het systeemvak."
 
 msgid "Input"
 msgstr "Invoer"
@@ -3569,6 +3608,9 @@ msgstr "Luisterservice gestopt"
 
 msgid "Loading background settings"
 msgstr "Achtergrondinstellingen laden"
+
+msgid "Loading …"
+msgstr "Laden …"
 
 msgid "Loading…"
 msgstr "Laden…"
@@ -3807,6 +3849,25 @@ msgstr "Meetcontext"
 msgid "Mecklenburg-Western Pomerania"
 msgstr "Mecklenburg-Voor-Pommeren"
 
+msgid "Media control"
+msgstr "Mediabediening"
+
+msgid ""
+"Media control is unavailable. Check the connection and the media app on the "
+"phone."
+msgstr ""
+"Mediabediening is niet beschikbaar. Controleer de verbinding en de media-app "
+"op de telefoon."
+
+msgid "Media player"
+msgstr "Mediaspeler"
+
+msgid "Media player settings could not be applied."
+msgstr "De instellingen van de mediaspeler konden niet worden toegepast."
+
+msgid "Media players"
+msgstr "Mediaspelers"
+
 msgid "Medication"
 msgstr "Medicatie"
 
@@ -3942,6 +4003,9 @@ msgstr ""
 msgid "Morning"
 msgstr "Ochtend"
 
+msgid "Mouse and keyboard"
+msgstr "Muis en toetsenbord"
+
 msgid "Mouse wheel over times"
 msgstr "Muiswiel boven tijden"
 
@@ -3987,6 +4051,9 @@ msgstr ""
 
 msgid "Multiple calendars"
 msgstr "Meerdere agenda's"
+
+msgid "Music player"
+msgstr "Muziekspeler"
 
 msgid "Name"
 msgstr "Naam"
@@ -4262,6 +4329,9 @@ msgstr "Geen passende open taak gevonden."
 
 msgid "No measurements in this period."
 msgstr "Geen metingen in deze periode."
+
+msgid "No media player is available on the connected phone."
+msgstr "Er is geen mediaspeler beschikbaar op de verbonden telefoon."
 
 msgid "No merge history recorded"
 msgstr ""
@@ -4929,9 +4999,15 @@ msgstr "Pleister"
 msgid "Patients"
 msgstr "Patiënten"
 
+msgid "Pause"
+msgstr "Pauzeren"
+
 msgctxt "time tracking"
 msgid "Pause (minutes)"
 msgstr "Pauze (minuten)"
+
+msgid "Pause incoming control for this session"
+msgstr "Inkomende bediening voor deze sessie pauzeren"
 
 msgctxt "time tracking"
 msgid "Paused"
@@ -5089,6 +5165,12 @@ msgstr "Ophalen"
 msgid "Planner"
 msgstr "Planner"
 
+msgid "Play"
+msgstr "Afspelen"
+
+msgid "Playback position"
+msgstr "Afspeelpositie"
+
 msgid "Please create a notebook in another group first."
 msgstr "Maak eerst een notitieboek in een andere groep."
 
@@ -5216,6 +5298,9 @@ msgstr[1] "Voorbeeld: %(count)s contacten"
 msgid "Previewing a recovery snapshot"
 msgstr "Voorbeeld van een herstelmomentopname wordt weergegeven"
 
+msgid "Previous"
+msgstr "Vorige"
+
 msgid "Previous month"
 msgstr "Vorige maand"
 
@@ -5313,6 +5398,9 @@ msgstr ""
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Bereikbaar IPv4- of IPv6-adres van deze computer"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Wifi-diagnostiek van Notes uitlezen"
 
 msgid "Read on phone"
 msgstr "Gelezen op de telefoon"
@@ -5456,6 +5544,9 @@ msgstr "Herinneringen: ingeschakeld"
 
 msgid "Reminds you about appointments even when the organizer is closed"
 msgstr "Herinnert u aan afspraken, ook wanneer de organizer gesloten is"
+
+msgid "Remote control settings could not be applied."
+msgstr "De instellingen voor afstandsbediening konden niet worden toegepast."
 
 msgid "Remote host name or IP address (optional)"
 msgstr "Externe hostnaam of IP-adres (optioneel)"
@@ -6131,24 +6222,6 @@ msgstr "Kalenderknop in datumvelden tonen"
 msgid "Show incoming call notifications"
 msgstr "Meldingen van inkomende oproepen tonen"
 
-msgid "Developer options"
-msgstr "Ontwikkelaarsopties"
-
-msgid "Disable developer mode"
-msgstr "Ontwikkelaarsmodus uitschakelen"
-
-msgid "Read Notes WLAN diagnostics"
-msgstr "Wifi-diagnostiek van Notes uitlezen"
-
-msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
-msgstr "Schakel wifi-debugging in via de ontwikkelaarsopties van Notes op uw eigen gekoppelde telefoon."
-
-msgid "%(Handyname)s filesystem"
-msgstr "Bestandssysteem van %(Handyname)s"
-
-msgid "The phone filesystem could not be opened."
-msgstr "Het bestandssysteem van de telefoon kon niet worden geopend."
-
 msgid "Show log"
 msgstr "Logboek tonen"
 
@@ -6359,6 +6432,9 @@ msgstr "Notatieregio"
 
 msgid "Status"
 msgstr "Status"
+
+msgid "Stop"
+msgstr "Stoppen"
 
 msgid "Street"
 msgstr ""
@@ -7146,15 +7222,6 @@ msgstr "Het logboek kon niet worden geopend."
 msgid "The log is available only in the installed application."
 msgstr "Het logboek is alleen beschikbaar in de geïnstalleerde toepassing."
 
-msgid ""
-"The log records when the reminder service checked and what it reported. "
-"Entries older than 30 days are removed automatically, and the log never "
-"exceeds 200 lines."
-msgstr ""
-"Het logboek registreert wanneer de herinneringsservice heeft gecontroleerd "
-"en wat deze heeft gemeld. Vermeldingen ouder dan 30 dagen worden automatisch "
-"verwijderd en het logboek bevat nooit meer dan 200 regels."
-
 msgid "The mailbox backlog is too large."
 msgstr "De achterstand in de mailbox is te groot."
 
@@ -7351,6 +7418,9 @@ msgstr "De telefoonverbinding is niet beschikbaar."
 
 msgid "The phone connection was not authenticated."
 msgstr "De identiteit van de telefoon is niet bevestigd voor deze verbinding."
+
+msgid "The phone filesystem could not be opened."
+msgstr "Het bestandssysteem van de telefoon kon niet worden geopend."
 
 msgid "The phone function is not permitted or available."
 msgstr "Deze telefoonfunctie is niet toegestaan of niet beschikbaar."
@@ -7566,6 +7636,13 @@ msgstr "Het geselecteerde pad is geen regulier bestand."
 
 msgid "The selected phone changed. Try again."
 msgstr "De geselecteerde telefoon is gewijzigd. Probeer het opnieuw."
+
+msgid ""
+"The selected players are also offered on the phone while closed. Play starts "
+"the assigned application."
+msgstr ""
+"De geselecteerde spelers worden ook op de telefoon aangeboden wanneer ze "
+"gesloten zijn. Afspelen start de toegewezen toepassing."
 
 msgid "The selected source was not found. Select it again in Settings."
 msgstr ""
@@ -8350,6 +8427,9 @@ msgstr "Versie %(version)s is actueel. Laatst gecontroleerd: %(date)s."
 msgid "Via internet"
 msgstr "Via internet"
 
+msgid "Video player"
+msgstr "Videospeler"
+
 msgid "Vienna"
 msgstr "Wenen"
 
@@ -8361,6 +8441,9 @@ msgstr "Vitale waarden"
 
 msgid "Vital signs table"
 msgstr "Tabel met vitale waarden"
+
+msgid "Volume"
+msgstr "Volume"
 
 msgid "Vorarlberg"
 msgstr "Vorarlberg"
@@ -9123,6 +9206,16 @@ msgstr[1] "… en %(count)s extra items die ook worden afgedrukt."
 
 msgid "＋ Add appointment"
 msgstr "＋ Afspraak toevoegen"
+
+#~ msgid ""
+#~ "The log records when the reminder service checked and what it reported. "
+#~ "Entries older than 30 days are removed automatically, and the log never "
+#~ "exceeds 200 lines."
+#~ msgstr ""
+#~ "Het logboek registreert wanneer de herinneringsservice heeft "
+#~ "gecontroleerd en wat deze heeft gemeld. Vermeldingen ouder dan 30 dagen "
+#~ "worden automatisch verwijderd en het logboek bevat nooit meer dan 200 "
+#~ "regels."
 
 #~ msgid "Choose a connection. Confirm pairing on the phone and this computer."
 #~ msgstr ""

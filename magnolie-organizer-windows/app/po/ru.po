@@ -39,6 +39,9 @@ msgstr " от %(branch)s"
 msgid " – notification at the appointment time."
 msgstr " — уведомление во время встречи."
 
+msgid "%(Handyname)s filesystem"
+msgstr "Файловая система %(Handyname)s"
+
 msgid ""
 "%(appointment)s\n"
 "Click to edit"
@@ -1953,6 +1956,12 @@ msgstr "Стоматолог д-р Хилл — Предварительный �
 msgid "Determining public IP address…"
 msgstr "Определение публичного IP-адреса…"
 
+msgid "Developer options"
+msgstr "Параметры разработчика"
+
+msgid "Device"
+msgstr "Устройство"
+
 msgid "Device IMEI"
 msgstr "IMEI устройства"
 
@@ -1988,6 +1997,9 @@ msgstr "Цифра %(digit)s"
 
 msgid "Direction"
 msgstr "Направление"
+
+msgid "Disable developer mode"
+msgstr "Отключить режим разработчика"
 
 msgid ""
 "Disabled: no listener, discovery, reconnect or phone tray entries are active."
@@ -2152,6 +2164,12 @@ msgstr "Включить телефонное соединение Magnolie Note
 
 msgid "Enable SMS scheduling"
 msgstr "Включить планирование SMS"
+
+msgid ""
+"Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr ""
+"Включите отладку Wi-Fi в параметрах разработчика Notes на своём сопряжённом "
+"телефоне."
 
 msgid "Enable cycle calendar"
 msgstr "Включить календарь цикла"
@@ -2816,6 +2834,26 @@ msgstr "Входящий"
 msgid "Incoming call"
 msgstr "Входящий звонок"
 
+msgid "Incoming control device"
+msgstr "Устройство входящего управления"
+
+msgid ""
+"Incoming control is inactive. Keep the Organizer running and unlocked and "
+"select one paired device."
+msgstr ""
+"Входящее управление неактивно. Оставьте Organizer запущенным и "
+"разблокированным и выберите сопряжённое устройство."
+
+msgid "Incoming control uses the permissions configured in system KDE Connect."
+msgstr "Входящее управление использует разрешения системного KDE Connect."
+
+msgid ""
+"Incoming phone control is ready while the Organizer is running and unlocked, "
+"including tray mode."
+msgstr ""
+"Управление с телефона готово, пока Organizer запущен и разблокирован, в том "
+"числе в области уведомлений."
+
 msgid "Input"
 msgstr "Ввод"
 
@@ -2999,6 +3037,9 @@ msgstr "предварительно"
 
 msgid "Listener stopped"
 msgstr "Прослушиватель остановлен"
+
+msgid "Loading …"
+msgstr "Загрузка …"
 
 msgid "Loading…"
 msgstr "Загрузка…"
@@ -3187,6 +3228,25 @@ msgstr "Контекст измерения"
 msgid "Mecklenburg-Western Pomerania"
 msgstr "Мекленбург-Передняя Померания"
 
+msgid "Media control"
+msgstr "Управление мультимедиа"
+
+msgid ""
+"Media control is unavailable. Check the connection and the media app on the "
+"phone."
+msgstr ""
+"Управление мультимедиа недоступно. Проверьте подключение и медиаприложение "
+"на телефоне."
+
+msgid "Media player"
+msgstr "Медиаплеер"
+
+msgid "Media player settings could not be applied."
+msgstr "Не удалось применить настройки медиаплеера."
+
+msgid "Media players"
+msgstr "Медиаплееры"
+
 msgid "Medication"
 msgstr "Лекарство"
 
@@ -3317,6 +3377,9 @@ msgstr ""
 msgid "Morning"
 msgstr "Утро"
 
+msgid "Mouse and keyboard"
+msgstr "Мышь и клавиатура"
+
 msgid "Mouse wheel over times"
 msgstr "Колесо мыши над временем"
 
@@ -3362,6 +3425,9 @@ msgstr ""
 
 msgid "Multiple calendars"
 msgstr "Несколько календарей"
+
+msgid "Music player"
+msgstr "Музыкальный проигрыватель"
 
 msgid "Name"
 msgstr "Имя"
@@ -3568,6 +3634,9 @@ msgstr "Подходящая открытая задача не найдена."
 
 msgid "No measurements in this period."
 msgstr "За этот период измерений нет."
+
+msgid "No media player is available on the connected phone."
+msgstr "На подключённом телефоне нет доступного медиаплеера."
 
 msgid "No merge history recorded"
 msgstr ""
@@ -4124,9 +4193,15 @@ msgstr "Пластырь"
 msgid "Patients"
 msgstr "Пациенты"
 
+msgid "Pause"
+msgstr "Пауза"
+
 msgctxt "time tracking"
 msgid "Pause (minutes)"
 msgstr "Перерыв (минуты)"
+
+msgid "Pause incoming control for this session"
+msgstr "Приостановить входящее управление на этот сеанс"
 
 msgctxt "time tracking"
 msgid "Paused"
@@ -4273,6 +4348,12 @@ msgstr "Забрать"
 msgid "Planner"
 msgstr "Планировщик"
 
+msgid "Play"
+msgstr "Воспроизвести"
+
+msgid "Playback position"
+msgstr "Позиция воспроизведения"
+
 msgid "Please create a notebook in another group first."
 msgstr "Сначала создайте блокнот в другой группе."
 
@@ -4399,6 +4480,9 @@ msgstr[0] "Предпросмотр: %(count)s контакт"
 msgstr[1] "Предпросмотр: %(count)s контакта"
 msgstr[2] "Предпросмотр: %(count)s контактов"
 
+msgid "Previous"
+msgstr "Предыдущий"
+
 msgid "Previous month"
 msgstr "Предыдущий месяц"
 
@@ -4497,6 +4581,9 @@ msgstr ""
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Доступный IPv4- или IPv6-адрес этого компьютера"
 
+msgid "Read Notes WLAN diagnostics"
+msgstr "Прочитать диагностику Wi-Fi Notes"
+
 msgid "Ready."
 msgstr "Готово."
 
@@ -4577,6 +4664,9 @@ msgid ""
 "Reminders outside the application are available only in the installed "
 "version."
 msgstr "Напоминания вне приложения доступны только в установленной версии."
+
+msgid "Remote control settings could not be applied."
+msgstr "Не удалось применить настройки дистанционного управления."
 
 msgid "Remote host name or IP address (optional)"
 msgstr "Имя удалённого узла или IP-адрес (необязательно)"
@@ -5135,24 +5225,6 @@ msgstr "Показать всё"
 msgid "Show calendar button in date fields"
 msgstr "Показывать кнопку календаря в полях даты"
 
-msgid "Developer options"
-msgstr "Параметры разработчика"
-
-msgid "Disable developer mode"
-msgstr "Отключить режим разработчика"
-
-msgid "Read Notes WLAN diagnostics"
-msgstr "Прочитать диагностику Wi-Fi Notes"
-
-msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
-msgstr "Включите отладку Wi-Fi в параметрах разработчика Notes на своём сопряжённом телефоне."
-
-msgid "%(Handyname)s filesystem"
-msgstr "Файловая система %(Handyname)s"
-
-msgid "The phone filesystem could not be opened."
-msgstr "Не удалось открыть файловую систему телефона."
-
 msgid "Show log"
 msgstr "Показать журнал"
 
@@ -5349,6 +5421,9 @@ msgstr "Регион формата"
 
 msgid "Status"
 msgstr "Статус"
+
+msgid "Stop"
+msgstr "Остановить"
 
 msgid "Street"
 msgstr ""
@@ -5908,15 +5983,6 @@ msgstr "Не удалось открыть папку журнала."
 msgid "The log is available only in the installed application."
 msgstr "Журнал доступен только в установленном приложении."
 
-msgid ""
-"The log records when the reminder service checked and what it reported. "
-"Entries older than 30 days are removed automatically, and the log never "
-"exceeds 200 lines."
-msgstr ""
-"Журнал фиксирует, когда служба напоминаний выполняла проверку и что она "
-"сообщила. Записи старше 30 дней удаляются автоматически, а журнал никогда не "
-"превышает 200 строк."
-
 msgid "The mailbox is reachable."
 msgstr "Почтовый ящик доступен."
 
@@ -6037,6 +6103,9 @@ msgstr "Выбор папки доступен только в установл�
 msgid "The phone connection was not authenticated."
 msgstr "Не удалось подтвердить подлинность соединения с телефоном."
 
+msgid "The phone filesystem could not be opened."
+msgstr "Не удалось открыть файловую систему телефона."
+
 msgid "The phone function is not permitted or available."
 msgstr "Функция телефона не разрешена или недоступна."
 
@@ -6153,6 +6222,13 @@ msgstr ""
 
 msgid "The selected phone changed. Try again."
 msgstr "Выбранный телефон изменился. Попробуйте ещё раз."
+
+msgid ""
+"The selected players are also offered on the phone while closed. Play starts "
+"the assigned application."
+msgstr ""
+"Выбранные проигрыватели доступны на телефоне, даже когда они закрыты. "
+"Воспроизведение запускает назначенное приложение."
 
 msgid "The server denied access. Check this account's permissions."
 msgstr "Сервер отказал в доступе. Проверьте разрешения этой учётной записи."
@@ -6805,6 +6881,9 @@ msgstr ""
 msgid "Via internet"
 msgstr "Через Интернет"
 
+msgid "Video player"
+msgstr "Видеопроигрыватель"
+
 msgid "Vienna"
 msgstr "Вена"
 
@@ -6816,6 +6895,9 @@ msgstr "Основные показатели"
 
 msgid "Vital signs table"
 msgstr "Таблица основных показателей"
+
+msgid "Volume"
+msgstr "Громкость"
 
 msgid "Vorarlberg"
 msgstr "Форарльберг"
@@ -7540,6 +7622,15 @@ msgstr[2] "… и ещё %(count)s записи, которые также бу�
 
 msgid "＋ Add appointment"
 msgstr "＋ Добавить встречу"
+
+#~ msgid ""
+#~ "The log records when the reminder service checked and what it reported. "
+#~ "Entries older than 30 days are removed automatically, and the log never "
+#~ "exceeds 200 lines."
+#~ msgstr ""
+#~ "Журнал фиксирует, когда служба напоминаний выполняла проверку и что она "
+#~ "сообщила. Записи старше 30 дней удаляются автоматически, а журнал никогда "
+#~ "не превышает 200 строк."
 
 #~ msgid "Choose a connection. Confirm pairing on the phone and this computer."
 #~ msgstr ""

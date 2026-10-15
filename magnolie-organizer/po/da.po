@@ -42,6 +42,9 @@ msgstr " fra %(branch)s"
 msgid " – notification at the appointment time."
 msgstr " – besked på aftaletidspunktet."
 
+msgid "%(Handyname)s filesystem"
+msgstr "%(Handyname)s-filsystem"
+
 msgid ""
 "%(appointment)s\n"
 "Click to edit"
@@ -2344,6 +2347,12 @@ msgstr "Tandlæge dr. Hill — Forhåndsvisning af dine poster"
 msgid "Determining public IP address…"
 msgstr "Finder offentlig IP-adresse…"
 
+msgid "Developer options"
+msgstr "Udviklerindstillinger"
+
+msgid "Device"
+msgstr "Enhed"
+
 msgid "Device IMEI"
 msgstr "Enhedens IMEI"
 
@@ -2373,6 +2382,9 @@ msgstr "Ciffer %(digit)s"
 
 msgid "Direction"
 msgstr "Retning"
+
+msgid "Disable developer mode"
+msgstr "Deaktivér udviklertilstand"
 
 msgid ""
 "Disabled: no listener, discovery, reconnect or phone tray entries are active."
@@ -2554,6 +2566,12 @@ msgstr "Aktiver Magnolie Notes telefonforbindelse"
 
 msgid "Enable SMS scheduling"
 msgstr "Aktivér SMS-planlægning"
+
+msgid ""
+"Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr ""
+"Aktivér Wi-Fi-fejlfinding i Notes-udviklerindstillingerne på din egen "
+"parrede telefon."
 
 msgid "Enable cycle calendar"
 msgstr "Aktivér cykluskalender"
@@ -3320,12 +3338,32 @@ msgstr "Indgående KDE Connect-filer (bekræft altid)"
 msgid "Incoming call"
 msgstr "Indgående opkald"
 
+msgid "Incoming control device"
+msgstr "Enhed til indgående styring"
+
+msgid ""
+"Incoming control is inactive. Keep the Organizer running and unlocked and "
+"select one paired device."
+msgstr ""
+"Indgående styring er inaktiv. Hold Organizer kørende og ulåst, og vælg en "
+"parret enhed."
+
+msgid "Incoming control uses the permissions configured in system KDE Connect."
+msgstr "Indgående styring bruger tilladelserne i systemets KDE Connect."
+
 msgid ""
 "Incoming files are always confirmed. Clipboard text is confirmed unless "
 "automatic acceptance is explicitly enabled."
 msgstr ""
 "Indgående filer skal altid bekræftes. Tekst fra udklipsholderen skal "
 "bekræftes, medmindre automatisk accept udtrykkeligt er aktiveret."
+
+msgid ""
+"Incoming phone control is ready while the Organizer is running and unlocked, "
+"including tray mode."
+msgstr ""
+"Telefonstyring er klar, mens Organizer kører og er ulåst, også i "
+"meddelelsesområdet."
 
 msgid "Input"
 msgstr "Indtastning"
@@ -3538,6 +3576,9 @@ msgstr "Lytter stoppet"
 
 msgid "Loading background settings"
 msgstr "Indlæser baggrundsindstillinger"
+
+msgid "Loading …"
+msgstr "Indlæser …"
 
 msgid "Loading…"
 msgstr "Indlæser…"
@@ -3775,6 +3816,25 @@ msgstr "Målekontekst"
 msgid "Mecklenburg-Western Pomerania"
 msgstr "Mecklenburg-Vorpommern"
 
+msgid "Media control"
+msgstr "Mediestyring"
+
+msgid ""
+"Media control is unavailable. Check the connection and the media app on the "
+"phone."
+msgstr ""
+"Mediestyring er ikke tilgængelig. Kontrollér forbindelsen og medieappen på "
+"telefonen."
+
+msgid "Media player"
+msgstr "Medieafspiller"
+
+msgid "Media player settings could not be applied."
+msgstr "Indstillingerne for medieafspilleren kunne ikke anvendes."
+
+msgid "Media players"
+msgstr "Medieafspillere"
+
 msgid "Medication"
 msgstr "Lægemiddel"
 
@@ -3909,6 +3969,9 @@ msgstr ""
 msgid "Morning"
 msgstr "Morgen"
 
+msgid "Mouse and keyboard"
+msgstr "Mus og tastatur"
+
 msgid "Mouse wheel over times"
 msgstr "Musehjul over klokkeslæt"
 
@@ -3954,6 +4017,9 @@ msgstr ""
 
 msgid "Multiple calendars"
 msgstr "Flere kalendere"
+
+msgid "Music player"
+msgstr "Musikafspiller"
 
 msgid "Name"
 msgstr "Navn"
@@ -4227,6 +4293,9 @@ msgstr "Der blev ikke fundet nogen tilsvarende åben opgave."
 
 msgid "No measurements in this period."
 msgstr "Ingen målinger i denne periode."
+
+msgid "No media player is available on the connected phone."
+msgstr "Ingen medieafspiller er tilgængelig på den tilsluttede telefon."
 
 msgid "No merge history recorded"
 msgstr ""
@@ -4885,9 +4954,15 @@ msgstr "Plaster"
 msgid "Patients"
 msgstr "Patienter"
 
+msgid "Pause"
+msgstr "Pause"
+
 msgctxt "time tracking"
 msgid "Pause (minutes)"
 msgstr "Pause (minutter)"
+
+msgid "Pause incoming control for this session"
+msgstr "Sæt indgående styring på pause i denne session"
 
 msgctxt "time tracking"
 msgid "Paused"
@@ -5038,6 +5113,12 @@ msgstr "Afhentning"
 msgid "Planner"
 msgstr "Planlægger"
 
+msgid "Play"
+msgstr "Afspil"
+
+msgid "Playback position"
+msgstr "Afspilningsposition"
+
 msgid "Please create a notebook in another group first."
 msgstr "Opret først en notesbog i en anden gruppe."
 
@@ -5162,6 +5243,9 @@ msgstr[1] "Forhåndsvisning: %(count)s kontakter"
 msgid "Previewing a recovery snapshot"
 msgstr "Viser eksempel på et gendannelsesøjebliksbillede"
 
+msgid "Previous"
+msgstr "Forrige"
+
 msgid "Previous month"
 msgstr "Forrige måned"
 
@@ -5257,6 +5341,9 @@ msgstr ""
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Tilgængelig IPv4- eller IPv6-adresse på denne computer"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Læs Wi-Fi-diagnosticering fra Notes"
 
 msgid "Read on phone"
 msgstr "Læst på telefonen"
@@ -5398,6 +5485,9 @@ msgstr "Påmindelser: aktiveret"
 
 msgid "Reminds you about appointments even when the organizer is closed"
 msgstr "Minder dig om aftaler, selv når organizeren er lukket"
+
+msgid "Remote control settings could not be applied."
+msgstr "Indstillingerne for fjernstyring kunne ikke anvendes."
 
 msgid "Remote host name or IP address (optional)"
 msgstr "Fjernværtsnavn eller IP-adresse (valgfrit)"
@@ -6067,24 +6157,6 @@ msgstr "Vis kalenderknap i datofelter"
 msgid "Show incoming call notifications"
 msgstr "Vis meddelelser om indgående opkald"
 
-msgid "Developer options"
-msgstr "Udviklerindstillinger"
-
-msgid "Disable developer mode"
-msgstr "Deaktivér udviklertilstand"
-
-msgid "Read Notes WLAN diagnostics"
-msgstr "Læs Wi-Fi-diagnosticering fra Notes"
-
-msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
-msgstr "Aktivér Wi-Fi-fejlfinding i Notes-udviklerindstillingerne på din egen parrede telefon."
-
-msgid "%(Handyname)s filesystem"
-msgstr "%(Handyname)s-filsystem"
-
-msgid "The phone filesystem could not be opened."
-msgstr "Telefonens filsystem kunne ikke åbnes."
-
 msgid "Show log"
 msgstr "Vis log"
 
@@ -6294,6 +6366,9 @@ msgstr "Formatområde"
 
 msgid "Status"
 msgstr "Status"
+
+msgid "Stop"
+msgstr "Stop"
 
 msgid "Street"
 msgstr ""
@@ -7057,15 +7132,6 @@ msgstr "Loggen kunne ikke åbnes."
 msgid "The log is available only in the installed application."
 msgstr "Loggen er kun tilgængelig i det installerede program."
 
-msgid ""
-"The log records when the reminder service checked and what it reported. "
-"Entries older than 30 days are removed automatically, and the log never "
-"exceeds 200 lines."
-msgstr ""
-"Loggen registrerer, hvornår påmindelsestjenesten kontrollerede, og hvad den "
-"rapporterede. Poster ældre end 30 dage fjernes automatisk, og loggen "
-"overstiger aldrig 200 linjer."
-
 msgid "The mailbox backlog is too large."
 msgstr "Postkassens efterslæb er for stort."
 
@@ -7256,6 +7322,9 @@ msgstr "Telefonforbindelsen er ikke tilgængelig."
 
 msgid "The phone connection was not authenticated."
 msgstr "Telefonens identitet blev ikke bekræftet for denne forbindelse."
+
+msgid "The phone filesystem could not be opened."
+msgstr "Telefonens filsystem kunne ikke åbnes."
 
 msgid "The phone function is not permitted or available."
 msgstr "Telefonfunktionen er ikke tilladt eller ikke tilgængelig."
@@ -7467,6 +7536,13 @@ msgstr "Den valgte sti er ikke en almindelig fil."
 
 msgid "The selected phone changed. Try again."
 msgstr "Den valgte telefon er ændret. Prøv igen."
+
+msgid ""
+"The selected players are also offered on the phone while closed. Play starts "
+"the assigned application."
+msgstr ""
+"De valgte afspillere tilbydes også på telefonen, når de er lukkede. Afspil "
+"starter det tilknyttede program."
 
 msgid "The selected source was not found. Select it again in Settings."
 msgstr "Den valgte kilde blev ikke fundet. Vælg den igen under Indstillinger."
@@ -8241,6 +8317,9 @@ msgstr "Version %(version)s er opdateret. Senest kontrolleret: %(date)s."
 msgid "Via internet"
 msgstr "Via internettet"
 
+msgid "Video player"
+msgstr "Videoafspiller"
+
 msgid "Vienna"
 msgstr "Wien"
 
@@ -8252,6 +8331,9 @@ msgstr "Vitale værdier"
 
 msgid "Vital signs table"
 msgstr "Tabel over vitale værdier"
+
+msgid "Volume"
+msgstr "Lydstyrke"
 
 msgid "Vorarlberg"
 msgstr "Vorarlberg"
@@ -9009,6 +9091,15 @@ msgstr[1] "… og %(count)s elementer mere, som også bliver udskrevet."
 
 msgid "＋ Add appointment"
 msgstr "＋ Tilføj aftale"
+
+#~ msgid ""
+#~ "The log records when the reminder service checked and what it reported. "
+#~ "Entries older than 30 days are removed automatically, and the log never "
+#~ "exceeds 200 lines."
+#~ msgstr ""
+#~ "Loggen registrerer, hvornår påmindelsestjenesten kontrollerede, og hvad "
+#~ "den rapporterede. Poster ældre end 30 dage fjernes automatisk, og loggen "
+#~ "overstiger aldrig 200 linjer."
 
 #~ msgid "Choose a connection. Confirm pairing on the phone and this computer."
 #~ msgstr ""

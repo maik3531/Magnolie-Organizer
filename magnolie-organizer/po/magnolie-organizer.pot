@@ -43,6 +43,9 @@ msgstr ""
 msgid " – notification at the appointment time."
 msgstr ""
 
+msgid "%(Handyname)s filesystem"
+msgstr ""
+
 msgid ""
 "%(appointment)s\n"
 "Click to edit"
@@ -2224,6 +2227,12 @@ msgstr ""
 msgid "Determining public IP address…"
 msgstr ""
 
+msgid "Developer options"
+msgstr ""
+
+msgid "Device"
+msgstr ""
+
 msgid "Device IMEI"
 msgstr ""
 
@@ -2252,6 +2261,9 @@ msgid "Digit %(digit)s"
 msgstr ""
 
 msgid "Direction"
+msgstr ""
+
+msgid "Disable developer mode"
 msgstr ""
 
 msgid ""
@@ -2427,6 +2439,10 @@ msgid "Enable Magnolie Notes phone connection"
 msgstr ""
 
 msgid "Enable SMS scheduling"
+msgstr ""
+
+msgid ""
+"Enable WLAN debugging in Notes developer options on your own paired phone."
 msgstr ""
 
 msgid "Enable cycle calendar"
@@ -3142,9 +3158,25 @@ msgstr ""
 msgid "Incoming call"
 msgstr ""
 
+msgid "Incoming control device"
+msgstr ""
+
+msgid ""
+"Incoming control is inactive. Keep the Organizer running and unlocked and "
+"select one paired device."
+msgstr ""
+
+msgid "Incoming control uses the permissions configured in system KDE Connect."
+msgstr ""
+
 msgid ""
 "Incoming files are always confirmed. Clipboard text is confirmed unless "
 "automatic acceptance is explicitly enabled."
+msgstr ""
+
+msgid ""
+"Incoming phone control is ready while the Organizer is running and unlocked, "
+"including tray mode."
 msgstr ""
 
 msgid "Input"
@@ -3352,6 +3384,9 @@ msgid "Listener stopped"
 msgstr ""
 
 msgid "Loading background settings"
+msgstr ""
+
+msgid "Loading …"
 msgstr ""
 
 msgid "Loading…"
@@ -3578,6 +3613,23 @@ msgstr ""
 msgid "Mecklenburg-Western Pomerania"
 msgstr ""
 
+msgid "Media control"
+msgstr ""
+
+msgid ""
+"Media control is unavailable. Check the connection and the media app on the "
+"phone."
+msgstr ""
+
+msgid "Media player"
+msgstr ""
+
+msgid "Media player settings could not be applied."
+msgstr ""
+
+msgid "Media players"
+msgstr ""
+
 msgid "Medication"
 msgstr ""
 
@@ -3699,6 +3751,9 @@ msgstr ""
 msgid "Morning"
 msgstr ""
 
+msgid "Mouse and keyboard"
+msgstr ""
+
 msgid "Mouse wheel over times"
 msgstr ""
 
@@ -3741,6 +3796,9 @@ msgid ""
 msgstr ""
 
 msgid "Multiple calendars"
+msgstr ""
+
+msgid "Music player"
 msgstr ""
 
 msgid "Name"
@@ -3999,6 +4057,9 @@ msgid "No matching open task found."
 msgstr ""
 
 msgid "No measurements in this period."
+msgstr ""
+
+msgid "No media player is available on the connected phone."
 msgstr ""
 
 msgid "No merge history recorded"
@@ -4616,8 +4677,14 @@ msgstr ""
 msgid "Patients"
 msgstr ""
 
+msgid "Pause"
+msgstr ""
+
 msgctxt "time tracking"
 msgid "Pause (minutes)"
+msgstr ""
+
+msgid "Pause incoming control for this session"
 msgstr ""
 
 msgctxt "time tracking"
@@ -4758,6 +4825,12 @@ msgstr ""
 msgid "Planner"
 msgstr ""
 
+msgid "Play"
+msgstr ""
+
+msgid "Playback position"
+msgstr ""
+
 msgid "Please create a notebook in another group first."
 msgstr ""
 
@@ -4877,6 +4950,9 @@ msgstr[1] ""
 msgid "Previewing a recovery snapshot"
 msgstr ""
 
+msgid "Previous"
+msgstr ""
+
 msgid "Previous month"
 msgstr ""
 
@@ -4968,6 +5044,9 @@ msgid "Quote"
 msgstr ""
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
+msgstr ""
+
+msgid "Read Notes WLAN diagnostics"
 msgstr ""
 
 msgid "Read on phone"
@@ -5102,6 +5181,9 @@ msgid "Reminders: enabled"
 msgstr ""
 
 msgid "Reminds you about appointments even when the organizer is closed"
+msgstr ""
+
+msgid "Remote control settings could not be applied."
 msgstr ""
 
 msgid "Remote host name or IP address (optional)"
@@ -5948,6 +6030,9 @@ msgstr ""
 msgid "Status"
 msgstr ""
 
+msgid "Stop"
+msgstr ""
+
 msgid "Street"
 msgstr ""
 
@@ -6646,12 +6731,6 @@ msgstr ""
 msgid "The log is available only in the installed application."
 msgstr ""
 
-msgid ""
-"The log records when the reminder service checked and what it reported. "
-"Entries older than 30 days are removed automatically, and the log never "
-"exceeds 200 lines."
-msgstr ""
-
 msgid "The mailbox backlog is too large."
 msgstr ""
 
@@ -6829,6 +6908,9 @@ msgid "The phone connection is not available."
 msgstr ""
 
 msgid "The phone connection was not authenticated."
+msgstr ""
+
+msgid "The phone filesystem could not be opened."
 msgstr ""
 
 msgid "The phone function is not permitted or available."
@@ -7020,6 +7102,11 @@ msgid "The selected path is not a regular file."
 msgstr ""
 
 msgid "The selected phone changed. Try again."
+msgstr ""
+
+msgid ""
+"The selected players are also offered on the phone while closed. Play starts "
+"the assigned application."
 msgstr ""
 
 msgid "The selected source was not found. Select it again in Settings."
@@ -7728,6 +7815,9 @@ msgstr ""
 msgid "Via internet"
 msgstr ""
 
+msgid "Video player"
+msgstr ""
+
 msgid "Vienna"
 msgstr ""
 
@@ -7738,6 +7828,9 @@ msgid "Vital signs"
 msgstr ""
 
 msgid "Vital signs table"
+msgstr ""
+
+msgid "Volume"
 msgstr ""
 
 msgid "Vorarlberg"

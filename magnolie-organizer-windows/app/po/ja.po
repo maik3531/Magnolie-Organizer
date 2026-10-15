@@ -38,6 +38,9 @@ msgstr " %(branch)s から"
 msgid " – notification at the appointment time."
 msgstr " – 予定時刻に通知します。"
 
+msgid "%(Handyname)s filesystem"
+msgstr "%(Handyname)s のファイルシステム"
+
 msgid ""
 "%(appointment)s\n"
 "Click to edit"
@@ -1881,6 +1884,12 @@ msgstr "歯科医 Hill 先生 — 入力内容のプレビュー"
 msgid "Determining public IP address…"
 msgstr "公開 IP アドレスを確認しています…"
 
+msgid "Developer options"
+msgstr "開発者向けオプション"
+
+msgid "Device"
+msgstr "デバイス"
+
 msgid "Device IMEI"
 msgstr "端末の IMEI"
 
@@ -1917,6 +1926,9 @@ msgstr "数字 %(digit)s"
 
 msgid "Direction"
 msgstr "方向"
+
+msgid "Disable developer mode"
+msgstr "開発者モードを無効にする"
 
 msgid ""
 "Disabled: no listener, discovery, reconnect or phone tray entries are active."
@@ -2081,6 +2093,12 @@ msgstr "Magnolie Notes 電話接続を有効にする"
 
 msgid "Enable SMS scheduling"
 msgstr "SMSの予約送信を有効にする"
+
+msgid ""
+"Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr ""
+"ご自身のペアリング済みのスマートフォンで、Notes の開発者向けオプションから "
+"Wi-Fi デバッグを有効にしてください。"
 
 msgid "Enable cycle calendar"
 msgstr "周期カレンダーを有効化"
@@ -2739,6 +2757,26 @@ msgstr "着信"
 msgid "Incoming call"
 msgstr "着信"
 
+msgid "Incoming control device"
+msgstr "受信操作用デバイス"
+
+msgid ""
+"Incoming control is inactive. Keep the Organizer running and unlocked and "
+"select one paired device."
+msgstr ""
+"受信操作は無効です。Organizerを起動してロックを解除し、ペアリング済みデバイス"
+"を選択してください。"
+
+msgid "Incoming control uses the permissions configured in system KDE Connect."
+msgstr "受信操作にはシステムのKDE Connectで設定した権限を使用します。"
+
+msgid ""
+"Incoming phone control is ready while the Organizer is running and unlocked, "
+"including tray mode."
+msgstr ""
+"Organizerが起動中でロック解除されていれば、トレイモードでも電話から操作できま"
+"す。"
+
 msgid "Input"
 msgstr "入力"
 
@@ -2926,6 +2964,9 @@ msgstr "仮"
 msgid "Listener stopped"
 msgstr "リスナーが停止しました"
 
+msgid "Loading …"
+msgstr "読み込み中 …"
+
 msgid "Loading…"
 msgstr "読み込み中…"
 
@@ -3112,6 +3153,24 @@ msgstr "測定時の状況"
 msgid "Mecklenburg-Western Pomerania"
 msgstr "メクレンブルク＝フォアポンメルン"
 
+msgid "Media control"
+msgstr "メディア操作"
+
+msgid ""
+"Media control is unavailable. Check the connection and the media app on the "
+"phone."
+msgstr ""
+"メディア操作を利用できません。接続と電話のメディアアプリを確認してください。"
+
+msgid "Media player"
+msgstr "メディアプレーヤー"
+
+msgid "Media player settings could not be applied."
+msgstr "メディアプレーヤーの設定を適用できませんでした。"
+
+msgid "Media players"
+msgstr "メディアプレーヤー"
+
 msgid "Medication"
 msgstr "薬"
 
@@ -3241,6 +3300,9 @@ msgstr ""
 msgid "Morning"
 msgstr "朝"
 
+msgid "Mouse and keyboard"
+msgstr "マウスとキーボード"
+
 msgid "Mouse wheel over times"
 msgstr "時刻の上でマウスホイール"
 
@@ -3286,6 +3348,9 @@ msgstr ""
 
 msgid "Multiple calendars"
 msgstr "複数のカレンダー"
+
+msgid "Music player"
+msgstr "音楽プレーヤー"
 
 msgid "Name"
 msgstr "名前"
@@ -3492,6 +3557,9 @@ msgstr "一致する未完了タスクが見つかりませんでした。"
 
 msgid "No measurements in this period."
 msgstr "この期間の測定値はありません。"
+
+msgid "No media player is available on the connected phone."
+msgstr "接続中の電話に利用可能なメディアプレーヤーがありません。"
 
 msgid "No merge history recorded"
 msgstr ""
@@ -4044,9 +4112,15 @@ msgstr "貼付剤"
 msgid "Patients"
 msgstr "患者"
 
+msgid "Pause"
+msgstr "一時停止"
+
 msgctxt "time tracking"
 msgid "Pause (minutes)"
 msgstr "休憩（分）"
+
+msgid "Pause incoming control for this session"
+msgstr "このセッションの受信操作を一時停止"
 
 msgctxt "time tracking"
 msgid "Paused"
@@ -4183,6 +4257,12 @@ msgstr "迎えに行く"
 msgid "Planner"
 msgstr "プランナー"
 
+msgid "Play"
+msgstr "再生"
+
+msgid "Playback position"
+msgstr "再生位置"
+
 msgid "Please create a notebook in another group first."
 msgstr "先に別のグループにノートブックを作成してください。"
 
@@ -4303,6 +4383,9 @@ msgid "Preview: %(count)s contact"
 msgid_plural "Preview: %(count)s contacts"
 msgstr[0] "プレビュー：%(count)s件の連絡先"
 
+msgid "Previous"
+msgstr "前へ"
+
 msgid "Previous month"
 msgstr "前の月"
 
@@ -4398,6 +4481,9 @@ msgstr ""
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "このコンピューターに到達可能な IPv4 または IPv6 アドレス"
 
+msgid "Read Notes WLAN diagnostics"
+msgstr "Notes の Wi-Fi 診断を読み取る"
+
 msgid "Ready."
 msgstr "準備完了。"
 
@@ -4477,6 +4563,9 @@ msgid ""
 "Reminders outside the application are available only in the installed "
 "version."
 msgstr "アプリ外のリマインダーはインストール版でのみ利用できます。"
+
+msgid "Remote control settings could not be applied."
+msgstr "リモート操作の設定を適用できませんでした。"
 
 msgid "Remote host name or IP address (optional)"
 msgstr "リモートホスト名または IP アドレス（任意）"
@@ -5025,24 +5114,6 @@ msgstr "すべて表示"
 msgid "Show calendar button in date fields"
 msgstr "日付欄にカレンダーボタンを表示"
 
-msgid "Developer options"
-msgstr "開発者向けオプション"
-
-msgid "Disable developer mode"
-msgstr "開発者モードを無効にする"
-
-msgid "Read Notes WLAN diagnostics"
-msgstr "Notes の Wi-Fi 診断を読み取る"
-
-msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
-msgstr "ご自身のペアリング済みのスマートフォンで、Notes の開発者向けオプションから Wi-Fi デバッグを有効にしてください。"
-
-msgid "%(Handyname)s filesystem"
-msgstr "%(Handyname)s のファイルシステム"
-
-msgid "The phone filesystem could not be opened."
-msgstr "スマートフォンのファイルシステムを開けませんでした。"
-
 msgid "Show log"
 msgstr "ログを表示"
 
@@ -5239,6 +5310,9 @@ msgstr "書式の地域"
 
 msgid "Status"
 msgstr "状態"
+
+msgid "Stop"
+msgstr "停止"
 
 msgid "Street"
 msgstr ""
@@ -5788,14 +5862,6 @@ msgstr "ログフォルダーを開けませんでした。"
 msgid "The log is available only in the installed application."
 msgstr "ログはインストール済みアプリでのみ利用できます。"
 
-msgid ""
-"The log records when the reminder service checked and what it reported. "
-"Entries older than 30 days are removed automatically, and the log never "
-"exceeds 200 lines."
-msgstr ""
-"ログには、リマインダーサービスがいつ確認し、何を報告したかが記録されます。30"
-"日を超えた項目は自動的に削除され、ログは 200 行を超えません。"
-
 msgid "The mailbox is reachable."
 msgstr "メールボックスに到達できます。"
 
@@ -5914,6 +5980,9 @@ msgstr "フォルダー選択はインストール版アプリケーションで
 msgid "The phone connection was not authenticated."
 msgstr "電話接続の認証ができていません。"
 
+msgid "The phone filesystem could not be opened."
+msgstr "スマートフォンのファイルシステムを開けませんでした。"
+
 msgid "The phone function is not permitted or available."
 msgstr "電話機能は許可されていないか、使用できません。"
 
@@ -6027,6 +6096,13 @@ msgstr ""
 
 msgid "The selected phone changed. Try again."
 msgstr "選択した携帯電話が変わりました。もう一度お試しください。"
+
+msgid ""
+"The selected players are also offered on the phone while closed. Play starts "
+"the assigned application."
+msgstr ""
+"選択したプレーヤーは終了中でも電話に表示されます。再生すると割り当てたアプリ"
+"が起動します。"
 
 msgid "The server denied access. Check this account's permissions."
 msgstr ""
@@ -6674,6 +6750,9 @@ msgstr "バージョン %(version)s は最新です。最終確認：%(date)s。
 msgid "Via internet"
 msgstr "インターネット経由"
 
+msgid "Video player"
+msgstr "動画プレーヤー"
+
 msgid "Vienna"
 msgstr "ウィーン"
 
@@ -6685,6 +6764,9 @@ msgstr "バイタルサイン"
 
 msgid "Vital signs table"
 msgstr "バイタルサイン表"
+
+msgid "Volume"
+msgstr "音量"
 
 msgid "Vorarlberg"
 msgstr "フォアアールベルク州"
@@ -7390,6 +7472,14 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
+
+#~ msgid ""
+#~ "The log records when the reminder service checked and what it reported. "
+#~ "Entries older than 30 days are removed automatically, and the log never "
+#~ "exceeds 200 lines."
+#~ msgstr ""
+#~ "ログには、リマインダーサービスがいつ確認し、何を報告したかが記録されます。"
+#~ "30日を超えた項目は自動的に削除され、ログは 200 行を超えません。"
 
 #~ msgid "Choose a connection. Confirm pairing on the phone and this computer."
 #~ msgstr ""

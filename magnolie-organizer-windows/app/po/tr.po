@@ -38,6 +38,9 @@ msgstr " %(branch)s kaynağından"
 msgid " – notification at the appointment time."
 msgstr " – randevu saatinde bildirim."
 
+msgid "%(Handyname)s filesystem"
+msgstr "%(Handyname)s dosya sistemi"
+
 msgid ""
 "%(appointment)s\n"
 "Click to edit"
@@ -1912,6 +1915,12 @@ msgstr "Diş hekimi Dr. Hill — Kayıtlarınızın önizlemesi"
 msgid "Determining public IP address…"
 msgstr "Genel IP adresi belirleniyor…"
 
+msgid "Developer options"
+msgstr "Geliştirici seçenekleri"
+
+msgid "Device"
+msgstr "Cihaz"
+
 msgid "Device IMEI"
 msgstr "Cihaz IMEI’si"
 
@@ -1947,6 +1956,9 @@ msgstr "Rakam %(digit)s"
 
 msgid "Direction"
 msgstr "Yön"
+
+msgid "Disable developer mode"
+msgstr "Geliştirici modunu devre dışı bırak"
 
 msgid ""
 "Disabled: no listener, discovery, reconnect or phone tray entries are active."
@@ -2112,6 +2124,12 @@ msgstr "Magnolie Notes telefon bağlantısını etkinleştirin"
 
 msgid "Enable SMS scheduling"
 msgstr "SMS zamanlamasını etkinleştir"
+
+msgid ""
+"Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr ""
+"Kendi eşleştirilmiş telefonunuzda Notes geliştirici seçeneklerinden Wi-Fi "
+"hata ayıklamayı etkinleştirin."
 
 msgid "Enable cycle calendar"
 msgstr "Döngü takvimini etkinleştir"
@@ -2776,6 +2794,27 @@ msgstr "Gelen"
 msgid "Incoming call"
 msgstr "Gelen arama"
 
+msgid "Incoming control device"
+msgstr "Gelen denetim cihazı"
+
+msgid ""
+"Incoming control is inactive. Keep the Organizer running and unlocked and "
+"select one paired device."
+msgstr ""
+"Gelen denetim etkin değil. Organizer’ı çalışır ve kilidi açık tutun ve "
+"eşleştirilmiş bir cihaz seçin."
+
+msgid "Incoming control uses the permissions configured in system KDE Connect."
+msgstr ""
+"Gelen denetim, sistem KDE Connect uygulamasında ayarlanan izinleri kullanır."
+
+msgid ""
+"Incoming phone control is ready while the Organizer is running and unlocked, "
+"including tray mode."
+msgstr ""
+"Organizer çalışırken ve kilidi açıkken, sistem tepsisinde de telefondan "
+"denetim hazırdır."
+
 msgid "Input"
 msgstr "Girdi"
 
@@ -2958,6 +2997,9 @@ msgstr "Dinleyici etkin"
 
 msgid "Listener stopped"
 msgstr "Dinleyici durduruldu"
+
+msgid "Loading …"
+msgstr "Yükleniyor …"
 
 msgid "Loading…"
 msgstr "Yükleniyor…"
@@ -3145,6 +3187,25 @@ msgstr "Ölçüm bağlamı"
 msgid "Mecklenburg-Western Pomerania"
 msgstr "Mecklenburg-Vorpommern"
 
+msgid "Media control"
+msgstr "Medya denetimi"
+
+msgid ""
+"Media control is unavailable. Check the connection and the media app on the "
+"phone."
+msgstr ""
+"Medya denetimi kullanılamıyor. Bağlantıyı ve telefondaki medya uygulamasını "
+"kontrol edin."
+
+msgid "Media player"
+msgstr "Medya oynatıcı"
+
+msgid "Media player settings could not be applied."
+msgstr "Medya oynatıcı ayarları uygulanamadı."
+
+msgid "Media players"
+msgstr "Medya oynatıcılar"
+
 msgid "Medication"
 msgstr "İlaç"
 
@@ -3275,6 +3336,9 @@ msgstr ""
 msgid "Morning"
 msgstr "Sabah"
 
+msgid "Mouse and keyboard"
+msgstr "Fare ve klavye"
+
 msgid "Mouse wheel over times"
 msgstr "Saatlerin üzerinde fare tekerleği"
 
@@ -3320,6 +3384,9 @@ msgstr ""
 
 msgid "Multiple calendars"
 msgstr "Birden çok takvim"
+
+msgid "Music player"
+msgstr "Müzik çalar"
 
 msgid "Name"
 msgstr "Ad"
@@ -3525,6 +3592,9 @@ msgstr "Eşleşen açık görev bulunamadı."
 
 msgid "No measurements in this period."
 msgstr "Bu dönemde ölçüm yok."
+
+msgid "No media player is available on the connected phone."
+msgstr "Bağlı telefonda kullanılabilir medya oynatıcı yok."
 
 msgid "No merge history recorded"
 msgstr ""
@@ -4077,9 +4147,15 @@ msgstr "Flaster"
 msgid "Patients"
 msgstr "Hastalar"
 
+msgid "Pause"
+msgstr "Duraklat"
+
 msgctxt "time tracking"
 msgid "Pause (minutes)"
 msgstr "Mola (dakika)"
+
+msgid "Pause incoming control for this session"
+msgstr "Gelen denetimi bu oturum için duraklat"
 
 msgctxt "time tracking"
 msgid "Paused"
@@ -4220,6 +4296,12 @@ msgstr "Al"
 msgid "Planner"
 msgstr "Planlayıcı"
 
+msgid "Play"
+msgstr "Oynat"
+
+msgid "Playback position"
+msgstr "Oynatma konumu"
+
 msgid "Please create a notebook in another group first."
 msgstr "Lütfen önce başka bir grupta not defteri oluşturun."
 
@@ -4345,6 +4427,9 @@ msgid_plural "Preview: %(count)s contacts"
 msgstr[0] "Önizleme: %(count)s kişi"
 msgstr[1] "Önizleme: %(count)s kişi"
 
+msgid "Previous"
+msgstr "Önceki"
+
 msgid "Previous month"
 msgstr "Önceki ay"
 
@@ -4445,6 +4530,9 @@ msgstr ""
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Bu bilgisayarın erişilebilir IPv4 veya IPv6 adresi"
 
+msgid "Read Notes WLAN diagnostics"
+msgstr "Notes Wi-Fi tanılamasını oku"
+
 msgid "Ready."
 msgstr "Hazır."
 
@@ -4528,6 +4616,9 @@ msgid ""
 "version."
 msgstr ""
 "Uygulama dışındaki anımsatıcılar yalnızca kurulu sürümde kullanılabilir."
+
+msgid "Remote control settings could not be applied."
+msgstr "Uzaktan denetim ayarları uygulanamadı."
 
 msgid "Remote host name or IP address (optional)"
 msgstr "Uzak ana bilgisayar adı veya IP adresi (isteğe bağlı)"
@@ -5080,24 +5171,6 @@ msgstr "Tümünü göster"
 msgid "Show calendar button in date fields"
 msgstr "Tarih alanlarında takvim düğmesini göster"
 
-msgid "Developer options"
-msgstr "Geliştirici seçenekleri"
-
-msgid "Disable developer mode"
-msgstr "Geliştirici modunu devre dışı bırak"
-
-msgid "Read Notes WLAN diagnostics"
-msgstr "Notes Wi-Fi tanılamasını oku"
-
-msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
-msgstr "Kendi eşleştirilmiş telefonunuzda Notes geliştirici seçeneklerinden Wi-Fi hata ayıklamayı etkinleştirin."
-
-msgid "%(Handyname)s filesystem"
-msgstr "%(Handyname)s dosya sistemi"
-
-msgid "The phone filesystem could not be opened."
-msgstr "Telefonun dosya sistemi açılamadı."
-
 msgid "Show log"
 msgstr "Günlüğü göster"
 
@@ -5296,6 +5369,9 @@ msgstr "Biçim bölgesi"
 
 msgid "Status"
 msgstr "Durum"
+
+msgid "Stop"
+msgstr "Durdur"
 
 msgid "Street"
 msgstr ""
@@ -5850,15 +5926,6 @@ msgstr "Günlük klasörü açılamadı."
 msgid "The log is available only in the installed application."
 msgstr "Günlük yalnızca kurulu uygulamada kullanılabilir."
 
-msgid ""
-"The log records when the reminder service checked and what it reported. "
-"Entries older than 30 days are removed automatically, and the log never "
-"exceeds 200 lines."
-msgstr ""
-"Günlük, anımsatıcı hizmetinin ne zaman denetim yaptığını ve ne bildirdiğini "
-"kaydeder. 30 günden eski girdiler otomatik kaldırılır ve günlük hiçbir zaman "
-"200 satırı aşmaz."
-
 msgid "The mailbox is reachable."
 msgstr "Posta kutusuna ulaşılabiliyor."
 
@@ -5977,6 +6044,9 @@ msgstr "Telefon bağlantısı yalnızca yüklü uygulamada kullanılabilir."
 msgid "The phone connection was not authenticated."
 msgstr "Telefon bağlantısında kimlik doğrulaması yapılmadı."
 
+msgid "The phone filesystem could not be opened."
+msgstr "Telefonun dosya sistemi açılamadı."
+
 msgid "The phone function is not permitted or available."
 msgstr "Telefon işlevine izin verilmiyor veya kullanılamıyor."
 
@@ -6091,6 +6161,13 @@ msgstr ""
 
 msgid "The selected phone changed. Try again."
 msgstr "Seçili telefon değişti. Yeniden deneyin."
+
+msgid ""
+"The selected players are also offered on the phone while closed. Play starts "
+"the assigned application."
+msgstr ""
+"Seçilen oynatıcılar kapalıyken de telefonda sunulur. Oynat, atanan "
+"uygulamayı başlatır."
 
 msgid "The server denied access. Check this account's permissions."
 msgstr "Sunucu erişimi reddetti. Bu hesabın izinlerini kontrol edin."
@@ -6739,6 +6816,9 @@ msgstr "Sürüm %(version)s güncel. Son denetim: %(date)s."
 msgid "Via internet"
 msgstr "İnternet üzerinden"
 
+msgid "Video player"
+msgstr "Video oynatıcı"
+
 msgid "Vienna"
 msgstr "Viyana"
 
@@ -6750,6 +6830,9 @@ msgstr "Yaşamsal bulgular"
 
 msgid "Vital signs table"
 msgstr "Yaşamsal bulgular tablosu"
+
+msgid "Volume"
+msgstr "Ses düzeyi"
 
 msgid "Vorarlberg"
 msgstr "Vorarlberg"
@@ -7466,6 +7549,15 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
+
+#~ msgid ""
+#~ "The log records when the reminder service checked and what it reported. "
+#~ "Entries older than 30 days are removed automatically, and the log never "
+#~ "exceeds 200 lines."
+#~ msgstr ""
+#~ "Günlük, anımsatıcı hizmetinin ne zaman denetim yaptığını ve ne "
+#~ "bildirdiğini kaydeder. 30 günden eski girdiler otomatik kaldırılır ve "
+#~ "günlük hiçbir zaman 200 satırı aşmaz."
 
 #~ msgid "Choose a connection. Confirm pairing on the phone and this computer."
 #~ msgstr ""

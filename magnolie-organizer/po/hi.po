@@ -42,6 +42,9 @@ msgstr " %(branch)s से"
 msgid " – notification at the appointment time."
 msgstr " – अपॉइंटमेंट के समय सूचना।"
 
+msgid "%(Handyname)s filesystem"
+msgstr "%(Handyname)s का फ़ाइल सिस्टम"
+
 msgid ""
 "%(appointment)s\n"
 "Click to edit"
@@ -2310,6 +2313,12 @@ msgstr "दंत चिकित्सक डॉ. Hill — आपकी प्�
 msgid "Determining public IP address…"
 msgstr "सार्वजनिक IP पता पता लगाया जा रहा है…"
 
+msgid "Developer options"
+msgstr "डेवलपर विकल्प"
+
+msgid "Device"
+msgstr "डिवाइस"
+
 msgid "Device IMEI"
 msgstr "डिवाइस का IMEI"
 
@@ -2339,6 +2348,9 @@ msgstr "अंक %(digit)s"
 
 msgid "Direction"
 msgstr "दिशा"
+
+msgid "Disable developer mode"
+msgstr "डेवलपर मोड बंद करें"
 
 msgid ""
 "Disabled: no listener, discovery, reconnect or phone tray entries are active."
@@ -2517,6 +2529,10 @@ msgstr "Magnolie Notes फ़ोन कनेक्शन सक्षम कर
 
 msgid "Enable SMS scheduling"
 msgstr "SMS शेड्यूलिंग चालू करें"
+
+msgid ""
+"Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr "अपने युग्मित फ़ोन पर Notes के डेवलपर विकल्पों में वाई-फ़ाई डिबगिंग चालू करें।"
 
 msgid "Enable cycle calendar"
 msgstr "चक्र कैलेंडर सक्षम करें"
@@ -3271,12 +3287,30 @@ msgstr "KDE Connect से आने वाली फ़ाइलें (हम�
 msgid "Incoming call"
 msgstr "इनकमिंग कॉल"
 
+msgid "Incoming control device"
+msgstr "आने वाले नियंत्रण का डिवाइस"
+
+msgid ""
+"Incoming control is inactive. Keep the Organizer running and unlocked and "
+"select one paired device."
+msgstr ""
+"आने वाला नियंत्रण निष्क्रिय है। Organizer को चालू और अनलॉक रखें तथा एक युग्मित डिवाइस "
+"चुनें।"
+
+msgid "Incoming control uses the permissions configured in system KDE Connect."
+msgstr "आने वाला नियंत्रण सिस्टम के KDE Connect में तय अनुमतियों का उपयोग करता है।"
+
 msgid ""
 "Incoming files are always confirmed. Clipboard text is confirmed unless "
 "automatic acceptance is explicitly enabled."
 msgstr ""
 "आने वाली फ़ाइलों की हमेशा पुष्टि की जाती है। क्लिपबोर्ड टेक्स्ट की भी पुष्टि की जाती है, जब "
 "तक स्वचालित स्वीकृति को स्पष्ट रूप से सक्षम न किया गया हो।"
+
+msgid ""
+"Incoming phone control is ready while the Organizer is running and unlocked, "
+"including tray mode."
+msgstr "Organizer चालू और अनलॉक रहने पर फ़ोन से नियंत्रण तैयार रहता है, ट्रे मोड में भी।"
 
 msgid "Input"
 msgstr "इनपुट"
@@ -3486,6 +3520,9 @@ msgstr "सुनने वाला रुक गया"
 
 msgid "Loading background settings"
 msgstr "बैकग्राउंड सेटिंग लोड की जा रही हैं"
+
+msgid "Loading …"
+msgstr "लोड हो रहा है …"
 
 msgid "Loading…"
 msgstr "लोड हो रहा है…"
@@ -3722,6 +3759,23 @@ msgstr "माप का संदर्भ"
 msgid "Mecklenburg-Western Pomerania"
 msgstr "मेक्लेनबुर्ग-वोर्पोमर्न"
 
+msgid "Media control"
+msgstr "मीडिया नियंत्रण"
+
+msgid ""
+"Media control is unavailable. Check the connection and the media app on the "
+"phone."
+msgstr "मीडिया नियंत्रण उपलब्ध नहीं है। कनेक्शन और फ़ोन के मीडिया ऐप की जाँच करें।"
+
+msgid "Media player"
+msgstr "मीडिया प्लेयर"
+
+msgid "Media player settings could not be applied."
+msgstr "मीडिया प्लेयर की सेटिंग लागू नहीं की जा सकीं।"
+
+msgid "Media players"
+msgstr "मीडिया प्लेयर"
+
 msgid "Medication"
 msgstr "दवा"
 
@@ -3853,6 +3907,9 @@ msgstr ""
 msgid "Morning"
 msgstr "सुबह"
 
+msgid "Mouse and keyboard"
+msgstr "माउस और कीबोर्ड"
+
 msgid "Mouse wheel over times"
 msgstr "समयों पर माउस व्हील"
 
@@ -3897,6 +3954,9 @@ msgstr ""
 
 msgid "Multiple calendars"
 msgstr "एकाधिक कैलेंडर"
+
+msgid "Music player"
+msgstr "संगीत प्लेयर"
 
 msgid "Name"
 msgstr "नाम"
@@ -4168,6 +4228,9 @@ msgstr "कोई मेल खाता खुला कार्य नही�
 
 msgid "No measurements in this period."
 msgstr "इस अवधि में कोई माप नहीं है।"
+
+msgid "No media player is available on the connected phone."
+msgstr "कनेक्ट किए गए फ़ोन पर कोई मीडिया प्लेयर उपलब्ध नहीं है।"
 
 msgid "No merge history recorded"
 msgstr ""
@@ -4811,9 +4874,15 @@ msgstr "पैच"
 msgid "Patients"
 msgstr "मरीज़"
 
+msgid "Pause"
+msgstr "विराम"
+
 msgctxt "time tracking"
 msgid "Pause (minutes)"
 msgstr "विराम (मिनट)"
+
+msgid "Pause incoming control for this session"
+msgstr "इस सत्र के लिए आने वाला नियंत्रण रोकें"
 
 msgctxt "time tracking"
 msgid "Paused"
@@ -4960,6 +5029,12 @@ msgstr "लेने जाएँ"
 msgid "Planner"
 msgstr "प्लानर"
 
+msgid "Play"
+msgstr "चलाएँ"
+
+msgid "Playback position"
+msgstr "प्लेबैक स्थिति"
+
 msgid "Please create a notebook in another group first."
 msgstr "कृपया पहले किसी दूसरे समूह में एक नोटबुक बनाएँ।"
 
@@ -5082,6 +5157,9 @@ msgstr[1] "पूर्वावलोकन: %(count)s संपर्क"
 msgid "Previewing a recovery snapshot"
 msgstr "रिकवरी स्नैपशॉट का पूर्वावलोकन करना"
 
+msgid "Previous"
+msgstr "पिछला"
+
 msgid "Previous month"
 msgstr "पिछला महीना"
 
@@ -5179,6 +5257,9 @@ msgstr ""
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "इस कंप्यूटर का पहुँच योग्य IPv4 या IPv6 पता"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "Notes के वाई-फ़ाई निदान पढ़ें"
 
 msgid "Read on phone"
 msgstr "फ़ोन पर पढ़ा गया"
@@ -5314,6 +5395,9 @@ msgstr "रिमाइंडर: चालू"
 
 msgid "Reminds you about appointments even when the organizer is closed"
 msgstr "ऑर्गनाइज़र बंद होने पर भी अपॉइंटमेंट याद दिलाता है"
+
+msgid "Remote control settings could not be applied."
+msgstr "रिमोट नियंत्रण की सेटिंग लागू नहीं की जा सकीं।"
 
 msgid "Remote host name or IP address (optional)"
 msgstr "दूरस्थ होस्ट नाम या IP पता (वैकल्पिक)"
@@ -5975,24 +6059,6 @@ msgstr "तारीख फ़ील्ड में कैलेंडर ब�
 msgid "Show incoming call notifications"
 msgstr "आने वाली कॉल की सूचनाएँ दिखाएँ"
 
-msgid "Developer options"
-msgstr "डेवलपर विकल्प"
-
-msgid "Disable developer mode"
-msgstr "डेवलपर मोड बंद करें"
-
-msgid "Read Notes WLAN diagnostics"
-msgstr "Notes के वाई-फ़ाई निदान पढ़ें"
-
-msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
-msgstr "अपने युग्मित फ़ोन पर Notes के डेवलपर विकल्पों में वाई-फ़ाई डिबगिंग चालू करें।"
-
-msgid "%(Handyname)s filesystem"
-msgstr "%(Handyname)s का फ़ाइल सिस्टम"
-
-msgid "The phone filesystem could not be opened."
-msgstr "फ़ोन का फ़ाइल सिस्टम नहीं खोला जा सका।"
-
 msgid "Show log"
 msgstr "लॉग दिखाएँ"
 
@@ -6201,6 +6267,9 @@ msgstr "प्रारूप क्षेत्र"
 
 msgid "Status"
 msgstr "स्थिति"
+
+msgid "Stop"
+msgstr "रोकें"
 
 msgid "Street"
 msgstr ""
@@ -6943,14 +7012,6 @@ msgstr "लॉग खोला नहीं जा सका।"
 msgid "The log is available only in the installed application."
 msgstr "लॉग केवल स्थापित अनुप्रयोग में उपलब्ध है।"
 
-msgid ""
-"The log records when the reminder service checked and what it reported. "
-"Entries older than 30 days are removed automatically, and the log never "
-"exceeds 200 lines."
-msgstr ""
-"लॉग दर्ज करता है कि रिमाइंडर सेवा ने कब जाँच की और उसने क्या रिपोर्ट किया। 30 दिन से "
-"पुरानी प्रविष्टियाँ अपने-आप हट जाती हैं और लॉग कभी 200 पंक्तियों से अधिक नहीं होता।"
-
 msgid "The mailbox backlog is too large."
 msgstr "मेलबॉक्स का बैकलॉग बहुत बड़ा है।"
 
@@ -7133,6 +7194,9 @@ msgstr "Magnolienbaum उपलब्ध नहीं है।"
 
 msgid "The phone connection was not authenticated."
 msgstr "कनेक्शन में फ़ोन की पहचान की पुष्टि नहीं हुई।"
+
+msgid "The phone filesystem could not be opened."
+msgstr "फ़ोन का फ़ाइल सिस्टम नहीं खोला जा सका।"
 
 msgid "The phone function is not permitted or available."
 msgstr "फ़ोन की इस सुविधा की अनुमति नहीं है या यह उपलब्ध नहीं है।"
@@ -7337,6 +7401,12 @@ msgstr "चयनित पथ सामान्य फ़ाइल नही�
 
 msgid "The selected phone changed. Try again."
 msgstr "चुना हुआ फ़ोन बदल गया है। फिर कोशिश करें।"
+
+msgid ""
+"The selected players are also offered on the phone while closed. Play starts "
+"the assigned application."
+msgstr ""
+"चुने गए प्लेयर बंद होने पर भी फ़ोन पर दिखाई देते हैं। चलाएँ दबाने से निर्धारित ऐप शुरू होता है।"
 
 msgid "The selected source was not found. Select it again in Settings."
 msgstr "चयनित स्रोत नहीं मिला। सेटिंग्स में इसे फिर चुनें।"
@@ -8098,6 +8168,9 @@ msgstr "संस्करण %(version)s नवीनतम है। अंत
 msgid "Via internet"
 msgstr "इंटरनेट के माध्यम से"
 
+msgid "Video player"
+msgstr "वीडियो प्लेयर"
+
 msgid "Vienna"
 msgstr "वियना"
 
@@ -8109,6 +8182,9 @@ msgstr "महत्वपूर्ण स्वास्थ्य संके�
 
 msgid "Vital signs table"
 msgstr "महत्वपूर्ण स्वास्थ्य संकेतों की तालिका"
+
+msgid "Volume"
+msgstr "आवाज़"
 
 msgid "Vorarlberg"
 msgstr "फोरार्लबर्ग"
@@ -8852,6 +8928,14 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
+
+#~ msgid ""
+#~ "The log records when the reminder service checked and what it reported. "
+#~ "Entries older than 30 days are removed automatically, and the log never "
+#~ "exceeds 200 lines."
+#~ msgstr ""
+#~ "लॉग दर्ज करता है कि रिमाइंडर सेवा ने कब जाँच की और उसने क्या रिपोर्ट किया। 30 दिन "
+#~ "से पुरानी प्रविष्टियाँ अपने-आप हट जाती हैं और लॉग कभी 200 पंक्तियों से अधिक नहीं होता।"
 
 #~ msgid "Choose a connection. Confirm pairing on the phone and this computer."
 #~ msgstr "जुड़ने का तरीका चुनें। फ़ोन और इस कंप्यूटर, दोनों पर जोड़ी बनाने की पुष्टि करें।"

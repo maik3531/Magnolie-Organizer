@@ -43,6 +43,9 @@ msgstr " من %(branch)s"
 msgid " – notification at the appointment time."
 msgstr " – إشعار في موعد الحدث."
 
+msgid "%(Handyname)s filesystem"
+msgstr "نظام ملفات %(Handyname)s"
+
 msgid ""
 "%(appointment)s\n"
 "Click to edit"
@@ -2483,6 +2486,12 @@ msgstr "طبيب الأسنان د. Hill — معاينة إدخالاتك"
 msgid "Determining public IP address…"
 msgstr "جارٍ تحديد عنوان IP العام…"
 
+msgid "Developer options"
+msgstr "خيارات المطوّر"
+
+msgid "Device"
+msgstr "الجهاز"
+
 msgid "Device IMEI"
 msgstr "IMEI الجهاز"
 
@@ -2512,6 +2521,9 @@ msgstr "الرقم %(digit)s"
 
 msgid "Direction"
 msgstr "اتجاه"
+
+msgid "Disable developer mode"
+msgstr "تعطيل وضع المطوّر"
 
 msgid ""
 "Disabled: no listener, discovery, reconnect or phone tray entries are active."
@@ -2691,6 +2703,11 @@ msgstr "تمكين اتصال الهاتف Magnolie Notes"
 
 msgid "Enable SMS scheduling"
 msgstr "تفعيل جدولة رسائل SMS"
+
+msgid ""
+"Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr ""
+"فعّل تصحيح أخطاء Wi-Fi في خيارات المطوّر في Notes على هاتفك الشخصي المقترن."
 
 msgid "Enable cycle calendar"
 msgstr "تمكين تقويم الدورة"
@@ -3444,12 +3461,32 @@ msgstr "الملفات الواردة عبر KDE Connect (التأكيد دائ�
 msgid "Incoming call"
 msgstr "مكالمة واردة"
 
+msgid "Incoming control device"
+msgstr "جهاز التحكم الوارد"
+
+msgid ""
+"Incoming control is inactive. Keep the Organizer running and unlocked and "
+"select one paired device."
+msgstr ""
+"التحكم الوارد غير نشط. أبقِ Organizer قيد التشغيل وغير مقفل واختر جهازًا "
+"مقترنًا."
+
+msgid "Incoming control uses the permissions configured in system KDE Connect."
+msgstr "يستخدم التحكم الوارد الأذونات المضبوطة في KDE Connect النظامي."
+
 msgid ""
 "Incoming files are always confirmed. Clipboard text is confirmed unless "
 "automatic acceptance is explicitly enabled."
 msgstr ""
 "يُطلب دائمًا تأكيد الملفات الواردة. ويُطلب تأكيد نص الحافظة ما لم يُمكَّن القبول "
 "التلقائي صراحةً."
+
+msgid ""
+"Incoming phone control is ready while the Organizer is running and unlocked, "
+"including tray mode."
+msgstr ""
+"التحكم من الهاتف جاهز ما دام Organizer يعمل وغير مقفل، بما في ذلك وضع علبة "
+"النظام."
 
 msgid "Input"
 msgstr "إدخال"
@@ -3659,6 +3696,9 @@ msgstr "توقف المستمع"
 
 msgid "Loading background settings"
 msgstr "جارٍ تحميل إعدادات الخلفية"
+
+msgid "Loading …"
+msgstr "جارٍ التحميل …"
 
 msgid "Loading…"
 msgstr "جارٍ التحميل…"
@@ -3895,6 +3935,23 @@ msgstr "سياق القياس"
 msgid "Mecklenburg-Western Pomerania"
 msgstr "مكلنبورغ-فوربومرن"
 
+msgid "Media control"
+msgstr "التحكم بالوسائط"
+
+msgid ""
+"Media control is unavailable. Check the connection and the media app on the "
+"phone."
+msgstr "التحكم بالوسائط غير متاح. تحقق من الاتصال وتطبيق الوسائط على الهاتف."
+
+msgid "Media player"
+msgstr "مشغّل الوسائط"
+
+msgid "Media player settings could not be applied."
+msgstr "تعذّر تطبيق إعدادات مشغّل الوسائط."
+
+msgid "Media players"
+msgstr "مشغّلات الوسائط"
+
 msgid "Medication"
 msgstr "الدواء"
 
@@ -4027,6 +4084,9 @@ msgstr ""
 msgid "Morning"
 msgstr "الصباح"
 
+msgid "Mouse and keyboard"
+msgstr "الفأرة ولوحة المفاتيح"
+
 msgid "Mouse wheel over times"
 msgstr "عجلة الفأرة فوق الأوقات"
 
@@ -4072,6 +4132,9 @@ msgstr ""
 
 msgid "Multiple calendars"
 msgstr "تقاويم متعددة"
+
+msgid "Music player"
+msgstr "مشغّل الموسيقى"
 
 msgid "Name"
 msgstr "الاسم"
@@ -4343,6 +4406,9 @@ msgstr "لم يُعثر على مهمة مفتوحة مطابقة."
 
 msgid "No measurements in this period."
 msgstr "لا توجد قياسات في هذه الفترة."
+
+msgid "No media player is available on the connected phone."
+msgstr "لا يتوفر مشغّل وسائط على الهاتف المتصل."
 
 msgid "No merge history recorded"
 msgstr ""
@@ -5011,9 +5077,15 @@ msgstr "لصقة"
 msgid "Patients"
 msgstr "المرضى"
 
+msgid "Pause"
+msgstr "إيقاف مؤقت"
+
 msgctxt "time tracking"
 msgid "Pause (minutes)"
 msgstr "الاستراحة (بالدقائق)"
+
+msgid "Pause incoming control for this session"
+msgstr "تعليق التحكم الوارد لهذه الجلسة"
 
 msgctxt "time tracking"
 msgid "Paused"
@@ -5174,6 +5246,12 @@ msgstr "اصطحاب"
 msgid "Planner"
 msgstr "المخطِّط"
 
+msgid "Play"
+msgstr "تشغيل"
+
+msgid "Playback position"
+msgstr "موضع التشغيل"
+
 msgid "Please create a notebook in another group first."
 msgstr "يرجى إنشاء دفتر ملاحظات في مجموعة أخرى أولًا."
 
@@ -5301,6 +5379,9 @@ msgstr[5] "المعاينة: %(count)s من جهات الاتصال"
 msgid "Previewing a recovery snapshot"
 msgstr "معاينة لقطة استعادة"
 
+msgid "Previous"
+msgstr "السابق"
+
 msgid "Previous month"
 msgstr "الشهر السابق"
 
@@ -5399,6 +5480,9 @@ msgstr ""
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "عنوان IPv4 أو IPv6 القابل للوصول لهذا الحاسوب"
+
+msgid "Read Notes WLAN diagnostics"
+msgstr "قراءة تشخيصات Wi-Fi في Notes"
 
 msgid "Read on phone"
 msgstr "مقروءة على الهاتف"
@@ -5535,6 +5619,9 @@ msgstr "التذكيرات: مفعّلة"
 
 msgid "Reminds you about appointments even when the organizer is closed"
 msgstr "يذكّرك بالمواعيد حتى عندما يكون المنظّم مغلقًا"
+
+msgid "Remote control settings could not be applied."
+msgstr "تعذّر تطبيق إعدادات التحكم عن بُعد."
 
 msgid "Remote host name or IP address (optional)"
 msgstr "اسم المضيف البعيد أو عنوان IP (اختياري)"
@@ -6200,24 +6287,6 @@ msgstr "إظهار زر التقويم في حقول التاريخ"
 msgid "Show incoming call notifications"
 msgstr "إظهار إشعارات المكالمات الواردة"
 
-msgid "Developer options"
-msgstr "خيارات المطوّر"
-
-msgid "Disable developer mode"
-msgstr "تعطيل وضع المطوّر"
-
-msgid "Read Notes WLAN diagnostics"
-msgstr "قراءة تشخيصات Wi-Fi في Notes"
-
-msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
-msgstr "فعّل تصحيح أخطاء Wi-Fi في خيارات المطوّر في Notes على هاتفك الشخصي المقترن."
-
-msgid "%(Handyname)s filesystem"
-msgstr "نظام ملفات %(Handyname)s"
-
-msgid "The phone filesystem could not be opened."
-msgstr "تعذّر فتح نظام ملفات الهاتف."
-
 msgid "Show log"
 msgstr "إظهار السجل"
 
@@ -6426,6 +6495,9 @@ msgstr "منطقة التنسيق"
 
 msgid "Status"
 msgstr "حالة"
+
+msgid "Stop"
+msgstr "إيقاف"
 
 msgid "Street"
 msgstr ""
@@ -7182,14 +7254,6 @@ msgstr "تعذر فتح السجل."
 msgid "The log is available only in the installed application."
 msgstr "السجل متاح فقط في التطبيق المثبّت."
 
-msgid ""
-"The log records when the reminder service checked and what it reported. "
-"Entries older than 30 days are removed automatically, and the log never "
-"exceeds 200 lines."
-msgstr ""
-"يسجل السجل متى تحققت خدمة التذكير وما الذي أبلغت عنه. تُزال العناصر الأقدم من "
-"30 يومًا تلقائيًا، ولا يتجاوز السجل 200 سطر."
-
 msgid "The mailbox backlog is too large."
 msgstr ".ﺍﺪًﺟ ﺮﻴﺒﻛ ﺪﻳﺮﺒﻟﺍ ﻕﻭﺪﻨﺻ ﻲﻓ ﻞﺋﺎﺳﺮﻟﺍ ﻢﻛﺍﺮﺗ"
 
@@ -7372,6 +7436,9 @@ msgstr "Magnolienbaum غير متاح."
 
 msgid "The phone connection was not authenticated."
 msgstr "لم يتم التحقق من هوية الهاتف في هذا الاتصال."
+
+msgid "The phone filesystem could not be opened."
+msgstr "تعذّر فتح نظام ملفات الهاتف."
 
 msgid "The phone function is not permitted or available."
 msgstr "وظيفة الهاتف غير مسموح بها أو غير متاحة."
@@ -7575,6 +7642,13 @@ msgstr "المسار المحدد ليس ملفًا عاديًا."
 
 msgid "The selected phone changed. Try again."
 msgstr "تغيّر الهاتف المحدد. حاول مرة أخرى."
+
+msgid ""
+"The selected players are also offered on the phone while closed. Play starts "
+"the assigned application."
+msgstr ""
+"تظهر المشغّلات المحددة على الهاتف حتى وهي مغلقة. يبدأ تشغيل التطبيق المعيّن "
+"عند اختيار تشغيل."
 
 msgid "The selected source was not found. Select it again in Settings."
 msgstr "لم يُعثر على المصدر المحدد. حدده مجددًا في الإعدادات."
@@ -8339,6 +8413,9 @@ msgstr "الإصدار %(version)s محدَّث. آخر تحقق: %(date)s."
 msgid "Via internet"
 msgstr "عبر الإنترنت"
 
+msgid "Video player"
+msgstr "مشغّل الفيديو"
+
 msgid "Vienna"
 msgstr "فيينا"
 
@@ -8350,6 +8427,9 @@ msgstr "العلامات الحيوية"
 
 msgid "Vital signs table"
 msgstr "جدول العلامات الحيوية"
+
+msgid "Volume"
+msgstr "مستوى الصوت"
 
 msgid "Vorarlberg"
 msgstr "فورآرلبرغ"
@@ -9130,6 +9210,14 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
+
+#~ msgid ""
+#~ "The log records when the reminder service checked and what it reported. "
+#~ "Entries older than 30 days are removed automatically, and the log never "
+#~ "exceeds 200 lines."
+#~ msgstr ""
+#~ "يسجل السجل متى تحققت خدمة التذكير وما الذي أبلغت عنه. تُزال العناصر الأقدم "
+#~ "من 30 يومًا تلقائيًا، ولا يتجاوز السجل 200 سطر."
 
 #~ msgid "Choose a connection. Confirm pairing on the phone and this computer."
 #~ msgstr "اختر طريقة الاتصال. أكّد الإقران على الهاتف وعلى هذا الحاسوب."

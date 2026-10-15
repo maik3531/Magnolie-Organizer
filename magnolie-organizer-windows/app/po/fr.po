@@ -38,6 +38,9 @@ msgstr " de %(branch)s"
 msgid " – notification at the appointment time."
 msgstr " – notification à l’heure du rendez-vous."
 
+msgid "%(Handyname)s filesystem"
+msgstr "Système de fichiers de %(Handyname)s"
+
 msgid ""
 "%(appointment)s\n"
 "Click to edit"
@@ -1954,6 +1957,12 @@ msgstr "Dentiste Dr Hill — Aperçu de vos entrées"
 msgid "Determining public IP address…"
 msgstr "Détermination de l’adresse IP publique…"
 
+msgid "Developer options"
+msgstr "Options de développement"
+
+msgid "Device"
+msgstr "Appareil"
+
 msgid "Device IMEI"
 msgstr "IMEI de l’appareil"
 
@@ -1990,6 +1999,9 @@ msgstr "Chiffre %(digit)s"
 
 msgid "Direction"
 msgstr "Direction"
+
+msgid "Disable developer mode"
+msgstr "Désactiver le mode développeur"
 
 msgid ""
 "Disabled: no listener, discovery, reconnect or phone tray entries are active."
@@ -2155,6 +2167,12 @@ msgstr "Activer la connexion téléphonique Magnolie Notes"
 
 msgid "Enable SMS scheduling"
 msgstr "Activer la planification des SMS"
+
+msgid ""
+"Enable WLAN debugging in Notes developer options on your own paired phone."
+msgstr ""
+"Activez le débogage Wi-Fi dans les options de développement de Notes sur "
+"votre propre téléphone associé."
 
 msgid "Enable cycle calendar"
 msgstr "Activer le calendrier du cycle"
@@ -2832,6 +2850,28 @@ msgstr "Entrant"
 msgid "Incoming call"
 msgstr "Appel entrant"
 
+msgid "Incoming control device"
+msgstr "Appareil de commande entrante"
+
+msgid ""
+"Incoming control is inactive. Keep the Organizer running and unlocked and "
+"select one paired device."
+msgstr ""
+"La commande entrante est inactive. Gardez l’Organizer ouvert et déverrouillé "
+"et sélectionnez un appareil associé."
+
+msgid "Incoming control uses the permissions configured in system KDE Connect."
+msgstr ""
+"La commande entrante utilise les autorisations configurées dans KDE Connect "
+"du système."
+
+msgid ""
+"Incoming phone control is ready while the Organizer is running and unlocked, "
+"including tray mode."
+msgstr ""
+"La commande depuis le téléphone est prête tant que l’Organizer fonctionne et "
+"reste déverrouillé, même dans la zone de notification."
+
 msgid "Input"
 msgstr "Saisie"
 
@@ -3018,6 +3058,9 @@ msgstr "Écouteur actif"
 
 msgid "Listener stopped"
 msgstr "Écouteur arrêté"
+
+msgid "Loading …"
+msgstr "Chargement …"
 
 msgid "Loading…"
 msgstr "Chargement…"
@@ -3207,6 +3250,25 @@ msgstr "Contexte de la mesure"
 msgid "Mecklenburg-Western Pomerania"
 msgstr "Mecklembourg-Poméranie-Occidentale"
 
+msgid "Media control"
+msgstr "Commande multimédia"
+
+msgid ""
+"Media control is unavailable. Check the connection and the media app on the "
+"phone."
+msgstr ""
+"La commande multimédia est indisponible. Vérifiez la connexion et "
+"l’application multimédia du téléphone."
+
+msgid "Media player"
+msgstr "Lecteur multimédia"
+
+msgid "Media player settings could not be applied."
+msgstr "Les paramètres du lecteur multimédia n’ont pas pu être appliqués."
+
+msgid "Media players"
+msgstr "Lecteurs multimédias"
+
 msgid "Medication"
 msgstr "Médicament"
 
@@ -3338,6 +3400,9 @@ msgstr ""
 msgid "Morning"
 msgstr "Matin"
 
+msgid "Mouse and keyboard"
+msgstr "Souris et clavier"
+
 msgid "Mouse wheel over times"
 msgstr "Molette de la souris au-dessus des heures"
 
@@ -3383,6 +3448,9 @@ msgstr ""
 
 msgid "Multiple calendars"
 msgstr "Plusieurs calendriers"
+
+msgid "Music player"
+msgstr "Lecteur de musique"
 
 msgid "Name"
 msgstr "Nom"
@@ -3590,6 +3658,9 @@ msgstr "Aucune tâche ouverte correspondante trouvée."
 
 msgid "No measurements in this period."
 msgstr "Aucune mesure pendant cette période."
+
+msgid "No media player is available on the connected phone."
+msgstr "Aucun lecteur multimédia n’est disponible sur le téléphone connecté."
 
 msgid "No merge history recorded"
 msgstr ""
@@ -4163,9 +4234,15 @@ msgstr "Patch"
 msgid "Patients"
 msgstr "Patients"
 
+msgid "Pause"
+msgstr "Pause"
+
 msgctxt "time tracking"
 msgid "Pause (minutes)"
 msgstr "Pause (minutes)"
+
+msgid "Pause incoming control for this session"
+msgstr "Suspendre la commande entrante pour cette session"
 
 msgctxt "time tracking"
 msgid "Paused"
@@ -4314,6 +4391,12 @@ msgstr "Récupérer"
 msgid "Planner"
 msgstr "Planning"
 
+msgid "Play"
+msgstr "Lire"
+
+msgid "Playback position"
+msgstr "Position de lecture"
+
 msgid "Please create a notebook in another group first."
 msgstr "Veuillez d’abord créer un carnet dans un autre groupe."
 
@@ -4440,6 +4523,9 @@ msgid_plural "Preview: %(count)s contacts"
 msgstr[0] "Aperçu : %(count)s contact"
 msgstr[1] "Aperçu : %(count)s contacts"
 
+msgid "Previous"
+msgstr "Précédent"
+
 msgid "Previous month"
 msgstr "Mois précédent"
 
@@ -4542,6 +4628,9 @@ msgstr ""
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Adresse IPv4 ou IPv6 joignable de cet ordinateur"
 
+msgid "Read Notes WLAN diagnostics"
+msgstr "Lire les diagnostics Wi-Fi de Notes"
+
 msgid "Ready."
 msgstr "Prêt."
 
@@ -4626,6 +4715,9 @@ msgid ""
 msgstr ""
 "Les rappels en dehors de l’application sont disponibles uniquement dans la "
 "version installée."
+
+msgid "Remote control settings could not be applied."
+msgstr "Les paramètres de télécommande n’ont pas pu être appliqués."
 
 msgid "Remote host name or IP address (optional)"
 msgstr "Nom d’hôte distant ou adresse IP (facultatif)"
@@ -5191,24 +5283,6 @@ msgstr "Tout afficher"
 msgid "Show calendar button in date fields"
 msgstr "Afficher le bouton Calendrier dans les champs de date"
 
-msgid "Developer options"
-msgstr "Options de développement"
-
-msgid "Disable developer mode"
-msgstr "Désactiver le mode développeur"
-
-msgid "Read Notes WLAN diagnostics"
-msgstr "Lire les diagnostics Wi-Fi de Notes"
-
-msgid "Enable WLAN debugging in Notes developer options on your own paired phone."
-msgstr "Activez le débogage Wi-Fi dans les options de développement de Notes sur votre propre téléphone associé."
-
-msgid "%(Handyname)s filesystem"
-msgstr "Système de fichiers de %(Handyname)s"
-
-msgid "The phone filesystem could not be opened."
-msgstr "Impossible d’ouvrir le système de fichiers du téléphone."
-
 msgid "Show log"
 msgstr "Afficher le journal"
 
@@ -5412,6 +5486,9 @@ msgstr "Région de format"
 
 msgid "Status"
 msgstr "Statut"
+
+msgid "Stop"
+msgstr "Arrêter"
 
 msgid "Street"
 msgstr ""
@@ -5981,15 +6058,6 @@ msgstr "Le dossier journal n'a pas pu être ouvert."
 msgid "The log is available only in the installed application."
 msgstr "Le journal est disponible uniquement dans l’application installée."
 
-msgid ""
-"The log records when the reminder service checked and what it reported. "
-"Entries older than 30 days are removed automatically, and the log never "
-"exceeds 200 lines."
-msgstr ""
-"Le journal consigne les vérifications du service de rappel et ce qu’il a "
-"signalé. Les entrées de plus de 30 jours sont supprimées automatiquement et "
-"le journal ne dépasse jamais 200 lignes."
-
 msgid "The mailbox is reachable."
 msgstr "La boîte aux lettres est joignable."
 
@@ -6119,6 +6187,9 @@ msgstr ""
 msgid "The phone connection was not authenticated."
 msgstr "L’identité du téléphone n’a pas été vérifiée lors de la connexion."
 
+msgid "The phone filesystem could not be opened."
+msgstr "Impossible d’ouvrir le système de fichiers du téléphone."
+
 msgid "The phone function is not permitted or available."
 msgstr "La fonction téléphone n'est ni autorisée ni disponible."
 
@@ -6238,6 +6309,13 @@ msgstr ""
 
 msgid "The selected phone changed. Try again."
 msgstr "Le téléphone sélectionné a changé. Réessayez."
+
+msgid ""
+"The selected players are also offered on the phone while closed. Play starts "
+"the assigned application."
+msgstr ""
+"Les lecteurs sélectionnés sont proposés sur le téléphone même lorsqu’ils "
+"sont fermés. Lire démarre l’application associée."
 
 msgid "The server denied access. Check this account's permissions."
 msgstr "Le serveur a refusé l’accès. Vérifiez les autorisations de ce compte."
@@ -6904,6 +6982,9 @@ msgstr "La version %(version)s est à jour. Dernière vérification : %(date)s."
 msgid "Via internet"
 msgstr "Via Internet"
 
+msgid "Video player"
+msgstr "Lecteur vidéo"
+
 msgid "Vienna"
 msgstr "Vienne"
 
@@ -6915,6 +6996,9 @@ msgstr "Signes vitaux"
 
 msgid "Vital signs table"
 msgstr "Tableau des signes vitaux"
+
+msgid "Volume"
+msgstr "Volume"
 
 msgid "Vorarlberg"
 msgstr "Vorarlberg"
@@ -7646,6 +7730,15 @@ msgstr[1] "… et %(count)s autres éléments qui seront également imprimés."
 
 msgid "＋ Add appointment"
 msgstr "＋ Ajouter un rendez-vous"
+
+#~ msgid ""
+#~ "The log records when the reminder service checked and what it reported. "
+#~ "Entries older than 30 days are removed automatically, and the log never "
+#~ "exceeds 200 lines."
+#~ msgstr ""
+#~ "Le journal consigne les vérifications du service de rappel et ce qu’il a "
+#~ "signalé. Les entrées de plus de 30 jours sont supprimées automatiquement "
+#~ "et le journal ne dépasse jamais 200 lignes."
 
 #~ msgid "Choose a connection. Confirm pairing on the phone and this computer."
 #~ msgstr ""
