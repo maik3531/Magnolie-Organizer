@@ -598,7 +598,24 @@ msgid ""
 "notifications, contact reading and call actions have granular permissions. "
 "Choose them explicitly; pairing alone does not enable them. Notes and task "
 "synchronization use their shared preferences, and automatic Wi-Fi mode stays "
-"Wi-Fi only.</p>"
+"Wi-Fi only.</p><h3>Developer options and Notes diagnostics</h3><p>In "
+"Settings → About, click the version number on the left ten times. The "
+"additional Developer options tab contains Keep a troubleshooting log, Show "
+"log and Disable developer mode. Disabling also turns off the optional log. "
+"In Notes settings, tap the installed version ten times, open Debug options "
+"and enable WLAN debugging. Read Notes WLAN diagnostics on the desktop reads "
+"the version and up to 128 technical connection events through the confirmed "
+"own phone’s encrypted Wi-Fi session. Both sides must allow device status. "
+"Disabling Notes developer mode revokes WLAN debugging. Bluetooth cannot read "
+"this report.</p><h3>Phone filesystem in the file manager</h3><p>Under "
+"<b>Settings → KDE Connect</b>, <b>Phone name filesystem</b> opens the "
+"folders shared by the phone, using its actual name. The button appears only "
+"with a current confirmed Wi-Fi connection and available filesystem support; "
+"it disappears after disconnection, with Bluetooth alone or without a client. "
+"Share storage locations in KDE Connect on the phone. The direct Linux "
+"connection needs SSHFS and fusermount; Windows needs existing SSHFS-Win and "
+"WinFsp. Existing system KDE Connect uses its own filesystem facility. The "
+"counterpart is checked again before opening.</p>"
 msgstr ""
 
 #, no-javascript-format
@@ -692,6 +709,20 @@ msgid ""
 "short first-content-line preview in selection options as in the note list. "
 "Previews are limited to 80 characters, with an ellipsis for longer lines. "
 "Existing titles are retained.</p>"
+msgstr ""
+
+#, no-javascript-format
+msgid ""
+"<h3>Developer options and Notes diagnostics</h3><p>In Settings → About, "
+"click the version number on the left ten times. The additional Developer "
+"options tab contains Keep a troubleshooting log, Show log and Disable "
+"developer mode. Disabling also turns off the optional log. In Notes "
+"settings, tap the installed version ten times, open Debug options and enable "
+"WLAN debugging. Read Notes WLAN diagnostics on the desktop reads the version "
+"and up to 128 technical connection events through the confirmed own phone’s "
+"encrypted Wi-Fi session. Both sides must allow device status. Disabling "
+"Notes developer mode revokes WLAN debugging. Bluetooth cannot read this "
+"report.</p>"
 msgstr ""
 
 #, no-javascript-format
@@ -5660,6 +5691,10 @@ msgstr ""
 
 #, no-javascript-format
 msgid "Appendix"
+msgstr ""
+
+#, no-javascript-format
+msgid "Appointment and anniversary reminders, including missed reminders."
 msgstr ""
 
 #, no-javascript-format

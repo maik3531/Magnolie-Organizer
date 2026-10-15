@@ -419,6 +419,14 @@
       const variant = variants[page.id];
       if (variant) {
         page.inhalt = window.MagnolieI18n.gettext(variant.en);
+        if (page.inhaltAnhang) {
+          const locale = window.MagnolieI18n.locale();
+          const source = page.inhaltAnhang.en || "";
+          const appendix = page.inhaltAnhangNeutral ? source :
+            (page.inhaltAnhang[locale] || page.inhaltAnhang[locale.split("-")[0]] ||
+              window.MagnolieI18n.gettext(source));
+          page.inhalt = page.inhaltAnhangErsetzt ? appendix : page.inhalt + appendix;
+        }
       }
     }
   }

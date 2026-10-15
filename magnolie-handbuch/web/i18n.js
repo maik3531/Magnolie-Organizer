@@ -59,6 +59,41 @@
       for (const key of ["kapitel", "titel", "inhalt"]) {
         page[key] = gettext(page._source[key]);
       }
+      if (Number.isInteger(page.developerLogParagraph)) {
+        const content = document.createElement("div");
+        content.innerHTML = page.inhalt;
+        const paragraph = content.querySelectorAll("p")[page.developerLogParagraph];
+        if (!paragraph) throw new Error("Missing retired diagnostic paragraph: " + page.id);
+        paragraph.remove();
+        page.inhalt = content.innerHTML;
+      }
+      if (page.notificationDescription) {
+        const content = document.createElement("div");
+        content.innerHTML = page.inhalt;
+        const item = content.querySelectorAll("ul > li")[5];
+        const label = item && item.querySelector("b");
+        if (!label) throw new Error("Missing notification settings description");
+        item.replaceChildren(label, document.createTextNode(" – " +
+          (page.notificationDescription[locale] || page.notificationDescription.en)));
+        page.inhalt = content.innerHTML;
+      }
+      if (page.developerLogPath) {
+        const paths = {
+          en: "Settings ▸ Developer options", de: "Einstellungen ▸ Entwickleroptionen",
+          fr: "Paramètres ▸ Options de développement", es: "Ajustes ▸ Opciones de desarrollador",
+          it: "Impostazioni ▸ Opzioni sviluppatore", nl: "Instellingen ▸ Ontwikkelaarsopties",
+          pt: "Definições ▸ Opções de desenvolvedor", cs: "Nastavení ▸ Možnosti pro vývojáře",
+          pl: "Ustawienia ▸ Opcje programistyczne", hsb: "Nastajenja ▸ Wuwiwarske nastajenja",
+          da: "Indstillinger ▸ Udviklerindstillinger", nb: "Innstillinger ▸ Utvikleralternativer",
+          ru: "Настройки ▸ Параметры разработчика", uk: "Налаштування ▸ Параметри розробника",
+          be: "Налады ▸ Параметры распрацоўшчыка", tr: "Ayarlar ▸ Geliştirici seçenekleri",
+          hi: "सेटिंग ▸ डेवलपर विकल्प", ar: "الإعدادات ▸ خيارات المطوّر",
+          ja: "設定 ▸ 開発者向けオプション", "zh-cn": "设置 ▸ 开发者选项"
+        };
+        // Each diagnostic chapter has one settings path. Labels around it remain translated.
+        page.inhalt = page.inhalt.replace(/(<(?:span class=['"]knopfwort['"]|b)>)[^<]*[▸→][^<]*(<\/(?:span|b)>)/,
+          (_match, open, close) => open + (paths[locale] || paths.en) + close);
+      }
       if (page.entferneBildManifest) {
         const escaped = page.entferneBildManifest.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         page.inhalt = page.inhalt.replace(new RegExp(
@@ -66,7 +101,8 @@
       }
       if (page.inhaltAnhang) {
         const source = page.inhaltAnhang.en || "";
-        const localized = page.inhaltAnhangNeutral ? source : gettext(source);
+        const localized = page.inhaltAnhangNeutral ? source :
+          (page.inhaltAnhang[locale] || page.inhaltAnhang[locale.split("-")[0]] || gettext(source));
         page.inhalt = page.inhaltAnhangErsetzt ? localized : page.inhalt + localized;
       }
     }

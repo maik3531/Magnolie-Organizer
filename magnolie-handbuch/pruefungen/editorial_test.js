@@ -43,6 +43,32 @@ for (const platform of ["linux", "windows"]) {
   for (const language of languages) {
     win.MagnolieI18n.setLocale(language);
     assert.equal(win.document.documentElement.dir, language === "ar" ? "rtl" : "ltr");
+    for (const [id, files] of [
+      ["linux-diagnostic-reminder-logs", ["debug.log", "wecker.log"]],
+      ["windows-diagnostic-logs", ["webview.log", "bridge.log", "telefon.log", "kde-connect-debug.log"]]
+    ]) {
+      const item = page(id), contents = win.document.createElement("div"), original = win.document.createElement("div");
+      contents.innerHTML = item.inhalt; original.innerHTML = win.MagnolieI18n.gettext(item._source.inhalt);
+      for (const name of files) assert.ok(contents.textContent.includes(name), `${language}/${id}: lost native log reference ${name}`);
+      const route = element => [...element.querySelectorAll("span.knopfwort,b")].find(node => /[▸→]/.test(node.textContent));
+      assert.ok(route(contents), `${language}/${id}: developer settings route missing`);
+      assert.notEqual(route(contents).textContent, route(original)?.textContent, `${language}/${id}: retired notification log path retained`);
+      assert.ok(item.inhaltAnhang && item.inhalt.includes("128"), `${language}/${id}: bounded Notes diagnostic guidance missing`);
+    }
+    for (const id of ["appointment-reminders", "settings-pages-overview", "troubleshooting"]) {
+      assert.ok(page(id).inhaltAnhang && page(id).inhalt.includes("128"), `${language}/${id}: current developer guidance missing`);
+    }
+    const retired = win.document.createElement("div");
+    retired.innerHTML = win.MagnolieI18n.gettext(page("troubleshooting")._source.inhalt);
+    const current = win.document.createElement("div");
+    current.innerHTML = page("troubleshooting").inhalt;
+    assert.ok(!current.textContent.includes(retired.querySelectorAll("p")[3].textContent),
+      `${language}: retired notification-page troubleshooting instructions retained`);
+    const overview = win.document.createElement("div");
+    overview.innerHTML = page("settings-pages-overview").inhalt;
+    const description = page("settings-pages-overview").notificationDescription;
+    assert.ok(overview.querySelectorAll("ul > li")[5].textContent.endsWith(description[win.MagnolieI18n.locale()]),
+      `${language}: notification overview still attributes developer logging to reminders`);
     for (const key of ["Page {first} of {total}", "Pages {first} and {last} of {total}"]) {
       const value = win.MagnolieI18n.gettext(key);
       if (language !== "en") assert.notEqual(value, key, language);

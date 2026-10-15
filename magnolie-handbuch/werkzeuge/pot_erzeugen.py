@@ -42,6 +42,8 @@ def handbook_messages(content=CONTENT):
                 yield page[key]
         if page.get("inhaltAnhang") and not page.get("inhaltAnhangNeutral"):
             yield page["inhaltAnhang"]["en"]
+        if page.get("notificationDescription"):
+            yield page["notificationDescription"]["en"]
     for variant in data["variants"].values():
         yield variant["en"]
 

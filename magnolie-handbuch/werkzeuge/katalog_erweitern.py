@@ -18,6 +18,8 @@ def main():
     mappings = list(data["variants"].values()) + [
         page["inhaltAnhang"] for page in data["pages"]
         if page.get("inhaltAnhang") and not page.get("inhaltAnhangNeutral")]
+    mappings.extend(page["notificationDescription"] for page in data["pages"]
+                    if page.get("notificationDescription"))
     with tempfile.TemporaryDirectory(prefix="magnolie-handbook-catalog-") as directory:
         seed = Path(directory) / "inline.po"
         merged = Path(directory) / "merged.po"
