@@ -5791,8 +5791,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (!Bruecke.vorhanden) { aktion(); return; }
     const token = uid();
     mutationsAktionen.set(token, { aktion, beiFehler });
-    nachDauerhaftemSpeichern(() => Bruecke.sende({ cmd: "mutations_snapshot",
-      reason: reason, token: token }), fehler => { mutationsAktionen.delete(token); beiFehler(fehler); });
+    nachDauerhaftemSpeichern(() => {
+      if (!mutationsAktionen.has(token)) return;
+      if (!Bruecke.sende({ cmd: "mutations_snapshot", reason, token })) {
+        mutationsAktionen.delete(token);
+        beiFehler(new Error(_("The required recovery snapshot could not be created.")));
+      }
+    }, fehler => { mutationsAktionen.delete(token); beiFehler(fehler); });
+    return token;
   }
 
   function raeumeTombstonesAuf() {
@@ -14898,6 +14904,37 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return minuten + " " + _("minutes before");
   }
 
+  function neuerTerminDaten(werte) {
+    const termin = Object.assign({ id: uid(), uid: syncUid(), sync: false,
+      icsRoundtrip: [], providerMetadaten: {} }, werte);
+    termin.icsRoundtrip = spiegeleTerminInIcs(termin);
+    return termin;
+  }
+
+  function wendeTerminWerteAn(termin, werte) {
+    if (termin.icsReadOnly || !DATEN.termine.includes(termin)) return false;
+    const vorher = kopie(termin), bisherigeQuelle = String(termin.syncKalenderUid || "");
+    const neueQuelle = String(werte.syncKalenderUid || "");
+    if (bisherigeQuelle && bisherigeQuelle !== neueQuelle && termin.sync) {
+      merkeGeloescht("termine", termin);
+      if (termin.syncQuellen && typeof termin.syncQuellen === "object") delete termin.syncQuellen[bisherigeQuelle];
+    }
+    Object.assign(termin, werte);
+    if (bisherigeQuelle !== neueQuelle) termin.sync = false;
+    termin.icsRoundtrip = spiegeleTerminInIcs(termin, vorher);
+    return true;
+  }
+
+  function loescheTerminDaten(termin) {
+    if (termin.icsReadOnly || !DATEN.termine.includes(termin)) return null;
+    merkeGeloescht("termine", termin);
+    const trash = inDenPapierkorb("termin", termin, fmtPunkt(termin.datum) +
+      (termin.zeit ? " " + zeitText(termin.datum, termin.zeit) : "") + " – " + termin.titel);
+    DATEN.termine = DATEN.termine.filter(item => item.id !== termin.id);
+    if (zustand.kalender.bearbeiteId === termin.id) zustand.kalender.bearbeiteId = null;
+    return { id: termin.id, trash_id: trash?.id || null };
+  }
+
   function oeffneTerminBlatt(termin, datum, vorherFokus, zeiten = null) {
     schliesseVorhandenesModal("termin-schleier");
     /* Ein errechnetes Mal einer Wiederholung führt zum Ursprungstermin –
@@ -15739,11 +15776,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         geaendert: Date.now()
       };
       if (neu) {
-        const neuerTermin = Object.assign(
-          { id: uid(), uid: syncUid(), sync: false, icsRoundtrip: [],
-            providerMetadaten: {} }, werte);
-        neuerTermin.icsRoundtrip = spiegeleTerminInIcs(neuerTermin);
-        DATEN.termine.push(neuerTermin);
+        DATEN.termine.push(neuerTerminDaten(werte));
       } else {
         const aktuell = DATEN.termine.find(item => item.id === termin.id);
         if (!aktuell || aktuell !== termin && Object.keys(werte).some(key => key !== "geaendert" &&
@@ -15751,18 +15784,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           zettel(_("Conflict")); return;
         }
         termin = aktuell;
-        const vorher = kopie(termin);
-        if (bisherigeSyncQuelle && bisherigeSyncQuelle !== neueSyncQuelle && termin.sync) {
-          // Der alte Kalender muss den Eintrag ausdrücklich löschen; bloßes
-          // Umhängen darf dort keine verwaiste Kopie zurücklassen.
-          merkeGeloescht("termine", termin);
-          if (termin.syncQuellen && typeof termin.syncQuellen === "object") {
-            delete termin.syncQuellen[bisherigeSyncQuelle];
-          }
-        }
-        Object.assign(termin, werte);
-        if (bisherigeSyncQuelle !== neueSyncQuelle) termin.sync = false;
-        termin.icsRoundtrip = spiegeleTerminInIcs(termin, vorher);
+        if (!wendeTerminWerteAn(termin, werte)) { zettel(_("Conflict")); return; }
       }
       zustand.kalender.bearbeiteId = null;
       planeSpeichern();
@@ -15795,12 +15817,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           : uebersetzt("Delete appointment “%(title)s”?", { title: termin.titel }),
         _("Delete")).then((ja) => {
           if (!ja) return;
-          merkeGeloescht("termine", termin);
-          inDenPapierkorb("termin", termin,
-            fmtPunkt(termin.datum) +
-            (termin.zeit ? " " + zeitText(termin.datum, termin.zeit) : "") +
-            " – " + termin.titel);
-          DATEN.termine = DATEN.termine.filter((x) => x.id !== termin.id);
+          if (!loescheTerminDaten(termin)) { zettel(_("Conflict")); return; }
           planeSpeichern();
           schliessen();
           zeichneAlles();
@@ -18515,14 +18532,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         { name: kontaktName(k) }) + "\n\n" + _("Are you really sure?")).then((ja) => {
         if (!ja) return;
         mitMutationsSnapshot("pre-contact-delete", () => {
-          merkeGeloescht("kontakte", k);
-          inDenPapierkorb("kontakt", k, kontaktName(k));
-          DATEN.kontakte = DATEN.kontakte.filter((x) => x.id !== k.id);
-          DATEN.jahrestage = DATEN.jahrestage.filter((j) => j.kontaktId !== k.id);
-          for (const t of DATEN.termine) if (t.kontaktId === k.id) t.kontaktId = "";
-          for (const a of DATEN.aufgaben) if (a.kontaktId === k.id) a.kontaktId = "";
-          zustand.adressen.auswahlId = null;
-          zustand.adressen.modus = "ansehen";
+          if (!loescheKontaktDaten(k)) { zettel(_("Conflict")); return; }
           const naechster = gefilterteKontakte()[0];
           fokussiereNachZeichnen(naechster
             ? "kontakt:" + naechster.id : "kontakt-register:" + zustand.adressen.buchstabe);
@@ -18532,6 +18542,56 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }));
     karte.append(knoepfe);
     return karte;
+  }
+
+  function wendeKontaktDatenAn(ziel, werte, details) {
+    const vorher = ziel ? personalSyncKanonisch(kontaktBaumInhalt(ziel, 2, false).kontakt) : "";
+    if (!ziel) {
+      ziel = Object.assign({ id: details.id || uid(), uid: syncUid(), sync: false }, werte);
+      if (werte.foto) merkeKontaktFoto(ziel, werte.foto, "local");
+      DATEN.kontakte.push(ziel);
+    } else {
+      if (werte.foto !== ziel.foto) waehleKontaktFoto(ziel, werte.foto, werte.foto ? "local" : "");
+      Object.assign(ziel, werte);
+    }
+    setzeTelefonListe(ziel, details.telefone);
+    setzeAnschriftListe(ziel, details.anschriften);
+    setzeKontaktpersonen(ziel, details.kontaktpersonen);
+    setzeSozialeMedien(ziel, details.sozialeMedien);
+    if (details.gruppen !== undefined) {
+      setzeKontaktGruppen(ziel, details.gruppen);
+      if (details.gruppen.length) DATEN.einstellungen.adressen.personengruppenAn = true;
+    }
+    const name = [ziel.vorname, ziel.nachname].filter(Boolean).join(" ") || ziel.firma;
+    if (details.ereignisse !== undefined) {
+      const behalten = new Set();
+      for (const ereignis of details.ereignisse) {
+        if (!gueltigesJahresdatum(ereignis.datum)) continue;
+        let jt = ereignis.id ? DATEN.jahrestage.find(item => item.id === ereignis.id && item.kontaktId === ziel.id) : null;
+        const value = { kontaktId: ziel.id, datum: ereignis.datum, jahrUnbekannt: gueltigesTeildatum(ereignis.datum),
+          name, typ: ereignis.typ || _("Other") };
+        if (jt) Object.assign(jt, value);
+        else { jt = Object.assign({ id: uid(), uid: "" }, value); DATEN.jahrestage.push(jt); }
+        behalten.add(jt.id);
+      }
+      DATEN.jahrestage = DATEN.jahrestage.filter(item => item.kontaktId !== ziel.id || behalten.has(item.id));
+      const birthday = DATEN.jahrestage.find(item => item.kontaktId === ziel.id && istGeburtstagTyp(item.typ));
+      ziel.geburtstag = birthday?.datum || "";
+      ziel.geburtstagJahrUnbekannt = !!birthday && gueltigesTeildatum(birthday.datum);
+    } else for (const item of DATEN.jahrestage) if (item.kontaktId === ziel.id) item.name = name;
+    return { kontakt: ziel, inhaltVorher: vorher };
+  }
+
+  function loescheKontaktDaten(kontakt) {
+    if (!DATEN.kontakte.includes(kontakt)) return null;
+    merkeGeloescht("kontakte", kontakt);
+    const trash = inDenPapierkorb("kontakt", kontakt, kontaktName(kontakt));
+    DATEN.kontakte = DATEN.kontakte.filter(item => item.id !== kontakt.id);
+    DATEN.jahrestage = DATEN.jahrestage.filter(item => item.kontaktId !== kontakt.id);
+    for (const item of DATEN.termine) if (item.kontaktId === kontakt.id) item.kontaktId = "";
+    for (const item of DATEN.aufgaben) if (item.kontaktId === kontakt.id) item.kontaktId = "";
+    zustand.adressen.auswahlId = null; zustand.adressen.modus = "ansehen";
+    return { id: kontakt.id, trash_id: trash?.id || null };
   }
 
   function kontaktpersonErweitert(person, aenderung, fotoStart, fotoEnde, nurLesen = false) {
@@ -19407,7 +19467,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (gruppenGeaendert && ziel && kanonischerEntwurf(kontaktGruppen(ziel)) !== kanonischerEntwurf(gruppenVorher)) {
         zettel(_("Conflict")); return false;
       }
-      const inhaltVorher = ziel ? personalSyncKanonisch(kontaktBaumInhalt(ziel, 2, false).kontakt) : "";
       const felder = Object.keys(werte).filter(key => key !== "geaendert").concat(
         ["telefone", "telefon", "mobil", "anschriften", "strasse", "plz", "ort", "land",
           "kontaktpersonen", "sozialeMedien", "geburtstag", "jubilaeum"]);
@@ -19415,47 +19474,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           kanonischerEntwurf(ziel[key]) !== kanonischerEntwurf(k[key])))) {
         zettel(_("Conflict")); return false;
       }
-      if (!ziel) {
-        ziel = Object.assign({ id: zielId, uid: syncUid(), sync: false }, werte);
-        if (fotoWert) merkeKontaktFoto(ziel, fotoWert, "local");
-        DATEN.kontakte.push(ziel);
-      } else {
-        if (fotoWert !== ziel.foto) waehleKontaktFoto(ziel, fotoWert, fotoWert ? "local" : "");
-        Object.assign(ziel, werte);
-      }
-      setzeTelefonListe(ziel, telefone);
-      setzeAnschriftListe(ziel, anschriften);
-      setzeKontaktpersonen(ziel, kontaktpersonen);
-      setzeSozialeMedien(ziel, sozialeMedien);
-      if (gruppenGeaendert) {
-        setzeKontaktGruppen(ziel, personengruppen);
-        // Choosing a group is the explicit opt-in to showing/searching it;
-        // the empty/default configuration itself is left unchanged.
-        if (personengruppen.length) DATEN.einstellungen.adressen.personengruppenAn = true;
-      }
-      const ereignisName = [ziel.vorname, ziel.nachname].filter(Boolean).join(" ") || ziel.firma;
-      const behalten = new Set();
-      for (const ereignis of ereignisse) {
-        if (!gueltigesJahresdatum(ereignis.datum)) continue;
-        let jt = ereignis.id
-          ? DATEN.jahrestage.find((j) => j.id === ereignis.id && j.kontaktId === ziel.id)
-          : null;
-        const jtWerte = { kontaktId: ziel.id, datum: ereignis.datum,
-          jahrUnbekannt: gueltigesTeildatum(ereignis.datum),
-          name: ereignisName, typ: ereignis.typ || _("Other") };
-        if (jt) Object.assign(jt, jtWerte);
-        else {
-          jt = Object.assign({ id: uid(), uid: "" }, jtWerte);
-          DATEN.jahrestage.push(jt);
-        }
-        behalten.add(jt.id);
-      }
-      DATEN.jahrestage = DATEN.jahrestage.filter(
-        (j) => j.kontaktId !== ziel.id || behalten.has(j.id));
-      const geburtstag = DATEN.jahrestage.find(
-        (j) => j.kontaktId === ziel.id && istGeburtstagTyp(j.typ));
-      ziel.geburtstag = geburtstag ? geburtstag.datum : "";
-      ziel.geburtstagJahrUnbekannt = !!(geburtstag && gueltigesTeildatum(geburtstag.datum));
+      const geschrieben = wendeKontaktDatenAn(ziel, werte, { id: zielId, telefone, anschriften, kontaktpersonen,
+        sozialeMedien, ...(gruppenGeaendert ? { gruppen: personengruppen } : {}), ereignisse });
+      ziel = geschrieben.kontakt;
       for (const termin of kontaktTermine.filter((eintrag) => eintrag.titel.trim())) {
         DATEN.termine.push({ id: uid(), uid: syncUid(), sync: false,
           datum: termin.datum, endDatum: "", zeit: termin.zeit,
@@ -19473,7 +19494,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       gespeichertesZiel = ziel;
       aktualisiereKontaktpersonen(DATEN);
-      if (inhaltVorher !== personalSyncKanonisch(kontaktBaumInhalt(ziel, 2, false).kontakt))
+      if (geschrieben.inhaltVorher !== personalSyncKanonisch(kontaktBaumInhalt(ziel, 2, false).kontakt))
         merkeKontaktInhaltszeit(ziel, Date.now()).catch(() => {});
       z.auswahlId = ziel.id;
       z.buchstabe = buchstabeVon(ziel);
@@ -32818,6 +32839,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   const mcpSitzungen = new Map();
   function mcpEditorPruefen() {
     if (editorIstGeaendert()) throw new MagnolieMcp.ToolError("editor_busy", "Save or discard the current editor draft before an external write");
+    if (modalStapel.some(entry => entry.schleier.isConnected))
+      throw new MagnolieMcp.ToolError("dialog_busy", "Close the current Organizer dialog before an external data write");
   }
   let mcpSchreibKette = Promise.resolve();
   function mcpSchreiben(signal, mutation) {
@@ -33051,6 +33074,269 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     ];
   }
   const mcpNotesQuellen = new WeakMap();
+  function mcpTerminWerte(args, base, creating = false) {
+    const normalized = normalisiereTermine([base], false)[0];
+    if (!normalized) throw new MagnolieMcp.ToolError("invalid_date", "Appointment start date is invalid");
+    const values = {};
+    for (const field of ["datum", "endDatum", "titel", "ort", "zeit", "endZeit", "notiz", "kategorien", "vertraulich",
+      "vorlaeufig", "kostenstelle", "kunde", "individuelleErinnerungTage", "standardErinnerung", "alarme",
+      "kalenderQuelle", "syncKalenderUid", "organisator", "teilnehmer", "kalenderAnhaenge", "wiederholung", "aufgaben", "kontaktId"])
+      values[field] = kopie(base[field] === undefined ? normalized[field] : base[field]);
+    for (const [field, target] of Object.entries({ title: "titel", start_date: "datum", end_date: "endDatum",
+      start_time: "zeit", end_time: "endZeit", location: "ort", note: "notiz", categories: "kategorien",
+      confidential: "vertraulich", tentative: "vorlaeufig", cost_center: "kostenstelle", client: "kunde",
+      reminder_days: "individuelleErinnerungTage", standard_reminder: "standardErinnerung" }))
+      if (Object.prototype.hasOwnProperty.call(args, field)) values[target] = ["title", "location", "categories", "cost_center", "client"].includes(field) ? args[field].trim() : args[field];
+    if (!gueltigesISO(values.datum) || values.endDatum && !gueltigesISO(values.endDatum))
+      throw new MagnolieMcp.ToolError("invalid_date", "Appointment dates must be valid calendar dates");
+    if (values.endDatum && values.endDatum < values.datum)
+      throw new MagnolieMcp.ToolError("invalid_time_range", "Appointment end date precedes its start");
+    if (values.endDatum === values.datum) values.endDatum = "";
+    if (creating || ["start_date", "end_date", "start_time", "end_time", "all_day"].some(field => Object.prototype.hasOwnProperty.call(args, field))) {
+      const allDay = args.all_day === undefined ? !values.zeit && !values.endZeit : args.all_day;
+      if (allDay) {
+        if (args.start_time || args.end_time) throw new MagnolieMcp.ToolError("invalid_time_range", "All-day appointments cannot specify clock times");
+        values.zeit = values.endZeit = "";
+      } else if (!values.zeit || !values.endZeit || !values.endDatum && values.endZeit <= values.zeit)
+        throw new MagnolieMcp.ToolError("invalid_time_range", "Timed appointments require a valid start and later end");
+    }
+    if (args.calendar_uid !== undefined) {
+      const selected = args.calendar_uid ? terminKalenderQuellen(saubereKalenderQuelle(base.kalenderQuelle)).find(item => item.id === args.calendar_uid) : null;
+      if (args.calendar_uid && !selected) throw new MagnolieMcp.ToolError("not_found", "Calendar source is not available");
+      values.kalenderQuelle = saubereKalenderQuelle(selected);
+      values.syncKalenderUid = args.calendar_uid;
+    }
+    if (args.contact_id !== undefined) {
+      if (args.contact_id && !DATEN.kontakte.some(contact => contact.id === args.contact_id))
+        throw new MagnolieMcp.ToolError("not_found", "Linked contact not found");
+      values.kontaktId = args.contact_id;
+    }
+    if (args.task_ids !== undefined) {
+      const known = new Set(DATEN.aufgaben.map(task => task.id));
+      if (args.task_ids.some(id => !known.has(id))) throw new MagnolieMcp.ToolError("not_found", "Linked task not found");
+      values.aufgaben = [...new Set(args.task_ids)];
+    }
+    if (args.recurrence !== undefined) {
+      const repeat = args.recurrence;
+      if (repeat.until && (!gueltigesISO(repeat.until) || repeat.until < values.datum) ||
+          repeat.frequency === "custom" && (!repeat.dates?.length || repeat.dates.some(date => !gueltigesISO(date) || date <= values.datum)) ||
+          (repeat.ordinal !== undefined || repeat.weekday !== undefined) &&
+            (repeat.frequency !== "monthly" || repeat.ordinal === undefined || repeat.weekday === undefined))
+        throw new MagnolieMcp.ToolError("invalid_recurrence", "Appointment recurrence dates or weekday selection are inconsistent");
+      values.wiederholung = leseWiederholung({ art: repeat.frequency, bis: repeat.until || "", intervall: repeat.interval,
+        ordinal: repeat.ordinal, wochentag: repeat.weekday, daten: repeat.dates, rruleForm: repeat.rrule_form });
+    }
+    if (args.organizer !== undefined) {
+      const person = sauberePerson(args.organizer, 0);
+      values.organisator = { uri: person.uri, name: person.name, email: person.email };
+    }
+    if (args.attendees !== undefined) values.teilnehmer = saubereTeilnehmer(args.attendees.map(person => ({ ...person, rolle: person.role })));
+    if (args.attachments !== undefined) {
+      if (args.attachments.some(item => !saubereTerminUri(item.uri))) throw new MagnolieMcp.ToolError("invalid_attachment", "Calendar attachment URI is invalid");
+      values.kalenderAnhaenge = saubereKalenderAnhaenge(args.attachments.map(item => ({ ...item, mimeType: item.mime_type, groesse: item.size })));
+    }
+    if (args.alarms !== undefined) {
+      const readonly = (values.alarme || []).filter(alarm => alarm.bearbeitbar === false);
+      const editable = saubereAlarme(args.alarms.map(alarm => ({ id: alarm.id, offsetMinuten: alarm.offset_minutes,
+        related: alarm.related, aktiviert: alarm.enabled !== false, quelle: "magnolie", aktion: "display", bearbeitbar: true })));
+      if (readonly.length + editable.length > TERMIN_MAX_ALARME) throw new MagnolieMcp.ToolError("alarm_limit", "Read-only imported alarms leave insufficient room for the requested alarms");
+      values.alarme = [...readonly, ...editable];
+    }
+    values.geaendert = Date.now();
+    return values;
+  }
+  function mcpTerminWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const date = { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" }, optionalDate = { type: "string", pattern: "^$|^\\d{4}-\\d{2}-\\d{2}$" };
+    const time = { type: "string", pattern: "^$|^(?:[01]\\d|2[0-3]):[0-5]\\d$" };
+    const person = { type: "object", properties: { id, name: { type: "string", maxLength: 300 },
+      email: { type: "string", maxLength: 320 }, uri: { type: "string", maxLength: 2048, pattern: "^[^\\r\\n]*$" } }, additionalProperties: false };
+    const properties = { title: { type: "string", minLength: 1, maxLength: 1024, pattern: "\\S" }, start_date: date,
+      end_date: optionalDate, start_time: time, end_time: time, all_day: { type: "boolean" },
+      location: { type: "string", maxLength: 1000 }, note: { type: "string", maxLength: 500000 },
+      categories: { type: "string", maxLength: 4000 }, confidential: { type: "boolean" }, tentative: { type: "boolean" },
+      cost_center: { type: "string", maxLength: 1000 }, client: { type: "string", maxLength: 1000 },
+      reminder_days: { type: "integer", minimum: 0, maximum: 7 }, standard_reminder: { type: "boolean" },
+      calendar_uid: { type: "string", maxLength: 200 }, contact_id: { type: "string", maxLength: 256 },
+      task_ids: { type: "array", items: id, maxItems: 10000 }, organizer: person,
+      recurrence: { type: "object", properties: { frequency: { type: "string", enum: ["none", "daily", "weekly", "monthly", "yearly", "custom"] },
+        interval: { type: "integer", minimum: 1, maximum: 3660 }, until: optionalDate,
+        ordinal: { type: "integer", enum: [-1, 1, 2, 3, 4] }, weekday: { type: "string", enum: ["MO", "TU", "WE", "TH", "FR", "SA", "SU"] },
+        dates: { type: "array", items: date, maxItems: 1000 }, rrule_form: { type: "string", enum: ["byday", "bysetpos"] } },
+        required: ["frequency"], additionalProperties: false },
+      attendees: { type: "array", maxItems: TERMIN_MAX_TEILNEHMER, items: { ...person, properties: { ...person.properties,
+        role: { type: "string", enum: ["CHAIR", "REQ-PARTICIPANT", "OPT-PARTICIPANT", "NON-PARTICIPANT"] },
+        status: { type: "string", enum: ["NEEDS-ACTION", "ACCEPTED", "DECLINED", "TENTATIVE", "DELEGATED", "COMPLETED", "IN-PROCESS"] }, rsvp: { type: "boolean" } } } },
+      attachments: { type: "array", maxItems: TERMIN_MAX_ANHAENGE, items: { type: "object", properties: { id,
+        uri: { type: "string", minLength: 1, maxLength: 2048, pattern: "^[^\\r\\n]+$" }, name: { type: "string", maxLength: 300 },
+        mime_type: { type: "string", maxLength: 200 }, size: { type: "integer", minimum: 0, maximum: 1000000000000 } }, required: ["uri"], additionalProperties: false } },
+      alarms: { type: "array", maxItems: TERMIN_MAX_ALARME, items: { type: "object", properties: { id,
+        offset_minutes: { type: "integer", minimum: 0, maximum: 525600 }, related: { type: "string", enum: ["START", "END"] },
+        enabled: { type: "boolean" } }, required: ["offset_minutes"], additionalProperties: false } } };
+    return [
+      { name: "organizer_appointment_read", description: "Read an appointment, its provider/read-only metadata and revision token.",
+        inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ id }) => {
+          const current = DATEN.termine.find(item => item.id === id);
+          if (!current) throw new MagnolieMcp.ToolError("not_found", "Appointment not found");
+          const appointment = kopie(current);
+          return { appointment, revision: await personalSyncHash(JSON.stringify(appointment)) };
+        } },
+      { name: "organizer_appointment_create", description: "Create an appointment through the native editor data path. Omitted clock times create an all-day entry; recurrence, alarms, participants and attachment metadata use the product normalizers.",
+        inputSchema: { type: "object", properties: { ...properties, id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" } },
+          required: ["title", "start_date"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+        call: async (args, signal) => mcpSchreiben(signal, () => {
+          if (args.id && DATEN.termine.some(item => item.id === args.id)) throw new MagnolieMcp.ToolError("already_exists", "Appointment ID already exists");
+          const values = mcpTerminWerte(args, { datum: args.start_date }, true);
+          const appointment = neuerTerminDaten(values);
+          if (args.id) appointment.id = args.id;
+          DATEN.termine.push(appointment);
+          return { id: appointment.id, uid: appointment.uid };
+        }) },
+      { name: "organizer_appointment_update", description: "Revision-checked appointment editor fields with provider move tombstones, ICS mirroring and read-only protection. Imported fields not edited here remain attached to the record.",
+        inputSchema: { type: "object", properties: { ...properties, id, expected_revision: revision }, required: ["id", "expected_revision"],
+          anyOf: Object.keys(properties).map(field => ({ required: [field] })), additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+        call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const appointment = await mcpPruefeEintrag("termine", args.id, args.expected_revision, signal);
+          if (appointment.icsReadOnly) throw new MagnolieMcp.ToolError("read_only", "Appointment provider is read-only");
+          if (!wendeTerminWerteAn(appointment, mcpTerminWerte(args, appointment))) throw new MagnolieMcp.ToolError("conflict", "Appointment changed before editing");
+          return { id: appointment.id };
+        }) },
+      { name: "organizer_appointment_delete", description: "Revision-checked deletion of an appointment or complete series through the product trash/provider tombstone path. Read-only records cannot be deleted.",
+        inputSchema: { type: "object", properties: { id, expected_revision: revision }, required: ["id", "expected_revision"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+        call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const appointment = await mcpPruefeEintrag("termine", args.id, args.expected_revision, signal);
+          if (appointment.icsReadOnly) throw new MagnolieMcp.ToolError("read_only", "Appointment provider is read-only");
+          const result = loescheTerminDaten(appointment);
+          if (!result) throw new MagnolieMcp.ToolError("conflict", "Appointment changed before deletion");
+          return result;
+        }) }
+    ];
+  }
+  function mcpMutationsSnapshot(reason, signal) {
+    return new Promise((resolve, reject) => {
+      let token, timer, finished = false;
+      const finish = error => {
+        if (finished) return;
+        finished = true; clearTimeout(timer);
+        if (token) mutationsAktionen.delete(token);
+        signal.removeEventListener("abort", abort);
+        error ? reject(error) : resolve();
+      };
+      const abort = () => finish(new MagnolieMcp.ToolError("cancelled", "Recovery snapshot request cancelled"));
+      signal.addEventListener("abort", abort, { once: true });
+      timer = setTimeout(() => finish(new MagnolieMcp.ToolError("snapshot_timeout", "Required native recovery snapshot timed out")), 25000);
+      if (signal.aborted) { abort(); return; }
+      token = mitMutationsSnapshot(reason, () => finish(),
+        () => finish(new MagnolieMcp.ToolError("snapshot_failed", "Required native recovery snapshot failed")));
+      if (finished && token) mutationsAktionen.delete(token);
+    });
+  }
+  function mcpKontaktWerte(args, base = {}) {
+    const values = { vorname: S(base.vorname), nachname: S(base.nachname), firma: S(base.firma), notiz: S(base.notiz),
+      foto: sauberesFoto(base.foto), fotoManuell: base.fotoManuell === true, kontaktpersonName: "", kontaktpersonTelefon: "", kontaktpersonStatus: "",
+      geaendert: Date.now() };
+    for (const [field, target] of Object.entries({ first_name: "vorname", last_name: "nachname", company: "firma", note: "notiz" }))
+      if (Object.prototype.hasOwnProperty.call(args, field)) values[target] = field === "note" ? args[field] : args[field].trim();
+    if (!values.vorname && !values.nachname && !values.firma) throw new MagnolieMcp.ToolError("invalid_name", "Contact requires a name or company");
+    if (args.photo !== undefined) {
+      if (args.photo && !sauberesFoto(args.photo)) throw new MagnolieMcp.ToolError("invalid_photo", "Contact photo must use a supported base64 image data URI");
+      values.foto = sauberesFoto(args.photo); values.fotoManuell = true;
+    }
+    const listed = item => ({ wert: item.value, typen: item.types || [], label: item.label || "", rolle: item.role || "" });
+    if (args.emails?.some(item => !emailAdresse(item.value))) throw new MagnolieMcp.ToolError("invalid_email", "Contact email address is invalid");
+    values.emailEintraege = args.emails === undefined ? emailEintragListe(base) : emailEintragListe({ emailEintraege: args.emails.map(listed) });
+    values.emails = values.emailEintraege.map(item => item.wert); values.email = values.emails[0] || "";
+    const details = { telefone: args.phones === undefined ? telefonListe(base) : telefonListe({ telefone: args.phones.map(listed) }),
+      anschriften: args.addresses === undefined ? anschriftListe(base) : anschriftListe({ anschriften: args.addresses.map(item => ({
+        postfach: item.po_box, zusatz: item.extra, strasse: item.street, plz: item.postal_code, ort: item.city,
+        region: item.region, land: item.country, typen: item.types || [], label: item.label || "" })) }),
+      kontaktpersonen: args.emergency_contacts === undefined ? kontaktpersonenListe(base) : kontaktpersonenListe({ kontaktpersonen: args.emergency_contacts.map(item => ({
+        kontaktId: item.contact_id, name: item.name, telefon: item.phone, status: item.relationship })) }),
+      sozialeMedien: args.social === undefined ? sozialeMedienListe(base) : sozialeMedienListe({ sozialeMedien: args.social.map(item => ({
+        dienst: item.service, wert: item.value, symbol: item.symbol, aktionArt: item.action_type, aktionZiel: item.action_target })) }) };
+    if (args.emergency_contacts?.some(item => item.contact_id && (item.contact_id === base.id || !DATEN.kontakte.some(contact => contact.id === item.contact_id))))
+      throw new MagnolieMcp.ToolError("invalid_reference", "Linked emergency contact must be a different existing contact");
+    if (args.social?.some(item => item.action_type === "website" && !/^https:\/\//i.test(item.action_target || "")))
+      throw new MagnolieMcp.ToolError("invalid_social_action", "Custom website actions must use HTTPS");
+    if (args.groups !== undefined) details.gruppen = [...new Set(args.groups.map(value => value.trim()).filter(Boolean))];
+    if (args.anniversaries !== undefined || args.birth_date !== undefined) {
+      details.ereignisse = args.anniversaries === undefined ? DATEN.jahrestage.filter(item => item.kontaktId === base.id).map(kopie) :
+        args.anniversaries.map(item => ({ id: item.id || "", typ: item.type, datum: item.date }));
+      if (details.ereignisse.some(item => !gueltigesJahresdatum(item.datum))) throw new MagnolieMcp.ToolError("invalid_date", "Contact anniversary date is invalid");
+      if (args.birth_date !== undefined) {
+        if (args.birth_date && !gueltigesJahresdatum(args.birth_date)) throw new MagnolieMcp.ToolError("invalid_date", "Contact birth date is invalid");
+        const previous = DATEN.jahrestage.find(item => item.kontaktId === base.id && istGeburtstagTyp(item.typ));
+        details.ereignisse = details.ereignisse.filter(item => !istGeburtstagTyp(item.typ));
+        if (args.birth_date) details.ereignisse.push({ id: previous?.id || "", typ: "birthday", datum: args.birth_date });
+      }
+    }
+    return { values, details };
+  }
+  function mcpKontaktWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const text = maxLength => ({ type: "string", maxLength });
+    const types = { type: "array", items: text(80), maxItems: 32 };
+    const listed = { type: "object", properties: { value: { ...text(1000), minLength: 1 }, types, label: text(80), role: { type: "string", enum: ["private", ""] } }, required: ["value"], additionalProperties: false };
+    const date = { type: "string", pattern: "^(?:\\d{4}-|--)\\d{2}-\\d{2}$" };
+    const properties = { first_name: text(1000), last_name: text(1000), company: text(1000), note: text(500000),
+      photo: text(750000), phones: { type: "array", items: listed, maxItems: 1000 }, emails: { type: "array", items: listed, maxItems: 1000 },
+      addresses: { type: "array", maxItems: 1000, items: { type: "object", properties: { po_box: text(1000), extra: text(1000), street: text(1000),
+        postal_code: text(100), city: text(500), region: text(500), country: text(500), label: text(80), types }, additionalProperties: false } },
+      emergency_contacts: { type: "array", maxItems: 100, items: { type: "object", properties: { contact_id: id, name: text(1000), phone: text(1000), relationship: text(80) }, additionalProperties: false } },
+      social: { type: "array", maxItems: 100, items: { type: "object", properties: { service: { type: "string", enum: SOZIALE_DIENSTE.map(item => item[0]) },
+        value: { ...text(500), minLength: 1 }, symbol: { type: "string", enum: SOZIALE_EIGENE_SYMBOLE.map(item => item[0]) },
+        action_type: { type: "string", enum: ["website"] }, action_target: text(500) }, required: ["service", "value"], additionalProperties: false } },
+      groups: { type: "array", items: text(200), maxItems: 1000 }, birth_date: { type: "string", pattern: "^$|^(?:\\d{4}-|--)\\d{2}-\\d{2}$" },
+      anniversaries: { type: "array", maxItems: 1000, items: { type: "object", properties: { id, type: { ...text(200), minLength: 1 }, date }, required: ["type", "date"], additionalProperties: false } } };
+    return [
+      { name: "organizer_contact_read", description: "Read a contact and its revision token. Optional fields select existing product-model keys, allowing large photos to be omitted without changing the revision.",
+        inputSchema: { type: "object", properties: { id, fields: { type: "array", items: { type: "string", minLength: 1, maxLength: 128 }, minItems: 1, maxItems: 128 } }, required: ["id"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ id, fields }) => {
+          const current = DATEN.kontakte.find(item => item.id === id);
+          if (!current) throw new MagnolieMcp.ToolError("not_found", "Contact not found");
+          if (fields?.some(field => ["__proto__", "constructor", "prototype"].includes(field))) throw new MagnolieMcp.ToolError("invalid_field", "Invalid contact field projection");
+          const full = kopie(current);
+          const contact = fields ? Object.fromEntries(fields.filter(field => Object.prototype.hasOwnProperty.call(full, field)).map(field => [field, full[field]])) : full;
+          return { contact, revision: await personalSyncHash(JSON.stringify(full)) };
+        } },
+      { name: "organizer_contact_create", description: "Create a local contact through the editor's native phone/address/email/photo/group/anniversary handlers and durable save path.",
+        inputSchema: { type: "object", properties: { ...properties, id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" } },
+          anyOf: [{ required: ["first_name"] }, { required: ["last_name"] }, { required: ["company"] }], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          if (args.id && DATEN.kontakte.some(item => item.id === args.id)) throw new MagnolieMcp.ToolError("already_exists", "Contact ID already exists");
+          const { values, details } = mcpKontaktWerte(args);
+          const written = wendeKontaktDatenAn(null, values, { ...details, id: args.id });
+          aktualisiereKontaktpersonen(DATEN);
+          await merkeKontaktInhaltszeit(written.kontakt, values.geaendert);
+          return { id: written.kontakt.id, uid: written.kontakt.uid };
+        }) },
+      { name: "organizer_contact_update", description: "Revision-checked contact editor fields, preserving unrelated vCard/provider/photo metadata and updating linked anniversaries through the product handlers.",
+        inputSchema: { type: "object", properties: { ...properties, id, expected_revision: revision }, required: ["id", "expected_revision"],
+          anyOf: Object.keys(properties).map(field => ({ required: [field] })), additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const contact = await mcpPruefeEintrag("kontakte", args.id, args.expected_revision, signal);
+          const { values, details } = mcpKontaktWerte(args, contact);
+          const written = wendeKontaktDatenAn(contact, values, details);
+          aktualisiereKontaktpersonen(DATEN);
+          if (written.inhaltVorher !== personalSyncKanonisch(kontaktBaumInhalt(contact, 2, false).kontakt)) await merkeKontaktInhaltszeit(contact, values.geaendert);
+          return { id: contact.id };
+        }) },
+      { name: "organizer_contact_delete", description: "Revision-checked contact deletion after the required native pre-contact-delete recovery snapshot. Uses provider/tree tombstones, trash, linked-anniversary removal and task/appointment reference cleanup.",
+        inputSchema: { type: "object", properties: { id, expected_revision: revision }, required: ["id", "expected_revision"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          await mcpPruefeEintrag("kontakte", args.id, args.expected_revision, signal);
+          await mcpMutationsSnapshot("pre-contact-delete", signal);
+          const contact = await mcpPruefeEintrag("kontakte", args.id, args.expected_revision, signal);
+          const result = loescheKontaktDaten(contact);
+          if (!result) throw new MagnolieMcp.ToolError("conflict", "Contact changed before deletion");
+          return { ...result, recovery_snapshot_confirmed: true };
+        }) }
+    ];
+  }
   function mcpNativeAntwort(value) {
     const pending = mcpNativeAnfragen.get(value?.requestId);
     if (pending) pending.receive(value);
@@ -33123,6 +33409,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpKdeWerkzeuge(),
       ...mcpNotizWerkzeuge(),
       ...mcpAufgabenWerkzeuge(),
+      ...mcpTerminWerkzeuge(),
+      ...mcpKontaktWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
@@ -33144,10 +33432,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       { name: "notes_diagnostics_read", description: "Read ephemeral WLAN diagnostics from the confirmed own Notes phone. Developer mode and current device-status grants are required on both sides.",
         inputSchema: { type: "object", properties: {}, additionalProperties: false },
         annotations: { readOnlyHint: true, openWorldHint: true }, call: async (_args, signal) => mcpNotesDiagnose(signal) },
-      { name: "organizer_status", description: "Read the live Organizer version, lock state and save state.",
+      { name: "organizer_status", description: "Read the live Organizer version, lock state, editor/dialog state and save state.",
         inputSchema: { type: "object", properties: {}, additionalProperties: false },
         annotations: { readOnlyHint: true, openWorldHint: false },
         call: async () => ({ version: FASSUNG, ready: initialisiert && antwortErhalten, locked: gesperrt,
+          editorDirty: !gesperrt && editorIstGeaendert(), dialogOpen: !gesperrt && modalStapel.some(entry => entry.schleier.isConnected),
           pendingSave: !!(speicherTimer || laufenderSpeicher || wartenderSpeicherText !== null) }) },
       { name: "organizer_data_read", description: "Read a section of the live Organizer data. Array results are paginated; IDs remain the product IDs.",
         inputSchema: { type: "object", properties: { section: { type: "string", enum: mcpBereiche },

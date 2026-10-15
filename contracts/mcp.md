@@ -43,7 +43,10 @@ Note creation accepts an optional caller-generated UUID: an existing ID returns
 deletions require the opaque `revision` from the corresponding read tool as
 `expected_revision`. Concurrent changes produce `conflict` instead of overwriting
 the newer entry. An active unsaved editor draft produces `editor_busy`; reads
-remain available. Pristine editors are refreshed when a mutation is applied.
+remain available. Pristine inline editors are refreshed when a mutation is applied.
+An already open Organizer dialog yields `dialog_busy` for external book-data
+writes, respecting the same modal transaction boundary as the graphical book.
+Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 
 ## Implemented tools
 
@@ -61,6 +64,14 @@ remain available. Pristine editors are refreshed when a mutation is applied.
 | `organizer_task_update` | Revision-checked editor fields, retaining recurrence/provider metadata |
 | `organizer_task_delete` | Product trash/tombstones; children are promoted to the deleted task's parent |
 | `organizer_task_set_completed` | Complete or reopen a task; recurring masters produce one detached completed occurrence |
+| `organizer_appointment_read` | Appointment, provider/read-only metadata and revision token |
+| `organizer_appointment_create` | Local/timed/all-day appointment, repeat configuration, alarms, participants and attachment metadata |
+| `organizer_appointment_update` | Revision-checked editor fields and provider moves through the existing ICS mirror |
+| `organizer_appointment_delete` | Appointment/series trash and provider tombstones; read-only records remain protected |
+| `organizer_contact_read` | Contact and revision; optional product-field projection for large photos |
+| `organizer_contact_create` | Local contact, typed phone/email/address lists, groups, photo and linked anniversaries |
+| `organizer_contact_update` | Revision-checked editor fields while retaining unrelated vCard/provider metadata |
+| `organizer_contact_delete` | Native pre-delete recovery snapshot, renewed revision check, tombstones/trash and linked-reference cleanup |
 | `organizer_trash_restore` | Existing type-specific product restore handler |
 | `notes_diagnostics_read` | Ephemeral WLAN diagnostics through the confirmed own Notes connection |
 | `kde_media_devices` | Current supported media devices |
@@ -78,6 +89,10 @@ pairing, source-token, application-registration, availability and lock checks.
 Notes diagnostics additionally require desktop developer mode, Notes WLAN
 debugging, an own-phone Wi-Fi session and current device-status permissions.
 Diagnostic reports are returned through the call and are not added to book data.
+
+Contact deletion waits for the existing native recovery-policy checkpoint.
+The policy can reuse an intact checkpoint within the selected grouping interval;
+MCP does not change the configured interval or force an extra checkpoint per edit.
 
 For recurring task completion, `as_of` selects the next occurrence on or after
 that local calendar date; it defaults to the book's current date. The existing

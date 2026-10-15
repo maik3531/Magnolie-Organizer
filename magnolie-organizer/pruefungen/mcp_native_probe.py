@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import traceback
 
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,9 +35,16 @@ data_file.write_text(json.dumps({"version": 6, "notizen": [{"id": "owned-native-
     "uid": "owned-native-series-uid", "titel": "Owned series fixture", "startDatum": "2026-01-01",
     "faellig": "2026-01-01", "startZeit": "08:00", "faelligZeit": "09:00", "icsRoundtrip": [
       "BEGIN:VTODO", "UID:owned-native-series-uid", "DTSTART:20260101T080000Z", "DUE:20260101T090000Z",
-      "RRULE:FREQ=DAILY", "END:VTODO"]}], "einstellungen": {
+    "RRULE:FREQ=DAILY", "END:VTODO"]}], "termine": [
+    {"id": "owned-readonly-event", "uid": "owned-readonly-event-uid", "datum": "2026-11-15", "titel": "Owned read-only event", "icsReadOnly": True},
+    {"id": "owned-provider-event", "uid": "owned-provider-event-uid", "datum": "2026-11-16", "titel": "Owned provider event",
+     "sync": True, "syncKalenderUid": "owned-source", "kalenderQuelle": {"id": "owned-source", "name": "Owned source"},
+     "syncQuellen": {"owned-source": {"marker": "owned-native"}}, "providerMetadaten": {"fixture": {"marker": "owned-native"}},
+     "icsRoundtrip": ["BEGIN:VEVENT", "UID:owned-provider-event-uid", "DTSTART;VALUE=DATE:20261116", "X-OWNED-FIXTURE:preserve", "END:VEVENT"]}
+    ], "einstellungen": {
     "allgemein": {"wiederherstellungsintervall": "manual", "tray": {"aktiv": False}},
-    "update": {"automatisch": False}, "sync": {"beimStart": False}}}))
+    "update": {"automatisch": False}, "sync": {"beimStart": False},
+    "erinnerung": {"an": False, "wecken": False, "jahrestage": {"an": False}}}}))
 loader = importlib.machinery.SourceFileLoader("magnolie_mcp_native_product", str(ROOT / "bin/magnolie-organizer"))
 spec = importlib.util.spec_from_loader(loader.name, loader)
 product = importlib.util.module_from_spec(spec)
@@ -165,6 +173,74 @@ def client():
             "id": instance["id"], "expected_revision": instance_read["structuredContent"]["revision"], "completed": False}})
         assert not reopened["isError"] and reopened["structuredContent"]["persisted"], reopened
         assert next(item for item in json.loads(data_file.read_text())["aufgaben"] if item["id"] == instance["id"])["erledigt"] is False
+        appointment_id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+        appointment_created = call("tools/call", {"name": "organizer_appointment_create", "arguments": {
+            "id": appointment_id, "title": "Native appointment fixture", "start_date": "2026-12-10", "start_time": "09:00", "end_time": "10:00",
+            "location": "Owned fixture room", "recurrence": {"frequency": "weekly", "interval": 2}, "alarms": [{"offset_minutes": 15}]}})
+        assert not appointment_created["isError"] and appointment_created["structuredContent"]["persisted"], appointment_created
+        event = next(item for item in json.loads(data_file.read_text())["termine"] if item["id"] == appointment_id)
+        assert event["zeit"] == "09:00" and event["wiederholung"]["intervall"] == 2
+        appointment = call("tools/call", {"name": "organizer_appointment_read", "arguments": {"id": appointment_id}})
+        appointment_updated = call("tools/call", {"name": "organizer_appointment_update", "arguments": {
+            "id": appointment_id, "expected_revision": appointment["structuredContent"]["revision"], "start_time": "10:00", "end_time": "11:00"}})
+        assert not appointment_updated["isError"] and appointment_updated["structuredContent"]["persisted"], appointment_updated
+        assert next(item for item in json.loads(data_file.read_text())["termine"] if item["id"] == appointment_id)["zeit"] == "10:00"
+        readonly = call("tools/call", {"name": "organizer_appointment_read", "arguments": {"id": "owned-readonly-event"}})
+        readonly_deleted = call("tools/call", {"name": "organizer_appointment_delete", "arguments": {
+            "id": "owned-readonly-event", "expected_revision": readonly["structuredContent"]["revision"]}})
+        assert readonly_deleted["isError"] and readonly_deleted["structuredContent"]["code"] == "read_only", readonly_deleted
+        provider = call("tools/call", {"name": "organizer_appointment_read", "arguments": {"id": "owned-provider-event"}})
+        provider_moved = call("tools/call", {"name": "organizer_appointment_update", "arguments": {
+            "id": "owned-provider-event", "expected_revision": provider["structuredContent"]["revision"], "calendar_uid": ""}})
+        assert not provider_moved["isError"] and provider_moved["structuredContent"]["persisted"], provider_moved
+        durable = json.loads(data_file.read_text())
+        moved = next(item for item in durable["termine"] if item["id"] == "owned-provider-event")
+        assert moved["syncKalenderUid"] == "" and "owned-source" not in moved["syncQuellen"]
+        assert moved["providerMetadaten"]["fixture"]["marker"] == "owned-native" and "X-OWNED-FIXTURE:preserve" in moved["icsRoundtrip"]
+        assert any(item["uid"] == "owned-provider-event-uid" and item["syncKalenderUid"] == "owned-source" for item in durable["geloescht"]["termine"])
+        appointment = call("tools/call", {"name": "organizer_appointment_read", "arguments": {"id": appointment_id}})
+        appointment_deleted = call("tools/call", {"name": "organizer_appointment_delete", "arguments": {
+            "id": appointment_id, "expected_revision": appointment["structuredContent"]["revision"]}})
+        assert not appointment_deleted["isError"] and appointment_deleted["structuredContent"]["persisted"], appointment_deleted
+        appointment_restored = call("tools/call", {"name": "organizer_trash_restore", "arguments": {
+            "id": appointment_deleted["structuredContent"]["trash_id"]}})
+        assert not appointment_restored["isError"] and appointment_restored["structuredContent"]["persisted"], appointment_restored
+        assert any(item["id"] == appointment_id for item in json.loads(data_file.read_text())["termine"])
+        contact_id = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+        contact_created = call("tools/call", {"name": "organizer_contact_create", "arguments": {
+            "id": contact_id, "first_name": "Owned", "last_name": "Native contact", "birth_date": "--02-29",
+            "emails": [{"value": "owned-native@example.test"}], "phones": [{"value": "+12025550123", "types": ["CELL"]}],
+            "addresses": [{"street": "Owned fixture street", "city": "Fixture town", "country": "US"}], "groups": ["Owned fixture group"]}})
+        assert not contact_created["isError"] and contact_created["structuredContent"]["persisted"], contact_created
+        contact = next(item for item in json.loads(data_file.read_text())["kontakte"] if item["id"] == contact_id)
+        assert contact["email"] == "owned-native@example.test" and contact["geburtstag"] == "--02-29"
+        contact_read = call("tools/call", {"name": "organizer_contact_read", "arguments": {"id": contact_id, "fields": ["id", "vorname", "geburtstag"]}})
+        assert contact_read["structuredContent"]["contact"]["geburtstag"] == "--02-29"
+        assert "email" not in contact_read["structuredContent"]["contact"]
+        contact_updated = call("tools/call", {"name": "organizer_contact_update", "arguments": {
+            "id": contact_id, "expected_revision": contact_read["structuredContent"]["revision"], "first_name": "Revised owned"}})
+        assert not contact_updated["isError"] and contact_updated["structuredContent"]["persisted"], contact_updated
+        appointment = call("tools/call", {"name": "organizer_appointment_read", "arguments": {"id": appointment_id}})
+        linked = call("tools/call", {"name": "organizer_appointment_update", "arguments": {
+            "id": appointment_id, "expected_revision": appointment["structuredContent"]["revision"], "contact_id": contact_id}})
+        assert not linked["isError"] and linked["structuredContent"]["persisted"], linked
+        contact_read = call("tools/call", {"name": "organizer_contact_read", "arguments": {"id": contact_id}})
+        contact_deleted = call("tools/call", {"name": "organizer_contact_delete", "arguments": {
+            "id": contact_id, "expected_revision": contact_read["structuredContent"]["revision"]}})
+        assert not contact_deleted["isError"] and contact_deleted["structuredContent"]["persisted"], contact_deleted
+        assert contact_deleted["structuredContent"]["recovery_snapshot_confirmed"] is True
+        durable = json.loads(data_file.read_text())
+        assert not any(item["id"] == contact_id for item in durable["kontakte"])
+        assert not any(item.get("kontaktId") == contact_id for item in durable["jahrestage"])
+        assert next(item for item in durable["termine"] if item["id"] == appointment_id)["kontaktId"] == ""
+        # The existing weekly policy may reuse a verified checkpoint. Confirm
+        # its real payload integrity rather than requiring a newly named file.
+        checkpoints = product.journal_liste()
+        assert any(item["integrity"] == "ok" for item in checkpoints), checkpoints
+        contact_restored = call("tools/call", {"name": "organizer_trash_restore", "arguments": {
+            "id": contact_deleted["structuredContent"]["trash_id"]}})
+        assert not contact_restored["isError"] and contact_restored["structuredContent"]["persisted"], contact_restored
+        assert any(item["id"] == contact_id for item in json.loads(data_file.read_text())["kontakte"])
         stale = call("tools/call", {"name": "organizer_note_update", "arguments": {"id": note_id,
             "expected_revision": revision["structuredContent"]["revision"], "title": "Do not overwrite"}})
         assert stale["isError"] and stale["structuredContent"]["code"] == "conflict", stale
@@ -182,7 +258,7 @@ def client():
         selector.close()
         state["passed"] = True
     except BaseException as error:
-        state["error"] = str(error)
+        state["error"] = traceback.format_exc(limit=6)
     finally:
         if process is not None and process.poll() is None:
             process.terminate()
@@ -235,4 +311,4 @@ finally:
     print("Native MCP fixture state:", json.dumps(state), flush=True)
     temporary.cleanup()
 assert state["passed"], state
-print("Native MCP PASS: real GTK/WebKit/recurrence worker, stdio, durable note/task CRUD, native instance identity, trash restore and cleanup")
+print("Native MCP PASS: GTK/WebKit/worker/stdio, durable note/task/appointment/contact CRUD, real pre-delete recovery snapshot, linked cleanup and restore")

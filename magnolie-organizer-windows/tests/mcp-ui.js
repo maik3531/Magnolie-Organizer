@@ -9,6 +9,18 @@ const watchdog = setTimeout(() => { console.error("MCP UI test timed out"); proc
   for (const web of harness.exports.roots) {
     const b = await harness.exports.boot(web, {
       notizen: [{ id: "fixture-note", titel: "Fixture", text: "Owned fixture only" }],
+      kontakte: [{ id: "fixture-contact", uid: "owned-contact-uid", vorname: "Owned", nachname: "Existing contact", sync: true,
+        syncQuellen: { fixture: { marker: "preserve" } }, vcardRoundtrip: ["BEGIN:VCARD", "VERSION:3.0", "UID:owned-contact-uid", "X-OWNED-FIXTURE:preserve", "END:VCARD"] }],
+      termine: [{ id: "imported-appointment", uid: "owned-event-uid", datum: "2026-11-20", zeit: "08:00", endZeit: "09:00",
+        titel: "Imported appointment fixture", wiederholung: { art: "daily", bis: "" }, sync: true,
+        syncKalenderUid: "owned-old-calendar", kalenderQuelle: { id: "owned-old-calendar", name: "Owned old source" },
+        syncQuellen: { "owned-old-calendar": { marker: "preserve" } }, providerMetadaten: { fixture: { marker: "preserve" } },
+        icsRoundtrip: ["BEGIN:VEVENT", "UID:owned-event-uid", "DTSTART:20261120T080000Z", "DTEND:20261120T090000Z",
+          "RRULE:FREQ=DAILY", "X-OWNED-FIXTURE:preserve", "BEGIN:VALARM", "TRIGGER;VALUE=DATE-TIME:20261119T200000Z",
+          "ACTION:DISPLAY", "DESCRIPTION:Owned fixture", "END:VALARM", "END:VEVENT"] },
+        { id: "readonly-appointment", uid: "owned-readonly-uid", datum: "2026-11-30", titel: "Read-only fixture", icsReadOnly: true },
+        { id: "zero-appointment", uid: "owned-zero-uid", datum: "2026-11-21", zeit: "08:00", endZeit: "", titel: "Zero duration fixture",
+          icsEndeFehlt: true, icsNullDauer: true, icsRoundtrip: ["BEGIN:VEVENT", "UID:owned-zero-uid", "DTSTART:20261121T080000Z", "END:VEVENT"] }],
       aufgaben: [{ id: "imported-task", uid: "imported-fixture-uid", titel: "Imported fixture",
         faellig: "2026-11-01", startDatum: "2026-11-01", startZeit: "08:00", faelligZeit: "09:00",
         icsElternUid: "unresolved-owned-parent", icsElternQuelleId: "owned-source", icsQuelleId: "owned-source",
@@ -60,11 +72,13 @@ const watchdog = setTimeout(() => { console.error("MCP UI test timed out"); proc
         id: noteId, title: "Retry", text: "Must not duplicate" } }));
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
-      let onSave;
+      let onSave, onSnapshot;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
-        if (JSON.parse(text).cmd === "speichern" && onSave) { const resolve = onSave; onSave = null; resolve(); }
+        const message = JSON.parse(text);
+        if (message.cmd === "speichern" && onSave) { const resolve = onSave; onSave = null; resolve(); }
+        if (message.cmd === "mutations_snapshot" && onSnapshot) { const resolve = onSnapshot; onSnapshot = null; resolve(message); }
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -93,6 +107,95 @@ const watchdog = setTimeout(() => { console.error("MCP UI test timed out"); proc
       const restored = await persisted(38, "organizer_trash_restore", { id: removed.trash_id });
       assert.equal(restored.restored_id, noteId);
       assert.equal(b.t.daten().notizen.find(note => note.id === noteId).titel, "Updated fixture");
+      const appointmentId = "99999999-9999-4999-8999-999999999999";
+      await persisted(70, "organizer_appointment_create", { id: appointmentId, title: "Owned appointment fixture", start_date: "2026-12-01",
+        location: "Owned room", recurrence: { frequency: "monthly", interval: 2, ordinal: 2, weekday: "MO", until: "2027-02-28" },
+        organizer: { name: "Owned organizer", email: "organizer@example.invalid" },
+        attendees: [{ name: "Owned attendee", email: "attendee@example.invalid", role: "OPT-PARTICIPANT", rsvp: true }],
+        attachments: [{ uri: "https://example.invalid/owned-fixture.pdf", name: "Owned fixture", mime_type: "application/pdf", size: 42 }],
+        alarms: [{ offset_minutes: 15 }] });
+      const createdAppointment = b.t.daten().termine.find(item => item.id === appointmentId);
+      assert.equal(createdAppointment.zeit, "");
+      assert.equal(createdAppointment.wiederholung.ordinal, 2);
+      assert.equal(createdAppointment.teilnehmer[0].rolle, "OPT-PARTICIPANT");
+      assert.equal(createdAppointment.kalenderAnhaenge[0].groesse, 42);
+      const invalidTime = await call(request(71, "tools/call", { name: "organizer_appointment_create", arguments: {
+        title: "Invalid clock fixture", start_date: "2026-12-01", start_time: "10:00", end_time: "09:00" } }));
+      assert.equal(invalidTime.result.structuredContent.code, "invalid_time_range");
+      const invalidRepeat = await call(request(72, "tools/call", { name: "organizer_appointment_create", arguments: {
+        title: "Invalid repetition fixture", start_date: "2026-12-01", recurrence: { frequency: "custom", dates: ["2026-11-01"] } } }));
+      assert.equal(invalidRepeat.result.structuredContent.code, "invalid_recurrence");
+      const zero = (await call(request(73, "tools/call", { name: "organizer_appointment_read", arguments: { id: "zero-appointment" } }))).result.structuredContent;
+      await persisted(74, "organizer_appointment_update", { id: "zero-appointment", expected_revision: zero.revision, title: "Preserved zero duration" });
+      assert.equal(b.t.daten().termine.find(item => item.id === "zero-appointment").endZeit, "");
+      assert.ok(!b.t.daten().termine.find(item => item.id === "zero-appointment").icsRoundtrip.some(line => /^DTEND/.test(line)));
+      const readonly = (await call(request(75, "tools/call", { name: "organizer_appointment_read", arguments: { id: "readonly-appointment" } }))).result.structuredContent;
+      const deniedReadonly = await call(request(76, "tools/call", { name: "organizer_appointment_delete", arguments: {
+        id: "readonly-appointment", expected_revision: readonly.revision } }));
+      assert.equal(deniedReadonly.result.structuredContent.code, "read_only");
+      const importedAppointment = (await call(request(77, "tools/call", { name: "organizer_appointment_read", arguments: { id: "imported-appointment" } }))).result.structuredContent;
+      await persisted(78, "organizer_appointment_update", { id: "imported-appointment", expected_revision: importedAppointment.revision,
+        title: "Revised imported appointment", alarms: [{ offset_minutes: 30 }] });
+      const appointment = b.t.daten().termine.find(item => item.id === "imported-appointment");
+      assert.equal(appointment.providerMetadaten.fixture.marker, "preserve");
+      assert.ok(appointment.icsRoundtrip.includes("RRULE:FREQ=DAILY") && appointment.icsRoundtrip.includes("X-OWNED-FIXTURE:preserve"));
+      assert.ok(appointment.icsRoundtrip.includes("TRIGGER;VALUE=DATE-TIME:20261119T200000Z"));
+      b.w.App.edsStatus({ verfuegbar: true, kalender: [{ uid: "owned-old-calendar", name: "Owned old source" }, { uid: "owned-new-calendar", name: "Owned new source" }], adressbuecher: [] });
+      const beforeMove = (await call(request(79, "tools/call", { name: "organizer_appointment_read", arguments: { id: "imported-appointment" } }))).result.structuredContent;
+      await persisted(80, "organizer_appointment_update", { id: "imported-appointment", expected_revision: beforeMove.revision, calendar_uid: "owned-new-calendar" });
+      assert.equal(appointment.syncKalenderUid, "owned-new-calendar");
+      assert.equal(appointment.syncQuellen["owned-old-calendar"], undefined);
+      assert.ok(b.t.daten().geloescht.termine.some(item => item.uid === "owned-event-uid" && item.syncKalenderUid === "owned-old-calendar"));
+      const toRemoveAppointment = (await call(request(81, "tools/call", { name: "organizer_appointment_read", arguments: { id: appointmentId } }))).result.structuredContent;
+      const deletedAppointment = await persisted(82, "organizer_appointment_delete", { id: appointmentId, expected_revision: toRemoveAppointment.revision });
+      assert.ok(!b.t.daten().termine.some(item => item.id === appointmentId));
+      await persisted(83, "organizer_trash_restore", { id: deletedAppointment.trash_id });
+      assert.ok(b.t.daten().termine.some(item => item.id === appointmentId));
+      const contactId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+      await persisted(90, "organizer_contact_create", { id: contactId, first_name: "Owned", last_name: "New contact",
+        phones: [{ value: "+12025550123", types: ["CELL"] }], emails: [{ value: "owned@example.test", label: "Fixture" }],
+        addresses: [{ street: "Owned fixture street", postal_code: "00000", city: "Fixture town", country: "US" }],
+        groups: ["Owned fixture group"], birth_date: "--02-29", emergency_contacts: [{ contact_id: "fixture-contact", relationship: "Owned link" }],
+        social: [{ service: "custom", value: "Owned fixture", symbol: "github", action_type: "website", action_target: "https://example.test/owned-fixture" }] });
+      const newContact = b.t.daten().kontakte.find(item => item.id === contactId);
+      assert.equal(newContact.email, "owned@example.test");
+      assert.equal(newContact.geburtstag, "--02-29");
+      assert.equal(newContact.kontaktpersonen[0].kontaktId, "fixture-contact");
+      assert.ok(b.t.daten().jahrestage.some(item => item.kontaktId === contactId && item.datum === "--02-29"));
+      const projected = (await call(request(91, "tools/call", { name: "organizer_contact_read", arguments: { id: contactId, fields: ["id", "vorname", "geburtstag"] } }))).result.structuredContent;
+      assert.equal(projected.contact.geburtstag, "--02-29");
+      assert.equal(projected.contact.email, undefined);
+      await persisted(92, "organizer_contact_update", { id: contactId, expected_revision: projected.revision, first_name: "Revised owned" });
+      assert.equal(newContact.email, "owned@example.test");
+      assert.equal(newContact.geburtstag, "--02-29");
+      const existingContact = (await call(request(93, "tools/call", { name: "organizer_contact_read", arguments: { id: "fixture-contact" } }))).result.structuredContent;
+      await persisted(94, "organizer_contact_update", { id: "fixture-contact", expected_revision: existingContact.revision, note: "Owned changed note" });
+      assert.ok(b.t.daten().kontakte.find(item => item.id === "fixture-contact").vcardRoundtrip.includes("X-OWNED-FIXTURE:preserve"));
+      assert.equal(b.t.daten().kontakte.find(item => item.id === "fixture-contact").syncQuellen.fixture.marker, "preserve");
+      const contactRead = (await call(request(95, "tools/call", { name: "organizer_contact_read", arguments: { id: contactId } }))).result.structuredContent;
+      const failureSnapshot = new Promise(resolve => { onSnapshot = resolve; });
+      const failedDelete = call(request(96, "tools/call", { name: "organizer_contact_delete", arguments: { id: contactId, expected_revision: contactRead.revision } }));
+      const deniedSnapshot = await failureSnapshot;
+      assert.equal(deniedSnapshot.reason, "pre-contact-delete");
+      assert.ok(b.t.daten().kontakte.some(item => item.id === contactId), "Contact deleted before snapshot ACK");
+      b.w.App.mutationsSnapshot({ token: deniedSnapshot.token, ok: false });
+      assert.equal((await failedDelete).result.structuredContent.code, "snapshot_failed");
+      assert.ok(b.t.daten().kontakte.some(item => item.id === contactId));
+      const successSnapshot = new Promise(resolve => { onSnapshot = resolve; });
+      const deletingSave = new Promise(resolve => { onSave = resolve; });
+      const deleting = call(request(97, "tools/call", { name: "organizer_contact_delete", arguments: { id: contactId, expected_revision: contactRead.revision } }));
+      const confirmedSnapshot = await successSnapshot;
+      b.w.App.mutationsSnapshot({ token: "wrong", ok: true });
+      assert.ok(b.t.daten().kontakte.some(item => item.id === contactId));
+      b.w.App.mutationsSnapshot({ token: confirmedSnapshot.token, ok: true });
+      await deletingSave; b.ack();
+      const deletedContact = (await deleting).result.structuredContent;
+      assert.equal(deletedContact.recovery_snapshot_confirmed, true);
+      assert.equal(deletedContact.persisted, true);
+      assert.ok(!b.t.daten().kontakte.some(item => item.id === contactId));
+      assert.ok(!b.t.daten().jahrestage.some(item => item.kontaktId === contactId));
+      await persisted(98, "organizer_trash_restore", { id: deletedContact.trash_id });
+      assert.ok(b.t.daten().kontakte.some(item => item.id === contactId));
       const imported = (await call(request(40, "tools/call", { name: "organizer_task_read", arguments: { id: "imported-task" } }))).result.structuredContent;
       await persisted(41, "organizer_task_update", { id: "imported-task", expected_revision: imported.revision, title: "Revised imported task" });
       const preserved = b.t.daten().aufgaben.find(task => task.id === "imported-task");
@@ -149,6 +252,15 @@ const watchdog = setTimeout(() => { console.error("MCP UI test timed out"); proc
       assert.equal(b.t.daten().notizen.length, noteCount);
       assert.equal(b.w.document.querySelector("#aufgabe-titel").value, "Owned unsaved draft");
       const leaving = b.t.wechsel("kalender"); b.answer("Discard"); await leaving;
+      b.t.oeffneTerminBlatt(null, "2026-11-11");
+      const dialogStatus = await call(request(59, "tools/call", { name: "organizer_status" }));
+      assert.equal(dialogStatus.result.structuredContent.dialogOpen, true);
+      assert.equal(dialogStatus.result.structuredContent.editorDirty, false);
+      const dialogBusy = await call(request(60, "tools/call", { name: "organizer_note_create", arguments: { title: "External fixture", text: "Must not invalidate the open editor" } }));
+      assert.equal(dialogBusy.result.structuredContent.code, "dialog_busy");
+      assert.ok(b.w.document.querySelector("#termin-schleier"));
+      b.w.document.querySelector("#termin-schleier header button").click();
+      assert.equal(b.w.document.querySelector("#termin-schleier"), null);
       const failedSave = call(request(32, "tools/call", { name: "organizer_note_create", arguments: { title: "Failed fixture", text: "Check state" } }));
       await new Promise(resolve => setImmediate(resolve));
       b.ack(false);
@@ -196,7 +308,7 @@ const watchdog = setTimeout(() => { console.error("MCP UI test timed out"); proc
       assert.equal(status.result.structuredContent.locked, true);
       b.w.App.mcpClose(session);
       assert.equal((await call(request(8, "tools/list"))).error.code, -32002);
-      console.log("MCP note/task CRUD, recurrence identities, tombstones/hierarchy, draft guard, Notes source gates, native KDE results and session cleanup PASS " + web);
+      console.log("MCP note/task/appointment/contact CRUD, native snapshot gates, metadata/readonly/hierarchy, modal/draft guards and durable replies PASS " + web);
     } finally { b.close(); }
   }
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => clearTimeout(watchdog));
