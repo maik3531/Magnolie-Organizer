@@ -122,6 +122,7 @@ def client():
             cursors.add(cursor)
             tool_page = call("tools/list", {"cursor": cursor})
             tools.extend(tool_page["tools"])
+        assert cursors, "Native MCP fixture must exercise tool-list pagination"
         assert any(tool["name"] == "organizer_note_create" for tool in tools)
         status = call("tools/call", {"name": "organizer_status"})
         assert status["structuredContent"]["ready"] and not status["structuredContent"]["locked"], status
@@ -400,6 +401,23 @@ def client():
         assert not any(module["id"] == custom_id for module in json.loads(data_file.read_text())["customOrganizer"]["modules"])
         custom_restored = call("tools/call", {"name": "organizer_trash_restore", "arguments": {"id": custom_deleted["structuredContent"]["trash_id"]}})
         assert not custom_restored["isError"] and custom_restored["structuredContent"]["persisted"], custom_restored
+        custom_item_created = call("tools/call", {"name": "organizer_custom_item_create", "arguments": {
+            "module_id": custom_id, "title": "Owned native text item", "html": "<p>Owned text</p><script>bad()</script>"}})
+        assert not custom_item_created["isError"] and custom_item_created["structuredContent"]["persisted"], custom_item_created
+        custom_item_id = custom_item_created["structuredContent"]["id"]
+        custom_item_read = call("tools/call", {"name": "organizer_custom_item_read", "arguments": {"module_id": custom_id, "id": custom_item_id}})
+        assert "script" not in custom_item_read["structuredContent"]["item"]["html"]
+        custom_item_updated = call("tools/call", {"name": "organizer_custom_item_update", "arguments": {
+            "module_id": custom_id, "id": custom_item_id, "expected_revision": custom_item_read["structuredContent"]["revision"], "text": "Revised native custom text"}})
+        assert not custom_item_updated["isError"] and custom_item_updated["structuredContent"]["persisted"], custom_item_updated
+        custom_module = next(module for module in json.loads(data_file.read_text())["customOrganizer"]["modules"] if module["id"] == custom_id)
+        assert next(item for item in custom_module["items"] if item["id"] == custom_item_id)["text"] == "Revised native custom text"
+        custom_item_read = call("tools/call", {"name": "organizer_custom_item_read", "arguments": {"module_id": custom_id, "id": custom_item_id}})
+        custom_item_deleted = call("tools/call", {"name": "organizer_custom_item_delete", "arguments": {
+            "module_id": custom_id, "id": custom_item_id, "expected_revision": custom_item_read["structuredContent"]["revision"]}})
+        assert not custom_item_deleted["isError"] and custom_item_deleted["structuredContent"]["persisted"], custom_item_deleted
+        custom_item_restored = call("tools/call", {"name": "organizer_trash_restore", "arguments": {"id": custom_item_deleted["structuredContent"]["trash_id"]}})
+        assert not custom_item_restored["isError"] and custom_item_restored["structuredContent"]["persisted"], custom_item_restored
         for date in ("2028-04-01", "2028-04-02"):
             day = call("tools/call", {"name": "organizer_day_marker_read", "arguments": {"date": date}})
             assert day["structuredContent"]["marker"] is None, day

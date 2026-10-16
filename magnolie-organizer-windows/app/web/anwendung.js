@@ -13341,7 +13341,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (item && !modul.items.includes(item)) return false;
     const previous = DATEN.papierkorb.at(-1)?.id;
     entferneCustomTextVerweise(sichereCustomPapierkorb(modul, item));
-    if (item) modul.items = modul.items.filter((wert) => wert.id !== item.id);
+    if (item) { modul.items = modul.items.filter((wert) => wert.id !== item.id); customModulGeaendert(modul); }
     else DATEN.customOrganizer.modules = DATEN.customOrganizer.modules.filter((wert) => wert.id !== modul.id);
     planeSpeichern();
     const trash = DATEN.papierkorb.at(-1)?.id;
@@ -13462,12 +13462,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       entwurf.note = notiz.value.slice(0, 5000);
       entwurf.textItemId = textVerweis.value;
       entwurf.remind = erinnern ? erinnern.checked : entwurf.remind !== false;
-      entwurf.modified_ms = Date.now();
-      if (bestand) Object.assign(bestand, entwurf);
-      else {
-        if (!Array.isArray(modul.items)) modul.items = [];
-        modul.items.unshift(entwurf);
-      }
+      wendeCustomItemDatenAn(modul, bestand, entwurf);
       aktiverEditor = null;
       customModulGeaendert(modul); schliessen(); zeichneAlles();
     }));
@@ -13874,8 +13869,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (modul.type === "notes") {
         if (!Array.isArray(modul.items)) modul.items = [];
         if (modul.items.length >= CUSTOM_MAX_ITEMS) return;
-        const item = { id: "custom-text-" + uid(), title: "", text: "", html: "", modified_ms: Date.now() };
-        modul.items.unshift(item);
+        const item = wendeCustomItemDatenAn(modul, null, {});
         zustand.custom.textItemIds[modul.id] = item.id;
         customModulGeaendert(modul); zeichneAlles();
       } else oeffneCustomEintrag(modul);
@@ -13895,8 +13889,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       titel.className = "custom-text-titel"; titel.maxLength = 300;
       titel.placeholder = _("Title"); titel.setAttribute("aria-label", _("Title"));
       titel.addEventListener("input", () => {
-        item.title = Array.from(titel.value).slice(0, 300).join("");
-        item.modified_ms = Date.now(); customModulGeaendert(modul);
+        wendeCustomItemDatenAn(modul, item, { title: Array.from(titel.value).slice(0, 300).join("") });
       });
       const editor = el("div", "custom-text-editor");
       editor.dataset.lines = modul.lines || "inherit";
@@ -13921,10 +13914,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (htmlStand.gekuerzt) return;
         const stand = { textErmitteln: true }, html = saeubereHtml(editor.innerHTML, stand);
         if (stand.gekuerzt) { zettel(_("The message is too large.")); return; }
-        item.html = html;
-        item.text = stand.text;
-        item.modified_ms = Date.now();
-        customModulGeaendert(modul);
+        wendeCustomItemDatenAn(modul, item, { html, text: stand.text });
       });
       karte.append(titel, werkzeuge, editor, bindeSchreibTab(editor)); liste.append(karte);
     } else {
@@ -33766,6 +33756,91 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }) }
     ];
   }
+  function wendeCustomItemDatenAn(module, item, values) {
+    const value = item || (module.type === "notes" ? { id: "custom-text-" + uid(), title: "", text: "", html: "" } : {
+      id: "custom-item-" + uid(), title: "", note: "", textItemId: "", remind: true, time: vorgabeZeiten().zeit,
+      ...(module.type === "appointments" ? { date: isoHeute(), wiederholung: { art: "none", bis: "" } } : { due: isoHeute(), done: false }) });
+    Object.assign(value, values); value.modified_ms = Date.now();
+    if (!item) module.items.unshift(value);
+    customModulGeaendert(module); return value;
+  }
+  function mcpCustomItemWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 160 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const date = { type: "string", pattern: "^$|^\\d{4}-\\d{2}-\\d{2}$" };
+    const fields = { title: { type: "string", maxLength: 300 }, text: { type: "string", maxLength: 500000 }, html: { type: "string", maxLength: 500000 },
+      note: { type: "string", maxLength: 5000 }, date, time: { type: "string", pattern: "^(?:[01][0-9]|2[0-3]):[0-5][0-9]$|^$" }, done: { type: "boolean" },
+      remind: { type: "boolean" }, text_item_id: { type: "string", maxLength: 160 }, recurrence: { type: "object", properties: { frequency: { type: "string", enum: ["none", "daily", "weekly", "monthly", "yearly"] }, until: date }, required: ["frequency"], additionalProperties: false } };
+    const moduleFor = moduleId => {
+      const module = DATEN.customOrganizer.modules.find(value => value.id === moduleId);
+      if (!module) throw new MagnolieMcp.ToolError("not_found", "Custom module not found");
+      if (module.type === "drawing") throw new MagnolieMcp.ToolError("unsupported_feature", "Drawing content uses drawing operations");
+      return module;
+    };
+    const valueFor = (module, args, current = null) => {
+      const allowed = module.type === "notes" ? ["title", "text", "html"] : ["title", "note", "date", "time", "remind", "text_item_id", module.type === "tasks" ? "done" : "recurrence"];
+      if (Object.keys(fields).some(key => args[key] !== undefined && !allowed.includes(key))) throw new MagnolieMcp.ToolError("unsupported_field", "Custom module does not support these item fields");
+      const value = {};
+      if (args.title !== undefined) value.title = args.title.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "").trim();
+      if (module.type === "notes") {
+        if (args.text !== undefined && args.html !== undefined) throw new MagnolieMcp.ToolError("invalid_content", "Supply either text or HTML for a custom text edit");
+        if (args.text !== undefined || args.html !== undefined) {
+          const status = { textErmitteln: true }, html = args.html === undefined ? textZuHtml(args.text) : args.html;
+          value.html = saeubereHtml(html, status);
+          if (status.gekuerzt) throw new MagnolieMcp.ToolError("content_too_large", "Custom text exceeds the product HTML limits");
+          value.text = status.text || "";
+        }
+      } else {
+        if (args.date !== undefined) {
+          if (args.date && !gueltigesISO(args.date)) throw new MagnolieMcp.ToolError("invalid_date", "Custom item date is invalid");
+          value[module.type === "appointments" ? "date" : "due"] = args.date;
+        }
+        for (const key of ["time", "done", "remind", "note"]) if (args[key] !== undefined) value[key] = key === "note" ? args[key].replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "") : args[key];
+        if (args.text_item_id !== undefined) {
+          if (args.text_item_id && !customTextVerzeichnis().some(entry => entry.item.id === args.text_item_id)) throw new MagnolieMcp.ToolError("not_found", "Linked custom text not found");
+          value.textItemId = args.text_item_id;
+        }
+        if (args.recurrence !== undefined) {
+          const until = args.recurrence.until || "", start = value.date === undefined ? current?.date || isoHeute() : value.date;
+          if (until && (!gueltigesISO(until) || start && until < start)) throw new MagnolieMcp.ToolError("invalid_recurrence", "Custom recurrence end date is invalid");
+          value.wiederholung = leseWiederholung({ art: args.recurrence.frequency, bis: until });
+        }
+      }
+      return value;
+    };
+    const checked = async (args, signal) => {
+      const book = DATEN, module = moduleFor(args.module_id), item = module.items.find(value => value.id === args.id);
+      if (!item) throw new MagnolieMcp.ToolError("not_found", "Custom item not found");
+      const snapshot = () => JSON.stringify({ module_id: module.id, item }), before = snapshot(), hash = await personalSyncHash(before);
+      if (signal.aborted || gesperrt || DATEN !== book || moduleFor(args.module_id) !== module || !module.items.includes(item) || snapshot() !== before || hash !== args.expected_revision)
+        throw new MagnolieMcp.ToolError("conflict", "Custom item changed; read it again before writing");
+      mcpEditorPruefen(); return { module, item };
+    };
+    return [
+      { name: "organizer_custom_item_read", description: "Read a custom text/task/appointment item with a parent-bound full revision; fields can omit large text content.",
+        inputSchema: { type: "object", properties: { module_id: id, id, fields: { type: "array", minItems: 1, maxItems: 128, items: id } }, required: ["module_id", "id"], additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async args => {
+          const module = moduleFor(args.module_id), current = module.items.find(value => value.id === args.id);
+          if (!current) throw new MagnolieMcp.ToolError("not_found", "Custom item not found");
+          const item = kopie(current);
+          return { module_id: module.id, item: mcpLeseProjektion(item, args.fields), revision: await personalSyncHash(JSON.stringify({ module_id: module.id, item })) };
+        } },
+      { name: "organizer_custom_item_create", description: "Create a custom text/task/appointment through the product item handler, including HTML sanitization and linked-text validation.",
+        inputSchema: { type: "object", properties: { ...fields, module_id: id, id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" } }, required: ["module_id"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, () => {
+          const module = moduleFor(args.module_id);
+          if (module.items.length >= CUSTOM_MAX_ITEMS) throw new MagnolieMcp.ToolError("limit_reached", "Custom item limit reached");
+          if (args.id && DATEN.customOrganizer.modules.some(value => value.id === args.id || value.items.some(item => item.id === args.id))) throw new MagnolieMcp.ToolError("already_exists", "Custom ID already exists");
+          const item = wendeCustomItemDatenAn(module, null, { ...valueFor(module, args), ...(args.id ? { id: args.id } : {}) }); return { id: item.id };
+        }) },
+      { name: "organizer_custom_item_update", description: "Revision-checked custom text/task/appointment edits through the shared product item handler. Unchanged recurrence and linked metadata are retained.",
+        inputSchema: { type: "object", properties: { ...fields, module_id: id, id, expected_revision: revision }, required: ["module_id", "id", "expected_revision"], anyOf: Object.keys(fields).map(field => ({ required: [field] })), additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const { module, item } = await checked(args, signal); wendeCustomItemDatenAn(module, item, valueFor(module, args, item)); return { id: item.id };
+        }) },
+      { name: "organizer_custom_item_delete", description: "Revision-checked custom-item removal with product trash and linked-text-reference cleanup.",
+        inputSchema: { type: "object", properties: { module_id: id, id, expected_revision: revision }, required: ["module_id", "id", "expected_revision"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const { module, item } = await checked(args, signal), result = entferneCustomDaten(module, item);
+          if (!result) throw new MagnolieMcp.ToolError("conflict", "Custom item changed before removal"); return result;
+        }) }
+    ];
+  }
   function wendeUrlaubDatenAn(entry, values) {
     const value = entry || { id: values.id || uid(), von: isoHeute(), bis: isoHeute(), symbol: "palm", darstellung: "symbol-text" };
     if (gueltigesISO(values.von)) value.von = values.von;
@@ -33966,6 +34041,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_custom_item_read") return shape({ module_id: id, item: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["module_id", "item", "revision"]);
+    if (["organizer_custom_item_create", "organizer_custom_item_update"].includes(name)) return shape(written, ["id", "persisted"]);
+    if (name === "organizer_custom_item_delete") return shape({ ...written, trash_id: { type: ["string", "null"] } }, ["id", "persisted", "trash_id"]);
     if (name === "organizer_custom_module_read") return shape({ module: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["module", "revision"]);
     if (["organizer_custom_module_create", "organizer_custom_module_update"].includes(name)) return shape(written, ["id", "persisted"]);
     if (name === "organizer_custom_module_delete") return shape({ ...written, trash_id: { type: ["string", "null"] } }, ["id", "persisted", "trash_id"]);
@@ -34043,6 +34121,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpZeitWerkzeuge(),
       ...mcpZeitVerwaltungWerkzeuge(),
       ...mcpCustomModulWerkzeuge(),
+      ...mcpCustomItemWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
