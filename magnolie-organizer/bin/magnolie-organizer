@@ -21185,7 +21185,7 @@ class Fenster(_FENSTER_BASIS):
 
         elif befehl == "gesamtarchiv_pruefen":
             self._gesamtarchiv_pruefen(
-                nachricht.get("pfad") or "", nachricht.get("kennwort") or "")
+                nachricht.get("pfad") or "", nachricht.get("kennwort") or "", nachricht.get("requestId"))
 
         elif befehl == "gesamtarchiv_importieren":
             self._gesamtarchiv_importieren(
@@ -22828,8 +22828,9 @@ class Fenster(_FENSTER_BASIS):
             "kennwort": bool(self._kennwort),
             "vorher": vorher["snapshotId"], "pfad": os.path.abspath(pfad)})
 
-    def _gesamtarchiv_vorschau(self, pfad, gelesen):
+    def _gesamtarchiv_vorschau(self, pfad, gelesen, request_id=None):
         self.antwort("App.gesamtarchivAusgewaehlt", {
+            "requestId": request_id,
             "ok": True, "pfad": os.path.abspath(pfad), "geprueft": True,
             "verschluesselt": bool(gelesen["verschluesselt"]),
             "brauchtKennwort": False, "erstellt": gelesen["erstellt"],
@@ -22863,12 +22864,13 @@ class Fenster(_FENSTER_BASIS):
                 "ok": False, "pfad": os.path.abspath(pfad),
                 "fehler": fehler_deutsch(fehler, "Gesamtarchiv prüfen")})
 
-    def _gesamtarchiv_pruefen(self, pfad, kennwort):
+    def _gesamtarchiv_pruefen(self, pfad, kennwort, request_id=None):
         try:
             self._gesamtarchiv_vorschau(
-                pfad, gesamtarchiv_lesen(pfad, kennwort))
+                pfad, gesamtarchiv_lesen(pfad, kennwort), request_id)
         except Exception as fehler:
             self.antwort("App.gesamtarchivAusgewaehlt", {
+                "requestId": request_id,
                 "ok": False, "pfad": os.path.abspath(pfad),
                 "verschluesselt": True, "brauchtKennwort": True,
                 "fehler": fehler_deutsch(fehler, "Gesamtarchiv prüfen")})

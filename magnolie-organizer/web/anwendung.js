@@ -32144,6 +32144,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       zeigeSicherungsdialog(nutzlast);
     },
     gesamtarchivAusgewaehlt(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "gesamtarchivAusgewaehlt"); return; }
       zeigeGesamtarchivdialog(nutzlast);
     },
     gesamtarchivExportiert(nutzlast) {
@@ -34380,6 +34381,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         return { path: value.pfad, confirmed: true };
       } }];
   }
+  function mcpArchivWerkzeuge() {
+    return [{ name: "organizer_archive_preview", description: "Verify a complete archive using the actual native reader and supplied archive password. Returns metadata/counts without importing the archive or opening the GUI import dialog.",
+      inputSchema: { type: "object", properties: { path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, password: { type: "string", maxLength: 1024 } }, required: ["path"], additionalProperties: false },
+      annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => {
+        const book = DATEN, value = await mcpNativeAufruf("gesamtarchiv_pruefen", { pfad: args.path, kennwort: args.password || "" }, "gesamtarchivAusgewaehlt", signal);
+        if (signal.aborted || DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Book changed during archive verification");
+        if (value.ok !== true || value.geprueft !== true) throw new MagnolieMcp.ToolError("archive_verification_failed", "Native archive verification failed; check the file and archive password");
+        return { path: value.pfad, verified: true, encrypted: value.verschluesselt === true, created_at: String(value.erstellt || ""), platform: String(value.plattform || ""),
+          app_version: String(value.appversion || ""), counts: kopie(value.anzahlen || {}), photos: value.fotos, attachments: value.anhaenge };
+      } }];
+  }
   function wendeUrlaubDatenAn(entry, values) {
     const value = entry || { id: values.id || uid(), von: isoHeute(), bis: isoHeute(), symbol: "palm", darstellung: "symbol-text" };
     if (gueltigesISO(values.von)) value.von = values.von;
@@ -34580,6 +34592,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_archive_preview") return shape({ path: text, verified: yes, encrypted: flag, created_at: text, platform: text, app_version: text, counts: object, photos: { type: "integer", minimum: 0 }, attachments: { type: "integer", minimum: 0 } }, ["path", "verified", "encrypted", "created_at", "platform", "app_version", "counts", "photos", "attachments"]);
     if (name === "organizer_backup_create") return shape({ path: text, confirmed: yes }, ["path", "confirmed"]);
     if (name === "organizer_recovery_runtime_policy_read") return shape({ policy: shape({ interval: { type: "string", enum: ["off", "6h", "12h", "daily", "weekly"] }, retention_mode: { type: "string", enum: ["count", "days"] }, maximum: { type: "integer", minimum: 1, maximum: 100 }, days: { type: "integer", minimum: 1, maximum: 3650 } }, ["interval", "retention_mode", "maximum", "days"]), revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["policy", "revision"]);
     if (name === "organizer_recovery_runtime_policy_update") return shape({ native_applied: yes, persisted: yes }, ["native_applied", "persisted"]);
@@ -34683,6 +34696,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpJournalErzeugungWerkzeuge(),
       ...mcpJournalRuntimeWerkzeuge(),
       ...mcpBackupWerkzeuge(),
+      ...mcpArchivWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

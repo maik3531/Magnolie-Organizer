@@ -134,7 +134,7 @@ let declaredContracts;
         id: noteId, title: "Retry", text: "Must not duplicate" } }));
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
-      let onSave, onSnapshot, onRecovery, onBackup;
+      let onSave, onSnapshot, onRecovery, onBackup, onArchive;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
@@ -143,6 +143,7 @@ let declaredContracts;
         if (message.cmd === "mutations_snapshot" && onSnapshot) { const resolve = onSnapshot; onSnapshot = null; resolve(message); }
         if (message.cmd.startsWith("journal_") && message.requestId && onRecovery) onRecovery(message);
         if (message.cmd === "sicherung" && message.requestId && onBackup) onBackup(message);
+        if (message.cmd === "gesamtarchiv_pruefen" && message.requestId && onArchive) onArchive(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -582,6 +583,16 @@ let declaredContracts;
       b.w.App.sicherungFertig({ requestId: backupRequest.requestId, ok: true, pfad: "/owned/native-backup.json" });
       assert.equal((await backupPending).result.structuredContent.path, "/owned/native-backup.json");
       onBackup = null;
+      onArchive = message => b.w.App.gesamtarchivAusgewaehlt({ requestId: message.requestId, ok: true, geprueft: true, pfad: message.pfad,
+        verschluesselt: true, erstellt: "2028-02-29T08:00:00Z", plattform: "owned-fixture", appversion: "1", anzahlen: { notizen: 2 }, fotos: 0, anhaenge: 1 });
+      const archivePreview = await call(request(450, "tools/call", { name: "organizer_archive_preview", arguments: { path: "/owned/archive.magnolie", password: "owned-fixture-password" } }));
+      assert.equal(archivePreview.result.structuredContent.verified, true);
+      assert.equal(archivePreview.result.structuredContent.counts.notizen, 2);
+      onArchive = message => b.w.App.gesamtarchivAusgewaehlt({ requestId: message.requestId, ok: false, fehler: "owned-private-archive-error" });
+      const archiveRejected = await call(request(451, "tools/call", { name: "organizer_archive_preview", arguments: { path: "/owned/archive.magnolie", password: "wrong" } }));
+      assert.equal(archiveRejected.result.structuredContent.code, "archive_verification_failed");
+      assert.ok(!JSON.stringify(archiveRejected).includes("owned-private-archive-error"));
+      onArchive = null;
       assert.equal(invalidGlucose.result.structuredContent.code, "invalid_value");
       const invalidVital = await call(request(267, "tools/call", { name: "organizer_vital_create", arguments: { date: "2028-02-29", pulse: 20 } }));
       assert.equal(invalidVital.error.code, -32602);

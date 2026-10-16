@@ -146,7 +146,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "journal_wiederherstellen": await RestoreSnapshotAsync(message); break;
                     case "mutations_snapshot": await CreateMutationSnapshotAsync(message); break;
                     case "gesamtarchiv_waehlen": await SelectGesamtarchivAsync(); break;
-                    case "gesamtarchiv_pruefen": await PreviewGesamtarchivAsync(Text(message, "pfad"), Text(message, "kennwort")); break;
+                    case "gesamtarchiv_pruefen": await PreviewGesamtarchivAsync(Text(message, "pfad"), Text(message, "kennwort"), Text(message, "requestId")); break;
                     case "gesamtarchiv_importieren": await ImportGesamtarchivAsync(message); break;
                     case "gesamtarchiv_exportieren": await ExportGesamtarchivAsync(Text(message, "kennwort")); break;
                     case "ordner_waehlen": await SelectFolderAsync(); break;
@@ -1203,27 +1203,27 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
     }
 
-    private async Task PreviewGesamtarchivAsync(string path, string password)
+    private async Task PreviewGesamtarchivAsync(string path, string password, string? requestId = null)
     {
         try
         {
             var text = store.Read(path, AtomicStore.MaxArchiveBytes)
                 ?? throw new IOException(T("The complete archive is empty."));
-            await SendGesamtarchivPreviewAsync(path, GesamtarchivService.Read(text, password));
+            await SendGesamtarchivPreviewAsync(path, GesamtarchivService.Read(text, password), requestId);
         }
         catch (Exception error)
         {
-            await ReportErrorAsync("gesamtarchiv_pruefen", error.ToString());
+            if (string.IsNullOrEmpty(requestId)) await ReportErrorAsync("gesamtarchiv_pruefen", error.ToString());
             await form.SendAsync("App.gesamtarchivAusgewaehlt", new
-                { ok = false, abgebrochen = false, pfad = path, verschluesselt = true,
+                { ok = false, requestId, abgebrochen = false, pfad = path, verschluesselt = true,
                   brauchtKennwort = true, fehler = T("The complete archive could not be verified.") });
         }
     }
 
-    private Task SendGesamtarchivPreviewAsync(string path, GesamtarchivInfo info) =>
+    private Task SendGesamtarchivPreviewAsync(string path, GesamtarchivInfo info, string? requestId = null) =>
         form.SendAsync("App.gesamtarchivAusgewaehlt", new
         {
-            ok = true, pfad = path, verschluesselt = info.Verschluesselt,
+            ok = true, requestId, pfad = path, verschluesselt = info.Verschluesselt,
             brauchtKennwort = false, geprueft = true, erstellt = info.Erstellt,
             plattform = info.Plattform, appversion = info.Appversion,
             anzahlen = info.Anzahlen, fotos = info.Fotos, anhaenge = info.Anhaenge

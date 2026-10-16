@@ -22,7 +22,7 @@ internal static class BridgeDispatcherContract
         ["journal_einstellungen_setzen"] = S(T("intervall"), T("modus"), N("maximum"), N("tage"), O("requestId", JsonValueKind.String)),
         ["journal_aufbewahrung"] = S(T("modus"), N("maximum"), N("tage")),
         ["journal_loeschen"] = S(O("snapshotId", JsonValueKind.String), O("id", JsonValueKind.String), O("snapshotIds", JsonValueKind.Array), O("expectedRevisions", JsonValueKind.Object), O("requestId", JsonValueKind.String)), ["journal_wiederherstellen"] = S(O("snapshotId", JsonValueKind.String), O("id", JsonValueKind.String), O("bereiche", JsonValueKind.Array), O("modus", JsonValueKind.String), O("expectedRevision", JsonValueKind.String), O("requestId", JsonValueKind.String)),
-        ["mutations_snapshot"] = S(T("token"), T("reason")), ["gesamtarchiv_waehlen"] = S(), ["gesamtarchiv_pruefen"] = S(T("pfad"), T("kennwort")),
+        ["mutations_snapshot"] = S(T("token"), T("reason")), ["gesamtarchiv_waehlen"] = S(), ["gesamtarchiv_pruefen"] = S(T("pfad"), T("kennwort"), O("requestId", JsonValueKind.String)),
         ["gesamtarchiv_importieren"] = S(T("pfad"), T("kennwort"), T("modus"), O("sicherungsordner", JsonValueKind.String)), ["gesamtarchiv_exportieren"] = S(T("kennwort")),
         ["ordner_waehlen"] = S(O("pfad", JsonValueKind.String)), ["drucken"] = S(O("html", JsonValueKind.String)),
         ["notiz_anhang_datei"] = S(N("id"), T("daten"), T("name"), O("aktion", JsonValueKind.String)),

@@ -633,6 +633,12 @@ def client():
         assert protected_path.is_relative_to(Path(temporary.name)) and protected_path.is_file()
         protected_data = product.gesamtarchiv_lesen_text(protected_path.read_text(), "owned-backup-fixture-password")
         assert next(item for item in protected_data["daten"]["notizen"] if item["id"] == note_id)["text"] == large_text
+        archive_preview = call("tools/call", {"name": "organizer_archive_preview", "arguments": {
+            "path": str(protected_path), "password": "owned-backup-fixture-password"}})
+        assert not archive_preview["isError"] and archive_preview["structuredContent"]["verified"] and archive_preview["structuredContent"]["encrypted"], archive_preview
+        assert archive_preview["structuredContent"]["counts"], archive_preview
+        archive_wrong_password = call("tools/call", {"name": "organizer_archive_preview", "arguments": {"path": str(protected_path), "password": "wrong"}})
+        assert archive_wrong_password["isError"] and archive_wrong_password["structuredContent"]["code"] == "archive_verification_failed", archive_wrong_password
         if os.environ.get("MAGNOLIE_MCP_PROBE_RESTORE_REPAIR") == "1":
             restore_point = call("tools/call", {"name": "organizer_recovery_snapshot_create"})
             assert not restore_point["isError"], restore_point
