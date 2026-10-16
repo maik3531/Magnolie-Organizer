@@ -134,7 +134,7 @@ let declaredContracts;
         id: noteId, title: "Retry", text: "Must not duplicate" } }));
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
-      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport;
+      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
@@ -145,6 +145,7 @@ let declaredContracts;
         if (message.cmd === "sicherung" && message.requestId && onBackup) onBackup(message);
         if (message.cmd === "gesamtarchiv_pruefen" && message.requestId && onArchive) onArchive(message);
         if (message.cmd === "gesamtarchiv_exportieren" && message.requestId && onArchiveExport) onArchiveExport(message);
+        if (message.cmd === "gesamtarchiv_importieren" && message.requestId && onArchiveImport) onArchiveImport(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -585,7 +586,7 @@ let declaredContracts;
       assert.equal((await backupPending).result.structuredContent.path, "/owned/native-backup.json");
       onBackup = null;
       onArchive = message => b.w.App.gesamtarchivAusgewaehlt({ requestId: message.requestId, ok: true, geprueft: true, pfad: message.pfad,
-        verschluesselt: true, erstellt: "2028-02-29T08:00:00Z", plattform: "owned-fixture", appversion: "1", anzahlen: { notizen: 2 }, fotos: 0, anhaenge: 1 });
+        revision: "a".repeat(64), verschluesselt: true, erstellt: "2028-02-29T08:00:00Z", plattform: "owned-fixture", appversion: "1", anzahlen: { notizen: 2 }, fotos: 0, anhaenge: 1 });
       const archivePreview = await call(request(450, "tools/call", { name: "organizer_archive_preview", arguments: { path: "/owned/archive.magnolie", password: "owned-fixture-password" } }));
       assert.equal(archivePreview.result.structuredContent.verified, true);
       assert.equal(archivePreview.result.structuredContent.counts.notizen, 2);
@@ -913,6 +914,32 @@ let declaredContracts;
       b.w.App.journalWiederhergestellt({ requestId: cancelledRequest.requestId, ok: true, committed: true, vorher: recoveryId, daten: lateDocument });
       assert.equal(b.t.daten().notizen.find(note => note.id === "fixture-note").text, "Owned late committed restore");
       onRecovery = null;
+      const importArgs = { path: "/owned/import.magnolie", expected_revision: "a".repeat(64), mode: "replace" };
+      const staleImport = await call(request(460, "tools/call", { name: "organizer_archive_import", arguments: { ...importArgs, expected_book_revision: "0".repeat(64) } }));
+      assert.equal(staleImport.result.structuredContent.code, "conflict");
+      for (const cancelled of [false, true]) {
+        const rpcId = cancelled ? 463 : 461;
+        b.t.daten().notizen.find(note => note.id === "fixture-note").titel = "Owned import pending " + rpcId;
+        const revision = (await call(request(rpcId + 10, "tools/call", { name: "organizer_book_revision_read" }))).result.structuredContent.revision;
+        let importRequest;
+        const dispatched = new Promise(resolve => { onArchiveImport = message => { importRequest = message; resolve(); }; });
+        const saving = new Promise(resolve => { onSave = resolve; });
+        const pending = call(request(rpcId, "tools/call", { name: "organizer_archive_import", arguments: { ...importArgs, expected_book_revision: revision } }));
+        await saving; assert.equal(importRequest, undefined); b.ack(); await dispatched;
+        assert.equal(importRequest.expectedRevision, importArgs.expected_revision);
+        const busy = await call(request(rpcId + 20, "tools/call", { name: "organizer_note_create", arguments: { title: "Blocked during import", text: "Owned" } }));
+        assert.equal(busy.result.structuredContent.code, "native_busy");
+        if (cancelled) {
+          await call({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: rpcId } });
+          assert.equal((await pending).result.structuredContent.code, "cancelled");
+        }
+        const imported = JSON.parse(JSON.stringify(b.t.daten()));
+        imported.notizen.find(note => note.id === "fixture-note").text = "Owned committed import " + rpcId;
+        b.w.App.gesamtarchivImportiert({ requestId: importRequest.requestId, ok: true, committed: true, repairPending: true, vorher: recoveryId, daten: imported });
+        assert.equal(b.t.daten().notizen.find(note => note.id === "fixture-note").text, "Owned committed import " + rpcId);
+        if (!cancelled) { const result = (await pending).result.structuredContent; assert.equal(result.committed, true); assert.equal(result.repair_pending, true); }
+      }
+      onArchiveImport = null;
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));
       assert.equal(locked.result.isError, true);

@@ -21191,7 +21191,8 @@ class Fenster(_FENSTER_BASIS):
             self._gesamtarchiv_importieren(
                 nachricht.get("pfad") or "", nachricht.get("kennwort") or "",
                 nachricht.get("modus") or "",
-                nachricht.get("sicherungsordner") or "")
+                nachricht.get("sicherungsordner") or "", nachricht.get("requestId"),
+                nachricht.get("expectedRevision"))
 
         elif befehl == "gesamtarchiv_exportieren":
             self._gesamtarchiv_exportieren(nachricht.get("kennwort") or "",
@@ -22829,9 +22830,9 @@ class Fenster(_FENSTER_BASIS):
             "kennwort": bool(self._kennwort),
             "vorher": vorher["snapshotId"], "pfad": os.path.abspath(pfad)})
 
-    def _gesamtarchiv_vorschau(self, pfad, gelesen, request_id=None):
+    def _gesamtarchiv_vorschau(self, pfad, gelesen, request_id=None, revision=None):
         self.antwort("App.gesamtarchivAusgewaehlt", {
-            "requestId": request_id,
+            "requestId": request_id, "revision": revision,
             "ok": True, "pfad": os.path.abspath(pfad), "geprueft": True,
             "verschluesselt": bool(gelesen["verschluesselt"]),
             "brauchtKennwort": False, "erstellt": gelesen["erstellt"],
@@ -22867,8 +22868,11 @@ class Fenster(_FENSTER_BASIS):
 
     def _gesamtarchiv_pruefen(self, pfad, kennwort, request_id=None):
         try:
+            text = _text_dekodieren(datei_begrenzt_lesen(pfad, GESAMTARCHIV_DATEI_MAX,
+                "Das Gesamtarchiv ist größer als 384 MiB."))
             self._gesamtarchiv_vorschau(
-                pfad, gesamtarchiv_lesen(pfad, kennwort), request_id)
+                pfad, gesamtarchiv_lesen_text(text, kennwort), request_id,
+                hashlib.sha256(text.encode("utf-8")).hexdigest())
         except Exception as fehler:
             self.antwort("App.gesamtarchivAusgewaehlt", {
                 "requestId": request_id,
@@ -22913,17 +22917,24 @@ class Fenster(_FENSTER_BASIS):
                 "fehler": fehler_deutsch(fehler, "Gesamtarchiv exportieren")})
 
     def _gesamtarchiv_importieren(self, pfad, kennwort, modus,
-                                  sicherungsordner=""):
+                                  sicherungsordner="", request_id=None, expected_revision=None):
         if (getattr(self, "_operation_laeuft", False) or
                 getattr(self, "_sync_laeuft", False)):
             self.antwort("App.gesamtarchivImportiert", {"ok": False, "daten": None,
+                "requestId": request_id, "committed": False, "code": "busy",
                 "fehler": _("Another data operation is still running.")})
             return
         self._operation_laeuft = True
+        committed = False
+        warnung = ""
         try:
             if modus != "vollstaendig-ersetzen":
                 raise RuntimeError("Nur 'Vollständig ersetzen' wird unterstützt.")
-            gelesen = gesamtarchiv_lesen(pfad, kennwort)
+            text = _text_dekodieren(datei_begrenzt_lesen(pfad, GESAMTARCHIV_DATEI_MAX,
+                "Das Gesamtarchiv ist größer als 384 MiB."))
+            if expected_revision is not None and hashlib.sha256(text.encode("utf-8")).hexdigest() != expected_revision:
+                raise ValueError("archive_conflict")
+            gelesen = gesamtarchiv_lesen_text(text, kennwort)
             with self._daten_sperre:
                 roh = _text_dekodieren(datei_begrenzt_lesen(
                     daten_datei(), SICHERUNG_DATEI_MAX,
@@ -22952,16 +22963,35 @@ class Fenster(_FENSTER_BASIS):
                         self._daten_dek_kennung, self._daten_umschlag)
                 else:
                     gespeichert = klar
-                atomar_text_schreiben(daten_datei(), gespeichert)
+                try:
+                    atomar_text_schreiben(daten_datei(), gespeichert)
+                except Exception as fehler:
+                    aktuell, _bindung = _erinnerungsprofil_lesen()
+                    if aktuell != gespeichert:
+                        raise
+                    warnung = fehler_deutsch(fehler, _("Saving the data"))
+                committed = True
                 self._aktuelle_daten = importiert
                 self._erinnerungsprojektion_aktualisieren()
             self.antwort("App.gesamtarchivImportiert", {
-                "ok": True, "daten": importiert,
+                "ok": True, "daten": importiert, "requestId": request_id,
+                "committed": True, "repairPending": bool(warnung), "fehler": warnung,
                 "kennwort": bool(self._kennwort), "vorher": vorher["snapshotId"]})
+            if warnung:
+                self.antwort("App.syncFehler", _("Saved") + " · " + warnung)
         except Exception as fehler:
-            self.antwort("App.gesamtarchivImportiert", {
-                "ok": False, "daten": None,
-                "fehler": fehler_deutsch(fehler, "Gesamtarchiv importieren")})
+            fehlertext = fehler_deutsch(fehler, "Gesamtarchiv importieren")
+            if committed:
+                self.antwort("App.gesamtarchivImportiert", {
+                    "ok": True, "daten": importiert, "requestId": request_id,
+                    "committed": True, "repairPending": True, "fehler": fehlertext,
+                    "kennwort": bool(self._kennwort), "vorher": vorher["snapshotId"]})
+                self.antwort("App.syncFehler", _("Saved") + " · " + fehlertext)
+            else:
+                self.antwort("App.gesamtarchivImportiert", {
+                    "ok": False, "daten": None, "requestId": request_id, "committed": False,
+                    "code": "conflict" if str(fehler) == "archive_conflict" else "native_operation_failed",
+                    "fehler": fehlertext})
         finally:
             self._operation_laeuft = False
 

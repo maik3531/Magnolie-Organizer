@@ -12,7 +12,8 @@ from modul_laden import quellmodul_laden
 
 
 @pytest.mark.parametrize("failure", [None, "before-write", "after-rename", "projection"])
-def test_restore_reports_actual_commit_state(failure):
+@pytest.mark.parametrize("operation", ["journal", "archive"])
+def test_restore_reports_actual_commit_state(failure, operation):
     source = Path(__file__).parents[1] / "bin/magnolie-organizer"
     product = quellmodul_laden("owned_restore_commit_" + uuid.uuid4().hex, str(source))
     with tempfile.TemporaryDirectory(prefix="magnolie-restore-commit-", dir="/tmp/opencode") as directory:
@@ -67,8 +68,15 @@ def test_restore_reports_actual_commit_state(failure):
                 raise OSError("Owned post-rename failure")
 
         product.atomar_text_schreiben = write
-        product.Fenster._journal_wiederherstellen(window, target["snapshotId"], ["notes"], "replace")
-        result = next(value for callback, value in window.replies if callback == "App.journalWiederhergestellt")
+        if operation == "archive":
+            archive_file = Path(directory) / "owned.magnolie"
+            writer(str(archive_file), product.gesamtarchiv_erzeugen(data))
+            product.Fenster._gesamtarchiv_importieren(window, str(archive_file), "", "vollstaendig-ersetzen")
+            callback_name = "App.gesamtarchivImportiert"
+        else:
+            product.Fenster._journal_wiederherstellen(window, target["snapshotId"], ["notes"], "replace")
+            callback_name = "App.journalWiederhergestellt"
+        result = next(value for callback, value in window.replies if callback == callback_name)
         written = json.loads(data_file.read_text())
         committed = failure != "before-write"
         assert result["ok"] is committed and result["committed"] is committed

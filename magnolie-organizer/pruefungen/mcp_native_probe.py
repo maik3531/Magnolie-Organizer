@@ -709,6 +709,46 @@ def client():
             restored_gui = call("tools/call", {"name": "organizer_content_read", "arguments": {"section": "notizen", "id": note_id, "path": ["text"], "limit": 5}})
             assert not restored_gui["isError"] and restored_gui["structuredContent"]["total_bytes"] == len(large_text.encode("utf8")), "Native GUI did not adopt the committed restore"
             assert base64.b64decode(restored_gui["structuredContent"]["data"]) == large_text.encode("utf8")[:5]
+        import_preview = call("tools/call", {"name": "organizer_archive_preview", "arguments": {
+            "path": str(export_path), "password": "owned-export-password"}})
+        assert not import_preview["isError"], import_preview
+        import_revision = import_preview["structuredContent"]["revision"]
+        before_import = call("tools/call", {"name": "organizer_note_read", "arguments": {"id": note_id, "fields": ["id"]}})
+        changed_import = call("tools/call", {"name": "organizer_note_update", "arguments": {
+            "id": note_id, "expected_revision": before_import["structuredContent"]["revision"], "text": "Owned before archive import"}})
+        assert not changed_import["isError"], changed_import
+        import_book = call("tools/call", {"name": "organizer_book_revision_read"})
+        export_path.write_bytes(exported_bytes + b"\n")
+        import_args = {"path": str(export_path), "password": "owned-export-password", "expected_revision": import_revision,
+            "expected_book_revision": import_book["structuredContent"]["revision"], "mode": "replace"}
+        stale_import = call("tools/call", {"name": "organizer_archive_import", "arguments": import_args})
+        assert stale_import["isError"] and stale_import["structuredContent"]["code"] == "conflict", stale_import
+        assert next(item for item in json.loads(data_file.read_text())["notizen"] if item["id"] == note_id)["text"] == "Owned before archive import"
+        export_path.write_bytes(exported_bytes)
+        import_setup = threading.Event()
+        import_originals = {}
+        def configure_import_projection_failure():
+            import_originals["projection"] = window._erinnerungsprojektion_aktualisieren
+            def failed_projection():
+                raise OSError("Owned archive import projection failure")
+            window._erinnerungsprojektion_aktualisieren = failed_projection
+            import_setup.set()
+            return False
+        product.GLib.idle_add(configure_import_projection_failure)
+        assert import_setup.wait(5)
+        imported_api = call("tools/call", {"name": "organizer_archive_import", "arguments": import_args})
+        assert not imported_api["isError"] and imported_api["structuredContent"]["committed"] and imported_api["structuredContent"]["repair_pending"], imported_api
+        assert imported_api["structuredContent"]["previous_snapshot_id"], imported_api
+        assert next(item for item in json.loads(data_file.read_text())["notizen"] if item["id"] == note_id)["text"] == large_text
+        imported_gui = call("tools/call", {"name": "organizer_content_read", "arguments": {"section": "notizen", "id": note_id, "path": ["text"], "limit": 5}})
+        assert not imported_gui["isError"] and imported_gui["structuredContent"]["total_bytes"] == len(large_text.encode("utf8")), imported_gui
+        import_cleaned = threading.Event()
+        def clean_import_fixture():
+            window._erinnerungsprojektion_aktualisieren = import_originals["projection"]
+            import_cleaned.set()
+            return False
+        product.GLib.idle_add(clean_import_fixture)
+        assert import_cleaned.wait(5)
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()

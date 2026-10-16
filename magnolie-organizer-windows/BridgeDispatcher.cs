@@ -1209,7 +1209,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
         {
             var text = store.Read(path, AtomicStore.MaxArchiveBytes)
                 ?? throw new IOException(T("The complete archive is empty."));
-            await SendGesamtarchivPreviewAsync(path, GesamtarchivService.Read(text, password), requestId);
+            await SendGesamtarchivPreviewAsync(path, GesamtarchivService.Read(text, password), requestId,
+                Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text))).ToLowerInvariant());
         }
         catch (Exception error)
         {
@@ -1220,10 +1221,10 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
     }
 
-    private Task SendGesamtarchivPreviewAsync(string path, GesamtarchivInfo info, string? requestId = null) =>
+    private Task SendGesamtarchivPreviewAsync(string path, GesamtarchivInfo info, string? requestId = null, string? revision = null) =>
         form.SendAsync("App.gesamtarchivAusgewaehlt", new
         {
-            ok = true, requestId, pfad = path, verschluesselt = info.Verschluesselt,
+            ok = true, requestId, revision, pfad = path, verschluesselt = info.Verschluesselt,
             brauchtKennwort = false, geprueft = true, erstellt = info.Erstellt,
             plattform = info.Plattform, appversion = info.Appversion,
             anzahlen = info.Anzahlen, fotos = info.Fotos, anhaenge = info.Anhaenge
@@ -1271,6 +1272,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private async Task ImportGesamtarchivAsync(JsonElement message)
     {
+        var requestId = Text(message, "requestId");
         var locked = false;
         var committed = false;
         SnapshotInfo? restorePoint = null;
@@ -1281,6 +1283,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var source = Text(message, "pfad");
             var text = store.Read(source, AtomicStore.MaxArchiveBytes)
                 ?? throw new IOException(T("The complete archive is empty."));
+            var expectedRevision = Text(message, "expectedRevision");
+            if (expectedRevision.Length != 0 && expectedRevision != Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text))).ToLowerInvariant())
+                throw new InvalidDataException("archive_conflict");
             var info = GesamtarchivService.Read(text, Text(message, "kennwort"));
             await FencePhoneRestoreAsync();
             await MutationGate.Global.WaitAsync(); locked = true;
@@ -1300,15 +1305,16 @@ internal sealed partial class BridgeDispatcher : IDisposable
             currentPlainTextAvailable = true;
             currentEnvelope = encryption.Session is not null ? stored : "";
             var warning = commitWarning + await CompleteRestoreRuntimeAsync(currentPlainText, encryption.Session is not null, resumeTree: false);
-            await SendRestoreResultAsync("App.gesamtarchivImportiert", warning);
+            await SendRestoreResultAsync("App.gesamtarchivImportiert", warning, requestId, restorePoint.Id);
         }
         catch (Exception error)
         {
-            if (committed) { await SendRestoreResultAsync("App.gesamtarchivImportiert", T("Synchronization failed.")); return; }
+            if (committed) { await SendRestoreResultAsync("App.gesamtarchivImportiert", T("Synchronization failed."), requestId, restorePoint?.Id); return; }
             var warning = await ReleaseRestoreFence();
-            await ReportErrorAsync("gesamtarchiv_importieren", error.ToString());
+            if (string.IsNullOrEmpty(requestId)) await ReportErrorAsync("gesamtarchiv_importieren", error.ToString());
             await form.SendAsync("App.gesamtarchivImportiert", new
-                { ok = false, daten = (object?)null, repairPending = restoreInProgress, fehler = T("The complete archive could not be verified.") + " " + warning });
+                { ok = false, requestId, committed = false, code = error.Message == "archive_conflict" ? "conflict" : "native_operation_failed",
+                  daten = (object?)null, repairPending = restoreInProgress, fehler = T("The complete archive could not be verified.") + " " + warning });
         }
         finally
         {

@@ -31854,6 +31854,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         _("Complete archive exported without encryption."));
     },
     gesamtarchivImportiert(nutzlast) {
+      if (nutzlast?.requestId) { mcpArchivImportAntwort(nutzlast); return; }
       nutzlast = nutzlast || {};
       if (!nutzlast.ok) {
         $("#sicherung-fehler").textContent = nutzlast.fehler || _("The backup could not be restored.");
@@ -34142,7 +34143,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const book = DATEN, value = await mcpNativeAufruf("gesamtarchiv_pruefen", { pfad: args.path, kennwort: args.password || "" }, "gesamtarchivAusgewaehlt", signal);
         if (signal.aborted || DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Book changed during archive verification");
         if (value.ok !== true || value.geprueft !== true) throw new MagnolieMcp.ToolError("archive_verification_failed", "Native archive verification failed; check the file and archive password");
-        return { path: value.pfad, verified: true, encrypted: value.verschluesselt === true, created_at: String(value.erstellt || ""), platform: String(value.plattform || ""),
+        return { path: value.pfad, revision: value.revision, verified: true, encrypted: value.verschluesselt === true, created_at: String(value.erstellt || ""), platform: String(value.plattform || ""),
           app_version: String(value.appversion || ""), counts: kopie(value.anzahlen || {}), photos: value.fotos, attachments: value.anhaenge };
       } }];
   }
@@ -34156,6 +34157,38 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (value.ok !== true || typeof value.pfad !== "string" || !value.pfad) throw new MagnolieMcp.ToolError("archive_export_failed", "Native archive export or written-file verification failed");
         if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "An exported archive may exist; the book changed during export");
         return { path: value.pfad, confirmed: true, encrypted: value.verschluesselt === true };
+      } }];
+  }
+  function mcpArchivImportAntwort(value) {
+    if (value.ok === true && value.committed === true && value.daten) {
+      verwerfeSpeichernNachRestore(); DATEN = normalisiere(value.daten);
+      letzterSpeicherText = JSON.stringify(DATEN); kennwortAn = !!value.kennwort;
+      terminIndexVeraltet = true; jahrestagIndexVeraltet = true;
+      wendeSchriftAn(); wendeAllgemeinAn(); zeichneAlles(); setzeSpeicherStatus(_("Saved"), true);
+    }
+    mcpNativeAntwort({ requestId: value.requestId, ok: value.ok === true, code: value.code,
+      committed: value.committed === true, previous_snapshot_id: value.vorher || null,
+      repair_pending: value.repairPending === true, warning_present: !!value.fehler }, "gesamtarchivImportiert");
+  }
+  function mcpArchivImportWerkzeuge() {
+    const revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    return [{ name: "organizer_archive_import", description: "Replace the book using the native complete-archive import transaction and mandatory pre-restore checkpoint. Requires the verified archive revision and current book revision. Committed data is adopted even after cancellation; synchronization remains explicit.",
+      inputSchema: { type: "object", properties: { path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, password: { type: "string", maxLength: 1024 }, expected_revision: revision, expected_book_revision: revision, mode: { type: "string", enum: ["replace"] } }, required: ["path", "expected_revision", "expected_book_revision", "mode"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        if (syncLaeuft || personalSyncAutoLaeuft) throw new MagnolieMcp.ToolError("native_busy", "Finish synchronization before importing a book");
+        const book = DATEN, before = JSON.stringify(book), hash = await personalSyncHash(before);
+        if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || hash !== args.expected_book_revision)
+          throw new MagnolieMcp.ToolError("conflict", "Book changed; read its revision again before importing");
+        await mcpSchreiben(signal, () => ({})); mcpEditorPruefen();
+        if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("conflict", "Book changed while preparing import");
+        mcpRestoreAktiv = true;
+        try {
+          const value = await mcpNativeAufruf("gesamtarchiv_importieren", { pfad: args.path, kennwort: args.password || "", modus: "vollstaendig-ersetzen", expectedRevision: args.expected_revision }, "gesamtarchivImportiert", signal);
+          if (value.ok !== true) throw new MagnolieMcp.ToolError(value.code === "conflict" ? "conflict" : value.code === "busy" ? "native_busy" : "native_operation_failed", "Native archive import failed or its preconditions changed");
+          if (value.committed !== true) throw new MagnolieMcp.ToolError("invalid_result", "Native import did not confirm the committed profile");
+          return { restored: true, committed: true, previous_snapshot_id: value.previous_snapshot_id, repair_pending: value.repair_pending, warning_present: value.warning_present, book_revision: await personalSyncHash(JSON.stringify(DATEN)) };
+        } finally { mcpRestoreAktiv = false; }
       } }];
   }
   function wendeUrlaubDatenAn(entry, values) {
@@ -34359,7 +34392,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
     if (name === "organizer_archive_export") return shape({ path: text, confirmed: yes, encrypted: flag }, ["path", "confirmed", "encrypted"]);
-    if (name === "organizer_archive_preview") return shape({ path: text, verified: yes, encrypted: flag, created_at: text, platform: text, app_version: text, counts: object, photos: { type: "integer", minimum: 0 }, attachments: { type: "integer", minimum: 0 } }, ["path", "verified", "encrypted", "created_at", "platform", "app_version", "counts", "photos", "attachments"]);
+    if (name === "organizer_archive_import") return mcpErgebnisSchema("organizer_recovery_snapshot_restore");
+    if (name === "organizer_archive_preview") return shape({ path: text, revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, verified: yes, encrypted: flag, created_at: text, platform: text, app_version: text, counts: object, photos: { type: "integer", minimum: 0 }, attachments: { type: "integer", minimum: 0 } }, ["path", "revision", "verified", "encrypted", "created_at", "platform", "app_version", "counts", "photos", "attachments"]);
     if (name === "organizer_backup_create") return shape({ path: text, confirmed: yes }, ["path", "confirmed"]);
     if (name === "organizer_recovery_runtime_policy_read") return shape({ policy: shape({ interval: { type: "string", enum: ["off", "6h", "12h", "daily", "weekly"] }, retention_mode: { type: "string", enum: ["count", "days"] }, maximum: { type: "integer", minimum: 1, maximum: 100 }, days: { type: "integer", minimum: 1, maximum: 3650 } }, ["interval", "retention_mode", "maximum", "days"]), revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["policy", "revision"]);
     if (name === "organizer_recovery_runtime_policy_update") return shape({ native_applied: yes, persisted: yes }, ["native_applied", "persisted"]);
@@ -34465,6 +34499,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpBackupWerkzeuge(),
       ...mcpArchivWerkzeuge(),
       ...mcpArchivExportWerkzeuge(),
+      ...mcpArchivImportWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
