@@ -614,32 +614,46 @@ def client():
             changed_for_restore = call("tools/call", {"name": "organizer_note_update", "arguments": {
                 "id": note_id, "expected_revision": before_restore["structuredContent"]["revision"], "text": "Owned later native state"}})
             assert not changed_for_restore["isError"] and changed_for_restore["structuredContent"]["persisted"], changed_for_restore
-            restore_done = threading.Event()
+            restore_setup = threading.Event()
             restore_result = {}
+            restore_originals = {}
 
-            def restore_with_projection_failure():
-                original_projection = window._erinnerungsprojektion_aktualisieren
-                original_reply = window.antwort
+            def configure_restore_projection_failure():
+                restore_originals["projection"] = window._erinnerungsprojektion_aktualisieren
+                restore_originals["reply"] = window.antwort
                 def failed_projection():
                     raise OSError("Owned native restore projection failure")
                 def reply(callback, *values):
                     if callback == "App.journalWiederhergestellt":
                         value = values[0]
                         restore_result.update({key: value.get(key) for key in ("ok", "committed", "repairPending")})
-                    return original_reply(callback, *values)
+                    return restore_originals["reply"](callback, *values)
                 window._erinnerungsprojektion_aktualisieren = failed_projection
                 window.antwort = reply
-                try:
-                    window._journal_wiederherstellen(restore_id, ["notes"], "replace")
-                finally:
-                    window._erinnerungsprojektion_aktualisieren = original_projection
-                    window.antwort = original_reply
-                    restore_done.set()
+                restore_setup.set()
                 return False
 
-            product.GLib.idle_add(restore_with_projection_failure)
-            assert restore_done.wait(15), "Native restore did not complete"
+            product.GLib.idle_add(configure_restore_projection_failure)
+            assert restore_setup.wait(15), "Native restore fixture was not configured"
+            restore_preview = call("tools/call", {"name": "organizer_recovery_snapshot_preview", "arguments": {"id": restore_id}})
+            restore_book = call("tools/call", {"name": "organizer_book_revision_read"})
+            stale_restore = call("tools/call", {"name": "organizer_recovery_snapshot_restore", "arguments": {
+                "id": restore_id, "expected_revision": "0" * 64, "expected_book_revision": restore_book["structuredContent"]["revision"], "areas": ["notes"], "mode": "replace"}})
+            assert stale_restore["isError"] and stale_restore["structuredContent"]["code"] == "conflict", stale_restore
+            assert next(item for item in json.loads(data_file.read_text())["notizen"] if item["id"] == note_id)["text"] == "Owned later native state"
+            restore_book = call("tools/call", {"name": "organizer_book_revision_read"})
+            restored_api = call("tools/call", {"name": "organizer_recovery_snapshot_restore", "arguments": {
+                "id": restore_id, "expected_revision": restore_preview["structuredContent"]["revision"], "expected_book_revision": restore_book["structuredContent"]["revision"], "areas": ["notes"], "mode": "replace"}})
+            assert not restored_api["isError"] and restored_api["structuredContent"]["committed"] and restored_api["structuredContent"]["repair_pending"], restored_api
             assert restore_result == {"ok": True, "committed": True, "repairPending": True}, restore_result
+            restore_cleaned = threading.Event()
+            def clean_restore_fixture():
+                window._erinnerungsprojektion_aktualisieren = restore_originals["projection"]
+                window.antwort = restore_originals["reply"]
+                restore_cleaned.set()
+                return False
+            product.GLib.idle_add(clean_restore_fixture)
+            assert restore_cleaned.wait(5), "Native restore fixture was not cleaned"
             assert next(item for item in json.loads(data_file.read_text())["notizen"] if item["id"] == note_id)["text"] == large_text
             restored_gui = call("tools/call", {"name": "organizer_content_read", "arguments": {"section": "notizen", "id": note_id, "path": ["text"], "limit": 5}})
             assert not restored_gui["isError"] and restored_gui["structuredContent"]["total_bytes"] == len(large_text.encode("utf8")), "Native GUI did not adopt the committed restore"

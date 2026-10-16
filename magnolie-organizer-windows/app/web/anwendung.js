@@ -31806,11 +31806,21 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         _("Objects") + ": " + Object.values(nutzlast.summary || {}).reduce((a, b) => a + Number(b || 0), 0));
     },
     journalWiederhergestellt(nutzlast) {
-      if (!(nutzlast || {}).ok) { zettel(nutzlast.fehler || _("Restore failed.")); return; }
+      if (!(nutzlast || {}).ok) {
+        if (nutzlast?.requestId) mcpNativeAntwort({ requestId: nutzlast.requestId, ok: false, code: nutzlast.code }, "journalWiederhergestellt");
+        else zettel(nutzlast.fehler || _("Restore failed."));
+        return;
+      }
       verwerfeSpeichernNachRestore();
       DATEN = normalisiere(nutzlast.daten); terminIndexVeraltet = true;
       jahrestagIndexVeraltet = true; letzterSpeicherText = JSON.stringify(DATEN);
       zeichneAlles(); setzeSpeicherStatus(_("Saved"), true);
+      if (nutzlast.requestId) {
+        mcpNativeAntwort({ requestId: nutzlast.requestId, ok: true, committed: nutzlast.committed === true,
+          previous_snapshot_id: nutzlast.vorher || null, repair_pending: nutzlast.repairPending === true,
+          warning_present: !!nutzlast.fehler }, "journalWiederhergestellt");
+        return;
+      }
       zettel(_("Snapshot restored. The first synchronization will not send deletions."));
       setTimeout(() => starteSync(false), 500);
     },
@@ -32596,6 +32606,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return { token, expected_bytes: transfer.size, received_bytes: transfer.received, expires_ms: transfer.expires };
   }
   function mcpEditorPruefen() {
+    if (mcpRestoreAktiv) throw new MagnolieMcp.ToolError("native_busy", "A native book restore is still pending");
     if ([...aktiveZeichenblaetter.values()].some(value => value.editor.isInteracting?.()))
       throw new MagnolieMcp.ToolError("drawing_busy", "Finish the current drawing gesture before an external write");
     if (editorIstGeaendert()) throw new MagnolieMcp.ToolError("editor_busy", "Save or discard the current editor draft before an external write");
@@ -32603,6 +32614,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       throw new MagnolieMcp.ToolError("dialog_busy", "Close the current Organizer dialog before an external data write");
   }
   let mcpSchreibKette = Promise.resolve();
+  let mcpRestoreAktiv = false;
   function mcpSchreiben(signal, mutation) {
     const run = async () => {
       if (signal.aborted || gesperrt || !initialisiert || !antwortErhalten)
@@ -34015,6 +34027,31 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           const value = await native("journal_loeschen", { snapshotIds: ids, expectedRevisions: Object.fromEntries(args.snapshots.map(value => [value.id, value.expected_revision])) }, "journalErgebnis", signal);
           return { deleted_count: value.anzahl, confirmed: true };
         } },
+      { name: "organizer_book_revision_read", description: "Read the current in-memory book revision required to authorize a native restore. The token includes the complete current document; an intervening edit invalidates it.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => ({ revision: await personalSyncHash(JSON.stringify(DATEN)) }) },
+      { name: "organizer_recovery_snapshot_restore", description: "Restore explicitly selected areas using the native product restore transaction and mandatory pre-restore checkpoint. Requires current book and snapshot revisions. Native callbacks adopt committed data before confirming; repair state is returned and synchronization remains explicit for this API operation.",
+        inputSchema: { type: "object", properties: { id, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          areas: { type: "array", minItems: 1, maxItems: 4, items: { type: "string", enum: ["all", "contacts", "calendar", "notes"] } }, mode: { type: "string", enum: ["additive", "replace"] } },
+          required: ["id", "expected_revision", "expected_book_revision", "areas", "mode"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => {
+          mcpEditorPruefen();
+          if (syncLaeuft || personalSyncAutoLaeuft) throw new MagnolieMcp.ToolError("native_busy", "Finish synchronization before restoring a book");
+          if (new Set(args.areas).size !== args.areas.length || args.areas.includes("all") && args.areas.length !== 1)
+            throw new MagnolieMcp.ToolError("invalid_selection", "Restore areas must be unique; all cannot be combined with individual areas");
+          const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+          if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || revision !== args.expected_book_revision)
+            throw new MagnolieMcp.ToolError("conflict", "Book changed; read its revision again before restoring");
+          await mcpSchreiben(signal, () => ({})); mcpEditorPruefen();
+          if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("conflict", "Book changed while preparing the restore");
+          mcpRestoreAktiv = true;
+          try {
+            const value = await mcpNativeAufruf("journal_wiederherstellen", { snapshotId: args.id, expectedRevision: args.expected_revision, bereiche: args.areas, modus: args.mode }, "journalWiederhergestellt", signal);
+            if (value.ok !== true) throw new MagnolieMcp.ToolError(value.code === "conflict" ? "conflict" : value.code === "busy" ? "native_busy" : "native_operation_failed", "Native recovery restore failed or its preconditions changed");
+            if (value.committed !== true) throw new MagnolieMcp.ToolError("invalid_result", "Native restore did not confirm its committed profile");
+            return { restored: true, committed: true, previous_snapshot_id: value.previous_snapshot_id, repair_pending: value.repair_pending,
+              warning_present: value.warning_present, book_revision: await personalSyncHash(JSON.stringify(DATEN)) };
+          } finally { mcpRestoreAktiv = false; }
+        } },
       { name: "organizer_recovery_snapshot_create", description: "Create or reuse a manual recovery snapshot under the product policy after a native book-save acknowledgement. Success includes metadata from the actual correlated native checkpoint operation.",
         inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (_args, signal) => {
           const book = DATEN; await mcpSchreiben(signal, () => ({}));
@@ -34226,6 +34263,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_book_revision_read") return shape({ revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["revision"]);
+    if (name === "organizer_recovery_snapshot_restore") return shape({ restored: yes, committed: yes, previous_snapshot_id: { type: ["string", "null"] }, repair_pending: flag, warning_present: flag, book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["restored", "committed", "previous_snapshot_id", "repair_pending", "warning_present", "book_revision"]);
     if (name === "organizer_recovery_list") return shape({ snapshots: { type: "array", items: object, maxItems: 100 }, total: { type: "integer", minimum: 0 }, offset: { type: "integer", minimum: 0 }, next_offset: { type: "integer", minimum: 0 }, settings: object }, ["snapshots", "total", "offset", "settings"]);
     if (name === "organizer_recovery_snapshot_preview") return shape({ snapshot: object, summary: object, confirmed: yes, verified: flag, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["snapshot", "summary", "confirmed", "verified", "revision"]);
     if (name === "organizer_recovery_snapshots_delete") return shape({ deleted_count: { type: "integer", minimum: 0, maximum: 100 }, confirmed: yes }, ["deleted_count", "confirmed"]);

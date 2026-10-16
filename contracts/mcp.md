@@ -100,6 +100,8 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_recovery_snapshot_preview` | Correlated native verification/summary plus opaque file-state revision. `verify:false` permits inspection of damaged archive metadata without claiming payload verification; `verified` reports the actual mode. |
 | `organizer_recovery_snapshot_create` | Flushes book writes through the native save gate, then creates/reuses a manual checkpoint under the product policy. Returns confirmed metadata from the actual native result; a concurrent book change is reported explicitly. |
 | `organizer_recovery_snapshots_delete` | Deletes up to 100 selected IDs with revisions obtained from preview/inspection. The native journal checks every selected state under its lock before the first deletion, including changed payload bytes. Active restore leases are rejected. Native result reports the actual deletion count. |
+| `organizer_book_revision_read` | Opaque revision of the current complete in-memory book, required to authorize a restore. |
+| `organizer_recovery_snapshot_restore` | Explicit areas (`all`, `contacts`, `calendar`, `notes`) and mode (`additive`, `replace`) with snapshot-file and current-book preconditions. Uses the actual native restore transaction/checkpoint/fences; the frontend adopts committed data before the small MCP acknowledgement. Returns commit/repair state and a fresh book revision. Synchronization is explicit after an API restore. |
 | `organizer_appointment_read` | Appointment, provider/read-only metadata and revision token |
 | `organizer_appointment_create` | Local/timed/all-day appointment, repeat configuration, alarms, participants and attachment metadata |
 | `organizer_appointment_update` | Revision-checked editor fields and provider moves through the existing ICS mirror |
@@ -182,7 +184,7 @@ Definition names must be nonblank so entries survive the normal product reload.
 
 The remaining work includes other settings changes, native attachment open/save,
 imports/exports and planners,
-recovery restore/policy changes and backup operations, synchronization/accounts, Magnolienbaum operations,
+recovery policy changes and backup operations, synchronization/accounts, Magnolienbaum operations,
 the remaining phone/KDE actions, and complete
 installed-product acceptance.
 The listed tools execute their current product operations; remaining functions

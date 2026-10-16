@@ -1678,7 +1678,10 @@ def journal_snapshot_erzeugen(daten, grund, kennwort="", basis=None, jetzt=None,
 
 
 @_journal_exklusiv
-def journal_snapshot_lesen(snapshot_id, kennwort="", basis=None):
+def journal_snapshot_lesen(snapshot_id, kennwort="", basis=None, expected_revision=None):
+    if expected_revision is not None and (not isinstance(expected_revision, str) or
+            not hmac.compare_digest(journal_snapshot_revision(snapshot_id, basis), expected_revision)):
+        raise RuntimeError("snapshot_conflict")
     snapshot_id = _journal_uuid(snapshot_id)
     stand = next((s for s in journal_liste(basis) if s.get("snapshotId") == snapshot_id), None)
     if not stand or stand.get("integrity") != "ok":
@@ -21119,7 +21122,8 @@ class Fenster(_FENSTER_BASIS):
         elif befehl == "journal_wiederherstellen":
             self._journal_wiederherstellen(
                 nachricht.get("snapshotId") or "", nachricht.get("bereiche"),
-                nachricht.get("modus") or "replace")
+                nachricht.get("modus") or "replace", nachricht.get("requestId"),
+                nachricht.get("expectedRevision"))
 
         elif befehl == "mutations_snapshot":
             grund = nachricht.get("reason") or ""
@@ -22346,10 +22350,11 @@ class Fenster(_FENSTER_BASIS):
             if peer.get("time_sync", {}).get("local", {}).get("enabled") is True:
                 telefon.send_personal_sync(peer["device_id"], "personal_sync.time_settings", {"enabled": False})
 
-    def _journal_wiederherstellen(self, snapshot_id, bereiche=None, modus="replace"):
+    def _journal_wiederherstellen(self, snapshot_id, bereiche=None, modus="replace", request_id=None, expected_revision=None):
         if (getattr(self, "_operation_laeuft", False) or
                 getattr(self, "_sync_laeuft", False)):
             self.antwort("App.journalWiederhergestellt", {"ok": False,
+                "requestId": request_id, "committed": False, "code": "busy",
                 "fehler": _("Another data operation is still running.")})
             return
         self._operation_laeuft = True
@@ -22357,7 +22362,8 @@ class Fenster(_FENSTER_BASIS):
         warnung = ""
         try:
             with self._daten_sperre:
-                _stand, gelesen = journal_snapshot_lesen(snapshot_id, self._kennwort)
+                _stand, gelesen = journal_snapshot_lesen(snapshot_id, self._kennwort,
+                    expected_revision=expected_revision)
                 vorher = self._journal_snapshot("pre-restore")
                 if not isinstance(bereiche, list) or not bereiche:
                     bereiche = ["all"]
@@ -22386,6 +22392,7 @@ class Fenster(_FENSTER_BASIS):
                 self._aktuelle_daten = daten
                 self._erinnerungsprojektion_aktualisieren()
             self.antwort("App.journalWiederhergestellt", {"ok": True,
+                "requestId": request_id,
                 "committed": True, "repairPending": bool(warnung), "fehler": warnung,
                 "daten": daten, "vorher": vorher["snapshotId"],
                 "syncEpoch": daten["syncMetadaten"]["syncEpoch"]})
@@ -22395,13 +22402,15 @@ class Fenster(_FENSTER_BASIS):
             fehlertext = fehler_deutsch(fehler, _("Restoring a recovery snapshot"))
             if committed:
                 self.antwort("App.journalWiederhergestellt", {"ok": True,
+                    "requestId": request_id,
                     "committed": True, "repairPending": True, "fehler": fehlertext,
                     "daten": daten, "vorher": vorher["snapshotId"],
                     "syncEpoch": daten["syncMetadaten"]["syncEpoch"]})
                 self.antwort("App.syncFehler", _("Saved") + " · " + fehlertext)
             else:
                 self.antwort("App.journalWiederhergestellt", {"ok": False,
-                    "committed": False, "fehler": fehlertext})
+                    "requestId": request_id, "committed": False, "fehler": fehlertext,
+                    "code": "conflict" if str(fehler) == "snapshot_conflict" else "native_operation_failed"})
         finally:
             self._operation_laeuft = False
             self._journal_stand_melden()

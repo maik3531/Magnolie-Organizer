@@ -14,7 +14,7 @@ internal static class McpTransportTests
         using (var legacySources = BridgeDispatcherContract.Parse("{\"cmd\":\"eds_status\"}")) { }
         using (var correlatedSources = BridgeDispatcherContract.Parse("{\"cmd\":\"eds_status\",\"requestId\":\"dddddddd-dddd-4ddd-8ddd-dddddddddddd\"}")) { }
         TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse("{\"cmd\":\"eds_status\",\"requestId\":42}"), "Native source correlation accepted the wrong request-ID type.");
-        foreach (var command in new[] { "journal_liste", "journal_erzeugen", "journal_manuell", "journal_vorschau", "journal_loeschen" })
+        foreach (var command in new[] { "journal_liste", "journal_erzeugen", "journal_manuell", "journal_vorschau", "journal_loeschen", "journal_wiederherstellen" })
         {
             using var legacyRecovery = BridgeDispatcherContract.Parse(JsonSerializer.Serialize(new { cmd = command }));
             using var correlatedRecovery = BridgeDispatcherContract.Parse(JsonSerializer.Serialize(new { cmd = command, requestId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee" }));

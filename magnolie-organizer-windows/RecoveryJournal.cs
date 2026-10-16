@@ -301,10 +301,12 @@ internal sealed class RecoveryJournal
         }
     }
 
-    internal string ReadPayload(string id)
+    internal string ReadPayload(string id, string? expectedRevision = null)
     {
         lock (gate)
         {
+            if (expectedRevision is not null && !FixedHash(SnapshotRevision(id), expectedRevision))
+                throw new InvalidDataException("snapshot_conflict");
             var info = Verify(id);
             if (info.PayloadFile == PayloadFile)
                 return store.Read(Path.Combine(info.Directory, info.PayloadFile), AtomicStore.MaxArchiveBytes)

@@ -22,7 +22,7 @@ def test_restore_reports_actual_commit_state(failure):
             "tombstones": [], "einstellungen": {"sync": {}, "allgemein": {}}}
         target = product.journal_snapshot_erzeugen(data, "manual", basis=directory)
         reader = product.journal_snapshot_lesen
-        product.journal_snapshot_lesen = lambda id, password: reader(id, password, basis=directory)
+        product.journal_snapshot_lesen = lambda id, password, **kwargs: reader(id, password, basis=directory, **kwargs)
         product.daten_datei = lambda: str(data_file)
         writer = product.atomar_text_schreiben
 

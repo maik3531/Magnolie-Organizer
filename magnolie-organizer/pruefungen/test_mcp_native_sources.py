@@ -76,9 +76,15 @@ def test_recovery_delete_checks_all_selected_revisions_before_any_removal():
         ids = [first["snapshotId"], second["snapshotId"]]
         assert len(set(ids)) == 2
         expected = {id: product.journal_snapshot_revision(id, root) for id in ids}
+        assert product.journal_snapshot_lesen(ids[0], basis=root, expected_revision=expected[ids[0]])[0]["snapshotId"] == ids[0]
         payload = Path(second["path"]) / second["payload"].get("file", "payload.magnolie")
         with payload.open("ab") as stream:
             stream.write(b"owned tamper")
+        try:
+            product.journal_snapshot_lesen(ids[1], basis=root, expected_revision=expected[ids[1]])
+            assert False, "A stale restore revision read a changed snapshot"
+        except RuntimeError as error:
+            assert str(error) == "snapshot_conflict"
         try:
             product.journal_snapshots_loeschen(ids, root, expected)
             assert False, "Stale revisions were accepted"

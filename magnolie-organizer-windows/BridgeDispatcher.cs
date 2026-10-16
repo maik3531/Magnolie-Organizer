@@ -1456,12 +1456,14 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private async Task RestoreSnapshotAsync(JsonElement message)
     {
+        var requestId = Text(message, "requestId");
         var locked = false;
         var committed = false;
         SnapshotInfo? restorePoint = null;
         try
         {
-            var payload = recovery.ReadPayload(SnapshotId(message));
+            var expectedRevision = Text(message, "expectedRevision");
+            var payload = recovery.ReadPayload(SnapshotId(message), expectedRevision.Length == 0 ? null : expectedRevision);
             if (EncryptionService.IsEncrypted(payload)) payload = encryption.DecryptDataWithSession(payload);
             var snapshot = GesamtarchivService.Read(payload).Daten.DeepClone().AsObject();
             var areas = message.TryGetProperty("bereiche", out var areaNode) && areaNode.ValueKind == JsonValueKind.Array
@@ -1481,15 +1483,16 @@ internal sealed partial class BridgeDispatcher : IDisposable
             committed = true;
             currentPlainText = plain; currentPlainTextAvailable = true; currentEnvelope = encryption.Session is null ? "" : stored;
             var warning = commitWarning + await CompleteRestoreRuntimeAsync(currentPlainText, encryption.Session is not null, resumeTree: false);
-            await SendRestoreResultAsync("App.journalWiederhergestellt", warning);
+            await SendRestoreResultAsync("App.journalWiederhergestellt", warning, requestId, restorePoint.Id);
             await SendRecoveryStatusAsync();
         }
         catch (Exception error)
         {
-            if (committed) { await SendRestoreResultAsync("App.journalWiederhergestellt", T("Synchronization failed.")); return; }
+            if (committed) { await SendRestoreResultAsync("App.journalWiederhergestellt", T("Synchronization failed."), requestId, restorePoint?.Id); return; }
             var warning = await ReleaseRestoreFence();
-            await ReportErrorAsync("restore_snapshot", error.Message);
-            await form.SendAsync("App.journalWiederhergestellt", new { ok = false, daten = (object?)null, repairPending = restoreInProgress, fehler = T("Restore failed.") + " " + warning });
+            if (requestId.Length == 0) await ReportErrorAsync("restore_snapshot", error.Message);
+            await form.SendAsync("App.journalWiederhergestellt", new { ok = false, requestId, committed = false, daten = (object?)null, repairPending = restoreInProgress,
+                code = error.Message == "snapshot_conflict" ? "conflict" : "native_operation_failed", fehler = T("Restore failed.") + " " + warning });
         }
         finally
         {
@@ -1551,9 +1554,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
         return "";
     }
 
-    private async Task SendRestoreResultAsync(string callback, string warning)
+    private async Task SendRestoreResultAsync(string callback, string warning, string? requestId = null, string? previousSnapshotId = null)
     {
-        await form.SendAsync(callback, new { ok = true, daten = JsonNode.Parse(currentPlainText),
+        await form.SendAsync(callback, new { ok = true, requestId, vorher = previousSnapshotId, daten = JsonNode.Parse(currentPlainText),
             kennwort = encryption.Session is not null, committed = true, repairPending = restoreInProgress, fehler = warning });
         // Restore callbacks adopt data on ok=true; their success toast ignores fehler.
         if (warning.Length != 0) await form.SendAsync("App.syncFehler", T("Saved") + " · " + warning);

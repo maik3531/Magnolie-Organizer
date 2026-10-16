@@ -45,12 +45,14 @@ internal static class RecoveryJournalTests
                 new JsonObject { ["notizen"] = new JsonArray(new JsonObject { ["id"] = "owned", ["text"] = "conditional-" + index }) },
                 SnapshotReason.Manual, "2.0.27")).ToArray();
             var expectedRevisions = conditionalPoints.ToDictionary(item => item.Id, item => conditionalJournal.SnapshotRevision(item.Id));
+            TestAssert.That(conditionalJournal.ReadPayload(conditionalPoints[0].Id, expectedRevisions[conditionalPoints[0].Id]).Contains("conditional-0"), "Current snapshot revision could not read the payload.");
             var activeRestore = conditionalJournal.CreateRestorePoint(new JsonObject { ["notizen"] = new JsonArray(new JsonObject { ["id"] = "owned-restore" }) }, "2.0.27");
             TestAssert.Throws<InvalidDataException>(() => conditionalJournal.DeleteMany([activeRestore.Id], new Dictionary<string, string> { [activeRestore.Id] = conditionalJournal.SnapshotRevision(activeRestore.Id) }),
                 "Revision-checked deletion removed an active restore checkpoint.");
             conditionalJournal.ReleaseRestoreLease(activeRestore.Id);
             conditionalJournal.DeleteMany([activeRestore.Id], new Dictionary<string, string> { [activeRestore.Id] = conditionalJournal.SnapshotRevision(activeRestore.Id) });
             File.AppendAllText(Path.Combine(conditionalPoints[1].Directory, conditionalPoints[1].PayloadFile), "owned tamper");
+            TestAssert.Throws<InvalidDataException>(() => conditionalJournal.ReadPayload(conditionalPoints[1].Id, expectedRevisions[conditionalPoints[1].Id]), "A changed snapshot was read using a stale restore revision.");
             TestAssert.Throws<InvalidDataException>(() => conditionalJournal.DeleteMany(conditionalPoints.Select(item => item.Id), expectedRevisions),
                 "Stale snapshot revisions were accepted.");
             TestAssert.That(conditionalPoints.All(item => Directory.Exists(item.Directory)), "A stale selection deleted an unchanged snapshot before validating the complete batch.");
