@@ -529,7 +529,7 @@ def regional_einstellungen(roh=None):
     if roh.get("temperatureUnit") in ("system", "celsius", "fahrenheit"):
         aus["temperatureUnit"] = roh["temperatureUnit"]
     zeitzone = str(roh.get("timeZone") or "").strip()
-    if (zeitzone == "system" or
+    if (zeitzone in ("system", "UTC") or
             (".." not in zeitzone and re.match(
                 r"^[A-Za-z0-9._+-]+(?:/[A-Za-z0-9._+-]+)+$", zeitzone))):
         aus["timeZone"] = zeitzone
