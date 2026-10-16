@@ -29162,20 +29162,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         wahl.disabled = alleHak.checked;
       };
       wahl.addEventListener("change", () => {
-        o.region = wahl.value;
-        o.setupFerienAbruf = false;
-        o.regionName = wahl.options[wahl.selectedIndex].textContent;
-        if (!wahl.value) o.regionName = "";
+        wendeOrtAuswahlDatenAn({ region: wahl.value });
         if (wahl.value) {
-          o.alleRegionen = false;
           alleHak.checked = false;
         }
         wirkung();
         planeSpeichern();
       });
       alleHak.addEventListener("change", () => {
-        o.alleRegionen = alleHak.checked;
-        o.setupFerienAbruf = false;
+        wendeOrtAuswahlDatenAn({ alleRegionen: alleHak.checked });
         wirkung();
         planeSpeichern();
       });
@@ -29187,20 +29182,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     };
 
     landWahl.addEventListener("change", () => {
-      const land = LAENDER.find((l) => l.code === landWahl.value);
-      o.land = landWahl.value;
-      o.setupFerienAbruf = false;
-      o.landName = land ? _(land.name) : "";
-      o.region = "";
-      o.regionName = "";
-      o.alleRegionen = false;
+      wendeOrtAuswahlDatenAn({ land: landWahl.value });
       planeSpeichern();
       regionenZeigen();
     });
     regionenZeigen();
     const feiertageHak = document.createElement("input"); feiertageHak.type = "checkbox";
     feiertageHak.id = "ort-feiertage"; feiertageHak.checked = o.feiertage !== false;
-    feiertageHak.addEventListener("change", () => { o.feiertage = feiertageHak.checked; planeSpeichern(); zeichneAlles(); });
+    feiertageHak.addEventListener("change", () => { wendeOrtAuswahlDatenAn({ feiertage: feiertageHak.checked }); planeSpeichern(); zeichneAlles(); });
     const feiertageZeile = el("label", "hak");
     feiertageZeile.append(feiertageHak, document.createTextNode(" " + _("Public holidays"))); ab.append(feiertageZeile);
     wurzel.append(ab);
@@ -29227,8 +29216,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     ferienHak.id = "ort-ferien";
     ferienHak.checked = !!o.ferien;
     ferienHak.addEventListener("change", () => {
-      o.ferien = ferienHak.checked;
-      if (!o.ferien) o.setupFerienAbruf = false;
+      wendeOrtAuswahlDatenAn({ ferien: ferienHak.checked });
       planeSpeichern();
       zeichneAlles();
     });
@@ -34382,6 +34370,28 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         return { path: value.pfad, confirmed: true, encrypted: value.verschluesselt === true };
       } }];
   }
+  function wendeOrtAuswahlDatenAn(values) {
+    const current = DATEN.einstellungen.ort, next = { ...current };
+    if (values.land !== undefined) {
+      const country = LAENDER.find(item => item.code === values.land);
+      if (values.land && !country) return false;
+      Object.assign(next, { land: values.land, landName: country ? _(country.name) : "", region: "", regionName: "", alleRegionen: false, setupFerienAbruf: false });
+    }
+    const country = LAENDER.find(item => item.code === next.land);
+    if (values.region !== undefined) {
+      const region = country?.regionen.find(item => item[0] === values.region);
+      if (values.region && !region) return false;
+      Object.assign(next, { region: values.region, regionName: region ? _(region[1]) : "", setupFerienAbruf: false });
+      if (values.region) next.alleRegionen = false;
+    }
+    if (values.alleRegionen !== undefined) {
+      if (values.alleRegionen && !country?.regionen.length) return false;
+      next.alleRegionen = values.alleRegionen; next.setupFerienAbruf = false;
+    }
+    if (values.feiertage !== undefined) next.feiertage = values.feiertage;
+    if (values.ferien !== undefined) { next.ferien = values.ferien; if (!next.ferien) next.setupFerienAbruf = false; }
+    Object.assign(current, next); return true;
+  }
   function entferneFeiertageDaten() {
     const count = DATEN.feiertage.length; DATEN.feiertage = [];
     DATEN.einstellungen.ort.abgerufen = 0; DATEN.einstellungen.ort.jahre = []; return count;
@@ -34417,6 +34427,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       { name: "organizer_holidays_clear", description: "Remove imported public/school holidays and reset retrieval metadata through the shared GUI handler; current holiday/settings revision and durable save required.",
         inputSchema: { type: "object", properties: { expected_revision: revision }, required: ["expected_revision"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
           await checked(args, signal); mcpEditorPruefen(); return { deleted_count: entferneFeiertageDaten() };
+        }) },
+      { name: "organizer_holidays_settings_update", description: "Update country/region, all-region selection, public-holiday visibility and school-holiday inclusion through the shared GUI settings handler, with current holiday/settings revision and durable native save. Country changes reset region; retrieving entries remains explicit.",
+        inputSchema: { type: "object", properties: { expected_revision: revision, country: { type: "string", enum: ["", ...LAENDER.map(item => item.code)] }, region: { type: "string", maxLength: 64 }, all_regions: { type: "boolean" }, public_holidays: { type: "boolean" }, school_holidays: { type: "boolean" } }, required: ["expected_revision"], anyOf: ["country", "region", "all_regions", "public_holidays", "school_holidays"].map(key => ({ required: [key] })), additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          await checked(args, signal); mcpEditorPruefen();
+          if (!wendeOrtAuswahlDatenAn({ land: args.country, region: args.region, alleRegionen: args.all_regions, feiertage: args.public_holidays, ferien: args.school_holidays })) throw new MagnolieMcp.ToolError("invalid_region", "Country, region and all-region selection do not match");
+          return {};
         }) },
       { name: "organizer_holidays_retrieve", description: "Retrieve one to three explicit years using the native product holiday service and current country/region settings, then apply its actual result using the shared GUI importer. Revision, editor and save gates prevent adopting stale/late responses.",
         inputSchema: { type: "object", properties: { expected_revision: revision, years: { type: "array", minItems: 1, maxItems: 3, items: { type: "integer", minimum: 1900, maximum: 2200 } } }, required: ["expected_revision", "years"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => mcpSchreiben(signal, async () => {
@@ -34732,6 +34748,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const written = { id, persisted: yes };
     if (name === "organizer_holidays_read") return shape({ settings: object, total: { type: "integer", minimum: 0 }, countries: { type: "array", items: object }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "total", "countries", "revision"]);
     if (name === "organizer_holidays_clear") return shape({ deleted_count: { type: "integer", minimum: 0 }, persisted: yes }, ["deleted_count", "persisted"]);
+    if (name === "organizer_holidays_settings_update") return shape({ persisted: yes }, ["persisted"]);
     if (name === "organizer_holidays_retrieve") return shape({ imported_count: { type: "integer", minimum: 0 }, persisted: yes }, ["imported_count", "persisted"]);
     if (name === "organizer_own_profile_read") return shape({ profile: { type: ["object", "null"] }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["profile", "revision"]);
     if (name === "organizer_own_profile_update") return shape(written, ["id", "persisted"]);

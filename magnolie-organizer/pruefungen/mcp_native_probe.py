@@ -850,10 +850,16 @@ def client():
         try:
             holidays = call("tools/call", {"name": "organizer_holidays_read"})
             assert holidays["structuredContent"]["settings"]["land"] == "DE", holidays
+            holiday_settings = call("tools/call", {"name": "organizer_holidays_settings_update", "arguments": {
+                "expected_revision": holidays["structuredContent"]["revision"], "country": "DE", "region": "DE-BY", "all_regions": False, "school_holidays": False}})
+            assert not holiday_settings["isError"] and holiday_settings["structuredContent"]["persisted"], holiday_settings
+            holidays = call("tools/call", {"name": "organizer_holidays_read"})
+            saved_holiday_settings = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))["einstellungen"]["ort"]
+            assert holidays["structuredContent"]["settings"]["region"] == "DE-BY" and saved_holiday_settings["region"] == "DE-BY"
             fetched_holidays = call("tools/call", {"name": "organizer_holidays_retrieve", "arguments": {
                 "expected_revision": holidays["structuredContent"]["revision"], "years": [2028]}})
             assert not fetched_holidays["isError"] and fetched_holidays["structuredContent"]["persisted"] and fetched_holidays["structuredContent"]["imported_count"] == 1, fetched_holidays
-            assert len(holiday_visits) == 1 and holiday_visits[0].startswith("/PublicHolidays?") and "countryIsoCode=DE" in holiday_visits[0], holiday_visits
+            assert len(holiday_visits) == 1 and holiday_visits[0].startswith("/PublicHolidays?") and "countryIsoCode=DE" in holiday_visits[0] and "subdivisionCode=DE-BY" in holiday_visits[0], holiday_visits
             holiday_file = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
             assert any(item["name"] == "Owned HTTP holiday" and item["country"] == "DE" for item in holiday_file["feiertage"])
             assert 2028 in holiday_file["einstellungen"]["ort"]["jahre"]
