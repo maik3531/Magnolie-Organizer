@@ -118,6 +118,26 @@ async function run(web) {
   }, { gesundheit: { vitalwerte: [{ id: "owned-vital-units", datum: "2028-02-29", gewicht: 80 }] },
     einstellungen: { kalender: { gesundheitPlanung: { vital: { an: false, von: "2028-01-01", zeit: "06:30", intervallTage: 3 } } } } });
 
+  await test("calendar display controls retain definitions and cycle opt-ins", async b => {
+    const records = JSON.stringify([b.t.daten().termine, b.t.daten().tagmarken, b.t.daten().schichten, b.t.daten().zyklusmarker, b.t.daten().urlaube, b.t.daten().muelltermine]);
+    b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-kalender").click();
+    for (const selector of ["#kalender-wochennummern", "#kalender-planer-wochennummern", "#kalender-vergangene-termine", "#kalender-vergangene-jahrestage", "#kalender-vergangene-ferien", "#kalender-schichtplaner", "#kalender-zykluskalender", "#kalender-urlaubsplaner", "#kalender-muellkalender"]) {
+      const field = b.w.document.querySelector(selector); assert.ok(field, selector); field.checked = true;
+      field.dispatchEvent(new b.w.Event("change", { bubbles: true })); await tick();
+    }
+    const calendar = b.t.daten().einstellungen.kalender;
+    assert.equal(calendar.wochenNummern, true); assert.equal(calendar.schichtplanerAn, true); assert.equal(calendar.urlaubsplanerAn, true);
+    assert.equal(calendar.zyklusErinnerungen.prognose, false); assert.equal(calendar.zyklusErinnerungen.abweichung, false);
+    const cycleInputs = [...b.w.document.querySelectorAll("#kalender-gruppe-zykluskalender input[type=number]")];
+    assert.equal(cycleInputs.length, 2); cycleInputs[0].value = "4"; cycleInputs[1].value = "9";
+    cycleInputs[0].dispatchEvent(new b.w.Event("change", { bubbles: true })); await tick();
+    assert.equal(calendar.zyklusErinnerungen.vorlauf, 4); assert.equal(calendar.zyklusErinnerungen.abweichungTage, 9);
+    assert.equal(calendar.zyklusErinnerungen.prognose, false);
+    assert.equal(JSON.stringify([b.t.daten().termine, b.t.daten().tagmarken, b.t.daten().schichten, b.t.daten().zyklusmarker, b.t.daten().urlaube, b.t.daten().muelltermine]), records);
+    b.t.speichereJetzt(); const saved = b.t.normalisiere(JSON.parse(b.saves().at(-1).text));
+    assert.equal(saved.einstellungen.kalender.zyklusErinnerungen.vorlauf, 4); assert.equal(saved.einstellungen.kalender.planerWochenNummern, true);
+  });
+
   await test("search ASCII fast path preserves Turkish I and non-ASCII folding", async b => {
     b.t.daten().termine = [{ id: "ascii", titel: "I", datum: "2026-09-08" },
       { id: "unicode", titel: "ÉCOLE", datum: "2026-09-08" }];

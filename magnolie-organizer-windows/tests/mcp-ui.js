@@ -1177,6 +1177,25 @@ let declaredContracts;
         assert.equal(b.t.daten().einstellungen.kalender.gesundheitPlanung.vital.von, "2028-02-29");
         assert.equal(JSON.stringify(b.t.daten().gesundheit), measurements);
       }
+      {
+        const records = JSON.stringify([b.t.daten().termine, b.t.daten().tagmarken, b.t.daten().schichten, b.t.daten().zyklusmarker, b.t.daten().urlaube, b.t.daten().muelltermine]);
+        const calendar = (await call(request(700, "tools/call", { name: "organizer_calendar_settings_read" }))).result.structuredContent;
+        assert.equal(calendar.settings.cycle_options.prediction, false); assert.equal(calendar.settings.cycle_options.report_deviations, false);
+        await persisted(701, "organizer_calendar_settings_update", { expected_revision: calendar.revision, click_creates_entry: false, week_numbers: true, planner_week_numbers: true,
+          show_past_appointments: true, show_past_anniversaries: true, show_past_holidays: true, shift_planner: true, cycle_calendar: true, vacation_planner: true, waste_calendar: true,
+          cycle_options: { lead_days: 4, difference_days: 9 } });
+        const k = b.t.daten().einstellungen.kalender;
+        assert.equal(k.klickLegtAn, false); assert.equal(k.schichtplanerAn, true); assert.equal(k.zyklusErinnerungen.prognose, false);
+        assert.equal(k.zyklusErinnerungen.abweichung, false); assert.equal(k.zyklusErinnerungen.vorlauf, 4);
+        assert.equal(JSON.stringify([b.t.daten().termine, b.t.daten().tagmarken, b.t.daten().schichten, b.t.daten().zyklusmarker, b.t.daten().urlaube, b.t.daten().muelltermine]), records);
+        const stale = await call(request(702, "tools/call", { name: "organizer_calendar_settings_update", arguments: { expected_revision: calendar.revision, week_numbers: false } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        const fresh = (await call(request(703, "tools/call", { name: "organizer_calendar_settings_read" }))).result.structuredContent;
+        const badRange = await call(request(704, "tools/call", { name: "organizer_calendar_settings_update", arguments: { expected_revision: fresh.revision, cycle_options: { difference_days: 31 } } }));
+        assert.equal(badRange.error.code, -32602);
+        await persisted(705, "organizer_calendar_settings_update", { expected_revision: fresh.revision, cycle_calendar: false, cycle_options: { prediction: true } });
+        assert.equal(k.zykluskalenderAn, false); assert.equal(k.zyklusErinnerungen.prognose, true); assert.equal(k.zyklusErinnerungen.vorlauf, 4);
+      }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));
       assert.equal(locked.result.isError, true);

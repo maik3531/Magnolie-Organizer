@@ -1095,6 +1095,25 @@ def client():
         no_health_view = call("tools/call", {"name": "organizer_health_settings_update", "arguments": {
             "expected_revision": health_fresh["structuredContent"]["revision"], "views": {"vital": False, "medications": False, "blood_glucose": False, "history": False}}})
         assert no_health_view["isError"] and no_health_view["structuredContent"]["code"] == "invalid_settings", no_health_view
+        calendar_file = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        calendar_keys = ("termine", "jahrestage", "tagmarken", "schichten", "zyklusmarker", "urlaube", "muelltermine")
+        calendar_records = {key: calendar_file[key] for key in calendar_keys}
+        calendar_settings = call("tools/call", {"name": "organizer_calendar_settings_read"})
+        assert calendar_settings["structuredContent"]["settings"]["cycle_options"]["prediction"] is False
+        calendar_updated = call("tools/call", {"name": "organizer_calendar_settings_update", "arguments": {
+            "expected_revision": calendar_settings["structuredContent"]["revision"], "click_creates_entry": False, "week_numbers": True,
+            "planner_week_numbers": True, "show_past_appointments": True, "show_past_anniversaries": True, "show_past_holidays": True,
+            "shift_planner": True, "cycle_calendar": True, "vacation_planner": True, "waste_calendar": True,
+            "cycle_options": {"lead_days": 4, "difference_days": 9}}})
+        assert not calendar_updated["isError"] and calendar_updated["structuredContent"]["persisted"], calendar_updated
+        calendar_saved = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        assert {key: calendar_saved[key] for key in calendar_keys} == calendar_records
+        calendar_preferences = calendar_saved["einstellungen"]["kalender"]
+        assert calendar_preferences["wochenNummern"] and calendar_preferences["planerWochenNummern"] and calendar_preferences["schichtplanerAn"]
+        assert calendar_preferences["zyklusErinnerungen"] == {"prognose": False, "abweichung": False, "vorlauf": 4, "abweichungTage": 9}
+        stale_calendar = call("tools/call", {"name": "organizer_calendar_settings_update", "arguments": {
+            "expected_revision": calendar_settings["structuredContent"]["revision"], "week_numbers": False}})
+        assert stale_calendar["isError"] and stale_calendar["structuredContent"]["code"] == "conflict", stale_calendar
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()

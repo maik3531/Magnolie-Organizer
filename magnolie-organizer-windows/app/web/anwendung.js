@@ -27337,7 +27337,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     };
     schichtGruppe.hak.id = "kalender-schichtplaner";
     schichtGruppe.hak.addEventListener("change", () => {
-      k.schichtplanerAn = schichtGruppe.hak.checked;
+      wendeKalenderAnzeigeDatenAn({ schichtplanerAn: schichtGruppe.hak.checked });
       schichtGruppe.inhalt.style.display = k.schichtplanerAn ? "" : "none";
       planeSpeichern();
       zeichneAlles();
@@ -27418,7 +27418,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       deviationLabel.append(deviation, document.createTextNode(" " + _("Report unusual cycle intervals")));
       const change = () => {
         if (!lead.reportValidity() || !threshold.reportValidity()) return;
-        Object.assign(options, { prognose: prediction.checked, abweichung: deviation.checked,
+        wendeKalenderAnzeigeDatenAn({}, { prognose: prediction.checked, abweichung: deviation.checked,
           vorlauf: Number(lead.value), abweichungTage: Number(threshold.value) });
         planeSpeichern();
       };
@@ -27429,7 +27429,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     };
     zyklusGruppe.hak.id = "kalender-zykluskalender";
     zyklusGruppe.hak.addEventListener("change", () => {
-      k.zykluskalenderAn = zyklusGruppe.hak.checked;
+      wendeKalenderAnzeigeDatenAn({ zykluskalenderAn: zyklusGruppe.hak.checked });
       zyklusGruppe.inhalt.style.display = k.zykluskalenderAn ? "" : "none";
       planeSpeichern();
       zeichneAlles();
@@ -27489,7 +27489,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     };
     urlaubsGruppe.hak.id = "kalender-urlaubsplaner";
     urlaubsGruppe.hak.addEventListener("change", () => {
-      k.urlaubsplanerAn = urlaubsGruppe.hak.checked;
+      wendeKalenderAnzeigeDatenAn({ urlaubsplanerAn: urlaubsGruppe.hak.checked });
       urlaubsGruppe.inhalt.style.display = k.urlaubsplanerAn ? "" : "none";
       planeSpeichern();
       zeichneAlles();
@@ -27579,7 +27579,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     };
     muellGruppe.hak.id = "kalender-muellkalender";
     muellGruppe.hak.addEventListener("change", () => {
-      k.muellkalenderAn = muellGruppe.hak.checked;
+      wendeKalenderAnzeigeDatenAn({ muellkalenderAn: muellGruppe.hak.checked });
       muellGruppe.inhalt.style.display = k.muellkalenderAn ? "" : "none";
       planeSpeichern();
       zeichneAlles();
@@ -27700,23 +27700,22 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     });
     if (registerAktiv("gesundheit")) ab.append(gesundheitGruppe.details);
     wahl.addEventListener("change", () => {
-      k.klickLegtAn = wahl.value === "neu";
+      wendeKalenderAnzeigeDatenAn({ klickLegtAn: wahl.value === "neu" });
       planeSpeichern();
     });
     wochenNummern.addEventListener("change", () => {
-      k.wochenNummern = wochenNummern.checked;
+      wendeKalenderAnzeigeDatenAn({ wochenNummern: wochenNummern.checked });
       planeSpeichern();
       zeichneAlles();
     });
     planerWochenNummern.addEventListener("change", () => {
-      k.planerWochenNummern = planerWochenNummern.checked;
+      wendeKalenderAnzeigeDatenAn({ planerWochenNummern: planerWochenNummern.checked });
       planeSpeichern();
       zeichneAlles();
     });
     const vergangeneUebernehmen = () => {
-      k.vergangeneTermine = vergangeneTermine.checked;
-      k.vergangeneJahrestage = vergangeneJahrestage.checked;
-      k.vergangeneFerien = vergangeneFerien.checked;
+      wendeKalenderAnzeigeDatenAn({ vergangeneTermine: vergangeneTermine.checked,
+        vergangeneJahrestage: vergangeneJahrestage.checked, vergangeneFerien: vergangeneFerien.checked });
       vergangeneFelder.style.display = vergangeneTermine.checked ? "" : "none";
       planeSpeichern();
       zeichneAlles();
@@ -34134,6 +34133,39 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         return { path: value.pfad, confirmed: true, encrypted: value.verschluesselt === true };
       } }];
   }
+  const KALENDER_ANZEIGE_FELDER = { click_creates_entry: "klickLegtAn", week_numbers: "wochenNummern", planner_week_numbers: "planerWochenNummern", show_past_appointments: "vergangeneTermine", show_past_anniversaries: "vergangeneJahrestage", show_past_holidays: "vergangeneFerien", shift_planner: "schichtplanerAn", cycle_calendar: "zykluskalenderAn", vacation_planner: "urlaubsplanerAn", waste_calendar: "muellkalenderAn" };
+  function wendeKalenderAnzeigeDatenAn(values, cycle = null) {
+    if (Object.entries(values).some(([key, value]) => !Object.values(KALENDER_ANZEIGE_FELDER).includes(key) || typeof value !== "boolean")) return false;
+    if (cycle) {
+      if (["prognose", "abweichung"].some(key => cycle[key] !== undefined && typeof cycle[key] !== "boolean")) return false;
+      if (cycle.vorlauf !== undefined && (!Number.isInteger(cycle.vorlauf) || cycle.vorlauf < 0 || cycle.vorlauf > 30)) return false;
+      if (cycle.abweichungTage !== undefined && (!Number.isInteger(cycle.abweichungTage) || cycle.abweichungTage < 1 || cycle.abweichungTage > 30)) return false;
+    }
+    Object.assign(DATEN.einstellungen.kalender, values);
+    if (cycle) Object.assign(DATEN.einstellungen.kalender.zyklusErinnerungen, cycle);
+    return true;
+  }
+  function mcpKalenderAnzeigeWerkzeuge() {
+    const fields = Object.fromEntries(Object.keys(KALENDER_ANZEIGE_FELDER).map(key => [key, { type: "boolean" }])), cycleMap = { prediction: "prognose", report_deviations: "abweichung", lead_days: "vorlauf", difference_days: "abweichungTage" };
+    const cycleFields = { prediction: { type: "boolean" }, report_deviations: { type: "boolean" }, lead_days: { type: "integer", minimum: 0, maximum: 30 }, difference_days: { type: "integer", minimum: 1, maximum: 30 } };
+    const snapshot = () => { const calendar = DATEN.einstellungen.kalender; return JSON.stringify({ flags: Object.fromEntries(Object.entries(KALENDER_ANZEIGE_FELDER).map(([key, field]) => [key, calendar[field]])), cycle: calendar.zyklusErinnerungen }); };
+    return [
+      { name: "organizer_calendar_settings_read", description: "Read calendar/planner display, past-entry and local-definition visibility preferences plus cycle-estimation notification options, with a full preference revision.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => {
+          const before = snapshot(), value = JSON.parse(before); return { settings: { ...value.flags, cycle_options: Object.fromEntries(Object.entries(cycleMap).map(([key, field]) => [key, value.cycle[field]])) }, revision: await personalSyncHash(before) };
+        } },
+      { name: "organizer_calendar_settings_update", description: "Revision-checked calendar/planner display and module-visibility settings through the shared GUI handler and native save acknowledgement. Definition/appointment data is retained. Cycle-estimation/deviation notification opt-ins remain unchanged unless explicitly supplied.",
+        inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, ...fields,
+          cycle_options: { type: "object", properties: cycleFields, anyOf: Object.keys(cycleFields).map(key => ({ required: [key] })), additionalProperties: false } }, required: ["expected_revision"], anyOf: [...Object.keys(fields), "cycle_options"].map(key => ({ required: [key] })), additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const book = DATEN, before = snapshot(), revision = await personalSyncHash(before);
+          if (signal.aborted || DATEN !== book || snapshot() !== before || revision !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Calendar preferences changed; read them again");
+          mcpEditorPruefen(); const values = Object.fromEntries(Object.entries(KALENDER_ANZEIGE_FELDER).filter(([key]) => args[key] !== undefined).map(([key, field]) => [field, args[key]]));
+          const cycle = args.cycle_options ? Object.fromEntries(Object.entries(args.cycle_options).map(([key, value]) => [cycleMap[key], value])) : null;
+          if (!wendeKalenderAnzeigeDatenAn(values, cycle)) throw new MagnolieMcp.ToolError("invalid_settings", "Calendar preferences are invalid");
+          return {};
+        }) }
+    ];
+  }
   const GESUNDHEIT_EINHEIT_OPTIONEN = { temperatur: ["auto", "celsius", "fahrenheit"], gewicht: ["auto", "kg", "lb"], groesse: ["auto", "cm", "in"], blutzucker: ["auto", "mmol/L", "mg/dL"] };
   function wendeGesundheitsEinstellungenDatenAn(values) {
     const calendar = DATEN.einstellungen.kalender, views = { ...calendar.gesundheitBereiche, ...values.bereiche };
@@ -34656,6 +34688,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_calendar_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
+    if (name === "organizer_calendar_settings_update") return shape({ persisted: yes }, ["persisted"]);
     if (name === "organizer_health_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
     if (name === "organizer_health_settings_update") return shape({ persisted: yes }, ["persisted"]);
     if (name === "organizer_backup_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
@@ -34793,6 +34827,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpSicherungskennwortWerkzeuge(),
       ...mcpSicherungstestWerkzeuge(),
       ...mcpGesundheitsEinstellungenWerkzeuge(),
+      ...mcpKalenderAnzeigeWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
