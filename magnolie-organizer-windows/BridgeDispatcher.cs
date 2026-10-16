@@ -1987,6 +1987,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private async Task FetchHolidaysAsync(JsonElement message)
     {
+        var requestId = Text(message, "requestId");
         try
         {
             var country = Text(message, "land").Trim().ToUpperInvariant();
@@ -2066,11 +2067,11 @@ internal sealed partial class BridgeDispatcher : IDisposable
                         string.Join(",", codes), suffix, country, nationwide, scopes);
                 }).OrderBy(item => item.von).ThenBy(item => item.name).ToArray();
             var report = clean.Length == 0 ? T("The service returned no entries for this selection.") : T("The holidays were imported.");
-            await form.SendAsync("App.feiertageErgebnis", new { feiertage = clean, bericht = report, jahre = years });
+            await form.SendAsync("App.feiertageErgebnis", new { requestId, feiertage = clean, bericht = report, jahre = years });
         }
         catch (Exception error)
         {
-            await form.SendAsync("App.feiertageErgebnis", new { fehler = error.Message });
+            await form.SendAsync("App.feiertageErgebnis", new { requestId, fehler = error.Message });
         }
     }
 

@@ -29010,9 +29010,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       frage(_("Remove all public holidays and school holidays from the organizer?"),
         _("Remove")).then((ja) => {
         if (!ja) return;
-        DATEN.feiertage = [];
-        DATEN.einstellungen.ort.abgerufen = 0;
-        DATEN.einstellungen.ort.jahre = [];
+        entferneFeiertageDaten();
         planeSpeichern();
         zeichneAlles();
         baueEinstellungen();
@@ -32112,6 +32110,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
     },
     feiertageErgebnis(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "feiertageErgebnis"); return; }
       nutzlast = nutzlast || {};
       feiertageLaufen = false;
       const anfrage = feiertageAnfrage;
@@ -32131,32 +32130,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         zettel(nutzlast.fehler);
         return;
       }
-      const o = DATEN.einstellungen.ort;
-      const jahre = [...new Set((nutzlast.jahre || []).map(Number).filter((jahr) =>
-        Number.isInteger(jahr) && jahr >= 1900 && jahr <= 2200))];
-      DATEN.feiertage = DATEN.feiertage.filter((f) => {
-        const vonJahr = Number(String(f.von || "").slice(0, 4));
-        const bisJahr = Number(String(f.bis || f.von || "").slice(0, 4));
-        return !jahre.some((jahr) => jahr >= vonJahr && jahr <= bisJahr);
-      });
-      for (const f of nutzlast.feiertage || []) {
-        if (!f || !gueltigesISO(f.von) || !f.name) continue;
-        DATEN.feiertage.push({ id: uid(), von: f.von,
-          bis: gueltigesISO(f.bis) && f.bis >= f.von ? f.bis : f.von,
-          name: String(f.name),
-          art: enumWert(f.art, { ferien: "school-holiday",
-            "school-holiday": "school-holiday", feiertag: "public-holiday",
-            "public-holiday": "public-holiday" }, "public-holiday"),
-          region: String(f.region || ""),
-          regionName: String(f.regionName || ""),
-          country: /^[A-Z]{2}$/.test(f.country || "") ? f.country : anfrage?.land || "",
-          nationwide: f.nationwide === true,
-          regions: Array.isArray(f.regions) ? [...new Set(f.regions.map(S).filter(wert => /^[A-Z0-9-]{1,64}$/.test(wert)))] : [] });
-      }
-      o.abgerufen = Date.now();
-      o.setupFerienAbruf = false;
-      o.jahre = [...new Set((o.jahre || []).map(Number).concat(jahre))]
-        .filter(Number.isInteger).sort((a, b) => a - b);
+      wendeFeiertageDatenAn(nutzlast, anfrage?.land || "");
       planeSpeichern();
       zeichneAlles();
       if (!$("#einstellungen-schleier").classList.contains("verborgen")) {
@@ -34161,6 +34135,57 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         return { path: value.pfad, confirmed: true, encrypted: value.verschluesselt === true };
       } }];
   }
+  function entferneFeiertageDaten() {
+    const count = DATEN.feiertage.length; DATEN.feiertage = [];
+    DATEN.einstellungen.ort.abgerufen = 0; DATEN.einstellungen.ort.jahre = []; return count;
+  }
+  function wendeFeiertageDatenAn(value, country) {
+    const years = [...new Set((value.jahre || []).map(Number).filter(year => Number.isInteger(year) && year >= 1900 && year <= 2200))];
+    DATEN.feiertage = DATEN.feiertage.filter(item => !years.some(year => year >= Number(String(item.von || "").slice(0, 4)) && year <= Number(String(item.bis || item.von || "").slice(0, 4))));
+    let imported = 0;
+    for (const item of value.feiertage || []) {
+      if (!item || !gueltigesISO(item.von) || !item.name) continue;
+      DATEN.feiertage.push({ id: uid(), von: item.von, bis: gueltigesISO(item.bis) && item.bis >= item.von ? item.bis : item.von, name: String(item.name),
+        art: enumWert(item.art, { ferien: "school-holiday", "school-holiday": "school-holiday", feiertag: "public-holiday", "public-holiday": "public-holiday" }, "public-holiday"),
+        region: String(item.region || ""), regionName: String(item.regionName || ""), country: /^[A-Z]{2}$/.test(item.country || "") ? item.country : country,
+        nationwide: item.nationwide === true, regions: Array.isArray(item.regions) ? [...new Set(item.regions.map(S).filter(code => /^[A-Z0-9-]{1,64}$/.test(code)))] : [] }); imported++;
+    }
+    const settings = DATEN.einstellungen.ort; settings.abgerufen = Date.now(); settings.setupFerienAbruf = false;
+    settings.jahre = [...new Set((settings.jahre || []).map(Number).concat(years))].filter(Number.isInteger).sort((a, b) => a - b);
+    return imported;
+  }
+  function mcpFeiertagWerkzeuge() {
+    const revision = { type: "string", pattern: "^[a-f0-9]{64}$" }, snapshot = () => JSON.stringify({ settings: DATEN.einstellungen.ort, entries: DATEN.feiertage });
+    const checked = async (args, signal) => {
+      mcpEditorPruefen(); if (feiertageLaufen) throw new MagnolieMcp.ToolError("native_busy", "Holiday retrieval is running");
+      const book = DATEN, before = snapshot(), hash = await personalSyncHash(before);
+      if (signal.aborted || DATEN !== book || snapshot() !== before || hash !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Holiday data or settings changed; read them again");
+      return { book, before };
+    };
+    return [
+      { name: "organizer_holidays_read", description: "Read holiday/location settings, entry count, supported countries/regions and a revision covering settings and all imported holidays.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => {
+          const before = snapshot(), value = JSON.parse(before); return { settings: value.settings, total: value.entries.length, countries: kopie(LAENDER), revision: await personalSyncHash(before) };
+        } },
+      { name: "organizer_holidays_clear", description: "Remove imported public/school holidays and reset retrieval metadata through the shared GUI handler; current holiday/settings revision and durable save required.",
+        inputSchema: { type: "object", properties: { expected_revision: revision }, required: ["expected_revision"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          await checked(args, signal); mcpEditorPruefen(); return { deleted_count: entferneFeiertageDaten() };
+        }) },
+      { name: "organizer_holidays_retrieve", description: "Retrieve one to three explicit years using the native product holiday service and current country/region settings, then apply its actual result using the shared GUI importer. Revision, editor and save gates prevent adopting stale/late responses.",
+        inputSchema: { type: "object", properties: { expected_revision: revision, years: { type: "array", minItems: 1, maxItems: 3, items: { type: "integer", minimum: 1900, maximum: 2200 } } }, required: ["expected_revision", "years"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const { book, before } = await checked(args, signal), settings = kopie(DATEN.einstellungen.ort), country = LAENDER.find(item => item.code === settings.land);
+          if (!country || settings.region && !country.regionen.some(item => item[0] === settings.region)) throw new MagnolieMcp.ToolError("invalid_region", "Select a supported country/region before retrieval");
+          if (new Set(args.years).size !== args.years.length) throw new MagnolieMcp.ToolError("invalid_selection", "Holiday years must be unique");
+          feiertageLaufen = true;
+          try {
+            const value = await mcpNativeAufruf("feiertage", { land: settings.land, region: settings.alleRegionen ? "" : settings.region, regionen: settings.alleRegionen ? country.regionen : [], regionErforderlich: country.regionen.length > 0, jahre: args.years, ferien: !!settings.ferien }, "feiertageErgebnis", signal);
+            if (signal.aborted || DATEN !== book || snapshot() !== before) throw new MagnolieMcp.ToolError("conflict", "Holiday settings changed during retrieval");
+            if (value.fehler || !Array.isArray(value.feiertage) || !Array.isArray(value.jahre) || value.jahre.length !== args.years.length || value.jahre.some(year => !args.years.includes(year))) throw new MagnolieMcp.ToolError("native_operation_failed", "Native holiday retrieval failed or returned unexpected years");
+            mcpEditorPruefen(); return { imported_count: wendeFeiertageDatenAn(value, settings.land) };
+          } finally { feiertageLaufen = false; }
+        }) }
+    ];
+  }
   function wendeEigenprofilDatenAn(value) {
     const saved = DATEN.eigenesProfil, data = kopie(value);
     for (const key of ["id", "uid", "sync", "baumKontakt", "syncQuellen", "syncKonflikte", "importBindungen", "importHerkunfte",
@@ -34458,6 +34483,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_holidays_read") return shape({ settings: object, total: { type: "integer", minimum: 0 }, countries: { type: "array", items: object }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "total", "countries", "revision"]);
+    if (name === "organizer_holidays_clear") return shape({ deleted_count: { type: "integer", minimum: 0 }, persisted: yes }, ["deleted_count", "persisted"]);
+    if (name === "organizer_holidays_retrieve") return shape({ imported_count: { type: "integer", minimum: 0 }, persisted: yes }, ["imported_count", "persisted"]);
     if (name === "organizer_own_profile_read") return shape({ profile: { type: ["object", "null"] }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["profile", "revision"]);
     if (name === "organizer_own_profile_update") return shape(written, ["id", "persisted"]);
     if (name === "organizer_trash_revision_read") return shape({ total: { type: "integer", minimum: 0 }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["total", "revision"]);
@@ -34576,6 +34604,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpBackupVorschauWerkzeuge(),
       ...mcpPapierkorbWerkzeuge(),
       ...mcpEigenprofilWerkzeuge(),
+      ...mcpFeiertagWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

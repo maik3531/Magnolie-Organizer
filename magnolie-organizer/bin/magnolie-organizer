@@ -24966,6 +24966,7 @@ class Fenster(_FENSTER_BASIS):
         except Exception as fehler:
             nutzlast = {"fehler": fehler_deutsch(
                 fehler, _("Retrieving holidays"))}
+        nutzlast["requestId"] = nachricht.get("requestId")
         self.antwort("App.feiertageErgebnis", nutzlast)
 
     def _persoenliche_benutzerdaten(self, zweck="address"):

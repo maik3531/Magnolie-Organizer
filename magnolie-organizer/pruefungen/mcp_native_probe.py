@@ -4,6 +4,7 @@ import importlib.machinery
 import importlib.util
 import base64
 import hashlib
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import os
 from pathlib import Path
@@ -55,6 +56,7 @@ data_file.write_text(json.dumps({"version": 6, "notizen": [{"id": "owned-native-
             "modifiedMs": 1, "deleted": False, "clock": {"33333333-3333-4333-8333-333333333333": 1}, "pausePlan": None}]}}, "einstellungen": {
     "allgemein": {"wiederherstellungsintervall": "manual", "tray": {"aktiv": False}},
     "update": {"automatisch": False}, "sync": {"beimStart": False},
+    "ort": {"land": "DE", "region": "DE-BE", "ferien": False, "alleRegionen": False},
     "erinnerung": {"an": False, "wecken": False, "jahrestage": {"an": False}}}}))
 loader = importlib.machinery.SourceFileLoader("magnolie_mcp_native_product", str(ROOT / "bin/magnolie-organizer"))
 spec = importlib.util.spec_from_loader(loader.name, loader)
@@ -827,6 +829,44 @@ def client():
         assert own_profile["data"]["firma"] == "Owned company" and own_profile["data"]["geburtstag"] == "--02-29"
         assert len(own_profile["data"]["profilJahrestage"]) == 2 and "uid" not in own_profile["data"]
         assert own_file["kontakte"] == saved_after_empty["kontakte"] and own_file["jahrestage"] == saved_after_empty["jahrestage"]
+        holiday_visits = []
+        class HolidayFixture(BaseHTTPRequestHandler):
+            def log_message(self, *_args):
+                pass
+            def do_GET(self):
+                holiday_visits.append(self.path)
+                payload = json.dumps([{"startDate": "2028-01-01", "endDate": "2028-01-01",
+                    "name": [{"language": "EN", "text": "Owned HTTP holiday"}], "nationwide": True}]).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+        holiday_server = HTTPServer(("127.0.0.1", 0), HolidayFixture)
+        holiday_thread = threading.Thread(target=holiday_server.serve_forever, daemon=True)
+        holiday_thread.start()
+        holiday_endpoint = product.FEIERTAG_DIENST
+        product.FEIERTAG_DIENST = "http://127.0.0.1:%d" % holiday_server.server_port
+        try:
+            holidays = call("tools/call", {"name": "organizer_holidays_read"})
+            assert holidays["structuredContent"]["settings"]["land"] == "DE", holidays
+            fetched_holidays = call("tools/call", {"name": "organizer_holidays_retrieve", "arguments": {
+                "expected_revision": holidays["structuredContent"]["revision"], "years": [2028]}})
+            assert not fetched_holidays["isError"] and fetched_holidays["structuredContent"]["persisted"] and fetched_holidays["structuredContent"]["imported_count"] == 1, fetched_holidays
+            assert len(holiday_visits) == 1 and holiday_visits[0].startswith("/PublicHolidays?") and "countryIsoCode=DE" in holiday_visits[0], holiday_visits
+            holiday_file = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+            assert any(item["name"] == "Owned HTTP holiday" and item["country"] == "DE" for item in holiday_file["feiertage"])
+            assert 2028 in holiday_file["einstellungen"]["ort"]["jahre"]
+            stale_holidays = call("tools/call", {"name": "organizer_holidays_clear", "arguments": {"expected_revision": holidays["structuredContent"]["revision"]}})
+            assert stale_holidays["isError"] and stale_holidays["structuredContent"]["code"] == "conflict", stale_holidays
+            fresh_holidays = call("tools/call", {"name": "organizer_holidays_read"})
+            cleared_holidays = call("tools/call", {"name": "organizer_holidays_clear", "arguments": {"expected_revision": fresh_holidays["structuredContent"]["revision"]}})
+            assert not cleared_holidays["isError"] and cleared_holidays["structuredContent"]["persisted"], cleared_holidays
+            holiday_file = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+            assert holiday_file["feiertage"] == [] and holiday_file["einstellungen"]["ort"]["abgerufen"] == 0
+        finally:
+            product.FEIERTAG_DIENST = holiday_endpoint
+            holiday_server.shutdown(); holiday_server.server_close(); holiday_thread.join(timeout=3)
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()

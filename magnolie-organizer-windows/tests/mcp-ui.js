@@ -134,7 +134,7 @@ let declaredContracts;
         id: noteId, title: "Retry", text: "Must not duplicate" } }));
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
-      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview;
+      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
@@ -148,6 +148,7 @@ let declaredContracts;
         if (message.cmd === "gesamtarchiv_importieren" && message.requestId && onArchiveImport) onArchiveImport(message);
         if (message.cmd === "sicherung_wiederherstellen" && message.requestId && onArchiveImport) onArchiveImport(message);
         if (message.cmd === "sicherung_pruefen" && message.requestId && onBackupPreview) onBackupPreview(message);
+        if (message.cmd === "feiertage" && message.requestId && onHoliday) onHoliday(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -996,6 +997,33 @@ let declaredContracts;
         const validRevision = (await call(request(576, "tools/call", { name: "organizer_own_profile_read" }))).result.structuredContent.revision;
         const badDate = await call(request(577, "tools/call", { name: "organizer_own_profile_update", arguments: { expected_revision: validRevision, birth_date: "--02-30" } }));
         assert.equal(badDate.result.structuredContent.code, "invalid_date");
+      }
+      {
+        Object.assign(b.t.daten().einstellungen.ort, { land: "DE", region: "DE-BE", ferien: false, alleRegionen: false });
+        b.t.daten().feiertage = [{ id: "owned-old-holiday", von: "2027-01-01", bis: "2027-01-01", name: "Owned previous year", art: "public-holiday" }];
+        const before = (await call(request(590, "tools/call", { name: "organizer_holidays_read" }))).result.structuredContent;
+        onHoliday = message => b.w.App.feiertageErgebnis({ requestId: message.requestId, jahre: message.jahre, feiertage: [{ von: "2028-01-01", name: "Owned holiday", country: "DE", nationwide: true }] });
+        const imported = await persisted(591, "organizer_holidays_retrieve", { expected_revision: before.revision, years: [2028] });
+        assert.equal(imported.imported_count, 1); assert.equal(b.t.daten().feiertage.length, 2);
+        assert.ok(b.t.daten().feiertage.some(item => item.id === "owned-old-holiday"));
+        const stale = await call(request(592, "tools/call", { name: "organizer_holidays_clear", arguments: { expected_revision: before.revision } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        const fresh = (await call(request(593, "tools/call", { name: "organizer_holidays_read" }))).result.structuredContent;
+        onHoliday = message => b.w.App.feiertageErgebnis({ requestId: message.requestId, fehler: "owned-private-holiday-error" });
+        const failed = await call(request(594, "tools/call", { name: "organizer_holidays_retrieve", arguments: { expected_revision: fresh.revision, years: [2028] } }));
+        assert.equal(failed.result.structuredContent.code, "native_operation_failed"); assert.ok(!JSON.stringify(failed).includes("owned-private-holiday-error"));
+        assert.equal(b.t.daten().feiertage.length, 2);
+        let native;
+        const dispatched = new Promise(resolve => { onHoliday = message => { native = message; resolve(); }; });
+        const pending = call(request(595, "tools/call", { name: "organizer_holidays_retrieve", arguments: { expected_revision: fresh.revision, years: [2028] } }));
+        await dispatched; await call({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 595 } });
+        assert.equal((await pending).result.structuredContent.code, "cancelled");
+        b.w.App.feiertageErgebnis({ requestId: native.requestId, jahre: [2028], feiertage: [] });
+        assert.equal(b.t.daten().feiertage.length, 2);
+        const cleared = await persisted(596, "organizer_holidays_clear", { expected_revision: fresh.revision });
+        assert.equal(cleared.deleted_count, 2); assert.equal(b.t.daten().feiertage.length, 0);
+        assert.equal(b.t.daten().einstellungen.ort.abgerufen, 0); assert.equal(b.t.daten().einstellungen.ort.jahre.length, 0);
+        onHoliday = null;
       }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));

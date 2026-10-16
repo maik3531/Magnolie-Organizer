@@ -122,6 +122,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_trash_revision_read` | Complete recycle-bin revision and count without large deleted payloads. |
 | `organizer_trash_empty` | Permanent complete-bin removal through the shared GUI handler, requiring the current complete-bin revision and native durable-save acknowledgement; live data and synchronization tombstones are retained. |
 | `organizer_own_profile_read/update` | Separate own-profile document, full revision with optional data-field projection, and durable revision-checked creation/update through the shared GUI profile handler and typed contact validators. Profile anniversaries remain local to the profile; regular contacts/calendar records are not generated. Provider contact identity is stripped and unrelated profile fields retained. |
+| `organizer_holidays_read/clear/retrieve` | Read location/settings/options and full imported-holiday revision; clear through the shared GUI handler or retrieve explicit years through the actual correlated native holiday service, applying the shared GUI importer and durable save gate. Changed settings/data or cancelled/late fetch responses are not adopted. |
 | `notes_diagnostics_read` | Ephemeral WLAN diagnostics through the confirmed own Notes connection |
 | `kde_media_devices` | Current supported media devices |
 | `kde_media_status` | Media state and fresh source token for `device_id` |
