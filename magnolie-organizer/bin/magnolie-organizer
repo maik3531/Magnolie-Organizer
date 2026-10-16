@@ -21013,8 +21013,8 @@ class Fenster(_FENSTER_BASIS):
 
         elif befehl == "sicherung":
             if not self._darf_schreiben():
-                self.sende_js("App.sicherungFertig(JSON.parse(%s));"
-                              % js_zeichenkette(""))
+                self.antwort("App.sicherungFertig", {"ok": False,
+                    "requestId": nachricht.get("requestId"), "pfad": "", "fehler": _("The data could not be saved.")})
                 return
             try:
                 ziel = lege_sicherung_an(
@@ -21027,6 +21027,7 @@ class Fenster(_FENSTER_BASIS):
                 antwort = {"ok": False, "pfad": "",
                            "fehler": fehler_deutsch(
                                fehler, _("Creating the backup"))}
+            antwort["requestId"] = nachricht.get("requestId")
             self.antwort("App.sicherungFertig", antwort)
 
         elif befehl == "journal_liste":

@@ -15,7 +15,7 @@ internal static class BridgeDispatcherContract
         ["kennwort_setzen"] = S(T("alt"), T("neu"), O("sicherungen", JsonValueKind.True, JsonValueKind.False), O("sicherungsordner", JsonValueKind.String)),
         ["kennwort_entfernen"] = S(T("alt"), O("sicherungsordner", JsonValueKind.String)),
         ["speichern"] = S(N("id"), T("text"), O("kontaktePruefen", JsonValueKind.True, JsonValueKind.False), O("baumSyncLauf", JsonValueKind.Object, JsonValueKind.Null)), ["contributor_pruefen"] = S(T("key")), ["beenden"] = S(), ["beenden_bereit"] = S(), ["beenden_abgebrochen"] = S(),
-        ["ablage_kopieren"] = S(T("text")), ["ablage_holen"] = S(), ["sicherung"] = S(T("pfad"), T("kennwort")), ["sicherung_waehlen"] = S(),
+        ["ablage_kopieren"] = S(T("text")), ["ablage_holen"] = S(), ["sicherung"] = S(T("pfad"), T("kennwort"), O("requestId", JsonValueKind.String)), ["sicherung_waehlen"] = S(),
         ["sicherung_wiederherstellen"] = S(T("pfad"), T("kennwort"), O("sicherungsordner", JsonValueKind.String)), ["journal_liste"] = S(O("requestId", JsonValueKind.String)), ["journal_erzeugen"] = S(O("requestId", JsonValueKind.String)), ["journal_manuell"] = S(O("requestId", JsonValueKind.String)),
         ["cloud_sicherung_status"] = S(), ["cloud_sicherung_kennwort"] = S(T("kennwort")), ["cloud_sicherung_test"] = S(),
         ["journal_vorschau"] = S(O("snapshotId", JsonValueKind.String), O("id", JsonValueKind.String), O("requestId", JsonValueKind.String), O("verify", JsonValueKind.True, JsonValueKind.False)), ["journal_intervall"] = S(T("intervall")), ["journal_anzahl"] = S(N("maximum")),

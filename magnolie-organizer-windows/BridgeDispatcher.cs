@@ -978,12 +978,12 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     ?? throw new IOException(T("The backup is empty.")), password);
             }
             else target = store.Backup(paths.Data, directory);
-            await form.SendAsync("App.sicherungFertig", new { ok = true, pfad = target, fehler = "" });
+            await form.SendAsync("App.sicherungFertig", new { ok = true, requestId = Text(message, "requestId"), pfad = target, fehler = "" });
         }
         catch (Exception error)
         {
-            await ReportErrorAsync("sicherung", error.ToString());
-            await form.SendAsync("App.sicherungFertig", new { ok = false, pfad = "", fehler = T("The backup could not be created.") });
+            if (Text(message, "requestId").Length == 0) await ReportErrorAsync("sicherung", error.ToString());
+            await form.SendAsync("App.sicherungFertig", new { ok = false, requestId = Text(message, "requestId"), pfad = "", fehler = T("The backup could not be created.") });
         }
         finally { if (locked) MutationGate.Global.Release(); }
     }

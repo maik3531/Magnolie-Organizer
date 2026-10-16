@@ -134,7 +134,7 @@ let declaredContracts;
         id: noteId, title: "Retry", text: "Must not duplicate" } }));
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
-      let onSave, onSnapshot, onRecovery;
+      let onSave, onSnapshot, onRecovery, onBackup;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
@@ -142,6 +142,7 @@ let declaredContracts;
         if (message.cmd === "speichern" && onSave) { const resolve = onSave; onSave = null; resolve(); }
         if (message.cmd === "mutations_snapshot" && onSnapshot) { const resolve = onSnapshot; onSnapshot = null; resolve(message); }
         if (message.cmd.startsWith("journal_") && message.requestId && onRecovery) onRecovery(message);
+        if (message.cmd === "sicherung" && message.requestId && onBackup) onBackup(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -569,6 +570,18 @@ let declaredContracts;
       const runtimeStale = await call(request(432, "tools/call", { name: "organizer_recovery_runtime_policy_update", arguments: { expected_revision: runtimeRead.revision, days: 20 } }));
       assert.equal(runtimeStale.result.structuredContent.code, "conflict");
       onRecovery = null;
+      b.t.daten().notizen.find(note => note.id === "fixture-note").titel = "Owned pending native backup";
+      let backupRequest;
+      const backupDispatched = new Promise(resolve => { onBackup = message => { backupRequest = message; resolve(); }; });
+      const backupSaving = new Promise(resolve => { onSave = resolve; });
+      let backupConfirmed = false;
+      const backupPending = call(request(440, "tools/call", { name: "organizer_backup_create" })).then(value => { backupConfirmed = true; return value; });
+      await backupSaving; assert.equal(backupConfirmed, false); b.ack(); await backupDispatched;
+      b.w.App.sicherungFertig({ requestId: "wrong-backup-request", ok: true, pfad: "ignore" });
+      await new Promise(resolve => setImmediate(resolve)); assert.equal(backupConfirmed, false);
+      b.w.App.sicherungFertig({ requestId: backupRequest.requestId, ok: true, pfad: "/owned/native-backup.json" });
+      assert.equal((await backupPending).result.structuredContent.path, "/owned/native-backup.json");
+      onBackup = null;
       assert.equal(invalidGlucose.result.structuredContent.code, "invalid_value");
       const invalidVital = await call(request(267, "tools/call", { name: "organizer_vital_create", arguments: { date: "2028-02-29", pulse: 20 } }));
       assert.equal(invalidVital.error.code, -32602);

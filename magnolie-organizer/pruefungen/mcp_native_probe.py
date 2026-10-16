@@ -620,6 +620,19 @@ def client():
         assert runtime_saved["wiederherstellungsintervall"] == "off" and runtime_saved["wiederherstellungsanzahl"] == 50
         runtime_readback = call("tools/call", {"name": "organizer_recovery_runtime_policy_read"})
         assert runtime_readback["structuredContent"]["policy"]["interval"] == "off" and runtime_readback["structuredContent"]["policy"]["maximum"] == 50
+        backup_created = call("tools/call", {"name": "organizer_backup_create"})
+        assert not backup_created["isError"] and backup_created["structuredContent"]["confirmed"], backup_created
+        backup_path = Path(backup_created["structuredContent"]["path"])
+        assert backup_path.is_relative_to(Path(temporary.name)) and backup_path.is_file()
+        backup_data = json.loads(backup_path.read_text())
+        assert next(item for item in backup_data["notizen"] if item["id"] == note_id)["text"] == large_text
+        protected_backup = call("tools/call", {"name": "organizer_backup_create", "arguments": {
+            "folder": str(Path(temporary.name) / "owned-external-backup"), "password": "owned-backup-fixture-password"}})
+        assert not protected_backup["isError"] and protected_backup["structuredContent"]["confirmed"], protected_backup
+        protected_path = Path(protected_backup["structuredContent"]["path"])
+        assert protected_path.is_relative_to(Path(temporary.name)) and protected_path.is_file()
+        protected_data = product.gesamtarchiv_lesen_text(protected_path.read_text(), "owned-backup-fixture-password")
+        assert next(item for item in protected_data["daten"]["notizen"] if item["id"] == note_id)["text"] == large_text
         if os.environ.get("MAGNOLIE_MCP_PROBE_RESTORE_REPAIR") == "1":
             restore_point = call("tools/call", {"name": "organizer_recovery_snapshot_create"})
             assert not restore_point["isError"], restore_point

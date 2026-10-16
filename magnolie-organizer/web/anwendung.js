@@ -32799,6 +32799,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       });
     },
     sicherungFertig(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "sicherungFertig"); return; }
       if (typeof nutzlast === "string") {
         nutzlast = { ok: !!nutzlast, pfad: nutzlast, fehler: "" };
       }
@@ -34365,6 +34366,20 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }) }
     ];
   }
+  function mcpBackupWerkzeuge() {
+    return [{ name: "organizer_backup_create", description: "Create a real native backup after the book-save gate. An empty folder uses the product backup location; native destination/password protection rules remain enforced. Success returns the actual native file path.",
+      inputSchema: { type: "object", properties: { folder: { type: "string", maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]*$" }, password: { type: "string", maxLength: 1024 } }, additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        const book = DATEN; await mcpSchreiben(signal, () => ({})); mcpEditorPruefen();
+        if (signal.aborted || DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Book changed before native backup creation");
+        const before = JSON.stringify(DATEN);
+        const value = await mcpNativeAufruf("sicherung", { pfad: args.folder || "", kennwort: args.password || "" }, "sicherungFertig", signal);
+        if (value.ok !== true || typeof value.pfad !== "string" || !value.pfad) throw new MagnolieMcp.ToolError("native_operation_failed", "Native backup creation failed");
+        if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "A backup may exist; the book changed during creation");
+        return { path: value.pfad, confirmed: true };
+      } }];
+  }
   function wendeUrlaubDatenAn(entry, values) {
     const value = entry || { id: values.id || uid(), von: isoHeute(), bis: isoHeute(), symbol: "palm", darstellung: "symbol-text" };
     if (gueltigesISO(values.von)) value.von = values.von;
@@ -34565,6 +34580,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_backup_create") return shape({ path: text, confirmed: yes }, ["path", "confirmed"]);
     if (name === "organizer_recovery_runtime_policy_read") return shape({ policy: shape({ interval: { type: "string", enum: ["off", "6h", "12h", "daily", "weekly"] }, retention_mode: { type: "string", enum: ["count", "days"] }, maximum: { type: "integer", minimum: 1, maximum: 100 }, days: { type: "integer", minimum: 1, maximum: 3650 } }, ["interval", "retention_mode", "maximum", "days"]), revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["policy", "revision"]);
     if (name === "organizer_recovery_runtime_policy_update") return shape({ native_applied: yes, persisted: yes }, ["native_applied", "persisted"]);
     if (name === "organizer_recovery_creation_policy_read") return shape({ policy: shape({ creation_mode: { type: "string", enum: ["change", "daily", "weekly", "startup", "interval"] }, interval_minutes: { type: "integer", minimum: 1, maximum: 1440 } }, ["creation_mode", "interval_minutes"]), revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["policy", "revision"]);
@@ -34666,6 +34682,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpRecoveryWerkzeuge(),
       ...mcpJournalErzeugungWerkzeuge(),
       ...mcpJournalRuntimeWerkzeuge(),
+      ...mcpBackupWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
