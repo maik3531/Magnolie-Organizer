@@ -134,7 +134,7 @@ let declaredContracts;
         id: noteId, title: "Retry", text: "Must not duplicate" } }));
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
-      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile, onCloudStatus, onCloudPassword, onCloudTest, onSpelling, onRememberWord;
+      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile, onCloudStatus, onCloudPassword, onCloudTest, onSpelling, onRememberWord, onRegionalRead, onRegionalSave;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
@@ -155,6 +155,8 @@ let declaredContracts;
         if (message.cmd === "cloud_sicherung_test" && message.requestId && onCloudTest) onCloudTest(message);
         if (message.cmd === "vorschlaege" && message.requestId && onSpelling) onSpelling(message);
         if (message.cmd === "wort_merken" && message.requestId && onRememberWord) onRememberWord(message);
+        if (message.cmd === "regional_einstellungen_status" && message.requestId && onRegionalRead) onRegionalRead(message);
+        if (message.cmd === "regional_einstellungen" && message.requestId && onRegionalSave) onRegionalSave(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -1250,6 +1252,50 @@ let declaredContracts;
         onSpelling = onRememberWord = null;
         const controlWord = await call(request(767, "tools/call", { name: "organizer_dictionary_add_word", arguments: { word: "owned\u0085", expected_book_revision: revision } }));
         assert.equal(controlWord.error.code, -32602);
+      }
+      {
+        let nativeConfig = JSON.parse(JSON.stringify(b.t.daten().einstellungen.regional));
+        onRegionalRead = message => b.w.App.regionalStand({ requestId: message.requestId, ok: true, regional: nativeConfig });
+        const first = (await call(request(780, "tools/call", { name: "organizer_regional_settings_read" }))).result.structuredContent;
+        const records = JSON.stringify([b.t.daten().termine, b.t.daten().aufgaben, b.t.daten().kontakte, b.t.daten().gesundheit, b.t.daten().customOrganizer]);
+        let native, completed = false;
+        const dispatched = new Promise(resolve => { onRegionalSave = message => { native = message; resolve(); }; });
+        const saving = new Promise(resolve => { onSave = resolve; });
+        const pending = call(request(781, "tools/call", { name: "organizer_regional_settings_update", arguments: { expected_revision: first.revision,
+          language: "en", format_locale: "en_GB", hour_cycle: "h12", first_day_of_week: "sunday", temperature_unit: "fahrenheit", time_zone: "Etc/UTC", home_country: "us" } })).then(value => { completed = true; return value; });
+        await dispatched; assert.deepEqual(JSON.parse(JSON.stringify(native.expectedRegional)), nativeConfig);
+        b.w.App.regionalErgebnis({ requestId: "wrong-regional-request", ok: true, regional: native.regional });
+        await new Promise(resolve => setImmediate(resolve)); assert.equal(completed, false);
+        nativeConfig = JSON.parse(JSON.stringify(native.regional));
+        b.w.App.regionalErgebnis({ requestId: native.requestId, ok: true, regional: nativeConfig });
+        await saving; assert.equal(completed, false); b.ack();
+        const result = (await pending).result.structuredContent;
+        assert.equal(result.native_saved, true); assert.equal(result.persisted, true); assert.equal(result.restart_required, true);
+        assert.equal(result.settings.format_locale, "en-GB"); assert.equal(result.settings.home_country, "US");
+        assert.equal(JSON.stringify([b.t.daten().termine, b.t.daten().aufgaben, b.t.daten().kontakte, b.t.daten().gesundheit, b.t.daten().customOrganizer]), records);
+        const stale = await call(request(782, "tools/call", { name: "organizer_regional_settings_update", arguments: { expected_revision: first.revision, hour_cycle: "h23" } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        const fresh = (await call(request(783, "tools/call", { name: "organizer_regional_settings_read" }))).result.structuredContent;
+        const invalid = await call(request(784, "tools/call", { name: "organizer_regional_settings_update", arguments: { expected_revision: fresh.revision, time_zone: "Mars/Olympus" } }));
+        assert.equal(invalid.result.structuredContent.code, "invalid_settings");
+        onRegionalSave = message => b.w.App.regionalErgebnis({ requestId: message.requestId, ok: false, code: "conflict", fehler: "owned-private-regional-error" });
+        const nativeStale = await call(request(785, "tools/call", { name: "organizer_regional_settings_update", arguments: { expected_revision: fresh.revision, hour_cycle: "h23" } }));
+        assert.equal(nativeStale.result.structuredContent.code, "conflict"); assert.ok(!JSON.stringify(nativeStale).includes("owned-private-regional-error"));
+        let late;
+        const lateDispatched = new Promise(resolve => { onRegionalSave = message => { late = message; resolve(); }; });
+        const cancelled = call(request(786, "tools/call", { name: "organizer_regional_settings_update", arguments: { expected_revision: fresh.revision, hour_cycle: "h23" } }));
+        await lateDispatched; await call({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 786 } });
+        assert.equal((await cancelled).result.structuredContent.code, "cancelled");
+        const toast = b.w.document.querySelector("#zettel").textContent;
+        nativeConfig = JSON.parse(JSON.stringify(late.regional));
+        b.w.App.regionalErgebnis({ requestId: late.requestId, ok: true, regional: nativeConfig });
+        assert.equal(b.t.daten().einstellungen.regional.hourCycle, "h12"); assert.equal(b.w.document.querySelector("#zettel").textContent, toast);
+        const divergent = (await call(request(787, "tools/call", { name: "organizer_regional_settings_read" }))).result.structuredContent;
+        assert.equal(divergent.settings.hour_cycle, "h23"); assert.equal(divergent.book_settings.hour_cycle, "h12");
+        onRegionalSave = message => { nativeConfig = JSON.parse(JSON.stringify(message.regional)); b.w.App.regionalErgebnis({ requestId: message.requestId, ok: true, regional: nativeConfig }); };
+        await persisted(788, "organizer_regional_settings_update", { expected_revision: divergent.revision, hour_cycle: "h23" });
+        assert.equal(b.t.daten().einstellungen.regional.hourCycle, "h23");
+        onRegionalRead = onRegionalSave = null;
       }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));

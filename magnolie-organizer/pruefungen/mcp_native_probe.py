@@ -1162,6 +1162,28 @@ def client():
         assert fresh_dictionary.check(dictionary_word), "Cold personal-dictionary reader did not observe the added word"
         del fresh_dictionary
         assert data_file.read_bytes() == spelling_profile, "Personal-dictionary operations rewrote book data"
+        regional_path = Path(product.regional_datei())
+        assert regional_path.is_relative_to(Path(temporary.name))
+        regional_before = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        regional_record_keys = ("termine", "aufgaben", "kontakte", "notizen", "jahrestage", "feiertage",
+            "tagmarken", "schichten", "zyklusmarker", "urlaube", "muelltermine", "zeiterfassung", "gesundheit", "customOrganizer")
+        regional_records = {key: regional_before[key] for key in regional_record_keys}
+        regional_settings = call("tools/call", {"name": "organizer_regional_settings_read"})
+        assert not regional_settings["isError"], regional_settings
+        regional_updated = call("tools/call", {"name": "organizer_regional_settings_update", "arguments": {
+            "expected_revision": regional_settings["structuredContent"]["revision"], "language": "en", "format_locale": "en_GB", "hour_cycle": "h12",
+            "first_day_of_week": "sunday", "temperature_unit": "fahrenheit", "time_zone": "Etc/UTC", "home_country": "us"}})
+        assert not regional_updated["isError"] and regional_updated["structuredContent"]["native_saved"] and regional_updated["structuredContent"]["persisted"] and regional_updated["structuredContent"]["restart_required"], regional_updated
+        regional_native_file = json.loads(regional_path.read_text())
+        assert regional_native_file["hourCycle"] == "h12" and regional_native_file["timeZone"] == "Etc/UTC" and regional_native_file["homeCountry"] == "US"
+        regional_book = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        assert regional_book["einstellungen"]["regional"] == regional_native_file
+        assert {key: regional_book[key] for key in regional_record_keys} == regional_records
+        regional_stale = call("tools/call", {"name": "organizer_regional_settings_update", "arguments": {
+            "expected_revision": regional_settings["structuredContent"]["revision"], "hour_cycle": "h23"}})
+        assert regional_stale["isError"] and regional_stale["structuredContent"]["code"] == "conflict", regional_stale
+        regional_readback = call("tools/call", {"name": "organizer_regional_settings_read"})
+        assert regional_readback["structuredContent"]["settings"]["hour_cycle"] == "h12" and regional_readback["structuredContent"]["book_settings"]["time_zone"] == "Etc/UTC"
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()

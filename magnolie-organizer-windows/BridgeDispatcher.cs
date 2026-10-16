@@ -211,6 +211,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "wetter": await FetchWeatherAsync(message); break;
                     case "feiertage": await FetchHolidaysAsync(message); break;
                     case "regional_einstellungen": await SaveRegionalSettingsAsync(message); break;
+                    case "regional_einstellungen_status": await SendRegionalSettingsAsync(Text(message, "requestId")); break;
                     case "import": await ImportAsync(message); break;
                     case "import_lokal": await ImportLocalAsync(message.TryGetProperty("bereich", out var bereich) &&
                         bereich.ValueKind == JsonValueKind.String ? bereich.GetString() ?? "" : ""); break;
@@ -640,16 +641,25 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private async Task SaveRegionalSettingsAsync(JsonElement message)
     {
+        var requestId = Text(message, "requestId");
         try
         {
             if (!message.TryGetProperty("regional", out var regional)) throw new ArgumentException(T("The regional settings are invalid."));
-            var clean = RegionalSettings.Write(paths.RegionalSettings, regional);
-            await form.SendAsync("App.regionalErgebnis", new { ok = true, regional = clean });
+            var clean = string.IsNullOrEmpty(requestId) ? RegionalSettings.Write(paths.RegionalSettings, regional)
+                : RegionalSettings.WriteChecked(paths.RegionalSettings, regional, message.TryGetProperty("expectedRegional", out var expected) ? expected : default);
+            await form.SendAsync("App.regionalErgebnis", new { ok = true, requestId, regional = clean });
         }
         catch (Exception error)
         {
-            await form.SendAsync("App.regionalErgebnis", new { ok = false, fehler = error.Message });
+            await form.SendAsync("App.regionalErgebnis", new { ok = false, requestId,
+                code = error.Message == "regional_conflict" ? "conflict" : error.Message == "invalid_regional_settings" ? "invalid_settings" : "native_operation_failed", fehler = error.Message });
         }
+    }
+
+    private async Task SendRegionalSettingsAsync(string requestId)
+    {
+        try { await form.SendAsync("App.regionalStand", new { ok = true, requestId, regional = RegionalSettings.ReadVerified(paths.RegionalSettings) }); }
+        catch (Exception) { await form.SendAsync("App.regionalStand", new { ok = false, requestId }); }
     }
 
     private static bool ManualInstalled() => File.Exists(ManualPath);

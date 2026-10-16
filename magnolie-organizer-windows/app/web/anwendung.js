@@ -32088,10 +32088,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       zettel(nutzlast.bericht || _("The holidays were imported."));
     },
+    regionalStand(nutzlast) { mcpNativeAntwort(nutzlast || {}, "regionalStand"); },
     regionalErgebnis(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "regionalErgebnis"); return; }
       nutzlast = nutzlast || {};
       if (!nutzlast.ok) { zettel(nutzlast.fehler || _("The regional settings could not be saved.")); return; }
-      Object.assign(DATEN.einstellungen.regional, nutzlast.regional || {});
+      wendeRegionaleEinstellungenDatenAn(nutzlast.regional || {});
       planeSpeichern();
       zeichneAlles();
       if (einstSeite === "regional") baueEinstellungen();
@@ -34142,6 +34144,43 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (value !== "month") calendar.uebersichtAb = null;
     calendar.bearbeiteId = null;
   }
+  function wendeRegionaleEinstellungenDatenAn(values) { Object.assign(DATEN.einstellungen.regional, values); }
+  function mcpRegionaleEinstellungenWerkzeuge() {
+    const map = { language: "language", format_locale: "formatLocale", hour_cycle: "hourCycle", first_day_of_week: "firstDayOfWeek", temperature_unit: "temperatureUnit", time_zone: "timeZone", home_country: "homeCountry" };
+    const fields = { language: { type: "string", enum: ["system", "de", "en", "fr", "es", "it", "nl", "pt", "ru", "cs", "pl", "hsb", "da", "nb", "hi", "zh_CN", "ja", "ar", "uk", "be", "tr"] },
+      format_locale: { type: "string", maxLength: 64, pattern: "^system$|^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*$" }, hour_cycle: { type: "string", enum: ["system", "h12", "h23"] },
+      first_day_of_week: { type: "string", enum: ["locale", "monday", "sunday", "saturday"] }, temperature_unit: { type: "string", enum: ["system", "celsius", "fahrenheit"] },
+      time_zone: { type: "string", minLength: 1, maxLength: 128, pattern: "^[A-Za-z0-9._+/-]+$" }, home_country: { type: "string", pattern: "^[A-Za-z]{2}$" } };
+    const settings = value => ({ ...Object.fromEntries(Object.entries(map).map(([key, field]) => [key, value[field]])), week_rule: value.weekRule });
+    const validate = value => {
+      if (!value || typeof value !== "object" || Array.isArray(value) || [...Object.values(map), "weekRule"].some(key => typeof value[key] !== "string")) throw new MagnolieMcp.ToolError("invalid_result", "Native regional preferences are incomplete");
+      return kopie(value);
+    };
+    const read = async signal => { const value = await mcpNativeAufruf("regional_einstellungen_status", {}, "regionalStand", signal);
+      if (value.ok !== true) throw new MagnolieMcp.ToolError("native_operation_failed", "Native startup preferences could not be read"); return validate(value.regional); };
+    const snapshot = native => JSON.stringify({ native, book: DATEN.einstellungen.regional });
+    return [
+      { name: "organizer_regional_settings_read", description: "Read actual native startup regional preferences separately from current book preferences, with a combined revision. Native windows and language/time-zone choices can require an application restart after saving.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (_args, signal) => {
+          const book = DATEN, native = await read(signal);
+          if (signal.aborted || DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Book changed during native regional preference lookup");
+          const before = snapshot(native), value = JSON.parse(before); return { settings: settings(value.native), book_settings: settings(value.book), revision: await personalSyncHash(before) };
+        } },
+      { name: "organizer_regional_settings_update", description: "Save regional startup preferences using the actual native writer and verified readback, with native-state and book-preference revision checks. Then persist matching book metadata through native save acknowledgement. Existing record timestamps are retained. Restart is required for all native windows/runtime components to use the choices; a cancelled call may already have saved startup preferences.",
+        inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, ...fields }, required: ["expected_revision"], anyOf: Object.keys(fields).map(key => ({ required: [key] })), additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const book = DATEN, native = await read(signal), before = snapshot(native), revision = await personalSyncHash(before);
+          if (signal.aborted || DATEN !== book || snapshot(native) !== before || revision !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Native or book regional preferences changed; read them again");
+          mcpEditorPruefen(); const wanted = { ...native };
+          for (const [key, field] of Object.entries(map)) if (args[key] !== undefined) wanted[field] = key === "home_country" ? args[key].toUpperCase() : key === "format_locale" ? args[key].replace(/_/g, "-") : args[key];
+          if (args.time_zone && args.time_zone !== "system") { try { new Intl.DateTimeFormat("en", { timeZone: args.time_zone }); } catch { throw new MagnolieMcp.ToolError("invalid_settings", "The requested time zone is unavailable"); } }
+          const value = await mcpNativeAufruf("regional_einstellungen", { regional: wanted, expectedRegional: native }, "regionalErgebnis", signal);
+          if (value.ok !== true) throw new MagnolieMcp.ToolError(["conflict", "invalid_settings"].includes(value.code) ? value.code : "native_operation_failed", "Native regional startup save could not be confirmed; re-read stored settings");
+          const actual = validate(value.regional);
+          if (DATEN !== book || JSON.stringify(DATEN.einstellungen.regional) !== JSON.stringify(JSON.parse(before).book)) throw new MagnolieMcp.ToolError("source_changed", "Startup preferences may have been saved; book regional metadata changed");
+          wendeRegionaleEinstellungenDatenAn(actual); return { settings: settings(actual), native_saved: true, restart_required: true };
+        }) }
+    ];
+  }
   function mcpRechtschreibWerkzeuge() {
     const word = { type: "string", minLength: 1, maxLength: 512, pattern: "^[^\\u0000-\\u001f\\u007f-\\u009f]+$" }, language = { type: "string", enum: ["de", "en"] };
     const checkedWord = args => { const value = args.word.trim(); if (!value) throw new MagnolieMcp.ToolError("invalid_word", "Supply a nonempty word"); return value; };
@@ -34758,6 +34797,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_regional_settings_read") return shape({ settings: object, book_settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "book_settings", "revision"]);
+    if (name === "organizer_regional_settings_update") return shape({ settings: object, native_saved: yes, restart_required: yes, persisted: yes }, ["settings", "native_saved", "restart_required", "persisted"]);
     if (name === "organizer_spellcheck_word") return shape({ word: text, language: { type: "string", enum: ["de", "en"] }, correct: flag, suggestions: { type: "array", maxItems: 8, items: { type: "string", maxLength: 4096 } } }, ["word", "language", "correct", "suggestions"]);
     if (name === "organizer_dictionary_add_word") return shape({ word: text, language: { type: "string", enum: ["de", "en"] }, added: yes, confirmed: yes }, ["word", "language", "added", "confirmed"]);
     if (name === "organizer_display_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
@@ -34904,6 +34945,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpKalenderAnzeigeWerkzeuge(),
       ...mcpAnzeigeEinstellungenWerkzeuge(),
       ...mcpRechtschreibWerkzeuge(),
+      ...mcpRegionaleEinstellungenWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

@@ -34,6 +34,22 @@ internal static class RegionalSettingsTests
             TestAssert.That(RegionalSettings.Write(path, legacyWriter.RootElement)["homeCountry"]!.GetValue<string>() == "US",
                 "Ein älterer Schreiber hat das gespeicherte Heimatland überschrieben.");
 
+            var beforeChecked = RegionalSettings.ReadVerified(path);
+            var wanted = beforeChecked.DeepClone(); wanted["hourCycle"] = "h23"; wanted["timeZone"] = "UTC";
+            var checkedValue = RegionalSettings.WriteChecked(path, JsonSerializer.SerializeToElement(wanted), JsonSerializer.SerializeToElement(beforeChecked));
+            TestAssert.That(checkedValue["timeZone"]!.GetValue<string>() == "UTC" && checkedValue["homeCountry"]!.GetValue<string>() == "US",
+                "Geprüftes Speichern muss die tatsächliche Native-Datei mit Heimatland und UTC erhalten.");
+            var checkedText = File.ReadAllText(path);
+            var staleRejected = false;
+            try { RegionalSettings.WriteChecked(path, JsonSerializer.SerializeToElement(wanted), JsonSerializer.SerializeToElement(beforeChecked)); }
+            catch (InvalidOperationException error) when (error.Message == "regional_conflict") { staleRejected = true; }
+            TestAssert.That(staleRejected && File.ReadAllText(path) == checkedText, "Eine veraltete Native-Konfiguration darf keine Datei überschreiben.");
+            var invalidZone = checkedValue.DeepClone(); invalidZone["timeZone"] = "Mars/Olympus";
+            var zoneRejected = false;
+            try { RegionalSettings.WriteChecked(path, JsonSerializer.SerializeToElement(invalidZone), JsonSerializer.SerializeToElement(checkedValue)); }
+            catch (InvalidDataException error) when (error.Message == "invalid_regional_settings") { zoneRejected = true; }
+            TestAssert.That(zoneRejected && File.ReadAllText(path) == checkedText, "Eine nicht existente Native-Zeitzone muss vor dem Dateischreiben scheitern.");
+
             using var invalid = JsonDocument.Parse("""
                 {"language":"../../de","formatLocale":[],"hourCycle":"h99",
                  "firstDayOfWeek":"friday","temperatureUnit":"kelvin","timeZone":"../Berlin","homeCountry":"ZZ"}

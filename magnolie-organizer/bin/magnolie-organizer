@@ -549,6 +549,59 @@ def regional_datei():
     return os.path.join(konfigurations_verzeichnis(), "locale.json")
 
 
+_REGIONAL_SPERRE = threading.RLock()
+
+
+def regional_einstellungen_geprueft_lesen(pfad=None):
+    try:
+        text = datei_begrenzt_lesen(pfad or regional_datei(), 64 * 1024,
+            "The regional settings file is too large.").decode("utf-8")
+    except FileNotFoundError:
+        return regional_einstellungen()
+    value = json.loads(text)
+    if not isinstance(value, dict):
+        raise ValueError("invalid_regional_settings")
+    return regional_einstellungen(value)
+
+
+def regional_einstellungen_geprueft_schreiben(werte, erwartet, pfad=None):
+    from zoneinfo import ZoneInfo
+    with _REGIONAL_SPERRE:
+        aktuell = regional_einstellungen_geprueft_lesen(pfad)
+        if not isinstance(erwartet, dict) or aktuell != erwartet:
+            raise ValueError("regional_conflict")
+        if not isinstance(werte, dict):
+            raise ValueError("invalid_regional_settings")
+        if "homeCountry" not in werte:
+            werte = dict(werte, homeCountry=aktuell["homeCountry"])
+        sauber = regional_einstellungen(werte)
+        for key, value in werte.items():
+            if key not in sauber or not isinstance(value, str):
+                raise ValueError("invalid_regional_settings")
+            value = value.strip()
+            if key == "language":
+                if not normalisiere_sprache(value) or normalisiere_sprache(value) != normalisiere_sprache(sauber[key]):
+                    raise ValueError("invalid_regional_settings")
+                continue
+            if key == "formatLocale":
+                value = value.replace("_", "-")
+            if key == "homeCountry":
+                value = value.upper()
+            if sauber[key] != value:
+                raise ValueError("invalid_regional_settings")
+        if sauber["timeZone"] != "system":
+            try:
+                ZoneInfo(sauber["timeZone"])
+            except (KeyError, ValueError) as error:
+                raise ValueError("invalid_regional_settings") from error
+        if not regional_einstellungen_schreiben(sauber, pfad):
+            raise OSError("regional_write_failed")
+        gelesen = regional_einstellungen_geprueft_lesen(pfad)
+        if gelesen != sauber:
+            raise OSError("regional_readback_failed")
+        return gelesen
+
+
 def regional_einstellungen_lesen(pfad=None):
     try:
         with open(pfad or regional_datei(), "r", encoding="utf-8") as datei:
@@ -20965,17 +21018,36 @@ class Fenster(_FENSTER_BASIS):
                              args=(nachricht.get("requestId"), nachricht.get("sourceToken")), daemon=True).start()
 
         elif befehl == "regional_einstellungen":
-            sauber = regional_einstellungen(nachricht.get("regional"))
-            if regional_einstellungen_schreiben(sauber):
-                self._regional = sauber
-                if self._chromium:
-                    self._chromium.sprache_setzen(sauber["language"])
+            request_id = nachricht.get("requestId")
+            try:
+                with _REGIONAL_SPERRE:
+                    if request_id:
+                        sauber = regional_einstellungen_geprueft_schreiben(
+                            nachricht.get("regional"), nachricht.get("expectedRegional"))
+                    else:
+                        sauber = regional_einstellungen(nachricht.get("regional"))
+                        if not regional_einstellungen_schreiben(sauber):
+                            raise OSError("regional_write_failed")
+                    self._regional = sauber
+                    if self._chromium:
+                        self._chromium.sprache_setzen(sauber["language"])
                 self.antwort("App.regionalErgebnis", {
-                    "ok": True, "regional": sauber})
-            else:
+                    "ok": True, "requestId": request_id, "regional": sauber})
+            except Exception as error:
                 self.antwort("App.regionalErgebnis", {
-                    "ok": False,
+                    "ok": False, "requestId": request_id,
+                    "code": "conflict" if str(error) == "regional_conflict" else "invalid_settings" if str(error) == "invalid_regional_settings" else "native_operation_failed",
                     "fehler": _("The regional settings could not be saved.")})
+
+        elif befehl == "regional_einstellungen_status":
+            try:
+                with _REGIONAL_SPERRE:
+                    regional = regional_einstellungen_geprueft_lesen()
+                self.antwort("App.regionalStand", {"ok": True,
+                    "requestId": nachricht.get("requestId"), "regional": regional})
+            except Exception:
+                self.antwort("App.regionalStand", {"ok": False,
+                    "requestId": nachricht.get("requestId")})
 
         elif befehl == "background_settings_get":
             threading.Thread(target=lambda: self.antwort(

@@ -8,6 +8,50 @@ internal static class RegionalSettings
 {
     private static readonly HashSet<string> Languages = new(StringComparer.OrdinalIgnoreCase)
     { "system", "de", "en", "fr", "es", "it", "nl", "pt", "ru", "cs", "pl", "hsb", "da", "nb", "hi", "zh_CN", "ja", "ar", "uk", "be", "tr" };
+    private static readonly object Gate = new();
+
+    internal static JsonObject ReadVerified(string path)
+    {
+        lock (Gate)
+        {
+            var text = new AtomicStore().Read(path, 64 * 1024);
+            if (text is null) return Clean(null);
+            return Clean(JsonNode.Parse(text) as JsonObject ?? throw new InvalidDataException("invalid_regional_settings"));
+        }
+    }
+
+    internal static JsonObject WriteChecked(string path, JsonElement value, JsonElement expected)
+    {
+        lock (Gate)
+        {
+            var current = ReadVerified(path);
+            if (expected.ValueKind != JsonValueKind.Object || !JsonNode.DeepEquals(current, JsonNode.Parse(expected.GetRawText())))
+                throw new InvalidOperationException("regional_conflict");
+            var source = JsonNode.Parse(value.GetRawText()) as JsonObject ?? throw new InvalidDataException("invalid_regional_settings");
+            if (!source.ContainsKey("homeCountry")) source["homeCountry"] = current["homeCountry"]?.DeepClone();
+            var clean = Clean(source);
+            foreach (var pair in source)
+            {
+                if (pair.Value is not JsonValue node || !node.TryGetValue<string>(out var text) || !clean.ContainsKey(pair.Key))
+                    throw new InvalidDataException("invalid_regional_settings");
+                text = text.Trim();
+                if (pair.Key == "formatLocale") text = text.Replace('_', '-');
+                if (pair.Key == "homeCountry") text = text.ToUpperInvariant();
+                if (!string.Equals(clean[pair.Key]?.GetValue<string>(), text, StringComparison.Ordinal)) throw new InvalidDataException("invalid_regional_settings");
+            }
+            var zone = clean["timeZone"]!.GetValue<string>();
+            if (zone != "system")
+            {
+                try { _ = TimeZoneInfo.FindSystemTimeZoneById(zone); }
+                catch (Exception error) when (error is TimeZoneNotFoundException or InvalidTimeZoneException)
+                { throw new InvalidDataException("invalid_regional_settings", error); }
+            }
+            var written = Write(path, value);
+            var actual = ReadVerified(path);
+            if (!JsonNode.DeepEquals(actual, written)) throw new IOException("regional_readback_failed");
+            return actual;
+        }
+    }
 
     internal static string LanguagePreference()
     {
@@ -33,21 +77,27 @@ internal static class RegionalSettings
 
     internal static JsonObject Write(string path, JsonElement value)
     {
-        var source = JsonNode.Parse(value.GetRawText()) as JsonObject;
-        if (source is not null && !source.ContainsKey("homeCountry"))
-            source["homeCountry"] = Read(path)["homeCountry"]?.DeepClone();
-        var clean = Clean(source);
-        new AtomicStore().Write(path, clean.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), 64 * 1024);
-        return clean;
+        lock (Gate)
+        {
+            var source = JsonNode.Parse(value.GetRawText()) as JsonObject;
+            if (source is not null && !source.ContainsKey("homeCountry"))
+                source["homeCountry"] = Read(path)["homeCountry"]?.DeepClone();
+            var clean = Clean(source);
+            new AtomicStore().Write(path, clean.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), 64 * 1024);
+            return clean;
+        }
     }
 
     internal static JsonObject WriteLanguage(string path, string language)
     {
-        var settings = Read(path);
-        settings["language"] = language;
-        var clean = Clean(settings);
-        new AtomicStore().Write(path, clean.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), 64 * 1024);
-        return clean;
+        lock (Gate)
+        {
+            var settings = Read(path);
+            settings["language"] = language;
+            var clean = Clean(settings);
+            new AtomicStore().Write(path, clean.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), 64 * 1024);
+            return clean;
+        }
     }
 
     private static JsonObject Clean(JsonObject? source)
