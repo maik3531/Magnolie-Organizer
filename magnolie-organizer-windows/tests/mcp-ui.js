@@ -134,7 +134,7 @@ let declaredContracts;
         id: noteId, title: "Retry", text: "Must not duplicate" } }));
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
-      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport;
+      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
@@ -146,6 +146,8 @@ let declaredContracts;
         if (message.cmd === "gesamtarchiv_pruefen" && message.requestId && onArchive) onArchive(message);
         if (message.cmd === "gesamtarchiv_exportieren" && message.requestId && onArchiveExport) onArchiveExport(message);
         if (message.cmd === "gesamtarchiv_importieren" && message.requestId && onArchiveImport) onArchiveImport(message);
+        if (message.cmd === "sicherung_wiederherstellen" && message.requestId && onArchiveImport) onArchiveImport(message);
+        if (message.cmd === "sicherung_pruefen" && message.requestId && onBackupPreview) onBackupPreview(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -612,6 +614,15 @@ let declaredContracts;
       assert.equal(exportRejected.result.structuredContent.code, "archive_export_failed");
       assert.ok(!JSON.stringify(exportRejected).includes("owned-private-export-error"));
       onArchiveExport = null;
+      onBackupPreview = message => b.w.App.sicherungAusgewaehlt({ requestId: message.requestId, ok: true, pfad: message.pfad, revision: "b".repeat(64), verschluesselt: false, anzahlen: { notizen: 2 } });
+      const backupPreview = await call(request(454, "tools/call", { name: "organizer_backup_preview", arguments: { path: "/owned/backup.json" } }));
+      assert.equal(backupPreview.result.structuredContent.revision, "b".repeat(64));
+      assert.equal(backupPreview.result.structuredContent.counts.notizen, 2);
+      onBackupPreview = message => b.w.App.sicherungAusgewaehlt({ requestId: message.requestId, ok: false, fehler: "owned-private-backup-error" });
+      const backupRejected = await call(request(455, "tools/call", { name: "organizer_backup_preview", arguments: { path: "/owned/backup.json" } }));
+      assert.equal(backupRejected.result.structuredContent.code, "backup_verification_failed");
+      assert.ok(!JSON.stringify(backupRejected).includes("owned-private-backup-error"));
+      onBackupPreview = null;
       assert.equal(invalidGlucose.result.structuredContent.code, "invalid_value");
       const invalidVital = await call(request(267, "tools/call", { name: "organizer_vital_create", arguments: { date: "2028-02-29", pulse: 20 } }));
       assert.equal(invalidVital.error.code, -32602);
@@ -917,14 +928,15 @@ let declaredContracts;
       const importArgs = { path: "/owned/import.magnolie", expected_revision: "a".repeat(64), mode: "replace" };
       const staleImport = await call(request(460, "tools/call", { name: "organizer_archive_import", arguments: { ...importArgs, expected_book_revision: "0".repeat(64) } }));
       assert.equal(staleImport.result.structuredContent.code, "conflict");
+      for (const [tool, callback, baseId] of [["organizer_archive_import", "gesamtarchivImportiert", 461], ["organizer_backup_restore", "sicherungWiederhergestellt", 501]]) {
       for (const cancelled of [false, true]) {
-        const rpcId = cancelled ? 463 : 461;
+        const rpcId = baseId + (cancelled ? 2 : 0);
         b.t.daten().notizen.find(note => note.id === "fixture-note").titel = "Owned import pending " + rpcId;
         const revision = (await call(request(rpcId + 10, "tools/call", { name: "organizer_book_revision_read" }))).result.structuredContent.revision;
         let importRequest;
         const dispatched = new Promise(resolve => { onArchiveImport = message => { importRequest = message; resolve(); }; });
         const saving = new Promise(resolve => { onSave = resolve; });
-        const pending = call(request(rpcId, "tools/call", { name: "organizer_archive_import", arguments: { ...importArgs, expected_book_revision: revision } }));
+        const pending = call(request(rpcId, "tools/call", { name: tool, arguments: { ...importArgs, expected_book_revision: revision } }));
         await saving; assert.equal(importRequest, undefined); b.ack(); await dispatched;
         assert.equal(importRequest.expectedRevision, importArgs.expected_revision);
         const busy = await call(request(rpcId + 20, "tools/call", { name: "organizer_note_create", arguments: { title: "Blocked during import", text: "Owned" } }));
@@ -935,9 +947,10 @@ let declaredContracts;
         }
         const imported = JSON.parse(JSON.stringify(b.t.daten()));
         imported.notizen.find(note => note.id === "fixture-note").text = "Owned committed import " + rpcId;
-        b.w.App.gesamtarchivImportiert({ requestId: importRequest.requestId, ok: true, committed: true, repairPending: true, vorher: recoveryId, daten: imported });
+        b.w.App[callback]({ requestId: importRequest.requestId, ok: true, committed: true, repairPending: true, vorher: recoveryId, daten: imported });
         assert.equal(b.t.daten().notizen.find(note => note.id === "fixture-note").text, "Owned committed import " + rpcId);
         if (!cancelled) { const result = (await pending).result.structuredContent; assert.equal(result.committed, true); assert.equal(result.repair_pending, true); }
+      }
       }
       onArchiveImport = null;
       b.w.App.init({ gesperrt: true });

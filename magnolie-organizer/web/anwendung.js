@@ -32141,6 +32141,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (eintrag) eintrag.aktion();
     },
     sicherungAusgewaehlt(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "sicherungAusgewaehlt"); return; }
       zeigeSicherungsdialog(nutzlast);
     },
     gesamtarchivAusgewaehlt(nutzlast) {
@@ -32184,6 +32185,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       zettel(_("Backup restored. The previous data was backed up automatically."));
     },
     sicherungWiederhergestellt(nutzlast) {
+      if (nutzlast?.requestId) { mcpArchivImportAntwort(nutzlast, "sicherungWiederhergestellt"); return; }
       nutzlast = nutzlast || {};
       if (!nutzlast.ok) {
         $("#sicherung-fehler").textContent =
@@ -34406,7 +34408,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         return { path: value.pfad, confirmed: true, encrypted: value.verschluesselt === true };
       } }];
   }
-  function mcpArchivImportAntwort(value) {
+  function mcpArchivImportAntwort(value, callback = "gesamtarchivImportiert") {
     if (value.ok === true && value.committed === true && value.daten) {
       verwerfeSpeichernNachRestore(); DATEN = normalisiere(value.daten);
       letzterSpeicherText = JSON.stringify(DATEN); kennwortAn = !!value.kennwort;
@@ -34415,11 +34417,21 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     mcpNativeAntwort({ requestId: value.requestId, ok: value.ok === true, code: value.code,
       committed: value.committed === true, previous_snapshot_id: value.vorher || null,
-      repair_pending: value.repairPending === true, warning_present: !!value.fehler }, "gesamtarchivImportiert");
+      repair_pending: value.repairPending === true, warning_present: !!value.fehler }, callback);
   }
-  function mcpArchivImportWerkzeuge() {
+  function mcpBackupVorschauWerkzeuge() {
+    return [{ name: "organizer_backup_preview", description: "Verify a classic JSON backup using the native product reader and password, returning counts and a text revision without restoring. Complete .magnolie archives use archive_preview/archive_import.",
+      inputSchema: { type: "object", properties: { path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, password: { type: "string", maxLength: 1024 } }, required: ["path"], additionalProperties: false },
+      annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => {
+        const book = DATEN, value = await mcpNativeAufruf("sicherung_pruefen", { pfad: args.path, kennwort: args.password || "" }, "sicherungAusgewaehlt", signal);
+        if (signal.aborted || DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Book changed during backup verification");
+        if (value.ok !== true) throw new MagnolieMcp.ToolError("backup_verification_failed", "Native backup verification failed; check the file and password");
+        return { path: value.pfad, revision: value.revision, verified: true, encrypted: value.verschluesselt === true, counts: kopie(value.anzahlen || {}) };
+      } }];
+  }
+  function mcpArchivImportWerkzeuge(backup = false) {
     const revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
-    return [{ name: "organizer_archive_import", description: "Replace the book using the native complete-archive import transaction and mandatory pre-restore checkpoint. Requires the verified archive revision and current book revision. Committed data is adopted even after cancellation; synchronization remains explicit.",
+    return [{ name: backup ? "organizer_backup_restore" : "organizer_archive_import", description: backup ? "Restore a classic JSON backup through the native product restore/encryption transaction and mandatory checkpoint. Requires verified backup and book revisions, explicit replace mode. Native platform password rules apply; committed data is adopted even after cancellation." : "Replace the book using the native complete-archive import transaction and mandatory pre-restore checkpoint. Requires the verified archive revision and current book revision. Committed data is adopted even after cancellation; synchronization remains explicit.",
       inputSchema: { type: "object", properties: { path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, password: { type: "string", maxLength: 1024 }, expected_revision: revision, expected_book_revision: revision, mode: { type: "string", enum: ["replace"] } }, required: ["path", "expected_revision", "expected_book_revision", "mode"], additionalProperties: false },
       annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => {
         mcpEditorPruefen();
@@ -34431,7 +34443,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("conflict", "Book changed while preparing import");
         mcpRestoreAktiv = true;
         try {
-          const value = await mcpNativeAufruf("gesamtarchiv_importieren", { pfad: args.path, kennwort: args.password || "", modus: "vollstaendig-ersetzen", expectedRevision: args.expected_revision }, "gesamtarchivImportiert", signal);
+          const value = await mcpNativeAufruf(backup ? "sicherung_wiederherstellen" : "gesamtarchiv_importieren", { pfad: args.path, kennwort: args.password || "", ...(!backup ? { modus: "vollstaendig-ersetzen" } : {}), expectedRevision: args.expected_revision }, backup ? "sicherungWiederhergestellt" : "gesamtarchivImportiert", signal);
           if (value.ok !== true) throw new MagnolieMcp.ToolError(value.code === "conflict" ? "conflict" : value.code === "busy" ? "native_busy" : "native_operation_failed", "Native archive import failed or its preconditions changed");
           if (value.committed !== true) throw new MagnolieMcp.ToolError("invalid_result", "Native import did not confirm the committed profile");
           return { restored: true, committed: true, previous_snapshot_id: value.previous_snapshot_id, repair_pending: value.repair_pending, warning_present: value.warning_present, book_revision: await personalSyncHash(JSON.stringify(DATEN)) };
@@ -34639,7 +34651,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
     if (name === "organizer_archive_export") return shape({ path: text, confirmed: yes, encrypted: flag }, ["path", "confirmed", "encrypted"]);
-    if (name === "organizer_archive_import") return mcpErgebnisSchema("organizer_recovery_snapshot_restore");
+    if (name === "organizer_backup_preview") return shape({ path: text, revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, verified: yes, encrypted: flag, counts: object }, ["path", "revision", "verified", "encrypted", "counts"]);
+    if (name === "organizer_archive_import" || name === "organizer_backup_restore") return mcpErgebnisSchema("organizer_recovery_snapshot_restore");
     if (name === "organizer_archive_preview") return shape({ path: text, revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, verified: yes, encrypted: flag, created_at: text, platform: text, app_version: text, counts: object, photos: { type: "integer", minimum: 0 }, attachments: { type: "integer", minimum: 0 } }, ["path", "revision", "verified", "encrypted", "created_at", "platform", "app_version", "counts", "photos", "attachments"]);
     if (name === "organizer_backup_create") return shape({ path: text, confirmed: yes }, ["path", "confirmed"]);
     if (name === "organizer_recovery_runtime_policy_read") return shape({ policy: shape({ interval: { type: "string", enum: ["off", "6h", "12h", "daily", "weekly"] }, retention_mode: { type: "string", enum: ["count", "days"] }, maximum: { type: "integer", minimum: 1, maximum: 100 }, days: { type: "integer", minimum: 1, maximum: 3650 } }, ["interval", "retention_mode", "maximum", "days"]), revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["policy", "revision"]);
@@ -34747,6 +34760,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpArchivWerkzeuge(),
       ...mcpArchivExportWerkzeuge(),
       ...mcpArchivImportWerkzeuge(),
+      ...mcpArchivImportWerkzeuge(true),
+      ...mcpBackupVorschauWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

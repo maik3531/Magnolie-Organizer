@@ -134,6 +134,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "cloud_sicherung_test": await RunCloudBackupTestAsync(); break;
                     case "sicherung_waehlen": await SelectBackupAsync(); break;
                     case "sicherung_wiederherstellen": await RestoreBackupAsync(message); break;
+                    case "sicherung_pruefen": await PreviewBackupAsync(message); break;
                     case "journal_liste": await SendRecoveryStatusAsync(Text(message, "requestId")); break;
                     case "journal_erzeugen":
                     case "journal_manuell": await CreateManualSnapshotAsync(Text(message, "requestId")); break;
@@ -1097,8 +1098,31 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
     }
 
+    private async Task PreviewBackupAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId");
+        try
+        {
+            var source = Text(message, "pfad");
+            if (GesamtarchivService.IsArchivePath(source)) throw new InvalidDataException("use_archive_preview");
+            var text = store.Read(source) ?? throw new IOException("Empty backup.");
+            var encrypted = EncryptionService.IsEncrypted(text);
+            var decoder = new EncryptionService();
+            var plain = encrypted ? decoder.Unlock(text, Text(message, "kennwort")) : text;
+            decoder.Clear();
+            var data = JsonNode.Parse(plain) as JsonObject ?? throw new InvalidDataException("Invalid backup.");
+            var counts = new[] { "notizen", "aufgaben", "termine", "kontakte", "jahrestage" }
+                .ToDictionary(key => key, key => (data[key] as JsonArray)?.Count ?? 0);
+            await form.SendAsync("App.sicherungAusgewaehlt", new { ok = true, requestId, pfad = Path.GetFullPath(source),
+                revision = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text))).ToLowerInvariant(),
+                verschluesselt = encrypted, anzahlen = counts });
+        }
+        catch (Exception) { await form.SendAsync("App.sicherungAusgewaehlt", new { ok = false, requestId }); }
+    }
+
     private async Task RestoreBackupAsync(JsonElement message)
     {
+        var requestId = Text(message, "requestId");
         var locked = false;
         var committed = false;
         SnapshotInfo? restorePoint = null;
@@ -1107,10 +1131,14 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var source = Text(message, "pfad");
             if (GesamtarchivService.IsArchivePath(source))
             {
+                if (!string.IsNullOrEmpty(requestId)) throw new InvalidDataException("use_archive_import");
                 await PreviewGesamtarchivAsync(source, Text(message, "kennwort"));
                 return;
             }
             var storedText = store.Read(source) ?? throw new IOException(T("The backup is empty."));
+            var expectedRevision = Text(message, "expectedRevision");
+            if (expectedRevision.Length != 0 && expectedRevision != Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(storedText))).ToLowerInvariant())
+                throw new InvalidDataException("backup_conflict");
             var encrypted = EncryptionService.IsEncrypted(storedText);
             var plainText = storedText;
             var restoredEncryption = new EncryptionService();
@@ -1140,16 +1168,17 @@ internal sealed partial class BridgeDispatcher : IDisposable
             currentPlainTextAvailable = true;
             currentEnvelope = encrypted ? storedText : "";
             var warning = commitWarning + await CompleteRestoreRuntimeAsync(currentPlainText, encrypted, resumeTree: true);
-            await SendRestoreResultAsync("App.sicherungWiederhergestellt", warning);
+            await SendRestoreResultAsync("App.sicherungWiederhergestellt", warning, requestId, restorePoint.Id);
         }
         catch (Exception error)
         {
-            if (committed) { await SendRestoreResultAsync("App.sicherungWiederhergestellt", T("Synchronization failed.")); return; }
+            if (committed) { await SendRestoreResultAsync("App.sicherungWiederhergestellt", T("Synchronization failed."), requestId, restorePoint?.Id); return; }
             var warning = await ReleaseRestoreFence();
-            await ReportErrorAsync("restore_backup", error.Message);
+            if (string.IsNullOrEmpty(requestId)) await ReportErrorAsync("restore_backup", error.Message);
             await form.SendAsync("App.sicherungWiederhergestellt", new
             {
-                ok = false, daten = (object?)null, kennwort = false, repairPending = restoreInProgress, fehler = T("The backup could not be restored.") + " " + warning
+                ok = false, requestId, committed = false, code = error.Message == "backup_conflict" ? "conflict" : "native_operation_failed",
+                daten = (object?)null, kennwort = false, repairPending = restoreInProgress, fehler = T("The backup could not be restored.") + " " + warning
             });
         }
         finally

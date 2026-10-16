@@ -27,6 +27,8 @@ internal static class McpTransportTests
         using (var archive = BridgeDispatcherContract.Parse("{\"cmd\":\"gesamtarchiv_pruefen\",\"pfad\":\"owned.magnolie\",\"kennwort\":\"\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
         using (var export = BridgeDispatcherContract.Parse("{\"cmd\":\"gesamtarchiv_exportieren\",\"pfad\":\"owned.magnolie\",\"kennwort\":\"\",\"overwrite\":true,\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
         using (var import = BridgeDispatcherContract.Parse("{\"cmd\":\"gesamtarchiv_importieren\",\"pfad\":\"owned.magnolie\",\"kennwort\":\"\",\"modus\":\"vollstaendig-ersetzen\",\"expectedRevision\":\"owned-revision\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
+        using (var preview = BridgeDispatcherContract.Parse("{\"cmd\":\"sicherung_pruefen\",\"pfad\":\"owned.json\",\"kennwort\":\"\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
+        using (var restore = BridgeDispatcherContract.Parse("{\"cmd\":\"sicherung_wiederherstellen\",\"pfad\":\"owned.json\",\"kennwort\":\"\",\"expectedRevision\":\"owned-revision\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
         var profile = Path.Combine(Path.GetTempPath(), "magnolie-mcp-fixture-" + Guid.NewGuid().ToString("N"));
         var incoming = Channel.CreateUnbounded<JsonObject>();
         var closed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);

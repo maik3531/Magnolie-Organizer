@@ -12,7 +12,7 @@ from modul_laden import quellmodul_laden
 
 
 @pytest.mark.parametrize("failure", [None, "before-write", "after-rename", "projection"])
-@pytest.mark.parametrize("operation", ["journal", "archive"])
+@pytest.mark.parametrize("operation", ["journal", "archive", "backup"])
 def test_restore_reports_actual_commit_state(failure, operation):
     source = Path(__file__).parents[1] / "bin/magnolie-organizer"
     product = quellmodul_laden("owned_restore_commit_" + uuid.uuid4().hex, str(source))
@@ -25,10 +25,12 @@ def test_restore_reports_actual_commit_state(failure, operation):
         reader = product.journal_snapshot_lesen
         product.journal_snapshot_lesen = lambda id, password, **kwargs: reader(id, password, basis=directory, **kwargs)
         product.daten_datei = lambda: str(data_file)
+        product.daten_verzeichnis = lambda: directory
         writer = product.atomar_text_schreiben
 
         class Window:
             _daten_sperre = threading.RLock()
+            _baum_sperre = threading.RLock()
             _kennwort = ""
             _telefon = None
             _operation_laeuft = False
@@ -61,14 +63,27 @@ def test_restore_reports_actual_commit_state(failure, operation):
         writer(str(data_file), json.dumps(window._aktuelle_daten))
 
         def write(path, text):
-            if path == str(data_file) and failure == "before-write":
+            if operation != "backup" and path == str(data_file) and failure == "before-write":
                 raise OSError("Owned pre-commit failure")
             writer(path, text)
-            if path == str(data_file) and failure == "after-rename":
+            if operation != "backup" and path == str(data_file) and failure == "after-rename":
                 raise OSError("Owned post-rename failure")
 
         product.atomar_text_schreiben = write
-        if operation == "archive":
+        if operation == "backup":
+            backup_file = Path(directory) / "owned-backup.json"
+            writer(str(backup_file), json.dumps(data))
+            transaction = product.kennwort_transaktion_ausfuehren
+            def restore_transaction(files, kind):
+                if failure == "before-write":
+                    raise OSError("Owned transaction pre-commit failure")
+                transaction(files, kind)
+                if failure == "after-rename":
+                    raise OSError("Owned transaction post-commit failure")
+            product.kennwort_transaktion_ausfuehren = restore_transaction
+            product.Fenster._sicherung_wiederherstellen(window, str(backup_file))
+            callback_name = "App.sicherungWiederhergestellt"
+        elif operation == "archive":
             archive_file = Path(directory) / "owned.magnolie"
             writer(str(archive_file), product.gesamtarchiv_erzeugen(data))
             product.Fenster._gesamtarchiv_importieren(window, str(archive_file), "", "vollstaendig-ersetzen")

@@ -2270,7 +2270,7 @@ def automatische_sicherung_anlegen(daten, ordner, kennwort, aufbewahrung,
     return ziel
 
 
-def sicherung_lesen(pfad, kennwort=""):
+def sicherung_lesen(pfad, kennwort="", expected_revision=None):
     """Liest und prüft eine Sicherungsdatei, ohne den Bestand zu verändern."""
     pfad = os.path.abspath(os.path.expanduser(str(pfad or "").strip()))
     if not pfad or not os.path.exists(pfad):
@@ -2287,6 +2287,9 @@ def sicherung_lesen(pfad, kennwort=""):
         return {"ok": False, "fehler": fehler_deutsch(
             fehler, _("Reading the backup")),
                 "brauchtKennwort": False, "verschluesselt": False}
+    revision = hashlib.sha256(roh.encode("utf-8")).hexdigest()
+    if expected_revision is not None and expected_revision != revision:
+        return {"ok": False, "code": "conflict", "fehler": "backup_conflict", "brauchtKennwort": False}
     verschluesselt = ist_verschluesselt(roh)
     if verschluesselt and not kennwort:
         return {"ok": False, "fehler": "", "brauchtKennwort": True,
@@ -2294,7 +2297,7 @@ def sicherung_lesen(pfad, kennwort=""):
     try:
         if os.path.splitext(pfad)[1].lower() == ".magnolie":
             archiv = gesamtarchiv_lesen_text(roh, kennwort)
-            return {"ok": True, "daten": archiv["daten"], "fehler": "",
+            return {"ok": True, "daten": archiv["daten"], "fehler": "", "revision": revision,
                     "brauchtKennwort": False,
                     "verschluesselt": archiv["verschluesselt"]}
         klar = entschluesseln(roh, kennwort) if verschluesselt else roh
@@ -2313,7 +2316,7 @@ def sicherung_lesen(pfad, kennwort=""):
                 "fehler": _("The backup does not contain a complete data set."),
                 "brauchtKennwort": False,
                 "verschluesselt": verschluesselt}
-    return {"ok": True, "daten": daten, "fehler": "",
+    return {"ok": True, "daten": daten, "fehler": "", "revision": revision,
             "brauchtKennwort": False, "verschluesselt": verschluesselt}
 
 
@@ -21178,7 +21181,10 @@ class Fenster(_FENSTER_BASIS):
             self._sicherung_wiederherstellen(
                 nachricht.get("pfad") or "",
                 nachricht.get("kennwort") or "",
-                nachricht.get("sicherungsordner") or "")
+                nachricht.get("sicherungsordner") or "", nachricht.get("requestId"), nachricht.get("expectedRevision"))
+
+        elif befehl == "sicherung_pruefen":
+            self._sicherung_pruefen(nachricht.get("pfad") or "", nachricht.get("kennwort") or "", nachricht.get("requestId"))
 
         elif befehl == "gesamtarchiv_waehlen":
             self._gesamtarchiv_waehlen()
@@ -22743,21 +22749,44 @@ class Fenster(_FENSTER_BASIS):
             "journal": journal_bericht.get("geschafft", 0),
             "journalFehler": journal_bericht.get("misslungen", 0)})
 
+    def _sicherung_pruefen(self, pfad, kennwort="", request_id=None):
+        try:
+            if os.path.splitext(pfad)[1].lower() == ".magnolie":
+                raise ValueError("use_archive_preview")
+            value = sicherung_lesen(pfad, kennwort)
+            if not value.get("ok"):
+                raise ValueError("backup_verification_failed")
+            self.antwort("App.sicherungAusgewaehlt", {"requestId": request_id,
+                "ok": True, "pfad": os.path.abspath(pfad), "revision": value["revision"],
+                "verschluesselt": bool(value.get("verschluesselt")),
+                "anzahlen": {key: len(value["daten"].get(key, [])) if isinstance(value["daten"].get(key), list) else 0
+                    for key in ("notizen", "aufgaben", "termine", "kontakte", "jahrestage")}})
+        except Exception:
+            self.antwort("App.sicherungAusgewaehlt", {"ok": False, "requestId": request_id})
+
     def _sicherung_wiederherstellen(self, pfad, kennwort="",
-                                    sicherungsordner=""):
+                                    sicherungsordner="", request_id=None, expected_revision=None):
         """Ersetzt den Bestand erst nach Prüfung und legt vorher eine Kopie an."""
         if (getattr(self, "_operation_laeuft", False) or
                 getattr(self, "_sync_laeuft", False)):
             self.antwort("App.sicherungWiederhergestellt", {"ok": False,
+                "requestId": request_id, "committed": False, "code": "busy",
                 "fehler": _("Another data operation is still running.")})
             return
         self._operation_laeuft = True
+        committed = False
+        warnung = ""
         vorher_baum_kennwort = getattr(self, "_kennwort", "")
         ziel_kennwort = vorher_baum_kennwort
-        gelesen = sicherung_lesen(pfad, kennwort)
+        try:
+            if request_id and os.path.splitext(pfad)[1].lower() == ".magnolie":
+                raise ValueError("use_archive_import")
+            gelesen = sicherung_lesen(pfad, kennwort, expected_revision)
+        except Exception:
+            gelesen = {"ok": False}
         if not gelesen.get("ok"):
             self.antwort("App.sicherungWiederhergestellt", {
-                "ok": False, "fehler": gelesen.get("fehler") or
+                "ok": False, "requestId": request_id, "committed": False, "code": gelesen.get("code"), "fehler": gelesen.get("fehler") or
                 (_("Enter the backup password.")
                  if gelesen.get("brauchtKennwort") else
                  _("The backup could not be read.")),
@@ -22805,30 +22834,44 @@ class Fenster(_FENSTER_BASIS):
                 else:
                     neue_dateien["daten.json"] = klar
                     daten_dek = daten_dek_kennung = daten_umschlag = None
-                kennwort_transaktion_ausfuehren(
-                    neue_dateien, "wiederherstellen")
+                try:
+                    kennwort_transaktion_ausfuehren(neue_dateien, "wiederherstellen")
+                except Exception as fehler:
+                    try:
+                        kennwort_transaktion_reparieren()
+                    except Exception:
+                        pass
+                    aktuell_text, _bindung = _erinnerungsprofil_lesen()
+                    if aktuell_text != neue_dateien["daten.json"]:
+                        raise
+                    warnung = fehler_deutsch(fehler, _("Saving the data"))
+                committed = True
                 self._aktuelle_daten = gelesen["daten"]
-                Fenster._baum_migration_uebernehmen(self, baum_migration)
                 self._kennwort = ziel_kennwort
                 self._daten_dek = daten_dek
                 self._daten_dek_kennung = daten_dek_kennung
                 self._daten_umschlag = daten_umschlag
+                Fenster._baum_migration_uebernehmen(self, baum_migration)
             sperre_schreiben(sperre_zuruecksetzen())
             self._erinnerungsprojektion_aktualisieren()
         except Exception as fehler:
-            self.antwort("App.sicherungWiederhergestellt", {
-                "ok": False,
-                "fehler": fehler_deutsch(
-                    fehler, _("Restoring the backup")),
-                "brauchtKennwort": False})
-            return
+            if committed:
+                warnung = fehler_deutsch(fehler, _("Restoring the backup"))
+            else:
+                self.antwort("App.sicherungWiederhergestellt", {
+                    "ok": False, "requestId": request_id, "committed": False,
+                    "fehler": fehler_deutsch(fehler, _("Restoring the backup")), "brauchtKennwort": False})
+                return
         finally:
             self._daten_sperre.release()
             self._operation_laeuft = False
         self.antwort("App.sicherungWiederhergestellt", {
-            "ok": True, "daten": gelesen["daten"],
+            "ok": True, "daten": gelesen["daten"], "requestId": request_id,
+            "committed": True, "repairPending": bool(warnung), "fehler": warnung,
             "kennwort": bool(self._kennwort),
             "vorher": vorher["snapshotId"], "pfad": os.path.abspath(pfad)})
+        if warnung:
+            self.antwort("App.syncFehler", _("Saved") + " · " + warnung)
 
     def _gesamtarchiv_vorschau(self, pfad, gelesen, request_id=None, revision=None):
         self.antwort("App.gesamtarchivAusgewaehlt", {

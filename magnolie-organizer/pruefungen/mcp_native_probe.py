@@ -749,6 +749,45 @@ def client():
             return False
         product.GLib.idle_add(clean_import_fixture)
         assert import_cleaned.wait(5)
+        for backup_password in ("", "owned-classic-backup-password"):
+            classic_path = Path(temporary.name) / "owned-classic-backup.json"
+            classic_text = json.dumps(backup_data, ensure_ascii=False)
+            if backup_password:
+                classic_text = product.verschluesseln(classic_text, backup_password)
+            classic_path.write_text(classic_text)
+            classic_preview = call("tools/call", {"name": "organizer_backup_preview", "arguments": {
+                "path": str(classic_path), "password": backup_password}})
+            assert not classic_preview["isError"] and classic_preview["structuredContent"]["verified"], classic_preview
+            assert classic_preview["structuredContent"]["encrypted"] == bool(backup_password)
+            if backup_password:
+                wrong_backup = call("tools/call", {"name": "organizer_backup_preview", "arguments": {"path": str(classic_path), "password": "wrong"}})
+                assert wrong_backup["isError"] and wrong_backup["structuredContent"]["code"] == "backup_verification_failed", wrong_backup
+            before_classic = call("tools/call", {"name": "organizer_note_read", "arguments": {"id": note_id, "fields": ["id"]}})
+            changed_classic = call("tools/call", {"name": "organizer_note_update", "arguments": {
+                "id": note_id, "expected_revision": before_classic["structuredContent"]["revision"], "text": "Owned before classic restore"}})
+            assert not changed_classic["isError"], changed_classic
+            classic_book = call("tools/call", {"name": "organizer_book_revision_read"})
+            classic_args = {"path": str(classic_path), "password": backup_password,
+                "expected_revision": classic_preview["structuredContent"]["revision"], "expected_book_revision": classic_book["structuredContent"]["revision"], "mode": "replace"}
+            classic_path.write_text(classic_text + "\n")
+            stale_classic = call("tools/call", {"name": "organizer_backup_restore", "arguments": classic_args})
+            assert stale_classic["isError"] and stale_classic["structuredContent"]["code"] == "conflict", stale_classic
+            classic_path.write_text(classic_text)
+            import_setup.clear(); import_cleaned.clear()
+            product.GLib.idle_add(configure_import_projection_failure)
+            assert import_setup.wait(5)
+            restored_classic = call("tools/call", {"name": "organizer_backup_restore", "arguments": classic_args})
+            assert not restored_classic["isError"] and restored_classic["structuredContent"]["committed"] and restored_classic["structuredContent"]["repair_pending"], restored_classic
+            assert restored_classic["structuredContent"]["previous_snapshot_id"], restored_classic
+            stored_classic = data_file.read_text()
+            if backup_password:
+                assert product.ist_verschluesselt(stored_classic)
+                stored_classic = product.entschluesseln(stored_classic, backup_password)
+            assert next(item for item in json.loads(stored_classic)["notizen"] if item["id"] == note_id)["text"] == large_text
+            classic_gui = call("tools/call", {"name": "organizer_content_read", "arguments": {"section": "notizen", "id": note_id, "path": ["text"], "limit": 5}})
+            assert not classic_gui["isError"] and classic_gui["structuredContent"]["total_bytes"] == len(large_text.encode("utf8")), classic_gui
+            product.GLib.idle_add(clean_import_fixture)
+            assert import_cleaned.wait(5)
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()
