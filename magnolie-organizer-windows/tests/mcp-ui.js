@@ -550,6 +550,13 @@ let declaredContracts;
       assert.equal((await recoveryCreating).result.structuredContent.snapshot.id, recoveryId);
       b.t.daten().notizen.find(note => note.id === "fixture-note").titel = oldRecoveryTitle;
       onRecovery = null;
+      const creationPolicy = (await call(request(420, "tools/call", { name: "organizer_recovery_creation_policy_read" }))).result.structuredContent;
+      await persisted(421, "organizer_recovery_creation_policy_update", { expected_revision: creationPolicy.revision, creation_mode: "interval", interval_minutes: 73 });
+      const stalePolicy = await call(request(422, "tools/call", { name: "organizer_recovery_creation_policy_update", arguments: { expected_revision: creationPolicy.revision, creation_mode: "startup" } }));
+      assert.equal(stalePolicy.result.structuredContent.code, "conflict");
+      const creationReload = await harness.exports.boot(web, JSON.parse(JSON.stringify(b.t.daten())));
+      try { assert.equal(creationReload.t.daten().einstellungen.allgemein.wiederherstellungsminuten, 73); }
+      finally { creationReload.close(); }
       assert.equal(invalidGlucose.result.structuredContent.code, "invalid_value");
       const invalidVital = await call(request(267, "tools/call", { name: "organizer_vital_create", arguments: { date: "2028-02-29", pulse: 20 } }));
       assert.equal(invalidVital.error.code, -32602);

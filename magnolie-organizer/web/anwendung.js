@@ -24230,8 +24230,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     refreshInterval(); unit.addEventListener("change", refreshInterval);
     const tools = el("div", "knopfreihe"); tools.append(minutes, unit);
     const intervalRow = formZeile(_("Interval"), tools); intervalRow.hidden = mode.value !== "interval";
-    mode.addEventListener("change", () => { preferences.wiederherstellungsmodus = mode.value; intervalRow.hidden = mode.value !== "interval"; planeSpeichern(); });
-    minutes.addEventListener("change", () => { preferences.wiederherstellungsminuten = Math.max(1, Math.min(1440, Math.round(Number(minutes.value) * (unit.value === "hours" ? 60 : 1) || 30)));
+    mode.addEventListener("change", () => { wendeJournalErzeugungAn({ creation_mode: mode.value }); intervalRow.hidden = mode.value !== "interval"; planeSpeichern(); });
+    minutes.addEventListener("change", () => { wendeJournalErzeugungAn({ interval_minutes: Math.max(1, Math.min(1440, Math.round(Number(minutes.value) * (unit.value === "hours" ? 60 : 1) || 30))) });
       refreshInterval(); planeSpeichern(); });
     journal.append(formZeile(_("Create recovery points"), mode), intervalRow,
       el("p", "einst-hinweis", _("Unchanged contents do not create another recovery point.")));
@@ -34310,6 +34310,30 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         } }
     ];
   }
+  function wendeJournalErzeugungAn(values) {
+    const preferences = DATEN.einstellungen.allgemein;
+    if (values.creation_mode !== undefined) preferences.wiederherstellungsmodus = values.creation_mode;
+    if (values.interval_minutes !== undefined) preferences.wiederherstellungsminuten = values.interval_minutes;
+  }
+  function mcpJournalErzeugungWerkzeuge() {
+    const policy = () => ({ creation_mode: DATEN.einstellungen.allgemein.wiederherstellungsmodus,
+      interval_minutes: DATEN.einstellungen.allgemein.wiederherstellungsminuten });
+    return [
+      { name: "organizer_recovery_creation_policy_read", description: "Read the recovery-point creation/grouping policy shown in the product settings, with its revision.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => {
+          const value = policy(); return { policy: value, revision: await personalSyncHash(JSON.stringify(value)) };
+        } },
+      { name: "organizer_recovery_creation_policy_update", description: "Revision-checked recovery-point creation/grouping settings through the same data helper as the UI. Waits for native book persistence; retention and backup configuration are separate.",
+        inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, creation_mode: { type: "string", enum: ["change", "daily", "weekly", "startup", "interval"] }, interval_minutes: { type: "integer", minimum: 1, maximum: 1440 } },
+          required: ["expected_revision"], anyOf: [{ required: ["creation_mode"] }, { required: ["interval_minutes"] }], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const book = DATEN, before = JSON.stringify(policy()), revision = await personalSyncHash(before);
+          if (signal.aborted || gesperrt || DATEN !== book || JSON.stringify(policy()) !== before || args.expected_revision !== revision)
+            throw new MagnolieMcp.ToolError("conflict", "Recovery creation policy changed; read it again before writing");
+          mcpEditorPruefen(); wendeJournalErzeugungAn(args); return {};
+        }) }
+    ];
+  }
   function wendeUrlaubDatenAn(entry, values) {
     const value = entry || { id: values.id || uid(), von: isoHeute(), bis: isoHeute(), symbol: "palm", darstellung: "symbol-text" };
     if (gueltigesISO(values.von)) value.von = values.von;
@@ -34510,6 +34534,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_recovery_creation_policy_read") return shape({ policy: shape({ creation_mode: { type: "string", enum: ["change", "daily", "weekly", "startup", "interval"] }, interval_minutes: { type: "integer", minimum: 1, maximum: 1440 } }, ["creation_mode", "interval_minutes"]), revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["policy", "revision"]);
+    if (name === "organizer_recovery_creation_policy_update") return shape({ persisted: yes }, ["persisted"]);
     if (name === "organizer_book_revision_read") return shape({ revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["revision"]);
     if (name === "organizer_recovery_snapshot_restore") return shape({ restored: yes, committed: yes, previous_snapshot_id: { type: ["string", "null"] }, repair_pending: flag, warning_present: flag, book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["restored", "committed", "previous_snapshot_id", "repair_pending", "warning_present", "book_revision"]);
     if (name === "organizer_recovery_list") return shape({ snapshots: { type: "array", items: object, maxItems: 100 }, total: { type: "integer", minimum: 0 }, offset: { type: "integer", minimum: 0 }, next_offset: { type: "integer", minimum: 0 }, settings: object }, ["snapshots", "total", "offset", "settings"]);
@@ -34605,6 +34631,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpZeichenWerkzeuge(),
       ...mcpZeichenUploadWerkzeuge(owner),
       ...mcpRecoveryWerkzeuge(),
+      ...mcpJournalErzeugungWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

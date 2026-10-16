@@ -606,6 +606,12 @@ def client():
             "snapshots": [{"id": recovery_id, "expected_revision": recovery_inspect["structuredContent"]["revision"]}]}})
         assert not recovery_deleted["isError"] and recovery_deleted["structuredContent"]["deleted_count"] == 1, recovery_deleted
         assert not recovery_path.exists()
+        creation_policy = call("tools/call", {"name": "organizer_recovery_creation_policy_read"})
+        creation_updated = call("tools/call", {"name": "organizer_recovery_creation_policy_update", "arguments": {
+            "expected_revision": creation_policy["structuredContent"]["revision"], "creation_mode": "interval", "interval_minutes": 73}})
+        assert not creation_updated["isError"] and creation_updated["structuredContent"]["persisted"], creation_updated
+        creation_saved = json.loads(data_file.read_text())["einstellungen"]["allgemein"]
+        assert creation_saved["wiederherstellungsmodus"] == "interval" and creation_saved["wiederherstellungsminuten"] == 73
         if os.environ.get("MAGNOLIE_MCP_PROBE_RESTORE_REPAIR") == "1":
             restore_point = call("tools/call", {"name": "organizer_recovery_snapshot_create"})
             assert not restore_point["isError"], restore_point
