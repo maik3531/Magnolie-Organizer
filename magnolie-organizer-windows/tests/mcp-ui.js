@@ -135,6 +135,7 @@ let declaredContracts;
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
       let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile, onCloudStatus, onCloudPassword, onCloudTest, onSpelling, onRememberWord, onRegionalRead, onRegionalSave, onTrayRead, onTraySave, onBackgroundRead, onBackgroundSave;
+      let onReminder;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
@@ -161,6 +162,7 @@ let declaredContracts;
         if (message.cmd === "tray_einstellungen" && message.requestId && onTraySave) onTraySave(message);
         if (message.cmd === "background_settings_get" && message.requestId && onBackgroundRead) onBackgroundRead(message);
         if (message.cmd === "background_settings_set" && message.requestId && onBackgroundSave) onBackgroundSave(message);
+        if (message.cmd === "erinnerung_einrichten" && message.requestId && onReminder) onReminder(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -1362,6 +1364,54 @@ let declaredContracts;
         const blocked = await call(request(846, "tools/call", { name: "organizer_background_permissions_update", arguments: { expected_revision: unsupported.revision, permissions: { phone_selected_notifications: true } } }));
         assert.equal(blocked.result.structuredContent.code, "unsupported_feature");
         onBackgroundRead = onBackgroundSave = null;
+      }
+      {
+        const read = async id => (await call(request(id, "tools/call", { name: "organizer_notification_settings_read" }))).result.structuredContent;
+        const first = await read(860), records = JSON.stringify([b.t.daten().termine, b.t.daten().kontakte, b.t.daten().jahrestage]);
+        const nativeState = (enabled, backend = "session-worker") => ({ backend, foreground_enabled: enabled, worker_running: backend === "session-worker", autostart_registered: enabled });
+        let native, completed = false;
+        const saving = new Promise(resolve => { onSave = resolve; });
+        const dispatched = new Promise(resolve => { onReminder = message => { native = message; resolve(); }; });
+        const pending = call(request(861, "tools/call", { name: "organizer_notification_settings_update", arguments: {
+          expected_revision: first.revision, enabled: true, lead_minutes: 60, wake_from_suspend: true,
+          style: "system", kind: "sound", anniversaries: { enabled: true, lead_days: 7, auto_dismiss: true } } })).then(value => { completed = true; return value; });
+        await saving; assert.equal(native, undefined, "Native reminder setup must follow the durable preferences ACK");
+        assert.equal(completed, false); b.ack(); await dispatched;
+        assert.equal(native.an, true); assert.equal(native.vorlauf, 60); assert.equal(native.wecken, true);
+        b.w.App.erinnerungStand({ requestId: "wrong-reminder-request", ok: true, native_state: nativeState(true) });
+        await new Promise(resolve => setImmediate(resolve)); assert.equal(completed, false);
+        b.w.App.erinnerungStand({ requestId: native.requestId, ok: true, native_state: nativeState(true, "windows-scheduler"), weckruf: { ok: false } });
+        const result = (await pending).result.structuredContent;
+        assert.equal(result.persisted, true); assert.equal(result.service_reconfigured, true); assert.equal(result.wake_scheduled, false);
+        assert.equal(result.settings.effective_kind, "both"); assert.equal(result.settings.kind, "sound");
+        assert.equal(result.settings.anniversaries.repeat_on_day, first.settings.anniversaries.repeat_on_day);
+        assert.equal(result.settings.anniversaries.morning_hour, first.settings.anniversaries.morning_hour);
+        assert.equal(JSON.stringify([b.t.daten().termine, b.t.daten().kontakte, b.t.daten().jahrestage]), records);
+        const stale = await call(request(862, "tools/call", { name: "organizer_notification_settings_update", arguments: { expected_revision: first.revision, include_missed: false } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        const current = await read(863), nativeCount = b.messages.filter(message => message.cmd === "erinnerung_einrichten").length;
+        const preferences = await persisted(864, "organizer_notification_settings_update", { expected_revision: current.revision, anniversaries: { lead_days: 3 } });
+        assert.equal(preferences.service_reconfigured, false); assert.equal(preferences.native_state, null); assert.equal(preferences.wake_scheduled, null);
+        assert.equal(b.messages.filter(message => message.cmd === "erinnerung_einrichten").length, nativeCount);
+        const invalid = await call(request(865, "tools/call", { name: "organizer_notification_settings_update", arguments: { expected_revision: (await read(866)).revision, anniversaries: { lead_days: 8 } } }));
+        assert.equal(invalid.error.code, -32602);
+        const failureSave = new Promise(resolve => { onSave = resolve; });
+        onReminder = message => b.w.App.erinnerungStand({ requestId: message.requestId, ok: true, native_state: { ...nativeState(true), worker_running: false } });
+        const failure = call(request(867, "tools/call", { name: "organizer_notification_settings_update", arguments: { expected_revision: (await read(868)).revision, lead_minutes: 30 } }));
+        await failureSave; b.ack(); const failed = (await failure).result.structuredContent;
+        assert.equal(failed.code, "native_operation_failed"); assert.match(failed.message, /Preferences were saved/);
+        assert.equal(JSON.parse(b.saves().at(-1).text).einstellungen.erinnerung.vorlauf, 30);
+        const cancelSave = new Promise(resolve => { onSave = resolve; });
+        const lateDispatch = new Promise(resolve => { onReminder = message => { native = message; resolve(); }; });
+        const cancelled = call(request(869, "tools/call", { name: "organizer_notification_settings_update", arguments: { expected_revision: (await read(870)).revision, enabled: false } }));
+        await cancelSave; b.ack(); await lateDispatch;
+        await call({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 869 } });
+        assert.equal((await cancelled).result.structuredContent.code, "cancelled");
+        const toast = b.w.document.querySelector("#zettel").textContent;
+        b.w.App.erinnerungStand({ requestId: native.requestId, ok: false, fehler: "owned-late-reminder-failure", native_state: nativeState(false) });
+        assert.equal(b.w.document.querySelector("#zettel").textContent, toast);
+        assert.equal((await read(871)).settings.enabled, false, "Saved preferences survive cancellation of subsequent native setup");
+        onReminder = null;
       }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));

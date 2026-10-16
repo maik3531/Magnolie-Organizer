@@ -1669,17 +1669,28 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private async Task ConfigureRemindersAsync(JsonElement message)
     {
-        var active = message.TryGetProperty("an", out var enabled) && enabled.ValueKind == JsonValueKind.True;
-        reminders.UpdateData(ReminderScheduler.SelectRuntimeData(currentPlainText));
-        reminders.Configure(active);
-        var autostartError = form.SetReminderAutostart(active);
-        var wake = message.TryGetProperty("wecken", out var wakeNode) && wakeNode.ValueKind == JsonValueKind.True;
-        await form.SendAsync("App.erinnerungStand", new
+        var requestId = Text(message, "requestId");
+        try
         {
-            ok = autostartError.Length == 0,
-            fehler = autostartError,
-            weckruf = wake ? new { ok = false, fehler = T("This system did not allow waking from suspend. The reminder will appear as soon as the computer is running again.") } : null
-        });
+            var active = message.TryGetProperty("an", out var enabled) && enabled.ValueKind == JsonValueKind.True;
+            reminders.UpdateData(ReminderScheduler.SelectRuntimeData(currentPlainText));
+            reminders.Configure(active);
+            var autostartError = form.SetReminderAutostart(active);
+            var autostartRegistered = form.ReminderAutostartRegistered;
+            var wake = message.TryGetProperty("wecken", out var wakeNode) && wakeNode.ValueKind == JsonValueKind.True;
+            await form.SendAsync("App.erinnerungStand", new
+            {
+                ok = autostartError.Length == 0 && (string.IsNullOrEmpty(requestId) ||
+                    (reminders.IsEnabled == active && autostartRegistered == active)),
+                requestId,
+                native_state = string.IsNullOrEmpty(requestId) ? null : new { backend = "windows-scheduler", foreground_enabled = reminders.IsEnabled,
+                    worker_running = false, autostart_registered = autostartRegistered },
+                fehler = autostartError,
+                weckruf = wake ? new { ok = false, fehler = T("This system did not allow waking from suspend. The reminder will appear as soon as the computer is running again.") } : null
+            });
+        }
+        catch (Exception) when (!string.IsNullOrEmpty(requestId))
+        { await form.SendAsync("App.erinnerungStand", new { ok = false, requestId, code = "native_operation_failed" }); }
     }
 
     private void LoadPersistentReminders()

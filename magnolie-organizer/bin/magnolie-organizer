@@ -7204,6 +7204,7 @@ def tray_autostart_registriert(pfad=None):
 # ---------------------------------------------------------------------------
 
 ERINNERUNG_EINHEIT = "magnolie-erinnerung"
+_ERINNERUNG_CONFIG_SPERRE = threading.RLock()
 
 
 def erinnerung_zustand_datei():
@@ -22164,15 +22165,44 @@ class Fenster(_FENSTER_BASIS):
             pass
 
     def _erinnerung_einrichten_arbeit(self, nachricht):
-        an = bool(nachricht.get("an"))
-        ergebnis = erinnerungsdienst_einrichten(an)
-        if an:
-            wecker_starten()
-        if an and nachricht.get("wecken"):
-            weck = weckruf_stellen(naechster_weckzeitpunkt(
-                {"termine": nachricht.get("termine") or []}, _organizer_jetzt(),
-                _erinnerung_vorlauf(nachricht.get("vorlauf"))))
-            ergebnis["weckruf"] = weck
+        with _ERINNERUNG_CONFIG_SPERRE:
+            Fenster._erinnerung_einrichten_gesperrt(self, nachricht)
+
+    def _erinnerung_einrichten_gesperrt(self, nachricht):
+        request_id = nachricht.get("requestId")
+        try:
+            an = bool(nachricht.get("an"))
+            ergebnis = erinnerungsdienst_einrichten(an)
+            if an:
+                wecker_starten()
+            if request_id:
+                if an:
+                    deadline = time.monotonic() + 3
+                    while not wecker_lebt() and time.monotonic() < deadline:
+                        time.sleep(0.05)
+                try:
+                    entry = datei_begrenzt_lesen(autostart_datei(), 64 * 1024,
+                        "The reminder autostart entry is too large.").decode("utf-8")
+                except FileNotFoundError:
+                    entry = ""
+                lines = {line.strip() for line in entry.splitlines()}
+                expected_exec = next(line for line in autostart_text().splitlines() if line.startswith("Exec="))
+                registered = expected_exec in lines and not any(line.lower() in ("hidden=true", "x-gnome-autostart-enabled=false") for line in lines)
+                with self._daten_sperre:
+                    foreground = (((getattr(self, "_aktuelle_daten", None) or {}).get("einstellungen") or {}).get("erinnerung") or {}).get("an") is True
+                running = wecker_lebt()
+                ergebnis["native_state"] = {"backend": "session-worker", "foreground_enabled": foreground,
+                    "worker_running": running, "autostart_registered": registered}
+                ergebnis["ok"] = bool(ergebnis.get("ok") and foreground == an and registered == an and (not an or running))
+            if an and nachricht.get("wecken"):
+                ergebnis["weckruf"] = weckruf_stellen(naechster_weckzeitpunkt(
+                    {"termine": nachricht.get("termine") or []}, _organizer_jetzt(),
+                    _erinnerung_vorlauf(nachricht.get("vorlauf"))))
+        except Exception:
+            if not request_id:
+                raise
+            ergebnis = {"ok": False, "code": "native_operation_failed"}
+        ergebnis["requestId"] = request_id
         self.antwort("App.erinnerungStand", ergebnis)
 
     def _erinnerung_zeigen_arbeit(self, nachricht):

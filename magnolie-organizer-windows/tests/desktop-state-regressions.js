@@ -89,6 +89,20 @@ async function run(web) {
     assert.equal(b.t.daten().einstellungen.erinnerung.jahrestage.autoAusblenden, false);
   }, { einstellungen: { erinnerung: { an: true, vorlauf: 30, art: "notification", jahrestage: { an: true } } } });
 
+  await test("notification controls share persistent partial settings without changing records", async b => {
+    const records = JSON.stringify([b.t.daten().termine, b.t.daten().kontakte]);
+    b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-erinnerung").click();
+    for (const [selector, value] of [["#erinnerung-vorlauf", "120"], ["#erinnerung-jahrestage-tage", "7"], ["#erinnerung-art", "sound"]]) {
+      const field = b.w.document.querySelector(selector); field.value = value;
+      field.dispatchEvent(new b.w.Event("change", { bubbles: true }));
+      b.ack(); await tick();
+    }
+    const saved = b.t.normalisiere(JSON.parse(b.saves().at(-1).text)).einstellungen.erinnerung;
+    assert.equal(saved.vorlauf, 120); assert.equal(saved.art, "sound"); assert.equal(saved.jahrestage.tage, 7);
+    assert.equal(saved.jahrestage.stunde, 10); assert.equal(saved.jahrestage.autoAusblenden, true);
+    assert.equal(JSON.stringify([b.t.daten().termine, b.t.daten().kontakte]), records);
+  }, { einstellungen: { erinnerung: { an: true, jahrestage: { an: true, stunde: 10, autoAusblenden: true } } } });
+
   await test("health preference controls retain canonical measurements and mirror tab state", async b => {
     const measurements = JSON.stringify(b.t.daten().gesundheit);
     b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-kalender").click();

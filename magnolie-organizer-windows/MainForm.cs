@@ -164,6 +164,7 @@ internal sealed class MainForm : Form
     }
 
     internal TraySettings CurrentTraySettings => traySettings;
+    internal bool ReminderAutostartRegistered => TraySettingsService.IsReminderAutostartRegistered(Application.ExecutablePath);
 
     internal string SetReminderAutostart(bool active)
     {

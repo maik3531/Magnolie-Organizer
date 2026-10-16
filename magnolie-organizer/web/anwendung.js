@@ -28740,17 +28740,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     };
 
     const uebernehmen = (neuEinrichten) => {
-      e.an = anHak.checked;
-      e.vorlauf = Number(vorlaufWahl.value) || 0;
-      e.art = artWahl.value;
-      e.verpasste = verpasstHak.checked;
-      e.wecken = weckHak.checked;
-      e.stil = !unterWayland && stilWahl.value === "magnolie"
-        ? "magnolie" : "system";
-      e.jahrestage.an = jtHak.checked;
-      e.jahrestage.tage = Number(jtTage.value) || 0;
-      e.jahrestage.amTag = jtAmTag.checked;
-      e.jahrestage.autoAusblenden = jtAuto.checked;
+      wendeBenachrichtigungsEinstellungenDatenAn({ an: anHak.checked, vorlauf: Number(vorlaufWahl.value) || 0,
+        art: artWahl.value, verpasste: verpasstHak.checked, wecken: weckHak.checked,
+        stil: !unterWayland && stilWahl.value === "magnolie" ? "magnolie" : "system" },
+        { an: jtHak.checked, tage: Number(jtTage.value) || 0, amTag: jtAmTag.checked, autoAusblenden: jtAuto.checked });
       planeSpeichern();
       speichereJetzt();
       zeigen();
@@ -31876,6 +31869,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (fehler) fehler.textContent = _("Could not answer") + ": " + nutzlast.error;
     },
     erinnerungStand(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "erinnerungStand"); return; }
       nutzlast = nutzlast || {};
       const stand = $("#erinnerung-stand");
       if (nutzlast.fehler) {
@@ -34362,6 +34356,52 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (value !== "month") calendar.uebersichtAb = null;
     calendar.bearbeiteId = null;
   }
+  function wendeBenachrichtigungsEinstellungenDatenAn(values, anniversaries = null) {
+    Object.assign(DATEN.einstellungen.erinnerung, values);
+    if (anniversaries) Object.assign(DATEN.einstellungen.erinnerung.jahrestage, anniversaries);
+  }
+  let mcpBenachrichtigungsKette = Promise.resolve();
+  function mcpBenachrichtigungsWerkzeuge() {
+    const map = { enabled: "an", lead_minutes: "vorlauf", kind: "art", style: "stil", include_missed: "verpasste", wake_from_suspend: "wecken" }, anniversaryMap = { enabled: "an", lead_days: "tage", repeat_on_day: "amTag", auto_dismiss: "autoAusblenden" };
+    const anniversaryFields = { enabled: { type: "boolean" }, lead_days: { type: "integer", minimum: 0, maximum: 7 }, repeat_on_day: { type: "boolean" }, auto_dismiss: { type: "boolean" } };
+    const fields = { enabled: { type: "boolean" }, lead_minutes: { type: "integer", enum: [0, 5, 10, 15, 30, 60, 120] }, kind: { type: "string", enum: ["notification", "sound", "both"] }, style: { type: "string", enum: ["system", "magnolie"] }, include_missed: { type: "boolean" }, wake_from_suspend: { type: "boolean" },
+      anniversaries: { type: "object", properties: anniversaryFields, anyOf: Object.keys(anniversaryFields).map(key => ({ required: [key] })), additionalProperties: false } };
+    const settings = value => ({ ...Object.fromEntries(Object.entries(map).map(([key, field]) => [key, value[field]])), effective_style: unterWayland ? "system" : value.stil,
+      effective_kind: unterWayland || value.stil === "system" ? "both" : value.art,
+      anniversaries: { ...Object.fromEntries(Object.entries(anniversaryMap).map(([key, field]) => [key, value.jahrestage[field]])), morning_hour: value.jahrestage.stunde } });
+    return [
+      { name: "organizer_notification_settings_read", description: "Read current appointment/anniversary notification preferences and effective display style with their full revision. Anniversary dismissal and appointment settings remain separate. These are preferences, not proof of OS delivery or wake scheduling.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => {
+          const before = JSON.stringify(DATEN.einstellungen.erinnerung); return { settings: settings(JSON.parse(before)), revision: await personalSyncHash(before) };
+        } },
+      { name: "organizer_notification_settings_update", description: "Revision-check notification preferences through the shared GUI handler and durable native book save. Changes to enablement/lead-time/wake additionally await actual native reminder setup and verify its runtime state; wake scheduling is reported separately and can be unavailable. A service failure can occur after preferences were saved. No notification delivery is assumed.",
+        inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, ...fields }, required: ["expected_revision"], anyOf: Object.keys(fields).map(key => ({ required: [key] })), additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true }, call: (args, signal) => {
+          const run = async () => {
+            let book, after, wanted;
+            const saved = await mcpSchreiben(signal, async () => {
+              book = DATEN; const before = JSON.stringify(DATEN.einstellungen.erinnerung), revision = await personalSyncHash(before);
+              if (signal.aborted || DATEN !== book || JSON.stringify(DATEN.einstellungen.erinnerung) !== before || revision !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Notification preferences changed; read them again");
+              mcpEditorPruefen(); if (unterWayland && args.style === "magnolie") throw new MagnolieMcp.ToolError("unsupported_feature", "Organizer-style notifications are unavailable under Wayland");
+              wendeBenachrichtigungsEinstellungenDatenAn(Object.fromEntries(Object.entries(map).filter(([key]) => args[key] !== undefined).map(([key, field]) => [field, args[key]])),
+                args.anniversaries ? Object.fromEntries(Object.entries(args.anniversaries).map(([key, value]) => [anniversaryMap[key], value])) : null);
+              after = JSON.stringify(DATEN.einstellungen.erinnerung); wanted = JSON.parse(after); return {};
+            });
+            const reconfigure = ["enabled", "lead_minutes", "wake_from_suspend"].some(key => args[key] !== undefined);
+            let native = null, wake = null;
+            if (reconfigure) {
+              mcpEditorPruefen(); if (signal.aborted || DATEN !== book || JSON.stringify(DATEN.einstellungen.erinnerung) !== after) throw new MagnolieMcp.ToolError("source_changed", "Preferences were saved; reminder state changed before native setup");
+              const value = await mcpNativeAufruf("erinnerung_einrichten", { an: wanted.an, vorlauf: wanted.vorlauf, wecken: wanted.wecken, termine: DATEN.termine.concat(customTermineFuerErinnerung()) }, "erinnerungStand", signal);
+              native = value.native_state;
+              if (value.ok !== true || !native || native.foreground_enabled !== wanted.an || native.autostart_registered !== wanted.an || typeof native.worker_running !== "boolean" || !["session-worker", "windows-scheduler"].includes(native.backend) || (native.backend === "session-worker" && wanted.an && !native.worker_running)) throw new MagnolieMcp.ToolError("native_operation_failed", "Preferences were saved; native reminder setup could not be confirmed");
+              if (wanted.an && wanted.wecken) wake = value.weckruf?.ok === true;
+              if (DATEN !== book || JSON.stringify(DATEN.einstellungen.erinnerung) !== after) throw new MagnolieMcp.ToolError("source_changed", "Preferences/native setup may have changed; notification state changed during setup");
+            }
+            pruefeErinnerungen(true); return { settings: settings(wanted), persisted: saved.persisted, service_reconfigured: reconfigure, native_state: native, wake_scheduled: wake };
+          };
+          const operation = mcpBenachrichtigungsKette.then(run, run); mcpBenachrichtigungsKette = operation.catch(() => {}); return operation;
+        } }
+    ];
+  }
   const HINTERGRUND_RECHTE = ["kde_pairing", "kde_incoming_files", "sms_phone_notifications", "magnolienbaum_change_offers", "phone_monitor", "phone_sms_notifications", "phone_selected_notifications", "phone_call_notifications", "phone_personal_sync_offers", "phone_pairing_decisions"];
   const HINTERGRUND_OPTIONALE_RECHTE = ["kde_incoming_files", "sms_phone_notifications", "phone_sms_notifications", "phone_selected_notifications", "phone_call_notifications", "phone_personal_sync_offers"];
   function bereiteHintergrundEinstellungenVor(base, changes) {
@@ -35104,6 +35144,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_notification_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
+    if (name === "organizer_notification_settings_update") return shape({ settings: object, persisted: yes, service_reconfigured: flag, native_state: { type: ["object", "null"] }, wake_scheduled: { type: ["boolean", "null"] } }, ["settings", "persisted", "service_reconfigured", "native_state", "wake_scheduled"]);
     if (name === "organizer_background_permissions_read") return shape({ supported: flag, settings: { type: ["object", "null"] }, book_settings: { type: ["object", "null"] }, running: flag, lifecycle: text, autostart_registered: flag, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["supported", "settings", "book_settings", "running", "lifecycle", "autostart_registered", "revision"]);
     if (name === "organizer_background_permissions_update") return shape({ settings: object, running: yes, lifecycle: { type: "string", const: "ready" }, autostart_registered: yes, native_applied: yes, persisted: yes }, ["settings", "running", "lifecycle", "autostart_registered", "native_applied", "persisted"]);
     if (name === "organizer_tray_settings_read") return shape({ settings: object, book_settings: object, available: flag, active: flag, autostart_registered: flag, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "book_settings", "available", "active", "autostart_registered", "revision"]);
@@ -35259,6 +35301,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpRegionaleEinstellungenWerkzeuge(),
       ...mcpTrayWerkzeuge(),
       ...mcpHintergrundWerkzeuge(),
+      ...mcpBenachrichtigungsWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

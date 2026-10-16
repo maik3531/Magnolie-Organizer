@@ -17,6 +17,15 @@ internal static class ReminderPersistenceTests
         try
         {
             var state = Path.Combine(root, "erinnerungen.json");
+            using (var configured = new ReminderScheduler(Path.Combine(root, "owned-scheduler.json"), _ => { }))
+            {
+                configured.UpdateData("{\"einstellungen\":{\"erinnerung\":{\"an\":false}},\"termine\":[]}");
+                TestAssert.That(!configured.IsEnabled, "An unconfigured scheduler reported a live timer.");
+                configured.Configure(true);
+                TestAssert.That(configured.IsEnabled, "Enabling did not create the actual scheduler timer.");
+                configured.Configure(false);
+                TestAssert.That(!configured.IsEnabled, "Disabling left the scheduler timer enabled.");
+            }
             foreach (var clock in new[] { "h12", "h23" })
             {
                 var regionalData = """

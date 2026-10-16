@@ -1272,6 +1272,62 @@ def client():
                 return False
             product.GLib.idle_add(clean_private_tray_host)
             assert tray_cleaned.wait(5)
+        reminder_before = call("tools/call", {"name": "organizer_notification_settings_read"})
+        assert not reminder_before["isError"], reminder_before
+        reminder_records_keys = ("notizen", "termine", "aufgaben", "kontakte", "gesundheit", "zeiterfassung")
+        reminder_book_before = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        reminder_records = {key: reminder_book_before[key] for key in reminder_records_keys}
+        reminder_children = []
+        reminder_original_popen, reminder_original_program = subprocess.Popen, sys.argv[0]
+        sys.argv[0] = str(ROOT / "bin/magnolie-organizer")
+        def tracked_reminder_popen(*args, **kwargs):
+            command = args[0] if args else kwargs.get("args")
+            child = reminder_original_popen(*args, **kwargs)
+            if isinstance(command, (list, tuple)) and "--wecker" in command:
+                reminder_children.append(child)
+                owned.append(child)
+            return child
+        subprocess.Popen = tracked_reminder_popen
+        try:
+            reminder_enabled = call("tools/call", {"name": "organizer_notification_settings_update", "arguments": {
+                "expected_revision": reminder_before["structuredContent"]["revision"], "enabled": True,
+                "lead_minutes": 30, "wake_from_suspend": False, "anniversaries": {"enabled": False, "lead_days": 3}}})
+            assert not reminder_enabled["isError"] and reminder_enabled["structuredContent"]["persisted"], reminder_enabled
+            assert reminder_enabled["structuredContent"]["native_state"] == {"backend": "session-worker", "foreground_enabled": True,
+                "worker_running": True, "autostart_registered": True}, reminder_enabled
+            assert reminder_enabled["structuredContent"]["wake_scheduled"] is None
+            assert len(reminder_children) == 1 and reminder_children[0].poll() is None
+            reminder_pid = reminder_children[0].pid
+            assert Path(product.wecker_marke()).is_relative_to(Path(temporary.name))
+            assert int(Path(product.wecker_marke()).read_text()) == reminder_pid and product.wecker_lebt()
+            reminder_environment = dict(item.split(b"=", 1) for item in Path("/proc/%d/environ" % reminder_pid).read_bytes().split(b"\0") if b"=" in item)
+            assert reminder_environment[b"HOME"] == os.environ["HOME"].encode()
+            assert reminder_environment[b"DBUS_SYSTEM_BUS_ADDRESS"] == os.environ["DBUS_SESSION_BUS_ADDRESS"].encode()
+            reminder_entry = Path(product.autostart_datei())
+            assert reminder_entry.is_relative_to(Path(temporary.name)) and reminder_entry.is_file()
+            reminder_book = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+            assert reminder_book["einstellungen"]["erinnerung"]["vorlauf"] == 30
+            assert {key: reminder_book[key] for key in reminder_records_keys} == reminder_records
+            stale_reminder = call("tools/call", {"name": "organizer_notification_settings_update", "arguments": {
+                "expected_revision": reminder_before["structuredContent"]["revision"], "include_missed": False}})
+            assert stale_reminder["isError"] and stale_reminder["structuredContent"]["code"] == "conflict", stale_reminder
+            reminder_current = call("tools/call", {"name": "organizer_notification_settings_read"})
+            reminder_disabled = call("tools/call", {"name": "organizer_notification_settings_update", "arguments": {
+                "expected_revision": reminder_current["structuredContent"]["revision"], "enabled": False}})
+            assert not reminder_disabled["isError"] and reminder_disabled["structuredContent"]["persisted"], reminder_disabled
+            assert reminder_disabled["structuredContent"]["native_state"] == {"backend": "session-worker", "foreground_enabled": False,
+                "worker_running": True, "autostart_registered": False}, reminder_disabled
+            assert not reminder_entry.exists()
+        finally:
+            subprocess.Popen, sys.argv[0] = reminder_original_popen, reminder_original_program
+            for child in reminder_children:
+                if child.poll() is None:
+                    child.terminate()
+                    try: child.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        child.kill()
+                        child.wait(timeout=3)
+        assert not product.wecker_lebt(), "Owned reminder worker lease was not released"
         if BACKGROUND_PROBE:
             import magnolie_hintergrund as background_product
             assert os.readlink("/proc/self/ns/net") != os.environ["MAGNOLIE_MCP_PROBE_OUTER_NETNS"]

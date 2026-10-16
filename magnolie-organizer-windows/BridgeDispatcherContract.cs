@@ -62,7 +62,7 @@ internal static class BridgeDispatcherContract
         ["baum_paarungsdatei_importieren"] = S(), ["baum_internet_adresse"] = S(),
         ["baum_briefkasten_status"] = S(), ["baum_briefkasten_pruefen"] = S(),
         ["baum_briefkasten_speichern"] = S(B("davAktiv"), B("briefkastenAktiv"), T("url"), T("benutzer"), T("anwendungskennwort"), B("kennwortLoeschen"), O("kontoArt", JsonValueKind.String)),
-        ["erinnerung_zeigen"] = S(T("kopf"), T("rumpf"), T("art"), T("stil")), ["erinnerung_einrichten"] = S(B("an"), B("wecken"), O("vorlauf", JsonValueKind.String, JsonValueKind.Number), O("termine", JsonValueKind.Array)),
+        ["erinnerung_zeigen"] = S(T("kopf"), T("rumpf"), T("art"), T("stil")), ["erinnerung_einrichten"] = S(B("an"), B("wecken"), O("vorlauf", JsonValueKind.String, JsonValueKind.Number), O("termine", JsonValueKind.Array), O("requestId", JsonValueKind.String)),
         ["telefon_stand"] = S(), ["telefon_verbindung_stand"] = S(),
         ["telefon_kontaktfotos"] = S(T("requestId"), T("device_id"), O("uids", JsonValueKind.Array)),
         ["telefon_kontakte"] = S(T("requestId"), T("device_id"), O("uids", JsonValueKind.Array)),

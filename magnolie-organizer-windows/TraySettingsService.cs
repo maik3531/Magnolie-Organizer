@@ -99,6 +99,9 @@ internal sealed class TraySettingsService
             string.Equals(command, BackgroundAutostartCommand(executablePath), StringComparison.OrdinalIgnoreCase));
     }
 
+    internal static bool IsReminderAutostartRegistered(string executablePath) => CaptureAutostart()?.Value is string command &&
+        string.Equals(command, BackgroundAutostartCommand(executablePath), StringComparison.OrdinalIgnoreCase);
+
     private TraySettings? LoadLegacy(string? dataPath)
     {
         if (string.IsNullOrWhiteSpace(dataPath)) return null;

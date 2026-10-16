@@ -65,6 +65,8 @@ internal sealed class ReminderScheduler : IDisposable
         lock (gate) data = plainText;
     }
 
+    internal bool IsEnabled { get { lock (gate) return enabled && timer is not null; } }
+
     internal void Configure(bool active)
     {
         lock (gate)
