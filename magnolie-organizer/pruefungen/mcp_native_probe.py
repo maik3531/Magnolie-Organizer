@@ -171,6 +171,23 @@ def client():
         embedded = next(item for item in json.loads(data_file.read_text())["notizen"] if item["id"] == note_id)["anhaenge"]
         assert base64.b64decode(next(item for item in embedded if item["id"] == attachment_id)["daten"].split(",", 1)[1]) == png
         attachment_note = call("tools/call", {"name": "organizer_note_read", "arguments": {"id": note_id, "fields": ["id"]}})
+        attachment_save_path = Path(temporary.name) / "owned-saved-attachment.png"
+        attachment_save_args = {"note_id": note_id, "attachment_id": attachment_id,
+            "expected_revision": attachment_note["structuredContent"]["revision"], "path": str(attachment_save_path)}
+        attachment_saved = call("tools/call", {"name": "organizer_attachment_save", "arguments": attachment_save_args})
+        assert not attachment_saved["isError"] and attachment_saved["structuredContent"]["confirmed"], attachment_saved
+        assert attachment_save_path.read_bytes() == png and attachment_saved["structuredContent"]["sha256"] == hashlib.sha256(png).hexdigest()
+        attachment_existing = call("tools/call", {"name": "organizer_attachment_save", "arguments": attachment_save_args})
+        assert attachment_existing["isError"] and attachment_save_path.read_bytes() == png, attachment_existing
+        attachment_overwritten = call("tools/call", {"name": "organizer_attachment_save", "arguments": {**attachment_save_args, "overwrite": True}})
+        assert not attachment_overwritten["isError"] and attachment_save_path.read_bytes() == png, attachment_overwritten
+        attachment_profile_before = data_file.read_bytes()
+        attachment_profile = call("tools/call", {"name": "organizer_attachment_save", "arguments": {**attachment_save_args, "path": str(data_file), "overwrite": True}})
+        assert attachment_profile["isError"] and data_file.read_bytes() == attachment_profile_before, attachment_profile
+        attachment_link = Path(temporary.name) / "owned-saved-link.png"
+        attachment_link.symlink_to(attachment_save_path)
+        attachment_link_result = call("tools/call", {"name": "organizer_attachment_save", "arguments": {**attachment_save_args, "path": str(attachment_link), "overwrite": True}})
+        assert attachment_link_result["isError"] and attachment_link.is_symlink() and attachment_save_path.read_bytes() == png, attachment_link_result
         removed_attachment = call("tools/call", {"name": "organizer_attachment_remove", "arguments": {
             "note_id": note_id, "attachment_id": attachment_id, "expected_revision": attachment_note["structuredContent"]["revision"]}})
         assert not removed_attachment["isError"] and removed_attachment["structuredContent"]["persisted"], removed_attachment

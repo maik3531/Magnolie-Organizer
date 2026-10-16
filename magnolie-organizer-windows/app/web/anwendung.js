@@ -32369,6 +32369,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
     },
     notizAnhangDateiErgebnis(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "notizAnhangDateiErgebnis"); return; }
       nutzlast = nutzlast || {};
       if (nutzlast.abgebrochen || nutzlast.ok) return;
       zettel(nutzlast.fehler || _("The file could not be read."));
@@ -33242,6 +33243,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           return result;
         }) }
     ];
+  }
+  function mcpAnhangDateiWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 };
+    return [{ name: "organizer_attachment_save", description: "Save an existing note attachment to an explicit path through the native product file validator/writer. Requires the full note revision. Existing targets require overwrite=true; linked targets and the active profile are rejected. Confirmation includes the actual written-file size and SHA-256 after readback verification.",
+      inputSchema: { type: "object", properties: { note_id: id, attachment_id: id, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, overwrite: { type: "boolean" } }, required: ["note_id", "attachment_id", "expected_revision", "path"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => {
+        mcpEditorPruefen(); const book = DATEN, note = await mcpPruefeNotiz(args.note_id, args.expected_revision, signal);
+        const attachment = note.anhaenge.find(item => item.id === args.attachment_id);
+        if (!attachment) throw new MagnolieMcp.ToolError("not_found", "Note attachment not found");
+        const before = JSON.stringify(note), value = await mcpNativeAufruf("notiz_anhang_datei", { id: 1, aktion: "save", name: attachment.name, daten: attachment.daten, pfad: args.path, overwrite: args.overwrite === true }, "notizAnhangDateiErgebnis", signal);
+        if (value.ok !== true) throw new MagnolieMcp.ToolError("attachment_save_failed", "Native attachment write or written-file verification failed");
+        if (DATEN !== book || !DATEN.notizen.includes(note) || JSON.stringify(note) !== before) throw new MagnolieMcp.ToolError("source_changed", "An attachment file may exist; the source note changed during export");
+        return { path: value.pfad, confirmed: true, bytes: value.bytes, sha256: value.sha256 };
+      } }];
   }
   function mcpPersonenWerkzeuge() {
     const id = { type: "string", minLength: 1, maxLength: 256 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
@@ -34499,6 +34513,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_attachment_save") return shape({ path: text, confirmed: yes, bytes: { type: "integer", minimum: 1, maximum: 8 * 1024 * 1024 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["path", "confirmed", "bytes", "sha256"]);
     if (name === "organizer_holidays_read") return shape({ settings: object, total: { type: "integer", minimum: 0 }, countries: { type: "array", items: object }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "total", "countries", "revision"]);
     if (name === "organizer_holidays_clear") return shape({ deleted_count: { type: "integer", minimum: 0 }, persisted: yes }, ["deleted_count", "persisted"]);
     if (name === "organizer_holidays_settings_update") return shape({ persisted: yes }, ["persisted"]);
@@ -34621,6 +34636,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpBackupVorschauWerkzeuge(),
       ...mcpPapierkorbWerkzeuge(),
       ...mcpEigenprofilWerkzeuge(),
+      ...mcpAnhangDateiWerkzeuge(),
       ...mcpFeiertagWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },

@@ -21856,7 +21856,8 @@ class Fenster(_FENSTER_BASIS):
     def bei_notiz_anhang_datei(self, nachricht, starter=None):
         kennung = nachricht.get("id")
         aktion = nachricht.get("aktion")
-        antwort = {"id": kennung, "ok": False, "abgebrochen": False, "fehler": ""}
+        request_id = nachricht.get("requestId")
+        antwort = {"id": kennung, "requestId": request_id, "ok": False, "abgebrochen": False, "fehler": ""}
         if (isinstance(kennung, bool) or not isinstance(kennung, int) or kennung < 1 or
                 aktion not in ("open", "save")):
             antwort["fehler"] = _("The file has an unsupported format.")
@@ -21868,12 +21869,20 @@ class Fenster(_FENSTER_BASIS):
             endung = NOTIZ_ANHANG_ARTEN[anhang["mime"]][0]
             filter_liste = [(_("All files"), "*" + endung)]
             if aktion == "save":
-                pfad = self._datei_speichern(_("Save as…"), anhang["name"], filter_liste)
+                pfad = nachricht.get("pfad") if request_id else self._datei_speichern(_("Save as…"), anhang["name"], filter_liste)
                 if not pfad:
                     antwort["abgebrochen"] = True
                 else:
+                    if request_id:
+                        if os.path.lexists(pfad) and nachricht.get("overwrite") is not True:
+                            raise OSError("export_target_exists")
+                        if os.path.islink(pfad) or os.path.realpath(pfad) == os.path.realpath(daten_datei()):
+                            raise OSError("invalid_export_target")
                     atomar_binaer_schreiben(pfad, anhang["daten"])
-                    antwort.update({"ok": True, "pfad": pfad})
+                    digest = _datei_sha256(pfad)
+                    if digest != hashlib.sha256(anhang["daten"]).hexdigest():
+                        raise OSError("export_verification_failed")
+                    antwort.update({"ok": True, "pfad": os.path.abspath(pfad), "bytes": len(anhang["daten"]), "sha256": digest})
             else:
                 if not self._notiz_anhang_temp:
                     self._notiz_anhang_temp = tempfile.mkdtemp(prefix="magnolie-attachment-")

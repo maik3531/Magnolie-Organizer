@@ -682,9 +682,11 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private async Task HandleAttachmentFileAsync(JsonElement message)
     {
         var action = Text(message, "aktion");
+        var requestId = Text(message, "requestId");
+        if (!string.IsNullOrEmpty(requestId) && action == "save") action = "speichern";
         if (action is not ("oeffnen" or "speichern"))
         {
-            await form.SendAsync("App.notizAnhangDateiErgebnis", new { aktion = action, ok = false, abgebrochen = false });
+            await form.SendAsync("App.notizAnhangDateiErgebnis", new { requestId, aktion = action, ok = false, abgebrochen = false });
             return;
         }
         try
@@ -692,6 +694,22 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var attachment = AttachmentFile.Parse(Text(message, "daten"), Text(message, "name"));
             if (action == "speichern")
             {
+                if (!string.IsNullOrEmpty(requestId))
+                {
+                    var path = Path.GetFullPath(Text(message, "pfad"));
+                    if (File.Exists(path) && !Boolean(message, "overwrite")) throw new IOException("export_target_exists");
+                    if (string.Equals(path, Path.GetFullPath(paths.Data), StringComparison.OrdinalIgnoreCase) || new FileInfo(path).LinkTarget is not null)
+                        throw new IOException("invalid_export_target");
+                    await File.WriteAllBytesAsync(path, attachment.Bytes);
+                    var actual = new byte[attachment.Bytes.Length];
+                    using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    if (input.Length != actual.Length) throw new IOException("export_verification_failed");
+                    await input.ReadExactlyAsync(actual);
+                    if (!actual.AsSpan().SequenceEqual(attachment.Bytes)) throw new IOException("export_verification_failed");
+                    await form.SendAsync("App.notizAnhangDateiErgebnis", new { requestId, ok = true, pfad = path, bytes = actual.Length,
+                        sha256 = Convert.ToHexString(SHA256.HashData(actual)).ToLowerInvariant() });
+                    return;
+                }
                 using var dialog = new SaveFileDialog
                 {
                     Title = T("Save") + " - " + T("Attachments"),
@@ -725,7 +743,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
         catch (Exception error) when (error is InvalidDataException or IOException or UnauthorizedAccessException or ArgumentException)
         {
-            await form.SendAsync("App.notizAnhangDateiErgebnis", new { aktion = action, ok = false, abgebrochen = false });
+            await form.SendAsync("App.notizAnhangDateiErgebnis", new { requestId, aktion = action, ok = false, abgebrochen = false });
         }
     }
 
