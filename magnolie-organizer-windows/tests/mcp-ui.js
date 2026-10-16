@@ -33,12 +33,12 @@ let declaredContracts;
       b.w.eval(fs.readFileSync(path.join(web, "mcp-protocol.js"), "utf8"));
       const session = "a".repeat(48);
       let sequence = 0;
-      async function call(message) {
+      async function call(message, actualSession = session) {
         const invocation = (++sequence).toString(16).padStart(48, "0");
-        await b.w.App.mcpRequest({ session, invocation, message });
+        await b.w.App.mcpRequest({ session: actualSession, invocation, message });
         const reply = b.messages.find(message => message.cmd === "mcp_antwort" && message.invocation === invocation);
         assert.ok(reply, "Every accepted native invocation must settle");
-        assert.equal(reply.session, session);
+        assert.equal(reply.session, actualSession);
         return reply.response;
       }
       const request = (id, method, params) => ({ jsonrpc: "2.0", id, method, ...(params === undefined ? {} : { params }) });
@@ -189,6 +189,57 @@ let declaredContracts;
       const lastRead = (await call(request(156, "tools/call", { name: "organizer_notebook_group_read", arguments: { id: lastGroup } }))).result.structuredContent;
       const cannotRemove = await call(request(157, "tools/call", { name: "organizer_notebook_group_delete", arguments: { id: lastGroup, expected_revision: lastRead.revision } }));
       assert.equal(cannotRemove.result.structuredContent.code, "structure_required");
+      const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXb8AAAAASUVORK5CYII=", "base64");
+      const attachmentNote = (await call(request(160, "tools/call", { name: "organizer_note_read", arguments: { id: noteId, fields: ["id", "titel"] } }))).result.structuredContent;
+      const beginArgs = { note_id: noteId, expected_revision: attachmentNote.revision, name: "owned-fixture.png", kind: "image", size: png.length,
+        sha256: createHash("sha256").update(png).digest("hex") };
+      const upload = (await call(request(161, "tools/call", { name: "organizer_attachment_upload_begin", arguments: beginArgs }))).result.structuredContent;
+      const otherSession = "b".repeat(48);
+      await call(request(162, "initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "owned-other-session", version: "1" } }), otherSession);
+      await call({ jsonrpc: "2.0", method: "notifications/initialized" }, otherSession);
+      const stolenUpload = await call(request(163, "tools/call", { name: "organizer_attachment_upload_status", arguments: { token: upload.token } }), otherSession);
+      assert.equal(stolenUpload.result.structuredContent.code, "not_found");
+      const uploaded = await call(request(164, "tools/call", { name: "organizer_attachment_upload_append", arguments: { token: upload.token, offset: 0, data: png.toString("base64") } }));
+      assert.equal(uploaded.result.structuredContent.received_bytes, png.length);
+      const retryUpload = await call(request(165, "tools/call", { name: "organizer_attachment_upload_append", arguments: { token: upload.token, offset: 0, data: png.toString("base64") } }));
+      assert.equal(retryUpload.result.structuredContent.received_bytes, png.length);
+      const attached = await persisted(166, "organizer_attachment_upload_finalize", { token: upload.token });
+      const embedded = b.t.daten().notizen.find(note => note.id === noteId).anhaenge.find(item => item.id === attached.attachment_id);
+      assert.ok(embedded.daten.startsWith("data:image/png;base64,"));
+      assert.equal(Buffer.from(embedded.daten.split(",")[1], "base64").compare(png), 0);
+      const beforeDetach = (await call(request(167, "tools/call", { name: "organizer_note_read", arguments: { id: noteId, fields: ["id"] } }))).result.structuredContent;
+      const detached = await persisted(168, "organizer_attachment_remove", { note_id: noteId, attachment_id: attached.attachment_id, expected_revision: beforeDetach.revision });
+      assert.equal(b.t.daten().notizen.find(note => note.id === noteId).anhaenge.some(item => item.id === attached.attachment_id), false);
+      await persisted(169, "organizer_trash_restore", { id: detached.trash_id });
+      assert.ok(b.t.daten().notizen.find(note => note.id === noteId).anhaenge.some(item => item.id === attached.attachment_id));
+      const latestAttachmentNote = (await call(request(170, "tools/call", { name: "organizer_note_read", arguments: { id: noteId, fields: ["id"] } }))).result.structuredContent;
+      beginArgs.expected_revision = latestAttachmentNote.revision;
+      const badHash = (await call(request(171, "tools/call", { name: "organizer_attachment_upload_begin", arguments: { ...beginArgs, sha256: "0".repeat(64) } }))).result.structuredContent;
+      await call(request(172, "tools/call", { name: "organizer_attachment_upload_append", arguments: { token: badHash.token, offset: 0, data: png.toString("base64") } }));
+      const hashRejected = await call(request(173, "tools/call", { name: "organizer_attachment_upload_finalize", arguments: { token: badHash.token } }));
+      assert.equal(hashRejected.result.structuredContent.code, "hash_mismatch");
+      const badBytes = Buffer.from("not an image");
+      const badMagic = (await call(request(174, "tools/call", { name: "organizer_attachment_upload_begin", arguments: {
+        ...beginArgs, size: badBytes.length, sha256: createHash("sha256").update(badBytes).digest("hex") } }))).result.structuredContent;
+      await call(request(175, "tools/call", { name: "organizer_attachment_upload_append", arguments: { token: badMagic.token, offset: 0, data: badBytes.toString("base64") } }));
+      const magicRejected = await call(request(176, "tools/call", { name: "organizer_attachment_upload_finalize", arguments: { token: badMagic.token } }));
+      assert.equal(magicRejected.result.structuredContent.code, "invalid_attachment");
+      const ownerUpload = (await call(request(177, "tools/call", { name: "organizer_attachment_upload_begin", arguments: beginArgs }), otherSession)).result.structuredContent;
+      const slotUpload = (await call(request(179, "tools/call", { name: "organizer_attachment_upload_begin", arguments: beginArgs }))).result.structuredContent;
+      const slotExceeded = await call(request(180, "tools/call", { name: "organizer_attachment_upload_begin", arguments: beginArgs }));
+      assert.equal(slotExceeded.result.structuredContent.code, "upload_limit");
+      const gap = await call(request(181, "tools/call", { name: "organizer_attachment_upload_append", arguments: { token: slotUpload.token, offset: 1, data: png.subarray(0, 4).toString("base64") } }));
+      assert.equal(gap.result.structuredContent.code, "invalid_offset");
+      await call(request(182, "tools/call", { name: "organizer_attachment_upload_cancel", arguments: { token: slotUpload.token } }));
+      b.w.App.mcpClose(otherSession);
+      const ownerRevoked = await call(request(178, "tools/call", { name: "organizer_attachment_upload_status", arguments: { token: ownerUpload.token } }));
+      assert.equal(ownerRevoked.result.structuredContent.code, "not_found");
+      const expiring = (await call(request(183, "tools/call", { name: "organizer_attachment_upload_begin", arguments: beginArgs }))).result.structuredContent;
+      b.timers.filter(timer => timer.delay === 300000 && !timer.cancelled).at(-1).fn();
+      const expired = await call(request(184, "tools/call", { name: "organizer_attachment_upload_status", arguments: { token: expiring.token } }));
+      assert.equal(expired.result.structuredContent.code, "not_found");
+      const oversized = await call(request(185, "tools/call", { name: "organizer_attachment_upload_begin", arguments: { ...beginArgs, size: 8 * 1024 * 1024 + 1 } }));
+      assert.equal(oversized.error.code, -32602);
       const appointmentId = "99999999-9999-4999-8999-999999999999";
       await persisted(70, "organizer_appointment_create", { id: appointmentId, title: "Owned appointment fixture", start_date: "2026-12-01",
         location: "Owned room", recurrence: { frequency: "monthly", interval: 2, ordinal: 2, weekday: "MO", until: "2027-02-28" },

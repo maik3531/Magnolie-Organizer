@@ -130,6 +130,30 @@ def client():
             "expected_revision": revision["structuredContent"]["revision"], "title": "Native revised fixture"}})
         assert updated["isError"] is False and updated["structuredContent"]["persisted"], updated
         assert next(item for item in json.loads(data_file.read_text())["notizen"] if item["id"] == note_id)["titel"] == "Native revised fixture"
+        png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXb8AAAAASUVORK5CYII=")
+        attachment_note = call("tools/call", {"name": "organizer_note_read", "arguments": {"id": note_id, "fields": ["id"]}})
+        staged = call("tools/call", {"name": "organizer_attachment_upload_begin", "arguments": {
+            "note_id": note_id, "expected_revision": attachment_note["structuredContent"]["revision"],
+            "name": "owned-native-fixture.png", "kind": "image", "size": len(png), "sha256": hashlib.sha256(png).hexdigest()}})
+        assert not staged["isError"], staged
+        upload_token = staged["structuredContent"]["token"]
+        split = 17
+        for offset, chunk in [(0, png[:split]), (split, png[split:])]:
+            appended = call("tools/call", {"name": "organizer_attachment_upload_append", "arguments": {
+                "token": upload_token, "offset": offset, "data": base64.b64encode(chunk).decode()}})
+            assert not appended["isError"], appended
+        attached = call("tools/call", {"name": "organizer_attachment_upload_finalize", "arguments": {"token": upload_token}})
+        assert not attached["isError"] and attached["structuredContent"]["persisted"], attached
+        attachment_id = attached["structuredContent"]["attachment_id"]
+        embedded = next(item for item in json.loads(data_file.read_text())["notizen"] if item["id"] == note_id)["anhaenge"]
+        assert base64.b64decode(next(item for item in embedded if item["id"] == attachment_id)["daten"].split(",", 1)[1]) == png
+        attachment_note = call("tools/call", {"name": "organizer_note_read", "arguments": {"id": note_id, "fields": ["id"]}})
+        removed_attachment = call("tools/call", {"name": "organizer_attachment_remove", "arguments": {
+            "note_id": note_id, "attachment_id": attachment_id, "expected_revision": attachment_note["structuredContent"]["revision"]}})
+        assert not removed_attachment["isError"] and removed_attachment["structuredContent"]["persisted"], removed_attachment
+        attachment_restored = call("tools/call", {"name": "organizer_trash_restore", "arguments": {"id": removed_attachment["structuredContent"]["trash_id"]}})
+        assert not attachment_restored["isError"] and attachment_restored["structuredContent"]["persisted"], attachment_restored
+        assert any(item["id"] == attachment_id for item in next(item for item in json.loads(data_file.read_text())["notizen"] if item["id"] == note_id)["anhaenge"])
         task_id = "77777777-7777-4777-8777-777777777777"
         task_created = call("tools/call", {"name": "organizer_task_create", "arguments": {
             "id": task_id, "title": "Native task fixture", "priority": 1, "due_date": "2026-11-10"}})
@@ -362,4 +386,4 @@ finally:
     print("Native MCP fixture state:", json.dumps(state), flush=True)
     temporary.cleanup()
 assert state["passed"], state
-print("Native MCP PASS: GTK/WebKit/worker/stdio, durable entity CRUD, real recovery checkpoint, linked restore and bounded large UTF-8 content reads")
+print("Native MCP PASS: GTK/WebKit/worker/stdio/FileReader, durable entities and attachment upload/remove/restore, recovery and bounded large UTF-8 reads")

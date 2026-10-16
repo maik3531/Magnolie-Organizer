@@ -19711,6 +19711,23 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     registriereModal(schleier, dialog, { anfang: auswahl, schliessen });
   }
 
+  function fuegeNotizAnhangDatenHinzu(notiz, anhang) {
+    if (!DATEN.notizen.includes(notiz)) return false;
+    const entries = (notiz.anhaenge || []).concat([anhang]);
+    if (saubereNotizAnhaenge(entries).length !== entries.length) return false;
+    notiz.anhaenge = entries; notizAenderungMerken(notiz);
+    synchronisiereFreigegebeneNotiz(notiz);
+    return true;
+  }
+
+  function entferneNotizAnhangDaten(notiz, anhang) {
+    if (!DATEN.notizen.includes(notiz) || !notiz.anhaenge.includes(anhang)) return null;
+    const trash = inDenPapierkorb("attachment", anhang, anhang.name || _("File"), notiz.id);
+    notiz.anhaenge = notiz.anhaenge.filter(item => item !== anhang);
+    notizAenderungMerken(notiz); synchronisiereFreigegebeneNotiz(notiz);
+    return { id: notiz.id, attachment_id: anhang.id, trash_id: trash?.id || null };
+  }
+
   function notizAnhangLesen(datei, art, fertig) {
     if (!datei || (art !== "image" && art !== "pdf")) {
       fertig(null, art === "pdf" ? _("Please select a PDF file.")
@@ -20680,12 +20697,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }).then((ergebnis) => {
         if (!ergebnis) return;
         if (!ergebnis.anhang) { zettel(ergebnis.fehler); return; }
-        notiz.anhaenge.push(ergebnis.anhang);
-        notiz.geaendert = isoHeute();
-        notiz.personalGeaendert = Date.now();
-        markiereGemeinsameNotiz(notiz);
+        if (!fuegeNotizAnhangDatenHinzu(notiz, ergebnis.anhang)) { zettel(_("The message is too large.")); return; }
         planeSpeichern();
-        synchronisiereFreigegebeneNotiz(notiz);
         zeichneAlles();
       });
     };
@@ -20779,13 +20792,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             _("Remove"))
             .then((ja) => {
               if (!ja) return;
-              inDenPapierkorb("attachment", anhang, anhangName, notiz.id);
-              notiz.anhaenge = notiz.anhaenge.filter((x) => x.id !== anhang.id);
-              notiz.geaendert = isoHeute();
-              notiz.personalGeaendert = Date.now();
-              markiereGemeinsameNotiz(notiz);
+              if (!entferneNotizAnhangDaten(notiz, anhang)) { zettel(_("Conflict")); return; }
               planeSpeichern();
-              synchronisiereFreigegebeneNotiz(notiz);
               zeichneAlles();
             });
         }));
@@ -32855,6 +32863,24 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   };
 
   const mcpSitzungen = new Map();
+  const mcpAnhangTransfers = new Map();
+  function mcpVerwerfeTransfer(token) {
+    const transfer = mcpAnhangTransfers.get(token);
+    if (transfer) clearTimeout(transfer.timer);
+    mcpAnhangTransfers.delete(token);
+  }
+  function mcpLeseTransfer(token, owner) {
+    const transfer = mcpAnhangTransfers.get(token);
+    if (!transfer || transfer.owner !== owner) throw new MagnolieMcp.ToolError("not_found", "Attachment upload not found in this session");
+    if (transfer.expires <= Date.now() || transfer.book !== DATEN) {
+      mcpVerwerfeTransfer(token);
+      throw new MagnolieMcp.ToolError("upload_expired", "Attachment upload expired or its book changed");
+    }
+    return transfer;
+  }
+  function mcpTransferStatus(token, transfer) {
+    return { token, expected_bytes: transfer.size, received_bytes: transfer.received, expires_ms: transfer.expires };
+  }
   function mcpEditorPruefen() {
     if (editorIstGeaendert()) throw new MagnolieMcp.ToolError("editor_busy", "Save or discard the current editor draft before an external write");
     if (modalStapel.some(entry => entry.schleier.isConnected))
@@ -33443,6 +33469,84 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     return tools;
   }
+  function mcpAnhangWerkzeuge(owner) {
+    const id = { type: "string", minLength: 1, maxLength: 256 }, token = { type: "string", pattern: "^[a-f0-9]{48}$" };
+    const hash = { type: "string", pattern: "^[a-f0-9]{64}$" }, tokenSchema = { type: "object", properties: { token }, required: ["token"], additionalProperties: false };
+    return [
+      { name: "organizer_attachment_upload_begin", description: "Stage an image/PDF upload for a revision-bound note. At most two ephemeral uploads of 8 MiB each are held, owned by this MCP session, expiring after five minutes. No note changes until finalize.",
+        inputSchema: { type: "object", properties: { note_id: id, expected_revision: hash, name: { type: "string", minLength: 1, maxLength: 180 },
+          kind: { type: "string", enum: ["image", "pdf"] }, size: { type: "integer", minimum: 1, maximum: 8 * 1024 * 1024 }, sha256: hash },
+          required: ["note_id", "expected_revision", "name", "kind", "size", "sha256"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => {
+          await mcpPruefeNotiz(args.note_id, args.expected_revision, signal);
+          for (const [key, value] of mcpAnhangTransfers) if (value.expires <= Date.now() || value.book !== DATEN) mcpVerwerfeTransfer(key);
+          if (mcpAnhangTransfers.size >= 2) throw new MagnolieMcp.ToolError("upload_limit", "Two attachment uploads are already staged");
+          const key = Array.from(crypto.getRandomValues(new Uint8Array(24)), byte => byte.toString(16).padStart(2, "0")).join("");
+          const transfer = { ...args, owner, book: DATEN, bytes: new Uint8Array(args.size), received: 0, expires: Date.now() + 300000, finalizing: false };
+          transfer.timer = setTimeout(() => mcpVerwerfeTransfer(key), 300000);
+          mcpAnhangTransfers.set(key, transfer);
+          return mcpTransferStatus(key, transfer);
+        } },
+      { name: "organizer_attachment_upload_append", description: "Append a contiguous base64 chunk of at most 65,536 decoded bytes. An identical retry at an already received offset is accepted without appending twice.",
+        inputSchema: { type: "object", properties: { token, offset: { type: "integer", minimum: 0, maximum: 8 * 1024 * 1024 },
+          data: { type: "string", minLength: 4, maxLength: 87384, pattern: "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$" } },
+          required: ["token", "offset", "data"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async ({ token, offset, data }) => {
+          const transfer = mcpLeseTransfer(token, owner);
+          if (transfer.finalizing) throw new MagnolieMcp.ToolError("upload_busy", "Attachment upload is being finalized");
+          let raw;
+          try { raw = atob(data); } catch { throw new MagnolieMcp.ToolError("invalid_chunk", "Attachment chunk is not valid base64"); }
+          if (!raw.length || raw.length > 65536 || offset + raw.length > transfer.size) throw new MagnolieMcp.ToolError("invalid_chunk", "Attachment chunk exceeds its declared bounds");
+          const bytes = Uint8Array.from(raw, character => character.charCodeAt(0));
+          if (offset < transfer.received) {
+            if (offset + bytes.length > transfer.received || bytes.some((value, index) => transfer.bytes[offset + index] !== value))
+              throw new MagnolieMcp.ToolError("upload_conflict", "Attachment retry does not match the received bytes");
+          } else {
+            if (offset !== transfer.received) throw new MagnolieMcp.ToolError("invalid_offset", "Attachment chunks must be contiguous");
+            transfer.bytes.set(bytes, offset); transfer.received += bytes.length;
+          }
+          return mcpTransferStatus(token, transfer);
+        } },
+      { name: "organizer_attachment_upload_status", description: "Read this session's staged upload byte counts without returning file contents.", inputSchema: tokenSchema,
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ token }) => mcpTransferStatus(token, mcpLeseTransfer(token, owner)) },
+      { name: "organizer_attachment_upload_cancel", description: "Discard this session's staged attachment upload.", inputSchema: tokenSchema,
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async ({ token }) => {
+          mcpLeseTransfer(token, owner); mcpVerwerfeTransfer(token); return { token, cancelled: true };
+        } },
+      { name: "organizer_attachment_upload_finalize", description: "Check the full SHA-256 and actual file signature through the existing FileReader attachment validator, recheck the note revision, attach through the product handler and wait for native durable saving.", inputSchema: tokenSchema,
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async ({ token }, signal) => {
+          const transfer = mcpLeseTransfer(token, owner);
+          if (transfer.finalizing) throw new MagnolieMcp.ToolError("upload_busy", "Attachment upload is being finalized");
+          if (transfer.received !== transfer.size) throw new MagnolieMcp.ToolError("upload_incomplete", "Attachment upload is incomplete");
+          transfer.finalizing = true;
+          try {
+            const actual = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", transfer.bytes)), byte => byte.toString(16).padStart(2, "0")).join("");
+            if (actual !== transfer.sha256) throw new MagnolieMcp.ToolError("hash_mismatch", "Attachment upload SHA-256 does not match");
+            const file = new File([transfer.bytes], transfer.name);
+            const attachment = await new Promise((resolve, reject) => notizAnhangLesen(file, transfer.kind,
+              (value, error) => value ? resolve(value) : reject(new MagnolieMcp.ToolError("invalid_attachment", "The product rejected the attachment file format or size"))));
+            if (signal.aborted || mcpAnhangTransfers.get(token) !== transfer) throw new MagnolieMcp.ToolError("cancelled", "Attachment upload cancelled before commit");
+            return await mcpSchreiben(signal, async () => {
+              if (DATEN !== transfer.book) throw new MagnolieMcp.ToolError("source_changed", "Attachment upload book changed");
+              const note = await mcpPruefeNotiz(transfer.note_id, transfer.expected_revision, signal);
+              if (mcpAnhangTransfers.get(token) !== transfer) throw new MagnolieMcp.ToolError("cancelled", "Attachment upload cancelled before commit");
+              if (!fuegeNotizAnhangDatenHinzu(note, attachment)) throw new MagnolieMcp.ToolError("attachment_limit", "The note attachment limits or source changed");
+              return { id: note.id, attachment_id: attachment.id };
+            });
+          } finally { mcpVerwerfeTransfer(token); }
+        } },
+      { name: "organizer_attachment_remove", description: "Revision-checked removal through the product attachment trash and shared-note update handler.",
+        inputSchema: { type: "object", properties: { note_id: id, attachment_id: id, expected_revision: hash }, required: ["note_id", "attachment_id", "expected_revision"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const note = await mcpPruefeNotiz(args.note_id, args.expected_revision, signal);
+          const attachment = note.anhaenge.find(item => item.id === args.attachment_id);
+          if (!attachment) throw new MagnolieMcp.ToolError("not_found", "Note attachment not found");
+          const result = entferneNotizAnhangDaten(note, attachment);
+          if (!result) throw new MagnolieMcp.ToolError("conflict", "Note attachment changed before removal");
+          return result;
+        }) }
+    ];
+  }
   function mcpNativeAntwort(value, callback = "telefonEntwicklerDiagnose") {
     const pending = mcpNativeAnfragen.get(value?.requestId);
     if (pending?.callback === callback) pending.receive(value);
@@ -33583,6 +33687,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (["organizer_attachment_upload_begin", "organizer_attachment_upload_append", "organizer_attachment_upload_status"].includes(name))
+      return shape({ token: id, expected_bytes: { type: "integer", minimum: 1, maximum: 8388608 }, received_bytes: { type: "integer", minimum: 0, maximum: 8388608 }, expires_ms: { type: "integer", minimum: 1 } },
+        ["token", "expected_bytes", "received_bytes", "expires_ms"]);
+    if (name === "organizer_attachment_upload_cancel") return shape({ token: id, cancelled: yes }, ["token", "cancelled"]);
+    if (name === "organizer_attachment_upload_finalize") return shape({ ...written, attachment_id: id }, ["id", "persisted", "attachment_id"]);
+    if (name === "organizer_attachment_remove") return shape({ ...written, attachment_id: id, trash_id: { type: ["string", "null"] } }, ["id", "persisted", "attachment_id", "trash_id"]);
     if (name === "organizer_notebook_group_create") return shape({ ...written, notebook_id: id, note_id: id }, ["id", "persisted", "notebook_id", "note_id"]);
     if (["organizer_notebook_create", "organizer_notebook_update"].includes(name)) return shape({ ...written, group_id: id }, ["id", "persisted", "group_id"]);
     if (name === "organizer_notebook_group_update") return shape(written, ["id", "persisted"]);
@@ -33604,7 +33714,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     throw new Error("Missing MCP output schema: " + name);
   }
-  function mcpWerkzeuge() {
+  function mcpWerkzeuge(owner) {
     const tools = [
       mcpInhaltWerkzeug(),
       { name: "organizer_sync_sources_read", description: "Read actual native calendar/address-book/account source availability. The native result is request-correlated and also refreshes the product source selection cache.",
@@ -33617,6 +33727,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpTerminWerkzeuge(),
       ...mcpKontaktWerkzeuge(),
       ...mcpNotizStrukturWerkzeuge(),
+      ...mcpAnhangWerkzeuge(owner),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
@@ -33662,14 +33773,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     ];
     return tools.map(tool => ({ ...tool, outputSchema: mcpErgebnisSchema(tool.name) }));
   }
-  App.mcpClose = session => { mcpSitzungen.get(session)?.close(); mcpSitzungen.delete(session); };
+  App.mcpClose = session => {
+    mcpSitzungen.get(session)?.close(); mcpSitzungen.delete(session);
+    for (const [token, transfer] of mcpAnhangTransfers) if (transfer.owner === session) mcpVerwerfeTransfer(token);
+  };
   App.mcpRequest = async payload => {
     if (!Bruecke.vorhanden || !window.MagnolieMcp || !/^[0-9a-f]{48}$/.test(payload?.session || "") ||
         !/^[0-9a-f]{48}$/.test(payload?.invocation || "")) return;
     let session = mcpSitzungen.get(payload.session);
     if (!session) {
       if (mcpSitzungen.size >= 8) return;
-      session = MagnolieMcp.createSession({ tools: mcpWerkzeuge(), serverInfo: { name: "magnolie-organizer", version: FASSUNG },
+      session = MagnolieMcp.createSession({ tools: mcpWerkzeuge(payload.session), serverInfo: { name: "magnolie-organizer", version: FASSUNG },
         authorize: async (name, _args, signal) => {
           if (name !== "organizer_status" && (!initialisiert || !antwortErhalten || gesperrt))
             throw new MagnolieMcp.ToolError("locked_or_not_ready", "Open and unlock the Organizer first");

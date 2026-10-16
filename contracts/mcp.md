@@ -63,6 +63,8 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_status` | Live version, readiness, lock and pending-save status |
 | `organizer_data_read` | Product section; optional `id` lookup or array `offset`/`limit` pagination |
 | `organizer_content_read` | Bounded base64 UTF-8 byte chunks for a selected product string, with content revision checking |
+| `organizer_attachment_upload_begin/append/status/cancel/finalize` | Session-owned bounded image/PDF staging, full digest and native file-signature validation, revision-checked durable attachment commit |
+| `organizer_attachment_remove` | Revision-checked product attachment trash and shared-note update |
 | `organizer_settings_read` | Current product settings |
 | `organizer_sync_sources_read` | Actual native calendar/address-book/account availability, with request- and callback-bound results |
 | `organizer_note_read` | Note and revision token |
@@ -136,6 +138,18 @@ not opened or interpreted by the chunk reader.
 The note/task/appointment/contact read tools also accept a `fields` projection;
 their revision still covers the entire entity, so large entries can be safely
 updated or deleted without first returning their complete inline content.
+
+Attachment uploads bind the note ID and entity revision at `begin`. File bytes
+are appended in contiguous base64 chunks of at most 65,536 decoded bytes, up to
+8 MiB per file. At most two transfers are staged across the book; tokens belong
+to the creating MCP session, expire after five minutes, and are discarded on
+cancel, session close or finalization. Identical chunk retries do not append twice.
+`finalize` checks the declared SHA-256, then uses the actual product FileReader
+validator for JPEG/PNG/WebP/GIF/PDF magic bytes, size and total note limits. The
+note's revision and current book/lock/editor state are rechecked before mutation;
+`persisted: true` still requires the native save acknowledgement. Staging itself
+does not add anything to book data. Restoring a removed attachment uses the same
+`organizer_trash_restore` handler as the graphical product.
 
 ## Remaining coverage in #170
 
