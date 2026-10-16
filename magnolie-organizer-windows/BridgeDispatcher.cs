@@ -131,7 +131,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "sicherung": await BackupAsync(message); break;
                     case "cloud_sicherung_status": await SendCloudBackupStatusAsync(requestId: Text(message, "requestId")); break;
                     case "cloud_sicherung_kennwort": await StoreCloudBackupPasswordAsync(Text(message, "kennwort"), Text(message, "requestId")); break;
-                    case "cloud_sicherung_test": await RunCloudBackupTestAsync(); break;
+                    case "cloud_sicherung_test": await RunCloudBackupTestAsync(Text(message, "requestId"), Text(message, "sourceToken")); break;
                     case "sicherung_waehlen": await SelectBackupAsync(); break;
                     case "sicherung_wiederherstellen": await RestoreBackupAsync(message); break;
                     case "sicherung_pruefen": await PreviewBackupAsync(message); break;
@@ -1008,10 +1008,10 @@ internal sealed partial class BridgeDispatcher : IDisposable
         finally { if (locked) MutationGate.Global.Release(); }
     }
 
-    private async Task SendCloudBackupStatusAsync(string status = "", string? requestId = null) =>
+    private async Task SendCloudBackupStatusAsync(string status = "", string? requestId = null, string? sourceToken = null) =>
         await form.SendAsync("App.cloudSicherungStand", new
         {
-            requestId, kennwortVorhanden = cloudBackups.PasswordAvailable, status
+            requestId, sourceToken, kennwortVorhanden = cloudBackups.PasswordAvailable, status
         });
 
     private async Task StoreCloudBackupPasswordAsync(string password, string? requestId = null)
@@ -1020,10 +1020,11 @@ internal sealed partial class BridgeDispatcher : IDisposable
         catch { await SendCloudBackupStatusAsync("secret_unavailable", requestId); }
     }
 
-    private async Task RunCloudBackupTestAsync()
+    private async Task RunCloudBackupTestAsync(string? requestId = null, string? sourceToken = null)
     {
-        if (!currentPlainTextAvailable) { await SendCloudBackupStatusAsync("locked"); return; }
-        await RunCloudBackupAfterSaveAsync(currentPlainText, force: true);
+        if (!currentPlainTextAvailable) { await SendCloudBackupStatusAsync("locked", requestId, sourceToken); return; }
+        cloudWorker.UpdateSnapshot(currentPlainText);
+        await cloudWorker.RunNowAsync(requestId, sourceToken).ConfigureAwait(false);
     }
 
     private async Task RunCloudBackupAfterSaveAsync(string plainText, bool force)

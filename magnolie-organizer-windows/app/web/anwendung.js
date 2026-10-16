@@ -31727,26 +31727,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       zettel(_("Backup folder updated."));
     },
     cloudSicherungStand(nutzlast) {
-      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "cloudSicherungStand"); return; }
-      nutzlast = nutzlast || {};
-      const vorher = JSON.stringify(cloudSicherungStand);
-      cloudSicherungStand = {
-        kennwortVorhanden: !!nutzlast.kennwortVorhanden,
-        status: S(nutzlast.status).slice(0, 64)
-      };
-      const cloud = DATEN.einstellungen.allgemein.cloudSicherung;
-      let geaendert = false;
-      if (nutzlast.letzterErfolg && cloud.letzterErfolg !== nutzlast.letzterErfolg) {
-        cloud.letzterErfolg = S(nutzlast.letzterErfolg).slice(0, 64); geaendert = true;
-      }
-      if (nutzlast.status && cloud.status !== nutzlast.status) {
-        cloud.status = S(nutzlast.status).slice(0, 64); geaendert = true;
-      }
-      if (!cloudSicherungStand.kennwortVorhanden && cloud.aktiv) {
-        cloud.aktiv = false; geaendert = true;
-      }
-      if (geaendert) planeSpeichern();
-      if (vorher !== JSON.stringify(cloudSicherungStand)) baueEinstellungen();
+      if (nutzlast?.requestId) { mcpCloudTestAntwort(nutzlast); mcpNativeAntwort(nutzlast, "cloudSicherungStand"); return; }
+      const result = wendeCloudSicherungsstandDatenAn(nutzlast || {});
+      if (result.changed) planeSpeichern();
+      if (result.runtime_changed) baueEinstellungen();
     },
     journalStand(nutzlast) {
       if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "journalStand"); return; }
@@ -32604,6 +32588,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return operation;
   }
   const mcpNativeAnfragen = new Map();
+  const mcpCloudTests = new Map();
   async function mcpPruefeNotiz(id, revision, signal) {
     return mcpPruefeEintrag("notizen", id, revision, signal);
   }
@@ -33082,7 +33067,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }) }
     ];
   }
-  function mcpNativeAufruf(cmd, args, callback, signal) {
+  function mcpNativeAufruf(cmd, args, callback, signal, beimStart = null) {
     const requestId = crypto.randomUUID();
     return new Promise((resolve, reject) => {
       let timer;
@@ -33096,7 +33081,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       signal.addEventListener("abort", abort, { once: true });
       timer = setTimeout(() => finish(null, new MagnolieMcp.ToolError("native_timeout", "Native product request timed out")), 25000);
       if (signal.aborted) abort();
-      else if (!Bruecke.sende({ cmd, ...args, requestId })) finish(null, new MagnolieMcp.ToolError("native_unavailable", "Native product interface unavailable"));
+      else {
+        if (beimStart) beimStart(requestId);
+        if (!Bruecke.sende({ cmd, ...args, requestId })) finish(null, new MagnolieMcp.ToolError("native_unavailable", "Native product interface unavailable"));
+      }
     });
   }
   function mcpNotizStrukturWerkzeuge() {
@@ -34204,6 +34192,49 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         return { stored: true, password_available: true };
       } }];
   }
+  function wendeCloudSicherungsstandDatenAn(value) {
+    const before = JSON.stringify(cloudSicherungStand), cloud = DATEN.einstellungen.allgemein.cloudSicherung;
+    cloudSicherungStand = { kennwortVorhanden: !!value.kennwortVorhanden, status: S(value.status).slice(0, 64) };
+    let changed = false;
+    if (value.letzterErfolg && cloud.letzterErfolg !== value.letzterErfolg) { cloud.letzterErfolg = S(value.letzterErfolg).slice(0, 64); changed = true; }
+    if (value.status && cloud.status !== value.status) { cloud.status = S(value.status).slice(0, 64); changed = true; }
+    if (!cloudSicherungStand.kennwortVorhanden && cloud.aktiv) { cloud.aktiv = false; changed = true; }
+    return { changed, runtime_changed: before !== JSON.stringify(cloudSicherungStand) };
+  }
+  function mcpCloudTestAntwort(value) {
+    const context = mcpCloudTests.get(value.sourceToken);
+    if (!context || context.requestId !== value.requestId) return;
+    mcpCloudTests.delete(value.sourceToken); clearTimeout(context.timer);
+    if (!gesperrt && DATEN === context.book && DATEN.einstellungen.allgemein.sicherungsordner === context.folder) {
+      context.applied = true;
+      if (wendeCloudSicherungsstandDatenAn(value).changed) planeSpeichern();
+    }
+  }
+  function mcpCloudTestInhalt() {
+    const book = kopie(DATEN), cloud = book.einstellungen.allgemein.cloudSicherung;
+    delete cloud.status; delete cloud.letzterErfolg; return JSON.stringify(book);
+  }
+  function mcpSicherungstestWerkzeuge() {
+    return [{ name: "organizer_backup_test", description: "Create and verify an actual automatic cloud-folder backup using the native product worker after the book-save gate. Requires the current complete-book revision. Returns the actual archive path only after worker success and durable persistence of its status metadata. Late/cancelled worker outcomes update metadata only for the same book and backup folder.",
+      inputSchema: { type: "object", properties: { expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, required: ["expected_book_revision"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        if (mcpCloudTests.size >= 8) throw new MagnolieMcp.ToolError("native_busy", "Cloud backup test requests are still pending");
+        const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+        if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; read its revision again before testing backup");
+        await mcpSchreiben(signal, () => ({})); mcpEditorPruefen();
+        if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("conflict", "Book changed while preparing the backup test");
+        if (mcpCloudTests.size >= 8) throw new MagnolieMcp.ToolError("native_busy", "Cloud backup test requests are still pending");
+        const core = mcpCloudTestInhalt(), token = crypto.randomUUID(), context = { book, folder: DATEN.einstellungen.allgemein.sicherungsordner, requestId: null, applied: false };
+        context.timer = setTimeout(() => mcpCloudTests.delete(token), 120000); mcpCloudTests.set(token, context);
+        const value = await mcpNativeAufruf("cloud_sicherung_test", { sourceToken: token }, "cloudSicherungStand", signal, requestId => { context.requestId = requestId; });
+        if (value.sourceToken !== token) throw new MagnolieMcp.ToolError("invalid_result", "Native backup test source identity did not match");
+        if (value.status !== "success" || value.kennwortVorhanden !== true || typeof value.pfad !== "string" || !value.pfad || typeof value.letzterErfolg !== "string" || !value.letzterErfolg) throw new MagnolieMcp.ToolError(["folder_missing", "secret_unavailable", "locked"].includes(value.status) ? "backup_not_ready" : "native_operation_failed", "Native backup creation or verification was not confirmed");
+        return mcpSchreiben(signal, () => {
+          if (DATEN !== book || !context.applied || mcpCloudTestInhalt() !== core) throw new MagnolieMcp.ToolError("source_changed", "A verified backup may exist; the book or backup preferences changed");
+          return { path: value.pfad, verified: true, last_success: value.letzterErfolg };
+        });
+      } }];
+  }
   function wendeOrtAuswahlDatenAn(values) {
     const current = DATEN.einstellungen.ort, next = { ...current };
     if (values.land !== undefined) {
@@ -34583,6 +34614,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (name === "organizer_backup_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
     if (name === "organizer_backup_settings_update") return shape({ persisted: yes }, ["persisted"]);
     if (name === "organizer_backup_password_store") return shape({ stored: yes, password_available: yes }, ["stored", "password_available"]);
+    if (name === "organizer_backup_test") return shape({ path: text, verified: yes, last_success: text, persisted: yes }, ["path", "verified", "last_success", "persisted"]);
     if (name === "organizer_attachment_save") return shape({ path: text, confirmed: yes, bytes: { type: "integer", minimum: 1, maximum: 8 * 1024 * 1024 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["path", "confirmed", "bytes", "sha256"]);
     if (name === "organizer_attachment_open") return shape({ launched: yes }, ["launched"]);
     if (name === "organizer_holidays_read") return shape({ settings: object, total: { type: "integer", minimum: 0 }, countries: { type: "array", items: object }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "total", "countries", "revision"]);
@@ -34712,6 +34744,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpFeiertagWerkzeuge(),
       ...mcpSicherungsdateienWerkzeuge(),
       ...mcpSicherungskennwortWerkzeuge(),
+      ...mcpSicherungstestWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

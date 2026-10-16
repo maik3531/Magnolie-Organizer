@@ -20962,7 +20962,7 @@ class Fenster(_FENSTER_BASIS):
 
         elif befehl == "cloud_sicherung_test":
             threading.Thread(target=self._cloud_sicherung_test,
-                             daemon=True).start()
+                             args=(nachricht.get("requestId"), nachricht.get("sourceToken")), daemon=True).start()
 
         elif befehl == "regional_einstellungen":
             sauber = regional_einstellungen(nachricht.get("regional"))
@@ -22226,21 +22226,22 @@ class Fenster(_FENSTER_BASIS):
                 if not kennwort:
                     return {"kennwortVorhanden": False,
                             "status": "secret_unavailable"}
-                automatische_sicherung_anlegen(
+                pfad = automatische_sicherung_anlegen(
                     daten, einstellungen["ordner"], kennwort,
                     einstellungen["aufbewahrung"])
                 return {"kennwortVorhanden": True, "status": "success",
-                        "letzterErfolg": datetime.now(timezone.utc).isoformat()}
+                        "letzterErfolg": datetime.now(timezone.utc).isoformat(), "pfad": pfad}
             except Exception:
                 return {"kennwortVorhanden": self._cloud_sicherung_secrets.available(),
                         "status": "failed"}
 
-    def _cloud_sicherung_test(self):
+    def _cloud_sicherung_test(self, request_id=None, source_token=None):
         with self._daten_sperre:
             daten = getattr(self, "_aktuelle_daten", None)
             ergebnis = ({"kennwortVorhanden": self._cloud_sicherung_secrets.available(),
                          "status": "locked"} if not isinstance(daten, dict)
                         else self._cloud_sicherung_nach_speichern(daten, True))
+        ergebnis.update({"requestId": request_id, "sourceToken": source_token})
         self.antwort("App.cloudSicherungStand", ergebnis)
 
     def _darf_schreiben(self):

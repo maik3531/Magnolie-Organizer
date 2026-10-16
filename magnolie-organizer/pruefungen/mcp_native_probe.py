@@ -1021,6 +1021,9 @@ def client():
             "expected_revision": backup_settings_fresh["structuredContent"]["revision"], "enabled": True}})
         assert backup_not_ready["isError"] and backup_not_ready["structuredContent"]["code"] == "backup_not_ready", backup_not_ready
         assert json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))["einstellungen"]["allgemein"]["cloudSicherung"]["aktiv"] is False
+        unready_book = call("tools/call", {"name": "organizer_book_revision_read"})
+        unready_test = call("tools/call", {"name": "organizer_backup_test", "arguments": {"expected_book_revision": unready_book["structuredContent"]["revision"]}})
+        assert unready_test["isError"] and unready_test["structuredContent"]["code"] == "backup_not_ready", unready_test
         # The private Secret Service is unavailable. Exercise native store/result
         # correlation with an owned backend; this is not an OS-keyring success proof.
         class OwnedVault:
@@ -1054,6 +1057,15 @@ def client():
             assert owned_vault.value == vault_args["password"]
             assert vault_args["password"] not in json.dumps(saved_vault)
             assert vault_args["password"] not in product.entschluesseln(data_file.read_text(), "owned-classic-backup-password")
+            verified_book = call("tools/call", {"name": "organizer_book_revision_read"})
+            verified_test = call("tools/call", {"name": "organizer_backup_test", "arguments": {"expected_book_revision": verified_book["structuredContent"]["revision"]}})
+            assert not verified_test["isError"] and verified_test["structuredContent"]["verified"] and verified_test["structuredContent"]["persisted"], verified_test
+            verified_path = Path(verified_test["structuredContent"]["path"])
+            assert verified_path.is_relative_to(Path(temporary.name)) and verified_path.is_file()
+            verified_archive = product.gesamtarchiv_lesen(str(verified_path), vault_args["password"])
+            assert next(item for item in verified_archive["daten"]["notizen"] if item["id"] == note_id)["text"] == large_text
+            verified_preferences = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))["einstellungen"]["allgemein"]["cloudSicherung"]
+            assert verified_preferences["status"] == "success" and verified_preferences["letzterErfolg"] == verified_test["structuredContent"]["last_success"]
         finally:
             vault_restored = threading.Event()
             def restore_vault_fixture():

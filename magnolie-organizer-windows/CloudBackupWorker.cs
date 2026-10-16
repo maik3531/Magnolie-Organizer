@@ -34,7 +34,7 @@ internal sealed class CloudBackupWorker : IAsyncDisposable
         Volatile.Write(ref snapshot, savedPlainText);
         if (!lifetime.IsCancellationRequested && wake.CurrentCount == 0) try { wake.Release(); } catch (SemaphoreFullException) { }
     }
-    internal Task RunNowAsync() => Task.Run(() => CheckAsync(true));
+    internal Task RunNowAsync(string? requestId = null, string? sourceToken = null) => Task.Run(() => CheckAsync(true, requestId, sourceToken));
     private async Task RunAsync()
     {
         try
@@ -47,7 +47,7 @@ internal sealed class CloudBackupWorker : IAsyncDisposable
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
     }
-    private async Task CheckAsync(bool force)
+    private async Task CheckAsync(bool force, string? requestId = null, string? sourceToken = null)
     {
         await execution.WaitAsync(lifetime.Token).ConfigureAwait(false);
         try
@@ -61,22 +61,22 @@ internal sealed class CloudBackupWorker : IAsyncDisposable
             var last = successes[key]?.GetValue<string>() ?? settings.LastSuccess;
             if (!force && !CloudBackupService.IsDue(settings.Enabled, settings.Interval, last, now)) return;
             retryAfter = now.AddMinutes(5);
-            if (settings.Folder.Length == 0) { await Status("folder_missing"); return; }
-            if (!passwordAvailable()) { await Status("secret_unavailable"); return; }
-            create(data, settings, lifetime.Token);
+            if (settings.Folder.Length == 0) { await Status("folder_missing", requestId, sourceToken); return; }
+            if (!passwordAvailable()) { await Status("secret_unavailable", requestId, sourceToken); return; }
+            var path = create(data, settings, lifetime.Token);
             var success = clock().ToString("O"); successes[key] = success;
             files.WriteRecoverableJson(statePath, successes.ToJsonString());
-            await emit("App.cloudSicherungStand", new { kennwortVorhanden = true, status = "success", letzterErfolg = success }).ConfigureAwait(false);
+            await emit("App.cloudSicherungStand", new { requestId, sourceToken, pfad = path, kennwortVorhanden = true, status = "success", letzterErfolg = success }).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception)
         {
             retryAfter = clock().AddMinutes(5);
-            try { await Status("failed"); } catch (Exception) { }
+            try { await Status("failed", requestId, sourceToken); } catch (Exception) { }
         }
         finally { execution.Release(); }
     }
-    private Task Status(string status) => emit("App.cloudSicherungStand", new { kennwortVorhanden = passwordAvailable(), status });
+    private Task Status(string status, string? requestId = null, string? sourceToken = null) => emit("App.cloudSicherungStand", new { requestId, sourceToken, kennwortVorhanden = passwordAvailable(), status });
     public async ValueTask DisposeAsync()
     {
         lifetime.Cancel();
