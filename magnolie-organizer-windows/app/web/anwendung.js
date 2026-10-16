@@ -16312,6 +16312,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   /* Personen: wer ist wofür zuständig                                        */
   /* ---------------------------------------------------------------------- */
 
+  function neuePersonDaten(name, id = uid()) {
+    name = String(name || "").trim();
+    if (!name) return null;
+    return { id, name, kuerzel: name.slice(0, 2).toUpperCase(), farbe: PERSON_FARBEN[DATEN.personen.length % PERSON_FARBEN.length], notiz: "" };
+  }
+  function entfernePersonDaten(person) {
+    if (!DATEN.personen.includes(person)) return null;
+    const affected = DATEN.aufgaben.filter(task => (task.personen || []).includes(person.id)).map(task => task.id);
+    DATEN.personen = DATEN.personen.filter(item => item !== person);
+    for (const task of DATEN.aufgaben) task.personen = (task.personen || []).filter(id => id !== person.id);
+    return { id: person.id, unassigned_tasks: affected };
+  }
+
   function oeffnePersonenblatt() {
     schliesseVorhandenesModal("personen-schleier");
     const schleier = el("div", "druck-schleier");
@@ -16371,10 +16384,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             "no longer be assigned to anyone.", { name: person.name }),
             _("Remove")).then((ja) => {
             if (!ja) return;
-            DATEN.personen = DATEN.personen.filter((x) => x.id !== person.id);
-            for (const a of DATEN.aufgaben) {
-              a.personen = (a.personen || []).filter((x) => x !== person.id);
-            }
+            if (!entfernePersonDaten(person)) { zettel(_("Conflict")); return; }
             planeSpeichern();
             frischen();
           });
@@ -16391,12 +16401,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const anlegen = () => {
       const name = neuFeld.value.trim();
       if (!name) return;
-      DATEN.personen.push({
-        id: uid(), name: name,
-        kuerzel: name.slice(0, 2).toUpperCase(),
-        farbe: PERSON_FARBEN[DATEN.personen.length % PERSON_FARBEN.length],
-        notiz: ""
-      });
+      DATEN.personen.push(neuePersonDaten(name));
       neuFeld.value = "";
       planeSpeichern();
       frischen();
@@ -20591,6 +20596,30 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   /* Abschnitt: Jahrestage                                                  */
   /* ---------------------------------------------------------------------- */
 
+  function wendeJahrestagDatenAn(entry, values) {
+    const oldContact = entry?.kontaktId ? DATEN.kontakte.find(contact => contact.id === entry.kontaktId) : null;
+    const oldBirthday = !!entry && istGeburtstagTyp(entry.typ);
+    if (!entry) { entry = { id: uid(), ...values }; DATEN.jahrestage.push(entry); }
+    else Object.assign(entry, values);
+    entry.jahrUnbekannt = gueltigesTeildatum(entry.datum);
+    const contact = entry.kontaktId ? DATEN.kontakte.find(value => value.id === entry.kontaktId) : null;
+    if (oldContact && oldBirthday && (oldContact !== contact || !istGeburtstagTyp(entry.typ))) {
+      oldContact.geburtstag = ""; oldContact.geburtstagJahrUnbekannt = false;
+    }
+    if (contact && istGeburtstagTyp(entry.typ)) {
+      contact.geburtstag = entry.datum; contact.geburtstagJahrUnbekannt = entry.jahrUnbekannt;
+    }
+    return entry;
+  }
+  function loescheJahrestagDaten(entry) {
+    if (!DATEN.jahrestage.includes(entry)) return null;
+    const contact = entry.kontaktId ? DATEN.kontakte.find(value => value.id === entry.kontaktId) : null;
+    if (contact && istGeburtstagTyp(entry.typ)) { contact.geburtstag = ""; contact.geburtstagJahrUnbekannt = false; }
+    const trash = inDenPapierkorb("jahrestag", entry, entry.name);
+    DATEN.jahrestage = DATEN.jahrestage.filter(value => value !== entry);
+    if (zustand.jahrestage.bearbeiteId === entry.id) zustand.jahrestage.bearbeiteId = null;
+    return { id: entry.id, trash_id: trash?.id || null };
+  }
   function zeichneJahrestage() {
     const z = zustand.jahrestage;
     const sichtbar = sichtbareJahrestage();
@@ -20645,15 +20674,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           ev.stopPropagation();
           frage(uebersetzt("Delete anniversary “%(name)s”?", { name: jt.name })).then((ja) => {
             if (!ja) return;
-            const kontakt = jt.kontaktId
-              ? DATEN.kontakte.find((k) => k.id === jt.kontaktId) : null;
-            if (kontakt && istGeburtstagTyp(jt.typ)) {
-              kontakt.geburtstag = "";
-              kontakt.geburtstagJahrUnbekannt = false;
-            }
-            inDenPapierkorb("jahrestag", jt, jt.name);
-            DATEN.jahrestage = DATEN.jahrestage.filter((x2) => x2.id !== jt.id);
-            if (z.bearbeiteId === jt.id) z.bearbeiteId = null;
+            if (!loescheJahrestagDaten(jt)) { zettel(_("Conflict")); return; }
             const naechster = DATEN.jahrestage[0];
             fokussiereNachZeichnen(naechster
               ? "jahrestag:" + naechster.id : "register:jahrestage");
@@ -20715,25 +20736,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       const typText = feldTyp.value.trim().slice(0, 80);
       const typ = jahrestagTypId(typText) || typText || "other";
-      if (bearbeitet) {
-        const warGeburtstag = istGeburtstagTyp(bearbeitet.typ);
-        bearbeitet.name = name;
-        bearbeitet.datum = datum;
-        bearbeitet.jahrUnbekannt = gueltigesTeildatum(datum);
-        bearbeitet.typ = typ;
-        const kontakt = bearbeitet.kontaktId
-          ? DATEN.kontakte.find((k) => k.id === bearbeitet.kontaktId) : null;
-        if (kontakt && istGeburtstagTyp(typ)) {
-          kontakt.geburtstag = datum;
-          kontakt.geburtstagJahrUnbekannt = gueltigesTeildatum(datum);
-        } else if (kontakt && warGeburtstag) {
-          kontakt.geburtstag = "";
-          kontakt.geburtstagJahrUnbekannt = false;
-        }
-      } else {
-        DATEN.jahrestage.push({ id: uid(), name: name, datum: datum,
-          jahrUnbekannt: gueltigesTeildatum(datum), typ: typ });
-      }
+      wendeJahrestagDatenAn(bearbeitet, { name, datum, typ });
       z.bearbeiteId = null;
       planeSpeichern();
       zeichneAlles();
@@ -33300,6 +33303,88 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }) }
     ];
   }
+  function mcpPersonenWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const fields = { name: { type: "string", minLength: 1, maxLength: 1000, pattern: "\\S" },
+      abbreviation: { type: "string", maxLength: 3 }, color: { type: "string", enum: PERSON_FARBEN }, note: { type: "string", maxLength: 500000 } };
+    const apply = (person, args) => {
+      if (args.name !== undefined) { person.name = args.name.trim(); person.kuerzel = person.name.slice(0, 2).toUpperCase(); }
+      if (args.abbreviation !== undefined) person.kuerzel = args.abbreviation.trim() || person.name.slice(0, 2).toUpperCase();
+      if (args.color !== undefined) person.farbe = args.color;
+      if (args.note !== undefined) person.notiz = args.note;
+    };
+    return [
+      { name: "organizer_person_read", description: "Read a task-assignment person and its revision token.",
+        inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ id }) => {
+          const value = DATEN.personen.find(person => person.id === id);
+          if (!value) throw new MagnolieMcp.ToolError("not_found", "Task-assignment person not found");
+          const person = kopie(value); return { person, revision: await personalSyncHash(JSON.stringify(person)) };
+        } },
+      { name: "organizer_person_create", description: "Create a task-assignment person using the product's initial badge/color rules.",
+        inputSchema: { type: "object", properties: { ...fields, id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" } }, required: ["name"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, () => {
+          if (args.id && DATEN.personen.some(person => person.id === args.id)) throw new MagnolieMcp.ToolError("already_exists", "Task-assignment person ID already exists");
+          const person = neuePersonDaten(args.name, args.id || uid()); apply(person, args); DATEN.personen.push(person); return { id: person.id };
+        }) },
+      { name: "organizer_person_update", description: "Revision-checked name, badge, color and note for a task-assignment person.",
+        inputSchema: { type: "object", properties: { ...fields, id, expected_revision: revision }, required: ["id", "expected_revision"],
+          anyOf: Object.keys(fields).map(field => ({ required: [field] })), additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const person = await mcpPruefeEintrag("personen", args.id, args.expected_revision, signal); apply(person, args); return { id: person.id };
+        }) },
+      { name: "organizer_person_delete", description: "Revision-checked product removal of a person; assigned tasks remain and lose only this assignment.",
+        inputSchema: { type: "object", properties: { id, expected_revision: revision }, required: ["id", "expected_revision"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const person = await mcpPruefeEintrag("personen", args.id, args.expected_revision, signal);
+          const result = entfernePersonDaten(person);
+          if (!result) throw new MagnolieMcp.ToolError("conflict", "Task-assignment person changed before removal");
+          return result;
+        }) }
+    ];
+  }
+  function mcpJahrestagWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const fields = { name: { type: "string", minLength: 1, maxLength: 1000, pattern: "\\S" },
+      date: { type: "string", pattern: "^(?:\\d{4}-|--)\\d{2}-\\d{2}$" }, type: { type: "string", maxLength: 80 }, contact_id: { type: "string", maxLength: 256 } };
+    const values = (args, current = {}) => {
+      const result = { name: args.name === undefined ? current.name : args.name.trim(), datum: args.date === undefined ? current.datum : args.date,
+        typ: args.type === undefined ? current.typ || "other" : jahrestagTypId(args.type.trim()) || args.type.trim() || "other" };
+      if (!gueltigesJahresdatum(result.datum)) throw new MagnolieMcp.ToolError("invalid_date", "Anniversary date is invalid");
+      if (args.contact_id !== undefined) {
+        if (args.contact_id && !DATEN.kontakte.some(contact => contact.id === args.contact_id)) throw new MagnolieMcp.ToolError("not_found", "Anniversary contact not found");
+        result.kontaktId = args.contact_id;
+      }
+      return result;
+    };
+    return [
+      { name: "organizer_anniversary_read", description: "Read an anniversary and its revision token, including unknown-year dates and linked contact metadata.",
+        inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ id }) => {
+          const value = DATEN.jahrestage.find(entry => entry.id === id);
+          if (!value) throw new MagnolieMcp.ToolError("not_found", "Anniversary not found");
+          const anniversary = kopie(value); return { anniversary, revision: await personalSyncHash(JSON.stringify(anniversary)) };
+        } },
+      { name: "organizer_anniversary_create", description: "Create an anniversary through the product handler, including the linked-contact birthday policy.",
+        inputSchema: { type: "object", properties: { ...fields, id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" } }, required: ["name", "date"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, () => {
+          if (args.id && DATEN.jahrestage.some(entry => entry.id === args.id)) throw new MagnolieMcp.ToolError("already_exists", "Anniversary ID already exists");
+          const entry = wendeJahrestagDatenAn(null, { ...values(args), ...(args.id ? { id: args.id } : {}) }); return { id: entry.id };
+        }) },
+      { name: "organizer_anniversary_update", description: "Revision-checked anniversary name/date/type/contact edits with product birthday-field updates.",
+        inputSchema: { type: "object", properties: { ...fields, id, expected_revision: revision }, required: ["id", "expected_revision"],
+          anyOf: Object.keys(fields).map(field => ({ required: [field] })), additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const entry = await mcpPruefeEintrag("jahrestage", args.id, args.expected_revision, signal); wendeJahrestagDatenAn(entry, values(args, entry)); return { id: entry.id };
+        }) },
+      { name: "organizer_anniversary_delete", description: "Revision-checked anniversary trash/removal and linked-contact birthday cleanup through the product handler.",
+        inputSchema: { type: "object", properties: { id, expected_revision: revision }, required: ["id", "expected_revision"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const entry = await mcpPruefeEintrag("jahrestage", args.id, args.expected_revision, signal);
+          const result = loescheJahrestagDaten(entry); if (!result) throw new MagnolieMcp.ToolError("conflict", "Anniversary changed before removal"); return result;
+        }) }
+    ];
+  }
   function mcpNativeAntwort(value, callback = "telefonEntwicklerDiagnose") {
     const pending = mcpNativeAnfragen.get(value?.requestId);
     if (pending?.callback === callback) pending.receive(value);
@@ -33437,9 +33522,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       anyOf: [{ required: ["entry"] }, { required: ["value"] }, { required: ["entries", "total", "offset"] }] };
     const reader = { organizer_note_read: "note", organizer_task_read: "task", organizer_appointment_read: "appointment", organizer_contact_read: "contact",
       organizer_notebook_group_read: "group", organizer_notebook_read: "notebook" }[name];
+    if (name === "organizer_person_read") return shape({ person: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["person", "revision"]);
+    if (name === "organizer_anniversary_read") return shape({ anniversary: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["anniversary", "revision"]);
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (["organizer_anniversary_create", "organizer_anniversary_update"].includes(name)) return shape(written, ["id", "persisted"]);
+    if (name === "organizer_anniversary_delete") return shape({ ...written, trash_id: { type: ["string", "null"] } }, ["id", "persisted", "trash_id"]);
+    if (["organizer_person_create", "organizer_person_update"].includes(name)) return shape(written, ["id", "persisted"]);
+    if (name === "organizer_person_delete") return shape({ ...written, unassigned_tasks: { type: "array", items: id } }, ["id", "persisted", "unassigned_tasks"]);
     if (["organizer_attachment_upload_begin", "organizer_attachment_upload_append", "organizer_attachment_upload_status"].includes(name))
       return shape({ token: id, expected_bytes: { type: "integer", minimum: 1, maximum: 8388608 }, received_bytes: { type: "integer", minimum: 0, maximum: 8388608 }, expires_ms: { type: "integer", minimum: 1 } },
         ["token", "expected_bytes", "received_bytes", "expires_ms"]);
@@ -33481,6 +33572,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpKontaktWerkzeuge(),
       ...mcpNotizStrukturWerkzeuge(),
       ...mcpAnhangWerkzeuge(owner),
+      ...mcpPersonenWerkzeuge(),
+      ...mcpJahrestagWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

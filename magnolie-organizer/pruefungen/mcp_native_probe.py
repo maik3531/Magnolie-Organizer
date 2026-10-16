@@ -165,6 +165,23 @@ def client():
             "expected_revision": task_read["structuredContent"]["revision"], "title": "Native revised task"}})
         assert not task_updated["isError"] and task_updated["structuredContent"]["persisted"], task_updated
         assert next(item for item in json.loads(data_file.read_text())["aufgaben"] if item["id"] == task_id)["titel"] == "Native revised task"
+        person_created = call("tools/call", {"name": "organizer_person_create", "arguments": {"name": "Owned native person"}})
+        assert not person_created["isError"] and person_created["structuredContent"]["persisted"], person_created
+        person_id = person_created["structuredContent"]["id"]
+        person_read = call("tools/call", {"name": "organizer_person_read", "arguments": {"id": person_id}})
+        person_updated = call("tools/call", {"name": "organizer_person_update", "arguments": {
+            "id": person_id, "expected_revision": person_read["structuredContent"]["revision"], "name": "Revised native person", "abbreviation": "RN"}})
+        assert not person_updated["isError"] and person_updated["structuredContent"]["persisted"], person_updated
+        task_read = call("tools/call", {"name": "organizer_task_read", "arguments": {"id": task_id}})
+        task_assigned = call("tools/call", {"name": "organizer_task_update", "arguments": {
+            "id": task_id, "expected_revision": task_read["structuredContent"]["revision"], "persons": [person_id]}})
+        assert not task_assigned["isError"] and task_assigned["structuredContent"]["persisted"], task_assigned
+        person_read = call("tools/call", {"name": "organizer_person_read", "arguments": {"id": person_id}})
+        person_deleted = call("tools/call", {"name": "organizer_person_delete", "arguments": {
+            "id": person_id, "expected_revision": person_read["structuredContent"]["revision"]}})
+        assert not person_deleted["isError"] and person_deleted["structuredContent"]["persisted"], person_deleted
+        assert task_id in person_deleted["structuredContent"]["unassigned_tasks"]
+        assert next(item for item in json.loads(data_file.read_text())["aufgaben"] if item["id"] == task_id)["personen"] == []
         child_id = "88888888-8888-4888-8888-888888888888"
         child_created = call("tools/call", {"name": "organizer_task_create", "arguments": {
             "id": child_id, "title": "Native child fixture", "parent_id": task_id}})
@@ -239,6 +256,20 @@ def client():
         assert not contact_created["isError"] and contact_created["structuredContent"]["persisted"], contact_created
         contact = next(item for item in json.loads(data_file.read_text())["kontakte"] if item["id"] == contact_id)
         assert contact["email"] == "owned-native@example.test" and contact["geburtstag"] == "--02-29"
+        anniversary_created = call("tools/call", {"name": "organizer_anniversary_create", "arguments": {
+            "name": "Owned native anniversary", "date": "--12-31", "type": "other"}})
+        assert not anniversary_created["isError"] and anniversary_created["structuredContent"]["persisted"], anniversary_created
+        anniversary_id = anniversary_created["structuredContent"]["id"]
+        anniversary_read = call("tools/call", {"name": "organizer_anniversary_read", "arguments": {"id": anniversary_id}})
+        anniversary_updated = call("tools/call", {"name": "organizer_anniversary_update", "arguments": {
+            "id": anniversary_id, "expected_revision": anniversary_read["structuredContent"]["revision"], "date": "--01-01"}})
+        assert not anniversary_updated["isError"] and anniversary_updated["structuredContent"]["persisted"], anniversary_updated
+        anniversary_read = call("tools/call", {"name": "organizer_anniversary_read", "arguments": {"id": anniversary_id}})
+        anniversary_deleted = call("tools/call", {"name": "organizer_anniversary_delete", "arguments": {
+            "id": anniversary_id, "expected_revision": anniversary_read["structuredContent"]["revision"]}})
+        assert not anniversary_deleted["isError"] and anniversary_deleted["structuredContent"]["persisted"], anniversary_deleted
+        anniversary_restored = call("tools/call", {"name": "organizer_trash_restore", "arguments": {"id": anniversary_deleted["structuredContent"]["trash_id"]}})
+        assert not anniversary_restored["isError"] and anniversary_restored["structuredContent"]["persisted"], anniversary_restored
         contact_read = call("tools/call", {"name": "organizer_contact_read", "arguments": {"id": contact_id, "fields": ["id", "vorname", "geburtstag"]}})
         assert contact_read["structuredContent"]["contact"]["geburtstag"] == "--02-29"
         assert "email" not in contact_read["structuredContent"]["contact"]
