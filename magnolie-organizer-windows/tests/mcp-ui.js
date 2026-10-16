@@ -134,7 +134,7 @@ let declaredContracts;
         id: noteId, title: "Retry", text: "Must not duplicate" } }));
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
-      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile, onCloudStatus;
+      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile, onCloudStatus, onCloudPassword;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
@@ -151,6 +151,7 @@ let declaredContracts;
         if (message.cmd === "feiertage" && message.requestId && onHoliday) onHoliday(message);
         if (message.cmd === "notiz_anhang_datei" && message.requestId && onAttachmentFile) onAttachmentFile(message);
         if (message.cmd === "cloud_sicherung_status" && message.requestId && onCloudStatus) onCloudStatus(message);
+        if (message.cmd === "cloud_sicherung_kennwort" && message.requestId && onCloudPassword) onCloudPassword(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -1083,6 +1084,24 @@ let declaredContracts;
         await persisted(637, "organizer_backup_settings_update", { expected_revision: reset.revision, folder: "" });
         assert.equal(b.t.daten().einstellungen.allgemein.cloudSicherung.aktiv, false);
         onCloudStatus = null;
+      }
+      {
+        const before = JSON.stringify(b.t.daten()), revision = (await call(request(650, "tools/call", { name: "organizer_book_revision_read" }))).result.structuredContent.revision;
+        const stale = await call(request(651, "tools/call", { name: "organizer_backup_password_store", arguments: { expected_book_revision: "0".repeat(64), password: "owned-protected-test-secret" } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        let native, completed = false;
+        const dispatched = new Promise(resolve => { onCloudPassword = message => { native = message; resolve(); }; });
+        const pending = call(request(652, "tools/call", { name: "organizer_backup_password_store", arguments: { expected_book_revision: revision, password: "owned-protected-test-secret" } })).then(value => { completed = true; return value; });
+        await dispatched; assert.equal(native.kennwort, "owned-protected-test-secret");
+        b.w.App.cloudSicherungStand({ requestId: "wrong-secret-request", status: "ready", kennwortVorhanden: true });
+        await new Promise(resolve => setImmediate(resolve)); assert.equal(completed, false);
+        b.w.App.cloudSicherungStand({ requestId: native.requestId, status: "ready", kennwortVorhanden: true });
+        const stored = await pending; assert.equal(stored.result.structuredContent.stored, true);
+        assert.ok(!JSON.stringify(stored).includes("owned-protected-test-secret")); assert.equal(JSON.stringify(b.t.daten()), before);
+        onCloudPassword = message => b.w.App.cloudSicherungStand({ requestId: message.requestId, status: "secret_unavailable", kennwortVorhanden: true, fehler: "owned-private-vault-error" });
+        const failed = await call(request(653, "tools/call", { name: "organizer_backup_password_store", arguments: { expected_book_revision: revision, password: "owned-protected-test-secret" } }));
+        assert.equal(failed.result.structuredContent.code, "secret_store_failed"); assert.ok(!JSON.stringify(failed).includes("owned-private-vault-error"));
+        onCloudPassword = null;
       }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));

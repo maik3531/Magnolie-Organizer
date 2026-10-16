@@ -20954,8 +20954,11 @@ class Fenster(_FENSTER_BASIS):
                 self._cloud_sicherung_status()
 
         elif befehl == "cloud_sicherung_kennwort":
-            self._cloud_sicherung_kennwort_speichern(
-                nachricht.get("kennwort") or "")
+            if nachricht.get("requestId"):
+                threading.Thread(target=self._cloud_sicherung_kennwort_speichern,
+                    args=(nachricht.get("kennwort") or "", nachricht["requestId"]), daemon=True).start()
+            else:
+                self._cloud_sicherung_kennwort_speichern(nachricht.get("kennwort") or "")
 
         elif befehl == "cloud_sicherung_test":
             threading.Thread(target=self._cloud_sicherung_test,
@@ -22201,12 +22204,12 @@ class Fenster(_FENSTER_BASIS):
         self.antwort("App.cloudSicherungStand", {
             "requestId": request_id, "kennwortVorhanden": vorhanden, "status": status})
 
-    def _cloud_sicherung_kennwort_speichern(self, kennwort):
+    def _cloud_sicherung_kennwort_speichern(self, kennwort, request_id=None):
         try:
             self._cloud_sicherung_secrets.store(kennwort)
-            self._cloud_sicherung_status("ready")
+            self._cloud_sicherung_status("ready", request_id)
         except Exception:
-            self._cloud_sicherung_status("secret_unavailable")
+            self._cloud_sicherung_status("secret_unavailable", request_id)
 
     def _cloud_sicherung_nach_speichern(self, daten, erzwingen=False):
         with self._cloud_sicherung_sperre:

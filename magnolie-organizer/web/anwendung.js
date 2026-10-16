@@ -34438,6 +34438,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         } }
     ];
   }
+  function mcpSicherungskennwortWerkzeuge() {
+    return [{ name: "organizer_backup_password_store", description: "Set or replace the automatic-backup archive password using the native protected secret store. Requires the current complete-book revision. Confirms only native storage success plus protected-password availability; never returns or persists the password in book data.",
+      inputSchema: { type: "object", properties: { expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, password: { type: "string", minLength: 4, maxLength: 4096 } }, required: ["expected_book_revision", "password"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => {
+        mcpEditorPruefen(); const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+        if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; read its revision again before changing the protected password");
+        mcpEditorPruefen();
+        const value = await mcpNativeAufruf("cloud_sicherung_kennwort", { kennwort: args.password }, "cloudSicherungStand", signal);
+        if (value.status !== "ready" || value.kennwortVorhanden !== true) throw new MagnolieMcp.ToolError("secret_store_failed", "Native protected-password storage could not be confirmed");
+        if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "The protected password may have changed; book data changed during the operation");
+        cloudSicherungStand = { kennwortVorhanden: true, status: "ready" };
+        return { stored: true, password_available: true };
+      } }];
+  }
   function wendeOrtAuswahlDatenAn(values) {
     const current = DATEN.einstellungen.ort, next = { ...current };
     if (values.land !== undefined) {
@@ -34816,6 +34829,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const written = { id, persisted: yes };
     if (name === "organizer_backup_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
     if (name === "organizer_backup_settings_update") return shape({ persisted: yes }, ["persisted"]);
+    if (name === "organizer_backup_password_store") return shape({ stored: yes, password_available: yes }, ["stored", "password_available"]);
     if (name === "organizer_attachment_save") return shape({ path: text, confirmed: yes, bytes: { type: "integer", minimum: 1, maximum: 8 * 1024 * 1024 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["path", "confirmed", "bytes", "sha256"]);
     if (name === "organizer_attachment_open") return shape({ launched: yes }, ["launched"]);
     if (name === "organizer_holidays_read") return shape({ settings: object, total: { type: "integer", minimum: 0 }, countries: { type: "array", items: object }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "total", "countries", "revision"]);
@@ -34944,6 +34958,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpAnhangOeffnenWerkzeuge(),
       ...mcpFeiertagWerkzeuge(),
       ...mcpSicherungsdateienWerkzeuge(),
+      ...mcpSicherungskennwortWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

@@ -130,7 +130,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "ablage_holen": await GetClipboardAsync(); break;
                     case "sicherung": await BackupAsync(message); break;
                     case "cloud_sicherung_status": await SendCloudBackupStatusAsync(requestId: Text(message, "requestId")); break;
-                    case "cloud_sicherung_kennwort": await StoreCloudBackupPasswordAsync(Text(message, "kennwort")); break;
+                    case "cloud_sicherung_kennwort": await StoreCloudBackupPasswordAsync(Text(message, "kennwort"), Text(message, "requestId")); break;
                     case "cloud_sicherung_test": await RunCloudBackupTestAsync(); break;
                     case "sicherung_waehlen": await SelectBackupAsync(); break;
                     case "sicherung_wiederherstellen": await RestoreBackupAsync(message); break;
@@ -1014,10 +1014,10 @@ internal sealed partial class BridgeDispatcher : IDisposable
             requestId, kennwortVorhanden = cloudBackups.PasswordAvailable, status
         });
 
-    private async Task StoreCloudBackupPasswordAsync(string password)
+    private async Task StoreCloudBackupPasswordAsync(string password, string? requestId = null)
     {
-        try { cloudBackups.StorePassword(password); await SendCloudBackupStatusAsync("ready"); }
-        catch { await SendCloudBackupStatusAsync("secret_unavailable"); }
+        try { cloudBackups.StorePassword(password); await SendCloudBackupStatusAsync("ready", requestId); }
+        catch { await SendCloudBackupStatusAsync("secret_unavailable", requestId); }
     }
 
     private async Task RunCloudBackupTestAsync()

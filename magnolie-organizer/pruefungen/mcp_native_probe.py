@@ -954,6 +954,47 @@ def client():
             "expected_revision": backup_settings_fresh["structuredContent"]["revision"], "enabled": True}})
         assert backup_not_ready["isError"] and backup_not_ready["structuredContent"]["code"] == "backup_not_ready", backup_not_ready
         assert json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))["einstellungen"]["allgemein"]["cloudSicherung"]["aktiv"] is False
+        # The private Secret Service is unavailable. Exercise native store/result
+        # correlation with an owned backend; this is not an OS-keyring success proof.
+        class OwnedVault:
+            value = None
+            fail = True
+            def store(self, _account, password):
+                if self.fail:
+                    raise RuntimeError("owned-private-vault-error")
+                self.value = password
+                return True
+            def lookup(self, _account):
+                return self.value
+        owned_vault = OwnedVault()
+        vault_original = window._cloud_sicherung_secrets
+        vault_swapped = threading.Event()
+        def configure_owned_vault():
+            window._cloud_sicherung_secrets = product.ArchiveSecretStore(backend=owned_vault)
+            vault_swapped.set()
+            return False
+        product.GLib.idle_add(configure_owned_vault)
+        assert vault_swapped.wait(5)
+        try:
+            vault_book = call("tools/call", {"name": "organizer_book_revision_read"})
+            vault_args = {"expected_book_revision": vault_book["structuredContent"]["revision"], "password": "owned-protected-test-secret"}
+            failed_vault = call("tools/call", {"name": "organizer_backup_password_store", "arguments": vault_args})
+            assert failed_vault["isError"] and failed_vault["structuredContent"]["code"] == "secret_store_failed", failed_vault
+            assert "owned-private-vault-error" not in json.dumps(failed_vault)
+            owned_vault.fail = False
+            saved_vault = call("tools/call", {"name": "organizer_backup_password_store", "arguments": vault_args})
+            assert not saved_vault["isError"] and saved_vault["structuredContent"]["stored"] and saved_vault["structuredContent"]["password_available"], saved_vault
+            assert owned_vault.value == vault_args["password"]
+            assert vault_args["password"] not in json.dumps(saved_vault)
+            assert vault_args["password"] not in product.entschluesseln(data_file.read_text(), "owned-classic-backup-password")
+        finally:
+            vault_restored = threading.Event()
+            def restore_vault_fixture():
+                window._cloud_sicherung_secrets = vault_original
+                vault_restored.set()
+                return False
+            product.GLib.idle_add(restore_vault_fixture)
+            assert vault_restored.wait(5)
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()
