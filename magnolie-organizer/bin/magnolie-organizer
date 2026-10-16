@@ -22353,6 +22353,8 @@ class Fenster(_FENSTER_BASIS):
                 "fehler": _("Another data operation is still running.")})
             return
         self._operation_laeuft = True
+        committed = False
+        warnung = ""
         try:
             with self._daten_sperre:
                 _stand, gelesen = journal_snapshot_lesen(snapshot_id, self._kennwort)
@@ -22368,15 +22370,38 @@ class Fenster(_FENSTER_BASIS):
                     gelesen["daten"], self._aktuelle_daten, bereiche, modus)
                 Fenster._zeit_abgleich_pausieren(self)
                 klar = json.dumps(daten, ensure_ascii=False, indent=1)
-                atomar_text_schreiben(daten_datei(), self._vielleicht_verschluesseln(klar))
+                gespeichert = self._vielleicht_verschluesseln(klar)
+                try:
+                    atomar_text_schreiben(daten_datei(), gespeichert)
+                except Exception as fehler:
+                    try:
+                        aktuell, _bindung = _erinnerungsprofil_lesen()
+                    except Exception:
+                        self._ladefehler = _("The file could not be read.")
+                        raise
+                    if aktuell != gespeichert:
+                        raise
+                    warnung = fehler_deutsch(fehler, _("Saving the data"))
+                committed = True
                 self._aktuelle_daten = daten
                 self._erinnerungsprojektion_aktualisieren()
             self.antwort("App.journalWiederhergestellt", {"ok": True,
+                "committed": True, "repairPending": bool(warnung), "fehler": warnung,
                 "daten": daten, "vorher": vorher["snapshotId"],
                 "syncEpoch": daten["syncMetadaten"]["syncEpoch"]})
+            if warnung:
+                self.antwort("App.syncFehler", _("Saved") + " · " + warnung)
         except Exception as fehler:
-            self.antwort("App.journalWiederhergestellt", {"ok": False,
-                "fehler": fehler_deutsch(fehler, _("Restoring a recovery snapshot"))})
+            fehlertext = fehler_deutsch(fehler, _("Restoring a recovery snapshot"))
+            if committed:
+                self.antwort("App.journalWiederhergestellt", {"ok": True,
+                    "committed": True, "repairPending": True, "fehler": fehlertext,
+                    "daten": daten, "vorher": vorher["snapshotId"],
+                    "syncEpoch": daten["syncMetadaten"]["syncEpoch"]})
+                self.antwort("App.syncFehler", _("Saved") + " · " + fehlertext)
+            else:
+                self.antwort("App.journalWiederhergestellt", {"ok": False,
+                    "committed": False, "fehler": fehlertext})
         finally:
             self._operation_laeuft = False
             self._journal_stand_melden()

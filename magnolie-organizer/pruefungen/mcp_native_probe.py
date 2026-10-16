@@ -606,6 +606,44 @@ def client():
             "snapshots": [{"id": recovery_id, "expected_revision": recovery_inspect["structuredContent"]["revision"]}]}})
         assert not recovery_deleted["isError"] and recovery_deleted["structuredContent"]["deleted_count"] == 1, recovery_deleted
         assert not recovery_path.exists()
+        if os.environ.get("MAGNOLIE_MCP_PROBE_RESTORE_REPAIR") == "1":
+            restore_point = call("tools/call", {"name": "organizer_recovery_snapshot_create"})
+            assert not restore_point["isError"], restore_point
+            restore_id = restore_point["structuredContent"]["snapshot"]["id"]
+            before_restore = call("tools/call", {"name": "organizer_note_read", "arguments": {"id": note_id, "fields": ["id"]}})
+            changed_for_restore = call("tools/call", {"name": "organizer_note_update", "arguments": {
+                "id": note_id, "expected_revision": before_restore["structuredContent"]["revision"], "text": "Owned later native state"}})
+            assert not changed_for_restore["isError"] and changed_for_restore["structuredContent"]["persisted"], changed_for_restore
+            restore_done = threading.Event()
+            restore_result = {}
+
+            def restore_with_projection_failure():
+                original_projection = window._erinnerungsprojektion_aktualisieren
+                original_reply = window.antwort
+                def failed_projection():
+                    raise OSError("Owned native restore projection failure")
+                def reply(callback, *values):
+                    if callback == "App.journalWiederhergestellt":
+                        value = values[0]
+                        restore_result.update({key: value.get(key) for key in ("ok", "committed", "repairPending")})
+                    return original_reply(callback, *values)
+                window._erinnerungsprojektion_aktualisieren = failed_projection
+                window.antwort = reply
+                try:
+                    window._journal_wiederherstellen(restore_id, ["notes"], "replace")
+                finally:
+                    window._erinnerungsprojektion_aktualisieren = original_projection
+                    window.antwort = original_reply
+                    restore_done.set()
+                return False
+
+            product.GLib.idle_add(restore_with_projection_failure)
+            assert restore_done.wait(15), "Native restore did not complete"
+            assert restore_result == {"ok": True, "committed": True, "repairPending": True}, restore_result
+            assert next(item for item in json.loads(data_file.read_text())["notizen"] if item["id"] == note_id)["text"] == large_text
+            restored_gui = call("tools/call", {"name": "organizer_content_read", "arguments": {"section": "notizen", "id": note_id, "path": ["text"], "limit": 5}})
+            assert not restored_gui["isError"] and restored_gui["structuredContent"]["total_bytes"] == len(large_text.encode("utf8")), "Native GUI did not adopt the committed restore"
+            assert base64.b64decode(restored_gui["structuredContent"]["data"]) == large_text.encode("utf8")[:5]
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()
