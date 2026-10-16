@@ -5,6 +5,7 @@ const file = path.join(__dirname, "desktop-state-regressions.js");
 const harness = new Module(file, module); harness.filename = file; harness.paths = Module._nodeModulePaths(__dirname);
 harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[0] + "\nmodule.exports={boot,roots};", file);
 const watchdog = setTimeout(() => { console.error("MCP UI test timed out"); process.exit(1); }, 15000);
+let declaredContracts;
 (async () => {
   for (const web of harness.exports.roots) {
     const b = await harness.exports.boot(web, {
@@ -43,8 +44,26 @@ const watchdog = setTimeout(() => { console.error("MCP UI test timed out"); proc
       const request = (id, method, params) => ({ jsonrpc: "2.0", id, method, ...(params === undefined ? {} : { params }) });
       assert.equal((await call(request(1, "initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "fixture", version: "1" } }))).result.serverInfo.name, "magnolie-organizer");
       assert.equal(await call({ jsonrpc: "2.0", method: "notifications/initialized" }), null);
-      const tools = (await call(request(2, "tools/list"))).result.tools.map(tool => tool.name);
+      const descriptors = (await call(request(2, "tools/list"))).result.tools;
+      for (const tool of descriptors) {
+        assert.equal(tool.inputSchema.type, "object", tool.name);
+        assert.equal(tool.outputSchema.type, "object", tool.name);
+        assert.ok(tool.outputSchema.required.length > 0, tool.name + ": untyped result envelope");
+      }
+      const contracts = JSON.parse(JSON.stringify(descriptors));
+      if (declaredContracts) assert.deepEqual(contracts, declaredContracts, "Both native products must expose the same MCP contracts");
+      else declaredContracts = contracts;
+      const tools = descriptors.map(tool => tool.name);
       assert.ok(tools.includes("organizer_data_read") && tools.includes("organizer_settings_read"));
+      const availability = (await call(request(110, "tools/call", { name: "organizer_status" }))).result.structuredContent;
+      assert.ok(availability.supportedSocialServices.includes("teams"));
+      if (!availability.supportedSocialServices.includes("teams-call")) {
+        const before = b.t.daten().kontakte.length;
+        const unsupported = await call(request(111, "tools/call", { name: "organizer_contact_create", arguments: {
+          first_name: "Unsupported fixture", social: [{ service: "teams-call", value: "owned-fixture" }] } }));
+        assert.equal(unsupported.result.structuredContent.code, "unsupported_feature");
+        assert.equal(b.t.daten().kontakte.length, before);
+      }
       const notes = await call(request(3, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen", limit: 1 } }));
       assert.equal(notes.result.isError, false);
       assert.equal(notes.result.structuredContent.entries[0].id, "fixture-note");

@@ -93,5 +93,16 @@ async function ready(session) {
   assert.equal(failure.result.structuredContent.code, "operation_failed");
   assert.ok(!JSON.stringify(failure).includes("PRIVATE"));
   failed.close();
+  const malformedResult = createSession({ serverInfo: { name: "fixture", version: "1" }, tools: [{
+    name: "wrong_result", inputSchema: { type: "object" },
+    outputSchema: { type: "object", properties: { value: { type: "integer" } }, required: ["value"], additionalProperties: false },
+    call: async () => ({ value: "PRIVATE invalid provider result" })
+  }] });
+  await ready(malformedResult);
+  const invalidResult = await malformedResult.dispatch(request(14, "tools/call", { name: "wrong_result" }));
+  assert.equal(invalidResult.result.isError, true);
+  assert.equal(invalidResult.result.structuredContent.code, "invalid_result");
+  assert.ok(!JSON.stringify(invalidResult).includes("PRIVATE"));
+  malformedResult.close();
   console.log("MCP protocol PASS: lifecycle, typed validation, authorization, durable reply, cancellation, pagination, timeout");
 })().catch(error => { console.error(error); process.exitCode = 1; });

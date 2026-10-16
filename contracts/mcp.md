@@ -34,6 +34,14 @@ with `isError: false`. Product failures return `isError: true` and a structured
 `code` and `message`. Invalid requests, unknown tools and invalid arguments use
 JSON-RPC errors. A locked or not-yet-open book rejects data access; status remains
 readable. Authorization is checked again before returning an operation's result.
+Every tool declares an `outputSchema` for its success envelope in `tools/list`.
+Results are validated against that contract before return; a malformed provider
+result becomes `invalid_result` without returning its rejected values. Entity
+documents retain their product-model and provider-specific fields inside the
+typed read envelope. Both desktop products expose the same tool contracts.
+Conditional native social actions are listed in status `supportedSocialServices`;
+an unavailable action returns `unsupported_feature` instead of being silently
+dropped from a contact. Existing platform-specific product actions are retained.
 
 A successful product write includes `persisted: true` only after the existing
 native durable-save acknowledgement. A cancelled or timed-out call may already

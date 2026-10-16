@@ -32922,7 +32922,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           const item = DATEN.papierkorb.find(item => item.id === id);
           if (!item) throw new MagnolieMcp.ToolError("not_found", "Trash item not found");
           if (!ausDemPapierkorb(item)) throw new MagnolieMcp.ToolError("conflict", "Trash item cannot be restored over the current data");
-          return { restored_id: item.eintrag.id, type: item.art };
+          return { restored_id: typeof item.eintrag?.id === "string" ? item.eintrag.id : null, type: item.art };
         }) }
     ];
   }
@@ -33236,6 +33236,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     });
   }
   function mcpKontaktWerte(args, base = {}) {
+    const supportedSocial = new Set(SOZIALE_DIENSTE.map(item => item[0]));
+    if (args.social?.some(item => !supportedSocial.has(item.service)))
+      throw new MagnolieMcp.ToolError("unsupported_feature", "This social action is not supported by the current native product");
     const values = { vorname: S(base.vorname), nachname: S(base.nachname), firma: S(base.firma), notiz: S(base.notiz),
       foto: sauberesFoto(base.foto), fotoManuell: base.fotoManuell === true, kontaktpersonName: "", kontaktpersonTelefon: "", kontaktpersonStatus: "",
       geaendert: Date.now() };
@@ -33287,7 +33290,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       addresses: { type: "array", maxItems: 1000, items: { type: "object", properties: { po_box: text(1000), extra: text(1000), street: text(1000),
         postal_code: text(100), city: text(500), region: text(500), country: text(500), label: text(80), types }, additionalProperties: false } },
       emergency_contacts: { type: "array", maxItems: 100, items: { type: "object", properties: { contact_id: id, name: text(1000), phone: text(1000), relationship: text(80) }, additionalProperties: false } },
-      social: { type: "array", maxItems: 100, items: { type: "object", properties: { service: { type: "string", enum: SOZIALE_DIENSTE.map(item => item[0]) },
+      social: { type: "array", maxItems: 100, items: { type: "object", properties: { service: { type: "string", enum: [...new Set([...SOZIALE_DIENSTE.map(item => item[0]), "teams-call"])].sort() },
         value: { ...text(500), minLength: 1 }, symbol: { type: "string", enum: SOZIALE_EIGENE_SYMBOLE.map(item => item[0]) },
         action_type: { type: "string", enum: ["website"] }, action_target: text(500) }, required: ["service", "value"], additionalProperties: false } },
       groups: { type: "array", items: text(200), maxItems: 1000 }, birth_date: { type: "string", pattern: "^$|^(?:\\d{4}-|--)\\d{2}-\\d{2}$" },
@@ -33404,8 +33407,41 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   const mcpBereiche = ["termine", "aufgaben", "kontakte", "notizen", "customOrganizer", "zeiterfassung",
     "notizgruppen", "notizbuecher", "jahrestage", "feiertage", "urlaube", "muelltermine", "papierkorb",
     "personen", "schichten", "smsVerlauf", "smsPlanung", "zyklusmarker", "tagmarken", "gesundheit", "eigenesProfil"];
+  function mcpErgebnisSchema(name) {
+    const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
+    const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
+    const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (name.startsWith("kde_")) return shape({ ok: yes, requestId: id }, ["ok", "requestId"], true);
+    if (name === "organizer_status") return shape({ version: text, ready: flag, locked: flag, editorDirty: flag, dialogOpen: flag, pendingSave: flag,
+      supportedSocialServices: { type: "array", items: text } }, ["version", "ready", "locked", "editorDirty", "dialogOpen", "pendingSave", "supportedSocialServices"]);
+    if (name === "organizer_settings_read") return shape({ settings: object }, ["settings"]);
+    if (name === "notes_diagnostics_read") return shape({ device_id: id, diagnostics: shape({ format: { type: "integer", enum: [1] },
+      app_version: text, events: { type: "array", maxItems: 128, items: object } }, ["format", "app_version", "events"], true) }, ["device_id", "diagnostics"]);
+    if (name === "organizer_data_read") return { ...shape({ section: { type: "string", enum: mcpBereiche }, entry: object,
+      value: { type: ["object", "array", "string", "number", "boolean", "null"] }, entries: { type: "array" },
+      total: { type: "integer", minimum: 0 }, offset: { type: "integer", minimum: 0 }, nextOffset: { type: "integer", minimum: 0 } }, ["section"]),
+      anyOf: [{ required: ["entry"] }, { required: ["value"] }, { required: ["entries", "total", "offset"] }] };
+    const reader = { organizer_note_read: "note", organizer_task_read: "task", organizer_appointment_read: "appointment", organizer_contact_read: "contact" }[name];
+    if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
+    if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
+    const written = { id, persisted: yes };
+    if (["organizer_task_create", "organizer_appointment_create", "organizer_contact_create"].includes(name))
+      return shape({ ...written, uid: id }, ["id", "uid", "persisted"]);
+    if (name === "organizer_note_create") return shape({ ...written, notebook_id: id }, ["id", "notebook_id", "persisted"]);
+    if (["organizer_note_update", "organizer_task_update", "organizer_appointment_update", "organizer_contact_update"].includes(name))
+      return shape(written, ["id", "persisted"]);
+    if (name === "organizer_task_set_completed") return shape({ ...written, completed_id: id, completed: flag, recurring: flag, changed: flag },
+      ["id", "persisted", "completed_id", "completed", "recurring", "changed"]);
+    if (["organizer_note_delete", "organizer_task_delete", "organizer_appointment_delete", "organizer_contact_delete"].includes(name)) {
+      const fields = { ...written, trash_id: { type: ["string", "null"] } }, required = ["id", "persisted", "trash_id"];
+      if (name === "organizer_task_delete") { fields.promoted_children = { type: "array", items: id }; required.push("promoted_children"); }
+      if (name === "organizer_contact_delete") { fields.recovery_snapshot_confirmed = yes; required.push("recovery_snapshot_confirmed"); }
+      return shape(fields, required);
+    }
+    throw new Error("Missing MCP output schema: " + name);
+  }
   function mcpWerkzeuge() {
-    return [
+    const tools = [
       ...mcpKdeWerkzeuge(),
       ...mcpNotizWerkzeuge(),
       ...mcpAufgabenWerkzeuge(),
@@ -33436,6 +33472,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         inputSchema: { type: "object", properties: {}, additionalProperties: false },
         annotations: { readOnlyHint: true, openWorldHint: false },
         call: async () => ({ version: FASSUNG, ready: initialisiert && antwortErhalten, locked: gesperrt,
+          supportedSocialServices: SOZIALE_DIENSTE.map(item => item[0]),
           editorDirty: !gesperrt && editorIstGeaendert(), dialogOpen: !gesperrt && modalStapel.some(entry => entry.schleier.isConnected),
           pendingSave: !!(speicherTimer || laufenderSpeicher || wartenderSpeicherText !== null) }) },
       { name: "organizer_data_read", description: "Read a section of the live Organizer data. Array results are paginated; IDs remain the product IDs.",
@@ -33458,6 +33495,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         inputSchema: { type: "object", properties: {}, additionalProperties: false },
         annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => ({ settings: kopie(DATEN.einstellungen) }) }
     ];
+    return tools.map(tool => ({ ...tool, outputSchema: mcpErgebnisSchema(tool.name) }));
   }
   App.mcpClose = session => { mcpSitzungen.get(session)?.close(); mcpSitzungen.delete(session); };
   App.mcpRequest = async payload => {

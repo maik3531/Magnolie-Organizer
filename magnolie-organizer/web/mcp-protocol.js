@@ -133,7 +133,10 @@
           await authorize(tool.name, args, controller.signal);
           if (controller.signal.aborted) throw new ToolError("cancelled", "Operation cancelled; check current state before retrying");
           if (!object(result)) throw new ToolError("invalid_result", "Tool did not return a structured result");
-          if (tool.outputSchema) validate(result, tool.outputSchema);
+          if (tool.outputSchema) {
+            try { validate(result, tool.outputSchema); }
+            catch { throw new ToolError("invalid_result", "The product result does not match its declared schema"); }
+          }
           return { jsonrpc: "2.0", id, result: { content: [{ type: "text", text: JSON.stringify(result) }], structuredContent: result, isError: false } };
         } catch (error) {
           if (!(error instanceof ToolError)) error = new ToolError("operation_failed", "Operation failed");
