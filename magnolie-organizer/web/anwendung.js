@@ -19627,6 +19627,46 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return buch;
   }
 
+  function legeNotizgruppeDatenAn(name, id = uid()) {
+    const gruppe = { id, name: String(name || "").trim() };
+    if (!gruppe.name) return null;
+    DATEN.notizgruppen.push(gruppe);
+    const buch = legeNotizbuchAn(gruppe.id, _("General"));
+    const notiz = neueNotizDaten("", buch.id);
+    DATEN.notizen.push(notiz);
+    return { gruppe, buch, notiz };
+  }
+
+  function loescheNotizbuchDaten(buch) {
+    if (!DATEN.notizbuecher.includes(buch) || DATEN.notizbuecher.length <= 1) return null;
+    const ziel = DATEN.notizbuecher.find(item => item.id !== buch.id && item.gruppeId === buch.gruppeId) ||
+      DATEN.notizbuecher.find(item => item.id !== buch.id);
+    if (!ziel) return null;
+    const seiten = DATEN.notizen.filter(notiz => notiz.notizbuchId === buch.id);
+    const trash = inDenPapierkorb("notebook", buch, buch.name, "", Object.fromEntries(seiten.map(notiz => [notiz.id, buch.id])));
+    for (const notiz of seiten) notiz.notizbuchId = ziel.id;
+    DATEN.notizbuecher = DATEN.notizbuecher.filter(item => item.id !== buch.id);
+    Object.assign(zustand.notizen, { gruppeId: ziel.gruppeId, notizbuchId: ziel.id, auswahlId: seiten[0]?.id || null });
+    return { id: buch.id, target_notebook_id: ziel.id, moved_notes: seiten.map(notiz => notiz.id), trash_id: trash?.id || null };
+  }
+
+  function loescheNotizgruppeDaten(gruppe) {
+    if (!DATEN.notizgruppen.includes(gruppe) || DATEN.notizgruppen.length <= 1) return null;
+    const buchIds = new Set(DATEN.notizbuecher.filter(buch => buch.gruppeId === gruppe.id).map(buch => buch.id));
+    const ziel = DATEN.notizbuecher.find(buch => !buchIds.has(buch.id));
+    if (!ziel) return null;
+    const seiten = DATEN.notizen.filter(notiz => buchIds.has(notiz.notizbuchId)), trashIds = [];
+    for (const buch of DATEN.notizbuecher.filter(item => buchIds.has(item.id))) {
+      const trash = inDenPapierkorb("notebook", buch, buch.name, "", Object.fromEntries(seiten.filter(notiz => notiz.notizbuchId === buch.id).map(notiz => [notiz.id, buch.id])));
+      if (trash) trashIds.push(trash.id);
+    }
+    for (const notiz of seiten) notiz.notizbuchId = ziel.id;
+    DATEN.notizbuecher = DATEN.notizbuecher.filter(buch => !buchIds.has(buch.id));
+    DATEN.notizgruppen = DATEN.notizgruppen.filter(item => item.id !== gruppe.id);
+    Object.assign(zustand.notizen, { gruppeId: ziel.gruppeId, notizbuchId: ziel.id, auswahlId: seiten[0]?.id || null });
+    return { id: gruppe.id, target_notebook_id: ziel.id, moved_notes: seiten.map(notiz => notiz.id), trash_ids: trashIds };
+  }
+
   function fuegeZeichenblattInNotiz(notiz) {
     if (zeichenblattAuswahlSchliessen) return;
     const bestand = DATEN;
@@ -19813,16 +19853,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         "The %(count)s note pages it contains will be moved to “%(notebook)s”.",
         seiten.length, { notebook: ziel.name }) : ""), _("Delete group")).then((ja) => {
       if (!ja) return;
-      for (const buch of DATEN.notizbuecher.filter((b) => buchIds.has(b.id))) {
-        inDenPapierkorb("notebook", buch, buch.name, "", Object.fromEntries(
-          seiten.filter((n) => n.notizbuchId === buch.id).map((n) => [n.id, buch.id])));
-      }
-      for (const notiz of seiten) notiz.notizbuchId = ziel.id;
-      DATEN.notizbuecher = DATEN.notizbuecher.filter((b) => !buchIds.has(b.id));
-      DATEN.notizgruppen = DATEN.notizgruppen.filter((g) => g.id !== gruppe.id);
-      zustand.notizen.gruppeId = ziel.gruppeId;
-      zustand.notizen.notizbuchId = ziel.id;
-      zustand.notizen.auswahlId = seiten[0] ? seiten[0].id : null;
+      if (!loescheNotizgruppeDaten(gruppe)) { zettel(_("Conflict")); return; }
       planeSpeichern();
       zeichneAlles();
     });
@@ -19862,13 +19893,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         "The %(count)s note pages it contains will be moved to “%(notebook)s”.",
         seiten.length, { notebook: ziel.name }) : ""), _("Delete notebook")).then((ja) => {
       if (!ja) return;
-      inDenPapierkorb("notebook", buch, buch.name, "",
-        Object.fromEntries(seiten.map((n) => [n.id, buch.id])));
-      for (const notiz of seiten) notiz.notizbuchId = ziel.id;
-      DATEN.notizbuecher = DATEN.notizbuecher.filter((b) => b.id !== buch.id);
-      zustand.notizen.gruppeId = ziel.gruppeId;
-      zustand.notizen.notizbuchId = ziel.id;
-      zustand.notizen.auswahlId = seiten[0] ? seiten[0].id : null;
+      if (!loescheNotizbuchDaten(buch)) { zettel(_("Conflict")); return; }
       planeSpeichern();
       zeichneAlles();
     });
@@ -20268,15 +20293,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }
       }).then((name) => {
         if (name === null) return;
-        const gruppe = { id: uid(), name: name.trim() };
-        DATEN.notizgruppen.push(gruppe);
-        const buch = legeNotizbuchAn(gruppe.id, _("General"));
-        const jetzt = Date.now();
-        const notiz = { id: uid(), titel: "", text: "", html: "", anhaenge: [],
-          notizbuchId: buch.id, symbol: "notiz", geaendert: isoHeute(), angelegt: jetzt,
-          personalGeaendert: jetzt, baumFreigabe: null, baumGeaendert: 0,
-          baumVersion: 0, baumQuelle: "" };
-        DATEN.notizen.push(notiz);
+        const { gruppe, buch, notiz } = legeNotizgruppeDatenAn(name);
         z.gruppeId = gruppe.id;
         z.notizbuchId = buch.id;
         z.auswahlId = notiz.id;
@@ -33358,6 +33375,74 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       else if (!Bruecke.sende({ cmd, ...args, requestId })) finish(null, new MagnolieMcp.ToolError("native_unavailable", "Native product interface unavailable"));
     });
   }
+  function mcpNotizStrukturWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 }, name = { type: "string", minLength: 1, maxLength: 1000, pattern: "\\S" };
+    const revision = { type: "string", pattern: "^[a-f0-9]{64}$" }, tools = [];
+    for (const [kind, section, prefix] of [["group", "notizgruppen", "organizer_notebook_group"], ["notebook", "notizbuecher", "organizer_notebook"]]) {
+      const lookup = value => DATEN[section].find(item => item.id === value);
+      const unique = (value, groupId, except = "") => !DATEN[section].some(item => item.id !== except &&
+        (kind === "group" || item.gruppeId === groupId) && kanonischerText(item.name) === kanonischerText(value));
+      tools.push({ name: prefix + "_read", description: "Read a " + kind + " and its revision token.",
+        inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ id }) => {
+          const current = lookup(id);
+          if (!current) throw new MagnolieMcp.ToolError("not_found", "Notebook structure entry not found");
+          const entry = kopie(current);
+          return { [kind]: entry, revision: await personalSyncHash(JSON.stringify(entry)) };
+        } });
+      tools.push({ name: prefix + "_create", description: kind === "group" ? "Create a group with its default notebook and blank page through the product handler." : "Create a notebook in an existing group through the product handler.",
+        inputSchema: { type: "object", properties: { name, id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+          ...(kind === "notebook" ? { group_id: id } : {}) }, required: kind === "notebook" ? ["name", "group_id"] : ["name"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, () => {
+          if (args.id && lookup(args.id)) throw new MagnolieMcp.ToolError("already_exists", "Notebook structure ID already exists");
+          if (kind === "notebook" && !DATEN.notizgruppen.some(item => item.id === args.group_id)) throw new MagnolieMcp.ToolError("not_found", "Notebook group not found");
+          if (!unique(args.name, args.group_id)) throw new MagnolieMcp.ToolError("name_conflict", "Notebook structure name already exists");
+          if (kind === "group") {
+            const created = legeNotizgruppeDatenAn(args.name, args.id || uid());
+            return { id: created.gruppe.id, notebook_id: created.buch.id, note_id: created.notiz.id };
+          }
+          const book = legeNotizbuchAn(args.group_id, args.name);
+          if (args.id) book.id = args.id;
+          return { id: book.id, group_id: book.gruppeId };
+        }) });
+      const properties = { id, expected_revision: revision, name, position: { type: "integer", minimum: 0, maximum: 1000000 },
+        ...(kind === "notebook" ? { group_id: id } : {}) };
+      tools.push({ name: prefix + "_update", description: "Revision-checked rename/reorder of a " + kind + (kind === "notebook" ? " or move to another group. Position is relative to the target group." : ". Position is relative to all groups."),
+        inputSchema: { type: "object", properties, required: ["id", "expected_revision"], additionalProperties: false,
+          anyOf: ["name", "position", ...(kind === "notebook" ? ["group_id"] : [])].map(field => ({ required: [field] })) },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const entry = await mcpPruefeEintrag(section, args.id, args.expected_revision, signal);
+          const groupId = kind === "notebook" ? args.group_id || entry.gruppeId : undefined;
+          if (kind === "notebook" && !DATEN.notizgruppen.some(item => item.id === groupId)) throw new MagnolieMcp.ToolError("not_found", "Notebook group not found");
+          if (!unique(args.name === undefined ? entry.name : args.name, groupId, entry.id)) throw new MagnolieMcp.ToolError("name_conflict", "Notebook structure name already exists");
+          const subset = DATEN[section].filter(item => kind === "group" || item.gruppeId === groupId);
+          const count = subset.length + (subset.includes(entry) ? 0 : 1);
+          if (args.position !== undefined && args.position >= count) throw new MagnolieMcp.ToolError("invalid_position", "Notebook structure position exceeds its list");
+          if (args.name !== undefined) entry.name = args.name.trim();
+          if (kind === "notebook" && entry.gruppeId !== groupId) {
+            DATEN.notizbuecher = DATEN.notizbuecher.filter(item => item !== entry);
+            entry.gruppeId = groupId; DATEN.notizbuecher.push(entry);
+            if (zustand.notizen.notizbuchId === entry.id) zustand.notizen.gruppeId = groupId;
+          }
+          if (args.position !== undefined) {
+            const ordered = DATEN[section].filter(item => kind === "group" || item.gruppeId === groupId);
+            ordered.splice(ordered.indexOf(entry), 1); ordered.splice(args.position, 0, entry);
+            let index = 0;
+            DATEN[section] = DATEN[section].map(item => kind === "group" || item.gruppeId === groupId ? ordered[index++] : item);
+          }
+          return { id: entry.id, ...(kind === "notebook" ? { group_id: entry.gruppeId } : {}) };
+        }) });
+      tools.push({ name: prefix + "_delete", description: "Revision-checked " + kind + " deletion through product trash and page-migration handlers. Pages are moved to a surviving notebook, never deleted by this operation.",
+        inputSchema: { type: "object", properties: { id, expected_revision: revision }, required: ["id", "expected_revision"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const entry = await mcpPruefeEintrag(section, args.id, args.expected_revision, signal);
+          const result = kind === "group" ? loescheNotizgruppeDaten(entry) : loescheNotizbuchDaten(entry);
+          if (!result) throw new MagnolieMcp.ToolError("structure_required", "The last structure entry or a group without a surviving destination notebook cannot be deleted");
+          return result;
+        }) });
+    }
+    return tools;
+  }
   function mcpNativeAntwort(value, callback = "telefonEntwicklerDiagnose") {
     const pending = mcpNativeAnfragen.get(value?.requestId);
     if (pending?.callback === callback) pending.receive(value);
@@ -33493,10 +33578,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       value: { type: ["object", "array", "string", "number", "boolean", "null"] }, entries: { type: "array" },
       total: { type: "integer", minimum: 0 }, offset: { type: "integer", minimum: 0 }, nextOffset: { type: "integer", minimum: 0 } }, ["section"]),
       anyOf: [{ required: ["entry"] }, { required: ["value"] }, { required: ["entries", "total", "offset"] }] };
-    const reader = { organizer_note_read: "note", organizer_task_read: "task", organizer_appointment_read: "appointment", organizer_contact_read: "contact" }[name];
+    const reader = { organizer_note_read: "note", organizer_task_read: "task", organizer_appointment_read: "appointment", organizer_contact_read: "contact",
+      organizer_notebook_group_read: "group", organizer_notebook_read: "notebook" }[name];
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_notebook_group_create") return shape({ ...written, notebook_id: id, note_id: id }, ["id", "persisted", "notebook_id", "note_id"]);
+    if (["organizer_notebook_create", "organizer_notebook_update"].includes(name)) return shape({ ...written, group_id: id }, ["id", "persisted", "group_id"]);
+    if (name === "organizer_notebook_group_update") return shape(written, ["id", "persisted"]);
+    if (["organizer_notebook_delete", "organizer_notebook_group_delete"].includes(name)) return shape({ ...written, target_notebook_id: id,
+      moved_notes: { type: "array", items: id }, ...(name === "organizer_notebook_delete" ? { trash_id: { type: ["string", "null"] } } : { trash_ids: { type: "array", items: id } }) },
+      ["id", "persisted", "target_notebook_id", "moved_notes", name === "organizer_notebook_delete" ? "trash_id" : "trash_ids"]);
     if (["organizer_task_create", "organizer_appointment_create", "organizer_contact_create"].includes(name))
       return shape({ ...written, uid: id }, ["id", "uid", "persisted"]);
     if (name === "organizer_note_create") return shape({ ...written, notebook_id: id }, ["id", "notebook_id", "persisted"]);
@@ -33524,6 +33616,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpAufgabenWerkzeuge(),
       ...mcpTerminWerkzeuge(),
       ...mcpKontaktWerkzeuge(),
+      ...mcpNotizStrukturWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

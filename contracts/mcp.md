@@ -69,6 +69,8 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_note_create` | Plain-text note in an existing notebook; native save acknowledgement |
 | `organizer_note_update` | Revision-checked title, plain text or notebook change; attachments retained |
 | `organizer_note_delete` | Revision-checked product deletion and configured trash/sync policy |
+| `organizer_notebook_group_read/create/update/delete` | Group revision, create with default notebook/page, rename/reorder and delete with page migration |
+| `organizer_notebook_read/create/update/delete` | Notebook revision, create, rename/reorder/move between groups, delete with page migration and trash assignment restoration |
 | `organizer_task_read` | Task and revision token |
 | `organizer_task_create` | Local task, person assignments, reminder fields and parent hierarchy |
 | `organizer_task_update` | Revision-checked editor fields, retaining recurrence/provider metadata |

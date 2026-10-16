@@ -242,6 +242,37 @@ def client():
             "id": contact_deleted["structuredContent"]["trash_id"]}})
         assert not contact_restored["isError"] and contact_restored["structuredContent"]["persisted"], contact_restored
         assert any(item["id"] == contact_id for item in json.loads(data_file.read_text())["kontakte"])
+        group_created = call("tools/call", {"name": "organizer_notebook_group_create", "arguments": {"name": "Owned native notebook group"}})
+        assert not group_created["isError"] and group_created["structuredContent"]["persisted"], group_created
+        group_info = group_created["structuredContent"]
+        group_read = call("tools/call", {"name": "organizer_notebook_group_read", "arguments": {"id": group_info["id"]}})
+        group_updated = call("tools/call", {"name": "organizer_notebook_group_update", "arguments": {
+            "id": group_info["id"], "expected_revision": group_read["structuredContent"]["revision"], "name": "Revised owned native group", "position": 0}})
+        assert not group_updated["isError"] and group_updated["structuredContent"]["persisted"], group_updated
+        book_created = call("tools/call", {"name": "organizer_notebook_create", "arguments": {"group_id": group_info["id"], "name": "Owned native notebook"}})
+        assert not book_created["isError"] and book_created["structuredContent"]["persisted"], book_created
+        book_id = book_created["structuredContent"]["id"]
+        structure_note = call("tools/call", {"name": "organizer_note_create", "arguments": {
+            "title": "Owned native structure page", "text": "Preserve this page", "notebook_id": book_id}})
+        assert not structure_note["isError"] and structure_note["structuredContent"]["persisted"], structure_note
+        structure_note_id = structure_note["structuredContent"]["id"]
+        book_read = call("tools/call", {"name": "organizer_notebook_read", "arguments": {"id": book_id}})
+        book_updated = call("tools/call", {"name": "organizer_notebook_update", "arguments": {
+            "id": book_id, "expected_revision": book_read["structuredContent"]["revision"], "name": "Revised owned native notebook", "position": 0}})
+        assert not book_updated["isError"] and book_updated["structuredContent"]["persisted"], book_updated
+        book_read = call("tools/call", {"name": "organizer_notebook_read", "arguments": {"id": book_id}})
+        book_deleted = call("tools/call", {"name": "organizer_notebook_delete", "arguments": {
+            "id": book_id, "expected_revision": book_read["structuredContent"]["revision"]}})
+        assert not book_deleted["isError"] and book_deleted["structuredContent"]["persisted"], book_deleted
+        assert next(item for item in json.loads(data_file.read_text())["notizen"] if item["id"] == structure_note_id)["notizbuchId"] == group_info["notebook_id"]
+        book_restored = call("tools/call", {"name": "organizer_trash_restore", "arguments": {"id": book_deleted["structuredContent"]["trash_id"]}})
+        assert not book_restored["isError"] and book_restored["structuredContent"]["persisted"], book_restored
+        assert next(item for item in json.loads(data_file.read_text())["notizen"] if item["id"] == structure_note_id)["notizbuchId"] == book_id
+        group_read = call("tools/call", {"name": "organizer_notebook_group_read", "arguments": {"id": group_info["id"]}})
+        group_deleted = call("tools/call", {"name": "organizer_notebook_group_delete", "arguments": {
+            "id": group_info["id"], "expected_revision": group_read["structuredContent"]["revision"]}})
+        assert not group_deleted["isError"] and group_deleted["structuredContent"]["persisted"], group_deleted
+        assert next(item for item in json.loads(data_file.read_text())["notizen"] if item["id"] == structure_note_id)["text"] == "Preserve this page"
         # A normal full-note result would exceed the 1 MiB record bound; read
         # its metadata and UTF-8 bytes through the bounded product operations.
         large_text = "🌸é\n" * 100000
