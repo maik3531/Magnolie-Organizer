@@ -103,6 +103,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_book_revision_read` | Opaque revision of the current complete in-memory book, required to authorize a restore. |
 | `organizer_recovery_snapshot_restore` | Explicit areas (`all`, `contacts`, `calendar`, `notes`) and mode (`additive`, `replace`) with snapshot-file and current-book preconditions. Uses the actual native restore transaction/checkpoint/fences; the frontend adopts committed data before the small MCP acknowledgement. Returns commit/repair state and a fresh book revision. Synchronization is explicit after an API restore. |
 | `organizer_recovery_creation_policy_read/update` | Revision-checked point-creation/grouping settings (`change`, `daily`, `weekly`, `startup`, `interval`, 1–1440 minutes) using the UI data helper and native save acknowledgement. Retention and backup configuration are separate. |
+| `organizer_recovery_runtime_policy_read/update` | Actual native periodic scheduling/retention settings, revision-checked against a fresh native read. Update runs the product setters and retention engine, verifies their correlated settings response, and persists matching book preferences. |
 | `organizer_appointment_read` | Appointment, provider/read-only metadata and revision token |
 | `organizer_appointment_create` | Local/timed/all-day appointment, repeat configuration, alarms, participants and attachment metadata |
 | `organizer_appointment_update` | Revision-checked editor fields and provider moves through the existing ICS mirror |
@@ -185,7 +186,7 @@ Definition names must be nonblank so entries survive the normal product reload.
 
 The remaining work includes other settings changes, native attachment open/save,
 imports/exports and planners,
-native retention/scheduling and backup operations, synchronization/accounts, Magnolienbaum operations,
+backup operations, synchronization/accounts, Magnolienbaum operations,
 the remaining phone/KDE actions, and complete
 installed-product acceptance.
 The listed tools execute their current product operations; remaining functions

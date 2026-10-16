@@ -612,6 +612,14 @@ def client():
         assert not creation_updated["isError"] and creation_updated["structuredContent"]["persisted"], creation_updated
         creation_saved = json.loads(data_file.read_text())["einstellungen"]["allgemein"]
         assert creation_saved["wiederherstellungsmodus"] == "interval" and creation_saved["wiederherstellungsminuten"] == 73
+        runtime_policy = call("tools/call", {"name": "organizer_recovery_runtime_policy_read"})
+        runtime_updated = call("tools/call", {"name": "organizer_recovery_runtime_policy_update", "arguments": {
+            "expected_revision": runtime_policy["structuredContent"]["revision"], "interval": "off", "retention_mode": "days", "maximum": 50, "days": 3650}})
+        assert not runtime_updated["isError"] and runtime_updated["structuredContent"]["native_applied"] and runtime_updated["structuredContent"]["persisted"], runtime_updated
+        runtime_saved = json.loads(data_file.read_text())["einstellungen"]["allgemein"]
+        assert runtime_saved["wiederherstellungsintervall"] == "off" and runtime_saved["wiederherstellungsanzahl"] == 50
+        runtime_readback = call("tools/call", {"name": "organizer_recovery_runtime_policy_read"})
+        assert runtime_readback["structuredContent"]["policy"]["interval"] == "off" and runtime_readback["structuredContent"]["policy"]["maximum"] == 50
         if os.environ.get("MAGNOLIE_MCP_PROBE_RESTORE_REPAIR") == "1":
             restore_point = call("tools/call", {"name": "organizer_recovery_snapshot_create"})
             assert not restore_point["isError"], restore_point

@@ -22,6 +22,7 @@ internal static class McpTransportTests
         }
         using (var inspection = BridgeDispatcherContract.Parse("{\"cmd\":\"journal_vorschau\",\"verify\":false}")) { }
         TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse("{\"cmd\":\"journal_vorschau\",\"verify\":42}"), "Recovery inspection accepted an invalid verification mode.");
+        using (var policy = BridgeDispatcherContract.Parse("{\"cmd\":\"journal_einstellungen_setzen\",\"intervall\":\"off\",\"modus\":\"days\",\"maximum\":50,\"tage\":3650,\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
         var profile = Path.Combine(Path.GetTempPath(), "magnolie-mcp-fixture-" + Guid.NewGuid().ToString("N"));
         var incoming = Channel.CreateUnbounded<JsonObject>();
         var closed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);

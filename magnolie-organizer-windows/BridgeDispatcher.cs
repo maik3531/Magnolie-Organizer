@@ -141,6 +141,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "journal_intervall": recovery.SetInterval(Text(message, "intervall")); await SendRecoveryStatusAsync(); break;
                     case "journal_anzahl": recovery.SetMaximum(Integer(message, "maximum")); await SendRecoveryStatusAsync(); break;
                     case "journal_aufbewahrung": recovery.SetRetention(Text(message, "modus"), Integer(message, "maximum"), Integer(message, "tage")); await SendRecoveryStatusAsync(); break;
+                    case "journal_einstellungen_setzen": await ApplyRecoverySettingsAsync(message); break;
                     case "journal_loeschen": await DeleteSnapshotsAsync(message); break;
                     case "journal_wiederherstellen": await RestoreSnapshotAsync(message); break;
                     case "mutations_snapshot": await CreateMutationSnapshotAsync(message); break;
@@ -1361,6 +1362,18 @@ internal sealed partial class BridgeDispatcher : IDisposable
         try { var snapshot = CreateSnapshot(SnapshotReason.Manual); await form.SendAsync("App.journalErgebnis", new { ok = true, requestId, snapshot = NativeSnapshot(snapshot), deleted = false, fehler = "" }); await SendRecoveryStatusAsync(); }
         catch (Exception error) { await form.SendAsync("App.journalErgebnis", new { ok = false, requestId, deleted = false, fehler = error.Message }); }
         finally { MutationGate.Global.Release(); }
+    }
+
+    private async Task ApplyRecoverySettingsAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId");
+        try
+        {
+            recovery.SetInterval(Text(message, "intervall"));
+            recovery.SetRetention(Text(message, "modus"), Integer(message, "maximum"), Integer(message, "tage"));
+            await SendRecoveryStatusAsync(requestId);
+        }
+        catch (Exception error) { await form.SendAsync("App.journalStand", new { ok = false, requestId, fehler = error.Message }); }
     }
 
     private async Task CreateMutationSnapshotAsync(JsonElement message)

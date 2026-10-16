@@ -34087,6 +34087,37 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }) }
     ];
   }
+  function mcpJournalRuntimeWerkzeuge() {
+    const fields = { interval: { type: "string", enum: ["off", "6h", "12h", "daily", "weekly"] }, retention_mode: { type: "string", enum: ["count", "days"] },
+      maximum: { type: "integer", minimum: 1, maximum: 100 }, days: { type: "integer", minimum: 1, maximum: 3650 } };
+    const project = value => ({ interval: value.interval ?? value.intervall, retention_mode: value.mode, maximum: value.maximum, days: value.days });
+    const read = async signal => {
+      const value = await mcpNativeAufruf("journal_liste", {}, "journalStand", signal);
+      if (value.ok !== true) throw new MagnolieMcp.ToolError("native_operation_failed", "Native recovery scheduling status is unavailable");
+      const policy = project(value); MagnolieMcp.validate(policy, { type: "object", properties: fields, required: Object.keys(fields), additionalProperties: false }); return policy;
+    };
+    return [
+      { name: "organizer_recovery_runtime_policy_read", description: "Read the actual native periodic scheduling and retention settings, with a revision token.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (_args, signal) => {
+          const policy = await read(signal); return { policy, revision: await personalSyncHash(JSON.stringify(policy)) };
+        } },
+      { name: "organizer_recovery_runtime_policy_update", description: "Revision-checked native periodic scheduling/retention update using the product setters and retention engine. Confirms the actual native settings, then waits for matching book-settings persistence. Retention can remove old recovery points.",
+        inputSchema: { type: "object", properties: { ...fields, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, required: ["expected_revision"], anyOf: Object.keys(fields).map(field => ({ required: [field] })), additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const book = DATEN, current = await read(signal), revision = await personalSyncHash(JSON.stringify(current));
+          if (signal.aborted || gesperrt || DATEN !== book || revision !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Native recovery settings changed; read them again before writing");
+          mcpEditorPruefen(); const policy = { ...current };
+          for (const key of Object.keys(fields)) if (args[key] !== undefined) policy[key] = args[key];
+          const result = await mcpNativeAufruf("journal_einstellungen_setzen", { intervall: policy.interval, modus: policy.retention_mode, maximum: policy.maximum, tage: policy.days }, "journalStand", signal);
+          if (result.ok !== true) throw new MagnolieMcp.ToolError("native_operation_failed", "Native recovery settings could not be applied");
+          if (signal.aborted || gesperrt || DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Book changed while native recovery settings were applied");
+          if (JSON.stringify(project(result)) !== JSON.stringify(policy)) throw new MagnolieMcp.ToolError("invalid_result", "Native recovery settings confirmation differs from the requested policy");
+          mcpEditorPruefen(); Object.assign(DATEN.einstellungen.allgemein, { wiederherstellungsintervall: policy.interval, wiederherstellungsaufbewahrung: policy.retention_mode,
+            wiederherstellungsanzahl: policy.maximum, wiederherstellungstage: policy.days });
+          return { native_applied: true };
+        }) }
+    ];
+  }
   function wendeUrlaubDatenAn(entry, values) {
     const value = entry || { id: values.id || uid(), von: isoHeute(), bis: isoHeute(), symbol: "palm", darstellung: "symbol-text" };
     if (gueltigesISO(values.von)) value.von = values.von;
@@ -34287,6 +34318,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_recovery_runtime_policy_read") return shape({ policy: shape({ interval: { type: "string", enum: ["off", "6h", "12h", "daily", "weekly"] }, retention_mode: { type: "string", enum: ["count", "days"] }, maximum: { type: "integer", minimum: 1, maximum: 100 }, days: { type: "integer", minimum: 1, maximum: 3650 } }, ["interval", "retention_mode", "maximum", "days"]), revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["policy", "revision"]);
+    if (name === "organizer_recovery_runtime_policy_update") return shape({ native_applied: yes, persisted: yes }, ["native_applied", "persisted"]);
     if (name === "organizer_recovery_creation_policy_read") return shape({ policy: shape({ creation_mode: { type: "string", enum: ["change", "daily", "weekly", "startup", "interval"] }, interval_minutes: { type: "integer", minimum: 1, maximum: 1440 } }, ["creation_mode", "interval_minutes"]), revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["policy", "revision"]);
     if (name === "organizer_recovery_creation_policy_update") return shape({ persisted: yes }, ["persisted"]);
     if (name === "organizer_book_revision_read") return shape({ revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["revision"]);
@@ -34385,6 +34418,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpZeichenUploadWerkzeuge(owner),
       ...mcpRecoveryWerkzeuge(),
       ...mcpJournalErzeugungWerkzeuge(),
+      ...mcpJournalRuntimeWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

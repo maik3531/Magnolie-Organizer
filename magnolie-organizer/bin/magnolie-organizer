@@ -21043,6 +21043,26 @@ class Fenster(_FENSTER_BASIS):
                     allgemein["wiederherstellungsintervall"] = intervall
             self._journal_stand_melden()
 
+        elif befehl == "journal_einstellungen_setzen":
+            try:
+                intervall = nachricht.get("intervall")
+                modus = nachricht.get("modus")
+                if intervall not in JOURNAL_INTERVALLE or modus not in ("count", "days"):
+                    raise ValueError(_("The save request is invalid."))
+                maximum = _journal_anzahl(nachricht.get("maximum"))
+                tage = _journal_tage(nachricht.get("tage"))
+                with self._daten_sperre:
+                    allgemein = self._aktuelle_daten.setdefault("einstellungen", {}).setdefault("allgemein", {})
+                    allgemein.update(wiederherstellungsintervall=intervall,
+                        wiederherstellungsaufbewahrung=modus, wiederherstellungsanzahl=maximum,
+                        wiederherstellungstage=tage)
+                    journal_retention(maximum=maximum if modus == "count" else None,
+                                      tage=tage if modus == "days" else None)
+                self._journal_stand_melden(nachricht.get("requestId"))
+            except Exception as fehler:
+                self.antwort("App.journalStand", {"ok": False, "requestId": nachricht.get("requestId"),
+                    "fehler": fehler_deutsch(fehler, _("Reading recovery snapshots"))})
+
         elif befehl == "journal_anzahl":
             maximum = _journal_anzahl(nachricht.get("maximum"))
             with self._daten_sperre:

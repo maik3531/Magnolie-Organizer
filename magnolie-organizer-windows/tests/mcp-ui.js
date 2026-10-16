@@ -557,6 +557,18 @@ let declaredContracts;
       const creationReload = await harness.exports.boot(web, JSON.parse(JSON.stringify(b.t.daten())));
       try { assert.equal(creationReload.t.daten().einstellungen.allgemein.wiederherstellungsminuten, 73); }
       finally { creationReload.close(); }
+      const runtimePolicy = { interval: "weekly", mode: "days", maximum: 20, days: 3650 };
+      onRecovery = message => {
+        if (message.cmd === "journal_einstellungen_setzen") Object.assign(runtimePolicy, { interval: message.intervall, mode: message.modus, maximum: message.maximum, days: message.tage });
+        b.w.App.journalStand({ ...runtimePolicy, ok: true, requestId: message.requestId, snapshots: [] });
+      };
+      const runtimeRead = (await call(request(430, "tools/call", { name: "organizer_recovery_runtime_policy_read" }))).result.structuredContent;
+      const runtimeUpdated = await persisted(431, "organizer_recovery_runtime_policy_update", { expected_revision: runtimeRead.revision, interval: "off", maximum: 50 });
+      assert.equal(runtimeUpdated.native_applied, true);
+      assert.equal(b.t.daten().einstellungen.allgemein.wiederherstellungsintervall, "off");
+      const runtimeStale = await call(request(432, "tools/call", { name: "organizer_recovery_runtime_policy_update", arguments: { expected_revision: runtimeRead.revision, days: 20 } }));
+      assert.equal(runtimeStale.result.structuredContent.code, "conflict");
+      onRecovery = null;
       assert.equal(invalidGlucose.result.structuredContent.code, "invalid_value");
       const invalidVital = await call(request(267, "tools/call", { name: "organizer_vital_create", arguments: { date: "2028-02-29", pulse: 20 } }));
       assert.equal(invalidVital.error.code, -32602);
