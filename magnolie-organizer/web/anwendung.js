@@ -27702,8 +27702,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const auswahl = el("div", "marken-vorlagen");
       const muellVorlage = (art, name, farbe) => {
         const button = knopf(name, "klein", () => {
-          DATEN.muelltermine.push({ id: uid(), name: name, von: isoHeute(),
-            intervallTage: 14, farbe: farbe, art: art });
+          wendeMuellDatenAn(null, { name, von: isoHeute(), intervallTage: 14, farbe, art });
           planeSpeichern();
           zeichneMuelltermine();
           zeichneAlles();
@@ -27716,8 +27715,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       muellVorlage("packaging", _("Packaging / Yellow bin"), "#d5ad18");
       muellVorlage("organic", _("Organic waste"), "#756443");
       const eigeneArt = knopf(_("Custom"), "klein", () => {
-        DATEN.muelltermine.push({ id: uid(), name: "", von: isoHeute(),
-          intervallTage: 0, farbe: "#54744a", art: "custom" });
+        wendeMuellDatenAn(null, {});
         zeichneMuelltermine();
       });
       eigeneArt.prepend(sinnbild("muelltonne", 14));
@@ -27737,21 +27735,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const farbe = eingabe("color", termin.farbe);
         farbe.title = _("Color");
         const weg = knopf("−", "klein rot", () => {
-          DATEN.muelltermine.splice(index, 1);
+          entferneMuellDaten(termin);
           planeSpeichern();
           zeichneMuelltermine();
           zeichneAlles();
         });
         weg.title = _("Delete waste collection");
         const speichern = () => {
-          termin.name = name.value.trim().slice(0, 80);
           const datum = datumswert(von);
-          if (gueltigesISO(datum)) termin.von = datum;
-          termin.intervallTage = Math.max(0, Math.min(365,
-            Math.floor(Number(intervall.value) || 0)));
+          wendeMuellDatenAn(termin, { name: name.value, von: datum,
+            intervallTage: intervall.value, farbe: farbe.value });
           intervall.value = String(termin.intervallTage);
-          termin.farbe = /^#[0-9a-f]{6}$/i.test(farbe.value)
-            ? farbe.value.toLowerCase() : "#4c4b47";
           planeSpeichern();
           zeichneAlles();
         };
@@ -27767,8 +27761,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         liste.append(zeile);
       });
       const plus = knopf("+ " + _("Add waste collection"), "klein", () => {
-        DATEN.muelltermine.push({ id: uid(), name: "", von: isoHeute(),
-          intervallTage: 0, farbe: "#54744a", art: "custom" });
+        wendeMuellDatenAn(null, {});
         zeichneMuelltermine();
       });
       muellGruppe.inhalt.append(el("p", "einst-hinweis",
@@ -33634,7 +33627,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const time = { type: "string", pattern: "^(?:[01][0-9]|2[0-3]):[0-5][0-9]$|^$" };
     return [["shift", "schichten", ["early", "late", "night", "custom"]],
       ["cycle_marker", "zyklusmarker", ["bleeding-light", "bleeding-medium", "bleeding-heavy", "ovulation", "follicular", "fertile", "custom"]]].flatMap(([kind, section, types]) => {
-      const fields = { name: { type: "string", maxLength: 80 }, color: { type: "string", pattern: "^#[0-9a-fA-F]{6}$" }, type: { type: "string", enum: types },
+      const fields = { name: { type: "string", minLength: 1, maxLength: 80, pattern: "\\S" }, color: { type: "string", pattern: "^#[0-9a-fA-F]{6}$" }, type: { type: "string", enum: types },
         ...(kind === "shift" ? { from: time, through: time } : { symbol: { type: "string", maxLength: 12 } }) };
       const values = args => ({ ...(args.name === undefined ? {} : { name: args.name }), ...(args.color === undefined ? {} : { farbe: args.color }),
         ...(args.type === undefined ? {} : { art: args.type }), ...(args.from === undefined ? {} : { von: args.from }),
@@ -33652,6 +33645,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           inputSchema: { type: "object", properties: { ...fields, id: uuid }, required: ["name"], additionalProperties: false },
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, () => {
             if (args.id && DATEN[section].some(item => item.id === args.id)) throw new MagnolieMcp.ToolError("already_exists", "Calendar definition ID already exists");
+            if (DATEN[section].length >= (kind === "shift" ? 64 : 32)) throw new MagnolieMcp.ToolError("limit_reached", "Calendar definition limit reached");
             const entry = wendeKalenderDefinitionAn(section, null, { ...values(args), ...(args.id ? { id: args.id } : {}) }); return { id: entry.id };
           }) },
         { name: prefix + "update", description: "Revision-checked edits of a " + kind + " definition through the product handler.",
@@ -33693,7 +33687,61 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           const cycles = args.cycle_marker_ids === undefined ? current.zyklusIds : args.cycle_marker_ids;
           if (shift && !DATEN.schichten.some(entry => entry.id === shift)) throw new MagnolieMcp.ToolError("not_found", "Shift definition not found");
           if (cycles.some(id => !DATEN.zyklusmarker.some(entry => entry.id === id))) throw new MagnolieMcp.ToolError("not_found", "Cycle-marker definition not found");
+          if (!JSON.parse(before).marker && (shift || cycles.length) && DATEN.tagmarken.length >= 20000)
+            throw new MagnolieMcp.ToolError("limit_reached", "Day marker limit reached");
           aendereTagmarke(args.date, shift, cycles); return { date: args.date };
+        }) }
+    ];
+  }
+  function wendeMuellDatenAn(entry, values) {
+    const value = entry || { id: values.id || uid(), name: "", von: isoHeute(), intervallTage: 0, farbe: "#54744a", art: "custom" };
+    if (values.name !== undefined) value.name = values.name.trim().slice(0, 80);
+    if (values.art !== undefined) value.art = values.art;
+    if (gueltigesISO(values.von)) value.von = values.von;
+    if (values.intervallTage !== undefined) value.intervallTage = Math.max(0, Math.min(365, Math.floor(Number(values.intervallTage) || 0)));
+    if (values.farbe !== undefined) value.farbe = /^#[0-9a-f]{6}$/i.test(values.farbe) ? values.farbe.toLowerCase() : "#4c4b47";
+    if (!entry) DATEN.muelltermine.push(value);
+    return value;
+  }
+  function entferneMuellDaten(entry) {
+    const index = DATEN.muelltermine.indexOf(entry); if (index < 0) return false;
+    DATEN.muelltermine.splice(index, 1); return true;
+  }
+  function mcpMuellWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const fields = { name: { type: "string", minLength: 1, maxLength: 80, pattern: "\\S" }, first_date: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
+      interval_days: { type: "integer", minimum: 0, maximum: 365 }, color: { type: "string", pattern: "^#[0-9a-fA-F]{6}$" }, type: { type: "string", enum: ["residual", "packaging", "organic", "custom"] } };
+    const values = args => {
+      if (args.first_date !== undefined && !gueltigesISO(args.first_date)) throw new MagnolieMcp.ToolError("invalid_date", "First waste collection date is invalid");
+      return { name: args.name, von: args.first_date, intervallTage: args.interval_days, farbe: args.color, art: args.type };
+    };
+    return [
+      { name: "organizer_waste_read", description: "Read a waste-collection definition and its full-entity revision. Optional fields allow reading metadata without a large imported schedule.",
+        inputSchema: { type: "object", properties: { id, fields: { type: "array", minItems: 1, maxItems: 128, items: { type: "string", minLength: 1, maxLength: 256 } } }, required: ["id"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ id, fields }) => {
+          const entry = DATEN.muelltermine.find(item => item.id === id); if (!entry) throw new MagnolieMcp.ToolError("not_found", "Waste collection not found");
+          const waste = kopie(entry); return { waste: mcpLeseProjektion(waste, fields), revision: await personalSyncHash(JSON.stringify(waste)) };
+        } },
+      { name: "organizer_waste_create", description: "Create a local waste collection through the product handler. Zero interval means one collection; visibility is configured separately.",
+        inputSchema: { type: "object", properties: { ...fields, id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" } }, required: ["name", "first_date"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, () => {
+          if (args.id && DATEN.muelltermine.some(entry => entry.id === args.id)) throw new MagnolieMcp.ToolError("already_exists", "Waste collection ID already exists");
+          if (DATEN.muelltermine.length >= 64) throw new MagnolieMcp.ToolError("limit_reached", "Waste collection limit reached");
+          const entry = wendeMuellDatenAn(null, { ...values(args), ...(args.id ? { id: args.id } : {}) }); return { id: entry.id };
+        }) },
+      { name: "organizer_waste_update", description: "Revision-checked waste-collection edits. Imported schedules retain their dates and reject first_date/interval_days changes, matching the product UI.",
+        inputSchema: { type: "object", properties: { ...fields, id, expected_revision: revision }, required: ["id", "expected_revision"], anyOf: Object.keys(fields).map(field => ({ required: [field] })), additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const entry = await mcpPruefeEintrag("muelltermine", args.id, args.expected_revision, signal);
+          if (Array.isArray(entry.importierteTermine) && (args.first_date !== undefined || args.interval_days !== undefined))
+            throw new MagnolieMcp.ToolError("read_only_schedule", "Imported collection dates are maintained through the product import workflow");
+          wendeMuellDatenAn(entry, values(args)); return { id: entry.id };
+        }) },
+      { name: "organizer_waste_delete", description: "Revision-checked permanent removal of a waste collection and its imported schedule through the product handler.",
+        inputSchema: { type: "object", properties: { id, expected_revision: revision }, required: ["id", "expected_revision"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const entry = await mcpPruefeEintrag("muelltermine", args.id, args.expected_revision, signal);
+          if (!entferneMuellDaten(entry)) throw new MagnolieMcp.ToolError("conflict", "Waste collection changed before removal"); return { id: entry.id };
         }) }
     ];
   }
@@ -33734,6 +33782,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         inputSchema: { type: "object", properties: { ...fields, id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" } }, required: ["from", "through"], additionalProperties: false },
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, () => {
           if (args.id && DATEN.urlaube.some(entry => entry.id === args.id)) throw new MagnolieMcp.ToolError("already_exists", "Vacation period ID already exists");
+          if (DATEN.urlaube.length >= 256) throw new MagnolieMcp.ToolError("limit_reached", "Vacation period limit reached");
           const entry = wendeUrlaubDatenAn(null, { ...values(args), ...(args.id ? { id: args.id } : {}) }); return { id: entry.id };
         }) },
       { name: "organizer_vacation_update", description: "Revision-checked vacation dates, symbol and display through the product handler.",
@@ -33896,6 +33945,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_waste_read") return shape({ waste: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["waste", "revision"]);
+    if (["organizer_waste_create", "organizer_waste_update", "organizer_waste_delete"].includes(name)) return shape(written, ["id", "persisted"]);
     if (name === "organizer_day_marker_read") return shape({ date: text, marker: { type: ["object", "null"] }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["date", "marker", "revision"]);
     if (name === "organizer_day_marker_set") return shape({ date: text, persisted: yes }, ["date", "persisted"]);
     if (/^organizer_(shift|cycle_marker)_(create|update)$/.test(name)) return shape(written, ["id", "persisted"]);
@@ -33951,6 +34002,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpUrlaubWerkzeuge(),
       ...mcpKalenderDefinitionWerkzeuge(),
       ...mcpTagesmarkenWerkzeuge(),
+      ...mcpMuellWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

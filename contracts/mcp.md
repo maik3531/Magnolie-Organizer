@@ -84,6 +84,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_shift_read/create/update/delete` | Shift definitions, including overnight times and semantic type; permanent deletion clears shift assignments and removes otherwise-empty day markers, returning `affected_dates`. Writes are revision-checked and durably acknowledged. |
 | `organizer_cycle_marker_read/create/update/delete` | Cycle-marker definitions with semantic type, symbol and color; permanent deletion removes only that definition from assigned day markers and preserves other assignments, returning `affected_dates`. Visibility is configured separately. |
 | `organizer_day_marker_read/set` | Raw date-addressed shift/cycle assignments, including a date-bound revision for an unassigned day. Set validates referenced definitions and preserves omitted assignment fields. Empty shift and cycle assignments remove the marker through the existing product handler. Writes await native persistence. |
+| `organizer_waste_read/create/update/delete` | Local waste collections with first date, interval (0 = one-time), type and color. Imported schedules retain date metadata and reject direct date/interval edits. Reads can project fields while revisions cover the entire definition; writes use shared UI helpers and await native persistence. |
 | `organizer_appointment_read` | Appointment, provider/read-only metadata and revision token |
 | `organizer_appointment_create` | Local/timed/all-day appointment, repeat configuration, alarms, participants and attachment metadata |
 | `organizer_appointment_update` | Revision-checked editor fields and provider moves through the existing ICS mirror |
@@ -157,9 +158,14 @@ note's revision and current book/lock/editor state are rechecked before mutation
 does not add anything to book data. Restoring a removed attachment uses the same
 `organizer_trash_restore` handler as the graphical product.
 
+Calendar mutations respect the current book loader's collection limits: 256
+vacation periods, 64 shift definitions, 32 cycle definitions, 64 waste definitions
+and 20,000 day markers. Creates beyond those bounds return `limit_reached`.
+Definition names must be nonblank so entries survive the normal product reload.
+
 ## Remaining coverage in #170
 
-The remaining work includes mutation handlers for waste collections, health,
+The remaining work includes mutation handlers for health,
 time tracking and custom organizers, settings changes, native attachment open/save,
 imports/exports and planners,
 recovery/backup operations, synchronization/accounts, Magnolienbaum operations,

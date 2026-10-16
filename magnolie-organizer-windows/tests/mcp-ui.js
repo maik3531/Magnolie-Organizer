@@ -22,6 +22,9 @@ let declaredContracts;
         { id: "readonly-appointment", uid: "owned-readonly-uid", datum: "2026-11-30", titel: "Read-only fixture", icsReadOnly: true },
         { id: "zero-appointment", uid: "owned-zero-uid", datum: "2026-11-21", zeit: "08:00", endZeit: "", titel: "Zero duration fixture",
           icsEndeFehlt: true, icsNullDauer: true, icsRoundtrip: ["BEGIN:VEVENT", "UID:owned-zero-uid", "DTSTART:20261121T080000Z", "END:VEVENT"] }],
+      muelltermine: [{ id: "owned-imported-waste", name: "Owned import", von: "2028-04-01", intervallTage: 0, farbe: "#aabbcc", art: "custom",
+        importQuelle: "waste:ics:" + "a".repeat(64), importName: "Owned import.ics", importTyp: "Owned fixture",
+        importierteTermine: [{ id: "owned-waste-date", uid: "owned-waste-uid", datum: "2028-04-01", titel: "Owned waste date" }] }],
       aufgaben: [{ id: "imported-task", uid: "imported-fixture-uid", titel: "Imported fixture",
         faellig: "2026-11-01", startDatum: "2026-11-01", startZeit: "08:00", faelligZeit: "09:00",
         icsElternUid: "unresolved-owned-parent", icsElternQuelleId: "owned-source", icsQuelleId: "owned-source",
@@ -220,6 +223,9 @@ let declaredContracts;
       assert.equal(b.t.daten().einstellungen.kalender.urlaubsplanerAn, vacationVisibility);
       const vacationRead = (await call(request(212, "tools/call", { name: "organizer_vacation_read", arguments: { id: vacationId } }))).result.structuredContent;
       assert.equal(vacationRead.vacation.von, "2028-02-29");
+      const vacationReload = await harness.exports.boot(web, JSON.parse(JSON.stringify(b.t.daten())));
+      try { assert.equal(vacationReload.t.daten().urlaube.find(entry => entry.id === vacationId).symbol, "snowman"); }
+      finally { vacationReload.close(); }
       await persisted(213, "organizer_vacation_update", { id: vacationId, expected_revision: vacationRead.revision, display: "symbol", through: "2028-03-03" });
       const staleVacation = await call(request(214, "tools/call", { name: "organizer_vacation_delete", arguments: { id: vacationId, expected_revision: vacationRead.revision } }));
       assert.equal(staleVacation.result.structuredContent.code, "conflict");
@@ -233,6 +239,11 @@ let declaredContracts;
       assert.equal(invalidShift.error.code, -32602);
       await persisted(221, "organizer_shift_create", { id: shiftId, name: "Owned night shift", type: "night", from: "22:00", through: "06:00", color: "#AABBCC" });
       await persisted(222, "organizer_cycle_marker_create", { id: cycleId, name: "Owned cycle fixture", type: "custom", symbol: "🌱" });
+      const definitionReload = await harness.exports.boot(web, JSON.parse(JSON.stringify(b.t.daten())));
+      try {
+        assert.equal(definitionReload.t.daten().schichten.find(entry => entry.id === shiftId).bis, "06:00");
+        assert.equal(definitionReload.t.daten().zyklusmarker.find(entry => entry.id === cycleId).symbol, "🌱");
+      } finally { definitionReload.close(); }
       const readDay = async date => (await call(request(230, "tools/call", { name: "organizer_day_marker_read", arguments: { date } }))).result.structuredContent;
       const emptyDay = await readDay("2028-04-01");
       assert.equal(emptyDay.marker, null);
@@ -268,6 +279,38 @@ let declaredContracts;
         }
       }
       assert.ok(!b.t.daten().tagmarken.some(mark => mark.datum === "2028-04-01"));
+      const wasteId = "17171717-1717-4717-8717-171717171717";
+      await persisted(240, "organizer_waste_create", { id: wasteId, name: "Owned collection", first_date: "2028-02-29", interval_days: 14, color: "#AABBCC", type: "packaging" });
+      const wasteRead = (await call(request(241, "tools/call", { name: "organizer_waste_read", arguments: { id: wasteId } }))).result.structuredContent;
+      assert.equal(wasteRead.waste.farbe, "#aabbcc");
+      const wasteReload = await harness.exports.boot(web, JSON.parse(JSON.stringify(b.t.daten())));
+      try { assert.equal(wasteReload.t.daten().muelltermine.find(entry => entry.id === wasteId).intervallTage, 14); }
+      finally { wasteReload.close(); }
+      await persisted(242, "organizer_waste_update", { id: wasteId, expected_revision: wasteRead.revision, interval_days: 0 });
+      const wasteUpdated = (await call(request(243, "tools/call", { name: "organizer_waste_read", arguments: { id: wasteId } }))).result.structuredContent;
+      assert.equal(wasteUpdated.waste.intervallTage, 0);
+      const wasteStale = await call(request(244, "tools/call", { name: "organizer_waste_delete", arguments: { id: wasteId, expected_revision: wasteRead.revision } }));
+      assert.equal(wasteStale.result.structuredContent.code, "conflict");
+      await persisted(245, "organizer_waste_delete", { id: wasteId, expected_revision: wasteUpdated.revision });
+      const importedBefore = JSON.stringify(b.t.daten().muelltermine.find(entry => entry.id === "owned-imported-waste").importierteTermine);
+      const importedWaste = (await call(request(246, "tools/call", { name: "organizer_waste_read", arguments: { id: "owned-imported-waste", fields: ["id", "name"] } }))).result.structuredContent;
+      assert.equal(importedWaste.waste.importierteTermine, undefined);
+      const importedSchedule = await call(request(247, "tools/call", { name: "organizer_waste_update", arguments: { id: "owned-imported-waste", expected_revision: importedWaste.revision, interval_days: 7 } }));
+      assert.equal(importedSchedule.result.structuredContent.code, "read_only_schedule");
+      await persisted(248, "organizer_waste_update", { id: "owned-imported-waste", expected_revision: importedWaste.revision, name: "Renamed owned import" });
+      assert.equal(JSON.stringify(b.t.daten().muelltermine.find(entry => entry.id === "owned-imported-waste").importierteTermine), importedBefore);
+      for (const [kind, section, maximum, fields] of [["shift", "schichten", 64, {}], ["cycle_marker", "zyklusmarker", 32, {}],
+        ["waste", "muelltermine", 64, { first_date: "2028-04-01" }], ["vacation", "urlaube", 256, { from: "2028-04-01", through: "2028-04-02" }]]) {
+        const saved = b.t.daten()[section];
+        b.t.daten()[section] = Array.from({ length: maximum }, (_, i) => ({ id: "owned-limit-" + i }));
+        const bounded = await call(request(249, "tools/call", { name: `organizer_${kind}_create`, arguments: { ...(kind === "vacation" ? {} : { name: "Owned limit" }), ...fields } }));
+        assert.equal(bounded.result.structuredContent.code, "limit_reached");
+        b.t.daten()[section] = saved;
+      }
+      for (const kind of ["shift", "cycle_marker", "waste"]) {
+        const empty = await call(request(250, "tools/call", { name: `organizer_${kind}_create`, arguments: { name: "   ", ...(kind === "waste" ? { first_date: "2028-04-01" } : {}) } }));
+        assert.equal(empty.error.code, -32602);
+      }
       const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXb8AAAAASUVORK5CYII=", "base64");
       const attachmentNote = (await call(request(160, "tools/call", { name: "organizer_note_read", arguments: { id: noteId, fields: ["id", "titel"] } }))).result.structuredContent;
       const beginArgs = { note_id: noteId, expected_revision: attachmentNote.revision, name: "owned-fixture.png", kind: "image", size: png.length,

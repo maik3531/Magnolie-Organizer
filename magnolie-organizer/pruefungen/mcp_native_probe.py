@@ -287,6 +287,21 @@ def client():
             "id": vacation_id, "expected_revision": vacation_read["structuredContent"]["revision"]}})
         assert not vacation_deleted["isError"] and vacation_deleted["structuredContent"]["persisted"], vacation_deleted
         assert not any(item["id"] == vacation_id for item in json.loads(data_file.read_text())["urlaube"])
+        waste = call("tools/call", {"name": "organizer_waste_create", "arguments": {
+            "name": "Owned native collection", "first_date": "2028-02-29", "interval_days": 14}})
+        assert not waste["isError"] and waste["structuredContent"]["persisted"], waste
+        waste_id = waste["structuredContent"]["id"]
+        waste_read = call("tools/call", {"name": "organizer_waste_read", "arguments": {"id": waste_id}})
+        waste_updated = call("tools/call", {"name": "organizer_waste_update", "arguments": {
+            "id": waste_id, "expected_revision": waste_read["structuredContent"]["revision"], "interval_days": 0, "color": "#aabbcc"}})
+        assert not waste_updated["isError"] and waste_updated["structuredContent"]["persisted"], waste_updated
+        waste_value = next(item for item in json.loads(data_file.read_text())["muelltermine"] if item["id"] == waste_id)
+        assert waste_value["intervallTage"] == 0 and waste_value["farbe"] == "#aabbcc", waste_value
+        waste_read = call("tools/call", {"name": "organizer_waste_read", "arguments": {"id": waste_id}})
+        waste_deleted = call("tools/call", {"name": "organizer_waste_delete", "arguments": {
+            "id": waste_id, "expected_revision": waste_read["structuredContent"]["revision"]}})
+        assert not waste_deleted["isError"] and waste_deleted["structuredContent"]["persisted"], waste_deleted
+        assert not any(item["id"] == waste_id for item in json.loads(data_file.read_text())["muelltermine"])
         for date in ("2028-04-01", "2028-04-02"):
             day = call("tools/call", {"name": "organizer_day_marker_read", "arguments": {"date": date}})
             assert day["structuredContent"]["marker"] is None, day
