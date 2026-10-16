@@ -90,7 +90,9 @@ internal sealed partial class BridgeDispatcher
         return result;
     }
 
-    private async Task ContactSourcesAsync()
+    private Task ContactSourcesAsync() => ContactSourcesAsync("");
+
+    private async Task ContactSourcesAsync(string requestId)
     {
         var clientId = GraphConfig.ClientId; var signedIn = false;
         try { signedIn = GraphTokens.Exists; } catch (Exception) { }
@@ -137,6 +139,7 @@ internal sealed partial class BridgeDispatcher
             .Select(source => (object)new { uid = source.Uid, name = source.Name, art = "thunderbird", eingerichtet = true }));
         await form.SendAsync("App.edsStatus", new
         {
+            requestId,
             verfuegbar = true, buchOk = nextcloudError.Length == 0, windows = true,
             kalender = dav.Calendars.Concat(thunderbirdSources.Where(source => source.Kind == "calendar"))
                 .Select(source => new { uid = source.Uid, name = source.Name, art = ThunderbirdBridge.IsSource(source.Uid) ? "thunderbird" : accountType == "generic-dav" ? "generic-caldav" : "nextcloud-caldav", supportsVtodo = source.SupportsVTodo, eingerichtet = true }).ToArray(),

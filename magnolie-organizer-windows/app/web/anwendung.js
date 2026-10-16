@@ -30955,6 +30955,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "telefon_stand" });
     },
     edsStatus(nutzlast) {
+      mcpNativeAntwort(nutzlast, "edsStatus");
       edsAngefragt = false;
       letzterEdsStatus = nutzlast || { verfuegbar: false };
       fuelleEdsAuswahl(letzterEdsStatus);
@@ -33093,9 +33094,26 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }) }
     ];
   }
-  function mcpNativeAntwort(value) {
+  function mcpNativeAufruf(cmd, args, callback, signal) {
+    const requestId = crypto.randomUUID();
+    return new Promise((resolve, reject) => {
+      let timer;
+      const finish = (value, error) => {
+        if (!mcpNativeAnfragen.delete(requestId)) return;
+        clearTimeout(timer); signal.removeEventListener("abort", abort);
+        error ? reject(error) : resolve(kopie(value));
+      };
+      const abort = () => finish(null, new MagnolieMcp.ToolError("cancelled", "Native product request cancelled"));
+      mcpNativeAnfragen.set(requestId, { callback, receive: value => finish(value) });
+      signal.addEventListener("abort", abort, { once: true });
+      timer = setTimeout(() => finish(null, new MagnolieMcp.ToolError("native_timeout", "Native product request timed out")), 25000);
+      if (signal.aborted) abort();
+      else if (!Bruecke.sende({ cmd, ...args, requestId })) finish(null, new MagnolieMcp.ToolError("native_unavailable", "Native product interface unavailable"));
+    });
+  }
+  function mcpNativeAntwort(value, callback = "telefonEntwicklerDiagnose") {
     const pending = mcpNativeAnfragen.get(value?.requestId);
-    if (pending) pending.receive(value);
+    if (pending?.callback === callback) pending.receive(value);
   }
   function mcpNotesDiagnose(signal) {
     const peer = entwicklerDiagnoseQuelle();
@@ -33111,7 +33129,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         error ? reject(error) : resolve(value);
       };
       const abort = () => finish(null, new MagnolieMcp.ToolError("cancelled", "Notes diagnostics cancelled"));
-      mcpNativeAnfragen.set(requestId, { receive: value => {
+      mcpNativeAnfragen.set(requestId, { callback: "telefonEntwicklerDiagnose", receive: value => {
         const current = entwicklerDiagnoseQuelle();
         if (gesperrt || DATEN.einstellungen.allgemein.entwicklermodus !== true || !current ||
             current.device_id !== device || current.fingerprint !== fingerprint || value.kennung !== device)
@@ -33168,6 +33186,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (name === "organizer_status") return shape({ version: text, ready: flag, locked: flag, editorDirty: flag, dialogOpen: flag, pendingSave: flag,
       supportedSocialServices: { type: "array", items: text } }, ["version", "ready", "locked", "editorDirty", "dialogOpen", "pendingSave", "supportedSocialServices"]);
     if (name === "organizer_settings_read") return shape({ settings: object }, ["settings"]);
+    if (name === "organizer_sync_sources_read") return shape({ status: object }, ["status"]);
     if (name === "notes_diagnostics_read") return shape({ device_id: id, diagnostics: shape({ format: { type: "integer", enum: [1] },
       app_version: text, events: { type: "array", maxItems: 128, items: object } }, ["format", "app_version", "events"], true) }, ["device_id", "diagnostics"]);
     if (name === "organizer_data_read") return { ...shape({ section: { type: "string", enum: mcpBereiche }, entry: object,
@@ -33195,6 +33214,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
   function mcpWerkzeuge() {
     const tools = [
+      { name: "organizer_sync_sources_read", description: "Read actual native calendar/address-book/account source availability. The native result is request-correlated and also refreshes the product source selection cache.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: true },
+        call: async (_args, signal) => ({ status: await mcpNativeAufruf("eds_status", {}, "edsStatus", signal) }) },
       ...mcpKdeWerkzeuge(),
       ...mcpNotizWerkzeuge(),
       ...mcpAufgabenWerkzeuge(),

@@ -11,6 +11,9 @@ internal static class McpTransportTests
 {
     internal static async Task RunAsync()
     {
+        using (var legacySources = BridgeDispatcherContract.Parse("{\"cmd\":\"eds_status\"}")) { }
+        using (var correlatedSources = BridgeDispatcherContract.Parse("{\"cmd\":\"eds_status\",\"requestId\":\"dddddddd-dddd-4ddd-8ddd-dddddddddddd\"}")) { }
+        TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse("{\"cmd\":\"eds_status\",\"requestId\":42}"), "Native source correlation accepted the wrong request-ID type.");
         var profile = Path.Combine(Path.GetTempPath(), "magnolie-mcp-fixture-" + Guid.NewGuid().ToString("N"));
         var incoming = Channel.CreateUnbounded<JsonObject>();
         var closed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);

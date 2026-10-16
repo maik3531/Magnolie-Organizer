@@ -21142,7 +21142,7 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=self._zeichenblatt_pdf_oeffnen, args=(nachricht,), daemon=True).start()
 
         elif befehl == "eds_status":
-            threading.Thread(target=self._eds_status_arbeit, daemon=True).start()
+            threading.Thread(target=self._eds_status_arbeit, args=(nachricht.get("requestId"),), daemon=True).start()
 
         elif befehl == "sync_bestaetigen":
             threading.Thread(target=self._sync_bestaetigen,
@@ -24807,7 +24807,7 @@ class Fenster(_FENSTER_BASIS):
         nutzlast["abgebrochen"] = False
         self.antwort("App.importErgebnis", nutzlast)
 
-    def _eds_status_arbeit(self):
+    def _eds_status_arbeit(self, request_id=None):
         nutzlast = {"verfuegbar": False, "buchOk": False,
                     "kalender": [], "adressbuecher": [],
                     "fehler": "", "pakete": EDS_PAKETE}
@@ -24837,6 +24837,8 @@ class Fenster(_FENSTER_BASIS):
                                                cloud["adressbuecher"]] + [
                                                    dict(item, quelle="akonadi") for item in
                                                    akonadi["adressbuecher"]]
+        if isinstance(request_id, str) and re.fullmatch(r"[0-9a-fA-F-]{36}", request_id):
+            nutzlast["requestId"] = request_id
         self.antwort("App.edsStatus", nutzlast)
 
     def _nextcloud_status_melden(self, callback="App.nextcloudStatus"):

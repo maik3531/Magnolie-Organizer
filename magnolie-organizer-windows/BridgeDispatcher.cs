@@ -218,7 +218,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "planer_ods": await CreateSpreadsheetAsync(message, "Planer", "Magnolie-Planer.ods"); break;
                     case "gesundheit_ods": await CreateHealthSpreadsheetAsync(message); break;
                     case "zeit_ods": await CreateTimeSpreadsheetAsync(message); break;
-                    case "eds_status": await ContactSourcesAsync(); break;
+                    case "eds_status": await ContactSourcesAsync(Text(message, "requestId")); break;
                     case "internet_konto_anmelden": await SignInInternetAccountAsync(message); break;
                     case "internet_konten_status": await InternetAccountStatusAsync(); break;
                     case "internet_konto_verwalten": await ManageInternetAccountAsync(message); break;

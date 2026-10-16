@@ -63,6 +63,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_status` | Live version, readiness, lock and pending-save status |
 | `organizer_data_read` | Product section; optional `id` lookup or array `offset`/`limit` pagination |
 | `organizer_settings_read` | Current product settings |
+| `organizer_sync_sources_read` | Actual native calendar/address-book/account availability, with request- and callback-bound results |
 | `organizer_note_read` | Note and revision token |
 | `organizer_note_create` | Plain-text note in an existing notebook; native save acknowledgement |
 | `organizer_note_update` | Revision-checked title, plain text or notebook change; attachments retained |

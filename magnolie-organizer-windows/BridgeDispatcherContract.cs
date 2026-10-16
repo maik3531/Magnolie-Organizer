@@ -41,7 +41,7 @@ internal static class BridgeDispatcherContract
         ["planer_ods"] = S(T("layout"), N("jahr"), O("monat", JsonValueKind.Number), T("titel"), A("spalten"), A("zeilen"), A("stile"), A("inhalte")),
         ["gesundheit_ods"] = S(A("tabellen")),
         ["zeit_ods"] = S(J("sheet")),
-        ["eds_status"] = S(), ["sync"] = S(T("transactionId"), J("wahl"), J("daten")), ["sync_commit"] = S(T("transactionId")), ["graph_client_id_speichern"] = S(T("clientId")), ["graph_anmelden"] = S(), ["graph_abmelden"] = S(),
+        ["eds_status"] = S(O("requestId", JsonValueKind.String)), ["sync"] = S(T("transactionId"), J("wahl"), J("daten")), ["sync_commit"] = S(T("transactionId")), ["graph_client_id_speichern"] = S(T("clientId")), ["graph_anmelden"] = S(), ["graph_abmelden"] = S(),
         ["thunderbird_einrichten"] = S(),
         ["internet_konto_anmelden"] = S(T("anbieter"), O("email", JsonValueKind.String)),
         ["internet_konten_status"] = S(),
