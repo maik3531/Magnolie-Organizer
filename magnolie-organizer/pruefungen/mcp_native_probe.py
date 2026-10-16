@@ -20,6 +20,18 @@ import time
 import traceback
 import zlib
 
+BACKGROUND_PROBE = os.environ.get("MAGNOLIE_MCP_PROBE_BACKGROUND") == "1"
+if BACKGROUND_PROBE:
+    current_network = os.readlink("/proc/self/ns/net")
+    outer_network = os.environ.get("MAGNOLIE_MCP_PROBE_OUTER_NETNS")
+    if outer_network is None:
+        os.environ["MAGNOLIE_MCP_PROBE_OUTER_NETNS"] = current_network
+        os.environ["MAGNOLIE_MCP_PROBE_OUTER_UID"] = str(os.getuid())
+        os.execvp("unshare", ["unshare", "--user", "--map-current-user", "--net", "--keep-caps", "--",
+            "dbus-run-session", "--", sys.executable, "-B", str(Path(__file__).resolve()), *sys.argv[1:]])
+    assert outer_network != current_network and os.environ["MAGNOLIE_MCP_PROBE_OUTER_UID"] == str(os.getuid()), "Background probe requires a private network namespace with unchanged UID"
+    subprocess.run(["ip", "link", "set", "lo", "up"], check=True, timeout=5)
+
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
 temporary = tempfile.TemporaryDirectory(prefix="magnolie-mcp-native-", dir="/tmp/opencode")
@@ -37,6 +49,7 @@ os.environ["SSH_AUTH_SOCK"] = str(Path(os.environ["XDG_RUNTIME_DIR"]) / "unused-
 os.environ["GNOME_KEYRING_CONTROL"] = str(Path(os.environ["XDG_RUNTIME_DIR"]) / "keyring")
 os.environ["WAYLAND_DISPLAY"] = ""
 os.environ["GDK_BACKEND"] = "x11"
+os.environ["DBUS_SYSTEM_BUS_ADDRESS"] = os.environ["DBUS_SESSION_BUS_ADDRESS"]
 
 # dbus-run-session starts before Python replaces HOME/XDG. Validate its ownership
 # before changing only this bus's activation environment, including display/socket
@@ -60,7 +73,7 @@ for _ in range(16):
     ancestor = parent_pid(ancestor)
 assert parent_pid(bus_pid("org.freedesktop.DBus")) in ancestors, "Probe requires its own dbus-run-session ancestor"
 activation_keys = ("HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_RUNTIME_DIR",
-    "SSH_AUTH_SOCK", "GNOME_KEYRING_CONTROL", "WAYLAND_DISPLAY", "GDK_BACKEND", "DISPLAY", "XAUTHORITY", "DBUS_SESSION_BUS_ADDRESS")
+    "SSH_AUTH_SOCK", "GNOME_KEYRING_CONTROL", "WAYLAND_DISPLAY", "GDK_BACKEND", "DISPLAY", "XAUTHORITY", "DBUS_SESSION_BUS_ADDRESS", "DBUS_SYSTEM_BUS_ADDRESS")
 activation_environment = {key: os.environ.get(key, "") for key in activation_keys}
 native_bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
     "UpdateActivationEnvironment", GLib.Variant("(a{ss})", (activation_environment,)),
@@ -133,7 +146,7 @@ sys.modules[loader.name] = product
 loader.exec_module(product)
 assert product.GTK_OK and product.WEBKIT_OK
 product._REGIONAL = product.regional_einstellungen(dict(product._REGIONAL, timeZone="UTC", language="en", formatLocale="en-GB"))
-state = {"started": False, "passed": False, "error": None, "transport_blocked": False, "activation_private": True}
+state = {"started": False, "passed": False, "error": None, "transport_blocked": False, "activation_private": True, "network_isolated": BACKGROUND_PROBE}
 def unrelated_transport(*_args, **_kwargs):
     state["transport_blocked"] = True
     raise RuntimeError("Handset transports are unavailable in this native book fixture")
@@ -1259,6 +1272,83 @@ def client():
                 return False
             product.GLib.idle_add(clean_private_tray_host)
             assert tray_cleaned.wait(5)
+        if BACKGROUND_PROBE:
+            import magnolie_hintergrund as background_product
+            assert os.readlink("/proc/self/ns/net") != os.environ["MAGNOLIE_MCP_PROBE_OUTER_NETNS"]
+            assert os.environ["DBUS_SYSTEM_BUS_ADDRESS"] == os.environ["DBUS_SESSION_BUS_ADDRESS"]
+            for private_path in (background_product.settings_path(), background_product.autostart_path(), background_product.socket_path()):
+                assert Path(private_path).is_relative_to(Path(temporary.name))
+            background_before = call("tools/call", {"name": "organizer_background_permissions_read"})
+            assert not background_before["isError"] and background_before["structuredContent"]["supported"], background_before
+            background_record_keys = ("notizen", "termine", "aufgaben", "kontakte", "gesundheit", "zeiterfassung")
+            background_book_before = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+            background_records = {key: background_book_before[key] for key in background_record_keys}
+            optional_permissions = ("kde_incoming_files", "sms_phone_notifications", "phone_sms_notifications", "phone_selected_notifications", "phone_call_notifications", "phone_personal_sync_offers")
+            background_handle = None
+            original_popen = subprocess.Popen
+            original_program = sys.argv[0]
+            sys.argv[0] = str(ROOT / "bin/magnolie-organizer")
+            background_log = Path(temporary.name) / "owned-background-start.log"
+            background_log_handle = background_log.open("wb")
+            def tracked_background_popen(*args, **kwargs):
+                command = args[0] if args else kwargs.get("args")
+                is_background = isinstance(command, (list, tuple)) and "--hintergrunddienst" in command
+                if is_background:
+                    kwargs["stdout"] = background_log_handle
+                    kwargs["stderr"] = background_log_handle
+                child = original_popen(*args, **kwargs)
+                if is_background:
+                    owned.append(child)
+                return child
+            subprocess.Popen = tracked_background_popen
+            try:
+                background_applied = call("tools/call", {"name": "organizer_background_permissions_update", "arguments": {
+                    "expected_revision": background_before["structuredContent"]["revision"], "permissions": {key: False for key in optional_permissions}}})
+                assert not background_applied["isError"] and background_applied["structuredContent"]["native_applied"] and background_applied["structuredContent"]["persisted"] and background_applied["structuredContent"]["running"], {"result": background_applied, "state": product.hintergrund_einstellungen_lesen(False), "launcher_log": background_log.read_text(errors="replace")[-4000:]}
+                assert background_product.daemon_available()
+                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as daemon_connection:
+                    daemon_connection.settimeout(3)
+                    daemon_connection.connect(background_product.socket_path())
+                    daemon_pid, daemon_uid, _daemon_gid = struct.unpack("3i", daemon_connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i")))
+                assert daemon_uid == os.getuid() and daemon_pid != os.getpid()
+                background_handle = os.pidfd_open(daemon_pid)
+                daemon_environment = dict(item.split(b"=", 1) for item in Path("/proc/%d/environ" % daemon_pid).read_bytes().split(b"\0") if b"=" in item)
+                assert daemon_environment[b"HOME"] == os.environ["HOME"].encode() and daemon_environment[b"DBUS_SYSTEM_BUS_ADDRESS"] == os.environ["DBUS_SESSION_BUS_ADDRESS"].encode()
+                assert os.readlink("/proc/%d/ns/net" % daemon_pid) == os.readlink("/proc/self/ns/net")
+                native_background_file = Path(background_product.settings_path())
+                background_autostart_file = Path(background_product.autostart_path())
+                assert native_background_file.is_relative_to(Path(temporary.name)) and background_autostart_file.is_relative_to(Path(temporary.name))
+                assert native_background_file.is_file() and background_autostart_file.is_file()
+                background_book = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+                book_permissions = background_book["einstellungen"]["sicherheit"]["hintergrund"]["permissions"]
+                assert all(book_permissions[key] is False for key in optional_permissions)
+                assert all(book_permissions[key] is True for key in ("kde_pairing", "phone_monitor", "phone_pairing_decisions"))
+                assert {key: background_book[key] for key in background_record_keys} == background_records
+                stale_background = call("tools/call", {"name": "organizer_background_permissions_update", "arguments": {
+                    "expected_revision": background_before["structuredContent"]["revision"], "permissions": {"phone_selected_notifications": True}}})
+                assert stale_background["isError"] and stale_background["structuredContent"]["code"] == "conflict", stale_background
+            finally:
+                try:
+                    current_background = background_product.read_settings()
+                    current_background.update(enabled=False, autostart=False, permissions={key: False for key in background_product.PERMISSIONS})
+                    background_cleanup = product.hintergrund_einstellungen_schreiben(current_background)
+                finally:
+                    subprocess.Popen = original_popen
+                    sys.argv[0] = original_program
+                    background_log_handle.close()
+                    if background_handle is not None:
+                        try:
+                            with selectors.DefaultSelector() as waiter:
+                                waiter.register(background_handle, selectors.EVENT_READ)
+                                if not waiter.select(3):
+                                    signal.pidfd_send_signal(background_handle, signal.SIGTERM)
+                                    if not waiter.select(3):
+                                        signal.pidfd_send_signal(background_handle, signal.SIGKILL)
+                                        assert waiter.select(3)
+                        finally:
+                            os.close(background_handle)
+                assert background_cleanup.get("ok") and background_product.wait_for_daemon_release(), background_cleanup
+                assert not Path(background_product.autostart_path()).exists()
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()
@@ -1312,13 +1402,17 @@ finally:
         worker.join(timeout=5)
     for process in owned:
         if process.poll() is None:
-            process.kill()
-            process.wait(timeout=3)
+            process.terminate()
+            try:
+                process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=3)
     try:
         stop_private_secret_service()
     except BaseException:
         state["passed"] = False
-        state["error"] = traceback.format_exc(limit=4)
+        state["error"] = (state.get("error") or "") + "\nPrivate service cleanup:\n" + traceback.format_exc(limit=4)
     print("Native MCP fixture state:", json.dumps(state), flush=True)
     temporary.cleanup()
 assert state["passed"], state

@@ -30765,6 +30765,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   /* ---------------------------------------------------------------------- */
 
   const App = {
+    backgroundSettings(nutzlast) { mcpNativeAntwort(nutzlast || {}, "backgroundSettings"); },
     init(nutzlast) {
       kontaktFotoDialogSchliessen?.();
       syncKontaktDialogSchliessen?.();
@@ -34140,6 +34141,55 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (value !== "month") calendar.uebersichtAb = null;
     calendar.bearbeiteId = null;
   }
+  const HINTERGRUND_RECHTE = ["kde_pairing", "kde_incoming_files", "sms_phone_notifications", "magnolienbaum_change_offers", "phone_monitor", "phone_sms_notifications", "phone_selected_notifications", "phone_call_notifications", "phone_personal_sync_offers", "phone_pairing_decisions"];
+  const HINTERGRUND_OPTIONALE_RECHTE = ["kde_incoming_files", "sms_phone_notifications", "phone_sms_notifications", "phone_selected_notifications", "phone_call_notifications", "phone_personal_sync_offers"];
+  function bereiteHintergrundEinstellungenVor(base, changes) {
+    const source = { ...base, ...changes }, permissions = { ...base.permissions, ...changes.permissions };
+    for (const key of ["kde_pairing", "phone_monitor", "phone_pairing_decisions"]) permissions[key] = true;
+    permissions.magnolienbaum_change_offers = false;
+    return { enabled: true, autostart: true, encryption_policy: "notify_then_unlock", permissions: Object.fromEntries(HINTERGRUND_RECHTE.map(key => [key, permissions[key] === true])),
+      phone_setup_services: Array.isArray(source.phone_setup_services) ? [...source.phone_setup_services] : [],
+      kde_device_id: String(source.kde_device_id || ""), kde_download_directory: String(source.kde_download_directory || ""), kde_clipboard_enabled: source.kde_clipboard_enabled === true,
+      kde_clipboard_mode: source.kde_clipboard_mode === "automatic" ? "automatic" : "confirm", kde_file_enabled: source.kde_file_enabled === true,
+      kde_choose_directory: source.kde_choose_directory === true, kde_legacy_migrated: source.kde_legacy_migrated === true, kde_receive_managed: source.kde_receive_managed === true };
+  }
+  function wendeHintergrundEinstellungenDatenAn(value) {
+    DATEN.einstellungen.sicherheit.hintergrund = { enabled: value.enabled === true, autostart: value.autostart === true,
+      encryptionPolicy: ["notify_then_unlock", "keyring", "pause_when_locked"].includes(value.encryption_policy) ? value.encryption_policy : "notify_then_unlock",
+      permissions: Object.fromEntries(HINTERGRUND_RECHTE.map(key => [key, value.permissions?.[key] === true])) };
+  }
+  function mcpHintergrundWerkzeuge() {
+    const fields = Object.fromEntries(HINTERGRUND_OPTIONALE_RECHTE.map(key => [key, { type: "boolean" }]));
+    const read = async signal => {
+      const value = await mcpNativeAufruf("background_settings_get", {}, "backgroundSettings", signal);
+      if (value.supported === false) return null;
+      if (value.ok !== true || value.supported !== true || !value.state?.settings || typeof value.state.settings.enabled !== "boolean" || typeof value.state.settings.autostart !== "boolean" || value.state.settings.encryption_policy !== "notify_then_unlock" || typeof value.state.running !== "boolean" || !["stopped", "starting", "ready", "stopping"].includes(value.state.lifecycle) || typeof value.state.autostart !== "boolean" || HINTERGRUND_RECHTE.some(key => typeof value.state.settings.permissions?.[key] !== "boolean")) throw new MagnolieMcp.ToolError("native_operation_failed", "Native background-service state could not be verified");
+      return kopie(value.state);
+    };
+    const settings = value => value ? { enabled: value.enabled, autostart: value.autostart, encryption_policy: value.encryption_policy, permissions: kopie(value.permissions) } : null;
+    const snapshot = native => JSON.stringify({ native, book: DATEN.einstellungen.sicherheit.hintergrund || null });
+    return [
+      { name: "organizer_background_permissions_read", description: "Read actual standalone background-service settings/lifecycle/autostart registration separately from book metadata. This product capability is Linux-specific; unsupported platforms report supported=false. Reads do not repair autostart entries.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (_args, signal) => {
+          const book = DATEN, native = await read(signal);
+          if (signal.aborted || DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Book changed during background status lookup");
+          const before = snapshot(native), value = JSON.parse(before);
+          return { supported: native !== null, settings: settings(native?.settings), book_settings: value.book, running: native?.running || false, lifecycle: native?.lifecycle || "unsupported", autostart_registered: native?.autostart || false, revision: await personalSyncHash(before) };
+        } },
+      { name: "organizer_background_permissions_update", description: "Update optional background functions through the shared GUI policy builder and actual native service controller. Uses native settings CAS, ready-state/autostart readback and book-save acknowledgement. Product policy keeps core pairing/monitoring and service/autostart enabled, disables unavailable tree-change offers and uses notify-then-unlock; optional permissions change only as supplied.",
+        inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, permissions: { type: "object", properties: fields, anyOf: Object.keys(fields).map(key => ({ required: [key] })), additionalProperties: false } }, required: ["expected_revision", "permissions"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const book = DATEN, native = await read(signal);
+          if (!native) throw new MagnolieMcp.ToolError("unsupported_feature", "Standalone background-service permissions are unavailable on this platform");
+          const before = snapshot(native), revision = await personalSyncHash(before);
+          if (signal.aborted || DATEN !== book || snapshot(native) !== before || revision !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Background settings changed; read them again");
+          mcpEditorPruefen(); const wanted = bereiteHintergrundEinstellungenVor(native.settings, { permissions: args.permissions });
+          const value = await mcpNativeAufruf("background_settings_set", { settings: wanted, expectedSettings: native.settings }, "backgroundSettings", signal);
+          if (value.ok !== true || !value.state || personalSyncKanonisch(value.state.settings) !== personalSyncKanonisch(wanted) || value.state.running !== true || value.state.lifecycle !== "ready" || value.state.autostart !== true) throw new MagnolieMcp.ToolError(value.code === "conflict" ? "conflict" : "native_operation_failed", "Native background-service configuration/lifecycle could not be confirmed; read the actual state");
+          if (DATEN !== book || JSON.stringify(DATEN.einstellungen.sicherheit.hintergrund || null) !== JSON.stringify(JSON.parse(before).book)) throw new MagnolieMcp.ToolError("source_changed", "Native background settings may have changed; book metadata changed");
+          wendeHintergrundEinstellungenDatenAn(value.state.settings); return { settings: settings(value.state.settings), running: true, lifecycle: "ready", autostart_registered: true, native_applied: true };
+        }) }
+    ];
+  }
   function wendeTrayEinstellungenDatenAn(values) { Object.assign(DATEN.einstellungen.allgemein.tray, leseTrayEinstellungen(values, DATEN.einstellungen.allgemein.tray)); }
   function mcpTrayWerkzeuge() {
     const map = { enabled: "aktiv", hide_on_minimize: "minimierenInTray", hide_on_close: "schliessenInTray", start_minimized: "startMinimiert", autostart: "autostart", show_counter: "zaehler", open_mode: "oeffnen" };
@@ -34833,6 +34883,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_background_permissions_read") return shape({ supported: flag, settings: { type: ["object", "null"] }, book_settings: { type: ["object", "null"] }, running: flag, lifecycle: text, autostart_registered: flag, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["supported", "settings", "book_settings", "running", "lifecycle", "autostart_registered", "revision"]);
+    if (name === "organizer_background_permissions_update") return shape({ settings: object, running: yes, lifecycle: { type: "string", const: "ready" }, autostart_registered: yes, native_applied: yes, persisted: yes }, ["settings", "running", "lifecycle", "autostart_registered", "native_applied", "persisted"]);
     if (name === "organizer_tray_settings_read") return shape({ settings: object, book_settings: object, available: flag, active: flag, autostart_registered: flag, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "book_settings", "available", "active", "autostart_registered", "revision"]);
     if (name === "organizer_tray_settings_update") return shape({ settings: object, available: flag, active: flag, autostart_registered: flag, native_applied: yes, persisted: yes }, ["settings", "available", "active", "autostart_registered", "native_applied", "persisted"]);
     if (name === "organizer_regional_settings_read") return shape({ settings: object, book_settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "book_settings", "revision"]);
@@ -34985,6 +35037,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpRechtschreibWerkzeuge(),
       ...mcpRegionaleEinstellungenWerkzeuge(),
       ...mcpTrayWerkzeuge(),
+      ...mcpHintergrundWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

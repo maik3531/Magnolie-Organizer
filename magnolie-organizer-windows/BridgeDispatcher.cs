@@ -251,6 +251,10 @@ internal sealed partial class BridgeDispatcher : IDisposable
                         if (message.TryGetProperty("einstellungen", out var tray)) await form.ApplyTraySettingsAsync(tray, Text(message, "requestId"), message.TryGetProperty("expectedState", out var trayExpected) ? trayExpected : default);
                         break;
                     case "tray_status": await form.SendTrayStatusAsync(Text(message, "requestId")); break;
+                    case "background_settings_get":
+                    case "background_settings_set":
+                        await form.SendAsync("App.backgroundSettings", new { ok = false, supported = false, requestId = Text(message, "requestId"), code = "unsupported_feature" });
+                        break;
                     case "tray_zaehler": form.UpdateTrayCounter(Integer(message, "anzahl")); break;
                     case "rechtschreibung": break;
                     case "vorschlaege": await SpellSuggestionsAsync(message); break;

@@ -132,9 +132,12 @@ from magnolie_hintergrund import (KDEConnectProxy, PhoneServiceProxy, daemon_ava
     ensure_automatic_services as background_services_ensure,
     FileLease, AlreadyRunning,
     configure_autostart as background_autostart_configure,
+    autostart_path as background_autostart_path,
+    autostart_contents as background_autostart_contents,
     daemon_status as background_daemon_status,
     ipc_request as background_ipc_request, read_settings as background_settings_read,
     settings_status as background_settings_status,
+    normalize_settings as background_settings_normalize,
     sms_reply_intent_decode,
     sms_reply_request_read,
     start_service as background_service_start,
@@ -10774,7 +10777,7 @@ def _organizer_gui_bereitschaft(fenster, bereit):
         _hintergrund_bereitschaft_senden(telefon, bereit, "magnolie-phone-readiness")
 
 
-def hintergrund_einstellungen_lesen():
+def hintergrund_einstellungen_lesen(reconcile_autostart=True):
     try:
         daemon_state = background_daemon_status()
         if daemon_state != "stopped":
@@ -10782,11 +10785,12 @@ def hintergrund_einstellungen_lesen():
         else:
             stand = background_settings_status(background_settings_read())
         result = dict(stand, running=daemon_state == "ready", lifecycle=daemon_state)
-        try:
-            background_autostart_configure(stand)
-        except OSError as fehler:
-            result["error"] = fehler_deutsch(
-                fehler, _("Loading background settings"))
+        if reconcile_autostart:
+            try:
+                background_autostart_configure(stand)
+            except OSError as fehler:
+                result["error"] = fehler_deutsch(
+                    fehler, _("Loading background settings"))
         return result
     except Exception as fehler:
         return {"enabled": False, "autostart": False, "running": False,
@@ -21099,14 +21103,21 @@ class Fenster(_FENSTER_BASIS):
                     "requestId": nachricht.get("requestId")})
 
         elif befehl == "background_settings_get":
-            threading.Thread(target=lambda: self.antwort(
-                "App.backgroundSettings", hintergrund_einstellungen_lesen()),
-                daemon=True).start()
+            if nachricht.get("requestId"):
+                threading.Thread(target=self._hintergrund_mcp_lesen,
+                    args=(nachricht["requestId"],), daemon=True).start()
+            else:
+                threading.Thread(target=lambda: self.antwort(
+                    "App.backgroundSettings", hintergrund_einstellungen_lesen()), daemon=True).start()
 
         elif befehl == "background_settings_set":
-            threading.Thread(target=lambda: self.antwort(
-                "App.backgroundSettings", self._hintergrund_einstellungen_schreiben(
-                    nachricht.get("settings") or {})), daemon=True).start()
+            if nachricht.get("requestId"):
+                threading.Thread(target=self._hintergrund_mcp_setzen,
+                    args=(nachricht["requestId"], nachricht.get("settings"), nachricht.get("expectedSettings")), daemon=True).start()
+            else:
+                threading.Thread(target=lambda: self.antwort(
+                    "App.backgroundSettings", self._hintergrund_einstellungen_schreiben(
+                        nachricht.get("settings") or {})), daemon=True).start()
 
         elif befehl == "contributor_pruefen":
             key = nachricht.get("key")
@@ -23194,6 +23205,50 @@ class Fenster(_FENSTER_BASIS):
             self._operation_laeuft = False
 
     # ------------------------------------------------ Telefonverbindung
+
+    def _hintergrund_mcp_stand(self):
+        stand = hintergrund_einstellungen_lesen(reconcile_autostart=False)
+        if stand.get("error"):
+            raise RuntimeError("background_status_failed")
+        try:
+            text = datei_begrenzt_lesen(background_autostart_path(), 64 * 1024,
+                "The background autostart entry is too large.").decode("utf-8")
+        except FileNotFoundError:
+            text = ""
+        lines = {line.strip() for line in text.splitlines()}
+        expected_exec = next(line for line in background_autostart_contents(eigener_pfad()).splitlines() if line.startswith("Exec="))
+        registered = expected_exec in lines and not any(line.lower() in ("hidden=true", "x-gnome-autostart-enabled=false") for line in lines)
+        return {"settings": background_settings_normalize(stand), "running": stand.get("running") is True,
+            "lifecycle": str(stand.get("lifecycle") or "stopped"), "autostart": registered}
+
+    def _hintergrund_mcp_lesen(self, request_id):
+        try:
+            with _HINTERGRUND_EINSTELLUNGEN_SPERRE:
+                state = self._hintergrund_mcp_stand()
+            self.antwort("App.backgroundSettings", {"ok": True, "supported": True, "requestId": request_id, "state": state})
+        except Exception:
+            self.antwort("App.backgroundSettings", {"ok": False, "supported": True, "requestId": request_id, "code": "native_operation_failed"})
+
+    def _hintergrund_mcp_setzen(self, request_id, settings, expected):
+        try:
+            with _HINTERGRUND_EINSTELLUNGEN_SPERRE:
+                current = self._hintergrund_mcp_stand()
+                if not isinstance(expected, dict) or current["settings"] != expected:
+                    raise ValueError("background_conflict")
+                wanted = background_settings_normalize(settings)
+                result = self._hintergrund_einstellungen_schreiben(wanted)
+                if not result.get("ok"):
+                    raise RuntimeError("background_apply_failed")
+                actual = self._hintergrund_mcp_stand()
+                if (actual["settings"] != wanted or actual["running"] != wanted["enabled"] or
+                        actual["lifecycle"] != ("ready" if wanted["enabled"] else "stopped") or
+                        actual["autostart"] != bool(wanted["enabled"] and wanted["autostart"])):
+                    raise RuntimeError("background_readback_failed")
+            self.antwort("App.backgroundSettings", {"ok": True, "supported": True, "requestId": request_id, "state": actual})
+        except Exception as error:
+            self.antwort("App.backgroundSettings", {"ok": False, "supported": True, "requestId": request_id,
+                "code": "conflict" if str(error) == "background_conflict" else "native_operation_failed",
+                "reason": str(error) if str(error) in ("background_conflict", "background_apply_failed", "background_readback_failed", "background_status_failed") else "background_operation_failed"})
 
     def _hintergrund_einstellungen_schreiben(self, werte):
         permissions = werte.get("permissions") if isinstance(werte, dict) else {}

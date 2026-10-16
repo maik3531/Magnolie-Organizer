@@ -134,7 +134,7 @@ let declaredContracts;
         id: noteId, title: "Retry", text: "Must not duplicate" } }));
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
-      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile, onCloudStatus, onCloudPassword, onCloudTest, onSpelling, onRememberWord, onRegionalRead, onRegionalSave, onTrayRead, onTraySave;
+      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile, onCloudStatus, onCloudPassword, onCloudTest, onSpelling, onRememberWord, onRegionalRead, onRegionalSave, onTrayRead, onTraySave, onBackgroundRead, onBackgroundSave;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
@@ -159,6 +159,8 @@ let declaredContracts;
         if (message.cmd === "regional_einstellungen" && message.requestId && onRegionalSave) onRegionalSave(message);
         if (message.cmd === "tray_status" && message.requestId && onTrayRead) onTrayRead(message);
         if (message.cmd === "tray_einstellungen" && message.requestId && onTraySave) onTraySave(message);
+        if (message.cmd === "background_settings_get" && message.requestId && onBackgroundRead) onBackgroundRead(message);
+        if (message.cmd === "background_settings_set" && message.requestId && onBackgroundSave) onBackgroundSave(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -1326,6 +1328,40 @@ let declaredContracts;
         const blocked = await call(request(816, "tools/call", { name: "organizer_tray_settings_update", arguments: { expected_revision: unavailable.revision, enabled: true } }));
         assert.equal(blocked.result.structuredContent.code, "tray_unavailable");
         onTrayRead = onTraySave = null;
+      }
+      {
+        const keys = ["kde_pairing", "kde_incoming_files", "sms_phone_notifications", "magnolienbaum_change_offers", "phone_monitor", "phone_sms_notifications", "phone_selected_notifications", "phone_call_notifications", "phone_personal_sync_offers", "phone_pairing_decisions"];
+        let background = { settings: { enabled: false, autostart: false, encryption_policy: "notify_then_unlock", permissions: Object.fromEntries(keys.map(key => [key, false])), phone_setup_services: ["wifi"] }, running: false, lifecycle: "stopped", autostart: false };
+        onBackgroundRead = message => b.w.App.backgroundSettings({ ok: true, supported: true, requestId: message.requestId, state: background });
+        const first = (await call(request(840, "tools/call", { name: "organizer_background_permissions_read" }))).result.structuredContent;
+        let native, completed = false;
+        const dispatched = new Promise(resolve => { onBackgroundSave = message => { native = message; resolve(); }; });
+        const saving = new Promise(resolve => { onSave = resolve; });
+        const pending = call(request(841, "tools/call", { name: "organizer_background_permissions_update", arguments: { expected_revision: first.revision, permissions: { phone_selected_notifications: true } } })).then(value => { completed = true; return value; });
+        await dispatched;
+        assert.equal(native.settings.enabled, true); assert.equal(native.settings.autostart, true);
+        assert.equal(native.settings.permissions.kde_pairing, true); assert.equal(native.settings.permissions.phone_monitor, true); assert.equal(native.settings.permissions.magnolienbaum_change_offers, false);
+        assert.deepEqual(JSON.parse(JSON.stringify(native.settings.phone_setup_services)), ["wifi"]);
+        background = { settings: JSON.parse(JSON.stringify(native.settings)), running: true, lifecycle: "ready", autostart: true };
+        b.w.App.backgroundSettings({ ok: true, supported: true, requestId: "wrong-background-request", state: background });
+        await new Promise(resolve => setImmediate(resolve)); assert.equal(completed, false);
+        b.w.App.backgroundSettings({ ok: true, supported: true, requestId: native.requestId, state: background });
+        await saving; assert.equal(completed, false); b.ack();
+        assert.equal((await pending).result.structuredContent.native_applied, true);
+        assert.equal(b.t.daten().einstellungen.sicherheit.hintergrund.permissions.phone_selected_notifications, true);
+        const stale = await call(request(842, "tools/call", { name: "organizer_background_permissions_update", arguments: { expected_revision: first.revision, permissions: { phone_selected_notifications: false } } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        const fresh = (await call(request(843, "tools/call", { name: "organizer_background_permissions_read" }))).result.structuredContent;
+        onBackgroundSave = message => b.w.App.backgroundSettings({ ok: true, supported: true, requestId: message.requestId, state: { settings: message.settings, running: false, lifecycle: "starting", autostart: true } });
+        const unready = await call(request(844, "tools/call", { name: "organizer_background_permissions_update", arguments: { expected_revision: fresh.revision, permissions: { phone_selected_notifications: false } } }));
+        assert.equal(unready.result.structuredContent.code, "native_operation_failed");
+        assert.equal(b.t.daten().einstellungen.sicherheit.hintergrund.permissions.phone_selected_notifications, true);
+        onBackgroundRead = message => b.w.App.backgroundSettings({ ok: false, supported: false, requestId: message.requestId, code: "unsupported_feature" });
+        const unsupported = (await call(request(845, "tools/call", { name: "organizer_background_permissions_read" }))).result.structuredContent;
+        assert.equal(unsupported.supported, false); assert.equal(unsupported.settings, null);
+        const blocked = await call(request(846, "tools/call", { name: "organizer_background_permissions_update", arguments: { expected_revision: unsupported.revision, permissions: { phone_selected_notifications: true } } }));
+        assert.equal(blocked.result.structuredContent.code, "unsupported_feature");
+        onBackgroundRead = onBackgroundSave = null;
       }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));
