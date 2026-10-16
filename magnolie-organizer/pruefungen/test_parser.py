@@ -2137,7 +2137,7 @@ class _WetterFenster:
 wetter_abrufen_alt = m.wetter_abrufen
 wetter_bridge_werte = []
 try:
-    m.wetter_abrufen = lambda ort, ohne_ort_abrufen=True: (
+    m.wetter_abrufen = lambda ort, ohne_ort_abrufen=True, libreoffice_lader=None: (
         wetter_bridge_werte.append((ort, ohne_ort_abrufen)) or
         {"ok": True, "ohneOrt": True, "tage": []})
     wetter_fenster = _WetterFenster()
