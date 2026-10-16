@@ -22069,6 +22069,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const selected = new Set(ids);
     DATEN.gesundheit[key] = DATEN.gesundheit[key].filter(entry => !selected.has(entry.id)).concat(neue);
   }
+  function gesundheitSetzeSchema(schema) {
+    DATEN.gesundheit.insulinschema = kopie(schema);
+  }
   function gesundheitSpeichern(art) {
     const ungueltig = document.querySelector(".gesundheit-zellenfeld:invalid");
     if (ungueltig) {
@@ -22099,7 +22102,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const schluessel = art === "vital" ? "vitalwerte" : art;
     gesundheitErsetzeDaten(schluessel, entwurf.ids, neue);
     if (art === "blutzucker" && entwurf.schema) {
-      DATEN.gesundheit.insulinschema = JSON.parse(JSON.stringify(entwurf.schema));
+      gesundheitSetzeSchema(entwurf.schema);
     }
     zustand.gesundheit.entwurf = null;
     zustand.gesundheit.vorgabe = null;
@@ -33759,10 +33762,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const vital = { systolic: optionalNumber(50, 280), diastolic: optionalNumber(30, 180), pulse: optionalNumber(30, 250),
       weight_kg: optionalNumber(2, 400), height_cm: optionalNumber(40, 250), temperature_c: optionalNumber(30, 44), oxygen_percent: optionalNumber(30, 100) };
     const glucose = { value: number(1, 900), unit: { type: "string", enum: ["mmol/L", "mg/dL"] }, insulin_units: number(0, 200), carbohydrates: number(0, 1000), context: { type: "string", maxLength: 80 } };
+    const text = maxLength => ({ type: "string", maxLength });
+    const dose = { morning: text(40), noon: text(40), evening: text(40), night: text(40) };
+    const medication = { name: { ...text(120), minLength: 1, pattern: "\\S" }, strength: text(80), form: { type: "string", enum: MEDIKAMENT_FORMEN.map(([id]) => id) }, ...dose,
+      quantity: text(80), dosage_unit: text(40), reason: text(120), special_instructions: text(1000),
+      from: { type: "string", pattern: "^$|^\\d{4}-\\d{2}-\\d{2}$" }, through: { type: "string", pattern: "^$|^\\d{4}-\\d{2}-\\d{2}$" },
+      weekdays: { type: "array", maxItems: 7, items: { type: "integer", minimum: 0, maximum: 6 } }, as_needed: { type: "boolean" }, active: { type: "boolean" },
+      weekly_plan: { type: "array", maxItems: 7, items: { type: "object", properties: { day: { type: "integer", minimum: 0, maximum: 6 }, ...dose }, required: ["day"], additionalProperties: false } } };
     const mappings = { date: "datum", time: "zeit", page: "seite", note: "notiz", systolic: "systolisch", diastolic: "diastolisch", pulse: "puls", weight_kg: "gewicht", height_cm: "groesse",
-      temperature_c: "temperatur", oxygen_percent: "sauerstoff", value: "wert", insulin_units: "ie", carbohydrates: "kohlenhydrate", context: "kontext" };
-    return [["vital", "vitalwerte", vital], ["blood_glucose", "blutzucker", glucose]].flatMap(([kind, key, specific]) => {
-      const fields = { ...common, ...specific }, art = kind === "vital" ? "vital" : "blutzucker", prefix = "organizer_" + kind + "_";
+      temperature_c: "temperatur", oxygen_percent: "sauerstoff", value: "wert", insulin_units: "ie", carbohydrates: "kohlenhydrate", context: "kontext",
+      name: "name", strength: "staerke", form: "form", morning: "morgens", noon: "mittags", evening: "abends", night: "nachts", quantity: "menge", dosage_unit: "einheit",
+      reason: "grund", special_instructions: "besonderheiten", from: "von", through: "bis", as_needed: "beiBedarf", active: "aktiv" };
+    return [["vital", "vitalwerte", vital], ["blood_glucose", "blutzucker", glucose], ["medication", "medikamente", medication]].flatMap(([kind, key, specific]) => {
+      const fields = { ...(kind === "medication" ? { page: common.page } : common), ...specific }, art = kind === "vital" ? "vital" : key, prefix = "organizer_" + kind + "_";
       const find = recordId => DATEN.gesundheit[key].find(entry => entry.id === recordId);
       const checked = async (args, signal) => {
         const book = DATEN, entry = find(args.id);
@@ -33776,7 +33788,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const record = current ? kopie(current) : { ...gesundheitLeereZeile(art), id: args.id || uid(), ...(kind === "vital" ? { sauerstoff: 0 } : {}) };
         if (kind === "blood_glucose" && args.unit !== undefined) gesundheitWechsleBlutzuckerEinheit(record, args.unit);
         for (const [field, native] of Object.entries(mappings)) if (args[field] !== undefined) record[native] = args[field];
-        if (!gueltigesISO(record.datum)) throw new MagnolieMcp.ToolError("invalid_date", "Health record date is invalid");
+        if (kind === "medication") {
+          for (const name of ["name", "staerke", "morgens", "mittags", "abends", "nachts", "menge", "einheit", "grund", "besonderheiten"]) record[name] = record[name].trim();
+          if ((record.von && !gueltigesISO(record.von)) || (record.bis && (!gueltigesISO(record.bis) || (record.von && record.bis < record.von))))
+            throw new MagnolieMcp.ToolError("invalid_date", "Medication date range is invalid");
+          if (args.weekdays !== undefined) record.wochentage = Array.from(new Set(args.weekdays));
+          if (args.weekly_plan !== undefined) {
+            if (new Set(args.weekly_plan.map(day => day.day)).size !== args.weekly_plan.length) throw new MagnolieMcp.ToolError("invalid_schedule", "Medication weekly plan repeats a weekday");
+            record.wochenplan = args.weekly_plan.map(day => ({ tag: day.day, morgens: (day.morning || "").trim(), mittags: (day.noon || "").trim(), abends: (day.evening || "").trim(), nachts: (day.night || "").trim() }))
+              .filter(day => day.morgens || day.mittags || day.abends || day.nachts);
+          }
+        } else if (!gueltigesISO(record.datum)) throw new MagnolieMcp.ToolError("invalid_date", "Health record date is invalid");
         if (kind === "blood_glucose" && (record.wert < (record.einheit === "mmol/L" ? 1 : 18) || record.wert > (record.einheit === "mmol/L" ? 50 : 900)))
           throw new MagnolieMcp.ToolError("invalid_value", "Blood glucose value is outside the product range for its unit");
         if (args.page === undefined && !current) {
@@ -33788,31 +33810,55 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         return record;
       };
       return [
-        { name: prefix + "read", description: "Read a stored " + kind + " health record and its full revision. Vital values use canonical kg, cm and Celsius units.",
+        { name: prefix + "read", description: "Read a stored " + kind + " health record and its full revision." + (kind === "vital" ? " Vital values use canonical kg, cm and Celsius units." : ""),
           inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async args => {
             const entry = find(args.id); if (!entry) throw new MagnolieMcp.ToolError("not_found", "Health record not found");
             const record = kopie(entry); return { record, revision: await personalSyncHash(JSON.stringify(record)) };
           } },
-        { name: prefix + "create", description: "Create a " + kind + " measurement through the health-table product handler. An omitted page uses the first available page; glucose unit defaults to the product setting.",
-          inputSchema: { type: "object", properties: { ...fields, id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" } }, required: kind === "vital" ? ["date"] : ["date", "value"], additionalProperties: false },
+        { name: prefix + "create", description: "Create a " + kind + " record through the health-table product handler. An omitted page uses the first available page." + (kind === "blood_glucose" ? " Glucose unit defaults to the product setting." : ""),
+          inputSchema: { type: "object", properties: { ...fields, id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" } }, required: kind === "medication" ? ["name"] : kind === "vital" ? ["date"] : ["date", "value"], additionalProperties: false },
           annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, () => {
             if (args.id && find(args.id)) throw new MagnolieMcp.ToolError("already_exists", "Health record ID already exists");
-            if (DATEN.gesundheit[key].length >= 20000) throw new MagnolieMcp.ToolError("limit_reached", "Health record limit reached");
+            if (DATEN.gesundheit[key].length >= (kind === "medication" ? 1000 : 20000)) throw new MagnolieMcp.ToolError("limit_reached", "Health record limit reached");
             const record = apply(args); gesundheitErsetzeDaten(key, [], [record]); zustand.gesundheit.entwurf = null; return { id: record.id };
           }) },
-        { name: prefix + "update", description: "Revision-checked " + kind + " measurement edits. Changing glucose unit alone uses the same conversion and rounding as the product UI; an explicit value is interpreted in the selected unit.",
+        { name: prefix + "update", description: "Revision-checked " + kind + " record edits." + (kind === "blood_glucose" ? " Changing unit alone uses the same conversion and rounding as the product UI; an explicit value is interpreted in the selected unit." : ""),
           inputSchema: { type: "object", properties: { ...fields, id, expected_revision: revision }, required: ["id", "expected_revision"], anyOf: Object.keys(fields).map(field => ({ required: [field] })), additionalProperties: false },
           annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
             const current = await checked(args, signal), record = apply(args, current);
             gesundheitErsetzeDaten(key, [current.id], [record]); zustand.gesundheit.entwurf = null; return { id: record.id };
           }) },
-        { name: prefix + "delete", description: "Revision-checked permanent removal of a " + kind + " measurement using the health-table product handler; other page records remain intact.",
+        { name: prefix + "delete", description: "Revision-checked permanent removal of a " + kind + " record using the health-table product handler; other page records remain intact.",
           inputSchema: { type: "object", properties: { id, expected_revision: revision }, required: ["id", "expected_revision"], additionalProperties: false },
           annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
             const entry = await checked(args, signal); gesundheitErsetzeDaten(key, [entry.id], []); zustand.gesundheit.entwurf = null; return { id: entry.id };
           }) }
       ];
     });
+  }
+  function mcpInsulinSchemaWerkzeuge() {
+    const number = { type: "number", minimum: 0, maximum: 200 }, text = { type: "string", maxLength: 120 }, mode = { type: "string", enum: ["fixed", "scheme"] };
+    const rules = { type: "array", maxItems: 32, items: { type: "object", properties: { vergleich: { type: "string", enum: ["<", ">", "="] },
+      wert: { anyOf: [{ type: "number", minimum: 0, maximum: 0 }, { type: "number", minimum: 1, maximum: 50 }] },
+      operator: { type: "string", enum: ["+", "-", "="] }, ie: number }, required: ["vergleich", "wert", "operator", "ie"], additionalProperties: false } };
+    const fields = { basisAn: { type: "boolean" }, basisEinheiten: number, festEinheiten: number, langzeitInsulin: text, langzeitModus: mode,
+      langzeitFestEinheiten: number, langzeitRegeln: rules, kurzzeitInsulin: text, kurzzeitModus: mode, kurzzeitFestEinheiten: number, kurzzeitRegeln: rules,
+      hinweis: { type: "string", maxLength: 1000 } };
+    return [
+      { name: "organizer_insulin_scheme_read", description: "Read the stored insulin-scheme configuration and its revision, using the product model's field names.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => {
+          const scheme = kopie(DATEN.gesundheit.insulinschema); return { scheme, revision: await personalSyncHash(JSON.stringify(scheme)) };
+        } },
+      { name: "organizer_insulin_scheme_update", description: "Revision-checked partial insulin-scheme configuration through the product health-table handler. Supplied rule arrays replace those arrays; omitted fields remain intact.",
+        inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, changes: { type: "object", properties: fields,
+          anyOf: Object.keys(fields).map(field => ({ required: [field] })), additionalProperties: false } }, required: ["expected_revision", "changes"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const book = DATEN, current = DATEN.gesundheit.insulinschema, before = JSON.stringify(current), revision = await personalSyncHash(before);
+          if (signal.aborted || gesperrt || DATEN !== book || DATEN.gesundheit.insulinschema !== current || JSON.stringify(current) !== before || revision !== args.expected_revision)
+            throw new MagnolieMcp.ToolError("conflict", "Insulin scheme changed; read it again before writing");
+          mcpEditorPruefen(); gesundheitSetzeSchema({ ...current, ...args.changes }); zustand.gesundheit.entwurf = null; return {};
+        }) }
+    ];
   }
   function wendeUrlaubDatenAn(entry, values) {
     const value = entry || { id: values.id || uid(), von: isoHeute(), bis: isoHeute(), symbol: "palm", darstellung: "symbol-text" };
@@ -34014,8 +34060,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
-    if (/^organizer_(vital|blood_glucose)_read$/.test(name)) return shape({ record: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["record", "revision"]);
-    if (/^organizer_(vital|blood_glucose)_(create|update|delete)$/.test(name)) return shape(written, ["id", "persisted"]);
+    if (name === "organizer_insulin_scheme_read") return shape({ scheme: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["scheme", "revision"]);
+    if (name === "organizer_insulin_scheme_update") return shape({ persisted: yes }, ["persisted"]);
+    if (/^organizer_(vital|blood_glucose|medication)_read$/.test(name)) return shape({ record: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["record", "revision"]);
+    if (/^organizer_(vital|blood_glucose|medication)_(create|update|delete)$/.test(name)) return shape(written, ["id", "persisted"]);
     if (name === "organizer_waste_read") return shape({ waste: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["waste", "revision"]);
     if (["organizer_waste_create", "organizer_waste_update", "organizer_waste_delete"].includes(name)) return shape(written, ["id", "persisted"]);
     if (name === "organizer_day_marker_read") return shape({ date: text, marker: { type: ["object", "null"] }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["date", "marker", "revision"]);
@@ -34075,6 +34123,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpTagesmarkenWerkzeuge(),
       ...mcpMuellWerkzeuge(),
       ...mcpGesundheitMessWerkzeuge(),
+      ...mcpInsulinSchemaWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

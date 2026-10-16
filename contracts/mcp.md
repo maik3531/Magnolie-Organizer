@@ -87,6 +87,8 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_waste_read/create/update/delete` | Local waste collections with first date, interval (0 = one-time), type and color. Imported schedules retain date metadata and reject direct date/interval edits. Reads can project fields while revisions cover the entire definition; writes use shared UI helpers and await native persistence. |
 | `organizer_vital_read/create/update/delete` | Vital measurements with canonical kg/cm/Celsius units, product numeric ranges, explicit page or first free page, revision-checked edits and native persistence. Zero clears an optional numeric measurement. |
 | `organizer_blood_glucose_read/create/update/delete` | Blood glucose records with unit-specific product ranges, page allocation and revision-checked persistent edits. A unit-only update uses the UI conversion/rounding; an explicitly supplied value is interpreted in the selected unit. Medication and insulin-scheme configuration are separate. |
+| `organizer_medication_read/create/update/delete` | Stored medication records, names/forms, date ranges, weekday selection and typed weekly plans. Uses the same health-table mutation handler, page allocation, revision checks and durable saves; empty weekly-plan rows are removed. |
+| `organizer_insulin_scheme_read/update` | Revision-checked partial configuration with the product model's field names, typed rule arrays and native save acknowledgement. Omitted fields are preserved; supplied arrays replace their previous contents. |
 | `organizer_appointment_read` | Appointment, provider/read-only metadata and revision token |
 | `organizer_appointment_create` | Local/timed/all-day appointment, repeat configuration, alarms, participants and attachment metadata |
 | `organizer_appointment_update` | Revision-checked editor fields and provider moves through the existing ICS mirror |
@@ -167,8 +169,8 @@ Definition names must be nonblank so entries survive the normal product reload.
 
 ## Remaining coverage in #170
 
-The remaining work includes medication and insulin-scheme mutation handlers,
-time tracking and custom organizers, settings changes, native attachment open/save,
+The remaining work includes time tracking and custom organizers,
+settings changes, native attachment open/save,
 imports/exports and planners,
 recovery/backup operations, synchronization/accounts, Magnolienbaum operations,
 the remaining phone/KDE actions, and complete

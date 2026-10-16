@@ -319,6 +319,26 @@ def client():
                 "id": health_id, "expected_revision": health_read["structuredContent"]["revision"]}})
             assert not health_deleted["isError"] and health_deleted["structuredContent"]["persisted"], health_deleted
             assert not any(item["id"] == health_id for item in json.loads(data_file.read_text())["gesundheit"][key])
+        medication = call("tools/call", {"name": "organizer_medication_create", "arguments": {
+            "name": "Owned synthetic medication", "weekdays": [1, 3], "weekly_plan": [{"day": 1, "morning": "fixture"}]}})
+        assert not medication["isError"] and medication["structuredContent"]["persisted"], medication
+        medication_id = medication["structuredContent"]["id"]
+        medication_read = call("tools/call", {"name": "organizer_medication_read", "arguments": {"id": medication_id}})
+        medication_updated = call("tools/call", {"name": "organizer_medication_update", "arguments": {
+            "id": medication_id, "expected_revision": medication_read["structuredContent"]["revision"], "active": False}})
+        assert not medication_updated["isError"] and medication_updated["structuredContent"]["persisted"], medication_updated
+        medication_value = next(item for item in json.loads(data_file.read_text())["gesundheit"]["medikamente"] if item["id"] == medication_id)
+        assert not medication_value["aktiv"] and medication_value["wochenplan"][0]["morgens"] == "fixture", medication_value
+        medication_read = call("tools/call", {"name": "organizer_medication_read", "arguments": {"id": medication_id}})
+        medication_deleted = call("tools/call", {"name": "organizer_medication_delete", "arguments": {
+            "id": medication_id, "expected_revision": medication_read["structuredContent"]["revision"]}})
+        assert not medication_deleted["isError"] and medication_deleted["structuredContent"]["persisted"], medication_deleted
+        assert not any(item["id"] == medication_id for item in json.loads(data_file.read_text())["gesundheit"]["medikamente"])
+        scheme = call("tools/call", {"name": "organizer_insulin_scheme_read"})
+        scheme_updated = call("tools/call", {"name": "organizer_insulin_scheme_update", "arguments": {
+            "expected_revision": scheme["structuredContent"]["revision"], "changes": {"hinweis": "Owned native scheme fixture"}}})
+        assert not scheme_updated["isError"] and scheme_updated["structuredContent"]["persisted"], scheme_updated
+        assert json.loads(data_file.read_text())["gesundheit"]["insulinschema"]["hinweis"] == "Owned native scheme fixture"
         for date in ("2028-04-01", "2028-04-02"):
             day = call("tools/call", {"name": "organizer_day_marker_read", "arguments": {"date": date}})
             assert day["structuredContent"]["marker"] is None, day

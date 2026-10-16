@@ -334,6 +334,37 @@ let declaredContracts;
         assert.ok(!b.t.daten().gesundheit[key].some(entry => entry.id === id));
       }
       const invalidGlucose = await call(request(266, "tools/call", { name: "organizer_blood_glucose_create", arguments: { date: "2028-02-29", value: 51, unit: "mmol/L" } }));
+      const medicationId = "20202020-2020-4020-8020-202020202020";
+      await persisted(280, "organizer_medication_create", { id: medicationId, name: "Owned synthetic medication", from: "2028-02-29", through: "2028-03-02",
+        weekdays: [1, 1, 3], weekly_plan: [{ day: 1, morning: "fixture" }, { day: 2 }] });
+      const medicationRead = (await call(request(281, "tools/call", { name: "organizer_medication_read", arguments: { id: medicationId } }))).result.structuredContent;
+      assert.deepEqual(Array.from(medicationRead.record.wochentage), [1, 3]); assert.equal(medicationRead.record.wochenplan.length, 1);
+      const duplicateSchedule = await call(request(282, "tools/call", { name: "organizer_medication_update", arguments: { id: medicationId, expected_revision: medicationRead.revision, weekly_plan: [{ day: 1 }, { day: 1 }] } }));
+      assert.equal(duplicateSchedule.result.structuredContent.code, "invalid_schedule");
+      const invalidMedicationDate = await call(request(283, "tools/call", { name: "organizer_medication_update", arguments: { id: medicationId, expected_revision: medicationRead.revision, through: "2028-02-28" } }));
+      assert.equal(invalidMedicationDate.result.structuredContent.code, "invalid_date");
+      await persisted(284, "organizer_medication_update", { id: medicationId, expected_revision: medicationRead.revision, active: false });
+      const medicationUpdated = (await call(request(285, "tools/call", { name: "organizer_medication_read", arguments: { id: medicationId } }))).result.structuredContent;
+      assert.equal(medicationUpdated.record.aktiv, false);
+      const schemeRead = (await call(request(286, "tools/call", { name: "organizer_insulin_scheme_read" }))).result.structuredContent;
+      await persisted(287, "organizer_insulin_scheme_update", { expected_revision: schemeRead.revision, changes: { hinweis: "Owned synthetic configuration", langzeitRegeln: [{ vergleich: "<", wert: 6, operator: "=", ie: 0 }] } });
+      const schemeStale = await call(request(288, "tools/call", { name: "organizer_insulin_scheme_update", arguments: { expected_revision: schemeRead.revision, changes: { hinweis: "Stale fixture" } } }));
+      assert.equal(schemeStale.result.structuredContent.code, "conflict");
+      const schemeUpdated = (await call(request(289, "tools/call", { name: "organizer_insulin_scheme_read" }))).result.structuredContent;
+      const invalidScheme = await call(request(291, "tools/call", { name: "organizer_insulin_scheme_update", arguments: { expected_revision: schemeUpdated.revision, changes: { kurzzeitRegeln: [{ vergleich: "<", wert: 0.5, operator: "=", ie: 0 }] } } }));
+      assert.equal(invalidScheme.error.code, -32602);
+      const medicationList = b.t.daten().gesundheit.medikamente;
+      b.t.daten().gesundheit.medikamente = Array.from({ length: 1000 }, (_, i) => ({ id: "owned-medication-limit-" + i }));
+      const medicationLimit = await call(request(292, "tools/call", { name: "organizer_medication_create", arguments: { name: "Owned overflow" } }));
+      assert.equal(medicationLimit.result.structuredContent.code, "limit_reached");
+      b.t.daten().gesundheit.medikamente = medicationList;
+      assert.equal(schemeUpdated.scheme.kurzzeitModus, schemeRead.scheme.kurzzeitModus);
+      const medicationReload = await harness.exports.boot(web, JSON.parse(JSON.stringify(b.t.daten())));
+      try {
+        assert.equal(medicationReload.t.daten().gesundheit.medikamente.find(entry => entry.id === medicationId).wochenplan[0].morgens, "fixture");
+        assert.equal(medicationReload.t.daten().gesundheit.insulinschema.hinweis, "Owned synthetic configuration");
+      } finally { medicationReload.close(); }
+      await persisted(290, "organizer_medication_delete", { id: medicationId, expected_revision: medicationUpdated.revision });
       assert.equal(invalidGlucose.result.structuredContent.code, "invalid_value");
       const invalidVital = await call(request(267, "tools/call", { name: "organizer_vital_create", arguments: { date: "2028-02-29", pulse: 20 } }));
       assert.equal(invalidVital.error.code, -32602);
