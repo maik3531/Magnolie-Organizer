@@ -33421,6 +33421,35 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ];
     });
   }
+  function mcpTagesmarkenWerkzeuge() {
+    const date = { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" }, id = { type: "string", maxLength: 256 };
+    const checkDate = value => { if (!gueltigesISO(value)) throw new MagnolieMcp.ToolError("invalid_date", "Day marker date is invalid"); };
+    const snapshot = value => JSON.stringify({ date: value, marker: tagmarkeRohAm(value) || null });
+    return [
+      { name: "organizer_day_marker_read", description: "Read the raw shift/cycle assignment on a date, independent of visibility, with a date-bound revision token even for an unassigned day.",
+        inputSchema: { type: "object", properties: { date }, required: ["date"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async args => {
+          checkDate(args.date); const value = snapshot(args.date);
+          return { ...JSON.parse(value), revision: await personalSyncHash(value) };
+        } },
+      { name: "organizer_day_marker_set", description: "Revision-checked day assignment using the product handler. Omitted fields retain existing assignments; empty shift_id and empty cycle_marker_ids together remove the day marker.",
+        inputSchema: { type: "object", properties: { date, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, shift_id: id,
+          cycle_marker_ids: { type: "array", maxItems: 1000, items: { type: "string", minLength: 1, maxLength: 256 } } },
+          required: ["date", "expected_revision"], anyOf: [{ required: ["shift_id"] }, { required: ["cycle_marker_ids"] }], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          checkDate(args.date); const book = DATEN, before = snapshot(args.date), revision = await personalSyncHash(before);
+          if (signal.aborted || gesperrt || DATEN !== book || revision !== args.expected_revision || snapshot(args.date) !== before)
+            throw new MagnolieMcp.ToolError("conflict", "Day marker changed; read the date again before writing");
+          mcpEditorPruefen();
+          const current = JSON.parse(before).marker || { schichtId: "", zyklusIds: [] };
+          const shift = args.shift_id === undefined ? current.schichtId : args.shift_id;
+          const cycles = args.cycle_marker_ids === undefined ? current.zyklusIds : args.cycle_marker_ids;
+          if (shift && !DATEN.schichten.some(entry => entry.id === shift)) throw new MagnolieMcp.ToolError("not_found", "Shift definition not found");
+          if (cycles.some(id => !DATEN.zyklusmarker.some(entry => entry.id === id))) throw new MagnolieMcp.ToolError("not_found", "Cycle-marker definition not found");
+          aendereTagmarke(args.date, shift, cycles); return { date: args.date };
+        }) }
+    ];
+  }
   function wendeUrlaubDatenAn(entry, values) {
     const value = entry || { id: values.id || uid(), von: isoHeute(), bis: isoHeute(), symbol: "palm", darstellung: "symbol-text" };
     if (gueltigesISO(values.von)) value.von = values.von;
@@ -33620,6 +33649,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_day_marker_read") return shape({ date: text, marker: { type: ["object", "null"] }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["date", "marker", "revision"]);
+    if (name === "organizer_day_marker_set") return shape({ date: text, persisted: yes }, ["date", "persisted"]);
     if (/^organizer_(shift|cycle_marker)_(create|update)$/.test(name)) return shape(written, ["id", "persisted"]);
     if (/^organizer_(shift|cycle_marker)_delete$/.test(name)) return shape({ ...written, affected_dates: { type: "array", items: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" } } }, ["id", "persisted", "affected_dates"]);
     if (["organizer_vacation_create", "organizer_vacation_update", "organizer_vacation_delete"].includes(name)) return shape(written, ["id", "persisted"]);
@@ -33672,6 +33703,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpJahrestagWerkzeuge(),
       ...mcpUrlaubWerkzeuge(),
       ...mcpKalenderDefinitionWerkzeuge(),
+      ...mcpTagesmarkenWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

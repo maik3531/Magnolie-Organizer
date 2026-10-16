@@ -83,6 +83,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_vacation_read/create/update/delete` | Local vacation periods with validated inclusive date ranges, symbols and display style; revision-checked writes use the shared UI handler and wait for native persistence. Deletion is permanent, matching the UI. Calendar visibility is configured separately. |
 | `organizer_shift_read/create/update/delete` | Shift definitions, including overnight times and semantic type; permanent deletion clears shift assignments and removes otherwise-empty day markers, returning `affected_dates`. Writes are revision-checked and durably acknowledged. |
 | `organizer_cycle_marker_read/create/update/delete` | Cycle-marker definitions with semantic type, symbol and color; permanent deletion removes only that definition from assigned day markers and preserves other assignments, returning `affected_dates`. Visibility is configured separately. |
+| `organizer_day_marker_read/set` | Raw date-addressed shift/cycle assignments, including a date-bound revision for an unassigned day. Set validates referenced definitions and preserves omitted assignment fields. Empty shift and cycle assignments remove the marker through the existing product handler. Writes await native persistence. |
 | `organizer_appointment_read` | Appointment, provider/read-only metadata and revision token |
 | `organizer_appointment_create` | Local/timed/all-day appointment, repeat configuration, alarms, participants and attachment metadata |
 | `organizer_appointment_update` | Revision-checked editor fields and provider moves through the existing ICS mirror |
@@ -158,8 +159,9 @@ does not add anything to book data. Restoring a removed attachment uses the same
 
 ## Remaining coverage in #170
 
-The remaining work includes mutation handlers for the other product sections,
-settings changes, notebooks/groups and attachments, imports/exports and planners,
+The remaining work includes mutation handlers for waste collections, health,
+time tracking and custom organizers, settings changes, native attachment open/save,
+imports/exports and planners,
 recovery/backup operations, synchronization/accounts, Magnolienbaum operations,
 the remaining phone/KDE actions, and complete
 installed-product acceptance.

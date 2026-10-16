@@ -44,8 +44,7 @@ data_file.write_text(json.dumps({"version": 6, "notizen": [{"id": "owned-native-
      "icsRoundtrip": ["BEGIN:VEVENT", "UID:owned-provider-event-uid", "DTSTART;VALUE=DATE:20261116", "X-OWNED-FIXTURE:preserve", "END:VEVENT"]}
     ], "schichten": [{"id": "owned-cleanup-shift", "name": "Owned cleanup shift", "von": "22:00", "bis": "06:00", "farbe": "#aabbcc", "art": "night"}],
     "zyklusmarker": [{"id": "owned-cleanup-cycle", "name": "Owned cleanup cycle", "symbol": "🌱", "farbe": "#b86f8e", "art": "custom"}],
-    "tagmarken": [{"datum": "2028-04-01", "schichtId": "owned-cleanup-shift", "zyklusIds": ["owned-cleanup-cycle"]},
-                   {"datum": "2028-04-02", "schichtId": "owned-cleanup-shift", "zyklusIds": []}], "einstellungen": {
+    "einstellungen": {
     "allgemein": {"wiederherstellungsintervall": "manual", "tray": {"aktiv": False}},
     "update": {"automatisch": False}, "sync": {"beimStart": False},
     "erinnerung": {"an": False, "wecken": False, "jahrestage": {"an": False}}}}))
@@ -288,6 +287,14 @@ def client():
             "id": vacation_id, "expected_revision": vacation_read["structuredContent"]["revision"]}})
         assert not vacation_deleted["isError"] and vacation_deleted["structuredContent"]["persisted"], vacation_deleted
         assert not any(item["id"] == vacation_id for item in json.loads(data_file.read_text())["urlaube"])
+        for date in ("2028-04-01", "2028-04-02"):
+            day = call("tools/call", {"name": "organizer_day_marker_read", "arguments": {"date": date}})
+            assert day["structuredContent"]["marker"] is None, day
+            assigned = call("tools/call", {"name": "organizer_day_marker_set", "arguments": {
+                "date": date, "expected_revision": day["structuredContent"]["revision"], "shift_id": "owned-cleanup-shift",
+                "cycle_marker_ids": ["owned-cleanup-cycle"] if date == "2028-04-01" else []}})
+            assert not assigned["isError"] and assigned["structuredContent"]["persisted"], assigned
+            assert any(mark["datum"] == date and mark["schichtId"] == "owned-cleanup-shift" for mark in json.loads(data_file.read_text())["tagmarken"])
         for kind, section in (("shift", "schichten"), ("cycle_marker", "zyklusmarker")):
             created = call("tools/call", {"name": f"organizer_{kind}_create", "arguments": {"name": "Owned native definition"}})
             assert not created["isError"] and created["structuredContent"]["persisted"], created

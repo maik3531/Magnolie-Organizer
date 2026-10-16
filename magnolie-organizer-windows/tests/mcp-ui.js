@@ -233,7 +233,26 @@ let declaredContracts;
       assert.equal(invalidShift.error.code, -32602);
       await persisted(221, "organizer_shift_create", { id: shiftId, name: "Owned night shift", type: "night", from: "22:00", through: "06:00", color: "#AABBCC" });
       await persisted(222, "organizer_cycle_marker_create", { id: cycleId, name: "Owned cycle fixture", type: "custom", symbol: "🌱" });
-      b.t.daten().tagmarken.push({ datum: "2028-04-01", schichtId: shiftId, zyklusIds: [cycleId] }, { datum: "2028-04-02", schichtId: shiftId, zyklusIds: [] });
+      const readDay = async date => (await call(request(230, "tools/call", { name: "organizer_day_marker_read", arguments: { date } }))).result.structuredContent;
+      const emptyDay = await readDay("2028-04-01");
+      assert.equal(emptyDay.marker, null);
+      const wrongDay = await call(request(231, "tools/call", { name: "organizer_day_marker_set", arguments: { date: "2028-04-02", expected_revision: emptyDay.revision, shift_id: shiftId } }));
+      assert.equal(wrongDay.result.structuredContent.code, "conflict");
+      const missingDefinition = await call(request(232, "tools/call", { name: "organizer_day_marker_set", arguments: { date: "2028-04-01", expected_revision: emptyDay.revision, shift_id: "missing-owned-fixture" } }));
+      assert.equal(missingDefinition.result.structuredContent.code, "not_found");
+      for (const date of ["2028-04-01", "2028-04-02", "2028-04-03"]) {
+        const day = await readDay(date);
+        await persisted(233, "organizer_day_marker_set", { date, expected_revision: day.revision, shift_id: shiftId, cycle_marker_ids: date === "2028-04-02" ? [] : [cycleId, cycleId] });
+      }
+      const mixedDay = await readDay("2028-04-03");
+      assert.equal(mixedDay.marker.zyklusIds.length, 1);
+      await persisted(234, "organizer_day_marker_set", { date: "2028-04-03", expected_revision: mixedDay.revision, shift_id: "" });
+      const partialDay = await readDay("2028-04-03");
+      assert.equal(partialDay.marker.zyklusIds[0], cycleId);
+      const staleDay = await call(request(235, "tools/call", { name: "organizer_day_marker_set", arguments: { date: "2028-04-03", expected_revision: mixedDay.revision, cycle_marker_ids: [] } }));
+      assert.equal(staleDay.result.structuredContent.code, "conflict");
+      await persisted(236, "organizer_day_marker_set", { date: "2028-04-03", expected_revision: partialDay.revision, cycle_marker_ids: [] });
+      assert.equal((await readDay("2028-04-03")).marker, null);
       for (const [kind, id] of [["shift", shiftId], ["cycle_marker", cycleId]]) {
         const read = (await call(request(223, "tools/call", { name: `organizer_${kind}_read`, arguments: { id } }))).result.structuredContent;
         await persisted(224, `organizer_${kind}_update`, { id, expected_revision: read.revision, name: "Updated owned definition" });
