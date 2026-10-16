@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import selectors
+import signal
 import socket
 import struct
 import subprocess
@@ -32,6 +33,71 @@ os.environ["GSETTINGS_BACKEND"] = "memory"
 os.environ["NO_AT_BRIDGE"] = "1"
 os.environ["GIO_USE_VFS"] = "local"
 os.environ["MESA_SHADER_CACHE_DISABLE"] = "true"
+os.environ["SSH_AUTH_SOCK"] = str(Path(os.environ["XDG_RUNTIME_DIR"]) / "unused-ssh-agent.sock")
+os.environ["GNOME_KEYRING_CONTROL"] = str(Path(os.environ["XDG_RUNTIME_DIR"]) / "keyring")
+os.environ["WAYLAND_DISPLAY"] = ""
+os.environ["GDK_BACKEND"] = "x11"
+
+# dbus-run-session starts before Python replaces HOME/XDG. Validate its ownership
+# before changing only this bus's activation environment, including display/socket
+# paths so activated services cannot discover the user's session or keyring.
+from gi.repository import Gio, GLib
+native_bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+def bus_pid(name):
+    return native_bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus",
+        "org.freedesktop.DBus", "GetConnectionUnixProcessID", GLib.Variant("(s)", (name,)),
+        GLib.VariantType.new("(u)"), Gio.DBusCallFlags.NONE, 5000, None).unpack()[0]
+def parent_pid(pid):
+    return int(Path("/proc/%d/stat" % pid).read_text().rsplit(")", 1)[1].split()[1])
+ancestors = set()
+ancestor = os.getpid()
+for _ in range(16):
+    if ancestor <= 1:
+        break
+    command = Path("/proc/%d/cmdline" % ancestor).read_bytes().split(b"\0")[0]
+    if Path(os.fsdecode(command)).name == "dbus-run-session":
+        ancestors.add(ancestor)
+    ancestor = parent_pid(ancestor)
+assert parent_pid(bus_pid("org.freedesktop.DBus")) in ancestors, "Probe requires its own dbus-run-session ancestor"
+activation_keys = ("HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_RUNTIME_DIR",
+    "SSH_AUTH_SOCK", "GNOME_KEYRING_CONTROL", "WAYLAND_DISPLAY", "GDK_BACKEND", "DISPLAY", "XAUTHORITY", "DBUS_SESSION_BUS_ADDRESS")
+activation_environment = {key: os.environ.get(key, "") for key in activation_keys}
+native_bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
+    "UpdateActivationEnvironment", GLib.Variant("(a{ss})", (activation_environment,)),
+    None, Gio.DBusCallFlags.NONE, 5000, None)
+private_service_handles = {}
+def capture_private_secret_service():
+    try:
+        pid = bus_pid("org.freedesktop.secrets")
+    except GLib.Error:
+        return
+    if pid in private_service_handles:
+        return
+    handle = os.pidfd_open(pid)
+    try:
+        environment = dict(item.split(b"=", 1) for item in Path("/proc/%d/environ" % pid).read_bytes().split(b"\0") if b"=" in item)
+        for key in ("HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_RUNTIME_DIR", "SSH_AUTH_SOCK", "GNOME_KEYRING_CONTROL", "DISPLAY"):
+            assert environment.get(key.encode()) == activation_environment[key].encode(), "Activated service escaped private " + key
+        private_service_handles[pid] = handle
+    except BaseException:
+        os.close(handle)
+        raise
+def stop_private_secret_service():
+    capture_private_secret_service()
+    for handle in private_service_handles.values():
+        try:
+            try:
+                signal.pidfd_send_signal(handle, signal.SIGTERM)
+            except ProcessLookupError:
+                continue
+            with selectors.DefaultSelector() as waiter:
+                waiter.register(handle, selectors.EVENT_READ)
+                if not waiter.select(3):
+                    signal.pidfd_send_signal(handle, signal.SIGKILL)
+                    assert waiter.select(3), "Private Secret Service did not exit"
+        finally:
+            os.close(handle)
+    private_service_handles.clear()
 sys.path.insert(0, str(ROOT / "bin"))
 profile = Path(os.environ["XDG_DATA_HOME"]) / "magnolie-organizer"
 profile.mkdir(mode=0o700)
@@ -67,7 +133,7 @@ sys.modules[loader.name] = product
 loader.exec_module(product)
 assert product.GTK_OK and product.WEBKIT_OK
 product._REGIONAL = product.regional_einstellungen(dict(product._REGIONAL, timeZone="UTC", language="en", formatLocale="en-GB"))
-state = {"started": False, "passed": False, "error": None, "transport_blocked": False}
+state = {"started": False, "passed": False, "error": None, "transport_blocked": False, "activation_private": True}
 def unrelated_transport(*_args, **_kwargs):
     state["transport_blocked"] = True
     raise RuntimeError("Handset transports are unavailable in this native book fixture")
@@ -942,6 +1008,7 @@ def client():
         assert vault_elapsed < 1 or vault_ticks["count"] >= 2, "GTK heartbeat stalled during native vault status lookup"
         product.GLib.source_remove(vault_ticks["source"])
         assert not backup_settings["isError"] and backup_settings["structuredContent"]["settings"]["password_available"] is False, backup_settings
+        capture_private_secret_service()
         backup_settings_updated = call("tools/call", {"name": "organizer_backup_settings_update", "arguments": {
             "expected_revision": backup_settings["structuredContent"]["revision"], "folder": str(Path(temporary.name) / "owned-configured-backups"),
             "enabled": False, "interval": "weekly", "retention": 9}})
@@ -1050,6 +1117,11 @@ finally:
         if process.poll() is None:
             process.kill()
             process.wait(timeout=3)
+    try:
+        stop_private_secret_service()
+    except BaseException:
+        state["passed"] = False
+        state["error"] = traceback.format_exc(limit=4)
     print("Native MCP fixture state:", json.dumps(state), flush=True)
     temporary.cleanup()
 assert state["passed"], state
