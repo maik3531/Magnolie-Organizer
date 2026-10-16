@@ -28098,7 +28098,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           "Permanently delete all %(count)s items? This cannot be undone.",
           DATEN.papierkorb.length), _("Delete permanently")).then((ja) => {
           if (!ja) return;
-          DATEN.papierkorb = [];
+          leerePapierkorbDaten();
           planeSpeichern();
           baueEinstellungen();
           zettel(_("The recycle bin was emptied."));
@@ -34408,6 +34408,25 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         return { path: value.pfad, confirmed: true, encrypted: value.verschluesselt === true };
       } }];
   }
+  function leerePapierkorbDaten() {
+    const count = DATEN.papierkorb.length;
+    DATEN.papierkorb = []; return count;
+  }
+  function mcpPapierkorbWerkzeuge() {
+    return [
+      { name: "organizer_trash_revision_read", description: "Read the complete recycle-bin revision and item count without returning potentially large deleted payloads. Use data/content reads to inspect items.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => {
+          const items = kopie(DATEN.papierkorb); return { total: items.length, revision: await personalSyncHash(JSON.stringify(items)) };
+        } },
+      { name: "organizer_trash_empty", description: "Permanently empty the complete recycle bin through the same product handler as the GUI. Requires its current complete revision; synchronization tombstones and live data remain intact. Returns only after native durable save confirmation.",
+        inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, required: ["expected_revision"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const book = DATEN, before = JSON.stringify(DATEN.papierkorb), revision = await personalSyncHash(before);
+          if (signal.aborted || DATEN !== book || JSON.stringify(DATEN.papierkorb) !== before || revision !== args.expected_revision)
+            throw new MagnolieMcp.ToolError("conflict", "Recycle bin changed; read its revision again before emptying");
+          mcpEditorPruefen(); return { deleted_count: leerePapierkorbDaten() };
+        }) }
+    ];
+  }
   function mcpArchivImportAntwort(value, callback = "gesamtarchivImportiert") {
     if (value.ok === true && value.committed === true && value.daten) {
       verwerfeSpeichernNachRestore(); DATEN = normalisiere(value.daten);
@@ -34650,6 +34669,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_trash_revision_read") return shape({ total: { type: "integer", minimum: 0 }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["total", "revision"]);
+    if (name === "organizer_trash_empty") return shape({ deleted_count: { type: "integer", minimum: 0 }, persisted: yes }, ["deleted_count", "persisted"]);
     if (name === "organizer_archive_export") return shape({ path: text, confirmed: yes, encrypted: flag }, ["path", "confirmed", "encrypted"]);
     if (name === "organizer_backup_preview") return shape({ path: text, revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, verified: yes, encrypted: flag, counts: object }, ["path", "revision", "verified", "encrypted", "counts"]);
     if (name === "organizer_archive_import" || name === "organizer_backup_restore") return mcpErgebnisSchema("organizer_recovery_snapshot_restore");
@@ -34762,6 +34783,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpArchivImportWerkzeuge(),
       ...mcpArchivImportWerkzeuge(true),
       ...mcpBackupVorschauWerkzeuge(),
+      ...mcpPapierkorbWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

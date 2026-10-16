@@ -953,6 +953,21 @@ let declaredContracts;
       }
       }
       onArchiveImport = null;
+      {
+      const binBefore = (await call(request(550, "tools/call", { name: "organizer_trash_revision_read" }))).result.structuredContent;
+      const removed = await persisted(551, "organizer_note_create", { title: "Owned trash clear fixture", text: "Owned" });
+      const removedRead = (await call(request(552, "tools/call", { name: "organizer_note_read", arguments: { id: removed.id } }))).result.structuredContent;
+      await persisted(553, "organizer_note_delete", { id: removed.id, expected_revision: removedRead.revision });
+      const staleBin = await call(request(554, "tools/call", { name: "organizer_trash_empty", arguments: { expected_revision: binBefore.revision } }));
+      assert.equal(staleBin.result.structuredContent.code, "conflict");
+      const bin = (await call(request(555, "tools/call", { name: "organizer_trash_revision_read" }))).result.structuredContent;
+      assert.ok(bin.total > 0);
+      const tombstonesBefore = JSON.stringify(b.t.daten().tombstones), notesBefore = JSON.stringify(b.t.daten().notizen);
+      const emptyBin = await persisted(556, "organizer_trash_empty", { expected_revision: bin.revision });
+      assert.equal(emptyBin.deleted_count, bin.total); assert.equal(b.t.daten().papierkorb.length, 0);
+      assert.equal(JSON.stringify(b.t.daten().tombstones), tombstonesBefore);
+      assert.equal(JSON.stringify(b.t.daten().notizen), notesBefore);
+      }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));
       assert.equal(locked.result.isError, true);

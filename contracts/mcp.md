@@ -119,6 +119,8 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_contact_update` | Revision-checked editor fields while retaining unrelated vCard/provider metadata |
 | `organizer_contact_delete` | Native pre-delete recovery snapshot, renewed revision check, tombstones/trash and linked-reference cleanup |
 | `organizer_trash_restore` | Existing type-specific product restore handler |
+| `organizer_trash_revision_read` | Complete recycle-bin revision and count without large deleted payloads. |
+| `organizer_trash_empty` | Permanent complete-bin removal through the shared GUI handler, requiring the current complete-bin revision and native durable-save acknowledgement; live data and synchronization tombstones are retained. |
 | `notes_diagnostics_read` | Ephemeral WLAN diagnostics through the confirmed own Notes connection |
 | `kde_media_devices` | Current supported media devices |
 | `kde_media_status` | Media state and fresh source token for `device_id` |
@@ -192,7 +194,7 @@ Definition names must be nonblank so entries survive the normal product reload.
 
 The remaining work includes other settings changes, native attachment open/save,
 imports/exports and planners,
-backup restoration/configuration, synchronization/accounts, Magnolienbaum operations,
+backup configuration, synchronization/accounts, Magnolienbaum operations,
 the remaining phone/KDE actions, and complete
 installed-product acceptance.
 The listed tools execute their current product operations; remaining functions

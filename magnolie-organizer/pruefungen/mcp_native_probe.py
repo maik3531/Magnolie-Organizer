@@ -788,6 +788,25 @@ def client():
             assert not classic_gui["isError"] and classic_gui["structuredContent"]["total_bytes"] == len(large_text.encode("utf8")), classic_gui
             product.GLib.idle_add(clean_import_fixture)
             assert import_cleaned.wait(5)
+        bin_before = call("tools/call", {"name": "organizer_trash_revision_read"})
+        bin_note = call("tools/call", {"name": "organizer_note_create", "arguments": {"title": "Owned trash clear fixture", "text": "Owned"}})
+        assert not bin_note["isError"], bin_note
+        bin_note_id = bin_note["structuredContent"]["id"]
+        bin_note_read = call("tools/call", {"name": "organizer_note_read", "arguments": {"id": bin_note_id, "fields": ["id"]}})
+        bin_note_deleted = call("tools/call", {"name": "organizer_note_delete", "arguments": {
+            "id": bin_note_id, "expected_revision": bin_note_read["structuredContent"]["revision"]}})
+        assert not bin_note_deleted["isError"], bin_note_deleted
+        stale_bin = call("tools/call", {"name": "organizer_trash_empty", "arguments": {"expected_revision": bin_before["structuredContent"]["revision"]}})
+        assert stale_bin["isError"] and stale_bin["structuredContent"]["code"] == "conflict", stale_bin
+        saved_before_empty = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        bin_revision = call("tools/call", {"name": "organizer_trash_revision_read"})
+        empty_bin = call("tools/call", {"name": "organizer_trash_empty", "arguments": {"expected_revision": bin_revision["structuredContent"]["revision"]}})
+        assert not empty_bin["isError"] and empty_bin["structuredContent"]["persisted"], empty_bin
+        assert empty_bin["structuredContent"]["deleted_count"] == bin_revision["structuredContent"]["total"] > 0
+        saved_after_empty = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        assert saved_after_empty["papierkorb"] == []
+        assert saved_before_empty["tombstones"] == saved_after_empty["tombstones"]
+        assert saved_before_empty["notizen"] == saved_after_empty["notizen"]
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()
