@@ -62,6 +62,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | --- | --- |
 | `organizer_status` | Live version, readiness, lock and pending-save status |
 | `organizer_data_read` | Product section; optional `id` lookup or array `offset`/`limit` pagination |
+| `organizer_content_read` | Bounded base64 UTF-8 byte chunks for a selected product string, with content revision checking |
 | `organizer_settings_read` | Current product settings |
 | `organizer_sync_sources_read` | Actual native calendar/address-book/account availability, with request- and callback-bound results |
 | `organizer_note_read` | Note and revision token |
@@ -116,12 +117,30 @@ second occurrence. A detached completed instance can be reopened by its own ID.
 `personen`, `schichten`, `smsVerlauf`, `smsPlanung`, `zyklusmarker`, `tagmarken`,
 `gesundheit`, and `eigenesProfil`. Returned IDs are the product's IDs.
 
+Data reads optionally select `fields` and a `path` inside that section. An `id`
+first selects the root collection's entity; path strings then select its own
+object fields and path integers select array positions. Nested arrays retain
+pagination. Prototype traversal and filesystem paths are not supported.
+For example, `section: "notizen", id: NOTE_ID, path: ["anhaenge"]` with
+`fields: ["id", "name", "art"]` lists attachment metadata without inline data.
+
+`organizer_content_read` uses the same section/entity/path selection and returns
+at most 65,536 bytes per chunk. `offset`, `total_bytes` and `next_offset` are byte
+positions; base64 decoding and joining the bytes before UTF-8 decoding preserves
+characters split across chunk boundaries. Supply the first result's `revision`
+as `expected_revision` on subsequent calls; changed content yields `conflict`.
+Stored image/document data URIs are returned as their original UTF-8 strings,
+not opened or interpreted by the chunk reader.
+The note/task/appointment/contact read tools also accept a `fields` projection;
+their revision still covers the entire entity, so large entries can be safely
+updated or deleted without first returning their complete inline content.
+
 ## Remaining coverage in #170
 
 The remaining work includes mutation handlers for the other product sections,
 settings changes, notebooks/groups and attachments, imports/exports and planners,
 recovery/backup operations, synchronization/accounts, Magnolienbaum operations,
-the remaining phone/KDE actions, bounded large-content reads, and complete
+the remaining phone/KDE actions, and complete
 installed-product acceptance.
 The listed tools execute their current product operations; remaining functions
 are not represented by success-only placeholders.

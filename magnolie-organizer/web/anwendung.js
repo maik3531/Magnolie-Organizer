@@ -32885,12 +32885,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const expected_revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
     return [
       { name: "organizer_note_read", description: "Read a note and its opaque revision token for conflict-checked updates or deletion.",
-        inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false },
-        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ id }) => {
+        inputSchema: { type: "object", properties: { id, fields: { type: "array", minItems: 1, maxItems: 128, items: { type: "string", minLength: 1, maxLength: 256 } } }, required: ["id"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ id, fields }) => {
           const current = DATEN.notizen.find(note => note.id === id);
           if (!current) throw new MagnolieMcp.ToolError("not_found", "Note not found");
           const note = kopie(current);
-          return { note, revision: await personalSyncHash(JSON.stringify(note)) };
+          return { note: mcpLeseProjektion(note, fields), revision: await personalSyncHash(JSON.stringify(note)) };
         } },
       { name: "organizer_note_update", description: "Update note title, plain text or notebook using the revision from organizer_note_read. Existing attachments are preserved. The native save must acknowledge success.",
         inputSchema: { type: "object", properties: { id, expected_revision, title: { type: "string", maxLength: 1024 },
@@ -33006,12 +33006,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       reminder_days: { type: "integer", minimum: 0, maximum: 7 }, parent_id: { type: "string", maxLength: 256 } };
     return [
       { name: "organizer_task_read", description: "Read a task and its opaque revision token for conflict-checked local changes.",
-        inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false },
-        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ id }) => {
+        inputSchema: { type: "object", properties: { id, fields: { type: "array", minItems: 1, maxItems: 128, items: { type: "string", minLength: 1, maxLength: 256 } } }, required: ["id"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ id, fields }) => {
           const current = DATEN.aufgaben.find(task => task.id === id);
           if (!current) throw new MagnolieMcp.ToolError("not_found", "Task not found");
           const task = kopie(current);
-          return { task, revision: await personalSyncHash(JSON.stringify(task)) };
+          return { task: mcpLeseProjektion(task, fields), revision: await personalSyncHash(JSON.stringify(task)) };
         } },
       { name: "organizer_task_create", description: "Create a local task through the same constructor and hierarchy normalization as the task editor. Success requires native durable saving.",
         inputSchema: { type: "object", properties: { ...properties, id: { type: "string",
@@ -33176,12 +33176,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         enabled: { type: "boolean" } }, required: ["offset_minutes"], additionalProperties: false } } };
     return [
       { name: "organizer_appointment_read", description: "Read an appointment, its provider/read-only metadata and revision token.",
-        inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false },
-        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ id }) => {
+        inputSchema: { type: "object", properties: { id, fields: { type: "array", minItems: 1, maxItems: 128, items: { type: "string", minLength: 1, maxLength: 256 } } }, required: ["id"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ id, fields }) => {
           const current = DATEN.termine.find(item => item.id === id);
           if (!current) throw new MagnolieMcp.ToolError("not_found", "Appointment not found");
           const appointment = kopie(current);
-          return { appointment, revision: await personalSyncHash(JSON.stringify(appointment)) };
+          return { appointment: mcpLeseProjektion(appointment, fields), revision: await personalSyncHash(JSON.stringify(appointment)) };
         } },
       { name: "organizer_appointment_create", description: "Create an appointment through the native editor data path. Omitted clock times create an all-day entry; recurrence, alarms, participants and attachment metadata use the product normalizers.",
         inputSchema: { type: "object", properties: { ...properties, id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" } },
@@ -33425,6 +33425,55 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   const mcpBereiche = ["termine", "aufgaben", "kontakte", "notizen", "customOrganizer", "zeiterfassung",
     "notizgruppen", "notizbuecher", "jahrestage", "feiertage", "urlaube", "muelltermine", "papierkorb",
     "personen", "schichten", "smsVerlauf", "smsPlanung", "zyklusmarker", "tagmarken", "gesundheit", "eigenesProfil"];
+  function mcpLeseWert(section, id, path = []) {
+    let value = DATEN[section];
+    if (id !== undefined) {
+      if (!Array.isArray(value)) throw new MagnolieMcp.ToolError("invalid_section", "ID lookup requires a collection");
+      value = value.find(entry => entry.id === id);
+      if (!value) throw new MagnolieMcp.ToolError("not_found", "Entry not found");
+    }
+    for (const key of path) {
+      if (["__proto__", "prototype", "constructor"].includes(key)) throw new MagnolieMcp.ToolError("invalid_path", "Invalid product-data path");
+      if (value === null || typeof value !== "object" || Array.isArray(value) && !Number.isSafeInteger(key) ||
+          !Array.isArray(value) && typeof key !== "string" || !Object.prototype.hasOwnProperty.call(value, key))
+        throw new MagnolieMcp.ToolError("not_found", "Product-data path not found");
+      value = value[key];
+    }
+    return value;
+  }
+  function mcpLeseProjektion(value, fields) {
+    if (!fields) return value === undefined ? null : kopie(value);
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      throw new MagnolieMcp.ToolError("invalid_projection", "Field projection requires an object");
+    if (fields.some(field => ["__proto__", "prototype", "constructor"].includes(field)))
+      throw new MagnolieMcp.ToolError("invalid_field", "Invalid product field projection");
+    return Object.fromEntries(fields.filter(field => Object.prototype.hasOwnProperty.call(value, field) && value[field] !== undefined).map(field => [field, kopie(value[field])]));
+  }
+  function mcpDatenLeseSchema(extra = {}) {
+    return { type: "object", properties: { section: { type: "string", enum: mcpBereiche },
+      id: { type: "string", minLength: 1, maxLength: 256 }, path: { type: "array", maxItems: 16,
+        items: { anyOf: [{ type: "string", minLength: 1, maxLength: 256 }, { type: "integer", minimum: 0, maximum: Number.MAX_SAFE_INTEGER }] } }, ...extra },
+      required: ["section"], additionalProperties: false };
+  }
+  function mcpInhaltWerkzeug() {
+    return { name: "organizer_content_read", description: "Read a product string (including note text or stored attachment/photo data URIs) as bounded UTF-8 byte chunks encoded in base64. Path traversal stays inside the selected product section/entity. Use the returned revision for subsequent chunks.",
+      inputSchema: mcpDatenLeseSchema({ offset: { type: "integer", minimum: 0, maximum: Number.MAX_SAFE_INTEGER },
+        limit: { type: "integer", minimum: 1, maximum: 65536 }, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }),
+      annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ section, id, path = [], offset = 0, limit = 65536, expected_revision }, signal) => {
+        const value = mcpLeseWert(section, id, path);
+        if (typeof value !== "string") throw new MagnolieMcp.ToolError("invalid_content", "Selected product value is not a string");
+        const bytes = new TextEncoder().encode(value);
+        const revision = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), byte => byte.toString(16).padStart(2, "0")).join("");
+        if (signal.aborted || mcpLeseWert(section, id, path) !== value || expected_revision !== undefined && revision !== expected_revision)
+          throw new MagnolieMcp.ToolError("conflict", "Product content changed; restart the chunked read");
+        if (offset > bytes.length) throw new MagnolieMcp.ToolError("invalid_offset", "Content offset exceeds its byte length");
+        const chunk = bytes.subarray(offset, Math.min(bytes.length, offset + limit));
+        let binary = "";
+        for (let index = 0; index < chunk.length; index += 8192) binary += String.fromCharCode(...chunk.subarray(index, index + 8192));
+        return { section, encoding: "base64", charset: "UTF-8", total_bytes: bytes.length, offset, data: btoa(binary), revision,
+          next_offset: offset + chunk.length < bytes.length ? offset + chunk.length : null };
+      } };
+  }
   function mcpErgebnisSchema(name) {
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
@@ -33434,6 +33483,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       supportedSocialServices: { type: "array", items: text } }, ["version", "ready", "locked", "editorDirty", "dialogOpen", "pendingSave", "supportedSocialServices"]);
     if (name === "organizer_settings_read") return shape({ settings: object }, ["settings"]);
     if (name === "organizer_sync_sources_read") return shape({ status: object }, ["status"]);
+    if (name === "organizer_content_read") return shape({ section: { type: "string", enum: mcpBereiche }, encoding: { type: "string", enum: ["base64"] },
+      charset: { type: "string", enum: ["UTF-8"] }, total_bytes: { type: "integer", minimum: 0 }, offset: { type: "integer", minimum: 0 }, data: text,
+      revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, next_offset: { type: ["integer", "null"], minimum: 0 } },
+      ["section", "encoding", "charset", "total_bytes", "offset", "data", "revision", "next_offset"]);
     if (name === "notes_diagnostics_read") return shape({ device_id: id, diagnostics: shape({ format: { type: "integer", enum: [1] },
       app_version: text, events: { type: "array", maxItems: 128, items: object } }, ["format", "app_version", "events"], true) }, ["device_id", "diagnostics"]);
     if (name === "organizer_data_read") return { ...shape({ section: { type: "string", enum: mcpBereiche }, entry: object,
@@ -33461,6 +33514,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
   function mcpWerkzeuge() {
     const tools = [
+      mcpInhaltWerkzeug(),
       { name: "organizer_sync_sources_read", description: "Read actual native calendar/address-book/account source availability. The native result is request-correlated and also refreshes the product source selection cache.",
         inputSchema: { type: "object", properties: {}, additionalProperties: false },
         annotations: { readOnlyHint: true, openWorldHint: true },
@@ -33499,20 +33553,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           editorDirty: !gesperrt && editorIstGeaendert(), dialogOpen: !gesperrt && modalStapel.some(entry => entry.schleier.isConnected),
           pendingSave: !!(speicherTimer || laufenderSpeicher || wartenderSpeicherText !== null) }) },
       { name: "organizer_data_read", description: "Read a section of the live Organizer data. Array results are paginated; IDs remain the product IDs.",
-        inputSchema: { type: "object", properties: { section: { type: "string", enum: mcpBereiche },
+        inputSchema: mcpDatenLeseSchema({
           offset: { type: "integer", minimum: 0, maximum: 10000000 }, limit: { type: "integer", minimum: 1, maximum: 200 },
-          id: { type: "string", minLength: 1, maxLength: 256 } }, required: ["section"], additionalProperties: false },
+          fields: { type: "array", minItems: 1, maxItems: 128, items: { type: "string", minLength: 1, maxLength: 256 } } }),
         annotations: { readOnlyHint: true, openWorldHint: false },
-        call: async ({ section, offset = 0, limit = 100, id }) => {
-          const value = DATEN[section];
-          if (id !== undefined) {
-            if (!Array.isArray(value)) throw new MagnolieMcp.ToolError("invalid_section", "ID lookup requires a collection");
-            const item = value.find(entry => entry.id === id);
-            if (!item) throw new MagnolieMcp.ToolError("not_found", "Entry not found");
-            return { section, entry: kopie(item) };
-          }
-          return Array.isArray(value) ? { section, total: value.length, offset, entries: kopie(value.slice(offset, offset + limit)),
-            ...(offset + limit < value.length ? { nextOffset: offset + limit } : {}) } : { section, value: value === undefined ? null : kopie(value) };
+        call: async ({ section, offset = 0, limit = 100, id, path = [], fields }) => {
+          const value = mcpLeseWert(section, id, path);
+          if (id !== undefined && !path.length) return { section, entry: mcpLeseProjektion(value, fields) };
+          return Array.isArray(value) ? { section, total: value.length, offset, entries: value.slice(offset, offset + limit).map(item => mcpLeseProjektion(item, fields)),
+            ...(offset + limit < value.length ? { nextOffset: offset + limit } : {}) } : { section, value: mcpLeseProjektion(value, fields) };
         } },
       { name: "organizer_settings_read", description: "Read the current Organizer product settings.",
         inputSchema: { type: "object", properties: {}, additionalProperties: false },

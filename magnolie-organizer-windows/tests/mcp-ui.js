@@ -71,6 +71,38 @@ let declaredContracts;
       assert.equal(b.t.daten().notizen[0].titel, "Fixture");
       const item = await call(request(4, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen", id: "fixture-note" } }));
       assert.equal(item.result.structuredContent.entry.text, "Owned fixture only");
+      const projectedNote = await call(request(130, "tools/call", { name: "organizer_data_read", arguments: {
+        section: "notizen", id: "fixture-note", fields: ["id", "titel"] } }));
+      assert.equal(projectedNote.result.structuredContent.entry.titel, "Fixture");
+      assert.equal(projectedNote.result.structuredContent.entry.text, undefined);
+      const nestedModules = await call(request(131, "tools/call", { name: "organizer_data_read", arguments: {
+        section: "customOrganizer", path: ["modules"] } }));
+      assert.equal(nestedModules.result.structuredContent.total, 0);
+      const indexedTitle = await call(request(132, "tools/call", { name: "organizer_data_read", arguments: {
+        section: "notizen", path: [0, "titel"] } }));
+      assert.equal(indexedTitle.result.structuredContent.value, "Fixture");
+      const traversal = await call(request(133, "tools/call", { name: "organizer_data_read", arguments: {
+        section: "notizen", id: "fixture-note", path: ["constructor"] } }));
+      assert.equal(traversal.result.structuredContent.code, "invalid_path");
+      const ownNote = b.t.daten().notizen.find(note => note.id === "fixture-note"), originalText = ownNote.text;
+      const longText = "🌸é\n".repeat(100000);
+      ownNote.text = longText;
+      const firstChunk = await call(request(134, "tools/call", { name: "organizer_content_read", arguments: {
+        section: "notizen", id: "fixture-note", path: ["text"], limit: 5 } }));
+      const chunk = firstChunk.result.structuredContent, bytes = Buffer.from(longText, "utf8");
+      assert.equal(chunk.total_bytes, bytes.length);
+      assert.equal(Buffer.from(chunk.data, "base64").compare(bytes.subarray(0, 5)), 0);
+      const secondChunk = await call(request(135, "tools/call", { name: "organizer_content_read", arguments: {
+        section: "notizen", id: "fixture-note", path: ["text"], offset: chunk.next_offset, limit: 5, expected_revision: chunk.revision } }));
+      assert.equal(Buffer.from(secondChunk.result.structuredContent.data, "base64").compare(bytes.subarray(5, 10)), 0);
+      const largeChunk = await call(request(136, "tools/call", { name: "organizer_content_read", arguments: {
+        section: "notizen", id: "fixture-note", path: ["text"], limit: 65536, expected_revision: chunk.revision } }));
+      assert.ok(Buffer.byteLength(JSON.stringify(largeChunk), "utf8") < 1024 * 1024);
+      ownNote.text += "changed";
+      const staleChunk = await call(request(137, "tools/call", { name: "organizer_content_read", arguments: {
+        section: "notizen", id: "fixture-note", path: ["text"], offset: 10, expected_revision: chunk.revision } }));
+      assert.equal(staleChunk.result.structuredContent.code, "conflict");
+      ownNote.text = originalText;
       const bad = await call(request(5, "tools/call", { name: "organizer_data_read", arguments: { section: "__proto__" } }));
       assert.equal(bad.error.code, -32602);
       // Settle the normal startup migration save before exercising MCP writes.

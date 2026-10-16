@@ -2,6 +2,7 @@
 """Bounded Xvfb probe of the real source GTK/WebKit/native save/MCP stdio path."""
 import importlib.machinery
 import importlib.util
+import base64
 import hashlib
 import json
 import os
@@ -79,7 +80,7 @@ def client():
         selector.register(process.stdout, selectors.EVENT_READ)
         sequence = 0
         def send(value):
-            process.stdin.write(json.dumps(value).encode() + b"\n")
+            process.stdin.write(json.dumps(value, ensure_ascii=False).encode() + b"\n")
             process.stdin.flush()
         def call(method, params=None):
             nonlocal sequence
@@ -241,10 +242,29 @@ def client():
             "id": contact_deleted["structuredContent"]["trash_id"]}})
         assert not contact_restored["isError"] and contact_restored["structuredContent"]["persisted"], contact_restored
         assert any(item["id"] == contact_id for item in json.loads(data_file.read_text())["kontakte"])
+        # A normal full-note result would exceed the 1 MiB record bound; read
+        # its metadata and UTF-8 bytes through the bounded product operations.
+        large_text = "🌸é\n" * 100000
+        current_note = call("tools/call", {"name": "organizer_note_read", "arguments": {"id": note_id}})
+        large_updated = call("tools/call", {"name": "organizer_note_update", "arguments": {
+            "id": note_id, "expected_revision": current_note["structuredContent"]["revision"], "text": large_text}})
+        assert not large_updated["isError"] and large_updated["structuredContent"]["persisted"], large_updated
+        projected = call("tools/call", {"name": "organizer_data_read", "arguments": {
+            "section": "notizen", "id": note_id, "fields": ["id", "titel"]}})
+        assert projected["structuredContent"]["entry"]["id"] == note_id
+        assert "text" not in projected["structuredContent"]["entry"]
+        first = call("tools/call", {"name": "organizer_content_read", "arguments": {
+            "section": "notizen", "id": note_id, "path": ["text"], "limit": 5}})["structuredContent"]
+        encoded = large_text.encode("utf-8")
+        assert first["total_bytes"] == len(encoded) and base64.b64decode(first["data"]) == encoded[:5]
+        second = call("tools/call", {"name": "organizer_content_read", "arguments": {
+            "section": "notizen", "id": note_id, "path": ["text"], "offset": first["next_offset"],
+            "limit": 65536, "expected_revision": first["revision"]}})["structuredContent"]
+        assert base64.b64decode(second["data"]) == encoded[5:5 + 65536]
         stale = call("tools/call", {"name": "organizer_note_update", "arguments": {"id": note_id,
             "expected_revision": revision["structuredContent"]["revision"], "title": "Do not overwrite"}})
         assert stale["isError"] and stale["structuredContent"]["code"] == "conflict", stale
-        current = call("tools/call", {"name": "organizer_note_read", "arguments": {"id": note_id}})
+        current = call("tools/call", {"name": "organizer_note_read", "arguments": {"id": note_id, "fields": ["id", "titel"]}})
         deleted = call("tools/call", {"name": "organizer_note_delete", "arguments": {"id": note_id,
             "expected_revision": current["structuredContent"]["revision"]}})
         assert not deleted["isError"] and deleted["structuredContent"]["persisted"], deleted
@@ -311,4 +331,4 @@ finally:
     print("Native MCP fixture state:", json.dumps(state), flush=True)
     temporary.cleanup()
 assert state["passed"], state
-print("Native MCP PASS: GTK/WebKit/worker/stdio, durable note/task/appointment/contact CRUD, real pre-delete recovery snapshot, linked cleanup and restore")
+print("Native MCP PASS: GTK/WebKit/worker/stdio, durable entity CRUD, real recovery checkpoint, linked restore and bounded large UTF-8 content reads")
