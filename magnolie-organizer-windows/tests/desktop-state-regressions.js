@@ -138,6 +138,36 @@ async function run(web) {
     assert.equal(saved.einstellungen.kalender.zyklusErinnerungen.vorlauf, 4); assert.equal(saved.einstellungen.kalender.planerWochenNummern, true);
   });
 
+  await test("display typography and tab controls share durable helpers and real view selection", async b => {
+    const records = JSON.stringify([b.t.daten().notizen, b.t.daten().aufgaben, b.t.daten().kontakte, b.t.daten().customOrganizer]);
+    b.t.oeffneEinstellungen();
+    const change = async (selector, value) => {
+      const field = b.w.document.querySelector(selector); assert.ok(field, selector);
+      if (field.type === "checkbox") field.checked = value; else field.value = value;
+      field.dispatchEvent(new b.w.Event("change", { bubbles: true })); await tick();
+    };
+    await change("#allgemein-drucken", false); await change("#allgemein-hilfsrahmen", true);
+    await change("#allgemein-kalenderauswahl", true); await change("#allgemein-linien", false);
+    await change("#allgemein-rad", "up-later"); await change("#allgemein-register-notizen", false);
+    await change("#allgemein-register-gesundheit", false); await change("#allgemein-register-custom", true);
+    b.input("#allgemein-custom-name", "Owned custom tab"); await tick();
+    b.w.document.querySelector("#einst-tab-schrift").click();
+    await change("#schrift-art", "handwriting"); await change("#schrift-farbe", "blue");
+    await change("#schrift-groesse", "large"); await change("#schrift-pruefung", false);
+    assert.equal(b.w.document.body.dataset.hilfsrahmen, "an"); assert.equal(b.w.document.body.dataset.kalenderauswahl, "an");
+    assert.equal(b.w.document.body.dataset.schrift, "handwriting"); assert.equal(b.w.document.body.dataset.tinte, "blue");
+    assert.equal(b.w.document.body.dataset.groesse, "large"); assert.equal(b.w.document.body.dataset.linien, "aus");
+    assert.equal(b.t.daten().einstellungen.kalender.gesundheitAn, false);
+    b.w.document.querySelector("#einstellungen-zu").click(); await tick();
+    b.w.document.querySelector("#ansicht-umschalter [data-ansicht=month]").click(); await tick();
+    assert.equal(b.t.zustand().kalender.ansicht, "month");
+    assert.equal(b.w.document.querySelector("#ansicht-umschalter [data-ansicht=month]").getAttribute("aria-pressed"), "true");
+    assert.equal(JSON.stringify([b.t.daten().notizen, b.t.daten().aufgaben, b.t.daten().kontakte, b.t.daten().customOrganizer]), records);
+    b.t.speichereJetzt(); const reloaded = b.t.normalisiere(JSON.parse(b.saves().at(-1).text));
+    assert.equal(reloaded.einstellungen.schrift.art, "handwriting"); assert.equal(reloaded.einstellungen.ansicht, "month");
+    assert.equal(reloaded.einstellungen.allgemein.customTab.name, "Owned custom tab"); assert.equal(reloaded.einstellungen.kalender.gesundheitAn, false);
+  });
+
   await test("search ASCII fast path preserves Turkish I and non-ASCII folding", async b => {
     b.t.daten().termine = [{ id: "ascii", titel: "I", datum: "2026-09-08" },
       { id: "unicode", titel: "ÉCOLE", datum: "2026-09-08" }];

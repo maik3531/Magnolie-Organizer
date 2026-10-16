@@ -1114,6 +1114,35 @@ def client():
         stale_calendar = call("tools/call", {"name": "organizer_calendar_settings_update", "arguments": {
             "expected_revision": calendar_settings["structuredContent"]["revision"], "week_numbers": False}})
         assert stale_calendar["isError"] and stale_calendar["structuredContent"]["code"] == "conflict", stale_calendar
+        display_file = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        display_record_keys = ("notizen", "aufgaben", "kontakte", "customOrganizer", "gesundheit")
+        display_records = {key: display_file[key] for key in display_record_keys}
+        display_settings = call("tools/call", {"name": "organizer_display_settings_read"})
+        display_updated = call("tools/call", {"name": "organizer_display_settings_update", "arguments": {
+            "expected_revision": display_settings["structuredContent"]["revision"], "selection_options_visible": False,
+            "focus_frame": True, "date_picker_buttons": True, "attachment_preview_height": 180,
+            "typography": {"typeface": "handwriting", "ink_color": "blue", "size": "large", "spellcheck": False, "lined_paper": False, "time_wheel_direction": "up-later"},
+            "tabs": {"notes": False, "contacts": False, "health": False}, "custom_tab": {"enabled": True, "name": "Owned Custom"}, "calendar_view": "month"}})
+        assert not display_updated["isError"] and display_updated["structuredContent"]["persisted"], display_updated
+        display_saved = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        assert {key: display_saved[key] for key in display_record_keys} == display_records
+        assert display_saved["einstellungen"]["schrift"]["art"] == "handwriting" and display_saved["einstellungen"]["schrift"]["groesse"] == "large"
+        assert display_saved["einstellungen"]["allgemein"]["hilfsrahmen"] and display_saved["einstellungen"]["allgemein"]["notizAnhangHoehe"] == 180
+        assert display_saved["einstellungen"]["allgemein"]["customTab"]["name"] == "Owned Custom"
+        assert display_saved["einstellungen"]["ansicht"] == "month"
+        display_readback = call("tools/call", {"name": "organizer_display_settings_read"})
+        assert display_readback["structuredContent"]["settings"]["current_calendar_view"] == "month"
+        spell_ready = threading.Event()
+        spell_state = {}
+        def read_native_spell_flag():
+            spell_state["enabled"] = window.ansicht.get_context().get_spell_checking_enabled()
+            spell_ready.set()
+            return False
+        product.GLib.idle_add(read_native_spell_flag)
+        assert spell_ready.wait(5) and spell_state["enabled"] is False
+        stale_display = call("tools/call", {"name": "organizer_display_settings_update", "arguments": {
+            "expected_revision": display_settings["structuredContent"]["revision"], "focus_frame": False}})
+        assert stale_display["isError"] and stale_display["structuredContent"]["code"] == "conflict", stale_display
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()

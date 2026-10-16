@@ -1196,6 +1196,29 @@ let declaredContracts;
         await persisted(705, "organizer_calendar_settings_update", { expected_revision: fresh.revision, cycle_calendar: false, cycle_options: { prediction: true } });
         assert.equal(k.zykluskalenderAn, false); assert.equal(k.zyklusErinnerungen.prognose, true); assert.equal(k.zyklusErinnerungen.vorlauf, 4);
       }
+      {
+        b.t.zustand().sektion = "notizen";
+        const records = JSON.stringify([b.t.daten().notizen, b.t.daten().aufgaben, b.t.daten().kontakte, b.t.daten().customOrganizer, b.t.daten().gesundheit]);
+        const display = (await call(request(740, "tools/call", { name: "organizer_display_settings_read" }))).result.structuredContent;
+        await persisted(741, "organizer_display_settings_update", { expected_revision: display.revision, selection_options_visible: false, focus_frame: true, date_picker_buttons: true, attachment_preview_height: 180,
+          typography: { typeface: "handwriting", ink_color: "blue", size: "large", spellcheck: false, lined_paper: false, time_wheel_direction: "up-later" },
+          tabs: { notes: false, contacts: false, health: false }, custom_tab: { enabled: true, name: "Owned Custom" }, calendar_view: "month" });
+        assert.equal(b.t.zustand().sektion, "kalender"); assert.equal(b.t.zustand().kalender.ansicht, "month");
+        assert.equal(b.w.document.body.dataset.hilfsrahmen, "an"); assert.equal(b.w.document.body.dataset.kalenderauswahl, "an");
+        assert.equal(b.w.document.body.dataset.schrift, "handwriting"); assert.equal(b.w.document.body.dataset.tinte, "blue");
+        assert.equal(b.w.document.body.dataset.groesse, "large"); assert.equal(b.w.document.body.dataset.linien, "aus"); assert.equal(b.w.document.body.dataset.pruefung, "aus");
+        assert.ok(b.w.document.querySelector("#knopf-drucken").classList.contains("verborgen"));
+        assert.equal(b.t.daten().einstellungen.kalender.gesundheitAn, false);
+        assert.equal(JSON.stringify([b.t.daten().notizen, b.t.daten().aufgaben, b.t.daten().kontakte, b.t.daten().customOrganizer, b.t.daten().gesundheit]), records);
+        const stale = await call(request(742, "tools/call", { name: "organizer_display_settings_update", arguments: { expected_revision: display.revision, focus_frame: false } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        const fresh = (await call(request(743, "tools/call", { name: "organizer_display_settings_read" }))).result.structuredContent;
+        assert.equal(fresh.settings.custom_tab.name, "Owned Custom"); assert.equal(fresh.settings.current_calendar_view, "month");
+        await persisted(744, "organizer_display_settings_update", { expected_revision: fresh.revision, typography: { size: "medium" }, tabs: { notes: true, contacts: true, health: true }, custom_tab: { enabled: false } });
+        assert.equal(b.t.daten().einstellungen.schrift.art, "handwriting"); assert.equal(b.t.daten().einstellungen.schrift.farbe, "blue");
+        assert.equal(b.t.daten().einstellungen.kalender.gesundheitAn, true);
+        assert.equal(JSON.stringify([b.t.daten().notizen, b.t.daten().aufgaben, b.t.daten().kontakte, b.t.daten().customOrganizer, b.t.daten().gesundheit]), records);
+      }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));
       assert.equal(locked.result.isError, true);

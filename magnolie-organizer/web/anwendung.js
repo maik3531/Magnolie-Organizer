@@ -15905,15 +15905,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       b.append(ansichtZeichen(wert), el("span", "u-wort", text));
       b.addEventListener("click", () => {
         if (z.ansicht === wert) return;
-        z.ansicht = wert;
-        if (wert === "month") {
-          const tag = ausISO(z.tag);
-          z.jahr = tag.getFullYear();
-          z.monat = tag.getMonth();
-        }
-        if (wert !== "month") z.uebersichtAb = null;
-        z.bearbeiteId = null;
-        DATEN.einstellungen.ansicht = wert;
+        wendeKalenderAnsichtDatenAn(wert);
         planeSpeichern();
         fokussiereNachZeichnen("kalender-ansicht:" + wert);
         zeichneAlles();
@@ -20787,7 +20779,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         anhaenge.style.height = wert + "px";
         anhaenge.classList.toggle("kompakt", editorHoehe < 620 || wert < 125);
         if (merken) {
-          allgemein.notizAnhangHoehe = Math.max(68, Math.min(260, Math.round(hoehe)));
+          wendeAllgemeineAnzeigeDatenAn({ notizAnhangHoehe: Math.max(68, Math.min(260, Math.round(hoehe))) });
           planeSpeichern();
         }
       };
@@ -23853,7 +23845,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function schalteHilfsrahmen() {
     if (!initialisiert) return false;
     const allgemein = DATEN.einstellungen.allgemein;
-    allgemein.hilfsrahmen = !allgemein.hilfsrahmen;
+    wendeAllgemeineAnzeigeDatenAn({ hilfsrahmen: !allgemein.hilfsrahmen });
     wendeAllgemeinAn();
     const haken = $("#allgemein-hilfsrahmen");
     if (haken) haken.checked = allgemein.hilfsrahmen;
@@ -23952,11 +23944,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       anzeigen.addEventListener("change", () => {
         const wert = anzeigen.checked;
         navigiereMitGuard(() => {
-          a.registerkarten[sektion.id] = wert;
-          if (sektion.id === "gesundheit") {
-            DATEN.einstellungen.kalender.gesundheitAn = wert;
-          }
-          if (!wert && zustand.sektion === sektion.id) zustand.sektion = "kalender";
+          wendeRegisterkartenDatenAn({ [sektion.id]: wert });
           planeSpeichern();
           zeichneAlles();
           baueEinstellungen();
@@ -23984,13 +23972,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     customFelder.hidden = !customAn.checked;
     registerGruppe.append(registerAuswahl, customFelder);
     customAn.addEventListener("change", () => {
-      a.customTab.enabled = customAn.checked; customFelder.hidden = !customAn.checked;
-      personalDesktopFeaturesSenden();
-      if (!customAn.checked && zustand.sektion === "custom") zustand.sektion = "kalender";
+      wendeCustomRegisterDatenAn({ enabled: customAn.checked }); customFelder.hidden = !customAn.checked;
       planeSpeichern(); zeichneAlles();
     });
     customName.addEventListener("input", () => {
-      a.customTab.name = customTabName(customName.value, false);
+      wendeCustomRegisterDatenAn({ name: customName.value });
       planeSpeichern(); zeichneRegister();
     });
     ab.append(registerGruppe);
@@ -24096,11 +24082,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     oeffnenWahl.addEventListener("change", trayUebernehmen);
 
     const uebernehmen = () => {
-      a.drucken = druckHak.checked;
-      a.hilfsrahmen = hilfsrahmenHak.checked;
-      a.kalenderAuswahl = kalenderAuswahlHak.checked;
-      s.linien = linienHak.checked;
-      s.radRichtung = radWahl.value === "up-later" ? "up-later" : "up-earlier";
+      wendeAllgemeineAnzeigeDatenAn({ drucken: druckHak.checked, hilfsrahmen: hilfsrahmenHak.checked, kalenderAuswahl: kalenderAuswahlHak.checked });
+      wendeSchriftDatenAn({ linien: linienHak.checked, radRichtung: radWahl.value === "up-later" ? "up-later" : "up-earlier" });
       wendeAllgemeinAn();
       wendeSchriftAn();
       planeSpeichern();
@@ -29018,10 +29001,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     ab.append(el("p", "einst-hinweis", _("Preview:")), probe);
 
     const uebernehmen = () => {
-      s.art = artWahl.value === "handwriting" ? "handwriting" : "regular";
-      s.farbe = farbWahl.value === "blue" ? "blue" : "black";
-      s.groesse = ["medium", "large"].includes(groessenWahl.value)
-        ? groessenWahl.value : "normal";
+      wendeSchriftDatenAn({ art: artWahl.value === "handwriting" ? "handwriting" : "regular", farbe: farbWahl.value === "blue" ? "blue" : "black",
+        groesse: ["medium", "large"].includes(groessenWahl.value) ? groessenWahl.value : "normal" });
       probe.setAttribute("data-schrift", s.art);
       probe.setAttribute("data-tinte", s.farbe);
       probe.setAttribute("data-groesse", s.groesse);
@@ -29042,7 +29023,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     pruefHak.id = "schrift-pruefung";
     pruefHak.checked = !!s.rechtschreibung;
     const uebernehmeSchrift = () => {
-      s.rechtschreibung = pruefHak.checked;
+      wendeSchriftDatenAn({ rechtschreibung: pruefHak.checked });
       wendeSchriftAn();
       planeSpeichern();
       zeichneAlles();
@@ -34380,6 +34361,64 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         return { path: value.pfad, confirmed: true, encrypted: value.verschluesselt === true };
       } }];
   }
+  function wendeAllgemeineAnzeigeDatenAn(values) { Object.assign(DATEN.einstellungen.allgemein, values); }
+  function wendeSchriftDatenAn(values) { Object.assign(DATEN.einstellungen.schrift, values); }
+  function wendeRegisterkartenDatenAn(values) {
+    for (const [key, value] of Object.entries(values)) {
+      if (key === "gesundheit") wendeGesundheitsEinstellungenDatenAn({ an: value });
+      else DATEN.einstellungen.allgemein.registerkarten[key] = value;
+      if (!value && zustand.sektion === key) zustand.sektion = "kalender";
+    }
+  }
+  function wendeCustomRegisterDatenAn(values) {
+    const target = DATEN.einstellungen.allgemein.customTab;
+    if (values.name !== undefined) target.name = customTabName(values.name, false);
+    if (values.enabled !== undefined) {
+      target.enabled = values.enabled; personalDesktopFeaturesSenden();
+      if (!values.enabled && zustand.sektion === "custom") zustand.sektion = "kalender";
+    }
+  }
+  function wendeKalenderAnsichtDatenAn(value) {
+    const calendar = zustand.kalender;
+    DATEN.einstellungen.ansicht = value;
+    if (calendar.ansicht === value) return;
+    calendar.ansicht = value;
+    if (value === "month") { const date = ausISO(calendar.tag); calendar.jahr = date.getFullYear(); calendar.monat = date.getMonth(); }
+    if (value !== "month") calendar.uebersichtAb = null;
+    calendar.bearbeiteId = null;
+  }
+  function mcpAnzeigeEinstellungenWerkzeuge() {
+    const generalMap = { selection_options_visible: "drucken", focus_frame: "hilfsrahmen", date_picker_buttons: "kalenderAuswahl", attachment_preview_height: "notizAnhangHoehe" };
+    const fontMap = { typeface: "art", ink_color: "farbe", size: "groesse", spellcheck: "rechtschreibung", lined_paper: "linien", time_wheel_direction: "radRichtung" };
+    const tabMap = { tasks: "aufgaben", contacts: "adressen", notes: "notizen", anniversaries: "jahrestage", planner: "planer", health: "gesundheit" };
+    const fontFields = { typeface: { type: "string", enum: ["regular", "handwriting"] }, ink_color: { type: "string", enum: ["black", "blue"] }, size: { type: "string", enum: ["normal", "medium", "large"] }, spellcheck: { type: "boolean" }, lined_paper: { type: "boolean" }, time_wheel_direction: { type: "string", enum: ["up-earlier", "up-later"] } };
+    const patch = properties => ({ type: "object", properties, anyOf: Object.keys(properties).map(key => ({ required: [key] })), additionalProperties: false });
+    const fields = { selection_options_visible: { type: "boolean" }, focus_frame: { type: "boolean" }, date_picker_buttons: { type: "boolean" }, attachment_preview_height: { type: "integer", minimum: 68, maximum: 260 },
+      typography: patch(fontFields), tabs: patch(Object.fromEntries(Object.keys(tabMap).map(key => [key, { type: "boolean" }]))),
+      custom_tab: patch({ enabled: { type: "boolean" }, name: { type: "string", maxLength: 40, pattern: "^[^\\u0000-\\u001f\\u007f]*$" } }), calendar_view: { type: "string", enum: ["day", "week", "month"] } };
+    const snapshot = () => { const settings = DATEN.einstellungen, general = settings.allgemein; return JSON.stringify({ general: Object.fromEntries(Object.entries(generalMap).map(([key, field]) => [key, general[field]])), font: settings.schrift, tabs: general.registerkarten, custom: general.customTab, view: settings.ansicht, current_view: zustand.kalender.ansicht, health_visible: settings.kalender.gesundheitAn }); };
+    return [
+      { name: "organizer_display_settings_read", description: "Read local selection/accessibility/date-button/attachment-preview preferences, typography, optional tabs, custom-tab name/visibility and calendar view, with a complete preference revision.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => {
+          const before = snapshot(), value = JSON.parse(before);
+          return { settings: { ...value.general, typography: Object.fromEntries(Object.entries(fontMap).map(([key, field]) => [key, value.font[field]])),
+            tabs: Object.fromEntries(Object.entries(tabMap).map(([key, field]) => [key, value.tabs[field]])), custom_tab: { enabled: value.custom.enabled, name: value.custom.name, design_requested: value.custom.designRequested },
+            calendar_view: value.view, current_calendar_view: value.current_view, health_visible: value.health_visible }, revision: await personalSyncHash(before) };
+        } },
+      { name: "organizer_display_settings_update", description: "Revision-check local display/typography/tab/custom-tab/calendar-view changes through shared GUI handlers, including health-tab mirroring and fallback to calendar when hiding the current section. Records/layout data are retained; success confirms local native-save acknowledgement, not dictionary availability or remote capability delivery.",
+        inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, ...fields }, required: ["expected_revision"], anyOf: Object.keys(fields).map(key => ({ required: [key] })), additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const book = DATEN, before = snapshot(), revision = await personalSyncHash(before);
+          if (signal.aborted || DATEN !== book || snapshot() !== before || revision !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Display preferences changed; read them again");
+          mcpEditorPruefen();
+          wendeAllgemeineAnzeigeDatenAn(Object.fromEntries(Object.entries(generalMap).filter(([key]) => args[key] !== undefined).map(([key, field]) => [field, args[key]])));
+          if (args.typography) wendeSchriftDatenAn(Object.fromEntries(Object.entries(args.typography).map(([key, value]) => [fontMap[key], value])));
+          if (args.tabs) wendeRegisterkartenDatenAn(Object.fromEntries(Object.entries(args.tabs).map(([key, value]) => [tabMap[key], value])));
+          if (args.custom_tab) wendeCustomRegisterDatenAn(args.custom_tab);
+          if (args.calendar_view) wendeKalenderAnsichtDatenAn(args.calendar_view);
+          wendeAllgemeinAn(); if (args.typography) wendeSchriftAn(); return {};
+        }) }
+    ];
+  }
   const KALENDER_ANZEIGE_FELDER = { click_creates_entry: "klickLegtAn", week_numbers: "wochenNummern", planner_week_numbers: "planerWochenNummern", show_past_appointments: "vergangeneTermine", show_past_anniversaries: "vergangeneJahrestage", show_past_holidays: "vergangeneFerien", shift_planner: "schichtplanerAn", cycle_calendar: "zykluskalenderAn", vacation_planner: "urlaubsplanerAn", waste_calendar: "muellkalenderAn" };
   function wendeKalenderAnzeigeDatenAn(values, cycle = null) {
     if (Object.entries(values).some(([key, value]) => !Object.values(KALENDER_ANZEIGE_FELDER).includes(key) || typeof value !== "boolean")) return false;
@@ -34935,6 +34974,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_display_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
+    if (name === "organizer_display_settings_update") return shape({ persisted: yes }, ["persisted"]);
     if (name === "organizer_calendar_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
     if (name === "organizer_calendar_settings_update") return shape({ persisted: yes }, ["persisted"]);
     if (name === "organizer_health_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
@@ -35075,6 +35116,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpSicherungstestWerkzeuge(),
       ...mcpGesundheitsEinstellungenWerkzeuge(),
       ...mcpKalenderAnzeigeWerkzeuge(),
+      ...mcpAnzeigeEinstellungenWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
