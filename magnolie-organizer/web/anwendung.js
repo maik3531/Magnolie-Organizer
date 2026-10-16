@@ -34235,7 +34235,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const native = async (cmd, args, callback, signal) => {
       const book = DATEN, result = await mcpNativeAufruf(cmd, args, callback, signal);
       if (signal.aborted || DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Book changed during the native recovery operation");
-      if (result.ok !== true) throw new MagnolieMcp.ToolError("native_operation_failed", "Native recovery operation failed; inspect the product recovery status");
+      if (result.ok !== true) throw new MagnolieMcp.ToolError(result.code === "conflict" ? "conflict" : result.code === "busy" ? "native_busy" : "native_operation_failed", "Native recovery operation failed or its preconditions changed; inspect the recovery state before retrying");
       return result;
     };
     return [
@@ -34248,10 +34248,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           return { snapshots, total: value.snapshots.length, offset, settings: { interval, retention_mode: value.mode, maximum: value.maximum, days: value.days,
             last: value.last || value.letzte || "", next: value.next || value.naechste || "" }, ...(offset + snapshots.length < value.snapshots.length ? { next_offset: offset + snapshots.length } : {}) };
         } },
-      { name: "organizer_recovery_snapshot_preview", description: "Verify and preview native snapshot metadata through the product recovery handler, without restoring data or returning the archive payload.",
-        inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => {
-          const value = await native("journal_vorschau", { snapshotId: args.id }, "journalVorschau", signal);
-          return { snapshot: mcpRecoverySnapshot(value.snapshot), summary: kopie(value.summary || value.snapshot?.summary || {}), confirmed: true };
+      { name: "organizer_recovery_snapshot_preview", description: "Verify and preview native snapshot metadata with an opaque file-state revision. Set verify=false to inspect even a damaged archive before revision-checked deletion; the result reports whether payload verification was performed.",
+        inputSchema: { type: "object", properties: { id, verify: { type: "boolean" } }, required: ["id"], additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => {
+          const verify = args.verify !== false, value = await native("journal_vorschau", { snapshotId: args.id, verify }, "journalVorschau", signal);
+          if (value.verified !== verify || typeof value.revision !== "string" || !/^[a-f0-9]{64}$/.test(value.revision)) throw new MagnolieMcp.ToolError("invalid_result", "Native recovery inspection did not provide the requested verification and revision");
+          return { snapshot: mcpRecoverySnapshot(value.snapshot), summary: kopie(value.summary || value.snapshot?.summary || {}), confirmed: true, verified: verify, revision: value.revision };
+        } },
+      { name: "organizer_recovery_snapshots_delete", description: "Delete selected recovery snapshots through the product journal. Each opaque revision comes from snapshot_preview and is checked under the native journal lock for the entire selection before deletion begins. Inspect the inventory after an I/O failure or lost native response.",
+        inputSchema: { type: "object", properties: { snapshots: { type: "array", minItems: 1, maxItems: 100, items: { type: "object", properties: { id, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, required: ["id", "expected_revision"], additionalProperties: false } } }, required: ["snapshots"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => {
+          mcpEditorPruefen(); const ids = args.snapshots.map(value => value.id);
+          if (new Set(ids).size !== ids.length) throw new MagnolieMcp.ToolError("invalid_selection", "Recovery snapshot selection repeats an ID");
+          const value = await native("journal_loeschen", { snapshotIds: ids, expectedRevisions: Object.fromEntries(args.snapshots.map(value => [value.id, value.expected_revision])) }, "journalErgebnis", signal);
+          return { deleted_count: value.anzahl, confirmed: true };
         } },
       { name: "organizer_recovery_snapshot_create", description: "Create or reuse a manual recovery snapshot under the product policy after a native book-save acknowledgement. Success includes metadata from the actual correlated native checkpoint operation.",
         inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (_args, signal) => {
@@ -34465,7 +34474,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
     if (name === "organizer_recovery_list") return shape({ snapshots: { type: "array", items: object, maxItems: 100 }, total: { type: "integer", minimum: 0 }, offset: { type: "integer", minimum: 0 }, next_offset: { type: "integer", minimum: 0 }, settings: object }, ["snapshots", "total", "offset", "settings"]);
-    if (name === "organizer_recovery_snapshot_preview") return shape({ snapshot: object, summary: object, confirmed: yes }, ["snapshot", "summary", "confirmed"]);
+    if (name === "organizer_recovery_snapshot_preview") return shape({ snapshot: object, summary: object, confirmed: yes, verified: flag, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["snapshot", "summary", "confirmed", "verified", "revision"]);
+    if (name === "organizer_recovery_snapshots_delete") return shape({ deleted_count: { type: "integer", minimum: 0, maximum: 100 }, confirmed: yes }, ["deleted_count", "confirmed"]);
     if (name === "organizer_recovery_snapshot_create") return shape({ snapshot: object, confirmed: yes }, ["snapshot", "confirmed"]);
     if (["organizer_drawing_upload_begin", "organizer_drawing_upload_append", "organizer_drawing_upload_status"].includes(name)) return shape({ token: id, expected_bytes: { type: "integer", minimum: 1, maximum: 16777216 }, received_bytes: { type: "integer", minimum: 0, maximum: 16777216 }, expires_ms: { type: "integer", minimum: 1 } }, ["token", "expected_bytes", "received_bytes", "expires_ms"]);
     if (name === "organizer_drawing_upload_cancel") return shape({ token: id, cancelled: yes }, ["token", "cancelled"]);

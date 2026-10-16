@@ -274,6 +274,33 @@ internal sealed class RecoveryJournal
         lock (gate) return ParseManifest(Child(ValidId(id)), verifyPayload: true);
     }
 
+    internal (SnapshotInfo Snapshot, string Revision) Inspect(string id, bool verifyPayload)
+    {
+        lock (gate)
+        {
+            id = ValidId(id);
+            var snapshot = verifyPayload ? Verify(id) : List(verifyPayload: false).FirstOrDefault(item => item.Id == id)
+                ?? throw new InvalidDataException("Der Snapshot wurde nicht gefunden.");
+            return (snapshot, SnapshotRevision(id));
+        }
+    }
+
+    internal string SnapshotRevision(string id)
+    {
+        lock (gate)
+        {
+            var directory = Child(ValidId(id));
+            if (!Directory.Exists(directory)) throw new InvalidDataException("snapshot_conflict");
+            RejectReparseTree(directory);
+            var values = new[] { "manifest.json", PayloadFile, CompressedPayloadFile, RestoreLeaseFile }.Select(name =>
+            {
+                var path = Path.Combine(directory, name);
+                return new[] { name, File.Exists(path) ? HashFile(path).Hash : "missing" };
+            }).ToArray();
+            return Sha256(JsonSerializer.Serialize(values));
+        }
+    }
+
     internal string ReadPayload(string id)
     {
         lock (gate)
@@ -370,7 +397,7 @@ internal sealed class RecoveryJournal
         DeleteMany([id]);
     }
 
-    internal int DeleteMany(IEnumerable<string> ids)
+    internal int DeleteMany(IEnumerable<string> ids, IReadOnlyDictionary<string, string>? expectedRevisions = null)
     {
         lock (gate)
         {
@@ -379,6 +406,18 @@ internal sealed class RecoveryJournal
             // Validate the entire selection before deleting its first entry.
             foreach (var directory in directories)
                 if (Directory.Exists(directory)) RejectReparseTree(directory);
+            if (expectedRevisions is not null)
+            {
+                var expected = expectedRevisions.ToDictionary(pair => ValidId(pair.Key), pair => pair.Value, StringComparer.Ordinal);
+                if (expected.Count != directories.Length || directories.Any(directory => !expected.ContainsKey(Path.GetFileName(directory))))
+                    throw new InvalidDataException("snapshot_conflict");
+                foreach (var directory in directories)
+                {
+                    if (File.Exists(Path.Combine(directory, RestoreLeaseFile))) throw new InvalidDataException("snapshot_busy");
+                    if (!FixedHash(SnapshotRevision(Path.GetFileName(directory)), expected[Path.GetFileName(directory)]))
+                        throw new InvalidDataException("snapshot_conflict");
+                }
+            }
             var deleted = 0;
             foreach (var directory in directories)
             {

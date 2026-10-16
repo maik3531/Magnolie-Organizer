@@ -590,6 +590,22 @@ def client():
         assert not recovery_preview["isError"] and recovery_preview["structuredContent"]["confirmed"], recovery_preview
         recovery_missing = call("tools/call", {"name": "organizer_recovery_snapshot_preview", "arguments": {"id": "00000000-0000-0000-0000-000000000000"}})
         assert recovery_missing["isError"] and recovery_missing["structuredContent"]["code"] == "native_operation_failed", recovery_missing
+        recovery_revision = recovery_preview["structuredContent"]["revision"]
+        recovery_path = Path(native_manifest["path"])
+        assert recovery_path.is_relative_to(Path(temporary.name))
+        assert recovery_path.parent == Path(product.journal_verzeichnis())
+        with (recovery_path / native_manifest["payload"].get("file", "payload.magnolie")).open("ab") as stream:
+            stream.write(b"owned recovery tamper")
+        recovery_stale_delete = call("tools/call", {"name": "organizer_recovery_snapshots_delete", "arguments": {
+            "snapshots": [{"id": recovery_id, "expected_revision": recovery_revision}]}})
+        assert recovery_stale_delete["isError"] and recovery_stale_delete["structuredContent"]["code"] == "conflict", recovery_stale_delete
+        assert recovery_path.is_dir()
+        recovery_inspect = call("tools/call", {"name": "organizer_recovery_snapshot_preview", "arguments": {"id": recovery_id, "verify": False}})
+        assert not recovery_inspect["isError"] and not recovery_inspect["structuredContent"]["verified"], recovery_inspect
+        recovery_deleted = call("tools/call", {"name": "organizer_recovery_snapshots_delete", "arguments": {
+            "snapshots": [{"id": recovery_id, "expected_revision": recovery_inspect["structuredContent"]["revision"]}]}})
+        assert not recovery_deleted["isError"] and recovery_deleted["structuredContent"]["deleted_count"] == 1, recovery_deleted
+        assert not recovery_path.exists()
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()

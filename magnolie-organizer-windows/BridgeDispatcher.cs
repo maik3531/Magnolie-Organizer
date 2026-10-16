@@ -137,7 +137,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "journal_liste": await SendRecoveryStatusAsync(Text(message, "requestId")); break;
                     case "journal_erzeugen":
                     case "journal_manuell": await CreateManualSnapshotAsync(Text(message, "requestId")); break;
-                    case "journal_vorschau": await PreviewSnapshotAsync(SnapshotId(message), Text(message, "requestId")); break;
+                    case "journal_vorschau": await PreviewSnapshotAsync(SnapshotId(message), Text(message, "requestId"), !message.TryGetProperty("verify", out var verifySnapshot) || verifySnapshot.GetBoolean()); break;
                     case "journal_intervall": recovery.SetInterval(Text(message, "intervall")); await SendRecoveryStatusAsync(); break;
                     case "journal_anzahl": recovery.SetMaximum(Integer(message, "maximum")); await SendRecoveryStatusAsync(); break;
                     case "journal_aufbewahrung": recovery.SetRetention(Text(message, "modus"), Integer(message, "maximum"), Integer(message, "tage")); await SendRecoveryStatusAsync(); break;
@@ -1388,12 +1388,15 @@ internal sealed partial class BridgeDispatcher : IDisposable
         finally { MutationGate.Global.Release(); }
     }
 
-    private async Task PreviewSnapshotAsync(string id, string? requestId = null)
+    private async Task PreviewSnapshotAsync(string id, string? requestId = null, bool verify = true)
     {
         try
         {
-            var item = recovery.Verify(id);
-            await form.SendAsync("App.journalVorschau", new { ok = true, requestId, snapshot = NativeSnapshot(item), summary = item.Summary, fehler = "" });
+            SnapshotInfo item;
+            string? revision = null;
+            if (string.IsNullOrEmpty(requestId) && verify) item = recovery.Verify(id);
+            else { var inspection = recovery.Inspect(id, verify); item = inspection.Snapshot; revision = inspection.Revision; }
+            await form.SendAsync("App.journalVorschau", new { ok = true, requestId, verified = verify, revision, snapshot = NativeSnapshot(item), summary = item.Summary, fehler = "" });
         }
         catch (Exception error) { await form.SendAsync("App.journalVorschau", new { ok = false, requestId, fehler = error.Message }); }
     }
@@ -1438,12 +1441,15 @@ internal sealed partial class BridgeDispatcher : IDisposable
         {
             var ids = bulk ? selected.EnumerateArray().Select(item => item.GetString() ?? "").ToArray()
                 : new[] { SnapshotId(message) };
-            var count = recovery.DeleteMany(ids);
-            await form.SendAsync("App.journalErgebnis", new { ok = true, deleted = true, bulk, anzahl = count, fehler = "" });
+            var expected = message.TryGetProperty("expectedRevisions", out var expectedNode)
+                ? expectedNode.EnumerateObject().ToDictionary(item => item.Name, item => item.Value.GetString() ?? "", StringComparer.Ordinal) : null;
+            var count = recovery.DeleteMany(ids, expected);
+            await form.SendAsync("App.journalErgebnis", new { ok = true, requestId = Text(message, "requestId"), deleted = true, bulk, anzahl = count, fehler = "" });
         }
         catch (Exception error)
         {
-            await form.SendAsync("App.journalErgebnis", new { ok = false, bulk, fehler = error.Message });
+            await form.SendAsync("App.journalErgebnis", new { ok = false, requestId = Text(message, "requestId"), bulk,
+                code = error.Message == "snapshot_conflict" ? "conflict" : error.Message == "snapshot_busy" ? "busy" : "native_operation_failed", fehler = error.Message });
         }
         finally { await SendRecoveryStatusAsync(); }
     }

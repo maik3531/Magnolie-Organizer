@@ -2,6 +2,7 @@
 import ast
 from pathlib import Path
 import re
+import tempfile
 
 
 def test_native_source_reply_preserves_request_identity_and_aggregated_sources():
@@ -57,3 +58,33 @@ def test_native_recovery_status_correlates_success_and_failure_without_breaking_
     namespace["_journal_stand_melden"](Window(), request_id)
     callback, payload = replies.pop()
     assert callback == "App.journalStand" and payload["requestId"] == request_id and not payload["ok"]
+
+
+def test_recovery_delete_checks_all_selected_revisions_before_any_removal():
+    from modul_laden import quellmodul_laden
+    import copy
+    from collections import namedtuple
+    source = Path(__file__).parents[1] / "bin/magnolie-organizer"
+    product = quellmodul_laden("owned_mcp_recovery_revision", str(source))
+    disk = namedtuple("Disk", "total used free")(100 * 1024 ** 3, 0, 10 * 1024 ** 3)
+    with tempfile.TemporaryDirectory(prefix="magnolie-mcp-recovery-revisions-", dir="/tmp/opencode") as root:
+        data = {"version": 6, "notizen": [{"id": "owned", "text": "First"}], "einstellungen": {}}
+        first = product.journal_snapshot_erzeugen(data, "manual", basis=root, disk_usage=lambda _path: disk)
+        data = copy.deepcopy(data)
+        data["notizen"][0]["text"] = "Second"
+        second = product.journal_snapshot_erzeugen(data, "manual", basis=root, disk_usage=lambda _path: disk)
+        ids = [first["snapshotId"], second["snapshotId"]]
+        assert len(set(ids)) == 2
+        expected = {id: product.journal_snapshot_revision(id, root) for id in ids}
+        payload = Path(second["path"]) / second["payload"].get("file", "payload.magnolie")
+        with payload.open("ab") as stream:
+            stream.write(b"owned tamper")
+        try:
+            product.journal_snapshots_loeschen(ids, root, expected)
+            assert False, "Stale revisions were accepted"
+        except RuntimeError as error:
+            assert str(error) == "snapshot_conflict"
+        assert all(Path(snapshot["path"]).is_dir() for snapshot in (first, second))
+        current = {id: product.journal_snapshot_revision(id, root) for id in ids}
+        assert current[ids[1]] != expected[ids[1]]
+        assert product.journal_snapshots_loeschen(ids, root, current) == 2

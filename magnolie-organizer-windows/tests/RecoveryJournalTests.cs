@@ -40,6 +40,26 @@ internal static class RecoveryJournalTests
                 "Batch deletion did not remove exactly the two unique selected points.");
             TestAssert.That(batchJournal.List().Single().Id == batchPoints[2].Id && batchJournal.DeleteMany([batchPoints[0].Id]) == 0,
                 "Unselected point was removed or a repeated request was not idempotent.");
+            var conditionalJournal = new RecoveryJournal(Path.Combine(root, "conditional"), Path.Combine(root, "conditional-settings.json"));
+            var conditionalPoints = Enumerable.Range(0, 2).Select(index => conditionalJournal.Create(
+                new JsonObject { ["notizen"] = new JsonArray(new JsonObject { ["id"] = "owned", ["text"] = "conditional-" + index }) },
+                SnapshotReason.Manual, "2.0.27")).ToArray();
+            var expectedRevisions = conditionalPoints.ToDictionary(item => item.Id, item => conditionalJournal.SnapshotRevision(item.Id));
+            var activeRestore = conditionalJournal.CreateRestorePoint(new JsonObject { ["notizen"] = new JsonArray(new JsonObject { ["id"] = "owned-restore" }) }, "2.0.27");
+            TestAssert.Throws<InvalidDataException>(() => conditionalJournal.DeleteMany([activeRestore.Id], new Dictionary<string, string> { [activeRestore.Id] = conditionalJournal.SnapshotRevision(activeRestore.Id) }),
+                "Revision-checked deletion removed an active restore checkpoint.");
+            conditionalJournal.ReleaseRestoreLease(activeRestore.Id);
+            conditionalJournal.DeleteMany([activeRestore.Id], new Dictionary<string, string> { [activeRestore.Id] = conditionalJournal.SnapshotRevision(activeRestore.Id) });
+            File.AppendAllText(Path.Combine(conditionalPoints[1].Directory, conditionalPoints[1].PayloadFile), "owned tamper");
+            TestAssert.Throws<InvalidDataException>(() => conditionalJournal.DeleteMany(conditionalPoints.Select(item => item.Id), expectedRevisions),
+                "Stale snapshot revisions were accepted.");
+            TestAssert.That(conditionalPoints.All(item => Directory.Exists(item.Directory)), "A stale selection deleted an unchanged snapshot before validating the complete batch.");
+            TestAssert.Throws<InvalidDataException>(() => conditionalJournal.Inspect(conditionalPoints[1].Id, true), "Damaged payload passed verification.");
+            var damagedInspection = conditionalJournal.Inspect(conditionalPoints[1].Id, false);
+            TestAssert.That(damagedInspection.Revision != expectedRevisions[conditionalPoints[1].Id], "Inspection ignored changed payload bytes.");
+            var currentRevisions = conditionalPoints.ToDictionary(item => item.Id, item => conditionalJournal.SnapshotRevision(item.Id));
+            TestAssert.That(conditionalJournal.DeleteMany(conditionalPoints.Select(item => item.Id), currentRevisions) == 2,
+                "Current revisions could not remove a selected damaged snapshot.");
             var migrationRoot = Path.Combine(root, "migration");
             var migrationPaths = new WindowsPaths(migrationRoot);
             Directory.CreateDirectory(migrationPaths.RecoveryJournal);

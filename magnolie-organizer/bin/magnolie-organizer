@@ -1527,7 +1527,27 @@ def journal_komprimieren(basis=None, jetzt=None):
 
 
 @_journal_exklusiv
-def journal_snapshots_loeschen(snapshot_ids, basis=None):
+def journal_snapshot_revision(snapshot_id, basis=None):
+    ziel = os.path.join(journal_verzeichnis(basis), _journal_uuid(snapshot_id))
+    if os.path.islink(ziel) or not os.path.isdir(ziel):
+        raise RuntimeError("snapshot_conflict")
+    stand = []
+    for name in ("manifest.json", "payload.magnolie", "payload.magnolie.xz", ".restore-lease"):
+        pfad = os.path.join(ziel, name)
+        if os.path.islink(pfad):
+            wert = "symlink:" + os.readlink(pfad)
+        elif not os.path.exists(pfad):
+            wert = "missing"
+        else:
+            if not os.path.isfile(pfad) or os.path.getsize(pfad) > GESAMTARCHIV_DATEI_MAX:
+                raise RuntimeError(_("The recovery snapshot is missing or damaged."))
+            wert = _datei_sha256(pfad, GESAMTARCHIV_DATEI_MAX)
+        stand.append([name, wert])
+    return hashlib.sha256(json.dumps(stand, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+@_journal_exklusiv
+def journal_snapshots_loeschen(snapshot_ids, basis=None, expected_revisions=None):
     if not isinstance(snapshot_ids, list) or not snapshot_ids:
         raise ValueError(_("Select something first."))
     kennungen = list(dict.fromkeys(_journal_uuid(wert) for wert in snapshot_ids))
@@ -1536,6 +1556,19 @@ def journal_snapshots_loeschen(snapshot_ids, basis=None):
     for ziel in ziele:
         if os.path.islink(ziel):
             raise OSError(_("The recovery snapshot was not found."))
+    if expected_revisions is not None:
+        if not isinstance(expected_revisions, dict):
+            raise ValueError("snapshot_conflict")
+        erwartet = {_journal_uuid(key): value for key, value in expected_revisions.items()}
+        if set(erwartet) != set(kennungen):
+            raise ValueError("snapshot_conflict")
+        for kennung, ziel in zip(kennungen, ziele):
+            if os.path.exists(os.path.join(ziel, ".restore-lease")):
+                raise RuntimeError("snapshot_busy")
+            revision = erwartet[kennung]
+            if (not isinstance(revision, str) or not re.fullmatch(r"[a-f0-9]{64}", revision)
+                    or not hmac.compare_digest(journal_snapshot_revision(kennung, basis), revision)):
+                raise RuntimeError("snapshot_conflict")
     geloescht = 0
     try:
         for ziel in ziele:
@@ -1916,11 +1949,15 @@ def _text_sha256(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def _datei_sha256(pfad):
+def _datei_sha256(pfad, maximum=None):
     import hashlib
     wert = hashlib.sha256()
+    groesse = 0
     with open(pfad, "rb") as datei:
         for block in iter(lambda: datei.read(1024 * 1024), b""):
+            groesse += len(block)
+            if maximum is not None and groesse > maximum:
+                raise RuntimeError(_("The recovery snapshot is missing or damaged."))
             wert.update(block)
     return wert.hexdigest()
 
@@ -21043,12 +21080,23 @@ class Fenster(_FENSTER_BASIS):
 
         elif befehl == "journal_vorschau":
             try:
-                stand, gelesen = journal_snapshot_lesen(
-                    nachricht.get("snapshotId") or "", self._kennwort)
+                snapshot_id = nachricht.get("snapshotId") or ""
+                verify = nachricht.get("verify", True) is not False
+                with _JOURNAL_SPERRE:
+                    if verify:
+                        stand, gelesen = journal_snapshot_lesen(snapshot_id, self._kennwort)
+                        summary = gelesen["anzahlen"]
+                    else:
+                        kennung = _journal_uuid(snapshot_id)
+                        stand = next((value for value in journal_liste(integritaet=False) if value["snapshotId"] == kennung), None)
+                        if stand is None:
+                            raise RuntimeError(_("The recovery snapshot was not found."))
+                        summary = stand.get("summary", {})
+                    revision = journal_snapshot_revision(snapshot_id) if nachricht.get("requestId") else None
                 self.antwort("App.journalVorschau", {"ok": True,
                     "requestId": nachricht.get("requestId"),
-                    "snapshot": stand, "summary": gelesen["anzahlen"],
-                    "photos": gelesen["fotos"], "attachments": gelesen["anhaenge"]})
+                    "snapshot": stand, "summary": summary, "verified": verify, "revision": revision,
+                    **({"photos": gelesen["fotos"], "attachments": gelesen["anhaenge"]} if verify else {})})
             except Exception as fehler:
                 self.antwort("App.journalVorschau", {"ok": False,
                     "requestId": nachricht.get("requestId"),
@@ -21058,11 +21106,13 @@ class Fenster(_FENSTER_BASIS):
             mehrfach = "snapshotIds" in nachricht
             try:
                 kennungen = nachricht["snapshotIds"] if mehrfach else [nachricht.get("snapshotId")]
-                anzahl = journal_snapshots_loeschen(kennungen)
+                anzahl = journal_snapshots_loeschen(kennungen, expected_revisions=nachricht.get("expectedRevisions"))
                 self.antwort("App.journalErgebnis", {"ok": True, "deleted": True,
-                    "bulk": mehrfach, "anzahl": anzahl})
+                    "requestId": nachricht.get("requestId"), "bulk": mehrfach, "anzahl": anzahl})
             except Exception as fehler:
                 self.antwort("App.journalErgebnis", {"ok": False, "bulk": mehrfach,
+                    "requestId": nachricht.get("requestId"),
+                    "code": "conflict" if str(fehler) == "snapshot_conflict" else "busy" if str(fehler) == "snapshot_busy" else "native_operation_failed",
                     "fehler": fehler_deutsch(fehler, _("Deleting a recovery snapshot"))})
             self._journal_stand_melden()
 

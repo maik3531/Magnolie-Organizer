@@ -14,12 +14,14 @@ internal static class McpTransportTests
         using (var legacySources = BridgeDispatcherContract.Parse("{\"cmd\":\"eds_status\"}")) { }
         using (var correlatedSources = BridgeDispatcherContract.Parse("{\"cmd\":\"eds_status\",\"requestId\":\"dddddddd-dddd-4ddd-8ddd-dddddddddddd\"}")) { }
         TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse("{\"cmd\":\"eds_status\",\"requestId\":42}"), "Native source correlation accepted the wrong request-ID type.");
-        foreach (var command in new[] { "journal_liste", "journal_erzeugen", "journal_manuell", "journal_vorschau" })
+        foreach (var command in new[] { "journal_liste", "journal_erzeugen", "journal_manuell", "journal_vorschau", "journal_loeschen" })
         {
             using var legacyRecovery = BridgeDispatcherContract.Parse(JsonSerializer.Serialize(new { cmd = command }));
             using var correlatedRecovery = BridgeDispatcherContract.Parse(JsonSerializer.Serialize(new { cmd = command, requestId = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee" }));
             TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse(JsonSerializer.Serialize(new { cmd = command, requestId = 42 })), "Native recovery correlation accepted the wrong request-ID type.");
         }
+        using (var inspection = BridgeDispatcherContract.Parse("{\"cmd\":\"journal_vorschau\",\"verify\":false}")) { }
+        TestAssert.Throws<InvalidDataException>(() => BridgeDispatcherContract.Parse("{\"cmd\":\"journal_vorschau\",\"verify\":42}"), "Recovery inspection accepted an invalid verification mode.");
         var profile = Path.Combine(Path.GetTempPath(), "magnolie-mcp-fixture-" + Guid.NewGuid().ToString("N"));
         var incoming = Channel.CreateUnbounded<JsonObject>();
         var closed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);

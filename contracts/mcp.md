@@ -97,8 +97,9 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_drawing_read/replace` | Drawing JSON read in bounded UTF-8/base64 chunks under a full module revision; typed replacement uses the actual drawing validator, PNG background decoding and shared import/editor handler before native persistence. External writes are blocked while a drawing gesture is active. Direct replacement is subject to the local RPC frame limit. |
 | `organizer_drawing_upload_begin/append/status/cancel/finalize` | Session-owned, revision-bound drawing JSON staging up to the product import limit of 16 MiB, two drawing transfers, five-minute expiry and contiguous 64 KiB byte chunks with identical retry support. Finalize verifies SHA-256, strict UTF-8/typed JSON, actual drawing validity and background decoding before native persistence. Transfers are removed on cancel, close, expiry and finalize. |
 | `organizer_recovery_list` | Actual native recovery inventory and schedule with bounded pagination and canonical metadata; archive payload and local filesystem paths are omitted. |
-| `organizer_recovery_snapshot_preview` | Correlated native verification/summary of an existing checkpoint without restoring book data. |
+| `organizer_recovery_snapshot_preview` | Correlated native verification/summary plus opaque file-state revision. `verify:false` permits inspection of damaged archive metadata without claiming payload verification; `verified` reports the actual mode. |
 | `organizer_recovery_snapshot_create` | Flushes book writes through the native save gate, then creates/reuses a manual checkpoint under the product policy. Returns confirmed metadata from the actual native result; a concurrent book change is reported explicitly. |
+| `organizer_recovery_snapshots_delete` | Deletes up to 100 selected IDs with revisions obtained from preview/inspection. The native journal checks every selected state under its lock before the first deletion, including changed payload bytes. Active restore leases are rejected. Native result reports the actual deletion count. |
 | `organizer_appointment_read` | Appointment, provider/read-only metadata and revision token |
 | `organizer_appointment_create` | Local/timed/all-day appointment, repeat configuration, alarms, participants and attachment metadata |
 | `organizer_appointment_update` | Revision-checked editor fields and provider moves through the existing ICS mirror |
@@ -181,7 +182,7 @@ Definition names must be nonblank so entries survive the normal product reload.
 
 The remaining work includes other settings changes, native attachment open/save,
 imports/exports and planners,
-recovery restore/delete/policy changes and backup operations, synchronization/accounts, Magnolienbaum operations,
+recovery restore/policy changes and backup operations, synchronization/accounts, Magnolienbaum operations,
 the remaining phone/KDE actions, and complete
 installed-product acceptance.
 The listed tools execute their current product operations; remaining functions
