@@ -27293,13 +27293,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       pgettext("time tracking", "Time tracking"), DATEN.zeiterfassung.enabled, pgettext("time tracking", "Enable time tracking"));
     zeitGruppe.hak.id = "kalender-zeiterfassung";
     zeitGruppe.hak.addEventListener("change", () => {
-      DATEN.zeiterfassung.enabled = zeitGruppe.hak.checked;
-      if (!DATEN.zeiterfassung.enabled) for (const peer of telefonStand?.peers || []) {
-        if (peer.time_sync?.local?.enabled !== true) continue;
-        peer.time_sync.ready = false;
-        Bruecke.sende({ cmd: "personal_sync_senden", kennung: peer.device_id,
-          art: "personal_sync.time_settings", inhalt: { enabled: false } });
-      }
+      setzeZeiterfassungAktiv(zeitGruppe.hak.checked);
       zeitGruppe.inhalt.style.display = DATEN.zeiterfassung.enabled ? "" : "none";
       planeSpeichern(); zeichneAlles();
     });
@@ -33614,6 +33608,58 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }) }
     ];
   }
+  function setzeZeiterfassungAktiv(enabled) {
+    DATEN.zeiterfassung.enabled = enabled;
+    if (!enabled) for (const peer of telefonStand?.peers || []) {
+      if (peer.time_sync?.local?.enabled !== true) continue;
+      peer.time_sync.ready = false;
+      Bruecke.sende({ cmd: "personal_sync_senden", kennung: peer.device_id,
+        art: "personal_sync.time_settings", inhalt: { enabled: false } });
+    }
+  }
+  function mcpZeitVerwaltungWerkzeuge() {
+    const revision = { type: "string", pattern: "^[a-f0-9]{64}$" }, id = { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" };
+    const settings = () => ({ enabled: DATEN.zeiterfassung.enabled, reportName: DATEN.zeiterfassung.reportName });
+    const conflict = id => {
+      const record = DATEN.zeiterfassung.entries.find(entry => entry.id === id);
+      if (!record) throw new MagnolieMcp.ToolError("not_found", "Time record not found");
+      return { record, versions: DATEN.zeiterfassung.conflicts[id] || [] };
+    };
+    const fenced = async (signal, expected, snapshot) => {
+      const book = DATEN, before = snapshot(), hash = await personalSyncHash(before);
+      if (signal.aborted || gesperrt || DATEN !== book || snapshot() !== before || hash !== expected)
+        throw new MagnolieMcp.ToolError("conflict", "Time-tracking state changed; read it again before writing");
+      mcpEditorPruefen();
+    };
+    return [
+      { name: "organizer_time_settings_read", description: "Read local time-tracking enablement, report name and their revision token.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => {
+          const value = settings(); return { settings: value, revision: await personalSyncHash(JSON.stringify(value)) };
+        } },
+      { name: "organizer_time_settings_update", description: "Revision-checked local enablement/report-name changes using the product settings handler. Success confirms local persistence; it does not acknowledge delivery to a phone.",
+        inputSchema: { type: "object", properties: { expected_revision: revision, enabled: { type: "boolean" }, report_name: { type: "string", maxLength: 240 } }, required: ["expected_revision"], anyOf: [{ required: ["enabled"] }, { required: ["report_name"] }], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          await fenced(signal, args.expected_revision, () => JSON.stringify(settings()));
+          if (args.enabled !== undefined) setzeZeiterfassungAktiv(args.enabled);
+          if (args.report_name !== undefined) DATEN.zeiterfassung.reportName = args.report_name;
+          return {};
+        }) },
+      { name: "organizer_time_conflict_read", description: "Read the current time record and competing synchronization versions with one revision covering both. Choice 0 denotes the current record; choices 1..N denote competing versions.",
+        inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async args => {
+          const value = kopie(conflict(args.id)); return { ...value, revision: await personalSyncHash(JSON.stringify(value)) };
+        } },
+      { name: "organizer_time_conflict_resolve", description: "Resolve a revision-bound time conflict by selecting a stored version through the product conflict engine, merging its version clocks.",
+        inputSchema: { type: "object", properties: { id, expected_revision: revision, choice: { type: "integer", minimum: 0, maximum: 16 } }, required: ["id", "expected_revision", "choice"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          await fenced(signal, args.expected_revision, () => JSON.stringify(conflict(args.id)));
+          const value = conflict(args.id), selected = [value.record, ...value.versions][args.choice];
+          if (!value.versions.length || !selected) throw new MagnolieMcp.ToolError("not_found", "Time conflict version not found");
+          try { DATEN.zeiterfassung = zeitKonfliktLoesen(DATEN.zeiterfassung, args.id, selected, value.versions, value.record); }
+          catch (_changed) { throw new MagnolieMcp.ToolError("conflict", "Time conflict changed before resolution"); }
+          return { id: args.id };
+        }) }
+    ];
+  }
   function mcpZeitWerkzeuge() {
     const id = { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
     const minute = { type: "integer", minimum: 0, maximum: 4223371679 };
@@ -33866,6 +33912,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_time_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
+    if (name === "organizer_time_settings_update") return shape({ persisted: yes }, ["persisted"]);
+    if (name === "organizer_time_conflict_read") return shape({ record: object, versions: { type: "array", items: object }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["record", "versions", "revision"]);
+    if (name === "organizer_time_conflict_resolve") return shape(written, ["id", "persisted"]);
     if (name === "organizer_time_record_read") return shape({ record: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["record", "revision"]);
     if (["organizer_time_record_create", "organizer_time_record_update"].includes(name)) return shape(written, ["id", "persisted"]);
     if (name === "organizer_time_record_delete") return shape({ ...written, trash_id: { type: ["string", "null"] } }, ["id", "persisted", "trash_id"]);
@@ -33934,6 +33984,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpGesundheitMessWerkzeuge(),
       ...mcpInsulinSchemaWerkzeuge(),
       ...mcpZeitWerkzeuge(),
+      ...mcpZeitVerwaltungWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

@@ -44,7 +44,13 @@ data_file.write_text(json.dumps({"version": 6, "notizen": [{"id": "owned-native-
      "icsRoundtrip": ["BEGIN:VEVENT", "UID:owned-provider-event-uid", "DTSTART;VALUE=DATE:20261116", "X-OWNED-FIXTURE:preserve", "END:VEVENT"]}
     ], "schichten": [{"id": "owned-cleanup-shift", "name": "Owned cleanup shift", "von": "22:00", "bis": "06:00", "farbe": "#aabbcc", "art": "night"}],
     "zyklusmarker": [{"id": "owned-cleanup-cycle", "name": "Owned cleanup cycle", "symbol": "🌱", "farbe": "#b86f8e", "art": "custom"}],
-    "zeiterfassung": {"enabled": True}, "einstellungen": {
+    "zeiterfassung": {"enabled": False, "actor": "22222222-2222-4222-8222-222222222222", "counter": 1,
+        "entries": [{"id": "23232323-2323-4323-8323-232323232323", "startMinute": 30590000, "endMinute": 30590060,
+            "pauseMinute": None, "pauseMinutes": 0, "zone": "UTC", "type": "Owned local conflict", "note": "Owned local version",
+            "modifiedMs": 1, "deleted": False, "clock": {"22222222-2222-4222-8222-222222222222": 1}, "pausePlan": None}],
+        "conflicts": {"23232323-2323-4323-8323-232323232323": [{"id": "23232323-2323-4323-8323-232323232323", "startMinute": 30590000, "endMinute": 30590060,
+            "pauseMinute": None, "pauseMinutes": 0, "zone": "UTC", "type": "Owned remote conflict", "note": "Owned competing version",
+            "modifiedMs": 1, "deleted": False, "clock": {"33333333-3333-4333-8333-333333333333": 1}, "pausePlan": None}]}}, "einstellungen": {
     "allgemein": {"wiederherstellungsintervall": "manual", "tray": {"aktiv": False}},
     "update": {"automatisch": False}, "sync": {"beimStart": False},
     "erinnerung": {"an": False, "wecken": False, "jahrestage": {"an": False}}}}))
@@ -339,6 +345,11 @@ def client():
             "expected_revision": scheme["structuredContent"]["revision"], "changes": {"hinweis": "Owned native scheme fixture"}}})
         assert not scheme_updated["isError"] and scheme_updated["structuredContent"]["persisted"], scheme_updated
         assert json.loads(data_file.read_text())["gesundheit"]["insulinschema"]["hinweis"] == "Owned native scheme fixture"
+        time_settings = call("tools/call", {"name": "organizer_time_settings_read"})
+        time_settings_updated = call("tools/call", {"name": "organizer_time_settings_update", "arguments": {
+            "expected_revision": time_settings["structuredContent"]["revision"], "enabled": True, "report_name": "Owned native report"}})
+        assert not time_settings_updated["isError"] and time_settings_updated["structuredContent"]["persisted"], time_settings_updated
+        assert json.loads(data_file.read_text())["zeiterfassung"]["enabled"]
         time_created = call("tools/call", {"name": "organizer_time_record_create", "arguments": {
             "start_minute": 30590880, "end_minute": 30590940, "pause_minutes": 15, "zone": "UTC", "type": "Owned native manual time"}})
         assert not time_created["isError"] and time_created["structuredContent"]["persisted"], time_created
@@ -349,7 +360,7 @@ def client():
         assert not time_updated["isError"] and time_updated["structuredContent"]["persisted"], time_updated
         time_data = json.loads(data_file.read_text())["zeiterfassung"]
         time_value = next(item for item in time_data["entries"] if item["id"] == time_id)
-        assert time_value["clock"][time_data["actor"]] == 2 and time_value["pauseMinutes"] == 15 and time_value["note"] == "Owned native time revision", time_value
+        assert time_value["clock"][time_data["actor"]] == time_read["structuredContent"]["record"]["clock"][time_data["actor"]] + 1 and time_value["pauseMinutes"] == 15 and time_value["note"] == "Owned native time revision", time_value
         time_read = call("tools/call", {"name": "organizer_time_record_read", "arguments": {"id": time_id}})
         time_deleted = call("tools/call", {"name": "organizer_time_record_delete", "arguments": {
             "id": time_id, "expected_revision": time_read["structuredContent"]["revision"]}})
@@ -357,6 +368,14 @@ def client():
         assert next(item for item in json.loads(data_file.read_text())["zeiterfassung"]["entries"] if item["id"] == time_id)["deleted"]
         time_restored = call("tools/call", {"name": "organizer_trash_restore", "arguments": {"id": time_deleted["structuredContent"]["trash_id"]}})
         assert not time_restored["isError"] and time_restored["structuredContent"]["persisted"], time_restored
+        time_conflict = call("tools/call", {"name": "organizer_time_conflict_read", "arguments": {"id": "23232323-2323-4323-8323-232323232323"}})
+        time_resolved = call("tools/call", {"name": "organizer_time_conflict_resolve", "arguments": {
+            "id": "23232323-2323-4323-8323-232323232323", "expected_revision": time_conflict["structuredContent"]["revision"], "choice": 1}})
+        assert not time_resolved["isError"] and time_resolved["structuredContent"]["persisted"], time_resolved
+        resolved_data = json.loads(data_file.read_text())["zeiterfassung"]
+        resolved_time = next(item for item in resolved_data["entries"] if item["id"] == "23232323-2323-4323-8323-232323232323")
+        assert resolved_time["note"] == "Owned competing version" and resolved_time["clock"]["33333333-3333-4333-8333-333333333333"] == 1
+        assert "23232323-2323-4323-8323-232323232323" not in resolved_data["conflicts"]
         for date in ("2028-04-01", "2028-04-02"):
             day = call("tools/call", {"name": "organizer_day_marker_read", "arguments": {"date": date}})
             assert day["structuredContent"]["marker"] is None, day

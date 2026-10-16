@@ -90,6 +90,8 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_medication_read/create/update/delete` | Stored medication records, names/forms, date ranges, weekday selection and typed weekly plans. Uses the same health-table mutation handler, page allocation, revision checks and durable saves; empty weekly-plan rows are removed. |
 | `organizer_insulin_scheme_read/update` | Revision-checked partial configuration with the product model's field names, typed rule arrays and native save acknowledgement. Omitted fields are preserved; supplied arrays replace their previous contents. |
 | `organizer_time_record_read/create/update/delete` | Manual completed time records using UTC Unix minutes, native time-zone/pause/lifecycle validation and product-owned synchronization clocks. Creation requires tracking enabled. Metadata edits preserve pause plans; timing edits reset them as in the manual editor. Deletion writes a tombstone and archives according to trash settings. |
+| `organizer_time_settings_read/update` | Revision-checked local tracking enablement and report-name settings through the product handler. Persistence acknowledgement covers local settings. |
+| `organizer_time_conflict_read/resolve` | Reads current and competing time-record versions under a shared revision. Resolution selects an existing version (0=current, 1..N=competing) through the product conflict engine and merges version clocks. |
 | `organizer_appointment_read` | Appointment, provider/read-only metadata and revision token |
 | `organizer_appointment_create` | Local/timed/all-day appointment, repeat configuration, alarms, participants and attachment metadata |
 | `organizer_appointment_update` | Revision-checked editor fields and provider moves through the existing ICS mirror |
@@ -170,7 +172,7 @@ Definition names must be nonblank so entries survive the normal product reload.
 
 ## Remaining coverage in #170
 
-The remaining work includes time-tracking configuration/conflict operations and custom organizers,
+The remaining work includes custom organizers,
 settings changes, native attachment open/save,
 imports/exports and planners,
 recovery/backup operations, synchronization/accounts, Magnolienbaum operations,
