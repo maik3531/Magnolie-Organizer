@@ -2798,6 +2798,7 @@ pruefe(m.notiz_anhang_name("." * 300 + "/\x00falsch.pdf", "image/png") ==
 class _AnhangDateiProbe:
     def __init__(self, ziel=None):
         self._notiz_anhang_temp = None
+        self._daten_sperre = m.threading.RLock()
         self.ziel = ziel
         self.antworten = []
         self.dialoge = []

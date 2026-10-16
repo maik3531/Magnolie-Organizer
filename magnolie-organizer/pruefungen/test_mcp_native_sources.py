@@ -3,6 +3,36 @@ import ast
 from pathlib import Path
 import re
 import tempfile
+import threading
+
+
+def test_attachment_open_rejects_failed_launcher_and_locked_profile(monkeypatch):
+    import base64
+    from modul_laden import quellmodul_laden
+    source = Path(__file__).parents[1] / "bin/magnolie-organizer"
+    product = quellmodul_laden("owned_mcp_attachment_open", str(source))
+    with tempfile.TemporaryDirectory(prefix="magnolie-mcp-open-", dir="/tmp/opencode") as root:
+        class Window:
+            _gesperrt = False
+            _daten_sperre = threading.RLock()
+            _notiz_anhang_temp = root
+            def __init__(self):
+                self.replies = []
+            def antwort(self, callback, payload):
+                self.replies.append((callback, payload))
+        window = Window()
+        monkeypatch.setattr(product.shutil, "which", lambda _name: "/usr/bin/false")
+        args = {"id": 1, "requestId": "owned-launch-request", "aktion": "open", "name": "owned.pdf",
+            "daten": "data:application/pdf;base64," + base64.b64encode(b"%PDF-1.4\nowned fixture\n").decode()}
+        product.Fenster.bei_notiz_anhang_datei(window, args)
+        callback, reply = window.replies.pop()
+        assert callback == "App.notizAnhangDateiErgebnis" and reply["requestId"] == args["requestId"]
+        assert not reply["ok"] and not reply.get("launched")
+        files = list(Path(root).iterdir())
+        assert len(files) == 1
+        window._gesperrt = True
+        product.Fenster.bei_notiz_anhang_datei(window, args)
+        assert not window.replies.pop()[1]["ok"] and list(Path(root).iterdir()) == files
 
 
 def test_native_source_reply_preserves_request_identity_and_aggregated_sources():

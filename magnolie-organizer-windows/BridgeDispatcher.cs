@@ -684,6 +684,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         var action = Text(message, "aktion");
         var requestId = Text(message, "requestId");
         if (!string.IsNullOrEmpty(requestId) && action == "save") action = "speichern";
+        if (!string.IsNullOrEmpty(requestId) && action == "open") action = "oeffnen";
         if (action is not ("oeffnen" or "speichern"))
         {
             await form.SendAsync("App.notizAnhangDateiErgebnis", new { requestId, aktion = action, ok = false, abgebrochen = false });
@@ -739,7 +740,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     throw new IOException(T("No application is registered for the attachment."));
                 }
             }
-            await form.SendAsync("App.notizAnhangDateiErgebnis", new { aktion = action, ok = true, abgebrochen = false });
+            await form.SendAsync("App.notizAnhangDateiErgebnis", new { requestId, aktion = action, ok = true, launched = action == "oeffnen", abgebrochen = false });
         }
         catch (Exception error) when (error is InvalidDataException or IOException or UnauthorizedAccessException or ArgumentException)
         {

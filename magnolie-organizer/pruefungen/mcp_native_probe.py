@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import selectors
+import socket
 import struct
 import subprocess
 import sys
@@ -188,6 +189,39 @@ def client():
         attachment_link.symlink_to(attachment_save_path)
         attachment_link_result = call("tools/call", {"name": "organizer_attachment_save", "arguments": {**attachment_save_args, "path": str(attachment_link), "overwrite": True}})
         assert attachment_link_result["isError"] and attachment_link.is_symlink() and attachment_save_path.read_bytes() == png, attachment_link_result
+        attachment_listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        attachment_socket = str(Path(temporary.name) / "owned-attachment.sock")
+        attachment_listener.bind(attachment_socket)
+        attachment_listener.listen(1)
+        attachment_listener.settimeout(5)
+        own_viewer = Path(temporary.name) / "owned-attachment-viewer.py"
+        own_viewer.write_text("import hashlib, socket, sys\nfrom pathlib import Path\n"
+            "with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:\n"
+            "    connection.connect(" + repr(attachment_socket) + ")\n"
+            "    connection.sendall(hashlib.sha256(Path(sys.argv[1]).read_bytes()).hexdigest().encode())\n")
+        own_apps = Path(os.environ["XDG_DATA_HOME"]) / "applications"
+        own_apps.mkdir(exist_ok=True)
+        (own_apps / "owned-attachment-viewer.desktop").write_text(
+            '[Desktop Entry]\nType=Application\nName=Owned attachment viewer\n'
+            'Exec="' + sys.executable + '" "' + str(own_viewer) + '" %f\nTerminal=false\nMimeType=image/png;\n')
+        (Path(os.environ["XDG_CONFIG_HOME"]) / "mimeapps.list").write_text(
+            "[Default Applications]\nimage/png=owned-attachment-viewer.desktop;\n")
+        previous_desktop = os.environ.get("XDG_CURRENT_DESKTOP")
+        os.environ["XDG_CURRENT_DESKTOP"] = "GNOME"
+        try:
+            attachment_opened = call("tools/call", {"name": "organizer_attachment_open", "arguments": {
+                "note_id": note_id, "attachment_id": attachment_id, "expected_revision": attachment_note["structuredContent"]["revision"]}})
+            assert not attachment_opened["isError"] and attachment_opened["structuredContent"]["launched"], attachment_opened
+            connection, _address = attachment_listener.accept()
+            with connection:
+                connection.settimeout(3)
+                assert connection.recv(128).decode() == hashlib.sha256(png).hexdigest(), "Registered own viewer received different attachment bytes"
+        finally:
+            attachment_listener.close()
+            if previous_desktop is None:
+                os.environ.pop("XDG_CURRENT_DESKTOP", None)
+            else:
+                os.environ["XDG_CURRENT_DESKTOP"] = previous_desktop
         removed_attachment = call("tools/call", {"name": "organizer_attachment_remove", "arguments": {
             "note_id": note_id, "attachment_id": attachment_id, "expected_revision": attachment_note["structuredContent"]["revision"]}})
         assert not removed_attachment["isError"] and removed_attachment["structuredContent"]["persisted"], removed_attachment

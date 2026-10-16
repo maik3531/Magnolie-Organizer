@@ -33257,6 +33257,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         return { path: value.pfad, confirmed: true, bytes: value.bytes, sha256: value.sha256 };
       } }];
   }
+  function mcpAnhangOeffnenWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 };
+    return [{ name: "organizer_attachment_open", description: "Ask the native operating-system launcher to open an existing revision-bound note attachment using the registered application. Success confirms native launcher acceptance, not that the viewer rendered the document. Linux waits for the launcher exit with a bounded timeout.",
+      inputSchema: { type: "object", properties: { note_id: id, attachment_id: id, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, required: ["note_id", "attachment_id", "expected_revision"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen(); const book = DATEN, note = await mcpPruefeNotiz(args.note_id, args.expected_revision, signal);
+        const attachment = note.anhaenge.find(item => item.id === args.attachment_id);
+        if (!attachment) throw new MagnolieMcp.ToolError("not_found", "Note attachment not found");
+        const before = JSON.stringify(note), value = await mcpNativeAufruf("notiz_anhang_datei", { id: 1, aktion: "open", name: attachment.name, daten: attachment.daten }, "notizAnhangDateiErgebnis", signal);
+        if (value.ok !== true || value.launched !== true) throw new MagnolieMcp.ToolError("attachment_open_failed", "Native attachment launcher did not confirm acceptance");
+        if (DATEN !== book || !DATEN.notizen.includes(note) || JSON.stringify(note) !== before) throw new MagnolieMcp.ToolError("source_changed", "An attachment may have been launched; the source note changed");
+        return { launched: true };
+      } }];
+  }
   function mcpPersonenWerkzeuge() {
     const id = { type: "string", minLength: 1, maxLength: 256 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
     const fields = { name: { type: "string", minLength: 1, maxLength: 1000, pattern: "\\S" },
@@ -34514,6 +34527,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
     if (name === "organizer_attachment_save") return shape({ path: text, confirmed: yes, bytes: { type: "integer", minimum: 1, maximum: 8 * 1024 * 1024 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["path", "confirmed", "bytes", "sha256"]);
+    if (name === "organizer_attachment_open") return shape({ launched: yes }, ["launched"]);
     if (name === "organizer_holidays_read") return shape({ settings: object, total: { type: "integer", minimum: 0 }, countries: { type: "array", items: object }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "total", "countries", "revision"]);
     if (name === "organizer_holidays_clear") return shape({ deleted_count: { type: "integer", minimum: 0 }, persisted: yes }, ["deleted_count", "persisted"]);
     if (name === "organizer_holidays_settings_update") return shape({ persisted: yes }, ["persisted"]);
@@ -34637,6 +34651,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpPapierkorbWerkzeuge(),
       ...mcpEigenprofilWerkzeuge(),
       ...mcpAnhangDateiWerkzeuge(),
+      ...mcpAnhangOeffnenWerkzeuge(),
       ...mcpFeiertagWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },

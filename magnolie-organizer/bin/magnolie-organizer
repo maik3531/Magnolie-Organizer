@@ -21211,7 +21211,10 @@ class Fenster(_FENSTER_BASIS):
             self.bei_export(nachricht)
 
         elif befehl == "notiz_anhang_datei":
-            self.bei_notiz_anhang_datei(nachricht)
+            if nachricht.get("requestId") and nachricht.get("aktion") == "open":
+                threading.Thread(target=self.bei_notiz_anhang_datei, args=(nachricht,), daemon=True).start()
+            else:
+                self.bei_notiz_anhang_datei(nachricht)
         elif befehl == "zeichenblatt_svg_speichern":
             self.bei_zeichenblatt_svg_speichern(nachricht)
         elif befehl == "zeichenblatt_exportieren":
@@ -21884,23 +21887,31 @@ class Fenster(_FENSTER_BASIS):
                         raise OSError("export_verification_failed")
                     antwort.update({"ok": True, "pfad": os.path.abspath(pfad), "bytes": len(anhang["daten"]), "sha256": digest})
             else:
-                if not self._notiz_anhang_temp:
-                    self._notiz_anhang_temp = tempfile.mkdtemp(prefix="magnolie-attachment-")
-                    os.chmod(self._notiz_anhang_temp, 0o700)
-                pfad = os.path.join(self._notiz_anhang_temp, anhang["name"])
+                with self._daten_sperre:
+                    if request_id and getattr(self, "_gesperrt", True):
+                        raise OSError("profile_locked")
+                    if not self._notiz_anhang_temp:
+                        self._notiz_anhang_temp = tempfile.mkdtemp(prefix="magnolie-attachment-")
+                        os.chmod(self._notiz_anhang_temp, 0o700)
+                pfad = os.path.join(self._notiz_anhang_temp,
+                    uuid.uuid4().hex + endung if request_id else anhang["name"])
                 atomar_binaer_schreiben(pfad, anhang["daten"])
                 werkzeug = shutil.which("xdg-open")
                 if not werkzeug:
                     raise OSError(_("No suitable application was found."))
-                if starter is None:
-                    starter = lambda argumente: subprocess.Popen(
-                        argumente, start_new_session=True,
+                if request_id:
+                    subprocess.run([werkzeug, pfad], timeout=15, check=True,
                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                starter([werkzeug, pfad])
-                antwort.update({"ok": True})
+                else:
+                    if starter is None:
+                        starter = lambda argumente: subprocess.Popen(
+                            argumente, start_new_session=True,
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    starter([werkzeug, pfad])
+                antwort.update({"ok": True, "launched": True})
         except ValueError as fehler:
             antwort["fehler"] = str(fehler)
-        except OSError as fehler:
+        except (OSError, subprocess.SubprocessError) as fehler:
             antwort["fehler"] = (_("The file could not be written (%s).") % fehler
                                  if aktion == "save" else
                                  _("The file could not be read."))

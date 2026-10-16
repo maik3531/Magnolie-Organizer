@@ -111,6 +111,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_backup_preview` | Native classic JSON backup verification/decryption, counts and a revision of the exact source text. Complete `.magnolie` files use the archive tools. |
 | `organizer_backup_restore` | Revision- and save-gated classic JSON restore using the product's encryption transaction and mandatory checkpoint. Explicit replace mode; committed and repair state are returned after data adoption, including late replies. Platform password behavior is preserved: Linux retains an existing profile password or adopts an encrypted backup password; Windows adopts the backup encryption state. |
 | `organizer_attachment_save` | Export an existing note attachment to an explicit file using the native product validator/writer and actual-file readback. Full note revision required; explicit overwrite, active-profile and symlink guards. Returns confirmed path, byte count and SHA-256. |
+| `organizer_attachment_open` | Revision-bound native request to open an attachment with the registered application. Confirms operating-system launcher acceptance only; Linux waits for a successful launcher exit with a 15-second timeout. Native callbacks are correlated, including failures and late responses. |
 | `organizer_appointment_read` | Appointment, provider/read-only metadata and revision token |
 | `organizer_appointment_create` | Local/timed/all-day appointment, repeat configuration, alarms, participants and attachment metadata |
 | `organizer_appointment_update` | Revision-checked editor fields and provider moves through the existing ICS mirror |
@@ -196,7 +197,7 @@ Definition names must be nonblank so entries survive the normal product reload.
 
 ## Remaining coverage in #170
 
-The remaining work includes other settings changes, native attachment open/save,
+The remaining work includes other settings changes,
 imports/exports and planners,
 backup configuration, synchronization/accounts, Magnolienbaum operations,
 the remaining phone/KDE actions, and complete
