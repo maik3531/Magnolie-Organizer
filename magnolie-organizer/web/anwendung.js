@@ -13577,12 +13577,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   async function loescheCustom(modul, item = null) {
     const name = (item && item.title) || modul.title || customModulTitel(modul.type);
     if (!await frage(_("Remove") + ": " + name + "?", _("Remove"))) return false;
+    return !!entferneCustomDaten(modul, item);
+  }
+  function entferneCustomDaten(modul, item = null) {
     if (!DATEN.customOrganizer.modules.includes(modul)) return false;
+    if (item && !modul.items.includes(item)) return false;
+    const previous = DATEN.papierkorb.at(-1)?.id;
     entferneCustomTextVerweise(sichereCustomPapierkorb(modul, item));
     if (item) modul.items = modul.items.filter((wert) => wert.id !== item.id);
     else DATEN.customOrganizer.modules = DATEN.customOrganizer.modules.filter((wert) => wert.id !== modul.id);
     planeSpeichern();
-    return true;
+    const trash = DATEN.papierkorb.at(-1)?.id;
+    return { id: item ? item.id : modul.id, trash_id: trash && trash !== previous ? trash : null };
   }
 
   function oeffneVerknuepftenCustomText(itemId) {
@@ -14277,15 +14283,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         karte.dataset.moduleId = modul.id;
         const name = eingabe("text", modul.title || ""); name.maxLength = 120;
         const seite = auswahlFeld([["left", _("Left page")], ["right", _("Right page")]], modul.page);
-        name.addEventListener("input", () => { modul.title = Array.from(name.value).slice(0, 120).join(""); customModulGeaendert(modul); });
+        name.addEventListener("input", () => { wendeCustomModulWerteAn(modul, { title: name.value }); });
         seite.addEventListener("change", () => {
           const ziel = seite.value;
-          const andere = (DATEN.customOrganizer.modules || []).filter((wert) => wert.id !== modul.id);
-          const unzulaessig = andere.filter((wert) => wert.page === ziel).length >= 2 ||
-            (modul.type === "notes" && andere.some((wert) => wert.type === "notes" && wert.page === ziel));
-          if (unzulaessig) { seite.value = modul.page; return; }
-          modul.page = ziel; modul.order = 1 + Math.max(-1, ...andere.filter((wert) => wert.page === ziel).map((wert) => wert.order));
-          customModulGeaendert(modul);
+          if (!wendeCustomModulWerteAn(modul, { page: ziel })) { seite.value = modul.page; return; }
           ziele[ziel].append(karte); seite.focus();
         });
         karte.append(el("strong", null, customModulTitel(modul.type)),
@@ -14293,14 +14294,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (modul.type === "notes") {
           const linien = auswahlFeld([["inherit", _("Settings")], ["on", _("Yes")], ["off", _("No")]], modul.lines || "inherit");
           linien.addEventListener("change", () => {
-            if (linien.value === "inherit") delete modul.lines;
-            else modul.lines = linien.value;
-            customModulGeaendert(modul);
+            wendeCustomModulWerteAn(modul, { lines: linien.value });
           });
           karte.append(formZeile(_("Lined paper (lines on the writing sheet)"), linien));
         } else if (modul.type !== "drawing") {
           const erinnern = document.createElement("input"); erinnern.type = "checkbox"; erinnern.checked = !!modul.reminders;
-          erinnern.addEventListener("change", () => { modul.reminders = erinnern.checked; customModulGeaendert(modul); });
+          erinnern.addEventListener("change", () => { wendeCustomModulWerteAn(modul, { reminders: erinnern.checked }); });
           const zeile = el("label", "hak"); zeile.append(erinnern,
             document.createTextNode(" " + _("Enable reminders for this block"))); karte.append(zeile);
         }
@@ -14313,20 +14312,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
     };
     werkzeuge.append(formZeile(_("Module"), typ), knopf(_("Add"), "knopf", () => {
-      const modules = DATEN.customOrganizer.modules || (DATEN.customOrganizer.modules = []);
-      if (modules.length >= CUSTOM_MAX_MODULES ||
-          (!["notes", "drawing"].includes(typ.value) && modules.some((modul) => modul.type === typ.value))) return;
-      const seiten = (typ.value === "notes" ? ["left", "right"] : ["right", "left"]).filter((seite) =>
-        modules.filter((modul) => modul.page === seite).length < 2 &&
-        (typ.value !== "notes" || !modules.some((modul) => modul.type === "notes" && modul.page === seite)));
-      if (!seiten.length) return;
-      const seite = seiten[0];
-      const modul = { id: "custom-module-" + uid(), type: typ.value, title: "",
-        page: seite, order: 1 + Math.max(-1, ...modules.filter((wert) => wert.page === seite).map((wert) => wert.order)),
-        reminders: false, modified_ms: Date.now() };
-      modul.items = [];
-      if (modul.type === "drawing") modul.drawing = window.MagnolieZeichnen.create();
-      modules.push(modul);
+      if (!neuesCustomModulDaten(typ.value)) return;
       planeSpeichern(); zeichnen();
     }));
     dialog.append(kopf, werkzeuge, liste);
@@ -33959,6 +33945,74 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }) }
     ];
   }
+  function customModulSeiteErlaubt(type, page, current = null) {
+    const others = DATEN.customOrganizer.modules.filter(module => module !== current);
+    return others.filter(module => module.page === page).length < 2 && (type !== "notes" || !others.some(module => module.type === "notes" && module.page === page));
+  }
+  function neuesCustomModulDaten(type, page = null, id = "custom-module-" + uid()) {
+    const modules = DATEN.customOrganizer.modules;
+    if (modules.length >= CUSTOM_MAX_MODULES || (!["notes", "drawing"].includes(type) && modules.some(module => module.type === type))) return null;
+    const pages = page ? [page] : type === "notes" ? ["left", "right"] : ["right", "left"];
+    const target = pages.find(value => customModulSeiteErlaubt(type, value));
+    if (!target) return null;
+    const module = { id, type, title: "", page: target, order: 1 + Math.max(-1, ...modules.filter(value => value.page === target).map(value => value.order)), reminders: false, modified_ms: Date.now(), items: [] };
+    if (type === "drawing") module.drawing = window.MagnolieZeichnen.create();
+    modules.push(module); return module;
+  }
+  function wendeCustomModulWerteAn(module, values) {
+    if (values.page !== undefined && !customModulSeiteErlaubt(module.type, values.page, module)) return false;
+    if (values.page !== undefined && values.page !== module.page) {
+      module.page = values.page; module.order = 1 + Math.max(-1, ...DATEN.customOrganizer.modules.filter(value => value !== module && value.page === module.page).map(value => value.order));
+    }
+    if (values.title !== undefined) module.title = Array.from(values.title).slice(0, 120).join("");
+    if (values.lines !== undefined) { if (values.lines === "inherit") delete module.lines; else module.lines = values.lines; }
+    if (values.reminders !== undefined) module.reminders = values.reminders;
+    customModulGeaendert(module); return true;
+  }
+  function mcpCustomModulWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 160 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const fields = { title: { type: "string", maxLength: 120, pattern: "^[^\\u0000-\\u001f\\u007f]*$" }, page: { type: "string", enum: ["left", "right"] }, lines: { type: "string", enum: ["inherit", "on", "off"] }, reminders: { type: "boolean" } };
+    const find = value => DATEN.customOrganizer.modules.find(module => module.id === value);
+    const validate = (type, args) => {
+      if ((args.lines !== undefined && type !== "notes") || (args.reminders !== undefined && !["appointments", "tasks"].includes(type)))
+        throw new MagnolieMcp.ToolError("unsupported_field", "Module type does not support these presentation or reminder fields");
+    };
+    const checked = async (args, signal) => {
+      const book = DATEN, module = find(args.id); if (!module) throw new MagnolieMcp.ToolError("not_found", "Custom module not found");
+      const before = JSON.stringify(module), hash = await personalSyncHash(before);
+      if (signal.aborted || gesperrt || DATEN !== book || find(args.id) !== module || JSON.stringify(module) !== before || hash !== args.expected_revision)
+        throw new MagnolieMcp.ToolError("conflict", "Custom module changed; read it again before writing");
+      mcpEditorPruefen(); return module;
+    };
+    return [
+      { name: "organizer_custom_module_read", description: "Read a custom module with its full revision; fields projection avoids returning large drawings or text items.",
+        inputSchema: { type: "object", properties: { id, fields: { type: "array", minItems: 1, maxItems: 128, items: id } }, required: ["id"], additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async args => {
+          const current = find(args.id); if (!current) throw new MagnolieMcp.ToolError("not_found", "Custom module not found");
+          const module = kopie(current); return { module: mcpLeseProjektion(module, args.fields), revision: await personalSyncHash(JSON.stringify(module)) };
+        } },
+      { name: "organizer_custom_module_create", description: "Create a custom module using the designer's page-capacity and unique-module rules; drawing modules start as an empty product drawing sheet.",
+        inputSchema: { type: "object", properties: { ...fields, type: { type: "string", enum: ["appointments", "notes", "tasks", "drawing"] }, id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" } }, required: ["type"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, () => {
+          validate(args.type, args);
+          if (args.id && DATEN.customOrganizer.modules.some(module => module.id === args.id || module.items.some(item => item.id === args.id))) throw new MagnolieMcp.ToolError("already_exists", "Custom ID already exists");
+          const module = neuesCustomModulDaten(args.type, args.page || null, args.id || "custom-module-" + uid());
+          if (!module) throw new MagnolieMcp.ToolError("layout_full", "Custom module type or target page has no available slot");
+          wendeCustomModulWerteAn(module, args); return { id: module.id };
+        }) },
+      { name: "organizer_custom_module_update", description: "Revision-checked custom module presentation and page changes through the product designer handler; item contents remain intact.",
+        inputSchema: { type: "object", properties: { ...fields, id, expected_revision: revision }, required: ["id", "expected_revision"], anyOf: Object.keys(fields).map(field => ({ required: [field] })), additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const module = await checked(args, signal); validate(module.type, args);
+          if (!wendeCustomModulWerteAn(module, args)) throw new MagnolieMcp.ToolError("layout_full", "Custom module target page has no available slot"); return { id: module.id };
+        }) },
+      { name: "organizer_custom_module_delete", description: "Revision-checked custom module removal using product trash and linked-text-reference cleanup.",
+        inputSchema: { type: "object", properties: { id, expected_revision: revision }, required: ["id", "expected_revision"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const module = await checked(args, signal), result = entferneCustomDaten(module);
+          if (!result) throw new MagnolieMcp.ToolError("conflict", "Custom module changed before removal"); return result;
+        }) }
+    ];
+  }
   function wendeUrlaubDatenAn(entry, values) {
     const value = entry || { id: values.id || uid(), von: isoHeute(), bis: isoHeute(), symbol: "palm", darstellung: "symbol-text" };
     if (gueltigesISO(values.von)) value.von = values.von;
@@ -34159,6 +34213,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_custom_module_read") return shape({ module: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["module", "revision"]);
+    if (["organizer_custom_module_create", "organizer_custom_module_update"].includes(name)) return shape(written, ["id", "persisted"]);
+    if (name === "organizer_custom_module_delete") return shape({ ...written, trash_id: { type: ["string", "null"] } }, ["id", "persisted", "trash_id"]);
     if (name === "organizer_time_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
     if (name === "organizer_time_settings_update") return shape({ persisted: yes }, ["persisted"]);
     if (name === "organizer_time_conflict_read") return shape({ record: object, versions: { type: "array", items: object }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["record", "versions", "revision"]);
@@ -34232,6 +34289,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpInsulinSchemaWerkzeuge(),
       ...mcpZeitWerkzeuge(),
       ...mcpZeitVerwaltungWerkzeuge(),
+      ...mcpCustomModulWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

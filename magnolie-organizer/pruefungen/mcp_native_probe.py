@@ -113,7 +113,15 @@ def client():
             "clientInfo": {"name": "owned-native-fixture", "version": "1"}})
         assert result["serverInfo"]["name"] == "magnolie-organizer"
         send({"jsonrpc": "2.0", "method": "notifications/initialized"})
-        tools = call("tools/list")["tools"]
+        tool_page = call("tools/list")
+        tools = list(tool_page["tools"])
+        cursors = set()
+        while "nextCursor" in tool_page:
+            cursor = tool_page["nextCursor"]
+            assert cursor not in cursors and len(cursors) < 100
+            cursors.add(cursor)
+            tool_page = call("tools/list", {"cursor": cursor})
+            tools.extend(tool_page["tools"])
         assert any(tool["name"] == "organizer_note_create" for tool in tools)
         status = call("tools/call", {"name": "organizer_status"})
         assert status["structuredContent"]["ready"] and not status["structuredContent"]["locked"], status
@@ -376,6 +384,22 @@ def client():
         resolved_time = next(item for item in resolved_data["entries"] if item["id"] == "23232323-2323-4323-8323-232323232323")
         assert resolved_time["note"] == "Owned competing version" and resolved_time["clock"]["33333333-3333-4333-8333-333333333333"] == 1
         assert "23232323-2323-4323-8323-232323232323" not in resolved_data["conflicts"]
+        custom_created = call("tools/call", {"name": "organizer_custom_module_create", "arguments": {
+            "type": "notes", "page": "left", "title": "Owned native custom block", "lines": "on"}})
+        assert not custom_created["isError"] and custom_created["structuredContent"]["persisted"], custom_created
+        custom_id = custom_created["structuredContent"]["id"]
+        custom_read = call("tools/call", {"name": "organizer_custom_module_read", "arguments": {"id": custom_id}})
+        custom_updated = call("tools/call", {"name": "organizer_custom_module_update", "arguments": {
+            "id": custom_id, "expected_revision": custom_read["structuredContent"]["revision"], "title": "Updated native custom block", "lines": "off"}})
+        assert not custom_updated["isError"] and custom_updated["structuredContent"]["persisted"], custom_updated
+        assert next(module for module in json.loads(data_file.read_text())["customOrganizer"]["modules"] if module["id"] == custom_id)["lines"] == "off"
+        custom_read = call("tools/call", {"name": "organizer_custom_module_read", "arguments": {"id": custom_id}})
+        custom_deleted = call("tools/call", {"name": "organizer_custom_module_delete", "arguments": {
+            "id": custom_id, "expected_revision": custom_read["structuredContent"]["revision"]}})
+        assert not custom_deleted["isError"] and custom_deleted["structuredContent"]["persisted"], custom_deleted
+        assert not any(module["id"] == custom_id for module in json.loads(data_file.read_text())["customOrganizer"]["modules"])
+        custom_restored = call("tools/call", {"name": "organizer_trash_restore", "arguments": {"id": custom_deleted["structuredContent"]["trash_id"]}})
+        assert not custom_restored["isError"] and custom_restored["structuredContent"]["persisted"], custom_restored
         for date in ("2028-04-01", "2028-04-02"):
             day = call("tools/call", {"name": "organizer_day_marker_read", "arguments": {"date": date}})
             assert day["structuredContent"]["marker"] is None, day
