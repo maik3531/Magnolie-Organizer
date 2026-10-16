@@ -968,6 +968,35 @@ let declaredContracts;
       assert.equal(JSON.stringify(b.t.daten().tombstones), tombstonesBefore);
       assert.equal(JSON.stringify(b.t.daten().notizen), notesBefore);
       }
+      {
+        const profileBefore = (await call(request(570, "tools/call", { name: "organizer_own_profile_read" }))).result.structuredContent;
+        const contactsBefore = JSON.stringify(b.t.daten().kontakte), anniversariesBefore = JSON.stringify(b.t.daten().jahrestage);
+        const saved = await persisted(571, "organizer_own_profile_update", { expected_revision: profileBefore.revision, first_name: "Owned", last_name: "Profile",
+          phones: [{ value: "+49123456789", types: ["cell"] }], emails: [{ value: "owned@example.org" }], addresses: [{ street: "Owned street", city: "Owned city" }],
+          birth_date: "--02-29", anniversaries: [{ type: "anniversary", date: "2020-01-02" }] });
+        assert.equal(b.t.daten().eigenesProfil.kind, "own_profile");
+        assert.equal(b.t.daten().eigenesProfil.data.geburtstag, "--02-29");
+        assert.equal(b.t.daten().eigenesProfil.data.profilJahrestage.length, 2);
+        assert.equal(b.t.daten().eigenesProfil.data.id, undefined);
+        const stale = await call(request(572, "tools/call", { name: "organizer_own_profile_update", arguments: { expected_revision: profileBefore.revision, company: "stale" } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        b.t.daten().eigenesProfil.data.sync = { uid: "owned-legacy-provider" };
+        b.t.daten().eigenesProfil.data.uid = "owned-legacy-uid";
+        b.t.daten().eigenesProfil.data.ownedExtension = "preserved";
+        const fresh = (await call(request(573, "tools/call", { name: "organizer_own_profile_read", arguments: { fields: ["vorname"] } }))).result.structuredContent;
+        assert.equal(fresh.profile.data.vorname, "Owned"); assert.equal(fresh.profile.data.geburtstag, undefined);
+        await persisted(574, "organizer_own_profile_update", { expected_revision: fresh.revision, company: "Owned company" });
+        assert.equal(b.t.daten().eigenesProfil.id, saved.id);
+        assert.equal(b.t.daten().eigenesProfil.data.sync, undefined); assert.equal(b.t.daten().eigenesProfil.data.uid, undefined);
+        assert.equal(b.t.daten().eigenesProfil.data.ownedExtension, "preserved");
+        assert.equal(b.t.daten().eigenesProfil.data.profilJahrestage.length, 2);
+        assert.equal(JSON.stringify(b.t.daten().kontakte), contactsBefore); assert.equal(JSON.stringify(b.t.daten().jahrestage), anniversariesBefore);
+        const invalid = await call(request(575, "tools/call", { name: "organizer_own_profile_update", arguments: { expected_revision: fresh.revision, birth_date: "--02-30" } }));
+        assert.equal(invalid.result.structuredContent.code, "conflict");
+        const validRevision = (await call(request(576, "tools/call", { name: "organizer_own_profile_read" }))).result.structuredContent.revision;
+        const badDate = await call(request(577, "tools/call", { name: "organizer_own_profile_update", arguments: { expected_revision: validRevision, birth_date: "--02-30" } }));
+        assert.equal(badDate.result.structuredContent.code, "invalid_date");
+      }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));
       assert.equal(locked.result.isError, true);

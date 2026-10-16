@@ -17821,8 +17821,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const store = () => {
       if (DATEN.eigenesProfil !== saved) { zettel(_("Conflict")); return false; }
       draft.sozialeMedien = sozialeMedienListe({ sozialeMedien: social });
-      DATEN.eigenesProfil = { version: 1, kind: "own_profile", id: saved?.id || "self-profile-" + uid(), data: draft,
-        created_ms: saved?.created_ms || Date.now(), modified_ms: Date.now() };
+      wendeEigenprofilDatenAn(draft);
       planeSpeichern(); aktiverEditor = null; zustand.adressen.modus = "eigenes-profil"; zeichneAlles(); return true;
     };
     const exportCard = () => {
@@ -19174,12 +19173,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const data = Object.assign({}, k, werte);
         setzeTelefonListe(data, telefone); setzeAnschriftListe(data, anschriften); setzeKontaktpersonen(data, kontaktpersonen); setzeSozialeMedien(data, sozialeMedien);
         if (gruppenGeaendert) setzeKontaktGruppen(data, personengruppen);
-        for (const key of ["id", "uid", "sync", "baumKontakt", "syncQuellen", "syncKonflikte", "importBindungen", "importHerkunfte",
-          "importKonflikt", "kontaktAliase", "kdeImportStaende", "kontaktZeit", "kontaktProviderKonflikte", "vcardRev"]) delete data[key];
         data.profilJahrestage = ereignisse.filter(value => gueltigesJahresdatum(value.datum));
         data.geburtstag = data.profilJahrestage.find(value => istGeburtstagTyp(value.typ))?.datum || "";
-        DATEN.eigenesProfil = { version: 1, kind: "own_profile", id: ownProfile?.id || "self-profile-" + uid(), data,
-          created_ms: ownProfile?.created_ms || Date.now(), modified_ms: Date.now() };
+        wendeEigenprofilDatenAn(data);
         gespeichertesZiel = data; z.modus = "eigenes-profil"; planeSpeichern(); return true;
       }
       let ziel = k ? DATEN.kontakte.find(item => item.id === k.id) : null;
@@ -33057,7 +33053,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     return { values, details };
   }
-  function mcpKontaktWerkzeuge() {
+  function mcpKontaktSchema() {
     const id = { type: "string", minLength: 1, maxLength: 256 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
     const text = maxLength => ({ type: "string", maxLength });
     const types = { type: "array", items: text(80), maxItems: 32 };
@@ -33073,6 +33069,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         action_type: { type: "string", enum: ["website"] }, action_target: text(500) }, required: ["service", "value"], additionalProperties: false } },
       groups: { type: "array", items: text(200), maxItems: 1000 }, birth_date: { type: "string", pattern: "^$|^(?:\\d{4}-|--)\\d{2}-\\d{2}$" },
       anniversaries: { type: "array", maxItems: 1000, items: { type: "object", properties: { id, type: { ...text(200), minLength: 1 }, date }, required: ["type", "date"], additionalProperties: false } } };
+    return properties;
+  }
+  function mcpKontaktWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" }, properties = mcpKontaktSchema();
     return [
       { name: "organizer_contact_read", description: "Read a contact and its revision token. Optional fields select existing product-model keys, allowing large photos to be omitted without changing the revision.",
         inputSchema: { type: "object", properties: { id, fields: { type: "array", items: { type: "string", minLength: 1, maxLength: 128 }, minItems: 1, maxItems: 128 } }, required: ["id"], additionalProperties: false },
@@ -34161,6 +34161,42 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         return { path: value.pfad, confirmed: true, encrypted: value.verschluesselt === true };
       } }];
   }
+  function wendeEigenprofilDatenAn(value) {
+    const saved = DATEN.eigenesProfil, data = kopie(value);
+    for (const key of ["id", "uid", "sync", "baumKontakt", "syncQuellen", "syncKonflikte", "importBindungen", "importHerkunfte",
+      "importKonflikt", "kontaktAliase", "kdeImportStaende", "kontaktZeit", "kontaktProviderKonflikte", "vcardRev"]) delete data[key];
+    DATEN.eigenesProfil = { version: 1, kind: "own_profile", id: saved?.id || "self-profile-" + uid(), data,
+      created_ms: saved?.created_ms || Date.now(), modified_ms: Date.now() };
+    return DATEN.eigenesProfil;
+  }
+  function mcpEigenprofilWerkzeuge() {
+    const revision = { type: "string", pattern: "^[a-f0-9]{64}$" }, properties = mcpKontaktSchema();
+    return [
+      { name: "organizer_own_profile_read", description: "Read the separate own-profile document and full revision. Optional fields project product keys within its data, without exposing it as a regular contact.",
+        inputSchema: { type: "object", properties: { fields: { type: "array", minItems: 1, maxItems: 128, items: { type: "string", minLength: 1, maxLength: 128 } } }, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async args => {
+          const full = kopie(DATEN.eigenesProfil || null);
+          return { profile: full ? { ...full, data: mcpLeseProjektion(full.data, args.fields) } : null, revision: await personalSyncHash(JSON.stringify(full)) };
+        } },
+      { name: "organizer_own_profile_update", description: "Create or update the separate own profile through the shared product save handler and phone/address/email/photo validators. Requires its current revision, including when absent. Profile anniversaries remain separate from calendar/contact records; no phone or office transmission is started.",
+        inputSchema: { type: "object", properties: { ...properties, expected_revision: revision }, required: ["expected_revision"], anyOf: Object.keys(properties).map(key => ({ required: [key] })), additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const book = DATEN, current = DATEN.eigenesProfil || null, before = JSON.stringify(current), hash = await personalSyncHash(before);
+          if (signal.aborted || DATEN !== book || JSON.stringify(DATEN.eigenesProfil || null) !== before || hash !== args.expected_revision)
+            throw new MagnolieMcp.ToolError("conflict", "Own profile changed; read it again before writing");
+          mcpEditorPruefen();
+          if (current && (current.version !== 1 || current.kind !== "own_profile")) throw new MagnolieMcp.ToolError("unsupported_feature", "Unsupported own-profile format");
+          const { anniversaries, birth_date, ...contactArgs } = args, base = current?.data || {};
+          const { values, details } = mcpKontaktWerte(contactArgs, base), data = { ...base, ...values };
+          setzeTelefonListe(data, details.telefone); setzeAnschriftListe(data, details.anschriften);
+          setzeKontaktpersonen(data, details.kontaktpersonen); setzeSozialeMedien(data, details.sozialeMedien);
+          if (details.gruppen !== undefined) setzeKontaktGruppen(data, details.gruppen);
+          let events = anniversaries === undefined ? kopie(base.profilJahrestage || (base.geburtstag ? [{ typ: "birthday", datum: base.geburtstag }] : [])) : anniversaries.map(item => ({ id: item.id || "", typ: item.type, datum: item.date }));
+          if (birth_date !== undefined) { events = events.filter(item => !istGeburtstagTyp(item.typ)); if (birth_date) events.push({ typ: "birthday", datum: birth_date }); }
+          if (events.some(item => !gueltigesJahresdatum(item.datum))) throw new MagnolieMcp.ToolError("invalid_date", "Own-profile anniversary is invalid");
+          data.profilJahrestage = events; data.geburtstag = events.find(item => istGeburtstagTyp(item.typ))?.datum || "";
+          return { id: wendeEigenprofilDatenAn(data).id };
+        }) }
+    ];
+  }
   function leerePapierkorbDaten() {
     const count = DATEN.papierkorb.length;
     DATEN.papierkorb = []; return count;
@@ -34422,6 +34458,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_own_profile_read") return shape({ profile: { type: ["object", "null"] }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["profile", "revision"]);
+    if (name === "organizer_own_profile_update") return shape(written, ["id", "persisted"]);
     if (name === "organizer_trash_revision_read") return shape({ total: { type: "integer", minimum: 0 }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["total", "revision"]);
     if (name === "organizer_trash_empty") return shape({ deleted_count: { type: "integer", minimum: 0 }, persisted: yes }, ["deleted_count", "persisted"]);
     if (name === "organizer_archive_export") return shape({ path: text, confirmed: yes, encrypted: flag }, ["path", "confirmed", "encrypted"]);
@@ -34537,6 +34575,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpArchivImportWerkzeuge(true),
       ...mcpBackupVorschauWerkzeuge(),
       ...mcpPapierkorbWerkzeuge(),
+      ...mcpEigenprofilWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

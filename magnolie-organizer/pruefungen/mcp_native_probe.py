@@ -807,6 +807,26 @@ def client():
         assert saved_after_empty["papierkorb"] == []
         assert saved_before_empty["tombstones"] == saved_after_empty["tombstones"]
         assert saved_before_empty["notizen"] == saved_after_empty["notizen"]
+        own_before = call("tools/call", {"name": "organizer_own_profile_read"})
+        own_written = call("tools/call", {"name": "organizer_own_profile_update", "arguments": {
+            "expected_revision": own_before["structuredContent"]["revision"], "first_name": "Owned", "last_name": "Profile",
+            "emails": [{"value": "owned@example.org"}], "phones": [{"value": "+49123456789", "types": ["cell"]}],
+            "birth_date": "--02-29", "anniversaries": [{"type": "anniversary", "date": "2020-01-02"}]}})
+        assert not own_written["isError"] and own_written["structuredContent"]["persisted"], own_written
+        own_stale = call("tools/call", {"name": "organizer_own_profile_update", "arguments": {
+            "expected_revision": own_before["structuredContent"]["revision"], "company": "stale"}})
+        assert own_stale["isError"] and own_stale["structuredContent"]["code"] == "conflict", own_stale
+        own_read = call("tools/call", {"name": "organizer_own_profile_read", "arguments": {"fields": ["vorname"]}})
+        assert own_read["structuredContent"]["profile"]["data"] == {"vorname": "Owned"}, own_read
+        own_updated = call("tools/call", {"name": "organizer_own_profile_update", "arguments": {
+            "expected_revision": own_read["structuredContent"]["revision"], "company": "Owned company"}})
+        assert not own_updated["isError"] and own_updated["structuredContent"]["persisted"], own_updated
+        own_file = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        own_profile = own_file["eigenesProfil"]
+        assert own_profile["kind"] == "own_profile" and own_profile["id"] == own_written["structuredContent"]["id"]
+        assert own_profile["data"]["firma"] == "Owned company" and own_profile["data"]["geburtstag"] == "--02-29"
+        assert len(own_profile["data"]["profilJahrestage"]) == 2 and "uid" not in own_profile["data"]
+        assert own_file["kontakte"] == saved_after_empty["kontakte"] and own_file["jahrestage"] == saved_after_empty["jahrestage"]
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()
