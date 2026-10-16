@@ -83,6 +83,22 @@ internal sealed class TraySettingsService
         LoadFailed = false;
     }
 
+    internal TraySettings ReadVerified()
+    {
+        var text = store.Read(path, 64 * 1024);
+        if (text is null) return new TraySettings();
+        using var document = JsonDocument.Parse(text);
+        if (document.RootElement.ValueKind != JsonValueKind.Object) throw new InvalidDataException("invalid_tray_settings");
+        return TraySettings.FromJson(document.RootElement);
+    }
+
+    internal static bool IsAutostartRegistered(string executablePath)
+    {
+        var entry = CaptureAutostart();
+        return entry?.Value is string command && (string.Equals(command, AutostartCommand(executablePath), StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(command, BackgroundAutostartCommand(executablePath), StringComparison.OrdinalIgnoreCase));
+    }
+
     private TraySettings? LoadLegacy(string? dataPath)
     {
         if (string.IsNullOrWhiteSpace(dataPath)) return null;

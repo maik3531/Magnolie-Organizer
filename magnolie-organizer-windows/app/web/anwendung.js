@@ -23771,14 +23771,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         autostartHak.checked = false;
         startHak.checked = false;
       }
-      tray.aktiv = trayHak.checked;
-      tray.minimierenInTray = minimierenHak.checked;
-      tray.schliessenInTray = schliessenHak.checked;
-      tray.startMinimiert = startHak.checked;
-      tray.autostart = autostartHak.checked;
-      tray.zaehler = zaehlerHak.checked;
-      tray.oeffnen = ["centered", "maximized"].includes(oeffnenWahl.value)
-        ? oeffnenWahl.value : "previous";
+      wendeTrayEinstellungenDatenAn({ aktiv: trayHak.checked, minimierenInTray: minimierenHak.checked,
+        schliessenInTray: schliessenHak.checked, startMinimiert: startHak.checked, autostart: autostartHak.checked,
+        zaehler: zaehlerHak.checked, oeffnen: ["centered", "maximized"].includes(oeffnenWahl.value) ? oeffnenWahl.value : "previous" });
       trayFelder.style.display = tray.aktiv ? "" : "none";
       planeSpeichern();
       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "tray_einstellungen",
@@ -30941,6 +30936,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (nutzlast.ok) graphQuellenAktualisieren();
     },
     trayStand(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "trayStand"); return; }
       nutzlast = nutzlast || {};
       if (nutzlast.fehler) zettel(nutzlast.fehler);
       else if (!nutzlast.verfuegbar) {
@@ -34144,6 +34140,46 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (value !== "month") calendar.uebersichtAb = null;
     calendar.bearbeiteId = null;
   }
+  function wendeTrayEinstellungenDatenAn(values) { Object.assign(DATEN.einstellungen.allgemein.tray, leseTrayEinstellungen(values, DATEN.einstellungen.allgemein.tray)); }
+  function mcpTrayWerkzeuge() {
+    const map = { enabled: "aktiv", hide_on_minimize: "minimierenInTray", hide_on_close: "schliessenInTray", start_minimized: "startMinimiert", autostart: "autostart", show_counter: "zaehler", open_mode: "oeffnen" };
+    const fields = Object.fromEntries(Object.keys(map).map(key => [key, key === "open_mode" ? { type: "string", enum: ["previous", "centered", "maximized"] } : { type: "boolean" }]));
+    const publicSettings = value => Object.fromEntries(Object.entries(map).map(([key, field]) => [key, value[field]]));
+    const state = value => {
+      if (value.ok !== true) throw new MagnolieMcp.ToolError(value.code === "conflict" ? "conflict" : "native_operation_failed", "Native tray settings or registration could not be confirmed; read the current state");
+      if (!value.einstellungen || Object.entries(map).some(([key, field]) => key === "open_mode" ? !["previous", "centered", "maximized"].includes(value.einstellungen[field]) : typeof value.einstellungen[field] !== "boolean") || ["verfuegbar", "aktiv", "autostart"].some(key => typeof value[key] !== "boolean")) throw new MagnolieMcp.ToolError("invalid_result", "Native tray status is incomplete");
+      return { einstellungen: kopie(value.einstellungen), verfuegbar: value.verfuegbar, aktiv: value.aktiv, autostart: value.autostart };
+    };
+    const read = async signal => state(await mcpNativeAufruf("tray_status", {}, "trayStand", signal));
+    const snapshot = native => JSON.stringify({ native, book: DATEN.einstellungen.allgemein.tray });
+    return [
+      { name: "organizer_tray_settings_read", description: "Read actual stored native tray preferences, current native indicator state and autostart registration separately from book preferences, with a combined revision. Indicator-active confirms native backend state, not icon visibility on every desktop host.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (_args, signal) => {
+          const book = DATEN, native = await read(signal);
+          if (signal.aborted || DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Book changed during tray status lookup");
+          const before = snapshot(native), value = JSON.parse(before); trayVerfuegbar = native.verfuegbar;
+          return { settings: publicSettings(native.einstellungen), book_settings: publicSettings(value.book), available: native.verfuegbar, active: native.aktiv, autostart_registered: native.autostart, revision: await personalSyncHash(before) };
+        } },
+      { name: "organizer_tray_settings_update", description: "Revision-check and apply tray/autostart preferences through the native product handler, verifying stored settings, indicator state and actual autostart entry before native book-save confirmation. Autostart implies enabled/start-minimized; disabling the tray clears autostart/start-minimized. Records are retained; desktop host visibility is not guaranteed.",
+        inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, ...fields }, required: ["expected_revision"], anyOf: Object.keys(fields).map(key => ({ required: [key] })), additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const book = DATEN, native = await read(signal), before = snapshot(native), revision = await personalSyncHash(before);
+          if (signal.aborted || DATEN !== book || snapshot(native) !== before || revision !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Native tray or book preferences changed; read them again");
+          mcpEditorPruefen(); const wanted = { ...native.einstellungen };
+          for (const [key, field] of Object.entries(map)) if (args[key] !== undefined) wanted[field] = args[key];
+          if (args.enabled === false) {
+            if (args.autostart === true) throw new MagnolieMcp.ToolError("invalid_settings", "Autostart requires an enabled tray");
+            wanted.autostart = false; wanted.startMinimiert = false;
+          }
+          if (wanted.autostart) { wanted.aktiv = true; wanted.startMinimiert = true; }
+          if (wanted.aktiv && !native.verfuegbar) throw new MagnolieMcp.ToolError("tray_unavailable", "Native tray support is unavailable");
+          const actual = state(await mcpNativeAufruf("tray_einstellungen", { einstellungen: wanted, expectedState: native }, "trayStand", signal));
+          if (JSON.stringify(actual.einstellungen) !== JSON.stringify(wanted) || actual.aktiv !== wanted.aktiv || actual.autostart !== wanted.autostart) throw new MagnolieMcp.ToolError("invalid_result", "Native tray settings, indicator state or registration did not match");
+          if (DATEN !== book || JSON.stringify(DATEN.einstellungen.allgemein.tray) !== JSON.stringify(JSON.parse(before).book)) throw new MagnolieMcp.ToolError("source_changed", "Native tray settings may have changed; book metadata changed during the operation");
+          wendeTrayEinstellungenDatenAn(actual.einstellungen); trayVerfuegbar = actual.verfuegbar; aktualisiereTrayZaehler();
+          return { settings: publicSettings(actual.einstellungen), available: actual.verfuegbar, active: actual.aktiv, autostart_registered: actual.autostart, native_applied: true };
+        }) }
+    ];
+  }
   function wendeRegionaleEinstellungenDatenAn(values) { Object.assign(DATEN.einstellungen.regional, values); }
   function mcpRegionaleEinstellungenWerkzeuge() {
     const map = { language: "language", format_locale: "formatLocale", hour_cycle: "hourCycle", first_day_of_week: "firstDayOfWeek", temperature_unit: "temperatureUnit", time_zone: "timeZone", home_country: "homeCountry" };
@@ -34797,6 +34833,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_tray_settings_read") return shape({ settings: object, book_settings: object, available: flag, active: flag, autostart_registered: flag, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "book_settings", "available", "active", "autostart_registered", "revision"]);
+    if (name === "organizer_tray_settings_update") return shape({ settings: object, available: flag, active: flag, autostart_registered: flag, native_applied: yes, persisted: yes }, ["settings", "available", "active", "autostart_registered", "native_applied", "persisted"]);
     if (name === "organizer_regional_settings_read") return shape({ settings: object, book_settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "book_settings", "revision"]);
     if (name === "organizer_regional_settings_update") return shape({ settings: object, native_saved: yes, restart_required: yes, persisted: yes }, ["settings", "native_saved", "restart_required", "persisted"]);
     if (name === "organizer_spellcheck_word") return shape({ word: text, language: { type: "string", enum: ["de", "en"] }, correct: flag, suggestions: { type: "array", maxItems: 8, items: { type: "string", maxLength: 4096 } } }, ["word", "language", "correct", "suggestions"]);
@@ -34946,6 +34984,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpAnzeigeEinstellungenWerkzeuge(),
       ...mcpRechtschreibWerkzeuge(),
       ...mcpRegionaleEinstellungenWerkzeuge(),
+      ...mcpTrayWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

@@ -98,8 +98,33 @@ internal sealed class MainForm : Form
         if (!traySettingsService.LoadFailed) _ = ConfigureAutostart();
     }
 
-    internal async Task ApplyTraySettingsAsync(JsonElement settings)
+    private object CaptureTrayNativeState() => new { einstellungen = traySettingsService.ReadVerified(),
+        verfuegbar = true, aktiv = trayEnabled, autostart = TraySettingsService.IsAutostartRegistered(Application.ExecutablePath) };
+
+    internal async Task SendTrayStatusAsync(string? requestId = null)
     {
+        try
+        {
+            var state = JsonSerializer.SerializeToNode(CaptureTrayNativeState(), new JsonSerializerOptions(JsonSerializerDefaults.Web)) as JsonObject
+                ?? throw new InvalidDataException("invalid_tray_state");
+            state["ok"] = true; state["requestId"] = requestId;
+            await SendAsync("App.trayStand", state);
+        }
+        catch (Exception) { await SendAsync("App.trayStand", new { ok = false, requestId }); }
+    }
+
+    internal async Task ApplyTraySettingsAsync(JsonElement settings, string? requestId = null, JsonElement expectedState = default)
+    {
+        if (!string.IsNullOrEmpty(requestId))
+        {
+            try
+            {
+                var current = JsonSerializer.SerializeToNode(CaptureTrayNativeState(), new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                if (expectedState.ValueKind != JsonValueKind.Object || !JsonNode.DeepEquals(current, JsonNode.Parse(expectedState.GetRawText())))
+                { await SendAsync("App.trayStand", new { ok = false, requestId, code = "conflict" }); return; }
+            }
+            catch (Exception) { await SendAsync("App.trayStand", new { ok = false, requestId, code = "native_operation_failed" }); return; }
+        }
         var previousEnabled = trayEnabled;
         var requested = TraySettings.FromJson(settings);
         var error = "";
@@ -109,8 +134,26 @@ internal sealed class MainForm : Form
             error = T("Warning: The data could not be saved.") + " " + exception.Message;
         }
         var autostartError = ConfigureAutostart();
-        ApplyTraySettingsNative(traySettings);
-        if (previousEnabled && !trayEnabled && !Visible) RestoreFromTray();
+        try
+        {
+            ApplyTraySettingsNative(traySettings);
+            if (previousEnabled && !trayEnabled && !Visible) RestoreFromTray();
+        }
+        catch (Exception) when (!string.IsNullOrEmpty(requestId))
+        { await SendAsync("App.trayStand", new { ok = false, requestId, code = "native_operation_failed" }); return; }
+        if (!string.IsNullOrEmpty(requestId))
+        {
+            try
+            {
+                var actual = traySettingsService.ReadVerified();
+                var registered = TraySettingsService.IsAutostartRegistered(Application.ExecutablePath);
+                var ok = error.Length == 0 && autostartError.Length == 0 && actual == traySettings && trayEnabled == traySettings.Aktiv && registered == traySettings.Autostart;
+                await SendAsync("App.trayStand", new { ok, requestId, code = ok ? "" : "native_operation_failed", einstellungen = actual,
+                    verfuegbar = true, aktiv = trayEnabled, autostart = registered });
+            }
+            catch (Exception) { await SendAsync("App.trayStand", new { ok = false, requestId, code = "native_operation_failed" }); }
+            return;
+        }
         await SendAsync("App.trayStand", new
         {
             ok = error.Length == 0 && autostartError.Length == 0,

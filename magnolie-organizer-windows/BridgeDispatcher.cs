@@ -248,8 +248,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
                         await form.SendAsync("App.loBenutzer", await Task.Run(() => PersonalUserData()));
                         break;
                     case "tray_einstellungen":
-                        if (message.TryGetProperty("einstellungen", out var tray)) await form.ApplyTraySettingsAsync(tray);
+                        if (message.TryGetProperty("einstellungen", out var tray)) await form.ApplyTraySettingsAsync(tray, Text(message, "requestId"), message.TryGetProperty("expectedState", out var trayExpected) ? trayExpected : default);
                         break;
+                    case "tray_status": await form.SendTrayStatusAsync(Text(message, "requestId")); break;
                     case "tray_zaehler": form.UpdateTrayCounter(Integer(message, "anzahl")); break;
                     case "rechtschreibung": break;
                     case "vorschlaege": await SpellSuggestionsAsync(message); break;

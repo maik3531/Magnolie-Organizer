@@ -7132,6 +7132,18 @@ def tray_einstellungen_schreiben(einstellungen, pfad=None):
             fehler, _("Saving the tray settings"))}
 
 
+def tray_einstellungen_geprueft_lesen(pfad=None):
+    try:
+        text = datei_begrenzt_lesen(pfad or tray_datei(), 64 * 1024,
+            "The tray settings file is too large.").decode("utf-8")
+    except FileNotFoundError:
+        return tray_einstellungen()
+    value = json.loads(text)
+    if not isinstance(value, dict):
+        raise ValueError("invalid_tray_settings")
+    return tray_einstellungen(value)
+
+
 def tray_autostart_datei(ordner=None):
     basis = ordner or (os.environ.get("XDG_CONFIG_HOME")
                        or os.path.expanduser("~/.config"))
@@ -7165,6 +7177,18 @@ def tray_autostart_einrichten(an, pfad=None):
         return {"ok": False, "fehler": fehler_deutsch(
             fehler, _("Adding the tray applet to autostart"))}
     return {"ok": True, "fehler": ""}
+
+
+def tray_autostart_registriert(pfad=None):
+    try:
+        text = datei_begrenzt_lesen(pfad or tray_autostart_datei(), 64 * 1024,
+            "The tray autostart entry is too large.").decode("utf-8")
+    except FileNotFoundError:
+        return False
+    lines = {line.strip() for line in text.splitlines()}
+    expected = next(line for line in tray_autostart_text().splitlines() if line.startswith("Exec="))
+    disabled = {"hidden=true", "x-gnome-autostart-enabled=false"}
+    return expected in lines and not any(line.lower() in disabled for line in lines)
 
 
 # ---------------------------------------------------------------------------
@@ -20654,7 +20678,20 @@ class Fenster(_FENSTER_BASIS):
             self._tray_zaehler = 0
         self._tray_zaehler_anzeigen()
 
-    def _tray_einstellungen_setzen(self, roh):
+    def _tray_stand(self):
+        return {"einstellungen": tray_einstellungen_geprueft_lesen(),
+            "verfuegbar": tray_system_verfuegbar(), "aktiv": bool(self._tray_indikator),
+            "autostart": tray_autostart_registriert()}
+
+    def _tray_einstellungen_setzen(self, roh, request_id=None, expected=None):
+        if request_id:
+            try:
+                if self._tray_stand() != expected:
+                    self.antwort("App.trayStand", {"ok": False, "requestId": request_id, "code": "conflict"})
+                    return
+            except Exception:
+                self.antwort("App.trayStand", {"ok": False, "requestId": request_id, "code": "native_operation_failed"})
+                return
         bisher_aktiv = bool(self._tray_einstellungen.get("aktiv"))
         self._tray_einstellungen = tray_einstellungen(roh)
         gespeichert = tray_einstellungen_schreiben(self._tray_einstellungen)
@@ -20665,9 +20702,21 @@ class Fenster(_FENSTER_BASIS):
         if bisher_aktiv and not self._tray_einstellungen.get("aktiv"):
             self._tray_zeigen()
         antwort = {"ok": gespeichert["ok"] and autostart["ok"],
+                   "requestId": request_id,
                    "verfuegbar": tray_system_verfuegbar(),
                    "aktiv": bool(verfuegbar),
                    "fehler": gespeichert.get("fehler") or autostart.get("fehler") or ""}
+        if request_id:
+            try:
+                stand = self._tray_stand()
+                antwort.update(stand)
+                antwort["ok"] = (antwort["ok"] and stand["einstellungen"] == self._tray_einstellungen
+                    and stand["aktiv"] == self._tray_einstellungen["aktiv"]
+                    and stand["autostart"] == self._tray_einstellungen["autostart"])
+            except Exception:
+                antwort["ok"] = False
+            if not antwort["ok"]:
+                antwort["code"] = "native_operation_failed"
         self.antwort("App.trayStand", antwort)
 
     def _merke_fenster(self):
@@ -21088,7 +21137,13 @@ class Fenster(_FENSTER_BASIS):
             self._beenden_anfragen()
 
         elif befehl == "tray_einstellungen":
-            self._tray_einstellungen_setzen(nachricht.get("einstellungen") or {})
+            self._tray_einstellungen_setzen(nachricht.get("einstellungen") or {}, nachricht.get("requestId"), nachricht.get("expectedState"))
+
+        elif befehl == "tray_status":
+            try:
+                self.antwort("App.trayStand", {"ok": True, "requestId": nachricht.get("requestId"), **self._tray_stand()})
+            except Exception:
+                self.antwort("App.trayStand", {"ok": False, "requestId": nachricht.get("requestId")})
 
         elif befehl == "tray_zaehler":
             self._tray_zaehler_setzen(nachricht.get("anzahl") or 0)

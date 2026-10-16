@@ -134,7 +134,7 @@ let declaredContracts;
         id: noteId, title: "Retry", text: "Must not duplicate" } }));
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
-      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile, onCloudStatus, onCloudPassword, onCloudTest, onSpelling, onRememberWord, onRegionalRead, onRegionalSave;
+      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile, onCloudStatus, onCloudPassword, onCloudTest, onSpelling, onRememberWord, onRegionalRead, onRegionalSave, onTrayRead, onTraySave;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
@@ -157,6 +157,8 @@ let declaredContracts;
         if (message.cmd === "wort_merken" && message.requestId && onRememberWord) onRememberWord(message);
         if (message.cmd === "regional_einstellungen_status" && message.requestId && onRegionalRead) onRegionalRead(message);
         if (message.cmd === "regional_einstellungen" && message.requestId && onRegionalSave) onRegionalSave(message);
+        if (message.cmd === "tray_status" && message.requestId && onTrayRead) onTrayRead(message);
+        if (message.cmd === "tray_einstellungen" && message.requestId && onTraySave) onTraySave(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -1296,6 +1298,34 @@ let declaredContracts;
         await persisted(788, "organizer_regional_settings_update", { expected_revision: divergent.revision, hour_cycle: "h23" });
         assert.equal(b.t.daten().einstellungen.regional.hourCycle, "h23");
         onRegionalRead = onRegionalSave = null;
+      }
+      {
+        let trayState = { einstellungen: JSON.parse(JSON.stringify(b.t.daten().einstellungen.allgemein.tray)), verfuegbar: true, aktiv: false, autostart: false };
+        onTrayRead = message => b.w.App.trayStand({ ok: true, requestId: message.requestId, ...trayState });
+        const initial = (await call(request(810, "tools/call", { name: "organizer_tray_settings_read" }))).result.structuredContent;
+        let native, completed = false;
+        const dispatched = new Promise(resolve => { onTraySave = message => { native = message; resolve(); }; });
+        const saving = new Promise(resolve => { onSave = resolve; });
+        const pending = call(request(811, "tools/call", { name: "organizer_tray_settings_update", arguments: { expected_revision: initial.revision, autostart: true, show_counter: true, open_mode: "centered" } })).then(value => { completed = true; return value; });
+        await dispatched; assert.equal(native.einstellungen.aktiv, true); assert.equal(native.einstellungen.startMinimiert, true);
+        b.w.App.trayStand({ ok: true, requestId: "wrong-tray-request", ...trayState });
+        await new Promise(resolve => setImmediate(resolve)); assert.equal(completed, false);
+        trayState = { einstellungen: JSON.parse(JSON.stringify(native.einstellungen)), verfuegbar: true, aktiv: true, autostart: true };
+        b.w.App.trayStand({ ok: true, requestId: native.requestId, ...trayState });
+        await saving; assert.equal(completed, false); b.ack();
+        const result = (await pending).result.structuredContent;
+        assert.equal(result.native_applied, true); assert.equal(result.persisted, true); assert.equal(result.autostart_registered, true);
+        const stale = await call(request(812, "tools/call", { name: "organizer_tray_settings_update", arguments: { expected_revision: initial.revision, show_counter: false } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        onTraySave = message => { trayState = { einstellungen: JSON.parse(JSON.stringify(message.einstellungen)), verfuegbar: true, aktiv: message.einstellungen.aktiv, autostart: message.einstellungen.autostart }; b.w.App.trayStand({ ok: true, requestId: message.requestId, ...trayState }); };
+        const fresh = (await call(request(813, "tools/call", { name: "organizer_tray_settings_read" }))).result.structuredContent;
+        await persisted(814, "organizer_tray_settings_update", { expected_revision: fresh.revision, enabled: false });
+        assert.equal(b.t.daten().einstellungen.allgemein.tray.autostart, false); assert.equal(b.t.daten().einstellungen.allgemein.tray.startMinimiert, false);
+        trayState.verfuegbar = false;
+        const unavailable = (await call(request(815, "tools/call", { name: "organizer_tray_settings_read" }))).result.structuredContent;
+        const blocked = await call(request(816, "tools/call", { name: "organizer_tray_settings_update", arguments: { expected_revision: unavailable.revision, enabled: true } }));
+        assert.equal(blocked.result.structuredContent.code, "tray_unavailable");
+        onTrayRead = onTraySave = null;
       }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));

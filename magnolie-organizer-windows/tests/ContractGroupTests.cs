@@ -767,6 +767,20 @@ internal static class ContractGroupTests
         TestAssert.That(TraySettingsService.BackgroundAutostartCommand("C:\\A B\\Magnolie.exe") ==
                         "\"C:\\A B\\Magnolie.exe\" --tray-start --reminder-start",
             "Der Reminder-Autostart startet nicht im echten Hintergrundmodus.");
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-tray-readback-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var path = Path.Combine(root, "owned-tray.json");
+            var service = new TraySettingsService(path);
+            service.Save(settings);
+            TestAssert.That(service.ReadVerified() == settings, "Native Traykonfiguration wurde nicht tatsächlich zurückgelesen.");
+            File.WriteAllText(path, "{broken");
+            var rejected = false;
+            try { service.ReadVerified(); } catch (JsonException) { rejected = true; }
+            TestAssert.That(rejected, "Beschädigte Traykonfiguration darf nicht als bestätigter Standardwert gelten.");
+        }
+        finally { Directory.Delete(root, true); }
         return Task.CompletedTask;
     }
 

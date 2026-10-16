@@ -1184,6 +1184,81 @@ def client():
         assert regional_stale["isError"] and regional_stale["structuredContent"]["code"] == "conflict", regional_stale
         regional_readback = call("tools/call", {"name": "organizer_regional_settings_read"})
         assert regional_readback["structuredContent"]["settings"]["hour_cycle"] == "h12" and regional_readback["structuredContent"]["book_settings"]["time_zone"] == "Etc/UTC"
+        tray_setup = threading.Event()
+        tray_registered = threading.Event()
+        tray_fixture = {"previous_desktop": os.environ.get("XDG_CURRENT_DESKTOP"), "original": dict(window._tray_einstellungen)}
+        tray_xml = """<node><interface name="org.kde.StatusNotifierWatcher">
+          <method name="RegisterStatusNotifierItem"><arg type="s" direction="in"/></method>
+          <method name="RegisterStatusNotifierHost"><arg type="s" direction="in"/></method>
+          <property name="RegisteredStatusNotifierItems" type="as" access="read"/>
+          <property name="IsStatusNotifierHostRegistered" type="b" access="read"/>
+          <property name="ProtocolVersion" type="i" access="read"/>
+          <signal name="StatusNotifierItemRegistered"><arg type="s"/></signal>
+        </interface></node>"""
+        def configure_private_tray_host():
+            try:
+                os.environ["XDG_CURRENT_DESKTOP"] = "KDE"
+                info = Gio.DBusNodeInfo.new_for_xml(tray_xml).interfaces[0]
+                def method(connection, sender, object_path, interface, name, parameters, invocation):
+                    if name == "RegisterStatusNotifierItem":
+                        item = parameters.unpack()[0]
+                        tray_fixture["item"] = (sender, item) if item.startswith("/") else (item, "/StatusNotifierItem")
+                        tray_registered.set()
+                    invocation.return_value(GLib.Variant("()", ()))
+                def prop(_connection, _sender, _path, _interface, name):
+                    if name == "IsStatusNotifierHostRegistered": return GLib.Variant("b", True)
+                    if name == "ProtocolVersion": return GLib.Variant("i", 0)
+                    return GLib.Variant("as", [])
+                tray_fixture["registration"] = native_bus.register_object("/StatusNotifierWatcher", info, method, prop, None)
+                result = native_bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "RequestName",
+                    GLib.Variant("(su)", ("org.kde.StatusNotifierWatcher", 0)), GLib.VariantType.new("(u)"), Gio.DBusCallFlags.NONE, 5000, None)
+                assert result.unpack()[0] == 1
+                tray_fixture["owned"] = True
+            except BaseException:
+                tray_fixture["error"] = traceback.format_exc(limit=3)
+            tray_setup.set()
+            return False
+        product.GLib.idle_add(configure_private_tray_host)
+        assert tray_setup.wait(5) and "error" not in tray_fixture, tray_fixture
+        try:
+            tray_before = call("tools/call", {"name": "organizer_tray_settings_read"})
+            assert not tray_before["isError"] and tray_before["structuredContent"]["available"], tray_before
+            tray_enabled = call("tools/call", {"name": "organizer_tray_settings_update", "arguments": {
+                "expected_revision": tray_before["structuredContent"]["revision"], "autostart": True, "show_counter": True, "open_mode": "centered"}})
+            assert not tray_enabled["isError"] and tray_enabled["structuredContent"]["native_applied"] and tray_enabled["structuredContent"]["persisted"] and tray_enabled["structuredContent"]["active"] and tray_enabled["structuredContent"]["autostart_registered"], tray_enabled
+            assert tray_registered.wait(5), "Native indicator did not register with the private tray host"
+            item_service, item_path = tray_fixture["item"]
+            item_status = native_bus.call_sync(item_service, item_path, "org.freedesktop.DBus.Properties", "Get",
+                GLib.Variant("(ss)", ("org.kde.StatusNotifierItem", "Status")), GLib.VariantType.new("(v)"), Gio.DBusCallFlags.NONE, 5000, None)
+            assert item_status.unpack()[0] == "Active", item_status
+            tray_entry = Path(product.tray_autostart_datei())
+            tray_config = Path(product.tray_datei())
+            assert tray_entry.is_relative_to(Path(temporary.name)) and tray_config.is_relative_to(Path(temporary.name))
+            assert tray_entry.is_file() and product.tray_autostart_registriert()
+            assert json.loads(tray_config.read_text())["autostart"] is True
+            tray_book = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))["einstellungen"]["allgemein"]["tray"]
+            assert tray_book["aktiv"] and tray_book["autostart"] and tray_book["startMinimiert"]
+            tray_current = call("tools/call", {"name": "organizer_tray_settings_read"})
+            tray_disabled = call("tools/call", {"name": "organizer_tray_settings_update", "arguments": {
+                "expected_revision": tray_current["structuredContent"]["revision"], "enabled": False}})
+            assert not tray_disabled["isError"] and tray_disabled["structuredContent"]["native_applied"] and not tray_disabled["structuredContent"]["active"] and not tray_disabled["structuredContent"]["autostart_registered"], tray_disabled
+            assert not tray_entry.exists()
+        finally:
+            tray_cleaned = threading.Event()
+            def clean_private_tray_host():
+                try:
+                    window._tray_einstellungen_setzen(tray_fixture["original"])
+                    native_bus.unregister_object(tray_fixture["registration"])
+                    if tray_fixture.get("owned"):
+                        native_bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus", "ReleaseName",
+                            GLib.Variant("(s)", ("org.kde.StatusNotifierWatcher",)), None, Gio.DBusCallFlags.NONE, 5000, None)
+                finally:
+                    if tray_fixture["previous_desktop"] is None: os.environ.pop("XDG_CURRENT_DESKTOP", None)
+                    else: os.environ["XDG_CURRENT_DESKTOP"] = tray_fixture["previous_desktop"]
+                    tray_cleaned.set()
+                return False
+            product.GLib.idle_add(clean_private_tray_host)
+            assert tray_cleaned.wait(5)
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()
