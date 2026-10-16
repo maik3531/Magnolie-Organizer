@@ -129,7 +129,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "ablage_kopieren": SetClipboard(Text(message, "text")); break;
                     case "ablage_holen": await GetClipboardAsync(); break;
                     case "sicherung": await BackupAsync(message); break;
-                    case "cloud_sicherung_status": await SendCloudBackupStatusAsync(); break;
+                    case "cloud_sicherung_status": await SendCloudBackupStatusAsync(requestId: Text(message, "requestId")); break;
                     case "cloud_sicherung_kennwort": await StoreCloudBackupPasswordAsync(Text(message, "kennwort")); break;
                     case "cloud_sicherung_test": await RunCloudBackupTestAsync(); break;
                     case "sicherung_waehlen": await SelectBackupAsync(); break;
@@ -1008,10 +1008,10 @@ internal sealed partial class BridgeDispatcher : IDisposable
         finally { if (locked) MutationGate.Global.Release(); }
     }
 
-    private async Task SendCloudBackupStatusAsync(string status = "") =>
+    private async Task SendCloudBackupStatusAsync(string status = "", string? requestId = null) =>
         await form.SendAsync("App.cloudSicherungStand", new
         {
-            kennwortVorhanden = cloudBackups.PasswordAvailable, status
+            requestId, kennwortVorhanden = cloudBackups.PasswordAvailable, status
         });
 
     private async Task StoreCloudBackupPasswordAsync(string password)

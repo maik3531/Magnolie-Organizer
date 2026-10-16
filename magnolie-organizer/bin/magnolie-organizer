@@ -20947,7 +20947,11 @@ class Fenster(_FENSTER_BASIS):
             self._speicher_auftraege.put((kennung, klartext, nachricht.get("baumSyncLauf")))
 
         elif befehl == "cloud_sicherung_status":
-            self._cloud_sicherung_status()
+            if nachricht.get("requestId"):
+                threading.Thread(target=self._cloud_sicherung_status,
+                    kwargs={"request_id": nachricht["requestId"]}, daemon=True).start()
+            else:
+                self._cloud_sicherung_status()
 
         elif befehl == "cloud_sicherung_kennwort":
             self._cloud_sicherung_kennwort_speichern(
@@ -22192,10 +22196,10 @@ class Fenster(_FENSTER_BASIS):
             "ordner": str(allgemein.get("sicherungsordner") or "").strip(),
         }
 
-    def _cloud_sicherung_status(self, status=""):
+    def _cloud_sicherung_status(self, status="", request_id=None):
         vorhanden = self._cloud_sicherung_secrets.available()
         self.antwort("App.cloudSicherungStand", {
-            "kennwortVorhanden": vorhanden, "status": status})
+            "requestId": request_id, "kennwortVorhanden": vorhanden, "status": status})
 
     def _cloud_sicherung_kennwort_speichern(self, kennwort):
         try:

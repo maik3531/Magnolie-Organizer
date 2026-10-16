@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import traceback
 import zlib
 
@@ -924,6 +925,35 @@ def client():
         finally:
             product.FEIERTAG_DIENST = holiday_endpoint
             holiday_server.shutdown(); holiday_server.server_close(); holiday_thread.join(timeout=3)
+        vault_ticks = {"count": 0}
+        vault_tick_ready = threading.Event()
+        def prepare_vault_heartbeat():
+            def tick():
+                vault_ticks["count"] += 1
+                return True
+            vault_ticks["source"] = product.GLib.timeout_add(100, tick)
+            vault_tick_ready.set()
+            return False
+        product.GLib.idle_add(prepare_vault_heartbeat)
+        assert vault_tick_ready.wait(5)
+        vault_started = time.monotonic()
+        backup_settings = call("tools/call", {"name": "organizer_backup_settings_read"})
+        vault_elapsed = time.monotonic() - vault_started
+        assert vault_elapsed < 1 or vault_ticks["count"] >= 2, "GTK heartbeat stalled during native vault status lookup"
+        product.GLib.source_remove(vault_ticks["source"])
+        assert not backup_settings["isError"] and backup_settings["structuredContent"]["settings"]["password_available"] is False, backup_settings
+        backup_settings_updated = call("tools/call", {"name": "organizer_backup_settings_update", "arguments": {
+            "expected_revision": backup_settings["structuredContent"]["revision"], "folder": str(Path(temporary.name) / "owned-configured-backups"),
+            "enabled": False, "interval": "weekly", "retention": 9}})
+        assert not backup_settings_updated["isError"] and backup_settings_updated["structuredContent"]["persisted"], backup_settings_updated
+        backup_settings_file = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))["einstellungen"]["allgemein"]
+        assert backup_settings_file["sicherungsordner"].endswith("/owned-configured-backups")
+        assert backup_settings_file["cloudSicherung"]["aufbewahrung"] == 9 and backup_settings_file["cloudSicherung"]["intervall"] == "weekly"
+        backup_settings_fresh = call("tools/call", {"name": "organizer_backup_settings_read"})
+        backup_not_ready = call("tools/call", {"name": "organizer_backup_settings_update", "arguments": {
+            "expected_revision": backup_settings_fresh["structuredContent"]["revision"], "enabled": True}})
+        assert backup_not_ready["isError"] and backup_not_ready["structuredContent"]["code"] == "backup_not_ready", backup_not_ready
+        assert json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))["einstellungen"]["allgemein"]["cloudSicherung"]["aktiv"] is False
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()

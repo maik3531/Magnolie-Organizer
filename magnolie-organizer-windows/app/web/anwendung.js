@@ -23840,7 +23840,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     });
     ordnerKnopf.id = "allgemein-sicherungsordner-waehlen";
     const standardKnopf = knopf(_("Use default"), "klein", () => {
-      sicherPfad.value = ""; a.sicherungsordner = ""; planeSpeichern(); baueEinstellungen();
+      sicherPfad.value = ""; wendeSicherungsdateienDatenAn({ folder: "" }); planeSpeichern(); baueEinstellungen();
     });
     standardKnopf.id = "allgemein-sicherungsordner-standard";
     sicherReihe.append(ordnerKnopf, standardKnopf); ab.append(sicherReihe);
@@ -23869,10 +23869,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     aktiv.disabled = !cloudVerfuegbar;
     if (!cloudVerfuegbar && cloud.aktiv) { cloud.aktiv = false; planeSpeichern(); }
     testKnopf.disabled = !cloudVerfuegbar;
-    aktiv.addEventListener("change", () => { cloud.aktiv = aktiv.checked; planeSpeichern(); });
-    intervall.addEventListener("change", () => { cloud.intervall = intervall.value; planeSpeichern(); });
+    aktiv.addEventListener("change", () => { wendeSicherungsdateienDatenAn({ enabled: aktiv.checked }); planeSpeichern(); });
+    intervall.addEventListener("change", () => { wendeSicherungsdateienDatenAn({ interval: intervall.value }); planeSpeichern(); });
     anzahl.addEventListener("change", () => {
-      cloud.aufbewahrung = Math.max(2, Math.min(30, Math.round(Number(anzahl.value) || 7)));
+      wendeSicherungsdateienDatenAn({ retention: Math.max(2, Math.min(30, Math.round(Number(anzahl.value) || 7))) });
       anzahl.value = String(cloud.aufbewahrung); planeSpeichern();
     });
     ab.append(formZeile(_("Use automatic backups"), aktiv),
@@ -23895,7 +23895,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     ab.append(el("p", "einst-hinweis", _("Choose a backup file. Before restoring it, the organizer automatically " +
       "creates a copy of the current data. An encrypted backup requires its password.")));
     sicherPfad.addEventListener("input", () => {
-      a.sicherungsordner = sicherPfad.value.trim();
+      wendeSicherungsdateienDatenAn({ folder: sicherPfad.value });
       const verfuegbar = !!a.sicherungsordner && cloudSicherungStand.kennwortVorhanden;
       aktiv.disabled = !verfuegbar; testKnopf.disabled = !verfuegbar;
       if (!verfuegbar && cloud.aktiv) { cloud.aktiv = false; aktiv.checked = false; }
@@ -31719,7 +31719,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     sicherungsordnerGewaehlt(nutzlast) {
       const pfad = String((nutzlast || {}).pfad || "");
       if (!pfad) return;
-      DATEN.einstellungen.allgemein.sicherungsordner = pfad;
+      wendeSicherungsdateienDatenAn({ folder: pfad });
       const feld = $("#allgemein-sicherungsordner");
       if (feld) feld.value = pfad;
       planeSpeichern();
@@ -31727,6 +31727,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       zettel(_("Backup folder updated."));
     },
     cloudSicherungStand(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "cloudSicherungStand"); return; }
       nutzlast = nutzlast || {};
       const vorher = JSON.stringify(cloudSicherungStand);
       cloudSicherungStand = {
@@ -34150,6 +34151,46 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         return { path: value.pfad, confirmed: true, encrypted: value.verschluesselt === true };
       } }];
   }
+  function wendeSicherungsdateienDatenAn(values, passwordAvailable = cloudSicherungStand.kennwortVorhanden) {
+    const general = DATEN.einstellungen.allgemein, cloud = general.cloudSicherung;
+    const folder = values.folder === undefined ? general.sicherungsordner : values.folder.trim();
+    if (values.enabled === true && (!folder || !passwordAvailable)) return false;
+    general.sicherungsordner = folder;
+    if (values.interval !== undefined) cloud.intervall = values.interval;
+    if (values.retention !== undefined) cloud.aufbewahrung = values.retention;
+    if (values.enabled !== undefined) cloud.aktiv = values.enabled;
+    if (!folder || !passwordAvailable) cloud.aktiv = false;
+    return true;
+  }
+  function mcpSicherungsdateienWerkzeuge() {
+    const revision = { type: "string", pattern: "^[a-f0-9]{64}$" }, snapshot = () => JSON.stringify({ folder: DATEN.einstellungen.allgemein.sicherungsordner, cloud: DATEN.einstellungen.allgemein.cloudSicherung });
+    const nativeStatus = async signal => {
+      const value = await mcpNativeAufruf("cloud_sicherung_status", {}, "cloudSicherungStand", signal);
+      if (typeof value.kennwortVorhanden !== "boolean") throw new MagnolieMcp.ToolError("invalid_result", "Native protected-password availability was not confirmed");
+      cloudSicherungStand = { ...cloudSicherungStand, kennwortVorhanden: value.kennwortVorhanden };
+      return value.kennwortVorhanden;
+    };
+    return [
+      { name: "organizer_backup_settings_read", description: "Read backup folder and automatic cloud-folder schedule/retention preferences with their full revision and actual native protected-password availability. Never returns the password.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (_args, signal) => {
+          const book = DATEN, available = await nativeStatus(signal);
+          if (signal.aborted || DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Book changed during backup settings read");
+          const before = snapshot(), value = JSON.parse(before);
+          return { settings: { folder: value.folder, enabled: value.cloud.aktiv, interval: value.cloud.intervall, retention: value.cloud.aufbewahrung, last_success: value.cloud.letzterErfolg || "", status: value.cloud.status || "", password_available: available }, revision: await personalSyncHash(before) };
+        } },
+      { name: "organizer_backup_settings_update", description: "Revision-check backup destination and automatic cloud-folder preferences through the shared GUI settings handler, then require native durable save. Activation requires a custom folder and actual native protected-password availability. Retrieval/test and password storage remain explicit operations.",
+        inputSchema: { type: "object", properties: { expected_revision: revision, folder: { type: "string", maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]*$" }, enabled: { type: "boolean" }, interval: { type: "string", enum: ["daily", "weekly"] }, retention: { type: "integer", minimum: 2, maximum: 30 } }, required: ["expected_revision"], anyOf: ["folder", "enabled", "interval", "retention"].map(key => ({ required: [key] })), additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => {
+          mcpEditorPruefen(); const book = DATEN, available = await nativeStatus(signal);
+          return mcpSchreiben(signal, async () => {
+            const before = snapshot(), hash = await personalSyncHash(before);
+            if (signal.aborted || DATEN !== book || snapshot() !== before || hash !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Backup settings changed; read them again");
+            mcpEditorPruefen();
+            if (!wendeSicherungsdateienDatenAn(args, available)) throw new MagnolieMcp.ToolError("backup_not_ready", "Automatic backups require a custom folder and a protected archive password");
+            return {};
+          });
+        } }
+    ];
+  }
   function wendeOrtAuswahlDatenAn(values) {
     const current = DATEN.einstellungen.ort, next = { ...current };
     if (values.land !== undefined) {
@@ -34526,6 +34567,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_backup_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
+    if (name === "organizer_backup_settings_update") return shape({ persisted: yes }, ["persisted"]);
     if (name === "organizer_attachment_save") return shape({ path: text, confirmed: yes, bytes: { type: "integer", minimum: 1, maximum: 8 * 1024 * 1024 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["path", "confirmed", "bytes", "sha256"]);
     if (name === "organizer_attachment_open") return shape({ launched: yes }, ["launched"]);
     if (name === "organizer_holidays_read") return shape({ settings: object, total: { type: "integer", minimum: 0 }, countries: { type: "array", items: object }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "total", "countries", "revision"]);
@@ -34653,6 +34696,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpAnhangDateiWerkzeuge(),
       ...mcpAnhangOeffnenWerkzeuge(),
       ...mcpFeiertagWerkzeuge(),
+      ...mcpSicherungsdateienWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

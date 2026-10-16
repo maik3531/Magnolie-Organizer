@@ -134,7 +134,7 @@ let declaredContracts;
         id: noteId, title: "Retry", text: "Must not duplicate" } }));
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
-      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile;
+      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile, onCloudStatus;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
@@ -150,6 +150,7 @@ let declaredContracts;
         if (message.cmd === "sicherung_pruefen" && message.requestId && onBackupPreview) onBackupPreview(message);
         if (message.cmd === "feiertage" && message.requestId && onHoliday) onHoliday(message);
         if (message.cmd === "notiz_anhang_datei" && message.requestId && onAttachmentFile) onAttachmentFile(message);
+        if (message.cmd === "cloud_sicherung_status" && message.requestId && onCloudStatus) onCloudStatus(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -1062,6 +1063,26 @@ let declaredContracts;
         const staleSettings = await call(request(602, "tools/call", { name: "organizer_holidays_settings_update", arguments: { expected_revision: next, country: "DE" } }));
         assert.equal(staleSettings.result.structuredContent.code, "conflict");
         onHoliday = null;
+      }
+      {
+        let available = false;
+        onCloudStatus = message => b.w.App.cloudSicherungStand({ requestId: message.requestId, kennwortVorhanden: available, status: "" });
+        const first = (await call(request(630, "tools/call", { name: "organizer_backup_settings_read" }))).result.structuredContent;
+        assert.equal(first.settings.password_available, false);
+        await persisted(631, "organizer_backup_settings_update", { expected_revision: first.revision, folder: "/owned/cloud-folder", interval: "weekly", retention: 9, enabled: false });
+        const fresh = (await call(request(632, "tools/call", { name: "organizer_backup_settings_read" }))).result.structuredContent;
+        const notReady = await call(request(633, "tools/call", { name: "organizer_backup_settings_update", arguments: { expected_revision: fresh.revision, enabled: true } }));
+        assert.equal(notReady.result.structuredContent.code, "backup_not_ready");
+        assert.equal(b.t.daten().einstellungen.allgemein.cloudSicherung.aktiv, false);
+        available = true;
+        await persisted(634, "organizer_backup_settings_update", { expected_revision: fresh.revision, enabled: true });
+        assert.equal(b.t.daten().einstellungen.allgemein.cloudSicherung.aktiv, true);
+        const stale = await call(request(635, "tools/call", { name: "organizer_backup_settings_update", arguments: { expected_revision: fresh.revision, retention: 4 } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        const reset = (await call(request(636, "tools/call", { name: "organizer_backup_settings_read" }))).result.structuredContent;
+        await persisted(637, "organizer_backup_settings_update", { expected_revision: reset.revision, folder: "" });
+        assert.equal(b.t.daten().einstellungen.allgemein.cloudSicherung.aktiv, false);
+        onCloudStatus = null;
       }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));
