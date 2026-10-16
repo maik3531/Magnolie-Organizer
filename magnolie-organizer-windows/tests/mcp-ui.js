@@ -365,6 +365,33 @@ let declaredContracts;
         assert.equal(medicationReload.t.daten().gesundheit.insulinschema.hinweis, "Owned synthetic configuration");
       } finally { medicationReload.close(); }
       await persisted(290, "organizer_medication_delete", { id: medicationId, expected_revision: medicationUpdated.revision });
+      const timeId = "21212121-2121-4121-8121-212121212121", startMinute = Date.UTC(2028, 1, 29, 8) / 60000;
+      const disabledTime = await call(request(300, "tools/call", { name: "organizer_time_record_create", arguments: { start_minute: startMinute, end_minute: startMinute + 60 } }));
+      assert.equal(disabledTime.result.structuredContent.code, "feature_disabled");
+      b.t.daten().zeiterfassung.enabled = true;
+      const invalidTimeRecord = await call(request(301, "tools/call", { name: "organizer_time_record_create", arguments: { start_minute: startMinute, end_minute: startMinute - 1 } }));
+      assert.equal(invalidTimeRecord.result.structuredContent.code, "invalid_time_record");
+      await persisted(302, "organizer_time_record_create", { id: timeId, start_minute: startMinute, end_minute: startMinute + 60, pause_minutes: 15, zone: "UTC", type: "Owned manual time" });
+      const timeRead = (await call(request(303, "tools/call", { name: "organizer_time_record_read", arguments: { id: timeId } }))).result.structuredContent;
+      const actor = b.t.daten().zeiterfassung.actor;
+      assert.equal(timeRead.record.clock[actor], 1);
+      await persisted(304, "organizer_time_record_update", { id: timeId, expected_revision: timeRead.revision, note: "Owned changed note" });
+      const timeUpdated = (await call(request(305, "tools/call", { name: "organizer_time_record_read", arguments: { id: timeId } }))).result.structuredContent;
+      assert.equal(timeUpdated.record.clock[actor], 2); assert.equal(timeUpdated.record.pauseMinutes, 15);
+      const invalidRunning = await call(request(306, "tools/call", { name: "organizer_time_record_update", arguments: { id: timeId, expected_revision: timeUpdated.revision, end_minute: null } }));
+      assert.equal(invalidRunning.result.structuredContent.code, "invalid_time_record");
+      const timeReload = await harness.exports.boot(web, JSON.parse(JSON.stringify(b.t.daten())));
+      try { assert.equal(timeReload.t.daten().zeiterfassung.entries.find(entry => entry.id === timeId).clock[actor], 2); }
+      finally { timeReload.close(); }
+      const staleTime = await call(request(307, "tools/call", { name: "organizer_time_record_delete", arguments: { id: timeId, expected_revision: timeRead.revision } }));
+      assert.equal(staleTime.result.structuredContent.code, "conflict");
+      const deletedTime = await persisted(308, "organizer_time_record_delete", { id: timeId, expected_revision: timeUpdated.revision });
+      const timeTombstone = b.t.daten().zeiterfassung.entries.find(entry => entry.id === timeId);
+      assert.equal(timeTombstone.deleted, true); assert.equal(timeTombstone.clock[actor], 3);
+      const duplicateTime = await call(request(309, "tools/call", { name: "organizer_time_record_create", arguments: { id: timeId, start_minute: startMinute, end_minute: startMinute + 60 } }));
+      assert.equal(duplicateTime.result.structuredContent.code, "already_exists");
+      await persisted(310, "organizer_trash_restore", { id: deletedTime.trash_id });
+      assert.equal(b.t.daten().zeiterfassung.entries.find(entry => entry.id === timeId).deleted, false);
       assert.equal(invalidGlucose.result.structuredContent.code, "invalid_value");
       const invalidVital = await call(request(267, "tools/call", { name: "organizer_vital_create", arguments: { date: "2028-02-29", pulse: 20 } }));
       assert.equal(invalidVital.error.code, -32602);

@@ -44,7 +44,7 @@ data_file.write_text(json.dumps({"version": 6, "notizen": [{"id": "owned-native-
      "icsRoundtrip": ["BEGIN:VEVENT", "UID:owned-provider-event-uid", "DTSTART;VALUE=DATE:20261116", "X-OWNED-FIXTURE:preserve", "END:VEVENT"]}
     ], "schichten": [{"id": "owned-cleanup-shift", "name": "Owned cleanup shift", "von": "22:00", "bis": "06:00", "farbe": "#aabbcc", "art": "night"}],
     "zyklusmarker": [{"id": "owned-cleanup-cycle", "name": "Owned cleanup cycle", "symbol": "🌱", "farbe": "#b86f8e", "art": "custom"}],
-    "einstellungen": {
+    "zeiterfassung": {"enabled": True}, "einstellungen": {
     "allgemein": {"wiederherstellungsintervall": "manual", "tray": {"aktiv": False}},
     "update": {"automatisch": False}, "sync": {"beimStart": False},
     "erinnerung": {"an": False, "wecken": False, "jahrestage": {"an": False}}}}))
@@ -339,6 +339,24 @@ def client():
             "expected_revision": scheme["structuredContent"]["revision"], "changes": {"hinweis": "Owned native scheme fixture"}}})
         assert not scheme_updated["isError"] and scheme_updated["structuredContent"]["persisted"], scheme_updated
         assert json.loads(data_file.read_text())["gesundheit"]["insulinschema"]["hinweis"] == "Owned native scheme fixture"
+        time_created = call("tools/call", {"name": "organizer_time_record_create", "arguments": {
+            "start_minute": 30590880, "end_minute": 30590940, "pause_minutes": 15, "zone": "UTC", "type": "Owned native manual time"}})
+        assert not time_created["isError"] and time_created["structuredContent"]["persisted"], time_created
+        time_id = time_created["structuredContent"]["id"]
+        time_read = call("tools/call", {"name": "organizer_time_record_read", "arguments": {"id": time_id}})
+        time_updated = call("tools/call", {"name": "organizer_time_record_update", "arguments": {
+            "id": time_id, "expected_revision": time_read["structuredContent"]["revision"], "note": "Owned native time revision"}})
+        assert not time_updated["isError"] and time_updated["structuredContent"]["persisted"], time_updated
+        time_data = json.loads(data_file.read_text())["zeiterfassung"]
+        time_value = next(item for item in time_data["entries"] if item["id"] == time_id)
+        assert time_value["clock"][time_data["actor"]] == 2 and time_value["pauseMinutes"] == 15 and time_value["note"] == "Owned native time revision", time_value
+        time_read = call("tools/call", {"name": "organizer_time_record_read", "arguments": {"id": time_id}})
+        time_deleted = call("tools/call", {"name": "organizer_time_record_delete", "arguments": {
+            "id": time_id, "expected_revision": time_read["structuredContent"]["revision"]}})
+        assert not time_deleted["isError"] and time_deleted["structuredContent"]["persisted"], time_deleted
+        assert next(item for item in json.loads(data_file.read_text())["zeiterfassung"]["entries"] if item["id"] == time_id)["deleted"]
+        time_restored = call("tools/call", {"name": "organizer_trash_restore", "arguments": {"id": time_deleted["structuredContent"]["trash_id"]}})
+        assert not time_restored["isError"] and time_restored["structuredContent"]["persisted"], time_restored
         for date in ("2028-04-01", "2028-04-02"):
             day = call("tools/call", {"name": "organizer_day_marker_read", "arguments": {"date": date}})
             assert day["structuredContent"]["marker"] is None, day

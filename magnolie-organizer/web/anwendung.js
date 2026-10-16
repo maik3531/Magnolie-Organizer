@@ -10689,9 +10689,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       zone: "UTC", type: "", note: "", modifiedMs: Date.now(), deleted: true, clock: erwartet.clock, pausePlan: null };
     const naechster = zeitErsetze(DATEN.zeiterfassung, erwartet, marker);
     if (naechster === DATEN.zeiterfassung) return;
-    inDenPapierkorb("time_tracking", archiv, zeitErfassungHinweis(archiv, true));
+    const trash = inDenPapierkorb("time_tracking", archiv, zeitErfassungHinweis(archiv, true));
     DATEN.zeiterfassung = naechster;
     planeSpeichern(); zeichneAlles();
+    return { id: erwartet.id, trash_id: trash?.id || null };
   }
 
   function oeffneZeiterfassungEditor(id = "", vorgabe = isoHeute()) {
@@ -33860,6 +33861,58 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }) }
     ];
   }
+  function mcpZeitWerkzeuge() {
+    const id = { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const minute = { type: "integer", minimum: 0, maximum: 4223371679 };
+    const fields = { start_minute: minute, end_minute: { ...minute, type: ["integer", "null"] }, pause_minutes: minute,
+      type: { type: "string", maxLength: 120 }, note: { type: "string", maxLength: 20000 }, zone: { type: "string", minLength: 1, maxLength: 160 } };
+    const find = value => DATEN.zeiterfassung.entries.find(entry => entry.id === value && !entry.deleted);
+    const checked = async (args, signal) => {
+      const book = DATEN, entry = find(args.id);
+      if (!entry) throw new MagnolieMcp.ToolError("not_found", "Time record not found");
+      const before = JSON.stringify(entry), hash = await personalSyncHash(before);
+      if (signal.aborted || gesperrt || DATEN !== book || find(args.id) !== entry || JSON.stringify(entry) !== before || hash !== args.expected_revision)
+        throw new MagnolieMcp.ToolError("conflict", "Time record changed; read it again before writing");
+      mcpEditorPruefen(); return entry;
+    };
+    const replace = (original, args) => {
+      const record = original ? kopie(original) : { id: args.id || anrufClientRef(), startMinute: args.start_minute, endMinute: args.end_minute,
+        pauseMinute: null, pauseMinutes: 0, pausePlan: null, zone: organizerZeitzone() || "UTC", type: "", note: "", modifiedMs: Date.now(), deleted: false, clock: {} };
+      if (["start_minute", "end_minute", "pause_minutes"].some(key => args[key] !== undefined)) {
+        record.pausePlan = null;
+        record.pauseMinute = (args.end_minute === undefined ? record.endMinute : args.end_minute) === null && original?.pauseMinute != null ? Math.floor(Date.now() / 60000) : null;
+      }
+      for (const [key, field] of Object.entries({ start_minute: "startMinute", end_minute: "endMinute", pause_minutes: "pauseMinutes", type: "type", note: "note", zone: "zone" }))
+        if (args[key] !== undefined) record[field] = args[key];
+      record.type = record.type.trim();
+      try { DATEN.zeiterfassung = zeitErsetze(DATEN.zeiterfassung, original, record); }
+      catch (_invalid) { throw new MagnolieMcp.ToolError("invalid_time_record", "Time record violates the product time, pause, zone or lifecycle constraints"); }
+      return { id: record.id };
+    };
+    return [
+      { name: "organizer_time_record_read", description: "Read a time-tracking record, including synchronization metadata and its revision. Minute timestamps are UTC Unix minutes.",
+        inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async args => {
+          const entry = find(args.id); if (!entry) throw new MagnolieMcp.ToolError("not_found", "Time record not found");
+          const record = kopie(entry); return { record, revision: await personalSyncHash(JSON.stringify(record)) };
+        } },
+      { name: "organizer_time_record_create", description: "Create a completed manual time record through the product time engine and its version clocks. Requires time tracking to be enabled; running records originate from the existing tracking workflow.",
+        inputSchema: { type: "object", properties: { ...fields, end_minute: minute, id }, required: ["start_minute", "end_minute"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, () => {
+          if (!DATEN.zeiterfassung.enabled) throw new MagnolieMcp.ToolError("feature_disabled", "Enable time tracking in calendar settings before creating records");
+          if (args.id && DATEN.zeiterfassung.entries.some(entry => entry.id === args.id)) throw new MagnolieMcp.ToolError("already_exists", "Time record ID already exists, including deleted versions");
+          return replace(null, args);
+        }) },
+      { name: "organizer_time_record_update", description: "Revision-checked edits through the product time engine. Metadata-only edits preserve pause plans; timing edits use the manual editor's pause-plan reset policy. Version clocks remain product-owned.",
+        inputSchema: { type: "object", properties: { ...fields, id, expected_revision: revision }, required: ["id", "expected_revision"], anyOf: Object.keys(fields).map(field => ({ required: [field] })), additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => replace(await checked(args, signal), args)) },
+      { name: "organizer_time_record_delete", description: "Revision-checked product time-record deletion: writes a synchronization tombstone and archives the original record according to the trash setting.",
+        inputSchema: { type: "object", properties: { id, expected_revision: revision }, required: ["id", "expected_revision"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const entry = await checked(args, signal), result = loescheZeiterfassung(entry);
+          if (!result) throw new MagnolieMcp.ToolError("conflict", "Time record changed before removal"); return result;
+        }) }
+    ];
+  }
   function wendeUrlaubDatenAn(entry, values) {
     const value = entry || { id: values.id || uid(), von: isoHeute(), bis: isoHeute(), symbol: "palm", darstellung: "symbol-text" };
     if (gueltigesISO(values.von)) value.von = values.von;
@@ -34060,6 +34113,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_time_record_read") return shape({ record: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["record", "revision"]);
+    if (["organizer_time_record_create", "organizer_time_record_update"].includes(name)) return shape(written, ["id", "persisted"]);
+    if (name === "organizer_time_record_delete") return shape({ ...written, trash_id: { type: ["string", "null"] } }, ["id", "persisted", "trash_id"]);
     if (name === "organizer_insulin_scheme_read") return shape({ scheme: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["scheme", "revision"]);
     if (name === "organizer_insulin_scheme_update") return shape({ persisted: yes }, ["persisted"]);
     if (/^organizer_(vital|blood_glucose|medication)_read$/.test(name)) return shape({ record: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["record", "revision"]);
@@ -34124,6 +34180,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpMuellWerkzeuge(),
       ...mcpGesundheitMessWerkzeuge(),
       ...mcpInsulinSchemaWerkzeuge(),
+      ...mcpZeitWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
