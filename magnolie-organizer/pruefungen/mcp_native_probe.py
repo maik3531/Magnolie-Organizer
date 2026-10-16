@@ -8,11 +8,13 @@ import json
 import os
 from pathlib import Path
 import selectors
+import struct
 import subprocess
 import sys
 import tempfile
 import threading
 import traceback
+import zlib
 
 sys.dont_write_bytecode = True
 ROOT = Path(__file__).resolve().parents[1]
@@ -147,7 +149,9 @@ def client():
             "expected_revision": revision["structuredContent"]["revision"], "title": "Native revised fixture"}})
         assert updated["isError"] is False and updated["structuredContent"]["persisted"], updated
         assert next(item for item in json.loads(data_file.read_text())["notizen"] if item["id"] == note_id)["titel"] == "Native revised fixture"
-        png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXb8AAAAASUVORK5CYII=")
+        def png_chunk(kind, body):
+            return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body) & 0xffffffff)
+        png = b"\x89PNG\r\n\x1a\n" + png_chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0)) + png_chunk(b"IDAT", zlib.compress(b"\0\0\0\0\xff")) + png_chunk(b"IEND", b"")
         attachment_note = call("tools/call", {"name": "organizer_note_read", "arguments": {"id": note_id, "fields": ["id"]}})
         staged = call("tools/call", {"name": "organizer_attachment_upload_begin", "arguments": {
             "note_id": note_id, "expected_revision": attachment_note["structuredContent"]["revision"],
@@ -422,7 +426,7 @@ def client():
         assert not drawing_created["isError"] and drawing_created["structuredContent"]["persisted"], drawing_created
         drawing_id = drawing_created["structuredContent"]["id"]
         drawing_read = call("tools/call", {"name": "organizer_drawing_read", "arguments": {"id": drawing_id, "limit": 7}})
-        sheet = {"version": 4, "width": 400, "height": 300, "autoSize": False,
+        sheet = {"version": 4, "width": 400, "height": 300, "autoSize": False, "background": "data:image/png;base64," + base64.b64encode(png).decode("ascii"),
             "strokes": [{"tool": "pen", "color": "#123456", "width": 2, "points": [[0.1, 0.2, 0.3], [0.8, 0.9, 1]]}]}
         drawing_updated = call("tools/call", {"name": "organizer_drawing_replace", "arguments": {
             "id": drawing_id, "expected_revision": drawing_read["structuredContent"]["revision"], "sheet": sheet}})
@@ -430,6 +434,29 @@ def client():
         assert next(module for module in json.loads(data_file.read_text())["customOrganizer"]["modules"] if module["id"] == drawing_id)["drawing"] == sheet
         drawing_read = call("tools/call", {"name": "organizer_drawing_read", "arguments": {"id": drawing_id}})
         assert json.loads(base64.b64decode(drawing_read["structuredContent"]["data"])) == sheet
+        bad_background = call("tools/call", {"name": "organizer_drawing_replace", "arguments": {
+            "id": drawing_id, "expected_revision": drawing_read["structuredContent"]["revision"],
+            "sheet": {**sheet, "background": "data:image/png;base64," + base64.b64encode(png[:33] + b"invalid").decode("ascii")}}})
+        assert bad_background["isError"] and bad_background["structuredContent"]["code"] == "invalid_image", bad_background
+        large_sheet = {**sheet, "width": 401, "strokes": [{**sheet["strokes"][0], "points": [[0.1, 0.2, 0.3]] * 90000}]}
+        drawing_bytes = json.dumps(large_sheet, separators=(",", ":")).encode("utf8")
+        assert len(drawing_bytes) > 1024 * 1024, "Native drawing must exceed a single RPC frame"
+        drawing_upload = call("tools/call", {"name": "organizer_drawing_upload_begin", "arguments": {
+            "id": drawing_id, "expected_revision": drawing_read["structuredContent"]["revision"], "size": len(drawing_bytes), "sha256": hashlib.sha256(drawing_bytes).hexdigest()}})
+        assert not drawing_upload["isError"], drawing_upload
+        drawing_token = drawing_upload["structuredContent"]["token"]
+        for offset in range(0, len(drawing_bytes), 65536):
+            appended = call("tools/call", {"name": "organizer_drawing_upload_append", "arguments": {
+                "token": drawing_token, "offset": offset, "data": base64.b64encode(drawing_bytes[offset:offset + 65536]).decode("ascii")}})
+            assert not appended["isError"], appended
+        drawing_finalized = call("tools/call", {"name": "organizer_drawing_upload_finalize", "arguments": {"token": drawing_token}})
+        assert not drawing_finalized["isError"] and drawing_finalized["structuredContent"]["persisted"], drawing_finalized
+        stored_drawing = next(module for module in json.loads(data_file.read_text())["customOrganizer"]["modules"] if module["id"] == drawing_id)["drawing"]
+        assert stored_drawing["width"] == 401 and len(stored_drawing["strokes"][0]["points"]) == 90000
+        large_drawing_read = call("tools/call", {"name": "organizer_drawing_read", "arguments": {"id": drawing_id, "limit": 7}})
+        drawing_compacted = call("tools/call", {"name": "organizer_drawing_replace", "arguments": {
+            "id": drawing_id, "expected_revision": large_drawing_read["structuredContent"]["revision"], "sheet": sheet}})
+        assert not drawing_compacted["isError"] and drawing_compacted["structuredContent"]["persisted"], drawing_compacted
         for date in ("2028-04-01", "2028-04-02"):
             day = call("tools/call", {"name": "organizer_day_marker_read", "arguments": {"date": date}})
             assert day["structuredContent"]["marker"] is None, day

@@ -95,6 +95,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_custom_module_read/create/update/delete` | Custom designer modules with product page capacity, unique-type rules, presentation settings, revision checks and native persistence. Reads support field projection. Removal archives the module and clears linked text references through the shared product handler; trash restore uses the existing restore tool. |
 | `organizer_custom_item_read/create/update/delete` | Custom text/task/appointment items with parent-bound revisions, field projection, product HTML sanitization, typed dates/basic recurrence, linked-text validation and native persistence. Removal uses product trash/reference cleanup. Item fields are validated against the parent module type. |
 | `organizer_drawing_read/replace` | Drawing JSON read in bounded UTF-8/base64 chunks under a full module revision; typed replacement uses the actual drawing validator, PNG background decoding and shared import/editor handler before native persistence. External writes are blocked while a drawing gesture is active. Direct replacement is subject to the local RPC frame limit. |
+| `organizer_drawing_upload_begin/append/status/cancel/finalize` | Session-owned, revision-bound drawing JSON staging up to the product import limit of 16 MiB, two drawing transfers, five-minute expiry and contiguous 64 KiB byte chunks with identical retry support. Finalize verifies SHA-256, strict UTF-8/typed JSON, actual drawing validity and background decoding before native persistence. Transfers are removed on cancel, close, expiry and finalize. |
 | `organizer_appointment_read` | Appointment, provider/read-only metadata and revision token |
 | `organizer_appointment_create` | Local/timed/all-day appointment, repeat configuration, alarms, participants and attachment metadata |
 | `organizer_appointment_update` | Revision-checked editor fields and provider moves through the existing ICS mirror |
@@ -175,8 +176,7 @@ Definition names must be nonblank so entries survive the normal product reload.
 
 ## Remaining coverage in #170
 
-The remaining work includes large drawing uploads,
-settings changes, native attachment open/save,
+The remaining work includes other settings changes, native attachment open/save,
 imports/exports and planners,
 recovery/backup operations, synchronization/accounts, Magnolienbaum operations,
 the remaining phone/KDE actions, and complete

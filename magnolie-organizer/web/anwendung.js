@@ -32809,6 +32809,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   const mcpSitzungen = new Map();
   const mcpAnhangTransfers = new Map();
+  const mcpZeichenTransfers = new Map();
+  function mcpVerwerfeZeichenTransfer(token) {
+    const transfer = mcpZeichenTransfers.get(token); if (transfer) clearTimeout(transfer.timer);
+    mcpZeichenTransfers.delete(token);
+  }
+  function mcpLeseZeichenTransfer(token, owner) {
+    const transfer = mcpZeichenTransfers.get(token);
+    if (!transfer || transfer.owner !== owner) throw new MagnolieMcp.ToolError("not_found", "Drawing upload not found in this session");
+    if (transfer.expires <= Date.now() || transfer.book !== DATEN) {
+      mcpVerwerfeZeichenTransfer(token); throw new MagnolieMcp.ToolError("upload_expired", "Drawing upload expired or its book changed");
+    }
+    return transfer;
+  }
   function mcpVerwerfeTransfer(token) {
     const transfer = mcpAnhangTransfers.get(token);
     if (transfer) clearTimeout(transfer.timer);
@@ -34117,13 +34130,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       throw new MagnolieMcp.ToolError("conflict", "Drawing module changed; read it again before writing");
     mcpEditorPruefen(); return module;
   }
-  async function mcpUebernehmeZeichnung(args, signal) {
+  async function mcpUebernehmeZeichnung(args, signal, current = () => true) {
     const book = DATEN, module = await mcpPruefeZeichenmodul(args.id, args.expected_revision, signal);
     if (!window.MagnolieZeichnen.valid(args.sheet)) throw new MagnolieMcp.ToolError("invalid_drawing", "Drawing violates product format or point limits");
     try { await window.MagnolieZeichnen.ready(args.sheet); }
     catch (_image) { throw new MagnolieMcp.ToolError("invalid_image", "Drawing background could not be decoded"); }
     if (DATEN !== book || !DATEN.customOrganizer.modules.includes(module)) throw new MagnolieMcp.ToolError("conflict", "Drawing book changed before replacement");
     await mcpPruefeZeichenmodul(args.id, args.expected_revision, signal);
+    if (!current()) throw new MagnolieMcp.ToolError("cancelled", "Drawing upload cancelled before commit");
     if (!ersetzeZeichenblattDaten(module, args.sheet)) throw new MagnolieMcp.ToolError("invalid_drawing", "Drawing could not be applied through the product editor");
     return { id: module.id };
   }
@@ -34147,6 +34161,65 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       { name: "organizer_drawing_replace", description: "Revision-checked replacement with a typed product drawing sheet, including actual background decoding, gesture protection and native persistence. Direct input is bounded by the local RPC frame limit.",
         inputSchema: { type: "object", properties: { id, expected_revision: revision, sheet: mcpZeichnungSchema() }, required: ["id", "expected_revision", "sheet"], additionalProperties: false },
         annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, () => mcpUebernehmeZeichnung(args, signal)) }
+    ];
+  }
+  function mcpZeichenUploadWerkzeuge(owner) {
+    const token = { type: "string", pattern: "^[a-f0-9]{48}$" }, hash = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const tokenSchema = { type: "object", properties: { token }, required: ["token"], additionalProperties: false };
+    return [
+      { name: "organizer_drawing_upload_begin", description: "Stage a revision-bound drawing JSON upload up to the product import limit of 16 MiB. At most two drawing transfers exist, owned by this session, expiring after five minutes. Book data changes only at finalize.",
+        inputSchema: { type: "object", properties: { id: { type: "string", minLength: 1, maxLength: 160 }, expected_revision: hash,
+          size: { type: "integer", minimum: 1, maximum: 16777216 }, sha256: hash }, required: ["id", "expected_revision", "size", "sha256"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => {
+          const book = DATEN; await mcpPruefeZeichenmodul(args.id, args.expected_revision, signal);
+          if (DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Drawing upload book changed");
+          for (const [key, value] of mcpZeichenTransfers) if (value.expires <= Date.now() || value.book !== DATEN) mcpVerwerfeZeichenTransfer(key);
+          if (mcpZeichenTransfers.size >= 2) throw new MagnolieMcp.ToolError("upload_limit", "Two drawing uploads are already staged");
+          const key = Array.from(crypto.getRandomValues(new Uint8Array(24)), byte => byte.toString(16).padStart(2, "0")).join("");
+          const transfer = { ...args, owner, book, bytes: new Uint8Array(args.size), received: 0, expires: Date.now() + 300000, finalizing: false };
+          transfer.timer = setTimeout(() => mcpVerwerfeZeichenTransfer(key), 300000); mcpZeichenTransfers.set(key, transfer);
+          return mcpTransferStatus(key, transfer);
+        } },
+      { name: "organizer_drawing_upload_append", description: "Append contiguous drawing JSON bytes in base64 chunks of at most 65,536 decoded bytes; identical retries are accepted without duplicate data.",
+        inputSchema: { type: "object", properties: { token, offset: { type: "integer", minimum: 0, maximum: 16777216 }, data: { type: "string", minLength: 4, maxLength: 87384,
+          pattern: "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$" } }, required: ["token", "offset", "data"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async ({ token, offset, data }) => {
+          const transfer = mcpLeseZeichenTransfer(token, owner);
+          if (transfer.finalizing) throw new MagnolieMcp.ToolError("upload_busy", "Drawing upload is being finalized");
+          let raw; try { raw = atob(data); } catch { throw new MagnolieMcp.ToolError("invalid_chunk", "Drawing chunk is not valid base64"); }
+          if (!raw.length || raw.length > 65536 || offset + raw.length > transfer.size) throw new MagnolieMcp.ToolError("invalid_chunk", "Drawing chunk exceeds declared bounds");
+          const bytes = Uint8Array.from(raw, character => character.charCodeAt(0));
+          if (offset < transfer.received) {
+            if (offset + bytes.length > transfer.received || bytes.some((value, index) => transfer.bytes[offset + index] !== value)) throw new MagnolieMcp.ToolError("upload_conflict", "Drawing retry does not match received bytes");
+          } else {
+            if (offset !== transfer.received) throw new MagnolieMcp.ToolError("invalid_offset", "Drawing chunks must be contiguous");
+            transfer.bytes.set(bytes, offset); transfer.received += bytes.length;
+          }
+          return mcpTransferStatus(token, transfer);
+        } },
+      { name: "organizer_drawing_upload_status", description: "Read this session's drawing-upload byte counts without file contents.", inputSchema: tokenSchema,
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ token }) => mcpTransferStatus(token, mcpLeseZeichenTransfer(token, owner)) },
+      { name: "organizer_drawing_upload_cancel", description: "Discard this session's staged drawing upload.", inputSchema: tokenSchema,
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async ({ token }) => {
+          mcpLeseZeichenTransfer(token, owner); mcpVerwerfeZeichenTransfer(token); return { token, cancelled: true };
+        } },
+      { name: "organizer_drawing_upload_finalize", description: "Verify full SHA-256, strict UTF-8 JSON, typed drawing structure and actual product validity/background decoding, then recheck session/book/revision and wait for native persistence.", inputSchema: tokenSchema,
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async ({ token }, signal) => {
+          const transfer = mcpLeseZeichenTransfer(token, owner);
+          if (transfer.finalizing) throw new MagnolieMcp.ToolError("upload_busy", "Drawing upload is being finalized");
+          if (transfer.received !== transfer.size) throw new MagnolieMcp.ToolError("upload_incomplete", "Drawing upload is incomplete");
+          transfer.finalizing = true;
+          try {
+            const actual = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", transfer.bytes)), byte => byte.toString(16).padStart(2, "0")).join("");
+            if (actual !== transfer.sha256) throw new MagnolieMcp.ToolError("hash_mismatch", "Drawing upload SHA-256 does not match");
+            let sheet;
+            try { sheet = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(transfer.bytes)); MagnolieMcp.validate(sheet, mcpZeichnungSchema()); }
+            catch (_invalid) { throw new MagnolieMcp.ToolError("invalid_drawing", "Drawing upload is not valid UTF-8 JSON in the product drawing schema"); }
+            const current = () => mcpZeichenTransfers.get(token) === transfer && transfer.book === DATEN && transfer.expires > Date.now();
+            if (signal.aborted || !current()) throw new MagnolieMcp.ToolError("cancelled", "Drawing upload cancelled before commit");
+            return await mcpSchreiben(signal, () => mcpUebernehmeZeichnung({ id: transfer.id, expected_revision: transfer.expected_revision, sheet }, signal, current));
+          } finally { mcpVerwerfeZeichenTransfer(token); }
+        } }
     ];
   }
   function wendeUrlaubDatenAn(entry, values) {
@@ -34349,6 +34422,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (["organizer_drawing_upload_begin", "organizer_drawing_upload_append", "organizer_drawing_upload_status"].includes(name)) return shape({ token: id, expected_bytes: { type: "integer", minimum: 1, maximum: 16777216 }, received_bytes: { type: "integer", minimum: 0, maximum: 16777216 }, expires_ms: { type: "integer", minimum: 1 } }, ["token", "expected_bytes", "received_bytes", "expires_ms"]);
+    if (name === "organizer_drawing_upload_cancel") return shape({ token: id, cancelled: yes }, ["token", "cancelled"]);
+    if (name === "organizer_drawing_upload_finalize") return shape(written, ["id", "persisted"]);
     if (name === "organizer_drawing_read") return shape({ id, revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, encoding: { type: "string", enum: ["base64"] }, charset: { type: "string", enum: ["UTF-8"] }, total_bytes: { type: "integer", minimum: 0 }, offset: { type: "integer", minimum: 0 }, next_offset: { type: "integer", minimum: 0 }, data: text }, ["id", "revision", "encoding", "charset", "total_bytes", "offset", "data"]);
     if (name === "organizer_drawing_replace") return shape(written, ["id", "persisted"]);
     if (name === "organizer_custom_item_read") return shape({ module_id: id, item: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["module_id", "item", "revision"]);
@@ -34433,6 +34509,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpCustomModulWerkzeuge(),
       ...mcpCustomItemWerkzeuge(),
       ...mcpZeichenWerkzeuge(),
+      ...mcpZeichenUploadWerkzeuge(owner),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
@@ -34481,6 +34558,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   App.mcpClose = session => {
     mcpSitzungen.get(session)?.close(); mcpSitzungen.delete(session);
     for (const [token, transfer] of mcpAnhangTransfers) if (transfer.owner === session) mcpVerwerfeTransfer(token);
+    for (const [token, transfer] of mcpZeichenTransfers) if (transfer.owner === session) mcpVerwerfeZeichenTransfer(token);
   };
   App.mcpRequest = async payload => {
     if (!Bruecke.vorhanden || !window.MagnolieMcp || !/^[0-9a-f]{48}$/.test(payload?.session || "") ||
