@@ -575,6 +575,21 @@ def client():
             "id": deleted["structuredContent"]["trash_id"]}})
         assert not restored["isError"] and restored["structuredContent"]["persisted"], restored
         assert next(item for item in json.loads(data_file.read_text())["notizen"] if item["id"] == note_id)["titel"] == "Native revised fixture"
+        recovery_created = call("tools/call", {"name": "organizer_recovery_snapshot_create"})
+        assert not recovery_created["isError"] and recovery_created["structuredContent"]["confirmed"], recovery_created
+        recovery_id = recovery_created["structuredContent"]["snapshot"]["id"]
+        native_manifest, native_archive = product.journal_snapshot_lesen(recovery_id)
+        assert native_manifest["snapshotId"] == recovery_id
+        assert native_archive["daten"]["zeiterfassung"]["enabled"]
+        assert next(item for item in native_archive["daten"]["notizen"] if item["id"] == note_id)["text"] == large_text
+        recovery_list = call("tools/call", {"name": "organizer_recovery_list"})
+        assert not recovery_list["isError"], recovery_list
+        assert any(item["id"] == recovery_id for item in recovery_list["structuredContent"]["snapshots"])
+        assert all("path" not in item for item in recovery_list["structuredContent"]["snapshots"])
+        recovery_preview = call("tools/call", {"name": "organizer_recovery_snapshot_preview", "arguments": {"id": recovery_id}})
+        assert not recovery_preview["isError"] and recovery_preview["structuredContent"]["confirmed"], recovery_preview
+        recovery_missing = call("tools/call", {"name": "organizer_recovery_snapshot_preview", "arguments": {"id": "00000000-0000-0000-0000-000000000000"}})
+        assert recovery_missing["isError"] and recovery_missing["structuredContent"]["code"] == "native_operation_failed", recovery_missing
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()

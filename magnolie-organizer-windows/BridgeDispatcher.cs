@@ -134,10 +134,10 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "cloud_sicherung_test": await RunCloudBackupTestAsync(); break;
                     case "sicherung_waehlen": await SelectBackupAsync(); break;
                     case "sicherung_wiederherstellen": await RestoreBackupAsync(message); break;
-                    case "journal_liste": await SendRecoveryStatusAsync(); break;
+                    case "journal_liste": await SendRecoveryStatusAsync(Text(message, "requestId")); break;
                     case "journal_erzeugen":
-                    case "journal_manuell": await CreateManualSnapshotAsync(); break;
-                    case "journal_vorschau": await PreviewSnapshotAsync(SnapshotId(message)); break;
+                    case "journal_manuell": await CreateManualSnapshotAsync(Text(message, "requestId")); break;
+                    case "journal_vorschau": await PreviewSnapshotAsync(SnapshotId(message), Text(message, "requestId")); break;
                     case "journal_intervall": recovery.SetInterval(Text(message, "intervall")); await SendRecoveryStatusAsync(); break;
                     case "journal_anzahl": recovery.SetMaximum(Integer(message, "maximum")); await SendRecoveryStatusAsync(); break;
                     case "journal_aufbewahrung": recovery.SetRetention(Text(message, "modus"), Integer(message, "maximum"), Integer(message, "tage")); await SendRecoveryStatusAsync(); break;
@@ -1355,11 +1355,11 @@ internal sealed partial class BridgeDispatcher : IDisposable
         await SendRecoveryStatusAsync();
     }
 
-    private async Task CreateManualSnapshotAsync()
+    private async Task CreateManualSnapshotAsync(string? requestId = null)
     {
         await MutationGate.Global.WaitAsync();
-        try { CreateSnapshot(SnapshotReason.Manual); await form.SendAsync("App.journalErgebnis", new { ok = true, deleted = false, fehler = "" }); await SendRecoveryStatusAsync(); }
-        catch (Exception error) { await form.SendAsync("App.journalErgebnis", new { ok = false, deleted = false, fehler = error.Message }); }
+        try { var snapshot = CreateSnapshot(SnapshotReason.Manual); await form.SendAsync("App.journalErgebnis", new { ok = true, requestId, snapshot = NativeSnapshot(snapshot), deleted = false, fehler = "" }); await SendRecoveryStatusAsync(); }
+        catch (Exception error) { await form.SendAsync("App.journalErgebnis", new { ok = false, requestId, deleted = false, fehler = error.Message }); }
         finally { MutationGate.Global.Release(); }
     }
 
@@ -1388,26 +1388,34 @@ internal sealed partial class BridgeDispatcher : IDisposable
         finally { MutationGate.Global.Release(); }
     }
 
-    private async Task PreviewSnapshotAsync(string id)
+    private async Task PreviewSnapshotAsync(string id, string? requestId = null)
     {
         try
         {
             var item = recovery.Verify(id);
-            await form.SendAsync("App.journalVorschau", new { ok = true, snapshot = NativeSnapshot(item), summary = item.Summary, fehler = "" });
+            await form.SendAsync("App.journalVorschau", new { ok = true, requestId, snapshot = NativeSnapshot(item), summary = item.Summary, fehler = "" });
         }
-        catch (Exception error) { await form.SendAsync("App.journalVorschau", new { ok = false, fehler = error.Message }); }
+        catch (Exception error) { await form.SendAsync("App.journalVorschau", new { ok = false, requestId, fehler = error.Message }); }
     }
 
-    private Task SendRecoveryStatusAsync()
+    private async Task SendRecoveryStatusAsync(string? requestId = null)
     {
-        var schedule = recovery.Schedule();
-        return form.SendAsync("App.journalStand", new
+        requestId = string.IsNullOrEmpty(requestId) ? null : requestId;
+        try
         {
-            intervall = schedule.Interval, letzte = schedule.Last?.ToString("O"),
-            naechste = schedule.Next?.ToString("O"), status = schedule.Status, fehler = schedule.Error,
-            mode = schedule.Mode, maximum = schedule.Maximum, days = schedule.Days,
-            snapshots = recovery.List().Select(NativeSnapshot)
-        });
+            var schedule = recovery.Schedule();
+            await form.SendAsync("App.journalStand", new
+            {
+                ok = true, requestId, intervall = schedule.Interval, letzte = schedule.Last?.ToString("O"),
+                naechste = schedule.Next?.ToString("O"), status = schedule.Status, fehler = schedule.Error,
+                mode = schedule.Mode, maximum = schedule.Maximum, days = schedule.Days,
+                snapshots = recovery.List().Select(NativeSnapshot).ToArray()
+            });
+        }
+        catch (Exception error)
+        {
+            await form.SendAsync("App.journalStand", new { ok = false, requestId, snapshots = Array.Empty<object>(), fehler = error.Message, status = error.Message });
+        }
     }
 
     private static object NativeSnapshot(SnapshotInfo item) => new

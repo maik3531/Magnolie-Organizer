@@ -32080,6 +32080,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       kdeEmpfangSpeichern();
     },
     journalStand(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "journalStand"); return; }
       journalStand = Object.assign({ snapshots: [], interval: "weekly", mode: "",
         maximum: 20, days: 14, last: "", next: "" },
         nutzlast || {});
@@ -32092,6 +32093,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           !$("#einstellungen-schleier").classList.contains("verborgen")) baueEinstellungen();
     },
     journalErgebnis(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "journalErgebnis"); return; }
       nutzlast = nutzlast || {};
       if (nutzlast.bulk) {
         journalLoeschenLaeuft = false;
@@ -32103,6 +32105,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       else zettel(nutzlast.deleted ? _("Recovery snapshot deleted.") : _("Recovery snapshot created."));
     },
     journalVorschau(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "journalVorschau"); return; }
       if (!(nutzlast || {}).ok) { zettel(nutzlast.fehler || _("Preview failed.")); return; }
       const s = nutzlast.snapshot || {};
       zettel(journalGrund(s.reason) + " · " + journalDatum(s.createdAt) + " · " +
@@ -34222,6 +34225,45 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         } }
     ];
   }
+  function mcpRecoverySnapshot(value) {
+    if (!value || typeof value.snapshotId !== "string") throw new MagnolieMcp.ToolError("invalid_result", "Native recovery snapshot metadata is missing");
+    return { id: value.snapshotId, created_at: String(value.createdAt || ""), reason: String(value.reason || ""), integrity: String(value.integrity || "unchecked"),
+      summary: kopie(value.summary || {}), size_bytes: Number(value.payload?.size) || 0, encrypted: value.encrypted === true, pinned: value.pinned === true };
+  }
+  function mcpRecoveryWerkzeuge() {
+    const id = { type: "string", pattern: "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$" };
+    const native = async (cmd, args, callback, signal) => {
+      const book = DATEN, result = await mcpNativeAufruf(cmd, args, callback, signal);
+      if (signal.aborted || DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Book changed during the native recovery operation");
+      if (result.ok !== true) throw new MagnolieMcp.ToolError("native_operation_failed", "Native recovery operation failed; inspect the product recovery status");
+      return result;
+    };
+    return [
+      { name: "organizer_recovery_list", description: "Read the actual native recovery-snapshot inventory and schedule, with bounded result pagination and no archive payload or local filesystem paths.",
+        inputSchema: { type: "object", properties: { offset: { type: "integer", minimum: 0 }, limit: { type: "integer", minimum: 1, maximum: 100 } }, additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => {
+          const value = await native("journal_liste", {}, "journalStand", signal), interval = value.interval ?? value.intervall;
+          if (!Array.isArray(value.snapshots) || typeof interval !== "string") throw new MagnolieMcp.ToolError("invalid_result", "Native recovery inventory is incomplete");
+          const offset = args.offset || 0, limit = args.limit || 100, snapshots = value.snapshots.slice(offset, offset + limit).map(mcpRecoverySnapshot);
+          return { snapshots, total: value.snapshots.length, offset, settings: { interval, retention_mode: value.mode, maximum: value.maximum, days: value.days,
+            last: value.last || value.letzte || "", next: value.next || value.naechste || "" }, ...(offset + snapshots.length < value.snapshots.length ? { next_offset: offset + snapshots.length } : {}) };
+        } },
+      { name: "organizer_recovery_snapshot_preview", description: "Verify and preview native snapshot metadata through the product recovery handler, without restoring data or returning the archive payload.",
+        inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => {
+          const value = await native("journal_vorschau", { snapshotId: args.id }, "journalVorschau", signal);
+          return { snapshot: mcpRecoverySnapshot(value.snapshot), summary: kopie(value.summary || value.snapshot?.summary || {}), confirmed: true };
+        } },
+      { name: "organizer_recovery_snapshot_create", description: "Create or reuse a manual recovery snapshot under the product policy after a native book-save acknowledgement. Success includes metadata from the actual correlated native checkpoint operation.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (_args, signal) => {
+          const book = DATEN; await mcpSchreiben(signal, () => ({}));
+          if (DATEN !== book || signal.aborted) throw new MagnolieMcp.ToolError("source_changed", "Book changed before recovery snapshot creation");
+          mcpEditorPruefen(); const before = JSON.stringify(DATEN);
+          const value = await native("journal_erzeugen", {}, "journalErgebnis", signal);
+          if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "A recovery snapshot may exist; the book changed during creation");
+          return { snapshot: mcpRecoverySnapshot(value.snapshot), confirmed: true };
+        } }
+    ];
+  }
   function wendeUrlaubDatenAn(entry, values) {
     const value = entry || { id: values.id || uid(), von: isoHeute(), bis: isoHeute(), symbol: "palm", darstellung: "symbol-text" };
     if (gueltigesISO(values.von)) value.von = values.von;
@@ -34422,6 +34464,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_recovery_list") return shape({ snapshots: { type: "array", items: object, maxItems: 100 }, total: { type: "integer", minimum: 0 }, offset: { type: "integer", minimum: 0 }, next_offset: { type: "integer", minimum: 0 }, settings: object }, ["snapshots", "total", "offset", "settings"]);
+    if (name === "organizer_recovery_snapshot_preview") return shape({ snapshot: object, summary: object, confirmed: yes }, ["snapshot", "summary", "confirmed"]);
+    if (name === "organizer_recovery_snapshot_create") return shape({ snapshot: object, confirmed: yes }, ["snapshot", "confirmed"]);
     if (["organizer_drawing_upload_begin", "organizer_drawing_upload_append", "organizer_drawing_upload_status"].includes(name)) return shape({ token: id, expected_bytes: { type: "integer", minimum: 1, maximum: 16777216 }, received_bytes: { type: "integer", minimum: 0, maximum: 16777216 }, expires_ms: { type: "integer", minimum: 1 } }, ["token", "expected_bytes", "received_bytes", "expires_ms"]);
     if (name === "organizer_drawing_upload_cancel") return shape({ token: id, cancelled: yes }, ["token", "cancelled"]);
     if (name === "organizer_drawing_upload_finalize") return shape(written, ["id", "persisted"]);
@@ -34510,6 +34555,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpCustomItemWerkzeuge(),
       ...mcpZeichenWerkzeuge(),
       ...mcpZeichenUploadWerkzeuge(owner),
+      ...mcpRecoveryWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

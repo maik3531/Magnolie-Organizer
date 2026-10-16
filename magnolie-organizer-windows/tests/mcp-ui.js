@@ -134,13 +134,14 @@ let declaredContracts;
         id: noteId, title: "Retry", text: "Must not duplicate" } }));
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
-      let onSave, onSnapshot;
+      let onSave, onSnapshot, onRecovery;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
         const message = JSON.parse(text);
         if (message.cmd === "speichern" && onSave) { const resolve = onSave; onSave = null; resolve(); }
         if (message.cmd === "mutations_snapshot" && onSnapshot) { const resolve = onSnapshot; onSnapshot = null; resolve(message); }
+        if (message.cmd.startsWith("journal_") && message.requestId && onRecovery) onRecovery(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -501,6 +502,39 @@ let declaredContracts;
       assert.equal(b.t.daten().customOrganizer.modules.find(module => module.id === customTasksId).items[0].textItemId, "");
       await persisted(332, "organizer_trash_restore", { id: customDeleted.trash_id });
       assert.equal(b.t.daten().customOrganizer.modules.find(module => module.id === customTasksId).items[0].textItemId, customTextId);
+      const recoveryId = "28282828-2828-4828-8828-282828282828";
+      const recoverySnapshot = { snapshotId: recoveryId, createdAt: "2028-02-29T08:00:00Z", reason: "manual", integrity: "ok", summary: { notizen: 1 },
+        payload: { size: 100, file: "private-payload", sha256: "a".repeat(64) }, path: "/private/owned-recovery-fixture", encrypted: false, pinned: false };
+      let recoveryRequest, recoverySettled = false;
+      onRecovery = message => { recoveryRequest = message; };
+      const recoveryPending = call(request(400, "tools/call", { name: "organizer_recovery_list", arguments: { limit: 1 } })).then(value => { recoverySettled = true; return value; });
+      await new Promise(resolve => setImmediate(resolve));
+      assert.equal(recoveryRequest.cmd, "journal_liste");
+      b.w.App.journalStand({ requestId: "wrong-request", ok: true, snapshots: [] });
+      b.w.App.journalVorschau({ requestId: recoveryRequest.requestId, ok: true, snapshot: recoverySnapshot });
+      await new Promise(resolve => setImmediate(resolve)); assert.equal(recoverySettled, false);
+      b.w.App.journalStand({ requestId: recoveryRequest.requestId, ok: true, snapshots: [recoverySnapshot, { ...recoverySnapshot, snapshotId: "29292929-2929-4929-8929-292929292929" }],
+        intervall: "weekly", mode: "count", maximum: 20, days: 14, letzte: null, naechste: null });
+      const recoveryList = (await recoveryPending).result.structuredContent;
+      assert.equal(recoveryList.total, 2); assert.equal(recoveryList.next_offset, 1); assert.equal(recoveryList.settings.interval, "weekly");
+      assert.equal(recoveryList.snapshots[0].id, recoveryId); assert.equal(recoveryList.snapshots[0].path, undefined);
+      onRecovery = message => b.w.App.journalVorschau({ requestId: message.requestId, ok: true, snapshot: recoverySnapshot, summary: recoverySnapshot.summary });
+      const recoveryPreview = await call(request(401, "tools/call", { name: "organizer_recovery_snapshot_preview", arguments: { id: recoveryId } }));
+      assert.equal(recoveryPreview.result.structuredContent.confirmed, true);
+      onRecovery = message => b.w.App.journalVorschau({ requestId: message.requestId, ok: false, fehler: "/private/owned-native-error" });
+      const recoveryFailure = await call(request(402, "tools/call", { name: "organizer_recovery_snapshot_preview", arguments: { id: recoveryId } }));
+      assert.equal(recoveryFailure.result.structuredContent.code, "native_operation_failed");
+      assert.ok(!JSON.stringify(recoveryFailure).includes("owned-native-error"));
+      const pendingRecoveryNote = b.t.daten().notizen.find(note => note.id === "fixture-note"), oldRecoveryTitle = pendingRecoveryNote.titel;
+      pendingRecoveryNote.titel = "Owned pending recovery save";
+      onRecovery = message => b.w.App.journalErgebnis({ requestId: message.requestId, ok: true, snapshot: recoverySnapshot });
+      const recoverySave = new Promise(resolve => { onSave = resolve; });
+      let recoveryCreated = false;
+      const recoveryCreating = call(request(403, "tools/call", { name: "organizer_recovery_snapshot_create" })).then(value => { recoveryCreated = true; return value; });
+      await recoverySave; assert.equal(recoveryCreated, false); b.ack();
+      assert.equal((await recoveryCreating).result.structuredContent.snapshot.id, recoveryId);
+      b.t.daten().notizen.find(note => note.id === "fixture-note").titel = oldRecoveryTitle;
+      onRecovery = null;
       assert.equal(invalidGlucose.result.structuredContent.code, "invalid_value");
       const invalidVital = await call(request(267, "tools/call", { name: "organizer_vital_create", arguments: { date: "2028-02-29", pulse: 20 } }));
       assert.equal(invalidVital.error.code, -32602);

@@ -20990,7 +20990,7 @@ class Fenster(_FENSTER_BASIS):
             self.antwort("App.sicherungFertig", antwort)
 
         elif befehl == "journal_liste":
-            self._journal_stand_melden()
+            self._journal_stand_melden(nachricht.get("requestId"))
 
         elif befehl == "journal_intervall":
             intervall = str(nachricht.get("intervall") or "weekly")
@@ -21033,9 +21033,11 @@ class Fenster(_FENSTER_BASIS):
         elif befehl == "journal_erzeugen":
             try:
                 stand = self._journal_snapshot("manual")
-                self.antwort("App.journalErgebnis", {"ok": True, "snapshot": stand})
+                self.antwort("App.journalErgebnis", {"ok": True, "snapshot": stand,
+                    "requestId": nachricht.get("requestId")})
             except Exception as fehler:
                 self.antwort("App.journalErgebnis", {"ok": False,
+                    "requestId": nachricht.get("requestId"),
                     "fehler": fehler_deutsch(fehler, _("Creating a recovery snapshot"))})
             self._journal_stand_melden()
 
@@ -21044,10 +21046,12 @@ class Fenster(_FENSTER_BASIS):
                 stand, gelesen = journal_snapshot_lesen(
                     nachricht.get("snapshotId") or "", self._kennwort)
                 self.antwort("App.journalVorschau", {"ok": True,
+                    "requestId": nachricht.get("requestId"),
                     "snapshot": stand, "summary": gelesen["anzahlen"],
                     "photos": gelesen["fotos"], "attachments": gelesen["anhaenge"]})
             except Exception as fehler:
                 self.antwort("App.journalVorschau", {"ok": False,
+                    "requestId": nachricht.get("requestId"),
                     "fehler": fehler_deutsch(fehler, _("Previewing a recovery snapshot"))})
 
         elif befehl == "journal_loeschen":
@@ -22203,7 +22207,7 @@ class Fenster(_FENSTER_BASIS):
                 "nummer": intent["number"], "device_id": intent["device_id"]})
         return False
 
-    def _journal_stand_melden(self):
+    def _journal_stand_melden(self, request_id=None):
         try:
             staende = journal_liste(kennwort=self._kennwort)
             allgemein = ((self._aktuelle_daten or {}).get("einstellungen") or {}).get(
@@ -22219,11 +22223,13 @@ class Fenster(_FENSTER_BASIS):
                 naechster = (_journal_zeit(letzter) + timedelta(
                     seconds=JOURNAL_INTERVALLE[intervall])).isoformat().replace("+00:00", "Z")
             self.antwort("App.journalStand", {"ok": True, "snapshots": staende,
+                "requestId": request_id,
                 "interval": intervall, "last": letzter, "next": naechster,
                 "mode": modus, "maximum": maximum, "days": tage,
                 "status": allgemein.get("wiederherstellungsstatus", "")})
         except Exception as fehler:
             self.antwort("App.journalStand", {"ok": False, "snapshots": [],
+                "requestId": request_id,
                 "fehler": fehler_deutsch(fehler, _("Reading recovery snapshots"))})
 
     def _journal_periodisch(self):
