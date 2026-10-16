@@ -3,6 +3,7 @@
 
 import os
 import re
+import threading
 from datetime import datetime, timedelta, timezone
 
 
@@ -10,8 +11,21 @@ PREFIX = "magnolie-auto-"
 SUFFIX = ".magnolie"
 LIST_LIMIT = 1000
 ACCOUNT = "automatic-cloud-backup-v1"
+SECRET_OPERATION_TIMEOUT = 5
 OWNED_NAME = re.compile(
     r"^magnolie-auto-\d{8}-\d{6}-\d{6}-[0-9a-f]{32}\.magnolie$")
+
+
+def _secret_operation(callback):
+    from gi.repository import Gio
+    cancellation = Gio.Cancellable.new()
+    timer = threading.Timer(SECRET_OPERATION_TIMEOUT, cancellation.cancel)
+    timer.daemon = True
+    timer.start()
+    try:
+        return callback(cancellation)
+    finally:
+        timer.cancel()
 
 
 def utc_time(value=None):
@@ -108,9 +122,9 @@ class ArchiveSecretStore:
                 result = backend.store(ACCOUNT, password)
             else:
                 Secret, schema = backend
-                result = Secret.password_store_sync(
+                result = _secret_operation(lambda cancellation: Secret.password_store_sync(
                     schema, {"account": ACCOUNT}, Secret.COLLECTION_DEFAULT,
-                    "Magnolie Organizer automatic backup", password, None)
+                    "Magnolie Organizer automatic backup", password, cancellation))
             if result is False:
                 raise RuntimeError("secret_store_failed")
         except RuntimeError:
@@ -125,8 +139,8 @@ class ArchiveSecretStore:
                 value = backend.lookup(ACCOUNT)
             else:
                 Secret, schema = backend
-                value = Secret.password_lookup_sync(
-                    schema, {"account": ACCOUNT}, None)
+                value = _secret_operation(lambda cancellation: Secret.password_lookup_sync(
+                    schema, {"account": ACCOUNT}, cancellation))
         except Exception as error:
             raise RuntimeError("secret_service_unavailable") from error
         return value if isinstance(value, str) and 4 <= len(value) <= 4096 else None

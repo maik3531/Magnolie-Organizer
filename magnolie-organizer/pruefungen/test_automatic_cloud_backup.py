@@ -1,4 +1,6 @@
 import os
+import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -10,6 +12,32 @@ from modul_laden import quellmodul_laden
 ROOT = Path(__file__).resolve().parents[1]
 policy = quellmodul_laden("magnolie_cloud_policy", ROOT / "bin" / "magnolie_cloud_backup.py")
 organizer = quellmodul_laden("magnolie_cloud_organizer", ROOT / "bin" / "magnolie-organizer")
+
+
+def test_native_secret_calls_receive_a_live_bounded_cancellable(monkeypatch):
+    pytest.importorskip("gi.repository.Gio")
+    monkeypatch.setattr(policy, "SECRET_OPERATION_TIMEOUT", 0.02)
+    seen = []
+    class Secret:
+        COLLECTION_DEFAULT = "owned-collection"
+        @staticmethod
+        def blocked(*args):
+            cancellation = args[-1]
+            assert cancellation is not None and not cancellation.is_cancelled()
+            event = threading.Event()
+            cancellation.connect(lambda *_args: event.set())
+            assert event.wait(1), "Native call did not receive cancellation"
+            seen.append(cancellation.is_cancelled())
+            raise RuntimeError("owned_cancelled_native_call")
+        password_lookup_sync = blocked
+        password_store_sync = blocked
+    store = policy.ArchiveSecretStore()
+    monkeypatch.setattr(store, "_secret", lambda: (Secret, "owned-schema"))
+    started = time.monotonic()
+    assert store.available() is False
+    with pytest.raises(RuntimeError):
+        store.store("owned-fixture-password")
+    assert seen == [True, True] and time.monotonic() - started < 1
 
 
 def test_due_policy_and_retention_bounds():
