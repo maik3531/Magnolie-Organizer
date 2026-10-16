@@ -302,6 +302,23 @@ def client():
             "id": waste_id, "expected_revision": waste_read["structuredContent"]["revision"]}})
         assert not waste_deleted["isError"] and waste_deleted["structuredContent"]["persisted"], waste_deleted
         assert not any(item["id"] == waste_id for item in json.loads(data_file.read_text())["muelltermine"])
+        for kind, key, values in (("vital", "vitalwerte", {"pulse": 72, "weight_kg": 70}),
+                                  ("blood_glucose", "blutzucker", {"value": 108, "unit": "mg/dL"})):
+            health_created = call("tools/call", {"name": f"organizer_{kind}_create", "arguments": {"date": "2028-02-29", "page": 2, **values}})
+            assert not health_created["isError"] and health_created["structuredContent"]["persisted"], health_created
+            health_id = health_created["structuredContent"]["id"]
+            health_read = call("tools/call", {"name": f"organizer_{kind}_read", "arguments": {"id": health_id}})
+            health_updated = call("tools/call", {"name": f"organizer_{kind}_update", "arguments": {
+                "id": health_id, "expected_revision": health_read["structuredContent"]["revision"],
+                **({"pulse": 80} if kind == "vital" else {"unit": "mmol/L"})}})
+            assert not health_updated["isError"] and health_updated["structuredContent"]["persisted"], health_updated
+            health_value = next(item for item in json.loads(data_file.read_text())["gesundheit"][key] if item["id"] == health_id)
+            assert health_value["seite"] == 2 and (health_value["puls"] == 80 if kind == "vital" else health_value["wert"] == 6 and health_value["einheit"] == "mmol/L"), health_value
+            health_read = call("tools/call", {"name": f"organizer_{kind}_read", "arguments": {"id": health_id}})
+            health_deleted = call("tools/call", {"name": f"organizer_{kind}_delete", "arguments": {
+                "id": health_id, "expected_revision": health_read["structuredContent"]["revision"]}})
+            assert not health_deleted["isError"] and health_deleted["structuredContent"]["persisted"], health_deleted
+            assert not any(item["id"] == health_id for item in json.loads(data_file.read_text())["gesundheit"][key])
         for date in ("2028-04-01", "2028-04-02"):
             day = call("tools/call", {"name": "organizer_day_marker_read", "arguments": {"date": date}})
             assert day["structuredContent"]["marker"] is None, day

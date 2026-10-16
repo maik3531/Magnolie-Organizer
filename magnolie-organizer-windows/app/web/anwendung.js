@@ -21601,8 +21601,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const vorher = zeile.einheit;
         const bisher = Number(zeile.wert) || 0;
         if (bisher && vorher !== einheit.value) {
-          zeile.wert = einheit.value === "mg/dL"
-            ? Math.round(bisher * 18.0182) : Math.round(bisher / 18.0182 * 10) / 10;
+          gesundheitWechsleBlutzuckerEinheit(zeile, einheit.value);
           const wertFeld = tr.querySelector("td:nth-child(3) input");
           if (wertFeld) wertFeld.value = String(zeile.wert);
         }
@@ -21798,6 +21797,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (!gefunden) ziel.append(el("p", "einst-hinweis", _("No scheme row matches this blood glucose value.")));
   }
 
+  function gesundheitWechsleBlutzuckerEinheit(zeile, einheit) {
+    if (zeile.wert && zeile.einheit !== einheit) zeile.wert = einheit === "mg/dL"
+      ? Math.round(zeile.wert * 18.0182) : Math.round(zeile.wert / 18.0182 * 10) / 10;
+    zeile.einheit = einheit;
+  }
+  function gesundheitErsetzeDaten(key, ids, neue) {
+    const selected = new Set(ids);
+    DATEN.gesundheit[key] = DATEN.gesundheit[key].filter(entry => !selected.has(entry.id)).concat(neue);
+  }
   function gesundheitSpeichern(art) {
     const ungueltig = document.querySelector(".gesundheit-zellenfeld:invalid");
     if (ungueltig) {
@@ -21826,9 +21834,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       neue.push(kopie);
     }
     const schluessel = art === "vital" ? "vitalwerte" : art;
-    const ids = new Set(entwurf.ids);
-    DATEN.gesundheit[schluessel] = DATEN.gesundheit[schluessel]
-      .filter((eintrag) => !ids.has(eintrag.id)).concat(neue);
+    gesundheitErsetzeDaten(schluessel, entwurf.ids, neue);
     if (art === "blutzucker" && entwurf.schema) {
       DATEN.gesundheit.insulinschema = JSON.parse(JSON.stringify(entwurf.schema));
     }
@@ -21888,8 +21894,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         .then((ja) => {
           if (!ja) return;
           const key = art === "vital" ? "vitalwerte" : art;
-          const ids = new Set(ausgewaehlt.map((eintrag) => eintrag.id));
-          DATEN.gesundheit[key] = DATEN.gesundheit[key].filter((eintrag) => !ids.has(eintrag.id));
+          gesundheitErsetzeDaten(key, ausgewaehlt.map(eintrag => eintrag.id), []);
           if (ganz) {
             for (const eintrag of DATEN.gesundheit[key]) {
               if (Number(eintrag.seite) > seite) eintrag.seite -= 1;
@@ -33498,6 +33503,70 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }) }
     ];
   }
+  function mcpGesundheitMessWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const number = (min, max) => ({ type: "number", minimum: min, maximum: max });
+    const optionalNumber = (min, max) => ({ anyOf: [number(0, 0), number(min, max)] });
+    const common = { date: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" }, time: { type: "string", pattern: "^(?:[01][0-9]|2[0-3]):[0-5][0-9]$|^$" },
+      page: { type: "integer", minimum: 0, maximum: 999 }, note: { type: "string", maxLength: 2000 } };
+    const vital = { systolic: optionalNumber(50, 280), diastolic: optionalNumber(30, 180), pulse: optionalNumber(30, 250),
+      weight_kg: optionalNumber(2, 400), height_cm: optionalNumber(40, 250), temperature_c: optionalNumber(30, 44), oxygen_percent: optionalNumber(30, 100) };
+    const glucose = { value: number(1, 900), unit: { type: "string", enum: ["mmol/L", "mg/dL"] }, insulin_units: number(0, 200), carbohydrates: number(0, 1000), context: { type: "string", maxLength: 80 } };
+    const mappings = { date: "datum", time: "zeit", page: "seite", note: "notiz", systolic: "systolisch", diastolic: "diastolisch", pulse: "puls", weight_kg: "gewicht", height_cm: "groesse",
+      temperature_c: "temperatur", oxygen_percent: "sauerstoff", value: "wert", insulin_units: "ie", carbohydrates: "kohlenhydrate", context: "kontext" };
+    return [["vital", "vitalwerte", vital], ["blood_glucose", "blutzucker", glucose]].flatMap(([kind, key, specific]) => {
+      const fields = { ...common, ...specific }, art = kind === "vital" ? "vital" : "blutzucker", prefix = "organizer_" + kind + "_";
+      const find = recordId => DATEN.gesundheit[key].find(entry => entry.id === recordId);
+      const checked = async (args, signal) => {
+        const book = DATEN, entry = find(args.id);
+        if (!entry) throw new MagnolieMcp.ToolError("not_found", "Health record not found");
+        const before = JSON.stringify(entry), hash = await personalSyncHash(before);
+        if (signal.aborted || gesperrt || DATEN !== book || find(args.id) !== entry || JSON.stringify(entry) !== before || hash !== args.expected_revision)
+          throw new MagnolieMcp.ToolError("conflict", "Health record changed; read it again before writing");
+        mcpEditorPruefen(); return entry;
+      };
+      const apply = (args, current) => {
+        const record = current ? kopie(current) : { ...gesundheitLeereZeile(art), id: args.id || uid(), ...(kind === "vital" ? { sauerstoff: 0 } : {}) };
+        if (kind === "blood_glucose" && args.unit !== undefined) gesundheitWechsleBlutzuckerEinheit(record, args.unit);
+        for (const [field, native] of Object.entries(mappings)) if (args[field] !== undefined) record[native] = args[field];
+        if (!gueltigesISO(record.datum)) throw new MagnolieMcp.ToolError("invalid_date", "Health record date is invalid");
+        if (kind === "blood_glucose" && (record.wert < (record.einheit === "mmol/L" ? 1 : 18) || record.wert > (record.einheit === "mmol/L" ? 50 : 900)))
+          throw new MagnolieMcp.ToolError("invalid_value", "Blood glucose value is outside the product range for its unit");
+        if (args.page === undefined && !current) {
+          record.seite = 0;
+          while (record.seite < 999 && DATEN.gesundheit[key].filter(entry => entry.seite === record.seite).length >= GESUNDHEIT_ZEILEN[art]) record.seite++;
+        }
+        if (DATEN.gesundheit[key].filter(entry => entry.id !== record.id && entry.seite === record.seite).length >= GESUNDHEIT_ZEILEN[art])
+          throw new MagnolieMcp.ToolError("page_full", "Health table page is full");
+        return record;
+      };
+      return [
+        { name: prefix + "read", description: "Read a stored " + kind + " health record and its full revision. Vital values use canonical kg, cm and Celsius units.",
+          inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async args => {
+            const entry = find(args.id); if (!entry) throw new MagnolieMcp.ToolError("not_found", "Health record not found");
+            const record = kopie(entry); return { record, revision: await personalSyncHash(JSON.stringify(record)) };
+          } },
+        { name: prefix + "create", description: "Create a " + kind + " measurement through the health-table product handler. An omitted page uses the first available page; glucose unit defaults to the product setting.",
+          inputSchema: { type: "object", properties: { ...fields, id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" } }, required: kind === "vital" ? ["date"] : ["date", "value"], additionalProperties: false },
+          annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, () => {
+            if (args.id && find(args.id)) throw new MagnolieMcp.ToolError("already_exists", "Health record ID already exists");
+            if (DATEN.gesundheit[key].length >= 20000) throw new MagnolieMcp.ToolError("limit_reached", "Health record limit reached");
+            const record = apply(args); gesundheitErsetzeDaten(key, [], [record]); zustand.gesundheit.entwurf = null; return { id: record.id };
+          }) },
+        { name: prefix + "update", description: "Revision-checked " + kind + " measurement edits. Changing glucose unit alone uses the same conversion and rounding as the product UI; an explicit value is interpreted in the selected unit.",
+          inputSchema: { type: "object", properties: { ...fields, id, expected_revision: revision }, required: ["id", "expected_revision"], anyOf: Object.keys(fields).map(field => ({ required: [field] })), additionalProperties: false },
+          annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+            const current = await checked(args, signal), record = apply(args, current);
+            gesundheitErsetzeDaten(key, [current.id], [record]); zustand.gesundheit.entwurf = null; return { id: record.id };
+          }) },
+        { name: prefix + "delete", description: "Revision-checked permanent removal of a " + kind + " measurement using the health-table product handler; other page records remain intact.",
+          inputSchema: { type: "object", properties: { id, expected_revision: revision }, required: ["id", "expected_revision"], additionalProperties: false },
+          annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+            const entry = await checked(args, signal); gesundheitErsetzeDaten(key, [entry.id], []); zustand.gesundheit.entwurf = null; return { id: entry.id };
+          }) }
+      ];
+    });
+  }
   function wendeUrlaubDatenAn(entry, values) {
     const value = entry || { id: values.id || uid(), von: isoHeute(), bis: isoHeute(), symbol: "palm", darstellung: "symbol-text" };
     if (gueltigesISO(values.von)) value.von = values.von;
@@ -33698,6 +33767,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (/^organizer_(vital|blood_glucose)_read$/.test(name)) return shape({ record: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["record", "revision"]);
+    if (/^organizer_(vital|blood_glucose)_(create|update|delete)$/.test(name)) return shape(written, ["id", "persisted"]);
     if (name === "organizer_waste_read") return shape({ waste: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["waste", "revision"]);
     if (["organizer_waste_create", "organizer_waste_update", "organizer_waste_delete"].includes(name)) return shape(written, ["id", "persisted"]);
     if (name === "organizer_day_marker_read") return shape({ date: text, marker: { type: ["object", "null"] }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["date", "marker", "revision"]);
@@ -33756,6 +33827,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpKalenderDefinitionWerkzeuge(),
       ...mcpTagesmarkenWerkzeuge(),
       ...mcpMuellWerkzeuge(),
+      ...mcpGesundheitMessWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

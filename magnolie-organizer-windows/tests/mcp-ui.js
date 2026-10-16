@@ -311,6 +311,41 @@ let declaredContracts;
         const empty = await call(request(250, "tools/call", { name: `organizer_${kind}_create`, arguments: { name: "   ", ...(kind === "waste" ? { first_date: "2028-04-01" } : {}) } }));
         assert.equal(empty.error.code, -32602);
       }
+      for (const [kind, key, id, fields] of [["vital", "vitalwerte", "18181818-1818-4818-8818-181818181818", { pulse: 72, weight_kg: 70, temperature_c: 36.7 }],
+        ["blood_glucose", "blutzucker", "19191919-1919-4919-8919-191919191919", { value: 108, unit: "mg/dL", insulin_units: 2 }]]) {
+        await persisted(260, `organizer_${kind}_create`, { id, date: "2028-02-29", time: "08:00", page: 2, ...fields });
+        const read = (await call(request(261, "tools/call", { name: `organizer_${kind}_read`, arguments: { id } }))).result.structuredContent;
+        assert.equal(read.record.seite, 2);
+        await persisted(262, `organizer_${kind}_update`, { id, expected_revision: read.revision, ...(kind === "vital" ? { pulse: 80, height_cm: 0 } : { unit: "mmol/L" }) });
+        let updated = (await call(request(263, "tools/call", { name: `organizer_${kind}_read`, arguments: { id } }))).result.structuredContent;
+        if (kind === "vital") { assert.equal(updated.record.puls, 80); assert.equal(updated.record.gewicht, 70); }
+        else {
+          assert.equal(updated.record.wert, 6); assert.equal(updated.record.einheit, "mmol/L"); assert.equal(updated.record.ie, 2);
+          await persisted(270, "organizer_blood_glucose_update", { id, expected_revision: updated.revision, unit: "mg/dL", value: 99 });
+          updated = (await call(request(271, "tools/call", { name: "organizer_blood_glucose_read", arguments: { id } }))).result.structuredContent;
+          assert.equal(updated.record.wert, 99); assert.equal(updated.record.einheit, "mg/dL");
+        }
+        const healthReload = await harness.exports.boot(web, JSON.parse(JSON.stringify(b.t.daten())));
+        try { assert.equal(healthReload.t.daten().gesundheit[key].find(entry => entry.id === id).datum, "2028-02-29"); }
+        finally { healthReload.close(); }
+        const stale = await call(request(264, "tools/call", { name: `organizer_${kind}_delete`, arguments: { id, expected_revision: read.revision } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        await persisted(265, `organizer_${kind}_delete`, { id, expected_revision: updated.revision });
+        assert.ok(!b.t.daten().gesundheit[key].some(entry => entry.id === id));
+      }
+      const invalidGlucose = await call(request(266, "tools/call", { name: "organizer_blood_glucose_create", arguments: { date: "2028-02-29", value: 51, unit: "mmol/L" } }));
+      assert.equal(invalidGlucose.result.structuredContent.code, "invalid_value");
+      const invalidVital = await call(request(267, "tools/call", { name: "organizer_vital_create", arguments: { date: "2028-02-29", pulse: 20 } }));
+      assert.equal(invalidVital.error.code, -32602);
+      for (const [kind, key, maximum, fields] of [["vital", "vitalwerte", 36, {}], ["blood_glucose", "blutzucker", 18, { value: 6, unit: "mmol/L" }]]) {
+        const saved = b.t.daten().gesundheit[key];
+        b.t.daten().gesundheit[key] = Array.from({ length: maximum }, (_, i) => ({ id: "owned-page-fixture-" + i, seite: 0, datum: "2028-02-29" }));
+        const full = await call(request(268, "tools/call", { name: `organizer_${kind}_create`, arguments: { date: "2028-02-29", page: 0, ...fields } }));
+        assert.equal(full.result.structuredContent.code, "page_full");
+        const allocated = await persisted(269, `organizer_${kind}_create`, { date: "2028-02-29", ...fields });
+        assert.equal(b.t.daten().gesundheit[key].find(entry => entry.id === allocated.id).seite, 1);
+        b.t.daten().gesundheit[key] = saved;
+      }
       const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXb8AAAAASUVORK5CYII=", "base64");
       const attachmentNote = (await call(request(160, "tools/call", { name: "organizer_note_read", arguments: { id: noteId, fields: ["id", "titel"] } }))).result.structuredContent;
       const beginArgs = { note_id: noteId, expected_revision: attachmentNote.revision, name: "owned-fixture.png", kind: "image", size: png.length,
