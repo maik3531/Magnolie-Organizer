@@ -1150,6 +1150,33 @@ let declaredContracts;
         b.t.daten().einstellungen.allgemein.sicherungsordner = "/owned/cloud-test-folder";
         onCloudTest = null;
       }
+      {
+        b.t.daten().einstellungen.kalender.gesundheitPlanung.vital.zeit = "06:30";
+        const measurements = JSON.stringify(b.t.daten().gesundheit);
+        const health = (await call(request(680, "tools/call", { name: "organizer_health_settings_read" }))).result.structuredContent;
+        await persisted(681, "organizer_health_settings_update", { expected_revision: health.revision, enabled: false,
+          units: { temperature: "fahrenheit", weight: "lb", height: "in", blood_glucose: "mg/dL" },
+          views: { vital: true, medications: false, blood_glucose: true, history: false },
+          planning: { vital: { enabled: true, start_date: "2028-02-29", interval_days: 7 } } });
+        assert.equal(b.t.daten().einstellungen.kalender.gesundheitAn, false);
+        assert.equal(b.t.daten().einstellungen.allgemein.registerkarten.gesundheit, false);
+        assert.equal(b.t.daten().einstellungen.kalender.gesundheitPlanung.vital.zeit, "");
+        assert.equal(JSON.stringify(b.t.daten().gesundheit), measurements);
+        const stale = await call(request(682, "tools/call", { name: "organizer_health_settings_update", arguments: { expected_revision: health.revision, enabled: true } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        const fresh = (await call(request(683, "tools/call", { name: "organizer_health_settings_read" }))).result.structuredContent;
+        assert.equal(fresh.settings.units.temperature, "fahrenheit"); assert.equal(fresh.settings.units.weight, "lb");
+        assert.equal(fresh.settings.planning.vital.interval_days, 7);
+        const beforeInvalid = JSON.stringify(b.t.daten().einstellungen);
+        const noView = await call(request(684, "tools/call", { name: "organizer_health_settings_update", arguments: { expected_revision: fresh.revision, units: { weight: "kg" }, views: { vital: false, medications: false, blood_glucose: false, history: false } } }));
+        assert.equal(noView.result.structuredContent.code, "invalid_settings"); assert.equal(JSON.stringify(b.t.daten().einstellungen), beforeInvalid);
+        const invalidDate = await call(request(685, "tools/call", { name: "organizer_health_settings_update", arguments: { expected_revision: fresh.revision, planning: { vital: { start_date: "2028-02-30" } } } }));
+        assert.equal(invalidDate.result.structuredContent.code, "invalid_date");
+        await persisted(686, "organizer_health_settings_update", { expected_revision: fresh.revision, enabled: true, units: { temperature: "celsius" }, planning: { vital: { interval_days: 2 } } });
+        assert.equal(b.t.daten().einstellungen.kalender.gesundheitEinheiten.gewicht, "lb");
+        assert.equal(b.t.daten().einstellungen.kalender.gesundheitPlanung.vital.von, "2028-02-29");
+        assert.equal(JSON.stringify(b.t.daten().gesundheit), measurements);
+      }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));
       assert.equal(locked.result.isError, true);

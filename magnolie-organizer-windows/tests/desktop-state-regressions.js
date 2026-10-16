@@ -89,6 +89,35 @@ async function run(web) {
     assert.equal(b.t.daten().einstellungen.erinnerung.jahrestage.autoAusblenden, false);
   }, { einstellungen: { erinnerung: { an: true, vorlauf: 30, art: "notification", jahrestage: { an: true } } } });
 
+  await test("health preference controls retain canonical measurements and mirror tab state", async b => {
+    const measurements = JSON.stringify(b.t.daten().gesundheit);
+    b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-kalender").click();
+    const change = async (selector, value) => {
+      const field = b.w.document.querySelector(selector); assert.ok(field, selector);
+      if (field.type === "checkbox") field.checked = value;
+      else { field.value = value; field.dispatchEvent(new b.w.Event("input", { bubbles: true })); }
+      field.dispatchEvent(new b.w.Event("change", { bubbles: true })); await tick(); return field;
+    };
+    await change("#kalender-gesundheit-einheit-gewicht", "lb");
+    assert.equal(b.t.daten().einstellungen.kalender.gesundheitEinheiten.gewicht, "lb");
+    await change("#kalender-gesundheit-plan-vital", true);
+    await change("#kalender-gesundheit-von-vital", "2028-02-29");
+    await change("#kalender-gesundheit-intervall-vital", "7");
+    assert.equal(b.t.daten().einstellungen.kalender.gesundheitPlanung.vital.zeit, "");
+    assert.equal(b.t.daten().einstellungen.kalender.gesundheitPlanung.vital.intervallTage, 7);
+    for (const key of ["medikamente", "blutzucker", "verlauf"]) await change("#kalender-gesundheit-" + key, false);
+    const lastView = await change("#kalender-gesundheit-vital", false);
+    assert.equal(lastView.checked, true); assert.equal(b.t.daten().einstellungen.kalender.gesundheitBereiche.vital, true);
+    await change("#kalender-gesundheit", false);
+    assert.equal(b.t.daten().einstellungen.kalender.gesundheitAn, false);
+    assert.equal(b.t.daten().einstellungen.allgemein.registerkarten.gesundheit, false);
+    assert.equal(JSON.stringify(b.t.daten().gesundheit), measurements);
+    b.t.speichereJetzt(); const saved = JSON.parse(b.saves().at(-1).text), reloaded = b.t.normalisiere(saved);
+    assert.equal(reloaded.einstellungen.kalender.gesundheitPlanung.vital.von, "2028-02-29");
+    assert.equal(reloaded.einstellungen.kalender.gesundheitAn, false);
+  }, { gesundheit: { vitalwerte: [{ id: "owned-vital-units", datum: "2028-02-29", gewicht: 80 }] },
+    einstellungen: { kalender: { gesundheitPlanung: { vital: { an: false, von: "2028-01-01", zeit: "06:30", intervallTage: 3 } } } } });
+
   await test("search ASCII fast path preserves Turkish I and non-ASCII folding", async b => {
     b.t.daten().termine = [{ id: "ascii", titel: "I", datum: "2026-09-08" },
       { id: "unicode", titel: "ÉCOLE", datum: "2026-09-08" }];

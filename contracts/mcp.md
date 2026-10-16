@@ -113,6 +113,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_backup_settings_read/update` | Backup folder and automatic cloud-folder preferences using the shared GUI handler, full preference revisions and native save acknowledgements. Protected-password availability comes from the correlated native vault status, without returning the password. Enabling requires a custom folder and available protected password; backup tests and password storage are separate. |
 | `organizer_backup_password_store` | Store/replace the automatic-backup password through the native protected secret store, requiring the complete current book revision. Confirms native store success and availability; existing-password availability alone is not success. Neither password values nor raw vault errors enter results or book data. |
 | `organizer_backup_test` | Actual native cloud-folder backup creation and readback verification, with current-book/save preconditions. Request/source identity follows the real worker through success and failure. Returns the actual archive path after durable status metadata save; late/cancelled outcomes update metadata only for the same book and backup folder. |
+| `organizer_health_settings_read/update` | Revision-bound module/tab visibility, at-least-one-view policy, display units and untimed calendar-marker schedules through shared GUI handlers and native save acknowledgements. Measurement/medication data remains canonical and unchanged; schedule edits clear legacy time like the GUI. |
 | `organizer_attachment_save` | Export an existing note attachment to an explicit file using the native product validator/writer and actual-file readback. Full note revision required; explicit overwrite, active-profile and symlink guards. Returns confirmed path, byte count and SHA-256. |
 | `organizer_attachment_open` | Revision-bound native request to open an attachment with the registered application. Confirms operating-system launcher acceptance only; Linux waits for a successful launcher exit with a 15-second timeout. Native callbacks are correlated, including failures and late responses. |
 | `organizer_appointment_read` | Appointment, provider/read-only metadata and revision token |
@@ -206,7 +207,7 @@ dialogs. A timed-out or cancelled call does not itself confirm backup success.
 
 The remaining work includes other settings changes,
 imports/exports and planners,
-backup configuration, synchronization/accounts, Magnolienbaum operations,
+synchronization/accounts, Magnolienbaum operations,
 the remaining phone/KDE actions, and complete
 installed-product acceptance.
 The listed tools execute their current product operations; remaining functions

@@ -27613,8 +27613,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const werte = { temperatur: temperatur.value, gewicht: gewicht.value,
         groesse: groesse.value, blutzucker: blutzucker.value };
       navigiereMitGuard(() => {
-        Object.assign(einheitenWahl, werte);
-        zustand.gesundheit.entwurf = null;
+        wendeGesundheitsEinstellungenDatenAn({ einheiten: werte });
         planeSpeichern();
         zeichneAlles();
       }).then((ok) => { if (!ok) baueEinstellungen(); });
@@ -27662,7 +27661,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             intervallTage: Math.max(1, Math.min(365,
               Math.floor(Number(intervall.value) || 1))) };
           navigiereMitGuard(() => {
-            Object.assign(plan, werte);
+            wendeGesundheitsEinstellungenDatenAn({ planung: { [art]: werte } });
             felder.style.display = plan.an ? "" : "none";
             planeSpeichern();
             zeichneAlles();
@@ -27682,8 +27681,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           return zettel(_("At least one health view must remain enabled."));
         }
         navigiereMitGuard(() => {
-          k.gesundheitBereiche[art] = wert;
-          zustand.gesundheit.entwurf = null;
+          wendeGesundheitsEinstellungenDatenAn({ bereiche: { [art]: wert } });
           planeSpeichern();
           zeichneAlles();
         }).then((ok) => { if (!ok) baueEinstellungen(); });
@@ -27693,11 +27691,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     gesundheitGruppe.hak.addEventListener("change", () => {
       const wert = gesundheitGruppe.hak.checked;
       navigiereMitGuard(() => {
-        k.gesundheitAn = wert;
-        a.registerkarten.gesundheit = wert;
+        wendeGesundheitsEinstellungenDatenAn({ an: wert });
         gesundheitGruppe.inhalt.style.display = wert ? "" : "none";
-        if (!wert && zustand.sektion === "gesundheit") zustand.sektion = "kalender";
-        zustand.gesundheit.entwurf = null;
         planeSpeichern();
         zeichneAlles();
         baueEinstellungen();
@@ -34139,6 +34134,56 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         return { path: value.pfad, confirmed: true, encrypted: value.verschluesselt === true };
       } }];
   }
+  const GESUNDHEIT_EINHEIT_OPTIONEN = { temperatur: ["auto", "celsius", "fahrenheit"], gewicht: ["auto", "kg", "lb"], groesse: ["auto", "cm", "in"], blutzucker: ["auto", "mmol/L", "mg/dL"] };
+  function wendeGesundheitsEinstellungenDatenAn(values) {
+    const calendar = DATEN.einstellungen.kalender, views = { ...calendar.gesundheitBereiche, ...values.bereiche };
+    if (!Object.values(views).some(Boolean)) return false;
+    for (const [key, value] of Object.entries(values.einheiten || {})) if (!GESUNDHEIT_EINHEIT_OPTIONEN[key]?.includes(value)) return false;
+    for (const [key, value] of Object.entries(values.planung || {})) {
+      if (!calendar.gesundheitPlanung[key] || value.von && !gueltigesISO(value.von) || value.intervallTage !== undefined && (!Number.isInteger(value.intervallTage) || value.intervallTage < 1 || value.intervallTage > 365)) return false;
+    }
+    Object.assign(calendar.gesundheitBereiche, views); Object.assign(calendar.gesundheitEinheiten, values.einheiten || {});
+    for (const [key, value] of Object.entries(values.planung || {})) Object.assign(calendar.gesundheitPlanung[key], value, { zeit: "" });
+    if (values.an !== undefined) {
+      calendar.gesundheitAn = values.an; DATEN.einstellungen.allgemein.registerkarten.gesundheit = values.an;
+      if (!values.an && zustand.sektion === "gesundheit") zustand.sektion = "kalender";
+    }
+    if (values.an !== undefined || values.einheiten || values.bereiche) zustand.gesundheit.entwurf = null;
+    return true;
+  }
+  function mcpGesundheitsEinstellungenWerkzeuge() {
+    const revision = { type: "string", pattern: "^[a-f0-9]{64}$" }, unitMap = { temperature: "temperatur", weight: "gewicht", height: "groesse", blood_glucose: "blutzucker" }, viewMap = { vital: "vital", medications: "medikamente", blood_glucose: "blutzucker", history: "verlauf" };
+    const unitFields = Object.fromEntries(Object.entries(unitMap).map(([key, value]) => [key, { type: "string", enum: GESUNDHEIT_EINHEIT_OPTIONEN[value] }]));
+    const viewFields = Object.fromEntries(Object.keys(viewMap).map(key => [key, { type: "boolean" }]));
+    const planFields = { enabled: { type: "boolean" }, start_date: { type: "string", pattern: "^$|^\\d{4}-\\d{2}-\\d{2}$" }, interval_days: { type: "integer", minimum: 1, maximum: 365 } };
+    const patch = properties => ({ type: "object", properties, anyOf: Object.keys(properties).map(key => ({ required: [key] })), additionalProperties: false });
+    const planning = Object.fromEntries(["vital", "medications", "blood_glucose"].map(key => [key, patch(planFields)]));
+    const snapshot = () => { const calendar = DATEN.einstellungen.kalender; return JSON.stringify({ enabled: calendar.gesundheitAn, tab_enabled: DATEN.einstellungen.allgemein.registerkarten.gesundheit, units: calendar.gesundheitEinheiten, views: calendar.gesundheitBereiche, planning: calendar.gesundheitPlanung }); };
+    return [
+      { name: "organizer_health_settings_read", description: "Read health-module/tab visibility, enabled views, display units and calendar-marker schedules with a full preference revision. Stored measurement values are unchanged by display-unit choices.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => {
+          const before = snapshot(), value = JSON.parse(before);
+          return { settings: { enabled: value.enabled, tab_enabled: value.tab_enabled,
+            units: Object.fromEntries(Object.entries(unitMap).map(([key, field]) => [key, value.units[field]])), views: Object.fromEntries(Object.entries(viewMap).map(([key, field]) => [key, value.views[field]])),
+            planning: Object.fromEntries(Object.keys(planning).map(key => { const plan = value.planning[viewMap[key]]; return [key, { enabled: plan.an, start_date: plan.von, interval_days: plan.intervallTage, legacy_time: plan.zeit || "" }]; })) }, revision: await personalSyncHash(before) };
+        } },
+      { name: "organizer_health_settings_update", description: "Revision-checked health visibility, views, display units and calendar-marker planning through shared GUI handlers, with native save confirmation. At least one view remains enabled. Schedule edits clear legacy time, matching the GUI's untimed controls; measurements and medication plans are retained.",
+        inputSchema: { type: "object", properties: { expected_revision: revision, enabled: { type: "boolean" }, units: patch(unitFields), views: patch(viewFields), planning: patch(planning) }, required: ["expected_revision"], anyOf: ["enabled", "units", "views", "planning"].map(key => ({ required: [key] })), additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const book = DATEN, before = snapshot(), hash = await personalSyncHash(before);
+          if (signal.aborted || DATEN !== book || snapshot() !== before || hash !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Health preferences changed; read them again");
+          mcpEditorPruefen(); const values = {};
+          if (args.enabled !== undefined) values.an = args.enabled;
+          if (args.units) values.einheiten = Object.fromEntries(Object.entries(args.units).map(([key, value]) => [unitMap[key], value]));
+          if (args.views) values.bereiche = Object.fromEntries(Object.entries(args.views).map(([key, value]) => [viewMap[key], value]));
+          if (args.planning) values.planung = Object.fromEntries(Object.entries(args.planning).map(([key, value]) => {
+            if (value.start_date && !gueltigesISO(value.start_date)) throw new MagnolieMcp.ToolError("invalid_date", "Health calendar-marker start date is invalid");
+            const fields = { enabled: "an", start_date: "von", interval_days: "intervallTage" }; return [viewMap[key], Object.fromEntries(Object.entries(value).map(([field, item]) => [fields[field], item]))];
+          }));
+          if (!wendeGesundheitsEinstellungenDatenAn(values)) throw new MagnolieMcp.ToolError("invalid_settings", "Health preferences require at least one enabled view and valid schedule fields");
+          return {};
+        }) }
+    ];
+  }
   function wendeSicherungsdateienDatenAn(values, passwordAvailable = cloudSicherungStand.kennwortVorhanden) {
     const general = DATEN.einstellungen.allgemein, cloud = general.cloudSicherung;
     const folder = values.folder === undefined ? general.sicherungsordner : values.folder.trim();
@@ -34611,6 +34656,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_health_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
+    if (name === "organizer_health_settings_update") return shape({ persisted: yes }, ["persisted"]);
     if (name === "organizer_backup_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
     if (name === "organizer_backup_settings_update") return shape({ persisted: yes }, ["persisted"]);
     if (name === "organizer_backup_password_store") return shape({ stored: yes, password_available: yes }, ["stored", "password_available"]);
@@ -34745,6 +34792,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpSicherungsdateienWerkzeuge(),
       ...mcpSicherungskennwortWerkzeuge(),
       ...mcpSicherungstestWerkzeuge(),
+      ...mcpGesundheitsEinstellungenWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

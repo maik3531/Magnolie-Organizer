@@ -1074,6 +1074,27 @@ def client():
                 return False
             product.GLib.idle_add(restore_vault_fixture)
             assert vault_restored.wait(5)
+        health_before = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))["gesundheit"]
+        health_settings = call("tools/call", {"name": "organizer_health_settings_read"})
+        health_updated = call("tools/call", {"name": "organizer_health_settings_update", "arguments": {
+            "expected_revision": health_settings["structuredContent"]["revision"], "enabled": False,
+            "units": {"temperature": "fahrenheit", "weight": "lb", "height": "in", "blood_glucose": "mg/dL"},
+            "views": {"vital": True, "medications": False, "blood_glucose": True, "history": False},
+            "planning": {"vital": {"enabled": True, "start_date": "2028-02-29", "interval_days": 7}}}})
+        assert not health_updated["isError"] and health_updated["structuredContent"]["persisted"], health_updated
+        health_file = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        assert health_file["gesundheit"] == health_before
+        assert health_file["einstellungen"]["kalender"]["gesundheitEinheiten"]["gewicht"] == "lb"
+        assert health_file["einstellungen"]["kalender"]["gesundheitPlanung"]["vital"]["intervallTage"] == 7
+        assert health_file["einstellungen"]["kalender"]["gesundheitAn"] is False and health_file["einstellungen"]["allgemein"]["registerkarten"]["gesundheit"] is False
+        stale_health = call("tools/call", {"name": "organizer_health_settings_update", "arguments": {
+            "expected_revision": health_settings["structuredContent"]["revision"], "enabled": True}})
+        assert stale_health["isError"] and stale_health["structuredContent"]["code"] == "conflict", stale_health
+        health_fresh = call("tools/call", {"name": "organizer_health_settings_read"})
+        assert health_fresh["structuredContent"]["settings"]["units"]["weight"] == "lb"
+        no_health_view = call("tools/call", {"name": "organizer_health_settings_update", "arguments": {
+            "expected_revision": health_fresh["structuredContent"]["revision"], "views": {"vital": False, "medications": False, "blood_glucose": False, "history": False}}})
+        assert no_health_view["isError"] and no_health_view["structuredContent"]["code"] == "invalid_settings", no_health_view
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()
