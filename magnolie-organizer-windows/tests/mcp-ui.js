@@ -210,6 +210,24 @@ let declaredContracts;
       assert.equal(b.t.daten().kontakte.find(contact => contact.id === "fixture-contact").geburtstag, "");
       await persisted(205, "organizer_trash_restore", { id: anniversaryDeleted.trash_id });
       assert.ok(b.t.daten().jahrestage.some(entry => entry.id === anniversaryId));
+      const vacationId = "14141414-1414-4414-8414-141414141414";
+      const vacationVisibility = b.t.daten().einstellungen.kalender.urlaubsplanerAn;
+      for (const dates of [{ from: "2027-02-29", through: "2027-03-01" }, { from: "2028-03-01", through: "2028-02-29" }]) {
+        const invalid = await call(request(210, "tools/call", { name: "organizer_vacation_create", arguments: dates }));
+        assert.equal(invalid.result.structuredContent.code, "invalid_date");
+      }
+      await persisted(211, "organizer_vacation_create", { id: vacationId, from: "2028-02-29", through: "2028-03-02", symbol: "snowman" });
+      assert.equal(b.t.daten().einstellungen.kalender.urlaubsplanerAn, vacationVisibility);
+      const vacationRead = (await call(request(212, "tools/call", { name: "organizer_vacation_read", arguments: { id: vacationId } }))).result.structuredContent;
+      assert.equal(vacationRead.vacation.von, "2028-02-29");
+      await persisted(213, "organizer_vacation_update", { id: vacationId, expected_revision: vacationRead.revision, display: "symbol", through: "2028-03-03" });
+      const staleVacation = await call(request(214, "tools/call", { name: "organizer_vacation_delete", arguments: { id: vacationId, expected_revision: vacationRead.revision } }));
+      assert.equal(staleVacation.result.structuredContent.code, "conflict");
+      const vacationRemove = (await call(request(215, "tools/call", { name: "organizer_vacation_read", arguments: { id: vacationId } }))).result.structuredContent;
+      assert.equal(vacationRemove.vacation.symbol, "snowman");
+      assert.equal(vacationRemove.vacation.darstellung, "symbol");
+      await persisted(216, "organizer_vacation_delete", { id: vacationId, expected_revision: vacationRemove.revision });
+      assert.ok(!b.t.daten().urlaube.some(entry => entry.id === vacationId));
       const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXb8AAAAASUVORK5CYII=", "base64");
       const attachmentNote = (await call(request(160, "tools/call", { name: "organizer_note_read", arguments: { id: noteId, fields: ["id", "titel"] } }))).result.structuredContent;
       const beginArgs = { note_id: noteId, expected_revision: attachmentNote.revision, name: "owned-fixture.png", kind: "image", size: png.length,

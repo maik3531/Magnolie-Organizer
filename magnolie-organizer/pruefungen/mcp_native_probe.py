@@ -270,6 +270,21 @@ def client():
         assert not anniversary_deleted["isError"] and anniversary_deleted["structuredContent"]["persisted"], anniversary_deleted
         anniversary_restored = call("tools/call", {"name": "organizer_trash_restore", "arguments": {"id": anniversary_deleted["structuredContent"]["trash_id"]}})
         assert not anniversary_restored["isError"] and anniversary_restored["structuredContent"]["persisted"], anniversary_restored
+        vacation_created = call("tools/call", {"name": "organizer_vacation_create", "arguments": {
+            "from": "2028-02-29", "through": "2028-03-02", "symbol": "snowman"}})
+        assert not vacation_created["isError"] and vacation_created["structuredContent"]["persisted"], vacation_created
+        vacation_id = vacation_created["structuredContent"]["id"]
+        vacation_read = call("tools/call", {"name": "organizer_vacation_read", "arguments": {"id": vacation_id}})
+        vacation_updated = call("tools/call", {"name": "organizer_vacation_update", "arguments": {
+            "id": vacation_id, "expected_revision": vacation_read["structuredContent"]["revision"], "through": "2028-03-03", "display": "symbol"}})
+        assert not vacation_updated["isError"] and vacation_updated["structuredContent"]["persisted"], vacation_updated
+        vacation = next(item for item in json.loads(data_file.read_text())["urlaube"] if item["id"] == vacation_id)
+        assert vacation["bis"] == "2028-03-03" and vacation["darstellung"] == "symbol" and vacation["symbol"] == "snowman"
+        vacation_read = call("tools/call", {"name": "organizer_vacation_read", "arguments": {"id": vacation_id}})
+        vacation_deleted = call("tools/call", {"name": "organizer_vacation_delete", "arguments": {
+            "id": vacation_id, "expected_revision": vacation_read["structuredContent"]["revision"]}})
+        assert not vacation_deleted["isError"] and vacation_deleted["structuredContent"]["persisted"], vacation_deleted
+        assert not any(item["id"] == vacation_id for item in json.loads(data_file.read_text())["urlaube"])
         contact_read = call("tools/call", {"name": "organizer_contact_read", "arguments": {"id": contact_id, "fields": ["id", "vorname", "geburtstag"]}})
         assert contact_read["structuredContent"]["contact"]["geburtstag"] == "--02-29"
         assert "email" not in contact_read["structuredContent"]["contact"]

@@ -27508,7 +27508,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         ], urlaub.darstellung || "symbol-text");
         darstellung.setAttribute("aria-label", _("Display"));
         const weg = knopf("−", "klein rot", () => {
-          DATEN.urlaube.splice(index, 1);
+          entferneUrlaubDaten(urlaub);
           planeSpeichern();
           zeichneUrlaube();
           zeichneAlles();
@@ -27516,13 +27516,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         weg.title = _("Delete vacation period");
         const speichern = () => {
           const vonDatum = datumswert(von), bisDatum = datumswert(bis);
-          if (gueltigesISO(vonDatum)) urlaub.von = vonDatum;
-          urlaub.bis = gueltigesISO(bisDatum) && bisDatum >= urlaub.von
-            ? bisDatum : urlaub.von;
+          wendeUrlaubDatenAn(urlaub, { von: vonDatum, bis: bisDatum,
+            symbol: symbol.value, darstellung: darstellung.value });
           setzeDatumswert(bis, urlaub.bis);
-          urlaub.symbol = ["sun", "snowman"].includes(symbol.value)
-            ? symbol.value : "palm";
-          urlaub.darstellung = darstellung.value === "symbol" ? "symbol" : "symbol-text";
           planeSpeichern();
           zeichneAlles();
         };
@@ -27533,8 +27529,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         liste.append(zeile);
       });
       const plus = knopf("+ " + _("Add vacation period"), "klein", () => {
-        DATEN.urlaube.push({ id: uid(), von: isoHeute(), bis: isoHeute(),
-          symbol: "palm", darstellung: "symbol-text" });
+        wendeUrlaubDatenAn(null, { von: isoHeute(), bis: isoHeute() });
         planeSpeichern();
         zeichneUrlaube();
       });
@@ -33385,6 +33380,61 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }) }
     ];
   }
+  function wendeUrlaubDatenAn(entry, values) {
+    const value = entry || { id: values.id || uid(), von: isoHeute(), bis: isoHeute(), symbol: "palm", darstellung: "symbol-text" };
+    if (gueltigesISO(values.von)) value.von = values.von;
+    const end = values.bis === undefined ? value.bis : values.bis;
+    value.bis = gueltigesISO(end) && end >= value.von ? end : value.von;
+    if (values.symbol !== undefined) value.symbol = ["sun", "snowman"].includes(values.symbol) ? values.symbol : "palm";
+    if (values.darstellung !== undefined) value.darstellung = values.darstellung === "symbol" ? "symbol" : "symbol-text";
+    if (!entry) DATEN.urlaube.push(value);
+    return value;
+  }
+  function entferneUrlaubDaten(entry) {
+    const index = DATEN.urlaube.indexOf(entry);
+    if (index < 0) return false;
+    DATEN.urlaube.splice(index, 1); return true;
+  }
+  function mcpUrlaubWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const date = { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" };
+    const fields = { from: date, through: date, symbol: { type: "string", enum: ["palm", "sun", "snowman"] }, display: { type: "string", enum: ["symbol", "symbol-text"] } };
+    const values = (args, current = {}) => {
+      const from = args.from === undefined ? current.von : args.from, through = args.through === undefined ? current.bis : args.through;
+      if (!gueltigesISO(from) || !gueltigesISO(through) || through < from)
+        throw new MagnolieMcp.ToolError("invalid_date", "Vacation requires valid dates and an end on or after its start");
+      return { von: from, bis: through, symbol: args.symbol, darstellung: args.display };
+    };
+    return [
+      { name: "organizer_vacation_read", description: "Read a local vacation period and its revision token.",
+        inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ id }) => {
+          const value = DATEN.urlaube.find(entry => entry.id === id);
+          if (!value) throw new MagnolieMcp.ToolError("not_found", "Vacation period not found");
+          const vacation = kopie(value); return { vacation, revision: await personalSyncHash(JSON.stringify(vacation)) };
+        } },
+      { name: "organizer_vacation_create", description: "Create a local vacation marking through the product handler. Calendar visibility remains a separate setting.",
+        inputSchema: { type: "object", properties: { ...fields, id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" } }, required: ["from", "through"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, () => {
+          if (args.id && DATEN.urlaube.some(entry => entry.id === args.id)) throw new MagnolieMcp.ToolError("already_exists", "Vacation period ID already exists");
+          const entry = wendeUrlaubDatenAn(null, { ...values(args), ...(args.id ? { id: args.id } : {}) }); return { id: entry.id };
+        }) },
+      { name: "organizer_vacation_update", description: "Revision-checked vacation dates, symbol and display through the product handler.",
+        inputSchema: { type: "object", properties: { ...fields, id, expected_revision: revision }, required: ["id", "expected_revision"],
+          anyOf: Object.keys(fields).map(field => ({ required: [field] })), additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const entry = await mcpPruefeEintrag("urlaube", args.id, args.expected_revision, signal);
+          wendeUrlaubDatenAn(entry, values(args, entry)); return { id: entry.id };
+        }) },
+      { name: "organizer_vacation_delete", description: "Revision-checked permanent removal of a local vacation marking using the product handler.",
+        inputSchema: { type: "object", properties: { id, expected_revision: revision }, required: ["id", "expected_revision"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const entry = await mcpPruefeEintrag("urlaube", args.id, args.expected_revision, signal);
+          if (!entferneUrlaubDaten(entry)) throw new MagnolieMcp.ToolError("conflict", "Vacation period changed before removal");
+          return { id: entry.id };
+        }) }
+    ];
+  }
   function mcpNativeAntwort(value, callback = "telefonEntwicklerDiagnose") {
     const pending = mcpNativeAnfragen.get(value?.requestId);
     if (pending?.callback === callback) pending.receive(value);
@@ -33524,9 +33574,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       organizer_notebook_group_read: "group", organizer_notebook_read: "notebook" }[name];
     if (name === "organizer_person_read") return shape({ person: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["person", "revision"]);
     if (name === "organizer_anniversary_read") return shape({ anniversary: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["anniversary", "revision"]);
+    if (name === "organizer_vacation_read") return shape({ vacation: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["vacation", "revision"]);
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (["organizer_vacation_create", "organizer_vacation_update", "organizer_vacation_delete"].includes(name)) return shape(written, ["id", "persisted"]);
     if (["organizer_anniversary_create", "organizer_anniversary_update"].includes(name)) return shape(written, ["id", "persisted"]);
     if (name === "organizer_anniversary_delete") return shape({ ...written, trash_id: { type: ["string", "null"] } }, ["id", "persisted", "trash_id"]);
     if (["organizer_person_create", "organizer_person_update"].includes(name)) return shape(written, ["id", "persisted"]);
@@ -33574,6 +33626,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpAnhangWerkzeuge(owner),
       ...mcpPersonenWerkzeuge(),
       ...mcpJahrestagWerkzeuge(),
+      ...mcpUrlaubWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

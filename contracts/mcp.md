@@ -80,6 +80,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_task_set_completed` | Complete or reopen a task; recurring masters produce one detached completed occurrence |
 | `organizer_person_read/create/update/delete` | Task-assignment people, badge/color/note metadata and removal without deleting assigned tasks |
 | `organizer_anniversary_read/create/update/delete` | Revision-checked anniversaries, unknown-year dates and linked-contact birthday maintenance |
+| `organizer_vacation_read/create/update/delete` | Local vacation periods with validated inclusive date ranges, symbols and display style; revision-checked writes use the shared UI handler and wait for native persistence. Deletion is permanent, matching the UI. Calendar visibility is configured separately. |
 | `organizer_appointment_read` | Appointment, provider/read-only metadata and revision token |
 | `organizer_appointment_create` | Local/timed/all-day appointment, repeat configuration, alarms, participants and attachment metadata |
 | `organizer_appointment_update` | Revision-checked editor fields and provider moves through the existing ICS mirror |
