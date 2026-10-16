@@ -81,6 +81,8 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_person_read/create/update/delete` | Task-assignment people, badge/color/note metadata and removal without deleting assigned tasks |
 | `organizer_anniversary_read/create/update/delete` | Revision-checked anniversaries, unknown-year dates and linked-contact birthday maintenance |
 | `organizer_vacation_read/create/update/delete` | Local vacation periods with validated inclusive date ranges, symbols and display style; revision-checked writes use the shared UI handler and wait for native persistence. Deletion is permanent, matching the UI. Calendar visibility is configured separately. |
+| `organizer_shift_read/create/update/delete` | Shift definitions, including overnight times and semantic type; permanent deletion clears shift assignments and removes otherwise-empty day markers, returning `affected_dates`. Writes are revision-checked and durably acknowledged. |
+| `organizer_cycle_marker_read/create/update/delete` | Cycle-marker definitions with semantic type, symbol and color; permanent deletion removes only that definition from assigned day markers and preserves other assignments, returning `affected_dates`. Visibility is configured separately. |
 | `organizer_appointment_read` | Appointment, provider/read-only metadata and revision token |
 | `organizer_appointment_create` | Local/timed/all-day appointment, repeat configuration, alarms, participants and attachment metadata |
 | `organizer_appointment_update` | Revision-checked editor fields and provider moves through the existing ICS mirror |

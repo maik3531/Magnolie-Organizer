@@ -27306,8 +27306,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const auswahl = el("div", "marken-vorlagen");
       const schichtVorlage = (art, name, von, bis, farbe) => {
         const button = knopf(name, "klein", () => {
-          DATEN.schichten.push({ id: uid(), name: name, von: von, bis: bis,
-            farbe: farbe, art: art });
+          wendeKalenderDefinitionAn("schichten", null, { name, von, bis, farbe, art });
           planeSpeichern();
           zeichneSchichten();
         });
@@ -27319,8 +27318,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       schichtVorlage("night", _("Night shift"), "22:00", "06:00", "#4c5279");
       const eigeneSchicht = knopf(_("Custom"), "klein", () => {
         if (DATEN.zeiterfassung.enabled) { oeffneZeiterfassungEditor(); return; }
-        DATEN.schichten.push({ id: uid(), name: "", von: "", bis: "",
-          farbe: "#8b6a35", art: "custom" });
+        wendeKalenderDefinitionAn("schichten", null, {});
         zeichneSchichten();
       });
       eigeneSchicht.type = "button";
@@ -27337,24 +27335,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const farbe = eingabe("color", schicht.farbe);
         farbe.title = _("Color");
         const weg = knopf("−", "klein rot", () => {
-          const id = schicht.id;
-          DATEN.schichten.splice(index, 1);
-          for (const marke of DATEN.tagmarken) {
-            if (marke.schichtId === id) marke.schichtId = "";
-          }
-          DATEN.tagmarken = DATEN.tagmarken.filter((marke) =>
-            marke.schichtId || marke.zyklusIds.length);
+          entferneKalenderDefinition("schichten", schicht);
           planeSpeichern();
           zeichneSchichten();
         });
         weg.title = _("Delete shift");
         const speichern = () => {
           if (!pruefeZeitfelder(von, bis)) return;
-          schicht.name = name.value.trim().slice(0, 80);
-          schicht.von = /^\d{2}:\d{2}$/.test(von.value) ? von.value : "";
-          schicht.bis = /^\d{2}:\d{2}$/.test(bis.value) ? bis.value : "";
-          schicht.farbe = /^#[0-9a-f]{6}$/i.test(farbe.value)
-            ? farbe.value.toLowerCase() : "#8b6a35";
+          wendeKalenderDefinitionAn("schichten", schicht, { name: name.value, von: von.value, bis: bis.value, farbe: farbe.value });
           planeSpeichern();
         };
         [name, von, bis, farbe].forEach((feld) => feld.addEventListener("change", speichern));
@@ -27363,8 +27351,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         liste.append(zeile);
       });
       const plus = knopf("+ " + _("Add shift"), "klein", () => {
-        DATEN.schichten.push({ id: uid(), name: "", von: "", bis: "",
-          farbe: "#8b6a35", art: "custom" });
+        wendeKalenderDefinitionAn("schichten", null, {});
         planeSpeichern();
         zeichneSchichten();
       });
@@ -27391,8 +27378,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const auswahl = el("div", "marken-vorlagen");
       const markerVorlage = (art, name, symbol, farbe) => {
         const button = knopf(symbol + " " + name, "klein", () => {
-          DATEN.zyklusmarker.push({ id: uid(), name: name, symbol: symbol,
-            farbe: farbe, art: art });
+          wendeKalenderDefinitionAn("zyklusmarker", null, { name, symbol, farbe, art });
           planeSpeichern();
           zeichneZyklusmarker();
         });
@@ -27406,8 +27392,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       markerVorlage("follicular", _("Follicular phase"), "○", "#568f91");
       markerVorlage("fertile", _("Fertile days"), "🌱", "#56905b");
       const eigenerMarker = knopf(_("Custom"), "klein", () => {
-        DATEN.zyklusmarker.push({ id: uid(), name: "", symbol: "●",
-          farbe: "#b86f8e", art: "custom" });
+        wendeKalenderDefinitionAn("zyklusmarker", null, {});
         zeichneZyklusmarker();
       });
       eigenerMarker.type = "button";
@@ -27423,22 +27408,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const farbe = eingabe("color", marker.farbe);
         farbe.title = _("Color");
         const weg = knopf("−", "klein rot", () => {
-          const id = marker.id;
-          DATEN.zyklusmarker.splice(index, 1);
-          for (const marke of DATEN.tagmarken) {
-            marke.zyklusIds = marke.zyklusIds.filter((markerId) => markerId !== id);
-          }
-          DATEN.tagmarken = DATEN.tagmarken.filter((marke) =>
-            marke.schichtId || marke.zyklusIds.length);
+          entferneKalenderDefinition("zyklusmarker", marker);
           planeSpeichern();
           zeichneZyklusmarker();
         });
         weg.title = _("Delete cycle marker");
         const speichern = () => {
-          marker.name = name.value.trim().slice(0, 80);
-          marker.symbol = Array.from(symbol.value.trim()).slice(0, 6).join("") || "●";
-          marker.farbe = /^#[0-9a-f]{6}$/i.test(farbe.value)
-            ? farbe.value.toLowerCase() : "#b86f8e";
+          wendeKalenderDefinitionAn("zyklusmarker", marker, { name: name.value, symbol: symbol.value, farbe: farbe.value });
           planeSpeichern();
         };
         [name, symbol, farbe].forEach((feld) => feld.addEventListener("change", speichern));
@@ -27446,8 +27422,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         liste.append(zeile);
       });
       const plus = knopf("+ " + _("Add cycle marker"), "klein", () => {
-        DATEN.zyklusmarker.push({ id: uid(), name: "",
-          symbol: "●", farbe: "#b86f8e", art: "custom" });
+        wendeKalenderDefinitionAn("zyklusmarker", null, {});
         planeSpeichern();
         zeichneZyklusmarker();
       });
@@ -33380,6 +33355,72 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }) }
     ];
   }
+  function wendeKalenderDefinitionAn(section, entry, values) {
+    const shift = section === "schichten", fallback = shift ? "#8b6a35" : "#b86f8e";
+    const value = entry || { id: values.id || uid(), name: "", farbe: fallback, art: "custom", ...(shift ? { von: "", bis: "" } : { symbol: "●" }) };
+    if (values.name !== undefined) value.name = values.name.trim().slice(0, 80);
+    if (values.art !== undefined) value.art = values.art;
+    if (values.farbe !== undefined) value.farbe = /^#[0-9a-f]{6}$/i.test(values.farbe) ? values.farbe.toLowerCase() : fallback;
+    if (shift) {
+      for (const key of ["von", "bis"]) if (values[key] !== undefined) value[key] = /^\d{2}:\d{2}$/.test(values[key]) ? values[key] : "";
+    } else if (values.symbol !== undefined) value.symbol = Array.from(values.symbol.trim()).slice(0, 6).join("") || "●";
+    if (!entry) DATEN[section].push(value);
+    return value;
+  }
+  function entferneKalenderDefinition(section, entry) {
+    const index = DATEN[section].indexOf(entry);
+    if (index < 0) return null;
+    DATEN[section].splice(index, 1);
+    const affected = [];
+    for (const mark of DATEN.tagmarken) {
+      if (section === "schichten" && mark.schichtId === entry.id) { mark.schichtId = ""; affected.push(mark.datum); }
+      if (section === "zyklusmarker" && mark.zyklusIds.includes(entry.id)) {
+        mark.zyklusIds = mark.zyklusIds.filter(id => id !== entry.id); affected.push(mark.datum);
+      }
+    }
+    DATEN.tagmarken = DATEN.tagmarken.filter(mark => mark.schichtId || mark.zyklusIds.length);
+    return { id: entry.id, affected_dates: affected };
+  }
+  function mcpKalenderDefinitionWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const uuid = { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" };
+    const time = { type: "string", pattern: "^(?:[01][0-9]|2[0-3]):[0-5][0-9]$|^$" };
+    return [["shift", "schichten", ["early", "late", "night", "custom"]],
+      ["cycle_marker", "zyklusmarker", ["bleeding-light", "bleeding-medium", "bleeding-heavy", "ovulation", "follicular", "fertile", "custom"]]].flatMap(([kind, section, types]) => {
+      const fields = { name: { type: "string", maxLength: 80 }, color: { type: "string", pattern: "^#[0-9a-fA-F]{6}$" }, type: { type: "string", enum: types },
+        ...(kind === "shift" ? { from: time, through: time } : { symbol: { type: "string", maxLength: 12 } }) };
+      const values = args => ({ ...(args.name === undefined ? {} : { name: args.name }), ...(args.color === undefined ? {} : { farbe: args.color }),
+        ...(args.type === undefined ? {} : { art: args.type }), ...(args.from === undefined ? {} : { von: args.from }),
+        ...(args.through === undefined ? {} : { bis: args.through }), ...(args.symbol === undefined ? {} : { symbol: args.symbol }) });
+      const prefix = "organizer_" + kind + "_";
+      return [
+        { name: prefix + "read", description: "Read a " + kind + " definition and its revision token.",
+          inputSchema: { type: "object", properties: { id }, required: ["id"], additionalProperties: false },
+          annotations: { readOnlyHint: true, openWorldHint: false }, call: async ({ id }) => {
+            const entry = DATEN[section].find(item => item.id === id);
+            if (!entry) throw new MagnolieMcp.ToolError("not_found", "Calendar definition not found");
+            const definition = kopie(entry); return { definition, revision: await personalSyncHash(JSON.stringify(definition)) };
+          } },
+        { name: prefix + "create", description: "Create a " + kind + " definition through the product handler; visibility is a separate calendar setting.",
+          inputSchema: { type: "object", properties: { ...fields, id: uuid }, required: ["name"], additionalProperties: false },
+          annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, () => {
+            if (args.id && DATEN[section].some(item => item.id === args.id)) throw new MagnolieMcp.ToolError("already_exists", "Calendar definition ID already exists");
+            const entry = wendeKalenderDefinitionAn(section, null, { ...values(args), ...(args.id ? { id: args.id } : {}) }); return { id: entry.id };
+          }) },
+        { name: prefix + "update", description: "Revision-checked edits of a " + kind + " definition through the product handler.",
+          inputSchema: { type: "object", properties: { ...fields, id, expected_revision: revision }, required: ["id", "expected_revision"], anyOf: Object.keys(fields).map(field => ({ required: [field] })), additionalProperties: false },
+          annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+            const entry = await mcpPruefeEintrag(section, args.id, args.expected_revision, signal); wendeKalenderDefinitionAn(section, entry, values(args)); return { id: entry.id };
+          }) },
+        { name: prefix + "delete", description: "Revision-checked permanent " + kind + " deletion with product cleanup of assigned day markers.",
+          inputSchema: { type: "object", properties: { id, expected_revision: revision }, required: ["id", "expected_revision"], additionalProperties: false },
+          annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+            const entry = await mcpPruefeEintrag(section, args.id, args.expected_revision, signal), result = entferneKalenderDefinition(section, entry);
+            if (!result) throw new MagnolieMcp.ToolError("conflict", "Calendar definition changed before removal"); return result;
+          }) }
+      ];
+    });
+  }
   function wendeUrlaubDatenAn(entry, values) {
     const value = entry || { id: values.id || uid(), von: isoHeute(), bis: isoHeute(), symbol: "palm", darstellung: "symbol-text" };
     if (gueltigesISO(values.von)) value.von = values.von;
@@ -33575,9 +33616,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (name === "organizer_person_read") return shape({ person: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["person", "revision"]);
     if (name === "organizer_anniversary_read") return shape({ anniversary: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["anniversary", "revision"]);
     if (name === "organizer_vacation_read") return shape({ vacation: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["vacation", "revision"]);
+    if (/^organizer_(shift|cycle_marker)_read$/.test(name)) return shape({ definition: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["definition", "revision"]);
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (/^organizer_(shift|cycle_marker)_(create|update)$/.test(name)) return shape(written, ["id", "persisted"]);
+    if (/^organizer_(shift|cycle_marker)_delete$/.test(name)) return shape({ ...written, affected_dates: { type: "array", items: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" } } }, ["id", "persisted", "affected_dates"]);
     if (["organizer_vacation_create", "organizer_vacation_update", "organizer_vacation_delete"].includes(name)) return shape(written, ["id", "persisted"]);
     if (["organizer_anniversary_create", "organizer_anniversary_update"].includes(name)) return shape(written, ["id", "persisted"]);
     if (name === "organizer_anniversary_delete") return shape({ ...written, trash_id: { type: ["string", "null"] } }, ["id", "persisted", "trash_id"]);
@@ -33627,6 +33671,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpPersonenWerkzeuge(),
       ...mcpJahrestagWerkzeuge(),
       ...mcpUrlaubWerkzeuge(),
+      ...mcpKalenderDefinitionWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

@@ -42,7 +42,10 @@ data_file.write_text(json.dumps({"version": 6, "notizen": [{"id": "owned-native-
      "sync": True, "syncKalenderUid": "owned-source", "kalenderQuelle": {"id": "owned-source", "name": "Owned source"},
      "syncQuellen": {"owned-source": {"marker": "owned-native"}}, "providerMetadaten": {"fixture": {"marker": "owned-native"}},
      "icsRoundtrip": ["BEGIN:VEVENT", "UID:owned-provider-event-uid", "DTSTART;VALUE=DATE:20261116", "X-OWNED-FIXTURE:preserve", "END:VEVENT"]}
-    ], "einstellungen": {
+    ], "schichten": [{"id": "owned-cleanup-shift", "name": "Owned cleanup shift", "von": "22:00", "bis": "06:00", "farbe": "#aabbcc", "art": "night"}],
+    "zyklusmarker": [{"id": "owned-cleanup-cycle", "name": "Owned cleanup cycle", "symbol": "🌱", "farbe": "#b86f8e", "art": "custom"}],
+    "tagmarken": [{"datum": "2028-04-01", "schichtId": "owned-cleanup-shift", "zyklusIds": ["owned-cleanup-cycle"]},
+                   {"datum": "2028-04-02", "schichtId": "owned-cleanup-shift", "zyklusIds": []}], "einstellungen": {
     "allgemein": {"wiederherstellungsintervall": "manual", "tray": {"aktiv": False}},
     "update": {"automatisch": False}, "sync": {"beimStart": False},
     "erinnerung": {"an": False, "wecken": False, "jahrestage": {"an": False}}}}))
@@ -285,6 +288,27 @@ def client():
             "id": vacation_id, "expected_revision": vacation_read["structuredContent"]["revision"]}})
         assert not vacation_deleted["isError"] and vacation_deleted["structuredContent"]["persisted"], vacation_deleted
         assert not any(item["id"] == vacation_id for item in json.loads(data_file.read_text())["urlaube"])
+        for kind, section in (("shift", "schichten"), ("cycle_marker", "zyklusmarker")):
+            created = call("tools/call", {"name": f"organizer_{kind}_create", "arguments": {"name": "Owned native definition"}})
+            assert not created["isError"] and created["structuredContent"]["persisted"], created
+            definition_id = created["structuredContent"]["id"]
+            read = call("tools/call", {"name": f"organizer_{kind}_read", "arguments": {"id": definition_id}})
+            updated = call("tools/call", {"name": f"organizer_{kind}_update", "arguments": {
+                "id": definition_id, "expected_revision": read["structuredContent"]["revision"], "name": "Updated native definition"}})
+            assert not updated["isError"] and updated["structuredContent"]["persisted"], updated
+            assert next(item for item in json.loads(data_file.read_text())[section] if item["id"] == definition_id)["name"] == "Updated native definition"
+            for removed_id in (definition_id, "owned-cleanup-" + ("shift" if kind == "shift" else "cycle")):
+                read = call("tools/call", {"name": f"organizer_{kind}_read", "arguments": {"id": removed_id}})
+                deleted = call("tools/call", {"name": f"organizer_{kind}_delete", "arguments": {
+                    "id": removed_id, "expected_revision": read["structuredContent"]["revision"]}})
+                assert not deleted["isError"] and deleted["structuredContent"]["persisted"], deleted
+                assert not any(item["id"] == removed_id for item in json.loads(data_file.read_text())[section])
+            marks = json.loads(data_file.read_text())["tagmarken"]
+            if kind == "shift":
+                assert any(mark["datum"] == "2028-04-01" and mark["zyklusIds"] == ["owned-cleanup-cycle"] and not mark["schichtId"] for mark in marks), marks
+                assert not any(mark["datum"] == "2028-04-02" for mark in marks), marks
+            else:
+                assert not any(mark["datum"] == "2028-04-01" for mark in marks), marks
         contact_read = call("tools/call", {"name": "organizer_contact_read", "arguments": {"id": contact_id, "fields": ["id", "vorname", "geburtstag"]}})
         assert contact_read["structuredContent"]["contact"]["geburtstag"] == "--02-29"
         assert "email" not in contact_read["structuredContent"]["contact"]

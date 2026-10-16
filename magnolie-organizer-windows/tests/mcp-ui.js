@@ -228,6 +228,27 @@ let declaredContracts;
       assert.equal(vacationRemove.vacation.darstellung, "symbol");
       await persisted(216, "organizer_vacation_delete", { id: vacationId, expected_revision: vacationRemove.revision });
       assert.ok(!b.t.daten().urlaube.some(entry => entry.id === vacationId));
+      const shiftId = "15151515-1515-4515-8515-151515151515", cycleId = "16161616-1616-4616-8616-161616161616";
+      const invalidShift = await call(request(220, "tools/call", { name: "organizer_shift_create", arguments: { name: "Invalid", from: "25:00" } }));
+      assert.equal(invalidShift.error.code, -32602);
+      await persisted(221, "organizer_shift_create", { id: shiftId, name: "Owned night shift", type: "night", from: "22:00", through: "06:00", color: "#AABBCC" });
+      await persisted(222, "organizer_cycle_marker_create", { id: cycleId, name: "Owned cycle fixture", type: "custom", symbol: "🌱" });
+      b.t.daten().tagmarken.push({ datum: "2028-04-01", schichtId: shiftId, zyklusIds: [cycleId] }, { datum: "2028-04-02", schichtId: shiftId, zyklusIds: [] });
+      for (const [kind, id] of [["shift", shiftId], ["cycle_marker", cycleId]]) {
+        const read = (await call(request(223, "tools/call", { name: `organizer_${kind}_read`, arguments: { id } }))).result.structuredContent;
+        await persisted(224, `organizer_${kind}_update`, { id, expected_revision: read.revision, name: "Updated owned definition" });
+        const stale = await call(request(225, "tools/call", { name: `organizer_${kind}_delete`, arguments: { id, expected_revision: read.revision } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        const updated = (await call(request(226, "tools/call", { name: `organizer_${kind}_read`, arguments: { id } }))).result.structuredContent;
+        if (kind === "shift") { assert.equal(updated.definition.von, "22:00"); assert.equal(updated.definition.bis, "06:00"); assert.equal(updated.definition.farbe, "#aabbcc"); }
+        const removed = await persisted(227, `organizer_${kind}_delete`, { id, expected_revision: updated.revision });
+        assert.deepEqual(Array.from(removed.affected_dates), kind === "shift" ? ["2028-04-01", "2028-04-02"] : ["2028-04-01"]);
+        if (kind === "shift") {
+          assert.equal(b.t.daten().tagmarken.find(mark => mark.datum === "2028-04-01").zyklusIds[0], cycleId);
+          assert.ok(!b.t.daten().tagmarken.some(mark => mark.datum === "2028-04-02"));
+        }
+      }
+      assert.ok(!b.t.daten().tagmarken.some(mark => mark.datum === "2028-04-01"));
       const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aXb8AAAAASUVORK5CYII=", "base64");
       const attachmentNote = (await call(request(160, "tools/call", { name: "organizer_note_read", arguments: { id: noteId, fields: ["id", "titel"] } }))).result.structuredContent;
       const beginArgs = { note_id: noteId, expected_revision: attachmentNote.revision, name: "owned-fixture.png", kind: "image", size: png.length,
