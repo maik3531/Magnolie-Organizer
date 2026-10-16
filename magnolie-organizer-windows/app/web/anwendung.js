@@ -31842,6 +31842,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       zeigeGesamtarchivdialog(nutzlast);
     },
     gesamtarchivExportiert(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "gesamtarchivExportiert"); return; }
       nutzlast = nutzlast || {};
       if (!nutzlast.ok) {
         if (!nutzlast.abgebrochen) $("#sicherung-fehler").textContent = nutzlast.fehler || _("Export failed.");
@@ -34145,6 +34146,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           app_version: String(value.appversion || ""), counts: kopie(value.anzahlen || {}), photos: value.fotos, attachments: value.anhaenge };
       } }];
   }
+  function mcpArchivExportWerkzeuge() {
+    return [{ name: "organizer_archive_export", description: "Export the current saved book to an explicit complete-archive file using the native product writer, then verify the written archive before confirmation. Existing targets require overwrite=true; the active profile and linked targets are rejected.",
+      inputSchema: { type: "object", properties: { path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, password: { type: "string", maxLength: 1024 }, overwrite: { type: "boolean" } }, required: ["path"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => {
+        mcpEditorPruefen(); const book = DATEN; await mcpSchreiben(signal, () => ({})); mcpEditorPruefen();
+        if (signal.aborted || DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Book changed before archive export");
+        const before = JSON.stringify(DATEN), value = await mcpNativeAufruf("gesamtarchiv_exportieren", { pfad: args.path, kennwort: args.password || "", overwrite: args.overwrite === true }, "gesamtarchivExportiert", signal);
+        if (value.ok !== true || typeof value.pfad !== "string" || !value.pfad) throw new MagnolieMcp.ToolError("archive_export_failed", "Native archive export or written-file verification failed");
+        if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "An exported archive may exist; the book changed during export");
+        return { path: value.pfad, confirmed: true, encrypted: value.verschluesselt === true };
+      } }];
+  }
   function wendeUrlaubDatenAn(entry, values) {
     const value = entry || { id: values.id || uid(), von: isoHeute(), bis: isoHeute(), symbol: "palm", darstellung: "symbol-text" };
     if (gueltigesISO(values.von)) value.von = values.von;
@@ -34345,6 +34358,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_archive_export") return shape({ path: text, confirmed: yes, encrypted: flag }, ["path", "confirmed", "encrypted"]);
     if (name === "organizer_archive_preview") return shape({ path: text, verified: yes, encrypted: flag, created_at: text, platform: text, app_version: text, counts: object, photos: { type: "integer", minimum: 0 }, attachments: { type: "integer", minimum: 0 } }, ["path", "verified", "encrypted", "created_at", "platform", "app_version", "counts", "photos", "attachments"]);
     if (name === "organizer_backup_create") return shape({ path: text, confirmed: yes }, ["path", "confirmed"]);
     if (name === "organizer_recovery_runtime_policy_read") return shape({ policy: shape({ interval: { type: "string", enum: ["off", "6h", "12h", "daily", "weekly"] }, retention_mode: { type: "string", enum: ["count", "days"] }, maximum: { type: "integer", minimum: 1, maximum: 100 }, days: { type: "integer", minimum: 1, maximum: 3650 } }, ["interval", "retention_mode", "maximum", "days"]), revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["policy", "revision"]);
@@ -34450,6 +34464,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpJournalRuntimeWerkzeuge(),
       ...mcpBackupWerkzeuge(),
       ...mcpArchivWerkzeuge(),
+      ...mcpArchivExportWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

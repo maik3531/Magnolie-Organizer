@@ -148,7 +148,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "gesamtarchiv_waehlen": await SelectGesamtarchivAsync(); break;
                     case "gesamtarchiv_pruefen": await PreviewGesamtarchivAsync(Text(message, "pfad"), Text(message, "kennwort"), Text(message, "requestId")); break;
                     case "gesamtarchiv_importieren": await ImportGesamtarchivAsync(message); break;
-                    case "gesamtarchiv_exportieren": await ExportGesamtarchivAsync(Text(message, "kennwort")); break;
+                    case "gesamtarchiv_exportieren": await ExportGesamtarchivAsync(Text(message, "kennwort"), Text(message, "pfad"), Text(message, "requestId"), message.TryGetProperty("overwrite", out var overwriteArchive) && overwriteArchive.GetBoolean()); break;
                     case "ordner_waehlen": await SelectFolderAsync(); break;
                     case "drucken": form.ShowPrintDialog(Text(message, "html")); break;
                     case "notiz_anhang_datei": await HandleAttachmentFileAsync(message); break;
@@ -1229,33 +1229,43 @@ internal sealed partial class BridgeDispatcher : IDisposable
             anzahlen = info.Anzahlen, fotos = info.Fotos, anhaenge = info.Anhaenge
         });
 
-    private async Task ExportGesamtarchivAsync(string password)
+    private async Task ExportGesamtarchivAsync(string password, string? targetPath = null, string? requestId = null, bool overwrite = false)
     {
-        using var dialog = new SaveFileDialog
+        var explicitTarget = !string.IsNullOrEmpty(targetPath);
+        if (!explicitTarget)
         {
-            Title = T("Export Magnolie complete archive"), FileName = "magnolie-gesamtarchiv.magnolie",
-            Filter = T("Magnolie complete archive (.magnolie) …") + "|*.magnolie", AddExtension = true, OverwritePrompt = true
-        };
-        if (dialog.ShowDialog(form) != DialogResult.OK)
-        {
-            await form.SendAsync("App.gesamtarchivExportiert", new { ok = false, abgebrochen = true });
-            return;
+            if (!string.IsNullOrEmpty(requestId)) { await form.SendAsync("App.gesamtarchivExportiert", new { ok = false, requestId, abgebrochen = false }); return; }
+            using var dialog = new SaveFileDialog
+            {
+                Title = T("Export Magnolie complete archive"), FileName = "magnolie-gesamtarchiv.magnolie",
+                Filter = T("Magnolie complete archive (.magnolie) …") + "|*.magnolie", AddExtension = true, OverwritePrompt = true
+            };
+            if (dialog.ShowDialog(form) != DialogResult.OK)
+            {
+                await form.SendAsync("App.gesamtarchivExportiert", new { ok = false, abgebrochen = true }); return;
+            }
+            targetPath = dialog.FileName;
         }
         try
         {
+            targetPath = Path.GetFullPath(targetPath!);
+            if (explicitTarget && File.Exists(targetPath) && !overwrite) throw new IOException("export_target_exists");
+            if (explicitTarget && string.Equals(targetPath, Path.GetFullPath(paths.Data), StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("active_profile_target");
+            if (new FileInfo(targetPath).LinkTarget is not null) throw new IOException("Linked export targets are not supported.");
             var data = JsonNode.Parse(currentPlainText) as JsonObject
                 ?? throw new InvalidDataException(T("The current organizer data is incomplete."));
             var version = AppVersion;
             var archive = GesamtarchivService.Create(data, "windows", version, password);
-            store.Write(dialog.FileName, archive, AtomicStore.MaxArchiveBytes);
+            store.Write(targetPath, archive, AtomicStore.MaxArchiveBytes);
+            _ = GesamtarchivService.Read(store.Read(targetPath, AtomicStore.MaxArchiveBytes) ?? throw new IOException("Empty exported archive."), password);
             await form.SendAsync("App.gesamtarchivExportiert", new
-                { ok = true, abgebrochen = false, pfad = dialog.FileName, verschluesselt = password.Length > 0 });
+                { ok = true, requestId, abgebrochen = false, pfad = targetPath, verschluesselt = password.Length > 0 });
         }
         catch (Exception error)
         {
-            await ReportErrorAsync("gesamtarchiv_exportieren", error.ToString());
+            if (string.IsNullOrEmpty(requestId)) await ReportErrorAsync("gesamtarchiv_exportieren", error.ToString());
             await form.SendAsync("App.gesamtarchivExportiert", new
-                { ok = false, abgebrochen = false, fehler = T("Export failed.") });
+                { ok = false, requestId, abgebrochen = false, fehler = T("Export failed.") });
         }
     }
 

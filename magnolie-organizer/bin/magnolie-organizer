@@ -21194,7 +21194,8 @@ class Fenster(_FENSTER_BASIS):
                 nachricht.get("sicherungsordner") or "")
 
         elif befehl == "gesamtarchiv_exportieren":
-            self._gesamtarchiv_exportieren(nachricht.get("kennwort") or "")
+            self._gesamtarchiv_exportieren(nachricht.get("kennwort") or "",
+                nachricht.get("pfad"), nachricht.get("requestId"), nachricht.get("overwrite") is True)
 
         elif befehl == "import":
             self.bei_import(nachricht)
@@ -22875,17 +22876,23 @@ class Fenster(_FENSTER_BASIS):
                 "verschluesselt": True, "brauchtKennwort": True,
                 "fehler": fehler_deutsch(fehler, "Gesamtarchiv prüfen")})
 
-    def _gesamtarchiv_exportieren(self, kennwort):
-        pfad = self._datei_speichern(
-            "Magnolie-Gesamtarchiv exportieren", "magnolie-gesamtarchiv.magnolie",
-            [("Magnolie-Gesamtarchiv (*.magnolie)", "*.magnolie")])
+    def _gesamtarchiv_exportieren(self, kennwort, pfad=None, request_id=None, overwrite=False):
+        explizit = pfad is not None
+        if not explizit:
+            pfad = self._datei_speichern(
+                "Magnolie-Gesamtarchiv exportieren", "magnolie-gesamtarchiv.magnolie",
+                [("Magnolie-Gesamtarchiv (*.magnolie)", "*.magnolie")])
         if not pfad:
             self.antwort("App.gesamtarchivExportiert", {
-                "ok": False, "abgebrochen": True})
+                "ok": False, "requestId": request_id, "abgebrochen": True})
             return
         try:
+            if explizit and os.path.lexists(pfad) and not overwrite:
+                raise FileExistsError("export_target_exists")
             if os.path.lexists(pfad) and os.path.islink(pfad):
                 raise OSError("Verknüpfte Dateien werden nicht überschrieben.")
+            if explizit and os.path.realpath(pfad) == os.path.realpath(daten_datei()):
+                raise ValueError("active_profile_target")
             with self._daten_sperre:
                 roh = _text_dekodieren(datei_begrenzt_lesen(
                     daten_datei(), SICHERUNG_DATEI_MAX,
@@ -22894,11 +22901,14 @@ class Fenster(_FENSTER_BASIS):
                 daten = json.loads(klar)
                 text = gesamtarchiv_erzeugen(daten, kennwort=kennwort)
                 atomar_text_schreiben(pfad, text)
+                gesamtarchiv_lesen(pfad, kennwort)
             self.antwort("App.gesamtarchivExportiert", {
+                "requestId": request_id,
                 "ok": True, "abgebrochen": False, "pfad": os.path.abspath(pfad),
                 "verschluesselt": bool(kennwort)})
         except Exception as fehler:
             self.antwort("App.gesamtarchivExportiert", {
+                "requestId": request_id,
                 "ok": False, "abgebrochen": False,
                 "fehler": fehler_deutsch(fehler, "Gesamtarchiv exportieren")})
 

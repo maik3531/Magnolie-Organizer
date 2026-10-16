@@ -639,6 +639,24 @@ def client():
         assert archive_preview["structuredContent"]["counts"], archive_preview
         archive_wrong_password = call("tools/call", {"name": "organizer_archive_preview", "arguments": {"path": str(protected_path), "password": "wrong"}})
         assert archive_wrong_password["isError"] and archive_wrong_password["structuredContent"]["code"] == "archive_verification_failed", archive_wrong_password
+        export_path = Path(temporary.name) / "owned-export.magnolie"
+        for password in ("", "owned-export-password"):
+            exported = call("tools/call", {"name": "organizer_archive_export", "arguments": {
+                "path": str(export_path), "password": password, "overwrite": bool(password)}})
+            assert not exported["isError"] and exported["structuredContent"]["confirmed"], exported
+            assert exported["structuredContent"]["encrypted"] == bool(password)
+            exported_data = product.gesamtarchiv_lesen_text(export_path.read_text(), password)
+            assert next(item for item in exported_data["daten"]["notizen"] if item["id"] == note_id)["text"] == large_text
+        exported_bytes = export_path.read_bytes()
+        rejected_export = call("tools/call", {"name": "organizer_archive_export", "arguments": {"path": str(export_path)}})
+        assert rejected_export["isError"] and export_path.read_bytes() == exported_bytes, rejected_export
+        profile_bytes = data_file.read_bytes()
+        rejected_profile = call("tools/call", {"name": "organizer_archive_export", "arguments": {"path": str(data_file), "overwrite": True}})
+        assert rejected_profile["isError"] and data_file.read_bytes() == profile_bytes, rejected_profile
+        export_link = Path(temporary.name) / "owned-export-link.magnolie"
+        export_link.symlink_to(export_path)
+        rejected_link = call("tools/call", {"name": "organizer_archive_export", "arguments": {"path": str(export_link), "overwrite": True}})
+        assert rejected_link["isError"] and export_link.is_symlink() and export_path.read_bytes() == exported_bytes, rejected_link
         if os.environ.get("MAGNOLIE_MCP_PROBE_RESTORE_REPAIR") == "1":
             restore_point = call("tools/call", {"name": "organizer_recovery_snapshot_create"})
             assert not restore_point["isError"], restore_point

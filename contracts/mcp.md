@@ -106,6 +106,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_recovery_runtime_policy_read/update` | Actual native periodic scheduling/retention settings, revision-checked against a fresh native read. Update runs the product setters and retention engine, verifies their correlated settings response, and persists matching book preferences. |
 | `organizer_backup_create` | Native backup after the book-save gate, returning the actual created file path only after a correlated success. Empty destination uses the product default; native destination/password/encryption rules remain in force. |
 | `organizer_archive_preview` | Actual native complete-archive verification/decryption and canonical metadata/counts. No imported book data or GUI import dialog is produced; incorrect passwords/invalid files return a typed failure. |
+| `organizer_archive_export` | Save-gated native complete-archive export to an explicit path, verified with the product reader before confirmation. Optional password; existing targets require explicit overwrite, linked targets and the active profile are rejected. |
 | `organizer_appointment_read` | Appointment, provider/read-only metadata and revision token |
 | `organizer_appointment_create` | Local/timed/all-day appointment, repeat configuration, alarms, participants and attachment metadata |
 | `organizer_appointment_update` | Revision-checked editor fields and provider moves through the existing ICS mirror |
