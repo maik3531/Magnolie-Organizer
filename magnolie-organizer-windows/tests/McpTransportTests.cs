@@ -34,6 +34,8 @@ internal static class McpTransportTests
         using (var cloudStatus = BridgeDispatcherContract.Parse("{\"cmd\":\"cloud_sicherung_status\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
         using (var cloudPassword = BridgeDispatcherContract.Parse("{\"cmd\":\"cloud_sicherung_kennwort\",\"kennwort\":\"owned-password\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
         using (var cloudTest = BridgeDispatcherContract.Parse("{\"cmd\":\"cloud_sicherung_test\",\"sourceToken\":\"owned-source-token\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
+        using (var spelling = BridgeDispatcherContract.Parse("{\"cmd\":\"vorschlaege\",\"wort\":\"owned\",\"kennung\":\"mcp\",\"sprache\":\"en\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
+        using (var word = BridgeDispatcherContract.Parse("{\"cmd\":\"wort_merken\",\"wort\":\"owned\",\"sprache\":\"en\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
         var profile = Path.Combine(Path.GetTempPath(), "magnolie-mcp-fixture-" + Guid.NewGuid().ToString("N"));
         var incoming = Channel.CreateUnbounded<JsonObject>();
         var closed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);

@@ -49,7 +49,7 @@ internal static class BridgeDispatcherContract
         ["internet_konten_status"] = S(),
         ["internet_konto_verwalten"] = S(T("anbieter"), T("konto"), T("aktion"), O("name", JsonValueKind.String)),
         ["lo_benutzer"] = S(), ["tray_einstellungen"] = S(J("einstellungen")), ["tray_zaehler"] = S(N("anzahl")),
-        ["rechtschreibung"] = S(B("an"), O("sprache", JsonValueKind.String)), ["vorschlaege"] = S(T("wort"), T("kennung"), O("sprache", JsonValueKind.String)), ["wort_merken"] = S(T("wort"), O("sprache", JsonValueKind.String)),
+        ["rechtschreibung"] = S(B("an"), O("sprache", JsonValueKind.String)), ["vorschlaege"] = S(T("wort"), T("kennung"), O("sprache", JsonValueKind.String), O("requestId", JsonValueKind.String)), ["wort_merken"] = S(T("wort"), O("sprache", JsonValueKind.String), O("requestId", JsonValueKind.String)),
         ["baum_stand"] = S(), ["baum_ein"] = S(B("an"), T("name")), ["baum_suchen"] = S(), ["baum_paaren"] = S(T("adresse"), O("port", JsonValueKind.Number, JsonValueKind.String), O("fingerabdruck", JsonValueKind.String), O("anfrage", JsonValueKind.True, JsonValueKind.False)),
         ["baum_bestaetigen"] = S(T("kennung"), B("ja"), O("fingerabdruck", JsonValueKind.String)), ["baum_entfernen"] = S(T("kennung")),
         ["baum_partner_einstellungen"] = S(T("kennung"), B("vertraut"), B("kontakte"), B("kontaktLoeschen"), T("fernAdresse"), O("fernPort", JsonValueKind.Number, JsonValueKind.String)),

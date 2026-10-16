@@ -24974,14 +24974,18 @@ class Fenster(_FENSTER_BASIS):
             freigeschaltet=freigeschaltet))
 
     def _vorschlaege_arbeit(self, nachricht):
-        nutzlast = rechtschreib_pruefen(
-            nachricht.get("wort"), sprache=nachricht.get("sprache"))
+        with _WOERTERBUCH_SPERRE:
+            nutzlast = rechtschreib_pruefen(
+                nachricht.get("wort"), sprache=nachricht.get("sprache"))
         nutzlast["kennung"] = nachricht.get("kennung") or ""
+        nutzlast["requestId"] = nachricht.get("requestId")
         self.antwort("App.vorschlaege", nutzlast)
 
     def _wort_merken_arbeit(self, nachricht):
-        self.antwort("App.wortGemerkt", wort_aufnehmen(
-            nachricht.get("wort"), sprache=nachricht.get("sprache")))
+        with _WOERTERBUCH_SPERRE:
+            nutzlast = wort_aufnehmen(nachricht.get("wort"), sprache=nachricht.get("sprache"))
+        nutzlast["requestId"] = nachricht.get("requestId")
+        self.antwort("App.wortGemerkt", nutzlast)
 
     def _feiertage_arbeit(self, nachricht):
         try:

@@ -32009,9 +32009,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
     },
     vorschlaege(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "vorschlaege"); return; }
       fuelleVorschlagsMenue(nutzlast || {});
     },
     wortGemerkt(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "wortGemerkt"); return; }
       nutzlast = nutzlast || {};
       if (nutzlast.ok) {
         zettel(uebersetzt("“%(word)s” is now in the dictionary.", {
@@ -34140,6 +34142,35 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (value !== "month") calendar.uebersichtAb = null;
     calendar.bearbeiteId = null;
   }
+  function mcpRechtschreibWerkzeuge() {
+    const word = { type: "string", minLength: 1, maxLength: 512, pattern: "^[^\\u0000-\\u001f\\u007f-\\u009f]+$" }, language = { type: "string", enum: ["de", "en"] };
+    const checkedWord = args => { const value = args.word.trim(); if (!value) throw new MagnolieMcp.ToolError("invalid_word", "Supply a nonempty word"); return value; };
+    const check = async (word, language, signal) => {
+      const value = await mcpNativeAufruf("vorschlaege", { wort: word, sprache: language, kennung: "mcp" }, "vorschlaege", signal);
+      if (typeof value.fehler !== "string" || value.wort !== word) throw new MagnolieMcp.ToolError("invalid_result", "Native spelling result did not match the requested word");
+      if (value.fehler) throw new MagnolieMcp.ToolError("dictionary_unavailable", "Native dictionary lookup is unavailable or failed");
+      if (typeof value.richtig !== "boolean" || !Array.isArray(value.vorschlaege) || value.vorschlaege.length > 8 || value.vorschlaege.some(item => typeof item !== "string" || item.length > 4096)) throw new MagnolieMcp.ToolError("invalid_result", "Native spelling suggestions are incomplete");
+      return { word, language, correct: value.richtig, suggestions: value.vorschlaege };
+    };
+    return [
+      { name: "organizer_spellcheck_word", description: "Check a supplied word with the actual native product dictionary and return up to eight suggestions. Uses the product's supported German/English language boundary; unavailable dictionaries produce a typed error rather than a successful correct=true placeholder.",
+        inputSchema: { type: "object", properties: { word, language }, required: ["word"], additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => {
+          const book = DATEN, result = await check(checkedWord(args), args.language || rechtschreibSprache(), signal);
+          if (signal.aborted || DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Book changed during native dictionary lookup"); return result;
+        } },
+      { name: "organizer_dictionary_add_word", description: "Add a word using the native product personal-dictionary handler, then confirm it with another actual native dictionary check. Requires the current complete-book revision and idle editor/dialog state. The result confirms dictionary visibility; no book-data write or dictionary availability is assumed.",
+        inputSchema: { type: "object", properties: { word, language, expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, required: ["word", "expected_book_revision"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => {
+          mcpEditorPruefen(); const book = DATEN, before = JSON.stringify(book), hash = await personalSyncHash(before), word = checkedWord(args), language = args.language || rechtschreibSprache();
+          if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || hash !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; read its revision again before adding a dictionary word");
+          mcpEditorPruefen(); const value = await mcpNativeAufruf("wort_merken", { wort: word, sprache: language }, "wortGemerkt", signal);
+          if (value.ok !== true || value.fehler || value.wort !== word) throw new MagnolieMcp.ToolError("dictionary_update_failed", "Native personal-dictionary update could not be confirmed");
+          const verification = await check(word, language, signal);
+          if (!verification.correct) throw new MagnolieMcp.ToolError("dictionary_update_unconfirmed", "The native dictionary has not confirmed the added word");
+          if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "The dictionary may have changed; book data changed during the operation");
+          return { word, language, added: true, confirmed: true };
+        } }
+    ];
+  }
   function mcpAnzeigeEinstellungenWerkzeuge() {
     const generalMap = { selection_options_visible: "drucken", focus_frame: "hilfsrahmen", date_picker_buttons: "kalenderAuswahl", attachment_preview_height: "notizAnhangHoehe" };
     const fontMap = { typeface: "art", ink_color: "farbe", size: "groesse", spellcheck: "rechtschreibung", lined_paper: "linien", time_wheel_direction: "radRichtung" };
@@ -34727,6 +34758,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_spellcheck_word") return shape({ word: text, language: { type: "string", enum: ["de", "en"] }, correct: flag, suggestions: { type: "array", maxItems: 8, items: { type: "string", maxLength: 4096 } } }, ["word", "language", "correct", "suggestions"]);
+    if (name === "organizer_dictionary_add_word") return shape({ word: text, language: { type: "string", enum: ["de", "en"] }, added: yes, confirmed: yes }, ["word", "language", "added", "confirmed"]);
     if (name === "organizer_display_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
     if (name === "organizer_display_settings_update") return shape({ persisted: yes }, ["persisted"]);
     if (name === "organizer_calendar_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
@@ -34870,6 +34903,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpGesundheitsEinstellungenWerkzeuge(),
       ...mcpKalenderAnzeigeWerkzeuge(),
       ...mcpAnzeigeEinstellungenWerkzeuge(),
+      ...mcpRechtschreibWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

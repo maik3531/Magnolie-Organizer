@@ -134,7 +134,7 @@ let declaredContracts;
         id: noteId, title: "Retry", text: "Must not duplicate" } }));
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
-      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile, onCloudStatus, onCloudPassword, onCloudTest;
+      let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile, onCloudStatus, onCloudPassword, onCloudTest, onSpelling, onRememberWord;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
@@ -153,6 +153,8 @@ let declaredContracts;
         if (message.cmd === "cloud_sicherung_status" && message.requestId && onCloudStatus) onCloudStatus(message);
         if (message.cmd === "cloud_sicherung_kennwort" && message.requestId && onCloudPassword) onCloudPassword(message);
         if (message.cmd === "cloud_sicherung_test" && message.requestId && onCloudTest) onCloudTest(message);
+        if (message.cmd === "vorschlaege" && message.requestId && onSpelling) onSpelling(message);
+        if (message.cmd === "wort_merken" && message.requestId && onRememberWord) onRememberWord(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -1218,6 +1220,36 @@ let declaredContracts;
         assert.equal(b.t.daten().einstellungen.schrift.art, "handwriting"); assert.equal(b.t.daten().einstellungen.schrift.farbe, "blue");
         assert.equal(b.t.daten().einstellungen.kalender.gesundheitAn, true);
         assert.equal(JSON.stringify([b.t.daten().notizen, b.t.daten().aufgaben, b.t.daten().kontakte, b.t.daten().customOrganizer, b.t.daten().gesundheit]), records);
+      }
+      {
+        onSpelling = message => b.w.App.vorschlaege({ requestId: message.requestId, wort: message.wort, richtig: false, vorschlaege: ["spelling"], fehler: "" });
+        const checked = await call(request(760, "tools/call", { name: "organizer_spellcheck_word", arguments: { word: "speling", language: "en" } }));
+        assert.equal(checked.result.structuredContent.correct, false); assert.deepEqual(checked.result.structuredContent.suggestions, ["spelling"]);
+        onSpelling = message => b.w.App.vorschlaege({ requestId: message.requestId, wort: message.wort, richtig: true, vorschlaege: [], fehler: "owned-private-dictionary-error" });
+        const unavailable = await call(request(761, "tools/call", { name: "organizer_spellcheck_word", arguments: { word: "speling" } }));
+        assert.equal(unavailable.result.structuredContent.code, "dictionary_unavailable"); assert.ok(!JSON.stringify(unavailable).includes("owned-private-dictionary-error"));
+        const before = JSON.stringify(b.t.daten()), revision = (await call(request(762, "tools/call", { name: "organizer_book_revision_read" }))).result.structuredContent.revision;
+        let native, completed = false;
+        const dispatched = new Promise(resolve => { onRememberWord = message => { native = message; resolve(); }; });
+        onSpelling = message => b.w.App.vorschlaege({ requestId: message.requestId, wort: message.wort, richtig: true, vorschlaege: [], fehler: "" });
+        const pending = call(request(763, "tools/call", { name: "organizer_dictionary_add_word", arguments: { word: "ownedwordfixture", language: "en", expected_book_revision: revision } })).then(value => { completed = true; return value; });
+        await dispatched;
+        b.w.App.wortGemerkt({ requestId: "wrong-dictionary-request", wort: native.wort, ok: true, fehler: "" });
+        await new Promise(resolve => setImmediate(resolve)); assert.equal(completed, false);
+        b.w.App.wortGemerkt({ requestId: native.requestId, wort: native.wort, ok: true, fehler: "" });
+        assert.equal((await pending).result.structuredContent.confirmed, true); assert.equal(JSON.stringify(b.t.daten()), before);
+        onRememberWord = message => b.w.App.wortGemerkt({ requestId: message.requestId, wort: message.wort, ok: true, fehler: "" });
+        onSpelling = message => b.w.App.vorschlaege({ requestId: message.requestId, wort: message.wort, richtig: false, vorschlaege: [], fehler: "" });
+        const unconfirmed = await call(request(764, "tools/call", { name: "organizer_dictionary_add_word", arguments: { word: "ownedwordfixture", expected_book_revision: revision } }));
+        assert.equal(unconfirmed.result.structuredContent.code, "dictionary_update_unconfirmed");
+        onRememberWord = message => b.w.App.wortGemerkt({ requestId: message.requestId, wort: message.wort, ok: false, fehler: "owned-private-word-add-error" });
+        const failed = await call(request(765, "tools/call", { name: "organizer_dictionary_add_word", arguments: { word: "ownedwordfixture", expected_book_revision: revision } }));
+        assert.equal(failed.result.structuredContent.code, "dictionary_update_failed"); assert.ok(!JSON.stringify(failed).includes("owned-private-word-add-error"));
+        const stale = await call(request(766, "tools/call", { name: "organizer_dictionary_add_word", arguments: { word: "ownedwordfixture", expected_book_revision: "0".repeat(64) } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        onSpelling = onRememberWord = null;
+        const controlWord = await call(request(767, "tools/call", { name: "organizer_dictionary_add_word", arguments: { word: "owned\u0085", expected_book_revision: revision } }));
+        assert.equal(controlWord.error.code, -32602);
       }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));

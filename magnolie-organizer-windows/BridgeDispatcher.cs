@@ -1841,24 +1841,26 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private async Task SpellSuggestionsAsync(JsonElement message)
     {
         var word = Text(message, "wort").Trim(); var identifier = Text(message, "kennung");
-        if (word.Length == 0) { await form.SendAsync("App.vorschlaege", new { kennung = identifier, wort = "", richtig = true, vorschlaege = Array.Empty<string>(), fehler = "" }); return; }
+        var requestId = Text(message, "requestId");
+        if (word.Length == 0) { await form.SendAsync("App.vorschlaege", new { requestId, kennung = identifier, wort = "", richtig = true, vorschlaege = Array.Empty<string>(), fehler = "" }); return; }
         try
         {
             var result = await Task.Run(() => WindowsSpellChecker.Check(word, Text(message, "sprache")));
-            await form.SendAsync("App.vorschlaege", new { kennung = identifier, wort = word, richtig = result.Correct, vorschlaege = result.Suggestions, fehler = "" });
+            await form.SendAsync("App.vorschlaege", new { requestId, kennung = identifier, wort = word, richtig = result.Correct, vorschlaege = result.Suggestions, fehler = "" });
         }
         catch (Exception error)
         {
-            await form.SendAsync("App.vorschlaege", new { kennung = identifier, wort = word, richtig = true, vorschlaege = Array.Empty<string>(), fehler = error.Message });
+            await form.SendAsync("App.vorschlaege", new { requestId, kennung = identifier, wort = word, richtig = true, vorschlaege = Array.Empty<string>(), fehler = error.Message });
         }
     }
 
     private async Task RememberWordAsync(JsonElement message)
     {
         var word = Text(message, "wort").Trim();
-        if (word.Length == 0) { await form.SendAsync("App.wortGemerkt", new { wort = "", ok = false, fehler = T("No word was provided.") }); return; }
-        try { await Task.Run(() => WindowsSpellChecker.Add(word, Text(message, "sprache"))); await form.SendAsync("App.wortGemerkt", new { wort = word, ok = true, fehler = "" }); }
-        catch (Exception error) { await form.SendAsync("App.wortGemerkt", new { wort = word, ok = false, fehler = error.Message }); }
+        var requestId = Text(message, "requestId");
+        if (word.Length == 0) { await form.SendAsync("App.wortGemerkt", new { requestId, wort = "", ok = false, fehler = T("No word was provided.") }); return; }
+        try { await Task.Run(() => WindowsSpellChecker.Add(word, Text(message, "sprache"))); await form.SendAsync("App.wortGemerkt", new { requestId, wort = word, ok = true, fehler = "" }); }
+        catch (Exception error) { await form.SendAsync("App.wortGemerkt", new { requestId, wort = word, ok = false, fehler = error.Message }); }
     }
 
     private async Task OpenAddressResultAsync(string target)

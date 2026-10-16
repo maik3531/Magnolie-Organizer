@@ -35,6 +35,48 @@ def test_attachment_open_rejects_failed_launcher_and_locked_profile(monkeypatch)
         assert not window.replies.pop()[1]["ok"] and list(Path(root).iterdir()) == files
 
 
+def test_parallel_dictionary_workers_preserve_both_persistent_additions(monkeypatch):
+    from modul_laden import quellmodul_laden
+    source = Path(__file__).parents[1] / "bin/magnolie-organizer"
+    product = quellmodul_laden("owned_mcp_dictionary_workers", str(source))
+    with tempfile.TemporaryDirectory(prefix="magnolie-mcp-dictionary-", dir="/tmp/opencode") as root:
+        dictionary_file = Path(root) / "owned-words.txt"
+        dictionary_file.write_text("")
+        first_entered = threading.Event()
+        release_first = threading.Event()
+        overlaps = []
+        replies = []
+        class Dictionary:
+            def add(self, word):
+                if word == "ownedtwo" and not release_first.is_set():
+                    overlaps.append(word)
+                words = set(dictionary_file.read_text().splitlines())
+                if word == "ownedone":
+                    first_entered.set()
+                    assert release_first.wait(3)
+                words.add(word)
+                dictionary_file.write_text("\n".join(sorted(words)) + "\n")
+        class Window:
+            def antwort(self, callback, payload):
+                replies.append((callback, payload))
+        dictionary = Dictionary()
+        monkeypatch.setattr(product, "woerterbuch_laden", lambda _language: dictionary)
+        window = Window()
+        first = threading.Thread(target=product.Fenster._wort_merken_arbeit, args=(window, {"wort": "ownedone", "requestId": "owned-one"}))
+        first.start()
+        assert first_entered.wait(2)
+        timer = threading.Timer(0.5, release_first.set)
+        timer.start()
+        try:
+            product.Fenster._wort_merken_arbeit(window, {"wort": "ownedtwo", "requestId": "owned-two"})
+        finally:
+            release_first.set(); timer.cancel(); first.join(timeout=3)
+        assert not first.is_alive() and overlaps == []
+        assert set(dictionary_file.read_text().splitlines()) == {"ownedone", "ownedtwo"}
+        assert {value["requestId"] for _callback, value in replies} == {"owned-one", "owned-two"}
+        assert all(value["ok"] for _callback, value in replies)
+
+
 def test_native_source_reply_preserves_request_identity_and_aggregated_sources():
     source = Path(__file__).parents[1] / "bin/magnolie-organizer"
     tree = ast.parse(source.read_text())

@@ -1143,6 +1143,25 @@ def client():
         stale_display = call("tools/call", {"name": "organizer_display_settings_update", "arguments": {
             "expected_revision": display_settings["structuredContent"]["revision"], "focus_frame": False}})
         assert stale_display["isError"] and stale_display["structuredContent"]["code"] == "conflict", stale_display
+        spelling_profile = data_file.read_bytes()
+        spelling = call("tools/call", {"name": "organizer_spellcheck_word", "arguments": {"word": "hello", "language": "en"}})
+        assert not spelling["isError"] and spelling["structuredContent"]["correct"] is True, spelling
+        dictionary_file = Path(product.eigene_woerter_datei())
+        assert dictionary_file.is_relative_to(Path(temporary.name)) and dictionary_file.parent == profile
+        dictionary_word = "magnolieownedwordfixturexyz"
+        before_word = call("tools/call", {"name": "organizer_spellcheck_word", "arguments": {"word": dictionary_word, "language": "en"}})
+        assert not before_word["isError"] and before_word["structuredContent"]["correct"] is False, before_word
+        word_book = call("tools/call", {"name": "organizer_book_revision_read"})
+        word_added = call("tools/call", {"name": "organizer_dictionary_add_word", "arguments": {
+            "word": dictionary_word, "language": "en", "expected_book_revision": word_book["structuredContent"]["revision"]}})
+        assert not word_added["isError"] and word_added["structuredContent"]["confirmed"] and word_added["structuredContent"]["added"], word_added
+        assert dictionary_word in dictionary_file.read_text().splitlines()
+        import enchant
+        dictionary_language = next(value for value in product.rechtschreib_sprachen("en") if enchant.dict_exists(value))
+        fresh_dictionary = enchant.DictWithPWL(dictionary_language, str(dictionary_file))
+        assert fresh_dictionary.check(dictionary_word), "Cold personal-dictionary reader did not observe the added word"
+        del fresh_dictionary
+        assert data_file.read_bytes() == spelling_profile, "Personal-dictionary operations rewrote book data"
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()
