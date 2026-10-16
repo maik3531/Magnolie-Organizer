@@ -13718,7 +13718,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     openFile.addEventListener("change", () => {
       const sequence = ++openSequence;
       const file = openFile.files?.[0]; if (!file || file.size > 16 * 1024 * 1024) { status.textContent = _("The file is larger than 8 megabytes."); return; }
-      if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !editor.replaceSheet(JSON.parse(reader.result))) throw Error(); if (canvas.isConnected && !gesperrt) canvas.focus(); }
+      if (/\.json$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => { try { if (canvas.isConnected && !gesperrt && !ersetzeZeichenblattDaten(modul, JSON.parse(reader.result))) throw Error(); if (canvas.isConnected && !gesperrt) canvas.focus(); }
         catch (_) { status.textContent = _("This drawing cannot be edited in this version."); } }; reader.readAsText(file); }
       else if (/\.svg$/i.test(file.name)) { const reader = new FileReader(); reader.onload = () => {
         const requestId = anrufClientRef(), apply = () => { if (canvas.isConnected && !gesperrt) loadImage("data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(reader.result))), file.name); };
@@ -32580,6 +32580,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return { token, expected_bytes: transfer.size, received_bytes: transfer.received, expires_ms: transfer.expires };
   }
   function mcpEditorPruefen() {
+    if ([...aktiveZeichenblaetter.values()].some(value => value.editor.isInteracting?.()))
+      throw new MagnolieMcp.ToolError("drawing_busy", "Finish the current drawing gesture before an external write");
     if (editorIstGeaendert()) throw new MagnolieMcp.ToolError("editor_busy", "Save or discard the current editor draft before an external write");
     if (modalStapel.some(entry => entry.schleier.isConnected))
       throw new MagnolieMcp.ToolError("dialog_busy", "Close the current Organizer dialog before an external data write");
@@ -33841,6 +33843,65 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         }) }
     ];
   }
+  function ersetzeZeichenblattDaten(module, sheet) {
+    if (!DATEN.customOrganizer.modules.includes(module) || module.type !== "drawing" || !window.MagnolieZeichnen?.valid(sheet)) return false;
+    const active = aktiveZeichenblaetter.get(module.id);
+    if (active?.modul === module) return active.editor.replaceSheet(sheet);
+    module.drawing = kopie(sheet); customModulGeaendert(module); return true;
+  }
+  function mcpZeichnungSchema() {
+    const color = { type: "string", pattern: "^#[0-9a-fA-F]{6}$" }, size = { type: "integer", minimum: 1, maximum: 65536 };
+    const pair = value => ({ type: "array", minItems: 2, maxItems: 2, items: value });
+    const point = { type: "array", minItems: 3, maxItems: 3, items: { type: "number", minimum: 0, maximum: 1 } };
+    const stroke = { type: "object", properties: { tool: { type: "string", enum: ["pen", "quill", "brush", "highlighter", "eraser", "fill", "rectangle", "ellipse", "triangle", "line"] },
+      color, width: { type: "number", minimum: 0.5, maximum: 80 }, points: { type: "array", minItems: 1, maxItems: 200000, items: point },
+      gradient: pair(color), renderVersion: { type: "integer", enum: [3, 4] }, nibAngle: { type: "number", minimum: 0, maximum: 360 }, space: pair(size) },
+      required: ["tool", "color", "width", "points"], additionalProperties: false };
+    return { type: "object", properties: { version: { type: "integer", enum: [1, 2, 3, 4] }, width: size, height: size, autoSize: { type: "boolean" },
+      strokes: { type: "array", maxItems: 2000, items: stroke }, background: { type: "string", maxLength: 12000000, pattern: "^data:image/png;base64,[A-Za-z0-9+/]+={0,2}$" },
+      backgroundSpace: pair(size), backgroundOffset: pair({ type: "number", minimum: 0, maximum: 65536 }) }, required: ["version", "width", "height", "strokes"], additionalProperties: false };
+  }
+  async function mcpPruefeZeichenmodul(id, expected, signal) {
+    const book = DATEN, module = DATEN.customOrganizer.modules.find(value => value.id === id);
+    if (!module) throw new MagnolieMcp.ToolError("not_found", "Drawing module not found");
+    if (module.type !== "drawing") throw new MagnolieMcp.ToolError("unsupported_feature", "Custom module is not a drawing sheet");
+    const before = JSON.stringify(module), revision = await personalSyncHash(before);
+    if (signal.aborted || gesperrt || DATEN !== book || !DATEN.customOrganizer.modules.includes(module) || JSON.stringify(module) !== before || revision !== expected)
+      throw new MagnolieMcp.ToolError("conflict", "Drawing module changed; read it again before writing");
+    mcpEditorPruefen(); return module;
+  }
+  async function mcpUebernehmeZeichnung(args, signal) {
+    const book = DATEN, module = await mcpPruefeZeichenmodul(args.id, args.expected_revision, signal);
+    if (!window.MagnolieZeichnen.valid(args.sheet)) throw new MagnolieMcp.ToolError("invalid_drawing", "Drawing violates product format or point limits");
+    try { await window.MagnolieZeichnen.ready(args.sheet); }
+    catch (_image) { throw new MagnolieMcp.ToolError("invalid_image", "Drawing background could not be decoded"); }
+    if (DATEN !== book || !DATEN.customOrganizer.modules.includes(module)) throw new MagnolieMcp.ToolError("conflict", "Drawing book changed before replacement");
+    await mcpPruefeZeichenmodul(args.id, args.expected_revision, signal);
+    if (!ersetzeZeichenblattDaten(module, args.sheet)) throw new MagnolieMcp.ToolError("invalid_drawing", "Drawing could not be applied through the product editor");
+    return { id: module.id };
+  }
+  function mcpZeichenWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 160 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    return [
+      { name: "organizer_drawing_read", description: "Read a drawing's JSON as bounded base64 UTF-8 byte chunks. Revision covers the full parent module and is also accepted by drawing replacement.",
+        inputSchema: { type: "object", properties: { id, expected_revision: revision, offset: { type: "integer", minimum: 0 }, limit: { type: "integer", minimum: 1, maximum: 65536 } }, required: ["id"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async args => {
+          const current = DATEN.customOrganizer.modules.find(value => value.id === args.id);
+          if (!current) throw new MagnolieMcp.ToolError("not_found", "Drawing module not found");
+          if (current.type !== "drawing") throw new MagnolieMcp.ToolError("unsupported_feature", "Custom module is not a drawing sheet");
+          const module = kopie(current), revision = await personalSyncHash(JSON.stringify(module));
+          if (args.expected_revision !== undefined && args.expected_revision !== revision) throw new MagnolieMcp.ToolError("conflict", "Drawing changed between chunks");
+          const bytes = new TextEncoder().encode(JSON.stringify(module.drawing)), offset = args.offset || 0, limit = args.limit || 65536;
+          if (offset > bytes.length) throw new MagnolieMcp.ToolError("invalid_offset", "Drawing byte offset is past the end");
+          const chunk = bytes.slice(offset, offset + limit); let binary = ""; for (const byte of chunk) binary += String.fromCharCode(byte);
+          return { id: module.id, revision, encoding: "base64", charset: "UTF-8", total_bytes: bytes.length, offset, data: btoa(binary),
+            ...(offset + chunk.length < bytes.length ? { next_offset: offset + chunk.length } : {}) };
+        } },
+      { name: "organizer_drawing_replace", description: "Revision-checked replacement with a typed product drawing sheet, including actual background decoding, gesture protection and native persistence. Direct input is bounded by the local RPC frame limit.",
+        inputSchema: { type: "object", properties: { id, expected_revision: revision, sheet: mcpZeichnungSchema() }, required: ["id", "expected_revision", "sheet"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, () => mcpUebernehmeZeichnung(args, signal)) }
+    ];
+  }
   function wendeUrlaubDatenAn(entry, values) {
     const value = entry || { id: values.id || uid(), von: isoHeute(), bis: isoHeute(), symbol: "palm", darstellung: "symbol-text" };
     if (gueltigesISO(values.von)) value.von = values.von;
@@ -34041,6 +34102,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_drawing_read") return shape({ id, revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, encoding: { type: "string", enum: ["base64"] }, charset: { type: "string", enum: ["UTF-8"] }, total_bytes: { type: "integer", minimum: 0 }, offset: { type: "integer", minimum: 0 }, next_offset: { type: "integer", minimum: 0 }, data: text }, ["id", "revision", "encoding", "charset", "total_bytes", "offset", "data"]);
+    if (name === "organizer_drawing_replace") return shape(written, ["id", "persisted"]);
     if (name === "organizer_custom_item_read") return shape({ module_id: id, item: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["module_id", "item", "revision"]);
     if (["organizer_custom_item_create", "organizer_custom_item_update"].includes(name)) return shape(written, ["id", "persisted"]);
     if (name === "organizer_custom_item_delete") return shape({ ...written, trash_id: { type: ["string", "null"] } }, ["id", "persisted", "trash_id"]);
@@ -34122,6 +34185,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpZeitVerwaltungWerkzeuge(),
       ...mcpCustomModulWerkzeuge(),
       ...mcpCustomItemWerkzeuge(),
+      ...mcpZeichenWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

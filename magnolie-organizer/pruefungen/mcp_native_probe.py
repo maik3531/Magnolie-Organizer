@@ -418,6 +418,18 @@ def client():
         assert not custom_item_deleted["isError"] and custom_item_deleted["structuredContent"]["persisted"], custom_item_deleted
         custom_item_restored = call("tools/call", {"name": "organizer_trash_restore", "arguments": {"id": custom_item_deleted["structuredContent"]["trash_id"]}})
         assert not custom_item_restored["isError"] and custom_item_restored["structuredContent"]["persisted"], custom_item_restored
+        drawing_created = call("tools/call", {"name": "organizer_custom_module_create", "arguments": {"type": "drawing"}})
+        assert not drawing_created["isError"] and drawing_created["structuredContent"]["persisted"], drawing_created
+        drawing_id = drawing_created["structuredContent"]["id"]
+        drawing_read = call("tools/call", {"name": "organizer_drawing_read", "arguments": {"id": drawing_id, "limit": 7}})
+        sheet = {"version": 4, "width": 400, "height": 300, "autoSize": False,
+            "strokes": [{"tool": "pen", "color": "#123456", "width": 2, "points": [[0.1, 0.2, 0.3], [0.8, 0.9, 1]]}]}
+        drawing_updated = call("tools/call", {"name": "organizer_drawing_replace", "arguments": {
+            "id": drawing_id, "expected_revision": drawing_read["structuredContent"]["revision"], "sheet": sheet}})
+        assert not drawing_updated["isError"] and drawing_updated["structuredContent"]["persisted"], drawing_updated
+        assert next(module for module in json.loads(data_file.read_text())["customOrganizer"]["modules"] if module["id"] == drawing_id)["drawing"] == sheet
+        drawing_read = call("tools/call", {"name": "organizer_drawing_read", "arguments": {"id": drawing_id}})
+        assert json.loads(base64.b64decode(drawing_read["structuredContent"]["data"])) == sheet
         for date in ("2028-04-01", "2028-04-02"):
             day = call("tools/call", {"name": "organizer_day_marker_read", "arguments": {"date": date}})
             assert day["structuredContent"]["marker"] is None, day

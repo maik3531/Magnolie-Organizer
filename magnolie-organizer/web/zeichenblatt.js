@@ -44,7 +44,7 @@
     for (const stroke of sheet.strokes) {
       if (!stroke || !(sheet.version === 1 ? ["pen", "eraser"] : TOOLS).includes(stroke.tool) || !/^#[0-9a-f]{6}$/i.test(stroke.color || "") ||
           !finite(stroke.width, 0.5, 80) || !Array.isArray(stroke.points) || !stroke.points.length) return false;
-      if (stroke.gradient !== undefined && (!Array.isArray(stroke.gradient) || stroke.gradient.length !== 2 || stroke.gradient.some(value => !/^#[0-9a-f]{6}$/i.test(value)))) return false;
+      if (stroke.gradient !== undefined && (!Array.isArray(stroke.gradient) || stroke.gradient.length !== 2 || stroke.gradient.some(value => !/^#[0-9a-f]{6}$/i.test(value)) || stroke.tool === "fill" && stroke.points.length < 2)) return false;
       if (stroke.renderVersion !== undefined && ![3, 4].includes(stroke.renderVersion)) return false;
       if (stroke.nibAngle !== undefined && !finite(stroke.nibAngle, 0, 360)) return false;
       if (stroke.space !== undefined && (sheet.version < 2 || !Array.isArray(stroke.space) || stroke.space.length !== 2 ||
@@ -511,6 +511,7 @@
         redraw(); notify();
       },
       canUndo: () => undo.length > 0,
+      isInteracting: () => Boolean(active || pointer !== null || selecting || moving || panning),
       replaceSheet(value, image = null) {
         if (!valid(value) || disposed) return false;
         finish(); const before = JSON.parse(JSON.stringify(sheet)), after = JSON.parse(JSON.stringify(value));

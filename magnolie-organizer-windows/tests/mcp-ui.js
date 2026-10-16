@@ -428,7 +428,17 @@ let declaredContracts;
       const drawingModule = await persisted(327, "organizer_custom_module_create", { type: "drawing", page: "left" });
       const drawingRead = (await call(request(328, "tools/call", { name: "organizer_custom_module_read", arguments: { id: drawingModule.id } }))).result.structuredContent;
       assert.equal(b.w.MagnolieZeichnen.valid(drawingRead.module.drawing), true);
-      await persisted(329, "organizer_custom_module_delete", { id: drawingModule.id, expected_revision: drawingRead.revision });
+      const ownedSheet = { version: 4, width: 400, height: 300, autoSize: false, strokes: [{ tool: "pen", color: "#123456", width: 2, points: [[0.1, 0.2, 0.3], [0.8, 0.9, 1]] }] };
+      await persisted(360, "organizer_drawing_replace", { id: drawingModule.id, expected_revision: drawingRead.revision, sheet: ownedSheet });
+      const drawingChunk = (await call(request(361, "tools/call", { name: "organizer_drawing_read", arguments: { id: drawingModule.id, limit: 7 } }))).result.structuredContent;
+      const drawingTail = (await call(request(362, "tools/call", { name: "organizer_drawing_read", arguments: { id: drawingModule.id, offset: drawingChunk.next_offset, expected_revision: drawingChunk.revision } }))).result.structuredContent;
+      assert.deepEqual(JSON.parse(Buffer.concat([Buffer.from(drawingChunk.data, "base64"), Buffer.from(drawingTail.data, "base64")]).toString("utf8")), ownedSheet);
+      const staleDrawing = await call(request(363, "tools/call", { name: "organizer_drawing_replace", arguments: { id: drawingModule.id, expected_revision: drawingRead.revision, sheet: ownedSheet } }));
+      assert.equal(staleDrawing.result.structuredContent.code, "conflict");
+      const invalidGradient = await call(request(364, "tools/call", { name: "organizer_drawing_replace", arguments: { id: drawingModule.id, expected_revision: drawingChunk.revision,
+        sheet: { ...ownedSheet, strokes: [{ tool: "fill", color: "#123456", gradient: ["#123456", "#654321"], width: 2, points: [[0.1, 0.2, 0.3]] }] } } }));
+      assert.equal(invalidGradient.result.structuredContent.code, "invalid_drawing");
+      await persisted(329, "organizer_custom_module_delete", { id: drawingModule.id, expected_revision: drawingChunk.revision });
       const customTextId = "26262626-2626-4626-8626-262626262626", customTaskId = "27272727-2727-4727-8727-272727272727";
       await persisted(340, "organizer_custom_item_create", { module_id: customNotesId, id: customTextId, title: "Owned text", html: "<p>Owned text</p><script>bad()</script>" });
       const customText = (await call(request(341, "tools/call", { name: "organizer_custom_item_read", arguments: { module_id: customNotesId, id: customTextId } }))).result.structuredContent;
