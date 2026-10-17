@@ -773,6 +773,24 @@ internal static class ContractGroupTests
         {
             var path = Path.Combine(root, "owned-tray.json");
             var service = new TraySettingsService(path);
+            var executable = Path.Combine(root, "Owned organizer.exe");
+            File.WriteAllText(executable, "Owned executable fixture");
+            string? registration = "untouched";
+            TestAssert.That(TraySettingsService.ConfigureAutostart(false, executable, true, command => registration = command).Length == 0 &&
+                registration == TraySettingsService.BackgroundAutostartCommand(executable),
+                "Reminder-only activation removed autostart instead of registering its actual background command.");
+            foreach (var tray in new[] { false, true })
+                foreach (var reminder in new[] { false, true })
+                {
+                    var error = TraySettingsService.ConfigureAutostart(tray, executable, reminder, command => registration = command);
+                    var expected = reminder ? TraySettingsService.BackgroundAutostartCommand(executable) : tray ? TraySettingsService.AutostartCommand(executable) : null;
+                    TestAssert.That(error.Length == 0 && registration == expected, "Tray/reminder autostart flags did not share the correct registration.");
+                }
+            registration = "preserved";
+            TestAssert.That(TraySettingsService.ConfigureAutostart(false, executable + ".missing", true, command => registration = command).Length != 0 &&
+                registration == "preserved", "Missing executable mutated the existing reminder registration.");
+            TestAssert.That(TraySettingsService.ConfigureAutostart(false, executable, true, _ => throw new UnauthorizedAccessException()).Length != 0,
+                "Native registration failure was reported as success.");
             service.Save(settings);
             TestAssert.That(service.ReadVerified() == settings, "Native Traykonfiguration wurde nicht tatsächlich zurückgelesen.");
             File.WriteAllText(path, "{broken");

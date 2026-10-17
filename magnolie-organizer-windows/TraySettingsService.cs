@@ -136,20 +136,29 @@ internal sealed class TraySettingsService
         else key.SetValue(RunValue, entry.Value, entry.Kind);
     }
 
-    internal static string ConfigureAutostart(bool enabled, string executablePath, bool reminderStart = false)
+    private static void WriteAutostartRegistration(string? command)
     {
-        if (!OperatingSystem.IsWindows()) return "";
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        using var key = Registry.CurrentUser.CreateSubKey(RunKey, writable: true)
+            ?? throw new UnauthorizedAccessException("Der Autostartschlüssel konnte nicht geöffnet werden.");
+        if (command is null) key.DeleteValue(RunValue, throwOnMissingValue: false);
+        else key.SetValue(RunValue, command, RegistryValueKind.String);
+    }
+
+    internal static string ConfigureAutostart(bool enabled, string executablePath, bool reminderStart = false,
+        Action<string?>? writeRegistration = null)
+    {
+        if (writeRegistration is null && !OperatingSystem.IsWindows()) return "";
+        writeRegistration ??= WriteAutostartRegistration;
         try
         {
-            using var key = Registry.CurrentUser.CreateSubKey(RunKey, writable: true)
-                ?? throw new UnauthorizedAccessException("Der Autostartschlüssel konnte nicht geöffnet werden.");
-            if (enabled)
+            if (enabled || reminderStart)
             {
                 if (string.IsNullOrWhiteSpace(executablePath) || !File.Exists(executablePath))
                     throw new FileNotFoundException("Die Programmdatei für den Autostart wurde nicht gefunden.");
-                key.SetValue(RunValue, reminderStart ? BackgroundAutostartCommand(executablePath) : AutostartCommand(executablePath), RegistryValueKind.String);
+                writeRegistration(reminderStart ? BackgroundAutostartCommand(executablePath) : AutostartCommand(executablePath));
             }
-            else key.DeleteValue(RunValue, throwOnMissingValue: false);
+            else writeRegistration(null);
             return "";
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or
