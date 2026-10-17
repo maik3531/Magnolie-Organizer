@@ -31200,6 +31200,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     baumMailboxSchreibpruefung(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "baumMailboxSchreibpruefung"); },
     graphKontoStand(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "graphKontoStand"); },
     graphAnmeldeVorgang(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "graphAnmeldeVorgang"); },
+    internetKontenMcp(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "internetKontenMcp"); },
+    graphKontoGeaendert(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "graphKontoGeaendert"); },
     baumBriefkastenPruefung(nutzlast) {
       briefkastenStand = nutzlast || {};
       briefkastenSignatur = JSON.stringify(briefkastenStand);
@@ -34668,6 +34670,34 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         !["uebersprungen", "wiederholend"].every(key => Number.isSafeInteger(value[key]) && value[key] >= 0)) throw new MagnolieMcp.ToolError("invalid_result", "Native local import snapshot or selected collections were incomplete");
     return value;
   }
+  function mcpInternetKontenWerkzeuge() {
+    const revision = { type: "string", pattern: "^[a-f0-9]{64}$" }, text = { type: "string", minLength: 1, maxLength: 254 };
+    const run = async (args, signal, action) => {
+      if (action !== "read") mcpEditorPruefen();
+      const value = await mcpNativeAufruf("internet_konten_mcp", { action, ...(action === "read" ? {} : { provider: args.provider, account: args.account_id || "", email: args.email || "", name: args.name || "", expectedRevision: args.expected_revision }) }, "internetKontenMcp", signal);
+      if (value.ok !== true) throw new MagnolieMcp.ToolError(value.code === "profile_locked" ? "locked_or_cancelled" : ["unsupported_feature", "native_busy", "native_timeout", "locked_or_cancelled", "conflict", "not_found"].includes(value.code) ? value.code : "native_operation_failed", "Native Internet account operation failed; helper/dialog/account changes may already have occurred, read state before retrying");
+      const state = value.status, rows = state?.accounts;
+      if (value.action !== action || !/^[a-f0-9]{64}$/.test(value.revision) || value.accepted !== (action !== "read") || value.verified !== ["rename", "remove"].includes(action) ||
+          !state || !["ready", "google_pending", "microsoft_pending", "error_present"].every(key => typeof state[key] === "boolean") ||
+          !["google_tasks_available", "microsoft_tasks_available"].every(key => [null, true, false].includes(state[key])) || !Array.isArray(rows) || rows.length > 1000 ||
+          rows.some(row => !row || !["google", "microsoft"].includes(row.provider) || typeof row.id !== "string" || !row.id || row.id.length > 254 || typeof row.name !== "string" || row.name.length > 254 || typeof row.enabled !== "boolean" || typeof row.error_present !== "boolean"))
+        throw new MagnolieMcp.ToolError("invalid_result", "Native Internet account result was incomplete; inspect state before retrying changes");
+      const offset = action === "read" ? args.offset || 0 : 0, limit = action === "read" ? args.limit || 100 : 100;
+      return { revision: value.revision, state: Object.fromEntries(["ready", "google_pending", "microsoft_pending", "error_present", "google_tasks_available", "microsoft_tasks_available"].map(key => [key, state[key]])),
+        total: rows.length, offset, entries: rows.slice(offset, offset + limit).map(row => ({ provider: row.provider, id: row.id, name: row.name, enabled: row.enabled, error_present: row.error_present })),
+        ...(offset + limit < rows.length ? { next_offset: offset + limit } : {}), operation_accepted: value.accepted, change_verified: value.verified, authentication_verified: false };
+    };
+    return [{ name: "organizer_internet_accounts_read", description: "Read the Windows managed Google/Microsoft account helper's actual sanitized account inventory and pending-login flags, with a native public-state revision and pagination. Like the GUI status path, this can start/reconcile the owned helper runtime when configured; it does not create a user account. No tokens, raw provider errors or authentication claim. Linux direct managed-account integration is unsupported; system EDS sources use sync_sources_read. Late replies leave GUI drafts unchanged.",
+      inputSchema: { type: "object", properties: { offset: { type: "integer", minimum: 0 }, limit: { type: "integer", minimum: 1, maximum: 100 } }, additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true }, call: (args, signal) => run(args, signal, "read") },
+    { name: "organizer_internet_account_action", description: "Use the same Windows managed-account handler as the GUI to open Google/Outlook/Microsoft365 sign-in, rename/remove an offered account, or open its edit interface. Requires the latest full public-state revision; account changes are serialized with GUI operations and blocked during pending sign-in. Rename/remove are confirmed by actual status readback; sign_in/edit confirm operation acceptance only, never completed authentication. Helper startup and provider dialogs may outlive cancellation/timeouts. No book mutation, token return or GUI-draft refresh. Re-read state before retrying ambiguous failures.",
+      inputSchema: { type: "object", properties: { action: { type: "string", enum: ["sign_in", "rename", "remove", "edit"] }, expected_revision: revision,
+        provider: { type: "string", enum: ["google", "microsoft", "personal-ms", "office365"] }, account_id: text, email: text, name: text }, required: ["action", "expected_revision", "provider"],
+        anyOf: [{ properties: { action: { enum: ["sign_in"] }, provider: { enum: ["google", "personal-ms", "office365"] } }, required: ["email"] },
+          { properties: { action: { enum: ["rename"] }, provider: { enum: ["google", "microsoft"] } }, required: ["account_id", "name"] },
+          { properties: { action: { enum: ["remove", "edit"] }, provider: { enum: ["google", "microsoft"] } }, required: ["account_id"] }], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: (args, signal) => run(args, signal, args.action) }];
+  }
   const mcpMicrosoftAnmeldungen = new Map();
   function mcpVerwerfeMicrosoftAnmeldung(id) {
     const flow = mcpMicrosoftAnmeldungen.get(id);
@@ -34726,14 +34756,28 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         call: (args, signal) => callNative(args.flow_id, lookup(args.flow_id), action === "read" ? "status" : "cancel", signal) }))];
   }
   function mcpMicrosoftKontoWerkzeuge() {
+    const decode = value => {
+      if (value.ok !== true) throw new MagnolieMcp.ToolError(value.code === "profile_locked" ? "locked_or_cancelled" : ["unsupported_feature", "conflict", "native_busy"].includes(value.code) ? value.code : "native_operation_failed", "Native Microsoft account operation failed; read actual account state before retrying");
+      if (typeof value.clientId !== "string" || value.clientId !== "" && !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value.clientId) ||
+          !/^[a-f0-9]{64}$/.test(value.revision) || !["configured", "tokenFilePresent", "signInPending"].every(key => typeof value[key] === "boolean") || value.configured !== !!value.clientId)
+        throw new MagnolieMcp.ToolError("invalid_result", "Native Microsoft metadata was incomplete");
+      return { client_id: value.clientId, configured: value.configured, token_file_present: value.tokenFilePresent, sign_in_pending: value.signInPending, revision: value.revision, connectivity_checked: false, authentication_verified: false };
+    };
     return [{ name: "organizer_microsoft_account_read", description: "Read actual native direct Microsoft Graph account metadata on Windows: effective public OAuth client ID (user override/build fallback), protected-token file presence and native device-code sign-in activity. Does not decrypt or return tokens, run network discovery, verify authentication, open a browser, or replace GUI drafts. Token file presence is not a valid-session claim. Linux reports unsupported_feature for this Windows-only direct Graph integration; its EDS accounts remain available through sync_sources_read.",
       inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (_args, signal) => {
         const value = await mcpNativeAufruf("graph_konto_stand", {}, "graphKontoStand", signal);
-        if (value.ok !== true) throw new MagnolieMcp.ToolError(value.code === "profile_locked" ? "locked_or_cancelled" : value.code === "unsupported_feature" ? "unsupported_feature" : "native_operation_failed", "Native direct Microsoft account metadata is unavailable on this platform or profile");
-        if (typeof value.clientId !== "string" || value.clientId !== "" && !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value.clientId) ||
-            !["configured", "tokenFilePresent", "signInPending"].every(key => typeof value[key] === "boolean") || value.configured !== !!value.clientId) throw new MagnolieMcp.ToolError("invalid_result", "Native Microsoft metadata was incomplete");
-        return { client_id: value.clientId, configured: value.configured, token_file_present: value.tokenFilePresent, sign_in_pending: value.signInPending, connectivity_checked: false, authentication_verified: false };
-      } }];
+        return decode(value);
+      } }, { name: "organizer_microsoft_account_action", description: "Configure the Windows direct Graph public client ID or sign out through the same native transaction as the GUI, under the latest keyed native account revision. Empty client_id removes the user override and restores any build fallback. A changed effective client invalidates stored tokens and active sign-in/Graph-sync work. Sign-out cancels those operations, deletes the token file and verifies absence; late OAuth refreshes are fenced from recreating it. Success verifies actual config/token storage, not authentication, connectivity or remote token revocation. Cancellation/failure may follow changes; re-read before retrying. No book writes or GUI-draft refresh. Linux direct Graph is unsupported.",
+        inputSchema: { type: "object", properties: { action: { type: "string", enum: ["configure", "sign_out"] }, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" },
+          client_id: { type: "string", pattern: "^$|^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$" } }, required: ["action", "expected_revision"],
+          anyOf: [{ properties: { action: { enum: ["configure"] } }, required: ["client_id"] }, { properties: { action: { enum: ["sign_out"] } } }], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => {
+          mcpEditorPruefen();
+          const value = await mcpNativeAufruf("graph_konto_aendern", { action: args.action, expectedRevision: args.expected_revision, clientId: args.client_id || "" }, "graphKontoGeaendert", signal);
+          const state = decode(value);
+          if (value.persisted !== true || value.verified !== true || args.action === "sign_out" && state.token_file_present) throw new MagnolieMcp.ToolError("invalid_result", "Native Microsoft account change was not verified; inspect state before retrying");
+          return { ...state, persisted: true, verified: true };
+        } }];
   }
   function mcpDavKontoWerkzeuge() {
     const decode = value => {
@@ -35957,13 +36001,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (["organizer_internet_accounts_read", "organizer_internet_account_action"].includes(name)) {
+      const account = shape({ provider: { type: "string", enum: ["google", "microsoft"] }, id: text, name: text, enabled: flag, error_present: flag }, ["provider", "id", "name", "enabled", "error_present"]);
+      const status = shape({ ready: flag, google_pending: flag, microsoft_pending: flag, error_present: flag, google_tasks_available: { type: ["boolean", "null"] }, microsoft_tasks_available: { type: ["boolean", "null"] } }, ["ready", "google_pending", "microsoft_pending", "error_present", "google_tasks_available", "microsoft_tasks_available"]);
+      return shape({ revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, state: status, total: { type: "integer", minimum: 0 }, offset: { type: "integer", minimum: 0 }, entries: { type: "array", maxItems: 100, items: account }, next_offset: { type: "integer", minimum: 0 }, operation_accepted: flag, change_verified: flag, authentication_verified: { type: "boolean", enum: [false] } }, ["revision", "state", "total", "offset", "entries", "operation_accepted", "change_verified", "authentication_verified"]);
+    }
     if (["organizer_microsoft_sign_in_begin", "organizer_microsoft_sign_in_read", "organizer_microsoft_sign_in_cancel"].includes(name)) {
       const fields = { flow_id: { type: "string", pattern: "^[a-f0-9]{48}$" }, client_id: text, state: { type: "string", enum: ["starting", "pending", "succeeded", "failed", "cancelled"] }, user_code: text, verification_uri: text,
         expires_at: { type: "integer", minimum: 0 }, error_code: text, persistence_verified: flag, token_storage_may_have_changed: flag, browser_launch_accepted: { type: ["boolean", "null"] }, cancellation_requested: flag };
       return shape(fields, Object.keys(fields));
     }
-    if (name === "organizer_microsoft_account_read") {
-      const no = { type: "boolean", enum: [false] }, fields = { client_id: text, configured: flag, token_file_present: flag, sign_in_pending: flag, connectivity_checked: no, authentication_verified: no };
+    if (["organizer_microsoft_account_read", "organizer_microsoft_account_action"].includes(name)) {
+      const no = { type: "boolean", enum: [false] }, fields = { client_id: text, configured: flag, token_file_present: flag, sign_in_pending: flag, revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, connectivity_checked: no, authentication_verified: no };
+      if (name === "organizer_microsoft_account_action") { fields.persisted = yes; fields.verified = yes; }
       return shape(fields, Object.keys(fields));
     }
     if (name === "organizer_mailbox_write_test") {
@@ -36211,6 +36261,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpDavKontoWerkzeuge(),
       ...mcpMicrosoftKontoWerkzeuge(),
       ...mcpMicrosoftAnmeldeWerkzeuge(owner),
+      ...mcpInternetKontenWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

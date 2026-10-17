@@ -154,6 +154,12 @@ def test_direct_graph_metadata_is_explicitly_unsupported_on_linux(native):
             host.bei_nachricht(json.dumps({"cmd": command, "requestId": "owned-device-flow", "flowId": "a" * 48,
                                            "expectedClientId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", "openBrowser": False}))
             assert host.responses[-1] == ("App.graphAnmeldeVorgang", {"requestId": "owned-device-flow", "ok": False, "code": code})
+    for locked, code in ((False, "unsupported_feature"), (True, "profile_locked")):
+        host._gesperrt = locked
+        host.bei_nachricht(json.dumps({"cmd": "internet_konten_mcp", "requestId": "owned-managed", "action": "read"}))
+        assert host.responses[-1] == ("App.internetKontenMcp", {"requestId": "owned-managed", "ok": False, "code": code})
+        host.bei_nachricht(json.dumps({"cmd": "graph_konto_aendern", "requestId": "owned-graph-change", "action": "sign_out", "expectedRevision": "a" * 64}))
+        assert host.responses[-1] == ("App.graphKontoGeaendert", {"requestId": "owned-graph-change", "ok": False, "code": code})
 
 
 def test_snapshot_waits_for_the_same_real_save_transaction(native, tmp_path):

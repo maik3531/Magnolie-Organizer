@@ -13,13 +13,19 @@ internal sealed partial class BridgeDispatcher
     private GraphConfiguration GraphConfig => new(Path.Combine(paths.Root, "graph-config.json"), Path.Combine(AppContext.BaseDirectory, "build-config.json"));
     private GraphTokenStore GraphTokens => new(Path.Combine(paths.Root, "graph-token.dat"), new DpapiCurrentUserProtector());
     private NextcloudMailboxSettingsStore NextcloudSettings => new(paths.BaumMailboxSettings, paths.BaumMailboxPassword);
+    private ManagedAccountOperations? managedAccountOperations;
+    private ManagedAccountOperations ManagedAccounts
+    {
+        get { lock (serviceGate) return managedAccountOperations ??= new(() =>
+            { lock (serviceGate) return currentPlainTextAvailable && !restoreInProgress && activeSync is null && (string.IsNullOrEmpty(currentEnvelope) || encryption.Session is not null); }); }
+    }
 
     private async Task SignInInternetAccountAsync(JsonElement message)
     {
         try
         {
             using var timeout = NetworkDeadline(TimeSpan.FromSeconds(60));
-            await ManagedInternetAccounts.BeginSignInAsync(Text(message, "anbieter"), Text(message, "email").Trim(), timeout.Token);
+            await ManagedAccounts.ExecuteAsync("sign_in", Text(message, "anbieter"), "", Text(message, "email").Trim(), "", null, timeout.Token);
             await form.SendAsync("App.internetKontoAnmeldung", new { ok = true });
         }
         catch (Exception error)
@@ -39,10 +45,8 @@ internal sealed partial class BridgeDispatcher
         try
         {
             using var timeout = NetworkDeadline(TimeSpan.FromSeconds(60));
-            await ManagedInternetAccounts.EnsureStartedAsync(timeout.Token);
-            var status = await ThunderbirdBridge.CallAsync(new JsonObject { ["op"] = "status" }, timeout.Token, managed: true);
-            status["bereit"] = true;
-            await form.SendAsync("App.internetKontenStatus", status);
+            var receipt = await ManagedAccounts.ExecuteAsync("read", "", "", "", "", null, timeout.Token);
+            await form.SendAsync("App.internetKontenStatus", receipt.State.Raw);
         }
         catch (Exception error)
         {
@@ -61,17 +65,39 @@ internal sealed partial class BridgeDispatcher
                 string.IsNullOrWhiteSpace(account) || account.Length > 254 ||
                 action == "rename" && (string.IsNullOrWhiteSpace(name) || name.Length > 254)) throw new InvalidDataException();
             using var timeout = NetworkDeadline(TimeSpan.FromSeconds(60));
-            await ManagedInternetAccounts.EnsureStartedAsync(timeout.Token);
-            await ThunderbirdBridge.CallAsync(new JsonObject { ["op"] = "manage-account", ["provider"] = provider,
-                ["action"] = action, ["accountId"] = account, ["name"] = name }, timeout.Token, managed: true);
+            var receipt = await ManagedAccounts.ExecuteAsync(action, provider, account, "", name, null, timeout.Token);
             await form.SendAsync("App.internetKontoVerwaltet", new { ok = true });
-            await InternetAccountStatusAsync();
+            await form.SendAsync("App.internetKontenStatus", receipt.State.Raw);
             await ContactSourcesAsync();
         }
         catch (Exception error)
         {
             await ReportErrorAsync("internet_konto_verwalten", error.ToString());
             await form.SendAsync("App.internetKontoVerwaltet", new { ok = false, fehler = T("Unavailable") });
+        }
+    }
+
+    private async Task ManagedAccountMcpAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId");
+        try
+        {
+            if (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null)) throw new InvalidOperationException("profile_locked");
+            if (restoreInProgress) throw new InvalidOperationException("native_busy");
+            var action = Text(message, "action");
+            var revision = Text(message, "expectedRevision");
+            if (action != "read" && !System.Text.RegularExpressions.Regex.IsMatch(revision, "^[a-f0-9]{64}$")) throw new InvalidOperationException("conflict");
+            using var timeout = NetworkDeadline(TimeSpan.FromSeconds(20));
+            var receipt = await ManagedAccounts.ExecuteAsync(action, Text(message, "provider"), Text(message, "account"), Text(message, "email").Trim(), Text(message, "name"),
+                action == "read" ? null : revision, timeout.Token);
+            await form.SendAsync("App.internetKontenMcp", new { requestId, ok = true, action, revision = receipt.State.Revision,
+                status = receipt.State.Public, accepted = receipt.Accepted, verified = receipt.Verified });
+        }
+        catch (Exception error)
+        {
+            var code = error is OperationCanceledException cancellation ? cancellation.CancellationToken.IsCancellationRequested ? "native_timeout" : "locked_or_cancelled" :
+                error is InvalidOperationException && error.Message is "conflict" or "not_found" or "profile_locked" or "native_busy" ? error.Message : "native_operation_failed";
+            await form.SendAsync("App.internetKontenMcp", new { requestId, ok = false, code });
         }
     }
 
@@ -183,9 +209,10 @@ internal sealed partial class BridgeDispatcher
         try
         {
             GraphAccountMetadata state;
-            lock (serviceGate) state = GraphConfig.ReadMetadata(GraphTokens, graphSignIn is not null);
+            string revision;
+            lock (serviceGate) { state = GraphConfig.ReadMetadata(GraphTokens, graphSignIn is not null); revision = GraphAccountRevision(); }
             await form.SendAsync("App.graphKontoStand", new { requestId, ok = true, clientId = state.ClientId,
-                configured = state.Configured, tokenFilePresent = state.TokenFilePresent, signInPending = state.SignInPending });
+                configured = state.Configured, tokenFilePresent = state.TokenFilePresent, signInPending = state.SignInPending, revision });
         }
         catch (Exception)
         {
@@ -228,16 +255,60 @@ internal sealed partial class BridgeDispatcher
         }
     }
 
+    private string GraphAccountRevision() => GraphTokens.StateRevision(GraphConfig.StateMaterial, graphRevision);
+
+    private void ChangeGraphAccount(string action, string clientId, string? expectedRevision)
+    {
+        lock (serviceGate)
+        {
+            if (expectedRevision is not null && GraphAccountRevision() != expectedRevision) throw new InvalidOperationException("conflict");
+            if (action == "configure")
+            {
+                var previous = GraphConfig.ClientId;
+                GraphConfig.SaveVerified(clientId);
+                if (!Guid.TryParse(previous, out var oldId) || !Guid.TryParse(GraphConfig.ClientId, out var newId) || oldId != newId)
+                {
+                    graphRevision++; graphSignIn?.Cancel(); if (graphSync) activeSync?.Cancel(); GraphTokens.Delete();
+                    if (GraphTokens.Exists) throw new InvalidDataException();
+                }
+            }
+            else if (action == "sign_out")
+            {
+                graphRevision++; graphSignIn?.Cancel(); if (graphSync) activeSync?.Cancel(); GraphTokens.Delete();
+                if (GraphTokens.Exists) throw new InvalidDataException();
+            }
+            else throw new InvalidDataException();
+        }
+    }
+
+    private async Task ChangeGraphAccountMcpAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId");
+        try
+        {
+            GraphAccountMetadata state; string revision;
+            lock (serviceGate)
+            {
+                if (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null)) throw new InvalidOperationException("profile_locked");
+                if (restoreInProgress) throw new InvalidOperationException("native_busy");
+                ChangeGraphAccount(Text(message, "action"), Text(message, "clientId"), Text(message, "expectedRevision"));
+                state = GraphConfig.ReadMetadata(GraphTokens, graphSignIn is not null); revision = GraphAccountRevision();
+            }
+            await form.SendAsync("App.graphKontoGeaendert", new { requestId, ok = true, persisted = true, verified = true,
+                clientId = state.ClientId, configured = state.Configured, tokenFilePresent = state.TokenFilePresent, signInPending = state.SignInPending, revision });
+        }
+        catch (Exception error)
+        {
+            var code = error is InvalidOperationException && error.Message is "conflict" or "profile_locked" or "native_busy" ? error.Message : "native_operation_failed";
+            await form.SendAsync("App.graphKontoGeaendert", new { requestId, ok = false, code, persisted = false, verified = false });
+        }
+    }
+
     private async Task SaveGraphConfigurationAsync(JsonElement message)
     {
         try
         {
-            lock (serviceGate)
-            {
-                var previous = GraphConfig.ClientId; GraphConfig.Save(Text(message, "clientId"));
-                if (!previous.Equals(GraphConfig.ClientId, StringComparison.OrdinalIgnoreCase))
-                { graphRevision++; graphSignIn?.Cancel(); GraphTokens.Delete(); }
-            }
+            ChangeGraphAccount("configure", Text(message, "clientId"), null);
             await form.SendAsync("App.graphKonfiguration", new { ok = true, fehler = "" }); _ = QueueBackground(ContactSourcesAsync);
         }
         catch (Exception error) { await form.SendAsync("App.graphKonfiguration", new { ok = false, fehler = error.Message }); }
@@ -278,7 +349,7 @@ internal sealed partial class BridgeDispatcher
     // Caller holds serviceGate. GUI and MCP share the provider flow and verified store callback.
     private GraphDeviceSignIn CreateGraphSignIn(string? expectedClientId, bool openBrowser, out CancellationTokenSource timeout)
     {
-        if (graphSignIn is not null) throw new InvalidOperationException("native_busy");
+        if (graphSignIn is not null || activeSync is not null) throw new InvalidOperationException("native_busy");
         if (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null)) throw new InvalidOperationException("profile_locked");
         if (restoreInProgress) throw new InvalidOperationException("native_busy");
         var clientId = GraphConfig.ClientId;
@@ -299,6 +370,7 @@ internal sealed partial class BridgeDispatcher
                 if (!currentPlainTextAvailable || restoreInProgress || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null))
                     throw new OperationCanceledException(lifetime.Token);
                 GraphTokens.SaveVerified(refreshToken);
+                graphRevision++;
             }
         }, openBrowser ? ShellLauncher.OpenWebUri : null);
     }
@@ -353,7 +425,7 @@ internal sealed partial class BridgeDispatcher
     {
         try
         {
-            lock (serviceGate) { graphRevision++; graphSignIn?.Cancel(); if (graphSync) activeSync?.Cancel(); GraphTokens.Delete(); }
+            ChangeGraphAccount("sign_out", "", null);
             await form.SendAsync("App.graphAbmeldung", new { ok = true, fehler = "" }); _ = QueueBackground(ContactSourcesAsync);
         }
         catch (Exception error) { await form.SendAsync("App.graphAbmeldung", new { ok = false, fehler = error.Message }); }
@@ -477,10 +549,21 @@ internal sealed partial class BridgeDispatcher
                 }
                 else if (source == "microsoft-graph")
                 {
-                    var clientId = GraphConfig.ClientId; if (clientId.Length == 0) throw new InvalidOperationException(T("Microsoft Graph has not been configured yet."));
-                    var refresh = GraphTokens.Load(); if (string.IsNullOrWhiteSpace(refresh)) throw new InvalidOperationException(T("Sign in to Microsoft first."));
+                    string clientId; string? refresh; int revision;
+                    lock (serviceGate)
+                    {
+                        if (graphSignIn is not null) throw new InvalidOperationException(T("Synchronization failed."));
+                        clientId = GraphConfig.ClientId; refresh = GraphTokens.Load(); revision = graphRevision;
+                    }
+                    if (clientId.Length == 0) throw new InvalidOperationException(T("Microsoft Graph has not been configured yet."));
+                    if (string.IsNullOrWhiteSpace(refresh)) throw new InvalidOperationException(T("Sign in to Microsoft first."));
                     var token = await new MicrosoftOAuthClient(http).RefreshAsync(clientId, refresh, operation.Token);
-                    if (token.RefreshToken.Length > 0) GraphTokens.Save(token.RefreshToken);
+                    lock (serviceGate)
+                    {
+                        operation.Token.ThrowIfCancellationRequested();
+                        if (revision != graphRevision || !GraphConfig.ClientId.Equals(clientId, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException(T("Synchronization failed."));
+                        if (token.RefreshToken.Length > 0) { GraphTokens.SaveVerified(token.RefreshToken); graphRevision++; }
+                    }
                     remote = new GraphApiClient(http, token.AccessToken);
                 }
                 else if (ThunderbirdBridge.IsSource(source))

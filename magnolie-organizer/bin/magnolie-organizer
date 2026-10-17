@@ -21492,8 +21492,16 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=self._sync_bestaetigen,
                              args=(nachricht.get("transactionId"),), daemon=True).start()
 
+        elif befehl == "internet_konten_mcp":
+            self.antwort("App.internetKontenMcp", {"requestId": nachricht.get("requestId"), "ok": False,
+                         "code": "profile_locked" if getattr(self, "_gesperrt", True) else "unsupported_feature"})
+
         elif befehl in ("graph_mcp_start", "graph_mcp_status", "graph_mcp_cancel"):
             self.antwort("App.graphAnmeldeVorgang", {"requestId": nachricht.get("requestId"), "ok": False,
+                         "code": "profile_locked" if getattr(self, "_gesperrt", True) else "unsupported_feature"})
+
+        elif befehl == "graph_konto_aendern":
+            self.antwort("App.graphKontoGeaendert", {"requestId": nachricht.get("requestId"), "ok": False,
                          "code": "profile_locked" if getattr(self, "_gesperrt", True) else "unsupported_feature"})
 
         elif befehl == "graph_konto_stand":

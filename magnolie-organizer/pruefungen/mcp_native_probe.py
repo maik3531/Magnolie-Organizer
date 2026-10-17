@@ -372,6 +372,14 @@ def client():
             graph_begin = call("tools/call", {"name": "organizer_microsoft_sign_in_begin", "arguments": {"expected_client_id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"}})
             assert graph_begin["isError"] and graph_begin["structuredContent"]["code"] == "unsupported_feature", graph_begin
             state["direct_graph_flow_platform_gate_verified"] = True
+            managed_accounts = call("tools/call", {"name": "organizer_internet_accounts_read"})
+            assert managed_accounts["isError"] and managed_accounts["structuredContent"]["code"] == "unsupported_feature", managed_accounts
+            managed_change = call("tools/call", {"name": "organizer_internet_account_action", "arguments": {"action": "remove", "provider": "google", "account_id": "owned@example.test", "expected_revision": "e" * 64}})
+            assert managed_change["isError"] and managed_change["structuredContent"]["code"] == "unsupported_feature", managed_change
+            state["managed_accounts_platform_gate_verified"] = True
+            graph_change = call("tools/call", {"name": "organizer_microsoft_account_action", "arguments": {"action": "sign_out", "expected_revision": "a" * 64}})
+            assert graph_change["isError"] and graph_change["structuredContent"]["code"] == "unsupported_feature", graph_change
+            state["direct_graph_account_action_platform_gate_verified"] = True
             assert data_file.read_text() == unchanged_book
             state["dav_write_verified"] = True
             process.stdin.close()

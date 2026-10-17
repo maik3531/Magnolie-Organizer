@@ -76,6 +76,14 @@ internal sealed class GraphTokenStore
     }
     internal void Delete() { if (File.Exists(path)) File.Delete(path); }
     internal bool Exists => File.Exists(path);
+    private static readonly byte[] RevisionKey = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
+    internal string StateRevision(string configurationMaterial, int epoch)
+    {
+        var material = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new[] { Path.GetFullPath(path), configurationMaterial,
+            new AtomicStore().Read(path, 64 * 1024), epoch.ToString(CultureInfo.InvariantCulture) }));
+        try { return Convert.ToHexString(System.Security.Cryptography.HMACSHA256.HashData(RevisionKey, material)).ToLowerInvariant(); }
+        finally { Array.Clear(material); }
+    }
     internal void SaveVerified(string refreshToken)
     {
         Save(refreshToken);
@@ -97,6 +105,15 @@ internal sealed class GraphConfiguration
     private readonly string userPath; private readonly string buildPath;
     internal GraphConfiguration(string userPath, string buildPath) { this.userPath = userPath; this.buildPath = buildPath; }
     internal string ClientId => Read(userPath, "clientId") is { Length: > 0 } user ? user : Read(buildPath, "graphClientId");
+    internal string StateMaterial => JsonSerializer.Serialize(new[] { Path.GetFullPath(userPath), Path.GetFullPath(buildPath),
+        new AtomicStore().Read(userPath, 4096), new AtomicStore().Read(buildPath, 4096) });
+    internal void SaveVerified(string clientId)
+    {
+        Save(clientId);
+        var actual = Read(userPath, "clientId");
+        if (string.IsNullOrWhiteSpace(clientId) ? File.Exists(userPath) : !Guid.TryParse(actual, out var id) || id != Guid.Parse(clientId))
+            throw new InvalidDataException("The Microsoft configuration could not be verified.");
+    }
     internal GraphAccountMetadata ReadMetadata(GraphTokenStore tokens, bool signInPending)
     {
         var clientId = ClientId;

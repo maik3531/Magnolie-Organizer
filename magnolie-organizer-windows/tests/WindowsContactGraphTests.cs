@@ -26,7 +26,13 @@ internal static class WindowsContactGraphTests
         const string buildId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", userId = "11111111-2222-3333-4444-555555555555";
         File.WriteAllText(buildPath, new JsonObject { ["graphClientId"] = buildId }.ToJsonString());
         TestAssert.That(configuration.ReadMetadata(tokens, false).ClientId == buildId, "Microsoft metadata lost the effective build configuration fallback.");
-        configuration.Save("{" + userId + "}");
+        configuration.SaveVerified("{" + userId + "}");
+        File.WriteAllText(tokenPath, "owned-private-protected-token");
+        var revision = tokens.StateRevision(configuration.StateMaterial, 0);
+        TestAssert.That(revision.Length == 64 && revision == tokens.StateRevision(configuration.StateMaterial, 0) &&
+            revision != tokens.StateRevision(configuration.StateMaterial, 1), "Native Graph account revision was unstable or failed to bind the operation epoch.");
+        File.WriteAllText(tokenPath, "owned-private-changed-token");
+        TestAssert.That(revision != tokens.StateRevision(configuration.StateMaterial, 0), "Native Graph revision ignored changed protected credential bytes.");
         File.WriteAllText(tokenPath, "owned-private-protected-token");
         var state = configuration.ReadMetadata(tokens, true);
         TestAssert.That(state.ClientId == userId && state.Configured && state.TokenFilePresent && state.SignInPending &&
@@ -34,8 +40,9 @@ internal static class WindowsContactGraphTests
         var before = File.ReadAllText(userPath);
         _ = configuration.ReadMetadata(tokens, false);
         TestAssert.That(File.ReadAllText(userPath) == before && File.ReadAllText(tokenPath) == "owned-private-protected-token", "Microsoft metadata modified account storage.");
-        configuration.Save("");
+        configuration.SaveVerified("");
         TestAssert.That(configuration.ReadMetadata(tokens, false).ClientId == buildId, "Removing the override did not restore the effective build client ID.");
+        TestAssert.That(revision != tokens.StateRevision(configuration.StateMaterial, 0), "Native Graph revision ignored a changed configuration source.");
         tokens.Delete();
         TestAssert.That(!configuration.ReadMetadata(tokens, false).TokenFilePresent, "Microsoft metadata cached token presence.");
     }

@@ -5,7 +5,7 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class ManagedInternetAccountsTests
 {
-    internal static Task RunAsync()
+    internal static async Task RunAsync()
     {
         var root = Path.Combine(Path.GetTempPath(), "magnolie-account-profile-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -31,9 +31,68 @@ internal static class ManagedInternetAccountsTests
                 "Managed setup lost account data or required manual add-on installation.");
             TestAssert.That(ThunderbirdBridge.IsManagedSource("thunderbird-calendar:managed:profile:calendar") &&
                 !ThunderbirdBridge.IsManagedSource("thunderbird-calendar:personal:calendar"), "Managed and personal sources share a transport.");
+            await TestOperationsAsync();
         }
         finally { Directory.Delete(root, true); }
-        return Task.CompletedTask;
+    }
+
+    private static async Task TestOperationsAsync()
+    {
+        var raw = JsonNode.Parse("""
+            {"google":{"accounts":["alice@example.test","bob@example.test"],"details":[{"id":"alice@example.test","name":"Alice","enabled":true},{"id":"bob@example.test","name":"Bob","enabled":true}],"pending":false,"tasks":{"available":false},"token":"owned-private-google-token"},
+             "microsoft":{"accounts":[{"id":"owned-ms","name":"Work","enabled":true,"error":"owned-private-provider-error"}],"login":{"pending":false},"tasks":{"available":true},"secret":"owned-private-ms-token"}}
+            """)!.AsObject();
+        var configured = true; var permitted = true; var ignoreWrite = false; var writes = 0; var starts = 0; var ensures = 0;
+        var operations = new ManagedAccountOperations(() => configured, _ => { ensures++; return Task.CompletedTask; }, (request, _) =>
+        {
+            if (request["op"]!.GetValue<string>() == "status") return Task.FromResult(raw.DeepClone().AsObject());
+            writes++;
+            if (!ignoreWrite)
+            {
+                var id = request["accountId"]!.GetValue<string>(); var action = request["action"]!.GetValue<string>();
+                var details = raw["google"]!["details"]!.AsArray();
+                if (request["provider"]!.GetValue<string>() == "google")
+                {
+                    var detail = details.OfType<JsonObject>().Single(item => item["id"]!.GetValue<string>() == id);
+                    if (action == "rename") detail["name"] = request["name"]!.GetValue<string>();
+                    if (action == "remove") { details.Remove(detail); var ids = raw["google"]!["accounts"]!.AsArray(); ids.Remove(ids.Single(item => item!.GetValue<string>() == id)); }
+                }
+            }
+            return Task.FromResult(new JsonObject { ["ok"] = true });
+        }, (provider, email, _) =>
+        {
+            TestAssert.That(provider == "google" && email == "new@example.test", "Managed sign-in lost its actual provider/email input.");
+            configured = true; starts++; raw["google"]!["pending"] = true; return Task.CompletedTask;
+        }, () => permitted);
+        Task<ManagedAccountReceipt> Execute(string action = "read", string? revision = null, string account = "alice@example.test", string name = "Renamed") =>
+            operations.ExecuteAsync(action, "google", account, "new@example.test", name, revision, default);
+        var first = await Execute();
+        TestAssert.That(first.State.Public["accounts"]!.AsArray().Count == 3 && !first.Accepted && !first.Verified &&
+            !first.State.Public.ToJsonString().Contains("owned-private", StringComparison.Ordinal), "Managed account inventory exposed raw provider fields.");
+        var renamed = await Execute("rename", first.State.Revision);
+        TestAssert.That(renamed.Accepted && renamed.Verified && renamed.State.Revision != first.State.Revision &&
+            renamed.State.Public["accounts"]![0]!["name"]!.GetValue<string>() == "Renamed", "Rename did not verify actual provider status.");
+        var before = writes;
+        await TestAssert.ThrowsAsync<InvalidOperationException>(() => Execute("remove", first.State.Revision), "Stale account revision was accepted.");
+        TestAssert.That(writes == before, "Stale account revision still mutated the provider.");
+        ignoreWrite = true;
+        await TestAssert.ThrowsAsync<InvalidDataException>(() => Execute("rename", renamed.State.Revision, name: "Ignored"), "A false backend ACK was reported as verified rename.");
+        ignoreWrite = false;
+        var current = await Execute();
+        var removed = await Execute("remove", current.State.Revision);
+        TestAssert.That(removed.Verified && removed.State.Public["accounts"]!.AsArray().Count == 2 &&
+            removed.State.Public["accounts"]!.AsArray().All(item => item!["id"]!.GetValue<string>() != "alice@example.test"), "Selective removal affected another account or was not read back.");
+        permitted = false; before = writes;
+        await TestAssert.ThrowsAsync<OperationCanceledException>(() => Execute("remove", removed.State.Revision, "bob@example.test"), "Profile/sync mutation gate was ignored.");
+        TestAssert.That(writes == before, "A disallowed account operation reached the provider."); permitted = true;
+        configured = false; var previousEnsures = ensures;
+        var empty = await Execute();
+        TestAssert.That(!empty.State.Public["ready"]!.GetValue<bool>() && ensures == previousEnsures, "Reading an unconfigured account helper started it.");
+        var opening = await Execute("sign_in", empty.State.Revision);
+        TestAssert.That(opening.Accepted && !opening.Verified && starts == 1 && opening.State.Public["google_pending"]!.GetValue<bool>(), "Opening a provider sign-in window claimed completed authentication.");
+        await TestAssert.ThrowsAsync<InvalidOperationException>(() => Execute("remove", opening.State.Revision, "bob@example.test"), "Pending sign-in did not block account mutation.");
+        var malformed = raw.DeepClone().AsObject(); malformed["bereit"] = true; malformed["microsoft"]!["accounts"]!.AsArray().Add("owned-bad-row");
+        TestAssert.Throws<InvalidDataException>(() => ManagedAccountOperations.Project(malformed), "Malformed account rows were silently omitted from revision/readback.");
     }
 
     internal static async Task<int> ProbeAsync(string runtime, string profile, string nativeExecutable, bool lifecycle = false)

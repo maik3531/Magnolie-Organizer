@@ -80,7 +80,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 "sync" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
                 "telefon_oeffnen" or "telefon_verbinden" or "telefon_pairing_oeffnen" or "kde_pairing_start" or "kde_pairing_complete" or
                 "kde_paaren" or "kde_pairing_confirm" or "kde_paarung_bestaetigen" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or
-                "internet_konto_anmelden" or "internet_konten_status" or "internet_konto_verwalten" or "telefon_kontaktfotos" or "telefon_kontakte")
+                "internet_konto_anmelden" or "internet_konten_status" or "internet_konto_verwalten" or "internet_konten_mcp" or "telefon_kontaktfotos" or "telefon_kontakte")
             {
                 var owner = command is "telefon_kontaktfotos" or "telefon_kontakte" ? "kontaktfotos" :
                     command is "sync" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or "internet_konto_verwalten" ? "sync" :
@@ -238,6 +238,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "eds_status": await ContactSourcesAsync(Text(message, "requestId")); break;
                     case "internet_konto_anmelden": await SignInInternetAccountAsync(message); break;
                     case "internet_konten_status": await InternetAccountStatusAsync(); break;
+                    case "internet_konten_mcp": await ManagedAccountMcpAsync(message); break;
                     case "internet_konto_verwalten": await ManageInternetAccountAsync(message); break;
                     case "thunderbird_einrichten":
                         try
@@ -299,6 +300,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "baum_dav_pruefen": await TestDavConnectionAsync(message); break;
                     case "baum_mailbox_schreibpruefen": await TestMailboxWriteAsync(message); break;
                     case "graph_konto_stand": await ReportGraphAccountAsync(Text(message, "requestId")); break;
+                    case "graph_konto_aendern": await ChangeGraphAccountMcpAsync(message); break;
                     case "graph_mcp_start": await GraphMcpSignInAsync(message, "start"); break;
                     case "graph_mcp_status": await GraphMcpSignInAsync(message, "status"); break;
                     case "graph_mcp_cancel": await GraphMcpSignInAsync(message, "cancel"); break;

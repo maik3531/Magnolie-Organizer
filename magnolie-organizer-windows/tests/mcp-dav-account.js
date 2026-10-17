@@ -11,7 +11,7 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
     try {
       if (b.saves().length) b.ack(); await tick();
       b.w.eval(fs.readFileSync(path.join(web, "mcp-protocol.js"), "utf8"));
-      let sequence = 0, onRead, onWrite, onTest, onMailbox, onGraph;
+      let sequence = 0, onRead, onWrite, onTest, onMailbox, onGraph, onGraphChange;
       const nativeWrites = [];
       const metadata = { kontoArt: "nextcloud", davAktiv: true, briefkastenAktiv: false, url: "https://owned.example.test", benutzer: "owned-reader",
         kennwortVorhanden: true, revision: "e".repeat(64), zustand: "bereit", fehler: "", fehlerCode: "none" };
@@ -35,6 +35,7 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
         if (message.cmd === "baum_dav_pruefen") onTest(message);
         if (message.cmd === "baum_mailbox_schreibpruefen") onMailbox(message);
         if (message.cmd === "graph_konto_stand") onGraph(message);
+        if (message.cmd === "graph_konto_aendern") onGraphChange(message);
       };
       async function rpc(method, params, explicitId) {
         const invocation = (++sequence).toString(16).padStart(48, "0");
@@ -47,8 +48,11 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
       const mailboxTest = async id => (await rpc("tools/call", { name: "organizer_mailbox_write_test", arguments: { expected_revision: metadata.revision } }, id)).result;
       const graphRead = async id => (await rpc("tools/call", { name: "organizer_microsoft_account_read" }, id)).result;
       const replyGraph = (message, extra = {}) => b.w.App.graphKontoStand({ requestId: message.requestId, ok: true,
-        clientId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", configured: true, tokenFilePresent: true, signInPending: false,
+        clientId: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", configured: true, tokenFilePresent: true, signInPending: false, revision: "e".repeat(64),
         refreshToken: "owned-private-refresh-token", protectedToken: "owned-private-protected-token", ...extra });
+      const graphChange = async (args = {}, id) => (await rpc("tools/call", { name: "organizer_microsoft_account_action", arguments: { action: "configure", expected_revision: "e".repeat(64), client_id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", ...args } }, id)).result;
+      const replyGraphChange = (message, extra = {}) => b.w.App.graphKontoGeaendert({ requestId: message.requestId, ok: true, persisted: true, verified: true,
+        clientId: message.clientId, configured: !!message.clientId, tokenFilePresent: false, signInPending: false, revision: "f".repeat(64), refreshToken: "owned-private-change-token", ...extra });
       const replyMailbox = (message, extra = {}) => b.w.App.baumMailboxSchreibpruefung({ requestId: message.requestId, ok: true, revision: metadata.revision,
         passed: true, deleteAcknowledged: true, errorCode: "none", password: "owned-private-mailbox-secret", ...extra });
       const replyTest = (message, extra = {}) => b.w.App.baumDavPruefung({ requestId: message.requestId, ok: true, revision: metadata.revision,
@@ -63,6 +67,7 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
       const before = JSON.stringify(b.t.daten()), saveCount = b.saves().length;
       onGraph = message => replyGraph(message);
       const graph = ok(await graphRead()); assert.equal(graph.configured, true); assert.equal(graph.token_file_present, true);
+      assert.equal(graph.revision, "e".repeat(64));
       assert.equal(graph.authentication_verified, false); assert.equal(graph.connectivity_checked, false);
       assert.ok(!JSON.stringify(graph).includes("owned-private"));
       onGraph = message => replyGraph(message, { signInPending: true }); assert.equal(ok(await graphRead()).sign_in_pending, true);
@@ -71,6 +76,21 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
       onGraph = message => replyGraph(message, { configured: false }); fail(await graphRead(), "invalid_result");
       onGraph = message => replyGraph(message, { ok: false, code: "unsupported_feature" }); fail(await graphRead(), "unsupported_feature");
       onGraph = message => replyGraph(message, { ok: false, code: "profile_locked" }); fail(await graphRead(), "locked_or_cancelled");
+      let graphChangedMessage, graphChangeComplete = false;
+      const graphChangeStarted = new Promise(resolve => { onGraphChange = message => { graphChangedMessage = message; resolve(); }; });
+      const graphChanging = graphChange().then(result => { graphChangeComplete = true; return result; }); await graphChangeStarted;
+      assert.equal(graphChangedMessage.expectedRevision, "e".repeat(64)); assert.equal(graphChangedMessage.action, "configure");
+      replyGraphChange({ ...graphChangedMessage, requestId: "wrong-graph-change" }); await tick(); assert.equal(graphChangeComplete, false);
+      replyGraphChange(graphChangedMessage); const graphChanged = ok(await graphChanging); assert.equal(graphChanged.persisted, true); assert.ok(!JSON.stringify(graphChanged).includes("owned-private"));
+      onGraphChange = message => replyGraphChange(message);
+      assert.equal(ok(await graphChange({ client_id: "" })).configured, false); assert.equal(ok(await graphChange({ action: "sign_out" })).token_file_present, false);
+      for (const bad of [{ persisted: false }, { verified: false }, { revision: "invalid" }]) {
+        onGraphChange = message => replyGraphChange(message, bad); fail(await graphChange(), "invalid_result");
+      }
+      onGraphChange = message => replyGraphChange(message, { tokenFilePresent: true }); fail(await graphChange({ action: "sign_out" }), "invalid_result");
+      for (const code of ["conflict", "native_busy", "unsupported_feature", "profile_locked"]) {
+        onGraphChange = message => replyGraphChange(message, { ok: false, code }); fail(await graphChange(), code === "profile_locked" ? "locked_or_cancelled" : code);
+      }
       let mailboxMessage, mailboxComplete = false;
       const mailboxStarted = new Promise(resolve => { onMailbox = message => { mailboxMessage = message; resolve(); }; });
       const mailboxPending = mailboxTest().then(result => { mailboxComplete = true; return result; }); await mailboxStarted;
@@ -148,7 +168,12 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
       onWrite = null;
       const lateMailboxStarted = new Promise(resolve => { onMailbox = message => { mailboxMessage = message; resolve(); }; });
       const lateMailbox = mailboxTest(7800); await lateMailboxStarted;
+      const lateGraphWriteStarted = new Promise(resolve => { onGraphChange = message => { graphChangedMessage = message; resolve(); }; });
+      const lateGraphWrite = graphChange({}, 7750); await lateGraphWriteStarted;
       b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-sync").click(); await tick();
+      await rpc("notifications/cancelled", { requestId: 7750 }); fail(await lateGraphWrite, "cancelled");
+      const graphWriteRefreshes = b.messages.filter(message => message.cmd === "eds_status").length;
+      replyGraphChange(graphChangedMessage); await tick(); assert.equal(b.messages.filter(message => message.cmd === "eds_status").length, graphWriteRefreshes);
       fail(await mailboxTest(), "dialog_busy");
       await rpc("notifications/cancelled", { requestId: 7800 }); fail(await lateMailbox, "cancelled");
       const mailboxRefreshCount = b.messages.filter(message => message.cmd === "eds_status").length;
@@ -158,6 +183,7 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
       const field = b.w.document.querySelector("#briefkasten-url"); assert.ok(field);
       field.value = "https://owned-draft.example.test"; field.dispatchEvent(new b.w.Event("input"));
       const password = b.w.document.querySelector("#briefkasten-kennwort"); assert.ok(password); password.value = "owned-unsaved-credential";
+      fail(await graphChange(), "dialog_busy");
       let graphMessage;
       const graphStarted = new Promise(resolve => { onGraph = message => { graphMessage = message; resolve(); }; });
       const graphPending = graphRead(7850); await graphStarted;

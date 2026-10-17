@@ -3,8 +3,123 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Runtime.InteropServices;
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace MagnolieOrganizer.Windows;
+
+internal sealed record ManagedAccountState(JsonObject Raw, JsonObject Public, string Revision);
+internal sealed record ManagedAccountReceipt(ManagedAccountState State, bool Accepted, bool Verified);
+
+// One GUI/MCP lane around the existing managed-runtime account operations.
+internal sealed class ManagedAccountOperations
+{
+    private readonly SemaphoreSlim gate = new(1, 1);
+    private readonly Func<bool> enabled;
+    private readonly Func<CancellationToken, Task> ensure;
+    private readonly Func<JsonObject, CancellationToken, Task<JsonObject>> call;
+    private readonly Func<string, string, CancellationToken, Task> begin;
+    private readonly Func<bool> permitted;
+    internal ManagedAccountOperations(Func<bool>? permitted = null) : this(() => ManagedInternetAccounts.Enabled,
+        token => ManagedInternetAccounts.EnsureStartedAsync(token),
+        (request, token) => ThunderbirdBridge.CallAsync(request, token, managed: true), ManagedInternetAccounts.BeginSignInAsync, permitted) { }
+    internal ManagedAccountOperations(Func<bool> enabled, Func<CancellationToken, Task> ensure,
+        Func<JsonObject, CancellationToken, Task<JsonObject>> call, Func<string, string, CancellationToken, Task> begin, Func<bool>? permitted = null)
+    { this.enabled = enabled; this.ensure = ensure; this.call = call; this.begin = begin; this.permitted = permitted ?? (() => true); }
+
+    internal async Task<ManagedAccountReceipt> ExecuteAsync(string action, string provider, string account, string email, string name,
+        string? expectedRevision, CancellationToken token)
+    {
+        if (action is not ("read" or "sign_in" or "rename" or "remove" or "edit")) throw new InvalidDataException();
+        await gate.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            var before = await ReadAsync(token).ConfigureAwait(false);
+            if (expectedRevision is not null && expectedRevision != before.Revision) throw new InvalidOperationException("conflict");
+            if (action == "read") return new(before, false, false);
+            if (before.Public["google_pending"]!.GetValue<bool>() || before.Public["microsoft_pending"]!.GetValue<bool>()) throw new InvalidOperationException("native_busy");
+            token.ThrowIfCancellationRequested();
+            if (!permitted()) throw new OperationCanceledException(token);
+            if (action == "sign_in")
+            {
+                if (provider is not ("google" or "personal-ms" or "office365") || email.Length > 254 || email.Any(char.IsControl) || !email.Contains('@')) throw new InvalidDataException();
+                await begin(provider, email, token).ConfigureAwait(false);
+            }
+            else
+            {
+                if (provider is not ("google" or "microsoft") || account.Length is < 1 or > 254 ||
+                    action == "rename" && (string.IsNullOrWhiteSpace(name) || name.Length > 254)) throw new InvalidDataException();
+                if (!before.Public["accounts"]!.AsArray().OfType<JsonObject>().Any(item =>
+                    item["provider"]!.GetValue<string>() == provider && item["id"]!.GetValue<string>() == account)) throw new InvalidOperationException("not_found");
+                await ensure(token).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
+                if (!permitted()) throw new OperationCanceledException(token);
+                await call(new() { ["op"] = "manage-account", ["provider"] = provider, ["action"] = action, ["accountId"] = account, ["name"] = name }, token).ConfigureAwait(false);
+            }
+            var after = await ReadAsync(token).ConfigureAwait(false);
+            var verified = false;
+            if (action is "rename" or "remove")
+            {
+                if (after.Public["ready"]!.GetValue<bool>() != true) throw new InvalidDataException();
+                var target = after.Public["accounts"]!.AsArray().OfType<JsonObject>().SingleOrDefault(item =>
+                    item["provider"]!.GetValue<string>() == provider && item["id"]!.GetValue<string>() == account);
+                verified = action == "remove" ? target is null : target?["name"]?.GetValue<string>() == name;
+                if (!verified) throw new InvalidDataException("The account change could not be verified.");
+            }
+            return new(after, true, verified);
+        }
+        finally { gate.Release(); }
+    }
+
+    private async Task<ManagedAccountState> ReadAsync(CancellationToken token)
+    {
+        JsonObject raw;
+        if (!enabled()) raw = new() { ["bereit"] = false };
+        else
+        {
+            await ensure(token).ConfigureAwait(false);
+            raw = await call(new() { ["op"] = "status" }, token).ConfigureAwait(false);
+            raw["bereit"] = true;
+        }
+        return Project(raw);
+    }
+    internal static ManagedAccountState Project(JsonObject raw)
+    {
+        static bool Error(JsonNode? node) => node is not null && node.ToJsonString() is not ("null" or "false" or "0" or "\"\"");
+        static string Text(JsonNode? node) { var value = node?.GetValue<string>() ?? ""; return value.Length <= 254 ? value : throw new InvalidDataException(); }
+        var ready = raw["bereit"]?.GetValue<bool>() == true;
+        var accounts = new List<JsonObject>();
+        if (ready)
+        {
+            var google = raw["google"]?["accounts"]?.AsArray() ?? throw new InvalidDataException();
+            var microsoft = raw["microsoft"]?["accounts"]?.AsArray() ?? throw new InvalidDataException();
+            if (google.Count + microsoft.Count > 1000) throw new InvalidDataException();
+            foreach (var item in google)
+            {
+                var id = Text(item);
+                var detail = raw["google"]?["details"]?.AsArray().OfType<JsonObject>().FirstOrDefault(value => Text(value["id"]) == id);
+                accounts.Add(new() { ["provider"] = "google", ["id"] = id, ["name"] = Text(detail?["name"]) is { Length: > 0 } name ? name : id,
+                    ["enabled"] = detail?["enabled"]?.GetValue<bool>() != false, ["error_present"] = Error(detail?["error"]) });
+            }
+            foreach (var node in microsoft)
+            {
+                var item = node as JsonObject ?? throw new InvalidDataException();
+                accounts.Add(new() { ["provider"] = "microsoft", ["id"] = Text(item["id"]), ["name"] = Text(item["name"]),
+                    ["enabled"] = item["enabled"]?.GetValue<bool>() == true, ["error_present"] = Error(item["error"]) });
+            }
+        }
+        if (accounts.Count > 1000 || accounts.Any(item => item["id"]!.GetValue<string>().Length == 0) ||
+            accounts.Select(item => (item["provider"]!.GetValue<string>(), item["id"]!.GetValue<string>())).Distinct().Count() != accounts.Count) throw new InvalidDataException();
+        var content = new JsonObject { ["ready"] = ready, ["google_pending"] = raw["google"]?["pending"]?.GetValue<bool>() == true,
+            ["microsoft_pending"] = raw["microsoft"]?["login"]?["pending"]?.GetValue<bool>() == true,
+            ["error_present"] = Error(raw["google"]?["error"]) || Error(raw["microsoft"]?["login"]?["error"]),
+            ["google_tasks_available"] = JsonValue.Create(raw["google"]?["tasks"]?["available"]?.GetValue<bool>()),
+            ["microsoft_tasks_available"] = JsonValue.Create(raw["microsoft"]?["tasks"]?["available"]?.GetValue<bool>()),
+            ["accounts"] = new JsonArray(accounts.OrderBy(item => item["provider"]!.GetValue<string>(), StringComparer.Ordinal)
+                .ThenBy(item => item["id"]!.GetValue<string>(), StringComparer.Ordinal).Select(item => (JsonNode)item).ToArray()) };
+        return new(raw, content, Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(content.ToJsonString()))).ToLowerInvariant());
+    }
+}
 
 internal static class ManagedInternetAccounts
 {

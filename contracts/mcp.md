@@ -137,7 +137,10 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_dav_connection_test` | Fresh read-only CalDAV/CardDAV discovery through GUI readers, checked against the expected native account revision before and after the request; collection counts, partial discovery and sanitized failure codes, no mailbox/write-permission test |
 | `organizer_mailbox_write_test` | Actual GUI Nextcloud mailbox MKCOL/conditional random probe PUT/DELETE under a pinned account context and expected native revision; explicit probe acknowledgements and possible remote changes, no delivery claim |
 | `organizer_microsoft_account_read` | Windows direct Graph effective public client ID, protected-token file presence and native sign-in activity, without token decryption or authentication claims; explicit unsupported-feature result on Linux |
+| `organizer_microsoft_account_action` | Native-revision-bound Graph client configuration or sign-out, actual local store readback and pending OAuth/sync fencing, shared with the GUI |
 | `organizer_microsoft_sign_in_begin/read/cancel` | Session-owned asynchronous Windows device-code flow shared with the GUI; public user code/verification URL, actual native state/cancellation and protected-token readback, without exposing provider tokens |
+| `organizer_internet_accounts_read` | Paged managed Windows Google/Microsoft inventory and login/task availability metadata under a public-state revision; may start the existing configured helper, without token/authentication claims |
+| `organizer_internet_account_action` | Shared GUI managed-account sign-in/edit launch or revision-checked rename/removal with actual status readback; provider-owned dialogs, not completed-authentication claims |
 | `organizer_dav_account_update` | Full explicit native DAV configuration with expected native revision, optional credential replacement/clearing, shared GUI transaction and verified config/credential readback before persisted success |
 | `organizer_note_read` | Note and revision token |
 | `organizer_note_create` | Plain-text note in an existing notebook; native save acknowledgement |
@@ -382,10 +385,25 @@ and existing build fallback. The ID is returned in canonical GUID form. It reads
 only protected-token file **presence**, never token contents or DPAPI plaintext,
 and reports whether the existing native device-code operation is active.
 `connectivity_checked` and `authentication_verified` are always false; neither
-file presence nor an active sign-in proves a valid session. This metadata is not
-an atomic account revision. Correlated late replies do not update GUI drafts.
+file presence nor an active sign-in proves a valid session. The returned native
+revision is process-keyed over the actual configuration sources, protected-token
+bytes, store identity and operation epoch. It is neither a portable file checksum
+nor a public password/token fingerprint. Metadata sampling shares the native GUI
+commit gate; it is not an atomic remote-account snapshot. Correlated late replies do not update GUI drafts.
 Linux returns `unsupported_feature` for direct Graph; its system-managed EDS
 accounts remain visible via `organizer_sync_sources_read`.
+
+`organizer_microsoft_account_action` requires that native revision. `configure`
+uses the actual GUI configuration transaction and verifies its user override;
+empty `client_id` removes that override and restores the build fallback. A changed
+effective client cancels pending sign-in/Graph-sync work and deletes the old token.
+`sign_out` cancels those operations, advances the native epoch, deletes the token
+file and verifies absence. Sign-in and refresh-token commits check cancellation,
+client identity and epoch inside the same native gate, preventing a late result
+from recreating signed-out credentials. The returned `persisted:true, verified:true`
+confirms local configuration/token storage, not remote token revocation or
+authentication. A cancelled/failed RPC can follow native changes; re-read before
+retrying. Correlated responses remain GUI-draft-neutral.
 
 `organizer_microsoft_sign_in_begin` binds the expected effective public client
 ID and starts the existing GUI OAuth device-code implementation asynchronously.
@@ -412,6 +430,30 @@ only cancels that status request. Closing/replacing the book invalidates the web
 handle at its next use. Native late replies do not replace GUI drafts or open
 dialogs/toasts. Starting does not perform synchronization. Direct Graph remains
 explicitly unsupported on Linux.
+
+The managed Windows Internet-account tools use the same serialized
+`ManagedAccountOperations` handler as the GUI and the existing owned runtime/
+Thunderbird account bridge. Status can start/reconcile an already configured
+helper; an unconfigured status read leaves it off. Consequently the read tool is
+annotated with possible local/helper side effects. The public revision covers
+the complete sorted sanitized inventory, login-pending/task-availability state
+and error-presence flags, not passwords or provider token validity. Entries are
+paged at 100; native inventory is capped at 1000 accounts. No raw provider errors,
+token values or arbitrary provider fields are returned.
+
+`organizer_internet_account_action` accepts `sign_in`, `rename`, `remove` or
+`edit`, requiring that native revision. Sign-in providers are `google`,
+`personal-ms` and `office365`; existing-account providers are `google` and
+`microsoft`. Changes target an account actually offered by the latest read.
+Pending sign-in blocks another mutation; profile/restore/sync gates apply.
+Rename/removal requires a subsequent actual status read to confirm the desired
+name/absence and sets `change_verified:true`. Sign-in/edit only acknowledge
+starting the existing provider interface. `authentication_verified` is always
+false. The native request deadline is 20 seconds; queuing, helper startup,
+provider dialogs and committed changes can outlive RPC cancellation or timeout.
+Inspect current state before retrying. Correlated results do not update GUI
+account drafts or book data. Linux reports explicit unsupported capability for
+this Windows-only helper; existing system EDS accounts remain separate.
 
 For local imports, supply `local_source` (`evolution`/`thunderbird` on Linux,
 `windows_contacts`/`thunderbird` on Windows) and optional `local_scope`
