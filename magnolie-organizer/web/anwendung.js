@@ -10331,6 +10331,74 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return { art: "custom", farbe: "#54744a" };
   }
 
+  function muellImportEreignisse(nutzlast, optionen = {}) {
+    if (!/^waste:(ics|csv):[a-f0-9]{64}$/.test(nutzlast.muellQuelle || "")) throw new Error(_("The content is unreadable."));
+    if (nutzlast.muellFormat === "ics") {
+      if (!Array.isArray(nutzlast.termine) || nutzlast.termine.length > 10000) throw new Error(_("The import exceeds the supported limits."));
+      return nutzlast.termine.map(t => ({ ...kopie(t), _muellTyp: String(t.titel || "").trim(),
+        _muellKey: t.uid ? ["uid", t.icsSerienUid || t.uid, (t.icsRoundtrip || []).filter(x => /^RECURRENCE-ID[;:]/i.test(x))] :
+          ["value", t.datum, t.zeit || "", t.titel || "", t.ort || ""] }));
+    }
+    const rows = nutzlast.zeilen;
+    if (nutzlast.muellFormat !== "csv" || !Array.isArray(rows) || rows.length > 10001 ||
+        rows.some(row => !Array.isArray(row) || row.length > 64 || row.some(cell => typeof cell !== "string" || cell.length > 32768))) throw new Error(_("The content is unreadable."));
+    return rows.slice(optionen.kopf ? 1 : 0).flatMap((row, index) => {
+      const rawDate = String(row[optionen.datumSpalte] || "").trim();
+      if (!rawDate) return [];
+      const date = muellCsvDatum(rawDate, optionen.format);
+      if (!date) throw new Error(_("Date") + ": " + rawDate);
+      const titel = String(optionen.artSpalte < 0 ? optionen.name : row[optionen.artSpalte] || "").trim();
+      if (!titel) throw new Error(_("Name") + ": " + (index + 1));
+      const ort = String(row[optionen.ortSpalte] || ""), notiz = String(row[optionen.notizSpalte] || "");
+      const originalUid = String(row[optionen.uidSpalte] || "").trim();
+      return [{ ...date, titel, ort, notiz, endDatum: "", endZeit: "", wiederholung: { art: "none", bis: "" },
+        uid: originalUid, _muellTyp: titel, _muellKey: originalUid ? ["uid", originalUid] : ["value", date.datum, date.zeit, titel, ort] }];
+    });
+  }
+
+  function muellImportGruppen(nutzlast, ereignisse, wahlen = new Map(), bestand = DATEN.muelltermine) {
+    if (!ereignisse.length || ereignisse.some(t => !gueltigesISO(t.datum) || !t._muellTyp || t._muellTyp.length > 512)) throw new Error(_("The content is unreadable."));
+    const nachTyp = new Map();
+    for (const t of ereignisse) {
+      const key = kanonischerText(t._muellTyp);
+      if (!nachTyp.has(key)) nachTyp.set(key, []);
+      nachTyp.get(key).push(t);
+    }
+    if (nachTyp.size > 64) throw new Error(_("The import exceeds the supported limits."));
+    return [...nachTyp].map(([typ, termine]) => {
+      const alt = bestand.find(m => m.importQuelle === nutzlast.muellQuelle && m.importTyp === typ);
+      if (!wahlen.has(typ)) wahlen.set(typ, { an: true, name: alt?.name || termine[0]._muellTyp.slice(0, 80),
+        art: alt?.art || muellTypVorschlag(typ).art, farbe: alt?.farbe || muellTypVorschlag(typ).farbe });
+      return { typ, termine, wahl: wahlen.get(typ) };
+    });
+  }
+
+  async function muellImportEntwurf(nutzlast, auswahl, bestand = DATEN.muelltermine) {
+    const entwurf = kopie(bestand), eingang = [], gesehen = new Map();
+    for (const g of auswahl) for (const t of g.termine) {
+      const id = "waste:" + await personalSyncHash([nutzlast.muellQuelle, t._muellKey]);
+      const { _muellKey, _muellTyp, ...roh } = t;
+      const normal = normalisiereTermine([{ ...roh, id, sync: false, kontaktId: "", syncQuellen: {} }])[0];
+      if (!normal) throw new Error(_("The content is unreadable."));
+      if (gesehen.has(id) && kanonischerEntwurf(gesehen.get(id)) !== kanonischerEntwurf(normal)) throw new Error(_("Conflict"));
+      if (!gesehen.has(id)) { gesehen.set(id, normal); eingang.push({ gruppe: g, termin: normal }); }
+    }
+    for (const gruppe of entwurf) if (gruppe.importQuelle === nutzlast.muellQuelle && Array.isArray(gruppe.importierteTermine))
+      gruppe.importierteTermine = gruppe.importierteTermine.filter(t => !gesehen.has(t.id));
+    for (const g of auswahl) {
+      let ziel = entwurf.find(m => m.importQuelle === nutzlast.muellQuelle && m.importTyp === g.typ);
+      if (!ziel) { ziel = { id: uid(), importQuelle: nutzlast.muellQuelle, importTyp: g.typ, importierteTermine: [] }; entwurf.push(ziel); }
+      Object.assign(ziel, { name: g.wahl.name, art: g.wahl.art, farbe: g.wahl.farbe, intervallTage: 0,
+        importName: String(nutzlast.muellName || nutzlast.datei || "").slice(0, 256) });
+      ziel.importierteTermine.push(...eingang.filter(e => e.gruppe === g).map(e => e.termin));
+      ziel.importierteTermine.sort((a, b) => a.datum.localeCompare(b.datum) || a.id.localeCompare(b.id));
+      ziel.von = ziel.importierteTermine[0]?.datum || g.termine[0].datum;
+    }
+    if (entwurf.length > 64 || entwurf.reduce((sum, m) => sum + (m.importierteTermine?.length || 0), 0) > 10000)
+      throw new Error(_("The import exceeds the supported limits."));
+    return entwurf;
+  }
+
   function muellImportErgebnis(nutzlast) {
     const lauf = muellImportLauf;
     if (!lauf || nutzlast.muellToken !== lauf.token) return Promise.resolve(false);
@@ -10370,45 +10438,15 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         /^\d{4}-/.test(beispiel) ? "iso" : "dot");
       const eigenerName = eingabe("text", String(nutzlast.datei || "").replace(/\.[^.]+$/, ""));
       function lesen() {
-        if (!/^waste:(ics|csv):[a-f0-9]{64}$/.test(nutzlast.muellQuelle || "")) throw new Error(_("The content is unreadable."));
-        if (nutzlast.muellFormat === "ics") {
-          if (!Array.isArray(nutzlast.termine) || nutzlast.termine.length > 10000) throw new Error(_("The import exceeds the supported limits."));
-          return nutzlast.termine.map(t => ({ ...kopie(t), _muellTyp: String(t.titel || "").trim(),
-            _muellKey: t.uid ? ["uid", t.icsSerienUid || t.uid, (t.icsRoundtrip || []).filter(x => /^RECURRENCE-ID[;:]/i.test(x))] :
-              ["value", t.datum, t.zeit || "", t.titel || "", t.ort || ""] }));
-        }
-        if (nutzlast.muellFormat !== "csv" || rows.length > 10001 || breite > 64) throw new Error(_("The content is unreadable."));
-        return rows.slice(kopf.checked ? 1 : 0).flatMap((row, index) => {
-          if (!Array.isArray(row)) throw new Error(_("The content is unreadable."));
-          const rawDate = String(row[Number(datumSpalte.value)] || "").trim();
-          if (!rawDate) return [];
-          const date = muellCsvDatum(rawDate, format.value);
-          if (!date) throw new Error(_("Date") + ": " + rawDate);
-          const titel = String(Number(artSpalte.value) < 0 ? eigenerName.value : row[Number(artSpalte.value)] || "").trim();
-          if (!titel) throw new Error(_("Name") + ": " + (index + 1));
-          const ort = String(row[Number(ortSpalte.value)] || ""), notiz = String(row[Number(notizSpalte.value)] || "");
-          const originalUid = String(row[Number(uidSpalte.value)] || "").trim();
-          return [{ ...date, titel, ort, notiz, endDatum: "", endZeit: "", wiederholung: { art: "none", bis: "" },
-            uid: originalUid, _muellTyp: titel, _muellKey: originalUid ? ["uid", originalUid] : ["value", date.datum, date.zeit, titel, ort] }];
-        });
+        return muellImportEreignisse(nutzlast, { kopf: kopf.checked, datumSpalte: Number(datumSpalte.value), artSpalte: Number(artSpalte.value),
+          ortSpalte: Number(ortSpalte.value), notizSpalte: Number(notizSpalte.value), uidSpalte: Number(uidSpalte.value), format: format.value, name: eigenerName.value });
       }
       const zeichnen = () => {
         version++; vorschau.textContent = ""; fehler = ""; gruppen = [];
         try {
           const ereignisse = lesen();
-          if (!ereignisse.length || ereignisse.some(t => !gueltigesISO(t.datum) || !t._muellTyp || t._muellTyp.length > 512)) throw new Error(_("The content is unreadable."));
-          const nachTyp = new Map();
-          for (const t of ereignisse) {
-            const key = kanonischerText(t._muellTyp);
-            if (!nachTyp.has(key)) nachTyp.set(key, []);
-            nachTyp.get(key).push(t);
-          }
-          if (nachTyp.size > 64) throw new Error(_("The import exceeds the supported limits."));
-          for (const [typ, termine] of nachTyp) {
-            const alt = DATEN.muelltermine.find(m => m.importQuelle === nutzlast.muellQuelle && m.importTyp === typ);
-            if (!wahlen.has(typ)) wahlen.set(typ, { an: true, name: alt?.name || termine[0]._muellTyp.slice(0, 80),
-              art: alt?.art || muellTypVorschlag(typ).art, farbe: alt?.farbe || muellTypVorschlag(typ).farbe });
-            const wahl = wahlen.get(typ), gruppe = { typ, termine, wahl }; gruppen.push(gruppe);
+          for (const gruppe of muellImportGruppen(nutzlast, ereignisse, wahlen)) {
+            const { typ, termine, wahl } = gruppe; gruppen.push(gruppe);
             const zeile = el("section", "muell-import-gruppe"), an = document.createElement("input"); an.type = "checkbox"; an.checked = wahl.an;
             an.dataset.muellImportTyp = typ;
             an.setAttribute("aria-label", termine[0]._muellTyp);
@@ -10440,28 +10478,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         if (!auswahl.length || auswahl.some(g => !g.wahl.name || g.wahl.name.length > 80)) { status.textContent = _("The content is unreadable."); return; }
         const stand = version; beschaeftigt = true; anwenden.disabled = true;
         try {
-          const entwurf = kopie(DATEN.muelltermine), eingang = [], gesehen = new Map();
-          for (const g of auswahl) for (const t of g.termine) {
-            const id = "waste:" + await personalSyncHash([nutzlast.muellQuelle, t._muellKey]);
-            const { _muellKey, _muellTyp, ...roh } = t;
-            const normal = normalisiereTermine([{ ...roh, id, sync: false, kontaktId: "", syncQuellen: {} }])[0];
-            if (!normal) throw new Error(_("The content is unreadable."));
-            if (gesehen.has(id) && kanonischerEntwurf(gesehen.get(id)) !== kanonischerEntwurf(normal)) throw new Error(_("Conflict"));
-            if (!gesehen.has(id)) { gesehen.set(id, normal); eingang.push({ gruppe: g, termin: normal }); }
-          }
-          for (const gruppe of entwurf) if (gruppe.importQuelle === nutzlast.muellQuelle && Array.isArray(gruppe.importierteTermine))
-            gruppe.importierteTermine = gruppe.importierteTermine.filter(t => !gesehen.has(t.id));
-          for (const g of auswahl) {
-            let ziel = entwurf.find(m => m.importQuelle === nutzlast.muellQuelle && m.importTyp === g.typ);
-            if (!ziel) { ziel = { id: uid(), importQuelle: nutzlast.muellQuelle, importTyp: g.typ, importierteTermine: [] }; entwurf.push(ziel); }
-            Object.assign(ziel, { name: g.wahl.name, art: g.wahl.art, farbe: g.wahl.farbe, intervallTage: 0,
-              importName: String(nutzlast.muellName || nutzlast.datei || "").slice(0, 256) });
-            ziel.importierteTermine.push(...eingang.filter(e => e.gruppe === g).map(e => e.termin));
-            ziel.importierteTermine.sort((a, b) => a.datum.localeCompare(b.datum) || a.id.localeCompare(b.id));
-            ziel.von = ziel.importierteTermine[0]?.datum || g.termine[0].datum;
-          }
-          if (entwurf.length > 64 || entwurf.reduce((sum, m) => sum + (m.importierteTermine?.length || 0), 0) > 10000)
-            throw new Error(_("The import exceeds the supported limits."));
+          const entwurf = await muellImportEntwurf(nutzlast, auswahl);
           if (!gueltig() || version !== stand) throw new Error(_("Conflict"));
           await new Promise((erledigt, abgelehnt) => mitMutationsSnapshot("pre-change", () => {
             if (!gueltig() || version !== stand) { abgelehnt(new Error(_("Conflict"))); return; }
@@ -34623,6 +34640,57 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         !["uebersprungen", "wiederholend"].every(key => value[key] === undefined || Number.isSafeInteger(value[key]) && value[key] >= 0)) throw new MagnolieMcp.ToolError("invalid_result", "Native import metadata or parsed collections were incomplete");
     return value;
   }
+  function mcpMuellImportWerkzeuge() {
+    const hash = { type: "string", pattern: "^[a-f0-9]{64}$" }, column = { type: "integer", minimum: -1, maximum: 63 };
+    const common = { path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, expected_revision: hash,
+      csv: { type: "object", properties: { has_header: { type: "boolean" }, date_column: { type: "integer", minimum: 0, maximum: 63 }, type_column: column,
+        location_column: column, note_column: column, uid_column: column, date_format: { type: "string", enum: ["iso", "dot", "dmy", "mdy"] }, custom_name: { type: "string", maxLength: 512 } }, required: ["has_header", "date_column", "type_column", "date_format"], additionalProperties: false } };
+    const prepare = (payload, args) => {
+      if (payload.muellFormat === "csv" ? !args.csv : args.csv !== undefined) throw new MagnolieMcp.ToolError("invalid_settings", "Explicit CSV column/date mapping is required only for CSV waste imports");
+      const csv = args.csv;
+      try { return muellImportGruppen(payload, muellImportEreignisse(payload, csv ? { kopf: csv.has_header, datumSpalte: csv.date_column, artSpalte: csv.type_column,
+        ortSpalte: csv.location_column ?? -1, notizSpalte: csv.note_column ?? -1, uidSpalte: csv.uid_column ?? -1, format: csv.date_format, name: csv.custom_name || "" } : {})); }
+      catch (_error) { throw new MagnolieMcp.ToolError("invalid_settings", "Waste import has invalid dates, titles, grouping or CSV mapping; inspect the source and mapping"); }
+    };
+    return [
+      { name: "organizer_waste_import_preview", description: "Inspect an explicit waste ICS/CSV file with the native reader and the GUI's actual date mapping/group model. CSV requires explicit zero-based columns/header/date format; -1 type column uses custom_name. Returns at most 64 type groups with suggested names/kinds/colors and date counts, source-byte revision and current book revision. Does not write data or open the GUI import dialog.",
+        inputSchema: { type: "object", properties: common, required: ["path"], additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => {
+          const book = DATEN, before = JSON.stringify(book), payload = await mcpLeseImportDatei({ ...args, format: "muell" }, signal);
+          const groups = prepare(payload, args), revision = await personalSyncHash(before), mappingRevision = await personalSyncHash({ source_revision: payload.revision, csv: args.csv || null });
+          if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Book changed during waste preview; inspect it again");
+          return { path: payload.pfad, format: payload.muellFormat, source: payload.muellQuelle, revision: payload.revision, sha256: payload.sha256, bytes: payload.bytes, book_revision: revision, mapping_revision: mappingRevision,
+            groups: groups.map(group => { const dates = group.termine.map(event => event.datum).sort(); return { type: group.typ, name: group.wahl.name, kind: group.wahl.art, color: group.wahl.farbe, count: group.termine.length, from: dates[0], to: dates.at(-1) }; }) };
+        } },
+      { name: "organizer_waste_import_apply", description: "Apply explicit selected type groups from waste import preview through the same GUI grouping/deduplication/draft engine and mandatory pre-change snapshot, then await actual native durable save. Requires preview source revision, full book revision and identical CSV mapping. Existing manual waste rules and ordinary appointments are retained. Stable source/event identities update/replay without duplication; absent old dates are retained as in the GUI. Enables the waste calendar as the GUI does. Cancellation/save failure after assignment may already have changed data; read back before retrying.",
+        inputSchema: { type: "object", properties: { ...common, expected_book_revision: hash, expected_mapping_revision: hash, groups: { type: "array", minItems: 1, maxItems: 64, items: { type: "object", properties: {
+          type: { type: "string", minLength: 1, maxLength: 512 }, name: { type: "string", minLength: 1, maxLength: 80, pattern: "\\S" }, kind: { type: "string", enum: ["residual", "packaging", "organic", "custom"] }, color: { type: "string", pattern: "^#[a-fA-F0-9]{6}$" } }, required: ["type"], additionalProperties: false } } }, required: ["path", "expected_revision", "expected_book_revision", "expected_mapping_revision", "groups"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: (args, signal) => mcpSchreiben(signal, async () => {
+          const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+          const current = () => !signal.aborted && DATEN === book && !gesperrt && JSON.stringify(DATEN) === before;
+          if (!current() || revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; inspect waste import again");
+          const payload = await mcpLeseImportDatei({ ...args, format: "muell" }, signal), groups = prepare(payload, args), selected = [], seen = new Set();
+          if (await personalSyncHash({ source_revision: payload.revision, csv: args.csv || null }) !== args.expected_mapping_revision) throw new MagnolieMcp.ToolError("conflict", "CSV mapping changed; preview the selected mapping before applying");
+          for (const choice of args.groups) {
+            if (seen.has(choice.type)) throw new MagnolieMcp.ToolError("invalid_settings", "Select each waste type only once");
+            seen.add(choice.type); const group = groups.find(group => group.typ === choice.type);
+            if (!group) throw new MagnolieMcp.ToolError("not_found", "Selected waste type is not present in the source");
+            group.wahl = { ...group.wahl, ...(choice.name !== undefined ? { name: choice.name.trim() } : {}), ...(choice.kind !== undefined ? { art: choice.kind } : {}), ...(choice.color !== undefined ? { farbe: choice.color.toLowerCase() } : {}) }; selected.push(group);
+          }
+          let draft;
+          try { draft = await muellImportEntwurf(payload, selected); }
+          catch (_error) { throw new MagnolieMcp.ToolError("conflict", "Waste import contains conflicting identities or exceeds product limits; no changes applied"); }
+          if (!current()) throw new MagnolieMcp.ToolError("source_changed", "Book changed before waste import checkpoint");
+          await new Promise((resolve, reject) => mitMutationsSnapshot("pre-change", () => {
+            try {
+              mcpEditorPruefen(); if (!current()) throw new MagnolieMcp.ToolError("source_changed", "Book changed before waste import commit");
+              DATEN.muelltermine = draft; DATEN.einstellungen.kalender.muellkalenderAn = true; resolve();
+            } catch (error) { reject(error); }
+          }, () => reject(new MagnolieMcp.ToolError("snapshot_failed", "Native pre-change checkpoint failed; waste import was not applied"))));
+          return { source_revision: payload.revision, group_ids: draft.filter(group => group.importQuelle === payload.muellQuelle && seen.has(group.importTyp)).map(group => group.id),
+            incoming_unique_count: new Set(selected.flatMap(group => group.termine.map(event => kanonischerEntwurf(event._muellKey)))).size, recovery_snapshot_confirmed: true };
+        }) }
+    ];
+  }
   function mcpImportPruefWerkzeuge(owner) {
     const token = { type: "string", pattern: "^[a-f0-9]{48}$" }, hash = { type: "string", pattern: "^[a-f0-9]{64}$" }, count = { type: "integer", minimum: 0, maximum: Number.MAX_SAFE_INTEGER };
     const fields = { token }, schema = extra => ({ type: "object", properties: { ...fields, ...extra }, required: ["token"], additionalProperties: false });
@@ -35688,6 +35756,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (name === "organizer_waste_import_preview") return shape({ path: text, format: { type: "string", enum: ["ics", "csv"] }, source: { type: "string", pattern: "^waste:(ics|csv):[a-f0-9]{64}$" }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, bytes: { type: "integer", minimum: 0 }, book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, mapping_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, groups: { type: "array", minItems: 1, maxItems: 64, items: shape({ type: text, name: text, kind: { type: "string", enum: ["residual", "packaging", "organic", "custom"] }, color: { type: "string", pattern: "^#[a-fA-F0-9]{6}$" }, count: { type: "integer", minimum: 1, maximum: 10000 }, from: text, to: text }, ["type", "name", "kind", "color", "count", "from", "to"]) } }, ["path", "format", "source", "revision", "sha256", "bytes", "book_revision", "mapping_revision", "groups"]);
+    if (name === "organizer_waste_import_apply") return shape({ persisted: yes, source_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, group_ids: { type: "array", minItems: 1, maxItems: 64, items: id }, incoming_unique_count: { type: "integer", minimum: 1, maximum: 10000 }, recovery_snapshot_confirmed: yes }, ["persisted", "source_revision", "group_ids", "incoming_unique_count", "recovery_snapshot_confirmed"]);
     if (["organizer_planner_print", "organizer_health_print", "organizer_time_print"].includes(name)) return shape({ report: { type: "string", enum: ["planner", "health", "time"] }, stage: { type: "string", enum: ["dialog_requested", "dialog_returned"] }, dialog_action: { type: "string", enum: ["unknown", "print", "cancel"] }, paper_output_confirmed: { type: "boolean", enum: [false] } }, ["report", "stage", "dialog_action", "paper_output_confirmed"]);
     if (name === "organizer_cards_print") return shape({ section: { type: "string", enum: ["contacts", "tasks", "notes", "custom", "anniversaries", "appointments"] }, count: { type: "integer", minimum: 1, maximum: 5000 }, stage: { type: "string", enum: ["dialog_requested", "dialog_returned"] }, dialog_action: { type: "string", enum: ["unknown", "print", "cancel"] }, paper_output_confirmed: { type: "boolean", enum: [false] } }, ["section", "count", "stage", "dialog_action", "paper_output_confirmed"]);
     if (name.startsWith("kde_")) return shape({ ok: yes, requestId: id }, ["ok", "requestId"], true);
@@ -35906,6 +35976,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpBriefExportWerkzeuge(),
       ...mcpDruckWerkzeuge(),
       ...mcpBerichtDruckWerkzeuge(),
+      ...mcpMuellImportWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

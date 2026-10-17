@@ -240,6 +240,56 @@ def client():
         assert status["structuredContent"]["ready"] and not status["structuredContent"]["locked"], status
         notes = call("tools/call", {"name": "organizer_data_read", "arguments": {"section": "notizen"}})
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
+        if os.environ.get("MAGNOLIE_MCP_PROBE_WASTE_ONLY") == "1":
+            waste_path = Path(temporary.name) / "owned-waste.csv"
+            waste_path.write_text("Datum;Abfallart;Ort;Notiz;UID\n04.02.2030;Biotonne;Owned point;Owned note;owned-bio\n05.02.2030;Papier;Owned point;;owned-paper\n", encoding="utf-8")
+            waste_csv = {"has_header": True, "date_column": 0, "type_column": 1, "location_column": 2, "note_column": 3, "uid_column": 4, "date_format": "dot"}
+            waste_preview = call("tools/call", {"name": "organizer_waste_import_preview", "arguments": {"path": str(waste_path), "csv": waste_csv}})
+            assert not waste_preview["isError"] and len(waste_preview["structuredContent"]["groups"]) == 2, waste_preview
+            preview_data = waste_preview["structuredContent"]
+            organic = next(group for group in preview_data["groups"] if group["kind"] == "organic")
+            ordinary_before = call("tools/call", {"name": "organizer_data_read", "arguments": {"section": "termine"}})["structuredContent"]["entries"]
+            def apply_waste(preview, target, mapping, choices):
+                arguments = {"path": str(target), "expected_revision": preview["revision"], "expected_book_revision": preview["book_revision"], "expected_mapping_revision": preview["mapping_revision"], "groups": choices}
+                if mapping is not None: arguments["csv"] = mapping
+                return call("tools/call", {"name": "organizer_waste_import_apply", "arguments": arguments})
+            waste_choices = [{"type": organic["type"], "name": "Owned organic", "kind": "organic", "color": "#aabbcc"}]
+            waste_applied = apply_waste(preview_data, waste_path, waste_csv, waste_choices)
+            assert not waste_applied["isError"] and waste_applied["structuredContent"]["persisted"] and waste_applied["structuredContent"]["recovery_snapshot_confirmed"], waste_applied
+            durable_waste = json.loads(data_file.read_text())
+            assert durable_waste["termine"] == ordinary_before
+            waste_group = next(group for group in durable_waste["muelltermine"] if group["id"] == waste_applied["structuredContent"]["group_ids"][0])
+            assert waste_group["name"] == "Owned organic" and waste_group["farbe"] == "#aabbcc" and len(waste_group["importierteTermine"]) == 1
+            assert waste_group["importierteTermine"][0]["notiz"] == "Owned note"
+            waste_event_id = waste_group["importierteTermine"][0]["id"]
+            replay_preview = call("tools/call", {"name": "organizer_waste_import_preview", "arguments": {"path": str(waste_path), "csv": waste_csv}})["structuredContent"]
+            replayed = apply_waste(replay_preview, waste_path, waste_csv, waste_choices)
+            assert not replayed["isError"], replayed
+            assert json.loads(data_file.read_text())["muelltermine"] == durable_waste["muelltermine"]
+            waste_path.write_text(waste_path.read_text().replace("04.02.2030", "06.02.2030"), encoding="utf-8")
+            stale_waste = apply_waste(replay_preview, waste_path, waste_csv, waste_choices)
+            assert stale_waste["isError"] and stale_waste["structuredContent"]["code"] == "conflict", stale_waste
+            changed_preview = call("tools/call", {"name": "organizer_waste_import_preview", "arguments": {"path": str(waste_path), "csv": waste_csv}})["structuredContent"]
+            changed_waste = apply_waste(changed_preview, waste_path, waste_csv, waste_choices)
+            assert not changed_waste["isError"], changed_waste
+            changed_group = next(group for group in json.loads(data_file.read_text())["muelltermine"] if group["id"] == waste_group["id"])
+            assert len(changed_group["importierteTermine"]) == 1 and changed_group["importierteTermine"][0]["id"] == waste_event_id and changed_group["importierteTermine"][0]["datum"] == "2030-02-06"
+            waste_ics_path = Path(temporary.name) / "owned-waste.ics"
+            waste_ics_path.write_text(json.loads((ROOT.parent / "contracts/waste-calendar-v1.json").read_text())["ics"], encoding="utf-8")
+            ics_preview = call("tools/call", {"name": "organizer_waste_import_preview", "arguments": {"path": str(waste_ics_path)}})
+            assert not ics_preview["isError"], ics_preview
+            ics_data = ics_preview["structuredContent"]
+            assert sum(group["count"] for group in ics_data["groups"]) == 7
+            ics_applied = apply_waste(ics_data, waste_ics_path, None, [{"type": group["type"]} for group in ics_data["groups"]])
+            assert not ics_applied["isError"] and ics_applied["structuredContent"]["persisted"], ics_applied
+            stored_waste = json.loads(data_file.read_text())
+            assert stored_waste["termine"] == ordinary_before and sum(len(group.get("importierteTermine", [])) for group in stored_waste["muelltermine"]) == 8
+            state["waste_import_verified"] = True
+            process.stdin.close()
+            assert process.wait(timeout=5) == 0
+            selector.close()
+            state["passed"] = True
+            return
         if os.environ.get("MAGNOLIE_MCP_PROBE_PRINT_ONLY") == "1":
             print_revision = call("tools/call", {"name": "organizer_book_revision_read"})["structuredContent"]["revision"]
             check_print_dialog(print_revision)
@@ -1774,7 +1824,9 @@ finally:
     print("Native MCP fixture state:", json.dumps(state), flush=True)
     temporary.cleanup()
 assert state["passed"], state
-if os.environ.get("MAGNOLIE_MCP_PROBE_PRINT_ONLY") == "1":
+if os.environ.get("MAGNOLIE_MCP_PROBE_WASTE_ONLY") == "1":
+    print("Native MCP WASTE PASS: actual CSV/ICS parsing, mapping/source/book revisions, pre-change checkpoints, durable readback, replay and stable UID correction")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_PRINT_ONLY") == "1":
     print("Native MCP PRINT PASS: real private GTK system print dialog observed/cancelled, correlated return, unchanged book revision")
 else:
     print("Native MCP PASS: GTK/WebKit/worker/stdio/FileReader, durable entities and attachment upload/remove/restore, recovery and bounded large UTF-8 reads")

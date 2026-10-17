@@ -36,6 +36,29 @@ and honest dialog-only receipt apply. Visibility flags, date ranges, units and
 document-only report names do not change GUI selection or stored preferences.
 Planner recurrence expansion must be complete before printing.
 
+### Waste calendar import
+
+`organizer_waste_import_preview` uses the native waste ICS/CSV reader and the
+existing GUI date/group model. CSV input requires explicit zero-based column
+mapping, heading-row choice and ISO/dotted/day-first/month-first date format;
+`type_column: -1` uses `custom_name`. Optional location/note/UID columns default
+to `-1`. ICS rejects CSV mapping. The bounded result contains at most 64 group
+types with suggested display name/kind/color, raw event counts and first/last
+source dates, the actual file-byte digest/revision, `book_revision` and a
+`mapping_revision` binding the source revision and exact mapping object.
+Preview leaves the book unchanged and opens no GUI import dialog.
+
+`organizer_waste_import_apply` requires the preview's source, book and mapping
+revisions, the same mapping, and explicit selected group types (optional
+display-name/kind/color overrides). It re-reads and verifies the actual file,
+uses the same GUI normalization, stable source/UID/value identities and draft
+engine, verifies the book again around the mandatory native pre-change snapshot,
+then waits for durable save before returning `persisted: true`. Replays and UID
+date corrections retain IDs; absent old dates are retained as in the GUI rather
+than replacing a whole feed. Manual waste rules and ordinary appointments are
+retained. The waste calendar is enabled as by the GUI import. A failed save or
+cancellation after assignment may follow applied data; re-read before retrying.
+
 ## Transport and session
 
 Start the desktop Organizer normally, then run the same executable with
