@@ -172,6 +172,39 @@ async function run(web) {
   }, { termine: [{ id: "owned-export-event", titel: "Owned event", datum: "2030-01-02", zeit: "09:00" }],
     kontakte: [{ id: "owned-export-contact", vorname: "Owned", nachname: "Export", syncQuellen: { owned: { marker: "private" } } }] });
 
+  await test("mixed file import shares entity merges and preserves source metadata on replay", async b => {
+    const payload = { termine: [{ uid: "owned-mixed-event", datum: "2030-01-02", zeit: "09:00", titel: "Owned mixed appointment", icsQuelleId: "owned-source",
+      icsRoundtrip: ["BEGIN:VEVENT", "UID:owned-mixed-event", "DTSTART:20300102T090000Z", "X-OWNED-FIELD:preserve", "END:VEVENT"] }],
+      jahrestage: [{ uid: "owned-mixed-anniversary", name: "Owned anniversary", datum: "2000-02-03", typ: "anniversary" }],
+      geburtstage: [{ uid: "owned-mixed-birthday", name: "Owned birthday", datum: "2000-02-04" }],
+      aufgaben: [{ uid: "owned-mixed-task", titel: "Owned mixed task", faellig: "2030-01-02", icsQuelleId: "owned-source" }],
+      notizen: [{ titel: "Owned mixed note", text: "Owned note text", html: "<p>Owned note text</p>" }] };
+    b.w.App.importErgebnis(payload);
+    assert.equal(b.t.daten().termine.length, 1); assert.equal(b.t.daten().jahrestage.length, 2);
+    assert.equal(b.t.daten().aufgaben.length, 1); assert.equal(b.t.daten().notizen.length, 1);
+    assert.ok(b.t.daten().termine[0].icsRoundtrip.includes("X-OWNED-FIELD:preserve"));
+    const after = JSON.stringify(b.t.daten()); b.w.App.importErgebnis(payload);
+    assert.equal(JSON.stringify(b.t.daten()), after, "Replaying an unchanged additive file import must not duplicate its records");
+    b.t.speichereJetzt();
+    for (let index = 0; index < 3; index++) { b.ack(); await tick(); }
+    const stored = JSON.parse(b.saves().at(-1).text);
+    assert.equal(stored.termine.length, 1); assert.equal(stored.jahrestage.length, 2); assert.equal(stored.notizen.length, 1);
+  });
+
+  await test("silent note import reports omissions and honors an explicit destination notebook", async b => {
+    const first = b.t.daten().notizbuecher[0];
+    b.t.daten().notizbuecher.push({ ...plain(first), id: "owned-import-destination", name: "Owned import destination" });
+    b.t.zustand().notizen.notizbuchId = first.id;
+    const toast = b.w.document.querySelector("#zettel").textContent;
+    const result = b.t.mergeNotizen([null, {}, { titel: "Owned oversized import", text: "Owned oversized", html: "<span>x</span>".repeat(10001) },
+      { titel: "Owned silent import", text: "Owned imported content", html: "<p>Owned imported content</p>" }], true, "owned-import-destination");
+    assert.deepEqual(plain(result), { neu: 1, doppelt: 0, uebersprungen: 3 });
+    assert.equal(b.w.document.querySelector("#zettel").textContent, toast);
+    assert.equal(b.t.zustand().notizen.notizbuchId, first.id);
+    assert.equal(b.t.daten().notizen.find(note => note.titel === "Owned silent import").notizbuchId, "owned-import-destination");
+    assert.ok(!b.t.daten().notizen.some(note => note.titel === "Owned oversized import"));
+  });
+
   await test("health preference controls retain canonical measurements and mirror tab state", async b => {
     const measurements = JSON.stringify(b.t.daten().gesundheit);
     b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-kalender").click();

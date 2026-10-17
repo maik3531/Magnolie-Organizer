@@ -29652,28 +29652,30 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return z;
   }
 
-  function mergeNotizen(liste) {
-    const z = { neu: 0, doppelt: 0 };
+  function mergeNotizen(liste, leise = false, notizbuchId = null) {
+    const z = { neu: 0, doppelt: 0, uebersprungen: 0 };
+    const zielbuch = notizbuchId === null ? zustand.notizen.notizbuchId : notizbuchId;
     const schluessel = new Set(DATEN.notizen.map(
       (n) => kanonischerText(n.titel) + "|" + kanonischerText(n.text)));
     for (const n of liste || []) {
-      if (!n) continue;
+      if (!n) { z.uebersprungen++; continue; }
       const titel = String(n.titel || "").trim();
       const text = String(n.text || "").trim();
-      if (!titel && !text) continue;
+      if (!titel && !text) { z.uebersprungen++; continue; }
       const s = kanonischerText(titel) + "|" + kanonischerText(text);
       if (schluessel.has(s)) { z.doppelt++; continue; }
       const htmlStand = {};
       const sicheresHtml = saeubereHtml(String(n.html || ""), htmlStand);
       if (htmlStand.gekuerzt) {
-        zettel(_("The message is too large."));
+        if (!leise) zettel(_("The message is too large."));
+        z.uebersprungen++;
         continue;
       }
       DATEN.notizen.push({ id: uid(), titel: titel || ersteZeile(text),
         text: text, html: sicheresHtml || textZuHtml(text),
         anhaenge: saubereNotizAnhaenge(n.anhaenge),
-        notizbuchId: DATEN.notizbuecher.some((b) => b.id === zustand.notizen.notizbuchId)
-          ? zustand.notizen.notizbuchId : DATEN.notizbuecher[0].id,
+        notizbuchId: DATEN.notizbuecher.some((b) => b.id === zielbuch)
+          ? zielbuch : DATEN.notizbuecher[0].id,
         geaendert: String(n.geaendert || isoHeute()) });
       schluessel.add(s);
       z.neu++;
@@ -29832,6 +29834,54 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       zaehlung.neu++;
     }
     return { daten, zaehlung, providerEntschieden: providerIds.filter((id, index) => plaene[index].modus !== "skip") };
+  }
+
+  function wendeDateiImportDatenAn(nutzlast, termineNormalisiert = false, kontaktPruefung = null, leise = false, notizbuchId = null) {
+    if (kontaktPruefung) {
+      DATEN.kontakte = kontaktPruefung.daten.kontakte;
+      DATEN.jahrestage = kontaktPruefung.daten.jahrestage;
+      DATEN.kontaktImportAblehnungen = kontaktPruefung.daten.kontaktImportAblehnungen;
+    }
+    const teile = [], counts = { appointments: 0, anniversaries: 0, birthdays: 0, tasks: 0, contacts: 0, notes: 0, notes_skipped: 0 };
+    let doppelt = 0;
+    const kontaktImport = Array.isArray(nutzlast.kontakte) ? nutzlast.kontakte : [];
+    const kontaktUids = new Map(kontaktImport.filter(k => k && k.uid).map(k => [k.uid, k]));
+    const ohneKontaktkopien = (liste, typ) => (liste || []).filter((j) => {
+      if (!j) return false;
+      const k = j.kontaktUid ? kontaktUids.get(j.kontaktUid) :
+        Number.isInteger(j.kontaktIndex) ? kontaktImport[j.kontaktIndex] : null;
+      const art = jahrestagTypId(typ || j.typ);
+      return !k || !["birthday", "anniversary"].includes(art) ||
+        kanonischesJahresdatum(j.datum, j.jahrUnbekannt) !==
+          kanonischesJahresdatum(k[art === "birthday" ? "geburtstag" : "jubilaeum"], art === "birthday" && k.geburtstagJahrUnbekannt);
+    });
+    if (Array.isArray(nutzlast.termine) && nutzlast.termine.length) {
+      const z = mergeTermine(nutzlast.termine, termineNormalisiert); doppelt += z.doppelt; counts.appointments = z.neu;
+      if (z.neu) teile.push(uebersetztMehrzahl("%(count)s appointment", "%(count)s appointments", z.neu));
+    }
+    if (Array.isArray(nutzlast.jahrestage) && nutzlast.jahrestage.length) {
+      const z = mergeJahrestage(ohneKontaktkopien(nutzlast.jahrestage, ""), ""); doppelt += z.doppelt; counts.anniversaries = z.neu;
+      if (z.neu) teile.push(uebersetztMehrzahl("%(count)s anniversary", "%(count)s anniversaries", z.neu));
+    }
+    if (Array.isArray(nutzlast.geburtstage) && nutzlast.geburtstage.length) {
+      const z = mergeJahrestage(ohneKontaktkopien(nutzlast.geburtstage, "birthday"), "birthday"); doppelt += z.doppelt; counts.birthdays = z.neu;
+      if (z.neu) teile.push(uebersetztMehrzahl("%(count)s birthday", "%(count)s birthdays", z.neu));
+    }
+    if (Array.isArray(nutzlast.aufgaben) && nutzlast.aufgaben.length) {
+      const z = mergeAufgaben(nutzlast.aufgaben); doppelt += z.doppelt; counts.tasks = z.neu;
+      if (z.neu) teile.push(uebersetztMehrzahl("%(count)s task", "%(count)s tasks", z.neu));
+    }
+    if (kontaktImport.length) {
+      const z = kontaktPruefung ? kontaktPruefung.zaehlung : mergeKontakte(kontaktImport); doppelt += z.doppelt; counts.contacts = z.neu;
+      if (z.neu) teile.push(uebersetztMehrzahl("%(count)s contact", "%(count)s contacts", z.neu));
+      if (z.fotos) teile.push(uebersetztMehrzahl("%(count)s contact photo added", "%(count)s contact photos added", z.fotos));
+      if (z.emails) teile.push(uebersetztMehrzahl("%(count)s email address added", "%(count)s email addresses added", z.emails));
+    }
+    if (Array.isArray(nutzlast.notizen) && nutzlast.notizen.length) {
+      const z = mergeNotizen(nutzlast.notizen, leise, notizbuchId); doppelt += z.doppelt; counts.notes = z.neu; counts.notes_skipped = z.uebersprungen;
+      if (z.neu) teile.push(uebersetztMehrzahl("%(count)s note", "%(count)s notes", z.neu));
+    }
+    return { teile, doppelt, counts, changed: !!(teile.length || kontaktImport.length) };
   }
 
   function pruefeKontaktDateiImport(liste, quelle = "", nurAblehnen = false, providerZielId = "", lokaleQuelle = false) {
@@ -32226,66 +32276,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           }, () => { setupImportBeenden(); resolve(); }));
         });
       }
-      if (kontaktPruefung) {
-        DATEN.kontakte = kontaktPruefung.daten.kontakte;
-        DATEN.jahrestage = kontaktPruefung.daten.jahrestage;
-        DATEN.kontaktImportAblehnungen = kontaktPruefung.daten.kontaktImportAblehnungen;
-      }
-      const teile = [];
-      let doppelt = 0;
-      const kontaktImport = Array.isArray(nutzlast.kontakte) ? nutzlast.kontakte : [];
-      const kontaktUids = new Map(kontaktImport.filter(k => k && k.uid).map(k => [k.uid, k]));
-      const ohneKontaktkopien = (liste, typ) => (liste || []).filter((j) => {
-        if (!j) return false;
-        const k = j.kontaktUid ? kontaktUids.get(j.kontaktUid) :
-          Number.isInteger(j.kontaktIndex) ? kontaktImport[j.kontaktIndex] : null;
-        const art = jahrestagTypId(typ || j.typ);
-        return !k || !["birthday", "anniversary"].includes(art) ||
-          kanonischesJahresdatum(j.datum, j.jahrUnbekannt) !==
-            kanonischesJahresdatum(k[art === "birthday" ? "geburtstag" : "jubilaeum"],
-              art === "birthday" && k.geburtstagJahrUnbekannt);
-      });
-      if (Array.isArray(nutzlast.termine) && nutzlast.termine.length) {
-        const z = mergeTermine(nutzlast.termine, termineNormalisiert);
-        doppelt += z.doppelt;
-        if (z.neu) teile.push(uebersetztMehrzahl(
-          "%(count)s appointment", "%(count)s appointments", z.neu));
-      }
-      if (Array.isArray(nutzlast.jahrestage) && nutzlast.jahrestage.length) {
-        const z = mergeJahrestage(ohneKontaktkopien(nutzlast.jahrestage, ""), "");
-        doppelt += z.doppelt;
-        if (z.neu) teile.push(uebersetztMehrzahl(
-          "%(count)s anniversary", "%(count)s anniversaries", z.neu));
-      }
-      if (Array.isArray(nutzlast.geburtstage) && nutzlast.geburtstage.length) {
-        const z = mergeJahrestage(ohneKontaktkopien(nutzlast.geburtstage, "birthday"), "birthday");
-        doppelt += z.doppelt;
-        if (z.neu) teile.push(uebersetztMehrzahl(
-          "%(count)s birthday", "%(count)s birthdays", z.neu));
-      }
-      if (Array.isArray(nutzlast.aufgaben) && nutzlast.aufgaben.length) {
-        const z = mergeAufgaben(nutzlast.aufgaben);
-        doppelt += z.doppelt;
-        if (z.neu) teile.push(uebersetztMehrzahl(
-          "%(count)s task", "%(count)s tasks", z.neu));
-      }
-      if (Array.isArray(nutzlast.kontakte) && nutzlast.kontakte.length) {
-        const z = kontaktPruefung ? kontaktPruefung.zaehlung : mergeKontakte(nutzlast.kontakte);
-        doppelt += z.doppelt;
-        if (z.neu) teile.push(uebersetztMehrzahl(
-          "%(count)s contact", "%(count)s contacts", z.neu));
-        if (z.fotos) teile.push(uebersetztMehrzahl(
-          "%(count)s contact photo added", "%(count)s contact photos added", z.fotos));
-        if (z.emails) teile.push(uebersetztMehrzahl(
-          "%(count)s email address added", "%(count)s email addresses added", z.emails));
-      }
-      if (Array.isArray(nutzlast.notizen) && nutzlast.notizen.length) {
-        const z = mergeNotizen(nutzlast.notizen);
-        doppelt += z.doppelt;
-        if (z.neu) teile.push(uebersetztMehrzahl(
-          "%(count)s note", "%(count)s notes", z.neu));
-      }
-      if (teile.length || (nutzlast.kontakte || []).length) {
+      const { teile, doppelt, changed } = wendeDateiImportDatenAn(nutzlast, termineNormalisiert, kontaktPruefung);
+      if (changed) {
         planeSpeichern();
         zeichneAlles();
       }
@@ -35488,6 +35480,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     mergeAufgaben: mergeAufgaben,
     personalSyncSetze: personalSyncSetze,
     mergeTermine: mergeTermine,
+    mergeNotizen: mergeNotizen,
     mergeKontakte: mergeKontakte,
     versionsSchluessel: versionsSchluessel,
     istNeuereFassung: istNeuereFassung,
