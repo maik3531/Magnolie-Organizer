@@ -281,6 +281,19 @@ class NextcloudSettingsStore:
             except Exception as error:
                 return settings, False, None, error
 
+    def checked_client(self, expected_revision, purpose="dav", transport=None):
+        """Pin a verified account/credential context before starting remote operations."""
+        with self._gate:
+            settings, present, revision, error = self.read_snapshot()
+            if error is not None:
+                raise error
+            if revision != expected_revision:
+                raise NextcloudError("Die Kontoeinstellungen wurden geaendert.", "conflict")
+            client = configured_client(self, transport=transport, purpose=purpose)
+            if self._snapshot_revision(settings, client.password) != revision:
+                raise NextcloudError("Der gespeicherte Zugang wurde geaendert.", "conflict")
+            return client
+
     def _snapshot_revision(self, settings, secret):
         path = os.path.abspath(self.path)
         material = json.dumps({"store": path, "settings": settings, "credential": secret or None,

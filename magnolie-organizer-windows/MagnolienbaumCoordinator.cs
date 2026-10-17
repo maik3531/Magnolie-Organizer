@@ -139,6 +139,20 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         else await ReportMailboxStatusAsync("App.baumBriefkastenGespeichert").ConfigureAwait(false);
     }
 
+    internal async Task TestMailboxWriteAsync(string requestId, string expectedRevision, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await mailbox.TestAccessCheckedAsync(String(state, "kennung"), expectedRevision, cancellationToken).ConfigureAwait(false);
+            await emit("App.baumMailboxSchreibpruefung", new { requestId, ok = result.Ok, code = result.Code, revision = result.Revision,
+                passed = result.Passed, deleteAcknowledged = result.Passed, errorCode = result.ErrorCode }).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            await emit("App.baumMailboxSchreibpruefung", new { requestId, ok = false, code = "native_operation_failed" }).ConfigureAwait(false);
+        }
+    }
+
     internal async Task TestMailboxAsync(CancellationToken cancellationToken = default)
     {
         try

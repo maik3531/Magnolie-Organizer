@@ -31985,6 +31985,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
     },
     baumDavPruefung(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "baumDavPruefung"); },
+    baumMailboxSchreibpruefung(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "baumMailboxSchreibpruefung"); },
     baumBriefkastenPruefung(nutzlast) {
       briefkastenStand = nutzlast || {};
       briefkastenSignatur = JSON.stringify(briefkastenStand);
@@ -34456,7 +34457,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         credential_present: value.revision === null && failed ? null : value.kennwortVorhanden, revision: value.revision,
         native_state: value.zustand, error_present: failed, error_code: value.fehlerCode, connectivity_checked: false };
     };
-    return [{ name: "organizer_dav_connection_test", description: "Test the saved active DAV account using the GUI's actual read-only CalDAV/CardDAV discovery readers. Requires the native account revision; a change before or during discovery rejects the result. Reports fresh reachability, partial discovery and collection counts, without returning records, credentials or raw server errors. Does not run synchronization, test record write permissions or run the separate mailbox MKCOL/PUT/DELETE test. No GUI dialogs/draft changes. A timeout/cancellation may leave bounded read-only discovery running; late responses remain silent.",
+    return [{ name: "organizer_mailbox_write_test", description: "Run the GUI's actual enabled Nextcloud Magnolienbaum mailbox write test against the expected native account revision. Uses a pinned account/credential context, creates the standard MKCOL hierarchy, PUTs a random probe with If-None-Match, then attempts DELETE. Standard folders can remain. A passing result confirms only the probe PUT and DELETE acknowledgements, not delivery or record-write permissions. Failure, revision conflict, timeout or cancellation can leave remote changes/probe remnants; do not retry blindly. Does not start DAV synchronization, alter book records or open GUI dialogs; late replies remain silent.",
+      inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, required: ["expected_revision"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        const value = await mcpNativeAufruf("baum_mailbox_schreibpruefen", { expectedRevision: args.expected_revision }, "baumMailboxSchreibpruefung", signal);
+        if (value.ok !== true) throw new MagnolieMcp.ToolError(value.code === "profile_locked" ? "locked_or_cancelled" : ["conflict", "not_active", "native_busy"].includes(value.code) ? value.code : "native_operation_failed", "Native mailbox test could not be completed against the expected account; remote state may have changed, inspect before retrying");
+        if (value.revision !== args.expected_revision || typeof value.passed !== "boolean" || typeof value.deleteAcknowledged !== "boolean" || value.passed !== value.deleteAcknowledged || typeof value.errorCode !== "string" || value.passed && value.errorCode !== "none" || !value.passed && value.errorCode === "none") throw new MagnolieMcp.ToolError("invalid_result", "Native mailbox test receipt was incomplete; remote state may have changed");
+        const code = /^(none|timeout|network_error|native_operation_failed|http_[1-5][0-9]{2}|nextcloud_error)$/.test(value.errorCode) ? value.errorCode : "native_operation_failed";
+        return { revision: value.revision, write_test_passed: value.passed, probe_delete_acknowledged: value.deleteAcknowledged, error_code: code, remote_state_may_have_changed: true, delivery_confirmed: false };
+      } }, { name: "organizer_dav_connection_test", description: "Test the saved active DAV account using the GUI's actual read-only CalDAV/CardDAV discovery readers. Requires the native account revision; a change before or during discovery rejects the result. Reports fresh reachability, partial discovery and collection counts, without returning records, credentials or raw server errors. Does not run synchronization, test record write permissions or run the separate mailbox MKCOL/PUT/DELETE test. No GUI dialogs/draft changes. A timeout/cancellation may leave bounded read-only discovery running; late responses remain silent.",
       inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, required: ["expected_revision"], additionalProperties: false },
       annotations: { readOnlyHint: true, openWorldHint: true }, call: async (args, signal) => {
         const value = await mcpNativeAufruf("baum_dav_pruefen", { expectedRevision: args.expected_revision }, "baumDavPruefung", signal);
@@ -35657,6 +35667,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (name === "organizer_mailbox_write_test") {
+      const fields = { revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, write_test_passed: flag, probe_delete_acknowledged: flag, error_code: text, remote_state_may_have_changed: yes, delivery_confirmed: { type: "boolean", enum: [false] } };
+      return shape(fields, Object.keys(fields));
+    }
     if (name === "organizer_dav_connection_test") {
       const no = { type: "boolean", enum: [false] }, count = { type: "integer", minimum: 0 };
       const fields = { revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, connectivity_checked: yes, reachable: flag, partial: flag, error_code: text,

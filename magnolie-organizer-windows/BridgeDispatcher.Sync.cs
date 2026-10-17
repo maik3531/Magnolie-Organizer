@@ -173,6 +173,18 @@ internal sealed partial class BridgeDispatcher
             Boolean(message, "kennwortLoeschen"), Text(message, "kontoArt"), requestId, Text(message, "expectedRevision"));
     }
 
+    private async Task TestMailboxWriteAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId");
+        if (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null))
+        {
+            await form.SendAsync("App.baumMailboxSchreibpruefung", new { requestId, ok = false, code = "profile_locked" });
+            return;
+        }
+        using var timeout = NetworkDeadline(TimeSpan.FromSeconds(20));
+        await baum.TestMailboxWriteAsync(requestId, Text(message, "expectedRevision"), timeout.Token);
+    }
+
     private async Task TestDavConnectionAsync(JsonElement message)
     {
         var requestId = Text(message, "requestId");

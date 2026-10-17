@@ -361,6 +361,11 @@ def client():
             assert stale_test["isError"] and stale_test["structuredContent"]["code"] == "conflict", stale_test
             assert Path(product.nextcloud_einstellungsdatei()).read_bytes() == config_before
             state["dav_discovery_inactive_revision_gates_verified"] = True
+            inactive_mailbox = call("tools/call", {"name": "organizer_mailbox_write_test", "arguments": {"expected_revision": actual_read["revision"]}})
+            assert inactive_mailbox["isError"] and inactive_mailbox["structuredContent"]["code"] == "not_active", inactive_mailbox
+            stale_mailbox = call("tools/call", {"name": "organizer_mailbox_write_test", "arguments": {"expected_revision": initial_account["revision"]}})
+            assert stale_mailbox["isError"] and stale_mailbox["structuredContent"]["code"] == "conflict", stale_mailbox
+            state["mailbox_write_inactive_revision_gates_verified"] = True
             assert data_file.read_text() == unchanged_book
             state["dav_write_verified"] = True
             process.stdin.close()

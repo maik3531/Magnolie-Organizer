@@ -134,6 +134,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_sync_settings_update` | Shared GUI selection/preferences, native validation of newly linked IDs and durable save; preserves offline selections and existing record/provider routing |
 | `organizer_dav_account_read` | Actual local shared GUI Nextcloud/generic-DAV configuration and credential-presence metadata, with a process-bound keyed native revision and explicit unreadable states; no secret values or connectivity claim |
 | `organizer_dav_connection_test` | Fresh read-only CalDAV/CardDAV discovery through GUI readers, checked against the expected native account revision before and after the request; collection counts, partial discovery and sanitized failure codes, no mailbox/write-permission test |
+| `organizer_mailbox_write_test` | Actual GUI Nextcloud mailbox MKCOL/conditional random probe PUT/DELETE under a pinned account context and expected native revision; explicit probe acknowledgements and possible remote changes, no delivery claim |
 | `organizer_dav_account_update` | Full explicit native DAV configuration with expected native revision, optional credential replacement/clearing, shared GUI transaction and verified config/credential readback before persisted success |
 | `organizer_note_read` | Note and revision token |
 | `organizer_note_create` | Plain-text note in an existing notebook; native save acknowledgement |
@@ -355,8 +356,22 @@ not read contact/calendar records, synchronize, test record-write permissions,
 or create a mailbox write probe (`mailbox_tested` and `write_permissions_tested`
 are false). Native request deadlines apply; cancellation or an RPC timeout can
 leave bounded read-only discovery finishing in the worker. Correlated late
-responses do not modify GUI drafts, dialogs or book data. The separate mailbox
-write test, login actions and full synchronization remain coverage work.
+responses do not modify GUI drafts, dialogs or book data.
+
+`organizer_mailbox_write_test` is a separate **writing** operation against the
+enabled Nextcloud mailbox account. It reuses the GUI probe, with the native
+account/credential context pinned before any remote writes and revision checks
+before/after the operation. It ensures the normal six-folder mailbox hierarchy,
+conditionally PUTs a random write-test object, and attempts to DELETE it. Normal
+folders can remain even after a passing test. `write_test_passed` and
+`probe_delete_acknowledged` are true only when both native PUT and DELETE calls
+completed successfully; this acknowledges the response, not an independent
+readback of absence. A failure conservatively leaves the delete acknowledgement
+false/unknown. `remote_state_may_have_changed` is always true for completed tests;
+revision errors, cancellation and timeouts can also follow writes or leave a
+probe behind. Inspect remote state before retrying. `delivery_confirmed` is
+always false. Neither book records nor GUI account drafts are changed. Login
+actions and full synchronization remain coverage work.
 
 For local imports, supply `local_source` (`evolution`/`thunderbird` on Linux,
 `windows_contacts`/`thunderbird` on Windows) and optional `local_scope`

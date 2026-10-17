@@ -15,11 +15,61 @@ internal static class NextcloudMailboxTests
         await TestAccountSnapshotAsync();
         await TestOrphanCredentialBindingAsync();
         await TestCheckedAccountSaveAsync();
+        await TestCheckedMailboxProbeAsync();
         TestAuthenticatedDocuments();
         await TestWebDavAsync();
         await TestWebDavFailuresAsync();
         await TestDamagedSettingsStatusAsync();
         TestReservedCounterRecovery();
+    }
+
+    private static async Task TestCheckedMailboxProbeAsync()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-mailbox-probe-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var store = new NextcloudMailboxSettingsStore(Path.Combine(root, "cfg.json"), Path.Combine(root, "pw.dat"), new FakeProtector());
+            store.SaveConfiguration(new(false, true, "https://owned.example.test", "owned-user"), "owned-probe-secret", false);
+            var revision = store.ReadSnapshot().Revision;
+            var calls = new List<RequestRecord>();
+            var mode = "ok";
+            using var http = new HttpClient(new RecordingHandler(async request =>
+            {
+                calls.Add(new(request.Method.Method, request.RequestUri!.AbsoluteUri, request.Headers.Authorization!.ToString(),
+                    request.Headers.TryGetValues("If-None-Match", out var match) ? match.Single() : "", "", request.Content is null ? "" : await request.Content.ReadAsStringAsync()));
+                if (mode == "change")
+                {
+                    mode = "ok";
+                    store.SaveConfiguration(new(false, true, "https://other-owned.example.test", "other-user"), "owned-other-secret", false);
+                }
+                return new HttpResponseMessage(request.Method.Method switch
+                {
+                    "PUT" => mode == "put_fail" ? HttpStatusCode.Forbidden : HttpStatusCode.Created,
+                    "DELETE" => mode == "delete_fail" ? HttpStatusCode.InsufficientStorage : HttpStatusCode.NoContent,
+                    _ => HttpStatusCode.Created
+                });
+            }));
+            using var mailbox = new NextcloudMailbox(store, http);
+            var result = await mailbox.TestAccessCheckedAsync("owned-probe", revision, default);
+            TestAssert.That(result.Ok && result.Passed && result.Revision == revision && calls.Select(value => value.Method).SequenceEqual(
+                new[] { "MKCOL", "MKCOL", "MKCOL", "MKCOL", "MKCOL", "MKCOL", "PUT", "DELETE" }), "Checked probe did not reuse actual GUI MKCOL/PUT/DELETE.");
+            TestAssert.That(calls[^2].Uri == calls[^1].Uri && calls[^2].IfNoneMatch == "*" && calls[^2].Body == "{\"format\":\"magnolie-write-test\"}", "Probe lost random URI/conditional PUT/delete binding.");
+            foreach (var (failure, code) in new[] { ("put_fail", "http_403"), ("delete_fail", "http_507") })
+            {
+                calls.Clear(); mode = failure;
+                result = await mailbox.TestAccessCheckedAsync("owned-probe", revision, default);
+                TestAssert.That(result.Ok && !result.Passed && result.ErrorCode == code && calls[^1].Method == "DELETE", "Failed PUT/DELETE was reported as a passing probe.");
+            }
+            calls.Clear(); mode = "change";
+            result = await mailbox.TestAccessCheckedAsync("owned-probe", revision, default);
+            TestAssert.That(!result.Ok && result.Code == "conflict" && calls.Count == 8 && calls.All(value => new Uri(value.Uri).Host == "owned.example.test") && calls.Select(value => value.Authorization).Distinct().Count() == 1,
+                "Account change redirected the in-flight mailbox test or escaped its revision check.");
+            var count = calls.Count;
+            result = await mailbox.TestAccessCheckedAsync("owned-probe", revision, default);
+            TestAssert.That(!result.Ok && result.Code == "conflict" && calls.Count == count, "Stale probe wrote remotely.");
+        }
+        finally { Directory.Delete(root, true); }
     }
 
     private static async Task TestAccountSnapshotAsync()

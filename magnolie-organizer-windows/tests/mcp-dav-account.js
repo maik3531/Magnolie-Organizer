@@ -11,7 +11,7 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
     try {
       if (b.saves().length) b.ack(); await tick();
       b.w.eval(fs.readFileSync(path.join(web, "mcp-protocol.js"), "utf8"));
-      let sequence = 0, onRead, onWrite, onTest;
+      let sequence = 0, onRead, onWrite, onTest, onMailbox;
       const nativeWrites = [];
       const metadata = { kontoArt: "nextcloud", davAktiv: true, briefkastenAktiv: false, url: "https://owned.example.test", benutzer: "owned-reader",
         kennwortVorhanden: true, revision: "e".repeat(64), zustand: "bereit", fehler: "", fehlerCode: "none" };
@@ -33,6 +33,7 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
           nativeWrites.push(message); if (onWrite) onWrite(message); else queueMicrotask(() => replySave(message));
         }
         if (message.cmd === "baum_dav_pruefen") onTest(message);
+        if (message.cmd === "baum_mailbox_schreibpruefen") onMailbox(message);
       };
       async function rpc(method, params, explicitId) {
         const invocation = (++sequence).toString(16).padStart(48, "0");
@@ -42,6 +43,9 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
       }
       const read = async id => (await rpc("tools/call", { name: "organizer_dav_account_read" }, id)).result;
       const test = async id => (await rpc("tools/call", { name: "organizer_dav_connection_test", arguments: { expected_revision: metadata.revision } }, id)).result;
+      const mailboxTest = async id => (await rpc("tools/call", { name: "organizer_mailbox_write_test", arguments: { expected_revision: metadata.revision } }, id)).result;
+      const replyMailbox = (message, extra = {}) => b.w.App.baumMailboxSchreibpruefung({ requestId: message.requestId, ok: true, revision: metadata.revision,
+        passed: true, deleteAcknowledged: true, errorCode: "none", password: "owned-private-mailbox-secret", ...extra });
       const replyTest = (message, extra = {}) => b.w.App.baumDavPruefung({ requestId: message.requestId, ok: true, revision: metadata.revision,
         reachable: true, partial: false, errorCode: "none", calendars: 2, addressBooks: 1, password: "owned-private-test-secret", ...extra });
       const write = async (fields = {}, id) => (await rpc("tools/call", { name: "organizer_dav_account_update", arguments: {
@@ -52,6 +56,23 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
       await rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "owned-dav-reader", version: "1" } });
       await rpc("notifications/initialized");
       const before = JSON.stringify(b.t.daten()), saveCount = b.saves().length;
+      let mailboxMessage, mailboxComplete = false;
+      const mailboxStarted = new Promise(resolve => { onMailbox = message => { mailboxMessage = message; resolve(); }; });
+      const mailboxPending = mailboxTest().then(result => { mailboxComplete = true; return result; }); await mailboxStarted;
+      assert.equal(mailboxMessage.expectedRevision, metadata.revision);
+      replyMailbox({ ...mailboxMessage, requestId: "wrong-mailbox-request" }); await tick(); assert.equal(mailboxComplete, false);
+      replyMailbox(mailboxMessage); const mailboxResult = ok(await mailboxPending);
+      assert.equal(mailboxResult.write_test_passed, true); assert.equal(mailboxResult.probe_delete_acknowledged, true);
+      assert.equal(mailboxResult.remote_state_may_have_changed, true); assert.equal(mailboxResult.delivery_confirmed, false);
+      assert.ok(!JSON.stringify(mailboxResult).includes("owned-private"));
+      onMailbox = message => replyMailbox(message, { passed: false, deleteAcknowledged: false, errorCode: "http_403" });
+      assert.equal(ok(await mailboxTest()).write_test_passed, false);
+      onMailbox = message => replyMailbox(message, { deleteAcknowledged: false }); fail(await mailboxTest(), "invalid_result");
+      onMailbox = message => replyMailbox(message, { passed: false, deleteAcknowledged: false }); fail(await mailboxTest(), "invalid_result");
+      onMailbox = message => replyMailbox(message, { revision: "f".repeat(64) }); fail(await mailboxTest(), "invalid_result");
+      for (const code of ["conflict", "not_active", "native_busy", "profile_locked"]) {
+        onMailbox = message => replyMailbox(message, { ok: false, code }); fail(await mailboxTest(), code === "profile_locked" ? "locked_or_cancelled" : code);
+      }
       let testMessage, testComplete = false;
       const testStarted = new Promise(resolve => { onTest = message => { testMessage = message; resolve(); }; });
       const testing = test().then(result => { testComplete = true; return result; }); await testStarted;
@@ -110,7 +131,14 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
       onWrite = message => replySave(message, { davAktiv: true }); fail(await write(), "invalid_result");
       onWrite = message => replySave(message, { kennwortVorhanden: false }); fail(await write({ application_password: "owned-not-stored" }), "invalid_result");
       onWrite = null;
+      const lateMailboxStarted = new Promise(resolve => { onMailbox = message => { mailboxMessage = message; resolve(); }; });
+      const lateMailbox = mailboxTest(7800); await lateMailboxStarted;
       b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-sync").click(); await tick();
+      fail(await mailboxTest(), "dialog_busy");
+      await rpc("notifications/cancelled", { requestId: 7800 }); fail(await lateMailbox, "cancelled");
+      const mailboxRefreshCount = b.messages.filter(message => message.cmd === "eds_status").length;
+      replyMailbox(mailboxMessage); await tick();
+      assert.equal(b.messages.filter(message => message.cmd === "eds_status").length, mailboxRefreshCount);
       fail(await write(), "dialog_busy");
       const field = b.w.document.querySelector("#briefkasten-url"); assert.ok(field);
       field.value = "https://owned-draft.example.test"; field.dispatchEvent(new b.w.Event("input"));

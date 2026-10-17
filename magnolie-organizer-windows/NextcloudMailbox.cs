@@ -18,6 +18,7 @@ internal sealed record NextcloudMailboxSettings(bool DavActive, bool MailboxActi
 }
 internal sealed record NextcloudMailboxContext(NextcloudMailboxSettings Settings, AuthenticationHeaderValue? Authorization);
 internal sealed record NextcloudSettingsSnapshot(NextcloudMailboxSettings? Settings, bool CredentialPresent, string Revision);
+internal sealed record MailboxAccessResult(bool Ok, string Code, string? Revision = null, bool Passed = false, string ErrorCode = "none");
 
 internal static class NextcloudStatusText
 {
@@ -261,10 +262,11 @@ internal sealed class NextcloudMailboxSettingsStore
         }
     }
 
-    internal NextcloudMailboxContext Context(bool mailbox = true)
+    internal NextcloudMailboxContext Context(bool mailbox = true, string? expectedRevision = null)
     {
         lock (gate)
         {
+            if (expectedRevision is not null && ReadSnapshot().Revision != expectedRevision) throw new InvalidOperationException("mcp_conflict");
             var settings = Load() ?? throw new InvalidOperationException("Der Nextcloud-Briefkasten ist nicht eingerichtet.");
             if (mailbox ? !settings.MailboxActive : !settings.DavActive)
                 throw new InvalidOperationException(mailbox ? "Der Nextcloud-Briefkasten ist nicht aktiviert." : "Nextcloud ist nicht aktiviert.");
@@ -442,9 +444,11 @@ internal sealed class NextcloudMailbox : IDisposable
 
     internal static HttpClientHandler CreateHandler() => new() { AllowAutoRedirect = false };
 
-    internal async Task EnsureHierarchyAsync(string ownId, CancellationToken cancellationToken)
+    internal Task EnsureHierarchyAsync(string ownId, CancellationToken cancellationToken) =>
+        EnsureHierarchyAsync(settingsStore.Context(), ownId, cancellationToken);
+
+    private async Task EnsureHierarchyAsync(NextcloudMailboxContext context, string ownId, CancellationToken cancellationToken)
     {
-        var context = settingsStore.Context();
         foreach (var relative in new[] { "Magnolie/", "Magnolie/baum-1/", "Magnolie/baum-1/nachrichten/",
                      $"Magnolie/baum-1/nachrichten/{EscapeId(ownId)}/", "Magnolie/baum-1/quittungen/",
                      $"Magnolie/baum-1/quittungen/{EscapeId(ownId)}/" })
@@ -504,10 +508,10 @@ internal sealed class NextcloudMailbox : IDisposable
             NextcloudMailboxProtocol.CreateReceipt(transportId, sender, recipient, authenticationKey), cancellationToken);
     }
 
-    internal async Task TestAccessAsync(string ownId, CancellationToken cancellationToken)
+    internal async Task TestAccessAsync(string ownId, CancellationToken cancellationToken, string? expectedRevision = null)
     {
-        await EnsureHierarchyAsync(ownId, cancellationToken).ConfigureAwait(false);
-        var context = settingsStore.Context();
+        var context = settingsStore.Context(expectedRevision: expectedRevision);
+        await EnsureHierarchyAsync(context, ownId, cancellationToken).ConfigureAwait(false);
         var id = RandomNumberGenerator.GetBytes(16);
         var uri = ReceiptUri(context.Settings, ownId, id);
         try
@@ -522,6 +526,22 @@ internal sealed class NextcloudMailbox : IDisposable
         {
             await DeleteAsync(context, uri, cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    internal async Task<MailboxAccessResult> TestAccessCheckedAsync(string ownId, string expectedRevision, CancellationToken cancellationToken)
+    {
+        var snapshot = settingsStore.ReadSnapshot();
+        if (snapshot.Revision != expectedRevision) return new(false, "conflict");
+        if (snapshot.Settings is not { MailboxActive: true, AccountType: "nextcloud" } || !snapshot.CredentialPresent) return new(false, "not_active");
+        var passed = false;
+        var code = "none";
+        try { await TestAccessAsync(ownId, cancellationToken, expectedRevision).ConfigureAwait(false); passed = true; }
+        catch (InvalidOperationException error) when (error.Message == "mcp_conflict") { return new(false, "conflict"); }
+        catch (OperationCanceledException) { code = "timeout"; }
+        catch (HttpRequestException error) { code = error.StatusCode is { } status ? $"http_{(int)status}" : "network_error"; }
+        catch (Exception) { code = "native_operation_failed"; }
+        if (settingsStore.ReadSnapshot().Revision != snapshot.Revision) return new(false, "conflict");
+        return new(true, "", snapshot.Revision, passed, code);
     }
 
     internal Task DeleteIncomingAsync(string ownId, byte[] transportId, CancellationToken cancellationToken)

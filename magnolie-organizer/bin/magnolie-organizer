@@ -21492,6 +21492,19 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=self._sync_bestaetigen,
                              args=(nachricht.get("transactionId"),), daemon=True).start()
 
+        elif befehl == "baum_mailbox_schreibpruefen":
+            request_id = nachricht.get("requestId")
+            if getattr(self, "_mcp_mailbox_test_aktiv", False):
+                self.antwort("App.baumMailboxSchreibpruefung", {"requestId": request_id, "ok": False, "code": "native_busy"})
+                return
+            self._mcp_mailbox_test_aktiv = True
+            try:
+                threading.Thread(target=self._nextcloud_mailbox_schreibpruefen,
+                                 args=(request_id, nachricht.get("expectedRevision")), daemon=True).start()
+            except Exception:
+                self._mcp_mailbox_test_aktiv = False
+                self.antwort("App.baumMailboxSchreibpruefung", {"requestId": request_id, "ok": False, "code": "native_operation_failed"})
+
         elif befehl == "baum_dav_pruefen":
             request_id = nachricht.get("requestId")
             if getattr(self, "_mcp_dav_test_aktiv", False):
@@ -25614,6 +25627,41 @@ class Fenster(_FENSTER_BASIS):
         if isinstance(request_id, str) and re.fullmatch(r"[0-9a-fA-F-]{36}", request_id):
             nutzlast["requestId"] = request_id
         self.antwort("App.edsStatus", nutzlast)
+
+    def _nextcloud_mailbox_schreibpruefen(self, request_id, expected_revision):
+        result = {"requestId": request_id, "ok": False, "code": "native_operation_failed"}
+        try:
+            if getattr(self, "_gesperrt", True):
+                result["code"] = "profile_locked"
+                return
+            store = nextcloud_speicher()
+            settings, present, revision, error = store.read_snapshot()
+            if error is not None or not revision:
+                return
+            if revision != expected_revision:
+                result["code"] = "conflict"
+                return
+            if not settings or not settings["briefkastenAktiv"] or not present or settings["kontoArt"] != "nextcloud":
+                result["code"] = "not_active"
+                return
+            client = store.checked_client(expected_revision, purpose="briefkasten")
+            passed, code = False, "none"
+            try:
+                NextcloudMailbox(client).test_access((self._baum_zustand() or {}).get("kennung") or "")
+                passed = True
+            except Exception as error:
+                code = nextcloud_fehlercode(error)
+            if store.read_snapshot()[2] != revision:
+                result["code"] = "conflict"
+                return
+            result = {"requestId": request_id, "ok": True, "revision": revision,
+                      "passed": passed, "deleteAcknowledged": passed, "errorCode": code}
+        except Exception as error:
+            if nextcloud_fehlercode(error) == "conflict":
+                result["code"] = "conflict"
+        finally:
+            self._mcp_mailbox_test_aktiv = False
+            self.antwort("App.baumMailboxSchreibpruefung", result)
 
     def _nextcloud_dav_pruefen(self, request_id, expected_revision):
         result = {"requestId": request_id, "ok": False, "code": "native_operation_failed"}

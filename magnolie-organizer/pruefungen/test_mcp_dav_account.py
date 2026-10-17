@@ -171,6 +171,53 @@ def test_snapshot_waits_for_the_same_real_save_transaction(native, tmp_path):
     assert snapshots[0][2] == store.read_snapshot()[2]
 
 
+def test_mailbox_write_reuses_real_probe_and_pins_account_across_remote_writes(native, monkeypatch, tmp_path):
+    store, vault = account_store(native, tmp_path)
+    monkeypatch.setattr(native, "nextcloud_speicher", lambda: store)
+    host = Host(native); host._gesperrt = False
+    host._baum_zustand = lambda: {"kennung": "owned-probe"}
+    store.save(False, True, "https://owned.example.test", "owned-reader", "owned-probe-secret")
+    original_checked_client = store.checked_client
+    calls = []
+    mode = ["ok"]
+    def transport(method, url, headers, body, *_args):
+        calls.append((method, url, dict(headers), body))
+        if mode[0] == "change":
+            mode[0] = "ok"
+            store.save(False, True, "https://other-owned.example.test", "other-reader", "owned-new-secret")
+        if method == "PUT":
+            return (403 if mode[0] == "put_fail" else 201), {}, b""
+        if method == "DELETE":
+            return (507 if mode[0] == "delete_fail" else 204), {}, b""
+        return 201, {}, b""
+    monkeypatch.setattr(store, "checked_client", lambda revision, purpose: original_checked_client(revision, purpose, transport))
+    revision = store.read_snapshot()[2]
+    host._nextcloud_mailbox_schreibpruefen("owned-mailbox", revision)
+    result = host.responses[-1][1]
+    assert result["ok"] and result["passed"] and result["deleteAcknowledged"] and result["revision"] == revision
+    assert [row[0] for row in calls] == ["MKCOL"] * 6 + ["PUT", "DELETE"]
+    assert calls[-2][1] == calls[-1][1] and calls[-2][2]["If-None-Match"] == "*"
+    assert calls[-2][3] == b'{"format":"magnolie-write-test"}'
+    assert "owned-probe-secret" not in json.dumps(result) and not host._mcp_mailbox_test_aktiv
+    for mode_name, code in [("put_fail", "http_403"), ("delete_fail", "http_507")]:
+        calls.clear(); mode[0] = mode_name
+        host._nextcloud_mailbox_schreibpruefen("owned-failed", revision)
+        result = host.responses[-1][1]
+        assert result["ok"] and not result["passed"] and not result["deleteAcknowledged"] and result["errorCode"] == code
+        assert calls[-1][0] == "DELETE"
+    calls.clear(); mode[0] = "change"
+    host._nextcloud_mailbox_schreibpruefen("owned-race", revision)
+    assert host.responses[-1][1]["code"] == "conflict"
+    assert all("owned.example.test/" in row[1] and "other-owned" not in row[1] for row in calls)
+    assert len({row[2]["Authorization"] for row in calls}) == 1
+    count = len(calls)
+    host._nextcloud_mailbox_schreibpruefen("owned-stale", revision)
+    assert host.responses[-1][1]["code"] == "conflict" and len(calls) == count
+    host._gesperrt = True
+    host._nextcloud_mailbox_schreibpruefen("owned-locked", store.read_snapshot()[2])
+    assert host.responses[-1][1]["code"] == "profile_locked" and len(calls) == count
+
+
 def test_checked_save_verifies_config_and_credentials_not_just_backend_ack(native, monkeypatch, tmp_path):
     store, vault = account_store(native, tmp_path)
     first_revision = store.read_snapshot()[2]
