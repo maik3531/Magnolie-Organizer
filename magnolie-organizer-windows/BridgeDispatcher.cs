@@ -2228,6 +2228,13 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private async Task ImportAsync(JsonElement message)
     {
         var art = Text(message, "art");
+        var requestId = Text(message, "requestId");
+        void AddSource(JsonObject payload, ImportFileSource source)
+        {
+            if (requestId.Length == 0) return;
+            payload["requestId"] = requestId; payload["ok"] = true; payload["pfad"] = source.Path;
+            payload["bytes"] = source.Bytes.Length; payload["sha256"] = source.Sha256; payload["revision"] = source.Revision;
+        }
         var filter = art switch
         {
             "muell" => T("Calendar (*.ics)") + " / " + T("CSV files (*.csv)") + "|*.ics;*.csv|" + T("All files") + " (*.*)|*.*",
@@ -2240,44 +2247,54 @@ internal sealed partial class BridgeDispatcher : IDisposable
         };
         if (filter.Length == 0)
         {
-            await form.SendAsync("App.importErgebnis", new { art, abgebrochen = false, fehler = T("This import format is not yet available on Windows.") });
+            await form.SendAsync("App.importErgebnis", new { art, requestId, ok = false, abgebrochen = false, code = "unsupported_feature", fehler = T("This import format is not yet available on Windows.") });
             return;
         }
-        using var dialog = new OpenFileDialog { Title = T("Import"), Filter = filter, CheckFileExists = true, Multiselect = false };
-        if (dialog.ShowDialog(form) != DialogResult.OK)
+        var fileName = Text(message, "pfad");
+        if (requestId.Length == 0)
         {
-            if (art == "muell") await form.SendAsync("App.importErgebnis", new { art, abgebrochen = true, muellToken = Text(message, "muellToken") });
-            else await form.SendAsync("App.importErgebnis", new { art, abgebrochen = true });
-            return;
+            using var dialog = new OpenFileDialog { Title = T("Import"), Filter = filter, CheckFileExists = true, Multiselect = false };
+            if (dialog.ShowDialog(form) != DialogResult.OK)
+            {
+                if (art == "muell") await form.SendAsync("App.importErgebnis", new { art, abgebrochen = true, muellToken = Text(message, "muellToken") });
+                else await form.SendAsync("App.importErgebnis", new { art, abgebrochen = true });
+                return;
+            }
+            fileName = dialog.FileName;
         }
         try
         {
-            var info = new FileInfo(dialog.FileName);
-            if (info.Length > ExchangeCodec.MaxImportBytes) throw new IOException(T("The import file is larger than 32 megabytes."));
-            var bytes = await File.ReadAllBytesAsync(dialog.FileName);
+            if (requestId.Length != 0 && (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null))) throw new InvalidOperationException();
+            var expectedRevision = requestId.Length == 0 ? null : Text(message, "expectedRevision");
+            var source = await Task.Run(() => ImportFileSource.Read(art, fileName, expectedRevision));
+            var bytes = source.Bytes;
             if (art == "muell")
             {
-                var waste = ExchangeCodec.ParseWasteImport(bytes, dialog.FileName);
+                var waste = ExchangeCodec.ParseWasteImport(bytes, source.Path);
                 waste["muellToken"] = Text(message, "muellToken");
+                AddSource(waste, source);
                 await form.SendAsync("App.importErgebnis", waste);
                 return;
             }
-            var result = ExchangeCodec.ParseImport(bytes, art == "ldif" ? "claws" : art, dialog.FileName);
+            var result = ExchangeCodec.ParseImport(bytes, art == "ldif" ? "claws" : art, source.Path);
             if (art == "ldif") foreach (var contact in result.Kontakte.OfType<JsonObject>())
             {
                 // Match additive merge defaults even for plain LDIF without a vCard.
                 contact["vcardRoundtrip"] ??= new JsonArray();
                 contact["vcardParameter"] ??= new JsonObject();
             }
-            var payload = result.ToPayload(art, Path.GetFileName(dialog.FileName));
+            var payload = result.ToPayload(art, Path.GetFileName(source.Path));
             payload["kontaktQuelle"] = "datei:" + Convert.ToHexString(SHA256.HashData(
-                Encoding.UTF8.GetBytes(Path.GetFullPath(dialog.FileName)))).ToLowerInvariant();
+                Encoding.UTF8.GetBytes(source.Path))).ToLowerInvariant();
+            AddSource(payload, source);
             await form.SendAsync("App.importErgebnis", payload);
         }
         catch (Exception error)
         {
-            if (art == "muell") await form.SendAsync("App.importErgebnis", new { art, abgebrochen = false, fehler = error.Message, muellToken = Text(message, "muellToken") });
-            else await form.SendAsync("App.importErgebnis", new { art, abgebrochen = false, fehler = error.Message });
+            if (art == "muell") await form.SendAsync("App.importErgebnis", new { art, requestId, ok = false, abgebrochen = false,
+                code = error.Message == "mcp_conflict" ? "conflict" : "native_operation_failed", fehler = error.Message, muellToken = Text(message, "muellToken") });
+            else await form.SendAsync("App.importErgebnis", new { art, requestId, ok = false, abgebrochen = false,
+                code = error.Message == "mcp_conflict" ? "conflict" : "native_operation_failed", fehler = error.Message });
         }
     }
 

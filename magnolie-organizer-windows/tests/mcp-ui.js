@@ -135,7 +135,7 @@ let declaredContracts;
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
       let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile, onCloudStatus, onCloudPassword, onCloudTest, onSpelling, onRememberWord, onRegionalRead, onRegionalSave, onTrayRead, onTraySave, onBackgroundRead, onBackgroundSave;
-      let onReminder, onReminderPrivacy, onPasswordRead, onPasswordWrite, onRecordsExport;
+      let onReminder, onReminderPrivacy, onPasswordRead, onPasswordWrite, onRecordsExport, onImportPreview;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
@@ -167,6 +167,7 @@ let declaredContracts;
         if (message.cmd === "password_status" && message.requestId && onPasswordRead) onPasswordRead(message);
         if (["kennwort_setzen", "kennwort_entfernen"].includes(message.cmd) && message.requestId && onPasswordWrite) onPasswordWrite(message);
         if (message.cmd === "export" && message.requestId && onRecordsExport) onRecordsExport(message);
+        if (message.cmd === "import" && message.requestId && onImportPreview) onImportPreview(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -1584,6 +1585,42 @@ let declaredContracts;
         reply(native, { bericht: "owned-late-export-warning" });
         assert.equal(b.w.document.querySelector("#zettel").textContent, toast);
         onRecordsExport = null;
+      }
+      {
+        const before = JSON.stringify(b.t.daten()), saves = b.saves().length;
+        const privateContent = "owned-private-import-" + "🌸".repeat(300000);
+        const reply = (message, extra = {}) => b.w.App.importErgebnis({ requestId: message.requestId, ok: true, art: message.art, pfad: message.pfad,
+          revision: "b".repeat(64), sha256: "c".repeat(64), bytes: 1400000, termine: [{ titel: "Owned preview event", datum: "2030-01-02" }],
+          kontakte: [{ vorname: "Owned preview contact", notiz: privateContent }], notizen: [{ text: privateContent }], uebersprungen: 0, wiederholend: 1, bericht: "Owned informational import report", ...extra });
+        let native, completed = false;
+        const dispatched = new Promise(resolve => { onImportPreview = message => { native = message; resolve(); }; });
+        const pending = call(request(1050, "tools/call", { name: "organizer_import_preview", arguments: { format: "vcf", path: "/owned-fixture/source.vcf", expected_revision: "b".repeat(64) } })).then(value => { completed = true; return value; });
+        await dispatched; assert.equal(native.expectedRevision, "b".repeat(64));
+        reply({ ...native, requestId: "wrong-import-request" });
+        await new Promise(resolve => setImmediate(resolve)); assert.equal(completed, false);
+        b.t.oeffneEinstellungen(); reply(native);
+        const response = await pending, result = response.result.structuredContent;
+        assert.equal(result.counts.contacts, 1); assert.equal(result.counts.notes, 1); assert.equal(result.counts.appointments, 1);
+        assert.equal(result.recurring_count, 1); assert.ok(Buffer.byteLength(JSON.stringify(response)) < 4096);
+        assert.equal(result.report_present, true); assert.equal(result.warnings_present, false);
+        assert.ok(!JSON.stringify(response).includes("owned-private-import")); assert.equal(JSON.stringify(b.t.daten()), before);
+        assert.equal(b.saves().length, saves); assert.equal(b.w.document.querySelector(".kontakt-datei-pruefung"), null);
+        assert.equal(b.w.document.querySelector("#einstellungen-schleier").classList.contains("verborgen"), false);
+        b.w.document.querySelector("#einstellungen-zu").click();
+        onImportPreview = message => reply(message, { ok: false, code: "conflict", fehler: "owned-private-import-error" });
+        const conflict = await call(request(1051, "tools/call", { name: "organizer_import_preview", arguments: { format: "ics", path: "/owned-fixture/source.ics", expected_revision: "b".repeat(64) } }));
+        assert.equal(conflict.result.structuredContent.code, "conflict"); assert.ok(!JSON.stringify(conflict).includes("owned-private-import-error"));
+        onImportPreview = message => reply(message, { kontakte: { invalid: "owned-rejected-value" } });
+        const invalid = await call(request(1052, "tools/call", { name: "organizer_import_preview", arguments: { format: "vcf", path: "/owned-fixture/source.vcf" } }));
+        assert.equal(invalid.result.structuredContent.code, "invalid_result");
+        const lateDispatch = new Promise(resolve => { onImportPreview = message => { native = message; resolve(); }; });
+        const cancelled = call(request(1053, "tools/call", { name: "organizer_import_preview", arguments: { format: "vcf", path: "/owned-fixture/source.vcf" } }));
+        await lateDispatch; await call({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 1053 } });
+        assert.equal((await cancelled).result.structuredContent.code, "cancelled");
+        const toast = b.w.document.querySelector("#zettel").textContent;
+        reply(native); assert.equal(b.w.document.querySelector("#zettel").textContent, toast);
+        assert.equal(JSON.stringify(b.t.daten()), before); assert.equal(b.w.document.querySelector(".kontakt-datei-pruefung"), null);
+        onImportPreview = null;
       }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));

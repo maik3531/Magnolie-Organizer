@@ -32164,6 +32164,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
     },
     importErgebnis(nutzlast, termineNormalisiert = false, kontaktPruefung = null) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "importErgebnis"); return; }
       if (nutzlast.art === "muell") return muellImportErgebnis(nutzlast);
       nutzlast = nutzlast || {};
       const setupImportBeenden = () => {
@@ -34119,6 +34120,26 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (value !== "month") calendar.uebersichtAb = null;
     calendar.bearbeiteId = null;
   }
+  async function mcpLeseImportDatei(args, signal) {
+    const value = await mcpNativeAufruf("import", { art: args.format, pfad: args.path,
+      ...(args.expected_revision ? { expectedRevision: args.expected_revision } : {}) }, "importErgebnis", signal);
+    if (value.ok !== true || value.fehler || value.abgebrochen || value.art !== args.format) throw new MagnolieMcp.ToolError(value.code === "conflict" ? "conflict" : "native_operation_failed", "Native import verification failed; check the format, file and source revision");
+    if (typeof value.pfad !== "string" || !/^[a-f0-9]{64}$/.test(value.revision) || !/^[a-f0-9]{64}$/.test(value.sha256) || !Number.isSafeInteger(value.bytes) || value.bytes < 0 ||
+        !["termine", "jahrestage", "geburtstage", "aufgaben", "kontakte", "notizen"].every(key => value[key] === undefined || value[key] === null || Array.isArray(value[key])) ||
+        !["uebersprungen", "wiederholend"].every(key => value[key] === undefined || Number.isSafeInteger(value[key]) && value[key] >= 0)) throw new MagnolieMcp.ToolError("invalid_result", "Native import metadata or parsed collections were incomplete");
+    return value;
+  }
+  function mcpDateiImportWerkzeuge() {
+    return [{ name: "organizer_import_preview", description: "Parse an explicit ICS/vCalendar/Lotus CSV/vCard/LDIF/Claws XML file or supported ZIP using the actual native import reader and product size/archive limits. Return only counts, byte digest and an opaque format/path/content revision; no import or conflict dialog is opened and book data stays unchanged. Optional expected_revision verifies a previously inspected source. This is inspection, not an import commit.",
+      inputSchema: { type: "object", properties: { format: { type: "string", enum: ["ics", "lotus", "vcf", "ldif", "claws"] }, path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, required: ["format", "path"], additionalProperties: false },
+      annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => {
+        const book = DATEN, value = await mcpLeseImportDatei(args, signal);
+        if (DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Book changed during native import inspection");
+        const counts = Object.fromEntries(Object.entries({ appointments: "termine", anniversaries: "jahrestage", birthdays: "geburtstage", tasks: "aufgaben", contacts: "kontakte", notes: "notizen" }).map(([key, field]) => [key, value[field]?.length || 0]));
+        return { path: value.pfad, format: args.format, revision: value.revision, sha256: value.sha256, bytes: value.bytes, counts,
+          skipped_count: value.uebersprungen ?? null, recurring_count: value.wiederholend ?? null, report_present: !!value.bericht, warnings_present: value.uebersprungen > 0 };
+      } }];
+  }
   function mcpAustauschExportWerkzeuge() {
     return [{ name: "organizer_records_export", description: "Export the current complete appointment/task/anniversary/contact section using the existing GUI preparation and native ICS/Lotus CSV/vCard/LDIF codec. Requires full book revision, save gate and explicit destination; overwrite must be explicit. Confirms actual file bytes/SHA-256 readback and native skip/loss counts (raw omission count is null when unavailable). Format limitations remain; no mail or application is launched.",
       inputSchema: { type: "object", properties: { format: { type: "string", enum: ["ics-termine", "ics-jahrestage", "ics-aufgaben", "csv-termine", "vcf-adressen", "ldif-adressen"] },
@@ -35065,6 +35086,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_import_preview") return shape({ path: text, format: text, revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, bytes: { type: "integer", minimum: 0 }, counts: object, skipped_count: { type: ["integer", "null"], minimum: 0 }, recurring_count: { type: ["integer", "null"], minimum: 0 }, report_present: flag, warnings_present: flag }, ["path", "format", "revision", "sha256", "bytes", "counts", "skipped_count", "recurring_count", "report_present", "warnings_present"]);
     if (name === "organizer_records_export") return shape({ path: text, format: text, confirmed: yes, bytes: { type: "integer", minimum: 0 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, exported_count: { type: "integer", minimum: 0 }, skipped_count: { type: "integer", minimum: 0 }, ldif_unusable_count: { type: "integer", minimum: 0 }, photo_omitted_count: { type: "integer", minimum: 0 }, raw_omitted_count: { type: ["integer", "null"], minimum: 0 }, warnings_present: flag }, ["path", "format", "confirmed", "bytes", "sha256", "exported_count", "skipped_count", "ldif_unusable_count", "photo_omitted_count", "raw_omitted_count", "warnings_present"]);
     if (name === "organizer_password_status") return shape({ encrypted: flag, state_revision: text, stored_book_revision: text, book_revision: text, matches_book: flag }, ["encrypted", "state_revision", "stored_book_revision", "book_revision", "matches_book"]);
     if (["organizer_password_set", "organizer_password_remove"].includes(name)) return shape({ encrypted: flag, state_revision: text, stored_book_revision: text, persisted: yes, verified: yes, related_files_changed: { type: "integer", minimum: 0 }, related_files_failed: { type: "integer", minimum: 0 } }, ["encrypted", "state_revision", "stored_book_revision", "persisted", "verified", "related_files_changed", "related_files_failed"]);
@@ -35237,6 +35259,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpErinnerungsDatenschutzWerkzeuge(),
       ...mcpPasswortWerkzeuge(),
       ...mcpAustauschExportWerkzeuge(),
+      ...mcpDateiImportWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

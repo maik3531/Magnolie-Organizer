@@ -21394,7 +21394,10 @@ class Fenster(_FENSTER_BASIS):
                 nachricht.get("pfad"), nachricht.get("requestId"), nachricht.get("overwrite") is True)
 
         elif befehl == "import":
-            self.bei_import(nachricht)
+            if nachricht.get("requestId"):
+                threading.Thread(target=self.bei_import, args=(nachricht,), daemon=True).start()
+            else:
+                self.bei_import(nachricht)
 
         elif befehl == "export":
             if nachricht.get("requestId"):
@@ -21936,9 +21939,14 @@ class Fenster(_FENSTER_BASIS):
 
     def bei_import(self, nachricht):
         art = nachricht.get("art")
+        request_id = nachricht.get("requestId")
+        dateinachweis = {}
         def melden(nutzlast):
             if art == "muell":
                 nutzlast["muellToken"] = str(nachricht.get("muellToken") or "")[:128]
+            if request_id:
+                nutzlast.update(dateinachweis, requestId=request_id)
+                nutzlast.setdefault("ok", not nutzlast.get("fehler") and not nutzlast.get("abgebrochen"))
             self.antwort("App.importErgebnis", nutzlast)
         einstellungen = {
             "muell": (_("Import calendar file"), [(_("iCalendar (*.ics)") + " / " + _("CSV files (*.csv)"), ("*.ics", "*.csv")),
@@ -21967,15 +21975,25 @@ class Fenster(_FENSTER_BASIS):
                         (_("ZIP archives (*.zip)"), "*.zip"), (_("All files"), "*")]),
         }.get(art)
         if not einstellungen:
+            if request_id:
+                melden({"ok": False, "code": "unsupported_feature"})
             return
-        pfad = self._datei_oeffnen(einstellungen[0], einstellungen[1])
+        pfad = nachricht.get("pfad") if request_id else self._datei_oeffnen(einstellungen[0], einstellungen[1])
         if not pfad:
             melden({"art": art, "abgebrochen": True})
             return
         try:
+            if request_id and getattr(self, "_gesperrt", True):
+                raise OSError("profile_locked")
             roh = datei_begrenzt_lesen(
                 pfad, IMPORT_DATEI_MAX,
                 _("The import file is larger than 32 megabytes."))
+            if request_id:
+                full_path = os.path.abspath(pfad)
+                revision = hashlib.sha256((art + "\0" + full_path + "\0").encode("utf-8") + roh).hexdigest()
+                dateinachweis.update(pfad=full_path, bytes=len(roh), sha256=hashlib.sha256(roh).hexdigest(), revision=revision)
+                if nachricht.get("expectedRevision") and nachricht["expectedRevision"] != revision:
+                    raise ValueError("mcp_conflict")
             if art == "muell":
                 melden(muell_import_lesen(roh, os.path.basename(pfad)))
                 return
@@ -21988,6 +22006,7 @@ class Fenster(_FENSTER_BASIS):
         except (OSError, ValueError, TypeError, csv.Error, ET.ParseError,
                 zipfile.BadZipFile) as fehler:
             melden({"art": art, "abgebrochen": False,
+                           "code": "conflict" if str(fehler) == "mcp_conflict" else "native_operation_failed",
                            "fehler": _("File could not be read: %s") % fehler})
             return
         if art == "ldif":

@@ -1488,6 +1488,15 @@ def client():
             assert export_proof["bytes"] == len(actual_export) and export_proof["sha256"] == hashlib.sha256(actual_export).hexdigest()
             assert export_proof["exported_count"] > 0 and export_proof["raw_omitted_count"] is None
             assert actual_export.startswith(b"\xef\xbb\xbf") == (export_format == "csv-termine")
+            import_format = "lotus" if export_format == "csv-termine" else "vcf" if export_format == "vcf-adressen" else "ldif" if export_format == "ldif-adressen" else "ics"
+            import_preview = call("tools/call", {"name": "organizer_import_preview", "arguments": {"format": import_format, "path": str(export_path)}})
+            assert not import_preview["isError"], import_preview
+            import_proof = import_preview["structuredContent"]
+            assert import_proof["sha256"] == export_proof["sha256"] and import_proof["bytes"] == len(actual_export)
+            assert sum(import_proof["counts"].values()) > 0 and len(json.dumps(import_preview)) < 4096
+            same_import_preview = call("tools/call", {"name": "organizer_import_preview", "arguments": {
+                "format": import_format, "path": str(export_path), "expected_revision": import_proof["revision"]}})
+            assert not same_import_preview["isError"], same_import_preview
             exported_formats.append(export_format)
             repeated_export = call("tools/call", {"name": "organizer_records_export", "arguments": {
                 "expected_book_revision": records_revision, "format": export_format, "path": str(export_path)}})
@@ -1497,6 +1506,20 @@ def client():
         protected_export = call("tools/call", {"name": "organizer_records_export", "arguments": {
             "expected_book_revision": records_revision, "format": "ics-termine", "path": str(data_file), "overwrite": True}})
         assert protected_export["isError"] and data_file.read_text() == records_envelope_before, protected_export
+        large_import_path = Path(temporary.name) / "owned-large-preview.ics"
+        large_import_path.write_text("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n" + "".join(
+            "BEGIN:VEVENT\r\nUID:owned-large-preview-%d@example.invalid\r\nDTSTART:20300102T090000Z\r\nSUMMARY:Owned preview\r\nDESCRIPTION:owned-private-import-description-%s\r\nEND:VEVENT\r\n" % (index, "x" * 4096)
+            for index in range(300)) + "END:VCALENDAR\r\n")
+        large_import_preview = call("tools/call", {"name": "organizer_import_preview", "arguments": {"format": "ics", "path": str(large_import_path)}})
+        assert not large_import_preview["isError"] and large_import_preview["structuredContent"]["bytes"] > 1024 * 1024, large_import_preview
+        assert large_import_preview["structuredContent"]["counts"]["appointments"] == 300 and len(json.dumps(large_import_preview)) < 4096
+        assert "owned-private-import-description" not in json.dumps(large_import_preview)
+        large_import_path.write_text(large_import_path.read_text() + "\n")
+        stale_import_preview = call("tools/call", {"name": "organizer_import_preview", "arguments": {
+            "format": "ics", "path": str(large_import_path), "expected_revision": large_import_preview["structuredContent"]["revision"]}})
+        assert stale_import_preview["isError"] and stale_import_preview["structuredContent"]["code"] == "conflict", stale_import_preview
+        assert data_file.read_text() == records_envelope_before
+        assert call("tools/call", {"name": "organizer_book_revision_read"})["structuredContent"]["revision"] == records_revision
         password_before = call("tools/call", {"name": "organizer_password_status"})
         assert not password_before["isError"] and password_before["structuredContent"]["encrypted"] and password_before["structuredContent"]["matches_book"], password_before
         password_state = password_before["structuredContent"]
