@@ -93,6 +93,24 @@ const watchdog = setTimeout(() => { console.error("MCP waste fixture timed out")
       assert.equal(JSON.stringify(b.t.daten().termine), ordinary);
       nativeError = true; const failedRead = await call("organizer_waste_import_preview", args); fail(failedRead, "native_operation_failed"); assert.ok(!JSON.stringify(failedRead).includes("owned-private-read-error"));
       nativeError = false; rows[1][0] = "invalid"; fail(await call("organizer_waste_import_preview", args), "invalid_settings");
+      rows[1][3] = "Inspect 🌸\nOwned";
+      const inspectBefore = JSON.stringify(b.t.daten()), chunks = []; let offset = 0, firstChunk;
+      do {
+        const chunk = ok(await call("organizer_waste_import_source_read", { path: args.path, limit: 17, offset,
+          ...(firstChunk ? { expected_revision: firstChunk.source_revision, expected_content_sha256: firstChunk.content_sha256 } : {}) }));
+        firstChunk ||= chunk; assert.equal(chunk.kind, "rows"); assert.equal(chunk.total_records, rows.length);
+        const bytes = Buffer.from(chunk.data, "base64"); assert.ok(bytes.length <= 17); chunks.push(bytes); offset = chunk.next_offset;
+      } while (offset !== null);
+      const inspectedBytes = Buffer.concat(chunks);
+      assert.deepEqual(JSON.parse(inspectedBytes.toString("utf8")), rows);
+      assert.equal(require("node:crypto").createHash("sha256").update(inspectedBytes).digest("hex"), firstChunk.content_sha256);
+      fail(await call("organizer_waste_import_source_read", { path: args.path, expected_content_sha256: "0".repeat(64) }), "conflict");
+      fail(await call("organizer_waste_import_source_read", { path: args.path, expected_revision: "0".repeat(64) }), "conflict");
+      fail(await call("organizer_waste_import_source_read", { path: args.path, offset: inspectedBytes.length + 1 }), "invalid_offset");
+      rows[1][3] = "🌸".repeat(16384);
+      const largeChunk = ok(await call("organizer_waste_import_source_read", { path: args.path, limit: 65536 }));
+      assert.equal(Buffer.from(largeChunk.data, "base64").length, 65536); assert.equal(largeChunk.next_offset, 65536);
+      assert.ok(Buffer.byteLength(JSON.stringify(largeChunk)) < 1024 * 1024); assert.equal(JSON.stringify(b.t.daten()), inspectBefore);
       assert.ok(!b.w.document.querySelector(".muell-import-vorschau"));
       console.log("MCP WASTE IMPORT PASS: shared CSV model, source/book/mapping CAS, checkpoint/cancel/saveACK/replay/UID updates " + web);
     } finally { b.close(); }

@@ -240,9 +240,31 @@ def client():
         assert status["structuredContent"]["ready"] and not status["structuredContent"]["locked"], status
         notes = call("tools/call", {"name": "organizer_data_read", "arguments": {"section": "notizen"}})
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
-        if os.environ.get("MAGNOLIE_MCP_PROBE_WASTE_ONLY") == "1":
+        if os.environ.get("MAGNOLIE_MCP_PROBE_WASTE_ONLY") == "1" or os.environ.get("MAGNOLIE_MCP_PROBE_WASTE_SOURCE_ONLY") == "1":
             waste_path = Path(temporary.name) / "owned-waste.csv"
             waste_path.write_text("Datum;Abfallart;Ort;Notiz;UID\n04.02.2030;Biotonne;Owned point;Owned note;owned-bio\n05.02.2030;Papier;Owned point;;owned-paper\n", encoding="utf-8")
+            source_book_revision = call("tools/call", {"name": "organizer_book_revision_read"})["structuredContent"]["revision"]
+            source_first = call("tools/call", {"name": "organizer_waste_import_source_read", "arguments": {"path": str(waste_path), "limit": 19}})
+            assert not source_first["isError"], source_first
+            source_first = source_first["structuredContent"]
+            source_tail = call("tools/call", {"name": "organizer_waste_import_source_read", "arguments": {"path": str(waste_path), "offset": source_first["next_offset"], "expected_revision": source_first["source_revision"], "expected_content_sha256": source_first["content_sha256"]}})
+            assert not source_tail["isError"] and source_tail["structuredContent"]["next_offset"] is None, source_tail
+            source_bytes = base64.b64decode(source_first["data"]) + base64.b64decode(source_tail["structuredContent"]["data"])
+            assert hashlib.sha256(source_bytes).hexdigest() == source_first["content_sha256"] and json.loads(source_bytes)[0] == ["Datum", "Abfallart", "Ort", "Notiz", "UID"]
+            if os.environ.get("MAGNOLIE_MCP_PROBE_WASTE_SOURCE_ONLY") == "1":
+                source_ics_path = Path(temporary.name) / "owned-source-waste.ics"
+                source_ics_path.write_text(json.loads((ROOT.parent / "contracts/waste-calendar-v1.json").read_text())["ics"], encoding="utf-8")
+                source_ics = call("tools/call", {"name": "organizer_waste_import_source_read", "arguments": {"path": str(source_ics_path), "limit": 65536}})
+                assert not source_ics["isError"] and source_ics["structuredContent"]["kind"] == "appointments" and source_ics["structuredContent"]["total_records"] == 7, source_ics
+                source_events = json.loads(base64.b64decode(source_ics["structuredContent"]["data"]))
+                assert len(source_events) == 7 and source_events[0]["datum"] == "2026-01-12" and set(source_events[0]) == {"datum", "zeit", "titel", "ort", "notiz"}
+                assert call("tools/call", {"name": "organizer_book_revision_read"})["structuredContent"]["revision"] == source_book_revision
+                state["waste_source_verified"] = True
+                process.stdin.close()
+                assert process.wait(timeout=5) == 0
+                selector.close()
+                state["passed"] = True
+                return
             waste_csv = {"has_header": True, "date_column": 0, "type_column": 1, "location_column": 2, "note_column": 3, "uid_column": 4, "date_format": "dot"}
             waste_preview = call("tools/call", {"name": "organizer_waste_import_preview", "arguments": {"path": str(waste_path), "csv": waste_csv}})
             assert not waste_preview["isError"] and len(waste_preview["structuredContent"]["groups"]) == 2, waste_preview
@@ -1824,7 +1846,9 @@ finally:
     print("Native MCP fixture state:", json.dumps(state), flush=True)
     temporary.cleanup()
 assert state["passed"], state
-if os.environ.get("MAGNOLIE_MCP_PROBE_WASTE_ONLY") == "1":
+if os.environ.get("MAGNOLIE_MCP_PROBE_WASTE_SOURCE_ONLY") == "1":
+    print("Native MCP WASTE SOURCE PASS: exact CSV heading reconstruction across byte chunks and real ICS preview fields, unchanged book")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_WASTE_ONLY") == "1":
     print("Native MCP WASTE PASS: actual CSV/ICS parsing, mapping/source/book revisions, pre-change checkpoints, durable readback, replay and stable UID correction")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_PRINT_ONLY") == "1":
     print("Native MCP PRINT PASS: real private GTK system print dialog observed/cancelled, correlated return, unchanged book revision")

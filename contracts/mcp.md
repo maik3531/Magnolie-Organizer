@@ -38,6 +38,14 @@ Planner recurrence expansion must be complete before printing.
 
 ### Waste calendar import
 
+Before choosing CSV columns, `organizer_waste_import_source_read` exposes exact
+native-parsed CSV rows/headings or the five date/time/title/location/note fields
+shown in the GUI's ICS preview. It returns at most 64 KiB of a JSON array as a
+base64 UTF-8 byte chunk, with total records/bytes, offset/next offset, source-byte
+revision/digest and a separate exact parsed-content SHA-256. Concatenate bytes
+before UTF-8/JSON decoding; carry both `expected_revision` and
+`expected_content_sha256` on subsequent chunks. No mapping or book write occurs.
+
 `organizer_waste_import_preview` uses the native waste ICS/CSV reader and the
 existing GUI date/group model. CSV input requires explicit zero-based column
 mapping, heading-row choice and ISO/dotted/day-first/month-first date format;
