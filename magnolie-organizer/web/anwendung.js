@@ -31196,6 +31196,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (einstSeite === "sync" &&
         !$("#einstellungen-schleier").classList.contains("verborgen")) baueEinstellungen();
     },
+    baumDavPruefung(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "baumDavPruefung"); },
     baumBriefkastenPruefung(nutzlast) {
       briefkastenStand = nutzlast || {};
       briefkastenSignatur = JSON.stringify(briefkastenStand);
@@ -34676,7 +34677,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         credential_present: value.revision === null && failed ? null : value.kennwortVorhanden, revision: value.revision,
         native_state: value.zustand, error_present: failed, error_code: value.fehlerCode, connectivity_checked: false };
     };
-    return [{ name: "organizer_dav_account_read", description: "Read the actual shared GUI Nextcloud/generic-DAV account configuration and reported credential presence, without returning passwords, authorization headers or protected credential blobs. Native revision is process-bound and keyed over the actual config/credential snapshot; null revision/presence indicates an unreadable state. This local status call does not discover remote collections or freshly verify connectivity/authentication; cached native state/error codes are reported separately. Correlated responses do not replace GUI account drafts or open dialogs.",
+    return [{ name: "organizer_dav_connection_test", description: "Test the saved active DAV account using the GUI's actual read-only CalDAV/CardDAV discovery readers. Requires the native account revision; a change before or during discovery rejects the result. Reports fresh reachability, partial discovery and collection counts, without returning records, credentials or raw server errors. Does not run synchronization, test record write permissions or run the separate mailbox MKCOL/PUT/DELETE test. No GUI dialogs/draft changes. A timeout/cancellation may leave bounded read-only discovery running; late responses remain silent.",
+      inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, required: ["expected_revision"], additionalProperties: false },
+      annotations: { readOnlyHint: true, openWorldHint: true }, call: async (args, signal) => {
+        const value = await mcpNativeAufruf("baum_dav_pruefen", { expectedRevision: args.expected_revision }, "baumDavPruefung", signal);
+        if (value.ok !== true) throw new MagnolieMcp.ToolError(value.code === "profile_locked" ? "locked_or_cancelled" : ["conflict", "not_active", "native_busy"].includes(value.code) ? value.code : "native_operation_failed", "Native DAV discovery could not run against the expected active account; refresh account status");
+        if (value.revision !== args.expected_revision || typeof value.reachable !== "boolean" || typeof value.partial !== "boolean" || typeof value.errorCode !== "string" ||
+            ![value.calendars, value.addressBooks].every(count => Number.isSafeInteger(count) && count >= 0)) throw new MagnolieMcp.ToolError("invalid_result", "Native DAV discovery acknowledgement was incomplete");
+        const code = /^(none|partial_discovery|timeout|network_error|native_operation_failed|http_[1-5][0-9]{2}|invalid_response|invalid_config|secret_service_unavailable|nextcloud_error)$/.test(value.errorCode) ? value.errorCode : "native_operation_failed";
+        return { revision: value.revision, connectivity_checked: true, reachable: value.reachable, partial: value.partial, error_code: code,
+          calendar_count: value.calendars, address_book_count: value.addressBooks, mailbox_tested: false, write_permissions_tested: false };
+      } }, { name: "organizer_dav_account_read", description: "Read the actual shared GUI Nextcloud/generic-DAV account configuration and reported credential presence, without returning passwords, authorization headers or protected credential blobs. Native revision is process-bound and keyed over the actual config/credential snapshot; null revision/presence indicates an unreadable state. This local status call does not discover remote collections or freshly verify connectivity/authentication; cached native state/error codes are reported separately. Correlated responses do not replace GUI account drafts or open dialogs.",
       inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (_args, signal) => {
         return decode(await mcpNativeAufruf("baum_briefkasten_status", {}, "baumBriefkastenStatus", signal));
       } },
@@ -35867,6 +35878,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (name === "organizer_dav_connection_test") {
+      const no = { type: "boolean", enum: [false] }, count = { type: "integer", minimum: 0 };
+      const fields = { revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, connectivity_checked: yes, reachable: flag, partial: flag, error_code: text,
+        calendar_count: count, address_book_count: count, mailbox_tested: no, write_permissions_tested: no };
+      return shape(fields, Object.keys(fields));
+    }
     if (["organizer_dav_account_read", "organizer_dav_account_update"].includes(name)) {
       const fields = { settings: shape({ configured: flag, account_type: { type: "string", enum: ["nextcloud", "generic-dav"] }, dav_enabled: flag, mailbox_enabled: flag, server: text, user: text }, ["configured", "account_type", "dav_enabled", "mailbox_enabled", "server", "user"]), credential_present: { type: ["boolean", "null"] }, revision: { type: ["string", "null"], pattern: "^[a-f0-9]{64}$" }, native_state: text, error_present: flag, error_code: text, connectivity_checked: { type: "boolean", enum: [false] } };
       if (name.endsWith("_update")) Object.assign(fields, { persisted: yes, verified: yes });

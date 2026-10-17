@@ -173,6 +173,29 @@ internal sealed partial class BridgeDispatcher
             Boolean(message, "kennwortLoeschen"), Text(message, "kontoArt"), requestId, Text(message, "expectedRevision"));
     }
 
+    private async Task TestDavConnectionAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId");
+        if (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null))
+        {
+            await form.SendAsync("App.baumDavPruefung", new { requestId, ok = false, code = "profile_locked" });
+            return;
+        }
+        try
+        {
+            using var timeout = NetworkDeadline(TimeSpan.FromSeconds(20));
+            using var client = new NextcloudDavClient(NextcloudSettings);
+            var result = await client.TestConnectionAsync(Text(message, "expectedRevision"), timeout.Token);
+            await form.SendAsync("App.baumDavPruefung", new { requestId, ok = result.Ok, code = result.Code,
+                revision = result.Revision, reachable = result.Reachable, partial = result.Partial,
+                errorCode = result.ErrorCode, calendars = result.Calendars, addressBooks = result.AddressBooks });
+        }
+        catch (Exception)
+        {
+            await form.SendAsync("App.baumDavPruefung", new { requestId, ok = false, code = "native_operation_failed" });
+        }
+    }
+
     private async Task SaveGraphConfigurationAsync(JsonElement message)
     {
         try

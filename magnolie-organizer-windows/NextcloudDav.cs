@@ -67,6 +67,8 @@ internal sealed record NextcloudDavSource(string Uid, string Name, string Kind, 
 internal sealed record NextcloudDavSources(IReadOnlyList<NextcloudDavSource> Calendars,
     IReadOnlyList<NextcloudDavSource> AddressBooks, string Error = "");
 internal sealed record NextcloudDavObject(Uri Href, string ETag, string Text);
+internal sealed record DavConnectionResult(bool Ok, string Code, string? Revision = null,
+    bool Reachable = false, bool Partial = false, string ErrorCode = "none", int Calendars = 0, int AddressBooks = 0);
 internal sealed class DavServiceUnavailableException : IOException { }
 
 internal sealed class NextcloudDavClient : IDisposable
@@ -138,6 +140,22 @@ internal sealed class NextcloudDavClient : IDisposable
             System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(firstError).Throw();
         return new NextcloudDavSources(calendarSources, addressSources,
             firstError is null ? "" : NextcloudStatusText.For(firstError));
+    }
+
+    internal async Task<DavConnectionResult> TestConnectionAsync(string expectedRevision, CancellationToken cancellationToken)
+    {
+        var snapshot = settingsStore!.ReadSnapshot();
+        if (snapshot.Revision != expectedRevision) return new(false, "conflict");
+        if (snapshot.Settings?.DavActive != true || !snapshot.CredentialPresent) return new(false, "not_active");
+        NextcloudDavSources? sources = null;
+        var errorCode = "none";
+        try { sources = await ListSourcesAsync(cancellationToken).ConfigureAwait(false); }
+        catch (OperationCanceledException) { errorCode = "timeout"; }
+        catch (HttpRequestException error) { errorCode = error.StatusCode is { } status ? $"http_{(int)status}" : "network_error"; }
+        catch (Exception) { errorCode = "native_operation_failed"; }
+        if (settingsStore.ReadSnapshot().Revision != snapshot.Revision) return new(false, "conflict");
+        return new(true, "", snapshot.Revision, sources is not null, sources?.Error.Length > 0,
+            sources?.Error.Length > 0 ? "partial_discovery" : errorCode, sources?.Calendars.Count ?? 0, sources?.AddressBooks.Count ?? 0);
     }
 
     internal async Task<IReadOnlyList<NextcloudDavObject>> ReadCalendarAsync(NextcloudDavSource source,

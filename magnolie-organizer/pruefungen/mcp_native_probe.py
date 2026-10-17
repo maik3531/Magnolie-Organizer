@@ -355,6 +355,12 @@ def client():
             assert not cleared_account["isError"] and cleared_account["structuredContent"]["persisted"] and cleared_account["structuredContent"]["credential_present"] is False, cleared_account
             actual_read = call("tools/call", {"name": "organizer_dav_account_read"})["structuredContent"]
             assert actual_read["revision"] == cleared_account["structuredContent"]["revision"] and actual_read["settings"] == cleared_account["structuredContent"]["settings"]
+            inactive_test = call("tools/call", {"name": "organizer_dav_connection_test", "arguments": {"expected_revision": actual_read["revision"]}})
+            assert inactive_test["isError"] and inactive_test["structuredContent"]["code"] == "not_active", inactive_test
+            stale_test = call("tools/call", {"name": "organizer_dav_connection_test", "arguments": {"expected_revision": initial_account["revision"]}})
+            assert stale_test["isError"] and stale_test["structuredContent"]["code"] == "conflict", stale_test
+            assert Path(product.nextcloud_einstellungsdatei()).read_bytes() == config_before
+            state["dav_discovery_inactive_revision_gates_verified"] = True
             assert data_file.read_text() == unchanged_book
             state["dav_write_verified"] = True
             process.stdin.close()

@@ -74,7 +74,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         {
             var command = parsed.RootElement.GetProperty("cmd").GetString()!;
             if (command is "wetter" or "feiertage" or "update_pruefen" or "journal_liste" or "import_lokal" or
-                "update_herunterladen" or "eds_status" or "graph_anmelden" or "baum_suchen" or "baum_paaren" or "baum_briefkasten_pruefen" or "kde_sms_senden" or "cloud_sicherung_test" or
+                "update_herunterladen" or "eds_status" or "graph_anmelden" or "baum_suchen" or "baum_paaren" or "baum_briefkasten_pruefen" or "baum_dav_pruefen" or "kde_sms_senden" or "cloud_sicherung_test" or
                 "baum_ein" or "baum_teilen" or "baum_delegieren" or "baum_rueckmeldung" or "baum_weitergeben" or "baum_weitergabe_annehmen" or "telefon_ein" or "telefon_verbindung_ein" or
                 "telefon_status_anfordern" or "telefon_entwickler_diagnose" or "kde_dateisystem_stand" or "kde_dateisystem_oeffnen" or "telefon_waehlen" or "telefon_annehmen" or "telefon_auflegen" or
                 "sync" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
@@ -296,6 +296,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "baum_briefkasten_status": await ReportDavAccountStatusAsync(Text(message, "requestId")); break;
                     case "baum_briefkasten_speichern": await SaveDavAccountAsync(message); break;
                     case "baum_briefkasten_pruefen": await baum.TestMailboxAsync(); break;
+                    case "baum_dav_pruefen": await TestDavConnectionAsync(message); break;
                     case "telefon_stand":
                     case "telefon_verbindung_stand": await telefon.ReportStatusAsync(); break;
                     case "telefon_ein":

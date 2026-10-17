@@ -419,6 +419,33 @@ internal static class NextcloudDavTests
         const string expected = "generic-dav-calendar:ff15e1cb495b36c977ba783d0848a6845514d25b04d0bfc5cadcff6a6c86c014";
         TestAssert.That(sources.Calendars[0].Uid == expected && requests.Count(path => path == "/dav.php/") == 1,
             "Relative DAV-Weiterleitung/Hrefs oder stabile plattformgleiche Quellen-ID sind fehlerhaft.");
+        var revision = settings.ReadSnapshot().Revision;
+        var tested = await client.TestConnectionAsync(revision, default);
+        TestAssert.That(tested.Ok && tested.Reachable && !tested.Partial && tested.Revision == revision && tested.Calendars == 1 && tested.AddressBooks == 1,
+            "Connection test did not use actual DAV discovery results.");
+        var count = requests.Count;
+        var stale = await client.TestConnectionAsync(new string('0', 64), default);
+        TestAssert.That(!stale.Ok && stale.Code == "conflict" && requests.Count == count, "Stale account connection test made remote requests.");
+        using var failingHttp = new HttpClient(new Handler(request =>
+        {
+            TestAssert.That(request.Method.Method == "PROPFIND", "Read-only connection test sent a mutation.");
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Unauthorized) { Content = new StringContent("owned-private-server-error") });
+        }));
+        using var failingClient = new NextcloudDavClient(settings, failingHttp);
+        var failed = await failingClient.TestConnectionAsync(revision, default);
+        TestAssert.That(failed.Ok && !failed.Reachable && failed.ErrorCode == "http_401" && !JsonSerializer.Serialize(failed).Contains("owned-private", StringComparison.Ordinal),
+            "Connection test hid authentication failure or leaked the raw server error.");
+        using var raceHttp = new HttpClient(new Handler(request =>
+        {
+            settings.SaveConfiguration(settings.Load()!, "owned-racing-password", false);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+        }));
+        using var raceClient = new NextcloudDavClient(settings, raceHttp);
+        var raced = await raceClient.TestConnectionAsync(revision, default);
+        TestAssert.That(!raced.Ok && raced.Code == "conflict", "Connection test attributed results to a changed account revision.");
+        settings.SaveConfiguration(settings.Load()! with { DavActive = false }, "", false);
+        var disabled = await client.TestConnectionAsync(settings.ReadSnapshot().Revision, default);
+        TestAssert.That(!disabled.Ok && disabled.Code == "not_active", "Disabled DAV account was tested.");
     }
 
     private static async Task TestGenericConfiguredBaseDiscovery(string root)

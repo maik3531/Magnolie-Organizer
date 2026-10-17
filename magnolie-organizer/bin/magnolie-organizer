@@ -21492,6 +21492,19 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=self._sync_bestaetigen,
                              args=(nachricht.get("transactionId"),), daemon=True).start()
 
+        elif befehl == "baum_dav_pruefen":
+            request_id = nachricht.get("requestId")
+            if getattr(self, "_mcp_dav_test_aktiv", False):
+                self.antwort("App.baumDavPruefung", {"requestId": request_id, "ok": False, "code": "native_busy"})
+                return
+            self._mcp_dav_test_aktiv = True
+            try:
+                threading.Thread(target=self._nextcloud_dav_pruefen,
+                                 args=(request_id, nachricht.get("expectedRevision")), daemon=True).start()
+            except Exception:
+                self._mcp_dav_test_aktiv = False
+                self.antwort("App.baumDavPruefung", {"requestId": request_id, "ok": False, "code": "native_operation_failed"})
+
         elif befehl == "baum_briefkasten_pruefen":
             threading.Thread(target=lambda: self._nextcloud_status_melden(
                 "App.baumBriefkastenPruefung"), daemon=True).start()
@@ -25601,6 +25614,37 @@ class Fenster(_FENSTER_BASIS):
         if isinstance(request_id, str) and re.fullmatch(r"[0-9a-fA-F-]{36}", request_id):
             nutzlast["requestId"] = request_id
         self.antwort("App.edsStatus", nutzlast)
+
+    def _nextcloud_dav_pruefen(self, request_id, expected_revision):
+        result = {"requestId": request_id, "ok": False, "code": "native_operation_failed"}
+        try:
+            if getattr(self, "_gesperrt", True):
+                result["code"] = "profile_locked"
+                return
+            store = nextcloud_speicher()
+            settings, present, revision, error = store.read_snapshot()
+            if error is not None or not revision:
+                return
+            if revision != expected_revision:
+                result["code"] = "conflict"
+                return
+            if not settings or not settings["davAktiv"] or not present:
+                result["code"] = "not_active"
+                return
+            status = nextcloud_status()
+            if store.read_snapshot()[2] != revision:
+                result["code"] = "conflict"
+                return
+            partial = bool(status["fehler"] and (status["kalender"] or status["adressbuecher"]))
+            result = {"requestId": request_id, "ok": True, "revision": revision,
+                      "reachable": status["zustand"] == "bereit" or partial, "partial": partial,
+                      "errorCode": status["fehlerCode"], "calendars": len(status["kalender"]),
+                      "addressBooks": len(status["adressbuecher"])}
+        except Exception:
+            pass
+        finally:
+            self._mcp_dav_test_aktiv = False
+            self.antwort("App.baumDavPruefung", result)
 
     def _nextcloud_status_melden(self, callback="App.nextcloudStatus", request_id=None):
         if request_id:

@@ -2,6 +2,7 @@
 import importlib
 import json
 import threading
+from test_nextcloud import multistatus, dav_response
 
 from test_startup_read_failure import native, Host
 
@@ -34,6 +35,59 @@ class Vault:
             return True
         self.values.pop(account, None)
         return True
+
+
+def test_correlated_connection_uses_real_discovery_and_rejects_changed_account(native, monkeypatch, tmp_path):
+    store, vault = account_store(native, tmp_path)
+    monkeypatch.setattr(native, "nextcloud_speicher", lambda: store)
+    store.save(True, True, "https://owned.example.test", "owned-reader", "owned-discovery-secret")
+    revision = store.read_snapshot()[2]
+    calls = []
+    mode = ["ok"]
+    def transport(method, url, *_args):
+        calls.append((method, url))
+        if mode[0] == "change":
+            mode[0] = "ok"
+            store.save(True, True, "https://owned.example.test", "owned-reader", "owned-new-secret")
+        if mode[0] == "fail":
+            return 401, {}, b"owned-private-server-error"
+        if ".well-known/" in url:
+            calendar = "caldav" in url
+            prefix, tag, ns = ("c", "calendar", "caldav") if calendar else ("a", "addressbook", "carddav")
+            return 207, {}, multistatus(dav_response(url, [(prefix + ":" + tag + "-home-set", "<d:href>/" + tag + "/</d:href>")]),
+                                       namespaces='xmlns:%s="urn:ietf:params:xml:ns:%s"' % (prefix, ns))
+        calendar = "/calendar/" in url
+        marker = '<c:calendar xmlns:c="urn:ietf:params:xml:ns:caldav"/>' if calendar else '<a:addressbook xmlns:a="urn:ietf:params:xml:ns:carddav"/>'
+        return 207, {}, multistatus(dav_response(url + "owned/", [("d:resourcetype", marker)]))
+    original_client = native.configured_client
+    monkeypatch.setattr(native, "configured_client", lambda store, *args, **kwargs: original_client(store, transport=transport, **kwargs))
+    host = Host(native); host._gesperrt = False
+    host._nextcloud_dav_pruefen("owned-discovery-request", revision)
+    callback, result = host.responses[-1]
+    assert callback == "App.baumDavPruefung" and result["requestId"] == "owned-discovery-request"
+    assert result["ok"] and result["reachable"] and result["revision"] == revision
+    assert result["calendars"] == result["addressBooks"] == 1
+    assert calls and all(method == "PROPFIND" for method, _ in calls)
+    assert "owned-discovery-secret" not in json.dumps(result) and not host._mcp_dav_test_aktiv
+    count = len(calls)
+    host._nextcloud_dav_pruefen("owned-stale", "0" * 64)
+    assert host.responses[-1][1]["code"] == "conflict" and len(calls) == count
+    mode[0] = "fail"
+    host._nextcloud_dav_pruefen("owned-401", revision)
+    result = host.responses[-1][1]
+    assert result["ok"] and not result["reachable"] and result["errorCode"] == "http_401"
+    assert "owned-private" not in json.dumps(result)
+    mode[0] = "change"
+    host._nextcloud_dav_pruefen("owned-race", revision)
+    assert host.responses[-1][1]["code"] == "conflict"
+    host._gesperrt = True
+    count = len(calls)
+    host._nextcloud_dav_pruefen("owned-locked", store.read_snapshot()[2])
+    assert host.responses[-1][1]["code"] == "profile_locked" and len(calls) == count
+    host._gesperrt = False
+    store.save(False, True, "https://owned.example.test", "owned-reader", "")
+    host._nextcloud_dav_pruefen("owned-inactive", store.read_snapshot()[2])
+    assert host.responses[-1][1]["code"] == "not_active" and len(calls) == count
 
 
 def account_store(native, tmp_path):

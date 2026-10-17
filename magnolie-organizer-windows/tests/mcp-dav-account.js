@@ -11,7 +11,7 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
     try {
       if (b.saves().length) b.ack(); await tick();
       b.w.eval(fs.readFileSync(path.join(web, "mcp-protocol.js"), "utf8"));
-      let sequence = 0, onRead, onWrite;
+      let sequence = 0, onRead, onWrite, onTest;
       const nativeWrites = [];
       const metadata = { kontoArt: "nextcloud", davAktiv: true, briefkastenAktiv: false, url: "https://owned.example.test", benutzer: "owned-reader",
         kennwortVorhanden: true, revision: "e".repeat(64), zustand: "bereit", fehler: "", fehlerCode: "none" };
@@ -32,6 +32,7 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
         if (message.cmd === "baum_briefkasten_speichern" && message.requestId) {
           nativeWrites.push(message); if (onWrite) onWrite(message); else queueMicrotask(() => replySave(message));
         }
+        if (message.cmd === "baum_dav_pruefen") onTest(message);
       };
       async function rpc(method, params, explicitId) {
         const invocation = (++sequence).toString(16).padStart(48, "0");
@@ -40,6 +41,9 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
         return b.messages.find(message => message.cmd === "mcp_antwort" && message.invocation === invocation).response;
       }
       const read = async id => (await rpc("tools/call", { name: "organizer_dav_account_read" }, id)).result;
+      const test = async id => (await rpc("tools/call", { name: "organizer_dav_connection_test", arguments: { expected_revision: metadata.revision } }, id)).result;
+      const replyTest = (message, extra = {}) => b.w.App.baumDavPruefung({ requestId: message.requestId, ok: true, revision: metadata.revision,
+        reachable: true, partial: false, errorCode: "none", calendars: 2, addressBooks: 1, password: "owned-private-test-secret", ...extra });
       const write = async (fields = {}, id) => (await rpc("tools/call", { name: "organizer_dav_account_update", arguments: {
         expected_revision: metadata.revision, account_type: "nextcloud", dav_enabled: false, mailbox_enabled: false,
         server: metadata.url, user: metadata.benutzer, ...fields } }, id)).result;
@@ -48,6 +52,23 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
       await rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "owned-dav-reader", version: "1" } });
       await rpc("notifications/initialized");
       const before = JSON.stringify(b.t.daten()), saveCount = b.saves().length;
+      let testMessage, testComplete = false;
+      const testStarted = new Promise(resolve => { onTest = message => { testMessage = message; resolve(); }; });
+      const testing = test().then(result => { testComplete = true; return result; }); await testStarted;
+      assert.equal(testMessage.expectedRevision, metadata.revision);
+      replyTest({ ...testMessage, requestId: "wrong-test-request" }); await tick(); assert.equal(testComplete, false);
+      replyTest(testMessage); const tested = ok(await testing);
+      assert.equal(tested.calendar_count, 2); assert.equal(tested.mailbox_tested, false); assert.equal(tested.connectivity_checked, true);
+      assert.ok(!JSON.stringify(tested).includes("owned-private-"));
+      onTest = message => replyTest(message, { reachable: false, calendars: 0, addressBooks: 0, errorCode: "http_401" });
+      assert.equal(ok(await test()).error_code, "http_401");
+      onTest = message => replyTest(message, { partial: true, errorCode: "partial_discovery" }); assert.equal(ok(await test()).partial, true);
+      onTest = message => replyTest(message, { errorCode: "owned-private-error" }); assert.equal(ok(await test()).error_code, "native_operation_failed");
+      onTest = message => replyTest(message, { revision: "f".repeat(64) }); fail(await test(), "invalid_result");
+      onTest = message => replyTest(message, { calendars: -1 }); fail(await test(), "invalid_result");
+      for (const code of ["conflict", "not_active", "native_busy", "profile_locked"]) {
+        onTest = message => replyTest(message, { ok: false, code }); fail(await test(), code === "profile_locked" ? "locked_or_cancelled" : code);
+      }
       let native, completed = false;
       const started = new Promise(resolve => { onRead = message => { native = message; resolve(); }; });
       const pending = read().then(result => { completed = true; return result; });
@@ -94,6 +115,12 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
       const field = b.w.document.querySelector("#briefkasten-url"); assert.ok(field);
       field.value = "https://owned-draft.example.test"; field.dispatchEvent(new b.w.Event("input"));
       const password = b.w.document.querySelector("#briefkasten-kennwort"); assert.ok(password); password.value = "owned-unsaved-credential";
+      const lateTestStarted = new Promise(resolve => { onTest = message => { testMessage = message; resolve(); }; });
+      const lateTest = test(7900); await lateTestStarted;
+      await rpc("notifications/cancelled", { requestId: 7900 }); fail(await lateTest, "cancelled");
+      const testRequestsBeforeLate = b.messages.filter(message => message.cmd === "eds_status").length;
+      replyTest(testMessage); await tick();
+      assert.equal(b.messages.filter(message => message.cmd === "eds_status").length, testRequestsBeforeLate);
       onRead = message => reply(message, { url: "https://fresh-native.example.test" });
       const fresh = ok(await read()); assert.equal(fresh.settings.server, "https://fresh-native.example.test");
       assert.equal(b.w.document.querySelector("#briefkasten-url"), field); assert.equal(field.value, "https://owned-draft.example.test");

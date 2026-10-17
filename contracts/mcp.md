@@ -133,6 +133,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_sync_settings_read` | Calendar/address-book selections and GUI sync preferences under a revision covering the complete sync preference object |
 | `organizer_sync_settings_update` | Shared GUI selection/preferences, native validation of newly linked IDs and durable save; preserves offline selections and existing record/provider routing |
 | `organizer_dav_account_read` | Actual local shared GUI Nextcloud/generic-DAV configuration and credential-presence metadata, with a process-bound keyed native revision and explicit unreadable states; no secret values or connectivity claim |
+| `organizer_dav_connection_test` | Fresh read-only CalDAV/CardDAV discovery through GUI readers, checked against the expected native account revision before and after the request; collection counts, partial discovery and sanitized failure codes, no mailbox/write-permission test |
 | `organizer_dav_account_update` | Full explicit native DAV configuration with expected native revision, optional credential replacement/clearing, shared GUI transaction and verified config/credential readback before persisted success |
 | `organizer_note_read` | Note and revision token |
 | `organizer_note_create` | Plain-text note in an existing notebook; native save acknowledgement |
@@ -340,8 +341,22 @@ stable password-equality fingerprint. Credential values and protected blobs neve
 appear in results or book data. Verification failure/cancellation/timeout after
 dispatch may follow native changes; re-read before retrying. Normal existing
 runtime applies to enabled services, but the call does not verify connectivity
-or authentication. Separate login/test and full synchronization actions remain
-coverage work.
+or authentication.
+
+`organizer_dav_connection_test` requires that native account revision and an
+active DAV account with a stored credential. It uses the existing GUI discovery
+readers and verifies the revision again after discovery. This detects concurrent
+account changes; it is not an atomic server snapshot. The result reports fresh
+`connectivity_checked: true`, reachability, partial discovery, collection counts
+and a sanitized error code. An authentication/network rejection is a completed
+test with `reachable: false`, not a successful connection. Existing platform
+discovery behavior applies, including available partial results. The call does
+not read contact/calendar records, synchronize, test record-write permissions,
+or create a mailbox write probe (`mailbox_tested` and `write_permissions_tested`
+are false). Native request deadlines apply; cancellation or an RPC timeout can
+leave bounded read-only discovery finishing in the worker. Correlated late
+responses do not modify GUI drafts, dialogs or book data. The separate mailbox
+write test, login actions and full synchronization remain coverage work.
 
 For local imports, supply `local_source` (`evolution`/`thunderbird` on Linux,
 `windows_contacts`/`thunderbird` on Windows) and optional `local_scope`
