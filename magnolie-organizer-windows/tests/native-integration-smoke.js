@@ -98,6 +98,9 @@ try {
   fs.writeFileSync(path.join(lifecycle, "Program.cs"), `
 internal sealed class Probe {
   private readonly object serviceGate = new(), paths = new();
+  internal sealed class FormState { internal bool IsDisposed, Disposing; }
+  internal readonly FormState form = new();
+  internal bool currentPlainTextAvailable = true;
   private bool disposed;
   private KdeConnectSms? kdeInstance;
   internal int Calls;
@@ -113,6 +116,9 @@ internal sealed class KdeConnectSms : IDisposable {
   internal static int Created, Disposed;
   internal static bool FailSubscription;
   private Action? status, sms, pairing, digitizer;
+  internal Func<bool>? InputPermission;
+  internal int InputConfigurations;
+  internal void ConfigureInput(Func<bool> permitted) { InputPermission = permitted; InputConfigurations++; }
   internal KdeConnectSms(object paths) { Interlocked.Increment(ref Created); }
   internal event Action StatusChanged { add => status += value; remove => status -= value; }
   internal event Action SmsReceived {
@@ -130,8 +136,14 @@ internal static class Program {
     var probe = new Probe(); var values = new KdeConnectSms[64];
     Parallel.For(0, values.Length, index => values[index] = probe.Get());
     Check(KdeConnectSms.Created == 1 && values.All(value => ReferenceEquals(value, values[0])));
+    Check(values[0].InputConfigurations == 1 && values[0].InputPermission!());
+    probe.currentPlainTextAvailable = false; Check(!values[0].InputPermission!());
+    probe.currentPlainTextAvailable = true; probe.form.Disposing = true; Check(!values[0].InputPermission!());
+    probe.form.Disposing = false; probe.form.IsDisposed = true; Check(!values[0].InputPermission!());
+    probe.form.IsDisposed = false; Check(values[0].InputPermission!());
     values[0].Emit(); Check(probe.Calls == 4);
     probe.Stop(); Check(KdeConnectSms.Disposed == 1);
+    Check(!values[0].InputPermission!());
     try { probe.Get(); throw new Exception("Disposed service was recreated"); } catch (ObjectDisposedException) { }
     var retry = new Probe(); KdeConnectSms.FailSubscription = true;
     try { retry.Get(); throw new Exception("Subscription fault was ignored"); } catch (InvalidOperationException) { }
@@ -188,7 +200,7 @@ assert.match(application, /vorBeenden\(\)[\s\S]*?speichereJetzt\(true\)/,
 assert.match(application,
   /if \(beendenGewuenscht && Bruecke\.vorhanden\)[\s\S]*?cmd: "beenden_abgebrochen"/,
   "save failure does not release the native close state");
-assert.match(bridge, /case "drucken": form\.ShowPrintDialog\(Text\(message, "html"\)\)/,
+assert.match(bridge, /(?:case "drucken": |else )form\.ShowPrintDialog\(Text\(message, "html"\)\)/,
   "Windows printing does not pass the generated preview page to the native form");
 assert.match(mainForm, /new HtmlPrintForm\(html, paths,/,
   "Windows printing does not load the generated preview page in a separate WebView");
