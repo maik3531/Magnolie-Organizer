@@ -13,6 +13,7 @@ internal static class NextcloudMailboxTests
     {
         TestServerAndSecretStorage();
         await TestAccountSnapshotAsync();
+        await TestOrphanCredentialBindingAsync();
         TestAuthenticatedDocuments();
         await TestWebDavAsync();
         await TestWebDavFailuresAsync();
@@ -52,6 +53,39 @@ internal static class NextcloudMailboxTests
             File.WriteAllText(paths.BaumMailboxSettings, "{damaged");
             await coordinator.ReportMailboxStatusAsync(requestId: "owned-invalid-request");
             TestAssert.That(status?["requestId"]?.GetValue<string>() == "owned-invalid-request" && status?["revision"] is null && !string.IsNullOrEmpty(status?["fehler"]?.GetValue<string>()), "Invalid account settings were reported as a valid revision.");
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    private static async Task TestOrphanCredentialBindingAsync()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-dav-orphan-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var paths = new WindowsPaths(root);
+            var store = new NextcloudMailboxSettingsStore(paths.BaumMailboxSettings, paths.BaumMailboxPassword, new FakeProtector());
+            store.SetApplicationPassword("owned-orphan-credential");
+            var originalBlob = File.ReadAllText(paths.BaumMailboxPassword);
+            JsonObject? status = null;
+            using var coordinator = new MagnolienbaumCoordinator(paths, (_, payload) =>
+            {
+                status = JsonSerializer.SerializeToNode(payload)!.AsObject(); return Task.CompletedTask;
+            });
+            await coordinator.SaveMailboxAsync(true, false, "https://new-owned.example.test", "new-owned-user", "", false);
+            TestAssert.That(!File.Exists(paths.BaumMailboxSettings) && !string.IsNullOrEmpty(status?["fehler"]?.GetValue<string>()) && File.ReadAllText(paths.BaumMailboxPassword) == originalBlob,
+                "A new DAV endpoint accepted an unbound orphan credential without a newly supplied password.");
+            await coordinator.SaveMailboxAsync(false, false, "https://new-owned.example.test", "new-owned-user", "", false);
+            TestAssert.That(!File.Exists(paths.BaumMailboxSettings) && !string.IsNullOrEmpty(status?["fehler"]?.GetValue<string>()), "An inactive new endpoint silently retained the unbound credential for later activation.");
+            await coordinator.SaveMailboxAsync(false, false, "https://new-owned.example.test", "new-owned-user", "", true);
+            TestAssert.That(store.Load() is { DavActive: false, MailboxActive: false, User: "new-owned-user" } && !store.HasApplicationPassword && string.IsNullOrEmpty(status?["fehler"]?.GetValue<string>()), "Explicit deletion could not safely clear the orphan credential while saving a disabled account.");
+            var known = new NextcloudMailboxSettings(false, false, "https://known-owned.example.test", "known-owned-user");
+            store.SaveConfiguration(known, "owned-known-credential", false);
+            var knownConfig = File.ReadAllText(paths.BaumMailboxSettings); var knownBlob = File.ReadAllText(paths.BaumMailboxPassword);
+            await coordinator.SaveMailboxAsync(true, false, "https://other-owned.example.test", "other-owned-user", "", false);
+            TestAssert.That(File.ReadAllText(paths.BaumMailboxSettings) == knownConfig && File.ReadAllText(paths.BaumMailboxPassword) == knownBlob && !string.IsNullOrEmpty(status?["fehler"]?.GetValue<string>()), "Changed configured endpoint reused a previous account credential.");
+            await coordinator.SaveMailboxAsync(true, false, known.ServerBase, known.User, "", false);
+            TestAssert.That(store.Load() is { DavActive: true, User: "known-owned-user" } && store.HasApplicationPassword && File.ReadAllText(paths.BaumMailboxPassword) == knownBlob && string.IsNullOrEmpty(status?["fehler"]?.GetValue<string>()), "The unchanged known account could not retain its own credential.");
         }
         finally { Directory.Delete(root, true); }
     }

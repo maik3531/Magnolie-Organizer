@@ -107,11 +107,13 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             if (accountType == "generic-dav" && mailboxActive)
                 throw new InvalidOperationException("Der Magnolienbaum-Briefkasten benötigt ein Nextcloud-Konto.");
             var previous = mailboxSettings.Load();
-            var endpointChanged = previous is not null &&
+            var endpointChanged = previous is null ||
                 (previous.ServerBase != server || previous.User != validatedUser || previous.AccountType != accountType);
             if (deletePassword && applicationPassword.Length > 0)
                 throw new ArgumentException("Das Kennwort kann nicht gleichzeitig gelöscht und ersetzt werden.");
-            if (endpointChanged && mailboxSettings.HasApplicationPassword && applicationPassword.Length == 0)
+            // An orphan credential has no verified endpoint binding. Explicit
+            // deletion is safe because active services reject it below.
+            if (endpointChanged && mailboxSettings.HasApplicationPassword && applicationPassword.Length == 0 && !deletePassword)
                 throw new InvalidOperationException("Bei einer neuen Serveradresse oder einem neuen Benutzer ist ein neues Anwendungskennwort erforderlich.");
             if ((davActive || mailboxActive) && (deletePassword || applicationPassword.Length == 0 && !mailboxSettings.HasApplicationPassword))
                 throw new InvalidOperationException("Das Nextcloud-Anwendungskennwort fehlt.");
