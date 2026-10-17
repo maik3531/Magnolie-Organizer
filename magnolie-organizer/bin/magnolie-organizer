@@ -18313,6 +18313,28 @@ def lokal_scannen(basis=None, nur_kontakte=False, quelle=None):
 
 
 # ---------------------------------------------------------------------------
+def lokal_import_snapshot(nutzlast, quelle, bereich, erwartete_revision=None):
+    """Bindet den tatsächlich gelesenen Inhalt, keine erfundenen Dateibytes."""
+    if quelle not in ("evolution", "thunderbird") or bereich not in ("contacts", "all"):
+        raise ValueError("unsupported_feature")
+    kanonisch = lambda wert: json.dumps(wert, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    semantik = {"source": quelle, "scope": bereich, "version": 1,
+                "uebersprungen": nutzlast.get("uebersprungen", 0),
+                "wiederholend": nutzlast.get("wiederholend", 0)}
+    for name in ("kontakte", "geburtstage", "termine", "jahrestage", "aufgaben", "notizen"):
+        werte = nutzlast.get(name, [])
+        if not isinstance(werte, list) or any(not isinstance(wert, dict) for wert in werte):
+            raise ValueError("invalid_local_import")
+        semantik[name] = sorted(kanonisch({key: value for key, value in wert.items() if key != "id"}) for wert in werte)
+    roh = kanonisch(semantik).encode("utf-8")
+    if len(roh) > IMPORT_DATEI_MAX or len(kanonisch(nutzlast).encode("utf-8")) > IMPORT_DATEI_MAX:
+        raise ValueError("local_import_too_large")
+    revision = hashlib.sha256(roh).hexdigest()
+    if erwartete_revision and erwartete_revision != revision:
+        raise ValueError("mcp_conflict")
+    nutzlast.update(source=quelle, scope=bereich, revision=revision, ok=True)
+
+
 # Evolution-Data-Server (Online-Konten)
 # ---------------------------------------------------------------------------
 
@@ -21486,10 +21508,28 @@ class Fenster(_FENSTER_BASIS):
                 nachricht.get("kontoArt") or "nextcloud"), daemon=True).start()
 
         elif befehl == "import_lokal":
-            threading.Thread(target=self._import_lokal_arbeit,
-                             args=(nachricht.get("bereich") == "kontakte",
-                                   nachricht.get("quelle")),
-                             daemon=True).start()
+            request_id = nachricht.get("requestId")
+            if request_id and nachricht.get("bereich") not in ("kontakte", "alle"):
+                self.antwort("App.importErgebnis", {"art": "lokal", "requestId": request_id,
+                             "ok": False, "code": "native_operation_failed"})
+                return
+            if request_id and getattr(self, "_mcp_lokal_aktiv", False):
+                self.antwort("App.importErgebnis", {"art": "lokal", "requestId": request_id,
+                             "ok": False, "code": "native_busy"})
+                return
+            if request_id:
+                self._mcp_lokal_aktiv = True
+            try:
+                threading.Thread(target=self._import_lokal_arbeit,
+                                 args=(nachricht.get("bereich") == "kontakte",
+                                       nachricht.get("quelle"), request_id,
+                                       nachricht.get("expectedRevision")), daemon=True).start()
+            except Exception:
+                if not request_id:
+                    raise
+                self._mcp_lokal_aktiv = False
+                self.antwort("App.importErgebnis", {"art": "lokal", "requestId": request_id,
+                             "ok": False, "code": "native_operation_failed"})
 
         elif befehl == "feiertage":
             threading.Thread(target=self._feiertage_arbeit, args=(nachricht,),
@@ -25478,12 +25518,26 @@ class Fenster(_FENSTER_BASIS):
         ergebnis["handbuchVersion"] = handbuch_version()
         self.antwort("App.updateErgebnis", ergebnis)
 
-    def _import_lokal_arbeit(self, nur_kontakte=False, quelle=None):
+    def _import_lokal_arbeit(self, nur_kontakte=False, quelle=None, request_id=None, erwartete_revision=None):
         try:
+            if request_id:
+                if getattr(self, "_gesperrt", True):
+                    raise ValueError("profile_locked")
+                if quelle not in ("evolution", "thunderbird"):
+                    raise ValueError("unsupported_feature")
             nutzlast = lokal_scannen(nur_kontakte=nur_kontakte, quelle=quelle)
+            if request_id:
+                lokal_import_snapshot(nutzlast, quelle, "contacts" if nur_kontakte else "all", erwartete_revision)
+                nutzlast["requestId"] = request_id
         except Exception as fehler:
-            nutzlast = {"fehler": fehler_deutsch(
-                fehler, _("Scanning this computer"))}
+            if request_id:
+                code = "conflict" if str(fehler) == "mcp_conflict" else "unsupported_feature" if str(fehler) == "unsupported_feature" else "native_operation_failed"
+                nutzlast = {"requestId": request_id, "ok": False, "code": code}
+            else:
+                nutzlast = {"fehler": fehler_deutsch(fehler, _("Scanning this computer"))}
+        finally:
+            if request_id:
+                self._mcp_lokal_aktiv = False
         nutzlast["art"] = "lokal"
         nutzlast["abgebrochen"] = False
         self.antwort("App.importErgebnis", nutzlast)

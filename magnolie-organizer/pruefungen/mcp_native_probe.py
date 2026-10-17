@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import selectors
+import sqlite3
 import signal
 import socket
 import struct
@@ -240,6 +241,82 @@ def client():
         assert status["structuredContent"]["ready"] and not status["structuredContent"]["locked"], status
         notes = call("tools/call", {"name": "organizer_data_read", "arguments": {"section": "notizen"}})
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
+        if os.environ.get("MAGNOLIE_MCP_PROBE_LOCAL_ONLY") == "1":
+            profile = Path(os.environ["HOME"]) / ".thunderbird" / "owned.default"
+            (profile / "calendar-data").mkdir(parents=True)
+            (profile.parent / "profiles.ini").write_text("[Profile0]\nIsRelative=1\nPath=owned.default\n", encoding="utf-8")
+            local_book = profile / "abook.sqlite"
+            with sqlite3.connect(local_book) as db:
+                db.execute("CREATE TABLE properties (card TEXT,name TEXT,value TEXT)")
+                db.executemany("INSERT INTO properties VALUES ('owned-native-local-card',?,?)", [
+                    ("FirstName", "Owned native"), ("LastName", "Local import"), ("PrimaryEmail", "owned-local@example.test"),
+                    ("BirthMonth", "3"), ("BirthDay", "4"), ("Notes", "Owned native local note")])
+            local_ics = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:owned-native-local-event\r\nDTSTART:20300304T090000Z\r\nSUMMARY:Owned native local appointment\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+            with sqlite3.connect(profile / "calendar-data" / "local.sqlite") as db:
+                db.execute("CREATE TABLE owned_events (ical TEXT)")
+                db.execute("INSERT INTO owned_events VALUES (?)", (local_ics,))
+            evolution = Path(os.environ["HOME"]) / ".local/share/evolution/calendar/owned"
+            evolution.mkdir(parents=True)
+            (evolution / "calendar.ics").write_text(local_ics.replace("owned-native-local-event", "owned-native-evolution-event").replace("local appointment", "Evolution appointment"), encoding="utf-8")
+            before_local = call("tools/call", {"name": "organizer_data_read", "arguments": {"section": "termine"}})["structuredContent"]["entries"]
+            before_local_contacts = call("tools/call", {"name": "organizer_data_read", "arguments": {"section": "kontakte"}})["structuredContent"]["entries"]
+            def local_review(source, scope):
+                revision = call("tools/call", {"name": "organizer_book_revision_read"})["structuredContent"]["revision"]
+                result = call("tools/call", {"name": "organizer_import_review_begin", "arguments": {"local_source": source, "local_scope": scope, "expected_book_revision": revision}})
+                assert not result["isError"], result
+                return result["structuredContent"]
+            def local_apply(review):
+                return call("tools/call", {"name": "organizer_import_review_apply", "arguments": {
+                    "token": review["token"], "expected_book_revision": review["book_revision"], "expected_selection_revision": review["selection_revision"]}})
+            def choose_local(review, action):
+                result = call("tools/call", {"name": "organizer_import_review_decide", "arguments": {
+                    "token": review["token"], "expected_selection_revision": review["selection_revision"], "decisions": [{"index": 0, "action": action}]}})
+                assert not result["isError"], result
+                return result["structuredContent"]
+            contacts_review = local_review("thunderbird", "contacts")
+            assert contacts_review["contacts_total"] == 1 and contacts_review["counts"]["appointments"] == 0, contacts_review
+            source_card = call("tools/call", {"name": "organizer_import_review_content_read", "arguments": {"token": contacts_review["token"], "section": "kontakte", "index": 0}})
+            assert not source_card["isError"], source_card
+            source_card = json.loads(base64.b64decode(source_card["structuredContent"]["data"]))
+            assert source_card["email"] == "owned-local@example.test" and source_card["notiz"] == "Owned native local note"
+            contacts_applied = local_apply(choose_local(contacts_review, "new"))
+            assert not contacts_applied["isError"] and contacts_applied["structuredContent"]["persisted"], contacts_applied
+            local_durable = json.loads(data_file.read_text())
+            assert contacts_applied["structuredContent"]["counts"]["contacts"] == 1
+            assert all(contact in local_durable["kontakte"] for contact in before_local_contacts)
+            local_contact = next(contact for contact in local_durable["kontakte"] if contact["email"] == "owned-local@example.test")
+            assert local_contact["notiz"] == "Owned native local note" and len([entry for entry in local_durable["jahrestage"] if entry.get("kontaktId") == local_contact["id"]]) == 1
+            all_review = choose_local(local_review("thunderbird", "all"), "skip")
+            assert all_review["counts"]["appointments"] == 1, all_review
+            before_stale = data_file.read_text()
+            with sqlite3.connect(local_book) as db: db.execute("UPDATE properties SET value='Owned changed local note' WHERE name='Notes'")
+            stale_local = local_apply(all_review)
+            assert stale_local["isError"] and stale_local["structuredContent"]["code"] == "conflict", stale_local
+            assert data_file.read_text() == before_stale
+            assert not call("tools/call", {"name": "organizer_import_review_cancel", "arguments": {"token": all_review["token"]}})["isError"]
+            fresh_local = choose_local(local_review("thunderbird", "all"), "skip")
+            assert fresh_local["source_revision"] != all_review["source_revision"]
+            local_applied = local_apply(fresh_local)
+            assert not local_applied["isError"] and local_applied["structuredContent"]["persisted"], local_applied
+            evolution_review = local_review("evolution", "all")
+            assert evolution_review["contacts_total"] == 0 and evolution_review["counts"]["appointments"] == 1, evolution_review
+            assert not local_apply(evolution_review)["isError"]
+            replay_evolution = local_review("evolution", "all")
+            assert replay_evolution["source_revision"] == evolution_review["source_revision"]
+            assert not local_apply(replay_evolution)["isError"]
+            stored_local = json.loads(data_file.read_text())
+            assert all(event in stored_local["termine"] for event in before_local)
+            assert len([event for event in stored_local["termine"] if event["titel"] == "Owned native local appointment"]) == 1
+            assert len([event for event in stored_local["termine"] if event["titel"] == "Owned native Evolution appointment"]) == 1
+            assert len([contact for contact in stored_local["kontakte"] if contact["email"] == "owned-local@example.test"]) == 1
+            unsupported_local = call("tools/call", {"name": "organizer_import_review_begin", "arguments": {"local_source": "windows_contacts", "expected_book_revision": call("tools/call", {"name": "organizer_book_revision_read"})["structuredContent"]["revision"]}})
+            assert unsupported_local["isError"] and unsupported_local["structuredContent"]["code"] == "unsupported_feature", unsupported_local
+            state["local_import_verified"] = True
+            process.stdin.close()
+            assert process.wait(timeout=5) == 0
+            selector.close()
+            state["passed"] = True
+            return
         if os.environ.get("MAGNOLIE_MCP_PROBE_WASTE_ONLY") == "1" or os.environ.get("MAGNOLIE_MCP_PROBE_WASTE_SOURCE_ONLY") == "1":
             waste_path = Path(temporary.name) / "owned-waste.csv"
             waste_path.write_text("Datum;Abfallart;Ort;Notiz;UID\n04.02.2030;Biotonne;Owned point;Owned note;owned-bio\n05.02.2030;Papier;Owned point;;owned-paper\n", encoding="utf-8")
@@ -1846,7 +1923,9 @@ finally:
     print("Native MCP fixture state:", json.dumps(state), flush=True)
     temporary.cleanup()
 assert state["passed"], state
-if os.environ.get("MAGNOLIE_MCP_PROBE_WASTE_SOURCE_ONLY") == "1":
+if os.environ.get("MAGNOLIE_MCP_PROBE_LOCAL_ONLY") == "1":
+    print("Native MCP LOCAL PASS: actual Thunderbird SQLite and Evolution ICS readers, staged source/scope CAS, checkpoint/save/readback, birthday, stale-source rejection and replay")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_WASTE_SOURCE_ONLY") == "1":
     print("Native MCP WASTE SOURCE PASS: exact CSV heading reconstruction across byte chunks and real ICS preview fields, unchanged book")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_WASTE_ONLY") == "1":
     print("Native MCP WASTE PASS: actual CSV/ICS parsing, mapping/source/book revisions, pre-change checkpoints, durable readback, replay and stable UID correction")

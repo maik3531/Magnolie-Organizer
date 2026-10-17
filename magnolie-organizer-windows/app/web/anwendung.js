@@ -34419,6 +34419,20 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         !["uebersprungen", "wiederholend"].every(key => value[key] === undefined || Number.isSafeInteger(value[key]) && value[key] >= 0)) throw new MagnolieMcp.ToolError("invalid_result", "Native import metadata or parsed collections were incomplete");
     return value;
   }
+  async function mcpLeseImportQuelle(args, signal) {
+    if (args.local_source === undefined) {
+      if (args.local_scope !== undefined || !args.format || !args.path) throw new MagnolieMcp.ToolError("invalid_settings", "Select a file format/path or an explicit local source/scope");
+      return mcpLeseImportDatei(args, signal);
+    }
+    if (args.format !== undefined || args.path !== undefined) throw new MagnolieMcp.ToolError("invalid_settings", "Local sources do not accept a file format or path");
+    const scope = args.local_scope || "all", value = await mcpNativeAufruf("import_lokal", { quelle: args.local_source, bereich: scope === "contacts" ? "kontakte" : "alle",
+      ...(args.expected_revision ? { expectedRevision: args.expected_revision } : {}) }, "importErgebnis", signal);
+    if (value.ok !== true || value.fehler || value.abgebrochen || value.art !== "lokal") throw new MagnolieMcp.ToolError(["conflict", "unsupported_feature", "native_busy"].includes(value.code) ? value.code : "native_operation_failed", "Native local import scan failed; check source availability and restart the review");
+    if (value.source !== args.local_source || value.scope !== scope || !/^[a-f0-9]{64}$/.test(value.revision) ||
+        !["kontakte", "geburtstage", "termine", "jahrestage", "aufgaben", "notizen"].every(key => value[key] === undefined || Array.isArray(value[key])) ||
+        !["uebersprungen", "wiederholend"].every(key => Number.isSafeInteger(value[key]) && value[key] >= 0)) throw new MagnolieMcp.ToolError("invalid_result", "Native local import snapshot or selected collections were incomplete");
+    return value;
+  }
   function mcpMuellImportWerkzeuge() {
     const hash = { type: "string", pattern: "^[a-f0-9]{64}$" }, column = { type: "integer", minimum: -1, maximum: 63 };
     const common = { path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, expected_revision: hash,
@@ -34494,8 +34508,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const fields = { token }, schema = extra => ({ type: "object", properties: { ...fields, ...extra }, required: ["token"], additionalProperties: false });
     const version = review => { if (review.applying) throw new MagnolieMcp.ToolError("native_busy", "Import review is already being applied"); };
     return [
-      { name: "organizer_import_review_begin", description: "Stage an additive import using the actual native file reader and the existing contact-review model. Full current book revision required. At most two session-owned reviews are retained globally, with a five-minute idle expiry renewed by use. No book change or dialog occurs. Default contact choices, rejected versions and reliable modification-time policy match the GUI. An explicit notebook can be selected for incoming notes; otherwise the current destination is captured now.",
-        inputSchema: { type: "object", properties: { format: { type: "string", enum: ["ics", "lotus", "vcf", "ldif", "claws"] }, path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, expected_revision: hash, expected_book_revision: hash, notebook_id: { type: "string", minLength: 1, maxLength: 256 } }, required: ["format", "path", "expected_book_revision"], additionalProperties: false },
+      { name: "organizer_import_review_begin", description: "Stage an additive import using either an explicit native file format/path or local_source (Linux evolution/thunderbird, Windows windows_contacts/thunderbird), optional local_scope contacts/all. Local scanning uses actual GUI readers of local stores/caches, not network discovery; its revision binds parsed semantic records and selection, not physical file bytes. Apply re-scans and verifies it. Full current book revision required. At most two session-owned reviews globally, five-minute idle expiry renewed by use. No book change or dialog. Existing contact defaults/version/modified-time policy and explicit/current note destination apply.",
+        inputSchema: { type: "object", properties: { format: { type: "string", enum: ["ics", "lotus", "vcf", "ldif", "claws"] }, path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, local_source: { type: "string", enum: ["evolution", "thunderbird", "windows_contacts"] }, local_scope: { type: "string", enum: ["contacts", "all"] }, expected_revision: hash, expected_book_revision: hash, notebook_id: { type: "string", minLength: 1, maxLength: 256 } }, required: ["expected_book_revision"], anyOf: [{ required: ["format", "path"] }, { required: ["local_source"] }], additionalProperties: false },
         annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => {
           const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
           if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; read its revision before staging an import");
@@ -34504,10 +34518,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           for (const [key, value] of mcpImportPruefungen) if (value.expires <= Date.now() || value.book !== DATEN) mcpVerwerfeImportPruefung(key);
           if (mcpImportPruefungen.size >= 2) throw new MagnolieMcp.ToolError("review_limit", "Two import reviews are already staged");
           const key = Array.from(crypto.getRandomValues(new Uint8Array(24)), byte => byte.toString(16).padStart(2, "0")).join("");
-          const review = { token: key, owner, book, bookRevision: revision, notebookId, preparing: true, applying: false, version: 0, chain: Promise.resolve(), normalized: false };
+          const review = { token: key, owner, book, bookRevision: revision, notebookId, preparing: true, applying: false, version: 0, chain: Promise.resolve(), normalized: false,
+            sourceArgs: { format: args.format, path: args.path, local_source: args.local_source, local_scope: args.local_scope } };
           mcpImportPruefungen.set(key, review); mcpBeruehreImportPruefung(review);
           try {
-            review.payload = await mcpLeseImportDatei(args, signal);
+            review.payload = await mcpLeseImportQuelle(args, signal);
+            if (args.local_source === undefined) review.sourceArgs.path = review.payload.pfad;
             if (review.payload.termine?.length > 1000) {
               const normalized = [];
               for (let offset = 0; offset < review.payload.termine.length; offset += 500) {
@@ -34591,7 +34607,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (review.preparation && !kontaktDateiAuswahlVollstaendig(review.preparation)) throw new MagnolieMcp.ToolError("decision_required", "Resolve the remaining contact choices before applying");
           review.applying = true;
           try {
-            await mcpLeseImportDatei({ format: review.payload.art, path: review.payload.pfad, expected_revision: review.payload.revision }, signal);
+            await mcpLeseImportQuelle({ ...review.sourceArgs, expected_revision: review.payload.revision }, signal);
             mcpLeseImportPruefung(args.token, owner);
             const contacts = review.preparation ? await erstelleKontaktDateiEntwurf(review.preparation) : null;
             mcpLeseImportPruefung(args.token, owner);

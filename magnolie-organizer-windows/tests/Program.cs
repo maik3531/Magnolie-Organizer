@@ -74,6 +74,7 @@ runner.Add("Encryption / Python-Goldens / Manipulation", ContractGroupTests.Encr
 runner.Add("Password / native source / revisions / authenticated readback", PasswordSourceTests.RunAsync);
 runner.Add("Record export / native codecs / actual files / guards", RecordExportFileTests.RunAsync);
 runner.Add("Import file / native readers / source CAS / archive limits", ImportFileSourceTests.RunAsync);
+runner.Add("Local import / native readers / semantic snapshot CAS", LocalImportSourceTests.RunAsync);
 runner.Add("Document export / actual ODS / readback / target guards", VerifiedDocumentFileTests.RunAsync);
 runner.Add(".magnolie Gesamtarchiv / Cross-Platform / Anhänge / Fehler", ContractGroupTests.ArchiveAsync);
 runner.Add("Notizanhänge / Data-URL / Dateinamen", AttachmentFileTests.RunAsync);

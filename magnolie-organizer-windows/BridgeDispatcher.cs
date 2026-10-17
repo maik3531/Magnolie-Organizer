@@ -228,8 +228,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "regional_einstellungen": await SaveRegionalSettingsAsync(message); break;
                     case "regional_einstellungen_status": await SendRegionalSettingsAsync(Text(message, "requestId")); break;
                     case "import": await ImportAsync(message); break;
-                    case "import_lokal": await ImportLocalAsync(message.TryGetProperty("bereich", out var bereich) &&
-                        bereich.ValueKind == JsonValueKind.String ? bereich.GetString() ?? "" : ""); break;
+                    case "import_lokal": await ImportLocalAsync(message); break;
                     case "export": await ExportAsync(message); break;
                     case "brief": await CreateLetterAsync(message); break;
                     case "adressen_ods": await CreateSpreadsheetAsync(message, "Adressen", "Magnolie-Adressen.ods"); break;
@@ -2312,49 +2311,47 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
     }
 
-    private async Task ImportLocalAsync(string area = "")
+    private int localImportReading;
+
+    private async Task ImportLocalAsync(JsonElement message)
     {
+        var area = Text(message, "bereich");
+        var requestId = Text(message, "requestId");
+        var source = Text(message, "quelle");
+        var scope = area == "kontakte" ? "contacts" : "all";
+        var acquired = false;
         try
         {
-            if (area is not ("" or "kontakte" or "thunderbird")) throw new ArgumentException("Unknown local import source.");
-            var contactsOnly = area == "kontakte";
-            var thunderbirdOnly = area == "thunderbird";
-            var payload = Array.Empty<JsonObject>();
-            if (!thunderbirdOnly)
+            if (requestId.Length != 0)
             {
-                var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Contacts");
-                var store = new WindowsContactStore(folder);
-                var contacts = await store.ReadAsync(CancellationToken.None);
-                payload = contacts.Select(contact =>
-                {
-                    var item = contact.Data.DeepClone().AsObject(); item["uid"] = store.ImportUid(contact);
-                    item["geaendert"] = contact.Modified; return item;
-                }).ToArray();
+                if (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null)) throw new InvalidOperationException("profile_locked");
+                if (source is not ("windows_contacts" or "thunderbird")) throw new InvalidOperationException("unsupported_feature");
+                if (area is not ("kontakte" or "alle")) throw new ArgumentException("Invalid local import scope.");
+                if (Interlocked.CompareExchange(ref localImportReading, 1, 0) != 0) throw new InvalidOperationException("native_busy");
+                acquired = true; area = source == "windows_contacts" ? "kontakte" : "thunderbird";
             }
-            var termine = new JsonArray(); var jahrestage = new JsonArray(); var geburtstage = new JsonArray(); var aufgaben = new JsonArray();
-            var skipped = 0; var recurring = 0; var thunderbirdFiles = 0; var thunderbirdBooks = 0;
-            var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Thunderbird");
-            if (!contactsOnly && Directory.Exists(root))
+            var payload = await Task.Run(() => LocalImportSource.ReadAsync(area, requestId.Length != 0 && scope == "contacts",
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Contacts"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Thunderbird")));
+            if (requestId.Length != 0)
             {
-                var profileDirectories = ThunderbirdCalendarImporter.DiscoverProfiles(root);
-                var calendars = ThunderbirdCalendarImporter.DiscoverCalendarStores(profileDirectories);
-                var parsed = ThunderbirdCalendarImporter.ParseProfiles(calendars, out thunderbirdFiles);
-                foreach (var node in parsed.Termine) termine.Add(node?.DeepClone());
-                foreach (var node in parsed.Jahrestage) jahrestage.Add(node?.DeepClone());
-                foreach (var node in parsed.Aufgaben) aufgaben.Add(node?.DeepClone());
-                skipped += parsed.Uebersprungen; recurring += parsed.Wiederholend;
-                var addressBooks = ThunderbirdCalendarImporter.ParseAddressBooks(profileDirectories, out thunderbirdBooks);
-                payload = addressBooks.Kontakte.OfType<JsonObject>().Select(node => node.DeepClone().AsObject()).ToArray();
-                skipped += addressBooks.Uebersprungen;
+                LocalImportSource.BindSnapshot(payload, source, scope, Text(message, "expectedRevision"));
+                payload["requestId"] = requestId;
             }
-            var report = contactsOnly ? $"{T("Windows Contacts folder")}: {payload.Length}" :
-                thunderbirdOnly ? $"{thunderbirdBooks} Thunderbird-Adressbücher und {thunderbirdFiles} Kalenderablagen gelesen." :
-                    $"{payload.Length} Kontakte und {thunderbirdFiles} Thunderbird-Kalenderablagen gelesen.";
-            await form.SendAsync("App.importErgebnis", new { art = "lokal", abgebrochen = false, kontakte = payload,
-                geburtstage, termine, jahrestage, aufgaben, uebersprungen = skipped, wiederholend = recurring,
-                bericht = report });
+            var count = payload["kontakte"]!.AsArray().Count;
+            var files = payload["localCalendarStores"]!.GetValue<int>(); var books = payload["localAddressBooks"]!.GetValue<int>();
+            payload["bericht"] = area == "kontakte" ? $"{T("Windows Contacts folder")}: {count}" :
+                area == "thunderbird" ? $"{books} Thunderbird-Adressbücher und {files} Kalenderablagen gelesen." :
+                    $"{count} Kontakte und {files} Thunderbird-Kalenderablagen gelesen.";
+            await form.SendAsync("App.importErgebnis", payload);
         }
-        catch (Exception error) { await form.SendAsync("App.importErgebnis", new { art = "lokal", abgebrochen = false, fehler = error.Message }); }
+        catch (Exception error)
+        {
+            if (requestId.Length == 0) await form.SendAsync("App.importErgebnis", new { art = "lokal", abgebrochen = false, fehler = error.Message });
+            else await form.SendAsync("App.importErgebnis", new { art = "lokal", requestId, ok = false,
+                code = error.Message == "mcp_conflict" ? "conflict" : error.Message is "unsupported_feature" or "native_busy" ? error.Message : "native_operation_failed" });
+        }
+        finally { if (acquired) Interlocked.Exchange(ref localImportReading, 0); }
     }
 
     private async Task ExportAsync(JsonElement message)

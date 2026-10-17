@@ -30,6 +30,7 @@
     <Compile Include="..\ExchangeCodec.cs" Link="ExchangeCodec.cs" />
     <Compile Include="..\RecordExportFile.cs" Link="RecordExportFile.cs" />
     <Compile Include="..\ImportFileSource.cs" Link="ImportFileSource.cs" />
+    <Compile Include="..\LocalImportSource.cs" Link="LocalImportSource.cs" />
     <Compile Include="..\SocialProfileMetadata.cs" Link="SocialProfileMetadata.cs" />
     <Compile Include="..\ThunderbirdCalendarImporter.cs" Link="ThunderbirdCalendarImporter.cs" />
     <Compile Include="..\DocumentExportService.cs" Link="DocumentExportService.cs" />

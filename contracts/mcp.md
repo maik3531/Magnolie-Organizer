@@ -192,7 +192,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_password_set/remove` | Existing native password transactions with mandatory `expected_book_revision` and `expected_state_revision` from status. Flushes book saves first; native current-file/content CAS rejects intervening saves or rewrapping. Success requires authenticating/readback of the resulting primary with unchanged book content. Existing platform backup/journal policies are retained and related-file changed/failed counts are separate; no claim that every related file changed successfully. A committed late response updates the same book's encryption flag without opening settings/toasts. Cancellation can follow commit; re-read status before retrying. |
 | `organizer_records_export` | Full-section ICS appointments/anniversaries/tasks, Lotus CSV appointments, vCard or LDIF contacts through the shared GUI preparation and actual native codecs. Requires current book revision, book-save gate, explicit file and overwrite choice; active-profile and linked targets are rejected. Actual file-byte/SHA-256 readback confirms writing. Native skipped/loss counters are returned; raw omission count is `null` where not reported. Product format limitations remain, and private contact galleries/provider bindings are removed by the same contact preparation as the GUI. No application or mail action is launched. |
 | `organizer_import_preview` | Explicit-file inspection through the actual native ICS/vCalendar/Lotus CSV/vCard/LDIF/Claws XML reader and supported bounded ZIP handling. Returns parsed section counts, source bytes/SHA-256 and an opaque format/path/content revision; optional `expected_revision` rejects a changed source before parsing. Parsed content stays inside the native/web bridge and is not returned in the MCP envelope. No book change or import/conflict dialog occurs. Native counters are `null` where unreported. This is inspection; additive import application is separate. |
-| `organizer_import_review_begin` | Stage a native-parsed additive import under the current complete book revision. Existing GUI contact planning, privacy stripping, remembered rejections and reliable-time preferences are used. Optional source revision and note destination; the selected/current notebook is captured. At most two session-owned reviews are held globally, with five-minute idle expiry renewed by use. No book mutation or dialog. |
+| `organizer_import_review_begin` | Stage a native-parsed file or explicit local-source import under the current complete book revision. Existing GUI contact planning, privacy stripping, remembered rejections and reliable-time preferences are used. Optional source revision and note destination; the selected/current notebook is captured. At most two session-owned reviews are held globally, with five-minute idle expiry renewed by use. No book mutation or dialog. |
 | `organizer_import_review_read` | Bounded pages of contact decisions/candidates and normalized-list counts, without large notes/photos. Includes the selection revision and unresolved count. Virtual earlier source cards remain stable candidates within the staged review. |
 | `organizer_import_review_decide` | Atomic batches of up to 100 staged decisions under `expected_selection_revision`. New/skip/keep/merge/replace/newer, scalar choices, normalized list add/keep/replacement and optional birth-name preservation use the existing product model. Only offered targets/valid list indices are accepted; newer requires bound reliable timestamps. Book data is unchanged. |
 | `organizer_import_review_content_read` | Cached records, sanitized incoming contacts, offered candidates and GUI-normalized lists as at most 64 KiB UTF-8/base64 byte chunks. Strings retain literal text; other values use JSON. Content revisions protect subsequent chunks; traversal stays inside the chosen staged record. |
@@ -299,6 +299,19 @@ book documents. Outstanding commits do not expire on a cleanup timer; a full
 correlation table rejects another password action with `native_busy` before
 native submission. A failed submission releases its reservation. Responses for
 other IDs or replaced books cannot change the current book's encryption flag.
+
+For local imports, supply `local_source` (`evolution`/`thunderbird` on Linux,
+`windows_contacts`/`thunderbird` on Windows) and optional `local_scope`
+(`contacts`/`all`, default all) instead of file `format`/`path`. The existing GUI
+readers inspect local databases/files/caches without network discovery. Unsupported
+platform sources fail explicitly. The opaque native revision binds source/scope
+and actual parsed semantic records (excluding generated top-level import IDs),
+not physical database bytes or a filesystem-wide atomic snapshot. Apply re-scans
+the selected source and verifies this revision before the existing shared review
+commit/checkpoint. Changes to generated IDs alone do not invalidate a review; actual
+content, UID, metadata or selection changes do. Parsed record snapshots are bounded
+to 32 MiB, apart from small envelope metadata, and only one correlated local scan runs per
+native process. No arbitrary profile root path is accepted over MCP.
 
 Staged import reviews retain parsed records only for their owning session and
 unchanged book. Read/decision/content operations renew the five-minute idle

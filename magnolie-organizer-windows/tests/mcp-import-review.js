@@ -16,7 +16,8 @@ const watchdog = setTimeout(() => { console.error("MCP import review timed out")
       b.w.eval(fs.readFileSync(path.join(web, "mcp-protocol.js"), "utf8"));
       const owner = "a".repeat(48), other = "b".repeat(48), sourceRevision = "e".repeat(64), noteText = "🌸".repeat(40000);
       let sequence = 0, holdSave = false, holdSnapshot = false, snapshotFailure = false, sourceChanged = false, onImport;
-      const snapshots = [], nativeImports = [];
+      let localFailure = "", localScopeMismatch = false, onLocalImport;
+      const snapshots = [], nativeImports = [], nativeLocalImports = [];
       const payload = { kontakte: [{ uid: "stable", vorname: "Remote", nachname: "Existing", notiz: "Owned incoming note", strasse: "New Street", plz: "10115", ort: "Owned town" },
         { uid: "created", vorname: "Created", nachname: "Contact", geburtstag: "--02-29", geburtstagJahrUnbekannt: true, sync: true,
           syncQuellen: { injected: {} }, baumKontakt: { freigabeId: "injected" }, kontaktZeit: { hash: "injected", zeit: Date.now() }, fotoAlternativen: ["injected"] }],
@@ -28,11 +29,19 @@ const watchdog = setTimeout(() => { console.error("MCP import review timed out")
         ? { requestId: message.requestId, art: message.art, ok: false, code: "conflict", fehler: "Owned source changed" }
         : { ...JSON.parse(JSON.stringify(payload)), requestId: message.requestId, art: message.art, pfad: message.pfad, ok: true,
           bytes: 200000, sha256: "f".repeat(64), revision: sourceRevision, kontaktQuelle: "datei:" + "d".repeat(64), uebersprungen: 0, wiederholend: 0 });
+      const replyLocal = message => b.w.App.importErgebnis(localFailure
+        ? { requestId: message.requestId, art: "lokal", ok: false, code: localFailure, fehler: "Owned private local scan failure" }
+        : { requestId: message.requestId, art: "lokal", ok: true, source: message.quelle,
+          scope: localScopeMismatch ? "wrong-scope" : message.bereich === "kontakte" ? "contacts" : "all", revision: "c".repeat(64), uebersprungen: 0, wiederholend: 0,
+          kontakte: [{ id: "owned-external-source-id", uid: "owned-local-contact", vorname: "Owned native", nachname: "Local import", geburtstag: "--03-04", sync: true, syncQuellen: { injected: {} } }],
+          termine: message.bereich === "kontakte" ? [] : [{ uid: "owned-local-event", datum: "2030-03-04", titel: "Owned scanned appointment", icsQuelleId: "owned-local-source" }],
+          aufgaben: message.bereich === "kontakte" ? [] : [{ uid: "owned-local-task", titel: "Owned scanned task", faellig: "2030-03-04" }], geburtstage: [], jahrestage: [] });
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text); const message = JSON.parse(text);
         if (message.cmd === "speichern" && !holdSave) queueMicrotask(() => b.w.App.gespeichert({ id: message.id, ok: true }));
         if (message.cmd === "import" && message.requestId) { nativeImports.push(message); if (onImport) onImport(message); else queueMicrotask(() => replyImport(message)); }
+        if (message.cmd === "import_lokal" && message.requestId) { nativeLocalImports.push(message); if (onLocalImport) onLocalImport(message); else queueMicrotask(() => replyLocal(message)); }
         if (message.cmd === "mutations_snapshot") { snapshots.push(message); if (!holdSnapshot) queueMicrotask(() => b.w.App.mutationsSnapshot({ token: message.token, ok: !snapshotFailure })); }
       };
       const firstNotebook = b.t.daten().notizbuecher[0];
@@ -147,6 +156,38 @@ const watchdog = setTimeout(() => { console.error("MCP import review timed out")
       await preparingStarted; await cancelRpc(9001); error(await pendingBegin, "cancelled"); replyImport(native); onImport = null; await tick();
       const free1 = await begin(), free2 = await begin();
       success(await tool("organizer_import_review_cancel", { token: free1.token })); success(await tool("organizer_import_review_cancel", { token: free2.token }));
+      const localArgs = async (extra = {}) => ({ local_source: "thunderbird", local_scope: "contacts", expected_book_revision: await revision(), ...extra });
+      const localBook = JSON.stringify(b.t.daten()), localCheckpointCount = snapshots.length;
+      error(await tool("organizer_import_review_begin", await localArgs({ format: "vcf", path: "/owned-fixture/mixed.vcf" })), "invalid_settings");
+      assert.equal(nativeLocalImports.length, 0);
+      localScopeMismatch = true; error(await tool("organizer_import_review_begin", await localArgs()), "invalid_result"); localScopeMismatch = false;
+      localFailure = "unsupported_feature";
+      const unavailable = await tool("organizer_import_review_begin", await localArgs()); error(unavailable, "unsupported_feature");
+      assert.ok(!JSON.stringify(unavailable).includes("Owned private local scan failure")); localFailure = "";
+      const localReview = success(await tool("organizer_import_review_begin", await localArgs()));
+      assert.equal(localReview.contacts_total, 1); assert.equal(localReview.counts.appointments, 0);
+      assert.equal(localReview.source_revision, "c".repeat(64)); assert.equal(JSON.stringify(b.t.daten()), localBook);
+      assert.equal(nativeLocalImports.at(-1).quelle, "thunderbird"); assert.equal(nativeLocalImports.at(-1).bereich, "kontakte");
+      assert.equal(nativeLocalImports.at(-1).pfad, undefined);
+      localFailure = "conflict"; error(await tool("organizer_import_review_apply", applyArgs(localReview)), "conflict"); localFailure = "";
+      assert.equal(JSON.stringify(b.t.daten()), localBook); assert.equal(snapshots.length, localCheckpointCount);
+      const localSaved = success(await tool("organizer_import_review_apply", applyArgs(localReview)));
+      assert.equal(localSaved.persisted, true); assert.equal(localSaved.counts.contacts, 1);
+      assert.equal(nativeLocalImports.at(-1).expectedRevision, "c".repeat(64));
+      const scannedContact = b.t.daten().kontakte.find(contact => contact.uid === "owned-local-contact");
+      assert.equal(scannedContact.sync, false); assert.equal(Object.keys(scannedContact.syncQuellen || {}).length, 0);
+      assert.equal(b.t.daten().jahrestage.filter(entry => entry.kontaktId === scannedContact.id).length, 1);
+      const localAll = success(await tool("organizer_import_review_begin", await localArgs({ local_scope: "all" })));
+      assert.equal(localAll.counts.appointments, 1); assert.equal(localAll.counts.tasks, 1);
+      const localDecided = success(await tool("organizer_import_review_decide", { token: localAll.token, expected_selection_revision: localAll.selection_revision, decisions: [{ index: 0, action: "skip" }] }));
+      success(await tool("organizer_import_review_apply", applyArgs(localDecided)));
+      assert.ok(b.t.daten().termine.some(event => event.uid === "owned-local-event"));
+      assert.ok(b.t.daten().aufgaben.some(task => task.uid === "owned-local-task"));
+      const beforeCancelledLocal = JSON.stringify(b.t.daten());
+      const localStarted = new Promise(resolve => { onLocalImport = message => { native = message; resolve(); }; });
+      const cancelledLocal = tool("organizer_import_review_begin", await localArgs(), owner, 9100);
+      await localStarted; await cancelRpc(9100); error(await cancelledLocal, "cancelled"); replyLocal(native); onLocalImport = null; await tick();
+      assert.equal(JSON.stringify(b.t.daten()), beforeCancelledLocal); assert.equal(b.w.document.querySelector(".kontakt-datei-pruefung"), null);
       payload.kontakte = []; payload.geburtstage = []; payload.aufgaben = []; payload.notizen = [];
       payload.termine = Array.from({ length: 1501 }, (_, index) => ({ uid: "owned-bulk-review-" + index, titel: "Owned bulk appointment " + index,
         datum: "2030-02-03", zeit: "09:00", icsQuelleId: "owned-bulk-source" }));
