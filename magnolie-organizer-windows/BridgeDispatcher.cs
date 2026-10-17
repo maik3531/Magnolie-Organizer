@@ -293,7 +293,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "baum_paarungsdatei_erzeugen": await CreateBaumPairingFileAsync(message); break;
                     case "baum_paarungsdatei_importieren": await ImportBaumPairingFileAsync(); break;
                     case "baum_internet_adresse": await BaumInternetAddressAsync(); break;
-                    case "baum_briefkasten_status": await baum.ReportMailboxStatusAsync(); break;
+                    case "baum_briefkasten_status": await ReportDavAccountStatusAsync(Text(message, "requestId")); break;
                     case "baum_briefkasten_speichern": await baum.SaveMailboxAsync(Boolean(message, "davAktiv"), Boolean(message, "briefkastenAktiv"),
                         Text(message, "url"), Text(message, "benutzer"), Text(message, "anwendungskennwort"),
                         Boolean(message, "kennwortLoeschen"), Text(message, "kontoArt")); break;

@@ -150,6 +150,16 @@ internal sealed partial class BridgeDispatcher
         });
     }
 
+    private async Task ReportDavAccountStatusAsync(string requestId)
+    {
+        if (requestId.Length != 0 && (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null)))
+        {
+            await form.SendAsync("App.baumBriefkastenStatus", new { requestId, ok = false, code = "profile_locked" });
+            return;
+        }
+        await baum.ReportMailboxStatusAsync(requestId: requestId);
+    }
+
     private async Task SaveGraphConfigurationAsync(JsonElement message)
     {
         try

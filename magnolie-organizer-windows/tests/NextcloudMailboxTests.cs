@@ -12,11 +12,48 @@ internal static class NextcloudMailboxTests
     internal static async Task RunAsync()
     {
         TestServerAndSecretStorage();
+        await TestAccountSnapshotAsync();
         TestAuthenticatedDocuments();
         await TestWebDavAsync();
         await TestWebDavFailuresAsync();
         await TestDamagedSettingsStatusAsync();
         TestReservedCounterRecovery();
+    }
+
+    private static async Task TestAccountSnapshotAsync()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-dav-account-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var paths = new WindowsPaths(root);
+            var store = new NextcloudMailboxSettingsStore(paths.BaumMailboxSettings, paths.BaumMailboxPassword, new FakeProtector());
+            var empty = store.ReadSnapshot();
+            TestAssert.That(empty.Settings is null && !empty.CredentialPresent && empty.Revision.Length == 64 && store.ReadSnapshot().Revision == empty.Revision, "Empty account snapshot was not stable.");
+            var settings = new NextcloudMailboxSettings(false, false, "https://owned.example.test", "owned-reader");
+            store.SaveConfiguration(settings, "owned-secret-alpha", false);
+            var first = store.ReadSnapshot();
+            var secondStore = new NextcloudMailboxSettingsStore(paths.BaumMailboxSettings, paths.BaumMailboxPassword, new FakeProtector());
+            TestAssert.That(first.CredentialPresent && first.Revision != empty.Revision && secondStore.ReadSnapshot().Revision == first.Revision, "Actual config/protected-credential snapshot did not share a stable process revision.");
+            var publicConfig = File.ReadAllText(paths.BaumMailboxSettings);
+            store.SaveConfiguration(settings, "owned-secret-beta", false);
+            var changed = store.ReadSnapshot();
+            TestAssert.That(changed.Revision != first.Revision && File.ReadAllText(paths.BaumMailboxSettings) == publicConfig, "Credential replacement was invisible to the account revision.");
+            JsonObject? status = null;
+            using var coordinator = new MagnolienbaumCoordinator(paths, (_, payload) =>
+            {
+                status = JsonSerializer.SerializeToNode(payload)!.AsObject(); return Task.CompletedTask;
+            });
+            await coordinator.ReportMailboxStatusAsync(requestId: "owned-metadata-request");
+            TestAssert.That(status?["requestId"]?.GetValue<string>() == "owned-metadata-request" && status?["revision"]?.GetValue<string>() == changed.Revision && status?["kennwortVorhanden"]?.GetValue<bool>() == true, "GUI account status did not correlate the actual protected-store snapshot.");
+            var serialized = status!.ToJsonString();
+            TestAssert.That(!serialized.Contains("owned-secret-alpha", StringComparison.Ordinal) && !serialized.Contains("owned-secret-beta", StringComparison.Ordinal) && !serialized.Contains(File.ReadAllText(paths.BaumMailboxPassword), StringComparison.Ordinal), "Public account status disclosed a credential or protected blob.");
+            TestAssert.That(File.ReadAllText(paths.BaumMailboxSettings) == publicConfig, "Account status changed persisted settings.");
+            File.WriteAllText(paths.BaumMailboxSettings, "{damaged");
+            await coordinator.ReportMailboxStatusAsync(requestId: "owned-invalid-request");
+            TestAssert.That(status?["requestId"]?.GetValue<string>() == "owned-invalid-request" && status?["revision"] is null && !string.IsNullOrEmpty(status?["fehler"]?.GetValue<string>()), "Invalid account settings were reported as a valid revision.");
+        }
+        finally { Directory.Delete(root, true); }
     }
 
     private static void TestServerAndSecretStorage()

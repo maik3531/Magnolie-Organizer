@@ -1,0 +1,82 @@
+"use strict";
+const fs = require("node:fs"), path = require("node:path"), Module = require("node:module"), assert = require("node:assert/strict");
+const file = path.join(__dirname, "desktop-state-regressions.js");
+const harness = new Module(file, module); harness.filename = file; harness.paths = Module._nodeModulePaths(__dirname);
+harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[0] + "\nmodule.exports={boot,roots};", file);
+const tick = () => new Promise(resolve => setImmediate(resolve));
+const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out"); process.exit(1); }, 15000);
+(async () => {
+  for (const web of harness.exports.roots) {
+    const b = await harness.exports.boot(web, {});
+    try {
+      if (b.saves().length) b.ack(); await tick();
+      b.w.eval(fs.readFileSync(path.join(web, "mcp-protocol.js"), "utf8"));
+      let sequence = 0, onRead;
+      const metadata = { kontoArt: "nextcloud", davAktiv: true, briefkastenAktiv: false, url: "https://owned.example.test", benutzer: "owned-reader",
+        kennwortVorhanden: true, revision: "e".repeat(64), zustand: "bereit", fehler: "", fehlerCode: "none" };
+      const reply = (message, extra = {}) => b.w.App.baumBriefkastenStatus({ ...metadata, ...extra, requestId: message.requestId || "",
+        application_password: "owned-private-password", authorization: "owned-private-authorization", protectedCredential: "owned-private-protected-blob" });
+      const post = b.w.webkit.messageHandlers.regression.postMessage;
+      b.w.webkit.messageHandlers.regression.postMessage = text => {
+        post(text); const message = JSON.parse(text);
+        if (message.cmd === "speichern") queueMicrotask(() => b.w.App.gespeichert({ id: message.id, ok: true }));
+        if (message.cmd === "baum_briefkasten_status") {
+          if (message.requestId && onRead) onRead(message); else queueMicrotask(() => reply(message));
+        }
+      };
+      async function rpc(method, params, explicitId) {
+        const invocation = (++sequence).toString(16).padStart(48, "0");
+        await b.w.App.mcpRequest({ session: "a".repeat(48), invocation, message: { jsonrpc: "2.0", method,
+          ...(!method.startsWith("notifications/") ? { id: explicitId ?? sequence } : {}), ...(params === undefined ? {} : { params }) } });
+        return b.messages.find(message => message.cmd === "mcp_antwort" && message.invocation === invocation).response;
+      }
+      const read = async id => (await rpc("tools/call", { name: "organizer_dav_account_read" }, id)).result;
+      const ok = result => { assert.equal(result.isError, false, JSON.stringify(result)); return result.structuredContent; };
+      const fail = (result, code) => { assert.equal(result.isError, true, JSON.stringify(result)); assert.equal(result.structuredContent.code, code); };
+      await rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "owned-dav-reader", version: "1" } });
+      await rpc("notifications/initialized");
+      const before = JSON.stringify(b.t.daten()), saveCount = b.saves().length;
+      let native, completed = false;
+      const started = new Promise(resolve => { onRead = message => { native = message; resolve(); }; });
+      const pending = read().then(result => { completed = true; return result; });
+      await started; reply({ ...native, requestId: "wrong-request" }); await tick(); assert.equal(completed, false);
+      reply(native); onRead = null; const first = ok(await pending);
+      assert.equal(first.settings.account_type, "nextcloud"); assert.equal(first.settings.server, metadata.url);
+      assert.equal(first.credential_present, true); assert.equal(first.revision, metadata.revision); assert.equal(first.connectivity_checked, false);
+      assert.ok(!JSON.stringify(first).includes("owned-private-"));
+      onRead = message => reply(message, { kontoArt: "generic-dav", briefkastenAktiv: false, zustand: "aus" });
+      assert.equal(ok(await read()).settings.account_type, "generic-dav");
+      onRead = message => reply(message, { url: "", benutzer: "", davAktiv: false, briefkastenAktiv: false, kennwortVorhanden: false, zustand: "nicht_eingerichtet" });
+      const empty = ok(await read()); assert.equal(empty.settings.configured, false); assert.equal(empty.credential_present, false);
+      onRead = message => reply(message, { revision: null, fehler: "owned-private-native-error", fehlerCode: "secret_service_unavailable", zustand: "fehler", kennwortVorhanden: false });
+      const unavailable = ok(await read()); assert.equal(unavailable.revision, null); assert.equal(unavailable.credential_present, null); assert.equal(unavailable.error_present, true);
+      assert.ok(!JSON.stringify(unavailable).includes("owned-private-"));
+      onRead = message => reply(message, { revision: null }); fail(await read(), "invalid_result");
+      onRead = message => reply(message, { revision: undefined }); fail(await read(), "invalid_result");
+      onRead = message => reply(message, { kennwortVorhanden: "yes" }); fail(await read(), "invalid_result");
+      onRead = message => reply(message, { ok: false, code: "native_busy" }); fail(await read(), "native_busy");
+      onRead = message => reply(message, { ok: false, code: "profile_locked" }); fail(await read(), "locked_or_cancelled");
+      onRead = null;
+      b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-sync").click(); await tick();
+      const field = b.w.document.querySelector("#briefkasten-url"); assert.ok(field);
+      field.value = "https://owned-draft.example.test"; field.dispatchEvent(new b.w.Event("input"));
+      const password = b.w.document.querySelector("#briefkasten-kennwort"); assert.ok(password); password.value = "owned-unsaved-credential";
+      onRead = message => reply(message, { url: "https://fresh-native.example.test" });
+      const fresh = ok(await read()); assert.equal(fresh.settings.server, "https://fresh-native.example.test");
+      assert.equal(b.w.document.querySelector("#briefkasten-url"), field); assert.equal(field.value, "https://owned-draft.example.test");
+      assert.equal(b.w.document.querySelector("#briefkasten-kennwort"), password); assert.equal(password.value, "owned-unsaved-credential"); assert.ok(!JSON.stringify(fresh).includes("owned-unsaved-credential"));
+      const cancelStarted = new Promise(resolve => { onRead = message => { native = message; resolve(); }; });
+      const cancelled = read(8000); await cancelStarted;
+      await rpc("notifications/cancelled", { requestId: 8000 }); fail(await cancelled, "cancelled");
+      const toast = b.w.document.querySelector("#zettel").textContent;
+      reply(native, { url: "https://late-native.example.test" }); onRead = null; await tick();
+      assert.equal(b.w.document.querySelector("#briefkasten-url"), field); assert.equal(field.value, "https://owned-draft.example.test");
+      assert.equal(b.w.document.querySelector("#briefkasten-kennwort"), password); assert.equal(password.value, "owned-unsaved-credential");
+      assert.equal(b.w.document.querySelector("#zettel").textContent, toast);
+      b.w.document.querySelector("#einstellungen-zu").click();
+      assert.equal(JSON.stringify(b.t.daten()), before); assert.equal(b.saves().length, saveCount);
+      assert.ok(!b.messages.some(message => ["baum_briefkasten_speichern", "baum_briefkasten_pruefen", "sync", "sync_start", "graph_anmelden"].includes(message.cmd)));
+      console.log("MCP DAV ACCOUNT PASS: correlated actual-state projection, secret stripping, unreadable states and unchanged GUI drafts/book " + web);
+    } finally { b.close(); }
+  }
+})().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => clearTimeout(watchdog));

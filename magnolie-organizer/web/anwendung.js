@@ -31172,6 +31172,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (kontaktAssistentQuellenSeite) kontaktAssistentQuellenSeite();
     },
     baumBriefkastenStatus(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "baumBriefkastenStatus"); return; }
       briefkastenStand = nutzlast || {};
       if (!nextcloudEntwurfGeaendert) nextcloudEntwurf = null;
       briefkastenMeldung = !briefkastenStand.fehler && !briefkastenStand.davAktiv &&
@@ -34662,6 +34663,21 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         !["uebersprungen", "wiederholend"].every(key => Number.isSafeInteger(value[key]) && value[key] >= 0)) throw new MagnolieMcp.ToolError("invalid_result", "Native local import snapshot or selected collections were incomplete");
     return value;
   }
+  function mcpDavKontoWerkzeuge() {
+    return [{ name: "organizer_dav_account_read", description: "Read the actual shared GUI Nextcloud/generic-DAV account configuration and reported credential presence, without returning passwords, authorization headers or protected credential blobs. Native revision is process-bound and keyed over the actual config/credential snapshot; null revision/presence indicates an unreadable state. This local status call does not discover remote collections or freshly verify connectivity/authentication; cached native state/error codes are reported separately. Correlated responses do not replace GUI account drafts or open dialogs.",
+      inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (_args, signal) => {
+        const value = await mcpNativeAufruf("baum_briefkasten_status", {}, "baumBriefkastenStatus", signal);
+        if (value.ok === false) throw new MagnolieMcp.ToolError(value.code === "profile_locked" ? "locked_or_cancelled" : value.code === "native_busy" ? "native_busy" : "native_operation_failed", "Native DAV account status is unavailable");
+        if (!["davAktiv", "briefkastenAktiv", "kennwortVorhanden"].every(key => typeof value[key] === "boolean") ||
+            !["url", "benutzer", "zustand", "fehler", "fehlerCode"].every(key => typeof value[key] === "string") ||
+            !["nextcloud", "generic-dav"].includes(value.kontoArt) || !(value.revision === null || typeof value.revision === "string" && /^[a-f0-9]{64}$/.test(value.revision))) throw new MagnolieMcp.ToolError("invalid_result", "Native DAV account metadata was incomplete");
+        const failed = value.fehler.length > 0;
+        if (value.revision === null && !failed) throw new MagnolieMcp.ToolError("invalid_result", "Native DAV account snapshot had neither a revision nor an explicit failure");
+        return { settings: { configured: !!(value.url && value.benutzer), account_type: value.kontoArt, dav_enabled: value.davAktiv, mailbox_enabled: value.briefkastenAktiv, server: value.url, user: value.benutzer },
+          credential_present: value.revision === null && failed ? null : value.kennwortVorhanden, revision: value.revision,
+          native_state: value.zustand, error_present: failed, error_code: value.fehlerCode, connectivity_checked: false };
+      } }];
+  }
   function mcpSyncEinstellungenWerkzeuge() {
     const uid = { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" };
     const fields = { calendar_ids: { type: "array", maxItems: 10000, uniqueItems: true, items: uid }, address_book_id: { type: "string", maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]*$" },
@@ -35831,6 +35847,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (name === "organizer_dav_account_read") return shape({ settings: shape({ configured: flag, account_type: { type: "string", enum: ["nextcloud", "generic-dav"] }, dav_enabled: flag, mailbox_enabled: flag, server: text, user: text }, ["configured", "account_type", "dav_enabled", "mailbox_enabled", "server", "user"]), credential_present: { type: ["boolean", "null"] }, revision: { type: ["string", "null"], pattern: "^[a-f0-9]{64}$" }, native_state: text, error_present: flag, error_code: text, connectivity_checked: { type: "boolean", enum: [false] } }, ["settings", "credential_present", "revision", "native_state", "error_present", "error_code", "connectivity_checked"]);
     if (["organizer_sync_settings_read", "organizer_sync_settings_update"].includes(name)) {
       const settings = shape({ calendar_ids: { type: "array", items: text }, primary_calendar_id: text, address_book_id: text, at_startup: flag, success_notifications: flag, prefer_newer_contacts: flag }, ["calendar_ids", "primary_calendar_id", "address_book_id", "at_startup", "success_notifications", "prefer_newer_contacts"]);
       return name.endsWith("_read") ? shape({ settings, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]) : shape({ settings, persisted: yes }, ["settings", "persisted"]);
@@ -36058,6 +36075,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpBerichtDruckWerkzeuge(),
       ...mcpMuellImportWerkzeuge(),
       ...mcpSyncEinstellungenWerkzeuge(),
+      ...mcpDavKontoWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

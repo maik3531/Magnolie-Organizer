@@ -10,6 +10,7 @@ import os
 import re
 import ssl
 import tempfile
+import threading
 import time
 import urllib.parse
 import xml.etree.ElementTree as ET
@@ -216,6 +217,9 @@ class SecretServiceStore:
 
 
 class NextcloudSettingsStore:
+    _gate = threading.RLock()
+    _revision_key = os.urandom(32)
+
     def __init__(self, path, secrets=None):
         self.path = path
         self.secrets = secrets or SecretServiceStore()
@@ -263,6 +267,21 @@ class NextcloudSettingsStore:
         return bool(self.secrets.lookup(self.account(settings["server"], settings["benutzer"],
                                                      settings.get("kontoArt"))))
 
+    def read_snapshot(self):
+        """Return public settings/presence and an opaque keyed revision, never a secret."""
+        with self._gate:
+            settings = self.load()
+            try:
+                secret = self.secrets.lookup(self.account(settings["server"], settings["benutzer"], settings.get("kontoArt"))) if settings else None
+                if secret is not None and not isinstance(secret, str):
+                    raise NextcloudError("Der gespeicherte Zugang ist nicht lesbar.", "secret_service_unavailable")
+                material = json.dumps({"store": os.path.abspath(self.path), "settings": settings, "credential": secret or None},
+                                      ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+                revision = hmac.new(self._revision_key, material, hashlib.sha256).hexdigest()
+                return settings, bool(secret), revision, None
+            except Exception as error:
+                return settings, False, None, error
+
     def password(self, settings=None):
         settings = settings or self.load()
         if not settings:
@@ -274,6 +293,11 @@ class NextcloudSettingsStore:
         return password
 
     def save(self, dav_active, mailbox_active, server, user, password="",
+              delete_password=False, account_type="nextcloud"):
+        with self._gate:
+            return self._save(dav_active, mailbox_active, server, user, password, delete_password, account_type)
+
+    def _save(self, dav_active, mailbox_active, server, user, password="",
               delete_password=False, account_type="nextcloud"):
         account_type = validate_account_type(account_type)
         if account_type == "generic-dav" and mailbox_active:

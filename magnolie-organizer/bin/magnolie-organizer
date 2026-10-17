@@ -18381,11 +18381,12 @@ def nextcloud_status(transport=None, discover=True):
     result = {"verfuegbar": True, "aktiv": False, "davAktiv": False,
               "briefkastenAktiv": False, "server": "", "url": "",
               "benutzer": "", "kontoArt": "nextcloud",
-              "kennwortVorhanden": False, "zustand": "nicht_eingerichtet",
+              "kennwortVorhanden": False, "zustand": "nicht_eingerichtet", "revision": None,
               "fehler": "", "fehlerCode": "none", "kalender": [],
               "adressbuecher": []}
     try:
-        settings = store.load()
+        settings, password_present, revision, snapshot_error = store.read_snapshot()
+        result["revision"] = revision
         if not settings:
             return result
         result.update(aktiv=settings["briefkastenAktiv"],
@@ -18395,7 +18396,9 @@ def nextcloud_status(transport=None, discover=True):
                       server=settings["server"],
                       url=settings["server"],
                       benutzer=settings["benutzer"])
-        result["kennwortVorhanden"] = store.has_password(settings)
+        if snapshot_error is not None:
+            raise snapshot_error
+        result["kennwortVorhanden"] = password_present
         active = settings["davAktiv"] if discover else (
             settings["davAktiv"] or settings["briefkastenAktiv"])
         if not active:
@@ -21060,6 +21063,8 @@ class Fenster(_FENSTER_BASIS):
 
         if (str(befehl or "").startswith("baum_") or
                 str(befehl or "").startswith("telefon_")) and self._gesperrt:
+            if befehl == "baum_briefkasten_status" and nachricht.get("requestId"):
+                self.antwort("App.baumBriefkastenStatus", {"requestId": nachricht["requestId"], "ok": False, "code": "profile_locked"})
             return
 
         if befehl == "mcp_antwort":
@@ -21491,8 +21496,20 @@ class Fenster(_FENSTER_BASIS):
                 "App.baumBriefkastenPruefung"), daemon=True).start()
 
         elif befehl == "baum_briefkasten_status":
-            threading.Thread(target=lambda: self._nextcloud_status_melden(
-                "App.baumBriefkastenStatus"), daemon=True).start()
+            request_id = nachricht.get("requestId")
+            if request_id and getattr(self, "_mcp_dav_status_aktiv", False):
+                self.antwort("App.baumBriefkastenStatus", {"requestId": request_id, "ok": False, "code": "native_busy"})
+                return
+            if request_id:
+                self._mcp_dav_status_aktiv = True
+            try:
+                threading.Thread(target=lambda: self._nextcloud_status_melden(
+                    "App.baumBriefkastenStatus", request_id), daemon=True).start()
+            except Exception:
+                if not request_id:
+                    raise
+                self._mcp_dav_status_aktiv = False
+                self.antwort("App.baumBriefkastenStatus", {"requestId": request_id, "ok": False, "code": "native_operation_failed"})
 
         elif befehl == "baum_briefkasten_speichern":
             threading.Thread(target=lambda: self._nextcloud_speichern(
@@ -25576,7 +25593,18 @@ class Fenster(_FENSTER_BASIS):
             nutzlast["requestId"] = request_id
         self.antwort("App.edsStatus", nutzlast)
 
-    def _nextcloud_status_melden(self, callback="App.nextcloudStatus"):
+    def _nextcloud_status_melden(self, callback="App.nextcloudStatus", request_id=None):
+        if request_id:
+            try:
+                if getattr(self, "_gesperrt", True):
+                    self.antwort(callback, {"requestId": request_id, "ok": False, "code": "profile_locked"})
+                    return
+                nutzlast = nextcloud_status(discover=False)
+                nutzlast.update(requestId=request_id, ok=True)
+                self.antwort(callback, nutzlast)
+            finally:
+                self._mcp_dav_status_aktiv = False
+            return
         mailbox_status = callback.startswith("App.baumBriefkasten")
         settings = nextcloud_speicher().load()
         pruefung = callback == "App.baumBriefkastenPruefung"

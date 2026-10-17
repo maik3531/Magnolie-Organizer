@@ -17,6 +17,7 @@ internal sealed record NextcloudMailboxSettings(bool DavActive, bool MailboxActi
     internal string AccountType { get; init; } = "nextcloud";
 }
 internal sealed record NextcloudMailboxContext(NextcloudMailboxSettings Settings, AuthenticationHeaderValue? Authorization);
+internal sealed record NextcloudSettingsSnapshot(NextcloudMailboxSettings? Settings, bool CredentialPresent, string Revision);
 
 internal static class NextcloudStatusText
 {
@@ -37,6 +38,7 @@ internal sealed class GoogleDavAuthenticationException : InvalidOperationExcepti
 
 internal sealed class NextcloudMailboxSettingsStore
 {
+    private static readonly byte[] RevisionKey = RandomNumberGenerator.GetBytes(32);
     private readonly string settingsPath;
     private readonly string passwordPath;
     private readonly ISecretProtector protector;
@@ -128,6 +130,27 @@ internal sealed class NextcloudMailboxSettingsStore
     }
 
     internal bool HasApplicationPassword { get { lock (gate) return File.Exists(passwordPath); } }
+
+    internal NextcloudSettingsSnapshot ReadSnapshot()
+    {
+        lock (gate)
+        {
+            var settings = Load();
+            var protectedSecret = new AtomicStore().Read(passwordPath, 64 * 1024);
+            var data = new JsonObject
+            {
+                ["settingsStore"] = Path.GetFullPath(settingsPath), ["credentialStore"] = Path.GetFullPath(passwordPath),
+                ["settings"] = settings is null ? null : new JsonObject
+                {
+                    ["kontoArt"] = settings.AccountType, ["davAktiv"] = settings.DavActive,
+                    ["briefkastenAktiv"] = settings.MailboxActive, ["server"] = settings.ServerBase, ["benutzer"] = settings.User
+                },
+                ["protectedCredential"] = protectedSecret
+            };
+            var revision = Convert.ToHexString(HMACSHA256.HashData(RevisionKey, TelefonCrypto.Canonical(data))).ToLowerInvariant();
+            return new(settings, protectedSecret is not null, revision);
+        }
+    }
 
     internal void ClearApplicationPassword()
     {

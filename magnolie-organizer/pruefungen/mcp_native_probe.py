@@ -7,6 +7,7 @@ import hashlib
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import os
+import re
 from pathlib import Path
 import selectors
 import shutil
@@ -296,6 +297,50 @@ def client():
         assert status["structuredContent"]["ready"] and not status["structuredContent"]["locked"], status
         notes = call("tools/call", {"name": "organizer_data_read", "arguments": {"section": "notizen"}})
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
+        if os.environ.get("MAGNOLIE_MCP_PROBE_DAV_ACCOUNT_ONLY") == "1":
+            state["dav_initial_save_pending"] = call("tools/call", {"name": "organizer_status"})["structuredContent"]["pendingSave"]
+            # Establish an acknowledged normalized book before a byte-level
+            # read-only comparison; the initial fixture file predates App.init.
+            initial_sync = call("tools/call", {"name": "organizer_sync_settings_read"})["structuredContent"]
+            normalized = call("tools/call", {"name": "organizer_sync_settings_update", "arguments": {
+                "expected_revision": initial_sync["revision"], "at_startup": initial_sync["settings"]["at_startup"]}})
+            assert not normalized["isError"] and normalized["structuredContent"]["persisted"], normalized
+            unchanged_book = data_file.read_text()
+            def read_dav_account():
+                result = call("tools/call", {"name": "organizer_dav_account_read"})
+                assert not result["isError"], result
+                return result["structuredContent"]
+            empty_account = read_dav_account()
+            assert not empty_account["settings"]["configured"] and empty_account["credential_present"] is False
+            assert re.fullmatch(r"[a-f0-9]{64}", empty_account["revision"]) and not empty_account["connectivity_checked"]
+            account_store = product.nextcloud_speicher()
+            account_store.save(False, False, "https://owned-dav.example.test", "owned-reader")
+            configured_account = read_dav_account()
+            assert configured_account["settings"] == {"configured": True, "account_type": "nextcloud", "dav_enabled": False,
+                "mailbox_enabled": False, "server": "https://owned-dav.example.test", "user": "owned-reader"}, configured_account
+            if configured_account["error_present"]:
+                assert configured_account["error_code"] == "secret_service_unavailable" and configured_account["revision"] is None and configured_account["credential_present"] is None, configured_account
+                state["dav_credential_metadata_available"] = False
+            else:
+                assert configured_account["credential_present"] is False and re.fullmatch(r"[a-f0-9]{64}", configured_account["revision"]), configured_account
+                assert configured_account["revision"] != empty_account["revision"] and read_dav_account()["revision"] == configured_account["revision"]
+                state["dav_credential_metadata_available"] = True
+            assert not configured_account["connectivity_checked"]
+            if data_file.read_text() != unchanged_book:
+                before_model, after_model = json.loads(unchanged_book), json.loads(data_file.read_text())
+                state["dav_book_changed_fields"] = sorted(key for key in set(before_model) | set(after_model) if before_model.get(key) != after_model.get(key))
+            assert data_file.read_text() == unchanged_book
+            Path(account_store.path).write_text("{owned-invalid-config", encoding="utf-8")
+            damaged_account = read_dav_account()
+            assert damaged_account["error_present"] and damaged_account["error_code"] == "invalid_config" and damaged_account["revision"] is None
+            assert not damaged_account["settings"]["configured"] and damaged_account["credential_present"] is None
+            assert data_file.read_text() == unchanged_book
+            state["dav_account_read_verified"] = True
+            process.stdin.close()
+            assert process.wait(timeout=5) == 0
+            selector.close()
+            state["passed"] = True
+            return
         if os.environ.get("MAGNOLIE_MCP_PROBE_SYNC_SETTINGS_ONLY") == "1":
             available = call("tools/call", {"name": "organizer_sync_sources_read"})["structuredContent"]["status"]
             assert any(source["uid"] == "owned-mcp-calendar" for source in available["alleKalender"]), available
@@ -2014,7 +2059,9 @@ finally:
         state["error"] = (state.get("error") or "") + "\nPrivate service/temporary cleanup:\n" + traceback.format_exc(limit=4)
     print("Native MCP fixture state:", json.dumps(state), flush=True)
 assert state["passed"] and state.get("cleanup_verified"), state
-if os.environ.get("MAGNOLIE_MCP_PROBE_SYNC_SETTINGS_ONLY") == "1":
+if os.environ.get("MAGNOLIE_MCP_PROBE_DAV_ACCOUNT_ONLY") == "1":
+    print("Native MCP DAV ACCOUNT PASS: actual config/credential-metadata snapshot, explicit unreadable-state handling, no book mutation or connectivity claim")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_SYNC_SETTINGS_ONLY") == "1":
     print("Native MCP SYNC SETTINGS PASS: actual private EDS source discovery/validation, preference CAS, durable save/readback, retained offline primary and unlink")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_LOCAL_ONLY") == "1":
     print("Native MCP LOCAL PASS: actual Thunderbird SQLite and Evolution ICS readers, staged source/scope CAS, checkpoint/save/readback, birthday, stale-source rejection and replay")

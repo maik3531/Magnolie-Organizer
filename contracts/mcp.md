@@ -132,6 +132,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_sync_sources_read` | Actual native calendar/address-book/account availability, with request- and callback-bound results |
 | `organizer_sync_settings_read` | Calendar/address-book selections and GUI sync preferences under a revision covering the complete sync preference object |
 | `organizer_sync_settings_update` | Shared GUI selection/preferences, native validation of newly linked IDs and durable save; preserves offline selections and existing record/provider routing |
+| `organizer_dav_account_read` | Actual local shared GUI Nextcloud/generic-DAV configuration and credential-presence metadata, with a process-bound keyed native revision and explicit unreadable states; no secret values or connectivity claim |
 | `organizer_note_read` | Note and revision token |
 | `organizer_note_create` | Plain-text note in an existing notebook; native save acknowledgement |
 | `organizer_note_update` | Revision-checked title, plain text or notebook change; attachments retained |
@@ -312,6 +313,19 @@ as the GUI does. Empty selections disable those links. Other phone/time preferen
 entity bindings, provider metadata and pending synchronization transactions remain
 intact. These tools update preferences, not account credentials or a running sync
 transaction. Revision checking includes the unexposed sync preferences as well.
+
+`organizer_dav_account_read` reads the native persisted account/credential
+snapshot used by the GUI. The opaque keyed revision binds configuration, native
+storage identity and credential state (Linux's actual Secret Service value or
+Windows' protected credential blob); it is neither a portable file checksum nor
+an exposed password digest. Native saves and snapshot reads share their store
+gate. A failed credential/config read has a null revision and unknown credential
+presence, with explicit native state/error code. Windows presence describes the
+native credential file, not a new DPAPI-decryption or authentication test.
+`connectivity_checked` is always false. Passwords, protected blobs, authorization
+headers and native error text are excluded; correlated/late replies leave GUI
+account drafts and book data untouched. Account changes and login/test actions
+remain separate coverage work.
 
 For local imports, supply `local_source` (`evolution`/`thunderbird` on Linux,
 `windows_contacts`/`thunderbird` on Windows) and optional `local_scope`

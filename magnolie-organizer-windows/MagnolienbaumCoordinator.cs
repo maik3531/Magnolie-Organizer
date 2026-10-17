@@ -74,13 +74,18 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
 
     internal Task ResumeAsync() => Boolean(state, "an") ? StartAsync() : Task.CompletedTask;
 
-    internal async Task ReportMailboxStatusAsync(string callback = "App.baumBriefkastenStatus")
+    internal async Task ReportMailboxStatusAsync(string callback = "App.baumBriefkastenStatus", string requestId = "")
     {
         NextcloudMailboxSettings? settings = null;
-        try { settings = mailboxSettings.Load(); }
-        catch (Exception error) { mailboxError = NextcloudStatusText.For(error); mailboxErrorCode = MailboxErrorCode(error); mailboxState = "unvollstaendig"; }
-        var hasPassword = mailboxSettings.HasApplicationPassword;
-        await emit(callback, new { aktiv = settings?.MailboxActive ?? false,
+        var hasPassword = false; string? revision = null;
+        try { var snapshot = mailboxSettings.ReadSnapshot(); settings = snapshot.Settings; hasPassword = snapshot.CredentialPresent; revision = snapshot.Revision; }
+        catch (Exception error)
+        {
+            try { settings = mailboxSettings.Load(); } catch (Exception) { }
+            hasPassword = mailboxSettings.HasApplicationPassword; mailboxError = NextcloudStatusText.For(error);
+            mailboxErrorCode = MailboxErrorCode(error); mailboxState = "unvollstaendig";
+        }
+        await emit(callback, new { requestId, revision, aktiv = settings?.MailboxActive ?? false,
             davAktiv = settings?.DavActive ?? false, briefkastenAktiv = settings?.MailboxActive ?? false,
             kontoArt = settings?.AccountType ?? "nextcloud",
             url = settings?.ServerBase ?? "",
