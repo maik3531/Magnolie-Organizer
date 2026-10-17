@@ -173,6 +173,26 @@ internal sealed partial class BridgeDispatcher
             Boolean(message, "kennwortLoeschen"), Text(message, "kontoArt"), requestId, Text(message, "expectedRevision"));
     }
 
+    private async Task ReportGraphAccountAsync(string requestId)
+    {
+        if (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null))
+        {
+            await form.SendAsync("App.graphKontoStand", new { requestId, ok = false, code = "profile_locked" });
+            return;
+        }
+        try
+        {
+            GraphAccountMetadata state;
+            lock (serviceGate) state = GraphConfig.ReadMetadata(GraphTokens, graphSignIn is not null);
+            await form.SendAsync("App.graphKontoStand", new { requestId, ok = true, clientId = state.ClientId,
+                configured = state.Configured, tokenFilePresent = state.TokenFilePresent, signInPending = state.SignInPending });
+        }
+        catch (Exception)
+        {
+            await form.SendAsync("App.graphKontoStand", new { requestId, ok = false, code = "native_operation_failed" });
+        }
+    }
+
     private async Task TestMailboxWriteAsync(JsonElement message)
     {
         var requestId = Text(message, "requestId");

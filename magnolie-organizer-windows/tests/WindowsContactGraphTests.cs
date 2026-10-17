@@ -8,6 +8,38 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class WindowsContactGraphTests
 {
+    private sealed class NoTokenReadProtector : ISecretProtector
+    {
+        public byte[] Protect(byte[] bytes) => throw new InvalidOperationException("Metadata must not protect tokens.");
+        public byte[] Unprotect(byte[] bytes) => throw new InvalidOperationException("Metadata must not decrypt tokens.");
+    }
+
+    private static void TestGraphAccountMetadata(string root)
+    {
+        var userPath = Path.Combine(root, "owned-graph.json");
+        var buildPath = Path.Combine(root, "owned-build.json");
+        var tokenPath = Path.Combine(root, "owned-token.dat");
+        var configuration = new GraphConfiguration(userPath, buildPath);
+        var tokens = new GraphTokenStore(tokenPath, new NoTokenReadProtector());
+        var empty = configuration.ReadMetadata(tokens, false);
+        TestAssert.That(empty == new GraphAccountMetadata("", false, false, false), "Empty Microsoft metadata invented configuration or authentication.");
+        const string buildId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", userId = "11111111-2222-3333-4444-555555555555";
+        File.WriteAllText(buildPath, new JsonObject { ["graphClientId"] = buildId }.ToJsonString());
+        TestAssert.That(configuration.ReadMetadata(tokens, false).ClientId == buildId, "Microsoft metadata lost the effective build configuration fallback.");
+        configuration.Save("{" + userId + "}");
+        File.WriteAllText(tokenPath, "owned-private-protected-token");
+        var state = configuration.ReadMetadata(tokens, true);
+        TestAssert.That(state.ClientId == userId && state.Configured && state.TokenFilePresent && state.SignInPending &&
+            !System.Text.Json.JsonSerializer.Serialize(state).Contains("owned-private", StringComparison.Ordinal), "Microsoft metadata lost user precedence/canonical GUID/pending state or disclosed protected token content.");
+        var before = File.ReadAllText(userPath);
+        _ = configuration.ReadMetadata(tokens, false);
+        TestAssert.That(File.ReadAllText(userPath) == before && File.ReadAllText(tokenPath) == "owned-private-protected-token", "Microsoft metadata modified account storage.");
+        configuration.Save("");
+        TestAssert.That(configuration.ReadMetadata(tokens, false).ClientId == buildId, "Removing the override did not restore the effective build client ID.");
+        tokens.Delete();
+        TestAssert.That(!configuration.ReadMetadata(tokens, false).TokenFilePresent, "Microsoft metadata cached token presence.");
+    }
+
     // Explicitly opt-in, aggregate-only audit; never creates a provider or writes a profile.
     internal static async Task<int> AuditIdentityAsync(string path)
     {
@@ -427,6 +459,7 @@ internal static class WindowsContactGraphTests
         try
         {
             var store = new WindowsContactStore(root);
+            TestGraphAccountMetadata(root);
             await TestContactConflicts(root);
             await TestPlaceholderBirthday(root);
             await TestIdenticalContactBinding();

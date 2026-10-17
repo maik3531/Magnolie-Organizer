@@ -366,6 +366,9 @@ def client():
             stale_mailbox = call("tools/call", {"name": "organizer_mailbox_write_test", "arguments": {"expected_revision": initial_account["revision"]}})
             assert stale_mailbox["isError"] and stale_mailbox["structuredContent"]["code"] == "conflict", stale_mailbox
             state["mailbox_write_inactive_revision_gates_verified"] = True
+            graph_status = call("tools/call", {"name": "organizer_microsoft_account_read"})
+            assert graph_status["isError"] and graph_status["structuredContent"]["code"] == "unsupported_feature", graph_status
+            state["direct_graph_platform_gate_verified"] = True
             assert data_file.read_text() == unchanged_book
             state["dav_write_verified"] = True
             process.stdin.close()

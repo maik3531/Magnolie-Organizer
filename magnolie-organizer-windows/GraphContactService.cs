@@ -78,11 +78,19 @@ internal sealed class GraphTokenStore
     internal bool Exists => File.Exists(path);
 }
 
+internal sealed record GraphAccountMetadata(string ClientId, bool Configured, bool TokenFilePresent, bool SignInPending);
+
 internal sealed class GraphConfiguration
 {
     private readonly string userPath; private readonly string buildPath;
     internal GraphConfiguration(string userPath, string buildPath) { this.userPath = userPath; this.buildPath = buildPath; }
     internal string ClientId => Read(userPath, "clientId") is { Length: > 0 } user ? user : Read(buildPath, "graphClientId");
+    internal GraphAccountMetadata ReadMetadata(GraphTokenStore tokens, bool signInPending)
+    {
+        var clientId = ClientId;
+        if (clientId.Length > 0) clientId = Guid.Parse(clientId).ToString("D");
+        return new(clientId, clientId.Length > 0, tokens.Exists, signInPending);
+    }
     internal void Save(string clientId)
     {
         clientId = clientId.Trim();

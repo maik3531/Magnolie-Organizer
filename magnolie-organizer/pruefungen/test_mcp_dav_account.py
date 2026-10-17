@@ -141,6 +141,15 @@ def test_actual_account_snapshot_revision_and_correlated_redacted_status(native,
     assert host.responses[-1][1]["code"] == "native_busy"
 
 
+def test_direct_graph_metadata_is_explicitly_unsupported_on_linux(native):
+    host = Host(native); host._gesperrt = False
+    host.bei_nachricht(json.dumps({"cmd": "graph_konto_stand", "requestId": "owned-graph"}))
+    assert host.responses[-1] == ("App.graphKontoStand", {"requestId": "owned-graph", "ok": False, "code": "unsupported_feature"})
+    host._gesperrt = True
+    host.bei_nachricht(json.dumps({"cmd": "graph_konto_stand", "requestId": "owned-locked"}))
+    assert host.responses[-1][1]["code"] == "profile_locked"
+
+
 def test_snapshot_waits_for_the_same_real_save_transaction(native, tmp_path):
     store, vault = account_store(native, tmp_path)
     store.save(False, False, "https://owned.example.test", "owned-reader", "owned-secret-alpha")

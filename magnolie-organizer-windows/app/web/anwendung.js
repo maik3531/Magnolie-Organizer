@@ -31986,6 +31986,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     },
     baumDavPruefung(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "baumDavPruefung"); },
     baumMailboxSchreibpruefung(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "baumMailboxSchreibpruefung"); },
+    graphKontoStand(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "graphKontoStand"); },
     baumBriefkastenPruefung(nutzlast) {
       briefkastenStand = nutzlast || {};
       briefkastenSignatur = JSON.stringify(briefkastenStand);
@@ -34445,6 +34446,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         !["uebersprungen", "wiederholend"].every(key => Number.isSafeInteger(value[key]) && value[key] >= 0)) throw new MagnolieMcp.ToolError("invalid_result", "Native local import snapshot or selected collections were incomplete");
     return value;
   }
+  function mcpMicrosoftKontoWerkzeuge() {
+    return [{ name: "organizer_microsoft_account_read", description: "Read actual native direct Microsoft Graph account metadata on Windows: effective public OAuth client ID (user override/build fallback), protected-token file presence and native device-code sign-in activity. Does not decrypt or return tokens, run network discovery, verify authentication, open a browser, or replace GUI drafts. Token file presence is not a valid-session claim. Linux reports unsupported_feature for this Windows-only direct Graph integration; its EDS accounts remain available through sync_sources_read.",
+      inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (_args, signal) => {
+        const value = await mcpNativeAufruf("graph_konto_stand", {}, "graphKontoStand", signal);
+        if (value.ok !== true) throw new MagnolieMcp.ToolError(value.code === "profile_locked" ? "locked_or_cancelled" : value.code === "unsupported_feature" ? "unsupported_feature" : "native_operation_failed", "Native direct Microsoft account metadata is unavailable on this platform or profile");
+        if (typeof value.clientId !== "string" || value.clientId !== "" && !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value.clientId) ||
+            !["configured", "tokenFilePresent", "signInPending"].every(key => typeof value[key] === "boolean") || value.configured !== !!value.clientId) throw new MagnolieMcp.ToolError("invalid_result", "Native Microsoft metadata was incomplete");
+        return { client_id: value.clientId, configured: value.configured, token_file_present: value.tokenFilePresent, sign_in_pending: value.signInPending, connectivity_checked: false, authentication_verified: false };
+      } }];
+  }
   function mcpDavKontoWerkzeuge() {
     const decode = value => {
       if (value.ok === false) throw new MagnolieMcp.ToolError(value.code === "profile_locked" ? "locked_or_cancelled" : value.code === "native_busy" ? "native_busy" : "native_operation_failed", "Native DAV account status is unavailable");
@@ -35667,6 +35678,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (name === "organizer_microsoft_account_read") {
+      const no = { type: "boolean", enum: [false] }, fields = { client_id: text, configured: flag, token_file_present: flag, sign_in_pending: flag, connectivity_checked: no, authentication_verified: no };
+      return shape(fields, Object.keys(fields));
+    }
     if (name === "organizer_mailbox_write_test") {
       const fields = { revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, write_test_passed: flag, probe_delete_acknowledged: flag, error_code: text, remote_state_may_have_changed: yes, delivery_confirmed: { type: "boolean", enum: [false] } };
       return shape(fields, Object.keys(fields));
@@ -35910,6 +35925,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpMuellImportWerkzeuge(),
       ...mcpSyncEinstellungenWerkzeuge(),
       ...mcpDavKontoWerkzeuge(),
+      ...mcpMicrosoftKontoWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

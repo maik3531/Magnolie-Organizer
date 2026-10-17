@@ -65,6 +65,7 @@ internal static class BridgeDispatcherContract
         ["baum_briefkasten_status"] = S(O("requestId", JsonValueKind.String)), ["baum_briefkasten_pruefen"] = S(),
         ["baum_dav_pruefen"] = S(T("requestId"), T("expectedRevision")),
         ["baum_mailbox_schreibpruefen"] = S(T("requestId"), T("expectedRevision")),
+        ["graph_konto_stand"] = S(T("requestId")),
         ["baum_briefkasten_speichern"] = S(B("davAktiv"), B("briefkastenAktiv"), T("url"), T("benutzer"), T("anwendungskennwort"), B("kennwortLoeschen"), O("kontoArt", JsonValueKind.String), O("requestId", JsonValueKind.String), O("expectedRevision", JsonValueKind.String)),
         ["erinnerung_zeigen"] = S(T("kopf"), T("rumpf"), T("art"), T("stil")), ["erinnerung_einrichten"] = S(B("an"), B("wecken"), O("vorlauf", JsonValueKind.String, JsonValueKind.Number), O("termine", JsonValueKind.Array), O("requestId", JsonValueKind.String)),
         ["telefon_stand"] = S(), ["telefon_verbindung_stand"] = S(),

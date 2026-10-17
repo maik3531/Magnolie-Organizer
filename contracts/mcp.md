@@ -135,6 +135,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_dav_account_read` | Actual local shared GUI Nextcloud/generic-DAV configuration and credential-presence metadata, with a process-bound keyed native revision and explicit unreadable states; no secret values or connectivity claim |
 | `organizer_dav_connection_test` | Fresh read-only CalDAV/CardDAV discovery through GUI readers, checked against the expected native account revision before and after the request; collection counts, partial discovery and sanitized failure codes, no mailbox/write-permission test |
 | `organizer_mailbox_write_test` | Actual GUI Nextcloud mailbox MKCOL/conditional random probe PUT/DELETE under a pinned account context and expected native revision; explicit probe acknowledgements and possible remote changes, no delivery claim |
+| `organizer_microsoft_account_read` | Windows direct Graph effective public client ID, protected-token file presence and native sign-in activity, without token decryption or authentication claims; explicit unsupported-feature result on Linux |
 | `organizer_dav_account_update` | Full explicit native DAV configuration with expected native revision, optional credential replacement/clearing, shared GUI transaction and verified config/credential readback before persisted success |
 | `organizer_note_read` | Note and revision token |
 | `organizer_note_create` | Plain-text note in an existing notebook; native save acknowledgement |
@@ -372,6 +373,17 @@ revision errors, cancellation and timeouts can also follow writes or leave a
 probe behind. Inspect remote state before retrying. `delivery_confirmed` is
 always false. Neither book records nor GUI account drafts are changed. Login
 actions and full synchronization remain coverage work.
+
+`organizer_microsoft_account_read` reads the Windows direct Graph integration's
+effective public OAuth client ID through `GraphConfiguration`, with user override
+and existing build fallback. The ID is returned in canonical GUID form. It reads
+only protected-token file **presence**, never token contents or DPAPI plaintext,
+and reports whether the existing native device-code operation is active.
+`connectivity_checked` and `authentication_verified` are always false; neither
+file presence nor an active sign-in proves a valid session. This metadata is not
+an atomic account revision. Correlated late replies do not update GUI drafts.
+Linux returns `unsupported_feature` for direct Graph; its system-managed EDS
+accounts remain visible via `organizer_sync_sources_read`.
 
 For local imports, supply `local_source` (`evolution`/`thunderbird` on Linux,
 `windows_contacts`/`thunderbird` on Windows) and optional `local_scope`

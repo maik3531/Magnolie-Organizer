@@ -21492,6 +21492,10 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=self._sync_bestaetigen,
                              args=(nachricht.get("transactionId"),), daemon=True).start()
 
+        elif befehl == "graph_konto_stand":
+            self.antwort("App.graphKontoStand", {"requestId": nachricht.get("requestId"), "ok": False,
+                         "code": "profile_locked" if getattr(self, "_gesperrt", True) else "unsupported_feature"})
+
         elif befehl == "baum_mailbox_schreibpruefen":
             request_id = nachricht.get("requestId")
             if getattr(self, "_mcp_mailbox_test_aktiv", False):
