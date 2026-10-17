@@ -27985,8 +27985,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     ab.append(formZeile(_("Delete permanently"), tageWahl));
 
     const uebernehmen = () => {
-      p.an = anHak.checked;
-      p.tage = Number(tageWahl.value) || 0;
+      wendePapierkorbEinstellungenDatenAn({ an: anHak.checked, tage: Number(tageWahl.value) || 0 });
       tageWahl.disabled = !p.an;
       planeSpeichern();
       baueEinstellungen();
@@ -34324,6 +34323,26 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (value !== "month") calendar.uebersichtAb = null;
     calendar.bearbeiteId = null;
   }
+  function wendePapierkorbEinstellungenDatenAn(values) {
+    Object.assign(DATEN.einstellungen.papierkorb, values);
+  }
+  function mcpPapierkorbEinstellungenWerkzeuge() {
+    const fields = { enabled: { type: "boolean" }, retention_days: { type: "integer", enum: [0, 7, 30, 90, 365] } };
+    const settings = value => ({ enabled: value.an, retention_days: value.tage });
+    return [
+      { name: "organizer_trash_settings_read", description: "Read recycle-bin enablement and retention policy with its full revision. Zero retention days means manual emptying only. Existing trash contents are read separately.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => {
+          const before = JSON.stringify(DATEN.einstellungen.papierkorb); return { settings: settings(JSON.parse(before)), revision: await personalSyncHash(before) };
+        } },
+      { name: "organizer_trash_settings_update", description: "Revision-check partial recycle-bin policy through the shared GUI handler and durable native save. This operation does not empty existing trash. Disabling makes future product deletions bypass trash; finite retention is applied by the existing cleanup when opening the book. Zero days means manual cleanup only.",
+        inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, ...fields }, required: ["expected_revision"], anyOf: Object.keys(fields).map(key => ({ required: [key] })), additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: (args, signal) => mcpSchreiben(signal, async () => {
+          const book = DATEN, before = JSON.stringify(DATEN.einstellungen.papierkorb), revision = await personalSyncHash(before);
+          if (signal.aborted || DATEN !== book || JSON.stringify(DATEN.einstellungen.papierkorb) !== before || revision !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Recycle-bin policy changed; read it again");
+          mcpEditorPruefen(); wendePapierkorbEinstellungenDatenAn({ ...(args.enabled !== undefined ? { an: args.enabled } : {}), ...(args.retention_days !== undefined ? { tage: args.retention_days } : {}) });
+          return { settings: settings(DATEN.einstellungen.papierkorb) };
+        }) }
+    ];
+  }
   function wendeAdressEinstellungenDatenAn(values) {
     const settings = DATEN.einstellungen.adressen, previous = settings.sortierung;
     Object.assign(settings, values);
@@ -35143,6 +35162,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_trash_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
+    if (name === "organizer_trash_settings_update") return shape({ settings: object, persisted: yes }, ["settings", "persisted"]);
     if (name === "organizer_contact_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
     if (name === "organizer_contact_settings_update") return shape({ settings: object, persisted: yes }, ["settings", "persisted"]);
     if (name === "organizer_notification_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
@@ -35304,6 +35325,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpHintergrundWerkzeuge(),
       ...mcpBenachrichtigungsWerkzeuge(),
       ...mcpAdressEinstellungenWerkzeuge(),
+      ...mcpPapierkorbEinstellungenWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

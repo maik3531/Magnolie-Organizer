@@ -126,6 +126,20 @@ async function run(web) {
   }, { kontakte: [{ id: "owned-sort-contact", vorname: "Alice", nachname: "Zed", vcardRoundtrip: ["BEGIN:VCARD", "CATEGORIES:Work,Colleagues", "END:VCARD"] }],
     einstellungen: { adressen: { personengruppenAn: true } } });
 
+  await test("trash policy controls retain contents and manual-only retention", async b => {
+    const contents = JSON.stringify(b.t.daten().papierkorb); assert.equal(b.t.daten().papierkorb.length, 1);
+    b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-sicherheit").click();
+    const days = b.w.document.querySelector("#papierkorb-tage"); days.value = "0";
+    days.dispatchEvent(new b.w.Event("change", { bubbles: true }));
+    const enabled = b.w.document.querySelector("#papierkorb-an"); enabled.checked = false;
+    enabled.dispatchEvent(new b.w.Event("change", { bubbles: true }));
+    assert.equal(b.w.document.querySelector("#papierkorb-tage").disabled, true);
+    b.t.speichereJetzt(); b.ack(); await tick(); b.t.speichereJetzt();
+    const saved = b.t.normalisiere(JSON.parse(b.saves().at(-1).text));
+    assert.equal(saved.einstellungen.papierkorb.an, false); assert.equal(saved.einstellungen.papierkorb.tage, 0);
+    assert.equal(JSON.stringify(b.t.daten().papierkorb), contents); assert.equal(saved.papierkorb.length, 1);
+  }, { papierkorb: [{ id: "owned-trash-policy", art: "note", name: "Owned trash", geloescht: Date.now(), eintrag: { id: "owned-trashed-note", titel: "Owned trash", text: "Owned content" } }] });
+
   await test("health preference controls retain canonical measurements and mirror tab state", async b => {
     const measurements = JSON.stringify(b.t.daten().gesundheit);
     b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-kalender").click();

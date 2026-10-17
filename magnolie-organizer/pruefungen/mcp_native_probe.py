@@ -1293,6 +1293,19 @@ def client():
         stale_contact_preferences = call("tools/call", {"name": "organizer_contact_settings_update", "arguments": {
             "expected_revision": contact_preferences_before["structuredContent"]["revision"], "photos": True}})
         assert stale_contact_preferences["isError"] and stale_contact_preferences["structuredContent"]["code"] == "conflict", stale_contact_preferences
+        trash_policy_before = call("tools/call", {"name": "organizer_trash_settings_read"})
+        assert not trash_policy_before["isError"], trash_policy_before
+        trash_before = contact_book["papierkorb"]
+        trash_policy = call("tools/call", {"name": "organizer_trash_settings_update", "arguments": {
+            "expected_revision": trash_policy_before["structuredContent"]["revision"], "enabled": False, "retention_days": 0}})
+        assert not trash_policy["isError"] and trash_policy["structuredContent"]["persisted"], trash_policy
+        trash_book = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        assert trash_book["einstellungen"]["papierkorb"] == {"an": False, "tage": 0}
+        assert trash_book["papierkorb"] == trash_before
+        assert {key: trash_book[key] for key in contact_records_keys} == contact_records_before
+        stale_trash_policy = call("tools/call", {"name": "organizer_trash_settings_update", "arguments": {
+            "expected_revision": trash_policy_before["structuredContent"]["revision"], "enabled": True}})
+        assert stale_trash_policy["isError"] and stale_trash_policy["structuredContent"]["code"] == "conflict", stale_trash_policy
         reminder_before = call("tools/call", {"name": "organizer_notification_settings_read"})
         assert not reminder_before["isError"], reminder_before
         reminder_records_keys = ("notizen", "termine", "aufgaben", "kontakte", "gesundheit", "zeiterfassung")

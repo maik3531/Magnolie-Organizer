@@ -1439,6 +1439,24 @@ let declaredContracts;
         assert.equal(nestedConflict.result.structuredContent.code, "conflict", "Revision must cover the full address preferences, including omitted fields");
         b.t.daten().einstellungen.adressen.smsBenachrichtigungDauer = originalDuration;
       }
+      {
+        const read = async id => (await call(request(id, "tools/call", { name: "organizer_trash_settings_read" }))).result.structuredContent;
+        const before = await read(930), contents = JSON.stringify(b.t.daten().papierkorb);
+        const disabled = await persisted(931, "organizer_trash_settings_update", { expected_revision: before.revision, enabled: false, retention_days: 0 });
+        assert.equal(disabled.settings.enabled, false); assert.equal(disabled.settings.retention_days, 0);
+        assert.equal(JSON.stringify(b.t.daten().papierkorb), contents, "Changing trash policy must not empty existing trash");
+        const stale = await call(request(932, "tools/call", { name: "organizer_trash_settings_update", arguments: { expected_revision: before.revision, enabled: true } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        const fresh = await read(933), invalid = await call(request(934, "tools/call", { name: "organizer_trash_settings_update", arguments: { expected_revision: fresh.revision, retention_days: 1 } }));
+        assert.equal(invalid.error.code, -32602);
+        const id = "93939393-9393-4393-8393-939393939393";
+        await persisted(935, "organizer_note_create", { id, title: "Owned no-trash deletion fixture", text: "Owned fixture" });
+        const note = (await call(request(936, "tools/call", { name: "organizer_note_read", arguments: { id } }))).result.structuredContent;
+        await persisted(937, "organizer_note_delete", { id, expected_revision: note.revision });
+        assert.ok(!b.t.daten().notizen.some(note => note.id === id)); assert.equal(JSON.stringify(b.t.daten().papierkorb), contents);
+        const enabled = await persisted(938, "organizer_trash_settings_update", { expected_revision: fresh.revision, enabled: true });
+        assert.equal(enabled.settings.retention_days, 0, "Partial enable must preserve manual-only retention");
+      }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));
       assert.equal(locked.result.isError, true);
