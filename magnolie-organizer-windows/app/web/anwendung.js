@@ -29138,7 +29138,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (!liste.length) throw new Error(_("There are no entries to export yet."));
     if (["vcf-adressen", "ldif-adressen"].includes(art)) {
       const bestand = DATEN, revision = kanonischerEntwurf(DATEN.kontakte), kopien = liste.map(kontaktFuerAustausch);
-      return Promise.all(kopien.map(k => kontaktInhaltszeit(k))).then(zeiten => {
+      return Promise.all(liste.map(k => kontaktInhaltszeit(k))).then(zeiten => {
         if (DATEN !== bestand || gesperrt || DATEN.kontakte !== liste || kanonischerEntwurf(DATEN.kontakte) !== revision) {
           throw new Error(_("Conflict"));
         }

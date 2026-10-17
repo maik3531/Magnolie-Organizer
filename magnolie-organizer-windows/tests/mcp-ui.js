@@ -1579,6 +1579,13 @@ let declaredContracts;
         onPasswordRead = onPasswordWrite = null;
       }
       {
+        const clockContact = b.t.daten().kontakte[0], knownClock = Date.now() - 60000;
+        assert.equal(await b.t.merkeKontaktInhaltszeit(clockContact, knownClock), true);
+        const flush = async () => {
+          const saving = new Promise(resolve => { onSave = resolve; });
+          b.t.speichereJetzt(); await saving; b.ack(); await new Promise(resolve => setImmediate(resolve));
+        };
+        await flush();
         const revision = (await call(request(1020, "tools/call", { name: "organizer_book_revision_read" }))).result.structuredContent.revision;
         const before = JSON.stringify(b.t.daten()); let native, completed = false;
         const reply = (message, extra = {}) => b.w.App.exportErgebnis({ requestId: message.requestId, art: message.art, ok: true, pfad: message.pfad,
@@ -1588,11 +1595,33 @@ let declaredContracts;
           format: "vcf-adressen", path: "/owned-fixture/records.vcf" } })).then(value => { completed = true; return value; });
         await dispatched; assert.equal(native.overwrite, false); assert.equal(native.art, "vcf-adressen");
         assert.ok(native.daten.length); assert.ok(native.daten.every(contact => !contact.syncQuellen && !contact.kontaktZeit));
+        assert.equal(native.daten.find(contact => contact.id === clockContact.id).geaendert, knownClock, "Export must retain only an original contact's verified content time");
         reply({ ...native, requestId: "wrong-export-request" });
         await new Promise(resolve => setImmediate(resolve)); assert.equal(completed, false);
         reply(native); const result = (await pending).result.structuredContent;
         assert.equal(result.confirmed, true); assert.equal(result.bytes, 12); assert.equal(result.raw_omitted_count, null);
         assert.equal(result.warnings_present, false); assert.equal(JSON.stringify(b.t.daten()), before);
+        const originalNote = clockContact.notiz;
+        clockContact.notiz = originalNote + "\nOwned stale content-clock fixture"; await flush();
+        const changedRevision = (await call(request(1026, "tools/call", { name: "organizer_book_revision_read" }))).result.structuredContent.revision;
+        onRecordsExport = message => { assert.equal(message.daten.find(contact => contact.id === clockContact.id).geaendert, 0, "A stale proof must not become an exported REV"); reply(message); };
+        assert.equal((await call(request(1027, "tools/call", { name: "organizer_records_export", arguments: { expected_book_revision: changedRevision,
+          format: "vcf-adressen", path: "/owned-fixture/stale-clock.vcf" } }))).result.structuredContent.confirmed, true);
+        clockContact.notiz = originalNote; await flush();
+        const originalDigest = b.w.crypto.subtle.digest, digest = originalDigest.bind(b.w.crypto.subtle);
+        let releaseDigest, digestCalls = 0;
+        const digestGate = new Promise(resolve => { releaseDigest = resolve; });
+        let markDigest;
+        const digestStarted = new Promise(resolve => { markDigest = resolve; });
+        const exportsBeforeRace = b.messages.filter(message => message.cmd === "export").length, savesBeforeRace = b.saves().length;
+        try {
+          b.w.crypto.subtle.digest = async (...args) => { if (++digestCalls === 2) { markDigest(); await digestGate; } return digest(...args); };
+          const racing = call(request(1028, "tools/call", { name: "organizer_records_export", arguments: { expected_book_revision: revision, format: "vcf-adressen", path: "/owned-fixture/racing.vcf" } }));
+          await digestStarted; clockContact.notiz = originalNote + "\nOwned concurrent export edit"; releaseDigest();
+          assert.equal((await racing).result.structuredContent.code, "source_changed");
+          assert.equal(b.messages.filter(message => message.cmd === "export").length, exportsBeforeRace);
+          assert.equal(b.saves().length, savesBeforeRace);
+        } finally { b.w.crypto.subtle.digest = originalDigest; clockContact.notiz = originalNote; releaseDigest(); }
         const stale = await call(request(1022, "tools/call", { name: "organizer_records_export", arguments: { expected_book_revision: "0".repeat(64), format: "ics-termine", path: "/owned-fixture/events.ics" } }));
         assert.equal(stale.result.structuredContent.code, "conflict");
         onRecordsExport = message => b.w.App.exportErgebnis({ requestId: message.requestId, ok: false, fehler: "owned-private-export-path" });
