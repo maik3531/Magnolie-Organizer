@@ -34139,6 +34139,50 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (value !== "month") calendar.uebersichtAb = null;
     calendar.bearbeiteId = null;
   }
+  function mcpTabellenExportWerkzeuge() {
+    const common = { expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, overwrite: { type: "boolean" } };
+    const run = async (args, signal, kind, prepare) => {
+      mcpEditorPruefen(); const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+      if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; read its revision before spreadsheet export");
+      const payload = prepare();
+      await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, () => reject(new MagnolieMcp.ToolError("save_failed", "Native save failed before spreadsheet export"))));
+      mcpEditorPruefen(); if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Book changed before native spreadsheet export");
+      const value = await mcpNativeAufruf(payload.cmd, { ...payload, pfad: args.path, overwrite: args.overwrite === true }, "documentExportErgebnis", signal);
+      if (value.ok !== true) throw new MagnolieMcp.ToolError("native_operation_failed", "Native spreadsheet export failed; check destination and overwrite choice");
+      if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Spreadsheet may have been written; book changed during native export");
+      if (typeof value.pfad !== "string" || !Number.isSafeInteger(value.bytes) || value.bytes <= 0 || !/^[a-f0-9]{64}$/.test(value.sha256)) throw new MagnolieMcp.ToolError("invalid_result", "Native spreadsheet readback was incomplete");
+      return { path: value.pfad, format: "ods", kind, bytes: value.bytes, sha256: value.sha256, confirmed: true };
+    };
+    const schema = (properties, required = []) => ({ type: "object", properties: { ...common, ...properties }, required: ["expected_book_revision", "path", ...required], additionalProperties: false });
+    const annotations = { readOnlyHint: false, destructiveHint: true, openWorldHint: true };
+    return [
+      { name: "organizer_contacts_spreadsheet_export", description: "Export selected/all contact cards through the existing GUI column/format preparation and native ODS generator. At most 5000 contacts; empty selected columns are omitted as in the GUI. Uses current name order, regional dates and resolved emergency contacts. Confirms actual file bytes/SHA-256 after the book/save gate; no contact settings or GUI selection change.",
+        inputSchema: schema({ contact_ids: { type: "array", minItems: 1, maxItems: 5000, uniqueItems: true, items: { type: "string", minLength: 1, maxLength: 256 } }, fields: { type: "array", minItems: 1, maxItems: 14, uniqueItems: true, items: { type: "string", enum: adressenOdsFelder().map(field => field.key) } } }), annotations,
+        call: (args, signal) => run(args, signal, "contacts", () => {
+          const ids = args.contact_ids ? new Set(args.contact_ids) : null, contacts = DATEN.kontakte.filter(contact => !ids || ids.has(contact.id)).slice().sort(sortiereKontakte);
+          if (ids && contacts.length !== ids.size) throw new MagnolieMcp.ToolError("not_found", "One or more selected contacts no longer exist");
+          if (!contacts.length) throw new MagnolieMcp.ToolError("no_entries", "No contacts selected for export");
+          if (contacts.length > 5000) throw new MagnolieMcp.ToolError("export_limit", "Select at most 5000 contacts");
+          const payload = adressenOdsNutzlast(contacts, args.fields);
+          if (!payload.spalten.length) throw new MagnolieMcp.ToolError("no_entries", "Selected contacts have no values for the selected columns");
+          if (JSON.stringify(payload).length > 4 * 1024 * 1024) throw new MagnolieMcp.ToolError("export_limit", "Contact spreadsheet exceeds the product export limit");
+          return payload;
+        }) },
+      { name: "organizer_health_spreadsheet_export", description: "Export the existing health table/history ODS layout using current display units and regional labels. Explicit table and blank/stored-values mode; optional date range, insulin scheme with glucose, one/all six history charts. Uses the same GUI selectors and native document generator; stored health data and preferences remain unchanged. Actual file readback confirms writing only.",
+        inputSchema: schema({ table: { type: "string", enum: ["vital", "blood-glucose", "medication", "none"] }, mode: { type: "string", enum: ["blank", "values"] }, from: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" }, to: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" }, insulin_scheme: { type: "boolean" }, history: { type: "string", enum: ["none", "single", "all"] }, history_metric: { type: "string", enum: ["blood-pressure", "pulse", "temperature", "weight", "bmi", "blood-glucose"] } }, ["table", "mode"]), annotations,
+        call: (args, signal) => run(args, signal, "health", () => {
+          if (args.from && !gueltigesISO(args.from) || args.to && !gueltigesISO(args.to) || args.from && args.to && args.from > args.to || args.mode === "blank" && (args.from || args.to) || args.insulin_scheme && args.table !== "blood-glucose" || args.table === "none" && (!args.history || args.history === "none") || args.history_metric && args.history !== "single") throw new MagnolieMcp.ToolError("invalid_settings", "Invalid health export table, dates, chart or insulin-scheme combination");
+          const options = { vital: args.table === "vital", blutzucker: args.table === "blood-glucose", medikamente: args.table === "medication", leer: args.mode === "blank", von: args.from || "", bis: args.to || "", schema: args.insulin_scheme === true, verlauf: args.history || "none", verlaufWert: args.history_metric || "blood-pressure" };
+          return gesundheitOdsNutzlast(options, gesundheitDruckEintraege(options));
+        }) },
+      { name: "organizer_time_spreadsheet_export", description: "Export the existing original monthly time-tracking ODS report using product calendar projection, actual entries, pause/clock-change rules, regional labels/digits and selected days. An optional report name affects this document only. Does not start tracking or change preferences. Book/save gate and native bytes/SHA-256 confirm the actual file.",
+        inputSchema: schema({ year: { type: "integer", minimum: 1, maximum: 9999 }, month: { type: "integer", minimum: 1, maximum: 12 }, report_name: { type: "string", maxLength: 240 }, days: { type: "array", minItems: 1, maxItems: 31, uniqueItems: true, items: { type: "integer", minimum: 1, maximum: 31 } } }, ["year", "month"]), annotations,
+        call: (args, signal) => run(args, signal, "time", () => {
+          try { return zeitOdsNutzlast(args.year, args.month - 1, args.report_name ?? DATEN.zeiterfassung.reportName, args.days || null); }
+          catch (_error) { throw new MagnolieMcp.ToolError("invalid_settings", "Invalid report name, month/day selection or product time-report data"); }
+        }) }
+    ];
+  }
   function mcpPlanerExportWerkzeuge() {
     const flags = { public_holidays: "feiertage", school_holidays: "ferien", personal_vacation: "urlaub", appointments: "termine", anniversaries: "jahrestage", shifts: "schichten", cycle_markers: "zyklus", waste: "muell" };
     return [{ name: "organizer_planner_export", description: "Write the existing GUI year/month planner as an explicit ODS file using its real calendar model and native document generator. Uses current regional labels/colors and product visibility/recurrence rules. Full book revision and native save gate required; overwrite is explicit. Success confirms actual file bytes/SHA-256, not opening or rendering in an office application. If recurrence expansion is pending, wait and retry.",
@@ -35348,6 +35392,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (["organizer_contacts_spreadsheet_export", "organizer_health_spreadsheet_export", "organizer_time_spreadsheet_export"].includes(name)) return shape({ path: text, format: { type: "string", const: "ods" }, kind: { type: "string", enum: ["contacts", "health", "time"] }, bytes: { type: "integer", minimum: 1 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, confirmed: yes }, ["path", "format", "kind", "bytes", "sha256", "confirmed"]);
     if (name === "organizer_planner_export") return shape({ path: text, format: { type: "string", const: "ods" }, year: { type: "integer", minimum: 1000, maximum: 9999 }, layout: { type: "string", enum: ["year", "month"] }, month: { type: ["integer", "null"], minimum: 1, maximum: 12 }, bytes: { type: "integer", minimum: 1 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, confirmed: yes }, ["path", "format", "year", "layout", "month", "bytes", "sha256", "confirmed"]);
     if (name.startsWith("organizer_import_review_")) {
       const hash = { type: "string", pattern: "^[a-f0-9]{64}$" }, number = { type: "integer", minimum: 0 };
@@ -35534,6 +35579,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpDateiImportWerkzeuge(),
       ...mcpImportPruefWerkzeuge(owner),
       ...mcpPlanerExportWerkzeuge(),
+      ...mcpTabellenExportWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

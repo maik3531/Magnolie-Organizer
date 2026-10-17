@@ -1573,6 +1573,19 @@ def client():
                 assert b"office:spreadsheet" in archive.read("content.xml")
             planner_exists = call("tools/call", {"name": "organizer_planner_export", "arguments": planner_args})
             assert planner_exists["isError"] and planner_path.read_bytes() == actual_planner, planner_exists
+        for sheet_tool, options in (
+                ("organizer_contacts_spreadsheet_export", {"fields": ["vorname", "nachname", "emails"]}),
+                ("organizer_health_spreadsheet_export", {"table": "vital", "mode": "blank"}),
+                ("organizer_time_spreadsheet_export", {"year": 2030, "month": 2, "days": [1, 4], "report_name": "Owned native report"})):
+            sheet_path = Path(temporary.name) / ("owned-native-" + sheet_tool + ".ods")
+            spreadsheet = call("tools/call", {"name": sheet_tool, "arguments": {"expected_book_revision": records_revision, "path": str(sheet_path), **options}})
+            assert not spreadsheet["isError"] and spreadsheet["structuredContent"]["confirmed"], spreadsheet
+            actual_sheet = sheet_path.read_bytes()
+            assert spreadsheet["structuredContent"]["bytes"] == len(actual_sheet)
+            assert spreadsheet["structuredContent"]["sha256"] == hashlib.sha256(actual_sheet).hexdigest()
+            with zipfile.ZipFile(sheet_path) as archive:
+                assert archive.read("mimetype") == b"application/vnd.oasis.opendocument.spreadsheet"
+                assert b"office:spreadsheet" in archive.read("content.xml")
         assert data_file.read_text() == records_envelope_before
         password_before = call("tools/call", {"name": "organizer_password_status"})
         assert not password_before["isError"] and password_before["structuredContent"]["encrypted"] and password_before["structuredContent"]["matches_book"], password_before

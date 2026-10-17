@@ -7,7 +7,9 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 const watchdog = setTimeout(() => { console.error("MCP planner fixture timed out"); process.exit(1); }, 15000);
 (async () => {
   for (const web of harness.exports.roots) {
-    const b = await harness.exports.boot(web, { termine: [{ id: "owned-planner-event", uid: "owned-planner-event", datum: "2030-02-04", zeit: "09:05", titel: "Owned planner event" }] });
+    const b = await harness.exports.boot(web, { termine: [{ id: "owned-planner-event", uid: "owned-planner-event", datum: "2030-02-04", zeit: "09:05", titel: "Owned planner event" }],
+      kontakte: [{ id: "owned-sheet-contact", vorname: "Owned", nachname: "Spreadsheet" }],
+      gesundheit: { vitalwerte: [{ id: "owned-sheet-vital", datum: "2030-02-04", zeit: "09:05", puls: 65, gewicht: 70, groesse: 175 }] } });
     try {
       if (b.saves().length) b.ack(); await tick();
       b.w.eval(fs.readFileSync(path.join(web, "mcp-protocol.js"), "utf8"));
@@ -16,7 +18,7 @@ const watchdog = setTimeout(() => { console.error("MCP planner fixture timed out
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text); const message = JSON.parse(text);
         if (message.cmd === "speichern") queueMicrotask(() => b.w.App.gespeichert({ id: message.id, ok: true }));
-        if (message.cmd === "planer_ods" && message.requestId && onExport) onExport(message);
+        if (["planer_ods", "adressen_ods", "gesundheit_ods", "zeit_ods"].includes(message.cmd) && message.requestId && onExport) onExport(message);
       };
       async function rpc(method, params, explicitId) {
         const invocation = (++sequence).toString(16).padStart(48, "0");
@@ -24,7 +26,7 @@ const watchdog = setTimeout(() => { console.error("MCP planner fixture timed out
           ...(!method.startsWith("notifications/") ? { id: explicitId ?? sequence } : {}), ...(params === undefined ? {} : { params }) } });
         return b.messages.find(message => message.cmd === "mcp_antwort" && message.invocation === invocation).response;
       }
-      const request = async (args, id) => (await rpc("tools/call", { name: "organizer_planner_export", arguments: args }, id)).result;
+      const request = async (args, id, name = "organizer_planner_export") => (await rpc("tools/call", { name, arguments: args }, id)).result;
       const ok = result => { assert.equal(result.isError, false, JSON.stringify(result)); return result.structuredContent; };
       const failure = (result, code) => { assert.equal(result.isError, true, JSON.stringify(result)); assert.equal(result.structuredContent.code, code); };
       await rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "owned-planner-fixture", version: "1" } });
@@ -58,6 +60,20 @@ const watchdog = setTimeout(() => { console.error("MCP planner fixture timed out
       await lateStarted; await rpc("notifications/cancelled", { requestId: 8000 }); failure(await cancelled, "cancelled");
       const toast = b.w.document.querySelector("#zettel").textContent; reply(native);
       assert.equal(b.w.document.querySelector("#zettel").textContent, toast);
+      onExport = message => { assert.equal(message.cmd, "adressen_ods"); assert.equal(message.spalten.length, 2); assert.equal(message.zeilen.length, 1); reply(message); };
+      const contacts = ok(await request({ expected_book_revision: revision, path: "/owned-fixture/contacts.ods", contact_ids: ["owned-sheet-contact"], fields: ["vorname", "nachname", "notiz"] }, undefined, "organizer_contacts_spreadsheet_export"));
+      assert.equal(contacts.kind, "contacts");
+      failure(await request({ expected_book_revision: revision, path: "/owned-fixture/missing-contact.ods", contact_ids: ["missing"] }, undefined, "organizer_contacts_spreadsheet_export"), "not_found");
+      failure(await request({ expected_book_revision: revision, path: "/owned-fixture/empty-column.ods", fields: ["notiz"] }, undefined, "organizer_contacts_spreadsheet_export"), "no_entries");
+      onExport = message => { assert.equal(message.cmd, "gesundheit_ods"); assert.equal(message.tabellen.length, 1); assert.ok(JSON.stringify(message.tabellen[0].zeilen).includes("65")); reply(message); };
+      const health = ok(await request({ expected_book_revision: revision, path: "/owned-fixture/health.ods", table: "vital", mode: "values", from: "2030-02-01", to: "2030-02-28" }, undefined, "organizer_health_spreadsheet_export"));
+      assert.equal(health.kind, "health");
+      failure(await request({ expected_book_revision: revision, path: "/owned-fixture/invalid-health.ods", table: "vital", mode: "values", insulin_scheme: true }, undefined, "organizer_health_spreadsheet_export"), "invalid_settings");
+      onExport = message => { assert.equal(message.cmd, "zeit_ods"); assert.equal(message.sheet.month, "2030-02"); assert.equal(message.sheet.name, "Owned document name"); assert.deepEqual(message.sheet.days, [1, 4]); reply(message); };
+      const time = ok(await request({ expected_book_revision: revision, path: "/owned-fixture/time.ods", year: 2030, month: 2, report_name: "Owned document name", days: [1, 4] }, undefined, "organizer_time_spreadsheet_export"));
+      assert.equal(time.kind, "time");
+      failure(await request({ expected_book_revision: revision, path: "/owned-fixture/invalid-days.ods", year: 2030, month: 2, days: [30] }, undefined, "organizer_time_spreadsheet_export"), "invalid_settings");
+      assert.equal(JSON.stringify(b.t.daten()), before, "Spreadsheet exports must retain canonical values and report preferences");
       console.log("MCP PLANNER EXPORT PASS: shared year/month payloads, correlation/CAS/options/cancel " + web);
     } finally { b.close(); }
   }
