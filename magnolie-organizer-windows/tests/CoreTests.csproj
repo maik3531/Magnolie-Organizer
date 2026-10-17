@@ -28,6 +28,7 @@
     <Compile Include="..\EncryptionService.cs" Link="EncryptionService.cs" />
     <Compile Include="..\PasswordSource.cs" Link="PasswordSource.cs" />
     <Compile Include="..\ExchangeCodec.cs" Link="ExchangeCodec.cs" />
+    <Compile Include="..\RecordExportFile.cs" Link="RecordExportFile.cs" />
     <Compile Include="..\SocialProfileMetadata.cs" Link="SocialProfileMetadata.cs" />
     <Compile Include="..\ThunderbirdCalendarImporter.cs" Link="ThunderbirdCalendarImporter.cs" />
     <Compile Include="..\DocumentExportService.cs" Link="DocumentExportService.cs" />

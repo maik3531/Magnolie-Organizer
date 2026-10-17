@@ -21397,7 +21397,10 @@ class Fenster(_FENSTER_BASIS):
             self.bei_import(nachricht)
 
         elif befehl == "export":
-            self.bei_export(nachricht)
+            if nachricht.get("requestId"):
+                threading.Thread(target=self.bei_export, args=(nachricht,), daemon=True).start()
+            else:
+                self.bei_export(nachricht)
 
         elif befehl == "notiz_anhang_datei":
             if nachricht.get("requestId") and nachricht.get("aktion") == "open":
@@ -22112,6 +22115,10 @@ class Fenster(_FENSTER_BASIS):
 
     def bei_export(self, nachricht):
         art = nachricht.get("art")
+        request_id = nachricht.get("requestId")
+        def melden(nutzlast):
+            nutzlast["requestId"] = request_id
+            self.antwort("App.exportErgebnis", nutzlast)
         liste = nachricht.get("daten") or []
         einstellungen = {
             "ics-termine": (_("Save appointments"), "magnolie-termine.ics",
@@ -22135,13 +22142,22 @@ class Fenster(_FENSTER_BASIS):
                                ldif_schreiben, "utf-8"),
         }.get(art)
         if not einstellungen:
+            if request_id:
+                melden({"ok": False, "code": "unsupported_feature"})
             return
         titel, vorschlag, filter_liste, wandler, zeichensatz = einstellungen
-        pfad = self._datei_speichern(titel, vorschlag, filter_liste)
+        pfad = nachricht.get("pfad") if request_id else self._datei_speichern(titel, vorschlag, filter_liste)
         if not pfad:
-            self.antwort("App.exportErgebnis", {"art": art, "abgebrochen": True})
+            melden({"art": art, "abgebrochen": True})
             return
         try:
+            if request_id:
+                if getattr(self, "_gesperrt", True):
+                    raise OSError("profile_locked")
+                if os.path.lexists(pfad) and nachricht.get("overwrite") is not True:
+                    raise OSError("export_target_exists")
+                if os.path.islink(pfad) or os.path.realpath(pfad) == os.path.realpath(daten_datei()):
+                    raise OSError("invalid_export_target")
             uebersprungen = 0
             ldif_unbrauchbar = 0
             ldif_foto_verloren = 0
@@ -22176,21 +22192,27 @@ class Fenster(_FENSTER_BASIS):
                 if verluste:
                     bericht = ("%d Termine enthalten Serien-, Erinnerungs- oder ICS-Zusatzdaten, "
                                "die Lotus CSV standardbedingt nicht darstellen kann." % verluste)
-            if art in ("ldif-adressen", "vcf-adressen"):
+            dateinachweis = {}
+            if request_id:
+                erwartet = inhalt.encode(zeichensatz)
+                atomar_binaer_schreiben(pfad, erwartet)
+                gelesen = datei_begrenzt_lesen(pfad, len(erwartet) + 1, "export_verification_failed")
+                if gelesen != erwartet:
+                    raise OSError("export_verification_failed")
+                dateinachweis = {"bytes": len(gelesen), "sha256": hashlib.sha256(gelesen).hexdigest()}
+            elif art in ("ldif-adressen", "vcf-adressen"):
                 atomar_text_schreiben(pfad, inhalt, modus=0o600)
             else:
                 with open(pfad, "w", encoding=zeichensatz, newline="") as datei:
                     datei.write(inhalt)
-            self.antwort("App.exportErgebnis",
-                         {"art": art, "abgebrochen": False, "ok": True,
-                            "pfad": pfad, "anzahl": anzahl,
+            melden({"art": art, "abgebrochen": False, "ok": True,
+                            "pfad": os.path.abspath(pfad) if request_id else pfad, "anzahl": anzahl,
                             "uebersprungen": (0 if art == "ldif-adressen" else uebersprungen),
                             "ldifUnbrauchbar": ldif_unbrauchbar,
                             "ldifFotoVerloren": ldif_foto_verloren,
-                            "bericht": bericht})
+                            "bericht": bericht, **dateinachweis})
         except (OSError, TypeError, ValueError) as fehler:
-            self.antwort("App.exportErgebnis",
-                         {"art": art, "abgebrochen": False, "ok": False,
+            melden({"art": art, "abgebrochen": False, "ok": False,
                            "fehler": _("The file could not be written (%s).") % fehler})
 
     # -------------------------------------------------------- EDS-Arbeiten

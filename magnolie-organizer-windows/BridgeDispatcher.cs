@@ -2329,6 +2329,22 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private async Task ExportAsync(JsonElement message)
     {
         var art = Text(message, "art");
+        var requestId = Text(message, "requestId");
+        if (requestId.Length != 0)
+        {
+            try
+            {
+                if (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null)) throw new InvalidOperationException();
+                var result = RecordExportFile.Convert(art, message.GetProperty("daten"));
+                var written = RecordExportFile.WriteVerified(store, Text(message, "pfad"), paths.Data, art, result, Boolean(message, "overwrite"));
+                await form.SendAsync("App.exportErgebnis", new { requestId, art, ok = true, pfad = written.Path, bytes = written.Bytes, sha256 = written.Sha256,
+                    anzahl = result.Count, uebersprungen = art == "ldif-adressen" ? 0 : result.Skipped, rawVerworfen = result.RawOmitted,
+                    ldifUnbrauchbar = art == "ldif-adressen" ? result.Skipped : 0, ldifFotoVerloren = result.PhotoOmitted, bericht = result.Bericht });
+            }
+            catch (Exception)
+            { await form.SendAsync("App.exportErgebnis", new { requestId, ok = false, code = "native_operation_failed" }); }
+            return;
+        }
         var settings = art switch
         {
             "ics-termine" => ("magnolie-termine.ics", T("Calendar (*.ics)") + "|*.ics"),
@@ -2353,7 +2369,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
         try
         {
             if (!message.TryGetProperty("daten", out var data)) throw new ArgumentException(T("The export data is missing."));
-            var result = art switch { "vcf-adressen" => ExchangeCodec.WriteVCard(data), "ldif-adressen" => ExchangeCodec.WriteLdif(data), "csv-termine" => ExchangeCodec.WriteLotusCsv(data), _ => ExchangeCodec.WriteIcs(art, data) };
+            var result = RecordExportFile.Convert(art, data);
             if (art == "ldif-adressen") new AtomicStore().Write(dialog.FileName, result.Text);
             else await File.WriteAllTextAsync(dialog.FileName, result.Text, new UTF8Encoding(art == "csv-termine"));
             await form.SendAsync("App.exportErgebnis", new { art, abgebrochen = false, ok = true, pfad = dialog.FileName, anzahl = result.Count, uebersprungen = art == "ldif-adressen" ? 0 : result.Skipped, bericht = result.Bericht, rawVerworfen = result.RawOmitted, ldifUnbrauchbar = art == "ldif-adressen" ? result.Skipped : 0, ldifFotoVerloren = result.PhotoOmitted });

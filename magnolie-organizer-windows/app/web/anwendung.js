@@ -29120,27 +29120,33 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       zettel(_("Export is available only in the installed application."));
       return;
     }
+    return bereiteAustauschExportVor(art).then(daten => Bruecke.sende({ cmd: "export", art, daten }))
+      .catch(error => zettel(String(error.message || _("Export failed."))));
+  }
+
+  function austauschExportListe(art) {
     const listen = {
       "ics-termine": DATEN.termine, "csv-termine": DATEN.termine,
       "ics-jahrestage": DATEN.jahrestage, "ics-aufgaben": DATEN.aufgaben,
       "vcf-adressen": DATEN.kontakte, "ldif-adressen": DATEN.kontakte
     };
-    const liste = listen[art] || [];
-    if (!liste.length) {
-      zettel(_("There are no entries to export yet."));
-      return;
-    }
+    return listen[art] || [];
+  }
+
+  async function bereiteAustauschExportVor(art) {
+    const liste = austauschExportListe(art);
+    if (!liste.length) throw new Error(_("There are no entries to export yet."));
     if (["vcf-adressen", "ldif-adressen"].includes(art)) {
       const bestand = DATEN, revision = kanonischerEntwurf(DATEN.kontakte), kopien = liste.map(kontaktFuerAustausch);
       return Promise.all(kopien.map(k => kontaktInhaltszeit(k))).then(zeiten => {
         if (DATEN !== bestand || gesperrt || DATEN.kontakte !== liste || kanonischerEntwurf(DATEN.kontakte) !== revision) {
-          zettel(_("Conflict")); return;
+          throw new Error(_("Conflict"));
         }
         kopien.forEach((k, index) => { k.geaendert = zeiten[index]; });
-        Bruecke.sende({ cmd: "export", art: art, daten: kopien });
-      }).catch(() => zettel(_("Export failed.")));
+        return kopien;
+      });
     }
-    Bruecke.sende({ cmd: "export", art: art, daten: liste });
+    return liste;
   }
 
   function syncSammlungenAbgleichen(nutzlast) {
@@ -32276,6 +32282,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       setupImportBeenden();
     },
     exportErgebnis(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "exportErgebnis"); return; }
       nutzlast = nutzlast || {};
       if (nutzlast.abgebrochen) return;
       if (nutzlast.ok) {
@@ -34112,6 +34119,29 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (value !== "month") calendar.uebersichtAb = null;
     calendar.bearbeiteId = null;
   }
+  function mcpAustauschExportWerkzeuge() {
+    return [{ name: "organizer_records_export", description: "Export the current complete appointment/task/anniversary/contact section using the existing GUI preparation and native ICS/Lotus CSV/vCard/LDIF codec. Requires full book revision, save gate and explicit destination; overwrite must be explicit. Confirms actual file bytes/SHA-256 readback and native skip/loss counts (raw omission count is null when unavailable). Format limitations remain; no mail or application is launched.",
+      inputSchema: { type: "object", properties: { format: { type: "string", enum: ["ics-termine", "ics-jahrestage", "ics-aufgaben", "csv-termine", "vcf-adressen", "ldif-adressen"] },
+        expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, overwrite: { type: "boolean" } }, required: ["format", "expected_book_revision", "path"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen(); const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+        if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; read its revision before exporting");
+        if (!austauschExportListe(args.format).length) throw new MagnolieMcp.ToolError("no_entries", "The selected product section has no entries to export");
+        let data;
+        try { data = await bereiteAustauschExportVor(args.format); }
+        catch (_error) { throw new MagnolieMcp.ToolError("source_changed", "Contact export preparation changed; retry from a fresh book revision"); }
+        await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, () => reject(new MagnolieMcp.ToolError("save_failed", "Native save failed before record export"))));
+        mcpEditorPruefen(); if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Book changed before native record export");
+        const value = await mcpNativeAufruf("export", { art: args.format, daten: data, pfad: args.path, overwrite: args.overwrite === true }, "exportErgebnis", signal);
+        if (value.ok !== true || value.art !== args.format) throw new MagnolieMcp.ToolError("native_operation_failed", "Native record export failed; check the destination and overwrite choice");
+        if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Export may have been written; book changed during native export");
+        if (typeof value.pfad !== "string" || !/^[a-f0-9]{64}$/.test(value.sha256) || !["bytes", "anzahl", "uebersprungen", "ldifUnbrauchbar", "ldifFotoVerloren"].every(key => Number.isSafeInteger(value[key]) && value[key] >= 0) ||
+            !(value.rawVerworfen === undefined || Number.isSafeInteger(value.rawVerworfen) && value.rawVerworfen >= 0)) throw new MagnolieMcp.ToolError("invalid_result", "Native export readback or loss counts were incomplete");
+        return { path: value.pfad, format: args.format, confirmed: true, bytes: value.bytes, sha256: value.sha256, exported_count: value.anzahl, skipped_count: value.uebersprungen,
+          ldif_unusable_count: value.ldifUnbrauchbar, photo_omitted_count: value.ldifFotoVerloren, raw_omitted_count: value.rawVerworfen ?? null,
+          warnings_present: !!value.bericht || [value.uebersprungen, value.ldifUnbrauchbar, value.ldifFotoVerloren, value.rawVerworfen].some(count => count > 0) };
+      } }];
+  }
   let mcpPasswortKette = Promise.resolve();
   const mcpPasswortAnfragen = new Map();
   function mcpPasswortWerkzeuge() {
@@ -35035,6 +35065,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_records_export") return shape({ path: text, format: text, confirmed: yes, bytes: { type: "integer", minimum: 0 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, exported_count: { type: "integer", minimum: 0 }, skipped_count: { type: "integer", minimum: 0 }, ldif_unusable_count: { type: "integer", minimum: 0 }, photo_omitted_count: { type: "integer", minimum: 0 }, raw_omitted_count: { type: ["integer", "null"], minimum: 0 }, warnings_present: flag }, ["path", "format", "confirmed", "bytes", "sha256", "exported_count", "skipped_count", "ldif_unusable_count", "photo_omitted_count", "raw_omitted_count", "warnings_present"]);
     if (name === "organizer_password_status") return shape({ encrypted: flag, state_revision: text, stored_book_revision: text, book_revision: text, matches_book: flag }, ["encrypted", "state_revision", "stored_book_revision", "book_revision", "matches_book"]);
     if (["organizer_password_set", "organizer_password_remove"].includes(name)) return shape({ encrypted: flag, state_revision: text, stored_book_revision: text, persisted: yes, verified: yes, related_files_changed: { type: "integer", minimum: 0 }, related_files_failed: { type: "integer", minimum: 0 } }, ["encrypted", "state_revision", "stored_book_revision", "persisted", "verified", "related_files_changed", "related_files_failed"]);
     if (name === "organizer_reminder_privacy_read") return shape({ settings: object, native_state: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "native_state", "revision"]);
@@ -35205,6 +35236,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpPapierkorbEinstellungenWerkzeuge(),
       ...mcpErinnerungsDatenschutzWerkzeuge(),
       ...mcpPasswortWerkzeuge(),
+      ...mcpAustauschExportWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

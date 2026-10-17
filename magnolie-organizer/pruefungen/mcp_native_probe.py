@@ -1471,6 +1471,32 @@ def client():
                             os.close(background_handle)
                 assert background_cleanup.get("ok") and background_product.wait_for_daemon_release(), background_cleanup
                 assert not Path(background_product.autostart_path()).exists()
+        records_envelope_before = data_file.read_text()
+        records_book = json.loads(product.entschluesseln(records_envelope_before, "owned-classic-backup-password"))
+        records_revision = call("tools/call", {"name": "organizer_book_revision_read"})["structuredContent"]["revision"]
+        exported_formats = []
+        for export_format, section in (("ics-termine", "termine"), ("csv-termine", "termine"), ("ics-aufgaben", "aufgaben"),
+                ("ics-jahrestage", "jahrestage"), ("vcf-adressen", "kontakte"), ("ldif-adressen", "kontakte")):
+            if not records_book[section]:
+                continue
+            export_path = Path(temporary.name) / ("owned-records-" + export_format)
+            records_export = call("tools/call", {"name": "organizer_records_export", "arguments": {
+                "expected_book_revision": records_revision, "format": export_format, "path": str(export_path)}})
+            assert not records_export["isError"] and records_export["structuredContent"]["confirmed"], records_export
+            actual_export = export_path.read_bytes()
+            export_proof = records_export["structuredContent"]
+            assert export_proof["bytes"] == len(actual_export) and export_proof["sha256"] == hashlib.sha256(actual_export).hexdigest()
+            assert export_proof["exported_count"] > 0 and export_proof["raw_omitted_count"] is None
+            assert actual_export.startswith(b"\xef\xbb\xbf") == (export_format == "csv-termine")
+            exported_formats.append(export_format)
+            repeated_export = call("tools/call", {"name": "organizer_records_export", "arguments": {
+                "expected_book_revision": records_revision, "format": export_format, "path": str(export_path)}})
+            assert repeated_export["isError"] and repeated_export["structuredContent"]["code"] == "native_operation_failed", repeated_export
+            assert export_path.read_bytes() == actual_export
+        assert all(format in exported_formats for format in ("ics-termine", "csv-termine", "vcf-adressen", "ldif-adressen")), exported_formats
+        protected_export = call("tools/call", {"name": "organizer_records_export", "arguments": {
+            "expected_book_revision": records_revision, "format": "ics-termine", "path": str(data_file), "overwrite": True}})
+        assert protected_export["isError"] and data_file.read_text() == records_envelope_before, protected_export
         password_before = call("tools/call", {"name": "organizer_password_status"})
         assert not password_before["isError"] and password_before["structuredContent"]["encrypted"] and password_before["structuredContent"]["matches_book"], password_before
         password_state = password_before["structuredContent"]

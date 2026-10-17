@@ -135,7 +135,7 @@ let declaredContracts;
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
       let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile, onCloudStatus, onCloudPassword, onCloudTest, onSpelling, onRememberWord, onRegionalRead, onRegionalSave, onTrayRead, onTraySave, onBackgroundRead, onBackgroundSave;
-      let onReminder, onReminderPrivacy, onPasswordRead, onPasswordWrite;
+      let onReminder, onReminderPrivacy, onPasswordRead, onPasswordWrite, onRecordsExport;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
@@ -166,6 +166,7 @@ let declaredContracts;
         if (message.cmd === "reminder_privacy_status" && message.requestId && onReminderPrivacy) onReminderPrivacy(message);
         if (message.cmd === "password_status" && message.requestId && onPasswordRead) onPasswordRead(message);
         if (["kennwort_setzen", "kennwort_entfernen"].includes(message.cmd) && message.requestId && onPasswordWrite) onPasswordWrite(message);
+        if (message.cmd === "export" && message.requestId && onRecordsExport) onRecordsExport(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -1550,6 +1551,39 @@ let declaredContracts;
         assert.ok(b.w.document.querySelector("#kennwort-weg"), "A committed late password change must update the product flag");
         b.w.document.querySelector("#einstellungen-zu").click();
         onPasswordRead = onPasswordWrite = null;
+      }
+      {
+        const revision = (await call(request(1020, "tools/call", { name: "organizer_book_revision_read" }))).result.structuredContent.revision;
+        const before = JSON.stringify(b.t.daten()); let native, completed = false;
+        const reply = (message, extra = {}) => b.w.App.exportErgebnis({ requestId: message.requestId, art: message.art, ok: true, pfad: message.pfad,
+          bytes: 12, sha256: "a".repeat(64), anzahl: 1, uebersprungen: 0, ldifUnbrauchbar: 0, ldifFotoVerloren: 0, ...extra });
+        const dispatched = new Promise(resolve => { onRecordsExport = message => { native = message; resolve(); }; });
+        const pending = call(request(1021, "tools/call", { name: "organizer_records_export", arguments: { expected_book_revision: revision,
+          format: "vcf-adressen", path: "/owned-fixture/records.vcf" } })).then(value => { completed = true; return value; });
+        await dispatched; assert.equal(native.overwrite, false); assert.equal(native.art, "vcf-adressen");
+        assert.ok(native.daten.length); assert.ok(native.daten.every(contact => !contact.syncQuellen && !contact.kontaktZeit));
+        reply({ ...native, requestId: "wrong-export-request" });
+        await new Promise(resolve => setImmediate(resolve)); assert.equal(completed, false);
+        reply(native); const result = (await pending).result.structuredContent;
+        assert.equal(result.confirmed, true); assert.equal(result.bytes, 12); assert.equal(result.raw_omitted_count, null);
+        assert.equal(result.warnings_present, false); assert.equal(JSON.stringify(b.t.daten()), before);
+        const stale = await call(request(1022, "tools/call", { name: "organizer_records_export", arguments: { expected_book_revision: "0".repeat(64), format: "ics-termine", path: "/owned-fixture/events.ics" } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        onRecordsExport = message => b.w.App.exportErgebnis({ requestId: message.requestId, ok: false, fehler: "owned-private-export-path" });
+        const failure = await call(request(1023, "tools/call", { name: "organizer_records_export", arguments: { expected_book_revision: revision, format: "ics-termine", path: "/owned-fixture/events.ics" } }));
+        assert.equal(failure.result.structuredContent.code, "native_operation_failed"); assert.ok(!JSON.stringify(failure).includes("owned-private-export-path"));
+        onRecordsExport = message => reply(message, { ldifUnbrauchbar: undefined });
+        const incomplete = await call(request(1024, "tools/call", { name: "organizer_records_export", arguments: { expected_book_revision: revision, format: "ics-termine", path: "/owned-fixture/events.ics" } }));
+        assert.equal(incomplete.result.structuredContent.code, "invalid_result");
+        const lateDispatch = new Promise(resolve => { onRecordsExport = message => { native = message; resolve(); }; });
+        const cancelled = call(request(1025, "tools/call", { name: "organizer_records_export", arguments: { expected_book_revision: revision, format: "ics-termine", path: "/owned-fixture/events.ics", overwrite: true } }));
+        await lateDispatch; assert.equal(native.overwrite, true);
+        await call({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 1025 } });
+        assert.equal((await cancelled).result.structuredContent.code, "cancelled");
+        const toast = b.w.document.querySelector("#zettel").textContent;
+        reply(native, { bericht: "owned-late-export-warning" });
+        assert.equal(b.w.document.querySelector("#zettel").textContent, toast);
+        onRecordsExport = null;
       }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));

@@ -40,7 +40,7 @@ internal static class BridgeDispatcherContract
         ["update_pruefen"] = S(), ["update_herunterladen"] = S(), ["update_installieren"] = S(),
         ["wetter"] = S(T("ort"), B("ohneOrtAbrufen"), N("kennung")),
         ["feiertage"] = S(T("land"), T("region"), A("regionen"), B("regionErforderlich"), A("jahre"), B("ferien"), O("requestId", JsonValueKind.String)), ["regional_einstellungen"] = S(J("regional"), O("requestId", JsonValueKind.String), O("expectedRegional", JsonValueKind.Object)), ["regional_einstellungen_status"] = S(O("requestId", JsonValueKind.String)), ["import"] = S(O("art", JsonValueKind.String), O("daten", JsonValueKind.String)),
-        ["import_lokal"] = S(O("bereich", JsonValueKind.String)), ["export"] = S(T("art"), A("daten")), ["brief"] = S(J("kontakt"), O("absender", JsonValueKind.String), O("layout", JsonValueKind.String)),
+        ["import_lokal"] = S(O("bereich", JsonValueKind.String)), ["export"] = S(T("art"), A("daten"), O("requestId", JsonValueKind.String), O("pfad", JsonValueKind.String), O("overwrite", JsonValueKind.True, JsonValueKind.False)), ["brief"] = S(J("kontakt"), O("absender", JsonValueKind.String), O("layout", JsonValueKind.String)),
         ["adressen_ods"] = S(T("titel"), A("spalten"), A("zeilen")),
         ["planer_ods"] = S(T("layout"), N("jahr"), O("monat", JsonValueKind.Number), T("titel"), A("spalten"), A("zeilen"), A("stile"), A("inhalte")),
         ["gesundheit_ods"] = S(A("tabellen")),

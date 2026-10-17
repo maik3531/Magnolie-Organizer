@@ -158,6 +158,20 @@ async function run(web) {
     assert.equal(JSON.stringify(saved.hintergrund), background);
   }, { einstellungen: { sicherheit: { erinnernTrotzKennwort: true, vertraulicheErinnerungen: true } } });
 
+  await test("GUI exchange exports share contact preparation without changing private records", async b => {
+    const before = JSON.stringify(b.t.daten());
+    b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-export").click();
+    for (const name of ["Appointments (.ics)", "Contacts (.vcf)"]) {
+      const button = [...b.w.document.querySelectorAll("#einstellungen-schleier button")].find(button => button.textContent === name);
+      assert.ok(button, name); button.click(); await tick();
+    }
+    const exports = b.messages.filter(message => message.cmd === "export");
+    assert.equal(exports.length, 2); assert.equal(exports[0].art, "ics-termine"); assert.equal(exports[1].art, "vcf-adressen");
+    assert.equal(exports[1].daten[0].syncQuellen, undefined); assert.equal(exports[1].daten[0].fotoAlternativen, undefined);
+    assert.equal(JSON.stringify(b.t.daten()), before);
+  }, { termine: [{ id: "owned-export-event", titel: "Owned event", datum: "2030-01-02", zeit: "09:00" }],
+    kontakte: [{ id: "owned-export-contact", vorname: "Owned", nachname: "Export", syncQuellen: { owned: { marker: "private" } } }] });
+
   await test("health preference controls retain canonical measurements and mirror tab state", async b => {
     const measurements = JSON.stringify(b.t.daten().gesundheit);
     b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-kalender").click();

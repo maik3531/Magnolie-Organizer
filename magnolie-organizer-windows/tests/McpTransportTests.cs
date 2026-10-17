@@ -43,6 +43,7 @@ internal static class McpTransportTests
         using (var reminder = BridgeDispatcherContract.Parse("{\"cmd\":\"erinnerung_einrichten\",\"an\":true,\"vorlauf\":30,\"wecken\":false,\"termine\":[],\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
         using (var privacy = BridgeDispatcherContract.Parse("{\"cmd\":\"reminder_privacy_status\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
         using (var passwordStatus = BridgeDispatcherContract.Parse("{\"cmd\":\"password_status\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
+        using (var recordsExport = BridgeDispatcherContract.Parse("{\"cmd\":\"export\",\"art\":\"ics-termine\",\"daten\":[],\"pfad\":\"owned.ics\",\"overwrite\":false,\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
         using (var passwordSet = BridgeDispatcherContract.Parse("{\"cmd\":\"kennwort_setzen\",\"alt\":\"\",\"neu\":\"owned-password\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\",\"expectedRevision\":\"owned-state\",\"expectedBookRevision\":\"owned-book\"}")) { }
         using (var passwordRemove = BridgeDispatcherContract.Parse("{\"cmd\":\"kennwort_entfernen\",\"alt\":\"\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\",\"expectedRevision\":\"owned-state\",\"expectedBookRevision\":\"owned-book\"}")) { }
         using (var backgroundRead = BridgeDispatcherContract.Parse("{\"cmd\":\"background_settings_get\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
