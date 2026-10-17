@@ -39,16 +39,19 @@ internal sealed class GoogleDavAuthenticationException : InvalidOperationExcepti
 internal sealed class NextcloudMailboxSettingsStore
 {
     private static readonly byte[] RevisionKey = RandomNumberGenerator.GetBytes(32);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, long> RevisionEpochs = new(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, object> StoreGates = new(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
     private readonly string settingsPath;
     private readonly string passwordPath;
     private readonly ISecretProtector protector;
-    private readonly object gate = new();
+    private readonly object gate;
 
     internal NextcloudMailboxSettingsStore(string settingsPath, string passwordPath, ISecretProtector protector)
     {
         this.settingsPath = settingsPath;
         this.passwordPath = passwordPath;
         this.protector = protector;
+        gate = StoreGates.GetOrAdd(RevisionScope, _ => new object());
     }
 
     internal NextcloudMailboxSettingsStore(string settingsPath, string passwordPath) :
@@ -71,6 +74,7 @@ internal sealed class NextcloudMailboxSettingsStore
                 ["server"] = server.AbsoluteUri.TrimEnd('/'),
                 ["benutzer"] = user
             }.ToJsonString());
+            AdvanceRevision();
         }
     }
 
@@ -120,6 +124,7 @@ internal sealed class NextcloudMailboxSettingsStore
             if (protectedData.Length == 0 || protectedData.AsSpan().SequenceEqual(plain))
                 throw new CryptographicException("Das Anwendungskennwort wurde nicht geschützt.");
             new AtomicStore().Write(passwordPath, Convert.ToBase64String(protectedData), 64 * 1024);
+            AdvanceRevision();
         }
         finally
         {
@@ -130,6 +135,9 @@ internal sealed class NextcloudMailboxSettingsStore
     }
 
     internal bool HasApplicationPassword { get { lock (gate) return File.Exists(passwordPath); } }
+
+    private string RevisionScope => Path.GetFullPath(settingsPath) + "\0" + Path.GetFullPath(passwordPath);
+    private void AdvanceRevision() => RevisionEpochs.AddOrUpdate(RevisionScope, 1, (_, previous) => checked(previous + 1));
 
     internal NextcloudSettingsSnapshot ReadSnapshot()
     {
@@ -147,6 +155,7 @@ internal sealed class NextcloudMailboxSettingsStore
                 },
                 ["protectedCredential"] = protectedSecret
             };
+            data["epoch"] = RevisionEpochs.GetOrAdd(RevisionScope, 0);
             var revision = Convert.ToHexString(HMACSHA256.HashData(RevisionKey, TelefonCrypto.Canonical(data))).ToLowerInvariant();
             return new(settings, protectedSecret is not null, revision);
         }
@@ -154,7 +163,42 @@ internal sealed class NextcloudMailboxSettingsStore
 
     internal void ClearApplicationPassword()
     {
-        lock (gate) if (File.Exists(passwordPath)) File.Delete(passwordPath);
+        lock (gate) if (File.Exists(passwordPath)) { File.Delete(passwordPath); AdvanceRevision(); }
+    }
+
+    internal NextcloudSettingsSnapshot SaveConfigurationChecked(NextcloudMailboxSettings settings, string applicationPassword,
+        bool deletePassword, string expectedRevision)
+    {
+        lock (gate)
+        {
+            if (deletePassword && applicationPassword.Length > 0) throw new ArgumentException("A credential cannot be replaced and deleted in one transaction.");
+            if (ReadSnapshot().Revision != expectedRevision) throw new InvalidOperationException("mcp_conflict");
+            var files = new AtomicStore(); var priorCredential = files.Read(passwordPath, 64 * 1024);
+            var wanted = settings with { ServerBase = NextcloudMailbox.ValidateServer(settings.ServerBase).AbsoluteUri.TrimEnd('/'),
+                User = ValidateUser(settings.User), AccountType = ValidateAccountType(settings.AccountType) };
+            SaveConfiguration(wanted, applicationPassword, deletePassword);
+            var actual = ReadSnapshot();
+            if (actual.Settings != wanted || deletePassword && actual.CredentialPresent ||
+                applicationPassword.Length == 0 && !deletePassword && files.Read(passwordPath, 64 * 1024) != priorCredential)
+                throw new InvalidOperationException("mcp_verification_failed");
+            if (applicationPassword.Length > 0)
+            {
+                var encoded = files.Read(passwordPath, 64 * 1024) ?? throw new InvalidOperationException("mcp_verification_failed");
+                var protectedBytes = Convert.FromBase64String(encoded); byte[]? plain = null;
+                var wantedBytes = Encoding.UTF8.GetBytes(applicationPassword);
+                try
+                {
+                    plain = protector.Unprotect(protectedBytes);
+                    if (!CryptographicOperations.FixedTimeEquals(plain, wantedBytes)) throw new InvalidOperationException("mcp_verification_failed");
+                }
+                finally
+                {
+                    CryptographicOperations.ZeroMemory(protectedBytes); CryptographicOperations.ZeroMemory(wantedBytes);
+                    if (plain is not null) CryptographicOperations.ZeroMemory(plain);
+                }
+            }
+            return actual;
+        }
     }
 
     internal void SaveConfiguration(NextcloudMailboxSettings settings, string applicationPassword, bool deletePassword)

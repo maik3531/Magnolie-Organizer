@@ -325,6 +325,43 @@ def client():
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
         if os.environ.get("MAGNOLIE_MCP_PROBE_FAIL_AFTER_READY") == "1":
             raise RuntimeError("Owned fixture intentional failure after ready")
+        if os.environ.get("MAGNOLIE_MCP_PROBE_DAV_WRITE_ONLY") == "1":
+            initial_sync = call("tools/call", {"name": "organizer_sync_settings_read"})["structuredContent"]
+            ready_save = call("tools/call", {"name": "organizer_sync_settings_update", "arguments": {"expected_revision": initial_sync["revision"], "at_startup": initial_sync["settings"]["at_startup"]}})
+            assert not ready_save["isError"] and ready_save["structuredContent"]["persisted"], ready_save
+            unchanged_book = data_file.read_text()
+            initial_account = call("tools/call", {"name": "organizer_dav_account_read"})["structuredContent"]
+            account_args = {"account_type": "generic-dav", "dav_enabled": False, "mailbox_enabled": False,
+                "server": "https://owned-write.example.test", "user": "owned-write-user", "application_password": ""}
+            def update_account(revision, **extra):
+                return call("tools/call", {"name": "organizer_dav_account_update", "arguments": {**account_args, "expected_revision": revision, **extra}})
+            stored_account = update_account(initial_account["revision"])
+            assert not stored_account["isError"] and stored_account["structuredContent"]["persisted"] and stored_account["structuredContent"]["verified"], stored_account
+            stored_account = stored_account["structuredContent"]
+            assert stored_account["settings"]["account_type"] == "generic-dav" and stored_account["credential_present"] is False and not stored_account["connectivity_checked"]
+            actual_cfg = product.nextcloud_speicher().load()
+            assert actual_cfg == {"kontoArt": "generic-dav", "davAktiv": False, "briefkastenAktiv": False, "server": account_args["server"], "benutzer": account_args["user"]}, actual_cfg
+            config_before = Path(product.nextcloud_einstellungsdatei()).read_bytes()
+            stale_account = update_account(initial_account["revision"])
+            assert stale_account["isError"] and stale_account["structuredContent"]["code"] == "conflict", stale_account
+            assert Path(product.nextcloud_einstellungsdatei()).read_bytes() == config_before
+            same_account = update_account(stored_account["revision"])
+            assert not same_account["isError"] and same_account["structuredContent"]["revision"] != stored_account["revision"], same_account
+            current = same_account["structuredContent"]
+            invalid_active = update_account(current["revision"], dav_enabled=True)
+            assert invalid_active["isError"] and invalid_active["structuredContent"]["code"] == "native_operation_failed", invalid_active
+            assert Path(product.nextcloud_einstellungsdatei()).read_bytes() == config_before
+            cleared_account = update_account(current["revision"], clear_password=True)
+            assert not cleared_account["isError"] and cleared_account["structuredContent"]["persisted"] and cleared_account["structuredContent"]["credential_present"] is False, cleared_account
+            actual_read = call("tools/call", {"name": "organizer_dav_account_read"})["structuredContent"]
+            assert actual_read["revision"] == cleared_account["structuredContent"]["revision"] and actual_read["settings"] == cleared_account["structuredContent"]["settings"]
+            assert data_file.read_text() == unchanged_book
+            state["dav_write_verified"] = True
+            process.stdin.close()
+            assert process.wait(timeout=5) == 0
+            selector.close()
+            state["passed"] = True
+            return
         if os.environ.get("MAGNOLIE_MCP_PROBE_DAV_ACCOUNT_ONLY") == "1":
             state["dav_initial_save_pending"] = call("tools/call", {"name": "organizer_status"})["structuredContent"]["pendingSave"]
             # Establish an acknowledged normalized book before a byte-level
@@ -2092,7 +2129,9 @@ finally:
         state["error"] = (state.get("error") or "") + "\nPrivate service/temporary cleanup:\n" + traceback.format_exc(limit=4)
     print("Native MCP fixture state:", json.dumps(state), flush=True)
 assert state["passed"] and state.get("cleanup_verified"), state
-if os.environ.get("MAGNOLIE_MCP_PROBE_DAV_ACCOUNT_ONLY") == "1":
+if os.environ.get("MAGNOLIE_MCP_PROBE_DAV_WRITE_ONLY") == "1":
+    print("Native MCP DAV WRITE PASS: actual config save/readback and private credential metadata, native revision conflicts, fresh rewrite versions, no book mutation or auth claim")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_DAV_ACCOUNT_ONLY") == "1":
     print("Native MCP DAV ACCOUNT PASS: actual config/credential-metadata snapshot, explicit unreadable-state handling, no book mutation or connectivity claim")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_SYNC_SETTINGS_ONLY") == "1":
     print("Native MCP SYNC SETTINGS PASS: actual private EDS source discovery/validation, preference CAS, durable save/readback, retained offline primary and unlink")

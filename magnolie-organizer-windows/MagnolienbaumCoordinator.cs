@@ -74,18 +74,21 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
 
     internal Task ResumeAsync() => Boolean(state, "an") ? StartAsync() : Task.CompletedTask;
 
-    internal async Task ReportMailboxStatusAsync(string callback = "App.baumBriefkastenStatus", string requestId = "")
+    internal Task ReportMailboxStatusAsync(string callback = "App.baumBriefkastenStatus", string requestId = "") =>
+        EmitMailboxStatusAsync(callback, requestId, null, null, "");
+
+    private async Task EmitMailboxStatusAsync(string callback, string requestId, NextcloudSettingsSnapshot? verifiedSnapshot, bool? operationOk, string operationCode)
     {
         NextcloudMailboxSettings? settings = null;
         var hasPassword = false; string? revision = null;
-        try { var snapshot = mailboxSettings.ReadSnapshot(); settings = snapshot.Settings; hasPassword = snapshot.CredentialPresent; revision = snapshot.Revision; }
+        try { var snapshot = verifiedSnapshot ?? mailboxSettings.ReadSnapshot(); settings = snapshot.Settings; hasPassword = snapshot.CredentialPresent; revision = snapshot.Revision; }
         catch (Exception error)
         {
             try { settings = mailboxSettings.Load(); } catch (Exception) { }
             hasPassword = mailboxSettings.HasApplicationPassword; mailboxError = NextcloudStatusText.For(error);
             mailboxErrorCode = MailboxErrorCode(error); mailboxState = "unvollstaendig";
         }
-        await emit(callback, new { requestId, revision, aktiv = settings?.MailboxActive ?? false,
+        await emit(callback, new { requestId, revision, ok = operationOk, code = operationCode, persisted = operationOk == true, verified = operationOk == true, aktiv = settings?.MailboxActive ?? false,
             davAktiv = settings?.DavActive ?? false, briefkastenAktiv = settings?.MailboxActive ?? false,
             kontoArt = settings?.AccountType ?? "nextcloud",
             url = settings?.ServerBase ?? "",
@@ -97,8 +100,10 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     }
 
     internal async Task SaveMailboxAsync(bool davActive, bool mailboxActive, string url, string user, string applicationPassword,
-        bool deletePassword, string accountType = "nextcloud")
+        bool deletePassword, string accountType = "nextcloud", string requestId = "", string expectedRevision = "")
     {
+        NextcloudSettingsSnapshot? verifiedSnapshot = null;
+        var operationOk = false; var operationCode = "native_operation_failed";
         try
         {
             var server = NextcloudMailbox.ValidateServer(url).AbsoluteUri.TrimEnd('/');
@@ -106,6 +111,8 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             accountType = NextcloudMailboxSettingsStore.ValidateAccountType(accountType);
             if (accountType == "generic-dav" && mailboxActive)
                 throw new InvalidOperationException("Der Magnolienbaum-Briefkasten benötigt ein Nextcloud-Konto.");
+            if (requestId.Length > 0 && mailboxSettings.ReadSnapshot().Revision != expectedRevision)
+                throw new InvalidOperationException("mcp_conflict");
             var previous = mailboxSettings.Load();
             var endpointChanged = previous is null ||
                 (previous.ServerBase != server || previous.User != validatedUser || previous.AccountType != accountType);
@@ -118,14 +125,18 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             if ((davActive || mailboxActive) && (deletePassword || applicationPassword.Length == 0 && !mailboxSettings.HasApplicationPassword))
                 throw new InvalidOperationException("Das Nextcloud-Anwendungskennwort fehlt.");
             var target = new NextcloudMailboxSettings(davActive, mailboxActive, server, validatedUser) { AccountType = accountType };
-            mailboxSettings.SaveConfiguration(target, applicationPassword, deletePassword);
+            if (requestId.Length > 0) verifiedSnapshot = mailboxSettings.SaveConfigurationChecked(target, applicationPassword, deletePassword, expectedRevision);
+            else mailboxSettings.SaveConfiguration(target, applicationPassword, deletePassword);
+            operationOk = true;
             mailboxError = ""; mailboxErrorCode = "none"; mailboxState = davActive || mailboxActive ? "bereit" : "aus";
         }
         catch (Exception error)
         {
+            operationCode = error.Message == "mcp_conflict" ? "conflict" : error.Message == "mcp_verification_failed" ? "verification_failed" : "native_operation_failed";
             mailboxError = NextcloudStatusText.For(error); mailboxErrorCode = MailboxErrorCode(error); mailboxState = "fehler";
         }
-        await ReportMailboxStatusAsync("App.baumBriefkastenGespeichert").ConfigureAwait(false);
+        if (requestId.Length > 0) await EmitMailboxStatusAsync("App.baumBriefkastenGespeichert", requestId, verifiedSnapshot, operationOk, operationOk ? "" : operationCode).ConfigureAwait(false);
+        else await ReportMailboxStatusAsync("App.baumBriefkastenGespeichert").ConfigureAwait(false);
     }
 
     internal async Task TestMailboxAsync(CancellationToken cancellationToken = default)

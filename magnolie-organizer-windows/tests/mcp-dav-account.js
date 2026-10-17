@@ -11,17 +11,26 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
     try {
       if (b.saves().length) b.ack(); await tick();
       b.w.eval(fs.readFileSync(path.join(web, "mcp-protocol.js"), "utf8"));
-      let sequence = 0, onRead;
+      let sequence = 0, onRead, onWrite;
+      const nativeWrites = [];
       const metadata = { kontoArt: "nextcloud", davAktiv: true, briefkastenAktiv: false, url: "https://owned.example.test", benutzer: "owned-reader",
         kennwortVorhanden: true, revision: "e".repeat(64), zustand: "bereit", fehler: "", fehlerCode: "none" };
       const reply = (message, extra = {}) => b.w.App.baumBriefkastenStatus({ ...metadata, ...extra, requestId: message.requestId || "",
         application_password: "owned-private-password", authorization: "owned-private-authorization", protectedCredential: "owned-private-protected-blob" });
+      const replySave = (message, extra = {}) => b.w.App.baumBriefkastenGespeichert({ ...metadata, requestId: message.requestId,
+        ok: true, persisted: true, verified: true, revision: "f".repeat(64), kontoArt: message.kontoArt,
+        davAktiv: message.davAktiv, briefkastenAktiv: message.briefkastenAktiv, url: message.url, benutzer: message.benutzer,
+        kennwortVorhanden: message.kennwortLoeschen ? false : message.anwendungskennwort ? true : metadata.kennwortVorhanden,
+        application_password: message.anwendungskennwort, protectedCredential: "owned-private-write-blob", ...extra });
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text); const message = JSON.parse(text);
         if (message.cmd === "speichern") queueMicrotask(() => b.w.App.gespeichert({ id: message.id, ok: true }));
         if (message.cmd === "baum_briefkasten_status") {
           if (message.requestId && onRead) onRead(message); else queueMicrotask(() => reply(message));
+        }
+        if (message.cmd === "baum_briefkasten_speichern" && message.requestId) {
+          nativeWrites.push(message); if (onWrite) onWrite(message); else queueMicrotask(() => replySave(message));
         }
       };
       async function rpc(method, params, explicitId) {
@@ -31,6 +40,9 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
         return b.messages.find(message => message.cmd === "mcp_antwort" && message.invocation === invocation).response;
       }
       const read = async id => (await rpc("tools/call", { name: "organizer_dav_account_read" }, id)).result;
+      const write = async (fields = {}, id) => (await rpc("tools/call", { name: "organizer_dav_account_update", arguments: {
+        expected_revision: metadata.revision, account_type: "nextcloud", dav_enabled: false, mailbox_enabled: false,
+        server: metadata.url, user: metadata.benutzer, ...fields } }, id)).result;
       const ok = result => { assert.equal(result.isError, false, JSON.stringify(result)); return result.structuredContent; };
       const fail = (result, code) => { assert.equal(result.isError, true, JSON.stringify(result)); assert.equal(result.structuredContent.code, code); };
       await rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "owned-dav-reader", version: "1" } });
@@ -57,7 +69,28 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
       onRead = message => reply(message, { ok: false, code: "native_busy" }); fail(await read(), "native_busy");
       onRead = message => reply(message, { ok: false, code: "profile_locked" }); fail(await read(), "locked_or_cancelled");
       onRead = null;
+      let saveMessage, saveCompleted = false;
+      const saveStarted = new Promise(resolve => { onWrite = message => { saveMessage = message; resolve(); }; });
+      const saving = write({ application_password: "owned-typed-credential" }).then(result => { saveCompleted = true; return result; });
+      await saveStarted; assert.equal(saveCompleted, false); assert.equal(saveMessage.expectedRevision, metadata.revision);
+      assert.equal(saveMessage.anwendungskennwort, "owned-typed-credential"); replySave(saveMessage);
+      const saved = ok(await saving); assert.equal(saved.persisted, true); assert.equal(saved.verified, true); assert.equal(saved.connectivity_checked, false);
+      assert.ok(!JSON.stringify(saved).includes("owned-typed-credential") && !JSON.stringify(saved).includes("owned-private-"));
+      onWrite = null; assert.equal(ok(await write({ clear_password: true })).credential_present, false);
+      const writeCount = nativeWrites.length;
+      fail(await write({ clear_password: true, dav_enabled: true }), "invalid_settings");
+      fail(await write({ clear_password: true, application_password: "owned-conflicting" }), "invalid_settings");
+      fail(await write({ account_type: "generic-dav", mailbox_enabled: true }), "invalid_settings"); assert.equal(nativeWrites.length, writeCount);
+      onWrite = message => replySave(message, { ok: false, code: "conflict", fehler: "owned-private-error" });
+      const stale = await write(); fail(stale, "conflict"); assert.ok(!JSON.stringify(stale).includes("owned-private-"));
+      onWrite = message => replySave(message, { ok: false, code: "verification_failed" }); fail(await write(), "verification_failed");
+      onWrite = message => replySave(message, { persisted: undefined }); fail(await write(), "invalid_result");
+      onWrite = message => replySave(message, { verified: false }); fail(await write(), "invalid_result");
+      onWrite = message => replySave(message, { davAktiv: true }); fail(await write(), "invalid_result");
+      onWrite = message => replySave(message, { kennwortVorhanden: false }); fail(await write({ application_password: "owned-not-stored" }), "invalid_result");
+      onWrite = null;
       b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-sync").click(); await tick();
+      fail(await write(), "dialog_busy");
       const field = b.w.document.querySelector("#briefkasten-url"); assert.ok(field);
       field.value = "https://owned-draft.example.test"; field.dispatchEvent(new b.w.Event("input"));
       const password = b.w.document.querySelector("#briefkasten-kennwort"); assert.ok(password); password.value = "owned-unsaved-credential";
@@ -74,8 +107,20 @@ const watchdog = setTimeout(() => { console.error("MCP DAV metadata timed out");
       assert.equal(b.w.document.querySelector("#briefkasten-kennwort"), password); assert.equal(password.value, "owned-unsaved-credential");
       assert.equal(b.w.document.querySelector("#zettel").textContent, toast);
       b.w.document.querySelector("#einstellungen-zu").click();
+      const writeCancelStarted = new Promise(resolve => { onWrite = message => { saveMessage = message; resolve(); }; });
+      const cancelledWrite = write({ application_password: "owned-cancel-secret" }, 8500); await writeCancelStarted;
+      b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-sync").click(); await tick();
+      const lateField = b.w.document.querySelector("#briefkasten-url"), latePassword = b.w.document.querySelector("#briefkasten-kennwort");
+      lateField.value = "https://owned-late-draft.example.test"; lateField.dispatchEvent(new b.w.Event("input")); latePassword.value = "owned-late-draft-secret";
+      await rpc("notifications/cancelled", { requestId: 8500 }); fail(await cancelledWrite, "cancelled");
+      const requestsBeforeLate = b.messages.filter(message => message.cmd === "eds_status").length;
+      replySave(saveMessage); onWrite = null; await tick();
+      assert.equal(b.w.document.querySelector("#briefkasten-url"), lateField); assert.equal(lateField.value, "https://owned-late-draft.example.test");
+      assert.equal(b.w.document.querySelector("#briefkasten-kennwort"), latePassword); assert.equal(latePassword.value, "owned-late-draft-secret");
+      assert.equal(b.messages.filter(message => message.cmd === "eds_status").length, requestsBeforeLate);
+      b.w.document.querySelector("#einstellungen-zu").click();
       assert.equal(JSON.stringify(b.t.daten()), before); assert.equal(b.saves().length, saveCount);
-      assert.ok(!b.messages.some(message => ["baum_briefkasten_speichern", "baum_briefkasten_pruefen", "sync", "sync_start", "graph_anmelden"].includes(message.cmd)));
+      assert.ok(!b.messages.some(message => ["baum_briefkasten_pruefen", "sync", "sync_start", "graph_anmelden"].includes(message.cmd)));
       console.log("MCP DAV ACCOUNT PASS: correlated actual-state projection, secret stripping, unreadable states and unchanged GUI drafts/book " + web);
     } finally { b.close(); }
   }

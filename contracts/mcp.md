@@ -133,6 +133,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_sync_settings_read` | Calendar/address-book selections and GUI sync preferences under a revision covering the complete sync preference object |
 | `organizer_sync_settings_update` | Shared GUI selection/preferences, native validation of newly linked IDs and durable save; preserves offline selections and existing record/provider routing |
 | `organizer_dav_account_read` | Actual local shared GUI Nextcloud/generic-DAV configuration and credential-presence metadata, with a process-bound keyed native revision and explicit unreadable states; no secret values or connectivity claim |
+| `organizer_dav_account_update` | Full explicit native DAV configuration with expected native revision, optional credential replacement/clearing, shared GUI transaction and verified config/credential readback before persisted success |
 | `organizer_note_read` | Note and revision token |
 | `organizer_note_create` | Plain-text note in an existing notebook; native save acknowledgement |
 | `organizer_note_update` | Revision-checked title, plain text or notebook change; attachments retained |
@@ -324,8 +325,23 @@ presence, with explicit native state/error code. Windows presence describes the
 native credential file, not a new DPAPI-decryption or authentication test.
 `connectivity_checked` is always false. Passwords, protected blobs, authorization
 headers and native error text are excluded; correlated/late replies leave GUI
-account drafts and book data untouched. Account changes and login/test actions
-remain separate coverage work.
+account drafts and book data untouched.
+
+`organizer_dav_account_update` supplies a complete account type/server/user and
+DAV/mailbox enablement under `expected_revision`. Empty/omitted application
+password retains the current value under the native endpoint-binding rules;
+explicit clearing requires disabled services, and generic DAV cannot enable the
+Nextcloud mailbox. The same GUI transaction writes native configuration and its
+credential backend. Expected revision is rechecked inside the store gate and
+actual normalized config plus new/retained/deleted credential state is verified
+before `persisted: true, verified: true`. Successful writes also advance an opaque
+per-store process epoch, so rewriting the same credential does not expose a
+stable password-equality fingerprint. Credential values and protected blobs never
+appear in results or book data. Verification failure/cancellation/timeout after
+dispatch may follow native changes; re-read before retrying. Normal existing
+runtime applies to enabled services, but the call does not verify connectivity
+or authentication. Separate login/test and full synchronization actions remain
+coverage work.
 
 For local imports, supply `local_source` (`evolution`/`thunderbird` on Linux,
 `windows_contacts`/`thunderbird` on Windows) and optional `local_scope`

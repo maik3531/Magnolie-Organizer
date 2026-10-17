@@ -160,6 +160,19 @@ internal sealed partial class BridgeDispatcher
         await baum.ReportMailboxStatusAsync(requestId: requestId);
     }
 
+    private async Task SaveDavAccountAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId");
+        if (requestId.Length != 0 && (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null)))
+        {
+            await form.SendAsync("App.baumBriefkastenGespeichert", new { requestId, ok = false, code = "profile_locked", persisted = false, verified = false });
+            return;
+        }
+        await baum.SaveMailboxAsync(Boolean(message, "davAktiv"), Boolean(message, "briefkastenAktiv"),
+            Text(message, "url"), Text(message, "benutzer"), Text(message, "anwendungskennwort"),
+            Boolean(message, "kennwortLoeschen"), Text(message, "kontoArt"), requestId, Text(message, "expectedRevision"));
+    }
+
     private async Task SaveGraphConfigurationAsync(JsonElement message)
     {
         try

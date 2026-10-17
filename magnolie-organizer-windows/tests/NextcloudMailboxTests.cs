@@ -14,6 +14,7 @@ internal static class NextcloudMailboxTests
         TestServerAndSecretStorage();
         await TestAccountSnapshotAsync();
         await TestOrphanCredentialBindingAsync();
+        await TestCheckedAccountSaveAsync();
         TestAuthenticatedDocuments();
         await TestWebDavAsync();
         await TestWebDavFailuresAsync();
@@ -88,6 +89,52 @@ internal static class NextcloudMailboxTests
             TestAssert.That(store.Load() is { DavActive: true, User: "known-owned-user" } && store.HasApplicationPassword && File.ReadAllText(paths.BaumMailboxPassword) == knownBlob && string.IsNullOrEmpty(status?["fehler"]?.GetValue<string>()), "The unchanged known account could not retain its own credential.");
         }
         finally { Directory.Delete(root, true); }
+    }
+
+    private static async Task TestCheckedAccountSaveAsync()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-dav-checked-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var paths = new WindowsPaths(root);
+            var store = new NextcloudMailboxSettingsStore(paths.BaumMailboxSettings, paths.BaumMailboxPassword, new FakeProtector());
+            var target = new NextcloudMailboxSettings(false, false, "https://checked-owned.example.test/", " owned-reader ");
+            var first = store.SaveConfigurationChecked(target, "owned-checked-secret", false, store.ReadSnapshot().Revision);
+            TestAssert.That(first.Settings is { ServerBase: "https://checked-owned.example.test", User: "owned-reader" } && first.CredentialPresent, "Checked account save did not verify normalized settings/credential.");
+            var same = store.SaveConfigurationChecked(target, "owned-checked-secret", false, first.Revision);
+            TestAssert.That(same.Revision != first.Revision, "Same credential rewrite exposed a stable value fingerprint instead of a fresh version.");
+            var beforeSettings = File.ReadAllText(paths.BaumMailboxSettings); var beforeSecret = File.ReadAllText(paths.BaumMailboxPassword);
+            TestAssert.Throws<InvalidOperationException>(() => store.SaveConfigurationChecked(target, "owned-new-secret", false, first.Revision), "Obsolete native revision accepted a credential change.");
+            TestAssert.That(File.ReadAllText(paths.BaumMailboxSettings) == beforeSettings && File.ReadAllText(paths.BaumMailboxPassword) == beforeSecret, "Rejected stale write changed native files.");
+            var retained = store.SaveConfigurationChecked(target with { DavActive = true }, "", false, same.Revision);
+            TestAssert.That(retained.CredentialPresent && File.ReadAllText(paths.BaumMailboxPassword) == beforeSecret, "Checked flag change replaced a retained credential.");
+            var cleared = store.SaveConfigurationChecked(target, "", true, retained.Revision);
+            TestAssert.That(!cleared.CredentialPresent && !store.HasApplicationPassword, "Checked deletion did not verify actual credential removal.");
+            var inconsistent = new NextcloudMailboxSettingsStore(paths.BaumMailboxSettings, paths.BaumMailboxPassword, new WrongReadbackProtector());
+            TestAssert.Throws<InvalidOperationException>(() => inconsistent.SaveConfigurationChecked(target, "owned-write-mismatch", false, cleared.Revision), "Incorrect credential readback was accepted as verified.");
+            store.ClearApplicationPassword();
+            store.SaveConfiguration(target, "owned-existing-secret", false);
+            JsonObject? status = null;
+            using var coordinator = new MagnolienbaumCoordinator(paths, (_, payload) =>
+            {
+                status = JsonSerializer.SerializeToNode(payload)!.AsObject(); return Task.CompletedTask;
+            });
+            var revision = store.ReadSnapshot().Revision;
+            await coordinator.SaveMailboxAsync(true, false, "https://checked-owned.example.test", "owned-reader", "", false, "nextcloud", "owned-correlated-save", revision);
+            TestAssert.That(status?["requestId"]?.GetValue<string>() == "owned-correlated-save" && status?["ok"]?.GetValue<bool>() == true && status?["persisted"]?.GetValue<bool>() == true && status?["verified"]?.GetValue<bool>() == true && status?["revision"]?.GetValue<string>() == store.ReadSnapshot().Revision,
+                "Coordinator did not correlate and verify the actual native save.");
+            await coordinator.SaveMailboxAsync(false, false, "https://checked-owned.example.test", "owned-reader", "", false, "nextcloud", "owned-stale-save", revision);
+            TestAssert.That(status?["code"]?.GetValue<string>() == "conflict" && status?["persisted"]?.GetValue<bool>() == false && status?["verified"]?.GetValue<bool>() == false, "Coordinator falsely acknowledged stale native changes.");
+            TestAssert.That(!status!.ToJsonString().Contains("owned-existing-secret", StringComparison.Ordinal), "Correlated account save returned a secret.");
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    private sealed class WrongReadbackProtector : ISecretProtector
+    {
+        public byte[] Protect(byte[] plain) => new byte[] { 17, 19, 23 };
+        public byte[] Unprotect(byte[] encrypted) => Encoding.UTF8.GetBytes("owned-wrong-readback");
     }
 
     private static void TestServerAndSecretStorage()

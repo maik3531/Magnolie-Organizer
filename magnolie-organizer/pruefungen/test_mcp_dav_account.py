@@ -12,8 +12,12 @@ class Vault:
         self.fail = False
         self.entered = threading.Event()
         self.release = None
+        self.drop_store = False
+        self.drop_clear = False
 
     def store(self, account, password):
+        if self.drop_store:
+            return True
         self.values[account] = password
         if self.release is not None:
             self.entered.set()
@@ -26,6 +30,8 @@ class Vault:
         return self.values.get(account)
 
     def clear(self, account):
+        if self.drop_clear:
+            return True
         self.values.pop(account, None)
         return True
 
@@ -109,3 +115,50 @@ def test_snapshot_waits_for_the_same_real_save_transaction(native, tmp_path):
     assert not writer.is_alive() and not reader.is_alive() and not errors
     assert snapshots[0][0]["davAktiv"] and snapshots[0][1] and snapshots[0][3] is None
     assert snapshots[0][2] == store.read_snapshot()[2]
+
+
+def test_checked_save_verifies_config_and_credentials_not_just_backend_ack(native, monkeypatch, tmp_path):
+    store, vault = account_store(native, tmp_path)
+    first_revision = store.read_snapshot()[2]
+    first = store.save_checked(first_revision, False, False, "https://owned.example.test/", " owned-reader ", "owned-secret-alpha")
+    assert first[0]["server"] == "https://owned.example.test" and first[0]["benutzer"] == "owned-reader" and first[1]
+    rewritten = store.save_checked(first[2], False, False, "https://owned.example.test", "owned-reader", "owned-secret-alpha")
+    assert rewritten[2] != first[2], "A credential rewrite must create a fresh native version even for the same value"
+    before = (tmp_path / "owned-dav.json").read_text(), dict(vault.values)
+    try:
+        store.save_checked(first[2], False, False, "https://owned.example.test", "owned-reader", "owned-secret-beta")
+        raise AssertionError("Stale native revision accepted")
+    except Exception as error:
+        assert getattr(error, "code", None) == "conflict"
+    assert ((tmp_path / "owned-dav.json").read_text(), vault.values) == before
+    old_account = store.account("https://owned.example.test", "owned-reader")
+    moved = store.save_checked(rewritten[2], False, False, "https://other-owned.example.test", "other-reader", "owned-secret-gamma", account_type="generic-dav")
+    assert moved[0]["kontoArt"] == "generic-dav" and moved[1] and old_account not in vault.values
+    cleared = store.save_checked(moved[2], False, False, "https://other-owned.example.test", "other-reader", delete_password=True, account_type="generic-dav")
+    assert not cleared[1] and not vault.values
+    vault.drop_store = True
+    try:
+        store.save_checked(cleared[2], False, False, "https://other-owned.example.test", "other-reader", "owned-false-store", account_type="generic-dav")
+        raise AssertionError("Successful backend ack without stored credential was accepted")
+    except Exception as error:
+        assert getattr(error, "code", None) == "verification_failed"
+    vault.drop_store = False
+    restored = store.save_checked(store.read_snapshot()[2], False, False, "https://other-owned.example.test", "other-reader", "owned-secret-restored", account_type="generic-dav")
+    vault.drop_clear = True
+    try:
+        store.save_checked(restored[2], False, False, "https://other-owned.example.test", "other-reader", delete_password=True, account_type="generic-dav")
+        raise AssertionError("Successful backend ack without cleared credential was accepted")
+    except Exception as error:
+        assert getattr(error, "code", None) == "verification_failed"
+    vault.drop_clear = False
+    monkeypatch.setattr(native, "nextcloud_speicher", lambda: store)
+    monkeypatch.setattr(native, "NextcloudDav", lambda *_: (_ for _ in ()).throw(AssertionError("Saving settings must not discover remote collections")))
+    host = Host(native); host._gesperrt = False
+    host._nextcloud_speichern(False, False, "https://other-owned.example.test", "other-reader", "", False,
+        "App.baumBriefkastenGespeichert", "generic-dav", "owned-save", store.read_snapshot()[2])
+    saved = host.responses[-1][1]
+    assert saved["ok"] and saved["persisted"] and saved["verified"] and saved["requestId"] == "owned-save"
+    assert saved["revision"] == store.read_snapshot()[2] and "owned-secret-restored" not in json.dumps(saved)
+    host._nextcloud_speichern(False, False, "https://other-owned.example.test", "other-reader", "", False,
+        "App.baumBriefkastenGespeichert", "generic-dav", "owned-stale-save", first_revision)
+    assert host.responses[-1][1]["code"] == "conflict" and not host.responses[-1][1]["persisted"]

@@ -219,6 +219,7 @@ class SecretServiceStore:
 class NextcloudSettingsStore:
     _gate = threading.RLock()
     _revision_key = os.urandom(32)
+    _revision_epochs = {}
 
     def __init__(self, path, secrets=None):
         self.path = path
@@ -275,12 +276,43 @@ class NextcloudSettingsStore:
                 secret = self.secrets.lookup(self.account(settings["server"], settings["benutzer"], settings.get("kontoArt"))) if settings else None
                 if secret is not None and not isinstance(secret, str):
                     raise NextcloudError("Der gespeicherte Zugang ist nicht lesbar.", "secret_service_unavailable")
-                material = json.dumps({"store": os.path.abspath(self.path), "settings": settings, "credential": secret or None},
-                                      ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-                revision = hmac.new(self._revision_key, material, hashlib.sha256).hexdigest()
+                revision = self._snapshot_revision(settings, secret)
                 return settings, bool(secret), revision, None
             except Exception as error:
                 return settings, False, None, error
+
+    def _snapshot_revision(self, settings, secret):
+        path = os.path.abspath(self.path)
+        material = json.dumps({"store": path, "settings": settings, "credential": secret or None,
+                               "epoch": self._revision_epochs.get(path, 0)},
+                              ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return hmac.new(self._revision_key, material, hashlib.sha256).hexdigest()
+
+    def save_checked(self, expected_revision, dav_active, mailbox_active, server, user, password="",
+                     delete_password=False, account_type="nextcloud"):
+        with self._gate:
+            previous, _, revision, error = self.read_snapshot()
+            if error is not None:
+                raise error
+            if not hmac.compare_digest(revision, expected_revision):
+                raise NextcloudError("Die Kontoeinstellungen wurden geaendert.", "conflict")
+            wanted = {"kontoArt": validate_account_type(account_type), "davAktiv": bool(dav_active),
+                      "briefkastenAktiv": bool(mailbox_active), "server": validate_server(server), "benutzer": validate_user(user)}
+            account = self.account(wanted["server"], wanted["benutzer"], wanted["kontoArt"])
+            prior_credential = self.secrets.lookup(account)
+            old_account = self.account(previous["server"], previous["benutzer"], previous["kontoArt"]) if previous else None
+            if old_account == account and not hmac.compare_digest(self._snapshot_revision(previous, prior_credential), expected_revision):
+                raise NextcloudError("Der gespeicherte Zugang wurde geaendert.", "conflict")
+            self.save(dav_active, mailbox_active, server, user, password, delete_password, account_type)
+            actual, present, after_revision, error = self.read_snapshot()
+            if error is not None:
+                raise error
+            credential = password if password else None if delete_password else prior_credential
+            if actual != wanted or not hmac.compare_digest(after_revision, self._snapshot_revision(wanted, credential)):
+                raise NextcloudError("Die gespeicherte Aenderung konnte nicht bestaetigt werden.", "verification_failed")
+            if old_account and old_account != account and self.secrets.lookup(old_account):
+                raise NextcloudError("Der alte Zugang wurde nicht entfernt.", "verification_failed")
+            return actual, present, after_revision
 
     def password(self, settings=None):
         settings = settings or self.load()
@@ -295,7 +327,10 @@ class NextcloudSettingsStore:
     def save(self, dav_active, mailbox_active, server, user, password="",
               delete_password=False, account_type="nextcloud"):
         with self._gate:
-            return self._save(dav_active, mailbox_active, server, user, password, delete_password, account_type)
+            result = self._save(dav_active, mailbox_active, server, user, password, delete_password, account_type)
+            path = os.path.abspath(self.path)
+            self._revision_epochs[path] = self._revision_epochs.get(path, 0) + 1
+            return result
 
     def _save(self, dav_active, mailbox_active, server, user, password="",
               delete_password=False, account_type="nextcloud"):
