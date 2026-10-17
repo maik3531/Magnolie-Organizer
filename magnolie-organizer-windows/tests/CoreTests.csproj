@@ -33,6 +33,7 @@
     <Compile Include="..\SocialProfileMetadata.cs" Link="SocialProfileMetadata.cs" />
     <Compile Include="..\ThunderbirdCalendarImporter.cs" Link="ThunderbirdCalendarImporter.cs" />
     <Compile Include="..\DocumentExportService.cs" Link="DocumentExportService.cs" />
+    <Compile Include="..\VerifiedDocumentFile.cs" Link="VerifiedDocumentFile.cs" />
     <Compile Include="..\DocumentExportService.Time.cs" Link="DocumentExportService.Time.cs" />
     <Compile Include="..\GesamtarchivService.cs" Link="GesamtarchivService.cs" />
     <Compile Include="..\ContactSyncModels.cs" Link="ContactSyncModels.cs" />

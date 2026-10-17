@@ -2425,8 +2425,24 @@ internal sealed partial class BridgeDispatcher : IDisposable
         catch (Exception error) { await form.SendAsync("App.adressWeg", new { ok = false, pfad = "", womit = "", fehler = error.Message }); }
     }
 
+    private async Task ExportSpreadsheetFileAsync(JsonElement message, Func<byte[]> build)
+    {
+        var requestId = Text(message, "requestId");
+        try
+        {
+            if (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null)) throw new InvalidOperationException();
+            var path = Text(message, "pfad"); var overwrite = Boolean(message, "overwrite");
+            var written = await Task.Run(() => VerifiedDocumentFile.Write(path, paths.Data, build(), overwrite));
+            await form.SendAsync("App.documentExportErgebnis", new { requestId, ok = true, pfad = written.Path, bytes = written.Bytes, sha256 = written.Sha256 });
+        }
+        catch (Exception)
+        { await form.SendAsync("App.documentExportErgebnis", new { requestId, ok = false, code = "native_operation_failed" }); }
+    }
+
     private async Task CreateSpreadsheetAsync(JsonElement message, string defaultName, string fileName)
     {
+        if (Text(message, "requestId").Length != 0)
+        { await ExportSpreadsheetFileAsync(message, () => DocumentExportService.CreateSpreadsheet(new[] { DocumentExportService.ReadSheet(message, defaultName) })); return; }
         try
         {
             var sheet = DocumentExportService.ReadSheet(message, defaultName);
@@ -2437,6 +2453,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private async Task CreateHealthSpreadsheetAsync(JsonElement message)
     {
+        if (Text(message, "requestId").Length != 0)
+        { await ExportSpreadsheetFileAsync(message, () => DocumentExportService.CreateSpreadsheet(DocumentExportService.ReadHealthSheets(message))); return; }
         try
         {
             var sheets = DocumentExportService.ReadHealthSheets(message);
@@ -2447,6 +2465,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
 
     private async Task CreateTimeSpreadsheetAsync(JsonElement message)
     {
+        if (Text(message, "requestId").Length != 0)
+        { await ExportSpreadsheetFileAsync(message, () => DocumentExportService.CreateTimeSpreadsheet(message.GetProperty("sheet"))); return; }
         try
         {
             var report = message.GetProperty("sheet");

@@ -21878,6 +21878,9 @@ class Fenster(_FENSTER_BASIS):
         elif befehl == "drucken":
             self._drucken(nachricht.get("html") or "")
 
+        elif befehl in ("adressen_ods", "gesundheit_ods", "zeit_ods", "planer_ods") and nachricht.get("requestId"):
+            threading.Thread(target=self._ods_datei_exportieren, args=(nachricht,), daemon=True).start()
+
         elif befehl == "adressen_ods":
             threading.Thread(target=lambda: self.antwort(
                 "App.adressWeg", adressen_ods_exportieren(
@@ -22131,6 +22134,53 @@ class Fenster(_FENSTER_BASIS):
                                  if aktion == "save" else
                                  _("The file could not be read."))
         self.antwort("App.notizAnhangDateiErgebnis", antwort)
+
+    def _ods_datei_exportieren(self, nachricht):
+        request_id = nachricht.get("requestId")
+        try:
+            if getattr(self, "_gesperrt", True):
+                raise OSError("profile_locked")
+            befehl = nachricht.get("cmd")
+            if befehl == "gesundheit_ods":
+                daten = gesundheit_ods_bytes(nachricht.get("tabellen"))
+            elif befehl == "zeit_ods":
+                daten = zeiterfassung_ods_bytes(nachricht.get("sheet"))
+            elif befehl in ("adressen_ods", "planer_ods"):
+                planer = befehl == "planer_ods"
+                if planer:
+                    jahr, layout, monat = int(nachricht.get("jahr")), nachricht.get("layout") or "year", int(nachricht.get("monat") or 0)
+                    if not 1000 <= jahr <= 9999 or layout not in ("year", "month") or layout == "month" and monat not in range(1, 13):
+                        raise ValueError("invalid_planner")
+                daten = adressen_ods_bytes(nachricht.get("titel"), nachricht.get("spalten"), nachricht.get("zeilen"),
+                    zellstile=nachricht.get("stile") if planer else None, kompakt=planer,
+                    kalenderinhalte=nachricht.get("inhalte") if planer else None)
+            else:
+                raise ValueError("unsupported_document")
+            if len(daten) > SICHERUNG_DATEI_MAX:
+                raise ValueError("export_file_too_large")
+            pfad = os.path.abspath(nachricht.get("pfad") or "")
+            if os.path.islink(pfad) or os.path.realpath(pfad) == os.path.realpath(daten_datei()):
+                raise OSError("invalid_export_target")
+            if nachricht.get("overwrite") is True:
+                atomar_binaer_schreiben(pfad, daten)
+            else:
+                # Exclusive creation enforces no-overwrite even if another
+                # exporter created the destination after the request began.
+                descriptor = os.open(pfad, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                with os.fdopen(descriptor, "wb") as datei:
+                    datei.write(daten); datei.flush(); os.fsync(datei.fileno())
+                parent = os.open(os.path.dirname(pfad), os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+                try:
+                    os.fsync(parent)
+                finally:
+                    os.close(parent)
+            gelesen = datei_begrenzt_lesen(pfad, len(daten) + 1, "export_verification_failed")
+            if gelesen != daten:
+                raise OSError("export_verification_failed")
+            self.antwort("App.documentExportErgebnis", {"ok": True, "requestId": request_id, "pfad": pfad,
+                "bytes": len(gelesen), "sha256": hashlib.sha256(gelesen).hexdigest()})
+        except Exception:
+            self.antwort("App.documentExportErgebnis", {"ok": False, "requestId": request_id, "code": "native_operation_failed"})
 
     def bei_export(self, nachricht):
         art = nachricht.get("art")

@@ -32298,6 +32298,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       zettel(text);
       setupImportBeenden();
     },
+    documentExportErgebnis(nutzlast) {
+      if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "documentExportErgebnis");
+    },
     exportErgebnis(nutzlast) {
       if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "exportErgebnis"); return; }
       nutzlast = nutzlast || {};
@@ -34136,6 +34139,29 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (value !== "month") calendar.uebersichtAb = null;
     calendar.bearbeiteId = null;
   }
+  function mcpPlanerExportWerkzeuge() {
+    const flags = { public_holidays: "feiertage", school_holidays: "ferien", personal_vacation: "urlaub", appointments: "termine", anniversaries: "jahrestage", shifts: "schichten", cycle_markers: "zyklus", waste: "muell" };
+    return [{ name: "organizer_planner_export", description: "Write the existing GUI year/month planner as an explicit ODS file using its real calendar model and native document generator. Uses current regional labels/colors and product visibility/recurrence rules. Full book revision and native save gate required; overwrite is explicit. Success confirms actual file bytes/SHA-256, not opening or rendering in an office application. If recurrence expansion is pending, wait and retry.",
+      inputSchema: { type: "object", properties: { expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, year: { type: "integer", minimum: 1000, maximum: 9999 }, layout: { type: "string", enum: ["year", "month"] }, month: { type: "integer", minimum: 1, maximum: 12 },
+        path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, overwrite: { type: "boolean" }, ...Object.fromEntries(Object.keys(flags).map(key => [key, { type: "boolean" }])) }, required: ["expected_book_revision", "year", "layout", "path"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        if (args.layout === "month" && args.month === undefined || args.layout === "year" && (args.month !== undefined || ["appointments", "anniversaries", "shifts", "cycle_markers", "waste"].some(key => args[key] !== undefined))) throw new MagnolieMcp.ToolError("invalid_settings", "Month and entry options apply only to a month planner; month is required for that layout");
+        const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+        if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; read its revision before exporting a planner");
+        const options = Object.fromEntries(Object.entries(flags).filter(([key]) => args[key] !== undefined).map(([key, field]) => [field, args[key]]));
+        const model = args.layout === "month" ? planerMonatsModell(args.year, args.month - 1, options) : planerKalenderModell(args.year, options);
+        if (model.icsIncomplete) throw new MagnolieMcp.ToolError("native_busy", "Product recurrence expansion is still pending; retry after it completes");
+        const payload = planerOdsNutzlast(model);
+        await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, () => reject(new MagnolieMcp.ToolError("save_failed", "Native save failed before planner export"))));
+        mcpEditorPruefen(); if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Book changed before native planner export");
+        const value = await mcpNativeAufruf(payload.cmd, { ...payload, pfad: args.path, overwrite: args.overwrite === true }, "documentExportErgebnis", signal);
+        if (value.ok !== true) throw new MagnolieMcp.ToolError("native_operation_failed", "Native planner export failed; check destination and overwrite choice");
+        if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Planner may have been written; book changed during native export");
+        if (typeof value.pfad !== "string" || !Number.isSafeInteger(value.bytes) || value.bytes <= 0 || !/^[a-f0-9]{64}$/.test(value.sha256)) throw new MagnolieMcp.ToolError("invalid_result", "Native planner file readback was incomplete");
+        return { path: value.pfad, format: "ods", year: args.year, layout: args.layout, month: args.month ?? null, bytes: value.bytes, sha256: value.sha256, confirmed: true };
+      } }];
+  }
   const mcpImportPruefungen = new Map();
   const MCP_IMPORT_BEREICHE = ["termine", "jahrestage", "geburtstage", "aufgaben", "kontakte", "notizen"];
   function mcpImportAnzahlen(payload) {
@@ -35322,6 +35348,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_planner_export") return shape({ path: text, format: { type: "string", const: "ods" }, year: { type: "integer", minimum: 1000, maximum: 9999 }, layout: { type: "string", enum: ["year", "month"] }, month: { type: ["integer", "null"], minimum: 1, maximum: 12 }, bytes: { type: "integer", minimum: 1 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, confirmed: yes }, ["path", "format", "year", "layout", "month", "bytes", "sha256", "confirmed"]);
     if (name.startsWith("organizer_import_review_")) {
       const hash = { type: "string", pattern: "^[a-f0-9]{64}$" }, number = { type: "integer", minimum: 0 };
       const meta = { token: id, source_revision: hash, book_revision: hash, selection_revision: number, expires_ms: number, counts: object, contacts_total: number, unresolved_contacts: number, notebook_id: id, applying: flag };
@@ -35506,6 +35533,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpAustauschExportWerkzeuge(),
       ...mcpDateiImportWerkzeuge(),
       ...mcpImportPruefWerkzeuge(owner),
+      ...mcpPlanerExportWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

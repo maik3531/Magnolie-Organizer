@@ -19,6 +19,7 @@ import threading
 import time
 import traceback
 import zlib
+import zipfile
 
 BACKGROUND_PROBE = os.environ.get("MAGNOLIE_MCP_PROBE_BACKGROUND") == "1"
 if BACKGROUND_PROBE:
@@ -1553,6 +1554,26 @@ def client():
         assert stale_import_preview["isError"] and stale_import_preview["structuredContent"]["code"] == "conflict", stale_import_preview
         assert data_file.read_text() == records_envelope_before
         assert call("tools/call", {"name": "organizer_book_revision_read"})["structuredContent"]["revision"] == records_revision
+        for planner_layout in ("year", "month"):
+            planner_path = Path(temporary.name) / ("owned-native-planner-" + planner_layout + ".ods")
+            planner_args = {"expected_book_revision": records_revision, "year": 2030, "layout": planner_layout,
+                "path": str(planner_path), **({"month": 2} if planner_layout == "month" else {})}
+            for attempt in range(10):
+                planner_result = call("tools/call", {"name": "organizer_planner_export", "arguments": planner_args})
+                if not planner_result["isError"]:
+                    break
+                assert planner_result["structuredContent"]["code"] == "native_busy", planner_result
+                time.sleep(0.1)
+            assert not planner_result["isError"] and planner_result["structuredContent"]["confirmed"], planner_result
+            actual_planner = planner_path.read_bytes()
+            assert planner_result["structuredContent"]["bytes"] == len(actual_planner)
+            assert planner_result["structuredContent"]["sha256"] == hashlib.sha256(actual_planner).hexdigest()
+            with zipfile.ZipFile(planner_path) as archive:
+                assert archive.read("mimetype") == b"application/vnd.oasis.opendocument.spreadsheet"
+                assert b"office:spreadsheet" in archive.read("content.xml")
+            planner_exists = call("tools/call", {"name": "organizer_planner_export", "arguments": planner_args})
+            assert planner_exists["isError"] and planner_path.read_bytes() == actual_planner, planner_exists
+        assert data_file.read_text() == records_envelope_before
         password_before = call("tools/call", {"name": "organizer_password_status"})
         assert not password_before["isError"] and password_before["structuredContent"]["encrypted"] and password_before["structuredContent"]["matches_book"], password_before
         password_state = password_before["structuredContent"]
