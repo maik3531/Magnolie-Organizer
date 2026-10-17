@@ -26,6 +26,7 @@
     <Compile Include="..\BaumReceipt.cs" Link="BaumReceipt.cs" />
     <Compile Include="..\CloudBackupWorker.cs" Link="CloudBackupWorker.cs" />
     <Compile Include="..\EncryptionService.cs" Link="EncryptionService.cs" />
+    <Compile Include="..\PasswordSource.cs" Link="PasswordSource.cs" />
     <Compile Include="..\ExchangeCodec.cs" Link="ExchangeCodec.cs" />
     <Compile Include="..\SocialProfileMetadata.cs" Link="SocialProfileMetadata.cs" />
     <Compile Include="..\ThunderbirdCalendarImporter.cs" Link="ThunderbirdCalendarImporter.cs" />

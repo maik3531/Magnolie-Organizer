@@ -120,6 +120,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "mcp_antwort": form.McpReply(message); break;
                     case "entsperren": await UnlockAsync(Text(message, "kennwort")); break;
                     case "kennwort_setzen": await SetPasswordAsync(message); break;
+                    case "password_status": await ReadPasswordStatusAsync(message); break;
                     case "kennwort_entfernen": await RemovePasswordAsync(message); break;
                     case "speichern": await SaveAsync(message); break;
                     case "contributor_pruefen": await CheckContributorAsync(Text(message, "key")); break;
@@ -933,19 +934,54 @@ internal sealed partial class BridgeDispatcher : IDisposable
         }
     }
 
-    private async Task SetPasswordAsync(JsonElement message)
+    private PasswordSource ReadPasswordSource()
     {
-        var oldPassword = Text(message, "alt");
-        var newPassword = Text(message, "neu");
-        var candidate = string.IsNullOrEmpty(currentEnvelope) ? new EncryptionService() : encryption.CloneUnlocked();
+        if (!currentPlainTextAvailable) throw new InvalidOperationException();
+        return PasswordSource.Read(store, paths.Data, encryption);
+    }
+
+    private PasswordSource? CheckMcpPasswordSource(JsonElement message)
+    {
+        if (Text(message, "requestId").Length == 0) return null;
+        var source = ReadPasswordSource();
+        source.Require(Text(message, "expectedRevision"), Text(message, "expectedBookRevision"));
+        return source;
+    }
+
+    private async Task ReadPasswordStatusAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId");
+        await MutationGate.Global.WaitAsync();
         try
         {
+            var source = ReadPasswordSource();
+            await form.SendAsync("App.passwordStand", new { ok = true, requestId, state = new {
+                encrypted = source.Encrypted, state_revision = source.StateRevision, book_revision = source.BookRevision } });
+        }
+        catch (Exception)
+        { await form.SendAsync("App.passwordStand", new { ok = false, requestId, code = "native_operation_failed" }); }
+        finally { MutationGate.Global.Release(); }
+    }
+
+    private async Task SetPasswordAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId");
+        var oldPassword = Text(message, "alt");
+        var newPassword = Text(message, "neu");
+        EncryptionService? candidate = null;
+        await MutationGate.Global.WaitAsync();
+        try
+        {
+            var source = CheckMcpPasswordSource(message);
+            candidate = string.IsNullOrEmpty(currentEnvelope) ? new EncryptionService() : encryption.CloneUnlocked();
             if (newPassword.Length < 4)
                 throw new InvalidOperationException(T("The password must contain at least four characters."));
+            var envelope = source?.Raw ?? currentEnvelope;
             var nextEnvelope = string.IsNullOrEmpty(currentEnvelope)
                 ? candidate.Enable(currentPlainText, newPassword)
-                : string.IsNullOrEmpty(oldPassword) ? candidate.ChangePasswordWithSession(currentEnvelope, newPassword)
-                    : candidate.ChangePassword(currentEnvelope, oldPassword, newPassword);
+                : string.IsNullOrEmpty(oldPassword) ? candidate.ChangePasswordWithSession(envelope, newPassword)
+                    : candidate.ChangePassword(envelope, oldPassword, newPassword);
+            CheckMcpPasswordSource(message);
             store.WriteRecoverableJson(paths.Data, nextEnvelope);
             var copies = RewriteProtectedCopies(message, candidate, removeProtection: false);
             encryption.Clear(); encryption = candidate; currentEnvelope = nextEnvelope;
@@ -953,25 +989,32 @@ internal sealed partial class BridgeDispatcher : IDisposable
             catch { copies.Failed++; }
             await form.SendAsync("App.kennwortStand", new
             {
-                ok = true, an = true, sicherungen = copies.Changed, sicherungenFehler = copies.Failed,
+                ok = true, an = true, requestId, sicherungen = copies.Changed, sicherungenFehler = copies.Failed,
                 fehler = copies.Failed == 0 ? "" : T("Some existing backups could not be encrypted.")
             });
         }
         catch (Exception error)
         {
-            if (!ReferenceEquals(encryption, candidate)) candidate.Clear();
-            await form.SendAsync("App.kennwortStand", new { ok = false, an = true, fehler = error.Message });
+            if (!ReferenceEquals(encryption, candidate)) candidate?.Clear();
+            await form.SendAsync("App.kennwortStand", new { ok = false, an = true, requestId,
+                code = error.Message == "mcp_conflict" ? "conflict" : "native_operation_failed", fehler = error.Message });
         }
+        finally { MutationGate.Global.Release(); }
     }
 
     private async Task RemovePasswordAsync(JsonElement message)
     {
-        var candidate = string.IsNullOrEmpty(currentEnvelope) ? new EncryptionService() : encryption.CloneUnlocked();
+        var requestId = Text(message, "requestId");
+        EncryptionService? candidate = null;
+        await MutationGate.Global.WaitAsync();
         try
         {
+            var source = CheckMcpPasswordSource(message);
+            candidate = string.IsNullOrEmpty(currentEnvelope) ? new EncryptionService() : encryption.CloneUnlocked();
             var oldPassword = Text(message, "alt");
-            var plainText = string.IsNullOrEmpty(currentEnvelope) ? currentPlainText : string.IsNullOrEmpty(oldPassword)
-                ? candidate.DecryptDataWithSession(currentEnvelope) : candidate.Unlock(currentEnvelope, oldPassword);
+            var plainText = source?.Plain ?? (string.IsNullOrEmpty(currentEnvelope) ? currentPlainText : string.IsNullOrEmpty(oldPassword)
+                ? candidate.DecryptDataWithSession(currentEnvelope) : candidate.Unlock(currentEnvelope, oldPassword));
+            CheckMcpPasswordSource(message);
             store.WriteRecoverableJson(paths.Data, plainText);
             var copies = RewriteProtectedCopies(message, candidate, removeProtection: true);
             candidate.Clear();
@@ -980,15 +1023,17 @@ internal sealed partial class BridgeDispatcher : IDisposable
             catch { copies.Failed++; }
             await form.SendAsync("App.kennwortStand", new
             {
-                ok = true, an = false, sicherungen = copies.Changed, sicherungenFehler = copies.Failed,
+                ok = true, an = false, requestId, sicherungen = copies.Changed, sicherungenFehler = copies.Failed,
                 fehler = copies.Failed == 0 ? "" : T("Some existing backups could not be decrypted.")
             });
         }
         catch (Exception error)
         {
-            if (!ReferenceEquals(encryption, candidate)) candidate.Clear();
-            await form.SendAsync("App.kennwortStand", new { ok = false, an = true, fehler = error.Message });
+            if (!ReferenceEquals(encryption, candidate)) candidate?.Clear();
+            await form.SendAsync("App.kennwortStand", new { ok = false, an = true, requestId,
+                code = error.Message == "mcp_conflict" ? "conflict" : "native_operation_failed", fehler = error.Message });
         }
+        finally { MutationGate.Global.Release(); }
     }
 
     private async Task BackupAsync(JsonElement message)

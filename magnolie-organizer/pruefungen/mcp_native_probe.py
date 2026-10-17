@@ -1471,6 +1471,34 @@ def client():
                             os.close(background_handle)
                 assert background_cleanup.get("ok") and background_product.wait_for_daemon_release(), background_cleanup
                 assert not Path(background_product.autostart_path()).exists()
+        password_before = call("tools/call", {"name": "organizer_password_status"})
+        assert not password_before["isError"] and password_before["structuredContent"]["encrypted"] and password_before["structuredContent"]["matches_book"], password_before
+        password_state = password_before["structuredContent"]
+        original_envelope = data_file.read_text()
+        original_plain = product.entschluesseln(original_envelope, "owned-classic-backup-password")
+        assert password_state["state_revision"] == hashlib.sha256(original_envelope.encode()).hexdigest()
+        stale_password = call("tools/call", {"name": "organizer_password_set", "arguments": {
+            "expected_book_revision": password_state["book_revision"], "expected_state_revision": "0" * 64,
+            "new_password": "owned-mcp-password"}})
+        assert stale_password["isError"] and stale_password["structuredContent"]["code"] == "conflict", stale_password
+        assert data_file.read_text() == original_envelope
+        password_changed = call("tools/call", {"name": "organizer_password_set", "arguments": {
+            "expected_book_revision": password_state["book_revision"], "expected_state_revision": password_state["state_revision"],
+            "new_password": "owned-mcp-password"}})
+        assert not password_changed["isError"] and password_changed["structuredContent"]["persisted"] and password_changed["structuredContent"]["verified"], password_changed
+        assert product.entschluesseln(data_file.read_text(), "owned-mcp-password") == original_plain
+        assert "owned-mcp-password" not in json.dumps(password_changed) and "owned-mcp-password" not in original_plain
+        changed_state = password_changed["structuredContent"]
+        password_removed = call("tools/call", {"name": "organizer_password_remove", "arguments": {
+            "expected_book_revision": changed_state["stored_book_revision"], "expected_state_revision": changed_state["state_revision"]}})
+        assert not password_removed["isError"] and password_removed["structuredContent"]["verified"] and not password_removed["structuredContent"]["encrypted"], password_removed
+        assert data_file.read_text() == original_plain
+        removed_state = password_removed["structuredContent"]
+        password_reenabled = call("tools/call", {"name": "organizer_password_set", "arguments": {
+            "expected_book_revision": removed_state["stored_book_revision"], "expected_state_revision": removed_state["state_revision"],
+            "new_password": "owned-classic-backup-password"}})
+        assert not password_reenabled["isError"] and password_reenabled["structuredContent"]["verified"] and password_reenabled["structuredContent"]["encrypted"], password_reenabled
+        assert product.entschluesseln(data_file.read_text(), "owned-classic-backup-password") == original_plain
         process.stdin.close()
         assert process.wait(timeout=5) == 0
         selector.close()

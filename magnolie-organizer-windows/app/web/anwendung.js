@@ -31586,11 +31586,22 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const weck = nutzlast.weckruf;
       if (weck && weck.fehler) zettel(weck.fehler);
     },
+    passwordStand(nutzlast) {
+      if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "passwordStand");
+    },
     entsperrtFehler(nutzlast) {
       zeigeSperrFehler(nutzlast || {});
     },
     kennwortStand(nutzlast) {
       nutzlast = nutzlast || {};
+      if (nutzlast.requestId) {
+        const context = mcpPasswortAnfragen.get(nutzlast.requestId); mcpPasswortAnfragen.delete(nutzlast.requestId);
+        if (context) clearTimeout(context.timer);
+        if (context?.book === DATEN && nutzlast.ok === true && typeof nutzlast.an === "boolean") { kennwortAn = nutzlast.an; kennwortMeldung = ""; }
+        mcpNativeAntwort({ requestId: nutzlast.requestId, ok: nutzlast.ok === true, an: nutzlast.an, code: nutzlast.code,
+          sicherungen: nutzlast.sicherungen, sicherungenFehler: nutzlast.sicherungenFehler, journal: nutzlast.journal, journalFehler: nutzlast.journalFehler }, "kennwortStand");
+        return;
+      }
       if (!nutzlast.ok) {
         kennwortMeldung = nutzlast.fehler || _("That did not work.");
         zettel(kennwortMeldung);
@@ -34101,6 +34112,50 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (value !== "month") calendar.uebersichtAb = null;
     calendar.bearbeiteId = null;
   }
+  let mcpPasswortKette = Promise.resolve();
+  const mcpPasswortAnfragen = new Map();
+  function mcpPasswortWerkzeuge() {
+    const revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const readNative = async signal => {
+      const value = await mcpNativeAufruf("password_status", {}, "passwordStand", signal), state = value.state;
+      if (value.ok !== true || !state || typeof state.encrypted !== "boolean" || !/^[a-f0-9]{64}$/.test(state.state_revision) || !/^[a-f0-9]{64}$/.test(state.book_revision)) throw new MagnolieMcp.ToolError("native_operation_failed", "Native password state could not be verified");
+      return { encrypted: state.encrypted, state_revision: state.state_revision, stored_book_revision: state.book_revision };
+    };
+    return [
+      { name: "organizer_password_status", description: "Read actual primary-file encryption and its opaque file/plaintext revisions from the unlocked native product. The in-memory book revision and matches_book distinguish pending edits from stored content. No password or key is returned.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (_args, signal) => {
+          const book = DATEN, before = JSON.stringify(book), native = await readNative(signal);
+          if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Book changed during native password inspection");
+          const current = await personalSyncHash(before); return { ...native, book_revision: current, matches_book: current === native.stored_book_revision };
+        } },
+      ...[false, true].map(remove => ({ name: remove ? "organizer_password_remove" : "organizer_password_set", description: remove
+        ? "Remove password protection through the existing unlocked native product transaction. Requires current book and exact native file revisions, flushes saves first, then reads back the actual plaintext primary. Existing platform backup/journal policies apply; related-file failures are counted separately. Cancellation may follow commit; re-read password status before retrying."
+        : "Set or change the password through the existing unlocked native product transaction. Requires current book and exact native file revisions, flushes saves first, then authenticates/readbacks the actual encrypted primary. Existing product backup/journal rewriting applies; related-file failures are counted separately. Passwords do not enter book data or results. Cancellation may follow commit; re-read password status before retrying.",
+        inputSchema: { type: "object", properties: { expected_book_revision: revision, expected_state_revision: revision, ...(!remove ? { new_password: { type: "string", minLength: 4, maxLength: 4096 } } : {}) }, required: ["expected_book_revision", "expected_state_revision", ...(!remove ? ["new_password"] : [])], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: (args, signal) => {
+          const run = async () => {
+            mcpEditorPruefen(); const book = DATEN, before = JSON.stringify(book), hash = await personalSyncHash(before);
+            if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || hash !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; read password status again");
+            await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, () => reject(new MagnolieMcp.ToolError("save_failed", "Native save failed before the password operation")))); mcpEditorPruefen();
+            if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Book changed before native password operation");
+            const value = await mcpNativeAufruf(remove ? "kennwort_entfernen" : "kennwort_setzen", { alt: "", ...(!remove ? { neu: args.new_password, sicherungen: true } : {}),
+              sicherungsordner: DATEN.einstellungen.allgemein.sicherungsordner || "", expectedRevision: args.expected_state_revision, expectedBookRevision: args.expected_book_revision }, "kennwortStand", signal, requestId => {
+                while (mcpPasswortAnfragen.size >= 8) { const oldest = mcpPasswortAnfragen.keys().next().value; clearTimeout(mcpPasswortAnfragen.get(oldest).timer); mcpPasswortAnfragen.delete(oldest); }
+                mcpPasswortAnfragen.set(requestId, { book, timer: setTimeout(() => mcpPasswortAnfragen.delete(requestId), 120000) });
+              });
+            if (value.ok !== true || value.an !== !remove) throw new MagnolieMcp.ToolError(value.code === "conflict" ? "conflict" : "native_operation_failed", "Native password operation failed or its preconditions changed; read password status before retrying");
+            const native = await readNative(signal);
+            if (native.encrypted !== !remove || native.stored_book_revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("native_operation_failed", "Password operation may have committed; actual primary readback did not match");
+            if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Password operation committed; book changed during verification");
+            if (!["sicherungen", "sicherungenFehler"].every(key => Number.isSafeInteger(value[key]) && value[key] >= 0) ||
+                !["journal", "journalFehler"].every(key => value[key] === undefined || Number.isSafeInteger(value[key]) && value[key] >= 0)) throw new MagnolieMcp.ToolError("invalid_result", "Password operation committed; native related-file counts were incomplete");
+            const count = value => value === undefined ? 0 : value;
+            return { ...native, persisted: true, verified: true, related_files_changed: count(value.sicherungen) + count(value.journal), related_files_failed: count(value.sicherungenFehler) + count(value.journalFehler) };
+          };
+          const operation = mcpPasswortKette.then(run, run); mcpPasswortKette = operation.catch(() => {}); return operation;
+        } }))
+    ];
+  }
   function wendeErinnerungsDatenschutzDatenAn(values) {
     const settings = DATEN.einstellungen.sicherheit; Object.assign(settings, values);
     if (!settings.erinnernTrotzKennwort) settings.vertraulicheErinnerungen = false;
@@ -34980,6 +35035,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_password_status") return shape({ encrypted: flag, state_revision: text, stored_book_revision: text, book_revision: text, matches_book: flag }, ["encrypted", "state_revision", "stored_book_revision", "book_revision", "matches_book"]);
+    if (["organizer_password_set", "organizer_password_remove"].includes(name)) return shape({ encrypted: flag, state_revision: text, stored_book_revision: text, persisted: yes, verified: yes, related_files_changed: { type: "integer", minimum: 0 }, related_files_failed: { type: "integer", minimum: 0 } }, ["encrypted", "state_revision", "stored_book_revision", "persisted", "verified", "related_files_changed", "related_files_failed"]);
     if (name === "organizer_reminder_privacy_read") return shape({ settings: object, native_state: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "native_state", "revision"]);
     if (name === "organizer_reminder_privacy_update") return shape({ settings: object, native_state: object, persisted: yes }, ["settings", "native_state", "persisted"]);
     if (name === "organizer_trash_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
@@ -35147,6 +35204,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpAdressEinstellungenWerkzeuge(),
       ...mcpPapierkorbEinstellungenWerkzeuge(),
       ...mcpErinnerungsDatenschutzWerkzeuge(),
+      ...mcpPasswortWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

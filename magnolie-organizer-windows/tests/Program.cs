@@ -71,6 +71,7 @@ runner.Add("Cloud-Ordner-Sicherung / Policy / Retention / DPAPI", CloudBackupTes
 runner.Add("Loganzeige / Contributor-Marker", LogPresentationTests.RunAsync);
 runner.Add("Lokale Absturzberichte / Format / Rotation / Parallelität", CrashReportTests.RunAsync);
 runner.Add("Encryption / Python-Goldens / Manipulation", ContractGroupTests.EncryptionAsync);
+runner.Add("Password / native source / revisions / authenticated readback", PasswordSourceTests.RunAsync);
 runner.Add(".magnolie Gesamtarchiv / Cross-Platform / Anhänge / Fehler", ContractGroupTests.ArchiveAsync);
 runner.Add("Notizanhänge / Data-URL / Dateinamen", AttachmentFileTests.RunAsync);
 runner.Add("ICS / VCF / LDIF / Claws / Lotus / Thunderbird", ContractGroupTests.ExchangeAsync);

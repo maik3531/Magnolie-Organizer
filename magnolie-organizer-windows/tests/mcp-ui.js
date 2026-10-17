@@ -135,7 +135,7 @@ let declaredContracts;
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
       let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile, onCloudStatus, onCloudPassword, onCloudTest, onSpelling, onRememberWord, onRegionalRead, onRegionalSave, onTrayRead, onTraySave, onBackgroundRead, onBackgroundSave;
-      let onReminder, onReminderPrivacy;
+      let onReminder, onReminderPrivacy, onPasswordRead, onPasswordWrite;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
@@ -164,6 +164,8 @@ let declaredContracts;
         if (message.cmd === "background_settings_set" && message.requestId && onBackgroundSave) onBackgroundSave(message);
         if (message.cmd === "erinnerung_einrichten" && message.requestId && onReminder) onReminder(message);
         if (message.cmd === "reminder_privacy_status" && message.requestId && onReminderPrivacy) onReminderPrivacy(message);
+        if (message.cmd === "password_status" && message.requestId && onPasswordRead) onPasswordRead(message);
+        if (["kennwort_setzen", "kennwort_entfernen"].includes(message.cmd) && message.requestId && onPasswordWrite) onPasswordWrite(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -1500,6 +1502,54 @@ let declaredContracts;
         const revoked = await persisted(968, "organizer_reminder_privacy_update", { expected_revision: latest.revision, allow_when_locked: false, include_confidential: true });
         assert.equal(revoked.settings.include_confidential, false); assert.equal(revoked.native_state.projection_present, false);
         onReminderPrivacy = null;
+      }
+      {
+        const bookHash = () => createHash("sha256").update(JSON.stringify(JSON.stringify(b.t.daten()))).digest("hex");
+        let state = { encrypted: false, state_revision: "1".repeat(64), book_revision: bookHash() };
+        onPasswordRead = message => b.w.App.passwordStand({ requestId: message.requestId, ok: true, state });
+        const read = async id => (await call(request(id, "tools/call", { name: "organizer_password_status" }))).result.structuredContent;
+        const first = await read(990); assert.equal(first.matches_book, true);
+        let native, completed = false;
+        const dispatched = new Promise(resolve => { onPasswordWrite = message => { native = message; resolve(); }; });
+        const pending = call(request(991, "tools/call", { name: "organizer_password_set", arguments: { expected_book_revision: first.book_revision,
+          expected_state_revision: first.state_revision, new_password: "owned-mcp-password-no-leak" } })).then(value => { completed = true; return value; });
+        await dispatched; assert.equal(native.expectedRevision, first.state_revision); assert.equal(native.expectedBookRevision, first.book_revision);
+        b.w.App.kennwortStand({ requestId: "wrong-password-request", ok: true, an: true });
+        await new Promise(resolve => setImmediate(resolve)); assert.equal(completed, false);
+        b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-sicherheit").click();
+        assert.ok(b.w.document.querySelector("#kennwort-an"), "Unrelated request ID must not change the product encryption flag");
+        b.w.document.querySelector("#einstellungen-zu").click();
+        state = { ...state, encrypted: true, state_revision: "2".repeat(64) };
+        b.w.App.kennwortStand({ requestId: native.requestId, ok: true, an: true, sicherungen: 2, journal: 3, sicherungenFehler: 1,
+          fehler: "owned-private-native-password-detail" });
+        const result = (await pending).result.structuredContent;
+        assert.equal(result.persisted, true); assert.equal(result.verified, true); assert.equal(result.related_files_changed, 5); assert.equal(result.related_files_failed, 1);
+        assert.ok(!JSON.stringify(result).includes("owned-private-native-password-detail")); assert.ok(!JSON.stringify(b.t.daten()).includes(native.neu));
+        onPasswordWrite = message => b.w.App.kennwortStand({ requestId: message.requestId, ok: false, code: "conflict", fehler: "owned-private-conflict" });
+        const stale = await call(request(992, "tools/call", { name: "organizer_password_remove", arguments: { expected_book_revision: first.book_revision, expected_state_revision: first.state_revision } }));
+        assert.equal(stale.result.structuredContent.code, "conflict"); assert.ok(!JSON.stringify(stale).includes("owned-private-conflict"));
+        const current = await read(993);
+        onPasswordWrite = message => { state = { ...state, encrypted: false, state_revision: "3".repeat(64) }; b.w.App.kennwortStand({ requestId: message.requestId, ok: true, an: false, sicherungen: 0, sicherungenFehler: 0 }); };
+        const removed = await call(request(994, "tools/call", { name: "organizer_password_remove", arguments: { expected_book_revision: current.book_revision, expected_state_revision: current.state_revision } }));
+        assert.equal(removed.result.structuredContent.encrypted, false); assert.equal(removed.result.structuredContent.verified, true);
+        onPasswordWrite = message => b.w.App.kennwortStand({ requestId: message.requestId, ok: true, an: false });
+        const incomplete = await call(request(998, "tools/call", { name: "organizer_password_remove", arguments: {
+          expected_book_revision: removed.result.structuredContent.stored_book_revision, expected_state_revision: removed.result.structuredContent.state_revision } }));
+        assert.equal(incomplete.result.structuredContent.code, "invalid_result", "Missing native failure counts must not become an all-files-success claim");
+        const after = await read(995), lateDispatch = new Promise(resolve => { onPasswordWrite = message => { native = message; resolve(); }; });
+        const cancelled = call(request(996, "tools/call", { name: "organizer_password_set", arguments: { expected_book_revision: after.book_revision,
+          expected_state_revision: after.state_revision, new_password: "owned-cancelled-password" } }));
+        await lateDispatch; await call({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 996 } });
+        assert.equal((await cancelled).result.structuredContent.code, "cancelled");
+        const toast = b.w.document.querySelector("#zettel").textContent;
+        state = { ...state, encrypted: true, state_revision: "4".repeat(64) };
+        b.w.App.kennwortStand({ requestId: native.requestId, ok: true, an: true, fehler: "owned-late-password-message" });
+        assert.equal(b.w.document.querySelector("#zettel").textContent, toast);
+        assert.equal(b.w.document.querySelector("#einstellungen-schleier").classList.contains("verborgen"), true);
+        b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-sicherheit").click();
+        assert.ok(b.w.document.querySelector("#kennwort-weg"), "A committed late password change must update the product flag");
+        b.w.document.querySelector("#einstellungen-zu").click();
+        onPasswordRead = onPasswordWrite = null;
       }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));

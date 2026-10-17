@@ -21059,12 +21059,22 @@ class Fenster(_FENSTER_BASIS):
             self._kennwort_setzen(nachricht.get("neu") or "",
                                   nachricht.get("alt") or "",
                                   bool(nachricht.get("sicherungen", True)),
-                                  nachricht.get("sicherungsordner") or "")
+                                  nachricht.get("sicherungsordner") or "",
+                                  request_id=nachricht.get("requestId"),
+                                  expected_revision=nachricht.get("expectedRevision"),
+                                  expected_book_revision=nachricht.get("expectedBookRevision"))
 
         elif befehl == "kennwort_entfernen":
             self._kennwort_entfernen(
                 nachricht.get("alt") or "",
-                nachricht.get("sicherungsordner") or "")
+                nachricht.get("sicherungsordner") or "",
+                request_id=nachricht.get("requestId"),
+                expected_revision=nachricht.get("expectedRevision"),
+                expected_book_revision=nachricht.get("expectedBookRevision"))
+
+        elif befehl == "password_status":
+            threading.Thread(target=self._kennwort_status_arbeit,
+                             args=(nachricht,), daemon=True).start()
 
         elif befehl == "speichern":
             if not self._darf_schreiben():
@@ -22870,18 +22880,32 @@ class Fenster(_FENSTER_BASIS):
         if telefon_pflegen:
             threading.Thread(target=telefon_pflegen, daemon=True).start()
 
+    def _kennwort_status_arbeit(self, nachricht):
+        try:
+            with self._daten_sperre:
+                roh, revision = _erinnerungsprofil_lesen()
+                encrypted = ist_verschluesselt(roh)
+                klar = entschluesseln(roh, self._kennwort) if encrypted else roh
+                json.loads(klar)
+                state = {"encrypted": encrypted, "state_revision": revision,
+                         "book_revision": hashlib.sha256(json.dumps(klar, ensure_ascii=False).encode("utf-8")).hexdigest()}
+            self.antwort("App.passwordStand", {"requestId": nachricht.get("requestId"), "ok": True, "state": state})
+        except Exception:
+            self.antwort("App.passwordStand", {"requestId": nachricht.get("requestId"), "ok": False, "code": "native_operation_failed"})
+
     def _kennwort_setzen(self, neu, alt, mit_sicherungen=True,
-                         sicherungsordner=""):
+                         sicherungsordner="", *, request_id=None, expected_revision=None,
+                         expected_book_revision=None):
         """Richtet den Kennwortschutz ein oder ändert das Kennwort."""
         if not kennwort_moeglich():
             self.antwort("App.kennwortStand", {
-                "ok": False, "fehler":
+                "ok": False, "requestId": request_id, "fehler":
                     _("An encryption component is missing. Install it with: "
                       "sudo apt install python3-cryptography")})
             return
         if len(neu) < 4:
             self.antwort("App.kennwortStand", {
-                "ok": False, "fehler": _("Choose at least four characters.")})
+                "ok": False, "requestId": request_id, "fehler": _("Choose at least four characters.")})
             return
         # Der Organizer ist bereits entsperrt – das bisherige Kennwort ist
         # also bekannt und muss nicht noch einmal eingetippt werden.
@@ -22891,6 +22915,9 @@ class Fenster(_FENSTER_BASIS):
                 with open(daten_datei(), "r", encoding="utf-8") as datei:
                     roh = datei.read()
                 klar = entschluesseln(roh, bisher) if ist_verschluesselt(roh) else roh
+                if request_id and (hashlib.sha256(roh.encode("utf-8")).hexdigest() != expected_revision or
+                        hashlib.sha256(json.dumps(klar, ensure_ascii=False).encode("utf-8")).hexdigest() != expected_book_revision):
+                    raise ValueError("mcp_conflict")
                 baum_migration = baum_ablagen_vorbereiten(neu, bisher)
                 neue_dateien = dict(baum_migration["dateien"])
                 if (bisher and ist_verschluesselt(roh)
@@ -22911,7 +22938,8 @@ class Fenster(_FENSTER_BASIS):
                 self._erinnerungsprojektion_aktualisieren()
         except Exception as fehler:
             self.antwort("App.kennwortStand", {
-                "ok": False,
+                "ok": False, "requestId": request_id,
+                "code": "conflict" if str(fehler) == "mcp_conflict" else "native_operation_failed",
                 "fehler": fehler_deutsch(fehler, _("Encrypting the data"))})
             return
         bericht = {}
@@ -22925,13 +22953,14 @@ class Fenster(_FENSTER_BASIS):
         self._kennwort = neu
         sperre_schreiben(sperre_zuruecksetzen())
         self.antwort("App.kennwortStand", {
-            "ok": True, "an": True, "fehler": "",
+            "ok": True, "an": True, "requestId": request_id, "fehler": "",
             "sicherungen": bericht.get("geschafft", 0),
             "sicherungenFehler": bericht.get("misslungen", 0),
             "journal": journal_bericht.get("geschafft", 0),
             "journalFehler": journal_bericht.get("misslungen", 0)})
 
-    def _kennwort_entfernen(self, alt="", sicherungsordner=""):
+    def _kennwort_entfernen(self, alt="", sicherungsordner="", *, request_id=None,
+                           expected_revision=None, expected_book_revision=None):
         bisher = getattr(self, "_kennwort", "")
         try:
             with open(daten_datei(), "r", encoding="utf-8") as datei:
@@ -22940,7 +22969,7 @@ class Fenster(_FENSTER_BASIS):
             anfang = ""
         if sieht_verschluesselt_aus(anfang) and not bisher:
             self.antwort("App.kennwortStand", {
-                "ok": False, "fehler":
+                "ok": False, "requestId": request_id, "fehler":
                     _("The data is encrypted. Unlock the organizer with the password "
                       "first.")})
             return
@@ -22949,6 +22978,9 @@ class Fenster(_FENSTER_BASIS):
                 with open(daten_datei(), "r", encoding="utf-8") as datei:
                     roh = datei.read()
                 klar = entschluesseln(roh, bisher) if ist_verschluesselt(roh) else roh
+                if request_id and (hashlib.sha256(roh.encode("utf-8")).hexdigest() != expected_revision or
+                        hashlib.sha256(json.dumps(klar, ensure_ascii=False).encode("utf-8")).hexdigest() != expected_book_revision):
+                    raise ValueError("mcp_conflict")
                 baum_migration = baum_ablagen_vorbereiten("", bisher)
                 neue_dateien = dict(baum_migration["dateien"])
                 neue_dateien["daten.json"] = klar
@@ -22970,7 +23002,8 @@ class Fenster(_FENSTER_BASIS):
                 self._daten_umschlag = None
         except Exception as fehler:
             self.antwort("App.kennwortStand", {
-                "ok": False,
+                "ok": False, "requestId": request_id,
+                "code": "conflict" if str(fehler) == "mcp_conflict" else "native_operation_failed",
                 "fehler": fehler_deutsch(fehler, _("Decrypting the data"))})
             return
         self._kennwort = ""
@@ -22982,11 +23015,11 @@ class Fenster(_FENSTER_BASIS):
             nachher = ""
         if sieht_verschluesselt_aus(nachher):
             self.antwort("App.kennwortStand", {
-                "ok": False, "fehler":
+                "ok": False, "requestId": request_id, "fehler":
                     _("The data is still encrypted. Try again.")})
             return
         self.antwort("App.kennwortStand", {
-            "ok": True, "an": False, "fehler": "",
+            "ok": True, "an": False, "requestId": request_id, "fehler": "",
             "sicherungen": sicherungsbericht.get("geschafft", 0),
             "sicherungenFehler": sicherungsbericht.get("misslungen", 0),
             "journal": journal_bericht.get("geschafft", 0),

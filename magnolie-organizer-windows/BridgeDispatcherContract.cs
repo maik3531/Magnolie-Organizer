@@ -12,9 +12,10 @@ internal static class BridgeDispatcherContract
     {
         ["bereit"] = S(), ["entsperren"] = S(T("kennwort")),
         ["reminder_privacy_status"] = S(T("requestId")),
+        ["password_status"] = S(T("requestId")),
         ["mcp_antwort"] = S(T("session"), T("invocation"), new Field("response", true, [JsonValueKind.Object, JsonValueKind.Null])),
-        ["kennwort_setzen"] = S(T("alt"), T("neu"), O("sicherungen", JsonValueKind.True, JsonValueKind.False), O("sicherungsordner", JsonValueKind.String)),
-        ["kennwort_entfernen"] = S(T("alt"), O("sicherungsordner", JsonValueKind.String)),
+        ["kennwort_setzen"] = S(T("alt"), T("neu"), O("sicherungen", JsonValueKind.True, JsonValueKind.False), O("sicherungsordner", JsonValueKind.String), O("requestId", JsonValueKind.String), O("expectedRevision", JsonValueKind.String), O("expectedBookRevision", JsonValueKind.String)),
+        ["kennwort_entfernen"] = S(T("alt"), O("sicherungsordner", JsonValueKind.String), O("requestId", JsonValueKind.String), O("expectedRevision", JsonValueKind.String), O("expectedBookRevision", JsonValueKind.String)),
         ["speichern"] = S(N("id"), T("text"), O("kontaktePruefen", JsonValueKind.True, JsonValueKind.False), O("baumSyncLauf", JsonValueKind.Object, JsonValueKind.Null)), ["contributor_pruefen"] = S(T("key")), ["beenden"] = S(), ["beenden_bereit"] = S(), ["beenden_abgebrochen"] = S(),
         ["ablage_kopieren"] = S(T("text")), ["ablage_holen"] = S(), ["sicherung"] = S(T("pfad"), T("kennwort"), O("requestId", JsonValueKind.String)), ["sicherung_waehlen"] = S(),
         ["sicherung_pruefen"] = S(T("pfad"), T("kennwort"), O("requestId", JsonValueKind.String)),
