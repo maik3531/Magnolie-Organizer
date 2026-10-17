@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import selectors
+import shutil
 import sqlite3
 import signal
 import socket
@@ -77,14 +78,17 @@ for _ in range(16):
 assert parent_pid(bus_pid("org.freedesktop.DBus")) in ancestors, "Probe requires its own dbus-run-session ancestor"
 activation_keys = ("HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_RUNTIME_DIR",
     "SSH_AUTH_SOCK", "GNOME_KEYRING_CONTROL", "WAYLAND_DISPLAY", "GDK_BACKEND", "DISPLAY", "XAUTHORITY", "DBUS_SESSION_BUS_ADDRESS", "DBUS_SYSTEM_BUS_ADDRESS")
+if os.environ.get("MAGNOLIE_MCP_PROBE_SYNC_SETTINGS_ONLY") == "1":
+    os.environ["KRB5CCNAME"] = "FILE:" + str(Path(os.environ["XDG_RUNTIME_DIR"]) / "owned-krb5-cache")
+    activation_keys += ("KRB5CCNAME",)
 activation_environment = {key: os.environ.get(key, "") for key in activation_keys}
 native_bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
     "UpdateActivationEnvironment", GLib.Variant("(a{ss})", (activation_environment,)),
     None, Gio.DBusCallFlags.NONE, 5000, None)
 private_service_handles = {}
-def capture_private_secret_service():
+def capture_private_service(name):
     try:
-        pid = bus_pid("org.freedesktop.secrets")
+        pid = bus_pid(name)
     except GLib.Error:
         return
     if pid in private_service_handles:
@@ -92,13 +96,40 @@ def capture_private_secret_service():
     handle = os.pidfd_open(pid)
     try:
         environment = dict(item.split(b"=", 1) for item in Path("/proc/%d/environ" % pid).read_bytes().split(b"\0") if b"=" in item)
-        for key in ("HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_RUNTIME_DIR", "SSH_AUTH_SOCK", "GNOME_KEYRING_CONTROL", "DISPLAY"):
+        keys = ("HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_RUNTIME_DIR", "SSH_AUTH_SOCK", "GNOME_KEYRING_CONTROL", "DISPLAY") + (("KRB5CCNAME",) if "KRB5CCNAME" in activation_environment else ())
+        for key in keys:
             assert environment.get(key.encode()) == activation_environment[key].encode(), "Activated service escaped private " + key
         private_service_handles[pid] = handle
     except BaseException:
         os.close(handle)
         raise
+def capture_private_secret_service():
+    capture_private_service("org.freedesktop.secrets")
+def release_private_gvfs_mount():
+    runtime = Path(activation_environment["XDG_RUNTIME_DIR"]).resolve()
+    assert runtime.is_relative_to(Path(temporary.name).resolve()), "Refusing a non-fixture runtime mount"
+    mountpoint = runtime / "gvfs"
+    findmnt = shutil.which("findmnt")
+    assert findmnt, "Private FUSE cleanup requires the existing findmnt tool"
+    def mounted_type():
+        result = subprocess.run([findmnt, "--nocanonicalize", "--mountpoint", str(mountpoint), "--noheadings", "--output", "FSTYPE"], capture_output=True, text=True, timeout=5)
+        assert result.returncode in (0, 1), "Could not inspect the private runtime mount"
+        return result.stdout.strip() if result.returncode == 0 else None
+    kind = mounted_type()
+    if kind is None:
+        return
+    assert kind == "fuse.gvfsd-fuse", "Refusing an unexpected private mount type"
+    unmount = shutil.which("fusermount3") or shutil.which("fusermount")
+    assert unmount, "Private GVFS FUSE cleanup requires the existing fusermount tool"
+    subprocess.run([unmount, "-u", str(mountpoint)], capture_output=True, timeout=5)
+    assert mounted_type() is None, "Owned GVFS FUSE fixture did not unmount"
 def stop_private_secret_service():
+    names = native_bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
+        "ListNames", None, None, Gio.DBusCallFlags.NONE, 5000, None).unpack()[0]
+    order = lambda name: (0 if name.startswith("org.gnome.evolution.dataserver.") else 1 if name == "org.gnome.OnlineAccounts" else 2 if name == "org.gnome.Identity" else 3 if name.startswith("org.gtk.vfs.") else 4, name)
+    for name in sorted(names, key=order):
+        if name.startswith(("org.gnome.evolution.dataserver.", "org.gtk.vfs.")) or name in ("org.gnome.OnlineAccounts", "org.gnome.Identity", "ca.desrt.dconf"):
+            capture_private_service(name)
     capture_private_secret_service()
     for handle in private_service_handles.values():
         try:
@@ -110,10 +141,11 @@ def stop_private_secret_service():
                 waiter.register(handle, selectors.EVENT_READ)
                 if not waiter.select(3):
                     signal.pidfd_send_signal(handle, signal.SIGKILL)
-                    assert waiter.select(3), "Private Secret Service did not exit"
+                    assert waiter.select(3), "Private activated service did not exit"
         finally:
             os.close(handle)
     private_service_handles.clear()
+    release_private_gvfs_mount()
 sys.path.insert(0, str(ROOT / "bin"))
 profile = Path(os.environ["XDG_DATA_HOME"]) / "magnolie-organizer"
 profile.mkdir(mode=0o700)
@@ -139,7 +171,8 @@ data_file.write_text(json.dumps({"version": 6, "notizen": [{"id": "owned-native-
             "pauseMinute": None, "pauseMinutes": 0, "zone": "UTC", "type": "Owned remote conflict", "note": "Owned competing version",
             "modifiedMs": 1, "deleted": False, "clock": {"33333333-3333-4333-8333-333333333333": 1}, "pausePlan": None}]}}, "einstellungen": {
     "allgemein": {"wiederherstellungsintervall": "manual", "tray": {"aktiv": False}},
-    "update": {"automatisch": False}, "sync": {"beimStart": False},
+    "update": {"automatisch": False}, "sync": {"beimStart": False,
+        **({"kalenderUid": "owned-offline-sync", "kalenderUids": ["owned-offline-sync"]} if os.environ.get("MAGNOLIE_MCP_PROBE_SYNC_SETTINGS_ONLY") == "1" else {})},
     "ort": {"land": "DE", "region": "DE-BE", "ferien": False, "alleRegionen": False},
     "erinnerung": {"an": False, "wecken": False, "jahrestage": {"an": False}}}}))
 loader = importlib.machinery.SourceFileLoader("magnolie_mcp_native_product", str(ROOT / "bin/magnolie-organizer"))
@@ -156,6 +189,28 @@ def unrelated_transport(*_args, **_kwargs):
 product._kdeconnect_backend = unrelated_transport
 product.kdeconnect_sms_stand = lambda *_args, **_kwargs: {
     "available": False, "device_count": 0, "device_id": "", "reason": "isolated_book_fixture", "pairing_state": "idle"}
+if os.environ.get("MAGNOLIE_MCP_PROBE_SYNC_SETTINGS_ONLY") == "1":
+    try:
+        # This owned-source fixture exercises real EDS, not an Akonadi server.
+        product.akonadi_helper_finden = lambda: None
+        state["akonadi_transport_blocked"] = True
+        assert product.eds_laden() and product._EDS["buch_ok"], "Owned EDS fixture requires installed calendar/address-book types"
+        owned_registry = product.eds_registry()
+        for source_id, extension, label in (
+                ("owned-mcp-calendar", product._EDS["EDataServer"].SOURCE_EXTENSION_CALENDAR, "Owned MCP calendar"),
+                ("owned-mcp-addressbook", product._EDS["EDataServer"].SOURCE_EXTENSION_ADDRESS_BOOK, "Owned MCP address book")):
+            source = product._EDS["EDataServer"].Source.new_with_uid(source_id, None)
+            source.set_parent("local-stub"); source.set_enabled(True); source.set_display_name(label)
+            source.get_extension(extension).set_backend_name("local")
+            assert owned_registry.commit_source_sync(source, None), "Owned EDS source was not committed"
+    except BaseException:
+        try:
+            stop_private_secret_service()
+            temporary.cleanup()
+        except BaseException:
+            temporary._finalizer.detach()  # Keep an uncertain mounted tree for diagnosis.
+            raise
+        raise
 window = product.Fenster(str(ROOT / "web"))
 # This fixture proves the book/MCP/save path, not handset or tree transport.
 # Keep unrelated startup transports inactive instead of binding another host listener.
@@ -241,6 +296,40 @@ def client():
         assert status["structuredContent"]["ready"] and not status["structuredContent"]["locked"], status
         notes = call("tools/call", {"name": "organizer_data_read", "arguments": {"section": "notizen"}})
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
+        if os.environ.get("MAGNOLIE_MCP_PROBE_SYNC_SETTINGS_ONLY") == "1":
+            available = call("tools/call", {"name": "organizer_sync_sources_read"})["structuredContent"]["status"]
+            assert any(source["uid"] == "owned-mcp-calendar" for source in available["alleKalender"]), available
+            assert any(source["uid"] == "owned-mcp-addressbook" for source in available["alleAdressbuecher"]), available
+            def read_sync_settings():
+                result = call("tools/call", {"name": "organizer_sync_settings_read"})
+                assert not result["isError"], result
+                return result["structuredContent"]
+            def write_sync_settings(previous, **fields):
+                return call("tools/call", {"name": "organizer_sync_settings_update", "arguments": {"expected_revision": previous["revision"], **fields}})
+            sync_before = read_sync_settings()
+            assert sync_before["settings"]["primary_calendar_id"] == "owned-offline-sync", sync_before
+            flags = write_sync_settings(sync_before, at_startup=False, success_notifications=True, prefer_newer_contacts=True)
+            assert not flags["isError"] and flags["structuredContent"]["persisted"], flags
+            selected = write_sync_settings(read_sync_settings(), calendar_ids=["owned-offline-sync", "owned-mcp-calendar"], address_book_id="owned-mcp-addressbook")
+            assert not selected["isError"] and selected["structuredContent"]["persisted"], selected
+            stored_sync = json.loads(data_file.read_text())["einstellungen"]["sync"]
+            assert stored_sync["kalenderUids"] == ["owned-offline-sync", "owned-mcp-calendar"] and stored_sync["kalenderUid"] == "owned-offline-sync"
+            assert stored_sync["adressbuchUid"] == "owned-mcp-addressbook" and stored_sync["erfolgsmeldungen"] and stored_sync["kontaktNeuereBevorzugen"] and not stored_sync["beimStart"]
+            before_invalid = data_file.read_text()
+            stale_sync = write_sync_settings(sync_before, success_notifications=False)
+            assert stale_sync["isError"] and stale_sync["structuredContent"]["code"] == "conflict", stale_sync
+            invalid_sync = write_sync_settings(read_sync_settings(), calendar_ids=["owned-not-offered"])
+            assert invalid_sync["isError"] and invalid_sync["structuredContent"]["code"] == "invalid_settings", invalid_sync
+            assert data_file.read_text() == before_invalid
+            unlinked = write_sync_settings(read_sync_settings(), calendar_ids=[], address_book_id="")
+            assert not unlinked["isError"] and unlinked["structuredContent"]["persisted"] and unlinked["structuredContent"]["settings"]["primary_calendar_id"] == "", unlinked
+            assert any(note["id"] == "owned-native-fixture" and note["text"] == "No user data" for note in json.loads(data_file.read_text())["notizen"])
+            state["sync_settings_verified"] = True
+            process.stdin.close()
+            assert process.wait(timeout=5) == 0
+            selector.close()
+            state["passed"] = True
+            return
         if os.environ.get("MAGNOLIE_MCP_PROBE_LOCAL_ONLY") == "1":
             profile = Path(os.environ["HOME"]) / ".thunderbird" / "owned.default"
             (profile / "calendar-data").mkdir(parents=True)
@@ -1917,13 +2006,17 @@ finally:
                 process.wait(timeout=3)
     try:
         stop_private_secret_service()
+        temporary.cleanup()
+        state["cleanup_verified"] = True
     except BaseException:
+        temporary._finalizer.detach()  # Do not traverse a tree whose services/mount did not stop.
         state["passed"] = False
-        state["error"] = (state.get("error") or "") + "\nPrivate service cleanup:\n" + traceback.format_exc(limit=4)
+        state["error"] = (state.get("error") or "") + "\nPrivate service/temporary cleanup:\n" + traceback.format_exc(limit=4)
     print("Native MCP fixture state:", json.dumps(state), flush=True)
-    temporary.cleanup()
-assert state["passed"], state
-if os.environ.get("MAGNOLIE_MCP_PROBE_LOCAL_ONLY") == "1":
+assert state["passed"] and state.get("cleanup_verified"), state
+if os.environ.get("MAGNOLIE_MCP_PROBE_SYNC_SETTINGS_ONLY") == "1":
+    print("Native MCP SYNC SETTINGS PASS: actual private EDS source discovery/validation, preference CAS, durable save/readback, retained offline primary and unlink")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_LOCAL_ONLY") == "1":
     print("Native MCP LOCAL PASS: actual Thunderbird SQLite and Evolution ICS readers, staged source/scope CAS, checkpoint/save/readback, birthday, stale-source rejection and replay")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_WASTE_SOURCE_ONLY") == "1":
     print("Native MCP WASTE SOURCE PASS: exact CSV heading reconstruction across byte chunks and real ICS preview fields, unchanged book")

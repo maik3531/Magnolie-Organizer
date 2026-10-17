@@ -130,6 +130,8 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_attachment_remove` | Revision-checked product attachment trash and shared-note update |
 | `organizer_settings_read` | Current product settings |
 | `organizer_sync_sources_read` | Actual native calendar/address-book/account availability, with request- and callback-bound results |
+| `organizer_sync_settings_read` | Calendar/address-book selections and GUI sync preferences under a revision covering the complete sync preference object |
+| `organizer_sync_settings_update` | Shared GUI selection/preferences, native validation of newly linked IDs and durable save; preserves offline selections and existing record/provider routing |
 | `organizer_note_read` | Note and revision token |
 | `organizer_note_create` | Plain-text note in an existing notebook; native save acknowledgement |
 | `organizer_note_update` | Revision-checked title, plain text or notebook change; attachments retained |
@@ -299,6 +301,17 @@ book documents. Outstanding commits do not expire on a cleanup timer; a full
 correlation table rejects another password action with `native_busy` before
 native submission. A failed submission releases its reservation. Responses for
 other IDs or replaced books cannot change the current book's encryption flag.
+
+Synchronization preference writes accept calendar IDs, an address-book ID,
+startup synchronization, success notifications and the reliable-newer-contact
+policy. Newly linked IDs are checked against a fresh correlated native source
+lookup; existing saved offline IDs can be retained, and clearing selections works
+without source discovery. A still-selected primary calendar is preserved even if
+the array is reordered; removing it selects the first remaining calendar, exactly
+as the GUI does. Empty selections disable those links. Other phone/time preferences,
+entity bindings, provider metadata and pending synchronization transactions remain
+intact. These tools update preferences, not account credentials or a running sync
+transaction. Revision checking includes the unexposed sync preferences as well.
 
 For local imports, supply `local_source` (`evolution`/`thunderbird` on Linux,
 `windows_contacts`/`thunderbird` on Windows) and optional `local_scope`

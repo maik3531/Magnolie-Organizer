@@ -24423,7 +24423,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     startHak.id = "sync-beim-start";
     startHak.checked = !!DATEN.einstellungen.sync.beimStart;
     startHak.addEventListener("change", () => {
-      DATEN.einstellungen.sync.beimStart = startHak.checked;
+      wendeSyncEinstellungenDatenAn({ beimStart: startHak.checked });
       planeSpeichern();
     });
     const startZeile = el("label", "hak");
@@ -24435,7 +24435,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     meldungsHak.type = "checkbox"; meldungsHak.id = "sync-erfolgsmeldungen";
     meldungsHak.checked = DATEN.einstellungen.sync.erfolgsmeldungen === true;
     meldungsHak.addEventListener("change", () => {
-      DATEN.einstellungen.sync.erfolgsmeldungen = meldungsHak.checked;
+      wendeSyncEinstellungenDatenAn({ erfolgsmeldungen: meldungsHak.checked });
       planeSpeichern();
     });
     const meldungsZeile = el("label", "hak");
@@ -24447,7 +24447,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     neuereHak.type = "checkbox"; neuereHak.id = "sync-kontakte-neuer";
     neuereHak.checked = DATEN.einstellungen.sync.kontaktNeuereBevorzugen === true;
     neuereHak.addEventListener("change", () => {
-      DATEN.einstellungen.sync.kontaktNeuereBevorzugen = neuereHak.checked; planeSpeichern();
+      wendeSyncEinstellungenDatenAn({ kontaktNeuereBevorzugen: neuereHak.checked }); planeSpeichern();
     });
     const neuereZeile = el("label", "hak");
     neuereZeile.append(neuereHak, document.createTextNode(" " +
@@ -29258,6 +29258,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     });
   }
 
+  function wendeSyncEinstellungenDatenAn(values) {
+    const settings = DATEN.einstellungen.sync;
+    if (values.kalenderUids !== undefined) {
+      settings.kalenderUids = [...new Set(values.kalenderUids)];
+      if (!settings.kalenderUids.includes(settings.kalenderUid)) settings.kalenderUid = settings.kalenderUids[0] || "";
+    }
+    for (const field of ["adressbuchUid", "beimStart", "erfolgsmeldungen", "kontaktNeuereBevorzugen"])
+      if (values[field] !== undefined) settings[field] = values[field];
+  }
   function fuelleEdsAuswahl(nutzlast) {
     const status = $("#sync-status");
     const wahl = $("#sync-wahl");
@@ -29297,8 +29306,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       hak.addEventListener("change", () => {
         const auswahl = Array.from(kalListe.querySelectorAll("input:checked"))
           .map((feld) => feld.value);
-        sw.kalenderUids = auswahl;
-        if (!auswahl.includes(sw.kalenderUid)) sw.kalenderUid = auswahl[0] || "";
+        wendeSyncEinstellungenDatenAn({ kalenderUids: auswahl });
         planeSpeichern();
       });
       kalListe.append(zeile);
@@ -29316,7 +29324,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         [["", _("— do not link —")]].concat(
           adressbuecher.map((q) => [q.uid, q.name + " — " + anbieter(q, "CardDAV")])), sw.adressbuchUid);
       adrWahl.addEventListener("change", () => {
-        sw.adressbuchUid = adrWahl.value;
+        wendeSyncEinstellungenDatenAn({ adressbuchUid: adrWahl.value });
         planeSpeichern();
       });
       wahl.append(formZeile(_("Address book"), adrWahl));
@@ -34654,6 +34662,38 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         !["uebersprungen", "wiederholend"].every(key => Number.isSafeInteger(value[key]) && value[key] >= 0)) throw new MagnolieMcp.ToolError("invalid_result", "Native local import snapshot or selected collections were incomplete");
     return value;
   }
+  function mcpSyncEinstellungenWerkzeuge() {
+    const uid = { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" };
+    const fields = { calendar_ids: { type: "array", maxItems: 10000, uniqueItems: true, items: uid }, address_book_id: { type: "string", maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]*$" },
+      at_startup: { type: "boolean" }, success_notifications: { type: "boolean" }, prefer_newer_contacts: { type: "boolean" } };
+    const settings = value => ({ calendar_ids: [...value.kalenderUids], primary_calendar_id: value.kalenderUid, address_book_id: value.adressbuchUid,
+      at_startup: value.beimStart, success_notifications: value.erfolgsmeldungen, prefer_newer_contacts: value.kontaktNeuereBevorzugen });
+    return [
+      { name: "organizer_sync_settings_read", description: "Read selected calendar/address-book IDs, the preserved primary calendar, startup synchronization, success-notification and reliable-newer-contact preferences. Revision covers the complete sync preference object, including unrelated phone/time settings. Source availability is read separately through sync_sources_read.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => {
+          const before = JSON.stringify(DATEN.einstellungen.sync); return { settings: settings(JSON.parse(before)), revision: await personalSyncHash(before) };
+        } },
+      { name: "organizer_sync_settings_update", description: "Revision-check selected sources and sync preferences through the shared GUI settings handler, then await native save. Newly linked IDs must be offered by a fresh correlated native source lookup; existing saved offline selections can be retained. Removing the primary calendar chooses the first remaining ID, as the GUI does; an empty list/address-book ID disables that link. Other phone/time/provider/runtime state is retained. Does not run synchronization, copy records, move provider bindings or log in; startup preference applies at the next normal product startup.",
+        inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, ...fields }, required: ["expected_revision"], anyOf: Object.keys(fields).map(key => ({ required: [key] })), additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true }, call: (args, signal) => mcpSchreiben(signal, async () => {
+          const book = DATEN, before = JSON.stringify(book.einstellungen.sync), previous = JSON.parse(before), revision = await personalSyncHash(before);
+          const current = () => !signal.aborted && DATEN === book && JSON.stringify(DATEN.einstellungen.sync) === before;
+          if (!current() || revision !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Synchronization preferences changed; read them again");
+          const calendars = (args.calendar_ids || []).filter(id => !previous.kalenderUids.includes(id));
+          const address = args.address_book_id && args.address_book_id !== previous.adressbuchUid ? args.address_book_id : "";
+          if (calendars.length || address) {
+            const available = await mcpNativeAufruf("eds_status", {}, "edsStatus", signal);
+            const calendarSources = available.alleKalender ?? available.kalender, addressSources = available.alleAdressbuecher ?? available.adressbuecher;
+            if (!Array.isArray(calendarSources) || !Array.isArray(addressSources)) throw new MagnolieMcp.ToolError("invalid_result", "Native source lookup returned incomplete calendar/address-book selections");
+            if (calendars.some(id => !calendarSources.some(source => source?.uid === id)) || address && !addressSources.some(source => source?.uid === address)) throw new MagnolieMcp.ToolError("invalid_settings", "A newly selected calendar or address book is not offered by the native product; refresh source availability");
+          }
+          mcpEditorPruefen(); if (!current()) throw new MagnolieMcp.ToolError("conflict", "Synchronization preferences changed before applying selected sources");
+          wendeSyncEinstellungenDatenAn({ ...(args.calendar_ids !== undefined ? { kalenderUids: args.calendar_ids } : {}), ...(args.address_book_id !== undefined ? { adressbuchUid: args.address_book_id } : {}),
+            ...(args.at_startup !== undefined ? { beimStart: args.at_startup } : {}), ...(args.success_notifications !== undefined ? { erfolgsmeldungen: args.success_notifications } : {}), ...(args.prefer_newer_contacts !== undefined ? { kontaktNeuereBevorzugen: args.prefer_newer_contacts } : {}) });
+          return { settings: settings(DATEN.einstellungen.sync) };
+        }) }
+    ];
+  }
   function mcpMuellImportWerkzeuge() {
     const hash = { type: "string", pattern: "^[a-f0-9]{64}$" }, column = { type: "integer", minimum: -1, maximum: 63 };
     const common = { path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, expected_revision: hash,
@@ -34820,7 +34860,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (mcpImportPruefungen.get(token)?.owner !== owner) throw new MagnolieMcp.ToolError("not_found", "Import review not found for this session");
         mcpVerwerfeImportPruefung(token); return { token, cancelled: true };
       } },
-      { name: "organizer_import_review_apply", description: "Apply a staged additive import through the actual shared GUI merge handlers. Requires the unchanged complete book and selection revisions, rechecks native source bytes, rejects unresolved choices, honors editor/modal/sync guards and uses the existing pre-contact snapshot. Only the imported collections are committed; unrelated runtime collections retain identity. Success follows durable native save acknowledgement. The one-use review is consumed on model commit; cancellation/save failure can follow mutation, so inspect the book before retrying. No import/conflict dialog or toast is opened.",
+      { name: "organizer_import_review_apply", description: "Apply a staged additive import through the actual shared GUI merge handlers. Requires the unchanged complete book and selection revisions, rechecks native file bytes or the local semantic snapshot, rejects unresolved choices, honors editor/modal/sync guards and uses the existing pre-contact snapshot. Only the imported collections are committed; unrelated runtime collections retain identity. Success follows durable native save acknowledgement. The one-use review is consumed on model commit; cancellation/save failure can follow mutation, so inspect the book before retrying. No import/conflict dialog or toast is opened.",
         inputSchema: { ...schema({ expected_book_revision: hash, expected_selection_revision: count }), required: ["token", "expected_book_revision", "expected_selection_revision"] }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: (args, signal) => mcpMitImportPruefung(args.token, owner, async review => {
           version(review); mcpEditorPruefen();
           if (syncLaeuft || personalSyncAutoLaeuft) throw new MagnolieMcp.ToolError("native_busy", "Finish synchronization before applying an import");
@@ -35791,6 +35831,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (["organizer_sync_settings_read", "organizer_sync_settings_update"].includes(name)) {
+      const settings = shape({ calendar_ids: { type: "array", items: text }, primary_calendar_id: text, address_book_id: text, at_startup: flag, success_notifications: flag, prefer_newer_contacts: flag }, ["calendar_ids", "primary_calendar_id", "address_book_id", "at_startup", "success_notifications", "prefer_newer_contacts"]);
+      return name.endsWith("_read") ? shape({ settings, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]) : shape({ settings, persisted: yes }, ["settings", "persisted"]);
+    }
     if (name === "organizer_waste_import_source_read") return shape({ path: text, source_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, source_sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, source_bytes: { type: "integer", minimum: 0 }, kind: { type: "string", enum: ["rows", "appointments"] }, encoding: { type: "string", enum: ["base64"] }, charset: { type: "string", enum: ["UTF-8"] }, total_records: { type: "integer", minimum: 0, maximum: 10001 }, content_sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, total_bytes: { type: "integer", minimum: 0 }, offset: { type: "integer", minimum: 0 }, data: text, next_offset: { type: ["integer", "null"], minimum: 0 } }, ["path", "source_revision", "source_sha256", "source_bytes", "kind", "encoding", "charset", "total_records", "content_sha256", "total_bytes", "offset", "data", "next_offset"]);
     if (name === "organizer_waste_import_preview") return shape({ path: text, format: { type: "string", enum: ["ics", "csv"] }, source: { type: "string", pattern: "^waste:(ics|csv):[a-f0-9]{64}$" }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, bytes: { type: "integer", minimum: 0 }, book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, mapping_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, groups: { type: "array", minItems: 1, maxItems: 64, items: shape({ type: text, name: text, kind: { type: "string", enum: ["residual", "packaging", "organic", "custom"] }, color: { type: "string", pattern: "^#[a-fA-F0-9]{6}$" }, count: { type: "integer", minimum: 1, maximum: 10000 }, from: text, to: text }, ["type", "name", "kind", "color", "count", "from", "to"]) } }, ["path", "format", "source", "revision", "sha256", "bytes", "book_revision", "mapping_revision", "groups"]);
     if (name === "organizer_waste_import_apply") return shape({ persisted: yes, source_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, group_ids: { type: "array", minItems: 1, maxItems: 64, items: id }, incoming_unique_count: { type: "integer", minimum: 1, maximum: 10000 }, recovery_snapshot_confirmed: yes }, ["persisted", "source_revision", "group_ids", "incoming_unique_count", "recovery_snapshot_confirmed"]);
@@ -36013,6 +36057,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpDruckWerkzeuge(),
       ...mcpBerichtDruckWerkzeuge(),
       ...mcpMuellImportWerkzeuge(),
+      ...mcpSyncEinstellungenWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
