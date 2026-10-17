@@ -45,9 +45,9 @@ internal static class LocalImportSource
                 result["wiederholend"] = parsed.Wiederholend; result["localCalendarStores"] = read;
             }
             var books = ThunderbirdCalendarImporter.ParseAddressBooks(profiles, out var addressBooks);
-            // Preserve the existing default-area GUI semantics; explicit source
-            // selections keep Windows Contacts and Thunderbird separate.
-            result["kontakte"] = new JsonArray(books.Kontakte.OfType<JsonObject>().Select(item => (JsonNode)item.DeepClone()).ToArray());
+            // The combined GUI scan retains Windows Contacts; an explicit
+            // Thunderbird scan starts with an empty list above.
+            foreach (var contact in books.Kontakte.OfType<JsonObject>()) contacts.Add(contact.DeepClone());
             result["localAddressBooks"] = addressBooks;
             result["uebersprungen"] = result["uebersprungen"]!.GetValue<int>() + books.Uebersprungen;
         }

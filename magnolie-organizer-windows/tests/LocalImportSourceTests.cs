@@ -32,6 +32,12 @@ internal static class LocalImportSourceTests
             }
             var first = await LocalImportSource.ReadAsync("thunderbird", false, contacts, thunderbird);
             TestAssert.That(first["kontakte"]!.AsArray().Count == 1 && first["termine"]!.AsArray().Count == 1, "Actual local Thunderbird readers did not return the fixture.");
+            var combined = await LocalImportSource.ReadAsync("", false, contacts, thunderbird);
+            TestAssert.That(combined["kontakte"]!.AsArray().Count == 2 && combined["kontakte"]!.AsArray().Select(contact => contact!["nachname"]!.GetValue<string>()).ToHashSet().SetEquals(["Windows", "Thunderbird"]),
+                $"Default local import omitted a contact source: native count {combined["kontakte"]!.AsArray().Count} instead of 2.");
+            var emptyThunderbird = Path.Combine(root, "EmptyThunderbird"); Directory.CreateDirectory(emptyThunderbird);
+            var onlyWindows = await LocalImportSource.ReadAsync("", false, contacts, emptyThunderbird);
+            TestAssert.That(onlyWindows["kontakte"]!.AsArray().Count == 1 && onlyWindows["kontakte"]![0]!["nachname"]!.GetValue<string>() == "Windows", "An empty Thunderbird root removed Windows Contacts from the combined scan.");
             LocalImportSource.BindSnapshot(first, "thunderbird", "all"); var revision = first["revision"]!.GetValue<string>();
             var second = await LocalImportSource.ReadAsync("thunderbird", false, contacts, thunderbird);
             LocalImportSource.BindSnapshot(second, "thunderbird", "all", revision);
