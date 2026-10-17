@@ -1471,6 +1471,39 @@ def client():
                             os.close(background_handle)
                 assert background_cleanup.get("ok") and background_product.wait_for_daemon_release(), background_cleanup
                 assert not Path(background_product.autostart_path()).exists()
+        review_book_before = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        reviewed_contact = review_book_before["kontakte"][0]
+        assert reviewed_contact.get("uid"), "Owned native review fixture requires its existing contact UID"
+        review_file = Path(temporary.name) / "owned-native-review.vcf"
+        review_file.write_text(product.vcf_schreiben([
+            {"uid": reviewed_contact["uid"], "vorname": "Owned reviewed", "nachname": reviewed_contact.get("nachname", ""), "notiz": "Owned native reviewed content"},
+            {"uid": "owned-native-review-new", "vorname": "Native review", "nachname": "Created", "geburtstag": "--02-29", "geburtstagJahrUnbekannt": True}]))
+        review_revision = call("tools/call", {"name": "organizer_book_revision_read"})["structuredContent"]["revision"]
+        staged_import = call("tools/call", {"name": "organizer_import_review_begin", "arguments": {
+            "format": "vcf", "path": str(review_file), "expected_book_revision": review_revision}})
+        assert not staged_import["isError"] and staged_import["structuredContent"]["contacts_total"] == 2, staged_import
+        staged = staged_import["structuredContent"]
+        assert json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password")) == review_book_before
+        review_page = call("tools/call", {"name": "organizer_import_review_read", "arguments": {"token": staged["token"]}})
+        assert not review_page["isError"] and len(review_page["structuredContent"]["plans"]) == 2, review_page
+        selected_import = call("tools/call", {"name": "organizer_import_review_decide", "arguments": {
+            "token": staged["token"], "expected_selection_revision": 0, "decisions": [{"index": 0, "action": "replace", "target_id": reviewed_contact["id"]}]}})
+        assert not selected_import["isError"] and selected_import["structuredContent"]["unresolved_contacts"] == 0, selected_import
+        imported_review = call("tools/call", {"name": "organizer_import_review_apply", "arguments": {
+            "token": staged["token"], "expected_selection_revision": selected_import["structuredContent"]["selection_revision"], "expected_book_revision": review_revision}})
+        assert not imported_review["isError"] and imported_review["structuredContent"]["persisted"] and imported_review["structuredContent"]["counts"]["contacts"] == 2, imported_review
+        review_book_after = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        kept_contact = next(contact for contact in review_book_after["kontakte"] if contact["id"] == reviewed_contact["id"])
+        assert kept_contact["uid"] == reviewed_contact["uid"] and kept_contact["vorname"] == "Owned reviewed"
+        assert kept_contact.get("syncQuellen") == reviewed_contact.get("syncQuellen")
+        new_review_contact = next(contact for contact in review_book_after["kontakte"] if contact["uid"] == "owned-native-review-new")
+        assert new_review_contact["sync"] is False and not new_review_contact.get("baumKontakt")
+        assert len([anniversary for anniversary in review_book_after["jahrestage"] if anniversary.get("kontaktId") == new_review_contact["id"]]) == 1
+        for untouched in ("notizen", "termine", "aufgaben", "gesundheit", "zeiterfassung"):
+            assert review_book_after[untouched] == review_book_before[untouched], untouched
+        stale_review_apply = call("tools/call", {"name": "organizer_import_review_apply", "arguments": {
+            "token": staged["token"], "expected_selection_revision": 1, "expected_book_revision": review_revision}})
+        assert stale_review_apply["isError"] and stale_review_apply["structuredContent"]["code"] == "not_found", stale_review_apply
         records_envelope_before = data_file.read_text()
         records_book = json.loads(product.entschluesseln(records_envelope_before, "owned-classic-backup-password"))
         records_revision = call("tools/call", {"name": "organizer_book_revision_read"})["structuredContent"]["revision"]

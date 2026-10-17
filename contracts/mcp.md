@@ -129,6 +129,12 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_password_set/remove` | Existing native password transactions with mandatory `expected_book_revision` and `expected_state_revision` from status. Flushes book saves first; native current-file/content CAS rejects intervening saves or rewrapping. Success requires authenticating/readback of the resulting primary with unchanged book content. Existing platform backup/journal policies are retained and related-file changed/failed counts are separate; no claim that every related file changed successfully. A committed late response updates the same book's encryption flag without opening settings/toasts. Cancellation can follow commit; re-read status before retrying. |
 | `organizer_records_export` | Full-section ICS appointments/anniversaries/tasks, Lotus CSV appointments, vCard or LDIF contacts through the shared GUI preparation and actual native codecs. Requires current book revision, book-save gate, explicit file and overwrite choice; active-profile and linked targets are rejected. Actual file-byte/SHA-256 readback confirms writing. Native skipped/loss counters are returned; raw omission count is `null` where not reported. Product format limitations remain, and private contact galleries/provider bindings are removed by the same contact preparation as the GUI. No application or mail action is launched. |
 | `organizer_import_preview` | Explicit-file inspection through the actual native ICS/vCalendar/Lotus CSV/vCard/LDIF/Claws XML reader and supported bounded ZIP handling. Returns parsed section counts, source bytes/SHA-256 and an opaque format/path/content revision; optional `expected_revision` rejects a changed source before parsing. Parsed content stays inside the native/web bridge and is not returned in the MCP envelope. No book change or import/conflict dialog occurs. Native counters are `null` where unreported. This is inspection; additive import application is separate. |
+| `organizer_import_review_begin` | Stage a native-parsed additive import under the current complete book revision. Existing GUI contact planning, privacy stripping, remembered rejections and reliable-time preferences are used. Optional source revision and note destination; the selected/current notebook is captured. At most two session-owned reviews are held globally, with five-minute idle expiry renewed by use. No book mutation or dialog. |
+| `organizer_import_review_read` | Bounded pages of contact decisions/candidates and normalized-list counts, without large notes/photos. Includes the selection revision and unresolved count. Virtual earlier source cards remain stable candidates within the staged review. |
+| `organizer_import_review_decide` | Atomic batches of up to 100 staged decisions under `expected_selection_revision`. New/skip/keep/merge/replace/newer, scalar choices, normalized list add/keep/replacement and optional birth-name preservation use the existing product model. Only offered targets/valid list indices are accepted; newer requires bound reliable timestamps. Book data is unchanged. |
+| `organizer_import_review_content_read` | Cached records, sanitized incoming contacts, offered candidates and GUI-normalized lists as at most 64 KiB UTF-8/base64 byte chunks. Strings retain literal text; other values use JSON. Content revisions protect subsequent chunks; traversal stays inside the chosen staged record. |
+| `organizer_import_review_cancel` | Release this session's staged review without book mutation. Session close and idle expiry release it as well. |
+| `organizer_import_review_apply` | Recheck native source identity/content, complete book and selection revisions, editor/modal/sync gates and all contact decisions. Use the existing pre-contact snapshot and shared additive entity/contact handlers against isolated collection drafts. Only imported collections are committed; unrelated runtime objects retain identity. Returns product merge statistics and the new book revision after native save acknowledgement. The review is consumed at model commit, so cancellation/save failure can follow mutation and requires live-book inspection before retrying. No import dialog or toast is opened. |
 | `organizer_attachment_save` | Export an existing note attachment to an explicit file using the native product validator/writer and actual-file readback. Full note revision required; explicit overwrite, active-profile and symlink guards. Returns confirmed path, byte count and SHA-256. |
 | `organizer_attachment_open` | Revision-bound native request to open an attachment with the registered application. Confirms operating-system launcher acceptance only; Linux waits for a successful launcher exit with a 15-second timeout. Native callbacks are correlated, including failures and late responses. |
 | `organizer_appointment_read` | Appointment, provider/read-only metadata and revision token |
@@ -225,6 +231,21 @@ book documents. Outstanding commits do not expire on a cleanup timer; a full
 correlation table rejects another password action with `native_busy` before
 native submission. A failed submission releases its reservation. Responses for
 other IDs or replaced books cannot change the current book's encryption flag.
+
+Staged import reviews retain parsed records only for their owning session and
+unchanged book. Read/decision/content operations renew the five-minute idle
+expiry. Contact cards are sanitized through the GUI review model before staged
+content reads: imported data cannot grant synchronization/sharing rights or
+inject local clock proofs. Candidate and normalized-list views let clients make
+the same explicit choices as the GUI without opening it. Content reads are
+cached; apply re-reads the actual source with the captured native revision.
+Product merge counts include reviewed contact updates, and linked birthdays
+follow the contact handler rather than being imported twice. `notes_skipped`
+reports notes rejected by local validation, including oversized HTML. A full
+review table returns `review_limit`; incomplete choices return
+`decision_required`. A changed book invalidates the review. A review is one-use
+once its model change begins; `persisted: true` still requires the durable native
+save acknowledgement.
 
 ## Remaining coverage in #170
 

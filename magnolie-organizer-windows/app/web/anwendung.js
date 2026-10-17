@@ -34136,6 +34136,94 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (value !== "month") calendar.uebersichtAb = null;
     calendar.bearbeiteId = null;
   }
+  const mcpImportPruefungen = new Map();
+  const MCP_IMPORT_BEREICHE = ["termine", "jahrestage", "geburtstage", "aufgaben", "kontakte", "notizen"];
+  function mcpImportAnzahlen(payload) {
+    return Object.fromEntries(Object.entries({ appointments: "termine", anniversaries: "jahrestage", birthdays: "geburtstage", tasks: "aufgaben", contacts: "kontakte", notes: "notizen" }).map(([key, field]) => [key, payload[field]?.length || 0]));
+  }
+  function mcpVerwerfeImportPruefung(token) {
+    const review = mcpImportPruefungen.get(token);
+    if (review) clearTimeout(review.timer);
+    mcpImportPruefungen.delete(token);
+  }
+  function mcpBeruehreImportPruefung(review) {
+    clearTimeout(review.timer); review.expires = Date.now() + 300000;
+    const token = review.token, expires = review.expires;
+    review.timer = setTimeout(() => { if (mcpImportPruefungen.get(token)?.expires === expires) mcpVerwerfeImportPruefung(token); }, 300000);
+  }
+  function mcpLeseImportPruefung(token, owner) {
+    const review = mcpImportPruefungen.get(token);
+    if (!review || review.owner !== owner) throw new MagnolieMcp.ToolError("not_found", "Import review not found for this session");
+    if (review.expires <= Date.now()) { mcpVerwerfeImportPruefung(token); throw new MagnolieMcp.ToolError("not_found", "Import review expired"); }
+    if (review.preparing) throw new MagnolieMcp.ToolError("native_busy", "Import review is still being prepared");
+    if (review.book !== DATEN || kanonischerEntwurf(DATEN) !== review.bookCanonical) {
+      mcpVerwerfeImportPruefung(token); throw new MagnolieMcp.ToolError("conflict", "Book changed; start a fresh import review");
+    }
+    mcpBeruehreImportPruefung(review); return review;
+  }
+  function mcpImportPruefMetadaten(review) {
+    const plans = review.preparation?.plaene || [];
+    return { token: review.token, source_revision: review.payload.revision, book_revision: review.bookRevision,
+      selection_revision: review.version, expires_ms: review.expires, counts: mcpImportAnzahlen(review.payload),
+      contacts_total: plans.length, unresolved_contacts: plans.filter(plan => !kontaktDateiAuswahlVollstaendig({ plaene: [plan] })).length,
+      notebook_id: review.notebookId, applying: review.applying };
+  }
+  function mcpMitImportPruefung(token, owner, action) {
+    const review = mcpImportPruefungen.get(token);
+    if (!review || review.owner !== owner) return Promise.reject(new MagnolieMcp.ToolError("not_found", "Import review not found for this session"));
+    const operation = review.chain.then(() => action(mcpLeseImportPruefung(token, owner)));
+    review.chain = operation.catch(() => {}); return operation;
+  }
+  function mcpErgaenzeImportListenAuswahl(plan) {
+    const target = plan.kandidaten.find(contact => contact.id === plan.zielId);
+    if (!target || plan.modus !== "merge") return;
+    for (const [field, rule] of Object.entries(BAUM_KONTAKT_LISTEN)) {
+      const old = rule.lesen(target), incoming = rule.lesen(plan.karte), choices = plan.auswahl.listen[field] ||= {};
+      incoming.forEach((entry, index) => {
+        if (old.some(value => kanonischerEntwurf(value) === kanonischerEntwurf(entry))) return;
+        if (choices[index] === undefined) choices[index] = field === "anschriften" && old.length && !plan.ergaenzung ? "" : "add";
+      });
+    }
+  }
+  function mcpImportEntscheidungenAnwenden(review, decisions) {
+    const plans = review.preparation?.plaene || [], next = plans.slice(), seen = new Set();
+    const invalid = () => { throw new MagnolieMcp.ToolError("invalid_selection", "Invalid contact import decision or target/list choice"); };
+    for (const decision of decisions) {
+      if (!plans[decision.index] || seen.has(decision.index)) invalid(); seen.add(decision.index);
+      const plan = { ...plans[decision.index], auswahl: kopie(plans[decision.index].auswahl) };
+      if (decision.target_id !== undefined) {
+        if (!plan.kandidaten.some(contact => contact.id === decision.target_id) || ["new", "skip"].includes(decision.action)) invalid();
+        if (decision.target_id !== plan.zielId) {
+          plan.zielId = decision.target_id; plan.eindeutig = false; delete plan.neuereEntscheidung;
+          plan.geburtsname = false; plan.auswahl = { felder: {}, listen: {} };
+        }
+      }
+      plan.modus = decision.action; plan.gewaehlt = true;
+      const target = plan.kandidaten.find(contact => contact.id === plan.zielId);
+      if (!["new", "skip"].includes(plan.modus) && !target || plan.modus === "newer" && (!plan.eindeutig || !plan.neuereEntscheidung)) invalid();
+      if (plan.modus !== "merge" && (decision.fields?.length || decision.lists?.length)) invalid();
+      mcpErgaenzeImportListenAuswahl(plan);
+      const fields = new Set(), lists = new Set();
+      for (const choice of decision.fields || []) {
+        if (!BAUM_KONTAKT_FELDER.includes(choice.field) || fields.has(choice.field) || choice.choice === "merge" && choice.field !== "notiz") invalid();
+        fields.add(choice.field); plan.auswahl.felder[choice.field] = choice.choice;
+      }
+      for (const choice of decision.lists || []) {
+        const rule = BAUM_KONTAKT_LISTEN[choice.field], key = choice.field + "\0" + choice.incoming_index;
+        if (!rule || lists.has(key) || choice.incoming_index >= rule.lesen(plan.karte).length) invalid(); lists.add(key);
+        if (choice.choice === "replace" ? choice.existing_index === undefined || !target || choice.existing_index >= rule.lesen(target).length : choice.existing_index !== undefined) invalid();
+        (plan.auswahl.listen[choice.field] ||= {})[choice.incoming_index] = choice.choice === "replace" ? "replace:" + choice.existing_index : choice.choice;
+      }
+      if (decision.preserve_birth_name !== undefined) {
+        if (decision.preserve_birth_name && !(plan.modus === "replace" || plan.modus === "newer" && plan.neuereEntscheidung === "newer" || plan.modus === "merge" && plan.auswahl.felder.nachname === "incoming")) invalid();
+        plan.geburtsname = decision.preserve_birth_name;
+      }
+      next[decision.index] = plan;
+    }
+    if (review.preparation) review.preparation.plaene = next;
+    review.version++;
+  }
+
   async function mcpLeseImportDatei(args, signal) {
     const value = await mcpNativeAufruf("import", { art: args.format, pfad: args.path,
       ...(args.expected_revision ? { expectedRevision: args.expected_revision } : {}) }, "importErgebnis", signal);
@@ -34145,13 +34233,140 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         !["uebersprungen", "wiederholend"].every(key => value[key] === undefined || Number.isSafeInteger(value[key]) && value[key] >= 0)) throw new MagnolieMcp.ToolError("invalid_result", "Native import metadata or parsed collections were incomplete");
     return value;
   }
+  function mcpImportPruefWerkzeuge(owner) {
+    const token = { type: "string", pattern: "^[a-f0-9]{48}$" }, hash = { type: "string", pattern: "^[a-f0-9]{64}$" }, count = { type: "integer", minimum: 0, maximum: Number.MAX_SAFE_INTEGER };
+    const fields = { token }, schema = extra => ({ type: "object", properties: { ...fields, ...extra }, required: ["token"], additionalProperties: false });
+    const version = review => { if (review.applying) throw new MagnolieMcp.ToolError("native_busy", "Import review is already being applied"); };
+    return [
+      { name: "organizer_import_review_begin", description: "Stage an additive import using the actual native file reader and the existing contact-review model. Full current book revision required. At most two session-owned reviews are retained globally, with a five-minute idle expiry renewed by use. No book change or dialog occurs. Default contact choices, rejected versions and reliable modification-time policy match the GUI. An explicit notebook can be selected for incoming notes; otherwise the current destination is captured now.",
+        inputSchema: { type: "object", properties: { format: { type: "string", enum: ["ics", "lotus", "vcf", "ldif", "claws"] }, path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, expected_revision: hash, expected_book_revision: hash, notebook_id: { type: "string", minLength: 1, maxLength: 256 } }, required: ["format", "path", "expected_book_revision"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => {
+          const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+          if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; read its revision before staging an import");
+          const notebookId = args.notebook_id ?? (book.notizbuecher.some(item => item.id === zustand.notizen.notizbuchId) ? zustand.notizen.notizbuchId : book.notizbuecher[0].id);
+          if (!book.notizbuecher.some(item => item.id === notebookId)) throw new MagnolieMcp.ToolError("not_found", "Destination notebook not found");
+          for (const [key, value] of mcpImportPruefungen) if (value.expires <= Date.now() || value.book !== DATEN) mcpVerwerfeImportPruefung(key);
+          if (mcpImportPruefungen.size >= 2) throw new MagnolieMcp.ToolError("review_limit", "Two import reviews are already staged");
+          const key = Array.from(crypto.getRandomValues(new Uint8Array(24)), byte => byte.toString(16).padStart(2, "0")).join("");
+          const review = { token: key, owner, book, bookRevision: revision, notebookId, preparing: true, applying: false, version: 0, chain: Promise.resolve(), normalized: false };
+          mcpImportPruefungen.set(key, review); mcpBeruehreImportPruefung(review);
+          try {
+            review.payload = await mcpLeseImportDatei(args, signal);
+            if (review.payload.termine?.length > 1000) {
+              const normalized = [];
+              for (let offset = 0; offset < review.payload.termine.length; offset += 500) {
+                if (signal.aborted || DATEN !== book) throw new MagnolieMcp.ToolError("cancelled", "Import preparation cancelled");
+                normalized.push(...normalisiereTermine(review.payload.termine.slice(offset, offset + 500), false));
+                await new Promise(resolve => setTimeout(resolve, 0));
+              }
+              review.payload.termine = normalized; review.normalized = true;
+            }
+            if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || mcpImportPruefungen.get(key) !== review) throw new MagnolieMcp.ToolError("conflict", "Book or import preparation changed");
+            if (review.payload.kontakte?.length) {
+              review.preparation = bereiteKontaktDateiPruefungVor(review.payload.kontakte, String(review.payload.kontaktQuelle || ""));
+              await review.preparation.hashes; wendeKontaktDateiVorgabenAn(review.preparation);
+              review.payload.kontakte = review.preparation.plaene.map(plan => plan.karte);
+            }
+            if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || mcpImportPruefungen.get(key) !== review) throw new MagnolieMcp.ToolError("conflict", "Book changed during import preparation");
+            review.bookCanonical = review.preparation?.revision ?? kanonischerEntwurf(book); review.preparing = false;
+            return mcpImportPruefMetadaten(mcpLeseImportPruefung(key, owner));
+          } finally { if (review.preparing) mcpVerwerfeImportPruefung(key); }
+        } },
+      { name: "organizer_import_review_read", description: "Read bounded contact-review metadata and candidate pages without returning large notes/photos. Incoming cards can be read through review_content_read; candidate IDs also identify virtual earlier cards in this staged file. Choices remain ephemeral until apply. A changed book invalidates the review.",
+        inputSchema: schema({ offset: count, limit: { type: "integer", minimum: 1, maximum: 10 }, candidate_offset: count, candidate_limit: { type: "integer", minimum: 1, maximum: 25 } }), annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args) => {
+          const review = mcpLeseImportPruefung(args.token, owner), plans = review.preparation?.plaene || [], offset = args.offset || 0, limit = args.limit || 10, candidateOffset = args.candidate_offset || 0, candidateLimit = args.candidate_limit || 25;
+          const label = contact => Array.from(kontaktName(contact)).slice(0, 128).join("");
+          return { ...mcpImportPruefMetadaten(review), offset, plans: plans.slice(offset, offset + limit).map((plan, index) => {
+            const target = plan.kandidaten.find(contact => contact.id === plan.zielId);
+            return { index: offset + index, name: label(plan.karte), action: plan.modus || null, target_id: ["new", "skip"].includes(plan.modus) ? null : plan.zielId || null,
+              can_use_newer: !!(plan.eindeutig && plan.neuereEntscheidung), newer_choice: plan.neuereEntscheidung || null, incoming_modified_ms: plan.quellzeit || null, local_modified_ms: plan.lokalzeit || null, fields: kopie(plan.auswahl.felder), preserve_birth_name: plan.geburtsname === true,
+              candidates_total: plan.kandidaten.length, candidate_offset: candidateOffset, candidates: plan.kandidaten.slice(candidateOffset, candidateOffset + candidateLimit).map(contact => ({ id: contact.id, name: label(contact) })),
+              next_candidate_offset: candidateOffset + candidateLimit < plan.kandidaten.length ? candidateOffset + candidateLimit : null,
+              lists: Object.entries(BAUM_KONTAKT_LISTEN).map(([field, rule]) => ({ field, incoming_count: rule.lesen(plan.karte).length, existing_count: target ? rule.lesen(target).length : 0,
+                unresolved_count: Object.values(plan.auswahl.listen[field] || {}).filter(value => !value).length })) };
+          }), next_offset: offset + limit < plans.length ? offset + limit : null };
+        } },
+      { name: "organizer_import_review_decide", description: "Atomically update up to 100 staged contact decisions under the selection revision, using the GUI's new/skip/keep/merge/replace/newer semantics. Targets must be offered candidates. Scalar choices and normalized list indices match the GUI; replacement list indices must exist. Newer requires reliable bound timestamps. This only edits the staged review, never the book.",
+        inputSchema: { ...schema({ expected_selection_revision: count, decisions: { type: "array", minItems: 1, maxItems: 100, items: { type: "object", properties: { index: count, action: { type: "string", enum: ["new", "skip", "keep", "merge", "replace", "newer"] }, target_id: { type: "string", minLength: 1, maxLength: 256 }, preserve_birth_name: { type: "boolean" },
+          fields: { type: "array", maxItems: 8, items: { type: "object", properties: { field: { type: "string", enum: BAUM_KONTAKT_FELDER }, choice: { type: "string", enum: ["keep", "incoming", "merge"] } }, required: ["field", "choice"], additionalProperties: false } },
+          lists: { type: "array", maxItems: 128, items: { type: "object", properties: { field: { type: "string", enum: Object.keys(BAUM_KONTAKT_LISTEN) }, incoming_index: count, choice: { type: "string", enum: ["keep", "add", "replace"] }, existing_index: count }, required: ["field", "incoming_index", "choice"], additionalProperties: false } } }, required: ["index", "action"], additionalProperties: false } } }), required: ["token", "expected_selection_revision", "decisions"] },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: (args, signal) => mcpMitImportPruefung(args.token, owner, review => {
+          version(review); if (signal.aborted) throw new MagnolieMcp.ToolError("cancelled", "Import decision cancelled");
+          if (review.version !== args.expected_selection_revision) throw new MagnolieMcp.ToolError("conflict", "Import choices changed; read the review again");
+          mcpImportEntscheidungenAnwenden(review, args.decisions); return mcpImportPruefMetadaten(review);
+        }) },
+      { name: "organizer_import_review_content_read", description: "Read cached import records, sanitized incoming contact cards, offered candidate contacts or their GUI-normalized lists as bounded 64-KiB UTF-8/base64 chunks. Objects/arrays/scalars use JSON representation, strings use their literal UTF-8 bytes. No live file reparse, book change or image viewer occurs. Use the content revision for subsequent chunks.",
+        inputSchema: { ...schema({ section: { type: "string", enum: MCP_IMPORT_BEREICHE }, index: count, side: { type: "string", enum: ["incoming", "candidate"] }, candidate_id: { type: "string", minLength: 1, maxLength: 256 }, list_field: { type: "string", enum: Object.keys(BAUM_KONTAKT_LISTEN) }, content_path: { type: "array", maxItems: 16, items: { anyOf: [{ type: "string", minLength: 1, maxLength: 256 }, count] } }, offset: { type: "integer", minimum: 0, maximum: Number.MAX_SAFE_INTEGER }, limit: { type: "integer", minimum: 1, maximum: 65536 }, expected_revision: hash }), required: ["token", "section", "index"] },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => {
+          const review = mcpLeseImportPruefung(args.token, owner); let value;
+          if (args.section === "kontakte") {
+            const plan = review.preparation?.plaene[args.index];
+            if (!plan) throw new MagnolieMcp.ToolError("not_found", "Imported contact not found");
+            if (args.side === "candidate") value = plan.kandidaten.find(contact => contact.id === args.candidate_id);
+            else { if (args.candidate_id !== undefined) throw new MagnolieMcp.ToolError("invalid_selection", "Candidate ID requires candidate side"); value = plan.karte; }
+            if (!value) throw new MagnolieMcp.ToolError("not_found", "Offered candidate not found");
+            if (args.list_field) value = BAUM_KONTAKT_LISTEN[args.list_field].lesen(value);
+          } else {
+            if (args.side === "candidate" || args.candidate_id !== undefined || args.list_field !== undefined) throw new MagnolieMcp.ToolError("invalid_selection", "Candidate/list lookup requires contacts");
+            value = review.payload[args.section]?.[args.index];
+          }
+          if (value === undefined) throw new MagnolieMcp.ToolError("not_found", "Imported record not found");
+          value = mcpLeseWert("value", undefined, args.content_path || [], { value });
+          const representation = typeof value === "string" ? "string" : "json", text = representation === "string" ? value : JSON.stringify(value);
+          if (text === undefined) throw new MagnolieMcp.ToolError("invalid_content", "Selected import value is not serializable");
+          const bytes = new TextEncoder().encode(text), digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), byte => byte.toString(16).padStart(2, "0")).join("");
+          mcpLeseImportPruefung(args.token, owner);
+          if (signal.aborted || args.expected_revision !== undefined && args.expected_revision !== digest) throw new MagnolieMcp.ToolError("conflict", "Import content changed; restart the chunked read");
+          const offset = args.offset || 0, limit = args.limit || 65536;
+          if (offset > bytes.length) throw new MagnolieMcp.ToolError("invalid_offset", "Content offset exceeds its byte length");
+          const chunk = bytes.subarray(offset, Math.min(bytes.length, offset + limit)); let binary = "";
+          for (let index = 0; index < chunk.length; index += 8192) binary += String.fromCharCode(...chunk.subarray(index, index + 8192));
+          return { token: args.token, source_revision: review.payload.revision, representation, encoding: "base64", charset: "UTF-8", revision: digest, total_bytes: bytes.length, offset, data: btoa(binary), next_offset: offset + chunk.length < bytes.length ? offset + chunk.length : null };
+        } },
+      { name: "organizer_import_review_cancel", description: "Release this session's staged import review without changing book data.", inputSchema: schema({}), annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async ({ token }) => {
+        if (mcpImportPruefungen.get(token)?.owner !== owner) throw new MagnolieMcp.ToolError("not_found", "Import review not found for this session");
+        mcpVerwerfeImportPruefung(token); return { token, cancelled: true };
+      } },
+      { name: "organizer_import_review_apply", description: "Apply a staged additive import through the actual shared GUI merge handlers. Requires the unchanged complete book and selection revisions, rechecks native source bytes, rejects unresolved choices, honors editor/modal/sync guards and uses the existing pre-contact snapshot. Only the imported collections are committed; unrelated runtime collections retain identity. Success follows durable native save acknowledgement. The one-use review is consumed on model commit; cancellation/save failure can follow mutation, so inspect the book before retrying. No import/conflict dialog or toast is opened.",
+        inputSchema: { ...schema({ expected_book_revision: hash, expected_selection_revision: count }), required: ["token", "expected_book_revision", "expected_selection_revision"] }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: (args, signal) => mcpMitImportPruefung(args.token, owner, async review => {
+          version(review); mcpEditorPruefen();
+          if (syncLaeuft || personalSyncAutoLaeuft) throw new MagnolieMcp.ToolError("native_busy", "Finish synchronization before applying an import");
+          if (review.version !== args.expected_selection_revision || review.bookRevision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book or import choices changed");
+          if (review.preparation && !kontaktDateiAuswahlVollstaendig(review.preparation)) throw new MagnolieMcp.ToolError("decision_required", "Resolve the remaining contact choices before applying");
+          review.applying = true;
+          try {
+            await mcpLeseImportDatei({ format: review.payload.art, path: review.payload.pfad, expected_revision: review.payload.revision }, signal);
+            mcpLeseImportPruefung(args.token, owner);
+            const contacts = review.preparation ? await erstelleKontaktDateiEntwurf(review.preparation) : null;
+            mcpLeseImportPruefung(args.token, owner);
+            if (contacts) await new Promise((resolve, reject) => mitMutationsSnapshot("pre-contact-import", resolve, () => reject(new MagnolieMcp.ToolError("snapshot_failed", "Native pre-import checkpoint failed"))));
+            const sourceRevision = review.payload.revision, book = DATEN;
+            const saved = await mcpSchreiben(signal, () => {
+              mcpLeseImportPruefung(args.token, owner);
+              if (signal.aborted || syncLaeuft || personalSyncAutoLaeuft) throw new MagnolieMcp.ToolError("native_busy", "Import cancelled or synchronization started before commit");
+              const draft = { ...DATEN };
+              for (const field of ["termine", "aufgaben", "notizen", "kontakte", "jahrestage", "kontaktImportAblehnungen"]) draft[field] = kopie(DATEN[field]);
+              const result = mitBaumKontaktEntwurf(draft, () => wendeDateiImportDatenAn(review.payload, review.normalized, contacts, true, review.notebookId));
+              mcpLeseImportPruefung(args.token, owner); mcpVerwerfeImportPruefung(args.token);
+              for (const field of ["termine", "aufgaben", "notizen", "kontakte", "jahrestage", "kontaktImportAblehnungen"]) DATEN[field] = draft[field];
+              terminIndexVeraltet = true; jahrestagIndexVeraltet = true;
+              return { counts: result.counts, duplicates: result.doppelt };
+            });
+            const after = JSON.stringify(DATEN), revision = await personalSyncHash(after);
+            if (DATEN !== book || JSON.stringify(DATEN) !== after) throw new MagnolieMcp.ToolError("source_changed", "Import was saved; book changed during result verification");
+            return { token: args.token, applied: true, persisted: saved.persisted, source_revision: sourceRevision, book_revision: revision, counts: saved.counts, duplicates: saved.duplicates };
+          } finally { if (mcpImportPruefungen.get(args.token) === review) review.applying = false; }
+        }) }
+    ];
+  }
+
   function mcpDateiImportWerkzeuge() {
     return [{ name: "organizer_import_preview", description: "Parse an explicit ICS/vCalendar/Lotus CSV/vCard/LDIF/Claws XML file or supported ZIP using the actual native import reader and product size/archive limits. Return only counts, byte digest and an opaque format/path/content revision; no import or conflict dialog is opened and book data stays unchanged. Optional expected_revision verifies a previously inspected source. This is inspection, not an import commit.",
       inputSchema: { type: "object", properties: { format: { type: "string", enum: ["ics", "lotus", "vcf", "ldif", "claws"] }, path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, required: ["format", "path"], additionalProperties: false },
       annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => {
         const book = DATEN, value = await mcpLeseImportDatei(args, signal);
         if (DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Book changed during native import inspection");
-        const counts = Object.fromEntries(Object.entries({ appointments: "termine", anniversaries: "jahrestage", birthdays: "geburtstage", tasks: "aufgaben", contacts: "kontakte", notes: "notizen" }).map(([key, field]) => [key, value[field]?.length || 0]));
+        const counts = mcpImportAnzahlen(value);
         return { path: value.pfad, format: args.format, revision: value.revision, sha256: value.sha256, bytes: value.bytes, counts,
           skipped_count: value.uebersprungen ?? null, recurring_count: value.wiederholend ?? null, report_present: !!value.bericht, warnings_present: value.uebersprungen > 0 };
       } }];
@@ -35030,8 +35245,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   const mcpBereiche = ["termine", "aufgaben", "kontakte", "notizen", "customOrganizer", "zeiterfassung",
     "notizgruppen", "notizbuecher", "jahrestage", "feiertage", "urlaube", "muelltermine", "papierkorb",
     "personen", "schichten", "smsVerlauf", "smsPlanung", "zyklusmarker", "tagmarken", "gesundheit", "eigenesProfil"];
-  function mcpLeseWert(section, id, path = []) {
-    let value = DATEN[section];
+  function mcpLeseWert(section, id, path = [], root = DATEN) {
+    let value = root[section];
     if (id !== undefined) {
       if (!Array.isArray(value)) throw new MagnolieMcp.ToolError("invalid_section", "ID lookup requires a collection");
       value = value.find(entry => entry.id === id);
@@ -35107,6 +35322,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name.startsWith("organizer_import_review_")) {
+      const hash = { type: "string", pattern: "^[a-f0-9]{64}$" }, number = { type: "integer", minimum: 0 };
+      const meta = { token: id, source_revision: hash, book_revision: hash, selection_revision: number, expires_ms: number, counts: object, contacts_total: number, unresolved_contacts: number, notebook_id: id, applying: flag };
+      if (["organizer_import_review_begin", "organizer_import_review_decide"].includes(name)) return shape(meta, Object.keys(meta));
+      if (name === "organizer_import_review_read") return shape({ ...meta, offset: number, plans: { type: "array", maxItems: 10, items: object }, next_offset: { type: ["integer", "null"], minimum: 0 } }, [...Object.keys(meta), "offset", "plans", "next_offset"]);
+      if (name === "organizer_import_review_content_read") return shape({ token: id, source_revision: hash, representation: { type: "string", enum: ["string", "json"] }, encoding: { type: "string", const: "base64" }, charset: { type: "string", const: "UTF-8" }, revision: hash, total_bytes: number, offset: number, data: text, next_offset: { type: ["integer", "null"], minimum: 0 } }, ["token", "source_revision", "representation", "encoding", "charset", "revision", "total_bytes", "offset", "data", "next_offset"]);
+      if (name === "organizer_import_review_cancel") return shape({ token: id, cancelled: yes }, ["token", "cancelled"]);
+      if (name === "organizer_import_review_apply") return shape({ token: id, applied: yes, persisted: yes, source_revision: hash, book_revision: hash, counts: object, duplicates: number }, ["token", "applied", "persisted", "source_revision", "book_revision", "counts", "duplicates"]);
+    }
     if (name === "organizer_import_preview") return shape({ path: text, format: text, revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, bytes: { type: "integer", minimum: 0 }, counts: object, skipped_count: { type: ["integer", "null"], minimum: 0 }, recurring_count: { type: ["integer", "null"], minimum: 0 }, report_present: flag, warnings_present: flag }, ["path", "format", "revision", "sha256", "bytes", "counts", "skipped_count", "recurring_count", "report_present", "warnings_present"]);
     if (name === "organizer_records_export") return shape({ path: text, format: text, confirmed: yes, bytes: { type: "integer", minimum: 0 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, exported_count: { type: "integer", minimum: 0 }, skipped_count: { type: "integer", minimum: 0 }, ldif_unusable_count: { type: "integer", minimum: 0 }, photo_omitted_count: { type: "integer", minimum: 0 }, raw_omitted_count: { type: ["integer", "null"], minimum: 0 }, warnings_present: flag }, ["path", "format", "confirmed", "bytes", "sha256", "exported_count", "skipped_count", "ldif_unusable_count", "photo_omitted_count", "raw_omitted_count", "warnings_present"]);
     if (name === "organizer_password_status") return shape({ encrypted: flag, state_revision: text, stored_book_revision: text, book_revision: text, matches_book: flag }, ["encrypted", "state_revision", "stored_book_revision", "book_revision", "matches_book"]);
@@ -35281,6 +35505,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpPasswortWerkzeuge(),
       ...mcpAustauschExportWerkzeuge(),
       ...mcpDateiImportWerkzeuge(),
+      ...mcpImportPruefWerkzeuge(owner),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
@@ -35330,6 +35555,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     mcpSitzungen.get(session)?.close(); mcpSitzungen.delete(session);
     for (const [token, transfer] of mcpAnhangTransfers) if (transfer.owner === session) mcpVerwerfeTransfer(token);
     for (const [token, transfer] of mcpZeichenTransfers) if (transfer.owner === session) mcpVerwerfeZeichenTransfer(token);
+    for (const [token, review] of mcpImportPruefungen) if (review.owner === session) mcpVerwerfeImportPruefung(token);
   };
   App.mcpRequest = async payload => {
     if (!Bruecke.vorhanden || !window.MagnolieMcp || !/^[0-9a-f]{48}$/.test(payload?.session || "") ||
