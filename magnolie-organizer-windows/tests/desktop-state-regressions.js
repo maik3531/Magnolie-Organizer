@@ -140,6 +140,24 @@ async function run(web) {
     assert.equal(JSON.stringify(b.t.daten().papierkorb), contents); assert.equal(saved.papierkorb.length, 1);
   }, { papierkorb: [{ id: "owned-trash-policy", art: "note", name: "Owned trash", geloescht: Date.now(), eintrag: { id: "owned-trashed-note", titel: "Owned trash", text: "Owned content" } }] });
 
+  await test("reminder privacy revocation clears the independent confidential opt-in", async b => {
+    const background = JSON.stringify(b.t.daten().einstellungen.sicherheit.hintergrund);
+    b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-sicherheit").click();
+    const change = (selector, value) => {
+      const field = b.w.document.querySelector(selector); field.checked = value;
+      field.dispatchEvent(new b.w.Event("change", { bubbles: true })); b.ack();
+    };
+    change("#kennwort-erinnerungen", false);
+    assert.equal(b.w.document.querySelector("#kennwort-vertraulich").disabled, true);
+    assert.equal(b.w.document.querySelector("#kennwort-vertraulich").checked, false);
+    change("#kennwort-erinnerungen", true);
+    assert.equal(b.w.document.querySelector("#kennwort-vertraulich").checked, false);
+    change("#kennwort-vertraulich", true);
+    const saved = b.t.normalisiere(JSON.parse(b.saves().at(-1).text)).einstellungen.sicherheit;
+    assert.equal(saved.erinnernTrotzKennwort, true); assert.equal(saved.vertraulicheErinnerungen, true);
+    assert.equal(JSON.stringify(saved.hintergrund), background);
+  }, { einstellungen: { sicherheit: { erinnernTrotzKennwort: true, vertraulicheErinnerungen: true } } });
+
   await test("health preference controls retain canonical measurements and mirror tab state", async b => {
     const measurements = JSON.stringify(b.t.daten().gesundheit);
     b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-kalender").click();

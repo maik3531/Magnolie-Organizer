@@ -1272,6 +1272,38 @@ def client():
                 return False
             product.GLib.idle_add(clean_private_tray_host)
             assert tray_cleaned.wait(5)
+        privacy_before = call("tools/call", {"name": "organizer_reminder_privacy_read"})
+        assert not privacy_before["isError"] and privacy_before["structuredContent"]["native_state"]["projection_verified"], privacy_before
+        privacy_record_keys = ("notizen", "kontakte", "termine", "aufgaben", "jahrestage")
+        privacy_book_before = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        privacy_records = {key: privacy_book_before[key] for key in privacy_record_keys}
+        privacy_allowed = call("tools/call", {"name": "organizer_reminder_privacy_update", "arguments": {
+            "expected_revision": privacy_before["structuredContent"]["revision"], "allow_when_locked": True, "include_confidential": False}})
+        assert not privacy_allowed["isError"] and privacy_allowed["structuredContent"]["persisted"], privacy_allowed
+        assert privacy_allowed["structuredContent"]["native_state"]["projection_present"] and privacy_allowed["structuredContent"]["native_state"]["projection_verified"], privacy_allowed
+        privacy_projection_path = Path(product.erinnerungsdaten_datei())
+        assert privacy_projection_path.is_relative_to(Path(temporary.name))
+        privacy_book = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        privacy_projection = json.loads(privacy_projection_path.read_text())
+        assert not any(key in privacy_projection for key in ("notizen", "kontakte", "eigenesProfil"))
+        assert {key: privacy_book[key] for key in privacy_record_keys} == privacy_records
+        assert privacy_book["einstellungen"]["sicherheit"]["hintergrund"] == privacy_book_before["einstellungen"]["sicherheit"]["hintergrund"]
+        privacy_current = call("tools/call", {"name": "organizer_reminder_privacy_read"})
+        privacy_confidential = call("tools/call", {"name": "organizer_reminder_privacy_update", "arguments": {
+            "expected_revision": privacy_current["structuredContent"]["revision"], "include_confidential": True}})
+        assert not privacy_confidential["isError"] and privacy_confidential["structuredContent"]["native_state"]["include_confidential"], privacy_confidential
+        privacy_backup = Path(str(privacy_projection_path) + ".bak")
+        privacy_backup.write_text("Owned obsolete projection copy")
+        privacy_tampered = call("tools/call", {"name": "organizer_reminder_privacy_read"})
+        assert not privacy_tampered["isError"] and not privacy_tampered["structuredContent"]["native_state"]["projection_verified"], privacy_tampered
+        privacy_revoked = call("tools/call", {"name": "organizer_reminder_privacy_update", "arguments": {
+            "expected_revision": privacy_tampered["structuredContent"]["revision"], "allow_when_locked": False}})
+        assert not privacy_revoked["isError"] and privacy_revoked["structuredContent"]["persisted"], privacy_revoked
+        assert privacy_revoked["structuredContent"]["native_state"]["projection_verified"] and not privacy_revoked["structuredContent"]["settings"]["include_confidential"], privacy_revoked
+        assert not privacy_projection_path.exists() and not privacy_backup.exists()
+        stale_privacy = call("tools/call", {"name": "organizer_reminder_privacy_update", "arguments": {
+            "expected_revision": privacy_tampered["structuredContent"]["revision"], "allow_when_locked": True}})
+        assert stale_privacy["isError"] and stale_privacy["structuredContent"]["code"] == "conflict", stale_privacy
         contact_preferences_before = call("tools/call", {"name": "organizer_contact_settings_read"})
         assert not contact_preferences_before["isError"], contact_preferences_before
         contact_book_before = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))

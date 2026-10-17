@@ -422,6 +422,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                         form.ShowReminder(Text(message, "kopf"), Text(message, "rumpf"), Text(message, "art"), Text(message, "stil"));
                         break;
                     case "erinnerung_einrichten": await ConfigureRemindersAsync(message); break;
+                    case "reminder_privacy_status": await ReadReminderPrivacyAsync(message); break;
                     default: await ReportUnsupportedAsync(command); break;
                 }
             }
@@ -1665,6 +1666,31 @@ internal sealed partial class BridgeDispatcher : IDisposable
         };
         if (dialog.ShowDialog(form) == DialogResult.OK)
             await form.SendAsync("App.sicherungsordnerGewaehlt", new { pfad = dialog.SelectedPath });
+    }
+
+    private async Task ReadReminderPrivacyAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId");
+        await MutationGate.Global.WaitAsync();
+        try
+        {
+            if (!currentPlainTextAvailable) throw new InvalidOperationException();
+            var stored = store.Read(paths.Data, 64 * 1024 * 1024) ?? throw new FileNotFoundException();
+            var encrypted = EncryptionService.IsEncrypted(stored);
+            var plain = encrypted ? encryption.DecryptDataWithSession(stored) : stored;
+            using var document = JsonDocument.Parse(plain);
+            var security = document.RootElement.GetProperty("einstellungen").GetProperty("sicherheit");
+            var actual = store.Read(paths.ReminderData, 64 * 1024 * 1024);
+            var backup = store.Read(AtomicStore.BackupPath(paths.ReminderData), 64 * 1024 * 1024);
+            var verified = ReminderScheduler.BackgroundProjectionMatches(plain, encrypted, actual, backup) &&
+                store.Read(paths.Data, 64 * 1024 * 1024) == stored;
+            await form.SendAsync("App.reminderPrivacyStand", new { ok = true, requestId, state = new {
+                encrypted, projection_present = actual is not null, projection_verified = verified,
+                allow_when_locked = Boolean(security, "erinnernTrotzKennwort"), include_confidential = Boolean(security, "vertraulicheErinnerungen") } });
+        }
+        catch (Exception)
+        { await form.SendAsync("App.reminderPrivacyStand", new { ok = false, requestId, code = "native_operation_failed" }); }
+        finally { MutationGate.Global.Release(); }
     }
 
     private async Task ConfigureRemindersAsync(JsonElement message)

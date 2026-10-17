@@ -11,6 +11,7 @@ internal static class BridgeDispatcherContract
     private static readonly IReadOnlyDictionary<string, Schema> Schemas = new Dictionary<string, Schema>(StringComparer.Ordinal)
     {
         ["bereit"] = S(), ["entsperren"] = S(T("kennwort")),
+        ["reminder_privacy_status"] = S(T("requestId")),
         ["mcp_antwort"] = S(T("session"), T("invocation"), new Field("response", true, [JsonValueKind.Object, JsonValueKind.Null])),
         ["kennwort_setzen"] = S(T("alt"), T("neu"), O("sicherungen", JsonValueKind.True, JsonValueKind.False), O("sicherungsordner", JsonValueKind.String)),
         ["kennwort_entfernen"] = S(T("alt"), O("sicherungsordner", JsonValueKind.String)),

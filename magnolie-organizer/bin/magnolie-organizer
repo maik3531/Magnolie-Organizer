@@ -7491,6 +7491,39 @@ def erinnerungsdaten_lesen(pfad=None, *, profil_pfad=None):
         and _erinnerungsprofil_lesen(profil_pfad)[1] == bindung) else None
 
 
+def erinnerungsdatenschutz_pruefen(pfad=None, *, profil_pfad=None, kennwort="", schluessel=None):
+    """Verify the current committed projection without returning reminder content."""
+    pfad = pfad or erinnerungsdaten_datei()
+    roh, bindung = _erinnerungsprofil_lesen(profil_pfad)
+    verschluesselt = ist_verschluesselt(roh)
+    if verschluesselt and schluessel is not None:
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        _h, _r, kennung, _s, _n, _d, nonce, geheim = _daten_huelle_felder(roh)
+        dek, erwartete_kennung = schluessel
+        if kennung != erwartete_kennung:
+            raise RuntimeError("source_changed")
+        klar = AESGCM(dek).decrypt(nonce, geheim, DATEN_AAD + b"\0inhalt\0" + kennung).decode("utf-8")
+    else:
+        klar = entschluesseln(roh, kennwort) if verschluesselt else roh
+    daten = json.loads(klar)
+    sicherheit = (daten.get("einstellungen") or {}).get("sicherheit") or {}
+    erwartet = erinnerungsdaten_auswaehlen(daten) if verschluesselt else None
+    vorhanden = os.path.lexists(pfad)
+    if erwartet is None:
+        geprueft = not vorhanden
+    else:
+        erwartet.update(version=2, profilSha256=bindung, freigabe=True)
+        try:
+            gelesen = json.loads(datei_begrenzt_lesen(pfad, SICHERUNG_DATEI_MAX, "invalid_projection").decode("utf-8"))
+        except FileNotFoundError:
+            gelesen = None
+        geprueft = gelesen == erwartet
+    geprueft = geprueft and not os.path.lexists(pfad + ".bak") and _erinnerungsprofil_lesen(profil_pfad)[1] == bindung
+    return {"encrypted": verschluesselt, "projection_present": vorhanden, "projection_verified": geprueft,
+            "allow_when_locked": sicherheit.get("erinnernTrotzKennwort") is True,
+            "include_confidential": sicherheit.get("vertraulicheErinnerungen") is True}
+
+
 def erinnerung_zustand_lesen(pfad=None):
     try:
         with open(pfad or erinnerung_zustand_datei(), "r", encoding="utf-8") as datei:
@@ -21865,6 +21898,10 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=self._erinnerung_einrichten_arbeit,
                              args=(nachricht,), daemon=True).start()
 
+        elif befehl == "reminder_privacy_status":
+            threading.Thread(target=self._erinnerungsdatenschutz_arbeit,
+                             args=(nachricht,), daemon=True).start()
+
         elif befehl == "erinnerung_zeigen":
             threading.Thread(target=self._erinnerung_zeigen_arbeit,
                              args=(nachricht,), daemon=True).start()
@@ -22163,6 +22200,16 @@ class Fenster(_FENSTER_BASIS):
             kontext.set_spell_checking_enabled(bool(an))
         except (AttributeError, TypeError):
             pass
+
+    def _erinnerungsdatenschutz_arbeit(self, nachricht):
+        request_id = nachricht.get("requestId")
+        try:
+            with self._daten_sperre:
+                state = erinnerungsdatenschutz_pruefen(kennwort=self._kennwort,
+                    schluessel=(self._daten_dek, self._daten_dek_kennung) if self._kennwort else None)
+            self.antwort("App.reminderPrivacyStand", {"ok": True, "requestId": request_id, "state": state})
+        except Exception:
+            self.antwort("App.reminderPrivacyStand", {"ok": False, "requestId": request_id, "code": "native_operation_failed"})
 
     def _erinnerung_einrichten_arbeit(self, nachricht):
         with _ERINNERUNG_CONFIG_SPERRE:

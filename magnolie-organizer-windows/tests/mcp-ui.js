@@ -135,7 +135,7 @@ let declaredContracts;
       assert.equal(duplicate.result.structuredContent.code, "already_exists");
       assert.equal(b.t.daten().notizen.filter(note => note.id === noteId).length, 1);
       let onSave, onSnapshot, onRecovery, onBackup, onArchive, onArchiveExport, onArchiveImport, onBackupPreview, onHoliday, onAttachmentFile, onCloudStatus, onCloudPassword, onCloudTest, onSpelling, onRememberWord, onRegionalRead, onRegionalSave, onTrayRead, onTraySave, onBackgroundRead, onBackgroundSave;
-      let onReminder;
+      let onReminder, onReminderPrivacy;
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
         post(text);
@@ -163,6 +163,7 @@ let declaredContracts;
         if (message.cmd === "background_settings_get" && message.requestId && onBackgroundRead) onBackgroundRead(message);
         if (message.cmd === "background_settings_set" && message.requestId && onBackgroundSave) onBackgroundSave(message);
         if (message.cmd === "erinnerung_einrichten" && message.requestId && onReminder) onReminder(message);
+        if (message.cmd === "reminder_privacy_status" && message.requestId && onReminderPrivacy) onReminderPrivacy(message);
       };
       async function persisted(id, name, args) {
         const saving = new Promise(resolve => { onSave = resolve; });
@@ -1456,6 +1457,49 @@ let declaredContracts;
         assert.ok(!b.t.daten().notizen.some(note => note.id === id)); assert.equal(JSON.stringify(b.t.daten().papierkorb), contents);
         const enabled = await persisted(938, "organizer_trash_settings_update", { expected_revision: fresh.revision, enabled: true });
         assert.equal(enabled.settings.retention_days, 0, "Partial enable must preserve manual-only retention");
+      }
+      {
+        const state = () => ({ encrypted: true, projection_present: b.t.daten().einstellungen.sicherheit.erinnernTrotzKennwort,
+          projection_verified: true, allow_when_locked: b.t.daten().einstellungen.sicherheit.erinnernTrotzKennwort,
+          include_confidential: b.t.daten().einstellungen.sicherheit.vertraulicheErinnerungen });
+        onReminderPrivacy = message => b.w.App.reminderPrivacyStand({ requestId: message.requestId, ok: true, state: state() });
+        const read = async id => (await call(request(id, "tools/call", { name: "organizer_reminder_privacy_read" }))).result.structuredContent;
+        const first = await read(960), rights = JSON.stringify(b.t.daten().einstellungen.sicherheit.hintergrund);
+        let native, completed = false;
+        const saving = new Promise(resolve => { onSave = resolve; });
+        const dispatched = new Promise(resolve => { onReminderPrivacy = message => { native = message; resolve(); }; });
+        const pending = call(request(961, "tools/call", { name: "organizer_reminder_privacy_update", arguments: { expected_revision: first.revision, allow_when_locked: true, include_confidential: true } })).then(value => { completed = true; return value; });
+        await saving; assert.equal(native, undefined); assert.equal(completed, false); b.ack(); await dispatched;
+        b.w.App.reminderPrivacyStand({ requestId: "wrong-privacy-request", ok: true, state: state() });
+        await new Promise(resolve => setImmediate(resolve)); assert.equal(completed, false);
+        b.w.App.reminderPrivacyStand({ requestId: native.requestId, ok: true, state: { ...state(), rawContent: "owned-provider-data-must-not-leak" } });
+        const result = (await pending).result.structuredContent;
+        assert.equal(result.persisted, true); assert.equal(result.native_state.projection_verified, true);
+        assert.ok(!JSON.stringify(result).includes("owned-provider-data")); assert.equal(JSON.stringify(b.t.daten().einstellungen.sicherheit.hintergrund), rights);
+        const stale = await call(request(962, "tools/call", { name: "organizer_reminder_privacy_update", arguments: { expected_revision: first.revision, allow_when_locked: false } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        onReminderPrivacy = message => b.w.App.reminderPrivacyStand({ requestId: message.requestId, ok: true, state: state() });
+        const fresh = await read(963), failureSave = new Promise(resolve => { onSave = resolve; });
+        onReminderPrivacy = message => b.w.App.reminderPrivacyStand({ requestId: message.requestId, ok: true, state: { ...state(), projection_verified: false } });
+        const failure = call(request(964, "tools/call", { name: "organizer_reminder_privacy_update", arguments: { expected_revision: fresh.revision, allow_when_locked: false } }));
+        await failureSave; b.ack(); const failed = (await failure).result.structuredContent;
+        assert.equal(failed.code, "native_operation_failed"); assert.match(failed.message, /Preferences were saved/);
+        assert.equal(JSON.parse(b.saves().at(-1).text).einstellungen.sicherheit.vertraulicheErinnerungen, false);
+        onReminderPrivacy = message => b.w.App.reminderPrivacyStand({ requestId: message.requestId, ok: true, state: state() });
+        const current = await read(965), cancelSave = new Promise(resolve => { onSave = resolve; });
+        const lateDispatch = new Promise(resolve => { onReminderPrivacy = message => { native = message; resolve(); }; });
+        const cancelled = call(request(966, "tools/call", { name: "organizer_reminder_privacy_update", arguments: { expected_revision: current.revision, allow_when_locked: true } }));
+        await cancelSave; b.ack(); await lateDispatch;
+        await call({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 966 } });
+        assert.equal((await cancelled).result.structuredContent.code, "cancelled");
+        const toast = b.w.document.querySelector("#zettel").textContent;
+        b.w.App.reminderPrivacyStand({ requestId: native.requestId, ok: false, code: "owned-late-error" });
+        assert.equal(b.w.document.querySelector("#zettel").textContent, toast);
+        onReminderPrivacy = message => b.w.App.reminderPrivacyStand({ requestId: message.requestId, ok: true, state: state() });
+        const latest = await read(967);
+        const revoked = await persisted(968, "organizer_reminder_privacy_update", { expected_revision: latest.revision, allow_when_locked: false, include_confidential: true });
+        assert.equal(revoked.settings.include_confidential, false); assert.equal(revoked.native_state.projection_present, false);
+        onReminderPrivacy = null;
       }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));

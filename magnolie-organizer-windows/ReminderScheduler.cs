@@ -84,6 +84,15 @@ internal sealed class ReminderScheduler : IDisposable
         Check(now);
     }
 
+    internal static bool BackgroundProjectionMatches(string plainText, bool encrypted, string? actual, string? backup)
+    {
+        var expected = encrypted ? SelectBackgroundData(plainText) : null;
+        if (expected is null) return actual is null && backup is null;
+        var selected = JsonNode.Parse(expected);
+        return actual is not null && JsonNode.DeepEquals(selected, JsonNode.Parse(actual)) &&
+            (backup is null || JsonNode.DeepEquals(selected, JsonNode.Parse(backup)));
+    }
+
     internal static string? SelectBackgroundData(string plainText)
     {
         using var document = JsonDocument.Parse(plainText);

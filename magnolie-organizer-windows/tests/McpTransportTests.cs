@@ -41,6 +41,7 @@ internal static class McpTransportTests
         using (var trayRead = BridgeDispatcherContract.Parse("{\"cmd\":\"tray_status\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
         using (var trayWrite = BridgeDispatcherContract.Parse("{\"cmd\":\"tray_einstellungen\",\"einstellungen\":{},\"expectedState\":{},\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
         using (var reminder = BridgeDispatcherContract.Parse("{\"cmd\":\"erinnerung_einrichten\",\"an\":true,\"vorlauf\":30,\"wecken\":false,\"termine\":[],\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
+        using (var privacy = BridgeDispatcherContract.Parse("{\"cmd\":\"reminder_privacy_status\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
         using (var backgroundRead = BridgeDispatcherContract.Parse("{\"cmd\":\"background_settings_get\",\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
         using (var backgroundWrite = BridgeDispatcherContract.Parse("{\"cmd\":\"background_settings_set\",\"settings\":{},\"expectedSettings\":{},\"requestId\":\"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee\"}")) { }
         var profile = Path.Combine(Path.GetTempPath(), "magnolie-mcp-fixture-" + Guid.NewGuid().ToString("N"));

@@ -81,6 +81,23 @@ internal static class ReminderPersistenceTests
                   "kontakte":[{"name":"Darf nicht hinaus"}],"notizen":[{"text":"Geheim"}]}
                 """;
             var selected = ReminderScheduler.SelectBackgroundData(protectedData)!;
+            var projectionPath = Path.Combine(root, "owned-projection.json");
+            var projectionStore = new AtomicStore();
+            projectionStore.WriteRecoverableJson(projectionPath, selected);
+            bool Verified(string source, bool encrypted = true) => ReminderScheduler.BackgroundProjectionMatches(source, encrypted,
+                projectionStore.Read(projectionPath), projectionStore.Read(AtomicStore.BackupPath(projectionPath)));
+            TestAssert.That(Verified(protectedData), "Actual native projection and recoverable copy did not verify.");
+            var unexpected = JsonNode.Parse(selected)!.AsObject(); unexpected["notizen"] = new JsonArray("Owned forbidden note");
+            projectionStore.Write(projectionPath, unexpected.ToJsonString());
+            TestAssert.That(!Verified(protectedData), "Projection readback ignored non-allowlisted content.");
+            projectionStore.Write(projectionPath, selected);
+            projectionStore.Write(AtomicStore.BackupPath(projectionPath), unexpected.ToJsonString());
+            TestAssert.That(!Verified(protectedData), "Projection readback ignored stale recoverable disclosure.");
+            projectionStore.WriteRecoverableJson(projectionPath, selected);
+            var revoked = protectedData.Replace("\"erinnernTrotzKennwort\":true", "\"erinnernTrotzKennwort\":false", StringComparison.Ordinal);
+            TestAssert.That(!Verified(revoked) && !Verified(protectedData, encrypted: false), "An obsolete projection survived permission/encryption withdrawal verification.");
+            File.Delete(projectionPath); File.Delete(AtomicStore.BackupPath(projectionPath));
+            TestAssert.That(Verified(revoked) && Verified(protectedData, encrypted: false), "Actual projection removal did not verify.");
             using (var selectedDocument = JsonDocument.Parse(selected))
             {
                 var selectedRoot = selectedDocument.RootElement;

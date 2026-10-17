@@ -27880,14 +27880,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         "show notifications for confidential appointments.")));
 
     const erinnerWirkung = () => {
-      s.erinnernTrotzKennwort = erinnerHak.checked;
+      wendeErinnerungsDatenschutzDatenAn({ erinnernTrotzKennwort: erinnerHak.checked,
+        vertraulicheErinnerungen: vertraulichHak.checked });
       vertraulichHak.disabled = !erinnerHak.checked;
-      if (!erinnerHak.checked) {
-        vertraulichHak.checked = false;
-        s.vertraulicheErinnerungen = false;
-      } else {
-        s.vertraulicheErinnerungen = vertraulichHak.checked;
-      }
+      vertraulichHak.checked = s.vertraulicheErinnerungen;
       planeSpeichern();
       speichereJetzt();
     };
@@ -31573,7 +31569,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const fehler = $("#anruf-schleier .anruf-fehler");
       if (fehler) fehler.textContent = _("Could not answer") + ": " + nutzlast.error;
     },
-    erinnerungStand(nutzlast) {
+      reminderPrivacyStand(nutzlast) {
+        if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "reminderPrivacyStand");
+      },
+      erinnerungStand(nutzlast) {
       if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "erinnerungStand"); return; }
       nutzlast = nutzlast || {};
       const stand = $("#erinnerung-stand");
@@ -34102,6 +34101,46 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (value !== "month") calendar.uebersichtAb = null;
     calendar.bearbeiteId = null;
   }
+  function wendeErinnerungsDatenschutzDatenAn(values) {
+    const settings = DATEN.einstellungen.sicherheit; Object.assign(settings, values);
+    if (!settings.erinnernTrotzKennwort) settings.vertraulicheErinnerungen = false;
+  }
+  let mcpErinnerungsDatenschutzKette = Promise.resolve();
+  function mcpErinnerungsDatenschutzWerkzeuge() {
+    const fields = { allow_when_locked: { type: "boolean" }, include_confidential: { type: "boolean" } };
+    const settings = value => ({ allow_when_locked: value.erinnernTrotzKennwort, include_confidential: value.vertraulicheErinnerungen });
+    const readNative = async signal => {
+      const result = await mcpNativeAufruf("reminder_privacy_status", {}, "reminderPrivacyStand", signal), state = result.state;
+      if (result.ok !== true || !state || !["encrypted", "projection_present", "projection_verified", "allow_when_locked", "include_confidential"].every(key => typeof state[key] === "boolean")) throw new MagnolieMcp.ToolError("native_operation_failed", "Native reminder privacy verification is unavailable; re-read before retrying saved changes");
+      return Object.fromEntries(["encrypted", "projection_present", "projection_verified", "allow_when_locked", "include_confidential"].map(key => [key, state[key]]));
+    };
+    return [
+      { name: "organizer_reminder_privacy_read", description: "Read locked-book reminder disclosure preferences and a content-free verification of the actual native projection, including any recoverable copy. Native and in-memory preferences are reported separately; pending saves can differ. Does not change encryption or regenerate data.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (_args, signal) => {
+          const book = DATEN, before = JSON.stringify(DATEN.einstellungen.sicherheit), state = await readNative(signal);
+          if (DATEN !== book || JSON.stringify(DATEN.einstellungen.sicherheit) !== before) throw new MagnolieMcp.ToolError("source_changed", "Reminder privacy changed during native verification");
+          return { settings: settings(JSON.parse(before)), native_state: state, revision: await personalSyncHash(before) };
+        } },
+      { name: "organizer_reminder_privacy_update", description: "Revision-check explicit permission for background reminders while the book is locked, through the shared GUI handler and durable native save. Turning permission off also clears confidential disclosure. Then verify the actual filtered projection or its removal, including recoverable copies; no reminder content is returned. A verification error can follow already saved preferences. Encryption/password and reminder service setup are separate.",
+        inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, ...fields }, required: ["expected_revision"], anyOf: Object.keys(fields).map(key => ({ required: [key] })), additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: (args, signal) => {
+          const run = async () => {
+            let book, after, wanted;
+            const saved = await mcpSchreiben(signal, async () => {
+              book = DATEN; const before = JSON.stringify(DATEN.einstellungen.sicherheit), revision = await personalSyncHash(before);
+              if (signal.aborted || DATEN !== book || JSON.stringify(DATEN.einstellungen.sicherheit) !== before || revision !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Reminder privacy changed; read it again");
+              mcpEditorPruefen(); wendeErinnerungsDatenschutzDatenAn({ ...(args.allow_when_locked !== undefined ? { erinnernTrotzKennwort: args.allow_when_locked } : {}), ...(args.include_confidential !== undefined ? { vertraulicheErinnerungen: args.include_confidential } : {}) });
+              after = JSON.stringify(DATEN.einstellungen.sicherheit); wanted = settings(DATEN.einstellungen.sicherheit); return {};
+            });
+            mcpEditorPruefen(); if (signal.aborted || DATEN !== book || JSON.stringify(DATEN.einstellungen.sicherheit) !== after) throw new MagnolieMcp.ToolError("source_changed", "Preferences were saved; reminder privacy changed before native verification");
+            const state = await readNative(signal);
+            if (state.projection_verified !== true || state.allow_when_locked !== wanted.allow_when_locked || state.include_confidential !== wanted.include_confidential) throw new MagnolieMcp.ToolError("native_operation_failed", "Preferences were saved; native reminder disclosure or removal could not be verified");
+            if (DATEN !== book || JSON.stringify(DATEN.einstellungen.sicherheit) !== after) throw new MagnolieMcp.ToolError("source_changed", "Preferences were saved; reminder privacy changed during verification");
+            return { settings: wanted, native_state: state, persisted: saved.persisted };
+          };
+          const operation = mcpErinnerungsDatenschutzKette.then(run, run); mcpErinnerungsDatenschutzKette = operation.catch(() => {}); return operation;
+        } }
+    ];
+  }
   function wendePapierkorbEinstellungenDatenAn(values) {
     Object.assign(DATEN.einstellungen.papierkorb, values);
   }
@@ -34941,6 +34980,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_reminder_privacy_read") return shape({ settings: object, native_state: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "native_state", "revision"]);
+    if (name === "organizer_reminder_privacy_update") return shape({ settings: object, native_state: object, persisted: yes }, ["settings", "native_state", "persisted"]);
     if (name === "organizer_trash_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
     if (name === "organizer_trash_settings_update") return shape({ settings: object, persisted: yes }, ["settings", "persisted"]);
     if (name === "organizer_contact_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
@@ -35105,6 +35146,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpBenachrichtigungsWerkzeuge(),
       ...mcpAdressEinstellungenWerkzeuge(),
       ...mcpPapierkorbEinstellungenWerkzeuge(),
+      ...mcpErinnerungsDatenschutzWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
