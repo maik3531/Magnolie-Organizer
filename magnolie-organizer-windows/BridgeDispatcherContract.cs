@@ -45,7 +45,7 @@ internal static class BridgeDispatcherContract
         ["planer_ods"] = S(T("layout"), N("jahr"), O("monat", JsonValueKind.Number), T("titel"), A("spalten"), A("zeilen"), A("stile"), A("inhalte"), O("requestId", JsonValueKind.String), O("pfad", JsonValueKind.String), O("overwrite", JsonValueKind.True, JsonValueKind.False), O("open_with_registered_app", JsonValueKind.True, JsonValueKind.False)),
         ["gesundheit_ods"] = S(A("tabellen"), O("requestId", JsonValueKind.String), O("pfad", JsonValueKind.String), O("overwrite", JsonValueKind.True, JsonValueKind.False), O("open_with_registered_app", JsonValueKind.True, JsonValueKind.False)),
         ["zeit_ods"] = S(J("sheet"), O("requestId", JsonValueKind.String), O("pfad", JsonValueKind.String), O("overwrite", JsonValueKind.True, JsonValueKind.False), O("open_with_registered_app", JsonValueKind.True, JsonValueKind.False)),
-        ["eds_status"] = S(O("requestId", JsonValueKind.String)), ["sync"] = S(T("transactionId"), J("wahl"), J("daten")), ["sync_commit"] = S(T("transactionId")), ["graph_client_id_speichern"] = S(T("clientId")), ["graph_anmelden"] = S(), ["graph_abmelden"] = S(),
+        ["eds_status"] = S(O("requestId", JsonValueKind.String)), ["sync"] = S(T("transactionId"), J("wahl"), J("daten"), O("mcp", JsonValueKind.True, JsonValueKind.False)), ["sync_commit"] = S(T("transactionId"), O("requestId", JsonValueKind.String)), ["graph_client_id_speichern"] = S(T("clientId")), ["graph_anmelden"] = S(), ["graph_abmelden"] = S(),
         ["thunderbird_einrichten"] = S(),
         ["internet_konto_anmelden"] = S(T("anbieter"), O("email", JsonValueKind.String)),
         ["internet_konten_status"] = S(),

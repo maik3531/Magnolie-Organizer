@@ -29446,6 +29446,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function starteSync(stumm) {
     sichereNotizSnapshot();
     if (!Bruecke.vorhanden || syncLaeuft) return;
+    if (mcpSyncAktiv() && mcpSyncAktiv().phase !== "preparing") return;
+    if (mcpSyncLauf?.native_dispatched && !mcpSyncLauf.provider_finished && mcpSyncLauf.phase === "failed") return;
     aktualisiereKontaktpersonen(DATEN);
     const w = DATEN.einstellungen.sync;
     const kalenderUids = Array.from(new Set(
@@ -29463,12 +29465,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       jahrestage: DATEN.jahrestage, geloescht: DATEN.geloescht, syncEpoch: DATEN.syncEpoch
     }));
     syncLaeuft = true;
+    const mcpStart = mcpSyncAktiv();
     const syncKnopf = $("#sync-jetzt");
-    if (syncKnopf) { syncKnopf.disabled = true; syncKnopf.textContent = _("Synchronizing …"); }
+    if (syncKnopf && !mcpStart) { syncKnopf.disabled = true; syncKnopf.textContent = _("Synchronizing …"); }
     const status = $("#sync-status");
-    if (status) status.textContent = _("Synchronizing …");
+    if (status && !mcpStart) status.textContent = _("Synchronizing …");
     nachDauerhaftemSpeichern(() => {
+      const mcp = mcpStart ? mcpSyncVorbereiten(DATEN.syncAbgleichBasis?.requestId || "") : null;
+      if (mcpStart && !mcp) { if (mcpStart.phase !== "failed") mcpSyncFehlgeschlagen(mcpStart, "source_changed"); return; }
       const gesendet = Bruecke.sende({ cmd: "sync", requestId: DATEN.syncAbgleichBasis.requestId,
+        ...(mcp ? { mcp: true } : {}),
         wahl: { kalenderUid: w.kalenderUid || kalenderUids[0] || "",
           kalenderUids: kalenderUids, adressbuchUid: w.adressbuchUid },
         daten: { termine: DATEN.syncAbgleichBasis.termine, aufgaben: DATEN.syncAbgleichBasis.aufgaben, kontakte: DATEN.syncAbgleichBasis.kontakte,
@@ -29477,20 +29483,27 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           syncEpoch: DATEN.syncEpoch, syncMetadaten: DATEN.syncMetadaten,
           syncNachRestore: DATEN.syncNachRestore,
           einstellungen: { sync: DATEN.einstellungen.sync } } });
-      if (!gesendet) merkeSyncFehler(_("The synchronization request could not be sent."));
+      if (!gesendet) {
+        if (mcp) { mcp.native_dispatched = false; mcpSyncFehlgeschlagen(mcp, "native_unavailable", true); }
+        else merkeSyncFehler(_("The synchronization request could not be sent."));
+      }
       else {
         const schritte = kalenderUids.length + (w.adressbuchUid ? 1 : 0);
         syncAntwortTimer = setTimeout(() => {
-          if (syncLaeuft) merkeSyncFehler(_("The online account operation timed out."));
+          if (syncLaeuft) {
+            if (mcp) mcpSyncFehlgeschlagen(mcp, "native_timeout");
+            else merkeSyncFehler(_("The online account operation timed out."));
+          }
         }, Math.max(30000, schritte * 22000 + 10000));
       }
-    });
+    }, mcpStart ? () => mcpSyncFehlgeschlagen(mcpStart, "save_failed") : undefined);
   }
 
-  function syncEnde() {
+  function syncEnde(leise = false) {
     clearTimeout(syncAntwortTimer);
     syncAntwortTimer = null;
     syncLaeuft = false;
+    if (leise) return;
     const syncKnopf = $("#sync-jetzt");
     if (syncKnopf) { syncKnopf.disabled = false; syncKnopf.textContent = _("Synchronize now"); }
   }
@@ -29843,6 +29856,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   let kontaktDateiPruefungSchliessen = null;
+  function setzeKontaktProviderFreigabe(ziel, quelle, konflikt) {
+    ziel.syncQuellen ||= {};
+    ziel.syncQuellen[quelle] = kopie(konflikt.mapping);
+    if (konflikt.transport === "eds") ziel.syncQuellen[quelle].pruefungFreigegeben = true;
+    if (konflikt.entfernt) { ziel.syncQuellen[quelle].inhaltFormat = ""; ziel.syncQuellen[quelle].inhaltSha256 = ""; }
+    if (konflikt.transport !== "eds") { ziel.davHref = konflikt.mapping.id; ziel.davEtag = konflikt.mapping.etag || ""; }
+    ziel.sync = true;
+    delete ziel.kontaktProviderKonflikte[quelle];
+    if (!Object.keys(ziel.kontaktProviderKonflikte).length) delete ziel.kontaktProviderKonflikte;
+  }
   async function oeffneKontaktProviderPruefung(id, quelle) {
     if (gesperrt || syncLaeuft || aktiverEditor) return;
     const bestand = DATEN, ziel = DATEN.kontakte.find(k => k.id === id);
@@ -29870,19 +29893,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const original = bestand.kontakte.find(k => k.id === zielId);
       const konflikt = original.kontaktProviderKonflikte[quelle];
       const entwurf = pruefung.daten.kontakte.find(k => k.id === zielId);
-      entwurf.syncQuellen ||= {};
-      entwurf.syncQuellen[quelle] = kopie(konflikt.mapping);
-      if (konflikt.transport === "eds") entwurf.syncQuellen[quelle].pruefungFreigegeben = true;
-      if (konflikt.entfernt) {
-        entwurf.syncQuellen[quelle].inhaltFormat = "";
-        entwurf.syncQuellen[quelle].inhaltSha256 = "";
-      }
-      if (konflikt.transport !== "eds") {
-        entwurf.davHref = konflikt.mapping.id; entwurf.davEtag = konflikt.mapping.etag || "";
-      }
-      entwurf.sync = true;
-      delete entwurf.kontaktProviderKonflikte[quelle];
-      if (!Object.keys(entwurf.kontaktProviderKonflikte).length) delete entwurf.kontaktProviderKonflikte;
+       setzeKontaktProviderFreigabe(entwurf, quelle, konflikt);
       }
       mitMutationsSnapshot("pre-contact-merge", () => {
         if (!gueltig() || !pruefung.gueltig()) { zettel(_("Conflict")); return; }
@@ -32617,16 +32628,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       zettel(nutzlast.fehler || _("The file could not be read."));
     },
     syncFertig(nutzlast) {
-      sichereNotizSnapshot();
       nutzlast = nutzlast || {};
+      const mcpJob = mcpSyncAntwort(nutzlast);
+      if (mcpJob === false) return;
+      if (!mcpJob) sichereNotizSnapshot();
       nutzlast = syncSammlungenAbgleichen(nutzlast);
-      if (!nutzlast) return;
+      if (!nutzlast) { if (mcpJob) mcpSyncFehlgeschlagen(mcpJob, "result_rejected", true); return; }
       const erfolgreich = nutzlast.ok !== false;
       const notizenBereinigen = erfolgreich && !aktiverEditor &&
         !DATEN.syncMetadaten?.ersteSyncLoeschungsfrei && !DATEN.syncMetadaten?.nextcloud?.ersteSyncLoeschungsfrei;
       const syncFehlertext = String(nutzlast.fehler || nutzlast.bericht || _("unknown error"))
         .replace(/\s+/g, " ").trim().slice(0, 2000);
-      syncEnde();
+      syncEnde(!!mcpJob);
       terminIndexVeraltet = true;
       jahrestagIndexVeraltet = true;
       DATEN = normalisiere(Object.assign({}, DATEN, {
@@ -32644,16 +32657,21 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }));
       delete DATEN.syncAbgleichBasis;
       if (notizenBereinigen) vereinigeBestehendeNotizen();
-      if (!editorIstGeaendert()) zeichneAlles();
+      mcpSyncUebernommen(mcpJob);
+      if (!editorIstGeaendert() && (!mcpJob || !modalStapel.some(entry => entry.schleier.isConnected))) zeichneAlles();
       const status = $("#sync-status");
-      if (status) status.textContent = zeitZeileLetzterSync();
-      if (!erfolgreich || DATEN.einstellungen.sync.erfolgsmeldungen) {
+      if (status && !mcpJob) status.textContent = zeitZeileLetzterSync();
+      if (!mcpJob && (!erfolgreich || DATEN.einstellungen.sync.erfolgsmeldungen)) {
         zettel(erfolgreich ? (nutzlast.bericht || _("Synchronization completed.")) :
           uebersetzt("Synchronization failed: %(error)s", { error: syncFehlertext }));
       }
       const kandidat = nutzlast.adressbuchBaselineKandidat;
       const transactionId = String(nutzlast.transactionId || "");
       const bestaetigen = () => {
+        if (mcpJob) {
+          nachDauerhaftemSpeichern(() => mcpSyncDauerhaft(mcpJob, "sync_bestaetigen", "syncBestaetigt"), () => mcpSyncFehlgeschlagen(mcpJob, "save_failed"));
+          return;
+        }
         if (erfolgreich && /^[0-9a-f]{64}$/.test(transactionId))
           nachDauerhaftemSpeichern(() => Bruecke.sende({ cmd: "sync_bestaetigen", transactionId }));
       };
@@ -32668,11 +32686,24 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           };
           speichereJetzt();
           bestaetigen();
-        });
+        }, mcpJob ? () => mcpSyncFehlgeschlagen(mcpJob, "save_failed") : undefined);
       } else { planeSpeichern(); bestaetigen(); }
     },
     syncBestaetigt(nutzlast) {
+      if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "syncBestaetigt"); return; }
       if (nutzlast && nutzlast.ok === false) zettel(_("Synchronization failed."));
+    },
+    syncMcpGestartet(nutzlast) {
+      const job = mcpSyncLauf;
+      if (!job || job.provider_finished || job.native_id !== nutzlast?.nativeId) return;
+      job.native_started = true;
+      if (job.book === DATEN && job.epoch === DATEN.syncEpoch && !gesperrt) { job.phase = "running"; job.error_code = "none"; }
+      else mcpSyncFehlgeschlagen(job, "source_changed");
+    },
+    syncMcpFehler(nutzlast) {
+      const job = mcpSyncLauf;
+      if (!job || job.provider_finished || job.native_id !== nutzlast?.nativeId) return;
+      mcpSyncFehlgeschlagen(job, ["profile_locked", "native_busy", "source_changed"].includes(nutzlast.code) ? nutzlast.code : "native_operation_failed", true);
     },
     syncFehler(text) {
       zettel(merkeSyncFehler(text));
@@ -34832,6 +34863,150 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         } }
     ];
   }
+  const mcpKontaktProviderFeld = "kontaktProviderKonflikte";
+  function mcpKontaktProviderKonflikt(contactId, sourceId) {
+    const target = DATEN.kontakte.find(item => item.id === contactId), conflicts = target?.[mcpKontaktProviderFeld];
+    const conflict = conflicts && Object.prototype.hasOwnProperty.call(conflicts, sourceId) ? conflicts[sourceId] : null;
+    if (!target || !conflict?.mapping?.id) throw new MagnolieMcp.ToolError("not_found", "Stored provider conflict not found");
+    if (!conflict.entfernt && (!conflict.kontakt || !conflict.mapping.etag && conflict.transport !== "eds")) throw new MagnolieMcp.ToolError("unsupported_feature", "This provider conflict has no reviewable native snapshot");
+    const incoming = conflict.entfernt ? null : normalisiere({ kontakte: [conflict.kontakt] }).kontakte[0];
+    if (!conflict.entfernt && !incoming) throw new MagnolieMcp.ToolError("unsupported_feature", "Stored provider contact is not reviewable");
+    return { target, conflict, incoming };
+  }
+  async function mcpBereiteProviderEntscheidungVor(view, sourceId, args) {
+    if (args.clear_lists?.length || args.extras?.length) throw new MagnolieMcp.ToolError("unsupported_feature", "This platform uses the existing file-review choices; explicit empty-list/extra-array choices are unavailable");
+    const { target, conflict } = view;
+    let draft;
+    if (conflict.entfernt) {
+      if (args.decision !== "keep" || args.fields?.length || args.lists?.length || args.preserve_birth_name) throw new MagnolieMcp.ToolError("invalid_selection", "A deleted provider contact can only retain its local card through this product review");
+      draft = { kontakte: kopie(DATEN.kontakte), jahrestage: kopie(DATEN.jahrestage) };
+    } else {
+      const preparation = bereiteKontaktDateiPruefungVor([conflict.kontakt], "", false, target.id);
+      await preparation.hashes;
+      const review = { preparation, version: 0 };
+      mcpImportEntscheidungenAnwenden(review, [{ index: 0, action: args.decision, fields: args.fields, lists: args.lists, preserve_birth_name: args.preserve_birth_name }]);
+      if (!kontaktDateiAuswahlVollstaendig(preparation)) throw new MagnolieMcp.ToolError("invalid_selection", "Complete the offered address-list choices before applying");
+      draft = (await erstelleKontaktDateiEntwurf(preparation)).daten;
+    }
+    setzeKontaktProviderFreigabe(draft.kontakte.find(item => item.id === target.id), sourceId, conflict);
+    return () => { DATEN.kontakte = draft.kontakte; DATEN.jahrestage = draft.jahrestage; };
+  }
+  function mcpKontaktProviderWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 512 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const properties = { contact_id: id, source_id: id };
+    return [{ name: "organizer_contact_provider_conflict_read", description: "Inspect a stored native contact/provider conflict without opening its GUI review. Returns the contact revision, deletion/read-only state, reliable-newer availability and normalized list counts, not large photos or native credentials. Read the contact/provider snapshot through contact_read/content_read for actual values. Existing platform-specific review semantics and options are explicit.",
+      inputSchema: { type: "object", properties, required: ["contact_id", "source_id"], additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async args => {
+        const book = DATEN, view = mcpKontaktProviderKonflikt(args.contact_id, args.source_id), before = JSON.stringify(view.target), hash = await personalSyncHash(before);
+        const localTime = await kontaktInhaltszeit(view.target), incomingTime = view.incoming && kontaktZeitGueltig(view.incoming.vcardRev) ? view.incoming.vcardRev : 0;
+        if (DATEN !== book || JSON.stringify(view.target) !== before) throw new MagnolieMcp.ToolError("conflict", "Contact changed during provider review inspection");
+        const newer = !!(localTime && incomingTime && localTime !== incomingTime), windows = mcpKontaktProviderFeld === "syncKonflikte";
+        return { contact_id: args.contact_id, source_id: args.source_id, revision: hash, remote_deleted: view.conflict.entfernt === true, read_only: view.conflict.nurLesen === true,
+          can_use_newer: newer, newer_choice: newer ? localTime > incomingTime ? "keep" : "incoming" : null,
+          scalar_differences: view.incoming ? BAUM_KONTAKT_FELDER.filter(field => String(view.target[field] || "") !== String(view.incoming[field] || "")) : [],
+          existing_list_counts: Object.fromEntries(Object.entries(BAUM_KONTAKT_LISTEN).map(([field, rule]) => [field, rule.lesen(view.target).length])),
+          incoming_list_counts: Object.fromEntries(Object.entries(BAUM_KONTAKT_LISTEN).map(([field, rule]) => [field, view.incoming ? rule.lesen(view.incoming).length : 0])),
+          options: { preserve_birth_name: !windows, clear_empty_lists: windows, extra_arrays: windows, merge_note_choice: !windows } };
+      } }, { name: "organizer_contact_provider_conflict_resolve", description: "Apply keep/merge/replace/reliably-newer to a stored provider conflict through the same platform GUI review builders and source-approval handler. Requires the whole contact revision, idle synchronization, closed drafts/dialogs, a native pre-contact-merge checkpoint and durable book SaveACK. Field/list choices use product keys and zero-based normalized indices. Linux retains its existing staged file-review semantics; Windows retains explicit empty-list and extra-array choices. A deleted Linux remote contact permits keep only, preparing restoration on the next writable synchronization. This call performs no remote write; cancellation/save failure may follow local changes, so re-read before retrying.",
+      inputSchema: { type: "object", properties: { ...properties, expected_revision: revision, decision: { type: "string", enum: ["keep", "merge", "replace", "newer"] },
+        fields: { type: "array", maxItems: 32, items: { type: "object", properties: { field: { type: "string", enum: BAUM_KONTAKT_FELDER }, choice: { type: "string", enum: ["keep", "incoming", "merge"] } }, required: ["field", "choice"], additionalProperties: false } },
+        lists: { type: "array", maxItems: 1000, items: { type: "object", properties: { field: { type: "string", enum: Object.keys(BAUM_KONTAKT_LISTEN) }, incoming_index: { type: "integer", minimum: 0 }, choice: { type: "string", enum: ["keep", "add", "replace"] }, existing_index: { type: "integer", minimum: 0 } }, required: ["field", "incoming_index", "choice"], additionalProperties: false } },
+        preserve_birth_name: { type: "boolean" }, clear_lists: { type: "array", maxItems: 3, items: { type: "string", enum: Object.keys(BAUM_KONTAKT_LISTEN) } },
+        extras: { type: "array", maxItems: 3, items: { type: "object", properties: { field: { type: "string", enum: ["kontaktpersonen", "sozialeMedien", "vcardRoundtrip"] }, choice: { type: "string", enum: ["keep", "incoming"] } }, required: ["field", "choice"], additionalProperties: false } } },
+        required: ["contact_id", "source_id", "expected_revision", "decision"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: (args, signal) => mcpSchreiben(signal, async () => {
+          const idle = () => { if (syncLaeuft || typeof kontaktSyncPruefungLauf !== "undefined" && kontaktSyncPruefungLauf || mcpSyncAktiv() || mcpSyncLauf?.native_dispatched && !mcpSyncLauf.provider_finished) throw new MagnolieMcp.ToolError("native_busy", "Finish synchronization before resolving provider conflicts"); };
+          idle(); const target = await mcpPruefeEintrag("kontakte", args.contact_id, args.expected_revision, signal), book = DATEN, before = JSON.stringify(DATEN);
+          const apply = await mcpBereiteProviderEntscheidungVor(mcpKontaktProviderKonflikt(args.contact_id, args.source_id), args.source_id, args);
+          const current = () => DATEN === book && DATEN.kontakte.includes(target) && JSON.stringify(DATEN) === before;
+          mcpEditorPruefen(); idle(); if (!current()) throw new MagnolieMcp.ToolError("conflict", "Book changed while preparing the provider decision");
+          await mcpMutationsSnapshot("pre-contact-merge", signal);
+          mcpEditorPruefen(); idle(); if (signal.aborted || !current()) throw new MagnolieMcp.ToolError("conflict", "Book changed before applying the provider decision");
+          apply(); const saved = DATEN.kontakte.find(item => item.id === args.contact_id);
+          return { contact_id: args.contact_id, source_id: args.source_id, remaining_conflicts: Object.keys(saved[mcpKontaktProviderFeld] || {}).length, remote_write_performed: false, recovery_snapshot_confirmed: true };
+        }) }];
+  }
+  let mcpSyncLauf = null;
+  function mcpSyncAktiv() {
+    return mcpSyncLauf?.book === DATEN && mcpSyncLauf.epoch === DATEN.syncEpoch && !["completed", "failed"].includes(mcpSyncLauf.phase) ? mcpSyncLauf : null;
+  }
+  function mcpSyncFehlgeschlagen(job, code, providerFinished = false) {
+    if (!job || job !== mcpSyncLauf) return;
+    job.phase = "failed"; job.error_code = code; job.provider_finished ||= providerFinished;
+    const currentId = String(DATEN.syncAbgleichBasis?.requestId || DATEN.syncMetadaten?.nextcloud?.ausstehendeTransaktion || "");
+    if (job.book === DATEN || !currentId || currentId === job.native_id) syncEnde(true);
+  }
+  function mcpSyncVorbereiten(nativeId) {
+    const job = mcpSyncAktiv();
+    if (!job || job.phase !== "preparing") return null;
+    try {
+      mcpEditorPruefen();
+      if (gesperrt || JSON.stringify(DATEN.einstellungen.sync) !== job.selection) throw new MagnolieMcp.ToolError("conflict", "Sync selection changed before dispatch");
+    } catch (error) { mcpSyncFehlgeschlagen(job, error.code || "source_changed"); return false; }
+    job.native_id = nativeId; job.native_dispatched = true; job.phase = "dispatching"; return job;
+  }
+  function mcpSyncAntwort(nutzlast) {
+    const job = mcpSyncLauf, id = String(nutzlast.requestId || nutzlast.transactionId || "");
+    if (!job || !job.native_id || job.native_id !== id) return null;
+    if (job.provider_finished) return false;
+    if (job.book !== DATEN || job.epoch !== DATEN.syncEpoch || gesperrt) { mcpSyncFehlgeschlagen(job, "source_changed", true); return false; }
+    job.native_started = true; job.provider_finished = true; job.provider_success = nutzlast.ok !== false; job.phase = "saving";
+    job.transaction_id = /^[a-f0-9]{64}$/.test(nutzlast.transactionId || "") ? nutzlast.transactionId : "";
+    job.commit_required = !!job.transaction_id;
+    return job;
+  }
+  function mcpSyncUebernommen(job) {
+    if (!job) return;
+    job.book = DATEN; job.epoch = DATEN.syncEpoch;
+    job.record_counts = Object.fromEntries(["termine", "aufgaben", "kontakte", "jahrestage"].map(key => [key, DATEN[key].length]));
+  }
+  async function mcpSyncDauerhaft(job, command, callback) {
+    if (!job || job !== mcpSyncLauf || job.book !== DATEN || job.epoch !== DATEN.syncEpoch || gesperrt) { mcpSyncFehlgeschlagen(job, "source_changed"); return; }
+    try {
+      job.data_saved = true;
+      job.saved_book_revision = await personalSyncHash(letzterSpeicherText);
+      if (job.book !== DATEN || job.epoch !== DATEN.syncEpoch || gesperrt) throw new MagnolieMcp.ToolError("source_changed", "Book changed before native sync commit");
+      if (!job.provider_success) { mcpSyncFehlgeschlagen(job, "provider_failed"); return; }
+      if (job.commit_required) {
+        job.phase = "committing";
+        const value = await mcpNativeAufruf(command, { transactionId: job.transaction_id }, callback, new AbortController().signal);
+        if (value.ok !== true || value.transactionId !== job.transaction_id) throw new MagnolieMcp.ToolError("commit_unconfirmed", "Native sync commit was not confirmed");
+        job.native_commit_confirmed = true;
+      }
+      job.phase = "completed"; job.error_code = "none";
+    } catch (error) { mcpSyncFehlgeschlagen(job, ["source_changed", "native_timeout", "commit_unconfirmed"].includes(error.code) ? error.code : "native_operation_failed"); }
+  }
+  function mcpSyncStatusWert(id) {
+    const job = mcpSyncLauf;
+    if (id && id !== job?.id) throw new MagnolieMcp.ToolError("not_found", "Sync run not found in this process");
+    if (id && job.book !== DATEN) throw new MagnolieMcp.ToolError("source_changed", "Sync run belongs to a different book");
+    return { running: syncLaeuft || !!mcpSyncAktiv() || !!(job?.native_dispatched && !job.provider_finished) || !!(typeof kontaktSyncPruefungLauf !== "undefined" && kontaktSyncPruefungLauf),
+      last_attempt_ms: Math.max(0, Number(DATEN.syncStatus?.letzterVersuch) || 0), last_success_ms: Math.max(0, Number(DATEN.letzterSync) || 0), error_present: !!DATEN.syncStatus?.letzterFehler,
+      job: !job || job.book !== DATEN ? null : { run_id: job.id, phase: job.phase, native_dispatched: job.native_dispatched, native_started: job.native_started, provider_finished: job.provider_finished, provider_success: job.provider_success,
+        data_saved: job.data_saved, commit_required: job.commit_required, native_commit_confirmed: job.native_commit_confirmed, saved_book_revision: job.saved_book_revision,
+        transaction_id: job.transaction_id, error_code: job.error_code, record_counts: job.record_counts } };
+  }
+  function mcpSyncLaufWerkzeuge() {
+    return [{ name: "organizer_sync_status", description: "Read actual product synchronization activity, stored attempt/success flags and the latest MCP-started run's native/provider/save/commit phases. Counts describe normalized local records, not delivered changes. A failed/timed-out run can still have remote changes and a later native result; RPC cancellation does not stop or roll back the product workflow. The latest run is process-local and bound to its book; raw provider errors and records are not returned.",
+      inputSchema: { type: "object", properties: { run_id: { type: "string", pattern: "^[a-f0-9]{48}$" } }, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: args => mcpSyncStatusWert(args.run_id) },
+    { name: "organizer_sync_start", description: "Start the same selected-provider synchronization workflow as the GUI, including existing contact cleanup, recovery checkpoints, native provider transactions, three-way result adoption and durable baseline saves. Requires the complete current book revision. Returns preparation/running status, not a completion receipt; read sync_status until terminal. A completed run requires native book SaveACK and, where the product returns a journal transaction, the actual native saved-result/commit proof. Provider conflicts remain inspectable/resolvable separately. GUI drafts/dialogs block starting; late MCP results do not open dialogs or toasts. Cancellation ends RPC waiting, not provider work; re-read status before retrying.",
+      inputSchema: { type: "object", properties: { expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, required: ["expected_book_revision"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+        const start = async () => {
+          mcpEditorPruefen();
+          if (syncLaeuft || typeof kontaktSyncPruefungLauf !== "undefined" && kontaktSyncPruefungLauf || mcpSyncAktiv() || mcpSyncLauf?.native_dispatched && !mcpSyncLauf.provider_finished)
+            throw new MagnolieMcp.ToolError("native_busy", "Wait for the actual synchronization operation to finish");
+          const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+          mcpEditorPruefen();
+          if (signal.aborted || gesperrt || book !== DATEN || before !== JSON.stringify(DATEN) || revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed before synchronization");
+          const settings = DATEN.einstellungen.sync;
+          if (!settings.adressbuchUid && !settings.kalenderUid && !(settings.kalenderUids || []).length) throw new MagnolieMcp.ToolError("not_configured", "Choose a calendar or address book first");
+          mcpSyncLauf = { id: Array.from(crypto.getRandomValues(new Uint8Array(24)), byte => byte.toString(16).padStart(2, "0")).join(""), book, epoch: book.syncEpoch, selection: JSON.stringify(settings),
+            phase: "preparing", native_id: "", native_dispatched: false, native_started: false, provider_finished: false, provider_success: null, data_saved: false, commit_required: null,
+            native_commit_confirmed: false, saved_book_revision: null, transaction_id: "", error_code: "none", record_counts: null };
+          starteSync(true); return mcpSyncStatusWert();
+        };
+        const pending = mcpSchreibKette.then(start, start); mcpSchreibKette = pending.catch(() => {}); return pending;
+      } }];
+  }
   function mcpSyncEinstellungenWerkzeuge() {
     const uid = { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" };
     const fields = { calendar_ids: { type: "array", maxItems: 10000, uniqueItems: true, items: uid }, address_book_id: { type: "string", maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]*$" },
@@ -36031,6 +36206,23 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (name.endsWith("_update")) Object.assign(fields, { persisted: yes, verified: yes });
       return shape(fields, Object.keys(fields));
     }
+    if (name === "organizer_contact_provider_conflict_read") {
+      const counts = shape(Object.fromEntries(Object.keys(BAUM_KONTAKT_LISTEN).map(key => [key, { type: "integer", minimum: 0 }])), Object.keys(BAUM_KONTAKT_LISTEN));
+      const optionFields = { preserve_birth_name: flag, clear_empty_lists: flag, extra_arrays: flag, merge_note_choice: flag };
+      return shape({ contact_id: text, source_id: text, revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, remote_deleted: flag, read_only: flag, can_use_newer: flag,
+        newer_choice: { type: ["string", "null"], enum: ["keep", "incoming", null] }, scalar_differences: { type: "array", items: { type: "string", enum: BAUM_KONTAKT_FELDER } },
+        existing_list_counts: counts, incoming_list_counts: counts, options: shape(optionFields, Object.keys(optionFields)) },
+        ["contact_id", "source_id", "revision", "remote_deleted", "read_only", "can_use_newer", "newer_choice", "scalar_differences", "existing_list_counts", "incoming_list_counts", "options"]);
+    }
+    if (name === "organizer_contact_provider_conflict_resolve") return shape({ contact_id: text, source_id: text, remaining_conflicts: { type: "integer", minimum: 0 }, remote_write_performed: { type: "boolean", enum: [false] }, recovery_snapshot_confirmed: yes, persisted: yes }, ["contact_id", "source_id", "remaining_conflicts", "remote_write_performed", "recovery_snapshot_confirmed", "persisted"]);
+    if (["organizer_sync_start", "organizer_sync_status"].includes(name)) {
+      const count = { type: "integer", minimum: 0 }, nullableFlag = { type: ["boolean", "null"] };
+      const counts = shape(Object.fromEntries(["termine", "aufgaben", "kontakte", "jahrestage"].map(key => [key, count])), ["termine", "aufgaben", "kontakte", "jahrestage"]);
+      const fields = { run_id: { type: "string", pattern: "^[a-f0-9]{48}$" }, phase: { type: "string", enum: ["preparing", "dispatching", "running", "saving", "committing", "completed", "failed"] },
+        native_dispatched: flag, native_started: flag, provider_finished: flag, provider_success: nullableFlag, data_saved: flag, commit_required: nullableFlag, native_commit_confirmed: flag,
+        saved_book_revision: { type: ["string", "null"], pattern: "^[a-f0-9]{64}$" }, transaction_id: text, error_code: text, record_counts: { anyOf: [{ type: "null" }, counts] } };
+      return shape({ running: flag, last_attempt_ms: count, last_success_ms: count, error_present: flag, job: { anyOf: [{ type: "null" }, shape(fields, Object.keys(fields))] } }, ["running", "last_attempt_ms", "last_success_ms", "error_present", "job"]);
+    }
     if (["organizer_sync_settings_read", "organizer_sync_settings_update"].includes(name)) {
       const settings = shape({ calendar_ids: { type: "array", items: text }, primary_calendar_id: text, address_book_id: text, at_startup: flag, success_notifications: flag, prefer_newer_contacts: flag }, ["calendar_ids", "primary_calendar_id", "address_book_id", "at_startup", "success_notifications", "prefer_newer_contacts"]);
       return name.endsWith("_read") ? shape({ settings, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]) : shape({ settings, persisted: yes }, ["settings", "persisted"]);
@@ -36258,6 +36450,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpBerichtDruckWerkzeuge(),
       ...mcpMuellImportWerkzeuge(),
       ...mcpSyncEinstellungenWerkzeuge(),
+      ...mcpSyncLaufWerkzeuge(),
+      ...mcpKontaktProviderWerkzeuge(),
       ...mcpDavKontoWerkzeuge(),
       ...mcpMicrosoftKontoWerkzeuge(),
       ...mcpMicrosoftAnmeldeWerkzeuge(owner),

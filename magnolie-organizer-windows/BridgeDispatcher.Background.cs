@@ -63,7 +63,7 @@ internal sealed partial class BridgeDispatcher
         }
     }
     private Task QueueBackground(Func<Task> action, Task? predecessor = null, int? generation = null,
-        bool ownsBridgeLane = false)
+        bool ownsBridgeLane = false, Func<string, Task>? onAborted = null)
     {
         lock (serviceGate)
         {
@@ -75,13 +75,19 @@ internal sealed partial class BridgeDispatcher
                     // Ordinary workers may emit commands requiring this lane. A
                     // save worker instead executes on behalf of its lane owner.
                     if (predecessor is not null) await predecessor.WaitAsync(backgroundLifetime.Token).ConfigureAwait(false);
-                    if (generation is not null && generation != Volatile.Read(ref networkGeneration)) return;
+                    if (generation is not null && generation != Volatile.Read(ref networkGeneration))
+                    { if (onAborted is not null) await onAborted("source_changed").ConfigureAwait(false); return; }
                     if (generation is null && !ownsBridgeLane)
                     { await bridgeCommands.WaitAsync(backgroundLifetime.Token).ConfigureAwait(false); bridgeCommands.Release(); }
                     backgroundLifetime.Token.ThrowIfCancellationRequested(); await action().ConfigureAwait(false);
                 }
                 catch (Exception error)
                 {
+                    if (!disposed && onAborted is not null)
+                    {
+                        try { await onAborted(error is OperationCanceledException ? "source_changed" : "native_operation_failed").ConfigureAwait(false); }
+                        catch (Exception) { }
+                    }
                     if (!disposed) RotatingLog.Append(Path.Combine(paths.Logs, "background.log"), error.Message);
                 }
             });
@@ -91,12 +97,13 @@ internal sealed partial class BridgeDispatcher
             return task;
         }
     }
-    private void QueueNetworkCommand(Func<Task> action, string owner = "baum")
+    private void QueueNetworkCommand(Func<Task> action, string owner = "baum", Func<string, Task>? onAborted = null)
     {
         lock (serviceGate)
         {
-            if (restoreInProgress) return;
-            networkTails[owner] = QueueBackground(action, networkTails.GetValueOrDefault(owner) ?? Task.CompletedTask, networkGeneration);
+            if (restoreInProgress)
+            { if (onAborted is not null) _ = QueueBackground(() => onAborted("native_busy")); return; }
+            networkTails[owner] = QueueBackground(action, networkTails.GetValueOrDefault(owner) ?? Task.CompletedTask, networkGeneration, onAborted: onAborted);
         }
     }
     private CancellationTokenSource NetworkDeadline(TimeSpan timeout)

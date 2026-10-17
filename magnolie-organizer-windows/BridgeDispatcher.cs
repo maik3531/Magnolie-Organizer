@@ -88,11 +88,12 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     command.StartsWith("kde", StringComparison.Ordinal) ? "kde" : command.StartsWith("baum", StringComparison.Ordinal) ? "baum" :
                     command.StartsWith("update", StringComparison.Ordinal) || command == "handbuch_herunterladen" ? "update" : command;
                 var revision = Volatile.Read(ref graphRevision);
+                var syncReplyId = command == "sync" && Boolean(parsed.RootElement, "mcp") ? Text(parsed.RootElement, "transactionId") : "";
                 QueueNetworkCommand(() =>
                 {
                     if (command != "graph_anmelden") return HandleCoreAsync(rawMessage);
                     lock (serviceGate) return revision != graphRevision ? Task.CompletedTask : HandleCoreAsync(rawMessage);
-                }, owner);
+                }, owner, syncReplyId.Length == 0 ? null : code => form.SendAsync("App.syncMcpFehler", new { nativeId = syncReplyId, code }));
                 return;
             }
         }
@@ -255,7 +256,15 @@ internal sealed partial class BridgeDispatcher : IDisposable
                         }
                         break;
                     case "sync": await SynchronizeContactsAsync(message); break;
-                    case "sync_commit": CommitSynchronization(Text(message, "transactionId")); break;
+                    case "sync_commit":
+                        if (Text(message, "requestId") is { Length: > 0 } commitRequest)
+                        {
+                            var committed = false;
+                            try { committed = CommitSynchronization(Text(message, "transactionId")); } catch (Exception) { }
+                            await form.SendAsync("App.syncCommitErgebnis", new { requestId = commitRequest, transactionId = Text(message, "transactionId"), ok = committed });
+                        }
+                        else CommitSynchronization(Text(message, "transactionId"));
+                        break;
                     case "graph_client_id_speichern": await SaveGraphConfigurationAsync(message); break;
                     case "graph_anmelden": await SignInGraphAsync(); break;
                     case "graph_abmelden": await SignOutGraphAsync(); break;

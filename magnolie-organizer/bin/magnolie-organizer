@@ -21490,7 +21490,7 @@ class Fenster(_FENSTER_BASIS):
 
         elif befehl == "sync_bestaetigen":
             threading.Thread(target=self._sync_bestaetigen,
-                             args=(nachricht.get("transactionId"),), daemon=True).start()
+                             args=(nachricht.get("transactionId"), nachricht.get("requestId")), daemon=True).start()
 
         elif befehl == "internet_konten_mcp":
             self.antwort("App.internetKontenMcp", {"requestId": nachricht.get("requestId"), "ok": False,
@@ -22072,9 +22072,14 @@ class Fenster(_FENSTER_BASIS):
                              args=(nachricht,), daemon=True).start()
 
         elif befehl in ("sync", "sync_start"):
+            if nachricht.get("mcp") is True and self._gesperrt:
+                self.antwort("App.syncMcpFehler", {"nativeId": nachricht.get("requestId"), "code": "profile_locked"})
+                return
             if self._sync_laeuft or self._operation_laeuft:
-                self.antwort("App.syncFehler",
-                             _("Another data operation is still running."))
+                if nachricht.get("mcp") is True:
+                    self.antwort("App.syncMcpFehler", {"nativeId": nachricht.get("requestId"), "code": "native_busy"})
+                else:
+                    self.antwort("App.syncFehler", _("Another data operation is still running."))
                 return
             self._sync_laeuft = True
             threading.Thread(target=self._sync_arbeit, args=(nachricht,),
@@ -25805,6 +25810,8 @@ class Fenster(_FENSTER_BASIS):
         start = time.monotonic()
         debug_notiz("sync.begin")
         try:
+            if nachricht.get("mcp") is True:
+                self.antwort("App.syncMcpGestartet", {"nativeId": nachricht.get("requestId")})
             ergebnis = self._sync_ausfuehren(nachricht)
             debug_notiz("sync.success",
                         duration_ms=round((time.monotonic() - start) * 1000, 1),
@@ -25817,8 +25824,10 @@ class Fenster(_FENSTER_BASIS):
                            error=fehler)
             text = (nextcloud_fehlertext(fehler) if isinstance(fehler, NextcloudError)
                     else fehler_deutsch(fehler))
-            self.sende_js("App.syncFehler(JSON.parse(%s));"
-                          % js_zeichenkette(text))
+            if nachricht.get("mcp") is True:
+                self.antwort("App.syncMcpFehler", {"nativeId": nachricht.get("requestId"), "code": "native_operation_failed"})
+            else:
+                self.sende_js("App.syncFehler(JSON.parse(%s));" % js_zeichenkette(text))
         finally:
             self._sync_laeuft = False
             debug_notiz("sync.end",
@@ -26354,7 +26363,7 @@ class Fenster(_FENSTER_BASIS):
             self.antwort("App.syncFertig", ergebnis)
         return ergebnis
 
-    def _sync_bestaetigen(self, transaction_id):
+    def _sync_bestaetigen(self, transaction_id, request_id=None):
         ok = False
         try:
             with self._daten_sperre:
@@ -26374,7 +26383,10 @@ class Fenster(_FENSTER_BASIS):
                     ok = sync_transaktion_abschliessen(transaction_id, daten)
         except Exception:
             pass  # A failed proof never discards the pending journal.
-        self.antwort("App.syncBestaetigt", {"transactionId": transaction_id, "ok": ok})
+        result = {"transactionId": transaction_id, "ok": ok}
+        if request_id:
+            result["requestId"] = request_id
+        self.antwort("App.syncBestaetigt", result)
         return ok
 
     def _sync_ausfuehren(self, nachricht, antworten=True, snapshot=True):

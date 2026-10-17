@@ -84,7 +84,8 @@ def complete_result():
 
 
 @pytest.mark.parametrize("encrypted", [False, True])
-def test_journal_requires_matching_on_disk_save_and_explicit_ack(monkeypatch, tmp_path, encrypted):
+@pytest.mark.parametrize("request_id", [None, "owned-mcp-commit-request"])
+def test_journal_requires_matching_on_disk_save_and_explicit_ack(monkeypatch, tmp_path, encrypted, request_id):
     monkeypatch.setattr(m, "daten_verzeichnis", lambda: str(tmp_path))
     path = tmp_path / "daten.json"
     monkeypatch.setattr(m, "daten_datei", lambda: str(path))
@@ -115,9 +116,32 @@ def test_journal_requires_matching_on_disk_save_and_explicit_ack(monkeypatch, tm
     del normalized["aufgaben"][0]["davEtag"]
     save(normalized)
     assert journal.exists()  # Saving alone is not an ACK.
-    assert m.Fenster._sync_bestaetigen(probe, transaction)
-    assert probe.response == ("App.syncBestaetigt", {"transactionId": transaction, "ok": True})
+    assert m.Fenster._sync_bestaetigen(probe, transaction, request_id)
+    assert probe.response == ("App.syncBestaetigt", {"transactionId": transaction, "ok": True, **({"requestId": request_id} if request_id else {})})
     assert not journal.exists()
+
+
+def test_mcp_sync_native_failures_are_correlated_and_do_not_emit_gui_errors(monkeypatch):
+    for name in ("debug_einrichten", "debug_notiz", "debug_ausnahme"):
+        monkeypatch.setattr(m, name, lambda *_args, **_kwargs: None)
+    class Probe:
+        _gesperrt = True
+        _sync_laeuft = False
+        _operation_laeuft = False
+        def _organizer_vertraut(self): return True
+        def antwort(self, callback, value): self.response = callback, value
+        def sende_js(self, *_args): pytest.fail("MCP failure emitted an uncorrelated GUI error")
+        def _sync_ausfuehren(self, *_args): raise RuntimeError("owned-private-provider-error")
+    probe = Probe()
+    message = {"cmd": "sync", "mcp": True, "requestId": "owned-native-sync"}
+    m.Fenster.bei_nachricht(probe, json.dumps(message))
+    assert probe.response == ("App.syncMcpFehler", {"nativeId": "owned-native-sync", "code": "profile_locked"})
+    probe._gesperrt = False; probe._sync_laeuft = True
+    m.Fenster.bei_nachricht(probe, json.dumps(message))
+    assert probe.response[1]["code"] == "native_busy"
+    m.Fenster._sync_arbeit(probe, message)
+    assert probe.response == ("App.syncMcpFehler", {"nativeId": "owned-native-sync", "code": "native_operation_failed"})
+    assert not probe._sync_laeuft and "owned-private" not in json.dumps(probe.response)
 
 
 def test_pending_journals_survive_new_work_restore_and_capacity_limit(monkeypatch, tmp_path):

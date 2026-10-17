@@ -439,8 +439,10 @@ internal sealed partial class BridgeDispatcher
         var thunderbirdClients = new List<NextcloudDavClient>();
         try
         {
+            if (Boolean(message, "mcp") && (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null))) throw new InvalidOperationException(T("Synchronization failed."));
             await MutationGate.Global.WaitAsync(operation.Token); locked = true;
             operation.Token.ThrowIfCancellationRequested();
+            if (Boolean(message, "mcp")) await form.SendAsync("App.syncMcpGestartet", new { nativeId = Text(message, "transactionId") });
             var requestedSource = message.TryGetProperty("wahl", out var snapshotChoice) ? PropertyText(snapshotChoice, "adressbuchUid") : "";
             var snapshotPrepared = contactCleanupSnapshot.Consume(currentPlainText, requestedSource);
             MutationGate.Global.Release(); locked = false;
@@ -713,7 +715,8 @@ internal sealed partial class BridgeDispatcher
         catch (Exception error)
         {
             await ReportErrorAsync("sync", error.ToString());
-            await form.SendAsync("App.syncFehler", NextcloudStatusText.For(error));
+            if (Boolean(message, "mcp")) await form.SendAsync("App.syncMcpFehler", new { nativeId = Text(message, "transactionId"), code = "native_operation_failed" });
+            else await form.SendAsync("App.syncFehler", NextcloudStatusText.For(error));
         }
         finally
         {
@@ -723,19 +726,19 @@ internal sealed partial class BridgeDispatcher
         }
     }
 
-    private void CommitSynchronization(string transactionId)
+    private bool CommitSynchronization(string transactionId)
     {
         ValidateSynchronizationTransaction(transactionId);
-        if (!MutationGate.Global.Wait(0)) return;
+        if (!MutationGate.Global.Wait(0)) return false;
         try
         {
             var journal = SynchronizationJournal(transactionId);
-            if (journal.Load() is not { Phase: "complete" } completed || completed.Id != transactionId) return;
+            if (journal.Load() is not { Phase: "complete" } completed || completed.Id != transactionId) return false;
             var text = store.Read(paths.Data);
-            if (text is null) return;
+            if (text is null) return false;
             if (EncryptionService.IsEncrypted(text)) text = encryption.DecryptDataWithSession(text);
-            if (JsonNode.Parse(text) is not JsonObject saved || !SyncBaseline.ContainsSavedResult(completed.Payload, saved)) return;
-            journal.Commit(transactionId);
+            if (JsonNode.Parse(text) is not JsonObject saved || !SyncBaseline.ContainsSavedResult(completed.Payload, saved)) return false;
+            return journal.Commit(transactionId) && journal.Load() is null;
         }
         finally { MutationGate.Global.Release(); }
     }

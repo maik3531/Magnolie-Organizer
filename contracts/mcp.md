@@ -133,6 +133,8 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_sync_sources_read` | Actual native calendar/address-book/account availability, with request- and callback-bound results |
 | `organizer_sync_settings_read` | Calendar/address-book selections and GUI sync preferences under a revision covering the complete sync preference object |
 | `organizer_sync_settings_update` | Shared GUI selection/preferences, native validation of newly linked IDs and durable save; preserves offline selections and existing record/provider routing |
+| `organizer_sync_start/status` | Actual shared GUI/provider synchronization workflow with native-start acknowledgement, three-way adoption, durable saves and actual journal-commit proof where required; bounded status without provider records/errors |
+| `organizer_contact_provider_conflict_read/resolve` | Stored contact/provider review through existing platform decision builders and source-approval handlers, contact revision/checkpoint/save guards, no immediate remote write |
 | `organizer_dav_account_read` | Actual local shared GUI Nextcloud/generic-DAV configuration and credential-presence metadata, with a process-bound keyed native revision and explicit unreadable states; no secret values or connectivity claim |
 | `organizer_dav_connection_test` | Fresh read-only CalDAV/CardDAV discovery through GUI readers, checked against the expected native account revision before and after the request; collection counts, partial discovery and sanitized failure codes, no mailbox/write-permission test |
 | `organizer_mailbox_write_test` | Actual GUI Nextcloud mailbox MKCOL/conditional random probe PUT/DELETE under a pinned account context and expected native revision; explicit probe acknowledgements and possible remote changes, no delivery claim |
@@ -311,6 +313,48 @@ book documents. Outstanding commits do not expire on a cleanup timer; a full
 correlation table rejects another password action with `native_busy` before
 native submission. A failed submission releases its reservation. Responses for
 other IDs or replaced books cannot change the current book's encryption flag.
+
+`organizer_sync_start` requires the complete current book revision and starts
+the same selected-provider workflow as the GUI, including the existing Windows
+contact-cleanup preparation. It returns preparation status, not a completed
+operation receipt. Read `organizer_sync_status` until its latest book-bound run
+is terminal. The phases distinguish preparing, dispatching, receiver-confirmed
+running, result saving, journal committing, completed and failed. Transport
+submission (`native_dispatched`) is separate from receiver confirmation
+(`native_started`). Queued native work discarded by a restore fence produces a
+correlated failure instead of silently leaving the run pending.
+
+Results use the GUI's existing three-way collection reconciliation and source/
+baseline adoption. A completed run requires actual native book SaveACK. If its
+native result carries a journal transaction, it additionally requires a
+correlated successful commit after the native saved-result proof; a plain Linux
+EDS run has `commit_required:false` and makes no journal-commit claim. Partial
+provider failures retain adopted/persisted state without claiming success.
+`saved_book_revision` describes the acknowledged saved snapshot; record counts
+describe the normalized adopted result, not remote changes or later concurrent
+edits. `running` includes the product's frontend/preparation state and outstanding
+MCP work; the per-run fields distinguish native acknowledgements from pending
+submission. Raw provider reports and records are excluded from status results.
+
+The latest run is global to the open product/book, rather than owned by the
+transport session: closing a client or cancelling JSON-RPC waiting does not stop
+the existing provider workflow or roll back changes. A later client can inspect
+it. Native results still pass book/epoch/request checks, preserve newer local
+edits and unsaved GUI drafts, and do not open MCP-triggered dialogs/toasts.
+Failures/timeouts can follow remote or local changes; inspect before retrying.
+
+`organizer_contact_provider_conflict_read/resolve` inspects the stored native
+contact snapshot and applies the same platform-specific GUI review logic. The
+contact revision includes its mapping/conflict metadata; a native pre-contact-
+merge checkpoint and durable SaveACK precede confirmed success. The conflict
+source must actually be stored on that contact. Scalar and zero-based normalized
+list choices are validated against the offered contact/list data. Reliably-newer
+requires both actual trustworthy times; callers cannot supply replacement times.
+Linux reuses its file-review draft planner and EDS/DAV approval/baseline rules,
+including keep-only handling of a deleted remote card. Windows reuses its system
+conflict draft builder, explicit empty-list and extra-array choices. Read `options`
+for these existing platform differences. Resolving makes only the local reviewed
+decision; the next actual synchronization performs any permitted remote write.
 
 Synchronization preference writes accept calendar IDs, an address-book ID,
 startup synchronization, success notifications and the reliable-newer-contact

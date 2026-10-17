@@ -176,7 +176,15 @@ sys.path.insert(0, str(ROOT / "bin"))
 profile = Path(os.environ["XDG_DATA_HOME"]) / "magnolie-organizer"
 profile.mkdir(mode=0o700)
 data_file = profile / "daten.json"
-data_file.write_text(json.dumps({"version": 6, "notizen": [{"id": "owned-native-fixture", "titel": "Owned fixture",
+data_file.write_text(json.dumps({"version": 6,
+    **({"kontakte": [{"id": "owned-provider-review", "uid": "owned-review-local-uid", "vorname": "Local", "nachname": "Review", "sync": True,
+        "telefone": [{"wert": "+49305550123", "typen": ["CELL"]}],
+        "syncQuellen": {"generic-dav-addressbook:owned-review": {"id": "/owned-person.vcf", "etag": '"v1"'}, "unrelated": {"id": "preserve"}},
+        "kontaktProviderKonflikte": {"generic-dav-addressbook:owned-review": {"transport": "dav", "entfernt": False,
+            "kontakt": {"uid": "owned-review-local-uid", "vorname": "Remote", "nachname": "Review", "telefone": [{"wert": "+49305550124", "typen": ["CELL"]}]},
+            "mapping": {"id": "/owned-person.vcf", "etag": '"v2"', "inhaltFormat": "linux-1", "inhaltSha256": "owned-review-hash"}}}}]}
+        if os.environ.get("MAGNOLIE_MCP_PROBE_PROVIDER_REVIEW") == "1" else {}),
+    "notizen": [{"id": "owned-native-fixture", "titel": "Owned fixture",
     "text": "No user data", "html": "No user data"}], "aufgaben": [{"id": "owned-native-series",
     "uid": "owned-native-series-uid", "titel": "Owned series fixture", "startDatum": "2026-01-01",
     "faellig": "2026-01-01", "startZeit": "08:00", "faelligZeit": "09:00", "icsRoundtrip": [
@@ -456,6 +464,47 @@ def client():
             invalid_sync = write_sync_settings(read_sync_settings(), calendar_ids=["owned-not-offered"])
             assert invalid_sync["isError"] and invalid_sync["structuredContent"]["code"] == "invalid_settings", invalid_sync
             assert data_file.read_text() == before_invalid
+            if os.environ.get("MAGNOLIE_MCP_PROBE_SYNC_RUN") == "1":
+                actual_selection = write_sync_settings(read_sync_settings(), calendar_ids=["owned-mcp-calendar"], address_book_id="")
+                assert not actual_selection["isError"], actual_selection
+                created = call("tools/call", {"name": "organizer_appointment_create", "arguments": {"title": "Owned native MCP synchronization", "start_date": "2026-11-17", "all_day": True, "calendar_uid": "owned-mcp-calendar"}})
+                assert not created["isError"] and created["structuredContent"]["persisted"], created
+                appointment = call("tools/call", {"name": "organizer_appointment_read", "arguments": {"id": created["structuredContent"]["id"]}})["structuredContent"]["appointment"]
+                assert appointment["syncKalenderUid"] == "owned-mcp-calendar", appointment
+                sync_revision = call("tools/call", {"name": "organizer_book_revision_read"})["structuredContent"]["revision"]
+                started_sync = call("tools/call", {"name": "organizer_sync_start", "arguments": {"expected_book_revision": sync_revision}})
+                assert not started_sync["isError"] and started_sync["structuredContent"]["job"], started_sync
+                run_id = started_sync["structuredContent"]["job"]["run_id"]
+                sync_deadline = time.monotonic() + 40
+                while True:
+                    actual_run = call("tools/call", {"name": "organizer_sync_status", "arguments": {"run_id": run_id}})
+                    assert not actual_run["isError"], actual_run
+                    actual_job = actual_run["structuredContent"]["job"]
+                    if actual_job["phase"] in ("completed", "failed"):
+                        break
+                    assert time.monotonic() < sync_deadline, actual_run
+                    time.sleep(.1)
+                assert actual_job["phase"] == "completed" and actual_job["provider_success"] and actual_job["data_saved"], actual_run
+                assert not actual_job["commit_required"] and not actual_job["native_commit_confirmed"], actual_run
+                actual_calendar = product.eds_kalender_client(owned_registry, "owned-mcp-calendar")
+                calendar_texts = product.eds_events_lesen(actual_calendar)
+                assert any("UID:" + appointment["uid"] in text and "Owned native MCP synchronization" in text for text in calendar_texts), "Owned actual EDS backend did not contain the synchronized appointment"
+                stored_after_sync = json.loads(data_file.read_text())
+                assert any(item["id"] == appointment["id"] and item.get("syncKalenderUid") == "owned-mcp-calendar" for item in stored_after_sync["termine"])
+                assert any(item["id"] == "owned-provider-event" and item.get("providerMetadaten", {}).get("fixture", {}).get("marker") == "owned-native" for item in stored_after_sync["termine"])
+                state["actual_eds_sync_run_verified"] = True
+            if os.environ.get("MAGNOLIE_MCP_PROBE_PROVIDER_REVIEW") == "1":
+                review_args = {"contact_id": "owned-provider-review", "source_id": "generic-dav-addressbook:owned-review"}
+                inspected = call("tools/call", {"name": "organizer_contact_provider_conflict_read", "arguments": review_args})
+                assert not inspected["isError"], inspected
+                reviewed = call("tools/call", {"name": "organizer_contact_provider_conflict_resolve", "arguments": {**review_args,
+                    "expected_revision": inspected["structuredContent"]["revision"], "decision": "merge",
+                    "fields": [{"field": "vorname", "choice": "incoming"}], "lists": [{"field": "telefone", "incoming_index": 0, "choice": "replace", "existing_index": 0}]}})
+                assert not reviewed["isError"] and reviewed["structuredContent"]["persisted"] and reviewed["structuredContent"]["recovery_snapshot_confirmed"] and not reviewed["structuredContent"]["remote_write_performed"], reviewed
+                actual_contact = next(item for item in json.loads(data_file.read_text())["kontakte"] if item["id"] == "owned-provider-review")
+                assert actual_contact["vorname"] == "Remote" and actual_contact["uid"] == "owned-review-local-uid" and not actual_contact.get("kontaktProviderKonflikte"), actual_contact
+                assert actual_contact["syncQuellen"][review_args["source_id"]]["etag"] == '"v2"' and actual_contact["syncQuellen"]["unrelated"]["id"] == "preserve", actual_contact
+                state["actual_provider_review_checkpoint_save_verified"] = True
             unlinked = write_sync_settings(read_sync_settings(), calendar_ids=[], address_book_id="")
             assert not unlinked["isError"] and unlinked["structuredContent"]["persisted"] and unlinked["structuredContent"]["settings"]["primary_calendar_id"] == "", unlinked
             assert any(note["id"] == "owned-native-fixture" and note["text"] == "No user data" for note in json.loads(data_file.read_text())["notizen"])
@@ -2159,7 +2208,8 @@ if os.environ.get("MAGNOLIE_MCP_PROBE_DAV_WRITE_ONLY") == "1":
 elif os.environ.get("MAGNOLIE_MCP_PROBE_DAV_ACCOUNT_ONLY") == "1":
     print("Native MCP DAV ACCOUNT PASS: actual config/credential-metadata snapshot, explicit unreadable-state handling, no book mutation or connectivity claim")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_SYNC_SETTINGS_ONLY") == "1":
-    print("Native MCP SYNC SETTINGS PASS: actual private EDS source discovery/validation, preference CAS, durable save/readback, retained offline primary and unlink")
+    print("Native MCP SYNC RUN PASS: actual private EDS appointment write/readback, product workflow, save acknowledgement and preserved foreign provider data" if os.environ.get("MAGNOLIE_MCP_PROBE_SYNC_RUN") == "1" else
+          "Native MCP SYNC SETTINGS PASS: actual private EDS source discovery/validation, preference CAS, durable save/readback, retained offline primary and unlink")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_LOCAL_ONLY") == "1":
     print("Native MCP LOCAL PASS: actual Thunderbird SQLite and Evolution ICS readers, staged source/scope CAS, checkpoint/save/readback, birthday, stale-source rejection and replay")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_WASTE_SOURCE_ONLY") == "1":
