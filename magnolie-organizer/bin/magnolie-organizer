@@ -21508,12 +21508,15 @@ class Fenster(_FENSTER_BASIS):
                 bool(nachricht.get("an")), nachricht.get("sprache"))
 
         elif befehl == "brief":
-            threading.Thread(target=lambda: self.antwort(
-                "App.adressWeg", brief_oeffnen(nachricht.get("kontakt") or {},
-                                               nachricht.get("absender") or "",
-                                               layout=nachricht.get("layout")
-                                               or "din5008-b")),
-                daemon=True).start()
+            if nachricht.get("requestId"):
+                threading.Thread(target=self._dokument_datei_exportieren, args=(nachricht,), daemon=True).start()
+            else:
+                threading.Thread(target=lambda: self.antwort(
+                    "App.adressWeg", brief_oeffnen(nachricht.get("kontakt") or {},
+                                                   nachricht.get("absender") or "",
+                                                   layout=nachricht.get("layout")
+                                                   or "din5008-b")),
+                    daemon=True).start()
 
         elif befehl == "ordner_waehlen":
             pfad = self._ordner_waehlen(
@@ -21879,7 +21882,7 @@ class Fenster(_FENSTER_BASIS):
             self._drucken(nachricht.get("html") or "")
 
         elif befehl in ("adressen_ods", "gesundheit_ods", "zeit_ods", "planer_ods") and nachricht.get("requestId"):
-            threading.Thread(target=self._ods_datei_exportieren, args=(nachricht,), daemon=True).start()
+            threading.Thread(target=self._dokument_datei_exportieren, args=(nachricht,), daemon=True).start()
 
         elif befehl == "adressen_ods":
             threading.Thread(target=lambda: self.antwort(
@@ -22135,13 +22138,20 @@ class Fenster(_FENSTER_BASIS):
                                  _("The file could not be read."))
         self.antwort("App.notizAnhangDateiErgebnis", antwort)
 
-    def _ods_datei_exportieren(self, nachricht):
+    def _dokument_datei_exportieren(self, nachricht):
         request_id = nachricht.get("requestId")
         try:
             if getattr(self, "_gesperrt", True):
                 raise OSError("profile_locked")
             befehl = nachricht.get("cmd")
-            if befehl == "gesundheit_ods":
+            format_name = "ods"
+            if befehl == "brief":
+                kontakt = nachricht.get("kontakt") or {}
+                if not anschrift_zeilen(kontakt):
+                    raise ValueError("postal_address_required")
+                daten = fodt_brief(kontakt, nachricht.get("absender") or "", layout=nachricht.get("layout") or "din5008-b").encode("utf-8")
+                format_name = "fodt"
+            elif befehl == "gesundheit_ods":
                 daten = gesundheit_ods_bytes(nachricht.get("tabellen"))
             elif befehl == "zeit_ods":
                 daten = zeiterfassung_ods_bytes(nachricht.get("sheet"))
@@ -22177,7 +22187,7 @@ class Fenster(_FENSTER_BASIS):
             gelesen = datei_begrenzt_lesen(pfad, len(daten) + 1, "export_verification_failed")
             if gelesen != daten:
                 raise OSError("export_verification_failed")
-            self.antwort("App.documentExportErgebnis", {"ok": True, "requestId": request_id, "pfad": pfad,
+            self.antwort("App.documentExportErgebnis", {"ok": True, "requestId": request_id, "pfad": pfad, "format": format_name,
                 "bytes": len(gelesen), "sha256": hashlib.sha256(gelesen).hexdigest()})
         except Exception:
             self.antwort("App.documentExportErgebnis", {"ok": False, "requestId": request_id, "code": "native_operation_failed"})

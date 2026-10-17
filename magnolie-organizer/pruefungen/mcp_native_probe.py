@@ -20,6 +20,7 @@ import time
 import traceback
 import zlib
 import zipfile
+import xml.etree.ElementTree as ET
 
 BACKGROUND_PROBE = os.environ.get("MAGNOLIE_MCP_PROBE_BACKGROUND") == "1"
 if BACKGROUND_PROBE:
@@ -945,6 +946,7 @@ def client():
         own_written = call("tools/call", {"name": "organizer_own_profile_update", "arguments": {
             "expected_revision": own_before["structuredContent"]["revision"], "first_name": "Owned", "last_name": "Profile",
             "emails": [{"value": "owned@example.org"}], "phones": [{"value": "+49123456789", "types": ["cell"]}],
+            "addresses": [{"street": "Owned profile street 2", "postal_code": "10115", "city": "Owned town"}],
             "birth_date": "--02-29", "anniversaries": [{"type": "anniversary", "date": "2020-01-02"}]}})
         assert not own_written["isError"] and own_written["structuredContent"]["persisted"], own_written
         own_stale = call("tools/call", {"name": "organizer_own_profile_update", "arguments": {
@@ -1586,6 +1588,15 @@ def client():
             with zipfile.ZipFile(sheet_path) as archive:
                 assert archive.read("mimetype") == b"application/vnd.oasis.opendocument.spreadsheet"
                 assert b"office:spreadsheet" in archive.read("content.xml")
+        letter_path = Path(temporary.name) / "owned-native-letter.fodt"
+        native_letter = call("tools/call", {"name": "organizer_letter_export", "arguments": {
+            "expected_book_revision": records_revision, "recipient_type": "own_profile", "layout": "din5008-a",
+            "sender_address": "Owned sender\nOwn Street 2", "path": str(letter_path)}})
+        assert not native_letter["isError"] and native_letter["structuredContent"]["confirmed"] and native_letter["structuredContent"]["format"] == "fodt", native_letter
+        letter_bytes = letter_path.read_bytes()
+        assert native_letter["structuredContent"]["bytes"] == len(letter_bytes) and native_letter["structuredContent"]["sha256"] == hashlib.sha256(letter_bytes).hexdigest()
+        letter_text = "".join(ET.fromstring(letter_bytes).itertext())
+        assert "Owned Profile" in letter_text and "Owned profile street 2" in letter_text
         assert data_file.read_text() == records_envelope_before
         password_before = call("tools/call", {"name": "organizer_password_status"})
         assert not password_before["isError"] and password_before["structuredContent"]["encrypted"] and password_before["structuredContent"]["matches_book"], password_before

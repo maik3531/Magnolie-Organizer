@@ -24,7 +24,7 @@ def test_native_planner_document_export_year_month_and_target_guards(monkeypatch
                 "monat": 2 if layout == "month" else 0, "titel": "Owned planner", "spalten": ["Owned column"] * columns,
                 "zeilen": [["Owned entry"] * columns], "stile": [[""] * columns],
                 "inhalte": [[{"datum": "1", "eintraege": [{"text": "Owned entry", "farbe": "#112233", "art": "termin"}]} for _ in range(columns)]], **extra}
-            product.Fenster._ods_datei_exportieren(window, message)
+            product.Fenster._dokument_datei_exportieren(window, message)
             callback, payload = window.replies.pop()
             assert callback == "App.documentExportErgebnis" and payload["requestId"] == "owned-planner"
             return payload

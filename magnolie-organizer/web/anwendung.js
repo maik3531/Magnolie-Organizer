@@ -11138,10 +11138,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   function schreibeBrief(k) {
     if (!Bruecke.vorhanden) return nurImProgramm();
-    Bruecke.sende({ cmd: "brief", kontakt: { ...k, anschriften: anschriftListe(k) },
-      absender: DATEN.einstellungen.adressen.absender || "",
-      layout: DATEN.einstellungen.adressen.briefLayout || "din5008-b" });
+    Bruecke.sende(briefNutzlast(k));
     return true;
+  }
+
+  function briefNutzlast(k, absender = DATEN.einstellungen.adressen.absender || "", layout = DATEN.einstellungen.adressen.briefLayout || "din5008-b") {
+    return { cmd: "brief", kontakt: { ...k, anschriften: anschriftListe(k) }, absender, layout };
   }
 
   /* Taugt die hinterlegte eigene Anschrift als Ausgangspunkt? Dafür
@@ -34360,6 +34362,27 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (value !== "month") calendar.uebersichtAb = null;
     calendar.bearbeiteId = null;
   }
+  function mcpBriefExportWerkzeuge() {
+    return [{ name: "organizer_letter_export", description: "Create the existing native letter template for a contact or own profile with the GUI's resolved postal-address preparation and current/explicit sender/layout. Full book revision, save gate, explicit destination and overwrite choice required. Returns actual file-byte/SHA-256 readback and native format (Linux FODT, Windows ODT); select the corresponding filename extension. Does not send mail/fax or imply opening/rendering in an office application.",
+      inputSchema: { type: "object", properties: { expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, recipient_type: { type: "string", enum: ["contact", "own_profile"] }, contact_id: { type: "string", minLength: 1, maxLength: 256 }, sender_address: { type: "string", maxLength: 5000 }, layout: { type: "string", enum: ["din5008-b", "din5008-a", "compact", "din5008"] },
+        path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, overwrite: { type: "boolean" } }, required: ["expected_book_revision", "path"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen(); const own = args.recipient_type === "own_profile";
+        if (own && args.contact_id !== undefined || !own && args.contact_id === undefined) throw new MagnolieMcp.ToolError("invalid_settings", "Select either a contact ID or the own-profile recipient");
+        const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+        if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; read its revision before creating a letter");
+        const contact = own ? DATEN.eigenesProfil?.data : DATEN.kontakte.find(item => item.id === args.contact_id);
+        if (!contact) throw new MagnolieMcp.ToolError("not_found", "Letter recipient not found");
+        const payload = briefNutzlast(contact, args.sender_address ?? (DATEN.einstellungen.adressen.absender || ""), args.layout ?? (DATEN.einstellungen.adressen.briefLayout || "din5008-b"));
+        await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, () => reject(new MagnolieMcp.ToolError("save_failed", "Native save failed before letter export"))));
+        mcpEditorPruefen(); if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Book changed before native letter export");
+        const value = await mcpNativeAufruf("brief", { ...payload, pfad: args.path, overwrite: args.overwrite === true }, "documentExportErgebnis", signal);
+        if (value.ok !== true) throw new MagnolieMcp.ToolError("native_operation_failed", "Native letter creation failed; check postal address, layout, destination and overwrite choice");
+        if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Letter may have been written; book changed during native export");
+        if (!["fodt", "odt"].includes(value.format) || typeof value.pfad !== "string" || !Number.isSafeInteger(value.bytes) || value.bytes <= 0 || !/^[a-f0-9]{64}$/.test(value.sha256)) throw new MagnolieMcp.ToolError("invalid_result", "Native letter readback was incomplete");
+        return { path: value.pfad, format: value.format, bytes: value.bytes, sha256: value.sha256, confirmed: true };
+      } }];
+  }
   function mcpTabellenExportWerkzeuge() {
     const common = { expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, overwrite: { type: "boolean" } };
     const run = async (args, signal, kind, prepare) => {
@@ -35613,6 +35636,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_letter_export") return shape({ path: text, format: { type: "string", enum: ["fodt", "odt"] }, bytes: { type: "integer", minimum: 1 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, confirmed: yes }, ["path", "format", "bytes", "sha256", "confirmed"]);
     if (["organizer_contacts_spreadsheet_export", "organizer_health_spreadsheet_export", "organizer_time_spreadsheet_export"].includes(name)) return shape({ path: text, format: { type: "string", const: "ods" }, kind: { type: "string", enum: ["contacts", "health", "time"] }, bytes: { type: "integer", minimum: 1 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, confirmed: yes }, ["path", "format", "kind", "bytes", "sha256", "confirmed"]);
     if (name === "organizer_planner_export") return shape({ path: text, format: { type: "string", const: "ods" }, year: { type: "integer", minimum: 1000, maximum: 9999 }, layout: { type: "string", enum: ["year", "month"] }, month: { type: ["integer", "null"], minimum: 1, maximum: 12 }, bytes: { type: "integer", minimum: 1 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, confirmed: yes }, ["path", "format", "year", "layout", "month", "bytes", "sha256", "confirmed"]);
     if (name.startsWith("organizer_import_review_")) {
@@ -35801,6 +35825,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpImportPruefWerkzeuge(owner),
       ...mcpPlanerExportWerkzeuge(),
       ...mcpTabellenExportWerkzeuge(),
+      ...mcpBriefExportWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
