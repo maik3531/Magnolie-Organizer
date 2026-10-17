@@ -2435,7 +2435,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
             if (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null)) throw new InvalidOperationException();
             var path = Text(message, "pfad"); var overwrite = Boolean(message, "overwrite");
             var written = await Task.Run(() => VerifiedDocumentFile.Write(path, paths.Data, build(), overwrite));
-            await form.SendAsync("App.documentExportErgebnis", new { requestId, ok = true, pfad = written.Path, bytes = written.Bytes, sha256 = written.Sha256, format });
+            bool? launcherAccepted = Boolean(message, "open_with_registered_app")
+                ? ShellLauncher.OpenLocalFile(written.Path, Path.GetDirectoryName(written.Path)!) : null;
+            await form.SendAsync("App.documentExportErgebnis", new { requestId, ok = true, pfad = written.Path, bytes = written.Bytes, sha256 = written.Sha256, format, launcherAccepted });
         }
         catch (Exception)
         { await form.SendAsync("App.documentExportErgebnis", new { requestId, ok = false, code = "native_operation_failed" }); }

@@ -34141,10 +34141,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (value !== "month") calendar.uebersichtAb = null;
     calendar.bearbeiteId = null;
   }
+  function mcpDokumentStartErgebnis(args, value) {
+    if (args.open_with_registered_app !== true) return null;
+    if (typeof value.launcherAccepted !== "boolean") throw new MagnolieMcp.ToolError("invalid_result", "Document was saved; native launcher response was incomplete");
+    return value.launcherAccepted;
+  }
   function mcpBriefExportWerkzeuge() {
     return [{ name: "organizer_letter_export", description: "Create the existing native letter template for a contact or own profile with the GUI's resolved postal-address preparation and current/explicit sender/layout. Full book revision, save gate, explicit destination and overwrite choice required. Returns actual file-byte/SHA-256 readback and native format (Linux FODT, Windows ODT); select the corresponding filename extension. Does not send mail/fax or imply opening/rendering in an office application.",
       inputSchema: { type: "object", properties: { expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, recipient_type: { type: "string", enum: ["contact", "own_profile"] }, contact_id: { type: "string", minLength: 1, maxLength: 256 }, sender_address: { type: "string", maxLength: 5000 }, layout: { type: "string", enum: ["din5008-b", "din5008-a", "compact", "din5008"] },
-        path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, overwrite: { type: "boolean" } }, required: ["expected_book_revision", "path"], additionalProperties: false },
+        path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, overwrite: { type: "boolean" }, open_with_registered_app: { type: "boolean" } }, required: ["expected_book_revision", "path"], additionalProperties: false },
       annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
         mcpEditorPruefen(); const own = args.recipient_type === "own_profile";
         if (own && args.contact_id !== undefined || !own && args.contact_id === undefined) throw new MagnolieMcp.ToolError("invalid_settings", "Select either a contact ID or the own-profile recipient");
@@ -34155,26 +34160,26 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const payload = briefNutzlast(contact, args.sender_address ?? (DATEN.einstellungen.adressen.absender || ""), args.layout ?? (DATEN.einstellungen.adressen.briefLayout || "din5008-b"));
         await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, () => reject(new MagnolieMcp.ToolError("save_failed", "Native save failed before letter export"))));
         mcpEditorPruefen(); if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Book changed before native letter export");
-        const value = await mcpNativeAufruf("brief", { ...payload, pfad: args.path, overwrite: args.overwrite === true }, "documentExportErgebnis", signal);
+        const value = await mcpNativeAufruf("brief", { ...payload, pfad: args.path, overwrite: args.overwrite === true, open_with_registered_app: args.open_with_registered_app === true }, "documentExportErgebnis", signal);
         if (value.ok !== true) throw new MagnolieMcp.ToolError("native_operation_failed", "Native letter creation failed; check postal address, layout, destination and overwrite choice");
         if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Letter may have been written; book changed during native export");
         if (!["fodt", "odt"].includes(value.format) || typeof value.pfad !== "string" || !Number.isSafeInteger(value.bytes) || value.bytes <= 0 || !/^[a-f0-9]{64}$/.test(value.sha256)) throw new MagnolieMcp.ToolError("invalid_result", "Native letter readback was incomplete");
-        return { path: value.pfad, format: value.format, bytes: value.bytes, sha256: value.sha256, confirmed: true };
+        return { path: value.pfad, format: value.format, bytes: value.bytes, sha256: value.sha256, confirmed: true, launcher_accepted: mcpDokumentStartErgebnis(args, value) };
       } }];
   }
   function mcpTabellenExportWerkzeuge() {
-    const common = { expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, overwrite: { type: "boolean" } };
+    const common = { expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, overwrite: { type: "boolean" }, open_with_registered_app: { type: "boolean" } };
     const run = async (args, signal, kind, prepare) => {
       mcpEditorPruefen(); const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
       if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; read its revision before spreadsheet export");
       const payload = prepare();
       await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, () => reject(new MagnolieMcp.ToolError("save_failed", "Native save failed before spreadsheet export"))));
       mcpEditorPruefen(); if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Book changed before native spreadsheet export");
-      const value = await mcpNativeAufruf(payload.cmd, { ...payload, pfad: args.path, overwrite: args.overwrite === true }, "documentExportErgebnis", signal);
+      const value = await mcpNativeAufruf(payload.cmd, { ...payload, pfad: args.path, overwrite: args.overwrite === true, open_with_registered_app: args.open_with_registered_app === true }, "documentExportErgebnis", signal);
       if (value.ok !== true) throw new MagnolieMcp.ToolError("native_operation_failed", "Native spreadsheet export failed; check destination and overwrite choice");
       if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Spreadsheet may have been written; book changed during native export");
       if (typeof value.pfad !== "string" || !Number.isSafeInteger(value.bytes) || value.bytes <= 0 || !/^[a-f0-9]{64}$/.test(value.sha256)) throw new MagnolieMcp.ToolError("invalid_result", "Native spreadsheet readback was incomplete");
-      return { path: value.pfad, format: "ods", kind, bytes: value.bytes, sha256: value.sha256, confirmed: true };
+      return { path: value.pfad, format: "ods", kind, bytes: value.bytes, sha256: value.sha256, confirmed: true, launcher_accepted: mcpDokumentStartErgebnis(args, value) };
     };
     const schema = (properties, required = []) => ({ type: "object", properties: { ...common, ...properties }, required: ["expected_book_revision", "path", ...required], additionalProperties: false });
     const annotations = { readOnlyHint: false, destructiveHint: true, openWorldHint: true };
@@ -34210,7 +34215,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const flags = { public_holidays: "feiertage", school_holidays: "ferien", personal_vacation: "urlaub", appointments: "termine", anniversaries: "jahrestage", shifts: "schichten", cycle_markers: "zyklus", waste: "muell" };
     return [{ name: "organizer_planner_export", description: "Write the existing GUI year/month planner as an explicit ODS file using its real calendar model and native document generator. Uses current regional labels/colors and product visibility/recurrence rules. Full book revision and native save gate required; overwrite is explicit. Success confirms actual file bytes/SHA-256, not opening or rendering in an office application. If recurrence expansion is pending, wait and retry.",
       inputSchema: { type: "object", properties: { expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, year: { type: "integer", minimum: 1000, maximum: 9999 }, layout: { type: "string", enum: ["year", "month"] }, month: { type: "integer", minimum: 1, maximum: 12 },
-        path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, overwrite: { type: "boolean" }, ...Object.fromEntries(Object.keys(flags).map(key => [key, { type: "boolean" }])) }, required: ["expected_book_revision", "year", "layout", "path"], additionalProperties: false },
+        path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, overwrite: { type: "boolean" }, open_with_registered_app: { type: "boolean" }, ...Object.fromEntries(Object.keys(flags).map(key => [key, { type: "boolean" }])) }, required: ["expected_book_revision", "year", "layout", "path"], additionalProperties: false },
       annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
         mcpEditorPruefen();
         if (args.layout === "month" && args.month === undefined || args.layout === "year" && (args.month !== undefined || ["appointments", "anniversaries", "shifts", "cycle_markers", "waste"].some(key => args[key] !== undefined))) throw new MagnolieMcp.ToolError("invalid_settings", "Month and entry options apply only to a month planner; month is required for that layout");
@@ -34222,11 +34227,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const payload = planerOdsNutzlast(model);
         await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, () => reject(new MagnolieMcp.ToolError("save_failed", "Native save failed before planner export"))));
         mcpEditorPruefen(); if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Book changed before native planner export");
-        const value = await mcpNativeAufruf(payload.cmd, { ...payload, pfad: args.path, overwrite: args.overwrite === true }, "documentExportErgebnis", signal);
+        const value = await mcpNativeAufruf(payload.cmd, { ...payload, pfad: args.path, overwrite: args.overwrite === true, open_with_registered_app: args.open_with_registered_app === true }, "documentExportErgebnis", signal);
         if (value.ok !== true) throw new MagnolieMcp.ToolError("native_operation_failed", "Native planner export failed; check destination and overwrite choice");
         if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Planner may have been written; book changed during native export");
         if (typeof value.pfad !== "string" || !Number.isSafeInteger(value.bytes) || value.bytes <= 0 || !/^[a-f0-9]{64}$/.test(value.sha256)) throw new MagnolieMcp.ToolError("invalid_result", "Native planner file readback was incomplete");
-        return { path: value.pfad, format: "ods", year: args.year, layout: args.layout, month: args.month ?? null, bytes: value.bytes, sha256: value.sha256, confirmed: true };
+        return { path: value.pfad, format: "ods", year: args.year, layout: args.layout, month: args.month ?? null, bytes: value.bytes, sha256: value.sha256, confirmed: true, launcher_accepted: mcpDokumentStartErgebnis(args, value) };
       } }];
   }
   const mcpImportPruefungen = new Map();
@@ -35415,9 +35420,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
-    if (name === "organizer_letter_export") return shape({ path: text, format: { type: "string", enum: ["fodt", "odt"] }, bytes: { type: "integer", minimum: 1 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, confirmed: yes }, ["path", "format", "bytes", "sha256", "confirmed"]);
-    if (["organizer_contacts_spreadsheet_export", "organizer_health_spreadsheet_export", "organizer_time_spreadsheet_export"].includes(name)) return shape({ path: text, format: { type: "string", const: "ods" }, kind: { type: "string", enum: ["contacts", "health", "time"] }, bytes: { type: "integer", minimum: 1 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, confirmed: yes }, ["path", "format", "kind", "bytes", "sha256", "confirmed"]);
-    if (name === "organizer_planner_export") return shape({ path: text, format: { type: "string", const: "ods" }, year: { type: "integer", minimum: 1000, maximum: 9999 }, layout: { type: "string", enum: ["year", "month"] }, month: { type: ["integer", "null"], minimum: 1, maximum: 12 }, bytes: { type: "integer", minimum: 1 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, confirmed: yes }, ["path", "format", "year", "layout", "month", "bytes", "sha256", "confirmed"]);
+    if (name === "organizer_letter_export") return shape({ path: text, format: { type: "string", enum: ["fodt", "odt"] }, bytes: { type: "integer", minimum: 1 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, confirmed: yes, launcher_accepted: { type: ["boolean", "null"] } }, ["path", "format", "bytes", "sha256", "confirmed", "launcher_accepted"]);
+    if (["organizer_contacts_spreadsheet_export", "organizer_health_spreadsheet_export", "organizer_time_spreadsheet_export"].includes(name)) return shape({ path: text, format: { type: "string", const: "ods" }, kind: { type: "string", enum: ["contacts", "health", "time"] }, bytes: { type: "integer", minimum: 1 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, confirmed: yes, launcher_accepted: { type: ["boolean", "null"] } }, ["path", "format", "kind", "bytes", "sha256", "confirmed", "launcher_accepted"]);
+    if (name === "organizer_planner_export") return shape({ path: text, format: { type: "string", const: "ods" }, year: { type: "integer", minimum: 1000, maximum: 9999 }, layout: { type: "string", enum: ["year", "month"] }, month: { type: ["integer", "null"], minimum: 1, maximum: 12 }, bytes: { type: "integer", minimum: 1 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, confirmed: yes, launcher_accepted: { type: ["boolean", "null"] } }, ["path", "format", "year", "layout", "month", "bytes", "sha256", "confirmed", "launcher_accepted"]);
     if (name.startsWith("organizer_import_review_")) {
       const hash = { type: "string", pattern: "^[a-f0-9]{64}$" }, number = { type: "integer", minimum: 0 };
       const meta = { token: id, source_revision: hash, book_revision: hash, selection_revision: number, expires_ms: number, counts: object, contacts_total: number, unresolved_contacts: number, notebook_id: id, applying: flag };

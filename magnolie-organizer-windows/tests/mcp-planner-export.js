@@ -40,7 +40,14 @@ const watchdog = setTimeout(() => { console.error("MCP planner fixture timed out
       const pending = request({ expected_book_revision: revision, year: 2030, layout: "year", path: "/owned-fixture/year.ods" }).then(value => { completed = true; return value; });
       await dispatched; assert.equal(native.spalten.length, 12); assert.equal(native.zeilen.length, 31); assert.equal(native.overwrite, false);
       reply({ ...native, requestId: "wrong-document-request" }); await tick(); assert.equal(completed, false);
-      reply(native); assert.equal(ok(await pending).month, null);
+      reply(native); const yearResult = ok(await pending); assert.equal(yearResult.month, null); assert.equal(yearResult.launcher_accepted, null);
+      onExport = message => { assert.equal(message.open_with_registered_app, true); reply(message, { launcherAccepted: true }); };
+      assert.equal(ok(await request({ expected_book_revision: revision, year: 2030, layout: "year", path: "/owned-fixture/opened.ods", open_with_registered_app: true })).launcher_accepted, true);
+      onExport = message => reply(message, { launcherAccepted: false });
+      const unopened = ok(await request({ expected_book_revision: revision, year: 2030, layout: "year", path: "/owned-fixture/unopened.ods", open_with_registered_app: true }));
+      assert.equal(unopened.confirmed, true); assert.equal(unopened.launcher_accepted, false);
+      onExport = message => reply(message);
+      failure(await request({ expected_book_revision: revision, year: 2030, layout: "year", path: "/owned-fixture/unknown-open.ods", open_with_registered_app: true }), "invalid_result");
       onExport = message => {
         assert.equal(message.layout, "month"); assert.equal(message.monat, 2); assert.equal(message.spalten.length, 8); assert.equal(message.zeilen.length, 6);
         assert.ok(JSON.stringify(message.zeilen).includes("Owned planner event")); reply(message);

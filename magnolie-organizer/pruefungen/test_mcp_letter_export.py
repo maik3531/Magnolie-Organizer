@@ -30,3 +30,10 @@ def test_native_letter_export_uses_existing_layout_and_readback(monkeypatch):
             assert "Owned Recipient" in "".join(document.itertext()) and "Owned Street 1" in "".join(document.itertext())
             product.Fenster._dokument_datei_exportieren(window, message)
             assert not window.replies.pop()[1]["ok"] and target.read_bytes() == actual
+        for executable, accepted in (("/usr/bin/true", True), ("/usr/bin/false", False)):
+            monkeypatch.setattr(product.shutil, "which", lambda _name, executable=executable: executable)
+            target = Path(root) / ("launcher-" + str(accepted) + ".fodt")
+            product.Fenster._dokument_datei_exportieren(window, {**message, "pfad": str(target), "open_with_registered_app": True})
+            result = window.replies.pop()[1]
+            assert result["ok"] and result["launcherAccepted"] is accepted
+            assert result["sha256"] == hashlib.sha256(target.read_bytes()).hexdigest()

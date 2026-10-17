@@ -1588,6 +1588,33 @@ def client():
             with zipfile.ZipFile(sheet_path) as archive:
                 assert archive.read("mimetype") == b"application/vnd.oasis.opendocument.spreadsheet"
                 assert b"office:spreadsheet" in archive.read("content.xml")
+        document_listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        document_socket = str(Path(temporary.name) / "owned-document.sock")
+        document_listener.bind(document_socket); document_listener.listen(1); document_listener.settimeout(5)
+        document_viewer = Path(temporary.name) / "owned-document-viewer.py"
+        document_viewer.write_text("import hashlib, socket, sys\nfrom pathlib import Path\n"
+            "with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:\n"
+            "    connection.connect(" + repr(document_socket) + ")\n"
+            "    connection.sendall(hashlib.sha256(Path(sys.argv[1]).read_bytes()).hexdigest().encode())\n")
+        (own_apps / "owned-document-viewer.desktop").write_text(
+            '[Desktop Entry]\nType=Application\nName=Owned document viewer\n'
+            'Exec="' + sys.executable + '" "' + str(document_viewer) + '" %f\nTerminal=false\nMimeType=application/vnd.oasis.opendocument.spreadsheet;\n')
+        (Path(os.environ["XDG_CONFIG_HOME"]) / "mimeapps.list").write_text(
+            "[Default Applications]\nimage/png=owned-attachment-viewer.desktop;\napplication/vnd.oasis.opendocument.spreadsheet=owned-document-viewer.desktop;\n")
+        old_document_desktop = os.environ.get("XDG_CURRENT_DESKTOP"); os.environ["XDG_CURRENT_DESKTOP"] = "GNOME"
+        try:
+            opened_document_path = Path(temporary.name) / "owned-opened-planner.ods"
+            opened_document = call("tools/call", {"name": "organizer_planner_export", "arguments": {
+                "expected_book_revision": records_revision, "year": 2030, "layout": "year", "path": str(opened_document_path), "open_with_registered_app": True}})
+            assert not opened_document["isError"] and opened_document["structuredContent"]["confirmed"] and opened_document["structuredContent"]["launcher_accepted"] is True, opened_document
+            connection, _address = document_listener.accept()
+            with connection:
+                connection.settimeout(3)
+                assert connection.recv(128).decode() == opened_document["structuredContent"]["sha256"]
+        finally:
+            document_listener.close()
+            if old_document_desktop is None: os.environ.pop("XDG_CURRENT_DESKTOP", None)
+            else: os.environ["XDG_CURRENT_DESKTOP"] = old_document_desktop
         letter_path = Path(temporary.name) / "owned-native-letter.fodt"
         native_letter = call("tools/call", {"name": "organizer_letter_export", "arguments": {
             "expected_book_revision": records_revision, "recipient_type": "own_profile", "layout": "din5008-a",

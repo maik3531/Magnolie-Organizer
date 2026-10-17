@@ -252,6 +252,15 @@ review table returns `review_limit`; incomplete choices return
 once its model change begins; `persisted: true` still requires the durable native
 save acknowledgement.
 
+Planner, contact/health/time spreadsheet and letter exports accept optional
+`open_with_registered_app` (default false). File confirmation remains based on
+actual native byte readback. `launcher_accepted` is `null` when opening was not
+requested, `true` after operating-system launcher acceptance, and `false` when
+the document was saved but opening failed. Linux waits for a successful bounded
+`xdg-open` exit; Windows uses the existing shell-launch result. This does not
+claim a visible office window, successful rendering, printing or delivery.
+Correlated late/cancelled replies do not open Organizer dialogs or toasts.
+
 ## Remaining coverage in #170
 
 The remaining work includes other settings changes,
