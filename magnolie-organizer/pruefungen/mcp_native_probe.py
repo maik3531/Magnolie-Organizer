@@ -196,7 +196,7 @@ def client():
             assert response["id"] == sequence, response
             assert "error" not in response, response
             return response["result"]
-        def check_print_dialog(revision):
+        def check_print_dialog(revision, tool="organizer_cards_print", arguments=None):
             print_probe = {"seen": False, "timer_active": True, "deadline": time.monotonic() + 12}
             def cancel_owned_print_dialog():
                 for dialog in product.Gtk.Window.list_toplevels():
@@ -212,11 +212,12 @@ def client():
                 return True
             print_timer = product.GLib.timeout_add(50, cancel_owned_print_dialog)
             try:
-                printed = call("tools/call", {"name": "organizer_cards_print", "arguments": {
-                    "expected_book_revision": revision, "section": "notes", "ids": ["owned-native-fixture"]}})
+                printed = call("tools/call", {"name": tool, "arguments": {
+                    "expected_book_revision": revision, **(arguments if arguments is not None else {"section": "notes", "ids": ["owned-native-fixture"]})}})
                 assert print_probe["seen"] and not printed["isError"], printed
                 assert printed["structuredContent"]["stage"] == "dialog_returned" and printed["structuredContent"]["dialog_action"] == "cancel" and printed["structuredContent"]["paper_output_confirmed"] is False, printed
                 state["print_dialog_verified"] = True
+                state.setdefault("print_dialog_tools", []).append(tool)
             finally:
                 if print_probe["timer_active"]:
                     product.GLib.source_remove(print_timer)
@@ -242,6 +243,13 @@ def client():
         if os.environ.get("MAGNOLIE_MCP_PROBE_PRINT_ONLY") == "1":
             print_revision = call("tools/call", {"name": "organizer_book_revision_read"})["structuredContent"]["revision"]
             check_print_dialog(print_revision)
+            for print_tool, print_options in (
+                    ("organizer_cards_print", {"section": "appointments", "year": 2026, "month": 11, "ids": ["owned-readonly-event"]}),
+                    ("organizer_planner_print", {"year": 2030, "layout": "year"}),
+                    ("organizer_planner_print", {"year": 2030, "layout": "month", "month": 2}),
+                    ("organizer_health_print", {"table": "vital", "mode": "blank"}),
+                    ("organizer_time_print", {"year": 2030, "month": 2, "days": [1, 4]})):
+                check_print_dialog(print_revision, print_tool, print_options)
             assert call("tools/call", {"name": "organizer_book_revision_read"})["structuredContent"]["revision"] == print_revision
             process.stdin.close()
             assert process.wait(timeout=5) == 0

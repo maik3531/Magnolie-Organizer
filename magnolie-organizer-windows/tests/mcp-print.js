@@ -11,6 +11,8 @@ const watchdog = setTimeout(() => { console.error("MCP print fixture timed out")
       kontakte: [{ id: "owned-print-contact", vorname: "Owned", nachname: "<Print>" }],
       aufgaben: [{ id: "owned-print-task", titel: "Owned completed task", erledigt: true, prio: 2 }],
       notizen: [{ id: "owned-print-note", titel: "Owned note", text: "Owned <private> text" }],
+      termine: [{ id: "owned-print-event", datum: "2030-02-04", zeit: "09:05", endDatum: "2030-02-06", endZeit: "10:00", titel: "Owned printed appointment" }],
+      gesundheit: { vitalwerte: [{ id: "owned-print-vital", datum: "2030-02-04", zeit: "09:05", puls: 65, gewicht: 70, groesse: 175 }] },
       jahrestage: [{ id: "owned-print-anniversary", name: "Owned anniversary", datum: "2000-02-04", typ: "other" }],
       customOrganizer: { version: 3, modules: [{ id: "owned-print-block", type: "notes", title: "Owned block", page: "left", order: 0,
         items: [{ id: "owned-print-item", title: "Owned item", text: "Owned block text", html: "Owned block text" }] }] }
@@ -31,7 +33,7 @@ const watchdog = setTimeout(() => { console.error("MCP print fixture timed out")
           ...(!method.startsWith("notifications/") ? { id: explicitId ?? sequence } : {}), ...(params === undefined ? {} : { params }) } });
         return b.messages.find(message => message.cmd === "mcp_antwort" && message.invocation === invocation).response;
       }
-      const request = async (args, id) => (await rpc("tools/call", { name: "organizer_cards_print", arguments: args }, id)).result;
+      const request = async (args, id, name = "organizer_cards_print") => (await rpc("tools/call", { name, arguments: args }, id)).result;
       const ok = result => { assert.equal(result.isError, false, JSON.stringify(result)); return result.structuredContent; };
       const fail = (result, code) => { assert.equal(result.isError, true, JSON.stringify(result)); assert.equal(result.structuredContent.code, code); };
       await rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "owned-print-fixture", version: "1" } });
@@ -66,6 +68,39 @@ const watchdog = setTimeout(() => { console.error("MCP print fixture timed out")
       assert.equal(ok(await request({ expected_book_revision: revision, section: "anniversaries" })).count, 1);
       onPrint = message => { assert.ok(message.html.includes("Owned block text")); reply(message); };
       assert.equal(ok(await request({ expected_book_revision: revision, section: "custom", ids: ["owned-print-block"] })).count, 1);
+      onPrint = message => { assert.equal(message.html.split("Owned printed appointment").length - 1, 1); reply(message); };
+      assert.equal(ok(await request({ expected_book_revision: revision, section: "appointments", year: 2030, month: 2, ids: ["owned-print-event"] })).count, 1);
+      fail(await request({ expected_book_revision: revision, section: "appointments" }), "invalid_settings");
+      fail(await request({ ...args, year: 2030, month: 2 }), "invalid_settings");
+      fail(await request({ expected_book_revision: revision, section: "appointments", year: 2030, month: 3, ids: ["owned-print-event"] }), "not_found");
+      const report = (name, options = {}, id) => request({ expected_book_revision: revision, ...options }, id, "organizer_" + name + "_print");
+      onPrint = message => { assert.ok(message.html.includes("2030")); assert.ok(!message.html.includes("Owned printed appointment")); reply(message); };
+      assert.equal(ok(await report("planner", { year: 2030, layout: "year" })).report, "planner");
+      onPrint = message => { assert.ok(message.html.includes("Owned printed appointment")); reply(message); };
+      assert.equal(ok(await report("planner", { year: 2030, layout: "month", month: 2, appointments: true })).report, "planner");
+      onPrint = message => { assert.ok(!message.html.includes("Owned printed appointment")); reply(message); };
+      ok(await report("planner", { year: 2030, layout: "month", month: 2, appointments: false }));
+      fail(await report("planner", { year: 2030, layout: "month" }), "invalid_settings");
+      fail(await report("planner", { year: 2030, layout: "year", appointments: false }), "invalid_settings");
+      onPrint = message => { assert.ok(message.html.includes("<td>65</td>")); reply(message); };
+      assert.equal(ok(await report("health", { table: "vital", mode: "values", from: "2030-02-01", to: "2030-02-28" })).report, "health");
+      onPrint = message => { assert.ok(!message.html.includes("<td>65</td>")); reply(message); };
+      ok(await report("health", { table: "vital", mode: "blank" }));
+      ok(await report("health", { table: "vital", mode: "values", from: "2030-03-01" }));
+      onPrint = message => { assert.ok(message.html.includes("bz-mit-schema")); reply(message); };
+      ok(await report("health", { table: "blood-glucose", mode: "blank", insulin_scheme: true }));
+      onPrint = message => { assert.ok(message.html.includes("<svg")); reply(message); };
+      ok(await report("health", { table: "none", mode: "values", history: "single", history_metric: "pulse" }));
+      onPrint = message => { assert.ok(message.html.includes("diagramm-raster")); reply(message); };
+      ok(await report("health", { table: "none", mode: "values", history: "all" }));
+      fail(await report("health", { table: "vital", mode: "blank", from: "2030-02-01" }), "invalid_settings");
+      fail(await report("health", { table: "vital", mode: "values", insulin_scheme: true }), "invalid_settings");
+      onPrint = message => { assert.ok(message.html.includes("Owned &lt;report&gt;")); reply(message); };
+      assert.equal(ok(await report("time", { year: 2030, month: 2, report_name: "Owned <report>", days: [1, 4] })).report, "time");
+      fail(await report("time", { year: 2030, month: 2, days: [30] }), "invalid_settings");
+      fail(await report("time", { expected_book_revision: "0".repeat(64), year: 2030, month: 2 }), "conflict");
+      onPrint = message => reply(message, { stage: "dialog_requested", dialogAction: "print" });
+      fail(await report("time", { year: 2030, month: 2 }), "invalid_result");
       const lateStarted = new Promise(resolve => { onPrint = message => { native = message; resolve(); }; });
       const cancelled = request(args, 8000);
       await lateStarted; await rpc("notifications/cancelled", { requestId: 8000 }); fail(await cancelled, "cancelled");

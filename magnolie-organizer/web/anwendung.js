@@ -34370,27 +34370,63 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (typeof value.launcherAccepted !== "boolean") throw new MagnolieMcp.ToolError("invalid_result", "Document was saved; native launcher response was incomplete");
     return value.launcherAccepted;
   }
+  async function mcpDruckSenden(book, before, html, signal) {
+    if (new TextEncoder().encode(html).length > 750000) throw new MagnolieMcp.ToolError("export_limit", "Selected print page exceeds the native UTF-8 limit");
+    await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, () => reject(new MagnolieMcp.ToolError("save_failed", "Native save failed before printing"))));
+    mcpEditorPruefen(); if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Book changed before native print dispatch");
+    const value = await mcpNativeAufruf("drucken", { html }, "printErgebnis", signal);
+    if (value.ok !== true) throw new MagnolieMcp.ToolError(["native_timeout", "native_unavailable", "native_busy"].includes(value.code) ? value.code : "native_operation_failed", "Native system print dialog failed; check the existing dialog before retrying");
+    if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Print dialog may already be open; book changed during printing");
+    if (!(value.stage === "dialog_requested" && value.dialogAction === "unknown" || value.stage === "dialog_returned" && ["print", "cancel"].includes(value.dialogAction))) throw new MagnolieMcp.ToolError("invalid_result", "Native print-dialog response was incomplete; do not retry without checking the dialog");
+    return { stage: value.stage, dialog_action: value.dialogAction, paper_output_confirmed: false };
+  }
+  function mcpBerichtDruckWerkzeuge() {
+    // A report accepts exactly its export model's inputs, without file/launcher
+    // options. Keep the public selections aligned with the existing document API.
+    const schema = source => ({ ...source, properties: Object.fromEntries(Object.entries(source.properties).filter(([key]) => !["path", "overwrite", "open_with_registered_app"].includes(key))), required: source.required.filter(key => key !== "path") });
+    const run = async (args, signal, report, prepare) => {
+      mcpEditorPruefen(); const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+      if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; read its revision before report printing");
+      return { report, ...await mcpDruckSenden(book, before, prepare(), signal) };
+    };
+    const annotations = { readOnlyHint: false, destructiveHint: false, openWorldHint: true };
+    const receipt = " Requires full book revision/save gate. Confirms the real system print-dialog stage only; never spool submission or paper output. Cancellation/25-second timeout after dispatch may leave the dialog open; check before retrying.";
+    const tables = mcpTabellenExportWerkzeuge();
+    return [
+      { name: "organizer_planner_print", description: "Print the existing year/month planner GUI layout with explicit year/month and export visibility options, current regional formatting and product recurrence rules." + receipt,
+        inputSchema: schema(mcpPlanerExportWerkzeuge()[0].inputSchema), annotations,
+        call: (args, signal) => run(args, signal, "planner", () => planerDruckSeite(mcpPlanerExportModell(args))) },
+      { name: "organizer_health_print", description: "Print the existing GUI health-table, blank-form, insulin-scheme and history-chart layouts using the same explicit selections/date range as health spreadsheet export and current display units." + receipt,
+        inputSchema: schema(tables.find(tool => tool.name === "organizer_health_spreadsheet_export").inputSchema), annotations,
+        call: (args, signal) => run(args, signal, "health", () => { const options = mcpGesundheitExportOptionen(args); return gesundheitDruckSeite(options, gesundheitDruckEintraege(options)); }) },
+      { name: "organizer_time_print", description: "Print the original monthly time-report GUI layout with explicit month/year, optional day selection and document-only report name. Uses the shared time/calendar/region model without changing tracking or preferences." + receipt,
+        inputSchema: schema(tables.find(tool => tool.name === "organizer_time_spreadsheet_export").inputSchema), annotations,
+        call: (args, signal) => run(args, signal, "time", () => {
+          let sheet;
+          try { sheet = zeitOdsNutzlast(args.year, args.month - 1, args.report_name ?? DATEN.zeiterfassung.reportName, args.days || null).sheet; }
+          catch (_error) { throw new MagnolieMcp.ToolError("invalid_settings", "Invalid report name, month/day selection or product time-report data"); }
+          return zeitDruckSeite(sheet);
+        }) }
+    ];
+  }
   function mcpDruckWerkzeuge() {
-    const sections = { contacts: "adressen", tasks: "aufgaben", notes: "notizen", custom: "custom", anniversaries: "jahrestage" };
-    return [{ name: "organizer_cards_print", description: "Open the native system print dialog for explicit/all contact, task, note, custom-block or visible anniversary cards using the GUI print layout. Tasks ignore the current GUI search/filter and include completed tasks. No arbitrary HTML input. Requires book revision and durable-save gate. Linux waits for dialog return (print/cancel); Windows confirms ShowPrintUI only (unknown choice). Neither proves spool submission or paper output. Cancellation/25-second timeout after dispatch may leave a dialog open; check it before retrying.",
-      inputSchema: { type: "object", properties: { expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, section: { type: "string", enum: Object.keys(sections) }, ids: { type: "array", minItems: 1, maxItems: 5000, uniqueItems: true, items: { type: "string", minLength: 1, maxLength: 256 } } }, required: ["expected_book_revision", "section"], additionalProperties: false },
+    const sections = { contacts: "adressen", tasks: "aufgaben", notes: "notizen", custom: "custom", anniversaries: "jahrestage", appointments: "kalender" };
+    return [{ name: "organizer_cards_print", description: "Open the native system print dialog for explicit/all contact, task, note, custom-block, visible anniversary or monthly appointment cards using the GUI print layout. Appointments require year/month; IDs select source appointments and all their product occurrences in that month. Pending recurrence expansion must complete first. Tasks ignore GUI filters and include completed tasks. No arbitrary HTML input. Requires book revision and durable-save gate. Linux waits for dialog return (print/cancel); Windows confirms ShowPrintUI only (unknown choice). Neither proves spool submission or paper output. Cancellation/25-second timeout after dispatch may leave a dialog open; check it before retrying.",
+      inputSchema: { type: "object", properties: { expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, section: { type: "string", enum: Object.keys(sections) }, year: { type: "integer", minimum: 1000, maximum: 9999 }, month: { type: "integer", minimum: 1, maximum: 12 }, ids: { type: "array", minItems: 1, maxItems: 5000, uniqueItems: true, items: { type: "string", minLength: 1, maxLength: 256 } } }, required: ["expected_book_revision", "section"], additionalProperties: false },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true }, call: async (args, signal) => {
         mcpEditorPruefen(); const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
         if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; read its revision before printing");
-        const stoff = druckStoff(sections[args.section], null, null, { externeAuswahl: true });
-        const ids = args.ids ? new Set(args.ids) : null, entries = stoff.liste.filter(entry => !ids || ids.has(entry.id));
-        if (ids && entries.length !== ids.size) throw new MagnolieMcp.ToolError("not_found", "One or more selected print cards are missing or hidden");
+        const appointments = args.section === "appointments";
+        if (appointments ? args.year === undefined || args.month === undefined : args.year !== undefined || args.month !== undefined) throw new MagnolieMcp.ToolError("invalid_settings", "Explicit year/month apply only to appointment cards and are required for them");
+        const stoff = druckStoff(sections[args.section], null, appointments ? { jahr: args.year, monat: args.month - 1 } : null, { externeAuswahl: true });
+        if (stoff.icsIncomplete) throw new MagnolieMcp.ToolError("native_busy", "Product recurrence expansion is still pending; retry after it completes");
+        const sourceId = entry => appointments ? entry._druckQuelleId || entry.id : entry.id;
+        const ids = args.ids ? new Set(args.ids) : null, entries = stoff.liste.filter(entry => !ids || ids.has(sourceId(entry)));
+        if (ids && new Set(entries.map(sourceId)).size !== ids.size) throw new MagnolieMcp.ToolError("not_found", "One or more selected print cards are missing, hidden or outside the selected month");
         if (!entries.length) throw new MagnolieMcp.ToolError("no_entries", "No cards selected for printing");
         if (entries.length > 5000) throw new MagnolieMcp.ToolError("export_limit", "Select at most 5000 print cards");
         const html = druckSeite(entries, stoff);
-        if (new TextEncoder().encode(html).length > 750000) throw new MagnolieMcp.ToolError("export_limit", "Selected print cards exceed the native print-page limit");
-        await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, () => reject(new MagnolieMcp.ToolError("save_failed", "Native save failed before printing"))));
-        mcpEditorPruefen(); if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Book changed before native print dispatch");
-        const value = await mcpNativeAufruf("drucken", { html }, "printErgebnis", signal);
-        if (value.ok !== true) throw new MagnolieMcp.ToolError(["native_timeout", "native_unavailable"].includes(value.code) ? value.code : "native_operation_failed", "Native system print dialog failed; check the existing dialog before retrying");
-        if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Print dialog may already be open; book changed during printing");
-        if (!(value.stage === "dialog_requested" && value.dialogAction === "unknown" || value.stage === "dialog_returned" && ["print", "cancel"].includes(value.dialogAction))) throw new MagnolieMcp.ToolError("invalid_result", "Native print-dialog response was incomplete; do not retry without checking the dialog");
-        return { section: args.section, count: entries.length, stage: value.stage, dialog_action: value.dialogAction, paper_output_confirmed: false };
+        return { section: args.section, count: entries.length, ...await mcpDruckSenden(book, before, html, signal) };
       } }];
   }
   function mcpBriefExportWerkzeuge() {
@@ -34413,6 +34449,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (!["fodt", "odt"].includes(value.format) || typeof value.pfad !== "string" || !Number.isSafeInteger(value.bytes) || value.bytes <= 0 || !/^[a-f0-9]{64}$/.test(value.sha256)) throw new MagnolieMcp.ToolError("invalid_result", "Native letter readback was incomplete");
         return { path: value.pfad, format: value.format, bytes: value.bytes, sha256: value.sha256, confirmed: true, launcher_accepted: mcpDokumentStartErgebnis(args, value) };
       } }];
+  }
+  function mcpGesundheitExportOptionen(args) {
+    if (args.from && !gueltigesISO(args.from) || args.to && !gueltigesISO(args.to) || args.from && args.to && args.from > args.to || args.mode === "blank" && (args.from || args.to) || args.insulin_scheme && args.table !== "blood-glucose" || args.table === "none" && (!args.history || args.history === "none") || args.history_metric && args.history !== "single") throw new MagnolieMcp.ToolError("invalid_settings", "Invalid health export table, dates, chart or insulin-scheme combination");
+    return { vital: args.table === "vital", blutzucker: args.table === "blood-glucose", medikamente: args.table === "medication", leer: args.mode === "blank", von: args.from || "", bis: args.to || "", schema: args.insulin_scheme === true, verlauf: args.history || "none", verlaufWert: args.history_metric || "blood-pressure" };
   }
   function mcpTabellenExportWerkzeuge() {
     const common = { expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, overwrite: { type: "boolean" }, open_with_registered_app: { type: "boolean" } };
@@ -34446,8 +34486,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       { name: "organizer_health_spreadsheet_export", description: "Export the existing health table/history ODS layout using current display units and regional labels. Explicit table and blank/stored-values mode; optional date range, insulin scheme with glucose, one/all six history charts. Uses the same GUI selectors and native document generator; stored health data and preferences remain unchanged. Actual file readback confirms writing only.",
         inputSchema: schema({ table: { type: "string", enum: ["vital", "blood-glucose", "medication", "none"] }, mode: { type: "string", enum: ["blank", "values"] }, from: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" }, to: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" }, insulin_scheme: { type: "boolean" }, history: { type: "string", enum: ["none", "single", "all"] }, history_metric: { type: "string", enum: ["blood-pressure", "pulse", "temperature", "weight", "bmi", "blood-glucose"] } }, ["table", "mode"]), annotations,
         call: (args, signal) => run(args, signal, "health", () => {
-          if (args.from && !gueltigesISO(args.from) || args.to && !gueltigesISO(args.to) || args.from && args.to && args.from > args.to || args.mode === "blank" && (args.from || args.to) || args.insulin_scheme && args.table !== "blood-glucose" || args.table === "none" && (!args.history || args.history === "none") || args.history_metric && args.history !== "single") throw new MagnolieMcp.ToolError("invalid_settings", "Invalid health export table, dates, chart or insulin-scheme combination");
-          const options = { vital: args.table === "vital", blutzucker: args.table === "blood-glucose", medikamente: args.table === "medication", leer: args.mode === "blank", von: args.from || "", bis: args.to || "", schema: args.insulin_scheme === true, verlauf: args.history || "none", verlaufWert: args.history_metric || "blood-pressure" };
+          const options = mcpGesundheitExportOptionen(args);
           return gesundheitOdsNutzlast(options, gesundheitDruckEintraege(options));
         }) },
       { name: "organizer_time_spreadsheet_export", description: "Export the existing original monthly time-tracking ODS report using product calendar projection, actual entries, pause/clock-change rules, regional labels/digits and selected days. An optional report name affects this document only. Does not start tracking or change preferences. Book/save gate and native bytes/SHA-256 confirm the actual file.",
@@ -34457,6 +34496,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           catch (_error) { throw new MagnolieMcp.ToolError("invalid_settings", "Invalid report name, month/day selection or product time-report data"); }
         }) }
     ];
+  }
+  function mcpPlanerExportModell(args) {
+    const flags = { public_holidays: "feiertage", school_holidays: "ferien", personal_vacation: "urlaub", appointments: "termine", anniversaries: "jahrestage", shifts: "schichten", cycle_markers: "zyklus", waste: "muell" };
+    if (args.layout === "month" && args.month === undefined || args.layout === "year" && (args.month !== undefined || ["appointments", "anniversaries", "shifts", "cycle_markers", "waste"].some(key => args[key] !== undefined))) throw new MagnolieMcp.ToolError("invalid_settings", "Month and entry options apply only to a month planner; month is required for that layout");
+    const options = Object.fromEntries(Object.entries(flags).filter(([key]) => args[key] !== undefined).map(([key, field]) => [field, args[key]]));
+    const model = args.layout === "month" ? planerMonatsModell(args.year, args.month - 1, options) : planerKalenderModell(args.year, options);
+    if (model.icsIncomplete) throw new MagnolieMcp.ToolError("native_busy", "Product recurrence expansion is still pending; retry after it completes");
+    return model;
   }
   function mcpPlanerExportWerkzeuge() {
     const flags = { public_holidays: "feiertage", school_holidays: "ferien", personal_vacation: "urlaub", appointments: "termine", anniversaries: "jahrestage", shifts: "schichten", cycle_markers: "zyklus", waste: "muell" };
@@ -34468,9 +34515,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (args.layout === "month" && args.month === undefined || args.layout === "year" && (args.month !== undefined || ["appointments", "anniversaries", "shifts", "cycle_markers", "waste"].some(key => args[key] !== undefined))) throw new MagnolieMcp.ToolError("invalid_settings", "Month and entry options apply only to a month planner; month is required for that layout");
         const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
         if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; read its revision before exporting a planner");
-        const options = Object.fromEntries(Object.entries(flags).filter(([key]) => args[key] !== undefined).map(([key, field]) => [field, args[key]]));
-        const model = args.layout === "month" ? planerMonatsModell(args.year, args.month - 1, options) : planerKalenderModell(args.year, options);
-        if (model.icsIncomplete) throw new MagnolieMcp.ToolError("native_busy", "Product recurrence expansion is still pending; retry after it completes");
+        const model = mcpPlanerExportModell(args);
         const payload = planerOdsNutzlast(model);
         await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, () => reject(new MagnolieMcp.ToolError("save_failed", "Native save failed before planner export"))));
         mcpEditorPruefen(); if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Book changed before native planner export");
@@ -35643,7 +35688,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
-    if (name === "organizer_cards_print") return shape({ section: { type: "string", enum: ["contacts", "tasks", "notes", "custom", "anniversaries"] }, count: { type: "integer", minimum: 1, maximum: 5000 }, stage: { type: "string", enum: ["dialog_requested", "dialog_returned"] }, dialog_action: { type: "string", enum: ["unknown", "print", "cancel"] }, paper_output_confirmed: { type: "boolean", enum: [false] } }, ["section", "count", "stage", "dialog_action", "paper_output_confirmed"]);
+    if (["organizer_planner_print", "organizer_health_print", "organizer_time_print"].includes(name)) return shape({ report: { type: "string", enum: ["planner", "health", "time"] }, stage: { type: "string", enum: ["dialog_requested", "dialog_returned"] }, dialog_action: { type: "string", enum: ["unknown", "print", "cancel"] }, paper_output_confirmed: { type: "boolean", enum: [false] } }, ["report", "stage", "dialog_action", "paper_output_confirmed"]);
+    if (name === "organizer_cards_print") return shape({ section: { type: "string", enum: ["contacts", "tasks", "notes", "custom", "anniversaries", "appointments"] }, count: { type: "integer", minimum: 1, maximum: 5000 }, stage: { type: "string", enum: ["dialog_requested", "dialog_returned"] }, dialog_action: { type: "string", enum: ["unknown", "print", "cancel"] }, paper_output_confirmed: { type: "boolean", enum: [false] } }, ["section", "count", "stage", "dialog_action", "paper_output_confirmed"]);
     if (name.startsWith("kde_")) return shape({ ok: yes, requestId: id }, ["ok", "requestId"], true);
     if (name === "organizer_status") return shape({ version: text, ready: flag, locked: flag, editorDirty: flag, dialogOpen: flag, pendingSave: flag,
       supportedSocialServices: { type: "array", items: text } }, ["version", "ready", "locked", "editorDirty", "dialogOpen", "pendingSave", "supportedSocialServices"]);
@@ -35859,6 +35905,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpTabellenExportWerkzeuge(),
       ...mcpBriefExportWerkzeuge(),
       ...mcpDruckWerkzeuge(),
+      ...mcpBerichtDruckWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

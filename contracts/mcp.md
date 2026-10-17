@@ -7,10 +7,14 @@ are still being connected to the same interface.
 ### Native card printing
 
 `organizer_cards_print` uses the existing GUI print-page builders for contacts,
-tasks, notes, custom blocks and visible anniversaries. Supply the full
+tasks, notes, custom blocks, visible anniversaries and monthly appointment cards. Supply the full
 `expected_book_revision`, `section` and optional explicit `ids`; omitted IDs mean
 all cards in that section. Tasks include completed tasks and ignore GUI filters.
-Hidden anniversaries cannot be selected. The native durable-save gate runs before
+Hidden anniversaries cannot be selected. Appointment cards require explicit
+`year`/`month`; their IDs select source appointments and include all their product
+occurrences within that month, deduplicating multi-day occurrences as in the GUI.
+Pending recurrence expansion yields `native_busy`. Other card sections reject
+year/month. The native durable-save gate runs before
 dispatch. At most 5000 cards and 750000 UTF-8 page bytes are accepted; arbitrary
 HTML, commands and printer names are not inputs.
 
@@ -21,8 +25,16 @@ neither is spool-submission or physical-print proof. Linux has no viewer fallbac
 for this tool. Cancellation or the 25-second request timeout after dispatch may
 leave an existing dialog open, and Linux may still return from that dialog later.
 Inspect the existing dialog before retrying. Late results never open Organizer
-menus or notifications. Calendar/planner, health-table and time-report printing
-remain separate coverage work under #170.
+menus or notifications.
+
+`organizer_planner_print`, `organizer_health_print` and `organizer_time_print`
+use the same explicit model selections as their corresponding spreadsheet exports
+without destination/overwrite/launcher fields. They render the actual existing
+GUI year/month planner, health forms/tables/insulin schemes/history charts and
+monthly time-report HTML layouts. The same revision/save/UTF-8/native-dialog gates
+and honest dialog-only receipt apply. Visibility flags, date ranges, units and
+document-only report names do not change GUI selection or stored preferences.
+Planner recurrence expansion must be complete before printing.
 
 ## Transport and session
 
