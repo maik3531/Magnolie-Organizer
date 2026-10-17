@@ -525,15 +525,37 @@ internal sealed class MainForm : Form
 
     internal async void ShowPrintDialog(string html)
     {
-        if (InvokeRequired) { BeginInvoke(() => ShowPrintDialog(html)); return; }
-        if (string.IsNullOrWhiteSpace(html) || html.Length > 8_000_000) return;
-        var print = new HtmlPrintForm(html, paths, "") { Icon = Icon };
-        print.Show(this);
-        try { await print.Ready; }
+        try { await ShowPrintDialogAsync(html); }
         catch (Exception error)
         {
             WriteWebViewDiagnostic($"Fehler beim Öffnen der Druckansicht: {error.Message}");
         }
+    }
+
+    private HtmlPrintForm? activePrintForm;
+
+    internal async Task ShowPrintDialogAsync(string html)
+    {
+        if (InvokeRequired)
+        {
+            var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            BeginInvoke(async () =>
+            {
+                try { await ShowPrintDialogAsync(html); completion.TrySetResult(); }
+                catch (Exception error) { completion.TrySetException(error); }
+            });
+            await completion.Task;
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(html) || html.Length > 8_000_000)
+            throw new InvalidDataException("Invalid print page.");
+        if (activePrintForm is { IsDisposed: false })
+            throw new InvalidOperationException("A print dialog is already open.");
+        var print = new HtmlPrintForm(html, paths, "") { Icon = Icon };
+        activePrintForm = print;
+        print.Show(this);
+        try { await print.Ready.WaitAsync(TimeSpan.FromSeconds(22)); }
+        catch { if (!print.IsDisposed) print.Close(); throw; }
     }
 
     internal async Task<bool> OpenHandbookAsync(string manualPath)

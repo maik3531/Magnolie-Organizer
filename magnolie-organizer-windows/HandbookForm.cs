@@ -200,6 +200,7 @@ internal sealed class HtmlPrintForm : Form
         ClientSize = new Size(900, 700);
         Controls.Add(webView);
         Load += async (_, _) => await InitializeAsync();
+        FormClosed += (_, _) => initialized.TrySetCanceled();
     }
 
     internal Task Ready => initialized.Task;
@@ -251,6 +252,7 @@ internal sealed class HtmlPrintForm : Form
                     }
                     if (!resourcesReady)
                         throw new InvalidDataException("Handbook print resources did not load.");
+                    if (IsDisposed || Disposing) throw new OperationCanceledException("Print view was closed.");
                     webView.CoreWebView2.ShowPrintUI(CoreWebView2PrintDialogKind.System);
                     initialized.TrySetResult();
                 }

@@ -11177,7 +11177,7 @@ def sozial_oeffnen(dienst, wert, starter=None, welcher=None, land="Deutschland",
     return {"ok": False, "fehler": _("No suitable application was found.")}
 
 
-def drucken(html, name="magnolie-druck", starter=None, ordner=None):
+def drucken(html, name="magnolie-druck", starter=None, ordner=None, rueckmeldung=None):
     """Druckt eine Seite: bevorzugt über den Druckdialog des Systems,
     ersatzweise wird die Seite im Betrachter geöffnet."""
     import subprocess
@@ -11195,19 +11195,50 @@ def drucken(html, name="magnolie-druck", starter=None, ordner=None):
             ansicht.get_settings().set_enable_javascript(False)
             fertig = {"getan": False}
 
+            def antwort(wert):
+                if rueckmeldung is not None:
+                    rueckmeldung(wert)
+
+            def abgelaufen():
+                if not fertig["getan"]:
+                    fertig["getan"] = True
+                    ansicht.stop_loading()
+                    antwort({"ok": False, "code": "native_timeout"})
+                return False
+
+            if rueckmeldung is not None:
+                GLib.timeout_add_seconds(20, abgelaufen)
+
+            def bei_fehler(_ansicht, _ereignis, _uri, _fehler):
+                if not fertig["getan"]:
+                    fertig["getan"] = True
+                    antwort({"ok": False, "code": "native_operation_failed"})
+                return False
+
             def bei_fertig(_ansicht, ereignis):
                 if ereignis != WebKit2.LoadEvent.FINISHED or fertig["getan"]:
                     return
                 fertig["getan"] = True
-                auftrag = WebKit2.PrintOperation.new(_ansicht)
-                auftrag.run_dialog(None)
+                try:
+                    auftrag = WebKit2.PrintOperation.new(_ansicht)
+                    auswahl = auftrag.run_dialog(None)
+                    antwort({"ok": True, "stage": "dialog_returned",
+                             "dialogAction": "print" if auswahl == WebKit2.PrintOperationResponse.PRINT else "cancel"})
+                except Exception:
+                    antwort({"ok": False, "code": "native_operation_failed"})
 
             ansicht.connect("load-changed", bei_fertig)
+            ansicht.connect("load-failed", bei_fehler)
             ansicht.load_uri(GLib.filename_to_uri(pfad, None))
             return {"ok": True, "pfad": pfad, "womit": "druckdialog",
                     "fehler": "", "ansicht": ansicht}
         except Exception:
             pass
+
+    # Correlated product requests require the real system print dialog. A viewer
+    # launch is not a print-dialog acknowledgement.
+    if rueckmeldung is not None:
+        return {"ok": False, "code": "native_unavailable"}
 
     if starter is None:
         def starter(argumente):
@@ -21879,7 +21910,7 @@ class Fenster(_FENSTER_BASIS):
                     aktion_ziel=nachricht.get("aktionZiel") or "")), daemon=True).start()
 
         elif befehl == "drucken":
-            self._drucken(nachricht.get("html") or "")
+            self._drucken(nachricht.get("html") or "", nachricht.get("requestId"))
 
         elif befehl in ("adressen_ods", "gesundheit_ods", "zeit_ods", "planer_ods") and nachricht.get("requestId"):
             threading.Thread(target=self._dokument_datei_exportieren, args=(nachricht,), daemon=True).start()
@@ -22405,8 +22436,24 @@ class Fenster(_FENSTER_BASIS):
             else:
                 benachrichtigen(kopf, rumpf, mit_aktion=False, wartezeit=20)
 
-    def _drucken(self, html):
+    def _drucken(self, html, request_id=None):
         """Der Druckdialog gehört auf den Hauptfaden."""
+        if request_id:
+            def antwort(wert):
+                self._mcp_druck_aktiv = False
+                self.antwort("App.printErgebnis", {**wert, "requestId": request_id})
+            if getattr(self, "_mcp_druck_aktiv", False):
+                self.antwort("App.printErgebnis", {"ok": False, "code": "native_busy", "requestId": request_id})
+                return
+            if not isinstance(html, str) or not html.strip() or len(html.encode("utf-8")) > 750000:
+                antwort({"ok": False, "code": "invalid_settings"})
+                return
+            self._mcp_druck_aktiv = True
+            ergebnis = drucken(html, rueckmeldung=antwort)
+            self._druckansicht = ergebnis.pop("ansicht", None)
+            if not ergebnis.get("ok"):
+                antwort({"ok": False, "code": ergebnis.get("code", "native_operation_failed")})
+            return
         ergebnis = drucken(html)
         self._druckansicht = ergebnis.pop("ansicht", None)
         self.antwort("App.adressWeg", ergebnis)

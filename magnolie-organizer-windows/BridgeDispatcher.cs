@@ -152,7 +152,21 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "gesamtarchiv_importieren": await ImportGesamtarchivAsync(message); break;
                     case "gesamtarchiv_exportieren": await ExportGesamtarchivAsync(Text(message, "kennwort"), Text(message, "pfad"), Text(message, "requestId"), message.TryGetProperty("overwrite", out var overwriteArchive) && overwriteArchive.GetBoolean()); break;
                     case "ordner_waehlen": await SelectFolderAsync(); break;
-                    case "drucken": form.ShowPrintDialog(Text(message, "html")); break;
+                    case "drucken":
+                        if (Text(message, "requestId") is { Length: > 0 } printRequest)
+                        {
+                            try
+                            {
+                                var printHtml = Text(message, "html");
+                                if (Encoding.UTF8.GetByteCount(printHtml) > 750000) throw new InvalidDataException("Print page exceeds correlated request limit.");
+                                await form.ShowPrintDialogAsync(printHtml);
+                                await form.SendAsync("App.printErgebnis", new { requestId = printRequest, ok = true, stage = "dialog_requested", dialogAction = "unknown" });
+                            }
+                            catch (Exception)
+                            { await form.SendAsync("App.printErgebnis", new { requestId = printRequest, ok = false, code = "native_operation_failed" }); }
+                        }
+                        else form.ShowPrintDialog(Text(message, "html"));
+                        break;
                     case "notiz_anhang_datei": await HandleAttachmentFileAsync(message); break;
                     case "zeichenblatt_svg_speichern":
                         var svgBytes = DrawingSvg.Validate(Text(message, "svg"));

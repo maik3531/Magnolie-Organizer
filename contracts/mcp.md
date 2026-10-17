@@ -4,6 +4,26 @@ Implementation and complete product coverage are tracked in issue #170.
 This document describes the implemented tools; the remaining product operations
 are still being connected to the same interface.
 
+### Native card printing
+
+`organizer_cards_print` uses the existing GUI print-page builders for contacts,
+tasks, notes, custom blocks and visible anniversaries. Supply the full
+`expected_book_revision`, `section` and optional explicit `ids`; omitted IDs mean
+all cards in that section. Tasks include completed tasks and ignore GUI filters.
+Hidden anniversaries cannot be selected. The native durable-save gate runs before
+dispatch. At most 5000 cards and 750000 UTF-8 page bytes are accepted; arbitrary
+HTML, commands and printer names are not inputs.
+
+The correlated native result distinguishes Linux `dialog_returned` with
+`dialog_action: print|cancel` from Windows `dialog_requested` with unknown choice
+(WebView2's system ShowPrintUI returned). `paper_output_confirmed` is always false:
+neither is spool-submission or physical-print proof. Linux has no viewer fallback
+for this tool. Cancellation or the 25-second request timeout after dispatch may
+leave an existing dialog open, and Linux may still return from that dialog later.
+Inspect the existing dialog before retrying. Late results never open Organizer
+menus or notifications. Calendar/planner, health-table and time-report printing
+remain separate coverage work under #170.
+
 ## Transport and session
 
 Start the desktop Organizer normally, then run the same executable with

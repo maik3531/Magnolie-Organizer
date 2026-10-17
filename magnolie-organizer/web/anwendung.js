@@ -11215,8 +11215,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   /* Was auf dieser Seite des Buches gedruckt werden kann. Jede Sektion
      liefert ihre Einträge mit Namen, Vorschau und Druckfassung. */
-  function druckStoff(sektion, vorgewaehlt, kalenderStand) {
-    sichereNotizSnapshot();
+  function druckStoff(sektion, vorgewaehlt, kalenderStand, optionen = {}) {
+    if (!optionen.externeAuswahl) sichereNotizSnapshot();
     const sicher = (x) => String(x || "")
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -11229,8 +11229,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
 
     if (sektion === "aufgaben") {
-      const liste = DATEN.aufgaben.filter(aufgabePasst).sort(sortiereAufgaben);
-      const f2 = zustand.aufgaben.filter || {};
+      const liste = DATEN.aufgaben.filter(optionen.externeAuswahl ? () => true : aufgabePasst).sort(sortiereAufgaben);
+      const f2 = optionen.externeAuswahl ? {} : zustand.aufgaben.filter || {};
       const wer = f2.person ? personName(f2.person) : "";
       const zeitraum = (f2.von || f2.bis)
         ? " · " + uebersetzt("%(from)s to %(to)s", {
@@ -32545,6 +32545,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       zettel(text);
       setupImportBeenden();
     },
+    printErgebnis(nutzlast) {
+      if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "printErgebnis");
+    },
     documentExportErgebnis(nutzlast) {
       if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "documentExportErgebnis");
     },
@@ -34367,6 +34370,29 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (typeof value.launcherAccepted !== "boolean") throw new MagnolieMcp.ToolError("invalid_result", "Document was saved; native launcher response was incomplete");
     return value.launcherAccepted;
   }
+  function mcpDruckWerkzeuge() {
+    const sections = { contacts: "adressen", tasks: "aufgaben", notes: "notizen", custom: "custom", anniversaries: "jahrestage" };
+    return [{ name: "organizer_cards_print", description: "Open the native system print dialog for explicit/all contact, task, note, custom-block or visible anniversary cards using the GUI print layout. Tasks ignore the current GUI search/filter and include completed tasks. No arbitrary HTML input. Requires book revision and durable-save gate. Linux waits for dialog return (print/cancel); Windows confirms ShowPrintUI only (unknown choice). Neither proves spool submission or paper output. Cancellation/25-second timeout after dispatch may leave a dialog open; check it before retrying.",
+      inputSchema: { type: "object", properties: { expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, section: { type: "string", enum: Object.keys(sections) }, ids: { type: "array", minItems: 1, maxItems: 5000, uniqueItems: true, items: { type: "string", minLength: 1, maxLength: 256 } } }, required: ["expected_book_revision", "section"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen(); const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+        if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; read its revision before printing");
+        const stoff = druckStoff(sections[args.section], null, null, { externeAuswahl: true });
+        const ids = args.ids ? new Set(args.ids) : null, entries = stoff.liste.filter(entry => !ids || ids.has(entry.id));
+        if (ids && entries.length !== ids.size) throw new MagnolieMcp.ToolError("not_found", "One or more selected print cards are missing or hidden");
+        if (!entries.length) throw new MagnolieMcp.ToolError("no_entries", "No cards selected for printing");
+        if (entries.length > 5000) throw new MagnolieMcp.ToolError("export_limit", "Select at most 5000 print cards");
+        const html = druckSeite(entries, stoff);
+        if (new TextEncoder().encode(html).length > 750000) throw new MagnolieMcp.ToolError("export_limit", "Selected print cards exceed the native print-page limit");
+        await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, () => reject(new MagnolieMcp.ToolError("save_failed", "Native save failed before printing"))));
+        mcpEditorPruefen(); if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Book changed before native print dispatch");
+        const value = await mcpNativeAufruf("drucken", { html }, "printErgebnis", signal);
+        if (value.ok !== true) throw new MagnolieMcp.ToolError(["native_timeout", "native_unavailable"].includes(value.code) ? value.code : "native_operation_failed", "Native system print dialog failed; check the existing dialog before retrying");
+        if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Print dialog may already be open; book changed during printing");
+        if (!(value.stage === "dialog_requested" && value.dialogAction === "unknown" || value.stage === "dialog_returned" && ["print", "cancel"].includes(value.dialogAction))) throw new MagnolieMcp.ToolError("invalid_result", "Native print-dialog response was incomplete; do not retry without checking the dialog");
+        return { section: args.section, count: entries.length, stage: value.stage, dialog_action: value.dialogAction, paper_output_confirmed: false };
+      } }];
+  }
   function mcpBriefExportWerkzeuge() {
     return [{ name: "organizer_letter_export", description: "Create the existing native letter template for a contact or own profile with the GUI's resolved postal-address preparation and current/explicit sender/layout. Full book revision, save gate, explicit destination and overwrite choice required. Returns actual file-byte/SHA-256 readback and native format (Linux FODT, Windows ODT); select the corresponding filename extension. Does not send mail/fax or imply opening/rendering in an office application.",
       inputSchema: { type: "object", properties: { expected_book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, recipient_type: { type: "string", enum: ["contact", "own_profile"] }, contact_id: { type: "string", minLength: 1, maxLength: 256 }, sender_address: { type: "string", maxLength: 5000 }, layout: { type: "string", enum: ["din5008-b", "din5008-a", "compact", "din5008"] },
@@ -35617,6 +35643,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (name === "organizer_cards_print") return shape({ section: { type: "string", enum: ["contacts", "tasks", "notes", "custom", "anniversaries"] }, count: { type: "integer", minimum: 1, maximum: 5000 }, stage: { type: "string", enum: ["dialog_requested", "dialog_returned"] }, dialog_action: { type: "string", enum: ["unknown", "print", "cancel"] }, paper_output_confirmed: { type: "boolean", enum: [false] } }, ["section", "count", "stage", "dialog_action", "paper_output_confirmed"]);
     if (name.startsWith("kde_")) return shape({ ok: yes, requestId: id }, ["ok", "requestId"], true);
     if (name === "organizer_status") return shape({ version: text, ready: flag, locked: flag, editorDirty: flag, dialogOpen: flag, pendingSave: flag,
       supportedSocialServices: { type: "array", items: text } }, ["version", "ready", "locked", "editorDirty", "dialogOpen", "pendingSave", "supportedSocialServices"]);
@@ -35831,6 +35858,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpPlanerExportWerkzeuge(),
       ...mcpTabellenExportWerkzeuge(),
       ...mcpBriefExportWerkzeuge(),
+      ...mcpDruckWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },

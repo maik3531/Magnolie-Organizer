@@ -196,6 +196,30 @@ def client():
             assert response["id"] == sequence, response
             assert "error" not in response, response
             return response["result"]
+        def check_print_dialog(revision):
+            print_probe = {"seen": False, "timer_active": True, "deadline": time.monotonic() + 12}
+            def cancel_owned_print_dialog():
+                for dialog in product.Gtk.Window.list_toplevels():
+                    if dialog.__gtype__.name == "GtkPrintUnixDialog" and dialog.get_visible():
+                        print_probe["seen"] = True
+                        print_probe["timer_active"] = False
+                        dialog.response(product.Gtk.ResponseType.CANCEL)
+                        return False
+                if time.monotonic() > print_probe["deadline"]:
+                    print_probe["timer_active"] = False
+                    print("Owned print dialog not observed: " + repr([(dialog.__gtype__.name, dialog.get_visible()) for dialog in product.Gtk.Window.list_toplevels()]), flush=True)
+                    return False
+                return True
+            print_timer = product.GLib.timeout_add(50, cancel_owned_print_dialog)
+            try:
+                printed = call("tools/call", {"name": "organizer_cards_print", "arguments": {
+                    "expected_book_revision": revision, "section": "notes", "ids": ["owned-native-fixture"]}})
+                assert print_probe["seen"] and not printed["isError"], printed
+                assert printed["structuredContent"]["stage"] == "dialog_returned" and printed["structuredContent"]["dialog_action"] == "cancel" and printed["structuredContent"]["paper_output_confirmed"] is False, printed
+                state["print_dialog_verified"] = True
+            finally:
+                if print_probe["timer_active"]:
+                    product.GLib.source_remove(print_timer)
         result = call("initialize", {"protocolVersion": "2025-06-18", "capabilities": {},
             "clientInfo": {"name": "owned-native-fixture", "version": "1"}})
         assert result["serverInfo"]["name"] == "magnolie-organizer"
@@ -215,6 +239,15 @@ def client():
         assert status["structuredContent"]["ready"] and not status["structuredContent"]["locked"], status
         notes = call("tools/call", {"name": "organizer_data_read", "arguments": {"section": "notizen"}})
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
+        if os.environ.get("MAGNOLIE_MCP_PROBE_PRINT_ONLY") == "1":
+            print_revision = call("tools/call", {"name": "organizer_book_revision_read"})["structuredContent"]["revision"]
+            check_print_dialog(print_revision)
+            assert call("tools/call", {"name": "organizer_book_revision_read"})["structuredContent"]["revision"] == print_revision
+            process.stdin.close()
+            assert process.wait(timeout=5) == 0
+            selector.close()
+            state["passed"] = True
+            return
         note_id = "44444444-4444-4444-8444-444444444444"
         created = call("tools/call", {"name": "organizer_note_create", "arguments": {
             "id": note_id, "title": "Native MCP fixture", "text": "<script>not executable</script>\nOwned fixture"}})
@@ -1626,6 +1659,10 @@ def client():
         assert "Owned Profile" in letter_text and "Owned profile street 2" in letter_text
         assert data_file.read_text() == records_envelope_before
         password_before = call("tools/call", {"name": "organizer_password_status"})
+        # Observe and cancel only the real print dialog of this private Xvfb book.
+        # No physical printer is selected and no print job is submitted.
+        check_print_dialog(records_revision)
+        assert data_file.read_text() == records_envelope_before
         assert not password_before["isError"] and password_before["structuredContent"]["encrypted"] and password_before["structuredContent"]["matches_book"], password_before
         password_state = password_before["structuredContent"]
         original_envelope = data_file.read_text()
@@ -1659,6 +1696,7 @@ def client():
         state["passed"] = True
     except BaseException as error:
         state["error"] = traceback.format_exc(limit=6)
+        print(state["error"], file=sys.stderr, flush=True)
     finally:
         if process is not None and process.poll() is None:
             process.terminate()
@@ -1668,6 +1706,10 @@ def client():
                 process.kill()
                 process.wait(timeout=3)
         def stop_window():
+            for dialog in product.Gtk.Window.list_toplevels():
+                if isinstance(dialog, product.Gtk.Dialog):
+                    dialog.response(product.Gtk.ResponseType.CANCEL)
+                    dialog.destroy()
             if product._KDECONNECT_BACKEND is not None or window._telefon is not None or window._baumdienst is not None:
                 state["passed"] = False
                 state["error"] = "An unrelated transport started inside the isolated book fixture"
@@ -1690,6 +1732,10 @@ def start_client():
 
 def deadline():
     state["error"] = "Native MCP probe exceeded 90 seconds"
+    for dialog in product.Gtk.Window.list_toplevels():
+        if isinstance(dialog, product.Gtk.Dialog):
+            dialog.response(product.Gtk.ResponseType.CANCEL)
+            dialog.destroy()
     for process in owned:
         if process.poll() is None:
             process.terminate()
@@ -1720,4 +1766,7 @@ finally:
     print("Native MCP fixture state:", json.dumps(state), flush=True)
     temporary.cleanup()
 assert state["passed"], state
-print("Native MCP PASS: GTK/WebKit/worker/stdio/FileReader, durable entities and attachment upload/remove/restore, recovery and bounded large UTF-8 reads")
+if os.environ.get("MAGNOLIE_MCP_PROBE_PRINT_ONLY") == "1":
+    print("Native MCP PRINT PASS: real private GTK system print dialog observed/cancelled, correlated return, unchanged book revision")
+else:
+    print("Native MCP PASS: GTK/WebKit/worker/stdio/FileReader, durable entities and attachment upload/remove/restore, recovery and bounded large UTF-8 reads")
