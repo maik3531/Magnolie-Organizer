@@ -31864,8 +31864,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       nutzlast = nutzlast || {};
       if (nutzlast.requestId) {
         const context = mcpPasswortAnfragen.get(nutzlast.requestId); mcpPasswortAnfragen.delete(nutzlast.requestId);
-        if (context) clearTimeout(context.timer);
-        if (context?.book === DATEN && nutzlast.ok === true && typeof nutzlast.an === "boolean") { kennwortAn = nutzlast.an; kennwortMeldung = ""; }
+        if (context && context.bookToken === mcpPasswortBuecher.get(DATEN) && nutzlast.ok === true && typeof nutzlast.an === "boolean") { kennwortAn = nutzlast.an; kennwortMeldung = ""; }
         mcpNativeAntwort({ requestId: nutzlast.requestId, ok: nutzlast.ok === true, an: nutzlast.an, code: nutzlast.code,
           sicherungen: nutzlast.sicherungen, sicherungenFehler: nutzlast.sicherungenFehler, journal: nutzlast.journal, journalFehler: nutzlast.journalFehler }, "kennwortStand");
         return;
@@ -34386,6 +34385,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
   let mcpPasswortKette = Promise.resolve();
   const mcpPasswortAnfragen = new Map();
+  const mcpPasswortBuecher = new WeakMap();
   function mcpPasswortWerkzeuge() {
     const revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
     const readNative = async signal => {
@@ -34406,15 +34406,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         inputSchema: { type: "object", properties: { expected_book_revision: revision, expected_state_revision: revision, ...(!remove ? { new_password: { type: "string", minLength: 4, maxLength: 4096 } } : {}) }, required: ["expected_book_revision", "expected_state_revision", ...(!remove ? ["new_password"] : [])], additionalProperties: false },
         annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: (args, signal) => {
           const run = async () => {
-            mcpEditorPruefen(); const book = DATEN, before = JSON.stringify(book), hash = await personalSyncHash(before);
+            mcpEditorPruefen();
+            if (mcpPasswortAnfragen.size >= 8) throw new MagnolieMcp.ToolError("native_busy", "Wait for outstanding native password transactions before starting another");
+            const book = DATEN, before = JSON.stringify(book), hash = await personalSyncHash(before);
             if (signal.aborted || DATEN !== book || JSON.stringify(DATEN) !== before || hash !== args.expected_book_revision) throw new MagnolieMcp.ToolError("conflict", "Book changed; read password status again");
             await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, () => reject(new MagnolieMcp.ToolError("save_failed", "Native save failed before the password operation")))); mcpEditorPruefen();
             if (DATEN !== book || JSON.stringify(DATEN) !== before) throw new MagnolieMcp.ToolError("source_changed", "Book changed before native password operation");
+            let nativeRequestId;
             const value = await mcpNativeAufruf(remove ? "kennwort_entfernen" : "kennwort_setzen", { alt: "", ...(!remove ? { neu: args.new_password, sicherungen: true } : {}),
               sicherungsordner: DATEN.einstellungen.allgemein.sicherungsordner || "", expectedRevision: args.expected_state_revision, expectedBookRevision: args.expected_book_revision }, "kennwortStand", signal, requestId => {
-                while (mcpPasswortAnfragen.size >= 8) { const oldest = mcpPasswortAnfragen.keys().next().value; clearTimeout(mcpPasswortAnfragen.get(oldest).timer); mcpPasswortAnfragen.delete(oldest); }
-                mcpPasswortAnfragen.set(requestId, { book, timer: setTimeout(() => mcpPasswortAnfragen.delete(requestId), 120000) });
-              });
+                nativeRequestId = requestId;
+                if (!mcpPasswortBuecher.has(book)) mcpPasswortBuecher.set(book, crypto.randomUUID());
+                mcpPasswortAnfragen.set(requestId, { bookToken: mcpPasswortBuecher.get(book) });
+              }).catch(error => { if (error.code === "native_unavailable") mcpPasswortAnfragen.delete(nativeRequestId); throw error; });
             if (value.ok !== true || value.an !== !remove) throw new MagnolieMcp.ToolError(value.code === "conflict" ? "conflict" : "native_operation_failed", "Native password operation failed or its preconditions changed; read password status before retrying");
             const native = await readNative(signal);
             if (native.encrypted !== !remove || native.stored_book_revision !== args.expected_book_revision) throw new MagnolieMcp.ToolError("native_operation_failed", "Password operation may have committed; actual primary readback did not match");

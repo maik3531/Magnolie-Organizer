@@ -218,6 +218,14 @@ Cloud-backup test bookkeeping retains at most eight request/source/book/folder
 contexts for two minutes to adopt actual late worker outcomes without reopening
 dialogs. A timed-out or cancelled call does not itself confirm backup success.
 
+Password transactions retain at most eight content-free native commit correlations
+until their actual responses arrive, including after RPC cancellation or timeout.
+Book binding uses weakly assigned opaque identifiers rather than retaining old
+book documents. Outstanding commits do not expire on a cleanup timer; a full
+correlation table rejects another password action with `native_busy` before
+native submission. A failed submission releases its reservation. Responses for
+other IDs or replaced books cannot change the current book's encryption flag.
+
 ## Remaining coverage in #170
 
 The remaining work includes other settings changes,

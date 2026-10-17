@@ -1544,6 +1544,7 @@ let declaredContracts;
         await lateDispatch; await call({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 996 } });
         assert.equal((await cancelled).result.structuredContent.code, "cancelled");
         const toast = b.w.document.querySelector("#zettel").textContent;
+        for (const timer of b.timers.filter(timer => timer.delay === 120000 && !timer.cancelled)) timer.fn();
         state = { ...state, encrypted: true, state_revision: "4".repeat(64) };
         b.w.App.kennwortStand({ requestId: native.requestId, ok: true, an: true, fehler: "owned-late-password-message" });
         assert.equal(b.w.document.querySelector("#zettel").textContent, toast);
@@ -1551,6 +1552,30 @@ let declaredContracts;
         b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-sicherheit").click();
         assert.ok(b.w.document.querySelector("#kennwort-weg"), "A committed late password change must update the product flag");
         b.w.document.querySelector("#einstellungen-zu").click();
+        const outstanding = [], commandsBefore = b.messages.filter(message => ["kennwort_setzen", "kennwort_entfernen"].includes(message.cmd)).length;
+        for (let index = 0; index < 8; index++) {
+          const dispatched = new Promise(resolve => { onPasswordWrite = message => { outstanding.push(message); resolve(); }; });
+          const id = 1070 + index;
+          const pending = call(request(id, "tools/call", { name: "organizer_password_set", arguments: { expected_book_revision: bookHash(),
+            expected_state_revision: state.state_revision, new_password: "owned-outstanding-" + index } }));
+          await dispatched; await call({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: id } });
+          assert.equal((await pending).result.structuredContent.code, "cancelled");
+        }
+        const busy = await call(request(1078, "tools/call", { name: "organizer_password_set", arguments: { expected_book_revision: bookHash(), expected_state_revision: state.state_revision, new_password: "owned-busy" } }));
+        assert.equal(busy.result.structuredContent.code, "native_busy");
+        assert.equal(b.messages.filter(message => ["kennwort_setzen", "kennwort_entfernen"].includes(message.cmd)).length, commandsBefore + 8, "A full commit table must reject before native submission");
+        state = { ...state, state_revision: "5".repeat(64) };
+        outstanding.forEach((message, index) => b.w.App.kennwortStand({ requestId: message.requestId, ok: index === 0, an: true, code: index === 0 ? undefined : "conflict" }));
+        const released = await read(1079);
+        onPasswordWrite = message => { state = { ...state, encrypted: false, state_revision: "6".repeat(64) }; b.w.App.kennwortStand({ requestId: message.requestId, ok: true, an: false, sicherungen: 0, sicherungenFehler: 0 }); };
+        const afterRelease = await call(request(1080, "tools/call", { name: "organizer_password_remove", arguments: { expected_book_revision: released.book_revision, expected_state_revision: released.state_revision } }));
+        assert.equal(afterRelease.result.structuredContent.verified, true, "Actual replies must release commit slots");
+        onPasswordWrite = () => { throw new Error("Owned native submission unavailable"); };
+        for (let index = 0; index < 9; index++) {
+          const failed = await call(request(1090 + index, "tools/call", { name: "organizer_password_set", arguments: {
+            expected_book_revision: bookHash(), expected_state_revision: state.state_revision, new_password: "owned-rejected-submission" } }));
+          assert.equal(failed.result.structuredContent.code, "native_unavailable", "A failed submission must release its reservation");
+        }
         onPasswordRead = onPasswordWrite = null;
       }
       {
@@ -1621,6 +1646,22 @@ let declaredContracts;
         reply(native); assert.equal(b.w.document.querySelector("#zettel").textContent, toast);
         assert.equal(JSON.stringify(b.t.daten()), before); assert.equal(b.w.document.querySelector(".kontakt-datei-pruefung"), null);
         onImportPreview = null;
+      }
+      {
+        const revision = (await call(request(1120, "tools/call", { name: "organizer_book_revision_read" }))).result.structuredContent.revision;
+        let native;
+        const dispatched = new Promise(resolve => { onPasswordWrite = message => { native = message; resolve(); }; });
+        const pending = call(request(1121, "tools/call", { name: "organizer_password_set", arguments: {
+          expected_book_revision: revision, expected_state_revision: "8".repeat(64), new_password: "owned-old-book-password" } }));
+        await dispatched; await call({ jsonrpc: "2.0", method: "notifications/cancelled", params: { requestId: 1121 } });
+        assert.equal((await pending).result.structuredContent.code, "cancelled");
+        const data = JSON.parse(JSON.stringify(b.t.daten()));
+        b.w.App.init({ daten: data, neu: false, kennwort: false, regional: { language: "en", timeZone: "UTC" } });
+        b.w.App.kennwortStand({ requestId: native.requestId, ok: true, an: true });
+        b.w.App.kennwortStand({ requestId: "unknown-password-after-book-switch", ok: true, an: true });
+        b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-sicherheit").click();
+        assert.ok(b.w.document.querySelector("#kennwort-an"), "Late commits for an old book and unrelated IDs must not change the replacement book's encryption flag");
+        b.w.document.querySelector("#einstellungen-zu").click(); onPasswordWrite = null;
       }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));
