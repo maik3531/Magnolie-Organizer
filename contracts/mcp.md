@@ -3,6 +3,7 @@
 Implementation and complete product coverage are tracked in issue #170.
 This document describes the implemented tools; the remaining product operations
 are still being connected to the same interface.
+The remaining user-facing operation groups are tracked in [the coverage checklist](mcp-coverage.md).
 
 ### Native card printing
 
@@ -136,6 +137,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_dav_connection_test` | Fresh read-only CalDAV/CardDAV discovery through GUI readers, checked against the expected native account revision before and after the request; collection counts, partial discovery and sanitized failure codes, no mailbox/write-permission test |
 | `organizer_mailbox_write_test` | Actual GUI Nextcloud mailbox MKCOL/conditional random probe PUT/DELETE under a pinned account context and expected native revision; explicit probe acknowledgements and possible remote changes, no delivery claim |
 | `organizer_microsoft_account_read` | Windows direct Graph effective public client ID, protected-token file presence and native sign-in activity, without token decryption or authentication claims; explicit unsupported-feature result on Linux |
+| `organizer_microsoft_sign_in_begin/read/cancel` | Session-owned asynchronous Windows device-code flow shared with the GUI; public user code/verification URL, actual native state/cancellation and protected-token readback, without exposing provider tokens |
 | `organizer_dav_account_update` | Full explicit native DAV configuration with expected native revision, optional credential replacement/clearing, shared GUI transaction and verified config/credential readback before persisted success |
 | `organizer_note_read` | Note and revision token |
 | `organizer_note_create` | Plain-text note in an existing notebook; native save acknowledgement |
@@ -384,6 +386,32 @@ file presence nor an active sign-in proves a valid session. This metadata is not
 an atomic account revision. Correlated late replies do not update GUI drafts.
 Linux returns `unsupported_feature` for direct Graph; its system-managed EDS
 accounts remain visible via `organizer_sync_sources_read`.
+
+`organizer_microsoft_sign_in_begin` binds the expected effective public client
+ID and starts the existing GUI OAuth device-code implementation asynchronously.
+Its `flow_id` is random, local to the initiating MCP session and valid for at most
+21 minutes. The native worker is bounded by 16 minutes and the existing process/
+restore lifetime. Read the flow for `starting`, `pending`, `succeeded`, `failed`
+or `cancelled`; only `pending` exposes the public `user_code`, HTTPS
+`verification_uri` and expiry Unix seconds. Internal provider device/access/
+refresh tokens and raw native errors never appear in tool results. Browser
+opening defaults off; `open_browser:true` uses the same registered launcher as
+the GUI, with acceptance reported separately from authentication.
+
+GUI and MCP use the same provider request/poll runner. The expected client,
+active operation, cancellation, profile and restore gates are checked before
+storing a token. Native configuration changes share the commit gate. A succeeded
+flow requires the actual protected-token store to be read back and compared.
+`persistence_verified` describes that completed transaction, not current account
+validity or a remote-record permission test. `token_storage_may_have_changed`
+preserves ambiguity after attempted storage, including verification failures.
+Cancel requests stop a pending flow without undoing a completed commit and
+cannot cancel a later unrelated GUI flow. Read until terminal. Session close,
+failed/cancelled begin and handle expiry request cancellation; a cancelled read
+only cancels that status request. Closing/replacing the book invalidates the web
+handle at its next use. Native late replies do not replace GUI drafts or open
+dialogs/toasts. Starting does not perform synchronization. Direct Graph remains
+explicitly unsupported on Linux.
 
 For local imports, supply `local_source` (`evolution`/`thunderbird` on Linux,
 `windows_contacts`/`thunderbird` on Windows) and optional `local_scope`

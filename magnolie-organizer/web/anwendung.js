@@ -31199,6 +31199,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     baumDavPruefung(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "baumDavPruefung"); },
     baumMailboxSchreibpruefung(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "baumMailboxSchreibpruefung"); },
     graphKontoStand(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "graphKontoStand"); },
+    graphAnmeldeVorgang(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "graphAnmeldeVorgang"); },
     baumBriefkastenPruefung(nutzlast) {
       briefkastenStand = nutzlast || {};
       briefkastenSignatur = JSON.stringify(briefkastenStand);
@@ -34667,6 +34668,63 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         !["uebersprungen", "wiederholend"].every(key => Number.isSafeInteger(value[key]) && value[key] >= 0)) throw new MagnolieMcp.ToolError("invalid_result", "Native local import snapshot or selected collections were incomplete");
     return value;
   }
+  const mcpMicrosoftAnmeldungen = new Map();
+  function mcpVerwerfeMicrosoftAnmeldung(id) {
+    const flow = mcpMicrosoftAnmeldungen.get(id);
+    if (!flow) return;
+    clearTimeout(flow.timer); mcpMicrosoftAnmeldungen.delete(id);
+    if (flow.dispatched) Bruecke.sende({ cmd: "graph_mcp_cancel", flowId: id, requestId: crypto.randomUUID() });
+  }
+  function mcpMicrosoftAnmeldeWerkzeuge(owner) {
+    const flowId = { type: "string", pattern: "^[a-f0-9]{48}$" };
+    const clientId = { type: "string", pattern: "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$" };
+    const lookup = id => {
+      const flow = mcpMicrosoftAnmeldungen.get(id);
+      if (!flow || flow.owner !== owner) throw new MagnolieMcp.ToolError("not_found", "Microsoft sign-in flow not found for this session");
+      if (flow.book !== DATEN || flow.expires <= Date.now()) {
+        mcpVerwerfeMicrosoftAnmeldung(id); throw new MagnolieMcp.ToolError("source_changed", "Microsoft sign-in flow expired or its book changed; cancellation requested");
+      }
+      return flow;
+    };
+    const callNative = async (id, flow, action, signal, options = {}) => {
+      const value = await mcpNativeAufruf("graph_mcp_" + action, { flowId: id, ...options }, "graphAnmeldeVorgang", signal, () => { flow.dispatched = true; });
+      if (lookup(id) !== flow) throw new MagnolieMcp.ToolError("cancelled", "Microsoft sign-in flow closed");
+      if (value.ok !== true) throw new MagnolieMcp.ToolError(value.code === "profile_locked" ? "locked_or_cancelled" : ["unsupported_feature", "conflict", "native_busy", "not_found", "not_configured"].includes(value.code) ? value.code : "native_operation_failed", "Native Microsoft sign-in operation failed; inspect account metadata before retrying");
+      const states = ["starting", "pending", "succeeded", "failed", "cancelled"], codes = ["none", "cancelled", "expired", "conflict", "network_error", "native_operation_failed"];
+      if (value.flowId !== id || typeof value.clientId !== "string" || value.clientId.toLowerCase() !== flow.clientId || !states.includes(value.state) || !codes.includes(value.errorCode) ||
+          !["persistenceVerified", "tokenStorageMayHaveChanged", "cancellationRequested"].every(key => typeof value[key] === "boolean") ||
+          ![null, true, false].includes(value.browserAccepted) || typeof value.userCode !== "string" || value.userCode.length > 512 || typeof value.verificationUri !== "string" || value.verificationUri.length > 4096 ||
+          !Number.isSafeInteger(value.expiresAt) || value.expiresAt < 0 || value.state === "pending" && (!value.userCode || !/^https:\/\/\S+$/.test(value.verificationUri) || !value.expiresAt) ||
+          value.state !== "pending" && (value.userCode !== "" || value.verificationUri !== "" || value.expiresAt !== 0) ||
+          value.persistenceVerified !== (value.state === "succeeded") || value.state === "succeeded" && !value.tokenStorageMayHaveChanged ||
+          ["starting", "pending", "succeeded"].includes(value.state) !== (value.errorCode === "none"))
+        throw new MagnolieMcp.ToolError("invalid_result", "Native Microsoft sign-in state was incomplete; token storage may have changed");
+      flow.terminal = ["succeeded", "failed", "cancelled"].includes(value.state);
+      return { flow_id: id, client_id: flow.clientId, state: value.state, user_code: value.userCode, verification_uri: value.verificationUri, expires_at: value.expiresAt,
+        error_code: value.errorCode, persistence_verified: value.persistenceVerified, token_storage_may_have_changed: value.tokenStorageMayHaveChanged,
+        browser_launch_accepted: value.browserAccepted, cancellation_requested: value.cancellationRequested };
+    };
+    return [{ name: "organizer_microsoft_sign_in_begin", description: "Begin the same Windows Microsoft device-code OAuth flow as the GUI, against the expected effective public client ID. Returns immediately with a session-owned flow ID; read its state for the public user code and HTTPS verification URL. Browser launch is optional and defaults off. The provider device/access/refresh tokens are never returned. Success requires actual protected-token readback. Does not start synchronization or change book records/GUI drafts. Closing this MCP session or a failed/cancelled begin requests native cancellation; native lifetime is at most 16 minutes, web handle 21 minutes. Cancellation/failure may follow storage changes; inspect metadata before retrying. Linux direct Graph is unsupported.",
+      inputSchema: { type: "object", properties: { expected_client_id: clientId, open_browser: { type: "boolean" } }, required: ["expected_client_id"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        for (const [id, flow] of mcpMicrosoftAnmeldungen) if (flow.owner === owner) {
+          if (flow.terminal || flow.expires <= Date.now() || flow.book !== DATEN) mcpVerwerfeMicrosoftAnmeldung(id);
+          else throw new MagnolieMcp.ToolError("native_busy", "This session already owns a Microsoft sign-in flow");
+        }
+        if (mcpMicrosoftAnmeldungen.size >= 8) throw new MagnolieMcp.ToolError("native_busy", "Too many Microsoft sign-in handles");
+        const id = Array.from(crypto.getRandomValues(new Uint8Array(24)), byte => byte.toString(16).padStart(2, "0")).join("");
+        const flow = { owner, book: DATEN, clientId: args.expected_client_id.toLowerCase(), expires: Date.now() + 21 * 60 * 1000, dispatched: false, terminal: false };
+        flow.timer = setTimeout(() => mcpVerwerfeMicrosoftAnmeldung(id), 21 * 60 * 1000); mcpMicrosoftAnmeldungen.set(id, flow);
+        try { return await callNative(id, flow, "start", signal, { expectedClientId: args.expected_client_id, openBrowser: args.open_browser === true }); }
+        catch (error) { mcpVerwerfeMicrosoftAnmeldung(id); throw error; }
+      } }, ...["read", "cancel"].map(action => ({ name: "organizer_microsoft_sign_in_" + action,
+        description: action === "read" ? "Read the actual native state of this session-owned Microsoft sign-in flow without returning provider device/access/refresh tokens or updating GUI drafts. A succeeded state confirms token persistence at completion, not current session validity; later sign-out/config changes may invalidate it. The latest native flow result remains until replaced or process exit."
+          : "Request cancellation of this session-owned Microsoft device-code flow. Read again until terminal. Cancellation does not undo an already verified token commit and never signs out or cancels a later unrelated GUI flow. No delivery or account-authentication claim.",
+        inputSchema: { type: "object", properties: { flow_id: flowId }, required: ["flow_id"], additionalProperties: false },
+        annotations: { readOnlyHint: action === "read", destructiveHint: action !== "read", openWorldHint: action !== "read" },
+        call: (args, signal) => callNative(args.flow_id, lookup(args.flow_id), action === "read" ? "status" : "cancel", signal) }))];
+  }
   function mcpMicrosoftKontoWerkzeuge() {
     return [{ name: "organizer_microsoft_account_read", description: "Read actual native direct Microsoft Graph account metadata on Windows: effective public OAuth client ID (user override/build fallback), protected-token file presence and native device-code sign-in activity. Does not decrypt or return tokens, run network discovery, verify authentication, open a browser, or replace GUI drafts. Token file presence is not a valid-session claim. Linux reports unsupported_feature for this Windows-only direct Graph integration; its EDS accounts remain available through sync_sources_read.",
       inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (_args, signal) => {
@@ -35899,6 +35957,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (["organizer_microsoft_sign_in_begin", "organizer_microsoft_sign_in_read", "organizer_microsoft_sign_in_cancel"].includes(name)) {
+      const fields = { flow_id: { type: "string", pattern: "^[a-f0-9]{48}$" }, client_id: text, state: { type: "string", enum: ["starting", "pending", "succeeded", "failed", "cancelled"] }, user_code: text, verification_uri: text,
+        expires_at: { type: "integer", minimum: 0 }, error_code: text, persistence_verified: flag, token_storage_may_have_changed: flag, browser_launch_accepted: { type: ["boolean", "null"] }, cancellation_requested: flag };
+      return shape(fields, Object.keys(fields));
+    }
     if (name === "organizer_microsoft_account_read") {
       const no = { type: "boolean", enum: [false] }, fields = { client_id: text, configured: flag, token_file_present: flag, sign_in_pending: flag, connectivity_checked: no, authentication_verified: no };
       return shape(fields, Object.keys(fields));
@@ -36147,6 +36210,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpSyncEinstellungenWerkzeuge(),
       ...mcpDavKontoWerkzeuge(),
       ...mcpMicrosoftKontoWerkzeuge(),
+      ...mcpMicrosoftAnmeldeWerkzeuge(owner),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
@@ -36193,6 +36257,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return tools.map(tool => ({ ...tool, outputSchema: mcpErgebnisSchema(tool.name) }));
   }
   App.mcpClose = session => {
+    for (const [id, flow] of mcpMicrosoftAnmeldungen) if (flow.owner === session) mcpVerwerfeMicrosoftAnmeldung(id);
     mcpSitzungen.get(session)?.close(); mcpSitzungen.delete(session);
     for (const [token, transfer] of mcpAnhangTransfers) if (transfer.owner === session) mcpVerwerfeTransfer(token);
     for (const [token, transfer] of mcpZeichenTransfers) if (transfer.owner === session) mcpVerwerfeZeichenTransfer(token);

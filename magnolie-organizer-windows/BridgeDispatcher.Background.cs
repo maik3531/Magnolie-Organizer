@@ -7,6 +7,10 @@ internal sealed partial class BridgeDispatcher
     private CancellationTokenSource restoreLifetime = new();
     private readonly Dictionary<string, Task> networkTails = new(StringComparer.Ordinal);
     private CancellationTokenSource? graphSignIn;
+    private GraphDeviceSignIn? graphMcpSignIn;
+    private CancellationTokenSource? graphMcpLifetime;
+    private string graphMcpSignInId = "";
+    private string graphMcpClientId = "";
     private CancellationTokenSource? activeSync;
     private bool graphSync;
     private int graphRevision;

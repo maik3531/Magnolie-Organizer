@@ -76,6 +76,18 @@ internal sealed class GraphTokenStore
     }
     internal void Delete() { if (File.Exists(path)) File.Delete(path); }
     internal bool Exists => File.Exists(path);
+    internal void SaveVerified(string refreshToken)
+    {
+        Save(refreshToken);
+        var expected = Encoding.UTF8.GetBytes(refreshToken);
+        var actual = Encoding.UTF8.GetBytes(Load() ?? "");
+        try
+        {
+            if (!System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(expected, actual))
+                throw new InvalidDataException("The protected token could not be verified.");
+        }
+        finally { Array.Clear(expected); Array.Clear(actual); }
+    }
 }
 
 internal sealed record GraphAccountMetadata(string ClientId, bool Configured, bool TokenFilePresent, bool SignInPending);
@@ -154,6 +166,68 @@ internal sealed class MicrosoftOAuthClient
     {
         using var response = await http.PostAsync(url, new FormUrlEncodedContent(fields), token);
         return (response.StatusCode, await GraphApiClient.ReadLimitedAsync(response.Content, 1024 * 1024, token));
+    }
+}
+
+internal sealed record GraphSignInSnapshot(string State, string UserCode = "", string VerificationUri = "",
+    long ExpiresAt = 0, string ErrorCode = "none", bool PersistenceVerified = false,
+    bool TokenStorageMayHaveChanged = false, bool? BrowserAccepted = null);
+
+internal sealed class GraphSignInConflictException : InvalidOperationException { }
+
+// Shared GUI/MCP device-code flow. Only the public user code/URL reach snapshots;
+// the provider device/access/refresh tokens remain inside RunAsync and its store callback.
+internal sealed class GraphDeviceSignIn
+{
+    private readonly object gate = new();
+    private readonly MicrosoftOAuthClient oauth;
+    private readonly string clientId;
+    private readonly CancellationToken cancellationToken;
+    private readonly Action<string> persist;
+    private readonly Func<string, bool>? openBrowser;
+    private readonly TaskCompletionSource<GraphSignInSnapshot> ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private GraphSignInSnapshot snapshot = new("starting");
+    private int started;
+    internal GraphDeviceSignIn(MicrosoftOAuthClient oauth, string clientId, CancellationToken cancellationToken,
+        Action<string> persist, Func<string, bool>? openBrowser = null)
+    { this.oauth = oauth; this.clientId = clientId; this.cancellationToken = cancellationToken; this.persist = persist; this.openBrowser = openBrowser; }
+    internal Task<GraphSignInSnapshot> Ready => ready.Task;
+    internal GraphSignInSnapshot Read() { lock (gate) return snapshot; }
+    internal async Task RunAsync()
+    {
+        if (Interlocked.Exchange(ref started, 1) != 0) throw new InvalidOperationException("Sign-in flow already started.");
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var device = await oauth.RequestDeviceCodeAsync(clientId, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (device.ExpiresIn is < 1 or > 960) throw new InvalidDataException("Invalid device-code lifetime.");
+            bool? opened = null;
+            if (openBrowser is not null) { try { opened = openBrowser(device.VerificationUri); } catch (Exception) { opened = false; } }
+            lock (gate) snapshot = new("pending", device.UserCode, device.VerificationUri,
+                DateTimeOffset.UtcNow.AddSeconds(device.ExpiresIn).ToUnixTimeSeconds(), BrowserAccepted: opened);
+            ready.TrySetResult(Read());
+            var token = await oauth.PollTokenAsync(clientId, device, cancellationToken).ConfigureAwait(false);
+            lock (gate)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (string.IsNullOrWhiteSpace(token.RefreshToken)) throw new InvalidDataException("Missing refresh token.");
+                snapshot = snapshot with { TokenStorageMayHaveChanged = true };
+                persist(token.RefreshToken);
+                snapshot = new("succeeded", PersistenceVerified: true, TokenStorageMayHaveChanged: true, BrowserAccepted: opened);
+            }
+        }
+        catch (OperationCanceledException) { FinishFailure("cancelled", "cancelled"); }
+        catch (GraphSignInConflictException) { FinishFailure("failed", "conflict"); }
+        catch (TimeoutException) { FinishFailure("failed", "expired"); }
+        catch (HttpRequestException) { FinishFailure("failed", "network_error"); }
+        catch (Exception) { FinishFailure("failed", "native_operation_failed"); }
+        finally { ready.TrySetResult(Read()); }
+    }
+    private void FinishFailure(string state, string code)
+    {
+        lock (gate) snapshot = new(state, ErrorCode: code,
+            TokenStorageMayHaveChanged: snapshot.TokenStorageMayHaveChanged, BrowserAccepted: snapshot.BrowserAccepted);
     }
 }
 

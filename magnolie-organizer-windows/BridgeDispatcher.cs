@@ -299,6 +299,9 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "baum_dav_pruefen": await TestDavConnectionAsync(message); break;
                     case "baum_mailbox_schreibpruefen": await TestMailboxWriteAsync(message); break;
                     case "graph_konto_stand": await ReportGraphAccountAsync(Text(message, "requestId")); break;
+                    case "graph_mcp_start": await GraphMcpSignInAsync(message, "start"); break;
+                    case "graph_mcp_status": await GraphMcpSignInAsync(message, "status"); break;
+                    case "graph_mcp_cancel": await GraphMcpSignInAsync(message, "cancel"); break;
                     case "telefon_stand":
                     case "telefon_verbindung_stand": await telefon.ReportStatusAsync(); break;
                     case "telefon_ein":

@@ -369,6 +369,9 @@ def client():
             graph_status = call("tools/call", {"name": "organizer_microsoft_account_read"})
             assert graph_status["isError"] and graph_status["structuredContent"]["code"] == "unsupported_feature", graph_status
             state["direct_graph_platform_gate_verified"] = True
+            graph_begin = call("tools/call", {"name": "organizer_microsoft_sign_in_begin", "arguments": {"expected_client_id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"}})
+            assert graph_begin["isError"] and graph_begin["structuredContent"]["code"] == "unsupported_feature", graph_begin
+            state["direct_graph_flow_platform_gate_verified"] = True
             assert data_file.read_text() == unchanged_book
             state["dav_write_verified"] = True
             process.stdin.close()

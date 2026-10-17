@@ -232,9 +232,12 @@ internal sealed partial class BridgeDispatcher
     {
         try
         {
-            var previous = GraphConfig.ClientId; GraphConfig.Save(Text(message, "clientId"));
-            if (!previous.Equals(GraphConfig.ClientId, StringComparison.OrdinalIgnoreCase))
-                lock (serviceGate) { graphRevision++; graphSignIn?.Cancel(); GraphTokens.Delete(); }
+            lock (serviceGate)
+            {
+                var previous = GraphConfig.ClientId; GraphConfig.Save(Text(message, "clientId"));
+                if (!previous.Equals(GraphConfig.ClientId, StringComparison.OrdinalIgnoreCase))
+                { graphRevision++; graphSignIn?.Cancel(); GraphTokens.Delete(); }
+            }
             await form.SendAsync("App.graphKonfiguration", new { ok = true, fehler = "" }); _ = QueueBackground(ContactSourcesAsync);
         }
         catch (Exception error) { await form.SendAsync("App.graphKonfiguration", new { ok = false, fehler = error.Message }); }
@@ -242,23 +245,108 @@ internal sealed partial class BridgeDispatcher
 
     private async Task SignInGraphAsync()
     {
-        using var timeout = NetworkDeadline(TimeSpan.FromMinutes(16));
-        lock (serviceGate) graphSignIn = timeout;
+        CancellationTokenSource? timeout = null;
+        Task? running = null;
         try
         {
-            var clientId = GraphConfig.ClientId;
-            if (clientId.Length == 0) throw new InvalidOperationException(T("Save your Microsoft OAuth client ID first."));
-            var oauth = new MicrosoftOAuthClient(http);
-            var device = await oauth.RequestDeviceCodeAsync(clientId, timeout.Token);
-            var opened = ShellLauncher.OpenWebUri(device.VerificationUri);
-            await form.SendAsync("App.graphAnmeldung", new { ok = true, fertig = false, code = device.UserCode, url = device.VerificationUri, nachricht = device.Message, browser = opened });
-            var token = await oauth.PollTokenAsync(clientId, device, timeout.Token);
-            lock (serviceGate) { timeout.Token.ThrowIfCancellationRequested(); GraphTokens.Save(token.RefreshToken); }
+            GraphDeviceSignIn flow;
+            lock (serviceGate) flow = CreateGraphSignIn(null, true, out timeout);
+            running = flow.RunAsync();
+            var first = await flow.Ready;
+            if (first.State == "pending") await form.SendAsync("App.graphAnmeldung", new { ok = true, fertig = false,
+                code = first.UserCode, url = first.VerificationUri, nachricht = "", browser = first.BrowserAccepted == true });
+            await running;
+            if (flow.Read().State != "succeeded") throw new InvalidOperationException(T("Sign-in failed. Check the account and authentication method required by your provider."));
             await form.SendAsync("App.graphAnmeldung", new { ok = true, fertig = true, code = "", url = "", nachricht = "Microsoft-Anmeldung abgeschlossen." });
             await ContactSourcesAsync();
         }
-        catch (Exception error) { await form.SendAsync("App.graphAnmeldung", new { ok = false, fertig = true, fehler = error.Message }); }
-        finally { lock (serviceGate) if (ReferenceEquals(graphSignIn, timeout)) graphSignIn = null; }
+        catch (Exception error)
+        {
+            var text = error.Message == "not_configured" ? T("Save your Microsoft OAuth client ID first.") :
+                error.Message is "native_busy" or "profile_locked" or "conflict"
+                    ? T("Sign-in failed. Check the account and authentication method required by your provider.") : error.Message;
+            await form.SendAsync("App.graphAnmeldung", new { ok = false, fertig = true, fehler = text });
+        }
+        finally
+        {
+            timeout?.Cancel();
+            if (running is not null) await running;
+            lock (serviceGate) { if (ReferenceEquals(graphSignIn, timeout)) graphSignIn = null; timeout?.Dispose(); }
+        }
+    }
+
+    // Caller holds serviceGate. GUI and MCP share the provider flow and verified store callback.
+    private GraphDeviceSignIn CreateGraphSignIn(string? expectedClientId, bool openBrowser, out CancellationTokenSource timeout)
+    {
+        if (graphSignIn is not null) throw new InvalidOperationException("native_busy");
+        if (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null)) throw new InvalidOperationException("profile_locked");
+        if (restoreInProgress) throw new InvalidOperationException("native_busy");
+        var clientId = GraphConfig.ClientId;
+        if (clientId.Length == 0) throw new InvalidOperationException("not_configured");
+        var id = Guid.Parse(clientId);
+        if (expectedClientId is not null && (!Guid.TryParse(expectedClientId, out var expected) || expected != id)) throw new InvalidOperationException("conflict");
+        var lifetime = NetworkDeadline(TimeSpan.FromMinutes(16));
+        timeout = lifetime;
+        var revision = graphRevision;
+        graphSignIn = lifetime;
+        return new(new MicrosoftOAuthClient(http), clientId, lifetime.Token, refreshToken =>
+        {
+            lock (serviceGate)
+            {
+                lifetime.Token.ThrowIfCancellationRequested();
+                if (!ReferenceEquals(graphSignIn, lifetime) || revision != graphRevision || !Guid.TryParse(GraphConfig.ClientId, out var current) || current != id)
+                    throw new GraphSignInConflictException();
+                if (!currentPlainTextAvailable || restoreInProgress || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null))
+                    throw new OperationCanceledException(lifetime.Token);
+                GraphTokens.SaveVerified(refreshToken);
+            }
+        }, openBrowser ? ShellLauncher.OpenWebUri : null);
+    }
+
+    private async Task GraphMcpSignInAsync(JsonElement message, string action)
+    {
+        var requestId = Text(message, "requestId");
+        var flowId = Text(message, "flowId");
+        GraphDeviceSignIn? flow = null;
+        var clientId = "";
+        var cancellationRequested = false;
+        try
+        {
+            if (!System.Text.RegularExpressions.Regex.IsMatch(flowId, "^[a-f0-9]{48}$")) throw new InvalidOperationException("not_found");
+            lock (serviceGate)
+            {
+                if (action == "start")
+                {
+                    flow = CreateGraphSignIn(Text(message, "expectedClientId"), Boolean(message, "openBrowser"), out var timeout);
+                    graphMcpSignIn = flow; graphMcpSignInId = flowId; graphMcpLifetime = timeout;
+                    graphMcpClientId = Guid.Parse(GraphConfig.ClientId).ToString("D");
+                    var runningFlow = flow;
+                    var work = QueueBackground(runningFlow.RunAsync);
+                    _ = work.ContinueWith(_ =>
+                    {
+                        lock (serviceGate) { if (ReferenceEquals(graphSignIn, timeout)) graphSignIn = null; if (ReferenceEquals(graphMcpLifetime, timeout)) graphMcpLifetime = null; timeout.Dispose(); }
+                    }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                }
+                if (graphMcpSignInId != flowId || graphMcpSignIn is null) throw new InvalidOperationException("not_found");
+                flow = graphMcpSignIn; clientId = graphMcpClientId;
+                if (action == "cancel" && graphMcpLifetime is not null && ReferenceEquals(graphSignIn, graphMcpLifetime))
+                {
+                    graphMcpLifetime.Cancel(); cancellationRequested = true;
+                }
+                if (action != "cancel" && (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null)))
+                    throw new InvalidOperationException("profile_locked");
+            }
+            var state = flow.Read();
+            await form.SendAsync("App.graphAnmeldeVorgang", new { requestId, ok = true, flowId, clientId, state = state.State,
+                userCode = state.UserCode, verificationUri = state.VerificationUri, expiresAt = state.ExpiresAt, errorCode = state.ErrorCode,
+                persistenceVerified = state.PersistenceVerified, tokenStorageMayHaveChanged = state.TokenStorageMayHaveChanged,
+                browserAccepted = state.BrowserAccepted, cancellationRequested });
+        }
+        catch (Exception error)
+        {
+            var code = error is InvalidOperationException && error.Message is "native_busy" or "profile_locked" or "conflict" or "not_found" or "not_configured" ? error.Message : "native_operation_failed";
+            await form.SendAsync("App.graphAnmeldeVorgang", new { requestId, ok = false, code });
+        }
     }
 
     private async Task SignOutGraphAsync()
