@@ -61,8 +61,8 @@ os.environ["DBUS_SYSTEM_BUS_ADDRESS"] = os.environ["DBUS_SESSION_BUS_ADDRESS"]
 # paths so activated services cannot discover the user's session or keyring.
 from gi.repository import Gio, GLib
 native_bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
-def bus_pid(name):
-    return native_bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus",
+def bus_pid(name, connection=None):
+    return (connection if connection is not None else native_bus).call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus",
         "org.freedesktop.DBus", "GetConnectionUnixProcessID", GLib.Variant("(s)", (name,)),
         GLib.VariantType.new("(u)"), Gio.DBusCallFlags.NONE, 5000, None).unpack()[0]
 def parent_pid(pid):
@@ -87,15 +87,12 @@ native_bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freed
     "UpdateActivationEnvironment", GLib.Variant("(a{ss})", (activation_environment,)),
     None, Gio.DBusCallFlags.NONE, 5000, None)
 private_service_handles = {}
-def capture_private_service(name):
-    try:
-        pid = bus_pid(name)
-    except GLib.Error:
-        return
+def capture_private_pid(pid):
     if pid in private_service_handles:
         return
     handle = os.pidfd_open(pid)
     try:
+        assert Path("/proc/%d" % pid).stat().st_uid == os.getuid(), "Private service has another owner"
         environment = dict(item.split(b"=", 1) for item in Path("/proc/%d/environ" % pid).read_bytes().split(b"\0") if b"=" in item)
         keys = ("HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_RUNTIME_DIR", "SSH_AUTH_SOCK", "GNOME_KEYRING_CONTROL", "DISPLAY") + (("KRB5CCNAME",) if "KRB5CCNAME" in activation_environment else ())
         for key in keys:
@@ -104,6 +101,33 @@ def capture_private_service(name):
     except BaseException:
         os.close(handle)
         raise
+def capture_private_service(name, connection=None):
+    try:
+        pid = bus_pid(name, connection)
+    except GLib.Error:
+        return
+    capture_private_pid(pid)
+def capture_private_accessibility():
+    present = native_bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
+        "NameHasOwner", GLib.Variant("(s)", ("org.a11y.Bus",)), GLib.VariantType.new("(b)"),
+        Gio.DBusCallFlags.NONE, 5000, None).unpack()[0]
+    if not present:
+        return
+    capture_private_service("org.a11y.Bus")
+    address = native_bus.call_sync("org.a11y.Bus", "/org/a11y/bus", "org.a11y.Bus", "GetAddress",
+        None, GLib.VariantType.new("(s)"), Gio.DBusCallFlags.NO_AUTO_START, 5000, None).unpack()[0]
+    prefix = "unix:path=" + str(Path(activation_environment["XDG_RUNTIME_DIR"]).resolve() / "at-spi" / "bus_")
+    assert re.fullmatch(re.escape(prefix) + r"[0-9]+(?:,guid=[a-fA-F0-9]+)?", address), "Refusing a non-private accessibility bus"
+    nested = Gio.DBusConnection.new_for_address_sync(address,
+        Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION, None, None)
+    nested.set_exit_on_close(False)
+    try:
+        capture_private_service("org.a11y.atspi.Registry", nested)
+        nested_pid = bus_pid("org.freedesktop.DBus", nested)
+        capture_private_pid(nested_pid)
+        state["private_accessibility_tracked"] = True
+    finally:
+        nested.close_sync(None)
 def capture_private_secret_service():
     capture_private_service("org.freedesktop.secrets")
 def release_private_gvfs_mount():
@@ -125,6 +149,7 @@ def release_private_gvfs_mount():
     subprocess.run([unmount, "-u", str(mountpoint)], capture_output=True, timeout=5)
     assert mounted_type() is None, "Owned GVFS FUSE fixture did not unmount"
 def stop_private_secret_service():
+    capture_private_accessibility()
     names = native_bus.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus",
         "ListNames", None, None, Gio.DBusCallFlags.NONE, 5000, None).unpack()[0]
     order = lambda name: (0 if name.startswith("org.gnome.evolution.dataserver.") else 1 if name == "org.gnome.OnlineAccounts" else 2 if name == "org.gnome.Identity" else 3 if name.startswith("org.gtk.vfs.") else 4, name)
@@ -225,6 +250,7 @@ owned = []
 def client():
     process = None
     try:
+        capture_private_accessibility()
         process = subprocess.Popen([sys.executable, "-B", str(ROOT / "bin/magnolie-organizer"), "--mcp-stdio"],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
         owned.append(process)
@@ -297,6 +323,8 @@ def client():
         assert status["structuredContent"]["ready"] and not status["structuredContent"]["locked"], status
         notes = call("tools/call", {"name": "organizer_data_read", "arguments": {"section": "notizen"}})
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
+        if os.environ.get("MAGNOLIE_MCP_PROBE_FAIL_AFTER_READY") == "1":
+            raise RuntimeError("Owned fixture intentional failure after ready")
         if os.environ.get("MAGNOLIE_MCP_PROBE_DAV_ACCOUNT_ONLY") == "1":
             state["dav_initial_save_pending"] = call("tools/call", {"name": "organizer_status"})["structuredContent"]["pendingSave"]
             # Establish an acknowledged normalized book before a byte-level
@@ -1989,6 +2017,11 @@ def client():
         state["error"] = traceback.format_exc(limit=6)
         print(state["error"], file=sys.stderr, flush=True)
     finally:
+        try:
+            capture_private_accessibility()
+        except BaseException:
+            state["passed"] = False
+            state["error"] = (state.get("error") or "") + "\nPrivate accessibility capture:\n" + traceback.format_exc(limit=4)
         if process is not None and process.poll() is None:
             process.terminate()
             try:
