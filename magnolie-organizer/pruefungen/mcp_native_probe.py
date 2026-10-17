@@ -1272,6 +1272,27 @@ def client():
                 return False
             product.GLib.idle_add(clean_private_tray_host)
             assert tray_cleaned.wait(5)
+        contact_preferences_before = call("tools/call", {"name": "organizer_contact_settings_read"})
+        assert not contact_preferences_before["isError"], contact_preferences_before
+        contact_book_before = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        contact_records_keys = ("kontakte", "eigenesProfil", "jahrestage", "termine", "aufgaben")
+        contact_records_before = {key: contact_book_before[key] for key in contact_records_keys}
+        contact_preferences = call("tools/call", {"name": "organizer_contact_settings_update", "arguments": {
+            "expected_revision": contact_preferences_before["structuredContent"]["revision"],
+            "sender_address": "Owned native sender\nOwned native street 1", "sort_order": "first-name", "search_country": "France",
+            "own_profile_visible": False, "photos": False, "groups_visible": False, "communication_icons": False,
+            "letter_layout": "compact", "route": True, "map_service": "openstreetmap"}})
+        assert not contact_preferences["isError"] and contact_preferences["structuredContent"]["persisted"], contact_preferences
+        contact_book = json.loads(product.entschluesseln(data_file.read_text(), "owned-classic-backup-password"))
+        contact_settings = contact_book["einstellungen"]["adressen"]
+        assert contact_settings["sortierung"] == "first-name" and contact_settings["landCode"] == "" and contact_settings["briefLayout"] == "compact"
+        assert contact_settings["absender"] == "Owned native sender\nOwned native street 1" and contact_settings["routeFestgelegt"] is True
+        assert all(contact_settings[key] is False for key in ("eigenesProfilAn", "foto", "personengruppenAn", "sozialeSymbole"))
+        assert {key: contact_book[key] for key in contact_records_keys} == contact_records_before
+        assert contact_settings["kommunikation"] == contact_book_before["einstellungen"]["adressen"]["kommunikation"]
+        stale_contact_preferences = call("tools/call", {"name": "organizer_contact_settings_update", "arguments": {
+            "expected_revision": contact_preferences_before["structuredContent"]["revision"], "photos": True}})
+        assert stale_contact_preferences["isError"] and stale_contact_preferences["structuredContent"]["code"] == "conflict", stale_contact_preferences
         reminder_before = call("tools/call", {"name": "organizer_notification_settings_read"})
         assert not reminder_before["isError"], reminder_before
         reminder_records_keys = ("notizen", "termine", "aufgaben", "kontakte", "gesundheit", "zeiterfassung")

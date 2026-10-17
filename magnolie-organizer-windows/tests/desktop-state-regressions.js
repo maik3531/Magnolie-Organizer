@@ -103,6 +103,29 @@ async function run(web) {
     assert.equal(JSON.stringify([b.t.daten().termine, b.t.daten().kontakte]), records);
   }, { einstellungen: { erinnerung: { an: true, jahrestage: { an: true, stunde: 10, autoAusblenden: true } } } });
 
+  await test("contact preference controls preserve membership and move the selected index", async b => {
+    const records = JSON.stringify([b.t.daten().kontakte, b.t.daten().eigenesProfil]);
+    b.t.zustand().adressen.auswahlId = "owned-sort-contact"; b.t.zustand().adressen.buchstabe = "Z";
+    b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-adressen").click();
+    const sort = b.w.document.querySelector("#adressen-sortierung"); sort.value = "first-name";
+    sort.dispatchEvent(new b.w.Event("change", { bubbles: true }));
+    assert.equal(b.t.zustand().adressen.buchstabe, "A");
+    for (const selector of ["#adressen-personengruppen", "#adressen-eigenes-profil", "#adressen-foto"]) {
+      const field = b.w.document.querySelector(selector); field.checked = false;
+      field.dispatchEvent(new b.w.Event("change", { bubbles: true }));
+    }
+    const sender = b.w.document.querySelector("#adressen-absender"); sender.value = "Owned sender\nOwned street 1";
+    sender.dispatchEvent(new b.w.Event("input", { bubbles: true }));
+    const country = b.w.document.querySelector("#adressen-land"); country.value = "France";
+    country.dispatchEvent(new b.w.Event("input", { bubbles: true }));
+    b.t.speichereJetzt(); b.ack(); await tick(); b.t.speichereJetzt();
+    const saved = b.t.normalisiere(JSON.parse(b.saves().at(-1).text)).einstellungen.adressen;
+    assert.equal(saved.sortierung, "first-name"); assert.equal(saved.absender, sender.value);
+    assert.equal(saved.personengruppenAn, false); assert.equal(saved.eigenesProfilAn, false); assert.equal(saved.foto, false);
+    assert.equal(saved.landCode, ""); assert.equal(JSON.stringify([b.t.daten().kontakte, b.t.daten().eigenesProfil]), records);
+  }, { kontakte: [{ id: "owned-sort-contact", vorname: "Alice", nachname: "Zed", vcardRoundtrip: ["BEGIN:VCARD", "CATEGORIES:Work,Colleagues", "END:VCARD"] }],
+    einstellungen: { adressen: { personengruppenAn: true } } });
+
   await test("health preference controls retain canonical measurements and mirror tab state", async b => {
     const measurements = JSON.stringify(b.t.daten().gesundheit);
     b.t.oeffneEinstellungen(); b.w.document.querySelector("#einst-tab-kalender").click();

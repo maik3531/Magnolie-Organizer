@@ -1413,6 +1413,32 @@ let declaredContracts;
         assert.equal((await read(871)).settings.enabled, false, "Saved preferences survive cancellation of subsequent native setup");
         onReminder = null;
       }
+      {
+        const read = async id => (await call(request(id, "tools/call", { name: "organizer_contact_settings_read" }))).result.structuredContent;
+        const records = JSON.stringify([b.t.daten().kontakte, b.t.daten().eigenesProfil, b.t.daten().jahrestage]), first = await read(900);
+        const communication = JSON.stringify(b.t.daten().einstellungen.adressen.kommunikation);
+        const selected = b.t.daten().kontakte.find(contact => contact.id === "fixture-contact"); assert.ok(selected);
+        b.t.zustand().adressen.auswahlId = selected.id; b.t.zustand().adressen.buchstabe = "E";
+        const saved = await persisted(901, "organizer_contact_settings_update", { expected_revision: first.revision, sort_order: "first-name",
+          sender_address: "Owned sender\nOwned street 1", own_profile_visible: false, letter_button: false, letter_layout: "compact", map_button: false,
+          route: true, map_service: "openstreetmap", search_country: "Germany", photos: false, groups_visible: false, communication_icons: false });
+        assert.equal(saved.settings.country_code, "DE"); assert.equal(saved.settings.route_explicit, true);
+        assert.equal(b.t.zustand().adressen.buchstabe, "O", "Sort changes must follow the selected card to its first-name index");
+        assert.equal(JSON.stringify([b.t.daten().kontakte, b.t.daten().eigenesProfil, b.t.daten().jahrestage]), records);
+        assert.equal(JSON.stringify(b.t.daten().einstellungen.adressen.kommunikation), communication);
+        const stale = await call(request(902, "tools/call", { name: "organizer_contact_settings_update", arguments: { expected_revision: first.revision, photos: true } }));
+        assert.equal(stale.result.structuredContent.code, "conflict");
+        const fresh = await read(903), invalid = await call(request(904, "tools/call", { name: "organizer_contact_settings_update", arguments: { expected_revision: fresh.revision, map_service: "arbitrary-command" } }));
+        assert.equal(invalid.error.code, -32602);
+        const partial = await persisted(905, "organizer_contact_settings_update", { expected_revision: fresh.revision, photos: true });
+        assert.equal(partial.settings.sender_address, saved.settings.sender_address); assert.equal(partial.settings.route, true);
+        assert.equal(partial.settings.groups_visible, false);
+        const after = await read(906), originalDuration = b.t.daten().einstellungen.adressen.smsBenachrichtigungDauer;
+        b.t.daten().einstellungen.adressen.smsBenachrichtigungDauer = originalDuration === 15 ? 30 : 15;
+        const nestedConflict = await call(request(907, "tools/call", { name: "organizer_contact_settings_update", arguments: { expected_revision: after.revision, groups_visible: true } }));
+        assert.equal(nestedConflict.result.structuredContent.code, "conflict", "Revision must cover the full address preferences, including omitted fields");
+        b.t.daten().einstellungen.adressen.smsBenachrichtigungDauer = originalDuration;
+      }
       b.w.App.init({ gesperrt: true });
       const locked = await call(request(6, "tools/call", { name: "organizer_data_read", arguments: { section: "notizen" } }));
       assert.equal(locked.result.isError, true);

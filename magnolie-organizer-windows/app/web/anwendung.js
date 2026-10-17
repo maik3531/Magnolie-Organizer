@@ -28151,15 +28151,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     absender.rows = 4;
     absender.placeholder = _("First name Last name\nStreet and house number\nPostal code City");
     absender.addEventListener("input", () => {
-      a.absender = absender.value;
+      wendeAdressEinstellungenDatenAn({ absender: absender.value });
       planeSpeichern();
     });
     ab.append(formZeile(_("Your address"), absender));
     const ownProfileSwitch = document.createElement("input"); ownProfileSwitch.type = "checkbox";
     ownProfileSwitch.id = "adressen-eigenes-profil"; ownProfileSwitch.checked = a.eigenesProfilAn !== false;
     ownProfileSwitch.addEventListener("change", () => {
-      a.eigenesProfilAn = ownProfileSwitch.checked;
-      if (!a.eigenesProfilAn && zustand.adressen.modus.startsWith("eigenes-profil")) zustand.adressen.modus = "ansehen";
+      wendeAdressEinstellungenDatenAn({ eigenesProfilAn: ownProfileSwitch.checked });
       planeSpeichern(); zeichneAlles();
     });
     const ownProfileRow = el("label", "hak"); ownProfileRow.append(ownProfileSwitch, document.createTextNode(" " + _("Own profile"))); ab.append(ownProfileRow);
@@ -28239,20 +28238,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const landFeld = eingabe("text", a.land);
     landFeld.id = "adressen-land";
     landFeld.addEventListener("input", () => {
-      a.land = landFeld.value;
-      a.landCode = ["deutschland", "germany"].includes(kanonischerText(a.land))
-        ? "DE" : "";
-      const vorher = a.sortierung;
-      a.sortierung = sortWahl.value === "first-name" ? "first-name" : "last-name";
-      if (a.sortierung !== vorher) {
-        /* Nach dem Umschalten steht der gewählte Name unter einem anderen
-           Buchstaben – das Register springt mit, sonst wirkt das Fach leer. */
-        const za = zustand.adressen;
-        const gewaehlt = DATEN.kontakte.find((k) => k.id === za.auswahlId);
-        const ziel = gewaehlt || DATEN.kontakte.slice()
-          .sort(sortiereKontakte)[0];
-        if (ziel) za.buchstabe = buchstabeVon(ziel);
-      }
+      wendeAdressEinstellungenDatenAn({ land: landFeld.value, sortierung: sortWahl.value === "first-name" ? "first-name" : "last-name" });
       planeSpeichern();
     });
     ab.append(formZeile(_("Country for searches"), landFeld));
@@ -28272,7 +28258,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     gruppenHak.id = "adressen-personengruppen"; gruppenHak.checked = a.personengruppenAn === true;
     const gruppenZeile = el("label", "hak");
     gruppenZeile.append(gruppenHak, document.createTextNode(" " + _("Contact groups"))); ab.append(gruppenZeile);
-    gruppenHak.addEventListener("change", () => { a.personengruppenAn = gruppenHak.checked; planeSpeichern(); zeichneAlles(); });
+    gruppenHak.addEventListener("change", () => { wendeAdressEinstellungenDatenAn({ personengruppenAn: gruppenHak.checked }); planeSpeichern(); zeichneAlles(); });
     ab.append(el("p", "einst-hinweis",
       _("When selected, you can assign a photo to each person. Embedded photos are " +
         "preserved during import, export and synchronization with an online address " +
@@ -28319,32 +28305,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           "a starting point.");
       routeHinweis.classList.toggle("warnt", !eigeneAnschriftTaugt());
     };
-    routeHak.addEventListener("change", () => { a.routeFestgelegt = true; routeWirkung(); });
+    routeHak.addEventListener("change", () => { wendeAdressEinstellungenDatenAn({ routeFestgelegt: true }); routeWirkung(); });
     absender.addEventListener("input", routeWirkung);
     setTimeout(routeWirkung, 0);
 
     const uebernehmen = () => {
-      a.brief = briefHak.checked;
-      a.briefLayout = briefLayout.value;
-      a.karte = karteHak.checked;
-      a.foto = fotoHak.checked;
-      a.karten = kartenWahl.value;
-      a.route = routeHak.checked;
-      a.sozialeSymbole = sozialHak.checked;
-      a.land = landFeld.value;
-      a.landCode = ["deutschland", "germany"].includes(kanonischerText(a.land))
-        ? "DE" : "";
-      const vorher = a.sortierung;
-      a.sortierung = sortWahl.value === "first-name" ? "first-name" : "last-name";
-      if (a.sortierung !== vorher) {
-        /* Nach dem Umschalten steht der gewählte Name unter einem anderen
-           Buchstaben – das Register springt mit, sonst wirkt das Fach leer. */
-        const za = zustand.adressen;
-        const gewaehlt = DATEN.kontakte.find((k) => k.id === za.auswahlId);
-        const ziel = gewaehlt || DATEN.kontakte.slice()
-          .sort(sortiereKontakte)[0];
-        if (ziel) za.buchstabe = buchstabeVon(ziel);
-      }
+      wendeAdressEinstellungenDatenAn({ brief: briefHak.checked, briefLayout: briefLayout.value,
+        karte: karteHak.checked, foto: fotoHak.checked, karten: kartenWahl.value, route: routeHak.checked,
+        sozialeSymbole: sozialHak.checked, land: landFeld.value, sortierung: sortWahl.value === "first-name" ? "first-name" : "last-name" });
       planeSpeichern();
       zeichneAlles();
     };
@@ -34135,6 +34103,37 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (value !== "month") calendar.uebersichtAb = null;
     calendar.bearbeiteId = null;
   }
+  function wendeAdressEinstellungenDatenAn(values) {
+    const settings = DATEN.einstellungen.adressen, previous = settings.sortierung;
+    Object.assign(settings, values);
+    if (values.land !== undefined) settings.landCode = ["deutschland", "germany"].includes(kanonischerText(settings.land)) ? "DE" : "";
+    if (settings.eigenesProfilAn === false && zustand.adressen.modus.startsWith("eigenes-profil")) zustand.adressen.modus = "ansehen";
+    if (settings.sortierung !== previous) {
+      const selected = DATEN.kontakte.find(contact => contact.id === zustand.adressen.auswahlId) || DATEN.kontakte.slice().sort(sortiereKontakte)[0];
+      if (selected) zustand.adressen.buchstabe = buchstabeVon(selected);
+    }
+  }
+  function mcpAdressEinstellungenWerkzeuge() {
+    const map = { sender_address: "absender", own_profile_visible: "eigenesProfilAn", sort_order: "sortierung", letter_button: "brief", letter_layout: "briefLayout", map_button: "karte", route: "route", map_service: "karten", search_country: "land", photos: "foto", groups_visible: "personengruppenAn", communication_icons: "sozialeSymbole" };
+    const flag = { type: "boolean" }, fields = { sender_address: { type: "string", maxLength: 5000 }, own_profile_visible: flag,
+      sort_order: { type: "string", enum: ["last-name", "first-name"] }, letter_button: flag,
+      letter_layout: { type: "string", enum: ["din5008-b", "din5008-a", "compact", "din5008"] }, map_button: flag, route: flag,
+      map_service: { type: "string", enum: ["auto", "gnome-maps", "openstreetmap", "google"] }, search_country: { type: "string", maxLength: 512 }, photos: flag, groups_visible: flag, communication_icons: flag };
+    const settings = value => ({ ...Object.fromEntries(Object.entries(map).map(([key, field]) => [key, value[field]])), country_code: value.landCode, route_explicit: value.routeFestgelegt === true });
+    return [
+      { name: "organizer_contact_settings_read", description: "Read contact display, sender, sort/index, letter and map preferences with a full address-settings revision. Group memberships, own-profile content and communication routing remain separate.",
+        inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => {
+          const before = JSON.stringify(DATEN.einstellungen.adressen); return { settings: settings(JSON.parse(before)), revision: await personalSyncHash(before) };
+        } },
+      { name: "organizer_contact_settings_update", description: "Revision-check partial contact-display preferences through the shared GUI handler and durable native save. Sorting follows the selected contact to its new index letter; visibility changes retain all contacts, own-profile content and group memberships. No external letter/map/mail operation is launched.",
+        inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, ...fields }, required: ["expected_revision"], anyOf: Object.keys(fields).map(key => ({ required: [key] })), additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: (args, signal) => mcpSchreiben(signal, async () => {
+          const book = DATEN, before = JSON.stringify(DATEN.einstellungen.adressen), revision = await personalSyncHash(before);
+          if (signal.aborted || DATEN !== book || JSON.stringify(DATEN.einstellungen.adressen) !== before || revision !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Contact preferences changed; read them again");
+          mcpEditorPruefen(); wendeAdressEinstellungenDatenAn({ ...Object.fromEntries(Object.entries(map).filter(([key]) => args[key] !== undefined).map(([key, field]) => [field, args[key]])), ...(args.route !== undefined ? { routeFestgelegt: true } : {}) });
+          return { settings: settings(DATEN.einstellungen.adressen) };
+        }) }
+    ];
+  }
   function wendeBenachrichtigungsEinstellungenDatenAn(values, anniversaries = null) {
     Object.assign(DATEN.einstellungen.erinnerung, values);
     if (anniversaries) Object.assign(DATEN.einstellungen.erinnerung.jahrestage, anniversaries);
@@ -34923,6 +34922,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
+    if (name === "organizer_contact_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
+    if (name === "organizer_contact_settings_update") return shape({ settings: object, persisted: yes }, ["settings", "persisted"]);
     if (name === "organizer_notification_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
     if (name === "organizer_notification_settings_update") return shape({ settings: object, persisted: yes, service_reconfigured: flag, native_state: { type: ["object", "null"] }, wake_scheduled: { type: ["boolean", "null"] } }, ["settings", "persisted", "service_reconfigured", "native_state", "wake_scheduled"]);
     if (name === "organizer_background_permissions_read") return shape({ supported: flag, settings: { type: ["object", "null"] }, book_settings: { type: ["object", "null"] }, running: flag, lifecycle: text, autostart_registered: flag, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["supported", "settings", "book_settings", "running", "lifecycle", "autostart_registered", "revision"]);
@@ -35081,6 +35082,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpTrayWerkzeuge(),
       ...mcpHintergrundWerkzeuge(),
       ...mcpBenachrichtigungsWerkzeuge(),
+      ...mcpAdressEinstellungenWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
