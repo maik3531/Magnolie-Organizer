@@ -29696,15 +29696,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return [...new Set(namen.filter(n => typeof n === "string" && n.trim()).map(n => n.trim()))].join(" · ") || fallback;
   }
 
-  function pruefeKontaktDateiImport(liste, quelle = "", nurAblehnen = false, providerZielId = "", lokaleQuelle = false) {
-    if (gesperrt || kontaktDateiPruefungSchliessen) return Promise.resolve(null);
+  function bereiteKontaktDateiPruefungVor(liste, quelle = "", nurAblehnen = false, providerZielId = "", lokaleQuelle = false) {
     const providerZiel = providerZielId ? DATEN.kontakte.find(k => k.id === providerZielId) : null;
-    if (providerZielId && (!providerZiel || liste.length !== 1)) return Promise.resolve(null);
+    if (providerZielId && (!providerZiel || liste.length !== 1)) return null;
     const bestand = DATEN, revision = kanonischerEntwurf(DATEN);
     const index = { bindungen: new Map(), uids: new Map(), mails: new Map(), telefone: new Map() };
     const namen = new Map();
     bestand.kontakte.forEach(k => { indexiereKontakt(index, k); baumKontaktIndexiere(namen, k); });
-    const restfelder = kontaktKonfliktRestfelder, inhalt = kontaktKonfliktInhalt;
+    const inhalt = kontaktKonfliktInhalt;
     const plaene = (liste || []).filter(Boolean).map(roh => {
       const karte = kopie(roh);
       const herkunft = kontaktKonfliktHerkunft(roh, _("Incoming"));
@@ -29747,6 +29746,100 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       plan.hash = await personalSyncHash(kanonischerEntwurf(["kontakt_import", bereich, inhalt]));
       plan.abgelehnt = ablehnungen.has(plan.hash);
     }));
+    return { bestand, revision, providerIds: providerZiel ? [providerZiel.id] : [], providerZiel, plaene, ablehnungen, hashes };
+  }
+
+  function wendeKontaktDateiVorgabenAn({ plaene, bestand }) {
+    let geaendert = false;
+    for (const plan of plaene) if (plan.abgelehnt && !plan.gewaehlt) { plan.modus = "skip"; geaendert = true; }
+    for (const plan of plaene) if (!plan.modus && !plan.gewaehlt && plan.eindeutig && plan.neuereEntscheidung &&
+        bestand.einstellungen.sync.kontaktNeuereBevorzugen) { plan.modus = "newer"; geaendert = true; }
+    return geaendert;
+  }
+
+  function kontaktDateiAuswahlVollstaendig({ plaene }) {
+    return !plaene.some(p => !p.modus || !["skip", "new"].includes(p.modus) && !p.zielId ||
+      p.modus === "newer" && (!p.eindeutig || !p.neuereEntscheidung) || p.modus === "merge" &&
+      Object.values(p.auswahl.listen).some(liste => Object.values(liste).some(wahl => !wahl)));
+  }
+
+  async function erstelleKontaktDateiEntwurf(vorbereitung) {
+    await vorbereitung.hashes;
+    if (!kontaktDateiAuswahlVollstaendig(vorbereitung)) throw new Error(_("Conflict"));
+    const { bestand, plaene, ablehnungen, providerIds } = vorbereitung, inhalt = kontaktKonfliktInhalt;
+    const daten = { ...bestand, kontakte: kopie(bestand.kontakte), jahrestage: kopie(bestand.jahrestage),
+      kontaktImportAblehnungen: [...ablehnungen] };
+    const zaehlung = { neu: 0, doppelt: 0, fotos: 0, emails: 0 };
+    const neueZiele = new Map();
+    for (const plan of plaene) {
+      const modus = plan.modus === "newer" ? plan.neuereEntscheidung : plan.modus;
+      if (modus === "skip") {
+        if (plan.hash && !daten.kontaktImportAblehnungen.includes(plan.hash)) daten.kontaktImportAblehnungen.push(plan.hash);
+        zaehlung.doppelt++; continue;
+      }
+      if (plan.hash) daten.kontaktImportAblehnungen = daten.kontaktImportAblehnungen.filter(h => h !== plan.hash);
+      const ziel = modus === "new" ? null : daten.kontakte.find(k => k.id === (neueZiele.get(plan.zielId) || plan.zielId));
+      if (modus !== "new" && !ziel) throw new Error(_("Conflict"));
+      const karte = kopie(plan.karte);
+      if (modus === "keep") {
+        if (plan.hash && plan.gewaehlt) daten.kontaktImportAblehnungen.push(plan.hash);
+        merkeKontaktFoto(ziel, karte.foto, "import");
+        ziel.importBindungen = [...new Set([...(ziel.importBindungen || []), ...(karte.importBindungen || [])])].slice(-32);
+        zaehlung.doppelt++; continue;
+      }
+      if (modus === "new") {
+        const z = mitBaumKontaktEntwurf(daten, () => mergeKontakte([karte], ""));
+        neueZiele.set(plan.neuId, daten.kontakte[daten.kontakte.length - 1].id);
+        const neuerKontakt = daten.kontakte[daten.kontakte.length - 1];
+        if (kontaktZeitGueltig(plan.quellzeit)) await kontaktZeitAusQuelle(neuerKontakt, karte, plan.quellzeit, "", 0, daten);
+        else delete neuerKontakt.kontaktZeit;
+        zaehlung.neu += z.neu; continue;
+      }
+      const vorher = personalSyncKanonisch(kontaktBaumInhalt(ziel, 2, false).kontakt);
+      const vorherZeit = await kontaktInhaltszeit(ziel);
+      const alterNachname = ziel.nachname;
+      if (modus === "merge") {
+        karte.uid = ziel.uid; karte.geaendert = 0;
+        const gewaehlt = baumKontaktEntwurf(ziel, karte, plan.auswahl, "merge", "import");
+        mitBaumKontaktEntwurf(daten, () => mergeKontakte([karte], ziel.id));
+        for (const [feld, wahl] of Object.entries(plan.auswahl.felder)) if (["keep", "incoming"].includes(wahl)) {
+          ziel[feld] = gewaehlt[feld];
+          if (feld === "foto" && wahl === "incoming") { ziel.fotoManuell = true; delete ziel.fotoQuelle; }
+        }
+        for (const [feld, regel] of Object.entries(BAUM_KONTAKT_LISTEN)) regel.setzen(ziel, regel.lesen(gewaehlt));
+        mitBaumKontaktEntwurf(daten, () => { verknuepfeKontaktGeburtstag(ziel); verknuepfeKontaktJubilaeum(ziel); });
+      } else {
+        const entwurf = baumKontaktEntwurf(ziel, karte, {}, modus, "import");
+        entwurf.vcardRoundtrip = kopie(karte.vcardRoundtrip || []);
+        entwurf.vcardParameter = kopie(karte.vcardParameter || {});
+        entwurf.importBindungen = [...new Set([...(ziel.importBindungen || []), ...(karte.importBindungen || [])])].slice(-32);
+        entwurf.importHerkunfte = [...new Set([...(ziel.importHerkunfte || []), ...(karte.importHerkunfte || [])])].slice(0, 16);
+        for (const feld of ["weitereNamen", "namensPraefix", "namensSuffix", "vcardN"])
+          if (karte[feld] !== undefined) entwurf[feld] = kopie(karte[feld]);
+        setzeKontaktpersonen(entwurf, kontaktpersonenListe(karte)); setzeSozialeMedien(entwurf, sozialeMedienListe(karte));
+        if (inhalt(entwurf) !== inhalt(ziel)) entwurf.geaendert = Date.now();
+        daten.kontakte[daten.kontakte.indexOf(ziel)] = entwurf;
+        mitBaumKontaktEntwurf(daten, () => { verknuepfeKontaktGeburtstag(entwurf); verknuepfeKontaktJubilaeum(entwurf); });
+      }
+      const ergebnis = daten.kontakte.find(k => k.id === ziel.id);
+      if (plan.geburtsname && alterNachname && ergebnis.nachname && ergebnis.nachname !== alterNachname) {
+        const zeile = uebersetzt("Birth name: %(name)s", { name: alterNachname });
+        if (!String(ergebnis.notiz || "").split(/\r?\n/).includes(zeile))
+          ergebnis.notiz = [ergebnis.notiz, zeile].filter(Boolean).join("\n");
+      }
+      if (personalSyncKanonisch(kontaktBaumInhalt(ergebnis, 2, false).kontakt) !== vorher) ergebnis.geaendert = Date.now();
+      await kontaktZeitAusQuelle(ergebnis, karte, plan.quellzeit, vorher, vorherZeit, daten);
+      zaehlung.neu++;
+    }
+    return { daten, zaehlung, providerEntschieden: providerIds.filter((id, index) => plaene[index].modus !== "skip") };
+  }
+
+  function pruefeKontaktDateiImport(liste, quelle = "", nurAblehnen = false, providerZielId = "", lokaleQuelle = false) {
+    if (gesperrt || kontaktDateiPruefungSchliessen) return Promise.resolve(null);
+    const vorbereitung = bereiteKontaktDateiPruefungVor(liste, quelle, nurAblehnen, providerZielId, lokaleQuelle);
+    if (!vorbereitung) return Promise.resolve(null);
+    const { bestand, revision, providerZiel, plaene, hashes } = vorbereitung;
+    const restfelder = kontaktKonfliktRestfelder;
     return new Promise(resolve => {
       const schleier = el("div", "eingabe-schleier kontakt-datei-pruefung"), dialog = el("section", "eingabe-dialog");
       dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true");
@@ -29899,81 +29992,16 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       };
       const anwenden = knopf(_("Apply"), "hauptknopf", async () => {
         if (!gueltig()) { schliessen(null); zettel(_("Conflict")); return; }
-        if (plaene.some(p => !p.modus || !["skip", "new"].includes(p.modus) && !p.zielId ||
-            p.modus === "newer" && (!p.eindeutig || !p.neuereEntscheidung) || p.modus === "merge" &&
-            Object.values(p.auswahl.listen).some(liste => Object.values(liste).some(wahl => !wahl)))) { status.textContent = _("Conflict"); return; }
+        if (!kontaktDateiAuswahlVollstaendig(vorbereitung)) { status.textContent = _("Conflict"); return; }
         const auswahlVersion = entscheidungsVersion;
         try {
           await hashes;
           if (beendet || !gueltig()) { schliessen(null); return; }
           if (auswahlVersion !== entscheidungsVersion) { status.textContent = _("Conflict"); return; }
-          const daten = { ...bestand, kontakte: kopie(bestand.kontakte), jahrestage: kopie(bestand.jahrestage),
-            kontaktImportAblehnungen: [...ablehnungen] };
-          const zaehlung = { neu: 0, doppelt: 0, fotos: 0, emails: 0 };
-          const neueZiele = new Map();
-          for (const plan of plaene) {
-            const modus = plan.modus === "newer" ? plan.neuereEntscheidung : plan.modus;
-            if (modus === "skip") {
-              if (plan.hash && !daten.kontaktImportAblehnungen.includes(plan.hash)) daten.kontaktImportAblehnungen.push(plan.hash);
-              zaehlung.doppelt++; continue;
-            }
-            if (plan.hash) daten.kontaktImportAblehnungen = daten.kontaktImportAblehnungen.filter(h => h !== plan.hash);
-            const ziel = modus === "new" ? null : daten.kontakte.find(k => k.id === (neueZiele.get(plan.zielId) || plan.zielId));
-            if (modus !== "new" && !ziel) throw new Error(_("Conflict"));
-            const karte = kopie(plan.karte);
-            if (modus === "keep") {
-              if (plan.hash && plan.gewaehlt) daten.kontaktImportAblehnungen.push(plan.hash);
-              merkeKontaktFoto(ziel, karte.foto, "import");
-              ziel.importBindungen = [...new Set([...(ziel.importBindungen || []), ...(karte.importBindungen || [])])].slice(-32);
-              zaehlung.doppelt++; continue;
-            }
-            if (modus === "new") {
-              const z = mitBaumKontaktEntwurf(daten, () => mergeKontakte([karte], ""));
-              neueZiele.set(plan.neuId, daten.kontakte[daten.kontakte.length - 1].id);
-              const neuerKontakt = daten.kontakte[daten.kontakte.length - 1];
-              if (kontaktZeitGueltig(plan.quellzeit)) await kontaktZeitAusQuelle(neuerKontakt, karte, plan.quellzeit, "", 0, daten);
-              else delete neuerKontakt.kontaktZeit;
-              zaehlung.neu += z.neu; continue;
-            }
-            const vorher = personalSyncKanonisch(kontaktBaumInhalt(ziel, 2, false).kontakt);
-            const vorherZeit = await kontaktInhaltszeit(ziel);
-            const alterNachname = ziel.nachname;
-            if (modus === "merge") {
-              karte.uid = ziel.uid; karte.geaendert = 0;
-              const gewaehlt = baumKontaktEntwurf(ziel, karte, plan.auswahl, "merge", "import");
-              mitBaumKontaktEntwurf(daten, () => mergeKontakte([karte], ziel.id));
-              for (const [feld, wahl] of Object.entries(plan.auswahl.felder)) if (["keep", "incoming"].includes(wahl)) {
-                ziel[feld] = gewaehlt[feld];
-                if (feld === "foto" && wahl === "incoming") { ziel.fotoManuell = true; delete ziel.fotoQuelle; }
-              }
-              for (const [feld, regel] of Object.entries(BAUM_KONTAKT_LISTEN)) regel.setzen(ziel, regel.lesen(gewaehlt));
-              mitBaumKontaktEntwurf(daten, () => { verknuepfeKontaktGeburtstag(ziel); verknuepfeKontaktJubilaeum(ziel); });
-            } else {
-              const entwurf = baumKontaktEntwurf(ziel, karte, {}, modus, "import");
-              entwurf.vcardRoundtrip = kopie(karte.vcardRoundtrip || []);
-              entwurf.vcardParameter = kopie(karte.vcardParameter || {});
-              entwurf.importBindungen = [...new Set([...(ziel.importBindungen || []), ...(karte.importBindungen || [])])].slice(-32);
-              entwurf.importHerkunfte = [...new Set([...(ziel.importHerkunfte || []), ...(karte.importHerkunfte || [])])].slice(0, 16);
-              for (const feld of ["weitereNamen", "namensPraefix", "namensSuffix", "vcardN"])
-                if (karte[feld] !== undefined) entwurf[feld] = kopie(karte[feld]);
-              setzeKontaktpersonen(entwurf, kontaktpersonenListe(karte)); setzeSozialeMedien(entwurf, sozialeMedienListe(karte));
-              if (inhalt(entwurf) !== inhalt(ziel)) entwurf.geaendert = Date.now();
-              daten.kontakte[daten.kontakte.indexOf(ziel)] = entwurf;
-              mitBaumKontaktEntwurf(daten, () => { verknuepfeKontaktGeburtstag(entwurf); verknuepfeKontaktJubilaeum(entwurf); });
-            }
-            const ergebnis = daten.kontakte.find(k => k.id === ziel.id);
-            if (plan.geburtsname && alterNachname && ergebnis.nachname && ergebnis.nachname !== alterNachname) {
-              const zeile = uebersetzt("Birth name: %(name)s", { name: alterNachname });
-              if (!String(ergebnis.notiz || "").split(/\r?\n/).includes(zeile))
-                ergebnis.notiz = [ergebnis.notiz, zeile].filter(Boolean).join("\n");
-            }
-            if (personalSyncKanonisch(kontaktBaumInhalt(ergebnis, 2, false).kontakt) !== vorher) ergebnis.geaendert = Date.now();
-            await kontaktZeitAusQuelle(ergebnis, karte, plan.quellzeit, vorher, vorherZeit, daten);
-            zaehlung.neu++;
-          }
+          const entwurf = await erstelleKontaktDateiEntwurf(vorbereitung);
           if (beendet || !gueltig()) { schliessen(null); return; }
           if (auswahlVersion !== entscheidungsVersion) { status.textContent = _("Conflict"); return; }
-          schliessen({ daten, zaehlung, gueltig });
+          schliessen({ daten: entwurf.daten, zaehlung: entwurf.zaehlung, gueltig });
         } catch (error) { status.textContent = String(error.message || error); }
       });
       anwenden.dataset.importAnwenden = "true";
@@ -29996,10 +30024,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (beendet || !gueltig()) return;
         hashesFertig = true; rest.disabled = false;
         dialog.setAttribute("aria-busy", "false");
-        let geaendert = false;
-        for (const plan of plaene) if (plan.abgelehnt && !plan.gewaehlt) { plan.modus = "skip"; geaendert = true; }
-        for (const plan of plaene) if (!plan.modus && !plan.gewaehlt && plan.eindeutig && plan.neuereEntscheidung &&
-            bestand.einstellungen.sync.kontaktNeuereBevorzugen) { plan.modus = "newer"; geaendert = true; }
+        const geaendert = wendeKontaktDateiVorgabenAn(vorbereitung);
         if (geaendert) entscheidungsVersion++;
         zeichnen();
       }).catch(error => { if (!beendet) { status.textContent = String(error.message || error); anwenden.disabled = true; } });
