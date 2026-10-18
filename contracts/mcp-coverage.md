@@ -53,8 +53,8 @@ follow the same existing handler. Explicit ownership confirmation/withdrawal is
 also connected, preserving pairing and remote consent while using existing native
 protocol cleanup. The existing legacy manual/automatic Wi-Fi and deletion choice
 is also connected, explicitly rejecting shared-register peers. The existing
-legacy note direction is connected with explicit policy readback as well. Legacy
-custom/time direction and policy controls and initial/manual content synchronization
+legacy note direction and custom/time enablement are connected with explicit
+policy readback as well. Legacy time direction and initial/manual content synchronization
 remain in the group below.
 
 | Group | Existing product operations to finish connecting | Completion evidence |

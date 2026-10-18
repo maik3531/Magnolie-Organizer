@@ -75,6 +75,21 @@ default. Readback verifies the actual saved local mode. The existing import
 direction/deletion protections remain; task direction and ordinary book content
 are unaffected. Saving a local policy does not prove fresh remote agreement.
 
+`organizer_notes_legacy_policy_update` selects `policy: custom|time` and an
+`enabled` boolean with the current Notes-settings revision and exact paired
+identity. The same GUI/native policy handlers create local policy epochs and
+revisions, invalidate their existing pending transfer work and send existing
+control frames. Windows custom handling is shared by GUI and MCP behind the
+same note-policy gate; time handling uses its existing gate. Shared-setting peers
+and retained shared registers use the shared preference tool instead. Existing
+platform capability/ownership constraints apply; enabling time requires local
+ownership. No remote consent, content direction or ordinary book record changes
+are implied. The returned `policies.custom` and `policies.time` contain only
+`supported` and `local_enabled` (null means no explicit local policy). Both raw
+local/remote policy registers are included in the private settings revision,
+not in the public response. `persisted` requires actual stored local enablement,
+not a merely queued frame; remote delivery/agreement remains unconfirmed.
+
 ### Fresh phone device status and temporary identifiers
 
 `organizer_phone_device_status_read` requires the latest phone-control

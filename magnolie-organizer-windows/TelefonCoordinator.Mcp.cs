@@ -68,6 +68,7 @@ internal sealed partial class TelefonCoordinator
             var control = new JsonObject { ["phone_revision"] = McpStatus()["revision"]!.DeepClone(),
                 ["own_device"] = personal.OwnDevice, ["remote_own_device"] = personal.RemoteOwnDevice,
                 ["auto_wifi"] = personal.AutoWifi, ["note"] = store.NoteSettings(id),
+                ["custom"] = store.CustomSettings(id), ["time"] = store.TimeSettings(id, allowFailed: true),
                 ["shared"] = store.SharedSettings(id, peer.PublicKey) };
             var bytes = Encoding.UTF8.GetBytes(control.ToJsonString());
             string revision;
@@ -77,8 +78,18 @@ internal sealed partial class TelefonCoordinator
                 ["own_device"] = personal.OwnDevice, ["remote_own_device"] = personal.RemoteOwnDevice,
                 ["auto_wifi"] = personal.AutoWifi, ["skip_deletions"] = store.LocalGrants()["personal_deletions_sync"]?.GetValue<bool>() != true,
                 ["note_direction"] = new JsonObject { ["supported"] = store.NoteModeSupported(id), ["local_mode"] = store.NoteSettings(id)["local"]?["mode"]?.DeepClone() },
+                ["policies"] = new JsonObject {
+                    ["custom"] = new JsonObject { ["supported"] = store.CustomSupported(id), ["local_enabled"] = control["custom"]?["local"]?["enabled"]?.DeepClone() },
+                    ["time"] = new JsonObject { ["supported"] = store.TimeSupported(id), ["local_enabled"] = control["time"]?["local"]?["enabled"]?.DeepClone() } },
                 ["shared"] = SharedPreferences(id) };
         }
+    }
+
+    private void AssertMcpLegacyNotes(string id, string fingerprint, string? revision)
+    {
+        var state = McpNotesSettings(id, fingerprint);
+        if (revision != state["revision"]!.GetValue<string>()) throw new McpConflictException();
+        if (state["shared"]!["supported"]!.GetValue<bool>() || state["shared"]!["initialized"]!.GetValue<bool>()) throw new NotSupportedException();
     }
 
     internal async Task<JsonObject> ExecuteMcpAsync(JsonObject request, CancellationToken cancellation,
@@ -94,7 +105,7 @@ internal sealed partial class TelefonCoordinator
                 return new() { ["ok"] = true, ["notesSettings"] = McpNotesSettings(McpText(request, "peerId", true), McpText(request, "fingerprint", true)) };
             var action = McpText(request, "action", true); var revision = McpText(request, "expectedRevision", true);
             var id = McpText(request, "peerId"); var fingerprint = McpText(request, "fingerprint");
-            var enabled = (action is "settings" or "grant" or "bluetooth" or "notes_ownership" or "notes_legacy_mode") && McpFlag(request, "enabled");
+            var enabled = (action is "settings" or "grant" or "bluetooth" or "notes_ownership" or "notes_legacy_mode" or "notes_legacy_policy") && McpFlag(request, "enabled");
             var skipDeletions = action == "notes_legacy_mode" && McpFlag(request, "skipDeletions");
             var name = McpText(request, "name"); var address = McpText(request, "address").Trim().ToUpperInvariant();
             var accept = action == "pairing_confirm" && McpFlag(request, "accept");
@@ -103,7 +114,7 @@ internal sealed partial class TelefonCoordinator
             lock (gate)
             {
                 if (store.RestoreFenced) return new() { ["ok"] = false, ["code"] = "native_busy" };
-                if (action is "notes_settings_update" or "notes_ownership" or "notes_legacy_mode" or "notes_note_direction")
+                if (action is "notes_settings_update" or "notes_ownership" or "notes_legacy_mode" or "notes_note_direction" or "notes_legacy_policy")
                 {
                     var notes = McpNotesSettings(id, fingerprint);
                     if (revision != notes["revision"]!.GetValue<string>()) throw new McpConflictException();
@@ -139,6 +150,8 @@ internal sealed partial class TelefonCoordinator
                     "notes_ownership" => () => SetPersonalSyncAsync(id, enabled, false, fingerprint, revision),
                     "notes_legacy_mode" => () => SetPersonalSyncModeAsync(id, enabled, skipDeletions, fingerprint, revision),
                     "notes_note_direction" => () => SetNoteModeAsync(id, McpText(request, "mode", true), fingerprint, revision),
+                    "notes_legacy_policy" when name == "time" => () => SendTimeBridgeAsync(id, TimeSyncContract.Settings, new JsonObject { ["enabled"] = enabled }, fingerprint, revision),
+                    "notes_legacy_policy" when name == "custom" => () => SendCustomBridgeAsync(id, "personal_sync.custom_settings", new JsonObject(), fingerprint, revision, enabled),
                     "notes_settings_update" => () => SetCommonPreferencesAsync(id, fingerprint,
                         request["initial"] as JsonObject ?? throw new McpRequestException(),
                         McpText(request, "field", true), request["value"] ?? throw new McpRequestException(), expectedNotesRevision: revision),
@@ -147,6 +160,17 @@ internal sealed partial class TelefonCoordinator
             }
             await operation().ConfigureAwait(false);
             cancellation.ThrowIfCancellationRequested();
+            if (action == "notes_legacy_policy")
+            {
+                lock (gate)
+                {
+                    var state = McpNotesSettings(id, fingerprint);
+                    if (state["policies"]?[name]?["local_enabled"]?.GetValue<bool>() != enabled)
+                        return new() { ["ok"] = false, ["code"] = "verification_failed" };
+                    return new() { ["ok"] = true, ["action"] = action, ["notesSettings"] = state,
+                        ["localVerified"] = true, ["persisted"] = true, ["deliveryConfirmed"] = false };
+                }
+            }
             if (action == "notes_note_direction")
             {
                 lock (gate)

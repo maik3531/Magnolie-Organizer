@@ -2492,7 +2492,7 @@ class PhoneService:
             action = request.get("action")
             with self.lock:
                 current_revision = (self.mcp_notes_settings(request.get("peerId"), request.get("fingerprint"))["revision"]
-                    if action in ("notes_settings_update", "notes_ownership", "notes_legacy_mode", "notes_note_direction") else self.mcp_status(include_bluetooth=False)["revision"])
+                    if action in ("notes_settings_update", "notes_ownership", "notes_legacy_mode", "notes_note_direction", "notes_legacy_policy") else self.mcp_status(include_bluetooth=False)["revision"])
                 if request.get("expectedRevision") != current_revision:
                     return {"ok": False, "code": "conflict"}
                 peer_id, expected = request.get("peerId") or "", request.get("fingerprint") or ""
@@ -2505,7 +2505,28 @@ class PhoneService:
                     if not context or context.get("decision") is not None or context.get("mcp_deadline", float("inf")) <= time.monotonic() or public.get("id") != peer_id or str(public.get("fingerprint") or "").lower() != expected.lower():
                         return {"ok": False, "code": "conflict"}
             persisted = False
-            if action == "notes_note_direction":
+            if action == "notes_legacy_policy":
+                if request.get("name") not in ("custom", "time") or type(request.get("enabled")) is not bool:
+                    return {"ok": False, "code": "invalid_selection"}
+                with self.lock:
+                    state = self.mcp_notes_settings(peer_id, expected)
+                    if state["revision"] != request["expectedRevision"]:
+                        return {"ok": False, "code": "conflict"}
+                    if state["shared"]["supported"] or state["shared"]["initialized"]:
+                        return {"ok": False, "code": "unsupported_feature"}
+                    peer = self._mcp_require_peer(peer_id, expected)
+                    if request["name"] == "time":
+                        self.set_time_sync(peer_id, request["enabled"])
+                    else:
+                        old = peer.get("custom_sync", {}).get("local", {})
+                        self.send_custom_sync(peer_id, "personal_sync.custom_settings", self._custom_settings(request["enabled"], old.get("revision", 0) + 1))
+                    stored_peer = next((item for item in self.store._load_peers() if item.get("device_id") == peer_id), {})
+                    stored = stored_peer.get("time_sync" if request["name"] == "time" else "custom_sync", {}).get("local", {})
+                    if capture["failed"] or stored.get("enabled") is not request["enabled"]:
+                        return {"ok": False, "code": "verification_failed"}
+                    return {"ok": True, "action": action, "notesSettings": self.mcp_notes_settings(peer_id, expected),
+                        "localVerified": True, "persisted": True, "deliveryConfirmed": False}
+            elif action == "notes_note_direction":
                 mode = request.get("mode")
                 if mode not in ("phone_import", "two_way"):
                     return {"ok": False, "code": "invalid_selection"}
@@ -2649,6 +2670,7 @@ class PhoneService:
             shared = self.shared_settings_status(peer_id)
             control = {"phone_revision": self.mcp_status(include_bluetooth=False)["revision"],
                 "personal": {key: personal.get(key) is True for key in ("own_device", "remote_own_device", "auto_wifi")}, "note": peer.get("note_sync", {}),
+                "custom": peer.get("custom_sync", {}), "time": self.store.time_settings(peer_id, allow_failed=True),
                 "shared": self.store.shared_settings(peer_id, peer["static_public"])}
             revision = hmac.new(self._mcp_revision_key, canonical(control), hashlib.sha256).hexdigest()
             return {"revision": revision, "peer_id": peer_id,
@@ -2659,6 +2681,8 @@ class PhoneService:
                 "skip_deletions": peer.get("local_grants", {}).get("grants", {}).get("personal_deletions_sync") is not True,
                 "note_direction": {"supported": self._note_supported(peer),
                     "local_mode": peer.get("note_sync", {}).get("local", {}).get("mode")},
+                "policies": {"custom": {"supported": self._custom_supported(peer), "local_enabled": peer.get("custom_sync", {}).get("local", {}).get("enabled")},
+                    "time": {"supported": self._time_supported(peer), "local_enabled": control["time"].get("local", {}).get("enabled")}},
                 "shared": shared}
 
     def _mcp_bluetooth_status(self):

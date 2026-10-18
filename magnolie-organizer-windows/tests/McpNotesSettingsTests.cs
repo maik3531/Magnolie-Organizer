@@ -72,7 +72,7 @@ internal static class McpNotesSettingsTests
             legacy["enabled"] = true; legacy["skipDeletions"] = false;
             TestAssert.That((await service.ExecuteMcpAsync(legacy, default))["code"]!.GetValue<string>() == "unsupported_feature", "Legacy control overrode a modern shared-settings peer.");
             var oldCapabilities = capabilities.DeepClone().AsObject();
-            foreach (var name in new[] { "personal_notes_sync", "personal_tasks_sync" }) oldCapabilities[name]!["versions"] = new JsonArray(1, 2, 3, 4, 5);
+            foreach (var name in new[] { "personal_notes_sync", "personal_tasks_sync" }) oldCapabilities[name]!["versions"] = new JsonArray(1, 2, 3, 4, 5, 7);
             store.SavePeers([peer with { Capabilities = oldCapabilities }]);
             legacy["expectedRevision"] = service.McpNotesSettings(peer.Id, fingerprint)["revision"]!.DeepClone();
             var legacySaved = await service.ExecuteMcpAsync(legacy, default);
@@ -88,7 +88,21 @@ internal static class McpNotesSettingsTests
                     store.NoteSettings(peer.Id)["local"]!["mode"]!.GetValue<string>() == mode, "Explicit note direction was not durably read back.");
                 TestAssert.That((await service.ExecuteMcpAsync(direction, default))["code"]!.GetValue<string>() == "conflict", "Stale note policy revision mutated the direction.");
             }
+            foreach (var policy in new[] { "custom", "time" }) foreach (var enabled in new[] { true, false })
+            {
+                var choice = Target("notes_legacy_policy"); choice["name"] = policy; choice["enabled"] = enabled;
+                choice["expectedRevision"] = service.McpNotesSettings(peer.Id, fingerprint)["revision"]!.DeepClone();
+                var changed = await service.ExecuteMcpAsync(choice, default);
+                TestAssert.That(changed["ok"]!.GetValue<bool>() && changed["notesSettings"]!["policies"]![policy]!["local_enabled"]!.GetValue<bool>() == enabled,
+                    "Legacy custom/time policy was not saved through the shared native handler.");
+                TestAssert.That((await service.ExecuteMcpAsync(choice, default))["code"]!.GetValue<string>() == "conflict", "Stale legacy policy revision was accepted.");
+            }
             TestAssert.That(events.Count == 0 && !service.McpStatus()["listening"]!.GetValue<bool>(), "Notes settings emitted GUI events or started a listener.");
+            var previousCustom = store.CustomSettings(peer.Id)["local"]!.AsObject();
+            var guiPolicy = TelefonStore.NewCustomSettings(true, TelefonProtocolContract.Integer(previousCustom["revision"]) + 1);
+            var guiQueued = await service.SendPersonalSyncAsync(peer.Id, "personal_sync.custom_settings", guiPolicy);
+            TestAssert.That(guiQueued.Length > 0 && JsonNode.DeepEquals(store.CustomSettings(peer.Id)["local"], guiPolicy) && events.Count > 0,
+                "The ordinary GUI custom-policy route lost its existing store/queue/status behavior after sharing the native handler.");
         }
         finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
     }

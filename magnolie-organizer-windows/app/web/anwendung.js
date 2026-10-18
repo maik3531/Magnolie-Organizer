@@ -35336,8 +35336,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const ownership = update === "ownership";
       const legacy = update === "legacy";
       const direction = update === "direction";
-      const request = { action: direction ? "notes_note_direction" : legacy ? "notes_legacy_mode" : ownership ? "notes_ownership" : update ? "notes_settings_update" : "notes_settings_read", peerId: args.peer_id, fingerprint: args.fingerprint };
+      const policy = update === "policy";
+      const request = { action: policy ? "notes_legacy_policy" : direction ? "notes_note_direction" : legacy ? "notes_legacy_mode" : ownership ? "notes_ownership" : update ? "notes_settings_update" : "notes_settings_read", peerId: args.peer_id, fingerprint: args.fingerprint };
       if (ownership) Object.assign(request, { expectedRevision: args.expected_revision, enabled: args.own_device });
+      else if (policy) Object.assign(request, { expectedRevision: args.expected_revision, name: args.policy, enabled: args.enabled });
       else if (direction) Object.assign(request, { expectedRevision: args.expected_revision, mode: args.mode });
       else if (legacy) Object.assign(request, { expectedRevision: args.expected_revision, enabled: args.auto_wifi, skipDeletions: args.skip_deletions });
       else if (update) Object.assign(request, { expectedRevision: args.expected_revision, field: args.field, value: args.value, initial: args.initial });
@@ -35347,7 +35349,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (!state || state.peer_id !== args.peer_id || state.fingerprint?.toUpperCase() !== args.fingerprint.toUpperCase())
         throw new MagnolieMcp.ToolError("source_changed", "Native Notes settings target changed");
       if (!update) return state;
-      const matches = direction ? state.note_direction?.supported === true && state.note_direction?.local_mode === args.mode && state.shared?.supported === false : legacy ? state.own_device === true && state.auto_wifi === args.auto_wifi && state.skip_deletions === args.skip_deletions && state.shared?.supported === false : ownership ? state.own_device === args.own_device && (args.own_device || state.auto_wifi === false) : state.own_device === true && state.shared?.values?.[args.field] === args.value;
+      let matches;
+      if (policy) matches = state.policies?.[args.policy]?.local_enabled === args.enabled && state.shared?.supported === false;
+      else if (direction) matches = state.note_direction?.supported === true && state.note_direction?.local_mode === args.mode && state.shared?.supported === false;
+      else if (legacy) matches = state.own_device === true && state.auto_wifi === args.auto_wifi && state.skip_deletions === args.skip_deletions && state.shared?.supported === false;
+      else if (ownership) matches = state.own_device === args.own_device && (args.own_device || state.auto_wifi === false);
+      else matches = state.own_device === true && state.shared?.values?.[args.field] === args.value;
       if (value.action !== request.action || value.localVerified !== true || value.persisted !== true || value.deliveryConfirmed !== false || !matches)
         throw new MagnolieMcp.ToolError("invalid_result", "Native Notes settings receipt was not verified; inspect state before retrying");
       return { state, local_verified: true, persisted: true, delivery_confirmed: false };
@@ -35368,7 +35375,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: (args, signal) => read(args, signal, "legacy") },
     { name: "organizer_notes_legacy_direction_update", description: "Change the existing legacy note direction to phone_import or two_way through the same native GUI handler. Requires exact sole paired identity and current Notes-settings revision. Both devices must support the legacy note-policy contract; shared-settings peers or retained shared registers are rejected. Reading note_direction.local_mode null means no explicit local policy is stored. The handler saves a new policy revision/epoch when needed and purges existing pending note-module protocol work; it does not delete normal book notes or alter task direction. Import mode keeps its existing no-note-export/no-note-deletion rules. Local policy readback is verified, never remote agreement or delivery. Inspect state after timeout/cancellation before retrying.",
       inputSchema: { type: "object", properties: { ...target, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, mode: { type: "string", enum: ["phone_import", "two_way"] } }, required: [...Object.keys(target), "expected_revision", "mode"], additionalProperties: false },
-      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: (args, signal) => read(args, signal, "direction") }];
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: (args, signal) => read(args, signal, "direction") },
+    { name: "organizer_notes_legacy_policy_update", description: "Change the selected legacy custom-tab or time synchronization enablement through the existing native GUI policy handler. Requires the latest Notes-settings revision and exact sole paired identity. Shared-setting peers and retained shared registers must use organizer_notes_settings_update instead. Existing platform capability, ownership and policy-epoch checks apply; enabling time requires local ownership. This sets only local consent: it does not grant remote consent or change content direction. New policy revisions retain the existing pending-transfer cleanup and control-frame behavior. Actual local policy readback is verified, never remote delivery or synchronization completion. Ordinary book records are unchanged; inspect state after errors/timeouts/cancellation before retrying.",
+      inputSchema: { type: "object", properties: { ...target, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, policy: { type: "string", enum: ["custom", "time"] }, enabled: { type: "boolean" } }, required: [...Object.keys(target), "expected_revision", "policy", "enabled"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: (args, signal) => read(args, signal, "policy") }];
   }
   function mcpTelefonVerbindungWerkzeuge() {
     const id = { type: "string", minLength: 1, maxLength: 256 }, flag = { type: "boolean" };
@@ -37416,9 +37426,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const state = shape(fields, Object.keys(fields).filter(key => key !== "next_offset"));
       return name === "organizer_kde_connection_read" ? state : shape({ state, local_verified: yes, persisted: { type: "boolean", enum: [false] }, delivery_confirmed: { type: "boolean", enum: [false] } }, ["state", "local_verified", "persisted", "delivery_confirmed"]);
     }
-    if (["organizer_notes_settings_read", "organizer_notes_settings_update", "organizer_notes_ownership_update", "organizer_notes_legacy_mode_update", "organizer_notes_legacy_direction_update"].includes(name)) {
+    if (["organizer_notes_settings_read", "organizer_notes_settings_update", "organizer_notes_ownership_update", "organizer_notes_legacy_mode_update", "organizer_notes_legacy_direction_update", "organizer_notes_legacy_policy_update"].includes(name)) {
+      const policy = shape({ supported: flag, local_enabled: { type: ["boolean", "null"] } }, ["supported", "local_enabled"]);
       const state = shape({ revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, peer_id: id, fingerprint: { type: "string", pattern: "^[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}$" },
-        own_device: flag, remote_own_device: flag, auto_wifi: flag, skip_deletions: flag, note_direction: shape({ supported: flag, local_mode: { type: ["string", "null"], enum: ["phone_import", "two_way", null] } }, ["supported", "local_mode"]), shared: shape({ supported: flag, initialized: flag, ready: flag, values: { anyOf: [{ type: "null" }, mcpNotesWerteSchema()] } }, ["supported", "initialized", "ready", "values"]) }, ["revision", "peer_id", "fingerprint", "own_device", "remote_own_device", "auto_wifi", "skip_deletions", "note_direction", "shared"]);
+        own_device: flag, remote_own_device: flag, auto_wifi: flag, skip_deletions: flag, note_direction: shape({ supported: flag, local_mode: { type: ["string", "null"], enum: ["phone_import", "two_way", null] } }, ["supported", "local_mode"]), policies: shape({ custom: policy, time: policy }, ["custom", "time"]), shared: shape({ supported: flag, initialized: flag, ready: flag, values: { anyOf: [{ type: "null" }, mcpNotesWerteSchema()] } }, ["supported", "initialized", "ready", "values"]) }, ["revision", "peer_id", "fingerprint", "own_device", "remote_own_device", "auto_wifi", "skip_deletions", "note_direction", "policies", "shared"]);
       return name === "organizer_notes_settings_read" ? state : shape({ state, local_verified: yes, persisted: yes, delivery_confirmed: { type: "boolean", enum: [false] } }, ["state", "local_verified", "persisted", "delivery_confirmed"]);
     }
     if (["organizer_phone_connection_read", "organizer_phone_connection_action"].includes(name)) {

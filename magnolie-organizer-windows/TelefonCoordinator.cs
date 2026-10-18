@@ -690,16 +690,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
     {
         if (TimeSyncContract.IsKind(kind)) return await SendTimeBridgeAsync(id, kind, body);
         if (kind.StartsWith("personal_sync.custom_", StringComparison.Ordinal))
-        {
-            PersonalSyncContract.ValidateCustomBody(kind, body); RequireSolePeer(id);
-            if (kind == "personal_sync.custom_settings") store.SetCustomSettings(id, body, false);
-            else if (kind != "personal_sync.custom_batch" || !store.CustomAllowed(id, kind, body, true))
-                throw new InvalidOperationException(T("Personal synchronization is not permitted on both devices."));
-            var queued = store.Enqueue(id, kind, body, 86_400_000, Now(), body["trigger"]?.GetValue<string>() == "auto_wifi" ? "wifi_only" : "any");
-            TelefonConnection? customConnection; lock (gate) online.TryGetValue(id, out customConnection);
-            if (customConnection is not null) await customConnection.PumpOutboxNowAsync();
-            await ReportStatusAsync(); return queued;
-        }
+            return await SendCustomBridgeAsync(id, kind, body);
         PersonalSyncContract.ValidateBody(kind, body); var peer = RequireSolePeer(id); var now = Now(); PersonalSyncRun? run = null;
         if (!NoteDirectionAllowed(id, kind, body, true)) throw new InvalidOperationException(T("Personal synchronization is not permitted on both devices."));
         if (kind != "personal_sync.request") run = personalSync.LoadRun(id, body["run_id"]!.GetValue<string>(), now) ?? throw new InvalidOperationException(T("The personal synchronization request is missing."));
@@ -809,6 +800,36 @@ internal sealed partial class TelefonCoordinator : IDisposable
         if (!PersonalSyncContract.NoteMessageUsesNotes(kind, body, kinds)) return true;
         TelefonConnection? connection; lock (gate) online.TryGetValue(id, out connection);
         return connection?.NotePolicyReady == true;
+    }
+
+    private async Task<string> SendCustomBridgeAsync(string id, string kind, JsonObject body,
+        string? expectedFingerprint = null, string? expectedNotesRevision = null, bool? requestedEnabled = null)
+    {
+        string queued; TelefonConnection? connection;
+        await store.NotePolicyGate.WaitAsync();
+        try
+        {
+            lock (gate)
+            {
+                RequireSolePeer(id);
+                if (expectedFingerprint is not null)
+                {
+                    AssertMcpLegacyNotes(id, expectedFingerprint, expectedNotesRevision);
+                    if (kind != "personal_sync.custom_settings" || requestedEnabled is null) throw new McpRequestException();
+                    var old = store.CustomSettings(id)["local"] as JsonObject;
+                    body = TelefonStore.NewCustomSettings(requestedEnabled.Value, (old is null ? 0 : TelefonProtocolContract.Integer(old["revision"])) + 1);
+                }
+                PersonalSyncContract.ValidateCustomBody(kind, body);
+                if (kind == "personal_sync.custom_settings") store.SetCustomSettings(id, body, false);
+                else if (kind != "personal_sync.custom_batch" || !store.CustomAllowed(id, kind, body, true))
+                    throw new InvalidOperationException(T("Personal synchronization is not permitted on both devices."));
+                queued = store.Enqueue(id, kind, body, 86_400_000, Now(), body["trigger"]?.GetValue<string>() == "auto_wifi" ? "wifi_only" : "any");
+                online.TryGetValue(id, out connection);
+            }
+        }
+        finally { store.NotePolicyGate.Release(); }
+        if (connection is not null) await connection.PumpOutboxNowAsync();
+        await ReportStatusAsync(); return queued;
     }
 
     internal async Task SetNoteModeAsync(string id, string mode, string? expectedFingerprint = null, string? expectedNotesRevision = null)

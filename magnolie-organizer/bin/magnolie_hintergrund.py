@@ -843,7 +843,7 @@ def _request_shape(operation, arguments):
         request = arguments.get("request")
         if set(arguments) != {"request"} or not isinstance(request, dict) or len(encoded.encode("utf-8")) > 8192 or set(request) - {"action", "expectedRevision", "peerId", "fingerprint", "enabled", "name", "address", "attemptId", "accept", "queryId", "includeIdentifiers", "field", "value", "initial", "skipDeletions", "mode"}:
             raise IPCError("invalid phone control request")
-        if request.get("action") not in ("settings", "pairing_begin", "pairing_confirm", "pairing_cancel", "remove", "grant", "bluetooth", "device_status_query", "device_status_cancel", "notes_settings_read", "notes_settings_update", "notes_ownership", "notes_legacy_mode", "notes_note_direction") or (request.get("action") != "notes_settings_read" and (not isinstance(request.get("expectedRevision"), str) or not re.fullmatch(r"[a-f0-9]{64}", request["expectedRevision"]))):
+        if request.get("action") not in ("settings", "pairing_begin", "pairing_confirm", "pairing_cancel", "remove", "grant", "bluetooth", "device_status_query", "device_status_cancel", "notes_settings_read", "notes_settings_update", "notes_ownership", "notes_legacy_mode", "notes_note_direction", "notes_legacy_policy") or (request.get("action") != "notes_settings_read" and (not isinstance(request.get("expectedRevision"), str) or not re.fullmatch(r"[a-f0-9]{64}", request["expectedRevision"]))):
             raise IPCError("invalid phone control request")
         if request.get("action") in ("device_status_query", "device_status_cancel") and (
                 not _status_query_id(request.get("queryId")) or not isinstance(request.get("peerId"), str) or

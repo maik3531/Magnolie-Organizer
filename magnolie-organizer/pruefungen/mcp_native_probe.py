@@ -298,7 +298,7 @@ if any(os.environ.get(flag) == "1" for flag in ("MAGNOLIE_MCP_PROBE_PHONE_ONLY",
     if os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_LEGACY_ONLY") == "1":
         phone_fixture.store.peers[0]["capabilities"] = phone_protocol.desktop_capabilities()
         for name in ("personal_notes_sync", "personal_tasks_sync"):
-            phone_fixture.store.peers[0]["capabilities"]["items"][name]["versions"] = [1, 2, 3, 4, 5]
+            phone_fixture.store.peers[0]["capabilities"]["items"][name]["versions"] = [1, 2, 3, 4, 5, 7]
         phone_fixture.store.save_peers()
     window._telefon = phone_fixture
     window._telefon_dienst_pflegen = lambda start_listener=True: False
@@ -473,6 +473,12 @@ def client():
                 changed = legacy_tool("organizer_notes_legacy_direction_update", {**target, "expected_revision": current["revision"], "mode": mode})
                 assert changed["state"]["note_direction"]["local_mode"] == mode and changed["persisted"]
                 assert phone_fixture.store._load_peers()[0]["note_sync"]["local"]["mode"] == mode
+            for policy in ("custom", "time"):
+                for enabled in (True, False):
+                    current = legacy_tool("organizer_notes_settings_read", target)
+                    changed = legacy_tool("organizer_notes_legacy_policy_update", {**target, "expected_revision": current["revision"], "policy": policy, "enabled": enabled})
+                    assert changed["state"]["policies"][policy]["local_enabled"] is enabled and changed["persisted"]
+                    assert phone_fixture.store._load_peers()[0][policy + "_sync"]["local"]["enabled"] is enabled
             assert data_file.read_bytes() == unchanged and phone_fixture.server is None
             state["notes_legacy_mode_store_verified"] = True
             process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True

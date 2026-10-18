@@ -222,3 +222,33 @@ def test_note_direction_rejects_modern_and_stale_mutation(tmp_path, monkeypatch)
         return original(*args, **kwargs)
     monkeypatch.setattr(service, "set_note_mode", raced)
     assert select()["code"] == "conflict" and not peer.get("note_sync") and not events
+
+
+@pytest.mark.parametrize("policy", ["custom", "time"])
+def test_legacy_policy_uses_real_gui_handler_and_saved_policy_revision(tmp_path, policy):
+    service, peer, events = modern_service(tmp_path)
+    for name in ("personal_notes_sync", "personal_tasks_sync"):
+        peer["capabilities"]["items"][name]["versions"] = [1, 2, 3, 4, 5, 7]
+    peer["personal_sync"]["own_device"] = True
+    service.store.save_peers()
+    for enabled in (True, False):
+        state = service.mcp_action(request(service))["notesSettings"]
+        args = request(service, "notes_legacy_policy", expectedRevision=state["revision"], name=policy, enabled=enabled)
+        result = service.mcp_action(args)
+        assert result["ok"], result
+        assert result["notesSettings"]["policies"][policy]["local_enabled"] is enabled
+        assert service.store._load_peers()[0][policy + "_sync"]["local"]["enabled"] is enabled
+        assert service.mcp_action(args)["code"] == "conflict"
+    assert not events
+
+
+def test_legacy_policy_rejects_shared_register_and_unowned_time_enable(tmp_path):
+    service, peer, events = modern_service(tmp_path)
+    def choose():
+        state = service.mcp_action(request(service))["notesSettings"]
+        return service.mcp_action(request(service, "notes_legacy_policy", expectedRevision=state["revision"], name="time", enabled=True))
+    assert choose()["code"] == "unsupported_feature"
+    for name in ("personal_notes_sync", "personal_tasks_sync"):
+        peer["capabilities"]["items"][name]["versions"] = [1, 2, 3, 4, 5, 7]
+    assert not choose()["ok"] and not service.store.time_settings(peer["device_id"])
+    assert not events

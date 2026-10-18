@@ -22,7 +22,7 @@ internal sealed partial class TelefonCoordinator
         }
     }
 
-    private async Task<string> SendTimeBridgeAsync(string id, string kind, JsonObject body)
+    private async Task<string> SendTimeBridgeAsync(string id, string kind, JsonObject body, string? expectedFingerprint = null, string? expectedNotesRevision = null)
     {
         TelefonConnection? connection; var result = "";
         await store.NotePolicyGate.WaitAsync();
@@ -31,6 +31,7 @@ internal sealed partial class TelefonCoordinator
             lock (gate)
             {
                 RequireSolePeer(id); online.TryGetValue(id, out connection);
+                if (expectedFingerprint is not null) AssertMcpLegacyNotes(id, expectedFingerprint, expectedNotesRevision);
                 if (kind == TimeSyncContract.Settings)
                 {
                     TelefonProtocolContract.ExactObject(body, "enabled");
