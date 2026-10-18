@@ -147,6 +147,10 @@ internal sealed partial class TelefonStore
     }
 
     internal bool ReadEnabledStrict() => LoadSettings()["enabled"]?.GetValue<bool>() ?? false;
+    internal bool StoredEnabledMatches(bool expected) => LoadSettings()["enabled"] is JsonValue flag && flag.TryGetValue<bool>(out var actual) && actual == expected;
+    internal bool StoredGrantMatches(string name, bool expected) => LoadSettings()[name] is JsonValue flag && flag.TryGetValue<bool>(out var actual) && actual == expected;
+    internal bool StoredBluetoothMatches(string id, bool enabled, string address) => LoadSettings()["bluetooth"]?[id] is JsonObject value &&
+        value["enabled"] is JsonValue flag && flag.TryGetValue<bool>(out var actual) && actual == enabled && value["address"]?.GetValue<string>() == (enabled ? address : "");
 
     internal JsonObject LocalGrants()
     {
@@ -461,6 +465,19 @@ internal sealed partial class TelefonStore
             var peers = LoadPeers();
             if (!peers.Any(p => p.Id == peerId && p.State == "paired")) throw new InvalidDataException();
             SavePeers(peers.Select(p => p.Id == peerId ? p with { BluetoothAddress = address } : p));
+        }
+    }
+
+    internal void SetBluetoothPreference(string peerId, bool enabled, string address)
+    {
+        if (enabled && !TelefonBluetoothClient.ValidAddress(address)) throw new InvalidDataException();
+        lock (gate)
+        {
+            var settings = LoadSettings();
+            var all = settings["bluetooth"] as JsonObject;
+            if (all is null) { all = new JsonObject(); settings["bluetooth"] = all; }
+            all[peerId] = new JsonObject { ["enabled"] = enabled, ["address"] = enabled ? address : "" };
+            SaveSettings(settings);
         }
     }
 

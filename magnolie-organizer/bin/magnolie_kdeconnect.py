@@ -3,6 +3,7 @@
 
 import ipaddress
 import configparser
+import hmac
 import json
 import os
 import re
@@ -187,11 +188,54 @@ def create_backend(directory, device_name=None, callback=None):
     return KDEConnectSMSBackend(directory, device_name=device_name, callback=callback)
 
 
-class KDEConnectNativeBackend:
+def _mcp_kde_peer_control(peers):
+    return [{"id": key, "name": peer["name"], "paired": peer.get("paired") is True,
+             "fingerprint": x509.load_pem_x509_certificate(peer["certificate"].encode("ascii")).fingerprint(hashes.SHA256()).hex()}
+            for key, peer in sorted(peers.items())]
+
+
+class _KdeMcpControl:
+    """Public projections of the selected existing integration, not another transport."""
+    def _mcp_initialize(self):
+        self._mcp_key = os.urandom(32)
+        self._mcp_worker = threading.local()
+        self._mcp_operations = threading.Lock()
+
+    def _mcp_digest(self, value):
+        raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+        return hmac.new(self._mcp_key, raw, sha256).hexdigest()
+
+    def mcp_status(self):
+        control, public = self._mcp_snapshot()
+        return dict(public, revision=self._mcp_digest(control))
+
+    def mcp_refresh(self, expected_revision=""):
+        if not self._mcp_operations.acquire(blocking=False):
+            return {"ok": False, "code": "native_busy"}
+        previous = getattr(self._mcp_worker, "capture", None)
+        self._mcp_worker.capture = True
+        try:
+            if expected_revision and self.mcp_status()["revision"] != expected_revision:
+                return {"ok": False, "code": "conflict"}
+            self.start()
+            self.discover()
+            return {"ok": True, "action": "refresh", "status": self.mcp_status(), "localVerified": True, "persisted": False, "deliveryConfirmed": False}
+        except Exception:
+            return {"ok": False, "code": "native_operation_failed"}
+        finally:
+            self._mcp_worker.capture = previous
+            self._mcp_operations.release()
+
+    def mcp_action(self, request):
+        return {"ok": False, "code": "unsupported_feature"}
+
+
+class KDEConnectNativeBackend(_KdeMcpControl):
     """Native discovery, contact-cache reads and explicit SMS; no receive grants."""
     native = True
 
     def __init__(self, bus, gio, glib, callback=None):
+        self._mcp_initialize()
         self.bus, self.gio, self.glib = bus, gio, glib
         self.callback = callback
         self.pairing = None
@@ -576,6 +620,25 @@ class KDEConnectNativeBackend:
             'capability_explanation': NATIVE_KDE_LIMIT,
             'receive': dict(self.configure_receive(), pending_count=0, proposals=[]),
             'filesystem': self.filesystem_status()}
+
+    def _mcp_snapshot(self):
+        owner = self._owner()
+        devices = self._devices(owner, include_desktops=True)
+        peers = []
+        for device in devices:
+            try:
+                fingerprint = self._contact_fingerprint(device["device_id"])
+            except Exception:
+                fingerprint = None
+            peers.append({"id": device["device_id"], "name": device["device_name"], "fingerprint": fingerprint,
+                "paired": True, "reachable": device["reachable"], "type": device["device_type"]})
+        if self._owner() != owner:
+            raise ProtocolError("kde_source_changed")
+        peers.sort(key=lambda item: item["id"])
+        return ({"integration": "system", "owner": owner, "peers": [{key: peer[key] for key in ("id", "fingerprint", "paired")} for peer in peers]},
+            {"integration": "system", "running": True, "owned_listener": False, "listening": None, "listen_port": None,
+             "local_id": None, "local_fingerprint": None, "capabilities": {"refresh": True, "pairing": False, "remove": False, "receive_preferences": False},
+             "peers": peers, "candidates": [], "pending": [], "error_present": any(peer["fingerprint"] is None for peer in peers)})
 
     @staticmethod
     def _contact_read(path, maximum, directory=None):
@@ -1305,7 +1368,7 @@ class IdentityStore:
             self._write_peers(peers)
 
     def confirm_peer_and_cleanup(self, device_id, name, certificate, address, port,
-                                 connected_ids=()):
+                                 connected_ids=(), expected_mcp_peers=None):
         _validate_peer_certificate(certificate, device_id)
         try:
             parsed = ipaddress.ip_address(address)
@@ -1317,6 +1380,8 @@ class IdentityStore:
             raise ProtocolError("invalid authenticated peer endpoint")
         certificate_pem = certificate.public_bytes(serialization.Encoding.PEM).decode("ascii")
         with self._lock:
+            if expected_mcp_peers is not None and _mcp_kde_peer_control(self.peers) != expected_mcp_peers:
+                raise ProtocolError("kde_control_conflict")
             peers = dict(self.peers)
             now = int(time.time() * 1000)
             peers[device_id] = {"name": str(name)[:128], "protocolVersion": 8,
@@ -1786,10 +1851,11 @@ class _ConnectionWorker:
         self._check_bootstrap_deadline(now)
 
 
-class KDEConnectSMSBackend:
+class KDEConnectSMSBackend(_KdeMcpControl):
     def __init__(self, directory, device_name=None, socket_factory=None,
                  callback=None, tcp_ports=None, udp_port=UDP_PORT, backoff=None,
                  clock=None):
+        self._mcp_initialize()
         self.store = IdentityStore(directory, device_name)
         self.socket_factory = socket_factory or socket.socket
         self.callback = callback or (lambda _event, _payload: None)
@@ -1846,10 +1912,156 @@ class KDEConnectSMSBackend:
         self.reason = "not_started"
 
     def _emit(self, event, payload):
+        if getattr(self._mcp_worker, "capture", None) is not None:
+            return
         try:
             self.callback(event, payload)
         except Exception:  # noqa: S110 - Client callbacks cannot break the transport service.
             pass
+
+    def _emit_pairing_context(self, pending, event, payload):
+        if not pending.get("mcp_owned"):
+            self._emit(event, payload)
+
+    def _tag_mcp_pairing(self, pending):
+        worker = pending["worker"]
+        if (pending.get("direction") == "incoming" and self._mcp_worker_pairing_owned(worker)
+                and getattr(worker, "mcp_pairing_timestamp", None) == pending["timestamp"]):
+            pending["mcp_owned"] = True
+        worker.mcp_pairing_timestamp = pending["timestamp"]
+        worker.mcp_pairing_until = pending["deadline"] if pending.get("mcp_owned") else 0
+        return pending
+
+    def _mcp_worker_pairing_owned(self, worker):
+        until = getattr(worker, "mcp_pairing_until", None)
+        return type(until) in (int, float) and until > self.clock()
+
+    def mcp_action(self, request):
+        if request.get("action") == "refresh":
+            return self.mcp_refresh(request.get("expectedRevision") or "")
+        if not self._mcp_operations.acquire(blocking=False):
+            return {"ok": False, "code": "native_busy"}
+        previous = getattr(self._mcp_worker, "capture", None)
+        self._mcp_worker.capture = True
+        try:
+            action = request.get("action")
+            snapshot = self.mcp_status()
+            if request.get("expectedRevision") != snapshot["revision"]:
+                return {"ok": False, "code": "conflict"}
+            persisted = paired = False
+            if action in ("pairing_begin", "pairing_complete", "pairing_renew"):
+                candidate = next((item for item in snapshot["candidates"] if item["id"] == request.get("candidateId")), None)
+                if not candidate or candidate["source_token"] != request.get("sourceToken"):
+                    return {"ok": False, "code": "conflict"}
+                stored_control = _mcp_kde_peer_control(self.store.peers)
+                confirmed = [peer for peer in stored_control if peer["paired"]]
+                if action == "pairing_renew":
+                    if len(confirmed) != 1 or confirmed[0]["id"] != request.get("replacementId") or confirmed[0]["fingerprint"] != request.get("replacementFingerprint") or confirmed[0]["name"] != candidate["name"]:
+                        return {"ok": False, "code": "conflict"}
+                elif confirmed:
+                    return {"ok": False, "code": "conflict"}
+                def guard(stage, selected):
+                    if (selected.identity["deviceId"], selected.address, selected.port) != (candidate["id"], candidate["address"], candidate["port"]) or _mcp_kde_peer_control(self.store.peers) != stored_control:
+                        raise ProtocolError("kde_control_conflict")
+                    if stage in ("select", "complete"):
+                        current = self.mcp_status()
+                        choice = next((item for item in current["candidates"] if item["id"] == candidate["id"]), None)
+                        if current["revision"] != request["expectedRevision"] or not choice or choice["source_token"] != candidate["source_token"]:
+                            raise ProtocolError("kde_control_conflict")
+                if action == "pairing_complete":
+                    self.complete_pairing(candidate["id"], mcp_guard=guard)
+                else:
+                    self.begin_pairing(candidate["id"], replace_stored=action == "pairing_renew", mcp_guard=guard)
+                with self._state_lock:
+                    pending = self.pairing
+                    if not pending or pending["identity"]["deviceId"] != candidate["id"] or not pending.get("mcp_owned"):
+                        return {"ok": False, "code": "verification_failed"}
+                    pending["mcp_peer_control"] = stored_control
+            elif action in ("pairing_confirm", "pairing_cancel"):
+                accept = request.get("accept") if action == "pairing_confirm" else False
+                if type(accept) is not bool:
+                    return {"ok": False, "code": "invalid_selection"}
+                with self._state_lock:
+                    pending = self.pairing
+                    if (not pending or pending["deadline"] <= self.clock() or pending["identity"]["deviceId"] != request.get("peerId") or
+                            pending.get("mcp_attempt") != request.get("attemptId") or pending["certificate"].fingerprint(hashes.SHA256()).hex() != request.get("fingerprint") or
+                            self.mcp_status()["revision"] != request["expectedRevision"]):
+                        return {"ok": False, "code": "conflict"}
+                    if "mcp_peer_control" in pending and pending["mcp_peer_control"] != _mcp_kde_peer_control(self.store.peers):
+                        return {"ok": False, "code": "conflict"}
+                    result = self.confirm_pairing(accept)
+                    if accept:
+                        stored = self.store._load_peers().get(request["peerId"])
+                        paired = bool(pending.get("mcp_store_committed") and stored and stored.get("paired") and x509.load_pem_x509_certificate(stored["certificate"].encode("ascii")).fingerprint(hashes.SHA256()).hex() == request["fingerprint"])
+                        persisted = paired
+                        if not paired and (self.pairing is not pending or not pending.get("local_confirmed")):
+                            return {"ok": False, "code": "verification_failed"}
+                    elif result.get("state") != "rejected" or self.pairing is pending:
+                        return {"ok": False, "code": "verification_failed"}
+            else:
+                return {"ok": False, "code": "unsupported_feature"}
+            return {"ok": True, "action": action, "status": self.mcp_status(), "localVerified": True, "persisted": persisted, "pairedVerified": paired, "deliveryConfirmed": False}
+        except ProtocolError as error:
+            return {"ok": False, "code": "conflict" if str(error) == "kde_control_conflict" else "native_operation_failed"}
+        except Exception:
+            return {"ok": False, "code": "native_operation_failed"}
+        finally:
+            self._mcp_worker.capture = previous
+            self._mcp_operations.release()
+
+    def _mcp_snapshot(self):
+        now = self.clock()
+        with self._state_lock:
+            pending = self.pairing if self.pairing and self.pairing["deadline"] > now else None
+            settings = dict(self._receive_settings)
+            discovered = [device for device, _seen, deadline in self._devices.values() if deadline > now]
+            with self._connection_lock:
+                connections = dict(self._connections)
+            peers = []
+            for device_id, peer in sorted(self.store.peers.items()):
+                certificate = x509.load_pem_x509_certificate(peer["certificate"].encode("ascii"))
+                fingerprint = certificate.fingerprint(hashes.SHA256()).hex()
+                entry = connections.get(device_id)
+                reachable = bool(entry and not entry["worker"].stopped.is_set() and entry["certificate"].fingerprint(hashes.SHA256()).hex() == fingerprint)
+                peers.append({"id": device_id, "name": peer["name"], "fingerprint": fingerprint, "paired": peer.get("paired") is True, "reachable": reachable, "type": "unknown"})
+            confirmed = {peer["id"] for peer in peers if peer["paired"]}
+            candidates = []
+            known = set()
+            for device in discovered:
+                device_id = device.identity["deviceId"]
+                if device_id in confirmed:
+                    continue
+                known.add(device_id)
+                entry = connections.get(device_id)
+                fingerprint = entry["certificate"].fingerprint(hashes.SHA256()).hex() if entry and not entry["worker"].stopped.is_set() else None
+                source = {"id": device_id, "address": device.address, "port": device.port, "fingerprint": fingerprint, "generation": entry.get("generation", 0) if entry else 0}
+                candidates.append({"id": device_id, "name": device.identity["deviceName"], "fingerprint": fingerprint, "source_token": self._mcp_digest(source), "reachable": fingerprint is not None, "address": device.address, "port": device.port})
+            for device_id, entry in sorted(connections.items()):
+                if device_id in confirmed or device_id in known or entry["worker"].stopped.is_set():
+                    continue
+                fingerprint = entry["certificate"].fingerprint(hashes.SHA256()).hex()
+                source = {"id": device_id, "address": entry["address"], "port": entry["port"], "fingerprint": fingerprint, "generation": entry.get("generation", 0)}
+                candidates.append({"id": device_id, "name": entry["identity"]["deviceName"], "fingerprint": fingerprint, "source_token": self._mcp_digest(source), "reachable": True, "address": entry["address"], "port": entry["port"]})
+            candidates.sort(key=lambda item: item["id"])
+            pending_public, pending_control = [], None
+            if pending is not None:
+                fingerprint = pending["certificate"].fingerprint(hashes.SHA256()).hex()
+                attempt = pending.get("mcp_attempt")
+                if attempt is None:
+                    raise ProtocolError("kde_pairing_attempt_unavailable")
+                pending_public = [{"id": pending["identity"]["deviceId"], "name": pending["identity"]["deviceName"], "fingerprint": fingerprint,
+                    "attempt_id": attempt, "code": pairing_code(self.store.certificate, pending["certificate"], pending["timestamp"]),
+                    "expires_ms": int(time.time() * 1000 + max(0, pending["deadline"] - now) * 1000),
+                    "local_confirmed": bool(pending["local_confirmed"]), "remote_confirmed": bool(pending["remote_confirmed"])}]
+                pending_control = dict(pending_public[0], expires_ms=pending["deadline"])
+            fingerprint = self.store.certificate.fingerprint(hashes.SHA256()).hex()
+            control = {"integration": "direct", "id": self.store.device_id, "fingerprint": fingerprint, "peers": [{key: peer[key] for key in ("id", "name", "fingerprint", "paired")} for peer in peers],
+                "candidates": candidates, "pending": pending_control, "receive": settings}
+            public = {"integration": "direct", "running": bool(self._service_thread and self._service_thread.is_alive()), "owned_listener": True,
+                "listening": self.listening, "listen_port": self.listen_port, "local_id": self.store.device_id, "local_fingerprint": fingerprint,
+                "capabilities": {"refresh": SSL is not None, "pairing": SSL is not None, "remove": False, "receive_preferences": True},
+                "peers": peers, "candidates": candidates, "pending": pending_public, "error_present": self.reason not in ("", "not_started", "stopped", "no_device")}
+            return control, public
 
     def configure_receive(self, *, clipboard_enabled=False, file_enabled=False,
                           device_id=None, clipboard_mode="confirm", file_mode="confirm",
@@ -2374,7 +2586,7 @@ class KDEConnectSMSBackend:
                     "kdeconnect.pair", {"pair": False}))
             except Exception:  # noqa: S110 - The expired connection may already be closed.
                 pass
-            self._emit("pairing_status", {"state": "failed", "reason": "timeout"})
+            self._emit_pairing_context(expired_pairing, "pairing_status", {"state": "failed", "reason": "timeout"})
             self._reschedule_discovery(immediate=False)
 
     def _broadcast(self):
@@ -3111,10 +3323,11 @@ class KDEConnectSMSBackend:
         device_id = worker.identity["deviceId"]
         if not wants_pair:
             with self._state_lock:
+                rejected = self.pairing if self.pairing and self.pairing.get("worker") is worker else {"mcp_owned": self._mcp_worker_pairing_owned(worker)}
                 if self.pairing and self.pairing.get("worker") is worker:
                     self.pairing = None
             self.store.mark_unpaired(device_id)
-            self._emit("pairing_status", {"state": "failed", "reason": "rejected",
+            self._emit_pairing_context(rejected, "pairing_status", {"state": "failed", "reason": "rejected",
                                            "device_id": device_id})
             self._reschedule_discovery(immediate=False)
             return
@@ -3139,13 +3352,13 @@ class KDEConnectSMSBackend:
                 if pending is not None and pending["identity"]["deviceId"] != device_id:
                     return
                 if pending is None or pending.get("timestamp") != timestamp:
-                    pending = {"state": "requested", "direction": "incoming",
+                    pending = {"state": "requested", "direction": "incoming", "mcp_attempt": os.urandom(24).hex(), "mcp_owned": False,
                         "worker": worker, "identity": worker.identity,
                         "certificate": entry["certificate"], "timestamp": timestamp,
                         "address": entry["address"], "port": entry["port"],
                         "local_confirmed": False, "remote_confirmed": True,
                         "deadline": self.clock() + PAIR_WINDOW}
-                    self.pairing = pending
+                    self.pairing = self._tag_mcp_pairing(pending)
                 else:
                     pending.update(worker=worker, identity=worker.identity,
                         certificate=entry["certificate"], address=entry["address"],
@@ -3158,7 +3371,7 @@ class KDEConnectSMSBackend:
         prompt_key = (device_id, timestamp)
         if timestamp is not None and prompt_key not in self._pair_prompt_seen:
             self._pair_prompt_seen[prompt_key] = self.clock() + PAIR_WINDOW
-            self._emit("pairing", {"state": "requested", "device_id": device_id,
+            self._emit_pairing_context(pending, "pairing", {"state": "requested", "device_id": device_id,
                 "device_name": worker.identity["deviceName"],
                 "code": pairing_code(self.store.certificate, pending["certificate"], timestamp),
                 "expires_in": PAIR_WINDOW,
@@ -3177,13 +3390,15 @@ class KDEConnectSMSBackend:
         with self._connection_lock:
             connected = set(self._connections)
         self.store.confirm_peer_and_cleanup(identity["deviceId"], identity["deviceName"],
-            pending["certificate"], pending["address"], pending["port"], connected)
+            pending["certificate"], pending["address"], pending["port"], connected,
+            **({"expected_mcp_peers": pending["mcp_peer_control"]} if "mcp_peer_control" in pending else {}))
+        pending["mcp_store_committed"] = True
         with self._state_lock:
             self._devices.clear()
         self._repair_prompts.discard(identity["deviceId"])
         pending["worker"].enable_sms()
         result = {"state": "paired", "device_id": identity["deviceId"]}
-        self._emit("pairing_status", result)
+        self._emit_pairing_context(pending, "pairing_status", result)
         self._normal_discovery_after_pairing()
         return result
 
@@ -3527,7 +3742,7 @@ class KDEConnectSMSBackend:
             with self._state_lock:
                 self._handshakes.discard(raw)
 
-    def begin_pairing(self, device_id=None, replace_stored=False):
+    def begin_pairing(self, device_id=None, replace_stored=False, mcp_guard=None):
         self.start()
         with self._state_lock:
             if self.pairing:
@@ -3555,6 +3770,8 @@ class KDEConnectSMSBackend:
                 self._normal_discovery_after_pairing()
             raise ProtocolError("exactly one KDE Connect device must be selected")
         candidate = candidates[0]
+        if mcp_guard is not None:
+            mcp_guard("select", candidate)
         with self._state_lock:
             cached, last_seen, deadline = self._devices[candidate.identity["deviceId"]]
             self._devices[candidate.identity["deviceId"]] = (
@@ -3567,7 +3784,7 @@ class KDEConnectSMSBackend:
         with self._connection_lock:
             entry = self._connections.get(candidate.identity["deviceId"])
         if entry is not None and not entry["worker"].stopped.is_set():
-            return self.complete_pairing(candidate.identity["deviceId"])
+            return self.complete_pairing(candidate.identity["deviceId"], mcp_guard=mcp_guard)
         device_id = candidate.identity["deviceId"]
         with self._connection_lock:
             self._connecting.add(device_id)
@@ -3579,18 +3796,25 @@ class KDEConnectSMSBackend:
         worker = self._remember_connection(connection, identity, certificate,
             candidate.address, candidate.port, start=False)
         timestamp = int(time.time())
-        with self._state_lock:
-            self.pairing = {"state": "requested", "direction": "outgoing",
-                "worker": worker, "identity": identity, "certificate": certificate,
-                "timestamp": timestamp, "address": candidate.address, "port": candidate.port,
-                "local_confirmed": False, "remote_confirmed": False,
-                "deadline": self.clock() + PAIR_WINDOW}
+        created = None
         try:
+            with self._state_lock:
+                if mcp_guard is not None:
+                    mcp_guard("commit", candidate)
+                    if self.pairing is not None:
+                        raise ProtocolError("kde_control_conflict")
+                created = {"state": "requested", "direction": "outgoing", "mcp_attempt": os.urandom(24).hex(), "mcp_owned": getattr(self._mcp_worker, "capture", None) is not None,
+                    "worker": worker, "identity": identity, "certificate": certificate,
+                    "timestamp": timestamp, "address": candidate.address, "port": candidate.port,
+                    "local_confirmed": False, "remote_confirmed": False,
+                    "deadline": self.clock() + PAIR_WINDOW}
+                self.pairing = self._tag_mcp_pairing(created)
             worker.send(network_packet("kdeconnect.pair", {"pair": True, "timestamp": timestamp}))
             worker.start()
         except Exception:
             with self._state_lock:
-                self.pairing = None
+                if self.pairing is created:
+                    self.pairing = None
             self._forget_connection(identity["deviceId"], connection)
             raise
         return {"state": "requested", "device_id": identity["deviceId"],
@@ -3598,7 +3822,7 @@ class KDEConnectSMSBackend:
                 "code": pairing_code(self.store.certificate, certificate, timestamp),
                 "expires_in": PAIR_WINDOW}
 
-    def complete_pairing(self, device_id):
+    def complete_pairing(self, device_id, mcp_guard=None):
         with self._connection_lock:
             entry = self._connections.get(device_id)
         if entry is None or self._is_confirmed(device_id):
@@ -3607,12 +3831,15 @@ class KDEConnectSMSBackend:
             if self.pairing:
                 raise ProtocolError("a pairing operation is already active")
             timestamp = int(time.time())
-            self.pairing = {"state": "requested", "direction": "outgoing",
+            if mcp_guard is not None:
+                mcp_guard("complete", DiscoveredDevice(entry["address"], entry["port"], entry["identity"]))
+            self.pairing = {"state": "requested", "direction": "outgoing", "mcp_attempt": os.urandom(24).hex(), "mcp_owned": getattr(self._mcp_worker, "capture", None) is not None,
                 "worker": entry["worker"], "identity": entry["identity"],
                 "certificate": entry["certificate"], "timestamp": timestamp,
                 "address": entry["address"], "port": entry["port"],
                 "local_confirmed": False, "remote_confirmed": False,
                 "deadline": self.clock() + PAIR_WINDOW}
+            self._tag_mcp_pairing(self.pairing)
         entry["worker"].send(network_packet("kdeconnect.pair",
                                              {"pair": True, "timestamp": timestamp}))
         return {"state": "requested", "device_id": device_id,

@@ -67,6 +67,8 @@ runner.Add("Native sync safety / baselines / mailbox / recovery", NativeSyncSafe
 runner.Add("AtomicStore / Dateisicherheit", AtomicStoreTests.RunAsync);
 runner.Add("MCP local pipe / correlation / strict framing / cleanup", McpTransportTests.RunAsync);
 runner.Add("MCP tree / native store / revision / scoped GUI emissions", McpTreeActionsTests.RunAsync);
+runner.Add("MCP phone / public control snapshot / native revision", McpPhoneStatusTests.RunAsync);
+runner.Add("MCP KDE / existing integration / no implicit listener", McpKdeLifecycleTests.RunAsync);
 runner.Add("Wiederherstellungsjournal / Manifest / Tamper / Retention / Scheduler", RecoveryJournalTests.RunAsync);
 runner.Add("Cloud-Ordner-Sicherung / Policy / Retention / DPAPI", CloudBackupTests.RunAsync);
 runner.Add("Loganzeige / Contributor-Marker", LogPresentationTests.RunAsync);

@@ -21,7 +21,8 @@ internal sealed partial class TelefonCoordinator : IDisposable
     private readonly bool localOnly;
     private readonly Func<string, object, Task> emit;
     private readonly Func<Task<object>> kdeStatus;
-    private readonly Dictionary<string, TaskCompletionSource<bool>> confirmations = new(StringComparer.Ordinal);
+    private sealed record PairingConfirmation(TaskCompletionSource<bool> Completion, string AttemptId, JsonObject Public, long Deadline);
+    private readonly Dictionary<string, PairingConfirmation> confirmations = new(StringComparer.Ordinal);
     private readonly Dictionary<string, TelefonConnection> online = new(StringComparer.Ordinal);
     private readonly Dictionary<string, JsonObject> calls = new(StringComparer.Ordinal);
     // Immutable runtime snapshots: authorization from inside the store must not take gate
@@ -98,7 +99,12 @@ internal sealed partial class TelefonCoordinator : IDisposable
         this.bluetoothClient = bluetoothClient ?? (localOnly ? null : TelefonBluetoothClient.Create());
         radioSwitch = new BluetoothRadioSwitch(bluetoothRadio);
         logPath = Path.Combine(paths.Logs, "telefon.log");
-        store = dataStore ?? new TelefonStore(paths); personalSync = new PersonalSyncStore(store); identity = store.LoadOrCreateIdentity(); this.emit = emit;
+        store = dataStore ?? new TelefonStore(paths); personalSync = new PersonalSyncStore(store); identity = store.LoadOrCreateIdentity();
+        this.emit = (callback, payload) =>
+        {
+            if (mcpEmission.Value is { Active: true }) return Task.CompletedTask;
+            return emit(callback, payload);
+        };
         this.kdeStatus = kdeStatus ?? (() => Task.FromResult<object>(new { available = false }));
         cleanupTimer = new System.Threading.Timer(_ => { try { var now = Now(); store.Cleanup(now); personalSync.CleanupExpiredRuns(now); } catch (Exception) { } }, null, TimeSpan.FromMinutes(15), TimeSpan.FromMinutes(15));
         dialCleanupTimer = new System.Threading.Timer(_ => { try { lock (gate) if (pendingDial is { } pending && pending.Deadline <= Environment.TickCount64) RevokeDial(pending.PeerId); } catch (Exception) { } }, null, 1000, 1000);
@@ -131,15 +137,19 @@ internal sealed partial class TelefonCoordinator : IDisposable
         return StartAsync();
     }
 
-    internal async Task SwitchAsync(bool enabled)
+    internal async Task SwitchAsync(bool enabled, string? expectedRevision = null)
     {
-        foregroundEnabled = false;
-        store.Enabled = enabled;
+        lock (gate)
+        {
+            CheckMcpRevision(expectedRevision);
+            foregroundEnabled = false;
+            store.Enabled = enabled;
+        }
         if (enabled) await StartAsync(); else await StopAsync();
         await ReportStatusAsync();
     }
 
-    internal async Task StartPairingAsync()
+    internal async Task StartPairingAsync(string? expectedRevision = null)
     {
         store.Cleanup(Now());
         if (!Enabled) throw new InvalidOperationException(T("The Magnolie Notes phone connection is switched off."));
@@ -147,6 +157,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         await StartAsync();
         lock (gate)
         {
+            CheckMcpRevision(expectedRevision);
             setupPairing?.Deadline.Cancel(); setupPairing?.Deadline.Dispose(); setupPairing = null;
             pairingToken = RandomNumberGenerator.GetBytes(16); pairingUntil = long.MaxValue;
         }
@@ -159,7 +170,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         lock (gate)
         {
             if (!accepted && setupPairing?.Target == peerId) setupPairing.Deadline.Cancel();
-            if (confirmations.Remove(peerId, out var completion)) completion.TrySetResult(accepted);
+            if (confirmations.Remove(peerId, out var completion)) completion.Completion.TrySetResult(accepted);
         }
     }
 
@@ -208,17 +219,19 @@ internal sealed partial class TelefonCoordinator : IDisposable
             if (setupPairing?.Token != token) return;
             pairingUntil = 0;
             setupPairing.Deadline.Cancel();
-            if (confirmations.Remove(setupPairing.Target, out var pending)) pending.TrySetResult(false);
+            if (confirmations.Remove(setupPairing.Target, out var pending)) pending.Completion.TrySetResult(false);
         }
     }
 
-    internal async Task RemoveAsync(string id)
+    internal async Task RemoveAsync(string id, string? expectedFingerprint = null, string? expectedRevision = null)
     {
         TelefonConnection? connection;
         lock (gate)
         {
+            CheckMcpRevision(expectedRevision);
+            if (expectedFingerprint is not null) RequireMcpPeer(id, expectedFingerprint, requirePaired: false);
             online.Remove(id, out connection); calls.Remove(id); RevokeDial(id);
-            if (confirmations.Remove(id, out var confirmation)) confirmation.TrySetResult(false);
+            if (confirmations.Remove(id, out var confirmation)) confirmation.Completion.TrySetResult(false);
             foreach (var token in personalCommits.Where(item => item.Value.PeerId == id).Select(item => item.Key).ToArray())
                 if (personalCommits.Remove(token, out var pending)) pending.Completion.TrySetResult("temporary");
             store.RemovePeer(id);
@@ -414,15 +427,17 @@ internal sealed partial class TelefonCoordinator : IDisposable
         await ReportStatusAsync();
     }
 
-    internal async Task SetGrantAsync(string id, string name, bool enabled)
+    internal async Task SetGrantAsync(string id, string name, bool enabled, string? expectedFingerprint = null, string? expectedRevision = null)
     {
-        if (Peers.All(peer => peer.Id != id)) throw new InvalidOperationException(T("The phone is not paired."));
-        if (!enabled && name == "personal_notes_sync") personalSync.PurgeModules(id, new HashSet<string>(StringComparer.Ordinal) { "notes" });
-        if (!enabled && name == "personal_tasks_sync") personalSync.PurgeModules(id, new HashSet<string>(StringComparer.Ordinal) { "tasks" });
-        if (!enabled && name == "personal_deletions_sync") personalSync.PurgeDeletionProtocol(id);
         long revision; TelefonConnection? connection;
         lock (gate)
         {
+            CheckMcpRevision(expectedRevision);
+            if (expectedFingerprint is not null) { _ = RequireSolePeer(id); RequireMcpPeer(id, expectedFingerprint); }
+            else if (Peers.All(peer => peer.Id != id)) throw new InvalidOperationException(T("The phone is not paired."));
+            if (!enabled && name == "personal_notes_sync") personalSync.PurgeModules(id, new HashSet<string>(StringComparer.Ordinal) { "notes" });
+            if (!enabled && name == "personal_tasks_sync") personalSync.PurgeModules(id, new HashSet<string>(StringComparer.Ordinal) { "tasks" });
+            if (!enabled && name == "personal_deletions_sync") personalSync.PurgeDeletionProtocol(id);
             callActions.Clear();
             if (!enabled && name is "dial_request" or "incoming_call_state" or "end_call") RevokeDial(id);
             store.SetLocalGrant(name, enabled); revision = store.NextOwnRevision("grants"); online.TryGetValue(id, out connection);
@@ -909,6 +924,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
 
     internal async Task ReportStatusAsync()
     {
+        if (mcpEmission.Value is { Active: true }) return;
         store.Cleanup(Now());
         var peers = store.LoadPeers().Select(peer => new
         {
@@ -955,14 +971,14 @@ internal sealed partial class TelefonCoordinator : IDisposable
                 EnsurePairingAvailableLocked();
                 var bluetoothCancellation = serviceCancellation.Token;
                 var currentListener = listener;
-                Track(Task.Run(() => AcceptLoopAsync(currentListener, bluetoothCancellation)));
-                if (bluetoothClient is not null) Track(Task.Run(() => BluetoothReconnectLoopAsync(bluetoothCancellation)));
+                Track(McpServiceTask(() => AcceptLoopAsync(currentListener, bluetoothCancellation)));
+                if (bluetoothClient is not null) Track(McpServiceTask(() => BluetoothReconnectLoopAsync(bluetoothCancellation)));
                 try
                 {
                     if (!localOnly)
                     {
                         mdns = new TelefonMdnsPublisher(identity.Id, identity.Name, CurrentPairingToken, serviceCancellation.Token);
-                        Track(Task.Run(mdns.RunAsync));
+                        Track(McpServiceTask(mdns.RunAsync));
                     }
                 }
                 catch (SocketException) { mdns = null; }
@@ -1013,7 +1029,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
             transport = bluetooth = new TelefonBluetoothTransport(BluetoothService,
                 (stream, token) => HandleLimitedStreamAsync(stream, token, "bluetooth"));
         }
-        Track(Task.Run(async () =>
+        Track(McpServiceTask(async () =>
         {
             var (reason, message) = await transport.StartAsync();
             TelefonBluetoothSupport.Report(reason == "available", reason, message);
@@ -1056,7 +1072,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
             if (pendingDial is { } pendingCall) RevokeDial(pendingCall.PeerId);
             pendingDial = null; callCommands.Clear(); calls.Clear(); callActions.Clear();
             setupPairing?.Deadline.Cancel(); setupPairing?.Deadline.Dispose(); setupPairing = null;
-            foreach (var confirmation in confirmations.Values) confirmation.TrySetResult(false); confirmations.Clear();
+            foreach (var confirmation in confirmations.Values) confirmation.Completion.TrySetResult(false); confirmations.Clear();
             foreach (var pending in personalCommits.Values) pending.Completion.TrySetResult("temporary"); personalCommits.Clear();
         }
         cancellation?.Cancel(); foreach (var connection in connections) connection.Dispose();
@@ -1220,7 +1236,9 @@ internal sealed partial class TelefonCoordinator : IDisposable
         using var secrets = TelefonCrypto.Pairing(ephemeral.Private, peerEphemeral, identity.PrivateKey, peerStatic, init, response);
         CryptographicOperations.ZeroMemory(ephemeral.Private);
         var confirmation = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        lock (gate) confirmations[peerId] = confirmation;
+        var attemptId = Convert.ToHexString(RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
+        lock (gate) confirmations[peerId] = new(confirmation, attemptId, new JsonObject { ["attempt_id"] = attemptId, ["id"] = peerId,
+            ["name"] = peerName, ["code"] = secrets.Code, ["fingerprint"] = TelefonCrypto.Fingerprint(peerStatic), ["confirmation_required"] = setup is null }, Environment.TickCount64 + 120_000);
         if (setup is not null) confirmation.TrySetResult(true);
         Log("", "pair_init", $"Paarung begonnen mit {peerId}; Code angezeigt.");
         await emit("App.telefonPaarung", new { offen = true, code = secrets.Code, kennung = peerId, name = peerName,

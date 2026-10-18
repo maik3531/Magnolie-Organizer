@@ -220,7 +220,8 @@ state = {"started": False, "passed": False, "error": None, "transport_blocked": 
 def unrelated_transport(*_args, **_kwargs):
     state["transport_blocked"] = True
     raise RuntimeError("Handset transports are unavailable in this native book fixture")
-product._kdeconnect_backend = unrelated_transport
+if os.environ.get("MAGNOLIE_MCP_PROBE_KDE_ONLY") != "1":
+    product._kdeconnect_backend = unrelated_transport
 product.kdeconnect_sms_stand = lambda *_args, **_kwargs: {
     "available": False, "device_count": 0, "device_id": "", "reason": "isolated_book_fixture", "pairing_state": "idle"}
 if os.environ.get("MAGNOLIE_MCP_PROBE_SYNC_SETTINGS_ONLY") == "1":
@@ -264,6 +265,28 @@ window = product.Fenster(str(ROOT / "web"))
 window._telefon_stand_melden = lambda: None
 window._telefon_dienst_pflegen = lambda: None
 window._baum_dienst_pflegen = lambda: None
+phone_fixture = None
+kde_fixture = None
+if os.environ.get("MAGNOLIE_MCP_PROBE_PHONE_ONLY") == "1":
+    import magnolie_telefon as phone_protocol
+    class OwnedNoBluetooth:
+        def availability(self): return False, "owned_fixture"
+        def paired_devices(self): return []
+        def paired(self, _address): return False
+    phone_fixture = phone_protocol.PhoneService(str(data_file.parent / "telefon"), "Owned native phone-control desktop", callback=window._telefon_ereignis, bluetooth_backend=OwnedNoBluetooth())
+    phone_fixture.enabled = False; phone_fixture.store.save_settings(False)
+    phone_fixture.store.peers = [{"device_id": "11111111-1111-4111-8111-111111111111", "display_name": "Owned native phone-control fixture", "static_public": phone_protocol.b64(os.urandom(32)), "state": "paired",
+        "grants": phone_protocol.desktop_grants(), "local_grants": phone_protocol.desktop_grants(), "capabilities": {}, "last_contact_ms": 0,
+        "bluetooth": {"enabled": False, "address": ""}, "personal_sync": {"own_device": False, "remote_own_device": False, "auto_wifi": False, "last_report": {}}}]
+    phone_fixture.store.save_peers()
+    window._telefon = phone_fixture
+    window._telefon_dienst_pflegen = lambda start_listener=True: False
+if os.environ.get("MAGNOLIE_MCP_PROBE_KDE_ONLY") == "1":
+    import magnolie_kdeconnect as kde_protocol
+    kde_fixture = kde_protocol.KDEConnectSMSBackend(str(data_file.parent / "kdeconnect"), "Owned native KDE-control desktop")
+    kde_remote = kde_protocol.IdentityStore(str(data_file.parent / "owned-kde-remote"), "Owned native KDE-control peer")
+    kde_fixture.store.confirm_peer_and_cleanup(kde_remote.device_id, kde_remote.device_name, kde_remote.certificate, "127.0.0.1", 1716)
+    product._KDECONNECT_BACKEND = kde_fixture
 window.show_all()
 owned = []
 
@@ -346,6 +369,64 @@ def client():
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
         if os.environ.get("MAGNOLIE_MCP_PROBE_FAIL_AFTER_READY") == "1":
             raise RuntimeError("Owned fixture intentional failure after ready")
+        if os.environ.get("MAGNOLIE_MCP_PROBE_KDE_ONLY") == "1":
+            def kde_tool(name, arguments=None):
+                result = call("tools/call", {"name": name, **({"arguments": arguments} if arguments is not None else {})})
+                assert not result["isError"], result
+                return result["structuredContent"]
+            sync = kde_tool("organizer_sync_settings_read")
+            kde_tool("organizer_sync_settings_update", {"expected_revision": sync["revision"], "at_startup": sync["settings"]["at_startup"]})
+            unchanged_book = data_file.read_bytes()
+            current = kde_tool("organizer_kde_connection_read")
+            assert current["integration"] == "direct" and not current["running"] and not current["listening"] and current["peer_total"] == 1
+            assert current["local_id"] == kde_fixture.store.device_id and current["peers"][0]["fingerprint"] == kde_remote.certificate.fingerprint(kde_protocol.hashes.SHA256()).hex()
+            assert not current["capabilities"]["remove"] and not kde_fixture._service_thread
+            target = current["peers"][0]
+            unsupported = call("tools/call", {"name": "organizer_kde_connection_remove", "arguments": {"expected_revision": current["revision"], "peer_id": target["id"], "fingerprint": target["fingerprint"]}})
+            assert unsupported["isError"] and unsupported["structuredContent"]["code"] == "unsupported_feature" and len(kde_fixture.store._load_peers()) == 1
+            begun = kde_tool("organizer_kde_pairing_begin", {"action": "begin", "expected_revision": current["revision"], "candidate_id": "owned-missing-candidate", "source_token": "0" * 64})
+            until = time.monotonic() + 5
+            status = begun
+            while status["phase"] == "dispatching":
+                assert time.monotonic() < until
+                status = kde_tool("organizer_kde_pairing_status", {"operation_id": begun["operation_id"]})
+            assert status["phase"] == "failed" and status["error_code"] == "conflict"
+            assert kde_fixture._service_thread is None and not kde_fixture.listening and kde_fixture._listener is None
+            assert data_file.read_bytes() == unchanged_book and product._KDECONNECT_BACKEND is kde_fixture
+            state["actual_kde_selected_snapshot_store_verified"] = True
+            state["kde_fixture_listener_inactive"] = True
+            process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
+            return
+        if os.environ.get("MAGNOLIE_MCP_PROBE_PHONE_ONLY") == "1":
+            def phone_tool(name, arguments=None):
+                result = call("tools/call", {"name": name, **({"arguments": arguments} if arguments is not None else {})})
+                assert not result["isError"], result
+                return result["structuredContent"]
+            sync = phone_tool("organizer_sync_settings_read")
+            phone_tool("organizer_sync_settings_update", {"expected_revision": sync["revision"], "at_startup": sync["settings"]["at_startup"]})
+            unchanged_book = data_file.read_bytes()
+            initial_phone = phone_tool("organizer_phone_connection_read")
+            assert initial_phone["available"] and not initial_phone["enabled"] and not initial_phone["listening"] and initial_phone["peer_total"] == 1
+            assert initial_phone["bluetooth"]["paired_devices_supported"] and not initial_phone["bluetooth"]["available"]
+            target = initial_phone["peers"][0]
+            def phone_action(previous, action, **extra):
+                return phone_tool("organizer_phone_connection_action", {"action": action, "expected_revision": previous["revision"], **extra})
+            disabled = phone_action(initial_phone, "settings", enabled=False)
+            assert disabled["persisted"] and disabled["local_verified"] and not phone_fixture.store.settings()["enabled"]
+            granted = phone_action(disabled["state"], "grant", peer_id=target["id"], fingerprint=target["fingerprint"], permission="selected_notifications_readonly", enabled=True)
+            assert granted["persisted"] and granted["local_verified"] and not granted["delivery_confirmed"]
+            assert phone_fixture.store._load_peers()[0]["local_grants"]["grants"]["selected_notifications_readonly"]
+            wrong = call("tools/call", {"name": "organizer_phone_connection_action", "arguments": {"action": "remove", "expected_revision": granted["state"]["revision"], "peer_id": target["id"], "fingerprint": "wrong"}})
+            assert wrong["isError"] and wrong["structuredContent"]["code"] == "conflict" and len(phone_fixture.store._load_peers()) == 1
+            bluetooth = phone_action(granted["state"], "bluetooth", peer_id=target["id"], fingerprint=target["fingerprint"], enabled=False)
+            assert bluetooth["persisted"] and not phone_fixture.store._load_peers()[0]["bluetooth"]["enabled"]
+            removed = phone_action(bluetooth["state"], "remove", peer_id=target["id"], fingerprint=target["fingerprint"])
+            assert removed["persisted"] and removed["state"]["peer_total"] == 0 and phone_fixture.store._load_peers() == []
+            assert data_file.read_bytes() == unchanged_book and phone_fixture.server is None and not phone_fixture._workers
+            state["actual_phone_control_store_readback_verified"] = True
+            state["phone_fixture_listener_inactive"] = True
+            process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
+            return
         if os.environ.get("MAGNOLIE_MCP_PROBE_TREE_ONLY") == "1":
             def tree_tool(name, arguments=None):
                 result = call("tools/call", {"name": name, **({"arguments": arguments} if arguments is not None else {})})
@@ -2220,6 +2301,17 @@ def client():
                 if isinstance(dialog, product.Gtk.Dialog):
                     dialog.response(product.Gtk.ResponseType.CANCEL)
                     dialog.destroy()
+            if phone_fixture is not None and window._telefon is phone_fixture:
+                if phone_fixture.stop() and phone_fixture.server is None and not phone_fixture._workers:
+                    window._telefon = None
+                else:
+                    state["passed"] = False; state["error"] = "Owned phone fixture did not stop"
+            if kde_fixture is not None and product._KDECONNECT_BACKEND is kde_fixture:
+                kde_fixture.stop()
+                if not kde_fixture.listening and (kde_fixture._service_thread is None or not kde_fixture._service_thread.is_alive()):
+                    product._KDECONNECT_BACKEND = None
+                else:
+                    state["passed"] = False; state["error"] = "Owned KDE fixture did not stop"
             if product._KDECONNECT_BACKEND is not None or window._telefon is not None or window._baumdienst is not None:
                 state["passed"] = False
                 state["error"] = "An unrelated transport started inside the isolated book fixture"
@@ -2278,7 +2370,11 @@ finally:
         state["error"] = (state.get("error") or "") + "\nPrivate service/temporary cleanup:\n" + traceback.format_exc(limit=4)
     print("Native MCP fixture state:", json.dumps(state), flush=True)
 assert state["passed"] and state.get("cleanup_verified"), state
-if os.environ.get("MAGNOLIE_MCP_PROBE_TREE_ONLY") == "1":
+if os.environ.get("MAGNOLIE_MCP_PROBE_KDE_ONLY") == "1":
+    print("Native MCP KDE CONTROL PASS: actual selected dormant backend/store/certificate pins through GTK/stdio, native limits and async source rejection, unchanged book, no extra listener or paired-handset claim")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_PHONE_ONLY") == "1":
+    print("Native MCP PHONE CONTROL PASS: actual private GTK/stdio identity/permission/Bluetooth-disable/removal handlers, store readback, fingerprint rejection, unchanged book, no listener/replay or paired-handset claim")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_TREE_ONLY") == "1":
     print("Native MCP TREE PASS: actual private GTK/stdio tree controls, pairing document, Unicode inbox chunks, checkpoint/domain adoption/SaveACK/readback and content-checked consumption; no peer transport claim")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_DAV_WRITE_ONLY") == "1":
     print("Native MCP DAV WRITE PASS: actual config save/readback and private credential metadata, native revision conflicts, fresh rewrite versions, no book mutation or auth claim")

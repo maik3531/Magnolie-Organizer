@@ -176,6 +176,67 @@ internal sealed partial class BridgeDispatcher
         });
     }
 
+    private async Task KdeMcpAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId");
+        try
+        {
+            if (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null))
+            { await form.SendAsync("App.kdeMcpErgebnis", new { requestId, ok = false, code = "profile_locked" }); return; }
+            if (restoreInProgress) { await form.SendAsync("App.kdeMcpErgebnis", new { requestId, ok = false, code = "native_busy" }); return; }
+            var request = message.GetProperty("request");
+            JsonObject result;
+            if (Text(request, "action") == "read")
+            {
+                var status = kdeConnectSms.McpStatus();
+                result = status is null ? new() { ["ok"] = false, ["code"] = "native_unavailable" } : new() { ["ok"] = true, ["status"] = status };
+            }
+            else if (Text(request, "action") == "refresh")
+            {
+                using var deadline = NetworkDeadline(TimeSpan.FromSeconds(20));
+                result = await kdeConnectSms.McpRefreshAsync(Text(request, "expectedRevision"), deadline.Token);
+            }
+            else
+            {
+                using var deadline = NetworkDeadline(TimeSpan.FromSeconds(20));
+                result = await kdeConnectSms.McpActionAsync(JsonNode.Parse(request.GetRawText())!.AsObject(), deadline.Token);
+            }
+            result["requestId"] = requestId;
+            await form.SendAsync("App.kdeMcpErgebnis", result);
+        }
+        catch (Exception) { await form.SendAsync("App.kdeMcpErgebnis", new { requestId, ok = false, code = "native_operation_failed" }); }
+    }
+
+    private async Task TelefonMcpAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId");
+        try
+        {
+            if (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null))
+            { await form.SendAsync("App.telefonMcpErgebnis", new { requestId, ok = false, code = "profile_locked" }); return; }
+            if (restoreInProgress) { await form.SendAsync("App.telefonMcpErgebnis", new { requestId, ok = false, code = "native_busy" }); return; }
+            var request = JsonNode.Parse(message.GetProperty("request").GetRawText())!.AsObject();
+            JsonObject result;
+            if (request["action"]?.GetValue<string>() == "read") result = new() { ["ok"] = true, ["status"] = telefon.McpStatus() };
+            else
+            {
+                if (request["action"]?.GetValue<string>() == "pairing_begin" || request["action"]?.GetValue<string>() == "settings" && request["enabled"]?.GetValue<bool>() == true)
+                {
+                    if (request["expectedRevision"]?.GetValue<string>() != telefon.McpStatus()["revision"]!.GetValue<string>())
+                    { await form.SendAsync("App.telefonMcpErgebnis", new { requestId, ok = false, code = "conflict" }); return; }
+                    await EnsureFirewallAsync();
+                }
+                if (restoreInProgress || !currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null))
+                { await form.SendAsync("App.telefonMcpErgebnis", new { requestId, ok = false, code = "native_busy" }); return; }
+                using var deadline = NetworkDeadline(TimeSpan.FromSeconds(20));
+                result = await telefon.ExecuteMcpAsync(request, deadline.Token, (id, fingerprint, revision) => RemoveTelefonAsync(id, fingerprint, revision));
+            }
+            result["requestId"] = requestId;
+            await form.SendAsync("App.telefonMcpErgebnis", result);
+        }
+        catch (Exception) { await form.SendAsync("App.telefonMcpErgebnis", new { requestId, ok = false, code = "native_operation_failed" }); }
+    }
+
     private async Task BaumMcpAsync(JsonElement message)
     {
         var requestId = Text(message, "requestId");
@@ -1053,12 +1114,7 @@ internal sealed partial class BridgeDispatcher
             return;
         }
         if (enabled && address.Length == 0) throw new InvalidDataException(T("No Bluetooth address was selected."));
-        var settings = ReadTelefonSettings();
-        var all = settings["bluetooth"] as JsonObject;
-        if (all is null) { all = new JsonObject(); settings["bluetooth"] = all; }
-        all[id] = new JsonObject { ["enabled"] = enabled, ["address"] = enabled ? address : "" };
-        store.WriteRecoverableJson(paths.TelefonSettings, settings.ToJsonString(JsonOptions.Default));
-        await telefon.ReportStatusAsync();
+        await telefon.SetBluetoothPreferenceAsync(id, enabled, address);
     }
 
     private JsonObject ReadTelefonSettings()

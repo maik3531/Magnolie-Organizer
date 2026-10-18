@@ -10901,7 +10901,7 @@ def kde_einstellungen_migrieren(clipboard, files, device_id,
     return hintergrund_einstellungen_schreiben(stand)
 
 
-def _kdeconnect_backend(callback=None):
+def _kdeconnect_backend(callback=None, start_service=True):
     global _KDECONNECT_BACKEND
     with _KDECONNECT_SPERRE:
         if _KDECONNECT_BACKEND is None:
@@ -10916,6 +10916,8 @@ def _kdeconnect_backend(callback=None):
         elif callback is not None:
             _KDECONNECT_BACKEND.callback = callback
         backend = _KDECONNECT_BACKEND
+    if not start_service:
+        return backend
     backend.start()
     if hasattr(backend, "set_visible"):
         _hintergrund_sichtbarkeit_senden(
@@ -21074,9 +21076,15 @@ class Fenster(_FENSTER_BASIS):
             return
 
         if (str(befehl or "").startswith("baum_") or
-                str(befehl or "").startswith("telefon_")) and self._gesperrt:
+                str(befehl or "").startswith("telefon_") or befehl == "kde_mcp") and self._gesperrt:
+            if befehl == "kde_mcp":
+                self.antwort("App.kdeMcpErgebnis", {"requestId": nachricht.get("requestId"), "ok": False, "code": "profile_locked"})
+                return
             if befehl == "baum_mcp":
                 self.antwort("App.baumMcpErgebnis", {"requestId": nachricht.get("requestId"), "ok": False, "code": "profile_locked"})
+                return
+            if befehl == "telefon_mcp":
+                self.antwort("App.telefonMcpErgebnis", {"requestId": nachricht.get("requestId"), "ok": False, "code": "profile_locked"})
                 return
             if befehl in ("baum_briefkasten_status", "baum_briefkasten_speichern") and nachricht.get("requestId"):
                 callback = "App.baumBriefkastenStatus" if befehl.endswith("status") else "App.baumBriefkastenGespeichert"
@@ -21769,8 +21777,14 @@ class Fenster(_FENSTER_BASIS):
                 return
             self._kontakt_fotos_laeuft = True
             threading.Thread(target=self._kontakt_fotos_lesen, args=(nachricht,), daemon=True).start()
+        elif befehl == "telefon_mcp":
+            threading.Thread(target=lambda: self._telefon_mcp(nachricht), daemon=True).start()
+
         elif befehl == "telefon_stand":
             threading.Thread(target=self._telefon_stand_melden, daemon=True).start()
+
+        elif befehl == "kde_mcp":
+            threading.Thread(target=lambda: self._kde_mcp(nachricht), daemon=True).start()
 
         elif befehl == "kde_reconnect":
             threading.Thread(target=self._kde_reconnect, daemon=True).start()
@@ -23770,8 +23784,10 @@ class Fenster(_FENSTER_BASIS):
         if art in ("status", "paired", "device_status"):
             self._telefon_stand_melden()
 
-    def _telefon_dienst_pflegen(self):
+    def _telefon_dienst_pflegen(self, start_listener=True):
         with self._telefon_sperre:
+            if not start_listener and self._telefon is not None:
+                return False
             stand = background_settings_read()
             daemon_state = background_daemon_status()
             if daemon_state in ("starting", "stopping"):
@@ -23804,6 +23820,8 @@ class Fenster(_FENSTER_BASIS):
                     self._telefon_fehler = fehler_deutsch(
                         fehler, _("Starting the phone connection"))
                     return False
+            if not start_listener:
+                return False
             if self._telefon.enabled:
                 gestartet = self._telefon.start()
                 if isinstance(self._telefon, PhoneServiceProxy):
@@ -23819,6 +23837,42 @@ class Fenster(_FENSTER_BASIS):
                 return gestartet
             self._telefon.stop()
             return False
+
+    def _telefon_mcp(self, nachricht):
+        result = {"requestId": nachricht.get("requestId"), "ok": False, "code": "native_operation_failed"}
+        try:
+            if self._gesperrt or not self._organizer_vertraut():
+                result["code"] = "profile_locked"
+                return
+            request = nachricht.get("request") or {}
+            self._telefon_dienst_pflegen(start_listener=False)
+            if self._telefon is None:
+                result["code"] = "unsupported_feature"
+                return
+            if request.get("action") == "read":
+                result = {"ok": True, "status": self._telefon.mcp_status()}
+            else:
+                if request.get("action") == "settings" and request.get("enabled") is True:
+                    if request.get("expectedRevision") != self._telefon.mcp_status()["revision"]:
+                        result["code"] = "conflict"
+                        return
+                    ok, _error = baum_firewall_einrichten()
+                    if not ok:
+                        return
+                if self._gesperrt or not self._organizer_vertraut():
+                    result["code"] = "profile_locked"
+                    return
+                result = self._telefon.mcp_action(request)
+                if not isinstance(result, dict):
+                    raise ValueError("invalid phone control result")
+            if self._gesperrt or not self._organizer_vertraut():
+                result = {"ok": False, "code": "profile_locked"}
+                return
+        except Exception:
+            result = {"ok": False, "code": "native_operation_failed"}
+        finally:
+            result["requestId"] = nachricht.get("requestId")
+            self.antwort("App.telefonMcpErgebnis", result)
 
     def _telefon_bericht(self):
         self._telefon_dienst_pflegen()
@@ -24051,6 +24105,30 @@ class Fenster(_FENSTER_BASIS):
                 self.antwort("App.kontaktFotos", {"ok": False, "requestId": request_id})
         finally:
             self._kontakt_fotos_laeuft = False
+
+    def _kde_mcp(self, nachricht):
+        result = {"ok": False, "code": "native_operation_failed"}
+        try:
+            if self._gesperrt or not self._organizer_vertraut():
+                result["code"] = "profile_locked"
+                return
+            request = nachricht.get("request") or {}
+            backend = _kdeconnect_backend(start_service=False)
+            if request.get("action") == "read":
+                result = {"ok": True, "status": backend.mcp_status()}
+            elif request.get("action") == "refresh":
+                result = backend.mcp_refresh(request.get("expectedRevision") or "")
+            else:
+                result = backend.mcp_action(request)
+            if not isinstance(result, dict):
+                raise ValueError("invalid KDE control result")
+            if self._gesperrt or not self._organizer_vertraut():
+                result = {"ok": False, "code": "profile_locked"}
+        except Exception:
+            result = {"ok": False, "code": "native_operation_failed"}
+        finally:
+            result["requestId"] = nachricht.get("requestId")
+            self.antwort("App.kdeMcpErgebnis", result)
 
     def _kde_reconnect(self):
         try:

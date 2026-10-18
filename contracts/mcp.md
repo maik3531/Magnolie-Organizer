@@ -656,6 +656,120 @@ implies that cancellation rolls back saved metadata, queued content or adopted
 records. Portable native fixtures and the private Linux GTK/stdio/store/adoption
 probe are separate from physical paired-peer/installed-product acceptance.
 
+## Notes phone connection controls
+
+`organizer_phone_connection_read` reads the actual native phone-control store and
+runtime snapshot. It returns public identity/fingerprints, listener/pairing state,
+pending verification codes and attempt IDs, declared capabilities, editable
+permission names and per-peer local/remote grants. Pairing tokens, private keys,
+cached device-status contents, notifications and personal-sync payloads are
+excluded. Peer, pending and platform Bluetooth-inventory lists share bounded
+offset/limit pages. Linux uses its existing local service or daemon proxy without
+starting a listener, subscribing to GUI events or replaying personal content.
+Initial identity/adapter initialization can occur. Windows explicitly reports
+that OS-paired Bluetooth enumeration is unsupported by this native adapter.
+
+The control revision is keyed to the native process/store and covers identity,
+stored preferences, peer keys/grants/capabilities and pending pairing attempts.
+Volatile contact timestamps, transport observations and OS device observations
+do not change this control revision. Actions still check current platform
+availability and identity at their native commit point.
+
+`organizer_phone_connection_action` runs the shared native enable/disable,
+pairing-window begin, attempt-bound confirmation/cancellation, removal, editable
+grant and Bluetooth preference handlers. Targeted changes require the peer ID
+and fingerprint; pairing decisions also require the current native attempt ID.
+There is no implicit pending-attempt fallback. Begin requires an enabled,
+listening connection; enabling can invoke the existing OS firewall permission
+flow. Native preferences are revision checked and actual store contents are
+read back. Removal retains existing queue/permission/runtime cleanup.
+
+`persisted:true` refers to verified local configuration, not delivery of a grant,
+completed phone authentication, an OS Bluetooth pairing or an established data
+link. Pairing-window/decision results report local runtime acceptance with
+`persisted:false`; inspect subsequent native state for completed pairing.
+`delivery_confirmed` is always false. Bluetooth preferences retain each
+platform's existing capability/address/system-pairing checks. Unsupported or
+fixed grants cannot become freely writable through MCP.
+
+Immediate worker callbacks are scoped away from GUI reconstruction/replay.
+Long-lived native service workers retain their normal event context. Linux
+daemon operations reuse the existing owner and setup-session mutation guards;
+they do not create another listener. A stored disabled flag without verified
+worker shutdown is not accepted as a successful shutdown receipt. Cancellation,
+timeouts and errors can follow native changes; inspect current state before
+retrying. Portable/native fixtures and private GTK/stdio/store checks do not
+stand in for a physical Windows/Notes/Bluetooth pairing acceptance.
+
+These controls do not complete the remaining KDE lifecycle, general device-status
+privacy paths, own Notes synchronization or communications groups.
+
+## Existing KDE integration lifecycle
+
+`organizer_kde_connection_read` projects the selected integration's actual stored
+peer pins, discovered candidate source tokens and pending native verification
+attempts. All three lists share bounded offset/limit pages and independent
+totals. Clipboard text, file payloads, SMS/history and private certificates are
+excluded. The process/store-bound revision covers control state, not volatile
+discovery ages. A candidate token binds its observed ID, endpoint, available TLS
+pin and connection generation; it does not establish trust.
+
+Reads do not start a transport, subscribe to GUI events or activate the system
+KDE service. Linux reuses its selected direct integration or daemon proxy;
+the system adapter queries the existing D-Bus owner without auto-start and binds
+observations to that owner and available trusted-certificate pins. Its
+pairing/removal/receive-permission limits remain explicit. Unknown system local
+identity/listener facts are null, not synthesized. On Windows a metadata read
+does not instantiate another lazy native backend; an uninitialized integration
+is reported unavailable until explicit refresh or normal application startup.
+
+`organizer_kde_connection_refresh` invokes actual selected-integration
+start/discovery/refresh methods. It can explicitly activate the installed system
+service, or initialize the existing native transport once. It never creates a
+second fallback integration or enables arbitrary plugins. An optional current
+revision rejects a stale readable control snapshot; omission permits explicit
+refresh while the selected system service is unavailable. Local request
+acceptance is separate from pairing, reachability and delivery; `persisted` and
+`delivery_confirmed` are false.
+
+`organizer_kde_pairing_begin/status` runs begin/complete/renew asynchronously with
+a session-owned operation ID. The current revision and candidate ID/source token
+are mandatory; renewal also binds the one old peer ID and certificate pin.
+Native candidate selection/TLS/staged-link handlers are shared with the GUI.
+The pending native context receives its own attempt ID and MCP ownership marker.
+Stored peer-state guards are checked again at the actual native pairing commit,
+including native same-name/replacement cleanup. Native deadlines remain in force.
+
+Pending status refreshes live native state. A paired terminal status records
+observed local trust in that exact certificate; use `connection_read` for current
+state. It does not promise delivery or continued reachability. At most eight
+operation handles are retained for three minutes. Session closure removes its
+handles and aborts RPC waiting; an already dispatched native handshake can still
+finish establishing a pending context. Timeouts/errors therefore require reading
+native connection state before retrying, rather than assuming rollback.
+
+`organizer_kde_pairing_decide` accepts/rejects one exact live peer/attempt/pin
+under the current revision. A local accept can remain pending until the phone
+confirms. `paired_verified/persisted:true` require the actual native trust-store
+commit marker and stored-pin readback, not just a previously known peer or a sent
+confirmation packet. MCP-owned late pairing/rejection/timeout events do not open
+legacy GUI verification dialogs; normal independent native events retain their
+usual routing.
+
+`organizer_kde_connection_remove` uses the existing complete native lifecycle
+cleanup where available, with pinned target/revision and store-absence readback.
+The Windows native handler cancels operations and removes staged/active/trust
+state. The system adapter and Linux direct adapter without a complete offered
+removal handler explicitly report unsupported; MCP does not merely delete a
+trust-file entry and pretend connections/queues were cleaned up.
+
+Platform limits are tested separately from private native transport/store tests.
+A private network namespace is required for active KDE transport acceptance so
+its protocol ports do not create another host listener. These proofs are not a
+physical Windows/Android/KDE installed-package acceptance. KDE incoming
+clipboard/file permissions, proposals and other device actions remain separate
+coverage work.
+
 ## Remaining coverage in #170
 
 The finite remaining operation groups are tracked in

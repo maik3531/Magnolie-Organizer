@@ -32056,6 +32056,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     internetKontenMcp(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "internetKontenMcp"); },
     graphKontoGeaendert(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "graphKontoGeaendert"); },
     baumMcpErgebnis(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "baumMcpErgebnis"); },
+    telefonMcpErgebnis(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "telefonMcpErgebnis"); },
+    kdeMcpErgebnis(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "kdeMcpErgebnis"); },
     baumBriefkastenPruefung(nutzlast) {
       briefkastenStand = nutzlast || {};
       briefkastenSignatur = JSON.stringify(briefkastenStand);
@@ -34536,6 +34538,188 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         !["uebersprungen", "wiederholend"].every(key => Number.isSafeInteger(value[key]) && value[key] >= 0)) throw new MagnolieMcp.ToolError("invalid_result", "Native local import snapshot or selected collections were incomplete");
     return value;
   }
+  function mcpKdeVerbindungStatus(value, offset = 0, limit = 100) {
+    if (value.ok !== true) throw new MagnolieMcp.ToolError(["profile_locked", "native_busy", "native_unavailable", "unsupported_feature", "conflict", "verification_failed", "cancelled"].includes(value.code) ? value.code : "native_operation_failed", "Native KDE integration state was unavailable; inspect the selected integration before retrying");
+    const state = value.status, object = item => item && typeof item === "object" && !Array.isArray(item);
+    const text = (item, min = 0, max = 256) => typeof item === "string" && item.length >= min && item.length <= max;
+    const fingerprint = item => item === null || typeof item === "string" && /^[a-fA-F0-9]{64}$/.test(item);
+    const invalid = () => { throw new MagnolieMcp.ToolError("invalid_result", "Native KDE control snapshot was incomplete"); };
+    if (!object(state) || !/^[a-f0-9]{64}$/.test(state.revision) || !["direct", "system"].includes(state.integration) || typeof state.running !== "boolean" || typeof state.owned_listener !== "boolean" ||
+        !(state.listening === null || typeof state.listening === "boolean") || !(state.listen_port === null || Number.isInteger(state.listen_port) && state.listen_port >= 1 && state.listen_port <= 65535) ||
+        !(state.local_id === null || text(state.local_id, 1)) || !fingerprint(state.local_fingerprint) || typeof state.error_present !== "boolean" || !object(state.capabilities) ||
+        !["refresh", "pairing", "remove", "receive_preferences"].every(key => typeof state.capabilities[key] === "boolean") || !Array.isArray(state.peers) || !Array.isArray(state.candidates) || !Array.isArray(state.pending)) invalid();
+    const peers = state.peers.map(peer => {
+      if (!object(peer) || !text(peer.id, 1) || !text(peer.name) || !fingerprint(peer.fingerprint) || typeof peer.paired !== "boolean" || typeof peer.reachable !== "boolean" || !["phone", "tablet", "desktop", "unknown"].includes(peer.type)) invalid();
+      return Object.fromEntries(["id", "name", "fingerprint", "paired", "reachable", "type"].map(key => [key, peer[key]]));
+    });
+    const candidates = state.candidates.map(candidate => {
+      if (!object(candidate) || !text(candidate.id, 1) || !text(candidate.name) || !fingerprint(candidate.fingerprint) || !/^[a-f0-9]{64}$/.test(candidate.source_token) || typeof candidate.reachable !== "boolean" || !text(candidate.address, 1) || !Number.isInteger(candidate.port) || candidate.port < 1 || candidate.port > 65535) invalid();
+      return Object.fromEntries(["id", "name", "fingerprint", "source_token", "reachable", "address", "port"].map(key => [key, candidate[key]]));
+    });
+    const pending = state.pending.map(item => {
+      if (!object(item) || !text(item.id, 1) || !text(item.name) || typeof item.fingerprint !== "string" || !fingerprint(item.fingerprint) || !text(item.attempt_id, 1) || !text(item.code, 1) || !Number.isSafeInteger(item.expires_ms) || item.expires_ms < 0 || typeof item.local_confirmed !== "boolean" || typeof item.remote_confirmed !== "boolean") invalid();
+      return Object.fromEntries(["id", "name", "fingerprint", "attempt_id", "code", "expires_ms", "local_confirmed", "remote_confirmed"].map(key => [key, item[key]]));
+    });
+    return { ...Object.fromEntries(["revision", "integration", "running", "owned_listener", "listening", "listen_port", "local_id", "local_fingerprint", "error_present"].map(key => [key, state[key]])),
+      capabilities: Object.fromEntries(["refresh", "pairing", "remove", "receive_preferences"].map(key => [key, state.capabilities[key]])),
+      peer_total: peers.length, peers: peers.slice(offset, offset + limit), candidate_total: candidates.length, candidates: candidates.slice(offset, offset + limit), pending_total: pending.length, pending: pending.slice(offset, offset + limit), offset,
+      ...(offset + limit < Math.max(peers.length, candidates.length, pending.length) ? { next_offset: offset + limit } : {}) };
+  }
+  const mcpKdePaarungsLaeufe = new Map();
+  function mcpKdePaarungsLauf(owner, id) {
+    const job = mcpKdePaarungsLaeufe.get(id);
+    if (!job || job.owner !== owner || job.expires <= Date.now()) {
+      if (job?.owner === owner) { job.controller.abort(); mcpKdePaarungsLaeufe.delete(id); }
+      throw new MagnolieMcp.ToolError("not_found", "KDE pairing operation not found in this session");
+    }
+    return job;
+  }
+  function mcpKdePaarungsLaufWert(job) {
+    return { operation_id: job.id, action: job.action, phase: job.phase, error_code: job.error, native_outcome_unknown: job.unknown,
+      paired_verified: job.phase === "paired", state: job.state ? kopie(job.state) : null };
+  }
+  function mcpKdePaarungsWerkzeuge(owner) {
+    const id = { type: "string", minLength: 1, maxLength: 256 }, hash = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    return [{ name: "organizer_kde_pairing_begin", description: "Asynchronously start/complete/renew the selected integration's existing KDE verification flow. Requires current control revision plus an exact discovered candidate source token; renewal also pins the one old peer ID/certificate fingerprint. Candidate metadata is not trust. Returns a session-owned operation ID: poll pairing_status for the real verification code/attempt, then explicitly decide. Pending means a native request/context exists, not authentication. System integrations without pairing support return unsupported. Native work can outlive RPC cancellation/timeouts; inspect connection state before retrying. Session closure stops RPC waiting, not an already dispatched transport operation. Verification flows retain native deadlines and source/store commit guards; no GUI prompt is opened for the MCP-owned flow.",
+      inputSchema: { type: "object", properties: { action: { type: "string", enum: ["begin", "complete", "renew"] }, expected_revision: hash, candidate_id: id, source_token: hash, replacement_id: id, replacement_fingerprint: { type: "string", pattern: "^[a-fA-F0-9]{64}$" } }, required: ["action", "expected_revision", "candidate_id", "source_token"],
+        anyOf: [{ properties: { action: { enum: ["begin", "complete"] } } }, { properties: { action: { enum: ["renew"] } }, required: ["replacement_id", "replacement_fingerprint"] }], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        if (signal.aborted) throw new MagnolieMcp.ToolError("cancelled", "KDE pairing start cancelled");
+        for (const [key, job] of mcpKdePaarungsLaeufe) if (job.expires <= Date.now()) { job.controller.abort(); mcpKdePaarungsLaeufe.delete(key); }
+        if (mcpKdePaarungsLaeufe.size >= 8) throw new MagnolieMcp.ToolError("native_busy", "Too many retained KDE pairing operations");
+        const operationId = Array.from(crypto.getRandomValues(new Uint8Array(24)), value => value.toString(16).padStart(2, "0")).join("");
+        const job = { id: operationId, owner, action: args.action, phase: "dispatching", error: "none", unknown: false, state: null, target: args.candidate_id,
+          attempt: "", fingerprint: "", controller: new AbortController(), expires: Date.now() + 180000 };
+        mcpKdePaarungsLaeufe.set(operationId, job);
+        const run = async () => {
+          try {
+            mcpEditorPruefen();
+            const request = { action: "pairing_" + args.action, expectedRevision: args.expected_revision, candidateId: args.candidate_id, sourceToken: args.source_token,
+              ...(args.action === "renew" ? { replacementId: args.replacement_id, replacementFingerprint: args.replacement_fingerprint } : {}) };
+            const value = await mcpNativeAufruf("kde_mcp", { request }, "kdeMcpErgebnis", job.controller.signal), state = mcpKdeVerbindungStatus(value);
+            if (value.action !== request.action || value.localVerified !== true || value.persisted !== false || value.pairedVerified !== false || value.deliveryConfirmed !== false) throw new MagnolieMcp.ToolError("invalid_result", "Native KDE pairing-start receipt was incomplete");
+            const pending = state.pending.find(item => item.id === job.target);
+            if (!pending) throw new MagnolieMcp.ToolError("source_changed", "The native pairing request is no longer pending; inspect connection state");
+            job.state = state; job.attempt = pending.attempt_id; job.fingerprint = pending.fingerprint; job.phase = "pending";
+          } catch (error) {
+            job.phase = job.controller.signal.aborted ? "cancelled" : "failed";
+            job.error = ["conflict", "native_busy", "native_unavailable", "unsupported_feature", "invalid_selection", "verification_failed", "cancelled", "native_timeout", "invalid_result", "source_changed", "dialog_busy", "editor_busy"].includes(error.code) ? error.code : "native_operation_failed";
+            job.unknown = !["conflict", "native_busy", "unsupported_feature", "invalid_selection", "dialog_busy", "editor_busy"].includes(job.error);
+          }
+        };
+        void Promise.resolve().then(run);
+        return mcpKdePaarungsLaufWert(job);
+      } }, { name: "organizer_kde_pairing_status", description: "Read a session-owned KDE pairing-start operation. Pending operations refresh actual native state and keep the exact attempt/fingerprint binding. Paired records that the native trust store confirmed this exact certificate when observed; connection_read provides current state. No delivery or continued reachability is implied. Failed/time-out outcomes can follow native changes; inspect connection_read before retrying.",
+      inputSchema: { type: "object", properties: { operation_id: { type: "string", pattern: "^[a-f0-9]{48}$" } }, required: ["operation_id"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => {
+        const job = mcpKdePaarungsLauf(owner, args.operation_id);
+        if (job.phase === "pending") {
+          const state = mcpKdeVerbindungStatus(await mcpNativeAufruf("kde_mcp", { request: { action: "read" } }, "kdeMcpErgebnis", signal));
+          mcpKdePaarungsLauf(owner, args.operation_id); job.state = state;
+          const pending = state.pending.find(item => item.id === job.target && item.attempt_id === job.attempt && item.fingerprint === job.fingerprint);
+          if (!pending) {
+            if (state.peers.some(peer => peer.id === job.target && peer.paired && peer.fingerprint === job.fingerprint)) job.phase = "paired";
+            else { job.phase = "failed"; job.error = "pairing_no_longer_pending"; }
+          }
+        }
+        return mcpKdePaarungsLaufWert(job);
+      } }, { name: "organizer_kde_pairing_decide", description: "Accept or reject exactly one current native KDE verification attempt using the latest control revision, peer ID, certificate fingerprint and attempt ID from live state. Uses existing source/expiry/mutual-confirmation/store guards. Local acceptance can remain pending until the phone confirms; persisted/paired_verified are true only after the native pairing store commit is verified. Rejecting does not roll back a previously finished pairing. MCP-owned asynchronous replies do not open legacy verification dialogs. Errors/cancellation may follow changes: re-read before retrying.",
+      inputSchema: { type: "object", properties: { expected_revision: hash, peer_id: id, fingerprint: { type: "string", pattern: "^[a-fA-F0-9]{64}$" }, attempt_id: id, accept: { type: "boolean" } }, required: ["expected_revision", "peer_id", "fingerprint", "attempt_id", "accept"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        const value = await mcpNativeAufruf("kde_mcp", { request: { action: args.accept ? "pairing_confirm" : "pairing_cancel", expectedRevision: args.expected_revision, peerId: args.peer_id,
+          fingerprint: args.fingerprint, attemptId: args.attempt_id, accept: args.accept } }, "kdeMcpErgebnis", signal), state = mcpKdeVerbindungStatus(value);
+        if (value.action !== (args.accept ? "pairing_confirm" : "pairing_cancel") || value.localVerified !== true || typeof value.pairedVerified !== "boolean" || value.persisted !== value.pairedVerified || value.deliveryConfirmed !== false || !args.accept && value.pairedVerified) throw new MagnolieMcp.ToolError("invalid_result", "Native KDE pairing-decision receipt was incomplete");
+        return { state, decision_accepted: true, paired_verified: value.pairedVerified, persisted: value.persisted, delivery_confirmed: false };
+      } }, { name: "organizer_kde_connection_remove", description: "Remove one exact stored KDE peer through the existing native lifecycle removal handler, requiring current control revision and certificate fingerprint. Existing operations/connections/trust cleanup and store-absence readback apply. Platforms/integrations without a complete native removal handler report unsupported; this never edits the system KDE service's trust files or plugins. Errors/cancellation may follow changes; inspect before retrying.",
+      inputSchema: { type: "object", properties: { expected_revision: hash, peer_id: id, fingerprint: { type: "string", pattern: "^[a-fA-F0-9]{64}$" } }, required: ["expected_revision", "peer_id", "fingerprint"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        const value = await mcpNativeAufruf("kde_mcp", { request: { action: "remove", expectedRevision: args.expected_revision, peerId: args.peer_id, fingerprint: args.fingerprint } }, "kdeMcpErgebnis", signal), state = mcpKdeVerbindungStatus(value);
+        if (value.action !== "remove" || value.localVerified !== true || value.persisted !== true || value.deliveryConfirmed !== false) throw new MagnolieMcp.ToolError("invalid_result", "Native KDE removal store receipt was incomplete");
+        return { state, local_verified: true, persisted: true, delivery_confirmed: false };
+      } }];
+  }
+  function mcpKdeVerbindungWerkzeuge(owner) {
+    return [{ name: "organizer_kde_connection_read", description: "Read actual public lifecycle state of the Organizer's selected existing KDE integration: stored peer certificate fingerprints, discovered candidate source tokens, pending verification attempts and native capability limits. No clipboard text, files, SMS/history, private certificates or arbitrary plugin changes. All three lists share bounded offset/limit pages. Reads reuse the existing integration without starting a new listener or GUI subscription; an initial identity/adapter object can be initialized. A system D-Bus adapter keeps its native read-only pairing/permission limits and exposes unknown local listener/identity fields as null. Unavailable owner/pins are explicit errors or null fingerprints, not authenticated-source claims. Candidate IDs/source tokens do not establish trust; pairing still requires its real verification flow.",
+      inputSchema: { type: "object", properties: { offset: { type: "integer", minimum: 0 }, limit: { type: "integer", minimum: 1, maximum: 100 } }, additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpKdeVerbindungStatus(await mcpNativeAufruf("kde_mcp", { request: { action: "read" } }, "kdeMcpErgebnis", signal), args.offset || 0, args.limit || 100) },
+    { name: "organizer_kde_connection_refresh", description: "Run the existing selected KDE integration's explicit refresh/discovery path. This can initialize/start the already selected native integration or activate the installed system KDE service, without binding a second integration or changing plugins/trust. Optional expected_revision rejects a stale readable control state before refresh; omission permits refresh when the selected system service is not yet available. Uses actual start/discovery methods and returns observed current state, not a connected/delivered claim. No store persistence or pairing acceptance is implied. Native correlated replies do not open GUI prompts; inspect state after cancellation/timeouts before retrying.",
+      inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        const value = await mcpNativeAufruf("kde_mcp", { request: { action: "refresh", expectedRevision: args.expected_revision || "" } }, "kdeMcpErgebnis", signal), state = mcpKdeVerbindungStatus(value);
+        if (value.action !== "refresh" || value.localVerified !== true || value.persisted !== false || value.deliveryConfirmed !== false) throw new MagnolieMcp.ToolError("invalid_result", "Native KDE refresh receipt was incomplete");
+        return { state, local_verified: true, persisted: false, delivery_confirmed: false };
+      } }, ...mcpKdePaarungsWerkzeuge(owner)];
+  }
+  function mcpTelefonStatus(value, offset = 0, limit = 100) {
+    if (value.ok !== true) throw new MagnolieMcp.ToolError(["profile_locked", "native_busy", "unsupported_feature", "conflict", "invalid_selection", "verification_failed", "cancelled"].includes(value.code) ? value.code : "native_operation_failed", "Native phone operation failed; inspect current state before retrying changes");
+    const state = value.status, object = item => item && typeof item === "object" && !Array.isArray(item);
+    const invalid = () => { throw new MagnolieMcp.ToolError("invalid_result", "Native phone public control snapshot was incomplete"); };
+    const text = (item, min = 0, max = 512) => typeof item === "string" && item.length >= min && item.length <= max;
+    const grants = values => {
+      if (!object(values) || Object.keys(values).length > 128 || Object.entries(values).some(([key, enabled]) => !text(key, 1, 80) || typeof enabled !== "boolean")) invalid();
+      return { ...values };
+    };
+    const capabilities = values => {
+      if (!object(values) || Object.keys(values).length > 128) invalid();
+      return Object.fromEntries(Object.entries(values).map(([key, item]) => {
+        if (!text(key, 1, 80) || !object(item) || typeof item.available !== "boolean" || !Array.isArray(item.versions) || item.versions.length > 32 || item.versions.some(version => !Number.isInteger(version) || version < 0 || version > 1000)) invalid();
+        return [key, { available: item.available, versions: item.versions.slice() }];
+      }));
+    };
+    if (!object(state) || !/^[a-f0-9]{64}$/.test(state.revision) || state.available !== true || !["enabled", "listening", "pairing_open", "binding_conflict", "error_present"].every(key => typeof state[key] === "boolean") ||
+        !["id", "name", "fingerprint"].every(key => text(state[key], key === "name" ? 0 : 1, 256)) || !Number.isInteger(state.port) || state.port < 1 || state.port > 65535 || !Array.isArray(state.peers) || !Array.isArray(state.pending_pairings) ||
+        !Array.isArray(state.editable_grants) || state.editable_grants.length > 128 || state.editable_grants.some(name => !text(name, 1, 80)) || new Set(state.editable_grants).size !== state.editable_grants.length) invalid();
+    const peers = state.peers.map(peer => {
+      if (!object(peer) || !["id", "name", "fingerprint", "state", "transport", "bluetooth_address"].every(key => text(peer[key], ["id", "fingerprint"].includes(key) ? 1 : 0, 256)) || typeof peer.online !== "boolean" || typeof peer.bluetooth_enabled !== "boolean") invalid();
+      return { ...Object.fromEntries(["id", "name", "fingerprint", "state", "transport", "bluetooth_address", "online", "bluetooth_enabled"].map(key => [key, peer[key]])),
+        local_grants: grants(peer.local_grants), remote_grants: grants(peer.remote_grants), remote_capabilities: capabilities(peer.remote_capabilities) };
+    });
+    const pending = state.pending_pairings.map(item => {
+      if (!object(item) || !["attempt_id", "id", "name", "code", "fingerprint"].every(key => text(item[key], key === "name" ? 0 : 1, 256)) || typeof item.confirmation_required !== "boolean" || typeof item.decision_pending !== "boolean") invalid();
+      return Object.fromEntries(["attempt_id", "id", "name", "code", "fingerprint", "confirmation_required", "decision_pending"].map(key => [key, item[key]]));
+    });
+    const bt = state.bluetooth;
+    if (!object(bt) || typeof bt.available !== "boolean" || typeof bt.paired_devices_supported !== "boolean" || typeof bt.reason !== "string" || !/^[a-z0-9_]{1,80}$/.test(bt.reason) || !Array.isArray(bt.devices) || (!bt.available || !bt.paired_devices_supported) && bt.devices.length) invalid();
+    const devices = bt.devices.map(device => {
+      if (!object(device) || !text(device.name, 0, 512) || typeof device.address !== "string" || !/^(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$/.test(device.address)) invalid();
+      return { address: device.address, name: device.name };
+    });
+    return { ...Object.fromEntries(["revision", "available", "enabled", "listening", "id", "name", "fingerprint", "port", "pairing_open", "binding_conflict", "error_present"].map(key => [key, state[key]])),
+      capabilities: capabilities(state.capabilities), editable_grants: state.editable_grants.slice(), peer_total: peers.length, peers: peers.slice(offset, offset + limit), pending_total: pending.length, pending_pairings: pending.slice(offset, offset + limit), offset,
+      bluetooth: { available: bt.available, reason: bt.reason, paired_devices_supported: bt.paired_devices_supported, device_total: devices.length, devices: devices.slice(offset, offset + limit) },
+      ...(offset + limit < Math.max(peers.length, pending.length, devices.length) ? { next_offset: offset + limit } : {}) };
+  }
+  function mcpTelefonVerbindungWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 }, flag = { type: "boolean" };
+    return [{ name: "organizer_phone_connection_read", description: "Read actual native Notes phone identity, listener/pairing state, pending verification codes/attempt IDs, peer fingerprints, editable/local/remote grants, declared capabilities and platform Bluetooth metadata. Linux returns the existing OS-paired Bluetooth inventory; Windows explicitly marks that enumeration unsupported. Peer, pending and Bluetooth lists share bounded offset/limit pages. Pairing tokens, private keys, cached device-status contents, notifications and personal-sync payloads are excluded. The process/store-bound control revision excludes volatile contact/transport observations. Linux uses the existing local service or daemon proxy without listener start, GUI subscription or personal-content replay; initial identity/adapter initialization may occur. Reading does not prove authentication or delivery. Late replies leave GUI drafts/dialogs unchanged.",
+      inputSchema: { type: "object", properties: { offset: { type: "integer", minimum: 0 }, limit: { type: "integer", minimum: 1, maximum: 100 } }, additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) =>
+        mcpTelefonStatus(await mcpNativeAufruf("telefon_mcp", { request: { action: "read" } }, "telefonMcpErgebnis", signal), args.offset || 0, args.limit || 100) },
+    { name: "organizer_phone_connection_action", description: "Run existing native Notes phone enable/disable, pairing-window begin, attempt-bound confirmation/cancellation, peer removal, editable grant or Bluetooth preference handlers. Requires current phone revision; targeted operations require exact peer ID/fingerprint, and pairing decisions the current attempt ID. Read editable_grants before changing permission. Pairing begin requires enabled/listening state; enable first if needed. Existing ownership/setup/restore/identity guards and actual store readback apply. persisted confirms local configuration only; pairing decisions are runtime acceptance, not completed authentication. Bluetooth uses each platform's existing checks; saving an address does not prove OS pairing or a data link. Existing firewall permission UI can appear on enable/open. Native replies leave GUI drafts/dialogs unchanged. Errors/timeouts/cancellation can follow local changes or queued grants: inspect state before retrying. Delivery is never claimed.",
+      inputSchema: { type: "object", properties: { action: { type: "string", enum: ["settings", "pairing_begin", "pairing_confirm", "pairing_cancel", "remove", "grant", "bluetooth"] },
+        expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, peer_id: id, fingerprint: id, enabled: flag, permission: { type: "string", minLength: 1, maxLength: 80 },
+        address: { type: "string", maxLength: 32, pattern: "^(?:$|(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})$" }, attempt_id: id, accept: flag }, required: ["action", "expected_revision"],
+        anyOf: [{ properties: { action: { enum: ["settings"] } }, required: ["enabled"] }, { properties: { action: { enum: ["pairing_begin"] } } },
+          { properties: { action: { enum: ["pairing_confirm"] } }, required: ["peer_id", "fingerprint", "attempt_id", "accept"] },
+          { properties: { action: { enum: ["pairing_cancel"] } }, required: ["peer_id", "fingerprint", "attempt_id"] },
+          { properties: { action: { enum: ["remove"] } }, required: ["peer_id", "fingerprint"] },
+          { properties: { action: { enum: ["grant"] } }, required: ["peer_id", "fingerprint", "permission", "enabled"] },
+          { properties: { action: { enum: ["bluetooth"] } }, required: ["peer_id", "fingerprint", "enabled"], anyOf: [{ properties: { enabled: { enum: [false] } } }, { properties: { enabled: { enum: [true] } }, required: ["address"] }] }], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        if (args.action === "bluetooth" && args.enabled && !args.address) throw new MagnolieMcp.ToolError("invalid_selection", "Select the already system-paired Bluetooth address before enabling it");
+        const request = { action: args.action, expectedRevision: args.expected_revision };
+        for (const [field, native] of Object.entries({ peer_id: "peerId", fingerprint: "fingerprint", enabled: "enabled", permission: "name", address: "address", attempt_id: "attemptId", accept: "accept" }))
+          if (args[field] !== undefined) request[native] = args[field];
+        const value = await mcpNativeAufruf("telefon_mcp", { request }, "telefonMcpErgebnis", signal), state = mcpTelefonStatus(value);
+        if (value.action !== args.action || value.localVerified !== true || value.persisted !== !["pairing_begin", "pairing_confirm", "pairing_cancel"].includes(args.action) || value.deliveryConfirmed !== false)
+          throw new MagnolieMcp.ToolError("invalid_result", "Native phone receipt was not verified; inspect current state before retrying changes");
+        return { action: args.action, state, local_verified: true, persisted: value.persisted, delivery_confirmed: false };
+      } }];
+  }
   function mcpBaumStatus(value, offset = 0, limit = 100) {
     if (value.ok !== true) throw new MagnolieMcp.ToolError(["conflict", "native_busy", "profile_locked", "cancelled", "verification_failed", "unsupported_feature"].includes(value.code) ? value.code : "native_operation_failed", "Native tree operation failed; inspect current state before retrying");
     const state = value.status;
@@ -36416,6 +36600,32 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (["organizer_kde_pairing_begin", "organizer_kde_pairing_status"].includes(name)) return shape({ operation_id: { type: "string", pattern: "^[a-f0-9]{48}$" }, action: { type: "string", enum: ["begin", "complete", "renew"] }, phase: { type: "string", enum: ["dispatching", "pending", "paired", "failed", "cancelled"] }, error_code: text, native_outcome_unknown: flag, paired_verified: flag, state: { anyOf: [{ type: "null" }, mcpErgebnisSchema("organizer_kde_connection_read")] } }, ["operation_id", "action", "phase", "error_code", "native_outcome_unknown", "paired_verified", "state"]);
+    if (name === "organizer_kde_pairing_decide") return shape({ state: mcpErgebnisSchema("organizer_kde_connection_read"), decision_accepted: yes, paired_verified: flag, persisted: flag, delivery_confirmed: { type: "boolean", enum: [false] } }, ["state", "decision_accepted", "paired_verified", "persisted", "delivery_confirmed"]);
+    if (name === "organizer_kde_connection_remove") return shape({ state: mcpErgebnisSchema("organizer_kde_connection_read"), local_verified: yes, persisted: yes, delivery_confirmed: { type: "boolean", enum: [false] } }, ["state", "local_verified", "persisted", "delivery_confirmed"]);
+    if (["organizer_kde_connection_read", "organizer_kde_connection_refresh"].includes(name)) {
+      const hash = { type: "string", pattern: "^[a-fA-F0-9]{64}$" }, nullableHash = { anyOf: [{ type: "null" }, hash] }, count = { type: "integer", minimum: 0 };
+      const peerFields = { id, name: text, fingerprint: nullableHash, paired: flag, reachable: flag, type: { type: "string", enum: ["phone", "tablet", "desktop", "unknown"] } };
+      const candidateFields = { id, name: text, fingerprint: nullableHash, source_token: { type: "string", pattern: "^[a-f0-9]{64}$" }, reachable: flag, address: text, port: { type: "integer", minimum: 1, maximum: 65535 } };
+      const pendingFields = { id, name: text, fingerprint: hash, attempt_id: id, code: text, expires_ms: count, local_confirmed: flag, remote_confirmed: flag };
+      const fields = { revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, integration: { type: "string", enum: ["direct", "system"] }, running: flag, owned_listener: flag, listening: { type: ["boolean", "null"] }, listen_port: { type: ["integer", "null"], minimum: 1, maximum: 65535 }, local_id: { type: ["string", "null"] }, local_fingerprint: nullableHash, error_present: flag,
+        capabilities: shape({ refresh: flag, pairing: flag, remove: flag, receive_preferences: flag }, ["refresh", "pairing", "remove", "receive_preferences"]),
+        peer_total: count, peers: { type: "array", maxItems: 100, items: shape(peerFields, Object.keys(peerFields)) }, candidate_total: count, candidates: { type: "array", maxItems: 100, items: shape(candidateFields, Object.keys(candidateFields)) }, pending_total: count, pending: { type: "array", maxItems: 100, items: shape(pendingFields, Object.keys(pendingFields)) }, offset: count, next_offset: count };
+      const state = shape(fields, Object.keys(fields).filter(key => key !== "next_offset"));
+      return name === "organizer_kde_connection_read" ? state : shape({ state, local_verified: yes, persisted: { type: "boolean", enum: [false] }, delivery_confirmed: { type: "boolean", enum: [false] } }, ["state", "local_verified", "persisted", "delivery_confirmed"]);
+    }
+    if (["organizer_phone_connection_read", "organizer_phone_connection_action"].includes(name)) {
+      const grants = { type: "object", maxProperties: 128, additionalProperties: flag };
+      const capabilities = { type: "object", maxProperties: 128, additionalProperties: shape({ available: flag, versions: { type: "array", maxItems: 32, items: { type: "integer", minimum: 0, maximum: 1000 } } }, ["available", "versions"]) };
+      const peerFields = { id, name: text, fingerprint: text, state: text, transport: text, bluetooth_address: text, online: flag, bluetooth_enabled: flag, local_grants: grants, remote_grants: grants, remote_capabilities: capabilities };
+      const pendingFields = { attempt_id: id, id, name: text, code: text, fingerprint: text, confirmation_required: flag, decision_pending: flag };
+      const fields = { revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, available: yes, enabled: flag, listening: flag, id, name: text, fingerprint: text, port: { type: "integer", minimum: 1, maximum: 65535 }, pairing_open: flag, binding_conflict: flag, error_present: flag,
+        capabilities, editable_grants: { type: "array", maxItems: 128, uniqueItems: true, items: { type: "string", minLength: 1, maxLength: 80 } },
+        bluetooth: shape({ available: flag, reason: { type: "string", pattern: "^[a-z0-9_]{1,80}$" }, paired_devices_supported: flag, device_total: { type: "integer", minimum: 0 }, devices: { type: "array", maxItems: 100, items: shape({ address: { type: "string", pattern: "^(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$" }, name: text }, ["address", "name"]) } }, ["available", "reason", "paired_devices_supported", "device_total", "devices"]),
+        peer_total: { type: "integer", minimum: 0 }, peers: { type: "array", maxItems: 100, items: shape(peerFields, Object.keys(peerFields)) }, pending_total: { type: "integer", minimum: 0 }, pending_pairings: { type: "array", maxItems: 100, items: shape(pendingFields, Object.keys(pendingFields)) }, offset: { type: "integer", minimum: 0 }, next_offset: { type: "integer", minimum: 0 } };
+      const state = shape(fields, Object.keys(fields).filter(key => key !== "next_offset"));
+      return name === "organizer_phone_connection_read" ? state : shape({ action: { type: "string", enum: ["settings", "pairing_begin", "pairing_confirm", "pairing_cancel", "remove", "grant", "bluetooth"] }, state, local_verified: yes, persisted: flag, delivery_confirmed: { type: "boolean", enum: [false] } }, ["action", "state", "local_verified", "persisted", "delivery_confirmed"]);
+    }
     if (name === "organizer_tree_content_send") return shape({ id, peer_id: id, metadata_persisted: flag, queue_persisted: yes, delivery_confirmed: { type: "boolean", enum: [false] }, state: mcpErgebnisSchema("organizer_tree_status") }, ["id", "peer_id", "metadata_persisted", "queue_persisted", "delivery_confirmed", "state"]);
     if (name === "organizer_tree_contact_delete_proposal") return shape({ share_id: text, queue_persisted: yes, delivery_confirmed: { type: "boolean", enum: [false] }, state: mcpErgebnisSchema("organizer_tree_status") }, ["share_id", "queue_persisted", "delivery_confirmed", "state"]);
     if (name === "organizer_tree_contact_preview") return shape({ book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, contacts_total: { type: "integer", minimum: 0 }, new_count: { type: "integer", minimum: 0 }, bound_count: { type: "integer", minimum: 0 }, duplicate_total: { type: "integer", minimum: 0 }, duplicate_pairs: { type: "array", maxItems: 100, items: { type: "array", minItems: 2, maxItems: 2, items: id } }, deletion_total: { type: "integer", minimum: 0 }, deletion_proposals: { type: "array", maxItems: 100, items: shape({ share_id: text, name: text, version: { type: "number", minimum: 0 } }, ["share_id", "name", "version"]) }, offset: { type: "integer", minimum: 0 }, blocked_reason: { type: "string", enum: ["none", "empty_snapshot", "deletion_safety", "legacy_incompatible", "content_too_large"] } }, ["book_revision", "contacts_total", "new_count", "bound_count", "duplicate_total", "duplicate_pairs", "deletion_total", "deletion_proposals", "offset", "blocked_reason"]);
@@ -36723,6 +36933,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpBaumAnnahmeWerkzeuge(),
       ...mcpBaumAbgleichWerkzeuge(),
       ...mcpBaumKontaktWerkzeuge(),
+      ...mcpTelefonVerbindungWerkzeuge(),
+      ...mcpKdeVerbindungWerkzeuge(owner),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
@@ -36769,6 +36981,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return tools.map(tool => ({ ...tool, outputSchema: mcpErgebnisSchema(tool.name) }));
   }
   App.mcpClose = session => {
+    for (const [id, job] of mcpKdePaarungsLaeufe) if (job.owner === session) { job.controller.abort(); mcpKdePaarungsLaeufe.delete(id); }
     for (const [id, flow] of mcpMicrosoftAnmeldungen) if (flow.owner === session) mcpVerwerfeMicrosoftAnmeldung(id);
     mcpSitzungen.get(session)?.close(); mcpSitzungen.delete(session);
     for (const [token, transfer] of mcpAnhangTransfers) if (transfer.owner === session) mcpVerwerfeTransfer(token);

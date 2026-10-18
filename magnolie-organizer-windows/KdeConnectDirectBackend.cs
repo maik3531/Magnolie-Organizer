@@ -167,7 +167,8 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
         return BeginPairingCoreAsync(deviceId, cancellationToken);
     }
 
-    private async Task<KdeConnectPairing> BeginPairingCoreAsync(string? selectedDeviceId, CancellationToken cancellationToken)
+    private async Task<KdeConnectPairing> BeginPairingCoreAsync(string? selectedDeviceId, CancellationToken cancellationToken,
+        string? mcpSelectedId = null, Action<string, KdeConnectDiscovered>? mcpGuard = null)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
@@ -198,10 +199,13 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
                     .Where(device => !pairedIds.Contains(device.Identity.DeviceId)).ToArray();
             if (selectedDeviceId is not null)
                 available = available.Where(device => device.Identity.DeviceId == selectedDeviceId).ToArray();
+            if (mcpSelectedId is not null)
+                available = available.Where(device => device.Identity.DeviceId == mcpSelectedId).ToArray();
             operation.Token.ThrowIfCancellationRequested();
             if (available.Length != 1)
                 throw new InvalidOperationException("Genau ein ungepaartes KDE-Connect-Gerät muss erreichbar sein.");
             candidate = available[0];
+            mcpGuard?.Invoke("select", candidate);
             DebugLog("pair.selected", $"device={candidate.Identity.DeviceId} firstOnly={operation.FirstPairOnly}");
             if (!pairingOperations.TryAdd(candidate.Identity.DeviceId, operation))
                 throw new InvalidOperationException("Für dieses Gerät läuft bereits eine Paarung.");
@@ -241,6 +245,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
             }
             DebugLog("pair.connection_ready", $"device={candidate.Identity.DeviceId} generation={connection.Generation} " +
                 $"direction={connection.Direction}");
+            mcpGuard?.Invoke("commit", candidate);
             createdPairing = CreatePairing(connection, remoteConfirmed: false, operation);
             if (!pending.TryAdd(candidate.Identity.DeviceId, createdPairing))
                 throw new InvalidOperationException("Für dieses Gerät läuft bereits eine Paarung.");
@@ -281,10 +286,15 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
             AbortPairing(request.DeviceId, pairing, "failed", "cancelled", true);
     }
 
-    internal async Task ConfirmPairingAsync(string deviceId, bool accept, CancellationToken cancellationToken = default)
+    internal Task ConfirmPairingAsync(string deviceId, bool accept, CancellationToken cancellationToken = default) =>
+        ConfirmPairingCoreAsync(deviceId, accept, cancellationToken);
+
+    private async Task ConfirmPairingCoreAsync(string deviceId, bool accept, CancellationToken cancellationToken,
+        Action<string, PendingPairing>? mcpGuard = null)
     {
         if (!pending.TryGetValue(deviceId, out var pairing) || pairing.ExpiresAt <= DateTimeOffset.UtcNow)
         { if (pairing is not null) ExpirePairing(deviceId, pairing); throw new InvalidOperationException("Die KDE-Connect-Paarungsanfrage ist abgelaufen."); }
+        lock (activeGate) mcpGuard?.Invoke("entry", pairing);
         if (!accept)
         {
             try { await pairing.Connection.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.pair",
@@ -299,13 +309,19 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
         if (pairing.Incoming)
             await pairing.Connection.WriteAsync(KdeConnectProtocol.Encode("kdeconnect.pair",
                 new JsonObject { ["pair"] = true }), cancellationToken).ConfigureAwait(false);
-        var mutuallyConfirmed = pairing.ConfirmLocal();
+        bool mutuallyConfirmed;
+        lock (activeGate) { mcpGuard?.Invoke("commit", pairing); mutuallyConfirmed = pairing.ConfirmLocal(); }
         if (mutuallyConfirmed) FinishPairing(deviceId, pairing);
         else EmitPairing(pairing, "waiting_for_phone", "");
     }
 
-    internal void Remove(string deviceId)
+    internal void Remove(string deviceId, string? expectedFingerprint = null, string? expectedRevision = null)
     {
+        if (expectedFingerprint is not null)
+        {
+            lock (activeGate) { CheckMcpControl(expectedRevision, deviceId, expectedFingerprint, requirePaired: false); Remove(deviceId); }
+            return;
+        }
         foreach (var item in pairingOperations.Where(item => item.Key == deviceId || item.Value.ReplacementPeerId == deviceId).ToArray())
         {
             item.Value.Cancel(removed: true);
@@ -1124,7 +1140,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
             EnableMedia(connection);
             if (connection.State.SmsStarted) ResumeSms(connection); else EnableSms(connection);
         }
-        Track(MonitorAsync(connection, lifetime.Token)); EmitStatus(); return connection;
+        Track(McpServiceTask(() => MonitorAsync(connection, lifetime.Token))); EmitStatus(); return connection;
     }
 
     private Connection Stage(Connection connection, string direction)
@@ -1155,7 +1171,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
         previous?.Dispose();
         DebugLog("staged.set", $"device={connection.Identity.DeviceId} generation={connection.Generation} direction={direction} " +
             $"replaced={(previous is not null)}");
-        Track(MonitorAsync(connection, lifetime.Token)); EmitStatus(); return connection;
+        Track(McpServiceTask(() => MonitorAsync(connection, lifetime.Token))); EmitStatus(); return connection;
     }
 
     private async Task MonitorAsync(Connection connection, CancellationToken cancellationToken)
@@ -1412,7 +1428,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         return new PendingPairing(connection, KdeConnectProtocol.PairingCode(local.Certificate,
             connection.Certificate, timestamp), DateTimeOffset.UtcNow.AddSeconds(30), false, timestamp, operation)
-            { RemoteConfirmedInitially = remoteConfirmed };
+            { RemoteConfirmedInitially = remoteConfirmed, McpOwned = mcpControlEmission.Value is { Active: true } };
     }
 
     private void FinishPairing(string deviceId, PendingPairing pairing)
@@ -1430,6 +1446,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
                 if (!pairing.MutuallyConfirmed) return;
                 if (!pending.TryGetValue(deviceId, out var current) || !ReferenceEquals(current, pairing) ||
                     !staged.TryGetValue(deviceId, out var currentConnection) || !ReferenceEquals(currentConnection, connection)) return;
+                if (pairing.McpPeerControl is not null && pairing.McpPeerControl != McpPeerDigest()) throw new McpControlConflict();
                 if (pairing.Operation.FirstPairOnly) store.ConfirmFirst(peer);
                 else if (pairing.Operation.ReplacementPeerId is { } oldId)
                 {
@@ -1437,6 +1454,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
                     active.TryRemove(oldId, out oldConnection);
                 }
                 else store.Confirm(peer, active.Keys);
+                pairing.McpStoreCommitted = true;
                 staged.TryRemove(deviceId, out _); active[deviceId] = connection;
                 pending.TryRemove(deviceId, out _); pairingOperations.TryRemove(deviceId, out _);
                 candidates.Clear();
@@ -1522,10 +1540,13 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
             usable.Count == 1 ? KdeConnectProtocol.CertificatePin(usable[0].Certificate) : "");
     }
 
-    private void EmitStatus() => SafeInvoke(StatusChanged, BuildStatus());
-    private void EmitPairing(PendingPairing pairing, string state, string reason) =>
+    private void EmitStatus() { if (mcpControlEmission.Value is not { Active: true }) SafeInvoke(StatusChanged, BuildStatus()); }
+    private void EmitPairing(PendingPairing pairing, string state, string reason)
+    {
+        if (pairing.McpOwned || mcpControlEmission.Value is { Active: true }) return;
         SafeInvoke(PairingChanged, new KdeConnectPairingEvent(state, pairing.Connection.Identity.DeviceId,
             pairing.Connection.Identity.DeviceName, reason, pairing.Code, pairing.ExpiresAt));
+    }
 
     private void ScheduleReconnect(bool immediate)
     {
@@ -1781,11 +1802,17 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
         internal bool Incoming { get; } = incoming;
         internal long Timestamp { get; } = timestamp;
         internal PairingOperation Operation { get; } = operation;
+        internal string McpAttemptId { get; } = Convert.ToHexString(RandomNumberGenerator.GetBytes(24)).ToLowerInvariant();
+        internal bool McpOwned { get; init; }
+        internal string? McpPeerControl { get; set; }
+        internal bool McpStoreCommitted { get; set; }
         private readonly object gate = new();
         private bool localConfirmed;
         private bool remoteConfirmed;
         internal bool RemoteConfirmedInitially { init { remoteConfirmed = value; } }
         internal bool MutuallyConfirmed { get { lock (gate) return localConfirmed && remoteConfirmed; } }
+        internal bool LocalConfirmed { get { lock (gate) return localConfirmed; } }
+        internal bool RemoteConfirmed { get { lock (gate) return remoteConfirmed; } }
         internal bool ConfirmLocal() { lock (gate) { localConfirmed = true; return remoteConfirmed; } }
         internal bool ConfirmRemote() { lock (gate) { remoteConfirmed = true; return localConfirmed; } }
         internal KdeConnectPairing Description => new(Connection.Identity.DeviceId, Connection.Identity.DeviceName, Code, ExpiresAt);

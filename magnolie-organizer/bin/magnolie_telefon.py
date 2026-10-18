@@ -2326,7 +2326,11 @@ class PhoneService:
 
     def __init__(self, root, display_name, callback=None, bluetooth_backend=None, call_audio=None):
         self.store = PhoneStore(root, display_name)
-        self.callback = callback or (lambda _event, _payload: None)
+        self._mcp_worker = threading.local()
+        self._mcp_operations = threading.Lock()
+        emit = callback or (lambda _event, _payload: None)
+        self.callback = lambda event, payload: self._mcp_emit(emit, event, payload)
+        self._mcp_revision_key = os.urandom(32)
         self.enabled = self.store.settings()["enabled"]
         self.server = self.thread = self.mdns = None
         self.stop_event = threading.Event()
@@ -2432,9 +2436,166 @@ class PhoneService:
                     "reason": bluetooth_reason, "uuid": BLUETOOTH_UUID,
                     "devices": bluetooth_devices}}
 
-    def set_enabled(self, enabled):
-        self.enabled = bool(enabled)
-        self.store.save_settings(self.enabled)
+    def _mcp_emit(self, emit, event, payload):
+        capture = getattr(self._mcp_worker, "capture", None)
+        if capture is not None:
+            if event in ("error", "pairing_error", "pairing_failed"):
+                capture["failed"] = True
+            return
+        emit(event, payload)
+
+    def _mcp_require_peer(self, peer_id, expected_fingerprint, require_paired=True):
+        peer = self.store.peer(peer_id)
+        if not peer or require_paired and peer.get("state") != "paired" or fingerprint(unb64(peer["static_public"], 32)).lower() != str(expected_fingerprint).lower():
+            raise ValueError("phone_control_conflict")
+        return peer
+
+    def mcp_action(self, request):
+        if not self._mcp_operations.acquire(blocking=False):
+            return {"ok": False, "code": "native_busy"}
+        capture = {"failed": False}
+        previous = getattr(self._mcp_worker, "capture", None)
+        self._mcp_worker.capture = capture
+        try:
+            action = request.get("action")
+            with self.lock:
+                if request.get("expectedRevision") != self.mcp_status(include_bluetooth=False)["revision"]:
+                    return {"ok": False, "code": "conflict"}
+                peer_id, expected = request.get("peerId") or "", request.get("fingerprint") or ""
+                if action in ("remove", "grant", "bluetooth"):
+                    self._mcp_require_peer(peer_id, expected, require_paired=action != "remove")
+                context = None
+                if action in ("pairing_confirm", "pairing_cancel"):
+                    context = self.pairings.get(request.get("attemptId"))
+                    public = (context or {}).get("public") or {}
+                    if not context or context.get("decision") is not None or context.get("mcp_deadline", float("inf")) <= time.monotonic() or public.get("id") != peer_id or str(public.get("fingerprint") or "").lower() != expected.lower():
+                        return {"ok": False, "code": "conflict"}
+            persisted = False
+            if action == "settings":
+                if type(request.get("enabled")) is not bool:
+                    return {"ok": False, "code": "invalid_selection"}
+                self.set_enabled(request["enabled"], expected_revision=request["expectedRevision"])
+                persisted = self.store.settings()["enabled"] is request["enabled"]
+                verified = persisted and self.enabled is request["enabled"] and bool(self.server) is request["enabled"]
+                if not request["enabled"]:
+                    with self.lock:
+                        workers = list(self._workers) + [self.thread, self.bluetooth_thread, self.audio_thread]
+                        verified = verified and not self.connections and not any(worker is not None and worker.is_alive() for worker in workers)
+            elif action == "pairing_begin":
+                with self.lock:
+                    if request["expectedRevision"] != self.mcp_status(include_bluetooth=False)["revision"] or not self.enabled or not self.server:
+                        return {"ok": False, "code": "conflict"}
+                self.open_pairing(expected_revision=request["expectedRevision"])
+                verified = self.mcp_status(include_bluetooth=False)["pairing_open"]
+            elif action in ("pairing_confirm", "pairing_cancel"):
+                accept = request.get("accept") if action == "pairing_confirm" else False
+                if type(accept) is not bool:
+                    return {"ok": False, "code": "invalid_selection"}
+                with self.lock:
+                    if request["expectedRevision"] != self.mcp_status(include_bluetooth=False)["revision"] or self.pairings.get(request.get("attemptId")) is not context:
+                        return {"ok": False, "code": "conflict"}
+                    if action == "pairing_cancel":
+                        self.cancel_pairing()
+                    else:
+                        self.confirm_pairing(request["attemptId"], accept)
+                    verified = context.get("decision") is accept and context["event"].is_set()
+            elif action == "remove":
+                self.remove(peer_id, expected_fingerprint=expected, expected_revision=request["expectedRevision"])
+                persisted = not any(peer.get("device_id") == peer_id for peer in self.store._load_peers())
+                verified = persisted and self.store.peer(peer_id) is None
+            elif action == "grant":
+                if type(request.get("enabled")) is not bool or request.get("name") not in self.mcp_editable_grants():
+                    return {"ok": False, "code": "unsupported_feature"}
+                self.set_grant(peer_id, request["name"], request["enabled"], expected_fingerprint=expected, expected_revision=request["expectedRevision"])
+                stored = next((peer for peer in self.store._load_peers() if peer.get("device_id") == peer_id), {})
+                persisted = bool(stored) and fingerprint(unb64(stored["static_public"], 32)).lower() == expected.lower() and stored.get("local_grants", {}).get("grants", {}).get(request["name"]) is request["enabled"]
+                verified = persisted
+            elif action == "bluetooth":
+                if type(request.get("enabled")) is not bool or not isinstance(request.get("address", ""), str):
+                    return {"ok": False, "code": "invalid_selection"}
+                if request["enabled"] and not self.bluetooth_backend.availability()[0]:
+                    return {"ok": False, "code": "unsupported_feature"}
+                self.set_bluetooth(peer_id, request["enabled"], request.get("address") or "", expected_fingerprint=expected, expected_revision=request["expectedRevision"])
+                stored = next((peer for peer in self.store._load_peers() if peer.get("device_id") == peer_id), {})
+                bluetooth = stored.get("bluetooth", {})
+                persisted = bool(stored) and fingerprint(unb64(stored["static_public"], 32)).lower() == expected.lower() and bluetooth.get("enabled") is request["enabled"] and bluetooth.get("address", "") == ((request.get("address") or "").strip().upper() if request["enabled"] else "")
+                verified = persisted
+            else:
+                return {"ok": False, "code": "unsupported_feature"}
+            if capture["failed"] or not verified:
+                return {"ok": False, "code": "verification_failed"}
+            return {"ok": True, "status": self.mcp_status(), "action": action, "localVerified": True, "persisted": persisted, "deliveryConfirmed": False}
+        except ValueError as error:
+            return {"ok": False, "code": "conflict" if str(error) == "phone_control_conflict" else "native_operation_failed"}
+        except Exception:
+            return {"ok": False, "code": "native_operation_failed"}
+        finally:
+            self._mcp_worker.capture = previous
+            self._mcp_operations.release()
+
+    @staticmethod
+    def mcp_editable_grants():
+        return {"selected_notifications_readonly", "incoming_call_state", "incoming_call_number", "answer_call", "end_call",
+                "personal_notes_sync", "personal_tasks_sync", "personal_deletions_sync"}
+
+    def _mcp_bluetooth_status(self):
+        available, reason = self.bluetooth_backend.availability()
+        devices = self.bluetooth_backend.paired_devices() if available else []
+        public = []
+        for item in devices:
+            address = str(item.get("address") or "").strip().upper()
+            if BLUETOOTH_ADDRESS.fullmatch(address):
+                public.append({"address": address, "name": str(item.get("name") or "")[:256]})
+        return {"available": bool(available), "reason": reason if isinstance(reason, str) and re.fullmatch(r"[a-z0-9_]{1,80}", reason) else "unavailable",
+                "paired_devices_supported": True, "devices": public}
+
+    def mcp_status(self, include_bluetooth=True):
+        """Public native control snapshot; never replay book content or emit GUI events."""
+        bluetooth_status = self._mcp_bluetooth_status() if include_bluetooth else None
+        def grants(value):
+            values = value.get("grants", {}) if isinstance(value, dict) else {}
+            return {key: enabled for key, enabled in values.items()
+                    if isinstance(key, str) and len(key) <= 80 and type(enabled) is bool}
+        def capabilities(value):
+            values = value.get("items", {}) if isinstance(value, dict) else {}
+            return {key: {"available": item.get("available") is True,
+                          "versions": [version for version in item.get("versions", [])
+                                       if type(version) is int and 0 <= version <= 1000][:32]}
+                    for key, item in values.items() if isinstance(key, str) and len(key) <= 80 and isinstance(item, dict)}
+        with self.lock:
+            peers, controls = [], []
+            for peer in sorted(self.store.peers, key=lambda item: item["device_id"]):
+                peer_id = peer["device_id"]
+                bluetooth = peer.get("bluetooth", {})
+                local = grants(peer.get("local_grants", {}))
+                public = {"id": peer_id, "name": str(peer.get("display_name") or ""),
+                    "fingerprint": fingerprint(unb64(peer["static_public"], 32)), "state": str(peer.get("state") or ""),
+                    "online": peer_id in self.connections, "transport": self.connection_transports.get(peer_id) or "offline",
+                    "bluetooth_enabled": bluetooth.get("enabled") is True, "bluetooth_address": str(bluetooth.get("address") or ""),
+                    "local_grants": local, "remote_grants": grants(peer.get("grants", {})), "remote_capabilities": capabilities(peer.get("capabilities", {}))}
+                peers.append(public)
+                controls.append({"id": peer_id, "key": peer["static_public"], "state": public["state"], "bluetooth": bluetooth,
+                                 "local_grants": peer.get("local_grants", {}), "remote_grants": peer.get("grants", {}), "remote_capabilities": peer.get("capabilities", {})})
+            pending = [dict(context["public"], decision_pending=context.get("decision") is None)
+                       for _attempt, context in sorted(self.pairings.items()) if isinstance(context.get("public"), dict) and context.get("mcp_deadline", float("inf")) > time.monotonic()]
+            pairing = bool(self.pairing_token and time.monotonic() < self.pairing_until)
+            control = {"id": self.store.identity["device_id"], "key": self.store.identity["static_public"],
+                "enabled": self.enabled, "stored_enabled": self.store.settings()["enabled"], "peers": controls,
+                "pairing": pairing, "pairing_token": b64(self.pairing_token) if self.pairing_token else "", "pending": pending}
+            revision = hmac.new(self._mcp_revision_key, canonical(control), hashlib.sha256).hexdigest()
+            return {"revision": revision, "available": True, "enabled": self.enabled, "listening": bool(self.server),
+                "id": self.store.identity["device_id"], "name": self.store.identity["display_name"],
+                "fingerprint": fingerprint(unb64(self.store.identity["static_public"], 32)), "port": PORT,
+                "pairing_open": pairing, "pending_pairings": pending, "binding_conflict": self.store.binding_conflict(), "error_present": bool(self.connection_errors),
+                "capabilities": capabilities(desktop_capabilities()), "editable_grants": sorted(self.mcp_editable_grants()), "peers": peers,
+                **({"bluetooth": bluetooth_status} if include_bluetooth else {})}
+
+    def set_enabled(self, enabled, expected_revision=None):
+        with self.lock:
+            if expected_revision is not None and expected_revision != self.mcp_status(include_bluetooth=False)["revision"]:
+                raise ValueError("phone_control_conflict")
+            self.enabled = bool(enabled)
+            self.store.save_settings(self.enabled)
         if self.enabled:
             self.start()
         else:
@@ -2652,18 +2813,21 @@ class PhoneService:
             worker.start()
             return True
 
-    def open_pairing(self):
+    def open_pairing(self, expected_revision=None):
         if not self.enabled:
             raise RuntimeError("Die Magnolie-Telefonverbindung ist ausgeschaltet.")
         if len(self.store.peers) > 1:
             raise RuntimeError("Only one Magnolie Notes phone can be paired. Remove the existing phone before changing devices.")
         self.start()
-        setup = getattr(self, "setup_pairing", None)
-        if setup:
-            self.end_setup_pairing(b64(setup["token"]))
-        self.setup_pairing = None
-        self.pairing_token = os.urandom(16)
-        self.pairing_until = float("inf")
+        with self.lock:
+            if expected_revision is not None and expected_revision != self.mcp_status(include_bluetooth=False)["revision"]:
+                raise ValueError("phone_control_conflict")
+            setup = getattr(self, "setup_pairing", None)
+            if setup:
+                self.end_setup_pairing(b64(setup["token"]))
+            self.setup_pairing = None
+            self.pairing_token = os.urandom(16)
+            self.pairing_until = float("inf")
         self._publish()
         token = b64(self.pairing_token)
         self.callback("pairing_open", {"token": token, "seconds": PAIRING_SECONDS,
@@ -2736,7 +2900,13 @@ class PhoneService:
                 except OSError:
                     pass
 
-    def remove(self, peer_id):
+    def remove(self, peer_id, expected_fingerprint=None, expected_revision=None):
+        if expected_fingerprint is not None:
+            with self.lock:
+                if expected_revision is not None and expected_revision != self.mcp_status(include_bluetooth=False)["revision"]:
+                    raise ValueError("phone_control_conflict")
+                self._mcp_require_peer(peer_id, expected_fingerprint, require_paired=False)
+                return self.remove(peer_id)
         with self.lock:
             self._purge_identifiers(peer_id)
         channel = self.connections.pop(peer_id, None)
@@ -2790,7 +2960,13 @@ class PhoneService:
             self.pairing_token = os.urandom(16)
             self.pairing_until = float("inf")
 
-    def set_bluetooth(self, peer_id, enabled, address=""):
+    def set_bluetooth(self, peer_id, enabled, address="", expected_fingerprint=None, expected_revision=None):
+        if expected_fingerprint is not None:
+            with self.lock:
+                if expected_revision is not None and expected_revision != self.mcp_status(include_bluetooth=False)["revision"]:
+                    raise ValueError("phone_control_conflict")
+                self._mcp_require_peer(peer_id, expected_fingerprint)
+                return self.set_bluetooth(peer_id, enabled, address)
         normalized = str(address or "").strip().upper()
         if enabled:
             available, reason = self.bluetooth_backend.availability()
@@ -3153,10 +3329,14 @@ class PhoneService:
                 self._purge_identifiers(peer_id)
             channel.send({"type": "ack", "message_id": payload["message_id"], "status": "rejected", "error": error})
 
-    def set_grant(self, peer_id, name, enabled):
-        if name not in {"selected_notifications_readonly", "incoming_call_state",
-                        "incoming_call_number", "answer_call", "end_call",
-                        "personal_notes_sync", "personal_tasks_sync", "personal_deletions_sync"}:
+    def set_grant(self, peer_id, name, enabled, expected_fingerprint=None, expected_revision=None):
+        if expected_fingerprint is not None:
+            with self.lock:
+                if expected_revision is not None and expected_revision != self.mcp_status(include_bluetooth=False)["revision"]:
+                    raise ValueError("phone_control_conflict")
+                self._mcp_require_peer(peer_id, expected_fingerprint)
+                return self.set_grant(peer_id, name, enabled)
+        if name not in self.mcp_editable_grants():
             raise ValueError("invalid desktop grant")
         peer = self.store.peer(peer_id)
         if not peer or peer.get("state") != "paired":
@@ -4676,7 +4856,9 @@ class PhoneService:
         transcript, key, code = pairing_material(pair_init, pair_response,
                                                   ephemeral, self.store.private)
         attempt_id = str(uuid.uuid4())
-        context = {"event": threading.Event(), "decision": True if setup else None, "socket": sock}
+        context = {"event": threading.Event(), "decision": True if setup else None, "socket": sock, "mcp_deadline": time.monotonic() + 120,
+            "public": {"attempt_id": attempt_id, "code": code, "id": pair_init["device_id"], "name": pair_init["display_name"],
+                       "fingerprint": fingerprint(unb64(pair_init["static_public"], 32)), "confirmation_required": setup is None}}
         if setup:
             context["event"].set()
         self.pairings[attempt_id] = context

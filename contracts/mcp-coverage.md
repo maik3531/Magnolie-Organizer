@@ -31,12 +31,19 @@ details, not separate product features requiring another public tool.
 
 | Group | Existing product operations to finish connecting | Completion evidence |
 | --- | --- | --- |
-| Phone and KDE lifecycle | Status, available pairing/confirmation/removal/reconnect operations, offered permissions and Bluetooth lifecycle | Existing device/attempt/source identity guards and native receipts |
+| Phone and KDE lifecycle | Complete KDE status/pairing/confirmation/removal/reconnect/permissions; general phone device-status and temporary-identifier privacy paths, plus remaining offered lifecycle utilities | Existing device/attempt/source identity guards and native receipts |
 | Own Notes synchronization | Own-device selection, note/shared-book direction and operating preferences, existing initial/manual sync, contact/photo/profile transfer | Existing confirmed-peer and transaction gates; actual result/readback |
 | Communications | Routing/notification preferences, dial/accept/hang-up, SMS send/history/planning through existing supported adapters | Existing call/command references, source/fingerprint checks, receipt versus delivery distinction |
 | Other offered KDE actions | Existing drawing/input/device actions not already covered by media/filesystem tools | Current capability/source validation, existing permission handlers, truthful unsupported results |
 | Running time tracking | Existing start/pause/resume/stop workflow, separate from completed-record CRUD | Shared time engine, clocks, running-record constraints and save acknowledgement |
 | Remaining utilities/preferences | Existing contact-duplicate assistant, weather/medication lookup, developer/preferences, Thunderbird extension setup and application-support actions not represented by current settings/export tools | Shared product handlers, bounded typed results and actual launch/write outcomes |
+
+Phone-control progress within the lifecycle group: actual native connection
+snapshots and enable/disable, pairing-window/attempt decisions, removal, editable
+grants and Bluetooth preferences are connected. Linux local/daemon ownership,
+store readback, scoped callbacks and private GTK/stdio acceptance are exercised;
+portable C# checks also exercise a real private incoming pairing attempt.
+This does not replace the remaining KDE or explicit device-status/privacy work.
 
 ## Acceptance gate
 

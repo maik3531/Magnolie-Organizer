@@ -26,6 +26,11 @@ internal sealed class KdeConnectSms : IDisposable
 
     internal Task<KdeConnectStatus> DirectStatusAsync(CancellationToken cancellationToken = default) =>
         native.GetStatusAsync(cancellationToken);
+    internal JsonObject? McpStatus() => backend.IsValueCreated ? backend.Value.McpStatus() : null;
+    internal Task<JsonObject> McpRefreshAsync(string expectedRevision, CancellationToken cancellation) => native.McpRefreshAsync(expectedRevision, cancellation);
+    internal Task<JsonObject> McpActionAsync(JsonObject request, CancellationToken cancellation) => backend.IsValueCreated
+        ? backend.Value.McpActionAsync(request, cancellation)
+        : Task.FromResult(new JsonObject { ["ok"] = false, ["code"] = "native_unavailable" });
     internal IReadOnlyList<string> ContactDevices => native.ContactDevices;
     internal IReadOnlyList<string> DigitizerDevices => native.DigitizerDevices;
     internal JsonObject MediaStatus(string deviceId) => native.MediaStatus(deviceId);
