@@ -1,0 +1,65 @@
+using System.Text.Json.Nodes;
+using Microsoft.Data.Sqlite;
+using MagnolieOrganizer.Windows;
+
+namespace MagnolieOrganizer.Windows.Tests;
+
+internal static class McpNotesSettingsTests
+{
+    internal static async Task RunAsync()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "magnolie-mcp-notes-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var paths = new WindowsPaths(root);
+            var store = new TelefonStore(paths, testStorageKey: Enumerable.Repeat((byte)28, 32).ToArray());
+            store.LoadOrCreateIdentity(); store.Enabled = false;
+            var capabilities = TelefonProtocolContract.DesktopCapabilities()["items"]!.DeepClone().AsObject();
+            var peer = new TelefonPeer(Guid.NewGuid().ToString("D"), "Owned Notes phone", TelefonCrypto.GenerateX25519().Public,
+                CapabilityRevision: 1, StoredCapabilities: capabilities);
+            store.SavePeers([peer]);
+            store.SetPersonalSettings(peer.Id, ownDevice: false, remoteOwnDevice: false, autoWifi: false);
+            var events = new List<string>();
+            using var service = new TelefonCoordinator(paths, (callback, _) => { events.Add(callback); return Task.CompletedTask; }, dataStore: store, localOnly: true);
+            var fingerprint = TelefonCrypto.Fingerprint(peer.PublicKey);
+            JsonObject Target(string action) => new() { ["action"] = action, ["peerId"] = peer.Id, ["fingerprint"] = fingerprint };
+            var first = await service.ExecuteMcpAsync(Target("notes_settings_read"), default);
+            var state = first["notesSettings"]!.AsObject();
+            TestAssert.That(first["ok"]!.GetValue<bool>() && !state["own_device"]!.GetValue<bool>() && state["shared"]!["supported"]!.GetValue<bool>() &&
+                state["shared"]!["values"] is null && store.SharedSettings(peer.Id, peer.PublicKey) is null, "Reading Notes settings initialized consent/preferences.");
+            var initial = SharedSyncSettings.Effective(SharedSyncSettings.Create(store.LoadOrCreateIdentity().Id));
+            var update = Target("notes_settings_update"); update["expectedRevision"] = state["revision"]!.DeepClone();
+            update["initial"] = initial; update["field"] = "auto_mode"; update["value"] = "wifi";
+            var saved = await service.ExecuteMcpAsync(update, default);
+            TestAssert.That(saved["ok"]!.GetValue<bool>() && saved["persisted"]!.GetValue<bool>() && !saved["deliveryConfirmed"]!.GetValue<bool>() &&
+                store.PersonalSettings(peer.Id).OwnDevice && store.PersonalSettings(peer.Id).AutoWifi && !store.PersonalSettings(peer.Id).RemoteOwnDevice &&
+                SharedSyncSettings.Effective(store.SharedSettings(peer.Id, peer.PublicKey)!)["auto_mode"]!.GetValue<string>() == "wifi", "Native Notes shared preference was not saved/read back through the GUI handler.");
+            var stale = await service.ExecuteMcpAsync(update, default);
+            TestAssert.That(stale["code"]!.GetValue<string>() == "conflict", "Stale Notes revision mutated shared preferences.");
+            update["expectedRevision"] = saved["notesSettings"]!["revision"]!.DeepClone(); update["field"] = "skip_deletions"; update["value"] = false;
+            var deletion = await service.ExecuteMcpAsync(update, default);
+            TestAssert.That(deletion["ok"]!.GetValue<bool>() && store.StoredGrantMatches("personal_deletions_sync", true), "Shared deletion preference bypassed the existing grant handler.");
+            update["expectedRevision"] = deletion["notesSettings"]!["revision"]!.DeepClone(); update["value"] = "false";
+            var invalid = await service.ExecuteMcpAsync(update, default);
+            TestAssert.That(invalid["code"]!.GetValue<string>() == "invalid_selection", "Wrong preference type was accepted.");
+            var wrong = Target("notes_settings_read"); wrong["fingerprint"] = "0000-0000-0000-0000";
+            TestAssert.That((await service.ExecuteMcpAsync(wrong, default))["code"]!.GetValue<string>() == "conflict", "Wrong Notes fingerprint read current settings.");
+            var revision = service.McpNotesSettings(peer.Id, fingerprint)["revision"]!.GetValue<string>();
+            update["expectedRevision"] = revision; update["field"] = "auto_mode"; update["value"] = "manual";
+            await store.NotePolicyGate.WaitAsync();
+            Task<JsonObject> raced;
+            try
+            {
+                raced = service.ExecuteMcpAsync(update, default);
+                TestAssert.That(!raced.IsCompleted, "Notes mutation did not await the shared note-policy gate.");
+                store.SetPersonalSettings(peer.Id, remoteOwnDevice: true);
+            }
+            finally { store.NotePolicyGate.Release(); }
+            TestAssert.That((await raced)["code"]!.GetValue<string>() == "conflict" && store.PersonalSettings(peer.Id).AutoWifi,
+                "Notes mutation failed to recheck consent revision after waiting for the shared gate.");
+            TestAssert.That(service.McpNotesSettings(peer.Id, fingerprint)["revision"]!.GetValue<string>() != revision, "Remote ownership change did not invalidate settings revision.");
+            TestAssert.That(events.Count == 0 && !service.McpStatus()["listening"]!.GetValue<bool>(), "Notes settings emitted GUI events or started a listener.");
+        }
+        finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+}

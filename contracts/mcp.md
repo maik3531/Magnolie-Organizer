@@ -5,6 +5,40 @@ This document describes the implemented tools; the remaining product operations
 are still being connected to the same interface.
 The remaining user-facing operation groups are tracked in [the coverage checklist](mcp-coverage.md).
 
+### Own Notes shared synchronization preferences
+
+`organizer_notes_settings_read` selects the sole paired `peer_id` and displayed
+phone `fingerprint`. It reads actual local/remote own-device confirmation,
+automatic Wi-Fi preference and `{supported, initialized, ready, values}` for
+the existing shared preference contract. Unsupported older peers remain readable;
+these updates require shared-settings protocol v9. A read never initializes the
+shared register, confirms ownership, starts a listener, subscribes to GUI events
+or replays content. Initial native identity/adapter initialization may occur.
+
+The separate process/store-bound `revision` includes the phone control context,
+own-device confirmations, legacy note policy and complete shared register vectors,
+including counters that do not change an effective value. Volatile status/report
+contents and transport readiness do not enter that revision. Only typed consent
+and preference fields are returned, never raw register metadata or content.
+
+`organizer_notes_settings_update` requires this `expected_revision`, the same
+peer/fingerprint, one `field`/typed `value` and a complete explicit `initial`:
+`content_mode` (`phone_import`, `phone_scope`, `two_way`), `auto_mode` (`manual`,
+`wifi`, `connection`), `skip_deletions`, `custom_enabled`, `time_enabled` (booleans),
+and `time_mode` (`phone_import`, `two_way`). An existing register retains its
+other saved choices; only a missing register uses the initial snapshot. The
+existing GUI handler performs the update and rechecks the revision under its
+mutation lock, after the Windows note-policy semaphore has been acquired.
+
+As in the GUI, an explicit choice confirms the selected device locally as an
+own Notes device and applies existing automatic-sync/deletion-grant policies.
+It does not grant remote ownership. Existing control frames can be queued and
+automatic synchronization can become enabled. `local_verified: true` and
+`persisted: true` require actual store readback; `delivery_confirmed` is always
+false. Failures, cancellation or timeouts can follow local changes or queued
+frames: read state before retrying. Native replies do not modify book data or GUI
+drafts/dialogs. Manual/initial content synchronization remains a separate workflow.
+
 ### Fresh phone device status and temporary identifiers
 
 `organizer_phone_device_status_read` requires the latest phone-control

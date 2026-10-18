@@ -2454,6 +2454,11 @@ class PhoneService:
         return peer
 
     def mcp_action(self, request):
+        if request.get("action") == "notes_settings_read":
+            try:
+                return {"ok": True, "notesSettings": self.mcp_notes_settings(request.get("peerId"), request.get("fingerprint"))}
+            except (ValueError, PermissionError):
+                return {"ok": False, "code": "conflict"}
         if request.get("action") in ("device_status_query", "device_status_cancel"):
             try:
                 query = request.get("queryId")
@@ -2486,7 +2491,9 @@ class PhoneService:
         try:
             action = request.get("action")
             with self.lock:
-                if request.get("expectedRevision") != self.mcp_status(include_bluetooth=False)["revision"]:
+                current_revision = (self.mcp_notes_settings(request.get("peerId"), request.get("fingerprint"))["revision"]
+                    if action == "notes_settings_update" else self.mcp_status(include_bluetooth=False)["revision"])
+                if request.get("expectedRevision") != current_revision:
                     return {"ok": False, "code": "conflict"}
                 peer_id, expected = request.get("peerId") or "", request.get("fingerprint") or ""
                 if action in ("remove", "grant", "bluetooth"):
@@ -2498,7 +2505,33 @@ class PhoneService:
                     if not context or context.get("decision") is not None or context.get("mcp_deadline", float("inf")) <= time.monotonic() or public.get("id") != peer_id or str(public.get("fingerprint") or "").lower() != expected.lower():
                         return {"ok": False, "code": "conflict"}
             persisted = False
-            if action == "settings":
+            if action == "notes_settings_update":
+                if not self.mcp_notes_settings(peer_id, expected)["shared"]["supported"]:
+                    return {"ok": False, "code": "unsupported_feature"}
+                field, value, initial = request.get("field"), request.get("value"), request.get("initial")
+                try:
+                    shared_sync_contract.setting_value(field, value)
+                    if not isinstance(initial, dict) or set(initial) != set(shared_sync_contract.DEFAULTS):
+                        raise ValueError("incomplete_initial")
+                    shared_sync_contract.create(self.store.identity["device_id"], initial)
+                except (ValueError, TypeError):
+                    return {"ok": False, "code": "invalid_selection"}
+                self.change_common_preference(peer_id, expected, field, value, initial, expected_revision=request["expectedRevision"])
+                with self.lock:
+                    peer = self._mcp_require_peer(peer_id, expected)
+                    stored = next((item for item in self.store._load_peers() if item.get("device_id") == peer_id), None)
+                    body = self.store.shared_settings(peer_id, peer["static_public"])
+                    values = shared_sync_contract.effective(body) if body is not None else {}
+                    persisted = bool(stored and stored.get("personal_sync", {}).get("own_device") is True and
+                        stored.get("static_public") == peer["static_public"] and body is not None and
+                        values.get(field) == value and
+                        stored.get("personal_sync", {}).get("auto_wifi") is (values["auto_mode"] == "wifi") and
+                        stored.get("local_grants", {}).get("grants", {}).get("personal_deletions_sync") is (not values["skip_deletions"]))
+                    if capture["failed"] or not persisted:
+                        return {"ok": False, "code": "verification_failed"}
+                    return {"ok": True, "action": action, "notesSettings": self.mcp_notes_settings(peer_id, expected),
+                        "localVerified": True, "persisted": True, "deliveryConfirmed": False}
+            elif action == "settings":
                 if type(request.get("enabled")) is not bool:
                     return {"ok": False, "code": "invalid_selection"}
                 self.set_enabled(request["enabled"], expected_revision=request["expectedRevision"])
@@ -2564,6 +2597,24 @@ class PhoneService:
     def mcp_editable_grants():
         return {"selected_notifications_readonly", "incoming_call_state", "incoming_call_number", "answer_call", "end_call",
                 "personal_notes_sync", "personal_tasks_sync", "personal_deletions_sync"}
+
+    def mcp_notes_settings(self, peer_id, expected_fingerprint):
+        """Read consent/settings only, never initialize, replay or publish GUI content."""
+        with self.lock:
+            peer = self._mcp_require_peer(peer_id, expected_fingerprint)
+            if self.store.sole_peer(peer_id) is None:
+                raise ValueError("phone_control_conflict")
+            personal = peer.get("personal_sync", {})
+            shared = self.shared_settings_status(peer_id)
+            control = {"phone_revision": self.mcp_status(include_bluetooth=False)["revision"],
+                "personal": {key: personal.get(key) is True for key in ("own_device", "remote_own_device", "auto_wifi")}, "note": peer.get("note_sync", {}),
+                "shared": self.store.shared_settings(peer_id, peer["static_public"])}
+            revision = hmac.new(self._mcp_revision_key, canonical(control), hashlib.sha256).hexdigest()
+            return {"revision": revision, "peer_id": peer_id,
+                "fingerprint": fingerprint(unb64(peer["static_public"], 32)),
+                "own_device": personal.get("own_device") is True,
+                "remote_own_device": personal.get("remote_own_device") is True,
+                "auto_wifi": personal.get("auto_wifi") is True, "shared": shared}
 
     def _mcp_bluetooth_status(self):
         available, reason = self.bluetooth_backend.availability()
@@ -3649,7 +3700,7 @@ class PhoneService:
 
     def _common_preference_peer(self, peer_id, expected_fingerprint, initial, activate=False):
         peer = self.store.sole_peer(peer_id)
-        if (not peer or fingerprint(unb64(peer["static_public"], 32)) != expected_fingerprint or
+        if (not peer or fingerprint(unb64(peer["static_public"], 32)).lower() != str(expected_fingerprint).lower() or
                 (not activate and peer.get("personal_sync", {}).get("own_device") is not True) or
                 not shared_sync_contract.supported(desktop_capabilities()["items"], peer.get("capabilities", {}).get("items", {}))):
             raise PermissionError("Shared preferences are unavailable for this paired device.")
@@ -3672,8 +3723,10 @@ class PhoneService:
         self.callback("status", self.report())
         return result
 
-    def change_common_preference(self, peer_id, expected_fingerprint, field, value, initial):
+    def change_common_preference(self, peer_id, expected_fingerprint, field, value, initial, expected_revision=None):
         with self.lock:
+            if expected_revision is not None and expected_revision != self.mcp_notes_settings(peer_id, expected_fingerprint)["revision"]:
+                raise ValueError("phone_control_conflict")
             shared_sync_contract.setting_value(field, value)
             peer = self._common_preference_peer(peer_id, expected_fingerprint, initial, activate=True)
             self.store.change_shared_setting(peer_id, peer["static_public"], field, value, initial)

@@ -58,6 +58,27 @@ internal sealed partial class TelefonCoordinator
     }
     private static bool McpFlag(JsonObject request, string key) => request[key] is JsonValue value && value.TryGetValue<bool>(out var flag) ? flag : throw new McpRequestException();
 
+    internal JsonObject McpNotesSettings(string id, string fingerprint)
+    {
+        lock (gate)
+        {
+            RequireSolePeer(id);
+            var peer = RequireMcpPeer(id, fingerprint);
+            var personal = store.PersonalSettings(id);
+            var control = new JsonObject { ["phone_revision"] = McpStatus()["revision"]!.DeepClone(),
+                ["own_device"] = personal.OwnDevice, ["remote_own_device"] = personal.RemoteOwnDevice,
+                ["auto_wifi"] = personal.AutoWifi, ["note"] = store.NoteSettings(id),
+                ["shared"] = store.SharedSettings(id, peer.PublicKey) };
+            var bytes = Encoding.UTF8.GetBytes(control.ToJsonString());
+            string revision;
+            try { revision = Convert.ToHexString(HMACSHA256.HashData(mcpRevisionKey, bytes)).ToLowerInvariant(); }
+            finally { Array.Clear(bytes); }
+            return new() { ["revision"] = revision, ["peer_id"] = id, ["fingerprint"] = TelefonCrypto.Fingerprint(peer.PublicKey),
+                ["own_device"] = personal.OwnDevice, ["remote_own_device"] = personal.RemoteOwnDevice,
+                ["auto_wifi"] = personal.AutoWifi, ["shared"] = SharedPreferences(id) };
+        }
+    }
+
     internal async Task<JsonObject> ExecuteMcpAsync(JsonObject request, CancellationToken cancellation,
         Func<string, string, string, Task>? removeWithRuntime = null)
     {
@@ -66,6 +87,9 @@ internal sealed partial class TelefonCoordinator
         var previous = mcpEmission.Value; var capture = new McpEmission(); mcpEmission.Value = capture;
         try
         {
+            if (store.RestoreFenced) return new() { ["ok"] = false, ["code"] = "native_busy" };
+            if (request["action"]?.GetValue<string>() == "notes_settings_read")
+                return new() { ["ok"] = true, ["notesSettings"] = McpNotesSettings(McpText(request, "peerId", true), McpText(request, "fingerprint", true)) };
             var action = McpText(request, "action", true); var revision = McpText(request, "expectedRevision", true);
             var id = McpText(request, "peerId"); var fingerprint = McpText(request, "fingerprint");
             var enabled = (action is "settings" or "grant" or "bluetooth") && McpFlag(request, "enabled");
@@ -76,7 +100,13 @@ internal sealed partial class TelefonCoordinator
             lock (gate)
             {
                 if (store.RestoreFenced) return new() { ["ok"] = false, ["code"] = "native_busy" };
-                CheckMcpRevision(revision);
+                if (action == "notes_settings_update")
+                {
+                    var notes = McpNotesSettings(id, fingerprint);
+                    if (revision != notes["revision"]!.GetValue<string>()) throw new McpConflictException();
+                    if (!notes["shared"]!["supported"]!.GetValue<bool>()) throw new NotSupportedException();
+                }
+                else CheckMcpRevision(revision);
                 if (action is "remove" or "grant" or "bluetooth") RequireMcpPeer(id, fingerprint, requirePaired: action != "remove");
                 if (action == "grant" && !McpEditableGrants().Contains(name, StringComparer.Ordinal)) return new() { ["ok"] = false, ["code"] = "unsupported_feature" };
                 if (action == "pairing_begin" && (!Enabled || !IsRunning)) throw new McpConflictException();
@@ -103,11 +133,28 @@ internal sealed partial class TelefonCoordinator
                     "remove" => () => removeWithRuntime is null ? RemoveAsync(id, fingerprint, revision) : removeWithRuntime(id, fingerprint, revision),
                     "grant" => () => SetGrantAsync(id, name, enabled, fingerprint, revision),
                     "bluetooth" => () => SetBluetoothPreferenceAsync(id, enabled, address, fingerprint, revision),
+                    "notes_settings_update" => () => SetCommonPreferencesAsync(id, fingerprint,
+                        request["initial"] as JsonObject ?? throw new McpRequestException(),
+                        McpText(request, "field", true), request["value"] ?? throw new McpRequestException(), expectedNotesRevision: revision),
                     _ => throw new McpRequestException()
                 };
             }
             await operation().ConfigureAwait(false);
             cancellation.ThrowIfCancellationRequested();
+            if (action == "notes_settings_update")
+            {
+                lock (gate)
+                {
+                    var state = McpNotesSettings(id, fingerprint);
+                    var values = state["shared"]?["values"] as JsonObject;
+                    if (!state["own_device"]!.GetValue<bool>() || values is null || !JsonNode.DeepEquals(values[McpText(request, "field", true)], request["value"]) ||
+                        store.PersonalSettings(id).AutoWifi != (values["auto_mode"]!.GetValue<string>() == "wifi") ||
+                        !store.StoredGrantMatches("personal_deletions_sync", !values["skip_deletions"]!.GetValue<bool>()))
+                        return new() { ["ok"] = false, ["code"] = "verification_failed" };
+                    return new() { ["ok"] = true, ["action"] = action, ["notesSettings"] = state,
+                        ["localVerified"] = true, ["persisted"] = true, ["deliveryConfirmed"] = false };
+                }
+            }
             bool verified, persisted;
             lock (gate)
             {
@@ -133,6 +180,7 @@ internal sealed partial class TelefonCoordinator
         }
         catch (McpConflictException) { return new() { ["ok"] = false, ["code"] = "conflict" }; }
         catch (McpRequestException) { return new() { ["ok"] = false, ["code"] = "invalid_selection" }; }
+        catch (InvalidDataException) { return new() { ["ok"] = false, ["code"] = "invalid_selection" }; }
         catch (NotSupportedException) { return new() { ["ok"] = false, ["code"] = "unsupported_feature" }; }
         catch (OperationCanceledException) { return new() { ["ok"] = false, ["code"] = "cancelled" }; }
         catch (InvalidOperationException error) when (error.Message == "binding_conflict") { return new() { ["ok"] = false, ["code"] = "conflict" }; }

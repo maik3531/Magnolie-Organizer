@@ -45,6 +45,13 @@ details, not separate product features requiring another public tool.
 
 ## Remaining operation groups
 
+Own Notes progress: native consent/shared-preference read and single-field
+updates are connected through the existing GUI handlers, with an independent
+settings revision, explicit complete initialization choices, actual store readback
+and no remote-delivery claim. Local ownership activation and deletion grants
+follow the same existing handler. Legacy-only mode controls, explicit ownership
+withdrawal and initial/manual content synchronization remain in the group below.
+
 | Group | Existing product operations to finish connecting | Completion evidence |
 | --- | --- | --- |
 | Phone and KDE lifecycle | Remaining KDE receive preferences/routing and offered lifecycle utilities beyond the connected pinned basic controls | Existing device/attempt/source identity guards and native receipts |

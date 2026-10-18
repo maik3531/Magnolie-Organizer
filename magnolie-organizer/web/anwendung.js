@@ -35532,6 +35532,37 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         finally { signal.removeEventListener("abort", cancel); }
       } };
   }
+  function mcpNotesWerteSchema() {
+    return { type: "object", properties: { content_mode: { type: "string", enum: ["phone_import", "phone_scope", "two_way"] },
+      auto_mode: { type: "string", enum: ["manual", "wifi", "connection"] }, skip_deletions: { type: "boolean" },
+      custom_enabled: { type: "boolean" }, time_enabled: { type: "boolean" }, time_mode: { type: "string", enum: ["phone_import", "two_way"] } },
+      required: ["content_mode", "auto_mode", "skip_deletions", "custom_enabled", "time_enabled", "time_mode"], additionalProperties: false };
+  }
+  function mcpNotesEinstellungenWerkzeuge() {
+    const target = { peer_id: { type: "string", pattern: "^[a-fA-F0-9-]{36}$" }, fingerprint: { type: "string", pattern: "^[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}$" } };
+    const read = async (args, signal, update) => {
+      if (update) mcpEditorPruefen();
+      const request = { action: update ? "notes_settings_update" : "notes_settings_read", peerId: args.peer_id, fingerprint: args.fingerprint };
+      if (update) Object.assign(request, { expectedRevision: args.expected_revision, field: args.field, value: args.value, initial: args.initial });
+      const value = await mcpNativeAufruf("telefon_mcp", { request }, "telefonMcpErgebnis", signal);
+      if (value.ok !== true) throw new MagnolieMcp.ToolError(["conflict", "native_busy", "profile_locked", "verification_failed", "unsupported_feature", "invalid_selection", "cancelled"].includes(value.code) ? value.code : "native_operation_failed", "Native Notes settings operation failed; inspect current state before retrying");
+      const state = value.notesSettings;
+      if (!state || state.peer_id !== args.peer_id || state.fingerprint?.toUpperCase() !== args.fingerprint.toUpperCase())
+        throw new MagnolieMcp.ToolError("source_changed", "Native Notes settings target changed");
+      if (!update) return state;
+      if (value.action !== request.action || value.localVerified !== true || value.persisted !== true || value.deliveryConfirmed !== false || state.own_device !== true || state.shared?.values?.[args.field] !== args.value)
+        throw new MagnolieMcp.ToolError("invalid_result", "Native Notes settings receipt was not verified; inspect state before retrying");
+      return { state, local_verified: true, persisted: true, delivery_confirmed: false };
+    };
+    const values = mcpNotesWerteSchema().properties;
+    return [{ name: "organizer_notes_settings_read", description: "Read actual native own-Notes consent and shared synchronization preferences for the exact sole paired peer/fingerprint. Returns a process/store-bound settings revision including ownership, grants, legacy note policy and complete shared register vectors. No initialization, listener start, GUI subscription, content replay or synchronization is performed. shared.supported false explicitly identifies older peers; these shared controls require protocol v9. Readiness is an observation, not delivery confirmation.",
+      inputSchema: { type: "object", properties: target, required: Object.keys(target), additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: (args, signal) => read(args, signal, false) },
+    { name: "organizer_notes_settings_update", description: "Change one shared Notes synchronization preference through the same native handler as the device settings GUI. Requires the current Notes-settings revision and exact sole paired identity. Supply all six initial preferences explicitly: if no shared register exists these seed it; an existing register retains its saved choices. This explicit local choice also confirms this is your own Notes device and applies existing deletion grants/automatic-sync policies. It never confirms the remote device's ownership. Saving preferences can queue existing control frames or enable automatic synchronization; persisted proves local store readback only, never phone delivery. Inspect state after errors/timeouts/cancellation before retrying. Manual content synchronization is a separate operation.",
+      inputSchema: { type: "object", properties: { ...target, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, initial: mcpNotesWerteSchema(), field: { type: "string", enum: Object.keys(values) }, value: { type: ["string", "boolean"] } },
+        required: [...Object.keys(target), "expected_revision", "initial", "field", "value"], anyOf: Object.entries(values).map(([field, schema]) => ({ properties: { field: { enum: [field] }, value: schema } })), additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: (args, signal) => read(args, signal, true) }];
+  }
   function mcpTelefonVerbindungWerkzeuge() {
     const id = { type: "string", minLength: 1, maxLength: 256 }, flag = { type: "boolean" };
     return [{ name: "organizer_phone_connection_read", description: "Read actual native Notes phone identity, listener/pairing state, pending verification codes/attempt IDs, peer fingerprints, editable/local/remote grants, declared capabilities and platform Bluetooth metadata. Linux returns the existing OS-paired Bluetooth inventory; Windows explicitly marks that enumeration unsupported. Peer, pending and Bluetooth lists share bounded offset/limit pages. Pairing tokens, private keys, cached device-status contents, notifications and personal-sync payloads are excluded. The process/store-bound control revision excludes volatile contact/transport observations. Linux uses the existing local service or daemon proxy without listener start, GUI subscription or personal-content replay; initial identity/adapter initialization may occur. Reading does not prove authentication or delivery. Late replies leave GUI drafts/dialogs unchanged.",
@@ -37562,6 +37593,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const state = shape(fields, Object.keys(fields).filter(key => key !== "next_offset"));
       return name === "organizer_kde_connection_read" ? state : shape({ state, local_verified: yes, persisted: { type: "boolean", enum: [false] }, delivery_confirmed: { type: "boolean", enum: [false] } }, ["state", "local_verified", "persisted", "delivery_confirmed"]);
     }
+    if (["organizer_notes_settings_read", "organizer_notes_settings_update"].includes(name)) {
+      const state = shape({ revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, peer_id: id, fingerprint: { type: "string", pattern: "^[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}$" },
+        own_device: flag, remote_own_device: flag, auto_wifi: flag, shared: shape({ supported: flag, initialized: flag, ready: flag, values: { anyOf: [{ type: "null" }, mcpNotesWerteSchema()] } }, ["supported", "initialized", "ready", "values"]) }, ["revision", "peer_id", "fingerprint", "own_device", "remote_own_device", "auto_wifi", "shared"]);
+      return name === "organizer_notes_settings_read" ? state : shape({ state, local_verified: yes, persisted: yes, delivery_confirmed: { type: "boolean", enum: [false] } }, ["state", "local_verified", "persisted", "delivery_confirmed"]);
+    }
     if (["organizer_phone_connection_read", "organizer_phone_connection_action"].includes(name)) {
       const grants = { type: "object", maxProperties: 128, additionalProperties: flag };
       const capabilities = { type: "object", maxProperties: 128, additionalProperties: shape({ available: flag, versions: { type: "array", maxItems: 32, items: { type: "integer", minimum: 0, maximum: 1000 } } }, ["available", "versions"]) };
@@ -37886,6 +37922,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpBaumAbgleichWerkzeuge(),
       ...mcpBaumKontaktWerkzeuge(),
       ...mcpTelefonVerbindungWerkzeuge(),
+      ...mcpNotesEinstellungenWerkzeuge(),
       mcpGeraeteStatusWerkzeug(),
       ...mcpKdeVerbindungWerkzeuge(owner),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",

@@ -21,7 +21,7 @@ internal sealed partial class TelefonCoordinator
     }
 
     internal async Task SetCommonPreferencesAsync(string id, string expectedFingerprint, JsonObject initial,
-        string? field = null, JsonNode? value = null, bool activate = false)
+        string? field = null, JsonNode? value = null, bool activate = false, string? expectedNotesRevision = null)
     {
         await store.NotePolicyGate.WaitAsync();
         TelefonConnection? connection;
@@ -30,9 +30,11 @@ internal sealed partial class TelefonCoordinator
         {
             lock (gate)
             {
+                if (expectedNotesRevision is not null && expectedNotesRevision != McpNotesSettings(id, expectedFingerprint)["revision"]!.GetValue<string>())
+                    throw new McpConflictException();
                 RequireSolePeer(id);
                 var peer = store.LoadPeers().Single(item => item.Id == id && item.State == "paired");
-                if (TelefonCrypto.Fingerprint(peer.PublicKey) != expectedFingerprint ||
+                if (!TelefonCrypto.Fingerprint(peer.PublicKey).Equals(expectedFingerprint, StringComparison.OrdinalIgnoreCase) ||
                     (!(activate || field is not null) && !store.PersonalSettings(id).OwnDevice) ||
                     !SharedSyncSettings.Supported(SharedLocalCapabilities(), peer.Capabilities))
                     throw new InvalidOperationException("Shared preferences are unavailable for this paired device.");
