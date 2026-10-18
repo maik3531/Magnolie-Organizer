@@ -280,7 +280,7 @@ window._telefon_dienst_pflegen = lambda: None
 window._baum_dienst_pflegen = lambda: None
 phone_fixture = None
 kde_fixture = None
-if os.environ.get("MAGNOLIE_MCP_PROBE_PHONE_ONLY") == "1" or os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_SETTINGS_ONLY") == "1":
+if any(os.environ.get(flag) == "1" for flag in ("MAGNOLIE_MCP_PROBE_PHONE_ONLY", "MAGNOLIE_MCP_PROBE_NOTES_SETTINGS_ONLY", "MAGNOLIE_MCP_PROBE_NOTES_LEGACY_ONLY")):
     import magnolie_telefon as phone_protocol
     class OwnedNoBluetooth:
         def availability(self): return False, "owned_fixture"
@@ -294,6 +294,11 @@ if os.environ.get("MAGNOLIE_MCP_PROBE_PHONE_ONLY") == "1" or os.environ.get("MAG
     phone_fixture.store.save_peers()
     if os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_SETTINGS_ONLY") == "1":
         phone_fixture.store.peers[0]["capabilities"] = phone_protocol.desktop_capabilities()
+        phone_fixture.store.save_peers()
+    if os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_LEGACY_ONLY") == "1":
+        phone_fixture.store.peers[0]["capabilities"] = phone_protocol.desktop_capabilities()
+        for name in ("personal_notes_sync", "personal_tasks_sync"):
+            phone_fixture.store.peers[0]["capabilities"]["items"][name]["versions"] = [1, 2, 3, 4, 5]
         phone_fixture.store.save_peers()
     window._telefon = phone_fixture
     window._telefon_dienst_pflegen = lambda start_listener=True: False
@@ -445,6 +450,28 @@ def client():
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
         if os.environ.get("MAGNOLIE_MCP_PROBE_FAIL_AFTER_READY") == "1":
             raise RuntimeError("Owned fixture intentional failure after ready")
+        if os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_LEGACY_ONLY") == "1":
+            def legacy_tool(name, arguments=None):
+                result = call("tools/call", {"name": name, **({"arguments": arguments} if arguments is not None else {})})
+                assert not result["isError"], result
+                return result["structuredContent"]
+            palette = legacy_tool("organizer_category_colors_read")
+            legacy_tool("organizer_category_colors_update", {"expected_revision": palette["revision"], "colors": []})
+            unchanged = data_file.read_bytes()
+            peer = legacy_tool("organizer_phone_connection_read")["peers"][0]
+            target = {"peer_id": peer["id"], "fingerprint": peer["fingerprint"]}
+            for auto, skip in ((True, False), (False, True)):
+                current = legacy_tool("organizer_notes_settings_read", target)
+                assert not current["shared"]["supported"]
+                saved = legacy_tool("organizer_notes_legacy_mode_update", {**target, "expected_revision": current["revision"], "auto_wifi": auto, "skip_deletions": skip})
+                assert saved["persisted"] and saved["state"]["auto_wifi"] is auto and saved["state"]["skip_deletions"] is skip
+                stored = phone_fixture.store._load_peers()[0]
+                assert stored["personal_sync"]["own_device"] and not stored["personal_sync"]["remote_own_device"]
+                assert stored["local_grants"]["grants"]["personal_deletions_sync"] is not skip
+            assert data_file.read_bytes() == unchanged and phone_fixture.server is None
+            state["notes_legacy_mode_store_verified"] = True
+            process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
+            return
         if os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_SETTINGS_ONLY") == "1":
             def settings_tool(name, arguments=None):
                 result = call("tools/call", {"name": name, **({"arguments": arguments} if arguments is not None else {})})
@@ -2700,7 +2727,9 @@ finally:
         state["error"] = (state.get("error") or "") + "\nPrivate service/temporary cleanup:\n" + traceback.format_exc(limit=4)
     print("Native MCP fixture state:", json.dumps(state), flush=True)
 assert state["passed"] and state.get("cleanup_verified"), state
-if os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_SETTINGS_ONLY") == "1":
+if os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_LEGACY_ONLY") == "1":
+    print("Native MCP NOTES LEGACY MODE PASS: actual GTK/stdio legacy GUI handler, own-device/automatic mode/grant store readback, unchanged book and no listener; no handset delivery claim")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_SETTINGS_ONLY") == "1":
     print("Native MCP NOTES SETTINGS PASS: actual GTK/stdio shared GUI handlers, consent/preferences/grants store readback, stale revision rejection, unchanged book and no phone listener; no handset delivery claim")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_DEVICE_STATUS_ONLY") == "1":
     print("Native MCP DEVICE STATUS PASS: actual GTK/stdio query and deferred native dispatch through synthetic pinned WLAN context, default privacy/explicit identifiers/revocation, no GUI/cache/listener or physical-phone claim")

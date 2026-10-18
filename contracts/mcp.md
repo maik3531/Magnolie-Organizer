@@ -52,6 +52,17 @@ remaining stored local mode. It adds no remote consent or content grants.
 `persisted: true` proves local settings only; `delivery_confirmed` remains false,
 including when an existing control frame was queued while the phone was offline.
 
+`organizer_notes_legacy_mode_update` exposes the existing older-peer manual/
+automatic Wi-Fi operating choice: `auto_wifi`, `skip_deletions`, exact identity
+and current Notes-settings revision. It requires both lack of shared-settings
+support and absence of a retained shared register. A peer with shared settings
+must use the shared preference handler instead. The existing legacy handler
+confirms local ownership and grants notes/tasks together, applies its existing
+new-own-device defaults and deletion protocol cleanup, then reads actual stored
+ownership, mode and grants back. Remote ownership remains unchanged. The public
+settings snapshot also includes actual local `skip_deletions`, independently of
+a shared-register effective choice. Delivery is never inferred from saving grants.
+
 ### Fresh phone device status and temporary identifiers
 
 `organizer_phone_device_status_read` requires the latest phone-control

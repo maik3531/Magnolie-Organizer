@@ -861,17 +861,28 @@ internal sealed partial class TelefonCoordinator : IDisposable
         await ReportStatusAsync();
     }
 
-    internal async Task SetPersonalSyncModeAsync(string id, bool autoWifi, bool skipDeletions)
+    internal async Task SetPersonalSyncModeAsync(string id, bool autoWifi, bool skipDeletions, string? expectedFingerprint = null, string? expectedNotesRevision = null)
     {
-        RequireSolePeer(id);
         long revision; TelefonConnection? connection;
-        lock (gate)
+        await store.NotePolicyGate.WaitAsync();
+        try
         {
-            store.SetPersonalSyncMode(id, autoWifi, skipDeletions);
-            if (skipDeletions) personalSync.PurgeDeletionProtocol(id);
-            revision = store.NextOwnRevision("grants");
-            online.TryGetValue(id, out connection);
+            lock (gate)
+            {
+                RequireSolePeer(id);
+                if (expectedFingerprint is not null)
+                {
+                    var state = McpNotesSettings(id, expectedFingerprint);
+                    if (expectedNotesRevision != state["revision"]!.GetValue<string>()) throw new McpConflictException();
+                    if (state["shared"]!["supported"]!.GetValue<bool>() || state["shared"]!["initialized"]!.GetValue<bool>()) throw new NotSupportedException();
+                }
+                store.SetPersonalSyncMode(id, autoWifi, skipDeletions);
+                if (skipDeletions) personalSync.PurgeDeletionProtocol(id);
+                revision = store.NextOwnRevision("grants");
+                online.TryGetValue(id, out connection);
+            }
         }
+        finally { store.NotePolicyGate.Release(); }
         if (connection is not null)
         {
             await connection.SendGrantsAsync(revision, store.LocalGrants());

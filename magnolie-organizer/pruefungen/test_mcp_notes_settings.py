@@ -164,3 +164,28 @@ def test_daemon_ownership_update(tmp_path):
         assert not events
     finally:
         server.close()
+
+
+@pytest.mark.parametrize("auto,skip", [(False, True), (True, False)])
+def test_legacy_mode_uses_existing_grant_defaults_and_disk_readback(tmp_path, auto, skip):
+    service, peer, events = modern_service(tmp_path)
+    for name in ("personal_notes_sync", "personal_tasks_sync"):
+        peer["capabilities"]["items"][name]["versions"] = [1, 2, 3, 4, 5]
+    service.store.save_peers()
+    state = service.mcp_action(request(service))["notesSettings"]
+    result = service.mcp_action(request(service, "notes_legacy_mode", expectedRevision=state["revision"], enabled=auto, skipDeletions=skip))
+    assert result["ok"], result
+    assert result["notesSettings"]["auto_wifi"] is auto and result["notesSettings"]["skip_deletions"] is skip
+    stored = service.store._load_peers()[0]
+    assert stored["personal_sync"]["own_device"] and not stored["personal_sync"]["remote_own_device"]
+    assert all(stored["local_grants"]["grants"][name] for name in ("personal_notes_sync", "personal_tasks_sync"))
+    assert stored["local_grants"]["grants"]["personal_deletions_sync"] is not skip
+    assert not events
+
+
+def test_legacy_mode_cannot_override_modern_shared_preferences(tmp_path):
+    service, peer, events = modern_service(tmp_path)
+    state = service.mcp_action(request(service))["notesSettings"]
+    result = service.mcp_action(request(service, "notes_legacy_mode", expectedRevision=state["revision"], enabled=True, skipDeletions=False))
+    assert result == {"ok": False, "code": "unsupported_feature"}
+    assert not peer["personal_sync"]["own_device"] and not events

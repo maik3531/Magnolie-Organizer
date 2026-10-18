@@ -75,7 +75,8 @@ internal sealed partial class TelefonCoordinator
             finally { Array.Clear(bytes); }
             return new() { ["revision"] = revision, ["peer_id"] = id, ["fingerprint"] = TelefonCrypto.Fingerprint(peer.PublicKey),
                 ["own_device"] = personal.OwnDevice, ["remote_own_device"] = personal.RemoteOwnDevice,
-                ["auto_wifi"] = personal.AutoWifi, ["shared"] = SharedPreferences(id) };
+                ["auto_wifi"] = personal.AutoWifi, ["skip_deletions"] = store.LocalGrants()["personal_deletions_sync"]?.GetValue<bool>() != true,
+                ["shared"] = SharedPreferences(id) };
         }
     }
 
@@ -92,7 +93,8 @@ internal sealed partial class TelefonCoordinator
                 return new() { ["ok"] = true, ["notesSettings"] = McpNotesSettings(McpText(request, "peerId", true), McpText(request, "fingerprint", true)) };
             var action = McpText(request, "action", true); var revision = McpText(request, "expectedRevision", true);
             var id = McpText(request, "peerId"); var fingerprint = McpText(request, "fingerprint");
-            var enabled = (action is "settings" or "grant" or "bluetooth" or "notes_ownership") && McpFlag(request, "enabled");
+            var enabled = (action is "settings" or "grant" or "bluetooth" or "notes_ownership" or "notes_legacy_mode") && McpFlag(request, "enabled");
+            var skipDeletions = action == "notes_legacy_mode" && McpFlag(request, "skipDeletions");
             var name = McpText(request, "name"); var address = McpText(request, "address").Trim().ToUpperInvariant();
             var accept = action == "pairing_confirm" && McpFlag(request, "accept");
             Func<Task> operation;
@@ -100,7 +102,7 @@ internal sealed partial class TelefonCoordinator
             lock (gate)
             {
                 if (store.RestoreFenced) return new() { ["ok"] = false, ["code"] = "native_busy" };
-                if (action is "notes_settings_update" or "notes_ownership")
+                if (action is "notes_settings_update" or "notes_ownership" or "notes_legacy_mode")
                 {
                     var notes = McpNotesSettings(id, fingerprint);
                     if (revision != notes["revision"]!.GetValue<string>()) throw new McpConflictException();
@@ -134,6 +136,7 @@ internal sealed partial class TelefonCoordinator
                     "grant" => () => SetGrantAsync(id, name, enabled, fingerprint, revision),
                     "bluetooth" => () => SetBluetoothPreferenceAsync(id, enabled, address, fingerprint, revision),
                     "notes_ownership" => () => SetPersonalSyncAsync(id, enabled, false, fingerprint, revision),
+                    "notes_legacy_mode" => () => SetPersonalSyncModeAsync(id, enabled, skipDeletions, fingerprint, revision),
                     "notes_settings_update" => () => SetCommonPreferencesAsync(id, fingerprint,
                         request["initial"] as JsonObject ?? throw new McpRequestException(),
                         McpText(request, "field", true), request["value"] ?? throw new McpRequestException(), expectedNotesRevision: revision),
@@ -142,6 +145,19 @@ internal sealed partial class TelefonCoordinator
             }
             await operation().ConfigureAwait(false);
             cancellation.ThrowIfCancellationRequested();
+            if (action == "notes_legacy_mode")
+            {
+                lock (gate)
+                {
+                    var state = McpNotesSettings(id, fingerprint);
+                    if (!state["own_device"]!.GetValue<bool>() || state["auto_wifi"]!.GetValue<bool>() != enabled ||
+                        !store.StoredGrantMatches("personal_notes_sync", true) || !store.StoredGrantMatches("personal_tasks_sync", true) ||
+                        !store.StoredGrantMatches("personal_deletions_sync", !skipDeletions))
+                        return new() { ["ok"] = false, ["code"] = "verification_failed" };
+                    return new() { ["ok"] = true, ["action"] = action, ["notesSettings"] = state,
+                        ["localVerified"] = true, ["persisted"] = true, ["deliveryConfirmed"] = false };
+                }
+            }
             if (action == "notes_ownership")
             {
                 lock (gate)

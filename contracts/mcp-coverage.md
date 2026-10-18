@@ -51,8 +51,10 @@ settings revision, explicit complete initialization choices, actual store readba
 and no remote-delivery claim. Local ownership activation and deletion grants
 follow the same existing handler. Explicit ownership confirmation/withdrawal is
 also connected, preserving pairing and remote consent while using existing native
-protocol cleanup. Legacy-only mode controls and initial/manual content
-synchronization remain in the group below.
+protocol cleanup. The existing legacy manual/automatic Wi-Fi and deletion choice
+is also connected, explicitly rejecting shared-register peers. Legacy note/custom/
+time direction and policy controls and initial/manual content synchronization
+remain in the group below.
 
 | Group | Existing product operations to finish connecting | Completion evidence |
 | --- | --- | --- |

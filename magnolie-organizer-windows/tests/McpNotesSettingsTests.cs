@@ -68,6 +68,17 @@ internal static class McpNotesSettingsTests
             var confirmed = await service.ExecuteMcpAsync(ownership, default);
             TestAssert.That(confirmed["ok"]!.GetValue<bool>() && store.PersonalSettings(peer.Id).OwnDevice && store.PersonalSettings(peer.Id).RemoteOwnDevice,
                 "Explicit ownership confirmation failed through the existing native handler.");
+            var legacy = Target("notes_legacy_mode"); legacy["expectedRevision"] = service.McpNotesSettings(peer.Id, fingerprint)["revision"]!.DeepClone();
+            legacy["enabled"] = true; legacy["skipDeletions"] = false;
+            TestAssert.That((await service.ExecuteMcpAsync(legacy, default))["code"]!.GetValue<string>() == "unsupported_feature", "Legacy control overrode a modern shared-settings peer.");
+            var oldCapabilities = capabilities.DeepClone().AsObject();
+            foreach (var name in new[] { "personal_notes_sync", "personal_tasks_sync" }) oldCapabilities[name]!["versions"] = new JsonArray(1, 2, 3, 4, 5);
+            store.SavePeers([peer with { Capabilities = oldCapabilities }]);
+            legacy["expectedRevision"] = service.McpNotesSettings(peer.Id, fingerprint)["revision"]!.DeepClone();
+            var legacySaved = await service.ExecuteMcpAsync(legacy, default);
+            TestAssert.That(legacySaved["ok"]!.GetValue<bool>() && store.PersonalSettings(peer.Id).AutoWifi &&
+                store.StoredGrantMatches("personal_notes_sync", true) && store.StoredGrantMatches("personal_tasks_sync", true) &&
+                store.StoredGrantMatches("personal_deletions_sync", true), "Legacy mode did not apply/read back the existing paired grant choices.");
             TestAssert.That(events.Count == 0 && !service.McpStatus()["listening"]!.GetValue<bool>(), "Notes settings emitted GUI events or started a listener.");
         }
         finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }

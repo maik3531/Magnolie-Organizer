@@ -35334,8 +35334,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const read = async (args, signal, update) => {
       if (update) mcpEditorPruefen();
       const ownership = update === "ownership";
-      const request = { action: ownership ? "notes_ownership" : update ? "notes_settings_update" : "notes_settings_read", peerId: args.peer_id, fingerprint: args.fingerprint };
+      const legacy = update === "legacy";
+      const request = { action: legacy ? "notes_legacy_mode" : ownership ? "notes_ownership" : update ? "notes_settings_update" : "notes_settings_read", peerId: args.peer_id, fingerprint: args.fingerprint };
       if (ownership) Object.assign(request, { expectedRevision: args.expected_revision, enabled: args.own_device });
+      else if (legacy) Object.assign(request, { expectedRevision: args.expected_revision, enabled: args.auto_wifi, skipDeletions: args.skip_deletions });
       else if (update) Object.assign(request, { expectedRevision: args.expected_revision, field: args.field, value: args.value, initial: args.initial });
       const value = await mcpNativeAufruf("telefon_mcp", { request }, "telefonMcpErgebnis", signal);
       if (value.ok !== true) throw new MagnolieMcp.ToolError(["conflict", "native_busy", "profile_locked", "verification_failed", "unsupported_feature", "invalid_selection", "cancelled"].includes(value.code) ? value.code : "native_operation_failed", "Native Notes settings operation failed; inspect current state before retrying");
@@ -35343,7 +35345,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (!state || state.peer_id !== args.peer_id || state.fingerprint?.toUpperCase() !== args.fingerprint.toUpperCase())
         throw new MagnolieMcp.ToolError("source_changed", "Native Notes settings target changed");
       if (!update) return state;
-      const matches = ownership ? state.own_device === args.own_device && (args.own_device || state.auto_wifi === false) : state.own_device === true && state.shared?.values?.[args.field] === args.value;
+      const matches = legacy ? state.own_device === true && state.auto_wifi === args.auto_wifi && state.skip_deletions === args.skip_deletions && state.shared?.supported === false : ownership ? state.own_device === args.own_device && (args.own_device || state.auto_wifi === false) : state.own_device === true && state.shared?.values?.[args.field] === args.value;
       if (value.action !== request.action || value.localVerified !== true || value.persisted !== true || value.deliveryConfirmed !== false || !matches)
         throw new MagnolieMcp.ToolError("invalid_result", "Native Notes settings receipt was not verified; inspect state before retrying");
       return { state, local_verified: true, persisted: true, delivery_confirmed: false };
@@ -35358,7 +35360,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: (args, signal) => read(args, signal, true) },
     { name: "organizer_notes_ownership_update", description: "Explicitly confirm or withdraw local ownership of the exact sole paired Notes phone using the existing native GUI handler. Requires the latest Notes-settings revision. Withdrawal stops local automatic Wi-Fi synchronization and performs the platform's existing identifier, synchronization staging and protocol cleanup; this does not delete ordinary book entries or remove the paired phone. Confirmation preserves the current shared automatic mode when available, otherwise the stored local mode. No remote ownership is granted and no additional content grants are enabled. Control frames can be queued; inspect state after timeout/cancellation before retrying. persisted proves local configuration readback, not remote delivery or remote cleanup.",
       inputSchema: { type: "object", properties: { ...target, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, own_device: { type: "boolean" } }, required: [...Object.keys(target), "expected_revision", "own_device"], additionalProperties: false },
-      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: (args, signal) => read(args, signal, "ownership") }];
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: (args, signal) => read(args, signal, "ownership") },
+    { name: "organizer_notes_legacy_mode_update", description: "Configure the existing legacy Notes manual/automatic Wi-Fi mode and skip-deletions choice for a sole paired phone that does not support shared settings. Requires the latest Notes-settings revision and exact fingerprint. Rejects modern shared-settings peers; use organizer_notes_settings_update for them. As in the legacy GUI, an explicit mode choice confirms local ownership and enables local notes/tasks grants together; it may enable existing notification defaults on a new own-device confirmation. It preserves remote consent and applies the existing deletion protocol cleanup/grant policy. Stored local configuration is verified, never remote delivery. Inspect state after errors/timeouts/cancellation before retrying.",
+      inputSchema: { type: "object", properties: { ...target, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, auto_wifi: { type: "boolean" }, skip_deletions: { type: "boolean" } }, required: [...Object.keys(target), "expected_revision", "auto_wifi", "skip_deletions"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: (args, signal) => read(args, signal, "legacy") }];
   }
   function mcpTelefonVerbindungWerkzeuge() {
     const id = { type: "string", minLength: 1, maxLength: 256 }, flag = { type: "boolean" };
@@ -37406,9 +37411,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const state = shape(fields, Object.keys(fields).filter(key => key !== "next_offset"));
       return name === "organizer_kde_connection_read" ? state : shape({ state, local_verified: yes, persisted: { type: "boolean", enum: [false] }, delivery_confirmed: { type: "boolean", enum: [false] } }, ["state", "local_verified", "persisted", "delivery_confirmed"]);
     }
-    if (["organizer_notes_settings_read", "organizer_notes_settings_update", "organizer_notes_ownership_update"].includes(name)) {
+    if (["organizer_notes_settings_read", "organizer_notes_settings_update", "organizer_notes_ownership_update", "organizer_notes_legacy_mode_update"].includes(name)) {
       const state = shape({ revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, peer_id: id, fingerprint: { type: "string", pattern: "^[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}$" },
-        own_device: flag, remote_own_device: flag, auto_wifi: flag, shared: shape({ supported: flag, initialized: flag, ready: flag, values: { anyOf: [{ type: "null" }, mcpNotesWerteSchema()] } }, ["supported", "initialized", "ready", "values"]) }, ["revision", "peer_id", "fingerprint", "own_device", "remote_own_device", "auto_wifi", "shared"]);
+        own_device: flag, remote_own_device: flag, auto_wifi: flag, skip_deletions: flag, shared: shape({ supported: flag, initialized: flag, ready: flag, values: { anyOf: [{ type: "null" }, mcpNotesWerteSchema()] } }, ["supported", "initialized", "ready", "values"]) }, ["revision", "peer_id", "fingerprint", "own_device", "remote_own_device", "auto_wifi", "skip_deletions", "shared"]);
       return name === "organizer_notes_settings_read" ? state : shape({ state, local_verified: yes, persisted: yes, delivery_confirmed: { type: "boolean", enum: [false] } }, ["state", "local_verified", "persisted", "delivery_confirmed"]);
     }
     if (["organizer_phone_connection_read", "organizer_phone_connection_action"].includes(name)) {
