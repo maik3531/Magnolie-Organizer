@@ -178,10 +178,13 @@ profile.mkdir(mode=0o700)
 data_file = profile / "daten.json"
 data_file.write_text(json.dumps({"version": 6,
     **({"kontakte": [{"id": "owned-excluded-person", "vorname": "Owned", "nachname": "Patient", "vcardRoundtrip": ["CATEGORIES:Work,Patients", "X-OWNED:keep"]},
-        {"id": "owned-included-person", "vorname": "Owned", "nachname": "Colleague", "vcardRoundtrip": ["CATEGORIES:Colleagues"]}],
+        {"id": "owned-included-person", "vorname": "Owned", "nachname": "Colleague", "vcardRoundtrip": ["CATEGORIES:Colleagues"]},
+        *([{"id": "owned-no-group", "vorname": "Owned", "nachname": "Ungrouped", "vcardRoundtrip": ["CATEGORIES:MY CONTACTS"]},
+            {"id": "owned-custom-group", "vorname": "Owned", "nachname": "Custom", "vcardRoundtrip": ["CATEGORIES:Owned\\, custom"]}]
+           if os.environ.get("MAGNOLIE_MCP_PROBE_GROUP_FILTER_ONLY") == "1" else [])],
         "jahrestage": [{"id": "owned-excluded-birthday", "kontaktId": "owned-excluded-person", "name": "Owned Patient", "datum": "1980-11-18", "typ": "birthday"},
             {"id": "owned-included-birthday", "kontaktId": "owned-included-person", "name": "Owned Colleague", "datum": "1981-11-18", "typ": "birthday"}]}
-       if os.environ.get("MAGNOLIE_MCP_PROBE_GROUP_EXCLUSIONS_ONLY") == "1" else {}),
+       if os.environ.get("MAGNOLIE_MCP_PROBE_GROUP_EXCLUSIONS_ONLY") == "1" or os.environ.get("MAGNOLIE_MCP_PROBE_GROUP_FILTER_ONLY") == "1" else {}),
     **({"kontakte": [{"id": "owned-provider-review", "uid": "owned-review-local-uid", "vorname": "Local", "nachname": "Review", "sync": True,
         "telefone": [{"wert": "+49305550123", "typen": ["CELL"]}],
         "syncQuellen": {"generic-dav-addressbook:owned-review": {"id": "/owned-person.vcf", "etag": '"v1"'}, "unrelated": {"id": "preserve"}},
@@ -416,6 +419,33 @@ def client():
             assert json.loads(data_file.read_text()) == durable
             state["category_palette_native_save_readback"] = True
             state["category_planner_ods_and_ics_verified"] = True
+            process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
+            return
+        if os.environ.get("MAGNOLIE_MCP_PROBE_GROUP_FILTER_ONLY") == "1":
+            def group_search_tool(name, arguments=None):
+                result = call("tools/call", {"name": name, **({"arguments": arguments} if arguments is not None else {})})
+                assert not result["isError"], result
+                return result["structuredContent"]
+            policy = group_search_tool("organizer_contact_group_exclusions_read")
+            group_search_tool("organizer_contact_group_exclusions_update", {"expected_revision": policy["revision"], "enabled": False})
+            unchanged_book = data_file.read_bytes()
+            catalog = group_search_tool("organizer_contact_groups_list", {"limit": 2})
+            assert catalog["next_offset"] == 2
+            rest = group_search_tool("organizer_contact_groups_list", {"offset": 2, "expected_revision": catalog["revision"]})
+            assert any(group["name"] == "Doctor" and group["count"] == 0 for group in catalog["entries"] + rest["entries"])
+            patients = group_search_tool("organizer_contacts_search", {"group_mode": "group", "group": "Patienten", "query": "Owned"})
+            assert [item["id"] for item in patients["entries"]] == ["owned-excluded-person"]
+            work = group_search_tool("organizer_contacts_search", {"group_mode": "group", "group": "Work"})
+            assert [item["id"] for item in work["entries"]] == ["owned-excluded-person"]
+            ungrouped = group_search_tool("organizer_contacts_search", {"group_mode": "none"})
+            assert [item["id"] for item in ungrouped["entries"]] == ["owned-no-group"]
+            custom = group_search_tool("organizer_contacts_search", {"group_mode": "group", "group": "Owned, custom"})
+            assert [item["id"] for item in custom["entries"]] == ["owned-custom-group"]
+            first = group_search_tool("organizer_contacts_search", {"limit": 2})
+            second = group_search_tool("organizer_contacts_search", {"offset": first["next_offset"], "expected_revision": first["revision"]})
+            assert first["total"] == 4 and len({item["id"] for item in first["entries"] + second["entries"]}) == 4
+            assert data_file.read_bytes() == unchanged_book
+            state["group_filter_native_readonly_and_pagination_verified"] = True
             process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
             return
         if os.environ.get("MAGNOLIE_MCP_PROBE_GROUP_EXCLUSIONS_ONLY") == "1":
@@ -2456,7 +2486,9 @@ finally:
         state["error"] = (state.get("error") or "") + "\nPrivate service/temporary cleanup:\n" + traceback.format_exc(limit=4)
     print("Native MCP fixture state:", json.dumps(state), flush=True)
 assert state["passed"] and state.get("cleanup_verified"), state
-if os.environ.get("MAGNOLIE_MCP_PROBE_GROUP_EXCLUSIONS_ONLY") == "1":
+if os.environ.get("MAGNOLIE_MCP_PROBE_GROUP_FILTER_ONLY") == "1":
+    print("Native MCP CONTACT GROUP FILTER PASS: actual GTK/stdio canonical/translated/multiple/custom/no-group search, empty-group catalog and revision-pinned pagination, unchanged stored book")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_GROUP_EXCLUSIONS_ONLY") == "1":
     print("Native MCP CONTACT GROUP EXCLUSIONS PASS: actual GTK/stdio SaveACK/diskreadback, native reminder and privacy projection, retained choices on disable, unchanged contacts/provider data")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_CATEGORY_COLORS_ONLY") == "1":
     print("Native MCP CATEGORY COLORS PASS: actual GTK/stdio palette and entity SaveACK/readback, unchanged imported records, year/month ODS colors, ICS categories/accent, observed cancelled planner print dialog")

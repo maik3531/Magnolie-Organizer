@@ -646,7 +646,12 @@ msgid ""
 "the calendar marks. Click Save. Disabling keeps your choices for later. Any "
 "selected membership excludes the linked entry, including merged birthday "
 "sources. A matching name alone is not enough. Contacts, group memberships "
-"and provider records remain stored.</p>"
+"and provider records remain stored.</p><h3>Find a contact group</h3><p>Above "
+"the contact list, Contact groups offers All, No contact group and individual "
+"groups, including empty standard groups. A selected group searches across "
+"all alphabet tabs and combines with the search text. Selecting an alphabet "
+"tab returns to All and ordinary alphabet browsing. Filtering never changes "
+"memberships or provider data.</p>"
 msgstr ""
 
 #, no-javascript-format

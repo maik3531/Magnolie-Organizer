@@ -5,6 +5,22 @@ This document describes the implemented tools; the remaining product operations
 are still being connected to the same interface.
 The remaining user-facing operation groups are tracked in [the coverage checklist](mcp-coverage.md).
 
+### Contact-group search (#177)
+
+`organizer_contact_groups_list` returns canonical/display group names and counts,
+including empty standard groups and names retained in exclusion rules.
+`organizer_contacts_search` accepts optional `query`, `group_mode: all|none|group`
+and `group` (required only for `group` mode). It shares the GUI's existing
+full-text/phone matcher and membership selection. Results span all alphabet tabs
+and contain IDs, display names and canonical/display memberships. The hidden
+provider system group `MY CONTACTS` does not prevent `none` from matching.
+
+Both tools are read-only, use `offset` and `limit` (1–100), and return `revision`,
+`total`, `next_offset` and `entries`. Optional `expected_revision` pins subsequent
+pages to the same result set; a changed result yields `conflict`. Canonical or
+translated standard names and escaped custom names use the existing group data.
+Reading/searching changes neither the GUI filter/card/editor nor the stored book.
+
 ### Contact-group exclusions (#160)
 
 `organizer_contact_group_exclusions_read` returns `settings` and its `revision`.

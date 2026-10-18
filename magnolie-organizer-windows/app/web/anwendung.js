@@ -286,7 +286,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       bearbeiteId: null, ansicht: "week" },
     aufgaben: { bearbeiteId: null, neueElternUid: "",
       filter: { person: "", von: "", bis: "" } },
-    adressen: { buchstabe: "A", auswahlId: null, suche: "", modus: "ansehen" },
+    adressen: { buchstabe: "A", auswahlId: null, suche: "", gruppenFilter: "all", modus: "ansehen" },
     notizen: { auswahlId: null, gruppeId: NOTIZ_STANDARD_GRUPPE,
       notizbuchId: NOTIZ_STANDARD_BUCH, suche: "" },
     jahrestage: { bearbeiteId: null },
@@ -12755,6 +12755,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function kontaktGruppen(kontakt) {
     return saubereGruppenAuswahl(kontaktGruppenRoh(kontakt));
   }
+  function kontaktPasstZuGruppe(kontakt, filter = "all") {
+    if (filter === "all") return true;
+    const groups = kontaktGruppen(kontakt);
+    if (filter === "none") return groups.length === 0;
+    if (!filter.startsWith("group:")) return false;
+    const key = kontaktGruppenSchluessel(kontaktGruppeKanonisch(filter.slice(6)));
+    return groups.some(group => kontaktGruppenSchluessel(group) === key);
+  }
   function setzeGruppenAusschluss(value) {
     DATEN.einstellungen.adressen.gruppenAusschluss = saubererGruppenAusschluss(value);
   }
@@ -17940,6 +17948,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     adrRefs.zaehler = $("#kopf-links .kopf-neben");
 
     const inhaltL = $("#inhalt-links");
+    const gruppen = alleKontaktGruppen();
+    if (z.gruppenFilter?.startsWith("group:") && !gruppen.includes(z.gruppenFilter.slice(6))) gruppen.push(z.gruppenFilter.slice(6));
+    const gruppenWahl = auswahlFeld([["all", _("All")], ["none", _("No contact group")]].concat(
+      gruppen.map(group => ["group:" + group, kontaktGruppenName(group)])), z.gruppenFilter || "all");
+    gruppenWahl.id = "kontakt-gruppenfilter"; gruppenWahl.setAttribute("aria-label", _("Contact groups"));
+    gruppenWahl.addEventListener("change", () => { z.gruppenFilter = gruppenWahl.value; fuelleAdressenListe(); frischeAbcAuf(); });
+    inhaltL.append(formZeile(_("Contact groups"), gruppenWahl));
     adrRefs.liste = el("ul", "liste");
     inhaltL.append(adrRefs.liste);
     fuelleAdressenListe();
@@ -17986,6 +18001,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         navigiereMitGuard(() => {
           z.buchstabe = b;
           z.suche = "";
+          z.gruppenFilter = "all";
           zeichneAlles();
         });
       });
@@ -18242,7 +18258,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function gefilterteKontakte() {
     const z = zustand.adressen;
-    const suche = z.suche.trim().toLocaleLowerCase(formatGebiet());
+    return kontakteSuchen(z.suche, z.gruppenFilter || "all", !z.gruppenFilter || z.gruppenFilter === "all" ? z.buchstabe : null);
+  }
+  function kontakteSuchen(suchtext = "", gruppenFilter = "all", buchstabe = null) {
+    const suche = suchtext.trim().toLocaleLowerCase(formatGebiet());
     const begriffe = suchBegriffe(suche);
     let liste;
     if (suche) {
@@ -18266,9 +18285,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             (p) => telefonSchluessel(p.telefon) === telefonSuche)));
       });
     } else {
-      liste = DATEN.kontakte.filter((k) => buchstabeVon(k) === z.buchstabe);
+      liste = DATEN.kontakte.filter((k) => buchstabe === null || buchstabeVon(k) === buchstabe);
     }
-    return liste.sort(sortiereKontakte);
+    return liste.filter(kontakt => kontaktPasstZuGruppe(kontakt, gruppenFilter)).sort(sortiereKontakte);
   }
 
   function fuelleAdressenListe() {
@@ -18279,14 +18298,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const kk = gefilterteKontakte();
 
     if (adrRefs.zaehler) {
-      adrRefs.zaehler.textContent = z.suche.trim()
+      adrRefs.zaehler.textContent = z.suche.trim() || z.gruppenFilter && z.gruppenFilter !== "all"
         ? uebersetztMehrzahl("%(count)s found", "%(count)s found", kk.length)
         : uebersetzt("Tab %(letter)s · %(count)s",
           { letter: z.buchstabe, count: kk.length });
     }
 
     if (!kk.length) {
-      const li = el("li", "leer-hinweis", z.suche.trim()
+      const li = el("li", "leer-hinweis", z.suche.trim() || z.gruppenFilter && z.gruppenFilter !== "all"
         ? _("Nothing found.")
         : uebersetzt("Nothing has been entered under “%(letter)s” yet.",
           { letter: z.buchstabe }));
@@ -18322,8 +18341,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     for (const kb of adrRefs.abcKnoepfe) {
       const b = kb.dataset.buchstabe;
       kb.classList.toggle("voll", belegt.has(b));
-      kb.classList.toggle("aktiv", !z.suche.trim() && b === z.buchstabe);
-      if (!z.suche.trim() && b === z.buchstabe) kb.setAttribute("aria-current", "true");
+      kb.classList.toggle("aktiv", !z.suche.trim() && (!z.gruppenFilter || z.gruppenFilter === "all") && b === z.buchstabe);
+      if (!z.suche.trim() && (!z.gruppenFilter || z.gruppenFilter === "all") && b === z.buchstabe) kb.setAttribute("aria-current", "true");
       else kb.removeAttribute("aria-current");
     }
   }
@@ -18332,6 +18351,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const z = zustand.adressen;
     navigiereMitGuard(() => {
       z.suche = "";
+      z.gruppenFilter = "all";
       const i = BUCHSTABEN.indexOf(z.buchstabe);
       z.buchstabe = BUCHSTABEN[(i + um + BUCHSTABEN.length) % BUCHSTABEN.length];
       zeichneAlles();
@@ -36422,6 +36442,32 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (cycle) Object.assign(DATEN.einstellungen.kalender.zyklusErinnerungen, cycle);
     return true;
   }
+  function mcpKontaktGruppenSuchWerkzeuge() {
+    const page = { offset: { type: "integer", minimum: 0 }, limit: { type: "integer", minimum: 1, maximum: 100 },
+      expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } };
+    const result = async (entries, args) => {
+      const book = DATEN, revision = await personalSyncHash(JSON.stringify(entries));
+      if (DATEN !== book || args.expected_revision && args.expected_revision !== revision)
+        throw new MagnolieMcp.ToolError("conflict", "Contact-group search results changed");
+      const offset = args.offset || 0, limit = args.limit || 100;
+      return { revision, total: entries.length, offset, next_offset: offset + limit < entries.length ? offset + limit : null, entries: entries.slice(offset, offset + limit) };
+    };
+    return [{ name: "organizer_contact_groups_list", description: "List existing canonical/display contact-group names and membership counts, including empty standard groups and retained exclusion choices. Read-only pagination with optional revision pinning; no GUI filter or provider changes.",
+      inputSchema: { type: "object", properties: page, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async args => {
+        const counts = new Map(); for (const contact of DATEN.kontakte) for (const group of kontaktGruppen(contact)) {
+          const key = kontaktGruppenSchluessel(group); counts.set(key, (counts.get(key) || 0) + 1);
+        }
+        return result(alleKontaktGruppen().map(name => ({ name, display_name: kontaktGruppenName(name), count: counts.get(kontaktGruppenSchluessel(name)) || 0 })), args);
+      } }, { name: "organizer_contacts_search", description: "Search contacts with the GUI's shared full-text/phone matcher and explicit all/none/group membership selection. Canonical or translated presets and exact custom names are supported. Searches all alphabet tabs without changing the displayed card, editor, preferences or provider records.",
+      inputSchema: { type: "object", properties: { ...page, query: { type: "string", maxLength: 1000 }, group_mode: { type: "string", enum: ["all", "none", "group"] }, group: { type: "string", minLength: 1, maxLength: 256 } }, additionalProperties: false },
+      annotations: { readOnlyHint: true, openWorldHint: false }, call: async args => {
+        const mode = args.group_mode || "all";
+        if (mode === "group" ? !args.group?.trim() : args.group !== undefined) throw new MagnolieMcp.ToolError("invalid_selection", "A group name is required only for group mode");
+        const filter = mode === "group" ? "group:" + kontaktGruppeKanonisch(args.group) : mode;
+        return result(kontakteSuchen(args.query || "", filter).map(contact => ({ id: contact.id, display_name: kontaktName(contact),
+          groups: kontaktGruppen(contact), display_groups: kontaktGruppen(contact).map(kontaktGruppenName) })), args);
+      } }];
+  }
   function mcpGruppenAusschlussWerkzeuge() {
     const policy = () => saubererGruppenAusschluss(DATEN.einstellungen.adressen.gruppenAusschluss);
     const group = { type: "string", minLength: 1, maxLength: 256, pattern: "^[^\\u0000-\\u001f\\u007f]+$" };
@@ -36977,6 +37023,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (["organizer_contact_groups_list", "organizer_contacts_search"].includes(name)) {
+      const entry = name === "organizer_contact_groups_list" ? shape({ name: text, display_name: text, count: { type: "integer", minimum: 0 } }, ["name", "display_name", "count"]) :
+        shape({ id, display_name: text, groups: { type: "array", items: text }, display_groups: { type: "array", items: text } }, ["id", "display_name", "groups", "display_groups"]);
+      return shape({ revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, total: { type: "integer", minimum: 0 }, offset: { type: "integer", minimum: 0 },
+        next_offset: { anyOf: [{ type: "null" }, { type: "integer", minimum: 0 }] }, entries: { type: "array", maxItems: 100, items: entry } }, ["revision", "total", "offset", "next_offset", "entries"]);
+    }
     if (name === "organizer_contact_group_exclusions_read") {
       const rule = calendar => shape({ scope: { type: "string", enum: ["birthdays", "anniversaries"] }, groups: { type: "array", items: text }, ...(calendar ? { calendar: flag } : {}) }, calendar ? ["scope", "groups", "calendar"] : ["scope", "groups"]);
       return shape({ revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, settings: shape({ enabled: flag, notifications: rule(false), anniversaries: rule(false), overview: rule(true) }, ["enabled", "notifications", "anniversaries", "overview"]) }, ["revision", "settings"]);
@@ -37286,6 +37338,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpKalenderAnzeigeWerkzeuge(),
       ...mcpKategorieFarbWerkzeuge(),
       ...mcpGruppenAusschlussWerkzeuge(),
+      ...mcpKontaktGruppenSuchWerkzeuge(),
       ...mcpAnzeigeEinstellungenWerkzeuge(),
       ...mcpRechtschreibWerkzeuge(),
       ...mcpRegionaleEinstellungenWerkzeuge(),
