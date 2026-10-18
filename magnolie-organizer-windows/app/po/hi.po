@@ -16,6 +16,34 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgid "All anniversaries"
+msgstr "सभी वर्षगाँठ"
+
+msgid "Also hide in the calendar"
+msgstr "कैलेंडर में भी छिपाएँ"
+
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"किसी प्रविष्टि का कोई भी संपर्क समूह चुने जाने पर वह बाहर रहती है। कोई संपर्क या वर्षगाँठ "
+"मिटती नहीं है।"
+
+msgid "Apply to"
+msgstr "इस पर लागू करें"
+
+msgid "Birthdays only"
+msgstr "केवल जन्मदिन"
+
+msgid "Enable contact group exclusions"
+msgstr "संपर्क समूह बहिष्करण चालू करें"
+
+msgid "Exclude contact groups"
+msgstr "संपर्क समूहों को बाहर रखें"
+
+msgid "Scope"
+msgstr "दायरा"
+
 msgid "Category"
 msgstr "श्रेणी"
 

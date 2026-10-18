@@ -7342,6 +7342,108 @@ def _custom_erinnerungseintraege(daten):
     return termine, aufgaben
 
 
+_PERSONENGRUPPEN_ALIASE = None
+
+
+def _personengruppe_schluessel(wert):
+    global _PERSONENGRUPPEN_ALIASE
+    def key(text):
+        return unicodedata.normalize("NFC", str(text or "")).strip().lower()
+    if _PERSONENGRUPPEN_ALIASE is None:
+        presets = ("Family", "Work", "Colleagues", "Patients", "Client", "Tradesperson", "Insurance", "Doctor")
+        aliases = {key(value): key(value) for value in presets}
+        aliases.update({key(name): key(value) for name, value in {
+            "Familie": "Family", "Arbeit": "Work", "Coworkers": "Colleagues", "Kollegen": "Colleagues",
+            "Patienten": "Patients", "Kunde": "Client", "Handwerker": "Tradesperson", "Versicherung": "Insurance", "Arzt": "Doctor"}.items()})
+        for language in ("de", "fr", "es", "it", "nl", "pt", "ru", "cs", "pl", "hsb", "da", "nb", "hi", "zh_CN", "ja", "ar", "uk", "be", "tr"):
+            catalog = gettext_uebersetzung(language)
+            for preset in presets:
+                aliases.setdefault(key(catalog.gettext(preset)), key(preset))
+        _PERSONENGRUPPEN_ALIASE = aliases
+    return _PERSONENGRUPPEN_ALIASE.get(key(wert), key(wert))
+
+
+def _kontakt_personengruppen(kontakt):
+    groups = set()
+    for line in kontakt.get("vcardRoundtrip") if isinstance(kontakt.get("vcardRoundtrip"), list) else []:
+        match = re.match(r"^(?:[A-Za-z0-9-]+\.)?CATEGORIES(?:;[^:]*)?:(.*)$", str(line), re.I)
+        if not match:
+            continue
+        part, escaped = "", False
+        for char in match[1] + ",":
+            if escaped:
+                part += " " if char in "nN" else char
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == ",":
+                group = _personengruppe_schluessel(re.sub(r"[\x00-\x1f\x7f]", " ", part))
+                if group and group != "my contacts":
+                    groups.add(group)
+                part = ""
+            else:
+                part += char
+    return groups
+
+
+def gruppen_ausschluss_pruefer(daten, bereich="notifications"):
+    """Identity-bound presentation/reminder rule; never modifies provider data."""
+    def obj(value):
+        return value if isinstance(value, dict) else {}
+    daten = obj(daten)
+    policy = obj(obj(obj(daten.get("einstellungen")).get("adressen")).get("gruppenAusschluss"))
+    rule = obj(policy.get("overview" if bereich == "calendar" else bereich))
+    if policy.get("enabled") is not True or not isinstance(rule.get("groups"), list) or not rule["groups"] or (bereich == "calendar" and rule.get("calendar") is not True):
+        return lambda _item: False
+    groups = {_personengruppe_schluessel(value) for value in rule["groups"] if isinstance(value, str)}
+    contacts = [item for item in daten.get("kontakte") or [] if isinstance(item, dict)]
+    settings = obj(daten.get("einstellungen"))
+    address = obj(settings.get("adressen"))
+    home_country = str(obj(settings.get("regional")).get("homeCountry", address.get("landCode") or address.get("land") or "DE")).strip()
+    home_country = {"deutschland": "DE", "germany": "DE", "osterreich": "AT", "oesterreich": "AT", "austria": "AT",
+        "schweiz": "CH", "switzerland": "CH", "suisse": "CH", "svizzera": "CH"}.get(kanonischer_text(home_country), home_country.upper())
+    parents = list(range(len(contacts)))
+    def root(index):
+        while parents[index] != index:
+            parents[index] = parents[parents[index]]
+            index = parents[index]
+        return index
+    first = {}
+    for index, contact in enumerate(contacts):
+        keys = {"e:" + kanonischer_text(value) for value in _email_liste(contact)}
+        keys.update("t:" + _telefon_schluessel(value.get("wert"), home_country) for value in _telefon_liste(contact) if _telefon_schluessel(value.get("wert"), home_country))
+        for identity in keys:
+            if identity in first:
+                parents[root(index)] = root(first[identity])
+            else:
+                first[identity] = index
+    excluded = {root(index) for index, contact in enumerate(contacts) if _kontakt_personengruppen(contact) & groups}
+    direct = {contact.get("id"): index for index, contact in enumerate(contacts) if contact.get("id")}
+    aliases = {}
+    for index, contact in enumerate(contacts):
+        for identity in obj(contact.get("kontaktAliase")).get("ids") or []:
+            if not isinstance(identity, str):
+                continue
+            if identity not in direct:
+                aliases[identity] = index if identity not in aliases or aliases[identity] == index else None
+    def resolve(item):
+        identity = item.get("kontaktId")
+        return direct.get(identity, aliases.get(identity))
+    linked = [item for item in daten.get("jahrestage") or [] if isinstance(item, dict) and resolve(item) is not None and root(resolve(item)) in excluded]
+    def strong(item):
+        return {prefix + str(item[name]) for name, prefix in (("id", "id:"), ("uid", "extern:"), ("icsSerienUid", "extern:"), ("kontaktId", "kontakt:")) if item.get(name)}
+    def signature(item):
+        return (kanonischer_text(item.get("name")), str(item.get("datum") or "")[-5:], jahrestag_typ_id(item.get("typ")) or kanonischer_text(item.get("typ")))
+    def excluded_item(item):
+        if rule.get("scope") != "anniversaries" and jahrestag_typ_id(item.get("typ")) != "birthday":
+            return False
+        index = resolve(item)
+        if index is not None:
+            return root(index) in excluded
+        return any(signature(item) == signature(other) and strong(item) & strong(other) for other in linked)
+    return excluded_item
+
+
 def erinnerungsdaten_auswaehlen(daten):
     """Wählt ausschließlich Inhalte aus, die der Wecker benötigt.
 
@@ -7359,11 +7461,13 @@ def erinnerungsdaten_auswaehlen(daten):
         return None
     vertraulich = sicherheit.get("vertraulicheErinnerungen") is True
 
+    gruppen_ausschluss = gruppen_ausschluss_pruefer(daten)
     def eintraege(name, felder):
         return [_erinnerungsfelder_auswaehlen(eintrag, felder)
                 for eintrag in (daten.get(name) or [])
                 if isinstance(eintrag, dict) and
-                (vertraulich or not eintrag.get("vertraulich"))]
+                (vertraulich or not eintrag.get("vertraulich")) and
+                (name != "jahrestage" or not gruppen_ausschluss(eintrag))]
 
     rohe_termine = [t for t in (daten.get("termine") or [])
                     if isinstance(t, dict) and
@@ -8292,8 +8396,11 @@ def faellige_jahrestage(daten, jetzt, ergebnis=None, tage_vorher=0,
     if auch_am_tag or not tage_vorher:
         abstaende.append(0)
 
+    gruppen_ausschluss = gruppen_ausschluss_pruefer(daten or {})
     for jahrestag in (daten or {}).get("jahrestage") or []:
         if not isinstance(jahrestag, dict):
+            continue
+        if gruppen_ausschluss(jahrestag):
             continue
         kennung = str(jahrestag.get("id") or jahrestag.get("uid") or "")
         if not kennung:

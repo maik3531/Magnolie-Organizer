@@ -387,6 +387,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           briefLayoutVoreinstellung: 3, sozialeSymbole: true,
           smsBenachrichtigungDauer: 60,
           smsSchedulingEnabled: false,
+          gruppenAusschluss: { enabled: false, notifications: { scope: "birthdays", groups: [] },
+            anniversaries: { scope: "birthdays", groups: [] }, overview: { scope: "birthdays", groups: [], calendar: false } },
           kommunikation: { sms: { art: "kde", programm: "" },
             anruf: { art: "magnolie", programm: "" } } },
         sicherheit: { erinnernTrotzKennwort: false,
@@ -8000,6 +8002,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     za.foto = Number(ad.fotoVoreinstellung) >= 1 ? !!ad.foto : true;
     za.fotoVoreinstellung = 1;
     za.personengruppenAn = ad.personengruppenAn === true;
+    za.gruppenAusschluss = saubererGruppenAusschluss(ad.gruppenAusschluss);
     za.eigenesProfilAn = ad.eigenesProfilAn !== false;
     za.smsBenachrichtigungDauer = [0, 15, 30, 60, 120].includes(
       Number(ad.smsBenachrichtigungDauer)) ? Number(ad.smsBenachrichtigungDauer) : 60;
@@ -10218,7 +10221,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return kanonischerEntwurf(inhalt);
   }
 
-  function sichtbareJahrestage() {
+  function sichtbareJahrestage(bereich = "anniversaries") {
     const behalten = new Set(), nachInhalt = new Map();
     for (const jahrestag of DATEN.jahrestage) {
       const inhalt = geburtstagsInhalt(jahrestag);
@@ -10250,15 +10253,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (unverknuepft.length && personen.length !== 1) behalten.add(unverknuepft[0]);
     }
     // Presentation only: all provider records and synchronization mappings survive.
-    return DATEN.jahrestage.filter(jahrestag => behalten.has(jahrestag));
+    const ausgeschlossen = gruppenAusschlussPruefer(bereich);
+    return DATEN.jahrestage.filter(jahrestag => behalten.has(jahrestag) && !ausgeschlossen(jahrestag));
   }
 
-  function jahrestageAm(iso, vergangeneEinblenden) {
+  function jahrestageAm(iso, vergangeneEinblenden, bereich = "calendar") {
     if (!vergangeneEinblenden && vergangenAusgeblendet(iso, "anniversary")) return [];
     const [j, m, t] = iso.split("-").map(Number);
     if (jahrestagIndexVeraltet || !_jahrestagVerzeichnis) {
       _jahrestagVerzeichnis = new Map();
-      for (const jt of sichtbareJahrestage()) {
+      for (const jt of sichtbareJahrestage("all")) {
         if (!gueltigesJahresdatum(jt.datum)) continue;
         const schluessel = monatTag(jt.datum);
         if (!_jahrestagVerzeichnis.has(schluessel)) {
@@ -10272,8 +10276,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (m === 2 && t === 28 && !istSchaltjahr(j)) {
       liste = liste.concat(_jahrestagVerzeichnis.get("02-29") || []);
     }
-    return liste.filter((jt) => !hatBekanntesJahr(jt.datum) ||
-      j >= Number(jt.datum.slice(0, 4)));
+    const ausgeschlossen = gruppenAusschlussPruefer(bereich);
+    return liste.filter((jt) => (!hatBekanntesJahr(jt.datum) ||
+      j >= Number(jt.datum.slice(0, 4))) && !ausgeschlossen(jt));
   }
 
   /* Feiertage und Ferienabschnitte werden als Zeitraum gespeichert; für
@@ -12922,11 +12927,132 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return [...new Set(groups)];
   }
 
+  const KONTAKT_STANDARDGRUPPEN = ["Family", "Work", "Colleagues", "Patients", "Client", "Tradesperson", "Insurance", "Doctor"];
+  function kontaktGruppenSchluessel(value) {
+    return String(value || "").normalize("NFC").trim().toLowerCase();
+  }
+  function kontaktGruppeKanonisch(value) {
+    const name = String(value || "").normalize("NFC").replace(/[\x00-\x1f\x7f]/g, " ").trim();
+    const key = kontaktGruppenSchluessel(name);
+    const aliases = { family: "Family", familie: "Family", coworkers: "Colleagues", colleagues: "Colleagues", kollegen: "Colleagues",
+      patients: "Patients", patienten: "Patients", arbeit: "Work", kunde: "Client", handwerker: "Tradesperson", versicherung: "Insurance", arzt: "Doctor" };
+    return aliases[key] || window.MagnolieContactGroupAliases?.[key] || KONTAKT_STANDARDGRUPPEN.find(preset =>
+      [preset, kontaktGruppenName(preset)].some(label => kontaktGruppenSchluessel(label) === key)) || name;
+  }
+  function saubereGruppenAuswahl(values) {
+    const groups = new Map();
+    for (const value of Array.isArray(values) ? values : []) {
+      const name = kontaktGruppeKanonisch(typeof value === "string" ? value : "");
+      if (name && name.toUpperCase() !== "MY CONTACTS") groups.set(kontaktGruppenSchluessel(name), name);
+    }
+    return [...groups.values()];
+  }
+  function saubererGruppenAusschluss(value) {
+    const raw = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+    const result = { enabled: raw.enabled === true };
+    for (const area of ["notifications", "anniversaries", "overview"]) {
+      const rule = raw[area] && typeof raw[area] === "object" ? raw[area] : {};
+      result[area] = { scope: rule.scope === "anniversaries" ? "anniversaries" : "birthdays", groups: saubereGruppenAuswahl(rule.groups) };
+    }
+    result.overview.calendar = raw.overview?.calendar === true;
+    return result;
+  }
+  function alleKontaktGruppen() {
+    const policy = saubererGruppenAusschluss(DATEN.einstellungen.adressen.gruppenAusschluss);
+    return saubereGruppenAuswahl([...KONTAKT_STANDARDGRUPPEN, ...DATEN.kontakte.flatMap(kontaktGruppen),
+      ...["notifications", "anniversaries", "overview"].flatMap(area => policy[area].groups)])
+      .sort((a, b) => vergleicheStandardText(kontaktGruppenName(a), kontaktGruppenName(b)) || vergleicheStandardText(a, b));
+  }
+  function gruppenAusschlussPruefer(bereich) {
+    const policy = saubererGruppenAusschluss(DATEN.einstellungen.adressen.gruppenAusschluss);
+    const rule = policy[bereich === "calendar" ? "overview" : bereich];
+    if (!policy.enabled || !rule || !rule.groups.length || bereich === "calendar" && !rule.calendar) return () => false;
+    const groups = new Set(rule.groups.map(kontaktGruppenSchluessel));
+    const direkt = new Map(DATEN.kontakte.map(kontakt => [kontakt.id, kontakt])), aliase = new Map();
+    for (const kontakt of DATEN.kontakte) for (const id of kontakt.kontaktAliase?.ids || []) {
+      if (direkt.has(id)) continue;
+      if (!aliase.has(id)) aliase.set(id, kontakt);
+      else if (aliase.get(id) !== kontakt) aliase.set(id, null);
+    }
+    const eltern = new Map(DATEN.kontakte.map(kontakt => [kontakt, kontakt])), kennungen = new Map();
+    const wurzel = kontakt => { let root = kontakt; while (eltern.get(root) !== root) root = eltern.get(root);
+      while (eltern.get(kontakt) !== root) { const next = eltern.get(kontakt); eltern.set(kontakt, root); kontakt = next; } return root; };
+    for (const kontakt of DATEN.kontakte) for (const key of dublettenSchluessel(kontakt).filter(key => !key.startsWith("n:"))) {
+      if (kennungen.has(key)) eltern.set(wurzel(kontakt), wurzel(kennungen.get(key)));
+      else kennungen.set(key, kontakt);
+    }
+    const ausgeschlossen = new Set(DATEN.kontakte.filter(kontakt => kontaktGruppen(kontakt)
+      .some(group => groups.has(kontaktGruppenSchluessel(group)))).map(wurzel));
+    const kontaktAusgeschlossen = kontakt => ausgeschlossen.has(wurzel(kontakt));
+    const resolve = id => direkt.get(id) || aliase.get(id);
+    const verknuepfte = DATEN.jahrestage.filter(item => item.kontaktId && resolve(item.kontaktId) && kontaktAusgeschlossen(resolve(item.kontaktId)));
+    return item => {
+      if (rule.scope === "birthdays" && !istGeburtstagTyp(item.typ)) return false;
+      const kontakt = item.kontaktId && resolve(item.kontaktId);
+      // An explicit identity wins over content similarity. Never infer a person
+      // from a title/name when several contacts happen to share it.
+      if (kontakt) return kontaktAusgeschlossen(kontakt);
+      return verknuepfte.some(other => jahrestageStarkIdentisch(item, other));
+    };
+  }
   function kontaktGruppen(kontakt) {
-    const aliases = { FAMILY: "Family", COWORKERS: "Colleagues", COLLEAGUES: "Colleagues", KOLLEGEN: "Colleagues",
-      PATIENTS: "Patients", PATIENTEN: "Patients" };
-    return [...new Set(kontaktGruppenRoh(kontakt).filter(value => value.toUpperCase() !== "MY CONTACTS")
-      .map(value => Object.prototype.hasOwnProperty.call(aliases, value.toUpperCase()) ? aliases[value.toUpperCase()] : value))];
+    return saubereGruppenAuswahl(kontaktGruppenRoh(kontakt));
+  }
+  function setzeGruppenAusschluss(value) {
+    DATEN.einstellungen.adressen.gruppenAusschluss = saubererGruppenAusschluss(value);
+  }
+  function oeffneGruppenAusschluss() {
+    return navigiereMitGuard(() => {
+      schliesseVorhandenesModal("gruppen-ausschluss");
+      const book = DATEN, vorher = JSON.stringify(DATEN.einstellungen.adressen.gruppenAusschluss);
+      const draft = saubererGruppenAusschluss(DATEN.einstellungen.adressen.gruppenAusschluss);
+      const schleier = el("div", "eingabe-schleier"); schleier.id = "gruppen-ausschluss";
+      const dialog = el("div", "eingabe-dialog"), titel = el("h3", null, _("Exclude contact groups"));
+      titel.id = "gruppen-ausschluss-titel"; dialog.setAttribute("aria-labelledby", titel.id);
+      const master = eingabe("checkbox", ""); master.id = "gruppen-ausschluss-aktiv"; master.checked = draft.enabled;
+      const label = el("label", "hak"); label.append(master, document.createTextNode(" " + _("Enable contact group exclusions")));
+      const optionen = el("div"), bereich = auswahlFeld([["notifications", _("Notifications")], ["anniversaries", _("Anniversaries")],
+        ["overview", _("Appointment overview")]], "notifications");
+      bereich.id = "gruppen-ausschluss-bereich";
+      const details = el("div"); optionen.append(formZeile(_("Apply to"), bereich), details);
+      const zeichne = () => {
+        optionen.hidden = !master.checked; draft.enabled = master.checked;
+        details.replaceChildren();
+        const rule = draft[bereich.value];
+        const scope = auswahlFeld([["birthdays", _("Birthdays only")], ["anniversaries", _("All anniversaries")]], rule.scope);
+        scope.id = "gruppen-ausschluss-umfang"; scope.addEventListener("change", () => { rule.scope = scope.value; });
+        details.append(formZeile(_("Scope"), scope));
+        if (bereich.value === "overview") {
+          const kalender = eingabe("checkbox", ""); kalender.checked = rule.calendar;
+          kalender.id = "gruppen-ausschluss-kalender";
+          kalender.addEventListener("change", () => { rule.calendar = kalender.checked; });
+          const kalenderLabel = el("label", "hak"); kalenderLabel.append(kalender, document.createTextNode(" " + _("Also hide in the calendar")));
+          details.append(kalenderLabel);
+        }
+        const gruppen = el("fieldset"), legend = el("legend", null, _("Contact groups")); gruppen.append(legend);
+        const selected = new Set(rule.groups.map(kontaktGruppenSchluessel));
+        for (const group of alleKontaktGruppen()) {
+          const hak = eingabe("checkbox", ""); hak.checked = selected.has(kontaktGruppenSchluessel(group)); hak.dataset.gruppe = group;
+          hak.addEventListener("change", () => {
+            const key = kontaktGruppenSchluessel(group);
+            rule.groups = rule.groups.filter(value => kontaktGruppenSchluessel(value) !== key);
+            if (hak.checked) rule.groups.push(group);
+          });
+          const row = el("label", "hak"); row.append(hak, document.createTextNode(" " + kontaktGruppenName(group))); gruppen.append(row);
+        }
+        details.append(gruppen);
+      };
+      master.addEventListener("change", zeichne); bereich.addEventListener("change", zeichne); zeichne();
+      const schliessen = () => { beendeModal(schleier); schleier.remove(); };
+      const speichern = knopf(_("Save"), "haupt", () => {
+        if (DATEN !== book || JSON.stringify(DATEN.einstellungen.adressen.gruppenAusschluss) !== vorher) return zettel(_("Conflict"));
+        setzeGruppenAusschluss(draft); planeSpeichern(); schliessen(); zeichneAlles();
+      }); speichern.id = "gruppen-ausschluss-speichern";
+      const abbrechen = knopf(_("Cancel"), "", schliessen), knoepfe = el("div", "dialog-knoepfe"); knoepfe.append(abbrechen, speichern);
+      dialog.append(titel, label, el("p", null, _("An entry is excluded when any of its contact groups is selected. No contacts or anniversaries are deleted.")), optionen, knoepfe);
+      schleier.append(dialog); document.body.append(schleier);
+      registriereModal(schleier, dialog, { anfang: master, schliessen });
+    });
   }
 
   function setzeKontaktGruppen(kontakt, groups) {
@@ -14966,7 +15092,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const iso = isoVon(new Date(z.jahr, z.monat, tag));
       if (iso < von) continue;
       const tt = termineAm(iso, false, serienZeitraum);
-      const jt = jahrestageAm(iso);
+      const jt = jahrestageAm(iso, false, "overview");
       const ft = feiertageAm(iso);
       if (tt.length || jt.length || ft.length) {
         tage.push({ iso: iso, termine: tt, jahrestage: jt, feiertage: ft });
@@ -28637,6 +28763,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function baueSeiteAdressen(wurzel) {
+    wurzel.append(knopf(_("Exclude contact groups"), "", oeffneGruppenAusschluss));
     const a = DATEN.einstellungen.adressen;
     const ab = abschnitt(_("Use contact addresses"),
       _("Small action buttons appear on each contact card. You can hide anything " +
@@ -28816,6 +28943,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function baueSeiteErinnerung(wurzel) {
+    wurzel.append(knopf(_("Exclude contact groups"), "", oeffneGruppenAusschluss));
     const e = DATEN.einstellungen.erinnerung;
     const ab = abschnitt(_("Appointment reminders"),
       _("The organizer notifies you before an appointment begins, even when the " +
@@ -36487,6 +36615,26 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (cycle) Object.assign(DATEN.einstellungen.kalender.zyklusErinnerungen, cycle);
     return true;
   }
+  function mcpGruppenAusschlussWerkzeuge() {
+    const policy = () => saubererGruppenAusschluss(DATEN.einstellungen.adressen.gruppenAusschluss);
+    const group = { type: "string", minLength: 1, maxLength: 256, pattern: "^[^\\u0000-\\u001f\\u007f]+$" };
+    const rule = calendar => ({ type: "object", properties: { scope: { type: "string", enum: ["birthdays", "anniversaries"] },
+      groups: { type: "array", maxItems: 1000, items: group }, ...(calendar ? { calendar: { type: "boolean" } } : {}) }, required: ["scope", "groups"], additionalProperties: false });
+    return [{ name: "organizer_contact_group_exclusions_read", description: "Read separate identity-bound contact-group exclusions for notifications, the anniversary list and appointment overview/calendar. Disabling retains all choices; contacts and provider records remain intact.",
+      inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => {
+        const settings = policy(); return { settings, revision: await personalSyncHash(JSON.stringify(settings)) };
+      } }, { name: "organizer_contact_group_exclusions_update", description: "Update selected contact-group exclusion areas through the shared GUI policy with revision checking and native durable SaveACK. A matching excluded membership wins; no contact or anniversary is deleted. Set enabled=false without losing selected groups/scopes.",
+      inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, enabled: { type: "boolean" },
+        notifications: rule(false), anniversaries: rule(false), overview: rule(true) }, required: ["expected_revision"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+        const book = DATEN, before = JSON.stringify(policy()), revision = await personalSyncHash(before);
+        if (DATEN !== book || JSON.stringify(policy()) !== before || args.expected_revision !== revision || signal.aborted)
+          throw new MagnolieMcp.ToolError("conflict", "Contact-group exclusion settings changed before saving");
+        const next = policy(); if (args.enabled !== undefined) next.enabled = args.enabled;
+        for (const area of ["notifications", "anniversaries", "overview"]) if (args[area]) next[area] = { ...next[area], ...args[area] };
+        setzeGruppenAusschluss(next); return {};
+      }) }];
+  }
   function mcpKategorieFarbWerkzeuge() {
     const palette = () => kopie(DATEN.einstellungen.kalender.kategorieFarben || []);
     return [{ name: "organizer_category_colors_read", description: "Read saved appointment/task category colors and their revision. Record accent_color takes precedence over the first matching category. Provider source colors and categories on records are preserved.",
@@ -37022,6 +37170,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (name === "organizer_contact_group_exclusions_read") {
+      const rule = calendar => shape({ scope: { type: "string", enum: ["birthdays", "anniversaries"] }, groups: { type: "array", items: text }, ...(calendar ? { calendar: flag } : {}) }, calendar ? ["scope", "groups", "calendar"] : ["scope", "groups"]);
+      return shape({ revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, settings: shape({ enabled: flag, notifications: rule(false), anniversaries: rule(false), overview: rule(true) }, ["enabled", "notifications", "anniversaries", "overview"]) }, ["revision", "settings"]);
+    }
+    if (name === "organizer_contact_group_exclusions_update") return shape({ persisted: yes }, ["persisted"]);
     if (name === "organizer_category_colors_read") return shape({ revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, colors: { type: "array", items: shape({ name: text, color: { type: "string", pattern: "^#[a-f0-9]{6}$" } }, ["name", "color"]) } }, ["revision", "colors"]);
     if (name === "organizer_category_colors_update") return shape({ count: { type: "integer", minimum: 0 }, persisted: yes }, ["count", "persisted"]);
     if (["organizer_kde_pairing_begin", "organizer_kde_pairing_status"].includes(name)) return shape({ operation_id: { type: "string", pattern: "^[a-f0-9]{48}$" }, action: { type: "string", enum: ["begin", "complete", "renew"] }, phase: { type: "string", enum: ["dispatching", "pending", "paired", "failed", "cancelled"] }, error_code: text, native_outcome_unknown: flag, paired_verified: flag, state: { anyOf: [{ type: "null" }, mcpErgebnisSchema("organizer_kde_connection_read")] } }, ["operation_id", "action", "phase", "error_code", "native_outcome_unknown", "paired_verified", "state"]);
@@ -37325,6 +37478,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpGesundheitsEinstellungenWerkzeuge(),
       ...mcpKalenderAnzeigeWerkzeuge(),
       ...mcpKategorieFarbWerkzeuge(),
+      ...mcpGruppenAusschlussWerkzeuge(),
       ...mcpAnzeigeEinstellungenWerkzeuge(),
       ...mcpRechtschreibWerkzeuge(),
       ...mcpRegionaleEinstellungenWerkzeuge(),

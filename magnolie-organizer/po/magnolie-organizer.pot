@@ -770,6 +770,9 @@ msgstr ""
 msgid "All"
 msgstr ""
 
+msgid "All anniversaries"
+msgstr ""
+
 msgid "All cantons"
 msgstr ""
 
@@ -802,6 +805,9 @@ msgid "Allowed background functions"
 msgstr ""
 
 msgid "Also disclose appointments marked as confidential"
+msgstr ""
+
+msgid "Also hide in the calendar"
 msgstr ""
 
 msgid "Also hide past anniversaries"
@@ -847,6 +853,11 @@ msgstr ""
 msgid ""
 "An encryption component is missing. Install it with: sudo apt install "
 "python3-cryptography"
+msgstr ""
+
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
 msgstr ""
 
 msgid "Android restricts this device identifier."
@@ -918,6 +929,9 @@ msgid ""
 msgstr ""
 
 msgid "Apply"
+msgstr ""
+
+msgid "Apply to"
 msgstr ""
 
 msgid "Apply to the remaining conflicts"
@@ -1175,6 +1189,9 @@ msgid "Birthday party"
 msgstr ""
 
 msgid "Birthday today"
+msgstr ""
+
+msgid "Birthdays only"
 msgstr ""
 
 msgid "Black"
@@ -2464,6 +2481,9 @@ msgid ""
 "Enable WLAN debugging in Notes developer options on your own paired phone."
 msgstr ""
 
+msgid "Enable contact group exclusions"
+msgstr ""
+
 msgid "Enable cycle calendar"
 msgstr ""
 
@@ -2663,6 +2683,9 @@ msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr ""
 
 msgid "Exactly one online paired Magnolie Notes phone must allow dialing."
+msgstr ""
+
+msgid "Exclude contact groups"
 msgstr ""
 
 msgid "Expand day groups by default"
@@ -5609,6 +5632,9 @@ msgid "School holidays are not available for this region."
 msgstr ""
 
 msgid "Schwyz"
+msgstr ""
+
+msgid "Scope"
 msgstr ""
 
 msgid "Screen notification only"

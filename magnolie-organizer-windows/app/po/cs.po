@@ -16,6 +16,34 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=((n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2);\n"
 
+msgid "All anniversaries"
+msgstr "Všechna výročí"
+
+msgid "Also hide in the calendar"
+msgstr "Skrýt také v kalendáři"
+
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"Záznam je vyloučen, pokud je vybrána alespoň jedna z jeho skupin kontaktů. "
+"Kontakty ani výročí se neodstraňují."
+
+msgid "Apply to"
+msgstr "Použít pro"
+
+msgid "Birthdays only"
+msgstr "Pouze narozeniny"
+
+msgid "Enable contact group exclusions"
+msgstr "Povolit vyloučení skupin kontaktů"
+
+msgid "Exclude contact groups"
+msgstr "Vyloučit skupiny kontaktů"
+
+msgid "Scope"
+msgstr "Rozsah"
+
 msgid "Category"
 msgstr "Kategorie"
 

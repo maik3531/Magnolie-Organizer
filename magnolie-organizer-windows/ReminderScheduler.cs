@@ -114,6 +114,7 @@ internal sealed class ReminderScheduler : IDisposable
 
     private static string SelectData(JsonElement root, bool confidential)
     {
+        var groupExcluded = ContactGroupExclusions.Create(root);
         var appointments = SelectAppointments(root, item => confidential || !True(item, "vertraulich")).ToList();
         appointments.AddRange(SelectCustomEntries(root, "appointments"));
         var tasks = new List<JsonObject>();
@@ -139,7 +140,7 @@ internal sealed class ReminderScheduler : IDisposable
             ["nurErinnerungen"] = true,
             ["termine"] = appointments,
             ["aufgaben"] = tasks,
-            ["jahrestage"] = SelectArray(root, "jahrestage", item => confidential || !True(item, "vertraulich"),
+            ["jahrestage"] = SelectArray(root, "jahrestage", item => (confidential || !True(item, "vertraulich")) && !groupExcluded(item),
                  "id", "uid", "icsQuelleId", "syncKalenderUid", "name", "datum", "typ"),
             ["einstellungen"] = new JsonObject
             {
@@ -427,8 +428,10 @@ internal sealed class ReminderScheduler : IDisposable
         var result = new List<(string, DateTime, DateTime)>();
         var zone = CalendarRecurrence.OrganizerZone(root);
         var localNow = TimeZoneInfo.ConvertTimeFromUtc(CalendarRecurrence.NowUtc(now), zone);
+        var groupExcluded = ContactGroupExclusions.Create(root);
         foreach (var item in anniversaries.EnumerateArray())
         {
+            if (groupExcluded(item)) continue;
             if (!ExchangeCodec.TryParseCanonicalDate(Text(item, "datum"), out _, out var month, out var day)) continue;
             foreach (var year in new[] { localNow.Year - 1, localNow.Year, localNow.Year + 1 }.Where(year => year is >= 1 and <= 9999))
             {

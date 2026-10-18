@@ -17,6 +17,34 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
+msgid "All anniversaries"
+msgstr "Все годовщины"
+
+msgid "Also hide in the calendar"
+msgstr "Также скрывать в календаре"
+
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"Запись исключается, если выбрана хотя бы одна из её групп контактов. "
+"Контакты и годовщины не удаляются."
+
+msgid "Apply to"
+msgstr "Применить к"
+
+msgid "Birthdays only"
+msgstr "Только дни рождения"
+
+msgid "Enable contact group exclusions"
+msgstr "Включить исключения групп контактов"
+
+msgid "Exclude contact groups"
+msgstr "Исключить группы контактов"
+
+msgid "Scope"
+msgstr "Область"
+
 msgid "Category"
 msgstr "Категория"
 

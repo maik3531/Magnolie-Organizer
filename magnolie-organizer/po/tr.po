@@ -16,6 +16,34 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
+msgid "All anniversaries"
+msgstr "Tüm yıl dönümleri"
+
+msgid "Also hide in the calendar"
+msgstr "Takvimde de gizle"
+
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"Kişi gruplarından herhangi biri seçildiğinde kayıt hariç tutulur. Hiçbir "
+"kişi veya yıl dönümü silinmez."
+
+msgid "Apply to"
+msgstr "Uygulama alanı"
+
+msgid "Birthdays only"
+msgstr "Yalnızca doğum günleri"
+
+msgid "Enable contact group exclusions"
+msgstr "Kişi grubu hariç tutmalarını etkinleştir"
+
+msgid "Exclude contact groups"
+msgstr "Kişi gruplarını hariç tut"
+
+msgid "Scope"
+msgstr "Kapsam"
+
 msgid "Category"
 msgstr "Kategori"
 

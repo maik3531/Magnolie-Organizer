@@ -16,6 +16,34 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgid "All anniversaries"
+msgstr "Alle mærkedage"
+
+msgid "Also hide in the calendar"
+msgstr "Skjul også i kalenderen"
+
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"En post udelukkes, når en af dens kontaktgrupper er valgt. Ingen kontakter "
+"eller mærkedage slettes."
+
+msgid "Apply to"
+msgstr "Anvend på"
+
+msgid "Birthdays only"
+msgstr "Kun fødselsdage"
+
+msgid "Enable contact group exclusions"
+msgstr "Aktivér udelukkelse af kontaktgrupper"
+
+msgid "Exclude contact groups"
+msgstr "Udeluk kontaktgrupper"
+
+msgid "Scope"
+msgstr "Omfang"
+
 msgid "Category"
 msgstr "Kategori"
 

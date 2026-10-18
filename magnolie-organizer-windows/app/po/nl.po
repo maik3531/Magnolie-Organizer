@@ -16,6 +16,34 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgid "All anniversaries"
+msgstr "Alle gedenkdagen"
+
+msgid "Also hide in the calendar"
+msgstr "Ook in de kalender verbergen"
+
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"Een item wordt uitgesloten zodra een van zijn contactgroepen is "
+"geselecteerd. Er worden geen contacten of gedenkdagen verwijderd."
+
+msgid "Apply to"
+msgstr "Toepassen op"
+
+msgid "Birthdays only"
+msgstr "Alleen verjaardagen"
+
+msgid "Enable contact group exclusions"
+msgstr "Uitsluiting van contactgroepen inschakelen"
+
+msgid "Exclude contact groups"
+msgstr "Contactgroepen uitsluiten"
+
+msgid "Scope"
+msgstr "Bereik"
+
 msgid "Category"
 msgstr "Categorie"
 

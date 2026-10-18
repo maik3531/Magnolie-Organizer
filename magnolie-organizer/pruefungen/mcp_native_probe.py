@@ -177,6 +177,11 @@ profile = Path(os.environ["XDG_DATA_HOME"]) / "magnolie-organizer"
 profile.mkdir(mode=0o700)
 data_file = profile / "daten.json"
 data_file.write_text(json.dumps({"version": 6,
+    **({"kontakte": [{"id": "owned-excluded-person", "vorname": "Owned", "nachname": "Patient", "vcardRoundtrip": ["CATEGORIES:Work,Patients", "X-OWNED:keep"]},
+        {"id": "owned-included-person", "vorname": "Owned", "nachname": "Colleague", "vcardRoundtrip": ["CATEGORIES:Colleagues"]}],
+        "jahrestage": [{"id": "owned-excluded-birthday", "kontaktId": "owned-excluded-person", "name": "Owned Patient", "datum": "1980-11-18", "typ": "birthday"},
+            {"id": "owned-included-birthday", "kontaktId": "owned-included-person", "name": "Owned Colleague", "datum": "1981-11-18", "typ": "birthday"}]}
+       if os.environ.get("MAGNOLIE_MCP_PROBE_GROUP_EXCLUSIONS_ONLY") == "1" else {}),
     **({"kontakte": [{"id": "owned-provider-review", "uid": "owned-review-local-uid", "vorname": "Local", "nachname": "Review", "sync": True,
         "telefone": [{"wert": "+49305550123", "typen": ["CELL"]}],
         "syncQuellen": {"generic-dav-addressbook:owned-review": {"id": "/owned-person.vcf", "etag": '"v1"'}, "unrelated": {"id": "preserve"}},
@@ -411,6 +416,43 @@ def client():
             assert json.loads(data_file.read_text()) == durable
             state["category_palette_native_save_readback"] = True
             state["category_planner_ods_and_ics_verified"] = True
+            process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
+            return
+        if os.environ.get("MAGNOLIE_MCP_PROBE_GROUP_EXCLUSIONS_ONLY") == "1":
+            def group_tool(name, arguments=None):
+                result = call("tools/call", {"name": name, **({"arguments": arguments} if arguments is not None else {})})
+                assert not result["isError"], result
+                return result["structuredContent"]
+            initial = group_tool("organizer_contact_group_exclusions_read")
+            group_tool("organizer_contact_group_exclusions_update", {"expected_revision": initial["revision"], "enabled": False})
+            before = json.loads(data_file.read_text())
+            initial = group_tool("organizer_contact_group_exclusions_read")
+            saved = group_tool("organizer_contact_group_exclusions_update", {"expected_revision": initial["revision"], "enabled": True,
+                "notifications": {"scope": "birthdays", "groups": ["Patients"]},
+                "overview": {"scope": "birthdays", "groups": ["Patients"], "calendar": False}})
+            assert saved["persisted"]
+            durable = json.loads(data_file.read_text())
+            assert durable["kontakte"] == before["kontakte"] and durable["jahrestage"] == before["jahrestage"]
+            assert durable["einstellungen"]["adressen"]["gruppenAusschluss"]["enabled"] is True
+            import datetime
+            due = product.faellige_jahrestage(durable, datetime.datetime(2026, 11, 18, 8, 1))
+            assert not any("owned-excluded-birthday" in item["id"] for item in due["faellig"])
+            assert any("owned-included-birthday" in item["id"] for item in due["faellig"])
+            projection_input = json.loads(json.dumps(durable))
+            projection_input["einstellungen"].setdefault("sicherheit", {})["erinnernTrotzKennwort"] = True
+            projection = product.erinnerungsdaten_auswaehlen(projection_input)
+            assert "kontakte" not in projection and "kontaktId" not in json.dumps(projection)
+            assert not any(item["id"] == "owned-excluded-birthday" for item in projection["jahrestage"])
+            stale = call("tools/call", {"name": "organizer_contact_group_exclusions_update", "arguments": {"expected_revision": initial["revision"], "enabled": False}})
+            assert stale["isError"] and stale["structuredContent"]["code"] == "conflict"
+            current = group_tool("organizer_contact_group_exclusions_read")
+            group_tool("organizer_contact_group_exclusions_update", {"expected_revision": current["revision"], "enabled": False})
+            disabled = json.loads(data_file.read_text())
+            policy = disabled["einstellungen"]["adressen"]["gruppenAusschluss"]
+            assert not policy["enabled"] and policy["notifications"]["groups"] == ["Patients"]
+            assert any("owned-excluded-birthday" in item["id"] for item in product.faellige_jahrestage(disabled, datetime.datetime(2026, 11, 18, 8, 1))["faellig"])
+            state["group_exclusion_native_save_and_reminder_verified"] = True
+            state["group_exclusion_privacy_and_retained_choices_verified"] = True
             process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
             return
         if os.environ.get("MAGNOLIE_MCP_PROBE_KDE_ONLY") == "1":
@@ -2414,7 +2456,9 @@ finally:
         state["error"] = (state.get("error") or "") + "\nPrivate service/temporary cleanup:\n" + traceback.format_exc(limit=4)
     print("Native MCP fixture state:", json.dumps(state), flush=True)
 assert state["passed"] and state.get("cleanup_verified"), state
-if os.environ.get("MAGNOLIE_MCP_PROBE_CATEGORY_COLORS_ONLY") == "1":
+if os.environ.get("MAGNOLIE_MCP_PROBE_GROUP_EXCLUSIONS_ONLY") == "1":
+    print("Native MCP CONTACT GROUP EXCLUSIONS PASS: actual GTK/stdio SaveACK/diskreadback, native reminder and privacy projection, retained choices on disable, unchanged contacts/provider data")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_CATEGORY_COLORS_ONLY") == "1":
     print("Native MCP CATEGORY COLORS PASS: actual GTK/stdio palette and entity SaveACK/readback, unchanged imported records, year/month ODS colors, ICS categories/accent, observed cancelled planner print dialog")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_KDE_ONLY") == "1":
     print("Native MCP KDE CONTROL PASS: actual selected dormant backend/store/certificate pins through GTK/stdio, native limits and async source rejection, unchanged book, no extra listener or paired-handset claim")

@@ -12,6 +12,48 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 ERGÄNZUNGEN = {
+    "Exclude contact groups": {
+        "de": "Personengruppen ausschließen", "fr": "Exclure des groupes de contacts", "es": "Excluir grupos de contactos", "it": "Escludi gruppi di contatti", "nl": "Contactgroepen uitsluiten", "pt": "Excluir grupos de contactos", "ru": "Исключить группы контактов", "uk": "Виключити групи контактів", "be": "Выключыць групы кантактаў", "cs": "Vyloučit skupiny kontaktů", "pl": "Wyklucz grupy kontaktów", "hsb": "Skupiny kontaktow wuzamknyć", "da": "Udeluk kontaktgrupper", "nb": "Utelat kontaktgrupper", "tr": "Kişi gruplarını hariç tut", "hi": "संपर्क समूहों को बाहर रखें", "ar": "استبعاد مجموعات جهات الاتصال", "ja": "連絡先グループを除外", "zh_CN": "排除联系人分组",
+    },
+    "Enable contact group exclusions": {
+        "de": "Personengruppen-Ausschlüsse aktivieren", "fr": "Activer les exclusions de groupes de contacts", "es": "Activar exclusiones de grupos de contactos", "it": "Attiva esclusioni dei gruppi di contatti", "nl": "Uitsluiting van contactgroepen inschakelen", "pt": "Ativar exclusões de grupos de contactos", "ru": "Включить исключения групп контактов", "uk": "Увімкнути виключення груп контактів", "be": "Уключыць выключэнні груп кантактаў", "cs": "Povolit vyloučení skupin kontaktů", "pl": "Włącz wykluczenia grup kontaktów", "hsb": "Wuzamknjenje skupin kontaktow zmóžnić", "da": "Aktivér udelukkelse af kontaktgrupper", "nb": "Aktiver utelatelse av kontaktgrupper", "tr": "Kişi grubu hariç tutmalarını etkinleştir", "hi": "संपर्क समूह बहिष्करण चालू करें", "ar": "تفعيل استبعاد مجموعات جهات الاتصال", "ja": "連絡先グループの除外を有効にする", "zh_CN": "启用联系人分组排除",
+    },
+    "Birthdays only": {
+        "de": "Nur Geburtstage", "fr": "Anniversaires de naissance uniquement", "es": "Solo cumpleaños", "it": "Solo compleanni", "nl": "Alleen verjaardagen", "pt": "Só aniversários de nascimento", "ru": "Только дни рождения", "uk": "Лише дні народження", "be": "Толькі дні нараджэння", "cs": "Pouze narozeniny", "pl": "Tylko urodziny", "hsb": "Jenož narodniny", "da": "Kun fødselsdage", "nb": "Bare fødselsdager", "tr": "Yalnızca doğum günleri", "hi": "केवल जन्मदिन", "ar": "أعياد الميلاد فقط", "ja": "誕生日のみ", "zh_CN": "仅生日",
+    },
+    "All anniversaries": {
+        "de": "Alle Jahrestage", "fr": "Toutes les dates anniversaires", "es": "Todos los aniversarios", "it": "Tutte le ricorrenze", "nl": "Alle gedenkdagen", "pt": "Todas as datas comemorativas", "ru": "Все годовщины", "uk": "Усі річниці", "be": "Усе гадавіны", "cs": "Všechna výročí", "pl": "Wszystkie rocznice", "hsb": "Wšě róčnicy", "da": "Alle mærkedage", "nb": "Alle merkedager", "tr": "Tüm yıl dönümleri", "hi": "सभी वर्षगाँठ", "ar": "جميع الذكريات السنوية", "ja": "すべての記念日", "zh_CN": "所有纪念日",
+    },
+    "Also hide in the calendar": {
+        "de": "Auch im Kalender ausblenden", "fr": "Masquer aussi dans le calendrier", "es": "Ocultar también en el calendario", "it": "Nascondi anche nel calendario", "nl": "Ook in de kalender verbergen", "pt": "Ocultar também no calendário", "ru": "Также скрывать в календаре", "uk": "Також приховувати в календарі", "be": "Таксама хаваць у календары", "cs": "Skrýt také v kalendáři", "pl": "Ukryj także w kalendarzu", "hsb": "Tež w kalendarju schować", "da": "Skjul også i kalenderen", "nb": "Skjul også i kalenderen", "tr": "Takvimde de gizle", "hi": "कैलेंडर में भी छिपाएँ", "ar": "إخفاء أيضاً في التقويم", "ja": "カレンダーでも非表示にする", "zh_CN": "同时在日历中隐藏",
+    },
+    "Apply to": {
+        "de": "Anwenden auf", "fr": "Appliquer à", "es": "Aplicar a", "it": "Applica a", "nl": "Toepassen op", "pt": "Aplicar a", "ru": "Применить к", "uk": "Застосувати до", "be": "Ужыць да", "cs": "Použít pro", "pl": "Zastosuj do", "hsb": "Nałožić na", "da": "Anvend på", "nb": "Bruk på", "tr": "Uygulama alanı", "hi": "इस पर लागू करें", "ar": "تطبيق على", "ja": "適用先", "zh_CN": "应用于",
+    },
+    "Scope": {
+        "de": "Umfang", "fr": "Portée", "es": "Alcance", "it": "Ambito", "nl": "Bereik", "pt": "Âmbito", "ru": "Область", "uk": "Обсяг", "be": "Абсяг", "cs": "Rozsah", "pl": "Zakres", "hsb": "Wobłuk", "da": "Omfang", "nb": "Omfang", "tr": "Kapsam", "hi": "दायरा", "ar": "النطاق", "ja": "範囲", "zh_CN": "范围",
+    },
+    "An entry is excluded when any of its contact groups is selected. No contacts or anniversaries are deleted.": {
+        "de": "Ein Eintrag wird ausgeschlossen, sobald eine seiner Personengruppen ausgewählt ist. Kontakte und Jahrestage werden nicht gelöscht.",
+        "fr": "Une entrée est exclue dès qu’un de ses groupes de contacts est sélectionné. Aucun contact ni date anniversaire n’est supprimé.",
+        "es": "Una entrada se excluye si se selecciona cualquiera de sus grupos de contactos. No se eliminan contactos ni aniversarios.",
+        "it": "Una voce viene esclusa se è selezionato uno dei suoi gruppi di contatti. Nessun contatto o ricorrenza viene eliminato.",
+        "nl": "Een item wordt uitgesloten zodra een van zijn contactgroepen is geselecteerd. Er worden geen contacten of gedenkdagen verwijderd.",
+        "pt": "Uma entrada é excluída quando qualquer um dos seus grupos de contactos está selecionado. Não são eliminados contactos nem datas comemorativas.",
+        "ru": "Запись исключается, если выбрана хотя бы одна из её групп контактов. Контакты и годовщины не удаляются.",
+        "uk": "Запис виключається, якщо вибрано хоча б одну з його груп контактів. Контакти й річниці не видаляються.",
+        "be": "Запіс выключаецца, калі выбрана хаця б адна з яго груп кантактаў. Кантакты і гадавіны не выдаляюцца.",
+        "cs": "Záznam je vyloučen, pokud je vybrána alespoň jedna z jeho skupin kontaktů. Kontakty ani výročí se neodstraňují.",
+        "pl": "Wpis jest wykluczany, gdy wybrana jest choć jedna z jego grup kontaktów. Kontakty i rocznice nie są usuwane.",
+        "hsb": "Zapisk so wuzamknje, hdyž je znajmjeńša jedna z jeho skupin kontaktow wubrana. Kontakty a róčnicy so njezhašeja.",
+        "da": "En post udelukkes, når en af dens kontaktgrupper er valgt. Ingen kontakter eller mærkedage slettes.",
+        "nb": "En oppføring utelates når en av kontaktgruppene er valgt. Ingen kontakter eller merkedager slettes.",
+        "tr": "Kişi gruplarından herhangi biri seçildiğinde kayıt hariç tutulur. Hiçbir kişi veya yıl dönümü silinmez.",
+        "hi": "किसी प्रविष्टि का कोई भी संपर्क समूह चुने जाने पर वह बाहर रहती है। कोई संपर्क या वर्षगाँठ मिटती नहीं है।",
+        "ar": "يُستبعد العنصر عند اختيار أي من مجموعات جهات الاتصال الخاصة به. لا تُحذف جهات الاتصال أو الذكريات السنوية.",
+        "ja": "所属する連絡先グループが1つでも選択されていれば、その項目は除外されます。連絡先や記念日は削除されません。",
+        "zh_CN": "只要选中了条目所属的任一联系人分组，该条目就会被排除。联系人和纪念日不会被删除。",
+    },
     "Category": {
         "de": "Kategorie", "fr": "Catégorie", "es": "Categoría", "it": "Categoria", "nl": "Categorie", "pt": "Categoria", "ru": "Категория", "uk": "Категорія", "be": "Катэгорыя", "cs": "Kategorie", "pl": "Kategoria", "hsb": "Kategorija", "da": "Kategori", "nb": "Kategori", "tr": "Kategori", "hi": "श्रेणी", "ar": "الفئة", "ja": "カテゴリ", "zh_CN": "类别",
     },

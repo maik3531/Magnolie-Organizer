@@ -16,6 +16,34 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
+msgid "All anniversaries"
+msgstr "所有纪念日"
+
+msgid "Also hide in the calendar"
+msgstr "同时在日历中隐藏"
+
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"只要选中了条目所属的任一联系人分组，该条目就会被排除。联系人和纪念日不会被删"
+"除。"
+
+msgid "Apply to"
+msgstr "应用于"
+
+msgid "Birthdays only"
+msgstr "仅生日"
+
+msgid "Enable contact group exclusions"
+msgstr "启用联系人分组排除"
+
+msgid "Exclude contact groups"
+msgstr "排除联系人分组"
+
+msgid "Scope"
+msgstr "范围"
+
 msgid "Category"
 msgstr "类别"
 

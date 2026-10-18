@@ -17,6 +17,34 @@ msgstr ""
 "Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : (n%100==3 || "
 "n%100==4) ? 2 : 3);\n"
 
+msgid "All anniversaries"
+msgstr "Wšě róčnicy"
+
+msgid "Also hide in the calendar"
+msgstr "Tež w kalendarju schować"
+
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"Zapisk so wuzamknje, hdyž je znajmjeńša jedna z jeho skupin kontaktow "
+"wubrana. Kontakty a róčnicy so njezhašeja."
+
+msgid "Apply to"
+msgstr "Nałožić na"
+
+msgid "Birthdays only"
+msgstr "Jenož narodniny"
+
+msgid "Enable contact group exclusions"
+msgstr "Wuzamknjenje skupin kontaktow zmóžnić"
+
+msgid "Exclude contact groups"
+msgstr "Skupiny kontaktow wuzamknyć"
+
+msgid "Scope"
+msgstr "Wobłuk"
+
 msgid "Category"
 msgstr "Kategorija"
 

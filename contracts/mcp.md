@@ -5,6 +5,25 @@ This document describes the implemented tools; the remaining product operations
 are still being connected to the same interface.
 The remaining user-facing operation groups are tracked in [the coverage checklist](mcp-coverage.md).
 
+### Contact-group exclusions (#160)
+
+`organizer_contact_group_exclusions_read` returns `settings` and its `revision`.
+`organizer_contact_group_exclusions_update` takes `expected_revision`, optional
+`enabled`, and optional `notifications`, `anniversaries` and `overview` rules.
+Each rule has `scope: birthdays|anniversaries` and `groups: [name, ...]`;
+`overview` additionally has `calendar: boolean`. Omitted areas are retained.
+Disabling retains every group's choice and scope. Success requires the native
+durable SaveACK and returns `persisted: true`; stale settings return `conflict`.
+
+The same policy drives GUI anniversary lists, appointment overview and optional
+calendar marks, plus native reminders. Any excluded membership wins. Canonical
+and translated standard group names resolve to existing memberships; custom names
+are preserved. Contact identities/aliases and strong merged-source identity are
+used; an equal title/name alone is insufficient. Contacts, provider records and
+group memberships are not rewritten. Reminder privacy projections apply the
+decision before removing contact identity, so they contain no address book or
+group membership data.
+
 ### Appointment and task category colors (#183)
 
 `organizer_category_colors_read` returns the local palette as `colors: [{name,

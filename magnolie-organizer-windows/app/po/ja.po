@@ -16,6 +16,34 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
+msgid "All anniversaries"
+msgstr "すべての記念日"
+
+msgid "Also hide in the calendar"
+msgstr "カレンダーでも非表示にする"
+
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"所属する連絡先グループが1つでも選択されていれば、その項目は除外されます。連絡"
+"先や記念日は削除されません。"
+
+msgid "Apply to"
+msgstr "適用先"
+
+msgid "Birthdays only"
+msgstr "誕生日のみ"
+
+msgid "Enable contact group exclusions"
+msgstr "連絡先グループの除外を有効にする"
+
+msgid "Exclude contact groups"
+msgstr "連絡先グループを除外"
+
+msgid "Scope"
+msgstr "範囲"
+
 msgid "Category"
 msgstr "カテゴリ"
 

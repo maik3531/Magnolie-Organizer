@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import unicodedata
 
 
 def katalog_lesen(po_pfad):
@@ -38,6 +39,23 @@ def haupt(argv):
     if len(argv) != 4:
         raise SystemExit("Aufruf: po_zu_js.py SPRACHE QUELLE.po ZIEL.js")
     sprache, quelle, ziel = argv[1:]
+    if sprache == "--contact-group-aliases":
+        presets = ("Family", "Work", "Colleagues", "Patients", "Client", "Tradesperson", "Insurance", "Doctor")
+        aliases = {value.lower(): value for value in presets}
+        with open(os.path.join(quelle, "LINGUAS"), encoding="utf-8") as source:
+            languages = source.read().split()
+        for language in languages:
+            messages = katalog_lesen(os.path.join(quelle, language + ".po"))["messages"]
+            for preset in presets:
+                value = messages.get(preset)
+                if not isinstance(value, str) or not value:
+                    raise ValueError("Contact group translation missing: " + language + ": " + preset)
+                key = unicodedata.normalize("NFC", value).strip().lower()
+                aliases[key] = preset if key not in aliases or aliases[key] == preset else None
+        with open(ziel, "w", encoding="utf-8", newline="\n") as target:
+            target.write("/* Generated from the existing contact-group PO labels. */\nwindow.MagnolieContactGroupAliases = " +
+                json.dumps({key: value for key, value in aliases.items() if value is not None}, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + ";\n")
+        return
     daten = katalog_lesen(quelle)
     os.makedirs(os.path.dirname(os.path.abspath(ziel)), exist_ok=True)
     text = "window.MagnolieI18n.registerCatalog(%s, %s);\n" % (
