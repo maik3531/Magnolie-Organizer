@@ -189,3 +189,36 @@ def test_legacy_mode_cannot_override_modern_shared_preferences(tmp_path):
     result = service.mcp_action(request(service, "notes_legacy_mode", expectedRevision=state["revision"], enabled=True, skipDeletions=False))
     assert result == {"ok": False, "code": "unsupported_feature"}
     assert not peer["personal_sync"]["own_device"] and not events
+
+
+def test_note_direction_stores_explicit_default_then_two_way_and_keeps_task_grants(tmp_path):
+    service, peer, events = modern_service(tmp_path)
+    for name in ("personal_notes_sync", "personal_tasks_sync"):
+        peer["capabilities"]["items"][name]["versions"] = [1, 2, 3, 4, 5]
+    service.store.save_peers()
+    original_grants = copy.deepcopy(peer["local_grants"])
+    for mode in ("phone_import", "two_way", "phone_import"):
+        state = service.mcp_action(request(service))["notesSettings"]
+        args = request(service, "notes_note_direction", expectedRevision=state["revision"], mode=mode)
+        result = service.mcp_action(args)
+        assert result["ok"], result
+        assert result["persisted"] and result["notesSettings"]["note_direction"]["local_mode"] == mode
+        assert service.store._load_peers()[0]["note_sync"]["local"]["mode"] == mode
+        assert service.mcp_action(args)["code"] == "conflict"
+    assert peer["local_grants"] == original_grants and not events
+
+
+def test_note_direction_rejects_modern_and_stale_mutation(tmp_path, monkeypatch):
+    service, peer, events = modern_service(tmp_path)
+    def select():
+        state = service.mcp_action(request(service))["notesSettings"]
+        return service.mcp_action(request(service, "notes_note_direction", expectedRevision=state["revision"], mode="two_way"))
+    assert select()["code"] == "unsupported_feature"
+    for name in ("personal_notes_sync", "personal_tasks_sync"):
+        peer["capabilities"]["items"][name]["versions"] = [1, 2, 3, 4, 5]
+    original = service.set_note_mode
+    def raced(*args, **kwargs):
+        peer["personal_sync"]["remote_own_device"] = True
+        return original(*args, **kwargs)
+    monkeypatch.setattr(service, "set_note_mode", raced)
+    assert select()["code"] == "conflict" and not peer.get("note_sync") and not events

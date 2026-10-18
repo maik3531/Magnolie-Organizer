@@ -63,6 +63,18 @@ ownership, mode and grants back. Remote ownership remains unchanged. The public
 settings snapshot also includes actual local `skip_deletions`, independently of
 a shared-register effective choice. Delivery is never inferred from saving grants.
 
+`organizer_notes_legacy_direction_update` uses `mode: phone_import|two_way`, the
+current Notes-settings revision and exact paired identity. It shares the existing
+GUI note-policy handler, including fresh policy revision/epoch and pending
+note-module protocol cleanup. Shared-capable peers and retained shared registers
+are rejected; they use `content_mode` in the shared preference tool instead.
+The settings snapshot contains `note_direction: {supported, local_mode}` with
+`local_mode: null` when no explicit policy is stored. An explicit initial import
+choice is stored, not mistaken for a durable write merely because import is the
+default. Readback verifies the actual saved local mode. The existing import
+direction/deletion protections remain; task direction and ordinary book content
+are unaffected. Saving a local policy does not prove fresh remote agreement.
+
 ### Fresh phone device status and temporary identifiers
 
 `organizer_phone_device_status_read` requires the latest phone-control

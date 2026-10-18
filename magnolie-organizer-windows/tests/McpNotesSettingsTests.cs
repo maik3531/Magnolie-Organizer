@@ -79,6 +79,15 @@ internal static class McpNotesSettingsTests
             TestAssert.That(legacySaved["ok"]!.GetValue<bool>() && store.PersonalSettings(peer.Id).AutoWifi &&
                 store.StoredGrantMatches("personal_notes_sync", true) && store.StoredGrantMatches("personal_tasks_sync", true) &&
                 store.StoredGrantMatches("personal_deletions_sync", true), "Legacy mode did not apply/read back the existing paired grant choices.");
+            foreach (var mode in new[] { "phone_import", "two_way", "phone_import" })
+            {
+                var direction = Target("notes_note_direction"); direction["mode"] = mode;
+                direction["expectedRevision"] = service.McpNotesSettings(peer.Id, fingerprint)["revision"]!.DeepClone();
+                var changed = await service.ExecuteMcpAsync(direction, default);
+                TestAssert.That(changed["ok"]!.GetValue<bool>() && changed["persisted"]!.GetValue<bool>() &&
+                    store.NoteSettings(peer.Id)["local"]!["mode"]!.GetValue<string>() == mode, "Explicit note direction was not durably read back.");
+                TestAssert.That((await service.ExecuteMcpAsync(direction, default))["code"]!.GetValue<string>() == "conflict", "Stale note policy revision mutated the direction.");
+            }
             TestAssert.That(events.Count == 0 && !service.McpStatus()["listening"]!.GetValue<bool>(), "Notes settings emitted GUI events or started a listener.");
         }
         finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }

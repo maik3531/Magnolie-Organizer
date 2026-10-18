@@ -2492,7 +2492,7 @@ class PhoneService:
             action = request.get("action")
             with self.lock:
                 current_revision = (self.mcp_notes_settings(request.get("peerId"), request.get("fingerprint"))["revision"]
-                    if action in ("notes_settings_update", "notes_ownership", "notes_legacy_mode") else self.mcp_status(include_bluetooth=False)["revision"])
+                    if action in ("notes_settings_update", "notes_ownership", "notes_legacy_mode", "notes_note_direction") else self.mcp_status(include_bluetooth=False)["revision"])
                 if request.get("expectedRevision") != current_revision:
                     return {"ok": False, "code": "conflict"}
                 peer_id, expected = request.get("peerId") or "", request.get("fingerprint") or ""
@@ -2505,7 +2505,19 @@ class PhoneService:
                     if not context or context.get("decision") is not None or context.get("mcp_deadline", float("inf")) <= time.monotonic() or public.get("id") != peer_id or str(public.get("fingerprint") or "").lower() != expected.lower():
                         return {"ok": False, "code": "conflict"}
             persisted = False
-            if action == "notes_legacy_mode":
+            if action == "notes_note_direction":
+                mode = request.get("mode")
+                if mode not in ("phone_import", "two_way"):
+                    return {"ok": False, "code": "invalid_selection"}
+                self.set_note_mode(peer_id, mode, expected_fingerprint=expected, expected_revision=request["expectedRevision"])
+                with self.lock:
+                    self._mcp_require_peer(peer_id, expected)
+                    stored = next((item for item in self.store._load_peers() if item.get("device_id") == peer_id), {})
+                    if capture["failed"] or stored.get("note_sync", {}).get("local", {}).get("mode") != mode:
+                        return {"ok": False, "code": "verification_failed"}
+                    return {"ok": True, "action": action, "notesSettings": self.mcp_notes_settings(peer_id, expected),
+                        "localVerified": True, "persisted": True, "deliveryConfirmed": False}
+            elif action == "notes_legacy_mode":
                 if type(request.get("enabled")) is not bool or type(request.get("skipDeletions")) is not bool:
                     return {"ok": False, "code": "invalid_selection"}
                 self.set_personal_sync_mode(peer_id, request["enabled"], request["skipDeletions"], expected_fingerprint=expected, expected_revision=request["expectedRevision"])
@@ -2645,6 +2657,8 @@ class PhoneService:
                 "remote_own_device": personal.get("remote_own_device") is True,
                 "auto_wifi": personal.get("auto_wifi") is True,
                 "skip_deletions": peer.get("local_grants", {}).get("grants", {}).get("personal_deletions_sync") is not True,
+                "note_direction": {"supported": self._note_supported(peer),
+                    "local_mode": peer.get("note_sync", {}).get("local", {}).get("mode")},
                 "shared": shared}
 
     def _mcp_bluetooth_status(self):
@@ -4094,8 +4108,14 @@ class PhoneService:
             if channel:
                 self._send_message(channel, peer_id, message)
 
-    def set_note_mode(self, peer_id, mode):
+    def set_note_mode(self, peer_id, mode, expected_fingerprint=None, expected_revision=None):
         with self.lock:
+            if expected_fingerprint is not None:
+                state = self.mcp_notes_settings(peer_id, expected_fingerprint)
+                if expected_revision != state["revision"]:
+                    raise ValueError("phone_control_conflict")
+                if state["shared"]["supported"] or state["shared"]["initialized"] or not state["note_direction"]["supported"]:
+                    raise PermissionError("shared_settings_required")
             peer = self.store.sole_peer(peer_id)
             if not peer or not self._note_supported(peer):
                 raise RuntimeError("Note direction is not supported.")

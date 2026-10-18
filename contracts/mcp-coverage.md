@@ -52,8 +52,9 @@ and no remote-delivery claim. Local ownership activation and deletion grants
 follow the same existing handler. Explicit ownership confirmation/withdrawal is
 also connected, preserving pairing and remote consent while using existing native
 protocol cleanup. The existing legacy manual/automatic Wi-Fi and deletion choice
-is also connected, explicitly rejecting shared-register peers. Legacy note/custom/
-time direction and policy controls and initial/manual content synchronization
+is also connected, explicitly rejecting shared-register peers. The existing
+legacy note direction is connected with explicit policy readback as well. Legacy
+custom/time direction and policy controls and initial/manual content synchronization
 remain in the group below.
 
 | Group | Existing product operations to finish connecting | Completion evidence |

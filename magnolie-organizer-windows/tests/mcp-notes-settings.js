@@ -12,7 +12,7 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
       b.w.eval(fs.readFileSync(path.join(web, "mcp-protocol.js"), "utf8"));
       const target = { peer_id: "11111111-1111-4111-8111-111111111111", fingerprint: "ABCD-1234-5678-90EF" };
       const initial = { content_mode: "phone_scope", auto_mode: "manual", skip_deletions: true, custom_enabled: false, time_enabled: false, time_mode: "phone_import" };
-      let state = { ...target, revision: "a".repeat(64), own_device: false, remote_own_device: false, auto_wifi: false, skip_deletions: true, shared: { supported: true, initialized: false, ready: false, values: null } };
+      let state = { ...target, revision: "a".repeat(64), own_device: false, remote_own_device: false, auto_wifi: false, skip_deletions: true, note_direction: { supported: true, local_mode: null }, shared: { supported: true, initialized: false, ready: false, values: null } };
       const requests = []; let mode = "ok";
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       b.w.webkit.messageHandlers.regression.postMessage = text => {
@@ -21,8 +21,9 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
         if (r.action === "notes_settings_update") state = { ...state, revision: "b".repeat(64), own_device: true, auto_wifi: r.value === "wifi", shared: { supported: true, initialized: true, ready: false, values: { ...initial, [r.field]: r.value } } };
         if (r.action === "notes_ownership") state = { ...state, revision: "c".repeat(64), own_device: r.enabled, auto_wifi: r.enabled && state.shared.values?.auto_mode === "wifi" };
         if (r.action === "notes_legacy_mode") state = { ...state, revision: "d".repeat(64), own_device: true, auto_wifi: r.enabled, skip_deletions: r.skipDeletions, shared: { supported: false, initialized: false, ready: false, values: null } };
+        if (r.action === "notes_note_direction") state = { ...state, revision: "e".repeat(64), note_direction: { supported: true, local_mode: r.mode } };
         const payload = { requestId: m.requestId, ok: true, notesSettings: { ...state } };
-        if (["notes_settings_update", "notes_ownership", "notes_legacy_mode"].includes(r.action)) Object.assign(payload, { action: r.action, localVerified: true, persisted: mode !== "unverified", deliveryConfirmed: false });
+        if (["notes_settings_update", "notes_ownership", "notes_legacy_mode", "notes_note_direction"].includes(r.action)) Object.assign(payload, { action: r.action, localVerified: true, persisted: mode !== "unverified", deliveryConfirmed: false });
         if (mode === "wrong_peer") payload.notesSettings.fingerprint = "0000-0000-0000-0000";
         if (mode === "invalid_schema") payload.notesSettings.shared = { ...state.shared, ready: "yes" };
         queueMicrotask(() => b.w.App.telefonMcpErgebnis(payload));
@@ -52,6 +53,8 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
       const confirmed = ok(await ownedCall(true)); assert.equal(confirmed.state.own_device, true); assert.equal(confirmed.state.auto_wifi, true);
       const legacy = ok((await rpc("tools/call", { name: "organizer_notes_legacy_mode_update", arguments: { ...target, expected_revision: state.revision, auto_wifi: true, skip_deletions: false } })).result);
       assert.equal(legacy.state.auto_wifi, true); assert.equal(legacy.state.skip_deletions, false);
+      const direction = ok((await rpc("tools/call", { name: "organizer_notes_legacy_direction_update", arguments: { ...target, expected_revision: state.revision, mode: "phone_import" } })).result);
+      assert.equal(direction.state.note_direction.local_mode, "phone_import");
       assert.equal(JSON.stringify(b.t.daten()), before); assert.equal(b.saves().length, saves);
       console.log("MCP NOTES SETTINGS PASS: typed controls, explicit initial choices, exact target, local receipts and unchanged book " + web);
     } finally { b.close(); }

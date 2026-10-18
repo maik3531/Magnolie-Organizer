@@ -811,7 +811,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         return connection?.NotePolicyReady == true;
     }
 
-    internal async Task SetNoteModeAsync(string id, string mode)
+    internal async Task SetNoteModeAsync(string id, string mode, string? expectedFingerprint = null, string? expectedNotesRevision = null)
     {
         RequireSolePeer(id);
         if (mode is not ("two_way" or "phone_import")) throw new InvalidDataException("Invalid note direction.");
@@ -819,12 +819,23 @@ internal sealed partial class TelefonCoordinator : IDisposable
         await store.NotePolicyGate.WaitAsync();
         try
         {
-            var settings = store.NoteSettings(id); var old = settings["local"] as JsonObject;
-            if ((old?["mode"]?.GetValue<string>() ?? "phone_import") == mode) return;
-            var policy = PersonalSyncContract.NoteSettings(mode, checked((old?["revision"]?.GetValue<long>() ?? 0) + 1),
-                settings["remote"]?["epoch"]?.GetValue<string>() ?? "");
-            store.SetNoteSettings(id, policy, false);
-            personalSync.PurgeModules(id, new HashSet<string>(StringComparer.Ordinal) { "notes" });
+            lock (gate)
+            {
+                RequireSolePeer(id);
+                if (expectedFingerprint is not null)
+                {
+                    var state = McpNotesSettings(id, expectedFingerprint);
+                    if (expectedNotesRevision != state["revision"]!.GetValue<string>()) throw new McpConflictException();
+                    if (state["shared"]!["supported"]!.GetValue<bool>() || state["shared"]!["initialized"]!.GetValue<bool>() ||
+                        !state["note_direction"]!["supported"]!.GetValue<bool>()) throw new NotSupportedException();
+                }
+                var settings = store.NoteSettings(id); var old = settings["local"] as JsonObject;
+                if (old?["mode"]?.GetValue<string>() == mode) return;
+                var policy = PersonalSyncContract.NoteSettings(mode, checked((old?["revision"]?.GetValue<long>() ?? 0) + 1),
+                    settings["remote"]?["epoch"]?.GetValue<string>() ?? "");
+                store.SetNoteSettings(id, policy, false);
+                personalSync.PurgeModules(id, new HashSet<string>(StringComparer.Ordinal) { "notes" });
+            }
         }
         finally { store.NotePolicyGate.Release(); }
         TelefonConnection? connection; lock (gate) online.TryGetValue(id, out connection);

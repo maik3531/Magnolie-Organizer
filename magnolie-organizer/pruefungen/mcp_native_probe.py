@@ -468,6 +468,11 @@ def client():
                 stored = phone_fixture.store._load_peers()[0]
                 assert stored["personal_sync"]["own_device"] and not stored["personal_sync"]["remote_own_device"]
                 assert stored["local_grants"]["grants"]["personal_deletions_sync"] is not skip
+            for mode in ("phone_import", "two_way", "phone_import"):
+                current = legacy_tool("organizer_notes_settings_read", target)
+                changed = legacy_tool("organizer_notes_legacy_direction_update", {**target, "expected_revision": current["revision"], "mode": mode})
+                assert changed["state"]["note_direction"]["local_mode"] == mode and changed["persisted"]
+                assert phone_fixture.store._load_peers()[0]["note_sync"]["local"]["mode"] == mode
             assert data_file.read_bytes() == unchanged and phone_fixture.server is None
             state["notes_legacy_mode_store_verified"] = True
             process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
