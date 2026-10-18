@@ -58,6 +58,7 @@ internal static class BridgeDispatcherContract
         ["baum_mcp"] = S(T("requestId"), J("request")),
         ["telefon_mcp"] = S(T("requestId"), J("request")),
         ["kde_mcp"] = S(T("requestId"), J("request")),
+        ["notiz_versand"] = S(T("requestId"), J("request")),
         ["baum_bestaetigen"] = S(T("kennung"), B("ja"), O("fingerabdruck", JsonValueKind.String)), ["baum_entfernen"] = S(T("kennung")),
         ["baum_partner_einstellungen"] = S(T("kennung"), B("vertraut"), B("kontakte"), B("kontaktLoeschen"), T("fernAdresse"), O("fernPort", JsonValueKind.Number, JsonValueKind.String)),
         ["baum_weitergabe_erlauben"] = S(T("kennung"), T("fingerabdruck"), B("erlaubt")),

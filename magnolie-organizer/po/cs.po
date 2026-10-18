@@ -16,6 +16,86 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=((n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2);\n"
 
+msgid "Cancel sending"
+msgstr "Zrušit odesílání"
+
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"Dokument byl předán vybrané aplikaci nebo faxovému serveru. Doručení není "
+"potvrzeno."
+
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr "Zadejte název serveru HylaFAX, případně následovaný :port."
+
+msgid "Enter recipient manually"
+msgstr "Zadat příjemce ručně"
+
+msgid "Fax"
+msgstr "Fax"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"Fax vyžaduje nastavený server HylaFAX a nainstalovaný sendfax. E-mail "
+"používá podporovaného nainstalovaného klienta. Předání není potvrzením "
+"doručení."
+
+msgid "HylaFAX server (Linux)"
+msgstr "Server HylaFAX (Linux)"
+
+msgid "No configured mail or fax adapter is available."
+msgstr "Není k dispozici nastavené poštovní ani faxové rozhraní."
+
+msgid "Preparing selected notes…"
+msgstr "Připravují se vybrané poznámky…"
+
+msgid "Recipient"
+msgstr "Příjemce"
+
+msgid "Select a recipient."
+msgstr "Vyberte příjemce."
+
+msgid "Send notes by email or fax"
+msgstr "Odesílat poznámky e-mailem nebo faxem"
+
+msgid "Sending cancelled."
+msgstr "Odesílání zrušeno."
+
+msgid "Sending is disabled."
+msgstr "Odesílání je vypnuto."
+
+msgid "Sending is not available."
+msgstr "Odesílání není k dispozici."
+
+msgid "Show Send in note print options"
+msgstr "Zobrazit Odeslat v možnostech tisku poznámek"
+
+msgid "Subject"
+msgstr "Věc"
+
+msgid "The document could not be handed off."
+msgstr "Dokument se nepodařilo předat."
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "Předání již začalo a zde ho nelze odvolat."
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr ""
+"Výsledek předání není znám. Před dalším pokusem zkontrolujte externí "
+"aplikaci."
+
+msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"Čeká se na poštovní nebo faxovou aplikaci. Zavření tohoto okna předání "
+"neodvolá."
+
 msgid "All anniversaries"
 msgstr "Všechna výročí"
 

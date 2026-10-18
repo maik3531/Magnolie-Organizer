@@ -17,6 +17,86 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
+msgid "Cancel sending"
+msgstr "Скасувати надсилання"
+
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"Документ передано вибраній програмі або факс-серверу. Доставку не "
+"підтверджено."
+
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr "Введіть назву сервера HylaFAX, за потреби додавши :port."
+
+msgid "Enter recipient manually"
+msgstr "Ввести одержувача вручну"
+
+msgid "Fax"
+msgstr "Факс"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"Для факсу потрібні налаштований сервер HylaFAX і встановлений sendfax. Пошта "
+"використовує підтримуваний встановлений клієнт. Передавання не підтверджує "
+"доставку."
+
+msgid "HylaFAX server (Linux)"
+msgstr "Сервер HylaFAX (Linux)"
+
+msgid "No configured mail or fax adapter is available."
+msgstr "Налаштоване поштове чи факсове підключення недоступне."
+
+msgid "Preparing selected notes…"
+msgstr "Підготовка вибраних нотаток…"
+
+msgid "Recipient"
+msgstr "Одержувач"
+
+msgid "Select a recipient."
+msgstr "Виберіть одержувача."
+
+msgid "Send notes by email or fax"
+msgstr "Надсилати нотатки поштою або факсом"
+
+msgid "Sending cancelled."
+msgstr "Надсилання скасовано."
+
+msgid "Sending is disabled."
+msgstr "Надсилання вимкнено."
+
+msgid "Sending is not available."
+msgstr "Надсилання недоступне."
+
+msgid "Show Send in note print options"
+msgstr "Показувати Надіслати в параметрах друку нотаток"
+
+msgid "Subject"
+msgstr "Тема"
+
+msgid "The document could not be handed off."
+msgstr "Не вдалося передати документ."
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "Передавання вже почалося, відкликати його тут неможливо."
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr ""
+"Результат передавання невідомий. Перевірте зовнішню програму перед повторною "
+"спробою."
+
+msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"Очікування поштової чи факсової програми. Закриття цього вікна не відкликає "
+"передавання."
+
 msgid "All anniversaries"
 msgstr "Усі річниці"
 
@@ -5482,9 +5562,6 @@ msgstr "Закреслення"
 
 msgid "Styria"
 msgstr "Штирія"
-
-msgid "Subject"
-msgstr "Тема"
 
 msgid "Submitted"
 msgstr "Надіслано"

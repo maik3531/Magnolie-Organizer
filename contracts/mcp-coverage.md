@@ -26,6 +26,15 @@ details, not separate product features requiring another public tool.
   Actual private Linux GTK/stdio/store/file/QR/checkpoint/save/readback acceptance
   and a real private encrypted peer-send/receipt/inbox test complement portable
   C# and both-frontend tests. Windows native QR rendering is explicitly unsupported.
+- Requested feature groups: appointment/task categories and accent colors (#183),
+  identity-bound anniversary/reminder group exclusions (#160), explicit contact
+  group search with revision-pinned pagination (#177), and optional selected-note
+  email/fax handoff (#88) are connected through their shared GUI/native handlers.
+  Both frontend catalogs and strict results are checked. Private GTK acceptance
+  includes actual palette/group persistence, selected PDF creation/readback and
+  synthetic mail/fax adapter handoff; C# transport/job fixtures do not stand in
+  for physical Windows MAPI or recipient delivery. Installed overall acceptance
+  remains below.
 
 ## Remaining operation groups
 
@@ -55,8 +64,8 @@ This does not replace the remaining KDE or explicit device-status/privacy work.
   and native cleanup are covered by the relevant existing test harnesses.
 - The connected Notes/developer/KDE paths participate in the overall installed
   acceptance. Source-only checks do not constitute that acceptance.
-- New requested group/filter/send/category functions (#160/#177/#88/#183) extend
-  this interface when implemented, before the combined local handover.
+- Requested group/filter/send/category functions (#160/#177/#88/#183) participate
+  in the combined local handover and installed acceptance.
 
 The checklist is complete only when these groups and the overall acceptance are
 finished; an increased tool count is not itself a completion criterion.

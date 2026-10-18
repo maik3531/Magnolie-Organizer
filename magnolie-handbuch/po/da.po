@@ -1,8 +1,12 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Handbook package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Handbook 2.0.27\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
-"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: da\n"
@@ -10,6 +14,10 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#, no-javascript-format
+msgid "Send notes by email or fax"
+msgstr "Send noter via e-mail eller fax"
 
 #, no-javascript-format
 msgid ""
@@ -1420,6 +1428,47 @@ msgstr ""
 "med musen. Åbn den, og ændr <b>Dato</b> og om nødvendigt <b>Til og med</b>. "
 "Klik derefter på <span class='knopfwort'>Redigér aftale</span> for at "
 "anvende ændringen.</p>"
+
+#, no-javascript-format
+msgid ""
+"<h3>Enable once, then select the notes</h3><p>Sending is off by default. "
+"Under Settings → General → Send notes by email or fax, enable Show Send in "
+"note print options. In Notes, open Selection options, tick the required "
+"notes and click the single Send button. Choose an available Email or Fax "
+"route, select a contact address or enter a recipient manually, enter the "
+"subject and click Send.</p><p>The PDF contains exactly the selected text "
+"printout. Embedded images and PDF attachments are not included. Print now "
+"opens printing only and never sends. Email opens the supported mail client's "
+"compose flow; complete the message there. Fax hands the document directly to "
+"the configured server queue.</p><h3>Available routes and the result</"
+"h3><p>Linux email needs a registered supported mail client and xdg-email. "
+"Fax needs a configured HylaFAX server and installed sendfax. Windows email "
+"needs a registered compatible Simple-MAPI client; no Windows fax adapter is "
+"provided. The email attachment route is unavailable in Flatpak. Only "
+"available routes are offered.</p><p>Cancel sending prevents handoff before "
+"external dispatch. Closing the progress window does not recall an already "
+"started handoff. A handoff is not delivery confirmation; check the external "
+"application or fax server. Prepared PDFs use a private cache and are cleaned "
+"on the next use after one day. Your original notes remain unchanged.</p>"
+msgstr ""
+"<h3>Aktivér og vælg noterne</h3><p>Afsendelse er først slået fra. Aktivér "
+"Vis Send i noternes udskriftsindstillinger under Indstillinger → Generelt → "
+"Send noter via e-mail eller fax. Åbn valgindstillingerne i Noter, markér "
+"noterne, og klik på den ene Send-knap. Vælg tilgængelig E-mail eller Fax, en "
+"kontaktadresse eller manuel modtager, emne og Send.</p><p>PDF-filen "
+"indeholder præcis det valgte tekstudskrift uden indlejrede billeder eller "
+"PDF-bilag. Udskriv nu sender aldrig. E-mail åbner oprettelse i det "
+"understøttede mailprogram; afslut afsendelsen dér. Fax overdrager direkte "
+"til den konfigurerede serverkø.</p><h3>Veje og resultat</h3><p>Linux kræver "
+"et registreret understøttet mailprogram og xdg-email. Fax kræver en "
+"konfigureret HylaFAX-server og installeret sendfax. Windows kræver en "
+"registreret kompatibel Simple-MAPI-klient; der leveres ingen Windows-"
+"faxadapter. E-mailbilag kan ikke overdrages i Flatpak. Kun tilgængelige veje "
+"vises.</p><p>Annuller afsendelse forhindrer overdragelse før det eksterne "
+"kald. Lukning af fremdriften kalder ikke en startet overdragelse tilbage. "
+"Overdragelse bekræfter ikke levering: kontroller programmet eller "
+"faxserveren. Forberedte PDF-filer gemmes privat og ryddes ved næste brug "
+"efter én dag. Originalnoterne ændres ikke.</p>"
 
 #, no-javascript-format
 msgid ""

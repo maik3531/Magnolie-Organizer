@@ -1,8 +1,12 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Handbook package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Handbook 2.0.27\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
-"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: tr\n"
@@ -10,6 +14,10 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#, no-javascript-format
+msgid "Send notes by email or fax"
+msgstr "Notları e-posta veya faksla gönder"
 
 #, no-javascript-format
 msgid ""
@@ -1423,6 +1431,48 @@ msgstr ""
 "<b>Tarih</b> ve gerekiyorsa <b>Bitiş</b> alanını değiştirin. Ardından "
 "değişikliği uygulamak için <span class='knopfwort'>Randevuyu düzenle</span> "
 "seçeneğine tıklayın.</p>"
+
+#, no-javascript-format
+msgid ""
+"<h3>Enable once, then select the notes</h3><p>Sending is off by default. "
+"Under Settings → General → Send notes by email or fax, enable Show Send in "
+"note print options. In Notes, open Selection options, tick the required "
+"notes and click the single Send button. Choose an available Email or Fax "
+"route, select a contact address or enter a recipient manually, enter the "
+"subject and click Send.</p><p>The PDF contains exactly the selected text "
+"printout. Embedded images and PDF attachments are not included. Print now "
+"opens printing only and never sends. Email opens the supported mail client's "
+"compose flow; complete the message there. Fax hands the document directly to "
+"the configured server queue.</p><h3>Available routes and the result</"
+"h3><p>Linux email needs a registered supported mail client and xdg-email. "
+"Fax needs a configured HylaFAX server and installed sendfax. Windows email "
+"needs a registered compatible Simple-MAPI client; no Windows fax adapter is "
+"provided. The email attachment route is unavailable in Flatpak. Only "
+"available routes are offered.</p><p>Cancel sending prevents handoff before "
+"external dispatch. Closing the progress window does not recall an already "
+"started handoff. A handoff is not delivery confirmation; check the external "
+"application or fax server. Prepared PDFs use a private cache and are cleaned "
+"on the next use after one day. Your original notes remain unchanged.</p>"
+msgstr ""
+"<h3>Etkinleştirin ve notları seçin</h3><p>Gönderme başlangıçta kapalıdır. "
+"Ayarlar → Genel → Notları e-posta veya faksla gönder altında Not yazdırma "
+"seçeneklerinde Gönder’i göster’i etkinleştirin. Notlar’da seçim "
+"seçeneklerini açın, notları işaretleyin ve tek Gönder düğmesine basın. "
+"Kullanılabilir E-posta veya Faks yolunu, kişi adresini veya elle alıcıyı, "
+"konuyu ve Gönder’i seçin.</p><p>PDF tam olarak seçilen metin çıktısını "
+"içerir; gömülü resimler ve PDF ekleri dahil değildir. Şimdi yazdır hiçbir "
+"şey göndermez. E-posta desteklenen istemcinin ileti oluşturmasını açar; "
+"göndermeyi orada tamamlayın. Faks doğrudan yapılandırılmış sunucu kuyruğuna "
+"aktarır.</p><h3>Yollar ve sonuç</h3><p>Linux e-postası kayıtlı desteklenen "
+"bir istemci ve xdg-email gerektirir. Faks için yapılandırılmış HylaFAX "
+"sunucusu ve kurulu sendfax gerekir. Windows kayıtlı uyumlu Simple-MAPI "
+"istemcisi gerektirir; Windows faks adaptörü sağlanmaz. E-posta eki aktarma "
+"Flatpak içinde kullanılamaz. Yalnızca kullanılabilir yollar sunulur.</"
+"p><p>Göndermeyi iptal et dış çağrıdan önce aktarmayı engeller. İlerleme "
+"penceresini kapatmak başlamış aktarmayı geri almaz. Aktarma teslimat onayı "
+"değildir; dış uygulamayı veya faks sunucusunu kontrol edin. Hazırlanan "
+"PDF’ler özel önbellekte tutulur ve bir gün sonra sonraki kullanımda "
+"temizlenir. Asıl notlar değişmez.</p>"
 
 #, no-javascript-format
 msgid ""

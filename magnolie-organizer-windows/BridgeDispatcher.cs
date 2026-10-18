@@ -75,7 +75,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var command = parsed.RootElement.GetProperty("cmd").GetString()!;
             if (command is "wetter" or "feiertage" or "update_pruefen" or "journal_liste" or "import_lokal" or
                 "update_herunterladen" or "eds_status" or "graph_anmelden" or "baum_suchen" or "baum_paaren" or "baum_briefkasten_pruefen" or "baum_dav_pruefen" or "baum_mailbox_schreibpruefen" or "kde_sms_senden" or "cloud_sicherung_test" or
-                "baum_ein" or "baum_mcp" or "baum_teilen" or "baum_delegieren" or "baum_rueckmeldung" or "baum_weitergeben" or "baum_weitergabe_annehmen" or "telefon_mcp" or "kde_mcp" or "telefon_ein" or "telefon_verbindung_ein" or
+                "baum_ein" or "baum_mcp" or "baum_teilen" or "baum_delegieren" or "baum_rueckmeldung" or "baum_weitergeben" or "baum_weitergabe_annehmen" or "telefon_mcp" or "kde_mcp" or "notiz_versand" or "telefon_ein" or "telefon_verbindung_ein" or
                 "telefon_status_anfordern" or "telefon_entwickler_diagnose" or "kde_dateisystem_stand" or "kde_dateisystem_oeffnen" or "telefon_waehlen" or "telefon_annehmen" or "telefon_auflegen" or
                 "sync" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
                 "telefon_oeffnen" or "telefon_verbinden" or "telefon_pairing_oeffnen" or "kde_pairing_start" or "kde_pairing_complete" or
@@ -448,6 +448,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "kde_pairing_confirm": await ConfirmKdePairingAsync(pendingKdePairingId, Boolean(message, "ja")); break;
                     case "kde_paarung_bestaetigen": await ConfirmKdePairingAsync(Text(message, "kennung"), Boolean(message, "ja")); break;
                     case "kde_mcp": await KdeMcpAsync(message); break;
+                    case "notiz_versand": await NoteSendAsync(message); break;
                     case "kde_reconnect": await telefon.ReportStatusAsync(); break;
                     case "kde_entfernen": kdeConnectSms.Remove(Text(message, "kennung")); break;
                     case "erinnerung_zeigen":
@@ -1850,6 +1851,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     internal async Task ShutdownAsync()
     {
         lock (serviceGate) { if (disposed) return; disposed = true; }
+        noteSendJobs?.Dispose();
         backgroundLifetime.Cancel();
         ClearPersonalSyncRuntime();
         recoveryTimer.Dispose(); http.Dispose(); updates.Dispose();

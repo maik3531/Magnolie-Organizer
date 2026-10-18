@@ -17,6 +17,86 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2);\n"
 
+msgid "Cancel sending"
+msgstr "Anuluj wysyłanie"
+
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"Dokument przekazano wybranej aplikacji lub serwerowi faksu. Doręczenie nie "
+"jest potwierdzone."
+
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr "Wpisz nazwę serwera HylaFAX, opcjonalnie z końcówką :port."
+
+msgid "Enter recipient manually"
+msgstr "Wpisz odbiorcę ręcznie"
+
+msgid "Fax"
+msgstr "Faks"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"Faks wymaga skonfigurowanego serwera HylaFAX i zainstalowanego sendfax. E-"
+"mail używa obsługiwanego zainstalowanego klienta. Przekazanie nie potwierdza "
+"doręczenia."
+
+msgid "HylaFAX server (Linux)"
+msgstr "Serwer HylaFAX (Linux)"
+
+msgid "No configured mail or fax adapter is available."
+msgstr "Brak dostępnego skonfigurowanego połączenia pocztowego lub faksowego."
+
+msgid "Preparing selected notes…"
+msgstr "Przygotowywanie wybranych notatek…"
+
+msgid "Recipient"
+msgstr "Odbiorca"
+
+msgid "Select a recipient."
+msgstr "Wybierz odbiorcę."
+
+msgid "Send notes by email or fax"
+msgstr "Wysyłaj notatki e-mailem lub faksem"
+
+msgid "Sending cancelled."
+msgstr "Wysyłanie anulowano."
+
+msgid "Sending is disabled."
+msgstr "Wysyłanie jest wyłączone."
+
+msgid "Sending is not available."
+msgstr "Wysyłanie jest niedostępne."
+
+msgid "Show Send in note print options"
+msgstr "Pokaż Wyślij w opcjach drukowania notatek"
+
+msgid "Subject"
+msgstr "Temat"
+
+msgid "The document could not be handed off."
+msgstr "Nie udało się przekazać dokumentu."
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "Przekazywanie już się rozpoczęło i nie można go tutaj odwołać."
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr ""
+"Wynik przekazania jest nieznany. Sprawdź zewnętrzną aplikację przed ponowną "
+"próbą."
+
+msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"Oczekiwanie na aplikację pocztową lub faksową. Zamknięcie tego okna nie "
+"odwołuje przekazania."
+
 msgid "All anniversaries"
 msgstr "Wszystkie rocznice"
 

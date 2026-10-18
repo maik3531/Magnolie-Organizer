@@ -177,6 +177,9 @@ profile = Path(os.environ["XDG_DATA_HOME"]) / "magnolie-organizer"
 profile.mkdir(mode=0o700)
 data_file = profile / "daten.json"
 data_file.write_text(json.dumps({"version": 6,
+    **({"kontakte": [{"id": "owned-send-recipient", "vorname": "Owned", "nachname": "Recipient", "emails": ["owned@example.test"],
+        "telefone": [{"wert": "+49305550123", "typen": ["FAX"]}]}]}
+       if os.environ.get("MAGNOLIE_MCP_PROBE_NOTE_SEND_ONLY") == "1" else {}),
     **({"kontakte": [{"id": "owned-excluded-person", "vorname": "Owned", "nachname": "Patient", "vcardRoundtrip": ["CATEGORIES:Work,Patients", "X-OWNED:keep"]},
         {"id": "owned-included-person", "vorname": "Owned", "nachname": "Colleague", "vcardRoundtrip": ["CATEGORIES:Colleagues"]},
         *([{"id": "owned-no-group", "vorname": "Owned", "nachname": "Ungrouped", "vcardRoundtrip": ["CATEGORIES:MY CONTACTS"]},
@@ -193,7 +196,9 @@ data_file.write_text(json.dumps({"version": 6,
             "mapping": {"id": "/owned-person.vcf", "etag": '"v2"', "inhaltFormat": "linux-1", "inhaltSha256": "owned-review-hash"}}}}]}
         if os.environ.get("MAGNOLIE_MCP_PROBE_PROVIDER_REVIEW") == "1" else {}),
     "notizen": [{"id": "owned-native-fixture", "titel": "Owned fixture",
-    "text": "No user data", "html": "No user data"}], "aufgaben": [{"id": "owned-native-series",
+    "text": "No user data", "html": "No user data"},
+        *([{"id": "owned-native-unselected", "titel": "Unselected owned fixture", "text": "UNSELECTED MUST NOT BE SENT", "html": "UNSELECTED MUST NOT BE SENT"}]
+          if os.environ.get("MAGNOLIE_MCP_PROBE_NOTE_SEND_PDF_ONLY") == "1" or os.environ.get("MAGNOLIE_MCP_PROBE_NOTE_SEND_ONLY") == "1" else [])], "aufgaben": [{"id": "owned-native-series",
     "uid": "owned-native-series-uid", "titel": "Owned series fixture", "startDatum": "2026-01-01",
     "faellig": "2026-01-01", "startZeit": "08:00", "faelligZeit": "09:00", "icsRoundtrip": [
       "BEGIN:VTODO", "UID:owned-native-series-uid", "DTSTART:20260101T080000Z", "DUE:20260101T090000Z",
@@ -295,6 +300,25 @@ if os.environ.get("MAGNOLIE_MCP_PROBE_KDE_ONLY") == "1":
     kde_remote = kde_protocol.IdentityStore(str(data_file.parent / "owned-kde-remote"), "Owned native KDE-control peer")
     kde_fixture.store.confirm_peer_and_cleanup(kde_remote.device_id, kde_remote.device_name, kde_remote.certificate, "127.0.0.1", 1716)
     product._KDECONNECT_BACKEND = kde_fixture
+note_send_handoffs = []
+if os.environ.get("MAGNOLIE_MCP_PROBE_NOTE_SEND_ONLY") == "1":
+    import magnolie_versand as note_sender
+    def owned_send_settings():
+        with window._daten_sperre:
+            assert not window._gesperrt and isinstance(window._aktuelle_daten, dict)
+            return dict((window._aktuelle_daten.get("einstellungen") or {}).get("versand") or {})
+    def owned_send_pdf(html, path, callback):
+        return product.drucken(html, name="selected-notes", ordner=str(Path(path).parent), rueckmeldung=callback, pdf_ziel=path)
+    def owned_send_adapter(arguments):
+        kind = "fax" if arguments[0].endswith("sendfax") else "email"
+        pdf = Path(arguments[-1] if kind == "fax" else arguments[-2])
+        text = subprocess.run(["pdftotext", str(pdf), "-"], capture_output=True, text=True, timeout=5, check=True).stdout
+        assert "No user data" in text and "UNSELECTED MUST NOT BE SENT" not in text
+        note_send_handoffs.append({"kind": kind, "sha256": hashlib.sha256(pdf.read_bytes()).hexdigest(), "arguments": arguments})
+        return subprocess.CompletedProcess(arguments, 0)
+    window._notiz_versand_dienst = note_sender.SendJobs(Path(os.environ["XDG_CACHE_HOME"]) / "magnolie-organizer" / "versand",
+        owned_send_settings, owned_send_pdf, which=lambda name: "/owned/" + name,
+        discover_mail=lambda: {"id": "owned-mail.desktop", "name": "Owned synthetic mail adapter"}, runner=owned_send_adapter)
 window.show_all()
 owned = []
 
@@ -377,6 +401,94 @@ def client():
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
         if os.environ.get("MAGNOLIE_MCP_PROBE_FAIL_AFTER_READY") == "1":
             raise RuntimeError("Owned fixture intentional failure after ready")
+        if os.environ.get("MAGNOLIE_MCP_PROBE_NOTE_SEND_ONLY") == "1":
+            def send_tool(name, arguments=None):
+                result = call("tools/call", {"name": name, **({"arguments": arguments} if arguments is not None else {})})
+                assert not result["isError"], result
+                return result["structuredContent"]
+            initial = send_tool("organizer_note_send_settings_read")
+            assert initial["settings"]["enabled"] is False
+            native = send_tool("organizer_note_send_state_read")
+            book = send_tool("organizer_book_revision_read")
+            disabled = call("tools/call", {"name": "organizer_note_send_start", "arguments": {"expected_book_revision": book["revision"], "expected_state_revision": native["revision"],
+                "ids": ["owned-native-fixture"], "kind": "email", "recipient": "owned@example.test"}})
+            assert disabled["isError"] and disabled["structuredContent"]["code"] == "feature_disabled" and not note_send_handoffs
+            changed = send_tool("organizer_note_send_settings_update", {"expected_revision": initial["revision"], "enabled": True, "fax_server": "FAX.EXAMPLE.TEST:04559"})
+            assert changed["persisted"]
+            durable = json.loads(data_file.read_text())
+            assert durable["einstellungen"]["versand"] == {"enabled": True, "faxServer": "fax.example.test:4559"}
+            unchanged = data_file.read_bytes()
+            for kind, recipient in (("email", "owned@example.test"), ("fax", "+49305550123")):
+                native = send_tool("organizer_note_send_state_read")
+                book = send_tool("organizer_book_revision_read")
+                begun = send_tool("organizer_note_send_start", {"expected_book_revision": book["revision"], "expected_state_revision": native["revision"],
+                    "ids": ["owned-native-fixture"], "kind": kind, "recipient": recipient, "contact_id": "owned-send-recipient", "subject": "Owned 🌸 selected notes"})
+                deadline = time.monotonic() + 30
+                job = begun
+                while job["phase"] in ("saving", "preparing", "ready", "external_pending"):
+                    assert time.monotonic() < deadline, job
+                    time.sleep(0.05)
+                    job = send_tool("organizer_note_send_status", {"operation_id": begun["operation_id"]})
+                assert job["phase"] == "handed_off" and job["delivery_confirmed"] is False and note_send_handoffs[-1]["kind"] == kind and job["document"]["sha256"] == note_send_handoffs[-1]["sha256"], job
+                assert data_file.read_bytes() == unchanged
+            assert len(note_send_handoffs) == 2
+            current = send_tool("organizer_note_send_settings_read")
+            send_tool("organizer_note_send_settings_update", {"expected_revision": current["revision"], "enabled": False})
+            assert json.loads(data_file.read_text())["einstellungen"]["versand"] == {"enabled": False, "faxServer": "fax.example.test:4559"}
+            state["note_send_native_mcp_save_pdf_and_adapter_verified"] = True
+            state["note_send_selected_content_and_no_delivery_claim_verified"] = True
+            process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
+            return
+        if os.environ.get("MAGNOLIE_MCP_PROBE_NOTE_SEND_PDF_ONLY") == "1":
+            import magnolie_versand as sender
+            document = {"ready": threading.Event(), "html": None, "error": None}
+            def evaluate_document():
+                def evaluated(view, result, _data):
+                    try:
+                        document["html"] = view.evaluate_javascript_finish(result).to_string()
+                    except BaseException as error:
+                        document["error"] = str(error)
+                    document["ready"].set()
+                window.ansicht.evaluate_javascript("(() => { const t = OrganizerTest, s = t.druckStoff('notizen'); return t.druckSeite(s.liste.filter(n => n.id === 'owned-native-fixture'), s); })()",
+                    -1, None, None, None, evaluated, None)
+                return False
+            product.GLib.idle_add(evaluate_document)
+            assert document["ready"].wait(5) and document["error"] is None, document
+            assert "No user data" in document["html"] and "UNSELECTED MUST NOT BE SENT" not in document["html"]
+            handed = []
+            def render_pdf(html, path, callback):
+                handle = {}
+                def create_pdf():
+                    def completed(result):
+                        document["pdf_native"] = result
+                        callback(result)
+                    handle["native"] = product.drucken(html, name="owned-selected-notes", ordner=str(Path(path).parent), rueckmeldung=completed, pdf_ziel=path)
+                    if handle["native"].get("ok") is False:
+                        callback(handle["native"])
+                    return False
+                product.GLib.idle_add(create_pdf)
+                return handle
+            def adapter(arguments):
+                pdf = Path(arguments[-2])
+                assert pdf.read_bytes().startswith(b"%PDF-")
+                text = subprocess.run(["pdftotext", str(pdf), "-"], capture_output=True, text=True, timeout=5, check=True).stdout
+                assert "No user data" in text and "UNSELECTED MUST NOT BE SENT" not in text
+                handed.append({"arguments": arguments, "sha256": hashlib.sha256(pdf.read_bytes()).hexdigest()})
+                return subprocess.CompletedProcess(arguments, 0)
+            service = sender.SendJobs(Path(temporary.name) / "owned-send-spool", lambda: {"enabled": True}, render_pdf,
+                which=lambda name: "/owned/" + name, discover_mail=lambda: {"id": "owned-mail.desktop", "name": "Owned test adapter"}, runner=adapter)
+            begun = service.begin(document["html"], "email", "owned@example.test", "Owned selected notes", service.read()["revision"])
+            deadline = time.monotonic() + 35
+            job = begun
+            while job["phase"] in ("preparing", "ready", "external_pending"):
+                assert time.monotonic() < deadline, job
+                time.sleep(0.05)
+                job = service.status(begun["operation_id"])
+            assert job["phase"] == "handed_off" and len(handed) == 1 and job["document"]["sha256"] == handed[0]["sha256"] and job["delivery_confirmed"] is False, (job, document.get("pdf_native"))
+            state["note_send_actual_selected_pdf_verified"] = True
+            state["note_send_synthetic_adapter_only"] = True
+            process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
+            return
         if os.environ.get("MAGNOLIE_MCP_PROBE_CATEGORY_COLORS_ONLY") == "1":
             def category_tool(name, arguments=None):
                 result = call("tools/call", {"name": name, **({"arguments": arguments} if arguments is not None else {})})
@@ -2486,7 +2598,11 @@ finally:
         state["error"] = (state.get("error") or "") + "\nPrivate service/temporary cleanup:\n" + traceback.format_exc(limit=4)
     print("Native MCP fixture state:", json.dumps(state), flush=True)
 assert state["passed"] and state.get("cleanup_verified"), state
-if os.environ.get("MAGNOLIE_MCP_PROBE_GROUP_FILTER_ONLY") == "1":
+if os.environ.get("MAGNOLIE_MCP_PROBE_NOTE_SEND_ONLY") == "1":
+    print("Native MCP NOTE SEND PASS: actual GTK/stdio settings SaveACK, selected real PDF/pdftotext/digest, native async mail/fax jobs with synthetic adapters, unchanged book and disable/retained server, no real send or delivery claim")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_NOTE_SEND_PDF_ONLY") == "1":
+    print("Native NOTE SEND PDF PASS: actual shared selected-note HTML and WebKit PDF, pdftotext selection proof and SHA readback, synthetic captured mail adapter only, no delivery claim")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_GROUP_FILTER_ONLY") == "1":
     print("Native MCP CONTACT GROUP FILTER PASS: actual GTK/stdio canonical/translated/multiple/custom/no-group search, empty-group catalog and revision-pinned pagination, unchanged stored book")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_GROUP_EXCLUSIONS_ONLY") == "1":
     print("Native MCP CONTACT GROUP EXCLUSIONS PASS: actual GTK/stdio SaveACK/diskreadback, native reminder and privacy projection, retained choices on disable, unchanged contacts/provider data")

@@ -16,6 +16,86 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
+msgid "Cancel sending"
+msgstr "送信を取り消す"
+
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"選択したアプリまたはファクスサーバーに文書を渡しました。配達は確認されていま"
+"せん。"
+
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr ""
+"HylaFAXサーバーのホスト名を入力してください。必要なら後ろに :port を付けま"
+"す。"
+
+msgid "Enter recipient manually"
+msgstr "受信者を手動で入力"
+
+msgid "Fax"
+msgstr "ファクス"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"ファクスには設定済みのHylaFAXサーバーとインストール済みのsendfaxが必要です。"
+"メールには対応するインストール済みのメールソフトを使います。アプリへの引き渡"
+"しは配達確認ではありません。"
+
+msgid "HylaFAX server (Linux)"
+msgstr "HylaFAXサーバー (Linux)"
+
+msgid "No configured mail or fax adapter is available."
+msgstr "設定済みのメールまたはファクス連携が利用できません。"
+
+msgid "Preparing selected notes…"
+msgstr "選択したノートを準備しています…"
+
+msgid "Recipient"
+msgstr "受信者"
+
+msgid "Select a recipient."
+msgstr "受信者を選択してください。"
+
+msgid "Send notes by email or fax"
+msgstr "ノートをメールまたはファクスで送る"
+
+msgid "Sending cancelled."
+msgstr "送信を取り消しました。"
+
+msgid "Sending is disabled."
+msgstr "送信は無効です。"
+
+msgid "Sending is not available."
+msgstr "送信を利用できません。"
+
+msgid "Show Send in note print options"
+msgstr "ノートの印刷設定に送信を表示する"
+
+msgid "Subject"
+msgstr "件名"
+
+msgid "The document could not be handed off."
+msgstr "文書を引き渡せませんでした。"
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "引き渡しは既に始まっているため、ここでは撤回できません。"
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr "引き渡しの結果が不明です。再試行する前に外部アプリを確認してください。"
+
+msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"メールまたはファクスアプリを待っています。この画面を閉じても引き渡しは撤回さ"
+"れません。"
+
 msgid "All anniversaries"
 msgstr "すべての記念日"
 

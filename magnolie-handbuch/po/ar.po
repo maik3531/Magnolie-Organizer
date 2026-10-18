@@ -1,8 +1,12 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Handbook package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Handbook 2.0.27\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
-"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: ar\n"
@@ -10,6 +14,10 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#, no-javascript-format
+msgid "Send notes by email or fax"
+msgstr "إرسال الملاحظات بالبريد أو الفاكس"
 
 #, no-javascript-format
 msgid ""
@@ -1317,6 +1325,44 @@ msgstr ""
 "جدولة موعد</h3><p>لا يمكنك سحب موعد بالفأرة إلى يوم آخر. افتحه وغيّر "
 "<b>التاريخ</b> و<b>حتى</b> عند الحاجة. ثم انقر <span class='knopfwort'>تحرير "
 "الموعد</span> لتطبيق التغيير.</p>"
+
+#, no-javascript-format
+msgid ""
+"<h3>Enable once, then select the notes</h3><p>Sending is off by default. "
+"Under Settings → General → Send notes by email or fax, enable Show Send in "
+"note print options. In Notes, open Selection options, tick the required "
+"notes and click the single Send button. Choose an available Email or Fax "
+"route, select a contact address or enter a recipient manually, enter the "
+"subject and click Send.</p><p>The PDF contains exactly the selected text "
+"printout. Embedded images and PDF attachments are not included. Print now "
+"opens printing only and never sends. Email opens the supported mail client's "
+"compose flow; complete the message there. Fax hands the document directly to "
+"the configured server queue.</p><h3>Available routes and the result</"
+"h3><p>Linux email needs a registered supported mail client and xdg-email. "
+"Fax needs a configured HylaFAX server and installed sendfax. Windows email "
+"needs a registered compatible Simple-MAPI client; no Windows fax adapter is "
+"provided. The email attachment route is unavailable in Flatpak. Only "
+"available routes are offered.</p><p>Cancel sending prevents handoff before "
+"external dispatch. Closing the progress window does not recall an already "
+"started handoff. A handoff is not delivery confirmation; check the external "
+"application or fax server. Prepared PDFs use a private cache and are cleaned "
+"on the next use after one day. Your original notes remain unchanged.</p>"
+msgstr ""
+"<h3>التفعيل واختيار الملاحظات</h3><p>الإرسال معطّل مبدئياً. ضمن الإعدادات → "
+"عام → إرسال الملاحظات بالبريد أو الفاكس، فعّل إظهار إرسال في خيارات طباعة "
+"الملاحظات. افتح خيارات التحديد في الملاحظات وحدد المطلوب واضغط زر إرسال "
+"الوحيد. اختر البريد أو الفاكس المتاح وعنوان جهة اتصال أو مستلماً يدوياً "
+"والموضوع ثم إرسال.</p><p>يحتوي PDF على الطباعة النصية المحددة بالضبط، دون "
+"الصور المضمنة أو مرفقات PDF. الطباعة الآن لا ترسل أبداً. يفتح البريد إنشاء "
+"الرسالة في العميل المدعوم؛ أكمل الإرسال هناك. يسلّم الفاكس مباشرة إلى قائمة "
+"انتظار الخادم المُعدّ.</p><h3>المسارات والنتيجة</h3><p>يتطلب بريد Linux عميلاً "
+"مسجلاً مدعوماً وxdg-email. ويتطلب الفاكس خادم HylaFAX مُعدّاً وsendfax مثبّتاً. "
+"يتطلب Windows عميلاً مسجلاً متوافقاً مع Simple-MAPI؛ لا يتوفر محوّل فاكس "
+"Windows. تسليم مرفقات البريد غير متاح في Flatpak. تُعرض المسارات المتاحة فقط."
+"</p><p>يمنع إلغاء الإرسال التسليم قبل الاستدعاء الخارجي. إغلاق نافذة التقدم "
+"لا يسترجع تسليماً بدأ. التسليم إلى التطبيق ليس تأكيد وصول للمستلم؛ تحقّق من "
+"التطبيق أو خادم الفاكس. تُحفظ PDF المجهزة في ذاكرة مؤقتة خاصة وتُنظف عند "
+"الاستخدام التالي بعد يوم. لا تتغير الملاحظات الأصلية.</p>"
 
 #, no-javascript-format
 msgid ""

@@ -386,6 +386,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             anniversaries: { scope: "birthdays", groups: [] }, overview: { scope: "birthdays", groups: [], calendar: false } },
           kommunikation: { sms: { art: "kde", programm: "" },
             anruf: { art: "magnolie", programm: "" } } },
+        versand: { enabled: false, faxServer: "" },
         sicherheit: { erinnernTrotzKennwort: false,
           vertraulicheErinnerungen: false },
         papierkorb: { an: true, tage: 30 },
@@ -7791,6 +7792,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       ? !!er.protokoll : false;
     zw.protokollVoreinstellung = 1;
     const ad = (e.adressen && typeof e.adressen === "object") ? e.adressen : {};
+    d.einstellungen.versand = saubererNotizVersand(e.versand);
     const za = d.einstellungen.adressen;
     za.absender = S(ad.absender);
     za.karten = ["openstreetmap", "google"].includes(ad.karten)
@@ -11521,6 +11523,226 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       spalten: spalten, zeilen: zeilen };
   }
 
+  function notizVersandServer(value) {
+    const text = String(value || "").trim(); if (!text) return "";
+    const match = /^([A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?)(?::([0-9]{1,5}))?$/.exec(text);
+    if (!match || match[1].split(".").some(label => !/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(label)) ||
+        match[2] && !(Number(match[2]) >= 1 && Number(match[2]) <= 65535)) return null;
+    return match[1].toLowerCase() + (match[2] ? ":" + Number(match[2]) : "");
+  }
+  function saubererNotizVersand(value) {
+    return { enabled: value?.enabled === true, faxServer: notizVersandServer(typeof value?.faxServer === "string" ? value.faxServer : "") || "" };
+  }
+  function setzeNotizVersand(value) {
+    if (Object.prototype.hasOwnProperty.call(value, "faxServer") && notizVersandServer(value.faxServer) === null) return false;
+    DATEN.einstellungen.versand = saubererNotizVersand({ ...DATEN.einstellungen.versand, ...value }); return true;
+  }
+  function baueNotizVersandEinstellungen(wurzel) {
+    const book = DATEN, gruppe = el("details", "einst-gruppe");
+    gruppe.append(el("summary", null, _("Send notes by email or fax")));
+    const master = eingabe("checkbox", ""); master.id = "notiz-versand-aktiv"; master.checked = DATEN.einstellungen.versand.enabled;
+    const label = el("label", "hak"); label.append(master, document.createTextNode(" " + _("Show Send in note print options")));
+    const optionen = el("div"); optionen.hidden = !master.checked;
+    const server = eingabe("text", DATEN.einstellungen.versand.faxServer); server.id = "notiz-versand-faxserver"; server.maxLength = 259;
+    const speichern = knopf(_("Save"), "klein", () => {
+      if (DATEN !== book) return zettel(_("Conflict"));
+      if (!setzeNotizVersand({ faxServer: server.value })) return zettel(_("Enter a HylaFAX server hostname, optionally followed by :port."));
+      server.value = DATEN.einstellungen.versand.faxServer; planeSpeichern();
+    });
+    optionen.append(formZeile(_("HylaFAX server (Linux)"), server), speichern,
+      el("p", "einst-hinweis", _("Fax requires a configured HylaFAX server and installed sendfax. Email uses a supported installed mail client. A handoff is not delivery confirmation.")));
+    master.addEventListener("change", () => {
+      if (DATEN !== book) return zettel(_("Conflict"));
+      setzeNotizVersand({ enabled: master.checked }); optionen.hidden = !master.checked; planeSpeichern();
+    });
+    gruppe.append(label, optionen); wurzel.append(gruppe);
+  }
+  const notizVersandLaeufe = new Map(), notizVersandGuiOwner = {};
+  function notizVersandEmpfaenger(kind, value) {
+    const text = String(value || "").trim();
+    if (kind === "email") return text.length <= 320 && !text.startsWith("-") && /^[^\s@<>;,\x00-\x1f\x7f]+@[^\s@<>;,\x00-\x1f\x7f]+\.[^\s@<>;,\x00-\x1f\x7f]+$/.test(text) ? text : null;
+    if (kind !== "fax" || text.length > 80 || !/^\+?[0-9][0-9 ().-]*[0-9]$/.test(text)) return null;
+    const number = text.replace(/[ ().-]/g, ""), count = number.replace(/\D/g, "").length;
+    return count >= 3 && count <= 30 ? number : null;
+  }
+  function notizVersandKontaktEmpfaenger(kind) {
+    const result = [];
+    for (const contact of DATEN.kontakte.slice().sort(sortiereKontakte)) {
+      const values = kind === "email" ? emailListe(contact) : telefonListe(contact).filter(phone => phone.typen.includes("FAX")).map(phone => phone.wert);
+      const seen = new Set();
+      for (const value of values) {
+        const recipient = notizVersandEmpfaenger(kind, value);
+        if (!recipient || seen.has(recipient)) continue;
+        seen.add(recipient); result.push({ contact_id: contact.id, recipient, label: kontaktName(contact) + " · " + value });
+      }
+    }
+    return result;
+  }
+  async function notizVersandNative(request, signal) {
+    const value = await mcpNativeAufruf("notiz_versand", { request }, "noteSendErgebnis", signal);
+    if (value.ok !== true) {
+      const error = new MagnolieMcp.ToolError(typeof value.code === "string" ? value.code : "native_operation_failed", "Native note-document handoff failed");
+      error.nativeUnknown = value.nativeOutcomeUnknown !== false; throw error;
+    }
+    return value;
+  }
+  async function notizVersandStand(signal) {
+    const value = await notizVersandNative({ action: "read" }, signal);
+    try { MagnolieMcp.validate(value.state, mcpErgebnisSchema("organizer_note_send_state_read")); }
+    catch { throw new MagnolieMcp.ToolError("invalid_result", "Native note-send state is incomplete"); }
+    return kopie(value.state);
+  }
+  function notizVersandLauf(owner, id) {
+    const job = notizVersandLaeufe.get(id);
+    if (!job || job.owner !== owner || job.expires <= Date.now()) throw new MagnolieMcp.ToolError("not_found", "Note-send operation not found in this session");
+    return job;
+  }
+  function notizVersandLaufAntwort(job, value, cancel = false) {
+    const result = kopie(value), accepted = result?.cancel_accepted;
+    if (cancel) delete result.cancel_accepted;
+    try { MagnolieMcp.validate(result, mcpErgebnisSchema("organizer_note_send_status")); }
+    catch { throw new MagnolieMcp.ToolError("invalid_result", "Native note-send operation receipt is incomplete"); }
+    if (result.operation_id !== job.id || result.phase === "saving" || result.delivery_confirmed !== false ||
+        result.adapter !== null && !(job.kind === "email" ? ["xdg-email", "simple-mapi"] : ["hylafax-sendfax"]).includes(result.adapter) ||
+        result.handed_off !== (result.phase === "handed_off") || result.handed_off && (!result.document || !result.adapter) || cancel && typeof accepted !== "boolean")
+      throw new MagnolieMcp.ToolError("invalid_result", "Native note-send operation receipt did not match the requested operation");
+    job.value = result;
+    return cancel ? { ...result, cancel_accepted: accepted } : kopie(result);
+  }
+  function starteNotizVersand(owner, args) {
+    if (!DATEN.einstellungen.versand.enabled) throw new MagnolieMcp.ToolError("feature_disabled", "Enable note sending in product settings first");
+    const recipient = notizVersandEmpfaenger(args.kind, args.recipient);
+    if (!recipient) throw new MagnolieMcp.ToolError("invalid_selection", "The selected recipient is not a supported email address or fax number");
+    if (args.contact_id && !notizVersandKontaktEmpfaenger(args.kind).some(item => item.contact_id === args.contact_id && item.recipient === recipient))
+      throw new MagnolieMcp.ToolError("invalid_selection", "Recipient is not one of the selected contact's current addresses");
+    const ids = new Set(args.ids), book = DATEN, before = JSON.stringify(book), stoff = druckStoff("notizen");
+    const selected = stoff.liste.filter(note => ids.has(note.id));
+    if (!ids.size || selected.length !== ids.size || ids.size !== args.ids.length) throw new MagnolieMcp.ToolError("invalid_selection", "Select existing distinct notes to send");
+    const html = druckSeite(selected, stoff);
+    if (new TextEncoder().encode(html).length > 750000) throw new MagnolieMcp.ToolError("export_limit", "Selected note document exceeds the native UTF-8 limit");
+    for (const [id, old] of notizVersandLaeufe) if (old.expires <= Date.now()) { old.controller.abort(); notizVersandLaeufe.delete(id); }
+    if (notizVersandLaeufe.size >= 32) throw new MagnolieMcp.ToolError("native_busy", "Too many retained note-send operations");
+    const id = Array.from(crypto.getRandomValues(new Uint8Array(24)), value => value.toString(16).padStart(2, "0")).join("");
+    const job = { id, owner, book, kind: args.kind, controller: new AbortController(), requested: false, settled: false, cancel: false, expires: Date.now() + 86400000,
+      value: { operation_id: id, phase: "saving", error_code: "none", native_outcome_unknown: false, cancel_requested: false, can_cancel: true, handed_off: false, delivery_confirmed: false, adapter: null, document: null } };
+    notizVersandLaeufe.set(id, job);
+    const run = async () => {
+      try {
+        const revision = await personalSyncHash(before);
+        if (args.expected_book_revision && args.expected_book_revision !== revision) throw new MagnolieMcp.ToolError("conflict", "Book changed before note sending");
+        await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, () => reject(new MagnolieMcp.ToolError("save_failed", "Native save failed before note sending"))));
+        if (job.cancel || job.controller.signal.aborted) return;
+        if (DATEN !== book || JSON.stringify(DATEN) !== before || gesperrt) throw new MagnolieMcp.ToolError("source_changed", "Book changed before document handoff");
+        job.requested = true;
+        const value = await notizVersandNative({ action: "begin", operationId: id, html, kind: args.kind, recipient,
+          subject: args.subject || stoff.titel, expectedRevision: args.expected_state_revision }, job.controller.signal);
+        if (!job.cancel) notizVersandLaufAntwort(job, value.job);
+      } catch (error) {
+        if (job.cancel) return;
+        const unknown = error.nativeUnknown === true || job.requested && ["cancelled", "native_timeout", "invalid_result"].includes(error.code);
+        if (!unknown) job.requested = false;
+        job.value = { ...job.value, phase: "failed", error_code: error.code || "native_operation_failed", can_cancel: false,
+          native_outcome_unknown: unknown };
+      } finally { job.settled = true; }
+    };
+    void Promise.resolve().then(run);
+    return kopie(job.value);
+  }
+  async function notizVersandStatus(owner, id, signal) {
+    const job = notizVersandLauf(owner, id);
+    if (!job.requested || !job.settled) return kopie(job.value);
+    const value = await notizVersandNative({ action: "status", operationId: id }, signal);
+    notizVersandLauf(owner, id); return notizVersandLaufAntwort(job, value.job);
+  }
+  async function notizVersandAbbrechen(owner, id, signal) {
+    const job = notizVersandLauf(owner, id); job.cancel = true; job.controller.abort();
+    if (!job.requested) {
+      job.value = { ...job.value, phase: "cancelled", cancel_requested: true, can_cancel: false };
+      return { ...kopie(job.value), cancel_accepted: true };
+    }
+    const value = await notizVersandNative({ action: "cancel", operationId: id }, signal);
+    notizVersandLauf(owner, id); return notizVersandLaufAntwort(job, value.job, true);
+  }
+  function oeffneNotizVersand(ids) {
+    if (!DATEN.einstellungen.versand.enabled || !Bruecke.vorhanden) return;
+    schliesseVorhandenesModal("notiz-versand");
+    const book = DATEN, selectedBefore = JSON.stringify(DATEN.notizen.filter(note => ids.includes(note.id))), controller = new AbortController();
+    const schleier = el("div", "eingabe-schleier"); schleier.id = "notiz-versand";
+    const dialog = el("div", "eingabe-dialog"), titel = el("h3", null, _("Send")); titel.id = "notiz-versand-titel";
+    dialog.setAttribute("aria-labelledby", titel.id);
+    const art = auswahlFeld([], ""), kontakte = auswahlFeld([["", _("Enter recipient manually")]], ""), adresse = eingabe("email", ""), betreff = eingabe("text", _("Notes"));
+    art.id = "notiz-versand-art"; kontakte.id = "notiz-versand-kontakt"; adresse.id = "notiz-versand-empfaenger"; betreff.id = "notiz-versand-betreff";
+    adresse.maxLength = 320; betreff.maxLength = 200;
+    const status = el("p", "einst-hinweis", _("Preparing selected notes…")); status.id = "notiz-versand-status"; status.setAttribute("role", "status");
+    let state = null, recipients = [], operation = null, timer = null;
+    const lebt = () => schleier.isConnected && DATEN === book && !gesperrt && !controller.signal.aborted;
+    const schliessen = () => { clearTimeout(timer); controller.abort(); beendeModal(schleier); schleier.remove(); };
+    const empfaenger = () => kontakte.value ? recipients[Number(kontakte.value) - 1] : { recipient: adresse.value };
+    const senden = knopf(_("Send"), "haupt", () => {
+      if (!lebt() || !state || operation) return;
+      if (JSON.stringify(DATEN.notizen.filter(note => ids.includes(note.id))) !== selectedBefore) { status.textContent = _("Conflict"); return; }
+      try {
+        const target = empfaenger();
+        operation = starteNotizVersand(notizVersandGuiOwner, { ids, kind: art.value, recipient: target.recipient, subject: betreff.value,
+          ...(target.contact_id ? { contact_id: target.contact_id } : {}), expected_state_revision: state.revision });
+        for (const field of [art, kontakte, adresse, betreff, senden]) field.disabled = true;
+        abbrechen.hidden = false; schliessenKnopf.textContent = _("Close");
+        void aktualisiere();
+      } catch (error) { status.textContent = _("The document could not be handed off.") + " (" + String(error.code || "invalid_selection") + ")"; }
+    }); senden.id = "notiz-versand-start"; senden.disabled = true;
+    const frischeSenden = () => { senden.disabled = !!operation || !state || !art.value || !notizVersandEmpfaenger(art.value, empfaenger()?.recipient) || !DATEN.einstellungen.versand.enabled; };
+    const frischeEmpfaenger = () => {
+      recipients = notizVersandKontaktEmpfaenger(art.value); kontakte.replaceChildren();
+      for (const [value, label] of [["", _("Enter recipient manually")], ...recipients.map((item, index) => [String(index + 1), item.label])]) {
+        const option = el("option", null, label); option.value = value; kontakte.append(option);
+      }
+      adresse.type = art.value === "email" ? "email" : "text"; adresse.inputMode = art.value === "fax" ? "tel" : "email";
+      adresse.value = ""; adresse.disabled = false; frischeSenden();
+    };
+    kontakte.addEventListener("change", () => { adresse.disabled = !!kontakte.value; adresse.value = empfaenger()?.recipient || ""; frischeSenden(); });
+    art.addEventListener("change", frischeEmpfaenger); adresse.addEventListener("input", frischeSenden);
+    const aktualisiere = async () => {
+      try {
+        const value = await notizVersandStatus(notizVersandGuiOwner, operation.operation_id, controller.signal);
+        if (!lebt()) return;
+        operation = value; abbrechen.disabled = !value.can_cancel;
+        if (value.phase === "handed_off") status.textContent = _("Document handed to the selected application or fax server. Delivery is not confirmed.");
+        else if (value.phase === "cancelled") status.textContent = _("Sending cancelled.");
+        else if (value.phase === "failed") status.textContent = (value.native_outcome_unknown ? _("The handoff outcome is unknown. Check the external application before trying again.") : _("The document could not be handed off.")) + " (" + value.error_code + ")";
+        else status.textContent = value.phase === "external_pending" ? _("Waiting for the mail or fax application. Closing this window does not recall the handoff.") : _("Preparing selected notes…");
+        if (!["handed_off", "cancelled", "failed"].includes(value.phase)) timer = setTimeout(aktualisiere, 400);
+      } catch (error) { if (lebt()) status.textContent = _("The handoff outcome is unknown. Check the external application before trying again.") + " (" + String(error.code || "native_operation_failed") + ")"; }
+    };
+    const abbrechen = knopf(_("Cancel sending"), "", async () => {
+      if (!operation || !lebt()) return;
+      abbrechen.disabled = true;
+      try {
+        const value = await notizVersandAbbrechen(notizVersandGuiOwner, operation.operation_id, controller.signal);
+        if (!lebt()) return;
+        operation = value; status.textContent = value.cancel_accepted || value.phase === "cancelled" ? _("Sending cancelled.") : value.phase === "failed"
+          ? (value.native_outcome_unknown ? _("The handoff outcome is unknown. Check the external application before trying again.") : _("The document could not be handed off."))
+          : _("The handoff has already started and cannot be recalled here.");
+        clearTimeout(timer); if (!["handed_off", "cancelled", "failed"].includes(value.phase)) timer = setTimeout(aktualisiere, 400);
+      } catch (error) { if (lebt()) status.textContent = _("The handoff outcome is unknown. Check the external application before trying again."); }
+    }); abbrechen.id = "notiz-versand-abbrechen"; abbrechen.hidden = true;
+    const schliessenKnopf = knopf(_("Cancel"), "", schliessen), knoepfe = el("div", "dialog-knoepfe"); knoepfe.append(schliessenKnopf, abbrechen, senden);
+    dialog.append(titel, formZeile(_("Send via"), art), formZeile(_("Contact"), kontakte), formZeile(_("Recipient"), adresse), formZeile(_("Subject"), betreff), status, knoepfe);
+    schleier.append(dialog); document.body.append(schleier); registriereModal(schleier, dialog, { anfang: schliessenKnopf, schliessen });
+    void (async () => {
+      await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
+      if (!lebt()) return;
+      const value = await notizVersandStand(controller.signal);
+      if (!lebt()) return;
+      state = value;
+      if (!state.settings.enabled || !DATEN.einstellungen.versand.enabled) { status.textContent = _("Sending is disabled."); return; }
+      for (const [kind, label] of [["email", _("Email")], ["fax", _("Fax")]]) if (state.capabilities[kind].available) {
+        const option = el("option", null, label); option.value = kind; art.append(option);
+      }
+      if (!art.options.length) { status.textContent = _("No configured mail or fax adapter is available."); return; }
+      frischeEmpfaenger(); status.textContent = _("Select a recipient.");
+    })().catch(error => { if (lebt()) status.textContent = _("Sending is not available.") + " (" + String(error.code || "native_operation_failed") + ")"; });
+    return schleier;
+  }
   function planerAkzentEintraege(iso, serienZeitraum, aufgaben, termine = true) {
     const eintraege = termine ? termineAm(iso, true, serienZeitraum)
       .filter(termin => kalenderEintragAkzent(termin))
@@ -12487,6 +12709,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       schliessen();
     });
     fuss.append(druckKnopf);
+    if (druckSektion === "notizen" && DATEN.einstellungen.versand.enabled) {
+      const senden = knopf(_("Send"), "", () => {
+        const selected = stoff.liste.filter(note => gewaehlt.has(note.id));
+        if (!selected.length) return zettel(_("Select something first."));
+        if (!Bruecke.vorhanden) return nurImProgramm();
+        oeffneNotizVersand(selected.map(note => note.id));
+      }); senden.id = "notiz-versand-oeffnen"; fuss.append(senden);
+    }
     if (stoff.ods) {
       const odsKnopf = bildknopf("tabelle", _("ODS"), () => {
         const blaetter = stoff.liste.filter((e) => gewaehlt.has(e.id));
@@ -23982,6 +24212,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function baueSeiteAllgemein(wurzel) {
+    baueNotizVersandEinstellungen(wurzel);
     const a = DATEN.einstellungen.allgemein;
     const s = DATEN.einstellungen.schrift;
     const ab = abschnitt(_("General"),
@@ -32417,6 +32648,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     baumMcpErgebnis(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "baumMcpErgebnis"); },
     telefonMcpErgebnis(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "telefonMcpErgebnis"); },
     kdeMcpErgebnis(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "kdeMcpErgebnis"); },
+    noteSendErgebnis(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "noteSendErgebnis"); },
     baumBriefkastenPruefung(nutzlast) {
       briefkastenStand = nutzlast || {};
       briefkastenSignatur = JSON.stringify(briefkastenStand);
@@ -36442,6 +36674,38 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (cycle) Object.assign(DATEN.einstellungen.kalender.zyklusErinnerungen, cycle);
     return true;
   }
+  function mcpNotizVersandWerkzeuge(owner) {
+    const hash = { type: "string", pattern: "^[a-f0-9]{64}$" }, operation = { type: "string", pattern: "^[a-f0-9]{48}$" };
+    const settings = () => saubererNotizVersand(DATEN.einstellungen.versand);
+    return [{ name: "organizer_note_send_settings_read", description: "Read the optional note-document sending preferences and revision. Sending is disabled by default. This does not open a client, print dialog or connection.",
+      inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => {
+        const value = settings(); return { settings: value, revision: await personalSyncHash(JSON.stringify(value)) };
+      } }, { name: "organizer_note_send_settings_update", description: "Enable/disable the single Send entry in note print options and optionally configure a HylaFAX host[:port]. Shared settings normalization, revision checking and native durable SaveACK. Changing settings does not send notes; disabling preserves the server choice.",
+      inputSchema: { type: "object", properties: { expected_revision: hash, enabled: { type: "boolean" }, fax_server: { type: "string", maxLength: 259 } },
+        required: ["expected_revision"], anyOf: [{ required: ["enabled"] }, { required: ["fax_server"] }], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+        const book = DATEN, before = JSON.stringify(settings()), revision = await personalSyncHash(before);
+        if (DATEN !== book || JSON.stringify(settings()) !== before || args.expected_revision !== revision || signal.aborted)
+          throw new MagnolieMcp.ToolError("conflict", "Note-send settings changed before saving");
+        if (!setzeNotizVersand({ ...(args.enabled !== undefined ? { enabled: args.enabled } : {}), ...(args.fax_server !== undefined ? { faxServer: args.fax_server } : {}) }))
+          throw new MagnolieMcp.ToolError("invalid_selection", "Enter a HylaFAX hostname, optionally followed by :port");
+        return {};
+      }) }, { name: "organizer_note_send_state_read", description: "Read actual saved note-send preferences, configured installed adapter capabilities and a native context revision. Linux uses registered mail/xdg-email and explicitly configured HylaFAX/sendfax; Windows requires a registered supported Simple-MAPI client and does not invent a fax route. Discovery never sends or starts a client.",
+      inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (_args, signal) => notizVersandStand(signal) },
+      { name: "organizer_note_send_start", description: "Asynchronously prepare exactly the selected saved note IDs with the GUI's shared print-page builder and native PDF renderer, then hand that PDF to the selected configured email/fax adapter. Requires enabled sending, current book/native-context revisions and a valid recipient; optional contact_id pins an existing matching contact address. Returns a session-owned operation ID: poll status. Handoff/client acceptance is never delivery confirmation. Cancellation after external dispatch cannot recall a client/server operation; do not repeat an uncertain send.",
+        inputSchema: { type: "object", properties: { expected_book_revision: hash, expected_state_revision: hash, ids: { type: "array", minItems: 1, maxItems: 200, items: { type: "string", minLength: 1, maxLength: 256 } },
+          kind: { type: "string", enum: ["email", "fax"] }, recipient: { type: "string", minLength: 1, maxLength: 320 }, subject: { type: "string", maxLength: 200, pattern: "^[^\\u0000-\\u001f\\u007f]*$" }, contact_id: { type: "string", minLength: 1, maxLength: 256 } },
+          required: ["expected_book_revision", "expected_state_revision", "ids", "kind", "recipient"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+          mcpEditorPruefen(); if (signal.aborted) throw new MagnolieMcp.ToolError("cancelled", "Note sending cancelled before starting");
+          return starteNotizVersand(owner, args);
+        } }, { name: "organizer_note_send_status", description: "Read one session-owned native note-send operation, including PDF digest/readback and honest handoff/unknown-outcome state. No delivery proof is implied. This never starts another send or changes the displayed editor.",
+        inputSchema: { type: "object", properties: { operation_id: operation }, required: ["operation_id"], additionalProperties: false },
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => notizVersandStatus(owner, args.operation_id, signal) },
+      { name: "organizer_note_send_cancel", description: "Cancel a session-owned note-send operation before external dispatch. Native preparation may finish for cleanup. Already finished or dispatched operations return cancel_accepted=false; this never recalls a client/server operation. Inspect the returned phase/status instead of repeating an uncertain send.",
+        inputSchema: { type: "object", properties: { operation_id: operation }, required: ["operation_id"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => notizVersandAbbrechen(owner, args.operation_id, signal) }];
+  }
   function mcpKontaktGruppenSuchWerkzeuge() {
     const page = { offset: { type: "integer", minimum: 0 }, limit: { type: "integer", minimum: 1, maximum: 100 },
       expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } };
@@ -37023,6 +37287,22 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (name === "organizer_note_send_settings_update") return shape({ persisted: yes }, ["persisted"]);
+    if (["organizer_note_send_settings_read", "organizer_note_send_state_read"].includes(name)) {
+      const settings = shape({ enabled: flag, faxServer: text }, ["enabled", "faxServer"]), properties = { revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, settings };
+      if (name === "organizer_note_send_state_read") properties.capabilities = shape({ enabled: flag,
+        email: shape({ supported: flag, available: flag, client: text }, ["supported", "available", "client"]),
+        fax: shape({ supported: flag, available: flag, configured: flag }, ["supported", "available", "configured"]) }, ["enabled", "email", "fax"]);
+      return shape(properties, Object.keys(properties));
+    }
+    if (["organizer_note_send_start", "organizer_note_send_status", "organizer_note_send_cancel"].includes(name)) {
+      const properties = { operation_id: { type: "string", pattern: "^[a-f0-9]{48}$" }, phase: { type: "string", enum: ["saving", "preparing", "ready", "external_pending", "handed_off", "failed", "cancelled"] },
+        error_code: text, native_outcome_unknown: flag, cancel_requested: flag, can_cancel: flag, handed_off: flag, delivery_confirmed: { type: "boolean", enum: [false] },
+        adapter: { anyOf: [{ type: "null" }, { type: "string", enum: ["xdg-email", "hylafax-sendfax", "simple-mapi"] }] },
+        document: { anyOf: [{ type: "null" }, shape({ bytes: { type: "integer", minimum: 1, maximum: 33554432 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["bytes", "sha256"])] } };
+      if (name === "organizer_note_send_cancel") properties.cancel_accepted = flag;
+      return shape(properties, Object.keys(properties));
+    }
     if (["organizer_contact_groups_list", "organizer_contacts_search"].includes(name)) {
       const entry = name === "organizer_contact_groups_list" ? shape({ name: text, display_name: text, count: { type: "integer", minimum: 0 } }, ["name", "display_name", "count"]) :
         shape({ id, display_name: text, groups: { type: "array", items: text }, display_groups: { type: "array", items: text } }, ["id", "display_name", "groups", "display_groups"]);
@@ -37339,6 +37619,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpKategorieFarbWerkzeuge(),
       ...mcpGruppenAusschlussWerkzeuge(),
       ...mcpKontaktGruppenSuchWerkzeuge(),
+      ...mcpNotizVersandWerkzeuge(owner),
       ...mcpAnzeigeEinstellungenWerkzeuge(),
       ...mcpRechtschreibWerkzeuge(),
       ...mcpRegionaleEinstellungenWerkzeuge(),
@@ -37421,6 +37702,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
   App.mcpClose = session => {
     for (const [id, job] of mcpKdePaarungsLaeufe) if (job.owner === session) { job.controller.abort(); mcpKdePaarungsLaeufe.delete(id); }
+    for (const [id, job] of notizVersandLaeufe) if (job.owner === session) {
+      job.cancel = true; job.controller.abort();
+      if (job.requested && !["handed_off", "failed", "cancelled"].includes(job.value.phase))
+        void notizVersandNative({ action: "cancel", operationId: id }, new AbortController().signal).catch(() => {});
+      notizVersandLaeufe.delete(id);
+    }
     for (const [id, flow] of mcpMicrosoftAnmeldungen) if (flow.owner === session) mcpVerwerfeMicrosoftAnmeldung(id);
     mcpSitzungen.get(session)?.close(); mcpSitzungen.delete(session);
     for (const [token, transfer] of mcpAnhangTransfers) if (transfer.owner === session) mcpVerwerfeTransfer(token);

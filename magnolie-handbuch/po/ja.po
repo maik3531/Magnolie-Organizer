@@ -1,8 +1,12 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Handbook package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Handbook 2.0.27\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
-"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: ja\n"
@@ -10,6 +14,10 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#, no-javascript-format
+msgid "Send notes by email or fax"
+msgstr "ノートをメールまたはファクスで送る"
 
 #, no-javascript-format
 msgid ""
@@ -1338,6 +1346,45 @@ msgstr ""
 "きません。予定を開いて<b>日付</b>を変更し、必要なら<b>まで</b>も変更します。"
 "その後 <span class='knopfwort'>予定を編集</span> をクリックして変更を適用しま"
 "す。</p>"
+
+#, no-javascript-format
+msgid ""
+"<h3>Enable once, then select the notes</h3><p>Sending is off by default. "
+"Under Settings → General → Send notes by email or fax, enable Show Send in "
+"note print options. In Notes, open Selection options, tick the required "
+"notes and click the single Send button. Choose an available Email or Fax "
+"route, select a contact address or enter a recipient manually, enter the "
+"subject and click Send.</p><p>The PDF contains exactly the selected text "
+"printout. Embedded images and PDF attachments are not included. Print now "
+"opens printing only and never sends. Email opens the supported mail client's "
+"compose flow; complete the message there. Fax hands the document directly to "
+"the configured server queue.</p><h3>Available routes and the result</"
+"h3><p>Linux email needs a registered supported mail client and xdg-email. "
+"Fax needs a configured HylaFAX server and installed sendfax. Windows email "
+"needs a registered compatible Simple-MAPI client; no Windows fax adapter is "
+"provided. The email attachment route is unavailable in Flatpak. Only "
+"available routes are offered.</p><p>Cancel sending prevents handoff before "
+"external dispatch. Closing the progress window does not recall an already "
+"started handoff. A handoff is not delivery confirmation; check the external "
+"application or fax server. Prepared PDFs use a private cache and are cleaned "
+"on the next use after one day. Your original notes remain unchanged.</p>"
+msgstr ""
+"<h3>有効にしてノートを選ぶ</h3><p>送信は初期状態では無効です。設定 → 一般 → "
+"ノートをメールまたはファクスで送るで、ノートの印刷設定に送信を表示するを有効"
+"にします。ノートで選択オプションを開き、必要なノートに印を付け、1つだけある送"
+"信ボタンを押します。利用可能なメールまたはファクス、連絡先の宛先または手動の"
+"受信者、件名を選び、送信します。</p><p>PDFには選択したテキスト印刷の内容だけ"
+"が入ります。埋め込み画像やPDF添付は含みません。今すぐ印刷は送信しません。メー"
+"ルは対応するソフトの作成画面を開くので、そこで送信を完了します。ファクスは設"
+"定したサーバーの待ち行列へ直接渡します。</p><h3>利用できる方法と結果</"
+"h3><p>Linuxのメールには登録済みの対応ソフトとxdg-emailが必要です。ファクスに"
+"は設定済みのHylaFAXサーバーとインストール済みのsendfaxが必要です。Windowsには"
+"登録済みの対応するSimple-MAPIクライアントが必要で、Windows用ファクス連携はあ"
+"りません。Flatpakではメール添付の引き渡しを利用できません。利用できる方法だけ"
+"を表示します。</p><p>送信を取り消すは外部呼び出し前の引き渡しを防ぎます。進捗"
+"画面を閉じても開始済みの引き渡しは撤回されません。引き渡しは配達確認ではあり"
+"ません。外部アプリやサーバーを確認してください。準備したPDFは非公開キャッシュ"
+"に保存し、1日経過後の次の利用時に削除します。元のノートは変わりません。</p>"
 
 #, no-javascript-format
 msgid ""

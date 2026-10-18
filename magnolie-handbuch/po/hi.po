@@ -1,8 +1,12 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Handbook package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Handbook 2.0.27\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
-"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: hi\n"
@@ -10,6 +14,10 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#, no-javascript-format
+msgid "Send notes by email or fax"
+msgstr "नोट ईमेल या फ़ैक्स से भेजें"
 
 #, no-javascript-format
 msgid ""
@@ -1309,6 +1317,42 @@ msgstr ""
 "अपॉइंटमेंट को खींचकर दूसरे दिन नहीं ले जा सकते। उसे खोलें और <b>तारीख</b> तथा आवश्यकता हो "
 "तो <b>तक</b> बदलें। बदलाव लागू करने के लिए फिर <span class='knopfwort'>अपॉइंटमेंट "
 "संपादित करें</span> पर क्लिक करें।</p>"
+
+#, no-javascript-format
+msgid ""
+"<h3>Enable once, then select the notes</h3><p>Sending is off by default. "
+"Under Settings → General → Send notes by email or fax, enable Show Send in "
+"note print options. In Notes, open Selection options, tick the required "
+"notes and click the single Send button. Choose an available Email or Fax "
+"route, select a contact address or enter a recipient manually, enter the "
+"subject and click Send.</p><p>The PDF contains exactly the selected text "
+"printout. Embedded images and PDF attachments are not included. Print now "
+"opens printing only and never sends. Email opens the supported mail client's "
+"compose flow; complete the message there. Fax hands the document directly to "
+"the configured server queue.</p><h3>Available routes and the result</"
+"h3><p>Linux email needs a registered supported mail client and xdg-email. "
+"Fax needs a configured HylaFAX server and installed sendfax. Windows email "
+"needs a registered compatible Simple-MAPI client; no Windows fax adapter is "
+"provided. The email attachment route is unavailable in Flatpak. Only "
+"available routes are offered.</p><p>Cancel sending prevents handoff before "
+"external dispatch. Closing the progress window does not recall an already "
+"started handoff. A handoff is not delivery confirmation; check the external "
+"application or fax server. Prepared PDFs use a private cache and are cleaned "
+"on the next use after one day. Your original notes remain unchanged.</p>"
+msgstr ""
+"<h3>चालू करें और नोट चुनें</h3><p>भेजना शुरू में बंद है। सेटिंग → सामान्य → नोट ईमेल या फ़ैक्स से "
+"भेजें में नोट के मुद्रण विकल्पों में भेजें दिखाएँ चालू करें। नोट में चयन विकल्प खोलें, नोट चुनें और "
+"एकमात्र भेजें बटन दबाएँ। उपलब्ध ईमेल या फ़ैक्स, संपर्क पता या स्वयं लिखा प्राप्तकर्ता, विषय "
+"और भेजें चुनें।</p><p>PDF में ठीक चुना हुआ पाठ मुद्रण होता है; भीतर की तस्वीरें और PDF संलग्नक "
+"शामिल नहीं हैं। अभी छापें कभी नहीं भेजता। ईमेल समर्थित क्लाइंट में संदेश बनाना खोलता है; "
+"भेजना वहीं पूरा करें। फ़ैक्स सीधे कॉन्फ़िगर किए सर्वर की कतार को सौंपता है।</p><h3>रास्ते और "
+"परिणाम</h3><p>Linux ईमेल के लिए पंजीकृत समर्थित क्लाइंट और xdg-email चाहिए। फ़ैक्स के "
+"लिए कॉन्फ़िगर किया HylaFAX सर्वर और स्थापित sendfax चाहिए। Windows को पंजीकृत संगत "
+"Simple-MAPI क्लाइंट चाहिए; Windows फ़ैक्स अडैप्टर उपलब्ध नहीं है। Flatpak में ईमेल संलग्नक "
+"सौंपना उपलब्ध नहीं है। केवल उपलब्ध रास्ते दिखते हैं।</p><p>भेजना रद्द करें बाहरी कॉल से पहले "
+"सौंपना रोकता है। प्रगति विंडो बंद करने से शुरू हो चुका सौंपना वापस नहीं होता। सौंपना "
+"डिलीवरी की पुष्टि नहीं है; बाहरी ऐप या फ़ैक्स सर्वर जाँचें। तैयार PDF निजी कैश में रहते हैं और "
+"एक दिन बाद अगले उपयोग पर हटते हैं। मूल नोट नहीं बदलते।</p>"
 
 #, no-javascript-format
 msgid ""

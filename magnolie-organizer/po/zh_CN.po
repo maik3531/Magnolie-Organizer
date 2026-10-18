@@ -16,6 +16,79 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
+msgid "Cancel sending"
+msgstr "取消发送"
+
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr "文档已交给所选应用或传真服务器。尚未确认送达收件人。"
+
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr "请输入HylaFAX服务器主机名，也可在后面加上 :port。"
+
+msgid "Enter recipient manually"
+msgstr "手动输入收件人"
+
+msgid "Fax"
+msgstr "传真"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"传真需要已配置的HylaFAX服务器和已安装的sendfax。邮件使用受支持的已安装邮件客"
+"户端。交给应用不等于确认送达。"
+
+msgid "HylaFAX server (Linux)"
+msgstr "HylaFAX服务器 (Linux)"
+
+msgid "No configured mail or fax adapter is available."
+msgstr "没有可用的已配置邮件或传真适配器。"
+
+msgid "Preparing selected notes…"
+msgstr "正在准备所选笔记…"
+
+msgid "Recipient"
+msgstr "收件人"
+
+msgid "Select a recipient."
+msgstr "请选择收件人。"
+
+msgid "Send notes by email or fax"
+msgstr "通过邮件或传真发送笔记"
+
+msgid "Sending cancelled."
+msgstr "发送已取消。"
+
+msgid "Sending is disabled."
+msgstr "发送已停用。"
+
+msgid "Sending is not available."
+msgstr "发送不可用。"
+
+msgid "Show Send in note print options"
+msgstr "在笔记打印选项中显示发送"
+
+msgid "Subject"
+msgstr "主题"
+
+msgid "The document could not be handed off."
+msgstr "无法交付文档。"
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "交付已经开始，无法在此撤回。"
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr "交付结果未知。请先检查外部应用，再尝试重试。"
+
+msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr "正在等待邮件或传真应用。关闭此窗口不会撤回交付。"
+
 msgid "All anniversaries"
 msgstr "所有纪念日"
 

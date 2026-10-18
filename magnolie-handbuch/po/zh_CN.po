@@ -1,8 +1,12 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Handbook package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Handbook 2.0.27\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
-"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: zh_CN\n"
@@ -10,6 +14,10 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#, no-javascript-format
+msgid "Send notes by email or fax"
+msgstr "通过邮件或传真发送笔记"
 
 #, no-javascript-format
 msgid ""
@@ -1223,6 +1231,40 @@ msgstr ""
 "class='knopfwort'></b> 页。</div><h3>重新安排约会</h3><p>不能用鼠标把约会拖到"
 "另一天。请打开约会并修改<b>日期</b>，必要时再修改<b>截止</b>。然后点击 <span "
 "class='knopfwort'>编辑约会</span> 应用更改。</p>"
+
+#, no-javascript-format
+msgid ""
+"<h3>Enable once, then select the notes</h3><p>Sending is off by default. "
+"Under Settings → General → Send notes by email or fax, enable Show Send in "
+"note print options. In Notes, open Selection options, tick the required "
+"notes and click the single Send button. Choose an available Email or Fax "
+"route, select a contact address or enter a recipient manually, enter the "
+"subject and click Send.</p><p>The PDF contains exactly the selected text "
+"printout. Embedded images and PDF attachments are not included. Print now "
+"opens printing only and never sends. Email opens the supported mail client's "
+"compose flow; complete the message there. Fax hands the document directly to "
+"the configured server queue.</p><h3>Available routes and the result</"
+"h3><p>Linux email needs a registered supported mail client and xdg-email. "
+"Fax needs a configured HylaFAX server and installed sendfax. Windows email "
+"needs a registered compatible Simple-MAPI client; no Windows fax adapter is "
+"provided. The email attachment route is unavailable in Flatpak. Only "
+"available routes are offered.</p><p>Cancel sending prevents handoff before "
+"external dispatch. Closing the progress window does not recall an already "
+"started handoff. A handoff is not delivery confirmation; check the external "
+"application or fax server. Prepared PDFs use a private cache and are cleaned "
+"on the next use after one day. Your original notes remain unchanged.</p>"
+msgstr ""
+"<h3>启用并选择笔记</h3><p>发送默认停用。在设置 → 常规 → 通过邮件或传真发送笔"
+"记中，启用在笔记打印选项中显示发送。在笔记中打开选择选项，勾选所需笔记，再点"
+"击唯一的发送按钮。选择可用的邮件或传真、联系人地址或手动收件人、主题，然后发"
+"送。</p><p>PDF仅包含所选的文本打印内容，不包括嵌入图片或PDF附件。立即打印不会"
+"发送。邮件会打开受支持客户端的写信流程，请在那里完成发送。传真直接交给已配置"
+"服务器的队列。</p><h3>可用方式及结果</h3><p>Linux邮件需要已注册且受支持的客户"
+"端和xdg-email。传真需要已配置的HylaFAX服务器和已安装的sendfax。Windows需要已"
+"注册的兼容Simple-MAPI客户端，不提供Windows传真适配器。Flatpak中无法交付邮件附"
+"件。只显示可用方式。</p><p>取消发送可在外部调用前阻止交付。关闭进度窗口不会撤"
+"回已开始的交付。交付不代表已送达收件人，请检查外部应用或传真服务器。准备好的"
+"PDF存于私有缓存，并在一天后的下次使用时清理。原笔记保持不变。</p>"
 
 #, no-javascript-format
 msgid ""

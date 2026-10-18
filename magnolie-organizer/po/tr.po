@@ -16,6 +16,87 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
+msgid "Cancel sending"
+msgstr "Göndermeyi iptal et"
+
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"Belge seçilen uygulamaya veya faks sunucusuna aktarıldı. Teslimat "
+"doğrulanmadı."
+
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr ""
+"Bir HylaFAX sunucu adı girin; isteğe bağlı olarak sonuna :port ekleyin."
+
+msgid "Enter recipient manually"
+msgstr "Alıcıyı elle gir"
+
+msgid "Fax"
+msgstr "Faks"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"Faks için yapılandırılmış bir HylaFAX sunucusu ve kurulu sendfax gerekir. E-"
+"posta, desteklenen kurulu bir posta istemcisini kullanır. Aktarma, teslimat "
+"onayı değildir."
+
+msgid "HylaFAX server (Linux)"
+msgstr "HylaFAX sunucusu (Linux)"
+
+msgid "No configured mail or fax adapter is available."
+msgstr "Yapılandırılmış kullanılabilir bir posta veya faks bağlantısı yok."
+
+msgid "Preparing selected notes…"
+msgstr "Seçili notlar hazırlanıyor…"
+
+msgid "Recipient"
+msgstr "Alıcı"
+
+msgid "Select a recipient."
+msgstr "Bir alıcı seçin."
+
+msgid "Send notes by email or fax"
+msgstr "Notları e-posta veya faksla gönder"
+
+msgid "Sending cancelled."
+msgstr "Gönderme iptal edildi."
+
+msgid "Sending is disabled."
+msgstr "Gönderme devre dışı."
+
+msgid "Sending is not available."
+msgstr "Gönderme kullanılamıyor."
+
+msgid "Show Send in note print options"
+msgstr "Not yazdırma seçeneklerinde Gönder’i göster"
+
+msgid "Subject"
+msgstr "Konu"
+
+msgid "The document could not be handed off."
+msgstr "Belge aktarılamadı."
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "Aktarma zaten başladı ve buradan geri alınamaz."
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr ""
+"Aktarmanın sonucu bilinmiyor. Yeniden denemeden önce dış uygulamayı kontrol "
+"edin."
+
+msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"Posta veya faks uygulaması bekleniyor. Bu pencereyi kapatmak aktarmayı geri "
+"almaz."
+
 msgid "All anniversaries"
 msgstr "Tüm yıl dönümleri"
 

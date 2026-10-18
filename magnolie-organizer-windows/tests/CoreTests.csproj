@@ -39,6 +39,8 @@
     <Compile Include="..\GesamtarchivService.cs" Link="GesamtarchivService.cs" />
     <Compile Include="..\ContactSyncModels.cs" Link="ContactSyncModels.cs" />
     <Compile Include="..\ContactGroupExclusions.cs" Link="ContactGroupExclusions.cs" />
+    <Compile Include="..\NoteSendTransport.cs" Link="NoteSendTransport.cs" />
+    <Compile Include="..\NoteSendJobs.cs" Link="NoteSendJobs.cs" />
     <Compile Include="..\KdeContactImport.cs" Link="KdeContactImport.cs" />
     <Compile Include="..\KdeDigitizerState.cs" Link="KdeDigitizerState.cs" />
     <Compile Include="..\KdeMediaState.cs" Link="KdeMediaState.cs" />

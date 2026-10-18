@@ -187,13 +187,15 @@ internal sealed class HtmlPrintForm : Form
     private readonly WindowsPaths paths;
     private readonly WebView2 webView = new() { Dock = DockStyle.Fill };
     private readonly string? handbookRoot;
+    private readonly string? pdfPath;
     private readonly TaskCompletionSource initialized = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    internal HtmlPrintForm(string html, WindowsPaths paths, string documentName, string? handbookRoot = null)
+    internal HtmlPrintForm(string html, WindowsPaths paths, string documentName, string? handbookRoot = null, string? pdfPath = null)
     {
         this.html = html;
         this.paths = paths;
         this.handbookRoot = handbookRoot;
+        this.pdfPath = pdfPath;
         Text = "Magnolie Organizer - " + NativeLocalization.Gettext("Print") +
             (documentName.Length > 0 ? " - " + documentName : "");
         StartPosition = FormStartPosition.CenterParent;
@@ -253,8 +255,16 @@ internal sealed class HtmlPrintForm : Form
                     if (!resourcesReady)
                         throw new InvalidDataException("Handbook print resources did not load.");
                     if (IsDisposed || Disposing) throw new OperationCanceledException("Print view was closed.");
-                    webView.CoreWebView2.ShowPrintUI(CoreWebView2PrintDialogKind.System);
+                    if (pdfPath is not null)
+                    {
+                        var settings = webView.CoreWebView2.Environment.CreatePrintSettings();
+                        settings.ShouldPrintBackgrounds = true;
+                        settings.ShouldPrintHeaderAndFooter = false;
+                        if (!await webView.CoreWebView2.PrintToPdfAsync(pdfPath, settings)) throw new InvalidDataException("Selected-note PDF creation failed.");
+                    }
+                    else webView.CoreWebView2.ShowPrintUI(CoreWebView2PrintDialogKind.System);
                     initialized.TrySetResult();
+                    if (pdfPath is not null) Close();
                 }
                 catch (Exception error)
                 {

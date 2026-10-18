@@ -1,8 +1,12 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Handbook package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Handbook 2.0.27\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
-"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: be\n"
@@ -10,6 +14,10 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#, no-javascript-format
+msgid "Send notes by email or fax"
+msgstr "Адпраўляць нататкі поштай або факсам"
 
 #, no-javascript-format
 msgid ""
@@ -1427,6 +1435,47 @@ msgstr ""
 "перацягнуць мышшу на іншы дзень. Адкрыйце яе і змяніце <b>Дату</b> і, пры "
 "патрэбе, <b>Да</b>. Затым націсніце <span class='knopfwort'>Рэдагаваць "
 "сустрэчу</span>, каб ужыць змяненне.</p>"
+
+#, no-javascript-format
+msgid ""
+"<h3>Enable once, then select the notes</h3><p>Sending is off by default. "
+"Under Settings → General → Send notes by email or fax, enable Show Send in "
+"note print options. In Notes, open Selection options, tick the required "
+"notes and click the single Send button. Choose an available Email or Fax "
+"route, select a contact address or enter a recipient manually, enter the "
+"subject and click Send.</p><p>The PDF contains exactly the selected text "
+"printout. Embedded images and PDF attachments are not included. Print now "
+"opens printing only and never sends. Email opens the supported mail client's "
+"compose flow; complete the message there. Fax hands the document directly to "
+"the configured server queue.</p><h3>Available routes and the result</"
+"h3><p>Linux email needs a registered supported mail client and xdg-email. "
+"Fax needs a configured HylaFAX server and installed sendfax. Windows email "
+"needs a registered compatible Simple-MAPI client; no Windows fax adapter is "
+"provided. The email attachment route is unavailable in Flatpak. Only "
+"available routes are offered.</p><p>Cancel sending prevents handoff before "
+"external dispatch. Closing the progress window does not recall an already "
+"started handoff. A handoff is not delivery confirmation; check the external "
+"application or fax server. Prepared PDFs use a private cache and are cleaned "
+"on the next use after one day. Your original notes remain unchanged.</p>"
+msgstr ""
+"<h3>Уключыць і выбраць нататкі</h3><p>Адпраўка спачатку адключана. У Налады "
+"→ Агульныя → Адпраўляць нататкі поштай або факсам уключыце паказ Адправіць у "
+"параметрах друку нататак. У Нататках адкрыйце параметры выбару, пазначце "
+"нататкі і націсніце адну кнопку Адправіць. Выберыце даступную Пошту або "
+"Факс, адрас кантакту ці ручное ўвядзенне, тэму і Адправіць.</p><p>PDF "
+"змяшчае дакладна выбраны тэкставы друк, без убудаваных выяў і PDF-"
+"укладанняў. Друкаваць зараз ніколі не адпраўляе. Пошта адкрывае стварэнне "
+"паведамлення ў падтрымліваемым кліенце; скончыце адпраўку там. Факс перадае "
+"проста ў чаргу наладжанага сервера.</p><h3>Шляхі і вынік</h3><p>У Linux "
+"патрэбны зарэгістраваны падтрымліваемы паштовы кліент і xdg-email. Для факса "
+"патрэбны наладжаны сервер HylaFAX і ўсталяваны sendfax. Windows патрабуе "
+"зарэгістраванага сумяшчальнага кліента Simple-MAPI; адаптара факса Windows "
+"няма. Перадача паштовых укладанняў недаступная ў Flatpak. Паказаны толькі "
+"даступныя шляхі.</p><p>Скасаваць адпраўку прадухіляе перадачу да знешняга "
+"выкліку. Закрыццё прагрэсу не адклікае пачатую перадачу. Перадача не "
+"пацвярджае дастаўку: праверце праграму ці факс-сервер. Падрыхтаваныя PDF "
+"захоўваюцца ў прыватным кэшы і ачышчаюцца пры наступным выкарыстанні пасля "
+"сутак. Зыходныя нататкі не змяняюцца.</p>"
 
 #, no-javascript-format
 msgid ""

@@ -558,6 +558,27 @@ internal sealed class MainForm : Form
         catch { if (!print.IsDisposed) print.Close(); throw; }
     }
 
+    internal async Task CreateNotePdfAsync(string html, string path)
+    {
+        if (InvokeRequired)
+        {
+            var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            BeginInvoke(async () =>
+            {
+                try { await CreateNotePdfAsync(html, path); completion.TrySetResult(); }
+                catch (Exception error) { completion.TrySetException(error); }
+            });
+            await completion.Task; return;
+        }
+        if (IsDisposed || Disposing || string.IsNullOrWhiteSpace(html) || System.Text.Encoding.UTF8.GetByteCount(html) > 750000 ||
+            !Path.IsPathFullyQualified(path) || File.Exists(path) || !Directory.Exists(Path.GetDirectoryName(path)))
+            throw new InvalidDataException("Invalid selected-note PDF request.");
+        using var print = new HtmlPrintForm(html, paths, "", pdfPath: path) { ShowInTaskbar = false, Opacity = 0 };
+        print.Show(this);
+        try { await print.Ready.WaitAsync(TimeSpan.FromSeconds(35)); }
+        finally { if (!print.IsDisposed) print.Close(); }
+    }
+
     internal async Task<bool> OpenHandbookAsync(string manualPath)
     {
         if (InvokeRequired)

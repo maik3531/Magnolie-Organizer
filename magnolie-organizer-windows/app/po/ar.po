@@ -17,6 +17,83 @@ msgstr ""
 "Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5);\n"
 
+msgid "Cancel sending"
+msgstr "إلغاء الإرسال"
+
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"سُلّم المستند إلى التطبيق أو خادم الفاكس المحدد. لم يُؤكَّد التسليم إلى المستلم."
+
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr "أدخل اسم مضيف خادم HylaFAX، متبوعاً اختيارياً بـ :port."
+
+msgid "Enter recipient manually"
+msgstr "إدخال المستلم يدوياً"
+
+msgid "Fax"
+msgstr "فاكس"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"يتطلب الفاكس خادم HylaFAX مُعدّاً وsendfax مثبّتاً. يستخدم البريد عميلاً مثبّتاً "
+"مدعوماً. التسليم إلى التطبيق ليس تأكيداً لوصوله إلى المستلم."
+
+msgid "HylaFAX server (Linux)"
+msgstr "خادم HylaFAX (Linux)"
+
+msgid "No configured mail or fax adapter is available."
+msgstr "لا تتوفر وصلة بريد أو فاكس مُعدّة."
+
+msgid "Preparing selected notes…"
+msgstr "جارٍ تحضير الملاحظات المحددة…"
+
+msgid "Recipient"
+msgstr "المستلم"
+
+msgid "Select a recipient."
+msgstr "اختر مستلماً."
+
+msgid "Send notes by email or fax"
+msgstr "إرسال الملاحظات بالبريد أو الفاكس"
+
+msgid "Sending cancelled."
+msgstr "أُلغي الإرسال."
+
+msgid "Sending is disabled."
+msgstr "الإرسال معطّل."
+
+msgid "Sending is not available."
+msgstr "الإرسال غير متاح."
+
+msgid "Show Send in note print options"
+msgstr "إظهار إرسال في خيارات طباعة الملاحظات"
+
+msgid "Subject"
+msgstr "الموضوع"
+
+msgid "The document could not be handed off."
+msgstr "تعذّر تسليم المستند إلى التطبيق."
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "بدأ التسليم إلى التطبيق بالفعل ولا يمكن استرجاعه من هنا."
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr ""
+"نتيجة التسليم إلى التطبيق مجهولة. تحقّق من التطبيق الخارجي قبل إعادة المحاولة."
+
+msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"في انتظار تطبيق البريد أو الفاكس. إغلاق هذه النافذة لا يسترجع المستند المُسلّم "
+"إلى التطبيق."
+
 msgid "All anniversaries"
 msgstr "جميع الذكريات السنوية"
 
@@ -5540,9 +5617,6 @@ msgstr "يتوسطه خط"
 
 msgid "Styria"
 msgstr "شتايرمارك"
-
-msgid "Subject"
-msgstr "الموضوع"
 
 msgid "Submitted"
 msgstr "تم الإرسال"

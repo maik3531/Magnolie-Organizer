@@ -11306,11 +11306,14 @@ def sozial_oeffnen(dienst, wert, starter=None, welcher=None, land="Deutschland",
     return {"ok": False, "fehler": _("No suitable application was found.")}
 
 
-def drucken(html, name="magnolie-druck", starter=None, ordner=None, rueckmeldung=None):
+def drucken(html, name="magnolie-druck", starter=None, ordner=None, rueckmeldung=None, pdf_ziel=None):
     """Druckt eine Seite: bevorzugt über den Druckdialog des Systems,
     ersatzweise wird die Seite im Betrachter geöffnet."""
     import subprocess
     ordner = ordner or _temporaerer_ausgabeordner("magnolie-druck-")
+    if pdf_ziel is not None and (rueckmeldung is None or not os.path.isabs(str(pdf_ziel)) or
+            os.path.realpath(os.path.dirname(str(pdf_ziel))) != os.path.realpath(ordner) or os.path.lexists(pdf_ziel)):
+        return {"ok": False, "code": "invalid_document"}
     pfad = os.path.join(ordner, name + ".html")
     try:
         _private_ausgabe_schreiben(pfad, html)
@@ -11350,11 +11353,29 @@ def drucken(html, name="magnolie-druck", starter=None, ordner=None, rueckmeldung
                 fertig["getan"] = True
                 try:
                     auftrag = WebKit2.PrintOperation.new(_ansicht)
+                    if pdf_ziel is not None:
+                        druckeinstellungen = Gtk.PrintSettings.new()
+                        gtk_text = GLib.dgettext  # The printer belongs to GTK's native catalog, not the Organizer catalog.
+                        druckeinstellungen.set_printer(gtk_text("gtk30", "Print to File"))
+                        druckeinstellungen.set("output-file-format", "pdf")
+                        druckeinstellungen.set("output-uri", GLib.filename_to_uri(str(pdf_ziel), None))
+                        auftrag.set_print_settings(druckeinstellungen)
+                        fertig["pdf_beendet"] = False
+                        def pdf_antwort(wert):
+                            if fertig["pdf_beendet"]:
+                                return
+                            fertig["pdf_beendet"] = True
+                            antwort(wert)
+                        auftrag.connect("failed", lambda _auftrag, _fehler: pdf_antwort({"ok": False, "code": "native_operation_failed", "renderer_error": str(_fehler)}))
+                        auftrag.connect("finished", lambda _auftrag: pdf_antwort({"ok": True, "stage": "pdf_created", "path": str(pdf_ziel)}))
+                        fertig["auftrag"] = auftrag
+                        auftrag.print_()
+                        return
                     auswahl = auftrag.run_dialog(None)
                     antwort({"ok": True, "stage": "dialog_returned",
                              "dialogAction": "print" if auswahl == WebKit2.PrintOperationResponse.PRINT else "cancel"})
-                except Exception:
-                    antwort({"ok": False, "code": "native_operation_failed"})
+                except Exception as fehler:
+                    antwort({"ok": False, "code": "native_operation_failed", **({"renderer_error": str(fehler)} if pdf_ziel is not None else {})})
 
             ansicht.connect("load-changed", bei_fertig)
             ansicht.connect("load-failed", bei_fehler)
@@ -21286,6 +21307,9 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=self._kennwort_status_arbeit,
                              args=(nachricht,), daemon=True).start()
 
+        elif befehl == "notiz_versand":
+            self._notiz_versand(nachricht)
+
         elif befehl == "speichern":
             if not self._darf_schreiben():
                 fehler = getattr(self, "_ladefehler", "") or _(
@@ -22634,6 +22658,48 @@ class Fenster(_FENSTER_BASIS):
             kontext.set_spell_checking_enabled(bool(an))
         except (AttributeError, TypeError):
             pass
+
+    def _notiz_versand(self, nachricht):
+        from magnolie_versand import SendJobs, SendError
+        request_id = nachricht.get("requestId")
+        if not request_id:
+            return
+        try:
+            if not getattr(self, "_notiz_versand_dienst", None):
+                def lese_einstellungen():
+                    with self._daten_sperre:
+                        if getattr(self, "_gesperrt", False) or getattr(self, "_ladefehler", "") or getattr(self, "_beenden_angefragt", False):
+                            raise SendError("locked")
+                        daten = getattr(self, "_aktuelle_daten", None)
+                        if not isinstance(daten, dict):
+                            raise SendError("not_ready")
+                        raw = (daten.get("einstellungen") or {}).get("versand") or {}
+                        return {"enabled": raw.get("enabled") is True, "faxServer": str(raw.get("faxServer") or "")}
+                def rendere_pdf(html, ziel, antwort):
+                    return drucken(html, name="selected-notes", ordner=os.path.dirname(ziel), rueckmeldung=antwort, pdf_ziel=ziel)
+                self._notiz_versand_dienst = SendJobs(os.path.join(GLib.get_user_cache_dir(), "magnolie-organizer", "versand"),
+                    lese_einstellungen, rendere_pdf)
+            request = nachricht.get("request")
+            if not isinstance(request, dict):
+                raise SendError("invalid_selection")
+            action = request.get("action")
+            if action == "read":
+                result = {"state": self._notiz_versand_dienst.read()}
+            elif action == "begin":
+                result = {"job": self._notiz_versand_dienst.begin(request.get("html"), request.get("kind"), request.get("recipient"),
+                    request.get("subject"), request.get("expectedRevision"), request.get("operationId"))}
+            elif action == "status":
+                result = {"job": self._notiz_versand_dienst.status(request.get("operationId"))}
+            elif action == "cancel":
+                result = {"job": self._notiz_versand_dienst.cancel(request.get("operationId"))}
+            else:
+                raise SendError("invalid_selection")
+            self.antwort("App.noteSendErgebnis", {"ok": True, "requestId": request_id, **result})
+        except SendError as error:
+            self.antwort("App.noteSendErgebnis", {"ok": False, "requestId": request_id, "code": error.code,
+                "nativeOutcomeUnknown": error.dispatched})
+        except Exception:
+            self.antwort("App.noteSendErgebnis", {"ok": False, "requestId": request_id, "code": "native_operation_failed", "nativeOutcomeUnknown": True})
 
     def _erinnerungsdatenschutz_arbeit(self, nachricht):
         request_id = nachricht.get("requestId")

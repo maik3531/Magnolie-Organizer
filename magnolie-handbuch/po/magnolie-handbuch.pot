@@ -845,6 +845,29 @@ msgstr ""
 
 #, no-javascript-format
 msgid ""
+"<h3>Enable once, then select the notes</h3><p>Sending is off by default. "
+"Under Settings → General → Send notes by email or fax, enable Show Send in "
+"note print options. In Notes, open Selection options, tick the required "
+"notes and click the single Send button. Choose an available Email or Fax "
+"route, select a contact address or enter a recipient manually, enter the "
+"subject and click Send.</p><p>The PDF contains exactly the selected text "
+"printout. Embedded images and PDF attachments are not included. Print now "
+"opens printing only and never sends. Email opens the supported mail client's "
+"compose flow; complete the message there. Fax hands the document directly to "
+"the configured server queue.</p><h3>Available routes and the result</"
+"h3><p>Linux email needs a registered supported mail client and xdg-email. "
+"Fax needs a configured HylaFAX server and installed sendfax. Windows email "
+"needs a registered compatible Simple-MAPI client; no Windows fax adapter is "
+"provided. The email attachment route is unavailable in Flatpak. Only "
+"available routes are offered.</p><p>Cancel sending prevents handoff before "
+"external dispatch. Closing the progress window does not recall an already "
+"started handoff. A handoff is not delivery confirmation; check the external "
+"application or fax server. Prepared PDFs use a private cache and are cleaned "
+"on the next use after one day. Your original notes remain unchanged.</p>"
+msgstr ""
+
+#, no-javascript-format
+msgid ""
 "<h3>Estimated next period</h3><p>Notifications are off unless enabled below."
 "</p><ul><li>Estimate the next period</li><li>Report unusual cycle intervals</"
 "li></ul><p>At least three recorded starts are needed. Bleeding days up to "
@@ -6299,6 +6322,10 @@ msgstr ""
 
 #, no-javascript-format
 msgid "Seeing and controlling an incoming call"
+msgstr ""
+
+#, no-javascript-format
+msgid "Send notes by email or fax"
 msgstr ""
 
 #, no-javascript-format

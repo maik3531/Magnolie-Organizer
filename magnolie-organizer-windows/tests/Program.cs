@@ -71,6 +71,7 @@ runner.Add("MCP phone / public control snapshot / native revision", McpPhoneStat
 runner.Add("MCP KDE / existing integration / no implicit listener", McpKdeLifecycleTests.RunAsync);
 runner.Add("Category colors / native categories and accent interchange", CategoryColorTests.RunAsync);
 runner.Add("Contact group exclusions / identity / reminder privacy", ContactGroupExclusionTests.RunAsync);
+runner.Add("Note send / selected PDF / explicit adapter handoff", NoteSendTests.RunAsync);
 runner.Add("Wiederherstellungsjournal / Manifest / Tamper / Retention / Scheduler", RecoveryJournalTests.RunAsync);
 runner.Add("Cloud-Ordner-Sicherung / Policy / Retention / DPAPI", CloudBackupTests.RunAsync);
 runner.Add("Loganzeige / Contributor-Marker", LogPresentationTests.RunAsync);

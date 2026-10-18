@@ -16,6 +16,89 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgid "Cancel sending"
+msgstr "Senden abbrechen"
+
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"Dokument an die gewählte Anwendung oder den Faxserver übergeben. Die "
+"Zustellung ist nicht bestätigt."
+
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr ""
+"Geben Sie den Hostnamen eines HylaFAX-Servers ein, wahlweise gefolgt von :"
+"port."
+
+msgid "Enter recipient manually"
+msgstr "Empfänger manuell eingeben"
+
+msgid "Fax"
+msgstr "Fax"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"Fax benötigt einen eingerichteten HylaFAX-Server und installiertes sendfax. "
+"E-Mail verwendet ein unterstütztes installiertes Mailprogramm. Eine Übergabe "
+"ist keine Zustellbestätigung."
+
+msgid "HylaFAX server (Linux)"
+msgstr "HylaFAX-Server (Linux)"
+
+msgid "No configured mail or fax adapter is available."
+msgstr "Es ist keine eingerichtete Mail- oder Faxanbindung verfügbar."
+
+msgid "Preparing selected notes…"
+msgstr "Ausgewählte Notizen werden vorbereitet…"
+
+msgid "Recipient"
+msgstr "Empfänger"
+
+msgid "Select a recipient."
+msgstr "Wählen Sie einen Empfänger."
+
+msgid "Send notes by email or fax"
+msgstr "Notizen per E-Mail oder Fax senden"
+
+msgid "Sending cancelled."
+msgstr "Senden abgebrochen."
+
+msgid "Sending is disabled."
+msgstr "Senden ist deaktiviert."
+
+msgid "Sending is not available."
+msgstr "Senden ist nicht verfügbar."
+
+msgid "Show Send in note print options"
+msgstr "Senden unter den Notiz-Druckoptionen anzeigen"
+
+msgid "Subject"
+msgstr "Betreff"
+
+msgid "The document could not be handed off."
+msgstr "Das Dokument konnte nicht übergeben werden."
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr ""
+"Die Übergabe hat bereits begonnen und kann hier nicht zurückgerufen werden."
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr ""
+"Der Ausgang der Übergabe ist unbekannt. Prüfen Sie vor einem erneuten "
+"Versuch die externe Anwendung."
+
+msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"Warten auf die Mail- oder Faxanwendung. Das Schließen dieses Fensters ruft "
+"die Übergabe nicht zurück."
+
 msgid "All anniversaries"
 msgstr "Alle Jahrestage"
 
@@ -5508,9 +5591,6 @@ msgstr "Durchgestrichen"
 
 msgid "Styria"
 msgstr "Steiermark"
-
-msgid "Subject"
-msgstr "Betreff"
 
 msgid "Submitted"
 msgstr "Übermittelt"

@@ -1106,6 +1106,9 @@ msgstr ""
 msgid "Cancel"
 msgstr ""
 
+msgid "Cancel sending"
+msgstr ""
+
 msgid "Canton"
 msgstr ""
 
@@ -1924,6 +1927,11 @@ msgstr ""
 msgid "Doctor appointment"
 msgstr ""
 
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+
 msgid "Document.pdf"
 msgstr ""
 
@@ -2125,6 +2133,9 @@ msgstr ""
 msgid "Enter"
 msgstr ""
 
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr ""
+
 msgid ""
 "Enter a blood glucose value on the left to highlight matching scheme rows."
 msgstr ""
@@ -2157,6 +2168,9 @@ msgid "Enter both hours and minutes, or leave the time completely empty."
 msgstr ""
 
 msgid "Enter height and weight to calculate BMI."
+msgstr ""
+
+msgid "Enter recipient manually"
 msgstr ""
 
 msgid "Enter the archive password."
@@ -2261,6 +2275,14 @@ msgid "Family"
 msgstr ""
 
 msgid "Fasting"
+msgstr ""
+
+msgid "Fax"
+msgstr ""
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
 msgstr ""
 
 msgid "Female caregiver"
@@ -2560,6 +2582,9 @@ msgid "How the calendar should behave when you click a day."
 msgstr ""
 
 msgid "Husband"
+msgstr ""
+
+msgid "HylaFAX server (Linux)"
 msgstr ""
 
 msgid "I"
@@ -3413,6 +3438,9 @@ msgstr ""
 msgid "No calendars found."
 msgstr ""
 
+msgid "No configured mail or fax adapter is available."
+msgstr ""
+
 msgid "No contact group"
 msgstr ""
 
@@ -4221,6 +4249,9 @@ msgstr ""
 msgid "Preparing account sign-in …"
 msgstr ""
 
+msgid "Preparing selected notes…"
+msgstr ""
+
 msgid "Preview"
 msgstr ""
 
@@ -4352,6 +4383,9 @@ msgid "Recently modified"
 msgstr ""
 
 msgid "Recipe"
+msgstr ""
+
+msgid "Recipient"
 msgstr ""
 
 msgid "Reconnect"
@@ -4790,6 +4824,9 @@ msgstr ""
 msgid "Select a custom backup folder."
 msgstr ""
 
+msgid "Select a recipient."
+msgstr ""
+
 msgid "Select all"
 msgstr ""
 
@@ -4841,6 +4878,9 @@ msgstr ""
 msgid "Send documents"
 msgstr ""
 
+msgid "Send notes by email or fax"
+msgstr ""
+
 msgid "Send secure request"
 msgstr ""
 
@@ -4851,6 +4891,15 @@ msgid "Send to Notes"
 msgstr ""
 
 msgid "Send via"
+msgstr ""
+
+msgid "Sending cancelled."
+msgstr ""
+
+msgid "Sending is disabled."
+msgstr ""
+
+msgid "Sending is not available."
 msgstr ""
 
 msgid "Sent"
@@ -4944,6 +4993,9 @@ msgid "Short-acting insulin"
 msgstr ""
 
 msgid "Show Health after Planner"
+msgstr ""
+
+msgid "Show Send in note print options"
 msgstr ""
 
 msgid "Show all"
@@ -5560,6 +5612,9 @@ msgstr ""
 msgid "The destination could not be opened."
 msgstr ""
 
+msgid "The document could not be handed off."
+msgstr ""
+
 msgid "The download address is not permitted for this platform."
 msgstr ""
 
@@ -5593,6 +5648,14 @@ msgid ""
 "or OneDrive. Magnolie does not sign in to a provider. Automatic backups run "
 "only while Organizer is open and unlocked, immediately after data was saved "
 "successfully."
+msgstr ""
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr ""
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
 msgstr ""
 
 msgid ""
@@ -6493,6 +6556,11 @@ msgid "Waiting for consent on the other device."
 msgstr ""
 
 msgid "Waiting for device status"
+msgstr ""
+
+msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
 msgstr ""
 
 msgid ""

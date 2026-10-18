@@ -16,6 +16,87 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
+msgid "Cancel sending"
+msgstr "Annuler l’envoi"
+
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"Document transmis à l’application ou au serveur de fax choisi. La livraison "
+"n’est pas confirmée."
+
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr ""
+"Saisissez le nom d’hôte d’un serveur HylaFAX, suivi éventuellement de :port."
+
+msgid "Enter recipient manually"
+msgstr "Saisir le destinataire manuellement"
+
+msgid "Fax"
+msgstr "Fax"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"Le fax nécessite un serveur HylaFAX configuré et sendfax installé. Le "
+"courriel utilise un logiciel de messagerie installé compatible. Une "
+"transmission n’est pas une confirmation de livraison."
+
+msgid "HylaFAX server (Linux)"
+msgstr "Serveur HylaFAX (Linux)"
+
+msgid "No configured mail or fax adapter is available."
+msgstr "Aucune interface de messagerie ou de fax configurée n’est disponible."
+
+msgid "Preparing selected notes…"
+msgstr "Préparation des notes sélectionnées…"
+
+msgid "Recipient"
+msgstr "Destinataire"
+
+msgid "Select a recipient."
+msgstr "Choisissez un destinataire."
+
+msgid "Send notes by email or fax"
+msgstr "Envoyer les notes par courriel ou fax"
+
+msgid "Sending cancelled."
+msgstr "Envoi annulé."
+
+msgid "Sending is disabled."
+msgstr "L’envoi est désactivé."
+
+msgid "Sending is not available."
+msgstr "L’envoi n’est pas disponible."
+
+msgid "Show Send in note print options"
+msgstr "Afficher Envoyer dans les options d’impression des notes"
+
+msgid "Subject"
+msgstr "Objet"
+
+msgid "The document could not be handed off."
+msgstr "Le document n’a pas pu être transmis."
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "La transmission a déjà commencé et ne peut pas être rappelée ici."
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr ""
+"Le résultat de la transmission est inconnu. Vérifiez l’application externe "
+"avant de réessayer."
+
+msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"En attente du logiciel de messagerie ou de fax. Fermer cette fenêtre ne "
+"rappelle pas la transmission."
+
 msgid "All anniversaries"
 msgstr "Toutes les dates anniversaires"
 
@@ -5561,9 +5642,6 @@ msgstr "Barré"
 
 msgid "Styria"
 msgstr "Styrie"
-
-msgid "Subject"
-msgstr "Objet"
 
 msgid "Submitted"
 msgstr "Soumis"

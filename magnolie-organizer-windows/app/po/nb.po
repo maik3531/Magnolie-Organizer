@@ -16,6 +16,86 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgid "Cancel sending"
+msgstr "Avbryt sending"
+
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"Dokumentet er overlevert til valgt program eller faksserver. Levering er "
+"ikke bekreftet."
+
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr "Skriv inn vertsnavnet til en HylaFAX-server, eventuelt fulgt av :port."
+
+msgid "Enter recipient manually"
+msgstr "Skriv inn mottaker manuelt"
+
+msgid "Fax"
+msgstr "Faks"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"Faks krever en konfigurert HylaFAX-server og installert sendfax. E-post "
+"bruker en støttet installert e-postklient. Overlevering er ikke "
+"leveringsbekreftelse."
+
+msgid "HylaFAX server (Linux)"
+msgstr "HylaFAX-server (Linux)"
+
+msgid "No configured mail or fax adapter is available."
+msgstr "Ingen konfigurert e-post- eller fakstilkobling er tilgjengelig."
+
+msgid "Preparing selected notes…"
+msgstr "Forbereder valgte notater…"
+
+msgid "Recipient"
+msgstr "Mottaker"
+
+msgid "Select a recipient."
+msgstr "Velg en mottaker."
+
+msgid "Send notes by email or fax"
+msgstr "Send notater med e-post eller faks"
+
+msgid "Sending cancelled."
+msgstr "Sending avbrutt."
+
+msgid "Sending is disabled."
+msgstr "Sending er deaktivert."
+
+msgid "Sending is not available."
+msgstr "Sending er ikke tilgjengelig."
+
+msgid "Show Send in note print options"
+msgstr "Vis Send i notatenes utskriftsvalg"
+
+msgid "Subject"
+msgstr "Emne"
+
+msgid "The document could not be handed off."
+msgstr "Dokumentet kunne ikke overleveres."
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "Overleveringen har allerede startet og kan ikke kalles tilbake her."
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr ""
+"Resultatet av overleveringen er ukjent. Kontroller det eksterne programmet "
+"før du prøver igjen."
+
+msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"Venter på e-post- eller faksprogrammet. Å lukke dette vinduet kaller ikke "
+"overleveringen tilbake."
+
 msgid "All anniversaries"
 msgstr "Alle merkedager"
 
@@ -5452,9 +5532,6 @@ msgstr "Gjennomstreking"
 
 msgid "Styria"
 msgstr "Steiermark"
-
-msgid "Subject"
-msgstr "Emne"
 
 msgid "Submitted"
 msgstr "Sendt inn"

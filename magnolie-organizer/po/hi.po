@@ -16,6 +16,79 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgid "Cancel sending"
+msgstr "भेजना रद्द करें"
+
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr "दस्तावेज़ चुने हुए ऐप या फ़ैक्स सर्वर को सौंप दिया गया। डिलीवरी की पुष्टि नहीं हुई है।"
+
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr "HylaFAX सर्वर का होस्टनाम लिखें, वैकल्पिक रूप से उसके बाद :port जोड़ें।"
+
+msgid "Enter recipient manually"
+msgstr "प्राप्तकर्ता स्वयं दर्ज करें"
+
+msgid "Fax"
+msgstr "फ़ैक्स"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"फ़ैक्स के लिए कॉन्फ़िगर किया हुआ HylaFAX सर्वर और स्थापित sendfax चाहिए। ईमेल समर्थित "
+"स्थापित मेल क्लाइंट का उपयोग करता है। सौंपना डिलीवरी की पुष्टि नहीं है।"
+
+msgid "HylaFAX server (Linux)"
+msgstr "HylaFAX सर्वर (Linux)"
+
+msgid "No configured mail or fax adapter is available."
+msgstr "कोई कॉन्फ़िगर किया हुआ मेल या फ़ैक्स अडैप्टर उपलब्ध नहीं है।"
+
+msgid "Preparing selected notes…"
+msgstr "चुने हुए नोट तैयार हो रहे हैं…"
+
+msgid "Recipient"
+msgstr "प्राप्तकर्ता"
+
+msgid "Select a recipient."
+msgstr "एक प्राप्तकर्ता चुनें।"
+
+msgid "Send notes by email or fax"
+msgstr "नोट ईमेल या फ़ैक्स से भेजें"
+
+msgid "Sending cancelled."
+msgstr "भेजना रद्द हुआ।"
+
+msgid "Sending is disabled."
+msgstr "भेजना बंद है।"
+
+msgid "Sending is not available."
+msgstr "भेजना उपलब्ध नहीं है।"
+
+msgid "Show Send in note print options"
+msgstr "नोट के मुद्रण विकल्पों में भेजें दिखाएँ"
+
+msgid "Subject"
+msgstr "विषय"
+
+msgid "The document could not be handed off."
+msgstr "दस्तावेज़ सौंपा नहीं जा सका।"
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "सौंपने की प्रक्रिया शुरू हो चुकी है और यहाँ से वापस नहीं ली जा सकती।"
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr "सौंपने का परिणाम अज्ञात है। दोबारा प्रयास करने से पहले बाहरी ऐप जाँचें।"
+
+msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr "मेल या फ़ैक्स ऐप की प्रतीक्षा है। यह विंडो बंद करने से सौंपना वापस नहीं होता।"
+
 msgid "All anniversaries"
 msgstr "सभी वर्षगाँठ"
 

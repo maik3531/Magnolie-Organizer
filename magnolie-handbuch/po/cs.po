@@ -1,8 +1,12 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Handbook package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Handbook 2.0.27\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
-"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: cs\n"
@@ -10,6 +14,10 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#, no-javascript-format
+msgid "Send notes by email or fax"
+msgstr "Odesílat poznámky e-mailem nebo faxem"
 
 #, no-javascript-format
 msgid ""
@@ -1399,6 +1407,47 @@ msgstr ""
 "přetáhnout na jiný den. Otevřete ji a změňte <b>Datum</b> a případně také "
 "<b>Do</b>. Potom změnu potvrďte kliknutím na <span class='knopfwort'>Upravit "
 "schůzku</span>.</p>"
+
+#, no-javascript-format
+msgid ""
+"<h3>Enable once, then select the notes</h3><p>Sending is off by default. "
+"Under Settings → General → Send notes by email or fax, enable Show Send in "
+"note print options. In Notes, open Selection options, tick the required "
+"notes and click the single Send button. Choose an available Email or Fax "
+"route, select a contact address or enter a recipient manually, enter the "
+"subject and click Send.</p><p>The PDF contains exactly the selected text "
+"printout. Embedded images and PDF attachments are not included. Print now "
+"opens printing only and never sends. Email opens the supported mail client's "
+"compose flow; complete the message there. Fax hands the document directly to "
+"the configured server queue.</p><h3>Available routes and the result</"
+"h3><p>Linux email needs a registered supported mail client and xdg-email. "
+"Fax needs a configured HylaFAX server and installed sendfax. Windows email "
+"needs a registered compatible Simple-MAPI client; no Windows fax adapter is "
+"provided. The email attachment route is unavailable in Flatpak. Only "
+"available routes are offered.</p><p>Cancel sending prevents handoff before "
+"external dispatch. Closing the progress window does not recall an already "
+"started handoff. A handoff is not delivery confirmation; check the external "
+"application or fax server. Prepared PDFs use a private cache and are cleaned "
+"on the next use after one day. Your original notes remain unchanged.</p>"
+msgstr ""
+"<h3>Zapnutí a výběr poznámek</h3><p>Odesílání je zpočátku vypnuté. V "
+"Nastavení → Obecné → Odesílat poznámky e-mailem nebo faxem zapněte Zobrazit "
+"Odeslat v možnostech tisku poznámek. V Poznámkách otevřete možnosti výběru, "
+"zaškrtněte poznámky a klikněte na jediný Odeslat. Zvolte dostupný E-mail "
+"nebo Fax, kontaktní či ručně zadanou adresu, předmět a Odeslat.</p><p>PDF "
+"obsahuje přesně vybraný textový výtisk, bez vložených obrázků a příloh PDF. "
+"Tisknout nyní nikdy neodesílá. E-mail otevře psaní zprávy v podporovaném "
+"klientu; dokončete odeslání tam. Fax předává přímo do fronty nastaveného "
+"serveru.</p><h3>Cesty a výsledek</h3><p>Linux vyžaduje pro e-mail "
+"registrovaného podporovaného klienta a xdg-email. Fax vyžaduje nastavený "
+"server HylaFAX a nainstalovaný sendfax. Windows vyžaduje registrovaného "
+"kompatibilního klienta Simple-MAPI; adaptér faxu Windows není poskytován. "
+"Předání e-mailových příloh není dostupné ve Flatpak. Nabízejí se jen "
+"dostupné cesty.</p><p>Zrušit odesílání zabrání předání před externím "
+"voláním. Zavření průběhu neodvolá zahájené předání. Předání nepotvrzuje "
+"doručení: zkontrolujte aplikaci nebo faxový server. Připravená PDF jsou v "
+"soukromé mezipaměti, čištěné při dalším použití po jednom dni. Původní "
+"poznámky se nemění.</p>"
 
 #, no-javascript-format
 msgid ""

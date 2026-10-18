@@ -5,6 +5,52 @@ This document describes the implemented tools; the remaining product operations
 are still being connected to the same interface.
 The remaining user-facing operation groups are tracked in [the coverage checklist](mcp-coverage.md).
 
+### Optional note email/fax handoff (#88)
+
+`organizer_note_send_settings_read/update` uses a preference revision and native
+durable SaveACK. Sending defaults to disabled. The stored/read preference object
+is `{enabled, faxServer}`; update inputs are `enabled` and/or `fax_server`
+(`hostname[:port]`, empty to clear), with `expected_revision`. Disabling retains
+the configured server. These tools never send a document.
+
+`organizer_note_send_state_read` reads the actual saved preferences and installed
+adapter metadata. Its process/store-bound native `revision` pins the settings and
+selected adapter context. Discovery does not start a client or connection.
+Linux supports registered compatible mail through `xdg-email --attach` and
+explicitly configured HylaFAX through installed `sendfax`. The path-based email
+attachment adapter is unavailable in Flatpak. Windows uses a registered compatible
+Unicode Simple-MAPI client and has no implicit fax adapter. Fax phone metadata
+alone does not enable fax handoff.
+
+`organizer_note_send_start` requires `expected_book_revision`,
+`expected_state_revision`, explicit distinct note `ids`, `kind: email|fax` and
+`recipient`. Optional `contact_id` pins that recipient to the contact's current
+email/FAX values; `subject` is optional. The shared GUI print-page builder creates
+exactly the selected note text printout; embedded images/PDF attachments are not
+added. No HTML, executable, arbitrary file path or printer is accepted as a tool
+input. The UTF-8 page is bounded to 750000 bytes and the actual private PDF to
+32 MiB, with readback/digest validation. Native preferences and adapter context
+are checked again immediately before external handoff.
+
+Start returns a session-owned opaque `operation_id`, initially possibly `saving`.
+It is not a native-dispatch or PDF-success acknowledgement. Poll
+`organizer_note_send_status` for the correlated phase (`saving`, `preparing`,
+`ready`, `external_pending`, `handed_off`, `failed`, `cancelled`) and error code.
+Handoff receipts carry the actual PDF byte count/hash and adapter identity.
+`delivery_confirmed` is always false. Mail compose/client acceptance and a fax
+server queue acceptance are not recipient delivery proof.
+
+`organizer_note_send_cancel` prevents external dispatch while preparation is
+pending. `cancel_accepted: false` can also mean the operation already finished;
+inspect its phase. Already dispatched client/server work cannot be recalled.
+Cancellation may leave PDF generation running solely to complete cleanup.
+Timeouts or post-dispatch errors expose an unknown native outcome; inspect the
+existing operation/application instead of creating another send. Native operation
+IDs make an exact start replay idempotent, and another MCP session cannot inspect
+or cancel the job. Session closure requests best-effort cancellation of pending
+work and suppresses late GUI changes. Completed private handoff PDFs are cleaned
+on the next use after one day. No send changes the original notes or memberships.
+
 ### Contact-group search (#177)
 
 `organizer_contact_groups_list` returns canonical/display group names and counts,

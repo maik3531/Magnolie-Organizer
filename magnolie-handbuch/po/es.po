@@ -1,8 +1,12 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Magnolie Handbook package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
 msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Handbook 2.0.27\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
-"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: es\n"
@@ -10,6 +14,10 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+
+#, no-javascript-format
+msgid "Send notes by email or fax"
+msgstr "Enviar notas por correo o fax"
 
 #, no-javascript-format
 msgid ""
@@ -1457,6 +1465,48 @@ msgstr ""
 "fecha</h3><p>No puede arrastrar una cita con el ratón a otro día. Ábrala y "
 "cambie <b>Fecha</b> y, si es necesario, <b>Hasta</b>. Después haga clic en "
 "<span class='knopfwort'>Editar cita</span> para aplicar el cambio.</p>"
+
+#, no-javascript-format
+msgid ""
+"<h3>Enable once, then select the notes</h3><p>Sending is off by default. "
+"Under Settings → General → Send notes by email or fax, enable Show Send in "
+"note print options. In Notes, open Selection options, tick the required "
+"notes and click the single Send button. Choose an available Email or Fax "
+"route, select a contact address or enter a recipient manually, enter the "
+"subject and click Send.</p><p>The PDF contains exactly the selected text "
+"printout. Embedded images and PDF attachments are not included. Print now "
+"opens printing only and never sends. Email opens the supported mail client's "
+"compose flow; complete the message there. Fax hands the document directly to "
+"the configured server queue.</p><h3>Available routes and the result</"
+"h3><p>Linux email needs a registered supported mail client and xdg-email. "
+"Fax needs a configured HylaFAX server and installed sendfax. Windows email "
+"needs a registered compatible Simple-MAPI client; no Windows fax adapter is "
+"provided. The email attachment route is unavailable in Flatpak. Only "
+"available routes are offered.</p><p>Cancel sending prevents handoff before "
+"external dispatch. Closing the progress window does not recall an already "
+"started handoff. A handoff is not delivery confirmation; check the external "
+"application or fax server. Prepared PDFs use a private cache and are cleaned "
+"on the next use after one day. Your original notes remain unchanged.</p>"
+msgstr ""
+"<h3>Activar y seleccionar las notas</h3><p>El envío está desactivado "
+"inicialmente. En Ajustes → General → Enviar notas por correo o fax, active "
+"Mostrar Enviar en las opciones de impresión de notas. En Notas, abra las "
+"opciones de selección, marque las notas y pulse el único botón Enviar. Elija "
+"Correo o Fax disponible, una dirección de contacto o un destinatario manual, "
+"el asunto y Enviar.</p><p>El PDF contiene exactamente el texto impreso "
+"seleccionado, sin imágenes incrustadas ni adjuntos PDF. Imprimir ahora nunca "
+"envía. El correo abre la redacción del cliente compatible; termine el envío "
+"allí. El fax transfiere directamente a la cola del servidor configurado.</"
+"p><h3>Rutas y resultado</h3><p>En Linux, el correo requiere un cliente "
+"compatible registrado y xdg-email. El fax necesita un servidor HylaFAX "
+"configurado y sendfax instalado. Windows requiere un cliente Simple-MAPI "
+"compatible registrado; no se proporciona adaptador de fax para Windows. La "
+"transferencia de adjuntos de correo no está disponible en Flatpak. Solo se "
+"ofrecen rutas disponibles.</p><p>Cancelar envío impide transferir antes de "
+"la llamada externa. Cerrar el progreso no retira una transferencia iniciada. "
+"Transferir no confirma la entrega: compruebe la aplicación o el servidor de "
+"fax. Los PDF preparados usan una caché privada que se limpia en el siguiente "
+"uso después de un día. Las notas originales no cambian.</p>"
 
 #, no-javascript-format
 msgid ""

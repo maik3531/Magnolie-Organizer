@@ -16,6 +16,86 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgid "Cancel sending"
+msgstr "Verzenden annuleren"
+
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"Document overgedragen aan de gekozen toepassing of faxserver. Aflevering is "
+"niet bevestigd."
+
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr "Voer een HylaFAX-servernaam in, eventueel gevolgd door :port."
+
+msgid "Enter recipient manually"
+msgstr "Ontvanger handmatig invoeren"
+
+msgid "Fax"
+msgstr "Fax"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"Fax vereist een ingestelde HylaFAX-server en geïnstalleerd sendfax. E-mail "
+"gebruikt een ondersteund geïnstalleerd mailprogramma. Overdracht is geen "
+"afleverbevestiging."
+
+msgid "HylaFAX server (Linux)"
+msgstr "HylaFAX-server (Linux)"
+
+msgid "No configured mail or fax adapter is available."
+msgstr "Er is geen ingestelde mail- of faxkoppeling beschikbaar."
+
+msgid "Preparing selected notes…"
+msgstr "Geselecteerde notities voorbereiden…"
+
+msgid "Recipient"
+msgstr "Ontvanger"
+
+msgid "Select a recipient."
+msgstr "Kies een ontvanger."
+
+msgid "Send notes by email or fax"
+msgstr "Notities per e-mail of fax verzenden"
+
+msgid "Sending cancelled."
+msgstr "Verzenden geannuleerd."
+
+msgid "Sending is disabled."
+msgstr "Verzenden is uitgeschakeld."
+
+msgid "Sending is not available."
+msgstr "Verzenden is niet beschikbaar."
+
+msgid "Show Send in note print options"
+msgstr "Verzenden tonen bij de afdrukopties voor notities"
+
+msgid "Subject"
+msgstr "Onderwerp"
+
+msgid "The document could not be handed off."
+msgstr "Het document kon niet worden overgedragen."
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "De overdracht is al begonnen en kan hier niet worden teruggeroepen."
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr ""
+"De uitkomst van de overdracht is onbekend. Controleer de externe toepassing "
+"voordat u het opnieuw probeert."
+
+msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"Wachten op het mail- of faxprogramma. Dit venster sluiten roept de "
+"overdracht niet terug."
+
 msgid "All anniversaries"
 msgstr "Alle gedenkdagen"
 
