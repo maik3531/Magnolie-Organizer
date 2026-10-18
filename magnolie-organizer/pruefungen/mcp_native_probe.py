@@ -480,7 +480,24 @@ def client():
                     assert changed["state"]["policies"][policy]["local_enabled"] is enabled and changed["persisted"]
                     assert phone_fixture.store._load_peers()[0][policy + "_sync"]["local"]["enabled"] is enabled
             assert data_file.read_bytes() == unchanged and phone_fixture.server is None
+            current = legacy_tool("organizer_notes_settings_read", target)
+            legacy_tool("organizer_notes_legacy_policy_update", {**target, "expected_revision": current["revision"], "policy": "time", "enabled": True})
+            old_policy = phone_fixture.store._load_peers()[0]["time_sync"]["local"]
+            direction = legacy_tool("organizer_notes_legacy_time_direction_read", target)
+            expected_book = json.loads(data_file.read_text())
+            expected_book["einstellungen"]["sync"].setdefault("timeDirections", {})[target["peer_id"]] = "two_way"
+            job = legacy_tool("organizer_notes_legacy_time_direction_start", {**target, "expected_book_revision": direction["book_revision"], "expected_notes_revision": direction["state"]["revision"], "mode": "two_way"})
+            deadline = time.monotonic() + 30
+            while job["phase"] not in ("completed", "failed", "cancelled"):
+                assert time.monotonic() < deadline, job
+                time.sleep(0.05)
+                job = legacy_tool("organizer_notes_legacy_time_direction_status", {"operation_id": job["operation_id"]})
+            assert job["phase"] == "completed" and job["book_persisted"] and job["policy_reset"] and not job["native_outcome_unknown"], job
+            new_policy = phone_fixture.store._load_peers()[0]["time_sync"]["local"]
+            assert new_policy["enabled"] and new_policy["revision"] == old_policy["revision"] + 2 and new_policy["epoch"] != old_policy["epoch"]
+            assert json.loads(data_file.read_text()) == expected_book
             state["notes_legacy_mode_store_verified"] = True
+            state["notes_time_direction_save_and_epoch_verified"] = True
             process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
             return
         if os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_SETTINGS_ONLY") == "1":
@@ -2739,7 +2756,7 @@ finally:
     print("Native MCP fixture state:", json.dumps(state), flush=True)
 assert state["passed"] and state.get("cleanup_verified"), state
 if os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_LEGACY_ONLY") == "1":
-    print("Native MCP NOTES LEGACY MODE PASS: actual GTK/stdio legacy GUI handler, own-device/automatic mode/grant store readback, unchanged book and no listener; no handset delivery claim")
+    print("Native MCP NOTES LEGACY MODE PASS: actual GTK/stdio legacy mode/direction/custom/time store readback, time-direction SaveACK and actual epoch reset, selected book preference only and no listener; no handset delivery claim")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_SETTINGS_ONLY") == "1":
     print("Native MCP NOTES SETTINGS PASS: actual GTK/stdio shared GUI handlers, consent/preferences/grants store readback, stale revision rejection, unchanged book and no phone listener; no handset delivery claim")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_DEVICE_STATUS_ONLY") == "1":

@@ -2480,9 +2480,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       zeitRichtung.dataset.personalTimeDirectionPeer = kennung;
       zeitRichtung.disabled = peer.time_sync?.supported !== true;
       zeitRichtung.addEventListener("change", () => {
-        DATEN.einstellungen.sync.timeDirections ||= {};
-        DATEN.einstellungen.sync.timeDirections[kennung] = zeitRichtung.value;
-        planeSpeichern(); zeitAutoHash.delete(kennung);
+        wendeZeitRichtungDatenAn(kennung, zeitRichtung.value);
+        planeSpeichern();
         if (peer.time_sync?.local?.enabled) {
           Bruecke.sende({ cmd: "personal_sync_senden", kennung, art: "personal_sync.time_settings", inhalt: { enabled: false } });
           Bruecke.sende({ cmd: "personal_sync_senden", kennung, art: "personal_sync.time_settings", inhalt: { enabled: true } });
@@ -2519,6 +2518,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     Bruecke.sende({ cmd: "telefon_status_anfordern", kennung: kennung, requestId: requestId });
   }
 
+  function wendeZeitRichtungDatenAn(id, mode) {
+    if (!["phone_import", "two_way"].includes(mode)) throw new Error(_("Personal synchronization failed."));
+    DATEN.einstellungen.sync.timeDirections ||= {};
+    DATEN.einstellungen.sync.timeDirections[id] = mode;
+    zeitAutoHash.delete(id);
+  }
   const gemeinsameSyncInitialisierung = new Map();
   const gemeinsameSyncWartend = new Map();
   function initialisiereGemeinsameSyncWerte() {
@@ -35532,6 +35537,84 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         finally { signal.removeEventListener("abort", cancel); }
       } };
   }
+  const mcpNotesZeitLaeufe = new Map();
+  const mcpNotesZeitFertig = job => ["completed", "failed", "cancelled"].includes(job.phase);
+  function mcpNotesZeitLauf(owner, id) {
+    const job = mcpNotesZeitLaeufe.get(id);
+    if (!job || job.owner !== owner || job.expires <= Date.now()) throw new MagnolieMcp.ToolError("not_found", "Notes time-direction operation not found in this session");
+    return job;
+  }
+  function mcpNotesZeitAntwort(job) {
+    return { operation_id: job.id, peer_id: job.peer, mode: job.mode, phase: job.phase, book_persisted: job.saved,
+      policy_reset: job.reset, native_outcome_unknown: job.unknown, cancel_requested: job.controller.signal.aborted,
+      error_code: job.error, delivery_confirmed: false };
+  }
+  async function mcpNotesZeitNative(args, signal, request) {
+    const value = await mcpNativeAufruf("telefon_mcp", { request: { peerId: args.peer_id, fingerprint: args.fingerprint, ...request } }, "telefonMcpErgebnis", signal);
+    if (value.ok !== true) throw new MagnolieMcp.ToolError(["conflict", "native_busy", "unsupported_feature", "verification_failed", "profile_locked"].includes(value.code) ? value.code : "native_operation_failed", "Native Notes time policy failed; read current settings before retrying");
+    try { MagnolieMcp.validate(value.notesSettings, mcpErgebnisSchema("organizer_notes_settings_read")); }
+    catch (_) { throw new MagnolieMcp.ToolError("invalid_result", "Native Notes settings were incomplete"); }
+    const state = value.notesSettings;
+    if (state.peer_id !== args.peer_id || state.fingerprint.toUpperCase() !== args.fingerprint.toUpperCase()) throw new MagnolieMcp.ToolError("source_changed", "The selected Notes identity changed");
+    if (request.action !== "notes_settings_read" && (value.action !== request.action || value.localVerified !== true || value.persisted !== true || value.deliveryConfirmed !== false || state.policies.time.local_enabled !== request.enabled))
+      throw new MagnolieMcp.ToolError("invalid_result", "Native time-policy receipt was not verified");
+    return state;
+  }
+  function mcpNotesZeitWerkzeuge(owner) {
+    const hash = { type: "string", pattern: "^[a-f0-9]{64}$" }, operation_id = { type: "string", pattern: "^[a-f0-9]{48}$" };
+    const target = { peer_id: { type: "string", minLength: 1, maxLength: 256 }, fingerprint: { type: "string", pattern: "^[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}$" } };
+    const read = async (args, signal) => {
+      const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+      const state = await mcpNotesZeitNative(args, signal, { action: "notes_settings_read" });
+      if (signal.aborted || gesperrt || DATEN !== book || JSON.stringify(book) !== before) throw new MagnolieMcp.ToolError("conflict", "Book changed while reading Notes time direction");
+      return { book_revision: revision, mode: book.einstellungen.sync.timeDirections?.[args.peer_id] || "phone_import", state };
+    };
+    return [{ name: "organizer_notes_legacy_time_direction_read", description: "Read the existing book-stored legacy time synchronization direction, whole-book revision and actual native Notes settings for the exact peer. Modern peers use shared time_mode; this legacy book preference does not override shared settings. Reading initializes no consent or synchronization.",
+      inputSchema: { type: "object", properties: target, required: Object.keys(target), additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: read },
+    { name: "organizer_notes_legacy_time_direction_start", description: "Start a session-owned change to the existing legacy book-stored time direction through the shared GUI data handler. Requires current whole-book and native Notes revisions and exact identity. Shared-setting peers/registers must use shared time_mode instead. Poll status: book persistence means native SaveACK; when an enabled policy changes direction, the existing native time handler is then disabled/re-enabled with fresh epochs and verified receipts, as in the GUI. No remote delivery/agreement is claimed. Failure/cancellation can follow a saved direction or a partial policy reset; inspect both book and native settings before retrying. Drafts, dialogs, source/book changes stop further work; late receipts never edit drafts.",
+      inputSchema: { type: "object", properties: { ...target, expected_book_revision: hash, expected_notes_revision: hash, mode: { type: "string", enum: ["phone_import", "two_way"] } }, required: [...Object.keys(target), "expected_book_revision", "expected_notes_revision", "mode"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        const initial = await read(args, signal);
+        if (initial.book_revision !== args.expected_book_revision || initial.state.revision !== args.expected_notes_revision) throw new MagnolieMcp.ToolError("conflict", "Read current book and Notes settings before changing time direction");
+        if (initial.state.shared.supported || initial.state.shared.initialized) throw new MagnolieMcp.ToolError("unsupported_feature", "Use shared time_mode for this Notes peer");
+        for (const [id, job] of mcpNotesZeitLaeufe) if (mcpNotesZeitFertig(job) && job.expires <= Date.now()) mcpNotesZeitLaeufe.delete(id);
+        if (mcpNotesZeitLaeufe.size >= 32 || [...mcpNotesZeitLaeufe.values()].some(job => !mcpNotesZeitFertig(job))) throw new MagnolieMcp.ToolError("native_busy", "A Notes time-direction operation is still active or its retained operation budget is full");
+        const book = DATEN, before = JSON.stringify(book), job = { id: Array.from(crypto.getRandomValues(new Uint8Array(24)), value => value.toString(16).padStart(2, "0")).join(""), owner, peer: args.peer_id,
+          mode: args.mode, phase: "preparing", saved: false, reset: false, unknown: false, error: "none", expires: Date.now() + 1800000, controller: new AbortController() };
+        mcpNotesZeitLaeufe.set(job.id, job);
+        const guard = text => { mcpEditorPruefen(); if (job.controller.signal.aborted || gesperrt || DATEN !== book || JSON.stringify(book) !== text || syncLaeuft || personalSyncAutoLaeuft) throw new MagnolieMcp.ToolError("source_changed", "Book, drafts or synchronization state changed during the time-direction operation"); };
+        void Promise.resolve().then(async () => {
+          try {
+            let native;
+            await mcpSchreiben(job.controller.signal, async () => {
+              guard(before);
+              native = await mcpNotesZeitNative(args, job.controller.signal, { action: "notes_settings_read" });
+              guard(before);
+              if (native.revision !== args.expected_notes_revision) throw new MagnolieMcp.ToolError("conflict", "Notes settings changed before saving the time direction");
+              job.phase = "saving"; wendeZeitRichtungDatenAn(args.peer_id, args.mode); return {};
+            });
+            job.saved = true;
+            const savedText = JSON.stringify(book);
+            if (native.policies.time.local_enabled === true && initial.mode !== args.mode) {
+              job.phase = "resetting";
+              for (const enabled of [false, true]) {
+                guard(savedText); job.unknown = true;
+                native = await mcpNotesZeitNative(args, job.controller.signal, { action: "notes_legacy_policy", name: "time", expectedRevision: native.revision, enabled });
+                job.unknown = false;
+              }
+              job.reset = true;
+            }
+            guard(savedText); job.phase = "completed";
+          } catch (error) { job.phase = job.controller.signal.aborted ? "cancelled" : "failed"; job.error = job.controller.signal.aborted ? "cancelled" : error.code || "native_operation_failed"; }
+        });
+        return mcpNotesZeitAntwort(job);
+      } },
+    { name: "organizer_notes_legacy_time_direction_status", description: "Read this session's retained time-direction operation. A completed operation confirms local book/policy work, never remote synchronization. Partial saves/resets and an unknown dispatched native outcome are explicit.",
+      inputSchema: { type: "object", properties: { operation_id }, required: ["operation_id"], additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: args => mcpNotesZeitAntwort(mcpNotesZeitLauf(owner, args.operation_id)) },
+    { name: "organizer_notes_legacy_time_direction_cancel", description: "Cancel further work for this session's time-direction operation. A book save or native policy request already dispatched may still complete. Cancellation does not roll back a saved direction or promise a policy was re-enabled; inspect status and settings.",
+      inputSchema: { type: "object", properties: { operation_id }, required: ["operation_id"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: args => { const job = mcpNotesZeitLauf(owner, args.operation_id); if (!mcpNotesZeitFertig(job)) job.controller.abort(); return mcpNotesZeitAntwort(job); } }];
+  }
   function mcpNotesWerteSchema() {
     return { type: "object", properties: { content_mode: { type: "string", enum: ["phone_import", "phone_scope", "two_way"] },
       auto_mode: { type: "string", enum: ["manual", "wifi", "connection"] }, skip_deletions: { type: "boolean" },
@@ -37619,6 +37702,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const state = shape(fields, Object.keys(fields).filter(key => key !== "next_offset"));
       return name === "organizer_kde_connection_read" ? state : shape({ state, local_verified: yes, persisted: { type: "boolean", enum: [false] }, delivery_confirmed: { type: "boolean", enum: [false] } }, ["state", "local_verified", "persisted", "delivery_confirmed"]);
     }
+    if (name === "organizer_notes_legacy_time_direction_read") return shape({ book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, mode: { type: "string", enum: ["phone_import", "two_way"] }, state: mcpErgebnisSchema("organizer_notes_settings_read") }, ["book_revision", "mode", "state"]);
+    if (["organizer_notes_legacy_time_direction_start", "organizer_notes_legacy_time_direction_status", "organizer_notes_legacy_time_direction_cancel"].includes(name)) {
+      const fields = { operation_id: { type: "string", pattern: "^[a-f0-9]{48}$" }, peer_id: id, mode: { type: "string", enum: ["phone_import", "two_way"] }, phase: { type: "string", enum: ["preparing", "saving", "resetting", "completed", "failed", "cancelled"] }, book_persisted: flag, policy_reset: flag, native_outcome_unknown: flag, cancel_requested: flag, error_code: text, delivery_confirmed: { type: "boolean", enum: [false] } };
+      return shape(fields, Object.keys(fields));
+    }
     if (["organizer_notes_settings_read", "organizer_notes_settings_update", "organizer_notes_ownership_update", "organizer_notes_legacy_mode_update", "organizer_notes_legacy_direction_update", "organizer_notes_legacy_policy_update"].includes(name)) {
       const policy = shape({ supported: flag, local_enabled: { type: ["boolean", "null"] } }, ["supported", "local_enabled"]);
       const state = shape({ revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, peer_id: id, fingerprint: { type: "string", pattern: "^[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}$" },
@@ -37950,6 +38038,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpBaumKontaktWerkzeuge(),
       ...mcpTelefonVerbindungWerkzeuge(),
       ...mcpNotesEinstellungenWerkzeuge(),
+      ...mcpNotesZeitWerkzeuge(owner),
       mcpGeraeteStatusWerkzeug(),
       ...mcpKdeVerbindungWerkzeuge(owner),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
@@ -37999,6 +38088,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
   App.mcpClose = session => {
     for (const [id, job] of mcpKdePaarungsLaeufe) if (job.owner === session) { job.controller.abort(); mcpKdePaarungsLaeufe.delete(id); }
+    for (const [id, job] of mcpNotesZeitLaeufe) if (job.owner === session) { job.controller.abort(); mcpNotesZeitLaeufe.delete(id); }
     for (const [id, job] of notizVersandLaeufe) if (job.owner === session) {
       job.cancel = true; job.controller.abort();
       if (job.requested && !["handed_off", "failed", "cancelled"].includes(job.value.phase))

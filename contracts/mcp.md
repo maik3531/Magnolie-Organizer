@@ -90,6 +90,31 @@ local/remote policy registers are included in the private settings revision,
 not in the public response. `persisted` requires actual stored local enablement,
 not a merely queued frame; remote delivery/agreement remains unconfirmed.
 
+`organizer_notes_legacy_time_direction_read` reads the existing book preference,
+whole-book revision and exact native Notes state. Modern peers use shared
+`time_mode`; the local legacy preference never overrides it.
+
+`organizer_notes_legacy_time_direction_start/status/cancel` runs the change as a
+session-owned, process-local operation (48-hex `operation_id`, 30-minute retention,
+32 retained operations, one active operation). Start requires `peer_id`,
+`fingerprint`, `expected_book_revision`, `expected_notes_revision` and
+`mode: phone_import|two_way`. Both revisions are checked before creation and again
+at the queued write. The shared GUI data handler changes only the selected book
+preference and invalidates its existing automatic-sync hash. `book_persisted`
+becomes true only after native SaveACK. If an enabled native time policy changes
+direction, the existing native handler is then disabled/re-enabled under fresh
+Notes CAS revisions, creating the same new policy epochs as the GUI.
+
+Phases are `preparing`, `saving`, `resetting`, `completed`, `failed`, `cancelled`.
+`policy_reset` confirms both local policy receipts; `native_outcome_unknown`
+marks an unconfirmed dispatched request. Completion is local work only:
+`delivery_confirmed` is always false. Failure/cancellation may follow a saved
+direction or a partial reset that leaves time synchronization disabled. Read
+both states before retrying. Cancellation stops subsequent work, not an already
+dispatched save or native request. Source/book changes, drafts and dialogs stop
+further sends; late receipts never modify drafts. Session closure aborts and
+removes its operations; another session cannot inspect or cancel them.
+
 ### Fresh phone device status and temporary identifiers
 
 `organizer_phone_device_status_read` requires the latest phone-control
