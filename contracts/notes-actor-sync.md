@@ -27,6 +27,29 @@ snapshot selection, note/task grants, attachment handling and merge behavior
 continue to use the existing Notes engines. This start covers notes/tasks;
 independent time/custom policy and timer actions are separate contracts.
 
+## Explicit actor data envelope
+
+New wire kind: `personal_sync.actor_data`. Its body has exactly four fields:
+`format: 12`, the canonical actor `run_id`, the original `kind` and original
+`body`. The enclosing message keeps the original message ID and creation/expiry
+times. Unwrapping reconstructs those same headers, changing only kind/body back
+to the semantic original. It cannot extend lifetime or change ACK identity.
+
+Allowed inner kinds are the existing request, batch, report, attachment request/
+chunk/result, deletion proposals/decision and `personal_sync.scoped_data`.
+Controls/settings, nested actor envelopes and starts are excluded. Existing
+record validators remain authoritative. Scoped data retains its complete format10
+membership reference and is validated by the existing content-scope contract.
+The inner (or scoped inner) run ID must equal the actor ID. Any existing trigger
+field must remain `manual`. The complete actor body is bounded to 256 KiB, matching
+the existing Personal Sync packet budget. Current bounded snapshot chunks fit
+without enlarging the secure transport frame.
+
+Contract wrap/unwrap helpers preserve original record/scoped bodies. They do not
+authorize membership, stage a message, apply records or acknowledge persistence.
+Actual current identity, grants, ownership, scope and receipt checks remain at the
+native runtime boundary.
+
 ## Required runtime completion gates
 
 - No new listener, pairing, grant, ownership confirmation or arbitrary scope
@@ -44,13 +67,16 @@ independent time/custom policy and timer actions are separate contracts.
   attachment integrity, checkpoints, native save acknowledgement and commit.
   Resolve conflicts/deletion proposals through typed decisions using the same
   product domain handlers.
-- Bind persisted staging to the actor before replay becomes possible. Unknown or
-  retired actor data remains isolated, including after restart or reconnect.
+- Bind persisted staging to the actor before replay becomes possible. Preserve
+  the actor marker in incoming stored data as well as outgoing stored frames;
+  semantic kind columns alone must not erase it. Unknown or retired actor data
+  remains isolated, including after restart, reconnect or an older reader seeing
+  a newer stored frame.
 - A transport ACK proves request acceptance only. Track queued work, staged data,
   saved adoption and native commit separately. Timeout/cancellation after dispatch
   can have an unknown remote outcome and cannot promise rollback or recall.
 - Keep the old GUI/legacy path for devices without this marker. Do not silently
   downgrade an actor-scoped MCP request into an uncorrelated GUI start.
 
-The common malformed/valid start vectors are kept in the Notes test resources
-and are shared by the Kotlin, Python and C# contract tests.
+The common malformed/valid start and data vectors are kept in the Notes test
+resources and are shared by the Kotlin, Python and C# contract tests.

@@ -5,6 +5,20 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PersonalSyncActorTest {
+    @Test fun sameCrossPlatformDataVectorsAndOriginalBodyRoundtrip() {
+        val text = requireNotNull(javaClass.getResource("/notes-actor-data.json")).readText()
+        val cases = Json.parseToJsonElement(text).jsonObject.getValue("cases").jsonArray
+        for (item in cases.map { it.jsonObject }) {
+            val body = item.getValue("body").jsonObject
+            val accepted = runCatching { PersonalSyncActor.validateData(body) }.isSuccess
+            assertEquals(item.string("name"), item.getValue("valid").jsonPrimitive.boolean, accepted)
+            if (accepted) {
+                assertEquals(body, PersonalSyncActor.wrap(body.string("run_id"), body.string("kind"), body.getValue("body").jsonObject))
+                assertEquals(body.string("kind") to body.getValue("body").jsonObject, PersonalSyncActor.unwrap(body))
+            }
+        }
+    }
+
     @Test fun sameCrossPlatformStartVectors() {
         val text = requireNotNull(javaClass.getResource("/notes-actor-start.json")).readText()
         val cases = Json.parseToJsonElement(text).jsonObject.getValue("cases").jsonArray

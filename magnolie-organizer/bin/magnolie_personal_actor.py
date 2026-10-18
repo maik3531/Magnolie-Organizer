@@ -3,11 +3,18 @@
 The marker is intentionally not advertised until the actor staging path exists.
 Existing v9 GUI starts keep their original independently generated run IDs.
 """
+import copy
 import uuid
 import magnolie_shared_sync as shared
+import magnolie_personal_sync as personal
+import magnolie_content_scope as scope
 
 VERSION = 12
 START_KIND = "personal_sync.actor_start"
+DATA_KIND = "personal_sync.actor_data"
+DATA_KINDS = frozenset({"personal_sync.request", "personal_sync.batch", "personal_sync.report",
+    "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result",
+    "personal_sync.deletion_proposals", "personal_sync.deletion_decision", scope.DATA_KIND})
 
 
 def validate_start(body):
@@ -27,6 +34,35 @@ def validate_start(body):
 
 def start(run_id):
     return validate_start({"format": VERSION, "run_id": run_id, "trigger": "manual"})
+
+
+def validate_data(value):
+    if (not isinstance(value, dict) or set(value) != {"format", "run_id", "kind", "body"} or
+            type(value.get("format")) is not int or value["format"] != VERSION or
+            not isinstance(value.get("kind"), str) or value["kind"] not in DATA_KINDS or not isinstance(value.get("body"), dict)):
+        raise ValueError("Invalid actor data envelope")
+    start(value["run_id"])
+    kind, body = value["kind"], value["body"]
+    if kind == scope.DATA_KIND:
+        scope.validate_data(body)
+        record_body = body["body"]
+    else:
+        personal.validate_body(kind, body)
+        record_body = body
+    if (record_body.get("run_id") != value["run_id"] or
+            "trigger" in record_body and record_body["trigger"] != "manual" or
+            len(personal.canonical(value)) > personal.MAX_PACKET):
+        raise ValueError("Actor data identity or size mismatch")
+    return value
+
+
+def wrap(run_id, kind, body):
+    return validate_data({"format": VERSION, "run_id": run_id, "kind": kind, "body": copy.deepcopy(body)})
+
+
+def unwrap(value):
+    validate_data(value)
+    return value["kind"], copy.deepcopy(value["body"])
 
 
 def supported(local, remote):
