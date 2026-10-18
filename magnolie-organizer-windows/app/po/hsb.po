@@ -1,13 +1,12 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
+# This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
-"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: hsb\n"
@@ -17,6 +16,32 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : (n%100==3 || "
 "n%100==4) ? 2 : 3);\n"
+
+msgid "Category"
+msgstr "Kategorija"
+
+msgid "Category colors"
+msgstr "Barby kategorijow"
+
+msgid ""
+"Category colors highlight appointments and tasks. A custom entry color takes "
+"precedence; otherwise the first matching category is used."
+msgstr ""
+"Barby kategorijow terminy a nadawki wuzběhuja. Swójska barba zapiska ma "
+"předmjenje; hewak so prěnja přihódna kategorija wužiwa."
+
+msgid ""
+"Changing or removing a category color does not rename or delete categories "
+"on saved or imported entries."
+msgstr ""
+"Změnjenje abo wotstronjenje barby kategorije kategorije składowanych abo "
+"importowanych zapiskow ani njepomjenuje ani njezhaša."
+
+msgid "Custom color"
+msgstr "Swójska barba"
+
+msgid "Please enter a unique category name without commas or semicolons."
+msgstr "Zapodajće jednozmyslne mjeno kategorije bjez komow abo semikolonow."
 
 msgid " (filtered)"
 msgstr " (filtrowane)"

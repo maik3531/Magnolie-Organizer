@@ -1400,6 +1400,17 @@ msgstr ""
 msgid "Categories:"
 msgstr ""
 
+msgid "Category"
+msgstr ""
+
+msgid "Category colors"
+msgstr ""
+
+msgid ""
+"Category colors highlight appointments and tasks. A custom entry color takes "
+"precedence; otherwise the first matching category is used."
+msgstr ""
+
 msgid "Catholic confirmation"
 msgstr ""
 
@@ -1416,6 +1427,11 @@ msgid "Changes are applied automatically"
 msgstr ""
 
 msgid "Changes to your own profile are saved with Save."
+msgstr ""
+
+msgid ""
+"Changing or removing a category color does not rename or delete categories "
+"on saved or imported entries."
 msgstr ""
 
 msgid "Changing phone permission"
@@ -1971,6 +1987,9 @@ msgid "Custom"
 msgstr ""
 
 msgid "Custom application"
+msgstr ""
+
+msgid "Custom color"
 msgstr ""
 
 msgid "Custom notification"
@@ -4850,6 +4869,9 @@ msgid "Please enter a title for every new task."
 msgstr ""
 
 msgid "Please enter a title."
+msgstr ""
+
+msgid "Please enter a unique category name without commas or semicolons."
 msgstr ""
 
 msgid "Please enter a website or application for the custom action."

@@ -1,13 +1,12 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
+# This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: hi\n"
@@ -16,6 +15,32 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Category"
+msgstr "श्रेणी"
+
+msgid "Category colors"
+msgstr "श्रेणी के रंग"
+
+msgid ""
+"Category colors highlight appointments and tasks. A custom entry color takes "
+"precedence; otherwise the first matching category is used."
+msgstr ""
+"श्रेणी के रंग नियुक्तियों और कार्यों को उभारते हैं। प्रविष्टि का अपना रंग प्राथमिक है; अन्यथा "
+"पहली मेल खाती श्रेणी का रंग लगता है।"
+
+msgid ""
+"Changing or removing a category color does not rename or delete categories "
+"on saved or imported entries."
+msgstr ""
+"श्रेणी का रंग बदलने या हटाने से सहेजी या आयातित प्रविष्टियों की श्रेणियों का नाम नहीं "
+"बदलता और वे मिटती नहीं हैं।"
+
+msgid "Custom color"
+msgstr "अपना रंग"
+
+msgid "Please enter a unique category name without commas or semicolons."
+msgstr "अल्पविराम या अर्धविराम के बिना एक अद्वितीय श्रेणी नाम दर्ज करें।"
 
 msgid " (filtered)"
 msgstr " (फ़िल्टर किया हुआ)"

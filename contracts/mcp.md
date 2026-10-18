@@ -5,6 +5,26 @@ This document describes the implemented tools; the remaining product operations
 are still being connected to the same interface.
 The remaining user-facing operation groups are tracked in [the coverage checklist](mcp-coverage.md).
 
+### Appointment and task category colors (#183)
+
+`organizer_category_colors_read` returns the local palette as `colors: [{name,
+color}]` and its `revision`. `organizer_category_colors_update` replaces that
+palette with `expected_revision` and `colors`; a successful result includes the
+saved count and `persisted: true` only after the native durable-save acknowledgement.
+Names are NFC-normalized, compared without case, and cannot contain commas,
+semicolons or control characters. Colors are six-digit hexadecimal RGB values.
+Duplicate normalized names are rejected. A stale revision yields `conflict`.
+
+Existing appointment/task create and update tools accept `categories` and
+`accent_color` (`#rrggbb`, or an empty string to clear the override). The entry's
+custom color takes precedence over the first matching comma-/semicolon-separated
+category. Removing a palette definition does not alter categories on entries or
+provider metadata. The same shared color rules apply to the GUI and planner
+HTML/ODS output. Colored open tasks appear on their due date, falling back to
+their start date, using the existing recurrence expansion. Standard ICS interchange
+preserves `CATEGORIES` and the custom `X-MAGNOLIE-ACCENT-COLOR` property; support
+for displaying that private property in other programs is not assumed.
+
 ### Native card printing
 
 `organizer_cards_print` uses the existing GUI print-page builders for contacts,

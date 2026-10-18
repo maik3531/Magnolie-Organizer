@@ -452,6 +452,21 @@ msgstr ""
 
 #, no-javascript-format
 msgid ""
+"<h3>Category colors for appointments and tasks</h3><p>Open Settings → "
+"Calendar → Category colors. Enter a unique category name, choose a color, "
+"and click Add. On an appointment or task, enter matching Categories and "
+"save. Separate several categories with commas or semicolons; the first "
+"category with a defined color wins. Custom color on the entry overrides that "
+"choice. Clear Custom color to use categories again.</p><p>Colored open tasks "
+"appear on their due date, or their start date when no due date exists, in "
+"Month, Week, Day and Planner. Planner preview, print and ODS retain the "
+"colors. Removing a color definition leaves saved categories and imported "
+"provider data intact. ICS files retain categories and the Magnolie-specific "
+"custom color; other programs may ignore that color.</p>"
+msgstr ""
+
+#, no-javascript-format
+msgid ""
 "<h3>Choose the type yourself</h3><p>The first field for a postal address or "
 "phone number is intentionally blank. The gray hints <i>e.g. Private</i> and "
 "<i>e.g. Mobile</i> are only examples and are not saved. Click the blank "

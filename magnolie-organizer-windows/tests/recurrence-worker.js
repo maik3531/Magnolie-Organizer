@@ -62,7 +62,11 @@ const { JSDOM } = require("jsdom");
       w.App.init({ daten: {}, neu: true, regional: { language: "en", timeZone: "system" } });
       const system = await query("expand", { icsRoundtrip: ["DTSTART:20260907T090000Z", "DURATION:PT1H"] }, [Date.parse("2026-09-07"), Date.parse("2026-09-08")]);
       assert.equal(system[0].zeit, new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date("2026-09-07T09:00:00Z")), "System means the host timezone, not UTC");
-      w.App.init({ daten: { termine: [{ uid: "preview", titel: "Worker preview", datum: "2026-09-07", zeit: "09:00", endZeit: "10:00", icsRoundtrip: ["DTSTART:20260907T090000Z", "DURATION:PT1H", "RRULE:FREQ=DAILY;COUNT=3"] }] }, neu: true, regional: { language: "en", timeZone: "UTC" } });
+      w.App.init({ daten: { einstellungen: { kalender: { kategorieFarben: [{ name: "Owned category", farbe: "#112233" }] } },
+        aufgaben: [{ id: "colored-series", uid: "colored-series", titel: "Colored task series", kategorien: "Owned category", startDatum: "2026-09-07", faellig: "2026-09-07",
+          icsRoundtrip: ["DTSTART;VALUE=DATE:20260907", "DUE;VALUE=DATE:20260907", "RRULE:FREQ=DAILY;COUNT=3", "X-OWNED:preserved"] }],
+        termine: [{ uid: "preview", titel: "Worker preview", datum: "2026-09-07", zeit: "09:00", endZeit: "10:00", kategorien: "Owned category", akzentFarbe: "#ff0000",
+          icsRoundtrip: ["DTSTART:20260907T090000Z", "DURATION:PT1H", "RRULE:FREQ=DAILY;COUNT=3"] }] }, neu: true, regional: { language: "en", timeZone: "UTC" } });
       assert.equal(T.termineAm("2026-09-07", true).length, 0);
       assert.equal(w.document.body.dataset.recurrenceState, "pending", "An unfinished calendar query must not report empty success");
       assert.equal(T.icsRuntime.state.progress.hidden, false);
@@ -80,6 +84,12 @@ const { JSDOM } = require("jsdom");
         "The settled calendar must display the previously pending occurrence");
       const model = T.planerMonatsModell(2026, 8);
       assert.equal(model.wochen.flatMap(v => v.tage).flatMap(v => v.eintraege).filter(v => v.art === "termin").length, 3);
+      const coloredTasks = model.wochen.flatMap(v => v.tage).flatMap(v => v.eintraege).filter(v => v.art === "aufgabe");
+      assert.equal(coloredTasks.length, 3, "Colored recurring tasks must follow the shared worker expansion without duplicates");
+      assert.ok(coloredTasks.every(item => item.farbe === "#112233" && item.akzent));
+      assert.ok(model.wochen.flatMap(v => v.tage).flatMap(v => v.eintraege).filter(v => v.art === "termin").every(item => item.farbe === "#ff0000" && item.akzent));
+      assert.ok(T.daten().aufgaben[0].icsRoundtrip.includes("X-OWNED:preserved"));
+      assert.equal(T.daten().aufgaben.length, 1, "Rendering occurrences must not duplicate the stored task series");
       preview.querySelector('button[title="Close"]').click();
       await query("expand", { icsRoundtrip: ["DTSTART:20260907T000000Z", "DURATION:PT1S", "RRULE:FREQ=SECONDLY"] }, [Date.parse("2026-09-07"), Date.parse("2026-09-10")], true);
       assert.ok(T.icsRuntime.lastError.includes("limit"));

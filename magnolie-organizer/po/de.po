@@ -1,13 +1,12 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
+# This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: de\n"
@@ -16,6 +15,33 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Category"
+msgstr "Kategorie"
+
+msgid "Category colors"
+msgstr "Kategoriefarben"
+
+msgid ""
+"Category colors highlight appointments and tasks. A custom entry color takes "
+"precedence; otherwise the first matching category is used."
+msgstr ""
+"Kategoriefarben heben Termine und Aufgaben hervor. Eine eigene Eintragsfarbe "
+"hat Vorrang; sonst gilt die erste passende Kategorie."
+
+msgid ""
+"Changing or removing a category color does not rename or delete categories "
+"on saved or imported entries."
+msgstr ""
+"Das Ändern oder Entfernen einer Kategoriefarbe benennt Kategorien "
+"gespeicherter oder importierter Einträge weder um noch löscht es sie."
+
+msgid "Custom color"
+msgstr "Eigene Farbe"
+
+msgid "Please enter a unique category name without commas or semicolons."
+msgstr ""
+"Bitte einen eindeutigen Kategorienamen ohne Kommas oder Semikolons eingeben."
 
 msgid " (filtered)"
 msgstr " (Auswahl)"

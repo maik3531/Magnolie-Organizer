@@ -369,6 +369,50 @@ def client():
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
         if os.environ.get("MAGNOLIE_MCP_PROBE_FAIL_AFTER_READY") == "1":
             raise RuntimeError("Owned fixture intentional failure after ready")
+        if os.environ.get("MAGNOLIE_MCP_PROBE_CATEGORY_COLORS_ONLY") == "1":
+            def category_tool(name, arguments=None):
+                result = call("tools/call", {"name": name, **({"arguments": arguments} if arguments is not None else {})})
+                assert not result["isError"], result
+                return result["structuredContent"]
+            # First commit also settles any startup normalization before comparing records.
+            palette = category_tool("organizer_category_colors_read")
+            category_tool("organizer_category_colors_update", {"expected_revision": palette["revision"], "colors": []})
+            records_before = json.loads(data_file.read_text())
+            palette = category_tool("organizer_category_colors_read")
+            saved = category_tool("organizer_category_colors_update", {"expected_revision": palette["revision"],
+                "colors": [{"name": "Owned 🌸", "color": "#112233"}]})
+            assert saved["persisted"]
+            records_after = json.loads(data_file.read_text())
+            assert records_after["termine"] == records_before["termine"] and records_after["aufgaben"] == records_before["aufgaben"]
+            task = category_tool("organizer_task_create", {"title": "Owned color task", "due_date": "2026-11-18", "categories": "Owned 🌸"})
+            appointment = category_tool("organizer_appointment_create", {"title": "Owned color appointment", "start_date": "2026-11-18", "all_day": True,
+                "categories": "Owned 🌸", "accent_color": "#ff0000"})
+            durable = json.loads(data_file.read_text())
+            assert durable["einstellungen"]["kalender"]["kategorieFarben"] == [{"name": "Owned 🌸", "farbe": "#112233"}]
+            assert any(item["id"] == task["id"] and item["kategorien"] == "Owned 🌸" for item in durable["aufgaben"])
+            assert any(item["id"] == appointment["id"] and item["akzentFarbe"] == "#ff0000" for item in durable["termine"])
+            revision = category_tool("organizer_book_revision_read")["revision"]
+            for layout in ("month", "year"):
+                target = Path(temporary.name) / ("owned-category-planner-" + layout + ".ods")
+                category_tool("organizer_planner_export", {"expected_book_revision": revision, "year": 2026, "layout": layout,
+                    "path": str(target), **({"month": 11} if layout == "month" else {})})
+                with zipfile.ZipFile(target) as archive:
+                    content = archive.read("content.xml").decode()
+                assert "Owned color task" in content and "Owned color appointment" in content
+                assert 'fo:background-color="#112233"' in content and 'fo:background-color="#ff0000"' in content
+            for format_, section in (("ics-aufgaben", "aufgaben"), ("ics-termine", "termine")):
+                target = Path(temporary.name) / ("owned-category-" + format_ + ".ics")
+                category_tool("organizer_records_export", {"expected_book_revision": revision, "format": format_, "path": str(target)})
+                restored = product.ics_lesen(target.read_text())[section]
+                assert any(item.get("kategorien") == "Owned 🌸" for item in restored)
+                if section == "termine":
+                    assert any(item.get("akzentFarbe") == "#ff0000" for item in restored)
+            check_print_dialog(revision, "organizer_planner_print", {"year": 2026, "layout": "month", "month": 11})
+            assert json.loads(data_file.read_text()) == durable
+            state["category_palette_native_save_readback"] = True
+            state["category_planner_ods_and_ics_verified"] = True
+            process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
+            return
         if os.environ.get("MAGNOLIE_MCP_PROBE_KDE_ONLY") == "1":
             def kde_tool(name, arguments=None):
                 result = call("tools/call", {"name": name, **({"arguments": arguments} if arguments is not None else {})})
@@ -2370,7 +2414,9 @@ finally:
         state["error"] = (state.get("error") or "") + "\nPrivate service/temporary cleanup:\n" + traceback.format_exc(limit=4)
     print("Native MCP fixture state:", json.dumps(state), flush=True)
 assert state["passed"] and state.get("cleanup_verified"), state
-if os.environ.get("MAGNOLIE_MCP_PROBE_KDE_ONLY") == "1":
+if os.environ.get("MAGNOLIE_MCP_PROBE_CATEGORY_COLORS_ONLY") == "1":
+    print("Native MCP CATEGORY COLORS PASS: actual GTK/stdio palette and entity SaveACK/readback, unchanged imported records, year/month ODS colors, ICS categories/accent, observed cancelled planner print dialog")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_KDE_ONLY") == "1":
     print("Native MCP KDE CONTROL PASS: actual selected dormant backend/store/certificate pins through GTK/stdio, native limits and async source rejection, unchanged book, no extra listener or paired-handset claim")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_PHONE_ONLY") == "1":
     print("Native MCP PHONE CONTROL PASS: actual private GTK/stdio identity/permission/Bluetooth-disable/removal handlers, store readback, fingerprint rejection, unchanged book, no listener/replay or paired-handset claim")

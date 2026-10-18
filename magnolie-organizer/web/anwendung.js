@@ -393,7 +393,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           vertraulicheErinnerungen: false, hintergrund: { enabled: false,
             autostart: false, encryptionPolicy: "notify_then_unlock", permissions: {} } },
         papierkorb: { an: true, tage: 30 },
-        kalender: { klickLegtAn: true, jahrestagsartenFrei: false,
+        kalender: { klickLegtAn: true, jahrestagsartenFrei: false, kategorieFarben: [],
           wochenNummern: false, planerWochenNummern: false,
           vergangeneTermine: false, vergangeneJahrestage: false,
           vergangeneFerien: false, schichtplanerAn: false,
@@ -7212,6 +7212,147 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return normalisiereZeiterfassung({ ...stand, counter, conflicts, entries: stand.entries.map(wert => wert.id === id ? entry : wert) });
   }
 
+  function kalenderAkzentFarbe(wert) {
+    return typeof wert === "string" && /^#[0-9a-f]{6}$/i.test(wert) ? wert.toLowerCase() : "";
+  }
+  function kalenderRohFeld(eintrag, name) {
+    let tiefe = 0;
+    for (const zeile of eintrag.icsRoundtrip || []) {
+      const eig = icsEigenschaft(zeile);
+      if (!eig) continue;
+      if (eig.name === "BEGIN") { tiefe++; continue; }
+      if (eig.name === "END") { tiefe = Math.max(0, tiefe - 1); continue; }
+      if (!tiefe && eig.name === name) return icsWert(eig.wert);
+    }
+    return "";
+  }
+  function kalenderKategorieSchluessel(name) {
+    return String(name || "").normalize("NFC").trim().toLocaleLowerCase("und");
+  }
+  function saubereKategorieFarben(werte) {
+    const gesehen = new Set(), aus = [];
+    for (const eintrag of Array.isArray(werte) ? werte : []) {
+      const name = typeof eintrag?.name === "string" ? eintrag.name.normalize("NFC").trim().slice(0, 256) : "";
+      const farbe = kalenderAkzentFarbe(eintrag?.farbe), key = kalenderKategorieSchluessel(name);
+      if (!name || /[,;\u0000-\u001f\u007f]/.test(name) || !farbe || gesehen.has(key)) continue;
+      gesehen.add(key); aus.push({ name, farbe });
+    }
+    return aus;
+  }
+  function kalenderKategorieNamen() {
+    const namen = new Map();
+    for (const item of DATEN.einstellungen.kalender.kategorieFarben || []) namen.set(kalenderKategorieSchluessel(item.name), item.name);
+    for (const item of [...DATEN.termine, ...DATEN.aufgaben]) for (const name of String(item.kategorien || "").split(/[,;]/).map(name => name.trim()).filter(Boolean)) {
+      if (!/^https?:\/\/schemas\.google\.com\/g\/2005#/i.test(name) && !namen.has(kalenderKategorieSchluessel(name))) namen.set(kalenderKategorieSchluessel(name), name);
+    }
+    return [...namen.values()];
+  }
+  function kalenderEintragAkzent(eintrag) {
+    const direkt = kalenderAkzentFarbe(eintrag?.akzentFarbe);
+    if (direkt) return direkt;
+    const palette = new Map((DATEN.einstellungen.kalender.kategorieFarben || []).map(item => [kalenderKategorieSchluessel(item.name), item.farbe]));
+    for (const name of String(eintrag?.kategorien || "").split(/[,;]/)) {
+      const farbe = kalenderAkzentFarbe(palette.get(kalenderKategorieSchluessel(name)));
+      if (farbe) return farbe;
+    }
+    return "";
+  }
+  function kalenderAkzentTextfarbe(farbe) {
+    const kanaele = [1, 3, 5].map(index => parseInt(farbe.slice(index, index + 2), 16) / 255)
+      .map(wert => wert <= 0.04045 ? wert / 12.92 : ((wert + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * kanaele[0] + 0.7152 * kanaele[1] + 0.0722 * kanaele[2] > 0.179 ? "#000000" : "#ffffff";
+  }
+  function kalenderAkzentDruckStil(eintrag) {
+    const farbe = kalenderEintragAkzent(eintrag);
+    return farbe ? ' style="background-color:' + farbe + ';color:' + kalenderAkzentTextfarbe(farbe) +
+      ';print-color-adjust:exact;-webkit-print-color-adjust:exact"' : "";
+  }
+  function kalenderFarbAufgaben(von, bis) {
+    const aus = new Map(), lower = +organizerZeitpunkt(...von.split("-").map(Number), 0, 0, 0), upper = +organizerZeitpunkt(...bis.split("-").map(Number), 23, 59, 59);
+    for (const task of icsSerienAbstimmen(DATEN.aufgaben)) {
+      if (task.erledigt || !kalenderEintragAkzent(task)) continue;
+      const values = icsQuelle(task) ? icsRuntime("expand", task, [lower, upper, true, true]) || [] : [task];
+      for (const item of values) {
+        const tag = item.faellig || item.startDatum;
+        if (!tag || tag < von || tag > bis) continue;
+        if (!aus.has(tag)) aus.set(tag, []);
+        aus.get(tag).push(item);
+      }
+    }
+    return aus;
+  }
+  function kalenderFarbAufgabenZeile(task) {
+    const taste = setzeKalenderAkzent(el("button", "mini mini-farbaufgabe", "☐ " + task.titel), task);
+    taste.type = "button"; taste.dataset.aufgabeId = task.id;
+    taste.title = _("Task") + ": " + task.titel;
+    taste.addEventListener("click", ev => {
+      ev.stopPropagation(); navigiereMitGuard(() => { zustand.sektion = "aufgaben"; zustand.aufgaben.bearbeiteId = task.id; zeichneAlles(); });
+    });
+    return taste;
+  }
+  function setzeKalenderAkzent(element, eintrag) {
+    const farbe = kalenderEintragAkzent(eintrag);
+    if (!farbe) return element;
+    element.classList.add("kategorie-akzent");
+    element.style.backgroundColor = farbe;
+    element.style.color = kalenderAkzentTextfarbe(farbe);
+    element.dataset.akzentFarbe = farbe;
+    return element;
+  }
+  function setzeKategorieFarbe(name, farbe, vorherigerName = "") {
+    const sauber = saubereKategorieFarben([{ name, farbe }]);
+    if (!sauber.length) return false;
+    const key = kalenderKategorieSchluessel(sauber[0].name), vorher = kalenderKategorieSchluessel(vorherigerName);
+    const palette = DATEN.einstellungen.kalender.kategorieFarben || [];
+    if (vorherigerName && !palette.some(item => kalenderKategorieSchluessel(item.name) === vorher)) return false;
+    if (palette.some(item => kalenderKategorieSchluessel(item.name) === key && kalenderKategorieSchluessel(item.name) !== vorher)) return false;
+    DATEN.einstellungen.kalender.kategorieFarben = palette.filter(item => kalenderKategorieSchluessel(item.name) !== vorher).concat(sauber);
+    return true;
+  }
+  function entferneKategorieFarbe(name) {
+    const palette = DATEN.einstellungen.kalender.kategorieFarben || [], key = kalenderKategorieSchluessel(name);
+    DATEN.einstellungen.kalender.kategorieFarben = palette.filter(item => kalenderKategorieSchluessel(item.name) !== key);
+    return palette.length !== DATEN.einstellungen.kalender.kategorieFarben.length;
+  }
+  function kalenderAkzentWahl(eintrag, prefix) {
+    const wurzel = el("div", "kategorie-farbwahl"), hak = document.createElement("input");
+    hak.type = "checkbox"; hak.id = prefix + "-eigene-farbe";
+    hak.checked = !!kalenderAkzentFarbe(eintrag?.akzentFarbe);
+    const farbe = eingabe("color", kalenderAkzentFarbe(eintrag?.akzentFarbe) || kalenderEintragAkzent(eintrag) || "#4f78b8");
+    farbe.id = prefix + "-farbe"; farbe.disabled = !hak.checked; farbe.setAttribute("aria-label", _("Color"));
+    const label = el("label", "hak"); label.append(hak, document.createTextNode(" " + _("Custom color")));
+    hak.addEventListener("change", () => { farbe.disabled = !hak.checked; });
+    wurzel.append(label, farbe);
+    return { wurzel, wert: () => hak.checked ? kalenderAkzentFarbe(farbe.value) : "" };
+  }
+  function baueKategorieFarben(wurzel) {
+    const kalender = DATEN.einstellungen.kalender, vorher = JSON.stringify(kalender.kategorieFarben || []);
+    const gruppe = el("details", "einst-gruppe"); gruppe.id = "kalender-kategoriefarben";
+    gruppe.append(el("summary", null, _("Category colors")), el("p", "einst-hinweis",
+      _("Category colors highlight appointments and tasks. A custom entry color takes precedence; otherwise the first matching category is used.")));
+    const aktuell = () => DATEN.einstellungen.kalender === kalender && JSON.stringify(kalender.kategorieFarben || []) === vorher;
+    const zeile = (eintrag = null) => {
+      const reihe = el("div", "kategorie-farbzeile"), name = eingabe("text", eintrag?.name || ""), farbe = eingabe("color", eintrag?.farbe || "#4f78b8");
+      name.maxLength = 256; name.setAttribute("aria-label", _("Category")); name.placeholder = _("Category");
+      farbe.setAttribute("aria-label", _("Color"));
+      const speichern = knopf(eintrag ? _("Save") : _("Add"), "klein", () => {
+        if (!aktuell()) return zettel(_("Conflict"));
+        if (!setzeKategorieFarbe(name.value, farbe.value, eintrag?.name || "")) { name.focus(); return zettel(_("Please enter a unique category name without commas or semicolons.")); }
+        planeSpeichern(); baueEinstellungen();
+      });
+      reihe.append(name, farbe, speichern);
+      if (eintrag) reihe.append(knopf(_("Remove"), "klein", () => {
+        if (!aktuell()) return zettel(_("Conflict"));
+        entferneKategorieFarbe(eintrag.name); planeSpeichern(); baueEinstellungen();
+      }));
+      gruppe.append(reihe);
+    };
+    for (const item of kalender.kategorieFarben || []) zeile(item);
+    zeile();
+    gruppe.append(el("p", "einst-hinweis", _("Changing or removing a category color does not rename or delete categories on saved or imported entries.")));
+    wurzel.append(gruppe);
+  }
+
   function normalisiereTermine(liste, zusammenfassen = true) {
     const d = { termine: [] }, roh = { termine: liste };
     const Z = (x) => {
@@ -7261,7 +7402,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const normalisierterTermin = { ...Q(t), id: S(t.id) || uid(), uid: S(t.uid), datum: t.datum,
         endDatum: endDatum,
         zeit: Z(t.zeit), endZeit: Z(t.endZeit),
-        titel: S(t.titel), notiz: S(t.notiz), kategorien: S(t.kategorien),
+        titel: S(t.titel), notiz: S(t.notiz), kategorien: t.kategorien === undefined ? kalenderRohFeld(t, "CATEGORIES") : S(t.kategorien),
+        akzentFarbe: kalenderAkzentFarbe(t.akzentFarbe === undefined ? kalenderRohFeld(t, "X-MAGNOLIE-ACCENT-COLOR") : t.akzentFarbe),
         vertraulich: !!t.vertraulich, vorlaeufig: !!t.vorlaeufig,
         kostenstelle: S(t.kostenstelle), kunde: S(t.kunde),
         ort: terminText(t.ort === undefined ? ics.ort : t.ort, 1000).trim(),
@@ -7357,7 +7499,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         faellig: gueltigesISO(a.faellig) ? a.faellig : "",
         startDatum: gueltigesISO(a.startDatum) ? a.startDatum : "",
         startZeit: Z(a.startZeit), faelligZeit: Z(a.faelligZeit),
-        erledigt: !!a.erledigt, notiz: S(a.notiz),
+        erledigt: !!a.erledigt, notiz: S(a.notiz), kategorien: a.kategorien === undefined ? kalenderRohFeld(a, "CATEGORIES") : S(a.kategorien),
+        akzentFarbe: kalenderAkzentFarbe(a.akzentFarbe === undefined ? kalenderRohFeld(a, "X-MAGNOLIE-ACCENT-COLOR") : a.akzentFarbe),
         icsRoundtrip: Array.isArray(a.icsRoundtrip) ? a.icsRoundtrip.map(S) : [],
         icsSerienUid: S(a.icsSerienUid), icsRangeOverrides: kopie(a.icsRangeOverrides || []), icsAnzeigeZeitzone: S(a.icsAnzeigeZeitzone),
         icsAusnahmeTermine: kopie(a.icsAusnahmeTermine || []), icsAusnahmen: kopie(a.icsAusnahmen || []),
@@ -8010,6 +8153,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     };
     const pk = (e.papierkorb && typeof e.papierkorb === "object") ? e.papierkorb : {};
     const kal = (e.kalender && typeof e.kalender === "object") ? e.kalender : {};
+    d.einstellungen.kalender.kategorieFarben = saubereKategorieFarben(kal.kategorieFarben);
     d.einstellungen.kalender.klickLegtAn =
       kal.klickLegtAn === undefined ? true : !!kal.klickLegtAn;
     d.einstellungen.kalender.jahrestagsartenFrei =
@@ -11265,7 +11409,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           const k = el("div", "druck-karte");
           const kopf = el("div", "dk-name",
             (a.erledigt ? "☑ " : "☐ ") + a.titel);
-          k.append(kopf);
+          k.append(setzeKalenderAkzent(kopf, a));
           const unten = [];
           if (a.faellig) unten.push(uebersetzt("due %(date)s",
             { date: fmtPunkt(a.faellig) }));
@@ -11276,7 +11420,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           if (a.notiz) k.append(el("div", "dk-notiz", a.notiz));
           return k;
         },
-        html: (a) => '<div class="karte"><div class="name">' +
+        html: (a) => '<div class="karte"><div class="name"' + kalenderAkzentDruckStil(a) + '>' +
           (a.erledigt ? "&#9745; " : "&#9744; ") + sicher(a.titel) + "</div>" +
           "<div>" + (a.faellig ? sicher(uebersetzt("due %(date)s",
             { date: fmtPunkt(a.faellig) })) + " · " : "") +
@@ -11450,7 +11594,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         " – " + t.titel,
       karte: (t) => {
         const k = el("div", "druck-karte");
-        k.append(el("div", "dk-name", t.titel));
+        k.append(setzeKalenderAkzent(el("div", "dk-name", t.titel), t));
         k.append(el("div", "dk-zeile", druckWann(t)));
         const meta = [t.ort, t.kalenderQuelle && t.kalenderQuelle.name,
           t.organisator && (t.organisator.name || t.organisator.email),
@@ -11461,7 +11605,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         if (t.notiz) k.append(el("div", "dk-notiz", t.notiz));
         return k;
       },
-      html: (t) => '<div class="karte"><div class="name">' + sicher(t.titel) +
+      html: (t) => '<div class="karte"><div class="name"' + kalenderAkzentDruckStil(t) + '>' + sicher(t.titel) +
         "</div><div>" + sicher(druckWann(t)) + "</div>" +
         (t.kategorien ? "<div><span class='wort'>" + sicher(_("Categories:")) +
           "</span> " +
@@ -11615,10 +11759,25 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       spalten: spalten, zeilen: zeilen };
   }
 
+  function planerAkzentEintraege(iso, serienZeitraum, aufgaben, termine = true) {
+    const eintraege = termine ? termineAm(iso, true, serienZeitraum)
+      .filter(termin => kalenderEintragAkzent(termin))
+      .map(termin => ({ art: "termin", text: (termin.zeit ? zeitText(iso, termin.zeit) + " " : "") + termin.titel,
+        farbe: kalenderEintragAkzent(termin), akzent: true })) : [];
+    for (const task of aufgaben.get(iso) || []) eintraege.push({ art: "aufgabe",
+      text: "☐ " + task.titel, farbe: kalenderEintragAkzent(task), akzent: true });
+    return eintraege;
+  }
+
   function planerKalenderModell(jahr, optionen) {
     const incomplete = icsRuntime.incomplete || 0;
     const wahl = Object.assign({ feiertage: true, ferien: true, urlaub: true }, optionen || {});
     const feiertagsIndex = planerFeiertagVerzeichnis(Number(jahr));
+    const von = Number(jahr) + "-01-01", bis = Number(jahr) + "-12-31";
+    const aufgaben = kalenderFarbAufgaben(von, bis);
+    const hatFarbTermine = DATEN.termine.some(termin => !!kalenderEintragAkzent(termin));
+    const serienZeitraum = [+organizerZeitpunkt(Number(jahr), 1, 1, 0, 0),
+      +organizerZeitpunkt(Number(jahr) + 1, 1, 1, 0, 0) - 1, false, true];
     const modell = { jahr: Number(jahr), monate: [], zeilen: [],
       hatFeiertage: false, hatFerien: false, hatUrlaub: false };
     for (let monat = 0; monat < 12; monat += 1) modell.monate.push(monatsName(monat));
@@ -11641,7 +11800,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         zeile.push({ iso: iso, tag: tag, wochentag: datum.getDay(),
           wochentagText: wochentagName(datum.getDay(), true).replace(/\.$/, ""),
           feiertage: wahl.feiertage ? feiertage : [],
-          ferien: wahl.ferien ? ferien : [], urlaube: wahl.urlaub ? urlaube : [] });
+          ferien: wahl.ferien ? ferien : [], urlaube: wahl.urlaub ? urlaube : [],
+          akzente: planerAkzentEintraege(iso, serienZeitraum, aufgaben, hatFarbTermine) });
       }
       modell.zeilen.push(zeile);
     }
@@ -11659,6 +11819,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     // All day cells share one bounded worker request per series, not 31 jobs.
     const serienZeitraum = [+organizerZeitpunkt(erster.getFullYear(), erster.getMonth() + 1, 1, 0, 0),
       +organizerZeitpunkt(naechster.getFullYear(), naechster.getMonth() + 1, 1, 0, 0) - 1, false, true];
+    const aufgaben = kalenderFarbAufgaben(isoVon(erster), isoVon(new Date(Number(jahr), Number(monat) + 1, 0)));
     const versatz = (erster.getDay() - ersterWochentag() + 7) % 7;
     const start = new Date(Number(jahr), Number(monat), 1 - versatz);
     const modell = { art: "month", jahr: Number(jahr), monat: Number(monat),
@@ -11712,8 +11873,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           eintraege.push({ art: "termin", text: (termin.zeit
             ? zeitText(iso, termin.zeit) + " " : "") + termin.titel +
             (termin.ort ? " · " + termin.ort : ""),
-          farbe: termin.kalenderQuelle && termin.kalenderQuelle.farbe || "#a8823c" });
+          farbe: kalenderEintragAkzent(termin) || termin.kalenderQuelle && termin.kalenderQuelle.farbe || "#a8823c",
+          akzent: !!kalenderEintragAkzent(termin) });
         }
+        if (imMonat) eintraege.push(...planerAkzentEintraege(iso, serienZeitraum, aufgaben, false));
         zeile.tage.push({ iso: iso, tag: datum.getDate(), imMonat: imMonat,
           wochentag: datum.getDay(), feiertage: wahl.feiertage ? feiertage : [],
           ferien: wahl.ferien ? ferien : [], urlaube: wahl.urlaub ? urlaube : [],
@@ -11745,6 +11908,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       texte.push(urlaubsSymbol(urlaub.symbol) + (urlaub.darstellung === "symbol"
         ? "" : " " + _("Vacation")));
     }
+    for (const eintrag of zelle.akzente || []) texte.push(eintrag.text);
     return texte.join("\n");
   }
 
@@ -11764,6 +11928,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         td.className = "pk-" + planerKalenderZellart(zelle);
         if (zelle) {
           td.append(el("span", "pk-datum", zelle.tag + " " + zelle.wochentagText));
+          for (const eintrag of zelle.akzente || []) {
+            const balken = el("span", "pk-anlass", eintrag.text);
+            balken.style.backgroundColor = eintrag.farbe;
+            balken.style.color = kalenderAkzentTextfarbe(eintrag.farbe);
+            balken.title = eintrag.text;
+            td.append(balken);
+          }
           const namen = zelle.feiertage.concat(zelle.ferien).map((f) => f.name)
             .concat((zelle.urlaube || []).map(() => _("Vacation")));
           if (namen.length) td.title = namen.join(" · ");
@@ -11814,6 +11985,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         for (const eintrag of eintraege) {
           const balken = el("span", "pm-anlass pm-" + eintrag.art, eintrag.text);
           balken.style.setProperty("--eintragfarbe", eintrag.farbe);
+          if (eintrag.akzent) {
+            balken.style.backgroundColor = eintrag.farbe;
+            balken.style.color = kalenderAkzentTextfarbe(eintrag.farbe);
+          }
           balken.title = eintrag.text;
           td.append(balken);
         }
@@ -11851,7 +12026,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
             marker: tag.zyklus.map((marker) => ({ text: marker.symbol,
               farbe: marker.farbe })),
             eintraege: tag.eintraege.slice(0, 5).map((eintrag) => ({
-              text: eintrag.text, farbe: eintrag.farbe, art: eintrag.art
+              text: eintrag.text, farbe: eintrag.farbe, art: eintrag.art, akzent: !!eintrag.akzent
             })),
             mehr: Math.max(0, tag.eintraege.length - 5)
           })))) };
@@ -11874,7 +12049,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           .concat((zelle.urlaube || []).filter((urlaub) => urlaub.von === zelle.iso)
             .map((urlaub) => ({ text: urlaubsSymbol(urlaub.symbol) +
               (urlaub.darstellung === "symbol" ? "" : " " + _("Vacation")),
-              farbe: "#3f8f78" }))) : []
+              farbe: "#3f8f78" }))).concat(zelle.akzente || []) : []
       }))) };
   }
 
@@ -11898,6 +12073,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       return "<td class='" + art + "'><span class='datum'>" +
         sicher(zelle.tag + " " + zelle.wochentagText) + "</span>" +
         anlaesse.map((name) => "<span class='anlass'>" + sicher(name) + "</span>").join("") +
+        (zelle.akzente || []).map(e => "<span class='anlass' style='background:" + sicher(e.farbe) +
+          ";color:" + kalenderAkzentTextfarbe(e.farbe) + "'>" + sicher(e.text) + "</span>").join("") +
         "</td>";
     }).join("") + "</tr>").join("");
     const sprache = window.MagnolieI18n ? window.MagnolieI18n.locale() : "en";
@@ -11906,7 +12083,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       "style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\">" +
       "<title>" + sicher(titel) + " – Magnolie Organizer</title><style>" +
       "@page { size: A4 landscape; margin: 8mm; }" +
-      "body{font:7pt/1.08 'Liberation Sans',Arial,sans-serif;color:#17140f;margin:0}" +
+      "body{font:7pt/1.08 'Liberation Sans',Arial,sans-serif;color:#17140f;margin:0;print-color-adjust:exact;-webkit-print-color-adjust:exact}" +
       "h1{font-size:17pt;margin:0 0 4mm;letter-spacing:.025em}" +
       "table{border-collapse:collapse;table-layout:fixed;width:100%}" +
       "th{border:1px solid #29251d;background:#f1ede4;font-size:8pt;padding:1.4mm .5mm}" +
@@ -11933,7 +12110,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           sicher(m.farbe) + "'>" + sicher(m.symbol) + "</span>").join("");
         const eintraege = tag.eintraege.slice(0, 5).map((e) =>
           "<span class='eintrag " + sicher(e.art) + "' style='border-left-color:" +
-          sicher(e.farbe) + "'>" + sicher(e.text) + "</span>").join("");
+          sicher(e.farbe) + (e.akzent ? ";background:" + sicher(e.farbe) + ";color:" + kalenderAkzentTextfarbe(e.farbe) : "") + "'>" + sicher(e.text) + "</span>").join("");
         const mehr = tag.eintraege.length > 5 ? "<span class='eintrag mehr'>+" +
           (tag.eintraege.length - 5) + "</span>" : "";
         const inhalt = "<b class='tag'>" +
@@ -11946,7 +12123,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       "<meta http-equiv='Content-Security-Policy' content=\"default-src 'none'; style-src " +
       "'unsafe-inline'; base-uri 'none'; form-action 'none'\"><title>" + sicher(modell.titel) +
       " – Magnolie Organizer</title><style>@page{size:A4 landscape;margin:8mm}" +
-      "body{font:8pt/1.15 'Liberation Sans',Arial,sans-serif;color:#29231a;margin:0}" +
+      "body{font:8pt/1.15 'Liberation Sans',Arial,sans-serif;color:#29231a;margin:0;print-color-adjust:exact;-webkit-print-color-adjust:exact}" +
       "h1{text-align:center;background:#5c3f25;color:#fff;padding:2mm;margin:0;font-size:17pt}" +
       "table{border-collapse:collapse;table-layout:fixed;width:100%}" +
       "th{background:#8b6a35;color:#fff;border:1px solid #6d5129;padding:1.5mm}.kw{width:10mm}" +
@@ -14386,6 +14563,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     // Share one bounded recurrence job per source across the grid and overview.
     // Per-day jobs can evict still-visible results and trigger endless redraws.
     const ende = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 42);
+    const farbAufgaben = kalenderFarbAufgaben(isoVon(start), isoVon(ende));
     const serienZeitraum = typeof Worker === "function" ? [
       +organizerZeitpunkt(start.getFullYear(), start.getMonth() + 1, start.getDate(), 0, 0, 0),
       +organizerZeitpunkt(ende.getFullYear(), ende.getMonth() + 1, ende.getDate(), 0, 0, 0) - 1,
@@ -14453,6 +14631,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (t.kalenderQuelle && t.kalenderQuelle.farbe) {
           m.style.borderLeft = "3px solid " + t.kalenderQuelle.farbe;
         }
+        setzeKalenderAkzent(m, t);
         if (t.zeit) {
           const b = el("b", null, zeitText(iso, t.zeit));
           m.append(b, document.createTextNode(" " + t.titel + (t.ort ? " · " + t.ort : "")));
@@ -14465,6 +14644,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       });
       if (tt.length > 2) zelle.append(el("div", "mehr", "+" +
         uebersetztMehrzahl("%(count)s more", "%(count)s more", tt.length - 2)));
+      const tagesAufgaben = farbAufgaben.get(iso) || [];
+      for (const task of tagesAufgaben.slice(0, 2)) zelle.append(kalenderFarbAufgabenZeile(task));
+      if (tagesAufgaben.length > 2) {
+        const mehr = knopf("+" + (tagesAufgaben.length - 2) + " · " + _("Tasks"), "mehr", ev => {
+          ev.stopPropagation(); oeffneTagVomRaster(iso, null, true);
+        });
+        zelle.append(mehr);
+      }
 
       zelle.addEventListener("click", (ev) => {
         /* Ein Klick auf einen Termin im Kästchen öffnet diesen; ein Klick
@@ -14840,6 +15027,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (termin.kalenderQuelle && termin.kalenderQuelle.farbe) {
           zeile.style.borderLeft = "4px solid " + termin.kalenderQuelle.farbe;
         }
+        setzeKalenderAkzent(zeile, termin);
         if (termin.vertraulich) zeile.append(el("span", "stempel rot", _("confidential")));
         if (termin.vorlaeufig) zeile.append(el("span", "stempel", _("tentative")));
         if (termin.icsReadOnly) zeile.append(el("span", "stempel", nurLesenText()));
@@ -15356,18 +15544,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const feldKategorien = eingabe("text", neu ? "" : termin.kategorien);
     feldKategorien.id = "tb-kategorien";
     feldKategorien.setAttribute("list", "tb-kategorien-vorschlaege");
-    const kategorien = [];
-    const kategorienGesehen = new Set();
-    const technischeGoogleKategorie = /^https?:\/\/schemas\.google\.com\/g\/2005#/i;
-    for (const eintrag of DATEN.termine) {
-      for (const kategorie of String(eintrag.kategorien || "").split(/[,;]/)) {
-        const wert = kategorie.trim(), schluessel = wert.toLocaleLowerCase();
-        if (wert && !technischeGoogleKategorie.test(wert) &&
-            !kategorienGesehen.has(schluessel)) {
-          kategorienGesehen.add(schluessel); kategorien.push(wert);
-        }
-      }
-    }
+    const kategorien = kalenderKategorieNamen();
     const feldKostenstelle = eingabe("text", neu ? "" : termin.kostenstelle);
     feldKostenstelle.id = "tb-kostenstelle";
     const feldKunde = eingabe("text", neu ? "" : termin.kunde);
@@ -15385,6 +15562,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     weitere.id = "tb-weitere-felder";
     weitere.append(vorschlagsListe("tb-kategorien-vorschlaege", kategorien),
       formZeile(_("Categories"), feldKategorien));
+    const akzentWahl = kalenderAkzentWahl(neu ? {} : termin, "tb");
+    weitere.append(formZeile(_("Color"), akzentWahl.wurzel));
     weitere.append(formZeile(_("Cost center"), feldKostenstelle));
     weitere.append(formZeile(_("Customer no."), feldKunde));
     const hakV = el("label", "hak");
@@ -15752,7 +15931,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         zeit: ohneZeit ? "" : feldZeit.value,
         endZeit: ohneZeit ? "" : feldEndZeit.value,
         notiz: feldNotiz.value,
-        kategorien: feldKategorien.value.trim(),
+        kategorien: feldKategorien.value.trim(), akzentFarbe: akzentWahl.wert(),
         vertraulich: hakVertraulich.checked,
         vorlaeufig: hakVorlaeufig.checked,
         kostenstelle: feldKostenstelle.value.trim(),
@@ -16106,8 +16285,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       wetterPlatzhalter.setAttribute("aria-hidden", "true");
       linksWurzel.append(wetterPlatzhalter);
     }
-    baueTagesSpalte(linksWurzel, linkerTag);
-    baueTagesSpalte(rechtsWurzel, rechterTag);
+    const farbAufgaben = kalenderFarbAufgaben(linkerTag, rechterTag);
+    baueTagesSpalte(linksWurzel, linkerTag, farbAufgaben);
+    baueTagesSpalte(rechtsWurzel, rechterTag, farbAufgaben);
 
     const rasterLinks = linksWurzel.querySelector(".stunden-raster");
     const rasterRechts = rechtsWurzel.querySelector(".stunden-raster");
@@ -16125,7 +16305,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   /* Eine Tagesspalte mit Stundenleiste, Terminen und dem Knopf zum
      Hinzufügen am Fuß. */
-  function baueTagesSpalte(wurzel, iso) {
+  function baueTagesSpalte(wurzel, iso, farbAufgaben) {
     const spalte = el("div", "tages-spalte" +
       (iso === isoHeute() ? " heute" : ""));
 
@@ -16154,6 +16334,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       spalte.append(kasten);
     }
 
+    for (const task of (farbAufgaben || kalenderFarbAufgaben(iso, iso)).get(iso) || []) {
+      spalte.append(kalenderFarbAufgabenZeile(task));
+    }
     const alleTermine = termineAm(iso);
     const ganztags = alleTermine.filter((t) => !t.zeit);
     const mitZeit = alleTermine.filter((t) => t.zeit);
@@ -16258,6 +16441,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (t.kalenderQuelle && t.kalenderQuelle.farbe) {
       kachel.style.borderLeft = "4px solid " + t.kalenderQuelle.farbe;
     }
+    setzeKalenderAkzent(kachel, t);
     if (t.vertraulich) kachel.append(el("span", "stempel rot", _("confidential")));
     if (t.notiz) kachel.append(el("span", "tt-notiz", ersteZeile(t.notiz)));
     kachel.addEventListener("click", () => oeffneTerminBlatt(t, t.datum));
@@ -16312,14 +16496,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
     const links = el("div", "wochen-spalte");
     links.setAttribute("role", "grid");
-    for (const d of tage.slice(0, 3)) links.append(wochenTag(d, false));
+    const farbAufgaben = kalenderFarbAufgaben(isoVon(wochenbeginn), isoVon(wochenende));
+    for (const d of tage.slice(0, 3)) links.append(wochenTag(d, false, farbAufgaben));
     $("#inhalt-links").append(links);
 
     const rechts = el("div", "wochen-spalte");
     rechts.setAttribute("role", "grid");
-    rechts.append(wochenTag(tage[3], false), wochenTag(tage[4], false));
+    rechts.append(wochenTag(tage[3], false, farbAufgaben), wochenTag(tage[4], false, farbAufgaben));
     const halb = el("div", "wo-halb");
-    halb.append(wochenTag(tage[5], true), wochenTag(tage[6], true));
+    halb.append(wochenTag(tage[5], true, farbAufgaben), wochenTag(tage[6], true, farbAufgaben));
     rechts.append(halb);
     const rechtsWurzel = $("#inhalt-rechts");
     rechtsWurzel.append(rechts);
@@ -16329,7 +16514,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       () => schiebeWoche(1), _("Next week"));
   }
 
-  function wochenTag(d, schmal) {
+  function wochenTag(d, schmal, farbAufgaben) {
     const iso = isoVon(d);
     const kasten = el("div", "wo-tag" + (schmal ? " schmal" : ""));
     kasten.setAttribute("role", "gridcell");
@@ -16368,6 +16553,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       kasten.append(el("div", "wo-jt", "✱ " + jts.map((x) => x.name).join(", ")));
     }
 
+    for (const task of (farbAufgaben || kalenderFarbAufgaben(iso, iso)).get(iso) || []) {
+      kasten.append(kalenderFarbAufgabenZeile(task));
+    }
     const tt = termineAm(iso);
     const maxAnzahl = schmal ? 2 : 4;
       if (tt.length) {
@@ -16380,6 +16568,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (t.kalenderQuelle && t.kalenderQuelle.farbe) {
           taste.style.borderLeft = "3px solid " + t.kalenderQuelle.farbe;
         }
+        setzeKalenderAkzent(taste, t);
         if (t.zeit) taste.append(el("b", null, zeitText(iso, t.zeit) + " "));
         taste.append(document.createTextNode(t.titel + (t.ort ? " · " + t.ort : "")));
         taste.title = (t.zeit ? zeitspanneText(t) + " – " : "") + t.titel;
@@ -16472,7 +16661,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return { id: uid(), uid: "", elternUid,
       reihenfolge: DATEN.aufgaben.filter(aufgabe => aufgabe.elternUid === elternUid).length,
       titel: "", prio: 2, faellig: "", startDatum: "", startZeit: "", faelligZeit: "",
-      erledigt: false, notiz: "", personen: [], erinnern: false, vonTermin: "",
+      erledigt: false, notiz: "", kategorien: "", akzentFarbe: "", personen: [], erinnern: false, vonTermin: "",
       individuelleErinnerungTage: 0, herkunft: (baumStand && baumStand.kennung) || "",
       vonZweig: "", fremdId: "", delegiertAn: "", angelegt: jetzt, geaendert: jetzt,
       personalGeaendert: jetzt, vorlaufTage: 0, erinnerungsMinute: 480, ...werte };
@@ -17410,6 +17599,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     feldFensterEnde.setAttribute("aria-label", _("Due on") + " / " + _("Time"));
     const feldNotiz = eingabe("textarea", bearbeitet ? bearbeitet.notiz : "");
     feldNotiz.rows = 3;
+    const feldKategorien = eingabe("text", bearbeitet?.kategorien || "");
+    feldKategorien.id = "aufgabe-kategorien";
+    feldKategorien.setAttribute("list", "aufgabe-kategorien-vorschlaege");
+    const akzentWahl = kalenderAkzentWahl(bearbeitet || {}, "aufgabe");
 
     form.append(vorschlagsListe("aufgabe-titel-vorschlaege", AUFGABEN_TITEL.map(_)),
       formZeile(_("Title"), feldTitel));
@@ -17513,6 +17706,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     faelligZeile.addEventListener("contextmenu", zeigeAufgabenZeitMenue);
     zeigeZeitModus();
     form.append(formZeile(_("Note"), feldNotiz));
+    form.append(vorschlagsListe("aufgabe-kategorien-vorschlaege", kalenderKategorieNamen()),
+      formZeile(_("Categories"), feldKategorien), formZeile(_("Color"), akzentWahl.wurzel));
 
     /* ---- Wer ist zuständig? ---- */
     const gewaehltePersonen = new Set(
@@ -17585,7 +17780,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const speichernFn = () => {
       if (bearbeitet) {
         const aktuell = DATEN.aufgaben.find(item => item.id === bearbeitet.id);
-        const felder = ["titel", "notiz", "prio", "faellig", "startDatum", "startZeit", "faelligZeit",
+        const felder = ["titel", "notiz", "kategorien", "akzentFarbe", "prio", "faellig", "startDatum", "startZeit", "faelligZeit",
           "elternUid", "personen", "erinnern", "individuelleErinnerungTage", "delegiertAn"];
         if (!aktuell || aktuell !== bearbeitet && felder.some(key =>
             kanonischerEntwurf(aktuell[key]) !== kanonischerEntwurf(bearbeitet[key]))) {
@@ -17618,7 +17813,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         wendeAufgabenWerteAn(bearbeitet, {
           startDatum: zeitModus === "window" ? startDatum : bearbeitet.startDatum || "",
           titel, prio: Number(feldPrio.value), faellig, startZeit, faelligZeit,
-          notiz: feldNotiz.value, elternUid: elternWahl.value, personen: Array.from(gewaehltePersonen),
+          notiz: feldNotiz.value, kategorien: feldKategorien.value.trim(), akzentFarbe: akzentWahl.wert(), elternUid: elternWahl.value, personen: Array.from(gewaehltePersonen),
           erinnern: erinnerHak.checked, individuelleErinnerungTage: erinnerungsTageAusText(individuellFeld.value),
           ...(zweigWahl ? { delegiertAn: zweigWahl.value } : {}) }, zeitGeaendert);
         schickeAnZweig(bearbeitet, zweigWahl ? zweigWahl.value : "");
@@ -17626,7 +17821,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         DATEN.aufgaben.push(neueAufgabeDaten({ elternUid: elternWahl.value,
           titel: titel, prio: Number(feldPrio.value),
           faellig: faellig, startDatum: zeitModus === "window" ? startDatum : "", startZeit: startZeit, faelligZeit: faelligZeit,
-          erledigt: false, notiz: feldNotiz.value,
+          erledigt: false, notiz: feldNotiz.value, kategorien: feldKategorien.value.trim(), akzentFarbe: akzentWahl.wert(),
           personen: Array.from(gewaehltePersonen),
           erinnern: erinnerHak.checked,
           individuelleErinnerungTage: erinnerungsTageAusText(individuellFeld.value),
@@ -17734,6 +17929,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     zeile.addEventListener("keydown", event => { if (event.key === "ContextMenu" || event.shiftKey && event.key === "F10") admissionMenu(event); });
     zeile.style.paddingInlineStart = Math.min(12, Math.max(0, tiefe - 1)) * 18 + "px";
     zeile.setAttribute("aria-level", String(tiefe));
+    setzeKalenderAkzent(zeile, a);
 
     const kasten = el("button", "check" + (istErledigt ? " an" : ""));
     kasten.type = "button";
@@ -22979,6 +23175,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       [vor, zurueck, jahrWahl, kalenderSuchknopf("planer")]);
     baueKopf("rechts", String(z.jahr), monatsName(6) + " – " + monatsName(11), []);
 
+    const farbAufgaben = kalenderFarbAufgaben(jahr + "-01-01", jahr + "-12-31");
+    const hatFarbTermine = DATEN.termine.some(termin => !!kalenderEintragAkzent(termin));
+    const farbZeitraum = [+organizerZeitpunkt(jahr, 1, 1, 0, 0, 0), +organizerZeitpunkt(jahr, 12, 31, 23, 59, 59), false, true];
+
     const heute = isoHeute();
 
     const baueHalbjahr = (vonMonat) => {
@@ -23015,6 +23215,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         for (let t = 1; t <= tage; t++) {
           const iso = z.jahr + "-" + pad2(m + 1) + "-" + pad2(t);
           const zelle = el("span", "mm-tag", String(t));
+          const farbEintraege = (hatFarbTermine ? termineAm(iso, false, farbZeitraum).filter(termin => !!kalenderEintragAkzent(termin)) : []).concat(farbAufgaben.get(iso) || []);
+          if (farbEintraege.length) {
+            const streifen = el("span", "mm-kategoriefarben");
+            for (const item of farbEintraege) {
+              const balken = setzeKalenderAkzent(el("span", "mm-kategoriebalken"), item);
+              balken.title = item.titel; streifen.append(balken);
+            }
+            zelle.append(streifen);
+          }
           zelle.setAttribute("role", "gridcell");
           zelle.setAttribute("aria-label", fmtLang(iso));
           zelle.tabIndex = iso === heute || (z.jahr !== Number(heute.slice(0, 4)) &&
@@ -23043,6 +23252,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
               urlaube.map((urlaub) => urlaubsSymbol(urlaub.symbol)).join("")));
           }
           zelle.title = fmtPunkt(iso) +
+            (farbEintraege.length ? " – " + farbEintraege.map(item => item.titel).join(", ") : "") +
             (fts.length ? " – " + fts.map((f) => f.name).join(", ") : "") +
             (marken.schicht ? " – " + schichtZeitText(marken.schicht, iso) : "") +
             (marken.zyklus.length ? " – " + marken.zyklus.map((m) => m.name).join(", ") : "") +
@@ -27331,6 +27541,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const a = DATEN.einstellungen.allgemein;
     const ab = abschnitt(_("Calendar"),
       _("How the calendar should behave when you click a day."));
+    baueKategorieFarben(ab);
 
     const wahl = auswahlFeld([
       ["tag", _("Open the day in the daily view")],
@@ -32963,7 +33174,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const task = kopie(base);
     for (const [field, target] of Object.entries({ title: "titel", priority: "prio", due_date: "faellig",
       start_date: "startDatum", start_time: "startZeit", due_time: "faelligZeit", note: "notiz",
-      reminder: "erinnern", reminder_days: "individuelleErinnerungTage" }))
+      categories: "kategorien", accent_color: "akzentFarbe", reminder: "erinnern", reminder_days: "individuelleErinnerungTage" }))
       if (Object.prototype.hasOwnProperty.call(args, field)) task[target] = field === "title" ? args[field].trim() : args[field];
     for (const field of ["faellig", "startDatum"]) if (task[field] && !gueltigesISO(task[field]))
       throw new MagnolieMcp.ToolError("invalid_date", "Task dates must be valid calendar dates");
@@ -33030,6 +33241,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
     const properties = { title: { type: "string", minLength: 1, maxLength: 1024, pattern: "\\S" },
       priority: { type: "integer", enum: [1, 2, 3] }, note: { type: "string", maxLength: 500000 },
+      categories: { type: "string", maxLength: 4000 }, accent_color: { type: "string", pattern: "^$|^#[0-9a-fA-F]{6}$" },
       due_date: { type: "string", pattern: "^$|^\\d{4}-\\d{2}-\\d{2}$" },
       start_date: { type: "string", pattern: "^$|^\\d{4}-\\d{2}-\\d{2}$" },
       start_time: { type: "string", pattern: "^$|^(?:[01]\\d|2[0-3]):[0-5]\\d$" },
@@ -33111,13 +33323,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const normalized = normalisiereTermine([base], false)[0];
     if (!normalized) throw new MagnolieMcp.ToolError("invalid_date", "Appointment start date is invalid");
     const values = {};
-    for (const field of ["datum", "endDatum", "titel", "ort", "zeit", "endZeit", "notiz", "kategorien", "vertraulich",
+    for (const field of ["datum", "endDatum", "titel", "ort", "zeit", "endZeit", "notiz", "kategorien", "akzentFarbe", "vertraulich",
       "vorlaeufig", "kostenstelle", "kunde", "individuelleErinnerungTage", "standardErinnerung", "alarme",
       "kalenderQuelle", "syncKalenderUid", "organisator", "teilnehmer", "kalenderAnhaenge", "wiederholung", "aufgaben", "kontaktId"])
       values[field] = kopie(base[field] === undefined ? normalized[field] : base[field]);
     for (const [field, target] of Object.entries({ title: "titel", start_date: "datum", end_date: "endDatum",
       start_time: "zeit", end_time: "endZeit", location: "ort", note: "notiz", categories: "kategorien",
-      confidential: "vertraulich", tentative: "vorlaeufig", cost_center: "kostenstelle", client: "kunde",
+      accent_color: "akzentFarbe", confidential: "vertraulich", tentative: "vorlaeufig", cost_center: "kostenstelle", client: "kunde",
       reminder_days: "individuelleErinnerungTage", standard_reminder: "standardErinnerung" }))
       if (Object.prototype.hasOwnProperty.call(args, field)) values[target] = ["title", "location", "categories", "cost_center", "client"].includes(field) ? args[field].trim() : args[field];
     if (!gueltigesISO(values.datum) || values.endDatum && !gueltigesISO(values.endDatum))
@@ -33188,6 +33400,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       end_date: optionalDate, start_time: time, end_time: time, all_day: { type: "boolean" },
       location: { type: "string", maxLength: 1000 }, note: { type: "string", maxLength: 500000 },
       categories: { type: "string", maxLength: 4000 }, confidential: { type: "boolean" }, tentative: { type: "boolean" },
+      accent_color: { type: "string", pattern: "^$|^#[0-9a-fA-F]{6}$" },
       cost_center: { type: "string", maxLength: 1000 }, client: { type: "string", maxLength: 1000 },
       reminder_days: { type: "integer", minimum: 0, maximum: 7 }, standard_reminder: { type: "boolean" },
       calendar_uid: { type: "string", maxLength: 200 }, contact_id: { type: "string", maxLength: 256 },
@@ -36274,6 +36487,22 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (cycle) Object.assign(DATEN.einstellungen.kalender.zyklusErinnerungen, cycle);
     return true;
   }
+  function mcpKategorieFarbWerkzeuge() {
+    const palette = () => kopie(DATEN.einstellungen.kalender.kategorieFarben || []);
+    return [{ name: "organizer_category_colors_read", description: "Read saved appointment/task category colors and their revision. Record accent_color takes precedence over the first matching category. Provider source colors and categories on records are preserved.",
+      inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => {
+        const colors = palette(); return { colors: colors.map(item => ({ name: item.name, color: item.farbe })), revision: await personalSyncHash(JSON.stringify(colors)) };
+      } }, { name: "organizer_category_colors_update", description: "Replace the category-color palette with revision checking and native durable SaveACK. Uses shared GUI normalization; does not rename/delete record categories or rewrite provider metadata. Assign records with task/appointment categories and optional accent_color.",
+      inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, colors: { type: "array", maxItems: 1000, items: { type: "object", properties: { name: { type: "string", minLength: 1, maxLength: 256, pattern: "^[^,;\\u0000-\\u001f\\u007f]+$" }, color: { type: "string", pattern: "^#[0-9a-fA-F]{6}$" } }, required: ["name", "color"], additionalProperties: false } } }, required: ["expected_revision", "colors"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+        const before = JSON.stringify(palette()), revision = await personalSyncHash(before);
+        if (revision !== args.expected_revision || JSON.stringify(palette()) !== before || signal.aborted) throw new MagnolieMcp.ToolError("conflict", "Category colors changed before saving");
+        const colors = saubereKategorieFarben(args.colors.map(item => ({ name: item.name, farbe: item.color })));
+        if (colors.length !== args.colors.length) throw new MagnolieMcp.ToolError("invalid_selection", "Category names must be nonempty and unique ignoring case/Unicode normalization");
+        DATEN.einstellungen.kalender.kategorieFarben = colors;
+        return { count: colors.length };
+      }) }];
+  }
   function mcpKalenderAnzeigeWerkzeuge() {
     const fields = Object.fromEntries(Object.keys(KALENDER_ANZEIGE_FELDER).map(key => [key, { type: "boolean" }])), cycleMap = { prediction: "prognose", report_deviations: "abweichung", lead_days: "vorlauf", difference_days: "abweichungTage" };
     const cycleFields = { prediction: { type: "boolean" }, report_deviations: { type: "boolean" }, lead_days: { type: "integer", minimum: 0, maximum: 30 }, difference_days: { type: "integer", minimum: 1, maximum: 30 } };
@@ -36793,6 +37022,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (name === "organizer_category_colors_read") return shape({ revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, colors: { type: "array", items: shape({ name: text, color: { type: "string", pattern: "^#[a-f0-9]{6}$" } }, ["name", "color"]) } }, ["revision", "colors"]);
+    if (name === "organizer_category_colors_update") return shape({ count: { type: "integer", minimum: 0 }, persisted: yes }, ["count", "persisted"]);
     if (["organizer_kde_pairing_begin", "organizer_kde_pairing_status"].includes(name)) return shape({ operation_id: { type: "string", pattern: "^[a-f0-9]{48}$" }, action: { type: "string", enum: ["begin", "complete", "renew"] }, phase: { type: "string", enum: ["dispatching", "pending", "paired", "failed", "cancelled"] }, error_code: text, native_outcome_unknown: flag, paired_verified: flag, state: { anyOf: [{ type: "null" }, mcpErgebnisSchema("organizer_kde_connection_read")] } }, ["operation_id", "action", "phase", "error_code", "native_outcome_unknown", "paired_verified", "state"]);
     if (name === "organizer_kde_pairing_decide") return shape({ state: mcpErgebnisSchema("organizer_kde_connection_read"), decision_accepted: yes, paired_verified: flag, persisted: flag, delivery_confirmed: { type: "boolean", enum: [false] } }, ["state", "decision_accepted", "paired_verified", "persisted", "delivery_confirmed"]);
     if (name === "organizer_kde_connection_remove") return shape({ state: mcpErgebnisSchema("organizer_kde_connection_read"), local_verified: yes, persisted: yes, delivery_confirmed: { type: "boolean", enum: [false] } }, ["state", "local_verified", "persisted", "delivery_confirmed"]);
@@ -37093,6 +37324,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpSicherungstestWerkzeuge(),
       ...mcpGesundheitsEinstellungenWerkzeuge(),
       ...mcpKalenderAnzeigeWerkzeuge(),
+      ...mcpKategorieFarbWerkzeuge(),
       ...mcpAnzeigeEinstellungenWerkzeuge(),
       ...mcpRechtschreibWerkzeuge(),
       ...mcpRegionaleEinstellungenWerkzeuge(),

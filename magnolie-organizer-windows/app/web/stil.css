@@ -6335,6 +6335,16 @@ body[data-linien="aus"] #tb-notiz {
 }
 .tb-eigene-daten-steuerung input,
 .aufgabe-zeitfenster input { min-width: 0; }
+
+.kategorie-farbwahl, .kategorie-farbzeile { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.kategorie-farbzeile { margin-block: .45rem; }
+.kategorie-farbzeile input[type="text"] { flex: 1 1 12rem; min-width: 0; }
+.kategorie-farbwahl input[type="color"], .kategorie-farbzeile input[type="color"] { width: 3rem; min-height: 2rem; padding: .15rem; }
+.kategorie-akzent { border-radius: .2rem; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.kategorie-akzent .au-titel, .kategorie-akzent .tt-titel, .kategorie-akzent .zeit { color: inherit; }
+.mm-kategoriefarben { display: flex; gap: 1px; width: 100%; position: absolute; inset-inline: 0; bottom: 1px; height: 4px; }
+.mm-kategoriebalken { flex: 1; min-width: 1px; }
+.mm-tag:has(.mm-kategoriefarben) { position: relative; }
 .tb-eigene-daten-steuerung input { flex: 1 1 auto; width: auto; }
 .tb-eigene-daten-steuerung .knopf { flex: 0 0 auto; white-space: nowrap; }
 .aufgabe-zeitfenster input { flex: 1; }

@@ -1,13 +1,12 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the Magnolie Organizer package.
+# This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
-"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: zh_CN\n"
@@ -16,6 +15,30 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "Category"
+msgstr "类别"
+
+msgid "Category colors"
+msgstr "类别颜色"
+
+msgid ""
+"Category colors highlight appointments and tasks. A custom entry color takes "
+"precedence; otherwise the first matching category is used."
+msgstr ""
+"类别颜色用于突出显示日程和任务。条目的自定义颜色优先，否则使用第一个匹配类别"
+"的颜色。"
+
+msgid ""
+"Changing or removing a category color does not rename or delete categories "
+"on saved or imported entries."
+msgstr "更改或移除类别颜色不会重命名或删除已保存或导入条目上的类别。"
+
+msgid "Custom color"
+msgstr "自定义颜色"
+
+msgid "Please enter a unique category name without commas or semicolons."
+msgstr "请输入不含逗号或分号的唯一类别名称。"
 
 msgid " (filtered)"
 msgstr "（已筛选）"

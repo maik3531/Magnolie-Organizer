@@ -947,6 +947,7 @@ internal static partial class ExchangeCodec
             ["endDatum"] = end is not null && end.Value.DateTime.Date > start.DateTime.Date ? end.Value.DateTime.ToString("yyyy-MM-dd") : "", ["zeit"] = start.AllDay ? "" : start.DateTime.ToString("HH:mm"),
             ["endZeit"] = end is null || end.Value.AllDay ? "" : end.Value.DateTime.ToString("HH:mm"), ["titel"] = title,
             ["notiz"] = IcsText(First(values, "DESCRIPTION")?.Value ?? ""), ["kategorien"] = category,
+            ["akzentFarbe"] = AccentColor(First(values, "X-MAGNOLIE-ACCENT-COLOR")?.Value),
             ["vertraulich"] = new[] { "PRIVATE", "CONFIDENTIAL" }.Contains((First(values, "CLASS")?.Value ?? "").ToUpperInvariant()),
             ["vorlaeufig"] = (First(values, "STATUS")?.Value ?? "").Equals("TENTATIVE", StringComparison.OrdinalIgnoreCase),
             ["kostenstelle"] = IcsText(First(values, "X-MAGNOLIE-KOSTENSTELLE")?.Value ?? ""), ["kunde"] = IcsText(First(values, "X-MAGNOLIE-KUNDE")?.Value ?? ""),
@@ -1013,6 +1014,8 @@ internal static partial class ExchangeCodec
             ["prio"] = TaskPriority(First(values, "PRIORITY")?.Value),
             ["erledigt"] = (First(values, "STATUS")?.Value ?? "").Equals("COMPLETED", StringComparison.OrdinalIgnoreCase) || First(values, "PERCENT-COMPLETE")?.Value == "100",
             ["notiz"] = IcsText(First(values, "DESCRIPTION")?.Value ?? ""),
+            ["kategorien"] = IcsText(First(values, "CATEGORIES")?.Value ?? ""),
+            ["akzentFarbe"] = AccentColor(First(values, "X-MAGNOLIE-ACCENT-COLOR")?.Value),
             ["erinnern"] = First(values, "X-MAGNOLIE-ERINNERUNG-AM-TAG")?.Value == "1",
             ["individuelleErinnerungTage"] = int.TryParse(First(values, "X-MAGNOLIE-ERINNERUNG-TAGE")?.Value, out var reminderDays) ? Math.Clamp(reminderDays, 0, 7) : 0,
             ["icsRoundtrip"] = IcsRoundtrip(original.Where(property => property.Name != "X-MAGNOLIE-TASK-IDENTITY"), true), ["geaendert"] = IcsModified(values)
@@ -1266,6 +1269,8 @@ internal static partial class ExchangeCodec
         }
         if (JBool(item, "erledigt")) lines.AddRange(new[] { "STATUS:COMPLETED", "PERCENT-COMPLETE:100" });
         if (J(item, "notiz") is { Length: > 0 } note) lines.Add($"DESCRIPTION:{V(note)}");
+        if (J(item, "kategorien") is { Length: > 0 } category) lines.Add($"CATEGORIES:{V(category)}");
+        if (AccentColor(J(item, "akzentFarbe")) is { Length: > 0 } accent) lines.Add($"X-MAGNOLIE-ACCENT-COLOR:{accent}");
         if (J(item, "_icsExportParent") is { Length: > 0 } parent) lines.Add($"RELATED-TO;RELTYPE=PARENT:{V(parent)}");
         lines.Add($"X-MAGNOLIE-REIHENFOLGE:{Math.Max(0, JInt(item, "reihenfolge"))}");
         if (JBool(item, "erinnern")) lines.Add("X-MAGNOLIE-ERINNERUNG-AM-TAG:1");
@@ -1281,9 +1286,12 @@ internal static partial class ExchangeCodec
         lines.Add($"SUMMARY:{V(J(item, "titel"))}");
         if (J(item, "notiz") is { Length: > 0 } note) lines.Add($"DESCRIPTION:{V(note)}");
         if (J(item, "kategorien") is { Length: > 0 } category) lines.Add($"CATEGORIES:{V(category)}");
+        if (AccentColor(J(item, "akzentFarbe")) is { Length: > 0 } accent) lines.Add($"X-MAGNOLIE-ACCENT-COLOR:{accent}");
         if (JBool(item, "vertraulich")) lines.Add("CLASS:PRIVATE");
         if (JBool(item, "vorlaeufig")) lines.Add("STATUS:TENTATIVE");
     }
+
+    private static string AccentColor(string? value) => value is not null && Regex.IsMatch(value, "^#[0-9a-fA-F]{6}$") ? value.ToLowerInvariant() : "";
 
     private static IEnumerable<string> Unfold(string text)
     {
@@ -1481,7 +1489,7 @@ internal static partial class ExchangeCodec
         {
             var name = PropertyName(line);
             if (name == "BEGIN") rawDepth++;
-            if (rawDepth > 0 || name is not ("SUMMARY" or "DESCRIPTION" or "CATEGORIES" or "PRIORITY")) lines.Add(line);
+            if (rawDepth > 0 || name is not ("SUMMARY" or "DESCRIPTION" or "CATEGORIES" or "PRIORITY" or "X-MAGNOLIE-ACCENT-COLOR")) lines.Add(line);
             if (name == "END") rawDepth = Math.Max(0, rawDepth - 1);
         }
         var duration = topLevel.Any(property => property.Name == "DURATION");

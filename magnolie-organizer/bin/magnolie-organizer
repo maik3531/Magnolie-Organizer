@@ -3006,7 +3006,8 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
             "faelligZeit": faellig_zeit, "prio": prio,
             "erledigt": (wert("STATUS").strip().upper() == "COMPLETED" or
                           wert("PERCENT-COMPLETE").strip() == "100"),
-            "notiz": wert("DESCRIPTION"),
+            "notiz": wert("DESCRIPTION"), "kategorien": wert("CATEGORIES"),
+            "akzentFarbe": _kalender_akzentfarbe(wert("X-MAGNOLIE-ACCENT-COLOR")),
             "erinnern": wert("X-MAGNOLIE-ERINNERUNG-AM-TAG") == "1",
             "individuelleErinnerungTage": ganzzahl("X-MAGNOLIE-ERINNERUNG-TAGE"),
             "uid": uid_wert, "icsSerienUid": serien_uid if recurrence_id else "", "elternUid": eltern,
@@ -3144,6 +3145,7 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
         "zeit": zeit, "endZeit": end_zeit,
         "titel": titel, "notiz": wert("DESCRIPTION"),
         "kategorien": kategorien,
+        "akzentFarbe": _kalender_akzentfarbe(wert("X-MAGNOLIE-ACCENT-COLOR")),
         "vertraulich": wert("CLASS").strip().upper() in ("CONFIDENTIAL", "PRIVATE"),
         "vorlaeufig": wert("STATUS").strip().upper() == "TENTATIVE",
         "kostenstelle": wert("X-MAGNOLIE-KOSTENSTELLE"),
@@ -3559,6 +3561,8 @@ def _vevent_zeilen(t):
         z.append("DESCRIPTION:" + _ical_escape(t["notiz"]))
     if t.get("kategorien"):
         z.append("CATEGORIES:" + _ical_escape(t["kategorien"]))
+    if _kalender_akzentfarbe(t.get("akzentFarbe")):
+        z.append("X-MAGNOLIE-ACCENT-COLOR:" + _kalender_akzentfarbe(t["akzentFarbe"]))
     if t.get("vertraulich"):
         z.append("CLASS:CONFIDENTIAL")
     if t.get("vorlaeufig"):
@@ -3690,6 +3694,18 @@ def _aufgaben_export_daten(aufgaben):
     return records
 
 
+def _kalender_akzent_textfarbe(farbe):
+    def kanal(offset):
+        wert = int(farbe[offset:offset + 2], 16) / 255
+        return wert / 12.92 if wert <= 0.04045 else ((wert + 0.055) / 1.055) ** 2.4
+    return "#000000" if sum(gewicht * kanal(offset) for gewicht, offset in
+        ((0.2126, 1), (0.7152, 3), (0.0722, 5))) > 0.179 else "#ffffff"
+
+
+def _kalender_akzentfarbe(wert):
+    return wert.lower() if isinstance(wert, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", wert) else ""
+
+
 def _vtodo_zeilen(a):
     external = _aufgaben_externe_uid(a) or _neue_uid()
     parent = str(a.get("icsElternUid", a.get("elternUid")) or "")
@@ -3716,6 +3732,10 @@ def _vtodo_zeilen(a):
         z.append("PERCENT-COMPLETE:100")
     if a.get("notiz"):
         z.append("DESCRIPTION:" + _ical_escape(a["notiz"]))
+    if a.get("kategorien"):
+        z.append("CATEGORIES:" + _ical_escape(a["kategorien"]))
+    if _kalender_akzentfarbe(a.get("akzentFarbe")):
+        z.append("X-MAGNOLIE-ACCENT-COLOR:" + _kalender_akzentfarbe(a["akzentFarbe"]))
     if a.get("erinnern"):
         z.append("X-MAGNOLIE-ERINNERUNG-AM-TAG:1")
     tage = _erinnerung_tage(a.get("individuelleErinnerungTage"))
@@ -3749,7 +3769,7 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False):
                     not (eigenschaft[0] == "RELATED-TO" and
                          str(eigenschaft[1].get("RELTYPE") or "").upper() == "PARENT"))
     rohzeilen = [zeile for zeile in rohzeilen if fremd(zeile)]
-    eigene = {"SUMMARY", "DESCRIPTION", "CATEGORIES", "PRIORITY"}
+    eigene = {"SUMMARY", "DESCRIPTION", "CATEGORIES", "PRIORITY", "X-MAGNOLIE-ACCENT-COLOR"}
     if jahrestag:
         # The annual projection owns its anchor and rule, not nested alarm fields.
         eigene.update(("DTSTART", "DTEND", "DUE", "DURATION", "RRULE",
@@ -11330,7 +11350,7 @@ def planer_ods_inhalte_pruefen(inhalte, zeilen, spalten):
             mehr = zelle.get("mehr") or 0
             if (not isinstance(datum, str) or len(datum) > 80 or
                     not isinstance(marker, list) or len(marker) > 12 or
-                    not isinstance(eintraege, list) or len(eintraege) > 6 or
+                    not isinstance(eintraege, list) or len(eintraege) > 512 or
                     not isinstance(mehr, int) or mehr < 0 or mehr > 999):
                 raise ValueError(_("The ODS calendar content is invalid."))
             def element(wert, mit_art=False):
@@ -11343,9 +11363,9 @@ def planer_ods_inhalte_pruefen(inhalte, zeilen, spalten):
                         not re.fullmatch(r"#[0-9a-f]{6}", farbe) or
                          not isinstance(art, str) or (mit_art and len(spalten) == 8 and art not in
                         ("termin", "jahrestag", "schicht", "feiertag", "ferien", "urlaub",
-                         "muell"))):
+                          "muell", "aufgabe")) or not isinstance(wert.get("akzent", False), bool)):
                     raise ValueError(_("The ODS calendar content is invalid."))
-                return {"text": text, "farbe": farbe, "art": art}
+                return {"text": text, "farbe": farbe, "art": art, "akzent": wert.get("akzent", False)}
             neu.append({"datum": datum, "marker": [element(x) for x in marker],
                         "eintraege": [element(x, True) for x in eintraege], "mehr": mehr})
         ausgabe.append(neu)
@@ -11764,7 +11784,7 @@ def adressen_ods_bytes(titel, spalten, zeilen, logo_pfad=None,
                     marker_stile.setdefault(marker["farbe"],
                                             "calendarMarker%d" % len(marker_stile))
                 for eintrag in inhalt["eintraege"]:
-                    schluessel = (eintrag["art"], eintrag["farbe"])
+                    schluessel = (eintrag["art"], eintrag["farbe"], eintrag["akzent"])
                     eintrag_stile.setdefault(schluessel,
                                              "calendarEntry%d" % len(eintrag_stile))
                     balken_stile.setdefault(eintrag["farbe"],
@@ -11780,8 +11800,8 @@ def adressen_ods_bytes(titel, spalten, zeilen, logo_pfad=None,
                            '%s</text:p>' % (datum_stil,
                                            _ods_xml_text(inhalt["datum"]), marker)]
             for eintrag in inhalt["eintraege"]:
-                if ist_monat:
-                    stilname = eintrag_stile[(eintrag["art"], eintrag["farbe"])]
+                if ist_monat or eintrag["akzent"]:
+                    stilname = eintrag_stile[(eintrag["art"], eintrag["farbe"], eintrag["akzent"])]
                     abschnitte.append('<text:p text:style-name="%s">'
                                       '<text:span text:style-name="%s">▌</text:span> %s'
                                       '</text:p>' % (stilname,
@@ -11941,9 +11961,10 @@ def adressen_ods_bytes(titel, spalten, zeilen, logo_pfad=None,
                 'fo:border-left="0.25cm solid %s" fo:padding="0.05cm 0.1cm" '
                 'fo:wrap-option="no-wrap" fo:background-color="%s"/>'
                 '<style:text-properties fo:font-size="8pt" '
-                'fo:font-weight="normal" fo:color="#29231a"/>'
-                '</style:style>' % (name, farbe, eintrag_hintergrund.get(art, "#f1e7d0"))
-                for (art, farbe), name in eintrag_stile.items()))
+                'fo:font-weight="normal" fo:color="%s"/>'
+                '</style:style>' % (name, farbe, farbe if akzent else eintrag_hintergrund.get(art, "#f1e7d0"),
+                    _kalender_akzent_textfarbe(farbe) if akzent else "#29231a")
+                for (art, farbe, akzent), name in eintrag_stile.items()))
 
     if ist_monat:
         titel_stile = (

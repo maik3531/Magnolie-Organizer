@@ -12,7 +12,8 @@ internal sealed record DocumentChart(string Title, IReadOnlyList<DocumentChartSe
 internal sealed record DocumentSheet(string Name, IReadOnlyList<string> Columns, IReadOnlyList<IReadOnlyList<string>> Rows,
     IReadOnlyList<DocumentSheetGroup>? Groups = null, string Layout = "table",
     IReadOnlyList<IReadOnlyList<string>>? CellStyles = null,
-    IReadOnlyList<IReadOnlyList<IReadOnlyList<string>>>? TextColors = null, DocumentChart? Chart = null);
+    IReadOnlyList<IReadOnlyList<IReadOnlyList<string>>>? TextColors = null, DocumentChart? Chart = null,
+    IReadOnlyList<IReadOnlyList<IReadOnlyList<string>>>? TextBackgrounds = null);
 
 internal static partial class DocumentExportService
 {
@@ -302,13 +303,14 @@ internal static partial class DocumentExportService
             "year" => "year", "month" => "month", _ => "table"
         };
         IReadOnlyList<IReadOnlyList<IReadOnlyList<string>>>? textColors = null;
+        IReadOnlyList<IReadOnlyList<IReadOnlyList<string>>>? textBackgrounds = null;
         IReadOnlyList<IReadOnlyList<string>> rows;
         if (layout is "year" or "month" && message.TryGetProperty("inhalte", out var contents))
-            (rows, textColors) = ReadPlannerRows(contents, columns.Length);
+            (rows, textColors, textBackgrounds) = ReadPlannerRows(contents, columns.Length);
         else rows = ReadRows(message, "zeilen", columns.Length);
         var styles = ReadStyleRows(message, columns.Length, rows.Count);
         return new DocumentSheet(Value(message, "titel") is { Length: > 0 } title ? title : defaultName,
-            columns, rows, null, layout, styles, textColors);
+            columns, rows, null, layout, styles, textColors, TextBackgrounds: textBackgrounds);
     }
 
     internal static IReadOnlyList<DocumentSheet> ReadHealthSheets(JsonElement message)
@@ -429,7 +431,8 @@ internal static partial class DocumentExportService
         {
             var style = CellStyle(sheet, rowIndex, column);
             var colors = sheet.TextColors is not null ? sheet.TextColors[rowIndex][column] : null;
-            var cell = TypedCell(value, style, colors, sheet.Layout is not ("addresses" or "year" or "month"));
+            var backgrounds = sheet.TextBackgrounds is not null ? sheet.TextBackgrounds[rowIndex][column] : null;
+            var cell = TypedCell(value, style, colors, sheet.Layout is not ("addresses" or "year" or "month"), backgrounds);
             if (sheet.Layout.StartsWith("health", StringComparison.Ordinal) && sheet.Groups is { } groups && column == groups[0].Span)
                 cell.SetAttributeValue(Table + "style-name", "ceSpacer");
             return cell;
@@ -441,7 +444,7 @@ internal static partial class DocumentExportService
     private static XElement Cell(string value, string style) => new(Table + "table-cell",
         new XAttribute(Table + "style-name", style), new XAttribute(Office + "value-type", "string"), Paragraph(value));
 
-    private static XElement TypedCell(string value, string style, IReadOnlyList<string>? colors, bool typeNumbers)
+    private static XElement TypedCell(string value, string style, IReadOnlyList<string>? colors, bool typeNumbers, IReadOnlyList<string>? backgrounds = null)
     {
         var cell = new XElement(Table + "table-cell", new XAttribute(Table + "style-name", style));
         if (typeNumbers && value.Length > 0 && double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var number))
@@ -449,7 +452,7 @@ internal static partial class DocumentExportService
             cell.Add(new XAttribute(Office + "value-type", "float"), new XAttribute(Office + "value", number.ToString("G15", CultureInfo.InvariantCulture)));
         }
         else cell.Add(new XAttribute(Office + "value-type", "string"));
-        cell.Add(Paragraph(value, colors));
+        cell.Add(Paragraph(value, colors, backgrounds));
         return cell;
     }
 
@@ -459,12 +462,15 @@ internal static partial class DocumentExportService
                 new XAttribute(Table + "number-columns-spanned", group.Span), new XAttribute(Office + "value-type", "string"), Paragraph(group.Name)) }
                 .Concat(Enumerable.Range(1, group.Span - 1).Select(_ => new XElement(Table + "covered-table-cell")))));
 
-    private static XElement Paragraph(string value, IReadOnlyList<string>? colors = null)
+    private static XElement Paragraph(string value, IReadOnlyList<string>? colors = null, IReadOnlyList<string>? backgrounds = null)
     {
         var lines = value.ReplaceLineEndings("\n").Split('\n');
         return new XElement(Text + "p", lines.SelectMany((line, index) =>
         {
-            var content = colors is not null && index < colors.Count && SafeColor(colors[index]) is { } color
+            var background = backgrounds is not null && index < backgrounds.Count ? SafeColor(backgrounds[index]) : null;
+            var content = background is not null
+                ? (object)new XElement(Text + "span", new XAttribute(Text + "style-name", "ax" + background[1..]), line)
+                : colors is not null && index < colors.Count && SafeColor(colors[index]) is { } color
                 ? (object)new XElement(Text + "span", new XAttribute(Text + "style-name", "tx" + color[1..]), line)
                 : line;
             return index == 0 ? new[] { content } : new object[] { new XElement(Text + "line-break"), content };
@@ -500,6 +506,11 @@ internal static partial class DocumentExportService
         foreach (var color in textColors)
             styles.Add(new XElement(Style + "style", new XAttribute(Style + "name", "tx" + color![1..]), new XAttribute(Style + "family", "text"),
                 new XElement(Style + "text-properties", new XAttribute(Fo + "color", color))));
+        var backgrounds = sheets.Where(sheet => sheet.TextBackgrounds is not null).SelectMany(sheet => sheet.TextBackgrounds!)
+            .SelectMany(row => row).SelectMany(cell => cell).Select(SafeColor).Where(color => color is not null).Distinct(StringComparer.Ordinal);
+        foreach (var color in backgrounds)
+            styles.Add(new XElement(Style + "style", new XAttribute(Style + "name", "ax" + color![1..]), new XAttribute(Style + "family", "text"),
+                new XElement(Style + "text-properties", new XAttribute(Fo + "background-color", color), new XAttribute(Fo + "color", AccentTextColor(color)))));
         for (var sheetIndex = 0; sheetIndex < sheets.Count; sheetIndex++)
         {
             var sheet = sheets[sheetIndex];
@@ -641,15 +652,23 @@ internal static partial class DocumentExportService
         }
     }
 
-    private static (IReadOnlyList<IReadOnlyList<string>>, IReadOnlyList<IReadOnlyList<IReadOnlyList<string>>>) ReadPlannerRows(JsonElement contents, int width)
+    private static string AccentTextColor(string color)
+    {
+        double Channel(int offset) { var value = Convert.ToInt32(color.Substring(offset, 2), 16) / 255d; return value <= 0.04045 ? value / 12.92 : Math.Pow((value + 0.055) / 1.055, 2.4); }
+        return 0.2126 * Channel(1) + 0.7152 * Channel(3) + 0.0722 * Channel(5) > 0.179 ? "#000000" : "#ffffff";
+    }
+
+    private static (IReadOnlyList<IReadOnlyList<string>>, IReadOnlyList<IReadOnlyList<IReadOnlyList<string>>>, IReadOnlyList<IReadOnlyList<IReadOnlyList<string>>>) ReadPlannerRows(JsonElement contents, int width)
     {
         if (contents.ValueKind != JsonValueKind.Array) throw new ArgumentException("Die Planerinhalte sind ungültig.");
         var rows = new List<IReadOnlyList<string>>();
         var colorRows = new List<IReadOnlyList<IReadOnlyList<string>>>();
+        var backgroundRows = new List<IReadOnlyList<IReadOnlyList<string>>>();
         foreach (var row in contents.EnumerateArray())
         {
             if (row.ValueKind != JsonValueKind.Array || row.GetArrayLength() != width) throw new ArgumentException("Eine Planerzeile ist ungültig.");
             var values = new List<string>(); var colors = new List<IReadOnlyList<string>>();
+            var backgrounds = new List<IReadOnlyList<string>>();
             foreach (var cell in row.EnumerateArray())
             {
                 if (cell.ValueKind != JsonValueKind.Object) throw new ArgumentException("Eine Planerzelle ist ungültig.");
@@ -658,11 +677,20 @@ internal static partial class DocumentExportService
                 AddObjectTexts(cell, "marker", lines, lineColors);
                 AddObjectTexts(cell, "eintraege", lines, lineColors);
                 if (cell.TryGetProperty("mehr", out var more) && more.TryGetInt32(out var count) && count > 0) AddLine($"+{count}", "#998f80", lines, lineColors);
+                var lineBackgrounds = new List<string>();
+                if (Value(cell, "datum").Length > 0) lineBackgrounds.Add("");
+                foreach (var name in new[] { "marker", "eintraege" })
+                    if (cell.TryGetProperty(name, out var entries))
+                        foreach (var entry in entries.EnumerateArray())
+                            if (Value(entry, "text").Length > 0)
+                                lineBackgrounds.Add(entry.TryGetProperty("akzent", out var accent) && accent.ValueKind == JsonValueKind.True ? SafeColor(Value(entry, "farbe")) ?? "" : "");
+                while (lineBackgrounds.Count < lines.Count) lineBackgrounds.Add("");
+                backgrounds.Add(lineBackgrounds);
                 values.Add(string.Join("\n", lines)); colors.Add(lineColors);
             }
-            rows.Add(values); colorRows.Add(colors);
+            rows.Add(values); colorRows.Add(colors); backgroundRows.Add(backgrounds);
         }
-        return (rows, colorRows);
+        return (rows, colorRows, backgroundRows);
     }
 
     private static IReadOnlyList<IReadOnlyList<string>>? ReadStyleRows(JsonElement item, int width, int height)
