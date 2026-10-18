@@ -15783,7 +15783,7 @@ def baum_paarungsdatei_importieren(dokument, eigener_zustand, sender=None,
     return partner
 
 
-def baum_paarungsdatei_laden(pfad, jetzt=None):
+def baum_paarungsdatei_laden(pfad, jetzt=None, mit_rohdaten=False):
     import stat
     flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
     try:
@@ -15792,21 +15792,22 @@ def baum_paarungsdatei_laden(pfad, jetzt=None):
             stand = os.fstat(fd)
             if not stat.S_ISREG(stand.st_mode) or stand.st_size > BAUM_PAARUNG_DATEI_MAX:
                 raise RuntimeError(_("The pairing file is too large or not a regular file."))
-            with os.fdopen(fd, "r", encoding="utf-8") as datei:
+            with os.fdopen(fd, "rb") as datei:
                 fd = -1
-                text = datei.read(BAUM_PAARUNG_DATEI_MAX + 1)
+                roh = datei.read(BAUM_PAARUNG_DATEI_MAX + 1)
         finally:
             if fd >= 0:
                 os.close(fd)
     except OSError as fehler:
         raise RuntimeError(fehler_deutsch(fehler, _("Reading the pairing file")))
-    if len(text.encode("utf-8")) > BAUM_PAARUNG_DATEI_MAX:
+    if len(roh) > BAUM_PAARUNG_DATEI_MAX:
         raise RuntimeError(_("The pairing file is too large."))
     try:
-        dokument = json.loads(text)
+        dokument = json.loads(roh.decode("utf-8"))
     except ValueError:
         raise RuntimeError(_("The pairing file is damaged."))
-    return baum_paarungsdatei_pruefen(dokument, jetzt)
+    dokument = baum_paarungsdatei_pruefen(dokument, jetzt)
+    return (dokument, roh) if mit_rohdaten else dokument
 
 
 def baum_oeffentliche_adresse(zeitgrenze=6, holer=None):
@@ -20146,6 +20147,9 @@ class Fenster(_FENSTER_BASIS):
         self._baumdienst = None
         self._baum_sperre = threading.RLock()
         self._baum_dienst_sperre = threading.RLock()
+        self._baum_mcp_lokal = threading.local()
+        self._baum_mcp_operation = threading.Lock()
+        self._baum_mcp_revisionsschluessel = os.urandom(32)
         self._baum_schalt_revision = 0
         self._baum_post_timer = None
         self._baum_post_laeuft = False
@@ -21035,6 +21039,14 @@ class Fenster(_FENSTER_BASIS):
         GLib.idle_add(_im_haupt)
 
     def antwort(self, funktion, nutzlast):
+        capture = getattr(getattr(self, "_baum_mcp_lokal", None), "capture", None)
+        if capture is not None and funktion.startswith("App.baum") and funktion != "App.baumMcpErgebnis":
+            if funktion != "App.baumStand":
+                value = nutzlast() if callable(nutzlast) else nutzlast
+                capture["results"][funktion] = value
+                if isinstance(value, dict) and value.get("ok") is False:
+                    capture["failed"] = True
+            return
         if callable(nutzlast):
             self.sende_js(lambda: "%s(JSON.parse(%s));" % (funktion, js_zeichenkette(nutzlast())))
         else:
@@ -21063,6 +21075,9 @@ class Fenster(_FENSTER_BASIS):
 
         if (str(befehl or "").startswith("baum_") or
                 str(befehl or "").startswith("telefon_")) and self._gesperrt:
+            if befehl == "baum_mcp":
+                self.antwort("App.baumMcpErgebnis", {"requestId": nachricht.get("requestId"), "ok": False, "code": "profile_locked"})
+                return
             if befehl in ("baum_briefkasten_status", "baum_briefkasten_speichern") and nachricht.get("requestId"):
                 callback = "App.baumBriefkastenStatus" if befehl.endswith("status") else "App.baumBriefkastenGespeichert"
                 self.antwort(callback, {"requestId": nachricht["requestId"], "ok": False, "code": "profile_locked"})
@@ -21701,6 +21716,16 @@ class Fenster(_FENSTER_BASIS):
 
         elif befehl == "baum_paarungsdatei_importieren":
             self._baum_paarungsdatei_import_waehlen()
+
+        elif befehl == "baum_mcp":
+            if not self._baum_mcp_operation.acquire(False):
+                self.antwort("App.baumMcpErgebnis", {"requestId": nachricht.get("requestId"), "ok": False, "code": "native_busy"})
+                return
+            try:
+                threading.Thread(target=self._baum_mcp_arbeit, args=(nachricht,), daemon=True).start()
+            except Exception:
+                self._baum_mcp_operation.release()
+                self.antwort("App.baumMcpErgebnis", {"requestId": nachricht.get("requestId"), "ok": False, "code": "native_operation_failed"})
 
         elif befehl == "baum_stand":
             threading.Thread(target=self._baum_stand_melden,
@@ -25061,6 +25086,184 @@ class Fenster(_FENSTER_BASIS):
                        (_("Delivery status uncertain") if any(s.get("unsicher") for s in post) else "")),
         }
 
+    def _baum_mcp_revision(self, zustand):
+        keys = ("kennung", "oeffentlich", "adresse", "port", "vertraut", "fernAdresse", "fernPort", "bestaetigt", "wartet", "anfrageAusgehend", "wartetFern", "weitergabeErlaubt", "weitergabeVon", "weitergabeSchluessel", "kontakte", "kontaktLoeschen", "loeschungen", "protokoll", "paarungsart")
+        control = {key: zustand.get(key) for key in ("kennung", "oeffentlich", "an", "name", "port")}
+        control.update({key: zustand.get(key) for key in ("paarungen", "paarungenVerbraucht", "weitergabeAngebote")})
+        control["partner"] = [{key: peer.get(key) for key in keys if key in peer}
+                              for peer in sorted(zustand.get("partner") or [], key=lambda item: item.get("kennung") or "")]
+        raw = json.dumps(control, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return hmac.new(self._baum_mcp_revisionsschluessel, raw, hashlib.sha256).hexdigest()
+
+    def _baum_mcp_bericht(self):
+        with self._baum_sperre:
+            report = self._baum_bericht()
+            report["revision"] = self._baum_mcp_revision(self._baum_zustand() or {})
+            report["error_present"] = bool(report.pop("fehler", ""))
+            incoming = report.pop("eingang", []) or []
+            report["inbox_count"] = len(incoming)
+            report["inbox_ids"] = [item.get("id") or "" for item in incoming]
+            return report
+
+    def _baum_mcp_arbeit(self, nachricht):
+        request = nachricht.get("request") or {}
+        action = request.get("action")
+        capture = {"failed": False, "results": {}}
+        self._baum_mcp_lokal.capture = capture
+        result = {"ok": False, "code": "native_operation_failed"}
+        try:
+            if self._gesperrt:
+                result["code"] = "profile_locked"
+                return
+            with self._baum_sperre:
+                current = self._baum_zustand() or {}
+                if action == "inbox_read":
+                    item = next((item for item in baum_eingang_lesen(kennwort=self._kennwort) if item.get("id") == request.get("id")), None)
+                    if item is None:
+                        result["code"] = "not_found"
+                        return
+                    raw = json.dumps(item, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+                    digest = hashlib.sha256(raw).hexdigest()
+                    if request.get("expectedSha256") and request["expectedSha256"] != digest:
+                        result["code"] = "conflict"
+                        return
+                    offset, limit = request.get("offset", 0), request.get("limit", 65536)
+                    if type(offset) is not int or type(limit) is not int or offset < 0 or offset > len(raw) or not 1 <= limit <= 65536 or offset and not request.get("expectedSha256"):
+                        result["code"] = "invalid_offset"
+                        return
+                    chunk = raw[offset:offset + limit]
+                    result = {"ok": True, "id": request["id"], "sha256": digest, "bytes": len(raw), "offset": offset,
+                              "dataBase64": base64.b64encode(chunk).decode("ascii"), "nextOffset": offset + len(chunk) if offset + len(chunk) < len(raw) else None}
+                    return
+                if action != "read" and request.get("expectedRevision") != self._baum_mcp_revision(current):
+                    result["code"] = "conflict"
+                    return
+                peer_id = request.get("peerId") or ""
+                if action == "send" and not current.get("an"):
+                    result["code"] = "conflict"
+                    return
+                if action in ("confirm", "remove", "partner_settings", "sharing_permission", "send"):
+                    peer = baum_partner(current, peer_id)
+                    if not peer or fingerabdruck(peer.get("oeffentlich")) != baum_fingerabdruck_normieren(request.get("fingerprint") or ""):
+                        result["code"] = "conflict"
+                        return
+                if action == "settings":
+                    switch_revision = self._baum_schalt_wunsch()
+                elif action == "confirm":
+                    self._baum_bestaetigen(peer_id, request.get("accept") is True, request.get("fingerprint") or "")
+                elif action == "remove":
+                    self._baum_entfernen(peer_id)
+                elif action == "partner_settings":
+                    self._baum_partner_einstellungen(peer_id, request.get("trusted") is True, request.get("remoteAddress") or "", request.get("remotePort") or BAUM_PORT, request.get("contacts") is True, request.get("contactDeletions") is True)
+                elif action == "sharing_permission":
+                    self._baum_weitergabe_erlauben(peer_id, request.get("fingerprint"), request.get("allowed") is True)
+                elif action == "accept_introduction":
+                    self._baum_weitergabe_annehmen(request.get("offerId") or "", request.get("accept") is True)
+                elif action == "send":
+                    self._baum_sendung(peer_id, request.get("kind") or "", request.get("content") or {})
+                elif action == "consume_inbox":
+                    item = next((item for item in baum_eingang_lesen(kennwort=self._kennwort) if item.get("id") == request.get("id")), None)
+                    if item is None or hashlib.sha256(json.dumps(item, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest() != request.get("expectedSha256"):
+                        result["code"] = "conflict"
+                        return
+                    request["ids"] = [request["id"]]
+                    self._baum_eingang_leeren(request["ids"])
+                elif action == "clear_inbox":
+                    self._baum_eingang_leeren(request.get("ids") or [])
+                elif action in ("pairing_read_file", "pairing_import_file"):
+                    document, raw = baum_paarungsdatei_laden(request.get("path") or "", mit_rohdaten=True)
+                    digest = hashlib.sha256(raw).hexdigest()
+                    if action == "pairing_import_file" and request.get("expectedFileSha256") != digest:
+                        result["code"] = "conflict"
+                        return
+                    capture["results"]["McpPairingDocument"] = document
+                    capture["results"]["McpPairingFile"] = {"path": os.path.abspath(request["path"]), "bytes": len(raw), "sha256": digest}
+                    request["document"] = document
+                elif action == "pairing_create":
+                    output_format = request.get("format") or "json"
+                    if output_format not in ("json", "qr_svg"):
+                        result["code"] = "unsupported_feature"
+                        return
+                    path = request.get("path") or ""
+                    if path and (os.path.lexists(path) and not request.get("overwrite") or os.path.islink(path) or os.path.realpath(path) == os.path.realpath(daten_datei())):
+                        result["code"] = "conflict"
+                        return
+                    if output_format == "qr_svg":
+                        document, image = self._baum_paarungsqr_dokument(request.get("address") or "", request.get("port") or BAUM_PORT)
+                        capture["results"]["McpPairingQr"] = {"image": image}
+                    else:
+                        document, _invitation = baum_paarungsdatei_erzeugen(current, request.get("address") or "", request.get("port") or BAUM_PORT)
+                        self._baum_sichern(current)
+                    capture["results"]["McpPairingDocument"] = document
+                    if path:
+                        text = base64.b64decode(image.split(",", 1)[1]).decode("utf-8") if output_format == "qr_svg" else json.dumps(document, ensure_ascii=False, separators=(",", ":"))
+                        raw = text.encode("utf-8")
+                        atomar_text_schreiben(path, text)
+                        actual = datei_begrenzt_lesen(path, len(raw) + 1, "export_verification_failed")
+                        if actual != raw:
+                            raise OSError("export_verification_failed")
+                        capture["results"]["McpPairingFile"] = {"path": os.path.abspath(path), "bytes": len(raw), "sha256": hashlib.sha256(actual).hexdigest()}
+                elif action not in ("read", "search", "public_address", "pair", "introduce", "pairing_import"):
+                    raise ValueError("Unknown tree action")
+            if action == "settings":
+                self._baum_schalten(request.get("enabled") is True, str(request.get("name") or ""), switch_revision)
+            elif action == "search":
+                self._baum_suchen_arbeit()
+            elif action == "public_address":
+                self._baum_internet_adresse()
+            elif action == "pair":
+                self._baum_paaren(request.get("address") or "", request.get("port") or BAUM_PORT, request.get("fingerprint") or "", request.get("requestOnly") is True)
+            elif action == "introduce":
+                self._baum_weitergeben(peer_id, request.get("recipientId") or "", request.get("fingerprint") or "", request.get("recipientFingerprint") or "")
+            elif action in ("pairing_import", "pairing_import_file"):
+                self._baum_paarungsdokument_importieren(request.get("document") or {})
+            verified = True
+            with self._baum_sperre:
+                current = self._baum_zustand() or {}
+                if action in ("settings", "pair", "confirm", "remove", "partner_settings", "sharing_permission", "introduce", "accept_introduction", "pairing_create", "pairing_import", "pairing_import_file"):
+                    verified = baum_lesen(kennwort=self._kennwort) == current
+                if action == "settings":
+                    verified = verified and bool(current.get("an")) == (request.get("enabled") is True) and (not request.get("name") or current.get("name") == str(request["name"])[:60])
+                if action == "remove":
+                    verified = verified and not baum_partner(current, peer_id)
+                current_peer = baum_partner(current, peer_id)
+                if action == "confirm":
+                    verified = verified and (bool(current_peer and current_peer.get("bestaetigt") and not current_peer.get("wartet")) if request.get("accept") is True else not current_peer)
+                if action == "partner_settings":
+                    verified = verified and bool(current_peer) and all(bool(current_peer.get(key)) == (request.get(argument) is True)
+                        for key, argument in (("vertraut", "trusted"), ("kontakte", "contacts"), ("kontaktLoeschen", "contactDeletions")))
+                    verified = verified and (current_peer or {}).get("fernAdresse", "") == (request.get("remoteAddress") or "")
+                if action == "sharing_permission":
+                    verified = verified and bool(current_peer) and bool(current_peer.get("weitergabeErlaubt")) == (request.get("allowed") is True)
+                if action in ("clear_inbox", "consume_inbox"):
+                    remaining = baum_eingang_lesen(kennwort=self._kennwort)
+                    verified = not any(item.get("id") in set(request.get("ids") or []) for item in remaining)
+            failed = capture["failed"] or not verified
+            result = {"ok": not failed, "code": "verification_failed" if not verified else "native_operation_failed" if failed else "none", "action": action,
+                      "status": self._baum_mcp_bericht(), "localVerified": verified, "deliveryConfirmed": False}
+            if "App.baumGefunden" in capture["results"]:
+                result["discovery"] = capture["results"]["App.baumGefunden"]
+            if "McpPairingDocument" in capture["results"]:
+                result["document"] = capture["results"]["McpPairingDocument"]
+            if "McpPairingFile" in capture["results"]:
+                result["file"] = capture["results"]["McpPairingFile"]
+            if "McpPairingQr" in capture["results"]:
+                result["qrImage"] = capture["results"]["McpPairingQr"]["image"]
+            if "App.baumInternet" in capture["results"]:
+                result["publicAddress"] = capture["results"]["App.baumInternet"].get("adresse") or ""
+            if action == "send":
+                result["queuedVerified"] = "McpQueued" in capture["results"]
+            sent = capture["results"].get("App.baumGesendet")
+            if sent:
+                result["nativeBatchDelivered"], result["nativePending"] = sent.get("zugestellt"), sent.get("offen")
+        except Exception:
+            pass
+        finally:
+            self._baum_mcp_lokal.capture = None
+            self._baum_mcp_operation.release()
+            result["requestId"] = nachricht.get("requestId")
+            self.antwort("App.baumMcpErgebnis", result)
+
     def _baum_stand_melden(self):
         self.antwort("App.baumStand", self._baum_bericht())
 
@@ -25155,18 +25358,7 @@ class Fenster(_FENSTER_BASIS):
 
     def _baum_paarungsqr_erzeugen(self, adresse, port):
         try:
-            with self._baum_sperre:
-                zustand = self._baum_zustand()
-                probe = dict(zustand)
-                probe["paarungen"] = list(zustand.get("paarungen", []))
-                probe["paarungenVerbraucht"] = list(
-                    zustand.get("paarungenVerbraucht", []))
-                dokument, _einladung = baum_paarungsdatei_erzeugen(
-                    probe, adresse, port)
-                bild = baum_paarungsqr(dokument)
-                zustand["paarungen"] = probe["paarungen"]
-                zustand["paarungenVerbraucht"] = probe["paarungenVerbraucht"]
-                self._baum_sichern(zustand)
+            dokument, bild = self._baum_paarungsqr_dokument(adresse, port)
             self.antwort("App.baumPaarungsdatei", {
                 "ok": True, "art": "qr", "bild": bild,
                 "gueltigBis": dokument["gueltigBis"], "fehler": ""})
@@ -25175,6 +25367,19 @@ class Fenster(_FENSTER_BASIS):
             self.antwort("App.baumPaarungsdatei", {
                 "ok": False, "art": "qr", "fehler":
                     fehler_deutsch(fehler, _("Creating the pairing QR code"))})
+
+    def _baum_paarungsqr_dokument(self, adresse, port):
+        with self._baum_sperre:
+            zustand = self._baum_zustand()
+            probe = dict(zustand)
+            probe["paarungen"] = list(zustand.get("paarungen", []))
+            probe["paarungenVerbraucht"] = list(zustand.get("paarungenVerbraucht", []))
+            dokument, _einladung = baum_paarungsdatei_erzeugen(probe, adresse, port)
+            bild = baum_paarungsqr(dokument)
+            zustand["paarungen"] = probe["paarungen"]
+            zustand["paarungenVerbraucht"] = probe["paarungenVerbraucht"]
+            self._baum_sichern(zustand)
+            return dokument, bild
 
     def _baum_paarungsdatei_import_waehlen(self):
         pfad = self._datei_oeffnen(
@@ -25189,6 +25394,12 @@ class Fenster(_FENSTER_BASIS):
     def _baum_paarungsdatei_importieren(self, pfad):
         try:
             dokument = baum_paarungsdatei_laden(pfad)
+            self._baum_paarungsdokument_importieren(dokument)
+        except Exception as fehler:
+            self.antwort("App.baumPaarungsdatei", {"ok": False, "art": "importiert", "fehler": fehler_deutsch(fehler, _("Importing the pairing file"))})
+
+    def _baum_paarungsdokument_importieren(self, dokument):
+        try:
             with self._baum_sperre:
                 zustand = self._baum_zustand()
                 partner = baum_paarungsdatei_importieren(dokument, zustand)
@@ -25490,6 +25701,11 @@ class Fenster(_FENSTER_BASIS):
             sendung = baum_einreihen(post, kennung, art, inhalt)
             if not baum_post_schreiben(post, kennwort=self._kennwort):
                 raise RuntimeError(_("The Magnolienbaum outbox could not be saved."))
+            capture = getattr(getattr(self, "_baum_mcp_lokal", None), "capture", None)
+            if capture is not None:
+                if baum_post_lesen(kennwort=self._kennwort) != post:
+                    raise RuntimeError("Outbox readback failed")
+                capture["results"]["McpQueued"] = {"id": sendung["id"]}
             def speichern():
                 if not baum_post_schreiben(post, kennwort=self._kennwort):
                     return False

@@ -66,6 +66,7 @@ runner.Add("Background lifecycle regressions", BackgroundLifecycleTests.RunAsync
 runner.Add("Native sync safety / baselines / mailbox / recovery", NativeSyncSafetyTests.RunAsync);
 runner.Add("AtomicStore / Dateisicherheit", AtomicStoreTests.RunAsync);
 runner.Add("MCP local pipe / correlation / strict framing / cleanup", McpTransportTests.RunAsync);
+runner.Add("MCP tree / native store / revision / scoped GUI emissions", McpTreeActionsTests.RunAsync);
 runner.Add("Wiederherstellungsjournal / Manifest / Tamper / Retention / Scheduler", RecoveryJournalTests.RunAsync);
 runner.Add("Cloud-Ordner-Sicherung / Policy / Retention / DPAPI", CloudBackupTests.RunAsync);
 runner.Add("Loganzeige / Contributor-Marker", LogPresentationTests.RunAsync);

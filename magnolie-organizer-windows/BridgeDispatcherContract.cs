@@ -55,6 +55,7 @@ internal static class BridgeDispatcherContract
         ["background_settings_get"] = S(O("requestId", JsonValueKind.String)), ["background_settings_set"] = S(J("settings"), O("requestId", JsonValueKind.String), O("expectedSettings", JsonValueKind.Object)),
         ["rechtschreibung"] = S(B("an"), O("sprache", JsonValueKind.String)), ["vorschlaege"] = S(T("wort"), T("kennung"), O("sprache", JsonValueKind.String), O("requestId", JsonValueKind.String)), ["wort_merken"] = S(T("wort"), O("sprache", JsonValueKind.String), O("requestId", JsonValueKind.String)),
         ["baum_stand"] = S(), ["baum_ein"] = S(B("an"), T("name")), ["baum_suchen"] = S(), ["baum_paaren"] = S(T("adresse"), O("port", JsonValueKind.Number, JsonValueKind.String), O("fingerabdruck", JsonValueKind.String), O("anfrage", JsonValueKind.True, JsonValueKind.False)),
+        ["baum_mcp"] = S(T("requestId"), J("request")),
         ["baum_bestaetigen"] = S(T("kennung"), B("ja"), O("fingerabdruck", JsonValueKind.String)), ["baum_entfernen"] = S(T("kennung")),
         ["baum_partner_einstellungen"] = S(T("kennung"), B("vertraut"), B("kontakte"), B("kontaktLoeschen"), T("fernAdresse"), O("fernPort", JsonValueKind.Number, JsonValueKind.String)),
         ["baum_weitergabe_erlauben"] = S(T("kennung"), T("fingerabdruck"), B("erlaubt")),

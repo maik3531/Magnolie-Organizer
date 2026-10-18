@@ -245,6 +245,19 @@ if os.environ.get("MAGNOLIE_MCP_PROBE_SYNC_SETTINGS_ONLY") == "1":
             temporary._finalizer.detach()  # Keep an uncertain mounted tree for diagnosis.
             raise
         raise
+tree_fixture = None
+if os.environ.get("MAGNOLIE_MCP_PROBE_TREE_ONLY") == "1":
+    tree_state = product.baum_schluessel_erzeugen("Owned native tree")
+    tree_remote = product.baum_schluessel_erzeugen("Owned sender")
+    tree_peer = product.baum_partner_aufnehmen(tree_state, tree_remote["name"], tree_remote["kennung"], tree_remote["oeffentlich"], "127.0.0.1", product.BAUM_PORT)
+    tree_peer["bestaetigt"] = True; tree_peer["wartet"] = False; tree_peer["vertraut"] = False; tree_peer["kontaktLoeschen"] = True
+    product.baum_schreiben(tree_state)
+    tree_fixture = {"id": "owned-native-tree-inbox", "von": tree_peer["kennung"], "vonName": "Owned sender",
+        "inhalt": {"art": "aufgabe", "id": "owned-native-remote-task", "titel": "Owned native tree 🌸 task", "notiz": "Owned incoming body", "herkunft": tree_peer["kennung"], "geaendert": 1792281600000}}
+    tree_contact_fixture = {"id": "owned-native-tree-contact", "von": tree_peer["kennung"], "vonName": "Owned sender",
+        "inhalt": {"art": "kontakt_sync", "fassung": 2, "freigabeId": "owned-native-contact-share", "quelle": tree_peer["kennung"], "version": 1,
+            "kontakt": {"vorname": "OwnedTree", "nachname": "Contact", "notiz": "Owned contact body", "telefone": [], "emailEintraege": [], "anschriften": []}}}
+    product.baum_eingang_schreiben([tree_fixture, tree_contact_fixture])
 window = product.Fenster(str(ROOT / "web"))
 # This fixture proves the book/MCP/save path, not handset or tree transport.
 # Keep unrelated startup transports inactive instead of binding another host listener.
@@ -333,6 +346,68 @@ def client():
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
         if os.environ.get("MAGNOLIE_MCP_PROBE_FAIL_AFTER_READY") == "1":
             raise RuntimeError("Owned fixture intentional failure after ready")
+        if os.environ.get("MAGNOLIE_MCP_PROBE_TREE_ONLY") == "1":
+            def tree_tool(name, arguments=None):
+                result = call("tools/call", {"name": name, **({"arguments": arguments} if arguments is not None else {})})
+                assert not result["isError"], result
+                return result["structuredContent"]
+            initial_tree = tree_tool("organizer_tree_status")
+            assert not initial_tree["enabled"] and not initial_tree["running"] and initial_tree["peer_total"] == 1
+            peer = initial_tree["peers"][0]
+            renamed = tree_tool("organizer_tree_action", {"action": "settings", "enabled": False, "name": "Owned renamed native tree", "expected_revision": initial_tree["revision"]})
+            assert renamed["local_verified"] and product.baum_lesen()["name"] == "Owned renamed native tree"
+            assert renamed["state"]["revision"] != initial_tree["revision"]
+            pairing_path = data_file.parent / "owned-native.magnolie-paarung"
+            created = tree_tool("organizer_tree_pairing_document", {"action": "create", "expected_revision": renamed["state"]["revision"], "address": "127.0.0.1", "port": product.BAUM_PORT, "path": str(pairing_path)})
+            document = json.loads(created["document_json"])
+            assert document and "privat" not in document and created["local_verified"] and not created["delivery_confirmed"]
+            assert json.loads(pairing_path.read_bytes()) == document and hashlib.sha256(pairing_path.read_bytes()).hexdigest() == created["file"]["sha256"]
+            inspected_pairing = tree_tool("organizer_tree_pairing_document", {"action": "read_file", "expected_revision": created["state"]["revision"], "path": str(pairing_path)})
+            assert json.loads(inspected_pairing["document_json"]) == document and inspected_pairing["file"] == created["file"]
+            inbox = tree_tool("organizer_tree_inbox_read", {"id": tree_fixture["id"], "limit": 7})
+            assert inbox["next_offset"] == 7
+            raw = bytearray(base64.b64decode(inbox["data_base64"]))
+            while inbox["next_offset"] is not None:
+                inbox = tree_tool("organizer_tree_inbox_read", {"id": tree_fixture["id"], "offset": inbox["next_offset"], "limit": 7, "expected_sha256": inbox["sha256"]})
+                raw.extend(base64.b64decode(inbox["data_base64"]))
+            assert json.loads(raw)["inhalt"]["titel"] == tree_fixture["inhalt"]["titel"]
+            book = tree_tool("organizer_book_revision_read")
+            accepted = tree_tool("organizer_tree_inbox_apply", {"id": tree_fixture["id"], "expected_sha256": inbox["sha256"],
+                "expected_book_revision": book["revision"], "expected_tree_revision": created["state"]["revision"], "sender_fingerprint": peer["fingerprint"]})
+            assert accepted["persisted"] and accepted["inbox_removed"] and [item["id"] for item in product.baum_eingang_lesen()] == [tree_contact_fixture["id"]]
+            stored = json.loads(data_file.read_text())
+            task = next(task for task in stored["aufgaben"] if task.get("fremdId") == "owned-native-remote-task")
+            assert task["titel"] == tree_fixture["inhalt"]["titel"] and task["herkunft"] == tree_fixture["von"]
+            assert any(item["integrity"] == "ok" for item in product.journal_liste())
+            assert any(note["id"] == "owned-native-fixture" for note in stored["notizen"])
+            contact_chunk = tree_tool("organizer_tree_inbox_read", {"id": tree_contact_fixture["id"]})
+            contact_accepted = tree_tool("organizer_tree_inbox_apply", {"id": tree_contact_fixture["id"], "expected_sha256": contact_chunk["sha256"],
+                "expected_book_revision": tree_tool("organizer_book_revision_read")["revision"], "expected_tree_revision": created["state"]["revision"],
+                "sender_fingerprint": peer["fingerprint"], "contact_decision": "auto"})
+            assert contact_accepted["persisted"] and product.baum_eingang_lesen() == []
+            contact = next(contact for contact in json.loads(data_file.read_text())["kontakte"] if contact["vorname"] == "OwnedTree")
+            assert contact["baumKontakt"]["freigabeId"] == "owned-native-contact-share" and contact["baumKontakt"]["partner"] == [tree_fixture["von"]]
+            changed_fixture = json.loads(json.dumps(tree_contact_fixture))
+            changed_fixture["id"] = "owned-native-tree-contact-update"
+            changed_fixture["inhalt"]["version"] = 2; changed_fixture["inhalt"]["kontakt"]["vorname"] = "UpdatedTree"
+            product.baum_eingang_schreiben([changed_fixture])
+            update_chunk = tree_tool("organizer_tree_inbox_read", {"id": changed_fixture["id"]})
+            updated_contact = tree_tool("organizer_tree_inbox_apply", {"id": changed_fixture["id"], "expected_sha256": update_chunk["sha256"],
+                "expected_book_revision": tree_tool("organizer_book_revision_read")["revision"], "expected_tree_revision": created["state"]["revision"],
+                "sender_fingerprint": peer["fingerprint"], "contact_decision": "merge", "contact_id": contact["id"], "field_choices": [{"field": "vorname", "choice": "incoming"}]})
+            assert updated_contact["persisted"] and product.baum_eingang_lesen() == []
+            stored_contact = next(item for item in json.loads(data_file.read_text())["kontakte"] if item["id"] == contact["id"])
+            assert stored_contact["vorname"] == "UpdatedTree" and stored_contact["uid"] == contact["uid"] and stored_contact["baumKontakt"]["version"] == 2
+            state["actual_tree_contact_decision_checkpoint_save_verified"] = True
+            qr_path = data_file.parent / "owned-native-pairing.svg"
+            qr = tree_tool("organizer_tree_pairing_document", {"action": "create", "expected_revision": created["state"]["revision"], "address": "127.0.0.1", "port": product.BAUM_PORT, "format": "qr_svg", "path": str(qr_path)})
+            assert qr["local_verified"] and qr["qr_image"].startswith("data:image/svg+xml;base64,")
+            assert qr_path.read_bytes() == base64.b64decode(qr["qr_image"].split(",", 1)[1]) and hashlib.sha256(qr_path.read_bytes()).hexdigest() == qr["file"]["sha256"]
+            state["actual_tree_pairing_file_qr_readback_verified"] = True
+            assert window._baumdienst is None
+            state["actual_tree_store_pairing_inbox_checkpoint_save_verified"] = True
+            process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
+            return
         if os.environ.get("MAGNOLIE_MCP_PROBE_DAV_WRITE_ONLY") == "1":
             initial_sync = call("tools/call", {"name": "organizer_sync_settings_read"})["structuredContent"]
             ready_save = call("tools/call", {"name": "organizer_sync_settings_update", "arguments": {"expected_revision": initial_sync["revision"], "at_startup": initial_sync["settings"]["at_startup"]}})
@@ -2203,7 +2278,9 @@ finally:
         state["error"] = (state.get("error") or "") + "\nPrivate service/temporary cleanup:\n" + traceback.format_exc(limit=4)
     print("Native MCP fixture state:", json.dumps(state), flush=True)
 assert state["passed"] and state.get("cleanup_verified"), state
-if os.environ.get("MAGNOLIE_MCP_PROBE_DAV_WRITE_ONLY") == "1":
+if os.environ.get("MAGNOLIE_MCP_PROBE_TREE_ONLY") == "1":
+    print("Native MCP TREE PASS: actual private GTK/stdio tree controls, pairing document, Unicode inbox chunks, checkpoint/domain adoption/SaveACK/readback and content-checked consumption; no peer transport claim")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_DAV_WRITE_ONLY") == "1":
     print("Native MCP DAV WRITE PASS: actual config save/readback and private credential metadata, native revision conflicts, fresh rewrite versions, no book mutation or auth claim")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_DAV_ACCOUNT_ONLY") == "1":
     print("Native MCP DAV ACCOUNT PASS: actual config/credential-metadata snapshot, explicit unreadable-state handling, no book mutation or connectivity claim")

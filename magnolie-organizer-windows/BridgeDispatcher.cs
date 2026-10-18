@@ -75,7 +75,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             var command = parsed.RootElement.GetProperty("cmd").GetString()!;
             if (command is "wetter" or "feiertage" or "update_pruefen" or "journal_liste" or "import_lokal" or
                 "update_herunterladen" or "eds_status" or "graph_anmelden" or "baum_suchen" or "baum_paaren" or "baum_briefkasten_pruefen" or "baum_dav_pruefen" or "baum_mailbox_schreibpruefen" or "kde_sms_senden" or "cloud_sicherung_test" or
-                "baum_ein" or "baum_teilen" or "baum_delegieren" or "baum_rueckmeldung" or "baum_weitergeben" or "baum_weitergabe_annehmen" or "telefon_ein" or "telefon_verbindung_ein" or
+                "baum_ein" or "baum_mcp" or "baum_teilen" or "baum_delegieren" or "baum_rueckmeldung" or "baum_weitergeben" or "baum_weitergabe_annehmen" or "telefon_ein" or "telefon_verbindung_ein" or
                 "telefon_status_anfordern" or "telefon_entwickler_diagnose" or "kde_dateisystem_stand" or "kde_dateisystem_oeffnen" or "telefon_waehlen" or "telefon_annehmen" or "telefon_auflegen" or
                 "sync" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
                 "telefon_oeffnen" or "telefon_verbinden" or "telefon_pairing_oeffnen" or "kde_pairing_start" or "kde_pairing_complete" or
@@ -284,6 +284,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "vorschlaege": await SpellSuggestionsAsync(message); break;
                     case "wort_merken": await RememberWordAsync(message); break;
                     case "baum_stand": await baum.ReportStatusAsync(); break;
+                    case "baum_mcp": await BaumMcpAsync(message); break;
                     case "baum_ein":
                         if (Boolean(message, "an")) await EnsureFirewallAsync();
                         await baum.SwitchAsync(Boolean(message, "an"), Text(message, "name"));
@@ -1917,8 +1918,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     {
         try
         {
-            var value = (await http.GetStringAsync("https://api64.ipify.org")).Trim();
-            if (!IPAddress.TryParse(value, out var address) || IPAddress.IsLoopback(address)) throw new InvalidDataException(T("No public IP address was found."));
+            var value = await MagnolienbaumCoordinator.ResolvePublicAddressAsync(http);
             await form.SendAsync("App.baumInternet", new { ok = true, adresse = value, fehler = "" });
         }
         catch (Exception error) { await form.SendAsync("App.baumInternet", new { ok = false, adresse = "", fehler = error.Message }); }

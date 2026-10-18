@@ -536,12 +536,131 @@ the document was saved but opening failed. Linux waits for a successful bounded
 claim a visible office window, successful rendering, printing or delivery.
 Correlated late/cancelled replies do not open Organizer dialogs or toasts.
 
+## Magnolienbaum controls and content
+
+`organizer_tree_status` reads the actual native identity, service state, public
+peer fingerprints/permissions, queue counts, incoming IDs and introductions.
+Peers, incoming IDs and introduction offers are paged at 100 using the same
+offset/limit, with independent totals and a continuation while any list has more
+items; inbox bodies and private identity keys are excluded.
+The process-keyed revision binds the stable control plane, including invitations
+and introduction offers, rather than heartbeat or retry counters.
+
+`organizer_tree_action` invokes the existing native enable/name, discovery,
+public-address lookup,
+fingerprint-bound pairing/confirmation/removal, partner preferences, introduction
+permission/transfer/acceptance and selected inbox-removal handlers. Mutations
+require the control revision. Targeted operations require explicit fingerprints.
+Results distinguish local verification from delivery; enabling retains the
+existing system firewall-permission flow. Native worker callbacks are captured
+only for the correlated operation; listener/maintenance events retain normal
+GUI handling. Late responses do not rebuild settings or show a toast. Public
+address lookup uses the GUI's fixed external IP service and returns its parsed
+address; this does not prove port reachability, firewall/NAT forwarding or a
+working peer connection.
+
+`organizer_tree_pairing_document` creates/imports the actual transferable pairing
+JSON through the existing invitation codec and store. Creation persists a
+time-limited invitation. Import retains signature, fingerprint and destination
+validation and can contact the document's destination. Returned documents are
+bounded to 8 KiB and contain no private identity key. Creation accepts an optional
+explicit output `path` and opt-in `overwrite`; a file receipt contains the actual
+path, byte length and SHA-256 after native atomic write and exact byte readback.
+JSON output uses the actual invitation document. Linux additionally supports
+`format:qr_svg`, reusing the existing pairing-link/QR renderer and its
+render-before-invitation-commit order. The SVG is returned as a bounded data URI
+and can be written/read back at the explicit path. Windows reports
+`unsupported_feature` for QR output because its native tree has no QR renderer;
+it does not create an invitation for that unsupported request. Output options
+apply only to creation. An invitation can already be persisted if a later
+file-write/readback fails; inspect tree state before retrying. `read_file` reads
+and validates an explicit native pairing file with the existing 8 KiB codec
+limits and returns the document plus raw-byte digest without importing it.
+`import_file` requires that exact `expected_file_sha256` before the existing
+native pairing transport can run. These are format-specific reads, not arbitrary
+filesystem content access.
+
+`organizer_tree_inbox_read` returns one actual stored item's UTF-8 JSON in base64
+chunks of at most 64 KiB, with raw-byte SHA-256 and offsets. Continuations require
+that digest; changed/removed content fails explicitly. Decode after concatenating
+bytes, because a chunk can split a Unicode character.
+
+`organizer_tree_content_send` shares saved notes, appointments and address cards,
+delegates saved tasks, or returns a received task's completion status to its
+recorded origin. It requires current record/control revisions and the recipient
+fingerprint. GUI payload builders are shared; contacts omit identity/provider
+bindings and photographs, appointments retain the existing bounded sanitizer,
+and notes retain recipient-specific source IDs. New note-sharing/delegation
+metadata is durably saved before sending. The actual native outbox commit is
+read back before reporting `queue_persisted:true`; `delivery_confirmed` is always
+false. Native batch delivery counters do not prove this item's delivery. Payloads
+over the bounded MCP frame are rejected before sending.
+
+`organizer_tree_inbox_apply` explicitly accepts a task, appointment, address card,
+contact-sync/deletion, note or note-update offer via the existing domain handler. It requires the exact
+inbox digest, complete book/control revisions and confirmed sender fingerprint.
+Content chunks are independently SHA-256 checked. A native recovery checkpoint
+precedes isolated-draft adoption; book SaveACK precedes content-checked native
+inbox removal and removal readback. Explicit manual note acceptance follows the
+GUI replacement semantics. Contact synchronization requires an explicit
+`contact_decision`: `auto`, `new`, `keep`, `merge`, `replace`, `newer` or `skip`. Existing targets
+require `contact_id`; merge supports field choices, incoming list positions,
+existing replacement positions and whole-list replacement. The shared contact
+decision handler preserves bindings, local identity, photo alternatives and
+reliable-modification-time policy. `newer` fails when reliable timestamps are
+unavailable. Deletion requires `delete` and the peer's existing deletion
+permission and uses the existing trash/deletion-memory handler. Inspect incoming
+content with `tree_inbox_read` and current contacts with the existing read tools
+before deciding. `skip` saves the GUI's content-bound rejection memory and then
+consumes that exact inbox item; changed future offers are distinct decisions.
+`auto` invokes the GUI batch matcher's existing known-version, binding,
+augmentation, remembered-rejection and reliable-newer rules. Unresolved conflicts
+remain in the inbox for an explicit target/field/list decision; the client can
+process inbox IDs in sequence with fresh book revisions. The same staged
+contact-plan adoption and timestamp handler is shared with the GUI batch path.
+A save can succeed before later inbox consumption
+fails: inspect both book and inbox before retrying, particularly for appointment
+and address-card offers which create new records.
+
+`organizer_tree_sync_start/status/cancel` runs the shared notes/tasks selection or
+complete contact snapshot asynchronously. A confirmed peer fingerprint and full
+book/control revisions authorize the run. Notes/tasks retain introduced-peer
+source restrictions, note alias/source IDs and the optional remote-sync request.
+Contacts use the shared complete-snapshot preflight and metadata/payload builder,
+negotiated legacy/modern versions, content hashes and reliable modification
+timestamps. Empty snapshots and the existing deletion safety limits block a
+contact start; this path does not automatically send deletion proposals.
+
+All prepared messages must fit the bounded native frame before the isolated
+metadata draft is adopted. Native book SaveACK precedes serial queueing. Each
+send checks the frozen source and native control revision and requires verified
+native outbox acceptance. Status reports preparation, saving, queueing and
+terminal phases, metadata persistence, message totals and acknowledged queue
+counts. Completion does not mark contacts remotely synchronized or enable
+deletion proposals merely from queue acceptance. Cancellation stops further
+sends/RPC waiting but an already dispatched native operation can still change
+state. A terminal run can therefore have saved metadata and a partial queue.
+
+`organizer_tree_contact_preview` returns the existing new/bound counts, paged
+duplicate-contact ID pairs and permitted stored deletion tombstones, together
+with the full book revision. Shared preflight checks protocol compatibility and
+bounded MCP payloads without modifying contact bindings or exposing photos.
+`organizer_tree_contact_delete_proposal` sends one explicitly selected tombstone
+using the existing successful-sync, peer-permission, bound-snapshot and deletion
+count safeguards and shared deletion payload builder. It requires the current
+book/control revisions and peer fingerprint. Arbitrary deletion payloads and
+queue-only success flags cannot authorize this operation.
+
+Cancellation, timeouts and errors can follow local/native changes. No result
+implies that cancellation rolls back saved metadata, queued content or adopted
+records. Portable native fixtures and the private Linux GTK/stdio/store/adoption
+probe are separate from physical paired-peer/installed-product acceptance.
+
 ## Remaining coverage in #170
 
-The remaining work includes other settings changes,
-imports/exports and planners,
-synchronization/accounts, Magnolienbaum operations,
-the remaining phone/KDE actions, and complete
-installed-product acceptance.
+The finite remaining operation groups are tracked in
+[mcp-coverage.md](mcp-coverage.md): phone/KDE lifecycle, own Notes synchronization,
+communications, other offered KDE actions, running time tracking and remaining
+utilities/preferences, followed by complete installed-product acceptance.
 The listed tools execute their current product operations; remaining functions
 are not represented by success-only placeholders.

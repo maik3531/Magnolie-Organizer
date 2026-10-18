@@ -176,6 +176,27 @@ internal sealed partial class BridgeDispatcher
         });
     }
 
+    private async Task BaumMcpAsync(JsonElement message)
+    {
+        var requestId = Text(message, "requestId");
+        try
+        {
+            if (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null))
+            { await form.SendAsync("App.baumMcpErgebnis", new { requestId, ok = false, code = "profile_locked" }); return; }
+            var request = JsonNode.Parse(message.GetProperty("request").GetRawText())!.AsObject();
+            if (restoreInProgress) { await form.SendAsync("App.baumMcpErgebnis", new { requestId, ok = false, code = "native_busy" }); return; }
+            if (request["action"]?.GetValue<string>() == "settings" && request["enabled"]?.GetValue<bool>() == true)
+                await EnsureFirewallAsync();
+            if (restoreInProgress || !currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null))
+            { await form.SendAsync("App.baumMcpErgebnis", new { requestId, ok = false, code = "native_busy" }); return; }
+            using var deadline = NetworkDeadline(TimeSpan.FromSeconds(20));
+            var result = await baum.ExecuteMcpAsync(request, deadline.Token);
+            result["requestId"] = requestId;
+            await form.SendAsync("App.baumMcpErgebnis", result);
+        }
+        catch (Exception) { await form.SendAsync("App.baumMcpErgebnis", new { requestId, ok = false, code = "native_operation_failed" }); }
+    }
+
     private async Task ReportDavAccountStatusAsync(string requestId)
     {
         if (requestId.Length != 0 && (!currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null)))

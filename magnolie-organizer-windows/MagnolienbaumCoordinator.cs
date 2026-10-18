@@ -17,7 +17,22 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     private readonly MagnolienbaumStore storage;
     private readonly string outboxPath;
     private readonly Func<string, object, Task> emit;
+    private readonly AsyncLocal<McpEmission?> mcpEmission = new();
+    private sealed class McpEmission
+    {
+        internal bool Active = true;
+        internal bool Failed;
+        internal readonly Dictionary<string, JsonObject> Results = new(StringComparer.Ordinal);
+        internal void Capture(string callback, object payload)
+        {
+            if (callback == "App.baumStand") return;
+            if (JsonSerializer.SerializeToNode(payload) is not JsonObject value) return;
+            if (value["ok"] is JsonValue ok && ok.TryGetValue<bool>(out var accepted) && !accepted) Failed = true;
+            Results[callback] = value;
+        }
+    }
     private readonly HttpClient client;
+    private readonly string bookPath;
     private readonly NextcloudMailboxSettingsStore mailboxSettings;
     private readonly NextcloudMailbox mailbox;
     private readonly SemaphoreSlim mailboxWorker = new(1, 1);
@@ -52,8 +67,13 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     internal MagnolienbaumCoordinator(WindowsPaths paths, Func<string, object, Task> emit)
     {
         storage = new MagnolienbaumStore(paths);
+        bookPath = paths.Data;
         outboxPath = paths.BaumOutbox;
-        this.emit = emit;
+        this.emit = (callback, payload) =>
+        {
+            if (mcpEmission.Value is { Active: true } capture) { capture.Capture(callback, payload); return Task.CompletedTask; }
+            return emit(callback, payload);
+        };
         state = storage.LoadOrCreate();
         outbox = storage.LoadOutbox();
         var removedStatusMessages = outbox.OfType<JsonObject>().Where(item => String(item, "art") is "geraete_status_anfrage" or "geraete_status").ToArray();
@@ -189,7 +209,9 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         _ => "nextcloud_error"
     };
 
-    internal async Task ReportStatusAsync()
+    internal Task ReportStatusAsync() => emit("App.baumStand", PublicStatus());
+
+    private object PublicStatus(bool includeInbox = true)
     {
         object report;
         lock (gate)
@@ -217,7 +239,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                 name = String(state, "name"), kennung = String(state, "kennung"),
                 fingerabdruck = MagnolienbaumCrypto.Fingerprint(ownPublic), port = Number(state, "port", DefaultPort),
                 partner = partners, post = outbox.Count, postOffen = outbox.OfType<JsonObject>().Count(item => !Boolean(item, "aufgegeben")),
-                eingang = JsonNode.Parse(inbox.ToJsonString()), fehler = serviceError.Length > 0 ? serviceError :
+                eingang = includeInbox ? JsonNode.Parse(inbox.ToJsonString()) : new JsonArray(), fehler = serviceError.Length > 0 ? serviceError :
                     outbox.OfType<JsonObject>().Any(item => Boolean(item, "unsicher")) ? NativeLocalization.Gettext("Delivery status uncertain") : "",
                 weitergabeAngebote = (state["weitergabeAngebote"] as JsonArray ?? new JsonArray()).OfType<JsonObject>()
                     .Where(value => Long(value["datei"]!.AsObject(), "gueltigBis") > DateTimeOffset.UtcNow.ToUnixTimeSeconds() &&
@@ -227,7 +249,199 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                         fingerabdruck = MagnolienbaumCrypto.Fingerprint(Convert.FromBase64String(String(value["datei"]!["einlader"]!.AsObject(), "oeffentlich"))) }).ToArray(),
                 migrationHinweis = migrationNotice, windows = true };
         }
-        await emit("App.baumStand", report);
+        return report;
+    }
+
+    private static readonly byte[] McpRevisionKey = RandomNumberGenerator.GetBytes(32);
+    internal JsonObject McpStatus()
+    {
+        lock (gate)
+        {
+            var report = JsonSerializer.SerializeToNode(PublicStatus(includeInbox: false))!.AsObject();
+            var control = new JsonObject
+            {
+                ["kennung"] = String(state, "kennung"), ["oeffentlich"] = String(state, "oeffentlich"),
+                ["an"] = Boolean(state, "an"), ["name"] = String(state, "name"), ["port"] = Number(state, "port", DefaultPort),
+                ["paarungen"] = state["paarungen"]?.DeepClone(), ["paarungenVerbraucht"] = state["paarungenVerbraucht"]?.DeepClone(),
+                ["weitergabeAngebote"] = state["weitergabeAngebote"]?.DeepClone(),
+                ["partner"] = new JsonArray(state["partner"]!.AsArray().OfType<JsonObject>()
+                    .OrderBy(item => String(item, "kennung"), StringComparer.Ordinal).Select(item =>
+                    {
+                        var selected = new JsonObject();
+                        foreach (var key in new[] { "kennung", "oeffentlich", "adresse", "port", "vertraut", "fernAdresse", "fernPort", "bestaetigt", "wartet", "anfrageAusgehend", "wartetFern", "weitergabeErlaubt", "weitergabeVon", "weitergabeSchluessel", "kontakte", "kontaktLoeschen", "loeschungen", "protokoll", "paarungsart" })
+                            if (item.TryGetPropertyValue(key, out var value)) selected[key] = value?.DeepClone();
+                        return (JsonNode)selected;
+                    }).ToArray())
+            };
+            var bytes = Encoding.UTF8.GetBytes(control.ToJsonString());
+            try { report["revision"] = Convert.ToHexString(HMACSHA256.HashData(McpRevisionKey, bytes)).ToLowerInvariant(); }
+            finally { Array.Clear(bytes); }
+            report["error_present"] = (report["fehler"]?.GetValue<string>() ?? "").Length > 0;
+            report.Remove("fehler"); report.Remove("migrationHinweis");
+            report["inbox_count"] = inbox.Count;
+            report["inbox_ids"] = new JsonArray(inbox.OfType<JsonObject>().Select(item => (JsonNode?)JsonValue.Create(String(item, "id"))).ToArray());
+            report.Remove("eingang");
+            return report;
+        }
+    }
+
+    private readonly SemaphoreSlim mcpOperations = new(1, 1);
+    internal async Task<JsonObject> ExecuteMcpAsync(JsonObject request, CancellationToken cancellationToken)
+    {
+        await mcpOperations.WaitAsync(cancellationToken).ConfigureAwait(false);
+        var capture = new McpEmission();
+        var previous = mcpEmission.Value;
+        mcpEmission.Value = capture;
+        try
+        {
+            var action = String(request, "action");
+            Task operation;
+            lock (gate)
+            {
+                if (action == "read") return new() { ["ok"] = true, ["status"] = McpStatus() };
+                if (action == "inbox_read") return McpInboxRead(request);
+                if (action == "pairing_create" && String(request, "format", "json") != "json") return new() { ["ok"] = false, ["code"] = "unsupported_feature" };
+                if (String(request, "expectedRevision") != McpStatus()["revision"]!.GetValue<string>())
+                    return new() { ["ok"] = false, ["code"] = "conflict" };
+                if (action is "pairing_read_file" or "pairing_import_file")
+                {
+                    var inspectedDocument = ReadPairingFileMcp(request, capture);
+                    if (action == "pairing_import_file" && String(request, "expectedFileSha256") != String(capture.Results["McpPairingFile"], "sha256")) return new() { ["ok"] = false, ["code"] = "conflict" };
+                    request["document"] = inspectedDocument;
+                }
+                var id = String(request, "peerId");
+                if (action == "send" && !Boolean(state, "an")) return new() { ["ok"] = false, ["code"] = "conflict" };
+                if (action == "consume_inbox")
+                {
+                    var check = McpInboxRead(new() { ["id"] = String(request, "id"), ["expectedSha256"] = String(request, "expectedSha256"), ["limit"] = 1 });
+                    if (String(request, "expectedSha256").Length != 64 || !Boolean(check, "ok")) return new() { ["ok"] = false, ["code"] = "conflict" };
+                    request["ids"] = new JsonArray(String(request, "id"));
+                }
+                if (action is "confirm" or "remove" or "partner_settings" or "sharing_permission" or "send")
+                {
+                    var peer = Partner(id) ?? throw new InvalidDataException();
+                    var fingerprint = MagnolienbaumCrypto.Fingerprint(Convert.FromBase64String(String(peer, "oeffentlich")));
+                    if (!fingerprint.Equals(String(request, "fingerprint"), StringComparison.OrdinalIgnoreCase))
+                        return new() { ["ok"] = false, ["code"] = "conflict" };
+                }
+                operation = action switch
+                {
+                    "settings" => SwitchAsync(Boolean(request, "enabled"), String(request, "name")),
+                    "search" => SearchAsync(),
+                    "public_address" => PublicAddressMcpAsync(capture),
+                    "pair" => PairV1Async(String(request, "address"), Number(request, "port", DefaultPort), String(request, "fingerprint"), Boolean(request, "requestOnly")),
+                    "confirm" => ConfirmAsync(id, Boolean(request, "accept"), String(request, "fingerprint")),
+                    "remove" => RemoveAsync(id),
+                    "partner_settings" => SetPartnerAsync(id, Boolean(request, "trusted"), Boolean(request, "contacts"), Boolean(request, "contactDeletions"), String(request, "remoteAddress"), Number(request, "remotePort", DefaultPort)),
+                    "sharing_permission" => SetSharingPermissionAsync(id, String(request, "fingerprint"), Boolean(request, "allowed")),
+                    "introduce" => ShareConnectionAsync(id, String(request, "recipientId"), String(request, "fingerprint"), String(request, "recipientFingerprint")),
+                    "accept_introduction" => AcceptSharedOfferAsync(String(request, "offerId"), Boolean(request, "accept")),
+                    "pairing_create" => CreatePairingDocumentMcpAsync(request, capture),
+                    "pairing_import" or "pairing_import_file" => ImportPairingFileAsync(request["document"]?.AsObject() ?? throw new InvalidDataException()),
+                    "pairing_read_file" => Task.CompletedTask,
+                    "send" => SendAsync(id, String(request, "kind"), request["content"]?.DeepClone() ?? throw new InvalidDataException()),
+                    "clear_inbox" or "consume_inbox" => ClearInboxMcpAsync(request["ids"]?.AsArray() ?? throw new InvalidDataException()),
+                    _ => throw new InvalidDataException()
+                };
+            }
+            await operation.ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            var status = McpStatus();
+            var localVerified = true;
+            lock (gate)
+            {
+                if (action is "settings" or "pair" or "confirm" or "remove" or "partner_settings" or "sharing_permission" or "introduce" or "accept_introduction" or "pairing_create" or "pairing_import" or "pairing_import_file")
+                    localVerified = JsonNode.DeepEquals(storage.LoadOrCreate(), state);
+                if (action is "clear_inbox" or "consume_inbox") localVerified = JsonNode.DeepEquals(storage.LoadInbox(), inbox);
+                if (action == "settings") localVerified &= Boolean(state, "an") == Boolean(request, "enabled") &&
+                    (String(request, "name").Length == 0 || String(state, "name") == String(request, "name")[..Math.Min(60, String(request, "name").Length)]);
+                if (action == "remove") localVerified &= Partner(String(request, "peerId")) is null;
+                var currentPeer = Partner(String(request, "peerId"));
+                if (action == "confirm") localVerified &= Boolean(request, "accept") ? currentPeer is not null && Boolean(currentPeer, "bestaetigt") && !Boolean(currentPeer, "wartet") : currentPeer is null;
+                if (action == "partner_settings") localVerified &= currentPeer is not null && Boolean(currentPeer, "vertraut") == Boolean(request, "trusted") &&
+                    Boolean(currentPeer, "kontakte") == Boolean(request, "contacts") && Boolean(currentPeer, "kontaktLoeschen") == Boolean(request, "contactDeletions") &&
+                    String(currentPeer, "fernAdresse") == String(request, "remoteAddress") && Number(currentPeer, "fernPort", DefaultPort) == (String(request, "remoteAddress").Length == 0 ? DefaultPort : Number(request, "remotePort", DefaultPort));
+                if (action == "sharing_permission") localVerified &= currentPeer is not null && Boolean(currentPeer, "weitergabeErlaubt") == Boolean(request, "allowed");
+                if (action is "clear_inbox" or "consume_inbox") localVerified &= !(request["ids"]?.AsArray() ?? []).Any(id => inbox.OfType<JsonObject>().Any(item => String(item, "id") == id?.GetValue<string>()));
+            }
+            var result = new JsonObject { ["ok"] = !capture.Failed, ["code"] = capture.Failed ? "native_operation_failed" : "none",
+                ["status"] = status, ["action"] = action, ["localVerified"] = localVerified, ["deliveryConfirmed"] = false };
+            if (!localVerified) { result["ok"] = false; result["code"] = "verification_failed"; }
+            if (capture.Results.TryGetValue("App.baumGesendet", out var sent))
+            {
+                result["nativeBatchDelivered"] = sent["zugestellt"]?.DeepClone();
+                result["nativePending"] = sent["offen"]?.DeepClone();
+            }
+            if (capture.Results.TryGetValue("App.baumGefunden", out var found)) result["discovery"] = found.DeepClone();
+            if (capture.Results.TryGetValue("McpPairingDocument", out var document)) result["document"] = document.DeepClone();
+            if (capture.Results.TryGetValue("McpPairingFile", out var pairingFile)) result["file"] = pairingFile.DeepClone();
+            if (capture.Results.TryGetValue("McpPublicAddress", out var publicAddress)) result["publicAddress"] = publicAddress["address"]?.DeepClone();
+            if (action == "send") result["queuedVerified"] = capture.Results.ContainsKey("McpQueued");
+            return result;
+        }
+        catch (OperationCanceledException) { return new() { ["ok"] = false, ["code"] = "cancelled" }; }
+        catch (Exception) { return new() { ["ok"] = false, ["code"] = "native_operation_failed" }; }
+        finally { capture.Active = false; mcpEmission.Value = previous; mcpOperations.Release(); }
+    }
+
+    private Task ClearInboxMcpAsync(JsonArray ids)
+    {
+        ClearInbox(ids.Select(item => item!.GetValue<string>()));
+        return Task.CompletedTask;
+    }
+
+    private Task CreatePairingDocumentMcpAsync(JsonObject request, McpEmission capture)
+    {
+        var path = String(request, "path");
+        if (path.Length > 0 && File.Exists(path) && !Boolean(request, "overwrite")) throw new IOException("export_target_exists");
+        var document = CreatePairingFile(String(request, "address"), Number(request, "port", DefaultPort));
+        capture.Results["McpPairingDocument"] = document;
+        if (path.Length > 0)
+        {
+            var file = RecordExportFile.WriteVerified(new AtomicStore(), path, bookPath, "pairing-json", new ExchangeExportResult(document.ToJsonString(), 1, 0), Boolean(request, "overwrite"));
+            capture.Results["McpPairingFile"] = new() { ["path"] = file.Path, ["bytes"] = file.Bytes, ["sha256"] = file.Sha256 };
+        }
+        return Task.CompletedTask;
+    }
+
+    internal static async Task<string> ResolvePublicAddressAsync(HttpClient http)
+    {
+        var value = (await http.GetStringAsync("https://api64.ipify.org")).Trim();
+        if (!IPAddress.TryParse(value, out var address) || IPAddress.IsLoopback(address)) throw new InvalidDataException(NativeLocalization.Gettext("No public IP address was found."));
+        return value;
+    }
+
+    private async Task PublicAddressMcpAsync(McpEmission capture) => capture.Results["McpPublicAddress"] = new() { ["address"] = await ResolvePublicAddressAsync(client) };
+
+    private static JsonObject ReadPairingFileMcp(JsonObject request, McpEmission capture)
+    {
+        var path = Path.GetFullPath(String(request, "path"));
+        if (new FileInfo(path).LinkTarget is not null) throw new InvalidDataException();
+        using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (input.Length is < 1 or > 8192) throw new InvalidDataException();
+        var bytes = new byte[checked((int)input.Length)]; input.ReadExactly(bytes);
+        if (input.ReadByte() != -1) throw new IOException();
+        var document = JsonNode.Parse(bytes) as JsonObject ?? throw new InvalidDataException();
+        MagnolienbaumPairing.ValidateFile(document, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        capture.Results["McpPairingDocument"] = document.DeepClone().AsObject();
+        capture.Results["McpPairingFile"] = new() { ["path"] = path, ["bytes"] = bytes.Length, ["sha256"] = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant() };
+        return document;
+    }
+
+    private JsonObject McpInboxRead(JsonObject request)
+    {
+        var item = inbox.OfType<JsonObject>().SingleOrDefault(value => String(value, "id") == String(request, "id"));
+        if (item is null) return new() { ["ok"] = false, ["code"] = "not_found" };
+        var bytes = Encoding.UTF8.GetBytes(item.ToJsonString());
+        var digest = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+        var expected = String(request, "expectedSha256");
+        if (expected.Length > 0 && expected != digest) return new() { ["ok"] = false, ["code"] = "conflict" };
+        var offset = Number(request, "offset", 0); var limit = Number(request, "limit", 65536);
+        if (offset < 0 || offset > bytes.Length || limit is < 1 or > 65536 || offset > 0 && expected.Length == 0)
+            return new() { ["ok"] = false, ["code"] = "invalid_offset" };
+        var count = Math.Min(limit, bytes.Length - offset);
+        return new() { ["ok"] = true, ["id"] = String(request, "id"), ["sha256"] = digest, ["bytes"] = bytes.Length, ["offset"] = offset,
+            ["dataBase64"] = Convert.ToBase64String(bytes, offset, count), ["nextOffset"] = offset + count < bytes.Length ? JsonValue.Create(offset + count) : null };
     }
 
     internal async Task SwitchAsync(bool enabled, string name)
@@ -244,6 +458,12 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         if (!enabled || restart) await StopAsync();
         if (enabled) await StartAsync();
         await ReportStatusAsync();
+    }
+
+    private Task ServiceTask(Func<Task> action)
+    {
+        if (mcpEmission.Value is not { Active: true }) return Task.Run(action, CancellationToken.None);
+        using (ExecutionContext.SuppressFlow()) return Task.Run(action, CancellationToken.None);
     }
 
     internal async Task StartAsync()
@@ -268,7 +488,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                 var listener = new TcpListener(address, port);
                 if (address.AddressFamily == AddressFamily.InterNetworkV6) listener.Server.DualMode = false;
                 listener.Start(16); listeners.Add(listener);
-                networkTasks.Add(Task.Run(() => AcceptLoopAsync(listener, cancellation.Token), CancellationToken.None));
+                networkTasks.Add(ServiceTask(() => AcceptLoopAsync(listener, cancellation.Token)));
             }
             catch (SocketException) { }
         }
@@ -279,11 +499,11 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
         try
         {
             udp = new UdpClient(new IPEndPoint(IPAddress.Any, port)) { EnableBroadcast = true };
-            networkTasks.Add(Task.Run(() => UdpLoopAsync(udp, cancellation.Token), CancellationToken.None));
+            networkTasks.Add(ServiceTask(() => UdpLoopAsync(udp, cancellation.Token)));
         }
         catch (SocketException) { udp = null; }
         lock (gate) foreach (var partner in state["partner"]!.AsArray().OfType<JsonObject>()) QueueContactCapabilities(partner);
-        maintenance = Task.Run(async () =>
+        maintenance = ServiceTask(async () =>
         {
             try
             {
@@ -292,7 +512,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                 await MaintenanceLoopAsync(cancellation.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
-        }, CancellationToken.None);
+        });
         }
         finally { lifecycle.Release(); }
     }
@@ -721,6 +941,11 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                     ["an"] = id, ["art"] = kind, ["inhalt"] = payload, ["versuche"] = 0, ["zuletzt"] = "", ["angelegt"] = Timestamp() });
                 storage.SaveOutbox(candidate);
                 outbox = candidate;
+                if (mcpEmission.Value is { Active: true } capture)
+                {
+                    if (!JsonNode.DeepEquals(storage.LoadOutbox(), candidate)) throw new InvalidDataException("Outbox readback failed");
+                    capture.Results["McpQueued"] = new JsonObject { ["id"] = queuedId };
+                }
             }
         }
         if (partner is null) { await emit("App.baumGesendet", new { ok = false, fehler = "Dieser Zweig wurde noch nicht bestätigt." }); return; }

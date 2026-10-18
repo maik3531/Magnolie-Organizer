@@ -16,12 +16,21 @@ details, not separate product features requiring another public tool.
   native progress, three-way adoption, durable save/journal proof and stored
   provider-conflict read/decisions. Actual private Linux EDS write/readback and
   local conflict checkpoint/save acceptance complement the typed/transport tests.
+- Magnolienbaum: shared native controls/discovery/public-address/pairing,
+  partner/trust/sharing/introduction settings, pairing-document/file/QR operations,
+  saved-content sharing/delegation/status, asynchronous notes/tasks/contact
+  synchronization, contact preview/deletion proposals and digest-checked incoming
+  adoption/manual or automatic contact decisions/remembered rejection. The GUI's
+  batch matcher and staged contact adoption are shared; clients can process inbox
+  IDs sequentially with fresh revisions and explicit unresolved decisions.
+  Actual private Linux GTK/stdio/store/file/QR/checkpoint/save/readback acceptance
+  and a real private encrypted peer-send/receipt/inbox test complement portable
+  C# and both-frontend tests. Windows native QR rendering is explicitly unsupported.
 
 ## Remaining operation groups
 
 | Group | Existing product operations to finish connecting | Completion evidence |
 | --- | --- | --- |
-| Magnolienbaum | Enable/name/status, discovery and pairing, partner/trust/sharing settings, introductions, shared/delegated items, incoming-item handling and pairing-file operations | Existing identity/fingerprint guards, transport outcomes and acknowledged native state |
 | Phone and KDE lifecycle | Status, available pairing/confirmation/removal/reconnect operations, offered permissions and Bluetooth lifecycle | Existing device/attempt/source identity guards and native receipts |
 | Own Notes synchronization | Own-device selection, note/shared-book direction and operating preferences, existing initial/manual sync, contact/photo/profile transfer | Existing confirmed-peer and transaction gates; actual result/readback |
 | Communications | Routing/notification preferences, dial/accept/hang-up, SMS send/history/planning through existing supported adapters | Existing call/command references, source/fingerprint checks, receipt versus delivery distinction |

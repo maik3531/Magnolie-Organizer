@@ -33,6 +33,7 @@ class Host:
 def native(tmp_path, monkeypatch):
     monkeypatch.setitem(__import__('sys').modules, 'gi', None)
     module = quellmodul_laden('baum_off_probe', Path(__file__).resolve().parents[1] / 'bin/magnolie-organizer')
+    module._owned_real_baumdienst = module.BaumDienst
     monkeypatch.setattr(module, 'daten_verzeichnis', lambda: str(tmp_path))
     monkeypatch.setattr(module, 'GLib', SimpleNamespace(idle_add=lambda *_: 0))
     starts = []

@@ -16424,16 +16424,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   /* Schickt eine Aufgabe an einen anderen Zweig, wenn gewünscht. */
   function schickeAnZweig(aufgabe, kennung, syncLauf = "") {
     if (!kennung || !Bruecke.vorhanden) return false;
-    Bruecke.sende({ cmd: "baum_delegieren", kennung: kennung, aufgabe: {
+    Bruecke.sende({ cmd: "baum_delegieren", kennung: kennung, aufgabe: aufgabeBaumInhalt(aufgabe, syncLauf) });
+    return true;
+  }
+  function aufgabeBaumInhalt(aufgabe, syncLauf = "", ownId = "") {
+    return {
       id: aufgabe.id, titel: aufgabe.titel, notiz: aufgabe.notiz,
       ...(syncLauf ? {syncLauf} : {}),
       faellig: aufgabe.faellig, startZeit: aufgabe.startZeit,
       faelligZeit: aufgabe.faelligZeit, prio: aufgabe.prio,
       erinnern: !!aufgabe.erinnern,
-      herkunft: aufgabe.herkunft || (baumStand && baumStand.kennung) || "",
+      herkunft: aufgabe.herkunft || ownId || (baumStand && baumStand.kennung) || "",
       geaendert: Number(aufgabe.geaendert) || Date.now()
-    } });
-    return true;
+    };
   }
 
   function baumPartnerListe() {
@@ -16448,6 +16451,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         inhalt: inhalt });
     }
     return !!kennungen.length;
+  }
+
+  function baumKontaktFreigabeInhalt(k) {
+    const kopie = JSON.parse(JSON.stringify(Object.fromEntries(Object.keys(k)
+      .filter(key => !["id", "uid", "sync", "foto", "fotoAlternativen", "fotoQuellen", "fotoQuelle", "fotoManuell",
+        "baumKontakt", "syncQuellen", "syncKonflikte", "importBindungen", "importHerkunfte", "importKonflikt",
+        "kontaktAliase", "kdeImportStaende", "kontaktZeit", "kontaktProviderKonflikte", "vcardRev"].includes(key)).map(key => [key, k[key]]))));
+    setzeKontaktpersonen(kopie, kontaktFuerAustausch(k).kontaktpersonen.map(({ foto, ...person }) => person));
+    return kopie;
   }
 
   function begrenzeBaumTermin(roh) {
@@ -16516,6 +16528,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return reihe;
   }
 
+  function bereiteBaumNotizFreigabeVor(notiz, kennungen, ownId) {
+    if (saubereNotizAnhaenge(notiz.anhaenge).length !== notiz.anhaenge.length) return false;
+    notiz.baumFreigabe ||= { id: (ownId || "zweig") + ":" + notiz.id, partner: [], anhangPartner: [] };
+    notiz.baumFreigabe.partner = Array.from(new Set((notiz.baumFreigabe.partner || []).concat(kennungen)));
+    notiz.baumFreigabe.anhangPartner = Array.from(new Set((notiz.baumFreigabe.anhangPartner || []).concat(kennungen)));
+    markiereGemeinsameNotiz(notiz, false, ownId);
+    return true;
+  }
   function notizBaumInhalt(notiz, art) {
     sichereNotizSnapshot();
     return { freigabeId: notiz.baumFreigabe.id, titel: notiz.titel,
@@ -16564,10 +16584,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function sendeBaumNotiz(notiz, art, partner, syncLauf = "") {
+    for (const inhalt of baumNotizSendungen(notiz, art, partner, syncLauf)) schickeBaumInhalt(art, inhalt, [partner]);
+  }
+  function baumNotizSendungen(notiz, art, partner, syncLauf = "") {
     const ids = new Set((notiz.baumFreigabe?.quellen || []).filter(q => q.partner === partner).map(q => q.id));
     if (!ids.size) ids.add(notiz.baumFreigabe.id);
-    for (const id of ids) schickeBaumInhalt(art, { ...notizBaumInhalt(notiz, art), freigabeId: id,
-      ...(syncLauf ? {syncLauf} : {}) }, [partner]);
+    return [...ids].map(id => ({ ...notizBaumInhalt(notiz, art), freigabeId: id, ...(syncLauf ? {syncLauf} : {}) }));
   }
 
   function indexiereBaumNotiz(index, notiz, entfernen = false) {
@@ -16646,13 +16668,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return { ok: true, geaendert };
   }
 
-  function markiereGemeinsameNotiz(notiz, inhaltGeaendert = true) {
+  function markiereGemeinsameNotiz(notiz, inhaltGeaendert = true, ownId = "") {
     if (!notiz.baumFreigabe) return;
     if (personalSyncEigeneNotiz(notiz)) notiz.persoenlichVerknuepft = true;
     notiz.baumGeaendert = Date.now();
     notiz.baumVersion = Number(notiz.baumVersion || 0) + 1;
     if (inhaltGeaendert) notiz.baumInhaltVersion = Number(notiz.baumInhaltVersion || 0) + 1;
-    notiz.baumQuelle = String((baumStand && baumStand.kennung) || "");
+    notiz.baumQuelle = String(ownId || (baumStand && baumStand.kennung) || "");
   }
 
   function synchronisiereFreigegebeneNotiz(notiz) {
@@ -16670,14 +16692,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
   }
 
-  function synchronisiereAllesMit(kennung, mitAnfrage) {
-    const partner = baumPartnerListe().find((p2) => p2.kennung === kennung);
+  function synchronisiereAllesMit(kennung, mitAnfrage, vorbereitung = null) {
+    const partner = vorbereitung?.partner || baumPartnerListe().find((p2) => p2.kennung === kennung);
     if (!partner) return false;
     const weitergabeQuelle = partner.weitergabeVon ? String(partner.weitergabeQuelle || "") : null;
     if (weitergabeQuelle === "") return false;
     const syncLauf = crypto.randomUUID();
     sichereNotizSnapshot();
-    const eigeneKennung = String((baumStand && baumStand.kennung) || "zweig");
+    const eigeneKennung = String(vorbereitung?.kennung || (baumStand && baumStand.kennung) || "zweig");
+    const sendeNotiz = (notiz, art) => {
+      if (vorbereitung) for (const inhalt of baumNotizSendungen(notiz, art, kennung, syncLauf)) vorbereitung.sendungen.push({ art, inhalt });
+      else sendeBaumNotiz(notiz, art, kennung, syncLauf);
+    };
     let datenGeaendert = weitergabeQuelle === null && vereinigeBestehendeNotizen() > 0;
     for (const notiz of DATEN.notizen) {
       if (weitergabeQuelle !== null && !(notiz.baumFreigabe?.partner || []).includes(weitergabeQuelle)) continue;
@@ -16701,23 +16727,27 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       const schonFreigegeben = (notiz.baumFreigabe.partner || []).includes(kennung);
       if (schonFreigegeben) {
-        sendeBaumNotiz(notiz, "notiz_sync", kennung, syncLauf);
+        sendeNotiz(notiz, "notiz_sync");
       } else {
         notiz.baumFreigabe.partner = Array.from(new Set(
           (notiz.baumFreigabe.partner || []).concat(kennung)));
         notiz.baumFreigabe.anhangPartner = Array.from(new Set(
           (notiz.baumFreigabe.anhangPartner || []).concat(kennung)));
-        sendeBaumNotiz(notiz, "notiz", kennung, syncLauf);
+        sendeNotiz(notiz, "notiz");
         datenGeaendert = true;
       }
     }
     for (const aufgabe of DATEN.aufgaben) {
       if (aufgabe.fremdId || (aufgabe.herkunft && aufgabe.herkunft !== eigeneKennung)) continue;
       if (weitergabeQuelle !== null && aufgabe.delegiertAn !== weitergabeQuelle) continue;
-      schickeAnZweig(aufgabe, kennung, syncLauf);
+      if (vorbereitung) vorbereitung.sendungen.push({ art: "aufgabe", inhalt: aufgabeBaumInhalt(aufgabe, syncLauf, eigeneKennung) });
+      else schickeAnZweig(aufgabe, kennung, syncLauf);
     }
-    if (mitAnfrage) schickeBaumInhalt("sync_anfrage", {}, [kennung]);
-    if (datenGeaendert) planeSpeichern();
+    if (mitAnfrage) {
+      if (vorbereitung) vorbereitung.sendungen.push({ art: "sync_anfrage", inhalt: {} });
+      else schickeBaumInhalt("sync_anfrage", {}, [kennung]);
+    }
+    if (datenGeaendert && !vorbereitung) planeSpeichern();
     return true;
   }
 
@@ -16863,21 +16893,40 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (!partner) return false;
     const fassung = partner.kontaktFaehigkeiten?.kontakt_sync?.includes(3) ? 3 : partner.kontaktFaehigkeiten?.kontakt_sync?.includes(2) ? 2 : 1;
     const quelle = String((baumStand && baumStand.kennung) || "zweig").slice(0, 128);
-    const bestand = DATEN, kontakte = DATEN.kontakte.slice();
+    const bestand = DATEN;
     if (fassung === 1) schickeBaumInhalt("kontakt_faehigkeiten", {}, [kennung]);
-    // Preflight the whole snapshot before any contact content is queued.
-    let inhalte, hashes, zeiten;
+    let vorbereitet;
     try {
-      const modern = kontakte.map((k) => kontaktBaumInhalt({ ...k, baumKontakt: k.baumKontakt || {} }));
-      inhalte = fassung >= 2 ? modern.map(inhalt => fassung === 3 ? { ...inhalt, fassung: 3, inhaltGeaendert: 0 } : inhalt) :
-        kontakte.map(k => kontaktBaumInhalt(k, 1));
-      hashes = await Promise.all(modern.map((n) => personalSyncHash(n.kontakt)));
-      zeiten = fassung === 3 ? await Promise.all(kontakte.map((k, index) => kontaktInhaltszeit(k, hashes[index]))) : [];
-      if (DATEN !== bestand || gesperrt || kontakte.some((k, index) => !DATEN.kontakte.includes(k) ||
-          !kontaktZeitInhaltGleich(kontaktBaumInhalt(k).kontakt, modern[index].kontakt))) return false;
+      vorbereitet = await bereiteBaumKontaktNutzlastVor(bestand, partner);
+      if (DATEN !== bestand || gesperrt) return false;
     }
     catch (_fehler) { zettel(_("Not sent.")); return false; }
-    DATEN.baumKontaktErfolgreich[kennung] = false;
+    const sendungen = baumKontaktAbgleichSendungen(bestand, kennung, quelle, vorbereitet);
+    baumKontaktLaeufe.set(kennung, { offen: sendungen.length, fehler: false, bestand: vorbereitet.kontakte.length });
+    for (const inhalt of sendungen) schickeBaumInhalt("kontakt_sync", inhalt, [kennung]);
+    if (!sendungen.length) baumKontaktLaeufe.delete(kennung);
+    planeSpeichern();
+    return true;
+  }
+
+  async function bereiteBaumKontaktNutzlastVor(daten, partner) {
+    const fassung = partner.kontaktFaehigkeiten?.kontakt_sync?.includes(3) ? 3 : partner.kontaktFaehigkeiten?.kontakt_sync?.includes(2) ? 2 : 1;
+    const kontakte = daten.kontakte.slice();
+    // Build against this explicit book synchronously; never retain a draft as DATEN across await.
+    const { modern, inhalte } = mitBaumKontaktEntwurf(daten, () => {
+      const modern = kontakte.map(k => kontaktBaumInhalt({ ...k, baumKontakt: k.baumKontakt || {} }));
+      return { modern, inhalte: fassung >= 2 ? modern.map(inhalt => fassung === 3 ? { ...inhalt, fassung: 3, inhaltGeaendert: 0 } : inhalt) : kontakte.map(k => kontaktBaumInhalt(k, 1)) };
+    });
+    const hashes = await Promise.all(modern.map(n => personalSyncHash(n.kontakt)));
+    const zeiten = fassung === 3 ? await Promise.all(kontakte.map((k, index) => kontaktInhaltszeit(k, hashes[index]))) : [];
+    if (!mitBaumKontaktEntwurf(daten, () => kontakte.every((k, index) => daten.kontakte.includes(k) && kontaktZeitInhaltGleich(kontaktBaumInhalt(k).kontakt, modern[index].kontakt))))
+      throw new Error(_("Conflict"));
+    return { fassung, kontakte, inhalte, hashes, zeiten };
+  }
+
+  function baumKontaktAbgleichSendungen(daten, kennung, quelle, vorbereitet) {
+    const { kontakte, inhalte, hashes, zeiten, fassung } = vorbereitet;
+    daten.baumKontaktErfolgreich[kennung] = false;
     const sendungen = kontakte.flatMap((kontakt, index) => {
       if (!kontakt.baumKontakt) {
         kontakt.baumKontakt = { freigabeId: (quelle + ":" + kontakt.id).slice(0, 128),
@@ -16886,8 +16935,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const bekannt = baumKontaktBindungen(kontakt).filter(meta => (meta.partner || []).includes(kennung));
       return (bekannt.length ? bekannt : [kontakt.baumKontakt]).map(meta => ({ index, meta }));
     });
-    baumKontaktLaeufe.set(kennung, { offen: sendungen.length, fehler: false, bestand: kontakte.length });
-    for (const { index, meta } of sendungen) {
+    return sendungen.map(({ index, meta }) => {
       if (meta.hash !== hashes[index] || !meta.version) {
         meta.version = Number(meta.version || 0) + 1;
         meta.quelle = quelle;
@@ -16895,12 +16943,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         meta.hash = hashes[index];
       }
       meta.partner = Array.from(new Set((meta.partner || []).concat(kennung)));
-      schickeBaumInhalt("kontakt_sync", { ...inhalte[index], ...(fassung === 3 ? { inhaltGeaendert: zeiten[index] } : {}), freigabeId: meta.freigabeId,
-        version: meta.version, quelle: meta.quelle, geaendert: meta.geaendert }, [kennung]);
-    }
-    if (!kontakte.length) baumKontaktLaeufe.delete(kennung);
-    planeSpeichern();
-    return true;
+      return { ...inhalte[index], ...(fassung === 3 ? { inhaltGeaendert: zeiten[index] } : {}), freigabeId: meta.freigabeId,
+        version: meta.version, quelle: meta.quelle, geaendert: meta.geaendert };
+    });
   }
 
   function baumKontaktDubletten(kennung) {
@@ -16966,18 +17011,23 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function sendeKontaktLoeschung(kennung, marke) {
-    schickeBaumInhalt("kontakt_loeschen", { art: "kontakt_loeschen", fassung: 1,
+    schickeBaumInhalt("kontakt_loeschen", baumKontaktLoeschInhalt(marke), [kennung]);
+  }
+  function baumKontaktLoeschInhalt(marke) {
+    return { art: "kontakt_loeschen", fassung: 1,
       freigabeId: marke.freigabeId, version: marke.version, quelle: marke.quelle,
-      geaendert: marke.geaendert }, [kennung]);
+      geaendert: marke.geaendert };
   }
 
   function schickeStandZurueck(aufgabe) {
     if (!Bruecke.vorhanden || !aufgabe || !aufgabe.fremdId ||
       !aufgabe.herkunft) return false;
     Bruecke.sende({ cmd: "baum_rueckmeldung", kennung: aufgabe.herkunft,
-      stand: { id: aufgabe.fremdId, erledigt: !!aufgabe.erledigt,
-        geaendert: Number(aufgabe.geaendert) || Date.now() } });
+      stand: aufgabeBaumStand(aufgabe) });
     return true;
+  }
+  function aufgabeBaumStand(aufgabe) {
+    return { id: aufgabe.fremdId, erledigt: !!aufgabe.erledigt, geaendert: Number(aufgabe.geaendert) || Date.now() };
   }
 
   function aufgabePasst(a) {
@@ -18229,14 +18279,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       pruefen.dataset.syncKontaktKonflikt = k.id;
       knoepfe.append(pruefen);
     }
-    const freigabe = baumFreigabeReihe("kontakt", () => {
-      const kopie = JSON.parse(JSON.stringify(Object.fromEntries(Object.keys(k)
-        .filter(key => !["id", "uid", "sync", "foto", "fotoAlternativen", "fotoQuellen", "fotoQuelle", "fotoManuell",
-          "baumKontakt", "syncQuellen", "syncKonflikte", "importBindungen", "importHerkunfte", "importKonflikt",
-          "kontaktAliase", "kdeImportStaende", "kontaktZeit", "kontaktProviderKonflikte", "vcardRev"].includes(key)).map(key => [key, k[key]]))));
-      setzeKontaktpersonen(kopie, kontaktFuerAustausch(k).kontaktpersonen.map(({ foto, ...person }) => person));
-      return kopie;
-    }, _("Share address"), (kennungen) => {
+    const freigabe = baumFreigabeReihe("kontakt", () => baumKontaktFreigabeInhalt(k), _("Share address"), (kennungen) => {
       try {
         for (const id of kennungen) {
           const peer = baumPartnerListe().find((p) => p.kennung === id);
@@ -20440,15 +20483,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             "the combined limit is approximately 18 MB."));
           return false;
         }
-        if (!notiz.baumFreigabe) {
-          notiz.baumFreigabe = { id: (baumStand.kennung || "zweig") + ":" + notiz.id,
-            partner: [], anhangPartner: [] };
-        }
-        notiz.baumFreigabe.partner = Array.from(new Set(
-          (notiz.baumFreigabe.partner || []).concat(kennungen)));
-        notiz.baumFreigabe.anhangPartner = Array.from(new Set(
-          (notiz.baumFreigabe.anhangPartner || []).concat(kennungen)));
-        markiereGemeinsameNotiz(notiz, false);
+        if (!bereiteBaumNotizFreigabeVor(notiz, kennungen, baumStand.kennung)) return false;
         planeSpeichern();
         return true;
       });
@@ -25098,24 +25133,29 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           lauf.angenommen.push(stueck.id); ergebnis.angenommen++; continue;
         }
         const vorher = lauf.daten.kontakte.length;
-        const zeitRelevant = !!plan.ziel?.kontaktZeit || stueck.inhalt?.fassung === 3 && kontaktZeitGueltig(stueck.inhalt.inhaltGeaendert);
-        const vorherInhalt = zeitRelevant && plan.ziel ? personalSyncKanonisch(kontaktBaumInhalt(plan.ziel, 2, false).kontakt) : "";
-        const vorherZeit = zeitRelevant && plan.ziel ? await kontaktInhaltszeit(plan.ziel) : 0;
-        if (DATEN !== bestand || gesperrt) return ergebnis;
-        if (!mitBaumKontaktEntwurf(lauf.daten, () => uebernehmeBaumAngebot(stueck, {}, { aufschieben: true, kontakt: plan.ziel, behalten: plan.behalten,
-            ergaenzen: plan.art === "ergaenzung" }))) {
+        if (!await uebernehmeBaumKontaktPlan(lauf.daten, stueck, plan, () => DATEN === bestand && !gesperrt)) {
+          if (DATEN !== bestand || gesperrt) return ergebnis;
           ergebnis.ungueltig++; continue;
         }
         lauf.angenommen.push(stueck.id); ergebnis.angenommen++;
-        const zeitZiel = plan.ziel || lauf.daten.kontakte[vorher];
-        if (zeitRelevant && zeitZiel) await kontaktZeitAusQuelle(zeitZiel, baumKontaktKarte(stueck),
-          stueck.inhalt?.fassung === 3 ? stueck.inhalt.inhaltGeaendert : 0, vorherInhalt, vorherZeit, lauf.daten);
         if (plan.ziel) baumKontaktIndexiere(index, plan.ziel);
         for (const kontakt of lauf.daten.kontakte.slice(vorher)) baumKontaktIndexiere(index, kontakt);
       }
       if (!lauf.offen.length && DATEN === bestand && !gesperrt) ergebnis.gespeichert = await beendeBaumKontaktLauf(lauf);
       return ergebnis;
     } finally { baumKontaktSammelLaeuft = false; baueEinstellungen(); }
+  }
+
+  async function uebernehmeBaumKontaktPlan(daten, stueck, plan, pruefen = () => true) {
+    const vorher = daten.kontakte.length;
+    const zeitRelevant = !!plan.ziel?.kontaktZeit || stueck.inhalt?.fassung === 3 && kontaktZeitGueltig(stueck.inhalt.inhaltGeaendert);
+    const vorherInhalt = zeitRelevant && plan.ziel ? personalSyncKanonisch(kontaktBaumInhalt(plan.ziel, 2, false).kontakt) : "";
+    const vorherZeit = zeitRelevant && plan.ziel ? await kontaktInhaltszeit(plan.ziel) : 0;
+    if (!pruefen()) return false;
+    if (!mitBaumKontaktEntwurf(daten, () => uebernehmeBaumAngebot(stueck, {}, { aufschieben: true, kontakt: plan.ziel, behalten: plan.behalten, ergaenzen: plan.art === "ergaenzung" }))) return false;
+    const ziel = plan.ziel || daten.kontakte[vorher];
+    if (zeitRelevant && ziel) await kontaktZeitAusQuelle(ziel, baumKontaktKarte(stueck), stueck.inhalt?.fassung === 3 ? stueck.inhalt.inhaltGeaendert : 0, vorherInhalt, vorherZeit, daten);
+    return pruefen();
   }
 
   function starteBaumKontaktUebernahme(ids) {
@@ -25178,13 +25218,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return entwurf;
   }
 
-  async function entscheideBaumKontakt(stueck, zielId, auswahl, modus, revision, bestand, lauf, intern = false) {
+  async function entscheideBaumKontakt(stueck, zielId, auswahl, modus, revision, bestand, lauf, intern = false,
+      partnerPruefen = id => (baumStand?.partner || []).some(p => p.kennung === id && p.bestaetigt)) {
     if (!lauf || lauf.beendet || baumKontaktSammelLaeuft && !intern || gesperrt || DATEN !== bestand) throw new Error(_("Conflict"));
     const daten = lauf.daten;
     const ziel = daten.kontakte.find(k => k.id === zielId), inhalt = stueck.inhalt || {};
     const art = inhalt.art || stueck.art, karte = baumKontaktKarte(stueck);
     if (!karte || !["merge", "replace", "keep", "new", "newer"].includes(modus) ||
-        !(baumStand?.partner || []).some(p => p.kennung === stueck.von && p.bestaetigt)) throw new Error(_("Conflict"));
+        !partnerPruefen(stueck.von)) throw new Error(_("Conflict"));
     if (modus !== "new" && !ziel) throw new Error(_("Conflict"));
     const neuereRegel = modus === "newer";
     if (neuereRegel) {
@@ -25201,7 +25242,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const hash = await personalSyncHash(baumKontaktVergleich(karte));
       const vorherZeit = ziel ? await kontaktInhaltszeit(ziel) : 0;
       if (DATEN !== bestand || gesperrt || ziel && (!daten.kontakte.includes(ziel) || kanonischerEntwurf(ziel) !== vorher) ||
-          !(baumStand?.partner || []).some(p => p.kennung === stueck.von && p.bestaetigt)) throw new Error(_("Conflict"));
+          !partnerPruefen(stueck.von)) throw new Error(_("Conflict"));
       if (modus === "new") {
         const alteBindungen = daten.kontakte.filter(k => art === "kontakt_sync" && baumKontaktBindung(k, inhalt.freigabeId, stueck.von));
         if (!mitBaumKontaktEntwurf(daten, () => uebernehmeBaumAngebot(stueck, {}, { aufschieben: true, neu: true }))) throw new Error(_("The offered entry is incomplete."));
@@ -25303,10 +25344,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
             nummer === 0 ? revision : ziel ? kanonischerEntwurf(ziel) : null, bestand, lauf);
         }
       }
-      if (modus === "skip") {
-        const hash = await baumKontaktAblehnungHash(angebot);
-        if (!lauf.daten.baumKontaktAblehnungen.includes(hash)) lauf.daten.baumKontaktAblehnungen.push(hash);
-      }
+      if (modus === "skip") await merkeBaumKontaktAblehnung(lauf.daten, angebot);
       lauf.angenommen.push(id); lauf.offen = lauf.offen.filter(wert => wert !== id);
       if (nummer % 25 === 24) await new Promise(resolve => setTimeout(resolve, 0));
     }
@@ -25316,6 +25354,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       finally { baumKontaktSammelLaeuft = false; baueEinstellungen(); }
     }
     return lauf.offen.slice();
+  }
+
+  async function merkeBaumKontaktAblehnung(daten, angebot) {
+    const hash = await baumKontaktAblehnungHash(angebot);
+    if (!daten.baumKontaktAblehnungen.includes(hash)) daten.baumKontaktAblehnungen.push(hash);
   }
 
   async function oeffneBaumKontakt(stueck, rest = [], lauf = null) {
@@ -32012,6 +32055,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     graphAnmeldeVorgang(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "graphAnmeldeVorgang"); },
     internetKontenMcp(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "internetKontenMcp"); },
     graphKontoGeaendert(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "graphKontoGeaendert"); },
+    baumMcpErgebnis(nutzlast) { if (nutzlast?.requestId) mcpNativeAntwort(nutzlast, "baumMcpErgebnis"); },
     baumBriefkastenPruefung(nutzlast) {
       briefkastenStand = nutzlast || {};
       briefkastenSignatur = JSON.stringify(briefkastenStand);
@@ -34492,6 +34536,395 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         !["uebersprungen", "wiederholend"].every(key => Number.isSafeInteger(value[key]) && value[key] >= 0)) throw new MagnolieMcp.ToolError("invalid_result", "Native local import snapshot or selected collections were incomplete");
     return value;
   }
+  function mcpBaumStatus(value, offset = 0, limit = 100) {
+    if (value.ok !== true) throw new MagnolieMcp.ToolError(["conflict", "native_busy", "profile_locked", "cancelled", "verification_failed", "unsupported_feature"].includes(value.code) ? value.code : "native_operation_failed", "Native tree operation failed; inspect current state before retrying");
+    const state = value.status;
+    if (!state || !/^[a-f0-9]{64}$/.test(state.revision) || typeof state.moeglich !== "boolean" || typeof state.an !== "boolean" || !Array.isArray(state.partner)) throw new MagnolieMcp.ToolError("invalid_result", "Native tree status was incomplete");
+    const peers = state.partner.map(peer => {
+      if (typeof peer.kennung !== "string" || typeof peer.fingerabdruck !== "string" || !Number.isInteger(peer.port) || peer.port < 1 || peer.port > 65535) throw new MagnolieMcp.ToolError("invalid_result", "Native tree peer identity was incomplete");
+      return { id: peer.kennung, name: String(peer.name || ""), fingerprint: peer.fingerabdruck, address: String(peer.adresse || ""), port: peer.port,
+        confirmed: peer.bestaetigt === true, trusted: peer.vertraut === true, contacts: peer.kontakte === true, contact_deletions: peer.kontaktLoeschen === true,
+        waiting_local: peer.wartet === true, waiting_remote: peer.wartetFern === true, outgoing_request: peer.anfrageAusgehend === true,
+        sharing_allowed: peer.weitergabeErlaubt === true, remote_address: String(peer.fernAdresse || ""), remote_port: Number(peer.fernPort) || 8737,
+        pairing_code: String(peer.code || ""), protocol: String(peer.protokoll || ""), pairing_kind: String(peer.paarungsart || "") };
+    });
+    return { revision: state.revision, available: state.moeglich, enabled: state.an, running: state.laeuft === true, name: String(state.name || ""), id: String(state.kennung || ""),
+      fingerprint: String(state.fingerabdruck || ""), port: Number(state.port) || 8737, error_present: state.error_present === true,
+      outbox_total: Math.max(0, Number(state.post) || 0), outbox_pending: Math.max(0, Number(state.postOffen) || 0), inbox_count: Math.max(0, Number(state.inbox_count) || 0),
+      inbox_ids: (state.inbox_ids || []).slice(offset, offset + limit), introduction_total: (state.weitergabeAngebote || []).length,
+      introductions: (state.weitergabeAngebote || []).slice(offset, offset + limit).map(item => ({ id: String(item.id || ""), from: String(item.von || ""), name: String(item.name || ""), fingerprint: String(item.fingerabdruck || "") })),
+      peer_total: peers.length, offset, peers: peers.slice(offset, offset + limit), ...(offset + limit < Math.max(peers.length, (state.inbox_ids || []).length, (state.weitergabeAngebote || []).length) ? { next_offset: offset + limit } : {}) };
+  }
+  function mcpBaumWerkzeuge() {
+    const text = { type: "string", maxLength: 512 }, id = { ...text, minLength: 1 }, flag = { type: "boolean" }, port = { type: "integer", minimum: 1, maximum: 65535 };
+    const common = { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, peer_id: id, fingerprint: id };
+    return [{ name: "organizer_tree_status", description: "Read the actual native Magnolienbaum identity, service state, public peer fingerprints/permissions and queue counts. Native initialization may create the normal local tree identity as in the GUI. Peer metadata is paged; private keys and inbox content are excluded. The process-keyed revision binds the stable native control plane rather than volatile heartbeat/outbox counters. Correlated responses do not rebuild GUI settings.",
+      inputSchema: { type: "object", properties: { offset: { type: "integer", minimum: 0 }, limit: { type: "integer", minimum: 1, maximum: 100 } }, additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpBaumStatus(await mcpNativeAufruf("baum_mcp", { request: { action: "read" } }, "baumMcpErgebnis", signal), args.offset || 0, args.limit || 100) },
+    { name: "organizer_tree_action", description: "Run existing native tree controls: enable/name, discovery, fingerprint-bound pairing/confirmation/removal, full partner preferences, introduction permission/transfer/acceptance or selected inbox removal. Requires the latest native control revision and explicit peer fingerprints for targeted actions. Uses the same GUI/store/service handlers with correlated results; local verification is separate from remote delivery. Enabling can invoke the product's existing system firewall permission flow. Cancellation/timeouts may follow changes; re-read before retrying. No private keys or inbox payloads are returned.",
+      inputSchema: { type: "object", properties: { ...common, action: { type: "string", enum: ["settings", "search", "public_address", "pair", "confirm", "remove", "partner_settings", "sharing_permission", "introduce", "accept_introduction", "clear_inbox"] },
+        enabled: flag, name: { type: "string", maxLength: 60 }, address: id, port, request_only: flag, accept: flag, trusted: flag, contacts: flag, contact_deletions: flag,
+        remote_address: text, remote_port: port, allowed: flag, recipient_id: id, recipient_fingerprint: id, offer_id: id, ids: { type: "array", minItems: 1, maxItems: 1000, items: id } },
+        required: ["action", "expected_revision"], anyOf: [
+          { properties: { action: { enum: ["settings"] } }, required: ["enabled"] }, { properties: { action: { enum: ["search", "public_address"] } } },
+          { properties: { action: { enum: ["pair"] } }, required: ["address", "port", "fingerprint"] },
+          { properties: { action: { enum: ["confirm"] } }, required: ["peer_id", "fingerprint", "accept"] },
+          { properties: { action: { enum: ["remove"] } }, required: ["peer_id", "fingerprint"] },
+          { properties: { action: { enum: ["partner_settings"] } }, required: ["peer_id", "fingerprint", "trusted", "contacts", "contact_deletions", "remote_address", "remote_port"] },
+          { properties: { action: { enum: ["sharing_permission"] } }, required: ["peer_id", "fingerprint", "allowed"] },
+          { properties: { action: { enum: ["introduce"] } }, required: ["peer_id", "fingerprint", "recipient_id", "recipient_fingerprint"] },
+          { properties: { action: { enum: ["accept_introduction"] } }, required: ["offer_id", "accept"] },
+          { properties: { action: { enum: ["clear_inbox"] } }, required: ["ids"] }], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        const request = { action: args.action, expectedRevision: args.expected_revision };
+        for (const [field, native] of Object.entries({ peer_id: "peerId", fingerprint: "fingerprint", enabled: "enabled", name: "name", address: "address", port: "port", request_only: "requestOnly", accept: "accept",
+          trusted: "trusted", contacts: "contacts", contact_deletions: "contactDeletions", remote_address: "remoteAddress", remote_port: "remotePort", allowed: "allowed", recipient_id: "recipientId", recipient_fingerprint: "recipientFingerprint", offer_id: "offerId", ids: "ids" }))
+          if (args[field] !== undefined) request[native] = args[field];
+        const value = await mcpNativeAufruf("baum_mcp", { request }, "baumMcpErgebnis", signal), state = mcpBaumStatus(value);
+        if (value.action !== args.action || typeof value.localVerified !== "boolean" || value.deliveryConfirmed !== false) throw new MagnolieMcp.ToolError("invalid_result", "Native tree receipt was incomplete; state may have changed");
+        const discovered = (value.discovery?.nachbarn || []).slice(0, 100).map(peer => ({ id: String(peer.kennung || ""), name: String(peer.name || ""), address: String(peer.adresse || ""), port: Number(peer.port) || 8737, fingerprint: String(peer.fingerabdruck || "") }));
+        const address = typeof value.publicAddress === "string" ? value.publicAddress : null;
+        if (args.action === "public_address" && (!address || address.length > 128)) throw new MagnolieMcp.ToolError("invalid_result", "Native public-address result was incomplete");
+        return { state, local_verified: value.localVerified, delivery_confirmed: false, discovered, public_address: address };
+      } }];
+  }
+  function mcpBaumInhaltWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    return [{ name: "organizer_tree_content_send", description: "Share a saved note or appointment, delegate a saved task, or return a received task's completion status to its origin through the existing native Magnolienbaum outbox. Requires record/tree revisions and the intended peer fingerprint. Note sharing/delegation metadata is saved with native acknowledgment before sending; later failure can leave metadata saved. No arbitrary protocol payloads. Queue persistence is read back separately; acceptance is not remote delivery. Cancellation/timeouts may follow changes: inspect state before retrying. Large notes exceeding the MCP frame need GUI sharing.",
+      inputSchema: { type: "object", properties: { action: { type: "string", enum: ["share_note", "share_appointment", "share_contact", "delegate_task", "task_status"] }, id, expected_record_revision: revision, expected_tree_revision: revision, peer_id: id, fingerprint: { type: "string", minLength: 1, maxLength: 512 } }, required: ["action", "id", "expected_record_revision", "expected_tree_revision", "peer_id", "fingerprint"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        const book = DATEN, section = args.action === "share_note" ? "notizen" : args.action === "share_appointment" ? "termine" : args.action === "share_contact" ? "kontakte" : "aufgaben";
+        const record = await mcpPruefeEintrag(section, args.id, args.expected_record_revision, signal);
+        let snapshot = JSON.stringify(record);
+        const native = await mcpNativeAufruf("baum_mcp", { request: { action: "read" } }, "baumMcpErgebnis", signal);
+        const state = mcpBaumStatus(native), offset = native.status.partner.findIndex(item => item.kennung === args.peer_id);
+        const target = offset < 0 ? null : mcpBaumStatus(native, offset, 1).peers[0];
+        if (state.revision !== args.expected_tree_revision || !state.enabled || !target?.confirmed || target.fingerprint.toLowerCase() !== args.fingerprint.toLowerCase())
+          throw new MagnolieMcp.ToolError("conflict", "Read the enabled tree and confirm the intended peer fingerprint before sharing");
+        const current = () => {
+          mcpEditorPruefen();
+          if (signal.aborted || gesperrt || DATEN !== book || !book[section].includes(record) || JSON.stringify(record) !== snapshot)
+            throw new MagnolieMcp.ToolError("conflict", "The source changed before sharing; inspect saved metadata before retrying");
+        };
+        current();
+        if (args.action === "share_appointment" && record.icsReadOnly) throw new MagnolieMcp.ToolError("read_only", "This appointment cannot be shared from the editor");
+        if (args.action === "task_status" && (!record.fremdId || record.herkunft !== args.peer_id)) throw new MagnolieMcp.ToolError("conflict", "Task status can only return to the recorded origin");
+        const payload = () => args.action === "share_note" ? notizBaumInhalt(record, "notiz") : args.action === "share_appointment" ? begrenzeBaumTermin(record) : args.action === "share_contact" ? baumKontaktFreigabeInhalt(record) : args.action === "delegate_task" ? aufgabeBaumInhalt(record, "", state.id) : aufgabeBaumStand(record);
+        const bounded = value => {
+          if (new TextEncoder().encode(JSON.stringify(value)).length > 700000) throw new MagnolieMcp.ToolError("content_too_large", "Content exceeds the bounded MCP native frame");
+          return value;
+        };
+        if (args.action === "share_note") {
+          if (saubereNotizAnhaenge(record.anhaenge).length !== record.anhaenge.length) throw new MagnolieMcp.ToolError("content_too_large", "Note attachments exceed the sharing limit");
+          bounded(record);
+        } else bounded(payload());
+        let persisted = false;
+        if (["share_note", "delegate_task"].includes(args.action)) {
+          await mcpSchreiben(signal, () => {
+            current();
+            if (args.action === "share_note") bereiteBaumNotizFreigabeVor(record, [args.peer_id], state.id);
+            else wendeAufgabenWerteAn(record, { delegiertAn: args.peer_id }, false, false);
+            snapshot = JSON.stringify(record);
+            return { id: record.id };
+          });
+          persisted = true;
+        }
+        current();
+        const contents = args.action === "share_note" ? baumNotizSendungen(record, "notiz", args.peer_id) : [payload()];
+        contents.forEach(bounded);
+        let after;
+        for (const content of contents) {
+          current();
+          const value = await mcpNativeAufruf("baum_mcp", { request: { action: "send", expectedRevision: args.expected_tree_revision, peerId: args.peer_id, fingerprint: args.fingerprint,
+            kind: ({ share_note: "notiz", share_appointment: "termin", share_contact: "kontakt", delegate_task: "aufgabe", task_status: "stand" })[args.action], content } }, "baumMcpErgebnis", signal);
+          after = mcpBaumStatus(value);
+          if (value.action !== "send" || value.queuedVerified !== true || value.deliveryConfirmed !== false) throw new MagnolieMcp.ToolError("invalid_result", "Native outbox persistence was not verified; some content may already be queued, inspect state before retrying");
+        }
+        return { id: args.id, peer_id: args.peer_id, metadata_persisted: persisted, queue_persisted: true, delivery_confirmed: false, state: after };
+      } }];
+  }
+  function mcpBaumPaarungsWerkzeuge() {
+    return [{ name: "organizer_tree_pairing_document", description: "Create or import the actual Magnolienbaum pairing document through the existing native pairing codec/store transaction, without a file chooser. Requires the latest native tree revision. Creating persists a time-limited invitation and returns its transferable pairing document, which must be shared only with the intended branch; private identity keys are excluded. Import runs the existing signed-response/fingerprint validation and may contact the document's explicit destination. Neither importing nor creating proves later delivery. Cancellation can follow native changes; re-read tree state before retrying.",
+      inputSchema: { type: "object", properties: { action: { type: "string", enum: ["create", "import", "read_file", "import_file"] }, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, expected_file_sha256: { type: "string", pattern: "^[a-f0-9]{64}$" },
+        address: { type: "string", minLength: 1, maxLength: 512 }, port: { type: "integer", minimum: 1, maximum: 65535 }, document_json: { type: "string", minLength: 2, maxLength: 8192 },
+        format: { type: "string", enum: ["json", "qr_svg"] }, path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, overwrite: { type: "boolean" } }, required: ["action", "expected_revision"],
+        anyOf: [{ properties: { action: { enum: ["create"] } }, required: ["address", "port"] }, { properties: { action: { enum: ["import"] } }, required: ["document_json"] },
+          { properties: { action: { enum: ["read_file"] } }, required: ["path"] }, { properties: { action: { enum: ["import_file"] } }, required: ["path", "expected_file_sha256"] }], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        const request = { action: ({ create: "pairing_create", import: "pairing_import", read_file: "pairing_read_file", import_file: "pairing_import_file" })[args.action], expectedRevision: args.expected_revision };
+        if (args.action === "create") { request.address = args.address; request.port = args.port; request.format = args.format || "json"; if (args.path) { request.path = args.path; request.overwrite = args.overwrite === true; } }
+        else if (["read_file", "import_file"].includes(args.action)) {
+          if (args.format !== undefined || args.overwrite !== undefined || args.document_json !== undefined) throw new MagnolieMcp.ToolError("invalid_selection", "File inspection/import accepts a path and content digest, not output options");
+          request.path = args.path; request.expectedFileSha256 = args.expected_file_sha256 || "";
+        } else {
+          if (args.format !== undefined || args.path !== undefined || args.overwrite !== undefined) throw new MagnolieMcp.ToolError("invalid_selection", "Pairing output options apply only to creation");
+          if (new TextEncoder().encode(args.document_json).length > 8192) throw new MagnolieMcp.ToolError("invalid_pairing_document", "Pairing document exceeds the product byte limit");
+          try { request.document = JSON.parse(args.document_json); } catch (_) { throw new MagnolieMcp.ToolError("invalid_pairing_document", "Pairing document is not JSON"); }
+          if (!request.document || typeof request.document !== "object" || Array.isArray(request.document)) throw new MagnolieMcp.ToolError("invalid_pairing_document", "Pairing document must be an object");
+        }
+        const value = await mcpNativeAufruf("baum_mcp", { request }, "baumMcpErgebnis", signal), state = mcpBaumStatus(value);
+        if (value.localVerified !== true || value.action !== request.action) throw new MagnolieMcp.ToolError("invalid_result", "Native pairing transaction was not verified");
+        const document = ["create", "read_file"].includes(args.action) ? JSON.stringify(value.document) : null;
+        if (["create", "read_file"].includes(args.action) && (!value.document || typeof value.document !== "object" || new TextEncoder().encode(document).length > 8192)) throw new MagnolieMcp.ToolError("invalid_result", "Native pairing document was incomplete");
+        const image = args.action === "create" && args.format === "qr_svg" ? value.qrImage : null, file = value.file || null;
+        if (args.action === "create" && args.format === "qr_svg" && (typeof image !== "string" || image.length > 900000 || !/^data:image\/svg\+xml;base64,[A-Za-z0-9+/]+=*$/.test(image)) ||
+            args.path && (!file || typeof file.path !== "string" || !Number.isSafeInteger(file.bytes) || file.bytes < 1 || !/^[a-f0-9]{64}$/.test(file.sha256))) throw new MagnolieMcp.ToolError("invalid_result", "Native pairing image/file readback was incomplete; invitation may already be saved");
+        return { state, document_json: document, qr_image: image, file, local_verified: true, delivery_confirmed: false };
+      } }];
+  }
+  function mcpBaumEingangWerkzeuge() {
+    return [{ name: "organizer_tree_inbox_read", description: "Read an actual stored native Magnolienbaum inbox item as bounded base64 UTF-8 JSON chunks without opening its GUI review or applying it. Concatenate bytes before decoding. Subsequent offsets require the exact SHA-256 from the first chunk; changed/removed items fail explicitly. Inbox IDs come from tree_status. No private identity keys or arbitrary filesystem paths are read.",
+      inputSchema: { type: "object", properties: { id: { type: "string", minLength: 1, maxLength: 512 }, offset: { type: "integer", minimum: 0 }, limit: { type: "integer", minimum: 1, maximum: 65536 }, expected_sha256: { type: "string", pattern: "^[a-f0-9]{64}$" } }, required: ["id"], additionalProperties: false },
+      annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => {
+        const offset = args.offset || 0;
+        if (offset && !args.expected_sha256) throw new MagnolieMcp.ToolError("conflict", "Carry the inbox content SHA-256 to subsequent chunks");
+        const value = await mcpNativeAufruf("baum_mcp", { request: { action: "inbox_read", id: args.id, offset, limit: args.limit || 65536, expectedSha256: args.expected_sha256 || "" } }, "baumMcpErgebnis", signal);
+        if (value.ok !== true) throw new MagnolieMcp.ToolError(["not_found", "conflict", "invalid_offset", "native_busy", "profile_locked"].includes(value.code) ? value.code : "native_operation_failed", "Native inbox item could not be read at the expected state");
+        if (value.id !== args.id || !/^[a-f0-9]{64}$/.test(value.sha256) || !Number.isSafeInteger(value.bytes) || value.bytes < 0 || value.offset !== offset || typeof value.dataBase64 !== "string" ||
+            !(value.nextOffset === null || Number.isSafeInteger(value.nextOffset) && value.nextOffset > offset && value.nextOffset <= value.bytes)) throw new MagnolieMcp.ToolError("invalid_result", "Native inbox chunk receipt was incomplete");
+        return { id: value.id, sha256: value.sha256, bytes: value.bytes, offset, data_base64: value.dataBase64, next_offset: value.nextOffset };
+      } }];
+  }
+  async function mcpBaumKontaktKontext(args, signal) {
+    mcpEditorPruefen();
+    const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+    const current = () => {
+      mcpEditorPruefen();
+      if (signal.aborted || gesperrt || DATEN !== book || JSON.stringify(book) !== before || args.expected_book_revision && args.expected_book_revision !== revision)
+        throw new MagnolieMcp.ToolError("conflict", "Book changed during tree contact inspection");
+    };
+    current();
+    const native = await mcpNativeAufruf("baum_mcp", { request: { action: "read" } }, "baumMcpErgebnis", signal), state = mcpBaumStatus(native);
+    const peer = native.status.partner.find(peer => peer.kennung === args.peer_id);
+    if (state.revision !== args.expected_tree_revision || !state.enabled || !peer?.bestaetigt || peer.fingerabdruck.toLowerCase() !== args.fingerprint.toLowerCase()) throw new MagnolieMcp.ToolError("conflict", "Confirm the enabled tree and intended peer fingerprint");
+    current();
+    return { book, revision, peer, current };
+  }
+  function mcpBaumKontaktWerkzeuge() {
+    const hash = { type: "string", pattern: "^[a-f0-9]{64}$" }, id = { type: "string", minLength: 1, maxLength: 256 };
+    const common = { expected_tree_revision: hash, peer_id: id, fingerprint: { type: "string", minLength: 1, maxLength: 512 } }, required = Object.keys(common);
+    return [{ name: "organizer_tree_contact_preview", description: "Inspect the existing tree contact synchronization preview for one confirmed fingerprint-bound peer: whole-book revision, new/bound counts, paged duplicate pairs and allowed deletion tombstones. The shared snapshot preflight checks negotiated legacy/modern compatibility and MCP frame size without changing contact bindings. Existing empty-snapshot and deletion safety limits remain. Queue acceptance does not enable deletion proposals; they require the product's existing successful-sync state and peer permission. No contact contents or photographs are returned.",
+      inputSchema: { type: "object", properties: { ...common, offset: { type: "integer", minimum: 0 }, limit: { type: "integer", minimum: 1, maximum: 100 } }, required, additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => {
+        const { book, revision, peer, current } = await mcpBaumKontaktKontext(args, signal);
+        const bound = book.kontakte.filter(contact => baumKontaktBindungen(contact).some(meta => (meta.partner || []).includes(args.peer_id))).length;
+        const duplicates = baumKontaktDubletten(args.peer_id), deletions = kontaktLoeschVorschlaege(args.peer_id, peer);
+        let blocked = !book.kontakte.length ? "empty_snapshot" : deletions === null ? "deletion_safety" : "none";
+        if (blocked === "none") {
+          try {
+            const prepared = await bereiteBaumKontaktNutzlastVor(book, peer);
+            if (prepared.inhalte.some(content => new TextEncoder().encode(JSON.stringify(content)).length > 699000)) blocked = "content_too_large";
+          } catch (_) { blocked = "legacy_incompatible"; }
+        }
+        current();
+        const offset = args.offset || 0, limit = args.limit || 100;
+        return { book_revision: revision, contacts_total: book.kontakte.length, new_count: book.kontakte.length - bound, bound_count: bound,
+          duplicate_total: duplicates.length, duplicate_pairs: duplicates.slice(offset, offset + limit).map(pair => pair.map(contact => contact.id)),
+          deletion_total: deletions?.length || 0, deletion_proposals: (deletions || []).slice(offset, offset + limit).map(mark => ({ share_id: mark.freigabeId, name: String(mark.name || ""), version: Number(mark.version) || 0 })), offset, blocked_reason: blocked };
+      } }, { name: "organizer_tree_contact_delete_proposal", description: "Send exactly one stored contact-deletion tombstone through the existing native handler. Requires current whole-book/tree revisions, explicit share ID and intended confirmed peer fingerprint. The existing successful-sync/peer-permission/bound-snapshot/deletion-count safeguards must all permit that proposal. This does not delete another arbitrary contact or establish new permissions. Native queue readback and remote delivery are separate; inspect state before retrying errors/timeouts.",
+      inputSchema: { type: "object", properties: { ...common, expected_book_revision: hash, share_id: { type: "string", minLength: 1, maxLength: 128 } }, required: [...required, "expected_book_revision", "share_id"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+        const context = await mcpBaumKontaktKontext(args, signal), allowed = kontaktLoeschVorschlaege(args.peer_id, context.peer);
+        const mark = allowed?.find(mark => mark.freigabeId === args.share_id);
+        if (!mark) throw new MagnolieMcp.ToolError("conflict", "The existing contact deletion safeguards do not allow this stored proposal");
+        context.current();
+        const value = await mcpNativeAufruf("baum_mcp", { request: { action: "send", expectedRevision: args.expected_tree_revision, peerId: args.peer_id, fingerprint: args.fingerprint, kind: "kontakt_loeschen", content: baumKontaktLoeschInhalt(mark) } }, "baumMcpErgebnis", signal);
+        const state = mcpBaumStatus(value);
+        if (value.action !== "send" || value.queuedVerified !== true || value.deliveryConfirmed !== false) throw new MagnolieMcp.ToolError("invalid_result", "Native deletion-proposal receipt was not verified; inspect before retrying");
+        return { share_id: args.share_id, queue_persisted: true, delivery_confirmed: false, state };
+      } }];
+  }
+  let mcpBaumAbgleich = null;
+  function mcpBaumAbgleichStatus(runId) {
+    const job = mcpBaumAbgleich;
+    if (!job || runId !== job.id) throw new MagnolieMcp.ToolError("not_found", "Tree sync run not found in this process");
+    return { run_id: job.id, peer_id: job.peer, scope: job.scope, phase: job.phase, metadata_persisted: job.saved, queued_verified: job.queued, messages_total: job.total,
+      cancel_requested: job.controller.signal.aborted, error_code: job.error, delivery_confirmed: false };
+  }
+  function mcpBaumAbgleichWerkzeuge() {
+    const run_id = { type: "string", pattern: "^[a-f0-9]{48}$" }, hash = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    return [{ name: "organizer_tree_sync_start", description: "Start existing Magnolienbaum synchronization for a confirmed fingerprint-bound peer. Scope notes_tasks (default) uses the GUI's eligible selection, introduced-peer source restriction and recipient-specific note identities; contacts uses its complete contact snapshot, negotiated legacy/modern payloads, content hashes/versions and reliable timestamps. Empty/unsafe contact snapshots are blocked. Draft preflight checks every outgoing message before metadata SaveACK, then queues asynchronously with native outbox readback. Poll tree_sync_status: completion is verified local queue acceptance, not delivery, remote sync success or incoming adoption. request_remote applies only to notes_tasks. Failure/cancellation may follow saved metadata or partial queueing; inspect before retrying. Source changes, drafts/dialogs or book changes stop further sends.",
+      inputSchema: { type: "object", properties: { scope: { type: "string", enum: ["notes_tasks", "contacts"] }, expected_book_revision: hash, expected_tree_revision: hash, peer_id: { type: "string", minLength: 1, maxLength: 256 }, fingerprint: { type: "string", minLength: 1, maxLength: 512 }, request_remote: { type: "boolean" } }, required: ["expected_book_revision", "expected_tree_revision", "peer_id", "fingerprint"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        if (mcpBaumAbgleich && !["completed", "failed", "cancelled"].includes(mcpBaumAbgleich.phase)) throw new MagnolieMcp.ToolError("native_busy", "Wait for the existing tree synchronization run");
+        const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+        const current = () => {
+          mcpEditorPruefen();
+          if (signal.aborted || gesperrt || DATEN !== book || JSON.stringify(book) !== before || revision !== args.expected_book_revision || syncLaeuft || personalSyncAutoLaeuft || baumKontaktSammelLaeuft)
+            throw new MagnolieMcp.ToolError("conflict", "Book or synchronization state changed before starting tree synchronization");
+        };
+        current();
+        const native = await mcpNativeAufruf("baum_mcp", { request: { action: "read" } }, "baumMcpErgebnis", signal), state = mcpBaumStatus(native);
+        const peer = native.status.partner.find(peer => peer.kennung === args.peer_id);
+        if (state.revision !== args.expected_tree_revision || !state.enabled || !peer?.bestaetigt || peer.fingerabdruck.toLowerCase() !== args.fingerprint.toLowerCase()) throw new MagnolieMcp.ToolError("conflict", "Confirm the enabled tree and intended peer fingerprint before synchronization");
+        current();
+        if (args.scope === "contacts" && (args.request_remote !== undefined || !book.kontakte.length || kontaktLoeschVorschlaege(args.peer_id, peer) === null)) throw new MagnolieMcp.ToolError("invalid_selection", "Contact snapshot is empty, deletion safety limits block synchronization, or an unsupported remote-request option was supplied");
+        // Recheck after awaits: concurrent callers must not replace an active run.
+        if (mcpBaumAbgleich && !["completed", "failed", "cancelled"].includes(mcpBaumAbgleich.phase)) throw new MagnolieMcp.ToolError("native_busy", "Another tree synchronization run started");
+        const job = { id: Array.from(crypto.getRandomValues(new Uint8Array(24)), value => value.toString(16).padStart(2, "0")).join(""), peer: args.peer_id,
+          scope: args.scope || "notes_tasks", phase: "preparing", saved: false, queued: 0, total: 0, controller: new AbortController(), error: "none" };
+        mcpBaumAbgleich = job;
+        const run = async () => {
+          const preparation = { partner: peer, kennung: state.id, sendungen: [] };
+          try {
+            let preparedText;
+            await mcpSchreiben(job.controller.signal, async () => {
+              current();
+              const draft = kopie(book);
+              if (job.scope === "contacts") {
+                const contactPreparation = await bereiteBaumKontaktNutzlastVor(draft, peer);
+                current();
+                if (contactPreparation.fassung === 1) preparation.sendungen.push({ art: "kontakt_faehigkeiten", inhalt: {} });
+                for (const inhalt of baumKontaktAbgleichSendungen(draft, args.peer_id, state.id.slice(0, 128), contactPreparation)) preparation.sendungen.push({ art: "kontakt_sync", inhalt });
+              } else if (!mitBaumKontaktEntwurf(draft, () => synchronisiereAllesMit(args.peer_id, args.request_remote !== false, preparation))) throw new MagnolieMcp.ToolError("conflict", "The existing source-restricted synchronization selection was rejected");
+              for (const message of preparation.sendungen) if (new TextEncoder().encode(JSON.stringify(message.inhalt)).length > 700000) throw new MagnolieMcp.ToolError("content_too_large", "An outgoing record exceeds the bounded MCP native frame");
+              job.total = preparation.sendungen.length; job.phase = "saving";
+              for (const field of job.scope === "contacts" ? ["kontakte", "baumKontaktErfolgreich"] : ["notizen", "personalSync"]) book[field] = draft[field];
+              preparedText = JSON.stringify(book);
+              return {};
+            });
+            job.saved = true; job.phase = "queueing";
+            for (const message of preparation.sendungen) {
+              mcpEditorPruefen();
+              if (job.controller.signal.aborted || gesperrt || DATEN !== book || JSON.stringify(book) !== preparedText || syncLaeuft || personalSyncAutoLaeuft)
+                throw new MagnolieMcp.ToolError("source_changed", "Source changed after saving tree synchronization metadata");
+              const value = await mcpNativeAufruf("baum_mcp", { request: { action: "send", expectedRevision: args.expected_tree_revision, peerId: args.peer_id, fingerprint: args.fingerprint,
+                kind: message.art, content: message.inhalt } }, "baumMcpErgebnis", job.controller.signal);
+              mcpBaumStatus(value);
+              if (value.action !== "send" || value.queuedVerified !== true || value.deliveryConfirmed !== false) throw new MagnolieMcp.ToolError("invalid_result", "Native queue acceptance was not verified");
+              job.queued++;
+            }
+            job.phase = "completed";
+          } catch (error) {
+            job.phase = job.controller.signal.aborted ? "cancelled" : "failed";
+            job.error = job.controller.signal.aborted ? "cancelled" : ["conflict", "source_changed", "content_too_large", "save_failed", "native_busy", "native_timeout", "invalid_result", "editor_busy", "dialog_busy"].includes(error.code) ? error.code : "native_operation_failed";
+          } finally { preparation.sendungen.length = 0; }
+        };
+        void Promise.resolve().then(run);
+        return mcpBaumAbgleichStatus(job.id);
+      } }, { name: "organizer_tree_sync_status", description: "Read the latest process-local tree synchronization run. Verified queue counts are not remote delivery. Failure/cancellation can follow metadata saving and partially accepted content.",
+      inputSchema: { type: "object", properties: { run_id }, required: ["run_id"], additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: args => mcpBaumAbgleichStatus(args.run_id) },
+    { name: "organizer_tree_sync_cancel", description: "Stop further sends in the current tree synchronization run and cancel pending RPC waiting. A native send already dispatched can still persist or deliver; no rollback is implied. Poll status for the terminal outcome.",
+      inputSchema: { type: "object", properties: { run_id }, required: ["run_id"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: args => {
+        const status = mcpBaumAbgleichStatus(args.run_id);
+        if (!["completed", "failed", "cancelled"].includes(status.phase)) mcpBaumAbgleich.controller.abort();
+        return mcpBaumAbgleichStatus(args.run_id);
+      } }];
+  }
+  async function mcpBaumKontaktEntscheidung(args, item, draft, book, peer) {
+    const mode = args.contact_decision, target = draft.kontakte.find(contact => contact.id === args.contact_id), card = baumKontaktKarte(item);
+    const invalid = () => { throw new MagnolieMcp.ToolError("invalid_selection", "Invalid tree contact decision, target or field/list selection"); };
+    if (mode === "auto") {
+      if (!card || args.contact_id !== undefined || args.field_choices?.length || args.list_choices?.length || args.clear_lists?.length) invalid();
+      const plan = await baumKontaktPlan(item, null, draft);
+      if (plan.art === "abgelehnt") return true;
+      if (plan.art === "konflikt") {
+        if (plan.eindeutig && plan.kandidaten?.length === 1 && draft.einstellungen.sync.kontaktNeuereBevorzugen && await baumKontaktNeuereFassung(item, plan.kandidaten[0]))
+          return mcpBaumKontaktEntscheidung({ ...args, contact_decision: "newer", contact_id: plan.kandidaten[0].id }, item, draft, book, peer);
+        throw new MagnolieMcp.ToolError("conflict", "The existing batch matcher requires an explicit contact decision");
+      }
+      if (plan.art === "ungueltig") invalid();
+      return uebernehmeBaumKontaktPlan(draft, item, plan);
+    }
+    if (mode === "skip") {
+      if (!card || args.contact_id !== undefined || args.field_choices?.length || args.list_choices?.length || args.clear_lists?.length) invalid();
+      await merkeBaumKontaktAblehnung(draft, item);
+      return true;
+    }
+    if (!card || !["new", "merge", "replace", "keep", "newer"].includes(mode) || mode === "new" && args.contact_id !== undefined || mode !== "new" && !target) invalid();
+    if (mode !== "merge" && (args.field_choices?.length || args.list_choices?.length || args.clear_lists?.length)) invalid();
+    const selection = { felder: {}, listen: {}, leeren: {} }, fields = new Set(), lists = new Set(), replacements = new Set();
+    for (const choice of args.field_choices || []) {
+      if (!BAUM_KONTAKT_FELDER.includes(choice.field) || fields.has(choice.field)) invalid();
+      fields.add(choice.field); selection.felder[choice.field] = choice.choice;
+    }
+    for (const field of args.clear_lists || []) {
+      if (!BAUM_KONTAKT_LISTEN[field] || selection.leeren[field]) invalid();
+      selection.leeren[field] = true;
+    }
+    for (const choice of args.list_choices || []) {
+      const rule = BAUM_KONTAKT_LISTEN[choice.field], key = choice.field + ":" + choice.incoming_index;
+      if (!rule || lists.has(key) || selection.leeren[choice.field] || choice.incoming_index >= rule.lesen(card).length) invalid();
+      lists.add(key);
+      if (choice.choice === "replace") {
+        const replacement = choice.field + ":" + choice.existing_index;
+        if (choice.existing_index === undefined || !target || choice.existing_index >= rule.lesen(target).length || replacements.has(replacement)) invalid();
+        replacements.add(replacement);
+      } else if (choice.existing_index !== undefined) invalid();
+      (selection.listen[choice.field] ||= {})[choice.incoming_index] = choice.choice === "replace" ? "replace:" + choice.existing_index : choice.choice;
+    }
+    try {
+      return await entscheideBaumKontakt(item, args.contact_id || "", selection, mode, target ? kanonischerEntwurf(target) : null, book, { daten: draft, beendet: false }, false,
+        id => id === peer.kennung && peer.bestaetigt === true);
+    } catch (_) { throw new MagnolieMcp.ToolError("conflict", "The existing tree contact review rejected this decision or reliable-newer timestamps were unavailable"); }
+  }
+  function mcpBaumAnnahmeWerkzeuge() {
+    const hash = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const contactChoices = { contact_decision: { type: "string", enum: ["auto", "new", "merge", "replace", "keep", "newer", "skip", "delete"] }, contact_id: { type: "string", minLength: 1, maxLength: 256 },
+      field_choices: { type: "array", maxItems: 8, items: { type: "object", properties: { field: { type: "string", enum: BAUM_KONTAKT_FELDER }, choice: { type: "string", enum: ["keep", "incoming"] } }, required: ["field", "choice"], additionalProperties: false } },
+      clear_lists: { type: "array", maxItems: 3, uniqueItems: true, items: { type: "string", enum: Object.keys(BAUM_KONTAKT_LISTEN) } },
+      list_choices: { type: "array", maxItems: 1000, items: { type: "object", properties: { field: { type: "string", enum: Object.keys(BAUM_KONTAKT_LISTEN) }, incoming_index: { type: "integer", minimum: 0 }, choice: { type: "string", enum: ["keep", "add", "replace"] }, existing_index: { type: "integer", minimum: 0 } }, required: ["field", "incoming_index", "choice"], additionalProperties: false } } };
+    return [{ name: "organizer_tree_inbox_apply", description: "Accept one native tree task/appointment/address/shared-note offer through existing GUI domain handlers. Requires exact inbox SHA-256, current book/tree revisions and confirmed sender fingerprint. Native recovery checkpoint and isolated draft precede book SaveACK and content-checked inbox consumption. Manual note acceptance can replace its bound shared note. Contact synchronization requires explicit contact_decision new/keep/merge/replace/newer; existing targets require contact_id. Merge supports field/list choices, replacement indices and whole-list replacement. Newer requires existing reliable timestamps. Contact deletion requires delete plus the peer's existing deletion permission. Read the inbox and current contacts before deciding. Failure after saving can leave saved records and an unconsumed inbox; inspect before retrying to avoid duplicates.",
+      inputSchema: { type: "object", properties: { ...contactChoices, id: { type: "string", minLength: 1, maxLength: 512 }, expected_sha256: hash, expected_book_revision: hash, expected_tree_revision: hash, sender_fingerprint: { type: "string", minLength: 1, maxLength: 512 } }, required: ["id", "expected_sha256", "expected_book_revision", "expected_tree_revision", "sender_fingerprint"], additionalProperties: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => {
+        mcpEditorPruefen();
+        const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+        const current = () => {
+          mcpEditorPruefen();
+          if (signal.aborted || gesperrt || DATEN !== book || JSON.stringify(book) !== before || revision !== args.expected_book_revision || syncLaeuft || personalSyncAutoLaeuft)
+            throw new MagnolieMcp.ToolError("conflict", "The book changed before inbox acceptance");
+        };
+        current();
+        const chunks = []; let offset = 0, size = null;
+        do {
+          const value = await mcpNativeAufruf("baum_mcp", { request: { action: "inbox_read", id: args.id, offset, limit: 65536, expectedSha256: args.expected_sha256 } }, "baumMcpErgebnis", signal);
+          if (value.ok !== true) throw new MagnolieMcp.ToolError("conflict", "Inbox item changed or disappeared before acceptance");
+          if (value.id !== args.id || value.sha256 !== args.expected_sha256 || value.offset !== offset || !Number.isSafeInteger(value.bytes) || value.bytes < 0 || value.bytes > 32 * 1024 * 1024 || size !== null && size !== value.bytes || typeof value.dataBase64 !== "string")
+            throw new MagnolieMcp.ToolError("invalid_result", "Native inbox content receipt was incomplete");
+          size = value.bytes;
+          const bytes = Uint8Array.from(atob(value.dataBase64), char => char.charCodeAt(0));
+          if (!bytes.length || bytes.length > 65536 || offset + bytes.length > size || value.nextOffset !== (offset + bytes.length === size ? null : offset + bytes.length))
+            throw new MagnolieMcp.ToolError("invalid_result", "Native inbox chunk sequence was incomplete");
+          chunks.push(bytes); offset = value.nextOffset;
+        } while (offset !== null);
+        const bytes = new Uint8Array(size); let position = 0;
+        for (const chunk of chunks) { bytes.set(chunk, position); position += chunk.length; }
+        const actual = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), value => value.toString(16).padStart(2, "0")).join("");
+        if (actual !== args.expected_sha256) throw new MagnolieMcp.ToolError("invalid_result", "Inbox content digest did not match");
+        const item = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)), kind = item.inhalt?.art || item.art;
+        if (item.id !== args.id || !["aufgabe", "termin", "kontakt", "kontakt_sync", "kontakt_loeschen", "notiz", "notiz_sync"].includes(kind)) throw new MagnolieMcp.ToolError("unsupported_feature", "This inbox kind requires its dedicated review flow");
+        const native = await mcpNativeAufruf("baum_mcp", { request: { action: "read" } }, "baumMcpErgebnis", signal), state = mcpBaumStatus(native);
+        const peer = native.status.partner.find(peer => peer.kennung === item.von);
+        if (state.revision !== args.expected_tree_revision || !peer?.bestaetigt || peer.fingerabdruck.toLowerCase() !== args.sender_fingerprint.toLowerCase()) throw new MagnolieMcp.ToolError("conflict", "The confirmed sender identity changed");
+        if (baumKontaktSammelLaeuft) throw new MagnolieMcp.ToolError("native_busy", "Finish the active tree contact review first");
+        const hasChoices = Object.keys(contactChoices).some(key => args[key] !== undefined);
+        if (hasChoices && !["kontakt", "kontakt_sync", "kontakt_loeschen"].includes(kind) || kind === "kontakt_sync" && !args.contact_decision || kind === "kontakt_loeschen" &&
+            (args.contact_decision !== "delete" || !peer.kontaktLoeschen || args.contact_id !== undefined || args.field_choices?.length || args.list_choices?.length || args.clear_lists?.length))
+          throw new MagnolieMcp.ToolError("invalid_selection", "Contact synchronization needs an explicit decision; deletion also requires the existing peer permission");
+        current();
+        await new Promise((resolve, reject) => mitMutationsSnapshot("pre-change", resolve, () => reject(new MagnolieMcp.ToolError("snapshot_failed", "Native pre-acceptance checkpoint failed"))));
+        const saved = await mcpSchreiben(signal, async () => {
+          current();
+          const draft = kopie(book), index = new Map(); draft.notizen.forEach(note => indexiereBaumNotiz(index, note));
+          const accepted = ["kontakt", "kontakt_sync"].includes(kind) && args.contact_decision
+            ? await mcpBaumKontaktEntscheidung(args, item, draft, book, peer)
+            : mitBaumKontaktEntwurf(draft, () => uebernehmeBaumAngebot(item, {}, { aufschieben: true, notizIndex: index }));
+          current();
+          if (!accepted) throw new MagnolieMcp.ToolError("conflict", "The existing domain handler rejected this offer");
+          for (const field of ["aufgaben", "termine", "notizen", "kontakte", "jahrestage", "baumKontaktAblehnungen", "baumKontaktLoeschStaende", "papierkorb"]) book[field] = draft[field];
+          terminIndexVeraltet = true; jahrestagIndexVeraltet = true;
+          return { id: args.id };
+        });
+        const consumed = await mcpNativeAufruf("baum_mcp", { request: { action: "consume_inbox", id: args.id, expectedSha256: args.expected_sha256, expectedRevision: args.expected_tree_revision } }, "baumMcpErgebnis", signal);
+        const after = mcpBaumStatus(consumed);
+        if (consumed.action !== "consume_inbox" || consumed.localVerified !== true) throw new MagnolieMcp.ToolError("invalid_result", "Book was saved but inbox consumption was not verified; inspect before retrying");
+        return { id: args.id, kind, persisted: saved.persisted, inbox_removed: true, state: after };
+      } }];
+  }
   function mcpInternetKontenWerkzeuge() {
     const revision = { type: "string", pattern: "^[a-f0-9]{64}$" }, text = { type: "string", minLength: 1, maxLength: 254 };
     const run = async (args, signal, action) => {
@@ -35983,6 +36416,26 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (name === "organizer_tree_content_send") return shape({ id, peer_id: id, metadata_persisted: flag, queue_persisted: yes, delivery_confirmed: { type: "boolean", enum: [false] }, state: mcpErgebnisSchema("organizer_tree_status") }, ["id", "peer_id", "metadata_persisted", "queue_persisted", "delivery_confirmed", "state"]);
+    if (name === "organizer_tree_contact_delete_proposal") return shape({ share_id: text, queue_persisted: yes, delivery_confirmed: { type: "boolean", enum: [false] }, state: mcpErgebnisSchema("organizer_tree_status") }, ["share_id", "queue_persisted", "delivery_confirmed", "state"]);
+    if (name === "organizer_tree_contact_preview") return shape({ book_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, contacts_total: { type: "integer", minimum: 0 }, new_count: { type: "integer", minimum: 0 }, bound_count: { type: "integer", minimum: 0 }, duplicate_total: { type: "integer", minimum: 0 }, duplicate_pairs: { type: "array", maxItems: 100, items: { type: "array", minItems: 2, maxItems: 2, items: id } }, deletion_total: { type: "integer", minimum: 0 }, deletion_proposals: { type: "array", maxItems: 100, items: shape({ share_id: text, name: text, version: { type: "number", minimum: 0 } }, ["share_id", "name", "version"]) }, offset: { type: "integer", minimum: 0 }, blocked_reason: { type: "string", enum: ["none", "empty_snapshot", "deletion_safety", "legacy_incompatible", "content_too_large"] } }, ["book_revision", "contacts_total", "new_count", "bound_count", "duplicate_total", "duplicate_pairs", "deletion_total", "deletion_proposals", "offset", "blocked_reason"]);
+    if (["organizer_tree_sync_start", "organizer_tree_sync_status", "organizer_tree_sync_cancel"].includes(name)) return shape({ run_id: { type: "string", pattern: "^[a-f0-9]{48}$" }, peer_id: id, scope: { type: "string", enum: ["notes_tasks", "contacts"] }, phase: { type: "string", enum: ["preparing", "saving", "queueing", "completed", "failed", "cancelled"] }, metadata_persisted: flag, queued_verified: { type: "integer", minimum: 0 }, messages_total: { type: "integer", minimum: 0 }, cancel_requested: flag, error_code: text, delivery_confirmed: { type: "boolean", enum: [false] } }, ["run_id", "peer_id", "scope", "phase", "metadata_persisted", "queued_verified", "messages_total", "cancel_requested", "error_code", "delivery_confirmed"]);
+    if (name === "organizer_tree_inbox_apply") return shape({ id: text, kind: { type: "string", enum: ["aufgabe", "termin", "kontakt", "kontakt_sync", "kontakt_loeschen", "notiz", "notiz_sync"] }, persisted: yes, inbox_removed: yes, state: mcpErgebnisSchema("organizer_tree_status") }, ["id", "kind", "persisted", "inbox_removed", "state"]);
+    if (name === "organizer_tree_pairing_document") return shape({ state: mcpErgebnisSchema("organizer_tree_status"), document_json: { type: ["string", "null"], maxLength: 8192 }, qr_image: { type: ["string", "null"], maxLength: 900000 }, file: { anyOf: [{ type: "null" }, shape({ path: text, bytes: { type: "integer", minimum: 1 }, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["path", "bytes", "sha256"])] }, local_verified: yes, delivery_confirmed: { type: "boolean", enum: [false] } }, ["state", "document_json", "qr_image", "file", "local_verified", "delivery_confirmed"]);
+    if (name === "organizer_tree_inbox_read") return shape({ id: text, sha256: { type: "string", pattern: "^[a-f0-9]{64}$" }, bytes: { type: "integer", minimum: 0 }, offset: { type: "integer", minimum: 0 }, data_base64: text, next_offset: { type: ["integer", "null"], minimum: 0 } }, ["id", "sha256", "bytes", "offset", "data_base64", "next_offset"]);
+    if (["organizer_tree_status", "organizer_tree_action"].includes(name)) {
+      const count = { type: "integer", minimum: 0 }, port = { type: "integer", minimum: 1, maximum: 65535 };
+      const peerFields = { id: text, name: text, fingerprint: text, address: text, port, confirmed: flag, trusted: flag, contacts: flag, contact_deletions: flag,
+        waiting_local: flag, waiting_remote: flag, outgoing_request: flag, sharing_allowed: flag, remote_address: text, remote_port: port, pairing_code: text, protocol: text, pairing_kind: text };
+      const introduction = shape({ id: text, from: text, name: text, fingerprint: text }, ["id", "from", "name", "fingerprint"]);
+      const fields = { revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, available: flag, enabled: flag, running: flag, name: text, id: text, fingerprint: text, port, error_present: flag,
+        outbox_total: count, outbox_pending: count, inbox_count: count, inbox_ids: { type: "array", maxItems: 100, items: text }, introduction_total: count, introductions: { type: "array", maxItems: 100, items: introduction },
+        peer_total: count, offset: count, peers: { type: "array", maxItems: 100, items: shape(peerFields, Object.keys(peerFields)) }, next_offset: count };
+      const state = shape(fields, Object.keys(fields).filter(key => key !== "next_offset"));
+      if (name === "organizer_tree_status") return state;
+      const found = shape({ id: text, name: text, address: text, port, fingerprint: text }, ["id", "name", "address", "port", "fingerprint"]);
+      return shape({ state, local_verified: flag, delivery_confirmed: { type: "boolean", enum: [false] }, discovered: { type: "array", maxItems: 100, items: found }, public_address: { type: ["string", "null"], maxLength: 128 } }, ["state", "local_verified", "delivery_confirmed", "discovered", "public_address"]);
+    }
     if (["organizer_internet_accounts_read", "organizer_internet_account_action"].includes(name)) {
       const account = shape({ provider: { type: "string", enum: ["google", "microsoft"] }, id: text, name: text, enabled: flag, error_present: flag }, ["provider", "id", "name", "enabled", "error_present"]);
       const status = shape({ ready: flag, google_pending: flag, microsoft_pending: flag, error_present: flag, google_tasks_available: { type: ["boolean", "null"] }, microsoft_tasks_available: { type: ["boolean", "null"] } }, ["ready", "google_pending", "microsoft_pending", "error_present", "google_tasks_available", "microsoft_tasks_available"]);
@@ -36263,6 +36716,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpMicrosoftKontoWerkzeuge(),
       ...mcpMicrosoftAnmeldeWerkzeuge(owner),
       ...mcpInternetKontenWerkzeuge(),
+      ...mcpBaumWerkzeuge(),
+      ...mcpBaumPaarungsWerkzeuge(),
+      ...mcpBaumEingangWerkzeuge(),
+      ...mcpBaumInhaltWerkzeuge(),
+      ...mcpBaumAnnahmeWerkzeuge(),
+      ...mcpBaumAbgleichWerkzeuge(),
+      ...mcpBaumKontaktWerkzeuge(),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
           text: { type: "string", maxLength: 500000 }, notebook_id: { type: "string", minLength: 1, maxLength: 256 },
