@@ -294,6 +294,47 @@ if os.environ.get("MAGNOLIE_MCP_PROBE_PHONE_ONLY") == "1":
     phone_fixture.store.save_peers()
     window._telefon = phone_fixture
     window._telefon_dienst_pflegen = lambda start_listener=True: False
+device_status_fixture = None
+if os.environ.get("MAGNOLIE_MCP_PROBE_DEVICE_STATUS_ONLY") == "1":
+    import magnolie_telefon as status_phone
+    class OwnedStatusBluetooth:
+        def availability(self): return False, "owned_fixture"
+        def paired_devices(self): return []
+        def paired(self, _address): return False
+    status_events = []
+    phone_fixture = status_phone.PhoneService(str(data_file.parent / "telefon"), "Owned native device-status desktop",
+        callback=lambda *args: status_events.append(args), bluetooth_backend=OwnedStatusBluetooth())
+    status_peer = {"device_id": "11111111-1111-4111-8111-111111111111", "display_name": "Owned synthetic status phone",
+        "static_public": status_phone.b64(os.urandom(32)), "state": "paired", "capabilities": status_phone.desktop_capabilities(),
+        "grants": status_phone.desktop_grants(), "local_grants": status_phone.desktop_grants(), "last_contact_ms": 0,
+        "bluetooth": {"enabled": False, "address": ""}, "personal_sync": {"own_device": True, "remote_own_device": True, "auto_wifi": False, "last_report": {}}}
+    status_peer["capabilities"]["items"]["device_status"] = {"available": True, "versions": [1, 2, 3, 4]}
+    status_peer["grants"]["grants"]["device_status"] = True
+    status_peer["local_grants"]["grants"]["device_status"] = True
+    phone_fixture.store.peers = [status_peer]; phone_fixture.store.save_peers(); phone_fixture.enabled = True; phone_fixture.store.save_settings(True)
+    status_requests = []
+    class OwnedStatusChannel:
+        def __init__(self): self.sock = self
+        def send(self, value):
+            if value.get("kind") != "device_status.request": return
+            body = value["body"]; status_requests.append(dict(body))
+            report = json.loads((ROOT / "pruefungen/telefon-control-contract.json").read_text())["device_status_v3"]
+            report.update(request_id=body["request_id"], captured_ms=status_phone.now_ms())
+            if body.get("version") == 4:
+                assert body["include_identifiers"] is True
+                report.update(version=4, identifiers={"phone_number": {"status": "permission_missing", "value": ""},
+                    "serial": {"status": "os_restricted", "value": ""}, "imei": {"status": "available", "value": "000000000000001"}})
+            now = status_phone.now_ms()
+            phone_fixture._payload(status_peer, self, {"type": "message", "v": 1, "message_id": str(__import__("uuid").uuid4()),
+                "kind": "device_status.report", "created_ms": now, "expires_ms": now + 60000, "body": report})
+        def close(self): pass
+        def shutdown(self, _how): pass
+    status_channel = OwnedStatusChannel(); phone_fixture.connections[status_peer["device_id"]] = status_channel
+    phone_fixture.connection_transports[status_peer["device_id"]] = "wifi"
+    phone_fixture.note_controls[status_channel] = {"capabilities.update": status_peer["capabilities"], "grants.update": status_peer["grants"],
+        "personal_sync.settings": {"format": 1, "own_device": True}}
+    window._telefon = phone_fixture; window._telefon_dienst_pflegen = lambda start_listener=True: False
+    device_status_fixture = (status_peer, status_requests, status_events)
 if os.environ.get("MAGNOLIE_MCP_PROBE_KDE_ONLY") == "1":
     import magnolie_kdeconnect as kde_protocol
     kde_fixture = kde_protocol.KDEConnectSMSBackend(str(data_file.parent / "kdeconnect"), "Owned native KDE-control desktop")
@@ -401,6 +442,31 @@ def client():
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
         if os.environ.get("MAGNOLIE_MCP_PROBE_FAIL_AFTER_READY") == "1":
             raise RuntimeError("Owned fixture intentional failure after ready")
+        if os.environ.get("MAGNOLIE_MCP_PROBE_DEVICE_STATUS_ONLY") == "1":
+            def status_tool(name, arguments=None):
+                result = call("tools/call", {"name": name, **({"arguments": arguments} if arguments is not None else {})})
+                assert not result["isError"], result
+                return result["structuredContent"]
+            # Settle startup normalization before proving unchanged saved bytes.
+            palette = status_tool("organizer_category_colors_read")
+            status_tool("organizer_category_colors_update", {"expected_revision": palette["revision"], "colors": []})
+            unchanged_book = data_file.read_bytes()
+            native = status_tool("organizer_phone_connection_read"); peer = native["peers"][0]
+            args = {"expected_revision": native["revision"], "peer_id": peer["id"], "fingerprint": peer["fingerprint"]}
+            ordinary = status_tool("organizer_phone_device_status_read", args)
+            assert ordinary["source_verified"] and ordinary["request_correlated"] and ordinary["identifiers"] is None and ordinary["protocol_version"] == 3
+            assert status_requests[-1] == {"request_id": status_requests[-1]["request_id"], "version": 3}
+            explicit = status_tool("organizer_phone_device_status_read", {**args, "include_identifiers": True})
+            assert explicit["identifiers"]["imei"]["value"] == "000000000000001" and explicit["persisted"] is False
+            status_peer["personal_sync"]["own_device"] = False
+            denied = call("tools/call", {"name": "organizer_phone_device_status_read", "arguments": {**args, "include_identifiers": True}})
+            assert denied["isError"] and denied["structuredContent"]["code"] == "not_granted" and len(status_requests) == 2
+            assert not status_events and phone_fixture.store.status(status_peer["device_id"]) == {} and not phone_fixture.identifier_requests and not phone_fixture.transient_identifiers
+            assert data_file.read_bytes() == unchanged_book and phone_fixture.server is None and phone_fixture.thread is None
+            state["device_status_native_scoped_query_verified"] = True
+            state["device_status_no_gui_cache_or_listener_verified"] = True
+            process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
+            return
         if os.environ.get("MAGNOLIE_MCP_PROBE_NOTE_SEND_ONLY") == "1":
             def send_tool(name, arguments=None):
                 result = call("tools/call", {"name": name, **({"arguments": arguments} if arguments is not None else {})})
@@ -2598,7 +2664,9 @@ finally:
         state["error"] = (state.get("error") or "") + "\nPrivate service/temporary cleanup:\n" + traceback.format_exc(limit=4)
     print("Native MCP fixture state:", json.dumps(state), flush=True)
 assert state["passed"] and state.get("cleanup_verified"), state
-if os.environ.get("MAGNOLIE_MCP_PROBE_NOTE_SEND_ONLY") == "1":
+if os.environ.get("MAGNOLIE_MCP_PROBE_DEVICE_STATUS_ONLY") == "1":
+    print("Native MCP DEVICE STATUS PASS: actual GTK/stdio query and deferred native dispatch through synthetic pinned WLAN context, default privacy/explicit identifiers/revocation, no GUI/cache/listener or physical-phone claim")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_NOTE_SEND_ONLY") == "1":
     print("Native MCP NOTE SEND PASS: actual GTK/stdio settings SaveACK, selected real PDF/pdftotext/digest, native async mail/fax jobs with synthetic adapters, unchanged book and disable/retained server, no real send or delivery claim")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_NOTE_SEND_PDF_ONLY") == "1":
     print("Native NOTE SEND PDF PASS: actual shared selected-note HTML and WebKit PDF, pdftotext selection proof and SHA readback, synthetic captured mail adapter only, no delivery claim")

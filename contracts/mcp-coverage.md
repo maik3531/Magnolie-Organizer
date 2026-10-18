@@ -35,12 +35,19 @@ details, not separate product features requiring another public tool.
   synthetic mail/fax adapter handoff; C# transport/job fixtures do not stand in
   for physical Windows MAPI or recipient delivery. Installed overall acceptance
   remains below.
+- Phone device status: fresh nonce/source-bound general status and explicitly
+  requested temporary identifiers use the existing request/report contracts and
+  verified WLAN session. Native dispatch rechecks consent/source, consumes one
+  ephemeral result and bypasses GUI/status/history/outbox caches. Cancellation,
+  retired nonces and late replies are scoped. Private GTK/stdio acceptance uses
+  a synthetic pinned phone context; C#/Python checks distinguish that from a
+  physical handset authentication/read.
 
 ## Remaining operation groups
 
 | Group | Existing product operations to finish connecting | Completion evidence |
 | --- | --- | --- |
-| Phone and KDE lifecycle | Complete KDE status/pairing/confirmation/removal/reconnect/permissions; general phone device-status and temporary-identifier privacy paths, plus remaining offered lifecycle utilities | Existing device/attempt/source identity guards and native receipts |
+| Phone and KDE lifecycle | Remaining KDE receive preferences/routing and offered lifecycle utilities beyond the connected pinned basic controls | Existing device/attempt/source identity guards and native receipts |
 | Own Notes synchronization | Own-device selection, note/shared-book direction and operating preferences, existing initial/manual sync, contact/photo/profile transfer | Existing confirmed-peer and transaction gates; actual result/readback |
 | Communications | Routing/notification preferences, dial/accept/hang-up, SMS send/history/planning through existing supported adapters | Existing call/command references, source/fingerprint checks, receipt versus delivery distinction |
 | Other offered KDE actions | Existing drawing/input/device actions not already covered by media/filesystem tools | Current capability/source validation, existing permission handlers, truthful unsupported results |
@@ -52,7 +59,8 @@ snapshots and enable/disable, pairing-window/attempt decisions, removal, editabl
 grants and Bluetooth preferences are connected. Linux local/daemon ownership,
 store readback, scoped callbacks and private GTK/stdio acceptance are exercised;
 portable C# checks also exercise a real private incoming pairing attempt.
-This does not replace the remaining KDE or explicit device-status/privacy work.
+General device-status/privacy reads are connected above; remaining KDE operations
+and overall installed acceptance are still separate.
 
 ## Acceptance gate
 

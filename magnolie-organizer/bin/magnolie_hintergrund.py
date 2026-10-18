@@ -758,6 +758,10 @@ def _write_message(connection, value, maximum=MAX_IPC_MESSAGE):
     connection.sendall(raw)
 
 
+def _status_query_id(value):
+    return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}", value) is not None
+
+
 def _request_shape(operation, arguments):
     if not isinstance(arguments, dict):
         raise IPCError("operation arguments must be an object")
@@ -783,7 +787,7 @@ def _request_shape(operation, arguments):
         "configure_receive": {"clipboard_enabled", "file_enabled", "device_id",
             "clipboard_mode", "file_mode", "download_directory"},
         "accept_receive": {"receive_id", "directory"}, "reject_receive": {"receive_id"},
-        "phone_report": set(), "phone_mcp_status": set(), "phone_mcp_action": {"request"}, "phone_set_enabled": {"enabled"},
+        "phone_report": set(), "phone_mcp_status": set(), "phone_mcp_action": {"request"}, "phone_mcp_device_status_result": {"request_id"}, "phone_set_enabled": {"enabled"},
         "phone_open_pairing": set(), "phone_cancel_pairing": set(),
         "phone_confirm_pairing": {"attempt_id", "accepted"},
         "phone_remove": {"peer_id"},
@@ -837,10 +841,17 @@ def _request_shape(operation, arguments):
             raise IPCError("invalid KDE lifecycle request")
     if operation == "phone_mcp_action":
         request = arguments.get("request")
-        if set(arguments) != {"request"} or not isinstance(request, dict) or len(encoded.encode("utf-8")) > 8192 or set(request) - {"action", "expectedRevision", "peerId", "fingerprint", "enabled", "name", "address", "attemptId", "accept"}:
+        if set(arguments) != {"request"} or not isinstance(request, dict) or len(encoded.encode("utf-8")) > 8192 or set(request) - {"action", "expectedRevision", "peerId", "fingerprint", "enabled", "name", "address", "attemptId", "accept", "queryId", "includeIdentifiers"}:
             raise IPCError("invalid phone control request")
-        if request.get("action") not in ("settings", "pairing_begin", "pairing_confirm", "pairing_cancel", "remove", "grant", "bluetooth") or not isinstance(request.get("expectedRevision"), str) or not re.fullmatch(r"[a-f0-9]{64}", request["expectedRevision"]):
+        if request.get("action") not in ("settings", "pairing_begin", "pairing_confirm", "pairing_cancel", "remove", "grant", "bluetooth", "device_status_query", "device_status_cancel") or not isinstance(request.get("expectedRevision"), str) or not re.fullmatch(r"[a-f0-9]{64}", request["expectedRevision"]):
             raise IPCError("invalid phone control request")
+        if request.get("action") in ("device_status_query", "device_status_cancel") and (
+                not _status_query_id(request.get("queryId")) or not isinstance(request.get("peerId"), str) or
+                not isinstance(request.get("fingerprint"), str) or not re.fullmatch(r"[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}", request["fingerprint"]) or
+                "includeIdentifiers" in request and type(request["includeIdentifiers"]) is not bool):
+            raise IPCError("invalid phone device-status request")
+    if operation == "phone_mcp_device_status_result" and (set(arguments) != {"request_id"} or not _status_query_id(arguments.get("request_id"))):
+        raise IPCError("invalid phone device-status result")
     if operation.startswith("phone_setup_"):
         if set(arguments) != allowed[operation] or len(encoded.encode("utf-8")) > 4096:
             raise IPCError("invalid phone setup request")
@@ -1267,7 +1278,8 @@ class IPCServer:
                     result = self.backend.set_digitizer_target(arguments['device_id'], arguments['token'],
                                                                arguments['enabled'], permitted=permitted)
                 elif operation.startswith("phone_"):
-                    if operation in ("phone_open_pairing", "phone_cancel_pairing", "phone_confirm_pairing", "phone_remove", "phone_set_enabled", "phone_set_bluetooth", "phone_mcp_action"):
+                    if operation in ("phone_open_pairing", "phone_cancel_pairing", "phone_confirm_pairing", "phone_remove", "phone_set_enabled", "phone_set_bluetooth") or (
+                            operation == "phone_mcp_action" and arguments["request"].get("action") not in ("device_status_query", "device_status_cancel")):
                         with self._mutation_lock:
                             result = self._phone_operation(operation, arguments)
                     else:
@@ -1314,7 +1326,8 @@ class IPCServer:
         if (operation in ("phone_call_action", "phone_call_action_tokens") and not self.gui_notification_ready()
                 and not normalize_settings(self.settings_getter())["permissions"]["phone_call_notifications"]):
             raise IPCError("call notifications are not permitted")
-        if operation in ("phone_open_pairing", "phone_cancel_pairing", "phone_confirm_pairing", "phone_remove", "phone_set_enabled", "phone_set_bluetooth", "phone_mcp_action") and \
+        if (operation in ("phone_open_pairing", "phone_cancel_pairing", "phone_confirm_pairing", "phone_remove", "phone_set_enabled", "phone_set_bluetooth") or
+                operation == "phone_mcp_action" and arguments["request"].get("action") != "device_status_cancel") and \
                 self.setup_sessions.connecting_transport in ("wifi", "bluetooth"):
             raise IPCError("Another phone setup session is active.")
         if operation == "phone_take_event":
@@ -1330,6 +1343,8 @@ class IPCServer:
             return phone.read_own_profile(arguments["peer_id"])
         if operation == "phone_read_developer_diagnostics":
             return phone.read_developer_diagnostics(arguments["peer_id"])
+        if operation == "phone_mcp_device_status_result":
+            return phone.mcp_device_status_result(arguments["request_id"])
         if operation == "phone_read_contacts":
             return phone.read_contacts(arguments["peer_id"], arguments.get("uids"))
         if operation == "phone_contact_source_current":
@@ -1745,6 +1760,8 @@ class PhoneServiceProxy:
     def report(self): return self._call("report")
     def mcp_status(self): return self._call("mcp_status")
     def mcp_action(self, request): return self._call("mcp_action", request=request)
+    def mcp_device_status_result(self, request_id):
+        return ipc_request("phone_mcp_device_status_result", {"request_id": request_id}, self.path, timeout=1)
     def call_event_current(self, peer_id, call_ref, revision, state):
         try:
             return ipc_request("phone_call_event_current", {"peer_id": peer_id, "call_ref": call_ref,

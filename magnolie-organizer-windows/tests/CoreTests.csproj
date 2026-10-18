@@ -108,6 +108,7 @@
     <Compile Include="..\TelefonCoordinator.Time.cs" Link="TelefonCoordinator.Time.cs" />
     <Compile Include="..\TelefonCoordinator.cs" Link="TelefonCoordinator.cs" />
     <Compile Include="..\TelefonCoordinator.Mcp.cs" Link="TelefonCoordinator.Mcp.cs" />
+    <Compile Include="..\TelefonDeviceStatusRead.cs" Link="TelefonDeviceStatusRead.cs" />
     <Compile Include="..\KdeConnectDirectBackend.Mcp.cs" Link="KdeConnectDirectBackend.Mcp.cs" />
     <Compile Include="..\TelefonCoordinator.Shared.cs" Link="TelefonCoordinator.Shared.cs" />
     <Compile Include="..\TelefonMdnsPublisher.cs" Link="TelefonMdnsPublisher.cs" />

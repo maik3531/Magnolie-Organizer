@@ -5,6 +5,36 @@ This document describes the implemented tools; the remaining product operations
 are still being connected to the same interface.
 The remaining user-facing operation groups are tracked in [the coverage checklist](mcp-coverage.md).
 
+### Fresh phone device status and temporary identifiers
+
+`organizer_phone_device_status_read` requires the latest phone-control
+`expected_revision`, `peer_id` and displayed phone `fingerprint` (four hyphenated
+groups of four hexadecimal digits). It uses the existing verified WLAN session,
+fresh capabilities/grants, request UUID and exact source connection/key. It does
+not start a listener, subscribe to GUI events, replay an outbox or read the stored
+status cache. Status reports use the existing v1/v2/v3 contract; no new phone wire
+version is required.
+
+`include_identifiers` defaults to false independently of the GUI's own-phone
+identifier preference. Explicit true additionally requires both own-device
+confirmations, both grants, fresh own-device controls and v4 support. Android/OS
+sharing restrictions remain represented by `available`, `not_shared`,
+`permission_missing`, `os_restricted`, `no_subscription` or `unavailable`; unavailable
+fields have empty values. Raw identifiers are never put in status/history/outbox
+or GUI caches. A single-use native result token is reauthorized at UI dispatch
+before raw values are serialized. Revocation, profile lock, owner/channel/key
+changes and expiry prevent disclosure.
+
+The result contains bounded `status` fields, `identifiers` or null, protocol
+version, source fingerprint, receive/expiry times and explicit
+`source_verified: true`, `request_correlated: true`, `persisted: false`. Results
+expire within 60 seconds. Cancellation uses the exact native query UUID; matched
+and retired query nonces are intercepted before the ordinary GUI/cache path, so
+late replies cannot mutate GUI drafts/dialogs. Native waits are bounded to ten
+seconds/eight concurrent reads. Live retired-nonce metadata is bounded rather
+than evicted early; a full budget returns `native_busy`. Identifiers received by
+the caller are a snapshot, not a promise that a client erases its own copy.
+
 ### Optional note email/fax handoff (#88)
 
 `organizer_note_send_settings_read/update` uses a preference revision and native

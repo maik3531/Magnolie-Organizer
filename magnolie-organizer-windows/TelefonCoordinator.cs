@@ -355,6 +355,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
 
     private bool RejectContactRead(TelefonConnection source, TelefonPeer peer, TelefonAck ack)
     {
+        if (RejectMcpStatusRead(source, peer, ack)) return true;
         if (RejectDeveloperRead(source, peer, ack)) return true;
         lock (gate)
         {
@@ -392,19 +393,30 @@ internal sealed partial class TelefonCoordinator : IDisposable
         }
     }
 
-    internal async Task RequestDeviceStatusAsync(string id, string? requestId = null)
+    internal async Task RequestDeviceStatusAsync(string id, string? requestId = null, bool? includeIdentifiers = null, bool ephemeral = false, string? messageId = null)
     {
-        store.PurgeIdentifiers(id);
+        if (!ephemeral) store.PurgeIdentifiers(id);
         TelefonConnection? connection;
         lock (gate) online.TryGetValue(id, out connection);
-        if (connection is null) { await emit("App.telefonFehler", new { fehler = T("The phone is not connected via WLAN.") }); return; }
+        if (connection is null) { if (ephemeral) throw new InvalidOperationException("device_status_not_granted"); await emit("App.telefonFehler", new { fehler = T("The phone is not connected via WLAN.") }); return; }
         var peer = Peers.FirstOrDefault(value => value.Id == id);
         if (peer is null || !RemoteCapability(peer, "device_status") || peer.Grants["device_status"]?.GetValue<bool>() != true)
-        { await emit("App.telefonFehler", new { fehler = T("Device status is not permitted or available on the phone.") }); return; }
+        { if (ephemeral) throw new InvalidOperationException("device_status_not_granted"); await emit("App.telefonFehler", new { fehler = T("Device status is not permitted or available on the phone.") }); return; }
         requestId ??= Guid.NewGuid().ToString("D");
+        var ttl = 60_000L;
+        if (ephemeral)
+        {
+            lock (gate)
+            {
+                if (!statusReads.TryGetValue(requestId, out var pending) || pending.Cancellation.IsCancellationRequested ||
+                    !ReferenceEquals(connection, pending.Connection) || !peer.PublicKey.SequenceEqual(pending.PublicKey) ||
+                    pending.Deadline <= Environment.TickCount64) throw new InvalidOperationException("device_status_source_changed");
+                ttl = Math.Min(10000, pending.Deadline - Environment.TickCount64);
+            }
+        }
         var versions = peer.Capabilities["device_status"]?["versions"] as JsonArray;
-        var body = DeviceStatusRequest(requestId, versions, store.IdentifiersAllowed(peer));
-        await connection.SendMessageAsync("device_status.request", body, 60_000);
+        var body = DeviceStatusRequest(requestId, versions, includeIdentifiers ?? store.IdentifiersAllowed(peer));
+        await connection.SendMessageAsync("device_status.request", body, ttl, messageId, ephemeralStatusRead: ephemeral);
     }
 
     internal static JsonObject DeviceStatusRequest(string requestId, JsonArray? versions, bool includeIdentifiers = false)
@@ -1325,7 +1337,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
             connection = new TelefonConnection(peer, stream, sid, material, store,
                 (source, message) => HandleMessageAsync(source, message, transport), cancellation, transport,
                 body => emit("App.personalCustomAck", new { device_id = peer.Id, body }), AuthorizeCall, SendCall,
-                async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); }, RejectContactRead, AcceptDeveloperRead)
+                async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); }, RejectContactRead, AcceptDeveloperRead, AcceptMcpStatusRead)
                 { SharedLocalCapabilities = () => SharedLocalCapabilities(), SharedPreferencesChanged = () => ApplyCommonPreferencesAsync(peer.Id),
                     CollectionChanged = value => emit("App.personalSyncCollection", value) };
             var capabilityRevision = store.NextOwnRevision("capabilities"); var grantRevision = store.NextOwnRevision("grants");
@@ -1791,8 +1803,9 @@ internal sealed partial class TelefonConnection : IDisposable
         Func<TelefonPeer, string, JsonObject, string?>? authorizeCall = null,
         Func<TelefonConnection, TelefonPeer, JsonObject, Action, bool>? sendCall = null, Func<Task>? noteReady = null,
         Func<TelefonConnection, TelefonPeer, TelefonAck, bool>? rejectContactRead = null,
-        Func<TelefonConnection, TelefonPeer, JsonObject, TelefonAck>? receiveDeveloper = null)
-    { this.receiveDeveloper = receiveDeveloper; this.rejectContactRead = rejectContactRead; this.noteReady = noteReady; this.authorizeCall = authorizeCall; this.sendCall = sendCall; this.customAccepted = customAccepted; this.peer = peer; this.stream = stream; this.sid = sid.ToArray(); receiveKey = material[..32]; receivePrefix = material[32..36]; sendKey = material[36..68]; sendPrefix = material[68..72]; this.store = store; this.receive = receive; this.cancellation = cancellation; this.transport = transport; lastReceivedMs = lastSentMs = Now(); }
+        Func<TelefonConnection, TelefonPeer, JsonObject, TelefonAck>? receiveDeveloper = null,
+        Func<TelefonConnection, TelefonPeer, JsonObject, TelefonAck?>? receiveStatusRead = null)
+    { this.receiveStatusRead = receiveStatusRead; this.receiveDeveloper = receiveDeveloper; this.rejectContactRead = rejectContactRead; this.noteReady = noteReady; this.authorizeCall = authorizeCall; this.sendCall = sendCall; this.customAccepted = customAccepted; this.peer = peer; this.stream = stream; this.sid = sid.ToArray(); receiveKey = material[..32]; receivePrefix = material[32..36]; sendKey = material[36..68]; sendPrefix = material[68..72]; this.store = store; this.receive = receive; this.cancellation = cancellation; this.transport = transport; lastReceivedMs = lastSentMs = Now(); }
     internal async Task RunAsync()
     {
         Task<JsonObject>? read = null;
@@ -1818,9 +1831,20 @@ internal sealed partial class TelefonConnection : IDisposable
             TelefonProtocolContract.Integer(ready["capabilities_revision"]) < 1 || TelefonProtocolContract.Integer(ready["last_received_seq"]) != -1 ||
             !Guid.TryParseExact(ready["connection_id"]?.GetValue<string>(), "D", out _)) throw new InvalidDataException("Ungültiges session_ready.");
     }
-    internal async Task SendMessageAsync(string kind, JsonObject body, long ttl, string? contactMessageId = null)
+    internal async Task SendMessageAsync(string kind, JsonObject body, long ttl, string? contactMessageId = null, bool ephemeralStatusRead = false)
     {
         var now = Now();
+        if (ephemeralStatusRead)
+        {
+            TelefonDeviceStatusContract.ValidateRequest(body);
+            var version = body["version"]?.GetValue<int>() ?? 1;
+            var include = body["include_identifiers"]?.GetValue<bool>() == true;
+            if (kind != "device_status.request" || version is < 1 or > 4 || !StatusReadReady(include) || ttl is < 1 or > 10000)
+                throw new InvalidOperationException("device_status_not_granted");
+            await SendPlainAsync(new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = contactMessageId ?? Guid.NewGuid().ToString("D"),
+                ["kind"] = kind, ["created_ms"] = now, ["expires_ms"] = now + ttl, ["body"] = body.DeepClone() });
+            return;
+        }
         if (kind == "device_status.request" && TelefonProtocolContract.TryInteger(body["version"], out var developerVersion) && developerVersion == 11)
         {
             TelefonDeveloperDiagnostics.ValidateRequest(body);
@@ -1910,6 +1934,7 @@ internal sealed partial class TelefonConnection : IDisposable
             await HandleTimeMessageAsync(plain);
             return;
         }
+        if (await HandleMcpStatusReadAsync(plain)) return;
         if (plain["kind"]?.GetValue<string>() == "device_status.report" && plain["body"] is JsonObject developerBody &&
             TelefonProtocolContract.TryInteger(developerBody["version"], out var developerVersion) && developerVersion == 11)
         {

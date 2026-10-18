@@ -35285,6 +35285,44 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       bluetooth: { available: bt.available, reason: bt.reason, paired_devices_supported: bt.paired_devices_supported, device_total: devices.length, devices: devices.slice(offset, offset + limit) },
       ...(offset + limit < Math.max(peers.length, pending.length, devices.length) ? { next_offset: offset + limit } : {}) };
   }
+  function mcpGeraeteKennungenSchema() {
+    const field = max => ({ type: "object", properties: { status: { type: "string", enum: ["available", "not_shared", "permission_missing", "os_restricted", "no_subscription", "unavailable"] }, value: { type: "string", maxLength: max } }, required: ["status", "value"], additionalProperties: false });
+    return { type: "object", properties: { phone_number: field(64), serial: field(128), imei: { ...field(32), properties: { ...field(32).properties, value: { type: "string", maxLength: 32, pattern: "^[0-9]*$" } } } }, required: ["phone_number", "serial", "imei"], additionalProperties: false };
+  }
+  function mcpGeraeteStatusSchema(native = false, version = 3) {
+    const text = max => ({ type: "string", maxLength: max }), integer = (min, max) => ({ type: "integer", minimum: min, maximum: max });
+    const status = { model: text(80), manufacturer: text(80), os_name: { ...text(20), minLength: 1 }, os_version: text(40), battery_percent: integer(-1, 100), charging: { type: "string", enum: ["charging", "full", "discharging", "not_charging", "unknown"] }, captured_ms: integer(0, 253402300799999) }, base = Object.keys(status);
+    if (!native || version >= 2) Object.assign(status, { sdk_int: integer(1, 1000), battery_temperature_deci_c: integer(-1, 2000), power_source: { type: "string", enum: ["ac", "usb", "wireless", "dock", "none", "unknown"] }, storage_total_bytes: integer(-1, 2 ** 60), storage_available_bytes: integer(-1, 2 ** 60), memory_total_bytes: integer(-1, 2 ** 60), memory_available_bytes: integer(-1, 2 ** 60), uptime_ms: integer(-1, 253402300799999), network_transport: { type: "string", enum: ["wifi", "cellular", "ethernet", "vpn", "bluetooth", "none"] }, network_validated: { type: "boolean" }, network_metered: { type: "boolean" } });
+    if (!native || version >= 3) status.app_version = { ...text(80), minLength: 1 };
+    if (native) { status.request_id = { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" }; if (version === 4) Object.assign(status, { version: { type: "integer", enum: [4] }, identifiers: mcpGeraeteKennungenSchema() }); }
+    const body = { type: "object", properties: status, required: native ? Object.keys(status) : base, additionalProperties: false };
+    const properties = { peer_id: { type: "string", minLength: 1, maxLength: 256 }, fingerprint: { type: "string", pattern: "^[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}$" }, transport: { type: "string", enum: ["wifi"] }, protocol_version: { type: "integer", enum: [1, 2, 3, 4] }, received_ms: integer(0, 253402300799999), expires_ms: integer(0, 253402300799999), include_identifiers: { type: "boolean" }, source_verified: { type: "boolean", enum: [true] }, request_correlated: { type: "boolean", enum: [true] }, persisted: { type: "boolean", enum: [false] } };
+    if (native) properties.report = body; else Object.assign(properties, { status: body, identifiers: { anyOf: [{ type: "null" }, mcpGeraeteKennungenSchema()] } });
+    return { type: "object", properties, required: Object.keys(properties), additionalProperties: false };
+  }
+  function mcpGeraeteStatusWerkzeug() {
+    return { name: "organizer_phone_device_status_read", description: "Request fresh correlated general device status over the selected phone's existing verified WLAN session. Requires current phone-control revision and exact peer/fingerprint. Uses shared GUI request/contracts with an ephemeral actor: no status cache, queued replay or GUI status events. include_identifiers defaults to false, never the GUI setting. Explicit true additionally requires both own-device confirmations, both grants and fresh v4 controls; actual phone/OS sharing restrictions remain visible per field. Identifier results expire, are reauthorized at native dispatch and never persisted. Cancellation/late replies leave GUI drafts/dialogs unchanged. Does not start listeners, pair/connect phones or alter permissions.",
+      inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, peer_id: { type: "string", minLength: 1, maxLength: 256 }, fingerprint: { type: "string", pattern: "^[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}$" }, include_identifiers: { type: "boolean", default: false } }, required: ["expected_revision", "peer_id", "fingerprint"], additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true }, call: async (args, signal) => {
+        if (signal.aborted) throw new MagnolieMcp.ToolError("cancelled", "Device-status read cancelled");
+        const query = crypto.randomUUID(), request = { action: "device_status_query", expectedRevision: args.expected_revision, peerId: args.peer_id, fingerprint: args.fingerprint, queryId: query, includeIdentifiers: args.include_identifiers === true };
+        let cancelled = false;
+        const cancel = () => { if (cancelled) return; cancelled = true; void mcpNativeAufruf("telefon_mcp", { request: { ...request, action: "device_status_cancel" } }, "telefonMcpErgebnis", new AbortController().signal).catch(() => {}); };
+        signal.addEventListener("abort", cancel, { once: true });
+        try {
+          const value = await mcpNativeAufruf("telefon_mcp", { request }, "telefonMcpErgebnis", signal);
+          if (value.ok !== true) throw new MagnolieMcp.ToolError(["profile_locked", "native_busy", "unsupported_feature", "conflict", "source_changed", "invalid_selection", "not_granted", "native_timeout", "cancelled"].includes(value.code) ? value.code : "native_operation_failed", "Fresh native phone status was unavailable");
+          const data = value.deviceStatus;
+          if (!data || !Number.isInteger(data.protocol_version) || data.protocol_version < 1 || data.protocol_version > 4) throw new MagnolieMcp.ToolError("invalid_result", "Native device-status version was incomplete");
+          try { MagnolieMcp.validate(data, mcpGeraeteStatusSchema(true, data.protocol_version)); } catch { throw new MagnolieMcp.ToolError("invalid_result", "Native device-status report was incomplete"); }
+          if (data.peer_id !== args.peer_id || data.fingerprint.toUpperCase() !== args.fingerprint.toUpperCase() || data.report.request_id !== query || data.include_identifiers !== request.includeIdentifiers || (data.protocol_version === 4) !== request.includeIdentifiers || data.expires_ms <= Date.now() || data.expires_ms < data.received_ms || data.expires_ms - data.received_ms > 60000) throw new MagnolieMcp.ToolError("source_changed", "Native status did not match the selected peer/request/temporary scope");
+          const status = kopie(data.report), identifiers = status.identifiers || null; delete status.identifiers; delete status.version; delete status.request_id;
+          if (identifiers && Object.values(identifiers).some(field => field.status === "available" ? !field.value.length : field.value !== "")) throw new MagnolieMcp.ToolError("invalid_result", "Identifier availability/value fields were inconsistent");
+          for (const [available, total] of [["storage_available_bytes", "storage_total_bytes"], ["memory_available_bytes", "memory_total_bytes"]]) if (status[available] >= 0 && status[total] >= 0 && status[available] > status[total]) throw new MagnolieMcp.ToolError("invalid_result", "Native status resource values were inconsistent");
+          const result = { ...data, status, identifiers }; delete result.report; return result;
+        } catch (error) { if (["cancelled", "native_timeout", "invalid_result", "source_changed"].includes(error.code)) cancel(); throw error; }
+        finally { signal.removeEventListener("abort", cancel); }
+      } };
+  }
   function mcpTelefonVerbindungWerkzeuge() {
     const id = { type: "string", minLength: 1, maxLength: 256 }, flag = { type: "boolean" };
     return [{ name: "organizer_phone_connection_read", description: "Read actual native Notes phone identity, listener/pairing state, pending verification codes/attempt IDs, peer fingerprints, editable/local/remote grants, declared capabilities and platform Bluetooth metadata. Linux returns the existing OS-paired Bluetooth inventory; Windows explicitly marks that enumeration unsupported. Peer, pending and Bluetooth lists share bounded offset/limit pages. Pairing tokens, private keys, cached device-status contents, notifications and personal-sync payloads are excluded. The process/store-bound control revision excludes volatile contact/transport observations. Linux uses the existing local service or daemon proxy without listener start, GUI subscription or personal-content replay; initial identity/adapter initialization may occur. Reading does not prove authentication or delivery. Late replies leave GUI drafts/dialogs unchanged.",
@@ -37287,6 +37325,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const text = { type: "string" }, id = { type: "string", minLength: 1, maxLength: 256 };
     const flag = { type: "boolean" }, yes = { type: "boolean", enum: [true] }, object = { type: "object" };
     const shape = (properties, required, additionalProperties = false) => ({ type: "object", properties, required, additionalProperties });
+    if (name === "organizer_phone_device_status_read") return mcpGeraeteStatusSchema();
     if (name === "organizer_note_send_settings_update") return shape({ persisted: yes }, ["persisted"]);
     if (["organizer_note_send_settings_read", "organizer_note_send_state_read"].includes(name)) {
       const settings = shape({ enabled: flag, faxServer: text }, ["enabled", "faxServer"]), properties = { revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, settings };
@@ -37654,6 +37693,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpBaumAbgleichWerkzeuge(),
       ...mcpBaumKontaktWerkzeuge(),
       ...mcpTelefonVerbindungWerkzeuge(),
+      mcpGeraeteStatusWerkzeug(),
       ...mcpKdeVerbindungWerkzeuge(owner),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },

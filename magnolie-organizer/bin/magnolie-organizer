@@ -24034,6 +24034,7 @@ class Fenster(_FENSTER_BASIS):
 
     def _telefon_mcp(self, nachricht):
         result = {"requestId": nachricht.get("requestId"), "ok": False, "code": "native_operation_failed"}
+        source = None
         try:
             if self._gesperrt or not self._organizer_vertraut():
                 result["code"] = "profile_locked"
@@ -24043,6 +24044,7 @@ class Fenster(_FENSTER_BASIS):
             if self._telefon is None:
                 result["code"] = "unsupported_feature"
                 return
+            source = self._telefon
             if request.get("action") == "read":
                 result = {"ok": True, "status": self._telefon.mcp_status()}
             else:
@@ -24065,8 +24067,23 @@ class Fenster(_FENSTER_BASIS):
         except Exception:
             result = {"ok": False, "code": "native_operation_failed"}
         finally:
-            result["requestId"] = nachricht.get("requestId")
-            self.antwort("App.telefonMcpErgebnis", result)
+            token = result.get("deviceStatusToken") if result.get("ok") is True else None
+            if isinstance(token, str):
+                def aktuell():
+                    if self._gesperrt or not self._organizer_vertraut() or self._telefon is not source:
+                        try:
+                            source.mcp_action({**(nachricht.get("request") or {}), "action": "device_status_cancel", "queryId": token})
+                        except Exception:
+                            pass
+                        return {"requestId": nachricht.get("requestId"), "ok": False, "code": "source_changed"}
+                    try:
+                        return {**source.mcp_device_status_result(token), "requestId": nachricht.get("requestId")}
+                    except Exception:
+                        return {"requestId": nachricht.get("requestId"), "ok": False, "code": "native_operation_failed"}
+                self.antwort("App.telefonMcpErgebnis", aktuell)
+            else:
+                result["requestId"] = nachricht.get("requestId")
+                self.antwort("App.telefonMcpErgebnis", result)
 
     def _telefon_bericht(self):
         self._telefon_dienst_pflegen()

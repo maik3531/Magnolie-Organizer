@@ -2347,6 +2347,9 @@ class PhoneService:
         self.status_requests = {}
         self.contact_requests = {}
         self.developer_requests = {}
+        self.mcp_status_requests = {}
+        self.mcp_status_retired = {}
+        self.mcp_status_results = {}
         self.identifier_requests = {}
         self.transient_identifiers = {}
         self.lock = threading.RLock()
@@ -2451,6 +2454,30 @@ class PhoneService:
         return peer
 
     def mcp_action(self, request):
+        if request.get("action") in ("device_status_query", "device_status_cancel"):
+            try:
+                query = request.get("queryId")
+                if not valid_uuid(query, 4):
+                    return {"ok": False, "code": "invalid_selection"}
+                peer_id, expected = request.get("peerId") or "", request.get("fingerprint") or ""
+                if request["action"] == "device_status_cancel":
+                    return {"ok": True, "action": "device_status_cancel", "cancelled": self.cancel_device_status(peer_id, expected, query), "persisted": False}
+                if not isinstance(request.get("expectedRevision"), str) or not re.fullmatch(r"[a-f0-9]{64}", request["expectedRevision"]):
+                    return {"ok": False, "code": "invalid_selection"}
+                include = request.get("includeIdentifiers", False)
+                if type(include) is not bool:
+                    return {"ok": False, "code": "invalid_selection"}
+                token = self.read_device_status(peer_id, expected, include, query, request.get("expectedRevision"))
+                return {"ok": True, "action": "device_status_query", "deviceStatusToken": token, "persisted": False}
+            except TimeoutError:
+                return {"ok": False, "code": "native_timeout"}
+            except PermissionError as error:
+                return {"ok": False, "code": "cancelled" if str(error) == "device_status_cancelled" else
+                    "conflict" if str(error) in ("device_status_source_changed", "device_status_request_reused") else "not_granted"}
+            except ValueError:
+                return {"ok": False, "code": "invalid_selection"}
+            except RuntimeError as error:
+                return {"ok": False, "code": "native_busy" if str(error) == "device_status_busy" else "native_operation_failed"}
         if not self._mcp_operations.acquire(blocking=False):
             return {"ok": False, "code": "native_busy"}
         capture = {"failed": False}
@@ -3219,7 +3246,157 @@ class PhoneService:
             pass
         channel.send({'type': 'ack', 'message_id': payload['message_id'], 'status': 'rejected', 'error': error})
 
-    def request_status(self, peer_id, include_identifiers=True, request_id=None):
+    def _mcp_status_peer(self, peer_id, channel=None, include_identifiers=False):
+        peer = self.store.sole_peer(peer_id)
+        current = self.connections.get(peer_id)
+        if (not self.enabled or self.stop_event.is_set() or not peer or peer.get("state") != "paired" or not current or
+                channel is not None and current is not channel or self.connection_transports.get(peer_id) != "wifi"):
+            return None
+        capability = peer.get("capabilities", {}).get("items", {}).get("device_status", {})
+        controls = self._note_controls_for(current)
+        if (capability.get("available") is not True or 1 not in capability.get("versions", []) or
+                peer.get("grants", {}).get("grants", {}).get("device_status") is not True or
+                controls.get("capabilities.update") != peer.get("capabilities") or controls.get("grants.update") != peer.get("grants")):
+            return None
+        if include_identifiers and (not self._identifiers_allowed(peer) or controls.get("personal_sync.settings") != {"format": 1, "own_device": True}):
+            return None
+        return peer
+
+    def _purge_mcp_status(self):
+        now = time.monotonic()
+        self.mcp_status_retired = {key: deadline for key, deadline in self.mcp_status_retired.items() if deadline > now}
+        for key, result in list(self.mcp_status_results.items()):
+            if result["deadline"] <= now or result["expires_ms"] <= now_ms():
+                self.mcp_status_results.pop(key, None)
+
+    def read_device_status(self, peer_id, expected_fingerprint, include_identifiers=False, request_id=None, expected_revision=None, cancelled=None):
+        """Fresh source-bound read; never use the GUI cache, outbox or identifier consent default."""
+        if type(include_identifiers) is not bool or request_id is not None and not valid_uuid(request_id, 4):
+            raise ValueError("invalid_status_request")
+        request_id = request_id or str(uuid.uuid4())
+        with self.lock:
+            self._purge_mcp_status()
+            if expected_revision is not None and expected_revision != self.mcp_status(include_bluetooth=False)["revision"]:
+                raise PermissionError("device_status_source_changed")
+            peer = self._mcp_status_peer(peer_id, include_identifiers=include_identifiers)
+            if not peer or fingerprint(unb64(peer["static_public"], 32)).lower() != str(expected_fingerprint).lower():
+                raise PermissionError("device_status_not_granted")
+            if len(self.mcp_status_requests) >= 8 or len(self.mcp_status_retired) + len(self.mcp_status_requests) >= 128 or len(self.mcp_status_results) >= 8:
+                raise RuntimeError("device_status_busy")
+            if request_id in self.mcp_status_requests or request_id in self.mcp_status_retired:
+                raise PermissionError("device_status_request_reused")
+            body = device_status_request_body(request_id, peer["capabilities"]["items"]["device_status"]["versions"],
+                include_identifiers, identifier_mode=include_identifiers)
+            entry = {"peer": peer_id, "key": peer["static_public"], "channel": self.connections[peer_id], "include": include_identifiers,
+                "version": body.get("version", 1), "event": threading.Event(), "result": None, "error": None,
+                "deadline": time.monotonic() + 10, "message_id": str(uuid.uuid4()), "cancelled": False}
+            self.mcp_status_requests[request_id] = entry
+        try:
+            self.request_status(peer_id, include_identifiers, request_id, ephemeral=True)
+            while not entry["event"].wait(0.05):
+                if cancelled is not None and cancelled.is_set():
+                    self.cancel_device_status(peer_id, expected_fingerprint, request_id)
+                if time.monotonic() >= entry["deadline"]:
+                    raise TimeoutError("device_status_timeout")
+            with self.lock:
+                if entry["cancelled"] or cancelled is not None and cancelled.is_set():
+                    raise PermissionError("device_status_cancelled")
+                current = self._mcp_status_peer(peer_id, entry["channel"], include_identifiers)
+                if not current or current["static_public"] != entry["key"] or time.monotonic() >= entry["deadline"]:
+                    raise PermissionError("device_status_source_changed")
+                if entry["error"]:
+                    raise PermissionError("device_status_" + entry["error"])
+                result = entry["result"]
+                if not result:
+                    raise ValueError("invalid_status_result")
+                self.mcp_status_results[request_id] = {**entry, "report": result["report"], "received_ms": result["received_ms"],
+                    "expires_ms": result["expires_ms"], "deadline": time.monotonic() + min(60000, max(0, result["expires_ms"] - now_ms())) / 1000}
+                return request_id
+        finally:
+            with self.lock:
+                self.mcp_status_requests.pop(request_id, None)
+                # Cover request skew, normal report lifetime and report skew.
+                self.mcp_status_retired[request_id] = max(time.monotonic(), entry["deadline"]) + 2 * CLOCK_SKEW_MS / 1000 + 300
+                entry["result"] = None
+
+    def cancel_device_status(self, peer_id, expected_fingerprint, request_id):
+        with self.lock:
+            self._purge_mcp_status()
+            entry = self.mcp_status_requests.get(request_id) or self.mcp_status_results.get(request_id)
+            if not entry or entry["peer"] != peer_id or fingerprint(unb64(entry["key"], 32)).lower() != str(expected_fingerprint).lower():
+                return False
+            entry["cancelled"] = True
+            entry["error"] = "cancelled"
+            entry["event"].set()
+            self.mcp_status_results.pop(request_id, None)
+            return True
+
+    def current_mcp_device_status(self, request_id, consume=True):
+        with self.lock:
+            self._purge_mcp_status()
+            entry = self.mcp_status_results.get(request_id)
+            if not entry or entry["cancelled"]:
+                raise PermissionError("device_status_expired")
+            current = self._mcp_status_peer(entry["peer"], entry["channel"], entry["include"])
+            if not current or current["static_public"] != entry["key"]:
+                self.mcp_status_results.pop(request_id, None)
+                raise PermissionError("device_status_source_changed")
+            result = {"peer_id": entry["peer"], "fingerprint": fingerprint(unb64(entry["key"], 32)), "transport": "wifi",
+                "protocol_version": entry["version"], "received_ms": entry["received_ms"], "expires_ms": entry["expires_ms"],
+                "include_identifiers": entry["include"], "report": copy.deepcopy(entry["report"]), "source_verified": True,
+                "request_correlated": True, "persisted": False}
+            if consume:
+                self.mcp_status_results.pop(request_id, None)
+            return result
+
+    def mcp_device_status_result(self, request_id):
+        try:
+            return {"ok": True, "deviceStatus": self.current_mcp_device_status(request_id)}
+        except PermissionError:
+            return {"ok": False, "code": "source_changed"}
+
+    def _receive_mcp_device_status(self, peer, channel, payload):
+        request_id = payload.get("body", {}).get("request_id")
+        if not isinstance(request_id, str):
+            return False
+        with self.lock:
+            self._purge_mcp_status()
+            entry = self.mcp_status_requests.get(request_id)
+            if entry is None and request_id not in self.mcp_status_retired:
+                return False
+            error = "expired"
+            try:
+                report = validate_device_status(payload["body"])
+                error = "not_granted"
+                current = self._mcp_status_peer(peer["device_id"], channel, entry["include"] if entry else False)
+                if (not entry or entry["cancelled"] or entry["result"] is not None or not current or
+                        (entry["peer"], entry["key"], entry["channel"]) != (peer["device_id"], peer["static_public"], channel)):
+                    raise PermissionError
+                error = "expired"
+                now = now_ms()
+                if (time.monotonic() >= entry["deadline"] or payload["expires_ms"] <= now or
+                        payload["expires_ms"] - payload["created_ms"] > (60000 if entry["include"] else 300000)):
+                    raise PermissionError
+                version = report.get("version", 3 if "app_version" in report else 2 if "sdk_int" in report else 1)
+                error = "invalid_schema"
+                if version != entry["version"] or not entry["include"] and "identifiers" in report:
+                    raise PermissionError
+                entry["result"] = {"report": copy.deepcopy(report), "received_ms": now, "expires_ms": min(payload["expires_ms"], now + 60000)}
+                entry["event"].set()
+                channel.send({"type": "ack", "message_id": payload["message_id"], "status": "accepted", "error": "none"})
+                return True
+            except ValueError:
+                error = "invalid_schema"
+            except PermissionError:
+                pass
+            if (entry and not entry["cancelled"] and entry["result"] is None and
+                    (entry["peer"], entry["key"], entry["channel"]) == (peer["device_id"], peer["static_public"], channel)):
+                entry["error"] = error
+                entry["event"].set()
+            channel.send({"type": "ack", "message_id": payload["message_id"], "status": "rejected", "error": error})
+            return True
+
+    def request_status(self, peer_id, include_identifiers=True, request_id=None, ephemeral=False):
         if type(include_identifiers) is not bool:
             raise ValueError("invalid identifier request")
         if request_id is not None and not valid_uuid(request_id, 4):
@@ -3233,12 +3410,24 @@ class PhoneService:
                 or not peer.get("grants", {}).get("grants", {}).get("device_status")):
             raise RuntimeError("Der Gerätestatus ist nicht freigegeben oder nicht verfügbar.")
         request_id = request_id if request_id is not None else str(uuid.uuid4())
+        if ephemeral:
+            with self.lock:
+                entry = self.mcp_status_requests.get(request_id)
+                if (not entry or entry["peer"] != peer_id or entry["key"] != peer["static_public"] or entry["cancelled"] or
+                        time.monotonic() >= entry["deadline"] or not self._mcp_status_peer(peer_id, entry["channel"], include_identifiers)):
+                    raise PermissionError("device_status_source_changed")
+                body = device_status_request_body(request_id, versions, include_identifiers, identifier_mode=include_identifiers)
+                created = now_ms()
+                ttl = max(1, min(10000, int((entry["deadline"] - time.monotonic()) * 1000)))
+                entry["channel"].send({"type": "message", "v": 1, "message_id": entry["message_id"], "kind": "device_status.request",
+                    "created_ms": created, "expires_ms": created + ttl, "body": body})
+                return request_id
         body = {"request_id": request_id}
         with self.lock:
             channel = self.connections.get(peer_id)
             if channel and self._identifiers_allowed(peer):
                 self._purge_identifiers(peer_id)
-                body.update(version=4, include_identifiers=include_identifiers)
+                body = device_status_request_body(request_id, versions, include_identifiers, identifier_mode=True)
                 created = now_ms()
                 self.identifier_requests[peer_id] = (request_id, channel, peer["static_public"], time.monotonic() + 60, include_identifiers)
                 try:
@@ -3248,10 +3437,7 @@ class PhoneService:
                     self._purge_identifiers(peer_id)
                     raise
                 return request_id
-        if 3 in versions:
-            body["version"] = 3
-        elif 2 in versions:
-            body["version"] = 2
+        body = device_status_request_body(request_id, versions)
         message = self.store.queue(peer_id, "device_status.request", body, 60000)
         self.store.register_status_request(peer_id, request_id, message["expires_ms"])
         self.status_requests.setdefault(peer_id, {})[request_id] = time.monotonic() + 60
@@ -5215,7 +5401,7 @@ class PhoneService:
                 raise ValueError("invalid ack")
             if payload["status"] == "rejected":
                 with self.lock:
-                    for request in list(self.contact_requests.values()) + list(self.developer_requests.values()):
+                    for request in list(self.contact_requests.values()) + list(self.developer_requests.values()) + list(self.mcp_status_requests.values()):
                         if (request.get("message_id") == payload["message_id"] and
                                 (request["peer"], request["key"], request["channel"]) ==
                                 (peer["device_id"], peer["static_public"], channel) and
@@ -5498,6 +5684,8 @@ class PhoneService:
                     raise ValueError("conflicting personal sync format")
             if policy == "wifi_only" and self.connection_transports.get(peer["device_id"]) != "wifi":
                 raise ValueError("wifi-only run received on bluetooth")
+        if kind == "device_status.report" and self._receive_mcp_device_status(peer, channel, payload):
+            return
         if kind == 'device_status.report' and payload['body'].get('version') == 11:
             self._receive_developer_diagnostics(peer, channel, payload)
             return
@@ -6027,6 +6215,21 @@ class PhoneService:
             zc.close()
         except Exception:  # noqa: S110 - mDNS teardown must tolerate a closed daemon.
             pass
+
+
+def device_status_request_body(request_id, versions, include_identifiers=False, identifier_mode=False):
+    if not valid_uuid(request_id, 4) or type(include_identifiers) is not bool:
+        raise ValueError("invalid device status request")
+    body = {"request_id": request_id}
+    if identifier_mode:
+        if 4 not in versions:
+            raise ValueError("unsupported identifier status")
+        body.update(version=4, include_identifiers=include_identifiers)
+    elif 3 in versions:
+        body["version"] = 3
+    elif 2 in versions:
+        body["version"] = 2
+    return body
 
 
 def validate_device_status(body):

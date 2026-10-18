@@ -216,8 +216,9 @@ internal sealed partial class BridgeDispatcher
             { await form.SendAsync("App.telefonMcpErgebnis", new { requestId, ok = false, code = "profile_locked" }); return; }
             if (restoreInProgress) { await form.SendAsync("App.telefonMcpErgebnis", new { requestId, ok = false, code = "native_busy" }); return; }
             var request = JsonNode.Parse(message.GetProperty("request").GetRawText())!.AsObject();
+            var source = telefon;
             JsonObject result;
-            if (request["action"]?.GetValue<string>() == "read") result = new() { ["ok"] = true, ["status"] = telefon.McpStatus() };
+            if (request["action"]?.GetValue<string>() == "read") result = new() { ["ok"] = true, ["status"] = source.McpStatus() };
             else
             {
                 if (request["action"]?.GetValue<string>() == "pairing_begin" || request["action"]?.GetValue<string>() == "settings" && request["enabled"]?.GetValue<bool>() == true)
@@ -229,7 +230,21 @@ internal sealed partial class BridgeDispatcher
                 if (restoreInProgress || !currentPlainTextAvailable || (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null))
                 { await form.SendAsync("App.telefonMcpErgebnis", new { requestId, ok = false, code = "native_busy" }); return; }
                 using var deadline = NetworkDeadline(TimeSpan.FromSeconds(20));
-                result = await telefon.ExecuteMcpAsync(request, deadline.Token, (id, fingerprint, revision) => RemoveTelefonAsync(id, fingerprint, revision));
+                result = await source.ExecuteMcpAsync(request, deadline.Token, (id, fingerprint, revision) => RemoveTelefonAsync(id, fingerprint, revision));
+            }
+            if (result["ok"]?.GetValue<bool>() == true && result["deviceStatusToken"] is JsonValue tokenValue && tokenValue.TryGetValue<string>(out var token))
+            {
+                await form.SendAsync("App.telefonMcpErgebnis", new { requestId, ok = false, code = "source_changed" }, () =>
+                {
+                    if (disposed || restoreInProgress || !currentPlainTextAvailable || !ReferenceEquals(telefonInstance, source) ||
+                        (!string.IsNullOrEmpty(currentEnvelope) && encryption.Session is null))
+                    {
+                        source.CancelDeviceStatus(request["peerId"]?.GetValue<string>() ?? "", request["fingerprint"]?.GetValue<string>() ?? "", token);
+                        return new { requestId, ok = false, code = "source_changed" };
+                    }
+                    var current = source.CurrentMcpDeviceStatus(token); current["requestId"] = requestId; return current;
+                });
+                return;
             }
             result["requestId"] = requestId;
             await form.SendAsync("App.telefonMcpErgebnis", result);

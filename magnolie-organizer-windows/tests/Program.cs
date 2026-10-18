@@ -68,6 +68,7 @@ runner.Add("AtomicStore / Dateisicherheit", AtomicStoreTests.RunAsync);
 runner.Add("MCP local pipe / correlation / strict framing / cleanup", McpTransportTests.RunAsync);
 runner.Add("MCP tree / native store / revision / scoped GUI emissions", McpTreeActionsTests.RunAsync);
 runner.Add("MCP phone / public control snapshot / native revision", McpPhoneStatusTests.RunAsync);
+runner.Add("MCP device status / explicit identifiers / ephemeral source", McpDeviceStatusTests.RunAsync);
 runner.Add("MCP KDE / existing integration / no implicit listener", McpKdeLifecycleTests.RunAsync);
 runner.Add("Category colors / native categories and accent interchange", CategoryColorTests.RunAsync);
 runner.Add("Contact group exclusions / identity / reminder privacy", ContactGroupExclusionTests.RunAsync);
