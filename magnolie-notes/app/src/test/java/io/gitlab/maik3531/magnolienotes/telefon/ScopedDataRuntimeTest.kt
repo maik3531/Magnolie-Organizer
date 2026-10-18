@@ -36,6 +36,7 @@ class ScopedDataRuntimeTest {
 
     @Test fun scopedOrganizerUpdateReachesExistingPhoneNoteButRemovedOrOtherNotesNeverAppear() = exercise("receive")
     @Test fun manualStartWaitsForScopeAndRequestReceiptsAndResumesOnlyAfterFreshSessionControls() = exercise("manual")
+    @Test fun correlatedCallerRunSurvivesScopePreparationAndReceiptGates() = exercise("actor")
     @Test fun independentTimeChangeDefersScopedDataWithoutAdmittingRawFallback() = exercise("time")
     @Test fun selectedOrganizerNoteCanBeSentAgainAfterDeletingItsPhoneCopy() = exercise("single")
     @Test fun ownershipControlAndItsAckDoNotRequireContentRunId() = exercise("ownership")
@@ -63,7 +64,7 @@ class ScopedDataRuntimeTest {
         try {
             val book = documents.legeNotizbuchAn("Field notes")
             documents.setzeNotiz(Notiz("phone-note", "Mobile", "Initial phone text", notizbuchId = book.id, angelegt = 1, geaendert = 2))
-            if (mode == "manual") documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
+            if (mode in setOf("manual", "actor")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
             val storage = TelefonAblage.get(context)
             storage.identity("Synthetic").second.fill(0)
             storage.setEnabled(true); storage.setPersonalSync(true, true, true, false, false)
@@ -207,13 +208,20 @@ class ScopedDataRuntimeTest {
                     }
                     return@use
                 }
-                if (mode == "manual") {
+                if (mode in setOf("manual", "actor")) {
                     sent()
                     field(TelefonWerk::class.java, "activeChannel").set(work, channel)
-                    val awakened = CountDownLatch(1); wake.set(awakened)
-                    work.personalSyncNow()
-                    assertTrue(awakened.await(2, TimeUnit.SECONDS)); wake.set(null)
-                    assertTrue(sent().any { it["type"] == JsonPrimitive("ping") })
+                    val chosenRun = "44444444-4444-4444-8444-444444444444"
+                    if (mode == "manual") {
+                        val awakened = CountDownLatch(1); wake.set(awakened)
+                        work.personalSyncNow()
+                        assertTrue(awakened.await(2, TimeUnit.SECONDS)); wake.set(null)
+                        assertTrue(sent().any { it["type"] == JsonPrimitive("ping") })
+                    } else {
+                        val enqueue = TelefonWerk::class.java.getDeclaredMethod("enqueuePersonalSync",
+                            TelefonPeer::class.java, String::class.java, String::class.java).apply { isAccessible = true }
+                        assertEquals(true, enqueue.invoke(work, peer, "manual", chosenRun))
+                    }
                     assertEquals(0, closed.get())
                     pump.invoke(work, peer, channel, 0L, false)
                     assertTrue(scoped(sent()).isEmpty()); assertFalse(queue.hasActiveScopedRun(peerId))
@@ -222,6 +230,7 @@ class ScopedDataRuntimeTest {
                     val wrapped = requestMessage.getValue("body").jsonObject
                     assertEquals("personal_sync.request", wrapped.string("kind"))
                     val runId = wrapped.getValue("body").jsonObject.string("run_id")
+                    if (mode == "actor") assertEquals(chosenRun, runId)
                     assertFalse(queue.scopedRequestAccepted(peerId, runId))
                     ack(requestMessage.string("message_id"), "rejected", "temporary_failure")
                     pump.invoke(work, peer, channel, 0L, false)

@@ -1,0 +1,18 @@
+{
+  "cases": [
+    {"name":"manual", "valid":true, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","trigger":"manual"}},
+    {"name":"missing-run", "valid":false, "body":{"format":12,"trigger":"manual"}},
+    {"name":"extra-field", "valid":false, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","trigger":"manual","owner":"untrusted"}},
+    {"name":"old-format", "valid":false, "body":{"format":9,"run_id":"11111111-1111-4111-8111-111111111111","trigger":"manual"}},
+    {"name":"string-format", "valid":false, "body":{"format":"12","run_id":"11111111-1111-4111-8111-111111111111","trigger":"manual"}},
+    {"name":"fraction-format", "valid":false, "body":{"format":12.0,"run_id":"11111111-1111-4111-8111-111111111111","trigger":"manual"}},
+    {"name":"boolean-format", "valid":false, "body":{"format":true,"run_id":"11111111-1111-4111-8111-111111111111","trigger":"manual"}},
+    {"name":"automatic", "valid":false, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","trigger":"auto_wifi"}},
+    {"name":"foreign-version-uuid", "valid":false, "body":{"format":12,"run_id":"11111111-1111-1111-8111-111111111111","trigger":"manual"}},
+    {"name":"foreign-variant-uuid", "valid":false, "body":{"format":12,"run_id":"11111111-1111-4111-1111-111111111111","trigger":"manual"}},
+    {"name":"noncanonical-uuid", "valid":false, "body":{"format":12,"run_id":"AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA","trigger":"manual"}},
+    {"name":"array-uuid", "valid":false, "body":{"format":12,"run_id":[],"trigger":"manual"}},
+    {"name":"null-uuid", "valid":false, "body":{"format":12,"run_id":null,"trigger":"manual"}},
+    {"name":"boolean-trigger", "valid":false, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","trigger":true}}
+  ]
+}

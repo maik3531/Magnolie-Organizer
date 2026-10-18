@@ -1,0 +1,33 @@
+"""One set of start vectors shared by the Kotlin, C# and Python contracts."""
+import copy
+import json
+import sys
+from pathlib import Path
+import pytest
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "magnolie-organizer/bin"))
+import magnolie_personal_actor as actor
+
+VECTORS = json.loads((ROOT / "magnolie-notes/app/src/test/resources/notes-actor-start.json").read_text())["cases"]
+
+
+@pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["name"])
+def test_shared_start_vector(case):
+    if case["valid"]:
+        assert actor.validate_start(case["body"]) == case["body"]
+        assert actor.start(case["body"]["run_id"]) == case["body"]
+    else:
+        with pytest.raises(ValueError):
+            actor.validate_start(case["body"])
+
+
+def test_declared_support_requires_shared_and_actor_markers_for_both_modules_and_peers():
+    values = {name: {"available": True, "versions": [9, 12]} for name in ("personal_notes_sync", "personal_tasks_sync")}
+    assert actor.supported(values, values)
+    for name in values:
+        for versions in ([9], [12], [9, 12.0]):
+            missing = copy.deepcopy(values); missing[name]["versions"] = versions
+            assert not actor.supported(values, missing) and not actor.supported(missing, values)
+        unavailable = copy.deepcopy(values); unavailable[name]["available"] = False
+        assert not actor.supported(values, unavailable)

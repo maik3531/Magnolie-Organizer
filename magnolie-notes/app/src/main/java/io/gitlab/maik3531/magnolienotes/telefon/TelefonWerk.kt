@@ -197,7 +197,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private val sharedPreferences by lazy { queue.sharedSettingsStorage({
         safePeer()?.takeIf { it.state == "paired" }?.let { SharedSettingsBinding(sharedActor, it.device_id, it.static_public) }
     }, { !Ablage.hole(context).synchronisationsSchreibbar() }) }
-    private data class ScopedSyncIntent(val deviceId: String, val publicKey: String, val trigger: String, val deadline: Long)
+    private data class ScopedSyncIntent(val deviceId: String, val publicKey: String, val trigger: String, val deadline: Long,
+                                      val correlatedRunId: String? = null)
     private var pendingScopedSync: ScopedSyncIntent? = null
     private val scopedWakeup = AtomicBoolean(false)
 
@@ -335,7 +336,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         synchronized(Ablage.SCHREIBSPERRE) {
             val selection = io.gitlab.maik3531.magnolienotes.daten.PersonalContentSelection(notes, tasks)
             val snapshot = Ablage.hole(context).personalSyncScopedSnapshot(selection, peer.device_id)
-            val runId = UUID.randomUUID().toString()
+            val runId = intent.correlatedRunId ?: UUID.randomUUID().toString()
             val request = buildJsonObject {
                 put("format", JsonPrimitive(3)); put("run_id", JsonPrimitive(runId)); put("trigger", JsonPrimitive(intent.trigger))
                 put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks"))))
@@ -2952,7 +2953,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
         return peer
     }
 
-    @Synchronized private fun enqueuePersonalSync(expected: TelefonPeer, trigger: String): Boolean {
+    @Synchronized private fun enqueuePersonalSync(expected: TelefonPeer, trigger: String, correlatedRunId: String? = null): Boolean {
+        if (correlatedRunId != null) {
+            require(trigger == "manual")
+            PersonalSyncActor.start(correlatedRunId)
+        }
         val peer = peerEffect(expected, pairingGeneration) { it }
         if (!peer.own_device || !peer.remote_own_device) throw TelefonProtokollFehler("Eigenes Gerät ist nicht beidseitig bestätigt.")
         if (usesScopedContent(peer)) {
@@ -2961,14 +2966,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 peer.personal_tasks_sync_granted && peer.remote_personal_tasks_sync_granted)
             if (pendingScopedSync?.let { it.deviceId == peer.device_id && it.publicKey == peer.static_public &&
                     android.os.SystemClock.elapsedRealtime() < it.deadline } == true) return false
-            pendingScopedSync = ScopedSyncIntent(peer.device_id, peer.static_public, trigger, android.os.SystemClock.elapsedRealtime() + 60000)
+            pendingScopedSync = ScopedSyncIntent(peer.device_id, peer.static_public, trigger, android.os.SystemClock.elapsedRealtime() + 60000, correlatedRunId)
             return true
         }
         val modules = buildList { if (peer.personal_notes_sync_granted && peer.remote_personal_notes_sync_granted) add("notes")
             if (peer.personal_tasks_sync_granted && peer.remote_personal_tasks_sync_granted) add("tasks") }
         if (modules.isEmpty()) throw TelefonProtokollFehler("Keine beidseitige Personal-Sync-Freigabe.")
         if (trigger == "auto_wifi" && queue.hasActiveAutoRun(peer.device_id)) return false
-        val runId = UUID.randomUUID().toString()
+        val runId = correlatedRunId ?: UUID.randomUUID().toString()
         val format = negotiatedPersonalFormat(peer, modules)
         val request = buildJsonObject {
             put("format", JsonPrimitive(format)); put("run_id", JsonPrimitive(runId)); put("trigger", JsonPrimitive(trigger))

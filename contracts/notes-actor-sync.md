@@ -1,0 +1,56 @@
+# Correlated own-Notes content start (#170, in progress)
+
+This extension is **not yet advertised or connected to public MCP tools**.
+The existing v9 shared-start GUI path remains unchanged. Actor-scoped native
+staging, typed decisions, save/commit and late-reply isolation must be connected
+before this capability is enabled.
+
+## Start contract
+
+Both peers must advertise marker **12** for both `personal_notes_sync` and
+`personal_tasks_sync`, in addition to their existing v9 shared-settings support.
+Declared support alone is not authorization: actual handlers must require current
+paired identity, both own-device confirmations, both content grants, fresh controls
+on the exact verified connection and current shared-settings agreement.
+
+New kind: `personal_sync.actor_start`, maximum lifetime 60 seconds. Exact body:
+
+```json
+{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","trigger":"manual"}
+```
+
+The caller creates a canonical lowercase UUIDv4 before dispatch and pins the
+actor to the selected peer key/connection. The message ID must equal `run_id`.
+The phone carries that ID through its existing normal or scoped-content
+initialization, rather than generating a different run ID. Scope membership,
+snapshot selection, note/task grants, attachment handling and merge behavior
+continue to use the existing Notes engines. This start covers notes/tasks;
+independent time/custom policy and timer actions are separate contracts.
+
+## Required runtime completion gates
+
+- No new listener, pairing, grant, ownership confirmation or arbitrary scope
+  injection may occur as a side effect of this start.
+- Register the selected actor before dispatch. Incoming matching runs must use
+  actor-bound staging/receipts and must never fall back to normal GUI callbacks,
+  dialogs or automatic adoption after cancellation, expiry or process restart.
+- Correlation by `run_id` alone is insufficient after a process restart or
+  tombstone expiry. Actor data needs an explicit wire marker/envelope which
+  remains in persisted outgoing frames, so an unknown actor is always rejected
+  or isolated rather than reinterpreted as ordinary GUI synchronization. A
+  sender-side lookup used only at send time must not turn a retained actor frame
+  into an ordinary frame when its lookup metadata expires or is removed.
+- Preserve existing received-message validation, scoped manifest proofs,
+  attachment integrity, checkpoints, native save acknowledgement and commit.
+  Resolve conflicts/deletion proposals through typed decisions using the same
+  product domain handlers.
+- Bind persisted staging to the actor before replay becomes possible. Unknown or
+  retired actor data remains isolated, including after restart or reconnect.
+- A transport ACK proves request acceptance only. Track queued work, staged data,
+  saved adoption and native commit separately. Timeout/cancellation after dispatch
+  can have an unknown remote outcome and cannot promise rollback or recall.
+- Keep the old GUI/legacy path for devices without this marker. Do not silently
+  downgrade an actor-scoped MCP request into an uncorrelated GUI start.
+
+The common malformed/valid start vectors are kept in the Notes test resources
+and are shared by the Kotlin, Python and C# contract tests.
