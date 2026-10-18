@@ -58,6 +58,16 @@ internal static class McpNotesSettingsTests
             TestAssert.That((await raced)["code"]!.GetValue<string>() == "conflict" && store.PersonalSettings(peer.Id).AutoWifi,
                 "Notes mutation failed to recheck consent revision after waiting for the shared gate.");
             TestAssert.That(service.McpNotesSettings(peer.Id, fingerprint)["revision"]!.GetValue<string>() != revision, "Remote ownership change did not invalidate settings revision.");
+            var ownership = Target("notes_ownership"); ownership["enabled"] = false;
+            ownership["expectedRevision"] = service.McpNotesSettings(peer.Id, fingerprint)["revision"]!.DeepClone();
+            var withdrawn = await service.ExecuteMcpAsync(ownership, default);
+            TestAssert.That(withdrawn["ok"]!.GetValue<bool>() && withdrawn["persisted"]!.GetValue<bool>() &&
+                !store.PersonalSettings(peer.Id).OwnDevice && !store.PersonalSettings(peer.Id).AutoWifi && store.PersonalSettings(peer.Id).RemoteOwnDevice &&
+                store.LoadPeers().Single().Id == peer.Id, "Withdrawal did not preserve pairing/remote consent or failed to stop local automatic synchronization.");
+            ownership["enabled"] = true; ownership["expectedRevision"] = withdrawn["notesSettings"]!["revision"]!.DeepClone();
+            var confirmed = await service.ExecuteMcpAsync(ownership, default);
+            TestAssert.That(confirmed["ok"]!.GetValue<bool>() && store.PersonalSettings(peer.Id).OwnDevice && store.PersonalSettings(peer.Id).RemoteOwnDevice,
+                "Explicit ownership confirmation failed through the existing native handler.");
             TestAssert.That(events.Count == 0 && !service.McpStatus()["listening"]!.GetValue<bool>(), "Notes settings emitted GUI events or started a listener.");
         }
         finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }

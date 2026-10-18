@@ -832,10 +832,27 @@ internal sealed partial class TelefonCoordinator : IDisposable
         await ReportStatusAsync();
     }
 
-    internal async Task SetPersonalSyncAsync(string id, bool ownDevice, bool autoWifi)
+    internal async Task SetPersonalSyncAsync(string id, bool ownDevice, bool autoWifi, string? expectedFingerprint = null, string? expectedNotesRevision = null)
     {
-        RequireSolePeer(id); if (!ownDevice) personalSync.PurgeProtocol(id); store.SetPersonalSettings(id, ownDevice: ownDevice, autoWifi: ownDevice && autoWifi);
-        TelefonConnection? connection; lock (gate) online.TryGetValue(id, out connection);
+        TelefonConnection? connection;
+        await store.NotePolicyGate.WaitAsync();
+        try
+        {
+            lock (gate)
+            {
+                RequireSolePeer(id);
+                if (expectedFingerprint is not null)
+                {
+                    var state = McpNotesSettings(id, expectedFingerprint);
+                    if (expectedNotesRevision != state["revision"]!.GetValue<string>()) throw new McpConflictException();
+                    autoWifi = state["shared"]?["values"] is JsonObject values ? values["auto_mode"]!.GetValue<string>() == "wifi" : state["auto_wifi"]!.GetValue<bool>();
+                }
+                if (!ownDevice) personalSync.PurgeProtocol(id);
+                store.SetPersonalSettings(id, ownDevice: ownDevice, autoWifi: ownDevice && autoWifi);
+                online.TryGetValue(id, out connection);
+            }
+        }
+        finally { store.NotePolicyGate.Release(); }
         if (connection is not null)
         {
             await connection.SendMessageAsync("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = ownDevice }, 86_400_000);

@@ -39,6 +39,19 @@ false. Failures, cancellation or timeouts can follow local changes or queued
 frames: read state before retrying. Native replies do not modify book data or GUI
 drafts/dialogs. Manual/initial content synchronization remains a separate workflow.
 
+`organizer_notes_ownership_update` takes the same exact identity and current
+Notes-settings `expected_revision`, plus `own_device`. It calls the existing
+native ownership handler, with the same locked CAS and actual store readback.
+Withdrawal sets local ownership and automatic Wi-Fi synchronization false and
+performs the platform's existing identifier/staging/protocol cleanup. It preserves
+the paired-phone binding and remote ownership confirmation and does not delete
+ordinary book entries. Native cleanup can discard synchronization register metadata;
+read state afterwards rather than assuming settings survive withdrawal on every
+platform. Confirmation uses the currently available shared automatic mode or the
+remaining stored local mode. It adds no remote consent or content grants.
+`persisted: true` proves local settings only; `delivery_confirmed` remains false,
+including when an existing control frame was queued while the phone was offline.
+
 ### Fresh phone device status and temporary identifiers
 
 `organizer_phone_device_status_read` requires the latest phone-control

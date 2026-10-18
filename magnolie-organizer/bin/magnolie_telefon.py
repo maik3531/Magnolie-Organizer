@@ -2492,7 +2492,7 @@ class PhoneService:
             action = request.get("action")
             with self.lock:
                 current_revision = (self.mcp_notes_settings(request.get("peerId"), request.get("fingerprint"))["revision"]
-                    if action == "notes_settings_update" else self.mcp_status(include_bluetooth=False)["revision"])
+                    if action in ("notes_settings_update", "notes_ownership") else self.mcp_status(include_bluetooth=False)["revision"])
                 if request.get("expectedRevision") != current_revision:
                     return {"ok": False, "code": "conflict"}
                 peer_id, expected = request.get("peerId") or "", request.get("fingerprint") or ""
@@ -2505,7 +2505,21 @@ class PhoneService:
                     if not context or context.get("decision") is not None or context.get("mcp_deadline", float("inf")) <= time.monotonic() or public.get("id") != peer_id or str(public.get("fingerprint") or "").lower() != expected.lower():
                         return {"ok": False, "code": "conflict"}
             persisted = False
-            if action == "notes_settings_update":
+            if action == "notes_ownership":
+                if type(request.get("enabled")) is not bool:
+                    return {"ok": False, "code": "invalid_selection"}
+                self.set_personal_sync(peer_id, request["enabled"], expected_fingerprint=expected, expected_revision=request["expectedRevision"])
+                with self.lock:
+                    peer = self._mcp_require_peer(peer_id, expected)
+                    stored = next((item for item in self.store._load_peers() if item.get("device_id") == peer_id), {})
+                    personal = stored.get("personal_sync", {})
+                    verified = bool(stored and stored.get("static_public") == peer["static_public"] and personal.get("own_device") is request["enabled"] and
+                        personal.get("auto_wifi") is peer.get("personal_sync", {}).get("auto_wifi") and (request["enabled"] or personal.get("auto_wifi") is False))
+                    if capture["failed"] or not verified:
+                        return {"ok": False, "code": "verification_failed"}
+                    return {"ok": True, "action": action, "notesSettings": self.mcp_notes_settings(peer_id, expected),
+                        "localVerified": True, "persisted": True, "deliveryConfirmed": False}
+            elif action == "notes_settings_update":
                 if not self.mcp_notes_settings(peer_id, expected)["shared"]["supported"]:
                     return {"ok": False, "code": "unsupported_feature"}
                 field, value, initial = request.get("field"), request.get("value"), request.get("initial")
@@ -4217,8 +4231,14 @@ class PhoneService:
         self.callback("status", self.report())
         return message["message_id"]
 
-    def set_personal_sync(self, peer_id, own_device, auto_wifi=False):
+    def set_personal_sync(self, peer_id, own_device, auto_wifi=False, expected_fingerprint=None, expected_revision=None):
         with self.lock:
+            if expected_fingerprint is not None:
+                state = self.mcp_notes_settings(peer_id, expected_fingerprint)
+                if expected_revision != state["revision"]:
+                    raise ValueError("phone_control_conflict")
+                values = state["shared"]["values"]
+                auto_wifi = (values["auto_mode"] == "wifi") if values is not None else state["auto_wifi"]
             return self._set_personal_sync(peer_id, own_device, auto_wifi)
 
     def set_personal_sync_mode(self, peer_id, auto_wifi, skip_deletions):

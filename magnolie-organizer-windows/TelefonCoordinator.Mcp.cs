@@ -92,7 +92,7 @@ internal sealed partial class TelefonCoordinator
                 return new() { ["ok"] = true, ["notesSettings"] = McpNotesSettings(McpText(request, "peerId", true), McpText(request, "fingerprint", true)) };
             var action = McpText(request, "action", true); var revision = McpText(request, "expectedRevision", true);
             var id = McpText(request, "peerId"); var fingerprint = McpText(request, "fingerprint");
-            var enabled = (action is "settings" or "grant" or "bluetooth") && McpFlag(request, "enabled");
+            var enabled = (action is "settings" or "grant" or "bluetooth" or "notes_ownership") && McpFlag(request, "enabled");
             var name = McpText(request, "name"); var address = McpText(request, "address").Trim().ToUpperInvariant();
             var accept = action == "pairing_confirm" && McpFlag(request, "accept");
             Func<Task> operation;
@@ -100,11 +100,11 @@ internal sealed partial class TelefonCoordinator
             lock (gate)
             {
                 if (store.RestoreFenced) return new() { ["ok"] = false, ["code"] = "native_busy" };
-                if (action == "notes_settings_update")
+                if (action is "notes_settings_update" or "notes_ownership")
                 {
                     var notes = McpNotesSettings(id, fingerprint);
                     if (revision != notes["revision"]!.GetValue<string>()) throw new McpConflictException();
-                    if (!notes["shared"]!["supported"]!.GetValue<bool>()) throw new NotSupportedException();
+                    if (action == "notes_settings_update" && !notes["shared"]!["supported"]!.GetValue<bool>()) throw new NotSupportedException();
                 }
                 else CheckMcpRevision(revision);
                 if (action is "remove" or "grant" or "bluetooth") RequireMcpPeer(id, fingerprint, requirePaired: action != "remove");
@@ -133,6 +133,7 @@ internal sealed partial class TelefonCoordinator
                     "remove" => () => removeWithRuntime is null ? RemoveAsync(id, fingerprint, revision) : removeWithRuntime(id, fingerprint, revision),
                     "grant" => () => SetGrantAsync(id, name, enabled, fingerprint, revision),
                     "bluetooth" => () => SetBluetoothPreferenceAsync(id, enabled, address, fingerprint, revision),
+                    "notes_ownership" => () => SetPersonalSyncAsync(id, enabled, false, fingerprint, revision),
                     "notes_settings_update" => () => SetCommonPreferencesAsync(id, fingerprint,
                         request["initial"] as JsonObject ?? throw new McpRequestException(),
                         McpText(request, "field", true), request["value"] ?? throw new McpRequestException(), expectedNotesRevision: revision),
@@ -141,6 +142,17 @@ internal sealed partial class TelefonCoordinator
             }
             await operation().ConfigureAwait(false);
             cancellation.ThrowIfCancellationRequested();
+            if (action == "notes_ownership")
+            {
+                lock (gate)
+                {
+                    var state = McpNotesSettings(id, fingerprint);
+                    if (state["own_device"]!.GetValue<bool>() != enabled || (!enabled && state["auto_wifi"]!.GetValue<bool>()))
+                        return new() { ["ok"] = false, ["code"] = "verification_failed" };
+                    return new() { ["ok"] = true, ["action"] = action, ["notesSettings"] = state,
+                        ["localVerified"] = true, ["persisted"] = true, ["deliveryConfirmed"] = false };
+                }
+            }
             if (action == "notes_settings_update")
             {
                 lock (gate)

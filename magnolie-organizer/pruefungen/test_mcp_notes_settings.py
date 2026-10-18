@@ -116,3 +116,51 @@ def test_all_shared_choice_types_use_existing_handler(tmp_path, field, value):
     assert result["ok"], result
     assert result["notesSettings"]["shared"]["values"][field] == value
     assert not events
+
+
+def ownership(service, enabled, **extra):
+    state = service.mcp_action(request(service))["notesSettings"]
+    return service.mcp_action(request(service, "notes_ownership", expectedRevision=state["revision"], enabled=enabled, **extra))
+
+
+def test_ownership_confirm_withdraw_preserves_pair_and_remote_consent(tmp_path):
+    service, peer, events = modern_service(tmp_path)
+    assert change(service)["ok"]
+    peer["personal_sync"]["remote_own_device"] = True
+    service.store.save_peers()
+    grants = copy.deepcopy(peer["local_grants"])
+    disabled = ownership(service, False)
+    assert disabled["ok"] and disabled["persisted"] and not disabled["deliveryConfirmed"]
+    state = disabled["notesSettings"]
+    assert not state["own_device"] and not state["auto_wifi"] and state["remote_own_device"]
+    assert service.store._load_peers()[0]["state"] == "paired"
+    restored = ownership(service, True)
+    assert restored["ok"] and restored["notesSettings"]["auto_wifi"]
+    assert peer["local_grants"] == grants and not events
+
+
+def test_ownership_checks_revision_again_at_mutation(tmp_path, monkeypatch):
+    service, peer, events = modern_service(tmp_path)
+    assert change(service)["ok"]
+    original = service.set_personal_sync
+    def raced(*args, **kwargs):
+        peer["personal_sync"]["remote_own_device"] = True
+        return original(*args, **kwargs)
+    monkeypatch.setattr(service, "set_personal_sync", raced)
+    result = ownership(service, False)
+    assert result["code"] == "conflict" and peer["personal_sync"]["own_device"] and not events
+
+
+def test_daemon_ownership_update(tmp_path):
+    service, peer, events = modern_service(tmp_path)
+    path = str(tmp_path / "runtime" / "background.sock")
+    server = background.IPCServer(FakeBackend(), path, phone_backend=service).start()
+    proxy = background.PhoneServiceProxy(path)
+    try:
+        for own in (True, False):
+            state = proxy.mcp_action(request(service))["notesSettings"]
+            result = proxy.mcp_action(request(service, "notes_ownership", expectedRevision=state["revision"], enabled=own))
+            assert result["ok"] and result["notesSettings"]["own_device"] is own and proxy._event_thread is None
+        assert not events
+    finally:
+        server.close()

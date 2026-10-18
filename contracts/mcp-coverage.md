@@ -49,8 +49,10 @@ Own Notes progress: native consent/shared-preference read and single-field
 updates are connected through the existing GUI handlers, with an independent
 settings revision, explicit complete initialization choices, actual store readback
 and no remote-delivery claim. Local ownership activation and deletion grants
-follow the same existing handler. Legacy-only mode controls, explicit ownership
-withdrawal and initial/manual content synchronization remain in the group below.
+follow the same existing handler. Explicit ownership confirmation/withdrawal is
+also connected, preserving pairing and remote consent while using existing native
+protocol cleanup. Legacy-only mode controls and initial/manual content
+synchronization remain in the group below.
 
 | Group | Existing product operations to finish connecting | Completion evidence |
 | --- | --- | --- |

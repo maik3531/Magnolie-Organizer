@@ -468,8 +468,14 @@ def client():
             deletion = settings_tool("organizer_notes_settings_update", {**args, "expected_revision": saved["state"]["revision"], "field": "skip_deletions", "value": False})
             assert deletion["state"]["shared"]["values"]["auto_mode"] == "wifi"
             assert phone_fixture.store._load_peers()[0]["local_grants"]["grants"]["personal_deletions_sync"]
+            withdrawn = settings_tool("organizer_notes_ownership_update", {**target, "expected_revision": deletion["state"]["revision"], "own_device": False})
+            assert not withdrawn["state"]["own_device"] and not withdrawn["state"]["auto_wifi"]
+            assert phone_fixture.store._load_peers()[0]["state"] == "paired"
+            confirmed = settings_tool("organizer_notes_ownership_update", {**target, "expected_revision": withdrawn["state"]["revision"], "own_device": True})
+            assert confirmed["state"]["own_device"] and confirmed["state"]["auto_wifi"] and not confirmed["state"]["remote_own_device"]
             assert data_file.read_bytes() == unchanged and phone_fixture.server is None and phone_fixture.thread is None
             state["notes_settings_store_and_cas_verified"] = True
+            state["notes_ownership_withdraw_and_confirm_verified"] = True
             process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
             return
         if os.environ.get("MAGNOLIE_MCP_PROBE_DEVICE_STATUS_ONLY") == "1":
