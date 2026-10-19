@@ -52,7 +52,7 @@ internal static class PersonalSyncActorTransportHost
                             cancellingRun is not null && message["body"]?["run_id"]?.GetValue<string>() == cancellingRun)
                             cancelReceipt.TrySetResult();
                         await coordinator.ReceivePersonalActorAsync(source, peer, message);
-                    } };
+                    }, ActorPump = coordinator.PumpPersonalActorAsync };
             var online = (IDictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator)!;
             online[phoneId] = connection;
             var receive = connection.RunAsync();
@@ -87,18 +87,8 @@ internal static class PersonalSyncActorTransportHost
                 var hash = descriptor["sha256"]!.GetValue<string>();
                 await coordinator.WithPersonalActorStoreAsync(registry => {
                     registry.RequireCurrent(handle);
-                    var run = personal.LoadRun(privatePeer, handle.ActorId, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())!;
-                    personal.StageAttachment(privatePeer, handle.ActorId, false, staged.RecordsHash, descriptor, "incoming", run.Policy, run.ExpiresMs, []);
                     return true;
                 });
-                var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                var request = PersonalSyncActorContract.WireMessage(new JsonObject { ["type"] = "message", ["v"] = 1,
-                    ["message_id"] = Guid.NewGuid().ToString("D"), ["created_ms"] = now, ["expires_ms"] = now + 60000,
-                    ["kind"] = "personal_sync.attachment_request", ["body"] = new JsonObject { ["format"] = 2,
-                        ["run_id"] = handle.ActorId, ["reply"] = false, ["records_hash"] = staged.RecordsHash,
-                        ["wants"] = new JsonArray(new JsonObject { ["sha256"] = hash, ["ranges"] = new JsonArray(new JsonArray(0, 1)) }) } }, handle.ActorId);
-                await connection.SendPlainAsync(request);
-                await connection.SendPlainAsync(request.DeepClone().AsObject());
                 while (personal.MissingAttachmentRanges(privatePeer, handle.ActorId, false, staged.RecordsHash, hash,
                     "incoming", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Count != 0)
                 {

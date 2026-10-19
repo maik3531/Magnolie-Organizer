@@ -324,8 +324,18 @@ attachment requests/results under the active owner through the same chunk
 producer used by ordinary synchronization; exact request replay cannot enqueue
 another set of chunks. Both owned TCP fixtures include a phone snapshot image
 and verify its bytes through the desktop integrity reader. Chunk receipts only
-acknowledge private staging, not book adoption. Production request scheduling,
-incoming book adoption and the remaining completion gates still apply.
+acknowledge private staging, not book adoption.
+
+Both desktop adapters schedule marked attachment requests in their existing
+encrypted outbox, retaining its native retry/message identity. Only the admitted
+owner/peer/key/channel can claim those due frames; network writes occur after the
+source/policy guards have been released. Ordinary receipts cannot consume them.
+Exact marked receipts complete only the correlated actor's queued control, and
+native cancellation removes its retained outbound controls. The C# outbox binds
+marked messages to their private core run namespace rather than a GUI run.
+The Python TCP fixture drops the initial attachment request before framing and
+requires the native retry of its original message ID. Incoming book adoption and
+the remaining completion gates still apply.
 
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption

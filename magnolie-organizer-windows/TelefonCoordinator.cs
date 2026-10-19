@@ -1401,7 +1401,8 @@ internal sealed partial class TelefonCoordinator : IDisposable
                 async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); }, RejectContactRead, AcceptDeveloperRead, AcceptMcpStatusRead)
                 { SharedLocalCapabilities = () => SharedLocalCapabilities(), SharedPreferencesChanged = () => ApplyCommonPreferencesAsync(peer.Id),
                     CollectionChanged = value => emit("App.personalSyncCollection", value),
-                    ActorMessageReceived = (source, message) => ReceivePersonalActorAsync(source, peer, message) };
+                    ActorMessageReceived = (source, message) => ReceivePersonalActorAsync(source, peer, message),
+                    ActorPump = PumpPersonalActorAsync };
             var capabilityRevision = store.NextOwnRevision("capabilities"); var grantRevision = store.NextOwnRevision("grants");
             await connection.InitializeAsync(capabilityRevision);
             lock (gate)
@@ -1940,6 +1941,7 @@ internal sealed partial class TelefonConnection : IDisposable
     internal Task SendGrantsAsync(long revision, JsonObject grants) => SendMessageAsync("grants.update", new JsonObject { ["revision"] = revision, ["grants"] = grants.DeepClone() }, 86_400_000);
     internal Task HandlePlainAsync(JsonObject plain) => HandlePlainBoundAsync(plain, null);
     internal Func<TelefonConnection, JsonObject, Task>? ActorMessageReceived { get; set; }
+    internal Func<TelefonConnection, Task>? ActorPump { get; set; }
 
     private async Task HandlePlainBoundAsync(JsonObject plain, JsonObject? scopedReference)
     {
@@ -2182,6 +2184,7 @@ internal sealed partial class TelefonConnection : IDisposable
     private static bool IsCallResultOrEvent(string? kind) => kind is "dial_request.result" or "answer_call.result" or "end_call.result" or "incoming_call_state.event";
     private async Task PumpOutboxAsync()
     {
+        if (ActorPump is not null) await ActorPump(this);
         await store.NotePolicyGate.WaitAsync(cancellation);
         try { await PumpOutboxUnderNotePolicyAsync(); }
         finally { store.NotePolicyGate.Release(); }

@@ -55,10 +55,16 @@ def main():
                 channel = phone.SecureChannel(connection, bytes([7]) * 32,
                     bytes([13]) * 32, bytes([14]) * 4, bytes([11]) * 32, bytes([12]) * 4)
                 service.connections[phone_id] = channel; service.connection_transports[phone_id] = "wifi"
-                packet = {}; receipt = {"dropped": None, "replayed": False, "cancel_id": None}; received = Counter(); rejected = []; sent_kinds = {}
+                packet = {}; receipt = {"dropped": None, "replayed": False, "cancel_id": None,
+                    "dropped_request": None, "request_replayed": False}; received = Counter(); rejected = []; sent_kinds = {}
                 send = channel.send
                 def send_actor(value):
                     if value.get("kind") == actor.CANCEL_KIND: receipt["cancel_id"] = value["message_id"]
+                    if value.get("kind") == actor.DATA_KIND and actor.unwrap(value["body"])[0] == "personal_sync.attachment_request":
+                        if receipt["dropped_request"] is None:
+                            receipt["dropped_request"] = value["message_id"]
+                            return  # Drop before cipher framing; native due/attempt scheduling must retry.
+                        if receipt["dropped_request"] == value["message_id"]: receipt["request_replayed"] = True
                     if "message_id" in value: sent_kinds[value["message_id"]] = value.get("kind", value.get("type"))
                     if (value.get("kind") == actor.ACK_KIND and packet.get("kind") == actor.DATA_KIND and
                             actor.unwrap(packet["body"])[0] == "personal_sync.batch" and
@@ -70,7 +76,7 @@ def main():
                     send(value)
                 channel.send = send_actor
                 service._ensure_desktop_updates(phone_id)
-                handle = None; registry = service.personal_actor_registry(); attachment_requested = False
+                handle = None; registry = service.personal_actor_registry()
                 deadline = time.monotonic() + 50
                 while time.monotonic() < deadline:
                     try:
@@ -95,17 +101,11 @@ def main():
                             assert [value["id"] for value in records if value["kind"] == "task"] == ["phone-task"]
                             descriptor = next(value for record in records if record["kind"] == "note" for value in record["value"]["attachments"])
                             aggregate_hash = batches[0]["messages"][-1]["body"]["records_hash"]
-                            if not attachment_requested:
-                                with service.lock: registry.require_current(handle)
-                                channel.send(actor.wire_message(service._actor_control_message("personal_sync.attachment_request", {
-                                    "format": 2, "run_id": handle.actor_id, "reply": False, "records_hash": aggregate_hash,
-                                    "wants": [{"sha256": descriptor["sha256"], "ranges": [[0, 1]]}]}), handle.actor_id))
-                                attachment_requested = True
-                                continue
                             sink = io.BytesIO()
                             if not service.store.verify_incoming_attachment(private, handle.actor_id, False, aggregate_hash, descriptor["sha256"], sink):
                                 continue
                             assert sink.getvalue() == bytes([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3])
+                            assert receipt["request_replayed"]
                             assert not any(event == "personal_sync" and
                                 (value.get("kind") == "personal_sync.batch" or
                                  value.get("body", {}).get("run_id") == handle.actor_id)
@@ -122,7 +122,7 @@ def main():
                             else: raise AssertionError("Native actor cancel receipt missing")
                             send({"type": "close", "reason": "normal"})
                             print(json.dumps({"actor_id": handle.actor_id, "private_core_records": len(records),
-                                "lost_marked_ack_replayed": True, "attachment_integrity_verified": True,
+                                "lost_marked_ack_replayed": True, "attachment_request_retried": True, "attachment_integrity_verified": True,
                                 "gui_adoption": False, "book_persisted": False}), flush=True)
                             return
                 scope_session = service.content_scope_sessions.get(channel)

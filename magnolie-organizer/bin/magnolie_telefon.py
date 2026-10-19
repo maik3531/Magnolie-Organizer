@@ -3932,6 +3932,10 @@ class PhoneService:
                     if body["message_id"] not in admission["outbound"]:
                         return
                     registry.put(handle, payload)
+                    queued = self.store.outbox_message(peer["device_id"], body["message_id"])
+                    if (queued is not None and queued.get("kind") == personal_actor_contract.DATA_KIND and
+                            queued["body"]["run_id"] == run and body["status"] in {"accepted", "duplicate"}):
+                        self.store.acknowledge(peer["device_id"], body["message_id"])
                     return  # No ACK of an actor ACK and no ordinary queue/GUI handling.
                 if payload["kind"] != personal_actor_contract.DATA_KIND:
                     return
@@ -3967,7 +3971,9 @@ class PhoneService:
                 if kind == "personal_sync.request":
                     self.store.remember_personal_run(storage_peer, content, claimed_expires_ms=payload["expires_ms"])
                 elif kind == "personal_sync.batch":
-                    self.store.stage_personal_batch(storage_peer, semantic)
+                    aggregate = self.store.stage_personal_batch(storage_peer, semantic)
+                    if aggregate is not None:
+                        self._queue_actor_attachment_requests(admission, aggregate)
                 elif kind == "personal_sync.report":
                     pass  # The authenticated raw report is retained; it is not a saved-book assertion.
                 elif kind == "personal_sync.attachment_chunk":
@@ -3982,12 +3988,71 @@ class PhoneService:
         if reply is not None:
             channel.send(reply)
 
+    def _queue_actor_attachment_requests(self, admission, aggregate):
+        handle = admission["handle"]
+        registry = admission["registry"]
+        registry.require_current(handle)
+        body = aggregate["messages"][-1]["body"]
+        identity = (body["reply"], body["records_hash"])
+        requests = admission.setdefault("attachment_requests", {})
+        wants = []
+        descriptors = {}
+        for record in aggregate["records"]:
+            if record["kind"] != "note":
+                continue
+            for item in record["value"].get("attachments", []):
+                previous = descriptors.setdefault(item["sha256"], item)
+                if (previous["size"], previous["mime"]) != (item["size"], item["mime"]):
+                    raise ValueError("conflicting_actor_attachment_manifest")
+        for digest, descriptor in sorted(descriptors.items()):
+            wants.append({"sha256": digest, "ranges": [[0, (descriptor["size"] + CHUNK_RAW - 1) // CHUNK_RAW]]})
+        if not wants:
+            return
+        for offset in range(0, len(wants), 64):
+            part = identity + (offset,)
+            if part in requests:
+                continue
+            request = {"format": 2, "run_id": handle.actor_id, "reply": body["reply"],
+                "records_hash": body["records_hash"], "wants": wants[offset:offset + 64]}
+            wire = self.store.queue(admission["peer"], "personal_sync.attachment_request", request, 60000, actor_run_id=handle.actor_id)
+            admission["outbound"].add(wire["message_id"])
+            requests[part] = wire["message_id"]
+        registry.require_current(handle)
+
+    def _send_personal_actor_queued(self, channel, peer_id, message):
+        # Ordinary callers can be inside their legacy guard; the next native due
+        # pass will claim this frame outside that guard instead of writing there.
+        if self.lock._is_owned():
+            return False
+        with self.lock:
+            body = message.get("body", {})
+            admission = self.personal_actor_admissions.get(body.get("run_id"))
+            if (admission is None or admission["peer"] != peer_id or admission["channel"] is not channel or
+                    self.connections.get(peer_id) is not channel or message.get("kind") != personal_actor_contract.DATA_KIND or
+                    message.get("message_id") not in admission["outbound"]):
+                return False
+            registry, handle = admission["registry"], admission["handle"]
+            try:
+                registry.require_current(handle)
+                if message != self.store.outbox_message(peer_id, message["message_id"]) or message["expires_ms"] <= now_ms():
+                    return False
+                self.store.mark_attempt(peer_id, message["message_id"])
+                registry.require_current(handle)
+            except (PermissionError, ValueError, RuntimeError, KeyError):
+                return False
+        channel.send(message)
+        return True
+
     def cancel_personal_actor(self, registry, handle):
         with self.lock:
             result = registry.cancel(handle)
             admission = self.personal_actor_admissions.pop(handle.actor_id, None)
             dispatch = None
             if admission is not None and admission["handle"] == handle and admission["registry"] is registry:
+                for message_id in admission["outbound"]:
+                    queued = self.store.outbox_message(admission["peer"], message_id)
+                    if queued is not None and queued.get("kind") == personal_actor_contract.DATA_KIND and queued["body"]["run_id"] == handle.actor_id:
+                        self.store.acknowledge(admission["peer"], message_id)
                 peer = self.store.sole_peer(admission["peer"])
                 if (peer and peer["static_public"] == admission["key"] and
                         self.connections.get(admission["peer"]) is admission["channel"]):
@@ -4912,6 +4977,8 @@ class PhoneService:
             return True
 
     def _send_message(self, channel, peer_id, message):
+        if personal_actor_contract.is_reserved_kind(message.get("kind")):
+            return self._send_personal_actor_queued(channel, peer_id, message)
         with self.lock:
             return self._send_message_locked(channel, peer_id, message)
 

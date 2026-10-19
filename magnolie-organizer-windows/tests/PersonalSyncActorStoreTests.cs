@@ -18,7 +18,7 @@ internal static class PersonalSyncActorStoreTests
             var request = new JsonObject { ["format"] = 3, ["run_id"] = run, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
             var legacy = request.DeepClone().AsObject(); legacy["run_id"] = legacyRun;
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); var personal = new PersonalSyncStore(store);
-            personal.RememberRun(peer, request, now); personal.RememberRun(peer, legacy, now);
+            personal.RememberRun(PersonalSyncActorContract.StoragePeer(run), request, now); personal.RememberRun(peer, legacy, now);
             var actorId = store.Enqueue(peer, "personal_sync.request", request, 60000, now, actorRunId: run);
             var ordinaryId = store.Enqueue(peer, "personal_sync.request", legacy, 60000, now);
             var reopened = new TelefonStore(paths, testStorageKey: key);
@@ -59,7 +59,7 @@ internal static class PersonalSyncActorStoreTests
         store.SetLocalGrant("personal_notes_sync", true); store.SetLocalGrant("personal_tasks_sync", true);
         var run = Guid.NewGuid().ToString("D"); var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var request = new JsonObject { ["format"] = 3, ["run_id"] = run, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
-        new PersonalSyncStore(store).RememberRun(peer.Id, request, now);
+        new PersonalSyncStore(store).RememberRun(PersonalSyncActorContract.StoragePeer(run), request, now);
         var id = store.Enqueue(peer.Id, "personal_sync.request", request, 60000, now, actorRunId: run);
         using var stream = new MemoryStream(); using var lifetime = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var legacyReceives = 0;

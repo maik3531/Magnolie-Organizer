@@ -6,7 +6,7 @@ namespace MagnolieOrganizer.Windows;
 internal sealed partial class TelefonCoordinator
 {
     private sealed record ActorAdmission(PersonalActorHandle Handle, string PeerId, string PublicKey,
-        TelefonConnection Connection, JsonObject Scope, JsonObject Start, HashSet<string> Outbound);
+        TelefonConnection Connection, JsonObject Scope, JsonObject Start, HashSet<string> Outbound, HashSet<string> AttachmentRequests);
     private readonly Dictionary<string, ActorAdmission> actorAdmissions = new(StringComparer.Ordinal);
 
     private static JsonObject ActorControl(string kind, JsonObject body)
@@ -32,7 +32,7 @@ internal sealed partial class TelefonCoordinator
             {
                 var start = ActorControl(PersonalSyncActorContract.StartKind, PersonalSyncActorContract.Start(handle.ActorId));
                 value = new ActorAdmission(handle, id, Convert.ToBase64String(peer.PublicKey), connection,
-                    connection.ActorSourceSnapshot()["scope"]!.DeepClone().AsObject(), start, [start["message_id"]!.GetValue<string>()]);
+                    connection.ActorSourceSnapshot()["scope"]!.DeepClone().AsObject(), start, [start["message_id"]!.GetValue<string>()], []);
                 actorAdmissions.Add(handle.ActorId, value);
             }
             if (value.Handle != handle || value.PublicKey != Convert.ToBase64String(peer.PublicKey) || !ReferenceEquals(value.Connection, connection) ||
@@ -51,9 +51,17 @@ internal sealed partial class TelefonCoordinator
         ActorAdmission? dispatch = null;
         var result = await WithPersonalActorStoreAsync(registry => {
             var status = registry.Cancel(handle);
-            if (actorAdmissions.Remove(handle.ActorId, out var value) && value.Handle == handle &&
-                online.GetValueOrDefault(value.PeerId) == value.Connection &&
-                store.LoadPeers().Any(peer => peer.Id == value.PeerId && Convert.ToBase64String(peer.PublicKey) == value.PublicKey)) dispatch = value;
+            if (actorAdmissions.Remove(handle.ActorId, out var value) && value.Handle == handle)
+            {
+                foreach (var id in value.Outbound)
+                {
+                    var queued = store.OutboxMessage(value.PeerId, id);
+                    if (queued?["kind"]?.GetValue<string>() == PersonalSyncActorContract.DataKind && queued["body"]?["run_id"]?.GetValue<string>() == handle.ActorId)
+                        store.CompleteOutbox(value.PeerId, id);
+                }
+                if (online.GetValueOrDefault(value.PeerId) == value.Connection &&
+                    store.LoadPeers().Any(peer => peer.Id == value.PeerId && Convert.ToBase64String(peer.PublicKey) == value.PublicKey)) dispatch = value;
+            }
             return status;
         }, cancellation);
         if (dispatch is not null) await dispatch.Connection.SendPlainAsync(ActorControl(PersonalSyncActorContract.CancelKind, PersonalSyncActorContract.Cancel(handle.ActorId)));
@@ -83,7 +91,12 @@ internal sealed partial class TelefonCoordinator
                 if (kind == PersonalSyncActorContract.AckKind)
                 {
                     PersonalSyncActorContract.ValidateAck(body);
-                    if (admission.Outbound.Contains(body["message_id"]!.GetValue<string>())) registry.Put(admission.Handle, message);
+                    var acknowledged = body["message_id"]!.GetValue<string>();
+                    if (admission.Outbound.Contains(acknowledged))
+                    {
+                        registry.Put(admission.Handle, message);
+                        if (body["status"]!.GetValue<string>() is "accepted" or "duplicate") store.CompleteOutbox(peer.Id, acknowledged);
+                    }
                     return true;
                 }
                 if (kind != PersonalSyncActorContract.DataKind) return false;
@@ -116,7 +129,11 @@ internal sealed partial class TelefonCoordinator
                 registry.Put(admission.Handle, message);
                 var semantic = message.DeepClone().AsObject(); semantic["kind"] = semanticKind; semantic["body"] = content.DeepClone();
                 if (semanticKind == "personal_sync.request") personalSync.RememberRun(storagePeer, content, Now(), TelefonProtocolContract.Integer(message["expires_ms"]));
-                else if (semanticKind == "personal_sync.batch") personalSync.StageBatch(storagePeer, semantic, connection.Transport, Now());
+                else if (semanticKind == "personal_sync.batch")
+                {
+                    var staged = personalSync.StageBatch(storagePeer, semantic, connection.Transport, Now());
+                    if (staged is not null) QueueActorAttachmentRequests(admission, staged);
+                }
                 else if (semanticKind == "personal_sync.attachment_chunk")
                 {
                     var raw = Convert.FromBase64String(content["data"]!.GetValue<string>());
@@ -137,5 +154,65 @@ internal sealed partial class TelefonCoordinator
         }
         catch (Exception error) when (error is InvalidOperationException or InvalidDataException or IOException) { }
         if (reply is not null) await connection.SendPlainAsync(reply);
+    }
+
+    private void QueueActorAttachmentRequests(ActorAdmission admission, PersonalSyncStagedBatch staged)
+    {
+        var descriptors = staged.Records.OfType<JsonObject>().Where(value => value["kind"]!.GetValue<string>() == "note")
+            .SelectMany(value => (value["value"]?["attachments"] as JsonArray ?? []).OfType<JsonObject>())
+            .GroupBy(value => value["sha256"]!.GetValue<string>(), StringComparer.Ordinal).OrderBy(value => value.Key, StringComparer.Ordinal).ToArray();
+        var run = personalSync.LoadRun(staged.PeerId, staged.RunId, Now()) ?? throw new InvalidDataException("Actor run missing.");
+        for (var offset = 0; offset < descriptors.Length; offset += 64)
+        {
+            var key = $"{staged.Reply}:{staged.RecordsHash}:{offset}";
+            if (admission.AttachmentRequests.Contains(key)) continue;
+            var wants = new JsonArray();
+            foreach (var group in descriptors.Skip(offset).Take(64))
+            {
+                var descriptor = group.First();
+                if (group.Any(value => !JsonNode.DeepEquals(value["size"], descriptor["size"]) || !JsonNode.DeepEquals(value["mime"], descriptor["mime"])))
+                    throw new InvalidDataException("Conflicting actor attachment manifest.");
+                personalSync.StageAttachment(staged.PeerId, staged.RunId, staged.Reply, staged.RecordsHash, descriptor, "incoming", run.Policy, run.ExpiresMs, []);
+                var ranges = personalSync.MissingAttachmentRanges(staged.PeerId, staged.RunId, staged.Reply, staged.RecordsHash, group.Key, "incoming", Now());
+                if (ranges.Count != 0) wants.Add(new JsonObject { ["sha256"] = group.Key,
+                    ["ranges"] = new JsonArray(ranges.Select(value => (JsonNode)new JsonArray(value.Start, value.End)).ToArray()) });
+            }
+            if (wants.Count != 0)
+            {
+                var body = new JsonObject { ["format"] = 2, ["run_id"] = staged.RunId, ["reply"] = staged.Reply, ["records_hash"] = staged.RecordsHash, ["wants"] = wants };
+                var id = store.Enqueue(admission.PeerId, "personal_sync.attachment_request", body, 60000, Now(), actorRunId: staged.RunId);
+                admission.Outbound.Add(id);
+            }
+            admission.AttachmentRequests.Add(key);
+        }
+    }
+
+    internal async Task PumpPersonalActorAsync(TelefonConnection connection)
+    {
+        ActorAdmission[] admitted;
+        lock (gate) admitted = actorAdmissions.Values.Where(value => value.Connection == connection).ToArray();
+        if (admitted.Length == 0) return;
+        var dispatch = new List<JsonObject>();
+        try
+        {
+            await WithPersonalActorStoreAsync(registry => {
+                foreach (var admission in admitted)
+                {
+                    registry.RequireCurrent(admission.Handle);
+                    if (online.GetValueOrDefault(admission.PeerId) != connection) continue;
+                    foreach (var item in store.Due(admission.PeerId, Now(), transport: connection.Transport))
+                    {
+                        if (item.Message["kind"]?.GetValue<string>() != PersonalSyncActorContract.DataKind ||
+                            item.Message["body"]?["run_id"]?.GetValue<string>() != admission.Handle.ActorId || !admission.Outbound.Contains(item.Id)) continue;
+                        store.MarkAttempt(item.Id, item.Attempts, Now());
+                        registry.RequireCurrent(admission.Handle);
+                        dispatch.Add(item.Message);
+                    }
+                }
+                return true;
+            });
+        }
+        catch (Exception error) when (error is InvalidOperationException or InvalidDataException or IOException) { return; }
+        foreach (var message in dispatch) await connection.SendPlainAsync(message);
     }
 }

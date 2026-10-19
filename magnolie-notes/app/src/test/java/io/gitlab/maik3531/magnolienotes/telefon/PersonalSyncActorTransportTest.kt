@@ -177,6 +177,7 @@ class PersonalSyncActorTransportTest {
             val result = TelefonKanonisch.json.parseToJsonElement(output.readLine()).jsonObject
             assertEquals(JsonPrimitive(!windows), result["lost_marked_ack_replayed"])
             assertEquals(JsonPrimitive(true), result["attachment_integrity_verified"])
+            if (!windows) assertEquals(JsonPrimitive(true), result["attachment_request_retried"])
             assertEquals(JsonPrimitive(false), result["gui_adoption"]); assertEquals(JsonPrimitive(false), result["book_persisted"])
             @Suppress("UNCHECKED_CAST")
             val handles = field(TelefonWerk::class.java, "personalActorHandles").get(runtime) as Map<String, PersonalActorHandle>

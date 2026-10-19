@@ -132,6 +132,15 @@ internal static class PersonalSyncActorSourceTests
             var staged = new PersonalSyncStore(store).ReadyBatches(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
                 .Single(value => value.PeerId == PersonalSyncActorContract.StoragePeer(transportHandle.ActorId));
             TestAssert.That(JsonNode.DeepEquals(staged.Records.Single(), record), "Existing private stager changed actor records.");
+            await coordinator.PumpPersonalActorAsync(connection);
+            var attachmentRequest = (await SharedSyncTransportTests.DrainAsync(wire)).Single();
+            TestAssert.That(PersonalSyncActorContract.Unwrap(attachmentRequest["body"]!.AsObject()).Kind == "personal_sync.attachment_request",
+                "Native actor attachment request was not dispatched through the existing outbox.");
+            var requestId = attachmentRequest["message_id"]!.GetValue<string>();
+            await connection.HandlePlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = requestId, ["status"] = "accepted", ["error"] = "none" });
+            TestAssert.That(store.OutboxMessage(peer.Id, requestId) is not null, "Plain receipt consumed an actor request.");
+            await connection.HandlePlainAsync(Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(transportHandle.ActorId, requestId)));
+            TestAssert.That(store.OutboxMessage(peer.Id, requestId) is null, "Exact marked receipt left its actor request pending.");
             var packets = await coordinator.WithPersonalActorStoreAsync(registry => registry.Status(transportHandle)["packets"]!.GetValue<int>());
             var outside = batchBody.DeepClone().AsObject(); outside["batch_id"] = Guid.NewGuid().ToString("D");
             outside["records"]![0]!["id"] = "private-outside-scope"; outside["records_hash"] = PersonalSyncContract.RecordsHash(outside["records"]!.AsArray());

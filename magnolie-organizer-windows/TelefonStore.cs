@@ -778,7 +778,8 @@ internal sealed partial class TelefonStore
                 catch (Exception) when (TelefonProtocolContract.PersonalKinds.Contains(item.Kind)) { DeleteOutbox(connection, transaction, peerId, item.Id); continue; }
                 if (item.Kind != "personal_sync.settings" && TelefonProtocolContract.PersonalKinds.Contains(item.Kind) &&
                     message["body"]?["run_id"]?.GetValue<string>() is string runId &&
-                    (purgedRuns.Contains(runId) || PersonalRunUnavailable(connection, transaction, peerId, runId, now)))
+                    (purgedRuns.Contains(runId) || PersonalRunUnavailable(connection, transaction,
+                        message["kind"]?.GetValue<string>() == PersonalSyncActorContract.DataKind ? PersonalSyncActorContract.StoragePeer(runId) : peerId, runId, now)))
                 {
                     if (purgedRuns.Add(runId)) PurgePersonalRun(connection, transaction, peerId, runId);
                     continue;
@@ -842,9 +843,15 @@ internal sealed partial class TelefonStore
             }
             if (!TelefonProtocolContract.PersonalKinds.Contains(kind)) return false;
             string? runId = null;
-            try { runId = (JsonNode.Parse(Open("outbox", messageId, payload)) as JsonObject)?["body"]?["run_id"]?.GetValue<string>(); }
+            var runPeer = peerId;
+            try {
+                var message = JsonNode.Parse(Open("outbox", messageId, payload)) as JsonObject;
+                runId = message?["body"]?["run_id"]?.GetValue<string>();
+                if (runId is not null && message?["kind"]?.GetValue<string>() == PersonalSyncActorContract.DataKind)
+                    runPeer = PersonalSyncActorContract.StoragePeer(runId);
+            }
             catch (Exception) { }
-            if (kind != "personal_sync.settings" && runId is not null && PersonalRunUnavailable(connection, transaction, peerId, runId, now))
+            if (kind != "personal_sync.settings" && runId is not null && PersonalRunUnavailable(connection, transaction, runPeer, runId, now))
                 PurgePersonalRun(connection, transaction, peerId, runId);
             else
                 DeleteOutbox(connection, transaction, peerId, messageId);

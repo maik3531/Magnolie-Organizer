@@ -105,6 +105,14 @@ def test_actor_attachment_uses_private_manifest_and_native_integrity_checks(tmp_
     batch = {"format": 3, "run_id": handle.actor_id, "batch_id": str(uuid.uuid4()), "sequence": 0, "last": True,
         "reply": False, "records": [item], "records_hash": personal.records_hash([item])}
     service._payload(peer, channel, actor.wire_message(frame("personal_sync.batch", batch), handle.actor_id))
+    queued = [value for value in service.store.pending(peer["device_id"]) if value.get("kind") == actor.DATA_KIND]
+    assert len(queued) == 1 and actor.unwrap(queued[0]["body"])[0] == "personal_sync.attachment_request"
+    assert service._send_message(channel, peer["device_id"], queued[0])
+    request_id = queued[0]["message_id"]
+    service._payload(peer, channel, {"type": "ack", "message_id": request_id, "status": "accepted", "error": "none"})
+    assert service.store.outbox_message(peer["device_id"], request_id) == queued[0]
+    service._payload(peer, channel, frame(actor.ACK_KIND, actor.ack(handle.actor_id, request_id)))
+    assert service.store.outbox_message(peer["device_id"], request_id) is None
     body = {"format": 2, "run_id": handle.actor_id, "reply": False, "records_hash": batch["records_hash"],
         "sha256": digest, "index": 0, "data": base64.b64encode(raw).decode("ascii")}
     channel.sent.clear()
