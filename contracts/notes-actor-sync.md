@@ -107,6 +107,27 @@ adapter before reading, adopting or committing such data; the private storage ID
 must never replace the real source identity for those checks. A raw actor-wire
 inbox/binding and the authorized adapter are still required before activation.
 
+The Linux reference raw-inbox store now seals actor bindings and complete wire
+packets with the existing native profile storage key. Its private handle binds a
+random owner token to a native owner epoch and the selected peer/fingerprint/
+current-source revision. Raw reads recheck both ownership and the native source
+callback; source revocation blocks reads while owner cancellation can still
+retire the context. A different native epoch cannot silently inherit an old
+handle. The callback's keyed revision must bind the current book/profile scope,
+exact live channel and key, fresh controls, both ownership/grant choices and
+current content scope; a display fingerprint or a caller-provided string is not
+authority. A book/profile switch must invalidate that revision and its owner lease.
+Conflicting duplicate frames, plaintext lease tampering and live-context
+capacity overflow are rejected. Owner leases also use a protected monotonic
+deadline, so a wall-clock rollback cannot extend them. Storage quotas count actual
+sealed bytes rather than trusting plaintext size hints. Raw reads recheck the
+source again after decrypting, before returning data. No successful transport
+receipt, GUI callback or record adoption is produced by this store.
+
+This reference is not yet wired into PhoneService, advertised or exposed to MCP.
+Windows/Notes registry parity, authenticated source-snapshot callbacks, lifecycle
+cleanup/recovery and the full transport/adoption adapters remain completion gates.
+
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption
 and save/commit still need their corresponding integration and acceptance gates.
