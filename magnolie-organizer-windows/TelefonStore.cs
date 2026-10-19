@@ -715,7 +715,7 @@ internal sealed partial class TelefonStore
         }
     }
 
-    internal string Enqueue(string peerId, string kind, JsonObject body, long ttlMs, long now, string transportPolicy = "any")
+    internal string Enqueue(string peerId, string kind, JsonObject body, long ttlMs, long now, string transportPolicy = "any", string? actorRunId = null)
     {
         if (kind.StartsWith("device_status.", StringComparison.Ordinal) && (body.ContainsKey("identifiers") || TelefonProtocolContract.TryInteger(body["version"], out var statusVersion) && statusVersion == 4))
             throw new InvalidDataException("Device identifiers cannot enter a persistent queue.");
@@ -726,6 +726,7 @@ internal sealed partial class TelefonStore
         var message = new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = id, ["kind"] = kind,
             ["created_ms"] = now, ["expires_ms"] = expires, ["body"] = body.DeepClone() };
         TelefonMessageContract.ValidateMessage(message, now, false);
+        if (actorRunId is not null) message = PersonalSyncActorContract.WireMessage(message, actorRunId);
         if (kind == "personal_sync.deletion_proposals") RememberPersonalProposalKinds(peerId, body, true);
         var payload = Seal("outbox", id, TelefonCrypto.Canonical(message));
         lock (gate)
@@ -767,7 +768,13 @@ internal sealed partial class TelefonStore
             {
                 if (result.Count == limit) break;
                 JsonObject message;
-                try { message = JsonNode.Parse(Open("outbox", item.Id, item.Payload))!.AsObject(); }
+                try
+                {
+                    message = JsonNode.Parse(Open("outbox", item.Id, item.Payload))!.AsObject();
+                    if (message["kind"]?.GetValue<string>() == PersonalSyncActorContract.DataKind &&
+                        PersonalSyncActorContract.Unwrap(message["body"]!.AsObject()).Kind != item.Kind)
+                        throw new InvalidDataException("Actor wire/semantic outbox identity mismatch.");
+                }
                 catch (Exception) when (TelefonProtocolContract.PersonalKinds.Contains(item.Kind)) { DeleteOutbox(connection, transaction, peerId, item.Id); continue; }
                 if (item.Kind != "personal_sync.settings" && TelefonProtocolContract.PersonalKinds.Contains(item.Kind) &&
                     message["body"]?["run_id"]?.GetValue<string>() is string runId &&

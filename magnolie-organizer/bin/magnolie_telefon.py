@@ -21,6 +21,7 @@ from magnolie_personal_sync import CUSTOM_KINDS, validate_custom_body, accept_cu
 import magnolie_time_sync as time_sync_contract
 import magnolie_shared_sync as shared_sync_contract
 import magnolie_content_scope as content_scope_contract
+import magnolie_personal_actor as personal_actor_contract
 import time
 import unicodedata
 import uuid
@@ -845,7 +846,7 @@ class PhoneStore:
             return {}
         return status
 
-    def queue(self, peer_id, kind, body, ttl_ms, transport_policy="any"):
+    def queue(self, peer_id, kind, body, ttl_ms, transport_policy="any", actor_run_id=None):
         if kind.startswith("device_status.") and ("identifiers" in body or body.get("version") == 4):
             raise ValueError("device identifiers cannot enter a persistent queue")
         now = now_ms()
@@ -865,11 +866,15 @@ class PhoneStore:
             shared_sync_contract.validate_start(body)
             if ttl_ms > 60000:
                 raise ValueError("invalid shared start lifetime")
-        if kind == "personal_sync.deletion_proposals":
-            self.remember_personal_proposal_kinds(peer_id, body, True)
+        if kind in (personal_actor_contract.START_KIND, personal_actor_contract.DATA_KIND):
+            raise ValueError("Actor frames require an explicit semantic message and actor context")
         message = {"type": "message", "v": 1, "message_id": str(uuid.uuid4()),
                    "kind": kind, "created_ms": now, "expires_ms": now + ttl_ms,
-                   "body": body}
+                    "body": body}
+        if actor_run_id is not None:
+            message = personal_actor_contract.wire_message(message, actor_run_id)
+        if kind == "personal_sync.deletion_proposals":
+            self.remember_personal_proposal_kinds(peer_id, body, True)
         encrypted = self._encrypt(canonical(message), "outbox", message["message_id"])
         with sqlite3.connect(self.database_path) as db:
             if kind in {personal_sync_contract.NOTE_MODE_KIND, personal_sync_contract.DESKTOP_FEATURES_KIND, shared_sync_contract.KIND}:
@@ -941,12 +946,17 @@ class PhoneStore:
             raise ValueError("invalid current transport")
         now = now_ms()
         with sqlite3.connect(self.database_path) as db:
-            rows = db.execute("SELECT message_id,payload FROM outbox WHERE peer_id=? AND "
+            rows = db.execute("SELECT message_id,payload,kind FROM outbox WHERE peer_id=? AND "
                               "expires_ms>? AND next_attempt_ms<=? AND (transport_policy='any' OR ?='wifi') "
                               "ORDER BY CASE WHEN kind IN ('capabilities.update','grants.update','personal_sync.settings',"
                               "'personal_sync.note_settings','personal_sync.desktop_features','personal_sync.custom_settings') THEN 0 ELSE 1 END,created_ms LIMIT 32", (peer_id, now, now, transport)).fetchall()
-        return [strict_json(self._decrypt(payload, "outbox", message_id))
-                for message_id, payload in rows]
+        result = []
+        for message_id, payload, kind in rows:
+            message = strict_json(self._decrypt(payload, "outbox", message_id))
+            if message.get("kind") == personal_actor_contract.DATA_KIND and personal_actor_contract.unwrap(message["body"])[0] != kind:
+                raise ValueError("Actor wire/semantic outbox identity mismatch")
+            result.append(message)
+        return result
 
     def mark_attempt(self, peer_id, message_id):
         with sqlite3.connect(self.database_path) as db:
@@ -979,7 +989,8 @@ class PhoneStore:
             db.execute("DELETE FROM outbox WHERE peer_id=? AND message_id=?",
                         (peer_id, message_id))
         if row and row[0] == "personal_sync.deletion_decision":
-            return strict_json(self._decrypt(row[1], "outbox", message_id))["body"]["decision_id"]
+            message = strict_json(self._decrypt(row[1], "outbox", message_id))
+            return personal_actor_contract.semantic_message(message)["body"]["decision_id"]
         return ""
 
     def outbox_policy(self, peer_id, message_id, scope_check=None):

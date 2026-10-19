@@ -179,28 +179,29 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     }
 
     fun queue(peerId: String, kind: String, body: JsonObject, ttlMs: Long, now: Long = System.currentTimeMillis(),
-              transportPolicy: String = "any"): JsonObject {
+              transportPolicy: String = "any", actorRunId: String? = null): JsonObject {
         require(transportPolicy in setOf("any", "wifi_only"))
         if (kind == SharedSyncSettings.KIND) { SharedSyncSettings.validate(body); require(ttlMs <= 86_400_000) }
         if (kind == PhoneContentScope.KIND) { PhoneContentScope.validatePart(body); require(ttlMs <= 60_000) }
         val message = TelefonNachrichten.message(kind, body, ttlMs, now)
-        writableInsert(peerId, message, transportPolicy = transportPolicy)
-        return message
+        return writableInsert(peerId, message, transportPolicy = transportPolicy, actorRunId = actorRunId)
     }
 
-    fun queuePrepared(peerId: String, message: JsonObject, transportPolicy: String = "any") {
+    fun queuePrepared(peerId: String, message: JsonObject, transportPolicy: String = "any", actorRunId: String? = null) {
         require(transportPolicy in setOf("any", "wifi_only"))
-        writableInsert(peerId, message, transportPolicy = transportPolicy)
+        writableInsert(peerId, message, transportPolicy = transportPolicy, actorRunId = actorRunId)
     }
 
     private fun writableInsert(peerId: String, message: JsonObject, db: SQLiteDatabase = helper.writableDatabase,
-                                transportPolicy: String = "any") {
+                                transportPolicy: String = "any", actorRunId: String? = null): JsonObject {
         val statusBody = message["body"] as? JsonObject
         require(!message.string("kind").startsWith("device_status.") ||
             statusBody?.containsKey("identifiers") != true && statusBody?.get("version") != JsonPrimitive(4))
+        require(message.string("kind") !in setOf(PersonalSyncActor.START_KIND, PersonalSyncActor.DATA_KIND))
+        val wire = if (actorRunId == null) message else PersonalSyncActor.wireMessage(message, actorRunId)
         db.inTransaction {
         val id = message.string("message_id")
-        val payload = storage.encryptPayload(TelefonKanonisch.bytes(message), "outbox", id)
+        val payload = storage.encryptPayload(TelefonKanonisch.bytes(wire), "outbox", id)
         db.phoneCapacity("outbox", payload.size)
         val values = ContentValues().apply {
             put("message_id", id); put("peer_id", peerId); put("kind", message.string("kind"))
@@ -211,6 +212,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         }
         db.insertOrThrow("outbox", null, values)
         }
+        return wire
     }
 
     internal fun due(peerId: String, transport: TelefonTransportArt, now: Long = System.currentTimeMillis()): List<TelefonOutboxEintrag> {
@@ -229,14 +231,15 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                         clear = storage.decryptPayload(cursor.getBlob(6), "outbox", id)
                         val message = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject
                         val kind = cursor.getString(2)
+                        val semantic = PersonalSyncActor.semanticMessage(message)
                         if (cursor.getString(1) != peerId || message.string("message_id") != id ||
-                            message.string("kind") != kind || message.long("created_ms") != cursor.getLong(3) ||
+                            semantic.string("kind") != kind || message.long("created_ms") != cursor.getLong(3) ||
                             message.long("expires_ms") != cursor.getLong(4) || cursor.getLong(4) <= now) {
                             stale += id; continue
                         }
                         val stored = cursor.getString(5)
                         val effective = if (kind in PERSONAL_SYNC_DATA_KINDS) {
-                            val body = message["body"] as JsonObject
+                            val body = semantic["body"] as JsonObject
                             val run = authenticatedRun(peerId, body.string("run_id"), this)?.first
                             if (run == null || run.expiresMs <= now) { stale += id; continue }
                             run.transportPolicy
@@ -272,8 +275,11 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             "peer_id=? AND message_id=? AND kind='personal_sync.deletion_decision'", arrayOf(peerId, messageId),
             null, null, null).use { cursor -> if (!cursor.moveToFirst()) null else {
                 val clear = storage.decryptPayload(cursor.getBlob(0), "outbox", messageId)
-                try { (((TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject)["body"]
-                    as JsonObject)["decision_id"] as JsonPrimitive).content } finally { clear.fill(0) }
+                try {
+                    val message = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject
+                    val body = PersonalSyncActor.semanticMessage(message)["body"] as JsonObject
+                    (body["decision_id"] as JsonPrimitive).content
+                } finally { clear.fill(0) }
             } }
         if (decisionId == null) {
             if (status == "rejected" && error == "temporary_failure") return@inTransaction null
@@ -302,10 +308,11 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         val clear = storage.decryptPayload(cursor.getBlob(2), "outbox", messageId)
         try {
             val message = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject
+            val semantic = PersonalSyncActor.semanticMessage(message)
             if (cursor.getString(3) != peerId || message.string("message_id") != messageId ||
-                message.string("kind") != kind || message.long("created_ms") != cursor.getLong(4) ||
+                semantic.string("kind") != kind || message.long("created_ms") != cursor.getLong(4) ||
                 message.long("expires_ms") != cursor.getLong(5)) return@use "invalid"
-            val body = message["body"] as JsonObject
+            val body = semantic["body"] as JsonObject
             val durable = personalRunPolicy(peerId, body.string("run_id"))
             if (durable == stored) durable else "invalid"
         } finally { clear.fill(0) }

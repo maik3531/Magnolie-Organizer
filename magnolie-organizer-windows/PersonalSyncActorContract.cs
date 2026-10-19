@@ -52,6 +52,24 @@ internal static class PersonalSyncActorContract
         return (value["kind"]!.GetValue<string>(), value["body"]!.DeepClone().AsObject());
     }
 
+    // The caller validates the original message header; ACK identity/lifetime do not change.
+    internal static JsonObject WireMessage(JsonObject message, string runId)
+    {
+        var result = message.DeepClone().AsObject();
+        result["body"] = Wrap(runId, Text(message, "kind"), message["body"]!.AsObject());
+        result["kind"] = DataKind;
+        return result;
+    }
+
+    // Explicit semantic inspection must never replace the persisted/sent actor wire frame.
+    internal static JsonObject SemanticMessage(JsonObject message)
+    {
+        if (message["kind"]?.GetValue<string>() != DataKind) return message;
+        var inner = Unwrap(message["body"]!.AsObject()); var result = message.DeepClone().AsObject();
+        result["kind"] = inner.Kind; result["body"] = inner.Body;
+        return result;
+    }
+
     internal static bool Supported(JsonObject local, JsonObject remote) => SharedSyncSettings.Supported(local, remote) &&
         new[] { local, remote }.All(items => new[] { "personal_notes_sync", "personal_tasks_sync" }.All(name =>
             items[name]?["available"] is JsonValue flag && flag.TryGetValue<bool>(out var available) && available &&

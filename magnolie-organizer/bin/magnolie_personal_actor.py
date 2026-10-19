@@ -65,6 +65,24 @@ def unwrap(value):
     return value["kind"], copy.deepcopy(value["body"])
 
 
+def wire_message(message, run_id):
+    """Caller validates the original header; preserve its ACK identity/lifetime."""
+    result = copy.deepcopy(message)
+    result["body"] = wrap(run_id, message["kind"], message["body"])
+    result["kind"] = DATA_KIND
+    return result
+
+
+def semantic_message(message):
+    """For explicit policy/ACK inspection, never for replacing a stored wire frame."""
+    if message.get("kind") != DATA_KIND:
+        return message
+    kind, body = unwrap(message["body"])
+    result = copy.deepcopy(message)
+    result.update(kind=kind, body=body)
+    return result
+
+
 def supported(local, remote):
     return shared.supported(local, remote) and all(
         type(item.get("available")) is bool and item["available"] and any(type(value) is int and value == VERSION for value in item.get("versions", []))

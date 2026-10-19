@@ -50,6 +50,24 @@ authorize membership, stage a message, apply records or acknowledge persistence.
 Actual current identity, grants, ownership, scope and receipt checks remain at the
 native runtime boundary.
 
+## Storage integration status
+
+The existing single-message encrypted outbox writers now accept an internal
+explicit actor context, persist the complete actor wire envelope and retain the
+original semantic queue kind for ordering/purge rules. Queue reload must return
+that envelope unchanged, without consulting volatile actor ownership. The Kotlin
+queue verifies a valid actor envelope before comparing its semantic kind with
+the stored queue kind. Ordinary callers keep the existing unwrapped format;
+control injection and mismatched actor run IDs are rejected before insertion.
+Explicit semantic inspection for policy/decision ACK metadata does not replace
+the wire envelope. Temporary receipts retain the same actor frame; an accepted
+receipt removes only its original message ID. The existing decision identity is
+recovered from the validated inner body rather than from the actor wrapper.
+
+This is not complete runtime activation. Bulk snapshot/attachment production,
+actor-bound native send/receive, incoming staging/replay isolation, typed adoption
+and save/commit still need their corresponding integration and acceptance gates.
+
 ## Required runtime completion gates
 
 - No new listener, pairing, grant, ownership confirmation or arbitrary scope

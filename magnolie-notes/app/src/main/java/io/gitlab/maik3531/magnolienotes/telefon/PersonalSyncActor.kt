@@ -49,6 +49,18 @@ internal object PersonalSyncActor {
         return value.string("kind") to value.getValue("body").jsonObject
     }
 
+    /** Caller validates the original header; ACK identity/lifetime remain unchanged. */
+    fun wireMessage(message: JsonObject, runId: String): JsonObject = JsonObject(message + mapOf(
+        "kind" to JsonPrimitive(DATA_KIND),
+        "body" to wrap(runId, message.string("kind"), message.getValue("body").jsonObject)))
+
+    /** Explicit semantic inspection must never replace the persisted/sent wire frame. */
+    fun semanticMessage(message: JsonObject): JsonObject {
+        if (message.string("kind") != DATA_KIND) return message
+        val (kind, body) = unwrap(message.getValue("body").jsonObject)
+        return JsonObject(message + mapOf("kind" to JsonPrimitive(kind), "body" to body))
+    }
+
     fun supported(peer: TelefonPeer, local: Map<String, TelefonCapability>): Boolean =
         SharedSyncSettings.supported(peer, local) &&
             VERSION in peer.remote_personal_notes_sync_versions && VERSION in peer.remote_personal_tasks_sync_versions &&

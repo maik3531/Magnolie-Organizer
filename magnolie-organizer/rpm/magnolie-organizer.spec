@@ -154,6 +154,7 @@ install -Dpm 0644 bin/magnolie_asset.py %{buildroot}%{_bindir}/magnolie_asset.py
 install -Dpm 0644 bin/magnolie_mcp.py %{buildroot}%{_bindir}/magnolie_mcp.py
 install -Dpm 0644 bin/magnolie_calendar_dedup.py %{buildroot}%{_bindir}/magnolie_calendar_dedup.py
 install -Dpm 0644 bin/magnolie_content_scope.py %{buildroot}%{_bindir}/magnolie_content_scope.py
+install -Dpm 0644 bin/magnolie_personal_actor.py %{buildroot}%{_bindir}/magnolie_personal_actor.py
 install -Dpm 0644 bin/magnolie_drawing_svg.py %{buildroot}%{_bindir}/magnolie_drawing_svg.py
 install -Dpm 0644 bin/magnolie_versand.py %{buildroot}%{_bindir}/magnolie_versand.py
 install -Dpm 0644 bin/magnolie_kde_filesystem.py %{buildroot}%{_bindir}/magnolie_kde_filesystem.py
@@ -284,6 +285,7 @@ done
 %{_bindir}/magnolie_mcp.py
 %{_bindir}/magnolie_calendar_dedup.py
 %{_bindir}/magnolie_content_scope.py
+%{_bindir}/magnolie_personal_actor.py
 %{_bindir}/magnolie_drawing_svg.py
 %{_bindir}/magnolie_versand.py
 %{_bindir}/magnolie_kde_filesystem.py
