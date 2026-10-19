@@ -1,0 +1,124 @@
+package io.gitlab.maik3531.magnolienotes.telefon
+
+import android.content.ContentValues
+import android.database.sqlite.SQLiteDatabase
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.security.MessageDigest
+import java.security.SecureRandom
+import java.util.UUID
+
+/** Opaque native ownership; tokens must never enter status, wire frames or logs. */
+internal class PersonalActorHandle internal constructor(val peerId: String, val runId: String, internal val token: String)
+
+/** Protected server-journal primitive. No transport admission, receipt or document mutation.
+ * currentSource must derive its revision from the actual current channel/key, book/profile,
+ * fresh controls, both ownership/grant decisions and content scope. Wire revisions are not authority.
+ */
+internal class PersonalSyncActorJournal(
+    private val database: TelefonDatenbank,
+    private val storage: TelefonPayloadStorage,
+    private val currentSource: (String, String) -> String?,
+    private val restoreEpoch: () -> String,
+    private val ownerEpoch: String = randomToken(),
+    private val clock: () -> Long = System::currentTimeMillis,
+    private val monotonic: () -> Long = android.os.SystemClock::elapsedRealtime
+) {
+    @Serializable private data class Binding(
+        val format: Int = 12, val peerId: String, val runId: String, val publicKey: String,
+        val sourceRevision: String, val restoreEpoch: String, val ownerEpoch: String,
+        val ownerHash: String, val createdMs: Long, val expiresMs: Long,
+        val createdMonotonicMs: Long, val expiresMonotonicMs: Long, val stopped: Boolean = false
+    )
+    private val json = Json { encodeDefaults = true; ignoreUnknownKeys = false }
+    init { require(HEX.matches(ownerEpoch)) }
+
+    private fun key(peer: String, run: String): String = "personal_actor_journal:$peer:$run"
+    private fun decode(id: String, sealed: ByteArray): Binding {
+        val clear = storage.decryptPayload(sealed, "personal_actor_journal", id)
+        return try {
+            json.decodeFromString<Binding>(clear.decodeToString()).also {
+                PersonalSyncActor.start(it.peerId); PersonalSyncActor.start(it.runId)
+                TelefonKrypto.b64(it.publicKey, 32)
+                require(it.format == 12 && id == key(it.peerId, it.runId) && HEX.matches(it.sourceRevision) &&
+                    HEX.matches(it.ownerEpoch) && HEX.matches(it.ownerHash) && it.restoreEpoch.isNotEmpty() &&
+                    it.restoreEpoch.length <= 256 && it.createdMs >= 0 && it.expiresMs <= MAX_TIME &&
+                    it.expiresMs - it.createdMs == LIFETIME && it.createdMonotonicMs >= 0 &&
+                    it.expiresMonotonicMs > it.createdMonotonicMs &&
+                    it.expiresMonotonicMs - it.createdMonotonicMs == LIFETIME)
+            }
+        } finally { clear.fill(0) }
+    }
+    private fun write(db: SQLiteDatabase, value: Binding) {
+        val id = key(value.peerId, value.runId)
+        val clear = json.encodeToString(value).encodeToByteArray()
+        val sealed = try { storage.encryptPayload(clear, "personal_actor_journal", id) } finally { clear.fill(0) }
+        db.insertWithOnConflict("meta", null, ContentValues().apply {
+            put("key", id); put("value", sealed)
+        }, SQLiteDatabase.CONFLICT_REPLACE).also { check(it != -1L) }
+    }
+    private fun requireOwner(db: SQLiteDatabase, handle: PersonalActorHandle, active: Boolean): Binding {
+        require(HEX.matches(handle.token)) { "actor_not_found" }
+        val id = key(handle.peerId, handle.runId)
+        val binding = db.query("meta", arrayOf("value"), "key=?", arrayOf(id), null, null, null).use {
+            check(it.moveToFirst()) { "actor_not_found" }; decode(id, it.getBlob(0))
+        }
+        check(binding.ownerEpoch == ownerEpoch && MessageDigest.isEqual(
+            binding.ownerHash.encodeToByteArray(), hash(handle.token).encodeToByteArray())) { "actor_not_found" }
+        if (active) {
+            check(!binding.stopped && clock() < binding.expiresMs && monotonic() < binding.expiresMonotonicMs &&
+                clock() >= binding.createdMs && monotonic() >= binding.createdMonotonicMs) { "actor_inactive" }
+            check(restoreEpoch() == binding.restoreEpoch &&
+                currentSource(binding.peerId, binding.publicKey) == binding.sourceRevision) { "actor_source_changed" }
+        }
+        return binding
+    }
+
+    fun create(peerId: String, publicKey: String, sourceRevision: String,
+               runId: String = UUID.randomUUID().toString()): PersonalActorHandle = database.writableDatabase.inTransaction {
+        PersonalSyncActor.start(peerId); PersonalSyncActor.start(runId); TelefonKrypto.b64(publicKey, 32)
+        require(HEX.matches(sourceRevision))
+        val now = clock(); val elapsed = monotonic(); val restore = restoreEpoch()
+        require(now in 0..(MAX_TIME - LIFETIME) && elapsed in 0..(Long.MAX_VALUE - LIFETIME) &&
+            restore.isNotEmpty() && restore.length <= 256)
+        check(currentSource(peerId, publicKey) == sourceRevision) { "actor_source_changed" }
+        val rows = mutableListOf<Binding>()
+        query("meta", arrayOf("key", "value"), "key GLOB ?", arrayOf("personal_actor_journal:*"), null, null, null).use {
+            while (it.moveToNext()) rows += decode(it.getString(0), it.getBlob(1))
+        }
+        check(rows.none { it.runId == runId }) { "actor_identity_reused" }
+        check(rows.size < 32 && rows.count { it.ownerEpoch == ownerEpoch && !it.stopped &&
+            it.expiresMs > now && it.expiresMonotonicMs > elapsed } < 4) { "actor_capacity" }
+        phoneCapacity("meta", 4096)
+        val handle = PersonalActorHandle(peerId, runId, randomToken())
+        write(this, Binding(peerId = peerId, runId = runId, publicKey = publicKey,
+            sourceRevision = sourceRevision, restoreEpoch = restore, ownerEpoch = ownerEpoch,
+            ownerHash = hash(handle.token), createdMs = now, expiresMs = now + LIFETIME,
+            createdMonotonicMs = elapsed, expiresMonotonicMs = elapsed + LIFETIME))
+        requireOwner(this, handle, true)
+        handle
+    }
+
+    /** Only same-database work belongs here; a rejected post-check rolls it back. */
+    fun <T> withActive(handle: PersonalActorHandle, action: SQLiteDatabase.() -> T): T =
+        database.writableDatabase.inTransaction {
+            requireOwner(this, handle, true)
+            action().also { requireOwner(this, handle, true) }
+        }
+
+    fun stopped(handle: PersonalActorHandle): Boolean = database.readableDatabase.let { requireOwner(it, handle, false).stopped }
+
+    /** Native retirement remains possible after revocation/expiry; it never authorizes content. */
+    fun retire(handle: PersonalActorHandle) = database.writableDatabase.inTransaction {
+        write(this, requireOwner(this, handle, false).copy(stopped = true))
+    }
+
+    companion object {
+        private const val LIFETIME = 30 * 60 * 1000L
+        private const val MAX_TIME = 253402300799999L
+        private val HEX = Regex("[0-9a-f]{64}")
+        private fun randomToken(): String = ByteArray(32).also { SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }
+        private fun hash(token: String): String = MessageDigest.getInstance("SHA-256").digest(token.encodeToByteArray()).joinToString("") { "%02x".format(it) }
+    }
+}

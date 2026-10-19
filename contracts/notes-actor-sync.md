@@ -167,6 +167,18 @@ source and ownership checks and actor-marked receipts before it is enabled.
 Its cleanup must retire pending producers before removing run classification;
 an absent run row alone is not an actor tombstone for ordinary queue callers.
 
+The inactive Notes server-journal primitive uses the existing phone database and
+payload encryption. Its sealed bindings include the actual peer public key,
+native owner epoch/token hash, restore/book epoch, source revision and both wall
+and monotonic leases. Same-database work requires native source checks before
+and after the transaction body; a failed post-check rolls back that database
+work. It retains at most 32 bindings and permits four active contexts. Native
+retirement remains available after source revocation or lease expiry, without
+granting content access. Tokens are absent from its status and default string
+representation. This primitive does not yet connect journal retirement to queue
+stopping, stage incoming wire frames or supply the actual native source callback;
+those lifecycle/transport integrations remain activation gates.
+
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption
 and save/commit still need their corresponding integration and acceptance gates.
