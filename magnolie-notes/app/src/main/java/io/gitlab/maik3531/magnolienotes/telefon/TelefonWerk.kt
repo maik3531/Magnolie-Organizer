@@ -228,7 +228,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
 
     @Synchronized internal fun stopPersonalActor(handle: PersonalActorHandle) = synchronized(Ablage.SCHREIBSPERRE) {
-        personalActorJournal.retire(handle) { queue.stopCurrentActorRun(handle.peerId, handle.runId) }
+        personalActorJournal.retire(handle) { stopActorRunAndPrivateStaging(handle.peerId, handle.runId) }
         personalActorWork.remove(handle.runId)
         personalActorTransports.remove(handle.runId)
         if (pendingScopedSync?.let { it.actorRun && it.deviceId == handle.peerId && it.correlatedRunId == handle.runId } == true)
@@ -246,12 +246,16 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
 
     @Synchronized private fun reapPersonalActors() {
-        personalActorJournal.reapInactive { peer, run -> queue.stopCurrentActorRun(peer, run) }.forEach { (peer, run) ->
+        personalActorJournal.reapInactive { peer, run -> stopActorRunAndPrivateStaging(peer, run) }.forEach { (peer, run) ->
             personalActorWork.remove(run); personalActorHandles.remove(run)
             personalActorKeys.remove(run); personalActorTransports.remove(run)
             if (pendingScopedSync?.let { it.actorRun && it.deviceId == peer && it.correlatedRunId == run } == true)
                 pendingScopedSync = null
         }
+    }
+    private fun stopActorRunAndPrivateStaging(peer: String, run: String) {
+        queue.stopCurrentActorRun(peer, run)
+        queue.purgePersonal(PersonalSyncActor.storagePeer(run))
     }
     private val sharedActor by lazy { storage.identity(Build.MODEL.orEmpty()).let { (identity, secret) ->
         secret.fill(0); identity.device_id } }
@@ -1817,7 +1821,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
             try {
                 val now = System.currentTimeMillis()
                 TelefonNachrichten.validateHeader(message, now)
-                require(message.long("expires_ms") > now && message.long("expires_ms") - message.long("created_ms") <= 60000)
+                require(message.long("expires_ms") > now && (message.string("kind") == PersonalSyncActor.DATA_KIND ||
+                    message.long("expires_ms") - message.long("created_ms") <= 60000))
                 val body = message.getValue("body") as JsonObject
                 when (message.string("kind")) {
                     PersonalSyncActor.START_KIND -> {
@@ -1841,11 +1846,28 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         val run = body.string("run_id")
                         val handle = personalActorHandles[run] ?: return@synchronized null
                         if (handle.peerId != peer.device_id || personalActorKeys[run] != peer.static_public || personalActorTransports[run] !== channel) return@synchronized null
-                        val (kind, content) = PersonalSyncActor.unwrap(body)
-                        if (kind != "personal_sync.attachment_request" && kind != "personal_sync.attachment_result") return@synchronized null
+                        var (kind, content) = PersonalSyncActor.unwrap(body)
+                        val manifest = noteSessions[channel]?.localContentScope ?: return@synchronized null
+                        if (kind == PhoneContentScope.DATA_KIND) {
+                            val unwrapped = PhoneContentScope.unwrap(content, manifest)
+                            kind = unwrapped.first; content = unwrapped.second
+                        }
+                        if (kind !in setOf("personal_sync.attachment_request", "personal_sync.attachment_result", "personal_sync.batch")) return@synchronized null
                         personalActorJournal.withActive(handle) {
+                            if (kind == "personal_sync.batch") {
+                                val request = queue.personalRun(peer.device_id, run) ?: throw TelefonProtokollFehler("Personal-Sync-Request fehlt.")
+                                require(queue.isActorRun(peer.device_id, run))
+                                require(content["reply"] == JsonPrimitive(true)) { "actor_reply_required" }
+                                PersonalSyncProtokoll.validateBatchForRequest(request, content)
+                                val records = (content.getValue("records") as JsonArray).map { it as JsonObject }
+                                require(PhoneContentScope.filterRecords(records, manifest) == records) { "actor_record_outside_scope" }
+                            }
                             if (!personalActorJournal.putWire(handle, message)) return@withActive
-                            if (kind == "personal_sync.attachment_request") queueRequestedPersonalAttachments(peer.device_id, content)
+                            if (kind == "personal_sync.batch") {
+                                val semantic = JsonObject(message + mapOf("kind" to JsonPrimitive(kind), "body" to content))
+                                queue.stagePersonalBatch(PersonalSyncActor.storagePeer(run), semantic)
+                            }
+                            else if (kind == "personal_sync.attachment_request") queueRequestedPersonalAttachments(peer.device_id, content)
                             else {
                                 if (content.string("state") == "complete") queue.completeOutgoingAttachment(peer.device_id, run,
                                     (content["reply"] as JsonPrimitive).content.toBooleanStrict(), content.string("records_hash"), content.string("sha256"))

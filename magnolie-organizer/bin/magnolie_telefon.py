@@ -3952,13 +3952,33 @@ class PhoneService:
                 manifest = self.current_content_scope(peer["device_id"], peer["static_public"], admission["scope"])
                 if kind == content_scope_contract.DATA_KIND:
                     kind, content = content_scope_contract.unwrap(content, manifest)
-                if kind not in ("personal_sync.request", "personal_sync.batch", "personal_sync.report", "personal_sync.attachment_chunk"):
+                if kind not in ("personal_sync.request", "personal_sync.batch", "personal_sync.report", "personal_sync.attachment_chunk",
+                        "personal_sync.deletion_proposals", "personal_sync.deletion_decision"):
                     return
                 if kind == "personal_sync.request" and (content.get("format") != 3 or content.get("trigger") != "manual"):
                     raise ValueError("invalid_actor_request")
                 if kind == "personal_sync.batch" and len(content_scope_contract.filter_records(content["records"], manifest)) != len(content["records"]):
                     raise PermissionError("actor_record_outside_scope")
                 storage_peer = personal_actor_contract.storage_peer(run)
+                if kind in PERSONAL_DELETION_KINDS:
+                    current_peer = self.store.sole_peer(peer["device_id"])
+                    settings = self.store.shared_settings(peer["device_id"], peer["static_public"])
+                    if (current_peer is None or settings is None or shared_sync_contract.effective(settings)["skip_deletions"] or
+                            current_peer.get("local_grants", {}).get("grants", {}).get("personal_deletions_sync") is not True or
+                            current_peer.get("grants", {}).get("grants", {}).get("personal_deletions_sync") is not True or
+                            not self.store.personal_run(storage_peer, run)):
+                        raise PermissionError("actor_deletions_not_authorized")
+                    if kind == "personal_sync.deletion_proposals":
+                        allowed = {"note": set(manifest["members"]["notes"]), "task": set(manifest["members"]["tasks"])}
+                        for item in content["proposals"]:
+                            valid = item["parent_id"] in allowed["note"] if item["kind"] == "attachment" else \
+                                item["kind"] in allowed and item["id"] in allowed[item["kind"]]
+                            if not valid:
+                                raise PermissionError("actor_deletion_outside_scope")
+                    else:
+                        kinds = self.store.personal_decision_kinds(storage_peer, content, False)
+                        if not kinds or any(value not in {"note", "task", "attachment"} for value in kinds):
+                            raise PermissionError("actor_deletion_proposal_missing")
                 descriptor = None
                 if kind == "personal_sync.attachment_chunk":
                     # Reuse the native aggregate's authenticated manifest, never sender metadata.
@@ -3990,6 +4010,12 @@ class PhoneService:
                         content["sha256"], descriptor["size"], descriptor["mime"], content["index"],
                         base64.b64decode(content["data"], validate=True), "any", payload["expires_ms"], descriptor["attachment_id"])
                     self._queue_actor_attachment_result(admission, content)
+                elif kind in PERSONAL_DELETION_KINDS:
+                    if kind == "personal_sync.deletion_proposals":
+                        self.store.remember_personal_proposal_kinds(storage_peer, content, False)
+                    self.store.stage_personal_domain(storage_peer, semantic)
+                    registry.require_current(handle)
+                    return  # A deletion intent receives no success ACK before native book commit.
                 registry.require_current(handle)
                 reply = self._actor_control_message(personal_actor_contract.ACK_KIND,
                     personal_actor_contract.ack(run, payload["message_id"]))

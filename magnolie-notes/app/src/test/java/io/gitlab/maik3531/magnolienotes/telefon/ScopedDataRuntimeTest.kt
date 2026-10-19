@@ -179,9 +179,28 @@ class ScopedDataRuntimeTest {
                     work.receiveMessage(peer, TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
                         PersonalSyncActor.ack(run, batch.string("message_id")), 60000), channel, 0L)
                     assertNull(queue.outboxWireMessage(peerId, batch.string("message_id"))); assertTrue(sent().isEmpty())
+                    val old = records.single { it.kind == "note" }
+                    val privateValue = JsonObject(old.value + mapOf("text" to JsonPrimitive("Private desktop draft"), "modified_ms" to JsonPrimitive(old.modifiedMs + 1)))
+                    val incoming = old.copy(value = privateValue, hash = PersonalSync.hash(privateValue), modifiedMs = old.modifiedMs + 1)
+                    val incomingBody = PersonalSyncProtokoll.batch(run, listOf(incoming), 0, true, true, 3, PersonalSync.recordsHash(listOf(incoming)))
+                    val incomingWire = PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.batch", incomingBody, 86_400_000), run)
+                    work.receiveMessage(peer, incomingWire, channel, 0L)
+                    assertEquals(incomingWire.string("message_id"), sent().single().getValue("body").jsonObject.string("message_id"))
+                    val privatePeer = PersonalSyncActor.storagePeer(run)
+                    val staged = queue.readyPersonalBatches().single { it.first == privatePeer }
+                    assertEquals("Private desktop draft", PersonalSyncProtokoll.decodeBatch(staged.second.single().getValue("body").jsonObject).single().value.string("text"))
+                    work.receiveMessage(peer, incomingWire, channel, 0L); sent()
+                    assertEquals(staged, queue.readyPersonalBatches().single { it.first == privatePeer })
+                    val foreign = incoming.copy(id = "outside-phone-scope")
+                    val foreignBody = PersonalSyncProtokoll.batch(run, listOf(foreign), 0, true, true, 3, PersonalSync.recordsHash(listOf(foreign)))
+                    work.receiveMessage(peer, PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.batch", foreignBody, 60000), run), channel, 0L)
+                    assertTrue(sent().isEmpty())
+                    pump.invoke(work, peer, channel, 0L, false); sent()
+                    assertEquals(beforeBook.copy(personalSync = documents.bestand.value.personalSync), documents.bestand.value)
                     val cancel = TelefonNachrichten.message(PersonalSyncActor.CANCEL_KIND, PersonalSyncActor.cancel(run), 60000)
                     work.receiveMessage(peer, cancel, channel, 0L)
                     assertEquals("accepted", sent().single().getValue("body").jsonObject.string("status"))
+                    assertTrue(queue.readyPersonalBatches().none { it.first == privatePeer })
                     pump.invoke(work, peer, channel, 0L, false)
                     assertTrue(sent().none { PersonalSyncActor.isReservedMessage(it) })
                     assertEquals(beforeState, work.state.value)
@@ -202,6 +221,10 @@ class ScopedDataRuntimeTest {
                     }
                     queue.rememberPersonalRun(peerId, request, System.currentTimeMillis() + 60000, actorRun = true)
                     val wire = queue.queue(peerId, "personal_sync.request", request, 60000)
+                    val privatePeer = PersonalSyncActor.storagePeer(old.runId)
+                    val privateBody = PersonalSyncProtokoll.batch(old.runId, emptyList(), 0, true, true, 3, PersonalSync.recordsHash(emptyList()))
+                    queue.stagePersonalBatch(privatePeer, TelefonNachrichten.message("personal_sync.batch", privateBody, 60000))
+                    assertTrue(queue.readyPersonalBatches().any { it.first == privatePeer })
                     val before = documents.bestand.value
                     work.maintenance()
                     assertTrue(runCatching { previous.stopped(old) }.isFailure)
@@ -209,6 +232,7 @@ class ScopedDataRuntimeTest {
                     assertTrue(runCatching { queue.queue(peerId, "personal_sync.request", request, 60000) }.isFailure)
                     assertTrue(queue.due(peerId, TelefonTransportArt.WIFI).none { it.messageId == wire.string("message_id") })
                     assertEquals(wire, queue.outboxWireMessage(peerId, wire.string("message_id")))
+                    assertTrue(queue.readyPersonalBatches().none { it.first == privatePeer })
                     assertEquals(before, documents.bestand.value)
                     return@use
                 }

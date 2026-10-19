@@ -134,6 +134,7 @@ class PersonalSyncActorTransportTest {
                     }
                     val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(55)
                     var closed = false
+                    var incomingReplyVerified = false
                     while (!closed && System.nanoTime() < deadline) {
                         pumpActor()
                         val packet = try { channel.receive() } catch (_: SocketTimeoutException) { continue }
@@ -163,6 +164,14 @@ class PersonalSyncActorTransportTest {
                                         runtime.currentActorSource(peerId, current.static_public, channel, 0L))
                                 }
                                 runtime.receiveMessage(requireNotNull(storage.peers().peer), packet, channel, 0L)
+                                if (packet["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) &&
+                                    PersonalSyncActor.unwrap(packet.getValue("body").jsonObject).first == "personal_sync.batch") {
+                                    val run = packet.getValue("body").jsonObject.string("run_id")
+                                    val staged = queue.readyPersonalBatches().single { it.first == PersonalSyncActor.storagePeer(run) }
+                                    assertEquals("Private desktop draft", PersonalSyncProtokoll.decodeBatch(staged.second.single().getValue("body").jsonObject).single().value.string("text"))
+                                    assertEquals("Only private staging", documents.bestand.value.notizen.single { it.id == "phone-note" }.text)
+                                    incomingReplyVerified = true
+                                }
                             }
                             "ping" -> channel.send(buildJsonObject { put("type", "pong"); put("ping_id", packet.getValue("ping_id")); put("sent_ms", packet.getValue("sent_ms")) })
                             "pong" -> Unit
@@ -171,6 +180,7 @@ class PersonalSyncActorTransportTest {
                         }
                     }
                     assertTrue("Native actor TCP exchange did not finish", closed)
+                    assertTrue("Incoming actor reply was not privately staged", incomingReplyVerified)
                 }
             }
             assertTrue(process.waitFor(10, TimeUnit.SECONDS)); assertEquals(0, process.exitValue())
@@ -185,6 +195,8 @@ class PersonalSyncActorTransportTest {
             val pendingAttachments = TelefonQueue::class.java.getDeclaredMethod("hasAuthenticatedOutgoingAttachments", String::class.java, String::class.java)
                 .apply { isAccessible = true }.invoke(field(TelefonWerk::class.java, "queue").get(runtime), host.string("device_id"), result.string("actor_id")) as Boolean
             assertFalse("Native transfer completion left outgoing attachment chunks retained", pendingAttachments)
+            assertTrue((field(TelefonWerk::class.java, "queue").get(runtime) as TelefonQueue).readyPersonalBatches()
+                .none { it.first == PersonalSyncActor.storagePeer(result.string("actor_id")) })
             assertEquals(setOf("phone-note"), documents.bestand.value.notizen.map { it.id }.toSet())
             assertEquals(setOf("phone-task"), documents.bestand.value.aufgaben.map { it.id }.toSet())
         } finally {

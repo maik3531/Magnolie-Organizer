@@ -32,10 +32,13 @@ internal static class PersonalSyncActorSourceTests
             var peer = new TelefonPeer(Guid.NewGuid().ToString("D"), "Synthetic", Enumerable.Repeat((byte)23, 32).ToArray());
             store.SavePeers([peer]); store.SetPersonalSettings(peer.Id, ownDevice: true, remoteOwnDevice: true);
             store.SetLocalGrant("personal_notes_sync", true); store.SetLocalGrant("personal_tasks_sync", true);
+            store.SetLocalGrant("personal_deletions_sync", true);
             var settings = store.ChangeSharedSetting(peer.Id, peer.PublicKey, "content_mode", JsonValue.Create("phone_scope")!);
+            settings = store.ChangeSharedSetting(peer.Id, peer.PublicKey, "skip_deletions", JsonValue.Create(false)!);
             var capabilities = TelefonProtocolContract.DesktopCapabilities();
             foreach (var name in new[] { "personal_notes_sync", "personal_tasks_sync" }) capabilities["items"]![name]!["versions"]!.AsArray().Add(12);
             var grants = TelefonProtocolContract.DesktopGrants(); grants["personal_notes_sync"] = true; grants["personal_tasks_sync"] = true;
+            grants["personal_deletions_sync"] = true;
             Task<TelefonAck?> Receive(TelefonPeer _, JsonObject message)
             {
                 var body = message["body"]!.AsObject();
@@ -113,6 +116,38 @@ internal static class PersonalSyncActorSourceTests
             var actorRequest = new JsonObject { ["format"] = 3, ["run_id"] = transportHandle.ActorId, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
             await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.request", actorRequest), transportHandle.ActorId));
             TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Single()["kind"]!.GetValue<string>() == PersonalSyncActorContract.AckKind, "Actor request did not reach private native staging.");
+            var privatePeer = PersonalSyncActorContract.StoragePeer(transportHandle.ActorId);
+            var proposalId = Guid.NewGuid().ToString("D");
+            var deletionClock = new JsonArray(new JsonObject { ["actor_id"] = peer.Id, ["counter"] = 2 });
+            var proposals = new JsonObject { ["format"] = 1, ["run_id"] = transportHandle.ActorId,
+                ["proposal_batch_id"] = Guid.NewGuid().ToString("D"), ["sequence"] = 0, ["last"] = true,
+                ["proposals"] = new JsonArray(new JsonObject { ["proposal_id"] = proposalId, ["kind"] = "note", ["id"] = "note-one", ["parent_id"] = "",
+                    ["clock"] = deletionClock.DeepClone(), ["prior_hash"] = new string('a', 64), ["deleted_ms"] = 2, ["label"] = "Owned proposal" }) };
+            var proposalWire = PersonalSyncActorContract.WireMessage(Message("personal_sync.deletion_proposals", proposals), transportHandle.ActorId);
+            var deletionEmitted = emitted;
+            await connection.HandlePlainAsync(proposalWire);
+            var intent = new PersonalSyncStore(store).DecisionIntents(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Single();
+            TestAssert.That(intent.PeerId == privatePeer && wire.Length == 0 && emitted == deletionEmitted,
+                "Actor deletion intent reached ordinary storage, GUI adoption or a premature save receipt.");
+            await connection.HandlePlainAsync(proposalWire);
+            TestAssert.That(new PersonalSyncStore(store).DecisionIntents(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Single().CommitToken == intent.CommitToken,
+                "Actor deletion replay changed its native pending commit token.");
+            var deletionPackets = await coordinator.WithPersonalActorStoreAsync(registry => registry.Status(transportHandle)["packets"]!.GetValue<int>());
+            var unrelatedProposal = proposals.DeepClone().AsObject(); unrelatedProposal["proposals"]![0]!["id"] = "outside-phone-scope";
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.deletion_proposals", unrelatedProposal), transportHandle.ActorId));
+            var decisions = new JsonObject { ["format"] = 1, ["run_id"] = transportHandle.ActorId, ["decision_id"] = Guid.NewGuid().ToString("D"),
+                ["decisions"] = new JsonArray(new JsonObject { ["proposal_id"] = proposalId, ["decision"] = "delete", ["expected_clock"] = deletionClock.DeepClone() }) };
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.deletion_decision", decisions), transportHandle.ActorId));
+            TestAssert.That(wire.Length == 0 && deletionPackets == await coordinator.WithPersonalActorStoreAsync(registry => registry.Status(transportHandle)["packets"]!.GetValue<int>()),
+                "Out-of-scope or unknown-prior deletion intent reached the raw inbox.");
+            store.RememberPersonalProposalKinds(privatePeer, proposals, true);
+            var staleDecision = decisions.DeepClone().AsObject(); staleDecision["decisions"]![0]!["expected_clock"]![0]!["counter"] = 3;
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.deletion_decision", staleDecision), transportHandle.ActorId));
+            TestAssert.That(deletionPackets == await coordinator.WithPersonalActorStoreAsync(registry => registry.Status(transportHandle)["packets"]!.GetValue<int>()),
+                "Actor decision with a forged expected clock entered raw storage.");
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.deletion_decision", decisions), transportHandle.ActorId));
+            TestAssert.That(new PersonalSyncStore(store).DecisionIntents(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Count == 2 && wire.Length == 0,
+                "Prior-bound actor decision was not privately staged or received a save ACK before book commit.");
             byte[] attachment = [137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3];
             var attachmentHash = Convert.ToHexString(SHA256.HashData(attachment)).ToLowerInvariant();
             var noteValue = new JsonObject { ["title"] = "Owned phone snapshot", ["text"] = "Only staged", ["html"] = "", ["notebook_id"] = "", ["symbol"] = "note",

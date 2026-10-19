@@ -45,6 +45,8 @@ internal static class PersonalSyncActorTransportHost
             string? cancellingRun = null;
             var cancelReceipt = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var transferReceipt = new TaskCompletionSource<JsonObject>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var privateReplyReceipt = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            string? privateReplyId = null;
             using var connection = new TelefonConnection(peer, socket.GetStream(), Enumerable.Repeat((byte)7, 32).ToArray(), material, store,
                 (source, message) => (Task<TelefonAck?>)receiveMethod.Invoke(coordinator, [source, message, "wifi"])!, deadline.Token, "wifi")
                 { SharedLocalCapabilities = () => capabilities["items"]!.DeepClone().AsObject(),
@@ -58,6 +60,8 @@ internal static class PersonalSyncActorTransportHost
                         if (outgoing?["kind"]?.GetValue<string>() == PersonalSyncActorContract.DataKind &&
                             PersonalSyncActorContract.Unwrap(outgoing["body"]!.AsObject()).Kind == "personal_sync.attachment_result" &&
                             message["body"]!["status"]!.GetValue<string>() is "accepted" or "duplicate") transferReceipt.TrySetResult(message);
+                        if (message["kind"]?.GetValue<string>() == PersonalSyncActorContract.AckKind && privateReplyId is not null &&
+                            message["body"]?["message_id"]?.GetValue<string>() == privateReplyId) privateReplyReceipt.TrySetResult();
                     }, ActorPump = coordinator.PumpPersonalActorAsync };
             var online = (IDictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator)!;
             online[phoneId] = connection;
@@ -108,6 +112,19 @@ internal static class PersonalSyncActorTransportHost
                 var transfer = await transferReceipt.Task.WaitAsync(TimeSpan.FromSeconds(10), deadline.Token);
                 await coordinator.WithPersonalActorStoreAsync(registry => registry.Read(handle, transfer["message_id"]!.GetValue<string>()));
                 TestAssert.That(guiAdoptions == 0, "Actor snapshot reached GUI adoption.");
+                var replyRecord = staged.Records.OfType<JsonObject>().Single(value => value["kind"]!.GetValue<string>() == "note").DeepClone().AsObject();
+                replyRecord["value"]!["text"] = "Private desktop draft"; replyRecord["value"]!["attachments"] = new JsonArray();
+                replyRecord["hash"] = PersonalSyncContract.ProjectionHash(replyRecord["value"]!.AsObject());
+                var replyRecords = new JsonArray(replyRecord);
+                var replyNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); privateReplyId = Guid.NewGuid().ToString("D");
+                var replyWire = PersonalSyncActorContract.WireMessage(new JsonObject { ["type"] = "message", ["v"] = 1,
+                    ["message_id"] = privateReplyId, ["created_ms"] = replyNow, ["expires_ms"] = replyNow + 86400000, ["kind"] = "personal_sync.batch",
+                    ["body"] = new JsonObject { ["format"] = 3, ["run_id"] = handle.ActorId, ["batch_id"] = Guid.NewGuid().ToString("D"),
+                        ["sequence"] = 0, ["last"] = true, ["reply"] = true, ["records"] = replyRecords,
+                        ["records_hash"] = PersonalSyncContract.RecordsHash(replyRecords) } }, handle.ActorId);
+                await coordinator.WithPersonalActorStoreAsync(registry => { registry.RequireCurrent(handle); return true; });
+                await connection.SendPlainAsync(replyWire);
+                await privateReplyReceipt.Task.WaitAsync(TimeSpan.FromSeconds(10), deadline.Token);
                 cancellingRun = handle.ActorId;
                 await coordinator.CancelPersonalActorAsync(handle, deadline.Token);
                 await cancelReceipt.Task.WaitAsync(TimeSpan.FromSeconds(5), deadline.Token);

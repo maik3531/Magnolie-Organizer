@@ -4,6 +4,7 @@ import uuid
 import base64
 import hashlib
 import io
+import copy
 import pytest
 from test_personal_actor_source import actor_source_fixture
 import magnolie_telefon as phone
@@ -15,8 +16,17 @@ def frame(kind, body):
     return phone.PhoneService._actor_control_message(kind, body)
 
 
-def owned_transport(tmp_path, monkeypatch):
+def owned_transport(tmp_path, monkeypatch, *, deletions=False, skip_deletions=None):
     service, peer, channel, fingerprint, _ = actor_source_fixture(tmp_path, monkeypatch)
+    if deletions:
+        peer["local_grants"]["grants"]["personal_deletions_sync"] = True
+        peer["grants"]["grants"]["personal_deletions_sync"] = True
+        service.note_controls[channel]["grants.update"] = copy.deepcopy(peer["grants"])
+        service.store.save_peers()
+    if skip_deletions is not None:
+        body = service.store.change_shared_setting(peer["device_id"], peer["static_public"], "skip_deletions", skip_deletions)
+        service.shared_sessions[channel]["sent"] = copy.deepcopy(body)
+        service.shared_sessions[channel]["received"] = copy.deepcopy(body)
     service.native_actor_book_source = lambda: "a" * 64
     registry = service.personal_actor_registry()
     handle = registry.create(peer["device_id"], fingerprint, service.current_actor_source(peer["device_id"], fingerprint))
@@ -140,3 +150,46 @@ def test_actor_attachment_uses_private_manifest_and_native_integrity_checks(tmp_
     assert service.store.outbox_message(peer["device_id"], results[0]["message_id"]) is None
     service._payload(peer, channel, actor.wire_message(frame("personal_sync.attachment_chunk", body), handle.actor_id))
     assert not channel.sent and not events
+
+
+@pytest.mark.parametrize("granted,skip", [(False, False), (True, True), (True, False)])
+def test_actor_deletion_intents_require_scope_consent_and_prior_proposals_without_save_ack(tmp_path, monkeypatch, granted, skip):
+    service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch, deletions=granted, skip_deletions=skip)
+    service.start_personal_actor(registry, handle)
+    request = {"format": 3, "run_id": handle.actor_id, "trigger": "manual", "modules": ["notes", "tasks"]}
+    service._payload(peer, channel, actor.wire_message(frame("personal_sync.request", request), handle.actor_id))
+    proposal = {"proposal_id": str(uuid.uuid4()), "kind": "note", "id": "note-one", "parent_id": "",
+        "clock": [{"actor_id": peer["device_id"], "counter": 2}], "prior_hash": "a" * 64, "deleted_ms": 2, "label": "Owned proposal"}
+    body = {"format": 1, "run_id": handle.actor_id, "proposal_batch_id": str(uuid.uuid4()), "sequence": 0, "last": True, "proposals": [proposal]}
+    channel.sent.clear(); before = registry.status(handle)["packets"]
+    wire = actor.wire_message(frame("personal_sync.deletion_proposals", body), handle.actor_id)
+    service._payload(peer, channel, wire)
+    assert not channel.sent and not events
+    if not granted or skip:
+        assert registry.status(handle)["packets"] == before and not service.store.ready_personal_domains()
+        return
+    private = actor.storage_peer(handle.actor_id)
+    intents = service.store.ready_personal_domains()
+    assert len(intents) == 1 and intents[0][0] == private and intents[0][1]["body"] == body
+    assert registry.read(handle, wire["message_id"]) == wire
+    service._payload(peer, channel, wire)
+    assert service.store.ready_personal_domains() == intents
+    outside = copy.deepcopy(body); outside["proposals"][0]["id"] = "outside-phone-scope"
+    bad = actor.wire_message(frame("personal_sync.deletion_proposals", outside), handle.actor_id)
+    service._payload(peer, channel, bad)
+    with pytest.raises(KeyError): registry.read(handle, bad["message_id"])
+    decision = {"format": 1, "run_id": handle.actor_id, "decision_id": str(uuid.uuid4()), "decisions": [
+        {"proposal_id": proposal["proposal_id"], "decision": "delete", "expected_clock": proposal["clock"]}]}
+    unknown = actor.wire_message(frame("personal_sync.deletion_decision", decision), handle.actor_id)
+    service._payload(peer, channel, unknown)
+    with pytest.raises(KeyError): registry.read(handle, unknown["message_id"])
+    service.store.remember_personal_proposal_kinds(private, body, True)
+    stale = copy.deepcopy(decision); stale["decisions"][0]["expected_clock"][0]["counter"] += 1
+    stale_wire = actor.wire_message(frame("personal_sync.deletion_decision", stale), handle.actor_id)
+    service._payload(peer, channel, stale_wire)
+    with pytest.raises(KeyError): registry.read(handle, stale_wire["message_id"])
+    known = actor.wire_message(frame("personal_sync.deletion_decision", decision), handle.actor_id)
+    service._payload(peer, channel, known)
+    assert len(service.store.ready_personal_domains()) == 2
+    service.replay_personal_sync()
+    assert not channel.sent and not events, "A private deletion intent was acknowledged or replayed before book commit"

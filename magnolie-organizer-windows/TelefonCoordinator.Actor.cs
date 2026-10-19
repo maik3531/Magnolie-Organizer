@@ -104,7 +104,8 @@ internal sealed partial class TelefonCoordinator
                 var (semanticKind, content) = PersonalSyncActorContract.Unwrap(body);
                 var manifest = connection.CurrentContentScope(admission.Scope);
                 if (semanticKind == PhoneContentScope.DataKind) (semanticKind, content) = PhoneContentScope.Unwrap(content, manifest);
-                if (semanticKind is not ("personal_sync.request" or "personal_sync.batch" or "personal_sync.report" or "personal_sync.attachment_chunk")) return false;
+                if (semanticKind is not ("personal_sync.request" or "personal_sync.batch" or "personal_sync.report" or "personal_sync.attachment_chunk" or
+                    "personal_sync.deletion_proposals" or "personal_sync.deletion_decision")) return false;
                 if (semanticKind == "personal_sync.request" && (TelefonProtocolContract.Integer(content["format"]) != 3 || content["trigger"]!.GetValue<string>() != "manual")) return false;
                 if (semanticKind == "personal_sync.batch")
                 {
@@ -112,6 +113,32 @@ internal sealed partial class TelefonCoordinator
                     if (PhoneContentScope.FilterRecords(records, manifest).Count != records.Length) return false;
                 }
                 var storagePeer = PersonalSyncActorContract.StoragePeer(run);
+                if (semanticKind is "personal_sync.deletion_proposals" or "personal_sync.deletion_decision")
+                {
+                    var currentPeer = RequireSolePeer(peer.Id);
+                    var settings = store.SharedSettings(peer.Id, currentPeer.PublicKey);
+                    if (settings is null || SharedSyncSettings.Effective(settings)["skip_deletions"]!.GetValue<bool>() ||
+                        store.LocalGrants()["personal_deletions_sync"]?.GetValue<bool>() != true || currentPeer.Grants["personal_deletions_sync"]?.GetValue<bool>() != true ||
+                        personalSync.LoadRun(storagePeer, run, Now()) is not { Expired: false }) return false;
+                    if (semanticKind == "personal_sync.deletion_proposals")
+                    {
+                        var notes = manifest["members"]!["notes"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+                        var tasks = manifest["members"]!["tasks"]!.AsArray().Select(value => value!.GetValue<string>()).ToHashSet(StringComparer.Ordinal);
+                        foreach (var item in content["proposals"]!.AsArray().OfType<JsonObject>())
+                        {
+                            var valid = item["kind"]!.GetValue<string>() switch {
+                                "note" => notes.Contains(item["id"]!.GetValue<string>()),
+                                "task" => tasks.Contains(item["id"]!.GetValue<string>()),
+                                "attachment" => notes.Contains(item["parent_id"]!.GetValue<string>()), _ => false };
+                            if (!valid) return false;
+                        }
+                    }
+                    else
+                    {
+                        var decisionKinds = store.PersonalDecisionKinds(storagePeer, content, false);
+                        if (decisionKinds is null || decisionKinds.Count == 0 || decisionKinds.Any(value => value is not ("note" or "task" or "attachment"))) return false;
+                    }
+                }
                 JsonObject? descriptor = null;
                 PersonalSyncRun? attachmentRun = null;
                 if (semanticKind == "personal_sync.attachment_chunk")
@@ -148,6 +175,13 @@ internal sealed partial class TelefonCoordinator
                     }
                     finally { CryptographicOperations.ZeroMemory(raw); }
                     QueueActorAttachmentResult(admission, content);
+                }
+                else if (semanticKind is "personal_sync.deletion_proposals" or "personal_sync.deletion_decision")
+                {
+                    if (semanticKind == "personal_sync.deletion_proposals") store.RememberPersonalProposalKinds(storagePeer, content, false);
+                    personalSync.StageDecisionIntent(storagePeer, semantic, connection.Transport, Now());
+                    registry.RequireCurrent(admission.Handle);
+                    return true; // No success receipt for a deletion intent before native book commit.
                 }
                 registry.RequireCurrent(admission.Handle);
                 reply = ActorControl(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(run, message["message_id"]!.GetValue<string>()));

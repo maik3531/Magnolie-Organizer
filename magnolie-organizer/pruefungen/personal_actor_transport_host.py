@@ -7,6 +7,7 @@ import sys
 import tempfile
 import io
 import time
+import uuid
 from collections import Counter
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
@@ -118,6 +119,28 @@ def main():
                                 (value.get("kind") == "personal_sync.batch" or
                                  value.get("body", {}).get("run_id") == handle.actor_id)
                                 for event, value in events)
+                            reply_record = json.loads(json.dumps(next(value for value in records if value["kind"] == "note")))
+                            reply_record["value"]["text"] = "Private desktop draft"
+                            reply_record["value"]["attachments"] = []
+                            reply_record["hash"] = phone.personal_sync_contract.projection_hash(reply_record["value"])
+                            reply_body = {"format": 3, "run_id": handle.actor_id, "batch_id": str(uuid.uuid4()),
+                                "sequence": 0, "last": True, "reply": True, "records": [reply_record],
+                                "records_hash": phone.personal_sync_contract.records_hash([reply_record])}
+                            with service.lock: registry.require_current(handle)
+                            reply_wire = service._actor_control_message("personal_sync.batch", reply_body)
+                            reply_wire["expires_ms"] = reply_wire["created_ms"] + 86400000
+                            channel.send(actor.wire_message(reply_wire, handle.actor_id))
+                            reply_deadline = time.monotonic() + 5
+                            while time.monotonic() < reply_deadline:
+                                try: reply = channel.receive()
+                                except socket.timeout: continue
+                                if (reply.get("kind") == actor.ACK_KIND and reply["body"]["run_id"] == handle.actor_id and
+                                        reply["body"]["message_id"] == reply_wire["message_id"]):
+                                    actor.validate_ack(reply["body"])
+                                    assert reply["body"]["status"] in {"accepted", "duplicate"}
+                                    break
+                                service._payload(peer, channel, reply)
+                            else: raise AssertionError("Private Notes reply staging receipt missing")
                             service.cancel_personal_actor(registry, handle)
                             cancel_deadline = time.monotonic() + 5
                             while time.monotonic() < cancel_deadline:

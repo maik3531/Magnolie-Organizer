@@ -359,6 +359,24 @@ cleanup cache. The bound cancellation target remains available until expiry so
 an explicit owner cancellation can still notify the same peer/key/channel after
 local source retirement, without authorizing another data dispatch.
 
+Desktop deletion proposals/decisions enter the existing private native intent
+stagers only with both deletion grants, shared deletion consent and a live private
+run. Proposals require current note/task membership (attachments bind their note
+parent); decisions require the exact prior private outgoing proposal and expected
+clock. Replays retain the native pending commit token. These intents produce no
+success receipt or GUI replay before a native book commit.
+
+Notes now validates incoming actor reply batches against the authenticated actor
+run's existing request and current native content scope, retains the marked wire
+in its owner journal and stages semantic records through the existing queue batch
+stager under the private actor namespace. Ordinary replay callers continue to
+select only the actual paired peer namespace. Stop/reaping purges private incoming
+staging through the existing queue cleanup. Native data lifetimes remain enforced
+by the protected journal rather than the shorter control-frame lifetime. Both
+owned encrypted TCP fixtures send a changed desktop reply and verify private Notes
+staging, unchanged book content and cancellation cleanup. Desktop reply production
+from the real book and typed adoption/save/commit still need their completion gates.
+
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption
 and save/commit still need their corresponding integration and acceptance gates.
