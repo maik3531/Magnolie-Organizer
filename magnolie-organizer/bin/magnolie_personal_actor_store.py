@@ -13,6 +13,7 @@ import sqlite3
 import time
 import uuid
 import threading
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, field
 
 import magnolie_personal_actor as actor
@@ -71,11 +72,12 @@ class ActorStore:
     # The native callback must bind the current book/profile scope as well as the
     # exact channel/key, fresh controls, ownership, grants and content scope.
     # A caller-supplied display fingerprint/revision alone is never authority.
-    def __init__(self, store, current_source, *, epoch=None, clock=None, monotonic_clock=None):
+    def __init__(self, store, current_source, *, epoch=None, clock=None, monotonic_clock=None, source_guard=None):
         if not callable(current_source):
             raise TypeError("A native current-source validator is required")
         self.store = store
         self.current_source = current_source
+        self.source_guard = source_guard
         self.epoch = secrets.token_hex(32) if epoch is None else epoch
         if not isinstance(self.epoch, str) or not HEX.fullmatch(self.epoch):
             raise ValueError("Invalid native owner epoch")
@@ -86,8 +88,16 @@ class ActorStore:
             db.execute("CREATE TABLE IF NOT EXISTS personal_actor_context(actor_id TEXT PRIMARY KEY,expires_ms INTEGER NOT NULL,payload BLOB NOT NULL)")
             db.execute("CREATE TABLE IF NOT EXISTS personal_actor_wire(actor_id TEXT NOT NULL,message_id TEXT NOT NULL,wire_hash TEXT NOT NULL,byte_count INTEGER NOT NULL,payload BLOB NOT NULL,PRIMARY KEY(actor_id,message_id))")
 
+    @contextmanager
     def _database(self):
-        return sqlite3.connect(self.store.database_path)
+        # Native source/service locks must precede SQLite, including post-checks.
+        with self.source_guard if self.source_guard is not None else nullcontext():
+            db = sqlite3.connect(self.store.database_path)
+            try:
+                with db:
+                    yield db
+            finally:
+                db.close()
 
     def _decode(self, row):
         actor_id, expires, payload = row

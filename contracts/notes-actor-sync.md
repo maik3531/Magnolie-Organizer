@@ -257,6 +257,13 @@ Neither provider accepts a book identity from MCP JSON. Linux daemon/proxy owner
 registration and the guarded actor-store/transport factory remain outstanding;
 foreground wiring alone does not complete that runtime path.
 
+The foreground/native store factories use those configured host providers rather
+than accepting a source callback from a wire request. Linux acquires its native
+service guard before opening SQLite; Windows acquires its existing note-policy
+gate and coordinator guard before actor-store work. Source checks are reentrant
+inside those guards, and no network/GUI wait belongs in the guarded store action.
+Book-owner loss prevents raw access while owner-bound retirement remains possible.
+
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption
 and save/commit still need their corresponding integration and acceptance gates.

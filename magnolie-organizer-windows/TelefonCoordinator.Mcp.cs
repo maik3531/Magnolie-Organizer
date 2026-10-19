@@ -14,6 +14,23 @@ internal sealed partial class TelefonCoordinator
     private readonly SemaphoreSlim mcpOperations = new(1, 1);
     internal Func<string?> NativeBookSource { private get; set; } = () => null;
     internal string? CurrentActorSource(string id, string fingerprint) => CurrentActorSource(id, fingerprint, NativeBookSource);
+    private PersonalSyncActorStore? nativeActorStore;
+
+    internal async Task<T> WithPersonalActorStoreAsync<T>(Func<PersonalSyncActorStore, T> action, CancellationToken cancellation = default)
+    {
+        // Only local store work belongs here; never hold these gates for network or GUI waits.
+        await store.NotePolicyGate.WaitAsync(cancellation).ConfigureAwait(false);
+        try
+        {
+            lock (gate)
+            {
+                ObjectDisposedException.ThrowIf(disposed, this);
+                nativeActorStore ??= new PersonalSyncActorStore(store, CurrentActorSource);
+                return action(nativeActorStore);
+            }
+        }
+        finally { store.NotePolicyGate.Release(); }
+    }
 
     // Native controller only: a caller-supplied JSON digest is never book authority.
     // Acquire native book/coordinator guards before calling a protected actor store.

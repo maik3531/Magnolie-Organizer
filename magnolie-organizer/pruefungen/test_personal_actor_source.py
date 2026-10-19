@@ -142,3 +142,24 @@ def test_host_native_book_provider_is_required_and_invalidated_with_its_owner(tm
     assert service.current_actor_source(peer["device_id"], fingerprint) is None
     owner.set_ready(True)
     assert service.current_actor_source(peer["device_id"], fingerprint) != first
+
+
+def test_native_registry_factory_uses_host_book_and_service_guard_for_raw_work(tmp_path, monkeypatch):
+    from magnolie_personal_actor_store import NativeBookOwnerScope
+    import magnolie_personal_actor as actor
+    import uuid
+    service, peer, channel, fingerprint, _ = actor_source_fixture(tmp_path, monkeypatch)
+    owner = NativeBookOwnerScope(); owner.set_ready(True)
+    service.native_actor_book_source = lambda: owner.current("actual-native-profile", True)
+    revision = service.current_actor_source(peer["device_id"], fingerprint)
+    registry = service.personal_actor_registry()
+    assert registry is service.personal_actor_registry() and registry.source_guard is service.lock
+    handle = registry.create(peer["device_id"], fingerprint, revision)
+    now = phone.now_ms()
+    wire = {"type": "message", "v": 1, "message_id": str(uuid.uuid4()), "kind": actor.ACK_KIND,
+        "created_ms": now, "expires_ms": now + 60000, "body": actor.ack(handle.actor_id, str(uuid.uuid4()))}
+    assert registry.put(handle, wire)
+    assert registry.read(handle, wire["message_id"]) == wire
+    owner.set_ready(False)
+    with pytest.raises(PermissionError): registry.read(handle, wire["message_id"])
+    assert registry.cancel(handle)["phase"] == "cancelled"

@@ -2362,6 +2362,7 @@ class PhoneService:
         self.note_controls = weakref.WeakKeyDictionary()
         self.actor_source_channels = weakref.WeakKeyDictionary()
         self.native_actor_book_source = None
+        self._personal_actor_registry = None
         self.status_requests = {}
         self.contact_requests = {}
         self.developer_requests = {}
@@ -3873,6 +3874,14 @@ class PhoneService:
             if session is None:
                 raise PermissionError("Content scope has not been received on this connection.")
             return session.current((peer_id, expected_public, id(channel)), claimed)
+
+    def personal_actor_registry(self):
+        """Native controller only; the actual configured book owner supplies authority."""
+        with self.lock:
+            if self._personal_actor_registry is None:
+                from magnolie_personal_actor_store import ActorStore
+                self._personal_actor_registry = ActorStore(self.store, self.current_actor_source, source_guard=self.lock)
+            return self._personal_actor_registry
 
     def _actor_channel_source(self, channel):
         source = self.actor_source_channels.get(channel)

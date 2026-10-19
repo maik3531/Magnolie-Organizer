@@ -70,6 +70,26 @@ internal static class PersonalSyncActorSourceTests
             hostBook.SetReady(true);
             TestAssert.That(coordinator.CurrentActorSource(peer.Id, fingerprint) is string reopened && reopened != hostSource,
                 "Host lock/unlock inherited a previous actor source.");
+            var actorSource = coordinator.CurrentActorSource(peer.Id, fingerprint)!;
+            var actorHandle = await coordinator.WithPersonalActorStoreAsync(registry => {
+                TestAssert.That(store.NotePolicyGate.CurrentCount == 0 && Monitor.IsEntered(
+                    typeof(TelefonCoordinator).GetField("gate", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!),
+                    "Native source/policy guards were not acquired before actor storage.");
+                return registry.Create(peer.Id, fingerprint, actorSource);
+            });
+            var actorWire = Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(actorHandle.ActorId, Guid.NewGuid().ToString("D")));
+            TestAssert.That(await coordinator.WithPersonalActorStoreAsync(registry => registry.Put(actorHandle, actorWire)), "Native factory did not persist a source-bound raw frame.");
+            TestAssert.That(JsonNode.DeepEquals(actorWire, await coordinator.WithPersonalActorStoreAsync(registry => registry.Read(actorHandle, actorWire["message_id"]!.GetValue<string>()))),
+                "Native factory changed raw actor wire data.");
+            hostBook.SetReady(false);
+            try
+            {
+                await coordinator.WithPersonalActorStoreAsync(registry => registry.Read(actorHandle, actorWire["message_id"]!.GetValue<string>()));
+                throw new Exception("Native registry read survived loss of its actual host book.");
+            }
+            catch (InvalidOperationException) { }
+            await coordinator.WithPersonalActorStoreAsync(registry => registry.Cancel(actorHandle));
+            hostBook.SetReady(true);
             TestAssert.That(Read(() => new string('b', 64)) != revision && Read(() => null) is null && Read(() => "client-digest") is null,
                 "Native book ownership was ignored or an invalid book source was accepted.");
             var checks = 0;
