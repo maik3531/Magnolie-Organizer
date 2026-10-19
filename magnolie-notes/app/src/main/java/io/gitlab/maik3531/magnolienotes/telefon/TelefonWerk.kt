@@ -198,7 +198,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         safePeer()?.takeIf { it.state == "paired" }?.let { SharedSettingsBinding(sharedActor, it.device_id, it.static_public) }
     }, { !Ablage.hole(context).synchronisationsSchreibbar() }) }
     private data class ScopedSyncIntent(val deviceId: String, val publicKey: String, val trigger: String, val deadline: Long,
-                                      val correlatedRunId: String? = null)
+                                      val correlatedRunId: String? = null, val actorRun: Boolean = false)
     private var pendingScopedSync: ScopedSyncIntent? = null
     private val scopedWakeup = AtomicBoolean(false)
 
@@ -348,7 +348,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val attachments = snapshot.attachments.filterKeys(advertised::contains).map { (hash, value) ->
                 Triple(hash, (value.descriptor["mime"] as JsonPrimitive).content, value.bytes) }
             if (queue.queueScopedRequest(sharedBinding(peer), sharedPreferences, requestMessage,
-                    PhoneContentScope.reference(manifest), batches, attachments)) pendingScopedSync = null
+                    PhoneContentScope.reference(manifest), batches, attachments, actorRun = intent.actorRun)) pendingScopedSync = null
         }
     }
 
@@ -1608,10 +1608,22 @@ class TelefonWerk private constructor(private val context: Context, private val 
             peer
         }
 
+    private fun unwrappedActorRun(peer: TelefonPeer, message: JsonObject): Boolean {
+        val kind = (message["kind"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: return false
+        if (kind !in PERSONAL_SYNC_DATA_KINDS && kind != PhoneContentScope.DATA_KIND) return false
+        val wrapped = message["body"] as? JsonObject ?: return false
+        val body = if (kind == PhoneContentScope.DATA_KIND) {
+            wrapped["body"] as? JsonObject ?: return false
+        } else wrapped
+        val run = (body["run_id"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: return false
+        return queue.isActorRun(peer.device_id, run)
+    }
+
     internal fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                 generation: Long) {
         // No actor has been admitted here. Never fall through to ordinary receive/staging.
         if (PersonalSyncActor.isReservedMessage(message)) return
+        if (unwrappedActorRun(sessionPeer, message)) return
         if (message["kind"] == JsonPrimitive("device_status.request") &&
             (message["body"] as? JsonObject)?.get("version") == JsonPrimitive(11)) {
             receiveDeveloperRead(sessionPeer, message, channel, generation)
@@ -1705,6 +1717,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     @Synchronized private fun receiveMessageBound(sessionPeer: TelefonPeer, message: JsonObject, send: (JsonObject) -> Unit,
                                                   noteSession: PersonalNoteSession?, scopedReference: JsonObject?) {
         if (PersonalSyncActor.isReservedMessage(message)) return
+        if (unwrappedActorRun(sessionPeer, message)) return
         val peer = safePeer()?.takeIf { it.device_id == sessionPeer.device_id && it.static_public == sessionPeer.static_public }
             ?: throw TelefonProtokollFehler("Unbekannte Gegenstelle.")
         val kind = runCatching { message.string("kind") }.getOrDefault("")
@@ -2959,7 +2972,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
         return peer
     }
 
-    @Synchronized private fun enqueuePersonalSync(expected: TelefonPeer, trigger: String, correlatedRunId: String? = null): Boolean {
+    @Synchronized private fun enqueuePersonalSync(expected: TelefonPeer, trigger: String, correlatedRunId: String? = null,
+                                                actorRun: Boolean = false): Boolean {
+        if (actorRun) require(correlatedRunId != null && trigger == "manual") { "Actor content requires a correlated manual run" }
         if (correlatedRunId != null) {
             require(trigger == "manual")
             PersonalSyncActor.start(correlatedRunId)
@@ -2972,7 +2987,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 peer.personal_tasks_sync_granted && peer.remote_personal_tasks_sync_granted)
             if (pendingScopedSync?.let { it.deviceId == peer.device_id && it.publicKey == peer.static_public &&
                     android.os.SystemClock.elapsedRealtime() < it.deadline } == true) return false
-            pendingScopedSync = ScopedSyncIntent(peer.device_id, peer.static_public, trigger, android.os.SystemClock.elapsedRealtime() + 60000, correlatedRunId)
+            pendingScopedSync = ScopedSyncIntent(peer.device_id, peer.static_public, trigger, android.os.SystemClock.elapsedRealtime() + 60000, correlatedRunId, actorRun)
             return true
         }
         val modules = buildList { if (peer.personal_notes_sync_granted && peer.remote_personal_notes_sync_granted) add("notes")
@@ -2986,7 +3001,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             put("modules", JsonArray(modules.map(::JsonPrimitive)))
         }
         val requestMessage = TelefonNachrichten.message("personal_sync.request", request, 3_600_000)
-        queue.rememberPersonalRun(peer.device_id, request, requestMessage.long("expires_ms"))
+        queue.rememberPersonalRun(peer.device_id, request, requestMessage.long("expires_ms"), actorRun = actorRun)
         if (format >= 2) {
             val snapshot = Ablage.hole(context).personalSyncSnapshotMitAnhaengen(modules.toSet(), format)
             val policy = queue.personalRunPolicy(peer.device_id, runId)

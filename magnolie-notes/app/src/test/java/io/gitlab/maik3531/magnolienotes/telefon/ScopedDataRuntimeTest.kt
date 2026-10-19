@@ -39,6 +39,7 @@ class ScopedDataRuntimeTest {
     @Test fun correlatedCallerRunSurvivesScopePreparationAndReceiptGates() = exercise("actor")
     @Test fun reservedActorWireWaitsForItsOwnTransportRouteWithoutLegacyFallback() = exercise("actor-wire")
     @Test fun unadmittedActorReceiveNeverReachesOrdinaryStorageOrDocumentState() = exercise("actor-receive")
+    @Test fun actorScopeSnapshotPersistsProtectedClassificationAndWireMarkersBeforeSending() = exercise("actor-snapshot")
     @Test fun independentTimeChangeDefersScopedDataWithoutAdmittingRawFallback() = exercise("time")
     @Test fun selectedOrganizerNoteCanBeSentAgainAfterDeletingItsPhoneCopy() = exercise("single")
     @Test fun ownershipControlAndItsAckDoNotRequireContentRunId() = exercise("ownership")
@@ -66,7 +67,7 @@ class ScopedDataRuntimeTest {
         try {
             val book = documents.legeNotizbuchAn("Field notes")
             documents.setzeNotiz(Notiz("phone-note", "Mobile", "Initial phone text", notizbuchId = book.id, angelegt = 1, geaendert = 2))
-            if (mode in setOf("manual", "actor")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
+            if (mode in setOf("manual", "actor", "actor-snapshot")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
             val storage = TelefonAblage.get(context)
             storage.identity("Synthetic").second.fill(0)
             storage.setEnabled(true); storage.setPersonalSync(true, true, true, false, false)
@@ -132,6 +133,25 @@ class ScopedDataRuntimeTest {
                 fun ackScope() { session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { ack(it) } }
                 fun scoped(messages: List<JsonObject>) = messages.filter { it["kind"] == JsonPrimitive(PhoneContentScope.DATA_KIND) }
                 val manifest = requireNotNull(session.localContentScope)
+                if (mode == "actor-snapshot") {
+                    sent(); ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
+                    val run = "44444444-4444-4444-8444-444444444444"
+                    val enqueue = TelefonWerk::class.java.getDeclaredMethod("enqueuePersonalSync",
+                        TelefonPeer::class.java, String::class.java, String::class.java, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
+                    assertEquals(true, enqueue.invoke(work, peer, "manual", run, true))
+                    pump.invoke(work, peer, channel, 0L, false)
+                    assertTrue(queue.isActorRun(peerId, run))
+                    val actorFrames = queue.due(peerId, TelefonTransportArt.WIFI).map { it.payload }.filter { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) }
+                    assertTrue(actorFrames.size >= 2)
+                    val semantic = actorFrames.map { PersonalSyncActor.unwrap(it.getValue("body").jsonObject) }
+                    assertTrue(semantic.any { it.first == "personal_sync.request" })
+                    val records = semantic.filter { it.first == "personal_sync.batch" }.flatMap { PersonalSyncProtokoll.decodeBatch(it.second) }
+                    assertEquals(setOf("phone-note"), records.filter { it.kind == "note" }.map { it.id }.toSet())
+                    assertEquals(setOf("phone-task"), records.filter { it.kind == "task" }.map { it.id }.toSet())
+                    assertTrue(sent().none { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) })
+                    assertTrue(runCatching { queue.rememberPersonalRun(peerId, requireNotNull(queue.personalRun(peerId, run)), System.currentTimeMillis() + 60000) }.isFailure)
+                    return@use
+                }
                 if (mode == "actor-receive") {
                     sent()
                     fun counts() = context.openOrCreateDatabase("magnolie_phone.db", Context.MODE_PRIVATE, null).use { db ->
@@ -144,7 +164,7 @@ class ScopedDataRuntimeTest {
                         put("format", 3); put("run_id", run); put("trigger", "manual")
                         put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks"))))
                     }
-                    queue.rememberPersonalRun(peerId, request, System.currentTimeMillis() + 60000)
+                    queue.rememberPersonalRun(peerId, request, System.currentTimeMillis() + 60000, actorRun = true)
                     val queued = queue.queue(peerId, "personal_sync.request", request, 60000, actorRunId = run)
                     val beforeRows = counts(); val beforeBook = documents.bestand.value; val beforeState = work.state.value
                     val wire = PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.request", request, 60000), run)
@@ -153,6 +173,8 @@ class ScopedDataRuntimeTest {
                     val markedAck = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND, PersonalSyncActor.ack(run, queued.string("message_id")), 60000)
                     val cancel = TelefonNachrichten.message(PersonalSyncActor.CANCEL_KIND, PersonalSyncActor.cancel(run), 60000)
                     for (frame in listOf(start, wire, malformed, markedAck, cancel)) work.receiveMessage(peer, frame, channel, 0L)
+                    work.receiveMessage(peer, PersonalSyncActor.semanticMessage(wire), channel, 0L)
+                    work.receiveMessage(peer, TelefonNachrichten.message(PhoneContentScope.DATA_KIND, PhoneContentScope.wrap("personal_sync.request", request, manifest), 60000), channel, 0L)
                     ack(queued.string("message_id"))
                     assertTrue(sent().isEmpty()); assertEquals(beforeRows, counts())
                     assertEquals(queued, queue.due(peerId, TelefonTransportArt.WIFI).single { it.messageId == queued.string("message_id") }.payload)
@@ -166,7 +188,7 @@ class ScopedDataRuntimeTest {
                         put("format", 3); put("run_id", run); put("trigger", "manual")
                         put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks"))))
                     }
-                    queue.rememberPersonalRun(peerId, request, System.currentTimeMillis() + 60000)
+                    queue.rememberPersonalRun(peerId, request, System.currentTimeMillis() + 60000, actorRun = true)
                     val wire = queue.queue(peerId, "personal_sync.request", request, 60000, actorRunId = run)
                     pump.invoke(work, peer, channel, 0L, false)
                     assertTrue(sent().none { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) ||
@@ -264,8 +286,8 @@ class ScopedDataRuntimeTest {
                         assertTrue(sent().any { it["type"] == JsonPrimitive("ping") })
                     } else {
                         val enqueue = TelefonWerk::class.java.getDeclaredMethod("enqueuePersonalSync",
-                            TelefonPeer::class.java, String::class.java, String::class.java).apply { isAccessible = true }
-                        assertEquals(true, enqueue.invoke(work, peer, "manual", chosenRun))
+                            TelefonPeer::class.java, String::class.java, String::class.java, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
+                        assertEquals(true, enqueue.invoke(work, peer, "manual", chosenRun, false))
                     }
                     assertEquals(0, closed.get())
                     pump.invoke(work, peer, channel, 0L, false)

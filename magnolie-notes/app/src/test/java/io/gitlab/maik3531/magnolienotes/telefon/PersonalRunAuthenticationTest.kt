@@ -25,7 +25,7 @@ class PersonalRunAuthenticationTest {
             index.copy(trigger = "manual"), index.copy(transportPolicy = "any"),
             index.copy(createdMs = 11), index.copy(expiresMs = 21),
             index.copy(appliedRequest = true), index.copy(appliedReply = true),
-            index.copy(responded = true), index.copy(reported = true)
+            index.copy(responded = true), index.copy(reported = true), index.copy(actor = true)
         )
         mutations.forEach { altered -> assertThrows(TelefonProtokollFehler::class.java) {
             PersonalRunAuthentication.authenticate(envelope, altered)
@@ -60,5 +60,21 @@ class PersonalRunAuthenticationTest {
         assertThrows(TelefonProtokollFehler::class.java) {
             PersonalRunAuthentication.effectiveExpiry(now + 3_600_000L, now, now)
         }
+    }
+
+    @Test fun `sealed actor classification survives flags and is rejected by an ordinary index`() {
+        val manualRequest = JsonObject(request + ("trigger" to JsonPrimitive("manual")))
+        val actor = index.copy(trigger = "manual", transportPolicy = "any", actor = true)
+        val envelope = PersonalRunAuthentication.envelope(actor, manualRequest)
+        assertEquals(JsonPrimitive(true), envelope["actor"])
+        assertEquals(manualRequest, PersonalRunAuthentication.authenticate(envelope, actor))
+        assertThrows(TelefonProtokollFehler::class.java) { PersonalRunAuthentication.authenticate(envelope, actor.copy(actor = false)) }
+        val completed = actor.copy(reported = true)
+        assertEquals(JsonPrimitive(true), PersonalRunAuthentication.envelope(completed, manualRequest)["actor"])
+        val stopped = completed.copy(actorStopped = true)
+        val stoppedEnvelope = PersonalRunAuthentication.envelope(stopped, manualRequest)
+        assertEquals(JsonPrimitive(true), stoppedEnvelope["actor_stopped"])
+        assertThrows(TelefonProtokollFehler::class.java) { PersonalRunAuthentication.authenticate(stoppedEnvelope, completed) }
+        assertEquals(false, PersonalRunAuthentication.envelope(index, request).containsKey("actor"))
     }
 }

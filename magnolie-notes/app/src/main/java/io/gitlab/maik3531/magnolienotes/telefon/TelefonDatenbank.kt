@@ -105,7 +105,8 @@ internal data class DeletionDecisionAck(val decisionId: String, val state: Strin
 internal data class PersonalRunIndex(
     val peerId: String, val runId: String, val trigger: String, val transportPolicy: String,
     val createdMs: Long, val expiresMs: Long, val appliedRequest: Boolean = false,
-    val appliedReply: Boolean = false, val responded: Boolean = false, val reported: Boolean = false
+    val appliedReply: Boolean = false, val responded: Boolean = false, val reported: Boolean = false,
+    val actor: Boolean = false, val actorStopped: Boolean = false
 )
 
 internal object PersonalRunAuthentication {
@@ -122,6 +123,8 @@ internal object PersonalRunAuthentication {
         put("applied_request", JsonPrimitive(index.appliedRequest)); put("applied_reply", JsonPrimitive(index.appliedReply))
         put("responded", JsonPrimitive(index.responded)); put("reported", JsonPrimitive(index.reported))
         put("modules", request.getValue("modules")); put("request", request)
+        if (index.actor) put("actor", JsonPrimitive(true))
+        if (index.actorStopped) { require(index.actor); put("actor_stopped", JsonPrimitive(true)) }
     }
 
     fun authenticate(envelope: JsonObject, index: PersonalRunIndex): JsonObject {
@@ -133,6 +136,8 @@ internal object PersonalRunAuthentication {
             modules == null || modules.any { it !is JsonPrimitive } || modules.map { (it as JsonPrimitive).content } !in
                 listOf(listOf("notes"), listOf("tasks"), listOf("notes", "tasks")) ||
             index.trigger !in setOf("manual", "auto_wifi") || index.transportPolicy != expectedPolicy ||
+            index.actor && index.trigger != "manual" ||
+            index.actorStopped && !index.actor ||
             index.createdMs < 0 || index.expiresMs <= index.createdMs || envelope != this.envelope(index, request))
             throw TelefonProtokollFehler("Manipulierte Personal-Sync-Metadaten.")
         return request
@@ -197,13 +202,21 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     }
 
     private fun writableInsert(peerId: String, message: JsonObject, db: SQLiteDatabase = helper.writableDatabase,
-                                transportPolicy: String = "any", actorRunId: String? = null): JsonObject {
+                                transportPolicy: String = "any", actorRunId: String? = null): JsonObject = db.inTransaction {
         val statusBody = message["body"] as? JsonObject
         require(!message.string("kind").startsWith("device_status.") ||
             statusBody?.containsKey("identifiers") != true && statusBody?.get("version") != JsonPrimitive(4))
         require(!PersonalSyncActor.isReservedKind(message.string("kind")))
-        val wire = if (actorRunId == null) message else PersonalSyncActor.wireMessage(message, actorRunId)
-        db.inTransaction {
+        val runId = if (message.string("kind") in PERSONAL_SYNC_DATA_KINDS)
+            (statusBody?.get("run_id") as? JsonPrimitive)?.takeIf { it.isString }?.content else null
+        val classified = runId != null && sealedActorRun(peerId, runId, db)
+        if (actorRunId != null) require(classified && actorRunId == runId) { "Actor context does not match protected run classification" }
+        val wire = if (classified) {
+            val actorId = requireNotNull(runId)
+            val run = requireNotNull(authenticatedRun(peerId, actorId, db)) { "Actor run is unavailable" }.first
+            require(run.actor && !run.actorStopped && run.expiresMs > System.currentTimeMillis()) { "Actor run is inactive" }
+            PersonalSyncActor.wireMessage(message, actorId)
+        } else message
         val id = message.string("message_id")
         val payload = storage.encryptPayload(TelefonKanonisch.bytes(wire), "outbox", id)
         db.phoneCapacity("outbox", payload.size)
@@ -215,8 +228,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             put("transport_policy", transportPolicy)
         }
         db.insertOrThrow("outbox", null, values)
-        }
-        return wire
+        wire
     }
 
     internal fun due(peerId: String, transport: TelefonTransportArt, now: Long = System.currentTimeMillis()): List<TelefonOutboxEintrag> {
@@ -246,6 +258,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                             val body = semantic["body"] as JsonObject
                             val run = authenticatedRun(peerId, body.string("run_id"), this)?.first
                             if (run == null || run.expiresMs <= now) { stale += id; continue }
+                            if (run.actor && run.actorStopped) continue
                             run.transportPolicy
                         } else stored
                         if (effective != stored || effective !in setOf("any", "wifi_only")) {
@@ -317,6 +330,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                 semantic.string("kind") != kind || message.long("created_ms") != cursor.getLong(4) ||
                 message.long("expires_ms") != cursor.getLong(5)) return@use "invalid"
             val body = semantic["body"] as JsonObject
+            if (authenticatedRun(peerId, body.string("run_id"))?.first?.actorStopped == true) return@use "invalid"
             val durable = personalRunPolicy(peerId, body.string("run_id"))
             if (durable == stored) durable else "invalid"
         } finally { clear.fill(0) }
@@ -895,17 +909,19 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     }
 
     fun rememberPersonalRun(peerId: String, body: JsonObject, wireExpiresMs: Long,
-                             now: Long = System.currentTimeMillis()) {
-        rememberPersonalRunInDatabase(helper.writableDatabase, peerId, body, wireExpiresMs, now)
+                             now: Long = System.currentTimeMillis(), actorRun: Boolean = false) {
+        rememberPersonalRunInDatabase(helper.writableDatabase, peerId, body, wireExpiresMs, now, actorRun)
     }
 
     private fun rememberPersonalRunInDatabase(db: SQLiteDatabase, peerId: String, body: JsonObject,
-                                              wireExpiresMs: Long, now: Long) {
+                                              wireExpiresMs: Long, now: Long, actorRun: Boolean = false) {
         val runId = body.string("run_id"); val key = "personal_run:$peerId:$runId"
         val trigger = body.string("trigger"); if (trigger !in setOf("manual", "auto_wifi")) throw TelefonProtokollFehler("Ungültiger Personal-Sync-Trigger.")
+        if (actorRun) require(trigger == "manual") { "Actor runs are explicit manual operations" }
         db.inTransaction {
             val existing = authenticatedRun(peerId, runId, this)
             if (existing != null) {
+                require(existing.first.actor == actorRun) { "Cannot reinterpret actor and ordinary runs" }
                 if (existing.second != body) throw TelefonProtokollFehler("Widersprüchlicher Personal-Sync-Lauf.")
                 val expires = PersonalRunAuthentication.effectiveExpiry(wireExpiresMs, now, existing.first.expiresMs)
                 if (expires != existing.first.expiresMs) updatePersonalRun(this, peerId, runId, allowExpired = true) {
@@ -914,7 +930,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                 return@inTransaction
             }
             val index = PersonalRunIndex(peerId, runId, trigger, if (trigger == "auto_wifi") "wifi_only" else "any",
-                now, PersonalRunAuthentication.effectiveExpiry(wireExpiresMs, now))
+                now, PersonalRunAuthentication.effectiveExpiry(wireExpiresMs, now), actor = actorRun)
             val encrypted = storage.encryptPayload(TelefonKanonisch.bytes(runEnvelope(index, body)),
                 "personal_run", key)
             phoneCapacity("personal_run", encrypted.size, 1024)
@@ -955,7 +971,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     }
 
     internal fun rememberScopedRun(binding: SharedSettingsBinding, shared: SharedSyncStorage, request: JsonObject,
-                                   reference: JsonObject, wireExpiresMs: Long, now: Long = System.currentTimeMillis()) {
+                                   reference: JsonObject, wireExpiresMs: Long, now: Long = System.currentTimeMillis(), actorRun: Boolean = false) {
         PersonalSyncProtokoll.validate("personal_sync.request", request); PhoneContentScope.validateReference(reference)
         require(request.long("format") == 3L && wireExpiresMs > now)
         val runId = request.string("run_id"); val peerId = binding.peerActor; val key = "personal_scope:$peerId:$runId"
@@ -970,10 +986,11 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             val oldScope = readScopeRun(this, peerId, runId)
             require((existing == null) == (oldScope == null)) { "Cannot change between legacy and scoped run" }
             if (existing != null) {
+                require(existing.first.actor == actorRun) { "Cannot reinterpret actor and ordinary scoped runs" }
                 require(existing.second == request && oldScope == marker && existing.first.expiresMs > now && wireExpiresMs <= existing.first.expiresMs)
                 return@withWriteTransaction
             }
-            rememberPersonalRunInDatabase(this, peerId, request, wireExpiresMs, now)
+            rememberPersonalRunInDatabase(this, peerId, request, wireExpiresMs, now, actorRun)
             val clear = TelefonKanonisch.bytes(marker)
             val sealed = try { storage.encryptPayload(clear, "personal_scope", key) } finally { clear.fill(0) }
             insertOrThrow("meta", null, ContentValues().apply { put("key", key); put("value", sealed) })
@@ -997,7 +1014,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     /** One transaction owns the binding, all batches/attachments and the exact request receipt. */
     internal fun queueScopedRequest(binding: SharedSettingsBinding, shared: SharedSyncStorage,
         message: JsonObject, reference: JsonObject, batches: List<JsonObject>,
-        attachments: List<Triple<String, String, ByteArray>>, now: Long = System.currentTimeMillis()): Boolean {
+        attachments: List<Triple<String, String, ByteArray>>, now: Long = System.currentTimeMillis(), actorRun: Boolean = false): Boolean {
         TelefonNachrichten.validate(message)
         require(message.string("kind") == "personal_sync.request")
         val request = message.getValue("body") as JsonObject
@@ -1019,7 +1036,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         val policy = if (request.string("trigger") == "auto_wifi") "wifi_only" else "any"
         return shared.withWriteTransaction(binding) {
             if (hasActiveScopedRunIn(this, binding.peerActor, now)) return@withWriteTransaction false
-            rememberScopedRun(binding, shared, request, reference, message.long("expires_ms"), now)
+            rememberScopedRun(binding, shared, request, reference, message.long("expires_ms"), now, actorRun)
             val marker = requireNotNull(readScopeRun(this, binding.peerActor, runId))
             writeScopeMarker(this, binding.peerActor, runId, JsonObject(marker + mapOf(
                 "request_message_id" to message.getValue("message_id"), "request_accepted" to JsonPrimitive(false))))
@@ -1119,7 +1136,12 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                 val envelope = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject
                 val epoch = (envelope["restore_epoch"] as? JsonPrimitive)?.content.orEmpty()
                 if (epoch != restoreEpoch()) return@use null
-                index to PersonalRunAuthentication.authenticate(JsonObject(envelope - "restore_epoch"), index)
+                val actorField = envelope["actor"]
+                require(actorField == null || actorField == JsonPrimitive(true)) { "Invalid protected actor classification" }
+                val stopped = envelope["actor_stopped"]
+                require(stopped == null || stopped == JsonPrimitive(true) && actorField == JsonPrimitive(true)) { "Invalid protected actor stop marker" }
+                val protectedIndex = index.copy(actor = actorField == JsonPrimitive(true), actorStopped = stopped == JsonPrimitive(true))
+                protectedIndex to PersonalRunAuthentication.authenticate(JsonObject(envelope - "restore_epoch"), protectedIndex)
             } finally { clear.fill(0) }
         }
     }
@@ -1134,6 +1156,20 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     fun personalRunPolicy(peerId: String, runId: String): String? = currentRun(peerId, runId)?.first
         ?.transportPolicy?.takeIf { it in setOf("any", "wifi_only") }
 
+    private fun sealedActorRun(peerId: String, runId: String, db: SQLiteDatabase = helper.readableDatabase): Boolean =
+        db.query("personal_run", arrayOf("payload"), "peer_id=? AND run_id=?", arrayOf(peerId, runId), null, null, null).use { row ->
+            if (!row.moveToFirst()) return@use false
+            val clear = storage.decryptPayload(row.getBlob(0), "personal_run", "personal_run:$peerId:$runId")
+            try {
+                val envelope = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject
+                val flag = envelope["actor"]
+                require(flag == null || flag == JsonPrimitive(true)) { "Invalid protected actor classification" }
+                flag == JsonPrimitive(true)
+            } finally { clear.fill(0) }
+        }
+
+    internal fun isActorRun(peerId: String, runId: String): Boolean = sealedActorRun(peerId, runId)
+
     fun personalDirectionApplied(peerId: String, runId: String, reply: Boolean): Boolean =
         currentRun(peerId, runId)?.first?.let { if (reply) it.appliedReply else it.appliedRequest } == true
 
@@ -1145,6 +1181,8 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         if (!allowExpired && old.expiresMs <= System.currentTimeMillis())
             throw TelefonProtokollFehler("Personal-Sync-Lauf ist abgelaufen.")
         val next = transform(old)
+        require(next.actor == old.actor) { "Cannot change protected actor classification" }
+        require(!old.actorStopped || next.actorStopped) { "Cannot reactivate a stopped actor" }
         val encrypted = storage.encryptPayload(TelefonKanonisch.bytes(runEnvelope(next, request)),
             "personal_run", "personal_run:$peerId:$runId")
         val values = ContentValues().apply {
@@ -1175,6 +1213,13 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         require(field in setOf("responded", "reported"))
         helper.writableDatabase.inTransaction { updatePersonalRun(this, peerId, runId) {
             if (field == "responded") it.copy(responded = true) else it.copy(reported = true)
+        } }
+    }
+
+    internal fun stopActorRun(peerId: String, runId: String) {
+        helper.writableDatabase.inTransaction { updatePersonalRun(this, peerId, runId, allowExpired = true) {
+            require(it.actor) { "Not an actor run" }
+            it.copy(actorStopped = true, reported = true)
         } }
     }
 

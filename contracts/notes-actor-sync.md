@@ -143,6 +143,30 @@ exposed to MCP.
 Notes server-journal parity, authenticated source-snapshot callbacks, lifecycle
 cleanup/recovery and the full transport/adoption adapters remain completion gates.
 
+Notes run authentication now carries an immutable actor classification inside
+the existing sealed run envelope. Ordinary run serialization omits this field;
+an older ordinary reader cannot reinterpret an actor envelope as a normal run.
+The existing shared writer uses that protected classification to wrap every
+subsequent data frame, including later attachment/decision output, before sealing
+it. A classified run with invalid authentication, a changed restore epoch or an
+expired/stopped state cannot produce a plain frame. Explicit actor writes also
+reject a missing classification. Snapshot and scoped-run preparation carry it
+through the existing atomic queue path. A run cannot be changed between actor
+and ordinary classification, and unwrapped ordinary/scoped input referring to an
+actor run is excluded from the ordinary receive route.
+
+The protected stop marker is irreversible and distinct from a completion report:
+reported runs may still produce valid late attachment work, while stopped runs
+cannot enqueue more data and their queued frames are excluded from due work.
+Stopping retains the already sealed frames; it cannot recall dispatched data.
+
+This classification is still only a storage/transport marker. It does not
+authorize a caller, implement the authenticated server journal, admit a wire
+frame or activate a capability. The native actor adapter must supply the actual
+source and ownership checks and actor-marked receipts before it is enabled.
+Its cleanup must retire pending producers before removing run classification;
+an absent run row alone is not an actor tombstone for ordinary queue callers.
+
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption
 and save/commit still need their corresponding integration and acceptance gates.

@@ -38,9 +38,9 @@ class PersonalSyncActorOutboxTest {
                 put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks"))))
             }
             val now = System.currentTimeMillis()
-            active.rememberPersonalRun(peer, request(run), now + 60000, now)
+            active.rememberPersonalRun(peer, request(run), now + 60000, now, actorRun = true)
             active.rememberPersonalRun(peer, request(legacyRun), now + 60000, now)
-            val actor = active.queue(peer, "personal_sync.request", request(run), 60000, now, actorRunId = run)
+            val actor = active.queue(peer, "personal_sync.request", request(run), 60000, now)
             val ordinary = active.queue(peer, "personal_sync.request", request(legacyRun), 60000, now)
             (helper.get(active) as TelefonDatenbank).close(); queue = null
             singleton.set(null, null)
@@ -73,12 +73,34 @@ class PersonalSyncActorOutboxTest {
                     })))
                 })))
             }
-            val decisionWire = reopened.queue(peer, "personal_sync.deletion_decision", decision, 60000, now, actorRunId = run)
+            val decisionWire = reopened.queue(peer, "personal_sync.deletion_decision", decision, 60000, now)
             assertEquals("temporary:temporary_failure", reopened.acknowledge(peer, decisionWire.string("message_id"), "rejected", "temporary_failure")?.state)
             assertEquals(decisionWire, reopened.due(peer, TelefonTransportArt.WIFI, now + 1).single { it.messageId == decisionWire.string("message_id") }.payload)
             assertEquals(DeletionDecisionAck(decisionId, "accepted"), reopened.acknowledge(peer, decisionWire.string("message_id")))
             reopened.acknowledge(peer, actor.string("message_id"))
             assertEquals(listOf(ordinary), reopened.due(peer, TelefonTransportArt.WIFI, now + 1).map { it.payload })
+            assertTrue(reopened.isActorRun(peer, run)); assertFalse(reopened.isActorRun(peer, legacyRun))
+            assertTrue(runCatching { reopened.rememberPersonalRun(peer, request(run), now + 60000, now) }.isFailure)
+            assertTrue(runCatching { reopened.rememberPersonalRun(peer, request(legacyRun), now + 60000, now, actorRun = true) }.isFailure)
+            val lateChunk = buildJsonObject {
+                put("format", 2); put("run_id", run); put("reply", false); put("records_hash", "a".repeat(64)); put("sha256", "b".repeat(64)); put("index", 0)
+                put("data", java.util.Base64.getEncoder().encodeToString(byteArrayOf(1, 2, 3)))
+            }
+            val late = reopened.queue(peer, "personal_sync.attachment_chunk", lateChunk, 60000)
+            assertEquals(PersonalSyncActor.DATA_KIND, late.string("kind"))
+            assertEquals("personal_sync.attachment_chunk", PersonalSyncActor.unwrap(late.getValue("body").jsonObject).first)
+            val changedScope = TelefonQueue(context, reopenedStorage) { "changed-book-scope" }
+            try {
+                assertTrue(changedScope.isActorRun(peer, run))
+                assertTrue(runCatching { changedScope.queue(peer, "personal_sync.attachment_chunk", lateChunk, 60000) }.isFailure)
+            } finally { (helper.get(changedScope) as TelefonDatenbank).close() }
+            reopened.markPersonalRun(peer, run, "reported")
+            assertTrue(reopened.isActorRun(peer, run))
+            assertEquals(PersonalSyncActor.DATA_KIND, reopened.queue(peer, "personal_sync.attachment_chunk", lateChunk, 60000).string("kind"))
+            reopened.stopActorRun(peer, run)
+            assertTrue(runCatching { reopened.queue(peer, "personal_sync.attachment_chunk", lateChunk, 60000) }.isFailure)
+            assertTrue(reopened.due(peer, TelefonTransportArt.WIFI).none { it.messageId == late.string("message_id") })
+            assertEquals(late, reopened.outboxWireMessage(peer, late.string("message_id")))
         } finally {
             queue?.let { (helper.get(it) as TelefonDatenbank).close() }
             context.deleteDatabase("magnolie_phone.db")
