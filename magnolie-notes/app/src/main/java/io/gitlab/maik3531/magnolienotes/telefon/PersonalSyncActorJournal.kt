@@ -5,6 +5,8 @@ import android.database.sqlite.SQLiteDatabase
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.UUID
@@ -108,6 +110,67 @@ internal class PersonalSyncActorJournal(
         }
 
     fun stopped(handle: PersonalActorHandle): Boolean = database.readableDatabase.let { requireOwner(it, handle, false).stopped }
+
+    private fun wireKey(handle: PersonalActorHandle, messageId: String): String =
+        "personal_actor_wire:${handle.peerId}:${handle.runId}:$messageId"
+
+    private fun validateWire(handle: PersonalActorHandle, wire: JsonObject, fresh: Boolean) {
+        TelefonNachrichten.validateHeader(wire, if (fresh) clock() else wire.long("created_ms"))
+        val body = wire.getValue("body").jsonObject
+        val maximum = when (wire.string("kind")) {
+            PersonalSyncActor.DATA_KIND -> {
+                PersonalSyncActor.validateData(body)
+                val semantic = PersonalSyncActor.semanticMessage(wire)
+                TelefonNachrichten.validate(semantic, if (fresh) clock() else wire.long("created_ms"))
+                if (semantic.string("kind") == "personal_sync.request" ||
+                    semantic.string("kind") == PhoneContentScope.DATA_KIND && semantic.getValue("body").jsonObject.string("kind") == "personal_sync.request")
+                    3_600_000L else 86_400_000L
+            }
+            PersonalSyncActor.ACK_KIND -> { PersonalSyncActor.validateAck(body); 60_000L }
+            else -> error("Invalid raw actor kind")
+        }
+        require(body.string("run_id") == handle.runId && wire.long("expires_ms") <= MAX_TIME &&
+            wire.long("expires_ms") - wire.long("created_ms") <= maximum &&
+            (!fresh || wire.long("expires_ms") > clock()) && TelefonKanonisch.bytes(wire).size <= 256 * 1024)
+    }
+
+    /** Raw persistence/deduplication only. A stored frame does not authorize a successful wire ACK. */
+    fun putWire(handle: PersonalActorHandle, wire: JsonObject): Boolean = withActive(handle) {
+        validateWire(handle, wire, true)
+        val id = wireKey(handle, wire.string("message_id")); val clear = TelefonKanonisch.bytes(wire)
+        try {
+            query("meta", arrayOf("value"), "key=?", arrayOf(id), null, null, null).use { row ->
+                if (row.moveToFirst()) {
+                    val old = storage.decryptPayload(row.getBlob(0), "personal_actor_wire", id)
+                    try { check(MessageDigest.isEqual(old, clear)) { "actor_frame_conflict" } } finally { old.fill(0) }
+                    return@withActive false
+                }
+            }
+            val sealed = storage.encryptPayload(clear, "personal_actor_wire", id)
+            rawQuery("SELECT COUNT(*),COALESCE(SUM(length(value)),0) FROM meta WHERE key GLOB ?",
+                arrayOf(wireKey(handle, "*"))).use {
+                check(it.moveToFirst() && it.getLong(0) < 4096 && it.getLong(1) + sealed.size <= 50L * 1024 * 1024) { "actor_capacity" }
+            }
+            phoneCapacity("meta", sealed.size)
+            insertOrThrow("meta", null, ContentValues().apply { put("key", id); put("value", sealed) })
+            true
+        } finally { clear.fill(0) }
+    }
+
+    fun readWire(handle: PersonalActorHandle, messageId: String): JsonObject = withActive(handle) {
+        TelefonNachrichten.uuid4(messageId)
+        val id = wireKey(handle, messageId)
+        query("meta", arrayOf("value"), "key=?", arrayOf(id), null, null, null).use {
+            check(it.moveToFirst()) { "actor_packet_not_found" }
+            val clear = storage.decryptPayload(it.getBlob(0), "personal_actor_wire", id)
+            try {
+                TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()).jsonObject.also { wire ->
+                    validateWire(handle, wire, false)
+                    check(wire.string("message_id") == messageId) { "actor_packet_identity" }
+                }
+            } finally { clear.fill(0) }
+        }
+    }
 
     /** Native retirement remains possible after revocation/expiry; it never authorizes content. */
     fun retire(handle: PersonalActorHandle) = database.writableDatabase.inTransaction {

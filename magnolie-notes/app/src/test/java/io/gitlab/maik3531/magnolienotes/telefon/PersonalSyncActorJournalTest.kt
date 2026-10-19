@@ -3,6 +3,7 @@ package io.gitlab.maik3531.magnolienotes.telefon
 import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -85,6 +86,54 @@ class PersonalSyncActorJournalTest {
         db.readableDatabase.rawQuery("SELECT COUNT(*) FROM meta WHERE key GLOB 'personal_actor_journal:*'", null).use {
             assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0))
         }
+    }
+
+    @Test fun rawActorWireDeduplicatesWithoutLosingItsMarkerOrGrantingLegacyAdmission() = fixture { db, storage ->
+        var now = System.currentTimeMillis()
+        val journal = PersonalSyncActorJournal(db, storage, { _, _ -> REV }, { "book-epoch" }, clock = { now })
+        val handle = journal.create(PEER, KEY, REV)
+        val request = buildJsonObject {
+            put("format", 3); put("run_id", handle.runId); put("trigger", "manual")
+            put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks"))))
+        }
+        val ordinary = TelefonNachrichten.message("personal_sync.request", request, 60000, now)
+        val wire = PersonalSyncActor.wireMessage(ordinary, handle.runId)
+        assertTrue(journal.putWire(handle, wire)); assertFalse(journal.putWire(handle, wire))
+        db.close()
+        assertEquals(wire, journal.readWire(handle, wire.string("message_id")))
+        assertTrue(runCatching { journal.putWire(handle, ordinary) }.isFailure)
+        val changed = JsonObject(wire + ("expires_ms" to JsonPrimitive(now + 59000)))
+        assertTrue(runCatching { journal.putWire(handle, changed) }.isFailure)
+        val other = journal.create(PEER, KEY, REV)
+        assertTrue(runCatching { journal.putWire(other, wire) }.isFailure)
+        val ack = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+            PersonalSyncActor.ack(handle.runId, ordinary.string("message_id")), 60000, now)
+        assertTrue(journal.putWire(handle, ack))
+        now += 60001
+        assertEquals(ack, journal.readWire(handle, ack.string("message_id")))
+        assertTrue(runCatching { journal.putWire(handle, ack) }.isFailure)
+        journal.retire(handle)
+        assertTrue(runCatching { journal.readWire(handle, wire.string("message_id")) }.isFailure)
+    }
+
+    @Test fun rawWirePostcheckRevocationRollsBackAndCiphertextIdentityCannotBeMoved() = fixture { db, storage ->
+        var checks = 0; var revokeAt = Int.MAX_VALUE
+        val journal = PersonalSyncActorJournal(db, storage, { _, _ -> if (++checks >= revokeAt) null else REV }, { "book-epoch" })
+        val handle = journal.create(PEER, KEY, REV)
+        val wire = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+            PersonalSyncActor.ack(handle.runId, "33333333-3333-4333-8333-333333333333"), 60000)
+        revokeAt = checks + 2
+        assertTrue(runCatching { journal.putWire(handle, wire) }.isFailure)
+        db.readableDatabase.rawQuery("SELECT COUNT(*) FROM meta WHERE key GLOB 'personal_actor_wire:*'", null).use {
+            assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0))
+        }
+        revokeAt = Int.MAX_VALUE
+        assertTrue(journal.putWire(handle, wire))
+        val originalKey = "personal_actor_wire:${handle.peerId}:${handle.runId}:${wire.string("message_id")}"
+        val otherId = "44444444-4444-4444-8444-444444444444"
+        db.writableDatabase.execSQL("UPDATE meta SET key=? WHERE key=?",
+            arrayOf("personal_actor_wire:${handle.peerId}:${handle.runId}:$otherId", originalKey))
+        assertTrue(runCatching { journal.readWire(handle, otherId) }.isFailure)
     }
 
     private fun fixture(test: (TelefonDatenbank, TelefonAblage) -> Unit) {

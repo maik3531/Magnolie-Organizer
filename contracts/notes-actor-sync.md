@@ -175,9 +175,15 @@ and after the transaction body; a failed post-check rolls back that database
 work. It retains at most 32 bindings and permits four active contexts. Native
 retirement remains available after source revocation or lease expiry, without
 granting content access. Tokens are absent from its status and default string
-representation. This primitive does not yet connect journal retirement to queue
-stopping, stage incoming wire frames or supply the actual native source callback;
-those lifecycle/transport integrations remain activation gates.
+representation. Its raw inbox seals the complete actor data/ACK wire frame under
+the peer/run/message identity, rejects conflicting duplicates and never normalizes
+the stored marker. Raw put/read use the same pre/post authorization transaction.
+Per-actor retention is bounded to 4096 packets/50 MiB sealed bytes and also obeys
+the existing shared phone-meta capacity (8192 rows/50 MiB). Persisting a raw frame
+is neither domain staging nor authority to emit a successful receipt. This
+primitive does not yet connect journal retirement to queue stopping, dispatch
+incoming frames or supply the actual native source callback; those lifecycle/
+transport integrations remain activation gates.
 
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption
