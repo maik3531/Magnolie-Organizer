@@ -1064,7 +1064,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
 
     internal fun acknowledgeScopedRequest(peerId: String, messageId: String, status: String, error: String): Boolean =
         helper.writableDatabase.inTransaction {
-            val message = outboxPersonalMessage(peerId, messageId) ?: return@inTransaction false
+            val message = outboxPersonalMessage(peerId, messageId)?.let(PersonalSyncActor::semanticMessage) ?: return@inTransaction false
             if (message.string("kind") != "personal_sync.request") return@inTransaction false
             val runId = (message.getValue("body") as JsonObject).string("run_id")
             val marker = readScopeRun(this, peerId, runId) ?: return@inTransaction false

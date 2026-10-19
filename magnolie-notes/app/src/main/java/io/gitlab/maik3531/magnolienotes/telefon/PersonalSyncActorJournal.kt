@@ -135,6 +135,7 @@ internal class PersonalSyncActorJournal(
                     3_600_000L else 86_400_000L
             }
             PersonalSyncActor.ACK_KIND -> { PersonalSyncActor.validateAck(body); 60_000L }
+            PersonalSyncActor.START_KIND -> { PersonalSyncActor.validateStart(body); 60_000L }
             else -> error("Invalid raw actor kind")
         }
         require(body.string("run_id") == handle.runId && wire.long("expires_ms") <= MAX_TIME &&

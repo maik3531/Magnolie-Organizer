@@ -280,6 +280,19 @@ retires inactive daemon contexts without returning raw content. Private registry
 creation/persistence is still not transport dispatch, domain adoption or a saved
 book; those runtime gates remain outstanding.
 
+The Notes native actor route now admits a strict actor start only through its
+actual source/capability/channel gates, seals the admitted start as a correlated
+receipt and acknowledges exact duplicate starts from that receipt. Explicit
+transport admission is separate from private snapshot preparation. The dedicated
+sender claims only that owner's marked outbox frames, preserves the existing
+request-receipt gate before batches and performs network writes outside service,
+book and SQLite guards. Only a marked ACK matching the admitted run/peer/channel
+and original marked message can advance the existing queue handler; ordinary or
+wrong-run ACKs cannot consume it. Native actor cancellation retires production.
+This currently covers start, phone snapshot dispatch, marked ACK and cancellation;
+incoming record adoption/attachments and desktop transport completion still need
+their corresponding gates. Production capability 12 remains unadvertised.
+
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption
 and save/commit still need their corresponding integration and acceptance gates.

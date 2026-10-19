@@ -199,8 +199,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
     private val personalActorHandles = mutableMapOf<String, PersonalActorHandle>()
     private val personalActorWork = mutableSetOf<String>()
+    private val personalActorKeys = mutableMapOf<String, String>()
+    private val personalActorTransports = mutableMapOf<String, TelefonSecureChannel>()
+    private val personalActorDispatches = mutableSetOf<String>()
 
-    @Synchronized internal fun preparePersonalActor(peerId: String, publicKey: String, runId: String): PersonalActorHandle =
+    @Synchronized internal fun preparePersonalActor(peerId: String, publicKey: String, runId: String,
+        startWire: JsonObject? = null): PersonalActorHandle =
         synchronized(Ablage.SCHREIBSPERRE) {
             val channel = checkNotNull(activeChannel) { "actor_source_changed" }
             val revision = checkNotNull(currentActorSource(peerId, publicKey, channel, pairingGeneration)) { "actor_source_changed" }
@@ -210,8 +214,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val handle = personalActorJournal.create(peerId, publicKey, revision, runId)
             personalActorHandles[runId] = handle
             personalActorWork.add(runId)
+            personalActorKeys[runId] = publicKey
             try {
-                personalActorJournal.withActive(handle) { check(enqueuePersonalSync(peer, "manual", runId, true)) { "actor_busy" } }
+                personalActorJournal.withActive(handle) {
+                    if (startWire != null) personalActorJournal.putWire(handle, startWire)
+                    check(enqueuePersonalSync(peer, "manual", runId, true)) { "actor_busy" }
+                }
                 handle
             } catch (error: Exception) {
                 try { stopPersonalActor(handle) } catch (cleanup: Exception) { error.addSuppressed(cleanup) }
@@ -222,6 +230,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     @Synchronized internal fun stopPersonalActor(handle: PersonalActorHandle) = synchronized(Ablage.SCHREIBSPERRE) {
         personalActorJournal.retire(handle) { queue.stopCurrentActorRun(handle.peerId, handle.runId) }
         personalActorWork.remove(handle.runId)
+        personalActorTransports.remove(handle.runId)
         if (pendingScopedSync?.let { it.actorRun && it.deviceId == handle.peerId && it.correlatedRunId == handle.runId } == true)
             pendingScopedSync = null
     }
@@ -239,6 +248,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     @Synchronized private fun reapPersonalActors() {
         personalActorJournal.reapInactive { peer, run -> queue.stopCurrentActorRun(peer, run) }.forEach { (peer, run) ->
             personalActorWork.remove(run); personalActorHandles.remove(run)
+            personalActorKeys.remove(run); personalActorTransports.remove(run)
             if (pendingScopedSync?.let { it.actorRun && it.deviceId == peer && it.correlatedRunId == run } == true)
                 pendingScopedSync = null
         }
@@ -1747,8 +1757,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     internal fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                 generation: Long) {
-        // No actor has been admitted here. Never fall through to ordinary receive/staging.
-        if (PersonalSyncActor.isReservedMessage(message)) return
+        // Reserved frames never fall through to ordinary receive/staging.
+        if (PersonalSyncActor.isReservedMessage(message)) {
+            receiveActorMessage(sessionPeer, message, channel, generation)
+            return
+        }
         if (unwrappedActorRun(sessionPeer, message)) return
         if (message["kind"] == JsonPrimitive("device_status.request") &&
             (message["body"] as? JsonObject)?.get("version") == JsonPrimitive(11)) {
@@ -1772,6 +1785,76 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 }
             } else channel.send(reply)
         }
+    }
+
+    private fun receiveActorMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
+        val reply = synchronized(this) {
+            if (generation != pairingGeneration || activeChannel !== channel) return@synchronized null
+            val peer = safePeer()?.takeIf { it.device_id == sessionPeer.device_id && it.static_public == sessionPeer.static_public }
+                ?: return@synchronized null
+            try {
+                val now = System.currentTimeMillis()
+                TelefonNachrichten.validateHeader(message, now)
+                require(message.long("expires_ms") > now && message.long("expires_ms") - message.long("created_ms") <= 60000)
+                val body = message.getValue("body") as JsonObject
+                when (message.string("kind")) {
+                    PersonalSyncActor.START_KIND -> {
+                        PersonalSyncActor.validateStart(body)
+                        if (currentActorSource(peer.device_id, peer.static_public, channel, generation) == null) return@synchronized null
+                        val run = body.string("run_id")
+                        val existing = personalActorHandles[run]
+                        val status = if (existing != null) {
+                            require(existing.peerId == peer.device_id && personalActorKeys[run] == peer.static_public)
+                            require(personalActorJournal.readWire(existing, message.string("message_id")) == message)
+                            "duplicate"
+                        } else {
+                            preparePersonalActor(peer.device_id, peer.static_public, run, message)
+                            "accepted"
+                        }
+                        personalActorTransports[run] = channel
+                        TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+                            PersonalSyncActor.ack(run, message.string("message_id"), status), 60000)
+                    }
+                    PersonalSyncActor.ACK_KIND -> {
+                        PersonalSyncActor.validateAck(body)
+                        val run = body.string("run_id")
+                        val handle = personalActorHandles[run] ?: return@synchronized null
+                        if (handle.peerId != peer.device_id || personalActorKeys[run] != peer.static_public || personalActorTransports[run] !== channel) return@synchronized null
+                        var terminal = false
+                        var decisionAck: DeletionDecisionAck? = null
+                        personalActorJournal.withActive(handle) {
+                            val queued = queue.outboxWireMessage(peer.device_id, body.string("message_id")) ?: return@withActive
+                            require(queued["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) &&
+                                (queued["body"] as JsonObject)["run_id"] == JsonPrimitive(run))
+                            personalActorJournal.putWire(handle, message)
+                            val status = body.string("status"); val error = body.string("error")
+                            if (status == "rejected" && error != "temporary_failure") terminal = true
+                            else if (!queue.acknowledgeScopedRequest(peer.device_id, body.string("message_id"), status, error))
+                                decisionAck = queue.acknowledge(peer.device_id, body.string("message_id"), status, error)
+                        }
+                        if (terminal) stopPersonalActor(handle)
+                        else if (decisionAck != null) synchronized(Ablage.SCHREIBSPERRE) {
+                            personalActorJournal.withActive(handle) {}
+                            applyDecisionAck(decisionAck)
+                        }
+                        null
+                    }
+                    PersonalSyncActor.CANCEL_KIND -> {
+                        PersonalSyncActor.validateCancel(body)
+                        val run = body.string("run_id")
+                        val handle = personalActorHandles[run] ?: return@synchronized null
+                        if (handle.peerId != peer.device_id || personalActorKeys[run] != peer.static_public) return@synchronized null
+                        stopPersonalActor(handle)
+                        TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+                            PersonalSyncActor.ack(run, message.string("message_id")), 60000)
+                    }
+                    else -> null
+                }
+            } catch (_: Exception) { null }
+        }
+        // An authorized dispatch claim precedes I/O; lifecycle cancellation can close the pipe.
+        // Never hold service/book/SQLite guards while waiting for a network write.
+        if (reply != null) channel.send(reply)
     }
 
     private fun receiveDeveloperRead(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
@@ -2799,7 +2882,47 @@ class TelefonWerk private constructor(private val context: Context, private val 
             if (entry.payload.string("kind") in setOf("capabilities.update", "grants.update")) controls += entry.messageId
         }
         if (!controlsOnly) peerEffect(peer, generation) { current -> queueAutomaticTime(current, noteSessions[channel]) }
+        if (!controlsOnly) sendActorDue(peer, channel, generation)
         return controls
+    }
+
+    private fun sendActorDue(expected: TelefonPeer, channel: TelefonSecureChannel, generation: Long) {
+        val entries = synchronized(this) {
+            if (!serviceRunning || !storage.enabled() || activeChannel !== channel || generation != pairingGeneration ||
+                personalActorTransports.values.none { it === channel }) return
+            val transport = activeTransport?.first ?: return
+            queue.due(expected.device_id, transport).filter { it.payload["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) }
+        }
+        for (entry in entries) {
+            val run = (entry.payload["body"] as JsonObject).string("run_id")
+            val handle = synchronized(this) {
+                val peer = safePeer()?.takeIf { it.device_id == expected.device_id && it.static_public == expected.static_public }
+                val owner = personalActorHandles[run]
+                if (peer == null || owner == null || activeChannel !== channel || generation != pairingGeneration ||
+                    personalActorTransports[run] !== channel || personalActorKeys[run] != peer.static_public ||
+                    entry.messageId in personalActorDispatches) return@synchronized null
+                val semantic = PersonalSyncActor.semanticMessage(entry.payload)
+                if (semantic.string("kind") != "personal_sync.request" && !queue.scopedRequestAccepted(peer.device_id, run))
+                    return@synchronized null
+                val current = runCatching {
+                    personalActorJournal.withActive(owner) {
+                        check(queue.outboxWireMessage(peer.device_id, entry.messageId) == entry.payload)
+                        val policy = queue.outboxPolicy(peer.device_id, entry.messageId)
+                        check(policy == "any" || policy == "wifi_only" && activeTransport?.first == TelefonTransportArt.WIFI)
+                    }
+                }.isSuccess
+                if (!current) return@synchronized null
+                personalActorDispatches.add(entry.messageId)
+                owner
+            } ?: continue
+            try {
+                // The claim is source-bound; an already claimed write can have an unknown outcome on cancel.
+                channel.send(entry.payload)
+                synchronized(this) {
+                    runCatching { personalActorJournal.withActive(handle) { queue.sent(entry.messageId, queue.attempts(entry.messageId)) } }
+                }
+            } finally { synchronized(this) { personalActorDispatches.remove(entry.messageId) } }
+        }
     }
 
     @Synchronized internal fun handleSessionAck(expected: TelefonPeer, payload: JsonObject, session: PersonalNoteSession,
@@ -2825,7 +2948,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
 
     private fun handleAck(peerId: String, messageId: String, status: String, error: String) {
-        queue.acknowledge(peerId, messageId, status, error)?.let { ack ->
+        applyDecisionAck(queue.acknowledge(peerId, messageId, status, error))
+    }
+
+    private fun applyDecisionAck(decisionAck: DeletionDecisionAck?) {
+        decisionAck?.let { ack ->
             when {
                 ack.state == "accepted" -> Ablage.hole(context).personalSyncDecisionAccepted(ack.decisionId)
                 ack.state == "expired" || ack.state.startsWith("terminal:") ->

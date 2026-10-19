@@ -45,6 +45,7 @@ class ScopedDataRuntimeTest {
     @Test fun actorCancellationBeforeSnapshotPreventsLaterProducerWork() = exercise("actor-cancel-pending")
     @Test fun actorGrantRevocationRetiresPendingSnapshotInsteadOfWaitingForLegacyControls() = exercise("actor-revoked")
     @Test fun nativeMaintenanceRetiresPreviousActorEpochWithoutRebindingItsQueueRun() = exercise("actor-restart")
+    @Test fun nativeActorStartOwnsEncryptedSnapshotDispatchAndMarkedAckCancellation() = exercise("actor-transport")
     @Test fun independentTimeChangeDefersScopedDataWithoutAdmittingRawFallback() = exercise("time")
     @Test fun selectedOrganizerNoteCanBeSentAgainAfterDeletingItsPhoneCopy() = exercise("single")
     @Test fun ownershipControlAndItsAckDoNotRequireContentRunId() = exercise("ownership")
@@ -54,7 +55,7 @@ class ScopedDataRuntimeTest {
     @Test fun authenticatedUnpairClearsOnlyTheCurrentComputerAndKeepsPhoneContent() = exercise("unpair")
 
     private fun exercise(mode: String) {
-        val nativeActor = mode in setOf("actor-source", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-restart")
+        val nativeActor = mode in setOf("actor-source", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-restart", "actor-transport")
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("ScopedDataFixture", 1.0, "Synthetic keys only") {
             init { put("KeyStore.AndroidKeyStore", InvitationTestKeyStore::class.java.name) }
@@ -73,7 +74,7 @@ class ScopedDataRuntimeTest {
         try {
             val book = documents.legeNotizbuchAn("Field notes")
             documents.setzeNotiz(Notiz("phone-note", "Mobile", "Initial phone text", notizbuchId = book.id, angelegt = 1, geaendert = 2))
-            if (mode in setOf("manual", "actor", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
+            if (mode in setOf("manual", "actor", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-transport")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
             val storage = TelefonAblage.get(context)
             storage.identity("Synthetic").second.fill(0)
             storage.setEnabled(true); storage.setPersonalSync(true, true, true, false, false)
@@ -146,6 +147,47 @@ class ScopedDataRuntimeTest {
                 fun ackScope() { session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { ack(it) } }
                 fun scoped(messages: List<JsonObject>) = messages.filter { it["kind"] == JsonPrimitive(PhoneContentScope.DATA_KIND) }
                 val manifest = requireNotNull(session.localContentScope)
+                if (mode == "actor-transport") {
+                    sent(); ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
+                    field(TelefonWerk::class.java, "activeChannel").set(work, channel)
+                    val beforeState = work.state.value; val beforeBook = documents.bestand.value
+                    val run = "44444444-4444-4444-8444-444444444444"
+                    val start = TelefonNachrichten.message(PersonalSyncActor.START_KIND, PersonalSyncActor.start(run), 60000)
+                    work.receiveMessage(peer, start, channel, 0L)
+                    val accepted = sent().single { it["kind"] == JsonPrimitive(PersonalSyncActor.ACK_KIND) }
+                    assertEquals("accepted", accepted.getValue("body").jsonObject.string("status"))
+                    work.receiveMessage(peer, start, channel, 0L)
+                    assertEquals("duplicate", sent().single().getValue("body").jsonObject.string("status"))
+                    pump.invoke(work, peer, channel, 0L, false)
+                    val request = sent().single { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) }
+                    assertEquals("personal_sync.request", PersonalSyncActor.unwrap(request.getValue("body").jsonObject).first)
+                    assertFalse(queue.scopedRequestAccepted(peerId, run))
+                    work.receiveMessage(peer, TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+                        PersonalSyncActor.ack(run, request.string("message_id")), 60000), channel, 0L)
+                    assertTrue(sent().isEmpty()); assertTrue(queue.scopedRequestAccepted(peerId, run))
+                    pump.invoke(work, peer, channel, 0L, false)
+                    val batches = sent().filter { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) }
+                    val batch = batches.single { PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.batch" }
+                    val records = PersonalSyncProtokoll.decodeBatch(PersonalSyncActor.unwrap(batch.getValue("body").jsonObject).second)
+                    assertEquals(setOf("phone-note"), records.filter { it.kind == "note" }.map { it.id }.toSet())
+                    assertEquals(setOf("phone-task"), records.filter { it.kind == "task" }.map { it.id }.toSet())
+                    ack(batch.string("message_id"))
+                    assertEquals(batch, queue.outboxWireMessage(peerId, batch.string("message_id")))
+                    work.receiveMessage(peer, TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+                        PersonalSyncActor.ack("55555555-5555-4555-8555-555555555555", batch.string("message_id")), 60000), channel, 0L)
+                    assertEquals(batch, queue.outboxWireMessage(peerId, batch.string("message_id")))
+                    work.receiveMessage(peer, TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+                        PersonalSyncActor.ack(run, batch.string("message_id")), 60000), channel, 0L)
+                    assertNull(queue.outboxWireMessage(peerId, batch.string("message_id"))); assertTrue(sent().isEmpty())
+                    val cancel = TelefonNachrichten.message(PersonalSyncActor.CANCEL_KIND, PersonalSyncActor.cancel(run), 60000)
+                    work.receiveMessage(peer, cancel, channel, 0L)
+                    assertEquals("accepted", sent().single().getValue("body").jsonObject.string("status"))
+                    pump.invoke(work, peer, channel, 0L, false)
+                    assertTrue(sent().none { PersonalSyncActor.isReservedMessage(it) })
+                    assertEquals(beforeState, work.state.value)
+                    assertEquals(beforeBook.copy(personalSync = documents.bestand.value.personalSync), documents.bestand.value)
+                    return@use
+                }
                 if (mode == "actor-restart") {
                     sent(); ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
                     field(TelefonWerk::class.java, "activeChannel").set(work, channel)
