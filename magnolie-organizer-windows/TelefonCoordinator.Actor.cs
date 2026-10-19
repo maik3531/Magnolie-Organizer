@@ -6,7 +6,8 @@ namespace MagnolieOrganizer.Windows;
 internal sealed partial class TelefonCoordinator
 {
     private sealed record ActorAdmission(PersonalActorHandle Handle, string PeerId, string PublicKey,
-        TelefonConnection Connection, JsonObject Scope, JsonObject Start, HashSet<string> Outbound, HashSet<string> AttachmentRequests);
+        TelefonConnection Connection, JsonObject Scope, JsonObject Start, HashSet<string> Outbound, HashSet<string> AttachmentRequests,
+        HashSet<string> AttachmentResults);
     private readonly Dictionary<string, ActorAdmission> actorAdmissions = new(StringComparer.Ordinal);
 
     private static JsonObject ActorControl(string kind, JsonObject body)
@@ -32,7 +33,7 @@ internal sealed partial class TelefonCoordinator
             {
                 var start = ActorControl(PersonalSyncActorContract.StartKind, PersonalSyncActorContract.Start(handle.ActorId));
                 value = new ActorAdmission(handle, id, Convert.ToBase64String(peer.PublicKey), connection,
-                    connection.ActorSourceSnapshot()["scope"]!.DeepClone().AsObject(), start, [start["message_id"]!.GetValue<string>()], []);
+                    connection.ActorSourceSnapshot()["scope"]!.DeepClone().AsObject(), start, [start["message_id"]!.GetValue<string>()], [], []);
                 actorAdmissions.Add(handle.ActorId, value);
             }
             if (value.Handle != handle || value.PublicKey != Convert.ToBase64String(peer.PublicKey) || !ReferenceEquals(value.Connection, connection) ||
@@ -146,6 +147,7 @@ internal sealed partial class TelefonCoordinator
                             Math.Min(attachmentRun.ExpiresMs, TelefonProtocolContract.Integer(message["expires_ms"])));
                     }
                     finally { CryptographicOperations.ZeroMemory(raw); }
+                    QueueActorAttachmentResult(admission, content);
                 }
                 registry.RequireCurrent(admission.Handle);
                 reply = ActorControl(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(run, message["message_id"]!.GetValue<string>()));
@@ -185,6 +187,21 @@ internal sealed partial class TelefonCoordinator
             }
             admission.AttachmentRequests.Add(key);
         }
+    }
+
+    private void QueueActorAttachmentResult(ActorAdmission admission, JsonObject content)
+    {
+        var run = admission.Handle.ActorId;
+        var privatePeer = PersonalSyncActorContract.StoragePeer(run);
+        var reply = content["reply"]!.GetValue<bool>(); var recordsHash = content["records_hash"]!.GetValue<string>();
+        var hash = content["sha256"]!.GetValue<string>(); var key = $"{reply}:{recordsHash}:{hash}";
+        if (admission.AttachmentResults.Contains(key) || personalSync.MissingAttachmentRanges(privatePeer, run, reply, recordsHash, hash, "incoming", Now()).Count != 0) return;
+        var verified = personalSync.ReadVerifiedAttachment(privatePeer, run, reply, recordsHash, hash, "incoming", admission.Connection.Transport, Now());
+        CryptographicOperations.ZeroMemory(verified);
+        var body = new JsonObject { ["format"] = 2, ["run_id"] = run, ["reply"] = reply, ["records_hash"] = recordsHash,
+            ["sha256"] = hash, ["state"] = "complete", ["error"] = "none" };
+        var id = store.Enqueue(admission.PeerId, "personal_sync.attachment_result", body, 60000, Now(), actorRunId: run);
+        admission.Outbound.Add(id); admission.AttachmentResults.Add(key);
     }
 
     internal async Task PumpPersonalActorAsync(TelefonConnection connection)

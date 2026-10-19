@@ -182,6 +182,9 @@ class PersonalSyncActorTransportTest {
             @Suppress("UNCHECKED_CAST")
             val handles = field(TelefonWerk::class.java, "personalActorHandles").get(runtime) as Map<String, PersonalActorHandle>
             assertTrue(runtime.personalActorJournal.stopped(requireNotNull(handles[result.string("actor_id")])))
+            val pendingAttachments = TelefonQueue::class.java.getDeclaredMethod("hasAuthenticatedOutgoingAttachments", String::class.java, String::class.java)
+                .apply { isAccessible = true }.invoke(field(TelefonWerk::class.java, "queue").get(runtime), host.string("device_id"), result.string("actor_id")) as Boolean
+            assertFalse("Native transfer completion left outgoing attachment chunks retained", pendingAttachments)
             assertEquals(setOf("phone-note"), documents.bestand.value.notizen.map { it.id }.toSet())
             assertEquals(setOf("phone-task"), documents.bestand.value.aufgaben.map { it.id }.toSet())
         } finally {

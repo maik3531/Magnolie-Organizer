@@ -131,6 +131,11 @@ def test_actor_attachment_uses_private_manifest_and_native_integrity_checks(tmp_
     with sqlite3.connect(service.store.database_path) as db:
         rows = db.execute("SELECT peer_id,payload FROM personal_attachment_chunk").fetchall()
     assert len(rows) == 1 and rows[0][0] == private and raw not in rows[0][1]
+    results = [value for value in service.store.pending(peer["device_id"]) if value.get("kind") == actor.DATA_KIND]
+    assert len(results) == 1
+    kind, result = actor.unwrap(results[0]["body"])
+    assert kind == "personal_sync.attachment_result" and result["state"] == "complete" and result["sha256"] == digest
     service.cancel_personal_actor(registry, handle); channel.sent.clear()
+    assert service.store.outbox_message(peer["device_id"], results[0]["message_id"]) is None
     service._payload(peer, channel, actor.wire_message(frame("personal_sync.attachment_chunk", body), handle.actor_id))
     assert not channel.sent and not events

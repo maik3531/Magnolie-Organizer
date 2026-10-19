@@ -162,9 +162,16 @@ internal static class PersonalSyncActorSourceTests
             TestAssert.That(verified.SequenceEqual(attachment) && emitted == beforeEmitted, "Native attachment integrity or GUI isolation failed.");
             await connection.HandlePlainAsync(chunkWire);
             TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Count == 1, "Exact actor attachment replay failed native dedupe.");
+            await coordinator.PumpPersonalActorAsync(connection);
+            var resultWire = (await SharedSyncTransportTests.DrainAsync(wire)).Single();
+            var resultBody = PersonalSyncActorContract.Unwrap(resultWire["body"]!.AsObject());
+            TestAssert.That(resultBody.Kind == "personal_sync.attachment_result" && resultBody.Body["state"]!.GetValue<string>() == "complete",
+                "Native integrity verification did not enqueue the marked transfer result.");
             await coordinator.CancelPersonalActorAsync(transportHandle);
             TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Single()["kind"]!.GetValue<string>() == PersonalSyncActorContract.CancelKind,
                 "Native actor cancellation lost its explicit wire marker.");
+            TestAssert.That(store.OutboxMessage(peer.Id, resultWire["message_id"]!.GetValue<string>()) is null,
+                "Cancellation left its own outbound actor result pending.");
             TestAssert.That(wire.GuardChecks > 0, "Encrypted actor writes bypassed the source-guard observation.");
             wire.AssertActorWrite = null;
             TestAssert.That(Read(() => new string('b', 64)) != revision && Read(() => null) is null && Read(() => "client-digest") is null,

@@ -3980,6 +3980,7 @@ class PhoneService:
                     self.store.stage_incoming_attachment(storage_peer, run, content["reply"], content["records_hash"],
                         content["sha256"], descriptor["size"], descriptor["mime"], content["index"],
                         base64.b64decode(content["data"], validate=True), "any", payload["expires_ms"], descriptor["attachment_id"])
+                    self._queue_actor_attachment_result(admission, content)
                 registry.require_current(handle)
                 reply = self._actor_control_message(personal_actor_contract.ACK_KIND,
                     personal_actor_contract.ack(run, payload["message_id"]))
@@ -4018,6 +4019,25 @@ class PhoneService:
             admission["outbound"].add(wire["message_id"])
             requests[part] = wire["message_id"]
         registry.require_current(handle)
+
+    def _queue_actor_attachment_result(self, admission, content):
+        handle = admission["handle"]
+        admission["registry"].require_current(handle)
+        identity = (content["reply"], content["records_hash"], content["sha256"])
+        completed = admission.setdefault("attachment_results", {})
+        if identity in completed:
+            return
+        class Discard:
+            def write(self, raw): return len(raw)
+        if not self.store.verify_incoming_attachment(personal_actor_contract.storage_peer(handle.actor_id), handle.actor_id,
+                content["reply"], content["records_hash"], content["sha256"], Discard()):
+            return
+        result = {"format": 2, "run_id": handle.actor_id, "reply": content["reply"], "records_hash": content["records_hash"],
+            "sha256": content["sha256"], "state": "complete", "error": "none"}
+        wire = self.store.queue(admission["peer"], "personal_sync.attachment_result", result, 60000, actor_run_id=handle.actor_id)
+        admission["outbound"].add(wire["message_id"])
+        completed[identity] = wire["message_id"]
+        admission["registry"].require_current(handle)
 
     def _send_personal_actor_queued(self, channel, peer_id, message):
         # Ordinary callers can be inside their legacy guard; the next native due

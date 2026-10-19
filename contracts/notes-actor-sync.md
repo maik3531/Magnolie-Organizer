@@ -334,8 +334,15 @@ Exact marked receipts complete only the correlated actor's queued control, and
 native cancellation removes its retained outbound controls. The C# outbox binds
 marked messages to their private core run namespace rather than a GUI run.
 The Python TCP fixture drops the initial attachment request before framing and
-requires the native retry of its original message ID. Incoming book adoption and
-the remaining completion gates still apply.
+requires the native retry of its original message ID.
+
+After the native integrity reader verifies a complete private file, the desktop
+queues its marked transfer result through the same owner-bound outbox. Exact
+chunk replay cannot produce another result. Both TCP fixtures wait for the
+correlated marked result receipt and verify that Notes has released its outgoing
+attachment staging through the existing completion handler. An optional run
+report is not a required transfer receipt. This completes file transfer into
+private staging, not book adoption; the remaining completion gates still apply.
 
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption

@@ -56,9 +56,10 @@ def main():
                     bytes([13]) * 32, bytes([14]) * 4, bytes([11]) * 32, bytes([12]) * 4)
                 service.connections[phone_id] = channel; service.connection_transports[phone_id] = "wifi"
                 packet = {}; receipt = {"dropped": None, "replayed": False, "cancel_id": None,
-                    "dropped_request": None, "request_replayed": False}; received = Counter(); rejected = []; sent_kinds = {}
+                    "dropped_request": None, "request_replayed": False}; received = Counter(); rejected = []; sent_kinds = {}; sent_semantic = {}
                 send = channel.send
                 def send_actor(value):
+                    if value.get("kind") == actor.DATA_KIND: sent_semantic[value["message_id"]] = actor.unwrap(value["body"])[0]
                     if value.get("kind") == actor.CANCEL_KIND: receipt["cancel_id"] = value["message_id"]
                     if value.get("kind") == actor.DATA_KIND and actor.unwrap(value["body"])[0] == "personal_sync.attachment_request":
                         if receipt["dropped_request"] is None:
@@ -76,7 +77,7 @@ def main():
                     send(value)
                 channel.send = send_actor
                 service._ensure_desktop_updates(phone_id)
-                handle = None; registry = service.personal_actor_registry()
+                handle = None; registry = service.personal_actor_registry(); transfer_confirmed = False
                 deadline = time.monotonic() + 50
                 while time.monotonic() < deadline:
                     try:
@@ -84,6 +85,11 @@ def main():
                         received[packet.get("kind", packet.get("type", "unknown"))] += 1
                         if packet.get("status") == "rejected": rejected.append({"kind": sent_kinds.get(packet.get("message_id")), "error": packet.get("error")})
                         service._payload(peer, channel, packet)
+                        if (handle is not None and packet.get("kind") == actor.ACK_KIND and
+                                sent_semantic.get(packet["body"]["message_id"]) == "personal_sync.attachment_result" and
+                                packet["body"]["status"] in {"accepted", "duplicate"}):
+                            assert registry.read(handle, packet["message_id"]) == packet
+                            transfer_confirmed = True
                     except socket.timeout:
                         pass
                     for queued in service.store.pending(phone_id): service._send_message(channel, phone_id, queued)
@@ -106,6 +112,8 @@ def main():
                                 continue
                             assert sink.getvalue() == bytes([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3])
                             assert receipt["request_replayed"]
+                            if not transfer_confirmed:
+                                continue
                             assert not any(event == "personal_sync" and
                                 (value.get("kind") == "personal_sync.batch" or
                                  value.get("body", {}).get("run_id") == handle.actor_id)

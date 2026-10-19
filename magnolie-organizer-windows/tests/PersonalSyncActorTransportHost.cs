@@ -44,14 +44,20 @@ internal static class PersonalSyncActorTransportHost
             var receiveMethod = typeof(TelefonCoordinator).GetMethod("HandleMessageAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
             string? cancellingRun = null;
             var cancelReceipt = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var transferReceipt = new TaskCompletionSource<JsonObject>(TaskCreationOptions.RunContinuationsAsynchronously);
             using var connection = new TelefonConnection(peer, socket.GetStream(), Enumerable.Repeat((byte)7, 32).ToArray(), material, store,
                 (source, message) => (Task<TelefonAck?>)receiveMethod.Invoke(coordinator, [source, message, "wifi"])!, deadline.Token, "wifi")
                 { SharedLocalCapabilities = () => capabilities["items"]!.DeepClone().AsObject(),
                     ActorMessageReceived = async (source, message) => {
+                        var outgoing = message["kind"]?.GetValue<string>() == PersonalSyncActorContract.AckKind
+                            ? store.OutboxMessage(phoneId, message["body"]!["message_id"]!.GetValue<string>()) : null;
                         if (message["kind"]?.GetValue<string>() == PersonalSyncActorContract.AckKind &&
                             cancellingRun is not null && message["body"]?["run_id"]?.GetValue<string>() == cancellingRun)
                             cancelReceipt.TrySetResult();
                         await coordinator.ReceivePersonalActorAsync(source, peer, message);
+                        if (outgoing?["kind"]?.GetValue<string>() == PersonalSyncActorContract.DataKind &&
+                            PersonalSyncActorContract.Unwrap(outgoing["body"]!.AsObject()).Kind == "personal_sync.attachment_result" &&
+                            message["body"]!["status"]!.GetValue<string>() is "accepted" or "duplicate") transferReceipt.TrySetResult(message);
                     }, ActorPump = coordinator.PumpPersonalActorAsync };
             var online = (IDictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator)!;
             online[phoneId] = connection;
@@ -99,6 +105,8 @@ internal static class PersonalSyncActorTransportHost
                     "incoming", "wifi", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
                 TestAssert.That(attachment.SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3 }), "Native actor attachment integrity failed.");
                 CryptographicOperations.ZeroMemory(attachment);
+                var transfer = await transferReceipt.Task.WaitAsync(TimeSpan.FromSeconds(10), deadline.Token);
+                await coordinator.WithPersonalActorStoreAsync(registry => registry.Read(handle, transfer["message_id"]!.GetValue<string>()));
                 TestAssert.That(guiAdoptions == 0, "Actor snapshot reached GUI adoption.");
                 cancellingRun = handle.ActorId;
                 await coordinator.CancelPersonalActorAsync(handle, deadline.Token);
