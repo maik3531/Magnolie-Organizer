@@ -123,6 +123,7 @@ internal fun shouldStartPersonalSyncOnSecureWifi(
 class TelefonWerk private constructor(private val context: Context, private val storage: TelefonAblage) {
     private val developerDiagnostics = io.gitlab.maik3531.magnolienotes.Entwicklermodus(context)
     private val noteSessions = java.util.WeakHashMap<TelefonSecureChannel, PersonalNoteSession>()
+    private val actorSourceKey = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
     private val timePolicyFailed = mutableSetOf<String>()
 
     private fun noteModeSupported(peer: TelefonPeer) = peer.remote_personal_notes_sync_available &&
@@ -191,6 +192,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private val discovering = AtomicBoolean(false)
     private val connecting = AtomicBoolean(false)
     private val queue = TelefonQueue(context, storage) { Ablage.hole(context).baum.value.syncEpoch }
+    internal val personalActorJournal by lazy {
+        queue.actorJournal(this, Ablage.SCHREIBSPERRE) { peer, key ->
+            activeChannel?.let { channel -> currentActorSource(peer, key, channel, pairingGeneration) }
+        }
+    }
     private val sharedActor by lazy { storage.identity(Build.MODEL.orEmpty()).let { (identity, secret) ->
         secret.fill(0); identity.device_id } }
     internal var sharedLocalCapabilities: () -> Map<String, TelefonCapability> = { TelefonCapabilities.phase1() }
@@ -247,6 +253,53 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val settings = sharedPreferences.read(sharedBinding(peer)) ?: return false
         return session?.sharedSent == settings && session.sharedReceived == settings &&
             SharedSyncSettings.effective(settings)["content_mode"] == JsonPrimitive("phone_scope")
+    }
+
+    /** Native-only snapshot. An externally supplied revision is never an authorization input. */
+    @Synchronized internal fun currentActorSource(peerId: String, publicKey: String,
+        channel: TelefonSecureChannel, generation: Long): String? {
+        if (!serviceRunning || !storage.enabled() || activeChannel !== channel ||
+            generation != pairingGeneration || activeTransport == null) return null
+        val peer = safePeer()?.takeIf { it.device_id == peerId && it.static_public == publicKey } ?: return null
+        val session = noteSessions[channel] ?: return null
+        val capabilities = sharedLocalCapabilities()
+        if (!PersonalSyncActor.supported(peer, capabilities) || !contentScopeControlsReady(peer, session)) return null
+        return synchronized(Ablage.SCHREIBSPERRE) {
+            val documents = Ablage.hole(context)
+            if (!documents.synchronisationsSchreibbar()) return@synchronized null
+            val live = PersonalSync.livePersonalContent(documents.bestand.value)
+            val epoch = documents.baum.value.syncEpoch
+            val manifest = session.localContentScope ?: return@synchronized null
+            val settings = sharedPreferences.read(sharedBinding(peer)) ?: return@synchronized null
+            val preference = (settings.getValue("settings") as JsonObject).getValue("content_mode")
+            val parts = maxOf(1, (live.notes.size + live.tasks.size + 255) / 256)
+            if (session.contentScopeSelection != live || session.contentScopeRestoreEpoch != epoch ||
+                session.contentScopePreference != preference || session.contentScopeMessages.isNotEmpty() ||
+                session.contentScopeAccepted != (0 until parts).toSet()) return@synchronized null
+            val snapshot = buildJsonObject {
+                put("profile", JsonPrimitive(sharedActor)); put("peer_id", JsonPrimitive(peerId))
+                put("public_key", JsonPrimitive(publicKey)); put("connection", JsonPrimitive(session.actorSourceEpoch))
+                put("pairing_generation", JsonPrimitive(generation)); put("lifecycle_generation", JsonPrimitive(lifecycleGeneration))
+                put("transport", JsonPrimitive(requireNotNull(activeTransport).first.name))
+                put("restore_epoch", JsonPrimitive(epoch)); put("scope", PhoneContentScope.reference(manifest))
+                put("settings", settings)
+                put("local_capabilities", JsonObject(listOf("personal_notes_sync", "personal_tasks_sync").associateWith { name ->
+                    val value = capabilities.getValue(name)
+                    buildJsonObject { put("available", JsonPrimitive(value.available)); put("versions", JsonArray(value.versions.map(::JsonPrimitive))) }
+                }))
+                put("controls", JsonArray(listOf(peer.capabilities_revision, peer.grants_revision,
+                    peer.remote_capabilities_revision, peer.remote_grants_revision).map(::JsonPrimitive)))
+                put("deletions", JsonArray(listOf(peer.personal_deletions_sync_granted, peer.remote_personal_deletions_sync_granted).map(::JsonPrimitive)))
+                put("remote_notes_versions", JsonArray(peer.remote_personal_notes_sync_versions.map(::JsonPrimitive)))
+                put("remote_tasks_versions", JsonArray(peer.remote_personal_tasks_sync_versions.map(::JsonPrimitive)))
+            }
+            val clear = TelefonKanonisch.bytes(snapshot)
+            try {
+                val mac = javax.crypto.Mac.getInstance("HmacSHA256")
+                mac.init(javax.crypto.spec.SecretKeySpec(actorSourceKey, "HmacSHA256"))
+                mac.doFinal(clear).joinToString("") { "%02x".format(it) }
+            } finally { clear.fill(0) }
+        }
     }
 
     private fun queueContentScope(peer: TelefonPeer, session: PersonalNoteSession?) {

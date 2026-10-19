@@ -40,6 +40,7 @@ class ScopedDataRuntimeTest {
     @Test fun reservedActorWireWaitsForItsOwnTransportRouteWithoutLegacyFallback() = exercise("actor-wire")
     @Test fun unadmittedActorReceiveNeverReachesOrdinaryStorageOrDocumentState() = exercise("actor-receive")
     @Test fun actorScopeSnapshotPersistsProtectedClassificationAndWireMarkersBeforeSending() = exercise("actor-snapshot")
+    @Test fun actorSourceBindsTheActualChannelFreshControlsAndCurrentBookScope() = exercise("actor-source")
     @Test fun independentTimeChangeDefersScopedDataWithoutAdmittingRawFallback() = exercise("time")
     @Test fun selectedOrganizerNoteCanBeSentAgainAfterDeletingItsPhoneCopy() = exercise("single")
     @Test fun ownershipControlAndItsAckDoNotRequireContentRunId() = exercise("ownership")
@@ -77,11 +78,17 @@ class ScopedDataRuntimeTest {
                 remote_personal_notes_sync_granted = true, remote_personal_tasks_sync_granted = true,
                 personal_deletions_sync_granted = mode in setOf("delete", "skip-delete"), remote_personal_deletions_sync_granted = mode in setOf("delete", "skip-delete"),
                 remote_personal_notes_sync_available = true, remote_personal_tasks_sync_available = true,
-                remote_personal_notes_sync_versions = listOf(1, 2, 3, 5, 9, 10), remote_personal_tasks_sync_versions = listOf(1, 2, 3, 4, 6, 7, 9, 10))
+                remote_personal_notes_sync_versions = listOf(1, 2, 3, 5, 9, 10) + if (mode == "actor-source") listOf(12) else emptyList(),
+                remote_personal_tasks_sync_versions = listOf(1, 2, 3, 4, 6, 7, 9, 10) + if (mode == "actor-source") listOf(12) else emptyList())
             storage.savePeer(peer)
             val work = TelefonWerk.get(context)
             runtimeWork = work
             work.sharedLocalCapabilities = { TelefonCapabilities.phase1() }
+            if (mode == "actor-source") work.sharedLocalCapabilities = {
+                TelefonCapabilities.phase1().mapValues { (name, value) ->
+                    if (name in setOf("personal_notes_sync", "personal_tasks_sync")) value.copy(versions = value.versions + 12) else value
+                }
+            }
             field(TelefonWerk::class.java, "serviceRunning").setBoolean(work, true)
             (field(TelefonWerk::class.java, "connecting").get(work) as AtomicBoolean).set(true)
             val closed = AtomicInteger()
@@ -133,6 +140,53 @@ class ScopedDataRuntimeTest {
                 fun ackScope() { session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { ack(it) } }
                 fun scoped(messages: List<JsonObject>) = messages.filter { it["kind"] == JsonPrimitive(PhoneContentScope.DATA_KIND) }
                 val manifest = requireNotNull(session.localContentScope)
+                if (mode == "actor-source") {
+                    fun source() = work.currentActorSource(peerId, peer.static_public, channel, 0L)
+                    assertNull(source())
+                    field(TelefonWerk::class.java, "activeChannel").set(work, channel)
+                    assertNull(source()) // The manifest must actually have been acknowledged.
+                    sent(); ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
+                    val revision = requireNotNull(source())
+                    val boundPeer = requireNotNull(storage.peers().peer)
+                    assertTrue(Regex("[0-9a-f]{64}").matches(revision)); assertEquals(revision, source())
+                    assertNull(work.currentActorSource(peerId, peer.static_public, channel, 1L))
+                    assertNull(work.currentActorSource(peerId, TelefonKrypto.b64(ByteArray(32) { 24 }), channel, 0L))
+                    val capabilities = work.sharedLocalCapabilities
+                    work.sharedLocalCapabilities = { TelefonCapabilities.phase1() }
+                    assertNull(source()); work.sharedLocalCapabilities = capabilities
+                    session.grantsReceived = false; assertNull(source()); session.grantsReceived = true
+                    session.ownSettingsReceived = false; assertNull(source()); session.ownSettingsReceived = true
+                    for (revoked in listOf(boundPeer.copy(own_device = false), boundPeer.copy(remote_own_device = false),
+                        boundPeer.copy(personal_notes_sync_granted = false), boundPeer.copy(remote_personal_tasks_sync_granted = false))) {
+                        storage.savePeer(revoked); assertNull(source())
+                    }
+                    storage.savePeer(boundPeer)
+                    assertEquals(revision, source())
+                    val journal = work.personalActorJournal
+                    val handle = journal.create(peerId, peer.static_public, revision)
+                    assertEquals(7, journal.withActive(handle) { 7 })
+                    val oldSession = session
+                    session = PersonalNoteSession().apply {
+                        capabilitiesReceived = true; grantsReceived = true; ownSettingsReceived = true
+                        sharedSent = oldSession.sharedSent; sharedReceived = oldSession.sharedReceived
+                        localContentScope = oldSession.localContentScope; contentScopeSelection = oldSession.contentScopeSelection
+                        contentScopeRestoreEpoch = oldSession.contentScopeRestoreEpoch; contentScopePreference = oldSession.contentScopePreference
+                        contentScopeAccepted.addAll(oldSession.contentScopeAccepted)
+                    }
+                    sessions[channel] = session
+                    assertNotEquals(revision, source()); assertTrue(runCatching { journal.withActive(handle) { 0 } }.isFailure)
+                    session = oldSession; sessions[channel] = session
+                    field(TelefonWerk::class.java, "activeChannel").set(work, null)
+                    assertNull(source()); assertTrue(runCatching { journal.withActive(handle) { 0 } }.isFailure)
+                    field(TelefonWerk::class.java, "activeChannel").set(work, channel)
+                    storage.savePeer(boundPeer.copy(remote_grants_revision = boundPeer.remote_grants_revision + 1))
+                    assertNotEquals(revision, source())
+                    storage.savePeer(boundPeer)
+                    documents.setzeNotiz(Notiz("scope-change", "Additional", "New scope member"))
+                    assertNull(source()); assertTrue(runCatching { journal.withActive(handle) { 0 } }.isFailure)
+                    journal.retire(handle)
+                    return@use
+                }
                 if (mode == "actor-snapshot") {
                     sent(); ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
                     val run = "44444444-4444-4444-8444-444444444444"

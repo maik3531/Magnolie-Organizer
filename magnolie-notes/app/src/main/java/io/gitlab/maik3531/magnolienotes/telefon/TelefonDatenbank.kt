@@ -159,6 +159,9 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     internal fun sharedSettingsStorage(binding: () -> SharedSettingsBinding?, restoreBlocked: () -> Boolean) =
         SharedSyncStorage({ helper.writableDatabase }, storage, binding, restoreBlocked)
 
+    internal fun actorJournal(sourceLock: Any, bookLock: Any, currentSource: (String, String) -> String?) =
+        PersonalSyncActorJournal(helper, storage, currentSource, restoreEpoch, sourceLock = sourceLock, bookLock = bookLock)
+
     internal fun containsScopedRun(peerId: String, runId: String): Boolean = helper.readableDatabase.query(
         "meta", arrayOf("key"), "key=?", arrayOf("personal_scope:$peerId:$runId"), null, null, null, "1").use { it.moveToFirst() }
 

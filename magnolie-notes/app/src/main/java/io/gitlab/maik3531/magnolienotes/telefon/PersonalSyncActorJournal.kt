@@ -25,7 +25,9 @@ internal class PersonalSyncActorJournal(
     private val restoreEpoch: () -> String,
     private val ownerEpoch: String = randomToken(),
     private val clock: () -> Long = System::currentTimeMillis,
-    private val monotonic: () -> Long = android.os.SystemClock::elapsedRealtime
+    private val monotonic: () -> Long = android.os.SystemClock::elapsedRealtime,
+    private val sourceLock: Any = Any(),
+    private val bookLock: Any = sourceLock
 ) {
     @Serializable private data class Binding(
         val format: Int = 12, val peerId: String, val runId: String, val publicKey: String,
@@ -36,6 +38,10 @@ internal class PersonalSyncActorJournal(
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = false }
     init { require(HEX.matches(ownerEpoch)) }
 
+    // Native service -> book -> SQLite, matching the existing snapshot/queue path.
+    private inline fun <T> withNativeLocks(action: () -> T): T =
+        synchronized(sourceLock) { synchronized(bookLock) { action() } }
+
     private fun key(peer: String, run: String): String = "personal_actor_journal:$peer:$run"
     private fun decode(id: String, sealed: ByteArray): Binding {
         val clear = storage.decryptPayload(sealed, "personal_actor_journal", id)
@@ -44,7 +50,7 @@ internal class PersonalSyncActorJournal(
                 PersonalSyncActor.start(it.peerId); PersonalSyncActor.start(it.runId)
                 TelefonKrypto.b64(it.publicKey, 32)
                 require(it.format == 12 && id == key(it.peerId, it.runId) && HEX.matches(it.sourceRevision) &&
-                    HEX.matches(it.ownerEpoch) && HEX.matches(it.ownerHash) && it.restoreEpoch.isNotEmpty() &&
+                    HEX.matches(it.ownerEpoch) && HEX.matches(it.ownerHash) &&
                     it.restoreEpoch.length <= 256 && it.createdMs >= 0 && it.expiresMs <= MAX_TIME &&
                     it.expiresMs - it.createdMs == LIFETIME && it.createdMonotonicMs >= 0 &&
                     it.expiresMonotonicMs > it.createdMonotonicMs &&
@@ -78,12 +84,12 @@ internal class PersonalSyncActorJournal(
     }
 
     fun create(peerId: String, publicKey: String, sourceRevision: String,
-               runId: String = UUID.randomUUID().toString()): PersonalActorHandle = database.writableDatabase.inTransaction {
+               runId: String = UUID.randomUUID().toString()): PersonalActorHandle = withNativeLocks { database.writableDatabase.inTransaction {
         PersonalSyncActor.start(peerId); PersonalSyncActor.start(runId); TelefonKrypto.b64(publicKey, 32)
         require(HEX.matches(sourceRevision))
         val now = clock(); val elapsed = monotonic(); val restore = restoreEpoch()
         require(now in 0..(MAX_TIME - LIFETIME) && elapsed in 0..(Long.MAX_VALUE - LIFETIME) &&
-            restore.isNotEmpty() && restore.length <= 256)
+            restore.length <= 256)
         check(currentSource(peerId, publicKey) == sourceRevision) { "actor_source_changed" }
         val rows = mutableListOf<Binding>()
         query("meta", arrayOf("key", "value"), "key GLOB ?", arrayOf("personal_actor_journal:*"), null, null, null).use {
@@ -100,16 +106,18 @@ internal class PersonalSyncActorJournal(
             createdMonotonicMs = elapsed, expiresMonotonicMs = elapsed + LIFETIME))
         requireOwner(this, handle, true)
         handle
-    }
+    } }
 
     /** Only same-database work belongs here; a rejected post-check rolls it back. */
     fun <T> withActive(handle: PersonalActorHandle, action: SQLiteDatabase.() -> T): T =
-        database.writableDatabase.inTransaction {
+        withNativeLocks { database.writableDatabase.inTransaction {
             requireOwner(this, handle, true)
             action().also { requireOwner(this, handle, true) }
-        }
+        } }
 
-    fun stopped(handle: PersonalActorHandle): Boolean = database.readableDatabase.let { requireOwner(it, handle, false).stopped }
+    fun stopped(handle: PersonalActorHandle): Boolean = withNativeLocks {
+        requireOwner(database.readableDatabase, handle, false).stopped
+    }
 
     private fun wireKey(handle: PersonalActorHandle, messageId: String): String =
         "personal_actor_wire:${handle.peerId}:${handle.runId}:$messageId"
@@ -173,9 +181,9 @@ internal class PersonalSyncActorJournal(
     }
 
     /** Native retirement remains possible after revocation/expiry; it never authorizes content. */
-    fun retire(handle: PersonalActorHandle) = database.writableDatabase.inTransaction {
+    fun retire(handle: PersonalActorHandle) = withNativeLocks { database.writableDatabase.inTransaction {
         write(this, requireOwner(this, handle, false).copy(stopped = true))
-    }
+    } }
 
     companion object {
         private const val LIFETIME = 30 * 60 * 1000L

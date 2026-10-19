@@ -181,9 +181,23 @@ the stored marker. Raw put/read use the same pre/post authorization transaction.
 Per-actor retention is bounded to 4096 packets/50 MiB sealed bytes and also obeys
 the existing shared phone-meta capacity (8192 rows/50 MiB). Persisting a raw frame
 is neither domain staging nor authority to emit a successful receipt. This
-primitive does not yet connect journal retirement to queue stopping, dispatch
-incoming frames or supply the actual native source callback; those lifecycle/
+primitive does not yet connect journal retirement to queue stopping or dispatch
+incoming frames; those lifecycle/
 transport integrations remain activation gates.
+
+Notes now also derives a native source revision from the exact active secure
+channel and its private session nonce, pairing/lifecycle generations, actual
+paired key, local profile, restore epoch and fully acknowledged current scope.
+It reuses the fresh shared-control, bilateral ownership/grant and writable-store
+checks. The revision is keyed with a runtime-only HMAC key and also binds the
+current settings, control revisions and supported capability versions. An
+unacknowledged/stale scope, changed connection/key/generation or revoked grant
+cannot produce a source revision. Actor capability 12 is required by this check
+and remains unadvertised in production. The native queue factory connects the
+journal to that callback and acquires service/book locks before SQLite, matching
+the existing snapshot path. A book's initial empty native tree-sync epoch remains
+a valid bound value, as in the existing queue; it is never replaced with a caller
+epoch. The journal/queue lifecycle adapter remains required before admission.
 
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption

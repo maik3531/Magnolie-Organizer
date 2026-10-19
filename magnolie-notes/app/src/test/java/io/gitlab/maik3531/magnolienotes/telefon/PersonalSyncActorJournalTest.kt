@@ -39,12 +39,18 @@ class PersonalSyncActorJournalTest {
         assertTrue(journal().stopped(handle))
         assertTrue(runCatching { journal().withActive(handle) { 0 } }.isFailure)
         assertTrue(runCatching { journal().create(PEER, KEY, REV, handle.runId) }.isFailure)
+        // Native books without tree sync legitimately start with an empty syncEpoch.
+        val initialBook = PersonalSyncActorJournal(db, storage, { _, _ -> REV }, { "" })
+        val initial = initialBook.create(PEER, KEY, REV)
+        assertEquals(11, initialBook.withActive(initial) { 11 })
     }
 
     @Test fun sourceAndLeaseRacesRollbackDatabaseWorkAndAllowNativeRetirement() = fixture { db, storage ->
         var source: String? = REV; var restore = "book-epoch"; var wall = 1000L; var elapsed = 100L
-        val journal = PersonalSyncActorJournal(db, storage, { _, _ -> source }, { restore },
-            clock = { wall }, monotonic = { elapsed })
+        val sourceLock = Any(); val bookLock = Any()
+        val journal = PersonalSyncActorJournal(db, storage, { _, _ ->
+            check(Thread.holdsLock(sourceLock) && Thread.holdsLock(bookLock)); source
+        }, { restore }, clock = { wall }, monotonic = { elapsed }, sourceLock = sourceLock, bookLock = bookLock)
         val handle = journal.create(PEER, KEY, REV)
         assertTrue(runCatching { journal.withActive(handle) {
             execSQL("INSERT INTO meta(key,value) VALUES('actor-fixture',X'01')")
