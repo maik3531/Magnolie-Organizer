@@ -1,0 +1,19 @@
+{
+  "cases": [
+    {"name":"accepted", "valid":true, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","message_id":"22222222-2222-4222-8222-222222222222","status":"accepted","error":"none"}},
+    {"name":"duplicate", "valid":true, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","message_id":"22222222-2222-4222-8222-222222222222","status":"duplicate","error":"none"}},
+    {"name":"temporary", "valid":true, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","message_id":"22222222-2222-4222-8222-222222222222","status":"rejected","error":"temporary_failure"}},
+    {"name":"terminal", "valid":true, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","message_id":"22222222-2222-4222-8222-222222222222","status":"rejected","error":"permanent_failure"}},
+    {"name":"accepted-error", "valid":false, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","message_id":"22222222-2222-4222-8222-222222222222","status":"accepted","error":"unsupported"}},
+    {"name":"rejected-none", "valid":false, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","message_id":"22222222-2222-4222-8222-222222222222","status":"rejected","error":"none"}},
+    {"name":"unknown-status", "valid":false, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","message_id":"22222222-2222-4222-8222-222222222222","status":"complete","error":"none"}},
+    {"name":"unknown-error", "valid":false, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","message_id":"22222222-2222-4222-8222-222222222222","status":"rejected","error":"untrusted-error-text"}},
+    {"name":"extra-field", "valid":false, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","message_id":"22222222-2222-4222-8222-222222222222","status":"accepted","error":"none","owner":"untrusted"}},
+    {"name":"missing-run", "valid":false, "body":{"format":12,"message_id":"22222222-2222-4222-8222-222222222222","status":"accepted","error":"none"}},
+    {"name":"wrong-run", "valid":false, "body":{"format":12,"run_id":"11111111-1111-1111-8111-111111111111","message_id":"22222222-2222-4222-8222-222222222222","status":"accepted","error":"none"}},
+    {"name":"null-reference", "valid":false, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","message_id":null,"status":"accepted","error":"none"}},
+    {"name":"noncanonical-reference", "valid":false, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","message_id":"AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA","status":"accepted","error":"none"}},
+    {"name":"string-format", "valid":false, "body":{"format":"12","run_id":"11111111-1111-4111-8111-111111111111","message_id":"22222222-2222-4222-8222-222222222222","status":"accepted","error":"none"}},
+    {"name":"fraction-format", "valid":false, "body":{"format":12.0,"run_id":"11111111-1111-4111-8111-111111111111","message_id":"22222222-2222-4222-8222-222222222222","status":"accepted","error":"none"}}
+  ]
+}

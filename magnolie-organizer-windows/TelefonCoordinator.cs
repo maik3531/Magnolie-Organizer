@@ -1956,8 +1956,7 @@ internal sealed partial class TelefonConnection : IDisposable
         }
         if (type == "ack")
         {
-            TelefonProtocolContract.ExactObject(plain, "type", "message_id", "status", "error"); var id = plain["message_id"]?.GetValue<string>(); var status = plain["status"]?.GetValue<string>(); var error = plain["error"]?.GetValue<string>();
-            if (!TelefonProtocolContract.IsUuidV4(id) || status is not ("accepted" or "duplicate" or "rejected") || (status == "rejected" ? error is not ("expired" or "invalid_schema" or "unsupported" or "not_granted" or "too_large" or "temporary_failure" or "permanent_failure" or "restore_unavailable" or "conflict") : error != "none")) throw new InvalidDataException("Ungültiges Ack.");
+            TelefonProtocolContract.ValidateAck(plain); var id = plain["message_id"]!.GetValue<string>(); var status = plain["status"]!.GetValue<string>(); var error = plain["error"]!.GetValue<string>();
             var queued = store.OutboxMessage(peer.Id, id!);
             if (queued is not null && PersonalSyncActorContract.IsReservedMessage(queued)) return;
             if (status == "rejected" && rejectContactRead?.Invoke(this, peer, new TelefonAck(id!, status, error!)) == true) return;
@@ -2177,7 +2176,7 @@ internal sealed partial class TelefonConnection : IDisposable
         {
             var kind = item.Message["kind"]!.GetValue<string>(); var body = item.Message["body"]!.AsObject();
             // Reserved actors require their own authorized route, never a legacy fallback.
-            if (kind is PersonalSyncActorContract.StartKind or PersonalSyncActorContract.DataKind) continue;
+            if (PersonalSyncActorContract.IsReservedKind(kind)) continue;
             if (kind == SharedSyncSettings.StartKind)
             {
                 if (!SharedSettingsReady) continue;

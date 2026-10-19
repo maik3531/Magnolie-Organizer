@@ -5,6 +5,48 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PersonalSyncActorTest {
+    @Test fun sameActorAckVectorsReuseTheExistingTransportAckRules() {
+        val text = requireNotNull(javaClass.getResource("/notes-actor-ack.json")).readText()
+        for (item in Json.parseToJsonElement(text).jsonObject.getValue("cases").jsonArray.map { it.jsonObject }) {
+            val body = item.getValue("body").jsonObject
+            val accepted = runCatching { PersonalSyncActor.validateAck(body) }.isSuccess
+            assertEquals(item.string("name"), item.getValue("valid").jsonPrimitive.boolean, accepted)
+            if (accepted) {
+                assertEquals(body, PersonalSyncActor.ack(body.string("run_id"), body.string("message_id"), body.string("status"), body.string("error")))
+                assertTrue(PersonalSyncActor.isReservedMessage(buildJsonObject { put("type", "message"); put("kind", PersonalSyncActor.ACK_KIND); put("body", body) }))
+                assertTrue(runCatching { PersonalSyncActor.wrap(body.string("run_id"), PersonalSyncActor.ACK_KIND, body) }.isFailure)
+            }
+        }
+    }
+
+    @Test fun actorOverheadUsesFullPacketBudgetWithoutRelaxingTheInnerBatchLimit() {
+        val fixture = Json.parseToJsonElement(requireNotNull(javaClass.getResource("/notes-actor-data.json")).readText()).jsonObject.getValue("wire_budget").jsonObject
+        val run = "11111111-1111-4111-8111-111111111111"
+        fun record(id: String, length: Int): JsonObject {
+            val value = JsonObject(fixture.getValue("value").jsonObject + ("text" to JsonPrimitive("A".repeat(length))))
+            val hash = java.security.MessageDigest.getInstance("SHA-256").digest(TelefonKanonisch.bytes(value)).joinToString("") { "%02x".format(it) }
+            return buildJsonObject {
+                put("kind", "note"); put("id", id); put("state", "live"); put("modified_ms", 0)
+                put("clock", JsonArray(listOf(buildJsonObject { put("actor_id", run); put("counter", 1) })))
+                put("hash", hash); put("value", value)
+            }
+        }
+        fun message(secondLength: Int): JsonObject = TelefonNachrichten.message("personal_sync.batch", buildJsonObject {
+            put("format", 1); put("run_id", run); put("batch_id", "33333333-3333-4333-8333-333333333333")
+            put("sequence", 0); put("last", true); put("reply", false)
+            put("records", JsonArray(listOf(record("note-a", 128 * 1024), record("note-b", secondLength))))
+        }, 60000, 1700000000000L, "22222222-2222-4222-8222-222222222222")
+        val target = fixture.getValue("portable_body_bytes").jsonPrimitive.int
+        val original = message(target - TelefonKanonisch.bytes(message(0).getValue("body")).size)
+        assertEquals(target, TelefonKanonisch.bytes(original.getValue("body")).size)
+        TelefonNachrichten.validate(original, 1700000000000L)
+        val envelope = PersonalSyncActor.wrap(run, "personal_sync.batch", original.getValue("body").jsonObject)
+        assertTrue(TelefonKanonisch.bytes(envelope).size <= 256 * 1024)
+        val wrapped = JsonObject(original + mapOf("kind" to JsonPrimitive(PersonalSyncActor.DATA_KIND), "body" to envelope))
+        assertTrue(TelefonKanonisch.bytes(wrapped).size > 192 * 1024 && TelefonKanonisch.bytes(wrapped).size <= 256 * 1024)
+        assertEquals(wrapped, PersonalSyncActor.wireMessage(original, run))
+    }
+
     @Test fun sameCrossPlatformDataVectorsAndOriginalBodyRoundtrip() {
         val text = requireNotNull(javaClass.getResource("/notes-actor-data.json")).readText()
         val cases = Json.parseToJsonElement(text).jsonObject.getValue("cases").jsonArray

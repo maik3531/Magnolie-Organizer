@@ -17,6 +17,7 @@ bin/magnolie_mcp.py                    usr/bin
 bin/magnolie_calendar_dedup.py         usr/bin
 bin/magnolie_content_scope.py          usr/bin
 bin/magnolie_personal_actor.py         usr/bin
+bin/magnolie_phone_ack.py              usr/bin
 bin/magnolie_drawing_svg.py            usr/bin
 bin/magnolie_versand.py                usr/bin
 bin/magnolie_kde_filesystem.py         usr/bin

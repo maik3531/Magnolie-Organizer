@@ -84,7 +84,8 @@ def test_unadmitted_actor_receive_never_uses_legacy_staging_or_gui(tmp_path):
         def send(self, message): sent.append(message)
     channel = Channel()
     plain_ack = {"type": "ack", "message_id": queued["message_id"], "status": "accepted", "error": "none"}
-    for frame in (start, wire, malformed, plain_ack):
+    marked_ack = {**original, "kind": actor.ACK_KIND, "body": actor.ack(RUN, queued["message_id"])}
+    for frame in (start, wire, malformed, plain_ack, marked_ack):
         service._payload(peer, channel, frame)
     assert not sent and not events
     assert service.store.pending(peer["device_id"]) == [queued]

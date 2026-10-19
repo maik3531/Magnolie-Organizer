@@ -22,6 +22,7 @@ import magnolie_time_sync as time_sync_contract
 import magnolie_shared_sync as shared_sync_contract
 import magnolie_content_scope as content_scope_contract
 import magnolie_personal_actor as personal_actor_contract
+import magnolie_phone_ack as phone_ack_contract
 import time
 import unicodedata
 import uuid
@@ -57,8 +58,7 @@ LEGACY_CAPABILITY_NAMES = CAPABILITY_NAMES | {"sms_send", "sms_received", "call_
 LEGACY_GRANT_NAMES = GRANT_NAMES | {"sms_send", "sms_received", "call_control"}
 CAPABILITY_REASONS = {"available", "not_implemented", "no_hardware", "disabled",
                       "permission_missing", "os_restricted"}
-ACK_ERRORS = {"none", "expired", "invalid_schema", "unsupported", "not_granted",
-              "too_large", "temporary_failure", "permanent_failure", "restore_unavailable", "conflict"}
+ACK_ERRORS = phone_ack_contract.ERRORS
 RETRY_MS = (1000, 2000, 5000, 10000, 30000, 60000)
 BLUETOOTH_FALLBACK_SECONDS = 15
 BLUETOOTH_RETRY_SECONDS = 60
@@ -866,7 +866,7 @@ class PhoneStore:
             shared_sync_contract.validate_start(body)
             if ttl_ms > 60000:
                 raise ValueError("invalid shared start lifetime")
-        if kind in (personal_actor_contract.START_KIND, personal_actor_contract.DATA_KIND):
+        if personal_actor_contract.is_reserved_kind(kind):
             raise ValueError("Actor frames require an explicit semantic message and actor context")
         message = {"type": "message", "v": 1, "message_id": str(uuid.uuid4()),
                    "kind": kind, "created_ms": now, "expires_ms": now + ttl_ms,
@@ -4733,7 +4733,7 @@ class PhoneService:
 
     def _send_message_locked(self, channel, peer_id, message):
         # Reserved actors require their own authorized route, never a legacy fallback.
-        if message.get("kind") in (personal_actor_contract.START_KIND, personal_actor_contract.DATA_KIND):
+        if personal_actor_contract.is_reserved_kind(message.get("kind")):
             return False
         policy = self.store.outbox_policy(peer_id, message.get("message_id", ""))
         if policy == "invalid" or policy == "wifi_only" and self.connection_transports.get(peer_id) != "wifi":
@@ -5556,11 +5556,7 @@ class PhoneService:
             return
         if payload.get("type") == "ack" and set(payload) == {
                 "type", "message_id", "status", "error"}:
-            if (not valid_uuid(payload["message_id"], 4)
-                    or payload["status"] not in ("accepted", "duplicate", "rejected")
-                    or payload["error"] not in ACK_ERRORS
-                    or (payload["status"] != "rejected") != (payload["error"] == "none")):
-                raise ValueError("invalid ack")
+            phone_ack_contract.validate(payload)
             if personal_actor_contract.is_reserved_message(self.store.outbox_message(peer["device_id"], payload["message_id"])):
                 return
             if payload["status"] == "rejected":

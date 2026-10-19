@@ -8,12 +8,16 @@ internal object PersonalSyncActor {
     const val VERSION = 12
     const val START_KIND = "personal_sync.actor_start"
     const val DATA_KIND = "personal_sync.actor_data"
+    const val ACK_KIND = "personal_sync.actor_ack"
+    private val reservedKinds = setOf(START_KIND, DATA_KIND, ACK_KIND)
     private val dataKinds = setOf("personal_sync.request", "personal_sync.batch", "personal_sync.report",
         "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result",
         "personal_sync.deletion_proposals", "personal_sync.deletion_decision", PhoneContentScope.DATA_KIND)
 
     fun isReservedMessage(value: JsonObject): Boolean = value["type"] == JsonPrimitive("message") &&
-        (value["kind"] == JsonPrimitive(START_KIND) || value["kind"] == JsonPrimitive(DATA_KIND))
+        (value["kind"] as? JsonPrimitive)?.let { it.isString && isReservedKind(it.content) } == true
+
+    fun isReservedKind(kind: String): Boolean = kind in reservedKinds
 
     fun validateStart(body: JsonObject): JsonObject {
         TelefonNachrichten.exact(body, setOf("format", "run_id", "trigger"))
@@ -26,6 +30,21 @@ internal object PersonalSyncActor {
 
     fun start(runId: String): JsonObject = validateStart(buildJsonObject {
         put("format", VERSION); put("run_id", runId); put("trigger", "manual")
+    })
+
+    fun validateAck(body: JsonObject): JsonObject {
+        TelefonNachrichten.exact(body, setOf("format", "run_id", "message_id", "status", "error"))
+        val format = body["format"] as? JsonPrimitive ?: error("Missing actor acknowledgement format")
+        require(!format.isString && format.content == VERSION.toString())
+        TelefonNachrichten.uuid4(body.string("run_id"))
+        TelefonNachrichten.validateAck(buildJsonObject {
+            put("type", "ack"); put("message_id", body.getValue("message_id")); put("status", body.getValue("status")); put("error", body.getValue("error"))
+        })
+        return body
+    }
+
+    fun ack(runId: String, messageId: String, status: String = "accepted", error: String = "none"): JsonObject = validateAck(buildJsonObject {
+        put("format", VERSION); put("run_id", runId); put("message_id", messageId); put("status", status); put("error", error)
     })
 
     fun validateData(value: JsonObject): JsonObject {
@@ -55,7 +74,9 @@ internal object PersonalSyncActor {
     /** Caller validates the original header; ACK identity/lifetime remain unchanged. */
     fun wireMessage(message: JsonObject, runId: String): JsonObject = JsonObject(message + mapOf(
         "kind" to JsonPrimitive(DATA_KIND),
-        "body" to wrap(runId, message.string("kind"), message.getValue("body").jsonObject)))
+        "body" to wrap(runId, message.string("kind"), message.getValue("body").jsonObject))).also {
+            require(TelefonKanonisch.bytes(it).size <= 256 * 1024)
+        }
 
     /** Explicit semantic inspection must never replace the persisted/sent wire frame. */
     fun semanticMessage(message: JsonObject): JsonObject {

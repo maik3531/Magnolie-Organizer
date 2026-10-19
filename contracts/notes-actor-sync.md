@@ -44,11 +44,36 @@ The inner (or scoped inner) run ID must equal the actor ID. Any existing trigger
 field must remain `manual`. The complete actor body is bounded to 256 KiB, matching
 the existing Personal Sync packet budget. Current bounded snapshot chunks fit
 without enlarging the secure transport frame.
+The complete wire message, including its original headers and actor wrapper, is
+also limited to 256 KiB before queue insertion. The portable boundary fixture
+retains the existing 192 KiB inner-batch policy while allowing actor/header
+overhead within the full packet budget. Python currently admits larger batches
+than C#/Kotlin; its separate valid-input overflow case proves that body-only
+budget checks cannot replace the complete wire check. Existing inner limits are
+not relaxed by this extension; their cross-platform difference is tracked in #188.
 
 Contract wrap/unwrap helpers preserve original record/scoped bodies. They do not
 authorize membership, stage a message, apply records or acknowledge persistence.
 Actual current identity, grants, ownership, scope and receipt checks remain at the
 native runtime boundary.
+
+## Actor-marked acknowledgements
+
+New reserved wire kind: `personal_sync.actor_ack`. Exact body:
+
+```json
+{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","message_id":"22222222-2222-4222-8222-222222222222","status":"accepted","error":"none"}
+```
+
+The body `message_id` refers to the original acknowledged actor frame; the outer
+message has its own ID and a maximum 60-second lifetime. `run_id` remains present
+even after the original outbox row expires or is removed. Status/error rules
+reuse the existing strict acknowledgement schema: accepted/duplicate require
+`none`, rejected requires a known non-`none` error. ACK frames cannot be nested as
+actor data and do not receive an ACK of their own. An acknowledgement must not be
+interpreted as book persistence or complete synchronization without the actual
+corresponding stage/save/commit proof. This marker is still reserved/inactive;
+authorization, durable phase bookkeeping and actual dispatch remain runtime gates.
 
 ## Storage integration status
 
@@ -104,5 +129,5 @@ and save/commit still need their corresponding integration and acceptance gates.
 - Keep the old GUI/legacy path for devices without this marker. Do not silently
   downgrade an actor-scoped MCP request into an uncorrelated GUI start.
 
-The common malformed/valid start and data vectors are kept in the Notes test
+The common malformed/valid start, data and acknowledgement vectors are kept in the Notes test
 resources and are shared by the Kotlin, Python and C# contract tests.

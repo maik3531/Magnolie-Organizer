@@ -201,7 +201,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         val statusBody = message["body"] as? JsonObject
         require(!message.string("kind").startsWith("device_status.") ||
             statusBody?.containsKey("identifiers") != true && statusBody?.get("version") != JsonPrimitive(4))
-        require(message.string("kind") !in setOf(PersonalSyncActor.START_KIND, PersonalSyncActor.DATA_KIND))
+        require(!PersonalSyncActor.isReservedKind(message.string("kind")))
         val wire = if (actorRunId == null) message else PersonalSyncActor.wireMessage(message, actorRunId)
         db.inTransaction {
         val id = message.string("message_id")

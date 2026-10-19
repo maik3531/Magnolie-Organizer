@@ -8,17 +8,24 @@ import uuid
 import magnolie_shared_sync as shared
 import magnolie_personal_sync as personal
 import magnolie_content_scope as scope
+import magnolie_phone_ack as phone_ack
 
 VERSION = 12
 START_KIND = "personal_sync.actor_start"
 DATA_KIND = "personal_sync.actor_data"
+ACK_KIND = "personal_sync.actor_ack"
+RESERVED_KINDS = frozenset({START_KIND, DATA_KIND, ACK_KIND})
 DATA_KINDS = frozenset({"personal_sync.request", "personal_sync.batch", "personal_sync.report",
     "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result",
     "personal_sync.deletion_proposals", "personal_sync.deletion_decision", scope.DATA_KIND})
 
 
 def is_reserved_message(value):
-    return isinstance(value, dict) and value.get("type") == "message" and value.get("kind") in (START_KIND, DATA_KIND)
+    return isinstance(value, dict) and value.get("type") == "message" and is_reserved_kind(value.get("kind"))
+
+
+def is_reserved_kind(kind):
+    return isinstance(kind, str) and kind in RESERVED_KINDS
 
 
 def validate_start(body):
@@ -38,6 +45,18 @@ def validate_start(body):
 
 def start(run_id):
     return validate_start({"format": VERSION, "run_id": run_id, "trigger": "manual"})
+
+
+def validate_ack(body):
+    if not isinstance(body, dict) or set(body) != {"format", "run_id", "message_id", "status", "error"} or type(body.get("format")) is not int or body["format"] != VERSION:
+        raise ValueError("Invalid actor acknowledgement fields")
+    start(body["run_id"])
+    phone_ack.validate({"type": "ack", "message_id": body["message_id"], "status": body["status"], "error": body["error"]})
+    return body
+
+
+def ack(run_id, message_id, status="accepted", error="none"):
+    return validate_ack({"format": VERSION, "run_id": run_id, "message_id": message_id, "status": status, "error": error})
 
 
 def validate_data(value):
@@ -74,6 +93,8 @@ def wire_message(message, run_id):
     result = copy.deepcopy(message)
     result["body"] = wrap(run_id, message["kind"], message["body"])
     result["kind"] = DATA_KIND
+    if len(personal.canonical(result)) > personal.MAX_PACKET:
+        raise ValueError("Actor wire frame too large")
     return result
 
 

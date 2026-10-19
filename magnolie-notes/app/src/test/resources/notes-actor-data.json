@@ -1,4 +1,9 @@
 {
+  "wire_budget": {
+    "portable_body_bytes": 196558,
+    "python_original_bytes": 262094,
+    "value": {"title":"Owned boundary","text":"","html":"","notebook_id":"book-1","symbol":"notiz","created_ms":0,"modified_ms":0}
+  },
   "cases": [
     {"name":"request", "valid":true, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","kind":"personal_sync.request","body":{"format":3,"run_id":"11111111-1111-4111-8111-111111111111","trigger":"manual","modules":["notes","tasks"]}}},
     {"name":"scoped-request", "valid":true, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","kind":"personal_sync.scoped_data","body":{"format":10,"scope":{"scope_epoch":"22222222-2222-4222-8222-222222222222","scope_revision":1,"scope_hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"kind":"personal_sync.request","body":{"format":3,"run_id":"11111111-1111-4111-8111-111111111111","trigger":"manual","modules":["notes","tasks"]}}}},

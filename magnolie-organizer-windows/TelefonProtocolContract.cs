@@ -93,6 +93,15 @@ internal static class TelefonProtocolContract
     internal static JsonObject ExactObject(JsonNode node, params string[] fields)
     { var value = node as JsonObject ?? throw new InvalidDataException("Objekt erwartet."); var expected = fields.ToHashSet(StringComparer.Ordinal); if (value.Count != expected.Count || value.Any(item => !expected.Contains(item.Key))) throw new InvalidDataException("Unbekannte oder fehlende Felder."); return value; }
     internal static bool IsUuidV4(string? text) => Guid.TryParseExact(text, "D", out var id) && id != Guid.Empty && id.ToString("D") == text && text![14] == '4' && "89ab".Contains(text[19]);
+    internal static void ValidateAck(JsonObject value)
+    {
+        ExactObject(value, "type", "message_id", "status", "error");
+        var type = TelefonMessagingContract.String(value, "type"); var id = TelefonMessagingContract.String(value, "message_id");
+        var status = TelefonMessagingContract.String(value, "status"); var error = TelefonMessagingContract.String(value, "error");
+        if (type != "ack" || !IsUuidV4(id) || status is not ("accepted" or "duplicate" or "rejected") ||
+            (status == "rejected" ? error is not ("expired" or "invalid_schema" or "unsupported" or "not_granted" or "too_large" or "temporary_failure" or "permanent_failure" or "restore_unavailable" or "conflict") : error != "none"))
+            throw new InvalidDataException("Ungültiges Ack.");
+    }
     private static long PositiveRevision(JsonObject value, string name) { if (!TryInteger(value[name], out var revision) || revision < 1) throw new InvalidDataException("Ungültige Revision."); return revision; }
     private static int CapabilityVersion(JsonNode? value) { if (!TryInteger(value, out var version) || version is < 1 or > 65_535) throw new InvalidDataException("Ungültige Capability-Fassung."); return (int)version; }
     private static JsonObject Capability(bool available, string reason, params int[] versions) => new() { ["available"] = available, ["reason"] = reason, ["versions"] = new JsonArray(versions.Select(value => (JsonNode?)JsonValue.Create(value)).ToArray()) };
