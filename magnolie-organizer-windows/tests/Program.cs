@@ -23,6 +23,7 @@ if (args.FirstOrDefault() == "--scoped-call-host") return await OutgoingDialTest
 
 if (args.FirstOrDefault() == "--personal-custom-host") return await PersonalCustomTransportTests.HostAsync();
 if (args.FirstOrDefault() == "--personal-note-mode-host") return await PersonalNoteModeTransportHost.RunAsync();
+if (args.Length == 3 && args[0] == "--personal-actor-host") return await PersonalSyncActorTransportHost.RunAsync(args[1], args[2]);
 if (args.FirstOrDefault() == "--time-sync-host") return await TimeSyncTransportHost.RunAsync();
 if (args.FirstOrDefault() == "--phone-contact-read-host") return await PhoneContactReadTests.HostAsync();
 if (args.FirstOrDefault() == "--phone-developer-read-host") return await DeveloperDiagnosticsTests.HostAsync();

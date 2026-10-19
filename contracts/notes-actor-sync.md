@@ -304,8 +304,17 @@ private staging and a source post-check. Marked ACKs cannot acknowledge another
 run's outbound messages or enter ordinary queue handling. Native cancellation
 retires locally before attempting its explicit wire control. These paths neither
 publish GUI replay nor adopt records into a book. Attachment/deletion adapters,
-typed review, native checkpoint/SaveACK/commit and cross-runtime acceptance remain
-required before production activation.
+typed review, native checkpoint/SaveACK/commit and the remaining cross-runtime
+acceptance gates remain required before production activation.
+
+Owned encrypted TCP fixtures now exercise the actual Notes runtime against both
+desktop adapters, using synthetic established-session keys. They verify a phone
+note/task snapshot in the existing private core stagers, GUI adoption isolation
+and native cancellation. The Python fixture additionally drops a marked batch
+receipt and verifies replay of the same message through native deduplication.
+Notes retains the remote actor capability in its validated peer metadata; its
+production local capability advertisement remains unchanged. These fixtures do
+not prove handset operation or book persistence.
 
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption

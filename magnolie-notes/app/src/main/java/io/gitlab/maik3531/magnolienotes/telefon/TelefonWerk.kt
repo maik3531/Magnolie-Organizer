@@ -2518,11 +2518,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     remote_answer_call_available = ((items["answer_call"] as JsonObject)["available"] as JsonPrimitive).content.toBooleanStrict(),
                     remote_end_call_available = ((items["end_call"] as JsonObject)["available"] as JsonPrimitive).content.toBooleanStrict(),
                     remote_personal_notes_sync_versions = ((items["personal_notes_sync"] as JsonObject)["versions"] as JsonArray)
-                        .map { (it as JsonPrimitive).content.toInt() }.filter { it in 1..3 || it == PersonalNoteMode.VERSION || it == SharedSyncSettings.VERSION || it == PhoneContentScope.VERSION }.distinct().sorted(),
+                        .map { (it as JsonPrimitive).content.toInt() }.filter { it in 1..3 || it == PersonalNoteMode.VERSION || it == SharedSyncSettings.VERSION || it == PhoneContentScope.VERSION || it == PersonalSyncActor.VERSION }.distinct().sorted(),
                     remote_personal_notes_sync_available = ((items["personal_notes_sync"] as JsonObject)["available"] as JsonPrimitive).booleanOrNull == true,
                     remote_personal_tasks_sync_versions = ((items["personal_tasks_sync"] as JsonObject)["versions"] as JsonArray)
                         .map { (it as JsonPrimitive).content.toInt() }.filter {
-                            it in 1..4 || it == PersonalDesktopFeatures.VERSION || it == TimeSyncProtokoll.VERSION || it == SharedSyncSettings.VERSION || it == PhoneContentScope.VERSION }.distinct().sorted(),
+                            it in 1..4 || it == PersonalDesktopFeatures.VERSION || it == TimeSyncProtokoll.VERSION || it == SharedSyncSettings.VERSION || it == PhoneContentScope.VERSION || it == PersonalSyncActor.VERSION }.distinct().sorted(),
                     remote_personal_tasks_sync_available = ((items["personal_tasks_sync"] as JsonObject)["available"] as JsonPrimitive).booleanOrNull == true)
             } else {
                 val grants = body["grants"] as JsonObject

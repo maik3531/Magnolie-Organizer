@@ -188,7 +188,7 @@ tasks.withType<Test>().configureEach {
     // Windows test host; unchanged Kotlin classes are not evidence they still pass.
     if (cross) outputs.upToDateWhen { false }
     val crossClasses = listOf("*.TelefonWlanInvitationTest", "*.TelefonBluetoothSetupTest",
-        "*.BaumReceiptInteropTest", "*.LiveprobeTest", "*.PersonalCustomTransportTest", "*.PersonalNoteModeTransportTest", "*.TimeSyncTransportTest", "*.ContactReadTransportTest", "*.DeveloperDiagnosticsTransportTest")
+        "*.BaumReceiptInteropTest", "*.LiveprobeTest", "*.PersonalCustomTransportTest", "*.PersonalNoteModeTransportTest", "*.PersonalSyncActorTransportTest", "*.TimeSyncTransportTest", "*.ContactReadTransportTest", "*.DeveloperDiagnosticsTransportTest")
     filter {
         crossClasses.forEach { if (cross) includeTestsMatching(it) else excludeTestsMatching(it) }
     }
