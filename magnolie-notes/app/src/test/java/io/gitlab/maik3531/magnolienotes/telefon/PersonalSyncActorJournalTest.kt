@@ -75,7 +75,7 @@ class PersonalSyncActorJournalTest {
         val journal = PersonalSyncActorJournal(db, storage, { _, _ -> REV }, { "book-epoch" })
         val active = (1..4).map { journal.create(PEER, KEY, REV) }
         assertTrue(runCatching { journal.create(PEER, KEY, REV) }.isFailure)
-        active.forEach(journal::retire)
+        active.forEach { journal.retire(it) }
         repeat(28) { journal.retire(journal.create(PEER, KEY, REV)) }
         assertTrue(runCatching { journal.create(PEER, KEY, REV) }.isFailure)
         val handle = active.first()

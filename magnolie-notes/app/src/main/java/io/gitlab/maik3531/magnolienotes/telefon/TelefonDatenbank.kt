@@ -1220,10 +1220,34 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     }
 
     internal fun stopActorRun(peerId: String, runId: String) {
-        helper.writableDatabase.inTransaction { updatePersonalRun(this, peerId, runId, allowExpired = true) {
-            require(it.actor) { "Not an actor run" }
-            it.copy(actorStopped = true, reported = true)
-        } }
+        helper.writableDatabase.inTransaction {
+            updatePersonalRun(this, peerId, runId, allowExpired = true) {
+                require(it.actor) { "Not an actor run" }
+                it.copy(actorStopped = true, reported = true)
+            }
+            // Retain sealed evidence, but do not let stopped rows occupy the due query's limit.
+            val ids = mutableListOf<String>()
+            query("outbox", arrayOf("message_id", "payload"), "peer_id=?", arrayOf(peerId), null, null, null).use { rows ->
+                while (rows.moveToNext()) {
+                    val id = rows.getString(0)
+                    val clear = storage.decryptPayload(rows.getBlob(1), "outbox", id)
+                    try {
+                        val wire = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject
+                        val body = wire["body"] as? JsonObject
+                        if (wire["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) && body?.get("run_id") == JsonPrimitive(runId)) ids += id
+                    } finally { clear.fill(0) }
+                }
+            }
+            ids.forEach { id -> update("outbox", ContentValues().apply { put("next_attempt_ms", Long.MAX_VALUE) },
+                "peer_id=? AND message_id=?", arrayOf(peerId, id)) }
+        }
+    }
+
+    internal fun stopCurrentActorRun(peerId: String, runId: String) {
+        helper.writableDatabase.inTransaction {
+            // A restored/removed run cannot be reauthenticated or rebound to the new book.
+            if (authenticatedRun(peerId, runId, this)?.first?.actor == true) stopActorRun(peerId, runId)
+        }
     }
 
     fun queuePersonalCompletion(peerId: String, runId: String, batches: List<JsonObject>, report: JsonObject,

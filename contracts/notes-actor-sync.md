@@ -181,9 +181,8 @@ the stored marker. Raw put/read use the same pre/post authorization transaction.
 Per-actor retention is bounded to 4096 packets/50 MiB sealed bytes and also obeys
 the existing shared phone-meta capacity (8192 rows/50 MiB). Persisting a raw frame
 is neither domain staging nor authority to emit a successful receipt. This
-primitive does not yet connect journal retirement to queue stopping or dispatch
-incoming frames; those lifecycle/
-transport integrations remain activation gates.
+primitive does not yet dispatch incoming frames; transport integration remains
+an activation gate.
 
 Notes now also derives a native source revision from the exact active secure
 channel and its private session nonce, pairing/lifecycle generations, actual
@@ -197,7 +196,26 @@ and remains unadvertised in production. The native queue factory connects the
 journal to that callback and acquires service/book locks before SQLite, matching
 the existing snapshot path. A book's initial empty native tree-sync epoch remains
 a valid bound value, as in the existing queue; it is never replaced with a caller
-epoch. The journal/queue lifecycle adapter remains required before admission.
+epoch.
+
+The native manual-actor adapter now creates an owner handle before scheduling
+the existing scoped snapshot producer. Actor snapshots require that same active
+journal handle before source preparation and before/after the existing queue
+transaction; an unavailable
+owner never falls back to ordinary production. Native cancellation stops the
+journal and current classified queue run atomically and removes a pending
+snapshot intent. Stopped sealed outbox rows are retained but removed from due
+eligibility, including its bounded query window. Connection teardown and native
+maintenance retire invalid owners; failed storage retirement retains the owner
+for retry while source checks already prevent further work. These internal
+adapters neither admit an actor wire frame nor recall dispatched data, merge a
+record or claim a saved book. Public routing remains disabled until the remaining
+transport, staging, review and save/commit gates pass.
+
+Source preparation retains the existing encrypted-book reconcile operation. Its
+protocol bookkeeping is outside the phone SQLite transaction and may already be
+persisted if later queueing is rejected. Cancellation does not undo that tracking
+state; it prevents further actor production without changing user content.
 
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption

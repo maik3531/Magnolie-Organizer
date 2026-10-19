@@ -197,6 +197,43 @@ class TelefonWerk private constructor(private val context: Context, private val 
             activeChannel?.let { channel -> currentActorSource(peer, key, channel, pairingGeneration) }
         }
     }
+    private val personalActorHandles = mutableMapOf<String, PersonalActorHandle>()
+    private val personalActorWork = mutableSetOf<String>()
+
+    @Synchronized internal fun preparePersonalActor(peerId: String, publicKey: String, runId: String): PersonalActorHandle =
+        synchronized(Ablage.SCHREIBSPERRE) {
+            val channel = checkNotNull(activeChannel) { "actor_source_changed" }
+            val revision = checkNotNull(currentActorSource(peerId, publicKey, channel, pairingGeneration)) { "actor_source_changed" }
+            check(pendingScopedSync == null && !queue.hasActiveScopedRun(peerId)) { "actor_busy" }
+            val peer = checkNotNull(safePeer()?.takeIf { it.device_id == peerId && it.static_public == publicKey })
+            val handle = personalActorJournal.create(peerId, publicKey, revision, runId)
+            personalActorHandles[runId] = handle
+            personalActorWork.add(runId)
+            try {
+                personalActorJournal.withActive(handle) { check(enqueuePersonalSync(peer, "manual", runId, true)) { "actor_busy" } }
+                handle
+            } catch (error: Exception) {
+                try { stopPersonalActor(handle) } catch (cleanup: Exception) { error.addSuppressed(cleanup) }
+                throw error
+            }
+        }
+
+    @Synchronized internal fun stopPersonalActor(handle: PersonalActorHandle) = synchronized(Ablage.SCHREIBSPERRE) {
+        personalActorJournal.retire(handle) { queue.stopCurrentActorRun(handle.peerId, handle.runId) }
+        personalActorWork.remove(handle.runId)
+        if (pendingScopedSync?.let { it.actorRun && it.deviceId == handle.peerId && it.correlatedRunId == handle.runId } == true)
+            pendingScopedSync = null
+    }
+
+    @Synchronized private fun retireInvalidPersonalActors() {
+        personalActorWork.toList().forEach { run ->
+            val handle = personalActorHandles[run] ?: return@forEach
+            if (runCatching { personalActorJournal.withActive(handle) {} }.isFailure) {
+                // A lost source already prevents work. Retain the owner for maintenance retry on I/O failure.
+                runCatching { stopPersonalActor(handle) }
+            }
+        }
+    }
     private val sharedActor by lazy { storage.identity(Build.MODEL.orEmpty()).let { (identity, secret) ->
         secret.fill(0); identity.device_id } }
     internal var sharedLocalCapabilities: () -> Map<String, TelefonCapability> = { TelefonCapabilities.phase1() }
@@ -376,7 +413,17 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private fun queueScopedContentRun(peer: TelefonPeer, session: PersonalNoteSession?) {
         val intent = pendingScopedSync ?: return
         if (intent.deviceId != peer.device_id || intent.publicKey != peer.static_public ||
-            android.os.SystemClock.elapsedRealtime() >= intent.deadline) { pendingScopedSync = null; return }
+            android.os.SystemClock.elapsedRealtime() >= intent.deadline) {
+            if (intent.actorRun) personalActorHandles[intent.correlatedRunId]?.let(::stopPersonalActor)
+            pendingScopedSync = null; return
+        }
+        if (intent.actorRun) {
+            val handle = personalActorHandles[intent.correlatedRunId]
+            if (handle == null) { pendingScopedSync = null; return }
+            if (runCatching { personalActorJournal.withActive(handle) {} }.isFailure) {
+                stopPersonalActor(handle); return
+            }
+        }
         if (!contentScopeControlsReady(peer, session) || session == null) return
         val manifest = session.localContentScope ?: return
         val members = manifest.getValue("members") as JsonObject
@@ -387,21 +434,33 @@ class TelefonWerk private constructor(private val context: Context, private val 
         if (queue.hasActiveScopedRun(peer.device_id)) return
         if (intent.trigger == "auto_wifi" && activeTransport?.first != TelefonTransportArt.WIFI) return
         synchronized(Ablage.SCHREIBSPERRE) {
-            val selection = io.gitlab.maik3531.magnolienotes.daten.PersonalContentSelection(notes, tasks)
-            val snapshot = Ablage.hole(context).personalSyncScopedSnapshot(selection, peer.device_id)
-            val runId = intent.correlatedRunId ?: UUID.randomUUID().toString()
-            val request = buildJsonObject {
-                put("format", JsonPrimitive(3)); put("run_id", JsonPrimitive(runId)); put("trigger", JsonPrimitive(intent.trigger))
-                put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks"))))
+            val prepareSnapshot = {
+                val selection = io.gitlab.maik3531.magnolienotes.daten.PersonalContentSelection(notes, tasks)
+                // Reconcile uses the existing encrypted book domain; it is not a SQLite rollback participant.
+                val snapshot = Ablage.hole(context).personalSyncScopedSnapshot(selection, peer.device_id)
+                val runId = intent.correlatedRunId ?: UUID.randomUUID().toString()
+                val request = buildJsonObject {
+                    put("format", JsonPrimitive(3)); put("run_id", JsonPrimitive(runId)); put("trigger", JsonPrimitive(intent.trigger))
+                    put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks"))))
+                }
+                val requestMessage = TelefonNachrichten.message("personal_sync.request", request, 3_600_000)
+                val batches = buildSnapshotBatches(runId, snapshot.records, false, 3).first
+                val advertised = batches.flatMap(PersonalSyncProtokoll::decodeBatch).filter { it.kind == "note" }
+                    .flatMap { (it.value["attachments"] as? JsonArray).orEmpty() }.map { (it as JsonObject).string("sha256") }.toSet()
+                val attachments = snapshot.attachments.filterKeys(advertised::contains).map { (hash, value) ->
+                    Triple(hash, (value.descriptor["mime"] as JsonPrimitive).content, value.bytes) }
+                val enqueue = { queue.queueScopedRequest(sharedBinding(peer), sharedPreferences, requestMessage,
+                    PhoneContentScope.reference(manifest), batches, attachments, actorRun = intent.actorRun) }
+                val queued = if (intent.actorRun) personalActorJournal.withActive(checkNotNull(personalActorHandles[runId])) { enqueue() }
+                    else enqueue()
+                if (queued) pendingScopedSync = null
             }
-            val requestMessage = TelefonNachrichten.message("personal_sync.request", request, 3_600_000)
-            val batches = buildSnapshotBatches(runId, snapshot.records, false, 3).first
-            val advertised = batches.flatMap(PersonalSyncProtokoll::decodeBatch).filter { it.kind == "note" }
-                .flatMap { (it.value["attachments"] as? JsonArray).orEmpty() }.map { (it as JsonObject).string("sha256") }.toSet()
-            val attachments = snapshot.attachments.filterKeys(advertised::contains).map { (hash, value) ->
-                Triple(hash, (value.descriptor["mime"] as JsonPrimitive).content, value.bytes) }
-            if (queue.queueScopedRequest(sharedBinding(peer), sharedPreferences, requestMessage,
-                    PhoneContentScope.reference(manifest), batches, attachments, actorRun = intent.actorRun)) pendingScopedSync = null
+            if (intent.actorRun) {
+                val handle = personalActorHandles[intent.correlatedRunId]
+                if (handle == null) { pendingScopedSync = null; return }
+                try { personalActorJournal.withActive(handle) {}; prepareSnapshot() }
+                catch (error: Exception) { stopPersonalActor(handle); return }
+            } else prepareSnapshot()
         }
     }
 
@@ -979,9 +1038,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
         activeTransport = null
         activeChannel = null
         runCatching { pipe?.close() }
+        retireInvalidPersonalActors()
     }
 
     internal fun maintenance() {
+        retireInvalidPersonalActors()
         val pendingRuns = Ablage.hole(context).personalSyncPendingDecisions()
             .filter { it.state == "pending" }
             .map { it.peer_device_id to it.run_id }.toSet()
@@ -1621,6 +1682,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     synchronized(this) {
                         if (activeChannel === channel) activeChannel = null
                         noteSessions.remove(channel)
+                        retireInvalidPersonalActors()
                         refreshSharedPreferenceState()
                     }
                 }

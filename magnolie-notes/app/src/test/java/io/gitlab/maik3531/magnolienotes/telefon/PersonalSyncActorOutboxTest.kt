@@ -98,10 +98,14 @@ class PersonalSyncActorOutboxTest {
             reopened.markPersonalRun(peer, run, "reported")
             assertTrue(reopened.isActorRun(peer, run))
             assertEquals(PersonalSyncActor.DATA_KIND, reopened.queue(peer, "personal_sync.attachment_chunk", lateChunk, 60000).string("kind"))
+            repeat(33) { reopened.queue(peer, "personal_sync.attachment_chunk", lateChunk, 60000) }
+            val ordinaryLate = reopened.queue(peer, "personal_sync.attachment_chunk",
+                JsonObject(lateChunk + ("run_id" to JsonPrimitive(legacyRun))), 60000)
             reopened.stopActorRun(peer, run)
             assertTrue(runCatching { reopened.queue(peer, "personal_sync.attachment_chunk", lateChunk, 60000) }.isFailure)
             assertTrue(reopened.due(peer, TelefonTransportArt.WIFI).none { it.messageId == late.string("message_id") })
             assertEquals(late, reopened.outboxWireMessage(peer, late.string("message_id")))
+            assertTrue(reopened.due(peer, TelefonTransportArt.WIFI).any { it.payload == ordinaryLate })
         } finally {
             queue?.let { (helper.get(it) as TelefonDatenbank).close() }
             context.deleteDatabase("magnolie_phone.db")

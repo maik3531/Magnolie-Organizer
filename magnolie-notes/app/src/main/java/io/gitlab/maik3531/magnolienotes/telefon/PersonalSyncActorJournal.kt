@@ -181,8 +181,10 @@ internal class PersonalSyncActorJournal(
     }
 
     /** Native retirement remains possible after revocation/expiry; it never authorizes content. */
-    fun retire(handle: PersonalActorHandle) = withNativeLocks { database.writableDatabase.inTransaction {
-        write(this, requireOwner(this, handle, false).copy(stopped = true))
+    fun retire(handle: PersonalActorHandle, stopWork: SQLiteDatabase.() -> Unit = {}) = withNativeLocks { database.writableDatabase.inTransaction {
+        val binding = requireOwner(this, handle, false)
+        stopWork()
+        write(this, binding.copy(stopped = true))
     } }
 
     companion object {
