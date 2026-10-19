@@ -2094,15 +2094,25 @@ internal sealed partial class TelefonConnection : IDisposable
                 {
                     case "capabilities.update":
                         if (TelefonProtocolContract.Integer(body["revision"]) == current.CapabilityRevision &&
-                            JsonNode.DeepEquals(body["items"], current.Capabilities)) freshCapabilities = true;
+                            JsonNode.DeepEquals(body["items"], current.Capabilities))
+                        { Interlocked.Exchange(ref actorCapabilityRevision, current.CapabilityRevision); freshCapabilities = true; }
                         break;
                     case "grants.update":
                         if (TelefonProtocolContract.Integer(body["revision"]) == current.GrantRevision &&
-                            JsonNode.DeepEquals(body["grants"], current.Grants)) freshGrants = true;
+                            JsonNode.DeepEquals(body["grants"], current.Grants))
+                        { Interlocked.Exchange(ref actorGrantRevision, current.GrantRevision); freshGrants = true; }
                         break;
                     case "personal_sync.settings":
                         if (body["own_device"]!.GetValue<bool>() == store.PersonalSettings(peer.Id).RemoteOwnDevice)
+                        {
+                            var ownDecision = body["own_device"]!.GetValue<bool>();
+                            if (actorRemoteOwnDecision != ownDecision)
+                            {
+                                actorRemoteOwnDecision = ownDecision;
+                                Interlocked.Increment(ref actorRemoteOwnRevision);
+                            }
                             freshOwnSettings = true;
+                        }
                         break;
                 }
             }

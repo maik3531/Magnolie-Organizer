@@ -879,6 +879,26 @@ internal sealed partial class TelefonStore
         command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$id", clientRef); command.Parameters.AddWithValue("$state", state); return command.ExecuteNonQuery() == 1;
     }
 
+    internal long CurrentOwnRevision(string name)
+    {
+        if (name is not ("capabilities" or "grants" or "features")) throw new ArgumentOutOfRangeException(nameof(name));
+        lock (gate)
+        {
+            using var connection = OpenDatabase(); connection.Open(); using var read = connection.CreateCommand();
+            read.CommandText = "SELECT value FROM meta WHERE key=$key";
+            read.Parameters.AddWithValue("$key", "own_revision_" + name);
+            if (read.ExecuteScalar() is not byte[] sealedValue) return 0;
+            var clear = Open("meta", name, sealedValue);
+            try
+            {
+                var revision = long.Parse(Encoding.ASCII.GetString(clear), System.Globalization.CultureInfo.InvariantCulture);
+                if (revision < 0) throw new InvalidDataException("Invalid native control revision.");
+                return revision;
+            }
+            finally { Array.Clear(clear); }
+        }
+    }
+
     internal long NextOwnRevision(string name)
     {
         if (name is not ("capabilities" or "grants" or "features")) throw new ArgumentOutOfRangeException(nameof(name));

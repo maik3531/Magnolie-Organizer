@@ -120,6 +120,14 @@ object PersonalNoteMode {
 internal class PersonalNoteSession {
     // Native connection identity; never accept this value from the peer or persist it.
     val actorSourceEpoch: String = java.util.UUID.randomUUID().toString()
+    var actorOwnDecision: Boolean? = null
+        private set
+    var actorOwnRevision: Long = 0
+        private set
+    fun observeActorOwnDecision(value: Boolean) {
+        if (actorOwnDecision != value) { actorOwnDecision = value; actorOwnRevision++ }
+        ownSettingsReceived = true
+    }
     var sent: JsonObject? = null
     var received: JsonObject? = null
     var capabilitiesReceived = false

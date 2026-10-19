@@ -13,6 +13,36 @@ internal sealed partial class TelefonCoordinator
     private readonly AsyncLocal<McpEmission?> mcpEmission = new();
     private readonly SemaphoreSlim mcpOperations = new(1, 1);
 
+    // Native controller only: a caller-supplied JSON digest is never book authority.
+    // Acquire native book/coordinator guards before calling a protected actor store.
+    internal string? CurrentActorSource(string id, string fingerprint, Func<string?> nativeBookSource)
+    {
+        lock (gate)
+        {
+            if (disposed || !Enabled || store.RestoreFenced || nativeBookSource is null) return null;
+            try
+            {
+                RequireSolePeer(id);
+                var peer = RequireMcpPeer(id, fingerprint);
+                if (!PersonalSyncActorContract.Supported(SharedLocalCapabilities(), peer.Capabilities)) return null;
+                if (!online.TryGetValue(id, out var connection)) return null;
+                var snapshot = connection.ActorSourceSnapshot();
+                var book = nativeBookSource();
+                if (book is null || !System.Text.RegularExpressions.Regex.IsMatch(book, "\\A[0-9a-f]{64}\\z")) return null;
+                snapshot["profile"] = identity.Id; snapshot["book"] = book;
+                var bytes = TelefonCrypto.Canonical(snapshot);
+                try
+                {
+                    var revision = Convert.ToHexString(HMACSHA256.HashData(mcpRevisionKey, bytes)).ToLowerInvariant();
+                    return nativeBookSource() == book ? revision : null;
+                }
+                finally { Array.Clear(bytes); }
+            }
+            catch (Exception error) when (error is InvalidOperationException or InvalidDataException or McpConflictException)
+            { return null; }
+        }
+    }
+
     private Task McpServiceTask(Func<Task> body)
     {
         if (mcpEmission.Value is { Active: true } && !ExecutionContext.IsFlowSuppressed())

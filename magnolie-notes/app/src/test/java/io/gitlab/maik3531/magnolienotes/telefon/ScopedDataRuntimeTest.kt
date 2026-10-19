@@ -115,6 +115,7 @@ class ScopedDataRuntimeTest {
             TelefonSecureChannel(pipe.input, pipe.output, ByteArray(32) { 7 }, ByteArray(32) { 11 }, ByteArray(4) { 12 },
                 ByteArray(32) { 13 }, ByteArray(4) { 14 }).use { channel ->
                 var session = PersonalNoteSession().apply { capabilitiesReceived = true; grantsReceived = true; ownSettingsReceived = true }
+                if (nativeActor) session.observeActorOwnDecision(true)
                 @Suppress("UNCHECKED_CAST")
                 val sessions = field(TelefonWerk::class.java, "noteSessions").get(work) as MutableMap<TelefonSecureChannel, PersonalNoteSession>
                 sessions[channel] = session
@@ -197,19 +198,26 @@ class ScopedDataRuntimeTest {
                     val oldSession = session
                     session = PersonalNoteSession().apply {
                         capabilitiesReceived = true; grantsReceived = true; ownSettingsReceived = true
+                        observeActorOwnDecision(true)
                         sharedSent = oldSession.sharedSent; sharedReceived = oldSession.sharedReceived
                         localContentScope = oldSession.localContentScope; contentScopeSelection = oldSession.contentScopeSelection
                         contentScopeRestoreEpoch = oldSession.contentScopeRestoreEpoch; contentScopePreference = oldSession.contentScopePreference
                         contentScopeAccepted.addAll(oldSession.contentScopeAccepted)
                     }
                     sessions[channel] = session
-                    assertNotEquals(revision, source()); assertTrue(runCatching { journal.withActive(handle) { 0 } }.isFailure)
+                    assertNotEquals(revision, requireNotNull(source())); assertTrue(runCatching { journal.withActive(handle) { 0 } }.isFailure)
                     session = oldSession; sessions[channel] = session
+                    session.observeActorOwnDecision(false); assertNull(source())
+                    session.observeActorOwnDecision(true)
+                    val reownedSource = requireNotNull(source())
+                    assertNotEquals(revision, reownedSource)
+                    assertTrue(runCatching { journal.withActive(handle) { 0 } }.isFailure)
+                    session.observeActorOwnDecision(true); assertEquals(reownedSource, source())
                     field(TelefonWerk::class.java, "activeChannel").set(work, null)
                     assertNull(source()); assertTrue(runCatching { journal.withActive(handle) { 0 } }.isFailure)
                     field(TelefonWerk::class.java, "activeChannel").set(work, channel)
                     storage.savePeer(boundPeer.copy(remote_grants_revision = boundPeer.remote_grants_revision + 1))
-                    assertNotEquals(revision, source())
+                    assertNotEquals(reownedSource, source())
                     storage.savePeer(boundPeer)
                     documents.setzeNotiz(Notiz("scope-change", "Additional", "New scope member"))
                     assertNull(source()); assertTrue(runCatching { journal.withActive(handle) { 0 } }.isFailure)

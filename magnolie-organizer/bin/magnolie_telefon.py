@@ -3873,6 +3873,13 @@ class PhoneService:
                 raise PermissionError("Content scope has not been received on this connection.")
             return session.current((peer_id, expected_public, id(channel)), claimed)
 
+    def _actor_channel_source(self, channel):
+        source = self.actor_source_channels.get(channel)
+        if source is None:
+            source = {"nonce": uuid.uuid4().hex, "own": None, "own_revision": 0}
+            self.actor_source_channels[channel] = source
+        return source
+
     def current_actor_source(self, peer_id, expected_fingerprint, native_book_source):
         """Native adapter only. Book identity must come from the real native owner, never MCP JSON.
 
@@ -3903,9 +3910,12 @@ class PhoneService:
                 book = native_book_source()
                 if not isinstance(book, str) or re.fullmatch(r"[0-9a-f]{64}", book) is None:
                     return None
-                nonce = self.actor_source_channels.setdefault(channel, uuid.uuid4().hex)
+                channel_source = self._actor_channel_source(channel)
+                if channel_source["own"] is not True:
+                    return None
                 snapshot = {"profile": os.path.realpath(self.store.database_path), "book": book,
-                    "peer": peer_id, "key": peer["static_public"], "channel": nonce, "generation": self._generation,
+                    "peer": peer_id, "key": peer["static_public"], "channel": channel_source["nonce"],
+                    "own_revision": channel_source["own_revision"], "generation": self._generation,
                     "transport": self.connection_transports.get(peer_id), "settings": settings,
                     "scope": reference, "local_capabilities": local,
                     "remote_capabilities": peer.get("capabilities"), "local_grants": peer.get("local_grants"),
@@ -4164,6 +4174,12 @@ class PhoneService:
                     if kind == "personal_sync.settings" else peer.get("capabilities" if kind == "capabilities.update" else "grants"))
         if body == expected:
             try:
+                if kind == "personal_sync.settings":
+                    with self.lock:
+                        source = self._actor_channel_source(channel)
+                        if source["own"] is not body["own_device"]:
+                            source["own"] = body["own_device"]
+                            source["own_revision"] += 1
                 self.note_controls.setdefault(channel, {})[kind] = json.loads(json.dumps(body))
                 self._queue_time_settings(peer["device_id"], channel)
                 self._queue_shared_settings(peer["device_id"], channel)

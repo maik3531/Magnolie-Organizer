@@ -232,6 +232,20 @@ cannot replace this callback. Reading a source neither queues a packet nor
 publishes GUI events. The actual GTK/daemon book-owner binding and source-lock
 factory remain integration gates before this adapter can authorize runtime work.
 
+The Windows coordinator/connection adapter applies the same native-book callback
+requirement, fresh bilateral controls, active connection and complete scope. Its
+revision also binds sealed native local-control revisions, so a revoke/regrant
+cannot inherit an earlier actor source. Both desktop scope-reference getters
+inspect already validated private session state without copying or hashing the
+whole membership for each actor authorization check. These adapters still need
+the actual host book-owner/controller and guarded actor-store factory wiring.
+
+Accepted remote Own decisions carry a connection-local decision generation:
+revocation followed by regrant cannot recover an earlier actor source even if
+the final boolean is identical. An unchanged accepted replay preserves that
+generation. Source checks require the actual accepted Own decision and matching
+current control revisions, rather than only a cached readiness flag.
+
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption
 and save/commit still need their corresponding integration and acceptance gates.

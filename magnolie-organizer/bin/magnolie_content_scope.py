@@ -275,4 +275,6 @@ class ScopeSession:
         """Native current-source inspection; persisted/client references are not authority."""
         if binding != self.binding or self._failed or self._manifest is None:
             raise PermissionError("content scope is not current on this connection")
-        return reference(self._manifest)
+        # The assembled private manifest is already validated and never exposed by reference.
+        return {"scope_epoch": self._manifest["epoch"], "scope_revision": self._manifest["revision"],
+                "scope_hash": self._manifest["scope_hash"]}

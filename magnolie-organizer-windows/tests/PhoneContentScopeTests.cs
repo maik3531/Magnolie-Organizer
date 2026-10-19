@@ -64,8 +64,11 @@ internal static class PhoneContentScopeTests
         var session = new PhoneContentScope.Session("peer", "key", 1);
         TestAssert.That(session.Receive("peer", "key", 1, chunks[^1]) is null, "Partial scope authorized a reply.");
         TestAssert.Throws<InvalidOperationException>(() => session.Current("peer", "key", 1, PhoneContentScope.Reference(large)), "Partial session was ready.");
+        TestAssert.Throws<InvalidOperationException>(() => session.CurrentReference("peer", "key", 1), "Partial session exposed a native reference.");
         foreach (var part in chunks.SkipLast(1)) session.Receive("peer", "key", 1, part);
         TestAssert.That(JsonNode.DeepEquals(large, session.Current("peer", "key", 1, PhoneContentScope.Reference(large))), "Complete scope did not become ready.");
+        var nativeReference = session.CurrentReference("peer", "key", 1); nativeReference["scope_hash"] = "changed";
+        TestAssert.That(JsonNode.DeepEquals(session.CurrentReference("peer", "key", 1), PhoneContentScope.Reference(large)), "Native reference exposed mutable scope state.");
         TestAssert.Throws<InvalidOperationException>(() => session.Current("peer", "key", 2, PhoneContentScope.Reference(large)), "Other connection reused scope evidence.");
         TestAssert.Throws<InvalidOperationException>(() => session.Receive("other", "key", 1, chunks[0]), "Other peer supplied a scope part.");
         var next = PhoneContentScope.Advance(large, Enumerable.Range(0, 100).Select(n => $"new-{n:D3}"), []);

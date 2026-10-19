@@ -36,6 +36,7 @@ def actor_source_fixture(tmp_path, monkeypatch):
     for part in scope.chunks(manifest):
         session.receive(binding, part)
     service.content_scope_sessions[channel] = session
+    service._observe_note_control(peer, channel, "personal_sync.settings", {"format": 1, "own_device": True})
     fingerprint = phone.fingerprint(phone.unb64(peer["static_public"], 32))
     return service, peer, channel, fingerprint, manifest
 
@@ -100,6 +101,7 @@ def test_connection_and_scope_replacements_and_book_races_invalidate_source(tmp_
     session = scope.ScopeSession(binding)
     for part in scope.chunks(manifest): session.receive(binding, part)
     service.content_scope_sessions[replacement] = session
+    service._observe_note_control(peer, replacement, "personal_sync.settings", {"format": 1, "own_device": True})
     replaced = read(lambda: "a" * 64)
     assert replaced and replaced != before
     updated = scope.create(["note-two"], ["task-one"], revision=2)
@@ -111,3 +113,18 @@ def test_connection_and_scope_replacements_and_book_races_invalidate_source(tmp_
     partial = scope.create([f"note-{index:02}" for index in range(40)], ["task-one"], revision=3)
     session.receive(binding, scope.chunks(partial, size=32)[0])
     assert read(lambda: "a" * 64) is None, "An incomplete newer generation cannot reuse old membership"
+
+
+def test_accepted_remote_ownership_regrant_cannot_inherit_an_earlier_source(tmp_path, monkeypatch):
+    service, peer, channel, fingerprint, _ = actor_source_fixture(tmp_path, monkeypatch)
+    def read(): return service.current_actor_source(peer["device_id"], fingerprint, lambda: "a" * 64)
+    before = read()
+    peer["personal_sync"]["remote_own_device"] = False
+    service._observe_note_control(peer, channel, "personal_sync.settings", {"format": 1, "own_device": False})
+    assert read() is None
+    peer["personal_sync"]["remote_own_device"] = True
+    service._observe_note_control(peer, channel, "personal_sync.settings", {"format": 1, "own_device": True})
+    after = read()
+    assert after and after != before
+    service._observe_note_control(peer, channel, "personal_sync.settings", {"format": 1, "own_device": True})
+    assert read() == after

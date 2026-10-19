@@ -5,6 +5,10 @@ namespace MagnolieOrganizer.Windows;
 internal sealed partial class TelefonConnection
 {
     private PhoneContentScope.Session? receivedContentScope;
+    private readonly string actorSourceEpoch = Guid.NewGuid().ToString("D");
+    private bool? actorRemoteOwnDecision;
+    private long actorRemoteOwnRevision;
+    private long actorCapabilityRevision = -1, actorGrantRevision = -1;
     private string ScopePublicKey => Convert.ToHexString(peer.PublicKey);
     private bool ContentScopeSelected
     {
@@ -48,6 +52,28 @@ internal sealed partial class TelefonConnection
             throw new InvalidOperationException("Current content scope is unavailable.");
         // The session object is owned by this TelefonConnection, not a persisted global map.
         return receivedContentScope.Current(peer.Id, ScopePublicKey, 0, claimed);
+    }
+
+    internal JsonObject ActorSourceSnapshot()
+    {
+        if (disposed || cancellation.IsCancellationRequested || actorRemoteOwnDecision != true ||
+            transport is not ("wifi" or "bluetooth") || !ContentScopeControlsReady)
+            throw new InvalidOperationException("Actor source is unavailable.");
+        var current = store.LoadPeers().SingleOrDefault(value => value.Id == peer.Id && value.PublicKey.SequenceEqual(peer.PublicKey));
+        var local = SharedLocalCapabilities();
+        if (current is null || current.CapabilityRevision != Interlocked.Read(ref actorCapabilityRevision) ||
+            current.GrantRevision != Interlocked.Read(ref actorGrantRevision) ||
+            !PersonalSyncActorContract.Supported(local, current.Capabilities) || receivedContentScope is null)
+            throw new InvalidOperationException("Actor source is unavailable.");
+        return new JsonObject { ["connection"] = actorSourceEpoch, ["transport"] = transport,
+            ["peer"] = current.Id, ["key"] = Convert.ToBase64String(current.PublicKey),
+            ["scope"] = receivedContentScope.CurrentReference(peer.Id, ScopePublicKey, 0),
+            ["settings"] = store.SharedSettings(peer.Id, peer.PublicKey), ["local_capabilities"] = local.DeepClone(),
+            ["local_control_revisions"] = new JsonArray(JsonValue.Create(store.CurrentOwnRevision("capabilities")), JsonValue.Create(store.CurrentOwnRevision("grants"))),
+            ["remote_control_revisions"] = new JsonArray(JsonValue.Create(current.CapabilityRevision), JsonValue.Create(current.GrantRevision)),
+            ["remote_own_revision"] = Interlocked.Read(ref actorRemoteOwnRevision),
+            ["remote_capabilities"] = current.Capabilities.DeepClone(), ["local_grants"] = store.LocalGrants(),
+            ["remote_grants"] = current.Grants.DeepClone() };
     }
 
     internal JsonObject? DataContentScope(string kind, JsonObject body)

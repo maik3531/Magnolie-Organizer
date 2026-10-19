@@ -309,7 +309,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val peer = safePeer()?.takeIf { it.device_id == peerId && it.static_public == publicKey } ?: return null
         val session = noteSessions[channel] ?: return null
         val capabilities = sharedLocalCapabilities()
-        if (!PersonalSyncActor.supported(peer, capabilities) || !contentScopeControlsReady(peer, session)) return null
+        if (session.actorOwnDecision != true || !PersonalSyncActor.supported(peer, capabilities) || !contentScopeControlsReady(peer, session)) return null
         return synchronized(Ablage.SCHREIBSPERRE) {
             val documents = Ablage.hole(context)
             if (!documents.synchronisationsSchreibbar()) return@synchronized null
@@ -325,6 +325,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val snapshot = buildJsonObject {
                 put("profile", JsonPrimitive(sharedActor)); put("peer_id", JsonPrimitive(peerId))
                 put("public_key", JsonPrimitive(publicKey)); put("connection", JsonPrimitive(session.actorSourceEpoch))
+                put("remote_own_revision", JsonPrimitive(session.actorOwnRevision))
                 put("pairing_generation", JsonPrimitive(generation)); put("lifecycle_generation", JsonPrimitive(lifecycleGeneration))
                 put("transport", JsonPrimitive(requireNotNull(activeTransport).first.name))
                 put("restore_epoch", JsonPrimitive(epoch)); put("scope", PhoneContentScope.reference(manifest))
@@ -2096,7 +2097,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 if (kind == "personal_sync.settings" && duplicate.first in setOf("accepted", "duplicate") &&
                     queue.receivedMatches(peer.device_id, message) &&
                     (duplicateBody?.get("own_device") as? JsonPrimitive)?.booleanOrNull == current.remote_own_device)
-                    noteSession?.ownSettingsReceived = true
+                    noteSession?.observeActorOwnDecision(current.remote_own_device)
                 if (kind == "personal_sync.attachment_result" && duplicateBody!!.string("state") == "complete") {
                     val runId = duplicateBody.string("run_id")
                     queue.completeOutgoingAttachment(peer.device_id, runId,
@@ -2270,7 +2271,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             }.getOrElse { runCatching { queue.terminal(peer.device_id, message, "invalid_schema") }
                 .getOrDefault("rejected" to "invalid_schema") }
             if (kind == "personal_sync.settings" && result.first in setOf("accepted", "duplicate"))
-                noteSession?.ownSettingsReceived = true
+                noteSession?.observeActorOwnDecision(((message["body"] as JsonObject)["own_device"] as JsonPrimitive).content.toBooleanStrict())
             refreshModules()
             send(TelefonNachrichten.ack(message.string("message_id"), result.first, result.second)); return
         }

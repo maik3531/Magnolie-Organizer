@@ -73,6 +73,7 @@ runner.Add("MCP Notes settings / consent / shared preference store", McpNotesSet
 runner.Add("Notes actor start / shared strict contract vectors", PersonalSyncActorContractTests.RunAsync);
 runner.Add("Notes actor outbox / encrypted wire retention", PersonalSyncActorStoreTests.RunAsync);
 runner.Add("Notes actor registry / protected ownership / raw inbox", PersonalSyncActorRegistryTests.RunAsync);
+runner.Add("Notes actor native source / fresh controls / book ownership", PersonalSyncActorSourceTests.RunAsync);
 runner.Add("MCP KDE / existing integration / no implicit listener", McpKdeLifecycleTests.RunAsync);
 runner.Add("Category colors / native categories and accent interchange", CategoryColorTests.RunAsync);
 runner.Add("Contact group exclusions / identity / reminder privacy", ContactGroupExclusionTests.RunAsync);

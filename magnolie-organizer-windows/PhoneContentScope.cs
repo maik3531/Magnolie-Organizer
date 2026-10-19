@@ -254,5 +254,13 @@ internal static class PhoneContentScope
             RequireCurrent(claimed, manifest);
             return manifest.DeepClone().AsObject();
         }
+
+        internal JsonObject CurrentReference(string peer, string key, long current)
+        {
+            Bound(peer, key, current);
+            if (failed || manifest is null) throw new InvalidOperationException("Scope is not current on this connection.");
+            return new JsonObject { ["scope_epoch"] = manifest["epoch"]!.DeepClone(),
+                ["scope_revision"] = manifest["revision"]!.DeepClone(), ["scope_hash"] = manifest["scope_hash"]!.DeepClone() };
+        }
     }
 }
