@@ -2360,6 +2360,7 @@ class PhoneService:
         self.shared_sessions = weakref.WeakKeyDictionary()
         self.content_scope_sessions = weakref.WeakKeyDictionary()
         self.note_controls = weakref.WeakKeyDictionary()
+        self.actor_source_channels = weakref.WeakKeyDictionary()
         self.status_requests = {}
         self.contact_requests = {}
         self.developer_requests = {}
@@ -3871,6 +3872,48 @@ class PhoneService:
             if session is None:
                 raise PermissionError("Content scope has not been received on this connection.")
             return session.current((peer_id, expected_public, id(channel)), claimed)
+
+    def current_actor_source(self, peer_id, expected_fingerprint, native_book_source):
+        """Native adapter only. Book identity must come from the real native owner, never MCP JSON.
+
+        The controller must acquire its book/source guard before the service/SQLite guard.
+        The book callback must not synchronously call a GUI main loop from a receiver thread.
+        """
+        if not callable(native_book_source):
+            return None
+        with self.lock:
+            peer = self.store.sole_peer(peer_id)
+            channel = self.connections.get(peer_id)
+            local = desktop_capabilities()["items"]
+            if (not self.enabled or self.stop_event.is_set() or not peer or peer.get("state") != "paired" or
+                    not channel or self.connection_transports.get(peer_id) not in ("wifi", "bluetooth") or
+                    not isinstance(expected_fingerprint, str) or
+                    fingerprint(unb64(peer["static_public"], 32)).upper() != expected_fingerprint.upper() or
+                    not personal_actor_contract.supported(local, peer.get("capabilities", {}).get("items", {})) or
+                    not self._content_scope_authorized(peer, channel)):
+                return None
+            settings = self.store.shared_settings(peer_id, peer["static_public"])
+            shared = self.shared_sessions.get(channel)
+            scope = self.content_scope_sessions.get(channel)
+            if (settings is None or not shared or shared.get("owner") != (peer_id, peer["static_public"]) or
+                    shared.get("sent") != settings or shared.get("received") != settings or scope is None):
+                return None
+            try:
+                reference = scope.current_reference((peer_id, peer["static_public"], id(channel)))
+                book = native_book_source()
+                if not isinstance(book, str) or re.fullmatch(r"[0-9a-f]{64}", book) is None:
+                    return None
+                nonce = self.actor_source_channels.setdefault(channel, uuid.uuid4().hex)
+                snapshot = {"profile": os.path.realpath(self.store.database_path), "book": book,
+                    "peer": peer_id, "key": peer["static_public"], "channel": nonce, "generation": self._generation,
+                    "transport": self.connection_transports.get(peer_id), "settings": settings,
+                    "scope": reference, "local_capabilities": local,
+                    "remote_capabilities": peer.get("capabilities"), "local_grants": peer.get("local_grants"),
+                    "remote_grants": peer.get("grants"), "own": peer.get("personal_sync", {})}
+                revision = hmac.new(self._mcp_revision_key, canonical(snapshot), hashlib.sha256).hexdigest()
+                return revision if native_book_source() == book else None
+            except (PermissionError, ValueError, TypeError):
+                return None
 
     def _scoped_data_manifest(self, peer_id, kind, body, channel=None):
         if kind == "personal_sync.deletion_decision":

@@ -270,3 +270,9 @@ class ScopeSession:
             raise PermissionError("content scope is not current on this connection")
         require_current(claimed, self._manifest)
         return copy.deepcopy(self._manifest)
+
+    def current_reference(self, binding):
+        """Native current-source inspection; persisted/client references are not authority."""
+        if binding != self.binding or self._failed or self._manifest is None:
+            raise PermissionError("content scope is not current on this connection")
+        return reference(self._manifest)

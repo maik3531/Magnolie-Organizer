@@ -223,6 +223,15 @@ queue work is stopped before the private binding/raw inbox is removed, in the
 same SQLite transaction. Live owners are never evicted to admit another request;
 cancelled current-epoch bindings retain their normal lease/status window.
 
+The Linux phone-service source adapter reuses the actual fresh shared controls,
+bilateral grants, exact current connection and completed connection-local scope.
+Each connection receives a private random nonce rather than relying on object-ID
+reuse. It also requires a callable native book-owner source and checks that
+source before/after deriving its keyed revision; a digest supplied in MCP JSON
+cannot replace this callback. Reading a source neither queues a packet nor
+publishes GUI events. The actual GTK/daemon book-owner binding and source-lock
+factory remain integration gates before this adapter can authorize runtime work.
+
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption
 and save/commit still need their corresponding integration and acceptance gates.
