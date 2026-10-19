@@ -517,7 +517,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
                 val id = cursor.getString(0); val clear = storage.decryptPayload(cursor.getBlob(1), "outbox", id)
                 try {
                     val existing = TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject
-                    if ((existing["body"] as JsonObject).string("decision_id") == decisionId) return existing
+                    if ((PersonalSyncActor.semanticMessage(existing)["body"] as JsonObject).string("decision_id") == decisionId) return existing
                 } finally { clear.fill(0) }
             }
         }

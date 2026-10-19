@@ -73,9 +73,10 @@ class PersonalSyncActorOutboxTest {
                     })))
                 })))
             }
-            val decisionWire = reopened.queue(peer, "personal_sync.deletion_decision", decision, 60000, now)
+            val decisionWire = reopened.queueDeletionDecision(peer, decision, "any")
+            assertEquals(decisionWire, reopened.queueDeletionDecision(peer, decision, "any"))
             assertEquals("temporary:temporary_failure", reopened.acknowledge(peer, decisionWire.string("message_id"), "rejected", "temporary_failure")?.state)
-            assertEquals(decisionWire, reopened.due(peer, TelefonTransportArt.WIFI, now + 1).single { it.messageId == decisionWire.string("message_id") }.payload)
+            assertEquals(decisionWire, reopened.due(peer, TelefonTransportArt.WIFI, decisionWire.long("created_ms") + 1).single { it.messageId == decisionWire.string("message_id") }.payload)
             assertEquals(DeletionDecisionAck(decisionId, "accepted"), reopened.acknowledge(peer, decisionWire.string("message_id")))
             reopened.acknowledge(peer, actor.string("message_id"))
             assertEquals(listOf(ordinary), reopened.due(peer, TelefonTransportArt.WIFI, now + 1).map { it.payload })
