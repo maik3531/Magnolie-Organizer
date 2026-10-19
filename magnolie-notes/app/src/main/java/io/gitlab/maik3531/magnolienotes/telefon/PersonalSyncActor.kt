@@ -9,7 +9,8 @@ internal object PersonalSyncActor {
     const val START_KIND = "personal_sync.actor_start"
     const val DATA_KIND = "personal_sync.actor_data"
     const val ACK_KIND = "personal_sync.actor_ack"
-    private val reservedKinds = setOf(START_KIND, DATA_KIND, ACK_KIND)
+    const val CANCEL_KIND = "personal_sync.actor_cancel"
+    private val reservedKinds = setOf(START_KIND, DATA_KIND, ACK_KIND, CANCEL_KIND)
     private const val STORAGE_PEER_PREFIX = "@mcp-actor-"
     private val dataKinds = setOf("personal_sync.request", "personal_sync.batch", "personal_sync.report",
         "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result",
@@ -49,6 +50,15 @@ internal object PersonalSyncActor {
     fun ack(runId: String, messageId: String, status: String = "accepted", error: String = "none"): JsonObject = validateAck(buildJsonObject {
         put("format", VERSION); put("run_id", runId); put("message_id", messageId); put("status", status); put("error", error)
     })
+
+    fun validateCancel(body: JsonObject): JsonObject {
+        TelefonNachrichten.exact(body, setOf("format", "run_id"))
+        val format = body["format"] as? JsonPrimitive ?: error("Missing actor cancellation format")
+        require(!format.isString && format.content == VERSION.toString())
+        TelefonNachrichten.uuid4(body.string("run_id"))
+        return body
+    }
+    fun cancel(runId: String): JsonObject = validateCancel(buildJsonObject { put("format", VERSION); put("run_id", runId) })
 
     fun validateData(value: JsonObject): JsonObject {
         TelefonNachrichten.exact(value, setOf("format", "run_id", "kind", "body"))

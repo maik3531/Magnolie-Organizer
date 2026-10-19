@@ -14,7 +14,8 @@ VERSION = 12
 START_KIND = "personal_sync.actor_start"
 DATA_KIND = "personal_sync.actor_data"
 ACK_KIND = "personal_sync.actor_ack"
-RESERVED_KINDS = frozenset({START_KIND, DATA_KIND, ACK_KIND})
+CANCEL_KIND = "personal_sync.actor_cancel"
+RESERVED_KINDS = frozenset({START_KIND, DATA_KIND, ACK_KIND, CANCEL_KIND})
 STORAGE_PEER_PREFIX = "@mcp-actor-"
 DATA_KINDS = frozenset({"personal_sync.request", "personal_sync.batch", "personal_sync.report",
     "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result",
@@ -67,6 +68,17 @@ def validate_ack(body):
 
 def ack(run_id, message_id, status="accepted", error="none"):
     return validate_ack({"format": VERSION, "run_id": run_id, "message_id": message_id, "status": status, "error": error})
+
+
+def validate_cancel(body):
+    if not isinstance(body, dict) or set(body) != {"format", "run_id"} or type(body.get("format")) is not int or body["format"] != VERSION:
+        raise ValueError("Invalid actor cancellation fields")
+    start(body["run_id"])
+    return body
+
+
+def cancel(run_id):
+    return validate_cancel({"format": VERSION, "run_id": run_id})
 
 
 def validate_data(value):

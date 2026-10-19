@@ -5,6 +5,20 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PersonalSyncActorTest {
+    @Test fun sameActorCancellationVectorsAndNoNestedControlData() {
+        val text = requireNotNull(javaClass.getResource("/notes-actor-cancel.json")).readText()
+        for (item in Json.parseToJsonElement(text).jsonObject.getValue("cases").jsonArray.map { it.jsonObject }) {
+            val body = item.getValue("body").jsonObject
+            val accepted = runCatching { PersonalSyncActor.validateCancel(body) }.isSuccess
+            assertEquals(item.string("name"), item.getValue("valid").jsonPrimitive.boolean, accepted)
+            if (accepted) {
+                assertEquals(body, PersonalSyncActor.cancel(body.string("run_id")))
+                assertTrue(PersonalSyncActor.isReservedMessage(buildJsonObject { put("type", "message"); put("kind", PersonalSyncActor.CANCEL_KIND); put("body", body) }))
+                assertTrue(runCatching { PersonalSyncActor.wrap(body.string("run_id"), PersonalSyncActor.CANCEL_KIND, body) }.isFailure)
+            }
+        }
+    }
+
     @Test fun privateStorageIdentityCannotBeMistakenForAPairedPeer() {
         val run = "11111111-1111-4111-8111-111111111111"
         val storage = PersonalSyncActor.storagePeer(run)

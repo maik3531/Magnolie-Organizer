@@ -1,0 +1,14 @@
+{
+  "cases": [
+    {"name":"cancel", "valid":true, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111"}},
+    {"name":"extra-owner", "valid":false, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","owner":"untrusted"}},
+    {"name":"extra-reason", "valid":false, "body":{"format":12,"run_id":"11111111-1111-4111-8111-111111111111","reason":"untrusted text"}},
+    {"name":"missing-run", "valid":false, "body":{"format":12}},
+    {"name":"old-format", "valid":false, "body":{"format":9,"run_id":"11111111-1111-4111-8111-111111111111"}},
+    {"name":"string-format", "valid":false, "body":{"format":"12","run_id":"11111111-1111-4111-8111-111111111111"}},
+    {"name":"fraction-format", "valid":false, "body":{"format":12.0,"run_id":"11111111-1111-4111-8111-111111111111"}},
+    {"name":"wrong-uuid", "valid":false, "body":{"format":12,"run_id":"11111111-1111-1111-8111-111111111111"}},
+    {"name":"noncanonical-uuid", "valid":false, "body":{"format":12,"run_id":"AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA"}},
+    {"name":"null-uuid", "valid":false, "body":{"format":12,"run_id":null}}
+  ]
+}

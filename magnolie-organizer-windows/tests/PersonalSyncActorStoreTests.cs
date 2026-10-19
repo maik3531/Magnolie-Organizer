@@ -75,7 +75,8 @@ internal static class PersonalSyncActorStoreTests
         var start = wire.DeepClone().AsObject(); start["message_id"] = run; start["kind"] = PersonalSyncActorContract.StartKind; start["body"] = PersonalSyncActorContract.Start(run);
         var malformed = wire.DeepClone().AsObject(); malformed["body"] = new JsonObject { ["owned_unclaimed"] = "Must not reach GUI/storage" };
         var markedAck = wire.DeepClone().AsObject(); markedAck["message_id"] = Guid.NewGuid().ToString("D"); markedAck["kind"] = PersonalSyncActorContract.AckKind; markedAck["body"] = PersonalSyncActorContract.Ack(run, id);
-        foreach (var frame in new[] { start, wire, malformed, markedAck }) await connection.HandlePlainAsync(frame);
+        var cancel = wire.DeepClone().AsObject(); cancel["kind"] = PersonalSyncActorContract.CancelKind; cancel["body"] = PersonalSyncActorContract.Cancel(run);
+        foreach (var frame in new[] { start, wire, malformed, markedAck, cancel }) await connection.HandlePlainAsync(frame);
         await connection.HandlePlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = id, ["status"] = "accepted", ["error"] = "none" });
         TestAssert.That(stream.Length == 0 && legacyReceives == 0, "An unadmitted actor reached legacy receive/callbacks or emitted protocol traffic.");
         TestAssert.That(store.OutboxMessage(peer.Id, id) is not null, "A generic late ACK consumed an unadmitted actor.");

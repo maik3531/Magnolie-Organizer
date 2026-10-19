@@ -41,6 +41,17 @@ internal static class PersonalSyncActorContractTests
             TestAssert.Throws<InvalidDataException>(() => PersonalSyncActorContract.Wrap(body["run_id"]!.GetValue<string>(), PersonalSyncActorContract.AckKind, body), "An actor ACK could be laundered as nested actor data.");
         }
         CheckWireBudget(dataFixture["wire_budget"]!.AsObject());
+        var cancelVectors = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "magnolie-notes/app/src/test/resources/notes-actor-cancel.json")))!["cases"]!.AsArray();
+        foreach (var item in cancelVectors.OfType<JsonObject>())
+        {
+            var body = item["body"]!.AsObject(); var accepted = false;
+            try { PersonalSyncActorContract.ValidateCancel(body); accepted = true; } catch (InvalidDataException) { }
+            TestAssert.That(accepted == item["valid"]!.GetValue<bool>(), "Actor cancellation drift: " + item["name"]);
+            if (!accepted) continue;
+            TestAssert.That(JsonNode.DeepEquals(body, PersonalSyncActorContract.Cancel(body["run_id"]!.GetValue<string>())) &&
+                PersonalSyncActorContract.IsReservedMessage(new JsonObject { ["type"] = "message", ["kind"] = PersonalSyncActorContract.CancelKind, ["body"] = body.DeepClone() }), "Actor cancellation lost its exact reserved identity.");
+            TestAssert.Throws<InvalidDataException>(() => PersonalSyncActorContract.Wrap(body["run_id"]!.GetValue<string>(), PersonalSyncActorContract.CancelKind, body), "Actor cancellation could be laundered as content data.");
+        }
         var values = new JsonObject();
         foreach (var name in new[] { "personal_notes_sync", "personal_tasks_sync" })
             values[name] = new JsonObject { ["available"] = true, ["versions"] = new JsonArray(9, 12) };

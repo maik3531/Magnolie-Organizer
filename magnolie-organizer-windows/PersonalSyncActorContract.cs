@@ -10,6 +10,7 @@ internal static class PersonalSyncActorContract
     internal const string StartKind = "personal_sync.actor_start";
     internal const string DataKind = "personal_sync.actor_data";
     internal const string AckKind = "personal_sync.actor_ack";
+    internal const string CancelKind = "personal_sync.actor_cancel";
     private const string StoragePeerPrefix = "@mcp-actor-";
     private static readonly HashSet<string> DataKinds = ["personal_sync.request", "personal_sync.batch", "personal_sync.report",
         "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result",
@@ -21,7 +22,7 @@ internal static class PersonalSyncActorContract
         value["type"] is JsonValue type && type.TryGetValue<string>(out var messageType) && messageType == "message" &&
         value["kind"] is JsonValue kind && kind.TryGetValue<string>(out var name) && IsReservedKind(name);
 
-    internal static bool IsReservedKind(string? name) => name is StartKind or DataKind or AckKind;
+    internal static bool IsReservedKind(string? name) => name is StartKind or DataKind or AckKind or CancelKind;
     internal static string StoragePeer(string runId) { _ = Start(runId); return StoragePeerPrefix + runId; }
     internal static bool IsStoragePeer(string? value) => value?.StartsWith(StoragePeerPrefix, StringComparison.Ordinal) == true;
 
@@ -49,6 +50,15 @@ internal static class PersonalSyncActorContract
 
     internal static JsonObject Ack(string runId, string messageId, string status = "accepted", string error = "none") =>
         ValidateAck(new JsonObject { ["format"] = Version, ["run_id"] = runId, ["message_id"] = messageId, ["status"] = status, ["error"] = error });
+
+    internal static JsonObject ValidateCancel(JsonObject body)
+    {
+        TelefonProtocolContract.ExactObject(body, "format", "run_id");
+        if (TelefonProtocolContract.Integer(body["format"]) != Version || !TelefonProtocolContract.IsUuidV4(Text(body, "run_id")))
+            throw new InvalidDataException("Invalid actor cancellation identity.");
+        return body;
+    }
+    internal static JsonObject Cancel(string runId) => ValidateCancel(new JsonObject { ["format"] = Version, ["run_id"] = runId });
 
     internal static JsonObject ValidateData(JsonObject value)
     {

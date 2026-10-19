@@ -14,6 +14,7 @@ import magnolie_phone_ack as phone_ack
 VECTORS = json.loads((ROOT / "magnolie-notes/app/src/test/resources/notes-actor-start.json").read_text())["cases"]
 DATA_VECTORS = json.loads((ROOT / "magnolie-notes/app/src/test/resources/notes-actor-data.json").read_text())["cases"]
 ACK_VECTORS = json.loads((ROOT / "magnolie-notes/app/src/test/resources/notes-actor-ack.json").read_text())["cases"]
+CANCEL_VECTORS = json.loads((ROOT / "magnolie-notes/app/src/test/resources/notes-actor-cancel.json").read_text())["cases"]
 
 
 @pytest.mark.parametrize("case", VECTORS, ids=lambda case: case["name"])
@@ -93,3 +94,16 @@ def test_actor_wire_budget_preserves_inner_limits_and_includes_header_overhead()
     assert len(personal.canonical({**message, "kind": actor.DATA_KIND, "body": envelope})) > personal.MAX_PACKET
     with pytest.raises(ValueError, match="wire frame too large"):
         actor.wire_message(message, run)
+
+
+@pytest.mark.parametrize("case", CANCEL_VECTORS, ids=lambda case: case["name"])
+def test_shared_actor_cancel_is_control_not_nested_data(case):
+    body = case["body"]
+    if not case["valid"]:
+        with pytest.raises(ValueError):
+            actor.validate_cancel(body)
+        return
+    assert actor.validate_cancel(body) == body and actor.cancel(body["run_id"]) == body
+    assert actor.is_reserved_message({"type": "message", "kind": actor.CANCEL_KIND, "body": body})
+    with pytest.raises(ValueError):
+        actor.wrap(body["run_id"], actor.CANCEL_KIND, body)

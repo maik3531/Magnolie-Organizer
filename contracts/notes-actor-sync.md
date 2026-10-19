@@ -75,6 +75,20 @@ interpreted as book persistence or complete synchronization without the actual
 corresponding stage/save/commit proof. This marker is still reserved/inactive;
 authorization, durable phase bookkeeping and actual dispatch remain runtime gates.
 
+## Actor cancellation intent
+
+Reserved wire kind `personal_sync.actor_cancel`, maximum lifetime 60 seconds,
+has exactly `{"format":12,"run_id":"11111111-1111-4111-8111-111111111111"}`.
+It is a control intent, never nested content. Its own outer message ID is the
+target of the actor-marked acknowledgement. An authorized native handler must
+bind it to the original source identity and actor, stop further protocol work
+and release that actor's pending run without deleting ordinary book records.
+Cancellation must not assert recall, rollback or retraction of a save/transfer
+already dispatched. A lost cancellation acknowledgement leaves an unknown remote
+outcome. The schema is reserved/inactive until the native server journal and
+owner/source-bound cancellation adapter are connected; generic receive ignores
+it rather than falling through to ordinary synchronization.
+
 ## Storage integration status
 
 The existing single-message encrypted outbox writers now accept an internal
