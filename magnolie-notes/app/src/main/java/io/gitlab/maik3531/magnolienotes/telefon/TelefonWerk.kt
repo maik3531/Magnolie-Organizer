@@ -2537,6 +2537,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 val current = peerEffect(peer, generation) { it }
                 if (!serviceRunning || !storage.enabled()) return controls
                 val kind = entry.payload.string("kind")
+                // Reserved actors require their own authorized route, never a legacy fallback.
+                if (kind == PersonalSyncActor.START_KIND || kind == PersonalSyncActor.DATA_KIND) return@forEach
                 if (controlsOnly && kind !in setOf("capabilities.update", "grants.update", "personal_sync.settings", PersonalNoteMode.KIND, TimeSyncProtokoll.SETTINGS, SharedSyncSettings.KIND, PhoneContentScope.KIND)) return@forEach
                 if (kind == PhoneContentScope.KIND) {
                     val session = noteSessions[channel]

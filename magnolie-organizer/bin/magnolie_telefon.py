@@ -4727,6 +4727,9 @@ class PhoneService:
             return self._send_message_locked(channel, peer_id, message)
 
     def _send_message_locked(self, channel, peer_id, message):
+        # Reserved actors require their own authorized route, never a legacy fallback.
+        if message.get("kind") in (personal_actor_contract.START_KIND, personal_actor_contract.DATA_KIND):
+            return False
         policy = self.store.outbox_policy(peer_id, message.get("message_id", ""))
         if policy == "invalid" or policy == "wifi_only" and self.connection_transports.get(peer_id) != "wifi":
             return False

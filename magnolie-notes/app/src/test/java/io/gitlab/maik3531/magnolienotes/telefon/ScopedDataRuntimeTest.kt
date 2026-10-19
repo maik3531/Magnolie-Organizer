@@ -37,6 +37,7 @@ class ScopedDataRuntimeTest {
     @Test fun scopedOrganizerUpdateReachesExistingPhoneNoteButRemovedOrOtherNotesNeverAppear() = exercise("receive")
     @Test fun manualStartWaitsForScopeAndRequestReceiptsAndResumesOnlyAfterFreshSessionControls() = exercise("manual")
     @Test fun correlatedCallerRunSurvivesScopePreparationAndReceiptGates() = exercise("actor")
+    @Test fun reservedActorWireWaitsForItsOwnTransportRouteWithoutLegacyFallback() = exercise("actor-wire")
     @Test fun independentTimeChangeDefersScopedDataWithoutAdmittingRawFallback() = exercise("time")
     @Test fun selectedOrganizerNoteCanBeSentAgainAfterDeletingItsPhoneCopy() = exercise("single")
     @Test fun ownershipControlAndItsAckDoNotRequireContentRunId() = exercise("ownership")
@@ -130,6 +131,22 @@ class ScopedDataRuntimeTest {
                 fun ackScope() { session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { ack(it) } }
                 fun scoped(messages: List<JsonObject>) = messages.filter { it["kind"] == JsonPrimitive(PhoneContentScope.DATA_KIND) }
                 val manifest = requireNotNull(session.localContentScope)
+                if (mode == "actor-wire") {
+                    sent(); ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
+                    val run = "44444444-4444-4444-8444-444444444444"
+                    val request = buildJsonObject {
+                        put("format", 3); put("run_id", run); put("trigger", "manual")
+                        put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks"))))
+                    }
+                    queue.rememberPersonalRun(peerId, request, System.currentTimeMillis() + 60000)
+                    val wire = queue.queue(peerId, "personal_sync.request", request, 60000, actorRunId = run)
+                    pump.invoke(work, peer, channel, 0L, false)
+                    assertTrue(sent().none { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) ||
+                        (it["body"] as? JsonObject)?.get("run_id") == JsonPrimitive(run) })
+                    assertEquals(wire, queue.due(peerId, TelefonTransportArt.WIFI).single { it.messageId == wire.string("message_id") }.payload)
+                    assertEquals(0, queue.attempts(wire.string("message_id")))
+                    return@use
+                }
                 if (mode == "preferences") {
                     field(TelefonWerk::class.java, "activeChannel").set(work, channel)
                     val latest = work.configureCommonPreferences(peerId, peer.static_public,

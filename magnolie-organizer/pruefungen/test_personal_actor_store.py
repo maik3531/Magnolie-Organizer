@@ -47,3 +47,21 @@ def test_legacy_queue_and_invalid_actor_selection_do_not_mix(tmp_path):
         with pytest.raises(ValueError):
             store.queue(peer["device_id"], kind, body, 60000, actor_run_id=run)
     assert store.pending(peer["device_id"]) == [ordinary] and not events
+
+
+def test_reserved_actor_waits_for_an_explicit_transport_route(tmp_path):
+    service, peer, events = owned_service(tmp_path)
+    peer["personal_sync"].update(own_device=True, remote_own_device=True)
+    for name in ("personal_notes_sync", "personal_tasks_sync"):
+        peer["local_grants"]["grants"][name] = True
+        peer["grants"]["grants"][name] = True
+    service.store.save_peers()
+    service.personal_sync_available = lambda: True
+    service.store.remember_personal_run(peer["device_id"], REQUEST)
+    wire = service.store.queue(peer["device_id"], "personal_sync.request", REQUEST, 60000, actor_run_id=RUN)
+    assert service.store.outbox_policy(peer["device_id"], wire["message_id"]) == "any"
+    sent = []
+    class Channel:
+        def send(self, message): sent.append(message)
+    assert service._send_message(Channel(), peer["device_id"], wire) is False
+    assert not sent and service.store.pending(peer["device_id"]) == [wire] and not events

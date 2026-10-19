@@ -2173,6 +2173,8 @@ internal sealed partial class TelefonConnection : IDisposable
         var now = Now(); foreach (var item in store.Due(peer.Id, now, transport: transport))
         {
             var kind = item.Message["kind"]!.GetValue<string>(); var body = item.Message["body"]!.AsObject();
+            // Reserved actors require their own authorized route, never a legacy fallback.
+            if (kind is PersonalSyncActorContract.StartKind or PersonalSyncActorContract.DataKind) continue;
             if (kind == SharedSyncSettings.StartKind)
             {
                 if (!SharedSettingsReady) continue;

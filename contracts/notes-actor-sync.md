@@ -53,7 +53,7 @@ native runtime boundary.
 ## Storage integration status
 
 The existing single-message encrypted outbox writers now accept an internal
-explicit actor context, persist the complete actor wire envelope and retain the
+explicit actor run ID, persist the complete actor wire envelope and retain the
 original semantic queue kind for ordering/purge rules. Queue reload must return
 that envelope unchanged, without consulting volatile actor ownership. The Kotlin
 queue verifies a valid actor envelope before comparing its semantic kind with
@@ -63,6 +63,9 @@ Explicit semantic inspection for policy/decision ACK metadata does not replace
 the wire envelope. Temporary receipts retain the same actor frame; an accepted
 receipt removes only its original message ID. The existing decision identity is
 recovered from the validated inner body rather than from the actor wrapper.
+Generic transport loops retain these reserved actor frames instead of forwarding
+or consuming them as ordinary synchronization. They require a separate authorized
+actor route; the internal store parameter itself is not an authorization token.
 
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption

@@ -6,7 +6,7 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class PersonalSyncActorStoreTests
 {
-    internal static Task RunAsync()
+    internal static async Task RunAsync()
     {
         var root = Path.Combine(Path.GetTempPath(), "magnolie-actor-outbox-" + Guid.NewGuid().ToString("N"));
         try
@@ -41,8 +41,33 @@ internal static class PersonalSyncActorStoreTests
                 JsonNode.DeepEquals(reopened.OutboxMessage(peer, actorId), wire), "A temporary receipt discarded the retained actor marker.");
             TestAssert.That(reopened.AcknowledgePersonalOutbox(peer, actorId, "accepted", "none", now + 3) && reopened.OutboxMessage(peer, actorId) is null &&
                 reopened.OutboxMessage(peer, ordinaryId) is not null, "Actor ACK identity changed or removed unrelated GUI traffic.");
+            await NoLegacyTransportFallbackAsync(Path.Combine(root, "transport"));
         }
         finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
-        return Task.CompletedTask;
+    }
+
+    private static async Task NoLegacyTransportFallbackAsync(string root)
+    {
+        var paths = new WindowsPaths(root); var store = new TelefonStore(paths, testStorageKey: Enumerable.Repeat((byte)30, 32).ToArray());
+        store.Enabled = true;
+        var grants = TelefonProtocolContract.DesktopGrants(); grants["personal_notes_sync"] = true; grants["personal_tasks_sync"] = true;
+        var peer = new TelefonPeer(Guid.NewGuid().ToString("D"), "Owned transport fixture", TelefonCrypto.GenerateX25519().Public,
+            CapabilityRevision: 1, StoredCapabilities: TelefonProtocolContract.DesktopCapabilities()["items"]!.DeepClone().AsObject(),
+            GrantRevision: 1, StoredGrants: grants);
+        store.SavePeers([peer]); store.SetPersonalSettings(peer.Id, ownDevice: true, remoteOwnDevice: true);
+        store.SetLocalGrant("personal_notes_sync", true); store.SetLocalGrant("personal_tasks_sync", true);
+        var run = Guid.NewGuid().ToString("D"); var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var request = new JsonObject { ["format"] = 3, ["run_id"] = run, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
+        new PersonalSyncStore(store).RememberRun(peer.Id, request, now);
+        var id = store.Enqueue(peer.Id, "personal_sync.request", request, 60000, now, actorRunId: run);
+        using var stream = new MemoryStream(); using var lifetime = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var connection = new TelefonConnection(peer, stream, new byte[16], new byte[72], store,
+            (_, _) => Task.FromResult<TelefonAck?>(null), lifetime.Token, "wifi");
+        var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        foreach (var field in new[] { "freshCapabilities", "freshGrants", "freshOwnSettings" })
+            typeof(TelefonConnection).GetField(field, flags)!.SetValue(connection, true);
+        await connection.PumpOutboxNowAsync();
+        TestAssert.That(stream.Length == 0 && store.Due(peer.Id, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Any(item => item.Id == id && item.Attempts == 0),
+            "A reserved actor frame fell through the ordinary transport or was consumed before an authorized actor route existed.");
     }
 }
