@@ -142,6 +142,40 @@ class PersonalSyncActorJournalTest {
         assertTrue(runCatching { journal.readWire(handle, otherId) }.isFailure)
     }
 
+    @Test fun nativeRestartAndExpiryCleanupRetainLiveOwnersAndRollbackFailedRetirement() = fixture { db, storage ->
+        var wall = 1000L; var elapsed = 100L
+        fun journal(epoch: String) = PersonalSyncActorJournal(db, storage, { _, _ -> REV }, { "book-epoch" },
+            ownerEpoch = epoch.repeat(64), clock = { wall }, monotonic = { elapsed })
+        val previous = journal("a")
+        val old = previous.create(PEER, KEY, REV)
+        val ack = TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+            PersonalSyncActor.ack(old.runId, "33333333-3333-4333-8333-333333333333"), 60000, wall)
+        assertTrue(previous.putWire(old, ack))
+        val current = journal("b")
+        val live = current.create(PEER, KEY, REV)
+        db.writableDatabase.execSQL("INSERT INTO meta(key,value) VALUES('ordinary-fixture',X'01')")
+        assertEquals(listOf(PEER to old.runId), current.reapInactive { peer, run ->
+            assertEquals(PEER, peer); assertEquals(old.runId, run)
+        })
+        assertEquals(8, current.withActive(live) { 8 })
+        assertTrue(runCatching { previous.stopped(old) }.isFailure)
+        db.readableDatabase.rawQuery("SELECT COUNT(*) FROM meta WHERE key GLOB 'personal_actor_wire:*'", null).use {
+            assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0))
+        }
+        wall += 30 * 60 * 1000; elapsed += 30 * 60 * 1000
+        assertTrue(runCatching { current.reapInactive { _, _ ->
+            execSQL("DELETE FROM meta WHERE key='ordinary-fixture'")
+            error("Synthetic retirement failure")
+        } }.isFailure)
+        assertFalse(current.stopped(live))
+        db.readableDatabase.rawQuery("SELECT COUNT(*) FROM meta WHERE key='ordinary-fixture'", null).use {
+            assertTrue(it.moveToFirst()); assertEquals(1, it.getInt(0))
+        }
+        assertEquals(listOf(PEER to live.runId), current.reapInactive { _, _ -> })
+        assertTrue(runCatching { current.stopped(live) }.isFailure)
+        assertTrue(current.reapInactive { _, _ -> error("No work should remain") }.isEmpty())
+    }
+
     private fun fixture(test: (TelefonDatenbank, TelefonAblage) -> Unit) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("ActorJournalFixture", 1.0, "Synthetic keys only") {

@@ -217,6 +217,12 @@ protocol bookkeeping is outside the phone SQLite transaction and may already be
 persisted if later queueing is rejected. Cancellation does not undo that tracking
 state; it prevents further actor production without changing user content.
 
+Native maintenance and new actor preparation reap bindings from a previous
+native owner epoch or expired wall/monotonic leases. Current authenticated actor
+queue work is stopped before the private binding/raw inbox is removed, in the
+same SQLite transaction. Live owners are never evicted to admit another request;
+cancelled current-epoch bindings retain their normal lease/status window.
+
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption
 and save/commit still need their corresponding integration and acceptance gates.

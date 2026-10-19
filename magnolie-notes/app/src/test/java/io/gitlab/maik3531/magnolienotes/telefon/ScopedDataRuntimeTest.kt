@@ -44,6 +44,7 @@ class ScopedDataRuntimeTest {
     @Test fun actorCancellationRetiresQueuedSnapshotWithoutChangingTheBook() = exercise("actor-cancel")
     @Test fun actorCancellationBeforeSnapshotPreventsLaterProducerWork() = exercise("actor-cancel-pending")
     @Test fun actorGrantRevocationRetiresPendingSnapshotInsteadOfWaitingForLegacyControls() = exercise("actor-revoked")
+    @Test fun nativeMaintenanceRetiresPreviousActorEpochWithoutRebindingItsQueueRun() = exercise("actor-restart")
     @Test fun independentTimeChangeDefersScopedDataWithoutAdmittingRawFallback() = exercise("time")
     @Test fun selectedOrganizerNoteCanBeSentAgainAfterDeletingItsPhoneCopy() = exercise("single")
     @Test fun ownershipControlAndItsAckDoNotRequireContentRunId() = exercise("ownership")
@@ -53,7 +54,7 @@ class ScopedDataRuntimeTest {
     @Test fun authenticatedUnpairClearsOnlyTheCurrentComputerAndKeepsPhoneContent() = exercise("unpair")
 
     private fun exercise(mode: String) {
-        val nativeActor = mode in setOf("actor-source", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked")
+        val nativeActor = mode in setOf("actor-source", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-restart")
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("ScopedDataFixture", 1.0, "Synthetic keys only") {
             init { put("KeyStore.AndroidKeyStore", InvitationTestKeyStore::class.java.name) }
@@ -144,6 +145,30 @@ class ScopedDataRuntimeTest {
                 fun ackScope() { session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { ack(it) } }
                 fun scoped(messages: List<JsonObject>) = messages.filter { it["kind"] == JsonPrimitive(PhoneContentScope.DATA_KIND) }
                 val manifest = requireNotNull(session.localContentScope)
+                if (mode == "actor-restart") {
+                    sent(); ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
+                    field(TelefonWerk::class.java, "activeChannel").set(work, channel)
+                    val revision = requireNotNull(work.currentActorSource(peerId, peer.static_public, channel, 0L))
+                    val previous = PersonalSyncActorJournal(field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank,
+                        storage, { id, key -> work.currentActorSource(id, key, channel, 0L) }, { documents.baum.value.syncEpoch },
+                        ownerEpoch = "a".repeat(64), sourceLock = work, bookLock = Ablage.SCHREIBSPERRE)
+                    val old = previous.create(peerId, peer.static_public, revision)
+                    val request = buildJsonObject {
+                        put("format", 3); put("run_id", old.runId); put("trigger", "manual")
+                        put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks"))))
+                    }
+                    queue.rememberPersonalRun(peerId, request, System.currentTimeMillis() + 60000, actorRun = true)
+                    val wire = queue.queue(peerId, "personal_sync.request", request, 60000)
+                    val before = documents.bestand.value
+                    work.maintenance()
+                    assertTrue(runCatching { previous.stopped(old) }.isFailure)
+                    assertTrue(queue.isActorRun(peerId, old.runId))
+                    assertTrue(runCatching { queue.queue(peerId, "personal_sync.request", request, 60000) }.isFailure)
+                    assertTrue(queue.due(peerId, TelefonTransportArt.WIFI).none { it.messageId == wire.string("message_id") })
+                    assertEquals(wire, queue.outboxWireMessage(peerId, wire.string("message_id")))
+                    assertEquals(before, documents.bestand.value)
+                    return@use
+                }
                 if (mode == "actor-source") {
                     fun source() = work.currentActorSource(peerId, peer.static_public, channel, 0L)
                     assertNull(source())

@@ -187,6 +187,26 @@ internal class PersonalSyncActorJournal(
         write(this, binding.copy(stopped = true))
     } }
 
+    /** Native maintenance only: never evict a live owner to make space for another request. */
+    fun reapInactive(stopWork: SQLiteDatabase.(String, String) -> Unit): List<Pair<String, String>> = withNativeLocks {
+        database.writableDatabase.inTransaction {
+            val expired = mutableListOf<Binding>()
+            query("meta", arrayOf("key", "value"), "key GLOB ?", arrayOf("personal_actor_journal:*"), null, null, null).use { rows ->
+                while (rows.moveToNext()) {
+                    val binding = decode(rows.getString(0), rows.getBlob(1))
+                    if (binding.ownerEpoch != ownerEpoch || binding.expiresMs <= clock() || binding.expiresMonotonicMs <= monotonic())
+                        expired += binding
+                }
+            }
+            expired.forEach { binding ->
+                stopWork(binding.peerId, binding.runId)
+                delete("meta", "key GLOB ?", arrayOf("personal_actor_wire:${binding.peerId}:${binding.runId}:*"))
+                delete("meta", "key=?", arrayOf(key(binding.peerId, binding.runId)))
+            }
+            expired.map { it.peerId to it.runId }
+        }
+    }
+
     companion object {
         private const val LIFETIME = 30 * 60 * 1000L
         private const val MAX_TIME = 253402300799999L

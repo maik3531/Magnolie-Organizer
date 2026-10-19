@@ -204,6 +204,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         synchronized(Ablage.SCHREIBSPERRE) {
             val channel = checkNotNull(activeChannel) { "actor_source_changed" }
             val revision = checkNotNull(currentActorSource(peerId, publicKey, channel, pairingGeneration)) { "actor_source_changed" }
+            reapPersonalActors()
             check(pendingScopedSync == null && !queue.hasActiveScopedRun(peerId)) { "actor_busy" }
             val peer = checkNotNull(safePeer()?.takeIf { it.device_id == peerId && it.static_public == publicKey })
             val handle = personalActorJournal.create(peerId, publicKey, revision, runId)
@@ -232,6 +233,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 // A lost source already prevents work. Retain the owner for maintenance retry on I/O failure.
                 runCatching { stopPersonalActor(handle) }
             }
+        }
+    }
+
+    @Synchronized private fun reapPersonalActors() {
+        personalActorJournal.reapInactive { peer, run -> queue.stopCurrentActorRun(peer, run) }.forEach { (peer, run) ->
+            personalActorWork.remove(run); personalActorHandles.remove(run)
+            if (pendingScopedSync?.let { it.actorRun && it.deviceId == peer && it.correlatedRunId == run } == true)
+                pendingScopedSync = null
         }
     }
     private val sharedActor by lazy { storage.identity(Build.MODEL.orEmpty()).let { (identity, secret) ->
@@ -1043,6 +1052,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     internal fun maintenance() {
         retireInvalidPersonalActors()
+        reapPersonalActors()
         val pendingRuns = Ablage.hole(context).personalSyncPendingDecisions()
             .filter { it.state == "pending" }
             .map { it.peer_device_id to it.run_id }.toSet()
