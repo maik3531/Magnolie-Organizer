@@ -12,6 +12,8 @@ internal sealed partial class TelefonCoordinator
     private sealed class McpEmission { internal volatile bool Active = true; }
     private readonly AsyncLocal<McpEmission?> mcpEmission = new();
     private readonly SemaphoreSlim mcpOperations = new(1, 1);
+    internal Func<string?> NativeBookSource { private get; set; } = () => null;
+    internal string? CurrentActorSource(string id, string fingerprint) => CurrentActorSource(id, fingerprint, NativeBookSource);
 
     // Native controller only: a caller-supplied JSON digest is never book authority.
     // Acquire native book/coordinator guards before calling a protected actor store.

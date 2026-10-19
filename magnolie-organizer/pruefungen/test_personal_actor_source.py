@@ -128,3 +128,17 @@ def test_accepted_remote_ownership_regrant_cannot_inherit_an_earlier_source(tmp_
     assert after and after != before
     service._observe_note_control(peer, channel, "personal_sync.settings", {"format": 1, "own_device": True})
     assert read() == after
+
+
+def test_host_native_book_provider_is_required_and_invalidated_with_its_owner(tmp_path, monkeypatch):
+    from magnolie_personal_actor_store import NativeBookOwnerScope
+    service, peer, channel, fingerprint, _ = actor_source_fixture(tmp_path, monkeypatch)
+    assert service.current_actor_source(peer["device_id"], fingerprint) is None
+    owner = NativeBookOwnerScope(); owner.set_ready(True)
+    service.native_actor_book_source = lambda: owner.current("actual-native-profile", True)
+    first = service.current_actor_source(peer["device_id"], fingerprint)
+    assert first
+    owner.set_ready(False)
+    assert service.current_actor_source(peer["device_id"], fingerprint) is None
+    owner.set_ready(True)
+    assert service.current_actor_source(peer["device_id"], fingerprint) != first

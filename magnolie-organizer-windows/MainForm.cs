@@ -45,7 +45,11 @@ internal sealed class MainForm : Form
     private HandbookForm? handbookForm;
     private readonly FirstRunSetupSelections? setupSelections;
 
-    internal void SetTelefonCoordinator(TelefonCoordinator coordinator) => telefonCoordinator = coordinator;
+    internal void SetTelefonCoordinator(TelefonCoordinator coordinator)
+    {
+        telefonCoordinator = coordinator;
+        coordinator.NativeBookSource = () => dispatcher?.NativeActorBookSource();
+    }
 
     internal MainForm(bool trayStart = false, bool reminderStart = false,
         FirstRunSetupSelections? setupSelections = null, WindowsPaths? paths = null,

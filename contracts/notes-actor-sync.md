@@ -246,6 +246,17 @@ the final boolean is identical. An unchanged accepted replay preserves that
 generation. Source checks require the actual accepted Own decision and matching
 current control revisions, rather than only a cached readiness flag.
 
+Native host book-source providers now have their own lifecycle fence, separate
+from document reconciliation. The Windows dispatcher publishes availability only
+through actual native initialization/unlock state; ordinary saves preserve its
+owner source, reload/lock and restore fences invalidate it. MainForm binds that
+provider to its coordinator. The GTK foreground provider reads actual native
+lock/load/operation fields, profile path, key identity and native sync epoch,
+with synchronous readiness invalidation before asynchronous background notices.
+Neither provider accepts a book identity from MCP JSON. Linux daemon/proxy owner
+registration and the guarded actor-store/transport factory remain outstanding;
+foreground wiring alone does not complete that runtime path.
+
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption
 and save/commit still need their corresponding integration and acceptance gates.

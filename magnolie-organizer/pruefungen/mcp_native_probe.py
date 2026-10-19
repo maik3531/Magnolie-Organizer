@@ -505,8 +505,17 @@ def client():
                 result = call("tools/call", {"name": name, **({"arguments": arguments} if arguments is not None else {})})
                 assert not result["isError"], result
                 return result["structuredContent"]
+            book_source = window._telefon_actor_buchquelle()
+            assert isinstance(book_source, str) and len(book_source) == 64
             palette = settings_tool("organizer_category_colors_read")
             settings_tool("organizer_category_colors_update", {"expected_revision": palette["revision"], "colors": []})
+            assert window._telefon_actor_buchquelle() == book_source, "Normal SaveACK changed native book ownership"
+            product._organizer_gui_bereitschaft(window, False)
+            assert window._telefon_actor_buchquelle() is None
+            product._organizer_gui_bereitschaft(window, True)
+            reopened_source = window._telefon_actor_buchquelle()
+            assert reopened_source and reopened_source != book_source
+            state["native_actor_book_owner_verified"] = True
             unchanged = data_file.read_bytes()
             peer = settings_tool("organizer_phone_connection_read")["peers"][0]
             target = {"peer_id": peer["id"], "fingerprint": peer["fingerprint"]}

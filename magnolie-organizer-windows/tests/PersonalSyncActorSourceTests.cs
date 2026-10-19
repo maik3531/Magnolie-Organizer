@@ -60,6 +60,16 @@ internal static class PersonalSyncActorSourceTests
             foreach (var part in PhoneContentScope.Chunks(manifest)) await connection.HandlePlainAsync(Message(PhoneContentScope.Kind, part));
             var revision = Read(); var beforeWire = wire.Length; var beforeEmitted = emitted;
             TestAssert.That(revision is { Length: 64 } && Read() == revision, "Actual native source was unavailable or unstable.");
+            TestAssert.That(coordinator.CurrentActorSource(peer.Id, fingerprint) is null, "Unconfigured host book source was authorized.");
+            var hostBook = new NativeBookOwnerScope(); hostBook.SetReady(true);
+            coordinator.NativeBookSource = () => hostBook.Current("actual-host-profile", true);
+            var hostSource = coordinator.CurrentActorSource(peer.Id, fingerprint);
+            TestAssert.That(hostSource is not null, "Configured native host book was not source-bound.");
+            hostBook.SetReady(false);
+            TestAssert.That(coordinator.CurrentActorSource(peer.Id, fingerprint) is null, "Native host lock remained source-authorized.");
+            hostBook.SetReady(true);
+            TestAssert.That(coordinator.CurrentActorSource(peer.Id, fingerprint) is string reopened && reopened != hostSource,
+                "Host lock/unlock inherited a previous actor source.");
             TestAssert.That(Read(() => new string('b', 64)) != revision && Read(() => null) is null && Read(() => "client-digest") is null,
                 "Native book ownership was ignored or an invalid book source was accepted.");
             var checks = 0;

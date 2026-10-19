@@ -12,6 +12,7 @@ import secrets
 import sqlite3
 import time
 import uuid
+import threading
 from dataclasses import dataclass, field
 
 import magnolie_personal_actor as actor
@@ -26,6 +27,38 @@ MAX_ACTIVE = 4
 MAX_PACKETS = 4096
 MAX_ACTOR_BYTES = 50 * 1024 * 1024
 MAX_TOTAL_BYTES = 100 * 1024 * 1024
+
+
+class NativeBookOwnerScope:
+    """Native lifecycle fence, not a document tracker or a client-supplied revision."""
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._ready = False
+        self._binding = None
+        self._source = None
+
+    def set_ready(self, ready):
+        if type(ready) is not bool:
+            raise TypeError("Native readiness must be boolean")
+        with self._lock:
+            self._ready = ready
+            if not ready:
+                self._binding = self._source = None
+
+    def invalidate(self):
+        with self._lock:
+            self._binding = self._source = None
+
+    def current(self, native_binding, native_available):
+        with self._lock:
+            if (not self._ready or native_available is not True or
+                    not isinstance(native_binding, str) or not native_binding):
+                self._binding = self._source = None
+                return None
+            if self._source is None or self._binding != native_binding:
+                self._binding = native_binding
+                self._source = secrets.token_hex(32)
+            return self._source
 
 
 @dataclass(frozen=True)

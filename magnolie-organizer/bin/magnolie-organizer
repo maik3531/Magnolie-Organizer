@@ -10932,6 +10932,9 @@ def _kde_gui_bereitschaft(bereit):
 
 
 def _organizer_gui_bereitschaft(fenster, bereit):
+    owner = getattr(fenster, "_notes_actor_book_owner", None)
+    if owner is not None:
+        owner.set_ready(bool(bereit))
     _kde_gui_bereitschaft(bereit)
     telefon = getattr(fenster, "_telefon", None)
     if hasattr(telefon, "set_ready"):
@@ -20283,6 +20286,8 @@ class Fenster(_FENSTER_BASIS):
         self._cloud_sicherung_secrets = ArchiveSecretStore()
         self._cloud_sicherung_sperre = threading.Lock()
         self._daten_sperre = threading.RLock()
+        from magnolie_personal_actor_store import NativeBookOwnerScope
+        self._notes_actor_book_owner = NativeBookOwnerScope()
         self._zeit_abgleich_ausgang = queue.Queue()
         self._zeit_abgleich_ausgang_sperre = threading.Lock()
         self._zeit_abgleich_ausgang_aktiv = False
@@ -23978,6 +23983,15 @@ class Fenster(_FENSTER_BASIS):
         if art in ("status", "paired", "device_status"):
             self._telefon_stand_melden()
 
+    def _telefon_actor_buchquelle(self):
+        # Native fields only: never call GTK/a main loop from a receiver/store callback.
+        data = self._aktuelle_daten
+        available = (not self._gesperrt and isinstance(data, dict) and
+            not self._operation_laeuft and not self._sync_laeuft and not self._wirklich_beenden)
+        binding = json.dumps([os.path.realpath(daten_datei()), str(self._daten_dek_kennung or ""),
+            str(data.get("syncEpoch", "")) if isinstance(data, dict) else ""], ensure_ascii=False)
+        return self._notes_actor_book_owner.current(binding, available)
+
     def _telefon_dienst_pflegen(self, start_listener=True):
         with self._telefon_sperre:
             if not start_listener and self._telefon is not None:
@@ -24007,6 +24021,8 @@ class Fenster(_FENSTER_BASIS):
                         if daemon_owner else PhoneService(
                             os.path.join(daten_verzeichnis(), "telefon"),
                              local_device_name(), self._telefon_ereignis))
+                    if not daemon_owner:
+                        self._telefon.native_actor_book_source = self._telefon_actor_buchquelle
                     if not daemon_owner and self._setup_phone_foreground:
                         self._telefon.enabled = True  # Foreground handoff, not saved startup consent.
                         self._setup_phone_foreground = False

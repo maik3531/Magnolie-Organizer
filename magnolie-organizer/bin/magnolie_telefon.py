@@ -2361,6 +2361,7 @@ class PhoneService:
         self.content_scope_sessions = weakref.WeakKeyDictionary()
         self.note_controls = weakref.WeakKeyDictionary()
         self.actor_source_channels = weakref.WeakKeyDictionary()
+        self.native_actor_book_source = None
         self.status_requests = {}
         self.contact_requests = {}
         self.developer_requests = {}
@@ -3880,12 +3881,13 @@ class PhoneService:
             self.actor_source_channels[channel] = source
         return source
 
-    def current_actor_source(self, peer_id, expected_fingerprint, native_book_source):
+    def current_actor_source(self, peer_id, expected_fingerprint, native_book_source=None):
         """Native adapter only. Book identity must come from the real native owner, never MCP JSON.
 
         The controller must acquire its book/source guard before the service/SQLite guard.
         The book callback must not synchronously call a GUI main loop from a receiver thread.
         """
+        native_book_source = native_book_source if native_book_source is not None else self.native_actor_book_source
         if not callable(native_book_source):
             return None
         with self.lock:

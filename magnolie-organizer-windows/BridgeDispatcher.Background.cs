@@ -128,6 +128,7 @@ internal sealed partial class BridgeDispatcher
     }
     private async Task FencePhoneRestoreAsync()
     {
+        actorBookOwner.Invalidate();
         var fence = Path.Combine(paths.Telefon, "restore-fence.json");
         if (Path.Exists(fence) || Path.Exists(AtomicStore.BackupPath(fence)))
         { restoreInProgress = true; throw new InvalidOperationException(T("Synchronization failed.")); }

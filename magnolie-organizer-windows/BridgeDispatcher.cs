@@ -22,7 +22,15 @@ internal sealed partial class BridgeDispatcher : IDisposable
     private readonly SyncSnapshotHandoff syncSnapshotHandoff = new();
     private readonly BaumSyncSnapshot baumSyncSnapshot = new();
     private string currentEnvelope = "";
-    private bool currentPlainTextAvailable;
+    private readonly NativeBookOwnerScope actorBookOwner = new();
+    private bool plainTextAvailable;
+    private bool currentPlainTextAvailable
+    {
+        get => Volatile.Read(ref plainTextAvailable);
+        set { actorBookOwner.SetReady(value); Volatile.Write(ref plainTextAvailable, value); }
+    }
+    internal string? NativeActorBookSource() => actorBookOwner.Current(Path.GetFullPath(paths.Data),
+        currentPlainTextAvailable && !restoreInProgress && !disposed);
     private int failedUnlocks;
     private long unlockBlockedUntil;
     private readonly ReminderScheduler reminders;
@@ -1851,6 +1859,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
     internal async Task ShutdownAsync()
     {
         lock (serviceGate) { if (disposed) return; disposed = true; }
+        currentPlainTextAvailable = false;
         noteSendJobs?.Dispose();
         backgroundLifetime.Cancel();
         ClearPersonalSyncRuntime();
