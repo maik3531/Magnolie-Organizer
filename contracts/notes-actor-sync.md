@@ -316,6 +316,17 @@ Notes retains the remote actor capability in its validated peer metadata; its
 production local capability advertisement remains unchanged. These fixtures do
 not prove handset operation or book persistence.
 
+Incoming desktop actor attachment chunks now require their matching completed
+private aggregate (run, reply, records hash, attachment hash) and current scope
+membership before raw persistence. They reuse the native encrypted attachment
+stores and native size/hash/MIME verification. Notes handles actor-bound
+attachment requests/results under the active owner through the same chunk
+producer used by ordinary synchronization; exact request replay cannot enqueue
+another set of chunks. Both owned TCP fixtures include a phone snapshot image
+and verify its bytes through the desktop integrity reader. Chunk receipts only
+acknowledge private staging, not book adoption. Production request scheduling,
+incoming book adoption and the remaining completion gates still apply.
+
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption
 and save/commit still need their corresponding integration and acceptance gates.

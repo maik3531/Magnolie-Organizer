@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using System.Security.Cryptography;
 
 namespace MagnolieOrganizer.Windows;
 
@@ -89,18 +90,46 @@ internal sealed partial class TelefonCoordinator
                 var (semanticKind, content) = PersonalSyncActorContract.Unwrap(body);
                 var manifest = connection.CurrentContentScope(admission.Scope);
                 if (semanticKind == PhoneContentScope.DataKind) (semanticKind, content) = PhoneContentScope.Unwrap(content, manifest);
-                if (semanticKind is not ("personal_sync.request" or "personal_sync.batch" or "personal_sync.report")) return false;
+                if (semanticKind is not ("personal_sync.request" or "personal_sync.batch" or "personal_sync.report" or "personal_sync.attachment_chunk")) return false;
                 if (semanticKind == "personal_sync.request" && (TelefonProtocolContract.Integer(content["format"]) != 3 || content["trigger"]!.GetValue<string>() != "manual")) return false;
                 if (semanticKind == "personal_sync.batch")
                 {
                     var records = content["records"]!.AsArray().Select(value => value!.AsObject()).ToArray();
                     if (PhoneContentScope.FilterRecords(records, manifest).Count != records.Length) return false;
                 }
-                registry.Put(admission.Handle, message);
                 var storagePeer = PersonalSyncActorContract.StoragePeer(run);
+                JsonObject? descriptor = null;
+                PersonalSyncRun? attachmentRun = null;
+                if (semanticKind == "personal_sync.attachment_chunk")
+                {
+                    var staged = personalSync.ReadyBatches(Now()).FirstOrDefault(value => value.PeerId == storagePeer && value.RunId == run &&
+                        value.Reply == content["reply"]!.GetValue<bool>() && value.RecordsHash == content["records_hash"]!.GetValue<string>());
+                    if (staged is null) return false;
+                    var records = staged.Records.OfType<JsonObject>().ToArray();
+                    if (PhoneContentScope.FilterRecords(records, manifest).Count != records.Length) return false;
+                    descriptor = records.Where(value => value["kind"]!.GetValue<string>() == "note")
+                        .SelectMany(value => (value["value"]?["attachments"] as JsonArray ?? []).OfType<JsonObject>())
+                        .FirstOrDefault(value => value["sha256"]!.GetValue<string>() == content["sha256"]!.GetValue<string>());
+                    attachmentRun = personalSync.LoadRun(storagePeer, run, Now());
+                    if (descriptor is null || attachmentRun is null || attachmentRun.Expired) return false;
+                }
+                registry.Put(admission.Handle, message);
                 var semantic = message.DeepClone().AsObject(); semantic["kind"] = semanticKind; semantic["body"] = content.DeepClone();
                 if (semanticKind == "personal_sync.request") personalSync.RememberRun(storagePeer, content, Now(), TelefonProtocolContract.Integer(message["expires_ms"]));
                 else if (semanticKind == "personal_sync.batch") personalSync.StageBatch(storagePeer, semantic, connection.Transport, Now());
+                else if (semanticKind == "personal_sync.attachment_chunk")
+                {
+                    var raw = Convert.FromBase64String(content["data"]!.GetValue<string>());
+                    try
+                    {
+                        personalSync.StageAttachment(storagePeer, run, content["reply"]!.GetValue<bool>(), content["records_hash"]!.GetValue<string>(),
+                            descriptor!, "incoming", attachmentRun!.Policy, attachmentRun.ExpiresMs, []);
+                        personalSync.StageAttachmentChunk(storagePeer, run, content["reply"]!.GetValue<bool>(), content["records_hash"]!.GetValue<string>(),
+                            content["sha256"]!.GetValue<string>(), "incoming", content["index"]!.GetValue<int>(), raw,
+                            Math.Min(attachmentRun.ExpiresMs, TelefonProtocolContract.Integer(message["expires_ms"])));
+                    }
+                    finally { CryptographicOperations.ZeroMemory(raw); }
+                }
                 registry.RequireCurrent(admission.Handle);
                 reply = ActorControl(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(run, message["message_id"]!.GetValue<string>()));
                 return true;

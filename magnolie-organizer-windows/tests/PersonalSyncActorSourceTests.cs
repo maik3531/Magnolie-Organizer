@@ -113,8 +113,12 @@ internal static class PersonalSyncActorSourceTests
             var actorRequest = new JsonObject { ["format"] = 3, ["run_id"] = transportHandle.ActorId, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
             await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.request", actorRequest), transportHandle.ActorId));
             TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Single()["kind"]!.GetValue<string>() == PersonalSyncActorContract.AckKind, "Actor request did not reach private native staging.");
+            byte[] attachment = [137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3];
+            var attachmentHash = Convert.ToHexString(SHA256.HashData(attachment)).ToLowerInvariant();
             var noteValue = new JsonObject { ["title"] = "Owned phone snapshot", ["text"] = "Only staged", ["html"] = "", ["notebook_id"] = "", ["symbol"] = "note",
-                ["created_ms"] = 1, ["modified_ms"] = 2, ["attachments"] = new JsonArray() };
+                ["created_ms"] = 1, ["modified_ms"] = 2, ["attachments"] = new JsonArray(new JsonObject {
+                    ["attachment_id"] = "actor-image", ["name"] = "owned.png", ["kind"] = "image", ["mime"] = "image/png",
+                    ["size"] = attachment.Length, ["sha256"] = attachmentHash }) };
             var record = new JsonObject { ["kind"] = "note", ["id"] = "note-one", ["state"] = "live", ["modified_ms"] = 2,
                 ["clock"] = new JsonArray(new JsonObject { ["actor_id"] = peer.Id, ["counter"] = 1 }), ["hash"] = PersonalSyncContract.ProjectionHash(noteValue), ["value"] = noteValue };
             var records = new JsonArray(record);
@@ -134,6 +138,21 @@ internal static class PersonalSyncActorSourceTests
             await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.batch", outside), transportHandle.ActorId));
             TestAssert.That(wire.Length == 0 && packets == await coordinator.WithPersonalActorStoreAsync(registry => registry.Status(transportHandle)["packets"]!.GetValue<int>()),
                 "Out-of-scope actor data was persisted before membership authorization.");
+            var chunkBody = new JsonObject { ["format"] = 2, ["run_id"] = transportHandle.ActorId, ["reply"] = true,
+                ["records_hash"] = staged.RecordsHash, ["sha256"] = attachmentHash, ["index"] = 0, ["data"] = Convert.ToBase64String(attachment) };
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.attachment_chunk", chunkBody), transportHandle.ActorId));
+            TestAssert.That(wire.Length == 0 && packets == await coordinator.WithPersonalActorStoreAsync(registry => registry.Status(transportHandle)["packets"]!.GetValue<int>()),
+                "Actor attachment without its matching aggregate entered raw storage.");
+            chunkBody["reply"] = false;
+            var chunkWire = PersonalSyncActorContract.WireMessage(Message("personal_sync.attachment_chunk", chunkBody), transportHandle.ActorId);
+            await connection.HandlePlainAsync(chunkWire);
+            TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Single()["body"]!["message_id"]!.GetValue<string>() == chunkWire["message_id"]!.GetValue<string>(),
+                "Private actor attachment lost its marked receipt.");
+            var verified = new PersonalSyncStore(store).ReadVerifiedAttachment(PersonalSyncActorContract.StoragePeer(transportHandle.ActorId),
+                transportHandle.ActorId, false, staged.RecordsHash, attachmentHash, "incoming", "wifi", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            TestAssert.That(verified.SequenceEqual(attachment) && emitted == beforeEmitted, "Native attachment integrity or GUI isolation failed.");
+            await connection.HandlePlainAsync(chunkWire);
+            TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Count == 1, "Exact actor attachment replay failed native dedupe.");
             await coordinator.CancelPersonalActorAsync(transportHandle);
             TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Single()["kind"]!.GetValue<string>() == PersonalSyncActorContract.CancelKind,
                 "Native actor cancellation lost its explicit wire marker.");

@@ -1787,6 +1787,28 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
     }
 
+    private fun queueRequestedPersonalAttachments(peerId: String, body: JsonObject) {
+        val runId = body.string("run_id")
+        val policy = queue.personalRunPolicy(peerId, runId) ?: throw TelefonProtokollFehler("Personal-Sync-Policy fehlt.")
+        val reply = (body["reply"] as JsonPrimitive).content.toBooleanStrict()
+        val wants = (body["wants"] as JsonArray).map { raw ->
+            val want = raw as JsonObject
+            want.string("sha256") to (want["ranges"] as JsonArray).map { range ->
+                (range as JsonArray).map { (it as JsonPrimitive).content.toInt() }
+            }
+        }
+        queue.requestedAttachmentChunks(peerId, runId, reply, body.string("records_hash"), wants,
+            activeTransport?.first ?: TelefonTransportArt.WIFI).forEach { (hash, index, bytes) ->
+            try {
+                queue.queue(peerId, "personal_sync.attachment_chunk", buildJsonObject {
+                    put("format", JsonPrimitive(2)); put("run_id", JsonPrimitive(runId)); put("reply", JsonPrimitive(reply))
+                    put("records_hash", body.getValue("records_hash")); put("sha256", JsonPrimitive(hash))
+                    put("index", JsonPrimitive(index)); put("data", JsonPrimitive(Base64.getEncoder().encodeToString(bytes)))
+                }, 86_400_000, transportPolicy = policy)
+            } finally { bytes.fill(0) }
+        }
+    }
+
     private fun receiveActorMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
         val reply = synchronized(this) {
             if (generation != pairingGeneration || activeChannel !== channel) return@synchronized null
@@ -1814,6 +1836,25 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         personalActorTransports[run] = channel
                         TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
                             PersonalSyncActor.ack(run, message.string("message_id"), status), 60000)
+                    }
+                    PersonalSyncActor.DATA_KIND -> {
+                        val run = body.string("run_id")
+                        val handle = personalActorHandles[run] ?: return@synchronized null
+                        if (handle.peerId != peer.device_id || personalActorKeys[run] != peer.static_public || personalActorTransports[run] !== channel) return@synchronized null
+                        val (kind, content) = PersonalSyncActor.unwrap(body)
+                        if (kind != "personal_sync.attachment_request" && kind != "personal_sync.attachment_result") return@synchronized null
+                        personalActorJournal.withActive(handle) {
+                            if (!personalActorJournal.putWire(handle, message)) return@withActive
+                            if (kind == "personal_sync.attachment_request") queueRequestedPersonalAttachments(peer.device_id, content)
+                            else {
+                                if (content.string("state") == "complete") queue.completeOutgoingAttachment(peer.device_id, run,
+                                    (content["reply"] as JsonPrimitive).content.toBooleanStrict(), content.string("records_hash"), content.string("sha256"))
+                                queue.releasePersonalReport(peer.device_id, run, queue.personalRunPolicy(peer.device_id, run)
+                                    ?: throw TelefonProtokollFehler("Personal-Sync-Policy fehlt."))
+                            }
+                        }
+                        TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
+                            PersonalSyncActor.ack(run, message.string("message_id")), 60000)
                     }
                     PersonalSyncActor.ACK_KIND -> {
                         PersonalSyncActor.validateAck(body)
@@ -2241,24 +2282,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         ?: throw TelefonProtokollFehler("Personal-Sync-Request fehlt.")
                     if (request.string("trigger") == "auto_wifi" && activeTransport?.first != TelefonTransportArt.WIFI)
                         throw TelefonProtokollFehler("Auto-Sync-Anhänge außerhalb des WLANs.")
-                    val reply = (body["reply"] as JsonPrimitive).content.toBooleanStrict()
-                    val wants = (body["wants"] as JsonArray).map { raw ->
-                        val want = raw as JsonObject
-                        (want["sha256"] as JsonPrimitive).content to (want["ranges"] as JsonArray).map { range ->
-                            (range as JsonArray).map { (it as JsonPrimitive).content.toInt() }
-                        }
-                    }
                     val accepted = queue.receive(peer.device_id, message)
-                    queue.requestedAttachmentChunks(peer.device_id, runId, reply, body.string("records_hash"), wants,
-                        activeTransport?.first ?: TelefonTransportArt.WIFI).forEach { (hash, index, bytes) ->
-                        queue.queue(peer.device_id, "personal_sync.attachment_chunk", buildJsonObject {
-                            put("format", JsonPrimitive(2)); put("run_id", JsonPrimitive(runId)); put("reply", JsonPrimitive(reply))
-                            put("records_hash", body.getValue("records_hash")); put("sha256", JsonPrimitive(hash))
-                            put("index", JsonPrimitive(index)); put("data", JsonPrimitive(Base64.getEncoder().encodeToString(bytes)))
-                        }, 86_400_000, transportPolicy = queue.personalRunPolicy(peer.device_id, runId)
-                            ?: throw TelefonProtokollFehler("Personal-Sync-Policy fehlt."))
-                        bytes.fill(0)
-                    }
+                    queueRequestedPersonalAttachments(peer.device_id, body)
                     return@runCatching accepted
                 }
                 if (kind == "personal_sync.attachment_chunk") {

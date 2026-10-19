@@ -1,6 +1,9 @@
 """Native actor dispatch and existing private-domain staging, without GUI adoption."""
 import sqlite3
 import uuid
+import base64
+import hashlib
+import io
 import pytest
 from test_personal_actor_source import actor_source_fixture
 import magnolie_telefon as phone
@@ -86,3 +89,40 @@ def test_native_source_loss_prevents_dispatch_and_incoming_raw_access(tmp_path, 
     request = {"format": 3, "run_id": handle.actor_id, "trigger": "manual", "modules": ["notes", "tasks"]}
     service._payload(peer, channel, actor.wire_message(frame("personal_sync.request", request), handle.actor_id))
     assert not channel.sent and not events and registry.status(handle)["packets"] == 0
+
+
+def test_actor_attachment_uses_private_manifest_and_native_integrity_checks(tmp_path, monkeypatch):
+    service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch)
+    service.start_personal_actor(registry, handle)
+    request = {"format": 3, "run_id": handle.actor_id, "trigger": "manual", "modules": ["notes", "tasks"]}
+    service._payload(peer, channel, actor.wire_message(frame("personal_sync.request", request), handle.actor_id))
+    raw = b"\x89PNG\r\n\x1a\nOwned private actor attachment"
+    digest = hashlib.sha256(raw).hexdigest()
+    item = record()
+    item["value"]["attachments"] = [{"attachment_id": "actor-image", "name": "owned.png", "kind": "image",
+        "mime": "image/png", "size": len(raw), "sha256": digest}]
+    item["hash"] = personal.projection_hash(item["value"])
+    batch = {"format": 3, "run_id": handle.actor_id, "batch_id": str(uuid.uuid4()), "sequence": 0, "last": True,
+        "reply": False, "records": [item], "records_hash": personal.records_hash([item])}
+    service._payload(peer, channel, actor.wire_message(frame("personal_sync.batch", batch), handle.actor_id))
+    body = {"format": 2, "run_id": handle.actor_id, "reply": False, "records_hash": batch["records_hash"],
+        "sha256": digest, "index": 0, "data": base64.b64encode(raw).decode("ascii")}
+    channel.sent.clear()
+    before = registry.status(handle)["packets"]
+    unrelated = actor.wire_message(frame("personal_sync.attachment_chunk", dict(body, reply=True)), handle.actor_id)
+    service._payload(peer, channel, unrelated)
+    assert not channel.sent and registry.status(handle)["packets"] == before
+    wire = actor.wire_message(frame("personal_sync.attachment_chunk", body), handle.actor_id)
+    service._payload(peer, channel, wire)
+    assert channel.sent[-1]["body"]["message_id"] == wire["message_id"]
+    private = actor.storage_peer(handle.actor_id)
+    sink = io.BytesIO()
+    assert service.store.verify_incoming_attachment(private, handle.actor_id, False, batch["records_hash"], digest, sink)
+    assert sink.getvalue() == raw
+    service._payload(peer, channel, wire)  # Exact replay reuses the native chunk dedupe.
+    with sqlite3.connect(service.store.database_path) as db:
+        rows = db.execute("SELECT peer_id,payload FROM personal_attachment_chunk").fetchall()
+    assert len(rows) == 1 and rows[0][0] == private and raw not in rows[0][1]
+    service.cancel_personal_actor(registry, handle); channel.sent.clear()
+    service._payload(peer, channel, actor.wire_message(frame("personal_sync.attachment_chunk", body), handle.actor_id))
+    assert not channel.sent and not events

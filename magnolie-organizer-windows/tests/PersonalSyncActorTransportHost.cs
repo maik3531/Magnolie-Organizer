@@ -81,13 +81,42 @@ internal static class PersonalSyncActorTransportHost
                 } while (staged is null);
                 TestAssert.That(staged.Records.Where(value => value!["kind"]!.GetValue<string>() == "note").Select(value => value!["id"]!.GetValue<string>()).SequenceEqual(["phone-note"]), "Actor note snapshot changed.");
                 TestAssert.That(staged.Records.Where(value => value!["kind"]!.GetValue<string>() == "task").Select(value => value!["id"]!.GetValue<string>()).SequenceEqual(["phone-task"]), "Actor task snapshot changed.");
+                var descriptor = staged.Records.OfType<JsonObject>().Where(value => value["kind"]!.GetValue<string>() == "note")
+                    .SelectMany(value => value["value"]!["attachments"]!.AsArray().OfType<JsonObject>()).Single();
+                var privatePeer = PersonalSyncActorContract.StoragePeer(handle.ActorId);
+                var hash = descriptor["sha256"]!.GetValue<string>();
+                await coordinator.WithPersonalActorStoreAsync(registry => {
+                    registry.RequireCurrent(handle);
+                    var run = personal.LoadRun(privatePeer, handle.ActorId, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())!;
+                    personal.StageAttachment(privatePeer, handle.ActorId, false, staged.RecordsHash, descriptor, "incoming", run.Policy, run.ExpiresMs, []);
+                    return true;
+                });
+                var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                var request = PersonalSyncActorContract.WireMessage(new JsonObject { ["type"] = "message", ["v"] = 1,
+                    ["message_id"] = Guid.NewGuid().ToString("D"), ["created_ms"] = now, ["expires_ms"] = now + 60000,
+                    ["kind"] = "personal_sync.attachment_request", ["body"] = new JsonObject { ["format"] = 2,
+                        ["run_id"] = handle.ActorId, ["reply"] = false, ["records_hash"] = staged.RecordsHash,
+                        ["wants"] = new JsonArray(new JsonObject { ["sha256"] = hash, ["ranges"] = new JsonArray(new JsonArray(0, 1)) }) } }, handle.ActorId);
+                await connection.SendPlainAsync(request);
+                await connection.SendPlainAsync(request.DeepClone().AsObject());
+                while (personal.MissingAttachmentRanges(privatePeer, handle.ActorId, false, staged.RecordsHash, hash,
+                    "incoming", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Count != 0)
+                {
+                    if (receive.IsCompleted) await receive;
+                    await Task.Delay(10, deadline.Token);
+                }
+                var attachment = personal.ReadVerifiedAttachment(privatePeer, handle.ActorId, false, staged.RecordsHash, hash,
+                    "incoming", "wifi", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                TestAssert.That(attachment.SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3 }), "Native actor attachment integrity failed.");
+                CryptographicOperations.ZeroMemory(attachment);
                 TestAssert.That(guiAdoptions == 0, "Actor snapshot reached GUI adoption.");
                 cancellingRun = handle.ActorId;
                 await coordinator.CancelPersonalActorAsync(handle, deadline.Token);
                 await cancelReceipt.Task.WaitAsync(TimeSpan.FromSeconds(5), deadline.Token);
                 await connection.SendPlainAsync(new JsonObject { ["type"] = "close", ["reason"] = "normal" });
                 Console.WriteLine(new JsonObject { ["actor_id"] = handle.ActorId, ["private_core_records"] = staged.Records.Count,
-                    ["lost_marked_ack_replayed"] = false, ["gui_adoption"] = false, ["book_persisted"] = false }.ToJsonString());
+                    ["lost_marked_ack_replayed"] = false, ["attachment_integrity_verified"] = true,
+                    ["gui_adoption"] = false, ["book_persisted"] = false }.ToJsonString());
             }
             finally
             {

@@ -3939,14 +3939,30 @@ class PhoneService:
                 manifest = self.current_content_scope(peer["device_id"], peer["static_public"], admission["scope"])
                 if kind == content_scope_contract.DATA_KIND:
                     kind, content = content_scope_contract.unwrap(content, manifest)
-                if kind not in ("personal_sync.request", "personal_sync.batch", "personal_sync.report"):
+                if kind not in ("personal_sync.request", "personal_sync.batch", "personal_sync.report", "personal_sync.attachment_chunk"):
                     return
                 if kind == "personal_sync.request" and (content.get("format") != 3 or content.get("trigger") != "manual"):
                     raise ValueError("invalid_actor_request")
                 if kind == "personal_sync.batch" and len(content_scope_contract.filter_records(content["records"], manifest)) != len(content["records"]):
                     raise PermissionError("actor_record_outside_scope")
-                registry.put(handle, payload)
                 storage_peer = personal_actor_contract.storage_peer(run)
+                descriptor = None
+                if kind == "personal_sync.attachment_chunk":
+                    # Reuse the native aggregate's authenticated manifest, never sender metadata.
+                    for owner, aggregate in self.store.ready_personal_batches():
+                        if (owner != storage_peer or aggregate["run_id"] != run or
+                                aggregate["reply"] != content["reply"] or
+                                aggregate["messages"][-1]["body"].get("records_hash") != content["records_hash"]):
+                            continue
+                        if content_scope_contract.filter_records(aggregate["records"], manifest) != aggregate["records"]:
+                            raise PermissionError("actor_attachment_outside_scope")
+                        descriptor = next((item for record in aggregate["records"] if record["kind"] == "note"
+                            for item in record["value"].get("attachments", []) if item["sha256"] == content["sha256"]), None)
+                        if descriptor is not None:
+                            break
+                    if descriptor is None:
+                        raise ValueError("actor_attachment_manifest_missing")
+                registry.put(handle, payload)
                 semantic = dict(payload, kind=kind, body=content)
                 if kind == "personal_sync.request":
                     self.store.remember_personal_run(storage_peer, content, claimed_expires_ms=payload["expires_ms"])
@@ -3954,6 +3970,10 @@ class PhoneService:
                     self.store.stage_personal_batch(storage_peer, semantic)
                 elif kind == "personal_sync.report":
                     pass  # The authenticated raw report is retained; it is not a saved-book assertion.
+                elif kind == "personal_sync.attachment_chunk":
+                    self.store.stage_incoming_attachment(storage_peer, run, content["reply"], content["records_hash"],
+                        content["sha256"], descriptor["size"], descriptor["mime"], content["index"],
+                        base64.b64decode(content["data"], validate=True), "any", payload["expires_ms"], descriptor["attachment_id"])
                 registry.require_current(handle)
                 reply = self._actor_control_message(personal_actor_contract.ACK_KIND,
                     personal_actor_contract.ack(run, payload["message_id"]))

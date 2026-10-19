@@ -54,7 +54,10 @@ class PersonalSyncActorTransportTest {
         File(context.filesDir, "telefon").deleteRecursively(); context.deleteDatabase("magnolie_phone.db")
         val documents = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
         field(Ablage::class.java, "einzig").set(null, documents)
-        documents.setzeNotiz(Notiz("phone-note", "Owned phone snapshot", "Only private staging", angelegt = 1, geaendert = 2))
+        val image = byteArrayOf(137.toByte(), 80, 78, 71, 13, 10, 26, 10, 1, 2, 3)
+        documents.setzeNotiz(Notiz("phone-note", "Owned phone snapshot", "Only private staging", angelegt = 1, geaendert = 2,
+            anhaenge = listOf(io.gitlab.maik3531.magnolienotes.daten.Anhang("actor-image", "owned.png", "image",
+                "data:image/png;base64," + java.util.Base64.getEncoder().encodeToString(image)))))
         documents.setzeAufgabe(Aufgabe("phone-task", "Owned phone task"))
         val storage = TelefonAblage.get(context)
         val identity = storage.identity("Owned actor phone"); identity.second.fill(0)
@@ -173,6 +176,7 @@ class PersonalSyncActorTransportTest {
             assertTrue(process.waitFor(10, TimeUnit.SECONDS)); assertEquals(0, process.exitValue())
             val result = TelefonKanonisch.json.parseToJsonElement(output.readLine()).jsonObject
             assertEquals(JsonPrimitive(!windows), result["lost_marked_ack_replayed"])
+            assertEquals(JsonPrimitive(true), result["attachment_integrity_verified"])
             assertEquals(JsonPrimitive(false), result["gui_adoption"]); assertEquals(JsonPrimitive(false), result["book_persisted"])
             @Suppress("UNCHECKED_CAST")
             val handles = field(TelefonWerk::class.java, "personalActorHandles").get(runtime) as Map<String, PersonalActorHandle>
