@@ -96,6 +96,72 @@ def test_source_changes_during_put_roll_back_binding_and_raw_packet(tmp_path):
     assert store.status(handle)["packets"] == 0 and store.status(handle)["phase"] == "registered"
 
 
+@pytest.mark.parametrize("clock_name", ["now", "monotonic"])
+def test_native_reaper_reclaims_expired_private_context_and_preserves_gui_queue(tmp_path, clock_name):
+    service, peer, events, source, clock, store, handle, wire, current = fixture(tmp_path)
+    store.put(handle, wire)
+    private = actor.storage_peer(handle.actor_id)
+    service.store.remember_personal_run(private, wire["body"]["body"])
+    outgoing = service.store.queue(peer["device_id"], "personal_sync.request", wire["body"]["body"], 60000, actor_run_id=handle.actor_id)
+    ordinary = service.store.queue(peer["device_id"], "personal_sync.settings", {"format": 1, "own_device": True}, 60000)
+    clock[clock_name] += registry.LIFETIME_MS + 1
+    assert store.reap() == 1
+    with pytest.raises(PermissionError, match="actor_not_found"): store.status(handle)
+    assert service.store.personal_run(private, handle.actor_id) == {}
+    assert service.store.outbox_message(peer["device_id"], outgoing["message_id"]) is None
+    assert service.store.outbox_message(peer["device_id"], ordinary["message_id"]) == ordinary
+    assert not events
+
+
+def test_native_reaper_keeps_other_gui_owners_and_discards_previous_process_epoch(tmp_path):
+    service, peer, events, source, clock, store, handle, wire, current = fixture(tmp_path)
+    store.source_owned = lambda actor_id: actor_id == handle.actor_id
+    other = registry.ActorStore(service.store, lambda *_: "b" * 64, epoch=store.epoch,
+        clock=lambda: clock["now"], monotonic_clock=lambda: clock["monotonic"], source_owned=lambda actor_id: actor_id != handle.actor_id)
+    second = other.create(peer["device_id"], phone.fingerprint(phone.unb64(peer["static_public"], 32)), "b" * 64)
+    assert store.reap() == 0 and other.reap() == 0
+    store.require_current(handle); other.require_current(second)
+    restarted = registry.ActorStore(service.store, current, clock=lambda: clock["now"], monotonic_clock=lambda: clock["monotonic"])
+    assert restarted.reap() == 2
+    with pytest.raises(PermissionError): restarted.status(handle)
+    with pytest.raises(PermissionError): other.require_current(second)
+
+
+def test_reaper_cleanup_failure_leaves_irreversibly_retired_context_for_retry(tmp_path, monkeypatch):
+    service, peer, events, source, clock, store, handle, wire, current = fixture(tmp_path)
+    store.put(handle, wire)
+    purge = service.store.purge_personal
+    monkeypatch.setattr(service.store, "purge_personal", lambda _: (_ for _ in ()).throw(OSError("owned cleanup failure")))
+    source["revision"] = "b" * 64
+    with pytest.raises(OSError, match="owned cleanup failure"): store.reap()
+    source["revision"] = "a" * 64
+    assert store.status(handle)["phase"] == "cancelled"
+    with pytest.raises(PermissionError, match="actor_inactive"): store.read(handle, MESSAGE)
+    monkeypatch.setattr(service.store, "purge_personal", purge)
+    assert store.reap() == 1 and not events
+    monkeypatch.setattr(service.store, "purge_personal", lambda _: (_ for _ in ()).throw(AssertionError("completed cleanup repeated")))
+    assert store.reap() == 0
+
+
+def test_restored_precleanup_binding_cannot_inherit_a_volatile_cleanup_receipt(tmp_path):
+    service, peer, events, source, clock, store, handle, wire, current = fixture(tmp_path)
+    store.put(handle, wire)
+    private = actor.storage_peer(handle.actor_id)
+    key = "personal_run:%s:%s" % (private, handle.actor_id)
+    service.store.remember_personal_run(private, wire["body"]["body"])
+    with sqlite3.connect(service.store.database_path) as db:
+        context = db.execute("SELECT actor_id,expires_ms,payload FROM personal_actor_context").fetchone()
+        run = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()[0]
+    source["revision"] = "b" * 64
+    assert store.reap() == 1 and store.reap() == 0
+    with sqlite3.connect(service.store.database_path) as db:
+        db.execute("INSERT OR REPLACE INTO personal_actor_context VALUES(?,?,?)", context)
+        db.execute("INSERT OR REPLACE INTO meta VALUES(?,?)", (key, run))
+    assert store.reap() == 1
+    assert service.store.personal_run(private, handle.actor_id) == {}
+    assert store.status(handle)["phase"] == "cancelled" and not events
+
+
 def test_plaintext_binding_metadata_cannot_extend_a_protected_lease(tmp_path):
     service, peer, events, source, clock, store, handle, wire, current = fixture(tmp_path)
     with sqlite3.connect(service.store.database_path) as db:

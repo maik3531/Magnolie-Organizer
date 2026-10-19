@@ -167,11 +167,16 @@ internal static class PersonalSyncActorSourceTests
             var resultBody = PersonalSyncActorContract.Unwrap(resultWire["body"]!.AsObject());
             TestAssert.That(resultBody.Kind == "personal_sync.attachment_result" && resultBody.Body["state"]!.GetValue<string>() == "complete",
                 "Native integrity verification did not enqueue the marked transfer result.");
+            hostBook.SetReady(false);
+            await coordinator.PumpPersonalActorAsync(connection);
+            TestAssert.That(wire.Length == 0 && await coordinator.WithPersonalActorStoreAsync(registry => registry.Status(transportHandle)["phase"]!.GetValue<string>()) == "cancelled",
+                "Source-loss reaping dispatched data or failed to retain terminal owner status.");
             await coordinator.CancelPersonalActorAsync(transportHandle);
             TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Single()["kind"]!.GetValue<string>() == PersonalSyncActorContract.CancelKind,
                 "Native actor cancellation lost its explicit wire marker.");
             TestAssert.That(store.OutboxMessage(peer.Id, resultWire["message_id"]!.GetValue<string>()) is null,
                 "Cancellation left its own outbound actor result pending.");
+            hostBook.SetReady(true);
             TestAssert.That(wire.GuardChecks > 0, "Encrypted actor writes bypassed the source-guard observation.");
             wire.AssertActorWrite = null;
             TestAssert.That(Read(() => new string('b', 64)) != revision && Read(() => null) is null && Read(() => "client-digest") is null,

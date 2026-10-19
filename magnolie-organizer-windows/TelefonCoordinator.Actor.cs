@@ -213,8 +213,15 @@ internal sealed partial class TelefonCoordinator
         try
         {
             await WithPersonalActorStoreAsync(registry => {
+                registry.Reap();
                 foreach (var admission in admitted)
                 {
+                    try
+                    {
+                        if (registry.Status(admission.Handle)["phase"]!.GetValue<string>() == "cancelled")
+                            continue; // Retain the bound cancellation target until its lease expires.
+                    }
+                    catch (InvalidOperationException) { actorAdmissions.Remove(admission.Handle.ActorId); continue; }
                     registry.RequireCurrent(admission.Handle);
                     if (online.GetValueOrDefault(admission.PeerId) != connection) continue;
                     foreach (var item in store.Due(admission.PeerId, Now(), transport: connection.Transport))

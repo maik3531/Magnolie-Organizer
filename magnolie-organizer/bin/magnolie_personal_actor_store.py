@@ -72,12 +72,13 @@ class ActorStore:
     # The native callback must bind the current book/profile scope as well as the
     # exact channel/key, fresh controls, ownership, grants and content scope.
     # A caller-supplied display fingerprint/revision alone is never authority.
-    def __init__(self, store, current_source, *, epoch=None, clock=None, monotonic_clock=None, source_guard=None):
+    def __init__(self, store, current_source, *, epoch=None, clock=None, monotonic_clock=None, source_guard=None, source_owned=None):
         if not callable(current_source):
             raise TypeError("A native current-source validator is required")
         self.store = store
         self.current_source = current_source
         self.source_guard = source_guard
+        self.source_owned = source_owned or (lambda actor_id: True)
         self.epoch = secrets.token_hex(32) if epoch is None else epoch
         if not isinstance(self.epoch, str) or not HEX.fullmatch(self.epoch):
             raise ValueError("Invalid native owner epoch")
@@ -105,7 +106,7 @@ class ActorStore:
         fields = {"format", "actor_id", "peer_id", "fingerprint", "source_revision", "owner_epoch", "owner_hash", "storage_peer", "created_ms", "expires_ms", "created_monotonic_ms", "expires_monotonic_ms", "phase"}
         if (not isinstance(value, dict) or set(value) != fields or type(value["format"]) is not int or value["format"] != actor.VERSION or
                 value["actor_id"] != actor_id or value["expires_ms"] != expires or
-                value["storage_peer"] != actor.storage_peer(actor_id) or value["phase"] not in ("registered", "receiving", "cancelled")):
+                value["storage_peer"] != actor.storage_peer(actor_id) or value["phase"] not in ("registered", "receiving", "cancelled", "cancelled_clean")):
             raise ValueError("Invalid protected actor binding")
         actor.start(value["peer_id"])
         if (any(not isinstance(value[key], str) for key in ("fingerprint", "source_revision", "owner_epoch", "owner_hash")) or
@@ -133,7 +134,7 @@ class ActorStore:
         token_hash = hashlib.sha256(handle.owner_token.encode("ascii")).hexdigest()
         if value["owner_epoch"] != self.epoch or not hmac.compare_digest(value["owner_hash"], token_hash):
             raise PermissionError("actor_not_found")
-        if active and (value["phase"] == "cancelled" or value["expires_ms"] <= self.clock() or value["expires_monotonic_ms"] <= self.monotonic_clock()):
+        if active and (value["phase"] not in ("registered", "receiving") or value["expires_ms"] <= self.clock() or value["expires_monotonic_ms"] <= self.monotonic_clock()):
             raise PermissionError("actor_inactive")
         if source and self.current_source(value["peer_id"], value["fingerprint"]) != value["source_revision"]:
             raise PermissionError("actor_source_changed")
@@ -145,6 +146,7 @@ class ActorStore:
         fingerprint = fingerprint.upper() if isinstance(fingerprint, str) else ""
         if not FINGERPRINT.fullmatch(fingerprint) or not isinstance(source_revision, str) or not HEX.fullmatch(source_revision):
             raise ValueError("Invalid actor source snapshot")
+        self.reap()
         if self.current_source(peer_id, fingerprint) != source_revision:
             raise PermissionError("actor_source_changed")
         token = secrets.token_hex(32); created = self.clock(); monotonic = self.monotonic_clock()
@@ -157,7 +159,7 @@ class ActorStore:
         with self._database() as db:
             db.execute("BEGIN IMMEDIATE")
             rows = [self._decode(row) for row in db.execute("SELECT actor_id,expires_ms,payload FROM personal_actor_context")]
-            active = sum(item["owner_epoch"] == self.epoch and item["phase"] != "cancelled" and
+            active = sum(item["owner_epoch"] == self.epoch and item["phase"] in ("registered", "receiving") and
                 item["expires_ms"] > created and item["expires_monotonic_ms"] > monotonic for item in rows)
             if len(rows) >= MAX_CONTEXTS or active >= MAX_ACTIVE:
                 raise RuntimeError("actor_capacity")
@@ -168,6 +170,45 @@ class ActorStore:
             self._write(db, value)
         return ActorHandle(run_id, token)
 
+    def reap(self):
+        """Retire before native cleanup; reclaim only expired or previous-epoch owners."""
+        with self.source_guard if self.source_guard is not None else nullcontext():
+            wall, monotonic = self.clock(), self.monotonic_clock()
+            retired = []
+            with self._database() as db:
+                db.execute("BEGIN IMMEDIATE")
+                rows = [self._decode(row) for row in db.execute("SELECT actor_id,expires_ms,payload FROM personal_actor_context")]
+                for value in rows:
+                    discard = (value["owner_epoch"] != self.epoch or value["expires_ms"] <= wall or
+                        value["expires_monotonic_ms"] <= monotonic or value["created_monotonic_ms"] > monotonic)
+                    if not discard and value["phase"] == "cancelled_clean":
+                        continue
+                    if (discard or self.source_owned(value["actor_id"]) and (value["phase"] == "cancelled" or
+                            self.current_source(value["peer_id"], value["fingerprint"]) != value["source_revision"])):
+                        if value["phase"] not in ("cancelled", "cancelled_clean"):
+                            value["phase"] = "cancelled"
+                            self._write(db, value)
+                        retired.append((value, discard))
+            for value, discard in retired:
+                # Existing domain cleanup runs after retirement and outside the registry
+                # transaction. A failed cleanup leaves an inactive, retryable context.
+                if value["phase"] != "cancelled_clean":
+                    self.store.purge_personal(value["storage_peer"])
+                with self._database() as db:
+                    queued = db.execute("SELECT message_id,payload FROM outbox WHERE peer_id=?", (value["peer_id"],)).fetchall()
+                    for message_id, payload in queued:
+                        message = json.loads(self.store._decrypt(payload, "outbox", message_id))
+                        if message.get("kind") == actor.DATA_KIND and message.get("body", {}).get("run_id") == value["actor_id"]:
+                            actor.unwrap(message["body"])
+                            db.execute("DELETE FROM outbox WHERE peer_id=? AND message_id=?", (value["peer_id"], message_id))
+                    if discard:
+                        db.execute("DELETE FROM personal_actor_wire WHERE actor_id=?", (value["actor_id"],))
+                        db.execute("DELETE FROM personal_actor_context WHERE actor_id=?", (value["actor_id"],))
+                    else:
+                        value["phase"] = "cancelled_clean"
+                        self._write(db, value)
+            return len(retired)
+
     def status(self, handle):
         with self._database() as db:
             value = self._require(db, handle, active=False, source=False)
@@ -175,7 +216,7 @@ class ActorStore:
         packets, size = len(rows), sum(row[2] for row in rows)
         revision = hmac.new(self.revision_key, personal.canonical({"binding": value, "packets": rows}), hashlib.sha256).hexdigest()
         return {"actor_id": value["actor_id"], "peer_id": value["peer_id"], "fingerprint": value["fingerprint"],
-            "phase": value["phase"], "expires_ms": value["expires_ms"], "packets": packets, "bytes": size, "revision": revision}
+            "phase": "cancelled" if value["phase"] == "cancelled_clean" else value["phase"], "expires_ms": value["expires_ms"], "packets": packets, "bytes": size, "revision": revision}
 
     def require_current(self, handle):
         """Native lifecycle check only, without returning raw content."""
@@ -243,5 +284,6 @@ class ActorStore:
         with self._database() as db:
             db.execute("BEGIN IMMEDIATE")
             value = self._require(db, handle, active=False, source=False)
-            value["phase"] = "cancelled"; self._write(db, value)
+            if value["phase"] != "cancelled_clean":
+                value["phase"] = "cancelled"; self._write(db, value)
         return self.status(handle)

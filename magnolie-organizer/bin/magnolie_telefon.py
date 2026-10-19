@@ -3879,6 +3879,11 @@ class PhoneService:
     def personal_actor_registry(self):
         """Native controller only; the actual configured book owner supplies authority."""
         with self.lock:
+            for run, admission in list(self.personal_actor_admissions.items()):
+                try:
+                    admission["registry"].status(admission["handle"])
+                except PermissionError:
+                    self.personal_actor_admissions.pop(run, None)
             if self._personal_actor_registry is None:
                 from magnolie_personal_actor_store import ActorStore
                 self._personal_actor_registry = ActorStore(self.store, self.current_actor_source, source_guard=self.lock)
@@ -3926,7 +3931,11 @@ class PhoneService:
                 return
             registry, handle = admission["registry"], admission["handle"]
             try:
-                registry.require_current(handle)
+                try:
+                    registry.require_current(handle)
+                except PermissionError:
+                    self.cancel_personal_actor(registry, handle, notify=False)
+                    return
                 if payload["kind"] == personal_actor_contract.ACK_KIND:
                     personal_actor_contract.validate_ack(body)
                     if body["message_id"] not in admission["outbound"]:
@@ -4058,15 +4067,19 @@ class PhoneService:
                     return False
                 self.store.mark_attempt(peer_id, message["message_id"])
                 registry.require_current(handle)
-            except (PermissionError, ValueError, RuntimeError, KeyError):
+            except PermissionError:
+                self.cancel_personal_actor(registry, handle, notify=False)
+                return False
+            except (ValueError, RuntimeError, KeyError):
                 return False
         channel.send(message)
         return True
 
-    def cancel_personal_actor(self, registry, handle):
+    def cancel_personal_actor(self, registry, handle, *, notify=True):
         with self.lock:
             result = registry.cancel(handle)
-            admission = self.personal_actor_admissions.pop(handle.actor_id, None)
+            admission = (self.personal_actor_admissions.pop(handle.actor_id, None) if notify else
+                self.personal_actor_admissions.get(handle.actor_id))
             dispatch = None
             if admission is not None and admission["handle"] == handle and admission["registry"] is registry:
                 for message_id in admission["outbound"]:
@@ -4074,7 +4087,7 @@ class PhoneService:
                     if queued is not None and queued.get("kind") == personal_actor_contract.DATA_KIND and queued["body"]["run_id"] == handle.actor_id:
                         self.store.acknowledge(admission["peer"], message_id)
                 peer = self.store.sole_peer(admission["peer"])
-                if (peer and peer["static_public"] == admission["key"] and
+                if (notify and peer and peer["static_public"] == admission["key"] and
                         self.connections.get(admission["peer"]) is admission["channel"]):
                     dispatch = (admission["channel"], self._actor_control_message(
                         personal_actor_contract.CANCEL_KIND, personal_actor_contract.cancel(handle.actor_id)))

@@ -1105,7 +1105,8 @@ class IPCServer:
                 if len(self._phone_actor_registries) >= 32:
                     raise IPCError("Native actor owner capacity exceeded")
                 registry = ActorStore(phone.store, lambda peer, fingerprint: phone.current_actor_source(peer, fingerprint,
-                    lambda: self.gui_actor_book_source(subscriber, book_source)), epoch=self._phone_actor_epoch, source_guard=phone.lock)
+                    lambda: self.gui_actor_book_source(subscriber, book_source)), epoch=self._phone_actor_epoch, source_guard=phone.lock,
+                    source_owned=lambda actor_id: self._phone_actor_owners.get(actor_id) == key)
                 self._phone_actor_registries[key] = registry
             return registry
 
@@ -1114,12 +1115,17 @@ class IPCServer:
         if phone is None:
             return
         with phone.lock:
+            for registry in list(self._phone_actor_registries.values()):
+                registry.reap()
             for actor_id, owner in list(self._phone_actor_owners.items()):
                 handle = self._phone_actor_handles[actor_id]
                 registry = self._phone_actor_registry(*owner)
                 try:
                     status = registry.status(handle)
                 except PermissionError:
+                    admission = phone.personal_actor_admissions.get(actor_id)
+                    if admission is not None and admission["registry"] is registry and admission["handle"] == handle:
+                        phone.personal_actor_admissions.pop(actor_id, None)
                     self._phone_actor_owners.pop(actor_id, None)
                     self._phone_actor_handles.pop(actor_id, None)
                     continue
@@ -1129,6 +1135,10 @@ class IPCServer:
                     registry.require_current(handle)
                 except PermissionError:
                     registry.cancel(handle)
+            active_owners = set(self._phone_actor_owners.values())
+            for key in list(self._phone_actor_registries):
+                if key not in active_owners:
+                    self._phone_actor_registries.pop(key, None)
 
     def gui_input_ready(self):
         """A live unlocked Organizer may control input while hidden in its tray."""

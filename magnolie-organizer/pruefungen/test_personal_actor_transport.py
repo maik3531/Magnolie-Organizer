@@ -89,6 +89,7 @@ def test_native_source_loss_prevents_dispatch_and_incoming_raw_access(tmp_path, 
     request = {"format": 3, "run_id": handle.actor_id, "trigger": "manual", "modules": ["notes", "tasks"]}
     service._payload(peer, channel, actor.wire_message(frame("personal_sync.request", request), handle.actor_id))
     assert not channel.sent and not events and registry.status(handle)["packets"] == 0
+    assert registry.status(handle)["phase"] == "cancelled"
 
 
 def test_actor_attachment_uses_private_manifest_and_native_integrity_checks(tmp_path, monkeypatch):

@@ -60,7 +60,7 @@ internal sealed class PersonalSyncActorStore
         var value = JsonNode.Parse(store.Open("personal_actor_context", id, payload))!.AsObject();
         TelefonProtocolContract.ExactObject(value, "format", "actor_id", "peer_id", "fingerprint", "source_revision", "owner_epoch", "owner_hash", "storage_peer", "created_ms", "expires_ms", "created_monotonic_ms", "expires_monotonic_ms", "phase");
         if (Number(value, "format") != PersonalSyncActorContract.Version || Text(value, "actor_id") != id || Number(value, "expires_ms") != expires ||
-            Text(value, "storage_peer") != PersonalSyncActorContract.StoragePeer(id) || Text(value, "phase") is not ("registered" or "receiving" or "cancelled") ||
+            Text(value, "storage_peer") != PersonalSyncActorContract.StoragePeer(id) || Text(value, "phase") is not ("registered" or "receiving" or "cancelled" or "cancelled_clean") ||
             !TelefonProtocolContract.IsUuidV4(Text(value, "peer_id")) || !Fingerprint.IsMatch(Text(value, "fingerprint")) ||
             new[] { "source_revision", "owner_epoch", "owner_hash" }.Any(key => !Hex.IsMatch(Text(value, key))) ||
             Number(value, "created_ms") < 0 || expires > 253402300799999 || expires - Number(value, "created_ms") is <= 0 or > LifetimeMs ||
@@ -90,7 +90,7 @@ internal sealed class PersonalSyncActorStore
         }
         if (Text(value, "owner_epoch") != Epoch || !CryptographicOperations.FixedTimeEquals(Convert.FromHexString(Text(value, "owner_hash")), SHA256.HashData(Encoding.ASCII.GetBytes(handle.OwnerToken))))
             throw new InvalidOperationException("actor_not_found");
-        if (active && (Text(value, "phase") == "cancelled" || Number(value, "expires_ms") <= clock() || Number(value, "expires_monotonic_ms") <= monotonicClock()))
+        if (active && (Text(value, "phase") is not ("registered" or "receiving") || Number(value, "expires_ms") <= clock() || Number(value, "expires_monotonic_ms") <= monotonicClock()))
             throw new InvalidOperationException("actor_inactive");
         if (source && currentSource(Text(value, "peer_id"), Text(value, "fingerprint")) != Text(value, "source_revision"))
             throw new InvalidOperationException("actor_source_changed");
@@ -102,6 +102,7 @@ internal sealed class PersonalSyncActorStore
         runId ??= Guid.NewGuid().ToString("D"); fingerprint = fingerprint.ToUpperInvariant();
         if (!TelefonProtocolContract.IsUuidV4(peerId) || !TelefonProtocolContract.IsUuidV4(runId) || !Fingerprint.IsMatch(fingerprint) || !Hex.IsMatch(sourceRevision))
             throw new InvalidDataException("Invalid actor source snapshot.");
+        Reap();
         if (currentSource(peerId, fingerprint) != sourceRevision) throw new InvalidOperationException("actor_source_changed");
         var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(); var created = clock(); var monotonic = monotonicClock();
         if (created < 0 || created > 253402300799999 - LifetimeMs || monotonic < 0 || monotonic > long.MaxValue - LifetimeMs)
@@ -117,13 +118,73 @@ internal sealed class PersonalSyncActorStore
             while (row.Read())
             {
                 var item = Decode(row.GetString(0), row.GetInt64(1), (byte[])row[2]); count++; duplicate |= Text(item, "actor_id") == runId;
-                if (Text(item, "owner_epoch") == Epoch && Text(item, "phase") != "cancelled" && Number(item, "expires_ms") > created && Number(item, "expires_monotonic_ms") > monotonic) active++;
+                if (Text(item, "owner_epoch") == Epoch && Text(item, "phase") is ("registered" or "receiving") && Number(item, "expires_ms") > created && Number(item, "expires_monotonic_ms") > monotonic) active++;
             }
         }
         if (count >= MaximumContexts || active >= MaximumActive) throw new InvalidOperationException("actor_capacity");
         if (duplicate) throw new InvalidDataException("actor_identity_reused");
         if (currentSource(peerId, fingerprint) != sourceRevision) throw new InvalidOperationException("actor_source_changed");
         Write(db, transaction, value); transaction.Commit(); return new PersonalActorHandle(runId, token);
+    }
+
+    internal int Reap()
+    {
+        var wall = clock(); var monotonic = monotonicClock();
+        var retired = new List<(JsonObject Binding, bool Discard)>();
+        using (var db = Open())
+        {
+            using var transaction = db.BeginTransaction(); var bindings = new List<JsonObject>();
+            using (var read = db.CreateCommand())
+            {
+                read.Transaction = transaction; read.CommandText = "SELECT actor_id,expires_ms,payload FROM personal_actor_context";
+                using var row = read.ExecuteReader();
+                while (row.Read()) bindings.Add(Decode(row.GetString(0), row.GetInt64(1), (byte[])row[2]));
+            }
+            foreach (var value in bindings)
+            {
+                var discard = Text(value, "owner_epoch") != Epoch || Number(value, "expires_ms") <= wall ||
+                    Number(value, "expires_monotonic_ms") <= monotonic || Number(value, "created_monotonic_ms") > monotonic;
+                if (!discard && Text(value, "phase") == "cancelled_clean") continue;
+                if (!discard && Text(value, "phase") != "cancelled" && currentSource(Text(value, "peer_id"), Text(value, "fingerprint")) == Text(value, "source_revision")) continue;
+                if (Text(value, "phase") is not ("cancelled" or "cancelled_clean")) { value["phase"] = "cancelled"; Write(db, transaction, value); }
+                retired.Add((value, discard));
+            }
+            transaction.Commit();
+        }
+        foreach (var (value, discard) in retired)
+        {
+            // Retirement precedes existing domain cleanup. Failure retains an inactive
+            // context for retry, never a resumed owner with partially purged staging.
+            if (Text(value, "phase") != "cancelled_clean") new PersonalSyncStore(store).PurgeProtocol(Text(value, "storage_peer"));
+            using var db = Open(); using var transaction = db.BeginTransaction();
+            var peer = Text(value, "peer_id"); var actor = Text(value, "actor_id");
+            var queued = new List<(string Id, byte[] Payload)>();
+            using (var read = db.CreateCommand())
+            {
+                read.Transaction = transaction; read.CommandText = "SELECT message_id,payload FROM outbox WHERE peer_id=$peer";
+                read.Parameters.AddWithValue("$peer", peer); using var row = read.ExecuteReader();
+                while (row.Read()) queued.Add((row.GetString(0), (byte[])row[1]));
+            }
+            foreach (var item in queued)
+            {
+                var message = JsonNode.Parse(store.Open("outbox", item.Id, item.Payload))!.AsObject();
+                if (message["kind"]?.GetValue<string>() != PersonalSyncActorContract.DataKind || message["body"]?["run_id"]?.GetValue<string>() != actor) continue;
+                PersonalSyncActorContract.Unwrap(message["body"]!.AsObject());
+                using var remove = db.CreateCommand(); remove.Transaction = transaction;
+                remove.CommandText = "DELETE FROM outbox WHERE peer_id=$peer AND message_id=$id";
+                remove.Parameters.AddWithValue("$peer", peer); remove.Parameters.AddWithValue("$id", item.Id); remove.ExecuteNonQuery();
+            }
+            if (discard)
+                foreach (var table in new[] { "personal_actor_wire", "personal_actor_context" })
+                {
+                    using var remove = db.CreateCommand(); remove.Transaction = transaction;
+                    remove.CommandText = $"DELETE FROM {table} WHERE actor_id=$actor";
+                    remove.Parameters.AddWithValue("$actor", actor); remove.ExecuteNonQuery();
+                }
+            if (!discard) { value["phase"] = "cancelled_clean"; Write(db, transaction, value); }
+            transaction.Commit();
+        }
+        return retired.Count;
     }
 
     internal JsonObject Status(PersonalActorHandle handle)
@@ -137,7 +198,7 @@ internal sealed class PersonalSyncActorStore
         }
         var revision = Convert.ToHexString(HMACSHA256.HashData(revisionKey, TelefonCrypto.Canonical(new JsonObject { ["binding"] = value.DeepClone(), ["packets"] = packets }))).ToLowerInvariant();
         return new JsonObject { ["actor_id"] = handle.ActorId, ["peer_id"] = value["peer_id"]!.DeepClone(), ["fingerprint"] = value["fingerprint"]!.DeepClone(),
-            ["phase"] = value["phase"]!.DeepClone(), ["expires_ms"] = value["expires_ms"]!.DeepClone(), ["packets"] = packets.Count, ["bytes"] = size, ["revision"] = revision };
+            ["phase"] = Text(value, "phase") == "cancelled_clean" ? JsonValue.Create("cancelled") : value["phase"]!.DeepClone(), ["expires_ms"] = value["expires_ms"]!.DeepClone(), ["packets"] = packets.Count, ["bytes"] = size, ["revision"] = revision };
     }
 
     internal bool Put(PersonalActorHandle handle, JsonObject wire)
@@ -203,7 +264,8 @@ internal sealed class PersonalSyncActorStore
         using (var db = Open())
         {
             using var transaction = db.BeginTransaction(); var value = Require(db, handle, transaction, active: false, source: false);
-            value["phase"] = "cancelled"; Write(db, transaction, value); transaction.Commit();
+            if (Text(value, "phase") != "cancelled_clean") { value["phase"] = "cancelled"; Write(db, transaction, value); }
+            transaction.Commit();
         }
         return Status(handle);
     }

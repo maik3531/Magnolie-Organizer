@@ -344,6 +344,21 @@ attachment staging through the existing completion handler. An optional run
 report is not a required transfer receipt. This completes file transfer into
 private staging, not book adoption; the remaining completion gates still apply.
 
+Desktop registry reaping retires a context before invoking existing private-domain
+cleanup. Expired wall/monotonic leases and previous native process epochs reclaim
+their raw inbox, private core staging and marked outbound controls; source loss
+retains terminal owner status until lease expiry. Cleanup failure leaves the
+context irreversibly inactive and retryable. Capacity checks sweep stale owners
+before allocating another context, without evicting a live owner. Linux daemon
+registries sharing one process epoch check source changes only for their exact
+native GUI/book owner, preserving other active windows' contexts.
+An internal sealed cleanup receipt avoids repeating completed domain cleanup on
+each pump pass; public/private controller status still reports `cancelled`.
+Restoring an earlier protected binding and staging cannot inherit a volatile
+cleanup cache. The bound cancellation target remains available until expiry so
+an explicit owner cancellation can still notify the same peer/key/channel after
+local source retirement, without authorizing another data dispatch.
+
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption
 and save/commit still need their corresponding integration and acceptance gates.
