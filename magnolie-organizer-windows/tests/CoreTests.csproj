@@ -21,6 +21,7 @@
     <Compile Remove="kde-media-native\**\*.cs" />
     <Compile Include="..\TelefonCallActions.cs" Link="TelefonCallActions.cs" />
     <Compile Include="..\PersonalSyncActorContract.cs" Link="PersonalSyncActorContract.cs" />
+    <Compile Include="..\PersonalSyncActorStore.cs" Link="PersonalSyncActorStore.cs" />
     <Compile Include="..\DeadlineHttp.cs" Link="DeadlineHttp.cs" />
     <Compile Include="..\ProfileLease.cs" Link="ProfileLease.cs" />
     <Compile Include="..\SmsSubmissionJournal.cs" Link="SmsSubmissionJournal.cs" />
