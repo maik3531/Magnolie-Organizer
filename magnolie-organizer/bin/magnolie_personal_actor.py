@@ -15,6 +15,7 @@ START_KIND = "personal_sync.actor_start"
 DATA_KIND = "personal_sync.actor_data"
 ACK_KIND = "personal_sync.actor_ack"
 RESERVED_KINDS = frozenset({START_KIND, DATA_KIND, ACK_KIND})
+STORAGE_PEER_PREFIX = "@mcp-actor-"
 DATA_KINDS = frozenset({"personal_sync.request", "personal_sync.batch", "personal_sync.report",
     "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result",
     "personal_sync.deletion_proposals", "personal_sync.deletion_decision", scope.DATA_KIND})
@@ -26,6 +27,15 @@ def is_reserved_message(value):
 
 def is_reserved_kind(kind):
     return isinstance(kind, str) and kind in RESERVED_KINDS
+
+
+def storage_peer(run_id):
+    start(run_id)
+    return STORAGE_PEER_PREFIX + run_id
+
+
+def is_storage_peer(value):
+    return isinstance(value, str) and value.startswith(STORAGE_PEER_PREFIX)
 
 
 def validate_start(body):

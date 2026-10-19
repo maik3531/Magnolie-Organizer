@@ -97,6 +97,16 @@ actor frames. It emits no success receipt and makes no document change. Ordinary
 heartbeat/control traffic remains usable. This closed boundary must be replaced
 by the explicitly authorized actor route, not removed in favor of legacy receive.
 
+The existing batch/domain stagers can be reused under a private storage peer
+identity `@mcp-actor-<canonical-run-UUIDv4>`. This is not a paired peer ID and is
+not an authorization credential. Ordinary GUI replay explicitly excludes that
+namespace while the durable staged records remain available to the actor path.
+No second merge or batch-staging engine is introduced. The actual source peer,
+key, live role/grants/scope and session owner must still be checked by the actor
+adapter before reading, adopting or committing such data; the private storage ID
+must never replace the real source identity for those checks. A raw actor-wire
+inbox/binding and the authorized adapter are still required before activation.
+
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption
 and save/commit still need their corresponding integration and acceptance gates.

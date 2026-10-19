@@ -4919,6 +4919,8 @@ class PhoneService:
 
     def _replay_personal_sync(self):
         for peer_id, payload in self.store.ready_personal_domains():
+            if personal_actor_contract.is_storage_peer(peer_id):
+                continue
             if self.store.sole_peer(peer_id) is None or payload["commit_token"] in self.personal_dispatched:
                 continue
             if self._note_policy_error(peer_id, payload["kind"], payload["body"], False):
@@ -4927,6 +4929,8 @@ class PhoneService:
             payload["transport"] = "wifi"
             self._emit_personal_sync(payload)
         for peer_id, aggregate in self.store.ready_personal_batches():
+            if personal_actor_contract.is_storage_peer(peer_id):
+                continue
             if self.store.sole_peer(peer_id) is None:
                 continue
             if self._note_policy_error(peer_id, "personal_sync.batch", {"run_id": aggregate["run_id"], "records": aggregate["records"]}, False):

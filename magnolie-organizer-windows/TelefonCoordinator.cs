@@ -788,6 +788,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
 
     private bool NoteApplicationAllowed(string id, string kind, JsonObject body)
     {
+        if (PersonalSyncActorContract.IsStoragePeer(id)) return false;
         if (!NoteDirectionAllowed(id, kind, body, false)) return false;
         if (body["run_id"] is JsonValue runId && runId.TryGetValue<string>(out var run))
         {

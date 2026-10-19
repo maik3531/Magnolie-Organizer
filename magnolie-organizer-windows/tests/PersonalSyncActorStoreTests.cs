@@ -42,6 +42,7 @@ internal static class PersonalSyncActorStoreTests
             TestAssert.That(reopened.AcknowledgePersonalOutbox(peer, actorId, "accepted", "none", now + 3) && reopened.OutboxMessage(peer, actorId) is null &&
                 reopened.OutboxMessage(peer, ordinaryId) is not null, "Actor ACK identity changed or removed unrelated GUI traffic.");
             await NoLegacyTransportFallbackAsync(Path.Combine(root, "transport"));
+            await PrivateStagingNamespaceAsync(Path.Combine(root, "staging"));
         }
         finally { SqliteConnection.ClearAllPools(); if (Directory.Exists(root)) Directory.Delete(root, true); }
     }
@@ -89,5 +90,30 @@ internal static class PersonalSyncActorStoreTests
         }
         await connection.HandlePlainAsync(new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"), ["sent_ms"] = now });
         TestAssert.That(stream.Length > 0 && legacyReceives == 0, "The actor boundary disabled ordinary heartbeat traffic.");
+    }
+
+    private static async Task PrivateStagingNamespaceAsync(string root)
+    {
+        var paths = new WindowsPaths(root); var store = new TelefonStore(paths, testStorageKey: Enumerable.Repeat((byte)31, 32).ToArray());
+        store.Enabled = false;
+        var peer = new TelefonPeer(Guid.NewGuid().ToString("D"), "Owned staged source", TelefonCrypto.GenerateX25519().Public); store.SavePeers([peer]);
+        var callbacks = new List<string>();
+        using var coordinator = new TelefonCoordinator(paths, (name, _) => { callbacks.Add(name); return Task.CompletedTask; }, dataStore: store, localOnly: true);
+        var run = Guid.NewGuid().ToString("D"); var storagePeer = PersonalSyncActorContract.StoragePeer(run);
+        TestAssert.That(PersonalSyncActorContract.IsStoragePeer(storagePeer) && !TelefonProtocolContract.IsUuidV4(storagePeer) && !PersonalSyncActorContract.IsStoragePeer(peer.Id), "Private actor storage could collide with a paired peer identity.");
+        var personal = new PersonalSyncStore(store); var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        personal.RememberRun(storagePeer, new JsonObject { ["format"] = 3, ["run_id"] = run, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") }, now);
+        var body = new JsonObject { ["format"] = 3, ["run_id"] = run, ["batch_id"] = Guid.NewGuid().ToString("D"), ["sequence"] = 0,
+            ["last"] = true, ["reply"] = false, ["records_hash"] = PersonalSyncContract.RecordsHash(new JsonArray()), ["records"] = new JsonArray() };
+        JsonObject Message(string kind, JsonObject value) => new() { ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"),
+            ["kind"] = kind, ["created_ms"] = now, ["expires_ms"] = now + 60000, ["body"] = value };
+        TestAssert.That(personal.StageBatch(storagePeer, Message("personal_sync.batch", body), "wifi", now) is not null, "Existing batch engine did not stage in the private actor namespace.");
+        personal.StageDecisionIntent(storagePeer, Message("personal_sync.deletion_proposals", new JsonObject { ["format"] = 1, ["run_id"] = run,
+            ["proposal_batch_id"] = Guid.NewGuid().ToString("D"), ["sequence"] = 0, ["last"] = true, ["proposals"] = new JsonArray() }), "wifi", now);
+        await coordinator.ReplayPersonalSyncAsync();
+        var reopened = new PersonalSyncStore(new TelefonStore(paths, testStorageKey: Enumerable.Repeat((byte)31, 32).ToArray()));
+        TestAssert.That(callbacks.Count == 0 && !coordinator.McpStatus()["listening"]!.GetValue<bool>() && store.LoadPeers().Single().Id == peer.Id &&
+            reopened.ReadyBatches(now + 1).Any(value => value.PeerId == storagePeer) && reopened.DecisionIntents(now + 1).Any(value => value.PeerId == storagePeer),
+            "Private actor staging was lost, exposed as a paired peer or replayed through the ordinary GUI.");
     }
 }

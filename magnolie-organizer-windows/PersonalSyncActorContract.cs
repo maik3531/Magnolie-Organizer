@@ -10,6 +10,7 @@ internal static class PersonalSyncActorContract
     internal const string StartKind = "personal_sync.actor_start";
     internal const string DataKind = "personal_sync.actor_data";
     internal const string AckKind = "personal_sync.actor_ack";
+    private const string StoragePeerPrefix = "@mcp-actor-";
     private static readonly HashSet<string> DataKinds = ["personal_sync.request", "personal_sync.batch", "personal_sync.report",
         "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result",
         "personal_sync.deletion_proposals", "personal_sync.deletion_decision", PhoneContentScope.DataKind];
@@ -21,6 +22,8 @@ internal static class PersonalSyncActorContract
         value["kind"] is JsonValue kind && kind.TryGetValue<string>(out var name) && IsReservedKind(name);
 
     internal static bool IsReservedKind(string? name) => name is StartKind or DataKind or AckKind;
+    internal static string StoragePeer(string runId) { _ = Start(runId); return StoragePeerPrefix + runId; }
+    internal static bool IsStoragePeer(string? value) => value?.StartsWith(StoragePeerPrefix, StringComparison.Ordinal) == true;
 
     internal static JsonObject ValidateStart(JsonObject body)
     {

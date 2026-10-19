@@ -5,6 +5,16 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PersonalSyncActorTest {
+    @Test fun privateStorageIdentityCannotBeMistakenForAPairedPeer() {
+        val run = "11111111-1111-4111-8111-111111111111"
+        val storage = PersonalSyncActor.storagePeer(run)
+        assertTrue(PersonalSyncActor.isStoragePeer(storage))
+        assertFalse(PersonalSyncActor.isStoragePeer(run))
+        assertFalse(storage.contains(':'))
+        assertTrue(runCatching { TelefonNachrichten.uuid4(storage) }.isFailure)
+        assertTrue(runCatching { PersonalSyncActor.storagePeer("unknown") }.isFailure)
+    }
+
     @Test fun sameActorAckVectorsReuseTheExistingTransportAckRules() {
         val text = requireNotNull(javaClass.getResource("/notes-actor-ack.json")).readText()
         for (item in Json.parseToJsonElement(text).jsonObject.getValue("cases").jsonArray.map { it.jsonObject }) {

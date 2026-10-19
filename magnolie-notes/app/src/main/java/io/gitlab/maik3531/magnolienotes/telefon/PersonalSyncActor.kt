@@ -10,6 +10,7 @@ internal object PersonalSyncActor {
     const val DATA_KIND = "personal_sync.actor_data"
     const val ACK_KIND = "personal_sync.actor_ack"
     private val reservedKinds = setOf(START_KIND, DATA_KIND, ACK_KIND)
+    private const val STORAGE_PEER_PREFIX = "@mcp-actor-"
     private val dataKinds = setOf("personal_sync.request", "personal_sync.batch", "personal_sync.report",
         "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result",
         "personal_sync.deletion_proposals", "personal_sync.deletion_decision", PhoneContentScope.DATA_KIND)
@@ -18,6 +19,8 @@ internal object PersonalSyncActor {
         (value["kind"] as? JsonPrimitive)?.let { it.isString && isReservedKind(it.content) } == true
 
     fun isReservedKind(kind: String): Boolean = kind in reservedKinds
+    fun storagePeer(runId: String): String { start(runId); return STORAGE_PEER_PREFIX + runId }
+    fun isStoragePeer(value: String?): Boolean = value?.startsWith(STORAGE_PEER_PREFIX) == true
 
     fun validateStart(body: JsonObject): JsonObject {
         TelefonNachrichten.exact(body, setOf("format", "run_id", "trigger"))

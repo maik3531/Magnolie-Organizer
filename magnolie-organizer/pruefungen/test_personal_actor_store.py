@@ -95,3 +95,26 @@ def test_unadmitted_actor_receive_never_uses_legacy_staging_or_gui(tmp_path):
     ping_id = "99999999-9999-4999-8999-999999999999"
     service._payload(peer, channel, {"type": "ping", "ping_id": ping_id, "sent_ms": now})
     assert sent == [{"type": "pong", "ping_id": ping_id, "sent_ms": now}] and not events
+
+
+def test_private_storage_namespace_reuses_existing_stagers_without_gui_replay(tmp_path):
+    service, peer, events = owned_service(tmp_path)
+    private = actor.storage_peer(RUN)
+    assert actor.is_storage_peer(private) and not phone.valid_uuid(private)
+    assert not actor.is_storage_peer(peer["device_id"])
+    service.store.remember_personal_run(private, REQUEST)
+    now = phone.now_ms()
+    batch = {"type": "message", "v": 1, "message_id": "77777777-7777-4777-8777-777777777777", "kind": "personal_sync.batch",
+        "created_ms": now, "expires_ms": now + 60000, "body": {"format": 3, "run_id": RUN,
+            "batch_id": "88888888-8888-4888-8888-888888888888", "sequence": 0, "last": True, "reply": False,
+            "records_hash": phone.records_hash([]), "records": []}}
+    staged = service.store.stage_personal_batch(private, batch)
+    assert staged is not None and staged["records"] == []
+    proposal = {**batch, "message_id": "99999999-9999-4999-8999-999999999999", "kind": "personal_sync.deletion_proposals",
+        "body": {"format": 1, "run_id": RUN, "proposal_batch_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "sequence": 0, "last": True, "proposals": []}}
+    service.store.stage_personal_domain(private, proposal)
+    service.replay_personal_sync()
+    assert not events and len(service.store.peers) == 1 and service.store.peers[0]["device_id"] == peer["device_id"]
+    reopened = phone.PhoneStore(str(tmp_path / "phone"), "Owned desktop")
+    assert any(owner == private for owner, _ in reopened.ready_personal_batches())
+    assert any(owner == private for owner, _ in reopened.ready_personal_domains())
