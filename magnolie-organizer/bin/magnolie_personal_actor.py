@@ -17,6 +17,10 @@ DATA_KINDS = frozenset({"personal_sync.request", "personal_sync.batch", "persona
     "personal_sync.deletion_proposals", "personal_sync.deletion_decision", scope.DATA_KIND})
 
 
+def is_reserved_message(value):
+    return isinstance(value, dict) and value.get("type") == "message" and value.get("kind") in (START_KIND, DATA_KIND)
+
+
 def validate_start(body):
     if not isinstance(body, dict) or set(body) != {"format", "run_id", "trigger"}:
         raise ValueError("Invalid actor start fields")

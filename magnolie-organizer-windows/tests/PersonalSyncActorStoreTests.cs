@@ -61,13 +61,32 @@ internal static class PersonalSyncActorStoreTests
         new PersonalSyncStore(store).RememberRun(peer.Id, request, now);
         var id = store.Enqueue(peer.Id, "personal_sync.request", request, 60000, now, actorRunId: run);
         using var stream = new MemoryStream(); using var lifetime = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var legacyReceives = 0;
         using var connection = new TelefonConnection(peer, stream, new byte[16], new byte[72], store,
-            (_, _) => Task.FromResult<TelefonAck?>(null), lifetime.Token, "wifi");
+            (_, _) => { legacyReceives++; return Task.FromResult<TelefonAck?>(null); }, lifetime.Token, "wifi");
         var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
         foreach (var field in new[] { "freshCapabilities", "freshGrants", "freshOwnSettings" })
             typeof(TelefonConnection).GetField(field, flags)!.SetValue(connection, true);
         await connection.PumpOutboxNowAsync();
         TestAssert.That(stream.Length == 0 && store.Due(peer.Id, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Any(item => item.Id == id && item.Attempts == 0),
             "A reserved actor frame fell through the ordinary transport or was consumed before an authorized actor route existed.");
+        var wire = store.OutboxMessage(peer.Id, id)!.DeepClone().AsObject(); wire["message_id"] = Guid.NewGuid().ToString("D");
+        var start = wire.DeepClone().AsObject(); start["message_id"] = run; start["kind"] = PersonalSyncActorContract.StartKind; start["body"] = PersonalSyncActorContract.Start(run);
+        var malformed = wire.DeepClone().AsObject(); malformed["body"] = new JsonObject { ["owned_unclaimed"] = "Must not reach GUI/storage" };
+        foreach (var frame in new[] { start, wire, malformed }) await connection.HandlePlainAsync(frame);
+        await connection.HandlePlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = id, ["status"] = "accepted", ["error"] = "none" });
+        TestAssert.That(stream.Length == 0 && legacyReceives == 0, "An unadmitted actor reached legacy receive/callbacks or emitted protocol traffic.");
+        TestAssert.That(store.OutboxMessage(peer.Id, id) is not null, "A generic late ACK consumed an unadmitted actor.");
+        using (var db = store.OpenDatabase())
+        {
+            db.Open();
+            foreach (var table in new[] { "inbox", "dedupe", "personal_batch", "personal_domain", "personal_attachment_chunk", "personal_attachment_transfer" })
+            {
+                using var count = db.CreateCommand(); count.CommandText = "SELECT COUNT(*) FROM " + table;
+                TestAssert.That(Convert.ToInt64(count.ExecuteScalar()) == 0, "An unadmitted actor entered ordinary staging: " + table);
+            }
+        }
+        await connection.HandlePlainAsync(new JsonObject { ["type"] = "ping", ["ping_id"] = Guid.NewGuid().ToString("D"), ["sent_ms"] = now });
+        TestAssert.That(stream.Length > 0 && legacyReceives == 0, "The actor boundary disabled ordinary heartbeat traffic.");
     }
 }

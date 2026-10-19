@@ -1940,6 +1940,8 @@ internal sealed partial class TelefonConnection : IDisposable
 
     private async Task HandlePlainBoundAsync(JsonObject plain, JsonObject? scopedReference)
     {
+        // No actor has been admitted here. Never fall through to legacy storage/callbacks.
+        if (PersonalSyncActorContract.IsReservedMessage(plain)) return;
         var type = plain["type"]?.GetValue<string>();
         if (type == "ping")
         { TelefonProtocolContract.ExactObject(plain, "type", "ping_id", "sent_ms"); ValidateControlUuidAndTime(plain); await SendPlainAsync(new JsonObject { ["type"] = "pong", ["ping_id"] = plain["ping_id"]!.GetValue<string>(), ["sent_ms"] = TelefonProtocolContract.Integer(plain["sent_ms"]) }); return; }
@@ -1956,8 +1958,9 @@ internal sealed partial class TelefonConnection : IDisposable
         {
             TelefonProtocolContract.ExactObject(plain, "type", "message_id", "status", "error"); var id = plain["message_id"]?.GetValue<string>(); var status = plain["status"]?.GetValue<string>(); var error = plain["error"]?.GetValue<string>();
             if (!TelefonProtocolContract.IsUuidV4(id) || status is not ("accepted" or "duplicate" or "rejected") || (status == "rejected" ? error is not ("expired" or "invalid_schema" or "unsupported" or "not_granted" or "too_large" or "temporary_failure" or "permanent_failure" or "restore_unavailable" or "conflict") : error != "none")) throw new InvalidDataException("Ungültiges Ack.");
-            if (status == "rejected" && rejectContactRead?.Invoke(this, peer, new TelefonAck(id!, status, error!)) == true) return;
             var queued = store.OutboxMessage(peer.Id, id!);
+            if (queued is not null && PersonalSyncActorContract.IsReservedMessage(queued)) return;
+            if (status == "rejected" && rejectContactRead?.Invoke(this, peer, new TelefonAck(id!, status, error!)) == true) return;
             if (status is "accepted" or "duplicate" && queued?["kind"]?.GetValue<string>() == "personal_sync.custom_batch" &&
                 queued["body"] is JsonObject customBody && customBody["deletions"] is JsonArray { Count: > 0 } && customAccepted is not null)
                 await customAccepted(new JsonObject { ["source_id"] = customBody["source_id"]!.DeepClone(),

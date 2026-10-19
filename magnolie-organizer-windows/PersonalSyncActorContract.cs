@@ -15,6 +15,10 @@ internal static class PersonalSyncActorContract
     private static string Text(JsonObject value, string field) => value[field] is JsonValue scalar && scalar.TryGetValue<string>(out var text)
         ? text : throw new InvalidDataException("Invalid actor text field.");
 
+    internal static bool IsReservedMessage(JsonObject value) =>
+        value["type"] is JsonValue type && type.TryGetValue<string>(out var messageType) && messageType == "message" &&
+        value["kind"] is JsonValue kind && kind.TryGetValue<string>(out var name) && name is StartKind or DataKind;
+
     internal static JsonObject ValidateStart(JsonObject body)
     {
         TelefonProtocolContract.ExactObject(body, "format", "run_id", "trigger");

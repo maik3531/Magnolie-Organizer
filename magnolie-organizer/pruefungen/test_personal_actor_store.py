@@ -65,3 +65,32 @@ def test_reserved_actor_waits_for_an_explicit_transport_route(tmp_path):
         def send(self, message): sent.append(message)
     assert service._send_message(Channel(), peer["device_id"], wire) is False
     assert not sent and service.store.pending(peer["device_id"]) == [wire] and not events
+
+
+def test_unadmitted_actor_receive_never_uses_legacy_staging_or_gui(tmp_path):
+    service, peer, events = owned_service(tmp_path)
+    service.store.remember_personal_run(peer["device_id"], REQUEST)
+    queued = service.store.queue(peer["device_id"], "personal_sync.request", REQUEST, 60000, actor_run_id=RUN)
+    now = phone.now_ms()
+    original = {"type": "message", "v": 1, "message_id": "77777777-7777-4777-8777-777777777777",
+        "kind": "personal_sync.batch", "created_ms": now, "expires_ms": now + 60000,
+        "body": {"format": 3, "run_id": RUN, "batch_id": "88888888-8888-4888-8888-888888888888",
+            "sequence": 0, "last": True, "reply": False, "records_hash": phone.records_hash([]), "records": []}}
+    wire = actor.wire_message(original, RUN)
+    start = {**original, "message_id": RUN, "kind": actor.START_KIND, "body": actor.start(RUN)}
+    malformed = {**wire, "body": {"owned_unclaimed": "Must not reach GUI/storage"}}
+    sent = []
+    class Channel:
+        def send(self, message): sent.append(message)
+    channel = Channel()
+    plain_ack = {"type": "ack", "message_id": queued["message_id"], "status": "accepted", "error": "none"}
+    for frame in (start, wire, malformed, plain_ack):
+        service._payload(peer, channel, frame)
+    assert not sent and not events
+    assert service.store.pending(peer["device_id"]) == [queued]
+    with sqlite3.connect(service.store.database_path) as db:
+        for table in ("inbox", "dedupe", "personal_batch", "personal_domain", "personal_attachment_transfer", "personal_attachment_chunk"):
+            assert db.execute("SELECT COUNT(*) FROM " + table).fetchone()[0] == 0
+    ping_id = "99999999-9999-4999-8999-999999999999"
+    service._payload(peer, channel, {"type": "ping", "ping_id": ping_id, "sent_ms": now})
+    assert sent == [{"type": "pong", "ping_id": ping_id, "sent_ms": now}] and not events

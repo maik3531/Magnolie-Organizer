@@ -66,6 +66,11 @@ recovered from the validated inner body rather than from the actor wrapper.
 Generic transport loops retain these reserved actor frames instead of forwarding
 or consuming them as ordinary synchronization. They require a separate authorized
 actor route; the internal store parameter itself is not an authorization token.
+The unadmitted receive boundary currently ignores reserved actor messages before
+ordinary validation/staging/callbacks and ignores generic ACKs referring to stored
+actor frames. It emits no success receipt and makes no document change. Ordinary
+heartbeat/control traffic remains usable. This closed boundary must be replaced
+by the explicitly authorized actor route, not removed in favor of legacy receive.
 
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption

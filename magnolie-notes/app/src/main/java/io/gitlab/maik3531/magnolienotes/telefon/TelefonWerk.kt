@@ -1610,6 +1610,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     internal fun receiveMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel,
                                 generation: Long) {
+        // No actor has been admitted here. Never fall through to ordinary receive/staging.
+        if (PersonalSyncActor.isReservedMessage(message)) return
         if (message["kind"] == JsonPrimitive("device_status.request") &&
             (message["body"] as? JsonObject)?.get("version") == JsonPrimitive(11)) {
             receiveDeveloperRead(sessionPeer, message, channel, generation)
@@ -1702,6 +1704,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
 
     @Synchronized private fun receiveMessageBound(sessionPeer: TelefonPeer, message: JsonObject, send: (JsonObject) -> Unit,
                                                   noteSession: PersonalNoteSession?, scopedReference: JsonObject?) {
+        if (PersonalSyncActor.isReservedMessage(message)) return
         val peer = safePeer()?.takeIf { it.device_id == sessionPeer.device_id && it.static_public == sessionPeer.static_public }
             ?: throw TelefonProtokollFehler("Unbekannte Gegenstelle.")
         val kind = runCatching { message.string("kind") }.getOrDefault("")
@@ -2664,6 +2667,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         generation: Long, transport: TelefonTransportArt) {
         TelefonNachrichten.validateAck(payload)
         val id = payload.string("message_id")
+        if (queue.outboxWireMessage(expected.device_id, id)?.let(PersonalSyncActor::isReservedMessage) == true) return
         val policy = queue.outboxPolicy(expected.device_id, id)
         if (policy == "invalid" || transport == TelefonTransportArt.BLUETOOTH && policy == "wifi_only")
             throw TelefonProtokollFehler("WLAN-gebundene Bestätigung über Bluetooth.")

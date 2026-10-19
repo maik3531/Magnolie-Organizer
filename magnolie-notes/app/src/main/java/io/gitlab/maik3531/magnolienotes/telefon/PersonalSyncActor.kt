@@ -12,6 +12,9 @@ internal object PersonalSyncActor {
         "personal_sync.attachment_request", "personal_sync.attachment_chunk", "personal_sync.attachment_result",
         "personal_sync.deletion_proposals", "personal_sync.deletion_decision", PhoneContentScope.DATA_KIND)
 
+    fun isReservedMessage(value: JsonObject): Boolean = value["type"] == JsonPrimitive("message") &&
+        (value["kind"] == JsonPrimitive(START_KIND) || value["kind"] == JsonPrimitive(DATA_KIND))
+
     fun validateStart(body: JsonObject): JsonObject {
         TelefonNachrichten.exact(body, setOf("format", "run_id", "trigger"))
         val format = body["format"] as? JsonPrimitive ?: error("Missing actor start format")

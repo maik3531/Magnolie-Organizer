@@ -171,9 +171,13 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
             false
         }
 
-    internal fun outboxPersonalMessage(peerId: String, messageId: String): JsonObject? = helper.readableDatabase.query(
+    internal fun outboxPersonalMessage(peerId: String, messageId: String): JsonObject? = readOutboxMessage(peerId, messageId, true)
+
+    internal fun outboxWireMessage(peerId: String, messageId: String): JsonObject? = readOutboxMessage(peerId, messageId, false)
+
+    private fun readOutboxMessage(peerId: String, messageId: String, personalOnly: Boolean): JsonObject? = helper.readableDatabase.query(
         "outbox", arrayOf("kind", "payload"), "peer_id=? AND message_id=?", arrayOf(peerId, messageId), null, null, null).use {
-        if (!it.moveToFirst() || it.getString(0) !in PERSONAL_SYNC_DATA_KINDS) return@use null
+        if (!it.moveToFirst() || personalOnly && it.getString(0) !in PERSONAL_SYNC_DATA_KINDS) return@use null
         val clear = storage.decryptPayload(it.getBlob(1), "outbox", messageId)
         try { TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject } finally { clear.fill(0) }
     }

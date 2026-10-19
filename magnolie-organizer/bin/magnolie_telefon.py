@@ -1021,6 +1021,11 @@ class PhoneStore:
                                else "any" if trigger_bound and body.get("trigger") == "manual" else None)
         return row[0] if expected == row[0] else "invalid"
 
+    def outbox_message(self, peer_id, message_id):
+        with sqlite3.connect(self.database_path) as db:
+            row = db.execute("SELECT payload FROM outbox WHERE peer_id=? AND message_id=?", (peer_id, message_id)).fetchone()
+        return strict_json(self._decrypt(row[0], "outbox", message_id)) if row else None
+
     def run_policy(self, peer_id, run_id):
         stored = self._personal_run_record(peer_id, run_id)
         if not stored:
@@ -5536,6 +5541,9 @@ class PhoneService:
             self._start_handler(sock, "bluetooth:" + peer_id, "bluetooth")
 
     def _payload(self, peer, channel, payload, scoped_reference=None):
+        # No actor has been admitted here. Do not replay, ACK success, or publish GUI data.
+        if personal_actor_contract.is_reserved_message(payload):
+            return
         if payload.get("type") in ("ping", "pong") and set(payload) == {
                 "type", "ping_id", "sent_ms"}:
             if (not valid_uuid(payload["ping_id"], 4)
@@ -5553,6 +5561,8 @@ class PhoneService:
                     or payload["error"] not in ACK_ERRORS
                     or (payload["status"] != "rejected") != (payload["error"] == "none")):
                 raise ValueError("invalid ack")
+            if personal_actor_contract.is_reserved_message(self.store.outbox_message(peer["device_id"], payload["message_id"])):
+                return
             if payload["status"] == "rejected":
                 with self.lock:
                     for request in list(self.contact_requests.values()) + list(self.developer_requests.values()) + list(self.mcp_status_requests.values()):
