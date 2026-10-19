@@ -7,7 +7,7 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class SharedSyncTransportTests
 {
-    private static async Task<IReadOnlyList<JsonObject>> DrainAsync(MemoryStream wire)
+    internal static async Task<IReadOnlyList<JsonObject>> DrainAsync(MemoryStream wire)
     {
         using var input = new MemoryStream(wire.ToArray()); wire.SetLength(0); wire.Position = 0;
         var result = new List<JsonObject>();

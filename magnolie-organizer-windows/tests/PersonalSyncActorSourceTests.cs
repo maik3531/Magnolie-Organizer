@@ -7,6 +7,13 @@ namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class PersonalSyncActorSourceTests
 {
+    private sealed class ActorWireStream : MemoryStream
+    {
+        internal Action? AssertActorWrite;
+        internal int GuardChecks;
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellation = default)
+        { if (AssertActorWrite is not null) { AssertActorWrite(); GuardChecks++; } return base.WriteAsync(buffer, cancellation); }
+    }
     private static JsonObject Message(string kind, JsonObject body)
     {
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
@@ -43,7 +50,7 @@ internal static class PersonalSyncActorSourceTests
             var emitted = 0;
             using var coordinator = new TelefonCoordinator(paths, (_, _) => { emitted++; return Task.CompletedTask; }, dataStore: store,
                 foregroundEnabled: true, localOnly: true) { SharedLocalCapabilities = () => capabilities["items"]!.DeepClone().AsObject() };
-            using var wire = new MemoryStream();
+            using var wire = new ActorWireStream();
             using var connection = new TelefonConnection(peer, wire, new byte[16], new byte[72], store, Receive, CancellationToken.None, "wifi")
                 { SharedLocalCapabilities = () => capabilities["items"]!.DeepClone().AsObject() };
             var online = (Dictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!;
@@ -90,6 +97,48 @@ internal static class PersonalSyncActorSourceTests
             catch (InvalidOperationException) { }
             await coordinator.WithPersonalActorStoreAsync(registry => registry.Cancel(actorHandle));
             hostBook.SetReady(true);
+            connection.ActorMessageReceived = (source, message) => coordinator.ReceivePersonalActorAsync(source, peer, message);
+            await SharedSyncTransportTests.DrainAsync(wire);
+            wire.AssertActorWrite = () => TestAssert.That(store.NotePolicyGate.CurrentCount == 1 && !Monitor.IsEntered(
+                typeof(TelefonCoordinator).GetField("gate", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(coordinator)!),
+                "Actor network I/O held native policy/source guards.");
+            var transportHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
+            var started = await coordinator.StartPersonalActorAsync(transportHandle);
+            var startFrame = (await SharedSyncTransportTests.DrainAsync(wire)).Single();
+            TestAssert.That(startFrame["kind"]!.GetValue<string>() == PersonalSyncActorContract.StartKind &&
+                started["dispatch_started"]!.GetValue<bool>() && !started["persisted"]!.GetValue<bool>(), "Native actor start did not use its dedicated encrypted route.");
+            await connection.HandlePlainAsync(Message(PersonalSyncActorContract.AckKind,
+                PersonalSyncActorContract.Ack(transportHandle.ActorId, startFrame["message_id"]!.GetValue<string>())));
+            TestAssert.That(wire.Length == 0, "Actor ACK was itself acknowledged.");
+            var actorRequest = new JsonObject { ["format"] = 3, ["run_id"] = transportHandle.ActorId, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.request", actorRequest), transportHandle.ActorId));
+            TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Single()["kind"]!.GetValue<string>() == PersonalSyncActorContract.AckKind, "Actor request did not reach private native staging.");
+            var noteValue = new JsonObject { ["title"] = "Owned phone snapshot", ["text"] = "Only staged", ["html"] = "", ["notebook_id"] = "", ["symbol"] = "note",
+                ["created_ms"] = 1, ["modified_ms"] = 2, ["attachments"] = new JsonArray() };
+            var record = new JsonObject { ["kind"] = "note", ["id"] = "note-one", ["state"] = "live", ["modified_ms"] = 2,
+                ["clock"] = new JsonArray(new JsonObject { ["actor_id"] = peer.Id, ["counter"] = 1 }), ["hash"] = PersonalSyncContract.ProjectionHash(noteValue), ["value"] = noteValue };
+            var records = new JsonArray(record);
+            var batchBody = new JsonObject { ["format"] = 3, ["run_id"] = transportHandle.ActorId, ["batch_id"] = Guid.NewGuid().ToString("D"),
+                ["sequence"] = 0, ["last"] = true, ["reply"] = false, ["records_hash"] = PersonalSyncContract.RecordsHash(records), ["records"] = records };
+            var batchWire = PersonalSyncActorContract.WireMessage(Message("personal_sync.batch", batchBody), transportHandle.ActorId);
+            beforeEmitted = emitted;
+            await connection.HandlePlainAsync(batchWire);
+            TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Single()["kind"]!.GetValue<string>() == PersonalSyncActorContract.AckKind && emitted == beforeEmitted,
+                "Private actor batch reached ordinary GUI handling or lacked its marked receipt.");
+            var staged = new PersonalSyncStore(store).ReadyBatches(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
+                .Single(value => value.PeerId == PersonalSyncActorContract.StoragePeer(transportHandle.ActorId));
+            TestAssert.That(JsonNode.DeepEquals(staged.Records.Single(), record), "Existing private stager changed actor records.");
+            var packets = await coordinator.WithPersonalActorStoreAsync(registry => registry.Status(transportHandle)["packets"]!.GetValue<int>());
+            var outside = batchBody.DeepClone().AsObject(); outside["batch_id"] = Guid.NewGuid().ToString("D");
+            outside["records"]![0]!["id"] = "private-outside-scope"; outside["records_hash"] = PersonalSyncContract.RecordsHash(outside["records"]!.AsArray());
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.batch", outside), transportHandle.ActorId));
+            TestAssert.That(wire.Length == 0 && packets == await coordinator.WithPersonalActorStoreAsync(registry => registry.Status(transportHandle)["packets"]!.GetValue<int>()),
+                "Out-of-scope actor data was persisted before membership authorization.");
+            await coordinator.CancelPersonalActorAsync(transportHandle);
+            TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Single()["kind"]!.GetValue<string>() == PersonalSyncActorContract.CancelKind,
+                "Native actor cancellation lost its explicit wire marker.");
+            TestAssert.That(wire.GuardChecks > 0, "Encrypted actor writes bypassed the source-guard observation.");
+            wire.AssertActorWrite = null;
             TestAssert.That(Read(() => new string('b', 64)) != revision && Read(() => null) is null && Read(() => "client-digest") is null,
                 "Native book ownership was ignored or an invalid book source was accepted.");
             var checks = 0;

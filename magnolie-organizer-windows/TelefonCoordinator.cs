@@ -1400,7 +1400,8 @@ internal sealed partial class TelefonCoordinator : IDisposable
                 body => emit("App.personalCustomAck", new { device_id = peer.Id, body }), AuthorizeCall, SendCall,
                 async () => { await ReportStatusAsync(); await ReplayPersonalSyncAsync(); }, RejectContactRead, AcceptDeveloperRead, AcceptMcpStatusRead)
                 { SharedLocalCapabilities = () => SharedLocalCapabilities(), SharedPreferencesChanged = () => ApplyCommonPreferencesAsync(peer.Id),
-                    CollectionChanged = value => emit("App.personalSyncCollection", value) };
+                    CollectionChanged = value => emit("App.personalSyncCollection", value),
+                    ActorMessageReceived = (source, message) => ReceivePersonalActorAsync(source, peer, message) };
             var capabilityRevision = store.NextOwnRevision("capabilities"); var grantRevision = store.NextOwnRevision("grants");
             await connection.InitializeAsync(capabilityRevision);
             lock (gate)
@@ -1938,11 +1939,16 @@ internal sealed partial class TelefonConnection : IDisposable
     internal Task SendCapabilitiesAsync(long revision) { var value = TelefonProtocolContract.DesktopCapabilities(); value["revision"] = revision; return SendMessageAsync("capabilities.update", value, 86_400_000); }
     internal Task SendGrantsAsync(long revision, JsonObject grants) => SendMessageAsync("grants.update", new JsonObject { ["revision"] = revision, ["grants"] = grants.DeepClone() }, 86_400_000);
     internal Task HandlePlainAsync(JsonObject plain) => HandlePlainBoundAsync(plain, null);
+    internal Func<TelefonConnection, JsonObject, Task>? ActorMessageReceived { get; set; }
 
     private async Task HandlePlainBoundAsync(JsonObject plain, JsonObject? scopedReference)
     {
-        // No actor has been admitted here. Never fall through to legacy storage/callbacks.
-        if (PersonalSyncActorContract.IsReservedMessage(plain)) return;
+        // Reserved frames never fall through to legacy storage/callbacks.
+        if (PersonalSyncActorContract.IsReservedMessage(plain))
+        {
+            if (ActorMessageReceived is not null) await ActorMessageReceived(this, plain);
+            return;
+        }
         var type = plain["type"]?.GetValue<string>();
         if (type == "ping")
         { TelefonProtocolContract.ExactObject(plain, "type", "ping_id", "sent_ms"); ValidateControlUuidAndTime(plain); await SendPlainAsync(new JsonObject { ["type"] = "pong", ["ping_id"] = plain["ping_id"]!.GetValue<string>(), ["sent_ms"] = TelefonProtocolContract.Integer(plain["sent_ms"]) }); return; }

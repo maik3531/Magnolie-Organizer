@@ -16,7 +16,7 @@ from test_hintergrunddienst import FakeBackend
 
 
 def test_proxy_source_requires_its_exact_live_native_book_owner(tmp_path, monkeypatch):
-    service, peer, _, fingerprint, _ = actor_source_fixture(tmp_path, monkeypatch)
+    service, peer, channel, fingerprint, _ = actor_source_fixture(tmp_path, monkeypatch)
     owner = NativeBookOwnerScope(); owner.set_ready(True)
     with tempfile.TemporaryDirectory(prefix="actor-book-ipc-") as root:
         path = str(Path(root) / "bridge.sock")
@@ -35,6 +35,14 @@ def test_proxy_source_requires_its_exact_live_native_book_owner(tmp_path, monkey
             assert first and len(first) == 64
             assert proxy.current_actor_source(peer["device_id"], fingerprint) == first
             handle = proxy.create_personal_actor(peer["device_id"], fingerprint)
+            original_send = channel.send
+            def guarded_send(value):
+                assert not service.lock._is_owned(), "Daemon actor I/O held the native service guard"
+                original_send(value)
+            channel.send = guarded_send
+            dispatched = proxy.start_personal_actor(handle)
+            assert dispatched["dispatch_started"] and not dispatched["persisted"]
+            assert channel.sent[-1]["kind"] == actor_contract.START_KIND
             assert handle.owner_token not in repr(handle) and handle.book_source not in repr(handle)
             registry = server._phone_actor_registry(proxy._subscriber, handle.book_source)
             native_handle = ActorHandle(handle.actor_id, handle.owner_token)
@@ -56,6 +64,7 @@ def test_proxy_source_requires_its_exact_live_native_book_owner(tmp_path, monkey
             with pytest.raises(background.IPCError): proxy.read_personal_actor_wire(handle, wire["message_id"])
             assert proxy.personal_actor_status(handle)["phase"] == "cancelled"
             assert proxy.cancel_personal_actor(handle)["phase"] == "cancelled"
+            assert channel.sent[-1]["kind"] == actor_contract.CANCEL_KIND
             owner.set_ready(True)
             reowned = proxy.current_actor_source(peer["device_id"], fingerprint)
             assert reowned and reowned != first

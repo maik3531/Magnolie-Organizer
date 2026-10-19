@@ -293,6 +293,20 @@ This currently covers start, phone snapshot dispatch, marked ACK and cancellatio
 incoming record adoption/attachments and desktop transport completion still need
 their corresponding gates. Production capability 12 remains unadvertised.
 
+Both desktop native adapters now claim an admitted owner before sending an actor
+start, retain the same correlated start for retries and send outside their native
+source/policy guards. Their reserved receiver requires the exact admitted peer
+key/channel and current native source. Actor request/batch/report frames retain
+their full marker in the raw inbox; request/batch data additionally use existing
+Personal Sync stagers under the private actor namespace. Current scope membership
+is checked before raw persistence, and a marked success receipt follows actual
+private staging and a source post-check. Marked ACKs cannot acknowledge another
+run's outbound messages or enter ordinary queue handling. Native cancellation
+retires locally before attempting its explicit wire control. These paths neither
+publish GUI replay nor adopt records into a book. Attachment/deletion adapters,
+typed review, native checkpoint/SaveACK/commit and cross-runtime acceptance remain
+required before production activation.
+
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption
 and save/commit still need their corresponding integration and acceptance gates.

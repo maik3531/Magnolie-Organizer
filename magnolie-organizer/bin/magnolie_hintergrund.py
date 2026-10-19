@@ -792,6 +792,8 @@ def _request_shape(operation, arguments):
         "phone_report": set(), "phone_mcp_status": set(), "phone_mcp_action": {"request"}, "phone_mcp_device_status_result": {"request_id"}, "phone_set_enabled": {"enabled"},
         "phone_actor_source": {"peer_id", "fingerprint", "subscriber", "book_source"},
         "phone_actor_registry": {"subscriber", "book_source", "request"},
+        "phone_actor_start": {"subscriber", "book_source", "actor_id", "owner_token"},
+        "phone_actor_cancel": {"subscriber", "book_source", "actor_id", "owner_token"},
         "phone_open_pairing": set(), "phone_cancel_pairing": set(),
         "phone_confirm_pairing": {"attempt_id", "accepted"},
         "phone_remove": {"peer_id"},
@@ -953,7 +955,7 @@ def _request_shape(operation, arguments):
                 or not 0 <= timeout <= 25):
             raise IPCError("invalid event poll")
     if operation in ("gui_subscribe", "gui_unsubscribe", "gui_visibility",
-                      "gui_readiness", "gui_actor_book_source", "phone_actor_source", "phone_actor_registry", "set_digitizer_target") or operation == "poll_events" \
+                      "gui_readiness", "gui_actor_book_source", "phone_actor_source", "phone_actor_registry", "phone_actor_start", "phone_actor_cancel", "set_digitizer_target") or operation == "poll_events" \
             and "subscriber" in arguments:
         subscriber = arguments.get("subscriber")
         if not isinstance(subscriber, str) or not re.fullmatch(r"[a-f0-9]{32}", subscriber):
@@ -985,6 +987,9 @@ def _request_shape(operation, arguments):
                     not isinstance(request["owner_token"], str) or re.fullmatch(r"[0-9a-f]{64}", request["owner_token"]) is None or
                     request["action"] == "read" and not _status_query_id(request["message_id"])):
                 raise IPCError("invalid native actor ownership")
+    if operation in ("phone_actor_start", "phone_actor_cancel"):
+        _request_shape("phone_actor_registry", {"subscriber": arguments.get("subscriber"), "book_source": arguments.get("book_source"),
+            "request": {"action": "status", "actor_id": arguments.get("actor_id"), "owner_token": arguments.get("owner_token")}})
     if operation == "set_digitizer_target":
         if (type(arguments.get('enabled')) is not bool or not isinstance(arguments.get('token'), str) or
                 not re.fullmatch(r'[0-9a-fA-F-]{36}', arguments['token']) or
@@ -1452,6 +1457,16 @@ class IPCServer:
         if operation == "phone_actor_source":
             return phone.current_actor_source(arguments["peer_id"], arguments["fingerprint"],
                 lambda: self.gui_actor_book_source(arguments["subscriber"], arguments["book_source"]))
+        if operation in ("phone_actor_start", "phone_actor_cancel"):
+            from magnolie_personal_actor_store import ActorHandle
+            with phone.lock:
+                if self._phone_actor_owners.get(arguments["actor_id"]) != (arguments["subscriber"], arguments["book_source"]):
+                    raise IPCError("Native actor owner is unavailable")
+                registry = self._phone_actor_registry(arguments["subscriber"], arguments["book_source"])
+                handle = ActorHandle(arguments["actor_id"], arguments["owner_token"])
+            # The service claims authority before I/O, without this caller holding its guard.
+            if operation == "phone_actor_start": return phone.start_personal_actor(registry, handle)
+            return phone.cancel_personal_actor(registry, handle)
         if operation == "phone_actor_registry":
             from magnolie_personal_actor_store import ActorHandle
             request = arguments["request"]
@@ -1938,6 +1953,16 @@ class PhoneServiceProxy:
         return self._call("actor_registry", subscriber=self._subscriber, book_source=handle.book_source,
             request={"action": "status", "actor_id": handle.actor_id, "owner_token": handle.owner_token})
 
+    def start_personal_actor(self, handle):
+        with self._state_lock:
+            if not callable(self.native_actor_book_source) or self.native_actor_book_source() != handle.book_source:
+                raise IPCError("Native actor book owner changed")
+            result = self._call("actor_start", subscriber=self._subscriber, book_source=handle.book_source,
+                actor_id=handle.actor_id, owner_token=handle.owner_token)
+            if self.native_actor_book_source() != handle.book_source:
+                raise IPCError("Native actor dispatch outcome is unknown after book owner change")
+            return result
+
     def read_personal_actor_wire(self, handle, message_id):
         with self._state_lock:
             if not callable(self.native_actor_book_source) or self.native_actor_book_source() != handle.book_source:
@@ -1949,8 +1974,8 @@ class PhoneServiceProxy:
             return result
 
     def cancel_personal_actor(self, handle):
-        return self._call("actor_registry", subscriber=self._subscriber, book_source=handle.book_source,
-            request={"action": "cancel", "actor_id": handle.actor_id, "owner_token": handle.owner_token})
+        return self._call("actor_cancel", subscriber=self._subscriber, book_source=handle.book_source,
+            actor_id=handle.actor_id, owner_token=handle.owner_token)
 
     def _set_ready(self, ready):
         ready = bool(ready)

@@ -41,6 +41,11 @@ internal sealed class PersonalSyncActorStore
         create.ExecuteNonQuery();
     }
 
+    internal void RequireCurrent(PersonalActorHandle handle)
+    {
+        using var db = Open(); Require(db, handle); Require(db, handle);
+    }
+
     private SqliteConnection Open()
     {
         if (store.RestoreFenced) throw new InvalidOperationException("restore_unavailable");

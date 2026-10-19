@@ -2363,6 +2363,7 @@ class PhoneService:
         self.actor_source_channels = weakref.WeakKeyDictionary()
         self.native_actor_book_source = None
         self._personal_actor_registry = None
+        self.personal_actor_admissions = {}
         self.status_requests = {}
         self.contact_requests = {}
         self.developer_requests = {}
@@ -3882,6 +3883,99 @@ class PhoneService:
                 from magnolie_personal_actor_store import ActorStore
                 self._personal_actor_registry = ActorStore(self.store, self.current_actor_source, source_guard=self.lock)
             return self._personal_actor_registry
+
+    @staticmethod
+    def _actor_control_message(kind, body):
+        now = now_ms()
+        return {"type": "message", "v": 1, "message_id": str(uuid.uuid4()), "kind": kind,
+            "created_ms": now, "expires_ms": now + 60000, "body": body}
+
+    def start_personal_actor(self, registry, handle):
+        """Claim with native authority; the potentially blocking write is outside all guards."""
+        with self.lock:
+            registry.require_current(handle)
+            status = registry.status(handle)
+            peer = self.store.sole_peer(status["peer_id"])
+            channel = self.connections.get(status["peer_id"])
+            if not peer or not channel or fingerprint(unb64(peer["static_public"], 32)) != status["fingerprint"]:
+                raise PermissionError("actor_source_changed")
+            admission = self.personal_actor_admissions.get(handle.actor_id)
+            if admission is None:
+                reference = self.content_scope_sessions[channel].current_reference((peer["device_id"], peer["static_public"], id(channel)))
+                message = self._actor_control_message(personal_actor_contract.START_KIND, personal_actor_contract.start(handle.actor_id))
+                admission = {"registry": registry, "handle": handle, "peer": peer["device_id"], "key": peer["static_public"],
+                    "channel": channel, "scope": reference, "start": message, "outbound": {message["message_id"]}}
+                self.personal_actor_admissions[handle.actor_id] = admission
+            if (admission["handle"] != handle or admission["registry"] is not registry or admission["channel"] is not channel or
+                    admission["key"] != peer["static_public"] or admission["start"]["expires_ms"] <= now_ms()):
+                raise PermissionError("actor_source_changed")
+            registry.require_current(handle)
+            message = copy.deepcopy(admission["start"])
+        channel.send(message)
+        return {"actor_id": handle.actor_id, "message_id": message["message_id"], "dispatch_started": True,
+            "delivery_confirmed": False, "persisted": False}
+
+    def _receive_personal_actor(self, peer, channel, payload):
+        reply = None
+        with self.lock:
+            body = payload.get("body")
+            run = body.get("run_id") if isinstance(body, dict) else None
+            admission = self.personal_actor_admissions.get(run) if isinstance(run, str) else None
+            if (admission is None or admission["peer"] != peer["device_id"] or admission["key"] != peer["static_public"] or
+                    admission["channel"] is not channel or self.connections.get(peer["device_id"]) is not channel):
+                return
+            registry, handle = admission["registry"], admission["handle"]
+            try:
+                registry.require_current(handle)
+                if payload["kind"] == personal_actor_contract.ACK_KIND:
+                    personal_actor_contract.validate_ack(body)
+                    if body["message_id"] not in admission["outbound"]:
+                        return
+                    registry.put(handle, payload)
+                    return  # No ACK of an actor ACK and no ordinary queue/GUI handling.
+                if payload["kind"] != personal_actor_contract.DATA_KIND:
+                    return
+                kind, content = personal_actor_contract.unwrap(body)
+                manifest = self.current_content_scope(peer["device_id"], peer["static_public"], admission["scope"])
+                if kind == content_scope_contract.DATA_KIND:
+                    kind, content = content_scope_contract.unwrap(content, manifest)
+                if kind not in ("personal_sync.request", "personal_sync.batch", "personal_sync.report"):
+                    return
+                if kind == "personal_sync.request" and (content.get("format") != 3 or content.get("trigger") != "manual"):
+                    raise ValueError("invalid_actor_request")
+                if kind == "personal_sync.batch" and len(content_scope_contract.filter_records(content["records"], manifest)) != len(content["records"]):
+                    raise PermissionError("actor_record_outside_scope")
+                registry.put(handle, payload)
+                storage_peer = personal_actor_contract.storage_peer(run)
+                semantic = dict(payload, kind=kind, body=content)
+                if kind == "personal_sync.request":
+                    self.store.remember_personal_run(storage_peer, content, claimed_expires_ms=payload["expires_ms"])
+                elif kind == "personal_sync.batch":
+                    self.store.stage_personal_batch(storage_peer, semantic)
+                elif kind == "personal_sync.report":
+                    pass  # The authenticated raw report is retained; it is not a saved-book assertion.
+                registry.require_current(handle)
+                reply = self._actor_control_message(personal_actor_contract.ACK_KIND,
+                    personal_actor_contract.ack(run, payload["message_id"]))
+            except (PermissionError, ValueError, TypeError, KeyError, RuntimeError, OSError, sqlite3.Error):
+                return
+        if reply is not None:
+            channel.send(reply)
+
+    def cancel_personal_actor(self, registry, handle):
+        with self.lock:
+            result = registry.cancel(handle)
+            admission = self.personal_actor_admissions.pop(handle.actor_id, None)
+            dispatch = None
+            if admission is not None and admission["handle"] == handle and admission["registry"] is registry:
+                peer = self.store.sole_peer(admission["peer"])
+                if (peer and peer["static_public"] == admission["key"] and
+                        self.connections.get(admission["peer"]) is admission["channel"]):
+                    dispatch = (admission["channel"], self._actor_control_message(
+                        personal_actor_contract.CANCEL_KIND, personal_actor_contract.cancel(handle.actor_id)))
+        if dispatch is not None:
+            dispatch[0].send(dispatch[1])
+        return dict(result, cancel_dispatch_started=dispatch is not None)
 
     def _actor_channel_source(self, channel):
         source = self.actor_source_channels.get(channel)
@@ -5615,8 +5709,9 @@ class PhoneService:
             self._start_handler(sock, "bluetooth:" + peer_id, "bluetooth")
 
     def _payload(self, peer, channel, payload, scoped_reference=None):
-        # No actor has been admitted here. Do not replay, ACK success, or publish GUI data.
+        # Reserved frames use only the admitted native route, never ordinary replay/GUI handlers.
         if personal_actor_contract.is_reserved_message(payload):
+            self._receive_personal_actor(peer, channel, payload)
             return
         if payload.get("type") in ("ping", "pong") and set(payload) == {
                 "type", "ping_id", "sent_ms"}:
