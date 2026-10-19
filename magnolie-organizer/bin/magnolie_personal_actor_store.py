@@ -177,6 +177,12 @@ class ActorStore:
         return {"actor_id": value["actor_id"], "peer_id": value["peer_id"], "fingerprint": value["fingerprint"],
             "phase": value["phase"], "expires_ms": value["expires_ms"], "packets": packets, "bytes": size, "revision": revision}
 
+    def require_current(self, handle):
+        """Native lifecycle check only, without returning raw content."""
+        with self._database() as db:
+            self._require(db, handle)
+            self._require(db, handle)
+
     def put(self, handle, wire):
         """Store/deduplicate raw bytes only; neither result authorizes a success ACK."""
         if not isinstance(handle, ActorHandle):

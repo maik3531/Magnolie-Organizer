@@ -516,6 +516,28 @@ def client():
             reopened_source = window._telefon_actor_buchquelle()
             assert reopened_source and reopened_source != book_source
             state["native_actor_book_owner_verified"] = True
+            import magnolie_hintergrund as actor_background
+            from test_hintergrunddienst import FakeBackend as ActorBookBackend
+            with tempfile.TemporaryDirectory(prefix="native-actor-book-") as actor_directory:
+                actor_socket = str(Path(actor_directory) / "bridge.sock")
+                actor_server = actor_background.IPCServer(ActorBookBackend(), actor_socket, phone_backend=phone_fixture).start()
+                actor_proxy = actor_background.PhoneServiceProxy(actor_socket)
+                actor_proxy.native_actor_book_source = window._telefon_actor_buchquelle
+                try:
+                    actor_proxy.start(); actor_proxy.set_visible(True); actor_proxy.set_ready(True)
+                    published = actor_proxy._publish_actor_book_source()
+                    assert published == reopened_source
+                    assert actor_server.gui_actor_book_source(actor_proxy._subscriber, published)
+                    product._organizer_gui_bereitschaft(window, False)
+                    assert actor_proxy._publish_actor_book_source() is None
+                    assert actor_server.gui_actor_book_source(actor_proxy._subscriber, published) is None
+                    product._organizer_gui_bereitschaft(window, True)
+                    assert actor_proxy._publish_actor_book_source() != published
+                    state["native_actor_daemon_book_owner_verified"] = True
+                finally:
+                    actor_proxy.stop()
+                    if actor_proxy._event_thread is not None: actor_proxy._event_thread.join(timeout=3)
+                    actor_server.close()
             unchanged = data_file.read_bytes()
             peer = settings_tool("organizer_phone_connection_read")["peers"][0]
             target = {"peer_id": peer["id"], "fingerprint": peer["fingerprint"]}

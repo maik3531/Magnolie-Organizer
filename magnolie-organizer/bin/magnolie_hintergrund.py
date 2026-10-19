@@ -23,6 +23,7 @@ import threading
 import time
 import unicodedata
 from collections import deque
+from dataclasses import dataclass, field
 from logging.handlers import RotatingFileHandler
 
 from magnolie_kdeconnect import (DEVICE_ID, create_backend, ProtocolError,
@@ -772,6 +773,7 @@ def _request_shape(operation, arguments):
         "gui_subscribe": {"subscriber"}, "gui_unsubscribe": {"subscriber"},
         "gui_visibility": {"subscriber", "visible"},
         "gui_readiness": {"subscriber", "ready"},
+        "gui_actor_book_source": {"subscriber", "source"},
         "send_sms": {"destination", "message", "device_id"},
         "contact_uids": {"device_id"}, "contact_vcards": {"uids", "device_id"},
         "media_devices": set(), "media_status": {"device_id"},
@@ -788,6 +790,8 @@ def _request_shape(operation, arguments):
             "clipboard_mode", "file_mode", "download_directory"},
         "accept_receive": {"receive_id", "directory"}, "reject_receive": {"receive_id"},
         "phone_report": set(), "phone_mcp_status": set(), "phone_mcp_action": {"request"}, "phone_mcp_device_status_result": {"request_id"}, "phone_set_enabled": {"enabled"},
+        "phone_actor_source": {"peer_id", "fingerprint", "subscriber", "book_source"},
+        "phone_actor_registry": {"subscriber", "book_source", "request"},
         "phone_open_pairing": set(), "phone_cancel_pairing": set(),
         "phone_confirm_pairing": {"attempt_id", "accepted"},
         "phone_remove": {"peer_id"},
@@ -949,7 +953,7 @@ def _request_shape(operation, arguments):
                 or not 0 <= timeout <= 25):
             raise IPCError("invalid event poll")
     if operation in ("gui_subscribe", "gui_unsubscribe", "gui_visibility",
-                      "gui_readiness", "set_digitizer_target") or operation == "poll_events" \
+                      "gui_readiness", "gui_actor_book_source", "phone_actor_source", "phone_actor_registry", "set_digitizer_target") or operation == "poll_events" \
             and "subscriber" in arguments:
         subscriber = arguments.get("subscriber")
         if not isinstance(subscriber, str) or not re.fullmatch(r"[a-f0-9]{32}", subscriber):
@@ -958,6 +962,29 @@ def _request_shape(operation, arguments):
         raise IPCError("invalid GUI visibility")
     if operation == "gui_readiness" and not isinstance(arguments.get("ready"), bool):
         raise IPCError("invalid GUI readiness")
+    if operation == "gui_actor_book_source" and arguments.get("source") is not None and (
+            not isinstance(arguments["source"], str) or re.fullmatch(r"[0-9a-f]{64}", arguments["source"]) is None):
+        raise IPCError("invalid native book source")
+    if operation == "phone_actor_source" and (not _status_query_id(arguments.get("peer_id")) or
+            not isinstance(arguments.get("fingerprint"), str) or
+            re.fullmatch(r"[0-9A-Fa-f]{4}(?:-[0-9A-Fa-f]{4}){3}", arguments["fingerprint"]) is None or
+            not isinstance(arguments.get("book_source"), str) or re.fullmatch(r"[0-9a-f]{64}", arguments["book_source"]) is None):
+        raise IPCError("invalid native actor source selection")
+    if operation == "phone_actor_registry":
+        request = arguments.get("request")
+        if (not isinstance(arguments.get("book_source"), str) or re.fullmatch(r"[0-9a-f]{64}", arguments["book_source"]) is None or
+                not isinstance(request, dict) or request.get("action") not in ("create", "status", "read", "cancel")):
+            raise IPCError("invalid native actor registry request")
+        if request["action"] == "create":
+            if (set(request) != {"action", "peer_id", "fingerprint"} or not _status_query_id(request["peer_id"]) or
+                    not isinstance(request["fingerprint"], str) or re.fullmatch(r"[0-9A-Fa-f]{4}(?:-[0-9A-Fa-f]{4}){3}", request["fingerprint"]) is None):
+                raise IPCError("invalid native actor creation")
+        else:
+            fields = {"action", "actor_id", "owner_token"} | ({"message_id"} if request["action"] == "read" else set())
+            if (set(request) != fields or not _status_query_id(request["actor_id"]) or
+                    not isinstance(request["owner_token"], str) or re.fullmatch(r"[0-9a-f]{64}", request["owner_token"]) is None or
+                    request["action"] == "read" and not _status_query_id(request["message_id"])):
+                raise IPCError("invalid native actor ownership")
     if operation == "set_digitizer_target":
         if (type(arguments.get('enabled')) is not bool or not isinstance(arguments.get('token'), str) or
                 not re.fullmatch(r'[0-9a-fA-F-]{36}', arguments['token']) or
@@ -997,6 +1024,11 @@ class IPCServer:
         self._event_sequence = 0
         self._event_condition = threading.Condition()
         self._gui_subscribers = {}
+        self._gui_actor_books = {}
+        self._phone_actor_epoch = os.urandom(32).hex()
+        self._phone_actor_registries = {}
+        self._phone_actor_owners = {}
+        self._phone_actor_handles = {}
         self.backend = backend
         self.lifecycle = "ready"
         self._handlers = threading.BoundedSemaphore(MAX_IPC_HANDLERS)
@@ -1043,6 +1075,55 @@ class IPCServer:
                 self._gui_subscribers.items() if value[0] > now}
             return any(len(value) > 2 and value[1] and value[2]
                        for value in self._gui_subscribers.values())
+
+    def gui_actor_book_source(self, subscriber, expected_source):
+        """Exact native GUI owner lease, not the aggregate any-GUI readiness predicate."""
+        with self._event_condition:
+            lease = self._gui_subscribers.get(subscriber)
+            book = self._gui_actor_books.get(subscriber)
+            if not lease or len(lease) < 3 or lease[0] <= time.monotonic() or not lease[1] or not lease[2]:
+                self._gui_actor_books.pop(subscriber, None)
+                return None
+            if not book or book[0] != expected_source:
+                return None
+            return hashlib.sha256((subscriber + ":" + book[0] + ":" + book[1]).encode("ascii")).hexdigest()
+
+    def _phone_actor_registry(self, subscriber, book_source):
+        from magnolie_personal_actor_store import ActorStore
+        phone = self.phone_backend
+        if phone is None:
+            raise IPCError("Native phone service is unavailable")
+        with phone.lock:
+            key = (subscriber, book_source)
+            registry = self._phone_actor_registries.get(key)
+            if registry is None:
+                if len(self._phone_actor_registries) >= 32:
+                    raise IPCError("Native actor owner capacity exceeded")
+                registry = ActorStore(phone.store, lambda peer, fingerprint: phone.current_actor_source(peer, fingerprint,
+                    lambda: self.gui_actor_book_source(subscriber, book_source)), epoch=self._phone_actor_epoch, source_guard=phone.lock)
+                self._phone_actor_registries[key] = registry
+            return registry
+
+    def _retire_inactive_phone_actors(self):
+        phone = self.phone_backend
+        if phone is None:
+            return
+        with phone.lock:
+            for actor_id, owner in list(self._phone_actor_owners.items()):
+                handle = self._phone_actor_handles[actor_id]
+                registry = self._phone_actor_registry(*owner)
+                try:
+                    status = registry.status(handle)
+                except PermissionError:
+                    self._phone_actor_owners.pop(actor_id, None)
+                    self._phone_actor_handles.pop(actor_id, None)
+                    continue
+                if status["phase"] == "cancelled":
+                    continue
+                try:
+                    registry.require_current(handle)
+                except PermissionError:
+                    registry.cancel(handle)
 
     def gui_input_ready(self):
         """A live unlocked Organizer may control input while hidden in its tray."""
@@ -1234,12 +1315,15 @@ class IPCServer:
                         with self._event_condition:
                             previous = self._gui_subscribers.get(
                                 subscriber, (0, False, False))
+                            if previous[0] <= time.monotonic():
+                                self._gui_actor_books.pop(subscriber, None)
                             self._gui_subscribers[subscriber] = (
                                 time.monotonic() + 35, previous[1], previous[2])
                     result = self._poll_events(arguments["after"],
                                                float(arguments.get("timeout", 20)))
                 elif operation == "gui_subscribe":
                     with self._event_condition:
+                        self._gui_actor_books.pop(arguments["subscriber"], None)
                         self._gui_subscribers[arguments["subscriber"]] = (
                             time.monotonic() + 35, False, False)
                         result = {"subscribed": True, "cursor": self._event_sequence}
@@ -1249,6 +1333,8 @@ class IPCServer:
                         if subscriber not in self._gui_subscribers:
                             raise IPCError("GUI subscriber is not registered")
                         previous = self._gui_subscribers[subscriber]
+                        if not arguments["visible"] or previous[0] <= time.monotonic():
+                            self._gui_actor_books.pop(subscriber, None)
                         self._gui_subscribers[subscriber] = (
                             time.monotonic() + 35, arguments["visible"], previous[2])
                     result = {"visible": arguments["visible"]}
@@ -1258,12 +1344,38 @@ class IPCServer:
                         if subscriber not in self._gui_subscribers:
                             raise IPCError("GUI subscriber is not registered")
                         previous = self._gui_subscribers[subscriber]
+                        if not arguments["ready"] or previous[0] <= time.monotonic():
+                            self._gui_actor_books.pop(subscriber, None)
                         self._gui_subscribers[subscriber] = (
                             time.monotonic() + 35, previous[1], arguments["ready"])
                     result = {"ready": arguments["ready"]}
+                elif operation == "gui_actor_book_source":
+                    subscriber = arguments["subscriber"]
+                    with self._event_condition:
+                        now = time.monotonic()
+                        self._gui_actor_books = {key: value for key, value in self._gui_actor_books.items()
+                            if key in self._gui_subscribers and self._gui_subscribers[key][0] > now}
+                        lease = self._gui_subscribers.get(subscriber)
+                        if not lease or lease[0] <= now:
+                            raise IPCError("Native GUI owner lease is unavailable")
+                        source = arguments.get("source")
+                        previous = self._gui_actor_books.get(subscriber)
+                        changed = previous is not None if source is None else previous is None or previous[0] != source
+                        if source is None:
+                            self._gui_actor_books.pop(subscriber, None)
+                        else:
+                            if previous is None and len(self._gui_actor_books) >= 128:
+                                raise IPCError("Native GUI owner capacity exceeded")
+                            if previous is None or previous[0] != source:
+                                self._gui_actor_books[subscriber] = (source, os.urandom(32).hex())
+                    if changed:
+                        self._retire_inactive_phone_actors()
+                    result = {"registered": source is not None}
                 elif operation == "gui_unsubscribe":
                     with self._event_condition:
                         self._gui_subscribers.pop(arguments["subscriber"], None)
+                        self._gui_actor_books.pop(arguments["subscriber"], None)
+                    self._retire_inactive_phone_actors()
                     result = {"subscribed": False}
                 elif operation == "set_digitizer_target":
                     subscriber = arguments['subscriber']
@@ -1337,6 +1449,31 @@ class IPCServer:
         phone = self.phone_backend
         if phone is None:
             raise IPCError("phone service is not owned by the background service")
+        if operation == "phone_actor_source":
+            return phone.current_actor_source(arguments["peer_id"], arguments["fingerprint"],
+                lambda: self.gui_actor_book_source(arguments["subscriber"], arguments["book_source"]))
+        if operation == "phone_actor_registry":
+            from magnolie_personal_actor_store import ActorHandle
+            request = arguments["request"]
+            with phone.lock:
+                if request["action"] == "create":
+                    source = phone.current_actor_source(request["peer_id"], request["fingerprint"],
+                        lambda: self.gui_actor_book_source(arguments["subscriber"], arguments["book_source"]))
+                    if source is None:
+                        raise IPCError("Native actor source changed")
+                    self._retire_inactive_phone_actors()
+                    registry = self._phone_actor_registry(arguments["subscriber"], arguments["book_source"])
+                    handle = registry.create(request["peer_id"], request["fingerprint"], source)
+                    self._phone_actor_owners[handle.actor_id] = (arguments["subscriber"], arguments["book_source"])
+                    self._phone_actor_handles[handle.actor_id] = handle
+                    return {"actor_id": handle.actor_id, "owner_token": handle.owner_token}
+                if self._phone_actor_owners.get(request["actor_id"]) != (arguments["subscriber"], arguments["book_source"]):
+                    raise IPCError("Native actor owner is unavailable")
+                registry = self._phone_actor_registry(arguments["subscriber"], arguments["book_source"])
+                handle = ActorHandle(request["actor_id"], request["owner_token"])
+                if request["action"] == "status": return registry.status(handle)
+                if request["action"] == "read": return registry.read(handle, request["message_id"])
+                return registry.cancel(handle)
         if operation == "phone_request_status":
             return phone.request_status(arguments["peer_id"], request_id=arguments.get("request_id"))
         if operation == "phone_read_own_profile":
@@ -1651,6 +1788,13 @@ class KDEConnectProxy:
         return self._call("reject_receive", receive_id=receive_id)
 
 
+@dataclass(frozen=True)
+class NativePhoneActorHandle:
+    actor_id: str
+    owner_token: str = field(repr=False)
+    book_source: str = field(repr=False)
+
+
 class PhoneServiceProxy:
     """Explicit GUI API for the daemon-owned Magnolie Notes listener."""
     def __init__(self, path=None, callback=None):
@@ -1663,6 +1807,8 @@ class PhoneServiceProxy:
         self._visible = None
         self._ready = None
         self._state_lock = threading.RLock()
+        self.native_actor_book_source = None
+        self._actor_book_source_active = False
 
     def _call(self, operation, **arguments):
         return ipc_request("phone_" + operation, arguments, self.path, timeout=30)
@@ -1723,6 +1869,11 @@ class PhoneServiceProxy:
                     for operation, field, value in (("gui_visibility", "visible", self._visible), ("gui_readiness", "ready", self._ready)):
                         if value is not None:
                             ipc_request(operation, {"subscriber": self._subscriber, field: value}, self.path, timeout=1)
+                    if self._actor_book_source_active:
+                        try:
+                            self._publish_actor_book_source()
+                        except (IPCError, OSError, ValueError, TypeError):
+                            pass  # An older daemon must not suppress ordinary phone events.
                 for item in result.get("events", ()):
                     if item.get("event") != "phone_event":
                         continue
@@ -1738,6 +1889,68 @@ class PhoneServiceProxy:
     def set_ready(self, ready):
         with self._state_lock:
             return self._set_ready(ready)
+
+    def _publish_actor_book_source(self):
+        try:
+            source = self.native_actor_book_source() if callable(self.native_actor_book_source) else None
+        except Exception:
+            source = None
+        if not isinstance(source, str) or re.fullmatch(r"[0-9a-f]{64}", source) is None:
+            source = None
+        result = ipc_request("gui_actor_book_source", {"subscriber": self._subscriber, "source": source}, self.path, timeout=1)
+        return source if result.get("registered") else None
+
+    def current_actor_source(self, peer_id, fingerprint):
+        # This callback is configured by the native host, never deserialized from MCP arguments.
+        with self._state_lock:
+            if self._event_stop.is_set() or self._event_thread is None or not self._event_thread.is_alive():
+                return None
+            try:
+                book = self._publish_actor_book_source()
+                if book is None:
+                    return None
+                self._actor_book_source_active = True
+                result = self._call("actor_source", peer_id=peer_id, fingerprint=fingerprint,
+                    subscriber=self._subscriber, book_source=book)
+                return result if self.native_actor_book_source() == book else None
+            except (IPCError, OSError, ValueError, TypeError):
+                return None
+
+    def create_personal_actor(self, peer_id, fingerprint):
+        """Private native IPC only; the owner token must never enter public MCP results."""
+        with self._state_lock:
+            if self.current_actor_source(peer_id, fingerprint) is None:
+                raise IPCError("Native actor source changed")
+            book = self.native_actor_book_source()
+            handle = self._call("actor_registry", subscriber=self._subscriber, book_source=book,
+                request={"action": "create", "peer_id": peer_id, "fingerprint": fingerprint})
+            native_handle = NativePhoneActorHandle(handle["actor_id"], handle["owner_token"], book)
+            try:
+                current_book = self.native_actor_book_source()
+            except Exception:
+                current_book = None
+            if current_book != book:
+                self.cancel_personal_actor(native_handle)
+                raise IPCError("Native actor book owner changed")
+            return native_handle
+
+    def personal_actor_status(self, handle):
+        return self._call("actor_registry", subscriber=self._subscriber, book_source=handle.book_source,
+            request={"action": "status", "actor_id": handle.actor_id, "owner_token": handle.owner_token})
+
+    def read_personal_actor_wire(self, handle, message_id):
+        with self._state_lock:
+            if not callable(self.native_actor_book_source) or self.native_actor_book_source() != handle.book_source:
+                raise IPCError("Native actor book owner changed")
+            result = self._call("actor_registry", subscriber=self._subscriber, book_source=handle.book_source,
+                request={"action": "read", "actor_id": handle.actor_id, "owner_token": handle.owner_token, "message_id": message_id})
+            if self.native_actor_book_source() != handle.book_source:
+                raise IPCError("Native actor book owner changed")
+            return result
+
+    def cancel_personal_actor(self, handle):
+        return self._call("actor_registry", subscriber=self._subscriber, book_source=handle.book_source,
+            request={"action": "cancel", "actor_id": handle.actor_id, "owner_token": handle.owner_token})
 
     def _set_ready(self, ready):
         ready = bool(ready)

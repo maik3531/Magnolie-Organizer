@@ -253,9 +253,8 @@ owner source, reload/lock and restore fences invalidate it. MainForm binds that
 provider to its coordinator. The GTK foreground provider reads actual native
 lock/load/operation fields, profile path, key identity and native sync epoch,
 with synchronous readiness invalidation before asynchronous background notices.
-Neither provider accepts a book identity from MCP JSON. Linux daemon/proxy owner
-registration and the guarded actor-store/transport factory remain outstanding;
-foreground wiring alone does not complete that runtime path.
+Neither provider accepts a book identity from MCP JSON. Foreground wiring alone
+does not complete the Linux runtime path.
 
 The foreground/native store factories use those configured host providers rather
 than accepting a source callback from a wire request. Linux acquires its native
@@ -263,6 +262,23 @@ service guard before opening SQLite; Windows acquires its existing note-policy
 gate and coordinator guard before actor-store work. Source checks are reentrant
 inside those guards, and no network/GUI wait belongs in the guarded store action.
 Book-owner loss prevents raw access while owner-bound retirement remains possible.
+
+The Linux proxy now publishes the configured native host provider through its
+existing private GUI subscription. The daemon binds source authority to that
+exact live, visible, ready subscriber and native book source, not aggregate
+any-GUI readiness. Book changes, subscriber loss/expiry and readiness/visibility
+withdrawal invalidate the owner generation. The proxy checks its actual host
+provider again after the source RPC; it does not start a listener or replay work
+to manufacture readiness. Optional metadata incompatibility cannot suppress
+ordinary phone events. The private IPC registry now creates contexts from this
+native source, binds every handle to its exact subscriber/book owner and supports
+owner status, raw read and retirement. Native proxy handles hide tokens/book
+sources in their default representation; those tokens must never enter public
+MCP results. Raw reads recheck the actual host book before/after IPC, and book
+loss during creation retires the newly created context. Source invalidation
+retires inactive daemon contexts without returning raw content. Private registry
+creation/persistence is still not transport dispatch, domain adoption or a saved
+book; those runtime gates remain outstanding.
 
 This is not complete runtime activation. Bulk snapshot/attachment production,
 actor-bound native send/receive, incoming staging/replay isolation, typed adoption
