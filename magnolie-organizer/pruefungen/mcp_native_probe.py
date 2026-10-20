@@ -607,7 +607,14 @@ def client():
                     assert committed.get("phase") == "committed" and committed["book_persisted"] and committed["core_committed"] and not committed["phone_persisted"], committed
                     stored_actor_book = json.loads(data_file.read_text())
                     assert next(note for note in stored_actor_book["notizen"] if note["id"] == "note-one")["text"] == "Actual native private actor review"
-                    assert not actor_service.store.ready_personal_batches()
+                    assert not any(not batch["reply"] for _owner, batch in actor_service.store.ready_personal_batches())
+                    queued_actor_reply = [wire for wire in actor_service.store.pending(actor_peer["device_id"])
+                        if wire.get("kind") == actor_wire.DATA_KIND and actor_wire.unwrap(wire["body"])[0] == "personal_sync.batch"]
+                    assert committed["reply_queued"] and queued_actor_reply
+                    for wire in queued_actor_reply:
+                        assert actor_wire.unwrap(wire["body"])[1]["reply"] is True
+                        assert actor_service._send_message(actor_channel, actor_peer["device_id"], wire)
+                    state["native_actor_saved_reply_queue_verified"] = True
                     saved_actor_book = window._telefon_actor_buchnachweis()
                     assert saved_actor_book and saved_actor_book["sha256"] == hashlib.sha256(data_file.read_bytes()).hexdigest()
                     state["native_actor_checkpoint_save_commit_verified"] = True

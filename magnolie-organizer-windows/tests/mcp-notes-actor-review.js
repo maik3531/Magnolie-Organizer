@@ -54,6 +54,11 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
           assert.equal(savedHash, plan.hash); assert.equal(r.claimToken, "e".repeat(64));
           if (scenario === "commit_stage_changed") { b.w.App.telefonMcpErgebnis({ requestId: message.requestId, ok: false, code: "source_changed" }); return; }
           coreCommits++; response = { actor: { book_persisted: true, core_committed: true, phone_persisted: false, book_sha256: savedHash, save_sequence: savedSequence } };
+        } else if (r.action === "notes_actor_reply") {
+          assert.equal(coreCommits, 1, "Reply queued before the actual native core commit");
+          assert.equal(r.claimToken, "e".repeat(64));
+          assert.ok(r.batches.flatMap(batch => batch.records).some(record => record.kind === "note" && record.value.text === "Incoming Grüße 🌸"));
+          response = { actor: { reply_queued: true, message_count: r.batches.length, book_persisted: true, phone_persisted: false, delivery_confirmed: false } };
         }
         else if (r.action === "notes_actor_read") {
           const source = r.attachmentSha256 ? image : raw, limit = Math.min(r.limit, r.attachmentSha256 ? 7 : 37);
@@ -154,6 +159,7 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
           assert.equal(state.phase, scenario === "commit" ? "committed" : scenario === "commit_cancel_save" ? "cancelled" : "failed", scenario + JSON.stringify(state));
           assert.equal(state.book_persisted, !["commit_save_failed", "commit_checkpoint_failed"].includes(scenario), scenario + JSON.stringify(state));
           assert.equal(coreCommits, scenario === "commit" ? 1 : 0);
+          assert.equal(state.reply_queued, scenario === "commit");
           if (["commit_cancel_save", "commit_late_draft"].includes(scenario)) assert.equal(b.w.document.querySelector("#tb-titel").value, "Late commit draft");
           b.t.mcpNotesActorCancel(owner, id);
         }

@@ -35596,6 +35596,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function mcpNotesActorAntwort(job) {
     return { operation_id: job.id, peer_id: job.peer, phase: job.phase, review_revision: job.review?.revision || "",
       summary: kopie(job.review?.summary || null), book_persisted: job.saved === true, core_committed: job.committed === true, phone_persisted: false,
+      reply_queued: job.replyQueued === true,
       cancel_requested: job.controller.signal.aborted, native_outcome_unknown: job.unknown, error_code: job.error };
   }
   function mcpNotesActorStatus(owner, id) {
@@ -35639,7 +35640,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         mcpNotesActorGuard(job);
         if (receipt?.book_persisted !== true || receipt.core_committed !== true || receipt.phone_persisted !== false || receipt.book_sha256 !== afterHash)
           throw new MagnolieMcp.ToolError("invalid_result", "Native Notes core commit did not confirm the saved review");
-        job.committed = true; job.phase = "committed";
+        job.committed = true; job.phase = "reply_queueing";
+        const queued = (await mcpNotesActorNative(job, "notes_actor_reply", { claimToken: plan.claim_token,
+          batches: job.review.batches, sources: job.review.sources })).actor;
+        mcpNotesActorGuard(job);
+        if (queued?.reply_queued !== true || queued.book_persisted !== true || queued.phone_persisted !== false || queued.delivery_confirmed !== false || queued.message_count !== job.review.batches.length)
+          throw new MagnolieMcp.ToolError("invalid_result", "Native Notes reply queue receipt was inconsistent");
+        job.replyQueued = true; job.phase = "committed";
       } catch (error) {
         job.unknown = true; job.error = error.code || "native_operation_failed";
         job.phase = job.controller.signal.aborted ? "cancelled" : "failed"; job.controller.abort();

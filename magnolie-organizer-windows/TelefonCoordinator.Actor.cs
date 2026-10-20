@@ -13,6 +13,8 @@ internal sealed partial class TelefonCoordinator
         internal HashSet<string> ProducedChunks { get; } = [];
         internal ActorCommitPlan? CommitPlan { get; set; }
         internal NativeBookSaveState? SaveReceipt { get; set; }
+        internal string ReplyIdentity { get; set; } = "";
+        internal int ReplyCount { get; set; }
     }
     private readonly Dictionary<string, ActorAdmission> actorAdmissions = new(StringComparer.Ordinal);
 
@@ -42,6 +44,8 @@ internal sealed partial class TelefonCoordinator
                     McpText(request, "expectedRevision"), McpText(request, "attachmentSha256"), cancellation),
                 "notes_actor_prepare_commit" => await PreparePersonalActorCommitAsync(handle, McpText(request, "expectedRevision", true), McpText(request, "bookSha256", true), cancellation),
                 "notes_actor_commit" => await CommitPersonalActorAsync(handle, McpText(request, "claimToken", true), cancellation),
+                "notes_actor_reply" => await QueuePersonalActorReplyAsync(handle, McpText(request, "claimToken", true),
+                    request["batches"]?.AsArray() ?? throw new InvalidDataException(), request["sources"]?.AsArray() ?? throw new InvalidDataException(), cancellation),
                 _ => throw new InvalidDataException("unsupported_actor_action")
             };
             return new() { ["ok"] = true, ["actor"] = result };
@@ -212,6 +216,78 @@ internal sealed partial class TelefonCoordinator
             return new JsonObject { ["book_persisted"] = true, ["core_committed"] = true, ["phone_persisted"] = false,
                 ["save_sequence"] = admission.SaveReceipt.Sequence, ["book_sha256"] = admission.SaveReceipt.Sha256 };
         }, cancellation);
+
+    internal Task<JsonObject> QueuePersonalActorReplyAsync(PersonalActorHandle handle, string claimToken, JsonArray batchNodes, JsonArray sourceNodes,
+        CancellationToken cancellation = default) => WithPersonalActorStoreAsync(registry => {
+        registry.RequireCurrent(handle);
+        if (!actorAdmissions.TryGetValue(handle.ActorId, out var admission) || admission.Handle != handle || admission.SaveReceipt is not { } receipt ||
+            admission.CommitPlan?.Token != claimToken) throw new InvalidOperationException("actor_reply_requires_commit");
+        var book = NativeSavedBook() ?? throw new InvalidOperationException("native_book_not_saved");
+        if (book.BookSource != receipt.BookSource || book.BookSource != NativeBookSource() || book.Sequence < receipt.Sequence || book.Sha256 != receipt.Sha256)
+            throw new InvalidOperationException("actor_saved_reply_changed");
+        var batches = batchNodes.OfType<JsonObject>().ToArray();
+        if (batches.Length != batchNodes.Count || batches.Length is < 1 or > 4096) throw new InvalidDataException("invalid_actor_reply_batches");
+        for (var index = 0; index < batches.Length; index++)
+        {
+            var body = batches[index]; PersonalSyncContract.ValidateBody("personal_sync.batch", body);
+            if (body["run_id"]!.GetValue<string>() != handle.ActorId || body["format"]!.GetValue<int>() != 3 || !body["reply"]!.GetValue<bool>() ||
+                body["sequence"]!.GetValue<int>() != index || body["last"]!.GetValue<bool>() != (index + 1 == batches.Length))
+                throw new InvalidDataException("inconsistent_actor_reply");
+        }
+        var records = new JsonArray(batches.SelectMany(body => body["records"]!.AsArray()).Select(value => value!.DeepClone()).ToArray());
+        var recordsHash = PersonalSyncContract.RecordsHash(records);
+        if (records.Count > 100000 || batches.Any(body => body["records_hash"]!.GetValue<string>() != recordsHash) ||
+            PhoneContentScope.FilterRecords(records.OfType<JsonObject>().ToArray(), admission.Connection.CurrentContentScope(admission.Scope)).Count != records.Count)
+            throw new InvalidDataException("actor_reply_outside_scope_or_hash");
+        var descriptorGroups = records.OfType<JsonObject>().Where(value => value["kind"]!.GetValue<string>() == "note")
+            .SelectMany(value => (value["value"]?["attachments"] as JsonArray ?? []).OfType<JsonObject>()).GroupBy(value => value["sha256"]!.GetValue<string>())
+            .ToArray();
+        foreach (var group in descriptorGroups)
+            if (group.Any(value => !JsonNode.DeepEquals(value["size"], group.First()["size"]) || !JsonNode.DeepEquals(value["mime"], group.First()["mime"])))
+                throw new InvalidDataException("conflicting_actor_reply_manifest");
+        var descriptors = descriptorGroups.ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        if (descriptors.Count > 256 || sourceNodes.Count != descriptors.Count || descriptors.Values.Sum(value => TelefonProtocolContract.Integer(value["size"])) > 50L * 1024 * 1024)
+            throw new InvalidDataException("actor_reply_capacity_or_sources");
+        var decoded = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        try
+        {
+            foreach (var source in sourceNodes.OfType<JsonObject>())
+            {
+                var hash = source["sha256"]!.GetValue<string>();
+                var file = PersonalSyncContract.DecodeDataUrl(source["data"]!.GetValue<string>());
+                if (!descriptors.TryGetValue(hash, out var descriptor) || file.Mime != descriptor["mime"]!.GetValue<string>() ||
+                    file.Data.LongLength != TelefonProtocolContract.Integer(descriptor["size"]) || Convert.ToHexString(SHA256.HashData(file.Data)).ToLowerInvariant() != hash ||
+                    !decoded.TryAdd(hash, file.Data)) { CryptographicOperations.ZeroMemory(file.Data); throw new InvalidDataException("actor_reply_source_changed"); }
+            }
+            if (decoded.Count != sourceNodes.Count || !decoded.Keys.ToHashSet(StringComparer.Ordinal).SetEquals(descriptors.Keys)) throw new InvalidDataException("incomplete_actor_reply_sources");
+            var identity = Convert.ToHexString(SHA256.HashData(TelefonCrypto.Canonical(batchNodes))).ToLowerInvariant();
+            if (admission.ReplyIdentity.Length != 0 && admission.ReplyIdentity != identity) throw new InvalidOperationException("actor_reply_changed");
+            if (admission.ReplyCount == 0)
+            {
+                if (admission.ReplyIdentity.Length != 0) throw new InvalidOperationException("actor_reply_outcome_unknown");
+                if (admission.Outbound.Count + batches.Length > 4096) throw new InvalidOperationException("actor_capacity");
+                admission.ReplyIdentity = identity;
+                var privatePeer = PersonalSyncActorContract.StoragePeer(handle.ActorId);
+                var run = personalSync.LoadRun(privatePeer, handle.ActorId, Now()) ?? throw new InvalidOperationException("actor_run_expired");
+                foreach (var (hash, data) in decoded)
+                    personalSync.StageAttachment(privatePeer, handle.ActorId, true, recordsHash, descriptors[hash], "outgoing", run.Policy, run.ExpiresMs,
+                        data.Chunk(PersonalSyncContract.ChunkRaw).Select((bytes, index) => (index, bytes)));
+                PersonalSyncStagedBatch? staged = null;
+                foreach (var body in batches)
+                {
+                    var id = store.Enqueue(admission.PeerId, "personal_sync.batch", body, 86400000, Now(), actorRunId: handle.ActorId);
+                    var wire = store.OutboxMessage(admission.PeerId, id) ?? throw new InvalidOperationException("actor_outbox_missing");
+                    staged = personalSync.StageBatch(privatePeer, PersonalSyncActorContract.SemanticMessage(wire), admission.Connection.Transport, Now());
+                    admission.Outbound.Add(id);
+                }
+                if (staged is null) throw new InvalidOperationException("actor_reply_staging_incomplete");
+                admission.ReplyCount = batches.Length;
+            }
+            registry.RequireCurrent(handle);
+            return new JsonObject { ["reply_queued"] = true, ["message_count"] = admission.ReplyCount, ["book_persisted"] = true, ["phone_persisted"] = false, ["delivery_confirmed"] = false };
+        }
+        finally { foreach (var data in decoded.Values) CryptographicOperations.ZeroMemory(data); }
+    }, cancellation);
 
     internal async Task ReceivePersonalActorAsync(TelefonConnection connection, TelefonPeer peer, JsonObject message)
     {

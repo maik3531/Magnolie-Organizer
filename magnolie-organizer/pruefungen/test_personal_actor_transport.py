@@ -259,6 +259,7 @@ def test_actor_core_commit_requires_fresh_native_book_save_and_bound_review_clai
     before = book.record_saved("native-profile", True, "a" * 64)
     claim = service.prepare_personal_actor_commit(registry, handle, view["revision"], "b" * 64, before, provider())
     assert not claim["book_persisted"]
+    with pytest.raises(PermissionError): service.queue_personal_actor_reply(registry, handle, claim["claim_token"], [dict(batch, reply=True)], [], before, provider())
     assert claim == service.prepare_personal_actor_commit(registry, handle, view["revision"], "b" * 64, before, provider())
     with pytest.raises(PermissionError): service.commit_personal_actor(registry, handle, claim["claim_token"], before, provider())
     wrong = book.record_saved("native-profile", True, "c" * 64)
@@ -277,6 +278,29 @@ def test_actor_core_commit_requires_fresh_native_book_save_and_bound_review_clai
     assert committed == service.commit_personal_actor(registry, handle, claim["claim_token"], actual, provider())
     assert not any(owner == actor.storage_peer(handle.actor_id) for owner, _ in service.store.ready_personal_batches())
     assert not channel.sent and not events
+    image = b"\x89PNG\r\n\x1a\nSaved reply source"
+    image_hash = hashlib.sha256(image).hexdigest()
+    reply_record = copy.deepcopy(records[0]); reply_record["value"]["text"] = "Saved native reply"
+    reply_record["value"]["attachments"] = [{"attachment_id": "saved-image", "name": "saved.png", "kind": "image", "mime": "image/png", "size": len(image), "sha256": image_hash}]
+    reply_record["hash"] = personal.projection_hash(reply_record["value"])
+    reply = [dict(batch, batch_id=str(uuid.uuid4()), reply=True, records=[reply_record], records_hash=personal.records_hash([reply_record]))]
+    sources = [{"sha256": image_hash, "data": "data:image/png;base64," + base64.b64encode(image).decode("ascii")}]
+    with pytest.raises(PermissionError): service.queue_personal_actor_reply(registry, handle, "f" * 64, reply, sources, actual, provider())
+    with pytest.raises(PermissionError): service.queue_personal_actor_reply(registry, handle, claim["claim_token"], reply, sources, dict(actual, sha256="c" * 64), provider())
+    queued = service.queue_personal_actor_reply(registry, handle, claim["claim_token"], reply, sources, actual, provider())
+    pending = service.store.pending(peer["device_id"])
+    assert queued["reply_queued"] and not queued["delivery_confirmed"] and not queued["phone_persisted"]
+    assert len(pending) == 1 and actor.unwrap(pending[0]["body"]) == ("personal_sync.batch", reply[0])
+    assert queued == service.queue_personal_actor_reply(registry, handle, claim["claim_token"], reply, sources, actual, provider())
+    assert pending == service.store.pending(peer["device_id"])
+    changed_reply = copy.deepcopy(reply); changed_reply[0]["batch_id"] = str(uuid.uuid4())
+    with pytest.raises(PermissionError): service.queue_personal_actor_reply(registry, handle, claim["claim_token"], changed_reply, sources, actual, provider())
+    assert service._send_message(channel, peer["device_id"], pending[0]) and channel.sent[-1] == pending[0]
+    wants = {"format": 2, "run_id": handle.actor_id, "reply": True, "records_hash": reply[0]["records_hash"], "wants": [{"sha256": image_hash, "ranges": [[0, 1]]}]}
+    service._payload(peer, channel, actor.wire_message(frame("personal_sync.attachment_request", wants), handle.actor_id))
+    outgoing = [actor.unwrap(value["body"]) for value in service.store.pending(peer["device_id"]) if value.get("kind") == actor.DATA_KIND]
+    assert any(kind == "personal_sync.attachment_chunk" and base64.b64decode(value["data"]) == image for kind, value in outgoing)
+    assert not events
 
 
 def test_actor_commit_rejects_changed_native_staging_after_book_save(tmp_path, monkeypatch):

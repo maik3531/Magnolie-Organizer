@@ -85,6 +85,17 @@ def test_proxy_source_requires_its_exact_live_native_book_owner(tmp_path, monkey
             owner.record_saved(profile[0], True, "b" * 64)
             committed = bridge(native_window, proxy, dict(private_handle, action="notes_actor_commit", claimToken=claim["claim_token"]))["actor"]
             assert committed["book_persisted"] and committed["core_committed"] and not committed["phone_persisted"]
+            reply_image = image + bytes(70000 - len(image))
+            reply_hash = hashlib.sha256(reply_image).hexdigest()
+            reply_note = json.loads(json.dumps(note)); reply_note["value"]["text"] = "Saved native IPC reply"
+            reply_note["value"]["attachments"][0].update(sha256=reply_hash, size=len(reply_image))
+            reply_note["hash"] = phone.personal_sync_contract.projection_hash(reply_note["value"])
+            reply_batches = [dict(actor_batch, batch_id=str(uuid.uuid4()), reply=True, records=[reply_note], records_hash=phone.personal_sync_contract.records_hash([reply_note]))]
+            reply_sources = [{"sha256": reply_hash, "data": "data:image/png;base64," + base64.b64encode(reply_image).decode("ascii")}]
+            reply_arguments = dict(private_handle, action="notes_actor_reply", claimToken=claim["claim_token"], batches=reply_batches, sources=reply_sources)
+            queued_reply = bridge(native_window, proxy, reply_arguments)["actor"]
+            assert queued_reply["reply_queued"] and not queued_reply["phone_persisted"] and not queued_reply["delivery_confirmed"]
+            assert queued_reply == bridge(native_window, proxy, reply_arguments)["actor"]
             registry = server._phone_actor_registry(proxy._subscriber, handle.book_source)
             native_handle = ActorHandle(handle.actor_id, handle.owner_token)
             now = phone.now_ms()
@@ -197,6 +208,27 @@ def test_actor_commit_ipc_cannot_replace_native_saved_book_binding(field, value)
     with pytest.raises(background.IPCError): background._request_shape("phone_actor_registry", {
         "subscriber": "b" * 32, "book_source": "c" * 64, "request": {"action": "commit", "actor_id": "11111111-1111-4111-8111-111111111111",
             "owner_token": "a" * 64, "claim_token": "f" * 64, "native_saved_book": saved}})
+
+
+def test_existing_large_ipc_whitelist_reaches_server_without_widening_normal_requests(tmp_path):
+    received = []
+    class Receiver:
+        def index_local_attachments(self, peer_id, run_id, reply, aggregate_hash, sources):
+            received.append(sources)
+            return {"received_bytes": len(sources[0]["data"])}
+    path = str(tmp_path / "large-private.sock")
+    server = background.IPCServer(FakeBackend(), path, phone_backend=Receiver()).start()
+    try:
+        arguments = {"peer_id": "11111111-1111-4111-8111-111111111111", "run_id": "22222222-2222-4222-8222-222222222222",
+            "reply": True, "aggregate_hash": "a" * 64, "sources": [{"sha256": "b" * 64, "data": "x" * 70000}]}
+        result = background.ipc_request("phone_index_local_attachments", arguments, path)
+        assert result == {"received_bytes": 70000} and received == [arguments["sources"]]
+        with pytest.raises(background.IPCError, match="size limit"):
+            background.ipc_request("phone_send_personal_sync", {"peer_id": arguments["peer_id"], "kind": "personal_sync.batch",
+                "body": {"owned_oversize_probe": "x" * 70000}, "trigger": "manual"}, path)
+        assert len(received) == 1
+    finally:
+        server.close()
 
 
 def test_unsupported_actor_metadata_does_not_drop_ordinary_proxy_events(tmp_path, monkeypatch):

@@ -888,16 +888,22 @@ class PhoneStore:
                          encrypted, 0, now, "", transport_policy))
         return message
 
-    def queue_format2_run(self, peer_id, messages, attachments, transport_policy):
+    def queue_format2_run(self, peer_id, messages, attachments, transport_policy, actor_run_id=None, storage_peer_id=None):
         """Atomically encrypt-stage every source before record messages enter outbox."""
         if transport_policy not in {"any", "wifi_only"} or not messages:
             raise ValueError("invalid format 2 run")
+        storage_peer = storage_peer_id or peer_id
+        if (storage_peer_id is not None and actor_run_id is None or
+                actor_run_id is not None and storage_peer != personal_actor_contract.storage_peer(actor_run_id)):
+            raise ValueError("invalid actor attachment namespace")
         now = now_ms()
         prepared = []
         for kind, body, ttl_ms in messages:
             message = {"type": "message", "v": 1, "message_id": str(uuid.uuid4()),
                        "kind": kind, "created_ms": now, "expires_ms": now + ttl_ms, "body": body}
-            prepared.append((message, self._encrypt(canonical(message), "outbox", message["message_id"])))
+            if actor_run_id is not None:
+                message = personal_actor_contract.wire_message(message, actor_run_id)
+            prepared.append((message, self._encrypt(canonical(message), "outbox", message["message_id"]), kind))
         run_id = messages[0][1]["run_id"]
         reply = bool(messages[-1][1].get("reply", False))
         aggregate_hash = messages[-1][1]["records_hash"]
@@ -907,17 +913,17 @@ class PhoneStore:
                     or mime_from_magic(raw) != descriptor["mime"]):
                 raise ValueError("attachment source changed after snapshot")
             for index, offset in enumerate(range(0, len(raw), CHUNK_RAW)):
-                primary = self._attachment_primary(peer_id, run_id, reply, aggregate_hash, descriptor["sha256"], index, "outgoing")
+                primary = self._attachment_primary(storage_peer, run_id, reply, aggregate_hash, descriptor["sha256"], index, "outgoing")
                 staged.append((descriptor, index, self._encrypt(raw[offset:offset + CHUNK_RAW],
                     "personal_attachment_chunk", primary)))
         with sqlite3.connect(self.database_path) as db:
             db.execute("BEGIN IMMEDIATE")
             outbox_used = db.execute("SELECT COALESCE(SUM(length(payload)),0) FROM outbox").fetchone()[0]
             used = db.execute("SELECT COALESCE(SUM(length(payload)),0) FROM personal_attachment_chunk").fetchone()[0]
-            run_used = db.execute("SELECT COALESCE(SUM(length(payload)),0) FROM personal_attachment_chunk WHERE peer_id=? AND run_id=?", (peer_id, run_id)).fetchone()[0]
+            run_used = db.execute("SELECT COALESCE(SUM(length(payload)),0) FROM personal_attachment_chunk WHERE peer_id=? AND run_id=?", (storage_peer, run_id)).fetchone()[0]
             rows = db.execute("SELECT COUNT(*) FROM personal_attachment_chunk").fetchone()[0]
-            active = db.execute("SELECT COUNT(DISTINCT run_id||':'||reply||':'||direction) FROM personal_attachment_transfer WHERE peer_id=?", (peer_id,)).fetchone()[0]
-            hashes = db.execute("SELECT COUNT(DISTINCT sha256) FROM personal_attachment_transfer WHERE peer_id=? AND run_id=?", (peer_id, run_id)).fetchone()[0]
+            active = db.execute("SELECT COUNT(DISTINCT run_id||':'||reply||':'||direction) FROM personal_attachment_transfer WHERE peer_id=?", (storage_peer,)).fetchone()[0]
+            hashes = db.execute("SELECT COUNT(DISTINCT sha256) FROM personal_attachment_transfer WHERE peer_id=? AND run_id=?", (storage_peer, run_id)).fetchone()[0]
             added = sum(len(item[2]) for item in staged)
             unique = {item[0]["sha256"] for item in staged}
             if (outbox_used + sum(len(item[1]) for item in prepared) > 50 * 1024 * 1024
@@ -926,19 +932,19 @@ class PhoneStore:
                     or run_used + added > 50 * 1024 * 1024):
                 raise RuntimeError("attachment staging capacity")
             for descriptor in {item["sha256"]: item for item, _raw in attachments}.values():
-                metadata = self._attachment_metadata(peer_id, run_id, reply, aggregate_hash, descriptor["sha256"],
+                metadata = self._attachment_metadata(storage_peer, run_id, reply, aggregate_hash, descriptor["sha256"],
                     "outgoing", descriptor["size"], descriptor["mime"], transport_policy, now + DAY_MS, False,
                     descriptor["attachment_id"])
                 db.execute("INSERT INTO personal_attachment_transfer VALUES(?,?,?,?,?,?,?,?,?,?,0,?)",
-                    (peer_id, run_id, int(reply), aggregate_hash, descriptor["sha256"], "outgoing",
+                    (storage_peer, run_id, int(reply), aggregate_hash, descriptor["sha256"], "outgoing",
                      descriptor["size"], descriptor["mime"], transport_policy, now + DAY_MS,
                      self._encrypt_attachment_metadata(metadata)))
             for descriptor, index, encrypted in staged:
                 db.execute("INSERT INTO personal_attachment_chunk VALUES(?,?,?,?,?,?,?,?)",
-                    (peer_id, run_id, int(reply), aggregate_hash, descriptor["sha256"], "outgoing", index, encrypted))
-            for message, encrypted in prepared:
+                    (storage_peer, run_id, int(reply), aggregate_hash, descriptor["sha256"], "outgoing", index, encrypted))
+            for message, encrypted, semantic_kind in prepared:
                 db.execute("INSERT INTO outbox(message_id,peer_id,kind,created_ms,expires_ms,payload,attempts,next_attempt_ms,last_error,transport_policy) VALUES(?,?,?,?,?,?,?,?,?,?)",
-                    (message["message_id"], peer_id, message["kind"], now, message["expires_ms"],
+                    (message["message_id"], peer_id, semantic_kind, now, message["expires_ms"],
                      encrypted, 0, now, "", transport_policy))
         return [item[0] for item in prepared]
 
@@ -3980,6 +3986,77 @@ class PhoneService:
                 receipt = admission["save_receipt"] = book
             return {"book_persisted": True, "core_committed": True, "phone_persisted": False,
                 "save_sequence": receipt["sequence"], "book_sha256": receipt["sha256"]}
+
+    def queue_personal_actor_reply(self, registry, handle, claim_token, batches, sources, native_saved_book, book_source):
+        with self.lock:
+            registry.require_current(handle)
+            admission = self.personal_actor_admissions.get(handle.actor_id)
+            if (admission is None or admission["registry"] is not registry or admission["handle"] != handle or
+                    not admission.get("save_receipt") or not isinstance(claim_token, str) or
+                    not secrets.compare_digest(admission["commit_plan"]["token"], claim_token)):
+                raise PermissionError("actor_reply_requires_commit")
+            book = self._actor_saved_book(native_saved_book, book_source)
+            receipt = admission["save_receipt"]
+            if book_source != receipt["book_source"] or book["sequence"] < receipt["sequence"] or book["sha256"] != receipt["sha256"]:
+                raise PermissionError("actor_saved_reply_changed")
+            if not isinstance(batches, list) or not 1 <= len(batches) <= 4096:
+                raise ValueError("invalid_actor_reply_batches")
+            records = []
+            for index, batch in enumerate(batches):
+                validate_personal_sync_body("personal_sync.batch", batch)
+                if (batch["format"] != 3 or batch["run_id"] != handle.actor_id or batch["reply"] is not True or
+                        batch["sequence"] != index or batch["last"] is not (index == len(batches) - 1)):
+                    raise ValueError("inconsistent_actor_reply")
+                records.extend(batch["records"])
+            aggregate_hash = records_hash(records)
+            if len(records) > 100000 or any(batch["records_hash"] != aggregate_hash for batch in batches):
+                raise ValueError("invalid_actor_reply_hash")
+            manifest = self.current_content_scope(admission["peer"], admission["key"], admission["scope"])
+            if content_scope_contract.filter_records(records, manifest) != records:
+                raise PermissionError("actor_reply_outside_scope")
+            descriptors = {}
+            for record in records:
+                if record["kind"] != "note": continue
+                for item in record["value"].get("attachments", []):
+                    previous = descriptors.setdefault(item["sha256"], item)
+                    if (previous["size"], previous["mime"]) != (item["size"], item["mime"]):
+                        raise ValueError("conflicting_actor_reply_manifest")
+            if (not isinstance(sources, list) or len(sources) != len(descriptors) or
+                    any(not isinstance(value, dict) or set(value) != {"sha256", "data"} for value in sources) or
+                    {value["sha256"] for value in sources} != set(descriptors)):
+                raise ValueError("incomplete_actor_reply_sources")
+            if len(descriptors) > 256 or sum(item["size"] for item in descriptors.values()) > 50 * 1024 * 1024:
+                raise RuntimeError("actor_capacity")
+            decoded = []
+            for value in sources:
+                mime, raw = decode_attachment_data_url(value["data"])
+                descriptor = descriptors[value["sha256"]]
+                if mime != descriptor["mime"] or len(raw) != descriptor["size"] or hashlib.sha256(raw).hexdigest() != value["sha256"]:
+                    raise ValueError("actor_reply_source_changed")
+                decoded.append((descriptor, raw))
+            identity = hashlib.sha256(canonical(batches)).hexdigest()
+            if admission.get("reply_identity") not in (None, identity):
+                raise PermissionError("actor_reply_changed")
+            if not admission.get("reply_queued"):
+                if len(admission["outbound"]) + len(batches) > 4096:
+                    raise RuntimeError("actor_capacity")
+                if admission.get("reply_identity") is not None:
+                    raise RuntimeError("actor_reply_outcome_unknown")
+                admission["reply_identity"] = identity
+                private = personal_actor_contract.storage_peer(handle.actor_id)
+                queued = self.store.queue_format2_run(admission["peer"], [("personal_sync.batch", batch, DAY_MS) for batch in batches],
+                    decoded, "any", actor_run_id=handle.actor_id, storage_peer_id=private)
+                staged = None
+                for wire in queued:
+                    kind, content = personal_actor_contract.unwrap(wire["body"])
+                    staged = self.store.stage_personal_batch(private, dict(wire, kind=kind, body=content))
+                if staged is None:
+                    raise RuntimeError("actor_reply_staging_incomplete")
+                admission["outbound"].update(wire["message_id"] for wire in queued)
+                admission["reply_count"] = len(queued); admission["reply_queued"] = True
+            registry.require_current(handle)
+            return {"reply_queued": True, "message_count": admission["reply_count"], "book_persisted": True,
+                "phone_persisted": False, "delivery_confirmed": False}
 
     def read_personal_actor_staging(self, registry, handle, *, offset=0, limit=65536, expected_revision="", attachment_sha256=""):
         """Bounded owner-only view of existing private core staging, never GUI adoption."""

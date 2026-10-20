@@ -469,8 +469,24 @@ write for sequence proof even on identical content. Its pristine-editor option
 rejects drafts rather than capturing them while queued. Only actual SaveACK sets
 local book persistence, followed by native proof/core commit. Cancellation or
 late save receipts do not modify a new draft; a save can already have happened
-when a later stage fails. Phase `committed` is local only: reply dispatch and Notes
+when a later stage fails. Phase `committed` is local only: reply delivery and Notes
 book adoption remain gates, and phone persistence is not claimed.
+
+After local core commit, the native reply adapter accepts the owning claim only
+while the actual saved book still matches its native receipt. Existing record,
+scope, aggregate-hash and attachment size/SHA/MIME validators check the prepared
+reply. File metadata/chunks and the complete reply manifest stay in the private
+actor namespace; marked frames use the actual admitted peer's encrypted outbox
+and existing retry/pump. Exact payload replay reuses the queued reply; a different
+payload cannot replace it. No network wait occurs under source guards. Queue
+acceptance exposes neither delivery nor Notes-book persistence.
+
+The existing atomic Python format-2 run writer now supports that explicit actor
+wire marker/private attachment namespace without changing ordinary callers. The
+private large-reply IPC operation uses the existing 72-MiB large-operation budget.
+Its client writer now applies that existing whitelist too (#189); ordinary
+operations retain their 64-KiB wire limit. This does not enlarge actor/inner packet
+budgets or relax native book-owner/saveproof checks.
 
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact

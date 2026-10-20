@@ -306,6 +306,10 @@ internal static class PersonalSyncActorSourceTests
             TestAssert.That(deletionGate, "Unapplied native deletion intents bypassed typed review before commit.");
             var claim = await coordinator.PreparePersonalActorCommitAsync(commitHandle, commitView["revision"]!.GetValue<string>(), new string('b', 64));
             var claimToken = claim["claim_token"]!.GetValue<string>();
+            var prematureReply = false;
+            try { await coordinator.QueuePersonalActorReplyAsync(commitHandle, claimToken, new JsonArray(), new JsonArray()); }
+            catch (InvalidOperationException) { prematureReply = true; }
+            TestAssert.That(prematureReply, "An uncommitted actor queued its book reply.");
             foreach (var observation in new[] { nativeSaved, hostBook.RecordSaved("actual-host-profile", true, new string('c', 64)) })
             {
                 nativeSaved = observation; var denied = false;
@@ -321,6 +325,25 @@ internal static class PersonalSyncActorSourceTests
                 JsonNode.DeepEquals(committed, await coordinator.CommitPersonalActorAsync(commitHandle, claimToken)) &&
                 !privateStore.ReadyBatches(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Any(value => value.PeerId == PersonalSyncActorContract.StoragePeer(commitHandle.ActorId)) && wire.Length == 0,
                 "Actual native save proof failed private core commit/idempotency or emitted a premature book receipt.");
+            var nativeReply = batchBody.DeepClone().AsObject(); nativeReply["run_id"] = commitHandle.ActorId; nativeReply["reply"] = true;
+            nativeReply["batch_id"] = Guid.NewGuid().ToString("D");
+            var nativeReplies = new JsonArray(nativeReply);
+            var nativeSources = new JsonArray(new JsonObject { ["sha256"] = attachmentHash, ["data"] = "data:image/png;base64," + Convert.ToBase64String(attachment) });
+            var queuedReply = await coordinator.QueuePersonalActorReplyAsync(commitHandle, claimToken, nativeReplies, nativeSources);
+            TestAssert.That(queuedReply["reply_queued"]!.GetValue<bool>() && !queuedReply["delivery_confirmed"]!.GetValue<bool>() && !queuedReply["phone_persisted"]!.GetValue<bool>() &&
+                JsonNode.DeepEquals(queuedReply, await coordinator.QueuePersonalActorReplyAsync(commitHandle, claimToken, nativeReplies, nativeSources)),
+                "Native persisted reply was not queued idempotently or asserted remote persistence.");
+            var changedReply = nativeReplies.DeepClone().AsArray(); changedReply[0]!["batch_id"] = Guid.NewGuid().ToString("D");
+            var changedDenied = false;
+            try { await coordinator.QueuePersonalActorReplyAsync(commitHandle, claimToken, changedReply, nativeSources); } catch (InvalidOperationException) { changedDenied = true; }
+            TestAssert.That(changedDenied, "A changed reply replaced an already queued actor output.");
+            await coordinator.PumpPersonalActorAsync(connection);
+            var savedReplyWire = (await SharedSyncTransportTests.DrainAsync(wire)).Single(value => value["kind"]!.GetValue<string>() == PersonalSyncActorContract.DataKind &&
+                value["body"]!["run_id"]!.GetValue<string>() == commitHandle.ActorId);
+            TestAssert.That(PersonalSyncActorContract.Unwrap(savedReplyWire["body"]!.AsObject()).Kind == "personal_sync.batch" &&
+                privateStore.ReadVerifiedAttachment(PersonalSyncActorContract.StoragePeer(commitHandle.ActorId), commitHandle.ActorId, true, staged.RecordsHash,
+                    attachmentHash, "outgoing", "wifi", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).SequenceEqual(attachment),
+                "Native actor reply wire or existing private outgoing file store changed its persisted source.");
             await coordinator.CancelPersonalActorAsync(commitHandle); await SharedSyncTransportTests.DrainAsync(wire);
             hostBook.SetReady(false);
             await coordinator.PumpPersonalActorAsync(connection);
