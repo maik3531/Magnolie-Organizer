@@ -512,6 +512,17 @@ The frontend waits for that correlated native completion fact before phase
 distinct. Source/book/draft changes, cancellation and no-progress expiry still
 stop further work; a terminal cleanup cannot recall an already saved book.
 
+Typed deletion review can now reuse the existing desktop deletion/trash/restore
+handlers on an explicit private book copy. Scope membership, canonical aliases,
+prior hash and vector-clock checks still precede mutation. Restore bookkeeping
+and attachment-parent lookup remain bound to that copy; private restores neither
+wake automatic phone sync nor invalidate the actual GUI indexes. The private
+entry points reject the actual active book. Incoming decisions validate the whole
+set before application, reject duplicate proposal IDs, and retain parent IDs for
+scoped attachment replay proofs. This is domain review preparation only: native
+intent consumption, scope-changing phone deletion finalization and activation
+still require their separate completion gates.
+
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
 chunk replay cannot produce another result. Both TCP fixtures wait for the

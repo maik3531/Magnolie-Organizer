@@ -1225,17 +1225,31 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const peer = personalSyncNotizPeer(vorschlag.source_device);
       if (!peer || personalSyncNotizImport(peer) || !personalSyncNotizBereit(peer)) return "blocked";
     }
-    if (["note", "notebook"].includes(vorschlag.kind) && personalSyncNotizId(vorschlag.id, vorschlag.kind) !== vorschlag.id ||
-        vorschlag.kind === "attachment" && (personalSyncNotizId(vorschlag.parent_id) !== vorschlag.parent_id ||
-          personalSyncAnhangId(vorschlag.parent_id, vorschlag.id) !== vorschlag.id)) return "conflict";
+    return personalSyncEntscheidungImBestand(DATEN, vorschlag, entscheidung, konfliktErlaubt);
+  }
+
+  function personalSyncEntscheidungAusBestand(book, vorschlag, entscheidung, selection, konfliktErlaubt = false) {
+    if (book === DATEN) return "blocked";
+    if (!["delete", "restore"].includes(entscheidung) || typeof konfliktErlaubt !== "boolean") return "blocked";
+    const allowed = vorschlag.kind === "note" ? selection?.notes?.has(vorschlag.id) :
+      vorschlag.kind === "task" ? selection?.tasks?.has(vorschlag.id) :
+        vorschlag.kind === "attachment" && selection?.notes?.has(vorschlag.parent_id);
+    if (!allowed) return "blocked";
+    return personalSyncEntscheidungImBestand(book, vorschlag, entscheidung, konfliktErlaubt);
+  }
+
+  function personalSyncEntscheidungImBestand(DATEN, vorschlag, entscheidung, konfliktErlaubt) {
+    if (["note", "notebook"].includes(vorschlag.kind) && personalSyncNotizId(vorschlag.id, vorschlag.kind, DATEN) !== vorschlag.id ||
+        vorschlag.kind === "attachment" && (personalSyncNotizId(vorschlag.parent_id, "note", DATEN) !== vorschlag.parent_id ||
+          personalSyncAnhangId(vorschlag.parent_id, vorschlag.id, DATEN) !== vorschlag.id)) return "conflict";
     const key = vorschlag.kind + "\u0000" + (vorschlag.kind === "attachment" ?
       vorschlag.parent_id + "\u0000" : "") + vorschlag.id;
     const meta = DATEN.personalSync.entities[key];
     const liste = vorschlag.kind === "note" ? DATEN.notizen : vorschlag.kind === "task" ?
       DATEN.aufgaben : DATEN.notizbuecher;
-    const parent = vorschlag.kind === "attachment" && DATEN.notizen.find((x) => x.id === personalSyncNotizLokalId(vorschlag.parent_id));
-    const lebend = vorschlag.kind === "attachment" ? parent && (parent.anhaenge || []).find((x) => x.id === personalSyncAnhangLokalId(vorschlag.parent_id, vorschlag.id)) :
-      liste.find((x) => x.id === (["note", "notebook"].includes(vorschlag.kind) ? personalSyncNotizLokalId(vorschlag.id, vorschlag.kind) : vorschlag.id));
+    const parent = vorschlag.kind === "attachment" && DATEN.notizen.find((x) => x.id === personalSyncNotizLokalId(vorschlag.parent_id, "note", DATEN));
+    const lebend = vorschlag.kind === "attachment" ? parent && (parent.anhaenge || []).find((x) => x.id === personalSyncAnhangLokalId(vorschlag.parent_id, vorschlag.id, DATEN)) :
+      liste.find((x) => x.id === (["note", "notebook"].includes(vorschlag.kind) ? personalSyncNotizLokalId(vorschlag.id, vorschlag.kind, DATEN) : vorschlag.id));
     if (entscheidung === "delete" && (!meta || meta.state === "deleted" ||
         meta.hash !== vorschlag.prior_hash || personalSyncKanonisch(meta.clock || []) !==
         personalSyncKanonisch(vorschlag.clock || [])) && !konfliktErlaubt) return "conflict";
@@ -1243,7 +1257,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (!lebend) return "conflict";
       if (vorschlag.kind === "notebook" && DATEN.notizen.some((x) => x.notizbuchId === lebend.id)) return "blocked";
       inDenPapierkorb(vorschlag.kind, lebend, lebend.titel || lebend.name,
-        vorschlag.kind === "attachment" ? parent.id : vorschlag.parent_id, {});
+        vorschlag.kind === "attachment" ? parent.id : vorschlag.parent_id, {}, DATEN);
       if (vorschlag.kind === "attachment") parent.anhaenge = parent.anhaenge.filter((x) => x.id !== lebend.id);
       else liste.splice(liste.indexOf(lebend), 1);
       DATEN.personalSync.entities[key] = { clock: vorschlag.clock, hash: "", modified_ms: 0,
@@ -1255,7 +1269,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       (x) => x.proposal_id !== vorschlag.proposal_id);
     DATEN.personalSync.applied_decisions = (DATEN.personalSync.applied_decisions || []).concat([{
       proposal_id: vorschlag.proposal_id, decision: entscheidung,
-      expected_clock: kopie(vorschlag.clock), kind: vorschlag.kind, id: vorschlag.id }]).slice(-500);
+      expected_clock: kopie(vorschlag.clock), kind: vorschlag.kind, id: vorschlag.id, parent_id: vorschlag.parent_id || "" }]).slice(-500);
     return "applied";
   }
 
@@ -1281,6 +1295,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   function personalSyncEingehendeEntscheidungen(decisions, peer = null) {
+    return personalSyncEingehendeEntscheidungenImBestand(DATEN, decisions, peer, null);
+  }
+
+  function personalSyncEingehendeEntscheidungenAusBestand(book, decisions, selection) {
+    if (book === DATEN || !selection || !Array.isArray(decisions)) return "not_granted";
+    return personalSyncEingehendeEntscheidungenImBestand(book, decisions, null, selection);
+  }
+
+  function personalSyncEingehendeEntscheidungenImBestand(DATEN, decisions, peer, selection) {
+    if (decisions != null && (!Array.isArray(decisions) || new Set(decisions.map(value => value?.proposal_id)).size !== decisions.length)) return "conflict";
     const vorbereitet = [];
     for (const entscheidung of decisions || []) {
       const fund = Object.entries(DATEN.personalSync.entities).find(([, meta]) =>
@@ -1288,7 +1312,11 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const proof = (DATEN.personalSync.applied_decisions || []).find((x) => x &&
         x.proposal_id === entscheidung.proposal_id);
       const kind = proof?.kind || (fund && fund[0].split("\u0000")[0]);
-      if (kind !== "task" && (personalSyncNotizImport(peer) || !personalSyncNotizBereit(peer))) return "not_granted";
+      if (!["delete", "restore"].includes(entscheidung.decision) || !Array.isArray(entscheidung.expected_clock)) return "conflict";
+      if (selection) {
+        const parts = fund?.[0].split("\u0000"), id = proof?.id || parts?.[parts.length - 1], parent = parts?.[0] === "attachment" ? parts[1] : proof?.parent_id;
+        if (!(kind === "note" ? selection.notes.has(id) : kind === "task" ? selection.tasks.has(id) : kind === "attachment" && selection.notes.has(parent))) return "not_granted";
+      } else if (kind !== "task" && (personalSyncNotizImport(peer) || !personalSyncNotizBereit(peer))) return "not_granted";
       const gleich = (a, b) => personalSyncKanonisch(a || []) === personalSyncKanonisch(b || []);
       if (proof) {
         if (proof.decision !== entscheidung.decision || !gleich(proof.expected_clock,
@@ -1300,14 +1328,14 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       let stueck = null;
       if (entscheidung.decision === "restore") {
         const teile = fund[0].split("\u0000"), art = teile[0];
-        const id = ["note", "notebook"].includes(art) ? personalSyncNotizLokalId(teile[1], art) :
-          art === "attachment" ? personalSyncAnhangLokalId(teile[1], teile[2]) : teile[teile.length - 1];
+        const id = ["note", "notebook"].includes(art) ? personalSyncNotizLokalId(teile[1], art, DATEN) :
+          art === "attachment" ? personalSyncAnhangLokalId(teile[1], teile[2], DATEN) : teile[teile.length - 1];
         stueck = DATEN.papierkorb.slice().reverse().find((x) => x.art === art &&
-          x.eintrag && x.eintrag.id === id && (art !== "attachment" || x.parent_id === personalSyncNotizLokalId(teile[1])));
+          x.eintrag && x.eintrag.id === id && (art !== "attachment" || x.parent_id === personalSyncNotizLokalId(teile[1], "note", DATEN)));
         if (!stueck) return "restore_unavailable";
         const listen = { note: "notizen", task: "aufgaben", notebook: "notizbuecher" };
         if (art === "attachment") {
-          const notiz = DATEN.notizen.find((x) => x.id === personalSyncNotizLokalId(teile[1]));
+          const notiz = DATEN.notizen.find((x) => x.id === personalSyncNotizLokalId(teile[1], "note", DATEN));
           if (!notiz || (notiz.anhaenge || []).some((x) => x.id === id)) return "restore_unavailable";
         } else if (!listen[art] || DATEN[listen[art]].some((x) => x.id === id)) return "restore_unavailable";
       }
@@ -1315,13 +1343,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
     for (const { entscheidung, fund, stueck } of vorbereitet) {
       if (entscheidung.decision === "restore") {
-        if (!ausDemPapierkorb(stueck)) throw new Error("restore_unavailable");
+        if (!ausDemPapierkorb(stueck, DATEN)) throw new Error("restore_unavailable");
       } else fund[1].status = "resolved";
       const teile = fund[0].split("\u0000");
       DATEN.personalSync.applied_decisions = (DATEN.personalSync.applied_decisions || []).concat([{
         proposal_id: entscheidung.proposal_id, decision: entscheidung.decision,
         expected_clock: kopie(entscheidung.expected_clock), kind: teile[0],
-        id: teile[teile.length - 1] }]).slice(-500);
+        id: teile[teile.length - 1], parent_id: teile[0] === "attachment" ? teile[1] : "" }]).slice(-500);
     }
     return "applied";
   }
@@ -5687,10 +5715,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
 
   /* Alles Gelöschte kommt zuerst in den Papierkorb – erst von dort geht es
      endgültig fort. */
-  function inDenPapierkorb(art, eintrag, name, parentId = "", zuordnungen = {}) {
-    if (art === "notiz") weckeAutomatischenNotesAbgleich("note", personalSyncNotizWireId(eintrag.id), true);
-    if (art === "aufgabe") weckeAutomatischenNotesAbgleich("task", eintrag.id, true);
-    if (!DATEN.einstellungen.papierkorb.an) return null;
+  function inDenPapierkorb(art, eintrag, name, parentId = "", zuordnungen = {}, bestand = DATEN) {
+    if (bestand === DATEN && art === "notiz") weckeAutomatischenNotesAbgleich("note", personalSyncNotizWireId(eintrag.id), true);
+    if (bestand === DATEN && art === "aufgabe") weckeAutomatischenNotesAbgleich("task", eintrag.id, true);
+    if (!bestand.einstellungen.papierkorb.an) return null;
     art = enumWert(art, { termin: "appointment", appointment: "appointment",
       kontakt: "contact", contact: "contact", aufgabe: "task", task: "task",
       notiz: "note", note: "note", jahrestag: "anniversary",
@@ -5701,9 +5729,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       geloescht: Date.now(),
       parent_id: String(parentId || ""), notiz_zuordnungen: JSON.parse(JSON.stringify(zuordnungen || {})),
       eintrag: JSON.parse(JSON.stringify(eintrag)) };
-    DATEN.papierkorb.push(stueck);
-    if (DATEN.papierkorb.length > PAPIERKORB_HOECHSTENS) {
-      DATEN.papierkorb.splice(0, DATEN.papierkorb.length - PAPIERKORB_HOECHSTENS);
+    bestand.papierkorb.push(stueck);
+    if (bestand.papierkorb.length > PAPIERKORB_HOECHSTENS) {
+      bestand.papierkorb.splice(0, bestand.papierkorb.length - PAPIERKORB_HOECHSTENS);
     }
     return stueck;
   }
@@ -5718,7 +5746,13 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   }
 
   /* Ein Stück aus dem Papierkorb zurück ins Buch */
-  function ausDemPapierkorb(stueck) {
+  function ausDemPapierkorb(stueck, bestand = DATEN) {
+    const privat = bestand !== DATEN;
+    if (privat && !["note", "task", "notebook", "attachment"].includes(stueck.art)) return false;
+    return ausDemPapierkorbAusBestand(bestand, stueck, privat);
+  }
+
+  function ausDemPapierkorbAusBestand(DATEN, stueck, privat) {
     if (stueck.art === "time_tracking") {
       const aktuell = DATEN.zeiterfassung.entries.find(wert => wert.id === stueck.eintrag.id) || null;
       if (aktuell && !aktuell.deleted) return false;
@@ -5756,7 +5790,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       if (!notiz || (notiz.anhaenge || []).some((x) => x.id === stueck.eintrag.id)) return false;
       notiz.anhaenge = (notiz.anhaenge || []).concat([JSON.parse(JSON.stringify(stueck.eintrag))]);
       DATEN.papierkorb = DATEN.papierkorb.filter((s) => s.id !== stueck.id);
-      personalSyncNachWiederherstellung("attachment", stueck.eintrag.id, stueck.parent_id);
+      personalSyncNachWiederherstellung("attachment", stueck.eintrag.id, stueck.parent_id, DATEN);
       return true;
     }
     const liste = listen[stueck.art];
@@ -5785,15 +5819,18 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           stueck.notiz_zuordnungen[notiz.id] === eintrag.id) notiz.notizbuchId = eintrag.id;
     }
     DATEN.papierkorb = DATEN.papierkorb.filter((s) => s.id !== stueck.id);
-    personalSyncNachWiederherstellung(stueck.art, eintrag.id, "");
-    terminIndexVeraltet = true;
-    jahrestagIndexVeraltet = true;
+    personalSyncNachWiederherstellung(stueck.art, eintrag.id, "", DATEN);
+    if (!privat) { terminIndexVeraltet = true; jahrestagIndexVeraltet = true; }
     return true;
   }
 
-  function personalSyncNachWiederherstellung(art, id, parentId) {
-    if (["note", "notebook"].includes(art)) id = personalSyncNotizWireId(id, art);
-    if (art === "attachment") { parentId = personalSyncNotizWireId(parentId); id = personalSyncAnhangId(parentId, id); }
+  function personalSyncNachWiederherstellung(art, id, parentId, bestand = DATEN) {
+    return personalSyncNachWiederherstellungAusBestand(bestand, art, id, parentId);
+  }
+
+  function personalSyncNachWiederherstellungAusBestand(DATEN, art, id, parentId) {
+    if (["note", "notebook"].includes(art)) id = personalSyncNotizWireId(id, art, DATEN);
+    if (art === "attachment") { parentId = personalSyncNotizWireId(parentId, "note", DATEN); id = personalSyncAnhangId(parentId, id, DATEN); }
     const key = art + "\u0000" + (art === "attachment" ? parentId + "\u0000" : "") + id;
     const meta = DATEN.personalSync && DATEN.personalSync.entities[key];
     if (!meta || meta.state !== "deleted") return;
@@ -38553,6 +38590,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     personalSyncNotizAusgang: personalSyncNotizAusgang,
     personalSyncAnwenden: personalSyncAnwenden,
     personalSyncEntscheidungAnwenden: personalSyncEntscheidungAnwenden,
+    personalSyncEntscheidungAusBestand,
+    personalSyncEingehendeEntscheidungenAusBestand,
     personalSyncEingehendeEntscheidungen: personalSyncEingehendeEntscheidungen,
     personalSyncNachWiederherstellung: personalSyncNachWiederherstellung,
     personalSyncPakete: personalSyncPakete,
