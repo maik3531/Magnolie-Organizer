@@ -125,6 +125,12 @@ internal static class PersonalSyncActorTransportHost
                     Convert.ToHexString(SHA256.HashData(reviewBytes)).ToLowerInvariant() == review["revision"]!.GetValue<string>(),
                     "Native bounded actor review reader changed its private records or revision.");
                 CryptographicOperations.ZeroMemory(reviewBytes);
+                var filePage = await coordinator.ReadPersonalActorStagingAsync(handle, expectedRevision: review["revision"]!.GetValue<string>(), attachmentSha256: hash);
+                var filePageBytes = Convert.FromBase64String(filePage["data_base64"]!.GetValue<string>());
+                TestAssert.That(filePageBytes.SequenceEqual(attachment.Take(65536)) && filePage["total_bytes"]!.GetValue<int>() == attachment.Length &&
+                    filePage["next_offset"]!.GetValue<long>() == 65536 && filePage["mime"]!.GetValue<string>() == "image/png",
+                    "Native bounded file readback lost verified bytes or continuation metadata.");
+                CryptographicOperations.ZeroMemory(filePageBytes);
                 var replyRecord = staged.Records.OfType<JsonObject>().Single(value => value["kind"]!.GetValue<string>() == "note").DeepClone().AsObject();
                 attachment[^1] = 42;
                 var replyHash = Convert.ToHexString(SHA256.HashData(attachment)).ToLowerInvariant();

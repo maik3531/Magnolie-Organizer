@@ -397,7 +397,8 @@ integration gates.
 
 Native desktop adapters now expose an owner-only private staging reader for the
 existing incoming aggregate and deletion intents. It returns at most 65,536
-base64-encoded raw bytes per call, with server-derived SHA-256, total bytes and
+raw bytes from a projection that also includes the current native content scope,
+base64-encoded per call, with server-derived SHA-256, total bytes and
 continuation offsets. Every nonzero continuation requires that same revision;
 changed staging, retired handles, changed native book/source or another GUI owner
 cannot continue the read. An expired protected core run cannot be read merely
@@ -405,8 +406,13 @@ because the outer owner lease is still alive. Native commit tokens come from exi
 not caller metadata. Linux routes this through the existing private actor IPC
 owner/subscriber/book-source checks, including proxy post-checks. `batch_ready`
 only means that the record aggregate is complete: it does not certify attachment
-availability, review completion or a saved book. Attachment readback and native
-frontend review-job wiring remain integration gates.
+availability, review completion or a saved book. An optional attachment SHA-256
+selects a declared file from that incoming aggregate and always requires the
+record-view revision. Before returning any file bytes, the existing native
+integrity reader verifies the complete file's size, SHA-256 and MIME magic. The
+same bounded offsets then address file bytes, with native hash/MIME metadata;
+missing, incomplete or undeclared files are rejected. No parallel file cache is
+created. Native frontend review-job wiring remains an integration gate.
 
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact

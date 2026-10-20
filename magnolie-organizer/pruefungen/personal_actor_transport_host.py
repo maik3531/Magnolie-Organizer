@@ -123,6 +123,10 @@ def main():
                             assert review["batch_ready"] and review["next_offset"] is None
                             assert hashlib.sha256(review_bytes).hexdigest() == review["revision"]
                             assert json.loads(review_bytes)["batch"]["records"] == records
+                            file_page = service.read_personal_actor_staging(registry, handle, expected_revision=review["revision"],
+                                attachment_sha256=descriptor["sha256"])
+                            assert phone.base64.b64decode(file_page["data_base64"]) == value[:65536]
+                            assert file_page["total_bytes"] == len(value) and file_page["next_offset"] == 65536 and file_page["mime"] == "image/png"
                             assert not any(event == "personal_sync" and
                                 (value.get("kind") == "personal_sync.batch" or
                                  value.get("body", {}).get("run_id") == handle.actor_id)

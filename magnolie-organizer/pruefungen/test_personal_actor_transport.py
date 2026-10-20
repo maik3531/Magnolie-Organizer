@@ -127,6 +127,12 @@ def test_actor_attachment_uses_private_manifest_and_native_integrity_checks(tmp_
     assert service.store.outbox_message(peer["device_id"], request_id) is None
     body = {"format": 2, "run_id": handle.actor_id, "reply": False, "records_hash": batch["records_hash"],
         "sha256": digest, "index": 0, "data": base64.b64encode(raw).decode("ascii")}
+    view = service.read_personal_actor_staging(registry, handle)
+    with pytest.raises(ValueError): service.read_personal_actor_staging(registry, handle,
+        expected_revision=view["revision"], attachment_sha256=digest)
+    with pytest.raises(PermissionError): service.read_personal_actor_staging(registry, handle,
+        expected_revision=view["revision"], attachment_sha256="b" * 64)
+    with pytest.raises(ValueError): service.read_personal_actor_staging(registry, handle, attachment_sha256=digest)
     channel.sent.clear()
     before = registry.status(handle)["packets"]
     unrelated = actor.wire_message(frame("personal_sync.attachment_chunk", dict(body, reply=True)), handle.actor_id)
@@ -139,6 +145,14 @@ def test_actor_attachment_uses_private_manifest_and_native_integrity_checks(tmp_
     sink = io.BytesIO()
     assert service.store.verify_incoming_attachment(private, handle.actor_id, False, batch["records_hash"], digest, sink)
     assert sink.getvalue() == raw
+    file_first = service.read_personal_actor_staging(registry, handle, expected_revision=view["revision"], attachment_sha256=digest, limit=7)
+    file_bytes = bytearray(base64.b64decode(file_first["data_base64"]))
+    offset = file_first["next_offset"]
+    while offset is not None:
+        part = service.read_personal_actor_staging(registry, handle, offset=offset, limit=7, expected_revision=view["revision"], attachment_sha256=digest)
+        file_bytes.extend(base64.b64decode(part["data_base64"])); offset = part["next_offset"]
+    assert bytes(file_bytes) == raw and file_first["total_bytes"] == len(raw) and file_first["mime"] == "image/png"
+    assert file_first["attachment_sha256"] == digest and file_first["revision"] == view["revision"]
     service._payload(peer, channel, wire)  # Exact replay reuses the native chunk dedupe.
     with sqlite3.connect(service.store.database_path) as db:
         rows = db.execute("SELECT peer_id,payload FROM personal_attachment_chunk").fetchall()
@@ -179,6 +193,7 @@ def test_actor_private_staging_reader_is_bounded_revisioned_and_owner_guarded(tm
     assert hashlib.sha256(raw).hexdigest() == first["revision"] and len(raw) == first["total_bytes"]
     value = json.loads(raw)
     assert value["request"] == request and value["batch"]["records"] == [item] and value["intents"] == []
+    assert value["content_scope"]["members"] == {"notes": ["note-one"], "tasks": ["task-one"]}
     native = next(value for owner, value in service.store.ready_personal_batches() if owner == actor.storage_peer(handle.actor_id))
     assert value["batch"]["commit_token"] == native["commit_token"]
     native_now = phone.now_ms

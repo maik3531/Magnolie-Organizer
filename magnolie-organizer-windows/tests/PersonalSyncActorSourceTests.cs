@@ -181,13 +181,17 @@ internal static class PersonalSyncActorSourceTests
             }
             var stagedValue = JsonNode.Parse(stagingBytes.ToArray())!.AsObject();
             TestAssert.That(JsonNode.DeepEquals(stagedValue["batch"]!["records"], staged.Records) &&
+                JsonNode.DeepEquals(stagedValue["content_scope"], manifest) &&
                 stagedValue["batch"]!["commit_token"]!.GetValue<string>() == staged.CommitToken && stagedValue["intents"]!.AsArray().Count == 2 &&
                 Convert.ToHexString(SHA256.HashData(stagingBytes.ToArray())).ToLowerInvariant() == firstStaging["revision"]!.GetValue<string>(),
                 "Private actor review bytes lost native records, commit tokens, intents or revision binding.");
             foreach (var rejectedRead in new Func<Task<JsonObject>>[] {
                 () => coordinator.ReadPersonalActorStagingAsync(transportHandle, expectedRevision: waitingStaging["revision"]!.GetValue<string>()),
                 () => coordinator.ReadPersonalActorStagingAsync(transportHandle, offset: 17),
-                () => coordinator.ReadPersonalActorStagingAsync(transportHandle, limit: 65537) })
+                () => coordinator.ReadPersonalActorStagingAsync(transportHandle, limit: 65537),
+                () => coordinator.ReadPersonalActorStagingAsync(transportHandle, attachmentSha256: attachmentHash),
+                () => coordinator.ReadPersonalActorStagingAsync(transportHandle, expectedRevision: firstStaging["revision"]!.GetValue<string>(), attachmentSha256: new string('b', 64)),
+                () => coordinator.ReadPersonalActorStagingAsync(transportHandle, expectedRevision: firstStaging["revision"]!.GetValue<string>(), attachmentSha256: attachmentHash) })
             {
                 var rejectedReadback = false;
                 try { await rejectedRead(); } catch (Exception error) when (error is InvalidOperationException or InvalidDataException) { rejectedReadback = true; }
@@ -221,6 +225,14 @@ internal static class PersonalSyncActorSourceTests
             var verified = new PersonalSyncStore(store).ReadVerifiedAttachment(PersonalSyncActorContract.StoragePeer(transportHandle.ActorId),
                 transportHandle.ActorId, false, staged.RecordsHash, attachmentHash, "incoming", "wifi", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             TestAssert.That(verified.SequenceEqual(attachment) && emitted == beforeEmitted, "Native attachment integrity or GUI isolation failed.");
+            var fileFirst = await coordinator.ReadPersonalActorStagingAsync(transportHandle, limit: 7,
+                expectedRevision: firstStaging["revision"]!.GetValue<string>(), attachmentSha256: attachmentHash);
+            var fileLast = await coordinator.ReadPersonalActorStagingAsync(transportHandle, offset: 7, limit: 7,
+                expectedRevision: firstStaging["revision"]!.GetValue<string>(), attachmentSha256: attachmentHash);
+            TestAssert.That(Convert.FromBase64String(fileFirst["data_base64"]!.GetValue<string>()).Concat(Convert.FromBase64String(fileLast["data_base64"]!.GetValue<string>())).SequenceEqual(attachment) &&
+                fileFirst["attachment_sha256"]!.GetValue<string>() == attachmentHash && fileFirst["mime"]!.GetValue<string>() == "image/png" &&
+                fileFirst["total_bytes"]!.GetValue<int>() == attachment.Length && fileLast["next_offset"] is null,
+                "Native actor attachment readback lost verified bytes, type, size or bounded continuation.");
             await connection.HandlePlainAsync(chunkWire);
             TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Count == 1, "Exact actor attachment replay failed native dedupe.");
             await coordinator.PumpPersonalActorAsync(connection);

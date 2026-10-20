@@ -984,6 +984,7 @@ def _request_shape(operation, arguments):
         else:
             fields = {"action", "actor_id", "owner_token"} | ({"message_id"} if request["action"] == "read" else set())
             if request["action"] == "staging": fields |= {"offset", "limit", "expected_revision"}
+            if request["action"] == "staging" and "attachment_sha256" in request: fields.add("attachment_sha256")
             if (set(request) != fields or not _status_query_id(request["actor_id"]) or
                     not isinstance(request["owner_token"], str) or re.fullmatch(r"[0-9a-f]{64}", request["owner_token"]) is None or
                     request["action"] == "read" and not _status_query_id(request["message_id"])):
@@ -994,6 +995,10 @@ def _request_shape(operation, arguments):
                     request["expected_revision"] != "" and re.fullmatch(r"[0-9a-f]{64}", request["expected_revision"]) is None or
                     request["offset"] != 0 and request["expected_revision"] == ""):
                 raise IPCError("invalid native actor staging read")
+            if request["action"] == "staging" and "attachment_sha256" in request and (
+                    not isinstance(request["attachment_sha256"], str) or re.fullmatch(r"[0-9a-f]{64}", request["attachment_sha256"]) is None or
+                    request["expected_revision"] == ""):
+                raise IPCError("invalid native actor attachment read")
     if operation in ("phone_actor_start", "phone_actor_cancel"):
         _request_shape("phone_actor_registry", {"subscriber": arguments.get("subscriber"), "book_source": arguments.get("book_source"),
             "request": {"action": "status", "actor_id": arguments.get("actor_id"), "owner_token": arguments.get("owner_token")}})
@@ -1506,7 +1511,8 @@ class IPCServer:
                 if request["action"] == "status": return registry.status(handle)
                 if request["action"] == "read": return registry.read(handle, request["message_id"])
                 if request["action"] == "staging": return phone.read_personal_actor_staging(registry, handle,
-                    offset=request["offset"], limit=request["limit"], expected_revision=request["expected_revision"])
+                    offset=request["offset"], limit=request["limit"], expected_revision=request["expected_revision"],
+                    attachment_sha256=request.get("attachment_sha256", ""))
                 return registry.cancel(handle)
         if operation == "phone_request_status":
             return phone.request_status(arguments["peer_id"], request_id=arguments.get("request_id"))
@@ -1992,13 +1998,14 @@ class PhoneServiceProxy:
                 raise IPCError("Native actor book owner changed")
             return result
 
-    def read_personal_actor_staging(self, handle, *, offset=0, limit=65536, expected_revision=""):
+    def read_personal_actor_staging(self, handle, *, offset=0, limit=65536, expected_revision="", attachment_sha256=""):
         with self._state_lock:
             if not callable(self.native_actor_book_source) or self.native_actor_book_source() != handle.book_source:
                 raise IPCError("Native actor book owner changed")
-            result = self._call("actor_registry", subscriber=self._subscriber, book_source=handle.book_source,
-                request={"action": "staging", "actor_id": handle.actor_id, "owner_token": handle.owner_token,
-                    "offset": offset, "limit": limit, "expected_revision": expected_revision})
+            request = {"action": "staging", "actor_id": handle.actor_id, "owner_token": handle.owner_token,
+                "offset": offset, "limit": limit, "expected_revision": expected_revision}
+            if attachment_sha256: request["attachment_sha256"] = attachment_sha256
+            result = self._call("actor_registry", subscriber=self._subscriber, book_source=handle.book_source, request=request)
             if self.native_actor_book_source() != handle.book_source:
                 raise IPCError("Native actor book owner changed")
             return result

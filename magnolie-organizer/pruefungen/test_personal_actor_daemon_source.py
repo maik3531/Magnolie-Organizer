@@ -7,6 +7,8 @@ import threading
 import uuid
 import base64
 import json
+import hashlib
+from test_personal_actor_transport import record
 from test_personal_actor_source import actor_source_fixture
 import magnolie_personal_actor as actor_contract
 from magnolie_personal_actor_store import ActorHandle
@@ -48,13 +50,24 @@ def test_proxy_source_requires_its_exact_live_native_book_owner(tmp_path, monkey
             assert handle.owner_token not in repr(handle) and handle.book_source not in repr(handle)
             assert not proxy.read_personal_actor_staging(handle)["batch_ready"]
             actor_request = {"format": 3, "run_id": handle.actor_id, "trigger": "manual", "modules": ["notes", "tasks"]}
+            image = b"\x89PNG\r\n\x1a\nPrivate IPC attachment"
+            image_hash = hashlib.sha256(image).hexdigest()
+            note = record(); note["value"]["attachments"] = [{"attachment_id": "private-image", "name": "private.png", "kind": "image",
+                "mime": "image/png", "size": len(image), "sha256": image_hash}]
+            note["hash"] = phone.personal_sync_contract.projection_hash(note["value"])
             actor_batch = {"format": 3, "run_id": handle.actor_id, "batch_id": str(uuid.uuid4()), "sequence": 0,
-                "last": True, "reply": False, "records": [], "records_hash": phone.personal_sync_contract.records_hash([])}
+                "last": True, "reply": False, "records": [note], "records_hash": phone.personal_sync_contract.records_hash([note])}
             for kind, body in [("personal_sync.request", actor_request), ("personal_sync.batch", actor_batch)]:
                 service._payload(peer, channel, actor_contract.wire_message(phone.PhoneService._actor_control_message(kind, body), handle.actor_id))
             staging = proxy.read_personal_actor_staging(handle)
             staged_value = json.loads(base64.b64decode(staging["data_base64"]))
-            assert staging["batch_ready"] and staged_value["request"] == actor_request and staged_value["batch"]["records"] == []
+            assert staging["batch_ready"] and staged_value["request"] == actor_request and staged_value["batch"]["records"] == [note]
+            with pytest.raises(background.IPCError): proxy.read_personal_actor_staging(handle, expected_revision=staging["revision"], attachment_sha256=image_hash)
+            chunk = {"format": 2, "run_id": handle.actor_id, "reply": False, "records_hash": actor_batch["records_hash"],
+                "sha256": image_hash, "index": 0, "data": base64.b64encode(image).decode("ascii")}
+            service._payload(peer, channel, actor_contract.wire_message(phone.PhoneService._actor_control_message("personal_sync.attachment_chunk", chunk), handle.actor_id))
+            file_page = proxy.read_personal_actor_staging(handle, expected_revision=staging["revision"], attachment_sha256=image_hash)
+            assert base64.b64decode(file_page["data_base64"]) == image and file_page["mime"] == "image/png"
             registry = server._phone_actor_registry(proxy._subscriber, handle.book_source)
             native_handle = ActorHandle(handle.actor_id, handle.owner_token)
             now = phone.now_ms()
@@ -151,7 +164,8 @@ def test_actor_owner_ipc_shape_does_not_accept_display_names_or_client_revisions
     with pytest.raises(background.IPCError): background._request_shape(operation, arguments)
 
 
-@pytest.mark.parametrize("field,value", [("offset", True), ("offset", 1), ("limit", 65537), ("expected_revision", "client-revision")])
+@pytest.mark.parametrize("field,value", [("offset", True), ("offset", 1), ("limit", 65537), ("expected_revision", "client-revision"),
+    ("attachment_sha256", "a" * 64), ("attachment_sha256", "not-a-file-hash"), ("attachment_sha256", True)])
 def test_actor_staging_ipc_requires_bounded_typed_revisioned_continuations(field, value):
     request = {"action": "staging", "actor_id": "11111111-1111-4111-8111-111111111111", "owner_token": "a" * 64,
         "offset": 0, "limit": 65536, "expected_revision": ""}

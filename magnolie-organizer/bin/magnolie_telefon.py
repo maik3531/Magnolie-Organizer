@@ -3920,11 +3920,12 @@ class PhoneService:
         return {"actor_id": handle.actor_id, "message_id": message["message_id"], "dispatch_started": True,
             "delivery_confirmed": False, "persisted": False}
 
-    def read_personal_actor_staging(self, registry, handle, *, offset=0, limit=65536, expected_revision=""):
+    def read_personal_actor_staging(self, registry, handle, *, offset=0, limit=65536, expected_revision="", attachment_sha256=""):
         """Bounded owner-only view of existing private core staging, never GUI adoption."""
         if (type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= 65536 or
                 not isinstance(expected_revision, str) or expected_revision and not re.fullmatch(r"[0-9a-f]{64}", expected_revision) or
-                offset and not expected_revision):
+                offset and not expected_revision or not isinstance(attachment_sha256, str) or
+                attachment_sha256 and (not re.fullmatch(r"[0-9a-f]{64}", attachment_sha256) or not expected_revision)):
             raise ValueError("invalid_actor_staging_read")
         with self.lock:
             registry.require_current(handle)
@@ -3943,7 +3944,7 @@ class PhoneService:
             intents = [{key: value[key] for key in ("kind", "body", "pending_message_id", "commit_token")}
                 for owner, value in self.store.ready_personal_domains()
                 if owner == private and value["body"]["run_id"] == handle.actor_id]
-            value = {"request": run["body"] if run is not None else None, "batch": None if batch is None else {
+            value = {"content_scope": manifest, "request": run["body"] if run is not None else None, "batch": None if batch is None else {
                 "message_id": batch["message_id"], "commit_token": batch["commit_token"],
                 "records_hash": batch["messages"][-1]["body"]["records_hash"], "records": batch["records"]},
                 "intents": intents}
@@ -3951,12 +3952,27 @@ class PhoneService:
             revision = hashlib.sha256(raw).hexdigest()
             if expected_revision and expected_revision != revision:
                 raise PermissionError("actor_staging_changed")
+            descriptor = None
+            if attachment_sha256:
+                descriptor = next((item for record in (batch["records"] if batch else []) if record["kind"] == "note"
+                    for item in record["value"].get("attachments", []) if item["sha256"] == attachment_sha256), None)
+                if descriptor is None:
+                    raise PermissionError("actor_attachment_manifest_missing")
+                import io
+                with io.BytesIO() as sink:
+                    if not self.store.verify_incoming_attachment(private, handle.actor_id, False,
+                            batch["messages"][-1]["body"]["records_hash"], attachment_sha256, sink):
+                        raise ValueError("actor_attachment_unavailable")
+                    raw = sink.getvalue()
             if offset > len(raw):
                 raise ValueError("invalid_actor_staging_offset")
             end = min(len(raw), offset + limit)
             registry.require_current(handle)
-            return {"revision": revision, "total_bytes": len(raw), "offset": offset, "next_offset": end if end < len(raw) else None,
+            result = {"revision": revision, "total_bytes": len(raw), "offset": offset, "next_offset": end if end < len(raw) else None,
                 "batch_ready": batch is not None, "data_base64": base64.b64encode(raw[offset:end]).decode("ascii")}
+            if descriptor is not None:
+                result.update(attachment_sha256=attachment_sha256, mime=descriptor["mime"])
+            return result
 
     def _receive_personal_actor(self, peer, channel, payload):
         reply = None
