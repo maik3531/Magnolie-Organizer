@@ -13,6 +13,39 @@ internal sealed partial class TelefonCoordinator
     }
     private readonly Dictionary<string, ActorAdmission> actorAdmissions = new(StringComparer.Ordinal);
 
+    internal async Task<JsonObject> ExecuteMcpActorAsync(JsonObject request, CancellationToken cancellation)
+    {
+        try
+        {
+            var action = McpText(request, "action", true);
+            if (action is "notes_actor_source" or "notes_actor_create")
+            {
+                var id = McpText(request, "peerId", true); var fingerprint = McpText(request, "fingerprint", true);
+                var source = CurrentActorSource(id, fingerprint);
+                if (source is null) return new() { ["ok"] = false, ["code"] = "unsupported_feature" };
+                if (action == "notes_actor_source") return new() { ["ok"] = true, ["sourceRevision"] = source };
+                if (source != McpText(request, "sourceRevision", true)) return new() { ["ok"] = false, ["code"] = "source_changed" };
+                var created = await CreatePersonalActorAsync(id, fingerprint, cancellation, source);
+                return new() { ["ok"] = true, ["actorId"] = created.ActorId, ["ownerToken"] = created.OwnerToken, ["bookSource"] = "" };
+            }
+            var handle = new PersonalActorHandle(McpText(request, "actorId", true), McpText(request, "ownerToken", true));
+            var result = action switch
+            {
+                "notes_actor_start" => await StartPersonalActorAsync(handle, cancellation),
+                "notes_actor_status" => await WithPersonalActorStoreAsync(registry => registry.Status(handle), cancellation),
+                "notes_actor_cancel" => await CancelPersonalActorAsync(handle, cancellation),
+                "notes_actor_read" => await ReadPersonalActorStagingAsync(handle,
+                    request["offset"]?.GetValue<int>() ?? 0, request["limit"]?.GetValue<int>() ?? 65536,
+                    McpText(request, "expectedRevision"), McpText(request, "attachmentSha256"), cancellation),
+                _ => throw new InvalidDataException("unsupported_actor_action")
+            };
+            return new() { ["ok"] = true, ["actor"] = result };
+        }
+        catch (OperationCanceledException) { return new() { ["ok"] = false, ["code"] = "cancelled" }; }
+        catch (Exception error) when (error is InvalidOperationException or InvalidDataException or IOException or ArgumentException or FormatException)
+        { return new() { ["ok"] = false, ["code"] = "source_changed" }; }
+    }
+
     private static JsonObject ActorControl(string kind, JsonObject body)
     {
         var now = Now();
@@ -20,9 +53,12 @@ internal sealed partial class TelefonCoordinator
             ["kind"] = kind, ["created_ms"] = now, ["expires_ms"] = now + 60000, ["body"] = body };
     }
 
-    internal Task<PersonalActorHandle> CreatePersonalActorAsync(string id, string fingerprint, CancellationToken cancellation = default) =>
-        WithPersonalActorStoreAsync(registry => registry.Create(id, fingerprint,
-            CurrentActorSource(id, fingerprint) ?? throw new InvalidOperationException("actor_source_changed")), cancellation);
+    internal Task<PersonalActorHandle> CreatePersonalActorAsync(string id, string fingerprint, CancellationToken cancellation = default,
+        string expectedSource = "") => WithPersonalActorStoreAsync(registry => {
+            var source = CurrentActorSource(id, fingerprint) ?? throw new InvalidOperationException("actor_source_changed");
+            if (expectedSource.Length != 0 && expectedSource != source) throw new InvalidOperationException("actor_source_changed");
+            return registry.Create(id, fingerprint, source);
+        }, cancellation);
 
     internal async Task<JsonObject> StartPersonalActorAsync(PersonalActorHandle handle, CancellationToken cancellation = default)
     {

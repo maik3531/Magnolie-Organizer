@@ -541,6 +541,9 @@ def client():
             unchanged = data_file.read_bytes()
             peer = settings_tool("organizer_phone_connection_read")["peers"][0]
             target = {"peer_id": peer["id"], "fingerprint": peer["fingerprint"]}
+            actor_gate = window._telefon_actor_mcp(phone_fixture, {"action": "notes_actor_source", "peerId": target["peer_id"], "fingerprint": target["fingerprint"]})
+            assert actor_gate == {"ok": False, "code": "unsupported_feature"}
+            state["native_actor_bridge_activation_gate_verified"] = True
             first = settings_tool("organizer_notes_settings_read", target)
             assert not first["own_device"] and first["shared"]["supported"] and not first["shared"]["initialized"]
             seed = dict(phone_protocol.shared_sync_contract.DEFAULTS)

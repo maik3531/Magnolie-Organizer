@@ -414,6 +414,16 @@ same bounded offsets then address file bytes, with native hash/MIME metadata;
 missing, incomplete or undeclared files are rejected. No parallel file cache is
 created. Native frontend review-job wiring remains an integration gate.
 
+The existing private native phone bridge now routes actor source/create/start/
+status/read/cancel actions to those same controllers. Creation checks the opaque
+source revision against the current native source inside the guarded factory;
+Linux IPC performs that comparison at the actual daemon owner as well. The GTK
+adapter supports its existing in-process and daemon-proxy modes. Handle tokens
+and proxy book-source identifiers are private bridge data and must never appear
+in public tool results. Start is separate from creation so an owning job can
+retain its handle before network dispatch. These bridge actions do not register
+public tools, enable marker 12 or implement review/save/commit.
+
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
 chunk replay cannot produce another result. Both TCP fixtures wait for the

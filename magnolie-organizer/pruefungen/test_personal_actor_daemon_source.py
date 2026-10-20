@@ -8,7 +8,7 @@ import uuid
 import base64
 import json
 import hashlib
-from test_personal_actor_transport import record
+from test_personal_actor_transport import record, gtk_actor_bridge
 from test_personal_actor_source import actor_source_fixture
 import magnolie_personal_actor as actor_contract
 from magnolie_personal_actor_store import ActorHandle
@@ -38,7 +38,14 @@ def test_proxy_source_requires_its_exact_live_native_book_owner(tmp_path, monkey
             first = proxy.current_actor_source(peer["device_id"], fingerprint)
             assert first and len(first) == 64
             assert proxy.current_actor_source(peer["device_id"], fingerprint) == first
-            handle = proxy.create_personal_actor(peer["device_id"], fingerprint)
+            bridge = gtk_actor_bridge()
+            target = {"peerId": peer["device_id"], "fingerprint": fingerprint}
+            selected = bridge(None, proxy, dict(target, action="notes_actor_source"))
+            assert selected["ok"] and selected["sourceRevision"] == first
+            with pytest.raises(background.IPCError): proxy.create_personal_actor(peer["device_id"], fingerprint, expected_source="f" * 64)
+            created = bridge(None, proxy, dict(target, action="notes_actor_create", sourceRevision=selected["sourceRevision"]))
+            assert created["ok"]
+            handle = background.NativePhoneActorHandle(created["actorId"], created["ownerToken"], created["bookSource"])
             original_send = channel.send
             def guarded_send(value):
                 assert not service.lock._is_owned(), "Daemon actor I/O held the native service guard"

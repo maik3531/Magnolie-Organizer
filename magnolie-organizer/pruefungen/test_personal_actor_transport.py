@@ -48,6 +48,38 @@ def record(identifier="note-one"):
         "hash": personal.projection_hash(value), "modified_ms": 2, "value": value}
 
 
+def gtk_actor_bridge():
+    import ast
+    from pathlib import Path
+    from magnolie_hintergrund import PhoneServiceProxy
+    source = Path(phone.__file__).with_name("magnolie-organizer")
+    node = next(node for node in ast.walk(ast.parse(source.read_text()))
+        if isinstance(node, ast.FunctionDef) and node.name == "_telefon_actor_mcp")
+    namespace = {"PhoneServiceProxy": PhoneServiceProxy}
+    exec(compile(ast.Module(body=[node], type_ignores=[]), str(source), "exec"), namespace)
+    return namespace["_telefon_actor_mcp"]
+
+
+def test_private_gtk_actor_bridge_uses_actual_source_and_existing_controller(tmp_path, monkeypatch):
+    service, peer, channel, registry, _, events = owned_transport(tmp_path, monkeypatch)
+    bridge = gtk_actor_bridge()
+    target = {"peerId": peer["device_id"], "fingerprint": phone.fingerprint(phone.unb64(peer["static_public"], 32))}
+    source = bridge(None, service, dict(target, action="notes_actor_source"))
+    assert source["ok"]
+    assert not bridge(None, service, dict(target, action="notes_actor_create", sourceRevision="f" * 64))["ok"]
+    created = bridge(None, service, dict(target, action="notes_actor_create", sourceRevision=source["sourceRevision"]))
+    assert created["ok"] and created["bookSource"] == ""
+    handle = {key: created[key] for key in ("actorId", "ownerToken", "bookSource")}
+    assert bridge(None, service, dict(handle, action="notes_actor_start"))["actor"]["dispatch_started"]
+    assert channel.sent[-1]["kind"] == actor.START_KIND
+    waiting = bridge(None, service, dict(handle, action="notes_actor_read"))
+    assert waiting["ok"] and not waiting["actor"]["batch_ready"]
+    with pytest.raises(PermissionError): bridge(None, service, dict(handle, action="notes_actor_read", ownerToken="f" * 64))
+    assert bridge(None, service, dict(handle, action="notes_actor_cancel"))["actor"]["phase"] == "cancelled"
+    with pytest.raises(PermissionError): bridge(None, service, dict(handle, action="notes_actor_read"))
+    assert not events
+
+
 def test_actor_start_and_correlated_snapshot_reuse_private_core_stagers(tmp_path, monkeypatch):
     service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch)
     result = service.start_personal_actor(registry, handle)

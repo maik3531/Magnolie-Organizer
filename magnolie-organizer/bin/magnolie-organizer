@@ -24047,6 +24047,52 @@ class Fenster(_FENSTER_BASIS):
             self._telefon.stop()
             return False
 
+    def _telefon_actor_mcp(self, source, request):
+        """Private native bridge adapter; handles never enter public tool results."""
+        from magnolie_hintergrund import NativePhoneActorHandle
+        from magnolie_personal_actor_store import ActorHandle
+        action = request.get("action")
+        proxy = isinstance(source, PhoneServiceProxy)
+        if action in ("notes_actor_source", "notes_actor_create"):
+            peer_id, fingerprint = request.get("peerId"), request.get("fingerprint")
+            revision = source.current_actor_source(peer_id, fingerprint)
+            if revision is None:
+                return {"ok": False, "code": "unsupported_feature"}
+            if action == "notes_actor_source":
+                return {"ok": True, "sourceRevision": revision}
+            if request.get("sourceRevision") != revision:
+                return {"ok": False, "code": "source_changed"}
+            if proxy:
+                handle = source.create_personal_actor(peer_id, fingerprint, expected_source=revision)
+            else:
+                with source.lock:
+                    current = source.current_actor_source(peer_id, fingerprint)
+                    if current is None or current != revision:
+                        raise PermissionError("Native actor source changed")
+                    registry = source.personal_actor_registry()
+                    handle = registry.create(peer_id, fingerprint, current)
+            return {"ok": True, "actorId": handle.actor_id, "ownerToken": handle.owner_token,
+                "bookSource": handle.book_source if proxy else ""}
+        if proxy:
+            handle = NativePhoneActorHandle(request.get("actorId"), request.get("ownerToken"), request.get("bookSource"))
+            registry = None
+        else:
+            handle = ActorHandle(request.get("actorId"), request.get("ownerToken"))
+            registry = source.personal_actor_registry()
+        if action == "notes_actor_start":
+            value = source.start_personal_actor(handle) if proxy else source.start_personal_actor(registry, handle)
+        elif action == "notes_actor_status":
+            value = source.personal_actor_status(handle) if proxy else registry.status(handle)
+        elif action == "notes_actor_cancel":
+            value = source.cancel_personal_actor(handle) if proxy else source.cancel_personal_actor(registry, handle)
+        elif action == "notes_actor_read":
+            arguments = {"offset": request.get("offset", 0), "limit": request.get("limit", 65536),
+                "expected_revision": request.get("expectedRevision", ""), "attachment_sha256": request.get("attachmentSha256", "")}
+            value = source.read_personal_actor_staging(handle, **arguments) if proxy else source.read_personal_actor_staging(registry, handle, **arguments)
+        else:
+            raise ValueError("Unsupported actor bridge action")
+        return {"ok": True, "actor": value}
+
     def _telefon_mcp(self, nachricht):
         result = {"requestId": nachricht.get("requestId"), "ok": False, "code": "native_operation_failed"}
         source = None
@@ -24060,7 +24106,9 @@ class Fenster(_FENSTER_BASIS):
                 result["code"] = "unsupported_feature"
                 return
             source = self._telefon
-            if request.get("action") == "read":
+            if str(request.get("action", "")).startswith("notes_actor_"):
+                result = self._telefon_actor_mcp(source, request)
+            elif request.get("action") == "read":
                 result = {"ok": True, "status": self._telefon.mcp_status()}
             else:
                 if request.get("action") == "settings" and request.get("enabled") is True:

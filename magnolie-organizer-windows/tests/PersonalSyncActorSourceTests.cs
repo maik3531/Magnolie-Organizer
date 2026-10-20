@@ -163,6 +163,13 @@ internal static class PersonalSyncActorSourceTests
             beforeEmitted = emitted;
             var waitingStaging = await coordinator.ReadPersonalActorStagingAsync(transportHandle);
             TestAssert.That(!waitingStaging["batch_ready"]!.GetValue<bool>(), "Native actor staging reader invented a complete batch.");
+            var bridgeSource = await coordinator.ExecuteMcpAsync(new JsonObject { ["action"] = "notes_actor_source", ["peerId"] = peer.Id,
+                ["fingerprint"] = fingerprint }, default);
+            TestAssert.That(bridgeSource["ok"]!.GetValue<bool>() && bridgeSource["sourceRevision"]!.GetValue<string>() == coordinator.CurrentActorSource(peer.Id, fingerprint),
+                "Private bridge source was not derived from the actual native owner.");
+            var staleBridgeCreate = await coordinator.ExecuteMcpAsync(new JsonObject { ["action"] = "notes_actor_create", ["peerId"] = peer.Id,
+                ["fingerprint"] = fingerprint, ["sourceRevision"] = new string('f', 64) }, default);
+            TestAssert.That(!staleBridgeCreate["ok"]!.GetValue<bool>(), "Private actor bridge created a context from a client source revision.");
             await connection.HandlePlainAsync(batchWire);
             TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Single()["kind"]!.GetValue<string>() == PersonalSyncActorContract.AckKind && emitted == beforeEmitted,
                 "Private actor batch reached ordinary GUI handling or lacked its marked receipt.");
@@ -170,6 +177,14 @@ internal static class PersonalSyncActorSourceTests
                 .Single(value => value.PeerId == PersonalSyncActorContract.StoragePeer(transportHandle.ActorId));
             TestAssert.That(JsonNode.DeepEquals(staged.Records.Single(), record), "Existing private stager changed actor records.");
             var firstStaging = await coordinator.ReadPersonalActorStagingAsync(transportHandle, limit: 17);
+            var bridgeRead = await coordinator.ExecuteMcpAsync(new JsonObject { ["action"] = "notes_actor_read", ["actorId"] = transportHandle.ActorId,
+                ["ownerToken"] = transportHandle.OwnerToken, ["limit"] = 17 }, default);
+            TestAssert.That(bridgeRead["ok"]!.GetValue<bool>() && JsonNode.DeepEquals(bridgeRead["actor"], firstStaging),
+                "Private bridge changed bounded native staging results.");
+            var foreignBridgeRead = await coordinator.ExecuteMcpAsync(new JsonObject { ["action"] = "notes_actor_read", ["actorId"] = transportHandle.ActorId,
+                ["ownerToken"] = new string('f', 64) }, default);
+            TestAssert.That(!foreignBridgeRead["ok"]!.GetValue<bool>() && foreignBridgeRead["actor"] is null,
+                "Private actor bridge accepted a foreign owner token.");
             using var stagingBytes = new MemoryStream(); stagingBytes.Write(Convert.FromBase64String(firstStaging["data_base64"]!.GetValue<string>()));
             var stagingOffset = firstStaging["next_offset"]?.GetValue<long>();
             while (stagingOffset is not null)

@@ -978,9 +978,12 @@ def _request_shape(operation, arguments):
                 not isinstance(request, dict) or request.get("action") not in ("create", "status", "read", "staging", "cancel")):
             raise IPCError("invalid native actor registry request")
         if request["action"] == "create":
-            if (set(request) != {"action", "peer_id", "fingerprint"} or not _status_query_id(request["peer_id"]) or
+            fields = {"action", "peer_id", "fingerprint"} | ({"expected_source"} if "expected_source" in request else set())
+            if (set(request) != fields or not _status_query_id(request["peer_id"]) or
                     not isinstance(request["fingerprint"], str) or re.fullmatch(r"[0-9A-Fa-f]{4}(?:-[0-9A-Fa-f]{4}){3}", request["fingerprint"]) is None):
                 raise IPCError("invalid native actor creation")
+            if "expected_source" in request and (not isinstance(request["expected_source"], str) or re.fullmatch(r"[0-9a-f]{64}", request["expected_source"]) is None):
+                raise IPCError("invalid native actor source revision")
         else:
             fields = {"action", "actor_id", "owner_token"} | ({"message_id"} if request["action"] == "read" else set())
             if request["action"] == "staging": fields |= {"offset", "limit", "expected_revision"}
@@ -1496,7 +1499,7 @@ class IPCServer:
                 if request["action"] == "create":
                     source = phone.current_actor_source(request["peer_id"], request["fingerprint"],
                         lambda: self.gui_actor_book_source(arguments["subscriber"], arguments["book_source"]))
-                    if source is None:
+                    if source is None or request.get("expected_source", source) != source:
                         raise IPCError("Native actor source changed")
                     self._retire_inactive_phone_actors()
                     registry = self._phone_actor_registry(arguments["subscriber"], arguments["book_source"])
@@ -1956,14 +1959,17 @@ class PhoneServiceProxy:
             except (IPCError, OSError, ValueError, TypeError):
                 return None
 
-    def create_personal_actor(self, peer_id, fingerprint):
+    def create_personal_actor(self, peer_id, fingerprint, expected_source=""):
         """Private native IPC only; the owner token must never enter public MCP results."""
         with self._state_lock:
-            if self.current_actor_source(peer_id, fingerprint) is None:
+            source = self.current_actor_source(peer_id, fingerprint)
+            if source is None or expected_source and expected_source != source:
                 raise IPCError("Native actor source changed")
             book = self.native_actor_book_source()
+            request = {"action": "create", "peer_id": peer_id, "fingerprint": fingerprint}
+            if expected_source: request["expected_source"] = expected_source
             handle = self._call("actor_registry", subscriber=self._subscriber, book_source=book,
-                request={"action": "create", "peer_id": peer_id, "fingerprint": fingerprint})
+                request=request)
             native_handle = NativePhoneActorHandle(handle["actor_id"], handle["owner_token"], book)
             try:
                 current_book = self.native_actor_book_source()
