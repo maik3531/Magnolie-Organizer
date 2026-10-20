@@ -20,6 +20,26 @@ async function check(web) {
       personalSync: { actor_id: "11111111-1111-4111-8111-111111111111", note_ids: { "local-note": "wire-note" } }
     } });
     const t = w.OrganizerTest, peer = "22222222-2222-4222-8222-222222222222";
+    const snapshotBook = JSON.parse(JSON.stringify(t.daten())), activeBefore = JSON.stringify(t.daten());
+    snapshotBook.personalSync.note_ids = { "local-note": "copy-wire" };
+    snapshotBook.personalSync.notebook_ids = { "shared-book": "copy-book" };
+    snapshotBook.personalSync.attachment_aliases = { "copy-wire\0z-image": "a-image" };
+    snapshotBook.notizen.find(note => note.id === "local-note").anhaenge = [{ id: "z-image", name: "copy.png", art: "image",
+      daten: "data:image/png;base64,iVBORw0KGgoBAgM=" }];
+    const copied = await t.personalSyncSnapshotAusBestand(snapshotBook, ["notes", "tasks"], 3, peer,
+      { selection: { notes: new w.Set(["copy-wire"]), tasks: new w.Set(["mobile-task"]) }, independentRemovals: true });
+    const copiedNote = copied.find(record => record.kind === "note");
+    assert.equal(copiedNote.id, "copy-wire"); assert.equal(copiedNote.value.notebook_id, "copy-book");
+    assert.equal(copiedNote.value.attachments[0].attachment_id, "a-image"); assert.equal(copied.attachmentSources.length, 1);
+    assert.equal(JSON.stringify(t.daten()), activeBefore, "Private snapshot changed the active book or captured its editor draft");
+    assert.ok(snapshotBook.personalSync.entities["note\0copy-wire"], "Private snapshot did not retain its own native bookkeeping");
+    let active = true;
+    const interrupted = t.personalSyncSnapshotAusBestand(snapshotBook, ["notes"], 3, peer, {
+      selection: { notes: new w.Set(["copy-wire"]), tasks: new w.Set() }, independentRemovals: true,
+      guard() { if (!active) throw Error("retired actor source"); }
+    });
+    active = false; await assert.rejects(interrupted, /retired actor source/);
+    assert.equal(JSON.stringify(t.daten()), activeBefore, "Retired private snapshot mutated active data");
     const selection = { notes: new w.Set(["wire-note"]), tasks: new w.Set(["mobile-task"]) };
     const excluded = t.daten().notizen.find(note => note.id === "organizer-only");
     const descriptors = {};

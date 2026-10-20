@@ -376,6 +376,15 @@ purges both incoming intents and retained outgoing proposals. No success receipt
 book deletion, automatic conflict resolution or GUI replay follows intent staging.
 Native proposal production and typed review/commit remain activation gates.
 
+The desktop snapshot engine can now run against an explicit private book object.
+The ordinary GUI wrapper still captures its current editor snapshot and calls
+that same engine. The explicit-book path does not capture GUI drafts or rebind
+global book state; note/notebook IDs, attachment aliases and tracking changes
+remain attached to the supplied book across asynchronous hashing. Existing
+scope/removal rules and guarded completion apply to both paths. This is a shared
+engine prerequisite for book-derived actor replies, not a native owner admission,
+review commit or publication of actor tools.
+
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
 chunk replay cannot produce another result. Both TCP fixtures wait for the

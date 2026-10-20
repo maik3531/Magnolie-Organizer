@@ -518,9 +518,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return aus;
   }
 
-  function personalSyncWert(art, objekt, modified) {
+  function personalSyncWert(art, objekt, modified, daten = DATEN) {
     if (art === "note") return { title: String(objekt.titel || ""), text: String(objekt.text || ""),
-      html: String(objekt.html || ""), notebook_id: personalSyncNotizWireId(String(objekt.notizbuchId || NOTIZ_STANDARD_BUCH), "notebook"),
+      html: String(objekt.html || ""), notebook_id: personalSyncNotizWireId(String(objekt.notizbuchId || NOTIZ_STANDARD_BUCH), "notebook", daten),
       symbol: String(objekt.symbol || "notiz"), created_ms: Number(objekt.angelegt || 0), modified_ms: modified };
     if (art === "task") return { title: String(objekt.titel || ""), note: String(objekt.notiz || ""),
       due: String(objekt.faellig || ""), priority: Number(objekt.prio || 2), completed: !!objekt.erledigt,
@@ -529,7 +529,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return { name: String(objekt.name || ""), modified_ms: 0 };
   }
 
-  async function personalSyncAnhangSnapshot(anhang, parent = "") {
+  async function personalSyncAnhangSnapshot(anhang, parent = "", bestand = DATEN) {
     const daten = String(anhang.daten || anhang.data || "");
     const treffer = /^data:(image\/(?:jpeg|png|webp|gif)|application\/pdf);base64,([A-Za-z0-9+/]*={0,2})$/.exec(daten);
     if (!treffer) return null;
@@ -542,7 +542,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     const id = String(anhang.id || ""), name = String(anhang.name || "");
     if (!id || new TextEncoder().encode(id).length > 160 || !name ||
         new TextEncoder().encode(name).length > 720 || /[\x00-\x1f\x7f/\\]/.test(name)) return null;
-    return { descriptor: { attachment_id: parent ? personalSyncAnhangId(parent, id) : id, name: name,
+    return { descriptor: { attachment_id: parent ? personalSyncAnhangId(parent, id, bestand) : id, name: name,
       kind: treffer[1] === "application/pdf" ? "pdf" : "image", mime: treffer[1],
       size: roh.length, sha256: digest }, source: { sha256: digest, data: daten } };
   }
@@ -552,8 +552,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       new TextEncoder().encode(id).length <= 160;
   }
 
-  function personalSyncNotizId(id, art = "note") {
-    const aliases = DATEN.personalSync[art + "_aliases"] || {}, gesehen = new Set();
+  function personalSyncNotizId(id, art = "note", daten = DATEN) {
+    const aliases = daten.personalSync[art + "_aliases"] || {}, gesehen = new Set();
     while (Object.prototype.hasOwnProperty.call(aliases, id)) {
       if (gesehen.has(id) || !personalSyncNotizIdGueltig(aliases[id]) || personalSyncUtf8(aliases[id], id) >= 0)
         throw new Error(_("Personal synchronization failed."));
@@ -562,10 +562,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return id;
   }
 
-  function personalSyncNotizWireId(id, art = "note") {
-    const ids = DATEN.personalSync[art + "_ids"] || {};
+  function personalSyncNotizWireId(id, art = "note", daten = DATEN) {
+    const ids = daten.personalSync[art + "_ids"] || {};
     if (Object.prototype.hasOwnProperty.call(ids, id) && !personalSyncNotizIdGueltig(ids[id])) throw new Error(_("Personal synchronization failed."));
-    return personalSyncNotizId(Object.prototype.hasOwnProperty.call(ids, id) ? ids[id] : id, art);
+    return personalSyncNotizId(Object.prototype.hasOwnProperty.call(ids, id) ? ids[id] : id, art, daten);
   }
 
   function personalSyncNotizLokalId(id, art = "note") {
@@ -736,12 +736,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return text;
   }
 
-  function personalSyncAnhangId(parent, value) {
-    const canonical = personalSyncNotizId(parent), seen = new Set(); let id = value;
+  function personalSyncAnhangId(parent, value, daten = DATEN) {
+    const canonical = personalSyncNotizId(parent, "note", daten), seen = new Set(); let id = value;
     for (;;) {
-      const targets = Object.entries(DATEN.personalSync.attachment_aliases || {}).filter(([key]) => {
+      const targets = Object.entries(daten.personalSync.attachment_aliases || {}).filter(([key]) => {
         const parts = key.split("\u0000");
-        return parts.length === 2 && parts[1] === id && personalSyncNotizId(parts[0]) === canonical;
+        return parts.length === 2 && parts[1] === id && personalSyncNotizId(parts[0], "note", daten) === canonical;
       }).map(([, target]) => target);
       if (!targets.length) return id;
       if (seen.has(id) || targets.some(target => !personalSyncNotizIdGueltig(target) || personalSyncUtf8(target, id) >= 0))
@@ -979,12 +979,17 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
   async function personalSyncSnapshot(module, format = 1, peerId = "", options = {}) {
     options.guard?.();
     sichereNotizSnapshot();
+    return personalSyncSnapshotAusBestand(DATEN, module, format, peerId, options);
+  }
+
+  async function personalSyncSnapshotAusBestand(DATEN, module, format = 1, peerId = "", options = {}) {
+    options.guard?.();
     const ps = DATEN.personalSync;
     if (!ps.actor_id) ps.actor_id = crypto.randomUUID();
     const kandidaten = [];
     const selection = options.selection || null;
     const selectedNotes = module.includes("notes") ? DATEN.notizen.filter(personalSyncEigeneNotiz).filter(n =>
-      !selection || selection.notes.has(personalSyncNotizWireId(n.id))) : [];
+      !selection || selection.notes.has(personalSyncNotizWireId(n.id, "note", DATEN))) : [];
     const selectedBooks = new Set(selectedNotes.map(n => n.notizbuchId || NOTIZ_STANDARD_BUCH));
     if (peerId && ps.peer_device_id !== peerId) {
       ps.peer_device_id = peerId; ps.restoration_requests = [];
@@ -996,16 +1001,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
     if (module.includes("tasks")) DATEN.aufgaben.filter((x) =>
       !x.vonZweig && !x.fremdId && !x.delegiertAn && !x.herkunft && (!selection || selection.tasks.has(x.id))).forEach((x) => kandidaten.push(["task", x]));
-    const projiziert = new Set(kandidaten.map(([art, objekt]) => art + "\u0000" + (["note", "notebook"].includes(art) ? personalSyncNotizWireId(objekt.id, art) : objekt.id)));
+    const projiziert = new Set(kandidaten.map(([art, objekt]) => art + "\u0000" + (["note", "notebook"].includes(art) ? personalSyncNotizWireId(objekt.id, art, DATEN) : objekt.id)));
     const vorhanden = new Set([
-      ...DATEN.notizen.map(n => "note\u0000" + personalSyncNotizWireId(n.id)),
-      ...DATEN.aufgaben.map(t => "task\u0000" + t.id), ...DATEN.notizbuecher.map(b => "notebook\u0000" + personalSyncNotizWireId(b.id, "notebook"))
+      ...DATEN.notizen.map(n => "note\u0000" + personalSyncNotizWireId(n.id, "note", DATEN)),
+      ...DATEN.aufgaben.map(t => "task\u0000" + t.id), ...DATEN.notizbuecher.map(b => "notebook\u0000" + personalSyncNotizWireId(b.id, "notebook", DATEN))
     ]);
     const anhangVorhanden = new Set();
     if (format >= 2 && module.includes("notes")) for (const notiz of selectedNotes) {
       if (!personalSyncEigeneNotiz(notiz)) continue;
       for (const anhang of (notiz.anhaenge || [])) anhangVorhanden.add(
-        "attachment\u0000" + personalSyncNotizWireId(notiz.id) + "\u0000" + personalSyncAnhangId(personalSyncNotizWireId(notiz.id), anhang.id));
+        "attachment\u0000" + personalSyncNotizWireId(notiz.id, "note", DATEN) + "\u0000" + personalSyncAnhangId(personalSyncNotizWireId(notiz.id, "note", DATEN), anhang.id, DATEN));
     }
     const erlaubte = new Set(module.includes("notes") ? ["note", "notebook"] : []);
     if (module.includes("tasks")) erlaubte.add("task");
@@ -1027,6 +1032,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         const clock = personalSyncVereinige(alt.clock || [],
           [{ actor_id: ps.actor_id, counter: ps.counter }]);
         const proposal = await personalSyncProposalId(peerId, art, id, parentId, clock, alt.hash);
+        options.guard?.();
         ps.entities[key] = Object.assign({}, alt, { state: "deleted", clock: clock, prior_hash: alt.hash,
           hash: "", deleted_ms: Date.now(), proposal_id: proposal, status: "local_pending",
           parent_id: parentId, acknowledged_by_peer: false });
@@ -1034,16 +1040,16 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     }
     const records = [];
     for (const [art, objekt] of kandidaten) {
-      const id = ["note", "notebook"].includes(art) ? personalSyncNotizWireId(objekt.id, art) : objekt.id;
+      const id = ["note", "notebook"].includes(art) ? personalSyncNotizWireId(objekt.id, art, DATEN) : objekt.id;
       const key = art + "\u0000" + id;
       let meta = ps.entities[key] || null;
-      let wert = personalSyncWert(art, objekt, meta ? Number(meta.modified_ms || 0) : 0);
+      let wert = personalSyncWert(art, objekt, meta ? Number(meta.modified_ms || 0) : 0, DATEN);
       if (format === 3 && art === "task") Object.assign(wert, { uid: String(objekt.uid || ""),
         parent_uid: String(objekt.elternUid || ""), order: Math.max(0, Number(objekt.reihenfolge) || 0) });
       if (format >= 2 && art === "note") {
         const anhaenge = [];
         for (const anhang of (Array.isArray(objekt.anhaenge) ? objekt.anhaenge : [])) {
-          const snapshot = await personalSyncAnhangSnapshot(anhang, id);
+          const snapshot = await personalSyncAnhangSnapshot(anhang, id, DATEN);
           if (snapshot) anhaenge.push(snapshot);
         }
         wert.attachments = anhaenge.slice(0, 64).map((x) => x.descriptor);
@@ -1070,10 +1076,12 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     if (format >= 2 && module.includes("notes")) for (const notiz of selectedNotes) {
       if (!personalSyncEigeneNotiz(notiz)) continue;
       for (const anhang of (notiz.anhaenge || [])) {
-        const parentId = personalSyncNotizWireId(notiz.id);
-        const snapshot = await personalSyncAnhangSnapshot(anhang, parentId); if (!snapshot) continue;
+        const parentId = personalSyncNotizWireId(notiz.id, "note", DATEN);
+        const snapshot = await personalSyncAnhangSnapshot(anhang, parentId, DATEN); if (!snapshot) continue;
+        options.guard?.();
         const key = "attachment\u0000" + parentId + "\u0000" + snapshot.descriptor.attachment_id;
         const hash = await personalSyncHash(snapshot.descriptor), alt = ps.entities[key];
+        options.guard?.();
         if (alt && alt.state === "deleted") continue;
         if (!alt || alt.hash !== hash) {
           ps.counter += 1; ps.entities[key] = { clock: personalSyncVereinige(alt && alt.clock || [],
@@ -1092,6 +1100,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       }
       records.attachmentSources = Array.from(quellen.values());
     }
+    options.guard?.();
     return records;
   }
 
@@ -38281,6 +38290,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     personalSyncHash: personalSyncHash,
     personalSyncAutoEntscheidung: personalSyncAutoEntscheidung,
     personalSyncSnapshot: personalSyncSnapshot,
+    personalSyncSnapshotAusBestand: personalSyncSnapshotAusBestand,
     personalSyncScopeAusManifest: personalSyncScopeAusManifest,
     personalSyncNotizImport: personalSyncNotizImport,
     personalSyncNotizBereit: personalSyncNotizBereit,
