@@ -297,6 +297,9 @@ internal sealed class PersonalSyncStore(TelefonStore store)
         delete.Parameters.AddWithValue("$key", $"personal_report:{peerId}:{runId}"); delete.ExecuteNonQuery();
     }
 
+    internal bool OutgoingAttachmentComplete(string peerId, string runId, bool reply, string recordsHash, string hash, long now) =>
+        LoadAttachmentMetadata(peerId, runId, reply, recordsHash, hash, "outgoing", now)["complete"]!.GetValue<bool>();
+
     internal void CompleteOutgoingAttachment(string peerId, string runId, bool reply, string recordsHash, string hash, long now)
     {
         var metadata = LoadAttachmentMetadata(peerId, runId, reply, recordsHash, hash, "outgoing", now); metadata["complete"] = true;

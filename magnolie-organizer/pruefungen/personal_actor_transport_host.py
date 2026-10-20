@@ -133,6 +133,10 @@ def main():
                                 for event, value in events)
                             reply_record = json.loads(json.dumps(next(value for value in records if value["kind"] == "note")))
                             reply_record["value"]["text"] = "Private desktop draft"
+                            reply_record["modified_ms"] += 1
+                            reply_record["value"]["modified_ms"] = reply_record["modified_ms"]
+                            reply_record["clock"] = phone.personal_sync_contract.merge_clocks(reply_record["clock"],
+                                [{"actor_id": service.store.identity["device_id"], "counter": 1}])
                             reply_bytes = value[:-1] + bytes([42])
                             reply_digest = hashlib.sha256(reply_bytes).hexdigest()
                             reply_record["value"]["attachments"][0]["sha256"] = reply_digest
@@ -171,6 +175,26 @@ def main():
                                         assert not service.store.has_outgoing_attachments(private, handle.actor_id)
                                         break
                             else: raise AssertionError("Native desktop reply attachment result missing")
+                            report_time = phone.now_ms()
+                            completion = {"format": 3, "run_id": handle.actor_id, "state": "complete", "trigger": "manual", "transport": "wifi",
+                                "sent": {"notes": 1, "tasks": 0, "notebooks": 0}, "received": {"notes": 1, "tasks": 1, "notebooks": 0},
+                                "conflicts": 0, "attachments_omitted": 0, "oversized_skipped": 0, "started_ms": report_time, "finished_ms": report_time, "error": "none",
+                                "attachments": {"declared": 1, "requested": 1, "sent": 1, "received": 1, "reused": 0, "preserved": 1, "failed": 0, "bytes": len(reply_bytes)},
+                                "deletions": {"pending": 0, "deleted": 0, "restored": 0, "conflicts": 0, "blocked": 0,
+                                    "trash": {"notes": 0, "tasks": 0, "notebooks": 0, "attachments": 0}}}
+                            completion_wire = service._actor_control_message("personal_sync.report", completion)
+                            channel.send(actor.wire_message(completion_wire, handle.actor_id))
+                            completion_deadline = time.monotonic() + 10
+                            while time.monotonic() < completion_deadline:
+                                try: acknowledgement = channel.receive()
+                                except socket.timeout: continue
+                                if (acknowledgement.get("kind") == actor.ACK_KIND and acknowledgement["body"]["run_id"] == handle.actor_id and
+                                        acknowledgement["body"]["message_id"] == completion_wire["message_id"]):
+                                    actor.validate_ack(acknowledgement["body"])
+                                    assert acknowledgement["body"]["status"] in {"accepted", "duplicate"}
+                                    break
+                                service._payload(peer, channel, acknowledgement)
+                            else: raise AssertionError("Native Notes book-save report receipt missing")
                             service.cancel_personal_actor(registry, handle)
                             cancel_deadline = time.monotonic() + 5
                             while time.monotonic() < cancel_deadline:
@@ -184,7 +208,7 @@ def main():
                             send({"type": "close", "reason": "normal"})
                             print(json.dumps({"actor_id": handle.actor_id, "private_core_records": len(records),
                                 "lost_marked_ack_replayed": True, "attachment_request_retried": True, "attachment_integrity_verified": True,
-                                "gui_adoption": False, "book_persisted": False}), flush=True)
+                                "gui_adoption": False, "book_persisted": False, "phone_book_report_receipt": True}), flush=True)
                             return
                 scope_session = service.content_scope_sessions.get(channel)
                 diagnostic = {"received": dict(received), "rejected": rejected[-3:], "actor": handle.actor_id if handle else None,

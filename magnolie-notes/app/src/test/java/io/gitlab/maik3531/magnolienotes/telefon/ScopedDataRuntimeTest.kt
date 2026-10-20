@@ -48,6 +48,8 @@ class ScopedDataRuntimeTest {
     @Test fun nativeActorStartOwnsEncryptedSnapshotDispatchAndMarkedAckCancellation() = exercise("actor-transport")
     @Test fun nativeActorDeletionIntentsStayPrivateAndRequirePriorClockScopeAndGrants() = exercise("actor-deletions")
     @Test fun nativeActorDeletionSkipChoiceBlocksIntentsWithBothGrantsPresent() = exercise("actor-deletions-skip")
+    @Test fun nativeActorCompleteReportCheckpointsAndPersistsPrivateReplyExactlyOnce() = exercise("actor-commit")
+    @Test fun nativeActorCompleteReportRejectsConcurrentPhoneBookChange() = exercise("actor-commit-changed")
     @Test fun independentTimeChangeDefersScopedDataWithoutAdmittingRawFallback() = exercise("time")
     @Test fun selectedOrganizerNoteCanBeSentAgainAfterDeletingItsPhoneCopy() = exercise("single")
     @Test fun ownershipControlAndItsAckDoNotRequireContentRunId() = exercise("ownership")
@@ -58,7 +60,8 @@ class ScopedDataRuntimeTest {
 
     private fun exercise(mode: String) {
         val actorDeletion = mode.startsWith("actor-deletions")
-        val nativeActor = actorDeletion || mode in setOf("actor-source", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-restart", "actor-transport")
+        val actorCommit = mode.startsWith("actor-commit")
+        val nativeActor = actorDeletion || actorCommit || mode in setOf("actor-source", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-restart", "actor-transport")
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("ScopedDataFixture", 1.0, "Synthetic keys only") {
             init { put("KeyStore.AndroidKeyStore", InvitationTestKeyStore::class.java.name) }
@@ -77,7 +80,7 @@ class ScopedDataRuntimeTest {
         try {
             val book = documents.legeNotizbuchAn("Field notes")
             documents.setzeNotiz(Notiz("phone-note", "Mobile", "Initial phone text", notizbuchId = book.id, angelegt = 1, geaendert = 2))
-            if (actorDeletion || mode in setOf("manual", "actor", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-transport")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
+            if (actorDeletion || actorCommit || mode in setOf("manual", "actor", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-transport")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
             val storage = TelefonAblage.get(context)
             storage.identity("Synthetic").second.fill(0)
             storage.setEnabled(true); storage.setPersonalSync(true, true, true, false, false)
@@ -150,7 +153,7 @@ class ScopedDataRuntimeTest {
                 fun ackScope() { session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { ack(it) } }
                 fun scoped(messages: List<JsonObject>) = messages.filter { it["kind"] == JsonPrimitive(PhoneContentScope.DATA_KIND) }
                 val manifest = requireNotNull(session.localContentScope)
-                if (mode == "actor-transport" || actorDeletion) {
+                if (mode == "actor-transport" || actorDeletion || actorCommit) {
                     sent(); ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
                     field(TelefonWerk::class.java, "activeChannel").set(work, channel)
                     TelefonWerk::class.java.getDeclaredMethod("refreshSharedPreferenceState").apply { isAccessible = true }.invoke(work)
@@ -252,12 +255,28 @@ class ScopedDataRuntimeTest {
                     }
                     val privateValue = JsonObject(old.value + mapOf("text" to JsonPrimitive("Private desktop draft"),
                         "modified_ms" to JsonPrimitive(old.modifiedMs + 1), "attachments" to JsonArray(listOf(descriptor))))
-                    val incoming = old.copy(value = privateValue, hash = PersonalSync.hash(privateValue), modifiedMs = old.modifiedMs + 1)
+                    val incoming = old.copy(value = privateValue, hash = PersonalSync.hash(privateValue), modifiedMs = old.modifiedMs + 1,
+                        clock = if (actorCommit) PersonalSync.merge(old.clock, listOf(PersonalSyncClock(peerId, 1))) else old.clock)
                     val incomingBody = PersonalSyncProtokoll.batch(run, listOf(incoming), 0, true, true, 3, PersonalSync.recordsHash(listOf(incoming)))
                     val incomingWire = PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.batch", incomingBody, 86_400_000), run)
                     work.receiveMessage(peer, incomingWire, channel, 0L)
                     assertEquals(incomingWire.string("message_id"), sent().single().getValue("body").jsonObject.string("message_id"))
                     val privatePeer = PersonalSyncActor.storagePeer(run)
+                    val completionWire = PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.report", buildJsonObject {
+                        put("format", 3); put("run_id", run); put("state", "complete"); put("trigger", "manual"); put("transport", "wifi")
+                        for (name in listOf("sent", "received")) put(name, buildJsonObject { put("notes", 1); put("tasks", if (name == "received") 1 else 0); put("notebooks", 0) })
+                        put("conflicts", 0); put("attachments_omitted", 0); put("oversized_skipped", 0)
+                        put("started_ms", System.currentTimeMillis()); put("finished_ms", System.currentTimeMillis()); put("error", "none")
+                        put("attachments", buildJsonObject { for (name in listOf("declared", "requested", "sent", "received", "preserved")) put(name, 1)
+                            for (name in listOf("reused", "failed")) put(name, 0); put("bytes", image.size) })
+                        put("deletions", buildJsonObject { for (name in listOf("pending", "deleted", "restored", "conflicts", "blocked")) put(name, 0)
+                            put("trash", buildJsonObject { for (name in listOf("notes", "tasks", "notebooks", "attachments")) put(name, 0) }) })
+                    }, 86_400_000), run)
+                    if (actorCommit) {
+                        work.receiveMessage(peer, completionWire, channel, 0L)
+                        assertTrue(sent().isEmpty()); assertEquals("Initial phone text", documents.notizen().single { it.id == "phone-note" }.text)
+                        assertFalse(queue.personalDirectionApplied(peerId, run, true))
+                    }
                     val staged = queue.readyPersonalBatches().single { it.first == privatePeer }
                     assertEquals("Private desktop draft", PersonalSyncProtokoll.decodeBatch(staged.second.single().getValue("body").jsonObject).single().value.string("text"))
                     work.receiveMessage(peer, incomingWire, channel, 0L); sent()
@@ -293,6 +312,28 @@ class ScopedDataRuntimeTest {
                     pump.invoke(work, peer, channel, 0L, false)
                     assertEquals(1, sent().filter { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) }
                         .count { PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.attachment_result" })
+                    if (actorCommit) {
+                        if (mode == "actor-commit-changed") documents.setzeNotiz(documents.notizen().single { it.id == "phone-note" }.copy(text = "Concurrent phone edit"))
+                        work.receiveMessage(peer, completionWire, channel, 0L)
+                        if (mode == "actor-commit-changed") {
+                            assertTrue(sent().isEmpty()); assertFalse(queue.personalDirectionApplied(peerId, run, true))
+                            assertEquals("Concurrent phone edit", documents.notizen().single { it.id == "phone-note" }.text)
+                        } else {
+                            assertEquals(completionWire.string("message_id"), sent().single().getValue("body").jsonObject.string("message_id"))
+                            assertTrue(queue.personalDirectionApplied(peerId, run, true))
+                            assertEquals("Private desktop draft", documents.notizen().single { it.id == "phone-note" }.text)
+                            val reopened = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
+                            assertEquals("Private desktop draft", reopened.notizen().single { it.id == "phone-note" }.text)
+                            assertEquals(1, reopened.notizen().single { it.id == "phone-note" }.anhaenge.size)
+                            assertTrue(io.gitlab.maik3531.magnolienotes.journal.AndroidJournal.hole(context).state.value.entries.any { it.reason == "pre-sync-note" })
+                            val savedBytes = java.io.File(context.filesDir, "notizen.json").readBytes()
+                            work.receiveMessage(peer, completionWire, channel, 0L); assertEquals(1, sent().size)
+                            assertArrayEquals(savedBytes, java.io.File(context.filesDir, "notizen.json").readBytes())
+                            assertTrue(queue.readyPersonalBatches().none { it.first == privatePeer })
+                        }
+                        work.receiveMessage(peer, TelefonNachrichten.message(PersonalSyncActor.CANCEL_KIND, PersonalSyncActor.cancel(run), 60000), channel, 0L); sent()
+                        return@use
+                    }
                     val foreign = incoming.copy(id = "outside-phone-scope")
                     val foreignBody = PersonalSyncProtokoll.batch(run, listOf(foreign), 0, true, true, 3, PersonalSync.recordsHash(listOf(foreign)))
                     work.receiveMessage(peer, PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.batch", foreignBody, 60000), run), channel, 0L)

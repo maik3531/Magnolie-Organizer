@@ -35595,7 +35595,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
   function mcpNotesActorAntwort(job) {
     return { operation_id: job.id, peer_id: job.peer, phase: job.phase, review_revision: job.review?.revision || "",
-      summary: kopie(job.review?.summary || null), book_persisted: job.saved === true, core_committed: job.committed === true, phone_persisted: false,
+      summary: kopie(job.review?.summary || null), book_persisted: job.saved === true, core_committed: job.committed === true, phone_persisted: job.phoneSaved === true,
       reply_queued: job.replyQueued === true,
       cancel_requested: job.controller.signal.aborted, native_outcome_unknown: job.unknown, error_code: job.error };
   }
@@ -35647,6 +35647,20 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (queued?.reply_queued !== true || queued.book_persisted !== true || queued.phone_persisted !== false || queued.delivery_confirmed !== false || queued.message_count !== job.review.batches.length)
           throw new MagnolieMcp.ToolError("invalid_result", "Native Notes reply queue receipt was inconsistent");
         job.replyQueued = true; job.phase = "committed";
+        let packets = -1, progress = Date.now();
+        for (;;) {
+          const state = (await mcpNotesActorNative(job, "notes_actor_status")).actor; mcpNotesActorGuard(job);
+          if (state?.phone_persisted === true) {
+            if (state.book_persisted !== true || state.reply_queued !== true || state.completion_report_queued !== true)
+              throw new MagnolieMcp.ToolError("invalid_result", "Native Notes completion lacked its correlated book-save phase");
+            job.phoneSaved = true; job.phase = "completed"; mcpNotesActorStopNative(job);
+            job.review = null; job.book = null; job.before = ""; break;
+          }
+          if (!["registered", "receiving"].includes(state?.phase)) throw new MagnolieMcp.ToolError("source_changed", "Native Notes owner retired before phone save confirmation");
+          if (state.packets !== packets) { packets = state.packets; progress = Date.now(); }
+          if (Date.now() - progress > 120000) throw new MagnolieMcp.ToolError("native_timeout", "Notes phone save confirmation stopped progressing");
+          await new Promise(resolve => setTimeout(resolve, 250)); mcpNotesActorGuard(job);
+        }
       } catch (error) {
         job.unknown = true; job.error = error.code || "native_operation_failed";
         job.phase = job.controller.signal.aborted ? "cancelled" : "failed"; job.controller.abort();

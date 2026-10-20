@@ -8,7 +8,7 @@ const tick = () => new Promise(resolve => setImmediate(resolve)), plain = value 
 const watchdog = setTimeout(() => { console.error("Notes actor review test timed out"); process.exit(1); }, 30000);
 (async () => {
   for (const web of harness.exports.roots) for (const scenario of ["success", "cancel_create", "cancel_read", "source_changed", "session_closed", "bad_digest", "bad_offset", "outside_scope", "draft", "stale", "capacity",
-    "commit", "commit_save_failed", "commit_checkpoint_failed", "commit_stale", "commit_deletions", "commit_stage_changed", "commit_cancel_save", "commit_late_draft"]) {
+    "commit", "commit_remote", "commit_save_failed", "commit_checkpoint_failed", "commit_stale", "commit_deletions", "commit_stage_changed", "commit_cancel_save", "commit_late_draft"]) {
     const b = await harness.exports.boot(web, { personalSync: { actor_id: "11111111-1111-4111-8111-111111111111" },
       notizen: [{ id: "phone-note", titel: "Owned", text: "Original" }, { id: "desktop-only", titel: "Private", text: "Never send this" }] });
     try {
@@ -44,7 +44,9 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
         else if (r.action === "notes_actor_create") response = { actorId: scenario === "capacity" ? "44444444-4444-4444-8444-" + pendingCreates.indexOf(message).toString(16).padStart(12, "0") : actorId, ownerToken, bookSource: "" };
         else if (r.action === "notes_actor_start") response = { actor: { dispatch_started: true, persisted: false } };
         else if (r.action === "notes_actor_cancel") response = { actor: { phase: "cancelled" } };
-        else if (r.action === "notes_actor_status") response = { actor: { phase: "receiving", packets: 3 } };
+        else if (r.action === "notes_actor_status") response = { actor: { phase: "receiving", packets: 3,
+          phone_persisted: scenario === "commit_remote" && coreCommits === 1, book_persisted: coreCommits === 1,
+          reply_queued: coreCommits === 1, completion_report_queued: scenario === "commit_remote" && coreCommits === 1 } };
         else if (r.action === "notes_actor_prepare_commit") {
           assert.ok(savedSequence > 0, "Native plan preceded actual baseline SaveACK");
           plan = { sequence: savedSequence, hash: r.bookSha256 };
@@ -154,12 +156,13 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
               const ack = heldSave; heldSave = null; ack();
             }
             state = b.t.mcpNotesActorStatus(owner, id);
-            if (["committed", "failed"].includes(state.phase) || state.phase === "cancelled" && state.book_persisted) break;
+            if ([scenario === "commit_remote" ? "completed" : "committed", "failed"].includes(state.phase) || state.phase === "cancelled" && state.book_persisted) break;
           }
-          assert.equal(state.phase, scenario === "commit" ? "committed" : scenario === "commit_cancel_save" ? "cancelled" : "failed", scenario + JSON.stringify(state));
+          assert.equal(state.phase, scenario === "commit_remote" ? "completed" : scenario === "commit" ? "committed" : scenario === "commit_cancel_save" ? "cancelled" : "failed", scenario + JSON.stringify(state));
           assert.equal(state.book_persisted, !["commit_save_failed", "commit_checkpoint_failed"].includes(scenario), scenario + JSON.stringify(state));
-          assert.equal(coreCommits, scenario === "commit" ? 1 : 0);
-          assert.equal(state.reply_queued, scenario === "commit");
+          assert.equal(coreCommits, ["commit", "commit_remote"].includes(scenario) ? 1 : 0);
+          assert.equal(state.reply_queued, ["commit", "commit_remote"].includes(scenario));
+          assert.equal(state.phone_persisted, scenario === "commit_remote");
           if (["commit_cancel_save", "commit_late_draft"].includes(scenario)) assert.equal(b.w.document.querySelector("#tb-titel").value, "Late commit draft");
           b.t.mcpNotesActorCancel(owner, id);
         }

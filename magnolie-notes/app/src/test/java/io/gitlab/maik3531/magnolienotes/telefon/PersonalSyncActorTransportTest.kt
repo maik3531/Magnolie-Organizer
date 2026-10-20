@@ -138,6 +138,7 @@ class PersonalSyncActorTransportTest {
                     var closed = false
                     var incomingReplyVerified = false
                     var incomingFileVerified = false
+                    var phoneBookVerified = false
                     while (!closed && System.nanoTime() < deadline) {
                         pumpActor()
                         val packet = try { channel.receive() } catch (_: SocketTimeoutException) { continue }
@@ -187,6 +188,20 @@ class PersonalSyncActorTransportTest {
                                         incomingFileVerified = true
                                     }
                                 }
+                                if (packet["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) &&
+                                    PersonalSyncActor.unwrap(packet.getValue("body").jsonObject).first == "personal_sync.report") {
+                                    val run = packet.getValue("body").jsonObject.string("run_id")
+                                    assertTrue(queue.personalDirectionApplied(peerId, run, true))
+                                    assertEquals("Private desktop draft", documents.bestand.value.notizen.single { it.id == "phone-note" }.text)
+                                    val reopened = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
+                                    assertEquals("Private desktop draft", reopened.notizen().single { it.id == "phone-note" }.text)
+                                    val savedImages = reopened.notizen().single { it.id == "phone-note" }.anhaenge.map {
+                                        java.util.Base64.getDecoder().decode(it.daten.substringAfter(',')) }
+                                    assertTrue("Native book lost the received reply image", savedImages.any { it.contentEquals(image.copyOf().also { value -> value[value.lastIndex] = 42 }) })
+                                    assertTrue("Native attachment merge discarded the existing phone image", savedImages.any { it.contentEquals(image) })
+                                    assertTrue(io.gitlab.maik3531.magnolienotes.journal.AndroidJournal.hole(context).state.value.entries.any { it.reason == "pre-sync-note" })
+                                    phoneBookVerified = true
+                                }
                             }
                             "ping" -> channel.send(buildJsonObject { put("type", "pong"); put("ping_id", packet.getValue("ping_id")); put("sent_ms", packet.getValue("sent_ms")) })
                             "pong" -> Unit
@@ -197,12 +212,14 @@ class PersonalSyncActorTransportTest {
                     assertTrue("Native actor TCP exchange did not finish", closed)
                     assertTrue("Incoming actor reply was not privately staged", incomingReplyVerified)
                     assertTrue("Desktop reply attachment did not pass native private integrity verification", incomingFileVerified)
+                    assertTrue("Completion report did not persist the actual Notes book", phoneBookVerified)
                 }
             }
             assertTrue(process.waitFor(10, TimeUnit.SECONDS)); assertEquals(0, process.exitValue())
             val result = TelefonKanonisch.json.parseToJsonElement(output.readLine()).jsonObject
             assertEquals(JsonPrimitive(!windows), result["lost_marked_ack_replayed"])
             assertEquals(JsonPrimitive(true), result["attachment_integrity_verified"])
+            assertEquals(JsonPrimitive(true), result["phone_book_report_receipt"])
             if (!windows) assertEquals(JsonPrimitive(true), result["attachment_request_retried"])
             assertEquals(JsonPrimitive(false), result["gui_adoption"]); assertEquals(JsonPrimitive(false), result["book_persisted"])
             @Suppress("UNCHECKED_CAST")

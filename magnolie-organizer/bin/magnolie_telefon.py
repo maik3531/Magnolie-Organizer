@@ -1394,6 +1394,11 @@ class PhoneStore:
                 (peer_id, run_id)).fetchall()
         return any(not self._decode_attachment_row(row)["complete"] for row in rows)
 
+    def outgoing_attachment_complete(self, peer_id, run_id, reply, aggregate_hash, digest):
+        with sqlite3.connect(self.database_path) as db:
+            metadata = self._load_attachment_metadata(db, peer_id, run_id, reply, aggregate_hash, digest, "outgoing")
+        return metadata is not None and metadata["complete"] is True
+
     def begin_local_attachment_index(self, peer_id, run_id, reply):
         key = "personal_local_index:%s:%s:%d" % (peer_id, run_id, int(reply))
         with sqlite3.connect(self.database_path) as db:
@@ -3956,7 +3961,9 @@ class PhoneService:
             plan = admission.get("commit_plan")
             if plan is None:
                 plan = admission["commit_plan"] = {"token": secrets.token_hex(32), "view_revision": view_revision,
-                    "after_sha256": after_hash, "book_source": book_source, "before_sequence": book["sequence"]}
+                    "after_sha256": after_hash, "book_source": book_source, "before_sequence": book["sequence"],
+                    "received": {name: sum(record["kind"] == kind for record in batch["records"]) for kind, name in (("note", "notes"), ("task", "tasks"), ("notebook", "notebooks"))},
+                    "received_attachments": len(hashes)}
             elif (plan["view_revision"], plan["after_sha256"], plan["book_source"]) != (view_revision, after_hash, book_source):
                 raise PermissionError("actor_commit_plan_changed")
             registry.require_current(handle)
@@ -4053,10 +4060,47 @@ class PhoneService:
                 if staged is None:
                     raise RuntimeError("actor_reply_staging_incomplete")
                 admission["outbound"].update(wire["message_id"] for wire in queued)
+                admission["reply_ids"] = [wire["message_id"] for wire in queued]
                 admission["reply_count"] = len(queued); admission["reply_queued"] = True
             registry.require_current(handle)
             return {"reply_queued": True, "message_count": admission["reply_count"], "book_persisted": True,
                 "phone_persisted": False, "delivery_confirmed": False}
+
+    def personal_actor_status(self, registry, handle):
+        with self.lock:
+            value = registry.status(handle)
+            admission = self.personal_actor_admissions.get(handle.actor_id)
+            if admission is not None and admission["registry"] is registry and admission["handle"] == handle:
+                value.update(book_persisted=bool(admission.get("save_receipt")), reply_queued=bool(admission.get("reply_queued")),
+                    phone_persisted=bool(admission.get("phone_persisted")), completion_report_queued=bool(admission.get("completion_report_id")))
+            return value
+
+    def _queue_actor_completion_report(self, admission):
+        if (not admission.get("reply_queued") or not admission.get("save_receipt") or admission.get("completion_report_id") or
+                any(self.store.outbox_message(admission["peer"], message_id) is not None for message_id in admission["reply_ids"])):
+            return
+        registry, handle = admission["registry"], admission["handle"]
+        registry.require_current(handle)
+        private = personal_actor_contract.storage_peer(handle.actor_id)
+        batch = next((value for owner, value in self.store.ready_personal_batches() if owner == private and value["run_id"] == handle.actor_id and value["reply"] is True), None)
+        if batch is None: return
+        aggregate = batch["messages"][-1]["body"]["records_hash"]
+        files = {item["sha256"]: item for record in batch["records"] if record["kind"] == "note" for item in record["value"].get("attachments", [])}
+        if any(not self.store.outgoing_attachment_complete(private, handle.actor_id, True, aggregate, digest) for digest in files): return
+        if len(admission["outbound"]) >= 4096:
+            raise RuntimeError("actor_capacity")
+        now = now_ms(); started = admission["start"]["created_ms"]
+        report = {"format": 3, "run_id": handle.actor_id, "state": "complete", "trigger": "manual", "transport": self.connection_transports[admission["peer"]],
+            "sent": {name: sum(record["kind"] == kind for record in batch["records"]) for kind, name in (("note", "notes"), ("task", "tasks"), ("notebook", "notebooks"))},
+            "received": admission["commit_plan"]["received"], "conflicts": 0, "attachments_omitted": 0, "oversized_skipped": 0,
+            "started_ms": started, "finished_ms": max(started, now), "error": "none",
+            "attachments": {"declared": len(files), "requested": len(files), "sent": len(files), "received": admission["commit_plan"]["received_attachments"],
+                "reused": 0, "preserved": len(files), "failed": 0, "bytes": sum(item["size"] for item in files.values())},
+            "deletions": {"pending": 0, "deleted": 0, "restored": 0, "conflicts": 0, "blocked": 0,
+                "trash": {"notes": 0, "tasks": 0, "notebooks": 0, "attachments": 0}}}
+        queued = self.store.queue(admission["peer"], "personal_sync.report", report, DAY_MS, actor_run_id=handle.actor_id)
+        admission["completion_report_id"] = queued["message_id"]; admission["outbound"].add(queued["message_id"])
+        registry.require_current(handle)
 
     def read_personal_actor_staging(self, registry, handle, *, offset=0, limit=65536, expected_revision="", attachment_sha256=""):
         """Bounded owner-only view of existing private core staging, never GUI adoption."""
@@ -4137,6 +4181,9 @@ class PhoneService:
                     if (queued is not None and queued.get("kind") == personal_actor_contract.DATA_KIND and
                             queued["body"]["run_id"] == run and body["status"] in {"accepted", "duplicate"}):
                         self.store.acknowledge(peer["device_id"], body["message_id"])
+                        if body["message_id"] == admission.get("completion_report_id"):
+                            admission["phone_persisted"] = True
+                    self._queue_actor_completion_report(admission)
                     return  # No ACK of an actor ACK and no ordinary queue/GUI handling.
                 if payload["kind"] != personal_actor_contract.DATA_KIND:
                     return
@@ -4237,6 +4284,7 @@ class PhoneService:
                 elif kind == "personal_sync.attachment_result":
                     if content["state"] == "complete":
                         self.store.complete_outgoing_attachment(storage_peer, run, True, content["records_hash"], content["sha256"])
+                    self._queue_actor_completion_report(admission)
                 elif kind in PERSONAL_DELETION_KINDS:
                     if kind == "personal_sync.deletion_proposals":
                         self.store.remember_personal_proposal_kinds(storage_peer, content, False)

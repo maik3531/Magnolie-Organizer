@@ -300,6 +300,19 @@ def test_actor_core_commit_requires_fresh_native_book_save_and_bound_review_clai
     service._payload(peer, channel, actor.wire_message(frame("personal_sync.attachment_request", wants), handle.actor_id))
     outgoing = [actor.unwrap(value["body"]) for value in service.store.pending(peer["device_id"]) if value.get("kind") == actor.DATA_KIND]
     assert any(kind == "personal_sync.attachment_chunk" and base64.b64decode(value["data"]) == image for kind, value in outgoing)
+    service._payload(peer, channel, frame(actor.ACK_KIND, actor.ack(handle.actor_id, pending[0]["message_id"])))
+    assert not service.personal_actor_status(registry, handle)["phone_persisted"]
+    assert not service.personal_actor_status(registry, handle)["completion_report_queued"], "Batch ACK was mistaken for complete file transfer"
+    result = {"format": 2, "run_id": handle.actor_id, "reply": True, "records_hash": reply[0]["records_hash"], "sha256": image_hash,
+        "state": "complete", "error": "none"}
+    service._payload(peer, channel, actor.wire_message(frame("personal_sync.attachment_result", result), handle.actor_id))
+    reports = [value for value in service.store.pending(peer["device_id"]) if value.get("kind") == actor.DATA_KIND and actor.unwrap(value["body"])[0] == "personal_sync.report"]
+    assert len(reports) == 1 and actor.unwrap(reports[0]["body"])[1]["sent"]["notes"] == 1
+    assert not service.personal_actor_status(registry, handle)["phone_persisted"], "File integrity result was mistaken for a remote book save"
+    service._payload(peer, channel, {"type": "ack", "message_id": reports[0]["message_id"], "status": "accepted", "error": "none"})
+    assert not service.personal_actor_status(registry, handle)["phone_persisted"]
+    service._payload(peer, channel, frame(actor.ACK_KIND, actor.ack(handle.actor_id, reports[0]["message_id"])))
+    assert service.personal_actor_status(registry, handle)["phone_persisted"]
     assert not events
 
 

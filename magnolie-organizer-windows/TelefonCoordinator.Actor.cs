@@ -15,6 +15,11 @@ internal sealed partial class TelefonCoordinator
         internal NativeBookSaveState? SaveReceipt { get; set; }
         internal string ReplyIdentity { get; set; } = "";
         internal int ReplyCount { get; set; }
+        internal HashSet<string> ReplyIds { get; } = [];
+        internal string CompletionReportId { get; set; } = "";
+        internal bool PhonePersisted { get; set; }
+        internal JsonObject IncomingCounts { get; set; } = new() { ["notes"] = 0, ["tasks"] = 0, ["notebooks"] = 0 };
+        internal int IncomingAttachments { get; set; }
     }
     private readonly Dictionary<string, ActorAdmission> actorAdmissions = new(StringComparer.Ordinal);
 
@@ -37,7 +42,7 @@ internal sealed partial class TelefonCoordinator
             var result = action switch
             {
                 "notes_actor_start" => await StartPersonalActorAsync(handle, cancellation),
-                "notes_actor_status" => await WithPersonalActorStoreAsync(registry => registry.Status(handle), cancellation),
+                "notes_actor_status" => await PersonalActorStatusAsync(handle, cancellation),
                 "notes_actor_cancel" => await CancelPersonalActorAsync(handle, cancellation),
                 "notes_actor_read" => await ReadPersonalActorStagingAsync(handle,
                     request["offset"]?.GetValue<int>() ?? 0, request["limit"]?.GetValue<int>() ?? 65536,
@@ -183,6 +188,9 @@ internal sealed partial class TelefonCoordinator
         if (personalSync.DecisionIntents(Now()).Any(value => value.PeerId == privatePeer && value.Body["run_id"]!.GetValue<string>() == handle.ActorId))
             throw new InvalidOperationException("actor_deletion_review_required");
         var batch = personalSync.ReadyBatches(Now()).Single(value => value.PeerId == privatePeer && value.RunId == handle.ActorId && !value.Reply);
+        admission.IncomingCounts = ActorCounts(batch.Records.OfType<JsonObject>());
+        admission.IncomingAttachments = batch.Records.OfType<JsonObject>().Where(value => value["kind"]!.GetValue<string>() == "note")
+            .SelectMany(value => (value["value"]?["attachments"] as JsonArray ?? []).OfType<JsonObject>()).Select(value => value["sha256"]!.GetValue<string>()).Distinct().Count();
         foreach (var hash in batch.Records.OfType<JsonObject>().Where(value => value["kind"]!.GetValue<string>() == "note")
             .SelectMany(value => (value["value"]?["attachments"] as JsonArray ?? []).OfType<JsonObject>()).Select(value => value["sha256"]!.GetValue<string>()).Distinct())
             ReadPersonalActorStaging(registry, handle, 0, 1, viewRevision, hash);
@@ -278,7 +286,7 @@ internal sealed partial class TelefonCoordinator
                     var id = store.Enqueue(admission.PeerId, "personal_sync.batch", body, 86400000, Now(), actorRunId: handle.ActorId);
                     var wire = store.OutboxMessage(admission.PeerId, id) ?? throw new InvalidOperationException("actor_outbox_missing");
                     staged = personalSync.StageBatch(privatePeer, PersonalSyncActorContract.SemanticMessage(wire), admission.Connection.Transport, Now());
-                    admission.Outbound.Add(id);
+                    admission.Outbound.Add(id); admission.ReplyIds.Add(id);
                 }
                 if (staged is null) throw new InvalidOperationException("actor_reply_staging_incomplete");
                 admission.ReplyCount = batches.Length;
@@ -288,6 +296,49 @@ internal sealed partial class TelefonCoordinator
         }
         finally { foreach (var data in decoded.Values) CryptographicOperations.ZeroMemory(data); }
     }, cancellation);
+
+    private static JsonObject ActorCounts(IEnumerable<JsonObject> values)
+    {
+        var records = values.ToArray();
+        return new() { ["notes"] = records.Count(value => value["kind"]!.GetValue<string>() == "note"),
+            ["tasks"] = records.Count(value => value["kind"]!.GetValue<string>() == "task"),
+            ["notebooks"] = records.Count(value => value["kind"]!.GetValue<string>() == "notebook") };
+    }
+
+    internal Task<JsonObject> PersonalActorStatusAsync(PersonalActorHandle handle, CancellationToken cancellation = default) =>
+        WithPersonalActorStoreAsync(registry => {
+            var result = registry.Status(handle);
+            if (actorAdmissions.TryGetValue(handle.ActorId, out var admission) && admission.Handle == handle)
+            {
+                result["book_persisted"] = admission.SaveReceipt is not null; result["reply_queued"] = admission.ReplyCount != 0;
+                result["phone_persisted"] = admission.PhonePersisted; result["completion_report_queued"] = admission.CompletionReportId.Length != 0;
+            }
+            return result;
+        }, cancellation);
+
+    private void QueueActorCompletionReport(ActorAdmission admission)
+    {
+        if (admission.SaveReceipt is null || admission.ReplyCount == 0 || admission.CompletionReportId.Length != 0 ||
+            admission.ReplyIds.Any(id => store.OutboxMessage(admission.PeerId, id) is not null)) return;
+        var run = admission.Handle.ActorId; var privatePeer = PersonalSyncActorContract.StoragePeer(run);
+        var batch = personalSync.ReadyBatches(Now()).SingleOrDefault(value => value.PeerId == privatePeer && value.RunId == run && value.Reply);
+        if (batch is null) return;
+        var files = batch.Records.OfType<JsonObject>().Where(value => value["kind"]!.GetValue<string>() == "note")
+            .SelectMany(value => (value["value"]?["attachments"] as JsonArray ?? []).OfType<JsonObject>()).GroupBy(value => value["sha256"]!.GetValue<string>()).Select(group => group.First()).ToArray();
+        if (files.Any(value => !personalSync.OutgoingAttachmentComplete(privatePeer, run, true, batch.RecordsHash, value["sha256"]!.GetValue<string>(), Now()))) return;
+        if (admission.Outbound.Count >= 4096) throw new InvalidOperationException("actor_capacity");
+        var started = TelefonProtocolContract.Integer(admission.Start["created_ms"]);
+        var report = new JsonObject { ["format"] = 3, ["run_id"] = run, ["state"] = "complete", ["trigger"] = "manual", ["transport"] = admission.Connection.Transport,
+            ["sent"] = ActorCounts(batch.Records.OfType<JsonObject>()), ["received"] = admission.IncomingCounts.DeepClone(), ["conflicts"] = 0,
+            ["attachments_omitted"] = 0, ["oversized_skipped"] = 0, ["started_ms"] = started, ["finished_ms"] = Math.Max(started, Now()), ["error"] = "none",
+            ["attachments"] = new JsonObject { ["declared"] = files.Length, ["requested"] = files.Length, ["sent"] = files.Length,
+                ["received"] = admission.IncomingAttachments, ["reused"] = 0, ["preserved"] = files.Length, ["failed"] = 0,
+                ["bytes"] = files.Sum(value => TelefonProtocolContract.Integer(value["size"])) },
+            ["deletions"] = new JsonObject { ["pending"] = 0, ["deleted"] = 0, ["restored"] = 0, ["conflicts"] = 0, ["blocked"] = 0,
+                ["trash"] = new JsonObject { ["notes"] = 0, ["tasks"] = 0, ["notebooks"] = 0, ["attachments"] = 0 } } };
+        var id = store.Enqueue(admission.PeerId, "personal_sync.report", report, 86400000, Now(), actorRunId: run);
+        admission.CompletionReportId = id; admission.Outbound.Add(id);
+    }
 
     internal async Task ReceivePersonalActorAsync(TelefonConnection connection, TelefonPeer peer, JsonObject message)
     {
@@ -315,7 +366,10 @@ internal sealed partial class TelefonCoordinator
                     if (admission.Outbound.Contains(acknowledged))
                     {
                         registry.Put(admission.Handle, message);
-                        if (body["status"]!.GetValue<string>() is "accepted" or "duplicate") store.CompleteOutbox(peer.Id, acknowledged);
+                        if (body["status"]!.GetValue<string>() is "accepted" or "duplicate") {
+                            store.CompleteOutbox(peer.Id, acknowledged);
+                            if (acknowledged == admission.CompletionReportId) admission.PhonePersisted = true;
+                        }
                     }
                     return true;
                 }
@@ -528,6 +582,7 @@ internal sealed partial class TelefonCoordinator
                     }
                     catch (InvalidOperationException) { actorAdmissions.Remove(admission.Handle.ActorId); continue; }
                     registry.RequireCurrent(admission.Handle);
+                    QueueActorCompletionReport(admission);
                     if (online.GetValueOrDefault(admission.PeerId) != connection) continue;
                     foreach (var item in store.Due(admission.PeerId, Now(), transport: connection.Transport))
                     {

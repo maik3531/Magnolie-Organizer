@@ -1537,7 +1537,7 @@ class IPCServer:
                     raise IPCError("Native actor owner is unavailable")
                 registry = self._phone_actor_registry(arguments["subscriber"], arguments["book_source"])
                 handle = ActorHandle(request["actor_id"], request["owner_token"])
-                if request["action"] == "status": return registry.status(handle)
+                if request["action"] == "status": return phone.personal_actor_status(registry, handle)
                 if request["action"] == "read": return registry.read(handle, request["message_id"])
                 if request["action"] == "staging": return phone.read_personal_actor_staging(registry, handle,
                     offset=request["offset"], limit=request["limit"], expected_revision=request["expected_revision"],

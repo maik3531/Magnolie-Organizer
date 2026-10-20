@@ -24098,7 +24098,7 @@ class Fenster(_FENSTER_BASIS):
         if action == "notes_actor_start":
             value = source.start_personal_actor(handle) if proxy else source.start_personal_actor(registry, handle)
         elif action == "notes_actor_status":
-            value = source.personal_actor_status(handle) if proxy else registry.status(handle)
+            value = source.personal_actor_status(handle) if proxy else source.personal_actor_status(registry, handle)
         elif action == "notes_actor_cancel":
             value = source.cancel_personal_actor(handle) if proxy else source.cancel_personal_actor(registry, handle)
         elif action == "notes_actor_read":

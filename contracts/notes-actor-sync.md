@@ -488,6 +488,30 @@ Its client writer now applies that existing whitelist too (#189); ordinary
 operations retain their 64-KiB wire limit. This does not enlarge actor/inner packet
 budgets or relax native book-owner/saveproof checks.
 
+The native completion phase now waits for every marked reply-batch receipt and
+every declared outgoing file's authenticated completion metadata before queuing
+its marked complete report. Only an exact marked receipt for that retained report
+ID confirms `phone_persisted`; ordinary ACKs, batch ACKs and file integrity results
+cannot do so. Native actor status exposes these phase facts without record data.
+
+Notes accepts that report only for the active native owner, complete private
+reply and verified files, with matching record counts and no unapplied deletion
+intent. Its actual book reference captured after snapshot must still match.
+Existing scoped merge preview must preserve the current live scope; a concurrent
+phone edit or scope-widening conflict instead requires a fresh review. The native
+recovery journal creates its checkpoint, then the existing encrypted atomic
+book writer applies the scoped batch and durable replay ledger. Only afterward
+does the protected run mark the reply applied and stop further production, and
+the report receives its actor ACK. Duplicate reports require that native applied
+mark and cannot rewrite the book. Phone-SQLite rollback never promises rollback
+of a book write that already happened. Native owner/source monitoring remains
+active until cancellation/expiry so lost acknowledgements stay retryable.
+
+The frontend waits for that correlated native completion fact before phase
+`completed` and phone persistence. Earlier local `committed`/queued states remain
+distinct. Source/book/draft changes, cancellation and no-progress expiry still
+stop further work; a terminal cleanup cannot recall an already saved book.
+
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
 chunk replay cannot produce another result. Both TCP fixtures wait for the

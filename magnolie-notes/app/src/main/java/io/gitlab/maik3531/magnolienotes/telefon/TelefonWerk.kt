@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.atomic.AtomicBoolean
 import io.gitlab.maik3531.magnolienotes.daten.Ablage
 import io.gitlab.maik3531.magnolienotes.daten.Anhang
+import io.gitlab.maik3531.magnolienotes.daten.Bestand
 import io.gitlab.maik3531.magnolienotes.daten.PersonalSync
 import io.gitlab.maik3531.magnolienotes.daten.PersonalCustom
 import io.gitlab.maik3531.magnolienotes.daten.PersonalCustomState
@@ -204,6 +205,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     private val personalActorKeys = mutableMapOf<String, String>()
     private val personalActorTransports = mutableMapOf<String, TelefonSecureChannel>()
     private val personalActorDispatches = mutableSetOf<String>()
+    private val personalActorBooks = mutableMapOf<String, Bestand>()
 
     @Synchronized internal fun preparePersonalActor(peerId: String, publicKey: String, runId: String,
         startWire: JsonObject? = null): PersonalActorHandle =
@@ -233,6 +235,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         personalActorJournal.retire(handle) { stopActorRunAndPrivateStaging(handle.peerId, handle.runId) }
         personalActorWork.remove(handle.runId)
         personalActorTransports.remove(handle.runId)
+        personalActorBooks.remove(handle.runId)
         if (pendingScopedSync?.let { it.actorRun && it.deviceId == handle.peerId && it.correlatedRunId == handle.runId } == true)
             pendingScopedSync = null
     }
@@ -251,6 +254,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         personalActorJournal.reapInactive { peer, run -> stopActorRunAndPrivateStaging(peer, run) }.forEach { (peer, run) ->
             personalActorWork.remove(run); personalActorHandles.remove(run)
             personalActorKeys.remove(run); personalActorTransports.remove(run)
+            personalActorBooks.remove(run)
             if (pendingScopedSync?.let { it.actorRun && it.deviceId == peer && it.correlatedRunId == run } == true)
                 pendingScopedSync = null
         }
@@ -479,7 +483,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     PhoneContentScope.reference(manifest), batches, attachments, actorRun = intent.actorRun) }
                 val queued = if (intent.actorRun) personalActorJournal.withActive(checkNotNull(personalActorHandles[runId])) { enqueue() }
                     else enqueue()
-                if (queued) pendingScopedSync = null
+                if (queued) {
+                    if (intent.actorRun) personalActorBooks[runId] = Ablage.hole(context).bestand.value
+                    pendingScopedSync = null
+                }
             }
             if (intent.actorRun) {
                 val handle = personalActorHandles[intent.correlatedRunId]
@@ -1888,8 +1895,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
                             kind = unwrapped.first; content = unwrapped.second
                         }
                         val deletionIntent = kind in setOf("personal_sync.deletion_proposals", "personal_sync.deletion_decision")
-                        if (!deletionIntent && kind !in setOf("personal_sync.attachment_request", "personal_sync.attachment_result", "personal_sync.attachment_chunk", "personal_sync.batch")) return@synchronized null
+                        if (!deletionIntent && kind !in setOf("personal_sync.attachment_request", "personal_sync.attachment_result", "personal_sync.attachment_chunk", "personal_sync.batch", "personal_sync.report")) return@synchronized null
                         personalActorJournal.withActive(handle) {
+                            require(kind == "personal_sync.report" || !queue.personalDirectionApplied(peer.device_id, run, true)) { "actor_already_committed" }
                             val privatePeer = PersonalSyncActor.storagePeer(run)
                             if (deletionIntent) {
                                 require(peer.personal_deletions_sync_granted && peer.remote_personal_deletions_sync_granted &&
@@ -1927,8 +1935,14 @@ class TelefonWerk private constructor(private val context: Context, private val 
                                 val records = (content.getValue("records") as JsonArray).map { it as JsonObject }
                                 require(PhoneContentScope.filterRecords(records, manifest) == records) { "actor_record_outside_scope" }
                             }
-                            if (!personalActorJournal.putWire(handle, message)) return@withActive
-                            if (deletionIntent) {
+                            if (!personalActorJournal.putWire(handle, message)) {
+                                if (kind == "personal_sync.report") require(queue.personalDirectionApplied(peer.device_id, run, true)) { "actor_book_commit_missing" }
+                                return@withActive
+                            }
+                            if (kind == "personal_sync.report") {
+                                applyActorCompletionReport(peer, run, content, manifest)
+                            }
+                            else if (deletionIntent) {
                                 queue.stageActorDeletionIntent(run, JsonObject(message + mapOf("kind" to JsonPrimitive(kind), "body" to content)))
                             }
                             else if (kind == "personal_sync.batch") {
@@ -2009,6 +2023,53 @@ class TelefonWerk private constructor(private val context: Context, private val 
         // An authorized dispatch claim precedes I/O; lifecycle cancellation can close the pipe.
         // Never hold service/book/SQLite guards while waiting for a network write.
         if (reply != null) channel.send(reply)
+    }
+
+    private fun applyActorCompletionReport(peer: TelefonPeer, run: String, report: JsonObject, manifest: JsonObject) {
+        require(report["format"] == JsonPrimitive(3) && report["state"] == JsonPrimitive("complete") &&
+            report["trigger"] == JsonPrimitive("manual") && report["error"] == JsonPrimitive("none")) { "actor_completion_report_required" }
+        if (queue.personalDirectionApplied(peer.device_id, run, true)) return
+        require(queue.isActorRun(peer.device_id, run) && queue.actorDeletionIntents(run).isEmpty()) { "actor_deletion_review_required" }
+        val request = queue.personalRun(peer.device_id, run) ?: throw TelefonProtokollFehler("Personal-Sync-Request fehlt.")
+        val privatePeer = PersonalSyncActor.storagePeer(run)
+        val staged = queue.readyPersonalBatches().singleOrNull { it.first == privatePeer &&
+            (it.second.last().getValue("body") as JsonObject).let { body -> body.string("run_id") == run && body["reply"] == JsonPrimitive(true) } }?.second
+            ?: throw TelefonProtokollFehler("Personal-Sync-Reply fehlt.")
+        val body = staged.last().getValue("body") as JsonObject
+        val records = staged.flatMap { PersonalSyncProtokoll.validateBatchForRequest(request, it.getValue("body") as JsonObject) }
+        val descriptors = actorAttachmentManifest(staged, manifest)
+        val sent = report.getValue("sent") as JsonObject
+        require(listOf("note" to "notes", "task" to "tasks", "notebook" to "notebooks").all { (kind, count) ->
+            sent.long(count) == records.count { it.kind == kind }.toLong() }) { "actor_completion_counts_changed" }
+        val attachments = descriptors.mapValues { (_, descriptor) -> readPreparedPersonalAttachment(privatePeer, run, true, body.string("records_hash"), descriptor) }
+        val documents = Ablage.hole(context)
+        val appliedKey = "${peer.device_id}:$run:true"
+        val members = manifest.getValue("members") as JsonObject
+        val selection = io.gitlab.maik3531.magnolienotes.daten.PersonalContentSelection(
+            (members.getValue("notes") as JsonArray).map { (it as JsonPrimitive).content }.toSet(),
+            (members.getValue("tasks") as JsonArray).map { (it as JsonPrimitive).content }.toSet())
+        if (appliedKey !in documents.bestand.value.personalSync.applied_batches) {
+            require(personalActorBooks[run] === documents.bestand.value) { "actor_phone_book_changed" }
+            val preview = PersonalSync.applyScoped(documents.bestand.value, records, selection, peer.device_id, attachments, 3)
+            require(PersonalSync.livePersonalContent(preview.bestand) == selection) { "actor_scope_changes_require_review" }
+            io.gitlab.maik3531.magnolienotes.journal.AndroidJournal.hole(context).appSnapshot("pre-sync-note")
+            documents.personalSyncApplyScopedOnce(records, attachments, appliedKey, selection, peer.device_id, 3)
+        }
+        require(appliedKey in documents.bestand.value.personalSync.applied_batches && PersonalSync.livePersonalContent(documents.bestand.value) == selection)
+        queue.markPersonalDirectionApplied(peer.device_id, run, true)
+        queue.stopActorRun(peer.device_id, run)
+        queue.finishPersonalBatch(privatePeer, run, true)
+        personalActorBooks[run] = documents.bestand.value
+        if (records.any { it.kind == "task" }) Erinnerung.allesNeuStellen(context)
+    }
+
+    private fun readPreparedPersonalAttachment(storagePeer: String, run: String, reply: Boolean, aggregate: String, descriptor: JsonObject): Anhang {
+        val output = ByteArrayOutputStream(descriptor.long("size").toInt())
+        if (!queue.verifyIncomingAttachment(storagePeer, run, reply, aggregate, descriptor.string("sha256"), output))
+            throw TelefonProtokollFehler("Ungültiger Attachment-Inhalt.")
+        val bytes = output.toByteArray()
+        return try { Anhang("", "", descriptor.string("kind"), "data:${descriptor.string("mime")};base64,${Base64.getEncoder().encodeToString(bytes)}") }
+            finally { bytes.fill(0) }
     }
 
     private fun receiveDeveloperRead(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
@@ -2869,12 +2930,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
         val result = mutableMapOf<String, Anhang>()
         descriptors.forEach { (hash, descriptor) ->
-            val output = ByteArrayOutputStream((descriptor["size"] as JsonPrimitive).content.toInt())
-            if (!queue.verifyIncomingAttachment(peer.device_id, runId, reply, aggregate, hash, output))
-                throw TelefonProtokollFehler("Ungültiger Attachment-Inhalt.")
-            val mime = (descriptor["mime"] as JsonPrimitive).content
-            result[hash] = Anhang("", "", (descriptor["kind"] as JsonPrimitive).content,
-                "data:$mime;base64,${Base64.getEncoder().encodeToString(output.toByteArray())}")
+            result[hash] = readPreparedPersonalAttachment(peer.device_id, runId, reply, aggregate, descriptor)
         }
         val received = descriptors.size - reused
         val transferredBytes = descriptors.filterKeys { hash -> hash !in reusedHashes }

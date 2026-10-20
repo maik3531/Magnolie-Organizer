@@ -47,6 +47,8 @@ internal static class PersonalSyncActorTransportHost
             var transferReceipt = new TaskCompletionSource<JsonObject>(TaskCreationOptions.RunContinuationsAsynchronously);
             var privateReplyReceipt = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var privateFileReceipt = new TaskCompletionSource<JsonObject>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var phoneBookReceipt = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            string? phoneBookReportId = null;
             string? privateReplyId = null;
             using var connection = new TelefonConnection(peer, socket.GetStream(), Enumerable.Repeat((byte)7, 32).ToArray(), material, store,
                 (source, message) => (Task<TelefonAck?>)receiveMethod.Invoke(coordinator, [source, message, "wifi"])!, deadline.Token, "wifi")
@@ -67,6 +69,12 @@ internal static class PersonalSyncActorTransportHost
                             PersonalSyncActorContract.Unwrap(message["body"]!.AsObject()) is var fileResult &&
                             fileResult.Kind == "personal_sync.attachment_result" && fileResult.Body["reply"]!.GetValue<bool>() &&
                             fileResult.Body["state"]!.GetValue<string>() == "complete") privateFileReceipt.TrySetResult(message);
+                        if (message["kind"]?.GetValue<string>() == PersonalSyncActorContract.AckKind && phoneBookReportId is not null &&
+                            message["body"]?["message_id"]?.GetValue<string>() == phoneBookReportId) {
+                            PersonalSyncActorContract.ValidateAck(message["body"]!.AsObject());
+                            TestAssert.That(message["body"]!["status"]!.GetValue<string>() is "accepted" or "duplicate", "Notes book report was not accepted.");
+                            phoneBookReceipt.TrySetResult();
+                        }
                     }, ActorPump = coordinator.PumpPersonalActorAsync };
             var online = (IDictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator)!;
             online[phoneId] = connection;
@@ -135,6 +143,9 @@ internal static class PersonalSyncActorTransportHost
                 attachment[^1] = 42;
                 var replyHash = Convert.ToHexString(SHA256.HashData(attachment)).ToLowerInvariant();
                 replyRecord["value"]!["text"] = "Private desktop draft"; replyRecord["value"]!["attachments"]![0]!["sha256"] = replyHash;
+                var replyModified = TelefonProtocolContract.Integer(replyRecord["modified_ms"]) + 1;
+                replyRecord["modified_ms"] = replyModified; replyRecord["value"]!["modified_ms"] = replyModified;
+                replyRecord["clock"] = PersonalSyncContract.MergeClocks(replyRecord["clock"]!, new JsonArray(new JsonObject { ["actor_id"] = identity.Id, ["counter"] = 1 }));
                 replyRecord["hash"] = PersonalSyncContract.ProjectionHash(replyRecord["value"]!.AsObject());
                 var replyRecords = new JsonArray(replyRecord);
                 var replyNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); privateReplyId = Guid.NewGuid().ToString("D");
@@ -155,13 +166,25 @@ internal static class PersonalSyncActorTransportHost
                 await privateReplyReceipt.Task.WaitAsync(TimeSpan.FromSeconds(10), deadline.Token);
                 var privateFile = await privateFileReceipt.Task.WaitAsync(TimeSpan.FromSeconds(10), deadline.Token);
                 await coordinator.WithPersonalActorStoreAsync(registry => registry.Read(handle, privateFile["message_id"]!.GetValue<string>()));
+                var reportNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(); phoneBookReportId = Guid.NewGuid().ToString("D");
+                var report = new JsonObject { ["format"] = 3, ["run_id"] = handle.ActorId, ["state"] = "complete", ["trigger"] = "manual", ["transport"] = "wifi",
+                    ["sent"] = new JsonObject { ["notes"] = 1, ["tasks"] = 0, ["notebooks"] = 0 },
+                    ["received"] = new JsonObject { ["notes"] = 1, ["tasks"] = 1, ["notebooks"] = 0 },
+                    ["conflicts"] = 0, ["attachments_omitted"] = 0, ["oversized_skipped"] = 0, ["started_ms"] = reportNow, ["finished_ms"] = reportNow, ["error"] = "none",
+                    ["attachments"] = new JsonObject { ["declared"] = 1, ["requested"] = 1, ["sent"] = 1, ["received"] = 1,
+                        ["reused"] = 0, ["preserved"] = 1, ["failed"] = 0, ["bytes"] = attachment.Length },
+                    ["deletions"] = new JsonObject { ["pending"] = 0, ["deleted"] = 0, ["restored"] = 0, ["conflicts"] = 0, ["blocked"] = 0,
+                        ["trash"] = new JsonObject { ["notes"] = 0, ["tasks"] = 0, ["notebooks"] = 0, ["attachments"] = 0 } } };
+                await connection.SendPlainAsync(PersonalSyncActorContract.WireMessage(new JsonObject { ["type"] = "message", ["v"] = 1,
+                    ["message_id"] = phoneBookReportId, ["created_ms"] = reportNow, ["expires_ms"] = reportNow + 60000, ["kind"] = "personal_sync.report", ["body"] = report }, handle.ActorId));
+                await phoneBookReceipt.Task.WaitAsync(TimeSpan.FromSeconds(10), deadline.Token);
                 cancellingRun = handle.ActorId;
                 await coordinator.CancelPersonalActorAsync(handle, deadline.Token);
                 await cancelReceipt.Task.WaitAsync(TimeSpan.FromSeconds(5), deadline.Token);
                 await connection.SendPlainAsync(new JsonObject { ["type"] = "close", ["reason"] = "normal" });
                 Console.WriteLine(new JsonObject { ["actor_id"] = handle.ActorId, ["private_core_records"] = staged.Records.Count,
                     ["lost_marked_ack_replayed"] = false, ["attachment_integrity_verified"] = true,
-                    ["gui_adoption"] = false, ["book_persisted"] = false }.ToJsonString());
+                    ["gui_adoption"] = false, ["book_persisted"] = false, ["phone_book_report_receipt"] = true }.ToJsonString());
             }
             finally
             {

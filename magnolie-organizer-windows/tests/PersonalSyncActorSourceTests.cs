@@ -344,6 +344,22 @@ internal static class PersonalSyncActorSourceTests
                 privateStore.ReadVerifiedAttachment(PersonalSyncActorContract.StoragePeer(commitHandle.ActorId), commitHandle.ActorId, true, staged.RecordsHash,
                     attachmentHash, "outgoing", "wifi", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).SequenceEqual(attachment),
                 "Native actor reply wire or existing private outgoing file store changed its persisted source.");
+            await connection.HandlePlainAsync(Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(commitHandle.ActorId, savedReplyWire["message_id"]!.GetValue<string>())));
+            await coordinator.PumpPersonalActorAsync(connection); await SharedSyncTransportTests.DrainAsync(wire);
+            var beforeRemoteSave = await coordinator.PersonalActorStatusAsync(commitHandle);
+            TestAssert.That(!beforeRemoteSave["phone_persisted"]!.GetValue<bool>() && !beforeRemoteSave["completion_report_queued"]!.GetValue<bool>(),
+                "Reply batch ACK bypassed pending native attachment completion.");
+            var replyFileResult = complete.DeepClone().AsObject(); replyFileResult["run_id"] = commitHandle.ActorId;
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.attachment_result", replyFileResult), commitHandle.ActorId));
+            await SharedSyncTransportTests.DrainAsync(wire); await coordinator.PumpPersonalActorAsync(connection);
+            var reportWire = (await SharedSyncTransportTests.DrainAsync(wire)).Single(value => value["kind"]!.GetValue<string>() == PersonalSyncActorContract.DataKind &&
+                value["body"]!["run_id"]!.GetValue<string>() == commitHandle.ActorId);
+            TestAssert.That(PersonalSyncActorContract.Unwrap(reportWire["body"]!.AsObject()).Kind == "personal_sync.report" &&
+                !(await coordinator.PersonalActorStatusAsync(commitHandle))["phone_persisted"]!.GetValue<bool>(), "File result claimed phone book persistence before report SaveACK.");
+            await connection.HandlePlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = reportWire["message_id"]!.DeepClone(), ["status"] = "accepted", ["error"] = "none" });
+            TestAssert.That(!(await coordinator.PersonalActorStatusAsync(commitHandle))["phone_persisted"]!.GetValue<bool>(), "Ordinary ACK forged remote actor book persistence.");
+            await connection.HandlePlainAsync(Message(PersonalSyncActorContract.AckKind, PersonalSyncActorContract.Ack(commitHandle.ActorId, reportWire["message_id"]!.GetValue<string>())));
+            TestAssert.That((await coordinator.PersonalActorStatusAsync(commitHandle))["phone_persisted"]!.GetValue<bool>(), "Exact marked completion report receipt did not confirm remote book commit.");
             await coordinator.CancelPersonalActorAsync(commitHandle); await SharedSyncTransportTests.DrainAsync(wire);
             hostBook.SetReady(false);
             await coordinator.PumpPersonalActorAsync(connection);
