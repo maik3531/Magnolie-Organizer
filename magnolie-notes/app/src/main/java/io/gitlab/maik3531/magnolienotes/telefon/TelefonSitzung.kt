@@ -68,6 +68,8 @@ object TelefonNachrichten {
         val created = message.long("created_ms"); val expires = message.long("expires_ms")
         val body = message["body"] as? JsonObject ?: fail()
         when (message.string("kind")) {
+            TimeControlProtokoll.REQUEST -> { if (expires - created > 60_000L || TelefonKanonisch.bytes(message).size > TimeControlProtokoll.MAX_WIRE_BYTES) fail(); TimeControlProtokoll.validateRequest(body) }
+            TimeControlProtokoll.REPORT -> { if (expires - created > 60_000L || TelefonKanonisch.bytes(message).size > TimeControlProtokoll.MAX_WIRE_BYTES) fail(); TimeControlProtokoll.validateReport(body) }
             "device_status.request" -> {
                 if (body["version"] in setOf(JsonPrimitive(ContactRead.VERSION), JsonPrimitive(ContactRead.PROFILE_VERSION), JsonPrimitive(ContactRead.PROFILE_DIAGNOSTIC_VERSION))) {
                     try { ContactRead.validateRequest(body) } catch (_: Exception) { fail() }

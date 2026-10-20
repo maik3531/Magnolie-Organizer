@@ -1,0 +1,13 @@
+{
+  "version": 13,
+  "requests": [
+    {"format":13,"request_id":"11111111-1111-4111-8111-111111111111","action":"read","operation_id":"","expected_revision":"","restore_epoch":"","entry_id":"","activity":"","note":""},
+    {"format":13,"request_id":"22222222-2222-4222-8222-222222222222","action":"start","operation_id":"33333333-3333-4333-8333-333333333333","expected_revision":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","restore_epoch":"native-book","entry_id":"","activity":"Owned Grüße 🌸","note":"Native timer action"},
+    {"format":13,"request_id":"55555555-5555-4555-8555-555555555555","action":"pause","operation_id":"66666666-6666-4666-8666-666666666666","expected_revision":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","restore_epoch":"native-book","entry_id":"33333333-3333-4333-8333-333333333333","activity":"","note":""}
+  ],
+  "reports": [
+    {"format":13,"request_id":"11111111-1111-4111-8111-111111111111","operation_id":"","status":"ok","error":"none","restore_epoch":"native-book","revision":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","enabled":true,"entries":[],"paused":false,"server_minute":1000,"operation_applied":false,"persisted":false,"applied_entry_id":"","applied_clock":{},"runtime_request":"none"},
+    {"format":13,"request_id":"22222222-2222-4222-8222-222222222222","operation_id":"33333333-3333-4333-8333-333333333333","status":"duplicate","error":"none","restore_epoch":"native-book","revision":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","enabled":true,"entries":[],"paused":false,"server_minute":1001,"operation_applied":true,"persisted":true,"applied_entry_id":"33333333-3333-4333-8333-333333333333","applied_clock":{"44444444-4444-4444-8444-444444444444":1},"runtime_request":"requested"},
+    {"format":13,"request_id":"55555555-5555-4555-8555-555555555555","operation_id":"66666666-6666-4666-8666-666666666666","status":"rejected","error":"not_granted","restore_epoch":"","revision":"","enabled":false,"entries":[],"paused":false,"server_minute":0,"operation_applied":false,"persisted":false,"applied_entry_id":"","applied_clock":{},"runtime_request":"none"}
+  ]
+}

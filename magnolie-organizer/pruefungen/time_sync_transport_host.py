@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 import magnolie_telefon as phone
 import magnolie_time_sync as sync
 
-PHONE = "22222222-2222-4222-8222-222222222222"
+PHONE = sys.argv[1]
 DESKTOP_RECORD = "77777777-7777-4777-8777-777777777777"
 ACTOR = "88888888-8888-4888-8888-888888888888"
 
@@ -27,6 +27,8 @@ def main():
             personal_sync=dict(own_device=True, remote_own_device=False, auto_wifi=False, last_report={}))
         service.store.peers.append(peer); service.store.save_peers()
         service.set_time_sync(PHONE, True)
+        service.store.initialize_shared_settings(PHONE, peer["static_public"],
+            dict(phone.shared_sync_contract.DEFAULTS, time_enabled=True, time_mode="two_way"))
         imported = []
 
         def receive(event, payload):
@@ -45,7 +47,7 @@ def main():
         service.callback = receive
         with socket.socket() as listener:
             listener.bind(("127.0.0.1", 0)); listener.listen(1); listener.settimeout(25)
-            print(listener.getsockname()[1], flush=True)
+            print(json.dumps({"port": listener.getsockname()[1], "device_id": service.store.identity["device_id"]}), flush=True)
             connection, _ = listener.accept()
             with connection:
                 connection.settimeout(1)

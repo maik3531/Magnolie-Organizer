@@ -1775,6 +1775,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
             receiveActorMessage(sessionPeer, message, channel, generation)
             return
         }
+        if (message["kind"] == JsonPrimitive(TimeControlProtokoll.REQUEST)) {
+            receiveTimeControl(sessionPeer, message, channel, generation)
+            return
+        }
+        if (message["kind"] == JsonPrimitive(TimeControlProtokoll.REPORT)) return
         if (unwrappedActorRun(sessionPeer, message)) return
         if (message["kind"] == JsonPrimitive("device_status.request") &&
             (message["body"] as? JsonObject)?.get("version") == JsonPrimitive(11)) {
@@ -2070,6 +2075,58 @@ class TelefonWerk private constructor(private val context: Context, private val 
         val bytes = output.toByteArray()
         return try { Anhang("", "", descriptor.string("kind"), "data:${descriptor.string("mime")};base64,${Base64.getEncoder().encodeToString(bytes)}") }
             finally { bytes.fill(0) }
+    }
+
+    private fun receiveTimeControl(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
+        val body = message["body"] as? JsonObject ?: return
+        try { TelefonNachrichten.validate(message) } catch (_: Exception) { return }
+        val requestId = body.string("request_id"); val operation = body.string("operation_id")
+        val response = synchronized(this) {
+            synchronized(Ablage.SCHREIBSPERRE) book@{
+                val peer = safePeer()?.takeIf { it.device_id == sessionPeer.device_id && it.static_public == sessionPeer.static_public }
+                val session = noteSessions[channel]
+                if (peer == null || !serviceRunning || !storage.enabled() || activeChannel !== channel || generation != pairingGeneration ||
+                    !timeControlsReady(peer, session)) return@book null
+                val local = sharedLocalCapabilities()[TimeControlProtokoll.CAPABILITY]
+                if (local?.available != true || TimeControlProtokoll.VERSION !in local.versions ||
+                    !peer.remote_personal_tasks_sync_available || TimeControlProtokoll.VERSION !in peer.remote_personal_tasks_sync_versions)
+                    return@book TimeControlProtokoll.rejected(requestId, operation, "unsupported_feature")
+                if (session?.timeReady(peer.personal_time_policy, peer.remote_personal_time_policy) != true ||
+                    peer.personal_time_policy?.get("enabled") != JsonPrimitive(true) || peer.remote_personal_time_policy?.get("enabled") != JsonPrimitive(true) ||
+                    operation.isNotEmpty() && commonValues(peer)?.get("time_mode") == JsonPrimitive("phone_import"))
+                    return@book TimeControlProtokoll.rejected(requestId, operation, "not_granted")
+                try {
+                    val documents = Ablage.hole(context)
+                    check(documents.synchronisationsSchreibbar())
+                    val now = System.currentTimeMillis()
+                    val epoch = documents.baum.value.syncEpoch
+                    if (body.string("action") == "read") {
+                        TimeControlProtokoll.report(requestId, documents.bestand.value.zeiterfassung.purgeExpired(), epoch, now)
+                    } else {
+                        val keyHash = java.security.MessageDigest.getInstance("SHA-256").digest(TelefonKrypto.b64(peer.static_public, 32))
+                            .joinToString("") { "%02x".format(it) }
+                        val result = documents.steuereZeiterfassung(TimeControlProtokoll.command(body), keyHash, body.string("restore_epoch"), now)
+                        // These are the existing Notes timer-runtime hooks, not remote shell actions.
+                        val runtime = runCatching {
+                            io.gitlab.maik3531.magnolienotes.zeit.ZeitWecker.neuStellen(context)
+                            io.gitlab.maik3531.magnolienotes.zeit.ZeitDienst.refresh(context, result.state)
+                        }.fold({ "requested" }, { "failed" })
+                        val currentState = documents.bestand.value.zeiterfassung
+                        TimeControlProtokoll.report(requestId, currentState, epoch, now, result.copy(state = currentState), runtime)
+                    }
+                } catch (error: Exception) {
+                    val code = when {
+                        error is java.io.IOException || error is android.database.sqlite.SQLiteException -> "save_failed"
+                        error.message == "timer_already_running" -> "already_running"
+                        error.message == "timer_not_running" -> "no_running_entry"
+                        error is IllegalStateException -> "conflict"
+                        else -> "protocol"
+                    }
+                    TimeControlProtokoll.rejected(requestId, operation, code)
+                }
+            }
+        }
+        if (response != null) channel.send(TelefonNachrichten.message(TimeControlProtokoll.REPORT, response, 60000))
     }
 
     private fun receiveDeveloperRead(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
@@ -2721,7 +2778,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     remote_personal_notes_sync_available = ((items["personal_notes_sync"] as JsonObject)["available"] as JsonPrimitive).booleanOrNull == true,
                     remote_personal_tasks_sync_versions = ((items["personal_tasks_sync"] as JsonObject)["versions"] as JsonArray)
                         .map { (it as JsonPrimitive).content.toInt() }.filter {
-                            it in 1..4 || it == PersonalDesktopFeatures.VERSION || it == TimeSyncProtokoll.VERSION || it == SharedSyncSettings.VERSION || it == PhoneContentScope.VERSION || it == PersonalSyncActor.VERSION }.distinct().sorted(),
+                            it in 1..4 || it == PersonalDesktopFeatures.VERSION || it == TimeSyncProtokoll.VERSION || it == SharedSyncSettings.VERSION || it == PhoneContentScope.VERSION || it == PersonalSyncActor.VERSION || it == TimeControlProtokoll.VERSION }.distinct().sorted(),
                     remote_personal_tasks_sync_available = ((items["personal_tasks_sync"] as JsonObject)["available"] as JsonPrimitive).booleanOrNull == true)
             } else {
                 val grants = body["grants"] as JsonObject

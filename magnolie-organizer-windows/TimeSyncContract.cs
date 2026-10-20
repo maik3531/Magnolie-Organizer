@@ -13,8 +13,8 @@ internal static class TimeSyncContract
     internal const string Settings = "personal_sync.time_settings";
     internal const string Request = "personal_sync.time_request";
     internal const string Batch = "personal_sync.time_batch";
-    private const long MaximumCounter = 9007199254740991;
-    private const long MaximumMinute = 4223371679;
+    internal const long MaximumCounter = 9007199254740991;
+    internal const long MaximumMinute = 4223371679;
     private static readonly UTF8Encoding Utf8 = new(false, true);
 
     internal static bool IsKind(string? kind) => kind is Settings or Request or Batch;

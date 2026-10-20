@@ -28,6 +28,15 @@ import javax.crypto.spec.SecretKeySpec
 class TimeSyncTransportTest {
     private fun field(type: Class<*>, name: String) = type.getDeclaredField(name).apply { isAccessible = true }
 
+    @Test fun pythonRuntimeControlsActualNotesTimerWithoutTimeSyncCommandWrites() {
+        runHost(listOf(System.getenv("MAGNOLIE_PYTHON") ?: "python3", "../magnolie-organizer/pruefungen/time_control_transport_host.py"), true)
+    }
+
+    @Test fun windowsRuntimeControlsActualNotesTimerWithoutTimeSyncCommandWrites() {
+        runHost(listOf(System.getenv("MAGNOLIE_DOTNET") ?: error("MAGNOLIE_DOTNET is required"),
+            System.getenv("PHONE_TEST_WINDOWS_DLL") ?: error("PHONE_TEST_WINDOWS_DLL is required"), "--time-control-host"), true)
+    }
+
     @Test fun pythonRuntimeAndNotesExchangeDurableTimeRecordsOverTheSecureChannel() {
         runHost(listOf(System.getenv("MAGNOLIE_PYTHON") ?: "python3", "../magnolie-organizer/pruefungen/time_sync_transport_host.py"))
     }
@@ -37,7 +46,7 @@ class TimeSyncTransportTest {
             System.getenv("PHONE_TEST_WINDOWS_DLL") ?: error("PHONE_TEST_WINDOWS_DLL is required"), "--time-sync-host"))
     }
 
-    private fun runHost(command: List<String>) {
+    private fun runHost(command: List<String>, timerControl: Boolean = false) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("TimeSyncFixture", 1.0, "Synthetic keys only") {
             init { put("KeyStore.AndroidKeyStore", InvitationTestKeyStore::class.java.name) }
@@ -55,21 +64,30 @@ class TimeSyncTransportTest {
             Zeiteintrag(startMinute = 1000, endMinute = 1060, zone = "UTC", note = "Phone time fixture")) }
         val originalNotes = documents.notizen(); val originalTasks = documents.aufgaben()
         val storage = TelefonAblage.get(context)
+        val identity = storage.identity("Synthetic native timer peer").also { it.second.fill(0) }.first
         storage.setEnabled(true); storage.setPersonalSync(true, false, false, false, false)
-        val peerId = "11111111-1111-4111-8111-111111111111"
+        var peerId = "11111111-1111-4111-8111-111111111111"
         storage.savePeer(TelefonPeer(peerId, "Synthetic desktop", TelefonKrypto.b64(ByteArray(32)),
             capabilities_revision = 1, grants_revision = 1, own_device = true,
-            remote_personal_tasks_sync_available = true, remote_personal_tasks_sync_versions = listOf(1, 2, 3, 4, 6, 7),
+            remote_personal_tasks_sync_available = true, remote_personal_tasks_sync_versions = listOf(1, 2, 3, 4, 6, 7) + if (timerControl) listOf(13) else emptyList(),
             personal_time_policy = TimeSyncProtokoll.newSettings(true)))
         val work = TelefonWerk.get(context)
+        if (timerControl) work.sharedLocalCapabilities = { TelefonCapabilities.phase1().mapValues { (name, value) ->
+            if (name == "personal_tasks_sync") value.copy(versions = value.versions + 13) else value } }
         field(TelefonWerk::class.java, "serviceRunning").setBoolean(work, true)
         (field(TelefonWerk::class.java, "connecting").get(work) as AtomicBoolean).set(true)
         val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
-        val process = ProcessBuilder(command)
+        val process = ProcessBuilder(command + listOf(identity.device_id))
             .redirectError(ProcessBuilder.Redirect.INHERIT).start()
         try {
             val output = process.inputStream.bufferedReader()
-            val port = CompletableFuture.supplyAsync { output.readLine().toInt() }.get(20, TimeUnit.SECONDS)
+            val greeting = CompletableFuture.supplyAsync { output.readLine() }.get(20, TimeUnit.SECONDS)
+            val port = run {
+                val host = Json.parseToJsonElement(greeting).jsonObject
+                peerId = host.getValue("device_id").jsonPrimitive.content
+                storage.savePeer(storage.peers().peer!!.copy(device_id = peerId))
+                host.getValue("port").jsonPrimitive.int
+            }
             Socket("127.0.0.1", port).use { socket ->
                 socket.soTimeout = 25_000
                 val pipe = object : TelefonRoehre {
@@ -81,11 +99,17 @@ class TimeSyncTransportTest {
                 TelefonSecureChannel(pipe.input, pipe.output, ByteArray(32) { 7 }, ByteArray(32) { 11 },
                     ByteArray(4) { 12 }, ByteArray(32) { 13 }, ByteArray(4) { 14 }).use { channel ->
                     val session = PersonalNoteSession()
+                    if (timerControl) field(TelefonWerk::class.java, "activeChannel").set(work, channel)
                     @Suppress("UNCHECKED_CAST")
                     val sessions = field(TelefonWerk::class.java, "noteSessions").get(work) as MutableMap<TelefonSecureChannel, PersonalNoteSession>
                     sessions[channel] = session
                     TelefonWerk::class.java.getDeclaredMethod("ensureControlMessages", TelefonPeer::class.java)
                         .apply { isAccessible = true }.invoke(work, storage.peers().peer)
+                    if (timerControl) {
+                        queue.removeKind(peerId, "capabilities.update")
+                        queue.queue(peerId, "capabilities.update", TelefonNachrichten.capabilities(revision = storage.peers().peer!!.capabilities_revision,
+                            itemsValue = work.sharedLocalCapabilities()), 86_400_000)
+                    }
                     queue.queue(peerId, "personal_sync.settings", buildJsonObject { put("format", 1); put("own_device", true) }, 60000)
                     val send = TelefonWerk::class.java.getDeclaredMethod("sendDue", TelefonPeer::class.java, TelefonSecureChannel::class.java).apply { isAccessible = true }
                     val receive = TelefonWerk::class.java.getDeclaredMethod("receiveMessage", TelefonPeer::class.java,
@@ -100,7 +124,16 @@ class TimeSyncTransportTest {
                         when (packet.string("type")) {
                             "message" -> {
                                 TelefonNachrichten.validate(packet)
-                                receive.invoke(work, storage.peers().peer, packet, { reply: JsonObject ->
+                                if (timerControl && packet.string("kind") == TimeControlProtokoll.REQUEST) {
+                                    assertSame("Timer fixture lost its active channel", channel, field(TelefonWerk::class.java, "activeChannel").get(work))
+                                    assertTrue("Timer fixture service stopped", field(TelefonWerk::class.java, "serviceRunning").getBoolean(work))
+                                    assertEquals("Timer fixture generation changed", 0L, field(TelefonWerk::class.java, "pairingGeneration").getLong(work))
+                                    val ready = TelefonWerk::class.java.getDeclaredMethod("timeControlsReady", TelefonPeer::class.java, PersonalNoteSession::class.java)
+                                        .apply { isAccessible = true }.invoke(work, storage.peers().peer, session)
+                                    assertEquals("Timer fixture controls not fresh", true, ready)
+                                }
+                                if (timerControl) work.receiveMessage(storage.peers().peer!!, packet, channel, 0L)
+                                else receive.invoke(work, storage.peers().peer, packet, { reply: JsonObject ->
                                     val current = storage.peers().peer!!
                                     assertNotEquals("Rejected ${packet.string("kind")}: $reply; controls=" +
                                         "${session.capabilitiesReceived}/${session.grantsReceived}/${session.ownSettingsReceived}; " +
@@ -118,7 +151,7 @@ class TimeSyncTransportTest {
                             }
                             "ack" -> {
                                 TelefonNachrichten.validateAck(packet)
-                                assertNotEquals(packet.toString(), "rejected", packet.string("status"))
+                                assertNotEquals("$packet; originalKind=${queue.outboxWireMessage(peerId, packet.string("message_id"))?.get("kind")}", "rejected", packet.string("status"))
                                 acknowledge.invoke(work, peerId, packet.string("message_id"), packet.string("status"), packet.string("error"))
                             }
                             "ping" -> channel.send(buildJsonObject {
@@ -132,7 +165,13 @@ class TimeSyncTransportTest {
                     assertTrue("Native host did not complete", closed)
                     assertEquals(2, documents.bestand.value.zeiterfassung.entries.size)
                     assertEquals(originalNotes, documents.notizen()); assertEquals(originalTasks, documents.aufgaben())
-                    assertEquals(JsonPrimitive(false), storage.peers().peer!!.remote_personal_time_policy!!["enabled"])
+                    if (timerControl) {
+                        val native = documents.bestand.value.zeiterfassung
+                        assertEquals(4, native.controlReceipts.size)
+                        assertTrue(native.entries.none { it.endMinute == null })
+                        assertTrue(native.entries.any { it.type == "Native timer TCP fixture" })
+                        assertEquals(native, Ablage.fuerTest(context) { key }.bestand.value.zeiterfassung)
+                    } else assertEquals(JsonPrimitive(false), storage.peers().peer!!.remote_personal_time_policy!!["enabled"])
                 }
             }
             assertTrue(process.waitFor(10, TimeUnit.SECONDS)); assertEquals(output.readText(), 0, process.exitValue())

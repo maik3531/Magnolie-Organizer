@@ -1402,6 +1402,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
                 { SharedLocalCapabilities = () => SharedLocalCapabilities(), SharedPreferencesChanged = () => ApplyCommonPreferencesAsync(peer.Id),
                     CollectionChanged = value => emit("App.personalSyncCollection", value),
                     ActorMessageReceived = (source, message) => ReceivePersonalActorAsync(source, peer, message),
+                    TimerControlReportReceived = (source, message) => ReceiveTimeControlReportAsync(source, peer, message),
                     ActorPump = PumpPersonalActorAsync };
             var capabilityRevision = store.NextOwnRevision("capabilities"); var grantRevision = store.NextOwnRevision("grants");
             await connection.InitializeAsync(capabilityRevision);
@@ -1941,6 +1942,7 @@ internal sealed partial class TelefonConnection : IDisposable
     internal Task SendGrantsAsync(long revision, JsonObject grants) => SendMessageAsync("grants.update", new JsonObject { ["revision"] = revision, ["grants"] = grants.DeepClone() }, 86_400_000);
     internal Task HandlePlainAsync(JsonObject plain) => HandlePlainBoundAsync(plain, null);
     internal Func<TelefonConnection, JsonObject, Task>? ActorMessageReceived { get; set; }
+    internal Func<TelefonConnection, JsonObject, Task>? TimerControlReportReceived { get; set; }
     internal Func<TelefonConnection, Task>? ActorPump { get; set; }
 
     private async Task HandlePlainBoundAsync(JsonObject plain, JsonObject? scopedReference)
@@ -1951,6 +1953,11 @@ internal sealed partial class TelefonConnection : IDisposable
             if (ActorMessageReceived is not null) await ActorMessageReceived(this, plain);
             return;
         }
+        if (plain["kind"]?.GetValue<string>() == TimeControlContract.ReportKind) {
+            if (TimerControlReportReceived is not null) await TimerControlReportReceived(this, plain);
+            return;
+        }
+        if (plain["kind"]?.GetValue<string>() == TimeControlContract.RequestKind) return;
         var type = plain["type"]?.GetValue<string>();
         if (type == "ping")
         { TelefonProtocolContract.ExactObject(plain, "type", "ping_id", "sent_ms"); ValidateControlUuidAndTime(plain); await SendPlainAsync(new JsonObject { ["type"] = "pong", ["ping_id"] = plain["ping_id"]!.GetValue<string>(), ["sent_ms"] = TelefonProtocolContract.Integer(plain["sent_ms"]) }); return; }

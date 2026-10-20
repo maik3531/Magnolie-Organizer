@@ -24,7 +24,8 @@ if (args.FirstOrDefault() == "--scoped-call-host") return await OutgoingDialTest
 if (args.FirstOrDefault() == "--personal-custom-host") return await PersonalCustomTransportTests.HostAsync();
 if (args.FirstOrDefault() == "--personal-note-mode-host") return await PersonalNoteModeTransportHost.RunAsync();
 if (args.Length == 3 && args[0] == "--personal-actor-host") return await PersonalSyncActorTransportHost.RunAsync(args[1], args[2]);
-if (args.FirstOrDefault() == "--time-sync-host") return await TimeSyncTransportHost.RunAsync();
+if (args.FirstOrDefault() == "--time-sync-host") return await TimeSyncTransportHost.RunAsync(args.ElementAtOrDefault(1));
+if (args.Length == 2 && args[0] == "--time-control-host") return await TimeSyncTransportHost.RunAsync(args[1], true);
 if (args.FirstOrDefault() == "--phone-contact-read-host") return await PhoneContactReadTests.HostAsync();
 if (args.FirstOrDefault() == "--phone-developer-read-host") return await DeveloperDiagnosticsTests.HostAsync();
 if (args.FirstOrDefault() == "--waste-import-fixture")
@@ -96,6 +97,8 @@ runner.Add("ICS / VCF / LDIF / Claws / Lotus / Thunderbird", ContractGroupTests.
 runner.Add("Thunderbird local.sqlite Schema 23", ThunderbirdSchema23Tests.RunAsync);
 runner.Add("ODS Paket / XML / Styles / Geometrie / Chart", ContractGroupTests.OdsAsync);
 runner.Add("Time sync / v7 consent and strict records", TimeSyncContractTests.RunAsync);
+runner.Add("Time control / v13 native timer command contract", TimeControlContractTests.RunAsync);
+runner.Add("Time control / source-bound ephemeral requests", TimeControlTransportTests.RunAsync);
 runner.Add("Time sync / encrypted staging and durable receipts", TimeSyncStoreTests.RunAsync);
         runner.Add("Time sheet / formulas and regional layout", TimeSheetExportTests.RunAsync);
         runner.Add("Holiday scope / country and subdivision metadata", OpenHolidayDataTests.RunAsync);

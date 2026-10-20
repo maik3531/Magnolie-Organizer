@@ -32,11 +32,39 @@ visible only after that writer returns. A failed write publishes neither. The
 initial empty native restore epoch is valid only when it is the actual current
 book epoch; a restored/different epoch is rejected before mutation.
 
+## Negotiated transport
+
+The separate `time_tracking.control_request` and `time_tracking.control_report`
+messages use version 13 of `personal_tasks_sync`. Shared strict vectors are in
+`time-control-v13.json`. A full application message is bounded to 192 KiB and a
+60-second lifetime. Reads carry no mutation fields; commands carry an operation
+UUID, state revision, restore epoch and, except for start, the active entry UUID.
+There are no caller-controlled execution timestamps or vector clocks.
+
+The Notes receiver checks the current paired key, channel, generation, enabled
+service, fresh controls, both own-device confirmations, both version-13
+capabilities and current enabled time policies. A shared `phone_import` policy
+denies mutations. The ordinary capabilities receiver preserves negotiated
+version 13. It does not advertise local support on its own.
+
+Python and Windows controllers bind ephemeral requests to the actual profile,
+peer/key, exact connection and current permissions/settings. They bound pending
+requests to eight, retain at most 128 active/retired request identities and wait
+at most 15 seconds. Reports must match the request and operation UUID, current
+source and lifetime. They do not enter the ordinary outbox, GUI event stream or
+status cache. Owner-bound cancellation stops waiting; it does not recall an
+already dispatched command. Late replies cannot complete a replacement request.
+
+An ordinary acknowledgement is not a successful timer save. Only the correlated
+native command report can claim `persisted=true`, after the existing encrypted
+book writer returned or an exact durable command receipt was replayed. Read
+reports use `persisted=false`; denied reports expose no timer state. The
+`runtime_request` field distinguishes `none`, `requested` and `failed` for the
+existing alarm/service hooks; it does not assert that an OS service is running.
+
 ## Remaining integration gate
 
-This native execution boundary alone does not advertise timer-control capability
-or register MCP actions. A separate strictly typed negotiated request/report
-contract, native source-bound transport, cancellation/late-result handling and
-the desktop MCP tools must be connected and tested before remote control is
-offered. A queue or ordinary transport acknowledgement is not a successful timer
-save. Existing unsupported peers must remain explicitly unsupported.
+Production capabilities still omit version 13. Private native MCP source/query/
+cancel adapters exist; public desktop MCP tools, their output schemas, catalog
+and localized documentation remain to be connected before offering control.
+Existing unsupported peers remain explicitly unsupported.

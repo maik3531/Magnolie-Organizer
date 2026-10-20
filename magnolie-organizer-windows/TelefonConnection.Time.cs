@@ -4,6 +4,31 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed partial class TelefonConnection
 {
+    internal JsonObject TimerControlSourceSnapshot(bool mutation)
+    {
+        if (!TimeControlsReady || actorRemoteOwnDecision != true || transport is not ("wifi" or "bluetooth"))
+            throw new InvalidOperationException("timer_not_granted");
+        var current = store.LoadPeers().Single(value => value.Id == peer.Id && value.PublicKey.SequenceEqual(peer.PublicKey));
+        var local = SharedLocalCapabilities();
+        if (current.CapabilityRevision != Interlocked.Read(ref actorCapabilityRevision) || current.GrantRevision != Interlocked.Read(ref actorGrantRevision) ||
+            local["personal_tasks_sync"]?["available"]?.GetValue<bool>() != true ||
+            !(local["personal_tasks_sync"]?["versions"] as JsonArray ?? []).Any(value => TelefonProtocolContract.Integer(value) == TimeControlContract.Version) ||
+            current.Capabilities["personal_tasks_sync"]?["available"]?.GetValue<bool>() != true ||
+            !(current.Capabilities["personal_tasks_sync"]?["versions"] as JsonArray ?? []).Any(value => TelefonProtocolContract.Integer(value) == TimeControlContract.Version))
+            throw new InvalidOperationException("timer_unsupported");
+        var policies = store.TimeSettings(peer.Id);
+        if (sentTimePolicy is null || receivedTimePolicy is null || !JsonNode.DeepEquals(sentTimePolicy, policies["local"]) ||
+            !JsonNode.DeepEquals(receivedTimePolicy, policies["remote"]) || policies["local"]?["enabled"]?.GetValue<bool>() != true ||
+            policies["remote"]?["enabled"]?.GetValue<bool>() != true) throw new InvalidOperationException("timer_not_granted");
+        var shared = store.SharedSettings(peer.Id, peer.PublicKey);
+        if (mutation && shared is not null && SharedSyncSettings.Effective(shared)["time_mode"]?.GetValue<string>() == "phone_import")
+            throw new InvalidOperationException("timer_read_only");
+        return new() { ["peer"] = current.Id, ["key"] = Convert.ToBase64String(current.PublicKey), ["connection"] = actorSourceEpoch,
+            ["transport"] = transport, ["policies"] = policies.DeepClone(), ["shared"] = shared?.DeepClone(),
+            ["capabilities"] = current.Capabilities.DeepClone(), ["grants"] = current.Grants.DeepClone(), ["local_grants"] = store.LocalGrants(),
+            ["own_revision"] = Interlocked.Read(ref actorRemoteOwnRevision) };
+    }
+
     private JsonObject? sentTimePolicy, receivedTimePolicy;
     internal CancellationToken TimeCancellation => cancellation;
 

@@ -20,6 +20,7 @@ import magnolie_personal_sync as personal_sync_contract
 import magnolie_phone_contacts as phone_contacts
 from magnolie_personal_sync import CUSTOM_KINDS, validate_custom_body, accept_custom_settings, custom_scope_allowed
 import magnolie_time_sync as time_sync_contract
+import magnolie_time_control as time_control_contract
 import magnolie_shared_sync as shared_sync_contract
 import magnolie_content_scope as content_scope_contract
 import magnolie_personal_actor as personal_actor_contract
@@ -2380,6 +2381,8 @@ class PhoneService:
         self.contact_requests = {}
         self.developer_requests = {}
         self.mcp_status_requests = {}
+        self.time_control_requests = {}
+        self.time_control_retired = {}
         self.mcp_status_retired = {}
         self.mcp_status_results = {}
         self.identifier_requests = {}
@@ -2486,6 +2489,30 @@ class PhoneService:
         return peer
 
     def mcp_action(self, request):
+        if request.get("action") in ("time_control_source", "time_control_query", "time_control_cancel"):
+            try:
+                peer, expected = request.get("peerId") or "", request.get("fingerprint") or ""
+                if request["action"] == "time_control_source":
+                    action = request.get("timerAction", "read")
+                    if action not in ("read", "start", "pause", "resume", "finish"): raise ValueError("invalid_timer_action")
+                    with self.lock:
+                        source = self._time_control_source(peer, expected, action)
+                        remote = (self.store.sole_peer(peer) or {}).get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {})
+                        local = desktop_capabilities()["items"].get("personal_tasks_sync", {})
+                        supported = local.get("available") is True and remote.get("available") is True and all(time_control_contract.VERSION in value.get("versions", []) for value in (local, remote))
+                    return {"ok": source is not None, "sourceRevision": source or "", "code": "none" if source else "not_granted" if supported else "unsupported_feature"}
+                if request["action"] == "time_control_cancel":
+                    return {"ok": True, **self.cancel_time_control(peer, expected, request.get("requestId"))}
+                body = request.get("body")
+                if not isinstance(request.get("sourceRevision"), str) or re.fullmatch(r"[a-f0-9]{64}", request["sourceRevision"]) is None:
+                    raise ValueError("invalid_timer_source")
+                result = self.request_time_control(peer, expected, body, request["sourceRevision"])
+                return {"ok": True, "timeControl": result}
+            except TimeoutError: return {"ok": False, "code": "native_timeout_after_dispatch"}
+            except PermissionError as error: return {"ok": False, "code": "cancelled_after_dispatch" if "cancelled" in str(error) else "source_changed"}
+            except ValueError: return {"ok": False, "code": "invalid_selection"}
+            except RuntimeError as error: return {"ok": False, "code": "native_busy" if str(error) == "timer_control_busy" else "native_operation_failed"}
+            except OSError: return {"ok": False, "code": "native_operation_failed_after_dispatch"}
         if request.get("action") == "notes_settings_read":
             try:
                 return {"ok": True, "notesSettings": self.mcp_notes_settings(request.get("peerId"), request.get("fingerprint"))}
@@ -4484,6 +4511,96 @@ class PhoneService:
                     raise PermissionError("Deletion outside the current phone collection.")
         return manifest
 
+    def _time_control_source(self, peer_id, expected_fingerprint, action="read"):
+        peer = self.store.sole_peer(peer_id)
+        channel = self.connections.get(peer_id)
+        local = desktop_capabilities()["items"].get("personal_tasks_sync", {})
+        remote = (peer or {}).get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {})
+        if (not self.enabled or self.stop_event.is_set() or not peer or peer.get("state") != "paired" or
+                not isinstance(expected_fingerprint, str) or fingerprint(unb64(peer["static_public"], 32)).upper() != expected_fingerprint.upper() or
+                not local.get("available") or time_control_contract.VERSION not in local.get("versions", []) or
+                not remote.get("available") or time_control_contract.VERSION not in remote.get("versions", []) or
+                not self._time_controls_ready(peer, channel) or not self.personal_sync_available()):
+            return None
+        policies = self.store.time_settings(peer_id)
+        session = self._time_session(peer, channel)
+        if (not policies.get("local") or not policies.get("remote") or session["sent"] != policies["local"] or session["received"] != policies["remote"] or
+                policies["local"].get("enabled") is not True or policies["remote"].get("enabled") is not True):
+            return None
+        shared = self.store.shared_settings(peer_id, peer["static_public"])
+        if action != "read" and shared is not None and shared_sync_contract.effective(shared)["time_mode"] == "phone_import":
+            return None
+        source = {"profile": os.path.realpath(self.store.database_path), "peer": peer_id, "key": peer["static_public"],
+            "channel": self._actor_channel_source(channel)["nonce"], "generation": self._generation,
+            "transport": self.connection_transports.get(peer_id), "own": peer.get("personal_sync"), "policies": policies,
+            "capabilities": peer.get("capabilities"), "grants": peer.get("grants"), "local_grants": peer.get("local_grants"), "shared": shared}
+        return hmac.new(self._mcp_revision_key, canonical(source), hashlib.sha256).hexdigest()
+
+    def request_time_control(self, peer_id, expected_fingerprint, body, expected_source=None, cancelled=None):
+        time_control_contract.validate_request(body)
+        request_id = body["request_id"]; action = body["action"]
+        with self.lock:
+            now = time.monotonic()
+            self.time_control_retired = {key: until for key, until in self.time_control_retired.items() if until > now}
+            source = self._time_control_source(peer_id, expected_fingerprint, action)
+            if source is None or expected_source is not None and source != expected_source:
+                raise PermissionError("timer_source_changed")
+            if len(self.time_control_requests) >= 8 or len(self.time_control_retired) + len(self.time_control_requests) >= 128:
+                raise RuntimeError("timer_control_busy")
+            if request_id in self.time_control_requests or request_id in self.time_control_retired:
+                raise PermissionError("timer_request_reused")
+            peer = self.store.sole_peer(peer_id); channel = self.connections[peer_id]
+            wire = self._actor_control_message(time_control_contract.REQUEST, body)
+            if len(canonical(wire)) > time_control_contract.MAX_WIRE: raise ValueError("timer_request_too_large")
+            entry = {"peer": peer_id, "key": peer["static_public"], "channel": channel, "fingerprint": expected_fingerprint,
+                "action": action, "operation_id": body["operation_id"], "source": source, "deadline": now + 15,
+                "event": threading.Event(), "result": None, "error": None, "message_id": wire["message_id"], "cancelled": False}
+            self.time_control_requests[request_id] = entry
+        try:
+            if cancelled is not None and cancelled.is_set(): raise PermissionError("timer_cancelled")
+            channel.send(wire)
+            while not entry["event"].wait(0.05):
+                if cancelled is not None and cancelled.is_set(): raise PermissionError("timer_cancelled_after_dispatch")
+                if time.monotonic() >= entry["deadline"]: raise TimeoutError("timer_control_timeout_after_dispatch")
+            with self.lock:
+                if (entry["cancelled"] or cancelled is not None and cancelled.is_set() or entry["error"] or
+                        self._time_control_source(peer_id, expected_fingerprint, action) != source or self.connections.get(peer_id) is not channel):
+                    raise PermissionError("timer_source_changed_after_dispatch")
+                return {"report": copy.deepcopy(entry["result"]), "source_revision": source, "dispatch_started": True}
+        finally:
+            with self.lock:
+                self.time_control_requests.pop(request_id, None)
+                self.time_control_retired[request_id] = max(time.monotonic(), entry["deadline"]) + 660
+
+    def cancel_time_control(self, peer_id, expected_fingerprint, request_id):
+        with self.lock:
+            entry = self.time_control_requests.get(request_id)
+            owned = (entry is not None and entry["peer"] == peer_id and
+                    fingerprint(unb64(entry["key"], 32)).upper() == str(expected_fingerprint).upper())
+            if owned:
+                entry["cancelled"] = True; entry["result"] = None; entry["event"].set()
+            return {"request_id": request_id, "cancel_requested": owned, "remote_recall_confirmed": False}
+
+    def _receive_time_control_report(self, peer, channel, payload):
+        try:
+            if (set(payload) != {"type", "v", "message_id", "kind", "created_ms", "expires_ms", "body"} or payload["type"] != "message" or payload["kind"] != time_control_contract.REPORT or
+                    type(payload["v"]) is not int or payload["v"] != 1 or not valid_uuid(payload["message_id"], 4) or
+                    not valid_timestamp(payload["created_ms"]) or not valid_timestamp(payload["expires_ms"]) or
+                    not 0 < payload["expires_ms"] - payload["created_ms"] <= 60000 or payload["expires_ms"] <= now_ms() or
+                    payload["created_ms"] > now_ms() + CLOCK_SKEW_MS or len(canonical(payload)) > time_control_contract.MAX_WIRE):
+                return
+            body = time_control_contract.validate_report(payload["body"])
+            with self.lock:
+                entry = self.time_control_requests.get(body["request_id"])
+                if (entry is None or entry["result"] is not None or entry["cancelled"] or time.monotonic() >= entry["deadline"] or
+                        (entry["peer"], entry["key"], entry["channel"], entry["operation_id"]) !=
+                        (peer["device_id"], peer["static_public"], channel, body["operation_id"]) or
+                        self._time_control_source(entry["peer"], entry["fingerprint"], entry["action"]) != entry["source"]):
+                    return
+                entry["result"] = copy.deepcopy(body); entry["event"].set()
+        except (ValueError, TypeError, KeyError, PermissionError):
+            return
+
     def _time_supported(self, peer):
         remote = peer.get("capabilities", {}).get("items", {}).get("personal_tasks_sync", {})
         return (time_sync_contract.VERSION in desktop_capabilities()["items"]["personal_tasks_sync"]["versions"]
@@ -6136,6 +6253,11 @@ class PhoneService:
         if personal_actor_contract.is_reserved_message(payload):
             self._receive_personal_actor(peer, channel, payload)
             return
+        if payload.get("kind") == time_control_contract.REPORT:
+            self._receive_time_control_report(peer, channel, payload)
+            return
+        if payload.get("kind") == time_control_contract.REQUEST:
+            return  # Desktop is not the native running-timer owner.
         if payload.get("type") in ("ping", "pong") and set(payload) == {
                 "type", "ping_id", "sent_ms"}:
             if (not valid_uuid(payload["ping_id"], 4)
@@ -6153,7 +6275,7 @@ class PhoneService:
                 return
             if payload["status"] == "rejected":
                 with self.lock:
-                    for request in list(self.contact_requests.values()) + list(self.developer_requests.values()) + list(self.mcp_status_requests.values()):
+                    for request in list(self.contact_requests.values()) + list(self.developer_requests.values()) + list(self.mcp_status_requests.values()) + list(self.time_control_requests.values()):
                         if (request.get("message_id") == payload["message_id"] and
                                 (request["peer"], request["key"], request["channel"]) ==
                                 (peer["device_id"], peer["static_public"], channel) and
