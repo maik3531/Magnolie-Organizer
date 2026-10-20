@@ -850,7 +850,12 @@ def _request_shape(operation, arguments):
             raise IPCError("invalid KDE lifecycle request")
     if operation == "phone_mcp_action":
         request = arguments.get("request")
-        if isinstance(request, dict) and request.get("action") in TIME_CONTROL_ACTIONS:
+        if isinstance(request, dict) and request.get("action") == "call_context_read":
+            if (set(arguments) != {"request"} or set(request) != {"action", "peerId", "fingerprint"} or len(encoded.encode("utf-8")) > 8192 or
+                    not _status_query_id(request.get("peerId")) or not isinstance(request.get("fingerprint"), str) or
+                    not re.fullmatch(r"[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}", request["fingerprint"])):
+                raise IPCError("invalid phone call-context request")
+        elif isinstance(request, dict) and request.get("action") in TIME_CONTROL_ACTIONS:
             action = request["action"]
             fields = {"action", "peerId", "fingerprint"} | ({"timerAction"} if action == "time_control_source" else
                 {"sourceRevision", "body"} if action == "time_control_query" else {"requestId"})
@@ -1461,7 +1466,7 @@ class IPCServer:
                                                                arguments['enabled'], permitted=permitted)
                 elif operation.startswith("phone_"):
                     if operation in ("phone_open_pairing", "phone_cancel_pairing", "phone_confirm_pairing", "phone_remove", "phone_set_enabled", "phone_set_bluetooth") or (
-                            operation == "phone_mcp_action" and arguments["request"].get("action") not in ("device_status_query", "device_status_cancel", *TIME_CONTROL_ACTIONS)):
+                            operation == "phone_mcp_action" and arguments["request"].get("action") not in ("device_status_query", "device_status_cancel", "call_context_read", *TIME_CONTROL_ACTIONS)):
                         with self._mutation_lock:
                             result = self._phone_operation(operation, arguments)
                     else:
@@ -1509,7 +1514,7 @@ class IPCServer:
                 and not normalize_settings(self.settings_getter())["permissions"]["phone_call_notifications"]):
             raise IPCError("call notifications are not permitted")
         if (operation in ("phone_open_pairing", "phone_cancel_pairing", "phone_confirm_pairing", "phone_remove", "phone_set_enabled", "phone_set_bluetooth") or
-                operation == "phone_mcp_action" and arguments["request"].get("action") not in ("device_status_cancel", "time_control_cancel")) and \
+                operation == "phone_mcp_action" and arguments["request"].get("action") not in ("device_status_cancel", "time_control_cancel", "call_context_read")) and \
                 self.setup_sessions.connecting_transport in ("wifi", "bluetooth"):
             raise IPCError("Another phone setup session is active.")
         if operation == "phone_take_event":

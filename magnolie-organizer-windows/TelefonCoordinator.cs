@@ -1403,6 +1403,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
                     CollectionChanged = value => emit("App.personalSyncCollection", value),
                     ActorMessageReceived = (source, message) => ReceivePersonalActorAsync(source, peer, message),
                     TimerControlReportReceived = (source, message) => ReceiveTimeControlReportAsync(source, peer, message),
+                    CallContextObserved = ObserveCallContext,
                     ActorPump = PumpPersonalActorAsync };
             var capabilityRevision = store.NextOwnRevision("capabilities"); var grantRevision = store.NextOwnRevision("grants");
             await connection.InitializeAsync(capabilityRevision);
@@ -1943,6 +1944,7 @@ internal sealed partial class TelefonConnection : IDisposable
     internal Task HandlePlainAsync(JsonObject plain) => HandlePlainBoundAsync(plain, null);
     internal Func<TelefonConnection, JsonObject, Task>? ActorMessageReceived { get; set; }
     internal Func<TelefonConnection, JsonObject, Task>? TimerControlReportReceived { get; set; }
+    internal Action<TelefonConnection, TelefonPeer, JsonObject>? CallContextObserved { get; set; }
     internal Func<TelefonConnection, Task>? ActorPump { get; set; }
 
     private async Task HandlePlainBoundAsync(JsonObject plain, JsonObject? scopedReference)
@@ -2132,6 +2134,8 @@ internal sealed partial class TelefonConnection : IDisposable
                 }
             }
         }
+        if (plain["kind"]?.GetValue<string>() == "incoming_call_state.event" && ack.Status == "accepted" && ack.Process)
+            CallContextObserved?.Invoke(this, peer, plain["body"]!.AsObject());
         if (plain["kind"]?.GetValue<string>() == "capabilities.update" && ack.Status is "accepted" or "duplicate")
             await SendNoteSettingsAsync();
         if (plain["kind"]?.GetValue<string>() is "capabilities.update" or "personal_sync.settings" && ack.Status is "accepted" or "duplicate")

@@ -2401,6 +2401,7 @@ class PhoneService:
         self.bluetooth_retry_at = {}
         self.incoming_calls = {}
         self.incoming_call_channels = {}
+        self.call_context_receipts = {}
         from magnolie_anruf_audio import AnrufBluetooth
         self.call_audio = call_audio or AnrufBluetooth()
         self.call_audio.foreign_connection = self._audio_data_connection_in_use
@@ -2489,6 +2490,15 @@ class PhoneService:
         return peer
 
     def mcp_action(self, request):
+        if request.get("action") == "call_context_read":
+            try:
+                if set(request) != {"action", "peerId", "fingerprint"}:
+                    raise ValueError("invalid_call_context_request")
+                return {"ok": True, "callContext": self.mcp_call_context(request.get("peerId"), request.get("fingerprint"))}
+            except PermissionError:
+                return {"ok": False, "code": "not_granted"}
+            except (ValueError, TypeError, KeyError):
+                return {"ok": False, "code": "invalid_selection"}
         if request.get("action") in ("time_control_source", "time_control_query", "time_control_cancel"):
             try:
                 peer, expected = request.get("peerId") or "", request.get("fingerprint") or ""
@@ -3150,6 +3160,7 @@ class PhoneService:
         self._purge_identifiers(peer_id)
         self.incoming_calls.pop(peer_id, None)
         self.incoming_call_channels.pop(peer_id, None)
+        self.call_context_receipts.pop(peer_id, None)
         self.wifi_missing_since.pop(peer_id, None)
         self.bluetooth_retry_at.pop(peer_id, None)
         if not self.store.peers:
@@ -4817,12 +4828,12 @@ class PhoneService:
                     if kind == "personal_sync.settings" else peer.get("capabilities" if kind == "capabilities.update" else "grants"))
         if body == expected:
             try:
-                if kind == "personal_sync.settings":
-                    with self.lock:
-                        source = self._actor_channel_source(channel)
-                        if source["own"] is not body["own_device"]:
-                            source["own"] = body["own_device"]
-                            source["own_revision"] += 1
+                with self.lock:
+                    source = self._actor_channel_source(channel)
+                    source.setdefault("call_peer", (peer["device_id"], peer["static_public"]))
+                    if kind == "personal_sync.settings" and source["own"] is not body["own_device"]:
+                        source["own"] = body["own_device"]
+                        source["own_revision"] += 1
                 self.note_controls.setdefault(channel, {})[kind] = json.loads(json.dumps(body))
                 self._queue_time_settings(peer["device_id"], channel)
                 self._queue_shared_settings(peer["device_id"], channel)
@@ -5279,6 +5290,48 @@ class PhoneService:
             for message in queued:
                 self._send_message(channel, peer_id, message)
         return queued[-1]["message_id"]
+
+    def mcp_call_context(self, peer_id, expected_fingerprint):
+        """Current native authority plus a session event, never a fresh OS query."""
+        with self.lock:
+            peer = self.store.peer(peer_id)
+            channel = self.connections.get(peer_id)
+            if (not self.enabled or self.stop_event.is_set() or not peer or peer.get("state") != "paired" or
+                    not isinstance(expected_fingerprint, str) or
+                    fingerprint(unb64(peer["static_public"], 32)).upper() != expected_fingerprint.upper() or
+                    channel is None or self.connection_transports.get(peer_id) not in ("wifi", "bluetooth")):
+                raise PermissionError("call_source_unavailable")
+            controls = self._note_controls_for(channel)
+            native_channel = self._actor_channel_source(channel)
+            if (native_channel.get("call_peer") != (peer_id, peer["static_public"]) or
+                    controls.get("capabilities.update") != peer.get("capabilities") or controls.get("grants.update") != peer.get("grants")):
+                raise PermissionError("call_controls_not_fresh")
+            local = peer.get("local_grants", {}).get("grants", {})
+            remote = peer.get("grants", {}).get("grants", {})
+            capabilities = peer.get("capabilities", {}).get("items", {})
+            def capability(name, version=1):
+                value = capabilities.get(name, {})
+                return value.get("available") is True and version in value.get("versions", [])
+            permissions = {name: capability(name, 2 if name == "incoming_call_state" else 1) and
+                local.get(name) is True and remote.get(name) is True
+                for name in ("dial_request", "incoming_call_state", "answer_call", "end_call")}
+            event = self.incoming_calls.get(peer_id)
+            receipt = self.call_context_receipts.get(peer_id)
+            current = None
+            if (permissions["incoming_call_state"] and event is not None and receipt is not None and
+                    self.incoming_call_channels.get(peer_id) is channel and
+                    receipt[:3] == (peer["static_public"], channel, hashlib.sha256(canonical(event)).hexdigest())):
+                current = {"call_ref": event["call_ref"], "revision": str(event["revision"]), "state": event["state"],
+                    "direction": event["direction"], "phone_occurred_ms": event["occurred_ms"], "native_received_ms": receipt[3],
+                    "observation": "authenticated_session_event", "phone_status_queried": False}
+            authority = {"profile": os.path.realpath(self.store.database_path), "peer": peer_id, "key": peer["static_public"],
+                "channel": native_channel["nonce"], "generation": self._generation,
+                "transport": self.connection_transports[peer_id], "capabilities": peer.get("capabilities"),
+                "grants": peer.get("grants"), "local_grants": peer.get("local_grants"), "call": current}
+            return {"peer_id": peer_id, "fingerprint": fingerprint(unb64(peer["static_public"], 32)),
+                "source_revision": hmac.new(self._mcp_revision_key, canonical(authority), hashlib.sha256).hexdigest(),
+                "transport": self.connection_transports[peer_id], "permissions": permissions, "call": current,
+                "phone_status_queried": False, "persisted": False}
 
     def request_dial(self, peer_id, destination, client_ref):
         peer = self.store.peer(peer_id)
@@ -6177,6 +6230,7 @@ class PhoneService:
             if pending_call is None:
                 self.incoming_calls.pop(peer_id, None)
                 self.incoming_call_channels.pop(peer_id, None)
+                self.call_context_receipts.pop(peer_id, None)
             self.call_action_tickets = {key: value for key, value in self.call_action_tickets.items()
                 if value[0] != peer_id}
             self.connections[peer_id] = channel
@@ -6746,6 +6800,8 @@ class PhoneService:
                         raise ValueError("stale call revision")
                     self.incoming_calls[peer["device_id"]] = value
                     self.incoming_call_channels[peer["device_id"]] = channel
+                    self.call_context_receipts[peer["device_id"]] = (peer["static_public"], channel,
+                        hashlib.sha256(canonical(value)).hexdigest(), now_ms())
                     if previous_call and previous_call["call_ref"] != value["call_ref"]:
                         self.audio_retired_calls.append((peer["device_id"], previous_call["call_ref"]))
                     if value["state"] == "idle":
