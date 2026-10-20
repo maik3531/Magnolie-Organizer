@@ -385,6 +385,16 @@ scope/removal rules and guarded completion apply to both paths. This is a shared
 engine prerequisite for book-derived actor replies, not a native owner admission,
 review commit or publication of actor tools.
 
+The same existing merge engine now accepts an explicit private book for scoped
+format-3 review. This path requires an explicit selection and captures no editor
+draft. Note/book/attachment lookup, alias reconciliation, task updates and
+deterministic conflict copies stay inside that book. Ordinary GUI import and
+legacy paths retain their wrapper and handlers. Hash/scope validation precedes
+application and the supplied owner guard is rechecked at completion. These
+primitives do not authorize native staging access or save the reviewed book;
+owner-bound review jobs, checkpoint/SaveACK/commit and reply production remain
+integration gates.
+
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
 chunk replay cannot produce another result. Both TCP fixtures wait for the
