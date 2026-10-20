@@ -111,7 +111,9 @@ def main():
                             sink = io.BytesIO()
                             if not service.store.verify_incoming_attachment(private, handle.actor_id, False, aggregate_hash, descriptor["sha256"], sink):
                                 continue
-                            assert sink.getvalue() == bytes([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3])
+                            value = sink.getvalue()
+                            assert len(value) == phone.CHUNK_RAW * 9 + 11
+                            assert value[:11] == bytes([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]) and value[11:] == bytes(len(value) - 11)
                             assert receipt["request_replayed"]
                             if not transfer_confirmed:
                                 continue

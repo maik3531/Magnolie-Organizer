@@ -336,6 +336,12 @@ marked messages to their private core run namespace rather than a GUI run.
 The Python TCP fixture drops the initial attachment request before framing and
 requires the native retry of its original message ID.
 
+Attachment requests use deterministic windows of at most eight chunks per hash,
+matching the existing Notes producer's per-request bound. Window identity includes
+reply, records hash, attachment hash and range; replay does not schedule another
+copy. The retained outbound identity limit remains 4096. Both TCP fixtures transfer
+a ten-chunk image through multiple native request windows and verify all bytes.
+
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
 chunk replay cannot produce another result. Both TCP fixtures wait for the

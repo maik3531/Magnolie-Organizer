@@ -54,7 +54,8 @@ class PersonalSyncActorTransportTest {
         File(context.filesDir, "telefon").deleteRecursively(); context.deleteDatabase("magnolie_phone.db")
         val documents = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
         field(Ablage::class.java, "einzig").set(null, documents)
-        val image = byteArrayOf(137.toByte(), 80, 78, 71, 13, 10, 26, 10, 1, 2, 3)
+        val image = ByteArray(PersonalSyncProtokoll.CHUNK_RAW * 9 + 11)
+        byteArrayOf(137.toByte(), 80, 78, 71, 13, 10, 26, 10, 1, 2, 3).copyInto(image)
         documents.setzeNotiz(Notiz("phone-note", "Owned phone snapshot", "Only private staging", angelegt = 1, geaendert = 2,
             anhaenge = listOf(io.gitlab.maik3531.magnolienotes.daten.Anhang("actor-image", "owned.png", "image",
                 "data:image/png;base64," + java.util.Base64.getEncoder().encodeToString(image)))))

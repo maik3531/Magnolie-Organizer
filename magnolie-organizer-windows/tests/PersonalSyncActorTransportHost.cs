@@ -107,7 +107,9 @@ internal static class PersonalSyncActorTransportHost
                 }
                 var attachment = personal.ReadVerifiedAttachment(privatePeer, handle.ActorId, false, staged.RecordsHash, hash,
                     "incoming", "wifi", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
-                TestAssert.That(attachment.SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3 }), "Native actor attachment integrity failed.");
+                TestAssert.That(attachment.Length == PersonalSyncContract.ChunkRaw * 9 + 11 &&
+                    attachment.Take(11).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3 }) && attachment.Skip(11).All(value => value == 0),
+                    "Native multi-window actor attachment integrity failed.");
                 CryptographicOperations.ZeroMemory(attachment);
                 var transfer = await transferReceipt.Task.WaitAsync(TimeSpan.FromSeconds(10), deadline.Token);
                 await coordinator.WithPersonalActorStoreAsync(registry => registry.Read(handle, transfer["message_id"]!.GetValue<string>()));

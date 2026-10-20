@@ -4031,7 +4031,6 @@ class PhoneService:
         body = aggregate["messages"][-1]["body"]
         identity = (body["reply"], body["records_hash"])
         requests = admission.setdefault("attachment_requests", {})
-        wants = []
         descriptors = {}
         for record in aggregate["records"]:
             if record["kind"] != "note":
@@ -4041,18 +4040,21 @@ class PhoneService:
                 if (previous["size"], previous["mime"]) != (item["size"], item["mime"]):
                     raise ValueError("conflicting_actor_attachment_manifest")
         for digest, descriptor in sorted(descriptors.items()):
-            wants.append({"sha256": digest, "ranges": [[0, (descriptor["size"] + CHUNK_RAW - 1) // CHUNK_RAW]]})
-        if not wants:
-            return
-        for offset in range(0, len(wants), 64):
-            part = identity + (offset,)
-            if part in requests:
-                continue
-            request = {"format": 2, "run_id": handle.actor_id, "reply": body["reply"],
-                "records_hash": body["records_hash"], "wants": wants[offset:offset + 64]}
-            wire = self.store.queue(admission["peer"], "personal_sync.attachment_request", request, 60000, actor_run_id=handle.actor_id)
-            admission["outbound"].add(wire["message_id"])
-            requests[part] = wire["message_id"]
+            total = (descriptor["size"] + CHUNK_RAW - 1) // CHUNK_RAW
+            for start in range(0, total, 8):
+                end = min(start + 8, total)
+                part = identity + (digest, start, end)
+                if part in requests:
+                    continue
+                # The existing Notes producer serves at most eight chunks per request.
+                # Each queued control must therefore describe a complete bounded window.
+                if len(admission["outbound"]) >= 4096:
+                    raise RuntimeError("actor_capacity")
+                request = {"format": 2, "run_id": handle.actor_id, "reply": body["reply"],
+                    "records_hash": body["records_hash"], "wants": [{"sha256": digest, "ranges": [[start, end]]}]}
+                wire = self.store.queue(admission["peer"], "personal_sync.attachment_request", request, 60000, actor_run_id=handle.actor_id)
+                admission["outbound"].add(wire["message_id"])
+                requests[part] = wire["message_id"]
         registry.require_current(handle)
 
     def _queue_actor_attachment_result(self, admission, content):

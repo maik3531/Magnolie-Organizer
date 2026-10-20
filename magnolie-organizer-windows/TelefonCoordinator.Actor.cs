@@ -198,28 +198,26 @@ internal sealed partial class TelefonCoordinator
             .SelectMany(value => (value["value"]?["attachments"] as JsonArray ?? []).OfType<JsonObject>())
             .GroupBy(value => value["sha256"]!.GetValue<string>(), StringComparer.Ordinal).OrderBy(value => value.Key, StringComparer.Ordinal).ToArray();
         var run = personalSync.LoadRun(staged.PeerId, staged.RunId, Now()) ?? throw new InvalidDataException("Actor run missing.");
-        for (var offset = 0; offset < descriptors.Length; offset += 64)
+        foreach (var group in descriptors)
         {
-            var key = $"{staged.Reply}:{staged.RecordsHash}:{offset}";
-            if (admission.AttachmentRequests.Contains(key)) continue;
-            var wants = new JsonArray();
-            foreach (var group in descriptors.Skip(offset).Take(64))
+            var descriptor = group.First();
+            if (group.Any(value => !JsonNode.DeepEquals(value["size"], descriptor["size"]) || !JsonNode.DeepEquals(value["mime"], descriptor["mime"])))
+                throw new InvalidDataException("Conflicting actor attachment manifest.");
+            personalSync.StageAttachment(staged.PeerId, staged.RunId, staged.Reply, staged.RecordsHash, descriptor, "incoming", run.Policy, run.ExpiresMs, []);
+            var ranges = personalSync.MissingAttachmentRanges(staged.PeerId, staged.RunId, staged.Reply, staged.RecordsHash, group.Key, "incoming", Now());
+            var total = (TelefonProtocolContract.Integer(descriptor["size"]) + PersonalSyncContract.ChunkRaw - 1) / PersonalSyncContract.ChunkRaw;
+            for (var start = 0; start < total; start += 8)
             {
-                var descriptor = group.First();
-                if (group.Any(value => !JsonNode.DeepEquals(value["size"], descriptor["size"]) || !JsonNode.DeepEquals(value["mime"], descriptor["mime"])))
-                    throw new InvalidDataException("Conflicting actor attachment manifest.");
-                personalSync.StageAttachment(staged.PeerId, staged.RunId, staged.Reply, staged.RecordsHash, descriptor, "incoming", run.Policy, run.ExpiresMs, []);
-                var ranges = personalSync.MissingAttachmentRanges(staged.PeerId, staged.RunId, staged.Reply, staged.RecordsHash, group.Key, "incoming", Now());
-                if (ranges.Count != 0) wants.Add(new JsonObject { ["sha256"] = group.Key,
-                    ["ranges"] = new JsonArray(ranges.Select(value => (JsonNode)new JsonArray(value.Start, value.End)).ToArray()) });
-            }
-            if (wants.Count != 0)
-            {
+                var end = Math.Min(start + 8, total);
+                var key = $"{staged.Reply}:{staged.RecordsHash}:{group.Key}:{start}:{end}";
+                if (admission.AttachmentRequests.Contains(key) || !ranges.Any(value => value.Start < end && value.End > start)) continue;
+                if (admission.Outbound.Count >= 4096) throw new InvalidOperationException("actor_capacity");
+                // Notes' existing producer serves at most eight chunks per request.
+                var wants = new JsonArray(new JsonObject { ["sha256"] = group.Key, ["ranges"] = new JsonArray(new JsonArray(start, end)) });
                 var body = new JsonObject { ["format"] = 2, ["run_id"] = staged.RunId, ["reply"] = staged.Reply, ["records_hash"] = staged.RecordsHash, ["wants"] = wants };
                 var id = store.Enqueue(admission.PeerId, "personal_sync.attachment_request", body, 60000, Now(), actorRunId: staged.RunId);
-                admission.Outbound.Add(id);
+                admission.Outbound.Add(id); admission.AttachmentRequests.Add(key);
             }
-            admission.AttachmentRequests.Add(key);
         }
     }
 
