@@ -22869,6 +22869,11 @@ class Fenster(_FENSTER_BASIS):
                         warnung = fehler_deutsch(fehler, _("Saving the data"))
                     self._aktuelle_daten = daten
                     lease.saved(previous, daten, klartext, proof, changed, covered, time.monotonic())
+                    book_owner = getattr(self, "_notes_actor_book_owner", None)
+                    observed = book_owner.record_saved(*self._telefon_actor_buchbindung(), lease.ack) if book_owner is not None else None
+                    if observed is not None:
+                        self._notes_actor_saved_data = (observed["book_source"], observed["sequence"],
+                            hashlib.sha256(json.dumps(daten, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest())
                     if not warnung:
                         try:
                             if erinnerungsdaten_schreiben(kennwort=getattr(self, "_kennwort", ""),
@@ -23983,14 +23988,25 @@ class Fenster(_FENSTER_BASIS):
         if art in ("status", "paired", "device_status"):
             self._telefon_stand_melden()
 
-    def _telefon_actor_buchquelle(self):
+    def _telefon_actor_buchbindung(self):
         # Native fields only: never call GTK/a main loop from a receiver/store callback.
         data = self._aktuelle_daten
         available = (not self._gesperrt and isinstance(data, dict) and
             not self._operation_laeuft and not self._sync_laeuft and not self._wirklich_beenden)
         binding = json.dumps([os.path.realpath(daten_datei()), str(self._daten_dek_kennung or ""),
             str(data.get("syncEpoch", "")) if isinstance(data, dict) else ""], ensure_ascii=False)
-        return self._notes_actor_book_owner.current(binding, available)
+        return binding, available
+
+    def _telefon_actor_buchquelle(self):
+        return self._notes_actor_book_owner.current(*self._telefon_actor_buchbindung())
+
+    def _telefon_actor_buchnachweis(self):
+        state = self._notes_actor_book_owner.save_state(*self._telefon_actor_buchbindung())
+        observed = getattr(self, "_notes_actor_saved_data", None)
+        if state is None or observed is None or (state["book_source"], state["sequence"]) != observed[:2]:
+            return None
+        current = hashlib.sha256(json.dumps(self._aktuelle_daten, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+        return state if current == observed[2] else None
 
     def _telefon_dienst_pflegen(self, start_listener=True):
         with self._telefon_sperre:

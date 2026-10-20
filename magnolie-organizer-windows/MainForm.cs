@@ -49,6 +49,7 @@ internal sealed class MainForm : Form
     {
         telefonCoordinator = coordinator;
         coordinator.NativeBookSource = () => dispatcher?.NativeActorBookSource();
+        coordinator.NativeSavedBook = () => dispatcher?.NativeActorSavedBook();
     }
 
     internal MainForm(bool trayStart = false, bool reminderStart = false,

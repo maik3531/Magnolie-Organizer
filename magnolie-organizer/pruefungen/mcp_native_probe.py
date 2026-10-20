@@ -508,13 +508,24 @@ def client():
             book_source = window._telefon_actor_buchquelle()
             assert isinstance(book_source, str) and len(book_source) == 64
             palette = settings_tool("organizer_category_colors_read")
-            settings_tool("organizer_category_colors_update", {"expected_revision": palette["revision"], "colors": []})
+            settings_tool("organizer_category_colors_update", {"expected_revision": palette["revision"], "colors": [{"name": "Owned save proof", "color": "#3366AA"}]})
+            changed_palette = settings_tool("organizer_category_colors_read")
+            settings_tool("organizer_category_colors_update", {"expected_revision": changed_palette["revision"], "colors": []})
             assert window._telefon_actor_buchquelle() == book_source, "Normal SaveACK changed native book ownership"
+            saved_book = window._telefon_actor_buchnachweis()
+            assert saved_book and saved_book["book_source"] == book_source and saved_book["sequence"] > 0
+            assert saved_book["sha256"] == hashlib.sha256(data_file.read_bytes()).hexdigest()
+            window._aktuelle_daten["owned_unsaved_receipt_probe"] = True
+            assert window._telefon_actor_buchnachweis() is None, "Unsaved native cache change inherited actual-store proof"
+            del window._aktuelle_daten["owned_unsaved_receipt_probe"]
+            assert window._telefon_actor_buchnachweis() == saved_book
+            state["native_actor_actual_save_observation_verified"] = True
             product._organizer_gui_bereitschaft(window, False)
             assert window._telefon_actor_buchquelle() is None
             product._organizer_gui_bereitschaft(window, True)
             reopened_source = window._telefon_actor_buchquelle()
             assert reopened_source and reopened_source != book_source
+            assert window._telefon_actor_buchnachweis() is None, "Reopened book inherited an earlier save observation"
             state["native_actor_book_owner_verified"] = True
             import magnolie_hintergrund as actor_background
             from test_hintergrunddienst import FakeBackend as ActorBookBackend

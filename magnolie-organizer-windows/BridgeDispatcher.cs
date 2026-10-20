@@ -31,6 +31,11 @@ internal sealed partial class BridgeDispatcher : IDisposable
     }
     internal string? NativeActorBookSource() => actorBookOwner.Current(Path.GetFullPath(paths.Data),
         currentPlainTextAvailable && !restoreInProgress && !disposed);
+    internal NativeBookSaveState? NativeActorSavedBook()
+    {
+        var state = actorBookOwner.SaveState(Path.GetFullPath(paths.Data), currentPlainTextAvailable && !restoreInProgress && !disposed);
+        return state is not null && state.Sequence > 0 && state.Sha256 == BaumSyncSnapshot.Hash(currentPlainText) ? state : null;
+    }
     private int failedUnlocks;
     private long unlockBlockedUntil;
     private readonly ReminderScheduler reminders;
@@ -915,6 +920,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             else store.WriteRecoverableJson(paths.Data, text);
             currentPlainText = text;
             currentPlainTextAvailable = true;
+            actorBookOwner.RecordSaved(Path.GetFullPath(paths.Data), !restoreInProgress && !disposed, BaumSyncSnapshot.Hash(text));
             baumSyncSnapshot.Saved(previousText, text, treeProof, changed, coveredByTree);
             if (coveredBySync) syncSnapshotHandoff.Saved();
             if (contactPlan is not null) contactCleanupSnapshot.Planned(contactPlan);

@@ -37,6 +37,13 @@ class NativeBookOwnerScope:
         self._ready = False
         self._binding = None
         self._source = None
+        self._save_sequence = 0
+        self._saved_hash = ""
+
+    def _invalidate_locked(self):
+        self._binding = self._source = None
+        self._save_sequence = 0
+        self._saved_hash = ""
 
     def set_ready(self, ready):
         if type(ready) is not bool:
@@ -44,22 +51,43 @@ class NativeBookOwnerScope:
         with self._lock:
             self._ready = ready
             if not ready:
-                self._binding = self._source = None
+                self._invalidate_locked()
 
     def invalidate(self):
         with self._lock:
-            self._binding = self._source = None
+            self._invalidate_locked()
 
     def current(self, native_binding, native_available):
         with self._lock:
-            if (not self._ready or native_available is not True or
-                    not isinstance(native_binding, str) or not native_binding):
-                self._binding = self._source = None
+            return self._current_locked(native_binding, native_available)
+
+    def _current_locked(self, native_binding, native_available):
+        if (not self._ready or native_available is not True or
+                not isinstance(native_binding, str) or not native_binding):
+            self._invalidate_locked()
+            return None
+        if self._source is None or self._binding != native_binding:
+            self._invalidate_locked()
+            self._binding = native_binding
+            self._source = secrets.token_hex(32)
+        return self._source
+
+    def record_saved(self, native_binding, native_available, sha256):
+        """Native writer observation only, after actual store commit; never a client receipt."""
+        if not isinstance(sha256, str) or not HEX.fullmatch(sha256):
+            raise ValueError("Invalid native saved-book hash")
+        with self._lock:
+            source = self._current_locked(native_binding, native_available)
+            if source is None:
                 return None
-            if self._source is None or self._binding != native_binding:
-                self._binding = native_binding
-                self._source = secrets.token_hex(32)
-            return self._source
+            self._save_sequence += 1
+            self._saved_hash = sha256
+            return {"book_source": source, "sequence": self._save_sequence, "sha256": self._saved_hash}
+
+    def save_state(self, native_binding, native_available):
+        with self._lock:
+            source = self._current_locked(native_binding, native_available)
+            return None if source is None else {"book_source": source, "sequence": self._save_sequence, "sha256": self._saved_hash}
 
 
 @dataclass(frozen=True)

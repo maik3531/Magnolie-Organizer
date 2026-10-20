@@ -440,6 +440,16 @@ retiring the local owner does not promise remote recall.
 This worker is not registered as a public tool; native save/commit, reply dispatch
 and Notes adoption still require their remaining completion proofs.
 
+The existing native book writers now record a save sequence and raw saved-text
+SHA-256 in the actual native book-owner scope, only after store commit succeeds.
+Ordinary successful saves preserve that source while advancing its sequence,
+including identical-content writes. Lock/readiness withdrawal, profile/binding
+changes, restore and lost availability discard the observation. Native readback
+also checks that the current native book cache still matches the observed saved
+data. This observation is not a client-supplied save boolean and is not yet an
+actor commit: a commit adapter must still bind a fresh observation to its private
+review/owner and native core commit tokens.
+
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
 chunk replay cannot produce another result. Both TCP fixtures wait for the

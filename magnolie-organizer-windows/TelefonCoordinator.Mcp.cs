@@ -13,6 +13,7 @@ internal sealed partial class TelefonCoordinator
     private readonly AsyncLocal<McpEmission?> mcpEmission = new();
     private readonly SemaphoreSlim mcpOperations = new(1, 1);
     internal Func<string?> NativeBookSource { private get; set; } = () => null;
+    internal Func<NativeBookSaveState?> NativeSavedBook { private get; set; } = () => null;
     internal string? CurrentActorSource(string id, string fingerprint) => CurrentActorSource(id, fingerprint, NativeBookSource);
     private PersonalSyncActorStore? nativeActorStore;
 
