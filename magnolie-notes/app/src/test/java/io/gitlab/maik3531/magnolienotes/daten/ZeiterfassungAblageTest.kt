@@ -16,6 +16,52 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE)
 class ZeiterfassungAblageTest {
+    @Test fun nativeTimerCommandAndReceiptSurviveOneEncryptedBookWriteAndRestart() {
+        val directory = Files.createTempDirectory("magnolie-time-command-").toFile()
+        try {
+            val context = object : ContextWrapper(ApplicationProvider.getApplicationContext<Context>()) {
+                override fun getApplicationContext(): Context = this
+                override fun getFilesDir(): File = directory
+            }
+            val key = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
+            val first = Ablage.fuerTest(context) { key }
+            first.aendereZeiterfassung { it.copy(enabled = true) }
+            val epoch = first.baum.value.syncEpoch
+            val start = ZeitSteuerBefehl(java.util.UUID.randomUUID().toString(), "start",
+                ZeitSteuerung.revision(first.bestand.value.zeiterfassung), activity = "Private native command")
+            val result = first.steuereZeiterfassung(start, "a".repeat(64), epoch)
+            val persisted = File(directory, "notizen.json").readBytes()
+            assertFalse(persisted.toString(Charsets.UTF_8).contains(start.activity))
+            val reopened = Ablage.fuerTest(context) { key }
+            assertEquals(result.state, reopened.bestand.value.zeiterfassung)
+            val reopenedBytes = File(directory, "notizen.json").readBytes()
+            assertTrue(reopened.steuereZeiterfassung(start, "a".repeat(64), epoch).duplicate)
+            assertArrayEquals(reopenedBytes, File(directory, "notizen.json").readBytes())
+            assertThrows(IllegalStateException::class.java) { reopened.steuereZeiterfassung(start, "a".repeat(64), "different-restore-epoch") }
+            assertArrayEquals(reopenedBytes, File(directory, "notizen.json").readBytes())
+        } finally { directory.deleteRecursively() }
+    }
+
+    @Test fun failedNativeTimerStoreDoesNotPublishStateOrReplayReceipt() {
+        val directory = Files.createTempDirectory("magnolie-time-command-failure-").toFile()
+        try {
+            val context = object : ContextWrapper(ApplicationProvider.getApplicationContext<Context>()) {
+                override fun getApplicationContext(): Context = this
+                override fun getFilesDir(): File = directory
+            }
+            val key = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
+            val storage = Ablage.fuerTest(context) { key }
+            storage.aendereZeiterfassung { it.copy(enabled = true) }
+            val before = storage.bestand.value
+            val command = ZeitSteuerBefehl(java.util.UUID.randomUUID().toString(), "start", ZeitSteuerung.revision(before.zeiterfassung))
+            assertTrue(File(directory, "notizen.json.neu").mkdir())
+            val failed = runCatching { storage.steuereZeiterfassung(command, "a".repeat(64), storage.baum.value.syncEpoch) }
+            assertTrue(failed.exceptionOrNull() is java.io.IOException)
+            assertEquals(before, storage.bestand.value)
+            assertTrue(storage.bestand.value.zeiterfassung.controlReceipts.isEmpty())
+        } finally { directory.deleteRecursively() }
+    }
+
     @Test fun fixedPauseSnapshotAndPreciseManualAnchorSurviveEncryptedStorage() {
         val directory = Files.createTempDirectory("magnolie-time-fixed-").toFile()
         try {

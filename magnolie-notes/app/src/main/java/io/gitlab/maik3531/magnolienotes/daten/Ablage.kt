@@ -431,6 +431,17 @@ class Ablage private constructor(
         next
     }
 
+    internal fun steuereZeiterfassung(command: ZeitSteuerBefehl, nativePeerKeyHash: String, expectedRestoreEpoch: String,
+                                     nowMs: Long = System.currentTimeMillis()): ZeitSteuerErgebnis = synchronized(sperre) {
+        schreibbar()
+        check(_baum.value.syncEpoch == expectedRestoreEpoch) { "timer_restore_epoch_changed" }
+        var result: ZeitSteuerErgebnis? = null
+        val durable = aendereZeiterfassung { state ->
+            ZeitSteuerung.apply(state, command, nativePeerKeyHash, expectedRestoreEpoch, nowMs).also { result = it }.state
+        }
+        checkNotNull(result).copy(state = durable)
+    }
+
     fun personalCustomChange(change: (PersonalCustomState) -> PersonalCustomState) = synchronized(sperre) {
         val next = change(_bestand.value.personalCustom)
         if (next != _bestand.value.personalCustom) schreibeBestand(_bestand.value.copy(personalCustom = next))

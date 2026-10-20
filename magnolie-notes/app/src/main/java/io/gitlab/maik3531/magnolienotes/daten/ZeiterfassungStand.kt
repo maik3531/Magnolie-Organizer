@@ -21,9 +21,13 @@ data class ZeiterfassungStand(
     val wifi: ZeitWlanAutomatik = ZeitWlanAutomatik(),
     val fixedPauses: List<ZeitPausenfenster> = emptyList(),
     val pauseRuns: Map<String, ZeitPausenlauf> = emptyMap(),
-    val endAlarm: ZeitFeierabendwecker = ZeitFeierabendwecker()
+    val endAlarm: ZeitFeierabendwecker = ZeitFeierabendwecker(),
+    /** Local native command receipts; never part of TimeSync record projection. */
+    val controlReceipts: List<ZeitSteuerBeleg> = emptyList()
 ) {
     fun validate(): ZeiterfassungStand {
+        require(controlReceipts.size <= 128 && controlReceipts.map { it.operationId }.toSet().size == controlReceipts.size)
+        controlReceipts.forEach { it.validate() }
         require(reportName.length <= 240)
         calendar.validate()
         wifi.validate()

@@ -1,9 +1,17 @@
-# MCP completion checklist (#170)
+# MCP completion checklist (follow-ups to #170)
 
 The implemented tool contracts and their platform limits are in [mcp.md](mcp.md).
 This checklist follows existing user-facing operations. Native transport replies,
 worker-internal messages and duplicate legacy command aliases are implementation
 details, not separate product features requiring another public tool.
+
+Issue #170 was closed after documenting its implemented scope and transferring
+the unfinished work, not after overall acceptance. The open implementation is
+tracked in #190 (Notes actor deletion/finalization), #191 (running timers), #192
+(communications), #193 (remaining KDE actions), and #194 (remaining utilities,
+preferences and contact/profile transfers). Cross-platform contract/catalog/
+localization checks remain in #165, and combined installed acceptance in #113.
+Closing the collection issue does not enable marker 12 or public actor tools.
 
 ## Connected groups awaiting overall installed acceptance
 
@@ -66,6 +74,12 @@ content synchronization and transfers remain in the group below.
 | Other offered KDE actions | Existing drawing/input/device actions not already covered by media/filesystem tools | Current capability/source validation, existing permission handlers, truthful unsupported results |
 | Running time tracking | Existing start/pause/resume/stop workflow, separate from completed-record CRUD | Shared time engine, clocks, running-record constraints and save acknowledgement |
 | Remaining utilities/preferences | Existing contact-duplicate assistant, weather/medication lookup, developer/preferences, Thunderbird extension setup and application-support actions not represented by current settings/export tools | Shared product handlers, bounded typed results and actual launch/write outcomes |
+
+Running timer control (#191) targets the existing native Notes timer owner. The
+desktop completed-record engine deliberately rejects new running entries and
+reopening completed ones; that boundary must not be bypassed by MCP CRUD. A
+separately negotiated native timer-command contract is required for remote
+start/pause/resume/finish, rather than treating a TimeSync batch as a command.
 
 Phone-control progress within the lifecycle group: actual native connection
 snapshots and enable/disable, pairing-window/attempt decisions, removal, editable
