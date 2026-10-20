@@ -525,7 +525,10 @@ still require their separate completion gates.
 
 The private session-owned review operation also accepts bounded typed choices
 against its current review revision. Proposal IDs and expected clocks must match
-the retained native intents; choices are copied before asynchronous work. The
+the retained native intents; choices are copied before asynchronous work. A changed
+choice rebuilds from the original private review baseline, not an already deleted
+preview, so revising delete to restore does not retain accidental trash or deletion
+bookkeeping. The
 shared deletion/restore handlers operate on another private copy, then the same
 review/reply builder recomputes the projection and checks the native staging
 revision again. Wrong owners, stale clocks/reviews and duplicate choices fail

@@ -174,6 +174,13 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
             assert.equal(typed.deletionPlan.choices[0].proposal_id, typedProposal.proposal_id);
             assert.throws(() => b.t.mcpNotesActorCommit(owner, id, state.review_revision), error => error.code === "conflict");
             assert.throws(() => b.t.mcpNotesActorCommit(owner, id, decided.review_revision), error => error.code === "unsupported_feature");
+            if (scenario === "decision_delete") {
+              const changed = await b.t.mcpNotesActorDecide(owner, id, decided.review_revision, [{ ...choice, decision: "restore" }]);
+              const restored = b.t.mcpNotesActorReview(owner, id);
+              assert.ok(restored.book.notizen.some(note => note.id === "phone-note"), "Changing review choice reused the already deleted preview");
+              assert.equal(restored.book.papierkorb.filter(item => item.art === "note" && item.eintrag.id === "phone-note").length, 0);
+              assert.notEqual(changed.review_revision, decided.review_revision);
+            }
             b.t.mcpNotesActorCancel(owner, id);
           }
         } else if (scenario === "success") b.t.mcpNotesActorCancel(owner, id);

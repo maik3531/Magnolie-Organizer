@@ -35836,7 +35836,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     job.phase = "preparing_decisions";
     try {
       const selection = await personalSyncScopeAusManifest(previous.data.content_scope); mcpNotesActorGuard(job);
-      const book = kopie(previous.book);
+      const baseBook = previous.decisionBaseBook || previous.book;
+      const book = kopie(baseBook);
       for (const choice of choices) {
         const proposal = { ...kopie(proposals.get(choice.proposal_id)), source_device: job.peer, run_id: job.handle.actorId };
         const result = personalSyncEntscheidungAusBestand(book, proposal, choice.decision, selection, choice.allow_conflict);
@@ -35853,6 +35854,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       // Native intent consumption stays gated until terminal scope-changing save receipts exist.
       const review = await mcpNotesActorBuildReview(job, book, previous.data, previous.nativeRevision, summary,
         { selection, independentRemovals: true, guard: () => mcpNotesActorGuard(job) }, plan);
+      review.decisionBaseBook = baseBook;
       mcpNotesActorGuard(job); job.review = review; job.phase = "review";
       return mcpNotesActorAntwort(job);
     } catch (error) {
