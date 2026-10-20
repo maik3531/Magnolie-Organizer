@@ -14,6 +14,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.LooperMode
 import java.io.File
+import java.io.ByteArrayOutputStream
 import java.io.EOFException
 import java.net.Socket
 import java.net.SocketTimeoutException
@@ -136,6 +137,7 @@ class PersonalSyncActorTransportTest {
                     val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(55)
                     var closed = false
                     var incomingReplyVerified = false
+                    var incomingFileVerified = false
                     while (!closed && System.nanoTime() < deadline) {
                         pumpActor()
                         val packet = try { channel.receive() } catch (_: SocketTimeoutException) { continue }
@@ -173,6 +175,18 @@ class PersonalSyncActorTransportTest {
                                     assertEquals("Only private staging", documents.bestand.value.notizen.single { it.id == "phone-note" }.text)
                                     incomingReplyVerified = true
                                 }
+                                if (packet["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) &&
+                                    PersonalSyncActor.unwrap(packet.getValue("body").jsonObject).first == "personal_sync.attachment_chunk") {
+                                    val run = packet.getValue("body").jsonObject.string("run_id")
+                                    val chunk = PersonalSyncActor.unwrap(packet.getValue("body").jsonObject).second
+                                    val privatePeer = PersonalSyncActor.storagePeer(run)
+                                    if (queue.incomingAttachmentComplete(privatePeer, run, true, chunk.string("records_hash"), chunk.string("sha256"))) {
+                                        val verified = ByteArrayOutputStream()
+                                        assertTrue(queue.verifyIncomingAttachment(privatePeer, run, true, chunk.string("records_hash"), chunk.string("sha256"), verified))
+                                        assertArrayEquals(image.copyOf().also { it[it.lastIndex] = 42 }, verified.toByteArray())
+                                        incomingFileVerified = true
+                                    }
+                                }
                             }
                             "ping" -> channel.send(buildJsonObject { put("type", "pong"); put("ping_id", packet.getValue("ping_id")); put("sent_ms", packet.getValue("sent_ms")) })
                             "pong" -> Unit
@@ -182,6 +196,7 @@ class PersonalSyncActorTransportTest {
                     }
                     assertTrue("Native actor TCP exchange did not finish", closed)
                     assertTrue("Incoming actor reply was not privately staged", incomingReplyVerified)
+                    assertTrue("Desktop reply attachment did not pass native private integrity verification", incomingFileVerified)
                 }
             }
             assertTrue(process.waitFor(10, TimeUnit.SECONDS)); assertEquals(0, process.exitValue())

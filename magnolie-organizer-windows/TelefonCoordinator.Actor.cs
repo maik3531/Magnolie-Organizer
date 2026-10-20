@@ -7,7 +7,10 @@ internal sealed partial class TelefonCoordinator
 {
     private sealed record ActorAdmission(PersonalActorHandle Handle, string PeerId, string PublicKey,
         TelefonConnection Connection, JsonObject Scope, JsonObject Start, HashSet<string> Outbound, HashSet<string> AttachmentRequests,
-        HashSet<string> AttachmentResults);
+        HashSet<string> AttachmentResults)
+    {
+        internal HashSet<string> ProducedChunks { get; } = [];
+    }
     private readonly Dictionary<string, ActorAdmission> actorAdmissions = new(StringComparer.Ordinal);
 
     private static JsonObject ActorControl(string kind, JsonObject body)
@@ -105,6 +108,7 @@ internal sealed partial class TelefonCoordinator
                 var manifest = connection.CurrentContentScope(admission.Scope);
                 if (semanticKind == PhoneContentScope.DataKind) (semanticKind, content) = PhoneContentScope.Unwrap(content, manifest);
                 if (semanticKind is not ("personal_sync.request" or "personal_sync.batch" or "personal_sync.report" or "personal_sync.attachment_chunk" or
+                    "personal_sync.attachment_request" or "personal_sync.attachment_result" or
                     "personal_sync.deletion_proposals" or "personal_sync.deletion_decision")) return false;
                 if (semanticKind == "personal_sync.request" && (TelefonProtocolContract.Integer(content["format"]) != 3 || content["trigger"]!.GetValue<string>() != "manual")) return false;
                 if (semanticKind == "personal_sync.batch")
@@ -141,6 +145,25 @@ internal sealed partial class TelefonCoordinator
                 }
                 JsonObject? descriptor = null;
                 PersonalSyncRun? attachmentRun = null;
+                if (semanticKind is "personal_sync.attachment_request" or "personal_sync.attachment_result")
+                {
+                    if (content["reply"]!.GetValue<bool>() != true) return false;
+                    var outgoing = personalSync.ReadyBatches(Now()).FirstOrDefault(value => value.PeerId == storagePeer && value.RunId == run &&
+                        value.Reply && value.RecordsHash == content["records_hash"]!.GetValue<string>());
+                    if (outgoing is null) return false;
+                    var records = outgoing.Records.OfType<JsonObject>().ToArray();
+                    if (PhoneContentScope.FilterRecords(records, manifest).Count != records.Length) return false;
+                    var declared = records.Where(value => value["kind"]!.GetValue<string>() == "note")
+                        .SelectMany(value => (value["value"]?["attachments"] as JsonArray ?? []).OfType<JsonObject>())
+                        .GroupBy(value => value["sha256"]!.GetValue<string>(), StringComparer.Ordinal).ToDictionary(value => value.Key, value => value.First(), StringComparer.Ordinal);
+                    var wants = semanticKind == "personal_sync.attachment_request" ? content["wants"]!.AsArray().OfType<JsonObject>() : [content];
+                    foreach (var want in wants)
+                    {
+                        if (!declared.TryGetValue(want["sha256"]!.GetValue<string>(), out var item)) return false;
+                        var total = (TelefonProtocolContract.Integer(item["size"]) + PersonalSyncContract.ChunkRaw - 1) / PersonalSyncContract.ChunkRaw;
+                        if ((want["ranges"] as JsonArray ?? []).OfType<JsonArray>().Any(range => TelefonProtocolContract.Integer(range[1]) > total)) return false;
+                    }
+                }
                 if (semanticKind == "personal_sync.attachment_chunk")
                 {
                     var staged = personalSync.ReadyBatches(Now()).FirstOrDefault(value => value.PeerId == storagePeer && value.RunId == run &&
@@ -176,6 +199,12 @@ internal sealed partial class TelefonCoordinator
                     finally { CryptographicOperations.ZeroMemory(raw); }
                     QueueActorAttachmentResult(admission, content);
                 }
+                else if (semanticKind == "personal_sync.attachment_request") QueueActorRequestedChunks(admission, message["message_id"]!.GetValue<string>(), content);
+                else if (semanticKind == "personal_sync.attachment_result")
+                {
+                    if (content["state"]!.GetValue<string>() == "complete") personalSync.CompleteOutgoingAttachment(storagePeer, run, true,
+                        content["records_hash"]!.GetValue<string>(), content["sha256"]!.GetValue<string>(), Now());
+                }
                 else if (semanticKind is "personal_sync.deletion_proposals" or "personal_sync.deletion_decision")
                 {
                     if (semanticKind == "personal_sync.deletion_proposals") store.RememberPersonalProposalKinds(storagePeer, content, false);
@@ -190,6 +219,34 @@ internal sealed partial class TelefonCoordinator
         }
         catch (Exception error) when (error is InvalidOperationException or InvalidDataException or IOException) { }
         if (reply is not null) await connection.SendPlainAsync(reply);
+    }
+
+    private void QueueActorRequestedChunks(ActorAdmission admission, string requestId, JsonObject content)
+    {
+        var run = admission.Handle.ActorId; var privatePeer = PersonalSyncActorContract.StoragePeer(run);
+        var recordsHash = content["records_hash"]!.GetValue<string>(); var count = 0;
+        foreach (var want in content["wants"]!.AsArray().OfType<JsonObject>())
+        {
+            var hash = want["sha256"]!.GetValue<string>();
+            var data = personalSync.ReadVerifiedAttachment(privatePeer, run, true, recordsHash, hash, "outgoing", admission.Connection.Transport, Now());
+            try
+            {
+                foreach (var range in want["ranges"]!.AsArray().OfType<JsonArray>())
+                    for (var index = range[0]!.GetValue<int>(); index < range[1]!.GetValue<int>(); index++)
+                    {
+                        if (count++ == 8) return;
+                        var identity = $"{requestId}:{hash}:{index}";
+                        if (admission.ProducedChunks.Contains(identity)) continue;
+                        if (admission.Outbound.Count >= 4096) throw new InvalidOperationException("actor_capacity");
+                        var offset = index * PersonalSyncContract.ChunkRaw;
+                        var body = new JsonObject { ["format"] = 2, ["run_id"] = run, ["reply"] = true, ["records_hash"] = recordsHash,
+                            ["sha256"] = hash, ["index"] = index, ["data"] = Convert.ToBase64String(data, offset, Math.Min(PersonalSyncContract.ChunkRaw, data.Length - offset)) };
+                        var id = store.Enqueue(admission.PeerId, "personal_sync.attachment_chunk", body, 86400000, Now(), actorRunId: run);
+                        admission.Outbound.Add(id); admission.ProducedChunks.Add(identity);
+                    }
+            }
+            finally { CryptographicOperations.ZeroMemory(data); }
+        }
     }
 
     private void QueueActorAttachmentRequests(ActorAdmission admission, PersonalSyncStagedBatch staged)

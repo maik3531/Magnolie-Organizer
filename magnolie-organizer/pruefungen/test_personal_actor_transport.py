@@ -152,6 +152,43 @@ def test_actor_attachment_uses_private_manifest_and_native_integrity_checks(tmp_
     assert not channel.sent and not events
 
 
+def test_actor_reply_attachment_requests_use_declared_private_sources_and_marked_queue(tmp_path, monkeypatch):
+    service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch)
+    service.start_personal_actor(registry, handle)
+    request = {"format": 3, "run_id": handle.actor_id, "trigger": "manual", "modules": ["notes", "tasks"]}
+    service._payload(peer, channel, actor.wire_message(frame("personal_sync.request", request), handle.actor_id))
+    private = actor.storage_peer(handle.actor_id)
+    raw = b"\x89PNG\r\n\x1a\nPrivate desktop reply"
+    digest = hashlib.sha256(raw).hexdigest()
+    item = record(); item["value"]["attachments"] = [{"attachment_id": "reply-image", "name": "reply.png", "kind": "image",
+        "mime": "image/png", "size": len(raw), "sha256": digest}]
+    item["hash"] = personal.projection_hash(item["value"])
+    batch = {"format": 3, "run_id": handle.actor_id, "batch_id": str(uuid.uuid4()), "sequence": 0, "last": True,
+        "reply": True, "records": [item], "records_hash": personal.records_hash([item])}
+    service.store.stage_personal_batch(private, frame("personal_sync.batch", batch))
+    service.store.stage_outgoing_attachment(private, handle.actor_id, True, batch["records_hash"], digest, "image/png", raw, "any", phone.now_ms() + phone.DAY_MS)
+    content = {"format": 2, "run_id": handle.actor_id, "reply": True, "records_hash": batch["records_hash"],
+        "wants": [{"sha256": digest, "ranges": [[0, 1]]}]}
+    channel.sent.clear(); before = registry.status(handle)["packets"]
+    for bad in [dict(content, reply=False), dict(content, records_hash="a" * 64),
+            dict(content, wants=[{"sha256": "b" * 64, "ranges": [[0, 1]]}]),
+            dict(content, wants=[{"sha256": digest, "ranges": [[0, 2]]}])]:
+        service._payload(peer, channel, actor.wire_message(frame("personal_sync.attachment_request", bad), handle.actor_id))
+    assert not channel.sent and registry.status(handle)["packets"] == before
+    wire = actor.wire_message(frame("personal_sync.attachment_request", content), handle.actor_id)
+    service._payload(peer, channel, wire); service._payload(peer, channel, wire)
+    queued = [value for value in service.store.pending(peer["device_id"]) if value.get("kind") == actor.DATA_KIND]
+    assert len(queued) == 1
+    kind, chunk = actor.unwrap(queued[0]["body"])
+    assert kind == "personal_sync.attachment_chunk" and chunk["reply"] is True and base64.b64decode(chunk["data"]) == raw
+    result = {"format": 2, "run_id": handle.actor_id, "reply": True, "records_hash": batch["records_hash"], "sha256": digest,
+        "state": "complete", "error": "none"}
+    service._payload(peer, channel, actor.wire_message(frame("personal_sync.attachment_result", result), handle.actor_id))
+    assert not service.store.has_outgoing_attachments(private, handle.actor_id) and not events
+    service.cancel_personal_actor(registry, handle)
+    assert service.store.outbox_message(peer["device_id"], queued[0]["message_id"]) is None
+
+
 @pytest.mark.parametrize("granted,skip", [(False, False), (True, True), (True, False)])
 def test_actor_deletion_intents_require_scope_consent_and_prior_proposals_without_save_ack(tmp_path, monkeypatch, granted, skip):
     service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch, deletions=granted, skip_deletions=skip)

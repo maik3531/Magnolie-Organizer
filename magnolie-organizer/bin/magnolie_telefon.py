@@ -3953,6 +3953,7 @@ class PhoneService:
                 if kind == content_scope_contract.DATA_KIND:
                     kind, content = content_scope_contract.unwrap(content, manifest)
                 if kind not in ("personal_sync.request", "personal_sync.batch", "personal_sync.report", "personal_sync.attachment_chunk",
+                        "personal_sync.attachment_request", "personal_sync.attachment_result",
                         "personal_sync.deletion_proposals", "personal_sync.deletion_decision"):
                     return
                 if kind == "personal_sync.request" and (content.get("format") != 3 or content.get("trigger") != "manual"):
@@ -3980,6 +3981,23 @@ class PhoneService:
                         if not kinds or any(value not in {"note", "task", "attachment"} for value in kinds):
                             raise PermissionError("actor_deletion_proposal_missing")
                 descriptor = None
+                if kind in {"personal_sync.attachment_request", "personal_sync.attachment_result"}:
+                    if content["reply"] is not True:
+                        raise ValueError("actor_reply_required")
+                    outgoing = next((aggregate for owner, aggregate in self.store.ready_personal_batches()
+                        if owner == storage_peer and aggregate["run_id"] == run and aggregate["reply"] is True and
+                        aggregate["messages"][-1]["body"].get("records_hash") == content["records_hash"]), None)
+                    if outgoing is None or content_scope_contract.filter_records(outgoing["records"], manifest) != outgoing["records"]:
+                        raise PermissionError("actor_attachment_manifest_missing")
+                    declared = {item["sha256"]: item for record in outgoing["records"] if record["kind"] == "note"
+                        for item in record["value"].get("attachments", [])}
+                    wants = content["wants"] if kind == "personal_sync.attachment_request" else [{"sha256": content["sha256"]}]
+                    for want in wants:
+                        if want["sha256"] not in declared:
+                            raise PermissionError("actor_attachment_manifest_missing")
+                        total = (declared[want["sha256"]]["size"] + CHUNK_RAW - 1) // CHUNK_RAW
+                        if any(end > total for start, end in want.get("ranges", [])):
+                            raise ValueError("actor_attachment_range_invalid")
                 if kind == "personal_sync.attachment_chunk":
                     # Reuse the native aggregate's authenticated manifest, never sender metadata.
                     for owner, aggregate in self.store.ready_personal_batches():
@@ -4010,6 +4028,23 @@ class PhoneService:
                         content["sha256"], descriptor["size"], descriptor["mime"], content["index"],
                         base64.b64decode(content["data"], validate=True), "any", payload["expires_ms"], descriptor["attachment_id"])
                     self._queue_actor_attachment_result(admission, content)
+                elif kind == "personal_sync.attachment_request":
+                    produced = admission.setdefault("attachment_produced", set())
+                    for digest, index, raw in self.store.requested_attachment_chunks(storage_peer, run, True,
+                            content["records_hash"], content["wants"], self.connection_transports[peer["device_id"]]):
+                        identity = (payload["message_id"], digest, index)
+                        if identity in produced:
+                            continue
+                        if len(admission["outbound"]) >= 4096:
+                            raise RuntimeError("actor_capacity")
+                        chunk = dict(format=2, run_id=run, reply=True, records_hash=content["records_hash"],
+                            sha256=digest, index=index, data=base64.b64encode(raw).decode("ascii"))
+                        queued = self.store.queue(peer["device_id"], "personal_sync.attachment_chunk", chunk, DAY_MS, actor_run_id=run)
+                        admission["outbound"].add(queued["message_id"])
+                        produced.add(identity)
+                elif kind == "personal_sync.attachment_result":
+                    if content["state"] == "complete":
+                        self.store.complete_outgoing_attachment(storage_peer, run, True, content["records_hash"], content["sha256"])
                 elif kind in PERSONAL_DELETION_KINDS:
                     if kind == "personal_sync.deletion_proposals":
                         self.store.remember_personal_proposal_kinds(storage_peer, content, False)

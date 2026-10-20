@@ -202,6 +202,36 @@ internal static class PersonalSyncActorSourceTests
             var resultBody = PersonalSyncActorContract.Unwrap(resultWire["body"]!.AsObject());
             TestAssert.That(resultBody.Kind == "personal_sync.attachment_result" && resultBody.Body["state"]!.GetValue<string>() == "complete",
                 "Native integrity verification did not enqueue the marked transfer result.");
+            var replyBatch = batchBody.DeepClone().AsObject(); replyBatch["reply"] = true; replyBatch["batch_id"] = Guid.NewGuid().ToString("D");
+            var privateStore = new PersonalSyncStore(store);
+            privateStore.StageBatch(privatePeer, Message("personal_sync.batch", replyBatch), "wifi", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            privateStore.StageAttachment(privatePeer, transportHandle.ActorId, true, staged.RecordsHash,
+                noteValue["attachments"]![0]!.AsObject(), "outgoing", "any", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 60000, [(0, attachment)]);
+            var wants = new JsonObject { ["format"] = 2, ["run_id"] = transportHandle.ActorId, ["reply"] = true,
+                ["records_hash"] = staged.RecordsHash, ["wants"] = new JsonArray(new JsonObject { ["sha256"] = attachmentHash,
+                    ["ranges"] = new JsonArray(new JsonArray(0, 1)) }) };
+            var beforeRequests = await coordinator.WithPersonalActorStoreAsync(registry => registry.Status(transportHandle)["packets"]!.GetValue<int>());
+            var wrongWant = wants.DeepClone().AsObject(); wrongWant["wants"]![0]!["sha256"] = new string('b', 64);
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.attachment_request", wrongWant), transportHandle.ActorId));
+            wrongWant = wants.DeepClone().AsObject(); wrongWant["reply"] = false;
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.attachment_request", wrongWant), transportHandle.ActorId));
+            wrongWant = wants.DeepClone().AsObject(); wrongWant["wants"]![0]!["ranges"]![0]![1] = 2;
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.attachment_request", wrongWant), transportHandle.ActorId));
+            TestAssert.That(wire.Length == 0 && beforeRequests == await coordinator.WithPersonalActorStoreAsync(registry => registry.Status(transportHandle)["packets"]!.GetValue<int>()),
+                "Undeclared, wrong-direction or out-of-file actor request reached raw persistence.");
+            var wantWire = PersonalSyncActorContract.WireMessage(Message("personal_sync.attachment_request", wants), transportHandle.ActorId);
+            await connection.HandlePlainAsync(wantWire); await connection.HandlePlainAsync(wantWire);
+            TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Count == 2, "Native reply attachment request replay lost its marked receipts.");
+            await coordinator.PumpPersonalActorAsync(connection);
+            var replyChunk = (await SharedSyncTransportTests.DrainAsync(wire)).Single(value => value["kind"]!.GetValue<string>() == PersonalSyncActorContract.DataKind &&
+                PersonalSyncActorContract.Unwrap(value["body"]!.AsObject()).Kind == "personal_sync.attachment_chunk");
+            var replyChunkBody = PersonalSyncActorContract.Unwrap(replyChunk["body"]!.AsObject()).Body;
+            TestAssert.That(replyChunkBody["reply"]!.GetValue<bool>() && Convert.FromBase64String(replyChunkBody["data"]!.GetValue<string>()).SequenceEqual(attachment),
+                "Private reply attachment bytes or marked queue deduplication failed.");
+            var complete = resultBody.Body.DeepClone().AsObject(); complete["reply"] = true;
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.attachment_result", complete), transportHandle.ActorId));
+            TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Single()["kind"]!.GetValue<string>() == PersonalSyncActorContract.AckKind && emitted == beforeEmitted,
+                "Native reply transfer result reached GUI adoption or lost its marked receipt.");
             hostBook.SetReady(false);
             await coordinator.PumpPersonalActorAsync(connection);
             TestAssert.That(wire.Length == 0 && await coordinator.WithPersonalActorStoreAsync(registry => registry.Status(transportHandle)["phase"]!.GetValue<string>()) == "cancelled",

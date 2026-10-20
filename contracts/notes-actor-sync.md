@@ -351,7 +351,18 @@ verification produces a transfer-complete result; authenticated completion state
 prevents another result for exact or different-message-ID chunk replay. Raw
 deduplication, private staging and queued controls share the active journal
 transaction. Cancellation purges these private files without adopting the reply
-into the book. Desktop reply-file production and dispatch remain activation gates.
+into the book. Native book-derived reply-file production remains an activation gate.
+
+Desktop actor request/result routes require a matching complete private reply
+aggregate and current scope before raw persistence. Every requested hash must be
+declared and its ranges must fit the declared file. Existing native outgoing-file
+readers supply bounded chunks to the admitted peer's encrypted marked outbox;
+request-ID/hash/index tracking prevents duplicate queue production on exact
+request replay. Network dispatch remains outside source guards. Marked completion
+results update only private outgoing transfer metadata. Both owned TCP fixtures
+send a modified ten-chunk reply image back to Notes, where its native integrity
+reader verifies every byte before the desktop receives the correlated result and
+cancels the run. The reply itself is still fixture-generated, not book-derived.
 
 Notes deletion proposals/decisions require both deletion grants, the current
 shared skip-deletions choice to be false, a protected active actor run and current

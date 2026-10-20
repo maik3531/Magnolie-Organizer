@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Owned Python actor runtime over real encrypted TCP; no GUI/book adoption."""
 import json
+import hashlib
 from pathlib import Path
 import socket
 import sys
@@ -123,7 +124,9 @@ def main():
                                 for event, value in events)
                             reply_record = json.loads(json.dumps(next(value for value in records if value["kind"] == "note")))
                             reply_record["value"]["text"] = "Private desktop draft"
-                            reply_record["value"]["attachments"] = []
+                            reply_bytes = value[:-1] + bytes([42])
+                            reply_digest = hashlib.sha256(reply_bytes).hexdigest()
+                            reply_record["value"]["attachments"][0]["sha256"] = reply_digest
                             reply_record["hash"] = phone.personal_sync_contract.projection_hash(reply_record["value"])
                             reply_body = {"format": 3, "run_id": handle.actor_id, "batch_id": str(uuid.uuid4()),
                                 "sequence": 0, "last": True, "reply": True, "records": [reply_record],
@@ -131,6 +134,9 @@ def main():
                             with service.lock: registry.require_current(handle)
                             reply_wire = service._actor_control_message("personal_sync.batch", reply_body)
                             reply_wire["expires_ms"] = reply_wire["created_ms"] + 86400000
+                            service.store.stage_personal_batch(private, reply_wire)
+                            service.store.stage_outgoing_attachment(private, handle.actor_id, True, reply_body["records_hash"],
+                                reply_digest, "image/png", reply_bytes, "any", reply_wire["expires_ms"])
                             channel.send(actor.wire_message(reply_wire, handle.actor_id))
                             reply_deadline = time.monotonic() + 5
                             while time.monotonic() < reply_deadline:
@@ -143,6 +149,19 @@ def main():
                                     break
                                 service._payload(peer, channel, reply)
                             else: raise AssertionError("Private Notes reply staging receipt missing")
+                            reply_deadline = time.monotonic() + 10
+                            while time.monotonic() < reply_deadline:
+                                for queued in service.store.pending(phone_id): service._send_message(channel, phone_id, queued)
+                                try: reply = channel.receive()
+                                except socket.timeout: continue
+                                service._payload(peer, channel, reply)
+                                if reply.get("kind") == actor.DATA_KIND:
+                                    semantic, content = actor.unwrap(reply["body"])
+                                    if semantic == "personal_sync.attachment_result" and content["reply"] and content["sha256"] == reply_digest:
+                                        assert content["state"] == "complete" and registry.read(handle, reply["message_id"]) == reply
+                                        assert not service.store.has_outgoing_attachments(private, handle.actor_id)
+                                        break
+                            else: raise AssertionError("Native desktop reply attachment result missing")
                             service.cancel_personal_actor(registry, handle)
                             cancel_deadline = time.monotonic() + 5
                             while time.monotonic() < cancel_deadline:
