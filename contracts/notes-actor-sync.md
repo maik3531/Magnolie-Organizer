@@ -450,6 +450,28 @@ data. This observation is not a client-supplied save boolean and is not yet an
 actor commit: a commit adapter must still bind a fresh observation to its private
 review/owner and native core commit tokens.
 
+Native commit preparation now binds an active owner to its unchanged staging
+revision, verified declared files, planned raw book SHA-256, native book source
+and prior actual save sequence. Unapplied deletion intents block this step. A
+later core commit requires the private claim and a newer actual native writer
+observation for that same book/source and planned hash; unchanged sequences,
+wrong hashes, foreign claims and changed staging are rejected. Linux accepts its
+save observation only through the exact private GUI/subscriber/book-source
+bridge, whose adapter obtains it from native writer state, never request fields.
+Only then does the existing private core batch commit consume its native token;
+the native owner retains an idempotent local receipt without emitting a phone
+book-success acknowledgement.
+
+The private frontend commit job uses the existing recovery checkpoint and shared
+save/SaveACK pipeline. It adopts only reviewed notes/notebooks/tasks/tracking,
+keeps the native batch ledger through the shared helper, and forces a new actual
+write for sequence proof even on identical content. Its pristine-editor option
+rejects drafts rather than capturing them while queued. Only actual SaveACK sets
+local book persistence, followed by native proof/core commit. Cancellation or
+late save receipts do not modify a new draft; a save can already have happened
+when a later stage fails. Phase `committed` is local only: reply dispatch and Notes
+book adoption remain gates, and phone persistence is not claimed.
+
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
 chunk replay cannot produce another result. Both TCP fixtures wait for the

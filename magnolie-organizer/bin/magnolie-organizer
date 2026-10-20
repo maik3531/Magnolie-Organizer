@@ -24105,6 +24105,16 @@ class Fenster(_FENSTER_BASIS):
             arguments = {"offset": request.get("offset", 0), "limit": request.get("limit", 65536),
                 "expected_revision": request.get("expectedRevision", ""), "attachment_sha256": request.get("attachmentSha256", "")}
             value = source.read_personal_actor_staging(handle, **arguments) if proxy else source.read_personal_actor_staging(registry, handle, **arguments)
+        elif action in ("notes_actor_prepare_commit", "notes_actor_commit"):
+            # Authority is the actual native writer observation, never a request-supplied save assertion.
+            saved_book = self._telefon_actor_buchnachweis()
+            if saved_book is None:
+                raise PermissionError("Native book has no current actual-save observation")
+            if action == "notes_actor_prepare_commit":
+                values = (request.get("expectedRevision"), request.get("bookSha256"), saved_book)
+                value = source.prepare_personal_actor_commit(handle, *values) if proxy else source.prepare_personal_actor_commit(registry, handle, *values, self._telefon_actor_buchquelle())
+            else:
+                value = source.commit_personal_actor(handle, request.get("claimToken"), saved_book) if proxy else source.commit_personal_actor(registry, handle, request.get("claimToken"), saved_book, self._telefon_actor_buchquelle())
         else:
             raise ValueError("Unsupported actor bridge action")
         return {"ok": True, "actor": value}

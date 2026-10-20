@@ -595,13 +595,28 @@ def client():
                         if actor_value.get("status", {}).get("phase") in ("review", "failed", "cancelled"): break
                         time.sleep(0.05)
                     assert actor_value.get("status", {}).get("phase") == "review", actor_value
-                    check = json.loads(actor_js("JSON.stringify((()=>{const t=OrganizerTest,v=window.__ownedActorProbe,r=t.mcpNotesActorReview('owned-native-actor-probe',v.id);const result={unchanged:JSON.stringify(t.daten())===v.before,text:r.book.notizen.find(n=>n.id==='note-one')?.text,reply:r.batches.flatMap(b=>b.records).find(n=>n.kind==='note')?.value.text};t.mcpNotesActorCancel('owned-native-actor-probe',v.id);return result;})())"))
+                    check = json.loads(actor_js("JSON.stringify((()=>{const t=OrganizerTest,v=window.__ownedActorProbe,r=t.mcpNotesActorReview('owned-native-actor-probe',v.id);return {unchanged:JSON.stringify(t.daten())===v.before,text:r.book.notizen.find(n=>n.id==='note-one')?.text,reply:r.batches.flatMap(b=>b.records).find(n=>n.kind==='note')?.value.text};})())"))
                     assert check == {"unchanged": True, "text": "Actual native private actor review", "reply": "Actual native private actor review"}, check
+                    assert data_file.read_bytes() == actor_unchanged
+                    actor_js("JSON.stringify(OrganizerTest.mcpNotesActorCommit('owned-native-actor-probe',window.__ownedActorProbe.id,OrganizerTest.mcpNotesActorStatus('owned-native-actor-probe',window.__ownedActorProbe.id).review_revision))")
+                    deadline = time.monotonic() + 20
+                    while time.monotonic() < deadline:
+                        committed = json.loads(actor_js("JSON.stringify(OrganizerTest.mcpNotesActorStatus('owned-native-actor-probe',window.__ownedActorProbe.id))"))
+                        if committed.get("phase") in ("committed", "failed", "cancelled"): break
+                        time.sleep(0.05)
+                    assert committed.get("phase") == "committed" and committed["book_persisted"] and committed["core_committed"] and not committed["phone_persisted"], committed
+                    stored_actor_book = json.loads(data_file.read_text())
+                    assert next(note for note in stored_actor_book["notizen"] if note["id"] == "note-one")["text"] == "Actual native private actor review"
+                    assert not actor_service.store.ready_personal_batches()
+                    saved_actor_book = window._telefon_actor_buchnachweis()
+                    assert saved_actor_book and saved_actor_book["sha256"] == hashlib.sha256(data_file.read_bytes()).hexdigest()
+                    state["native_actor_checkpoint_save_commit_verified"] = True
+                    actor_js("JSON.stringify(OrganizerTest.mcpNotesActorCancel('owned-native-actor-probe',window.__ownedActorProbe.id))")
                     deadline = time.monotonic() + 5
                     assert actor_started
                     while time.monotonic() < deadline and any(registry.status(handle)["phase"] != "cancelled" for registry, handle in actor_started): time.sleep(0.05)
                     assert all(registry.status(handle)["phase"] == "cancelled" for registry, handle in actor_started)
-                    assert data_file.read_bytes() == actor_unchanged and actor_service.server is None
+                    assert actor_service.server is None
                     state["native_actor_private_review_job_verified"] = True
                 finally:
                     window._telefon = phone_fixture

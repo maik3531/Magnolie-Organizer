@@ -285,6 +285,43 @@ internal static class PersonalSyncActorSourceTests
             await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.attachment_result", complete), transportHandle.ActorId));
             TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Single()["kind"]!.GetValue<string>() == PersonalSyncActorContract.AckKind && emitted == beforeEmitted,
                 "Native reply transfer result reached GUI adoption or lost its marked receipt.");
+            var commitHandle = await coordinator.CreatePersonalActorAsync(peer.Id, fingerprint);
+            await coordinator.StartPersonalActorAsync(commitHandle); await SharedSyncTransportTests.DrainAsync(wire);
+            var commitRequest = new JsonObject { ["format"] = 3, ["run_id"] = commitHandle.ActorId, ["trigger"] = "manual", ["modules"] = new JsonArray("notes", "tasks") };
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.request", commitRequest), commitHandle.ActorId));
+            var emptyRecords = new JsonArray();
+            var commitBatch = new JsonObject { ["format"] = 3, ["run_id"] = commitHandle.ActorId, ["batch_id"] = Guid.NewGuid().ToString("D"),
+                ["sequence"] = 0, ["last"] = true, ["reply"] = false, ["records"] = emptyRecords, ["records_hash"] = PersonalSyncContract.RecordsHash(emptyRecords) };
+            await connection.HandlePlainAsync(PersonalSyncActorContract.WireMessage(Message("personal_sync.batch", commitBatch), commitHandle.ActorId));
+            await SharedSyncTransportTests.DrainAsync(wire);
+            var commitView = await coordinator.ReadPersonalActorStagingAsync(commitHandle);
+            var unobserved = await coordinator.ExecuteMcpAsync(new JsonObject { ["action"] = "notes_actor_prepare_commit", ["actorId"] = commitHandle.ActorId,
+                ["ownerToken"] = commitHandle.OwnerToken, ["expectedRevision"] = commitView["revision"]!.GetValue<string>(), ["bookSha256"] = new string('b', 64), ["saved"] = true }, default);
+            TestAssert.That(!unobserved["ok"]!.GetValue<bool>(), "A client saved boolean substituted for an actual native writer observation.");
+            NativeBookSaveState? nativeSaved = hostBook.RecordSaved("actual-host-profile", true, new string('a', 64));
+            coordinator.NativeSavedBook = () => nativeSaved;
+            var deletionGate = false;
+            try { await coordinator.PreparePersonalActorCommitAsync(transportHandle, firstStaging["revision"]!.GetValue<string>(), new string('b', 64)); }
+            catch (InvalidOperationException) { deletionGate = true; }
+            TestAssert.That(deletionGate, "Unapplied native deletion intents bypassed typed review before commit.");
+            var claim = await coordinator.PreparePersonalActorCommitAsync(commitHandle, commitView["revision"]!.GetValue<string>(), new string('b', 64));
+            var claimToken = claim["claim_token"]!.GetValue<string>();
+            foreach (var observation in new[] { nativeSaved, hostBook.RecordSaved("actual-host-profile", true, new string('c', 64)) })
+            {
+                nativeSaved = observation; var denied = false;
+                try { await coordinator.CommitPersonalActorAsync(commitHandle, claimToken); } catch (InvalidOperationException) { denied = true; }
+                TestAssert.That(denied, "Unchanged save sequence or wrong actual-book hash authorized core commit.");
+            }
+            nativeSaved = hostBook.RecordSaved("actual-host-profile", true, new string('b', 64));
+            var foreignClaim = false;
+            try { await coordinator.CommitPersonalActorAsync(commitHandle, new string('f', 64)); } catch (InvalidOperationException) { foreignClaim = true; }
+            TestAssert.That(foreignClaim, "A foreign native review claim authorized core commit.");
+            var committed = await coordinator.CommitPersonalActorAsync(commitHandle, claimToken);
+            TestAssert.That(committed["book_persisted"]!.GetValue<bool>() && committed["core_committed"]!.GetValue<bool>() && !committed["phone_persisted"]!.GetValue<bool>() &&
+                JsonNode.DeepEquals(committed, await coordinator.CommitPersonalActorAsync(commitHandle, claimToken)) &&
+                !privateStore.ReadyBatches(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).Any(value => value.PeerId == PersonalSyncActorContract.StoragePeer(commitHandle.ActorId)) && wire.Length == 0,
+                "Actual native save proof failed private core commit/idempotency or emitted a premature book receipt.");
+            await coordinator.CancelPersonalActorAsync(commitHandle); await SharedSyncTransportTests.DrainAsync(wire);
             hostBook.SetReady(false);
             await coordinator.PumpPersonalActorAsync(connection);
             TestAssert.That(wire.Length == 0 && await coordinator.WithPersonalActorStoreAsync(registry => registry.Status(transportHandle)["phase"]!.GetValue<string>()) == "cancelled",

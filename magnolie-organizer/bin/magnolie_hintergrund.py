@@ -975,7 +975,7 @@ def _request_shape(operation, arguments):
     if operation == "phone_actor_registry":
         request = arguments.get("request")
         if (not isinstance(arguments.get("book_source"), str) or re.fullmatch(r"[0-9a-f]{64}", arguments["book_source"]) is None or
-                not isinstance(request, dict) or request.get("action") not in ("create", "status", "read", "staging", "cancel")):
+                not isinstance(request, dict) or request.get("action") not in ("create", "status", "read", "staging", "prepare_commit", "commit", "cancel")):
             raise IPCError("invalid native actor registry request")
         if request["action"] == "create":
             fields = {"action", "peer_id", "fingerprint"} | ({"expected_source"} if "expected_source" in request else set())
@@ -988,6 +988,8 @@ def _request_shape(operation, arguments):
             fields = {"action", "actor_id", "owner_token"} | ({"message_id"} if request["action"] == "read" else set())
             if request["action"] == "staging": fields |= {"offset", "limit", "expected_revision"}
             if request["action"] == "staging" and "attachment_sha256" in request: fields.add("attachment_sha256")
+            if request["action"] == "prepare_commit": fields |= {"view_revision", "after_sha256", "native_saved_book"}
+            if request["action"] == "commit": fields |= {"claim_token", "native_saved_book"}
             if (set(request) != fields or not _status_query_id(request["actor_id"]) or
                     not isinstance(request["owner_token"], str) or re.fullmatch(r"[0-9a-f]{64}", request["owner_token"]) is None or
                     request["action"] == "read" and not _status_query_id(request["message_id"])):
@@ -1002,6 +1004,14 @@ def _request_shape(operation, arguments):
                     not isinstance(request["attachment_sha256"], str) or re.fullmatch(r"[0-9a-f]{64}", request["attachment_sha256"]) is None or
                     request["expected_revision"] == ""):
                 raise IPCError("invalid native actor attachment read")
+            if request["action"] in ("prepare_commit", "commit"):
+                book = request["native_saved_book"]
+                hashes = (request["view_revision"], request["after_sha256"]) if request["action"] == "prepare_commit" else (request["claim_token"],)
+                if (any(not isinstance(value, str) or re.fullmatch(r"[0-9a-f]{64}", value) is None for value in hashes) or
+                        not isinstance(book, dict) or set(book) != {"book_source", "sequence", "sha256"} or
+                        book["book_source"] != arguments["book_source"] or type(book["sequence"]) is not int or book["sequence"] <= 0 or
+                        not isinstance(book["sha256"], str) or re.fullmatch(r"[0-9a-f]{64}", book["sha256"]) is None):
+                    raise IPCError("invalid native actor saved-book proof")
     if operation in ("phone_actor_start", "phone_actor_cancel"):
         _request_shape("phone_actor_registry", {"subscriber": arguments.get("subscriber"), "book_source": arguments.get("book_source"),
             "request": {"action": "status", "actor_id": arguments.get("actor_id"), "owner_token": arguments.get("owner_token")}})
@@ -1516,6 +1526,10 @@ class IPCServer:
                 if request["action"] == "staging": return phone.read_personal_actor_staging(registry, handle,
                     offset=request["offset"], limit=request["limit"], expected_revision=request["expected_revision"],
                     attachment_sha256=request.get("attachment_sha256", ""))
+                if request["action"] == "prepare_commit": return phone.prepare_personal_actor_commit(registry, handle,
+                    request["view_revision"], request["after_sha256"], request["native_saved_book"], arguments["book_source"])
+                if request["action"] == "commit": return phone.commit_personal_actor(registry, handle,
+                    request["claim_token"], request["native_saved_book"], arguments["book_source"])
                 return registry.cancel(handle)
         if operation == "phone_request_status":
             return phone.request_status(arguments["peer_id"], request_id=arguments.get("request_id"))
@@ -2015,6 +2029,23 @@ class PhoneServiceProxy:
             if self.native_actor_book_source() != handle.book_source:
                 raise IPCError("Native actor book owner changed")
             return result
+
+    def _actor_book_request(self, handle, request):
+        with self._state_lock:
+            if not callable(self.native_actor_book_source) or self.native_actor_book_source() != handle.book_source:
+                raise IPCError("Native actor book owner changed")
+            result = self._call("actor_registry", subscriber=self._subscriber, book_source=handle.book_source,
+                request={"actor_id": handle.actor_id, "owner_token": handle.owner_token, **request})
+            if self.native_actor_book_source() != handle.book_source:
+                raise IPCError("Native actor book owner changed")
+            return result
+
+    def prepare_personal_actor_commit(self, handle, view_revision, after_hash, native_saved_book):
+        return self._actor_book_request(handle, {"action": "prepare_commit", "view_revision": view_revision,
+            "after_sha256": after_hash, "native_saved_book": native_saved_book})
+
+    def commit_personal_actor(self, handle, claim_token, native_saved_book):
+        return self._actor_book_request(handle, {"action": "commit", "claim_token": claim_token, "native_saved_book": native_saved_book})
 
     def cancel_personal_actor(self, handle):
         return self._call("actor_cancel", subscriber=self._subscriber, book_source=handle.book_source,

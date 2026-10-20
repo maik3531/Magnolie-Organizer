@@ -17,7 +17,7 @@ def frame(kind, body):
     return phone.PhoneService._actor_control_message(kind, body)
 
 
-def owned_transport(tmp_path, monkeypatch, *, deletions=False, skip_deletions=None):
+def owned_transport(tmp_path, monkeypatch, *, deletions=False, skip_deletions=None, book_source=None):
     service, peer, channel, fingerprint, _ = actor_source_fixture(tmp_path, monkeypatch)
     if deletions:
         peer["local_grants"]["grants"]["personal_deletions_sync"] = True
@@ -28,7 +28,7 @@ def owned_transport(tmp_path, monkeypatch, *, deletions=False, skip_deletions=No
         body = service.store.change_shared_setting(peer["device_id"], peer["static_public"], "skip_deletions", skip_deletions)
         service.shared_sessions[channel]["sent"] = copy.deepcopy(body)
         service.shared_sessions[channel]["received"] = copy.deepcopy(body)
-    service.native_actor_book_source = lambda: "a" * 64
+    service.native_actor_book_source = book_source or (lambda: "a" * 64)
     registry = service.personal_actor_registry()
     handle = registry.create(peer["device_id"], fingerprint, service.current_actor_source(peer["device_id"], fingerprint))
     original_send = channel.send
@@ -238,6 +238,67 @@ def test_actor_private_staging_reader_is_bounded_revisioned_and_owner_guarded(tm
     service.cancel_personal_actor(registry, handle)
     with pytest.raises(PermissionError): service.read_personal_actor_staging(registry, handle)
     assert not events
+
+
+def test_actor_core_commit_requires_fresh_native_book_save_and_bound_review_claim(tmp_path, monkeypatch):
+    from magnolie_personal_actor_store import NativeBookOwnerScope
+    from types import SimpleNamespace
+    book = NativeBookOwnerScope(); book.set_ready(True)
+    provider = lambda: book.current("native-profile", True)
+    service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch, book_source=provider)
+    service.start_personal_actor(registry, handle)
+    request = {"format": 3, "run_id": handle.actor_id, "trigger": "manual", "modules": ["notes", "tasks"]}
+    records = [record()]
+    batch = {"format": 3, "run_id": handle.actor_id, "batch_id": str(uuid.uuid4()), "sequence": 0, "last": True,
+        "reply": False, "records": records, "records_hash": personal.records_hash(records)}
+    for kind, body in [("personal_sync.request", request), ("personal_sync.batch", batch)]:
+        service._payload(peer, channel, actor.wire_message(frame(kind, body), handle.actor_id))
+    channel.sent.clear()
+    view = service.read_personal_actor_staging(registry, handle)
+    with pytest.raises(PermissionError): service.prepare_personal_actor_commit(registry, handle, view["revision"], "b" * 64, None, provider())
+    before = book.record_saved("native-profile", True, "a" * 64)
+    claim = service.prepare_personal_actor_commit(registry, handle, view["revision"], "b" * 64, before, provider())
+    assert not claim["book_persisted"]
+    assert claim == service.prepare_personal_actor_commit(registry, handle, view["revision"], "b" * 64, before, provider())
+    with pytest.raises(PermissionError): service.commit_personal_actor(registry, handle, claim["claim_token"], before, provider())
+    wrong = book.record_saved("native-profile", True, "c" * 64)
+    with pytest.raises(PermissionError): service.commit_personal_actor(registry, handle, claim["claim_token"], wrong, provider())
+    actual = book.record_saved("native-profile", True, "b" * 64)
+    with pytest.raises(PermissionError): service.commit_personal_actor(registry, handle, "f" * 64, actual, provider())
+    bridge = gtk_actor_bridge()
+    native_window = SimpleNamespace(_telefon_actor_buchnachweis=lambda: None, _telefon_actor_buchquelle=provider)
+    arguments = {"action": "notes_actor_commit", "actorId": handle.actor_id, "ownerToken": handle.owner_token,
+        "bookSource": "", "claimToken": claim["claim_token"], "saved": True, "native_saved_book": actual}
+    with pytest.raises(PermissionError): bridge(native_window, service, arguments)
+    assert service.store.ready_personal_batches()
+    native_window._telefon_actor_buchnachweis = lambda: book.save_state("native-profile", True)
+    committed = bridge(native_window, service, arguments)["actor"]
+    assert committed["book_persisted"] and committed["core_committed"] and not committed["phone_persisted"]
+    assert committed == service.commit_personal_actor(registry, handle, claim["claim_token"], actual, provider())
+    assert not any(owner == actor.storage_peer(handle.actor_id) for owner, _ in service.store.ready_personal_batches())
+    assert not channel.sent and not events
+
+
+def test_actor_commit_rejects_changed_native_staging_after_book_save(tmp_path, monkeypatch):
+    service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch, deletions=True, skip_deletions=False)
+    service.start_personal_actor(registry, handle)
+    request = {"format": 3, "run_id": handle.actor_id, "trigger": "manual", "modules": ["notes", "tasks"]}
+    records = [record()]
+    batch = {"format": 3, "run_id": handle.actor_id, "batch_id": str(uuid.uuid4()), "sequence": 0, "last": True, "reply": False,
+        "records": records, "records_hash": personal.records_hash(records)}
+    for kind, body in [("personal_sync.request", request), ("personal_sync.batch", batch)]:
+        service._payload(peer, channel, actor.wire_message(frame(kind, body), handle.actor_id))
+    before = {"book_source": "a" * 64, "sequence": 1, "sha256": "a" * 64}
+    view = service.read_personal_actor_staging(registry, handle)
+    claim = service.prepare_personal_actor_commit(registry, handle, view["revision"], "b" * 64, before, "a" * 64)
+    proposal = {"format": 1, "run_id": handle.actor_id, "proposal_batch_id": str(uuid.uuid4()), "sequence": 0, "last": True,
+        "proposals": [{"proposal_id": str(uuid.uuid4()), "kind": "note", "id": "note-one", "parent_id": "", "clock": records[0]["clock"],
+            "prior_hash": records[0]["hash"], "deleted_ms": 2, "label": "Owned pending deletion"}]}
+    service._payload(peer, channel, actor.wire_message(frame("personal_sync.deletion_proposals", proposal), handle.actor_id))
+    with pytest.raises(PermissionError): service.commit_personal_actor(registry, handle, claim["claim_token"], dict(before, sequence=2, sha256="b" * 64), "a" * 64)
+    changed = service.read_personal_actor_staging(registry, handle)
+    with pytest.raises(PermissionError): service.prepare_personal_actor_commit(registry, handle, changed["revision"], "b" * 64, before, "a" * 64)
+    assert service.store.ready_personal_batches() and service.store.ready_personal_domains() and not events
 
 
 def test_actor_reply_attachment_requests_use_declared_private_sources_and_marked_queue(tmp_path, monkeypatch):

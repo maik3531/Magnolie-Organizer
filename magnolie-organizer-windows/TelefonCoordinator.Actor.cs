@@ -5,11 +5,14 @@ namespace MagnolieOrganizer.Windows;
 
 internal sealed partial class TelefonCoordinator
 {
+    private sealed record ActorCommitPlan(string Token, string ViewRevision, string AfterHash, string BookSource, long BeforeSequence);
     private sealed record ActorAdmission(PersonalActorHandle Handle, string PeerId, string PublicKey,
         TelefonConnection Connection, JsonObject Scope, JsonObject Start, HashSet<string> Outbound, HashSet<string> AttachmentRequests,
         HashSet<string> AttachmentResults)
     {
         internal HashSet<string> ProducedChunks { get; } = [];
+        internal ActorCommitPlan? CommitPlan { get; set; }
+        internal NativeBookSaveState? SaveReceipt { get; set; }
     }
     private readonly Dictionary<string, ActorAdmission> actorAdmissions = new(StringComparer.Ordinal);
 
@@ -37,6 +40,8 @@ internal sealed partial class TelefonCoordinator
                 "notes_actor_read" => await ReadPersonalActorStagingAsync(handle,
                     request["offset"]?.GetValue<int>() ?? 0, request["limit"]?.GetValue<int>() ?? 65536,
                     McpText(request, "expectedRevision"), McpText(request, "attachmentSha256"), cancellation),
+                "notes_actor_prepare_commit" => await PreparePersonalActorCommitAsync(handle, McpText(request, "expectedRevision", true), McpText(request, "bookSha256", true), cancellation),
+                "notes_actor_commit" => await CommitPersonalActorAsync(handle, McpText(request, "claimToken", true), cancellation),
                 _ => throw new InvalidDataException("unsupported_actor_action")
             };
             return new() { ["ok"] = true, ["actor"] = result };
@@ -110,7 +115,12 @@ internal sealed partial class TelefonCoordinator
     }
 
     internal Task<JsonObject> ReadPersonalActorStagingAsync(PersonalActorHandle handle, int offset = 0, int limit = 65536,
-        string expectedRevision = "", string attachmentSha256 = "", CancellationToken cancellation = default) => WithPersonalActorStoreAsync(registry => {
+        string expectedRevision = "", string attachmentSha256 = "", CancellationToken cancellation = default) =>
+        WithPersonalActorStoreAsync(registry => ReadPersonalActorStaging(registry, handle, offset, limit, expectedRevision, attachmentSha256), cancellation);
+
+    private JsonObject ReadPersonalActorStaging(PersonalSyncActorStore registry, PersonalActorHandle handle, int offset, int limit,
+        string expectedRevision, string attachmentSha256)
+    {
         if (offset < 0 || limit is < 1 or > 65536 || expectedRevision.Length != 0 &&
             !System.Text.RegularExpressions.Regex.IsMatch(expectedRevision, "^[0-9a-f]{64}$") || offset != 0 && expectedRevision.Length == 0 ||
             attachmentSha256.Length != 0 && (!System.Text.RegularExpressions.Regex.IsMatch(attachmentSha256, "^[0-9a-f]{64}$") || expectedRevision.Length == 0))
@@ -157,7 +167,51 @@ internal sealed partial class TelefonCoordinator
             return result;
         }
         finally { CryptographicOperations.ZeroMemory(raw); }
+    }
+
+    internal Task<JsonObject> PreparePersonalActorCommitAsync(PersonalActorHandle handle, string viewRevision, string afterHash,
+        CancellationToken cancellation = default) => WithPersonalActorStoreAsync(registry => {
+        if (!System.Text.RegularExpressions.Regex.IsMatch(viewRevision, "^[0-9a-f]{64}$") || !System.Text.RegularExpressions.Regex.IsMatch(afterHash, "^[0-9a-f]{64}$"))
+            throw new InvalidDataException("invalid_actor_commit_plan");
+        var view = ReadPersonalActorStaging(registry, handle, 0, 1, viewRevision, "");
+        if (view["batch_ready"]!.GetValue<bool>() != true) throw new InvalidOperationException("actor_staging_incomplete");
+        var admission = actorAdmissions[handle.ActorId]; var privatePeer = PersonalSyncActorContract.StoragePeer(handle.ActorId);
+        if (personalSync.DecisionIntents(Now()).Any(value => value.PeerId == privatePeer && value.Body["run_id"]!.GetValue<string>() == handle.ActorId))
+            throw new InvalidOperationException("actor_deletion_review_required");
+        var batch = personalSync.ReadyBatches(Now()).Single(value => value.PeerId == privatePeer && value.RunId == handle.ActorId && !value.Reply);
+        foreach (var hash in batch.Records.OfType<JsonObject>().Where(value => value["kind"]!.GetValue<string>() == "note")
+            .SelectMany(value => (value["value"]?["attachments"] as JsonArray ?? []).OfType<JsonObject>()).Select(value => value["sha256"]!.GetValue<string>()).Distinct())
+            ReadPersonalActorStaging(registry, handle, 0, 1, viewRevision, hash);
+        var book = NativeSavedBook() ?? throw new InvalidOperationException("native_book_not_saved");
+        if (book.BookSource != NativeBookSource() || book.Sequence <= 0) throw new InvalidOperationException("actor_book_source_changed");
+        var plan = admission.CommitPlan;
+        if (plan is null) admission.CommitPlan = plan = new(Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(), viewRevision, afterHash, book.BookSource, book.Sequence);
+        else if (plan.ViewRevision != viewRevision || plan.AfterHash != afterHash || plan.BookSource != book.BookSource)
+            throw new InvalidOperationException("actor_commit_plan_changed");
+        registry.RequireCurrent(handle);
+        return new JsonObject { ["claim_token"] = plan.Token, ["view_revision"] = plan.ViewRevision, ["after_sha256"] = plan.AfterHash, ["book_persisted"] = false };
     }, cancellation);
+
+    internal Task<JsonObject> CommitPersonalActorAsync(PersonalActorHandle handle, string claimToken, CancellationToken cancellation = default) =>
+        WithPersonalActorStoreAsync(registry => {
+            registry.RequireCurrent(handle);
+            if (!actorAdmissions.TryGetValue(handle.ActorId, out var admission) || admission.Handle != handle || admission.CommitPlan is not { } plan || plan.Token != claimToken)
+                throw new InvalidOperationException("actor_commit_plan_unavailable");
+            if (admission.SaveReceipt is null)
+            {
+                var book = NativeSavedBook() ?? throw new InvalidOperationException("native_book_not_saved");
+                if (book.BookSource != plan.BookSource || book.BookSource != NativeBookSource() || book.Sequence <= plan.BeforeSequence || book.Sha256 != plan.AfterHash)
+                    throw new InvalidOperationException("actor_save_proof_missing");
+                ReadPersonalActorStaging(registry, handle, 0, 1, plan.ViewRevision, "");
+                var privatePeer = PersonalSyncActorContract.StoragePeer(handle.ActorId);
+                var batch = personalSync.ReadyBatches(Now()).Single(value => value.PeerId == privatePeer && value.RunId == handle.ActorId && !value.Reply);
+                if (!personalSync.CommitBatch(privatePeer, batch.PendingMessageId, batch.CommitToken, Now(), out _))
+                    throw new InvalidOperationException("actor_core_commit_failed");
+                registry.RequireCurrent(handle); admission.SaveReceipt = book;
+            }
+            return new JsonObject { ["book_persisted"] = true, ["core_committed"] = true, ["phone_persisted"] = false,
+                ["save_sequence"] = admission.SaveReceipt.Sequence, ["book_sha256"] = admission.SaveReceipt.Sha256 };
+        }, cancellation);
 
     internal async Task ReceivePersonalActorAsync(TelefonConnection connection, TelefonPeer peer, JsonObject message)
     {

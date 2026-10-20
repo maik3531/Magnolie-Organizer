@@ -1097,6 +1097,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return records;
   }
 
+  function personalSyncMerkeBatch(book, token) {
+    if (typeof token !== "string" || !token || token.length > 256) throw new Error(_("Personal synchronization failed."));
+    if (!book.personalSync.applied_batches.includes(token)) book.personalSync.applied_batches.push(token);
+    book.personalSync.applied_batches = book.personalSync.applied_batches.slice(-500);
+  }
+
   const personalPhoneCollections = new Map();
   let personalScopedWakeTimer = null;
   function weckeAutomatischenNotesAbgleich(kind, id, deletion = false) {
@@ -32033,8 +32039,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const aggregate = antwort && format >= 2 ? await personalSyncHash(responseChunks.flat()) : "";
         if (scopeSelection) scopeGuard();
         if (kind === "personal_sync.batch") JSON.stringify(DATEN);
-        if (!DATEN.personalSync.applied_batches.includes(nutzlast.commit_token)) DATEN.personalSync.applied_batches.push(nutzlast.commit_token);
-        DATEN.personalSync.applied_batches = DATEN.personalSync.applied_batches.slice(-500);
+        personalSyncMerkeBatch(DATEN, nutzlast.commit_token);
         const importedKeys = new Set((body.records || []).map(record => record.kind + "\u0000" +
           (["note", "notebook"].includes(record.kind) ? personalSyncNotizId(record.id, record.kind) : record.id)));
         const scopedAckKeys = scopeSelection ? new Set([...importedKeys, ...records.map(record => record.kind + "\u0000" + record.id)]) : null;
@@ -33286,16 +33291,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
   let mcpSchreibKette = Promise.resolve();
   let mcpRestoreAktiv = false;
-  function mcpSchreiben(signal, mutation) {
+  function mcpSchreiben(signal, mutation, options = {}) {
     const run = async () => {
       if (signal.aborted || gesperrt || !initialisiert || !antwortErhalten)
         throw new MagnolieMcp.ToolError("locked_or_cancelled", "Open and unlock the Organizer before writing");
-      sichereNotizSnapshot();
+      if (!options.pristineOnly) sichereNotizSnapshot();
       mcpEditorPruefen();
       const bestand = DATEN;
       const result = await mutation();
       if (gesperrt || !initialisiert || !antwortErhalten || DATEN !== bestand)
         throw new MagnolieMcp.ToolError("source_changed", "The book changed before the write could be confirmed");
+      if (options.pristineOnly) mcpEditorPruefen();
       planeSpeichern();
       const gespeichert = new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve,
         () => reject(new MagnolieMcp.ToolError("save_failed", "The native save did not complete; check the current data before retrying"))));
@@ -35380,7 +35386,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
   function mcpNotesActorAntwort(job) {
     return { operation_id: job.id, peer_id: job.peer, phase: job.phase, review_revision: job.review?.revision || "",
-      summary: kopie(job.review?.summary || null), book_persisted: false, phone_persisted: false,
+      summary: kopie(job.review?.summary || null), book_persisted: job.saved === true, core_committed: job.committed === true, phone_persisted: false,
       cancel_requested: job.controller.signal.aborted, native_outcome_unknown: job.unknown, error_code: job.error };
   }
   function mcpNotesActorStatus(owner, id) {
@@ -35392,6 +35398,44 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function mcpNotesActorCancel(owner, id) {
     const job = mcpNotesActorJob(owner, id);
     if (!mcpNotesActorTerminal(job)) { job.phase = "cancelled"; job.controller.abort(); }
+    return mcpNotesActorAntwort(job);
+  }
+  function mcpNotesActorCommit(owner, id, expectedRevision) {
+    const job = mcpNotesActorJob(owner, id); mcpNotesActorGuard(job);
+    if (job.phase !== "review" || job.review?.revision !== expectedRevision) throw new MagnolieMcp.ToolError("conflict", "Read the current Notes actor review before committing");
+    if (job.review.summary.unapplied_deletion_intents) throw new MagnolieMcp.ToolError("unsupported_feature", "Typed deletion intent adoption is still required before commit");
+    job.phase = "checkpointing";
+    Promise.resolve().then(async () => {
+      try {
+        mcpNotesActorGuard(job); letzterSpeicherText = null;
+        await mcpMutationsSnapshot("pre-sync", job.controller.signal); mcpNotesActorGuard(job);
+        const proposed = kopie(job.review.book); personalSyncMerkeBatch(proposed, job.review.data.batch.commit_token);
+        const proposedText = JSON.stringify(proposed);
+        const afterHash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(proposedText))), value => value.toString(16).padStart(2, "0")).join("");
+        mcpNotesActorGuard(job);
+        const plan = (await mcpNotesActorNative(job, "notes_actor_prepare_commit", { expectedRevision: job.review.nativeRevision, bookSha256: afterHash })).actor;
+        mcpNotesActorGuard(job);
+        if (!/^[a-f0-9]{64}$/.test(plan?.claim_token) || plan.after_sha256 !== afterHash || plan.view_revision !== job.review.nativeRevision || plan.book_persisted !== false)
+          throw new MagnolieMcp.ToolError("invalid_result", "Native Notes commit plan was inconsistent");
+        job.phase = "saving";
+        await mcpSchreiben(job.controller.signal, () => {
+          mcpNotesActorGuard(job);
+          for (const field of ["notizen", "notizbuecher", "aufgaben", "personalSync"]) DATEN[field] = proposed[field];
+          job.before = JSON.stringify(DATEN); letzterSpeicherText = null;
+          if (job.before !== proposedText) throw new MagnolieMcp.ToolError("conflict", "Book changed before applying the Notes review");
+          return {};
+        }, { pristineOnly: true });
+        job.saved = true; mcpNotesActorGuard(job); job.phase = "committing";
+        const receipt = (await mcpNotesActorNative(job, "notes_actor_commit", { claimToken: plan.claim_token })).actor;
+        mcpNotesActorGuard(job);
+        if (receipt?.book_persisted !== true || receipt.core_committed !== true || receipt.phone_persisted !== false || receipt.book_sha256 !== afterHash)
+          throw new MagnolieMcp.ToolError("invalid_result", "Native Notes core commit did not confirm the saved review");
+        job.committed = true; job.phase = "committed";
+      } catch (error) {
+        job.unknown = true; job.error = error.code || "native_operation_failed";
+        job.phase = job.controller.signal.aborted ? "cancelled" : "failed"; job.controller.abort();
+      }
+    });
     return mcpNotesActorAntwort(job);
   }
   async function mcpNotesActorBytes(job, revision = "", attachment = null) {
@@ -38288,7 +38332,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     personalSyncSnapshot: personalSyncSnapshot,
     personalSyncSnapshotAusBestand: personalSyncSnapshotAusBestand,
     personalSyncAnwendenAusBestand: personalSyncAnwendenAusBestand,
-    mcpNotesActorStart, mcpNotesActorStatus, mcpNotesActorCancel,
+    mcpNotesActorStart, mcpNotesActorStatus, mcpNotesActorCancel, mcpNotesActorCommit,
     mcpNotesActorReview: (owner, id) => { const job = mcpNotesActorJob(owner, id); mcpNotesActorGuard(job); return kopie(job.review); },
     personalSyncScopeAusManifest: personalSyncScopeAusManifest,
     personalSyncNotizImport: personalSyncNotizImport,

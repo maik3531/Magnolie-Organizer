@@ -5,6 +5,7 @@ import base64
 import copy
 import hashlib
 import hmac
+import secrets
 import io
 import json
 import os
@@ -3919,6 +3920,66 @@ class PhoneService:
         channel.send(message)
         return {"actor_id": handle.actor_id, "message_id": message["message_id"], "dispatch_started": True,
             "delivery_confirmed": False, "persisted": False}
+
+    @staticmethod
+    def _actor_saved_book(state, book_source):
+        if (not isinstance(state, dict) or set(state) != {"book_source", "sequence", "sha256"} or
+                not isinstance(book_source, str) or re.fullmatch(r"[0-9a-f]{64}", book_source) is None or
+                state["book_source"] != book_source or type(state["sequence"]) is not int or state["sequence"] <= 0 or
+                not isinstance(state["sha256"], str) or re.fullmatch(r"[0-9a-f]{64}", state["sha256"]) is None):
+            raise PermissionError("native_book_not_saved")
+        return dict(state)
+
+    def prepare_personal_actor_commit(self, registry, handle, view_revision, after_hash, native_saved_book, book_source):
+        if (not isinstance(view_revision, str) or re.fullmatch(r"[0-9a-f]{64}", view_revision) is None or
+                not isinstance(after_hash, str) or re.fullmatch(r"[0-9a-f]{64}", after_hash) is None):
+            raise ValueError("invalid_actor_commit_plan")
+        with self.lock:
+            view = self.read_personal_actor_staging(registry, handle, limit=1, expected_revision=view_revision)
+            if not view["batch_ready"]:
+                raise PermissionError("actor_staging_incomplete")
+            admission = self.personal_actor_admissions[handle.actor_id]
+            private = personal_actor_contract.storage_peer(handle.actor_id)
+            if any(owner == private and value["body"]["run_id"] == handle.actor_id for owner, value in self.store.ready_personal_domains()):
+                raise PermissionError("actor_deletion_review_required")
+            batch = next(value for owner, value in self.store.ready_personal_batches() if owner == private and value["run_id"] == handle.actor_id and value["reply"] is False)
+            hashes = {item["sha256"] for record in batch["records"] if record["kind"] == "note" for item in record["value"].get("attachments", [])}
+            for digest in hashes:
+                self.read_personal_actor_staging(registry, handle, limit=1, expected_revision=view_revision, attachment_sha256=digest)
+            book = self._actor_saved_book(native_saved_book, book_source)
+            plan = admission.get("commit_plan")
+            if plan is None:
+                plan = admission["commit_plan"] = {"token": secrets.token_hex(32), "view_revision": view_revision,
+                    "after_sha256": after_hash, "book_source": book_source, "before_sequence": book["sequence"]}
+            elif (plan["view_revision"], plan["after_sha256"], plan["book_source"]) != (view_revision, after_hash, book_source):
+                raise PermissionError("actor_commit_plan_changed")
+            registry.require_current(handle)
+            return {"claim_token": plan["token"], "view_revision": plan["view_revision"], "after_sha256": plan["after_sha256"], "book_persisted": False}
+
+    def commit_personal_actor(self, registry, handle, claim_token, native_saved_book, book_source):
+        with self.lock:
+            registry.require_current(handle)
+            admission = self.personal_actor_admissions.get(handle.actor_id)
+            if (admission is None or admission["registry"] is not registry or admission["handle"] != handle or
+                    not isinstance(claim_token, str) or not admission.get("commit_plan") or
+                    not secrets.compare_digest(admission["commit_plan"]["token"], claim_token)):
+                raise PermissionError("actor_commit_plan_unavailable")
+            plan = admission["commit_plan"]
+            receipt = admission.get("save_receipt")
+            if receipt is None:
+                book = self._actor_saved_book(native_saved_book, book_source)
+                if (book_source != plan["book_source"] or book["sequence"] <= plan["before_sequence"] or book["sha256"] != plan["after_sha256"]):
+                    raise PermissionError("actor_save_proof_missing")
+                self.read_personal_actor_staging(registry, handle, limit=1, expected_revision=plan["view_revision"])
+                private = personal_actor_contract.storage_peer(handle.actor_id)
+                batch = next(value for owner, value in self.store.ready_personal_batches() if owner == private and value["run_id"] == handle.actor_id and value["reply"] is False)
+                owner, messages = self.store.commit_personal_batch(private, batch["message_id"], batch["commit_token"])
+                if owner != private or not messages:
+                    raise PermissionError("actor_core_commit_failed")
+                registry.require_current(handle)
+                receipt = admission["save_receipt"] = book
+            return {"book_persisted": True, "core_committed": True, "phone_persisted": False,
+                "save_sequence": receipt["sequence"], "book_sha256": receipt["sha256"]}
 
     def read_personal_actor_staging(self, registry, handle, *, offset=0, limit=65536, expected_revision="", attachment_sha256=""):
         """Bounded owner-only view of existing private core staging, never GUI adoption."""

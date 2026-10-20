@@ -75,6 +75,16 @@ def test_proxy_source_requires_its_exact_live_native_book_owner(tmp_path, monkey
             service._payload(peer, channel, actor_contract.wire_message(phone.PhoneService._actor_control_message("personal_sync.attachment_chunk", chunk), handle.actor_id))
             file_page = proxy.read_personal_actor_staging(handle, expected_revision=staging["revision"], attachment_sha256=image_hash)
             assert base64.b64decode(file_page["data_base64"]) == image and file_page["mime"] == "image/png"
+            from types import SimpleNamespace
+            owner.record_saved(profile[0], True, "a" * 64)
+            native_window = SimpleNamespace(_telefon_actor_buchnachweis=lambda: owner.save_state(profile[0], True),
+                _telefon_actor_buchquelle=provider)
+            private_handle = {key: created[key] for key in ("actorId", "ownerToken", "bookSource")}
+            claim = bridge(native_window, proxy, dict(private_handle, action="notes_actor_prepare_commit", expectedRevision=staging["revision"], bookSha256="b" * 64))["actor"]
+            with pytest.raises(background.IPCError): bridge(native_window, proxy, dict(private_handle, action="notes_actor_commit", claimToken=claim["claim_token"], saved=True))
+            owner.record_saved(profile[0], True, "b" * 64)
+            committed = bridge(native_window, proxy, dict(private_handle, action="notes_actor_commit", claimToken=claim["claim_token"]))["actor"]
+            assert committed["book_persisted"] and committed["core_committed"] and not committed["phone_persisted"]
             registry = server._phone_actor_registry(proxy._subscriber, handle.book_source)
             native_handle = ActorHandle(handle.actor_id, handle.owner_token)
             now = phone.now_ms()
@@ -179,6 +189,14 @@ def test_actor_staging_ipc_requires_bounded_typed_revisioned_continuations(field
     request[field] = value
     with pytest.raises(background.IPCError): background._request_shape("phone_actor_registry", {
         "subscriber": "b" * 32, "book_source": "c" * 64, "request": request})
+
+
+@pytest.mark.parametrize("field,value", [("sequence", True), ("sequence", 0), ("book_source", "d" * 64), ("sha256", "client-saved")])
+def test_actor_commit_ipc_cannot_replace_native_saved_book_binding(field, value):
+    saved = {"book_source": "c" * 64, "sequence": 1, "sha256": "e" * 64}; saved[field] = value
+    with pytest.raises(background.IPCError): background._request_shape("phone_actor_registry", {
+        "subscriber": "b" * 32, "book_source": "c" * 64, "request": {"action": "commit", "actor_id": "11111111-1111-4111-8111-111111111111",
+            "owner_token": "a" * 64, "claim_token": "f" * 64, "native_saved_book": saved}})
 
 
 def test_unsupported_actor_metadata_does_not_drop_ordinary_proxy_events(tmp_path, monkeypatch):
