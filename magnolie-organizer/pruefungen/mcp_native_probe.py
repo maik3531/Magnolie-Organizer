@@ -634,6 +634,22 @@ def client():
             actor_gate = window._telefon_actor_mcp(phone_fixture, {"action": "notes_actor_source", "peerId": target["peer_id"], "fingerprint": target["fingerprint"]})
             assert actor_gate == {"ok": False, "code": "unsupported_feature"}
             state["native_actor_bridge_activation_gate_verified"] = True
+            timer_permission = call("tools/call", {"name": "organizer_notes_timer_read", "arguments": target})
+            assert timer_permission["isError"] and timer_permission["structuredContent"]["code"] == "not_granted", timer_permission
+            with phone_fixture.lock:
+                timer_peer = phone_fixture.store.peer(target["peer_id"])
+                timer_versions = list(timer_peer["capabilities"]["items"]["personal_tasks_sync"]["versions"])
+                timer_peer["capabilities"]["items"]["personal_tasks_sync"]["versions"] = [version for version in timer_versions if version != 13]
+                phone_fixture.store.save_peers()
+            try:
+                timer_gate = call("tools/call", {"name": "organizer_notes_timer_read", "arguments": target})
+                assert timer_gate["isError"] and timer_gate["structuredContent"]["code"] == "unsupported_feature", timer_gate
+            finally:
+                with phone_fixture.lock:
+                    timer_peer["capabilities"]["items"]["personal_tasks_sync"]["versions"] = timer_versions
+                    phone_fixture.store.save_peers()
+            state["native_timer_current_permissions_gate_verified"] = True
+            state["native_timer_old_peer_gate_verified"] = True
             first = settings_tool("organizer_notes_settings_read", target)
             assert not first["own_device"] and first["shared"]["supported"] and not first["shared"]["initialized"]
             seed = dict(phone_protocol.shared_sync_contract.DEFAULTS)

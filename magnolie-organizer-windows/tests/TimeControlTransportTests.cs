@@ -48,7 +48,9 @@ internal static class TimeControlTransportTests
             var id = Guid.NewGuid().ToString("D"); var operation = scenario == "command" ? Guid.NewGuid().ToString("D") : "";
             var body = TimeControlContract.Request(id, operation.Length == 0 ? "read" : "start", operation,
                 operation.Length == 0 ? "" : new string('a', 64), operation.Length == 0 ? "" : "native-book");
-            var request = coordinator.RequestTimeControlAsync(peer.Id, fingerprint, body, cancellation: lifetime.Token);
+            var request = scenario == "read" ? coordinator.ExecuteMcpAsync(new JsonObject { ["action"] = "time_control_query", ["peerId"] = peer.Id,
+                ["fingerprint"] = fingerprint, ["sourceRevision"] = coordinator.TimeControlSource(peer.Id, fingerprint, false), ["body"] = body.DeepClone() }, lifetime.Token)
+                : coordinator.RequestTimeControlAsync(peer.Id, fingerprint, body, cancellation: lifetime.Token);
             TestAssert.That(!request.IsCompleted && wire.Length > 0, "Timer did not issue a live correlated request.");
             if (scenario == "cancel")
             {
@@ -71,6 +73,10 @@ internal static class TimeControlTransportTests
                 await connection.HandlePlainAsync(Packet(wrong)); TestAssert.That(!request.IsCompleted, "Unmatched timer report completed another request.");
             }
             await connection.HandlePlainAsync(Packet(report)); var result = await request;
+            if (scenario == "read") {
+                TestAssert.That(result["ok"]!.GetValue<bool>(), "Private native MCP timer facade failed.");
+                result = result["timeControl"]!.AsObject();
+            }
             TestAssert.That(JsonNode.DeepEquals(result["report"], report) && result["dispatch_started"]!.GetValue<bool>() && callbacks.Count == 0,
                 "Native timer report lost source/correlation or leaked to GUI.");
             await connection.HandlePlainAsync(Packet(report));

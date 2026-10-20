@@ -19,7 +19,7 @@ internal static class TimeSyncTransportHost
             var paths = new WindowsPaths(temporary);
             var store = new TelefonStore(paths, Enumerable.Repeat((byte)19, 32).ToArray());
             var capabilities = TelefonProtocolContract.DesktopCapabilities();
-            if (timerControl) capabilities["items"]!["personal_tasks_sync"]!["versions"]!.AsArray().Add(13);
+            TestAssert.That(capabilities["items"]!["personal_tasks_sync"]!["versions"]!.AsArray().Any(value => value!.GetValue<int>() == 13), "Production timer capability missing.");
             var peer = new TelefonPeer(phone, "Synthetic phone", Enumerable.Repeat((byte)112, 32).ToArray(),
                 CapabilityRevision: 1, StoredCapabilities: capabilities["items"]!.DeepClone().AsObject(),
                 GrantRevision: 1, StoredGrants: TelefonProtocolContract.DesktopGrants());

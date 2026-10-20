@@ -90,7 +90,7 @@ def desktop_capabilities(revision=1, bluetooth_available=False,
                        "reason": "available" if available else (
                            bluetooth_reason if name == "transport.bluetooth_rfcomm"
                            else "not_implemented"),
-                         "versions": [1, 2, 3, 4, 6, 7, 9, 10] if name == "personal_tasks_sync" else
+                          "versions": [1, 2, 3, 4, 6, 7, 9, 10, 13] if name == "personal_tasks_sync" else
                                        [1, 2, 3, 4, 5, 7, 8] if name == "device_status" else
                                        [1, 2, 3, 5, 9, 10] if name == "personal_notes_sync" else
                                      [2] if name == "incoming_call_state" else [1]}

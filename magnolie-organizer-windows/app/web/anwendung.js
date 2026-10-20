@@ -35395,6 +35395,85 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         finally { signal.removeEventListener("abort", cancel); }
       } };
   }
+  function mcpNotesTimerSchema() {
+    const integer = maximum => ({ type: "integer", minimum: 0, maximum });
+    const minute = integer(4223371679), uuid = { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" };
+    const shape = properties => ({ type: "object", properties, required: Object.keys(properties), additionalProperties: false });
+    const clock = { type: "object", maxProperties: 32, propertyNames: uuid, additionalProperties: { type: "integer", minimum: 1, maximum: 9007199254740991 } };
+    const range = shape({ start: minute, end: minute });
+    const plan = shape({ baseMinutes: minute, fixed: { type: "array", maxItems: 16, items: shape({ start: integer(1439), end: integer(1439) }) },
+      manual: { type: "array", maxItems: 10000, items: range }, replaced: { type: "array", maxItems: 60000, items: minute },
+      fixedEnds: { type: "object", maxProperties: 60000, propertyNames: { pattern: "^(?:0|[1-9][0-9]*)$" }, additionalProperties: minute } });
+    const entry = shape({ id: uuid, startMinute: minute, endMinute: { type: "null" }, pauseMinute: { anyOf: [minute, { type: "null" }] }, pauseMinutes: minute,
+      zone: { type: "string", minLength: 1, maxLength: 160 }, type: { type: "string", maxLength: 120 }, note: { type: "string", maxLength: 20000 },
+      modifiedMs: integer(253402300799999), deleted: { type: "boolean", enum: [false] }, clock: { ...clock, minProperties: 1 }, pausePlan: { anyOf: [plan, { type: "null" }] } });
+    return shape({ peer_id: uuid, fingerprint: { type: "string", pattern: "^[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}$" },
+      source_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, dispatch_started: { type: "boolean", enum: [true] },
+      report: shape({ format: { type: "integer", enum: [13] }, request_id: uuid, operation_id: { type: "string", maxLength: 36 },
+        status: { type: "string", enum: ["ok", "duplicate"] }, error: { type: "string", enum: ["none"] }, restore_epoch: { type: "string", maxLength: 256 },
+        revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, enabled: { type: "boolean" }, entries: { type: "array", maxItems: 1, items: entry },
+        paused: { type: "boolean" }, server_minute: minute, operation_applied: { type: "boolean" }, persisted: { type: "boolean" },
+        applied_entry_id: { type: "string", maxLength: 36 }, applied_clock: clock, runtime_request: { type: "string", enum: ["none", "requested", "failed"] } }) });
+  }
+  function mcpNotesTimerWerkzeuge() {
+    const uuid = { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" }, hash = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const descriptions = {
+      read: "Read fresh native Notes timer state and source/state revisions over the current verified phone connection. Requires negotiated timer control and both own-device confirmations. No cached state or save claim.",
+      start: "Start the native Notes timer with source/state revision checks and an idempotent operation UUID. Uses the existing Notes timer and encrypted book writer; native time and zone apply. Success requires a correlated durable save report.",
+      pause: "Pause the exact active Notes timer with source/state revision checks and an idempotent operation UUID. Success requires a correlated native save report; cancellation cannot recall an already dispatched command.",
+      resume: "Resume the exact paused Notes timer with source/state revision checks and an idempotent operation UUID. Uses the existing Notes timer handler and requires its correlated durable save report.",
+      finish: "Finish the exact active Notes timer with source/state revision checks and an idempotent operation UUID. Does not reopen completed records. Success requires a correlated native save report."
+    };
+    return Object.entries(descriptions).map(([action, description]) => {
+      const properties = { peer_id: uuid, fingerprint: { type: "string", pattern: "^[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}$" } };
+      if (action !== "read") Object.assign(properties, { expected_source_revision: hash, expected_timer_revision: hash, restore_epoch: { type: "string", maxLength: 256 }, operation_id: uuid });
+      if (!["read", "start"].includes(action)) properties.entry_id = uuid;
+      const required = Object.keys(properties);
+      if (action === "start") Object.assign(properties, { activity: { type: "string", maxLength: 120 }, note: { type: "string", maxLength: 20000 } });
+      return { name: "organizer_notes_timer_" + action, description, inputSchema: { type: "object", properties, required, additionalProperties: false },
+        annotations: { readOnlyHint: action === "read", destructiveHint: action !== "read", openWorldHint: true }, call: async (args, signal) => {
+          const requestId = crypto.randomUUID(), book = DATEN;
+          const guard = () => { if (signal.aborted) throw new MagnolieMcp.ToolError("cancelled", "Notes timer request cancelled");
+            if (gesperrt || DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Profile changed during the Notes timer request"); };
+          const invoke = async request => {
+            const value = await mcpNativeAufruf("telefon_mcp", { request: { peerId: args.peer_id, fingerprint: args.fingerprint, ...request } }, "telefonMcpErgebnis", signal);
+            guard(); if (value.ok !== true) throw new MagnolieMcp.ToolError(value.code || "native_operation_failed", "Native Notes timer request failed"); return value;
+          };
+          let dispatched = false, cancellationSent = false;
+          const cancel = () => { if (!dispatched || cancellationSent) return; cancellationSent = true; void mcpNativeAufruf("telefon_mcp", { request: { action: "time_control_cancel", peerId: args.peer_id,
+            fingerprint: args.fingerprint, requestId } }, "telefonMcpErgebnis", new AbortController().signal).catch(() => {}); };
+          signal.addEventListener("abort", cancel, { once: true });
+          try {
+            guard();
+            const source = action === "read" ? (await invoke({ action: "time_control_source", timerAction: action })).sourceRevision : args.expected_source_revision;
+            if (!/^[a-f0-9]{64}$/.test(source)) throw new MagnolieMcp.ToolError("invalid_result", "Native timer source was incomplete");
+            const body = { format: 13, request_id: requestId, action, operation_id: args.operation_id || "", expected_revision: args.expected_timer_revision || "",
+              restore_epoch: args.restore_epoch || "", entry_id: args.entry_id || "", activity: args.activity || "", note: args.note || "" };
+            guard(); dispatched = true;
+            const data = (await invoke({ action: "time_control_query", sourceRevision: source, body })).timeControl;
+            if (!data || Object.keys(data).sort().join(",") !== "dispatch_started,report,source_revision")
+              throw new MagnolieMcp.ToolError("invalid_result", "Native timer response envelope was incomplete");
+            const report = data.report;
+            if (report?.status === "rejected") throw new MagnolieMcp.ToolError(report.error || "native_operation_failed", "Notes rejected the timer request");
+            const result = { peer_id: args.peer_id, fingerprint: args.fingerprint, ...data };
+            try {
+              MagnolieMcp.validate(result, mcpNotesTimerSchema()); report.entries.forEach(zeitPruefeEintrag);
+              zeitPruefen(Object.keys(report.applied_clock).length <= 32);
+              for (const [actor, counter] of Object.entries(report.applied_clock)) { zeitKennung(actor); zeitZahl(counter, 1, 9007199254740991); }
+            }
+            catch { throw new MagnolieMcp.ToolError("invalid_result", "Native timer report was incomplete"); }
+            if (data.source_revision !== source || report.request_id !== requestId || report.operation_id !== body.operation_id ||
+                report.operation_applied !== (action !== "read") || report.persisted !== (action !== "read") ||
+                (report.entries.length === 0 && report.paused) || (report.entries.length === 1 && report.paused !== (report.entries[0].pauseMinute !== null)) ||
+                (action === "read" && (report.status !== "ok" || report.applied_entry_id || Object.keys(report.applied_clock).length || report.runtime_request !== "none")) ||
+                (action !== "read" && (report.applied_entry_id !== (action === "start" ? body.operation_id : body.entry_id) || !Object.keys(report.applied_clock).length)))
+              throw new MagnolieMcp.ToolError("invalid_result", "Native timer report did not match the dispatched command");
+            guard(); return result;
+          } catch (error) { cancel(); throw error; }
+          finally { signal.removeEventListener("abort", cancel); }
+        } };
+    });
+  }
   const mcpNotesActorLaeufe = new Map();
   let mcpNotesActorStarts = 0;
   const mcpNotesActorTerminal = job => ["failed", "cancelled", "completed"].includes(job.phase);
@@ -38066,6 +38145,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (name === "organizer_custom_module_delete") return shape({ ...written, trash_id: { type: ["string", "null"] } }, ["id", "persisted", "trash_id"]);
     if (name === "organizer_time_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
     if (name === "organizer_time_settings_update") return shape({ persisted: yes }, ["persisted"]);
+    if (name.startsWith("organizer_notes_timer_")) return mcpNotesTimerSchema();
     if (name === "organizer_time_conflict_read") return shape({ record: object, versions: { type: "array", items: object }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["record", "versions", "revision"]);
     if (name === "organizer_time_conflict_resolve") return shape(written, ["id", "persisted"]);
     if (name === "organizer_time_record_read") return shape({ record: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["record", "revision"]);
@@ -38201,6 +38281,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpNotesEinstellungenWerkzeuge(),
       ...mcpNotesZeitWerkzeuge(owner),
       mcpGeraeteStatusWerkzeug(),
+      ...mcpNotesTimerWerkzeuge(),
       ...mcpKdeVerbindungWerkzeuge(owner),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },

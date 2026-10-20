@@ -62,9 +62,21 @@ reports use `persisted=false`; denied reports expose no timer state. The
 `runtime_request` field distinguishes `none`, `requested` and `failed` for the
 existing alarm/service hooks; it does not assert that an OS service is running.
 
-## Remaining integration gate
+## MCP integration and acceptance scope
 
-Production capabilities still omit version 13. Private native MCP source/query/
-cancel adapters exist; public desktop MCP tools, their output schemas, catalog
-and localized documentation remain to be connected before offering control.
-Existing unsupported peers remain explicitly unsupported.
+Production task capabilities include version 13 on Notes and both desktops;
+marker 12 and public content-actor activation remain separate. Public
+`organizer_notes_timer_read/start/pause/resume/finish` tools use the native
+source/query/cancel adapters and strict result schemas. Mutations carry separate
+native source and timer-state CAS tokens plus the native restore epoch. The Linux
+private IPC boundary validates exact action-specific fields and command bodies;
+only timer requests receive their bounded larger frame budget. Query waits and
+cancellation do not occupy the transport mutation lock. Cancellation remains
+available while a new transport setup is in progress.
+
+The handbook explains the sequence and persistence/cancellation semantics in all
+20 supported languages. Existing unsupported peers remain explicitly unsupported.
+Encrypted TCP integration tests use actual native Notes handlers and reopen its
+encrypted book; they do not establish physical handset service behavior or
+installed Windows GUI acceptance. Combined installed acceptance remains tracked
+separately in #113.

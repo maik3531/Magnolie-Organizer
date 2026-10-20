@@ -115,6 +115,36 @@ dispatched save or native request. Source/book changes, drafts and dialogs stop
 further sends; late receipts never modify drafts. Session closure aborts and
 removes its operations; another session cannot inspect or cancel them.
 
+### Native Notes timer control
+
+`organizer_notes_timer_read` requests live native state from the selected
+`peer_id`/`fingerprint`, returning `source_revision`, `report.revision` and
+`report.restore_epoch`. This requires both peers to negotiate timer version 13,
+fresh current controls, both own-device confirmations and enabled time policies.
+Old peers report `unsupported_feature`; no cached state is substituted.
+
+`organizer_notes_timer_start/pause/resume/finish` require
+`expected_source_revision`, `expected_timer_revision`, `restore_epoch` and a
+caller-generated v4 UUID `operation_id`, in addition to the exact peer identity.
+Start optionally accepts `activity` and `note`; the other actions require the
+exact active `entry_id`. Source/state revisions are CAS values, not authority.
+Shared `phone_import` direction denies mutations. Actual execution uses the
+existing Notes handlers, native time/zone and encrypted atomic book writer.
+
+An exact operation retry returns a durable duplicate receipt without repeating
+the command, even after reopening the book. A duplicate result may show newer
+current timer state than the original command. `report.persisted=true` confirms
+the actual native book write or its retained durable receipt. Reads always use
+false. `runtime_request` reports only whether existing alarm/service hooks were
+requested or failed; it does not claim a running OS service. Ordinary transport
+ACKs and queued sends cannot complete this call.
+
+Requests remain ephemeral and owner/source-bound. Cancellation stops waiting,
+not an already dispatched command; read fresh state before retrying after an
+uncertain outcome. Reports are not replayed to GUI caches or written into the
+desktop book. Late replies cannot change open drafts or dialogs. See
+`notes-timer-control.md` for bounds, native persistence and integration gates.
+
 ### Fresh phone device status and temporary identifiers
 
 `organizer_phone_device_status_read` requires the latest phone-control

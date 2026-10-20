@@ -72,8 +72,6 @@ class TimeSyncTransportTest {
             remote_personal_tasks_sync_available = true, remote_personal_tasks_sync_versions = listOf(1, 2, 3, 4, 6, 7) + if (timerControl) listOf(13) else emptyList(),
             personal_time_policy = TimeSyncProtokoll.newSettings(true)))
         val work = TelefonWerk.get(context)
-        if (timerControl) work.sharedLocalCapabilities = { TelefonCapabilities.phase1().mapValues { (name, value) ->
-            if (name == "personal_tasks_sync") value.copy(versions = value.versions + 13) else value } }
         field(TelefonWerk::class.java, "serviceRunning").setBoolean(work, true)
         (field(TelefonWerk::class.java, "connecting").get(work) as AtomicBoolean).set(true)
         val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
@@ -105,11 +103,6 @@ class TimeSyncTransportTest {
                     sessions[channel] = session
                     TelefonWerk::class.java.getDeclaredMethod("ensureControlMessages", TelefonPeer::class.java)
                         .apply { isAccessible = true }.invoke(work, storage.peers().peer)
-                    if (timerControl) {
-                        queue.removeKind(peerId, "capabilities.update")
-                        queue.queue(peerId, "capabilities.update", TelefonNachrichten.capabilities(revision = storage.peers().peer!!.capabilities_revision,
-                            itemsValue = work.sharedLocalCapabilities()), 86_400_000)
-                    }
                     queue.queue(peerId, "personal_sync.settings", buildJsonObject { put("format", 1); put("own_device", true) }, 60000)
                     val send = TelefonWerk::class.java.getDeclaredMethod("sendDue", TelefonPeer::class.java, TelefonSecureChannel::class.java).apply { isAccessible = true }
                     val receive = TelefonWerk::class.java.getDeclaredMethod("receiveMessage", TelefonPeer::class.java,

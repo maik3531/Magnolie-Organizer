@@ -70,8 +70,6 @@ class TimeControlRuntimeTest {
             remote_personal_time_policy = TimeSyncProtokoll.newSettings(true))
         storage.savePeer(peer)
         val work = TelefonWerk.get(context)
-        work.sharedLocalCapabilities = { TelefonCapabilities.phase1().mapValues { (name, value) ->
-            if (name == "personal_tasks_sync") value.copy(versions = value.versions + 13) else value } }
         field(TelefonWerk::class.java, "serviceRunning").setBoolean(work, true)
         (field(TelefonWerk::class.java, "connecting").get(work) as AtomicBoolean).set(true)
         val wireOutput = ByteArrayOutputStream()
@@ -116,7 +114,8 @@ class TimeControlRuntimeTest {
 
     @Test fun unsupportedControlsAndWithdrawnOwnershipDoNotLeakOrWriteTimerData() = fixture { f ->
         val before = f.documents.bestand.value
-        f.work.sharedLocalCapabilities = { TelefonCapabilities.phase1() }
+        f.work.sharedLocalCapabilities = { TelefonCapabilities.phase1().mapValues { (name, value) ->
+            if (name == "personal_tasks_sync") value.copy(versions = value.versions - TimeControlProtokoll.VERSION) else value } }
         val rejected = f.read(); assertEquals("unsupported_feature", rejected.string("error")); assertEquals("", rejected.string("revision"))
         f.storage.savePeer(f.peer.copy(remote_own_device = false))
         assertNull(f.receive(TimeControlProtokoll.request(UUID.randomUUID().toString())))

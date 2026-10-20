@@ -18,12 +18,8 @@ PHONE = sys.argv[1]
 
 
 def main():
-    original = phone.desktop_capabilities
-    def capabilities(*args, **kwargs):
-        value = original(*args, **kwargs)
-        value["items"]["personal_tasks_sync"]["versions"] = sorted(set(value["items"]["personal_tasks_sync"]["versions"] + [13]))
-        return value
-    phone.desktop_capabilities = capabilities  # Fixture only; production v13 stays unadvertised.
+    capabilities = phone.desktop_capabilities
+    assert 13 in capabilities()["items"]["personal_tasks_sync"]["versions"]
     with tempfile.TemporaryDirectory(prefix="native-time-control-") as directory:
         events = []
         service = phone.PhoneService(str(Path(directory) / "phone"), "Synthetic desktop", callback=lambda kind, value: events.append((kind, value)))

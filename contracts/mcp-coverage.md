@@ -7,11 +7,12 @@ details, not separate product features requiring another public tool.
 
 Issue #170 was closed after documenting its implemented scope and transferring
 the unfinished work, not after overall acceptance. The open implementation is
-tracked in #190 (Notes actor deletion/finalization), #191 (running timers), #192
+tracked in #190 (Notes actor deletion/finalization), #192
 (communications), #193 (remaining KDE actions), and #194 (remaining utilities,
 preferences and contact/profile transfers). Cross-platform contract/catalog/
 localization checks remain in #165, and combined installed acceptance in #113.
 Closing the collection issue does not enable marker 12 or public actor tools.
+The running-timer group from #191 is connected below.
 
 ## Connected groups awaiting overall installed acceptance
 
@@ -50,6 +51,14 @@ Closing the collection issue does not enable marker 12 or public actor tools.
   retired nonces and late replies are scoped. Private GTK/stdio acceptance uses
   a synthetic pinned phone context; C#/Python checks distinguish that from a
   physical handset authentication/read.
+- Native Notes timers (#191): fresh state reads and source/state/restore-bound
+  start/pause/resume/finish commands use the existing Notes timer handlers and
+  encrypted book writer. Strict correlated reports distinguish actual durable
+  saves from reads, transport ACKs and OS-runtime requests. Both desktop catalogs,
+  owner-bound cancellation/late replies, private Linux IPC and 20-language
+  handbook guidance are connected. Encrypted Python/C# TCP tests reopen the native
+  Notes book and verify exactly four command receipts with idempotent replay.
+  Physical handset runtime and combined installed acceptance remain below.
 
 ## Remaining operation groups
 
@@ -72,14 +81,13 @@ content synchronization and transfers remain in the group below.
 | Own Notes synchronization | Own-device selection, note/shared-book direction and operating preferences, existing initial/manual sync, contact/photo/profile transfer | Existing confirmed-peer and transaction gates; actual result/readback |
 | Communications | Routing/notification preferences, dial/accept/hang-up, SMS send/history/planning through existing supported adapters | Existing call/command references, source/fingerprint checks, receipt versus delivery distinction |
 | Other offered KDE actions | Existing drawing/input/device actions not already covered by media/filesystem tools | Current capability/source validation, existing permission handlers, truthful unsupported results |
-| Running time tracking | Existing start/pause/resume/stop workflow, separate from completed-record CRUD | Shared time engine, clocks, running-record constraints and save acknowledgement |
 | Remaining utilities/preferences | Existing contact-duplicate assistant, weather/medication lookup, developer/preferences, Thunderbird extension setup and application-support actions not represented by current settings/export tools | Shared product handlers, bounded typed results and actual launch/write outcomes |
 
 Running timer control (#191) targets the existing native Notes timer owner. The
 desktop completed-record engine deliberately rejects new running entries and
 reopening completed ones; that boundary must not be bypassed by MCP CRUD. A
-separately negotiated native timer-command contract is required for remote
-start/pause/resume/finish, rather than treating a TimeSync batch as a command.
+separately negotiated v13 native timer-command contract now carries remote
+start/pause/resume/finish; TimeSync batches remain data rather than commands.
 
 Phone-control progress within the lifecycle group: actual native connection
 snapshots and enable/disable, pairing-window/attempt decisions, removal, editable

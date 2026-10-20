@@ -39,6 +39,8 @@ DIAGNOSTICS_NAME = "background-events.log"
 FRESHNESS_NAME = "background-freshness.json"
 AUTOSTART_NAME = "io.gitlab.maik3531.MagnolieOrganizer.Background.desktop"
 MAX_IPC_MESSAGE = 64 * 1024
+MAX_TIME_CONTROL_IPC = 192 * 1024 + 4096
+TIME_CONTROL_ACTIONS = ("time_control_source", "time_control_query", "time_control_cancel")
 MAX_PHONE_ARGUMENTS = 2 * 1024 * 1024
 MAX_PHONE_MESSAGE = 72 * 1024 * 1024
 MAX_CONTACT_MESSAGE = 8 * 1024 * 1024
@@ -848,9 +850,29 @@ def _request_shape(operation, arguments):
             raise IPCError("invalid KDE lifecycle request")
     if operation == "phone_mcp_action":
         request = arguments.get("request")
-        if set(arguments) != {"request"} or not isinstance(request, dict) or len(encoded.encode("utf-8")) > 8192 or set(request) - {"action", "expectedRevision", "peerId", "fingerprint", "enabled", "name", "address", "attemptId", "accept", "queryId", "includeIdentifiers", "field", "value", "initial", "skipDeletions", "mode"}:
+        if isinstance(request, dict) and request.get("action") in TIME_CONTROL_ACTIONS:
+            action = request["action"]
+            fields = {"action", "peerId", "fingerprint"} | ({"timerAction"} if action == "time_control_source" else
+                {"sourceRevision", "body"} if action == "time_control_query" else {"requestId"})
+            if (set(arguments) != {"request"} or set(request) != fields or len(encoded.encode("utf-8")) > MAX_TIME_CONTROL_IPC or
+                    not _status_query_id(request.get("peerId")) or not isinstance(request.get("fingerprint"), str) or
+                    not re.fullmatch(r"[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}", request["fingerprint"])):
+                raise IPCError("invalid phone timer-control request")
+            if action == "time_control_source" and request["timerAction"] not in ("read", "start", "pause", "resume", "finish"):
+                raise IPCError("invalid phone timer action")
+            if action == "time_control_cancel" and not _status_query_id(request["requestId"]):
+                raise IPCError("invalid phone timer cancellation")
+            if action == "time_control_query":
+                if not isinstance(request["sourceRevision"], str) or not re.fullmatch(r"[a-f0-9]{64}", request["sourceRevision"]):
+                    raise IPCError("invalid phone timer source")
+                from magnolie_time_control import validate_request
+                try:
+                    validate_request(request["body"])
+                except (ValueError, TypeError, KeyError) as error:
+                    raise IPCError("invalid phone timer command") from error
+        elif set(arguments) != {"request"} or not isinstance(request, dict) or len(encoded.encode("utf-8")) > 8192 or set(request) - {"action", "expectedRevision", "peerId", "fingerprint", "enabled", "name", "address", "attemptId", "accept", "queryId", "includeIdentifiers", "field", "value", "initial", "skipDeletions", "mode"}:
             raise IPCError("invalid phone control request")
-        if request.get("action") not in ("settings", "pairing_begin", "pairing_confirm", "pairing_cancel", "remove", "grant", "bluetooth", "device_status_query", "device_status_cancel", "notes_settings_read", "notes_settings_update", "notes_ownership", "notes_legacy_mode", "notes_note_direction", "notes_legacy_policy") or (request.get("action") != "notes_settings_read" and (not isinstance(request.get("expectedRevision"), str) or not re.fullmatch(r"[a-f0-9]{64}", request["expectedRevision"]))):
+        elif request.get("action") not in ("settings", "pairing_begin", "pairing_confirm", "pairing_cancel", "remove", "grant", "bluetooth", "device_status_query", "device_status_cancel", "notes_settings_read", "notes_settings_update", "notes_ownership", "notes_legacy_mode", "notes_note_direction", "notes_legacy_policy") or (request.get("action") != "notes_settings_read" and (not isinstance(request.get("expectedRevision"), str) or not re.fullmatch(r"[a-f0-9]{64}", request["expectedRevision"]))):
             raise IPCError("invalid phone control request")
         if request.get("action") in ("device_status_query", "device_status_cancel") and (
                 not _status_query_id(request.get("queryId")) or not isinstance(request.get("peerId"), str) or
@@ -1439,7 +1461,7 @@ class IPCServer:
                                                                arguments['enabled'], permitted=permitted)
                 elif operation.startswith("phone_"):
                     if operation in ("phone_open_pairing", "phone_cancel_pairing", "phone_confirm_pairing", "phone_remove", "phone_set_enabled", "phone_set_bluetooth") or (
-                            operation == "phone_mcp_action" and arguments["request"].get("action") not in ("device_status_query", "device_status_cancel")):
+                            operation == "phone_mcp_action" and arguments["request"].get("action") not in ("device_status_query", "device_status_cancel", *TIME_CONTROL_ACTIONS)):
                         with self._mutation_lock:
                             result = self._phone_operation(operation, arguments)
                     else:
@@ -1487,7 +1509,7 @@ class IPCServer:
                 and not normalize_settings(self.settings_getter())["permissions"]["phone_call_notifications"]):
             raise IPCError("call notifications are not permitted")
         if (operation in ("phone_open_pairing", "phone_cancel_pairing", "phone_confirm_pairing", "phone_remove", "phone_set_enabled", "phone_set_bluetooth") or
-                operation == "phone_mcp_action" and arguments["request"].get("action") != "device_status_cancel") and \
+                operation == "phone_mcp_action" and arguments["request"].get("action") not in ("device_status_cancel", "time_control_cancel")) and \
                 self.setup_sessions.connecting_transport in ("wifi", "bluetooth"):
             raise IPCError("Another phone setup session is active.")
         if operation == "phone_take_event":
@@ -1641,7 +1663,8 @@ def ipc_request(operation, arguments=None, path=None, timeout=6):
             if uid != os.getuid():
                 raise IPCError("IPC server has a different user")
         _write_message(connection, {"op": operation, "args": arguments or {}},
-            MAX_PHONE_MESSAGE if operation in LARGE_IPC_OPERATIONS else MAX_IPC_MESSAGE)
+            MAX_PHONE_MESSAGE if operation in LARGE_IPC_OPERATIONS else
+            MAX_TIME_CONTROL_IPC if operation == "phone_mcp_action" and (arguments or {}).get("request", {}).get("action") in TIME_CONTROL_ACTIONS else MAX_IPC_MESSAGE)
         response = _read_message(connection, MAX_PHONE_MESSAGE if operation.startswith("phone_")
                                  else MAX_CONTACT_MESSAGE if operation in ("contact_uids", "contact_vcards")
                                  else MAX_IPC_MESSAGE)
