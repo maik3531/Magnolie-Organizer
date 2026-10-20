@@ -35561,6 +35561,178 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         finally { signal.removeEventListener("abort", cancel); }
       } };
   }
+  const mcpNotesActorLaeufe = new Map();
+  let mcpNotesActorStarts = 0;
+  const mcpNotesActorTerminal = job => ["failed", "cancelled", "completed"].includes(job.phase);
+  function mcpNotesActorJob(owner, id) {
+    const job = mcpNotesActorLaeufe.get(id);
+    if (!job || job.owner !== owner || job.expires <= Date.now()) throw new MagnolieMcp.ToolError("not_found", "Notes actor operation not found in this session");
+    return job;
+  }
+  function mcpNotesActorGuard(job) {
+    if (job.controller.signal.aborted || mcpNotesActorLaeufe.get(job.id) !== job || job.expires <= Date.now())
+      throw new MagnolieMcp.ToolError("cancelled", "Notes actor owner is no longer active");
+    if (gesperrt || !initialisiert || !antwortErhalten || DATEN !== job.book || JSON.stringify(DATEN) !== job.before)
+      throw new MagnolieMcp.ToolError("source_changed", "Book changed during the Notes actor operation");
+    mcpEditorPruefen();
+  }
+  async function mcpNotesActorNative(job, action, extra = {}, signal = job.controller.signal) {
+    const value = await mcpNativeAufruf("telefon_mcp", { request: { action, peerId: job.peer, fingerprint: job.fingerprint,
+      ...(job.handle || {}), ...extra } }, "telefonMcpErgebnis", signal);
+    if (value.ok !== true) throw new MagnolieMcp.ToolError(value.code || "native_operation_failed", "Native Notes actor action failed");
+    return value;
+  }
+  function mcpNotesActorStopNative(job) {
+    if (!job.handle || job.nativeStopped) return;
+    job.nativeStopped = true;
+    mcpNotesActorNative(job, "notes_actor_cancel", {}, new AbortController().signal).catch(() => { job.unknown = true; });
+  }
+  function mcpNotesActorAntwort(job) {
+    return { operation_id: job.id, peer_id: job.peer, phase: job.phase, review_revision: job.review?.revision || "",
+      summary: kopie(job.review?.summary || null), book_persisted: false, phone_persisted: false,
+      cancel_requested: job.controller.signal.aborted, native_outcome_unknown: job.unknown, error_code: job.error };
+  }
+  function mcpNotesActorStatus(owner, id) {
+    const job = mcpNotesActorJob(owner, id);
+    if (!mcpNotesActorTerminal(job)) try { mcpNotesActorGuard(job); }
+    catch (error) { job.error = error.code || "source_changed"; job.phase = "failed"; job.controller.abort(); }
+    return mcpNotesActorAntwort(job);
+  }
+  function mcpNotesActorCancel(owner, id) {
+    const job = mcpNotesActorJob(owner, id);
+    if (!mcpNotesActorTerminal(job)) { job.phase = "cancelled"; job.controller.abort(); }
+    return mcpNotesActorAntwort(job);
+  }
+  async function mcpNotesActorBytes(job, revision = "", attachment = null) {
+    let offset = 0, total = null, bytes = null;
+    do {
+      mcpNotesActorGuard(job);
+      const page = (await mcpNotesActorNative(job, "notes_actor_read", { offset, limit: 65536,
+        expectedRevision: revision, attachmentSha256: attachment?.sha256 || "" })).actor;
+      mcpNotesActorGuard(job);
+      if (page?.batch_ready === false && !attachment) return null;
+      if (!page || page.batch_ready !== true || !/^[a-f0-9]{64}$/.test(page.revision) ||
+          revision && page.revision !== revision || !Number.isSafeInteger(page.total_bytes) || page.total_bytes < 0 ||
+          page.total_bytes > (attachment ? 8 * 1024 * 1024 : 64 * 1024 * 1024) || page.offset !== offset ||
+          typeof page.data_base64 !== "string" || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(page.data_base64))
+        throw new MagnolieMcp.ToolError("invalid_result", "Native Notes actor byte page was inconsistent");
+      if (total === null) { total = page.total_bytes; revision = page.revision; bytes = new Uint8Array(total); }
+      if (total !== page.total_bytes || attachment && (page.attachment_sha256 !== attachment.sha256 || page.mime !== attachment.mime || total !== attachment.size))
+        throw new MagnolieMcp.ToolError("invalid_result", "Native Notes actor source changed between pages");
+      const part = Uint8Array.from(atob(page.data_base64), value => value.charCodeAt(0)), end = offset + part.length;
+      if (part.length > 65536 || end > total || page.next_offset !== (end < total ? end : null) || end < total && end === offset)
+        throw new MagnolieMcp.ToolError("invalid_result", "Native Notes actor continuation was not contiguous");
+      bytes.set(part, offset); offset = end;
+    } while (offset < total);
+    const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), value => value.toString(16).padStart(2, "0")).join("");
+    mcpNotesActorGuard(job);
+    if (digest !== (attachment?.sha256 || revision)) throw new MagnolieMcp.ToolError("invalid_result", "Native Notes actor byte digest did not match");
+    return { bytes, revision };
+  }
+  async function mcpNotesActorArbeit(job) {
+    try {
+      // Retain a late create result for cleanup even when the job was cancelled meanwhile.
+      const created = await mcpNotesActorNative(job, "notes_actor_create", { sourceRevision: job.source }, new AbortController().signal);
+      if (!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(created.actorId) || !/^[a-f0-9]{64}$/.test(created.ownerToken) || typeof created.bookSource !== "string")
+        throw new MagnolieMcp.ToolError("invalid_result", "Native Notes actor handle was incomplete");
+      job.handle = { actorId: created.actorId, ownerToken: created.ownerToken, bookSource: created.bookSource };
+      mcpNotesActorGuard(job);
+      job.dispatched = true;
+      await mcpNotesActorNative(job, "notes_actor_start"); mcpNotesActorGuard(job); job.phase = "receiving";
+      let data, attachments, viewRevision, lastPackets = -1, progress = Date.now();
+      for (;;) {
+        mcpNotesActorGuard(job);
+        try {
+          const payload = await mcpNotesActorBytes(job);
+          if (!payload) throw new MagnolieMcp.ToolError("not_ready", "Notes snapshot is still arriving");
+          data = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(payload.bytes)); viewRevision = payload.revision;
+          if (data.request?.run_id !== job.handle.actorId || data.request.format !== 3 || data.request.trigger !== "manual" ||
+              !Array.isArray(data.request.modules) || !data.request.modules.length || data.request.modules.some(value => !["notes", "tasks"].includes(value)) ||
+              !Array.isArray(data.batch?.records) || !Array.isArray(data.intents) ||
+              await personalSyncHash(data.batch.records) !== data.batch.records_hash)
+            throw new MagnolieMcp.ToolError("invalid_result", "Native Notes actor aggregate was inconsistent");
+          mcpNotesActorGuard(job); attachments = Object.create(null);
+          const descriptors = new Map();
+          for (const record of data.batch.records.filter(record => record.kind === "note")) for (const item of record.value.attachments || []) {
+            const old = descriptors.get(item.sha256);
+            if (old && (old.size !== item.size || old.mime !== item.mime)) throw new MagnolieMcp.ToolError("invalid_result", "Conflicting Notes attachment metadata");
+            descriptors.set(item.sha256, item);
+          }
+          if (descriptors.size > 256 || [...descriptors.values()].reduce((sum, item) => sum + item.size, 0) > 50 * 1024 * 1024)
+            throw new MagnolieMcp.ToolError("quota_exceeded", "Notes actor attachment budget exceeded");
+          for (const item of descriptors.values()) {
+            const file = await mcpNotesActorBytes(job, viewRevision, item); let binary = "";
+            for (let offset = 0; offset < file.bytes.length; offset += 8192) binary += String.fromCharCode(...file.bytes.subarray(offset, offset + 8192));
+            attachments[item.sha256] = "data:" + item.mime + ";base64," + btoa(binary);
+          }
+          break;
+        } catch (error) {
+          mcpNotesActorGuard(job);
+          if (["invalid_result", "quota_exceeded"].includes(error.code) || error instanceof SyntaxError) throw error;
+          const state = (await mcpNotesActorNative(job, "notes_actor_status")).actor;
+          mcpNotesActorGuard(job);
+          if (!["registered", "receiving"].includes(state?.phase) || (await mcpNotesActorNative(job, "notes_actor_source")).sourceRevision !== job.source)
+            throw new MagnolieMcp.ToolError("source_changed", "Native Notes actor source retired");
+          if (state.packets !== lastPackets) { lastPackets = state.packets; progress = Date.now(); }
+          if (Date.now() - progress > 120000) throw new MagnolieMcp.ToolError("native_timeout", "Notes actor snapshot stopped progressing");
+          await new Promise(resolve => setTimeout(resolve, 250));
+        }
+      }
+      mcpNotesActorGuard(job); job.phase = "preparing";
+      const selection = await personalSyncScopeAusManifest(data.content_scope), book = kopie(job.book);
+      mcpNotesActorGuard(job);
+      const options = { selection, independentRemovals: true, guard: () => mcpNotesActorGuard(job) };
+      const result = await personalSyncAnwendenAusBestand(book, kopie(data.batch.records), attachments, job.peer, data.request.modules, options);
+      const records = await personalSyncSnapshotAusBestand(book, data.request.modules, 3, job.peer, options);
+      const chunks = personalSyncPakete(records, job.handle.actorId, true, 3), aggregate = await personalSyncHash(chunks.flat());
+      const after = await personalSyncHash(JSON.stringify(book)); mcpNotesActorGuard(job);
+      const summary = { notes: data.batch.records.filter(record => record.kind === "note").length,
+        tasks: data.batch.records.filter(record => record.kind === "task").length, attachments: Object.keys(attachments).length,
+        conflicts: result.conflicts, unapplied_deletion_intents: data.intents.length };
+      const revision = await personalSyncHash([viewRevision, after, summary]); mcpNotesActorGuard(job);
+      const confirmed = (await mcpNotesActorNative(job, "notes_actor_read", { offset: 0, limit: 1, expectedRevision: viewRevision })).actor;
+      mcpNotesActorGuard(job);
+      if (confirmed?.revision !== viewRevision || confirmed.batch_ready !== true) throw new MagnolieMcp.ToolError("source_changed", "Native Notes review changed during preparation");
+      job.review = { revision, nativeRevision: viewRevision, book, summary, data,
+        batches: chunks.map((records, sequence) => ({ format: 3, run_id: job.handle.actorId, batch_id: crypto.randomUUID(),
+          sequence, last: sequence === chunks.length - 1, reply: true, records_hash: aggregate, records })),
+        sources: (records.attachmentSources || []).filter(source => chunks.flat().some(record => record.kind === "note" && record.value.attachments.some(item => item.sha256 === source.sha256))) };
+      job.phase = "review";
+    } catch (error) {
+      if (job.dispatched) job.unknown = true;
+      if (job.phase !== "cancelled") { job.phase = job.controller.signal.aborted ? "cancelled" : "failed"; job.error = error.code || "native_operation_failed"; }
+    } finally {
+      if (mcpNotesActorTerminal(job)) { mcpNotesActorStopNative(job); job.review = null; job.book = null; job.before = ""; }
+    }
+  }
+  async function mcpNotesActorStart(owner, args, signal) {
+    for (const [id, job] of mcpNotesActorLaeufe) if (job.expires <= Date.now()) { job.controller.abort(); mcpNotesActorLaeufe.delete(id); }
+    if (mcpNotesActorLaeufe.size + mcpNotesActorStarts >= 32 || [...mcpNotesActorLaeufe.values()].filter(job => !mcpNotesActorTerminal(job)).length + mcpNotesActorStarts >= 4)
+      throw new MagnolieMcp.ToolError("native_busy", "Notes actor operation budget is full");
+    mcpNotesActorStarts++;
+    try { return await mcpNotesActorBegin(owner, args, signal); }
+    finally { mcpNotesActorStarts--; }
+  }
+  async function mcpNotesActorBegin(owner, args, signal) {
+    mcpEditorPruefen();
+    const book = DATEN, before = JSON.stringify(book), revision = await personalSyncHash(before);
+    if (signal.aborted || gesperrt || DATEN !== book || JSON.stringify(book) !== before || revision !== args.expected_book_revision)
+      throw new MagnolieMcp.ToolError("conflict", "Read the current book before starting Notes synchronization");
+    for (const [id, job] of mcpNotesActorLaeufe) if (job.expires <= Date.now()) { job.controller.abort(); mcpNotesActorLaeufe.delete(id); }
+    if (mcpNotesActorLaeufe.size >= 32 || [...mcpNotesActorLaeufe.values()].filter(job => !mcpNotesActorTerminal(job)).length >= 4)
+      throw new MagnolieMcp.ToolError("native_busy", "Notes actor operation budget is full");
+    const job = { id: Array.from(crypto.getRandomValues(new Uint8Array(24)), value => value.toString(16).padStart(2, "0")).join(""),
+      owner, peer: args.peer_id, fingerprint: args.fingerprint, book, before, phase: "starting", expires: Date.now() + 1800000,
+      controller: new AbortController(), handle: null, review: null, error: "", unknown: false, nativeStopped: false, dispatched: false };
+    const source = await mcpNotesActorNative(job, "notes_actor_source", {}, signal);
+    if (!/^[a-f0-9]{64}$/.test(source.sourceRevision)) throw new MagnolieMcp.ToolError("invalid_result", "Native Notes source revision was incomplete");
+    mcpEditorPruefen();
+    if (signal.aborted || gesperrt || DATEN !== book || JSON.stringify(book) !== before) throw new MagnolieMcp.ToolError("source_changed", "Book changed before Notes actor creation");
+    job.source = source.sourceRevision; mcpNotesActorLaeufe.set(job.id, job);
+    job.controller.signal.addEventListener("abort", () => { if (job.dispatched) job.unknown = true; mcpNotesActorStopNative(job); job.review = null; job.book = null; job.before = ""; }, { once: true });
+    Promise.resolve().then(() => mcpNotesActorArbeit(job));
+    return mcpNotesActorAntwort(job);
+  }
   const mcpNotesZeitLaeufe = new Map();
   const mcpNotesZeitFertig = job => ["completed", "failed", "cancelled"].includes(job.phase);
   function mcpNotesZeitLauf(owner, id) {
@@ -38113,6 +38285,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   App.mcpClose = session => {
     for (const [id, job] of mcpKdePaarungsLaeufe) if (job.owner === session) { job.controller.abort(); mcpKdePaarungsLaeufe.delete(id); }
     for (const [id, job] of mcpNotesZeitLaeufe) if (job.owner === session) { job.controller.abort(); mcpNotesZeitLaeufe.delete(id); }
+    for (const [id, job] of mcpNotesActorLaeufe) if (job.owner === session) { job.controller.abort(); mcpNotesActorLaeufe.delete(id); }
     for (const [id, job] of notizVersandLaeufe) if (job.owner === session) {
       job.cancel = true; job.controller.abort();
       if (job.requested && !["handed_off", "failed", "cancelled"].includes(job.value.phase))
@@ -38307,6 +38480,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     personalSyncSnapshot: personalSyncSnapshot,
     personalSyncSnapshotAusBestand: personalSyncSnapshotAusBestand,
     personalSyncAnwendenAusBestand: personalSyncAnwendenAusBestand,
+    mcpNotesActorStart, mcpNotesActorStatus, mcpNotesActorCancel,
+    mcpNotesActorReview: (owner, id) => { const job = mcpNotesActorJob(owner, id); mcpNotesActorGuard(job); return kopie(job.review); },
     personalSyncScopeAusManifest: personalSyncScopeAusManifest,
     personalSyncNotizImport: personalSyncNotizImport,
     personalSyncNotizBereit: personalSyncNotizBereit,

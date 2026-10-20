@@ -538,6 +538,63 @@ def client():
                     actor_proxy.stop()
                     if actor_proxy._event_thread is not None: actor_proxy._event_thread.join(timeout=3)
                     actor_server.close()
+            import pytest
+            from test_personal_actor_source import actor_source_fixture
+            from test_personal_actor_transport import record as actor_record
+            import magnolie_personal_actor as actor_wire
+            def actor_js(script):
+                value = {}; done = threading.Event()
+                def finished(view, result, *_args):
+                    try: value["text"] = view.evaluate_javascript_finish(result).to_string()
+                    except Exception as error: value["error"] = str(error)
+                    finally: done.set()
+                GLib.idle_add(lambda: (window.ansicht.evaluate_javascript(script, -1, None, None, None, finished, None), False)[1])
+                assert done.wait(10), "Actor frontend JavaScript callback timed out"
+                assert "error" not in value, value
+                return value["text"]
+            with tempfile.TemporaryDirectory(prefix="native-actor-review-", dir="/tmp/opencode") as actor_directory, pytest.MonkeyPatch.context() as patches:
+                actor_service, actor_peer, actor_channel, actor_fingerprint, _ = actor_source_fixture(Path(actor_directory), patches)
+                actor_service.native_actor_book_source = window._telefon_actor_buchquelle
+                original_channel_send = actor_channel.send
+                actor_started = []
+                def actor_send(message):
+                    assert not actor_service.lock._is_owned(), "Native actor bridge held the source guard during send"
+                    original_channel_send(message)
+                    if message.get("kind") != actor_wire.START_KIND: return
+                    run = message["body"]["run_id"]
+                    admission = actor_service.personal_actor_admissions[run]
+                    actor_started.append((admission["registry"], admission["handle"]))
+                    request = {"format": 3, "run_id": run, "trigger": "manual", "modules": ["notes", "tasks"]}
+                    incoming = actor_record(); incoming["value"]["text"] = "Actual native private actor review"
+                    incoming["hash"] = phone_protocol.personal_sync_contract.projection_hash(incoming["value"])
+                    batch = {"format": 3, "run_id": run, "batch_id": str(__import__("uuid").uuid4()), "sequence": 0, "last": True,
+                        "reply": False, "records": [incoming], "records_hash": phone_protocol.personal_sync_contract.records_hash([incoming])}
+                    for kind, body in [("personal_sync.request", request), ("personal_sync.batch", batch)]:
+                        actor_service._payload(actor_peer, actor_channel, actor_wire.wire_message(phone_protocol.PhoneService._actor_control_message(kind, body), run))
+                actor_channel.send = actor_send
+                window._telefon = actor_service
+                actor_unchanged = data_file.read_bytes()
+                try:
+                    actor_target = json.dumps({"peer_id": actor_peer["device_id"], "fingerprint": actor_fingerprint})
+                    actor_js("void (async()=>{const t=OrganizerTest, before=JSON.stringify(t.daten()), args=" + actor_target + "; args.expected_book_revision=await t.personalSyncHash(before); const started=await t.mcpNotesActorStart('owned-native-actor-probe',args,new AbortController().signal); window.__ownedActorProbe={id:started.operation_id,before};})().catch(error=>window.__ownedActorProbe={error:String(error)}); 'scheduled'")
+                    deadline = time.monotonic() + 20
+                    while time.monotonic() < deadline:
+                        actor_value = json.loads(actor_js("JSON.stringify((()=>{const value=window.__ownedActorProbe;if(!value||value.error)return value||{};return {...value,status:OrganizerTest.mcpNotesActorStatus('owned-native-actor-probe',value.id)};})())"))
+                        assert "error" not in actor_value, actor_value
+                        if actor_value.get("status", {}).get("phase") in ("review", "failed", "cancelled"): break
+                        time.sleep(0.05)
+                    assert actor_value.get("status", {}).get("phase") == "review", actor_value
+                    check = json.loads(actor_js("JSON.stringify((()=>{const t=OrganizerTest,v=window.__ownedActorProbe,r=t.mcpNotesActorReview('owned-native-actor-probe',v.id);const result={unchanged:JSON.stringify(t.daten())===v.before,text:r.book.notizen.find(n=>n.id==='note-one')?.text,reply:r.batches.flatMap(b=>b.records).find(n=>n.kind==='note')?.value.text};t.mcpNotesActorCancel('owned-native-actor-probe',v.id);return result;})())"))
+                    assert check == {"unchanged": True, "text": "Actual native private actor review", "reply": "Actual native private actor review"}, check
+                    deadline = time.monotonic() + 5
+                    assert actor_started
+                    while time.monotonic() < deadline and any(registry.status(handle)["phase"] != "cancelled" for registry, handle in actor_started): time.sleep(0.05)
+                    assert all(registry.status(handle)["phase"] == "cancelled" for registry, handle in actor_started)
+                    assert data_file.read_bytes() == actor_unchanged and actor_service.server is None
+                    state["native_actor_private_review_job_verified"] = True
+                finally:
+                    window._telefon = phone_fixture
+                    actor_service.connections.clear()
             unchanged = data_file.read_bytes()
             peer = settings_tool("organizer_phone_connection_read")["peers"][0]
             target = {"peer_id": peer["id"], "fingerprint": peer["fingerprint"]}

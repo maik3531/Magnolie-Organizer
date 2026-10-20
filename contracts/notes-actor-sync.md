@@ -424,6 +424,22 @@ in public tool results. Start is separate from creation so an owning job can
 retain its handle before network dispatch. These bridge actions do not register
 public tools, enable marker 12 or implement review/save/commit.
 
+The private frontend review worker now owns its native handle inside a
+session-bound operation with 32 retained/four active slots, including in-flight
+start reservations before book hashing. It validates contiguous native byte pages and
+raw SHA-256, assembles verified attachments under the same native view revision,
+and derives selection from the native content scope. Existing merge/snapshot
+handlers run against a private copy of the actual book to prepare a review and
+scoped reply batches/sources. The actual book is not saved or adopted during
+preparation. Session close, cancellation, book/source changes and new drafts or
+dialogs stop further preparation; a late creation result is retained only long
+enough to cancel its native context. Status excludes owner tokens and private book
+contents. Deletion intents are counted as unapplied and remain a commit gate.
+Cancellation/failure after start dispatch reports an unknown native outcome;
+retiring the local owner does not promise remote recall.
+This worker is not registered as a public tool; native save/commit, reply dispatch
+and Notes adoption still require their remaining completion proofs.
+
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
 chunk replay cannot produce another result. Both TCP fixtures wait for the
