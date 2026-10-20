@@ -28,7 +28,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
     // Immutable runtime snapshots: authorization from inside the store must not take gate
     // (store -> coordinator would invert the send/revocation lock order).
     private sealed record PendingDial(string PeerId, string Identity, string CallRef, long Deadline,
-        bool Scoped, bool Sent = false, long StartedMs = 0, bool Ended = false);
+        bool Scoped, bool Sent = false, long StartedMs = 0, bool Ended = false, string Origin = "gui");
     private PendingDial? pendingDial;
     private sealed record CallCommand(string PeerId, string Identity, string Kind, string CallRef, long Deadline, bool Sent = false);
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, CallCommand> callCommands = new(StringComparer.Ordinal);
@@ -463,8 +463,9 @@ internal sealed partial class TelefonCoordinator : IDisposable
         throw new NotSupportedException(T("Magnolie SMS is no longer part of the current Magnolie Notes phone protocol."));
     }
 
-    internal async Task<string> RequestDialAsync(string id, string number, string clientRef)
+    internal async Task<string> RequestDialAsync(string id, string number, string clientRef, string origin = "gui")
     {
+        if (origin is not ("gui" or "mcp")) throw new InvalidDataException("Invalid call command origin.");
         var body = new JsonObject { ["to"] = number, ["client_ref"] = clientRef }; TelefonCallContract.Validate("dial_request.command", body);
         TelefonConnection connection;
         lock (gate)
@@ -474,28 +475,30 @@ internal sealed partial class TelefonCoordinator : IDisposable
             if (store.HasCommand(id, clientRef) || pendingDial is { Ended: false } pending && pending.Deadline > Environment.TickCount64 ||
                 calls.GetValueOrDefault(id)?["state"]?.GetValue<string>() is "ringing" or "offhook")
                 throw new InvalidOperationException(T("This dial request has already been queued."));
-            store.RememberCommand(id, clientRef, Now());
-            pendingDial = new(id, Convert.ToBase64String(peer.PublicKey), clientRef, Environment.TickCount64 + 60_000, SupportsScopedDial(peer));
+            store.RememberCommand(id, clientRef, Now(), origin);
+            pendingDial = new(id, Convert.ToBase64String(peer.PublicKey), clientRef, Environment.TickCount64 + 60_000, SupportsScopedDial(peer), Origin: origin);
         }
         try { await connection.SendMessageAsync("dial_request.command", body, 60_000); }
         catch { lock (gate) if (pendingDial?.CallRef == clientRef) RevokeDial(id); throw; }
         lock (gate) if (pendingDial?.CallRef != clientRef || !pendingDial.Sent)
             throw new InvalidOperationException(T("The phone function is not permitted or available."));
-        await emit("App.telefonWaehlstatus", new { device_id = id, client_ref = clientRef, state = "queued", error = "none", occurred_ms = Now() }); return clientRef;
+        if (origin == "gui") await emit("App.telefonWaehlstatus", new { device_id = id, client_ref = clientRef, state = "queued", error = "none", occurred_ms = Now() }); return clientRef;
     }
 
-    internal async Task<string> RequestAnswerAsync(string id, string callRef, string commandRef)
+    internal async Task<string> RequestAnswerAsync(string id, string callRef, string commandRef, string origin = "gui")
     {
+        if (origin is not ("gui" or "mcp")) throw new InvalidDataException("Invalid call command origin.");
         var connection = RequireOnline(id, "answer_call", true); JsonObject current; lock (gate) current = calls.GetValueOrDefault(id)?.DeepClone().AsObject() ?? throw new InvalidOperationException(T("The call is no longer ringing."));
         if (current["call_ref"]?.GetValue<string>() != callRef || current["state"]?.GetValue<string>() != "ringing" || current["direction"]?.GetValue<string>() != "incoming") throw new InvalidOperationException(T("The call is no longer ringing or is outdated."));
         var body = new JsonObject { ["command_ref"] = commandRef, ["call_ref"] = callRef, ["expected_state"] = "ringing" }; TelefonCallContract.Validate("answer_call.command", body);
-        if (store.HasCommand(id, commandRef)) throw new InvalidOperationException(T("This answer request has already been queued.")); store.RememberCommand(id, commandRef, Now());
+        if (store.HasCommand(id, commandRef)) throw new InvalidOperationException(T("This answer request has already been queued.")); store.RememberCommand(id, commandRef, Now(), origin);
         RememberCallCommand(id, commandRef, "answer_call", callRef);
         await connection.SendMessageAsync("answer_call.command", body, 10_000); return commandRef;
     }
 
-    internal async Task<string> RequestEndCallAsync(string id, string callRef, long expectedRevision, string commandRef)
+    internal async Task<string> RequestEndCallAsync(string id, string callRef, long expectedRevision, string commandRef, string origin = "gui")
     {
+        if (origin is not ("gui" or "mcp")) throw new InvalidDataException("Invalid call command origin.");
         TelefonConnection connection; JsonObject body;
         lock (gate)
         {
@@ -509,7 +512,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
             Peers.FirstOrDefault(peer => peer.Id == id)?.Capabilities["end_call"]?["versions"] is JsonArray versions && versions.Any(value => value?.GetValue<int>() == 2);
         if (current["call_ref"]?.GetValue<string>() != callRef || state != "offhook" && !rejecting || current["revision"]?.GetValue<long>() != expectedRevision) throw new InvalidOperationException(T("The call is no longer active or has been updated."));
         body = new JsonObject { ["command_ref"] = commandRef, ["call_ref"] = callRef, ["expected_revision"] = expectedRevision, ["expected_state"] = state }; TelefonCallContract.Validate("end_call.command", body);
-        if (store.HasCommand(id, commandRef)) throw new InvalidOperationException(T("This end-call request has already been queued.")); store.RememberCommand(id, commandRef, Now());
+        if (store.HasCommand(id, commandRef)) throw new InvalidOperationException(T("This end-call request has already been queued.")); store.RememberCommand(id, commandRef, Now(), origin);
         RememberCallCommand(id, commandRef, "end_call", callRef);
         }
         await connection.SendMessageAsync("end_call.command", body, 10_000);
@@ -527,7 +530,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         {
             pendingDial = null;
             if (calls.GetValueOrDefault(id)?["call_ref"]?.GetValue<string>() == pending.CallRef) calls.Remove(id);
-            if (!pending.Ended && !disposed) Track(emit("App.telefonWaehlstatus", new {
+            if (!pending.Ended && !disposed && pending.Origin == "gui") Track(emit("App.telefonWaehlstatus", new {
                 device_id = id, client_ref = pending.CallRef, state = "failed", error = "not_granted", occurred_ms = Now() }));
         }
         foreach (var item in callCommands.Where(item => item.Value.PeerId == id)) callCommands.TryRemove(item.Key, out _);
@@ -1404,6 +1407,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
                     ActorMessageReceived = (source, message) => ReceivePersonalActorAsync(source, peer, message),
                     TimerControlReportReceived = (source, message) => ReceiveTimeControlReportAsync(source, peer, message),
                     CallContextObserved = ObserveCallContext,
+                    PrivateCallResultObserved = (source, receivedPeer, kind, body) => PrivateCallResultObserver?.Invoke(source, receivedPeer, kind, body),
                     ActorPump = PumpPersonalActorAsync };
             var capabilityRevision = store.NextOwnRevision("capabilities"); var grantRevision = store.NextOwnRevision("grants");
             await connection.InitializeAsync(capabilityRevision);
@@ -1497,25 +1501,29 @@ internal sealed partial class TelefonCoordinator : IDisposable
         { var copy = body.DeepClone().AsObject(); copy["kennung"] = peer.Id; copy["telefonName"] = peer.Name; await emit("App.telefonBenachrichtigung", copy); return null; }
         if (kind == "dial_request.result")
         {
+            string? origin;
             lock (gate)
             {
                 if (AuthorizeCall(peer, kind, body) is { } denial) return new TelefonAck(message["message_id"]!.GetValue<string>(), "rejected", denial);
-                if (!store.UpdateCommand(peer.Id, body["client_ref"]!.GetValue<string>(), body["state"]!.GetValue<string>())) throw new InvalidDataException("Unbekannter Wählauftrag.");
+                origin = store.UpdateCommandOrigin(peer.Id, body["client_ref"]!.GetValue<string>(), body["state"]!.GetValue<string>());
+                if (origin is null) throw new InvalidDataException("Unbekannter Wählauftrag.");
                 if (body["state"]?.GetValue<string>() == "failed" && pendingDial is { } pending)
                     pendingDial = pending with { Ended = true, Deadline = Environment.TickCount64 + 60_000 };
             }
-            await emit("App.telefonWaehlstatus", WithPeer(body, peer)); return null;
+            if (origin == "gui") await emit("App.telefonWaehlstatus", WithPeer(body, peer)); return null;
         }
         if (kind is "answer_call.result" or "end_call.result")
         {
+            string? origin;
             lock (gate)
             {
                 if (AuthorizeCall(peer, kind, body) is { } denial) return new TelefonAck(message["message_id"]!.GetValue<string>(), "rejected", denial);
                 var reference = body["command_ref"]!.GetValue<string>();
-                if (!store.UpdateCommand(peer.Id, reference, body["state"]!.GetValue<string>())) throw new InvalidDataException("Unbekannter Anrufauftrag.");
+                origin = store.UpdateCommandOrigin(peer.Id, reference, body["state"]!.GetValue<string>());
+                if (origin is null) throw new InvalidDataException("Unbekannter Anrufauftrag.");
                 callCommands.TryRemove(reference, out _);
             }
-            await emit(kind == "answer_call.result" ? "App.telefonAnnehmstatus" : "App.telefonAuflegestatus", WithPeer(body, peer)); return null;
+            if (origin == "gui") await emit(kind == "answer_call.result" ? "App.telefonAnnehmstatus" : "App.telefonAuflegestatus", WithPeer(body, peer)); return null;
         }
         if (kind == "incoming_call_state.event")
         {
@@ -1945,6 +1953,7 @@ internal sealed partial class TelefonConnection : IDisposable
     internal Func<TelefonConnection, JsonObject, Task>? ActorMessageReceived { get; set; }
     internal Func<TelefonConnection, JsonObject, Task>? TimerControlReportReceived { get; set; }
     internal Action<TelefonConnection, TelefonPeer, JsonObject>? CallContextObserved { get; set; }
+    internal Action<TelefonConnection, TelefonPeer, string, JsonObject>? PrivateCallResultObserved { get; set; }
     internal Func<TelefonConnection, Task>? ActorPump { get; set; }
 
     private async Task HandlePlainBoundAsync(JsonObject plain, JsonObject? scopedReference)
@@ -2136,6 +2145,12 @@ internal sealed partial class TelefonConnection : IDisposable
         }
         if (plain["kind"]?.GetValue<string>() == "incoming_call_state.event" && ack.Status == "accepted" && ack.Process)
             CallContextObserved?.Invoke(this, peer, plain["body"]!.AsObject());
+        if (ack.Status == "accepted" && ack.Process && plain["kind"]?.GetValue<string>() is "dial_request.result" or "answer_call.result" or "end_call.result")
+        {
+            var resultKind = plain["kind"]!.GetValue<string>(); var resultBody = plain["body"]!.AsObject();
+            var reference = resultBody[resultKind == "dial_request.result" ? "client_ref" : "command_ref"]!.GetValue<string>();
+            if (store.CommandOrigin(peer.Id, reference) == "mcp") PrivateCallResultObserved?.Invoke(this, peer, resultKind, resultBody.DeepClone().AsObject());
+        }
         if (plain["kind"]?.GetValue<string>() == "capabilities.update" && ack.Status is "accepted" or "duplicate")
             await SendNoteSettingsAsync();
         if (plain["kind"]?.GetValue<string>() is "capabilities.update" or "personal_sync.settings" && ack.Status is "accepted" or "duplicate")

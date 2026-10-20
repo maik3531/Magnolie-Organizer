@@ -21,6 +21,7 @@ internal sealed partial class TelefonConnection
 
 internal sealed partial class TelefonCoordinator
 {
+    internal Action<TelefonConnection, TelefonPeer, string, JsonObject>? PrivateCallResultObserver { get; set; }
     private sealed record CallContextReceipt(TelefonConnection Connection, byte[] PublicKey, string BodyHash, long ReceivedMs);
     private readonly Dictionary<string, CallContextReceipt> callContextReceipts = new(StringComparer.Ordinal);
     private static string CallContextHash(JsonObject body) => Convert.ToHexString(SHA256.HashData(TelefonCrypto.Canonical(body))).ToLowerInvariant();

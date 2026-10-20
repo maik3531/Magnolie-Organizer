@@ -33,6 +33,25 @@ The Linux private IPC route validates exact identity fields; reads do not occupy
 the transport mutation lock and can inspect the current connection while a new
 transport setup is pending.
 
+## Native command origins and reply routing
+
+The existing `command_effect` store carries a local `gui` or `mcp` origin.
+Legacy rows migrate to `gui`; the origin survives reopening and is retained or
+deleted with the existing command. It is not part of any phone message. Ordinary
+daemon dial/answer/end requests cannot select a private origin.
+
+The same native dial/answer/end handlers can record the trusted private origin.
+Result handling classifies the origin and updates the existing receipt in one
+database transaction. Private results are routed to a native observer with the
+actual peer/key and connection, rather than GUI command-status callbacks.
+Private queued/revoked dial requests also stay out of those GUI callbacks.
+When the originating owner is absent, a late result is not adopted by the GUI.
+Normal authenticated call lifecycle events remain in the existing call engine.
+
+This origin flag is routing metadata. Native owner admission, exact source CAS,
+current call identity, dispatch claim, result correlation, cancellation and
+lifetime guards must still be connected before public command execution.
+
 ## Remaining connections
 
 Public call tools, source-bound command execution/receipts and cancellation are

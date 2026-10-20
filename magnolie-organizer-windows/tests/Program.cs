@@ -71,6 +71,7 @@ runner.Add("MCP local pipe / correlation / strict framing / cleanup", McpTranspo
 runner.Add("MCP tree / native store / revision / scoped GUI emissions", McpTreeActionsTests.RunAsync);
 runner.Add("MCP phone / public control snapshot / native revision", McpPhoneStatusTests.RunAsync);
 runner.Add("MCP calls / current-session provenance / redacted observations", McpCallContextTests.RunAsync);
+runner.Add("Call command origin / persisted metadata / private reply routing", CallCommandOriginTests.RunAsync);
 runner.Add("MCP device status / explicit identifiers / ephemeral source", McpDeviceStatusTests.RunAsync);
 runner.Add("MCP Notes settings / consent / shared preference store", McpNotesSettingsTests.RunAsync);
 runner.Add("Notes actor start / shared strict contract vectors", PersonalSyncActorContractTests.RunAsync);

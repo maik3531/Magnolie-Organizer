@@ -23,7 +23,7 @@ internal static class OutgoingDialTests
         ["offhook_ms"] = revision >= 2 ? start + 1 : 0, ["ended_ms"] = state == "idle" ? start + 2 : 0,
         ["occurred_ms"] = start + revision, ["spam_status"] = "unknown", ["battery_percent"] = -1, ["battery_captured_ms"] = 0 };
 
-    private sealed class Fixture : IDisposable
+    internal sealed class Fixture : IDisposable
     {
         internal readonly string Root = Path.Combine(Path.GetTempPath(), "magnolie-scoped-call-" + Guid.NewGuid().ToString("N"));
         internal readonly TelefonStore Store;
@@ -43,7 +43,7 @@ internal static class OutgoingDialTests
             Host = new(paths, (name, value) => {
                 var body = System.Text.Json.JsonSerializer.SerializeToNode(value)!.AsObject();
                 if (name == "App.telefonEingehenderAnruf") Events.Add(body);
-                if (name == "App.telefonWaehlstatus" || name == "App.telefonAuflegestatus") Results.Add(body);
+                if (name == "App.telefonWaehlstatus" || name == "App.telefonAuflegestatus" || name == "App.telefonAnnehmstatus") Results.Add(body);
                 return Task.CompletedTask;
             }, dataStore: Store, localOnly: true);
             Connection = Connect();
@@ -55,7 +55,10 @@ internal static class OutgoingDialTests
             var receive = Method(typeof(TelefonCoordinator), "HandleMessageAsync");
             var connection = new TelefonConnection(Peer, Wire, new byte[16], new byte[72], Store,
                 (peer, message) => (Task<TelefonAck?>)receive.Invoke(Host, [peer, message, "wifi"])!, CancellationToken.None, "wifi",
-                authorizeCall: authorize, sendCall: send);
+                authorizeCall: authorize, sendCall: send) {
+                    CallContextObserved = Host.ObserveCallContext,
+                    PrivateCallResultObserved = (source, peer, kind, body) => Host.PrivateCallResultObserver?.Invoke(source, peer, kind, body)
+                };
             ((Dictionary<string, TelefonConnection>)Field(typeof(TelefonCoordinator), "online").GetValue(Host)!)[Peer.Id] = connection;
             return connection;
         }
@@ -98,6 +101,7 @@ internal static class OutgoingDialTests
         Check(events.Length == 3 && events.All(e => e["call_ref"]!.GetValue<string>() == CallId), "Android trace identity");
         using (var f = new Fixture())
         {
+            var grantsBeforeDial = f.Store.LocalGrants().DeepClone();
             foreach (var e in events) await f.Receive("incoming_call_state.event", e);
             Check(f.Events.Count == 0, "Unsolicited outgoing events accepted");
             f.Store.RememberCommand(PeerId, Guid.NewGuid().ToString("D"), Now());
@@ -133,7 +137,7 @@ internal static class OutgoingDialTests
             await f.Receive("incoming_call_state.event", events[1]);
             Check(f.Events.Count == 3, "Duplicate/reordered callback reopened a terminal call");
             await Denied(() => f.End(CallId, 3), "end after idle");
-            Check(JsonNode.DeepEquals(f.Store.LocalGrants(), TelefonProtocolContract.DesktopGrants()), "Dial changed global grants");
+            Check(JsonNode.DeepEquals(f.Store.LocalGrants(), grantsBeforeDial), "Dial changed global grants");
             if (output is not null) File.WriteAllText(output, new JsonArray(f.Events.Select(e => (JsonNode)e.DeepClone()).ToArray()).ToJsonString());
         }
         foreach (var order in new[] { "result-first", "offhook-first", "idle-first" })

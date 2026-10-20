@@ -865,11 +865,12 @@ internal sealed partial class TelefonStore
         return CompletePersonalOutbox(peerId, messageId, now);
     }
 
-    internal void RememberCommand(string peerId, string clientRef, long now)
+    internal void RememberCommand(string peerId, string clientRef, long now, string origin = "gui")
     {
+        if (origin is not ("gui" or "mcp")) throw new InvalidDataException("Invalid call command origin.");
         using var connection = OpenDatabase(); connection.Open(); using var command = connection.CreateCommand();
-        command.CommandText = "INSERT INTO command_effect(client_ref,state,first_seen_ms,peer_id) VALUES($id,'queued',$now,$peer)";
-        command.Parameters.AddWithValue("$id", clientRef); command.Parameters.AddWithValue("$now", now); command.Parameters.AddWithValue("$peer", peerId); command.ExecuteNonQuery();
+        command.CommandText = "INSERT INTO command_effect(client_ref,state,first_seen_ms,peer_id,origin) VALUES($id,'queued',$now,$peer,$origin)";
+        command.Parameters.AddWithValue("$id", clientRef); command.Parameters.AddWithValue("$now", now); command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$origin", origin); command.ExecuteNonQuery();
     }
 
     internal bool HasCommand(string peerId, string clientRef)
@@ -879,11 +880,25 @@ internal sealed partial class TelefonStore
         return command.ExecuteScalar() is not null;
     }
 
-    internal bool UpdateCommand(string peerId, string clientRef, string state)
+    internal bool UpdateCommand(string peerId, string clientRef, string state) => UpdateCommandOrigin(peerId, clientRef, state) is not null;
+
+    internal string? CommandOrigin(string peerId, string clientRef)
     {
         using var connection = OpenDatabase(); connection.Open(); using var command = connection.CreateCommand();
+        command.CommandText = "SELECT origin FROM command_effect WHERE peer_id=$peer AND client_ref=$id";
+        command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$id", clientRef);
+        return command.ExecuteScalar() is string origin && origin is "gui" or "mcp" ? origin : null;
+    }
+
+    internal string? UpdateCommandOrigin(string peerId, string clientRef, string state)
+    {
+        using var connection = OpenDatabase(); connection.Open(); using var transaction = connection.BeginTransaction();
+        using var command = connection.CreateCommand(); command.Transaction = transaction;
+        command.CommandText = "SELECT origin FROM command_effect WHERE peer_id=$peer AND client_ref=$id";
+        command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$id", clientRef);
+        if (command.ExecuteScalar() is not string origin || origin is not ("gui" or "mcp")) return null;
         command.CommandText = "UPDATE command_effect SET state=$state WHERE peer_id=$peer AND client_ref=$id";
-        command.Parameters.AddWithValue("$peer", peerId); command.Parameters.AddWithValue("$id", clientRef); command.Parameters.AddWithValue("$state", state); return command.ExecuteNonQuery() == 1;
+        command.Parameters.AddWithValue("$state", state); command.ExecuteNonQuery(); transaction.Commit(); return origin;
     }
 
     internal long CurrentOwnRevision(string name)
@@ -1277,6 +1292,10 @@ internal sealed partial class TelefonStore
         command.ExecuteNonQuery();
         using var columns = connection.CreateCommand(); columns.CommandText = "PRAGMA table_info(outbox)"; using var reader = columns.ExecuteReader(); var names = new HashSet<string>(StringComparer.Ordinal); while (reader.Read()) names.Add(reader.GetString(1)); reader.Close();
         if (!names.Contains("transport_policy")) { using var alter = connection.CreateCommand(); alter.CommandText = "ALTER TABLE outbox ADD COLUMN transport_policy TEXT NOT NULL DEFAULT 'any'"; alter.ExecuteNonQuery(); }
+        using var commandColumns = connection.CreateCommand(); commandColumns.CommandText = "PRAGMA table_info(command_effect)";
+        using var commandReader = commandColumns.ExecuteReader(); var commandNames = new HashSet<string>(StringComparer.Ordinal);
+        while (commandReader.Read()) commandNames.Add(commandReader.GetString(1)); commandReader.Close();
+        if (!commandNames.Contains("origin")) { using var alter = connection.CreateCommand(); alter.CommandText = "ALTER TABLE command_effect ADD COLUMN origin TEXT NOT NULL DEFAULT 'gui'"; alter.ExecuteNonQuery(); }
         using var legacy = connection.CreateCommand(); legacy.CommandText = "SELECT 1 FROM sqlite_master WHERE type='table' AND name='sms_effect'";
         if (legacy.ExecuteScalar() is not null) { using var migrate = connection.CreateCommand(); migrate.CommandText = "INSERT OR IGNORE INTO command_effect(client_ref,state,first_seen_ms) SELECT client_ref,state,first_seen_ms FROM sms_effect; DROP TABLE sms_effect"; migrate.ExecuteNonQuery(); }
     }

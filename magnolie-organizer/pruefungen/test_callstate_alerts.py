@@ -39,7 +39,9 @@ class Store:
                 "answer_call": {"available": True, "versions": [1]}, "end_call": {"available": True, "versions": [1, 2]}}})
     def peer(self, peer_id): return self.value if peer_id == PEER else None
     def command_state(self, ref): return self.commands.get(ref)
-    def remember_command(self, peer_id, ref, state): self.commands[ref] = state
+    def remember_command(self, peer_id, ref, state, origin="gui"):
+        assert origin == "gui", "Cold GUI actions must retain their ordinary command origin"
+        self.commands[ref] = state
     def queue(self, peer_id, kind, body, ttl):
         return dict(message_id=NEXT, kind=kind, body=body, ttl=ttl)
     def outbox_policy(self, *args): return "any"
@@ -66,6 +68,7 @@ def service(monkeypatch):
     value.sent = []
     value.connections = {PEER: SimpleNamespace(send=value.sent.append)}
     value.incoming_call_channels = dict(value.connections)
+    value.call_context_receipts = {}
     value.connection_transports = {PEER: "wifi"}
     return value
 

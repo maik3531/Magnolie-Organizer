@@ -759,7 +759,8 @@ class PhoneStore:
                 message_id TEXT NOT NULL, peer_id TEXT NOT NULL, result TEXT NOT NULL,
                 error TEXT NOT NULL, seen_ms INTEGER NOT NULL, PRIMARY KEY(peer_id,message_id));
               CREATE TABLE IF NOT EXISTS command_effect(client_ref TEXT PRIMARY KEY,
-                state TEXT NOT NULL, first_seen_ms INTEGER NOT NULL, peer_id TEXT NOT NULL DEFAULT '');
+                state TEXT NOT NULL, first_seen_ms INTEGER NOT NULL, peer_id TEXT NOT NULL DEFAULT '',
+                origin TEXT NOT NULL DEFAULT 'gui');
               CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY, value BLOB NOT NULL);
               CREATE TABLE IF NOT EXISTS personal_batch(
                 peer_id TEXT NOT NULL,run_id TEXT NOT NULL,reply INTEGER NOT NULL,
@@ -798,6 +799,8 @@ class PhoneStore:
             command_columns = {row[1] for row in db.execute("PRAGMA table_info(command_effect)")}
             if "peer_id" not in command_columns:
                 db.execute("ALTER TABLE command_effect ADD COLUMN peer_id TEXT NOT NULL DEFAULT ''")
+            if "origin" not in command_columns:
+                db.execute("ALTER TABLE command_effect ADD COLUMN origin TEXT NOT NULL DEFAULT 'gui'")
         os.chmod(self.database_path, 0o600)
         with sqlite3.connect(self.database_path) as db:
             if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='sms_effect'").fetchone():
@@ -1856,10 +1859,12 @@ class PhoneStore:
             db.execute("DELETE FROM meta WHERE key LIKE 'personal_scope:%' AND substr(key,16) NOT IN "
                        "(SELECT substr(key,14) FROM meta WHERE key LIKE 'personal_run:%')")
 
-    def remember_command(self, peer_id, client_ref, state):
+    def remember_command(self, peer_id, client_ref, state, origin="gui"):
+        if origin not in ("gui", "mcp"):
+            raise ValueError("invalid_call_command_origin")
         with sqlite3.connect(self.database_path) as db:
-            db.execute("INSERT INTO command_effect(client_ref,state,first_seen_ms,peer_id) VALUES(?,?,?,?)",
-                       (client_ref, state, now_ms(), peer_id))
+            db.execute("INSERT INTO command_effect(client_ref,state,first_seen_ms,peer_id,origin) VALUES(?,?,?,?,?)",
+                       (client_ref, state, now_ms(), peer_id, origin))
 
     def command_state(self, client_ref):
         with sqlite3.connect(self.database_path) as db:
@@ -1868,10 +1873,23 @@ class PhoneStore:
         return row[0] if row else ""
 
     def update_command(self, peer_id, client_ref, state):
+        return self.update_command_origin(peer_id, client_ref, state) is not None
+
+    def command_origin(self, peer_id, client_ref):
         with sqlite3.connect(self.database_path) as db:
-            changed = db.execute("UPDATE command_effect SET state=? WHERE peer_id=? AND client_ref=?",
-                                   (state, peer_id, client_ref)).rowcount
-        return bool(changed)
+            row = db.execute("SELECT origin FROM command_effect WHERE peer_id=? AND client_ref=?", (peer_id, client_ref)).fetchone()
+        return row[0] if row and row[0] in ("gui", "mcp") else None
+
+    def update_command_origin(self, peer_id, client_ref, state):
+        # Classify and update in one transaction: deleting/replacing a command
+        # between two separate lookups must not turn a private reply into GUI data.
+        with sqlite3.connect(self.database_path) as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT origin FROM command_effect WHERE peer_id=? AND client_ref=?", (peer_id, client_ref)).fetchone()
+            if not row or row[0] not in ("gui", "mcp"):
+                return None
+            db.execute("UPDATE command_effect SET state=? WHERE peer_id=? AND client_ref=?", (state, peer_id, client_ref))
+            return row[0]
 
     def next_revision(self, name):
         key = "own_revision:" + name
@@ -2402,6 +2420,7 @@ class PhoneService:
         self.incoming_calls = {}
         self.incoming_call_channels = {}
         self.call_context_receipts = {}
+        self.private_call_result_observer = None
         from magnolie_anruf_audio import AnrufBluetooth
         self.call_audio = call_audio or AnrufBluetooth()
         self.call_audio.foreign_connection = self._audio_data_connection_in_use
@@ -5333,7 +5352,9 @@ class PhoneService:
                 "transport": self.connection_transports[peer_id], "permissions": permissions, "call": current,
                 "phone_status_queried": False, "persisted": False}
 
-    def request_dial(self, peer_id, destination, client_ref):
+    def request_dial(self, peer_id, destination, client_ref, origin="gui"):
+        if origin not in ("gui", "mcp"):
+            raise ValueError("invalid_call_command_origin")
         peer = self.store.peer(peer_id)
         eligible = []
         for candidate in self.store.peers:
@@ -5353,14 +5374,17 @@ class PhoneService:
         # nicht das Annehmen eingehender Anrufe am Desktop.
         self.set_grant(peer_id, "incoming_call_state", True)
         self.set_grant(peer_id, "end_call", True)
-        self.store.remember_command(peer_id, client_ref, "queued")
+        self.store.remember_command(peer_id, client_ref, "queued", origin=origin)
         message = self.store.queue(peer_id, "dial_request.command", body, 60000)
         self._send_message(self.connections[peer_id], peer_id, message)
-        self.callback("dial_status", {"device_id": peer_id, "client_ref": client_ref,
-                      "state": "queued", "error": "none", "occurred_ms": now_ms()})
+        if origin == "gui":
+            self.callback("dial_status", {"device_id": peer_id, "client_ref": client_ref,
+                          "state": "queued", "error": "none", "occurred_ms": now_ms()})
         return client_ref
 
-    def request_answer(self, peer_id, call_ref, command_ref):
+    def request_answer(self, peer_id, call_ref, command_ref, origin="gui"):
+        if origin not in ("gui", "mcp"):
+            raise ValueError("invalid_call_command_origin")
         peer = self.store.peer(peer_id)
         capability = (peer or {}).get("capabilities", {}).get("items", {}).get(
             "answer_call", {})
@@ -5377,12 +5401,14 @@ class PhoneService:
                                         "expected_state": "ringing"})
         if self.store.command_state(command_ref):
             raise RuntimeError("Dieser Annehmauftrag wurde bereits eingereiht.")
-        self.store.remember_command(peer_id, command_ref, "queued")
+        self.store.remember_command(peer_id, command_ref, "queued", origin=origin)
         message = self.store.queue(peer_id, "answer_call.command", body, 10000)
         self._send_message(self.connections[peer_id], peer_id, message)
         return command_ref
 
-    def request_end_call(self, peer_id, call_ref, revision, command_ref):
+    def request_end_call(self, peer_id, call_ref, revision, command_ref, origin="gui"):
+        if origin not in ("gui", "mcp"):
+            raise ValueError("invalid_call_command_origin")
         peer = self.store.peer(peer_id)
         capability = (peer or {}).get("capabilities", {}).get("items", {}).get("end_call", {})
         if (not peer or peer.get("state") != "paired" or peer_id not in self.connections or not capability.get("available")
@@ -5401,10 +5427,19 @@ class PhoneService:
             "expected_revision": revision, "expected_state": current["state"]})
         if self.store.command_state(command_ref):
             raise RuntimeError("Dieser Auflegeauftrag wurde bereits eingereiht.")
-        self.store.remember_command(peer_id, command_ref, "queued")
+        self.store.remember_command(peer_id, command_ref, "queued", origin=origin)
         message = self.store.queue(peer_id, "end_call.command", body, 10000)
         self._send_message(self.connections[peer_id], peer_id, message)
         return command_ref
+
+    def _publish_call_command_result(self, peer, channel, kind, value, origin):
+        if origin == "mcp":
+            observer = self.private_call_result_observer
+            if callable(observer):
+                observer(peer["device_id"], peer["static_public"], channel, kind, copy.deepcopy(value))
+            return
+        callbacks = {"dial_request.result": "dial_status", "answer_call.result": "answer_status", "end_call.result": "end_status"}
+        self.callback(callbacks[kind], dict(value, device_id=peer["device_id"]))
 
     def call_event_current(self, peer_id, call_ref, revision, state):
         with self.lock:
@@ -6758,9 +6793,10 @@ class PhoneService:
                 if not peer.get("grants", {}).get("grants", {}).get("dial_request"):
                     status, error = "rejected", "not_granted"
                     raise PermissionError
-                if not self.store.update_command(peer["device_id"], value["client_ref"], value["state"]):
+                origin = self.store.update_command_origin(peer["device_id"], value["client_ref"], value["state"])
+                if origin is None:
                     raise ValueError("unknown dial result")
-                self.callback("dial_status", dict(value, device_id=peer["device_id"]))
+                self._publish_call_command_result(peer, channel, kind, value, origin)
             except PermissionError:
                 pass
             except ValueError:
@@ -6826,17 +6862,19 @@ class PhoneService:
         elif kind == "answer_call.result":
             try:
                 value = validate_answer_result(payload["body"])
-                if not self.store.update_command(peer["device_id"], value["command_ref"], value["state"]):
+                origin = self.store.update_command_origin(peer["device_id"], value["command_ref"], value["state"])
+                if origin is None:
                     raise ValueError("unknown answer result")
-                self.callback("answer_status", dict(value, device_id=peer["device_id"]))
+                self._publish_call_command_result(peer, channel, kind, value, origin)
             except ValueError:
                 status, error = "rejected", "invalid_schema"
         elif kind == "end_call.result":
             try:
                 value = validate_end_result(payload["body"])
-                if not self.store.update_command(peer["device_id"], value["command_ref"], value["state"]):
+                origin = self.store.update_command_origin(peer["device_id"], value["command_ref"], value["state"])
+                if origin is None:
                     raise ValueError("unknown end result")
-                self.callback("end_status", dict(value, device_id=peer["device_id"]))
+                self._publish_call_command_result(peer, channel, kind, value, origin)
             except ValueError:
                 status, error = "rejected", "invalid_schema"
         elif kind in {"personal_sync.settings"} | PERSONAL_DATA_KINDS:
