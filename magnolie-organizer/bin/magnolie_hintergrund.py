@@ -975,7 +975,7 @@ def _request_shape(operation, arguments):
     if operation == "phone_actor_registry":
         request = arguments.get("request")
         if (not isinstance(arguments.get("book_source"), str) or re.fullmatch(r"[0-9a-f]{64}", arguments["book_source"]) is None or
-                not isinstance(request, dict) or request.get("action") not in ("create", "status", "read", "cancel")):
+                not isinstance(request, dict) or request.get("action") not in ("create", "status", "read", "staging", "cancel")):
             raise IPCError("invalid native actor registry request")
         if request["action"] == "create":
             if (set(request) != {"action", "peer_id", "fingerprint"} or not _status_query_id(request["peer_id"]) or
@@ -983,10 +983,17 @@ def _request_shape(operation, arguments):
                 raise IPCError("invalid native actor creation")
         else:
             fields = {"action", "actor_id", "owner_token"} | ({"message_id"} if request["action"] == "read" else set())
+            if request["action"] == "staging": fields |= {"offset", "limit", "expected_revision"}
             if (set(request) != fields or not _status_query_id(request["actor_id"]) or
                     not isinstance(request["owner_token"], str) or re.fullmatch(r"[0-9a-f]{64}", request["owner_token"]) is None or
                     request["action"] == "read" and not _status_query_id(request["message_id"])):
                 raise IPCError("invalid native actor ownership")
+            if request["action"] == "staging" and (type(request["offset"]) is not int or request["offset"] < 0 or
+                    type(request["limit"]) is not int or not 1 <= request["limit"] <= 65536 or
+                    not isinstance(request["expected_revision"], str) or
+                    request["expected_revision"] != "" and re.fullmatch(r"[0-9a-f]{64}", request["expected_revision"]) is None or
+                    request["offset"] != 0 and request["expected_revision"] == ""):
+                raise IPCError("invalid native actor staging read")
     if operation in ("phone_actor_start", "phone_actor_cancel"):
         _request_shape("phone_actor_registry", {"subscriber": arguments.get("subscriber"), "book_source": arguments.get("book_source"),
             "request": {"action": "status", "actor_id": arguments.get("actor_id"), "owner_token": arguments.get("owner_token")}})
@@ -1498,6 +1505,8 @@ class IPCServer:
                 handle = ActorHandle(request["actor_id"], request["owner_token"])
                 if request["action"] == "status": return registry.status(handle)
                 if request["action"] == "read": return registry.read(handle, request["message_id"])
+                if request["action"] == "staging": return phone.read_personal_actor_staging(registry, handle,
+                    offset=request["offset"], limit=request["limit"], expected_revision=request["expected_revision"])
                 return registry.cancel(handle)
         if operation == "phone_request_status":
             return phone.request_status(arguments["peer_id"], request_id=arguments.get("request_id"))
@@ -1979,6 +1988,17 @@ class PhoneServiceProxy:
                 raise IPCError("Native actor book owner changed")
             result = self._call("actor_registry", subscriber=self._subscriber, book_source=handle.book_source,
                 request={"action": "read", "actor_id": handle.actor_id, "owner_token": handle.owner_token, "message_id": message_id})
+            if self.native_actor_book_source() != handle.book_source:
+                raise IPCError("Native actor book owner changed")
+            return result
+
+    def read_personal_actor_staging(self, handle, *, offset=0, limit=65536, expected_revision=""):
+        with self._state_lock:
+            if not callable(self.native_actor_book_source) or self.native_actor_book_source() != handle.book_source:
+                raise IPCError("Native actor book owner changed")
+            result = self._call("actor_registry", subscriber=self._subscriber, book_source=handle.book_source,
+                request={"action": "staging", "actor_id": handle.actor_id, "owner_token": handle.owner_token,
+                    "offset": offset, "limit": limit, "expected_revision": expected_revision})
             if self.native_actor_book_source() != handle.book_source:
                 raise IPCError("Native actor book owner changed")
             return result

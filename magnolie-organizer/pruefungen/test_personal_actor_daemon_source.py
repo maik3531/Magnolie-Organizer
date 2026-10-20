@@ -5,6 +5,8 @@ from pathlib import Path
 import pytest
 import threading
 import uuid
+import base64
+import json
 from test_personal_actor_source import actor_source_fixture
 import magnolie_personal_actor as actor_contract
 from magnolie_personal_actor_store import ActorHandle
@@ -44,6 +46,15 @@ def test_proxy_source_requires_its_exact_live_native_book_owner(tmp_path, monkey
             assert dispatched["dispatch_started"] and not dispatched["persisted"]
             assert channel.sent[-1]["kind"] == actor_contract.START_KIND
             assert handle.owner_token not in repr(handle) and handle.book_source not in repr(handle)
+            assert not proxy.read_personal_actor_staging(handle)["batch_ready"]
+            actor_request = {"format": 3, "run_id": handle.actor_id, "trigger": "manual", "modules": ["notes", "tasks"]}
+            actor_batch = {"format": 3, "run_id": handle.actor_id, "batch_id": str(uuid.uuid4()), "sequence": 0,
+                "last": True, "reply": False, "records": [], "records_hash": phone.personal_sync_contract.records_hash([])}
+            for kind, body in [("personal_sync.request", actor_request), ("personal_sync.batch", actor_batch)]:
+                service._payload(peer, channel, actor_contract.wire_message(phone.PhoneService._actor_control_message(kind, body), handle.actor_id))
+            staging = proxy.read_personal_actor_staging(handle)
+            staged_value = json.loads(base64.b64decode(staging["data_base64"]))
+            assert staging["batch_ready"] and staged_value["request"] == actor_request and staged_value["batch"]["records"] == []
             registry = server._phone_actor_registry(proxy._subscriber, handle.book_source)
             native_handle = ActorHandle(handle.actor_id, handle.owner_token)
             now = phone.now_ms()
@@ -56,12 +67,17 @@ def test_proxy_source_requires_its_exact_live_native_book_owner(tmp_path, monkey
             other.start(); other.set_visible(True); other.set_ready(True)
             assert other.current_actor_source(peer["device_id"], fingerprint) is None
             with pytest.raises(background.IPCError): other.personal_actor_status(handle)
+            with pytest.raises(background.IPCError): background.ipc_request("phone_actor_registry", {
+                "subscriber": other._subscriber, "book_source": handle.book_source,
+                "request": {"action": "staging", "actor_id": handle.actor_id, "owner_token": handle.owner_token,
+                    "offset": 0, "limit": 65536, "expected_revision": ""}}, path)
             raw_book = provider()
             assert background.ipc_request("phone_actor_source", {"peer_id": peer["device_id"], "fingerprint": fingerprint,
                 "subscriber": other._subscriber, "book_source": raw_book}, path) is None
             owner.set_ready(False)
             assert proxy.current_actor_source(peer["device_id"], fingerprint) is None
             with pytest.raises(background.IPCError): proxy.read_personal_actor_wire(handle, wire["message_id"])
+            with pytest.raises(background.IPCError): proxy.read_personal_actor_staging(handle)
             assert proxy.personal_actor_status(handle)["phase"] == "cancelled"
             assert proxy.cancel_personal_actor(handle)["phase"] == "cancelled"
             assert channel.sent[-1]["kind"] == actor_contract.CANCEL_KIND
@@ -133,6 +149,15 @@ def test_proxy_source_requires_its_exact_live_native_book_owner(tmp_path, monkey
 ])
 def test_actor_owner_ipc_shape_does_not_accept_display_names_or_client_revisions(operation, arguments):
     with pytest.raises(background.IPCError): background._request_shape(operation, arguments)
+
+
+@pytest.mark.parametrize("field,value", [("offset", True), ("offset", 1), ("limit", 65537), ("expected_revision", "client-revision")])
+def test_actor_staging_ipc_requires_bounded_typed_revisioned_continuations(field, value):
+    request = {"action": "staging", "actor_id": "11111111-1111-4111-8111-111111111111", "owner_token": "a" * 64,
+        "offset": 0, "limit": 65536, "expected_revision": ""}
+    request[field] = value
+    with pytest.raises(background.IPCError): background._request_shape("phone_actor_registry", {
+        "subscriber": "b" * 32, "book_source": "c" * 64, "request": request})
 
 
 def test_unsupported_actor_metadata_does_not_drop_ordinary_proxy_events(tmp_path, monkeypatch):

@@ -118,6 +118,11 @@ def main():
                             assert receipt["request_replayed"]
                             if not transfer_confirmed:
                                 continue
+                            review = service.read_personal_actor_staging(registry, handle)
+                            review_bytes = phone.base64.b64decode(review["data_base64"])
+                            assert review["batch_ready"] and review["next_offset"] is None
+                            assert hashlib.sha256(review_bytes).hexdigest() == review["revision"]
+                            assert json.loads(review_bytes)["batch"]["records"] == records
                             assert not any(event == "personal_sync" and
                                 (value.get("kind") == "personal_sync.batch" or
                                  value.get("body", {}).get("run_id") == handle.actor_id)

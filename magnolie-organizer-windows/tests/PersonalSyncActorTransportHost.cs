@@ -118,6 +118,13 @@ internal static class PersonalSyncActorTransportHost
                 var transfer = await transferReceipt.Task.WaitAsync(TimeSpan.FromSeconds(10), deadline.Token);
                 await coordinator.WithPersonalActorStoreAsync(registry => registry.Read(handle, transfer["message_id"]!.GetValue<string>()));
                 TestAssert.That(guiAdoptions == 0, "Actor snapshot reached GUI adoption.");
+                var review = await coordinator.ReadPersonalActorStagingAsync(handle);
+                var reviewBytes = Convert.FromBase64String(review["data_base64"]!.GetValue<string>());
+                TestAssert.That(review["batch_ready"]!.GetValue<bool>() && review["next_offset"] is null &&
+                    JsonNode.DeepEquals(JsonNode.Parse(reviewBytes)!["batch"]!["records"], staged.Records) &&
+                    Convert.ToHexString(SHA256.HashData(reviewBytes)).ToLowerInvariant() == review["revision"]!.GetValue<string>(),
+                    "Native bounded actor review reader changed its private records or revision.");
+                CryptographicOperations.ZeroMemory(reviewBytes);
                 var replyRecord = staged.Records.OfType<JsonObject>().Single(value => value["kind"]!.GetValue<string>() == "note").DeepClone().AsObject();
                 attachment[^1] = 42;
                 var replyHash = Convert.ToHexString(SHA256.HashData(attachment)).ToLowerInvariant();

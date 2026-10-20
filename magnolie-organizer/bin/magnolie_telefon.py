@@ -3920,6 +3920,44 @@ class PhoneService:
         return {"actor_id": handle.actor_id, "message_id": message["message_id"], "dispatch_started": True,
             "delivery_confirmed": False, "persisted": False}
 
+    def read_personal_actor_staging(self, registry, handle, *, offset=0, limit=65536, expected_revision=""):
+        """Bounded owner-only view of existing private core staging, never GUI adoption."""
+        if (type(offset) is not int or offset < 0 or type(limit) is not int or not 1 <= limit <= 65536 or
+                not isinstance(expected_revision, str) or expected_revision and not re.fullmatch(r"[0-9a-f]{64}", expected_revision) or
+                offset and not expected_revision):
+            raise ValueError("invalid_actor_staging_read")
+        with self.lock:
+            registry.require_current(handle)
+            admission = self.personal_actor_admissions.get(handle.actor_id)
+            if admission is None or admission["registry"] is not registry or admission["handle"] != handle:
+                raise PermissionError("actor_not_started")
+            private = personal_actor_contract.storage_peer(handle.actor_id)
+            manifest = self.current_content_scope(admission["peer"], admission["key"], admission["scope"])
+            run = self.store._personal_run_record(private, handle.actor_id)
+            if run is not None and run["expires_ms"] <= now_ms():
+                raise PermissionError("actor_run_expired")
+            batch = next((value for owner, value in self.store.ready_personal_batches()
+                if owner == private and value["run_id"] == handle.actor_id and value["reply"] is False), None)
+            if batch is not None and content_scope_contract.filter_records(batch["records"], manifest) != batch["records"]:
+                raise PermissionError("actor_record_outside_scope")
+            intents = [{key: value[key] for key in ("kind", "body", "pending_message_id", "commit_token")}
+                for owner, value in self.store.ready_personal_domains()
+                if owner == private and value["body"]["run_id"] == handle.actor_id]
+            value = {"request": run["body"] if run is not None else None, "batch": None if batch is None else {
+                "message_id": batch["message_id"], "commit_token": batch["commit_token"],
+                "records_hash": batch["messages"][-1]["body"]["records_hash"], "records": batch["records"]},
+                "intents": intents}
+            raw = canonical(value)
+            revision = hashlib.sha256(raw).hexdigest()
+            if expected_revision and expected_revision != revision:
+                raise PermissionError("actor_staging_changed")
+            if offset > len(raw):
+                raise ValueError("invalid_actor_staging_offset")
+            end = min(len(raw), offset + limit)
+            registry.require_current(handle)
+            return {"revision": revision, "total_bytes": len(raw), "offset": offset, "next_offset": end if end < len(raw) else None,
+                "batch_ready": batch is not None, "data_base64": base64.b64encode(raw[offset:end]).decode("ascii")}
+
     def _receive_personal_actor(self, peer, channel, payload):
         reply = None
         with self.lock:

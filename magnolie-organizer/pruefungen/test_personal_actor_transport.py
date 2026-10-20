@@ -5,6 +5,7 @@ import base64
 import hashlib
 import io
 import copy
+import json
 import pytest
 from test_personal_actor_source import actor_source_fixture
 import magnolie_telefon as phone
@@ -152,6 +153,46 @@ def test_actor_attachment_uses_private_manifest_and_native_integrity_checks(tmp_
     assert not channel.sent and not events
 
 
+def test_actor_private_staging_reader_is_bounded_revisioned_and_owner_guarded(tmp_path, monkeypatch):
+    service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch)
+    with pytest.raises(PermissionError): service.read_personal_actor_staging(registry, handle)
+    service.start_personal_actor(registry, handle)
+    waiting = service.read_personal_actor_staging(registry, handle)
+    assert not waiting["batch_ready"]
+    request = {"format": 3, "run_id": handle.actor_id, "trigger": "manual", "modules": ["notes", "tasks"]}
+    service._payload(peer, channel, actor.wire_message(frame("personal_sync.request", request), handle.actor_id))
+    item = record(); item["value"]["text"] = "Private Grüße 🌸"; item["hash"] = personal.projection_hash(item["value"])
+    batch = {"format": 3, "run_id": handle.actor_id, "batch_id": str(uuid.uuid4()), "sequence": 0, "last": True,
+        "reply": False, "records": [item], "records_hash": personal.records_hash([item])}
+    service._payload(peer, channel, actor.wire_message(frame("personal_sync.batch", batch), handle.actor_id))
+    channel.sent.clear()
+    with pytest.raises(PermissionError): service.read_personal_actor_staging(registry, handle, expected_revision=waiting["revision"])
+    first = service.read_personal_actor_staging(registry, handle, limit=17)
+    raw = bytearray(base64.b64decode(first["data_base64"]))
+    offset = first["next_offset"]
+    with pytest.raises(ValueError): service.read_personal_actor_staging(registry, handle, offset=offset)
+    with pytest.raises(ValueError): service.read_personal_actor_staging(registry, handle, limit=65537)
+    while offset is not None:
+        part = service.read_personal_actor_staging(registry, handle, offset=offset, limit=17, expected_revision=first["revision"])
+        assert len(base64.b64decode(part["data_base64"])) <= 17
+        raw.extend(base64.b64decode(part["data_base64"])); offset = part["next_offset"]
+    assert hashlib.sha256(raw).hexdigest() == first["revision"] and len(raw) == first["total_bytes"]
+    value = json.loads(raw)
+    assert value["request"] == request and value["batch"]["records"] == [item] and value["intents"] == []
+    native = next(value for owner, value in service.store.ready_personal_batches() if owner == actor.storage_peer(handle.actor_id))
+    assert value["batch"]["commit_token"] == native["commit_token"]
+    native_now = phone.now_ms
+    monkeypatch.setattr(phone, "now_ms", lambda: native_now() + 60001)
+    with pytest.raises(PermissionError): service.read_personal_actor_staging(registry, handle)
+    monkeypatch.setattr(phone, "now_ms", native_now)
+    service.native_actor_book_source = lambda: "b" * 64
+    with pytest.raises(PermissionError): service.read_personal_actor_staging(registry, handle)
+    service.native_actor_book_source = lambda: "a" * 64
+    service.cancel_personal_actor(registry, handle)
+    with pytest.raises(PermissionError): service.read_personal_actor_staging(registry, handle)
+    assert not events
+
+
 def test_actor_reply_attachment_requests_use_declared_private_sources_and_marked_queue(tmp_path, monkeypatch):
     service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch)
     service.start_personal_actor(registry, handle)
@@ -208,6 +249,8 @@ def test_actor_deletion_intents_require_scope_consent_and_prior_proposals_withou
     private = actor.storage_peer(handle.actor_id)
     intents = service.store.ready_personal_domains()
     assert len(intents) == 1 and intents[0][0] == private and intents[0][1]["body"] == body
+    readback = json.loads(base64.b64decode(service.read_personal_actor_staging(registry, handle)["data_base64"]))
+    assert readback["intents"] == [{key: intents[0][1][key] for key in ("kind", "body", "pending_message_id", "commit_token")}]
     assert registry.read(handle, wire["message_id"]) == wire
     service._payload(peer, channel, wire)
     assert service.store.ready_personal_domains() == intents

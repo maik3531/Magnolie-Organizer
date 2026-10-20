@@ -161,12 +161,38 @@ internal static class PersonalSyncActorSourceTests
                 ["sequence"] = 0, ["last"] = true, ["reply"] = false, ["records_hash"] = PersonalSyncContract.RecordsHash(records), ["records"] = records };
             var batchWire = PersonalSyncActorContract.WireMessage(Message("personal_sync.batch", batchBody), transportHandle.ActorId);
             beforeEmitted = emitted;
+            var waitingStaging = await coordinator.ReadPersonalActorStagingAsync(transportHandle);
+            TestAssert.That(!waitingStaging["batch_ready"]!.GetValue<bool>(), "Native actor staging reader invented a complete batch.");
             await connection.HandlePlainAsync(batchWire);
             TestAssert.That((await SharedSyncTransportTests.DrainAsync(wire)).Single()["kind"]!.GetValue<string>() == PersonalSyncActorContract.AckKind && emitted == beforeEmitted,
                 "Private actor batch reached ordinary GUI handling or lacked its marked receipt.");
             var staged = new PersonalSyncStore(store).ReadyBatches(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
                 .Single(value => value.PeerId == PersonalSyncActorContract.StoragePeer(transportHandle.ActorId));
             TestAssert.That(JsonNode.DeepEquals(staged.Records.Single(), record), "Existing private stager changed actor records.");
+            var firstStaging = await coordinator.ReadPersonalActorStagingAsync(transportHandle, limit: 17);
+            using var stagingBytes = new MemoryStream(); stagingBytes.Write(Convert.FromBase64String(firstStaging["data_base64"]!.GetValue<string>()));
+            var stagingOffset = firstStaging["next_offset"]?.GetValue<long>();
+            while (stagingOffset is not null)
+            {
+                var page = await coordinator.ReadPersonalActorStagingAsync(transportHandle, (int)stagingOffset.Value, 17, firstStaging["revision"]!.GetValue<string>());
+                var bytes = Convert.FromBase64String(page["data_base64"]!.GetValue<string>());
+                TestAssert.That(bytes.Length <= 17, "Actor staging reader exceeded its byte limit.");
+                stagingBytes.Write(bytes); stagingOffset = page["next_offset"]?.GetValue<long>();
+            }
+            var stagedValue = JsonNode.Parse(stagingBytes.ToArray())!.AsObject();
+            TestAssert.That(JsonNode.DeepEquals(stagedValue["batch"]!["records"], staged.Records) &&
+                stagedValue["batch"]!["commit_token"]!.GetValue<string>() == staged.CommitToken && stagedValue["intents"]!.AsArray().Count == 2 &&
+                Convert.ToHexString(SHA256.HashData(stagingBytes.ToArray())).ToLowerInvariant() == firstStaging["revision"]!.GetValue<string>(),
+                "Private actor review bytes lost native records, commit tokens, intents or revision binding.");
+            foreach (var rejectedRead in new Func<Task<JsonObject>>[] {
+                () => coordinator.ReadPersonalActorStagingAsync(transportHandle, expectedRevision: waitingStaging["revision"]!.GetValue<string>()),
+                () => coordinator.ReadPersonalActorStagingAsync(transportHandle, offset: 17),
+                () => coordinator.ReadPersonalActorStagingAsync(transportHandle, limit: 65537) })
+            {
+                var rejectedReadback = false;
+                try { await rejectedRead(); } catch (Exception error) when (error is InvalidOperationException or InvalidDataException) { rejectedReadback = true; }
+                TestAssert.That(rejectedReadback, "Actor staging reader accepted stale revision or unbounded continuation.");
+            }
             await coordinator.PumpPersonalActorAsync(connection);
             var attachmentRequest = (await SharedSyncTransportTests.DrainAsync(wire)).Single();
             TestAssert.That(PersonalSyncActorContract.Unwrap(attachmentRequest["body"]!.AsObject()).Kind == "personal_sync.attachment_request",
@@ -242,6 +268,9 @@ internal static class PersonalSyncActorSourceTests
             TestAssert.That(store.OutboxMessage(peer.Id, resultWire["message_id"]!.GetValue<string>()) is null,
                 "Cancellation left its own outbound actor result pending.");
             hostBook.SetReady(true);
+            var cancelledRead = false;
+            try { await coordinator.ReadPersonalActorStagingAsync(transportHandle); } catch (InvalidOperationException) { cancelledRead = true; }
+            TestAssert.That(cancelledRead, "Retired native actor retained private staging read authority.");
             TestAssert.That(wire.GuardChecks > 0, "Encrypted actor writes bypassed the source-guard observation.");
             wire.AssertActorWrite = null;
             TestAssert.That(Read(() => new string('b', 64)) != revision && Read(() => null) is null && Read(() => "client-digest") is null,

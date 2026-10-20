@@ -73,6 +73,42 @@ internal sealed partial class TelefonCoordinator
         return result;
     }
 
+    internal Task<JsonObject> ReadPersonalActorStagingAsync(PersonalActorHandle handle, int offset = 0, int limit = 65536,
+        string expectedRevision = "", CancellationToken cancellation = default) => WithPersonalActorStoreAsync(registry => {
+        if (offset < 0 || limit is < 1 or > 65536 || expectedRevision.Length != 0 &&
+            !System.Text.RegularExpressions.Regex.IsMatch(expectedRevision, "^[0-9a-f]{64}$") || offset != 0 && expectedRevision.Length == 0)
+            throw new InvalidDataException("invalid_actor_staging_read");
+        registry.RequireCurrent(handle);
+        if (!actorAdmissions.TryGetValue(handle.ActorId, out var admission) || admission.Handle != handle)
+            throw new InvalidOperationException("actor_not_started");
+        var privatePeer = PersonalSyncActorContract.StoragePeer(handle.ActorId);
+        var manifest = admission.Connection.CurrentContentScope(admission.Scope);
+        var run = personalSync.LoadRun(privatePeer, handle.ActorId, Now());
+        if (run is { Expired: true }) throw new InvalidOperationException("actor_run_expired");
+        var batch = personalSync.ReadyBatches(Now()).SingleOrDefault(value => value.PeerId == privatePeer && value.RunId == handle.ActorId && !value.Reply);
+        if (batch is not null && PhoneContentScope.FilterRecords(batch.Records.OfType<JsonObject>().ToArray(), manifest).Count != batch.Records.Count)
+            throw new InvalidDataException("actor_record_outside_scope");
+        var intents = personalSync.DecisionIntents(Now()).Where(value => value.PeerId == privatePeer && value.Body["run_id"]!.GetValue<string>() == handle.ActorId);
+        var value = new JsonObject { ["request"] = run?.Request.DeepClone(),
+            ["batch"] = batch is null ? null : new JsonObject { ["message_id"] = batch.PendingMessageId, ["commit_token"] = batch.CommitToken,
+                ["records_hash"] = batch.RecordsHash, ["records"] = batch.Records.DeepClone() },
+            ["intents"] = new JsonArray(intents.Select(item => (JsonNode)new JsonObject { ["kind"] = item.Kind, ["body"] = item.Body.DeepClone(),
+                ["pending_message_id"] = item.PendingMessageId, ["commit_token"] = item.CommitToken }).ToArray()) };
+        var raw = TelefonCrypto.Canonical(value);
+        try
+        {
+            var revision = Convert.ToHexString(SHA256.HashData(raw)).ToLowerInvariant();
+            if (expectedRevision.Length != 0 && expectedRevision != revision) throw new InvalidOperationException("actor_staging_changed");
+            if (offset > raw.Length) throw new InvalidDataException("invalid_actor_staging_offset");
+            var end = Math.Min(raw.Length, (long)offset + limit);
+            registry.RequireCurrent(handle);
+            return new JsonObject { ["revision"] = revision, ["total_bytes"] = raw.Length, ["offset"] = offset,
+                ["next_offset"] = end < raw.Length ? JsonValue.Create(end) : null, ["batch_ready"] = batch is not null,
+                ["data_base64"] = Convert.ToBase64String(raw, offset, (int)end - offset) };
+        }
+        finally { CryptographicOperations.ZeroMemory(raw); }
+    }, cancellation);
+
     internal async Task ReceivePersonalActorAsync(TelefonConnection connection, TelefonPeer peer, JsonObject message)
     {
         JsonObject? reply = null;
