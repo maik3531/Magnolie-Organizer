@@ -8,7 +8,7 @@ const tick = () => new Promise(resolve => setImmediate(resolve)), plain = value 
 const watchdog = setTimeout(() => { console.error("Notes actor review test timed out"); process.exit(1); }, 30000);
 (async () => {
   for (const web of harness.exports.roots) for (const scenario of ["success", "cancel_create", "cancel_read", "source_changed", "session_closed", "bad_digest", "bad_offset", "outside_scope", "draft", "stale", "capacity",
-    "commit", "commit_remote", "commit_save_failed", "commit_checkpoint_failed", "commit_stale", "commit_deletions", "commit_stage_changed", "commit_cancel_save", "commit_late_draft"]) {
+    "commit", "commit_remote", "commit_save_failed", "commit_checkpoint_failed", "commit_stale", "commit_deletions", "commit_stage_changed", "commit_cancel_save", "commit_late_draft", "decision_delete", "decision_restore", "decision_cancel"]) {
     const b = await harness.exports.boot(web, { personalSync: { actor_id: "11111111-1111-4111-8111-111111111111" },
       notizen: [{ id: "phone-note", titel: "Owned", text: "Original" }, { id: "desktop-only", titel: "Private", text: "Never send this" }] });
     try {
@@ -33,9 +33,15 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
         batch: { message_id: "66666666-6666-4666-8666-666666666666", commit_token: "77777777-7777-4777-8777-777777777777",
           records: [incoming], records_hash: await b.t.personalSyncHash([incoming]) } };
       if (scenario === "commit_deletions") projection.intents = [{ kind: "personal_sync.deletion_proposals", body: { run_id: actorId } }];
+      const typedProposal = { proposal_id: "88888888-8888-4888-8888-888888888888", kind: "note", id: "phone-note", parent_id: "",
+        clock: plain(incoming.clock), prior_hash: incoming.hash, deleted_ms: incoming.modified_ms, label: "Native typed deletion" };
+      if (scenario.startsWith("decision_")) projection.intents = [{ kind: "personal_sync.deletion_proposals", pending_message_id: "99999999-9999-4999-8999-999999999999",
+        commit_token: "c".repeat(64), body: { run_id: actorId, proposals: [typedProposal] } }];
       const raw = Buffer.from(JSON.stringify(projection)), viewRevision = createHash("sha256").update(raw).digest("hex");
       const before = JSON.stringify(b.t.daten()), saves = b.saves().length;
-      let held = null, creates = 0, starts = 0, cancels = 0, savedSequence = 0, savedHash = "", plan = null, coreCommits = 0, heldSave = null;
+      let held = null, creates = 0, starts = 0, cancels = 0, savedSequence = 0, savedHash = "", plan = null, coreCommits = 0, heldSave = null, holdDecision = false;
+      let signalDecisionRead;
+      const decisionReadReady = new Promise(resolve => { signalDecisionRead = resolve; });
       const pendingCreates = [];
       const post = b.w.webkit.messageHandlers.regression.postMessage;
       const answer = message => {
@@ -95,6 +101,7 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
         if (action === "notes_actor_start") starts++;
         if (action === "notes_actor_cancel") cancels++;
         if (scenario === "capacity" && action === "notes_actor_create") { pendingCreates.push(message); return; }
+        if (holdDecision && action === "notes_actor_read" && message.request.limit === 1) { held = message; signalDecisionRead(); return; }
         if (scenario === "cancel_create" && action === "notes_actor_create" || ["cancel_read", "source_changed", "session_closed"].includes(scenario) && action === "notes_actor_read") { held = message; return; }
         queueMicrotask(() => answer(message));
       };
@@ -134,7 +141,7 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
         state = b.t.mcpNotesActorStatus(owner, id);
         if (["review", "failed", "cancelled"].includes(state.phase)) break;
       }
-      if (scenario === "success" || scenario.startsWith("commit")) {
+      if (scenario === "success" || scenario.startsWith("commit") || scenario.startsWith("decision_")) {
         assert.equal(state.phase, "review", JSON.stringify(state)); assert.equal(state.summary.attachments, 1); assert.equal(state.summary.conflicts, 0);
         const review = b.t.mcpNotesActorReview(owner, id);
         assert.equal(review.book.notizen.find(note => note.id === "phone-note").text, "Incoming Grüße 🌸");
@@ -143,7 +150,33 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
         assert.equal(reply.find(record => record.kind === "note").value.text, "Incoming Grüße 🌸");
         assert.ok(!reply.some(record => record.id === "desktop-only")); assert.equal(review.sources.length, 1);
         assert.ok(!JSON.stringify(state).includes(ownerToken));
-        if (scenario === "success") b.t.mcpNotesActorCancel(owner, id);
+        if (scenario.startsWith("decision_")) {
+          const choice = { proposal_id: typedProposal.proposal_id, decision: scenario === "decision_delete" ? "delete" : "restore",
+            expected_clock: plain(typedProposal.clock), allow_conflict: true };
+          await assert.rejects(b.t.mcpNotesActorDecide("z".repeat(48), id, state.review_revision, [choice]), error => error.code === "not_found");
+          await assert.rejects(b.t.mcpNotesActorDecide(owner, id, state.review_revision, [{ ...choice, expected_clock: [] }]), error => error.code === "conflict");
+          await assert.rejects(b.t.mcpNotesActorDecide(owner, id, state.review_revision, [choice, choice]), error => error.code === "invalid_argument");
+          if (scenario === "decision_cancel") {
+            holdDecision = true;
+            const decision = b.t.mcpNotesActorDecide(owner, id, state.review_revision, [choice]).then(() => null, error => error);
+            await Promise.race([decisionReadReady, decision.then(error => { throw error || Error("Typed decision finished before its held native recheck"); })]);
+            assert.ok(held); b.t.mcpNotesActorCancel(owner, id);
+            b.t.oeffneTerminBlatt(null, "2026-10-19"); b.input("#tb-titel", "Late typed deletion draft");
+            answer(held); held = null;
+            assert.equal((await decision).code, "cancelled");
+            assert.equal(b.w.document.querySelector("#tb-titel").value, "Late typed deletion draft");
+          } else {
+            const decided = await b.t.mcpNotesActorDecide(owner, id, state.review_revision, [choice]);
+            assert.notEqual(decided.review_revision, state.review_revision); assert.equal(decided.summary.reviewed_deletion_intents, 1);
+            assert.equal(decided.summary.unapplied_deletion_intents, 1, "Private review bypassed native terminal deletion save gates");
+            const typed = b.t.mcpNotesActorReview(owner, id);
+            assert.equal(typed.book.notizen.some(note => note.id === "phone-note"), scenario === "decision_restore");
+            assert.equal(typed.deletionPlan.choices[0].proposal_id, typedProposal.proposal_id);
+            assert.throws(() => b.t.mcpNotesActorCommit(owner, id, state.review_revision), error => error.code === "conflict");
+            assert.throws(() => b.t.mcpNotesActorCommit(owner, id, decided.review_revision), error => error.code === "unsupported_feature");
+            b.t.mcpNotesActorCancel(owner, id);
+          }
+        } else if (scenario === "success") b.t.mcpNotesActorCancel(owner, id);
         else if (["commit_stale", "commit_deletions"].includes(scenario)) {
           assert.throws(() => b.t.mcpNotesActorCommit(owner, id, scenario === "commit_stale" ? "f".repeat(64) : state.review_revision));
           assert.equal(b.saves().length, saves); b.t.mcpNotesActorCancel(owner, id);

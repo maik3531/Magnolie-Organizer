@@ -523,6 +523,17 @@ scoped attachment replay proofs. This is domain review preparation only: native
 intent consumption, scope-changing phone deletion finalization and activation
 still require their separate completion gates.
 
+The private session-owned review operation also accepts bounded typed choices
+against its current review revision. Proposal IDs and expected clocks must match
+the retained native intents; choices are copied before asynchronous work. The
+shared deletion/restore handlers operate on another private copy, then the same
+review/reply builder recomputes the projection and checks the native staging
+revision again. Wrong owners, stale clocks/reviews and duplicate choices fail
+before publication of a new review. Cancellation during the native recheck
+discards the result without touching a new draft. Reviewed intent counts remain
+distinct from native applied/consumed counts: the existing native terminal-save
+and scope-changing deletion gates are not bypassed by preview approval.
+
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
 chunk replay cannot produce another result. Both TCP fixtures wait for the

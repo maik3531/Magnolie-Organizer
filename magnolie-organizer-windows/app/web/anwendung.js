@@ -35576,26 +35576,80 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       mcpNotesActorGuard(job);
       const options = { selection, independentRemovals: true, guard: () => mcpNotesActorGuard(job) };
       const result = await personalSyncAnwendenAusBestand(book, kopie(data.batch.records), attachments, job.peer, data.request.modules, options);
-      const records = await personalSyncSnapshotAusBestand(book, data.request.modules, 3, job.peer, options);
-      const chunks = personalSyncPakete(records, job.handle.actorId, true, 3), aggregate = await personalSyncHash(chunks.flat());
-      const after = await personalSyncHash(JSON.stringify(book)); mcpNotesActorGuard(job);
       const summary = { notes: data.batch.records.filter(record => record.kind === "note").length,
         tasks: data.batch.records.filter(record => record.kind === "task").length, attachments: Object.keys(attachments).length,
         conflicts: result.conflicts, unapplied_deletion_intents: data.intents.length };
-      const revision = await personalSyncHash([viewRevision, after, summary]); mcpNotesActorGuard(job);
-      const confirmed = (await mcpNotesActorNative(job, "notes_actor_read", { offset: 0, limit: 1, expectedRevision: viewRevision })).actor;
-      mcpNotesActorGuard(job);
-      if (confirmed?.revision !== viewRevision || confirmed.batch_ready !== true) throw new MagnolieMcp.ToolError("source_changed", "Native Notes review changed during preparation");
-      job.review = { revision, nativeRevision: viewRevision, book, summary, data,
-        batches: chunks.map((records, sequence) => ({ format: 3, run_id: job.handle.actorId, batch_id: crypto.randomUUID(),
-          sequence, last: sequence === chunks.length - 1, reply: true, records_hash: aggregate, records })),
-        sources: (records.attachmentSources || []).filter(source => chunks.flat().some(record => record.kind === "note" && record.value.attachments.some(item => item.sha256 === source.sha256))) };
+      const review = await mcpNotesActorBuildReview(job, book, data, viewRevision, summary, options);
+      mcpNotesActorGuard(job); job.review = review;
       job.phase = "review";
     } catch (error) {
       if (job.dispatched) job.unknown = true;
       if (job.phase !== "cancelled") { job.phase = job.controller.signal.aborted ? "cancelled" : "failed"; job.error = error.code || "native_operation_failed"; }
     } finally {
       if (mcpNotesActorTerminal(job)) { mcpNotesActorStopNative(job); job.review = null; job.book = null; job.before = ""; }
+    }
+  }
+  async function mcpNotesActorBuildReview(job, book, data, viewRevision, summary, options, deletionPlan = null) {
+    const records = await personalSyncSnapshotAusBestand(book, data.request.modules, 3, job.peer, options);
+    const chunks = personalSyncPakete(records, job.handle.actorId, true, 3), aggregate = await personalSyncHash(chunks.flat());
+    const after = await personalSyncHash(JSON.stringify(book)); mcpNotesActorGuard(job);
+    const revision = await personalSyncHash([viewRevision, after, summary, deletionPlan]); mcpNotesActorGuard(job);
+    const confirmed = (await mcpNotesActorNative(job, "notes_actor_read", { offset: 0, limit: 1, expectedRevision: viewRevision })).actor;
+    mcpNotesActorGuard(job);
+    if (confirmed?.revision !== viewRevision || confirmed.batch_ready !== true) throw new MagnolieMcp.ToolError("source_changed", "Native Notes review changed during preparation");
+    return { revision, nativeRevision: viewRevision, book, summary, data, deletionPlan,
+      batches: chunks.map((records, sequence) => ({ format: 3, run_id: job.handle.actorId, batch_id: crypto.randomUUID(),
+        sequence, last: sequence === chunks.length - 1, reply: true, records_hash: aggregate, records })),
+      sources: (records.attachmentSources || []).filter(source => chunks.flat().some(record => record.kind === "note" && record.value.attachments.some(item => item.sha256 === source.sha256))) };
+  }
+  async function mcpNotesActorDecide(owner, id, expectedRevision, inputChoices) {
+    const job = mcpNotesActorJob(owner, id); mcpNotesActorGuard(job);
+    if (job.phase !== "review" || job.review?.revision !== expectedRevision) throw new MagnolieMcp.ToolError("conflict", "Read the current Notes deletion review before deciding");
+    if (!Array.isArray(inputChoices) || inputChoices.length > 256 || new Set(inputChoices.map(value => value?.proposal_id)).size !== inputChoices.length)
+      throw new MagnolieMcp.ToolError("invalid_argument", "Notes deletion choices must be unique and bounded");
+    const choices = kopie(inputChoices);
+    const previous = job.review, proposals = new Map();
+    for (const intent of previous.data.intents) if (intent.kind === "personal_sync.deletion_proposals") {
+      if (intent.body.run_id !== job.handle.actorId) throw new MagnolieMcp.ToolError("invalid_result", "Native deletion run changed");
+      for (const proposal of intent.body.proposals) {
+        const old = proposals.get(proposal.proposal_id);
+        if (old && personalSyncKanonisch(old) !== personalSyncKanonisch(proposal)) throw new MagnolieMcp.ToolError("conflict", "Native deletion proposal changed");
+        proposals.set(proposal.proposal_id, proposal);
+      }
+    }
+    if (choices.length !== proposals.size) throw new MagnolieMcp.ToolError("conflict", "Every native proposal requires a typed choice");
+    for (const choice of choices) {
+      const proposal = proposals.get(choice?.proposal_id);
+      if (!proposal || !["delete", "restore"].includes(choice.decision) || typeof choice.allow_conflict !== "boolean" || !Array.isArray(choice.expected_clock) ||
+          personalSyncKanonisch(choice.expected_clock) !== personalSyncKanonisch(proposal.clock))
+        throw new MagnolieMcp.ToolError("conflict", "Notes deletion choice does not match its native proposal and clock");
+    }
+    job.phase = "preparing_decisions";
+    try {
+      const selection = await personalSyncScopeAusManifest(previous.data.content_scope); mcpNotesActorGuard(job);
+      const book = kopie(previous.book);
+      for (const choice of choices) {
+        const proposal = { ...kopie(proposals.get(choice.proposal_id)), source_device: job.peer, run_id: job.handle.actorId };
+        const result = personalSyncEntscheidungAusBestand(book, proposal, choice.decision, selection, choice.allow_conflict);
+        if (result !== "applied") throw new MagnolieMcp.ToolError(result, "Shared Notes deletion handler rejected the private decision");
+      }
+      for (const intent of previous.data.intents) if (intent.kind === "personal_sync.deletion_decision") {
+        if (intent.body.run_id !== job.handle.actorId) throw new MagnolieMcp.ToolError("invalid_result", "Native decision run changed");
+        const result = personalSyncEingehendeEntscheidungenAusBestand(book, intent.body.decisions, selection);
+        if (result !== "applied") throw new MagnolieMcp.ToolError(result, "Shared Notes decision handler rejected its prior proof");
+      }
+      const plan = { choices: kopie(choices), intents: previous.data.intents.map(intent => ({ kind: intent.kind,
+        message_id: intent.pending_message_id, commit_token: intent.commit_token })) };
+      const summary = { ...previous.summary, reviewed_deletion_intents: previous.data.intents.length };
+      // Native intent consumption stays gated until terminal scope-changing save receipts exist.
+      const review = await mcpNotesActorBuildReview(job, book, previous.data, previous.nativeRevision, summary,
+        { selection, independentRemovals: true, guard: () => mcpNotesActorGuard(job) }, plan);
+      mcpNotesActorGuard(job); job.review = review; job.phase = "review";
+      return mcpNotesActorAntwort(job);
+    } catch (error) {
+      if (["conflict", "blocked", "not_granted", "restore_unavailable"].includes(error.code) && !job.controller.signal.aborted) job.phase = "review";
+      else { job.phase = job.controller.signal.aborted ? "cancelled" : "failed"; job.error = error.code || "native_operation_failed"; job.controller.abort(); }
+      throw error;
     }
   }
   async function mcpNotesActorStart(owner, args, signal) {
@@ -38390,7 +38444,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     personalSyncSnapshot: personalSyncSnapshot,
     personalSyncSnapshotAusBestand: personalSyncSnapshotAusBestand,
     personalSyncAnwendenAusBestand: personalSyncAnwendenAusBestand,
-    mcpNotesActorStart, mcpNotesActorStatus, mcpNotesActorCancel, mcpNotesActorCommit,
+    mcpNotesActorStart, mcpNotesActorStatus, mcpNotesActorCancel, mcpNotesActorCommit, mcpNotesActorDecide,
     mcpNotesActorReview: (owner, id) => { const job = mcpNotesActorJob(owner, id); mcpNotesActorGuard(job); return kopie(job.review); },
     personalSyncScopeAusManifest: personalSyncScopeAusManifest,
     personalSyncNotizImport: personalSyncNotizImport,
