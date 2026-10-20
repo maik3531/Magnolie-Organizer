@@ -1887,9 +1887,29 @@ class TelefonWerk private constructor(private val context: Context, private val 
                             val unwrapped = PhoneContentScope.unwrap(content, manifest)
                             kind = unwrapped.first; content = unwrapped.second
                         }
-                        if (kind !in setOf("personal_sync.attachment_request", "personal_sync.attachment_result", "personal_sync.attachment_chunk", "personal_sync.batch")) return@synchronized null
+                        val deletionIntent = kind in setOf("personal_sync.deletion_proposals", "personal_sync.deletion_decision")
+                        if (!deletionIntent && kind !in setOf("personal_sync.attachment_request", "personal_sync.attachment_result", "personal_sync.attachment_chunk", "personal_sync.batch")) return@synchronized null
                         personalActorJournal.withActive(handle) {
                             val privatePeer = PersonalSyncActor.storagePeer(run)
+                            if (deletionIntent) {
+                                require(peer.personal_deletions_sync_granted && peer.remote_personal_deletions_sync_granted &&
+                                    commonValues(peer)?.get("skip_deletions") == JsonPrimitive(false)) { "actor_deletions_not_granted" }
+                                require(queue.isActorRun(peer.device_id, run) && queue.personalRun(peer.device_id, run) != null)
+                                val proposals = if (kind == "personal_sync.deletion_proposals") PersonalSyncProtokoll.decodeDeletionProposals(content)
+                                else {
+                                    val prior = queue.actorDeletionIntents(run, true).filter { it.string("kind") == "personal_sync.deletion_proposals" }
+                                        .flatMap { PersonalSyncProtokoll.decodeDeletionProposals(it.getValue("body") as JsonObject) }.associateBy { it.proposalId }
+                                    PersonalSyncProtokoll.decodeDeletionDecisions(content).map { decision ->
+                                        requireNotNull(prior[decision.proposalId]).also { require(it.clock == decision.expectedClock) { "actor_decision_clock_changed" } }
+                                    }
+                                }
+                                val members = manifest.getValue("members") as JsonObject
+                                val notes = (members.getValue("notes") as JsonArray).map { (it as JsonPrimitive).content }.toSet()
+                                val tasks = (members.getValue("tasks") as JsonArray).map { (it as JsonPrimitive).content }.toSet()
+                                require(proposals.all { when (it.kind) {
+                                    "note" -> it.id in notes; "task" -> it.id in tasks; "attachment" -> it.parentId in notes; else -> false
+                                } }) { "actor_record_outside_scope" }
+                            }
                             val incomingBatches = if (kind == "personal_sync.attachment_chunk") {
                                 require(content["reply"] == JsonPrimitive(true)) { "actor_reply_required" }
                                 queue.readyPersonalBatches().singleOrNull { it.first == privatePeer &&
@@ -1908,7 +1928,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
                                 require(PhoneContentScope.filterRecords(records, manifest) == records) { "actor_record_outside_scope" }
                             }
                             if (!personalActorJournal.putWire(handle, message)) return@withActive
-                            if (kind == "personal_sync.batch") {
+                            if (deletionIntent) {
+                                queue.stageActorDeletionIntent(run, JsonObject(message + mapOf("kind" to JsonPrimitive(kind), "body" to content)))
+                            }
+                            else if (kind == "personal_sync.batch") {
                                 val semantic = JsonObject(message + mapOf("kind" to JsonPrimitive(kind), "body" to content))
                                 queue.stagePersonalBatch(privatePeer, semantic)?.let { requestActorIncomingAttachments(peer.device_id, run, it, manifest) }
                             }
@@ -1942,6 +1965,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                                     ?: throw TelefonProtokollFehler("Personal-Sync-Policy fehlt."))
                             }
                         }
+                        if (deletionIntent) return@synchronized null // No successful deletion receipt before native book commit.
                         TelefonNachrichten.message(PersonalSyncActor.ACK_KIND,
                             PersonalSyncActor.ack(run, message.string("message_id")), 60000)
                     }

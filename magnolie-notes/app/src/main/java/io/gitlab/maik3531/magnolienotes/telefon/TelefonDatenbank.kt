@@ -416,6 +416,60 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         db.insertOrThrow("inbox", null, values)
     }
 
+    /** Private review intents reuse the encrypted inbox; they are not applied or acknowledged. */
+    internal fun stageActorDeletionIntent(runId: String, message: JsonObject, outgoing: Boolean = false) =
+        helper.writableDatabase.inTransaction {
+            val peerId = PersonalSyncActor.storagePeer(runId)
+            require(message.string("kind") in setOf("personal_sync.deletion_proposals", "personal_sync.deletion_decision"))
+            require(!outgoing || message.string("kind") == "personal_sync.deletion_proposals")
+            require((message.getValue("body") as JsonObject).string("run_id") == runId)
+            TelefonNachrichten.validate(message)
+            val envelope = buildJsonObject {
+                put("peer_id", JsonPrimitive(peerId)); put("run_id", JsonPrimitive(runId))
+                put("outgoing", JsonPrimitive(outgoing)); put("message", message)
+            }
+            val id = message.string("message_id")
+            query("inbox", arrayOf("payload"), "peer_id=? AND message_id=?", arrayOf(peerId, id), null, null, null).use { row ->
+                if (row.moveToFirst()) {
+                    val raw = storage.decryptPayload(row.getBlob(0), "inbox", id)
+                    try { require(TelefonKanonisch.json.parseToJsonElement(raw.decodeToString()) == envelope) }
+                    finally { raw.fill(0) }
+                    return@inTransaction
+                }
+            }
+            val raw = TelefonKanonisch.bytes(envelope)
+            val payload = try { storage.encryptPayload(raw, "inbox", id) } finally { raw.fill(0) }
+            phoneCapacity("inbox", payload.size)
+            insertOrThrow("inbox", null, ContentValues().apply {
+                put("peer_id", peerId); put("message_id", id); put("kind", message.string("kind"))
+                put("received_ms", System.currentTimeMillis()); put("expires_ms", message.long("expires_ms"))
+                put("state", "actor_staged"); put("payload", payload)
+            })
+            Unit
+        }
+
+    internal fun actorDeletionIntents(runId: String, outgoing: Boolean = false): List<JsonObject> {
+        val peerId = PersonalSyncActor.storagePeer(runId)
+        return helper.readableDatabase.query("inbox", arrayOf("message_id", "payload"),
+            "peer_id=? AND state='actor_staged' AND expires_ms>?", arrayOf(peerId, System.currentTimeMillis().toString()),
+            null, null, "received_ms,message_id").use { rows ->
+            val result = mutableListOf<JsonObject>()
+            while (rows.moveToNext()) {
+                val id = rows.getString(0)
+                val raw = storage.decryptPayload(rows.getBlob(1), "inbox", id)
+                try {
+                    val envelope = TelefonKanonisch.json.parseToJsonElement(raw.decodeToString()) as JsonObject
+                    require(envelope["peer_id"] == JsonPrimitive(peerId) && envelope["run_id"] == JsonPrimitive(runId))
+                    val message = envelope.getValue("message") as JsonObject
+                    require(message.string("message_id") == id && (message.getValue("body") as JsonObject).string("run_id") == runId)
+                    TelefonNachrichten.validate(message)
+                    if (message.long("expires_ms") > System.currentTimeMillis() && envelope["outgoing"] == JsonPrimitive(outgoing)) result += message
+                } finally { raw.fill(0) }
+            }
+            result
+        }
+    }
+
     fun deletePeer(peerId: String) = helper.deletePeer(peerId)
 
     fun hasKind(peerId: String, kind: String): Boolean = helper.readableDatabase.query("outbox", arrayOf("message_id"),

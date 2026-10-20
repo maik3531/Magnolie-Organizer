@@ -353,6 +353,18 @@ deduplication, private staging and queued controls share the active journal
 transaction. Cancellation purges these private files without adopting the reply
 into the book. Desktop reply-file production and dispatch remain activation gates.
 
+Notes deletion proposals/decisions require both deletion grants, the current
+shared skip-deletions choice to be false, a protected active actor run and current
+note/task scope (attachment proposals bind their parent note). Decisions also
+require a retained native outgoing proposal with the exact expected clock.
+They stage review intents in the existing encrypted inbox under the private actor
+alias; the sealed envelope binds peer, run, direction and full semantic message.
+Copying a row to another alias does not authorize a prior proposal. Raw journal
+deduplication and intent staging share one owner transaction, and cancellation
+purges both incoming intents and retained outgoing proposals. No success receipt,
+book deletion, automatic conflict resolution or GUI replay follows intent staging.
+Native proposal production and typed review/commit remain activation gates.
+
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
 chunk replay cannot produce another result. Both TCP fixtures wait for the

@@ -46,6 +46,8 @@ class ScopedDataRuntimeTest {
     @Test fun actorGrantRevocationRetiresPendingSnapshotInsteadOfWaitingForLegacyControls() = exercise("actor-revoked")
     @Test fun nativeMaintenanceRetiresPreviousActorEpochWithoutRebindingItsQueueRun() = exercise("actor-restart")
     @Test fun nativeActorStartOwnsEncryptedSnapshotDispatchAndMarkedAckCancellation() = exercise("actor-transport")
+    @Test fun nativeActorDeletionIntentsStayPrivateAndRequirePriorClockScopeAndGrants() = exercise("actor-deletions")
+    @Test fun nativeActorDeletionSkipChoiceBlocksIntentsWithBothGrantsPresent() = exercise("actor-deletions-skip")
     @Test fun independentTimeChangeDefersScopedDataWithoutAdmittingRawFallback() = exercise("time")
     @Test fun selectedOrganizerNoteCanBeSentAgainAfterDeletingItsPhoneCopy() = exercise("single")
     @Test fun ownershipControlAndItsAckDoNotRequireContentRunId() = exercise("ownership")
@@ -55,7 +57,8 @@ class ScopedDataRuntimeTest {
     @Test fun authenticatedUnpairClearsOnlyTheCurrentComputerAndKeepsPhoneContent() = exercise("unpair")
 
     private fun exercise(mode: String) {
-        val nativeActor = mode in setOf("actor-source", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-restart", "actor-transport")
+        val actorDeletion = mode.startsWith("actor-deletions")
+        val nativeActor = actorDeletion || mode in setOf("actor-source", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-restart", "actor-transport")
         val context = ApplicationProvider.getApplicationContext<Context>()
         val provider = object : Provider("ScopedDataFixture", 1.0, "Synthetic keys only") {
             init { put("KeyStore.AndroidKeyStore", InvitationTestKeyStore::class.java.name) }
@@ -74,7 +77,7 @@ class ScopedDataRuntimeTest {
         try {
             val book = documents.legeNotizbuchAn("Field notes")
             documents.setzeNotiz(Notiz("phone-note", "Mobile", "Initial phone text", notizbuchId = book.id, angelegt = 1, geaendert = 2))
-            if (mode in setOf("manual", "actor", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-transport")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
+            if (actorDeletion || mode in setOf("manual", "actor", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-transport")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
             val storage = TelefonAblage.get(context)
             storage.identity("Synthetic").second.fill(0)
             storage.setEnabled(true); storage.setPersonalSync(true, true, true, false, false)
@@ -82,7 +85,7 @@ class ScopedDataRuntimeTest {
             val peer = TelefonPeer(peerId, "Synthetic desktop", TelefonKrypto.b64(ByteArray(32) { 23 }),
                 own_device = true, remote_own_device = true, personal_notes_sync_granted = true, personal_tasks_sync_granted = true,
                 remote_personal_notes_sync_granted = true, remote_personal_tasks_sync_granted = true,
-                personal_deletions_sync_granted = mode in setOf("delete", "skip-delete"), remote_personal_deletions_sync_granted = mode in setOf("delete", "skip-delete"),
+                personal_deletions_sync_granted = actorDeletion || mode in setOf("delete", "skip-delete"), remote_personal_deletions_sync_granted = actorDeletion || mode in setOf("delete", "skip-delete"),
                 remote_personal_notes_sync_available = true, remote_personal_tasks_sync_available = true,
                 remote_personal_notes_sync_versions = listOf(1, 2, 3, 5, 9, 10) + if (nativeActor) listOf(12) else emptyList(),
                 remote_personal_tasks_sync_versions = listOf(1, 2, 3, 4, 6, 7, 9, 10) + if (nativeActor) listOf(12) else emptyList())
@@ -109,7 +112,7 @@ class ScopedDataRuntimeTest {
             }
             val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
             var local = work.changeSharedSetting(peerId, peer.static_public, "content_mode", JsonPrimitive("phone_scope"))
-            if (mode == "delete") local = work.changeSharedSetting(peerId, peer.static_public, "skip_deletions", JsonPrimitive(false))
+            if (mode in setOf("delete", "actor-deletions")) local = work.changeSharedSetting(peerId, peer.static_public, "skip_deletions", JsonPrimitive(false))
             field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
             val identity = storage.identity("Synthetic"); val actor = identity.first.device_id; identity.second.fill(0)
             val shared = SharedSyncSettings.merge(SharedSyncSettings.create(peerId), local, peerId, actor)
@@ -147,7 +150,7 @@ class ScopedDataRuntimeTest {
                 fun ackScope() { session.contentScopeMessages.keys.toList().also { assertTrue(it.isNotEmpty()) }.forEach { ack(it) } }
                 fun scoped(messages: List<JsonObject>) = messages.filter { it["kind"] == JsonPrimitive(PhoneContentScope.DATA_KIND) }
                 val manifest = requireNotNull(session.localContentScope)
-                if (mode == "actor-transport") {
+                if (mode == "actor-transport" || actorDeletion) {
                     sent(); ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
                     field(TelefonWerk::class.java, "activeChannel").set(work, channel)
                     TelefonWerk::class.java.getDeclaredMethod("refreshSharedPreferenceState").apply { isAccessible = true }.invoke(work)
@@ -181,6 +184,63 @@ class ScopedDataRuntimeTest {
                         PersonalSyncActor.ack(run, batch.string("message_id")), 60000), channel, 0L)
                     assertNull(queue.outboxWireMessage(peerId, batch.string("message_id"))); assertTrue(sent().isEmpty())
                     val old = records.single { it.kind == "note" }
+                    if (actorDeletion) {
+                        val privatePeer = PersonalSyncActor.storagePeer(run)
+                        val proposalId = UUID.randomUUID().toString()
+                        val clock = JsonArray(listOf(buildJsonObject { put("actor_id", peerId); put("counter", 1) }))
+                        val proposal = buildJsonObject {
+                            put("proposal_id", proposalId); put("kind", "note"); put("id", "phone-note"); put("parent_id", "")
+                            put("clock", clock); put("prior_hash", old.hash); put("deleted_ms", System.currentTimeMillis()); put("label", "Mobile")
+                        }
+                        fun proposals(value: JsonObject = proposal) = TelefonNachrichten.message("personal_sync.deletion_proposals", buildJsonObject {
+                            put("format", 1); put("run_id", run); put("proposals", JsonArray(listOf(value)))
+                            put("proposal_batch_id", UUID.randomUUID().toString()); put("sequence", 0); put("last", true)
+                        }, 86_400_000)
+                        fun decision(expected: JsonArray = clock) = TelefonNachrichten.message("personal_sync.deletion_decision", buildJsonObject {
+                            put("format", 1); put("run_id", run); put("decision_id", UUID.randomUUID().toString())
+                            put("decisions", JsonArray(listOf(buildJsonObject {
+                                put("proposal_id", proposalId); put("decision", "delete"); put("expected_clock", expected)
+                            })))
+                        }, 86_400_000)
+                        fun receive(value: JsonObject) { work.receiveMessage(peer, PersonalSyncActor.wireMessage(value, run), channel, 0L); assertTrue(sent().isEmpty()) }
+                        val valid = proposals()
+                        if (mode == "actor-deletions-skip") {
+                            receive(valid); assertTrue(queue.actorDeletionIntents(run).isEmpty())
+                            assertEquals(beforeBook.copy(personalSync = documents.bestand.value.personalSync), documents.bestand.value)
+                            work.receiveMessage(peer, TelefonNachrichten.message(PersonalSyncActor.CANCEL_KIND, PersonalSyncActor.cancel(run), 60000), channel, 0L); sent()
+                            assertEquals(beforeState, work.state.value)
+                            return@use
+                        }
+                        val boundPeer = requireNotNull(storage.peers().peer)
+                        storage.savePeer(boundPeer.copy(remote_personal_deletions_sync_granted = false))
+                        receive(valid); assertTrue(queue.actorDeletionIntents(run).isEmpty())
+                        storage.savePeer(boundPeer.copy(personal_deletions_sync_granted = false))
+                        receive(valid); assertTrue(queue.actorDeletionIntents(run).isEmpty())
+                        storage.savePeer(boundPeer)
+                        receive(proposals(JsonObject(proposal + ("id" to JsonPrimitive("outside-scope")))))
+                        assertTrue(queue.actorDeletionIntents(run).isEmpty())
+                        receive(valid); receive(valid)
+                        assertEquals(listOf(valid), queue.actorDeletionIntents(run))
+                        val otherRun = "55555555-5555-4555-8555-555555555555"
+                        val database = (field(TelefonQueue::class.java, "helper").get(queue) as TelefonDatenbank).writableDatabase
+                        database.execSQL("INSERT INTO inbox(message_id,peer_id,kind,received_ms,expires_ms,payload,state) SELECT message_id,?,kind,received_ms,expires_ms,payload,state FROM inbox WHERE peer_id=? AND message_id=?",
+                            arrayOf(PersonalSyncActor.storagePeer(otherRun), privatePeer, valid.string("message_id")))
+                        assertTrue(runCatching { queue.actorDeletionIntents(otherRun) }.isFailure)
+                        queue.purgePersonal(PersonalSyncActor.storagePeer(otherRun))
+                        receive(decision()); assertEquals(1, queue.actorDeletionIntents(run).size)
+                        queue.stageActorDeletionIntent(run, proposals(), outgoing = true)
+                        receive(decision(JsonArray(listOf(buildJsonObject { put("actor_id", peerId); put("counter", 2) }))))
+                        assertEquals(1, queue.actorDeletionIntents(run).size)
+                        val acceptedDecision = decision(); receive(acceptedDecision); receive(acceptedDecision)
+                        assertEquals(2, queue.actorDeletionIntents(run).size)
+                        assertEquals(beforeBook.copy(personalSync = documents.bestand.value.personalSync), documents.bestand.value)
+                        work.receiveMessage(peer, TelefonNachrichten.message(PersonalSyncActor.CANCEL_KIND, PersonalSyncActor.cancel(run), 60000), channel, 0L)
+                        assertEquals("accepted", sent().single().getValue("body").jsonObject.string("status"))
+                        assertTrue(queue.actorDeletionIntents(run).isEmpty()); assertTrue(queue.actorDeletionIntents(run, true).isEmpty())
+                        assertEquals(beforeState, work.state.value)
+                        assertEquals(beforeBook.copy(personalSync = documents.bestand.value.personalSync), documents.bestand.value)
+                        return@use
+                    }
                     val image = ByteArray(PersonalSyncProtokoll.CHUNK_RAW * 9 + 11).also {
                         byteArrayOf(137.toByte(), 80, 78, 71, 13, 10, 26, 10, 1, 2, 3).copyInto(it)
                     }
