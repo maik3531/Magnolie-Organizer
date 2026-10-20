@@ -150,6 +150,7 @@ class ScopedDataRuntimeTest {
                 if (mode == "actor-transport") {
                     sent(); ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
                     field(TelefonWerk::class.java, "activeChannel").set(work, channel)
+                    TelefonWerk::class.java.getDeclaredMethod("refreshSharedPreferenceState").apply { isAccessible = true }.invoke(work)
                     val beforeState = work.state.value; val beforeBook = documents.bestand.value
                     val run = "44444444-4444-4444-8444-444444444444"
                     val start = TelefonNachrichten.message(PersonalSyncActor.START_KIND, PersonalSyncActor.start(run), 60000)
@@ -180,7 +181,17 @@ class ScopedDataRuntimeTest {
                         PersonalSyncActor.ack(run, batch.string("message_id")), 60000), channel, 0L)
                     assertNull(queue.outboxWireMessage(peerId, batch.string("message_id"))); assertTrue(sent().isEmpty())
                     val old = records.single { it.kind == "note" }
-                    val privateValue = JsonObject(old.value + mapOf("text" to JsonPrimitive("Private desktop draft"), "modified_ms" to JsonPrimitive(old.modifiedMs + 1)))
+                    val image = ByteArray(PersonalSyncProtokoll.CHUNK_RAW * 9 + 11).also {
+                        byteArrayOf(137.toByte(), 80, 78, 71, 13, 10, 26, 10, 1, 2, 3).copyInto(it)
+                    }
+                    val imageHash = java.security.MessageDigest.getInstance("SHA-256").digest(image).joinToString("") { "%02x".format(it) }
+                    val descriptor = buildJsonObject {
+                        put("attachment_id", JsonPrimitive("desktop-image")); put("name", JsonPrimitive("desktop.png"))
+                        put("kind", JsonPrimitive("image")); put("mime", JsonPrimitive("image/png"))
+                        put("size", JsonPrimitive(image.size)); put("sha256", JsonPrimitive(imageHash))
+                    }
+                    val privateValue = JsonObject(old.value + mapOf("text" to JsonPrimitive("Private desktop draft"),
+                        "modified_ms" to JsonPrimitive(old.modifiedMs + 1), "attachments" to JsonArray(listOf(descriptor))))
                     val incoming = old.copy(value = privateValue, hash = PersonalSync.hash(privateValue), modifiedMs = old.modifiedMs + 1)
                     val incomingBody = PersonalSyncProtokoll.batch(run, listOf(incoming), 0, true, true, 3, PersonalSync.recordsHash(listOf(incoming)))
                     val incomingWire = PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.batch", incomingBody, 86_400_000), run)
@@ -191,6 +202,37 @@ class ScopedDataRuntimeTest {
                     assertEquals("Private desktop draft", PersonalSyncProtokoll.decodeBatch(staged.second.single().getValue("body").jsonObject).single().value.string("text"))
                     work.receiveMessage(peer, incomingWire, channel, 0L); sent()
                     assertEquals(staged, queue.readyPersonalBatches().single { it.first == privatePeer })
+                    pump.invoke(work, peer, channel, 0L, false)
+                    val attachmentRequests = sent().filter { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) }
+                        .map { PersonalSyncActor.unwrap(it.getValue("body").jsonObject) }.filter { it.first == "personal_sync.attachment_request" }
+                    assertEquals(2, attachmentRequests.size)
+                    assertEquals(listOf(0, 8), attachmentRequests.map {
+                        (((it.second.getValue("wants") as JsonArray).single().jsonObject.getValue("ranges") as JsonArray).single() as JsonArray).first().jsonPrimitive.content.toInt()
+                    }.sorted())
+                    fun imageChunk(index: Int, hash: String = imageHash): JsonObject = PersonalSyncActor.wireMessage(
+                        TelefonNachrichten.message("personal_sync.attachment_chunk", buildJsonObject {
+                            put("format", JsonPrimitive(2)); put("run_id", JsonPrimitive(run)); put("reply", JsonPrimitive(true))
+                            put("records_hash", incomingBody.getValue("records_hash")); put("sha256", JsonPrimitive(hash)); put("index", JsonPrimitive(index))
+                            put("data", JsonPrimitive(java.util.Base64.getEncoder().encodeToString(image.copyOfRange(index * PersonalSyncProtokoll.CHUNK_RAW,
+                                minOf(image.size, (index + 1) * PersonalSyncProtokoll.CHUNK_RAW)))))
+                        }, 86_400_000), run)
+                    work.receiveMessage(peer, imageChunk(0, "a".repeat(64)), channel, 0L)
+                    assertTrue(sent().isEmpty())
+                    repeat(10) { index ->
+                        val chunk = imageChunk(index)
+                        work.receiveMessage(peer, chunk, channel, 0L)
+                        assertEquals(chunk.string("message_id"), sent().single().getValue("body").jsonObject.string("message_id"))
+                        if (index == 9) {
+                            work.receiveMessage(peer, chunk, channel, 0L); sent()
+                            work.receiveMessage(peer, imageChunk(index), channel, 0L); sent()
+                        }
+                    }
+                    val verified = ByteArrayOutputStream()
+                    assertTrue(queue.verifyIncomingAttachment(privatePeer, run, true, incomingBody.string("records_hash"), imageHash, verified))
+                    assertArrayEquals(image, verified.toByteArray())
+                    pump.invoke(work, peer, channel, 0L, false)
+                    assertEquals(1, sent().filter { it["kind"] == JsonPrimitive(PersonalSyncActor.DATA_KIND) }
+                        .count { PersonalSyncActor.unwrap(it.getValue("body").jsonObject).first == "personal_sync.attachment_result" })
                     val foreign = incoming.copy(id = "outside-phone-scope")
                     val foreignBody = PersonalSyncProtokoll.batch(run, listOf(foreign), 0, true, true, 3, PersonalSync.recordsHash(listOf(foreign)))
                     work.receiveMessage(peer, PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.batch", foreignBody, 60000), run), channel, 0L)
@@ -201,6 +243,7 @@ class ScopedDataRuntimeTest {
                     work.receiveMessage(peer, cancel, channel, 0L)
                     assertEquals("accepted", sent().single().getValue("body").jsonObject.string("status"))
                     assertTrue(queue.readyPersonalBatches().none { it.first == privatePeer })
+                    assertFalse(queue.verifyIncomingAttachment(privatePeer, run, true, incomingBody.string("records_hash"), imageHash, ByteArrayOutputStream()))
                     pump.invoke(work, peer, channel, 0L, false)
                     assertTrue(sent().none { PersonalSyncActor.isReservedMessage(it) })
                     assertEquals(beforeState, work.state.value)

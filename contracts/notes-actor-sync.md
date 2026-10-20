@@ -342,6 +342,17 @@ reply, records hash, attachment hash and range; replay does not schedule another
 copy. The retained outbound identity limit remains 4096. Both TCP fixtures transfer
 a ten-chunk image through multiple native request windows and verify all bytes.
 
+Notes also stages incoming actor reply attachments under the private actor peer
+alias, using its existing authenticated transfer metadata and encrypted chunk
+store. A complete private reply aggregate and current content-scope membership
+must declare the hash before raw chunk persistence. Native requests use bounded
+eight-chunk windows in the actual peer's marked outbox. Only native size/hash/MIME
+verification produces a transfer-complete result; authenticated completion state
+prevents another result for exact or different-message-ID chunk replay. Raw
+deduplication, private staging and queued controls share the active journal
+transaction. Cancellation purges these private files without adopting the reply
+into the book. Desktop reply-file production and dispatch remain activation gates.
+
 After the native integrity reader verifies a complete private file, the desktop
 queues its marked transfer result through the same owner-bound outbox. Exact
 chunk replay cannot produce another result. Both TCP fixtures wait for the

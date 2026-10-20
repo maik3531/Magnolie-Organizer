@@ -16,6 +16,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.put
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.util.UUID
@@ -1813,6 +1815,39 @@ class TelefonWerk private constructor(private val context: Context, private val 
         }
     }
 
+    private fun actorAttachmentManifest(batches: List<JsonObject>, manifest: JsonObject): Map<String, JsonObject> {
+        val records = batches.flatMap { PersonalSyncProtokoll.decodeBatch(it.getValue("body") as JsonObject) }
+        val rawRecords = batches.flatMap { ((it.getValue("body") as JsonObject).getValue("records") as JsonArray).map { value -> value as JsonObject } }
+        require(PhoneContentScope.filterRecords(rawRecords, manifest) == rawRecords) { "actor_record_outside_scope" }
+        val descriptors = records.filter { it.kind == "note" }.flatMap {
+            (it.value["attachments"] as? JsonArray).orEmpty().map { value -> value as JsonObject }
+        }.groupBy { it.string("sha256") }.mapValues { (_, values) ->
+            values.first().also { first -> require(values.all { it["size"] == first["size"] && it["mime"] == first["mime"] }) }
+        }
+        require(descriptors.size <= 256 && descriptors.values.sumOf { it.long("size") } <= 50L * 1024 * 1024)
+        return descriptors
+    }
+
+    private fun requestActorIncomingAttachments(peerId: String, run: String, batches: List<JsonObject>, manifest: JsonObject) {
+        val body = batches.last().getValue("body") as JsonObject
+        val aggregate = body.string("records_hash")
+        val policy = queue.personalRunPolicy(peerId, run) ?: throw TelefonProtokollFehler("Personal-Sync-Policy fehlt.")
+        val privatePeer = PersonalSyncActor.storagePeer(run)
+        actorAttachmentManifest(batches, manifest).toSortedMap().forEach { (hash, descriptor) ->
+            val size = descriptor.long("size").toInt()
+            queue.registerIncomingAttachment(privatePeer, run, true, aggregate, hash, size, descriptor.string("mime"), policy, batches.last().long("expires_ms"))
+            val total = (size + PersonalSyncProtokoll.CHUNK_RAW - 1) / PersonalSyncProtokoll.CHUNK_RAW
+            for (start in 0 until total step 8) {
+                queue.queue(peerId, "personal_sync.attachment_request", buildJsonObject {
+                    put("format", 2); put("run_id", run); put("reply", true); put("records_hash", aggregate)
+                    put("wants", buildJsonArray { add(buildJsonObject {
+                        put("sha256", hash); put("ranges", buildJsonArray { add(JsonArray(listOf(JsonPrimitive(start), JsonPrimitive(minOf(start + 8, total))))) })
+                    }) })
+                }, 60000, transportPolicy = policy)
+            }
+        }
+    }
+
     private fun receiveActorMessage(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
         val reply = synchronized(this) {
             if (generation != pairingGeneration || activeChannel !== channel) return@synchronized null
@@ -1852,8 +1887,18 @@ class TelefonWerk private constructor(private val context: Context, private val 
                             val unwrapped = PhoneContentScope.unwrap(content, manifest)
                             kind = unwrapped.first; content = unwrapped.second
                         }
-                        if (kind !in setOf("personal_sync.attachment_request", "personal_sync.attachment_result", "personal_sync.batch")) return@synchronized null
+                        if (kind !in setOf("personal_sync.attachment_request", "personal_sync.attachment_result", "personal_sync.attachment_chunk", "personal_sync.batch")) return@synchronized null
                         personalActorJournal.withActive(handle) {
+                            val privatePeer = PersonalSyncActor.storagePeer(run)
+                            val incomingBatches = if (kind == "personal_sync.attachment_chunk") {
+                                require(content["reply"] == JsonPrimitive(true)) { "actor_reply_required" }
+                                queue.readyPersonalBatches().singleOrNull { it.first == privatePeer &&
+                                    (it.second.last().getValue("body") as JsonObject).let { staged ->
+                                        staged["reply"] == JsonPrimitive(true) && staged["records_hash"] == content["records_hash"] && staged.string("run_id") == run
+                                    } }?.second ?: throw TelefonProtokollFehler("Attachment ist nicht im Manifest.")
+                            } else null
+                            val descriptor = incomingBatches?.let { actorAttachmentManifest(it, manifest)[content.string("sha256")]
+                                ?: throw TelefonProtokollFehler("Attachment ist nicht im Manifest.") }
                             if (kind == "personal_sync.batch") {
                                 val request = queue.personalRun(peer.device_id, run) ?: throw TelefonProtokollFehler("Personal-Sync-Request fehlt.")
                                 require(queue.isActorRun(peer.device_id, run))
@@ -1865,9 +1910,31 @@ class TelefonWerk private constructor(private val context: Context, private val 
                             if (!personalActorJournal.putWire(handle, message)) return@withActive
                             if (kind == "personal_sync.batch") {
                                 val semantic = JsonObject(message + mapOf("kind" to JsonPrimitive(kind), "body" to content))
-                                queue.stagePersonalBatch(PersonalSyncActor.storagePeer(run), semantic)
+                                queue.stagePersonalBatch(privatePeer, semantic)?.let { requestActorIncomingAttachments(peer.device_id, run, it, manifest) }
                             }
                             else if (kind == "personal_sync.attachment_request") queueRequestedPersonalAttachments(peer.device_id, content)
+                            else if (kind == "personal_sync.attachment_chunk") {
+                                val policy = queue.personalRunPolicy(peer.device_id, run) ?: throw TelefonProtokollFehler("Personal-Sync-Policy fehlt.")
+                                val hash = content.string("sha256"); val aggregate = content.string("records_hash")
+                                val raw = Base64.getDecoder().decode(content.string("data"))
+                                try {
+                                    queue.stageIncomingAttachmentChunk(privatePeer, run, true, aggregate, hash,
+                                        requireNotNull(descriptor).long("size").toInt(), descriptor.string("mime"), content.long("index").toInt(), raw,
+                                        policy, message.long("expires_ms"))
+                                } finally { raw.fill(0) }
+                                if (!queue.incomingAttachmentComplete(privatePeer, run, true, aggregate, hash) &&
+                                    queue.missingAttachmentRanges(privatePeer, run, true, aggregate, hash).isEmpty()) {
+                                    val sink = object : java.io.OutputStream() {
+                                        override fun write(value: Int) {}
+                                        override fun write(bytes: ByteArray, offset: Int, length: Int) {}
+                                    }
+                                    require(queue.verifyIncomingAttachment(privatePeer, run, true, aggregate, hash, sink)) { "actor_attachment_invalid" }
+                                    queue.queue(peer.device_id, "personal_sync.attachment_result", buildJsonObject {
+                                        put("format", 2); put("run_id", run); put("reply", true); put("records_hash", aggregate)
+                                        put("sha256", hash); put("state", "complete"); put("error", "none")
+                                    }, 86_400_000, transportPolicy = policy)
+                                }
+                            }
                             else {
                                 if (content.string("state") == "complete") queue.completeOutgoingAttachment(peer.device_id, run,
                                     (content["reply"] as JsonPrimitive).content.toBooleanStrict(), content.string("records_hash"), content.string("sha256"))

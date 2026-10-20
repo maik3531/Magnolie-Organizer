@@ -745,6 +745,10 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         return result
     }
 
+    internal fun incomingAttachmentComplete(peerId: String, runId: String, reply: Boolean,
+                                            recordsHash: String, hash: String): Boolean =
+        authenticatedTransfer(peerId, runId, reply, recordsHash, hash, "incoming")?.get("complete") == JsonPrimitive(true)
+
     fun verifyIncomingAttachment(peerId: String, runId: String, reply: Boolean, recordsHash: String,
                                  hash: String, output: OutputStream): Boolean {
         if (missingAttachmentRanges(peerId, runId, reply, recordsHash, hash).isNotEmpty()) return false
