@@ -146,6 +146,7 @@ internal sealed partial class TelefonCoordinator
         Func<string, string, string, Task>? removeWithRuntime = null)
     {
         if (request["action"]?.GetValue<string>() is "device_status_query" or "device_status_cancel") return await ExecuteMcpStatusAsync(request, cancellation);
+        if (request["action"]?.GetValue<string>()?.StartsWith("call_actor_", StringComparison.Ordinal) == true) return ExecuteMcpCallActor(request);
         if (request["action"]?.GetValue<string>() == "call_context_read") return ExecuteMcpCallContext(request);
         if (request["action"]?.GetValue<string>()?.StartsWith("time_control_", StringComparison.Ordinal) == true) return await ExecuteMcpTimeControlAsync(request, cancellation);
         if (request["action"]?.GetValue<string>()?.StartsWith("notes_actor_", StringComparison.Ordinal) == true)

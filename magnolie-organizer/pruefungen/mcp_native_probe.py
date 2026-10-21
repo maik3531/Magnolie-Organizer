@@ -302,6 +302,44 @@ if any(os.environ.get(flag) == "1" for flag in ("MAGNOLIE_MCP_PROBE_PHONE_ONLY",
         phone_fixture.store.save_peers()
     window._telefon = phone_fixture
     window._telefon_dienst_pflegen = lambda start_listener=True: False
+call_fixture = None
+if os.environ.get("MAGNOLIE_MCP_PROBE_CALL_ONLY") == "1":
+    import magnolie_telefon as phone_protocol
+    class OwnedCallBluetooth:
+        def availability(self): return False, "owned_fixture"
+        def paired_devices(self): return []
+        def paired(self, _address): return False
+    call_events, call_requests = [], []
+    phone_fixture = phone_protocol.PhoneService(str(data_file.parent / "telefon"), "Owned call desktop",
+        callback=lambda *args: call_events.append(args), bluetooth_backend=OwnedCallBluetooth())
+    call_peer = {"device_id": "11111111-1111-4111-8111-111111111111", "display_name": "Owned synthetic call peer",
+        "static_public": phone_protocol.b64(os.urandom(32)), "state": "paired", "capabilities": phone_protocol.desktop_capabilities(),
+        "grants": phone_protocol.desktop_grants(), "local_grants": phone_protocol.desktop_grants(), "last_contact_ms": 0,
+        "bluetooth": {"enabled": False, "address": ""}, "personal_sync": {"own_device": False, "remote_own_device": False, "auto_wifi": False, "last_report": {}}}
+    for name in ("incoming_call_state", "answer_call", "end_call"):
+        call_peer["grants"]["grants"][name] = True; call_peer["local_grants"]["grants"][name] = True
+    phone_fixture.store.peers = [call_peer]; phone_fixture.store.save_peers()
+    phone_fixture.enabled = True; phone_fixture.store.save_settings(True)
+    class OwnedCallChannel:
+        def __init__(self): self.sock = self
+        def close(self): pass
+        def shutdown(self, _how): pass
+        def send(self, value):
+            if value.get("kind") not in ("dial_request.command", "answer_call.command", "end_call.command"): return
+            assert not phone_fixture.lock._is_owned()
+            call_requests.append(json.loads(json.dumps(value)))
+            body = value["body"]; now = phone_protocol.now_ms()
+            result = {"state": "submitted", "error": "none", "occurred_ms": now}
+            if value["kind"] == "dial_request.command": result["client_ref"] = body["client_ref"]
+            else: result.update(command_ref=body["command_ref"], call_ref=body["call_ref"])
+            phone_fixture._payload(call_peer, self, {"type": "message", "v": 1, "message_id": str(__import__("uuid").uuid4()),
+                "kind": value["kind"].replace(".command", ".result"), "created_ms": now, "expires_ms": now + 60000, "body": result})
+    call_channel = OwnedCallChannel(); phone_fixture.connections[call_peer["device_id"]] = call_channel
+    phone_fixture.connection_transports[call_peer["device_id"]] = "wifi"
+    for kind, body in (("capabilities.update", call_peer["capabilities"]), ("grants.update", call_peer["grants"])):
+        phone_fixture._observe_note_control(call_peer, call_channel, kind, body)
+    window._telefon = phone_fixture; window._telefon_dienst_pflegen = lambda start_listener=True: False
+    call_fixture = (call_peer, call_channel, call_requests, call_events)
 device_status_fixture = None
 if os.environ.get("MAGNOLIE_MCP_PROBE_DEVICE_STATUS_ONLY") == "1":
     import magnolie_telefon as status_phone
@@ -450,6 +488,48 @@ def client():
         assert any(note["id"] == "owned-native-fixture" for note in notes["structuredContent"]["entries"])
         if os.environ.get("MAGNOLIE_MCP_PROBE_FAIL_AFTER_READY") == "1":
             raise RuntimeError("Owned fixture intentional failure after ready")
+        if os.environ.get("MAGNOLIE_MCP_PROBE_CALL_ONLY") == "1":
+            def call_tool(name, arguments=None):
+                result = call("tools/call", {"name": name, "arguments": arguments or {}})
+                assert not result["isError"], result
+                return result["structuredContent"]
+            palette = call_tool("organizer_category_colors_read")
+            call_tool("organizer_category_colors_update", {"expected_revision": palette["revision"], "colors": []})
+            unchanged = data_file.read_bytes()
+            native_peer, channel, captured, events = call_fixture
+            target = {"peer_id": native_peer["device_id"], "fingerprint": phone_protocol.fingerprint(phone_protocol.unb64(native_peer["static_public"], 32))}
+            for command in ("dial", "answer", "end"):
+                current_ref = str(__import__("uuid").uuid4())
+                if command != "dial":
+                    now = phone_protocol.now_ms()
+                    body = {"call_ref": current_ref, "revision": 9007199254740993, "state": "offhook" if command == "end" else "ringing", "direction": "incoming",
+                        "number": "", "number_status": "not_shared", "started_ms": now, "offhook_ms": now if command == "end" else 0, "ended_ms": 0,
+                        "occurred_ms": now, "spam_status": "unknown", "control_origin": "phone", "battery_percent": -1, "battery_captured_ms": 0}
+                    phone_fixture._payload(native_peer, channel, {"type": "message", "v": 1, "message_id": str(__import__("uuid").uuid4()),
+                        "kind": "incoming_call_state.event", "created_ms": now, "expires_ms": now + 60000, "body": body})
+                context = call_tool("organizer_phone_call_read", target)
+                assert not context["phone_status_queried"] and not context["persisted"]
+                args = {**target, "expected_source_revision": context["source_revision"], "command_id": str(__import__("uuid").uuid4()), "command": command}
+                if command == "dial": args["to"] = "+49301234567"
+                else:
+                    assert context["call"]["revision"] == "9007199254740993"
+                    args.update(call_ref=current_ref, expected_call_revision=context["call"]["revision"])
+                job = call_tool("organizer_phone_call_command_start", args)
+                deadline_at = time.monotonic() + 8
+                while job["phase"] not in ("reported", "failed", "cancelled"):
+                    assert time.monotonic() < deadline_at, job
+                    time.sleep(0.02)
+                    job = call_tool("organizer_phone_call_command_status", {"operation_id": job["operation_id"]})
+                assert job["phase"] == "reported" and job["phone_result_received"] and job["receipt_persisted"], job
+                assert job["phone_result"]["state"] == "submitted" and not job["remote_recall_confirmed"]
+                assert phone_fixture.store.command_origin(native_peer["device_id"], args["command_id"]) == "mcp"
+            assert len(captured) == 3 and not any(kind in ("dial_status", "answer_status", "end_status") for kind, _ in events)
+            assert data_file.read_bytes() == unchanged and phone_fixture.server is None and phone_fixture.thread is None
+            state["native_call_actor_three_handlers_verified"] = True
+            state["native_call_actor_private_results_verified"] = True
+            state["native_call_actor_64bit_revision_verified"] = True
+            process.stdin.close(); assert process.wait(timeout=5) == 0; selector.close(); state["passed"] = True
+            return
         if os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_LEGACY_ONLY") == "1":
             def legacy_tool(name, arguments=None):
                 result = call("tools/call", {"name": name, **({"arguments": arguments} if arguments is not None else {})})
@@ -2895,7 +2975,9 @@ finally:
         state["error"] = (state.get("error") or "") + "\nPrivate service/temporary cleanup:\n" + traceback.format_exc(limit=4)
     print("Native MCP fixture state:", json.dumps(state), flush=True)
 assert state["passed"] and state.get("cleanup_verified"), state
-if os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_LEGACY_ONLY") == "1":
+if os.environ.get("MAGNOLIE_MCP_PROBE_CALL_ONLY") == "1":
+    print("Native MCP CALL ACTORS PASS: actual GTK/stdio owner jobs and three native handlers, exact decimal revision, actual command-store receipts and captured synthetic phone reports, unchanged book, no listener; no physical phone/conversation claim")
+elif os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_LEGACY_ONLY") == "1":
     print("Native MCP NOTES LEGACY MODE PASS: actual GTK/stdio legacy mode/direction/custom/time store readback, time-direction SaveACK and actual epoch reset, selected book preference only and no listener; no handset delivery claim")
 elif os.environ.get("MAGNOLIE_MCP_PROBE_NOTES_SETTINGS_ONLY") == "1":
     print("Native MCP NOTES SETTINGS PASS: actual GTK/stdio shared GUI handlers, consent/preferences/grants store readback, stale revision rejection, unchanged book and no phone listener; no handset delivery claim")

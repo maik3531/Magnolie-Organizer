@@ -102,6 +102,7 @@
     <Compile Include="..\TimeControlContract.cs" Link="TimeControlContract.cs" />
     <Compile Include="..\TelefonTimeControl.cs" Link="TelefonTimeControl.cs" />
     <Compile Include="..\TelefonCallContext.cs" Link="TelefonCallContext.cs" />
+    <Compile Include="..\TelefonCallActors.cs" Link="TelefonCallActors.cs" />
     <Compile Include="..\OpenHolidayData.cs" Link="OpenHolidayData.cs" />
     <Compile Include="..\PersonalSyncStore.cs" Link="PersonalSyncStore.cs" />
     <Compile Include="..\TelefonProtocolContract.cs" Link="TelefonProtocolContract.cs" />

@@ -41,6 +41,7 @@ AUTOSTART_NAME = "io.gitlab.maik3531.MagnolieOrganizer.Background.desktop"
 MAX_IPC_MESSAGE = 64 * 1024
 MAX_TIME_CONTROL_IPC = 192 * 1024 + 4096
 TIME_CONTROL_ACTIONS = ("time_control_source", "time_control_query", "time_control_cancel")
+CALL_ACTOR_ACTIONS = ("call_actor_create", "call_actor_start", "call_actor_status", "call_actor_cancel")
 MAX_PHONE_ARGUMENTS = 2 * 1024 * 1024
 MAX_PHONE_MESSAGE = 72 * 1024 * 1024
 MAX_CONTACT_MESSAGE = 8 * 1024 * 1024
@@ -850,7 +851,23 @@ def _request_shape(operation, arguments):
             raise IPCError("invalid KDE lifecycle request")
     if operation == "phone_mcp_action":
         request = arguments.get("request")
-        if isinstance(request, dict) and request.get("action") == "call_context_read":
+        if isinstance(request, dict) and request.get("action") in CALL_ACTOR_ACTIONS:
+            fields = {"action", "peerId", "fingerprint"} | ({"sourceRevision", "operationId", "command", "destination", "callRef", "callRevision"}
+                if request["action"] == "call_actor_create" else {"actorId", "ownerToken"})
+            if (set(arguments) != {"request"} or set(request) != fields or len(encoded.encode("utf-8")) > 8192 or
+                    not _status_query_id(request.get("peerId")) or not isinstance(request.get("fingerprint"), str) or
+                    not re.fullmatch(r"[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}", request["fingerprint"])):
+                raise IPCError("invalid private call owner request")
+            if request["action"] == "call_actor_create":
+                if (request["command"] not in ("dial", "answer", "end") or not _status_query_id(request["operationId"]) or
+                        not isinstance(request["sourceRevision"], str) or not re.fullmatch(r"[a-f0-9]{64}", request["sourceRevision"]) or
+                        not all(isinstance(request[field], str) for field in ("destination", "callRef", "callRevision")) or
+                        (request["command"] == "dial" and (not re.fullmatch(r"\+[0-9]{3,15}", request["destination"]) or request["callRef"] or request["callRevision"])) or
+                        (request["command"] != "dial" and (request["destination"] or not _status_query_id(request["callRef"]) or not re.fullmatch(r"[1-9][0-9]{0,18}", request["callRevision"])) )):
+                    raise IPCError("invalid private call command")
+            elif not _status_query_id(request["actorId"]) or not isinstance(request["ownerToken"], str) or not re.fullmatch(r"[a-f0-9]{64}", request["ownerToken"]):
+                raise IPCError("invalid private call owner handle")
+        elif isinstance(request, dict) and request.get("action") == "call_context_read":
             if (set(arguments) != {"request"} or set(request) != {"action", "peerId", "fingerprint"} or len(encoded.encode("utf-8")) > 8192 or
                     not _status_query_id(request.get("peerId")) or not isinstance(request.get("fingerprint"), str) or
                     not re.fullmatch(r"[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}", request["fingerprint"])):
@@ -1466,7 +1483,7 @@ class IPCServer:
                                                                arguments['enabled'], permitted=permitted)
                 elif operation.startswith("phone_"):
                     if operation in ("phone_open_pairing", "phone_cancel_pairing", "phone_confirm_pairing", "phone_remove", "phone_set_enabled", "phone_set_bluetooth") or (
-                            operation == "phone_mcp_action" and arguments["request"].get("action") not in ("device_status_query", "device_status_cancel", "call_context_read", *TIME_CONTROL_ACTIONS)):
+                            operation == "phone_mcp_action" and arguments["request"].get("action") not in ("device_status_query", "device_status_cancel", "call_context_read", *TIME_CONTROL_ACTIONS, *CALL_ACTOR_ACTIONS)):
                         with self._mutation_lock:
                             result = self._phone_operation(operation, arguments)
                     else:
@@ -1514,7 +1531,7 @@ class IPCServer:
                 and not normalize_settings(self.settings_getter())["permissions"]["phone_call_notifications"]):
             raise IPCError("call notifications are not permitted")
         if (operation in ("phone_open_pairing", "phone_cancel_pairing", "phone_confirm_pairing", "phone_remove", "phone_set_enabled", "phone_set_bluetooth") or
-                operation == "phone_mcp_action" and arguments["request"].get("action") not in ("device_status_cancel", "time_control_cancel", "call_context_read")) and \
+                operation == "phone_mcp_action" and arguments["request"].get("action") not in ("device_status_cancel", "time_control_cancel", "call_context_read", "call_actor_status", "call_actor_cancel")) and \
                 self.setup_sessions.connecting_transport in ("wifi", "bluetooth"):
             raise IPCError("Another phone setup session is active.")
         if operation == "phone_take_event":

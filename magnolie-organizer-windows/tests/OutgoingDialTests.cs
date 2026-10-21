@@ -31,10 +31,11 @@ internal static class OutgoingDialTests
         internal readonly TelefonPeer Peer;
         internal readonly List<JsonObject> Events = [];
         internal readonly List<JsonObject> Results = [];
-        internal readonly MemoryStream Wire = new();
+        internal readonly MemoryStream Wire;
         internal TelefonConnection Connection;
-        internal Fixture(bool legacy = false)
+        internal Fixture(bool legacy = false, bool foregroundEnabled = false, MemoryStream? wire = null)
         {
+            Wire = wire ?? new MemoryStream();
             var paths = new WindowsPaths(Root); paths.EnsureDirectories(); Store = new TelefonStore(paths, new byte[32]);
             var caps = TelefonProtocolContract.DesktopCapabilities()["items"]!.DeepClone().AsObject();
             if (legacy) caps["dial_request"]!["versions"] = new JsonArray(1);
@@ -45,7 +46,7 @@ internal static class OutgoingDialTests
                 if (name == "App.telefonEingehenderAnruf") Events.Add(body);
                 if (name == "App.telefonWaehlstatus" || name == "App.telefonAuflegestatus" || name == "App.telefonAnnehmstatus") Results.Add(body);
                 return Task.CompletedTask;
-            }, dataStore: Store, localOnly: true);
+            }, dataStore: Store, localOnly: true, foregroundEnabled: foregroundEnabled);
             Connection = Connect();
         }
         internal TelefonConnection Connect()
@@ -57,7 +58,10 @@ internal static class OutgoingDialTests
                 (peer, message) => (Task<TelefonAck?>)receive.Invoke(Host, [peer, message, "wifi"])!, CancellationToken.None, "wifi",
                 authorizeCall: authorize, sendCall: send) {
                     CallContextObserved = Host.ObserveCallContext,
-                    PrivateCallResultObserved = (source, peer, kind, body) => Host.PrivateCallResultObserver?.Invoke(source, peer, kind, body)
+                    PrivateCallResultObserved = (source, peer, kind, body) => {
+                        Host.ReceivePrivateCallActorResult(source, peer, kind, body);
+                        Host.PrivateCallResultObserver?.Invoke(source, peer, kind, body);
+                    }
                 };
             ((Dictionary<string, TelefonConnection>)Field(typeof(TelefonCoordinator), "online").GetValue(Host)!)[Peer.Id] = connection;
             return connection;

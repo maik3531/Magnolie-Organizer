@@ -115,6 +115,37 @@ dispatched save or native request. Source/book changes, drafts and dialogs stop
 further sends; late receipts never modify drafts. Session closure aborts and
 removes its operations; another session cannot inspect or cancel them.
 
+### Native call context and commands
+
+`organizer_phone_call_read` accepts the selected `peer_id` and `fingerprint`.
+Its `source_revision` binds native profile/key/current connection and current
+controls. `call` contains a redacted authenticated event from that session or
+null; it is explicitly not a fresh OS query. `call.revision` is a decimal string
+so 64-bit revisions survive JavaScript. The observation scope distinguishes
+shared call-state permission from an existing native outgoing-request scope.
+
+`organizer_phone_call_command_start` requires the exact `expected_source_revision`,
+a unique UUID-v4 `command_id` and `command: dial|answer|end`. Dial requires `to`
+in E.164 form. Answer/end instead require the exact `call_ref` and decimal
+`expected_call_revision`; fields belonging to another action are rejected.
+The tool returns a session-owned 48-hex `operation_id` for
+`organizer_phone_call_command_status/cancel`. Native owner tokens remain private.
+
+The native owner is reserved without dispatch, then started after frontend
+session/book/editor checks. Native source validation precedes the existing
+command writer and actual sender claim. `receipt_persisted` confirms the local
+command receipt, not a book save or phone action. Only the correlated authenticated
+phone result sets `phone_result_received`; queue/transport ACKs do not. `reported`
+may contain a failed phone result. `submitted` confirms neither an established
+conversation nor delivery. Actual adapter/platform/permission limits apply.
+
+Private requests preserve the existing adapters and do not enable unrelated GUI
+call-monitoring grants. Cancellation stops waiting/future claims and always
+reports `remote_recall_confirmed: false`; an already claimed dispatch can have
+an unknown outcome. Late results and late-created handles cannot mutate drafts
+or adopt another session's job. See `communications-mcp.md` for native bounds,
+scope/receipt details and remaining communications integration.
+
 ### Native Notes timer control
 
 `organizer_notes_timer_read` requests live native state from the selected

@@ -39,6 +39,7 @@ class Store:
                 "answer_call": {"available": True, "versions": [1]}, "end_call": {"available": True, "versions": [1, 2]}}})
     def peer(self, peer_id): return self.value if peer_id == PEER else None
     def command_state(self, ref): return self.commands.get(ref)
+    def command_origin(self, peer_id, ref): return "gui" if peer_id == PEER and ref in self.commands else None
     def remember_command(self, peer_id, ref, state, origin="gui"):
         assert origin == "gui", "Cold GUI actions must retain their ordinary command origin"
         self.commands[ref] = state

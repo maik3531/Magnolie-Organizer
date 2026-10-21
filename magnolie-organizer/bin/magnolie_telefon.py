@@ -2420,7 +2420,9 @@ class PhoneService:
         self.incoming_calls = {}
         self.incoming_call_channels = {}
         self.call_context_receipts = {}
-        self.private_call_result_observer = None
+        from magnolie_call_actors import NativeCallActors
+        self.call_actors = NativeCallActors(self)
+        self.private_call_result_observer = self.call_actors.receive
         from magnolie_anruf_audio import AnrufBluetooth
         self.call_audio = call_audio or AnrufBluetooth()
         self.call_audio.foreign_connection = self._audio_data_connection_in_use
@@ -2509,6 +2511,8 @@ class PhoneService:
         return peer
 
     def mcp_action(self, request):
+        if str(request.get("action", "")).startswith("call_actor_"):
+            return self.call_actors.action(request)
         if request.get("action") == "call_context_read":
             try:
                 if set(request) != {"action", "peerId", "fingerprint"}:
@@ -5310,8 +5314,8 @@ class PhoneService:
                 self._send_message(channel, peer_id, message)
         return queued[-1]["message_id"]
 
-    def mcp_call_context(self, peer_id, expected_fingerprint):
-        """Current native authority plus a session event, never a fresh OS query."""
+    def _call_context_source(self, peer_id, expected_fingerprint):
+        """Native source shared by readback, owner admission and dispatch checks."""
         with self.lock:
             peer = self.store.peer(peer_id)
             channel = self.connections.get(peer_id)
@@ -5342,94 +5346,125 @@ class PhoneService:
                     receipt[:3] == (peer["static_public"], channel, hashlib.sha256(canonical(event)).hexdigest())):
                 current = {"call_ref": event["call_ref"], "revision": str(event["revision"]), "state": event["state"],
                     "direction": event["direction"], "phone_occurred_ms": event["occurred_ms"], "native_received_ms": receipt[3],
-                    "observation": "authenticated_session_event", "phone_status_queried": False}
+                    "observation": "authenticated_session_event", "scope": "shared_call_state", "phone_status_queried": False}
             authority = {"profile": os.path.realpath(self.store.database_path), "peer": peer_id, "key": peer["static_public"],
                 "channel": native_channel["nonce"], "generation": self._generation,
                 "transport": self.connection_transports[peer_id], "capabilities": peer.get("capabilities"),
                 "grants": peer.get("grants"), "local_grants": peer.get("local_grants"), "call": current}
-            return {"peer_id": peer_id, "fingerprint": fingerprint(unb64(peer["static_public"], 32)),
-                "source_revision": hmac.new(self._mcp_revision_key, canonical(authority), hashlib.sha256).hexdigest(),
-                "transport": self.connection_transports[peer_id], "permissions": permissions, "call": current,
+            return authority, permissions, current, channel
+
+    def mcp_call_context(self, peer_id, expected_fingerprint):
+        """Current native authority plus a session event, never a fresh OS query."""
+        with self.lock:
+            authority, permissions, current, _channel = self._call_context_source(peer_id, expected_fingerprint)
+            return {"peer_id": peer_id, "fingerprint": fingerprint(unb64(authority["key"], 32)),
+                "source_revision": self._call_source_revision(authority),
+                "transport": authority["transport"], "permissions": permissions, "call": current,
                 "phone_status_queried": False, "persisted": False}
 
-    def request_dial(self, peer_id, destination, client_ref, origin="gui"):
+    def _call_source_revision(self, authority):
+        return hmac.new(self._mcp_revision_key, canonical(authority), hashlib.sha256).hexdigest()
+
+    def _call_actor_body(self, request, observed):
+        reference = request["operationId"]
+        if request["command"] == "dial":
+            if request["callRef"] or request["callRevision"]:
+                raise ValueError("invalid_dial_call_reference")
+            return validate_dial_request({"to": request["destination"], "client_ref": reference})
+        if (request["destination"] or not observed or request["callRef"] != observed["call_ref"] or
+                request["callRevision"] != observed["revision"]):
+            raise PermissionError("call_observation_changed")
+        revision = request["callRevision"]
+        if not isinstance(revision, str) or not re.fullmatch(r"[1-9][0-9]{0,18}", revision) or not _validate_revision(int(revision)):
+            raise ValueError("invalid_call_revision")
+        if request["command"] == "answer":
+            return validate_answer_command({"command_ref": reference, "call_ref": request["callRef"], "expected_state": "ringing"})
+        return validate_end_command({"command_ref": reference, "call_ref": request["callRef"],
+            "expected_revision": int(revision), "expected_state": observed["state"]})
+
+    def request_dial(self, peer_id, destination, client_ref, origin="gui", _scope=None):
         if origin not in ("gui", "mcp"):
             raise ValueError("invalid_call_command_origin")
-        peer = self.store.peer(peer_id)
-        eligible = []
-        for candidate in self.store.peers:
-            capability = (candidate.get("capabilities") or {}).get("items", {}).get(
-                "dial_request", {})
-            if (candidate.get("state") == "paired"
-                    and candidate.get("device_id") in self.connections
-                    and capability.get("available") and 1 in capability.get("versions", [])
-                    and candidate.get("grants", {}).get("grants", {}).get("dial_request")):
-                eligible.append(candidate.get("device_id"))
-        if not peer or eligible != [peer_id]:
-            raise RuntimeError("Genau ein online gekoppeltes Magnolie-Notes-Telefon muss das Wählen freigeben.")
         body = validate_dial_request({"to": destination, "client_ref": client_ref})
-        if self.store.command_state(client_ref):
-            raise RuntimeError("Dieser Wählauftrag wurde bereits eingereiht.")
-        # Der explizite Wählauftrag erlaubt nur Status und Auflegen dieses ausgehenden Anrufs,
-        # nicht das Annehmen eingehender Anrufe am Desktop.
-        self.set_grant(peer_id, "incoming_call_state", True)
-        self.set_grant(peer_id, "end_call", True)
-        self.store.remember_command(peer_id, client_ref, "queued", origin=origin)
-        message = self.store.queue(peer_id, "dial_request.command", body, 60000)
-        self._send_message(self.connections[peer_id], peer_id, message)
+        with self.lock:
+            if _scope: _scope.before()
+            peer = self.store.peer(peer_id)
+            eligible = []
+            for candidate in self.store.peers:
+                capability = (candidate.get("capabilities") or {}).get("items", {}).get("dial_request", {})
+                if (candidate.get("state") == "paired" and candidate.get("device_id") in self.connections and capability.get("available") and
+                        1 in capability.get("versions", []) and candidate.get("grants", {}).get("grants", {}).get("dial_request")):
+                    eligible.append(candidate.get("device_id"))
+            if not peer or eligible != [peer_id]:
+                raise RuntimeError("Genau ein online gekoppeltes Magnolie-Notes-Telefon muss das Wählen freigeben.")
+            if self.store.command_state(client_ref):
+                raise RuntimeError("Dieser Wählauftrag wurde bereits eingereiht.")
+        if origin == "gui":
+            # GUI dialing enables its existing call-monitoring controls. Private
+            # commands do not enable GUI notifications or broaden these grants.
+            self.set_grant(peer_id, "incoming_call_state", True)
+            self.set_grant(peer_id, "end_call", True)
+        with self.lock:
+            if _scope: _scope.before()
+            self.store.remember_command(peer_id, client_ref, "queued", origin=origin)
+            if _scope: _scope.receipt_written()
+            message = self.store.queue(peer_id, "dial_request.command", body, 60000)
+            channel = self.connections[peer_id]
+        self._send_message(channel, peer_id, message)
         if origin == "gui":
             self.callback("dial_status", {"device_id": peer_id, "client_ref": client_ref,
                           "state": "queued", "error": "none", "occurred_ms": now_ms()})
         return client_ref
 
-    def request_answer(self, peer_id, call_ref, command_ref, origin="gui"):
+    def request_answer(self, peer_id, call_ref, command_ref, origin="gui", _scope=None):
         if origin not in ("gui", "mcp"):
             raise ValueError("invalid_call_command_origin")
-        peer = self.store.peer(peer_id)
-        capability = (peer or {}).get("capabilities", {}).get("items", {}).get(
-            "answer_call", {})
-        if (not peer or peer.get("state") != "paired" or peer_id not in self.connections or not capability.get("available")
-                or 1 not in capability.get("versions", [])
-                or not peer.get("grants", {}).get("grants", {}).get("answer_call")
-                or not peer.get("local_grants", {}).get("grants", {}).get("answer_call")):
-            raise RuntimeError("Das Annehmen von Anrufen ist nicht freigegeben oder nicht verfügbar.")
-        current = self.incoming_calls.get(peer_id, {})
-        if (current.get("call_ref") != call_ref or current.get("state") != "ringing"
-                or current.get("direction") != "incoming"):
-            raise RuntimeError("Der Anruf klingelt nicht mehr oder ist veraltet.")
-        body = validate_answer_command({"command_ref": command_ref, "call_ref": call_ref,
-                                        "expected_state": "ringing"})
-        if self.store.command_state(command_ref):
-            raise RuntimeError("Dieser Annehmauftrag wurde bereits eingereiht.")
-        self.store.remember_command(peer_id, command_ref, "queued", origin=origin)
-        message = self.store.queue(peer_id, "answer_call.command", body, 10000)
-        self._send_message(self.connections[peer_id], peer_id, message)
+        with self.lock:
+            if _scope: _scope.before()
+            peer = self.store.peer(peer_id)
+            capability = (peer or {}).get("capabilities", {}).get("items", {}).get("answer_call", {})
+            if (not peer or peer.get("state") != "paired" or peer_id not in self.connections or not capability.get("available") or
+                    1 not in capability.get("versions", []) or not peer.get("grants", {}).get("grants", {}).get("answer_call") or
+                    not peer.get("local_grants", {}).get("grants", {}).get("answer_call")):
+                raise RuntimeError("Das Annehmen von Anrufen ist nicht freigegeben oder nicht verfügbar.")
+            current = self.incoming_calls.get(peer_id, {})
+            if current.get("call_ref") != call_ref or current.get("state") != "ringing" or current.get("direction") != "incoming":
+                raise RuntimeError("Der Anruf klingelt nicht mehr oder ist veraltet.")
+            body = validate_answer_command({"command_ref": command_ref, "call_ref": call_ref, "expected_state": "ringing"})
+            if self.store.command_state(command_ref):
+                raise RuntimeError("Dieser Annehmauftrag wurde bereits eingereiht.")
+            self.store.remember_command(peer_id, command_ref, "queued", origin=origin)
+            if _scope: _scope.receipt_written()
+            message = self.store.queue(peer_id, "answer_call.command", body, 10000)
+            channel = self.connections[peer_id]
+        self._send_message(channel, peer_id, message)
         return command_ref
 
-    def request_end_call(self, peer_id, call_ref, revision, command_ref, origin="gui"):
+    def request_end_call(self, peer_id, call_ref, revision, command_ref, origin="gui", _scope=None):
         if origin not in ("gui", "mcp"):
             raise ValueError("invalid_call_command_origin")
-        peer = self.store.peer(peer_id)
-        capability = (peer or {}).get("capabilities", {}).get("items", {}).get("end_call", {})
-        if (not peer or peer.get("state") != "paired" or peer_id not in self.connections or not capability.get("available")
-                or 1 not in capability.get("versions", [])
-                or not peer.get("grants", {}).get("grants", {}).get("end_call")
-                or not peer.get("local_grants", {}).get("grants", {}).get("end_call")):
-            raise RuntimeError("Das Beenden von Anrufen ist nicht freigegeben oder nicht verfügbar.")
-        current = self.incoming_calls.get(peer_id, {})
-        rejecting = current.get("state") == "ringing" and current.get("direction") == "incoming"
-        if (current.get("call_ref") != call_ref or (current.get("state") != "offhook" and not rejecting)
-                or rejecting and 2 not in capability.get("versions", [])
-                or rejecting and not peer.get("local_grants", {}).get("grants", {}).get("answer_call")
-                or current.get("revision") != revision):
-            raise RuntimeError("Der Anruf ist nicht mehr aktiv oder wurde aktualisiert.")
-        body = validate_end_command({"command_ref": command_ref, "call_ref": call_ref,
-            "expected_revision": revision, "expected_state": current["state"]})
-        if self.store.command_state(command_ref):
-            raise RuntimeError("Dieser Auflegeauftrag wurde bereits eingereiht.")
-        self.store.remember_command(peer_id, command_ref, "queued", origin=origin)
-        message = self.store.queue(peer_id, "end_call.command", body, 10000)
-        self._send_message(self.connections[peer_id], peer_id, message)
+        with self.lock:
+            if _scope: _scope.before()
+            peer = self.store.peer(peer_id)
+            capability = (peer or {}).get("capabilities", {}).get("items", {}).get("end_call", {})
+            if (not peer or peer.get("state") != "paired" or peer_id not in self.connections or not capability.get("available") or
+                    1 not in capability.get("versions", []) or not peer.get("grants", {}).get("grants", {}).get("end_call") or
+                    not peer.get("local_grants", {}).get("grants", {}).get("end_call")):
+                raise RuntimeError("Das Beenden von Anrufen ist nicht freigegeben oder nicht verfügbar.")
+            current = self.incoming_calls.get(peer_id, {})
+            rejecting = current.get("state") == "ringing" and current.get("direction") == "incoming"
+            if (current.get("call_ref") != call_ref or (current.get("state") != "offhook" and not rejecting) or
+                    rejecting and 2 not in capability.get("versions", []) or
+                    rejecting and not peer.get("local_grants", {}).get("grants", {}).get("answer_call") or current.get("revision") != revision):
+                raise RuntimeError("Der Anruf ist nicht mehr aktiv oder wurde aktualisiert.")
+            body = validate_end_command({"command_ref": command_ref, "call_ref": call_ref, "expected_revision": revision, "expected_state": current["state"]})
+            if self.store.command_state(command_ref):
+                raise RuntimeError("Dieser Auflegeauftrag wurde bereits eingereiht.")
+            self.store.remember_command(peer_id, command_ref, "queued", origin=origin)
+            if _scope: _scope.receipt_written()
+            message = self.store.queue(peer_id, "end_call.command", body, 10000)
+            channel = self.connections[peer_id]
+        self._send_message(channel, peer_id, message)
         return command_ref
 
     def _publish_call_command_result(self, peer, channel, kind, value, origin):
@@ -5520,6 +5555,14 @@ class PhoneService:
     def _send_message(self, channel, peer_id, message):
         if personal_actor_contract.is_reserved_kind(message.get("kind")):
             return self._send_personal_actor_queued(channel, peer_id, message)
+        if message.get("kind") in {"dial_request.command", "answer_call.command", "end_call.command"}:
+            with self.lock:
+                body = message.get("body", {})
+                origin = self.store.command_origin(peer_id, body.get("client_ref") or body.get("command_ref"))
+            if origin == "mcp":
+                return self.call_actors.send(channel, peer_id, message)
+            if origin != "gui":
+                return False
         with self.lock:
             return self._send_message_locked(channel, peer_id, message)
 

@@ -35683,6 +35683,138 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         } };
     });
   }
+  const mcpTelefonAnrufLaeufe = new Map();
+  const mcpTelefonAnrufTerminal = job => ["reported", "failed", "cancelled"].includes(job.phase);
+  function mcpTelefonAnrufKontextSchema() {
+    const shape = properties => ({ type: "object", properties, required: Object.keys(properties), additionalProperties: false });
+    const uuid = { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" };
+    const stamp = { type: "integer", minimum: 0, maximum: 253402300799999 }, flag = { type: "boolean" }, no = { ...flag, enum: [false] };
+    return shape({ peer_id: uuid, fingerprint: { type: "string", pattern: "^[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}$" },
+      source_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, transport: { type: "string", enum: ["wifi", "bluetooth"] },
+      permissions: shape({ dial_request: flag, incoming_call_state: flag, answer_call: flag, end_call: flag }),
+      call: { anyOf: [{ type: "null" }, shape({ call_ref: uuid, revision: { type: "string", pattern: "^[1-9][0-9]{0,18}$" },
+        state: { type: "string", enum: ["ringing", "offhook", "idle"] }, direction: { type: "string", enum: ["incoming", "outgoing", "unknown"] },
+        phone_occurred_ms: stamp, native_received_ms: stamp, observation: { type: "string", enum: ["authenticated_session_event"] },
+        scope: { type: "string", enum: ["shared_call_state", "outgoing_request"] }, phone_status_queried: no })] }, phone_status_queried: no, persisted: no });
+  }
+  function mcpTelefonAnrufSchema(native = false) {
+    const uuid = { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" }, flag = { type: "boolean" };
+    const shape = properties => ({ type: "object", properties, required: Object.keys(properties), additionalProperties: false });
+    const result = { state: { type: "string", enum: ["submitted", "already_answered", "already_ended", "failed"] },
+      error: { type: "string", pattern: "^[a-z0-9_]{1,80}$" }, occurred_ms: { type: "integer", minimum: 0, maximum: 253402300799999 } };
+    const properties = { operation_id: native ? uuid : { type: "string", pattern: "^[a-f0-9]{48}$" }, command: { type: "string", enum: ["dial", "answer", "end"] },
+      phase: { type: "string", enum: ["reserving", "starting", "reserved", "dispatching", "awaiting_phone", "reported", "failed", "cancelled"] },
+      dispatch_started: flag, transport_dispatched: flag, receipt_persisted: flag, phone_result_received: flag,
+      phone_result: { anyOf: [{ type: "null" }, shape({ ...result, client_ref: uuid }), shape({ ...result, command_ref: uuid, call_ref: uuid })] },
+      cancel_requested: flag, remote_recall_confirmed: { ...flag, enum: [false] }, native_outcome_unknown: flag,
+      error_code: { type: "string", pattern: "^[a-z0-9_]{1,80}$" } };
+    if (native) properties.actor_id = uuid;
+    else Object.assign(properties, { peer_id: uuid, command_id: uuid });
+    return shape(properties);
+  }
+  function mcpTelefonAnrufJob(owner, id) {
+    const job = mcpTelefonAnrufLaeufe.get(id);
+    if (!job || job.owner !== owner || job.expires <= Date.now()) throw new MagnolieMcp.ToolError("not_found", "Call operation not found in this session");
+    return job;
+  }
+  function mcpTelefonAnrufGuard(job) {
+    if (job.controller.signal.aborted) throw new MagnolieMcp.ToolError("cancelled", "Call operation cancelled");
+    if (gesperrt || DATEN !== job.book || mcpTelefonAnrufLaeufe.get(job.id) !== job) throw new MagnolieMcp.ToolError("source_changed", "Call operation profile changed");
+  }
+  async function mcpTelefonAnrufNative(job, action, extra = {}, signal = job.controller.signal) {
+    const request = { action, peerId: job.peer, fingerprint: job.fingerprint, ...extra };
+    if (action !== "call_actor_create") Object.assign(request, { actorId: job.handle.actor_id, ownerToken: job.handle.owner_token });
+    const value = await mcpNativeAufruf("telefon_mcp", { request }, "telefonMcpErgebnis", signal);
+    if (value.ok !== true) throw new MagnolieMcp.ToolError(value.code || "native_operation_failed", "Native call operation failed");
+    return value;
+  }
+  function mcpTelefonAnrufStop(job) {
+    if (!job.handle || job.stopSent) return;
+    job.stopSent = true;
+    mcpTelefonAnrufNative(job, "call_actor_cancel", {}, new AbortController().signal).catch(() => { job.unknown ||= job.dispatched; });
+  }
+  function mcpTelefonAnrufAntwort(job) {
+    const value = job.native || { dispatch_started: false, transport_dispatched: false, receipt_persisted: false,
+      phone_result_received: false, phone_result: null, native_outcome_unknown: false };
+    return { operation_id: job.id, peer_id: job.peer, command_id: job.commandId, command: job.command, phase: job.phase,
+      dispatch_started: value.dispatch_started, transport_dispatched: value.transport_dispatched, receipt_persisted: value.receipt_persisted,
+      phone_result_received: value.phone_result_received, phone_result: kopie(value.phone_result), cancel_requested: job.controller.signal.aborted,
+      remote_recall_confirmed: false, native_outcome_unknown: value.native_outcome_unknown || job.unknown, error_code: job.error };
+  }
+  function mcpTelefonAnrufUebernehmen(job, value) {
+    try { MagnolieMcp.validate(value, mcpTelefonAnrufSchema(true)); } catch { throw new MagnolieMcp.ToolError("invalid_result", "Native call operation receipt was incomplete"); }
+    const result = value.phone_result;
+    if (value.actor_id !== job.handle.actor_id || value.operation_id !== job.commandId || value.command !== job.command ||
+        value.phone_result_received !== (result !== null) || (value.phase === "reported") !== value.phone_result_received ||
+        result && ((result.client_ref || result.command_ref) !== job.commandId || job.command !== "dial" && result.call_ref !== job.callRef ||
+          job.command === "dial" && !Object.hasOwn(result, "client_ref") || job.command !== "dial" && !Object.hasOwn(result, "command_ref") ||
+          (result.state === "failed") !== (result.error !== "none") || job.command === "dial" && !["submitted", "failed"].includes(result.state) ||
+          job.command === "answer" && result.state === "already_ended" || job.command === "end" && result.state === "already_answered"))
+      throw new MagnolieMcp.ToolError("invalid_result", "Native call receipt did not match the operation");
+    job.native = kopie(value); job.phase = value.phase; job.error = value.error_code;
+  }
+  function mcpTelefonAnrufWerkzeuge(owner) {
+    const uuid = { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" }, hash = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const target = { peer_id: uuid, fingerprint: { type: "string", pattern: "^[a-fA-F0-9]{4}(?:-[a-fA-F0-9]{4}){3}$" } };
+    const owned = { type: "object", properties: { operation_id: { type: "string", pattern: "^[a-f0-9]{48}$" } }, required: ["operation_id"], additionalProperties: false };
+    return [
+      { name: "organizer_phone_call_read", description: "Read native phone-control authority and the last authenticated event from the exact current session. This is not a fresh phone OS status query; retained events from another connection are not adopted. Numbers and private device identifiers are omitted.",
+        inputSchema: { type: "object", properties: target, required: Object.keys(target), additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: true }, call: async (args, signal) => {
+          const book = DATEN, value = await mcpNativeAufruf("telefon_mcp", { request: { action: "call_context_read", peerId: args.peer_id, fingerprint: args.fingerprint } }, "telefonMcpErgebnis", signal);
+          if (gesperrt || DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Call context profile changed");
+          if (value.ok !== true) throw new MagnolieMcp.ToolError(value.code || "native_operation_failed", "Native call context unavailable");
+          try { MagnolieMcp.validate(value.callContext, mcpTelefonAnrufKontextSchema()); } catch { throw new MagnolieMcp.ToolError("invalid_result", "Native call context was incomplete"); }
+          if (value.callContext.peer_id !== args.peer_id || value.callContext.fingerprint.toUpperCase() !== args.fingerprint.toUpperCase()) throw new MagnolieMcp.ToolError("source_changed", "Call context peer changed");
+          return value.callContext;
+        } },
+      { name: "organizer_phone_call_command_start", description: "Start a session-owned native dial/answer/end operation with exact phone source CAS and a unique command UUID. Answer/end require the observed call reference and decimal revision. Uses existing phone adapters; a submitted report is not an established conversation. GUI notification grants are not enabled. Read status for the actual correlated phone result; cancellation cannot recall a claimed dispatch.",
+        inputSchema: { type: "object", properties: { ...target, expected_source_revision: hash, command_id: uuid, command: { type: "string", enum: ["dial", "answer", "end"] },
+          to: { type: "string", pattern: "^\\+[0-9]{3,15}$" }, call_ref: uuid, expected_call_revision: { type: "string", pattern: "^[1-9][0-9]{0,18}$" } },
+          required: [...Object.keys(target), "expected_source_revision", "command_id", "command"], additionalProperties: false },
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: true }, call: async (args, signal) => {
+          mcpEditorPruefen();
+          if (signal.aborted) throw new MagnolieMcp.ToolError("cancelled", "Call operation cancelled");
+          if (args.command === "dial" ? !args.to || args.call_ref !== undefined || args.expected_call_revision !== undefined : args.to !== undefined || !args.call_ref || !args.expected_call_revision)
+            throw new MagnolieMcp.ToolError("invalid_selection", "Call command fields do not match its action");
+          for (const [id, old] of mcpTelefonAnrufLaeufe) if (old.expires <= Date.now()) { old.controller.abort(); mcpTelefonAnrufStop(old); mcpTelefonAnrufLaeufe.delete(id); }
+          if (mcpTelefonAnrufLaeufe.size >= 32 || [...mcpTelefonAnrufLaeufe.values()].filter(job => !mcpTelefonAnrufTerminal(job)).length >= 4) throw new MagnolieMcp.ToolError("native_busy", "Call operation capacity reached");
+          const job = { id: Array.from(crypto.getRandomValues(new Uint8Array(24)), value => value.toString(16).padStart(2, "0")).join(""), owner,
+            peer: args.peer_id, fingerprint: args.fingerprint, commandId: args.command_id, command: args.command, callRef: args.call_ref || "", book: DATEN,
+            expires: Date.now() + 1800000, controller: new AbortController(), phase: "reserving", error: "none", unknown: false, dispatched: false, handle: null, native: null };
+          mcpTelefonAnrufLaeufe.set(job.id, job);
+          const creation = { sourceRevision: args.expected_source_revision, operationId: args.command_id, command: args.command,
+            destination: args.to || "", callRef: args.call_ref || "", callRevision: args.expected_call_revision || "" };
+          Promise.resolve().then(async () => {
+            try {
+              mcpTelefonAnrufGuard(job);
+              const reserved = await mcpTelefonAnrufNative(job, "call_actor_create", creation, new AbortController().signal);
+              const handle = reserved.callActorHandle;
+              if (!handle || Object.keys(handle).sort().join(",") !== "actor_id,owner_token" || !new RegExp(uuid.pattern).test(handle.actor_id) || !/^[a-f0-9]{64}$/.test(handle.owner_token))
+                throw new MagnolieMcp.ToolError("invalid_result", "Native call owner was incomplete");
+              job.handle = kopie(handle); mcpTelefonAnrufGuard(job); mcpEditorPruefen();
+              job.phase = "starting"; job.dispatched = true;
+              const started = await mcpTelefonAnrufNative(job, "call_actor_start"); mcpTelefonAnrufGuard(job); mcpTelefonAnrufUebernehmen(job, started.callActor);
+            } catch (error) { if (job.phase !== "cancelled") { job.phase = "failed"; job.error = error.code || "native_operation_failed"; job.unknown ||= job.dispatched; } mcpTelefonAnrufStop(job); }
+          });
+          return mcpTelefonAnrufAntwort(job);
+        } },
+      { name: "organizer_phone_call_command_status", description: "Read this session's native call operation and its correlated phone report. Queue and transport ACKs are not phone results; submitted is not conversation or recipient-delivery confirmation.",
+        inputSchema: owned, annotations: { readOnlyHint: true, openWorldHint: true }, call: async ({ operation_id }, signal) => {
+          const job = mcpTelefonAnrufJob(owner, operation_id);
+          if (!mcpTelefonAnrufTerminal(job)) try {
+            mcpTelefonAnrufGuard(job);
+            if (job.handle && job.phase !== "starting") { const value = await mcpTelefonAnrufNative(job, "call_actor_status", {}, signal); mcpTelefonAnrufGuard(job); mcpTelefonAnrufUebernehmen(job, value.callActor); }
+          } catch (error) { if (signal.aborted) throw error; job.phase = "failed"; job.error = error.code || "native_operation_failed"; job.unknown ||= job.dispatched; mcpTelefonAnrufStop(job); }
+          return mcpTelefonAnrufAntwort(job);
+        } },
+      { name: "organizer_phone_call_command_cancel", description: "Cancel this session's call-operation owner and waiting. A claimed native dispatch cannot be recalled. Late command reports do not alter GUI drafts or dialogs.",
+        inputSchema: owned, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true }, call: async ({ operation_id }) => {
+          const job = mcpTelefonAnrufJob(owner, operation_id);
+          if (!mcpTelefonAnrufTerminal(job)) { job.phase = "cancelled"; job.error = "cancelled"; job.unknown ||= job.dispatched; job.controller.abort(); mcpTelefonAnrufStop(job); }
+          return mcpTelefonAnrufAntwort(job);
+        } }
+    ];
+  }
   const mcpNotesActorLaeufe = new Map();
   let mcpNotesActorStarts = 0;
   const mcpNotesActorTerminal = job => ["failed", "cancelled", "completed"].includes(job.phase);
@@ -38339,6 +38471,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (name === "organizer_time_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
     if (name === "organizer_time_settings_update") return shape({ persisted: yes }, ["persisted"]);
     if (name.startsWith("organizer_notes_timer_")) return mcpNotesTimerSchema();
+    if (name === "organizer_phone_call_read") return mcpTelefonAnrufKontextSchema();
+    if (name.startsWith("organizer_phone_call_command_")) return mcpTelefonAnrufSchema();
     if (name === "organizer_time_conflict_read") return shape({ record: object, versions: { type: "array", items: object }, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["record", "versions", "revision"]);
     if (name === "organizer_time_conflict_resolve") return shape(written, ["id", "persisted"]);
     if (name === "organizer_time_record_read") return shape({ record: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["record", "revision"]);
@@ -38475,6 +38609,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpNotesZeitWerkzeuge(owner),
       mcpGeraeteStatusWerkzeug(),
       ...mcpNotesTimerWerkzeuge(),
+      ...mcpTelefonAnrufWerkzeuge(owner),
       ...mcpKdeVerbindungWerkzeuge(owner),
       { name: "organizer_note_create", description: "Create a plain-text note in an existing notebook. Success is returned only after the native durable save acknowledgement; an optional caller-generated UUID prevents duplicate creation on retries.",
         inputSchema: { type: "object", properties: { title: { type: "string", maxLength: 1024 },
@@ -38522,6 +38657,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return tools.map(tool => ({ ...tool, outputSchema: mcpErgebnisSchema(tool.name) }));
   }
   App.mcpClose = session => {
+    for (const [id, job] of mcpTelefonAnrufLaeufe) if (job.owner === session) { job.controller.abort(); mcpTelefonAnrufStop(job); mcpTelefonAnrufLaeufe.delete(id); }
     for (const [id, job] of mcpKdePaarungsLaeufe) if (job.owner === session) { job.controller.abort(); mcpKdePaarungsLaeufe.delete(id); }
     for (const [id, job] of mcpNotesZeitLaeufe) if (job.owner === session) { job.controller.abort(); mcpNotesZeitLaeufe.delete(id); }
     for (const [id, job] of mcpNotesActorLaeufe) if (job.owner === session) { job.controller.abort(); mcpNotesActorLaeufe.delete(id); }

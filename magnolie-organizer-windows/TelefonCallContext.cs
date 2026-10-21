@@ -15,7 +15,7 @@ internal sealed partial class TelefonConnection
             current.GrantRevision != Interlocked.Read(ref actorGrantRevision)) throw new InvalidOperationException("call_source_changed");
         return new() { ["peer"] = current.Id, ["key"] = Convert.ToBase64String(current.PublicKey), ["connection"] = actorSourceEpoch,
             ["transport"] = transport, ["capabilities"] = current.Capabilities.DeepClone(), ["grants"] = current.Grants.DeepClone(),
-            ["local_grants"] = store.LocalGrants() };
+            ["local_grants"] = store.LocalGrants(), ["local_grants_revision"] = store.CurrentOwnRevision("grants") };
     }
 }
 
@@ -52,7 +52,11 @@ internal sealed partial class TelefonCoordinator
         catch (Exception error) when (error is McpRequestException or McpConflictException or InvalidOperationException) { return new() { ["ok"] = false, ["code"] = "not_granted" }; }
     }
 
-    internal JsonObject McpCallContext(string id, string fingerprint)
+    private sealed record CallAuthoritySnapshot(JsonObject Context, JsonObject Authority, TelefonConnection Connection, TelefonPeer Peer);
+
+    internal JsonObject McpCallContext(string id, string fingerprint) => CaptureCallAuthority(id, fingerprint).Context;
+
+    private CallAuthoritySnapshot CaptureCallAuthority(string id, string fingerprint)
     {
         lock (gate)
         {
@@ -65,18 +69,23 @@ internal sealed partial class TelefonCoordinator
             foreach (var name in new[] { "dial_request", "incoming_call_state", "answer_call", "end_call" })
                 permissions[name] = Capability(name, name == "incoming_call_state" ? 2 : 1) && local[name]?.GetValue<bool>() == true && remote[name]?.GetValue<bool>() == true;
             JsonObject? observed = null;
-            if (permissions["incoming_call_state"]!.GetValue<bool>() && callContextReceipts.TryGetValue(id, out var receipt) && receipt.Connection == connection &&
+            if (callContextReceipts.TryGetValue(id, out var receipt) && receipt.Connection == connection &&
                 receipt.PublicKey.SequenceEqual(peer.PublicKey) && calls.TryGetValue(id, out var current) && CallContextHash(current) == receipt.BodyHash)
+            {
+                var outgoing = local["dial_request"]?.GetValue<bool>() == true && OutgoingCallAllowed(peer, current);
+                if (permissions["incoming_call_state"]!.GetValue<bool>() || outgoing)
                 observed = new() { ["call_ref"] = current["call_ref"]!.DeepClone(),
                     ["revision"] = TelefonProtocolContract.Integer(current["revision"]).ToString(CultureInfo.InvariantCulture),
                     ["state"] = current["state"]!.DeepClone(), ["direction"] = current["direction"]!.DeepClone(),
                     ["phone_occurred_ms"] = current["occurred_ms"]!.DeepClone(), ["native_received_ms"] = receipt.ReceivedMs,
-                    ["observation"] = "authenticated_session_event", ["phone_status_queried"] = false };
+                    ["observation"] = "authenticated_session_event", ["scope"] = outgoing ? "outgoing_request" : "shared_call_state", ["phone_status_queried"] = false };
+            }
             authority["profile"] = identity.Id; authority["call"] = observed?.DeepClone();
             var revision = Convert.ToHexString(HMACSHA256.HashData(mcpRevisionKey, TelefonCrypto.Canonical(authority))).ToLowerInvariant();
-            return new() { ["peer_id"] = peer.Id, ["fingerprint"] = TelefonCrypto.Fingerprint(peer.PublicKey), ["source_revision"] = revision,
+            var context = new JsonObject { ["peer_id"] = peer.Id, ["fingerprint"] = TelefonCrypto.Fingerprint(peer.PublicKey), ["source_revision"] = revision,
                 ["transport"] = authority["transport"]!.DeepClone(), ["permissions"] = permissions, ["call"] = observed,
                 ["phone_status_queried"] = false, ["persisted"] = false };
+            return new(context, authority, connection, peer);
         }
     }
 }

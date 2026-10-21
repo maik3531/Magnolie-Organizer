@@ -20,9 +20,10 @@ internal static class CallCommandOriginTests
     }
     private static async Task Route(string action, string origin)
     {
-        using var f = new OutgoingDialTests.Fixture();
+        using var f = new OutgoingDialTests.Fixture(foregroundEnabled: origin == "mcp");
         foreach (var name in new[] { "incoming_call_state", "incoming_call_number", "answer_call", "end_call" }) { f.Peer.Grants[name] = true; f.Store.SetLocalGrant(name, true); }
         f.Store.SavePeers([f.Peer]);
+        if (origin == "mcp") await McpCallActorTests.Prepare(f);
         var reference = Guid.NewGuid().ToString("D"); var callRef = Guid.NewGuid().ToString("D"); var now = Now();
         var call = new JsonObject { ["call_ref"] = callRef, ["revision"] = 1L, ["state"] = action == "end" ? "offhook" : "ringing", ["direction"] = "incoming",
             ["number"] = "", ["number_status"] = "not_shared", ["started_ms"] = now, ["offhook_ms"] = action == "end" ? now : 0L,
@@ -31,7 +32,13 @@ internal static class CallCommandOriginTests
         f.Results.Clear(); f.Events.Clear();
         var observed = new List<(TelefonConnection Connection, TelefonPeer Peer, string Kind, JsonObject Body)>();
         f.Host.PrivateCallResultObserver = (source, peer, kind, body) => observed.Add((source, peer, kind, body));
-        if (action == "dial") await f.Host.RequestDialAsync(f.Peer.Id, "+49301234567", reference, origin);
+        if (origin == "mcp") {
+            var handle = await McpCallActorTests.Create(f, action, reference, action == "dial" ? "" : callRef, action == "dial" ? 0 : 1);
+            await McpCallActorTests.Control(f, handle, "call_actor_start");
+            var pending = await McpCallActorTests.WaitTransport(f, handle);
+            TestAssert.That(pending["phase"]!.GetValue<string>() == "awaiting_phone", pending.ToJsonString());
+        }
+        else if (action == "dial") await f.Host.RequestDialAsync(f.Peer.Id, "+49301234567", reference, origin);
         else if (action == "answer") await f.Host.RequestAnswerAsync(f.Peer.Id, callRef, reference, origin);
         else await f.Host.RequestEndCallAsync(f.Peer.Id, callRef, 1, reference, origin);
         TestAssert.That(f.Store.CommandOrigin(f.Peer.Id, reference) == origin && f.WireMessages().Where(value => value["kind"]?.GetValue<string>().EndsWith(".command", StringComparison.Ordinal) == true)
@@ -53,8 +60,11 @@ internal static class CallCommandOriginTests
     }
     private static async Task PrivateRevocation()
     {
-        using var f = new OutgoingDialTests.Fixture(); var reference = Guid.NewGuid().ToString("D");
-        await f.Host.RequestDialAsync(f.Peer.Id, "+49301234567", reference, "mcp");
+        using var f = new OutgoingDialTests.Fixture(foregroundEnabled: true); var reference = Guid.NewGuid().ToString("D");
+        await McpCallActorTests.Prepare(f);
+        var handle = await McpCallActorTests.Create(f, "dial", reference);
+        await McpCallActorTests.Control(f, handle, "call_actor_start");
+        await McpCallActorTests.WaitTransport(f, handle);
         typeof(TelefonCoordinator).GetMethod("RevokeDial", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(f.Host, [f.Peer.Id]);
         await f.Receive("dial_request.result", new JsonObject { ["client_ref"] = reference, ["state"] = "submitted", ["error"] = "none", ["occurred_ms"] = Now() });
         TestAssert.That(f.Results.Count == 0 && f.Store.CommandOrigin(f.Peer.Id, reference) == "mcp", "Revocation or a late private reply changed GUI state.");

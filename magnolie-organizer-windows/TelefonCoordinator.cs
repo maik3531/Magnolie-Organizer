@@ -463,19 +463,21 @@ internal sealed partial class TelefonCoordinator : IDisposable
         throw new NotSupportedException(T("Magnolie SMS is no longer part of the current Magnolie Notes phone protocol."));
     }
 
-    internal async Task<string> RequestDialAsync(string id, string number, string clientRef, string origin = "gui")
+    internal async Task<string> RequestDialAsync(string id, string number, string clientRef, string origin = "gui", CallPreparation? preparation = null)
     {
         if (origin is not ("gui" or "mcp")) throw new InvalidDataException("Invalid call command origin.");
         var body = new JsonObject { ["to"] = number, ["client_ref"] = clientRef }; TelefonCallContract.Validate("dial_request.command", body);
         TelefonConnection connection;
         lock (gate)
         {
+            preparation?.Before();
             connection = RequireOnline(id, "dial_request", true);
             var peer = RequireSolePeer(id);
             if (store.HasCommand(id, clientRef) || pendingDial is { Ended: false } pending && pending.Deadline > Environment.TickCount64 ||
                 calls.GetValueOrDefault(id)?["state"]?.GetValue<string>() is "ringing" or "offhook")
                 throw new InvalidOperationException(T("This dial request has already been queued."));
             store.RememberCommand(id, clientRef, Now(), origin);
+            preparation?.ReceiptWritten();
             pendingDial = new(id, Convert.ToBase64String(peer.PublicKey), clientRef, Environment.TickCount64 + 60_000, SupportsScopedDial(peer), Origin: origin);
         }
         try { await connection.SendMessageAsync("dial_request.command", body, 60_000); }
@@ -485,23 +487,31 @@ internal sealed partial class TelefonCoordinator : IDisposable
         if (origin == "gui") await emit("App.telefonWaehlstatus", new { device_id = id, client_ref = clientRef, state = "queued", error = "none", occurred_ms = Now() }); return clientRef;
     }
 
-    internal async Task<string> RequestAnswerAsync(string id, string callRef, string commandRef, string origin = "gui")
-    {
-        if (origin is not ("gui" or "mcp")) throw new InvalidDataException("Invalid call command origin.");
-        var connection = RequireOnline(id, "answer_call", true); JsonObject current; lock (gate) current = calls.GetValueOrDefault(id)?.DeepClone().AsObject() ?? throw new InvalidOperationException(T("The call is no longer ringing."));
-        if (current["call_ref"]?.GetValue<string>() != callRef || current["state"]?.GetValue<string>() != "ringing" || current["direction"]?.GetValue<string>() != "incoming") throw new InvalidOperationException(T("The call is no longer ringing or is outdated."));
-        var body = new JsonObject { ["command_ref"] = commandRef, ["call_ref"] = callRef, ["expected_state"] = "ringing" }; TelefonCallContract.Validate("answer_call.command", body);
-        if (store.HasCommand(id, commandRef)) throw new InvalidOperationException(T("This answer request has already been queued.")); store.RememberCommand(id, commandRef, Now(), origin);
-        RememberCallCommand(id, commandRef, "answer_call", callRef);
-        await connection.SendMessageAsync("answer_call.command", body, 10_000); return commandRef;
-    }
-
-    internal async Task<string> RequestEndCallAsync(string id, string callRef, long expectedRevision, string commandRef, string origin = "gui")
+    internal async Task<string> RequestAnswerAsync(string id, string callRef, string commandRef, string origin = "gui", CallPreparation? preparation = null)
     {
         if (origin is not ("gui" or "mcp")) throw new InvalidDataException("Invalid call command origin.");
         TelefonConnection connection; JsonObject body;
         lock (gate)
         {
+            preparation?.Before();
+            connection = RequireOnline(id, "answer_call", true);
+            var current = calls.GetValueOrDefault(id) ?? throw new InvalidOperationException(T("The call is no longer ringing."));
+            if (current["call_ref"]?.GetValue<string>() != callRef || current["state"]?.GetValue<string>() != "ringing" || current["direction"]?.GetValue<string>() != "incoming") throw new InvalidOperationException(T("The call is no longer ringing or is outdated."));
+            body = new JsonObject { ["command_ref"] = commandRef, ["call_ref"] = callRef, ["expected_state"] = "ringing" }; TelefonCallContract.Validate("answer_call.command", body);
+            if (store.HasCommand(id, commandRef)) throw new InvalidOperationException(T("This answer request has already been queued."));
+            store.RememberCommand(id, commandRef, Now(), origin); preparation?.ReceiptWritten();
+            RememberCallCommand(id, commandRef, "answer_call", callRef);
+        }
+        await connection.SendMessageAsync("answer_call.command", body, 10_000); return commandRef;
+    }
+
+    internal async Task<string> RequestEndCallAsync(string id, string callRef, long expectedRevision, string commandRef, string origin = "gui", CallPreparation? preparation = null)
+    {
+        if (origin is not ("gui" or "mcp")) throw new InvalidDataException("Invalid call command origin.");
+        TelefonConnection connection; JsonObject body;
+        lock (gate)
+        {
+        preparation?.Before();
         var current = calls.GetValueOrDefault(id) ?? throw new InvalidOperationException(T("The call is no longer active."));
         var peer = RequireSolePeer(id);
         var scoped = OutgoingCallAllowed(peer, current) && current["state"]?.GetValue<string>() == "offhook";
@@ -513,6 +523,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         if (current["call_ref"]?.GetValue<string>() != callRef || state != "offhook" && !rejecting || current["revision"]?.GetValue<long>() != expectedRevision) throw new InvalidOperationException(T("The call is no longer active or has been updated."));
         body = new JsonObject { ["command_ref"] = commandRef, ["call_ref"] = callRef, ["expected_revision"] = expectedRevision, ["expected_state"] = state }; TelefonCallContract.Validate("end_call.command", body);
         if (store.HasCommand(id, commandRef)) throw new InvalidOperationException(T("This end-call request has already been queued.")); store.RememberCommand(id, commandRef, Now(), origin);
+        preparation?.ReceiptWritten();
         RememberCallCommand(id, commandRef, "end_call", callRef);
         }
         await connection.SendMessageAsync("end_call.command", body, 10_000);
@@ -529,6 +540,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         if (pendingDial is { } pending && pending.PeerId == id)
         {
             pendingDial = null;
+            if (pending.Origin == "mcp" && callActorReferences.TryGetValue(pending.CallRef, out var actor)) FailCallActor(actor, "source_changed");
             if (calls.GetValueOrDefault(id)?["call_ref"]?.GetValue<string>() == pending.CallRef) calls.Remove(id);
             if (!pending.Ended && !disposed && pending.Origin == "gui") Track(emit("App.telefonWaehlstatus", new {
                 device_id = id, client_ref = pending.CallRef, state = "failed", error = "not_granted", occurred_ms = Now() }));
@@ -583,11 +595,15 @@ internal sealed partial class TelefonCoordinator : IDisposable
     // with revocation/unpair. Queued/replayed commands alone never mint authority.
     private bool SendCall(TelefonConnection connection, TelefonPeer sessionPeer, JsonObject message, Action write)
     {
+        string reference;
         lock (gate)
         {
             var peer = Peers.FirstOrDefault(p => p.Id == sessionPeer.Id && p.PublicKey.SequenceEqual(sessionPeer.PublicKey));
             if (peer is null || online.GetValueOrDefault(peer.Id) != connection || store.RestoreFenced) return false;
             var kind = message["kind"]!.GetValue<string>(); var body = message["body"]!.AsObject();
+            reference = body[kind == "dial_request.command" ? "client_ref" : "command_ref"]!.GetValue<string>();
+            var origin = store.CommandOrigin(peer.Id, reference);
+            if (origin is not ("gui" or "mcp")) return false;
             if (Now() >= message["expires_ms"]!.GetValue<long>()) return false;
             if (kind == "dial_request.command")
             {
@@ -597,11 +613,16 @@ internal sealed partial class TelefonCoordinator : IDisposable
                     !RemoteCapability(peer, "dial_request") || peer.Grants["dial_request"]?.GetValue<bool>() != true ||
                     store.LocalGrants()["dial_request"]?.GetValue<bool>() != true) return false;
                 // Arm before writing: Android may reply before the write task resumes.
+                if (origin == "mcp" && !ClaimPrivateCallActor(connection, peer, message)) return false;
                 pendingDial = pending with { Sent = true };
-                try { write(); } catch { RevokeDial(peer.Id); throw; }
-                return true;
+                if (origin == "gui")
+                {
+                    try { write(); } catch { RevokeDial(peer.Id); throw; }
+                    return true;
+                }
             }
-            var reference = body["command_ref"]!.GetValue<string>();
+            else
+            {
             if (!callCommands.TryGetValue(reference, out var command) || command.Sent || command.Kind + ".command" != kind ||
                 command.PeerId != peer.Id || command.Identity != Convert.ToBase64String(peer.PublicKey) || command.Deadline <= Environment.TickCount64 ||
                 command.CallRef != body["call_ref"]?.GetValue<string>()) return false;
@@ -613,10 +634,20 @@ internal sealed partial class TelefonCoordinator : IDisposable
             if (!RemoteCapability(peer, capability) || !scoped && (peer.Grants[capability]?.GetValue<bool>() != true ||
                 store.LocalGrants()[capability]?.GetValue<bool>() != true) ||
                 kind == "end_call.command" && current["revision"]?.GetValue<long>() != body["expected_revision"]?.GetValue<long>()) return false;
+            if (origin == "mcp" && !ClaimPrivateCallActor(connection, peer, message)) return false;
             callCommands[reference] = command with { Sent = true };
-            try { write(); } catch { callCommands.TryRemove(reference, out _); throw; }
-            return true;
+            if (origin == "gui")
+            {
+                try { write(); } catch { callCommands.TryRemove(reference, out _); throw; }
+                return true;
+            }
+            }
         }
+        // A private dispatch is claimed above with actual native authority;
+        // socket I/O and any wait happen after releasing that source guard.
+        try { write(); PrivateCallActorTransportSent(message); }
+        catch { lock (gate) { if (message["kind"]?.GetValue<string>() == "dial_request.command") RevokeDial(sessionPeer.Id); else callCommands.TryRemove(reference, out _); } throw; }
+        return true;
     }
 
     internal Dictionary<string, string> CallActionTokens(string id, string callRef, long revision)
@@ -1407,7 +1438,10 @@ internal sealed partial class TelefonCoordinator : IDisposable
                     ActorMessageReceived = (source, message) => ReceivePersonalActorAsync(source, peer, message),
                     TimerControlReportReceived = (source, message) => ReceiveTimeControlReportAsync(source, peer, message),
                     CallContextObserved = ObserveCallContext,
-                    PrivateCallResultObserved = (source, receivedPeer, kind, body) => PrivateCallResultObserver?.Invoke(source, receivedPeer, kind, body),
+                    PrivateCallResultObserved = (source, receivedPeer, kind, body) => {
+                        ReceivePrivateCallActorResult(source, receivedPeer, kind, body);
+                        PrivateCallResultObserver?.Invoke(source, receivedPeer, kind, body);
+                    },
                     ActorPump = PumpPersonalActorAsync };
             var capabilityRevision = store.NextOwnRevision("capabilities"); var grantRevision = store.NextOwnRevision("grants");
             await connection.InitializeAsync(capabilityRevision);
