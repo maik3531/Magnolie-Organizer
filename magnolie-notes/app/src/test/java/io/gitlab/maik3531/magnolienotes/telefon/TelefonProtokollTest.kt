@@ -86,7 +86,7 @@ class TelefonProtokollTest {
         assertEquals("1.0.9", (version3["app_version"] as JsonPrimitive).content)
         val capabilities = TelefonCapabilities.phase1()
         assertTrue(capabilities.getValue("device_status").available)
-        assertEquals(listOf(1, 2, 3), capabilities.getValue("device_status").versions)
+        assertEquals(listOf(1, 2, 3, 11), capabilities.getValue("device_status").versions)
         assertTrue(capabilities.getValue("transport.bluetooth_rfcomm").available)
         assertFalse(capabilities.getValue("dial_request").available)
         assertEquals("available", capabilities.getValue("transport.bluetooth_rfcomm").reason)

@@ -95,9 +95,9 @@ class TelefonSitzungTest {
             "incoming_call_state", "incoming_call_number", "answer_call", "end_call",
             "personal_notes_sync", "personal_tasks_sync", "personal_deletions_sync"),
             (grants["grants"] as JsonObject).keys)
-        assertEquals(listOf("1", "2", "3"), (((capabilities["items"] as JsonObject)["device_status"] as JsonObject)
+        assertEquals(listOf("1", "2", "3", "11"), (((capabilities["items"] as JsonObject)["device_status"] as JsonObject)
             ["versions"] as kotlinx.serialization.json.JsonArray).map { (it as JsonPrimitive).content })
-        assertEquals(listOf("1", "2", "3", "4", "6", "7", "9", "10"), (((capabilities["items"] as JsonObject)["personal_tasks_sync"] as JsonObject)
+        assertEquals(listOf("1", "2", "3", "4", "6", "7", "9", "10", "13"), (((capabilities["items"] as JsonObject)["personal_tasks_sync"] as JsonObject)
             ["versions"] as kotlinx.serialization.json.JsonArray).map { (it as JsonPrimitive).content })
         assertEquals(false, ((grants["grants"] as JsonObject)["dial_request"] as JsonPrimitive).content.toBoolean())
     }
@@ -106,13 +106,17 @@ class TelefonSitzungTest {
         val golden = TelefonKanonisch.json.parseToJsonElement(
             File("app/src/test/resources/telefon-control-contract.json").readText()).jsonObject
         // Preserve the old-peer vector; current implementations additionally
-        // advertise scoped calls and the shared Notes collection.
+        // advertise scoped calls, shared/scoped Notes, private status and timers.
         val legacy = golden.getValue("android_capabilities").jsonObject
         val scoped = JsonObject(legacy + ("dial_request" to JsonObject(legacy.getValue("dial_request").jsonObject +
             ("versions" to buildJsonArray { add(JsonPrimitive(1)); add(JsonPrimitive(2)) }))))
         val current = JsonObject(scoped.mapValues { (name, value) ->
-            if (name in setOf("personal_notes_sync", "personal_tasks_sync")) JsonObject(value.jsonObject +
-                ("versions" to JsonArray(value.jsonObject.getValue("versions").jsonArray + listOf(JsonPrimitive(9), JsonPrimitive(10)))))
+            if (name in setOf("personal_notes_sync", "personal_tasks_sync", "device_status")) JsonObject(value.jsonObject +
+                ("versions" to JsonArray(value.jsonObject.getValue("versions").jsonArray + when (name) {
+                    "device_status" -> listOf(JsonPrimitive(11))
+                    "personal_tasks_sync" -> listOf(JsonPrimitive(9), JsonPrimitive(10), JsonPrimitive(13))
+                    else -> listOf(JsonPrimitive(9), JsonPrimitive(10))
+                })))
             else value
         })
         assertEquals(current, TelefonNachrichten.capabilities()["items"])
