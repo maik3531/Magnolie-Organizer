@@ -182,6 +182,20 @@ def test_separate_beta_and_old_artifacts_are_not_canonical_sources(candidate, di
     assert sources.inventory(root) == before
 
 
+def test_notes_receipt_host_outputs_are_not_source_but_host_sources_and_linux_programs_remain(tmp_path):
+    root = tmp_path / "notes"
+    write(root / "app/build.gradle.kts", "// source")
+    write(root / "werkzeuge/ReceiptHost.cs", "// public test adapter")
+    write(root / "werkzeuge/ReceiptHost.csproj", "<Project/>")
+    for name in ("ReceiptHost", "ReceiptHost.deps.json", "ReceiptHost.runtimeconfig.json"):
+        write(root / "werkzeuge/bin/Debug/net8.0" / name, "generated local output")
+    selected = {relative.as_posix() for relative, _path in sources.source_files(root)}
+    assert selected == {"app/build.gradle.kts", "werkzeuge/ReceiptHost.cs", "werkzeuge/ReceiptHost.csproj"}
+    linux = tmp_path / "linux"
+    write(linux / "bin/magnolie-organizer", "# real runtime source")
+    assert [relative.as_posix() for relative, _path in sources.source_files(linux)] == ["bin/magnolie-organizer"]
+
+
 def test_windows_nested_build_outputs_are_not_source(tmp_path):
     root = tmp_path / "windows"
     write(root / "Directory.Build.props", "<Project/>")

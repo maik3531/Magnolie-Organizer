@@ -25,12 +25,14 @@ def private_path(relative):
 def source_files(root):
     root = Path(root).resolve()
     windows = (root / "Directory.Build.props").is_file()
+    notes = (root / "app/build.gradle.kts").is_file()
     for directory, dirs, files in os.walk(root, followlinks=False):
         base = Path(directory)
         dirs[:] = sorted(name for name in dirs if not private_path((base / name).relative_to(root))
                          and not (name == "build" and not (windows and base == root))
-                         and not (windows and (name.casefold() == "bin" or
-                                  base == root and name in {"handbuch", "handbook-windows-i18n"}))
+                          and not (windows and (name.casefold() == "bin" or
+                                   base == root and name in {"handbuch", "handbook-windows-i18n"}))
+                          and not (notes and base == root / "werkzeuge" and name.casefold() == "bin")
                          and not (not windows and base == root and name in {"locale", "klang"})
                          and not (base.name == "debian" and name.startswith("magnolie-")))
         for name in dirs:
