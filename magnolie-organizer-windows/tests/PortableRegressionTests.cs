@@ -237,14 +237,22 @@ try
         var maintainMethod = typeof(MagnolienbaumCoordinator).GetMethod("MaintainOutboxAsync",
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
         // Complete capability requests and replies before asserting exact application-message counts.
-        for (var round = 0; round < 2; round++)
+        for (var round = 0; round < 6; round++)
         {
             await (Task)maintainMethod.Invoke(coordinatorA, new object[] { 0, CancellationToken.None })!;
             await (Task)maintainMethod.Invoke(coordinatorB, new object[] { 0, CancellationToken.None })!;
+            if (networkStoreA.LoadOutbox().Count == 0 && networkStoreB.LoadOutbox().Count == 0) break;
         }
         Check(networkStoreA.LoadOutbox().Count == 0 && networkStoreB.LoadOutbox().Count == 0 &&
               networkStoreA.LoadInbox().Count == 0 && networkStoreB.LoadInbox().Count == 0,
-            "Fähigkeitsaustausch ist abgeschlossen und erzeugt keine Benutzer-Inboxeinträge");
+            "Fähigkeitsaustausch ist abgeschlossen und erzeugt keine Benutzer-Inboxeinträge; " +
+            "A out/in=" + networkStoreA.LoadOutbox().Count + "/" + networkStoreA.LoadInbox().Count +
+            ", B out/in=" + networkStoreB.LoadOutbox().Count + "/" + networkStoreB.LoadInbox().Count);
+        Check(BaumContactSyncContract.PeerVersion(networkStoreA.LoadOrCreate()["partner"]!.AsArray().OfType<JsonObject>()
+                  .Single(peer => peer["kennung"]!.GetValue<string>() == idB), "kontakt_sync") == 4 &&
+              BaumContactSyncContract.PeerVersion(networkStoreB.LoadOrCreate()["partner"]!.AsArray().OfType<JsonObject>()
+                  .Single(peer => peer["kennung"]!.GetValue<string>() == idA), "kontakt_sync") == 4,
+            "Beide echten TCP-Gegenstellen bestätigen Kontaktgruppen-Fassung 4 vor Benutzerübertragungen");
         await coordinatorA.SendAsync(idB, "geraete_status", new JsonObject());
         Check(!eventsA.Last(item => item.Name == "App.baumGesendet").Payload["ok"]!.GetValue<bool>(),
             "Gerätestatusarten sind aus dem Magnolienbaum entfernt");
