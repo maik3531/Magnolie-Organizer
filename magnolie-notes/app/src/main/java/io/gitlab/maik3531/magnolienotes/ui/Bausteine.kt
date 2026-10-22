@@ -30,6 +30,10 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.selected
@@ -48,6 +52,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -180,9 +186,19 @@ fun Schreibfeld(
     passwort: Boolean = false,
     aktiv: Boolean = true,
 ) {
+    // Keep the IME's cursor, selection and composing region together. Only an
+    // actual external text replacement resets composition; a model echo must
+    // not restart the keyboard's in-progress editing transaction.
+    var eingabe by remember { mutableStateOf(TextFieldValue(wert)) }
+    val aktuell = if (eingabe.text == wert) eingabe else eingabe.copy(text = wert,
+        selection = TextRange(eingabe.selection.start.coerceIn(0, wert.length), eingabe.selection.end.coerceIn(0, wert.length)),
+        composition = null)
     OutlinedTextField(
-        value = wert,
-        onValueChange = beiAenderung,
+        value = aktuell,
+        onValueChange = { neu ->
+            eingabe = neu
+            if (neu.text != wert) beiAenderung(neu.text)
+        },
         enabled = aktiv,
         label = { Text(beschriftung, fontSize = 12.sp) },
         modifier = modifier.fillMaxWidth(),

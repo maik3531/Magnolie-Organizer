@@ -30,6 +30,9 @@ try {
         if (-not (Test-Path (Join-Path $tree $required) -PathType Leaf)) { throw "Quellarchiv-Pflichtdatei fehlt: $required" }
     }
     New-DeterministicZip $tree $stagedArchive $name
+    foreach ($required in 'notes-actor-start.json', 'notes-actor-data.json', 'notes-actor-ack.json', 'notes-actor-cancel.json') {
+        if (-not (Test-Path -LiteralPath (Join-Path $tree "tests/resources/$required") -PathType Leaf)) { throw "Shared actor fixture missing: $required" }
+    }
     Assert-SourceArchive $stagedArchive $root $version
 
     $extract = Join-Path $work "standalone"

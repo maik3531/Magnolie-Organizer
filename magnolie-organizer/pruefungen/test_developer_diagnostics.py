@@ -137,3 +137,33 @@ def test_revocation_after_report_before_return_is_rechecked(setup):
     with pytest.raises(PermissionError, match='source_changed'):
         service.read_developer_diagnostics(peer['device_id'])
     assert not service.developer_requests
+
+
+@pytest.mark.parametrize('change', ['none', 'oversize', 'wrong_version', 'revoked'])
+def test_saved_crash_report_negotiates_new_version_without_weakening_legacy_reads(setup, change):
+    service, peer, channel = setup
+    peer['capabilities']['items']['device_status']['versions'].append(13)
+    service.note_controls[channel]['capabilities.update'] = copy.deepcopy(peer['capabilities'])
+    text = 'Magnolie Notes crash report\nSynthetic first-focus crash\nfixture.stack.Frame\npassword=fixture-password; mail=person@example.test; phone=+49 351 1234567'
+    def respond(request):
+        assert request['body']['version'] == 13
+        report = response(request)
+        if change != 'wrong_version':
+            report['body']['version'] = 13
+            report['body']['crash_report'] = {'available': True, 'text': text if change != 'oversize' else 'x' * 16388, 'truncated': False}
+        service._payload(peer, channel, report)
+        if change == 'revoked':
+            peer['capabilities']['items']['device_status']['versions'].remove(13)
+            service.note_controls[channel]['capabilities.update'] = copy.deepcopy(peer['capabilities'])
+        if change in ('oversize', 'wrong_version'):
+            assert channel.sent[-1]['status'] == 'rejected'
+            service._payload(peer, channel, {'type': 'ack', 'message_id': request['message_id'], 'status': 'rejected', 'error': 'invalid_schema'})
+    channel.respond = respond
+    if change == 'none':
+        result = service.read_developer_diagnostics(peer['device_id'])
+        assert result['version'] == 13 and 'Synthetic first-focus crash' in result['crash_report']['text']
+        assert 'password=***' in result['crash_report']['text']
+        assert not any(value in result['crash_report']['text'] for value in ('fixture-password', 'person@example.test', '1234567'))
+    else:
+        with pytest.raises(PermissionError): service.read_developer_diagnostics(peer['device_id'])
+    assert not service.developer_requests and not service.store.status(peer['device_id'])

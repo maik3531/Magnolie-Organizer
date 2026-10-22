@@ -431,4 +431,5 @@
     <string name="shared_sync_manual">Вручну</string>
     <string name="shared_sync_time_direction">Напрямок синхронізації обліку часу</string>
     <string name="telefon_code_gegenstelle">Підтвердьте цей код на іншому пристрої.</string>
+    <string name="baum_kontakt_gruppen">Групи контактів</string>
 </resources>

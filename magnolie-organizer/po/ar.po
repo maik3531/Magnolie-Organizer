@@ -32,6 +32,27 @@ msgstr "أدخل اسم مضيف خادم HylaFAX، متبوعاً اختيار�
 msgid "Enter recipient manually"
 msgstr "إدخال المستلم يدوياً"
 
+msgid "Fax printer"
+msgstr "طابعة فاكس"
+
+msgid "Network fax server"
+msgstr "خادم فاكس الشبكة"
+
+msgid "Online fax service"
+msgstr "خدمة فاكس عبر الإنترنت"
+
+msgid "Save as PDF"
+msgstr "حفظ بتنسيق PDF"
+
+msgid "Website"
+msgstr "موقع ويب"
+
+msgid "Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them."
+msgstr "يبقى التشغيل الجاري، بما فيه فيديو المتصفح، متاحاً بجانب المشغلات المعيّنة. يختار بحث/فتح موسيقى أو فيديو محلياً؛ وتظهر قائمة تشغيل قابلة للبحث إذا دعمها المشغل. تتوفر الأغلفة والتشغيل العشوائي والتكرار عندما يتيحها المشغل."
+
+msgid "KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol."
+msgstr "ينقل KDE Connect موضع القلم والضغط واللمس والتبديل بين القلم والممحاة. مؤشر التحويم لا يرسم خطوطاً. توفر قائمة اللوح على الهاتف ملء الشاشة وإعدادات إخفاء زر الرسم أو نقله. لا ينقل هذا البروتوكول الميل أو الدوران أو أزرار القلم الإضافية."
+
 msgid "Fax"
 msgstr "فاكس"
 

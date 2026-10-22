@@ -33,6 +33,27 @@ msgstr "Zapodajće mjeno serwera HylaFAX, na přeće z :port na kóncu."
 msgid "Enter recipient manually"
 msgstr "Přijimarja manuelnje zapodać"
 
+msgid "Fax printer"
+msgstr "Faksowy ćišćak"
+
+msgid "Network fax server"
+msgstr "Faksowy serwer w syći"
+
+msgid "Online fax service"
+msgstr "Online-faksowa słužba"
+
+msgid "Save as PDF"
+msgstr "Jako PDF składować"
+
+msgid "Website"
+msgstr "Webstrona"
+
+msgid "Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them."
+msgstr "Aktiwne wothrawanje, tež wideja we wobhladowaku, wostanje pódla přirjadowanych wothrawakow přistupne. Pytać/Wočić lokalnu hudźbu abo wideja wuběra; přepytujomna wothrawanska lisćina so zjewi, hdyž ju wothrawak podpěruje. Wobali, připadny slěd a wospjetowanje su přistupne, hdyž je wothrawak poskića."
+
+msgid "KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol."
+msgstr "KDE Connect poziciju pisaka, ćišć, dotknjenje a změnu pisak/radierak přenošuje. Pokazowar při přibliženju žane smuhi njetwori. Tabletowy meni telefona połnu wobrazowku a nastajenja za schowanje abo přesunjenje rysowanskeho tłóčatka poskića. Tutón protokol nachilenje, wobrot abo přidatne tłóčatka pisaka njepřenošuje."
+
 msgid "Fax"
 msgstr "Faks"
 

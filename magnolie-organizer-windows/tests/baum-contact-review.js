@@ -23,7 +23,7 @@ async function check(web) {
     if (m.cmd === "mutations_snapshot") queueMicrotask(() => w.App.mutationsSnapshot({ token: m.token, ok: snapshotOk }));
   } } } };
   w.eval(fs.readFileSync(path.join(web, "i18n.js"), "utf8")); w.MagnolieI18n.setLocale("en");
-  w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8")); w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
+  w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8").replace("speichereJetzt: speichereJetzt,", "kontaktGruppen, speichereJetzt: speichereJetzt,")); w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
   const T = w.OrganizerTest, clean = value => JSON.parse(JSON.stringify(value));
   const person = i => ({ id: "person-" + i, vorname: "Person " + i, nachname: "Example",
     emailEintraege: [{ wert: "person" + i + "@example.test", label: "HOME", typen: [] }],
@@ -49,6 +49,22 @@ async function check(web) {
     const incomplete = T.normalisiere({ kontakte: [person(1)] }).kontakte[0];
     const preserved = T.baumKontaktEntwurf(dateTarget, incomplete, {}, "replace");
     assert.equal(preserved.geburtstag, "--02-29"); assert.equal(preserved.jubilaeum, "2000-06-07");
+    for (const [choice, groups] of [["keep", ["Work"]], ["incoming", ["Work"]], ["incoming", []]]) {
+      const incoming = offer(1, { gruppen: groups, nachname: "Example", telefone: [{ wert: person(1).telefone[0].wert, art: "CELL" }] });
+      incoming.inhalt.fassung = 4; incoming.inhalt.inhaltGeaendert = Date.now();
+      await reset([{ ...person(1), vcardRoundtrip: ["CATEGORIES:Colleagues,Work"] }], [incoming]);
+      w.document.querySelector("#baum-kontakte-annehmen").click(); await until(() => w.document.querySelector(".baum-kontakt-konflikt"));
+      choose('[data-kontakt-gruppen="true"]', choice); action("merge");
+      await until(() => receipts().length === 1);
+      const expected = choice === "keep" ? ["Colleagues", "Work"] : groups;
+      assert.equal(snapshotCount(), choice === "keep" ? 0 : 1, "group-only membership changes require the normal recovery snapshot");
+      assert.deepEqual(Array.from(T.kontaktGruppen(T.daten().kontakte[0])).sort(), [...expected].sort());
+      const saved = clean(T.daten()); w.App.init({ daten: saved, neu: false, regional: { language: "en" } });
+      const repeated = clean(incoming); repeated.inhalt.version++;
+      inbox([repeated]);
+      assert.equal((await T.uebernehmeBaumKontakte()).konflikte, 0, "unchanged incoming groups must preserve the remembered review choice");
+      assert.deepEqual(Array.from(T.kontaktGruppen(T.daten().kontakte[0])).sort(), [...expected].sort());
+    }
     await reset([{ ...person(1), baumKontakt: { freigabeId: "original-share", version: 40,
       quelle: "original-peer", partner: ["original-peer"] } }], [offer(1)]);
     w.document.querySelector("#baum-kontakte-annehmen").click(); await until(() => w.document.querySelector(".baum-kontakt-konflikt"));

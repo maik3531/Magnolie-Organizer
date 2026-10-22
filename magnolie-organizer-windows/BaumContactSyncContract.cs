@@ -23,15 +23,16 @@ internal static class BaumContactSyncContract
         if (content is not JsonObject root) throw Invalid();
         var version = Integer(root, "fassung");
         var rootFields = new HashSet<string>(RootFields);
-        if (version == 3) rootFields.Add("inhaltGeaendert");
+        if (version >= 3) rootFields.Add("inhaltGeaendert");
         if (!Only(root, rootFields) || Text(root, "art") != "kontakt_sync" ||
-            version is not (1 or 2 or 3) || Long(root, "version") <= 0 || Long(root, "geaendert") < 0 ||
-            version == 3 && Long(root, "inhaltGeaendert") is < 0 or > 253402300799999L)
+            version is not (1 or 2 or 3 or 4) || Long(root, "version") <= 0 || Long(root, "geaendert") < 0 ||
+            version >= 3 && Long(root, "inhaltGeaendert") is < 0 or > 253402300799999L)
             throw Invalid();
         RequiredText(root, "freigabeId", 128);
         RequiredText(root, "quelle", 128);
         var fields = new HashSet<string>(ContactFields);
         if (version >= 2) fields.UnionWith(["jubilaeum", "anzeigename", "vcardName"]);
+        if (version >= 4) fields.Add("gruppen");
         if (root["kontakt"] is not JsonObject contact ||
             contact.Any(item => !fields.Contains(item.Key) && item.Key != "foto") ||
             fields.Any(field => !contact.ContainsKey(field))) throw Invalid();
@@ -56,6 +57,13 @@ internal static class BaumContactSyncContract
         {
             if (photoNode is not JsonValue photoValue || !photoValue.TryGetValue<string>(out var photo)) throw Invalid();
             ValidatePhoto(photo);
+        }
+        if (version >= 4)
+        {
+            if (contact["gruppen"] is not JsonArray groups || groups.Count > MaxList) throw Invalid();
+            foreach (var node in groups)
+                if (node is not JsonValue value || !value.TryGetValue<string>(out var name) || string.IsNullOrWhiteSpace(name) ||
+                    name.EnumerateRunes().Count() > 256 || name.Any(c => c < 32 || c == 127)) throw Invalid();
         }
         ValidateList(contact, "telefone", MaxList, ["art", "wert"], item =>
         {
@@ -128,7 +136,7 @@ internal static class BaumContactSyncContract
     internal static JsonObject Capabilities(bool response, int maximum = 2) => new()
     {
         ["art"] = "kontakt_faehigkeiten", ["fassung"] = 1,
-        ["kontakt_sync"] = maximum >= 3 ? new JsonArray(1, 2, 3) : new JsonArray(1, 2),
+        ["kontakt_sync"] = maximum >= 4 ? new JsonArray(1, 2, 3, 4) : maximum >= 3 ? new JsonArray(1, 2, 3) : new JsonArray(1, 2),
         ["kontakt_import"] = new JsonArray(1, 2), ["antwort"] = response
     };
 
@@ -141,13 +149,14 @@ internal static class BaumContactSyncContract
         {
             if (root[field] is not JsonArray versions || !(field == "kontakt_import" && versions.Count == 0 ||
                 JsonNode.DeepEquals(versions, new JsonArray(1)) || JsonNode.DeepEquals(versions, new JsonArray(1, 2)) ||
-                field == "kontakt_sync" && JsonNode.DeepEquals(versions, new JsonArray(1, 2, 3)))) throw Invalid();
+                field == "kontakt_sync" && (JsonNode.DeepEquals(versions, new JsonArray(1, 2, 3)) || JsonNode.DeepEquals(versions, new JsonArray(1, 2, 3, 4))))) throw Invalid();
         }
     }
 
     internal static int PeerVersion(JsonObject partner, string kind)
     {
         if (partner["bestaetigt"]?.GetValue<bool>() != true || partner["kontaktFaehigkeiten"] is not JsonObject caps) return 1;
+        if (kind == "kontakt_sync" && JsonNode.DeepEquals(caps[kind], new JsonArray(1, 2, 3, 4))) return 4;
         if (kind == "kontakt_sync" && JsonNode.DeepEquals(caps[kind], new JsonArray(1, 2, 3))) return 3;
         return JsonNode.DeepEquals(caps[kind], new JsonArray(1, 2)) ? 2 : 1;
     }
@@ -177,6 +186,8 @@ internal static class BaumContactSyncContract
         if (Integer(payload, "fassung") <= version) return payload;
         // Import preview and cards must agree; never rewrite an import after consent.
         if (kind != "kontakt_sync") throw new InvalidDataException(NativeLocalization.Gettext("Not sent."));
+        // A known group set (including empty/removal) cannot be silently lost.
+        if (Integer(payload, "fassung") >= 4) throw new InvalidDataException(NativeLocalization.Gettext("Not sent."));
         if (Integer(payload, "fassung") == 3)
         {
             payload = payload.DeepClone().AsObject(); payload.Remove("inhaltGeaendert"); payload["fassung"] = 2;

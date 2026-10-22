@@ -445,6 +445,12 @@ class KDEConnectNativeBackend(_KdeMcpControl):
     def configure_media_player(self, application, slot='music'):
         raise ProtocolError('media_player_selection_managed_by_system')
 
+    def local_media_tracks(self, slot, track=None, token=None):
+        return {'available': False, 'tracks': [], 'slot': slot}
+
+    def open_media_file(self, slot, path, application):
+        raise ProtocolError('media_player_selection_managed_by_system')
+
     def input_status(self):
         deadline = time.monotonic() + 2.5
         with self._media_lock:
@@ -2201,6 +2207,14 @@ class KDEConnectSMSBackend(_KdeMcpControl):
                 task = self._transfer_queue.get(timeout=0.2)
             except queue.Empty:
                 continue
+            if task.get('kind') == 'media_art':
+                try:
+                    self._send_media_art(task)
+                except Exception:
+                    pass
+                finally:
+                    self._release_receive()
+                continue
             staged = None
             try:
                 staged = self._download_payload(task)
@@ -2272,14 +2286,14 @@ class KDEConnectSMSBackend(_KdeMcpControl):
                 if self._payload_active is stream:
                     self._payload_active = None
 
-    def _payload_tls_connection(self, device_id, address, port):
+    def _payload_tls_connection(self, device_id, address, port, accepted=None):
         if SSL is None:
             raise RuntimeError("PyOpenSSL is required for KDE Connect payloads")
         peer = self.store.peers.get(device_id)
         if not peer or peer.get("paired") is not True:
             raise ProtocolError("payload peer is not paired")
         expected = x509.load_pem_x509_certificate(peer["certificate"].encode("ascii"))
-        context = SSL.Context(SSL.TLS_CLIENT_METHOD)
+        context = SSL.Context(SSL.TLS_SERVER_METHOD if accepted is not None else SSL.TLS_CLIENT_METHOD)
         context.set_min_proto_version(SSL.TLS1_2_VERSION)
         context.set_options(SSL.OP_NO_COMPRESSION)
         context.use_privatekey(crypto.load_privatekey(crypto.FILETYPE_PEM,
@@ -2301,10 +2315,13 @@ class KDEConnectSMSBackend(_KdeMcpControl):
                 return False
 
         context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT, verify)
-        raw = socket.create_connection((address, port), timeout=3)
+        raw = accepted if accepted is not None else socket.create_connection((address, port), timeout=3)
         raw.settimeout(8)
         connection = SSL.Connection(context, raw)
-        connection.set_connect_state()
+        if accepted is not None:
+            connection.set_accept_state()
+        else:
+            connection.set_connect_state()
         stream = _TLSStream(connection, timeout=8, raw=raw)
         try:
             stream.handshake()
@@ -3075,15 +3092,67 @@ class KDEConnectSMSBackend(_KdeMcpControl):
         if self._local_media is None or not permitted():
             return
         try:
+            from magnolie_kde_mpris import ArtworkPayload
             responses = self._local_media.receive(packet.get('body'), permitted=permitted)
             with self._connection_lock:
                 if permitted():
                     for body in responses:
-                        worker.send(network_packet(MEDIA_PACKET, body))
+                        if isinstance(body, ArtworkPayload):
+                            if self._reserve_receive():
+                                self._transfer_queue.put({'kind': 'media_art', 'worker': worker, 'payload': body, 'permitted': permitted})
+                                self._ensure_transfer_worker()
+                        else:
+                            worker.send(network_packet(MEDIA_PACKET, body))
         except Exception:
             # An unavailable player or malformed request must not terminate SMS,
             # contact reads or the paired transport; actions are never retried.
             return
+
+    def _send_media_art(self, task):
+        worker, permitted, payload = task['worker'], task['permitted'], task['payload']
+        if self._transfer_stop.is_set() or not permitted():
+            return
+        raw = worker.connection.raw
+        address = list(raw.getsockname())
+        listener = socket.socket(raw.family, socket.SOCK_STREAM)
+        stream = accepted = None
+        try:
+            listener.settimeout(0.2)
+            for port in range(MIN_TCP_PORT, MAX_TCP_PORT + 1):
+                address[1] = port
+                try:
+                    listener.bind(tuple(address)); break
+                except OSError:
+                    if port == MAX_TCP_PORT: raise
+            listener.listen(1)
+            with self._state_lock:
+                self._payload_active = listener
+            packet = network_packet(MEDIA_PACKET, payload.body)
+            packet['payloadSize'] = len(payload.data)
+            packet['payloadTransferInfo'] = {'port': port}
+            if not permitted() or self._transfer_stop.is_set(): return
+            worker.send(packet)
+            deadline = time.monotonic() + 8
+            while permitted() and not self._transfer_stop.is_set() and time.monotonic() < deadline:
+                try:
+                    accepted, _address = listener.accept(); break
+                except socket.timeout:
+                    continue
+            else:
+                return
+            stream = self._payload_tls_connection(worker.identity['deviceId'], None, port, accepted=accepted)
+            with self._state_lock:
+                self._payload_active = stream
+            for offset in range(0, len(payload.data), 65536):
+                if self._transfer_stop.is_set() or not permitted(): return
+                stream.sendall(payload.data[offset:offset + 65536])
+        finally:
+            if stream is not None: stream.close()
+            elif accepted is not None: accepted.close()
+            listener.close()
+            with self._state_lock:
+                if self._payload_active is listener or self._payload_active is stream:
+                    self._payload_active = None
 
     def local_media_settings(self):
         return self._local_media.settings() if self._local_media is not None else {'available': False}
@@ -3097,6 +3166,16 @@ class KDEConnectSMSBackend(_KdeMcpControl):
         for worker in workers:
             self._local_media_packet(worker, network_packet(MEDIA_REQUEST, {'requestPlayerList': True}))
         return result
+
+    def local_media_tracks(self, slot, track=None, token=None):
+        if self._local_media is None:
+            raise ProtocolError('local_media_unavailable')
+        return self._local_media.tracks(slot, selected_track=track, token=token)
+
+    def open_media_file(self, slot, path, application):
+        if self._local_media is None:
+            raise ProtocolError('local_media_unavailable')
+        return self._local_media.open_file(slot, path, application)
 
     def set_digitizer_target(self, device_id, token, enabled, permitted=None):
         if type(enabled) is not bool:

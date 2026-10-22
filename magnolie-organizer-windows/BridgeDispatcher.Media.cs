@@ -34,6 +34,30 @@ internal sealed partial class BridgeDispatcher
             var command = Text(message, "cmd");
             if (command == "kde_player_stand") result = kdeConnectSms.LocalMediaSettings();
             else if (command == "kde_player_waehlen") result = kdeConnectSms.ConfigureMediaPlayer(Text(message, "slot"), Text(message, "application"));
+            else if (command == "kde_player_titel")
+            {
+                _ = KdeRegisteredPlayers.MediaExtensions(Text(message, "slot"));
+                // GSMTC exposes the current session, not a searchable playlist.
+                // Local file selection remains available for both media kinds.
+                result = new JsonObject { ["available"] = false, ["tracks"] = new JsonArray(), ["slot"] = Text(message, "slot") };
+            }
+            else if (command == "kde_player_datei")
+            {
+                var slot = Text(message, "slot");
+                var extensions = KdeRegisteredPlayers.MediaExtensions(slot);
+                var application = kdeConnectSms.LocalMediaSettings()[slot]?.GetValue<string>() ?? "";
+                if (application.Length == 0) throw new InvalidOperationException("media_application_unavailable");
+                var title = T(slot == "music" ? "Music player" : "Video player");
+                using var dialog = new OpenFileDialog { Title = title, Filter = title + "|" + string.Join(';', extensions.Select(extension => "*" + extension)),
+                    InitialDirectory = Environment.GetFolderPath(slot == "music" ? Environment.SpecialFolder.MyMusic : Environment.SpecialFolder.MyVideos),
+                    CheckFileExists = true, Multiselect = false };
+                if (dialog.ShowDialog(form) != DialogResult.OK) result = new JsonObject { ["cancelled"] = true };
+                else
+                {
+                    if (!currentPlainTextAvailable) throw new InvalidOperationException("locked");
+                    result = kdeConnectSms.OpenMediaFile(slot, application, dialog.FileName);
+                }
+            }
             else if (command == "kde_medien_geraete") result = kdeConnectSms.MediaDevices();
             else if (command == "kde_medien_stand") result = kdeConnectSms.MediaStatus(Text(message, "device_id"));
             else

@@ -2312,6 +2312,28 @@ body[data-hilfsrahmen="an"] .notiz-editor :focus-visible {
   width: min(460px, 88vw);
 }
 
+.gruppen-ausschluss-auswahl {
+  min-inline-size: 0;
+  display: grid;
+  gap: 8px;
+  margin-block: 12px;
+}
+#gruppen-ausschluss .eingabe-dialog { width: min(560px, calc(100vw - 32px)); }
+.gruppen-ausschluss-auswahl > label.hak {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.gruppen-ausschluss-auswahl input { flex: none; }
+.kontakt-webseiten .kontakt-webseite { flex: 1; min-width: 0; }
+.kontakt-web { text-decoration: none; }
+.kde-medien-titel { display: grid; gap: 8px; margin-block: 8px 12px; }
+.kde-medien-titel[hidden] { display: none; }
+.kde-medien-titel > select { width: 100%; min-width: 0; }
+
 .such-dialog {
   width: min(680px, 92vw);
   max-width: 680px;
@@ -2874,6 +2896,13 @@ textarea::-webkit-scrollbar-track,
 .custom-zeichnen-allein .custom-modul-drawing { min-height: 0; margin: 0; }
 .custom-zeichenflaeche { position: relative; flex: 1 1 auto; min-height: 120px; min-width: 0; max-width: 100%; overflow: hidden; background: #fffdf7; }
 .custom-zeichenflaeche canvas { max-width: none; }
+.zeichen-stiftzeiger {
+  position: absolute; z-index: 2; pointer-events: none;
+  transform: translate(-50%, -50%); border: 1px solid #3c3226;
+  border-radius: 50%; box-shadow: 0 0 0 1px #fffdf7;
+}
+.zeichen-stiftzeiger[hidden] { display: none; }
+.zeichen-stiftzeiger[data-tool="Rubber"] { border-style: dashed; border-radius: 3px; }
 .custom-modul-drawing > .knopfreihe { flex: 0 0 auto; flex-wrap: wrap; padding-block: 6px; }
 .custom-modul-drawing > .einst-hinweis { flex: 0 0 auto; margin-block: 6px 0; }
 .custom-modul-drawing > .zeichen-werkzeuge, .zeichen-werkzeuge { display: flex; flex-wrap: nowrap; align-items: start; gap: 8px; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; flex: 0 0 auto; padding-block: 6px; }
@@ -3040,6 +3069,12 @@ label.hak {
 }
 
 label.hak input { accent-color: var(--braun); }
+label.hak > input[type="checkbox"] {
+  width: auto;
+  min-width: 0;
+  flex: 0 0 auto;
+  margin: 0;
+}
 .kommunikation-anruf-optionen input[type="checkbox"] { flex: none; }
 
 /* ----------------------- Gestempelte Kürzel an Terminen ------------------- */

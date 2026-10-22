@@ -26,8 +26,8 @@ internal sealed partial class TelefonCoordinator
         foreach (var key in retiredStatusReads.Where(item => item.Value <= now).Select(item => item.Key).ToArray()) retiredStatusReads.Remove(key);
         foreach (var key in statusReadResults.Where(item => item.Value.Deadline <= now || item.Value.Expires <= Now()).Select(item => item.Key).ToArray()) statusReadResults.Remove(key);
     }
-    internal async Task<string> ReadDeviceStatusAsync(string id, string fingerprint, string revision, string queryId,
-        bool includeIdentifiers, CancellationToken cancellation)
+    internal async Task<string> ReadDeviceStatusAsync(string id, string fingerprint, string? revision, string queryId,
+        bool includeIdentifiers, CancellationToken cancellation, bool timeZone = false)
     {
         cancellation.ThrowIfCancellationRequested();
         if (!TelefonProtocolContract.IsUuidV4(queryId)) throw new InvalidDataException("invalid_status_request");
@@ -36,11 +36,11 @@ internal sealed partial class TelefonCoordinator
         {
             PurgeStatusReads(); CheckMcpRevision(revision);
             var peer = RequireMcpPeer(id, fingerprint);
-            if (!Enabled || !online.TryGetValue(id, out var source) || !source.StatusReadReady(includeIdentifiers)) throw new InvalidOperationException("device_status_not_granted");
+            if (includeIdentifiers && timeZone || !Enabled || !online.TryGetValue(id, out var source) || !source.StatusReadReady(includeIdentifiers, timeZone)) throw new InvalidOperationException("device_status_not_granted");
             if (statusReads.Count >= 8 || statusReads.Count + retiredStatusReads.Count >= 128 || statusReadResults.Count >= 8)
                 throw new InvalidOperationException("device_status_busy");
             if (statusReads.ContainsKey(queryId) || retiredStatusReads.ContainsKey(queryId)) throw new McpConflictException();
-            var body = DeviceStatusRequest(queryId, peer.Capabilities["device_status"]?["versions"] as JsonArray, includeIdentifiers);
+            var body = DeviceStatusRequest(queryId, peer.Capabilities["device_status"]?["versions"] as JsonArray, includeIdentifiers, timeZone);
             pending = new StatusReadWait { PeerId = id, PublicKey = peer.PublicKey.ToArray(), Connection = source,
                 RequestId = queryId, MessageId = Guid.NewGuid().ToString("D"), Include = includeIdentifiers,
                 Version = body["version"]?.GetValue<int>() ?? 1, Deadline = Environment.TickCount64 + 10000,
@@ -55,7 +55,7 @@ internal sealed partial class TelefonCoordinator
             {
                 pending.Cancellation.Token.ThrowIfCancellationRequested();
                 if (!online.TryGetValue(id, out var current) || !ReferenceEquals(current, pending.Connection) ||
-                    !current.StatusReadReady(includeIdentifiers) || Environment.TickCount64 >= pending.Deadline ||
+                    !current.StatusReadReady(includeIdentifiers, timeZone) || Environment.TickCount64 >= pending.Deadline ||
                     !Peers.Any(peer => peer.Id == id && peer.PublicKey.SequenceEqual(pending.PublicKey))) throw new InvalidOperationException("device_status_source_changed");
                 var expires = result["expires_ms"]!.GetValue<long>();
                 statusReadResults[queryId] = new(id, pending.PublicKey.ToArray(), pending.Connection, includeIdentifiers, pending.Version,
@@ -94,7 +94,9 @@ internal sealed partial class TelefonCoordinator
         {
             PurgeStatusReads();
             statusReads.TryGetValue(query, out var pending);
-            if (pending is null && !retiredStatusReads.ContainsKey(query)) return null;
+            if (pending is null && !retiredStatusReads.ContainsKey(query))
+                return TelefonProtocolContract.TryInteger(body["version"], out var unsolicitedVersion) && unsolicitedVersion == TelefonTimeZoneContract.Version
+                    ? new(message["message_id"]?.GetValue<string>() ?? "", "rejected", "expired") : null;
             var messageId = message["message_id"]?.GetValue<string>() ?? "";
             try
             {
@@ -102,7 +104,7 @@ internal sealed partial class TelefonCoordinator
                 TelefonDeviceStatusContract.ValidateReport(body);
                 if (pending is null) return new(messageId, "rejected", "expired");
                 if (pending.PeerId != peer.Id || !pending.PublicKey.SequenceEqual(peer.PublicKey) || !ReferenceEquals(source, pending.Connection) ||
-                    !online.TryGetValue(peer.Id, out var current) || !ReferenceEquals(source, current) || !source.StatusReadReady(pending.Include))
+                    !online.TryGetValue(peer.Id, out var current) || !ReferenceEquals(source, current) || !source.StatusReadReady(pending.Include, pending.Version == TelefonTimeZoneContract.Version))
                     return new(messageId, "rejected", "not_granted");
                 if (pending.Completion.Task.IsCompleted || pending.Cancellation.IsCancellationRequested || Environment.TickCount64 >= pending.Deadline ||
                     Now() >= TelefonProtocolContract.Integer(message["expires_ms"])) return new(messageId, "rejected", "expired");
@@ -139,15 +141,35 @@ internal sealed partial class TelefonCoordinator
         {
             PurgeStatusReads();
             if (!statusReadResults.Remove(queryId, out var result) || !online.TryGetValue(result.PeerId, out var current) ||
-                !ReferenceEquals(current, result.Connection) || !current.StatusReadReady(result.Include) ||
+                !ReferenceEquals(current, result.Connection) || !current.StatusReadReady(result.Include, result.Version == TelefonTimeZoneContract.Version) ||
                 !Peers.Any(peer => peer.Id == result.PeerId && peer.PublicKey.SequenceEqual(result.PublicKey)))
                 return new() { ["ok"] = false, ["code"] = "source_changed" };
             return new() { ["ok"] = true, ["deviceStatus"] = new JsonObject { ["peer_id"] = result.PeerId,
-                ["fingerprint"] = TelefonCrypto.Fingerprint(result.PublicKey), ["transport"] = "wifi", ["protocol_version"] = result.Version,
+                ["fingerprint"] = TelefonCrypto.Fingerprint(result.PublicKey), ["transport"] = current.StatusReadTransport, ["protocol_version"] = result.Version,
                 ["received_ms"] = result.Received, ["expires_ms"] = result.Expires, ["include_identifiers"] = result.Include,
                 ["report"] = result.Report.DeepClone(), ["source_verified"] = true, ["request_correlated"] = true, ["persisted"] = false } };
         }
     }
+    internal async Task<JsonObject?> ReadOwnTimeZoneAsync(CancellationToken cancellation)
+    {
+        string id, fingerprint;
+        lock (gate)
+        {
+            var peers = Peers;
+            if (peers.Length != 1 || !online.TryGetValue(peers[0].Id, out var source) || !source.StatusReadReady(false, true)) return null;
+            id = peers[0].Id; fingerprint = TelefonCrypto.Fingerprint(peers[0].PublicKey);
+        }
+        var query = Guid.NewGuid().ToString("D");
+        try
+        {
+            await ReadDeviceStatusAsync(id, fingerprint, null, query, false, cancellation, timeZone: true).ConfigureAwait(false);
+            var result = CurrentMcpDeviceStatus(query);
+            if (result["ok"]?.GetValue<bool>() != true || result["deviceStatus"]?["report"] is not JsonObject report || report["state"]?.GetValue<string>() != "available") return null;
+            return new JsonObject { ["zone"] = report["time_zone"]!.DeepClone(), ["captured_ms"] = report["captured_ms"]!.DeepClone() };
+        }
+        finally { CancelDeviceStatus(id, fingerprint, query); }
+    }
+
     private async Task<JsonObject> ExecuteMcpStatusAsync(JsonObject request, CancellationToken cancellation)
     {
         try
@@ -174,14 +196,21 @@ internal sealed partial class TelefonCoordinator
 internal sealed partial class TelefonConnection
 {
     private readonly Func<TelefonConnection, TelefonPeer, JsonObject, TelefonAck?>? receiveStatusRead;
-    internal bool StatusReadReady(bool includeIdentifiers)
+    internal string StatusReadTransport => transport;
+    internal bool StatusReadReady(bool includeIdentifiers, bool timeZone = false)
     {
-        if (disposed || transport != "wifi" || cancellation.IsCancellationRequested || store.RestoreFenced || !freshCapabilities || !freshGrants) return false;
+        if (disposed || transport != "wifi" && !(timeZone && transport == "bluetooth") || cancellation.IsCancellationRequested || store.RestoreFenced || !freshCapabilities || !freshGrants) return false;
         var peers = store.LoadPeers();
         var current = peers.SingleOrDefault(value => value.Id == peer.Id && value.PublicKey.SequenceEqual(peer.PublicKey));
         if (peers.Count != 1 || current is null || current.State != "paired" || current.Grants["device_status"]?.GetValue<bool>() != true ||
             !TelefonCoordinator.RemoteCapability(current, "device_status") || current.Capabilities["device_status"]?["versions"] is not JsonArray versions ||
-            !versions.Any(value => TelefonProtocolContract.Integer(value) == 1)) return false;
+             !versions.Any(value => TelefonProtocolContract.Integer(value) == 1)) return false;
+        if (timeZone)
+        {
+            var personal = store.PersonalSettings(peer.Id);
+            if (!freshOwnSettings || !personal.OwnDevice || !personal.RemoteOwnDevice || store.LocalGrants()["device_status"]?.GetValue<bool>() != true ||
+                !versions.Any(value => TelefonProtocolContract.Integer(value) == TelefonTimeZoneContract.Version)) return false;
+        }
         return !includeIdentifiers || freshOwnSettings && store.IdentifiersAllowed(current);
     }
     private async Task<bool> HandleMcpStatusReadAsync(JsonObject message)

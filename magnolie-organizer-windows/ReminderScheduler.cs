@@ -115,7 +115,8 @@ internal sealed class ReminderScheduler : IDisposable
     private static string SelectData(JsonElement root, bool confidential)
     {
         var groupExcluded = ContactGroupExclusions.Create(root);
-        var appointments = SelectAppointments(root, item => confidential || !True(item, "vertraulich")).ToList();
+        var appointmentExcluded = ContactGroupExclusions.Create(root, kind: "appointment");
+        var appointments = SelectAppointments(root, item => (confidential || !True(item, "vertraulich")) && !appointmentExcluded(item)).ToList();
         appointments.AddRange(SelectCustomEntries(root, "appointments"));
         var tasks = new List<JsonObject>();
         if (root.TryGetProperty("aufgaben", out var rawTasks) && rawTasks.ValueKind == JsonValueKind.Array)
@@ -210,8 +211,10 @@ internal sealed class ReminderScheduler : IDisposable
         if (!root.TryGetProperty("termine", out var appointments) || appointments.ValueKind != JsonValueKind.Array)
             return Array.Empty<(string, DateTime, DateTime)>();
         var result = new List<(string, DateTime, DateTime)>();
+        var appointmentExcluded = ContactGroupExclusions.Create(root, kind: "appointment");
         foreach (var item in appointments.EnumerateArray())
         {
+            if (appointmentExcluded(item)) continue;
             if (!TryStart(item, out var first)) continue;
             var duration = TryEnd(item, first, out var firstEnd) && firstEnd >= first ? firstEnd - first : TimeSpan.Zero;
             var alarms = AppointmentAlarms(item);

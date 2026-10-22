@@ -27,6 +27,8 @@ if peer is None:
     state['partner'].append(peer)
 assert peer['oeffentlich'] == initial['public']
 peer.update(adresse='127.0.0.1', port=initial['port'])
+if initial.get('contactVersions') == [1, 2, 3, 4]:
+    peer['kontaktFaehigkeiten'] = module.baum_kontakt_faehigkeiten(antwort=True, maximum=4)
 state['an'] = True
 lock = threading.RLock()
 mode = 'normal'
@@ -84,6 +86,9 @@ try:
         with lock:
             op = command['op']
             if op == 'quit': break
+            if op == 'inbox_read':
+                output(dict(items=module.baum_eingang_lesen(inbox_path)))
+                continue
             if op == 'mode': mode = command['value']
             elif op == 'send':
                 post = module.baum_post_lesen(post_path)

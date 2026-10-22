@@ -285,13 +285,14 @@ fun NotizEditor(
                 anhangAnzahl = anhaenge.size
             )
             val scrollState = rememberScrollState()
-            val scrollModifier = if (kompakt) {
-                Modifier.verticalScroll(scrollState)
-            } else Modifier
+            // A scroll container also owns a focus node. Inserting/removing it
+            // after the body gains focus leaves Compose 1.7's ActiveParent with
+            // no active child (keyboard Backspace stops, the next field crashes).
+            val scrollModifier = Modifier.verticalScroll(scrollState, enabled = kompakt)
             val kompakteTextHoehe = (maxHeight - 28.dp).coerceAtLeast(220.dp)
 
             Column(
-                Modifier.fillMaxSize().then(scrollModifier).padding(14.dp),
+                Modifier.fillMaxSize().then(scrollModifier).heightIn(min = maxHeight).padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
             Schreibfeld(

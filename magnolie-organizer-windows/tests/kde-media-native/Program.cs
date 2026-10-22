@@ -3,6 +3,7 @@ using MagnolieOrganizer.Windows;
 using Windows.Media.Core;
 using Windows.Media.Playback;
 using Windows.Storage;
+using Windows.Storage.Streams;
 
 // Native feature probe: only the unique, silent player created here is controlled.
 if (args.Length == 0) return NativeRegisteredPlayersProbe.Child();
@@ -11,8 +12,11 @@ if (args.Length == 1 && args[0] == "--isolated-input-window") return NativeInput
 if (args.Length != 1 || args[0] != "--isolated-silent-player") return 2;
 var marker = "Magnolie-media-probe-" + Guid.NewGuid().ToString("N");
 var file = Path.Combine(Path.GetTempPath(), marker + ".wav");
+var coverFile = file + ".png";
+var stage = file + ".settings";
 MediaPlayer? fixture = null;
 using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+var stageName = "create silent fixture";
 try
 {
     using (var stream = new FileStream(file, FileMode.CreateNew, FileAccess.Write, FileShare.None))
@@ -30,9 +34,18 @@ try
     controls.IsEnabled = true; controls.IsPlayEnabled = true; controls.IsPauseEnabled = true;
     controls.DisplayUpdater.Type = Windows.Media.MediaPlaybackType.Music;
     controls.DisplayUpdater.MusicProperties.Title = marker;
+    stageName = "publish fixture cover";
+    await File.WriteAllBytesAsync(coverFile, Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));
+    controls.DisplayUpdater.Thumbnail = RandomAccessStreamReference.CreateFromFile(await StorageFile.GetFileFromPathAsync(coverFile).AsTask(deadline.Token));
     controls.DisplayUpdater.Update();
-    var media = KdeLocalMedia.Create() ?? throw new Exception("Native Windows media access unavailable");
+    stageName = "create media controller";
+    Directory.CreateDirectory(stage);
+    var registered = new KdeRegisteredPlayers(stage, () => [new KdeRegisteredPlayer("owned:closed", "Owned closed player", "owned-closed.exe", [marker + "-not-running"])],
+        _ => throw new Exception("The unrelated closed player must not be launched"));
+    registered.Configure("music", "owned:closed");
+    await using var media = KdeLocalMedia.Create(stage, registered) ?? throw new Exception("Native Windows media access unavailable");
     string? selected = null;
+    stageName = "enumerate fixture playback with assigned player";
     for (var attempt = 0; attempt < 40 && selected is null; attempt++)
     {
         var list = await media.ReceiveAsync(new JsonObject { ["requestPlayerList"] = true }, () => true, deadline.Token);
@@ -45,6 +58,24 @@ try
         if (selected is null) await Task.Delay(100, deadline.Token);
     }
     if (selected is null) throw new Exception("Isolated silent player was not exposed by Windows media API");
+    stageName = "read native cover";
+    var advertised = await media.ReceiveAsync(new JsonObject { ["requestPlayerList"] = true }, () => true, deadline.Token);
+    if (!advertised[0]["playerList"]!.AsArray().Any(value => value!.GetValue<string>().Contains("Owned closed player", StringComparison.Ordinal)))
+        throw new Exception("Closed assignment disappeared while current playback was active");
+    string? artworkUrl = null;
+    for (var attempt = 0; attempt < 20 && string.IsNullOrEmpty(artworkUrl); attempt++)
+    {
+        var playing = await media.ReceiveAsync(new JsonObject { ["player"] = selected, ["requestNowPlaying"] = true }, () => true, deadline.Token);
+        artworkUrl = playing[0]["albumArtUrl"]?.GetValue<string>();
+        if (string.IsNullOrEmpty(artworkUrl)) await Task.Delay(100, deadline.Token);
+    }
+    if (string.IsNullOrEmpty(artworkUrl)) throw new Exception("Native player cover was not advertised");
+    var artwork = await media.ArtworkAsync(new JsonObject { ["player"] = selected, ["albumArtUrl"] = artworkUrl }, () => true, deadline.Token);
+    if (artwork is null || artwork.Data.Length == 0 || artwork.Body["transferringAlbumArt"]?.GetValue<bool>() != true)
+        throw new Exception("Native cover bytes were unavailable");
+    if (await media.ArtworkAsync(new JsonObject { ["player"] = selected, ["albumArtUrl"] = "kdeconnect://unrelated-cover" }, () => true, deadline.Token) is not null)
+        throw new Exception("An unrelated cover URL was accepted");
+    stageName = "control fixture playback";
     await media.ReceiveAsync(new JsonObject { ["player"] = selected, ["action"] = "Pause" }, () => true, deadline.Token);
     for (var attempt = 0; attempt < 20 && fixture.PlaybackSession.PlaybackState != MediaPlaybackState.Paused; attempt++)
         await Task.Delay(100, deadline.Token);
@@ -66,16 +97,18 @@ try
     for (var attempt = 0; attempt < 20 && fixture.PlaybackSession.PlaybackState != MediaPlaybackState.Playing; attempt++)
         await Task.Delay(100, deadline.Token);
     if (fixture.PlaybackSession.PlaybackState != MediaPlaybackState.Playing) throw new Exception("Native play did not reach the fixture");
-    Console.WriteLine("PASS: native Windows GSMTC isolated silent player / enumeration / pause / position-ms / revoked source / play");
+    Console.WriteLine("PASS: native Windows GSMTC isolated silent player / current playback plus closed assignment / actual cover bytes / pause / position-ms / revoked source / play");
     return 0;
 }
 catch (Exception error)
 {
-    Console.Error.WriteLine(error.GetType().Name + ": " + error.Message);
+    Console.Error.WriteLine(stageName + ": " + error.GetType().Name + " HRESULT=" + error.HResult.ToString("X8") + " " + error);
     return 1;
 }
 finally
 {
     fixture?.Pause(); fixture?.Dispose();
     if (File.Exists(file)) File.Delete(file);
+    if (File.Exists(coverFile)) File.Delete(coverFile);
+    if (Directory.Exists(stage)) Directory.Delete(stage, true);
 }

@@ -1004,7 +1004,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             {
                 due = outbox.OfType<JsonObject>().Where(item => !Boolean(item, "aufgegeben"))
                     // Advisory probes must not head-of-line block old peers' contact traffic.
-                    .GroupBy(item => (String(item, "an"), Boolean(item, "kontaktV3Probe") ? 2 :
+                    .GroupBy(item => (String(item, "an"), Boolean(item, "kontaktV3Probe") || Boolean(item, "kontaktV4Probe") ? 2 :
                         String(item, "art") == "kontakt_faehigkeiten" ? 1 : 0)).Select(group => group.First())
                     .Where(item => !Boolean(item, "unsicher") && IsDue(item)).Take(maximum == 0 ? int.MaxValue : maximum).ToList();
             }
@@ -1022,7 +1022,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                 {
                     var current = outbox.OfType<JsonObject>().FirstOrDefault(value => String(value, "id") == String(item, "id"));
                     if (current is null) continue;
-                    if (Boolean(current, "kontaktV3NichtUnterstuetzt")) outbox.Remove(current);
+                    if (Boolean(current, "kontaktV3NichtUnterstuetzt") || Boolean(current, "kontaktV4NichtUnterstuetzt")) outbox.Remove(current);
                     else if (success) { outbox.Remove(current); delivered++; }
                     else
                     {
@@ -1045,7 +1045,7 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
     {
         // New capability probes use independent authenticated FS1 sessions,
         // never legacy counters that could overtake reserved contact messages.
-        if (Boolean(item, "kontaktV3Probe"))
+        if (Boolean(item, "kontaktV3Probe") || Boolean(item, "kontaktV4Probe"))
             return await DeliverFsAsync(partner, item, cancellation).ConfigureAwait(false);
         if (String(item, "art") is "kontakt" or "kontakt_sync" or "kontakt_import_manifest" or "kontakt_import_karte")
         {
@@ -1147,14 +1147,15 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
                     return true;
                 }
             }
-            catch (HttpRequestException error) when (Boolean(item, "kontaktV3Probe") &&
+            catch (HttpRequestException error) when ((Boolean(item, "kontaktV3Probe") || Boolean(item, "kontaktV4Probe")) &&
                 error.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Forbidden or HttpStatusCode.NotFound)
             {
                 lock (gate)
                 {
                     var current = outbox.OfType<JsonObject>().FirstOrDefault(value => String(value, "id") == String(item, "id"));
-                    if (current is not null) current["kontaktV3NichtUnterstuetzt"] = true;
-                    partner["kontaktV3Geprueft"] = true;
+                    var generation = Boolean(item, "kontaktV4Probe") ? 4 : 3;
+                    if (current is not null) current[$"kontaktV{generation}NichtUnterstuetzt"] = true;
+                    partner[$"kontaktV{generation}Geprueft"] = true;
                 }
                 return false; // Unsupported advisory traffic is not failed user data.
             }
@@ -1428,14 +1429,16 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             if (!Boolean(partner, "bestaetigt") || !ReferenceEquals(Partner(String(partner, "kennung")), partner))
                 throw new InvalidDataException(NativeLocalization.Gettext("The data is invalid."));
             BaumContactSyncContract.ValidateCapabilities(content);
-            var modern = JsonNode.DeepEquals(content["kontakt_sync"], new JsonArray(1, 2, 3));
+            var maximum = content["kontakt_sync"]!.AsArray().Select(value => value!.GetValue<int>()).Max();
+            var modern = maximum >= 3;
             var answer = content["antwort"]!.GetValue<bool>();
-            if (!answer) QueueContactCapabilities(partner, true, modern ? 3 : 2);
+            if (!answer) QueueContactCapabilities(partner, true, Math.Max(2, maximum));
             // An old reply may arrive after the newer probe. A fresh explicit
             // advertisement can still report a downgraded peer.
-            if (modern || !answer || BaumContactSyncContract.PeerVersion(partner, "kontakt_sync") < 3)
+            if (maximum >= BaumContactSyncContract.PeerVersion(partner, "kontakt_sync") || !answer)
                 partner["kontaktFaehigkeiten"] = content.DeepClone();
             if (modern) partner["kontaktV3Geprueft"] = true;
+            if (maximum >= 4) partner["kontaktV4Geprueft"] = true;
             return null; // Authentication/replay counters and capabilities are saved together by the caller.
         }
         if (kind == "kontakt_sync") BaumContactSyncContract.Validate(content);
@@ -1480,12 +1483,13 @@ internal sealed class MagnolienbaumCoordinator : IDisposable
             var candidate = outbox.DeepClone().AsArray();
             candidate.Add(new JsonObject { ["id"] = MagnolienbaumStore.RandomId(12),
                 ["transportId"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)), ["an"] = id,
-                ["art"] = "kontakt_faehigkeiten", ["inhalt"] = payload, ["kontaktV3Probe"] = version >= 3,
+                ["art"] = "kontakt_faehigkeiten", ["inhalt"] = payload, ["kontaktV3Probe"] = version == 3, ["kontaktV4Probe"] = version >= 4,
                 ["versuche"] = 0, ["zuletzt"] = "", ["angelegt"] = Timestamp() });
             storage.SaveOutbox(candidate); outbox = candidate;
         }
         Queue(maximum);
         if (!response && maximum < 3 && !Boolean(partner, "kontaktV3Geprueft")) Queue(3);
+        if (!response && maximum < 4 && !Boolean(partner, "kontaktV4Geprueft")) Queue(4);
     }
 
     private async Task UdpLoopAsync(UdpClient socket, CancellationToken cancellation)

@@ -55,6 +55,71 @@ class BaumReceiptInteropTest {
     @Test fun freshWindowsAndroidLegacyReceiptBothDirectionsAndFaults() = cross("windows")
     @Test fun freshLinuxAndroidLegacyReceiptBothDirectionsAndFaults() = cross("linux")
 
+    @Test fun negotiatedContactGroupsCrossBothDesktopTransportsWithoutLossOrReplayResurrection() {
+        assumeTrue("Explicit cross-platform fixture gate", System.getenv("MAGNOLIE_RECEIPT_INTEROP") == "1")
+        for (platform in listOf("linux", "windows")) {
+            val root = kotlin.io.path.createTempDirectory("baum-cross-groups-$platform-").toFile()
+            val androidDir = File(root, "android").apply { mkdirs() }
+            val context = object : ContextWrapper(ApplicationProvider.getApplicationContext<Context>()) {
+                override fun getApplicationContext(): Context = this
+                override fun getFilesDir(): File = androidDir
+            }
+            val key = SecretKeySpec(ByteArray(32) { 83 }, "AES")
+            fun load() = Ablage.fuerTest(context) { key }
+            val data = load()
+            val own = Krypto.neuesSchluesselpaar().let {
+                EigeneIdentitaet("android", "Owned Android", Krypto.b64(it.second), Krypto.b64(it.first), 8737)
+            }
+            data.setzeBaum(Baumzustand(kennung = own.kennung, name = own.name, geheim = own.geheim,
+                oeffentlich = own.oeffentlich, dienstAn = true))
+            val work = Baumwerk.fuerTest(data, context)
+            val server = Server(work, 0); check(server.starten())
+            val host = Host(platform, File(root, "host").apply { mkdirs() }) { buildJsonObject {
+                put("id", own.kennung); put("public", own.oeffentlich); put("port", server.port)
+                // Negotiation itself is covered by authenticated native capability tests.
+                put("contactVersions", JsonArray((1..4).map(::JsonPrimitive)))
+            } }
+            try {
+                host.start()
+                val id = host.info.getValue("id").jsonPrimitive.content
+                val public = host.info.getValue("public").jsonPrimitive.content
+                data.aendereBaum { it.copy(partner = listOf(Partner(id, "Owned desktop", public,
+                    adresse = "127.0.0.1", port = host.info.getValue("port").jsonPrimitive.int,
+                    bestaetigt = true, vertraut = true, protokoll = "baum-1", kontaktSync = true,
+                    kontaktSyncFassungen = listOf(1, 2, 3, 4)))) }
+                for ((index, groups) in listOf(listOf("Colleagues", "Work"), listOf("Work"), emptyList()).withIndex()) {
+                    val version = index + 1L
+                    val incoming = KontaktSync.inhalt(KontaktNachricht("group-contact", version, id,
+                        version * 1000, KontaktDaten(vorname = "Synthetic", gruppen = groups), 4, version * 1000))
+                    assertTrue(host.command("send", "kind" to JsonPrimitive("kontakt_sync"), "body" to incoming)
+                        .getValue("outbox").jsonArray.isEmpty())
+                    val staged = load().baum.value.kontaktEingang.single()
+                    assertEquals(groups, staged.kontakt.gruppen)
+                    assertEquals(version, staged.version)
+                    val outgoing = KontaktSync.inhalt(KontaktNachricht("group-contact", version, own.kennung,
+                        version * 1000, staged.kontakt, 4, version * 1000))
+                    val sendId = UUID.randomUUID().toString()
+                    data.aendereBaum { it.copy(postfach = it.postfach + Sendung(sendId, Krypto.b64(Krypto.zufallsbytes(16)),
+                        id, "kontakt_sync", Kanonisch.text(outgoing), angelegt = System.currentTimeMillis(), syncEpoch = it.syncEpoch)) }
+                    val reserved = work.sendungVorbereiten(sendId)!!
+                    assertEquals(1, work.postfachAbarbeiten())
+                    assertTrue(load().baum.value.postfach.isEmpty())
+                    val desktopInbox = host.command("inbox_read").getValue("items").jsonArray
+                    assertEquals(index + 1, desktopInbox.size)
+                    assertEquals(outgoing, desktopInbox.last().jsonObject.getValue("inhalt"))
+                    val wire = Kanonisch.json.parseToJsonElement(reserved.baum1Umschlag).jsonObject
+                    val receipt = WlanTransport("127.0.0.1", host.info.getValue("port").jsonPrimitive.int)
+                        .anfrage("/magnolie/v1/nachricht", wire)
+                    val partnerKey = Krypto.partnerschluessel(own.geheim, public, own.kennung, id)
+                    try { assertTrue(Baum1Quittung.pruefen(partnerKey, own.kennung, id, wire, receipt)) }
+                    finally { partnerKey.fill(0) }
+                    assertEquals(desktopInbox, host.command("inbox_read").getValue("items"))
+                    assertEquals(groups, load().baum.value.kontaktEingang.single().kontakt.gruppen)
+                }
+            } finally { host.close(); server.anhalten(); root.deleteRecursively() }
+        }
+    }
+
     @Test fun threeBackendsExchangeEquivalentNotesAcrossNetworkAndRestart() {
         assumeTrue("Explicit cross-platform fixture gate", System.getenv("MAGNOLIE_RECEIPT_INTEROP") == "1")
         val root = kotlin.io.path.createTempDirectory("baum-three-notes-").toFile()

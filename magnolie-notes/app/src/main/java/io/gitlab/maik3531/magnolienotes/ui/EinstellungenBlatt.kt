@@ -39,7 +39,12 @@ fun EinstellungenBlatt(zeiterfassungAn: Boolean, speichert: Boolean, beiZeiterfa
             Papierknopf(stringResource(R.string.developer_version, BuildConfig.VERSION_NAME), Modifier.fillMaxWidth()) {
                 developerEnabled = developer.versionAngeklickt()
             }
-            if (developerEnabled) Papierknopf(stringResource(R.string.developer_options), Modifier.fillMaxWidth()) { debugOpen = !debugOpen }
+            if (developerEnabled) {
+                Papierknopf(stringResource(R.string.developer_disable), Modifier.fillMaxWidth()) {
+                    developer.deaktivieren(); developerEnabled = false; wifi = false; debugOpen = false; report = null
+                }
+                Papierknopf(stringResource(R.string.developer_options), Modifier.fillMaxWidth()) { debugOpen = !debugOpen }
+            }
             if (developerEnabled && debugOpen) {
                 Row(Modifier.fillMaxWidth().toggleable(wifi, role = Role.Checkbox, onValueChange = {
                     developer.wlanSetzen(it); wifi = it
@@ -47,9 +52,6 @@ fun EinstellungenBlatt(zeiterfassungAn: Boolean, speichert: Boolean, beiZeiterfa
                     Checkbox(wifi, null); Text(stringResource(R.string.developer_wifi))
                 }
                 if (wifi) Papierknopf(stringResource(R.string.developer_show), Modifier.fillMaxWidth()) { report = developer.bericht().toString() }
-                Papierknopf(stringResource(R.string.developer_disable), Modifier.fillMaxWidth()) {
-                    developer.deaktivieren(); developerEnabled = false; wifi = false; debugOpen = false; report = null
-                }
             }
             Papierknopf(stringResource(R.string.blatt_einfuhr), Modifier.fillMaxWidth()) { beiBlatt(2) }
             Papierknopf(stringResource(R.string.blatt_baum), Modifier.fillMaxWidth()) { beiBlatt(3) }

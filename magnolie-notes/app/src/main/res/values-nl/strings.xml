@@ -396,4 +396,5 @@
     <string name="shared_sync_manual">Handmatig</string>
     <string name="shared_sync_time_direction">Synchronisatierichting van de tijdregistratie</string>
     <string name="telefon_code_gegenstelle">Bevestig deze code op het andere apparaat.</string>
+    <string name="baum_kontakt_gruppen">Contactgroepen</string>
 </resources>

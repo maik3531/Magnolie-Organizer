@@ -12,7 +12,8 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
     let status = { native: false, receiver: { pointer: true, keyboard: true, enabled: true,
       ready: true, selected_device_id: "", devices: [phone] } };
     let media = { available: true, music: "music.desktop", video: "video.desktop", applications: [
-      { id: "music.desktop", name: "Music fixture" }, { id: "video.desktop", name: "Video fixture" }] };
+      { id: "music.desktop", name: "Music fixture" }, { id: "video.desktop", name: "Video fixture" },
+      { id: "iptv-recorder.desktop", name: "IPTV Recorder", slots: ["video"], can_open_files: false }] };
     try {
       Object.defineProperty(w, "crypto", { value: webcrypto }); w.TextEncoder = TextEncoder; w.TextDecoder = TextDecoder;
       w.setTimeout = (fn, ms) => { timers.set(++sequence, { fn, ms }); return sequence; };
@@ -23,6 +24,10 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
         if (message.cmd === "kde_input_stand") queueMicrotask(() => w.App.kdeInput({ ...status, ok: true, requestId: message.requestId }));
         if (message.cmd === "kde_input_einstellungen") queueMicrotask(() => w.App.kdeInput({ ok: true, requestId: message.requestId }));
         if (message.cmd === "kde_player_stand") queueMicrotask(() => w.App.kdePlayer({ ...media, ok: true, requestId: message.requestId }));
+        if (message.cmd === "kde_player_titel") queueMicrotask(() => w.App.kdePlayer({ ok: true, available: !(message.slot === "video" && media.video === "iptv-recorder.desktop"),
+          tracks: message.track ? [] : [{ id: "/fixture/" + message.slot, title: message.slot === "music" ? "Owned song" : "Owned film", artist: "Fixture artist" }],
+          token: "a".repeat(64), requestId: message.requestId }));
+        if (message.cmd === "kde_player_datei") queueMicrotask(() => w.App.kdePlayer({ ok: true, cancelled: true, requestId: message.requestId }));
         if (message.cmd === "kde_player_waehlen") {
           media = { ...media, [message.slot]: message.application };
           queueMicrotask(() => w.App.kdePlayer({ ...media, ok: true, requestId: message.requestId }));
@@ -46,10 +51,31 @@ const flush = () => new Promise(resolve => setImmediate(resolve));
       assert.equal(players.hidden, false);
       const music = players.querySelector('#kde-player-music'), video = players.querySelector('#kde-player-video');
       assert.equal(music.value, "music.desktop"); assert.equal(video.value, "video.desktop");
+      assert.ok(![...music.options].some(option => option.value === "iptv-recorder.desktop"), "TV application appeared as an audio-player choice");
+      assert.ok([...video.options].some(option => option.value === "iptv-recorder.desktop"));
+      const libraries = players.querySelectorAll(".kde-medien-titel");
+      assert.equal(libraries.length, 2);
+      assert.equal(libraries[0].hidden, false); assert.equal(libraries[1].hidden, false);
+      assert.equal(libraries[0].querySelector("option").textContent, "Owned song · Fixture artist");
+      assert.equal(libraries[1].querySelector("option").textContent, "Owned film · Fixture artist");
+      const search = libraries[0].querySelector('input[type="search"]');
+      search.value = "unrelated"; search.dispatchEvent(new w.Event("input"));
+      assert.equal(libraries[0].querySelectorAll("option").length, 0);
+      assert.equal(libraries[1].querySelectorAll("option").length, 1, "Music search must not change video choices");
+      search.value = "artist"; search.dispatchEvent(new w.Event("input"));
+      libraries[0].querySelector("select").value = "/fixture/music";
+      libraries[0].querySelector("select").dispatchEvent(new w.Event("change"));
+      libraries[0].querySelector("button").click(); await flush();
+      assert.equal(sent.findLast(value => value.cmd === "kde_player_titel").track, "/fixture/music");
+      players.querySelector('[aria-label="Video player · Open"]').click(); await flush();
+      assert.equal(sent.findLast(value => value.cmd === "kde_player_datei").slot, "video");
       music.value = ""; music.dispatchEvent(new w.Event("change")); await flush();
       assert.equal(sent.findLast(value => value.cmd === "kde_player_waehlen").slot, "music");
       assert.equal(sent.findLast(value => value.cmd === "kde_player_waehlen").application, "");
       assert.equal(video.value, "video.desktop", "Changing music overwrote video choice");
+      video.value = "iptv-recorder.desktop"; video.dispatchEvent(new w.Event("change")); await flush();
+      assert.equal(players.querySelector('[aria-label="Video player · Open"]').disabled, true, "TV application claimed unsupported local-file opening");
+      assert.equal(libraries[1].hidden, true, "A TV application without a TrackList claimed searchable titles");
       const block = w.document.querySelector("#kde-input");
       assert.equal(block.hidden, false);
       assert.equal(w.document.querySelector("#kde-medien"), null, "Computer-to-phone media controls still displayed");

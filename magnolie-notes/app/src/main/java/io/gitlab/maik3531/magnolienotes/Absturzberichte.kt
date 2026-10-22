@@ -3,6 +3,7 @@ package io.gitlab.maik3531.magnolienotes
 import android.content.Context
 import android.os.Build
 import java.io.File
+import java.io.ByteArrayOutputStream
 import java.io.FileOutputStream
 import java.io.OutputStream
 import java.io.OutputStreamWriter
@@ -78,8 +79,9 @@ internal class AbsturzHandler(
             check(aktuell.renameTo(alt))
         }
         val daten = metadaten()
-        FileOutputStream(aktuell, false).use { datei ->
-            val begrenzt = BegrenzterStrom(datei, MAXIMALE_BYTES)
+        val raw = ByteArrayOutputStream()
+        run {
+            val begrenzt = BegrenzterStrom(raw, MAXIMALE_BYTES)
             PrintWriter(OutputStreamWriter(begrenzt, StandardCharsets.UTF_8)).use { ausgabe ->
                 ausgabe.println("Magnolie Notes crash report")
                 ausgabe.println("UTC timestamp: ${daten.zeitUtc}")
@@ -92,6 +94,10 @@ internal class AbsturzHandler(
                 ausgabe.println("Stack trace and cause chain:")
                 fehler.printStackTrace(ausgabe)
             }
+        }
+        val masked = DiagnoseMaskierung.maskiere(raw.toString(StandardCharsets.UTF_8.name())).toByteArray(StandardCharsets.UTF_8)
+        FileOutputStream(aktuell, false).use { datei ->
+            BegrenzterStrom(datei, MAXIMALE_BYTES).write(masked)
             datei.fd.sync()
         }
     }

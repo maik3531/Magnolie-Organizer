@@ -117,7 +117,7 @@ if __name__ == "__main__":
     _crash_component = ("background-service" if any(argument in (
         "--hintergrunddienst", "--background-service") for argument in sys.argv[1:])
         else "organizer")
-    _crash_reporting_install("magnolie-organizer", "2.0.27", _crash_component)
+    _crash_reporting_install("magnolie-organizer", "2.0.28", _crash_component)
 if any(argument in ("--hintergrunddienst", "--background-service")
        for argument in sys.argv[1:]):
     from magnolie_hintergrund import daemon_main
@@ -256,7 +256,7 @@ def tray_system_verfuegbar(desktop=None, aktivierte_erweiterungen=None):
 PROGRAMM_NAME = "magnolie-organizer"
 HANDBUCH_NAME = "magnolie-handbuch"
 FENSTER_TITEL = "Magnolie Organizer"
-PROGRAMM_FASSUNG = "2.0.27"
+PROGRAMM_FASSUNG = "2.0.28"
 ALTER_NAME = "organizer-klassik"
 I18N_DOMAIN = "magnolie-organizer"
 
@@ -265,6 +265,10 @@ _DEBUG_PFAD = ""
 
 
 class _DebugFormat(logging.Formatter):
+    def format(self, record):
+        from magnolie_crash import mask_sensitive
+        return mask_sensitive(super().format(record))
+
     def formatTime(self, record, datefmt=None):
         return datetime.fromtimestamp(record.created).astimezone().isoformat(
             timespec="milliseconds")
@@ -482,6 +486,11 @@ REGIONAL_STANDARD = {
     "weekRule": "iso",
     "temperatureUnit": "celsius",
     "timeZone": "system",
+    "timeZoneManagement": "off",
+    "timeZoneDetection": "auto",
+    "timeZoneManual": "system",
+    "timeZoneDetectedSource": "manual",
+    "timeZoneDetectedAt": "0",
     "homeCountry": "DE",
 }
 
@@ -536,6 +545,18 @@ def regional_einstellungen(roh=None):
             (".." not in zeitzone and re.match(
                 r"^[A-Za-z0-9._+-]+(?:/[A-Za-z0-9._+-]+)+$", zeitzone))):
         aus["timeZone"] = zeitzone
+    if roh.get("timeZoneManagement") in ("off", "manual", "automatic"):
+        aus["timeZoneManagement"] = roh["timeZoneManagement"]
+    if roh.get("timeZoneDetection") in ("auto", "system", "phone", "gps", "ip"):
+        aus["timeZoneDetection"] = roh["timeZoneDetection"]
+    manuell = str(roh.get("timeZoneManual") or aus["timeZone"]).strip()
+    if manuell in ("system", "UTC") or ".." not in manuell and re.fullmatch(r"[A-Za-z0-9._+-]+(?:/[A-Za-z0-9._+-]+)+", manuell):
+        aus["timeZoneManual"] = manuell
+    if roh.get("timeZoneDetectedSource") in ("manual", "system", "phone", "gps", "ip"):
+        aus["timeZoneDetectedSource"] = roh["timeZoneDetectedSource"]
+    erfasst = str(roh.get("timeZoneDetectedAt") or "0").strip()
+    if re.fullmatch(r"0|[1-9][0-9]{0,14}", erfasst) and int(erfasst) <= 253402300799999:
+        aus["timeZoneDetectedAt"] = erfasst
     land = str(roh.get("homeCountry") or "DE").strip().upper()
     from magnolie_phone_region import ISO_ALPHA2
     aus["homeCountry"] = land if land in ISO_ALPHA2 else "DE"
@@ -553,6 +574,7 @@ def regional_datei():
 
 
 _REGIONAL_SPERRE = threading.RLock()
+_ZEITZONEN_ERKENNUNG_SPERRE = threading.Lock()
 
 
 def regional_einstellungen_geprueft_lesen(pfad=None):
@@ -577,6 +599,12 @@ def regional_einstellungen_geprueft_schreiben(werte, erwartet, pfad=None):
             raise ValueError("invalid_regional_settings")
         if "homeCountry" not in werte:
             werte = dict(werte, homeCountry=aktuell["homeCountry"])
+        if "timeZone" not in werte:
+            werte = dict(werte, timeZone=aktuell["timeZone"])
+        werte = dict(werte)
+        for key in ("timeZoneManagement", "timeZoneDetection", "timeZoneManual", "timeZoneDetectedSource", "timeZoneDetectedAt"):
+            if key not in werte:
+                werte[key] = aktuell[key]
         sauber = regional_einstellungen(werte)
         for key, value in werte.items():
             if key not in sauber or not isinstance(value, str):
@@ -592,9 +620,11 @@ def regional_einstellungen_geprueft_schreiben(werte, erwartet, pfad=None):
                 value = value.upper()
             if sauber[key] != value:
                 raise ValueError("invalid_regional_settings")
-        if sauber["timeZone"] != "system":
+        for zone in (sauber["timeZone"], sauber["timeZoneManual"]):
+            if zone == "system":
+                continue
             try:
-                ZoneInfo(sauber["timeZone"])
+                ZoneInfo(zone)
             except (KeyError, ValueError) as error:
                 raise ValueError("invalid_regional_settings") from error
         if not regional_einstellungen_schreiben(sauber, pfad):
@@ -615,8 +645,17 @@ def regional_einstellungen_lesen(pfad=None):
 
 def regional_einstellungen_schreiben(werte, pfad=None):
     ziel = pfad or regional_datei()
-    if isinstance(werte, dict) and "homeCountry" not in werte:
-        werte = dict(werte, homeCountry=regional_einstellungen_lesen(ziel)["homeCountry"])
+    if isinstance(werte, dict):
+        aktuell = regional_einstellungen_lesen(ziel)
+        werte = dict(werte)
+        zeit_vorgegeben = "timeZone" in werte
+        if "homeCountry" not in werte:
+            werte["homeCountry"] = aktuell["homeCountry"]
+        if "timeZone" not in werte:
+            werte["timeZone"] = aktuell["timeZone"]
+        for key in ("timeZoneManagement", "timeZoneDetection", "timeZoneManual", "timeZoneDetectedSource", "timeZoneDetectedAt"):
+            if key not in werte:
+                werte[key] = werte["timeZone"] if key == "timeZoneManual" and aktuell["timeZoneManagement"] != "automatic" and zeit_vorgegeben else aktuell[key]
     sauber = regional_einstellungen(werte)
     try:
         os.makedirs(os.path.dirname(ziel), mode=0o700, exist_ok=True)
@@ -633,6 +672,57 @@ def regional_einstellungen_schreiben(werte, pfad=None):
         return True
     except OSError:
         return False
+
+
+def zeitzone_automatisch_aktualisieren(phone=None, erwartet=None, pfad=None, holer=None,
+                                     gps_lader=None, erlaubt=lambda: True, jetzt=None):
+    """Read available sources and use the existing checked installation-local writer."""
+    import magnolie_timezone as zonen
+    if not _ZEITZONEN_ERKENNUNG_SPERRE.acquire(blocking=False):
+        raise RuntimeError("time_zone_busy")
+    try:
+        vorher = regional_einstellungen_geprueft_lesen(pfad)
+        if erwartet is not None and erwartet != vorher:
+            raise ValueError("regional_conflict")
+        now = jetzt if jetzt is not None else int(time.time() * 1000)
+        if vorher["timeZoneManagement"] != "automatic":
+            return {"regional": vorher, "automatic": False, "native_changed": False,
+                    "time_zone": vorher["timeZone"], "source": "manual", "checked_at_ms": now, "fallback": False}
+        ende = time.monotonic() + 20
+        def pruefen():
+            if not erlaubt():
+                raise PermissionError("locked")
+            if regional_einstellungen_geprueft_lesen(pfad) != vorher:
+                raise ValueError("regional_conflict")
+        def laden(url):
+            pruefen()
+            rest = ende - time.monotonic()
+            if rest <= 0:
+                raise TimeoutError("time_zone_timeout")
+            return holer(url) if holer else _wetter_text_holen(url, min(3, rest))
+        def lesen(funktion):
+            pruefen()
+            return funktion()
+        quellen = {
+            "phone": lambda: lesen(lambda: phone.read_own_time_zone() if phone is not None else None),
+            "gps": lambda: zonen.from_coordinates(lesen(gps_lader or zonen.geoclue_location), laden, now),
+            "ip": lambda: zonen.from_ip(laden),
+            "system": lambda: lesen(lambda: zonen.system_zone() or "system"),
+        }
+        beobachtet = zonen.detect(vorher, quellen, now)
+        pruefen()
+        geschrieben = vorher
+        geaendert = (vorher["timeZone"] != beobachtet["zone"] or vorher["timeZoneDetectedSource"] != beobachtet["source"] or
+                     vorher["timeZoneDetectedAt"] == "0")
+        if geaendert:
+            neu = dict(vorher, timeZone=beobachtet["zone"], timeZoneDetectedSource=beobachtet["source"],
+                       timeZoneDetectedAt=str(beobachtet["captured_ms"]))
+            geschrieben = regional_einstellungen_geprueft_schreiben(neu, vorher, pfad)
+        return {"regional": geschrieben, "automatic": True, "native_changed": geaendert,
+                "time_zone": beobachtet["zone"], "source": beobachtet["source"], "captured_ms": beobachtet["captured_ms"],
+                "checked_at_ms": now, "fallback": beobachtet["fallback"]}
+    finally:
+        _ZEITZONEN_ERKENNUNG_SPERRE.release()
 
 
 def finde_locale_verzeichnis():
@@ -658,6 +748,13 @@ def gettext_uebersetzung(sprache=None, locale_verzeichnis=None):
 
 
 _REGIONAL = regional_einstellungen_lesen()
+def _regional_zeit_dateistand():
+    try:
+        stand = os.stat(regional_datei())
+        return (regional_datei(), stand.st_ino, stand.st_mtime_ns, stand.st_size)
+    except OSError:
+        return (regional_datei(), None)
+_REGIONAL_ZEIT_STAND = _regional_zeit_dateistand()
 _UEBERSETZUNG = gettext_uebersetzung(_REGIONAL["language"])
 _ = _UEBERSETZUNG.gettext
 ngettext = _UEBERSETZUNG.ngettext
@@ -2614,31 +2711,20 @@ def _falte(zeile):
 
 def _zeitzonenname():
     """Liefert die gewählte oder zuverlässig erkennbare IANA-Zeitzone."""
+    global _REGIONAL_ZEIT_STAND
+    stand = _regional_zeit_dateistand()
+    if stand != _REGIONAL_ZEIT_STAND:
+        with _REGIONAL_SPERRE:
+            try:
+                aktuell = regional_einstellungen_geprueft_lesen()
+                for key in ("timeZone", "timeZoneManagement", "timeZoneDetection", "timeZoneManual", "timeZoneDetectedSource", "timeZoneDetectedAt"):
+                    _REGIONAL[key] = aktuell[key]
+            except (OSError, ValueError, TypeError):
+                pass
+            _REGIONAL_ZEIT_STAND = stand
     gewaehlt = str((_REGIONAL or {}).get("timeZone") or "system").strip()
-    def kandidaten():
-        if gewaehlt != "system":
-            yield gewaehlt
-            return
-        yield str(os.environ.get("TZ") or "").lstrip(":")
-        try:
-            with open("/etc/timezone", "r", encoding="utf-8") as datei:
-                yield datei.read().strip()
-        except OSError:
-            pass
-        lokal = os.path.realpath("/etc/localtime")
-        if "/zoneinfo/" in lokal:
-            yield lokal.split("/zoneinfo/", 1)[1]
-    for name in kandidaten():
-        if (not name or len(name) > 100 or ".." in name or not
-                (name in ("UTC", "GMT") or re.fullmatch(r"[A-Za-z0-9._+-]+(?:/[A-Za-z0-9._+-]+)+", name))):
-            continue
-        try:
-            from zoneinfo import ZoneInfo
-            ZoneInfo(name)
-            return name
-        except (ImportError, KeyError, ValueError):
-            continue
-    return ""
+    from magnolie_timezone import system_zone, zone_id
+    return (gewaehlt if zone_id(gewaehlt) else "") if gewaehlt != "system" else system_zone() or ""
 
 
 _LAUF_ZEITZONE = ContextVar("magnolie_lauf_zeitzone", default=None)
@@ -6614,7 +6700,12 @@ def sync_merge(lokal, entfernt, tombstones, letzter_sync, felder, dav=None,
         # Compare the persisted DAV baseline with the user's pre-merge state.
         kontakt_lokal_hash = (_sync_inhalt_hash(obj, felder)
                               if dav is not None and felder == KONTAKT_FELDER else None)
-        kontakt_identisch = felder == KONTAKT_FELDER and fern is not None and _kontakt_nur_ergaenzungen(obj, fern)
+        # Membership changes are authoritative sets, not additive provider fields.
+        # Resolve them against the existing source baseline before any union;
+        # otherwise an unchanged provider resurrects locally removed groups.
+        kontakt_identisch = (felder == KONTAKT_FELDER and fern is not None and
+                             _kontakt_personengruppen(obj) == _kontakt_personengruppen(fern) and
+                             _kontakt_nur_ergaenzungen(obj, fern))
         if kontakt_identisch:
             _kontakt_ergaenzungen_uebernehmen(obj, fern)
             quelle = kontakt_quelle or (dav[0] if dav else None)
@@ -7174,13 +7265,15 @@ def tray_autostart_datei(ordner=None):
 
 
 def tray_autostart_text(programm=None):
-    return (
+    import magnolie_appimage_lifecycle as appimage_lifecycle
+    ziel = registrierungs_programm(programm)
+    return appimage_lifecycle.marker(ziel) + (
         "[Desktop Entry]\n"
         "Type=Application\n"
         "Version=1.0\n"
         "Name=%s\n" % _("Magnolie Organizer – Tray Applet") +
         "Comment=%s\n" % _("Starts Magnolie Organizer when signing in") +
-        "Exec=\"%s\" --tray-start\n" % desktop_exec_pfad(programm) +
+        "Exec=\"%s\" --tray-start\n" % desktop_exec_pfad(appimage_lifecycle.launcher(ziel)) +
         "Icon=magnolie-organizer\n"
         "Terminal=false\n"
         "NoDisplay=true\n"
@@ -7193,6 +7286,8 @@ def tray_autostart_einrichten(an, pfad=None):
     pfad = pfad or tray_autostart_datei()
     try:
         if an:
+            import magnolie_appimage_lifecycle as appimage_lifecycle
+            appimage_lifecycle.ensure_installed(registrierungs_programm())
             schreibe_wenn_anders(pfad, tray_autostart_text())
         elif os.path.exists(pfad):
             os.remove(pfad)
@@ -7386,16 +7481,19 @@ def _kontakt_personengruppen(kontakt):
     return groups
 
 
-def gruppen_ausschluss_pruefer(daten, bereich="notifications"):
+def gruppen_ausschluss_pruefer(daten, bereich="notifications", art="anniversary"):
     """Identity-bound presentation/reminder rule; never modifies provider data."""
     def obj(value):
         return value if isinstance(value, dict) else {}
     daten = obj(daten)
     policy = obj(obj(obj(daten.get("einstellungen")).get("adressen")).get("gruppenAusschluss"))
     rule = obj(policy.get("overview" if bereich == "calendar" else bereich))
-    if policy.get("enabled") is not True or not isinstance(rule.get("groups"), list) or not rule["groups"] or (bereich == "calendar" and rule.get("calendar") is not True):
+    if policy.get("enabled") is not True or not (rule.get("groups") or rule.get("calendars")) or (bereich == "calendar" and rule.get("calendar") is not True):
         return lambda _item: False
-    groups = {_personengruppe_schluessel(value) for value in rule["groups"] if isinstance(value, str)}
+    if art == "appointment" and rule.get("scope") not in ("appointments", "all") or art == "anniversary" and rule.get("scope") == "appointments":
+        return lambda _item: False
+    groups = {_personengruppe_schluessel(value) for value in (rule.get("groups") if isinstance(rule.get("groups"), list) else []) if isinstance(value, str)}
+    calendars = {value for value in (rule.get("calendars") if isinstance(rule.get("calendars"), list) else []) if isinstance(value, str)}
     contacts = [item for item in daten.get("kontakte") or [] if isinstance(item, dict)]
     settings = obj(daten.get("einstellungen"))
     address = obj(settings.get("adressen"))
@@ -7435,7 +7533,12 @@ def gruppen_ausschluss_pruefer(daten, bereich="notifications"):
     def signature(item):
         return (kanonischer_text(item.get("name")), str(item.get("datum") or "")[-5:], jahrestag_typ_id(item.get("typ")) or kanonischer_text(item.get("typ")))
     def excluded_item(item):
-        if rule.get("scope") != "anniversaries" and jahrestag_typ_id(item.get("typ")) != "birthday":
+        if art == "appointment":
+            if (obj(item.get("kalenderQuelle")).get("id") or item.get("syncKalenderUid")) in calendars:
+                return True
+            index = resolve(item)
+            return index is not None and root(index) in excluded
+        if rule.get("scope") not in ("anniversaries", "all") and jahrestag_typ_id(item.get("typ")) != "birthday":
             return False
         index = resolve(item)
         if index is not None:
@@ -7462,6 +7565,7 @@ def erinnerungsdaten_auswaehlen(daten):
     vertraulich = sicherheit.get("vertraulicheErinnerungen") is True
 
     gruppen_ausschluss = gruppen_ausschluss_pruefer(daten)
+    termin_ausschluss = gruppen_ausschluss_pruefer(daten, art="appointment")
     def eintraege(name, felder):
         return [_erinnerungsfelder_auswaehlen(eintrag, felder)
                 for eintrag in (daten.get(name) or [])
@@ -7471,7 +7575,7 @@ def erinnerungsdaten_auswaehlen(daten):
 
     rohe_termine = [t for t in (daten.get("termine") or [])
                     if isinstance(t, dict) and
-                    (vertraulich or not t.get("vertraulich"))]
+                    (vertraulich or not t.get("vertraulich")) and not termin_ausschluss(t)]
     termine = [_erinnerungsfelder_auswaehlen(t, ERINNERUNG_TERMIN_FELDER)
                for t in rohe_termine]
     rohe_aufgaben = [t for t in (daten.get("aufgaben") or []) if isinstance(t, dict) and (vertraulich or not t.get("vertraulich"))]
@@ -8157,6 +8261,7 @@ def faellige_erinnerungen(daten, jetzt, zustand, vorlauf=15, verpasste=True,
     jetzt_utc = _erinnerungs_instant(jetzt)
     grenze_zurueck = jetzt - timedelta(hours=max(1, rueckblick_stunden))
     spielraum = timedelta(minutes=max(0, spielraum_minuten))
+    ausgeschlossen = gruppen_ausschluss_pruefer(daten, art="appointment")
     individuelle_tage = [_erinnerung_tage(t.get("individuelleErinnerungTage"))
                          for t in (daten or {}).get("termine") or []
                          if isinstance(t, dict)]
@@ -8172,7 +8277,7 @@ def faellige_erinnerungen(daten, jetzt, zustand, vorlauf=15, verpasste=True,
     for termin in termine_mit_wiederholungen(daten, jetzt,
             tage_zurueck=max(4, (max(1, rueckblick_stunden) + 23) // 24 + 1),
             tage_vor=tage_vor, fehler=fehler, alarm_nachlauf=True):
-        if not isinstance(termin, dict):
+        if not isinstance(termin, dict) or ausgeschlossen(termin):
             continue
         kennung = _termin_erinnerungskennung(termin) if termin.get("id") or termin.get("uid") else ""
         if not kennung:
@@ -8696,10 +8801,12 @@ def ton_abspielen(befehle=None, starter=None, eigener=True):
 
 
 def systemd_dienst_text(programm=None):
-    programm = registrierungs_programm(programm).replace("%", "%%").replace(
+    import magnolie_appimage_lifecycle as appimage_lifecycle
+    ziel = registrierungs_programm(programm)
+    programm = appimage_lifecycle.launcher(ziel).replace("%", "%%").replace(
         "\\", "\\\\").replace(
         '"', '\\"').replace("$", "$$")
-    return (
+    return appimage_lifecycle.marker(ziel) + (
         "[Unit]\n"
         "Description=" + _("Magnolie Organizer – appointment reminders") + "\n"
         "After=graphical-session.target\n"
@@ -8710,8 +8817,9 @@ def systemd_dienst_text(programm=None):
         "ExecStart=\"" + programm + "\" --erinnerung\n")
 
 
-def systemd_wecker_text():
-    return (
+def systemd_wecker_text(programm=None):
+    import magnolie_appimage_lifecycle as appimage_lifecycle
+    return appimage_lifecycle.marker(registrierungs_programm(programm)) + (
         "[Unit]\n"
         "Description=" + _("Magnolie Organizer – check appointments regularly") + "\n"
         "\n"
@@ -8908,7 +9016,7 @@ def erinnerungsdienst_einrichten(an, ordner=None, laufer=None,
 
     # Der Autostart-Eintrag ist der verlässliche Weg: Er startet den Wecker
     # in der angemeldeten Sitzung. Der Dienst unten kommt als Rückhalt dazu.
-    eintrag = autostart_einrichten(an, autostart_pfad)
+    eintrag = autostart_einrichten(an, autostart_pfad, integration_runner=laufer)
 
     if not shutil.which("systemctl"):
         return {"ok": eintrag["ok"], "fehler": eintrag["fehler"] or
@@ -8925,11 +9033,12 @@ def erinnerungsdienst_einrichten(an, ordner=None, laufer=None,
                                  ERINNERUNG_EINHEIT + ".timer"])
         else:
             laufer(["systemctl", "--user", "disable", "--now",
-                    ERINNERUNG_EINHEIT + ".timer"])
+                    ERINNERUNG_EINHEIT + ".timer", ERINNERUNG_EINHEIT + ".service"])
             for pfad in (dienst, wecker):
                 if os.path.exists(pfad):
                     os.remove(pfad)
             laufer(["systemctl", "--user", "daemon-reload"])
+            laufer(["systemctl", "--user", "reset-failed", ERINNERUNG_EINHEIT + ".timer", ERINNERUNG_EINHEIT + ".service"])
             fehlschlag = 0
     except (OSError, subprocess.SubprocessError) as fehler:
         return {"ok": False, "fehler": fehler_deutsch(
@@ -9615,14 +9724,16 @@ def autostart_text(programm=None):
     """Eintrag, der den Wecker beim Anmelden mitstartet. Er läuft in der
     Sitzung selbst und hat damit Anzeige und Sitzungsbus – anders als ein
     Dienst, der außerhalb gestartet wird."""
-    return (
+    import magnolie_appimage_lifecycle as appimage_lifecycle
+    ziel = registrierungs_programm(programm)
+    return appimage_lifecycle.marker(ziel) + (
         "[Desktop Entry]\n"
         "Type=Application\n"
         "Version=1.0\n"
         "Name=" + _("Magnolie Organizer – reminders") + "\n"
         "Comment=" + _("Reminds you about appointments even when the organizer "
                         "is closed") + "\n"
-        "Exec=\"" + desktop_exec_pfad(programm) + "\" --wecker\n"
+        "Exec=\"" + desktop_exec_pfad(appimage_lifecycle.launcher(ziel)) + "\" --wecker\n"
         "Icon=magnolie-organizer\n"
         "Terminal=false\n"
         "NoDisplay=true\n"
@@ -9632,11 +9743,13 @@ def autostart_text(programm=None):
     )
 
 
-def autostart_einrichten(an, pfad=None):
+def autostart_einrichten(an, pfad=None, integration_runner=None):
     """Legt den Autostart-Eintrag an oder entfernt ihn."""
     pfad = pfad or autostart_datei()
     try:
         if an:
+            import magnolie_appimage_lifecycle as appimage_lifecycle
+            appimage_lifecycle.ensure_installed(registrierungs_programm(), runner=integration_runner)
             schreibe_wenn_anders(pfad, autostart_text())
         elif os.path.exists(pfad):
             os.remove(pfad)
@@ -13222,18 +13335,20 @@ def baum_kontakt_sync_pruefen(inhalt):
     """Validiert den interoperablen Kontaktvertrag ohne stilles Bereinigen."""
     kopf = {"art", "fassung", "freigabeId", "version", "quelle", "geaendert",
             "kontakt"}
-    if isinstance(inhalt, dict) and inhalt.get("fassung") == 3:
+    if isinstance(inhalt, dict) and type(inhalt.get("fassung")) is int and inhalt["fassung"] >= 3:
         kopf.add("inhaltGeaendert")
     kontakt_felder = {"vorname", "nachname", "firma", "notiz", "geburtstag",
                        "telefone", "emailEintraege", "anschriften"}
     fehler = _("The contact synchronization message is invalid.")
     if (not isinstance(inhalt, dict) or set(inhalt) != kopf
             or inhalt.get("art") != "kontakt_sync" or type(inhalt.get("fassung")) is not int
-            or inhalt["fassung"] not in (1, 2, 3)):
+            or inhalt["fassung"] not in (1, 2, 3, 4)):
         raise RuntimeError(fehler)
     if inhalt["fassung"] >= 2:
         kontakt_felder |= {"jubilaeum", "anzeigename", "vcardName"}
-    if inhalt["fassung"] == 3 and (type(inhalt.get("inhaltGeaendert")) is not int or
+    if inhalt["fassung"] >= 4:
+        kontakt_felder.add("gruppen")
+    if inhalt["fassung"] >= 3 and (type(inhalt.get("inhaltGeaendert")) is not int or
             not 0 <= inhalt["inhaltGeaendert"] <= 253402300799999):
         raise RuntimeError(fehler)
     for feld in ("freigabeId", "quelle"):
@@ -13273,6 +13388,12 @@ def baum_kontakt_sync_pruefen(inhalt):
                 or any(ord(c) < 32 or ord(c) == 127 for c in zeile)
                 or not re.match(r"^(?:[A-Za-z0-9-]+\.)?(?:N|FN)(?:;[^:]*)?:", zeile, re.I)
                 for zeile in namen)):
+            raise RuntimeError(fehler)
+    if inhalt["fassung"] >= 4:
+        gruppen = kontakt["gruppen"]
+        if (not isinstance(gruppen, list) or len(gruppen) > BAUM_KONTAKT_LISTE_MAX or any(
+                not isinstance(name, str) or not name.strip() or len(name) > 256 or
+                any(ord(char) < 32 or ord(char) == 127 for char in name) for name in gruppen)):
             raise RuntimeError(fehler)
     if "foto" in kontakt:
         import base64
@@ -13398,7 +13519,7 @@ def baum_kontakt_nutzlast_pruefen(art, inhalt):
 
 def baum_kontakt_faehigkeiten(antwort=False, maximum=2):
     return {"art": "kontakt_faehigkeiten", "fassung": 1,
-            "kontakt_sync": [1, 2, 3] if maximum >= 3 else [1, 2], "kontakt_import": [1, 2], "antwort": antwort}
+            "kontakt_sync": [1, 2, 3, 4] if maximum >= 4 else [1, 2, 3] if maximum >= 3 else [1, 2], "kontakt_import": [1, 2], "antwort": antwort}
 
 
 def baum_kontakt_faehigkeiten_pruefen(inhalt):
@@ -13412,12 +13533,15 @@ def baum_kontakt_faehigkeiten_pruefen(inhalt):
         werte = inhalt[feld]
         if (not isinstance(werte, list) or any(type(wert) is not int for wert in werte)
                 or werte not in ([1], [1, 2]) and not (feld == "kontakt_import" and werte == [])
-                and not (feld == "kontakt_sync" and werte == [1, 2, 3])):
+                and not (feld == "kontakt_sync" and werte in ([1, 2, 3], [1, 2, 3, 4]))):
             raise RuntimeError(fehler)
     return inhalt
 
 
 def baum_kontakt_peer_fassung(partner, art):
+    if (partner.get("bestaetigt") and art == "kontakt_sync" and
+            (partner.get("kontaktFaehigkeiten") or {}).get(art) == [1, 2, 3, 4]):
+        return 4
     if (partner.get("bestaetigt") and art == "kontakt_sync" and
             (partner.get("kontaktFaehigkeiten") or {}).get(art) == [1, 2, 3]):
         return 3
@@ -13446,6 +13570,8 @@ def baum_kontakt_fuer_partner(partner, inhalt):
         return inhalt
     fehler = _("This type cannot be shared.")
     if art != "kontakt_sync":
+        raise RuntimeError(fehler)
+    if inhalt["fassung"] >= 4:
         raise RuntimeError(fehler)
     if inhalt["fassung"] == 3:
         inhalt = dict(inhalt, fassung=2)
@@ -14992,8 +15118,9 @@ def baum_senden_fs(zustand, partner, art, inhalt, transport_id,
                 return True
         except HTTPError as fehler:
             if probe is not None and fehler.code in (400, 403, 404):
-                probe["kontaktV3NichtUnterstuetzt"] = True
-                partner["kontaktV3Geprueft"] = True
+                generation = 4 if probe.get("kontaktV4Probe") else 3
+                probe["kontaktV%dNichtUnterstuetzt" % generation] = True
+                partner["kontaktV%dGeprueft" % generation] = True
                 return False
         except Exception:
             pass
@@ -15032,7 +15159,7 @@ def baum_senden(zustand, partner, art, inhalt, sender=None, zeitgrenze=6,
     baum_kontakt_nutzlast_pruefen(art, inhalt)
     if not partner.get("bestaetigt"):
         return False
-    if sendung and sendung.get("kontaktV3Probe"):
+    if sendung and (sendung.get("kontaktV3Probe") or sendung.get("kontaktV4Probe")):
         return baum_senden_fs(zustand, partner, art, inhalt, transport_id,
                               sender, zeitgrenze, probe=sendung)
     if art in ("kontakt", "kontakt_sync", "kontakt_import_manifest", "kontakt_import_karte"):
@@ -15091,7 +15218,7 @@ def baum_post_zustellen(zustand, post, jetzt=None, sender=None, hoechstens=0,
         if sichern is None or sichern() is False:
             raise RuntimeError(_("The Magnolienbaum outbox could not be saved."))
     for sendung in post:
-        empfaenger = (sendung.get("an"), bool(sendung.get("kontaktV3Probe")))
+        empfaenger = (sendung.get("an"), bool(sendung.get("kontaktV3Probe") or sendung.get("kontaktV4Probe")))
         if (sendung.get("receiptAttempted") or sendung.get("unsicher") or
                 isinstance(sendung.get("briefUmschlag"), dict) and
                 (type(sendung.get("receiptProtocol")) is not int or sendung["receiptProtocol"] != 1)):
@@ -15128,7 +15255,7 @@ def baum_post_zustellen(zustand, post, jetzt=None, sender=None, hoechstens=0,
         versucht += 1
         if not sendung.get("transportId"):
             sendung["transportId"] = _fs_b64(os.urandom(16))
-        if not sendung.get("kontaktV3Probe") and partner.get("protokoll", "baum-1") != "baum-fs1" \
+        if not (sendung.get("kontaktV3Probe") or sendung.get("kontaktV4Probe")) and partner.get("protokoll", "baum-1") != "baum-fs1" \
                 and not isinstance(sendung.get("briefUmschlag"), dict):
             partner["zaehler_raus"] = int(partner.get("zaehler_raus") or 0) + 1
             sendung["briefZaehler"] = partner["zaehler_raus"]
@@ -15145,7 +15272,7 @@ def baum_post_zustellen(zustand, post, jetzt=None, sender=None, hoechstens=0,
                        sendung=sendung, sichern=speichern):
             zugestellt += 1
             continue
-        if sendung.get("kontaktV3NichtUnterstuetzt"):
+        if sendung.get("kontaktV3NichtUnterstuetzt") or sendung.get("kontaktV4NichtUnterstuetzt"):
             continue
         baum_fehlversuch(sendung, jetzt)
         offen += 1
@@ -21361,9 +21488,9 @@ class Fenster(_FENSTER_BASIS):
                         sauber = regional_einstellungen_geprueft_schreiben(
                             nachricht.get("regional"), nachricht.get("expectedRegional"))
                     else:
-                        sauber = regional_einstellungen(nachricht.get("regional"))
-                        if not regional_einstellungen_schreiben(sauber):
+                        if not regional_einstellungen_schreiben(nachricht.get("regional")):
                             raise OSError("regional_write_failed")
+                        sauber = regional_einstellungen_geprueft_lesen()
                     self._regional = sauber
                     if self._chromium:
                         self._chromium.sprache_setzen(sauber["language"])
@@ -21384,6 +21511,9 @@ class Fenster(_FENSTER_BASIS):
             except Exception:
                 self.antwort("App.regionalStand", {"ok": False,
                     "requestId": nachricht.get("requestId")})
+
+        elif befehl == "zeitzone_erkennen":
+            threading.Thread(target=self._zeitzone_erkennen, args=(nachricht,), daemon=True).start()
 
         elif befehl == "background_settings_get":
             if nachricht.get("requestId"):
@@ -21919,6 +22049,10 @@ class Fenster(_FENSTER_BASIS):
             threading.Thread(target=self._kde_input, args=(nachricht,), daemon=True).start()
         elif befehl in ('kde_player_stand', 'kde_player_waehlen'):
             threading.Thread(target=self._kde_player, args=(nachricht,), daemon=True).start()
+        elif befehl == 'kde_player_datei':
+            self._kde_player_datei(nachricht)
+        elif befehl == 'kde_player_titel':
+            threading.Thread(target=self._kde_player_titel, args=(nachricht,), daemon=True).start()
         elif befehl in ('kde_dateisystem_stand', 'kde_dateisystem_oeffnen'):
             threading.Thread(target=self._kde_dateisystem, args=(nachricht,), daemon=True).start()
 
@@ -24329,6 +24463,63 @@ class Fenster(_FENSTER_BASIS):
         except Exception as error:
             self.antwort('App.kdeInput', dict(ok=False, requestId=request_id, error=str(error)[:300]))
 
+    def _zeitzone_erkennen(self, nachricht):
+        request_id = nachricht.get("requestId")
+        if not isinstance(request_id, str) or not re.fullmatch(r"[0-9a-fA-F-]{36}", request_id):
+            return
+        try:
+            if self._gesperrt or not self._organizer_vertraut():
+                raise PermissionError("locked")
+            if not isinstance(nachricht.get("expectedRegional"), dict):
+                raise ValueError("invalid_regional_settings")
+            aktuell = regional_einstellungen_geprueft_lesen()
+            if aktuell == nachricht["expectedRegional"] and aktuell["timeZoneManagement"] == "automatic":
+                self._telefon_dienst_pflegen()
+            result = zeitzone_automatisch_aktualisieren(getattr(self, "_telefon", None), nachricht["expectedRegional"],
+                erlaubt=lambda: not self._gesperrt and self._organizer_vertraut())
+            self._regional = result["regional"]
+            self.antwort("App.zeitzonenErgebnis", dict(result, ok=True, requestId=request_id))
+        except Exception as error:
+            code = "conflict" if str(error) == "regional_conflict" else "native_busy" if str(error) == "time_zone_busy" else "locked" if isinstance(error, PermissionError) else "native_operation_failed"
+            self.antwort("App.zeitzonenErgebnis", {"ok": False, "requestId": request_id, "code": code})
+
+    def _kde_player_datei(self, nachricht):
+        request_id, slot = nachricht.get('requestId'), nachricht.get('slot')
+        if not isinstance(request_id, str) or not re.fullmatch(r'[0-9a-fA-F-]{36}', request_id) or slot not in ('music', 'video'):
+            return
+        try:
+            if self._gesperrt or not self._organizer_vertraut():
+                raise ValueError('locked')
+            from magnolie_kde_mpris import MEDIA_EXTENSIONS
+            backend = _kdeconnect_backend()
+            application = backend.local_media_settings().get(slot, '')
+            if not application:
+                raise ValueError('media_application_unavailable')
+            title = _('Music player') if slot == 'music' else _('Video player')
+            path = self._datei_oeffnen(title, [(title, ['*' + pattern for extension in MEDIA_EXTENSIONS[slot] for pattern in (extension, extension.upper())])])
+            if not path:
+                self.antwort('App.kdePlayer', dict(ok=True, cancelled=True, requestId=request_id)); return
+            if self._gesperrt or not self._organizer_vertraut():
+                raise ValueError('locked')
+            result = backend.open_media_file(slot, path, application)
+            self.antwort('App.kdePlayer', dict(result, ok=True, requestId=request_id))
+        except Exception as error:
+            self.antwort('App.kdePlayer', dict(ok=False, requestId=request_id, error=str(error)[:300]))
+
+    def _kde_player_titel(self, nachricht):
+        request_id = nachricht.get('requestId')
+        if not isinstance(request_id, str) or not re.fullmatch(r'[0-9a-fA-F-]{36}', request_id):
+            return
+        try:
+            if self._gesperrt or not self._organizer_vertraut():
+                raise ValueError('locked')
+            result = _kdeconnect_backend().local_media_tracks(nachricht.get('slot'), nachricht.get('track'), nachricht.get('token'))
+            if self._gesperrt:
+                raise ValueError('locked')
+            self.antwort('App.kdePlayer', dict(result, ok=True, requestId=request_id))
+        except Exception as error:
+            self.antwort('App.kdePlayer', dict(ok=False, requestId=request_id, error=str(error)[:300]))
+
     def _kde_player(self, nachricht):
         request_id = nachricht.get('requestId')
         if not isinstance(request_id, str) or not re.fullmatch(r'[0-9a-fA-F-]{36}', request_id):
@@ -25373,13 +25564,15 @@ class Fenster(_FENSTER_BASIS):
                 versionen = [version]
                 if not antwort and version < 3 and not ziel.get("kontaktV3Geprueft"):
                     versionen.append(3)
+                if not antwort and version < 4 and not ziel.get("kontaktV4Geprueft"):
+                    versionen.append(4)
                 for angebot in versionen:
                     inhalt = baum_kontakt_faehigkeiten(antwort, angebot)
                     if not any(s.get("an") == ziel["kennung"] and not s.get("aufgegeben") and
                                s.get("inhalt") == inhalt for s in post):
                         sendung = baum_einreihen(post, ziel["kennung"], "kontakt_faehigkeiten", inhalt)
                         if angebot >= 3:
-                            sendung["kontaktV3Probe"] = True
+                            sendung["kontaktV%dProbe" % angebot] = True
             if not baum_post_schreiben(post, kennwort=self._kennwort):
                 raise RuntimeError(_("The Magnolienbaum outbox could not be saved."))
 
@@ -25392,13 +25585,16 @@ class Fenster(_FENSTER_BASIS):
                 if not partner.get("bestaetigt") or baum_partner(zustand, partner.get("kennung")) is not partner:
                     raise RuntimeError(_("This branch has not been confirmed."))
                 baum_kontakt_faehigkeiten_pruefen(inhalt)
-                modern = inhalt["kontakt_sync"] == [1, 2, 3]
+                maximum = max(inhalt["kontakt_sync"])
+                modern = maximum >= 3
                 if not inhalt["antwort"]:
-                    self._baum_kontakt_faehigkeiten_anmelden(partner, True, 3 if modern else 2)
-                if modern or not inhalt["antwort"] or baum_kontakt_peer_fassung(partner, "kontakt_sync") < 3:
+                    self._baum_kontakt_faehigkeiten_anmelden(partner, True, max(2, maximum))
+                if maximum >= baum_kontakt_peer_fassung(partner, "kontakt_sync") or not inhalt["antwort"]:
                     partner["kontaktFaehigkeiten"] = dict(inhalt)
                 if modern:
                     partner["kontaktV3Geprueft"] = True
+                if maximum >= 4:
+                    partner["kontaktV4Geprueft"] = True
                 # The authenticated receiver saves this together with replay state.
             else:
                 baum_eingang_ablegen(partner, inhalt, kennwort=self._kennwort)
@@ -28257,6 +28453,11 @@ def haupt():
             return
         sprache_anwenden(setup_auswahl.get("language"))
 
+    try:
+        import magnolie_appimage_lifecycle as appimage_lifecycle
+        appimage_lifecycle.cleanup_legacy()
+    except (OSError, ValueError) as fehler:
+        debug_notiz("appimage.legacy-cleanup-failed", error=fehler)
     systemkalender_bereinigen()
     GLib.set_prgname(PROGRAMM_NAME)
     GLib.set_application_name(FENSTER_TITEL)

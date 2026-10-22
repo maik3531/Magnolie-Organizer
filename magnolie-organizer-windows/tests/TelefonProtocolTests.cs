@@ -16,11 +16,11 @@ internal static class TelefonProtocolTests
         TestAssert.That(TelefonProtocolContract.ValidateCapabilities(capabilities) == 1 && capabilities["items"]!.AsObject().Count == 11,
             "Granulare Telefon-Capabilities fehlen.");
         TestAssert.That(capabilities["items"]!["device_status"]!["versions"]!.AsArray()
-            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 5 }),
-            "Device status negotiation must include identifier v4 and explicitly authorized contact reads v5 without new capability names.");
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 5, 7, 12 }),
+            "Device status negotiation must retain legacy readers, contact-read v7 and the scoped timezone read without new capability names.");
         TestAssert.That(capabilities["items"]!["personal_tasks_sync"]!["versions"]!.AsArray()
-            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 6, 7 }),
-            "Ordinary tasks v1-v3, Custom v4, desktop feature v6 or time tracking v7 capability is missing.");
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 6, 7, 9, 10, 13 }),
+            "Ordinary tasks, Custom, time tracking, shared/scoped sync or native timer capability is missing.");
         TestAssert.That(!capabilities["items"]!["transport.bluetooth_rfcomm"]!["available"]!.GetValue<bool>() &&
             capabilities["items"]!["transport.bluetooth_rfcomm"]!["reason"]!.GetValue<string>() == "os_restricted" &&
             capabilities["items"]!["incoming_call_state"]!["versions"]!.AsArray().Single()!.GetValue<int>() == 2,
@@ -224,6 +224,9 @@ internal static class TelefonProtocolTests
             var personalId = store.Enqueue(peerId, "personal_sync.request", runBody, 3_600_000, 20_000, "wifi_only");
             TestAssert.That(store.Due(peerId, 20_000, transport: "bluetooth").All(item => item.Id != personalId) && store.Due(peerId, 20_000, transport: "wifi").Any(item => item.Id == personalId),
                 "wifi_only wurde nicht dauerhaft auf die Outbox angewandt.");
+            // The pending-pairing checks above are complete. A transport pump
+            // represents an authenticated paired session, not a pending peer.
+            store.SavePeers([peer]);
             var connectionNow = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             var transportRunBody = runBody.DeepClone().AsObject();
             transportRunBody["run_id"] = "77777777-7777-4777-8777-777777777777";

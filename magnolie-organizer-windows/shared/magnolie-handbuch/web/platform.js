@@ -399,7 +399,7 @@
   }
 };
 
-  const installerName = "Magnolie-Organizer-Windows-2.0.27-Setup-x64.exe";
+  const installerName = "Magnolie-Organizer-Windows-2.0.28-Setup-x64.exe";
   for (const locale of Object.keys(variants["installing-the-organizer"])) {
     variants["installing-the-organizer"][locale] =
       variants["installing-the-organizer"][locale].replace(
@@ -419,6 +419,14 @@
       const variant = variants[page.id];
       if (variant) {
         page.inhalt = window.MagnolieI18n.gettext(variant.en);
+        if (page.inhaltAnhang) {
+          const locale = window.MagnolieI18n.locale();
+          const source = page.inhaltAnhang.en || "";
+          const appendix = page.inhaltAnhangNeutral ? source :
+            (page.inhaltAnhang[locale] || page.inhaltAnhang[locale.split("-")[0]] ||
+              window.MagnolieI18n.gettext(source));
+          page.inhalt = page.inhaltAnhangErsetzt ? appendix : page.inhalt + appendix;
+        }
       }
     }
   }

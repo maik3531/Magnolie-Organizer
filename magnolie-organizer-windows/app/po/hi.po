@@ -30,6 +30,27 @@ msgstr "HylaFAX सर्वर का होस्टनाम लिखें,
 msgid "Enter recipient manually"
 msgstr "प्राप्तकर्ता स्वयं दर्ज करें"
 
+msgid "Fax printer"
+msgstr "फ़ैक्स प्रिंटर"
+
+msgid "Network fax server"
+msgstr "नेटवर्क फ़ैक्स सर्वर"
+
+msgid "Online fax service"
+msgstr "ऑनलाइन फ़ैक्स सेवा"
+
+msgid "Save as PDF"
+msgstr "PDF के रूप में सहेजें"
+
+msgid "Website"
+msgstr "वेबसाइट"
+
+msgid "Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them."
+msgstr "ब्राउज़र वीडियो सहित चल रहा प्लेबैक निर्धारित प्लेयर के साथ उपलब्ध रहता है। खोजें/खोलें से स्थानीय संगीत या वीडियो चुनें; प्लेयर समर्थन करे तो खोजने योग्य प्लेलिस्ट दिखाई देती है। कवर, यादृच्छिक क्रम और दोहराव प्लेयर द्वारा उपलब्ध कराए जाने पर मिलते हैं।"
+
+msgid "KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol."
+msgstr "KDE Connect पेन की स्थिति, दबाव, संपर्क और पेन/रबड़ का बदलाव भेजता है। ऊपर मंडराता कर्सर रेखा नहीं बनाता। फ़ोन के टैबलेट मेनू में पूर्ण स्क्रीन और चित्रण बटन को छिपाने या खिसकाने की सेटिंग हैं। यह प्रोटोकॉल झुकाव, घुमाव और अतिरिक्त पेन बटन नहीं भेजता।"
+
 msgid "Fax"
 msgstr "फ़ैक्स"
 

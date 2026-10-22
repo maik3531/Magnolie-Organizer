@@ -162,6 +162,8 @@ install -m 0644 "$WURZEL/bin/magnolie_kde_input.py" "$APPDIR/usr/bin/magnolie_kd
 install -m 0644 "$WURZEL/bin/magnolie_kde_input_x11.py" "$APPDIR/usr/bin/magnolie_kde_input_x11.py"
 install -m 0644 "$WURZEL/bin/magnolie_kde_media.py" "$APPDIR/usr/bin/magnolie_kde_media.py"
 install -m 0644 "$WURZEL/bin/magnolie_kde_mpris.py" "$APPDIR/usr/bin/magnolie_kde_mpris.py"
+install -m 0644 "$WURZEL/bin/magnolie_timezone.py" "$APPDIR/usr/bin/magnolie_timezone.py"
+install -m 0644 "$WURZEL/bin/magnolie_appimage_lifecycle.py" "$APPDIR/usr/bin/magnolie_appimage_lifecycle.py"
 install -m 0644 "$WURZEL/bin/magnolie_office_profile.py" "$APPDIR/usr/bin/magnolie_office_profile.py"
 install -m 0644 "$WURZEL/bin/magnolie_own_profile.py" "$APPDIR/usr/bin/magnolie_own_profile.py"
 install -m 0644 "$WURZEL/bin/magnolie_pdf.py" "$APPDIR/usr/bin/magnolie_pdf.py"

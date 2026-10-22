@@ -36,12 +36,20 @@ internal static class KdeConnectProtocol
     private const string GsmBasic = "@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
     private const string GsmExtension = "^{}\\[~]|€";
 
-    internal static byte[] Encode(string type, JsonObject body, long? id = null)
+    internal static byte[] Encode(string type, JsonObject body, long? id = null, int? payloadSize = null, int? payloadPort = null)
     {
         if (string.IsNullOrWhiteSpace(type) || type.Length > 200 || type.Any(char.IsControl))
             throw new InvalidDataException("Ungültiger KDE-Connect-Pakettyp.");
         var packet = new JsonObject { ["id"] = id ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
             ["type"] = type, ["body"] = body.DeepClone() };
+        if (payloadSize is not null || payloadPort is not null)
+        {
+            if (type != "kdeconnect.mpris" || body["transferringAlbumArt"]?.GetValue<bool>() != true ||
+                payloadSize is not (> 0 and <= 2 * 1024 * 1024) || payloadPort is not (>= FirstPort and <= LastPort))
+                throw new InvalidDataException("invalid_media_payload");
+            packet["payloadSize"] = payloadSize.Value;
+            packet["payloadTransferInfo"] = new JsonObject { ["port"] = payloadPort.Value };
+        }
         var bytes = Encoding.UTF8.GetBytes(packet.ToJsonString(new JsonSerializerOptions {
             WriteIndented = false }) + "\n");
         if (bytes.Length > (IsContactResponse(type) ? MaxContactPacketBytes : MaxPacketBytes))

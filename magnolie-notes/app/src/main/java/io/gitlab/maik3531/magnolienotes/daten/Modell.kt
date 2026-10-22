@@ -165,7 +165,8 @@ data class Partner(
     val kontaktSyncFassungen: List<Int> = listOf(1),
     val kontaktImportFassungen: List<Int> = listOf(1),
     val baum1Belege: List<Baum1Beleg> = emptyList(),
-    val kontaktV3Geprueft: Boolean = false
+    val kontaktV3Geprueft: Boolean = false,
+    val kontaktV4Geprueft: Boolean = false
 )
 
 @Serializable
@@ -189,7 +190,8 @@ data class Sendung(
     val receiptProtocol: Int = 0,
     val receiptAttempted: Boolean = false,
     val unsicher: Boolean = false,
-    val kontaktV3Probe: Boolean = false
+    val kontaktV3Probe: Boolean = false,
+    val kontaktV4Probe: Boolean = false
 ) {
     val brauchtPruefung: Boolean get() = unsicher || receiptAttempted ||
         (baum1Umschlag.isNotEmpty() && receiptProtocol != 1)

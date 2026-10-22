@@ -15,11 +15,12 @@ internal sealed class KdeRegisteredPlayers
     private readonly string? settingsPath;
     private readonly Func<IReadOnlyList<KdeRegisteredPlayer>> applications;
     private readonly Action<KdeRegisteredPlayer> launch;
+    private readonly Action<KdeRegisteredPlayer, string> open;
     private readonly Dictionary<string, string> selected = new() { ["music"] = "", ["video"] = "" };
     private readonly Dictionary<string, long> launchUntil = new();
 
     internal KdeRegisteredPlayers(string? directory, Func<IReadOnlyList<KdeRegisteredPlayer>>? applications = null,
-        Action<KdeRegisteredPlayer>? launch = null)
+        Action<KdeRegisteredPlayer>? launch = null, Action<KdeRegisteredPlayer, string>? open = null)
     {
         settingsPath = directory is null ? null : Path.Combine(directory, "media-player.json");
         this.applications = applications ?? Installed;
@@ -27,6 +28,13 @@ internal sealed class KdeRegisteredPlayers
         {
             if (!File.Exists(app.Executable)) throw new InvalidOperationException("media_application_unavailable");
             using var process = Process.Start(new ProcessStartInfo(app.Executable) { UseShellExecute = false });
+            if (process is null) throw new InvalidOperationException("media_application_start_failed");
+        });
+        this.open = open ?? ((app, path) =>
+        {
+            var start = new ProcessStartInfo(app.Executable) { UseShellExecute = false };
+            start.ArgumentList.Add(path);
+            using var process = Process.Start(start);
             if (process is null) throw new InvalidOperationException("media_application_start_failed");
         });
         if (settingsPath is not null && File.Exists(settingsPath))
@@ -83,12 +91,33 @@ internal sealed class KdeRegisteredPlayers
         }
     }
 
+    internal static string[] MediaExtensions(string slot) => slot switch
+    {
+        "music" => [".mp3", ".flac", ".wav", ".ogg", ".opus", ".m4a", ".aac", ".aiff", ".aif", ".wma"],
+        "video" => [".mp4", ".mkv", ".webm", ".avi", ".mov", ".m4v", ".mpeg", ".mpg", ".ogv", ".wmv", ".ts"],
+        _ => throw new InvalidDataException("invalid_media_slot")
+    };
+
+    internal JsonObject OpenFile(string slot, string application, string path)
+    {
+        lock (gate)
+        {
+            var extensions = MediaExtensions(slot);
+            if (selected[slot] != application) throw new InvalidOperationException("local_media_source_changed");
+            var app = applications().Take(64).FirstOrDefault(item => item.Id == application);
+            if (app is null || !Path.IsPathFullyQualified(path) || !File.Exists(path) ||
+                !extensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase)) throw new InvalidOperationException("media_application_unavailable");
+            open(app, path);
+            return new JsonObject { ["state"] = "handed_off", ["slot"] = slot };
+        }
+    }
+
     internal JsonObject Closed(string alias, JsonObject body, Func<bool> permitted)
     {
         lock (gate)
         {
             if (!Choices().TryGetValue(alias, out var choice)) throw new InvalidOperationException("media_application_unavailable");
-            var keys = new[] { "action", "setVolume", "SetPosition", "Seek" }.Where(body.ContainsKey).ToArray();
+            var keys = new[] { "action", "setVolume", "SetPosition", "Seek", "setShuffle", "setLoopStatus" }.Where(body.ContainsKey).ToArray();
             if (keys.Length > 1 || keys.Length == 1 && (keys[0] != "action" || body["action"]?.GetValue<string>() is not ("Play" or "PlayPause")))
                 throw new InvalidOperationException("local_media_action_unavailable");
             if (!permitted()) throw new InvalidOperationException("local_media_source_changed");
@@ -96,7 +125,7 @@ internal sealed class KdeRegisteredPlayers
             {
                 launch(choice.App); launchUntil[choice.Slot] = Environment.TickCount64 + 10000;
             }
-            return new JsonObject { ["player"] = alias, ["title"] = "", ["isPlaying"] = false, ["canPlay"] = true,
+            return new JsonObject { ["player"] = alias, ["title"] = "", ["albumArtUrl"] = "", ["isPlaying"] = false, ["canPlay"] = true,
                 ["canPause"] = false, ["canGoNext"] = false, ["canGoPrevious"] = false, ["canSeek"] = false };
         }
     }

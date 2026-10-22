@@ -107,6 +107,12 @@ fun KontaktUebernahmeDialog(vorschau: KontaktUebernahmeVorschau, laeuft: Boolean
                         })
                         Text(stringResource(R.string.kontakt_review_fern) + ": " + stringResource(label))
                     } }
+                    if (b.gruppen != null && a.gruppen != b.gruppen) Row {
+                        Checkbox(checked = !wahl.gruppenBehalten, enabled = !laeuft, onCheckedChange = { incoming ->
+                            wahlen = wahlen + (id to wahl.copy(gruppenBehalten = !incoming))
+                        })
+                        Text(stringResource(R.string.kontakt_review_fern) + ": " + stringResource(R.string.baum_kontakt_gruppen))
+                    }
                 }
                 if (ziel != null && wahl != null && ziel.kontakt.daten.nachname.isNotBlank() &&
                     eintrag.gruppe.kontakt.nachname.isNotBlank() && ziel.kontakt.daten.nachname != eintrag.gruppe.kontakt.nachname &&
@@ -139,4 +145,5 @@ private fun KontaktReviewInhalt(k: KontaktDaten) {
     if (k.jubilaeum.isNotBlank()) Text(stringResource(R.string.baum_kontakt_jubilaeum) + ": " + k.jubilaeum)
     if (k.notiz.isNotBlank()) Text(k.notiz)
     if (k.foto.isNotBlank()) Text(stringResource(R.string.baum_kontakt_bild) + ": " + stringResource(R.string.baum_kontakt_vorhanden))
+    if (k.gruppen != null) Text(stringResource(R.string.baum_kontakt_gruppen) + ": " + k.gruppen.joinToString(", ").ifEmpty { "—" })
 }

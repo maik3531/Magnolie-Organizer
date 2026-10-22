@@ -17,7 +17,8 @@ data class KontaktAuswahl(
     val entscheidung: KontaktEntscheidung,
     val rawId: Long? = null,
     val fernfelder: Set<String> = emptySet(),
-    val geburtsnameBehalten: Boolean = false
+    val geburtsnameBehalten: Boolean = false,
+    val gruppenBehalten: Boolean = false
 )
 data class KontaktUebernahmeVorschau(val id: String, val eintraege: List<KontaktUebernahme>)
 
@@ -48,10 +49,10 @@ object KontaktUebernahmePlan {
                     starke.size == 1 && kontakt.contactId == starke.single().contactId && bindungen.all {
                         it.rawContactId in kontakt.rawContactIds && (it.lookupKey.isBlank() || it.lookupKey == kontakt.lookupKey)
                     },
-                    KontaktSync.inhaltszeit(KontaktSync.hash(kontakt.daten), kontakt.providerGeaendert, spurenHier, jetzt))
+                    KontaktSync.inhaltszeit(KontaktSync.hash(KontaktSync.fuerVergleich(kontakt.daten, gruppe.kontakt)), kontakt.providerGeaendert, spurenHier, jetzt))
             }
             val identisch = ziele.singleOrNull()?.let { it.stark &&
-                KontaktSync.hash(it.kontakt.daten) == KontaktSync.hash(gruppe.kontakt) } == true
+                KontaktSync.hash(KontaktSync.fuerVergleich(it.kontakt.daten, gruppe.kontakt)) == KontaktSync.hash(gruppe.kontakt) } == true
             KontaktUebernahme(gruppe, ziele, zeit, when {
                 gruppe.art != KontaktGruppenArt.SICHER -> null
                 kandidaten.isEmpty() && bindungen.isEmpty() -> KontaktEntscheidung.NEU
@@ -112,7 +113,8 @@ object KontaktUebernahmePlan {
                 if (fern.notiz.isBlank() || lokal.notiz == fern.notiz ||
                     ("\n\n" + lokal.notiz + "\n\n").contains("\n\n" + fern.notiz + "\n\n")) lokal.notiz
                 else listOf(lokal.notiz, fern.notiz).filter(String::isNotBlank).joinToString("\n\n"),
-            foto = wert("foto", lokal.foto, fern.foto)
+            foto = wert("foto", lokal.foto, fern.foto),
+            gruppen = if (wahl.gruppenBehalten) lokal.gruppen else fern.gruppen ?: lokal.gruppen
         )
     }
 

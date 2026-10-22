@@ -96,6 +96,18 @@ Downgrade-Entscheidung des Testers. Siehe [KDE-Anforderungen und Upgrade-Regeln]
 
 ### AppImage entfernen: Erinnerungen und Hintergrundstarts vorher abschalten
 
+Ab **2.0.28** verwenden AppImage-Registrierungen einen kleinen unabhängigen Starter
+und eine Benutzer-Pfadüberwachung. Bei Löschen oder Verschieben des AppImages
+werden nur die genau diesem Starter zugeordneten Timer-, Dienst- und
+Autostart-Einträge deaktiviert und entfernt; der Benutzermanager wird neu geladen
+und der Fehlerstatus bereinigt. Persönliche Daten und die Registrierung eines
+nachfolgenden AppImages bleiben erhalten. Der Starter prüft außerdem beim nächsten
+Anmelden. Beim Start bereinigt der neue Organizer das gemeldete alte
+Erinnerungsdienst-/Timer-Paar, wenn dessen AppImage fehlt.
+
+Die folgenden manuellen Schritte gelten insbesondere für **ältere AppImages**,
+deren Registrierungen noch direkt auf die AppImage-Datei zeigen.
+
 Ein AppImage besitzt keinen Paket-Deinstallierer. Wenn Erinnerungen eingerichtet
 wurden, verwendet Magnolie in der Linux-Benutzersitzung unter anderem **systemd**:
 `magnolie-erinnerung.timer` startet `magnolie-erinnerung.service` regelmäßig.

@@ -100,6 +100,38 @@ class StabilitaetRegressionTest {
         assertEquals("", restarted.baum.value.kontaktEingang.single().kontakt.vorname)
     }
 
+    @Test fun `contact v4 needs authenticated negotiation and delayed older replies cannot erase group support`() = isolated { context ->
+        val key = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
+        val storage = Ablage.fuerTest(context) { key }
+        fun identity(id: String) = Krypto.neuesSchluesselpaar().let {
+            EigeneIdentitaet(id, id, Krypto.b64(it.second), Krypto.b64(it.first), 8737)
+        }
+        val own = identity("phone"); val remote = identity("desktop")
+        storage.setzeBaum(Baumzustand(kennung = own.kennung, geheim = own.geheim, oeffentlich = own.oeffentlich,
+            dienstAn = true, partner = listOf(Partner(remote.kennung, oeffentlich = remote.oeffentlich,
+                bestaetigt = true, vertraut = true, kontaktSync = true))))
+        val server = Server(werk(storage, context))
+        fun deliver(counter: Long, body: kotlinx.serialization.json.JsonObject) = server.behandeln(
+            "/magnolie/v1/nachricht", Baum1.baue(remote, own.kennung, own.oeffentlich, body, counter), "192.0.2.2").first
+        val contact = KontaktSync.inhalt(KontaktNachricht("group-card", 1, remote.kennung, 1000,
+            KontaktDaten(vorname = "Synthetic", gruppen = listOf("Work")), 4, 1000))
+        assertEquals(403, deliver(1, contact))
+        assertTrue(storage.baum.value.kontaktEingang.isEmpty())
+        assertEquals(200, deliver(1, KontaktFaehigkeiten.inhalt(false, 4)))
+        assertEquals(listOf(1, 2, 3, 4), storage.baum.value.partner.single().kontaktSyncFassungen)
+        assertTrue(storage.baum.value.partner.single().kontaktV4Geprueft)
+        assertEquals(200, deliver(2, KontaktFaehigkeiten.inhalt(true, 2)))
+        assertEquals(200, deliver(3, KontaktFaehigkeiten.inhalt(true, 3)))
+        assertEquals(listOf(1, 2, 3, 4), storage.baum.value.partner.single().kontaktSyncFassungen)
+        assertEquals(200, deliver(4, contact))
+        val restarted = Ablage.fuerTest(context) { key }
+        assertEquals(listOf("Work"), restarted.baum.value.kontaktEingang.single().kontakt.gruppen)
+        assertTrue(restarted.baum.value.partner.single().kontaktV4Geprueft)
+        assertEquals(200, deliver(5, KontaktFaehigkeiten.inhalt(false, 2)))
+        assertEquals(listOf(1, 2), storage.baum.value.partner.single().kontaktSyncFassungen)
+        assertEquals(403, deliver(6, contact))
+    }
+
     @Test fun `F28 explicit multiple delegates persist and removal revokes status authorization`() = isolated { context ->
         val key = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
         val storage = Ablage.fuerTest(context) { key }

@@ -402,4 +402,5 @@
     <string name="shared_sync_manual">Manuelt</string>
     <string name="shared_sync_time_direction">Synkroniseringsretning for tidsregistrering</string>
     <string name="telefon_code_gegenstelle">Bekreft denne koden på den andre enheten.</string>
+    <string name="baum_kontakt_gruppen">Kontaktgrupper</string>
 </resources>

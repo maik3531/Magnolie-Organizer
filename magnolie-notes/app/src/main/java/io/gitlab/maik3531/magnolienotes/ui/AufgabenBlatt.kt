@@ -39,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -180,13 +181,32 @@ private fun Aufgabenzeile(
     beiWurzel: (Aufgabe) -> Unit
 ) {
     val zeilenZusammenhang = LocalContext.current
+    val einzug = (14 + tiefe.coerceAtMost(12) * 16).dp
+    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
     Row(
         Modifier.fillMaxWidth()
             .clickable { beiOeffnen(aufgabe) }
-            .padding(start = (14 + tiefe.coerceAtMost(12) * 16).dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+            .padding(start = einzug, end = 14.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.Top
     ) {
         Haekchen(aufgabe.erledigt) { beiAbhaken(aufgabe, !aufgabe.erledigt) }
+        if (!aufgabe.erledigt) {
+            val prioritaet = aufgabe.prio.coerceIn(1, 3)
+            val beschreibung = stringResource(when (prioritaet) {
+                1 -> R.string.aufgabe_prio1
+                3 -> R.string.aufgabe_prio3
+                else -> R.string.aufgabe_prio2
+            })
+            Box(Modifier.padding(top = 12.dp, start = 4.dp).size(24.dp)
+                .background(when (prioritaet) {
+                    1 -> Color(0xFFA8433A)
+                    3 -> Color(0xFF8D8D7C)
+                    else -> Color(0xFFBD8A2E)
+                }, RoundedCornerShape(4.dp))
+                .semantics { contentDescription = beschreibung }, contentAlignment = Alignment.Center) {
+                Text(prioritaet.toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            }
+        }
         Column(Modifier.padding(start = 12.dp).weight(1f)) {
             Text(
                 aufgabe.anzeigeTitel,
@@ -217,14 +237,6 @@ private fun Aufgabenzeile(
                         fontSize = 11.sp,
                         fontWeight = if (fach == Fach.UEBERFAELLIG) FontWeight.Bold else FontWeight.Normal,
                         color = if (fach == Fach.UEBERFAELLIG) Magnolie.rot else Magnolie.goldDunkel
-                    )
-                }
-                if (aufgabe.prio == 1) {
-                    Text(
-                        stringResource(R.string.aufgabe_prio1),
-                        fontFamily = FontFamily.SansSerif,
-                        fontSize = 11.sp,
-                        color = Magnolie.rot
                     )
                 }
                 if (aufgabe.erinnern) {
@@ -262,9 +274,10 @@ private fun Aufgabenzeile(
         }
     }
     Box(
-        Modifier.fillMaxWidth().padding(start = 60.dp, end = 14.dp)
+        Modifier.fillMaxWidth().padding(start = einzug, end = 14.dp)
             .height(1.dp).background(Magnolie.linie)
     )
+    }
 }
 
 /** Ein Häkchenkästchen im Federstrich des Organizers. */

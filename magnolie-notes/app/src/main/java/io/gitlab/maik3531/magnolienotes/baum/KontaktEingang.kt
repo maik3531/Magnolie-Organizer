@@ -199,9 +199,14 @@ object KontaktEingangslogik {
             foto = kontakte.map { it.foto }.filter(String::isNotBlank).distinct().singleOrNull().orEmpty(),
             telefone = kontakte.flatMap { it.telefone }.distinctBy { telefon(it.wert) },
             emailEintraege = kontakte.flatMap { it.emailEintraege }.distinctBy { email(it.wert) },
-            anschriften = kontakte.flatMap { it.anschriften }
+            anschriften = kontakte.flatMap { it.anschriften },
+            gruppen = gruppenStaende(kontakte).singleOrNull()
         ))
     }
+
+    private fun gruppenStaende(kontakte: List<KontaktDaten>): List<List<String>> = kontakte
+        .mapNotNull { it.gruppen?.let(KontaktSync::normalisiereGruppen) }
+        .distinctBy { stand -> stand.map { it.lowercase(java.util.Locale.ROOT) } }
 
     private fun konflikte(karten: List<KontaktEingang>): List<KontaktKonflikt> {
         val kontakte = karten.map { it.kontakt }
@@ -216,7 +221,10 @@ object KontaktEingangslogik {
             werte("jubilaeum") { it.jubilaeum },
             werte("anzeigename") { it.anzeigename },
             werte("vcardName", { it }) { it.vcardName.joinToString("\n") },
-            werte("Bild", { it }) { it.foto }, werte("Notiz", { it.trim() }) { it.notiz }
+            werte("Bild", { it }) { it.foto }, werte("Notiz", { it.trim() }) { it.notiz },
+            gruppenStaende(kontakte).takeIf { it.size > 1 }?.let { staende ->
+                KontaktKonflikt("gruppen", staende.map { it.joinToString(", ").ifEmpty { "—" } })
+            }
         )
     }
 

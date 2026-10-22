@@ -4,6 +4,13 @@ internal static class LogPresentationTests
 {
     internal static Task RunAsync()
     {
+        using (var vectors = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "resources", "diagnostics-redaction-v1.json"))))
+            foreach (var entry in vectors.RootElement.GetProperty("cases").EnumerateArray())
+            {
+                var expected = entry.GetProperty("expected").GetString()!;
+                TestAssert.That(LogPresentation.MaskSensitive(entry.GetProperty("input").GetString()!) == expected, "Diagnostic redaction differs from shared vector.");
+                TestAssert.That(LogPresentation.MaskSensitive(expected) == expected, "Diagnostic masking is not idempotent.");
+            }
         const string unlockedData = "{\"einstellungen\":{\"allgemein\":{\"contributorFreigeschaltet\":true}}}";
         const string lockedData = "{\"einstellungen\":{\"allgemein\":{\"contributorFreigeschaltet\":false}}}";
         CheckMarked(LogPresentation.Format("eins\nzwei\ndrei\n", false));
@@ -45,6 +52,15 @@ internal static class LogPresentationTests
             TestAssert.That(File.ReadAllLines(parallel).Length == 100,
                 "Parallele Protokollschreiber verloren Einträge.");
             var limited = Path.Combine(root, "limited.log");
+            var redacted = Path.Combine(root, "redacted.log");
+            RotatingLog.Append(redacted, "password=fixture-password; phone=+49 351 1234567; mail=person@example.test");
+            TestAssert.That(File.ReadAllText(redacted).Contains("password=***") && !File.ReadAllText(redacted).Contains("fixture-password") &&
+                !File.ReadAllText(redacted).Contains("person@example.test") && !File.ReadAllText(redacted).Contains("1234567"), "Sensitive values reached the persisted log.");
+            var crashPath = Path.Combine(root, "redacted-crash.log");
+            TestAssert.That(CrashReportWriter.TryWrite(crashPath, "fixture", new InvalidOperationException("password=fixture-password; mail=person@example.test; phone=+49 351 1234567")), "Redacted crash was not written.");
+            var crashText = File.ReadAllText(crashPath);
+            TestAssert.That(crashText.Contains("InvalidOperationException") && crashText.Contains("***") &&
+                !crashText.Contains("fixture-password") && !crashText.Contains("person@example.test") && !crashText.Contains("1234567"), "Sensitive values reached the persisted crash report.");
             RotatingLog.Append(limited, new string('x', RotatingLog.MaximumEntryBytes * 2));
             TestAssert.That(new FileInfo(limited).Length <= RotatingLog.MaximumEntryBytes + 4 &&
                 File.ReadAllText(limited).Contains("[gekürzt]", StringComparison.Ordinal),

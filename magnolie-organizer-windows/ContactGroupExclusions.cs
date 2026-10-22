@@ -62,14 +62,17 @@ internal static class ContactGroupExclusions
         return result;
     }
 
-    internal static Func<JsonElement, bool> Create(JsonElement root, string area = "notifications")
+    internal static Func<JsonElement, bool> Create(JsonElement root, string area = "notifications", string kind = "anniversary")
     {
         var settings = Child(root, "einstellungen");
         var policy = Child(Child(settings, "adressen"), "gruppenAusschluss");
         var rule = Child(policy, area == "calendar" ? "overview" : area);
         var groups = Strings(Child(rule, "groups")).Select(GroupKey).ToHashSet(StringComparer.Ordinal);
-        if (Child(policy, "enabled").ValueKind != JsonValueKind.True || groups.Count == 0 ||
+        var calendars = Strings(Child(rule, "calendars")).ToHashSet(StringComparer.Ordinal);
+        var scope = Text(rule, "scope");
+        if (Child(policy, "enabled").ValueKind != JsonValueKind.True || groups.Count == 0 && calendars.Count == 0 ||
             area == "calendar" && Child(rule, "calendar").ValueKind != JsonValueKind.True) return _ => false;
+        if (kind == "appointment" && scope is not ("appointments" or "all") || kind == "anniversary" && scope == "appointments") return _ => false;
         var contacts = Items(Child(root, "kontakte")).Where(value => value.ValueKind == JsonValueKind.Object).ToArray();
         var parents = Enumerable.Range(0, contacts.Length).ToArray();
         int Root(int index) { while (parents[index] != index) { parents[index] = parents[parents[index]]; index = parents[index]; } return index; }
@@ -100,9 +103,16 @@ internal static class ContactGroupExclusions
         }
         var linked = Items(Child(root, "jahrestage")).Where(item => Resolve(item) is { } index && excluded.Contains(Root(index)))
             .Select(item => (Signature: AnniversarySignature(item), Keys: AnniversaryKeys(item))).ToArray();
-        var birthdaysOnly = Text(rule, "scope") != "anniversaries";
+        var birthdaysOnly = scope is not ("anniversaries" or "all");
         return item =>
         {
+            if (kind == "appointment")
+            {
+                var calendar = Text(Child(item, "kalenderQuelle"), "id");
+                if (calendar.Length == 0) calendar = Text(item, "syncKalenderUid");
+                if (calendars.Contains(calendar)) return true;
+                return Resolve(item) is { } contact && excluded.Contains(Root(contact));
+            }
             if (birthdaysOnly && !NativeLocalization.IsTranslation("Birthday", Text(item, "typ"))) return false;
             if (Resolve(item) is { } index) return excluded.Contains(Root(index));
             var signature = AnniversarySignature(item); var keys = AnniversaryKeys(item);

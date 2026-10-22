@@ -129,6 +129,7 @@ runner.Add("Telefonverbindung / Crypto / Pairingcode / Rahmen / Verträge", Tele
 runner.Add("Telefon renewal / existing binding / pending proofs", TelefonRepairTests.RunAsync);
 runner.Add("Notes contacts / read-only / bounded pages / source binding", PhoneContactReadTests.RunAsync);
 runner.Add("Developer diagnostics / own Wi-Fi / bounded reports / revocation", DeveloperDiagnosticsTests.RunAsync);
+runner.Add("Contact groups sync / v4 sets / legacy fences", ContactGroupSyncContractTests.RunAsync);
 runner.Add("Telefon WLAN invitations / bounded discovery", TelefonInvitationTests.RunAsync);
 runner.Add("Telefon Bluetooth first pairing / target binding", TelefonBluetoothSetupTests.RunAsync);
 runner.Add("Telefon setup startup lifecycle / Finish / Skip / rollback", PhoneStartupLifecycleTests.RunAsync);
@@ -149,6 +150,7 @@ runner.Add("F11-Vollbild / WebView2 / Persistenz / Tray", FullscreenSourceTests.
 runner.Add("Native Lokalisierung / 20 Sprachen / Fallback", NativeLocalizationTests.RunAsync);
 runner.Add("Lokalisierte Fehlergrenzen / Sync / Sicherung / Gesamtarchiv", LocalizationBoundaryTests.RunAsync);
 runner.Add("Regionale Einstellungen / Grenzen / frühe Persistenz", RegionalSettingsTests.RunAsync);
+runner.Add("Time zone management / optional sources / manual fallback", TimeZoneManagementTests.RunAsync);
 runner.Add("Telefonnummern / Herkunft / gemeinsame Vektoren", PhoneRegionInfoTests.RunAsync);
 runner.Add("Ersteinrichtung / Zustand / Atomik / Startreihenfolge", FirstRunSetupTests.RunAsync);
 runner.Add("Vertiefte portable Cross-Platform-Regression", PortableRegressionTests.RunAsync);

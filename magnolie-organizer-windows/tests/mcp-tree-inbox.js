@@ -2,16 +2,19 @@
 const fs = require("node:fs"), path = require("node:path"), Module = require("node:module"), assert = require("node:assert/strict"), crypto = require("node:crypto");
 const file = path.join(__dirname, "desktop-state-regressions.js");
 const harness = new Module(file, module); harness.filename = file; harness.paths = Module._nodeModulePaths(__dirname);
-harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[0] + "\nmodule.exports={boot,roots};", file);
+harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[0].replace(
+  'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));',
+  'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8").replace("speichereJetzt: speichereJetzt,", "kontaktGruppen, speichereJetzt: speichereJetzt,"));') + "\nmodule.exports={boot,roots};", file);
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const watchdog = setTimeout(() => { console.error("MCP tree inbox timed out"); process.exit(1); }, 45000);
 (async () => {
   for (const web of harness.exports.roots) {
     for (const mode of ["aufgabe", "termin", "kontakt", "notiz", "notiz_sync", "stale_book", "bad_digest", "wrong_peer", "snapshot_failed", "changed_at_snapshot", "save_failed", "consume_conflict", "invalid_offer", "cancel",
-      "contact_merge", "contact_replace", "contact_keep", "contact_new", "contact_skip", "contact_auto_new", "contact_auto_conflict", "contact_newer", "contact_missing_decision", "contact_invalid_list", "delete_contact", "delete_without_permission"]) {
+      "contact_merge", "contact_replace", "contact_keep", "contact_new", "contact_skip", "contact_auto_new", "contact_auto_conflict", "contact_newer", "contact_missing_decision", "contact_invalid_list",
+      "contact_group_keep", "contact_group_incoming", "contact_group_clear", "contact_group_legacy", "contact_group_invalid_legacy", "contact_group_invalid_nonmerge", "delete_contact", "delete_without_permission"]) {
       const contactReview = mode.startsWith("contact_"), deletion = mode.startsWith("delete_");
       const b = await harness.exports.boot(web, contactReview || deletion ? { kontakte: [{ id: "local", uid: "stable-local-uid", vorname: "Local", nachname: "Contact", notiz: "Local note", telefone: [{ wert: "+49305550123", typen: ["CELL"] }],
-        baumKontakt: { freigabeId: "owned-remote-contact", partner: ["owned-peer"], version: 1, quelle: "owned-peer" } }] } : {});
+        vcardRoundtrip: ["CATEGORIES:Colleagues"], baumKontakt: { freigabeId: "owned-remote-contact", partner: ["owned-peer"], version: 1, quelle: "owned-peer" } }] } : {});
       try {
         if (b.saves().length) b.ack(); await tick();
         b.w.eval(fs.readFileSync(path.join(web, "mcp-protocol.js"), "utf8"));
@@ -20,6 +23,10 @@ const watchdog = setTimeout(() => { console.error("MCP tree inbox timed out"); p
           freigabeId: "owned-remote-note", quelle: "owned-peer", version: 1, anhaenge: [], datum: "2026-10-18", vorname: "Owned", nachname: "Contact" } };
         if (contactReview || deletion) Object.assign(item.inhalt, { freigabeId: "owned-remote-contact", version: 2, fassung: 2, kontakt: { vorname: "Remote", nachname: "Contact", notiz: "Remote note", telefone: [{ wert: "+49305550124", art: "mobile" }], emailEintraege: [], anschriften: [] } });
         if (mode === "contact_auto_new") { item.inhalt.freigabeId = "separate-share"; item.inhalt.kontakt.nachname = "Separate"; }
+        if (mode.startsWith("contact_group_") && !["contact_group_legacy", "contact_group_invalid_legacy"].includes(mode)) {
+          item.inhalt.fassung = 4; item.inhalt.inhaltGeaendert = Date.now();
+          item.inhalt.kontakt.gruppen = mode === "contact_group_clear" ? [] : ["Work"];
+        }
         const raw = Buffer.from(JSON.stringify(item)), digest = crypto.createHash("sha256").update(raw).digest("hex");
         const state = { revision, moeglich: true, an: true, kennung: "owned-root", port: 8737, partner: [{ kennung: "owned-peer", fingerabdruck: fingerprint, port: 8737, bestaetigt: true, kontaktLoeschen: mode !== "delete_without_permission" }] };
         let sequence = 0, saved = false, consumed = false, checkpoint = false, snapshotMessage, notifySnapshot;
@@ -58,15 +65,17 @@ const watchdog = setTimeout(() => { console.error("MCP tree inbox timed out"); p
         await rpc("initialize", { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "owned-tree-inbox", version: "1" } }); await rpc("notifications/initialized", {});
         const book = ok(await call("organizer_book_revision_read", {})), before = JSON.stringify(b.t.daten());
         const waiting = new Promise(resolve => { notifySnapshot = resolve; });
-        const decision = mode === "contact_invalid_list" ? "merge" : mode.startsWith("contact_auto") ? "auto" : mode.slice("contact_".length);
+        const decision = mode === "contact_group_invalid_nonmerge" ? "replace" : mode === "contact_invalid_list" || mode.startsWith("contact_group_") ? "merge" : mode.startsWith("contact_auto") ? "auto" : mode.slice("contact_".length);
         const choices = contactReview && mode !== "contact_missing_decision" ? { contact_decision: decision, ...(!["new", "skip", "auto"].includes(decision) ? { contact_id: "local" } : {}),
           ...(decision === "merge" ? { field_choices: [{ field: "vorname", choice: "incoming" }], list_choices: [{ field: "telefone", incoming_index: mode === "contact_invalid_list" ? 99 : 0, choice: "replace", existing_index: 0 }] } : {}) } : deletion ? { contact_decision: "delete" } : {};
+        if (mode.startsWith("contact_group_") && mode !== "contact_group_legacy") choices.group_choice = mode === "contact_group_keep" ? "keep" : "incoming";
         const pending = call("organizer_tree_inbox_apply", { id: item.id, expected_sha256: mode === "bad_digest" ? "0".repeat(64) : digest,
           expected_book_revision: mode === "stale_book" ? "0".repeat(64) : book.revision, expected_tree_revision: revision, sender_fingerprint: mode === "wrong_peer" ? "C".repeat(64) : fingerprint, ...choices }, 9000);
         if (mode === "cancel") { await waiting; await rpc("notifications/cancelled", { requestId: 9000 }); b.w.App.mutationsSnapshot({ token: snapshotMessage.token, ok: true }); }
         const result = await pending;
         const failure = { stale_book: "conflict", bad_digest: "invalid_result", wrong_peer: "conflict", snapshot_failed: "snapshot_failed", changed_at_snapshot: "conflict", save_failed: "save_failed", consume_conflict: "conflict", invalid_offer: "conflict", cancel: "cancelled",
-          contact_newer: "conflict", contact_auto_conflict: "conflict", contact_missing_decision: "invalid_selection", contact_invalid_list: "invalid_selection", delete_without_permission: "invalid_selection" }[mode];
+          contact_newer: "conflict", contact_auto_conflict: "conflict", contact_missing_decision: "invalid_selection", contact_invalid_list: "invalid_selection",
+          contact_group_invalid_legacy: "invalid_selection", contact_group_invalid_nonmerge: "invalid_selection", delete_without_permission: "invalid_selection" }[mode];
         if (failure) {
           assert.equal(result.isError, true, mode + JSON.stringify(result)); assert.equal(result.structuredContent.code, failure, mode + JSON.stringify(result));
           assert.equal(consumed, mode === "consume_conflict");
@@ -80,6 +89,8 @@ const watchdog = setTimeout(() => { console.error("MCP tree inbox timed out"); p
             if (["contact_new", "contact_auto_new"].includes(mode)) assert.equal(b.t.daten().kontakte.length, 2);
             else if (mode === "contact_skip") { assert.equal(local.baumKontakt.version, 1); assert.equal(b.t.daten().baumKontaktAblehnungen.length, 1); }
             else { assert.equal(local.baumKontakt.version, 2); assert.equal(local.telefone[0].wert, mode === "contact_keep" ? "+49305550123" : "+49305550124"); }
+            if (mode.startsWith("contact_group_")) assert.deepEqual(Array.from(b.t.kontaktGruppen(local)),
+              mode === "contact_group_clear" ? [] : ["contact_group_keep", "contact_group_legacy"].includes(mode) ? ["Colleagues"] : ["Work"], mode);
           } else if (deletion) { assert.equal(b.t.daten().kontakte.length, 0); assert.equal(b.t.daten().baumKontaktLoeschStaende.length, 1); }
           else {
             const section = ({ aufgabe: "aufgaben", termin: "termine", kontakt: "kontakte", notiz: "notizen", notiz_sync: "notizen" })[kind];

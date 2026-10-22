@@ -465,4 +465,5 @@
     <string name="shared_sync_manual">Manuell</string>
     <string name="shared_sync_time_direction">Richtung der Zeiterfassungs-Synchronisation</string>
     <string name="telefon_code_gegenstelle">Bestätige diesen Code auf dem anderen Gerät.</string>
+    <string name="baum_kontakt_gruppen">Personengruppen</string>
 </resources>

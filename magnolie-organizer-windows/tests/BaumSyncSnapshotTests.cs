@@ -12,12 +12,15 @@ internal static class BaumSyncSnapshotTests
         var run = Guid.NewGuid().ToString("D");
         var lease = new BaumSyncSnapshot(() => now);
         var journal = new RecoveryJournal(Path.Combine(root, "points"), Path.Combine(root, "settings.json"));
-        var current = "{\"notizen\":[],\"aufgaben\":[]}";
+        var current = "{\"notizen\":[],\"aufgaben\":[],\"einstellungen\":{\"allgemein\":{\"wiederherstellungsmodus\":\"change\"}}}";
         var ack = "";
         JsonObject Proof(string peer = "a") => new() { ["run"] = run, ["peer"] = peer, ["before"] = ack };
         void Save(string next, JsonObject? proof)
         {
             var old = JsonNode.Parse(current)!.AsObject();
+            var proposed = JsonNode.Parse(next)!.AsObject();
+            proposed["einstellungen"] = old["einstellungen"]!.DeepClone();
+            next = proposed.ToJsonString();
             var changed = RecoveryJournal.HasRecoverableChanges(old, JsonNode.Parse(next)!.AsObject());
             var covered = lease.Covers(current, proof);
             if (changed && !covered) journal.Create(old, SnapshotReason.PreChange, "2.0.24");

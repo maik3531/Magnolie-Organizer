@@ -30,6 +30,27 @@ msgstr "请输入HylaFAX服务器主机名，也可在后面加上 :port。"
 msgid "Enter recipient manually"
 msgstr "手动输入收件人"
 
+msgid "Fax printer"
+msgstr "传真打印机"
+
+msgid "Network fax server"
+msgstr "网络传真服务器"
+
+msgid "Online fax service"
+msgstr "在线传真服务"
+
+msgid "Save as PDF"
+msgstr "保存为 PDF"
+
+msgid "Website"
+msgstr "网站"
+
+msgid "Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them."
+msgstr "当前播放（包括浏览器视频）仍与指定播放器一起可用。搜索/打开可选择本地音乐或视频；播放器支持时会显示可搜索的播放列表。封面、随机播放和循环播放在播放器提供这些功能时可用。"
+
+msgid "KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol."
+msgstr "KDE Connect传输笔的位置、压力、接触和笔/橡皮切换。悬停光标不会留下笔迹。手机的绘图板菜单提供全屏及隐藏或移动绘图按钮的设置。此协议不传输倾斜、旋转或额外的笔按键。"
+
 msgid "Fax"
 msgstr "传真"
 

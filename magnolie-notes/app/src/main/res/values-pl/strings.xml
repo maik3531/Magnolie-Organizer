@@ -424,4 +424,5 @@
     <string name="shared_sync_manual">Ręcznie</string>
     <string name="shared_sync_time_direction">Kierunek synchronizacji ewidencji czasu</string>
     <string name="telefon_code_gegenstelle">Potwierdź ten kod na drugim urządzeniu.</string>
+    <string name="baum_kontakt_gruppen">Grupy kontaktów</string>
 </resources>

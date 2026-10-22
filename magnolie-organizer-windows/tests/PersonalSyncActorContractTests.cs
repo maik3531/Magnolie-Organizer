@@ -7,15 +7,15 @@ internal static class PersonalSyncActorContractTests
 {
     internal static Task RunAsync()
     {
-        var root = TestSource.Root("magnolie-notes/app/src/test/resources/notes-actor-start.json");
-        var vectors = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "magnolie-notes/app/src/test/resources/notes-actor-start.json")))!["cases"]!.AsArray();
+        var fixtures = Path.Combine(AppContext.BaseDirectory, "resources");
+        var vectors = JsonNode.Parse(File.ReadAllText(Path.Combine(fixtures, "notes-actor-start.json")))!["cases"]!.AsArray();
         foreach (var item in vectors.OfType<JsonObject>())
         {
             var accepted = false;
             try { PersonalSyncActorContract.ValidateStart(item["body"]!.AsObject()); accepted = true; } catch (InvalidDataException) { }
             TestAssert.That(accepted == item["valid"]!.GetValue<bool>(), "Actor-start contract drift: " + item["name"]);
         }
-        var dataFixture = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "magnolie-notes/app/src/test/resources/notes-actor-data.json")))!.AsObject();
+        var dataFixture = JsonNode.Parse(File.ReadAllText(Path.Combine(fixtures, "notes-actor-data.json")))!.AsObject();
         var dataVectors = dataFixture["cases"]!.AsArray();
         foreach (var item in dataVectors.OfType<JsonObject>())
         {
@@ -29,7 +29,7 @@ internal static class PersonalSyncActorContractTests
             unwrapped.Body["owned_mutation"] = true;
             TestAssert.That(value["body"]!["owned_mutation"] is null, "Unwrapped data aliased the stored actor envelope.");
         }
-        var ackVectors = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "magnolie-notes/app/src/test/resources/notes-actor-ack.json")))!["cases"]!.AsArray();
+        var ackVectors = JsonNode.Parse(File.ReadAllText(Path.Combine(fixtures, "notes-actor-ack.json")))!["cases"]!.AsArray();
         foreach (var item in ackVectors.OfType<JsonObject>())
         {
             var body = item["body"]!.AsObject(); var accepted = false;
@@ -41,7 +41,7 @@ internal static class PersonalSyncActorContractTests
             TestAssert.Throws<InvalidDataException>(() => PersonalSyncActorContract.Wrap(body["run_id"]!.GetValue<string>(), PersonalSyncActorContract.AckKind, body), "An actor ACK could be laundered as nested actor data.");
         }
         CheckWireBudget(dataFixture["wire_budget"]!.AsObject());
-        var cancelVectors = JsonNode.Parse(File.ReadAllText(Path.Combine(root, "magnolie-notes/app/src/test/resources/notes-actor-cancel.json")))!["cases"]!.AsArray();
+        var cancelVectors = JsonNode.Parse(File.ReadAllText(Path.Combine(fixtures, "notes-actor-cancel.json")))!["cases"]!.AsArray();
         foreach (var item in cancelVectors.OfType<JsonObject>())
         {
             var body = item["body"]!.AsObject(); var accepted = false;

@@ -404,25 +404,33 @@ internal sealed partial class TelefonCoordinator : IDisposable
         { if (ephemeral) throw new InvalidOperationException("device_status_not_granted"); await emit("App.telefonFehler", new { fehler = T("Device status is not permitted or available on the phone.") }); return; }
         requestId ??= Guid.NewGuid().ToString("D");
         var ttl = 60_000L;
+        var timeZone = false;
         if (ephemeral)
         {
             lock (gate)
             {
                 if (!statusReads.TryGetValue(requestId, out var pending) || pending.Cancellation.IsCancellationRequested ||
                     !ReferenceEquals(connection, pending.Connection) || !peer.PublicKey.SequenceEqual(pending.PublicKey) ||
+                    !connection.StatusReadReady(pending.Include, pending.Version == TelefonTimeZoneContract.Version) ||
                     pending.Deadline <= Environment.TickCount64) throw new InvalidOperationException("device_status_source_changed");
+                timeZone = pending.Version == TelefonTimeZoneContract.Version;
                 ttl = Math.Min(10000, pending.Deadline - Environment.TickCount64);
             }
         }
         var versions = peer.Capabilities["device_status"]?["versions"] as JsonArray;
-        var body = DeviceStatusRequest(requestId, versions, includeIdentifiers ?? store.IdentifiersAllowed(peer));
+        var body = DeviceStatusRequest(requestId, versions, includeIdentifiers ?? store.IdentifiersAllowed(peer), timeZone);
         await connection.SendMessageAsync("device_status.request", body, ttl, messageId, ephemeralStatusRead: ephemeral);
     }
 
-    internal static JsonObject DeviceStatusRequest(string requestId, JsonArray? versions, bool includeIdentifiers = false)
+    internal static JsonObject DeviceStatusRequest(string requestId, JsonArray? versions, bool includeIdentifiers = false, bool timeZone = false)
     {
         var body = new JsonObject { ["request_id"] = requestId };
-        if (includeIdentifiers && versions?.Any(value => value?.GetValue<int>() == 4) == true)
+        if (timeZone)
+        {
+            if (includeIdentifiers || versions?.Any(value => value?.GetValue<int>() == TelefonTimeZoneContract.Version) != true) throw new InvalidDataException("time_zone_unavailable");
+            body["version"] = TelefonTimeZoneContract.Version;
+        }
+        else if (includeIdentifiers && versions?.Any(value => value?.GetValue<int>() == 4) == true)
         { body["version"] = 4; body["include_identifiers"] = true; }
         else if (versions?.Any(value => value?.GetValue<int>() == 3) == true) body["version"] = 3;
         else if (versions?.Any(value => value?.GetValue<int>() == 2) == true) body["version"] = 2;
@@ -1946,13 +1954,16 @@ internal sealed partial class TelefonConnection : IDisposable
             TelefonDeviceStatusContract.ValidateRequest(body);
             var version = body["version"]?.GetValue<int>() ?? 1;
             var include = body["include_identifiers"]?.GetValue<bool>() == true;
-            if (kind != "device_status.request" || version is < 1 or > 4 || !StatusReadReady(include) || ttl is < 1 or > 10000)
+            var timeZone = version == TelefonTimeZoneContract.Version;
+            if (kind != "device_status.request" || (!timeZone && (version is < 1 or > 4)) || timeZone && include || !StatusReadReady(include, timeZone) || ttl is < 1 or > 10000)
                 throw new InvalidOperationException("device_status_not_granted");
             await SendPlainAsync(new JsonObject { ["type"] = "message", ["v"] = 1, ["message_id"] = contactMessageId ?? Guid.NewGuid().ToString("D"),
                 ["kind"] = kind, ["created_ms"] = now, ["expires_ms"] = now + ttl, ["body"] = body.DeepClone() });
             return;
         }
-        if (kind == "device_status.request" && TelefonProtocolContract.TryInteger(body["version"], out var developerVersion) && developerVersion == 11)
+        if (kind == "device_status.request" && TelefonProtocolContract.TryInteger(body["version"], out var timeZoneVersion) && timeZoneVersion == TelefonTimeZoneContract.Version)
+            throw new InvalidOperationException("time_zone_scoped_read_required");
+        if (kind == "device_status.request" && TelefonProtocolContract.TryInteger(body["version"], out var developerVersion) && developerVersion is 11 or 13)
         {
             TelefonDeveloperDiagnostics.ValidateRequest(body);
             if (!DeveloperReadReady || ttl is < 1 or > 10000) throw new InvalidOperationException("developer_diagnostics_unavailable");
@@ -2059,7 +2070,7 @@ internal sealed partial class TelefonConnection : IDisposable
         }
         if (await HandleMcpStatusReadAsync(plain)) return;
         if (plain["kind"]?.GetValue<string>() == "device_status.report" && plain["body"] is JsonObject developerBody &&
-            TelefonProtocolContract.TryInteger(developerBody["version"], out var developerVersion) && developerVersion == 11)
+            TelefonProtocolContract.TryInteger(developerBody["version"], out var developerVersion) && developerVersion is 11 or 13)
         {
             await HandleDeveloperReportAsync(plain);
             return;

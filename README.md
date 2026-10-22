@@ -104,9 +104,17 @@ downgrade decision. See [KDE requirements and upgrade policy](magnolie-organizer
 An AppImage has no package uninstaller. When reminders are configured, Magnolie
 uses **systemd** in the Linux user session among its startup mechanisms:
 `magnolie-erinnerung.timer` regularly starts `magnolie-erinnerung.service`.
-The unit references the AppImage path. A session-autostart entry may also exist.
-Deleting or moving the AppImage does not remove these entries; a leftover timer
-can produce a failed start and new journal messages every minute.
+Since **2.0.28**, AppImage registrations use a small standalone launcher and a
+user path unit to detect deletion or movement of that image. Missing-image
+cleanup disables and removes only the timer, service and autostart entries bound
+to that exact launcher, then reloads the user manager and clears stale failures.
+It leaves personal documents and registrations of a replacement image intact.
+The launcher also checks before starting at the next login. On startup the new
+Organizer retires the reported legacy reminder pair if its AppImage is missing.
+
+**Older AppImages** referenced their executable directly. Deleting such an image
+does not remove its entries; a leftover timer can produce a failed start and new
+journal messages every minute. The following manual steps cover those older units.
 
 **Before deleting the file**, disable the configured reminders and background
 starts in Organizer, then exit the application. If the AppImage was already

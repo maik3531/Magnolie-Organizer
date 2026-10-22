@@ -10,7 +10,7 @@ internal static class RotatingLog
 
     internal static void Append(string path, string message)
     {
-        var entry = Limited(message.ReplaceLineEndings(" ")) + Environment.NewLine;
+        var entry = Limited(LogPresentation.MaskSensitive(message).ReplaceLineEndings(" ")) + Environment.NewLine;
         var acquired = false;
         try
         {
@@ -39,7 +39,7 @@ internal static class RotatingLog
             try { acquired = Writer.WaitOne(TimeSpan.FromSeconds(5)); }
             catch (AbandonedMutexException) { acquired = true; }
             if (!acquired || !File.Exists(path) || new FileInfo(path).Length > MaximumBytes) return "";
-            return File.ReadAllText(path);
+            return LogPresentation.MaskSensitive(File.ReadAllText(path));
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or ObjectDisposedException) { return ""; }
         finally { if (acquired) try { Writer.ReleaseMutex(); } catch (ApplicationException) { } }

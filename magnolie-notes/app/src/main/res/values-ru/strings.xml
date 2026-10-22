@@ -424,4 +424,5 @@
     <string name="shared_sync_manual">Вручную</string>
     <string name="shared_sync_time_direction">Направление синхронизации учёта времени</string>
     <string name="telefon_code_gegenstelle">Подтвердите этот код на другом устройстве.</string>
+    <string name="baum_kontakt_gruppen">Группы контактов</string>
 </resources>

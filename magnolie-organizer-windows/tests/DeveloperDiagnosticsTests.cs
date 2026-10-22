@@ -52,6 +52,8 @@ internal static class DeveloperDiagnosticsTests
                 var report = await coordinator.ReadDeveloperDiagnosticsAsync(phone, deadline.Token);
                 TestAssert.That(report["format"]!.GetValue<int>() == 1 && report["events"]!.AsArray().Last()!["stage"]!.GetValue<string>() == "online",
                     "Encrypted Notes diagnostic report incomplete.");
+                TestAssert.That(report["version"]!.GetValue<int>() == 13 && report["crash_report"]?["available"]?.GetValue<bool>() == true &&
+                    report["crash_report"]?["text"]?.GetValue<string>()?.Contains("Synthetic first-focus crash") == true, "Encrypted saved-crash report incomplete.");
                 foreach (var scenario in new[] { "fresh_controls_missing", "disabled", "bluetooth", "own_revoked" })
                 {
                     try { await coordinator.ReadDeveloperDiagnosticsAsync(phone, deadline.Token); throw new Exception("Notes released diagnostics: " + scenario); }
@@ -80,7 +82,7 @@ internal static class DeveloperDiagnosticsTests
 
     internal static async Task RunAsync()
     {
-        foreach (var change in new[] { "none", "own", "grant", "bluetooth", "fresh", "key", "channel", "expired", "content", "too_many", "duplicate", "disabled_ack" })
+        foreach (var change in new[] { "none", "own", "grant", "bluetooth", "fresh", "key", "channel", "expired", "content", "too_many", "duplicate", "disabled_ack", "crash", "crash_oversize", "crash_wrong_version" })
             await ReadAsync(change);
     }
 
@@ -93,6 +95,7 @@ internal static class DeveloperDiagnosticsTests
             var store = new TelefonStore(paths, Enumerable.Repeat((byte)19, 32).ToArray());
             var capabilities = TelefonProtocolContract.DesktopCapabilities()["items"]!.DeepClone().AsObject();
             capabilities["device_status"]!["versions"]!.AsArray().Add(11);
+            if (change.StartsWith("crash", StringComparison.Ordinal)) capabilities["device_status"]!["versions"]!.AsArray().Add(13);
             var peer = new TelefonPeer(Guid.NewGuid().ToString("D"), "Fixture", Enumerable.Repeat((byte)112, 32).ToArray(),
                 CapabilityRevision: 1, StoredCapabilities: capabilities, GrantRevision: 1, StoredGrants: TelefonProtocolContract.DesktopGrants());
             store.SavePeers([peer]); store.SetPersonalSettings(peer.Id, ownDevice: true, remoteOwnDevice: true);
@@ -121,6 +124,16 @@ internal static class DeveloperDiagnosticsTests
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             var body = new JsonObject { ["version"] = 11, ["request_id"] = requestId, ["format"] = 1, ["app_version"] = "fixture",
                 ["events"] = new JsonArray(new JsonObject { ["time_ms"] = now, ["stage"] = "online", ["transport"] = "wifi", ["failure"] = false }) };
+            if (change.StartsWith("crash", StringComparison.Ordinal))
+            {
+                TestAssert.That((int)wait.GetType().GetProperty("Version")!.GetValue(wait)! == 13, "Crash read was not negotiated.");
+                if (change != "crash_wrong_version")
+                {
+                    body["version"] = 13;
+                    body["crash_report"] = new JsonObject { ["available"] = true, ["truncated"] = false,
+                        ["text"] = change == "crash_oversize" ? new string('x', 16388) : "Magnolie Notes crash report\nSynthetic first-focus crash\npassword=fixture-password; mail=person@example.test; phone=+49 351 1234567" };
+                }
+            }
             if (change == "own") store.SetPersonalSettings(peer.Id, ownDevice: false);
             if (change == "grant") store.SavePeers([peer with { Grants = new JsonObject(peer.Grants.Select(pair =>
                 KeyValuePair.Create(pair.Key, pair.Key == "device_status" ? JsonValue.Create(false) as JsonNode : pair.Value?.DeepClone()))) }]);
@@ -136,11 +149,14 @@ internal static class DeveloperDiagnosticsTests
             if (change == "disabled_ack")
                 await connection.HandlePlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = messageId, ["status"] = "rejected", ["error"] = "not_granted" });
             else await connection.HandlePlainAsync(message);
-            if (change is "none" or "duplicate")
+            if (change is "none" or "duplicate" or "crash")
             {
                 var result = await read;
                 TestAssert.That(result["app_version"]!.GetValue<string>() == "fixture" && result["events"]!.AsArray().Count == 1,
                     "Developer response lost technical diagnostics.");
+                if (change == "crash") TestAssert.That(result["crash_report"]?["text"]?.GetValue<string>()?.Contains("Synthetic first-focus crash") == true, "Crash report text was lost.");
+                if (change == "crash") TestAssert.That(!result.ToJsonString().Contains("fixture-password") && !result.ToJsonString().Contains("person@example.test") &&
+                    !result.ToJsonString().Contains("1234567"), "Sensitive legacy crash text escaped desktop masking.");
                 if (change == "duplicate")
                 {
                     var ack = (TelefonAck)accept.Invoke(coordinator, [connection, peer, message])!;

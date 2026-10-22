@@ -82,6 +82,15 @@ function Get-ReleaseArchiveSources([string] $Root) {
             Relative = [IO.Path]::GetRelativePath($Root, $file.FullName).Replace('\', '/')
         }
     }
+    $notesFixtures = Join-Path (Split-Path -Parent $Root) 'magnolie-notes/app/src/test/resources'
+    foreach ($name in 'notes-actor-start.json', 'notes-actor-data.json', 'notes-actor-ack.json', 'notes-actor-cancel.json') {
+        $fixture = Join-Path $notesFixtures $name
+        if (Test-Path -LiteralPath $fixture -PathType Leaf) {
+            $file = Get-Item -LiteralPath $fixture
+            Assert-SourceFileSafe $file
+            [pscustomobject]@{ Source = $file.FullName; Relative = "tests/resources/$name" }
+        }
+    }
     $handbookWeb = Get-SharedHandbookWeb $Root
     foreach ($file in Get-ChildItem -LiteralPath $handbookWeb -Recurse -File -Force |
         Sort-Object { [IO.Path]::GetRelativePath($handbookWeb, $_.FullName).Replace('\', '/') }) {

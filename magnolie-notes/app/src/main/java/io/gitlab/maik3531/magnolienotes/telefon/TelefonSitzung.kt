@@ -71,7 +71,10 @@ object TelefonNachrichten {
             TimeControlProtokoll.REQUEST -> { if (expires - created > 60_000L || TelefonKanonisch.bytes(message).size > TimeControlProtokoll.MAX_WIRE_BYTES) fail(); TimeControlProtokoll.validateRequest(body) }
             TimeControlProtokoll.REPORT -> { if (expires - created > 60_000L || TelefonKanonisch.bytes(message).size > TimeControlProtokoll.MAX_WIRE_BYTES) fail(); TimeControlProtokoll.validateReport(body) }
             "device_status.request" -> {
-                if (body["version"] in setOf(JsonPrimitive(ContactRead.VERSION), JsonPrimitive(ContactRead.PROFILE_VERSION), JsonPrimitive(ContactRead.PROFILE_DIAGNOSTIC_VERSION))) {
+                if (body["version"] == JsonPrimitive(PhoneTimeZone.VERSION)) {
+                    try { PhoneTimeZone.validateRequest(body) } catch (_: Exception) { fail() }
+                }
+                else if (body["version"] in setOf(JsonPrimitive(ContactRead.VERSION), JsonPrimitive(ContactRead.PROFILE_VERSION), JsonPrimitive(ContactRead.PROFILE_DIAGNOSTIC_VERSION))) {
                     try { ContactRead.validateRequest(body) } catch (_: Exception) { fail() }
                 }
                 else if (body.keys == setOf("request_id")) uuid(body.string("request_id"))
@@ -82,7 +85,7 @@ object TelefonNachrichten {
                 }
                 else {
                     exact(body, setOf("request_id", "version")); uuid(body.string("request_id"))
-                    if (body.long("version") !in 1L..3L && body.long("version") != 11L) fail()
+                    if (body.long("version") !in 1L..3L && body.long("version") !in setOf(11L, io.gitlab.maik3531.magnolienotes.Entwicklermodus.ABSTURZ_DIAGNOSE_VERSION.toLong())) fail()
                 }
                 if (expires - created > 60_000L) fail()
             }

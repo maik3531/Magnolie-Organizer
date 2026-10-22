@@ -92,7 +92,8 @@ internal static class TelefonBluetoothSetupTests
                 return Task.CompletedTask;
             }, dataStore: store, localOnly: true);
             await coordinator.SwitchAsync(true);
-            var id = Guid.NewGuid().ToString(); var offer = coordinator.OpenBluetoothSetupPairing(id, Phone);
+            var id = Guid.NewGuid().ToString(); var ownBeforePairing = store.PersonalSettings(id).OwnDevice;
+            var offer = coordinator.OpenBluetoothSetupPairing(id, Phone);
             using var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
             using var client = new TcpClient(); await client.ConnectAsync((IPEndPoint)listener.LocalEndpoint);
             using var server = await listener.AcceptTcpClientAsync();
@@ -124,7 +125,9 @@ internal static class TelefonBluetoothSetupTests
                 await handler;
                 TestAssert.That(finish["type"]!.GetValue<string>() == "pair_finish" && store.LoadPeers().Single().State == "paired",
                     "Pairing without an initiating-device confirmation did not finish");
-                TestAssert.That(!store.PersonalSettings(id).OwnDevice, "Code display must not invent desktop sharing consent");
+                TestAssert.That(store.PersonalSettings(id).OwnDevice == ownBeforePairing &&
+                    JsonNode.Parse(File.ReadAllText(paths.TelefonSettings))?["personal_sync"]?[id]?["own_device"] is null,
+                    "Code display must not change native ownership defaults or persist a sharing decision");
             }
             finally { CryptographicOperations.ZeroMemory(phoneStatic.Private); CryptographicOperations.ZeroMemory(phoneEphemeral.Private); }
         }

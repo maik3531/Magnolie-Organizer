@@ -33,7 +33,7 @@
 %endif
 
 Name:           magnolie-handbuch
-Version:        2.0.27
+Version:        2.0.28
 Release:        1%{?dist}
 Summary:        Illustrated user handbook for Magnolie Organizer
 

@@ -648,6 +648,13 @@ msgstr ""
 msgid "Active call"
 msgstr ""
 
+msgid ""
+"Active playback, including browser videos, remains available alongside the "
+"assigned players. Search/Open selects local music or videos; a searchable "
+"player playlist appears when supported. Covers, shuffle and repeat are "
+"available when the player provides them."
+msgstr ""
+
 msgctxt "time tracking"
 msgid "Activity"
 msgstr ""
@@ -2738,6 +2745,9 @@ msgstr ""
 msgid "Fax"
 msgstr ""
 
+msgid "Fax printer"
+msgstr ""
+
 msgid ""
 "Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
 "supported installed mail client. A handoff is not delivery confirmation."
@@ -3340,6 +3350,13 @@ msgstr ""
 msgid "KDE Connect reception failed."
 msgstr ""
 
+msgid ""
+"KDE Connect transmits pen position, pressure, contact and pen/eraser "
+"changes. The hover cursor leaves no ink. The phone's tablet menu offers "
+"fullscreen and settings to hide or move the drawing button. Tilt, rotation "
+"and extra pen buttons are not transmitted by this protocol."
+msgstr ""
+
 msgid "KDE/Akonadi integration is not available."
 msgstr ""
 
@@ -3727,9 +3744,6 @@ msgstr ""
 msgid "Merged"
 msgstr ""
 
-msgid "Message"
-msgstr ""
-
 msgid "Message text"
 msgstr ""
 
@@ -3910,6 +3924,9 @@ msgid "Netherlands"
 msgstr ""
 
 msgid "Network"
+msgstr ""
+
+msgid "Network fax server"
 msgstr ""
 
 msgid "Neuchâtel"
@@ -4447,6 +4464,9 @@ msgid "Online"
 msgstr ""
 
 msgid "Online address book"
+msgstr ""
+
+msgid "Online fax service"
 msgstr ""
 
 msgid "Online via Bluetooth data"
@@ -5556,6 +5576,9 @@ msgid "Save anniversaries"
 msgstr ""
 
 msgid "Save appointments"
+msgstr ""
+
+msgid "Save as PDF"
 msgstr ""
 
 msgid "Save as…"
@@ -6690,6 +6713,9 @@ msgid "The custom website is not a secure HTTPS address."
 msgstr ""
 
 msgid "The data changed during password transaction recovery."
+msgstr ""
+
+msgid "The data could not be saved."
 msgstr ""
 
 msgid ""
@@ -8034,6 +8060,9 @@ msgid ""
 msgstr ""
 
 msgid "Weather was not retrieved because no location is available."
+msgstr ""
+
+msgid "Website"
 msgstr ""
 
 msgid "Wedding anniversary"

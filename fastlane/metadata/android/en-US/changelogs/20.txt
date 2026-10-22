@@ -1,0 +1,1 @@
+Contact groups synchronize additions and removals with Organizer. Text deletion and switching between title and note remain stable. Redacted crash reports are available through authorized developer diagnostics. Native timer and source-bound review tools are expanded. Store screenshots added.

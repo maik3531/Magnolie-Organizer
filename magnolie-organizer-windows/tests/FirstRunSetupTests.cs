@@ -177,7 +177,7 @@ internal static class FirstRunSetupTests
         TestAssert.That(program.Contains("new MainForm(trayStart, reminderStart, setupSelections)", StringComparison.Ordinal) &&
                         main.Contains("new BridgeDispatcher(this, paths, setupSelections)", StringComparison.Ordinal) &&
                          bridge.Split("setupSelections", StringSplitOptions.None).Length >= 6 &&
-                         bridge.Contains("thunderbirdOnly", StringComparison.Ordinal) &&
+                          bridge.Contains("LocalImportSource.ReadAsync(area", StringComparison.Ordinal) &&
                          bridge.Contains("area == \"thunderbird\"", StringComparison.Ordinal),
             "Die vollständige Setup-Auswahl wird nicht in beide App.init-Pfade weitergereicht.");
         foreach (var file in new[] { "phone-notes-qr.png", "phone-kde-connect-qr.png" })

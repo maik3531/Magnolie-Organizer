@@ -50,6 +50,7 @@
     <Compile Include="..\KdeFilesystem.cs" Link="KdeFilesystem.cs" />
     <Compile Include="..\KdeConnectDirectBackend.Filesystem.cs" Link="KdeConnectDirectBackend.Filesystem.cs" />
     <Compile Include="..\KdeLocalMedia.cs" Link="KdeLocalMedia.cs" />
+    <Compile Include="..\KdeConnectDirectBackend.MediaPayload.cs" Link="KdeConnectDirectBackend.MediaPayload.cs" />
     <Compile Include="..\KdeRegisteredPlayers.cs" Link="KdeRegisteredPlayers.cs" />
     <Compile Include="..\KdeInputState.cs" Link="KdeInputState.cs" />
     <Compile Include="..\KdeWindowsInput.cs" Link="KdeWindowsInput.cs" />
@@ -63,6 +64,7 @@
     <Compile Include="..\WindowsPaths.cs" Link="WindowsPaths.cs" />
     <Compile Include="..\CloudBackupService.cs" Link="CloudBackupService.cs" />
     <Compile Include="..\RegionalSettings.cs" Link="RegionalSettings.cs" />
+    <Compile Include="..\TimeZoneManagement.cs" Link="TimeZoneManagement.cs" />
     <Compile Include="..\PhoneRegionInfo.cs" Link="PhoneRegionInfo.cs" />
     <Compile Include="..\RecoveryJournal.cs" Link="RecoveryJournal.cs" />
     <Compile Include="..\RestoreSelection.cs" Link="RestoreSelection.cs" />
@@ -91,6 +93,7 @@
     <Compile Include="..\MagnolienbaumFs1.cs" Link="MagnolienbaumFs1.cs" />
     <Compile Include="..\TelefonCrypto.cs" Link="TelefonCrypto.cs" />
     <Compile Include="..\TelefonDeviceStatusContract.cs" Link="TelefonDeviceStatusContract.cs" />
+    <Compile Include="..\TelefonTimeZoneContract.cs" Link="TelefonTimeZoneContract.cs" />
     <Compile Include="..\TelefonDeveloperDiagnostics.cs" Link="TelefonDeveloperDiagnostics.cs" />
     <Compile Include="..\PhoneContactRead.cs" Link="PhoneContactRead.cs" />
     <Compile Include="..\TelefonMessagingContract.cs" Link="TelefonMessagingContract.cs" />
@@ -142,6 +145,9 @@
     <Compile Include="..\ShellLauncher.cs" Link="ShellLauncher.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="..\..\magnolie-notes\app\src\test\resources\notes-actor-*.json" Link="resources\%(Filename)%(Extension)" Condition="Exists('..\..\magnolie-notes\app\src\test\resources\notes-actor-start.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="resources\*.json" Exclude="resources\phone-region-vectors.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -149,6 +155,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="..\contracts\baum-1-receipt-v1-vectors.json" Link="resources\baum-1-receipt-v1-vectors.json" Condition="!Exists('..\..\contracts\baum-1-receipt-v1-vectors.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\contracts\diagnostics-redaction-v1.json" Link="resources\diagnostics-redaction-v1.json" Condition="Exists('..\..\contracts\diagnostics-redaction-v1.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\contracts\diagnostics-redaction-v1.json" Link="resources\diagnostics-redaction-v1.json" Condition="!Exists('..\..\contracts\diagnostics-redaction-v1.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="..\..\contracts\kontakt-sync-contract.json" Link="resources\kontakt-sync-contract.json" Condition="Exists('..\..\contracts\kontakt-sync-contract.json')">

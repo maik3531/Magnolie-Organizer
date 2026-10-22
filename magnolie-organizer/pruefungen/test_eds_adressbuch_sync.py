@@ -175,7 +175,7 @@ def test_partielle_reads_sind_unvollstaendig(kontakte):
 
 
 def sync_lauf(monkeypatch, client, lokale=None, tombstones=None, basis=None,
-              anlegen_fehler=False, altbestand=None):
+              anlegen_fehler=False, altbestand=None, buch_uid="google"):
     erstellt, geaendert, geloescht = [], [], []
     monkeypatch.setattr(m, "eds_laden", lambda: True)
     monkeypatch.setattr(m, "eds_registry", lambda: object())
@@ -200,17 +200,70 @@ def sync_lauf(monkeypatch, client, lokale=None, tombstones=None, basis=None,
     probe = Probe()
     letzte = {"kalender": {}, "adressbuecher": {}}
     if altbestand is not None:
-        letzte["adressbuecher"]["google"] = altbestand
+        letzte["adressbuecher"][buch_uid] = altbestand
     sync_meta = {"eds": {"adressbuecher": {}}}
     if basis is not None:
-        sync_meta["eds"]["adressbuecher"]["google"] = basis
+        sync_meta["eds"]["adressbuecher"][buch_uid] = basis
     m.Fenster._sync_ausfuehren(probe, {
-        "wahl": {"adressbuchUid": "google"},
+        "wahl": {"adressbuchUid": buch_uid},
         "daten": {"termine": [], "kontakte": lokale or [], "jahrestage": [],
                   "geloescht": {"termine": [], "kontakte": tombstones or []},
                   "letzterSync": 0, "letzteSyncs": letzte,
                   "syncMetadaten": sync_meta}})
     return probe, erstellt, geaendert, geloescht
+
+
+def test_group_add_remove_converges_across_two_bound_eds_books_without_resurrection(monkeypatch):
+    import copy
+    original = vcard("group-contact", "Synthetic").replace("END:VCARD", "CATEGORIES:Colleagues\r\nEND:VCARD")
+    baseline = m.vcf_lesen(original)["kontakte"][0]
+    local = dict(copy.deepcopy(baseline), sync=True, id="synthetic-local")
+    clients = {name: Client([Kontakt(original)]) for name in ("google", "second-book")}
+    cursors = {name: {"initialisiert": True, "letzterSync": 100, "remoteAnzahl": 1, "snapshotHash": "a" * 64}
+               for name in clients}
+    for name in clients:
+        m._kontakt_eds_baseline(local, "eds:" + name, baseline)
+        local["syncQuellen"]["eds:" + name]["lokalInhaltSha256"] = m._sync_inhalt_hash(baseline, m.KONTAKT_FELDER)
+    for groups in (["Colleagues", "Work"], ["Work"], []):
+        local["vcardRoundtrip"] = [line for line in local.get("vcardRoundtrip", []) if not line.startswith("CATEGORIES:")]
+        if groups:
+            local["vcardRoundtrip"].append("CATEGORIES:" + ",".join(groups))
+        for name, client in clients.items():
+            probe, created, changed, deleted = sync_lauf(monkeypatch, client, [local], basis=cursors[name], buch_uid=name)
+            assert not created and not deleted and len(changed) == 1, (groups, name, probe.nutzlast.get("kontaktVorschau"),
+                probe.nutzlast.get("bericht"), probe.nutzlast.get("fehler"))
+            local = probe.nutzlast["kontakte"][0]
+            assert local["id"] == "synthetic-local" and len(local["syncQuellen"]) == 2
+            cursors[name] = probe.nutzlast["syncMetadaten"]["eds"]["adressbuecher"][name]
+            remote = m.vcf_lesen(client.kontakte[0].text)["kontakte"][0]
+            categories = [line for line in remote.get("vcardRoundtrip", []) if line.startswith("CATEGORIES:")]
+            assert categories == (["CATEGORIES:" + ",".join(groups)] if groups else [])
+        for name, client in clients.items():
+            probe, created, changed, deleted = sync_lauf(monkeypatch, client, [local], basis=cursors[name], buch_uid=name)
+            assert not created and not changed and not deleted
+            local = probe.nutzlast["kontakte"][0]
+            categories = [line for line in local.get("vcardRoundtrip", []) if line.startswith("CATEGORIES:")]
+            assert categories == (["CATEGORIES:" + ",".join(groups)] if groups else [])
+
+
+@pytest.mark.parametrize("concurrent", [False, True])
+def test_remote_group_removal_is_authoritative_and_competing_local_memberships_require_review(monkeypatch, concurrent):
+    import copy
+    original = vcard("group-contact", "Synthetic").replace("END:VCARD", "CATEGORIES:Colleagues,Work\r\nEND:VCARD")
+    baseline = m.vcf_lesen(original)["kontakte"][0]
+    local = dict(copy.deepcopy(baseline), sync=True, id="synthetic-local")
+    m._kontakt_eds_baseline(local, "eds:google", baseline)
+    if concurrent:
+        local["vcardRoundtrip"] = [line.replace("CATEGORIES:Colleagues,Work", "CATEGORIES:Colleagues") for line in local["vcardRoundtrip"]]
+    remote = original.replace("CATEGORIES:Colleagues,Work", "CATEGORIES:Work")
+    basis = {"initialisiert": True, "letzterSync": 100, "remoteAnzahl": 1, "snapshotHash": "a" * 64}
+    probe, created, changed, deleted = sync_lauf(monkeypatch, Client([Kontakt(remote)]), [local], basis=basis)
+    assert not created and not changed and not deleted
+    actual = probe.nutzlast["kontakte"][0]
+    assert actual["id"] == "synthetic-local"
+    assert [line for line in actual["vcardRoundtrip"] if line.startswith("CATEGORIES:")] == [
+        "CATEGORIES:Colleagues" if concurrent else "CATEGORIES:Work"]
+    assert bool(actual.get("kontaktProviderKonflikte")) is concurrent
 
 
 def test_erster_sync_leer_lokal_remote_voll(monkeypatch):

@@ -82,6 +82,9 @@ internal static class PersonalNoteModeTests
                 TestAssert.That(store.NoteSettings(peer.Id).Count == 0,
                     "Cached V5 capability sent note settings before fresh capabilities (breaking downgraded peers).");
                 var capabilities = TelefonProtocolContract.DesktopCapabilities(); capabilities["revision"] = 3;
+                // This case exercises the existing v5 mode register, not the
+                // later v9/v10 shared-settings/content-scope negotiation.
+                capabilities["items"]!["personal_notes_sync"]!["versions"] = new JsonArray(1, 2, 3, 5);
                 await modern.HandlePlainAsync(Message("capabilities.update", capabilities));
                 await modern.HandlePlainAsync(Message("grants.update", new JsonObject { ["revision"] = 3, ["grants"] = TelefonProtocolContract.DesktopGrants() }));
                 await modern.HandlePlainAsync(Message("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true }));

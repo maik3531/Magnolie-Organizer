@@ -10,7 +10,8 @@ internal static class McpDeviceStatusTests
 {
     internal static async Task RunAsync()
     {
-        foreach (var scenario in new[] { "basic", "identifiers", "own_off_basic", "own_off", "grant_off", "key_changed", "channel_changed", "cancel", "replay", "wrong_channel" })
+        foreach (var scenario in new[] { "basic", "identifiers", "own_off_basic", "own_off", "grant_off", "key_changed", "channel_changed", "cancel", "replay", "wrong_channel",
+            "timezone", "timezone_bt", "timezone_own_off", "timezone_cancel", "timezone_not_own", "timezone_legacy", "timezone_unavailable" })
             await ReadAsync(scenario);
     }
     private static async Task ReadAsync(string scenario)
@@ -21,6 +22,8 @@ internal static class McpDeviceStatusTests
             var paths = new WindowsPaths(root); var store = new TelefonStore(paths, Enumerable.Repeat((byte)19, 32).ToArray());
             var capabilities = TelefonProtocolContract.DesktopCapabilities()["items"]!.DeepClone().AsObject();
             capabilities["device_status"]!["versions"] = new JsonArray(1, 2, 3, 4); capabilities["device_status"]!["available"] = true;
+            var timeZone = scenario.StartsWith("timezone", StringComparison.Ordinal);
+            if (timeZone && scenario != "timezone_legacy") capabilities["device_status"]!["versions"]!.AsArray().Add(12);
             var peer = new TelefonPeer(Guid.NewGuid().ToString("D"), "Owned phone", Enumerable.Repeat((byte)112, 32).ToArray(),
                 CapabilityRevision: 1, StoredCapabilities: capabilities, GrantRevision: 1, StoredGrants: TelefonProtocolContract.DesktopGrants());
             store.SavePeers([peer]); store.SetPersonalSettings(peer.Id, ownDevice: true, remoteOwnDevice: true);
@@ -30,20 +33,32 @@ internal static class McpDeviceStatusTests
             var accept = typeof(TelefonCoordinator).GetMethod("AcceptMcpStatusRead", BindingFlags.Instance | BindingFlags.NonPublic)!;
             var reject = typeof(TelefonCoordinator).GetMethod("RejectContactRead", BindingFlags.Instance | BindingFlags.NonPublic)!;
             using var stream = new MemoryStream(); using var lifetime = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            using var connection = new TelefonConnection(peer, stream, new byte[16], new byte[72], store, (_, _) => Task.FromResult<TelefonAck?>(null), lifetime.Token, "wifi",
+            using var connection = new TelefonConnection(peer, stream, new byte[16], new byte[72], store, (_, _) => Task.FromResult<TelefonAck?>(null), lifetime.Token, scenario == "timezone_bt" ? "bluetooth" : "wifi",
                 rejectContactRead: (source, sender, ack) => (bool)reject.Invoke(coordinator, [source, sender, ack])!,
                 receiveStatusRead: (source, sender, message) => (TelefonAck?)accept.Invoke(coordinator, [source, sender, message]));
             var online = (IDictionary<string, TelefonConnection>)typeof(TelefonCoordinator).GetField("online", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator)!;
             online[peer.Id] = connection;
             TestAssert.That(!connection.StatusReadReady(false), "Cached capabilities/grants authorized status access.");
+            if (timeZone) TestAssert.That(!connection.StatusReadReady(false, true), "Cached controls authorized a timezone query.");
             foreach (var flag in new[] { "freshCapabilities", "freshGrants", "freshOwnSettings" })
                 typeof(TelefonConnection).GetField(flag, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(connection, true);
-            var include = scenario is not ("basic" or "own_off_basic");
+            var include = !timeZone && scenario is not ("basic" or "own_off_basic");
+            if (scenario == "timezone_not_own") store.SetPersonalSettings(peer.Id, ownDevice: false);
+            if (scenario is "timezone_not_own" or "timezone_legacy")
+            {
+                TestAssert.That(await coordinator.ReadOwnTimeZoneAsync(lifetime.Token) is null && stream.Length == 0,
+                    "Unowned or legacy phone was queried for a timezone.");
+                online.Clear(); return;
+            }
+            if (scenario == "timezone_bt") TestAssert.That(!connection.StatusReadReady(false) && connection.StatusReadReady(false, true), "Timezone support widened ordinary WiFi-only status reads.");
             if (scenario == "own_off_basic") store.SetPersonalSettings(peer.Id, ownDevice: false, remoteOwnDevice: false);
             var query = Guid.NewGuid().ToString("D"); var fingerprint = TelefonCrypto.Fingerprint(peer.PublicKey);
-            var read = coordinator.ReadDeviceStatusAsync(peer.Id, fingerprint, coordinator.McpStatus()["revision"]!.GetValue<string>(), query, include, lifetime.Token);
+            var read = coordinator.ReadDeviceStatusAsync(peer.Id, fingerprint, coordinator.McpStatus()["revision"]!.GetValue<string>(), query, include, lifetime.Token, timeZone);
             var ordinary = JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "resources", "telefon-control-contract.json")))!["device_status_v3"]!.DeepClone().AsObject();
             ordinary["request_id"] = query; ordinary["captured_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            if (timeZone) ordinary = new JsonObject { ["version"] = 12, ["request_id"] = query,
+                ["state"] = scenario == "timezone_unavailable" ? "unavailable" : "available", ["time_zone"] = scenario == "timezone_unavailable" ? "" : "Asia/Tokyo",
+                ["captured_ms"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() };
             if (include)
             {
                 ordinary["version"] = 4;
@@ -55,7 +70,7 @@ internal static class McpDeviceStatusTests
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             JsonObject Packet() => new() { ["type"] = "message", ["v"] = 1, ["message_id"] = Guid.NewGuid().ToString("D"), ["kind"] = "device_status.report",
                 ["created_ms"] = now, ["expires_ms"] = now + 60000, ["body"] = ordinary.DeepClone() };
-            if (scenario == "cancel")
+            if (scenario is "cancel" or "timezone_cancel")
             {
                 TestAssert.That(coordinator.CancelDeviceStatus(peer.Id, fingerprint, query), "Pending native status read could not be cancelled.");
                 try { await read; throw new InvalidOperationException("Cancelled status query succeeded."); } catch (OperationCanceledException) { }
@@ -71,13 +86,13 @@ internal static class McpDeviceStatusTests
                     TestAssert.That(ack.Status == "rejected" && !read.IsCompleted, "Wrong channel completed the scoped query.");
                 }
                 await connection.HandlePlainAsync(Packet()); var token = await read;
-                if (scenario == "own_off") store.SetPersonalSettings(peer.Id, ownDevice: false);
+                if (scenario is "own_off" or "timezone_own_off") store.SetPersonalSettings(peer.Id, ownDevice: false);
                 if (scenario == "grant_off") store.SavePeers([peer with { Grants = new JsonObject(peer.Grants.Select(item =>
                     KeyValuePair.Create(item.Key, item.Key == "device_status" ? JsonValue.Create(false) as JsonNode : item.Value?.DeepClone()))) }]);
                 if (scenario == "key_changed") store.SavePeers([peer with { PublicKey = Enumerable.Repeat((byte)20, 32).ToArray() }]);
                 if (scenario == "channel_changed") online.Remove(peer.Id);
                 var result = coordinator.CurrentMcpDeviceStatus(token);
-                if (scenario is "own_off" or "grant_off" or "key_changed" or "channel_changed")
+                if (scenario is "own_off" or "grant_off" or "key_changed" or "channel_changed" or "timezone_own_off")
                     TestAssert.That(result["ok"]!.GetValue<bool>() == false && !result.ToJsonString().Contains("000000000000001", StringComparison.Ordinal), "Revoked source/identifier permission leaked a queued result.");
                 else
                 {
@@ -85,6 +100,8 @@ internal static class McpDeviceStatusTests
                     TestAssert.That(result["ok"]!.GetValue<bool>() && data["include_identifiers"]!.GetValue<bool>() == include &&
                         data["request_correlated"]!.GetValue<bool>() && !data["persisted"]!.GetValue<bool>(), "Scoped status result lost its real source/correlation flags.");
                     TestAssert.That(data["report"]!.AsObject().ContainsKey("identifiers") == include, "Default status read inherited GUI identifier permission.");
+                    if (timeZone) TestAssert.That(data["protocol_version"]!.GetValue<int>() == 12 && data["report"]!.AsObject().Count == 5 &&
+                        data["transport"]!.GetValue<string>() == (scenario == "timezone_bt" ? "bluetooth" : "wifi"), "Timezone read lost its exact scope or actual transport.");
                     if (include) TestAssert.That(data["report"]!["identifiers"]!["imei"]!["value"]!.GetValue<string>() == "000000000000001", "Explicit transient identifier was lost.");
                     TestAssert.That(coordinator.CurrentMcpDeviceStatus(token)["ok"]!.GetValue<bool>() == false, "Sensitive result could be consumed twice.");
                 }

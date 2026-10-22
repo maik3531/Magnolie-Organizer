@@ -1,0 +1,1 @@
+Kontaktgruppen gleichen Ergänzungen und Entfernungen mit dem Organizer ab. Textlöschen und Wechsel zwischen Überschrift und Notiz bleiben stabil. Maskierte Absturzberichte sind über die freigegebene Entwicklerdiagnose lesbar. Native Timer und quellgebundene Prüfwerkzeuge sind erweitert. Storebilder ergänzt.

@@ -37,7 +37,8 @@ class AnhangVerkabelungTest {
         assertTrue(editor.contains("WindowInsets.ime.getBottom(density) > 0"))
         assertTrue(editor.contains("Modifier.weight(1f).navigationBarsPadding().imePadding()"))
         assertTrue(editor.contains(".imePadding()"))
-        assertTrue(editor.contains("Modifier.verticalScroll(scrollState)"))
+        assertTrue(editor.contains("Modifier.verticalScroll(scrollState, enabled = kompakt)"))
+        assertTrue(editor.contains(".then(scrollModifier).heightIn(min = maxHeight)"))
         assertTrue(editor.contains("Modifier.weight(1f).heightIn(min = 220.dp)"))
         assertTrue(editor.contains("val kompakteTextHoehe = (maxHeight - 28.dp).coerceAtLeast(220.dp)"))
     }

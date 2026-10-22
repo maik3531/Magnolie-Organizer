@@ -1,5 +1,29 @@
 # Changelog / Änderungen
 
+## 2.0.28 / Notes 1.0.20 — 2026-10-22
+
+### English
+
+- Cleans up source-bound AppImage services, reminder timers and autostart entries after deletion or movement, without removing personal data or replacement registrations. Retires the reported missing-image legacy reminder pair.
+- Synchronizes complete editable contact-group memberships, including removals and explicit empty sets, between Organizer and Android. Legacy peers preserve unknown memberships; conflicting changes use the existing review and source-baseline paths.
+- Prevents EDS and Windows provider merging from resurrecting removed groups. Keeps provider versions, native readback, recovery snapshots and confirmed inbox consumption in the same existing workflows.
+- Supports multiple contact websites and refines explicit notification/calendar group exclusions and their controls.
+- Adds current desktop playback alongside configured audio/video players in KDE Connect, with bounded source-bound covers and supported player controls. Improves tablet drawing and checkbox layout.
+- Fixes Notes text deletion and title/body focus changes. Adds redacted crash reports to authorized developer diagnostics while retaining technical timestamps and stack frames.
+- Expands native Notes timer and source-bound review MCP tools. Remaining MCP coverage and complete time-zone management continue in their existing issues.
+- Includes the supplied Notes store screenshots and the existing launcher artwork in F-Droid metadata.
+
+### Deutsch
+
+- Bereinigt beim Löschen oder Verschieben eines AppImages die zugeordneten Dienste, Erinnerungstimer und Autostart-Einträge, ohne persönliche Daten oder nachfolgende Registrierungen zu entfernen. Entfernt außerdem das gemeldete alte Erinnerungspaar bei fehlendem AppImage.
+- Gleicht vollständige bearbeitbare Kontaktgruppen einschließlich Entfernungen und ausdrücklich leerer Mengen zwischen Organizer und Android ab. Ältere Gegenstellen behalten unbekannte Mitgliedschaften; widersprüchliche Änderungen verwenden die vorhandenen Prüf- und Quellenvergleichswege.
+- Verhindert, dass EDS- und Windows-Providerabgleiche entfernte Gruppen zurückholen. Provider-Versionen, natives Zurücklesen, Wiederherstellungssicherung und bestätigter Eingangverbrauch bleiben Teil der bestehenden Abläufe.
+- Unterstützt mehrere Kontaktwebseiten und verbessert ausdrückliche Gruppen-Ausschlüsse für Benachrichtigungen und Kalender samt Bedienelementen.
+- Ergänzt die aktuelle Desktop-Wiedergabe neben festgelegten Audio-/Videoplayern in KDE Connect mit begrenzten, quellgebundenen Covern und tatsächlich unterstützten Steuermöglichkeiten. Verbessert Tablet-Zeichnen und Checkbox-Anordnung.
+- Behebt Textlöschen und Fokuswechsel zwischen Überschrift und Text in Notes. Ergänzt maskierte Absturzberichte in der freigegebenen Entwicklerdiagnose; technische Zeitstempel und Stackframes bleiben erhalten.
+- Erweitert native Notes-Timer und quellgebundene MCP-Prüfwerkzeuge. Übrige MCP-Abdeckung und vollständiges Zeitzonenmanagement bleiben in den zugehörigen Issues in Arbeit.
+- Nimmt die bereitgestellten Notes-Storebilder und das vorhandene Startsymbol in die F-Droid-Metadaten auf.
+
 ## 2.0.25 / Notes 1.0.17 — 2026-09-29
 
 ### English

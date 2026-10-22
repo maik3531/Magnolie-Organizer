@@ -33,6 +33,27 @@ msgstr ""
 msgid "Enter recipient manually"
 msgstr "Saisir le destinataire manuellement"
 
+msgid "Fax printer"
+msgstr "Imprimante fax"
+
+msgid "Network fax server"
+msgstr "Serveur fax réseau"
+
+msgid "Online fax service"
+msgstr "Service fax en ligne"
+
+msgid "Save as PDF"
+msgstr "Enregistrer en PDF"
+
+msgid "Website"
+msgstr "Site web"
+
+msgid "Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them."
+msgstr "La lecture en cours, y compris les vidéos du navigateur, reste disponible à côté des lecteurs attribués. Rechercher/Ouvrir sélectionne de la musique ou des vidéos locales ; une liste de lecture avec recherche apparaît si le lecteur la prend en charge. Les pochettes, la lecture aléatoire et la répétition sont disponibles si le lecteur les fournit."
+
+msgid "KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol."
+msgstr "KDE Connect transmet la position, la pression, le contact et le passage stylet/gomme. Le curseur de survol ne trace rien. Le menu tablette du téléphone propose le plein écran et les réglages pour masquer ou déplacer le bouton de dessin. Ce protocole ne transmet ni inclinaison, ni rotation, ni boutons supplémentaires du stylet."
+
 msgid "Fax"
 msgstr "Fax"
 

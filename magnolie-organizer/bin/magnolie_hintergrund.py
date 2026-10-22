@@ -455,13 +455,15 @@ def _desktop_exec_argument(value):
 
 
 def autostart_contents(executable=None):
+    import magnolie_appimage_lifecycle as appimage_lifecycle
     flatpak_id = os.environ.get("FLATPAK_ID", "")
     if re.fullmatch(r"[A-Za-z0-9_.-]{1,255}", flatpak_id):
         command = " ".join(_desktop_exec_argument(value) for value in
                            ("/usr/bin/flatpak", "run", flatpak_id))
     else:
-        command = _desktop_exec_argument(service_executable(executable))
-    return ("[Desktop Entry]\nType=Application\nVersion=1.0\n"
+        command = _desktop_exec_argument(appimage_lifecycle.launcher(service_executable(executable)))
+    marker = '' if flatpak_id else appimage_lifecycle.marker(service_executable(executable))
+    return marker + ("[Desktop Entry]\nType=Application\nVersion=1.0\n"
             "Name=%s\nComment=%s\n"
             "Exec=%s --hintergrunddienst\nTerminal=false\n"
             "NoDisplay=true\nX-GNOME-Autostart-enabled=true\n" % (
@@ -469,10 +471,13 @@ def autostart_contents(executable=None):
                 _("Run approved Magnolie background functions"), command))
 
 
-def configure_autostart(settings=None, executable=None, path=None):
+def configure_autostart(settings=None, executable=None, path=None, integration_runner=None):
     value = normalize_settings(settings if settings is not None else read_settings())
     target = path or autostart_path()
     if value["enabled"] and value["autostart"]:
+        if not os.environ.get('FLATPAK_ID'):
+            import magnolie_appimage_lifecycle as appimage_lifecycle
+            appimage_lifecycle.ensure_installed(service_executable(executable), runner=integration_runner)
         _atomic_text(target, autostart_contents(executable), 0o600)
         return True
     try:
@@ -781,6 +786,7 @@ def _request_shape(operation, arguments):
         "contact_uids": {"device_id"}, "contact_vcards": {"uids", "device_id"},
         "media_devices": set(), "media_status": {"device_id"},
         "local_media_settings": set(), "configure_media_player": {"application", "slot"},
+        "local_media_tracks": {"slot", "track", "token"}, "open_media_file": {"slot", "path", "application"},
         "filesystem_status": set(), "open_filesystem": {"device_id", "token"},
         "mcp_status": set(), "mcp_refresh": {"expected_revision"}, "mcp_action": {"request"},
         "media_command": {"device_id", "token", "player", "action", "value"},
@@ -806,6 +812,7 @@ def _request_shape(operation, arguments):
         "phone_request_status": {"peer_id", "request_id"},
         "phone_read_developer_diagnostics": {"peer_id"},
         "phone_read_contacts": {"peer_id", "uids"},
+        "phone_read_time_zone": set(),
         "phone_read_own_profile": {"peer_id"},
         "phone_contact_source_current": {"peer_id", "fingerprint"},
         "phone_current_identifier_event": {"payload"},
@@ -978,6 +985,18 @@ def _request_shape(operation, arguments):
         value = arguments.get('application')
         if not isinstance(value, str) or value and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,240}\.desktop', value):
             raise IPCError('invalid media application')
+    if operation in ('local_media_tracks', 'open_media_file'):
+        if arguments.get('slot') not in ('music', 'video'):
+            raise IPCError('invalid media slot')
+        if operation == 'open_media_file':
+            path, application = arguments.get('path'), arguments.get('application')
+            if (not isinstance(path, str) or not os.path.isabs(path) or len(path) > 4096 or '\x00' in path or
+                    not isinstance(application, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,240}\.desktop', application)):
+                raise IPCError('invalid media file')
+        elif arguments.get('track') is not None and (not isinstance(arguments['track'], str) or
+                not re.fullmatch(r'/[A-Za-z0-9_/]{1,500}', arguments['track']) or not isinstance(arguments.get('token'), str) or
+                not re.fullmatch(r'[a-f0-9]{64}', arguments['token'])):
+            raise IPCError('invalid media track')
     if operation == 'input_send':
         if (not isinstance(arguments.get('device_id'), str) or not re.fullmatch(r'[A-Za-z0-9_-]{32,38}', arguments['device_id']) or
                 not isinstance(arguments.get('token'), str) or not re.fullmatch(r'[a-f0-9]{32}', arguments['token'])):
@@ -1607,6 +1626,7 @@ class IPCServer:
             return phone.set_call_audio(arguments["peer_id"], arguments["prefer_pc"], arguments.get("address"), arguments.get("echo_cancel"))
         calls = {
             "phone_report": ("report", ()),
+            "phone_read_time_zone": ("read_own_time_zone", ()),
             "phone_mcp_status": ("mcp_status", ()),
             "phone_mcp_action": ("mcp_action", ("request",)),
             "phone_set_enabled": ("set_enabled", ("enabled",)),
@@ -1869,6 +1889,12 @@ class KDEConnectProxy:
 
     def configure_media_player(self, application, slot='music'):
         return self._call('configure_media_player', application=application, slot=slot)
+
+    def local_media_tracks(self, slot, track=None, token=None):
+        return self._call('local_media_tracks', slot=slot, track=track, token=token)
+
+    def open_media_file(self, slot, path, application):
+        return self._call('open_media_file', slot=slot, path=path, application=application)
 
     def configure_input(self, enabled=None, device_id=None, permitted=None):
         return self._call('configure_input', enabled=enabled, device_id=device_id or '')
@@ -2183,6 +2209,9 @@ class PhoneServiceProxy:
 
     def read_own_profile(self, peer_id):
         return self._call("read_own_profile", peer_id=peer_id)
+
+    def read_own_time_zone(self):
+        return self._call("read_time_zone")
 
     def read_developer_diagnostics(self, peer_id):
         return self._call("read_developer_diagnostics", peer_id=peer_id)

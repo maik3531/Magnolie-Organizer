@@ -33,6 +33,27 @@ msgstr ""
 msgid "Enter recipient manually"
 msgstr "Alıcıyı elle gir"
 
+msgid "Fax printer"
+msgstr "Faks yazıcısı"
+
+msgid "Network fax server"
+msgstr "Ağ faks sunucusu"
+
+msgid "Online fax service"
+msgstr "Çevrimiçi faks hizmeti"
+
+msgid "Save as PDF"
+msgstr "PDF olarak kaydet"
+
+msgid "Website"
+msgstr "Web sitesi"
+
+msgid "Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them."
+msgstr "Tarayıcı videoları dahil etkin oynatma, atanmış oynatıcıların yanında kullanılabilir. Ara/Aç yerel müzik veya videoları seçer; oynatıcı destekliyorsa aranabilir çalma listesi görünür. Kapaklar, karışık oynatma ve tekrar, oynatıcı bunları sağladığında kullanılabilir."
+
+msgid "KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol."
+msgstr "KDE Connect kalem konumunu, basıncı, teması ve kalem/silgi değişimini iletir. Yakınlık imleci çizgi bırakmaz. Telefonun tablet menüsü tam ekran ile çizim düğmesini gizleme veya taşıma ayarlarını sunar. Bu protokol eğim, dönüş veya ek kalem düğmelerini iletmez."
+
 msgid "Fax"
 msgstr "Faks"
 

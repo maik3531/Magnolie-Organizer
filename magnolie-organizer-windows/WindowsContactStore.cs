@@ -82,7 +82,9 @@ internal sealed class WindowsContactStore : IContactRemote
         {
             ["vorname"] = nameParts[1], ["nachname"] = nameParts[0], ["firma"] = First("Company").Length > 0 ? First("Company") : First("CompanyName"),
             ["anzeigename"] = Name("FormattedName"),
-            ["vcardRoundtrip"] = new JsonArray(rawNames.Select(line => (JsonNode?)line).ToArray()),
+            ["vcardRoundtrip"] = new JsonArray(rawNames.Concat(document.Descendants(ContactNs + "Url")
+                .Select(node => node.Element(ContactNs + "Value")?.Value.Trim() ?? "").Where(value => value.Length > 0)
+                .Select(ContactFields.WebsiteLine)).Select(line => (JsonNode?)line).ToArray()),
             ["strasse"] = ContactFields.Text(firstAddress, "strasse"), ["plz"] = ContactFields.Text(firstAddress, "plz"), ["ort"] = ContactFields.Text(firstAddress, "ort"), ["land"] = ContactFields.Text(firstAddress, "land"),
             ["anschriften"] = new JsonArray(addresses.Select(address => (JsonNode)address).ToArray()),
             ["email"] = emails.FirstOrDefault() ?? "", ["emails"] = new JsonArray(emails.Select(value => JsonValue.Create(value)).ToArray()),
@@ -116,6 +118,8 @@ internal sealed class WindowsContactStore : IContactRemote
         var anniversary = NormalizeDate(ContactFields.Text(contact, "jubilaeum"), contact["jubilaeumJahrUnbekannt"]?.GetValue<bool>() == true);
         var canonicalBirthday = ExchangeCodec.TryParseCanonicalDate(birthday, out var fullBirthday, out _, out _);
         var root = new XElement(ContactNs + "Contact", new XAttribute(XNamespace.Xmlns + "c", ContactNs), new XAttribute(XNamespace.Xmlns + "m", MagnolieNs), new XAttribute(ContactNs + "Version", "1"),
+            new XElement(ContactNs + "UrlCollection", ContactFields.Websites(contact).Select(url =>
+                new XElement(ContactNs + "Url", new XElement(ContactNs + "Value", url)))),
             new XElement(ContactNs + "Extended", new XElement(MagnolieNs + "MagnolieUid", uid),
                 rawNames.Select(line => new XElement(MagnolieNs + "VCardName", line)),
                 canonicalBirthday && fullBirthday is null ? new XElement(MagnolieNs + "Birthday", birthday) : null,

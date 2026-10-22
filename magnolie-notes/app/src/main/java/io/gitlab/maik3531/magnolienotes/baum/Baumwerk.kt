@@ -451,7 +451,8 @@ class Baumwerk private constructor(
         val snapshot = adapter.snapshot()
         if (!snapshot.vollstaendig) throw BaumFehler("Kontakte konnten nicht vollständig gelesen werden.")
         if (snapshot.kontakte.isEmpty()) throw BaumFehler("Der Kontaktsnapshot ist leer; es wurde nichts geändert.")
-        val fassung = partner(kennung)!!.kontaktSyncFassungen.filter { it in 1..3 }.maxOrNull() ?: 1
+        val fassung = partner(kennung)!!.kontaktSyncFassungen.filter { it in 1..4 }.maxOrNull() ?: 1
+        if (fassung >= 4 && snapshot.kontakte.any { it.daten.gruppen == null }) throw BaumFehler("contact_group_provider_unavailable")
         if (fassung == 1 && snapshot.kontakte.any { it.daten.jubilaeum.isNotEmpty() })
             throw BaumFehler(Fehlertext.KONTAKT_VERSION)
         if (fassung == 1 && snapshot.kontakte.any { !KontaktSync.legacyDarstellbar(it.daten) })
@@ -465,7 +466,8 @@ class Baumwerk private constructor(
         snapshot.kontakte.forEach { lokal ->
             val alleSpuren = ablage.baum.value.kontaktSpuren.filter { it.rawContactId in lokal.rawContactIds }
             val passendeSpuren = alleSpuren.filter { it.partner == kennung }.distinctBy { it.freigabeId }
-            val hash = KontaktSync.hash(lokal.daten)
+            val fuerPeer = if (fassung >= 4) lokal.daten else lokal.daten.copy(gruppen = null)
+            val hash = KontaktSync.hash(fuerPeer)
             val inhaltGeaendert = KontaktSync.inhaltszeit(hash, lokal.providerGeaendert, alleSpuren, jetzt)
             val bindungen: List<KontaktSpur?> = if (passendeSpuren.isEmpty()) listOf(null) else passendeSpuren
             bindungen.forEach { alt ->
@@ -489,7 +491,7 @@ class Baumwerk private constructor(
             ).takeIf { it.art.isNotEmpty() }?.let { vorschlaege += it }
             spurSichern(spur)
             einreihen(kennung, "kontakt_sync", KontaktSync.inhalt(KontaktNachricht(
-                spur.freigabeId, spur.version, spur.quelle, jetzt, lokal.daten, fassung, inhaltGeaendert
+                spur.freigabeId, spur.version, spur.quelle, jetzt, fuerPeer, fassung, inhaltGeaendert
             )))
             }
         }
@@ -629,9 +631,10 @@ class Baumwerk private constructor(
                     adapter.anlegen(inhalt, KontaktEingangslogik.importOperation(eintrag.gruppe.karten))
                 } else adapter.uebernehmen(requireNotNull(ziel).kontakt, inhalt,
                     wahl.entscheidung in setOf(KontaktEntscheidung.ERSETZEN, KontaktEntscheidung.NEUESTE))
-                val hash = KontaktSync.hash(gespeichert.daten)
-                val zeit = KontaktUebernahmePlan.originalZeit(eintrag.gruppe.karten, gespeichert.daten, System.currentTimeMillis())
-                    .takeIf { it > 0 } ?: if (ziel != null && KontaktSync.hash(ziel.kontakt.daten) == hash) ziel.inhaltszeit else 0
+                val vergleich = KontaktSync.fuerVergleich(gespeichert.daten, eintrag.gruppe.kontakt)
+                val hash = KontaktSync.hash(vergleich)
+                val zeit = KontaktUebernahmePlan.originalZeit(eintrag.gruppe.karten, vergleich, System.currentTimeMillis())
+                    .takeIf { it > 0 } ?: if (ziel != null && KontaktSync.hash(KontaktSync.fuerVergleich(ziel.kontakt.daten, eintrag.gruppe.kontakt)) == hash) ziel.inhaltszeit else 0
                 val spuren = eintrag.gruppe.karten.map { karte -> KontaktSpur(gespeichert.lookupKey,
                     gespeichert.rawContactId, karte.freigabeId, karte.version, karte.quelle,
                     KontaktSync.hash(eintrag.gruppe.kontakt), karte.partner, KontaktPruefung.name(gespeichert.daten),
@@ -771,15 +774,18 @@ class Baumwerk private constructor(
             if (peer?.bestaetigt != true || inhalt["fassung"] !in versions.orEmpty().map { kotlinx.serialization.json.JsonPrimitive(it) })
                 throw BaumFehler("contact_version_not_available")
         }
-        val angebot = if (art == "kontakt_faehigkeiten" && inhalt["antwort"] == kotlinx.serialization.json.JsonPrimitive(false) &&
-            3 in partner(an)?.kontaktSyncFassungen.orEmpty()) KontaktFaehigkeiten.inhalt(false, 3) else inhalt
+        val bekannt = partner(an)?.kontaktSyncFassungen.orEmpty().filter { it in 1..4 }.maxOrNull() ?: 2
+        val angebot = if (art == "kontakt_faehigkeiten" && inhalt["antwort"] == kotlinx.serialization.json.JsonPrimitive(false) && bekannt >= 3 && !v3Probe)
+            KontaktFaehigkeiten.inhalt(false, bekannt) else inhalt
         val faehigkeiten = if (art == "kontakt_faehigkeiten") KontaktFaehigkeiten.lesen(angebot) else null
         val probe = v3Probe || faehigkeiten?.first?.contains(3) == true
+        val gruppenProbe = faehigkeiten?.first?.contains(4) == true
         val encoded = Kanonisch.json.encodeToString(JsonObject.serializer(), angebot)
         fun probeEinreihen() {
-            if (faehigkeiten != null && !probe && angebot["antwort"] == kotlinx.serialization.json.JsonPrimitive(false) &&
-                partner(an)?.bestaetigt == true && partner(an)?.kontaktV3Geprueft != true)
-                einreihen(an, art, KontaktFaehigkeiten.inhalt(false, 3), true)
+            if (faehigkeiten != null && !v3Probe && angebot["antwort"] == kotlinx.serialization.json.JsonPrimitive(false) && partner(an)?.bestaetigt == true) {
+                if (3 !in faehigkeiten.first && partner(an)?.kontaktV3Geprueft != true) einreihen(an, art, KontaktFaehigkeiten.inhalt(false, 3), true)
+                if (4 !in faehigkeiten.first && partner(an)?.kontaktV4Geprueft != true) einreihen(an, art, KontaktFaehigkeiten.inhalt(false, 4), true)
+            }
         }
         if (faehigkeiten != null && ablage.baum.value.postfach.any {
                 it.an == an && it.art == art && it.inhalt == encoded && !it.aufgegeben }) {
@@ -794,7 +800,8 @@ class Baumwerk private constructor(
             angelegt = System.currentTimeMillis(),
             syncEpoch = ablage.baum.value.syncEpoch,
             protokoll = if (probe) "baum-fs1" else partner(an)?.protokoll.orEmpty(),
-            kontaktV3Probe = probe
+            kontaktV3Probe = probe && !gruppenProbe,
+            kontaktV4Probe = gruppenProbe
         )
         // Erst ins Postfach, dann ins Netz – ein Absturz verliert nichts.
         ablage.aendereBaum { it.copy(postfach = it.postfach + sendung) }
@@ -857,7 +864,7 @@ class Baumwerk private constructor(
                 wartendePartner += snapshot.an
                 continue
             }
-            if (snapshot.aufgegeben || !snapshot.kontaktV3Probe && snapshot.an in wartendePartner) continue
+            if (snapshot.aufgegeben || !(snapshot.kontaktV3Probe || snapshot.kontaktV4Probe) && snapshot.an in wartendePartner) continue
             if (snapshot.naechsterVersuch > jetzt) {
                 if (snapshot.baum1Umschlag.isNotEmpty()) wartendePartner += snapshot.an
                 continue
@@ -895,7 +902,7 @@ class Baumwerk private constructor(
                 try {
                     if (sendung.baum1Umschlag.isNotEmpty() && !sendungVersuchen(sendung, generation)) break
                     ergebnis = Versand.zustellen(
-                    eigen, if (sendung.kontaktV3Probe) partner.copy(protokoll = "baum-fs1") else partner,
+                    eigen, if (sendung.kontaktV3Probe || sendung.kontaktV4Probe) partner.copy(protokoll = "baum-fs1") else partner,
                     sendung.art, inhalt, sendung.transportId, transport,
                     sendung.baum1Umschlag.takeIf(String::isNotEmpty)?.let { Kanonisch.json.parseToJsonElement(it).jsonObject }
                 )
@@ -911,11 +918,13 @@ class Baumwerk private constructor(
                 if (ergebnis.gelungen || ergebnis.unsicher) break
             }
             if (sendung.syncEpoch != ablage.baum.value.syncEpoch || generation != ablage.baumVersandGeneration()) break
-            if (sendung.kontaktV3Probe && ergebnis.httpStatus in setOf(400, 403, 404)) {
+            if ((sendung.kontaktV3Probe || sendung.kontaktV4Probe) && ergebnis.httpStatus in setOf(400, 403, 404)) {
                 ablage.aendereBaum { alt ->
                     if (alt.syncEpoch != sendung.syncEpoch || generation != ablage.baumVersandGeneration()) alt
                     else alt.copy(postfach = alt.postfach.filterNot { it.id == sendung.id },
-                        partner = alt.partner.map { if (it.kennung == partner.kennung) it.copy(kontaktV3Geprueft = true) else it })
+                        partner = alt.partner.map { if (it.kennung == partner.kennung) it.copy(
+                            kontaktV3Geprueft = it.kontaktV3Geprueft || sendung.kontaktV3Probe,
+                            kontaktV4Geprueft = it.kontaktV4Geprueft || sendung.kontaktV4Probe) else it })
                 }
             } else if (ergebnis.gelungen) {
                 zugestellt++
@@ -958,7 +967,7 @@ class Baumwerk private constructor(
                 )
             })
         }
-        if (versuche == 1 && !sendung.kontaktV3Probe) meldeFehler(grund)
+        if (versuche == 1 && !(sendung.kontaktV3Probe || sendung.kontaktV4Probe)) meldeFehler(grund)
     }
 
     private fun aufgeben(sendung: Sendung) {
@@ -1056,14 +1065,16 @@ class Baumwerk private constructor(
             val (sync, import) = KontaktFaehigkeiten.lesen(inhalt)
                 ?: throw BaumFehler("Die Nachricht ist beschädigt.")
             val modern = 3 in sync
+            val maximum = sync.maxOrNull() ?: 1
             val answer = inhalt["antwort"] == kotlinx.serialization.json.JsonPrimitive(true)
             ablage.aendereBaum { alt -> alt.copy(partner = alt.partner.map {
-                if (it.kennung == vonKennung && (modern || !answer || 3 !in it.kontaktSyncFassungen))
+                if (it.kennung == vonKennung && (maximum >= (it.kontaktSyncFassungen.maxOrNull() ?: 1) || !answer))
                     it.copy(kontaktSyncFassungen = sync, kontaktImportFassungen = import,
-                        kontaktV3Geprueft = it.kontaktV3Geprueft || modern) else it
+                        kontaktV3Geprueft = it.kontaktV3Geprueft || modern,
+                        kontaktV4Geprueft = it.kontaktV4Geprueft || 4 in sync) else it
             }) }
             if (inhalt["antwort"] == kotlinx.serialization.json.JsonPrimitive(false))
-                einreihen(vonKennung, art, KontaktFaehigkeiten.inhalt(true, if (modern) 3 else 2))
+                einreihen(vonKennung, art, KontaktFaehigkeiten.inhalt(true, maximum.coerceIn(2, 4)))
             return
         }
         if (art == "termin") {

@@ -67,6 +67,29 @@ class KontaktUebernahmeTest {
         assertThrows(IllegalArgumentException::class.java) { KontaktUebernahmePlan.inhalt(p, wahl.copy(fernfelder = setOf("uid"))) }
     }
 
+    @Test fun `group review accepts complete incoming sets or explicitly keeps local memberships`() {
+        val local = karte.copy(gruppen = listOf("Colleagues", "Work"))
+        for (groups in listOf(listOf("Work"), emptyList(), null)) {
+            val p = plan(listOf(lokal(local)), e = eingang(karte.copy(gruppen = groups)))
+            val choice = KontaktAuswahl(p.gruppe.id, KontaktEntscheidung.MISCHEN, 1)
+            assertEquals(groups ?: local.gruppen, KontaktUebernahmePlan.inhalt(p, choice).gruppen)
+            assertEquals(local.gruppen, KontaktUebernahmePlan.inhalt(p, choice.copy(gruppenBehalten = true)).gruppen)
+            assertEquals(local.gruppen, KontaktUebernahmePlan.inhalt(p, choice.copy(entscheidung = KontaktEntscheidung.BEHALTEN)).gruppen)
+        }
+    }
+
+    @Test fun `incoming fragments preserve known groups and conflicting sets require individual review`() {
+        val known = eingang(karte.copy(gruppen = listOf("Work")))
+        val legacy = eingang().copy(freigabeId = "legacy-fragment")
+        val compatible = KontaktEingangslogik.gruppiere(listOf(known, legacy)).single()
+        assertEquals(listOf("Work"), compatible.kontakt.gruppen)
+        assertTrue(compatible.zusammenfuehrbar)
+        val empty = known.copy(freigabeId = "empty-fragment", kontakt = known.kontakt.copy(gruppen = emptyList()))
+        val conflict = KontaktEingangslogik.gruppiere(listOf(known, empty)).single()
+        assertFalse(conflict.zusammenfuehrbar)
+        assertEquals(listOf("gruppen"), conflict.konflikte.map { it.feld })
+    }
+
     @Test fun `newest needs original times and retains an existing photo`() {
         val p = plan(listOf(lokal(karte.copy(firma = "Old", foto = "local-photo"))))
         assertTrue(KontaktUebernahmePlan.neuesteMoeglich(p, p.ziele.single()))

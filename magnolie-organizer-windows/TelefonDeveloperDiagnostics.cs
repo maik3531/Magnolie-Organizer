@@ -6,23 +6,34 @@ namespace MagnolieOrganizer.Windows;
 internal static class TelefonDeveloperDiagnostics
 {
     internal const int Version = 11;
+    internal const int CrashVersion = 13;
     internal static void ValidateRequest(JsonObject body)
     {
         TelefonProtocolContract.ExactObject(body, "version", "request_id");
-        if (TelefonProtocolContract.Integer(body["version"]) != Version ||
+        if (TelefonProtocolContract.Integer(body["version"]) is not (Version or CrashVersion) ||
             !TelefonProtocolContract.IsUuidV4(body["request_id"]?.GetValue<string>()))
             throw new InvalidDataException("invalid_developer_request");
     }
 
     internal static void ValidateReport(JsonObject body)
     {
-        TelefonProtocolContract.ExactObject(body, "version", "request_id", "format", "app_version", "events");
-        if (TelefonProtocolContract.Integer(body["version"]) != Version ||
+        var reportVersion = TelefonProtocolContract.Integer(body["version"]);
+        if (reportVersion == CrashVersion) TelefonProtocolContract.ExactObject(body, "version", "request_id", "format", "app_version", "events", "crash_report");
+        else TelefonProtocolContract.ExactObject(body, "version", "request_id", "format", "app_version", "events");
+        if (reportVersion is not (Version or CrashVersion) ||
             TelefonProtocolContract.Integer(body["format"]) != 1 ||
             !TelefonProtocolContract.IsUuidV4(body["request_id"]?.GetValue<string>()) ||
             body["app_version"] is not JsonValue app || !app.TryGetValue<string>(out var version) || version.Length is < 1 or > 80 ||
-            body["events"] is not JsonArray events || events.Count > 128 || Encoding.UTF8.GetByteCount(body.ToJsonString()) > 65536)
+            body["events"] is not JsonArray events || events.Count > 128 || Encoding.UTF8.GetByteCount(body.ToJsonString()) > (reportVersion == CrashVersion ? 131072 : 65536))
             throw new InvalidDataException("invalid_developer_report");
+        if (reportVersion == CrashVersion)
+        {
+            var crash = TelefonProtocolContract.ExactObject(body["crash_report"]!, "available", "text", "truncated");
+            if (crash["available"] is not JsonValue available || !available.TryGetValue<bool>(out var hasReport) ||
+                crash["truncated"] is not JsonValue truncated || !truncated.TryGetValue<bool>(out var cut) ||
+                crash["text"] is not JsonValue text || !text.TryGetValue<string>(out var contents) || Encoding.UTF8.GetByteCount(contents) > 16387 ||
+                !hasReport && (contents.Length != 0 || cut)) throw new InvalidDataException("invalid_developer_crash_report");
+        }
         foreach (var node in events)
         {
             var entry = TelefonProtocolContract.ExactObject(node!, "time_ms", "stage", "transport", "failure");
@@ -39,7 +50,7 @@ internal static class TelefonDeveloperDiagnostics
 internal sealed partial class TelefonCoordinator
 {
     private sealed record DeveloperReadWait(string PeerId, byte[] PublicKey, TelefonConnection Connection,
-        string MessageId, TaskCompletionSource<JsonObject> Completion, long Deadline, CancellationToken Cancellation);
+        string MessageId, TaskCompletionSource<JsonObject> Completion, long Deadline, CancellationToken Cancellation, int Version);
     private readonly Dictionary<string, DeveloperReadWait> developerReads = new(StringComparer.Ordinal);
 
     internal async Task<JsonObject> ReadDeveloperDiagnosticsAsync(string id, CancellationToken cancellation)
@@ -52,22 +63,37 @@ internal sealed partial class TelefonCoordinator
             if (developerReads.Count >= 8 || !online.TryGetValue(id, out var connection) || !connection.DeveloperReadReady)
                 throw new InvalidOperationException("developer_diagnostics_unavailable");
             var peer = Peers.Single(value => value.Id == id);
+            var version = connection.DeveloperReadVersion;
+            if (version == 0) throw new InvalidOperationException("developer_diagnostics_unavailable");
             pending = new DeveloperReadWait(id, peer.PublicKey.ToArray(), connection, Guid.NewGuid().ToString("D"),
-                new TaskCompletionSource<JsonObject>(TaskCreationOptions.RunContinuationsAsynchronously), Environment.TickCount64 + 10000, cancellation);
+                new TaskCompletionSource<JsonObject>(TaskCreationOptions.RunContinuationsAsynchronously), Environment.TickCount64 + 10000, cancellation, version);
             developerReads.Add(requestId, pending);
         }
         try
         {
             await pending.Connection.SendMessageAsync("device_status.request",
-                new JsonObject { ["version"] = 11, ["request_id"] = requestId }, 10000, pending.MessageId);
+                new JsonObject { ["version"] = pending.Version, ["request_id"] = requestId }, 10000, pending.MessageId);
             var result = await pending.Completion.Task.WaitAsync(TimeSpan.FromSeconds(10), cancellation);
             lock (gate)
             {
-                if (!online.TryGetValue(id, out var current) || !ReferenceEquals(current, pending.Connection) || !current.DeveloperReadReady ||
+                if (!online.TryGetValue(id, out var current) || !ReferenceEquals(current, pending.Connection) || current.DeveloperReadVersion != pending.Version ||
                     Environment.TickCount64 >= pending.Deadline || !Peers.Any(peer => peer.Id == id && peer.PublicKey.SequenceEqual(pending.PublicKey)))
                     throw new InvalidOperationException("developer_diagnostics_source_changed");
             }
-            return result.DeepClone().AsObject();
+            var safe = result.DeepClone().AsObject();
+            if (pending.Version == TelefonDeveloperDiagnostics.CrashVersion && safe["crash_report"] is JsonObject crash && crash["available"]?.GetValue<bool>() == true)
+            {
+                var masked = LogPresentation.MaskSensitive(crash["text"]!.GetValue<string>());
+                var output = new StringBuilder(); var budget = 16384;
+                foreach (var rune in masked.EnumerateRunes())
+                {
+                    if (rune.Utf8SequenceLength > budget) break;
+                    output.Append(rune); budget -= rune.Utf8SequenceLength;
+                }
+                crash["text"] = output.ToString();
+                crash["truncated"] = crash["truncated"]!.GetValue<bool>() || Encoding.UTF8.GetByteCount(masked) > 16384;
+            }
+            return safe;
         }
         finally { lock (gate) developerReads.Remove(requestId); }
     }
@@ -97,7 +123,8 @@ internal sealed partial class TelefonCoordinator
             {
                 if (!developerReads.TryGetValue(body["request_id"]!.GetValue<string>(), out var pending) || pending.Completion.Task.IsCompleted ||
                     pending.PeerId != peer.Id || !pending.PublicKey.SequenceEqual(peer.PublicKey) || !ReferenceEquals(source, pending.Connection) ||
-                    !online.TryGetValue(peer.Id, out var current) || !ReferenceEquals(source, current) || !source.DeveloperReadReady)
+                    !online.TryGetValue(peer.Id, out var current) || !ReferenceEquals(source, current) || source.DeveloperReadVersion != pending.Version ||
+                    TelefonProtocolContract.Integer(body["version"]) != pending.Version)
                     return new TelefonAck(messageId, "rejected", "not_granted");
                 if (pending.Cancellation.IsCancellationRequested || Environment.TickCount64 >= pending.Deadline || Now() >= TelefonProtocolContract.Integer(message["expires_ms"]))
                     return new TelefonAck(messageId, "rejected", "expired");
@@ -112,6 +139,9 @@ internal sealed partial class TelefonCoordinator
 
 internal sealed partial class TelefonConnection
 {
+    internal int DeveloperReadVersion => !DeveloperReadReady ? 0 :
+        store.LoadPeers().Single(value => value.Id == peer.Id && value.PublicKey.SequenceEqual(peer.PublicKey)).Capabilities["device_status"]?["versions"] is JsonArray versions &&
+        versions.Any(value => value?.GetValue<int>() == TelefonDeveloperDiagnostics.CrashVersion) ? TelefonDeveloperDiagnostics.CrashVersion : TelefonDeveloperDiagnostics.Version;
     private async Task HandleDeveloperReportAsync(JsonObject plain)
     {
         TelefonAck ack;

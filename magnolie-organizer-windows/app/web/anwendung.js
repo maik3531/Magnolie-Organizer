@@ -15,150 +15,130 @@
 (function () {
 
   /* Die Fassung erscheint auf der Seite „Über". */
-const FASSUNG = "2.0.27";
+const FASSUNG = "2.0.28";
 const S = (x) => (x === undefined || x === null) ? "" : String(x);
-const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.27";
+const NEU_IN_DIESER_FASSUNG_VERSION = "2.0.28";
 
 const NEU_IN_DIESER_FASSUNG = {
   "de": [
     "Neu in dieser Version",
-    "Direkte Fingerzeichnung mit getrennten Strichen",
-    "Übersichtlichere Kontaktprüfung, optionale Personengruppen und Zykluserinnerungen",
-    "Zeiterfassung im Schichtdienst-Planer und korrigierter Kalendertag beim Zurückholen aus dem Tray",
-    "Magnolie Notes 1.0.19: binärsicherer Import mit Dateifilter, Offline-Rechnerauswahl und Notes-Import als Vorgabe"
+    "Kontaktgruppen gleichen Ergänzungen und Entfernungen mit Android ab; Kontakte unterstützen mehrere Webseiten",
+    "KDE Connect ergänzt die aktuelle Wiedergabe neben zugewiesenen Medienplayern; Zeichenblatt und Gruppen-Ausschlüsse sind verbessert",
+    "Notes korrigiert Textlöschen und Fokuswechsel und ergänzt maskierte Absturzdiagnosen; native Timer- und Prüfwerkzeuge für MCP sind erweitert"
   ],
   "en": [
     "What's new in this version",
-    "Direct finger drawing with separate strokes",
-    "Clearer contact review, optional contact groups and cycle reminders",
-    "Time tracking integrated into the shift planner and corrected calendar return from the tray",
-    "Magnolie Notes 1.0.19: binary-safe import with a file filter, offline computer selection and Notes-to-Organizer import by default"
+    "Contact groups synchronize additions and removals with Android; contacts support multiple websites",
+    "KDE Connect adds current playback alongside assigned media players; drawing and group-exclusion controls are refined",
+    "Notes fixes text deletion and focus changes and adds redacted crash diagnostics; native timer and review MCP tools are expanded"
   ],
   "fr": [
     "Nouveautés de cette version",
-    "Dessin direct au doigt avec traits séparés",
-    "Vérification des contacts plus claire, groupes facultatifs et rappels de cycle",
-    "Suivi du temps intégré au planning des équipes et retour corrigé au calendrier depuis la zone de notification",
-    "Magnolie Notes 1.0.19 : import protégé contre les fichiers binaires avec filtre, sélection des ordinateurs hors ligne et import Notes vers Organizer par défaut"
+    "Les groupes de contacts synchronisent les ajouts et suppressions avec Android ; les contacts acceptent plusieurs sites web",
+    "KDE Connect ajoute la lecture en cours aux lecteurs attribués ; le dessin et les exclusions de groupes sont améliorés",
+    "Notes corrige la suppression de texte et les changements de focus et ajoute des diagnostics anonymisés ; les outils MCP de minuterie et de vérification sont enrichis"
   ],
   "es": [
     "Novedades de esta versión",
-    "Dibujo directo con el dedo y trazos separados",
-    "Revisión de contactos más clara, grupos opcionales y recordatorios del ciclo",
-    "Registro de tiempo integrado en el planificador de turnos y vuelta corregida al calendario desde la bandeja",
-    "Magnolie Notes 1.0.19: importación segura frente a archivos binarios con filtro, selección de equipos sin conexión e importación desde Notes por defecto"
+    "Los grupos de contactos sincronizan altas y bajas con Android; los contactos admiten varios sitios web",
+    "KDE Connect añade la reproducción actual junto a los reproductores asignados; se mejoran el dibujo y las exclusiones de grupos",
+    "Notes corrige el borrado de texto y los cambios de foco y añade diagnósticos de fallos con datos ocultos; se amplían las herramientas MCP de temporizador y revisión"
   ],
   "it": [
     "Novità di questa versione",
-    "Disegno diretto con il dito a tratti separati",
-    "Verifica dei contatti più chiara, gruppi facoltativi e promemoria del ciclo",
-    "Registrazione del tempo integrata nel pianificatore dei turni e ritorno corretto al calendario dalla barra di sistema",
-    "Magnolie Notes 1.0.19: importazione protetta dai file binari con filtro, scelta dei computer offline e importazione da Notes predefinita"
+    "I gruppi di contatti sincronizzano aggiunte e rimozioni con Android; i contatti supportano più siti web",
+    "KDE Connect aggiunge la riproduzione attuale ai lettori assegnati; migliorati il disegno e le esclusioni dei gruppi",
+    "Notes corregge la cancellazione del testo e i cambi di focus e aggiunge diagnosi degli arresti con dati oscurati; ampliati gli strumenti MCP per timer e revisione"
   ],
   "nl": [
     "Nieuw in deze versie",
-    "Rechtstreeks tekenen met de vinger in afzonderlijke streken",
-    "Duidelijkere contactcontrole, optionele contactgroepen en cyclusherinneringen",
-    "Tijdregistratie in de dienstenplanner en correcte kalenderdag bij terugkeer vanuit het systeemvak",
-    "Magnolie Notes 1.0.19: binaire bestanden veilig geweigerd met bestandsfilter, offline computers kiezen en standaard import vanuit Notes"
+    "Contactgroepen synchroniseren toevoegingen en verwijderingen met Android; contacten ondersteunen meerdere websites",
+    "KDE Connect voegt huidige weergave toe naast toegewezen mediaspelers; tekenen en groepsuitsluitingen zijn verbeterd",
+    "Notes herstelt tekst wissen en focuswisselingen en voegt afgeschermde crashdiagnostiek toe; native MCP-timer- en controlehulpmiddelen zijn uitgebreid"
   ],
   "pt": [
     "Novidades desta versão",
-    "Desenho direto com o dedo em traços separados",
-    "Verificação de contactos mais clara, grupos opcionais e lembretes do ciclo",
-    "Registo de tempo integrado no planeador de turnos e regresso corrigido ao calendário pela área de notificação",
-    "Magnolie Notes 1.0.19: importação protegida contra ficheiros binários com filtro, seleção de computadores offline e importação do Notes por predefinição"
+    "Os grupos de contactos sincronizam adições e remoções com Android; os contactos suportam vários sítios web",
+    "KDE Connect acrescenta a reprodução atual aos leitores atribuídos; o desenho e as exclusões de grupos foram melhorados",
+    "Notes corrige a eliminação de texto e as mudanças de foco e acrescenta diagnósticos de falhas com dados ocultados; as ferramentas MCP de temporizador e revisão foram ampliadas"
   ],
   "ru": [
     "Новое в этой версии",
-    "Рисование пальцем с отдельными штрихами",
-    "Более понятная проверка контактов, необязательные группы и напоминания о цикле",
-    "Учёт времени в планировщике смен и исправленный возврат к текущему дню из трея",
-    "Magnolie Notes 1.0.19: защита импорта от двоичных файлов и фильтр, выбор компьютеров офлайн и импорт из Notes по умолчанию"
+    "Группы контактов синхронизируют добавления и удаления с Android; контакты поддерживают несколько веб-сайтов",
+    "KDE Connect показывает текущее воспроизведение наряду с назначенными проигрывателями; улучшены рисование и исключения групп",
+    "Notes исправляет удаление текста и смену фокуса и добавляет обезличенную диагностику сбоев; расширены инструменты MCP для таймеров и проверки"
   ],
   "cs": [
     "Co je nového v této verzi",
-    "Přímé kreslení prstem s oddělenými tahy",
-    "Přehlednější kontrola kontaktů, volitelné skupiny a připomínky cyklu",
-    "Evidence času v plánovači směn a opravený návrat ke kalendáři z oznamovací oblasti",
-    "Magnolie Notes 1.0.19: ochrana importu před binárními soubory a filtr, výběr offline počítačů a výchozí import z Notes"
+    "Skupiny kontaktů synchronizují přidání i odebrání s Androidem; kontakty podporují více webových stránek",
+    "KDE Connect doplňuje aktuální přehrávání vedle přiřazených přehrávačů; vylepšeno kreslení a vyloučení skupin",
+    "Notes opravuje mazání textu a změny zaměření a přidává diagnostiku pádů se skrytými údaji; rozšířeny nástroje MCP pro časovače a kontrolu"
   ],
   "pl": [
     "Nowości w tej wersji",
-    "Bezpośrednie rysowanie palcem oddzielnymi kreskami",
-    "Czytelniejsza kontrola kontaktów, opcjonalne grupy i przypomnienia o cyklu",
-    "Rejestracja czasu w planerze zmian i poprawiony powrót do kalendarza z zasobnika",
-    "Magnolie Notes 1.0.19: ochrona importu przed plikami binarnymi i filtr, wybór komputerów offline oraz domyślny import z Notes"
+    "Grupy kontaktów synchronizują dodawanie i usuwanie z Androidem; kontakty obsługują wiele witryn",
+    "KDE Connect dodaje bieżące odtwarzanie obok przypisanych odtwarzaczy; ulepszono rysowanie i wykluczenia grup",
+    "Notes naprawia usuwanie tekstu i zmianę fokusu oraz dodaje diagnostykę awarii z ukrytymi danymi; rozszerzono narzędzia MCP do minutników i przeglądu"
   ],
   "hsb": [
     "Nowe w tutej wersiji",
-    "Kreslenje z porstom z dźělenymi čarami",
-    "Přehladniša kontrola kontaktow, opcionalne skupiny a dopomnjeća na cyklus",
-    "Časowe registrowanje w planowaku směnow a porjedźeny nawrót ke kalendarjej ze systemoweho wobłuka",
-    "Magnolie Notes 1.0.19: škit impor­ta před binarnymi datajemi a filter, wuběr offline ličakow a standardny import z Notes"
+    "Kontaktne skupiny přidawanja a wotstronjenja z Androidom synchronizuja; kontakty wjacore websydła podpěruja",
+    "KDE Connect aktualne wothraće nimo přirjadowanych přehravačow přidawa; rysowanje a wuzamknjenja skupin su polěpšene",
+    "Notes wušmórnjenje teksta a změny fokusa porjedźa a diagnostiku spadow ze zakrytymi datami přidawa; nastroje MCP za časoměry a přepruwowanje su rozšěrjene"
   ],
   "da": [
     "Nyt i denne version",
-    "Direkte fingertegning med adskilte streger",
-    "Tydeligere kontaktkontrol, valgfrie grupper og cykluspåmindelser",
-    "Tidsregistrering i vagtplanlæggeren og rettet kalenderdato ved tilbagevenden fra systembakken",
-    "Magnolie Notes 1.0.19: importbeskyttelse mod binære filer med filter, valg af offline computere og import fra Notes som standard"
+    "Kontaktgrupper synkroniserer tilføjelser og fjernelser med Android; kontakter understøtter flere websteder",
+    "KDE Connect tilføjer aktuel afspilning ved siden af tildelte medieafspillere; tegning og gruppeudelukkelser er forbedret",
+    "Notes retter tekstsletning og fokusskift og tilføjer nedbrudsdiagnostik med skjulte data; native MCP-værktøjer til timere og gennemgang er udvidet"
   ],
   "nb": [
     "Nytt i denne versjonen",
-    "Direkte fingertegning med separate streker",
-    "Tydeligere kontaktkontroll, valgfrie grupper og sykluspåminnelser",
-    "Tidsregistrering i skiftplanleggeren og rettet kalenderdato ved tilbakekomst fra systemfeltet",
-    "Magnolie Notes 1.0.19: importbeskyttelse mot binære filer med filter, valg av frakoblede datamaskiner og import fra Notes som standard"
+    "Kontaktgrupper synkroniserer tillegg og fjerninger med Android; kontakter støtter flere nettsteder",
+    "KDE Connect legger til aktuell avspilling ved siden av tilordnede mediespillere; tegning og gruppeutelatelser er forbedret",
+    "Notes retter tekstsletting og fokusbytter og legger til krasjdiagnostikk med skjulte data; native MCP-verktøy for tidtakere og gjennomgang er utvidet"
   ],
   "hi": [
     "इस संस्करण में नया",
-    "अलग-अलग स्ट्रोक के साथ सीधे उंगली से चित्र बनाना",
-    "अधिक स्पष्ट संपर्क समीक्षा, वैकल्पिक संपर्क समूह और चक्र अनुस्मारक",
-    "शिफ्ट योजनाकार में समय रिकॉर्डिंग और सिस्टम ट्रे से लौटने पर सही कैलेंडर दिन",
-    "Magnolie Notes 1.0.19: बाइनरी फ़ाइलों से सुरक्षित आयात और फ़ाइल फ़िल्टर, ऑफलाइन कंप्यूटर चयन तथा डिफ़ॉल्ट Notes आयात"
+    "संपर्क समूह Android के साथ जोड़े और हटाए गए सदस्यों को सिंक करते हैं; संपर्कों में कई वेबसाइट समर्थित हैं",
+    "KDE Connect निर्धारित मीडिया प्लेयर के साथ वर्तमान प्लेबैक दिखाता है; चित्रण और समूह अपवर्जन नियंत्रण सुधारे गए हैं",
+    "Notes में पाठ हटाना और फ़ोकस बदलना सुधारा गया है तथा संवेदनशील डेटा छिपाकर क्रैश निदान जोड़ा गया है; मूल टाइमर और समीक्षा MCP उपकरण बढ़ाए गए हैं"
   ],
   "zh-cn": [
     "此版本的新功能",
-    "可抬指分段的直接手指绘图",
-    "更清晰的联系人审核、可选联系人分组和周期提醒",
-    "将时间记录整合到排班计划，并修正从托盘返回时的日历日期",
-    "Magnolie Notes 1.0.19：带文件筛选的安全导入，拒绝二进制文件、选择离线电脑并默认从 Notes 导入"
+    "联系人群组可与 Android 同步新增和移除的成员；联系人支持多个网站",
+    "KDE Connect 在指定媒体播放器之外增加当前播放；改进绘图和群组排除设置",
+    "Notes 修复删除文本和切换焦点的问题，并增加隐藏敏感信息的崩溃诊断；扩展原生计时器及审核 MCP 工具"
   ],
   "ja": [
     "このバージョンの新機能",
-    "指を離して区切れる直接指描き",
-    "連絡先の確認を改善し、任意の連絡先グループと周期リマインダーを追加",
-    "シフトプランナーに時間記録を統合し、トレイから戻る際のカレンダー日付を修正",
-    "Magnolie Notes 1.0.19：バイナリファイルを拒否するインポートとファイルフィルター、オフラインPCの選択、Notesからの既定インポート"
+    "連絡先グループの追加と削除を Android と同期し、連絡先に複数のウェブサイトを登録できます",
+    "KDE Connect で指定したメディアプレーヤーに加えて現在の再生を利用できます。描画とグループ除外の操作も改善しました",
+    "Notes の文字削除とフォーカス切り替えを修正し、機密情報を隠すクラッシュ診断を追加しました。ネイティブのタイマーと確認用 MCP ツールも拡張しました"
   ],
   "ar": [
     "ما الجديد في هذا الإصدار",
-    "رسم مباشر بالإصبع بضربات منفصلة",
-    "مراجعة أوضح لجهات الاتصال ومجموعات اختيارية وتذكيرات الدورة",
-    "تسجيل الوقت ضمن مخطط الورديات وتصحيح يوم التقويم عند العودة من علبة النظام",
-    "Magnolie Notes 1.0.19: استيراد محمي من الملفات الثنائية مع مرشح ملفات واختيار الحواسيب غير المتصلة والاستيراد من Notes افتراضياً"
+    "تزامن مجموعات جهات الاتصال الإضافات والإزالات مع Android، وتدعم جهات الاتصال عدة مواقع ويب",
+    "يضيف KDE Connect التشغيل الحالي إلى جانب مشغلات الوسائط المحددة، مع تحسين الرسم واستثناء المجموعات",
+    "يصلح Notes حذف النص وتغيير التركيز ويضيف تشخيص الأعطال مع إخفاء البيانات الحساسة، ويوسع أدوات MCP الأصلية للمؤقتات والمراجعة"
   ],
   "uk": [
     "Нове в цій версії",
-    "Малювання пальцем окремими штрихами",
-    "Зрозуміліша перевірка контактів, необов’язкові групи та нагадування про цикл",
-    "Облік часу в планувальнику змін і виправлене повернення до поточного дня з трея",
-    "Magnolie Notes 1.0.19: захист імпорту від двійкових файлів і фільтр, вибір комп’ютерів офлайн та імпорт із Notes за замовчуванням"
+    "Групи контактів синхронізують додавання й вилучення з Android; контакти підтримують кілька вебсайтів",
+    "KDE Connect додає поточне відтворення поряд із призначеними програвачами; покращено малювання та виключення груп",
+    "Notes виправляє видалення тексту й зміну фокуса та додає діагностику збоїв із прихованими даними; розширено засоби MCP для таймерів і перевірки"
   ],
   "be": [
     "Што новага ў гэтай версіі",
-    "Маляванне пальцам асобнымі штрыхамі",
-    "Больш зразумелая праверка кантактаў, неабавязковыя групы і напаміны пра цыкл",
-    "Улік часу ў планавальніку змен і выпраўленае вяртанне да бягучага дня з трэя",
-    "Magnolie Notes 1.0.19: абарона імпарту ад двайковых файлаў і фільтр, выбар камп’ютараў афлайн і імпарт з Notes па змаўчанні"
+    "Групы кантактаў сінхранізуюць даданні і выдаленні з Android; кантакты падтрымліваюць некалькі вэб-сайтаў",
+    "KDE Connect дадае бягучае прайграванне побач з прызначанымі прайгравальнікамі; палепшаны маляванне і выключэнні груп",
+    "Notes выпраўляе выдаленне тэксту і змену фокуса ды дадае дыягностыку збояў са схаванымі данымі; пашыраны сродкі MCP для таймераў і праверкі"
   ],
   "tr": [
     "Bu sürümdeki yenilikler",
-    "Ayrı çizgilerle doğrudan parmak çizimi",
-    "Daha anlaşılır kişi incelemesi, isteğe bağlı kişi grupları ve döngü hatırlatmaları",
-    "Vardiya planlayıcısına entegre zaman takibi ve sistem tepsisinden dönüşte düzeltilmiş takvim günü",
-    "Magnolie Notes 1.0.19: dosya filtresiyle ikili dosyalara karşı güvenli içe aktarma, çevrimdışı bilgisayar seçimi ve varsayılan Notes içe aktarımı"
+    "Kişi grupları ekleme ve kaldırmaları Android ile eşitler; kişiler birden çok web sitesini destekler",
+    "KDE Connect atanan medya oynatıcılarının yanına geçerli oynatmayı ekler; çizim ve grup dışlamaları iyileştirildi",
+    "Notes metin silme ve odak değişimlerini düzeltir ve hassas verileri gizleyen çökme tanılaması ekler; yerel zamanlayıcı ve inceleme MCP araçları genişletildi"
   ]
 };
 if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes version mismatch");
@@ -368,7 +348,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
           letzteVersion: "", letzteUrl: "", letztePruefsumme: "", letzterFehler: "" },
         regional: { language: "de", formatLocale: "de-DE", hourCycle: "h23",
           firstDayOfWeek: "monday", weekRule: "iso",
-          temperatureUnit: "celsius", timeZone: "system", homeCountry: "DE" },
+          temperatureUnit: "celsius", timeZone: "system", homeCountry: "DE",
+          timeZoneManagement: "off", timeZoneDetection: "auto", timeZoneManual: "system", timeZoneDetectedSource: "manual", timeZoneDetectedAt: "0" },
         schrift: { art: "regular", farbe: "black", groesse: "normal",
           rechtschreibung: true, linien: true, radRichtung: "up-earlier" },
         ansicht: "week",
@@ -3202,6 +3183,67 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   function sozialerDienstName(dienst) {
     const gefunden = SOZIALE_DIENSTE.find((x) => x[0] === dienst);
     return gefunden ? gefunden[1] : _("Social medium");
+  }
+
+  function gueltigeIanaZeitzone(value, system = false) {
+    let zone = String(value || "").trim();
+    if (system && zone === "system") return zone;
+    if (["GMT", "Etc/UTC", "Etc/GMT", "Z"].includes(zone)) zone = "UTC";
+    if (zone !== "UTC" && !/^[A-Za-z0-9._+-]+(?:\/[A-Za-z0-9._+-]+)+$/.test(zone) || zone.includes("..") || zone.length > 128) return "";
+    try { return new Intl.DateTimeFormat("en", { timeZone: zone }).resolvedOptions().timeZone; }
+    catch (_) { return ""; }
+  }
+  function kontaktZeitzone(kontakt) {
+    const zones = [...new Set((kontakt?.vcardRoundtrip || []).flatMap(line => {
+      const match = /^(?:[A-Za-z0-9-]+\.)?TZ(?:;[^:]*)?:(.*)$/i.exec(line);
+      return match ? [gueltigeIanaZeitzone(match[1])] : [];
+    }))];
+    return zones.length === 1 ? zones[0] : "";
+  }
+  function setzeKontaktZeitzone(kontakt, value) {
+    const zone = value ? gueltigeIanaZeitzone(value) : "";
+    if (value && !zone) throw new Error("invalid_time_zone");
+    if (zone && zone === kontaktZeitzone(kontakt)) return;
+    kontakt.vcardRoundtrip = (kontakt.vcardRoundtrip || []).filter(line => !/^(?:[A-Za-z0-9-]+\.)?TZ[;:]/i.test(line));
+    if (zone) kontakt.vcardRoundtrip.push("TZ:" + zone);
+  }
+  function kontaktOrtszeit(zone, jetzt = new Date(), regional = DATEN.einstellungen.regional) {
+    if (!["manual", "automatic"].includes(regional.timeZoneManagement)) return null;
+    zone = gueltigeIanaZeitzone(zone);
+    const own = gueltigeIanaZeitzone(regional.timeZone === "system" ? new Intl.DateTimeFormat().resolvedOptions().timeZone : regional.timeZone);
+    if (!zone || !own || zone === own) return null;
+    const options = { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", timeZoneName: "short" };
+    if (["h12", "h23"].includes(regional.hourCycle)) options.hourCycle = regional.hourCycle;
+    return { zone, own_zone: own, captured_ms: +jetzt, text: datumText(jetzt, options, false) };
+  }
+  function aktualisiereKontaktOrtszeiten() {
+    for (const node of document.querySelectorAll(".kontakt-ortszeit")) {
+      const clock = kontaktOrtszeit(node.dataset.timeZone);
+      node.hidden = !clock; node.textContent = clock ? _("Local time") + " · " + clock.text : "";
+    }
+  }
+
+  function kontaktWebseiten(kontakt) {
+    return [...new Set((kontakt?.vcardRoundtrip || []).flatMap(line => {
+      const match = /^(?:[A-Za-z0-9-]+\.)?URL(?:;[^:]*)?:(.*)$/i.exec(line);
+      if (!match) return [];
+      const value = match[1].replace(/\\([,;\\])/g, "$1").trim();
+      const candidate = /^[a-z][a-z0-9+.-]*:/i.test(value) ? value : "https://" + value;
+      try { const url = new URL(candidate); return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password ? [candidate] : []; }
+      catch (_) { return []; }
+    }))];
+  }
+  function setzeKontaktWebseiten(kontakt, values) {
+    const urls = [...new Set(values.map(value => String(value).trim()).filter(Boolean))];
+    if (JSON.stringify(kontaktWebseiten(kontakt)) === JSON.stringify(urls)) return;
+    const vorhanden = new Set();
+    kontakt.vcardRoundtrip = (kontakt.vcardRoundtrip || []).filter(line => {
+      const old = kontaktWebseiten({ vcardRoundtrip: [line] })[0];
+      if (!old) return true;
+      if (!urls.includes(old)) return false;
+      vorhanden.add(old); return true;
+    });
+    for (const url of urls) if (!vorhanden.has(url)) kontakt.vcardRoundtrip.push("URL:" + url.replace(/\\/g, "\\\\").replace(/,/g, "\\,").replace(/;/g, "\\;"));
   }
 
   function sozialeMedienListe(kontakt) {
@@ -6783,6 +6825,87 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return Math.floor(danach[0].zeit / 60000);
   }
 
+  // Calendar planning reuses the domain's gap/fold resolver, retaining seconds.
+  // A reference instant selects the original offset when a clock hour repeats.
+  function zeitOrtszeitpunkt(datum, uhrzeit, zone, referenz = null) {
+    zone = gueltigeIanaZeitzone(zone);
+    const clock = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(String(uhrzeit || ""));
+    zeitPruefen(!!zone && gueltigesISO(datum) && !!clock && +clock[1] < 24 && +clock[2] < 60 && +(clock[3] || 0) < 60);
+    const [year, month, day] = datum.split("-").map(Number);
+    const wall = { year, month, day, hour: +clock[1], minute: +clock[2], second: +(clock[3] || 0) };
+    const minute = zeitLokaleMinute(wall, zone, referenz === null ? null : referenz / 60000);
+    const base = zeitDatumTeile(minute, zone);
+    const instant = minute * 60000 + ((wall.second - base.second + 60) % 60) * 1000;
+    const actual = zeitDatumTeile(instant / 60000, zone);
+    zeitPruefen(Object.keys(wall).every(key => wall[key] === actual[key]));
+    return instant;
+  }
+
+  function zeitOrtsanzeige(instant, zone) {
+    zone = gueltigeIanaZeitzone(zone);
+    zeitPruefen(!!zone && Number.isFinite(instant));
+    const wall = zeitDatumTeile(instant / 60000, zone);
+    const datum = String(wall.year).padStart(4, "0") + "-" + pad2(wall.month) + "-" + pad2(wall.day);
+    zeitPruefen(gueltigesISO(datum));
+    return { datum, zeit: pad2(wall.hour) + ":" + pad2(wall.minute) + (wall.second ? ":" + pad2(wall.second) : ""), zone };
+  }
+
+  function zeitzonenVerankerungsPlan(book, zone) {
+    zone = gueltigeIanaZeitzone(zone);
+    zeitPruefen(!!zone);
+    const plan = [];
+    const stamp = (date, time) => {
+      // Validation uses the same resolver as deliberate local-time planning.
+      zeitOrtszeitpunkt(date, time, zone);
+      return date.replace(/-/g, "") + "T" + time.replace(/:/g, "").padEnd(6, "0");
+    };
+    for (const [collection, task] of [[book.termine || [], false], [book.aufgaben || [], true]]) for (const entry of collection) {
+      const raw = entry.icsRoundtrip || [];
+      // Explicit UTC, TZID, floating and DATE source properties retain their semantics.
+      if (raw.some(line => /^(DTSTART|DUE)[;:]/i.test(line))) continue;
+      const date = task ? entry.startDatum || entry.faellig : entry.datum;
+      const time = task ? entry.startZeit || entry.faelligZeit : entry.zeit;
+      if (!time) continue;
+      const next = kopie(entry), lines = [];
+      const field = (name, day, clock) => name + ";TZID=" + zone + ":" + stamp(day, clock);
+      const dueOnly = task && !entry.startZeit;
+      if (!dueOnly) lines.push(field("DTSTART", date, time));
+      const endDate = (task ? entry.faellig : entry.endDatum) || date;
+      const endTime = (task ? entry.faelligZeit : entry.endZeit) || time;
+      if (!raw.some(line => /^(DTEND|DURATION)[;:]/i.test(line))) lines.push(field(task ? "DUE" : "DTEND", endDate, endTime));
+      if (!task && !raw.some(line => /^(RRULE|RDATE|EXRULE|RECURRENCE-ID)[;:]/i.test(line))) {
+        const repeat = leseWiederholung(entry.wiederholung);
+        const frequency = { daily: "DAILY", weekly: "WEEKLY", monthly: "MONTHLY", yearly: "YEARLY" }[repeat.art];
+        if (frequency) {
+          let rule = "RRULE:FREQ=" + frequency;
+          if (repeat.intervall > 1) rule += ";INTERVAL=" + repeat.intervall;
+          if (repeat.art === "monthly") {
+            if (repeat.ordinal && repeat.wochentag) rule += ";BYDAY=" + repeat.ordinal + repeat.wochentag;
+            else if (+date.slice(8) >= 29) rule += ";BYMONTHDAY=" + Array.from({ length: +date.slice(8) - 27 }, (_, i) => i + 28).join(",") + ";BYSETPOS=-1";
+          }
+          if (repeat.art === "yearly" && date.slice(5) === "02-29") rule += ";BYMONTH=2;BYMONTHDAY=28,29;BYSETPOS=-1";
+          if (repeat.bis) rule += ";UNTIL=" + new Date(zeitOrtszeitpunkt(repeat.bis, "23:59:59", zone)).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+          lines.push(rule);
+        } else if (repeat.art === "custom") for (const day of repeat.daten || []) if (day > date && (!repeat.bis || day <= repeat.bis)) lines.push(field("RDATE", day, time));
+      }
+      // Structured legacy additions/exclusions are dates in the former own zone.
+      // Materialize them before changing display zone so midnight cannot retarget them.
+      const additions = [...(entry.icsZusatzTermine || [])];
+      for (const day of entry.icsZusatzDaten || []) if (!additions.some(value => value.datum === day)) additions.push({ datum: day, zeit: time });
+      for (const value of additions) lines.push(field("RDATE", value.datum, value.zeit || time));
+      for (const value of entry.icsAusnahmeTermine || []) lines.push(field("EXDATE", value.datum, value.zeit || time));
+      for (const day of entry.icsAusnahmen || []) {
+        lines.push(field("EXDATE", day, time));
+        for (const value of additions.filter(value => value.datum === day)) lines.push(field("EXDATE", day, value.zeit || time));
+      }
+      next.icsZusatzTermine = []; next.icsZusatzDaten = []; next.icsAusnahmeTermine = []; next.icsAusnahmen = [];
+      const output = raw.slice(), position = output.findIndex(line => /^END:(VEVENT|VTODO)$/i.test(line));
+      output.splice(position < 0 ? output.length : position, 0, ...new Set(lines)); next.icsRoundtrip = output;
+      plan.push({ entry, before: JSON.stringify(entry), next });
+    }
+    return plan;
+  }
+
   function zeitMinuten(eintrag, jetzt = Math.floor(Date.now() / 60000)) {
     zeitPruefeEintrag(eintrag); zeitZahl(jetzt, 0, 4223371679);
     const brutto = Math.max(0, (eintrag.endMinute ?? jetzt) - eintrag.startMinute);
@@ -8000,8 +8123,14 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
     zr.homeCountry = telefonLand;
     const zonenwert = S(reg.timeZone);
-    if (zonenwert === "system" || (/^[A-Za-z0-9._+-]+(?:\/[A-Za-z0-9._+-]+)+$/.test(zonenwert) &&
+    if (["system", "UTC"].includes(zonenwert) || (/^[A-Za-z0-9._+-]+(?:\/[A-Za-z0-9._+-]+)+$/.test(zonenwert) &&
         !zonenwert.includes(".."))) zr.timeZone = zonenwert;
+    if (["off", "manual", "automatic"].includes(reg.timeZoneManagement)) zr.timeZoneManagement = reg.timeZoneManagement;
+    if (["auto", "system", "phone", "gps", "ip"].includes(reg.timeZoneDetection)) zr.timeZoneDetection = reg.timeZoneDetection;
+    const manuelleZone = S(reg.timeZoneManual || zr.timeZone);
+    if (["system", "UTC"].includes(manuelleZone) || /^[A-Za-z0-9._+-]+(?:\/[A-Za-z0-9._+-]+)+$/.test(manuelleZone) && !manuelleZone.includes("..")) zr.timeZoneManual = manuelleZone;
+    if (["manual", "system", "phone", "gps", "ip"].includes(reg.timeZoneDetectedSource)) zr.timeZoneDetectedSource = reg.timeZoneDetectedSource;
+    if (/^(?:0|[1-9][0-9]{0,14})$/.test(S(reg.timeZoneDetectedAt)) && Number(reg.timeZoneDetectedAt) <= 253402300799999) zr.timeZoneDetectedAt = S(reg.timeZoneDetectedAt);
     za.briefLayout = enumWert(ad.briefLayout,
       { kompakt: "compact", compact: "compact", din5008: "din5008",
         "din5008-a": "din5008-a", "din5008-b": "din5008-b" }, "din5008-b");
@@ -9307,7 +9436,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       return out;
     };
     const p = props(t.icsRoundtrip), get = (name, source = p) => source.find(v => v.name === name);
-    if (!p.some(v => ["DTSTART", "RRULE", "RDATE", "EXRULE", "RECURRENCE-ID", "STATUS"].includes(v.name))) return null;
+    if (!p.some(v => ["DTSTART", "RRULE", "RDATE", "EXRULE", "RECURRENCE-ID", "STATUS", ...(task ? ["DUE"] : [])].includes(v.name))) return null;
     const fail = (code) => { const e = new Error(_("Some recurrence rules cannot be expanded. Their original calendar data was preserved.")); e.code = code;
       if (icsExpansion.lastError !== code) { icsExpansion.lastError = code; zettel(e.message + " [" + code + "]"); } throw e; };
     const defined = new Map((t.icsTimezones || []).map(lines => [lines.find(v => /^TZID:/i.test(v))?.slice(5), lines]));
@@ -9386,7 +9515,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       return { wall: value, date: !m[4] || v.params.VALUE === "DATE", zone: m[7] ? "UTC" : defined.has(v.params.TZID) ? { id: v.params.TZID, definition: defined.get(v.params.TZID) } : v.params.TZID || target };
     };
     const fallbackDate = task ? t.startDatum || t.faellig : t.datum, fallbackTime = task ? t.startZeit || t.faelligZeit : t.zeit;
-    const first = get("DTSTART") ? stamp(get("DTSTART")) : { wall: Date.parse(fallbackDate + "T" + (fallbackTime || "00:00") + "Z"), date: !fallbackTime, zone: target };
+    const dueOnly = task && !get("DTSTART") && !!get("DUE");
+    const first = get("DTSTART") ? stamp(get("DTSTART")) : dueOnly ? stamp(get("DUE")) : { wall: Date.parse(fallbackDate + "T" + (fallbackTime || "00:00") + "Z"), date: !fallbackTime, zone: target };
     if (!Number.isFinite(first.wall)) fail("missing-dtstart");
     if (first.date) { lower = wall(lower, target); upper = wall(upper, target); }
     const key = s => first.date ? s.wall : instant(s.wall, s.zone);
@@ -9546,6 +9676,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (start > upper || (overlap ? end <= lower && start < lower : start < lower)) continue;
       const a = new Date(first.date ? s.wall : wall(start, target)).toISOString(), b = new Date((first.date ? end - (task ? 0 : DAY) : wall(end, target))).toISOString();
       result.push({ ...projected, [task ? "startDatum" : "datum"]: a.slice(0, 10), [task ? "startZeit" : "zeit"]: first.date ? "" : a.slice(11, a.slice(17, 19) === "00" ? 16 : 19), [task ? "faellig" : "endDatum"]: b.slice(0, 10), [task ? "faelligZeit" : "endZeit"]: first.date ? "" : b.slice(11, b.slice(17, 19) === "00" ? 16 : 19), folge: true, icsOccurrence: identity, icsStartUtc: start, icsEndUtc: end });
+      if (dueOnly) { result[result.length - 1].startDatum = ""; result[result.length - 1].startZeit = ""; }
     }
     return result.sort((a, b) => a.icsStartUtc - b.icsStartUtc);
   }
@@ -9748,7 +9879,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   function icsQuelle(t) {
-    return (t.icsRoundtrip || []).some(v => /^(DTSTART|RRULE|RDATE|EXRULE|RECURRENCE-ID|STATUS)[;:]/i.test(v));
+    return (t.icsRoundtrip || []).some(v => /^(DTSTART|DUE|RRULE|RDATE|EXRULE|RECURRENCE-ID|STATUS)[;:]/i.test(v));
   }
 
   let _aufgabenSerien = new Map();
@@ -9990,7 +10121,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return verz;
   }
 
-  function termineAm(iso, vergangeneEinblenden, serienZeitraum) {
+  function termineAm(iso, vergangeneEinblenden, serienZeitraum, bereich = "calendar") {
     if (!vergangeneEinblenden && vergangenAusgeblendet(iso, "appointment")) return [];
     const verz = terminVerzeichnis();
     const liste = (verz.get(iso) || []).slice();
@@ -10034,7 +10165,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       }
       liste.sort(sortiereTermineNachZeit);
     }
-    return liste.filter((t) => !istSynchronisierterKalendereintrag(t));
+    const ausgeschlossen = gruppenAusschlussPruefer(bereich, "appointment");
+    return liste.filter((t) => !istSynchronisierterKalendereintrag(t) && !ausgeschlossen(t));
   }
 
   function geburtstagsInhalt(jahrestag) {
@@ -11040,6 +11172,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     karte: "M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z M12 10.5a1.8 " +
       "1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6z",
     post: "M3 5h18v14H3z M3 7l9 6 9-6",
+    web: "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M2 12h20 M12 2c-6 5-6 15 0 20 M12 2c6 5 6 15 0 20 M4 7h16 M4 17h16",
     sms: "M4 5h16v11H9l-5 4z M8 9h8 M8 12h6",
     chat: "M4 5h16v11H9l-5 4z M8 9h8 M8 12h5",
     kamera: "M5 7h3l1.5-2h5L16 7h3v11H5z M12 15a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z",
@@ -11218,7 +11351,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
     if (sektion === "adressen") {
-      const liste = DATEN.kontakte.slice().sort(sortiereKontakte);
+      const ausgeschlossen = gruppenAusschlussPruefer("print", "contact");
+      const liste = DATEN.kontakte.filter(kontakt => !ausgeschlossen(kontakt)).sort(sortiereKontakte);
       return { titel: _("Contacts"), wort: _("Contact cards"), liste: liste,
         name: kontaktName, karte: druckKarte, html: druckKarteHtml,
         vorgewaehlt: vorgewaehlt ? [vorgewaehlt.id] : [], ods: true,
@@ -11319,7 +11453,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
 
     if (sektion === "jahrestage") {
-      const liste = sichtbareJahrestage().sort(
+      const liste = sichtbareJahrestage("print").sort(
         (a, b) => monatTag(a.datum).localeCompare(monatTag(b.datum)));
       return { titel: _("Anniversaries"), wort: _("Anniversaries"), liste: liste,
         anzahl: (wert) => uebersetztMehrzahl(
@@ -11395,14 +11529,16 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const fenster = [+organizerZeitpunkt(z.jahr, z.monat + 1, 1, 0, 0),
         +organizerZeitpunkt(naechster.getFullYear(), naechster.getMonth() + 1, 1, 0, 0) - 1, false, true];
       for (let tag = 1; tag <= Number(zeitraumBis.slice(-2)); tag++) {
-        for (const t of termineAm(zeitraumVon.slice(0, 8) + pad2(tag), true, fenster)) {
+        for (const t of termineAm(zeitraumVon.slice(0, 8) + pad2(tag), true, fenster, "print")) {
           // A multi-day occurrence is printed once; deletion still addresses its source.
           const id = JSON.stringify([t.id, t.icsOccurrence ?? null, t.datum, t.zeit || "", t.endDatum || "", t.endZeit || ""]);
           vorkommen.set(id, { ...t, id, _druckQuelleId: t.id });
         }
       }
     }
+    const ausgeschlossen = gruppenAusschlussPruefer("print", "appointment");
     const liste = (imJahr ? DATEN.termine.filter((t) => {
+      if (ausgeschlossen(t)) return false;
       if (!gueltigesISO(t.datum)) return false;
       if (istSynchronisierterKalendereintrag(t)) return false;
       const ende = gueltigesISO(t.endDatum) && t.endDatum > t.datum
@@ -11735,7 +11871,50 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const value = await notizVersandNative({ action: "cancel", operationId: id }, signal);
     notizVersandLauf(owner, id); return notizVersandLaufAntwort(job, value.job, true);
   }
-  function oeffneNotizVersand(ids) {
+  function oeffneFaxWege(html, notizIds = []) {
+    schliesseVorhandenesModal("fax-wege");
+    const book = DATEN, schleier = el("div", "eingabe-schleier"), dialog = el("section", "eingabe-dialog");
+    schleier.id = "fax-wege";
+    const weg = auswahlFeld([["local", _("Fax printer")], ["server", _("Network fax server")], ["online", _("Online fax service")]], "local");
+    weg.id = "fax-weg";
+    const inhalt = el("div"), schliessen = () => { beendeModal(schleier); schleier.remove(); };
+    const drucken = () => {
+      if (DATEN !== book || gesperrt || !schleier.isConnected) return;
+      Bruecke.sende({ cmd: "drucken", html });
+    };
+    const zeichne = () => {
+      inhalt.replaceChildren();
+      if (weg.value === "local") {
+        inhalt.append(el("p", "einst-hinweis", _("Fax printer") + " · " + _("Print")),
+          knopf(_("Print"), "haupt", drucken));
+      } else if (weg.value === "server") {
+        baueNotizVersandEinstellungen(inhalt);
+        inhalt.querySelector("details").open = true;
+        const weiter = knopf(_("Send"), "haupt", () => {
+          if (DATEN !== book || gesperrt || !notizIds.length) return;
+          if (!DATEN.einstellungen.versand.enabled) return zettel(_("Sending is disabled."));
+          schliessen(); oeffneNotizVersand(notizIds, "fax");
+        });
+        weiter.disabled = !notizIds.length;
+        inhalt.append(weiter);
+        if (!notizIds.length) inhalt.append(el("p", "einst-hinweis", _("Network fax server") + " · " + _("Print")), knopf(_("Print"), "", drucken));
+      } else {
+        const url = eingabe("url", ""); url.id = "fax-online-url"; url.placeholder = "https://";
+        const link = el("a", null, _("Open")); link.hidden = true; link.rel = "noopener noreferrer";
+        url.addEventListener("input", () => {
+          try { const value = new URL(url.value); if (value.protocol !== "https:" || value.username || value.password) throw Error(); link.href = value.href; link.hidden = false; }
+          catch { link.removeAttribute("href"); link.hidden = true; }
+        });
+        inhalt.append(el("p", "einst-hinweis", _("Save as PDF") + " → " + _("Online fax service")),
+          knopf(_("Save as PDF"), "haupt", drucken), formZeile(_("Website"), url), link);
+      }
+    };
+    weg.addEventListener("change", zeichne); zeichne();
+    dialog.append(el("h3", null, _("Fax")), formZeile(_("Send via"), weg), inhalt, knopf(_("Close"), "", schliessen));
+    schleier.append(dialog); document.body.append(schleier); registriereModal(schleier, dialog, { anfang: weg, schliessen });
+    return schleier;
+  }
+  function oeffneNotizVersand(ids, vorauswahl = "") {
     if (!DATEN.einstellungen.versand.enabled || !Bruecke.vorhanden) return;
     schliesseVorhandenesModal("notiz-versand");
     const book = DATEN, selectedBefore = JSON.stringify(DATEN.notizen.filter(note => ids.includes(note.id))), controller = new AbortController();
@@ -11762,7 +11941,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         void aktualisiere();
       } catch (error) { status.textContent = _("The document could not be handed off.") + " (" + String(error.code || "invalid_selection") + ")"; }
     }); senden.id = "notiz-versand-start"; senden.disabled = true;
-    const frischeSenden = () => { senden.disabled = !!operation || !state || !art.value || !notizVersandEmpfaenger(art.value, empfaenger()?.recipient) || !DATEN.einstellungen.versand.enabled; };
+    const frischeSenden = () => { senden.disabled = !!operation || !state || !art.value || !state.capabilities[art.value]?.available || !notizVersandEmpfaenger(art.value, empfaenger()?.recipient) || !DATEN.einstellungen.versand.enabled; };
     const frischeEmpfaenger = () => {
       recipients = notizVersandKontaktEmpfaenger(art.value); kontakte.replaceChildren();
       for (const [value, label] of [["", _("Enter recipient manually")], ...recipients.map((item, index) => [String(index + 1), item.label])]) {
@@ -11807,16 +11986,18 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if (!lebt()) return;
       state = value;
       if (!state.settings.enabled || !DATEN.einstellungen.versand.enabled) { status.textContent = _("Sending is disabled."); return; }
-      for (const [kind, label] of [["email", _("Email")], ["fax", _("Fax")]]) if (state.capabilities[kind].available) {
+      for (const [kind, label] of [["email", _("Email")], ["fax", _("Fax")]]) if (state.capabilities[kind].available || kind === vorauswahl) {
         const option = el("option", null, label); option.value = kind; art.append(option);
       }
       if (!art.options.length) { status.textContent = _("No configured mail or fax adapter is available."); return; }
-      frischeEmpfaenger(); status.textContent = _("Select a recipient.");
+      if (vorauswahl) art.value = vorauswahl;
+      frischeEmpfaenger(); status.textContent = state.capabilities[art.value]?.available ? _("Select a recipient.") : _("No configured mail or fax adapter is available.");
+      if (!state.capabilities[art.value]?.available) senden.disabled = true;
     })().catch(error => { if (lebt()) status.textContent = _("Sending is not available.") + " (" + String(error.code || "native_operation_failed") + ")"; });
     return schleier;
   }
   function planerAkzentEintraege(iso, serienZeitraum, aufgaben, termine = true) {
-    const eintraege = termine ? termineAm(iso, true, serienZeitraum)
+    const eintraege = termine ? termineAm(iso, true, serienZeitraum, "print")
       .filter(termin => kalenderEintragAkzent(termin))
       .map(termin => ({ art: "termin", text: (termin.zeit ? zeitText(iso, termin.zeit) + " " : "") + termin.titel,
         farbe: kalenderEintragAkzent(termin), akzent: true })) : [];
@@ -11893,8 +12074,8 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         const alleFeiertage = imMonat ? feiertageAm(iso, true) : [];
         const feiertage = alleFeiertage.filter((f) => f.art === "public-holiday");
         const ferien = alleFeiertage.filter((f) => f.art === "school-holiday");
-        const termine = imMonat ? termineAm(iso, true, serienZeitraum) : [];
-        const jahrestage = imMonat ? jahrestageAm(iso, true) : [];
+        const termine = imMonat ? termineAm(iso, true, serienZeitraum, "print") : [];
+        const jahrestage = imMonat ? jahrestageAm(iso, true, "print") : [];
         const marken = imMonat ? tagmarkenAm(iso) : { schicht: null, zyklus: [] };
         const muelltermine = imMonat ? muelltermineAm(iso) : [];
         const urlaube = imMonat ? urlaubeAm(iso) : [];
@@ -12459,7 +12640,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         alleTage.checked = tage.length === tageRaster.childElementCount;
         alleTage.indeterminate = tage.length > 0 && !alleTage.checked;
         monatZeile.style.display = "";
-        if (!tage.length) { modell = null; vorschau.textContent = ""; druckKnopf.disabled = odsKnopf.disabled = true; return; }
+        if (!tage.length) { modell = null; vorschau.textContent = ""; druckKnopf.disabled = odsKnopf.disabled = faxKnopf.disabled = true; return; }
         const payload = zeitOdsNutzlast(zustand.planer.jahr, wahl.monat, zeitName.value, tage);
         modell = { art: "time", sheet: payload.sheet };
         monatZeile.style.display = ""; vorschau.textContent = "";
@@ -12468,7 +12649,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         rahmen.srcdoc = zeitDruckSeite(payload.sheet).replace("</style>", "@media screen{body{zoom:.6}}</style>");
         vorschau.append(rahmen); vorschau.setAttribute("aria-busy", "false");
         kopf.querySelector("h2").textContent = uebersetzt("Print · %(title)s", { title: payload.sheet.labels.title + " · " + payload.sheet.monthTitle });
-        druckKnopf.disabled = odsKnopf.disabled = false;
+        druckKnopf.disabled = odsKnopf.disabled = faxKnopf.disabled = false;
         return;
       }
       kopf.querySelector("h2").textContent = uebersetzt("Print · %(title)s", { title: uebersetzt("Year planner %(year)s", { year: zustand.planer.jahr }) });
@@ -12482,7 +12663,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       vorschau.textContent = "";
       vorschau.append(planerKalenderVorschau(modell));
       vorschau.setAttribute("aria-busy", String(!!modell.icsIncomplete));
-      druckKnopf.disabled = odsKnopf.disabled = !!modell.icsIncomplete;
+      druckKnopf.disabled = odsKnopf.disabled = faxKnopf.disabled = !!modell.icsIncomplete;
     };
     artWahl.addEventListener("change", () => { wahl.art = artWahl.value; frischen(); });
     monatWahl.addEventListener("change", () => { wahl.monat = Number(monatWahl.value); frischen(); });
@@ -12526,6 +12707,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       schliessen();
     });
     fuss.append(druckKnopf);
+    const faxKnopf = knopf(_("Fax"), "", () => {
+      if (!modell || modell.icsIncomplete) return;
+      if (!Bruecke.vorhanden) return nurImProgramm();
+      oeffneFaxWege(modell.art === "time" ? zeitDruckSeite(modell.sheet) : planerDruckSeite(modell));
+    }); faxKnopf.id = "auswahl-fax-wege"; fuss.append(faxKnopf);
     const odsKnopf = bildknopf("tabelle", _("ODS"), () => {
       if (!Bruecke.vorhanden) { nurImProgramm(); return; }
       if (modell.art === "time") { DATEN.zeiterfassung.reportName = zeitName.value; planeSpeichern(); }
@@ -12583,6 +12769,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       vorschau.textContent = "";
       vorschau.setAttribute("aria-busy", String(!!stoff.icsIncomplete));
       druckKnopf.disabled = !!stoff.icsIncomplete;
+      faxWahl.disabled = !!stoff.icsIncomplete;
       if (wegKnopf) wegKnopf.disabled = !!stoff.icsIncomplete;
       if (stoff.icsIncomplete && ![...(icsRuntime.state?.jobs.values() || [])].some(job => job.status === "pending")) {
         vorschau.append(el("p", "leer-hinweis",
@@ -12781,6 +12968,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       schliessen();
     });
     fuss.append(druckKnopf);
+    const faxWahl = knopf(_("Fax"), "", () => {
+      if (stoff.icsIncomplete) return;
+      const selected = stoff.liste.filter(e => gewaehlt.has(e.id));
+      if (!leereVorlage && !selected.length) return zettel(_("Select something first."));
+      if (!Bruecke.vorhanden) return nurImProgramm();
+      oeffneFaxWege(stoff.druck ? stoff.druck(selected, leereVorlage) : druckSeite(selected, stoff), druckSektion === "notizen" ? selected.map(note => note.id) : []);
+    }); faxWahl.id = "auswahl-fax-wege"; fuss.append(faxWahl);
     if (druckSektion === "notizen" && DATEN.einstellungen.versand.enabled) {
       const senden = knopf(_("Send"), "", () => {
         const selected = stoff.liste.filter(note => gewaehlt.has(note.id));
@@ -13009,9 +13203,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function saubererGruppenAusschluss(value) {
     const raw = value && typeof value === "object" && !Array.isArray(value) ? value : {};
     const result = { enabled: raw.enabled === true };
-    for (const area of ["notifications", "anniversaries", "overview"]) {
+    for (const area of ["notifications", "anniversaries", "overview", "print"]) {
       const rule = raw[area] && typeof raw[area] === "object" ? raw[area] : {};
-      result[area] = { scope: rule.scope === "anniversaries" ? "anniversaries" : "birthdays", groups: saubereGruppenAuswahl(rule.groups) };
+      result[area] = { scope: ["birthdays", "anniversaries", "appointments", "all"].includes(rule.scope) ? rule.scope : "birthdays",
+        groups: saubereGruppenAuswahl(rule.groups), calendars: Array.isArray(rule.calendars) ? [...new Set(rule.calendars.filter(value => typeof value === "string" && value.trim()))] : [] };
     }
     result.overview.calendar = raw.overview?.calendar === true;
     return result;
@@ -13019,13 +13214,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function alleKontaktGruppen() {
     const policy = saubererGruppenAusschluss(DATEN.einstellungen.adressen.gruppenAusschluss);
     return saubereGruppenAuswahl([...KONTAKT_STANDARDGRUPPEN, ...DATEN.kontakte.flatMap(kontaktGruppen),
-      ...["notifications", "anniversaries", "overview"].flatMap(area => policy[area].groups)])
+      ...["notifications", "anniversaries", "overview", "print"].flatMap(area => policy[area].groups)])
       .sort((a, b) => vergleicheStandardText(kontaktGruppenName(a), kontaktGruppenName(b)) || vergleicheStandardText(a, b));
   }
-  function gruppenAusschlussPruefer(bereich) {
+  function gruppenAusschlussPruefer(bereich, art = "anniversary") {
     const policy = saubererGruppenAusschluss(DATEN.einstellungen.adressen.gruppenAusschluss);
     const rule = policy[bereich === "calendar" ? "overview" : bereich];
-    if (!policy.enabled || !rule || !rule.groups.length || bereich === "calendar" && !rule.calendar) return () => false;
+    if (!policy.enabled || !rule || !rule.groups.length && !rule.calendars.length || bereich === "calendar" && !rule.calendar) return () => false;
+    if (art === "appointment" && !["appointments", "all"].includes(rule.scope) || art === "anniversary" && rule.scope === "appointments") return () => false;
     const groups = new Set(rule.groups.map(kontaktGruppenSchluessel));
     const direkt = new Map(DATEN.kontakte.map(kontakt => [kontakt.id, kontakt])), aliase = new Map();
     for (const kontakt of DATEN.kontakte) for (const id of kontakt.kontaktAliase?.ids || []) {
@@ -13046,6 +13242,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const resolve = id => direkt.get(id) || aliase.get(id);
     const verknuepfte = DATEN.jahrestage.filter(item => item.kontaktId && resolve(item.kontaktId) && kontaktAusgeschlossen(resolve(item.kontaktId)));
     return item => {
+      if (art === "contact") return kontaktAusgeschlossen(item);
+      if (art === "appointment") {
+        if (rule.calendars.includes(item.kalenderQuelle?.id || item.syncKalenderUid)) return true;
+        const kontakt = item.kontaktId && resolve(item.kontaktId);
+        return !!kontakt && kontaktAusgeschlossen(kontakt);
+      }
       if (rule.scope === "birthdays" && !istGeburtstagTyp(item.typ)) return false;
       const kontakt = item.kontaktId && resolve(item.kontaktId);
       // An explicit identity wins over content similarity. Never infer a person
@@ -13079,14 +13281,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const master = eingabe("checkbox", ""); master.id = "gruppen-ausschluss-aktiv"; master.checked = draft.enabled;
       const label = el("label", "hak"); label.append(master, document.createTextNode(" " + _("Enable contact group exclusions")));
       const optionen = el("div"), bereich = auswahlFeld([["notifications", _("Notifications")], ["anniversaries", _("Anniversaries")],
-        ["overview", _("Appointment overview")]], "notifications");
+        ["overview", _("Appointment overview")], ["print", _("Print")]], "notifications");
       bereich.id = "gruppen-ausschluss-bereich";
       const details = el("div"); optionen.append(formZeile(_("Apply to"), bereich), details);
       const zeichne = () => {
-        optionen.hidden = !master.checked; draft.enabled = master.checked;
+        draft.enabled = master.checked;
         details.replaceChildren();
         const rule = draft[bereich.value];
-        const scope = auswahlFeld([["birthdays", _("Birthdays only")], ["anniversaries", _("All anniversaries")]], rule.scope);
+        const scope = auswahlFeld([["birthdays", _("Birthdays only")], ["anniversaries", _("All anniversaries")],
+          ["appointments", _("Appointments")], ["all", _("All")]], rule.scope);
         scope.id = "gruppen-ausschluss-umfang"; scope.addEventListener("change", () => { rule.scope = scope.value; });
         details.append(formZeile(_("Scope"), scope));
         if (bereich.value === "overview") {
@@ -13096,7 +13299,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           const kalenderLabel = el("label", "hak"); kalenderLabel.append(kalender, document.createTextNode(" " + _("Also hide in the calendar")));
           details.append(kalenderLabel);
         }
-        const gruppen = el("fieldset"), legend = el("legend", null, _("Contact groups")); gruppen.append(legend);
+        const gruppen = el("fieldset", "gruppen-ausschluss-auswahl"), legend = el("legend", null, _("Contact groups")); gruppen.append(legend);
         const selected = new Set(rule.groups.map(kontaktGruppenSchluessel));
         for (const group of alleKontaktGruppen()) {
           const hak = eingabe("checkbox", ""); hak.checked = selected.has(kontaktGruppenSchluessel(group)); hak.dataset.gruppe = group;
@@ -13108,6 +13311,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           const row = el("label", "hak"); row.append(hak, document.createTextNode(" " + kontaktGruppenName(group))); gruppen.append(row);
         }
         details.append(gruppen);
+        if (bereich.value !== "anniversaries" && ["appointments", "all"].includes(rule.scope)) {
+          const kalender = el("fieldset", "gruppen-ausschluss-auswahl"); kalender.append(el("legend", null, _("Calendar")));
+          const quellen = new Map(DATEN.termine.filter(item => item.kalenderQuelle?.id || item.syncKalenderUid)
+            .map(item => [item.kalenderQuelle?.id || item.syncKalenderUid, item.kalenderQuelle?.name || item.syncKalenderUid || item.kalenderQuelle.id]));
+          for (const id of rule.calendars) if (!quellen.has(id)) quellen.set(id, id);
+          for (const [id, name] of quellen) {
+            const hak = eingabe("checkbox", ""); hak.checked = rule.calendars.includes(id); hak.dataset.kalender = id;
+            hak.addEventListener("change", () => { rule.calendars = rule.calendars.filter(value => value !== id); if (hak.checked) rule.calendars.push(id); });
+            const row = el("label", "hak"); row.append(hak, document.createTextNode(" " + name)); kalender.append(row);
+          }
+          details.append(kalender);
+        }
+        scope.addEventListener("change", zeichne);
       };
       master.addEventListener("change", zeichne); bereich.addEventListener("change", zeichne); zeichne();
       const schliessen = () => { beendeModal(schleier); schleier.remove(); };
@@ -14414,7 +14630,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         event.preventDefault(); if (event.shiftKey) editor.redo(); else editor.undo();
       }
     });
-    ziel.append(werkzeuge, tablet, zeichenflaeche, status);
+    const tabletHilfe = el("details", "zeichen-kde-hilfe");
+    tabletHilfe.append(el("summary", null, _("KDE Connect")), el("p", "einst-hinweis", _("KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol.")));
+    ziel.append(werkzeuge, tablet, zeichenflaeche, status, tabletHilfe);
     const activateTablet = () => {
       const source = telefonStand?.kdeconnect;
       tablet.disabled = !Bruecke.vorhanden || !source?.digitizer_available || !source.digitizer_device_id;
@@ -15158,7 +15376,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     for (let tag = 1; tag <= letzterTag; tag++) {
       const iso = isoVon(new Date(z.jahr, z.monat, tag));
       if (iso < von) continue;
-      const tt = termineAm(iso, false, serienZeitraum);
+      const tt = termineAm(iso, false, serienZeitraum, "overview");
       const jt = jahrestageAm(iso, false, "overview");
       const ft = feiertageAm(iso);
       if (tt.length || jt.length || ft.length) {
@@ -17471,10 +17689,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   async function baumKontaktNeuereFassung(stueck, ziel) {
     const inhalt = stueck.inhalt || {};
-    if (inhalt.fassung !== 3 || !kontaktZeitGueltig(inhalt.inhaltGeaendert) || !ziel) return null;
+    if (inhalt.fassung < 3 || !kontaktZeitGueltig(inhalt.inhaltGeaendert) || !ziel) return null;
     const lokal = await kontaktInhaltszeit(ziel);
     if (!lokal || lokal === inhalt.inhaltGeaendert) return null;
     return lokal > inhalt.inhaltGeaendert ? "keep" : "newer";
+  }
+
+  function baumKontaktGruppenWerte(values) {
+    if (!Array.isArray(values) || values.length > 100 || values.some(value => typeof value !== "string" || !value.trim() || [...value].length > 256 || /[\x00-\x1f\x7f]/.test(value))) throw new Error(_("The data is invalid."));
+    const result = new Map();
+    for (const value of values) { personalSyncKanonisch(value); const name = value.normalize("NFC").trim(); if (!result.has(name.toLowerCase())) result.set(name.toLowerCase(), name); }
+    return [...result.values()].sort();
   }
 
   function kontaktBaumInhalt(kontakt, fassung = 2, pruefeFoto = true) {
@@ -17509,14 +17734,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (jubilaeum || anzeigename && anzeigename !== fn || namen.some((s) => s !== n && s !== "FN:" + esc(fn)))
         throw new Error(_("Not sent."));
     }
-    if (fassung === 3) nutzlast.inhaltGeaendert = 0;
+    if (fassung >= 3) nutzlast.inhaltGeaendert = 0;
+    if (fassung >= 4) nutzlast.kontakt.gruppen = baumKontaktGruppenWerte(kontaktGruppen(kontakt).map(kontaktGruppenName));
     return nutzlast;
   }
 
   async function synchronisiereKontakteMit(kennung) {
     const partner = baumPartnerListe().find((p2) => p2.kennung === kennung);
     if (!partner) return false;
-    const fassung = partner.kontaktFaehigkeiten?.kontakt_sync?.includes(3) ? 3 : partner.kontaktFaehigkeiten?.kontakt_sync?.includes(2) ? 2 : 1;
+    const fassung = partner.kontaktFaehigkeiten?.kontakt_sync?.includes(4) ? 4 : partner.kontaktFaehigkeiten?.kontakt_sync?.includes(3) ? 3 : partner.kontaktFaehigkeiten?.kontakt_sync?.includes(2) ? 2 : 1;
     const quelle = String((baumStand && baumStand.kennung) || "zweig").slice(0, 128);
     const bestand = DATEN;
     if (fassung === 1) schickeBaumInhalt("kontakt_faehigkeiten", {}, [kennung]);
@@ -17535,16 +17761,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   async function bereiteBaumKontaktNutzlastVor(daten, partner) {
-    const fassung = partner.kontaktFaehigkeiten?.kontakt_sync?.includes(3) ? 3 : partner.kontaktFaehigkeiten?.kontakt_sync?.includes(2) ? 2 : 1;
+    const fassung = partner.kontaktFaehigkeiten?.kontakt_sync?.includes(4) ? 4 : partner.kontaktFaehigkeiten?.kontakt_sync?.includes(3) ? 3 : partner.kontaktFaehigkeiten?.kontakt_sync?.includes(2) ? 2 : 1;
     const kontakte = daten.kontakte.slice();
     // Build against this explicit book synchronously; never retain a draft as DATEN across await.
     const { modern, inhalte } = mitBaumKontaktEntwurf(daten, () => {
-      const modern = kontakte.map(k => kontaktBaumInhalt({ ...k, baumKontakt: k.baumKontakt || {} }));
-      return { modern, inhalte: fassung >= 2 ? modern.map(inhalt => fassung === 3 ? { ...inhalt, fassung: 3, inhaltGeaendert: 0 } : inhalt) : kontakte.map(k => kontaktBaumInhalt(k, 1)) };
+      const modern = kontakte.map(k => kontaktBaumInhalt({ ...k, baumKontakt: k.baumKontakt || {} }, fassung >= 4 ? 4 : 2));
+      return { modern, inhalte: fassung >= 2 ? modern.map(inhalt => fassung >= 3 ? { ...inhalt, fassung, inhaltGeaendert: 0 } : inhalt) : kontakte.map(k => kontaktBaumInhalt(k, 1)) };
     });
     const hashes = await Promise.all(modern.map(n => personalSyncHash(n.kontakt)));
-    const zeiten = fassung === 3 ? await Promise.all(kontakte.map((k, index) => kontaktInhaltszeit(k, hashes[index]))) : [];
-    if (!mitBaumKontaktEntwurf(daten, () => kontakte.every((k, index) => daten.kontakte.includes(k) && kontaktZeitInhaltGleich(kontaktBaumInhalt(k).kontakt, modern[index].kontakt))))
+    const zeitHashes = fassung >= 4 ? await Promise.all(kontakte.map(k => personalSyncHash(kontaktBaumInhalt(k, 2, false).kontakt))) : hashes;
+    const zeiten = fassung >= 3 ? await Promise.all(kontakte.map((k, index) => kontaktInhaltszeit(k, zeitHashes[index]))) : [];
+    if (!mitBaumKontaktEntwurf(daten, () => kontakte.every((k, index) => daten.kontakte.includes(k) && kontaktZeitInhaltGleich(kontaktBaumInhalt(k, fassung >= 4 ? 4 : 2).kontakt, modern[index].kontakt))))
       throw new Error(_("Conflict"));
     return { fassung, kontakte, inhalte, hashes, zeiten };
   }
@@ -17568,7 +17795,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         meta.hash = hashes[index];
       }
       meta.partner = Array.from(new Set((meta.partner || []).concat(kennung)));
-      return { ...inhalte[index], ...(fassung === 3 ? { inhaltGeaendert: zeiten[index] } : {}), freigabeId: meta.freigabeId,
+      return { ...inhalte[index], ...(fassung >= 3 ? { inhaltGeaendert: zeiten[index] } : {}), freigabeId: meta.freigabeId,
         version: meta.version, quelle: meta.quelle, geaendert: meta.geaendert };
     });
   }
@@ -18861,6 +19088,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       karte.append(block);
     }
 
+    const contactZone = kontaktZeitzone(k);
+    if (contactZone) {
+      const clock = kontaktOrtszeit(contactZone), node = el("div", "kontakt-ortszeit k-wert"); node.dataset.timeZone = contactZone;
+      node.hidden = !clock; node.textContent = clock ? _("Local time") + " · " + clock.text : ""; karte.append(node);
+    }
     if (k.notiz) karte.append(el("div", "k-notiz", k.notiz));
 
     const wege = el("div", "k-wege");
@@ -18877,10 +19109,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     const ersteEmail = emailListe(k)[0] || "";
     if (ersteEmail && !eigenesProfil) {
-      wege.append(bildknopf("post", _("Message"), () => schreibePost(k, ersteEmail),
+      wege.append(bildknopf("post", _("Email"), () => schreibePost(k, ersteEmail),
         uebersetzt("Write a message to %(address)s", { address: ersteEmail })));
     }
     const anrufnummern = anrufbareNummern(k);
+    for (const url of kontaktWebseiten(k)) {
+      const web = el("a", "knopf bildknopf kontakt-web"); web.href = url; web.title = url;
+      web.setAttribute("aria-label", _("Website") + ": " + url);
+      web.append(sinnbild("web"), el("span", null, "Web")); wege.append(web);
+    }
     const mobilnummern = telefonListe(k).filter((eintrag) =>
       eintrag.typen.some((typ) => ["CELL", "MOBILE"].includes(typ)));
     if (anrufnummern.length && !eigenesProfil) {
@@ -18971,6 +19208,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     setzeAnschriftListe(ziel, details.anschriften);
     setzeKontaktpersonen(ziel, details.kontaktpersonen);
     setzeSozialeMedien(ziel, details.sozialeMedien);
+    if (details.webseiten !== undefined) setzeKontaktWebseiten(ziel, details.webseiten);
+    if (details.zeitzone !== undefined) setzeKontaktZeitzone(ziel, details.zeitzone);
     if (details.gruppen !== undefined) {
       setzeKontaktGruppen(ziel, details.gruppen);
       if (details.gruppen.length) DATEN.einstellungen.adressen.personengruppenAn = true;
@@ -19514,6 +19753,29 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }));
     weitere.append(sozialKopf, sozialKasten);
     zeichneSozialeMedien();
+    const webseiten = kontaktWebseiten(k), webKasten = el("div", "kontakt-webseiten");
+    const zeichneWebseiten = () => {
+      webKasten.replaceChildren();
+      if (!webseiten.length) webseiten.push("");
+      webseiten.forEach((url, index) => {
+        const feld = eingabe("url", url); feld.classList.add("kontakt-webseite"); feld.maxLength = 2048;
+        feld.placeholder = "https://…"; feld.pattern = "[Hh][Tt][Tt][Pp][Ss]?://[^\\s]+";
+        feld.setAttribute("aria-label", _("Website"));
+        feld.addEventListener("input", () => { webseiten[index] = feld.value; });
+        const zeile = el("div", "knopfreihe");
+        const weg = knopf("−", "klein", () => { webseiten.splice(index, 1); zeichneWebseiten(); }); weg.title = _("Remove");
+        zeile.append(feld, weg); webKasten.append(zeile);
+      });
+    };
+    const webKopf = el("div", "kontakt-mehrfach-kopf");
+    const webNeu = knopf("+", "klein", () => { webseiten.push(""); zeichneWebseiten(); }); webNeu.setAttribute("aria-label", _("Add"));
+    webKopf.append(el("div", "kontakt-zusatz-titel", _("Website")), webNeu);
+    weitere.append(webKopf, webKasten); zeichneWebseiten();
+    const feldZeitzone = eingabe("text", kontaktZeitzone(k)); feldZeitzone.id = "kontakt-zeitzone"; feldZeitzone.maxLength = 128;
+    feldZeitzone.placeholder = "Europe/Berlin";
+    feldZeitzone.addEventListener("input", () => feldZeitzone.setCustomValidity(feldZeitzone.value.trim() && !gueltigeIanaZeitzone(feldZeitzone.value) ? _("The selected time zone is unavailable.") : ""));
+    const zeitzonenVerwaltungAn = ["manual", "automatic"].includes(DATEN.einstellungen.regional.timeZoneManagement);
+    if (zeitzonenVerwaltungAn) weitere.append(formZeile(_("Time zone"), feldZeitzone));
     const kontaktpersonVorschlaege = el("datalist");
     kontaktpersonVorschlaege.id = "kontaktperson-status-vorschlaege";
     for (const wert of [_('Son'), _('Daughter'), _('Male caregiver'), _('Female caregiver'),
@@ -19788,7 +20050,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       gruppenKasten.append(formZeile(_("Contact groups"), gruppenWahl), eigeneGruppe, hinzufuegen);
       profilKopf.append(gruppenKasten);
     }
-    const weitereGefuellt = vorhandeneEreignisse.length > 0 ||
+    const weitereGefuellt = vorhandeneEreignisse.length > 0 || webseiten.some(value => value) || zeitzonenVerwaltungAn && !!feldZeitzone.value ||
       sozialeMedienListe({ sozialeMedien: sozialeMedien }).length > 0 ||
       kontaktpersonen.some(
         (person) => person.name || person.telefon || person.status);
@@ -19810,6 +20072,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       telefone: kopie(telefone), anschriften: kopie(anschriften),
       emailEintraege: kopie(emailEintraege), kontaktpersonen: kopie(kontaktpersonen),
       sozialeMedien: kopie(sozialeMedien), ereignisse: kopie(ereignisse),
+      webseiten: webseiten.slice(),
+      zeitzone: feldZeitzone.value.trim(),
       termine: kopie(kontaktTermine), aufgaben: kopie(kontaktAufgaben), personengruppen: personengruppen.slice()
     });
     let gespeichertesZiel = k || null;
@@ -19870,6 +20134,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (DATEN !== ownData || DATEN.eigenesProfil !== ownProfile || gesperrt) { zettel(_("Conflict")); return false; }
         const data = Object.assign({}, k, werte);
         setzeTelefonListe(data, telefone); setzeAnschriftListe(data, anschriften); setzeKontaktpersonen(data, kontaktpersonen); setzeSozialeMedien(data, sozialeMedien);
+        setzeKontaktWebseiten(data, webseiten);
+        if (feldZeitzone.value.trim() !== kontaktZeitzone(k)) setzeKontaktZeitzone(data, feldZeitzone.value.trim());
         if (gruppenGeaendert) setzeKontaktGruppen(data, personengruppen);
         data.profilJahrestage = ereignisse.filter(value => gueltigesJahresdatum(value.datum));
         data.geburtstag = data.profilJahrestage.find(value => istGeburtstagTyp(value.typ))?.datum || "";
@@ -19882,13 +20148,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       const felder = Object.keys(werte).filter(key => key !== "geaendert").concat(
         ["telefone", "telefon", "mobil", "anschriften", "strasse", "plz", "ort", "land",
-          "kontaktpersonen", "sozialeMedien", "geburtstag", "jubilaeum"]);
+          "kontaktpersonen", "sozialeMedien", "geburtstag", "jubilaeum", "vcardRoundtrip"]);
       if (k && (!ziel || ziel !== k && felder.some(key =>
           kanonischerEntwurf(ziel[key]) !== kanonischerEntwurf(k[key])))) {
         zettel(_("Conflict")); return false;
       }
       const geschrieben = wendeKontaktDatenAn(ziel, werte, { id: zielId, telefone, anschriften, kontaktpersonen,
-        sozialeMedien, ...(gruppenGeaendert ? { gruppen: personengruppen } : {}), ereignisse });
+        sozialeMedien, webseiten, zeitzone: feldZeitzone.value.trim() === kontaktZeitzone(k) ? undefined : feldZeitzone.value.trim(), ...(gruppenGeaendert ? { gruppen: personengruppen } : {}), ereignisse });
       ziel = geschrieben.kontakt;
       for (const termin of kontaktTermine.filter((eintrag) => eintrag.titel.trim())) {
         DATEN.termine.push({ id: uid(), uid: syncUid(), sync: false,
@@ -23149,6 +23415,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       if (!gueltig()) return; if (!Bruecke.vorhanden) return nurImProgramm();
       Bruecke.sende({ cmd: "drucken", html: gesundheitDruckSeite(optionen) }); schliessen();
     }));
+    const faxWahl = knopf(_("Fax"), "", () => {
+      if (!gueltig()) return; if (!Bruecke.vorhanden) return nurImProgramm();
+      oeffneFaxWege(gesundheitDruckSeite(optionen));
+    }); faxWahl.id = "auswahl-fax-wege"; fuss.append(faxWahl);
     const ods = bildknopf("tabelle", _("ODS"), () => {
       if (!gueltig()) return; if (!Bruecke.vorhanden) return nurImProgramm();
       Bruecke.sende(gesundheitOdsNutzlast(optionen,
@@ -24284,7 +24554,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function baueSeiteAllgemein(wurzel) {
-    baueNotizVersandEinstellungen(wurzel);
     const a = DATEN.einstellungen.allgemein;
     const s = DATEN.einstellungen.schrift;
     const ab = abschnitt(_("General"),
@@ -24476,6 +24745,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (!trayVerfuegbar) trayGruppe.append(el("p", "einst-hinweis warnt",
       _("The tray applet is not available on this system.")));
     ab.append(trayGruppe);
+    baueNotizVersandEinstellungen(ab);
     const trayUebernehmen = (ereignis) => {
       if (ereignis && ereignis.currentTarget === autostartHak && autostartHak.checked) {
         trayHak.checked = true;
@@ -25572,8 +25842,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       importBindungen: undefined, importHerkunfte: undefined, importKonflikt: false, kdeImportStaende: undefined,
       fotoManuell: false, fotoQuelle: undefined, fotoAlternativen: undefined, fotoQuellen: undefined }] }).kontakte[0];
     if (art !== "kontakt_sync" || !inhalt.kontakt || !inhalt.freigabeId || !(Number(inhalt.version) > 0)) return null;
-    const fern = inhalt.kontakt;
-    return normalisiere({ kontakte: [{ ...fern, id: uid(), uid: syncUid(), sync: false,
+    const { gruppen, ...fern } = inhalt.kontakt;
+    const karte = normalisiere({ kontakte: [{ ...fern, id: uid(), uid: syncUid(), sync: false,
       kontaktpersonen: kontaktpersonenListe(fern).map(({ kontaktId, ...person }) => person),
       kontaktZeit: undefined, kontaktProviderKonflikte: undefined, vcardRev: undefined, fotoAlternativen: undefined, fotoQuellen: undefined,
       vcardRoundtrip: fern.vcardName || [],
@@ -25581,9 +25851,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       emailEintraege: (fern.emailEintraege || []).map(e => ({ wert: e.wert, label: e.art, typen: [] })),
       anschriften: (fern.anschriften || []).map(e => ({ ...e, label: e.art, typen: [] }))
     }] }).kontakte[0];
+    if (inhalt.fassung >= 4) {
+      setzeKontaktGruppen(karte, baumKontaktGruppenWerte(gruppen));
+      Object.defineProperty(karte, "baumGruppenBekannt", { value: true });
+    }
+    return karte;
   }
 
-  function baumKontaktVergleich(kontakt, ohneFoto = false, alsObjekt = false) {
+  function baumKontaktVergleich(kontakt, ohneFoto = false, alsObjekt = false, mitGruppen = false) {
     const werte = {};
     for (const feld of ["vorname", "nachname", "anzeigename", "firma", "notiz", "foto", "jubilaeum"])
       werte[feld] = String(kontakt[feld] || "").trim();
@@ -25597,6 +25872,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     werte.anschriften = sortiert(anschriftListe(kontakt).map(e =>
       [art(e), ...["strasse", "plz", "ort", "region", "land"].map(f => String(e[f] || "").trim())]));
     werte.namen = (kontakt.vcardRoundtrip || []).filter(s => /^(?:[A-Za-z0-9-]+\.)?(?:N|FN)[;:]/i.test(s)).slice().sort();
+    if (mitGruppen) werte.gruppen = kontaktGruppen(kontakt).slice().sort();
     return alsObjekt ? werte : kanonischerEntwurf(werte);
   }
 
@@ -25639,7 +25915,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function baumKontaktNurErgaenzungen(ziel, karte) {
-    const bisher = JSON.parse(baumKontaktVergleich(ziel, ziel.fotoManuell)), eingang = JSON.parse(baumKontaktVergleich(karte, ziel.fotoManuell));
+    const mitGruppen = karte.baumGruppenBekannt === true;
+    const bisher = JSON.parse(baumKontaktVergleich(ziel, ziel.fotoManuell, false, mitGruppen)), eingang = JSON.parse(baumKontaktVergleich(karte, ziel.fotoManuell, false, mitGruppen));
     for (const feld of ["telefone", "emails"]) {
       if (!bisher[feld].every(wert => eingang[feld].includes(wert))) return false;
       bisher[feld] = eingang[feld];
@@ -25664,7 +25941,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         Number(inhalt.version) < meta.version)) return { art: "gleich", ziel, bekannteVersion: true };
     const starkeKennung = !!bindung?.size || [...schluessel.keys()].some(key =>
       (key.startsWith("e:") || key.startsWith("t:")) && index.get(key)?.has(ziel));
-    if (starkeKennung && baumKontaktVergleich(ziel, ziel.fotoManuell) === baumKontaktVergleich(karte, ziel.fotoManuell)) return { art: "gleich", ziel };
+    if (starkeKennung && baumKontaktVergleich(ziel, ziel.fotoManuell, false, karte.baumGruppenBekannt === true) === baumKontaktVergleich(karte, ziel.fotoManuell, false, karte.baumGruppenBekannt === true)) return { art: "gleich", ziel };
     if (starkeKennung && baumKontaktNurErgaenzungen(ziel, karte)) return { art: "ergaenzung", ziel };
     return { art: "konflikt", kandidaten, eindeutig: starkeKennung };
   }
@@ -25704,18 +25981,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const inhalt = stueck.inhalt || {};
     if (plan.art !== "ungueltig" && daten.baumKontaktAblehnungen?.length &&
         daten.baumKontaktAblehnungen.includes(await baumKontaktAblehnungHash(stueck))) return { art: "abgelehnt" };
-    if (plan.bekannteVersion && inhalt.fassung === 3 && kontaktZeitGueltig(inhalt.inhaltGeaendert)) {
+    if (plan.bekannteVersion && inhalt.fassung >= 3 && kontaktZeitGueltig(inhalt.inhaltGeaendert)) {
       const zeit = await kontaktInhaltszeit(plan.ziel);
       if (zeit && inhalt.inhaltGeaendert > zeit && !kontaktZeitInhaltGleich(
-          baumKontaktVergleich(plan.ziel, plan.ziel.fotoManuell, true),
-          baumKontaktVergleich(baumKontaktKarte(stueck), plan.ziel.fotoManuell, true)))
+          baumKontaktVergleich(plan.ziel, plan.ziel.fotoManuell, true, inhalt.fassung >= 4),
+          baumKontaktVergleich(baumKontaktKarte(stueck), plan.ziel.fotoManuell, true, inhalt.fassung >= 4)))
         plan = { art: "konflikt", kandidaten: [plan.ziel], eindeutig: true };
     }
     const ziel = plan.kandidaten?.length === 1 ? plan.kandidaten[0] : null;
     const meta = baumKontaktBindung(ziel, inhalt.freigabeId);
     if (plan.art === "konflikt" && meta?.entscheidungHash && meta.freigabeId === inhalt.freigabeId &&
         (meta.partner || []).includes(stueck.von)) {
-      const hash = await personalSyncHash(baumKontaktVergleich(baumKontaktKarte(stueck)));
+      const karte = baumKontaktKarte(stueck);
+      const hash = await personalSyncHash(baumKontaktVergleich(karte, false, false, karte.baumGruppenBekannt === true));
       if (daten.kontakte.includes(ziel) && baumKontaktBindung(ziel, inhalt.freigabeId) === meta && meta.entscheidungHash === hash)
         return { art: "gleich", ziel, behalten: true };
     }
@@ -25732,7 +26010,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (!gueltig() || lauf.offen.length) throw new Error(_("Conflict"));
     if (!lauf.angenommen.length) { lauf.beendet = true; return false; }
     const inhalt = daten => kanonischerEntwurf({
-      kontakte: daten.kontakte.map(k => [k.id, baumKontaktVergleich(k)]),
+      kontakte: daten.kontakte.map(k => [k.id, baumKontaktVergleich(k, false, false, true)]),
       jahrestage: daten.jahrestage.map(j => [j.id, j.kontaktId, j.name, j.typ, j.datum, j.notiz || ""])
     });
     const aenderung = inhalt(lauf.bestand) !== inhalt(lauf.daten);
@@ -25807,13 +26085,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   async function uebernehmeBaumKontaktPlan(daten, stueck, plan, pruefen = () => true) {
     const vorher = daten.kontakte.length;
-    const zeitRelevant = !!plan.ziel?.kontaktZeit || stueck.inhalt?.fassung === 3 && kontaktZeitGueltig(stueck.inhalt.inhaltGeaendert);
+    const zeitRelevant = !!plan.ziel?.kontaktZeit || stueck.inhalt?.fassung >= 3 && kontaktZeitGueltig(stueck.inhalt.inhaltGeaendert);
     const vorherInhalt = zeitRelevant && plan.ziel ? personalSyncKanonisch(kontaktBaumInhalt(plan.ziel, 2, false).kontakt) : "";
     const vorherZeit = zeitRelevant && plan.ziel ? await kontaktInhaltszeit(plan.ziel) : 0;
     if (!pruefen()) return false;
     if (!mitBaumKontaktEntwurf(daten, () => uebernehmeBaumAngebot(stueck, {}, { aufschieben: true, kontakt: plan.ziel, behalten: plan.behalten, ergaenzen: plan.art === "ergaenzung" }))) return false;
     const ziel = plan.ziel || daten.kontakte[vorher];
-    if (zeitRelevant && ziel) await kontaktZeitAusQuelle(ziel, baumKontaktKarte(stueck), stueck.inhalt?.fassung === 3 ? stueck.inhalt.inhaltGeaendert : 0, vorherInhalt, vorherZeit, daten);
+    if (zeitRelevant && ziel) await kontaktZeitAusQuelle(ziel, baumKontaktKarte(stueck), stueck.inhalt?.fassung >= 3 ? stueck.inhalt.inhaltGeaendert : 0, vorherInhalt, vorherZeit, daten);
     return pruefen();
   }
 
@@ -25874,6 +26152,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
     if (ersetzen && karte.vcardRoundtrip?.length) entwurf.vcardRoundtrip =
       (ziel.vcardRoundtrip || []).filter(s => !/^(?:[A-Za-z0-9-]+\.)?(?:N|FN)[;:]/i.test(s)).concat(karte.vcardRoundtrip);
+    if (karte.baumGruppenBekannt === true && (ersetzen || auswahl.gruppen !== "keep")) setzeKontaktGruppen(entwurf, kontaktGruppenRoh(karte));
     return entwurf;
   }
 
@@ -25898,7 +26177,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const zuvorLaeuft = baumKontaktSammelLaeuft;
     baumKontaktSammelLaeuft = true;
     try {
-      const hash = await personalSyncHash(baumKontaktVergleich(karte));
+      const hash = await personalSyncHash(baumKontaktVergleich(karte, false, false, karte.baumGruppenBekannt === true));
       const vorherZeit = ziel ? await kontaktInhaltszeit(ziel) : 0;
       if (DATEN !== bestand || gesperrt || ziel && (!daten.kontakte.includes(ziel) || kanonischerEntwurf(ziel) !== vorher) ||
           !partnerPruefen(stueck.von)) throw new Error(_("Conflict"));
@@ -25906,7 +26185,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         const alteBindungen = daten.kontakte.filter(k => art === "kontakt_sync" && baumKontaktBindung(k, inhalt.freigabeId, stueck.von));
         if (!mitBaumKontaktEntwurf(daten, () => uebernehmeBaumAngebot(stueck, {}, { aufschieben: true, neu: true }))) throw new Error(_("The offered entry is incomplete."));
         await kontaktZeitAusQuelle(daten.kontakte[daten.kontakte.length - 1], karte,
-          inhalt.fassung === 3 ? inhalt.inhaltGeaendert : 0, "", 0, daten);
+          inhalt.fassung >= 3 ? inhalt.inhaltGeaendert : 0, "", 0, daten);
         for (const kontakt of alteBindungen) {
           const bindungen = baumKontaktBindungen(kontakt).map(m => {
             const { weitere, ...einzeln } = m;
@@ -25924,13 +26203,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           const quelle = String(inhalt.quelle || stueck.von || ""), version = Number(inhalt.version);
           setzeBaumKontaktBindung(ziel, { ...meta, freigabeId: inhalt.freigabeId, version: Math.max(meta.version || 0, version),
             quelle, hash: "", entscheidungHash: hash, geaendert: Number(inhalt.geaendert) || 0,
-            fernStand: Object.fromEntries(["vorname", "nachname", "anzeigename", "firma", "geburtstag", "jubilaeum", "vcardName"]
+            fernStand: Object.fromEntries(["vorname", "nachname", "anzeigename", "firma", "geburtstag", "jubilaeum", "vcardName", "gruppen"]
               .filter(f => inhalt.kontakt[f] !== undefined).map(f => [f, kopie(inhalt.kontakt[f])])),
             partner: Array.from(new Set((meta.partner || []).concat(stueck.von))),
             staende: Array.from(new Set((meta.staende || []).concat(quelle + "\u0000" + version))).slice(-100) });
         }
         mitBaumKontaktEntwurf(daten, () => { verknuepfeKontaktGeburtstag(ziel); verknuepfeKontaktJubilaeum(ziel); });
-        await kontaktZeitAusQuelle(ziel, karte, inhalt.fassung === 3 ? inhalt.inhaltGeaendert : 0,
+        await kontaktZeitAusQuelle(ziel, karte, inhalt.fassung >= 3 ? inhalt.inhaltGeaendert : 0,
           inhaltVorher, vorherZeit, daten);
       }
       return true;
@@ -25939,6 +26218,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function baumKontaktAuswahlFuerRest(alt, neu, auswahl, ziel, karte) {
     const uebertragen = { felder: kopie(auswahl.felder || {}), leeren: kopie(auswahl.leeren || {}), listen: {} };
+    if (neu.baumGruppenBekannt === true && karte.baumGruppenBekannt === true) uebertragen.gruppen = auswahl.gruppen;
     const rolle = e => kanonischerText(e.label || telefonArt(e) || "");
     for (const [feld, regel] of Object.entries(BAUM_KONTAKT_LISTEN)) {
       const vorher = regel.lesen(alt), incoming = regel.lesen(neu), bestand = regel.lesen(ziel), andere = regel.lesen(karte);
@@ -25981,7 +26261,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (plan.art === "konflikt" || plan.art === "ungueltig") continue;
           if (plan.art !== "abgelehnt") {
             const anzahl = lauf.daten.kontakte.length;
-            const zeitRelevant = !!plan.ziel?.kontaktZeit || angebot.inhalt?.fassung === 3 && kontaktZeitGueltig(angebot.inhalt.inhaltGeaendert);
+            const zeitRelevant = !!plan.ziel?.kontaktZeit || angebot.inhalt?.fassung >= 3 && kontaktZeitGueltig(angebot.inhalt.inhaltGeaendert);
             const vorherInhalt = zeitRelevant && plan.ziel ? personalSyncKanonisch(kontaktBaumInhalt(plan.ziel, 2, false).kontakt) : "";
             const vorherZeit = zeitRelevant && plan.ziel ? await kontaktInhaltszeit(plan.ziel) : 0;
             if (DATEN !== bestand || gesperrt || lauf.beendet) throw new Error(_("Conflict"));
@@ -25990,7 +26270,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
               throw new Error(_("The offered entry is incomplete."));
             const ziel = plan.ziel || lauf.daten.kontakte[anzahl];
             if (zeitRelevant && ziel) await kontaktZeitAusQuelle(ziel, baumKontaktKarte(angebot),
-              angebot.inhalt?.fassung === 3 ? angebot.inhalt.inhaltGeaendert : 0, vorherInhalt, vorherZeit, lauf.daten);
+              angebot.inhalt?.fassung >= 3 ? angebot.inhalt.inhaltGeaendert : 0, vorherInhalt, vorherZeit, lauf.daten);
           }
         } else {
           const ziel = nummer === 0 ? lauf.daten.kontakte.find(k => k.id === zielId) :
@@ -26071,6 +26351,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ziel = lauf.daten.kontakte.find(k => k.id === zielWahl.value); revision = kanonischerEntwurf(ziel);
       fehler.textContent = "";
       auswahl = { felder: {}, listen: {}, leeren: {} }; felder.textContent = "";
+      if (karte.baumGruppenBekannt === true) {
+        const gruppenText = kontakt => kontaktGruppen(kontakt).map(kontaktGruppenName).join(", ") || "—";
+        const wahl = auswahlFeld([["keep", _("Keep existing") + ": " + gruppenText(ziel)],
+          ["incoming", _("Incoming") + ": " + gruppenText(karte)]], "incoming");
+        wahl.dataset.kontaktGruppen = "true"; auswahl.gruppen = wahl.value;
+        wahl.addEventListener("change", () => { auswahl.gruppen = wahl.value; umfang(); });
+        felder.append(formZeile(_("Contact groups"), wahl));
+      }
       for (const feld of BAUM_KONTAKT_FELDER) {
         if (String(ziel[feld] || "") === String(karte[feld] || "")) continue;
         if (["geburtstag", "jubilaeum"].includes(feld) && !karte[feld]) continue;
@@ -26393,6 +26681,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         geburtstag: kanonischesGeburtsdatum(String(inhalt.kontakt.geburtstag || "")) };
       if (kontakt) {
         if (version < meta.version || version === meta.version && quelle <= meta.quelle) { setzeBaumKontaktBindung(kontakt, meta); return true; }
+        if (inhalt.fassung >= 4) {
+          const lokal = kanonischerEntwurf(kontaktGruppen(kontakt).slice().sort());
+          const incoming = kanonischerEntwurf(kontaktGruppen(baumKontaktKarte(stueck)).slice().sort());
+          const basis = Array.isArray(meta.fernStand?.gruppen) ? kanonischerEntwurf(
+            [...new Set(meta.fernStand.gruppen.map(kontaktGruppeKanonisch).filter(Boolean))].sort()) : null;
+          if (lokal !== incoming && lokal !== basis) { fehler.text = _("Conflict"); zettel(fehler.text); return false; }
+        }
         for (const feld of ["geburtstag", "jubilaeum", "vorname", "nachname", "anzeigename", "firma"]) {
           if (fern[feld] && kontakt[feld] && fern[feld] !== kontakt[feld] && meta.fernStand?.[feld] !== kontakt[feld]) {
             fehler.text = _("Conflict"); zettel(fehler.text); return false;
@@ -26447,9 +26742,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           (fern.anschriften || []).map((e) => ({ strasse: e.strasse, plz: e.plz,
             ort: e.ort, region: e.region, land: e.land, label: e.art, typen: [] }))));
       }
+      if (inhalt.fassung >= 4 && Array.isArray(fern.gruppen)) setzeKontaktGruppen(kontakt, fern.gruppen);
       setzeBaumKontaktBindung(kontakt, { freigabeId: freigabeId, version: version,
         hash: meta.hash || "",
-        fernStand: Object.fromEntries(["vorname", "nachname", "anzeigename", "firma", "geburtstag", "jubilaeum", "vcardName"]
+        fernStand: Object.fromEntries(["vorname", "nachname", "anzeigename", "firma", "geburtstag", "jubilaeum", "vcardName", "gruppen"]
           .filter((feld) => fern[feld] !== undefined).map((feld) => [feld, kopie(fern[feld])])),
         quelle: quelle, geaendert: Number(inhalt.geaendert) || 0,
         staende: Array.from(new Set((meta.staende || []).concat(stand))).slice(-100),
@@ -27351,7 +27647,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function kdeMedienAnfordern(cmd, args = {}) {
     return new Promise(resolve => {
       const requestId = crypto.randomUUID();
-      const timer = setTimeout(() => { kdeMedienAnfragen.delete(requestId); resolve({ ok: false }); }, cmd === "kde_dateisystem_oeffnen" ? 30000 : 8000);
+      const timer = setTimeout(() => { kdeMedienAnfragen.delete(requestId); resolve({ ok: false }); }, cmd === "kde_player_datei" ? 120000 : cmd === "kde_dateisystem_oeffnen" ? 30000 : 8000);
       kdeMedienAnfragen.set(requestId, { resolve, timer });
       if (!Bruecke.sende({ cmd, requestId, ...args })) {
         clearTimeout(timer); kdeMedienAnfragen.delete(requestId); resolve({ ok: false });
@@ -27484,18 +27780,62 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const block = el("section", "kde-medien"); block.id = "kde-local-players"; block.hidden = true;
     const status = el("p", "einst-hinweis");
     block.append(el("h4", null, _("Media players")), status); wurzel.append(block);
+    block.append(el("p", "einst-hinweis", _("Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them.")));
     const sichtbar = () => block.isConnected && !gesperrt && !block.closest("#einstellungen-schleier")?.classList.contains("verborgen");
     const selectors = {};
     for (const [slot, title] of [["music", _("Music player")], ["video", _("Video player")]]) {
       const select = document.createElement("select"); select.id = "kde-player-" + slot; select.setAttribute("aria-label", title);
       const row = el("label", "formzeile"); row.append(el("span", null, title), select); block.append(row); selectors[slot] = select;
+      const library = el("div", "kde-medien-titel"); library.hidden = true;
+      const dateiMoeglich = () => select._applications?.find(app => app.id === select.value)?.can_open_files !== false;
+      const search = eingabe("search", ""); search.setAttribute("aria-label", _("Search") + " · " + title);
+      const tracks = document.createElement("select"); tracks.size = 6; tracks.setAttribute("aria-label", title);
+      let trackState = null, generation = 0;
+      const play = knopf(_("Play"), "klein", async () => {
+        if (!tracks.value || !trackState?.token || gesperrt) return;
+        const current = generation; play.disabled = true;
+        const result = await kdeMedienAnfordern("kde_player_titel", { slot, track: tracks.value, token: trackState.token });
+        if (!sichtbar() || current !== generation) return;
+        status.textContent = result.ok ? "" : _("That did not work."); play.disabled = !tracks.value;
+      });
+      const filter = () => {
+        const before = tracks.value, query = kanonischerText(search.value); tracks.replaceChildren();
+        for (const track of trackState?.tracks || []) if (kanonischerText([track.title, track.artist].join(" ")).includes(query)) {
+          const option = el("option", null, [track.title, track.artist].filter(Boolean).join(" · ")); option.value = track.id; tracks.append(option);
+        }
+        if ([...tracks.options].some(option => option.value === before)) tracks.value = before;
+        play.disabled = !tracks.value;
+      };
+      search.addEventListener("input", filter); tracks.addEventListener("change", () => { play.disabled = !tracks.value; });
+      library.append(search, tracks, play); block.append(library);
+      const refreshTracks = async () => {
+        const current = ++generation; trackState = null; library.hidden = true;
+        if (!select.value || !sichtbar()) return;
+        const result = await kdeMedienAnfordern("kde_player_titel", { slot });
+        if (!sichtbar() || current !== generation) return;
+        trackState = result.ok && result.available && Array.isArray(result.tracks) ? result : null;
+        library.hidden = !trackState; filter();
+      };
+      const file = knopf(_("Search") + " / " + _("Open"), "klein", async () => {
+        if (!select.value || !dateiMoeglich() || gesperrt) return;
+        file.disabled = true;
+        const result = await kdeMedienAnfordern("kde_player_datei", { slot });
+        if (!sichtbar()) return;
+        file.disabled = !select.value || !dateiMoeglich(); status.textContent = result.ok ? "" : _("That did not work.");
+        if (result.ok && !result.cancelled) refreshTracks();
+      });
+      file.disabled = true; file.setAttribute("aria-label", title + " · " + _("Open"));
+      const refresh = knopf(_("Refresh"), "klein", refreshTracks), actions = el("div", "knopfreihe"); actions.append(file, refresh); block.append(actions);
+      select._refreshTracks = refreshTracks; select._fileButton = file;
       select.addEventListener("change", async () => {
+        generation++; trackState = null; library.hidden = true;
         select.disabled = true;
         const result = await kdeMedienAnfordern("kde_player_waehlen", { slot, application: select.value });
         if (!sichtbar()) return;
         select.disabled = false;
         if (!result.ok) { select.value = select.dataset.saved || ""; status.textContent = _("Media player settings could not be applied."); }
         else { select.dataset.saved = result[slot] || ""; status.textContent = ""; }
+        file.disabled = !select.value || !dateiMoeglich(); refreshTracks();
       });
     }
     const load = async () => {
@@ -27507,8 +27847,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       for (const [slot, select] of Object.entries(selectors)) {
         select.textContent = "";
         const empty = document.createElement("option"); empty.value = ""; empty.textContent = _("None"); select.append(empty);
-        result.applications.forEach(app => { const option = document.createElement("option"); option.value = app.id; option.textContent = app.name; select.append(option); });
+        select._applications = result.applications.filter(app => !Array.isArray(app.slots) || app.slots.includes(slot));
+        select._applications.forEach(app => { const option = document.createElement("option"); option.value = app.id; option.textContent = app.name; select.append(option); });
         select.value = result[slot] || ""; select.dataset.saved = select.value;
+        select._fileButton.disabled = !select.value || select._applications.find(app => app.id === select.value)?.can_open_files === false; select._refreshTracks();
       }
     };
     setTimeout(load, 0);
@@ -28867,7 +29209,6 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function baueSeiteAdressen(wurzel) {
-    wurzel.append(knopf(_("Exclude contact groups"), "", oeffneGruppenAusschluss));
     const a = DATEN.einstellungen.adressen;
     const ab = abschnitt(_("Use contact addresses"),
       _("Small action buttons appear on each contact card. You can hide anything " +
@@ -29051,7 +29392,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function baueSeiteErinnerung(wurzel) {
-    wurzel.append(knopf(_("Exclude contact groups"), "", oeffneGruppenAusschluss));
+    const gruppenRegeln = knopf(_("Exclude contact groups"), "", oeffneGruppenAusschluss);
+    gruppenRegeln.style.marginBlock = "5mm";
+    wurzel.append(gruppenRegeln);
     const e = DATEN.einstellungen.erinnerung;
     const ab = abschnitt(_("Appointment reminders"),
       _("The organizer notifies you before an appointment begins, even when the " +
@@ -29528,13 +29871,20 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const heimatland = auswahlFeld(telefonLaenderOptionen(), telefonHeimatland());
     heimatland.id = "regional-heimatland";
     ab.append(formZeile(_("Home country for phone numbers"), heimatland));
-    const speichern = knopf(_("Save"), "", () => {
+    const speichern = knopf(_("Save"), "", async () => {
       if (!Bruecke.vorhanden) return;
       speichern.disabled = true;
-      Bruecke.sende({ cmd: "regional_einstellungen", regional: {
-        language: sprache.value, formatLocale: format.value.trim(), hourCycle: stunden.value,
-        firstDayOfWeek: wochenanfang.value, weekRule: "iso", temperatureUnit: temperatur.value,
-        timeZone: zone.value.trim(), homeCountry: isoLand(heimatland.value, "DE") } });
+      try {
+        const signal = new AbortController().signal, tools = mcpRegionaleEinstellungenWerkzeuge();
+        const before = await tools[0].call({}, signal);
+        await tools[1].call({ expected_revision: before.revision,
+          language: sprache.value, format_locale: format.value.trim(), hour_cycle: stunden.value,
+          first_day_of_week: wochenanfang.value, temperature_unit: temperatur.value,
+          time_zone: zone.value.trim(), home_country: isoLand(heimatland.value, "DE") }, signal);
+        if (einstSeite === "regional") baueEinstellungen();
+        zettel(_("Regional settings saved. Restart the Organizer to apply them completely."));
+      } catch (_) { zettel(_("The regional settings could not be saved.")); }
+      finally { speichern.disabled = false; }
     });
     speichern.id = "regional-speichern";
     if (!Bruecke.vorhanden) speichern.disabled = true;
@@ -31765,7 +32115,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         beendeTabletEingabe(); return;
       }
       if (!Array.isArray(nutzlast.events) || nutzlast.events.length > 128) { beendeTabletEingabe(); return; }
-      if ([...document.querySelectorAll('[aria-modal="true"]')].some(element => element.getClientRects().length)) {
+      if ([...document.querySelectorAll('[aria-modal="true"]')].some(element => element.getClientRects().length && !element.contains(ziel.canvas))) {
         ziel.editor.remote({ active: false, touching: false }); return;
       }
       for (const sample of nutzlast.events) ziel.editor.remote(sample);
@@ -33755,6 +34105,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (args.social?.some(item => item.action_type === "website" && !/^https:\/\//i.test(item.action_target || "")))
       throw new MagnolieMcp.ToolError("invalid_social_action", "Custom website actions must use HTTPS");
     if (args.groups !== undefined) details.gruppen = [...new Set(args.groups.map(value => value.trim()).filter(Boolean))];
+    if (args.time_zone !== undefined) {
+      if (args.time_zone && !gueltigeIanaZeitzone(args.time_zone)) throw new MagnolieMcp.ToolError("invalid_time_zone", "The selected contact time zone is unavailable");
+      details.zeitzone = args.time_zone;
+    }
+    if (args.websites !== undefined) {
+      if (args.websites.some(value => !kontaktWebseiten({ vcardRoundtrip: ["URL:" + value] }).length || /[\r\n]/.test(value)))
+        throw new MagnolieMcp.ToolError("invalid_website", "Contact website must be an HTTP or HTTPS address without credentials");
+      details.webseiten = args.websites;
+    }
     if (args.anniversaries !== undefined || args.birth_date !== undefined) {
       details.ereignisse = args.anniversaries === undefined ? DATEN.jahrestage.filter(item => item.kontaktId === base.id).map(kopie) :
         args.anniversaries.map(item => ({ id: item.id || "", typ: item.type, datum: item.date }));
@@ -33775,6 +34134,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const listed = { type: "object", properties: { value: { ...text(1000), minLength: 1 }, types, label: text(80), role: { type: "string", enum: ["private", ""] } }, required: ["value"], additionalProperties: false };
     const date = { type: "string", pattern: "^(?:\\d{4}-|--)\\d{2}-\\d{2}$" };
     const properties = { first_name: text(1000), last_name: text(1000), company: text(1000), note: text(500000),
+      time_zone: text(128),
+      websites: { type: "array", maxItems: 100, items: { ...text(2048), minLength: 1 } },
       photo: text(750000), phones: { type: "array", items: listed, maxItems: 1000 }, emails: { type: "array", items: listed, maxItems: 1000 },
       addresses: { type: "array", maxItems: 1000, items: { type: "object", properties: { po_box: text(1000), extra: text(1000), street: text(1000),
         postal_code: text(100), city: text(500), region: text(500), country: text(500), label: text(80), types }, additionalProperties: false } },
@@ -33797,7 +34158,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (fields?.some(field => ["__proto__", "constructor", "prototype"].includes(field))) throw new MagnolieMcp.ToolError("invalid_field", "Invalid contact field projection");
           const full = kopie(current);
           const contact = fields ? Object.fromEntries(fields.filter(field => Object.prototype.hasOwnProperty.call(full, field)).map(field => [field, full[field]])) : full;
-          return { contact, revision: await personalSyncHash(JSON.stringify(full)) };
+          const time_zone = kontaktZeitzone(full), local_time = kontaktOrtszeit(time_zone);
+          return { contact, time_zone, local_time, revision: await personalSyncHash(JSON.stringify(full)) };
         } },
       { name: "organizer_contact_create", description: "Create a local contact through the editor's native phone/address/email/photo/group/anniversary handlers and durable save path.",
         inputSchema: { type: "object", properties: { ...properties, id: { type: "string", pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" } },
@@ -36339,7 +36701,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const mode = args.contact_decision, target = draft.kontakte.find(contact => contact.id === args.contact_id), card = baumKontaktKarte(item);
     const invalid = () => { throw new MagnolieMcp.ToolError("invalid_selection", "Invalid tree contact decision, target or field/list selection"); };
     if (mode === "auto") {
-      if (!card || args.contact_id !== undefined || args.field_choices?.length || args.list_choices?.length || args.clear_lists?.length) invalid();
+      if (!card || args.contact_id !== undefined || args.group_choice !== undefined || args.field_choices?.length || args.list_choices?.length || args.clear_lists?.length) invalid();
       const plan = await baumKontaktPlan(item, null, draft);
       if (plan.art === "abgelehnt") return true;
       if (plan.art === "konflikt") {
@@ -36351,13 +36713,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       return uebernehmeBaumKontaktPlan(draft, item, plan);
     }
     if (mode === "skip") {
-      if (!card || args.contact_id !== undefined || args.field_choices?.length || args.list_choices?.length || args.clear_lists?.length) invalid();
+      if (!card || args.contact_id !== undefined || args.group_choice !== undefined || args.field_choices?.length || args.list_choices?.length || args.clear_lists?.length) invalid();
       await merkeBaumKontaktAblehnung(draft, item);
       return true;
     }
     if (!card || !["new", "merge", "replace", "keep", "newer"].includes(mode) || mode === "new" && args.contact_id !== undefined || mode !== "new" && !target) invalid();
-    if (mode !== "merge" && (args.field_choices?.length || args.list_choices?.length || args.clear_lists?.length)) invalid();
+    if (mode !== "merge" && (args.group_choice !== undefined || args.field_choices?.length || args.list_choices?.length || args.clear_lists?.length)) invalid();
     const selection = { felder: {}, listen: {}, leeren: {} }, fields = new Set(), lists = new Set(), replacements = new Set();
+    if (args.group_choice !== undefined) {
+      if (card.baumGruppenBekannt !== true || !["keep", "incoming"].includes(args.group_choice)) invalid();
+      selection.gruppen = args.group_choice;
+    }
     for (const choice of args.field_choices || []) {
       if (!BAUM_KONTAKT_FELDER.includes(choice.field) || fields.has(choice.field)) invalid();
       fields.add(choice.field); selection.felder[choice.field] = choice.choice;
@@ -36385,6 +36751,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function mcpBaumAnnahmeWerkzeuge() {
     const hash = { type: "string", pattern: "^[a-f0-9]{64}$" };
     const contactChoices = { contact_decision: { type: "string", enum: ["auto", "new", "merge", "replace", "keep", "newer", "skip", "delete"] }, contact_id: { type: "string", minLength: 1, maxLength: 256 },
+      group_choice: { type: "string", enum: ["keep", "incoming"], description: "Merge only, with known incoming contact groups: keep local memberships or accept the complete incoming set, including an explicit empty set. Defaults to incoming." },
       field_choices: { type: "array", maxItems: 8, items: { type: "object", properties: { field: { type: "string", enum: BAUM_KONTAKT_FELDER }, choice: { type: "string", enum: ["keep", "incoming"] } }, required: ["field", "choice"], additionalProperties: false } },
       clear_lists: { type: "array", maxItems: 3, uniqueItems: true, items: { type: "string", enum: Object.keys(BAUM_KONTAKT_LISTEN) } },
       list_choices: { type: "array", maxItems: 1000, items: { type: "object", properties: { field: { type: "string", enum: Object.keys(BAUM_KONTAKT_LISTEN) }, incoming_index: { type: "integer", minimum: 0 }, choice: { type: "string", enum: ["keep", "add", "replace"] }, existing_index: { type: "integer", minimum: 0 } }, required: ["field", "incoming_index", "choice"], additionalProperties: false } } };
@@ -36423,7 +36790,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         if (baumKontaktSammelLaeuft) throw new MagnolieMcp.ToolError("native_busy", "Finish the active tree contact review first");
         const hasChoices = Object.keys(contactChoices).some(key => args[key] !== undefined);
         if (hasChoices && !["kontakt", "kontakt_sync", "kontakt_loeschen"].includes(kind) || kind === "kontakt_sync" && !args.contact_decision || kind === "kontakt_loeschen" &&
-            (args.contact_decision !== "delete" || !peer.kontaktLoeschen || args.contact_id !== undefined || args.field_choices?.length || args.list_choices?.length || args.clear_lists?.length))
+            (args.contact_decision !== "delete" || !peer.kontaktLoeschen || args.contact_id !== undefined || args.group_choice !== undefined || args.field_choices?.length || args.list_choices?.length || args.clear_lists?.length))
           throw new MagnolieMcp.ToolError("invalid_selection", "Contact synchronization needs an explicit decision; deletion also requires the existing peer permission");
         current();
         await new Promise((resolve, reject) => mitMutationsSnapshot("pre-change", resolve, () => reject(new MagnolieMcp.ToolError("snapshot_failed", "Native pre-acceptance checkpoint failed"))));
@@ -37308,6 +37675,19 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     ];
   }
   function wendeRegionaleEinstellungenDatenAn(values) { Object.assign(DATEN.einstellungen.regional, values); }
+  async function sichereZeitzonenVerankerung(signal) {
+    const book = DATEN, plan = zeitzonenVerankerungsPlan(book, organizerZeitzone() || new Intl.DateTimeFormat().resolvedOptions().timeZone);
+    if (!plan.length) return;
+    mcpEditorPruefen();
+    if (signal.aborted || plan.some(value => JSON.stringify(value.entry) !== value.before)) throw new MagnolieMcp.ToolError("source_changed", "The book changed before time-zone anchoring");
+    for (const value of plan) Object.assign(value.entry, value.next);
+    const anchored = JSON.stringify(book);
+    planeSpeichern();
+    await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve,
+      () => reject(new MagnolieMcp.ToolError("save_failed", "Time-zone anchors could not be saved; native time-zone settings were not changed"))));
+    if (signal.aborted || DATEN !== book || gesperrt || JSON.stringify(book) !== anchored) throw new MagnolieMcp.ToolError("source_changed", "The book changed while time-zone anchors were saved");
+    mcpEditorPruefen();
+  }
   function mcpRegionaleEinstellungenWerkzeuge() {
     const map = { language: "language", format_locale: "formatLocale", hour_cycle: "hourCycle", first_day_of_week: "firstDayOfWeek", temperature_unit: "temperatureUnit", time_zone: "timeZone", home_country: "homeCountry" };
     const fields = { language: { type: "string", enum: ["system", "de", "en", "fr", "es", "it", "nl", "pt", "ru", "cs", "pl", "hsb", "da", "nb", "hi", "zh_CN", "ja", "ar", "uk", "be", "tr"] },
@@ -37335,8 +37715,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           if (signal.aborted || DATEN !== book || snapshot(native) !== before || revision !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Native or book regional preferences changed; read them again");
           mcpEditorPruefen(); const wanted = { ...native };
           for (const [key, field] of Object.entries(map)) if (args[key] !== undefined) wanted[field] = key === "home_country" ? args[key].toUpperCase() : key === "format_locale" ? args[key].replace(/_/g, "-") : args[key];
-          if (args.time_zone && args.time_zone !== "system") { try { new Intl.DateTimeFormat("en", { timeZone: args.time_zone }); } catch { throw new MagnolieMcp.ToolError("invalid_settings", "The requested time zone is unavailable"); } }
-          const value = await mcpNativeAufruf("regional_einstellungen", { regional: wanted, expectedRegional: native }, "regionalErgebnis", signal);
+           if (args.time_zone && args.time_zone !== "system") { try { new Intl.DateTimeFormat("en", { timeZone: args.time_zone }); } catch { throw new MagnolieMcp.ToolError("invalid_settings", "The requested time zone is unavailable"); } }
+           if (wanted.timeZone !== native.timeZone) await sichereZeitzonenVerankerung(signal);
+           const value = await mcpNativeAufruf("regional_einstellungen", { regional: wanted, expectedRegional: native }, "regionalErgebnis", signal);
           if (value.ok !== true) throw new MagnolieMcp.ToolError(["conflict", "invalid_settings"].includes(value.code) ? value.code : "native_operation_failed", "Native regional startup save could not be confirmed; re-read stored settings");
           const actual = validate(value.regional);
           if (DATEN !== book || JSON.stringify(DATEN.einstellungen.regional) !== JSON.stringify(JSON.parse(before).book)) throw new MagnolieMcp.ToolError("source_changed", "Startup preferences may have been saved; book regional metadata changed");
@@ -37478,20 +37859,20 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function mcpGruppenAusschlussWerkzeuge() {
     const policy = () => saubererGruppenAusschluss(DATEN.einstellungen.adressen.gruppenAusschluss);
     const group = { type: "string", minLength: 1, maxLength: 256, pattern: "^[^\\u0000-\\u001f\\u007f]+$" };
-    const rule = calendar => ({ type: "object", properties: { scope: { type: "string", enum: ["birthdays", "anniversaries"] },
-      groups: { type: "array", maxItems: 1000, items: group }, ...(calendar ? { calendar: { type: "boolean" } } : {}) }, required: ["scope", "groups"], additionalProperties: false });
+    const rule = calendar => ({ type: "object", properties: { scope: { type: "string", enum: ["birthdays", "anniversaries", "appointments", "all"] },
+      groups: { type: "array", maxItems: 1000, items: group }, calendars: { type: "array", maxItems: 1000, items: group }, ...(calendar ? { calendar: { type: "boolean" } } : {}) }, required: ["scope", "groups"], additionalProperties: false });
     return [{ name: "organizer_contact_group_exclusions_read", description: "Read separate identity-bound contact-group exclusions for notifications, the anniversary list and appointment overview/calendar. Disabling retains all choices; contacts and provider records remain intact.",
       inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async () => {
         const settings = policy(); return { settings, revision: await personalSyncHash(JSON.stringify(settings)) };
       } }, { name: "organizer_contact_group_exclusions_update", description: "Update selected contact-group exclusion areas through the shared GUI policy with revision checking and native durable SaveACK. A matching excluded membership wins; no contact or anniversary is deleted. Set enabled=false without losing selected groups/scopes.",
       inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, enabled: { type: "boolean" },
-        notifications: rule(false), anniversaries: rule(false), overview: rule(true) }, required: ["expected_revision"], additionalProperties: false },
+        notifications: rule(false), anniversaries: rule(false), overview: rule(true), print: rule(false) }, required: ["expected_revision"], additionalProperties: false },
       annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
         const book = DATEN, before = JSON.stringify(policy()), revision = await personalSyncHash(before);
         if (DATEN !== book || JSON.stringify(policy()) !== before || args.expected_revision !== revision || signal.aborted)
           throw new MagnolieMcp.ToolError("conflict", "Contact-group exclusion settings changed before saving");
         const next = policy(); if (args.enabled !== undefined) next.enabled = args.enabled;
-        for (const area of ["notifications", "anniversaries", "overview"]) if (args[area]) next[area] = { ...next[area], ...args[area] };
+        for (const area of ["notifications", "anniversaries", "overview", "print"]) if (args[area]) next[area] = { ...next[area], ...args[area] };
         setzeGruppenAusschluss(next); return {};
       }) }];
   }
@@ -38054,8 +38435,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         next_offset: { anyOf: [{ type: "null" }, { type: "integer", minimum: 0 }] }, entries: { type: "array", maxItems: 100, items: entry } }, ["revision", "total", "offset", "next_offset", "entries"]);
     }
     if (name === "organizer_contact_group_exclusions_read") {
-      const rule = calendar => shape({ scope: { type: "string", enum: ["birthdays", "anniversaries"] }, groups: { type: "array", items: text }, ...(calendar ? { calendar: flag } : {}) }, calendar ? ["scope", "groups", "calendar"] : ["scope", "groups"]);
-      return shape({ revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, settings: shape({ enabled: flag, notifications: rule(false), anniversaries: rule(false), overview: rule(true) }, ["enabled", "notifications", "anniversaries", "overview"]) }, ["revision", "settings"]);
+      const rule = calendar => shape({ scope: { type: "string", enum: ["birthdays", "anniversaries", "appointments", "all"] }, groups: { type: "array", items: text }, calendars: { type: "array", items: text }, ...(calendar ? { calendar: flag } : {}) }, calendar ? ["scope", "groups", "calendars", "calendar"] : ["scope", "groups", "calendars"]);
+      return shape({ revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, settings: shape({ enabled: flag, notifications: rule(false), anniversaries: rule(false), overview: rule(true), print: rule(false) }, ["enabled", "notifications", "anniversaries", "overview", "print"]) }, ["revision", "settings"]);
     }
     if (name === "organizer_contact_group_exclusions_update") return shape({ persisted: yes }, ["persisted"]);
     if (name === "organizer_category_colors_read") return shape({ revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, colors: { type: "array", items: shape({ name: text, color: { type: "string", pattern: "^#[a-f0-9]{6}$" } }, ["name", "color"]) } }, ["revision", "colors"]);
@@ -38183,7 +38564,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, next_offset: { type: ["integer", "null"], minimum: 0 } },
       ["section", "encoding", "charset", "total_bytes", "offset", "data", "revision", "next_offset"]);
     if (name === "notes_diagnostics_read") return shape({ device_id: id, diagnostics: shape({ format: { type: "integer", enum: [1] },
-      app_version: text, events: { type: "array", maxItems: 128, items: object } }, ["format", "app_version", "events"], true) }, ["device_id", "diagnostics"]);
+      app_version: text, events: { type: "array", maxItems: 128, items: object },
+      crash_report: shape({ available: flag, text: { type: "string", maxLength: 16384 }, truncated: flag }, ["available", "text", "truncated"]) }, ["format", "app_version", "events"], true) }, ["device_id", "diagnostics"]);
     if (name === "organizer_data_read") return { ...shape({ section: { type: "string", enum: mcpBereiche }, entry: object,
       value: { type: ["object", "array", "string", "number", "boolean", "null"] }, entries: { type: "array" },
       total: { type: "integer", minimum: 0 }, offset: { type: "integer", minimum: 0 }, nextOffset: { type: "integer", minimum: 0 } }, ["section"]),
@@ -38194,6 +38576,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (name === "organizer_anniversary_read") return shape({ anniversary: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["anniversary", "revision"]);
     if (name === "organizer_vacation_read") return shape({ vacation: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["vacation", "revision"]);
     if (/^organizer_(shift|cycle_marker)_read$/.test(name)) return shape({ definition: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["definition", "revision"]);
+    if (name === "organizer_contact_read") return shape({ contact: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, time_zone: text,
+      local_time: { anyOf: [{ type: "null" }, shape({ zone: text, own_zone: text, text, captured_ms: { type: "integer", minimum: 0, maximum: 253402300799999 } }, ["zone", "own_zone", "text", "captured_ms"])] } }, ["contact", "revision", "time_zone", "local_time"]);
     if (reader) return shape({ [reader]: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, [reader, "revision"]);
     if (name === "organizer_trash_restore") return shape({ restored_id: { type: ["string", "null"] }, type: text, persisted: yes }, ["restored_id", "type", "persisted"]);
     const written = { id, persisted: yes };
@@ -38436,7 +38820,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           DATEN.notizen.push(note);
           return { id: note.id, notebook_id: notebook };
         }) },
-      { name: "notes_diagnostics_read", description: "Read ephemeral WLAN diagnostics from the confirmed own Notes phone. Developer mode and current device-status grants are required on both sides.",
+      { name: "notes_diagnostics_read", description: "Read WLAN diagnostics and, when the connected Notes phone supports it, its saved Android crash report. Developer mode and current device-status grants are required on both sides. Crash text is bounded; truncated=true indicates a partial report. Older phones retain their WLAN-only result.",
         inputSchema: { type: "object", properties: {}, additionalProperties: false },
         annotations: { readOnlyHint: true, openWorldHint: true }, call: async (_args, signal) => mcpNotesDiagnose(signal) },
       { name: "organizer_status", description: "Read the live Organizer version, lock state, editor/dialog state and save state.",
@@ -38895,6 +39279,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     /* Mitternachtswechsel: Datum und „Heute“-Markierungen auffrischen */
     let letzterTag = isoHeute();
     const aktualisiereHeutigenTag = () => {
+      aktualisiereKontaktOrtszeiten();
       const heute = isoHeute();
       if (heute !== letzterTag) {
         if (editorIstGeaendert()) return;

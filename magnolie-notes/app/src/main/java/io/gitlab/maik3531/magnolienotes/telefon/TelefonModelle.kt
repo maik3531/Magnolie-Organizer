@@ -178,7 +178,7 @@ object TelefonCapabilities {
                incomingCalls: Boolean = false,
                incomingNumber: Boolean = false, answerCalls: Boolean = false,
                  endCalls: Boolean = false, identifiers: Boolean = false, contactRead: Boolean = false) = linkedMapOf(
-        "device_status" to TelefonCapability(true, "available", (listOf(1, 2, 3, 11) +
+        "device_status" to TelefonCapability(true, "available", (listOf(1, 2, 3, 11, PhoneTimeZone.VERSION, io.gitlab.maik3531.magnolienotes.Entwicklermodus.ABSTURZ_DIAGNOSE_VERSION) +
               (if (identifiers) listOf(4) else emptyList()) + (if (contactRead) listOf(ContactRead.VERSION, ContactRead.PROFILE_VERSION, ContactRead.PROFILE_DIAGNOSTIC_VERSION) else emptyList())).sorted()),
         "selected_notifications_readonly" to TelefonCapability(notifications, if (notifications) "available" else "disabled"),
         "dial_request" to TelefonCapability(dialRequest && dialResolvable && dialPermission,

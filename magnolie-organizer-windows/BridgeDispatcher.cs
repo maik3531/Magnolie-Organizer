@@ -93,7 +93,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 "sync" or "personal_sync_senden" or "personal_sync_lauf_senden" or "handbuch_herunterladen" or "baum_internet_adresse" or
                 "telefon_oeffnen" or "telefon_verbinden" or "telefon_pairing_oeffnen" or "kde_pairing_start" or "kde_pairing_complete" or
                 "kde_paaren" or "kde_pairing_confirm" or "kde_paarung_bestaetigen" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or
-                "internet_konto_anmelden" or "internet_konten_status" or "internet_konto_verwalten" or "internet_konten_mcp" or "telefon_kontaktfotos" or "telefon_kontakte")
+                "internet_konto_anmelden" or "internet_konten_status" or "internet_konto_verwalten" or "internet_konten_mcp" or "telefon_kontaktfotos" or "telefon_kontakte" or "zeitzone_erkennen")
             {
                 var owner = command is "telefon_kontaktfotos" or "telefon_kontakte" ? "kontaktfotos" :
                     command is "sync" or "baum_briefkasten_speichern" or "graph_client_id_speichern" or "internet_konto_verwalten" ? "sync" :
@@ -131,6 +131,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
                 switch (command)
                 {
                     case "bereit": form.StartMcpServer(); await InitializeAsync(); break;
+                    case "zeitzone_erkennen": await DetectTimeZoneAsync(message); break;
                     case "mcp_antwort": form.McpReply(message); break;
                     case "entsperren": await UnlockAsync(Text(message, "kennwort")); break;
                     case "kennwort_setzen": await SetPasswordAsync(message); break;
@@ -450,6 +451,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
                     case "kde_medien_geraete":
                     case "kde_player_stand":
                     case "kde_player_waehlen":
+                    case "kde_player_datei":
+                    case "kde_player_titel":
                     case "kde_medien_stand":
                     case "kde_medien_aktion": await KdeMediaAsync(message); break;
                     case "kde_input_stand":

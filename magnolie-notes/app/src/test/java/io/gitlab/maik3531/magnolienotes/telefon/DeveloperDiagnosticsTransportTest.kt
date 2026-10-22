@@ -75,6 +75,7 @@ class DeveloperDiagnosticsTransportTest {
             it.jsonObject["stage"] == JsonPrimitive("failed") && it.jsonObject["failure"] == JsonPrimitive(true)
         })
         developer.ereignis("online", "wifi")
+        File(context.filesDir, "diagnostics/magnolie-crash.txt").writeText("Magnolie Notes crash report\nSynthetic first-focus crash\nfixture.stack.Frame")
         val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
         val errors = File(context.cacheDir, "developer-host-stderr.log")
         errors.writeText("")
@@ -115,7 +116,7 @@ class DeveloperDiagnosticsTransportTest {
                         when (packet.string("type")) {
                             "message" -> {
                                 TelefonNachrichten.validate(packet)
-                                if (packet.string("kind") == "device_status.request" && (packet["body"] as JsonObject)["version"] == JsonPrimitive(11)) {
+                                if (packet.string("kind") == "device_status.request" && (packet["body"] as JsonObject)["version"] in setOf(JsonPrimitive(11), JsonPrimitive(Entwicklermodus.ABSTURZ_DIAGNOSE_VERSION))) {
                                     requests++
                                     when (requests) {
                                         2 -> sessions[channel] = PersonalNoteSession()

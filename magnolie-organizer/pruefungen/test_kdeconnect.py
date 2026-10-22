@@ -1119,6 +1119,54 @@ def test_outbound_tcp_uses_inverted_mutual_tls_and_secure_identity():
 
 
 @pytest.mark.skipif(kde.SSL is None, reason="PyOpenSSL is not installed")
+@pytest.mark.parametrize("wrong_peer", [False, True])
+def test_media_cover_sender_uses_pinned_mutual_tls_and_cleans_listener(tmp_path, wrong_peer):
+    from types import SimpleNamespace
+    from magnolie_kde_mpris import ArtworkPayload
+    import queue
+    desktop = kde.KDEConnectSMSBackend(str(tmp_path / "desktop"))
+    phone = kde.KDEConnectSMSBackend(str(tmp_path / "phone"))
+    desktop.store.save_peer(phone.store.device_id, "Phone", phone.store.certificate)
+    desktop.store.peers[phone.store.device_id].update(paired=True, pairingConfirmedMs=1)
+    client = kde.KDEConnectSMSBackend(str(tmp_path / "different")) if wrong_peer else phone
+    client.store.save_peer(desktop.store.device_id, "Desktop", desktop.store.certificate)
+    client.store.peers[desktop.store.device_id].update(paired=True, pairingConfirmedMs=1)
+    raw = socket.socket(); raw.bind(("127.0.0.1", 0))
+    packets, errors = queue.Queue(), []
+    payload = ArtworkPayload({"player": "Fixture", "albumArtUrl": "file:///fixture/cover.png", "transferringAlbumArt": True}, b"owned cover bytes")
+    worker = SimpleNamespace(connection=SimpleNamespace(raw=raw), identity={"deviceId": phone.store.device_id}, send=packets.put)
+    def send():
+        try: desktop._send_media_art({"worker": worker, "payload": payload, "permitted": lambda: True})
+        except Exception as error: errors.append(error)
+    thread = threading.Thread(target=send)
+    stream = None
+    received = b""
+    try:
+        thread.start()
+        packet = packets.get(timeout=3)
+        assert packet["type"] == "kdeconnect.mpris" and packet["payloadSize"] == len(payload.data)
+        assert packet["body"] == payload.body
+        port = packet["payloadTransferInfo"]["port"]
+        assert kde.MIN_TCP_PORT <= port <= kde.MAX_TCP_PORT
+        try:
+            stream = client._payload_tls_connection(desktop.store.device_id, "127.0.0.1", port)
+            while len(received) < len(payload.data):
+                part = stream.recv(len(payload.data) - len(received))
+                if not part: break
+                received += part
+        except (kde.SSL.Error, OSError, kde.ProtocolError):
+            if not wrong_peer: raise
+    finally:
+        if stream is not None: stream.close()
+        thread.join(10); raw.close()
+    assert not thread.is_alive() and desktop._payload_active is None
+    if wrong_peer:
+        assert received == b"" and errors
+    else:
+        assert received == payload.data and not errors
+
+
+@pytest.mark.skipif(kde.SSL is None, reason="PyOpenSSL is not installed")
 def test_accepted_tcp_uses_tls_client_role_and_secure_identity():
     left, right = socket.socketpair()
     errors = []

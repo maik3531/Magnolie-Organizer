@@ -42,13 +42,13 @@ def owned(tmp_path, monkeypatch):
     return service, peer, channel, events
 
 
-def start_read(owned, include=False):
+def start_read(owned, include=False, time_zone=False):
     service, peer, channel, _events = owned
     request = str(uuid.uuid4()); outcome = {}
     def run():
         try:
             outcome["token"] = service.read_device_status(peer["device_id"], phone.fingerprint(phone.unb64(peer["static_public"], 32)), include, request,
-                expected_revision=service.mcp_status(include_bluetooth=False)["revision"])
+                expected_revision=service.mcp_status(include_bluetooth=False)["revision"], time_zone=time_zone)
         except BaseException as error:
             outcome["error"] = error
     thread = threading.Thread(target=run, daemon=True); thread.start()
@@ -139,6 +139,84 @@ def test_basic_status_does_not_require_own_device_but_identifiers_do(owned):
     with pytest.raises(PermissionError):
         service.read_device_status(peer["device_id"], phone.fingerprint(phone.unb64(peer["static_public"], 32)), True)
     assert not events
+
+
+def timezone_peer(owned, transport="wifi"):
+    service, peer, channel, _events = owned
+    peer["capabilities"]["items"]["device_status"]["versions"].append(12)
+    service.note_controls[channel]["capabilities.update"] = copy.deepcopy(peer["capabilities"])
+    service.connection_transports[peer["device_id"]] = transport
+    return service, peer, channel
+
+
+def timezone_report(request, zone="Asia/Tokyo"):
+    packet = report(request)
+    packet["body"] = {"version": 12, "request_id": request, "state": "available" if zone else "unavailable", "time_zone": zone, "captured_ms": phone.now_ms()}
+    return packet
+
+
+@pytest.mark.parametrize("transport", ["wifi", "bluetooth"])
+def test_own_timezone_read_is_correlated_readonly_and_has_actual_transport(owned, transport):
+    service, peer, channel = timezone_peer(owned, transport)
+    request, worker, outcome = start_read(owned, time_zone=True)
+    assert channel.sent[0]["body"] == {"request_id": request, "version": 12}
+    service._payload(peer, channel, timezone_report(request)); worker.join(3)
+    assert not worker.is_alive() and "error" not in outcome, outcome
+    result = service.current_mcp_device_status(outcome["token"])
+    assert result["protocol_version"] == 12 and result["transport"] == transport
+    assert result["report"]["time_zone"] == "Asia/Tokyo" and len(result["report"]) == 5
+    assert result["include_identifiers"] is False and result["persisted"] is False and not owned[3]
+    assert service.store.status(peer["device_id"]) == {}
+    if transport == "bluetooth":
+        assert service._mcp_status_peer(peer["device_id"]) is None, "Timezone support must not widen ordinary WiFi-only MCP status access"
+    service._payload(peer, channel, timezone_report(request))
+    assert channel.sent[-1]["status"] == "rejected" and not owned[3]
+
+
+@pytest.mark.parametrize("change", ["own_off", "remote_off", "no_fresh_own", "legacy"])
+def test_unowned_stale_or_legacy_phone_is_not_queried_for_timezone(owned, change):
+    service, peer, channel = timezone_peer(owned)
+    if change == "own_off": peer["personal_sync"]["own_device"] = False
+    elif change == "remote_off": peer["personal_sync"]["remote_own_device"] = False
+    elif change == "no_fresh_own": service.note_controls[channel].pop("personal_sync.settings")
+    else:
+        peer["capabilities"]["items"]["device_status"]["versions"].remove(12)
+        service.note_controls[channel]["capabilities.update"] = copy.deepcopy(peer["capabilities"])
+    assert service.read_own_time_zone() is None and channel.sent == []
+
+
+def test_timezone_ownership_is_rechecked_after_native_receipt(owned):
+    service, peer, channel = timezone_peer(owned)
+    request, worker, outcome = start_read(owned, time_zone=True)
+    service._payload(peer, channel, timezone_report(request)); worker.join(3)
+    assert not worker.is_alive() and "token" in outcome
+    peer["personal_sync"]["own_device"] = False
+    with pytest.raises(PermissionError): service.current_mcp_device_status(outcome["token"])
+    assert not service.mcp_status_results and not owned[3]
+
+
+def test_daemon_timezone_read_does_not_start_subscriber_or_persist_status(owned, tmp_path):
+    service, peer, channel = timezone_peer(owned, "bluetooth")
+    path = str(tmp_path / "runtime" / "timezone.sock")
+    server = background.IPCServer(FakeBackend(), path, phone_backend=service).start()
+    proxy = background.PhoneServiceProxy(path=path)
+    outcome = {}
+    def read():
+        try: outcome["result"] = proxy.read_own_time_zone()
+        except BaseException as error: outcome["error"] = error
+    worker = threading.Thread(target=read, daemon=True)
+    try:
+        worker.start(); wait_request(channel, worker)
+        request = next(value for value in channel.sent if value.get("kind") == "device_status.request")["body"]["request_id"]
+        service._payload(peer, channel, timezone_report(request)); worker.join(3)
+        assert not worker.is_alive() and "error" not in outcome, outcome
+        assert outcome["result"]["zone"] == "Asia/Tokyo" and proxy._event_thread is None and service.server is None
+        assert not service.mcp_status_results and service.store.status(peer["device_id"]) == {} and not owned[3]
+        with sqlite3.connect(service.store.database_path) as database:
+            for table in ("inbox", "outbox"):
+                assert database.execute("SELECT COUNT(*) FROM " + table).fetchone()[0] == 0
+    finally:
+        worker.join(3); server.close()
 
 
 def control_request(service, peer, query, include=True):

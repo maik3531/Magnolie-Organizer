@@ -188,6 +188,20 @@
     let active = null, pointer = null, disposed = false, tool = "pen", color = "#1d2433", width = 4;
     let selection = null, selecting = false, moving = null, zoom = 1, nibAngle = 0, panning = null, panX = 0, panY = 0, viewScale = 1;
     let count = sheet.strokes.reduce((total, stroke) => total + stroke.points.length, 0);
+    const tabletCursor = viewport ? document.createElement("span") : null;
+    if (tabletCursor) {
+      tabletCursor.className = "zeichen-stiftzeiger"; tabletCursor.hidden = true;
+      tabletCursor.setAttribute("aria-hidden", "true"); viewport.append(tabletCursor);
+    }
+    const hideTabletCursor = () => { if (tabletCursor) tabletCursor.hidden = true; };
+    const showTabletCursor = sample => {
+      if (!tabletCursor) return;
+      tabletCursor.hidden = false; tabletCursor.dataset.tool = sample.tool || "Pen";
+      tabletCursor.style.left = (sample.x * viewport.clientWidth) + "px";
+      tabletCursor.style.top = (sample.y * viewport.clientHeight) + "px";
+      const size = Math.max(10, Math.min(80, (sample.tool === "Rubber" ? Math.max(16, width) : width) * viewScale));
+      tabletCursor.style.width = tabletCursor.style.height = size + "px";
+    };
     const base = document.createElement("canvas"), layer = document.createElement("canvas");
     let viewHeight = sheet.height, viewWidth = sheet.width, rasterScale = Math.min(1, 4096 / Math.max(sheet.width, sheet.height));
     const resetLayers = () => { base.width = layer.width = canvas.width; base.height = layer.height = canvas.height; base.getContext("2d").drawImage(canvas, 0, 0); layer.getContext("2d").setTransform?.(rasterScale, 0, 0, rasterScale, 0, 0); };
@@ -323,6 +337,7 @@
     };
     const down = event => {
       if (pointer !== null || event.button !== 0 && !(event.pointerType === "pen" && event.button === 5)) return;
+      hideTabletCursor();
       const position = fromEvent(event); if (!position || !begin(...position, event.button === 5 ? "eraser" : tool)) return;
       pointer = event.pointerId; canvas.focus(); event.preventDefault();
       try { canvas.setPointerCapture(pointer); } catch (_) { /* View may have been removed. */ }
@@ -338,7 +353,8 @@
     const cancel = event => { if (event.pointerId === pointer) finish(); };
     const handlers = { pointerdown: down, pointermove: motion, pointerup: up, pointercancel: cancel, lostpointercapture: cancel };
     for (const [name, handler] of Object.entries(handlers)) canvas.addEventListener(name, handler);
-    window.addEventListener?.("blur", finish);
+    const blur = () => { hideTabletCursor(); finish(); };
+    window.addEventListener?.("blur", blur);
     canvas.style.touchAction = "none";
     const observer = viewport && typeof ResizeObserver !== "undefined" ? new ResizeObserver(resize) : null;
     observer?.observe(viewport);
@@ -347,9 +363,11 @@
       begin, move, finish,
       remote(sample) {
         if (disposed || pointer !== null) return;
-        if (!sample || !sample.active || !sample.touching) { finish(); return; }
+        if (!sample || !sample.active) { hideTabletCursor(); finish(); return; }
         if (![sample.x, sample.y, sample.pressure].every(Number.isFinite) ||
-            sample.x < 0 || sample.x > 1 || sample.y < 0 || sample.y > 1) { finish(); return; }
+            sample.x < 0 || sample.x > 1 || sample.y < 0 || sample.y > 1) { hideTabletCursor(); finish(); return; }
+        showTabletCursor(sample);
+        if (!sample.touching) { finish(); return; }
         const selectedTool = sample.tool === "Rubber" ? "eraser" : tool;
         let x = sample.x, y = sample.y;
         if (viewport) {
@@ -529,7 +547,8 @@
       destroy() {
         finish(); disposed = true;
         for (const [name, handler] of Object.entries(handlers)) canvas.removeEventListener(name, handler);
-        window.removeEventListener?.("blur", finish);
+        window.removeEventListener?.("blur", blur);
+        tabletCursor?.remove();
         observer?.disconnect();
       }
     };

@@ -21,6 +21,7 @@ import android.provider.ContactsContract.CommonDataKinds.Photo
 import android.provider.ContactsContract.CommonDataKinds.StructuredName
 import android.provider.ContactsContract.CommonDataKinds.Event
 import android.provider.ContactsContract.CommonDataKinds.GroupMembership
+import android.provider.ContactsContract.CommonDataKinds.Website
 import android.provider.ContactsContract.Groups
 import androidx.test.core.app.ApplicationProvider
 import kotlinx.serialization.json.*
@@ -68,6 +69,7 @@ class ContactReadProviderTest {
         assertTrue(card.contains("X-MAGNOLIE-SOZIALES-MEDIUM:"))
         assertTrue(card.contains("whatsapp"))
         assertTrue(card.contains("CATEGORIES:Fixture\\, group"))
+        assertTrue(card.contains("URL;TYPE=WORK:https://example.test/work"))
         assertTrue(provider.sawSelection)
         assertEquals(2, provider.rawReads)
     }
@@ -83,6 +85,14 @@ class ContactReadProviderTest {
     @Test fun rejectsChangedGroupTitleDuringReadWithoutInferringNames() {
         provider.changeGroup = true
         assertTrue(runCatching { ContactReadAndroid(context).read(request("cards")) }.isFailure)
+    }
+
+    @Test fun rejectsChangedWebsiteDuringReadAndKeepsWebsitesSeparateFromMessengerEvidence() {
+        provider.changeWebsite = true
+        assertTrue(runCatching { ContactReadAndroid(context).read(request("cards")) }.isFailure)
+        assertEquals("URL:https://www.example.test", ContactReadAndroid.website("www.example.test"))
+        assertNull(ContactReadAndroid.website("javascript:alert(1)"))
+        assertNull(ContactReadAndroid.website("https://user:password@example.test"))
     }
 
     @Test fun selectedAggregatedContactPhotoWinsOverLinkedAccountPhoto() {
@@ -181,6 +191,8 @@ class ContactReadProviderTest {
         var sawSelection = false
         var groupReads = 0
         var changeGroup = false
+        var websiteReads = 0
+        var changeWebsite = false
         var displayPhoto: ByteArray? = null
         var profileEnabled = false
         var profileId = 7L
@@ -250,7 +262,10 @@ class ContactReadProviderTest {
                         mapOf(Data.MIMETYPE to Event.CONTENT_ITEM_TYPE, Data.DATA1 to "1980-07-05", Data.DATA2 to Event.TYPE_BIRTHDAY))
                 } else if (selection.orEmpty().contains(Data.MIMETYPE)) {
                     assertEquals("10", selectionArgs!!.first())
-                    if (selectionArgs[1] == GroupMembership.CONTENT_ITEM_TYPE) listOf(mapOf(GroupMembership.GROUP_ROW_ID to 7L))
+                    if (selectionArgs[1] == Website.CONTENT_ITEM_TYPE) {
+                        websiteReads++
+                        listOf(mapOf(Website.URL to if (changeWebsite && websiteReads > 1) "https://example.test/changed" else "https://example.test/work", Website.TYPE to Website.TYPE_WORK))
+                    } else if (selectionArgs[1] == GroupMembership.CONTENT_ITEM_TYPE) listOf(mapOf(GroupMembership.GROUP_ROW_ID to 7L))
                     else listOf(mapOf(Data.MIMETYPE to "vnd.android.cursor.item/vnd.com.whatsapp.profile", Data.DATA1 to "49123456789@s.whatsapp.net"))
                 } else {
                     assertTrue(selection.orEmpty().contains("IN (1)"))

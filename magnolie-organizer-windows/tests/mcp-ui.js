@@ -912,9 +912,12 @@ let declaredContracts;
       assert.equal(nativeRead.kennung, peer.device_id);
       b.w.App.telefonEntwicklerDiagnose({ requestId: "wrong", kennung: peer.device_id, ok: true, diagnose: { app_version: "ignore" } });
       b.w.App.telefonEntwicklerDiagnose({ requestId: nativeRead.requestId, kennung: peer.device_id, ok: true,
-        diagnose: { format: 1, app_version: "owned-diagnostic-fixture", events: [] } });
-      assert.equal((await diagnostic).result.structuredContent.diagnostics.app_version, "owned-diagnostic-fixture");
+        diagnose: { format: 1, app_version: "owned-diagnostic-fixture", events: [], crash_report: { available: true, text: "Synthetic first-focus crash", truncated: false } } });
+      const diagnostics = (await diagnostic).result.structuredContent.diagnostics;
+      assert.equal(diagnostics.app_version, "owned-diagnostic-fixture");
+      assert.equal(diagnostics.crash_report.text, "Synthetic first-focus crash");
       assert.ok(!JSON.stringify(b.t.daten()).includes("owned-diagnostic-fixture"));
+      assert.ok(!JSON.stringify(b.t.daten()).includes("Synthetic first-focus crash"));
       const revoked = call(request(22, "tools/call", { name: "notes_diagnostics_read" }));
       await new Promise(resolve => setImmediate(resolve));
       const obsoleteRead = b.messages.filter(message => message.cmd === "telefon_entwickler_diagnose").at(-1);

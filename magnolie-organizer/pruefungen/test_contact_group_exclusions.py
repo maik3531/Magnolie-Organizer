@@ -73,3 +73,24 @@ def test_merged_provider_membership_uses_explicit_regional_phone_identity(produc
     item = {"id": "other-provider-birthday", "kontaktId": "other-provider", "name": "Owned merged person", "datum": "1980-10-18", "typ": "birthday"}
     book["jahrestage"].append(item)
     assert product.gruppen_ausschluss_pruefer(book)(item)
+
+
+def test_vacation_appointment_reminders_calendar_choice_and_reenable(product):
+    book = owned_book()
+    book["termine"] = [
+        {"id": "patient-visit", "kontaktId": "old-patient", "titel": "Visit", "datum": "2026-10-18", "zeit": "08:00"},
+        {"id": "work-meeting", "kalenderQuelle": {"id": "work-calendar"}, "titel": "Meeting", "datum": "2026-10-18", "zeit": "08:00"},
+        {"id": "private", "kontaktId": "colleague", "titel": "Private", "datum": "2026-10-18", "zeit": "08:00"}]
+    policy = book["einstellungen"]["adressen"]["gruppenAusschluss"]
+    policy["notifications"] = {"scope": "appointments", "groups": ["Patients"], "calendars": ["work-calendar"]}
+    before = copy.deepcopy(book["termine"])
+    exclude = product.gruppen_ausschluss_pruefer(book, art="appointment")
+    assert [item["id"] for item in book["termine"] if exclude(item)] == ["patient-visit", "work-meeting"]
+    assert not any(product.gruppen_ausschluss_pruefer(book)(item) for item in book["jahrestage"])
+    projection = product.erinnerungsdaten_auswaehlen(book)
+    assert [item["id"] for item in projection["termine"]] == ["private"]
+    due = product.faellige_erinnerungen(book, datetime.datetime(2026, 10, 18, 8, 1), {}, vorlauf=0)
+    assert len(due["faellig"]) == 1 and due["faellig"][0]["id"].startswith("private@")
+    policy["enabled"] = False
+    assert len(product.erinnerungsdaten_auswaehlen(book)["termine"]) == 3
+    assert book["termine"] == before

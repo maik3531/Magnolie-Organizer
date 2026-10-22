@@ -382,4 +382,5 @@
     <string name="shared_sync_manual">手动</string>
     <string name="shared_sync_time_direction">时间记录同步方向</string>
     <string name="telefon_code_gegenstelle">请在另一台设备上确认此代码。</string>
+    <string name="baum_kontakt_gruppen">联系人分组</string>
 </resources>

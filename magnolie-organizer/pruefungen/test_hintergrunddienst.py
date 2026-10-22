@@ -8,6 +8,7 @@ import tempfile
 import threading
 import time
 import types
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -74,11 +75,15 @@ def test_autostart_uses_stable_appimage_and_private_escaped_desktop_entry():
     with tempfile.TemporaryDirectory() as root:
         target = os.path.join(root, "autostart", "service.desktop")
         appimage = os.path.join(root, 'Magnolie $ "portable" %.AppImage')
-        with mock.patch.dict(os.environ, {"APPIMAGE": appimage}, clear=False):
+        with mock.patch.dict(os.environ, {"APPIMAGE": appimage, "XDG_CONFIG_HOME": root,
+                "XDG_DATA_HOME": os.path.join(root, "data")}, clear=False):
             assert background.configure_autostart({"enabled": True, "autostart": True},
-                                                  path=target)
+                                                   path=target, integration_runner=lambda args: 0)
+            import magnolie_appimage_lifecycle
+            guard = magnolie_appimage_lifecycle.launcher(appimage)
+            assert appimage in Path(guard).read_text()
         text = open(target, encoding="utf-8").read()
-        escaped = appimage.replace("%", "%%").replace("\\", "\\\\\\\\").replace(
+        escaped = guard.replace("%", "%%").replace("\\", "\\\\\\\\").replace(
             '"', '\\\\"').replace("`", "\\\\`").replace("$", "\\\\$")
         assert escaped in text
         assert "--hintergrunddienst" in text
@@ -149,7 +154,7 @@ def test_headless_cli_dispatches_before_any_gui_import(tmp_path, monkeypatch):
         runpy.run_path(PROGRAM, run_name="__main__")
     assert stopped.value.code == 23
     fake_crash.install.assert_called_once_with(
-        "magnolie-organizer", "2.0.27", "background-service")
+        "magnolie-organizer", "2.0.28", "background-service")
     assert calls == ["crash", "daemon"]
     assert fake.daemon_main.called
     assert "gi" not in imported

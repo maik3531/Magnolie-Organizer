@@ -410,4 +410,5 @@
     <string name="shared_sync_manual">Manualmente</string>
     <string name="shared_sync_time_direction">Direção de sincronização do registo de tempo</string>
     <string name="telefon_code_gegenstelle">Confirme este código no outro dispositivo.</string>
+    <string name="baum_kontakt_gruppen">Grupos de contatos</string>
 </resources>

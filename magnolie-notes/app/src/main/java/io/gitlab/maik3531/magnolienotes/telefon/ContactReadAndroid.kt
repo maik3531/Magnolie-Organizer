@@ -60,12 +60,14 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
         require(snapshot.vollstaendig && snapshot.kontakte.map { it.lookupKey }.toSet() == uids.toSet())
         val groupsByContact = mutableMapOf<Long, List<String>>()
         val socialByContact = mutableMapOf<Long, List<JsonObject>>()
+        val websitesByContact = mutableMapOf<Long, List<String>>()
         val cards = uids.map { uid ->
             val contact = snapshot.kontakte.single { it.lookupKey == uid }
             val social = messengerRows(contact.contactId)
             socialByContact[contact.contactId] = social
             val groups = groupRows(contact.contactId); groupsByContact[contact.contactId] = groups
-            val card = vcard(contact, displayPhoto(contact), social, groups)
+            val websites = websiteRows(contact.contactId); websitesByContact[contact.contactId] = websites
+            val card = vcard(contact, displayPhoto(contact), social, groups, websites)
             buildJsonObject {
                 put("uid", JsonPrimitive(uid)); put("timestamp", JsonPrimitive(contact.providerGeaendert))
                 put("vcard", JsonPrimitive(card))
@@ -80,6 +82,7 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
         })
         require(groupsByContact.all { (id, groups) -> groupRows(id) == groups })
         require(socialByContact.all { (id, social) -> messengerRows(id) == social })
+        require(websitesByContact.all { (id, websites) -> websiteRows(id) == websites })
         check(permission())
         return ContactRead.report(request, cards.size, cards)
     }
@@ -163,11 +166,12 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
                                 android.provider.ContactsContract.CommonDataKinds.Event.TYPE_BIRTHDAY -> "BDAY"
                                 android.provider.ContactsContract.CommonDataKinds.Event.TYPE_ANNIVERSARY -> "ANNIVERSARY"
                                 else -> null
-                            }
+                          }
                             val date = text(1).trim()
                             if (field != null && Regex("(?:[0-9]{4}-[0-9]{2}-[0-9]{2}|--[0-9]{2}-?[0-9]{2})").matches(date))
-                                lines.add(field + ":" + date.replace("-", "").let { if (date.startsWith("--")) "--$it" else it })
-                         }
+                                 lines.add(field + ":" + date.replace("-", "").let { if (date.startsWith("--")) "--$it" else it })
+                          }
+                         Website.CONTENT_ITEM_TYPE -> website(text(1), text(2).toIntOrNull())?.let(lines::add)
                     }
                  }
                 observe("data", count, "ok")
@@ -227,6 +231,18 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
             }
         }
         return names.sorted()
+    }
+
+    private fun websiteRows(contactId: Long): List<String> {
+        val lines = mutableSetOf<String>()
+        context.contentResolver.query(Data.CONTENT_URI, arrayOf(Website.URL, Website.TYPE),
+            "${Data.CONTACT_ID}=? AND ${Data.MIMETYPE}=?", arrayOf(contactId.toString(), Website.CONTENT_ITEM_TYPE), null)?.use { cursor ->
+            while (cursor.moveToNext()) {
+                website(cursor.getString(0).orEmpty(), cursor.getString(1)?.toIntOrNull())?.let(lines::add)
+                require(lines.size <= 1000)
+            }
+        } ?: error("contacts_unavailable")
+        return lines.sorted()
     }
 
     private fun messengerRows(contactId: Long): List<JsonObject> {
@@ -364,7 +380,17 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
             return buildJsonObject { put("dienst", JsonPrimitive(service)); put("wert", JsonPrimitive(clean)) }
         }
 
-        fun vcard(contact: AndroidKontakt, jpegBase64: String, social: List<JsonObject>, groups: List<String> = emptyList()): String {
+        fun website(value: String, type: Int? = null): String? {
+            val raw = value.trim()
+            if (raw.isEmpty() || raw.length > 2048 || raw.any(Char::isISOControl)) return null
+            val url = if (Regex("^[A-Za-z][A-Za-z0-9+.-]*:").containsMatchIn(raw)) raw else "https://$raw"
+            val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return null
+            if (uri.scheme.lowercase() !in setOf("http", "https") || uri.rawAuthority.isNullOrEmpty() || uri.rawUserInfo != null) return null
+            val kind = when (type) { Website.TYPE_HOME -> ";TYPE=HOME"; Website.TYPE_WORK -> ";TYPE=WORK"; else -> "" }
+            return "URL$kind:" + url.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,")
+        }
+
+        fun vcard(contact: AndroidKontakt, jpegBase64: String, social: List<JsonObject>, groups: List<String> = emptyList(), websites: List<String> = emptyList()): String {
             fun text(value: String) = value.replace("\\", "\\\\").replace("\r\n", "\n").replace("\r", "\n")
                 .replace("\n", "\\n").replace(";", "\\;").replace(",", "\\,")
             fun type(value: String): String {
@@ -393,6 +419,7 @@ class ContactReadAndroid(private val context: Context) : ContactReadSource {
             data.anschriften.forEach { lines += "ADR${type(it.art)}:;;${text(it.strasse)};${text(it.ort)};${text(it.region)};${text(it.plz)};${text(it.land)}" }
             if (jpegBase64.isNotEmpty()) lines += "PHOTO;ENCODING=b;TYPE=JPEG:$jpegBase64"
             social.forEach { lines += "X-MAGNOLIE-SOZIALES-MEDIUM:" + text(it.toString()) }
+            lines.addAll(websites)
             if (contact.providerGeaendert > 0) lines += "REV:" + java.time.Instant.ofEpochMilli(contact.providerGeaendert).toString()
             lines += "END:VCARD"
             val card = lines.joinToString("\r\n") { line ->

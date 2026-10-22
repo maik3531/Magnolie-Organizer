@@ -472,6 +472,16 @@ internal static class WindowsContactGraphTests
             await TestIdenticalContactBinding();
             await TestContactCleanupPlan();
             TestNativeContactFields();
+            var websiteContact = new JsonObject { ["vorname"] = "Website", ["nachname"] = "Fixture",
+                ["vcardRoundtrip"] = new JsonArray("URL;TYPE=WORK:https://example.test/work", "URL:http://example.test/private?q=a\\,b") };
+            var websiteRoundtrip = WindowsContactStore.Parse(WindowsContactStore.Serialize(websiteContact, "website-fixture"));
+            TestAssert.That(ContactFields.Websites(websiteRoundtrip).SequenceEqual(new[] { "https://example.test/work", "http://example.test/private?q=a,b" }), "Windows contact store lost existing website values.");
+            using (var graphWebsite = System.Text.Json.JsonDocument.Parse("""{"id":"website-fixture","givenName":"Website","businessHomePage":"https://example.test/work"}"""))
+            {
+                var importedWebsite = GraphApiClient.ParseContact(graphWebsite.RootElement).Data;
+                TestAssert.That(ContactFields.Websites(importedWebsite).Single() == "https://example.test/work" &&
+                    GraphApiClient.ToGraph(importedWebsite)["businessHomePage"]!.GetValue<string>() == "https://example.test/work", "Microsoft contact website did not survive import and export.");
+            }
             var contact = new JsonObject { ["vorname"] = "Änne", ["nachname"] = "Beispiel", ["email"] = "a@example.test" };
             var stableOne = WindowsContactStore.StableImportUid("Anna.contact", "");
             var stableTwo = WindowsContactStore.StableImportUid("Anna.contact", "");

@@ -43,6 +43,8 @@ def main():
                     assert report['format'] == 1 and report['app_version']
                     assert report['events'][-1]['stage'] == 'online'
                     assert len(report['events']) <= 128
+                    assert report['version'] == 13 and report['crash_report']['available'] is True
+                    assert 'Synthetic first-focus crash' in report['crash_report']['text']
                     # Notes independently revokes developer mode, WLAN transport, then own-device consent.
                     for scenario in ('fresh_controls_missing', 'disabled', 'bluetooth', 'own_revoked'):
                         try:

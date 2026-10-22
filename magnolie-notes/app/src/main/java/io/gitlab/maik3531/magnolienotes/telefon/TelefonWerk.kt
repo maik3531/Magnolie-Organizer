@@ -1782,7 +1782,12 @@ class TelefonWerk private constructor(private val context: Context, private val 
         if (message["kind"] == JsonPrimitive(TimeControlProtokoll.REPORT)) return
         if (unwrappedActorRun(sessionPeer, message)) return
         if (message["kind"] == JsonPrimitive("device_status.request") &&
-            (message["body"] as? JsonObject)?.get("version") == JsonPrimitive(11)) {
+            (message["body"] as? JsonObject)?.get("version") == JsonPrimitive(PhoneTimeZone.VERSION)) {
+            receiveTimeZoneRead(sessionPeer, message, channel, generation)
+            return
+        }
+        if (message["kind"] == JsonPrimitive("device_status.request") &&
+            (message["body"] as? JsonObject)?.get("version") in setOf(JsonPrimitive(11), JsonPrimitive(io.gitlab.maik3531.magnolienotes.Entwicklermodus.ABSTURZ_DIAGNOSE_VERSION))) {
             receiveDeveloperRead(sessionPeer, message, channel, generation)
             return
         }
@@ -2129,6 +2134,30 @@ class TelefonWerk private constructor(private val context: Context, private val 
         if (response != null) channel.send(TelefonNachrichten.message(TimeControlProtokoll.REPORT, response, 60000))
     }
 
+    private fun receiveTimeZoneRead(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
+        val messageId = runCatching { message.string("message_id") }.getOrDefault("00000000-0000-0000-0000-000000000000")
+        try { TelefonNachrichten.validate(message) } catch (_: Exception) {
+            channel.send(TelefonNachrichten.ack(messageId, "rejected", "invalid_schema")); return
+        }
+        var error = "not_granted"
+        try {
+            peerEffect(sessionPeer, generation) { current ->
+                val session = noteSessions[channel]
+                if (session == null || !session.capabilitiesReceived || !session.grantsReceived || !session.ownSettingsReceived || !PhoneTimeZone.allowed(current))
+                    throw SecurityException("time_zone_not_granted")
+                error = "expired"
+                if (System.currentTimeMillis() >= message.long("expires_ms")) throw SecurityException("time_zone_expired")
+                val report = PhoneTimeZone.report((message["body"] as JsonObject).string("request_id"))
+                error = "not_granted"
+                if (noteSessions[channel] !== session || !PhoneTimeZone.allowed(current)) throw SecurityException("time_zone_not_granted")
+                channel.send(TelefonNachrichten.message("device_status.report", report, 60_000))
+                channel.send(TelefonNachrichten.ack(messageId, "accepted", "none"))
+            }
+        } catch (_: SecurityException) { channel.send(TelefonNachrichten.ack(messageId, "rejected", error)) }
+        catch (_: IllegalStateException) { channel.send(TelefonNachrichten.ack(messageId, "rejected", "not_granted")) }
+        catch (_: TelefonProtokollFehler) { channel.send(TelefonNachrichten.ack(messageId, "rejected", "not_granted")) }
+    }
+
     private fun receiveDeveloperRead(sessionPeer: TelefonPeer, message: JsonObject, channel: TelefonSecureChannel, generation: Long) {
         val messageId = runCatching { message.string("message_id") }.getOrDefault("00000000-0000-0000-0000-000000000000")
         try { TelefonNachrichten.validate(message) } catch (_: Exception) {
@@ -2146,7 +2175,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
                 error = "expired"
                 if (System.currentTimeMillis() >= message.long("expires_ms")) throw SecurityException("developer_diagnostics_expired")
                 val requestId = (message["body"] as JsonObject).string("request_id")
-                val report = JsonObject(developerDiagnostics.bericht() + mapOf("version" to JsonPrimitive(11), "request_id" to JsonPrimitive(requestId)))
+                val version = (message["body"] as JsonObject).long("version").toInt()
+                val report = JsonObject(developerDiagnostics.bericht(mitAbsturz = version == io.gitlab.maik3531.magnolienotes.Entwicklermodus.ABSTURZ_DIAGNOSE_VERSION) +
+                    mapOf("version" to JsonPrimitive(version), "request_id" to JsonPrimitive(requestId)))
                 error = "not_granted"
                 if (!developerDiagnostics.wlan || noteSessions[channel] !== session || activeTransport?.first != TelefonTransportArt.WIFI)
                     throw SecurityException("developer_diagnostics_not_granted")
@@ -2642,8 +2673,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
             }.getOrElse { "rejected" to "invalid_schema" }
             send(TelefonNachrichten.ack(message.string("message_id"), result.first, result.second)); return
         }
-        if (kind == "device_status.request" && (message["body"] as? JsonObject)?.get("version") == JsonPrimitive(11)) {
-            // Diagnostics require the actual channel's fresh controls, not a cached peer alone.
+        if (kind == "device_status.request" && (message["body"] as? JsonObject)?.get("version") in setOf(JsonPrimitive(11), JsonPrimitive(PhoneTimeZone.VERSION), JsonPrimitive(io.gitlab.maik3531.magnolienotes.Entwicklermodus.ABSTURZ_DIAGNOSE_VERSION))) {
+            // Scoped device reads require the actual channel's fresh controls, not a cached peer alone.
             send(TelefonNachrichten.ack(message.string("message_id"), "rejected", "not_granted")); return
         }
         val response = if (kind == "device_status.request" && peer.device_status_granted && peer.remote_device_status_granted &&

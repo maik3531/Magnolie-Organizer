@@ -1,0 +1,29 @@
+{
+  "format": 1,
+  "cases": [
+    {
+      "input": "password=fixture-password; token=fixture-token; email=person@example.test; mail=person@example.test; phone=+49 351 1234567",
+      "expected": "password=***; token=***; email=***; mail=***; phone=***"
+    },
+    {
+      "input": "Passwort: \"fixture with spaces\"; Telefonnummer=0351 1234567; E-Mail=person@example.test",
+      "expected": "Passwort: \"***\"; Telefonnummer=***; E-Mail=***"
+    },
+    {
+      "input": "Request https://fixture-user:fixture-password@service.example.test/api; notify person@example.test; call +49 (351) 1234567.",
+      "expected": "Request https://***:***@service.example.test/api; notify ***; call ***."
+    },
+    {
+      "input": "UTC timestamp: 2026-10-21T18:24:21.984Z; request 31265ba7-fbd0-4036-85cf-26cf834b265d; time_ms:1792606489789; IllegalArgumentException at Note.kt:123; version 1.0.19",
+      "expected": "UTC timestamp: 2026-10-21T18:24:21.984Z; request 31265ba7-fbd0-4036-85cf-26cf834b265d; time_ms:1792606489789; IllegalArgumentException at Note.kt:123; version 1.0.19"
+    },
+    {
+      "input": "Authorization: Bearer fixture-secret; remote_ip=192.168.1.2; request https://192.168.1.2/path",
+      "expected": "Authorization: ***; remote_ip=***; request https://***/path"
+    },
+    {
+      "input": "{\"password\":\"fixture password\",\"access_token\":\"fixture token\",\"phone_number\":\"+49 351 1234567\",\"mail_address\":\"person@example.test\"}",
+      "expected": "{\"password\":\"***\",\"access_token\":\"***\",\"phone_number\":\"***\",\"mail_address\":\"***\"}"
+    }
+  ]
+}

@@ -445,6 +445,8 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
     }
 
     internal JsonObject LocalMediaSettings() => localMedia?.Settings() ?? new JsonObject { ["available"] = false };
+    internal JsonObject OpenMediaFile(string slot, string application, string path) =>
+        localMedia?.OpenFile(slot, application, path) ?? throw new InvalidOperationException("local_media_unavailable");
     internal JsonObject ConfigureMediaPlayer(string slot, string application)
     {
         var result = localMedia?.Configure(slot, application) ?? throw new InvalidOperationException("local_media_unavailable");
@@ -654,6 +656,13 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
         if (localMedia is null || !Permitted()) return;
         try
         {
+            if (body.ContainsKey("albumArtUrl"))
+            {
+                var artwork = await localMedia.ArtworkAsync(body, Permitted, cancellationToken).ConfigureAwait(false);
+                if (artwork is not null && Permitted())
+                    Track(SendMediaArtworkAsync(connection, artwork, Permitted, cancellationToken));
+                return;
+            }
             var replies = await localMedia.ReceiveAsync(body, Permitted, cancellationToken).ConfigureAwait(false);
             foreach (var reply in replies)
             {
@@ -1694,7 +1703,8 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
             if (tasks.Length == 0) break;
             try { await Task.WhenAll(tasks).ConfigureAwait(false); } catch { }
         }
-        candidateSignal.Dispose(); lifetime.Dispose(); local.Certificate.Dispose();
+        if (localMedia is not null) await localMedia.DisposeAsync().ConfigureAwait(false);
+        candidateSignal.Dispose(); mediaPayloads.Dispose(); lifetime.Dispose(); local.Certificate.Dispose();
     }
 
     private sealed class Connection(TcpClient client, SslStream stream, X509Certificate2 certificate,
@@ -1706,6 +1716,7 @@ internal sealed partial class KdeConnectDirectBackend : IDisposable, IAsyncDispo
         internal X509Certificate2 Certificate { get; } = certificate;
         internal KdeConnectIdentity Identity { get; } = identity;
         internal IPAddress Address { get; } = address;
+        internal IPAddress? LocalAddress => (client.Client.LocalEndPoint as IPEndPoint)?.Address;
         internal int Port { get; } = port;
         internal SmsState State { get; } = new();
         internal KdeDigitizerState Digitizer { get; } = new();

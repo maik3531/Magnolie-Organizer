@@ -169,8 +169,11 @@ internal static class CrashReportWriter
             inner);
     }
 
-    private static string Limited(string value, int maximumCharacters) =>
-        value.Length <= maximumCharacters ? value : value[..maximumCharacters] + " [truncated]";
+    private static string Limited(string value, int maximumCharacters)
+    {
+        value = LogPresentation.MaskSensitive(value);
+        return value.Length <= maximumCharacters ? value : value[..maximumCharacters] + " [truncated]";
+    }
 
     private sealed record CrashReport(DateTimeOffset TimestampUtc, string AppVersion, string Os,
         string Runtime, string SourceKind, ExceptionReport Exception);

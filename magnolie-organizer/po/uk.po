@@ -33,6 +33,27 @@ msgstr "Введіть назву сервера HylaFAX, за потреби д
 msgid "Enter recipient manually"
 msgstr "Ввести одержувача вручну"
 
+msgid "Fax printer"
+msgstr "Факс-принтер"
+
+msgid "Network fax server"
+msgstr "Мережевий факс-сервер"
+
+msgid "Online fax service"
+msgstr "Онлайн-сервіс факсу"
+
+msgid "Save as PDF"
+msgstr "Зберегти як PDF"
+
+msgid "Website"
+msgstr "Вебсайт"
+
+msgid "Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them."
+msgstr "Поточне відтворення, зокрема відео в браузері, залишається доступним поряд із призначеними програвачами. Пошук/Відкрити вибирає локальну музику або відео; список відтворення з пошуком з’являється за підтримки програвача. Обкладинки, випадковий порядок і повтор доступні, якщо програвач їх надає."
+
+msgid "KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol."
+msgstr "KDE Connect передає положення пера, тиск, дотик і перемикання пера/гумки. Вказівник наведення не залишає штрихів. У меню планшета на телефоні є повний екран і налаштування приховування або переміщення кнопки малювання. Цей протокол не передає нахил, обертання та додаткові кнопки пера."
+
 msgid "Fax"
 msgstr "Факс"
 

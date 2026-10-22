@@ -35,6 +35,8 @@ if (peer is null)
 }
 if (peer["oeffentlich"]!.GetValue<string>() != initial["public"]!.GetValue<string>()) throw new InvalidOperationException();
 peer["adresse"] = "127.0.0.1"; peer["port"] = initial["port"]!.DeepClone();
+if (JsonNode.DeepEquals(initial["contactVersions"], new JsonArray(1, 2, 3, 4)))
+    peer["kontaktFaehigkeiten"] = (JsonObject)Static("BaumContactSyncContract", "Capabilities", true, 4)!;
 using var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start();
 var port = ((IPEndPoint)listener.LocalEndpoint).Port;
 state["an"] = true; state["port"] = port; Call(store, "SaveState", state);
@@ -104,6 +106,11 @@ try
     {
         var command = JsonNode.Parse(line)!.AsObject(); var op = command["op"]!.GetValue<string>();
         if (op == "quit") break;
+        if (op == "inbox_read")
+        {
+            Output(new JsonObject { ["items"] = (JsonArray)Call(store, "LoadInbox")! });
+            continue;
+        }
         if (op == "mode") { lock (gate) mode = command["value"]!.GetValue<string>(); }
         else if (op == "send") await (Task)Call(coordinator, "SendAsync", peer["kennung"]!.GetValue<string>(),
             command["kind"]?.GetValue<string>() ?? "stand", command["body"]!)!;

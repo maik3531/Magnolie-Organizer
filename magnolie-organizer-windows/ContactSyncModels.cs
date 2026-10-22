@@ -45,6 +45,23 @@ internal static class ContactFields
         "kontaktpersonStatus", "kontaktpersonen", "sozialeMedien", "vcardRoundtrip"
     };
 
+    internal static string WebsiteLine(string value) => "URL:" + value.Replace("\\", "\\\\", StringComparison.Ordinal)
+        .Replace("\r", "", StringComparison.Ordinal).Replace("\n", "\\n", StringComparison.Ordinal)
+        .Replace(";", "\\;", StringComparison.Ordinal).Replace(",", "\\,", StringComparison.Ordinal);
+
+    internal static IEnumerable<string> Websites(JsonObject contact)
+    {
+        foreach (var line in (contact["vcardRoundtrip"] as JsonArray ?? []).OfType<JsonValue>())
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(line.ToString(), @"^(?:[A-Za-z0-9-]+\.)?URL(?:;[^:]*)?:(.*)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                var value = System.Text.RegularExpressions.Regex.Replace(match.Groups[1].Value, @"\\([,;\\])", "$1").Trim();
+                if (value.Length > 0 && !value.Any(char.IsControl)) yield return value;
+            }
+        }
+    }
+
     // UI contacts can omit nested defaults which a vCard reader materializes.
     // Empty parameters are not content; nonempty provider extensions still are.
     internal static string ContentHash(JsonObject contact) => SyncBaseline.Hash(ContentProjection(contact), Names);
@@ -700,7 +717,11 @@ internal sealed class ContactSyncEngine
                 var remoteChanged = priorEtag.Length > 0 || other.ETag.Length > 0
                     ? priorEtag != other.ETag : (mapping?["geaendert"]?.GetValue<long>() ?? lastSync) != other.Modified;
                 var localChanged = ContactFields.Dirty(item, mapping, other.Data);
-                var sameContact = ContactFields.NonConflicting(ContactFields.ConflictProjection(item), ContactFields.ConflictProjection(other.Data));
+                var localProjection = ContactFields.ConflictProjection(item);
+                var remoteProjection = ContactFields.ConflictProjection(other.Data);
+                // Membership sets must use the source baseline, never additive union.
+                var sameContact = JsonNode.DeepEquals(localProjection["gruppen"], remoteProjection["gruppen"]) &&
+                    ContactFields.NonConflicting(localProjection, remoteProjection);
                 var incomingData = sameContact ? ContactFields.MergeAdditions(item, other.Data) : other.Data;
                 var conflictingChanges = remoteChanged && localChanged && !sameContact;
                 if (sameContact && item["syncKonflikte"] is JsonObject resolved)

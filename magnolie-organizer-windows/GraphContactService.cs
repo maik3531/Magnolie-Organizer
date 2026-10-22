@@ -259,7 +259,7 @@ internal sealed class GraphApiClient : IContactRemote
     public async Task<IReadOnlyList<RemoteContact>> ReadAsync(CancellationToken cancellationToken)
     {
         var result = new List<RemoteContact>();
-        var next = "https://graph.microsoft.com/v1.0/me/contacts?$top=100&$select=id,givenName,surname,companyName,emailAddresses,businessPhones,mobilePhone,homePhones,homeAddress,businessAddress,otherAddress,birthday,personalNotes,lastModifiedDateTime";
+        var next = "https://graph.microsoft.com/v1.0/me/contacts?$top=100&$select=id,givenName,surname,companyName,emailAddresses,businessPhones,mobilePhone,homePhones,homeAddress,businessAddress,otherAddress,businessHomePage,birthday,personalNotes,lastModifiedDateTime";
         for (var page = 0; next.Length > 0 && page < 100; page++)
         {
             using var response = await SendAsync(HttpMethod.Get, next, null, "", cancellationToken); response.EnsureSuccessStatusCode();
@@ -326,6 +326,7 @@ internal sealed class GraphApiClient : IContactRemote
             ["notiz"] = Text("personalNotes") };
         if (DateTimeOffset.TryParse(Text("birthday"), CultureInfo.InvariantCulture, DateTimeStyles.None, out var birthday))
             data["geburtstag"] = birthday.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (Text("businessHomePage").Length > 0) data["vcardRoundtrip"] = new JsonArray(ContactFields.WebsiteLine(Text("businessHomePage")));
         var etag = item.TryGetProperty("@odata.etag", out var etagNode) ? etagNode.GetString() ?? "" : "";
         return new RemoteContact(Text("id"), etag, modified, data, false);
     }
@@ -341,6 +342,7 @@ internal sealed class GraphApiClient : IContactRemote
         JsonObject GraphAddress(int index) { var address = index < addresses.Count ? addresses[index] : new JsonObject(); return new JsonObject
             { ["street"] = ContactFields.Text(address, "strasse"), ["city"] = ContactFields.Text(address, "ort"), ["postalCode"] = ContactFields.Text(address, "plz"), ["countryOrRegion"] = ContactFields.Text(address, "land") }; }
         var body = new JsonObject { ["givenName"] = ContactFields.Text(contact, "vorname"), ["surname"] = ContactFields.Text(contact, "nachname"), ["companyName"] = ContactFields.Text(contact, "firma"),
+            ["businessHomePage"] = ContactFields.Websites(contact).FirstOrDefault() ?? "",
             ["emailAddresses"] = new JsonArray(emails.Select(value => (JsonNode)new JsonObject { ["address"] = value, ["name"] = value }).ToArray()),
             ["businessPhones"] = new JsonArray(phoneValues.Select(value => JsonValue.Create(value)).ToArray()), ["mobilePhone"] = ContactFields.Text(contact, "mobil"),
             ["homeAddress"] = GraphAddress(0), ["businessAddress"] = GraphAddress(1), ["otherAddress"] = GraphAddress(2),

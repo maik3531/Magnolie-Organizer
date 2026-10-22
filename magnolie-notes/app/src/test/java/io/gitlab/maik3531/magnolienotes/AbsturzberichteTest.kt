@@ -14,6 +14,18 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class AbsturzberichteTest {
+    @Test fun `Sensible Werte sind schon in der gespeicherten Crashdatei maskiert`() {
+        val directory = kotlin.io.path.createTempDirectory("magnolie-redacted-crash").toFile()
+        try {
+            val error = IllegalStateException("password=fixture-password; phone=+49 351 1234567", IllegalArgumentException("Mail person@example.test"))
+            AbsturzHandler(directory, metadaten, null).uncaughtException(Thread("fixture"), error)
+            val text = File(directory, AbsturzHandler.DATEINAME).readText()
+            assertTrue(text.contains("password=***")); assertTrue(text.contains("phone=***"))
+            assertFalse(text.contains("fixture-password")); assertFalse(text.contains("person@example.test")); assertFalse(text.contains("1234567"))
+            assertTrue(text.contains("java.lang.IllegalStateException")); assertTrue(text.contains("Caused by: java.lang.IllegalArgumentException"))
+        } finally { directory.deleteRecursively() }
+    }
+
     private val metadaten = {
         AbsturzMetadaten(
             zeitUtc = "2026-08-28T12:34:56Z",

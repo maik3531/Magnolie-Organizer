@@ -48,6 +48,23 @@ internal static class ContactGroupExclusionTests
         book["jahrestage"]!.AsArray().Add(JsonNode.Parse("""{"id":"other-provider-birthday","kontaktId":"other-provider","name":"Owned merged person","datum":"1980-10-18","typ":"birthday"}"""));
         using var regional = JsonDocument.Parse(book.ToJsonString());
         TestAssert.That(ContactGroupExclusions.Create(regional.RootElement)(regional.RootElement.GetProperty("jahrestage").EnumerateArray().Last()), "Merged phone identity must use the explicit regional home country before the address fallback.");
+        book["termine"] = JsonNode.Parse("""
+            [{"id":"patient-visit","kontaktId":"old-patient","titel":"Visit","datum":"2026-10-18","zeit":"08:00"},
+             {"id":"work-meeting","kalenderQuelle":{"id":"work-calendar"},"titel":"Meeting","datum":"2026-10-18","zeit":"08:00"},
+             {"id":"private","kontaktId":"colleague","titel":"Private","datum":"2026-10-18","zeit":"08:00"}]
+            """);
+        book["einstellungen"]!["adressen"]!["gruppenAusschluss"]!["notifications"] = JsonNode.Parse("""{"scope":"appointments","groups":["Patients"],"calendars":["work-calendar"]}""");
+        var vacation = book.ToJsonString();
+        using (var document = JsonDocument.Parse(vacation))
+        {
+            var excluded = ContactGroupExclusions.Create(document.RootElement, kind: "appointment");
+            TestAssert.That(document.RootElement.GetProperty("termine").EnumerateArray().Where(excluded).Count() == 2, "Vacation filter must select only the chosen contact group and calendar.");
+            TestAssert.That(!document.RootElement.GetProperty("jahrestage").EnumerateArray().Any(ContactGroupExclusions.Create(document.RootElement)), "Appointment-only exclusions must retain birthdays.");
+        }
+        using (var projection = JsonDocument.Parse(ReminderScheduler.SelectBackgroundData(vacation)!))
+            TestAssert.That(projection.RootElement.GetProperty("termine").EnumerateArray().Single().GetProperty("id").GetString() == "private", "Vacation filtering must occur before contact and calendar metadata redaction.");
+        var appointmentDue = ReminderScheduler.DueAppointments(vacation, new DateTime(2026, 10, 18, 8, 1, 0, DateTimeKind.Utc));
+        TestAssert.That(appointmentDue.Count == 1 && appointmentDue[0].Key.StartsWith("private@", StringComparison.Ordinal), "Native appointment scheduler must respect the selected vacation groups.");
         return Task.CompletedTask;
     }
 }

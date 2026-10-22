@@ -9,6 +9,7 @@ internal static class RegionalSettings
     private static readonly HashSet<string> Languages = new(StringComparer.OrdinalIgnoreCase)
     { "system", "de", "en", "fr", "es", "it", "nl", "pt", "ru", "cs", "pl", "hsb", "da", "nb", "hi", "zh_CN", "ja", "ar", "uk", "be", "tr" };
     private static readonly object Gate = new();
+    private static readonly string[] TimeZoneManagementFields = ["timeZoneManagement", "timeZoneDetection", "timeZoneManual", "timeZoneDetectedSource", "timeZoneDetectedAt"];
 
     internal static JsonObject ReadVerified(string path)
     {
@@ -29,6 +30,8 @@ internal static class RegionalSettings
                 throw new InvalidOperationException("regional_conflict");
             var source = JsonNode.Parse(value.GetRawText()) as JsonObject ?? throw new InvalidDataException("invalid_regional_settings");
             if (!source.ContainsKey("homeCountry")) source["homeCountry"] = current["homeCountry"]?.DeepClone();
+            if (!source.ContainsKey("timeZone")) source["timeZone"] = current["timeZone"]?.DeepClone();
+            foreach (var field in TimeZoneManagementFields) if (!source.ContainsKey(field)) source[field] = current[field]?.DeepClone();
             var clean = Clean(source);
             foreach (var pair in source)
             {
@@ -39,8 +42,7 @@ internal static class RegionalSettings
                 if (pair.Key == "homeCountry") text = text.ToUpperInvariant();
                 if (!string.Equals(clean[pair.Key]?.GetValue<string>(), text, StringComparison.Ordinal)) throw new InvalidDataException("invalid_regional_settings");
             }
-            var zone = clean["timeZone"]!.GetValue<string>();
-            if (zone != "system")
+            foreach (var zone in new[] { clean["timeZone"]!.GetValue<string>(), clean["timeZoneManual"]!.GetValue<string>() }.Where(zone => zone != "system"))
             {
                 try { _ = TimeZoneInfo.FindSystemTimeZoneById(zone); }
                 catch (Exception error) when (error is TimeZoneNotFoundException or InvalidTimeZoneException)
@@ -82,6 +84,15 @@ internal static class RegionalSettings
             var source = JsonNode.Parse(value.GetRawText()) as JsonObject;
             if (source is not null && !source.ContainsKey("homeCountry"))
                 source["homeCountry"] = Read(path)["homeCountry"]?.DeepClone();
+            if (source is not null)
+            {
+                var current = Read(path);
+                var zoneSupplied = source.ContainsKey("timeZone");
+                if (!zoneSupplied) source["timeZone"] = current["timeZone"]?.DeepClone();
+                foreach (var field in TimeZoneManagementFields) if (!source.ContainsKey(field))
+                    source[field] = field == "timeZoneManual" && current["timeZoneManagement"]?.GetValue<string>() != "automatic" && zoneSupplied
+                        ? source["timeZone"]?.DeepClone() : current[field]?.DeepClone();
+            }
             var clean = Clean(source);
             new AtomicStore().Write(path, clean.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), 64 * 1024);
             return clean;
@@ -112,9 +123,19 @@ internal static class RegionalSettings
         var zone = Text(source, "timeZone", "system");
         if (zone != "system" && zone != "UTC" && (zone.Contains("..") || !Regex.IsMatch(zone, @"^[A-Za-z0-9._+-]+(?:/[A-Za-z0-9._+-]+)+$"))) zone = "system";
         var homeCountry = PhoneRegionInfo.HomeCountry(Text(source, "homeCountry", "DE"));
+        var manualZone = Text(source, "timeZoneManual", zone);
+        if (manualZone != "system" && manualZone != "UTC" && (manualZone.Contains("..") || !Regex.IsMatch(manualZone, @"^[A-Za-z0-9._+-]+(?:/[A-Za-z0-9._+-]+)+$"))) manualZone = "system";
+        var capturedText = Text(source, "timeZoneDetectedAt", "0");
+        var captured = long.TryParse(capturedText, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var milliseconds) && milliseconds is >= 0 and <= 253402300799999
+            ? milliseconds.ToString(System.Globalization.CultureInfo.InvariantCulture) : "0";
         return new JsonObject { ["language"] = language, ["formatLocale"] = format,
             ["hourCycle"] = hours, ["firstDayOfWeek"] = first, ["weekRule"] = "iso",
             ["temperatureUnit"] = temperature, ["timeZone"] = zone,
+            ["timeZoneManagement"] = OneOf(Text(source, "timeZoneManagement", "off"), "off", "manual", "automatic"),
+            ["timeZoneDetection"] = OneOf(Text(source, "timeZoneDetection", "auto"), "auto", "system", "phone", "gps", "ip"),
+            ["timeZoneManual"] = manualZone,
+            ["timeZoneDetectedSource"] = OneOf(Text(source, "timeZoneDetectedSource", "manual"), "manual", "system", "phone", "gps", "ip"),
+            ["timeZoneDetectedAt"] = captured,
             ["homeCountry"] = homeCountry };
     }
 

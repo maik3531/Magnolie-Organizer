@@ -44,6 +44,7 @@ interface KontaktSchreiber {
 /** Schmale Android-Grenze; Vertrag, Revision und Merge bleiben in [KontaktSync]. */
 class AndroidKontakte(private val context: Context, private val konto: android.accounts.Account? = null) : KontaktSchreiber {
     private val resolver get() = context.contentResolver
+    private val gruppen get() = AndroidKontaktGruppen(resolver)
 
     fun snapshot(lookupKeys: Set<String>? = null): KontaktSnapshot {
       require(lookupKeys == null || lookupKeys.size <= 5)
@@ -121,8 +122,10 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
                 }
             }
         } ?: return KontaktSnapshot(emptyList(), false)
+        val memberships = gruppen.lesen(rawZuKontakt.keys)
         val roh = rawZuKontakt.mapNotNull { (raw, kontakt) ->
             val b = daten[raw] ?: return@mapNotNull null
+            b.gruppen = memberships?.get(raw)
             val lookupKey = lookup[kontakt].orEmpty()
             AndroidKontakt(lookupKey, raw, KontaktSync.normalisiere(b.fertig()), kontakt,
                 herkuenfte = listOf((herkunft[raw] ?: KontaktHerkunft()).copy(lookupKey = lookupKey)),
@@ -189,7 +192,7 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
             if (stand.operationId.isBlank()) return@synchronized RestoreErgebnis.NICHT_SCHREIBBAR
             val raw = operationRaw(stand.operationId) ?: return@synchronized RestoreErgebnis.WIEDERHERGESTELLT
             val current = liesRaw(raw) ?: return@synchronized RestoreErgebnis.NICHT_SCHREIBBAR
-            if (!konfliktBestaetigt && KontaktSync.hash(current.daten) != stand.beforeHash)
+            if (!konfliktBestaetigt && KontaktSync.hash(if (stand.portable.gruppen == null) current.daten.copy(gruppen = null) else current.daten) != stand.beforeHash)
                 return@synchronized RestoreErgebnis.KONFLIKT
             resolver.applyBatch(ContactsContract.AUTHORITY, arrayListOf(
                 ContentProviderOperation.newDelete(ContentUris.withAppendedId(RawContacts.CONTENT_URI, raw)).build()))
@@ -260,14 +263,17 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
         if (operationId.isNotBlank()) ops += ContentProviderOperation.newInsert(Data.CONTENT_URI)
             .withValueBackReference(Data.RAW_CONTACT_ID, 0).withValue(Data.MIMETYPE, OPERATION_MIME)
             .withValue(Data.DATA1, operationId).build()
+        gruppen.plane(ops, emptySet(), null, k.gruppen, emptyList(), AndroidKontaktGruppen.Konto(konto?.name, konto?.type, null))
+        require(ops.size <= 500)
         val ergebnis = resolver.applyBatch(ContactsContract.AUTHORITY, ops)
         val rawId = ContentUris.parseId(ergebnis.first().uri!!)
-        requireNotNull(liesRaw(rawId))
+        requireNotNull(liesRaw(rawId)).also { pruefeGruppen(it, k) }
     }
 
     override fun mischen(rawId: Long, fern: KontaktDaten): AndroidKontakt? {
         val lokal = liesRaw(rawId) ?: return null
         val ziel = KontaktSync.mische(lokal.daten, fern)
+        if (fern.gruppen != null) return uebernehmen(lokal, ziel, false)
         val ops = arrayListOf<ContentProviderOperation>()
         aktualisiereSkalare(ops, rawId, lokal.daten, ziel)
         fuegeListenEin(ops, rawId, lokal.daten, ziel)
@@ -308,9 +314,15 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
                 .withSelection("${Data.RAW_CONTACT_ID}=? AND ${Data.MIMETYPE}=?", arrayOf(raw.toString(), Photo.CONTENT_ITEM_TYPE)).build()
             if (bytes.isNotEmpty()) ops += einfuegen(raw, Photo.CONTENT_ITEM_TYPE, mapOf(Photo.PHOTO to bytes))
         }
+        gruppen.plane(ops, erwartet.rawContactIds, raw, ziel.gruppen, lokal.daten.gruppen)
         require(ops.size <= 500)
         resolver.applyBatch(ContactsContract.AUTHORITY, ops)
-        requireNotNull(liesRaw(raw))
+        requireNotNull(liesRaw(raw)).also { pruefeGruppen(it, ziel) }
+    }
+
+    private fun pruefeGruppen(actual: AndroidKontakt, wanted: KontaktDaten) {
+        if (wanted.gruppen != null) require(actual.daten.gruppen != null &&
+            KontaktSync.normalisiereGruppen(actual.daten.gruppen) == KontaktSync.normalisiereGruppen(wanted.gruppen))
     }
 
     /** Ergänzt nur auf der über eine Spur bestimmten RawContact-ID und nie über ein Namensmatching. */
@@ -427,10 +439,11 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
         var anzeigename = ""; var nameTeile = listOf("", "", "", "", "")
         var sourceDisplay: String? = null
         var vcardName = emptyList<String>()
+        var gruppen: List<String>? = null
         val telefone = mutableListOf<KontaktWert>(); val emails = mutableListOf<KontaktWert>()
         val anschriften = mutableListOf<KontaktAnschrift>()
         fun fertig(): KontaktDaten {
-            val k = KontaktDaten(vorname, nachname, firma, notiz, geburtstag, foto, telefone, emails, anschriften, jubilaeum, anzeigename, vcardName)
+            val k = KontaktDaten(vorname, nachname, firma, notiz, geburtstag, foto, telefone, emails, anschriften, jubilaeum, anzeigename, vcardName, gruppen)
             // Preserve the original N/FN syntax while its provider projection is unchanged.
             val original = k.copy(vorname = nameTeile[1], nachname = nameTeile[0])
             val names = if (vcardName.isNotEmpty() && KontaktSync.nameTeile(original) == nameTeile) vcardName
@@ -464,7 +477,7 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
             batchAnwenden: (ArrayList<ContentProviderOperation>) -> Unit
         ): RestoreErgebnis {
             val aktuell = runCatching(aktuellLesen).getOrElse { return RestoreErgebnis.NICHT_SCHREIBBAR }
-            if (aktuell != null && KontaktSync.hash(aktuell.daten) != stand.beforeHash && !konfliktBestaetigt) {
+            if (aktuell != null && KontaktSync.hash(if (stand.portable.gruppen == null) aktuell.daten.copy(gruppen = null) else aktuell.daten) != stand.beforeHash && !konfliktBestaetigt) {
                 return RestoreErgebnis.KONFLIKT
             }
             val ops = runCatching { restoreOperationen(stand, aktuell != null) }
@@ -537,7 +550,8 @@ class AndroidKontakte(private val context: Context, private val konto: android.a
                 AndroidKontakt(
                     lookupKey = teile.firstOrNull { it.lookupKey.isNotBlank() }?.lookupKey.orEmpty(),
                     rawContactId = teile.minOf { it.rawContactId },
-                    daten = daten,
+                    daten = daten.copy(gruppen = if (teile.all { it.daten.gruppen != null })
+                        KontaktSync.normalisiereGruppen(teile.flatMap { it.daten.gruppen.orEmpty() }) else null),
                     contactId = erste.contactId,
                     rawContactIds = teile.map { it.rawContactId }.toSet(),
                     herkuenfte = teile.flatMap { it.herkuenfte }.distinct(),

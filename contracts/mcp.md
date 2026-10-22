@@ -535,7 +535,7 @@ Status reports both `editorDirty` and `dialogOpen` without returning draft text.
 | `organizer_own_profile_read/update` | Separate own-profile document, full revision with optional data-field projection, and durable revision-checked creation/update through the shared GUI profile handler and typed contact validators. Profile anniversaries remain local to the profile; regular contacts/calendar records are not generated. Provider contact identity is stripped and unrelated profile fields retained. |
 | `organizer_holidays_read/clear/retrieve` | Read location/settings/options and full imported-holiday revision; clear through the shared GUI handler or retrieve explicit years through the actual correlated native holiday service, applying the shared GUI importer and durable save gate. Changed settings/data or cancelled/late fetch responses are not adopted. |
 | `organizer_holidays_settings_update` | Revision-checked country/region/all-region/public-holiday visibility/school-holiday settings through the shared GUI selector. Invalid cross-country selections fail without partial changes; country selection resets region and retrieval remains explicit. |
-| `notes_diagnostics_read` | Ephemeral WLAN diagnostics through the confirmed own Notes connection |
+| `notes_diagnostics_read` | WLAN diagnostics and, on supporting Notes versions, the saved Android crash report through the confirmed own Notes connection |
 | `kde_media_devices` | Current supported media devices |
 | `kde_media_status` | Media state and fresh source token for `device_id` |
 | `kde_media_action` | Source-token-bound player action; finite action enum, no shell command |
@@ -551,6 +551,11 @@ pairing, source-token, application-registration, availability and lock checks.
 Notes diagnostics additionally require desktop developer mode, Notes WLAN
 debugging, an own-phone Wi-Fi session and current device-status permissions.
 Diagnostic reports are returned through the call and are not added to book data.
+Device-status version 13 adds optional `diagnostics.crash_report` with
+`available`, `text` and `truncated`. The original version-11 WLAN-only response
+is retained for older phones. The crash read uses the same pinned session,
+developer opt-in and source/grant checks; see
+[the version-13 contract](phone-developer-crash-diagnostics-v13.md).
 
 Contact deletion waits for the existing native recovery-policy checkpoint.
 The policy can reuse an intact checkpoint within the selected grouping interval;
@@ -908,6 +913,12 @@ GUI replacement semantics. Contact synchronization requires an explicit
 `contact_decision`: `auto`, `new`, `keep`, `merge`, `replace`, `newer` or `skip`. Existing targets
 require `contact_id`; merge supports field choices, incoming list positions,
 existing replacement positions and whole-list replacement. The shared contact
+merge also accepts `group_choice: keep|incoming` for known version-4 incoming
+groups, defaulting to `incoming`. This selects the complete editable membership
+set, including explicit empty removal; it never unions removed memberships back.
+Legacy offers without group information preserve memberships and reject an
+explicit group choice. Group choices are rejected for other decision modes.
+The shared contact
 decision handler preserves bindings, local identity, photo alternatives and
 reliable-modification-time policy. `newer` fails when reliable timestamps are
 unavailable. Deletion requires `delete` and the peer's existing deletion

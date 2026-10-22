@@ -29,7 +29,9 @@ data class KontaktDaten(
     val anschriften: List<KontaktAnschrift> = emptyList(),
     val jubilaeum: String = "",
     val anzeigename: String = "",
-    val vcardName: List<String> = emptyList()
+    val vcardName: List<String> = emptyList(),
+    /** null: legacy/unknown; an explicit empty list removes editable memberships. */
+    val gruppen: List<String>? = null
 )
 @Serializable
 data class KontaktNachricht(
@@ -65,14 +67,14 @@ object KontaktSync {
         "delete", "deleted", "deletion", "tombstone", "loeschen", "löschen", "geloescht", "gelöscht")
 
     fun inhalt(n: KontaktNachricht): JsonObject = buildJsonObject {
-        require(n.fassung in 1..3)
+        require(n.fassung in 1..4)
         put("art", JsonPrimitive("kontakt_sync"))
         put("fassung", JsonPrimitive(n.fassung))
         put("freigabeId", JsonPrimitive(n.freigabeId))
         put("version", JsonPrimitive(n.version))
         put("quelle", JsonPrimitive(n.quelle))
         put("geaendert", JsonPrimitive(n.geaendert))
-        if (n.fassung == 3) {
+        if (n.fassung >= 3) {
             require(n.inhaltGeaendert in 0..253402300799999L)
             put("inhaltGeaendert", JsonPrimitive(n.inhaltGeaendert))
         }
@@ -80,7 +82,7 @@ object KontaktSync {
     }
 
     internal fun kontaktJson(k: KontaktDaten, fassung: Int) = buildJsonObject {
-        require(fassung in 1..3 && (fassung >= 2 || legacyDarstellbar(k)))
+        require(fassung in 1..4 && (fassung >= 2 || legacyDarstellbar(k)))
         put("vorname", JsonPrimitive(k.vorname)); put("nachname", JsonPrimitive(k.nachname))
         put("firma", JsonPrimitive(k.firma)); put("notiz", JsonPrimitive(k.notiz))
         put("geburtstag", JsonPrimitive(k.geburtstag))
@@ -90,6 +92,7 @@ object KontaktSync {
             put("vcardName", JsonArray(k.vcardName.map(::JsonPrimitive)))
         }
         if (k.foto.isNotEmpty()) put("foto", JsonPrimitive(k.foto))
+        if (fassung >= 4) put("gruppen", JsonArray(requireNotNull(k.gruppen).map(::JsonPrimitive)))
         put("telefone", werteJson(k.telefone)); put("emailEintraege", werteJson(k.emailEintraege))
         put("anschriften", buildJsonArray { k.anschriften.forEach { a -> add(buildJsonObject {
             put("art", JsonPrimitive(a.art)); put("strasse", JsonPrimitive(a.strasse))
@@ -104,9 +107,9 @@ object KontaktSync {
 
     fun lies(o: JsonObject): KontaktNachricht? = runCatching {
         val fassung = o.long("fassung")?.toInt() ?: return null
-        if (o.text("art") != "kontakt_sync" || o["fassung"] !in setOf(JsonPrimitive(1), JsonPrimitive(2), JsonPrimitive(3))) return null
+        if (o.text("art") != "kontakt_sync" || o["fassung"] !in setOf(JsonPrimitive(1), JsonPrimitive(2), JsonPrimitive(3), JsonPrimitive(4))) return null
         val rootFields = setOf("art", "fassung", "freigabeId", "version", "quelle", "geaendert", "kontakt") +
-            if (fassung == 3) setOf("inhaltGeaendert") else emptySet()
+            if (fassung >= 3) setOf("inhaltGeaendert") else emptySet()
         if (o.keys != rootFields) return null
         if (fassung >= 2) {
             if (listOf("freigabeId", "quelle").any { (o[it] as? JsonPrimitive)?.isString != true }) return null
@@ -115,7 +118,7 @@ object KontaktSync {
         val id = o.text("freigabeId"); val quelle = o.text("quelle")
         val version = o.long("version") ?: return null
         val geaendert = o.long("geaendert") ?: return null
-        val inhaltGeaendert = if (fassung == 3) {
+        val inhaltGeaendert = if (fassung >= 3) {
             if ((o["inhaltGeaendert"] as? JsonPrimitive)?.isString != false) return null
             (o.long("inhaltGeaendert") ?: return null).takeIf { it in 0..253402300799999L } ?: return null
         } else 0L
@@ -124,9 +127,10 @@ object KontaktSync {
             version <= 0 || geaendert < 0) return null
         val k = o["kontakt"] as? JsonObject ?: return null
         val pflicht = setOf("vorname", "nachname", "firma", "notiz", "geburtstag",
-            "telefone", "emailEintraege", "anschriften") + if (fassung >= 2) setOf("jubilaeum", "anzeigename", "vcardName") else emptySet()
+            "telefone", "emailEintraege", "anschriften") + (if (fassung >= 2) setOf("jubilaeum", "anzeigename", "vcardName") else emptySet()) +
+            (if (fassung >= 4) setOf("gruppen") else emptySet())
         if (k.keys != pflicht && k.keys != pflicht + "foto") return null
-        if (k.filterKeys { it !in setOf("telefone", "emailEintraege", "anschriften", "vcardName") }
+        if (k.filterKeys { it !in setOf("telefone", "emailEintraege", "anschriften", "vcardName", "gruppen") }
                 .values.any { it !is JsonPrimitive || !it.isString }) return null
         val geburtstag = k.text("geburtstag")
         val foto = k.text("foto")
@@ -143,7 +147,8 @@ object KontaktSync {
             foto = foto,
             telefone = liesWerte(k["telefone"] as? JsonArray ?: return null, fassung >= 2) ?: return null,
             emailEintraege = liesWerte(k["emailEintraege"] as? JsonArray ?: return null, fassung >= 2) ?: return null,
-            anschriften = liesAnschriften(k["anschriften"] as? JsonArray ?: return null, fassung >= 2) ?: return null
+            anschriften = liesAnschriften(k["anschriften"] as? JsonArray ?: return null, fassung >= 2) ?: return null,
+            gruppen = if (fassung >= 4) liesGruppen(k["gruppen"] as? JsonArray ?: return null) ?: return null else null
         )
         KontaktNachricht(id, version, quelle, geaendert, normalisiere(daten), fassung, inhaltGeaendert)
     }.getOrNull()
@@ -157,6 +162,20 @@ object KontaktSync {
             line
         }
     }
+
+    internal fun liesGruppen(a: JsonArray): List<String>? {
+        if (a.size > LISTE_MAX) return null
+        val groups = a.map { node ->
+            val text = (node as? JsonPrimitive)?.takeIf { it.isString }?.content ?: return null
+            if (text.isBlank() || text.codePointAnzahl() > 256 || text.any { it.code < 32 || it.code == 127 }) return null
+            text
+        }
+        return normalisiereGruppen(groups)
+    }
+
+    fun normalisiereGruppen(groups: List<String>): List<String> = groups.map {
+        java.text.Normalizer.normalize(it.trim(), java.text.Normalizer.Form.NFC)
+    }.filter(String::isNotEmpty).distinctBy { it.lowercase(java.util.Locale.ROOT) }.sorted()
 
     internal fun nameEscape(s: String) = s.replace("\\", "\\\\").replace("\r\n", "\\n")
         .replace("\n", "\\n").replace(";", "\\;").replace(",", "\\,")
@@ -231,13 +250,15 @@ object KontaktSync {
         foto = lokal.foto.ifBlank { fern.foto },
         telefone = vereinige(lokal.telefone, fern.telefone) { normalWert(it.wert) },
         emailEintraege = vereinige(lokal.emailEintraege, fern.emailEintraege) { it.wert.trim().lowercase() },
-        anschriften = vereinige(lokal.anschriften, fern.anschriften) { anschriftSchluessel(it) }
+        anschriften = vereinige(lokal.anschriften, fern.anschriften) { anschriftSchluessel(it) },
+        gruppen = fern.gruppen ?: lokal.gruppen
     )
 
     fun normalisiere(k: KontaktDaten) = k.copy(
         telefone = vereinige(emptyList(), k.telefone.filter { it.wert.isNotBlank() }) { normalWert(it.wert) },
         emailEintraege = vereinige(emptyList(), k.emailEintraege.filter { it.wert.isNotBlank() }) { it.wert.trim().lowercase() },
-        anschriften = vereinige(emptyList(), k.anschriften.filter { anschriftSchluessel(it).isNotBlank() }) { anschriftSchluessel(it) }
+        anschriften = vereinige(emptyList(), k.anschriften.filter { anschriftSchluessel(it).isNotBlank() }) { anschriftSchluessel(it) },
+        gruppen = k.gruppen?.let(::normalisiereGruppen)
     )
 
     private fun <T> vereinige(a: List<T>, b: List<T>, schluessel: (T) -> String): List<T> =
@@ -273,10 +294,14 @@ object KontaktSync {
 
     fun hash(k: KontaktDaten): String {
         val roh = Kanonisch.json.encodeToString(JsonObject.serializer(),
-            kontaktJson(normalisiere(k), if (legacyDarstellbar(k)) 1 else 2))
+            kontaktJson(normalisiere(k), if (k.gruppen != null) 4 else if (legacyDarstellbar(k)) 1 else 2))
         return MessageDigest.getInstance("SHA-256").digest(roh.toByteArray())
             .joinToString("") { "%02x".format(it) }
     }
+
+    /** Older messages do not claim knowledge of native group memberships. */
+    fun fuerVergleich(k: KontaktDaten, referenz: KontaktDaten): KontaktDaten =
+        if (referenz.gruppen == null) k.copy(gruppen = null) else k
 
     fun istNeu(n: KontaktNachricht, version: Long, quelle: String): Boolean =
         n.version > version || (n.version == version && n.quelle > quelle)
@@ -304,7 +329,7 @@ object KontaktSync {
 internal object KontaktFaehigkeiten {
     fun inhalt(antwort: Boolean, maximum: Int = 2) = buildJsonObject {
         put("art", JsonPrimitive("kontakt_faehigkeiten")); put("fassung", JsonPrimitive(1))
-        put("kontakt_sync", JsonArray((if (maximum >= 3) listOf(1, 2, 3) else listOf(1, 2)).map(::JsonPrimitive)))
+        put("kontakt_sync", JsonArray((if (maximum >= 4) listOf(1, 2, 3, 4) else if (maximum >= 3) listOf(1, 2, 3) else listOf(1, 2)).map(::JsonPrimitive)))
         // Notes sends one-time import cards, but has no inbound import-card handler.
         put("kontakt_import", JsonArray(emptyList()))
         put("antwort", JsonPrimitive(antwort))
@@ -318,7 +343,8 @@ internal object KontaktFaehigkeiten {
             val values = o[name] as JsonArray
             require((name == "kontakt_import" && values.isEmpty()) || values == JsonArray(listOf(JsonPrimitive(1))) ||
                 values == JsonArray(listOf(JsonPrimitive(1), JsonPrimitive(2))) ||
-                name == "kontakt_sync" && values == JsonArray(listOf(JsonPrimitive(1), JsonPrimitive(2), JsonPrimitive(3))))
+                name == "kontakt_sync" && (values == JsonArray(listOf(JsonPrimitive(1), JsonPrimitive(2), JsonPrimitive(3))) ||
+                    values == JsonArray(listOf(JsonPrimitive(1), JsonPrimitive(2), JsonPrimitive(3), JsonPrimitive(4)))))
             return values.map { (it as JsonPrimitive).content.toInt() }
         }
         versions("kontakt_sync") to versions("kontakt_import")

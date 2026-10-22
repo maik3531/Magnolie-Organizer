@@ -70,12 +70,13 @@ def peers(native):
     return state, peer
 
 
+@pytest.mark.parametrize("version", [3, 4])
 @pytest.mark.parametrize("status,unsupported", [(400, True), (403, True), (404, True), (500, False)])
-def test_optional_probe_is_fs1_and_does_not_drop_user_data(native, status, unsupported):
+def test_optional_probe_is_fs1_and_does_not_drop_user_data(native, status, unsupported, version):
     state, peer = peers(native)
     post = []
-    probe = native.baum_einreihen(post, peer["kennung"], "kontakt_faehigkeiten", native.baum_kontakt_faehigkeiten(maximum=3))
-    probe["kontaktV3Probe"] = True
+    probe = native.baum_einreihen(post, peer["kennung"], "kontakt_faehigkeiten", native.baum_kontakt_faehigkeiten(maximum=version))
+    probe["kontaktV%dProbe" % version] = True
     data = native.baum_einreihen(post, peer["kennung"], "aufgabe", {"art": "aufgabe", "titel": "Keep"})
     before = copy.deepcopy(data)
     def send(url, body):
@@ -86,24 +87,26 @@ def test_optional_probe_is_fs1_and_does_not_drop_user_data(native, status, unsup
     assert "briefUmschlag" not in probe
     assert data == before and data in post
     assert (probe not in post) is unsupported
-    assert bool(peer.get("kontaktV3Geprueft")) is unsupported
+    assert bool(peer.get("kontaktV%dGeprueft" % version)) is unsupported
     assert report["zugestellt"] == 0
 
 
-def test_delayed_legacy_reply_does_not_downgrade_new_capabilities(native, monkeypatch):
+@pytest.mark.parametrize("version", [3, 4])
+def test_delayed_legacy_reply_does_not_downgrade_new_capabilities(native, monkeypatch, version):
     state, peer = peers(native)
-    peer["kontaktFaehigkeiten"] = native.baum_kontakt_faehigkeiten(maximum=3)
+    peer["kontaktFaehigkeiten"] = native.baum_kontakt_faehigkeiten(maximum=version)
     host = Host(native); host._gesperrt = False
     monkeypatch.setattr(host, "_baum_zustand", lambda: state)
     monkeypatch.setattr(host, "_baum_stand_melden", lambda: None)
     monkeypatch.setattr(native, "baum_benachrichtigungstext", lambda *_: None)
     host._baum_empfangen(peer, native.baum_kontakt_faehigkeiten(antwort=True))
-    assert native.baum_kontakt_peer_fassung(peer, "kontakt_sync") == 3
+    assert native.baum_kontakt_peer_fassung(peer, "kontakt_sync") == version
     host._baum_empfangen(peer, native.baum_kontakt_faehigkeiten(antwort=False))
     assert native.baum_kontakt_peer_fassung(peer, "kontakt_sync") == 2
 
 
-def test_native_http_v3_negotiation_and_lost_ack_survive_receiver_restart(native, monkeypatch, tmp_path):
+@pytest.mark.parametrize("version", [3, 4])
+def test_native_http_v3_negotiation_and_lost_ack_survive_receiver_restart(native, monkeypatch, tmp_path, version):
     """Real FS1 HTTP, native dispatch/inbox, and persisted transport replay state."""
     monkeypatch.setattr(native.BaumDienst, "_rufdienst_starten", lambda self: None)
     monkeypatch.setattr(native.BaumBluetoothDienst, "starten", lambda self: False)
@@ -134,13 +137,15 @@ def test_native_http_v3_negotiation_and_lost_ack_survive_receiver_restart(native
     try:
         assert receiver.starten() and sender.starten()
         ab["port"] = receiver.port; ba["port"] = sender.port
-        assert native.baum_senden(a, ab, "kontakt_faehigkeiten", native.baum_kontakt_faehigkeiten(maximum=3),
-                                 transport_id=native._fs_b64(b"P" * 16), sendung={"kontaktV3Probe": True})
+        assert native.baum_senden(a, ab, "kontakt_faehigkeiten", native.baum_kontakt_faehigkeiten(maximum=version),
+                                 transport_id=native._fs_b64(b"P" * 16), sendung={"kontaktV%dProbe" % version: True})
         assert ab["zaehler_raus"] == 19, "optional probe consumed a reserved legacy counter"
-        assert len(replies) == 1 and replies[0]["kontakt_sync"] == [1, 2, 3]
+        assert len(replies) == 1 and replies[0]["kontakt_sync"] == list(range(1, version + 1))
         assert native.baum_senden_fs(b, ba, "kontakt_faehigkeiten", replies[0], native._fs_b64(b"R" * 16))
-        assert native.baum_kontakt_peer_fassung(ab, "kontakt_sync") == 3
+        assert native.baum_kontakt_peer_fassung(ab, "kontakt_sync") == version
         message = packet(); message["quelle"] = a["kennung"]
+        if version == 4:
+            message["fassung"] = 4; message["kontakt"]["gruppen"] = ["Work"]
         transport = native._fs_b64(b"D" * 16)
         def lose_ack(url, body):
             result = native._baum_http_json_senden(url, body, 3)

@@ -5,6 +5,7 @@ import faulthandler
 import fcntl
 import os
 import platform
+import re
 import stat
 import sys
 import threading
@@ -19,6 +20,33 @@ _configuration = None
 _fatal_stream = None
 _original_sys_hook = None
 _original_thread_hook = None
+
+_SENSITIVE_VALUE = re.compile(r'''(?i)(["']?\b(?:password|passwd|passphrase|passwort|kennwort|pwd|secret|client_secret|token|access[_-]?token|refresh[_-]?token|api[_-]?key|private[_-]?key|session[_-]?key|authorization|cookie|pin|telefon(?:nummer)?|telephone|phone(?:[_-]?number)?|mobile|mobil|rufnummer|(?:e-?)?mail(?:[_-]?(?:address|adresse))?|ip(?:[_-]?address)?|(?:remote|local|peer)[_-]?(?:address|ip))\b["']?\s*[:=]\s*)("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\r\n,;}\]]+)''')
+_CREDENTIALS = re.compile(r'(?i)(https?://)[^\s/@]+:[^\s/@]+@')
+_BEARER = re.compile(r'(?i)(\bBearer\s+)[A-Za-z0-9._~+/=-]+')
+_EMAIL = re.compile(r"(?<![\w.*])(?!\*+@)[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@(?:[A-Za-z0-9-]+\.)*[A-Za-z0-9-]+")
+_IPV4 = re.compile(r'(?<=://)(?:\d{1,3}\.){3}\d{1,3}\b')
+_TECHNICAL = re.compile(r'''(?i)\b[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b|\b\d{4}-\d{2}-\d{2}(?:[T ][0-9:.+Z-]+)?|\b(?:time_ms|created_ms|expires_ms|timestamp)\b["']?\s*[:=]\s*\d+''')
+_PHONE = re.compile(r'(?<![\w])\+?\d[\d ()./-]{5,}\d(?![\w])')
+
+
+def mask_sensitive(value):
+    """Mask diagnostic values while retaining timestamps, request IDs and frames."""
+    def secret(match):
+        quote = match[2][0] if match[2] and match[2][0] in "\"'" else ''
+        return match[1] + quote + '***' + quote
+    text = _SENSITIVE_VALUE.sub(secret, str(value))
+    text = _CREDENTIALS.sub(lambda match: match[1] + '***:***@', text)
+    text = _BEARER.sub(lambda match: match[1] + '***', text)
+    text = _EMAIL.sub('***', text)
+    text = _IPV4.sub(lambda match: '***' if all(int(part) <= 255 for part in match[0].split('.')) else match[0], text)
+    def numbers(part):
+        return _PHONE.sub(lambda match: '***' if 7 <= sum(char.isdigit() for char in match[0]) <= 15 else match[0], part)
+    output, offset = [], 0
+    for match in _TECHNICAL.finditer(text):
+        output.extend((numbers(text[offset:match.start()]), match[0])); offset = match.end()
+    output.append(numbers(text[offset:]))
+    return ''.join(output)
 
 
 def report_path(application):
@@ -191,7 +219,7 @@ def _write_all(descriptor, data):
 
 
 def _append(application, data):
-    data = data[:MAX_REPORT_BYTES]
+    data = mask_sensitive(data.decode('utf-8', 'replace')).encode('utf-8')[:MAX_REPORT_BYTES]
     with _LOCK:
         _path, directory_fd = _directory(application)
         try:

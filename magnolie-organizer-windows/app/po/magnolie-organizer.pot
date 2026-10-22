@@ -6,7 +6,7 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: Magnolie Organizer 2.0.27\n"
+"Project-Id-Version: Magnolie Organizer 2.0.28\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -462,6 +462,13 @@ msgid "Action"
 msgstr ""
 
 msgid "Active call"
+msgstr ""
+
+msgid ""
+"Active playback, including browser videos, remains available alongside the "
+"assigned players. Search/Open selects local music or videos; a searchable "
+"player playlist appears when supported. Covers, shuffle and repeat are "
+"available when the player provides them."
 msgstr ""
 
 msgctxt "time tracking"
@@ -2280,6 +2287,9 @@ msgstr ""
 msgid "Fax"
 msgstr ""
 
+msgid "Fax printer"
+msgstr ""
+
 msgid ""
 "Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
 "supported installed mail client. A handoff is not delivery confirmation."
@@ -2304,6 +2314,9 @@ msgid "Fertile days"
 msgstr ""
 
 msgid "Field"
+msgstr ""
+
+msgid "File"
 msgstr ""
 
 msgid "Fill selection"
@@ -2795,6 +2808,9 @@ msgstr ""
 msgid "Jura"
 msgstr ""
 
+msgid "KDE Connect"
+msgstr ""
+
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr ""
 
@@ -2805,6 +2821,13 @@ msgid "KDE Connect phone paired."
 msgstr ""
 
 msgid "KDE Connect port %(port)s"
+msgstr ""
+
+msgid ""
+"KDE Connect transmits pen position, pressure, contact and pen/eraser "
+"changes. The hover cursor leaves no ink. The phone's tablet menu offers "
+"fullscreen and settings to hide or move the drawing button. Tilt, rotation "
+"and extra pen buttons are not transmitted by this protocol."
 msgstr ""
 
 msgid "Keep"
@@ -3129,9 +3152,6 @@ msgstr ""
 msgid "Merged"
 msgstr ""
 
-msgid "Message"
-msgstr ""
-
 msgid "Message text"
 msgstr ""
 
@@ -3291,6 +3311,9 @@ msgid "Netherlands"
 msgstr ""
 
 msgid "Network"
+msgstr ""
+
+msgid "Network fax server"
 msgstr ""
 
 msgid "Neuchâtel"
@@ -3729,6 +3752,9 @@ msgid "Online"
 msgstr ""
 
 msgid "Online address book"
+msgstr ""
+
+msgid "Online fax service"
 msgstr ""
 
 msgid "Online via Bluetooth data"
@@ -4686,6 +4712,9 @@ msgid "Save"
 msgstr ""
 
 msgid "Save Magnolienbaum pairing file"
+msgstr ""
+
+msgid "Save as PDF"
 msgstr ""
 
 msgid "Save as…"
@@ -6616,6 +6645,9 @@ msgid ""
 msgstr ""
 
 msgid "Weather was not retrieved because no location is available."
+msgstr ""
+
+msgid "Website"
 msgstr ""
 
 msgid "Wedding anniversary"

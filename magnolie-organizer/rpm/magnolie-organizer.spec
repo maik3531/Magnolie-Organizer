@@ -33,7 +33,7 @@
 %endif
 
 Name:           magnolie-organizer
-Version:        2.0.27
+Version:        2.0.28
 Release:        1%{?dist}
 Summary:        Personal organizer with a classic paper appearance
 
@@ -166,6 +166,8 @@ install -Dpm 0644 bin/magnolie_kde_input.py %{buildroot}%{_bindir}/magnolie_kde_
 install -Dpm 0644 bin/magnolie_kde_input_x11.py %{buildroot}%{_bindir}/magnolie_kde_input_x11.py
 install -Dpm 0644 bin/magnolie_kde_media.py %{buildroot}%{_bindir}/magnolie_kde_media.py
 install -Dpm 0644 bin/magnolie_kde_mpris.py %{buildroot}%{_bindir}/magnolie_kde_mpris.py
+install -Dpm 0644 bin/magnolie_timezone.py %{buildroot}%{_bindir}/magnolie_timezone.py
+install -Dpm 0644 bin/magnolie_appimage_lifecycle.py %{buildroot}%{_bindir}/magnolie_appimage_lifecycle.py
 install -Dpm 0644 bin/magnolie_office_profile.py %{buildroot}%{_bindir}/magnolie_office_profile.py
 install -Dpm 0644 bin/magnolie_own_profile.py %{buildroot}%{_bindir}/magnolie_own_profile.py
 install -Dpm 0644 bin/magnolie_pdf.py %{buildroot}%{_bindir}/magnolie_pdf.py
@@ -301,6 +303,8 @@ done
 %{_bindir}/magnolie_kde_input_x11.py
 %{_bindir}/magnolie_kde_media.py
 %{_bindir}/magnolie_kde_mpris.py
+%{_bindir}/magnolie_timezone.py
+%{_bindir}/magnolie_appimage_lifecycle.py
 %{_bindir}/magnolie_office_profile.py
 %{_bindir}/magnolie_own_profile.py
 %{_bindir}/magnolie_pdf.py

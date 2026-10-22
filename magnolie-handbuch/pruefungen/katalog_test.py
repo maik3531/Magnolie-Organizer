@@ -94,7 +94,7 @@ def test_installed_pot_in_nonstandard_prefix(tmp_path):
     shutil.copyfile(ROOT / "bin/magnolie_asset.py", private / "magnolie_asset.py")
     generator = share / "werkzeuge/pot_erzeugen.py"
     shutil.copyfile(ROOT / "werkzeuge/pot_erzeugen.py", generator)
-    assert package_version(str(share)) == "2.0.18"
+    assert package_version(str(share)) == json.loads((ROOT / "web/version.json").read_text())["version"]
     assert not (share / "debian").exists()
     output = tmp_path / "installed.pot"
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", HOME=str(tmp_path))

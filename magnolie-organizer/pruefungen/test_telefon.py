@@ -333,8 +333,8 @@ def test_capability_and_grant_schemas_are_strict():
     assert phone.validate_capabilities(capabilities) is capabilities
     assert phone.validate_grants(grants) is grants
     assert set(capabilities["items"]) == phone.CAPABILITY_NAMES
-    assert capabilities["items"]["device_status"]["versions"] == [1, 2, 3, 4, 5]
-    assert capabilities["items"]["personal_tasks_sync"]["versions"] == [1, 2, 3, 4, 6, 7]
+    assert capabilities["items"]["device_status"]["versions"] == [1, 2, 3, 4, 5, 7, 8, 12]
+    assert capabilities["items"]["personal_tasks_sync"]["versions"] == [1, 2, 3, 4, 6, 7, 9, 10, 13]
     assert grants["grants"] == {"device_status": True, "dial_request": True,
             "selected_notifications_readonly": False, "incoming_call_state": False,
             "incoming_call_number": False, "answer_call": False, "end_call": False,
