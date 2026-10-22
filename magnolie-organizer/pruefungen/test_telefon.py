@@ -380,8 +380,14 @@ def test_control_contract_matches_android_golden():
     if os.path.isfile(android_path):
         with open(path, "rb") as desktop, open(android_path, "rb") as android:
             assert desktop.read() == android.read()
-    assert phone.desktop_capabilities(bluetooth_available=True)["items"] == \
-        golden["desktop_capabilities"]
+    # Keep the shared old-peer vector byte-identical, just as the Android
+    # contract test does. Current desktop offers add these exact role versions.
+    current = json.loads(json.dumps(golden["desktop_capabilities"]))
+    for name, added in {"device_status": [7, 8, 12],
+                        "personal_notes_sync": [9, 10],
+                        "personal_tasks_sync": [9, 10, 13]}.items():
+        current[name]["versions"] += added
+    assert phone.desktop_capabilities(bluetooth_available=True)["items"] == current
     assert phone.desktop_grants()["grants"] == golden["desktop_grants"]
     assert phone.validate_capabilities({"revision": 1,
         "items": golden["android_capabilities"]})
