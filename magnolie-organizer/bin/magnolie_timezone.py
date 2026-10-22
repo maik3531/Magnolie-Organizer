@@ -55,7 +55,10 @@ def validate_phone_report(value):
 
 
 def system_zone():
-    candidates = [str(os.environ.get('TZ') or '').lstrip(':')]
+    environment = str(os.environ.get('TZ') or '').lstrip(':')
+    if zone_id(environment):
+        return environment
+    candidates = []
     try:
         with open('/etc/timezone', encoding='utf-8') as source:
             candidates.append(source.read(256).strip())
