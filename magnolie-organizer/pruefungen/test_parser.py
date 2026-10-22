@@ -2649,7 +2649,9 @@ regional = m.regional_einstellungen({"language": "fr-CH", "formatLocale": "en_US
 pruefe(regional == {"language": "fr-CH", "formatLocale": "en-US",
                      "hourCycle": "h12", "firstDayOfWeek": "sunday",
                      "weekRule": "iso", "temperatureUnit": "fahrenheit",
-                     "timeZone": "America/New_York", "homeCountry": "DE"},
+                     "timeZone": "America/New_York", "homeCountry": "DE",
+                     "timeZoneManagement": "off", "timeZoneDetection": "auto",
+                     "timeZoneManual": "America/New_York", "timeZoneDetectedSource": "manual", "timeZoneDetectedAt": "0"},
        "Regionalwerte werden sprachunabhängig und begrenzt übernommen")
 pruefe(m.regional_einstellungen_schreiben(regional, regional_probe) and
        m.regional_einstellungen_lesen(regional_probe) == regional,
@@ -3310,13 +3312,17 @@ pruefe(m.tray_autostart_einrichten(False, tray_autostart)["ok"] and
 appimage_alt = os.environ.get("APPIMAGE")
 os.environ["APPIMAGE"] = "/tmp/Magnolie Organizer-${HOME}-100%.AppImage"
 try:
-    pruefe('Exec="/tmp/Magnolie Organizer-\\\\${HOME}-100%%.AppImage" --tray-start' in
-           m.tray_autostart_text() and
-           'ExecStart="/tmp/Magnolie Organizer-$${HOME}-100%%.AppImage" --erinnerung' in
-           m.systemd_dienst_text() and
-           'Exec="/tmp/Magnolie Organizer-\\\\${HOME}-100%%.AppImage" --wecker' in
-           m.autostart_text(),
-           "dauerhafte AppImage-Registrierungen verwenden das stabile Abbild")
+    import magnolie_appimage_lifecycle as appimage_lifecycle
+    appimage_guard = appimage_lifecycle.launcher(os.environ["APPIMAGE"])
+    desktop_guard = m.desktop_exec_pfad(appimage_guard)
+    systemd_guard = appimage_guard.replace("%", "%%").replace("\\", "\\\\").replace('"', '\\"').replace("$", "$$")
+    pruefe(('Exec="' + desktop_guard + '" --tray-start') in
+            m.tray_autostart_text() and
+            ('ExecStart="' + systemd_guard + '" --erinnerung') in
+            m.systemd_dienst_text() and
+            ('Exec="' + desktop_guard + '" --wecker') in m.autostart_text() and
+            appimage_lifecycle.marker(os.environ["APPIMAGE"]).strip() in m.systemd_dienst_text(),
+            "dauerhafte AppImage-Registrierungen verwenden den an das stabile Abbild gebundenen Starter")
 finally:
     if appimage_alt is None:
         os.environ.pop("APPIMAGE", None)
