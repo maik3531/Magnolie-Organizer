@@ -395,11 +395,31 @@ def release_lock(root):
 
 @contextmanager
 def blocked_signals():
-    previous = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT, signal.SIGTERM, signal.SIGHUP})
+    """Defer Python interruption handlers until transaction bookkeeping is safe.
+
+    A main-thread pthread mask does not protect against process signals delivered
+    to another native thread: Python can still run their handler on the main
+    thread, including inside an OSError-catching filesystem operation.
+    """
+    previous = {}
+    pending = []
+    def deferred(number, frame):
+        if not pending:
+            pending.append((number, frame))
     try:
+        for number in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+            previous[number] = signal.signal(number, deferred)
         yield
     finally:
-        signal.pthread_sigmask(signal.SIG_SETMASK, previous)
+        for number, handler in previous.items():
+            signal.signal(number, handler)
+        if pending:
+            number, frame = pending[0]
+            handler = previous[number]
+            if callable(handler):
+                handler(number, frame)
+            elif handler == signal.SIG_DFL:
+                signal.raise_signal(number)
 
 
 def publish_files(root, stage, ordered, precondition, postcondition):

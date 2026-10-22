@@ -11,6 +11,7 @@ import re
 import signal
 import subprocess
 import sys
+import threading
 import tarfile
 import zipfile
 from types import SimpleNamespace
@@ -582,6 +583,36 @@ def test_real_signal_is_deferred_until_rename_bookkeeping(transaction, monkeypat
     with gate.release_lock(root), pytest.raises(InterruptedError):
         gate.publish_files(root, stage, names, lambda: None, lambda: None)
     assert fired and all((root / name).read_text() == "old " + name for name in names)
+
+
+def test_worker_delivered_signal_waits_for_complete_transaction_bookkeeping(transaction, monkeypatch):
+    root, stage, names = transaction
+    replace = os.replace
+    requested, delivered = threading.Event(), threading.Event()
+    bookkeeping = []
+    def worker_signal():
+        if requested.wait(2):
+            signal.pthread_kill(threading.get_ident(), signal.SIGTERM)
+            delivered.set()
+    worker = threading.Thread(target=worker_signal, daemon=True)
+    def interrupt(source, target):
+        replace(source, target)
+        if Path(source) == root / names[0] and not requested.is_set():
+            requested.set()
+            assert delivered.wait(2), "Worker did not deliver its real SIGTERM"
+            bookkeeping.append("backup-returned")
+    monkeypatch.setattr(os, "replace", interrupt)
+    worker.start()
+    try:
+        with gate.release_lock(root), pytest.raises(InterruptedError):
+            gate.publish_files(root, stage, names, lambda: None,
+                               lambda: bookkeeping.append("postcondition"))
+    finally:
+        worker.join(timeout=3)
+    assert not worker.is_alive()
+    assert bookkeeping == ["backup-returned", "postcondition"]
+    assert all((root / name).read_text() == "old " + name for name in names)
+    assert not stage.exists()
 
 
 def test_unknown_backup_state_preserves_recovery(transaction, monkeypatch):
