@@ -100,8 +100,10 @@ def ensure_installed(program, runner=None):
         body += f'if owns {quoted}; then rm -f -- {quoted}; fi\n'
     body += 'systemctl --user daemon-reload >/dev/null 2>&1 || :\n'
     body += 'for unit in $services; do systemctl --user reset-failed "$unit" >/dev/null 2>&1 || :; done\n'
+    # Even --no-block stop can terminate this oneshot before its next command.
+    body += 'rm -f -- ' + shlex.quote(script) + '\n'
     body += 'for unit in $services; do systemctl --user --no-block stop "$unit" >/dev/null 2>&1 || :; done\n'
-    body += 'rm -f -- ' + shlex.quote(script) + '\nexit 0\n'
+    body += 'exit 0\n'
     _write(script, body, 0o700)
     # An inotify path unit catches deletion/moves while the application is open;
     # guarded reminder/autostart launches also clean up after a later login.
