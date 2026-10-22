@@ -109,7 +109,8 @@ def ensure_installed(program, runner=None):
     _write(units / (name + '.service'), own + '\n[Unit]\nDescription=Magnolie AppImage integration cleanup\n'
            '[Service]\nType=oneshot\nExecStart="' + escaped(script).replace('$', '$$') + '" --check\n', 0o600)
     _write(units / (name + '.path'), own + '\n[Unit]\nDescription=Magnolie AppImage presence\n'
-           '[Path]\nPathChanged=' + escaped(program) + '\n'
+           # Path fields expand specifiers but retain literal quotes/backslashes.
+           '[Path]\nPathChanged=' + str(program).replace('%', '%%') + '\n'
            'Unit=' + name + '.service\n[Install]\nWantedBy=default.target\n', 0o600)
     if runner is not None or shutil.which('systemctl'):
         execute = runner or _run
