@@ -2930,6 +2930,7 @@ claws_fehler_probe = _ClawsFehlerProbe()
 m.Fenster.bei_import(claws_fehler_probe, {"art": "claws"})
 pruefe(claws_fehler_probe.antworten == [("App.importErgebnis", {
     "art": "claws", "abgebrochen": False,
+    "code": "native_operation_failed",
     "fehler": "File could not be read: DOCTYPE is not allowed in a Claws Mail address book."
 })], "englischer Claws-Fehler erreicht die Oberfläche ohne Formatverlust")
 m._, m.ngettext = gettext_alt, ngettext_alt
@@ -6482,7 +6483,7 @@ class _SecurityFenster:
 security_fenster = _SecurityFenster()
 m.Fenster._kennwort_setzen(security_fenster, "abc", "")
 pruefe(security_fenster.antworten[-1] == (
-    "App.kennwortStand", {"ok": False,
+    "App.kennwortStand", {"ok": False, "requestId": None,
       "fehler": "Choose at least four characters."}),
     "englischer Backendfehler prüft die Kennwortlänge")
 
