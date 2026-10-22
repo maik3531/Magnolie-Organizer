@@ -7,6 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: be\n"
@@ -16,160 +17,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-
-msgid "Cancel sending"
-msgstr "Скасаваць адпраўку"
-
-msgid ""
-"Document handed to the selected application or fax server. Delivery is not "
-"confirmed."
-msgstr ""
-"Дакумент перададзены выбранай праграме або факс-серверу. Дастаўка не "
-"пацверджана."
-
-msgid "Enter a HylaFAX server hostname, optionally followed by :port."
-msgstr "Увядзіце назву сервера HylaFAX, пры патрэбе дадаўшы :port."
-
-msgid "Enter recipient manually"
-msgstr "Увесці атрымальніка ўручную"
-
-msgid "Fax printer"
-msgstr "Факс-прынтар"
-
-msgid "Network fax server"
-msgstr "Сеткавы факс-сервер"
-
-msgid "Online fax service"
-msgstr "Анлайн-служба факса"
-
-msgid "Save as PDF"
-msgstr "Захаваць як PDF"
-
-msgid "Website"
-msgstr "Вэб-сайт"
-
-msgid "Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them."
-msgstr "Бягучае прайграванне, у тым ліку відэа ў браўзеры, застаецца даступным побач з прызначанымі прайгравальнікамі. Пошук/Адкрыць выбірае лакальную музыку або відэа; спіс з пошукам з’яўляецца пры падтрымцы прайгравальніка. Вокладкі, выпадковы парадак і паўтор даступныя, калі прайгравальнік іх прапануе."
-
-msgid "KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol."
-msgstr "KDE Connect перадае пазіцыю пяра, націск, дотык і пераключэнне пяра/гумкі. Указальнік навядзення не пакідае штрыхоў. У меню планшэта на тэлефоне ёсць поўны экран і налады схавання або перамяшчэння кнопкі малявання. Гэты пратакол не перадае нахіл, паварот і дадатковыя кнопкі пяра."
-
-msgid "Fax"
-msgstr "Факс"
-
-msgid ""
-"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
-"supported installed mail client. A handoff is not delivery confirmation."
-msgstr ""
-"Для факса патрэбны наладжаны сервер HylaFAX і ўсталяваны sendfax. Пошта "
-"выкарыстоўвае падтрымліваемы ўсталяваны кліент. Перадача не пацвярджае "
-"дастаўку."
-
-msgid "HylaFAX server (Linux)"
-msgstr "Сервер HylaFAX (Linux)"
-
-msgid "No configured mail or fax adapter is available."
-msgstr "Наладжанае паштовае ці факсавае падключэнне недаступнае."
-
-msgid "Preparing selected notes…"
-msgstr "Падрыхтоўка выбраных нататак…"
-
-msgid "Recipient"
-msgstr "Атрымальнік"
-
-msgid "Select a recipient."
-msgstr "Выберыце атрымальніка."
-
-msgid "Send notes by email or fax"
-msgstr "Адпраўляць нататкі поштай або факсам"
-
-msgid "Sending cancelled."
-msgstr "Адпраўка скасавана."
-
-msgid "Sending is disabled."
-msgstr "Адпраўка адключана."
-
-msgid "Sending is not available."
-msgstr "Адпраўка недаступная."
-
-msgid "Show Send in note print options"
-msgstr "Паказваць Адправіць у параметрах друку нататак"
-
-msgid "Subject"
-msgstr "Тэма"
-
-msgid "The document could not be handed off."
-msgstr "Не ўдалося перадаць дакумент."
-
-msgid "The handoff has already started and cannot be recalled here."
-msgstr "Перадача ўжо пачалася, адклікаць яе тут немагчыма."
-
-msgid ""
-"The handoff outcome is unknown. Check the external application before trying "
-"again."
-msgstr ""
-"Вынік перадачы невядомы. Праверце знешнюю праграму перад паўторнай спробай."
-
-msgid ""
-"Waiting for the mail or fax application. Closing this window does not recall "
-"the handoff."
-msgstr ""
-"Чаканне паштовай ці факсавай праграмы. Закрыццё гэтага акна не адклікае "
-"перадачу."
-
-msgid "All anniversaries"
-msgstr "Усе гадавіны"
-
-msgid "Also hide in the calendar"
-msgstr "Таксама хаваць у календары"
-
-msgid ""
-"An entry is excluded when any of its contact groups is selected. No contacts "
-"or anniversaries are deleted."
-msgstr ""
-"Запіс выключаецца, калі выбрана хаця б адна з яго груп кантактаў. Кантакты і "
-"гадавіны не выдаляюцца."
-
-msgid "Apply to"
-msgstr "Ужыць да"
-
-msgid "Birthdays only"
-msgstr "Толькі дні нараджэння"
-
-msgid "Enable contact group exclusions"
-msgstr "Уключыць выключэнні груп кантактаў"
-
-msgid "Exclude contact groups"
-msgstr "Выключыць групы кантактаў"
-
-msgid "Scope"
-msgstr "Абсяг"
-
-msgid "Category"
-msgstr "Катэгорыя"
-
-msgid "Category colors"
-msgstr "Колеры катэгорый"
-
-msgid ""
-"Category colors highlight appointments and tasks. A custom entry color takes "
-"precedence; otherwise the first matching category is used."
-msgstr ""
-"Колеры катэгорый вылучаюць сустрэчы і задачы. Уласны колер запісу мае "
-"перавагу; інакш выкарыстоўваецца першая адпаведная катэгорыя."
-
-msgid ""
-"Changing or removing a category color does not rename or delete categories "
-"on saved or imported entries."
-msgstr ""
-"Змена або выдаленне колеру катэгорыі не пераймяноўвае і не выдаляе катэгорыі "
-"захаваных або імпартаваных запісаў."
-
-msgid "Custom color"
-msgstr "Уласны колер"
-
-msgid "Please enter a unique category name without commas or semicolons."
-msgstr "Увядзіце ўнікальную назву катэгорыі без косак і кропак з коскай."
 
 msgid " (filtered)"
 msgstr " (адфільтравана)"
@@ -369,9 +216,9 @@ msgstr[2] "%(count)s секунды"
 
 msgid "%(count)s source"
 msgid_plural "%(count)s sources"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "%(count)s крыніца"
+msgstr[1] "%(count)s крыніцы"
+msgstr[2] "%(count)s крыніц"
 
 msgid "%(count)s task"
 msgid_plural "%(count)s tasks"
@@ -662,10 +509,21 @@ msgid "Account type"
 msgstr "Тып уліковага запісу"
 
 msgid "Action"
-msgstr ""
+msgstr "Дзеянне"
 
 msgid "Active call"
 msgstr "Актыўны выклік"
+
+msgid ""
+"Active playback, including browser videos, remains available alongside the "
+"assigned players. Search/Open selects local music or videos; a searchable "
+"player playlist appears when supported. Covers, shuffle and repeat are "
+"available when the player provides them."
+msgstr ""
+"Бягучае прайграванне, у тым ліку відэа ў браўзеры, застаецца даступным побач "
+"з прызначанымі прайгравальнікамі. Пошук/Адкрыць выбірае лакальную музыку або "
+"відэа; спіс з пошукам з’яўляецца пры падтрымцы прайгравальніка. Вокладкі, "
+"выпадковы парадак і паўтор даступныя, калі прайгравальнік іх прапануе."
 
 msgctxt "time tracking"
 msgid "Activity"
@@ -735,7 +593,7 @@ msgid "Address imported from LibreOffice."
 msgstr "Адрас імпартаваны з LibreOffice."
 
 msgid "Address imported from own profile."
-msgstr ""
+msgstr "Адрас імпартаваны з уласнага профілю."
 
 msgid "Address supplement"
 msgstr "Дапаўненне да адраса"
@@ -758,6 +616,9 @@ msgstr "Пасля ежы"
 
 msgid "All"
 msgstr "Усе"
+
+msgid "All anniversaries"
+msgstr "Усе гадавіны"
 
 msgid "All cantons"
 msgstr "Усе кантоны"
@@ -790,6 +651,9 @@ msgstr "Дазволіць прыладзе перадаваць гэтае зл
 msgid "Also disclose appointments marked as confidential"
 msgstr "Таксама раскрываць сустрэчы, пазначаныя як канфідэнцыйныя"
 
+msgid "Also hide in the calendar"
+msgstr "Таксама хаваць у календары"
+
 msgid "Also hide past anniversaries"
 msgstr "Таксама хаваць мінулыя гадавіны"
 
@@ -815,6 +679,13 @@ msgstr ""
 "Каляндар сустрэч, адрасная кніга, кніга заданняў і нататнік у выглядзе "
 "скуранога арганайзера —"
 
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"Запіс выключаецца, калі выбрана хаця б адна з яго груп кантактаў. Кантакты і "
+"гадавіны не выдаляюцца."
+
 msgid "Android restricts this device identifier."
 msgstr "Android абмяжоўвае гэты ідэнтыфікатар."
 
@@ -822,7 +693,7 @@ msgid "Android version"
 msgstr "Версія Android"
 
 msgid "Angle"
-msgstr ""
+msgstr "Вугал"
 
 msgid "Anniversaries"
 msgstr "Гадавіны"
@@ -878,6 +749,9 @@ msgstr ""
 
 msgid "Apply"
 msgstr "Ужыць"
+
+msgid "Apply to"
+msgstr "Ужыць да"
 
 msgid "Apply to the remaining conflicts"
 msgstr "Ужыць да астатніх канфліктаў"
@@ -966,7 +840,7 @@ msgid "Authority appointment"
 msgstr "Візіт ва ўстанову"
 
 msgid "Automatic"
-msgstr ""
+msgstr "Аўтаматычна"
 
 msgid "Automatic backup failed."
 msgstr "Аўтаматычнае рэзервовае капіраванне не ўдалося."
@@ -998,7 +872,7 @@ msgid "Automatically dismiss anniversary reminders"
 msgstr "Аўтаматычна хаваць напаміны пра гадавіны"
 
 msgid "Automatically over the current connection"
-msgstr ""
+msgstr "Аўтаматычна праз бягучае злучэнне"
 
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Аўтаматычна сінхранізаваць праз Wi-Fi"
@@ -1132,6 +1006,9 @@ msgstr "Святкаванне дня нараджэння"
 msgid "Birthday today"
 msgstr "Дзень нараджэння сёння"
 
+msgid "Birthdays only"
+msgstr "Толькі дні нараджэння"
+
 msgid "Black"
 msgstr "Чорны"
 
@@ -1227,7 +1104,7 @@ msgid "Browse..."
 msgstr "Агляд..."
 
 msgid "Brush"
-msgstr ""
+msgstr "Пэндзаль"
 
 msgid "Burgenland"
 msgstr "Бургенланд"
@@ -1324,10 +1201,13 @@ msgid "Call with %(name)s · %(date)s"
 msgstr "Званок з %(name)s · %(date)s"
 
 msgid "Calligraphy pen"
-msgstr ""
+msgstr "Каліграфічнае пяро"
 
 msgid "Cancel"
 msgstr "Скасаваць"
+
+msgid "Cancel sending"
+msgstr "Скасаваць адпраўку"
 
 msgid "Canton"
 msgstr "Кантон"
@@ -1350,6 +1230,19 @@ msgstr "Катэгорыі"
 msgid "Categories:"
 msgstr "Катэгорыі:"
 
+msgid "Category"
+msgstr "Катэгорыя"
+
+msgid "Category colors"
+msgstr "Колеры катэгорый"
+
+msgid ""
+"Category colors highlight appointments and tasks. A custom entry color takes "
+"precedence; otherwise the first matching category is used."
+msgstr ""
+"Колеры катэгорый вылучаюць сустрэчы і задачы. Уласны колер запісу мае "
+"перавагу; інакш выкарыстоўваецца першая адпаведная катэгорыя."
+
 msgid "Catholic confirmation"
 msgstr "Каталіцкая канфірмацыя"
 
@@ -1366,7 +1259,14 @@ msgid "Changes are applied automatically"
 msgstr "Змены прымяняюцца аўтаматычна"
 
 msgid "Changes to your own profile are saved with Save."
+msgstr "Змены ўласнага профілю захоўваюцца кнопкай «Захаваць»."
+
+msgid ""
+"Changing or removing a category color does not rename or delete categories "
+"on saved or imported entries."
 msgstr ""
+"Змена або выдаленне колеру катэгорыі не пераймяноўвае і не выдаляе катэгорыі "
+"захаваных або імпартаваных запісаў."
 
 msgid "Charging"
 msgstr "Зарадка"
@@ -1420,10 +1320,10 @@ msgstr ""
 "пароль."
 
 msgid "Choose a connection. Confirm the pairing code on the other device."
-msgstr ""
+msgstr "Выберыце злучэнне. Пацвердзіце код спалучэння на іншай прыладзе."
 
 msgid "Choose a contact"
-msgstr ""
+msgstr "Выбраць кантакт"
 
 msgid "Choose a country first."
 msgstr "Спачатку выберыце краіну."
@@ -1582,7 +1482,7 @@ msgid "Codes match"
 msgstr "Код супадае"
 
 msgid "Collapse day groups by default"
-msgstr ""
+msgstr "Згортваць групы дзён па змаўчанні"
 
 msgid "Colleagues"
 msgstr "Калегі"
@@ -1617,7 +1517,7 @@ msgstr ""
 "праверыць злучэнне."
 
 msgid "Compare with LibreOffice"
-msgstr ""
+msgstr "Параўнаць з LibreOffice"
 
 msgid "Complete archive export is available only in the installed application."
 msgstr "Поўны экспарт архіва даступны толькі ва ўсталяваным дадатку."
@@ -1675,7 +1575,7 @@ msgid "Confirm the pairing request on the phone."
 msgstr "Пацвердзіце запыт на спалучэнне на тэлефоне."
 
 msgid "Confirm this code on the other device."
-msgstr ""
+msgstr "Пацвердзіце гэты код на іншай прыладзе."
 
 msgid "Confirmation"
 msgstr "Пацвярджэнне"
@@ -1687,7 +1587,7 @@ msgid "Connect"
 msgstr "Злучыць"
 
 msgid "Connect Notes before sending this entry."
-msgstr ""
+msgstr "Падключыце Notes перад адпраўкай запісу."
 
 msgid "Connect phone via WLAN"
 msgstr "Падключыце тэлефон праз Wi-Fi"
@@ -1845,10 +1745,10 @@ msgid "Create pairing file …"
 msgstr "Стварыць файл спалучэння …"
 
 msgid "Create recovery points"
-msgstr ""
+msgstr "Ствараць пункты аднаўлення"
 
 msgid "Created"
-msgstr ""
+msgstr "Створана"
 
 msgid "Creating recovery snapshot …"
 msgstr "Стварэнне здымка аднаўлення …"
@@ -1858,6 +1758,9 @@ msgstr "Уласнае"
 
 msgid "Custom application"
 msgstr "Карыстальніцкае прыкладанне"
+
+msgid "Custom color"
+msgstr "Уласны колер"
 
 msgid "Custom notification"
 msgstr "Уласнае апавяшчэнне"
@@ -1881,7 +1784,7 @@ msgid "Cut"
 msgstr "Выразаць"
 
 msgid "Cut selection"
-msgstr ""
+msgstr "Выразаць вылучэнне"
 
 msgid "Cycle calendar"
 msgstr "Каляндар цыклу"
@@ -1942,7 +1845,7 @@ msgid "Death anniversary"
 msgstr "Гадавіна смерці"
 
 msgid "Default view"
-msgstr ""
+msgstr "Выгляд па змаўчанні"
 
 msgid "Default: next to the data file"
 msgstr "Прадвызначана: побач з файлам даных"
@@ -1991,10 +1894,10 @@ msgid "Delete cycle marker"
 msgstr "Выдаліць пазнаку цыклу"
 
 msgid "Delete drawing sheet"
-msgstr ""
+msgstr "Выдаліць аркуш малявання"
 
 msgid "Delete drawing sheet?"
-msgstr ""
+msgstr "Выдаліць аркуш малявання?"
 
 msgid "Delete entries"
 msgstr "Выдаліць запісы"
@@ -2174,6 +2077,13 @@ msgstr "Лекар"
 msgid "Doctor appointment"
 msgstr "Прыём у лекара"
 
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"Дакумент перададзены выбранай праграме або факс-серверу. Дастаўка не "
+"пацверджана."
+
 msgid "Document.pdf"
 msgstr "Document.pdf"
 
@@ -2261,7 +2171,7 @@ msgid "Edit the website or application used"
 msgstr "Рэдагаваць выкарыстоўваны вэб-сайт або праграму"
 
 msgid "Ellipse"
-msgstr ""
+msgstr "Эліпс"
 
 msgid "Email"
 msgstr "Электронная пошта"
@@ -2316,6 +2226,9 @@ msgid ""
 msgstr ""
 "Уключыце адладку Wi-Fi ў параметрах распрацоўшчыка Notes на сваім спалучаным "
 "тэлефоне."
+
+msgid "Enable contact group exclusions"
+msgstr "Уключыць выключэнні груп кантактаў"
 
 msgid "Enable cycle calendar"
 msgstr "Уключыць каляндар цыклу"
@@ -2384,6 +2297,9 @@ msgstr ""
 msgid "Enter"
 msgstr "Увесці"
 
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr "Увядзіце назву сервера HylaFAX, пры патрэбе дадаўшы :port."
+
 msgid ""
 "Enter a blood glucose value on the left to highlight matching scheme rows."
 msgstr ""
@@ -2418,6 +2334,9 @@ msgstr "Увядзіце гадзіны і хвіліны або пакіньц�
 
 msgid "Enter height and weight to calculate BMI."
 msgstr "Увядзіце рост і вагу, каб разлічыць ІМТ."
+
+msgid "Enter recipient manually"
+msgstr "Увесці атрымальніка ўручную"
 
 msgid "Enter the archive password."
 msgstr "Увядзіце пароль архіва."
@@ -2454,7 +2373,7 @@ msgid "Estimate the next period"
 msgstr "Ацэньваць пачатак наступнай менструацыі"
 
 msgid "Estimated from older data"
-msgstr ""
+msgstr "Ацэнена са старэйшых даных"
 
 msgid "Estimated next period"
 msgstr "Чаканая наступная менструацыя"
@@ -2463,7 +2382,7 @@ msgid "Evening"
 msgstr "Вечар"
 
 msgid "Every change"
-msgstr ""
+msgstr "Пры кожнай змене"
 
 msgid "Every filled medication row requires a name."
 msgstr "У кожным запоўненым радку лекаў павінна быць назва."
@@ -2472,7 +2391,7 @@ msgid "Every filled row requires a valid date."
 msgstr "У кожным запоўненым радку павінна быць сапраўдная дата."
 
 msgid "Every program start"
-msgstr ""
+msgstr "Пры кожным запуску"
 
 msgid "Everything is done - the list is empty."
 msgstr "Усё зроблена – спіс пусты."
@@ -2483,8 +2402,11 @@ msgstr "Усё гатова"
 msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr "Трэба спалучыць роўна адзін тэлефон Magnolie Notes."
 
+msgid "Exclude contact groups"
+msgstr "Выключыць групы кантактаў"
+
 msgid "Expand day groups by default"
-msgstr ""
+msgstr "Разгортваць групы дзён па змаўчанні"
 
 msgid "Export"
 msgstr "Экспартаваць"
@@ -2505,7 +2427,7 @@ msgid "Export is available only in the installed application."
 msgstr "Экспарт даступны толькі ва ўсталяванай праграме."
 
 msgid "Export vCard"
-msgstr ""
+msgstr "Экспартаваць vCard"
 
 msgid "Extend sharing"
 msgstr "Пашырыць агульны доступ"
@@ -2521,6 +2443,20 @@ msgstr "Сям’я"
 
 msgid "Fasting"
 msgstr "Нашча"
+
+msgid "Fax"
+msgstr "Факс"
+
+msgid "Fax printer"
+msgstr "Факс-прынтар"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"Для факса патрэбны наладжаны сервер HylaFAX і ўсталяваны sendfax. Пошта "
+"выкарыстоўвае падтрымліваемы ўсталяваны кліент. Перадача не пацвярджае "
+"дастаўку."
 
 msgid "Female caregiver"
 msgstr "Даглядальніца"
@@ -2541,13 +2477,16 @@ msgid "Fertile days"
 msgstr "Фертыльныя дні"
 
 msgid "Field"
-msgstr ""
+msgstr "Поле"
+
+msgid "File"
+msgstr "Файл"
 
 msgid "Fill selection"
-msgstr ""
+msgstr "Запоўніць вылучэнне"
 
 msgid "Fill with gradient"
-msgstr ""
+msgstr "Запоўніць градыентам"
 
 msgid "Fill with stored values"
 msgstr "Запоўніць захаванымі значэннямі"
@@ -2718,16 +2657,16 @@ msgstr ""
 "наладах."
 
 msgid "Gradient end color"
-msgstr ""
+msgstr "Канцавы колер градыента"
 
 msgid "Grisons"
 msgstr "Граўбюндэн"
 
 msgid "Group by day"
-msgstr ""
+msgstr "Групаваць па дні"
 
 msgid "Group changes by time interval"
-msgstr ""
+msgstr "Групаваць змены па часовым інтэрвале"
 
 msgid "Group for %(notebook)s"
 msgstr "Група для %(notebook)s"
@@ -2803,7 +2742,7 @@ msgid "Hide past appointments"
 msgstr "Схаваць мінулыя сустрэчы"
 
 msgid "Highlighter"
-msgstr ""
+msgstr "Маркер"
 
 msgid "History"
 msgstr "Гісторыя"
@@ -2842,6 +2781,9 @@ msgstr "Як каляндар павінен паводзіць сябе пры 
 msgid "Husband"
 msgstr "Муж"
 
+msgid "HylaFAX server (Linux)"
+msgstr "Сервер HylaFAX (Linux)"
+
 msgid "I"
 msgstr "Я"
 
@@ -2855,7 +2797,7 @@ msgid "ISO week (week 1 contains the first Thursday)"
 msgstr "Тыдзень ISO (тыдзень 1 змяшчае першы чацвер)"
 
 msgid "Idea"
-msgstr ""
+msgstr "Ідэя"
 
 msgid ""
 "If the year is unknown, enter only day and month.\n"
@@ -3005,7 +2947,7 @@ msgid "Insert link"
 msgstr "Уставіць спасылку"
 
 msgid "Insert shape"
-msgstr ""
+msgstr "Уставіць фігуру"
 
 msgid ""
 "Install the highlighted extension in Thunderbird via Add-ons and Themes → "
@@ -3069,6 +3011,9 @@ msgstr "Сок"
 msgid "Jura"
 msgstr "Юра"
 
+msgid "KDE Connect"
+msgstr "KDE Connect"
+
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect для SMS даступны толькі ва ўсталяваным дадатку."
 
@@ -3080,6 +3025,17 @@ msgstr "Тэлефон KDE Connect спалучаны."
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect порт %(port)s"
+
+msgid ""
+"KDE Connect transmits pen position, pressure, contact and pen/eraser "
+"changes. The hover cursor leaves no ink. The phone's tablet menu offers "
+"fullscreen and settings to hide or move the drawing button. Tilt, rotation "
+"and extra pen buttons are not transmitted by this protocol."
+msgstr ""
+"KDE Connect перадае пазіцыю пяра, націск, дотык і пераключэнне пяра/гумкі. "
+"Указальнік навядзення не пакідае штрыхоў. У меню планшэта на тэлефоне ёсць "
+"поўны экран і налады схавання або перамяшчэння кнопкі малявання. Гэты "
+"пратакол не перадае нахіл, паварот і дадатковыя кнопкі пяра."
 
 msgid "Keep"
 msgstr "Пакінуць"
@@ -3103,7 +3059,7 @@ msgid "Landline"
 msgstr "Стацыянарны тэлефон"
 
 msgid "Landscape"
-msgstr ""
+msgstr "Альбомная"
 
 msgid "Language"
 msgstr "Мова"
@@ -3153,7 +3109,7 @@ msgstr ""
 "змяняюцца."
 
 msgid "LibreOffice user data updated."
-msgstr ""
+msgstr "Даныя карыстальніка LibreOffice абноўлены."
 
 msgid "License"
 msgstr "Ліцэнзія"
@@ -3162,7 +3118,7 @@ msgid "Liechtenstein"
 msgstr "Ліхтэнштэйн"
 
 msgid "Line"
-msgstr ""
+msgstr "Лінія"
 
 msgid "Line width"
 msgstr "Таўшчыня лініі"
@@ -3193,6 +3149,9 @@ msgstr "Лакальны каляндар"
 
 msgid "Local image"
 msgstr "Лакальная выява"
+
+msgid "Local time"
+msgstr "Мясцовы час"
 
 msgid "Location"
 msgstr "Месца"
@@ -3342,7 +3301,7 @@ msgid "Manual only"
 msgstr "Толькі ўручную"
 
 msgid "Manually"
-msgstr ""
+msgstr "Уручную"
 
 msgid "Manufacturer"
 msgstr "Вытворца"
@@ -3413,16 +3372,13 @@ msgid "Merge duplicate contact cards"
 msgstr "Аб’яднаць дублікаты картак кантактаў"
 
 msgid "Merge history"
-msgstr ""
+msgstr "Гісторыя аб’яднанняў"
 
 msgid "Merge this pair individually"
 msgstr "Аб’яднаць гэтую пару асобна"
 
 msgid "Merged"
-msgstr ""
-
-msgid "Message"
-msgstr "Паведамленне"
+msgstr "Аб’яднана"
 
 msgid "Message text"
 msgstr "Паведамленне"
@@ -3482,7 +3438,7 @@ msgid "Model"
 msgstr "Мадэль"
 
 msgid "Modified"
-msgstr ""
+msgstr "Зменена"
 
 msgid "Module"
 msgstr "Модуль"
@@ -3491,7 +3447,7 @@ msgid "Monday"
 msgstr "Панядзелак"
 
 msgid "Money"
-msgstr ""
+msgstr "Грошы"
 
 msgid "Month"
 msgstr "Месяц"
@@ -3546,7 +3502,7 @@ msgid "Move notebook up"
 msgstr "Перамясціць нататнік уверх"
 
 msgid "Move selection"
-msgstr ""
+msgstr "Перамясціць вылучэнне"
 
 msgid "Move the ticked entries to the wastebasket"
 msgstr "Перамясціць адзначаныя запісы ў сметніцу"
@@ -3558,7 +3514,7 @@ msgid "Move up"
 msgstr "Перамясціць уверх"
 
 msgid "Move view"
-msgstr ""
+msgstr "Перамясціць выгляд"
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -3594,6 +3550,9 @@ msgstr "Нідэрланды"
 
 msgid "Network"
 msgstr "Сетка"
+
+msgid "Network fax server"
+msgstr "Сеткавы факс-сервер"
 
 msgid "Neuchâtel"
 msgstr "Неўшатэль"
@@ -3637,7 +3596,7 @@ msgid "New contact"
 msgstr "Новы кантакт"
 
 msgid "New drawing sheet"
-msgstr ""
+msgstr "Новы аркуш малявання"
 
 msgid "New group"
 msgstr "Новая група"
@@ -3661,7 +3620,7 @@ msgid "New version %(version)s is available."
 msgstr "Даступная новая версія %(version)s."
 
 msgid "Newest first"
-msgstr ""
+msgstr "Спачатку новыя"
 
 msgid "Next"
 msgstr "Далей"
@@ -3694,7 +3653,7 @@ msgid "Nextcloud is not enabled."
 msgstr "Nextcloud не ўключаны."
 
 msgid "Nib angle"
-msgstr ""
+msgstr "Вугал пяра"
 
 msgid "Nidwalden"
 msgstr "Нідвальдэн"
@@ -3722,7 +3681,7 @@ msgid "No SMS messages are scheduled."
 msgstr "Запланаваных SMS няма."
 
 msgid "No WhatsApp profile available for this contact."
-msgstr ""
+msgstr "Для гэтага кантакту няма профілю WhatsApp."
 
 msgid "No Windows dictionary is installed for this language."
 msgstr "Для гэтай мовы не ўсталяваны слоўнік Windows."
@@ -3746,11 +3705,14 @@ msgstr "Ніводнай сустрэчы не запланавана."
 msgid "No calendars found."
 msgstr "Календары не знойдзены."
 
+msgid "No configured mail or fax adapter is available."
+msgstr "Наладжанае паштовае ці факсавае падключэнне недаступнае."
+
 msgid "No contact group"
-msgstr ""
+msgstr "Без групы кантактаў"
 
 msgid "No date recorded"
-msgstr ""
+msgstr "Дата не запісана"
 
 msgid "No default voice subscription is available."
 msgstr "Няма стандартнай падпіскі для званкоў."
@@ -3783,7 +3745,7 @@ msgid "No media player is available on the connected phone."
 msgstr "На падключаным тэлефоне няма даступнага медыяпрайгравальніка."
 
 msgid "No merge history recorded"
-msgstr ""
+msgstr "Гісторыя аб’яднанняў не запісана"
 
 msgid "No notebooks"
 msgstr "Няма нататнікаў"
@@ -3814,7 +3776,7 @@ msgstr ""
 "адказных за задачы."
 
 msgid "No phone number available."
-msgstr ""
+msgstr "Нумар тэлефона адсутнічае."
 
 msgid "No phone paired yet."
 msgstr "Задача яшчэ не звязана."
@@ -3931,7 +3893,7 @@ msgid "Notes and special instructions"
 msgstr "Нататкі і асаблівыя ўказанні"
 
 msgid "Notes and tasks"
-msgstr ""
+msgstr "Нататкі і задачы"
 
 msgid ""
 "Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
@@ -4007,7 +3969,7 @@ msgid "Ointment"
 msgstr "Мазь"
 
 msgid "Oldest first"
-msgstr ""
+msgstr "Спачатку старыя"
 
 msgid "One address book"
 msgstr "Адна адрасная кніга"
@@ -4056,6 +4018,9 @@ msgstr "У Інтэрнэце"
 msgid "Online address book"
 msgstr "Анлайн-адрасная кніга"
 
+msgid "Online fax service"
+msgstr "Анлайн-служба факса"
+
 msgid "Online via Bluetooth data"
 msgstr "Анлайн праз дадзеныя Bluetooth"
 
@@ -4083,10 +4048,10 @@ msgstr ""
 "тэлефон перад зменай прылады."
 
 msgid "Only personal entries can be sent to Notes."
-msgstr ""
+msgstr "У Notes можна адпраўляць толькі асабістыя запісы."
 
 msgid "Only the Notes collection"
-msgstr ""
+msgstr "Толькі калекцыя Notes"
 
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
@@ -4171,7 +4136,7 @@ msgid "Open the day in the daily view"
 msgstr "Адкрыць дзень у дзённым выглядзе"
 
 msgid "Open the drawing tablet in KDE Connect on the paired phone."
-msgstr ""
+msgstr "Адкрыйце графічны планшэт у KDE Connect на спалучаным тэлефоне."
 
 msgid "Open the phone connection screen and try again."
 msgstr "Адкрыйце экран злучэння з тэлефонам і паспрабуйце яшчэ раз."
@@ -4245,7 +4210,7 @@ msgid "Own phone number (default voice SIM)"
 msgstr "Уласны нумар (стандартная SIM для званкоў)"
 
 msgid "Own profile"
-msgstr ""
+msgstr "Уласны профіль"
 
 msgid "PDF file"
 msgstr "Файл PDF"
@@ -4266,7 +4231,7 @@ msgid "Page %(page)s of %(count)s"
 msgstr "Старонка %(page)s з %(count)s"
 
 msgid "Page order"
-msgstr ""
+msgstr "Парадак старонак"
 
 msgid "Pages"
 msgstr "Старонкі"
@@ -4518,6 +4483,9 @@ msgstr "Увядзіце назву для кожнай новай задачы.
 msgid "Please enter a title."
 msgstr "Увядзіце назву."
 
+msgid "Please enter a unique category name without commas or semicolons."
+msgstr "Увядзіце ўнікальную назву катэгорыі без косак і кропак з коскай."
+
 msgid "Please enter a website or application for the custom action."
 msgstr "Увядзіце вэб-сайт або праграму для ўласнага дзеяння."
 
@@ -4555,7 +4523,7 @@ msgid "Poland"
 msgstr "Польшча"
 
 msgid "Portrait"
-msgstr ""
+msgstr "Кніжная"
 
 msgid "Possible duplicates among local and incoming contacts"
 msgstr "Магчымыя дублікаты сярод лакальных і ўваходных кантактаў"
@@ -4597,6 +4565,9 @@ msgstr "Падрыхтоўка да ўваходу ў Microsoft..."
 
 msgid "Preparing account sign-in …"
 msgstr "Падрыхтоўка ўваходу ва ўліковы запіс…"
+
+msgid "Preparing selected notes…"
+msgstr "Падрыхтоўка выбраных нататак…"
 
 msgid "Preview"
 msgstr "Прагляд"
@@ -4677,7 +4648,7 @@ msgid "Private"
 msgstr "Прыватнае"
 
 msgid "Properties"
-msgstr ""
+msgstr "Уласцівасці"
 
 msgid "Protected archive password unavailable."
 msgstr "Абаронены пароль архіва недаступны."
@@ -4721,7 +4692,7 @@ msgid "Quit"
 msgstr "Выйсці"
 
 msgid "Quote"
-msgstr ""
+msgstr "Цытата"
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Даступны адрас IPv4 або IPv6 гэтага камп’ютара"
@@ -4736,10 +4707,13 @@ msgid "Reason"
 msgstr "Прычына"
 
 msgid "Recently modified"
-msgstr ""
+msgstr "Нядаўна змененыя"
 
 msgid "Recipe"
-msgstr ""
+msgstr "Рэцэпт"
+
+msgid "Recipient"
+msgstr "Атрымальнік"
 
 msgid "Reconnect"
 msgstr "Зноў падключыцеся"
@@ -4749,7 +4723,7 @@ msgid "Recorded times"
 msgstr "Запісаны час"
 
 msgid "Recovery journal"
-msgstr ""
+msgstr "Журнал аднаўлення"
 
 msgid "Recovery snapshot created."
 msgstr "Зроблена здымак аднаўлення."
@@ -4761,7 +4735,7 @@ msgid "Recovery snapshots"
 msgstr "Здымкі аднаўлення"
 
 msgid "Rectangle"
-msgstr ""
+msgstr "Прамавугольнік"
 
 msgid "Recycle bin"
 msgstr "Сметніца"
@@ -4998,7 +4972,7 @@ msgid "Right page"
 msgstr "Правая старонка"
 
 msgid "Rotate selection"
-msgstr ""
+msgstr "Павярнуць вылучэнне"
 
 msgid "Route"
 msgstr "Маршрут"
@@ -5061,6 +5035,9 @@ msgstr "Захаваць"
 
 msgid "Save Magnolienbaum pairing file"
 msgstr "Захаваць файл спалучэння Magnolienbaum"
+
+msgid "Save as PDF"
+msgstr "Захаваць як PDF"
 
 msgid "Save as…"
 msgstr "Захаваць як…"
@@ -5145,6 +5122,9 @@ msgstr "Для гэтага рэгіёна няма звестак пра шко
 msgid "Schwyz"
 msgstr "Швіц"
 
+msgid "Scope"
+msgstr "Абсяг"
+
 msgid "Screen notification only"
 msgstr "Толькі экраннае апавяшчэнне"
 
@@ -5185,7 +5165,7 @@ msgid "Security"
 msgstr "Бяспека"
 
 msgid "Select"
-msgstr ""
+msgstr "Выбраць"
 
 msgid "Select a country first."
 msgstr "Спачатку выберыце краіну."
@@ -5199,6 +5179,9 @@ msgstr ""
 
 msgid "Select a custom backup folder."
 msgstr "Выберыце ўласную папку рэзервовых копій."
+
+msgid "Select a recipient."
+msgstr "Выберыце атрымальніка."
 
 msgid "Select all"
 msgstr "Выбраць усё"
@@ -5220,7 +5203,7 @@ msgid "Select backup folder"
 msgstr "Выбраць папку рэзервовых копій"
 
 msgid "Select complete strokes that fit inside the sheet."
-msgstr ""
+msgstr "Выберыце цэлыя штрыхі, якія змяшчаюцца на аркушы."
 
 msgid "Select something first."
 msgstr "Спачатку нешта выберыце."
@@ -5244,7 +5227,7 @@ msgid "Selection options"
 msgstr "Параметры выбару"
 
 msgid "Send"
-msgstr ""
+msgstr "Адправіць"
 
 msgid "Send SMS"
 msgstr "Адправіць SMS"
@@ -5255,17 +5238,29 @@ msgstr "Адправіць скарэкціраваны тэкст"
 msgid "Send documents"
 msgstr "Адправіць дакументы"
 
+msgid "Send notes by email or fax"
+msgstr "Адпраўляць нататкі поштай або факсам"
+
 msgid "Send secure request"
 msgstr "Адправіць бяспечны запыт"
 
 msgid "Send this new note to Notes"
-msgstr ""
+msgstr "Адправіць гэтую новую нататку ў Notes"
 
 msgid "Send to Notes"
-msgstr ""
+msgstr "Адправіць у Notes"
 
 msgid "Send via"
-msgstr ""
+msgstr "Адправіць праз"
+
+msgid "Sending cancelled."
+msgstr "Адпраўка скасавана."
+
+msgid "Sending is disabled."
+msgstr "Адпраўка адключана."
+
+msgid "Sending is not available."
+msgstr "Адпраўка недаступная."
 
 msgid "Sent"
 msgstr "Адпраўлена"
@@ -5317,7 +5312,7 @@ msgid "Share connection with"
 msgstr "Перадаць злучэнне прыладзе"
 
 msgid "Share selected details"
-msgstr ""
+msgstr "Падзяліцца выбранымі данымі"
 
 msgid "Share this connection with the selected device?"
 msgstr "Перадаць злучэнне выбранай прыладзе?"
@@ -5347,7 +5342,7 @@ msgid "Sharing this connection is not allowed."
 msgstr "Перадача гэтага злучэння не дазволена."
 
 msgid "Sheet size"
-msgstr ""
+msgstr "Памер аркуша"
 
 msgid "Shift planner"
 msgstr "Планавальнік змен"
@@ -5360,6 +5355,9 @@ msgstr "Інсулін кароткага дзеяння"
 
 msgid "Show Health after Planner"
 msgstr "Паказваць раздзел «Здароўе» пасля планіроўшчыка"
+
+msgid "Show Send in note print options"
+msgstr "Паказваць Адправіць у параметрах друку нататак"
 
 msgid "Show all"
 msgstr "Паказаць усё"
@@ -5531,7 +5529,7 @@ msgid "Spray"
 msgstr "Спрэй"
 
 msgid "Square"
-msgstr ""
+msgstr "Квадрат"
 
 msgid "St. Gallen"
 msgstr "Санкт-Гален"
@@ -5568,7 +5566,7 @@ msgid "Stop"
 msgstr "Спыніць"
 
 msgid "Street"
-msgstr ""
+msgstr "Вуліца"
 
 msgid "Street / house number"
 msgstr "Вуліца / нумар дома"
@@ -5584,6 +5582,9 @@ msgstr "Закрэсліванне"
 
 msgid "Styria"
 msgstr "Штырыя"
+
+msgid "Subject"
+msgstr "Тэма"
 
 msgid "Submitted"
 msgstr "Пададзена"
@@ -5650,7 +5651,7 @@ msgstr ""
 "будуць выдалены. Ужо прынятыя кантакты і лакальныя даныя застануцца."
 
 msgid "Synchronize all notes and tasks"
-msgstr ""
+msgstr "Сінхранізаваць усе нататкі і задачы"
 
 msgid "Synchronize automatically at startup"
 msgstr "Аўтаматычна сінхранізаваць пры запуску"
@@ -6017,6 +6018,9 @@ msgstr "Даныя не з’яўляюцца аб’ектам JSON."
 msgid "The destination could not be opened."
 msgstr "Не ўдалося адкрыць пункт прызначэння."
 
+msgid "The document could not be handed off."
+msgstr "Не ўдалося перадаць дакумент."
+
 msgid "The download address is not permitted for this platform."
 msgstr "Адрас загрузкі недапушчальны для гэтай платформы."
 
@@ -6055,6 +6059,15 @@ msgstr ""
 "або OneDrive. Magnolie не ўваходзіць ва ўліковы запіс пастаўшчыка. "
 "Аўтаматычныя копіі ствараюцца толькі пакуль Organizer адкрыты і "
 "разблакаваны, адразу пасля паспяховага захавання даных."
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "Перадача ўжо пачалася, адклікаць яе тут немагчыма."
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr ""
+"Вынік перадачы невядомы. Праверце знешнюю праграму перад паўторнай спробай."
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -6344,14 +6357,14 @@ msgid "The selected contacts contain no values for these columns."
 msgstr "Выбраныя кантакты не змяшчаюць значэнняў для гэтых слупкоў."
 
 msgid "The selected entry is too large to send."
-msgstr ""
+msgstr "Выбраны запіс занадта вялікі для адпраўкі."
 
 msgid "The selected health records contain no printable values."
 msgstr ""
 "Выбраныя даныя пра здароўе не змяшчаюць значэнняў, прыдатных для друку."
 
 msgid "The selected note contains attachments that cannot be sent."
-msgstr ""
+msgstr "Выбраная нататка змяшчае далучэнні, якія нельга адправіць."
 
 msgid "The selected phone changed. Try again."
 msgstr "Выбраны тэлефон змяніўся. Паспрабуйце яшчэ раз."
@@ -6362,6 +6375,9 @@ msgid ""
 msgstr ""
 "Выбраныя прайгравальнікі прапануюцца на тэлефоне нават закрытымі. "
 "Прайграванне запускае прызначаную праграму."
+
+msgid "The selected time zone is unavailable."
+msgstr "Выбраны часавы пояс недаступны."
 
 msgid "The server denied access. Check this account's permissions."
 msgstr "Сервер адмовіў у доступе. Праверце дазволы гэтага ўліковага запісу."
@@ -6623,7 +6639,7 @@ msgid "This phone transport is unavailable."
 msgstr "Гэты спосаб злучэння з тэлефонам недаступны."
 
 msgid "This profile format is not supported."
-msgstr ""
+msgstr "Гэты фармат профілю не падтрымліваецца."
 
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
@@ -6686,7 +6702,7 @@ msgid "Time format"
 msgstr "Фармат часу"
 
 msgid "Time synchronization direction"
-msgstr ""
+msgstr "Кірунак сінхранізацыі ўліку часу"
 
 msgctxt "time tracking"
 msgid "Time tracking"
@@ -6745,13 +6761,13 @@ msgid "Tradesperson"
 msgstr "Майстар"
 
 msgid "Travel"
-msgstr ""
+msgstr "Падарожжа"
 
 msgid "Tray applet"
 msgstr "Аплет сістэмнага трэя"
 
 msgid "Triangle"
-msgstr ""
+msgstr "Трохвугольнік"
 
 msgid "Trust and accept tasks and notes automatically"
 msgstr "Давяраць і аўтаматычна прымаць задачы і нататкі"
@@ -6803,10 +6819,10 @@ msgid "Unavailable"
 msgstr "Недаступна"
 
 msgid "Unchanged contents do not create another recovery point."
-msgstr ""
+msgstr "Нязменены змест не стварае яшчэ адзін пункт аднаўлення."
 
 msgid "Undated"
-msgstr ""
+msgstr "Без даты"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -7057,6 +7073,13 @@ msgid "Waiting for device status"
 msgstr "Чаканне стану прылады"
 
 msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"Чаканне паштовай ці факсавай праграмы. Закрыццё гэтага акна не адклікае "
+"перадачу."
+
+msgid ""
 "Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
 "seconds."
 msgstr ""
@@ -7122,6 +7145,9 @@ msgstr ""
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "Надвор’е не атрымана, бо месцазнаходжанне недаступнае."
+
+msgid "Website"
+msgstr "Вэб-сайт"
 
 msgid "Wedding anniversary"
 msgstr "Гадавіна вяселля"
@@ -7206,7 +7232,7 @@ msgid "Whole month"
 msgstr "Увесь месяц"
 
 msgid "Width"
-msgstr ""
+msgstr "Шырыня"
 
 msgid "Wife"
 msgstr "Жонка"
@@ -7321,7 +7347,7 @@ msgid "Yes, the code matches"
 msgstr "Так, код супадае"
 
 msgid "Yesterday"
-msgstr ""
+msgstr "Учора"
 
 msgid "You can also do this later in Settings."
 msgstr "Гэта таксама можна зрабіць пазней у наладах."
@@ -7359,10 +7385,10 @@ msgid "Yours sincerely,"
 msgstr "З павагай,"
 
 msgid "Zoom in"
-msgstr ""
+msgstr "Павялічыць"
 
 msgid "Zoom out"
-msgstr ""
+msgstr "Паменшыць"
 
 msgid "Zug"
 msgstr "Цуг"
@@ -7753,6 +7779,9 @@ msgstr[2] "… і яшчэ %(count)s элементы, якія таксама �
 
 msgid "＋ Add appointment"
 msgstr "＋ Дадаць сустрэчу"
+
+#~ msgid "Message"
+#~ msgstr "Паведамленне"
 
 #~ msgid ""
 #~ "The log records when the reminder service checked and what it reported. "

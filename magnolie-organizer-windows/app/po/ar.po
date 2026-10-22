@@ -7,6 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: ar\n"
@@ -16,158 +17,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
 "&& n%100<=10 ? 3 : n%100>=11 && n%100<=99 ? 4 : 5);\n"
-
-msgid "Cancel sending"
-msgstr "إلغاء الإرسال"
-
-msgid ""
-"Document handed to the selected application or fax server. Delivery is not "
-"confirmed."
-msgstr ""
-"سُلّم المستند إلى التطبيق أو خادم الفاكس المحدد. لم يُؤكَّد التسليم إلى المستلم."
-
-msgid "Enter a HylaFAX server hostname, optionally followed by :port."
-msgstr "أدخل اسم مضيف خادم HylaFAX، متبوعاً اختيارياً بـ :port."
-
-msgid "Enter recipient manually"
-msgstr "إدخال المستلم يدوياً"
-
-msgid "Fax printer"
-msgstr "طابعة فاكس"
-
-msgid "Network fax server"
-msgstr "خادم فاكس الشبكة"
-
-msgid "Online fax service"
-msgstr "خدمة فاكس عبر الإنترنت"
-
-msgid "Save as PDF"
-msgstr "حفظ بتنسيق PDF"
-
-msgid "Website"
-msgstr "موقع ويب"
-
-msgid "Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them."
-msgstr "يبقى التشغيل الجاري، بما فيه فيديو المتصفح، متاحاً بجانب المشغلات المعيّنة. يختار بحث/فتح موسيقى أو فيديو محلياً؛ وتظهر قائمة تشغيل قابلة للبحث إذا دعمها المشغل. تتوفر الأغلفة والتشغيل العشوائي والتكرار عندما يتيحها المشغل."
-
-msgid "KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol."
-msgstr "ينقل KDE Connect موضع القلم والضغط واللمس والتبديل بين القلم والممحاة. مؤشر التحويم لا يرسم خطوطاً. توفر قائمة اللوح على الهاتف ملء الشاشة وإعدادات إخفاء زر الرسم أو نقله. لا ينقل هذا البروتوكول الميل أو الدوران أو أزرار القلم الإضافية."
-
-msgid "Fax"
-msgstr "فاكس"
-
-msgid ""
-"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
-"supported installed mail client. A handoff is not delivery confirmation."
-msgstr ""
-"يتطلب الفاكس خادم HylaFAX مُعدّاً وsendfax مثبّتاً. يستخدم البريد عميلاً مثبّتاً "
-"مدعوماً. التسليم إلى التطبيق ليس تأكيداً لوصوله إلى المستلم."
-
-msgid "HylaFAX server (Linux)"
-msgstr "خادم HylaFAX (Linux)"
-
-msgid "No configured mail or fax adapter is available."
-msgstr "لا تتوفر وصلة بريد أو فاكس مُعدّة."
-
-msgid "Preparing selected notes…"
-msgstr "جارٍ تحضير الملاحظات المحددة…"
-
-msgid "Recipient"
-msgstr "المستلم"
-
-msgid "Select a recipient."
-msgstr "اختر مستلماً."
-
-msgid "Send notes by email or fax"
-msgstr "إرسال الملاحظات بالبريد أو الفاكس"
-
-msgid "Sending cancelled."
-msgstr "أُلغي الإرسال."
-
-msgid "Sending is disabled."
-msgstr "الإرسال معطّل."
-
-msgid "Sending is not available."
-msgstr "الإرسال غير متاح."
-
-msgid "Show Send in note print options"
-msgstr "إظهار إرسال في خيارات طباعة الملاحظات"
-
-msgid "Subject"
-msgstr "الموضوع"
-
-msgid "The document could not be handed off."
-msgstr "تعذّر تسليم المستند إلى التطبيق."
-
-msgid "The handoff has already started and cannot be recalled here."
-msgstr "بدأ التسليم إلى التطبيق بالفعل ولا يمكن استرجاعه من هنا."
-
-msgid ""
-"The handoff outcome is unknown. Check the external application before trying "
-"again."
-msgstr ""
-"نتيجة التسليم إلى التطبيق مجهولة. تحقّق من التطبيق الخارجي قبل إعادة المحاولة."
-
-msgid ""
-"Waiting for the mail or fax application. Closing this window does not recall "
-"the handoff."
-msgstr ""
-"في انتظار تطبيق البريد أو الفاكس. إغلاق هذه النافذة لا يسترجع المستند المُسلّم "
-"إلى التطبيق."
-
-msgid "All anniversaries"
-msgstr "جميع الذكريات السنوية"
-
-msgid "Also hide in the calendar"
-msgstr "إخفاء أيضاً في التقويم"
-
-msgid ""
-"An entry is excluded when any of its contact groups is selected. No contacts "
-"or anniversaries are deleted."
-msgstr ""
-"يُستبعد العنصر عند اختيار أي من مجموعات جهات الاتصال الخاصة به. لا تُحذف جهات "
-"الاتصال أو الذكريات السنوية."
-
-msgid "Apply to"
-msgstr "تطبيق على"
-
-msgid "Birthdays only"
-msgstr "أعياد الميلاد فقط"
-
-msgid "Enable contact group exclusions"
-msgstr "تفعيل استبعاد مجموعات جهات الاتصال"
-
-msgid "Exclude contact groups"
-msgstr "استبعاد مجموعات جهات الاتصال"
-
-msgid "Scope"
-msgstr "النطاق"
-
-msgid "Category"
-msgstr "الفئة"
-
-msgid "Category colors"
-msgstr "ألوان الفئات"
-
-msgid ""
-"Category colors highlight appointments and tasks. A custom entry color takes "
-"precedence; otherwise the first matching category is used."
-msgstr ""
-"تبرز ألوان الفئات المواعيد والمهام. تكون الأولوية للون المخصص للعنصر؛ وإلا "
-"تُستخدم أول فئة مطابقة."
-
-msgid ""
-"Changing or removing a category color does not rename or delete categories "
-"on saved or imported entries."
-msgstr ""
-"تغيير لون الفئة أو إزالته لا يعيد تسمية فئات العناصر المحفوظة أو المستوردة "
-"ولا يحذفها."
-
-msgid "Custom color"
-msgstr "لون مخصص"
-
-msgid "Please enter a unique category name without commas or semicolons."
-msgstr "أدخل اسم فئة فريداً دون فواصل أو فواصل منقوطة."
 
 msgid " (filtered)"
 msgstr " (مصفّى)"
@@ -448,12 +297,12 @@ msgstr[5] "عدد الثواني: %(count)s"
 
 msgid "%(count)s source"
 msgid_plural "%(count)s sources"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
-msgstr[4] ""
-msgstr[5] ""
+msgstr[0] "%(count)s مصادر"
+msgstr[1] "%(count)s مصدر"
+msgstr[2] "%(count)s مصدران"
+msgstr[3] "%(count)s مصادر"
+msgstr[4] "%(count)s مصدرًا"
+msgstr[5] "%(count)s مصدر"
 
 msgid "%(count)s task"
 msgid_plural "%(count)s tasks"
@@ -748,10 +597,20 @@ msgid "Account type"
 msgstr "نوع الحساب"
 
 msgid "Action"
-msgstr ""
+msgstr "إجراء"
 
 msgid "Active call"
 msgstr "مكالمة نشطة"
+
+msgid ""
+"Active playback, including browser videos, remains available alongside the "
+"assigned players. Search/Open selects local music or videos; a searchable "
+"player playlist appears when supported. Covers, shuffle and repeat are "
+"available when the player provides them."
+msgstr ""
+"يبقى التشغيل الجاري، بما فيه فيديو المتصفح، متاحاً بجانب المشغلات المعيّنة. "
+"يختار بحث/فتح موسيقى أو فيديو محلياً؛ وتظهر قائمة تشغيل قابلة للبحث إذا دعمها "
+"المشغل. تتوفر الأغلفة والتشغيل العشوائي والتكرار عندما يتيحها المشغل."
 
 msgctxt "time tracking"
 msgid "Activity"
@@ -821,7 +680,7 @@ msgid "Address imported from LibreOffice."
 msgstr "تم استيراد العنوان من LibreOffice."
 
 msgid "Address imported from own profile."
-msgstr ""
+msgstr "تم استيراد العنوان من الملف الشخصي."
 
 msgid "Address supplement"
 msgstr "تفاصيل إضافية للعنوان"
@@ -844,6 +703,9 @@ msgstr "بعد الوجبة"
 
 msgid "All"
 msgstr "الكل"
+
+msgid "All anniversaries"
+msgstr "جميع الذكريات السنوية"
 
 msgid "All cantons"
 msgstr "كل الكانتونات"
@@ -876,6 +738,9 @@ msgstr "السماح لهذا الجهاز بمشاركة هذا الاتصال"
 msgid "Also disclose appointments marked as confidential"
 msgstr "إظهار المواعيد المعلّمة على أنها سرية أيضًا"
 
+msgid "Also hide in the calendar"
+msgstr "إخفاء أيضاً في التقويم"
+
 msgid "Also hide past anniversaries"
 msgstr "إخفاء المناسبات السنوية الماضية أيضًا"
 
@@ -900,6 +765,13 @@ msgid ""
 msgstr ""
 "تقويم للمواعيد ودفتر عناوين ودفتر مهام ومفكرة في هيئة Organizer مجلّد بالجلد —"
 
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"يُستبعد العنصر عند اختيار أي من مجموعات جهات الاتصال الخاصة به. لا تُحذف جهات "
+"الاتصال أو الذكريات السنوية."
+
 msgid "Android restricts this device identifier."
 msgstr "يقيّد Android معرّف الجهاز هذا."
 
@@ -907,7 +779,7 @@ msgid "Android version"
 msgstr "نسخة أندرويد"
 
 msgid "Angle"
-msgstr ""
+msgstr "الزاوية"
 
 msgid "Anniversaries"
 msgstr "المناسبات السنوية"
@@ -963,6 +835,9 @@ msgstr ""
 
 msgid "Apply"
 msgstr "تطبيق"
+
+msgid "Apply to"
+msgstr "تطبيق على"
 
 msgid "Apply to the remaining conflicts"
 msgstr "تطبيق على التعارضات المتبقية"
@@ -1050,7 +925,7 @@ msgid "Authority appointment"
 msgstr "موعد لدى جهة رسمية"
 
 msgid "Automatic"
-msgstr ""
+msgstr "تلقائي"
 
 msgid "Automatic backup failed."
 msgstr "فشل النسخ الاحتياطي التلقائي."
@@ -1081,7 +956,7 @@ msgid "Automatically dismiss anniversary reminders"
 msgstr "إخفاء تذكيرات الذكريات السنوية تلقائيًا"
 
 msgid "Automatically over the current connection"
-msgstr ""
+msgstr "تلقائيًا عبر الاتصال الحالي"
 
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "المزامنة تلقائيًا عبر Wi-Fi"
@@ -1214,6 +1089,9 @@ msgstr "حفلة عيد ميلاد"
 msgid "Birthday today"
 msgstr "عيد الميلاد اليوم"
 
+msgid "Birthdays only"
+msgstr "أعياد الميلاد فقط"
+
 msgid "Black"
 msgstr "أسود"
 
@@ -1306,7 +1184,7 @@ msgid "Browse..."
 msgstr "استعراض..."
 
 msgid "Brush"
-msgstr ""
+msgstr "فرشاة"
 
 msgid "Burgenland"
 msgstr "بورغنلاند"
@@ -1401,10 +1279,13 @@ msgid "Call with %(name)s · %(date)s"
 msgstr "مكالمة مع %(name)s · %(date)s"
 
 msgid "Calligraphy pen"
-msgstr ""
+msgstr "قلم خط"
 
 msgid "Cancel"
 msgstr "إلغاء"
+
+msgid "Cancel sending"
+msgstr "إلغاء الإرسال"
 
 msgid "Canton"
 msgstr "كانتون"
@@ -1427,6 +1308,19 @@ msgstr "الفئات"
 msgid "Categories:"
 msgstr "الفئات:"
 
+msgid "Category"
+msgstr "الفئة"
+
+msgid "Category colors"
+msgstr "ألوان الفئات"
+
+msgid ""
+"Category colors highlight appointments and tasks. A custom entry color takes "
+"precedence; otherwise the first matching category is used."
+msgstr ""
+"تبرز ألوان الفئات المواعيد والمهام. تكون الأولوية للون المخصص للعنصر؛ وإلا "
+"تُستخدم أول فئة مطابقة."
+
 msgid "Catholic confirmation"
 msgstr "سر التثبيت الكاثوليكي"
 
@@ -1443,7 +1337,14 @@ msgid "Changes are applied automatically"
 msgstr "تُطبّق التغييرات تلقائيًا"
 
 msgid "Changes to your own profile are saved with Save."
+msgstr "تُحفظ تغييرات الملف الشخصي بزر حفظ."
+
+msgid ""
+"Changing or removing a category color does not rename or delete categories "
+"on saved or imported entries."
 msgstr ""
+"تغيير لون الفئة أو إزالته لا يعيد تسمية فئات العناصر المحفوظة أو المستوردة "
+"ولا يحذفها."
 
 msgid "Charging"
 msgstr "شحن"
@@ -1495,10 +1396,10 @@ msgstr ""
 "الحالية. تتطلب النسخة الاحتياطية المشفرة كلمة مرورها."
 
 msgid "Choose a connection. Confirm the pairing code on the other device."
-msgstr ""
+msgstr "اختر اتصالًا وأكّد رمز الاقتران على الجهاز الآخر."
 
 msgid "Choose a contact"
-msgstr ""
+msgstr "اختر جهة اتصال"
 
 msgid "Choose a country first."
 msgstr "اختر بلدًا أولًا."
@@ -1652,7 +1553,7 @@ msgid "Codes match"
 msgstr "الرمز متطابق"
 
 msgid "Collapse day groups by default"
-msgstr ""
+msgstr "طي مجموعات الأيام افتراضيًا"
 
 msgid "Colleagues"
 msgstr "الزملاء"
@@ -1686,7 +1587,7 @@ msgstr ""
 "قارن بصمة الإصبع هذه مع الفرع الآخر، عبر الهاتف مثلًا، للتحقق من الاتصال."
 
 msgid "Compare with LibreOffice"
-msgstr ""
+msgstr "المقارنة مع LibreOffice"
 
 msgid "Complete archive export is available only in the installed application."
 msgstr "تصدير الأرشيف الكامل متاح فقط في التطبيق المثبت."
@@ -1741,7 +1642,7 @@ msgid "Confirm the pairing request on the phone."
 msgstr "أكّد طلب الإقران على الهاتف."
 
 msgid "Confirm this code on the other device."
-msgstr ""
+msgstr "أكّد هذا الرمز على الجهاز الآخر."
 
 msgid "Confirmation"
 msgstr "تأكيد"
@@ -1753,7 +1654,7 @@ msgid "Connect"
 msgstr "اتصال"
 
 msgid "Connect Notes before sending this entry."
-msgstr ""
+msgstr "اربط Notes قبل إرسال هذا الإدخال."
 
 msgid "Connect phone via WLAN"
 msgstr "قم بتوصيل الهاتف عبر شبكة الواي فاي"
@@ -1910,10 +1811,10 @@ msgid "Create pairing file …"
 msgstr "إنشاء ملف اقتران …"
 
 msgid "Create recovery points"
-msgstr ""
+msgstr "إنشاء نقاط استعادة"
 
 msgid "Created"
-msgstr ""
+msgstr "أُنشئ"
 
 msgid "Creating recovery snapshot …"
 msgstr "جارٍ إنشاء لقطة استرداد…"
@@ -1923,6 +1824,9 @@ msgstr "مخصص"
 
 msgid "Custom application"
 msgstr "تطبيق مخصص"
+
+msgid "Custom color"
+msgstr "لون مخصص"
 
 msgid "Custom notification"
 msgstr "إشعار مخصص"
@@ -1946,7 +1850,7 @@ msgid "Cut"
 msgstr "قص"
 
 msgid "Cut selection"
-msgstr ""
+msgstr "قص التحديد"
 
 msgid "Cycle calendar"
 msgstr "تقويم الدورة"
@@ -2007,7 +1911,7 @@ msgid "Death anniversary"
 msgstr "ذكرى الوفاة"
 
 msgid "Default view"
-msgstr ""
+msgstr "العرض الافتراضي"
 
 msgid "Default: next to the data file"
 msgstr "الافتراضي: بجوار ملف البيانات"
@@ -2062,10 +1966,10 @@ msgid "Delete cycle marker"
 msgstr "حذف علامة الدورة"
 
 msgid "Delete drawing sheet"
-msgstr ""
+msgstr "حذف ورقة الرسم"
 
 msgid "Delete drawing sheet?"
-msgstr ""
+msgstr "حذف ورقة الرسم؟"
 
 msgid "Delete entries"
 msgstr "حذف العناصر"
@@ -2244,6 +2148,12 @@ msgstr "الطبيب"
 msgid "Doctor appointment"
 msgstr "موعد طبيب"
 
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"سُلّم المستند إلى التطبيق أو خادم الفاكس المحدد. لم يُؤكَّد التسليم إلى المستلم."
+
 msgid "Document.pdf"
 msgstr "Document.pdf"
 
@@ -2331,7 +2241,7 @@ msgid "Edit the website or application used"
 msgstr "تحرير موقع الويب أو التطبيق المستخدم"
 
 msgid "Ellipse"
-msgstr ""
+msgstr "شكل بيضاوي"
 
 msgid "Email"
 msgstr "البريد الإلكتروني"
@@ -2385,6 +2295,9 @@ msgid ""
 "Enable WLAN debugging in Notes developer options on your own paired phone."
 msgstr ""
 "فعّل تصحيح أخطاء Wi-Fi في خيارات المطوّر في Notes على هاتفك الشخصي المقترن."
+
+msgid "Enable contact group exclusions"
+msgstr "تفعيل استبعاد مجموعات جهات الاتصال"
 
 msgid "Enable cycle calendar"
 msgstr "تمكين تقويم الدورة"
@@ -2450,6 +2363,9 @@ msgstr ""
 msgid "Enter"
 msgstr "إدخال"
 
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr "أدخل اسم مضيف خادم HylaFAX، متبوعاً اختيارياً بـ :port."
+
 msgid ""
 "Enter a blood glucose value on the left to highlight matching scheme rows."
 msgstr "أدخل قيمة سكر الدم على اليسار لتمييز صفوف المخطط المطابقة."
@@ -2484,6 +2400,9 @@ msgstr "أدخل الساعات والدقائق معًا، أو اترك الو
 msgid "Enter height and weight to calculate BMI."
 msgstr "أدخل الطول والوزن لحساب مؤشر كتلة الجسم."
 
+msgid "Enter recipient manually"
+msgstr "إدخال المستلم يدوياً"
+
 msgid "Enter the archive password."
 msgstr "أدخل كلمة مرور الأرشيف."
 
@@ -2517,7 +2436,7 @@ msgid "Estimate the next period"
 msgstr "تقدير الدورة التالية"
 
 msgid "Estimated from older data"
-msgstr ""
+msgstr "تقدير من بيانات أقدم"
 
 msgid "Estimated next period"
 msgstr "موعد الدورة التالية المتوقع"
@@ -2526,7 +2445,7 @@ msgid "Evening"
 msgstr "المساء"
 
 msgid "Every change"
-msgstr ""
+msgstr "عند كل تغيير"
 
 msgid "Every filled medication row requires a name."
 msgstr "يتطلب كل صف دواء معبّأ اسمًا."
@@ -2535,7 +2454,7 @@ msgid "Every filled row requires a valid date."
 msgstr "يتطلب كل صف معبّأ تاريخًا صالحًا."
 
 msgid "Every program start"
-msgstr ""
+msgstr "عند كل بدء للبرنامج"
 
 msgid "Everything is done - the list is empty."
 msgstr "تم كل شيء – القائمة فارغة."
@@ -2546,8 +2465,11 @@ msgstr "كل شيء جاهز"
 msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr "يجب إقران هاتف Magnolie Notes واحد فقط."
 
+msgid "Exclude contact groups"
+msgstr "استبعاد مجموعات جهات الاتصال"
+
 msgid "Expand day groups by default"
-msgstr ""
+msgstr "توسيع مجموعات الأيام افتراضيًا"
 
 msgid "Export"
 msgstr "تصدير"
@@ -2568,7 +2490,7 @@ msgid "Export is available only in the installed application."
 msgstr "التصدير متاح فقط في التطبيق المثبت."
 
 msgid "Export vCard"
-msgstr ""
+msgstr "تصدير vCard"
 
 msgid "Extend sharing"
 msgstr "توسيع المشاركة"
@@ -2584,6 +2506,19 @@ msgstr "العائلة"
 
 msgid "Fasting"
 msgstr "على الريق"
+
+msgid "Fax"
+msgstr "فاكس"
+
+msgid "Fax printer"
+msgstr "طابعة فاكس"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"يتطلب الفاكس خادم HylaFAX مُعدّاً وsendfax مثبّتاً. يستخدم البريد عميلاً مثبّتاً "
+"مدعوماً. التسليم إلى التطبيق ليس تأكيداً لوصوله إلى المستلم."
 
 msgid "Female caregiver"
 msgstr "مقدمة رعاية"
@@ -2604,13 +2539,16 @@ msgid "Fertile days"
 msgstr "أيام الخصوبة"
 
 msgid "Field"
-msgstr ""
+msgstr "حقل"
+
+msgid "File"
+msgstr "ملف"
 
 msgid "Fill selection"
-msgstr ""
+msgstr "تعبئة التحديد"
 
 msgid "Fill with gradient"
-msgstr ""
+msgstr "تعبئة بتدرج"
 
 msgid "Fill with stored values"
 msgstr "تعبئة بالقيم المخزنة"
@@ -2778,16 +2716,16 @@ msgstr ""
 "يتطلب Google تسجيل الدخول في المتصفح. استخدم حسابات الإنترنت في الإعدادات."
 
 msgid "Gradient end color"
-msgstr ""
+msgstr "لون نهاية التدرج"
 
 msgid "Grisons"
 msgstr "غراوبوندن"
 
 msgid "Group by day"
-msgstr ""
+msgstr "التجميع حسب اليوم"
 
 msgid "Group changes by time interval"
-msgstr ""
+msgstr "تجميع التغييرات حسب الفاصل الزمني"
 
 msgid "Group for %(notebook)s"
 msgstr "مجموعة لـ %(notebook)s"
@@ -2863,7 +2801,7 @@ msgid "Hide past appointments"
 msgstr "إخفاء المواعيد الماضية"
 
 msgid "Highlighter"
-msgstr ""
+msgstr "قلم تمييز"
 
 msgid "History"
 msgstr "السجل"
@@ -2902,6 +2840,9 @@ msgstr "كيفية تصرف التقويم عند النقر على يوم."
 msgid "Husband"
 msgstr "زوج"
 
+msgid "HylaFAX server (Linux)"
+msgstr "خادم HylaFAX (Linux)"
+
 msgid "I"
 msgstr "أنا"
 
@@ -2915,7 +2856,7 @@ msgid "ISO week (week 1 contains the first Thursday)"
 msgstr "أسبوع ISO (يحتوي الأسبوع 1 على أول يوم خميس)"
 
 msgid "Idea"
-msgstr ""
+msgstr "فكرة"
 
 msgid ""
 "If the year is unknown, enter only day and month.\n"
@@ -3063,7 +3004,7 @@ msgid "Insert link"
 msgstr "إدراج رابط"
 
 msgid "Insert shape"
-msgstr ""
+msgstr "إدراج شكل"
 
 msgid ""
 "Install the highlighted extension in Thunderbird via Add-ons and Themes → "
@@ -3127,6 +3068,9 @@ msgstr "عصير"
 msgid "Jura"
 msgstr "جورا"
 
+msgid "KDE Connect"
+msgstr "KDE Connect"
+
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect لـ SMS متاح فقط في التطبيق المثبت."
 
@@ -3138,6 +3082,17 @@ msgstr "تم إقران الهاتف KDE Connect."
 
 msgid "KDE Connect port %(port)s"
 msgstr "منفذ KDE Connect %(port)s"
+
+msgid ""
+"KDE Connect transmits pen position, pressure, contact and pen/eraser "
+"changes. The hover cursor leaves no ink. The phone's tablet menu offers "
+"fullscreen and settings to hide or move the drawing button. Tilt, rotation "
+"and extra pen buttons are not transmitted by this protocol."
+msgstr ""
+"ينقل KDE Connect موضع القلم والضغط واللمس والتبديل بين القلم والممحاة. مؤشر "
+"التحويم لا يرسم خطوطاً. توفر قائمة اللوح على الهاتف ملء الشاشة وإعدادات إخفاء "
+"زر الرسم أو نقله. لا ينقل هذا البروتوكول الميل أو الدوران أو أزرار القلم "
+"الإضافية."
 
 msgid "Keep"
 msgstr "احتفاظ"
@@ -3161,7 +3116,7 @@ msgid "Landline"
 msgstr "هاتف ثابت"
 
 msgid "Landscape"
-msgstr ""
+msgstr "أفقي"
 
 msgid "Language"
 msgstr "اللغة"
@@ -3209,7 +3164,7 @@ msgid ""
 msgstr "لا تُقرأ بيانات LibreOffice إلا عند الضغط على الزر. ولا تُعدّل إعداداته."
 
 msgid "LibreOffice user data updated."
-msgstr ""
+msgstr "تم تحديث بيانات مستخدم LibreOffice."
 
 msgid "License"
 msgstr "الترخيص"
@@ -3218,7 +3173,7 @@ msgid "Liechtenstein"
 msgstr "ليختنشتاين"
 
 msgid "Line"
-msgstr ""
+msgstr "خط"
 
 msgid "Line width"
 msgstr "سمك الخط"
@@ -3249,6 +3204,9 @@ msgstr "التقويم المحلي"
 
 msgid "Local image"
 msgstr "صورة محلية"
+
+msgid "Local time"
+msgstr "التوقيت المحلي"
 
 msgid "Location"
 msgstr "الموقع"
@@ -3395,7 +3353,7 @@ msgid "Manual only"
 msgstr "يدوي فقط"
 
 msgid "Manually"
-msgstr ""
+msgstr "يدويًا"
 
 msgid "Manufacturer"
 msgstr "الشركة المصنعة"
@@ -3464,16 +3422,13 @@ msgid "Merge duplicate contact cards"
 msgstr "دمج بطاقات جهات الاتصال المكررة"
 
 msgid "Merge history"
-msgstr ""
+msgstr "سجل الدمج"
 
 msgid "Merge this pair individually"
 msgstr "دمج هذا الزوج بشكل فردي"
 
 msgid "Merged"
-msgstr ""
-
-msgid "Message"
-msgstr "رسالة"
+msgstr "مُدمج"
 
 msgid "Message text"
 msgstr "رسالة"
@@ -3532,7 +3487,7 @@ msgid "Model"
 msgstr "نموذج"
 
 msgid "Modified"
-msgstr ""
+msgstr "مُعدّل"
 
 msgid "Module"
 msgstr "الوحدة"
@@ -3541,7 +3496,7 @@ msgid "Monday"
 msgstr "الاثنين"
 
 msgid "Money"
-msgstr ""
+msgstr "مال"
 
 msgid "Month"
 msgstr "الشهر"
@@ -3596,7 +3551,7 @@ msgid "Move notebook up"
 msgstr "نقل دفتر الملاحظات إلى أعلى"
 
 msgid "Move selection"
-msgstr ""
+msgstr "نقل التحديد"
 
 msgid "Move the ticked entries to the wastebasket"
 msgstr "نقل العناصر المحددة إلى سلة المحذوفات"
@@ -3608,7 +3563,7 @@ msgid "Move up"
 msgstr "نقل إلى أعلى"
 
 msgid "Move view"
-msgstr ""
+msgstr "تحريك العرض"
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -3644,6 +3599,9 @@ msgstr "هولندا"
 
 msgid "Network"
 msgstr "الشبكة"
+
+msgid "Network fax server"
+msgstr "خادم فاكس الشبكة"
 
 msgid "Neuchâtel"
 msgstr "نوشاتيل"
@@ -3686,7 +3644,7 @@ msgid "New contact"
 msgstr "جهة اتصال جديدة"
 
 msgid "New drawing sheet"
-msgstr ""
+msgstr "ورقة رسم جديدة"
 
 msgid "New group"
 msgstr "مجموعة جديدة"
@@ -3710,7 +3668,7 @@ msgid "New version %(version)s is available."
 msgstr "يتوفر الإصدار الجديد %(version)s."
 
 msgid "Newest first"
-msgstr ""
+msgstr "الأحدث أولًا"
 
 msgid "Next"
 msgstr "التالي"
@@ -3743,7 +3701,7 @@ msgid "Nextcloud is not enabled."
 msgstr ".Nextcloud ﻦﻴﻜﻤﺗ ﻢﺘﻳ ﻢﻟ"
 
 msgid "Nib angle"
-msgstr ""
+msgstr "زاوية رأس القلم"
 
 msgid "Nidwalden"
 msgstr "نيدفالدن"
@@ -3771,7 +3729,7 @@ msgid "No SMS messages are scheduled."
 msgstr "لا توجد رسائل SMS مجدولة."
 
 msgid "No WhatsApp profile available for this contact."
-msgstr ""
+msgstr "لا يتوفر ملف WhatsApp لجهة الاتصال هذه."
 
 msgid "No Windows dictionary is installed for this language."
 msgstr "لم يُثبّت قاموس Windows لهذه اللغة."
@@ -3795,11 +3753,14 @@ msgstr "لا يوجد موعد مجدول."
 msgid "No calendars found."
 msgstr "لم يُعثر على تقاويم."
 
+msgid "No configured mail or fax adapter is available."
+msgstr "لا تتوفر وصلة بريد أو فاكس مُعدّة."
+
 msgid "No contact group"
-msgstr ""
+msgstr "بلا مجموعة جهات اتصال"
 
 msgid "No date recorded"
-msgstr ""
+msgstr "لم يُسجّل تاريخ"
 
 msgid "No default voice subscription is available."
 msgstr "لا يتوفر اشتراك مكالمات افتراضي."
@@ -3832,7 +3793,7 @@ msgid "No media player is available on the connected phone."
 msgstr "لا يتوفر مشغّل وسائط على الهاتف المتصل."
 
 msgid "No merge history recorded"
-msgstr ""
+msgstr "لم يُسجّل سجل دمج"
 
 msgid "No notebooks"
 msgstr "لا توجد دفاتر ملاحظات"
@@ -3860,7 +3821,7 @@ msgstr ""
 "لم يُضف أي شخص بعد. استخدم زر «الأشخاص» أعلاه لإضافة المسؤولين عن المهام."
 
 msgid "No phone number available."
-msgstr ""
+msgstr "لا يتوفر رقم هاتف."
 
 msgid "No phone paired yet."
 msgstr "لم تُربط أي مهمة بعد."
@@ -3976,7 +3937,7 @@ msgid "Notes and special instructions"
 msgstr "ملاحظات وتعليمات خاصة"
 
 msgid "Notes and tasks"
-msgstr ""
+msgstr "الملاحظات والمهام"
 
 msgid ""
 "Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
@@ -4051,7 +4012,7 @@ msgid "Ointment"
 msgstr "مرهم"
 
 msgid "Oldest first"
-msgstr ""
+msgstr "الأقدم أولًا"
 
 msgid "One address book"
 msgstr "دفتر عناوين واحد"
@@ -4109,6 +4070,9 @@ msgstr "عبر الإنترنت"
 msgid "Online address book"
 msgstr "دفتر عناوين عبر الإنترنت"
 
+msgid "Online fax service"
+msgstr "خدمة فاكس عبر الإنترنت"
+
 msgid "Online via Bluetooth data"
 msgstr "متصل عبر بيانات Bluetooth"
 
@@ -4135,10 +4099,10 @@ msgstr ""
 "يمكن إقران هاتف Magnolie Notes واحد فقط. أزل الهاتف الحالي قبل تغيير الأجهزة."
 
 msgid "Only personal entries can be sent to Notes."
-msgstr ""
+msgstr "يمكن إرسال الإدخالات الشخصية فقط إلى Notes."
 
 msgid "Only the Notes collection"
-msgstr ""
+msgstr "مجموعة Notes فقط"
 
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
@@ -4222,7 +4186,7 @@ msgid "Open the day in the daily view"
 msgstr "فتح اليوم في العرض اليومي"
 
 msgid "Open the drawing tablet in KDE Connect on the paired phone."
-msgstr ""
+msgstr "افتح لوح الرسم في KDE Connect على الهاتف المقترن."
 
 msgid "Open the phone connection screen and try again."
 msgstr "افتح شاشة اتصال الهاتف وحاول مرة أخرى."
@@ -4296,7 +4260,7 @@ msgid "Own phone number (default voice SIM)"
 msgstr "رقمي (شريحة المكالمات الافتراضية)"
 
 msgid "Own profile"
-msgstr ""
+msgstr "الملف الشخصي"
 
 msgid "PDF file"
 msgstr "ملف PDF"
@@ -4317,7 +4281,7 @@ msgid "Page %(page)s of %(count)s"
 msgstr "الصفحة %(page)s من %(count)s"
 
 msgid "Page order"
-msgstr ""
+msgstr "ترتيب الصفحات"
 
 msgid "Pages"
 msgstr "الصفحات"
@@ -4579,6 +4543,9 @@ msgstr "يرجى إدخال عنوان لكل مهمة جديدة."
 msgid "Please enter a title."
 msgstr "يرجى إدخال عنوان."
 
+msgid "Please enter a unique category name without commas or semicolons."
+msgstr "أدخل اسم فئة فريداً دون فواصل أو فواصل منقوطة."
+
 msgid "Please enter a website or application for the custom action."
 msgstr "يرجى إدخال موقع ويب أو تطبيق للإجراء المخصص."
 
@@ -4616,7 +4583,7 @@ msgid "Poland"
 msgstr "بولندا"
 
 msgid "Portrait"
-msgstr ""
+msgstr "عمودي"
 
 msgid "Possible duplicates among local and incoming contacts"
 msgstr "التكرارات المحتملة بين جهات الاتصال المحلية والواردة"
@@ -4656,6 +4623,9 @@ msgstr "جارٍ تحضير تسجيل الدخول إلى Microsoft..."
 
 msgid "Preparing account sign-in …"
 msgstr "جارٍ تحضير تسجيل الدخول إلى الحساب…"
+
+msgid "Preparing selected notes…"
+msgstr "جارٍ تحضير الملاحظات المحددة…"
 
 msgid "Preview"
 msgstr "معاينة"
@@ -4737,7 +4707,7 @@ msgid "Private"
 msgstr "خاص"
 
 msgid "Properties"
-msgstr ""
+msgstr "الخصائص"
 
 msgid "Protected archive password unavailable."
 msgstr "كلمة مرور الأرشيف المحمية غير متاحة."
@@ -4782,7 +4752,7 @@ msgid "Quit"
 msgstr "إنهاء"
 
 msgid "Quote"
-msgstr ""
+msgstr "اقتباس"
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "عنوان IPv4 أو IPv6 القابل للوصول لهذا الحاسوب"
@@ -4797,10 +4767,13 @@ msgid "Reason"
 msgstr "السبب"
 
 msgid "Recently modified"
-msgstr ""
+msgstr "المعدّلة مؤخرًا"
 
 msgid "Recipe"
-msgstr ""
+msgstr "وصفة"
+
+msgid "Recipient"
+msgstr "المستلم"
 
 msgid "Reconnect"
 msgstr "أعد الاتصال"
@@ -4810,7 +4783,7 @@ msgid "Recorded times"
 msgstr "الأوقات المسجلة"
 
 msgid "Recovery journal"
-msgstr ""
+msgstr "سجل الاستعادة"
 
 msgid "Recovery snapshot created."
 msgstr "تم إنشاء لقطة استعادة."
@@ -4822,7 +4795,7 @@ msgid "Recovery snapshots"
 msgstr "لقطات الاسترداد"
 
 msgid "Rectangle"
-msgstr ""
+msgstr "مستطيل"
 
 msgid "Recycle bin"
 msgstr "سلة المحذوفات"
@@ -5052,7 +5025,7 @@ msgid "Right page"
 msgstr "الصفحة اليمنى"
 
 msgid "Rotate selection"
-msgstr ""
+msgstr "تدوير التحديد"
 
 msgid "Route"
 msgstr "المسار"
@@ -5115,6 +5088,9 @@ msgstr "حفظ"
 
 msgid "Save Magnolienbaum pairing file"
 msgstr "حفظ ملف إقران Magnolienbaum"
+
+msgid "Save as PDF"
+msgstr "حفظ بتنسيق PDF"
 
 msgid "Save as…"
 msgstr "حفظ باسم…"
@@ -5202,6 +5178,9 @@ msgstr "العطلات المدرسية غير متاحة لهذه المنطق�
 msgid "Schwyz"
 msgstr "شفيتس"
 
+msgid "Scope"
+msgstr "النطاق"
+
 msgid "Screen notification only"
 msgstr "إشعار على الشاشة فقط"
 
@@ -5242,7 +5221,7 @@ msgid "Security"
 msgstr "الأمان"
 
 msgid "Select"
-msgstr ""
+msgstr "تحديد"
 
 msgid "Select a country first."
 msgstr "حدد بلدًا أولًا."
@@ -5256,6 +5235,9 @@ msgstr ""
 
 msgid "Select a custom backup folder."
 msgstr "اختر مجلد نسخ احتياطي مخصصا."
+
+msgid "Select a recipient."
+msgstr "اختر مستلماً."
 
 msgid "Select all"
 msgstr "تحديد الكل"
@@ -5277,7 +5259,7 @@ msgid "Select backup folder"
 msgstr "تحديد مجلد النسخ الاحتياطية"
 
 msgid "Select complete strokes that fit inside the sheet."
-msgstr ""
+msgstr "حدّد خطوطًا كاملة تتسع داخل الورقة."
 
 msgid "Select something first."
 msgstr "حدد شيئًا أولًا."
@@ -5299,7 +5281,7 @@ msgid "Selection options"
 msgstr "خيارات التحديد"
 
 msgid "Send"
-msgstr ""
+msgstr "إرسال"
 
 msgid "Send SMS"
 msgstr "إرسال SMS"
@@ -5310,17 +5292,29 @@ msgstr "إرسال النص المعدّل"
 msgid "Send documents"
 msgstr "إرسال المستندات"
 
+msgid "Send notes by email or fax"
+msgstr "إرسال الملاحظات بالبريد أو الفاكس"
+
 msgid "Send secure request"
 msgstr "إرسال طلب آمن"
 
 msgid "Send this new note to Notes"
-msgstr ""
+msgstr "إرسال هذه الملاحظة الجديدة إلى Notes"
 
 msgid "Send to Notes"
-msgstr ""
+msgstr "إرسال إلى Notes"
 
 msgid "Send via"
-msgstr ""
+msgstr "الإرسال عبر"
+
+msgid "Sending cancelled."
+msgstr "أُلغي الإرسال."
+
+msgid "Sending is disabled."
+msgstr "الإرسال معطّل."
+
+msgid "Sending is not available."
+msgstr "الإرسال غير متاح."
 
 msgid "Sent"
 msgstr "تم الإرسال"
@@ -5372,7 +5366,7 @@ msgid "Share connection with"
 msgstr "مشاركة الاتصال مع"
 
 msgid "Share selected details"
-msgstr ""
+msgstr "مشاركة التفاصيل المحددة"
 
 msgid "Share this connection with the selected device?"
 msgstr "مشاركة هذا الاتصال مع الجهاز المحدد؟"
@@ -5402,7 +5396,7 @@ msgid "Sharing this connection is not allowed."
 msgstr "مشاركة هذا الاتصال غير مسموحة."
 
 msgid "Sheet size"
-msgstr ""
+msgstr "حجم الورقة"
 
 msgid "Shift planner"
 msgstr "مخطط المناوبات"
@@ -5415,6 +5409,9 @@ msgstr "إنسولين قصير المفعول"
 
 msgid "Show Health after Planner"
 msgstr "إظهار الصحة بعد المخطِّط"
+
+msgid "Show Send in note print options"
+msgstr "إظهار إرسال في خيارات طباعة الملاحظات"
 
 msgid "Show all"
 msgstr "إظهار الكل"
@@ -5585,7 +5582,7 @@ msgid "Spray"
 msgstr "بخاخ"
 
 msgid "Square"
-msgstr ""
+msgstr "مربع"
 
 msgid "St. Gallen"
 msgstr "سانت غالن"
@@ -5622,7 +5619,7 @@ msgid "Stop"
 msgstr "إيقاف"
 
 msgid "Street"
-msgstr ""
+msgstr "الشارع"
 
 msgid "Street / house number"
 msgstr "الشارع / رقم المنزل"
@@ -5638,6 +5635,9 @@ msgstr "يتوسطه خط"
 
 msgid "Styria"
 msgstr "شتايرمارك"
+
+msgid "Subject"
+msgstr "الموضوع"
 
 msgid "Submitted"
 msgstr "تم الإرسال"
@@ -5704,7 +5704,7 @@ msgstr ""
 "ستظل جهات الاتصال المقبولة بالفعل والبيانات المحلية محفوظة."
 
 msgid "Synchronize all notes and tasks"
-msgstr ""
+msgstr "مزامنة جميع الملاحظات والمهام"
 
 msgid "Synchronize automatically at startup"
 msgstr "المزامنة تلقائيًا عند بدء التشغيل"
@@ -6072,6 +6072,9 @@ msgstr "البيانات ليست كائن JSON."
 msgid "The destination could not be opened."
 msgstr "لا يمكن فتح الوجهة."
 
+msgid "The document could not be handed off."
+msgstr "تعذّر تسليم المستند إلى التطبيق."
+
 msgid "The download address is not permitted for this platform."
 msgstr "عنوان التنزيل غير مسموح به لهذا النظام الأساسي."
 
@@ -6110,6 +6113,15 @@ msgstr ""
 "OneDrive. لا يسجل Magnolie الدخول إلى أي مزود. تعمل النسخ الاحتياطية "
 "التلقائية فقط عندما يكون Organizer مفتوحا وغير مقفل، مباشرة بعد حفظ البيانات "
 "بنجاح."
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "بدأ التسليم إلى التطبيق بالفعل ولا يمكن استرجاعه من هنا."
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr ""
+"نتيجة التسليم إلى التطبيق مجهولة. تحقّق من التطبيق الخارجي قبل إعادة المحاولة."
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -6391,13 +6403,13 @@ msgid "The selected contacts contain no values for these columns."
 msgstr "لا تحتوي جهات الاتصال المحددة على قيم لهذه الأعمدة."
 
 msgid "The selected entry is too large to send."
-msgstr ""
+msgstr "الإدخال المحدد أكبر من أن يُرسل."
 
 msgid "The selected health records contain no printable values."
 msgstr "لا تحتوي السجلات الصحية المحددة على أي قيم قابلة للطباعة."
 
 msgid "The selected note contains attachments that cannot be sent."
-msgstr ""
+msgstr "تحتوي الملاحظة المحددة على مرفقات لا يمكن إرسالها."
 
 msgid "The selected phone changed. Try again."
 msgstr "تغيّر الهاتف المحدد. حاول مرة أخرى."
@@ -6408,6 +6420,9 @@ msgid ""
 msgstr ""
 "تظهر المشغّلات المحددة على الهاتف حتى وهي مغلقة. يبدأ تشغيل التطبيق المعيّن "
 "عند اختيار تشغيل."
+
+msgid "The selected time zone is unavailable."
+msgstr "المنطقة الزمنية المحددة غير متاحة."
 
 msgid "The server denied access. Check this account's permissions."
 msgstr "رفض الخادم الوصول. تحقق من أذونات هذا الحساب."
@@ -6664,7 +6679,7 @@ msgid "This phone transport is unavailable."
 msgstr "طريقة الاتصال بالهاتف هذه غير متاحة."
 
 msgid "This profile format is not supported."
-msgstr ""
+msgstr "تنسيق الملف الشخصي هذا غير مدعوم."
 
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
@@ -6725,7 +6740,7 @@ msgid "Time format"
 msgstr "تنسيق الوقت"
 
 msgid "Time synchronization direction"
-msgstr ""
+msgstr "اتجاه مزامنة تتبع الوقت"
 
 msgctxt "time tracking"
 msgid "Time tracking"
@@ -6783,13 +6798,13 @@ msgid "Tradesperson"
 msgstr "الحرفي"
 
 msgid "Travel"
-msgstr ""
+msgstr "سفر"
 
 msgid "Tray applet"
 msgstr "بريمج منطقة النظام"
 
 msgid "Triangle"
-msgstr ""
+msgstr "مثلث"
 
 msgid "Trust and accept tasks and notes automatically"
 msgstr "الثقة وقبول المهام والملاحظات تلقائيًا"
@@ -6841,10 +6856,10 @@ msgid "Unavailable"
 msgstr "غير متاح"
 
 msgid "Unchanged contents do not create another recovery point."
-msgstr ""
+msgstr "المحتوى غير المتغير لا يُنشئ نقطة استعادة أخرى."
 
 msgid "Undated"
-msgstr ""
+msgstr "بلا تاريخ"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -7091,6 +7106,13 @@ msgid "Waiting for device status"
 msgstr "في انتظار حالة الجهاز"
 
 msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"في انتظار تطبيق البريد أو الفاكس. إغلاق هذه النافذة لا يسترجع المستند المُسلّم "
+"إلى التطبيق."
+
+msgid ""
 "Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
 "seconds."
 msgstr ""
@@ -7153,6 +7175,9 @@ msgstr ""
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "لم يتم جلب الطقس لعدم توفر موقع."
+
+msgid "Website"
+msgstr "موقع ويب"
 
 msgid "Wedding anniversary"
 msgstr "ذكرى الزواج"
@@ -7235,7 +7260,7 @@ msgid "Whole month"
 msgstr "الشهر كاملًا"
 
 msgid "Width"
-msgstr ""
+msgstr "العرض"
 
 msgid "Wife"
 msgstr "الزوجة"
@@ -7348,7 +7373,7 @@ msgid "Yes, the code matches"
 msgstr "نعم، الرمز متطابق"
 
 msgid "Yesterday"
-msgstr ""
+msgstr "أمس"
 
 msgid "You can also do this later in Settings."
 msgstr "يمكنك أيضًا القيام بذلك لاحقًا من الإعدادات."
@@ -7385,10 +7410,10 @@ msgid "Yours sincerely,"
 msgstr "مع خالص الاحترام والتقدير،"
 
 msgid "Zoom in"
-msgstr ""
+msgstr "تكبير"
 
 msgid "Zoom out"
-msgstr ""
+msgstr "تصغير"
 
 msgid "Zug"
 msgstr "تسوغ"
@@ -7793,6 +7818,9 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
+
+#~ msgid "Message"
+#~ msgstr "رسالة"
 
 #~ msgid ""
 #~ "The log records when the reminder service checked and what it reported. "

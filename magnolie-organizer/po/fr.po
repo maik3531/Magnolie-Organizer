@@ -7,6 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: fr\n"
@@ -15,163 +16,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-
-msgid "Cancel sending"
-msgstr "Annuler l’envoi"
-
-msgid ""
-"Document handed to the selected application or fax server. Delivery is not "
-"confirmed."
-msgstr ""
-"Document transmis à l’application ou au serveur de fax choisi. La livraison "
-"n’est pas confirmée."
-
-msgid "Enter a HylaFAX server hostname, optionally followed by :port."
-msgstr ""
-"Saisissez le nom d’hôte d’un serveur HylaFAX, suivi éventuellement de :port."
-
-msgid "Enter recipient manually"
-msgstr "Saisir le destinataire manuellement"
-
-msgid "Fax printer"
-msgstr "Imprimante fax"
-
-msgid "Network fax server"
-msgstr "Serveur fax réseau"
-
-msgid "Online fax service"
-msgstr "Service fax en ligne"
-
-msgid "Save as PDF"
-msgstr "Enregistrer en PDF"
-
-msgid "Website"
-msgstr "Site web"
-
-msgid "Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them."
-msgstr "La lecture en cours, y compris les vidéos du navigateur, reste disponible à côté des lecteurs attribués. Rechercher/Ouvrir sélectionne de la musique ou des vidéos locales ; une liste de lecture avec recherche apparaît si le lecteur la prend en charge. Les pochettes, la lecture aléatoire et la répétition sont disponibles si le lecteur les fournit."
-
-msgid "KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol."
-msgstr "KDE Connect transmet la position, la pression, le contact et le passage stylet/gomme. Le curseur de survol ne trace rien. Le menu tablette du téléphone propose le plein écran et les réglages pour masquer ou déplacer le bouton de dessin. Ce protocole ne transmet ni inclinaison, ni rotation, ni boutons supplémentaires du stylet."
-
-msgid "Fax"
-msgstr "Fax"
-
-msgid ""
-"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
-"supported installed mail client. A handoff is not delivery confirmation."
-msgstr ""
-"Le fax nécessite un serveur HylaFAX configuré et sendfax installé. Le "
-"courriel utilise un logiciel de messagerie installé compatible. Une "
-"transmission n’est pas une confirmation de livraison."
-
-msgid "HylaFAX server (Linux)"
-msgstr "Serveur HylaFAX (Linux)"
-
-msgid "No configured mail or fax adapter is available."
-msgstr "Aucune interface de messagerie ou de fax configurée n’est disponible."
-
-msgid "Preparing selected notes…"
-msgstr "Préparation des notes sélectionnées…"
-
-msgid "Recipient"
-msgstr "Destinataire"
-
-msgid "Select a recipient."
-msgstr "Choisissez un destinataire."
-
-msgid "Send notes by email or fax"
-msgstr "Envoyer les notes par courriel ou fax"
-
-msgid "Sending cancelled."
-msgstr "Envoi annulé."
-
-msgid "Sending is disabled."
-msgstr "L’envoi est désactivé."
-
-msgid "Sending is not available."
-msgstr "L’envoi n’est pas disponible."
-
-msgid "Show Send in note print options"
-msgstr "Afficher Envoyer dans les options d’impression des notes"
-
-msgid "Subject"
-msgstr "Objet"
-
-msgid "The document could not be handed off."
-msgstr "Le document n’a pas pu être transmis."
-
-msgid "The handoff has already started and cannot be recalled here."
-msgstr "La transmission a déjà commencé et ne peut pas être rappelée ici."
-
-msgid ""
-"The handoff outcome is unknown. Check the external application before trying "
-"again."
-msgstr ""
-"Le résultat de la transmission est inconnu. Vérifiez l’application externe "
-"avant de réessayer."
-
-msgid ""
-"Waiting for the mail or fax application. Closing this window does not recall "
-"the handoff."
-msgstr ""
-"En attente du logiciel de messagerie ou de fax. Fermer cette fenêtre ne "
-"rappelle pas la transmission."
-
-msgid "All anniversaries"
-msgstr "Toutes les dates anniversaires"
-
-msgid "Also hide in the calendar"
-msgstr "Masquer aussi dans le calendrier"
-
-msgid ""
-"An entry is excluded when any of its contact groups is selected. No contacts "
-"or anniversaries are deleted."
-msgstr ""
-"Une entrée est exclue dès qu’un de ses groupes de contacts est sélectionné. "
-"Aucun contact ni date anniversaire n’est supprimé."
-
-msgid "Apply to"
-msgstr "Appliquer à"
-
-msgid "Birthdays only"
-msgstr "Anniversaires de naissance uniquement"
-
-msgid "Enable contact group exclusions"
-msgstr "Activer les exclusions de groupes de contacts"
-
-msgid "Exclude contact groups"
-msgstr "Exclure des groupes de contacts"
-
-msgid "Scope"
-msgstr "Portée"
-
-msgid "Category"
-msgstr "Catégorie"
-
-msgid "Category colors"
-msgstr "Couleurs des catégories"
-
-msgid ""
-"Category colors highlight appointments and tasks. A custom entry color takes "
-"precedence; otherwise the first matching category is used."
-msgstr ""
-"Les couleurs des catégories mettent en évidence les rendez-vous et les "
-"tâches. La couleur personnalisée de l’entrée est prioritaire ; sinon, la "
-"première catégorie correspondante est utilisée."
-
-msgid ""
-"Changing or removing a category color does not rename or delete categories "
-"on saved or imported entries."
-msgstr ""
-"Modifier ou supprimer une couleur de catégorie ne renomme ni ne supprime les "
-"catégories des entrées enregistrées ou importées."
-
-msgid "Custom color"
-msgstr "Couleur personnalisée"
-
-msgid "Please enter a unique category name without commas or semicolons."
-msgstr "Saisissez un nom de catégorie unique, sans virgule ni point-virgule."
 
 msgid " (filtered)"
 msgstr " (filtré)"
@@ -395,8 +239,8 @@ msgstr[1] "%(count)s secondes"
 
 msgid "%(count)s source"
 msgid_plural "%(count)s sources"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%(count)s source"
+msgstr[1] "%(count)s sources"
 
 msgid "%(count)s task"
 msgid_plural "%(count)s tasks"
@@ -844,10 +688,22 @@ msgid "Account type"
 msgstr "Type de compte"
 
 msgid "Action"
-msgstr ""
+msgstr "Action"
 
 msgid "Active call"
 msgstr "Appel en cours"
+
+msgid ""
+"Active playback, including browser videos, remains available alongside the "
+"assigned players. Search/Open selects local music or videos; a searchable "
+"player playlist appears when supported. Covers, shuffle and repeat are "
+"available when the player provides them."
+msgstr ""
+"La lecture en cours, y compris les vidéos du navigateur, reste disponible à "
+"côté des lecteurs attribués. Rechercher/Ouvrir sélectionne de la musique ou "
+"des vidéos locales ; une liste de lecture avec recherche apparaît si le "
+"lecteur la prend en charge. Les pochettes, la lecture aléatoire et la "
+"répétition sont disponibles si le lecteur les fournit."
 
 msgctxt "time tracking"
 msgid "Activity"
@@ -926,7 +782,7 @@ msgid "Address imported from LibreOffice."
 msgstr "Adresse importée depuis LibreOffice."
 
 msgid "Address imported from own profile."
-msgstr ""
+msgstr "Adresse importée du profil personnel."
 
 msgid "Address supplement"
 msgstr "Complément d’adresse"
@@ -976,6 +832,9 @@ msgstr "Moniteur de rappels arrêté."
 msgid "All"
 msgstr "Tous"
 
+msgid "All anniversaries"
+msgstr "Toutes les dates anniversaires"
+
 msgid "All cantons"
 msgstr "Tous les cantons"
 
@@ -1009,6 +868,9 @@ msgstr "Fonctions d’arrière-plan autorisées"
 
 msgid "Also disclose appointments marked as confidential"
 msgstr "Inclure également les rendez-vous marqués comme confidentiels"
+
+msgid "Also hide in the calendar"
+msgstr "Masquer aussi dans le calendrier"
 
 msgid "Also hide past anniversaries"
 msgstr "Masquer également les anniversaires passés"
@@ -1061,6 +923,13 @@ msgstr ""
 "Un composant de chiffrement est manquant. Installez-le avec : sudo apt "
 "install python3-cryptography"
 
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"Une entrée est exclue dès qu’un de ses groupes de contacts est sélectionné. "
+"Aucun contact ni date anniversaire n’est supprimé."
+
 msgid "Android restricts this device identifier."
 msgstr "Android restreint cet identifiant."
 
@@ -1068,7 +937,7 @@ msgid "Android version"
 msgstr "Version d’Android"
 
 msgid "Angle"
-msgstr ""
+msgstr "Angle"
 
 msgid "Anniversaries"
 msgstr "Anniversaires"
@@ -1138,6 +1007,9 @@ msgstr ""
 
 msgid "Apply"
 msgstr "Appliquer"
+
+msgid "Apply to"
+msgstr "Appliquer à"
 
 msgid "Apply to the remaining conflicts"
 msgstr "Appliquer aux conflits restants"
@@ -1231,7 +1103,7 @@ msgid "Authority appointment"
 msgstr "Rendez-vous administratif"
 
 msgid "Automatic"
-msgstr ""
+msgstr "Automatique"
 
 msgid "Automatic backup failed."
 msgstr "La sauvegarde automatique a échoué."
@@ -1264,7 +1136,7 @@ msgid "Automatically dismiss anniversary reminders"
 msgstr "Masquer automatiquement les rappels d’anniversaire"
 
 msgid "Automatically over the current connection"
-msgstr ""
+msgstr "Automatiquement via la connexion actuelle"
 
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Synchroniser automatiquement en Wi-Fi"
@@ -1414,6 +1286,9 @@ msgstr "Fête d’anniversaire"
 msgid "Birthday today"
 msgstr "Anniversaire aujourd’hui"
 
+msgid "Birthdays only"
+msgstr "Anniversaires de naissance uniquement"
+
 msgid "Black"
 msgstr "Noir"
 
@@ -1508,7 +1383,7 @@ msgid "Browse…"
 msgstr "Parcourir…"
 
 msgid "Brush"
-msgstr ""
+msgstr "Pinceau"
 
 msgid "Burgenland"
 msgstr "Burgenland"
@@ -1635,10 +1510,13 @@ msgid "Call with %(name)s · %(date)s"
 msgstr "Appel avec %(name)s · %(date)s"
 
 msgid "Calligraphy pen"
-msgstr ""
+msgstr "Plume calligraphique"
 
 msgid "Cancel"
 msgstr "Annuler"
+
+msgid "Cancel sending"
+msgstr "Annuler l’envoi"
 
 msgid "Canton"
 msgstr "Canton"
@@ -1661,6 +1539,20 @@ msgstr "Catégories"
 msgid "Categories:"
 msgstr "Catégories :"
 
+msgid "Category"
+msgstr "Catégorie"
+
+msgid "Category colors"
+msgstr "Couleurs des catégories"
+
+msgid ""
+"Category colors highlight appointments and tasks. A custom entry color takes "
+"precedence; otherwise the first matching category is used."
+msgstr ""
+"Les couleurs des catégories mettent en évidence les rendez-vous et les "
+"tâches. La couleur personnalisée de l’entrée est prioritaire ; sinon, la "
+"première catégorie correspondante est utilisée."
+
 msgid "Catholic confirmation"
 msgstr "Confirmation catholique"
 
@@ -1677,7 +1569,14 @@ msgid "Changes are applied automatically"
 msgstr "Les modifications sont appliquées automatiquement"
 
 msgid "Changes to your own profile are saved with Save."
+msgstr "Les modifications du profil personnel sont enregistrées avec Enregistrer."
+
+msgid ""
+"Changing or removing a category color does not rename or delete categories "
+"on saved or imported entries."
 msgstr ""
+"Modifier ou supprimer une couleur de catégorie ne renomme ni ne supprime les "
+"catégories des entrées enregistrées ou importées."
 
 msgid "Changing phone permission"
 msgstr "Modification de l’autorisation du téléphone"
@@ -1752,10 +1651,10 @@ msgstr ""
 "chiffrée nécessite son mot de passe."
 
 msgid "Choose a connection. Confirm the pairing code on the other device."
-msgstr ""
+msgstr "Choisissez une connexion. Confirmez le code d’association sur l’autre appareil."
 
 msgid "Choose a contact"
-msgstr ""
+msgstr "Choisir un contact"
 
 msgid "Choose a country first."
 msgstr "Choisissez d’abord un pays."
@@ -1920,7 +1819,7 @@ msgid "Codes match"
 msgstr "Les codes correspondent"
 
 msgid "Collapse day groups by default"
-msgstr ""
+msgstr "Replier les groupes journaliers par défaut"
 
 msgid "Colleagues"
 msgstr "Collègues"
@@ -1956,7 +1855,7 @@ msgstr ""
 "téléphone, afin de vérifier la connexion."
 
 msgid "Compare with LibreOffice"
-msgstr ""
+msgstr "Comparer avec LibreOffice"
 
 msgid "Complete archive exported (password-protected)."
 msgstr "Archive complète exportée (protégée par mot de passe)."
@@ -2017,7 +1916,7 @@ msgid "Confirm the pairing request on the phone."
 msgstr "Confirmez la demande d’association sur le téléphone."
 
 msgid "Confirm this code on the other device."
-msgstr ""
+msgstr "Confirmez ce code sur l’autre appareil."
 
 msgid "Confirmation"
 msgstr "Confirmation"
@@ -2032,7 +1931,7 @@ msgid "Connect"
 msgstr "Connecter"
 
 msgid "Connect Notes before sending this entry."
-msgstr ""
+msgstr "Connectez Notes avant d’envoyer cette entrée."
 
 msgid "Connect phone via WLAN"
 msgstr "Connecter le téléphone par WLAN"
@@ -2253,10 +2152,10 @@ msgid "Create pairing file …"
 msgstr "Créer un fichier d’appairage …"
 
 msgid "Create recovery points"
-msgstr ""
+msgstr "Créer des points de récupération"
 
 msgid "Created"
-msgstr ""
+msgstr "Créé"
 
 msgid "Creating a recovery snapshot"
 msgstr "Création d’un instantané de récupération"
@@ -2291,6 +2190,9 @@ msgstr "Personnalisé"
 msgid "Custom application"
 msgstr "Application personnalisée"
 
+msgid "Custom color"
+msgstr "Couleur personnalisée"
+
 msgid "Custom notification"
 msgstr "Notification personnalisée"
 
@@ -2313,7 +2215,7 @@ msgid "Cut"
 msgstr "Couper"
 
 msgid "Cut selection"
-msgstr ""
+msgstr "Découper la sélection"
 
 msgid "Cycle calendar"
 msgstr "Calendrier du cycle"
@@ -2391,7 +2293,7 @@ msgid "Decrypting the data"
 msgstr "Déchiffrement des données"
 
 msgid "Default view"
-msgstr ""
+msgstr "Vue par défaut"
 
 msgid "Default: next to the data file"
 msgstr "Par défaut : à côté du fichier de données"
@@ -2444,10 +2346,10 @@ msgid "Delete cycle marker"
 msgstr "Supprimer le repère de cycle"
 
 msgid "Delete drawing sheet"
-msgstr ""
+msgstr "Supprimer la feuille de dessin"
 
 msgid "Delete drawing sheet?"
-msgstr ""
+msgstr "Supprimer la feuille de dessin ?"
 
 msgid "Delete entries"
 msgstr "Supprimer les entrées"
@@ -2637,6 +2539,13 @@ msgstr "Médecin"
 msgid "Doctor appointment"
 msgstr "Rendez-vous chez le médecin"
 
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"Document transmis à l’application ou au serveur de fax choisi. La livraison "
+"n’est pas confirmée."
+
 msgid "Document.pdf"
 msgstr "Document.pdf"
 
@@ -2731,7 +2640,7 @@ msgid "Edit the website or application used"
 msgstr "Modifier le site Web ou l’application utilisée"
 
 msgid "Ellipse"
-msgstr ""
+msgstr "Ellipse"
 
 msgid "Email"
 msgstr "E-mail"
@@ -2786,6 +2695,9 @@ msgid ""
 msgstr ""
 "Activez le débogage Wi-Fi dans les options de développement de Notes sur "
 "votre propre téléphone associé."
+
+msgid "Enable contact group exclusions"
+msgstr "Activer les exclusions de groupes de contacts"
 
 msgid "Enable cycle calendar"
 msgstr "Activer le calendrier du cycle"
@@ -2859,6 +2771,10 @@ msgstr "Bonne organisation !"
 msgid "Enter"
 msgstr "Saisir"
 
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr ""
+"Saisissez le nom d’hôte d’un serveur HylaFAX, suivi éventuellement de :port."
+
 msgid ""
 "Enter a blood glucose value on the left to highlight matching scheme rows."
 msgstr ""
@@ -2917,6 +2833,9 @@ msgstr ""
 msgid "Enter height and weight to calculate BMI."
 msgstr "Saisissez la taille et le poids pour calculer l’IMC."
 
+msgid "Enter recipient manually"
+msgstr "Saisir le destinataire manuellement"
+
 msgid "Enter the backup password."
 msgstr "Saisissez le mot de passe de sauvegarde."
 
@@ -2957,7 +2876,7 @@ msgid "Estimate the next period"
 msgstr "Estimer les prochaines règles"
 
 msgid "Estimated from older data"
-msgstr ""
+msgstr "Estimé à partir des anciennes données"
 
 msgid "Estimated next period"
 msgstr "Prochaines règles estimées"
@@ -2970,7 +2889,7 @@ msgid "Event loop is not available: %s"
 msgstr "La boucle d’événements n’est pas disponible : %s"
 
 msgid "Every change"
-msgstr ""
+msgstr "À chaque modification"
 
 msgid "Every filled medication row requires a name."
 msgstr "Chaque ligne de médicament renseignée doit comporter un nom."
@@ -2979,7 +2898,7 @@ msgid "Every filled row requires a valid date."
 msgstr "Chaque ligne renseignée doit comporter une date valide."
 
 msgid "Every program start"
-msgstr ""
+msgstr "À chaque démarrage"
 
 msgid "Everything is done - the list is empty."
 msgstr "Tout est terminé - la liste est vide."
@@ -3007,8 +2926,11 @@ msgstr ""
 "Exactement un téléphone Magnolie Notes associé et en ligne doit autoriser la "
 "numérotation."
 
+msgid "Exclude contact groups"
+msgstr "Exclure des groupes de contacts"
+
 msgid "Expand day groups by default"
-msgstr ""
+msgstr "Déplier les groupes journaliers par défaut"
 
 msgid "Export"
 msgstr "Exporter"
@@ -3023,7 +2945,7 @@ msgid "Export is available only in the installed application."
 msgstr "L’exportation est disponible uniquement dans l’application installée."
 
 msgid "Export vCard"
-msgstr ""
+msgstr "Exporter une vCard"
 
 msgid "Extend sharing"
 msgstr "Étendre le partage"
@@ -3039,6 +2961,20 @@ msgstr "Famille"
 
 msgid "Fasting"
 msgstr "À jeun"
+
+msgid "Fax"
+msgstr "Fax"
+
+msgid "Fax printer"
+msgstr "Imprimante fax"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"Le fax nécessite un serveur HylaFAX configuré et sendfax installé. Le "
+"courriel utilise un logiciel de messagerie installé compatible. Une "
+"transmission n’est pas une confirmation de livraison."
 
 msgid "Female caregiver"
 msgstr "Aidante"
@@ -3059,7 +2995,7 @@ msgid "Fertile days"
 msgstr "Jours fertiles"
 
 msgid "Field"
-msgstr ""
+msgstr "Champ"
 
 msgid "File"
 msgstr "Fichier"
@@ -3076,10 +3012,10 @@ msgid "File saved: %(name)s"
 msgstr "Fichier enregistré : %(name)s"
 
 msgid "Fill selection"
-msgstr ""
+msgstr "Remplir la sélection"
 
 msgid "Fill with gradient"
-msgstr ""
+msgstr "Remplir avec un dégradé"
 
 msgid "Fill with stored values"
 msgstr "Remplir avec les valeurs enregistrées"
@@ -3263,16 +3199,16 @@ msgid "Google Maps in the browser"
 msgstr "Google Maps dans le navigateur"
 
 msgid "Gradient end color"
-msgstr ""
+msgstr "Couleur finale du dégradé"
 
 msgid "Grisons"
 msgstr "Grisons"
 
 msgid "Group by day"
-msgstr ""
+msgstr "Grouper par jour"
 
 msgid "Group changes by time interval"
-msgstr ""
+msgstr "Grouper les modifications par intervalle de temps"
 
 msgid "Group for %(notebook)s"
 msgstr "Groupe de %(notebook)s"
@@ -3351,7 +3287,7 @@ msgid "Hide past appointments"
 msgstr "Masquer les rendez-vous passés"
 
 msgid "Highlighter"
-msgstr ""
+msgstr "Surligneur"
 
 msgid "History"
 msgstr "Historique"
@@ -3389,6 +3325,9 @@ msgstr "Comportement du calendrier lorsque vous cliquez sur un jour."
 msgid "Husband"
 msgstr "Mari"
 
+msgid "HylaFAX server (Linux)"
+msgstr "Serveur HylaFAX (Linux)"
+
 msgid "I"
 msgstr "Moi"
 
@@ -3402,7 +3341,7 @@ msgid "ISO week (week 1 contains the first Thursday)"
 msgstr "Semaine ISO (la semaine 1 contient le premier jeudi)"
 
 msgid "Idea"
-msgstr ""
+msgstr "Idée"
 
 msgid ""
 "If the year is unknown, enter only day and month.\n"
@@ -3604,7 +3543,7 @@ msgid "Insert link"
 msgstr "Insérer un lien"
 
 msgid "Insert shape"
-msgstr ""
+msgstr "Insérer une forme"
 
 msgid "Install the packages, for example with:"
 msgstr "Installez les paquets, par exemple avec :"
@@ -3700,6 +3639,18 @@ msgstr ""
 msgid "KDE Connect reception failed."
 msgstr "Échec de la réception KDE Connect."
 
+msgid ""
+"KDE Connect transmits pen position, pressure, contact and pen/eraser "
+"changes. The hover cursor leaves no ink. The phone's tablet menu offers "
+"fullscreen and settings to hide or move the drawing button. Tilt, rotation "
+"and extra pen buttons are not transmitted by this protocol."
+msgstr ""
+"KDE Connect transmet la position, la pression, le contact et le passage "
+"stylet/gomme. Le curseur de survol ne trace rien. Le menu tablette du "
+"téléphone propose le plein écran et les réglages pour masquer ou déplacer le "
+"bouton de dessin. Ce protocole ne transmet ni inclinaison, ni rotation, ni "
+"boutons supplémentaires du stylet."
+
 msgid "KDE/Akonadi integration is not available."
 msgstr "L’intégration KDE/Akonadi n’est pas disponible."
 
@@ -3728,7 +3679,7 @@ msgid "Landline"
 msgstr "Téléphone fixe"
 
 msgid "Landscape"
-msgstr ""
+msgstr "Paysage"
 
 msgid "Language"
 msgstr "Langue"
@@ -3777,7 +3728,7 @@ msgid "LibreOffice is not opened or changed."
 msgstr "LibreOffice n’est ni ouvert ni modifié."
 
 msgid "LibreOffice user data updated."
-msgstr ""
+msgstr "Données utilisateur LibreOffice mises à jour."
 
 #, python-format
 msgid "LibreOffice was not found. The letter is located at: %s"
@@ -3790,7 +3741,7 @@ msgid "Liechtenstein"
 msgstr "Liechtenstein"
 
 msgid "Line"
-msgstr ""
+msgstr "Ligne"
 
 msgid "Line width"
 msgstr "Épaisseur du trait"
@@ -3824,6 +3775,9 @@ msgstr "Calendrier local"
 
 msgid "Local image"
 msgstr "Image locale"
+
+msgid "Local time"
+msgstr "Heure locale"
 
 msgid "Location"
 msgstr "Emplacement"
@@ -4022,7 +3976,7 @@ msgid "Manual version %(version)s is available."
 msgstr "La version %(version)s du manuel est disponible."
 
 msgid "Manually"
-msgstr ""
+msgstr "Manuellement"
 
 msgid "Manufacturer"
 msgstr "Fabricant"
@@ -4094,16 +4048,13 @@ msgid "Merge duplicate contact cards"
 msgstr "Fusionner les fiches de contact en double"
 
 msgid "Merge history"
-msgstr ""
+msgstr "Historique des fusions"
 
 msgid "Merge this pair individually"
 msgstr "Fusionner cette paire individuellement"
 
 msgid "Merged"
-msgstr ""
-
-msgid "Message"
-msgstr "Message"
+msgstr "Fusionné"
 
 msgid "Message text"
 msgstr "Texte du message"
@@ -4165,7 +4116,7 @@ msgid "Model"
 msgstr "Modèle"
 
 msgid "Modified"
-msgstr ""
+msgstr "Modifié"
 
 msgid "Module"
 msgstr "Module"
@@ -4174,7 +4125,7 @@ msgid "Monday"
 msgstr "Lundi"
 
 msgid "Money"
-msgstr ""
+msgstr "Argent"
 
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "Surveiller les SMS de KDE Connect et afficher des notifications"
@@ -4232,7 +4183,7 @@ msgid "Move notebook up"
 msgstr "Monter le carnet"
 
 msgid "Move selection"
-msgstr ""
+msgstr "Déplacer la sélection"
 
 msgid "Move the ticked entries to the wastebasket"
 msgstr "Déplacer les entrées cochées dans la corbeille"
@@ -4244,7 +4195,7 @@ msgid "Move up"
 msgstr "Déplacer vers le haut"
 
 msgid "Move view"
-msgstr ""
+msgstr "Déplacer la vue"
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -4310,6 +4261,9 @@ msgstr "Pays-Bas"
 msgid "Network"
 msgstr "Réseau"
 
+msgid "Network fax server"
+msgstr "Serveur fax réseau"
+
 msgid "Neuchâtel"
 msgstr "Neuchâtel"
 
@@ -4355,7 +4309,7 @@ msgid "New contact"
 msgstr "Nouveau contact"
 
 msgid "New drawing sheet"
-msgstr ""
+msgstr "Nouvelle feuille de dessin"
 
 msgid "New group"
 msgstr "Nouveau groupe"
@@ -4379,7 +4333,7 @@ msgid "New version %(version)s is available."
 msgstr "La nouvelle version %(version)s est disponible."
 
 msgid "Newest first"
-msgstr ""
+msgstr "Les plus récents d’abord"
 
 msgid "Next"
 msgstr "Suivant"
@@ -4433,7 +4387,7 @@ msgid "Nextcloud returned an incomplete DAV result."
 msgstr "Nextcloud a renvoyé un résultat DAV incomplet."
 
 msgid "Nib angle"
-msgstr ""
+msgstr "Angle de la plume"
 
 msgid "Nidwalden"
 msgstr "Nidwald"
@@ -4458,7 +4412,7 @@ msgid "No SMS messages are scheduled."
 msgstr "Aucun SMS n'est planifié."
 
 msgid "No WhatsApp profile available for this contact."
-msgstr ""
+msgstr "Aucun profil WhatsApp disponible pour ce contact."
 
 msgid "No address books found."
 msgstr "Aucun carnet d’adresses trouvé."
@@ -4480,6 +4434,9 @@ msgstr "Aucun rendez-vous n’est prévu."
 msgid "No calendars found."
 msgstr "Aucun calendrier trouvé."
 
+msgid "No configured mail or fax adapter is available."
+msgstr "Aucune interface de messagerie ou de fax configurée n’est disponible."
+
 msgid "No contact group"
 msgstr "Sans groupe de contacts"
 
@@ -4487,7 +4444,7 @@ msgid "No data was found."
 msgstr "Aucune donnée trouvée."
 
 msgid "No date recorded"
-msgstr ""
+msgstr "Aucune date enregistrée"
 
 msgid "No default voice subscription is available."
 msgstr "Aucun abonnement vocal par défaut disponible."
@@ -4538,7 +4495,7 @@ msgid "No media player is available on the connected phone."
 msgstr "Aucun lecteur multimédia n’est disponible sur le téléphone connecté."
 
 msgid "No merge history recorded"
-msgstr ""
+msgstr "Aucun historique de fusion enregistré"
 
 msgid "No notebooks"
 msgstr "Aucun carnet"
@@ -4574,7 +4531,7 @@ msgstr ""
 "dessus pour ajouter les personnes responsables des tâches."
 
 msgid "No phone number available."
-msgstr ""
+msgstr "Aucun numéro de téléphone disponible."
 
 msgid "No phone paired yet."
 msgstr "Aucun téléphone appairé pour l’instant."
@@ -4716,7 +4673,7 @@ msgid "Notes and special instructions"
 msgstr "Notes et instructions particulières"
 
 msgid "Notes and tasks"
-msgstr ""
+msgstr "Notes et tâches"
 
 msgid ""
 "Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
@@ -4820,7 +4777,7 @@ msgid "Ointment"
 msgstr "Pommade"
 
 msgid "Oldest first"
-msgstr ""
+msgstr "Les plus anciens d’abord"
 
 msgid "One address book"
 msgstr "Un carnet d’adresses"
@@ -4889,6 +4846,9 @@ msgstr "En ligne"
 msgid "Online address book"
 msgstr "Carnet d’adresses en ligne"
 
+msgid "Online fax service"
+msgstr "Service fax en ligne"
+
 msgid "Online via Bluetooth data"
 msgstr "En ligne via les données Bluetooth"
 
@@ -4915,10 +4875,10 @@ msgstr ""
 "existant avant de changer d’appareil."
 
 msgid "Only personal entries can be sent to Notes."
-msgstr ""
+msgstr "Seules les entrées personnelles peuvent être envoyées à Notes."
 
 msgid "Only the Notes collection"
-msgstr ""
+msgstr "Uniquement la collection Notes"
 
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
@@ -5006,7 +4966,7 @@ msgid "Open the day in the daily view"
 msgstr "Ouvrir le jour dans la vue quotidienne"
 
 msgid "Open the drawing tablet in KDE Connect on the paired phone."
-msgstr ""
+msgstr "Ouvrez la tablette graphique dans KDE Connect sur le téléphone associé."
 
 msgid "Open the phone connection screen and try again."
 msgstr "Ouvrez l’écran de connexion au téléphone et réessayez."
@@ -5102,7 +5062,7 @@ msgid "Own phone number (default voice SIM)"
 msgstr "Mon numéro (SIM vocale par défaut)"
 
 msgid "Own profile"
-msgstr ""
+msgstr "Profil personnel"
 
 msgid "Own window available: no"
 msgstr "Fenêtre propre disponible : non"
@@ -5133,7 +5093,7 @@ msgid "Page %(page)s of %(count)s"
 msgstr "Page %(page)s sur %(count)s"
 
 msgid "Page order"
-msgstr ""
+msgstr "Ordre des pages"
 
 msgid "Pages"
 msgstr "Pages"
@@ -5413,6 +5373,9 @@ msgstr "Veuillez saisir un titre pour chaque nouvelle tâche."
 msgid "Please enter a title."
 msgstr "Veuillez saisir un titre."
 
+msgid "Please enter a unique category name without commas or semicolons."
+msgstr "Saisissez un nom de catégorie unique, sans virgule ni point-virgule."
+
 msgid "Please enter a website or application for the custom action."
 msgstr ""
 "Veuillez saisir un site Web ou une application pour l’action personnalisée."
@@ -5455,7 +5418,7 @@ msgstr ""
 "Le port 8741 est indisponible. L’écouteur téléphonique n’a pas pu démarrer."
 
 msgid "Portrait"
-msgstr ""
+msgstr "Portrait"
 
 msgid "Possible duplicates among local and incoming contacts"
 msgstr "Doublons possibles parmi les contacts locaux et entrants"
@@ -5491,6 +5454,9 @@ msgstr ""
 
 msgid "Preferred backup folder"
 msgstr "Dossier de sauvegarde préféré"
+
+msgid "Preparing selected notes…"
+msgstr "Préparation des notes sélectionnées…"
 
 msgid "Preview"
 msgstr "Aperçu"
@@ -5573,7 +5539,7 @@ msgid "Private"
 msgstr "Privé"
 
 msgid "Properties"
-msgstr ""
+msgstr "Propriétés"
 
 msgid "Protected archive password unavailable."
 msgstr "Le mot de passe d’archive protégé est indisponible."
@@ -5619,7 +5585,7 @@ msgid "Quit"
 msgstr "Quitter"
 
 msgid "Quote"
-msgstr ""
+msgstr "Citation"
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Adresse IPv4 ou IPv6 joignable de cet ordinateur"
@@ -5664,10 +5630,13 @@ msgid "Receive with KDE Connect"
 msgstr "Recevoir avec KDE Connect"
 
 msgid "Recently modified"
-msgstr ""
+msgstr "Modifiés récemment"
 
 msgid "Recipe"
-msgstr ""
+msgstr "Recette"
+
+msgid "Recipient"
+msgstr "Destinataire"
 
 msgid "Reconnect"
 msgstr "Reconnecter"
@@ -5677,7 +5646,7 @@ msgid "Recorded times"
 msgstr "Temps enregistrés"
 
 msgid "Recovery journal"
-msgstr ""
+msgstr "Journal de récupération"
 
 msgid "Recovery snapshot created."
 msgstr "Instantané de récupération créé."
@@ -5689,7 +5658,7 @@ msgid "Recovery snapshots"
 msgstr "Instantanés de récupération"
 
 msgid "Rectangle"
-msgstr ""
+msgstr "Rectangle"
 
 msgid "Recycle bin"
 msgstr "Corbeille"
@@ -5999,7 +5968,7 @@ msgid "Right page"
 msgstr "Page de droite"
 
 msgid "Rotate selection"
-msgstr ""
+msgstr "Faire pivoter la sélection"
 
 msgid "Route"
 msgstr "Itinéraire"
@@ -6093,6 +6062,9 @@ msgstr "Enregistrer les anniversaires"
 
 msgid "Save appointments"
 msgstr "Enregistrer les rendez-vous"
+
+msgid "Save as PDF"
+msgstr "Enregistrer en PDF"
 
 msgid "Save as…"
 msgstr "Enregistrer sous…"
@@ -6210,6 +6182,9 @@ msgstr "Les vacances scolaires ne sont pas disponibles pour cette région."
 msgid "Schwyz"
 msgstr "Schwytz"
 
+msgid "Scope"
+msgstr "Portée"
+
 msgid "Screen notification only"
 msgstr "Notification à l’écran uniquement"
 
@@ -6265,6 +6240,9 @@ msgstr ""
 msgid "Select a custom backup folder."
 msgstr "Sélectionnez un dossier de sauvegarde personnalisé."
 
+msgid "Select a recipient."
+msgstr "Choisissez un destinataire."
+
 msgid "Select all"
 msgstr "Tout sélectionner"
 
@@ -6285,7 +6263,7 @@ msgid "Select backup folder"
 msgstr "Sélectionner le dossier de sauvegarde"
 
 msgid "Select complete strokes that fit inside the sheet."
-msgstr ""
+msgstr "Sélectionnez des traits complets qui tiennent dans la feuille."
 
 msgid "Select no more than three years."
 msgstr "Sélectionnez au maximum trois années."
@@ -6314,7 +6292,7 @@ msgid "Selection options"
 msgstr "Options de sélection"
 
 msgid "Send"
-msgstr ""
+msgstr "Envoyer"
 
 msgid "Send SMS"
 msgstr "Envoyer un SMS"
@@ -6325,20 +6303,32 @@ msgstr "Envoyer le texte ajusté"
 msgid "Send documents"
 msgstr "Envoyer des documents"
 
+msgid "Send notes by email or fax"
+msgstr "Envoyer les notes par courriel ou fax"
+
 msgid "Send secure request"
 msgstr "Envoyer une demande sécurisée"
 
 msgid "Send this new note to Notes"
-msgstr ""
+msgstr "Envoyer cette nouvelle note à Notes"
 
 msgid "Send to Notes"
-msgstr ""
+msgstr "Envoyer à Notes"
 
 msgid "Send via"
-msgstr ""
+msgstr "Envoyer via"
 
 msgid "Sending SMS with KDE Connect"
 msgstr "Envoi de SMS avec KDE Connect"
+
+msgid "Sending cancelled."
+msgstr "Envoi annulé."
+
+msgid "Sending is disabled."
+msgstr "L’envoi est désactivé."
+
+msgid "Sending is not available."
+msgstr "L’envoi n’est pas disponible."
 
 msgid "Sent"
 msgstr "Envoyé"
@@ -6400,7 +6390,7 @@ msgid "Share connection with"
 msgstr "Partager la connexion avec"
 
 msgid "Share selected details"
-msgstr ""
+msgstr "Partager les détails sélectionnés"
 
 msgid "Share this connection with the selected device?"
 msgstr "Partager cette connexion avec l’appareil sélectionné ?"
@@ -6430,7 +6420,7 @@ msgid "Sharing this connection is not allowed."
 msgstr "Le partage de cette connexion n’est pas autorisé."
 
 msgid "Sheet size"
-msgstr ""
+msgstr "Format de la feuille"
 
 msgid "Shift planner"
 msgstr "Planning des services"
@@ -6446,6 +6436,9 @@ msgstr "Afficher Santé après le planning"
 
 msgid "Show Magnolie Notes SMS notifications"
 msgstr "Afficher les notifications de SMS de Magnolie Notes"
+
+msgid "Show Send in note print options"
+msgstr "Afficher Envoyer dans les options d’impression des notes"
 
 msgid "Show all"
 msgstr "Tout afficher"
@@ -6625,7 +6618,7 @@ msgid "Spray"
 msgstr "Spray"
 
 msgid "Square"
-msgstr ""
+msgstr "Carré"
 
 msgid "St. Gallen"
 msgstr "Saint-Gall"
@@ -6675,7 +6668,7 @@ msgid "Stop"
 msgstr "Arrêter"
 
 msgid "Street"
-msgstr ""
+msgstr "Rue"
 
 msgid "Street / house number"
 msgstr "Rue / numéro"
@@ -6691,6 +6684,9 @@ msgstr "Barré"
 
 msgid "Styria"
 msgstr "Styrie"
+
+msgid "Subject"
+msgstr "Objet"
 
 msgid "Submitted"
 msgstr "Soumis"
@@ -6756,7 +6752,7 @@ msgstr ""
 "locales resteront."
 
 msgid "Synchronize all notes and tasks"
-msgstr ""
+msgstr "Synchroniser toutes les notes et tâches"
 
 msgid "Synchronize automatically at startup"
 msgstr "Synchroniser automatiquement au démarrage"
@@ -7303,6 +7299,9 @@ msgstr ""
 "Les données ont changé pendant la récupération de l’opération de mot de "
 "passe."
 
+msgid "The data could not be saved."
+msgstr "Impossible d’enregistrer les données."
+
 msgid ""
 "The data is encrypted – background reminders have not been enabled under "
 "Settings > Security."
@@ -7321,6 +7320,9 @@ msgstr ""
 "Les données sont chiffrées. Déverrouillez d’abord l’organiseur avec le mot "
 "de passe."
 
+msgid "The data is invalid."
+msgstr "Les données sont invalides."
+
 msgid "The data is not a JSON object."
 msgstr "Les données ne constituent pas un objet JSON."
 
@@ -7336,6 +7338,9 @@ msgid ""
 msgstr ""
 "Le répertoire contenant l’interface (/usr/share/magnolie-organizer/web) est "
 "introuvable."
+
+msgid "The document could not be handed off."
+msgstr "Le document n’a pas pu être transmis."
 
 msgid "The drawing limit has been reached."
 msgstr "La limite de dessin est atteinte."
@@ -7392,6 +7397,16 @@ msgstr ""
 "Dropbox ou OneDrive. Magnolie ne se connecte à aucun fournisseur. Les "
 "sauvegardes automatiques ne s’exécutent que lorsque Organizer est ouvert et "
 "déverrouillé, juste après l’enregistrement réussi des données."
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "La transmission a déjà commencé et ne peut pas être rappelée ici."
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr ""
+"Le résultat de la transmission est inconnu. Vérifiez l’application externe "
+"avant de réessayer."
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -7856,7 +7871,7 @@ msgstr ""
 "Les contacts sélectionnés ne contiennent aucune valeur pour ces colonnes."
 
 msgid "The selected entry is too large to send."
-msgstr ""
+msgstr "L’entrée sélectionnée est trop volumineuse pour être envoyée."
 
 msgid "The selected file is not a readable CSV file."
 msgstr "Le fichier sélectionné n’est pas un fichier CSV lisible."
@@ -7872,7 +7887,7 @@ msgid "The selected iCalendar file is incomplete."
 msgstr "Le fichier iCalendar sélectionné est incomplet."
 
 msgid "The selected note contains attachments that cannot be sent."
-msgstr ""
+msgstr "La note sélectionnée contient des pièces jointes impossibles à envoyer."
 
 msgid "The selected online account is disabled, offline or unreachable."
 msgstr ""
@@ -7902,6 +7917,9 @@ msgid "The selected source was not found. Select it again in Settings."
 msgstr ""
 "La source sélectionnée est introuvable. Sélectionnez-la de nouveau dans les "
 "Paramètres."
+
+msgid "The selected time zone is unavailable."
+msgstr "Le fuseau horaire sélectionné est indisponible."
 
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "
@@ -8237,7 +8255,7 @@ msgid "This phone transport is unavailable."
 msgstr "Ce type de connexion au téléphone est indisponible."
 
 msgid "This profile format is not supported."
-msgstr ""
+msgstr "Ce format de profil n’est pas pris en charge."
 
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
@@ -8310,7 +8328,7 @@ msgid "Time format"
 msgstr "Format de l'heure"
 
 msgid "Time synchronization direction"
-msgstr ""
+msgstr "Sens de synchronisation du suivi du temps"
 
 msgctxt "time tracking"
 msgid "Time tracking"
@@ -8385,13 +8403,13 @@ msgid "Transfer received text to the clipboard"
 msgstr "Transférer le texte reçu dans le presse-papiers"
 
 msgid "Travel"
-msgstr ""
+msgstr "Voyage"
 
 msgid "Tray applet"
 msgstr "Applet de zone de notification"
 
 msgid "Triangle"
-msgstr ""
+msgstr "Triangle"
 
 msgid "Trust and accept tasks and notes automatically"
 msgstr "Faire confiance et accepter automatiquement les tâches et les notes"
@@ -8453,10 +8471,10 @@ msgid "Unavailable"
 msgstr "Indisponible"
 
 msgid "Unchanged contents do not create another recovery point."
-msgstr ""
+msgstr "Un contenu inchangé ne crée pas de nouveau point de récupération."
 
 msgid "Undated"
-msgstr ""
+msgstr "Sans date"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -8738,6 +8756,13 @@ msgid "Waiting for device status"
 msgstr "En attente de l’état de l’appareil"
 
 msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"En attente du logiciel de messagerie ou de fax. Fermer cette fenêtre ne "
+"rappelle pas la transmission."
+
+msgid ""
 "Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
 "seconds."
 msgstr ""
@@ -8815,6 +8840,9 @@ msgstr ""
 msgid "Weather was not retrieved because no location is available."
 msgstr ""
 "La météo n’a pas été récupérée car aucune localisation n’est disponible."
+
+msgid "Website"
+msgstr "Site web"
 
 msgid "Wedding anniversary"
 msgstr "Anniversaire de mariage"
@@ -8905,7 +8933,7 @@ msgid "Whole month"
 msgstr "Mois entier"
 
 msgid "Width"
-msgstr ""
+msgstr "Largeur"
 
 msgid "Wife"
 msgstr "Épouse"
@@ -9003,7 +9031,7 @@ msgid "Yes, the code matches"
 msgstr "Oui, le code correspond"
 
 msgid "Yesterday"
-msgstr ""
+msgstr "Hier"
 
 msgid "You can also do this later in Settings."
 msgstr "Vous pourrez également le faire plus tard dans les paramètres."
@@ -9041,10 +9069,10 @@ msgid "ZIP archives (*.zip)"
 msgstr "Archives ZIP (*.zip)"
 
 msgid "Zoom in"
-msgstr ""
+msgstr "Agrandir"
 
 msgid "Zoom out"
-msgstr ""
+msgstr "Réduire"
 
 msgid "Zug"
 msgstr "Zoug"
@@ -9486,6 +9514,9 @@ msgstr[1] "… et %(count)s autres éléments qui seront également imprimés."
 
 msgid "＋ Add appointment"
 msgstr "＋ Ajouter un rendez-vous"
+
+#~ msgid "Message"
+#~ msgstr "Message"
 
 #~ msgid ""
 #~ "The log records when the reminder service checked and what it reported. "

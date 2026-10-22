@@ -7,6 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: nb\n"
@@ -15,161 +16,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-
-msgid "Cancel sending"
-msgstr "Avbryt sending"
-
-msgid ""
-"Document handed to the selected application or fax server. Delivery is not "
-"confirmed."
-msgstr ""
-"Dokumentet er overlevert til valgt program eller faksserver. Levering er "
-"ikke bekreftet."
-
-msgid "Enter a HylaFAX server hostname, optionally followed by :port."
-msgstr "Skriv inn vertsnavnet til en HylaFAX-server, eventuelt fulgt av :port."
-
-msgid "Enter recipient manually"
-msgstr "Skriv inn mottaker manuelt"
-
-msgid "Fax printer"
-msgstr "Faksskriver"
-
-msgid "Network fax server"
-msgstr "Faksserver i nettverket"
-
-msgid "Online fax service"
-msgstr "Nettbasert fakstjeneste"
-
-msgid "Save as PDF"
-msgstr "Lagre som PDF"
-
-msgid "Website"
-msgstr "Nettsted"
-
-msgid "Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them."
-msgstr "Aktiv avspilling, også videoer i nettleseren, er fortsatt tilgjengelig ved siden av de tilordnede spillerne. Søk/Åpne velger lokal musikk eller video; en søkbar spilleliste vises hvis spilleren støtter den. Omslag, tilfeldig avspilling og gjentakelse er tilgjengelige når spilleren tilbyr dem."
-
-msgid "KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol."
-msgstr "KDE Connect overfører pennens posisjon, trykk, kontakt og bytte mellom penn og viskelær. Svevemarkøren tegner ikke. Telefonens nettbrettmeny tilbyr fullskjerm og innstillinger for å skjule eller flytte tegneknappen. Denne protokollen overfører ikke helning, rotasjon eller ekstra penneknapper."
-
-msgid "Fax"
-msgstr "Faks"
-
-msgid ""
-"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
-"supported installed mail client. A handoff is not delivery confirmation."
-msgstr ""
-"Faks krever en konfigurert HylaFAX-server og installert sendfax. E-post "
-"bruker en støttet installert e-postklient. Overlevering er ikke "
-"leveringsbekreftelse."
-
-msgid "HylaFAX server (Linux)"
-msgstr "HylaFAX-server (Linux)"
-
-msgid "No configured mail or fax adapter is available."
-msgstr "Ingen konfigurert e-post- eller fakstilkobling er tilgjengelig."
-
-msgid "Preparing selected notes…"
-msgstr "Forbereder valgte notater…"
-
-msgid "Recipient"
-msgstr "Mottaker"
-
-msgid "Select a recipient."
-msgstr "Velg en mottaker."
-
-msgid "Send notes by email or fax"
-msgstr "Send notater med e-post eller faks"
-
-msgid "Sending cancelled."
-msgstr "Sending avbrutt."
-
-msgid "Sending is disabled."
-msgstr "Sending er deaktivert."
-
-msgid "Sending is not available."
-msgstr "Sending er ikke tilgjengelig."
-
-msgid "Show Send in note print options"
-msgstr "Vis Send i notatenes utskriftsvalg"
-
-msgid "Subject"
-msgstr "Emne"
-
-msgid "The document could not be handed off."
-msgstr "Dokumentet kunne ikke overleveres."
-
-msgid "The handoff has already started and cannot be recalled here."
-msgstr "Overleveringen har allerede startet og kan ikke kalles tilbake her."
-
-msgid ""
-"The handoff outcome is unknown. Check the external application before trying "
-"again."
-msgstr ""
-"Resultatet av overleveringen er ukjent. Kontroller det eksterne programmet "
-"før du prøver igjen."
-
-msgid ""
-"Waiting for the mail or fax application. Closing this window does not recall "
-"the handoff."
-msgstr ""
-"Venter på e-post- eller faksprogrammet. Å lukke dette vinduet kaller ikke "
-"overleveringen tilbake."
-
-msgid "All anniversaries"
-msgstr "Alle merkedager"
-
-msgid "Also hide in the calendar"
-msgstr "Skjul også i kalenderen"
-
-msgid ""
-"An entry is excluded when any of its contact groups is selected. No contacts "
-"or anniversaries are deleted."
-msgstr ""
-"En oppføring utelates når en av kontaktgruppene er valgt. Ingen kontakter "
-"eller merkedager slettes."
-
-msgid "Apply to"
-msgstr "Bruk på"
-
-msgid "Birthdays only"
-msgstr "Bare fødselsdager"
-
-msgid "Enable contact group exclusions"
-msgstr "Aktiver utelatelse av kontaktgrupper"
-
-msgid "Exclude contact groups"
-msgstr "Utelat kontaktgrupper"
-
-msgid "Scope"
-msgstr "Omfang"
-
-msgid "Category"
-msgstr "Kategori"
-
-msgid "Category colors"
-msgstr "Kategorifarger"
-
-msgid ""
-"Category colors highlight appointments and tasks. A custom entry color takes "
-"precedence; otherwise the first matching category is used."
-msgstr ""
-"Kategorifarger fremhever avtaler og oppgaver. En egen farge for oppføringen "
-"har forrang; ellers brukes den første samsvarende kategorien."
-
-msgid ""
-"Changing or removing a category color does not rename or delete categories "
-"on saved or imported entries."
-msgstr ""
-"Endring eller fjerning av en kategorifarge endrer ikke navn på eller sletter "
-"kategorier i lagrede eller importerte oppføringer."
-
-msgid "Custom color"
-msgstr "Egen farge"
-
-msgid "Please enter a unique category name without commas or semicolons."
-msgstr "Skriv inn et unikt kategorinavn uten komma eller semikolon."
 
 msgid " (filtered)"
 msgstr " (filtrert)"
@@ -342,8 +188,8 @@ msgstr[1] "%(count)s sekunder"
 
 msgid "%(count)s source"
 msgid_plural "%(count)s sources"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%(count)s kilde"
+msgstr[1] "%(count)s kilder"
 
 msgid "%(count)s task"
 msgid_plural "%(count)s tasks"
@@ -633,10 +479,21 @@ msgid "Account type"
 msgstr "Kontotype"
 
 msgid "Action"
-msgstr ""
+msgstr "Handling"
 
 msgid "Active call"
 msgstr "Aktiv samtale"
+
+msgid ""
+"Active playback, including browser videos, remains available alongside the "
+"assigned players. Search/Open selects local music or videos; a searchable "
+"player playlist appears when supported. Covers, shuffle and repeat are "
+"available when the player provides them."
+msgstr ""
+"Aktiv avspilling, også videoer i nettleseren, er fortsatt tilgjengelig ved "
+"siden av de tilordnede spillerne. Søk/Åpne velger lokal musikk eller video; "
+"en søkbar spilleliste vises hvis spilleren støtter den. Omslag, tilfeldig "
+"avspilling og gjentakelse er tilgjengelige når spilleren tilbyr dem."
 
 msgctxt "time tracking"
 msgid "Activity"
@@ -706,7 +563,7 @@ msgid "Address imported from LibreOffice."
 msgstr "Adresse importert fra LibreOffice."
 
 msgid "Address imported from own profile."
-msgstr ""
+msgstr "Adresse importert fra egen profil."
 
 msgid "Address supplement"
 msgstr "Adressetillegg"
@@ -729,6 +586,9 @@ msgstr "Etter måltid"
 
 msgid "All"
 msgstr "Alle"
+
+msgid "All anniversaries"
+msgstr "Alle merkedager"
 
 msgid "All cantons"
 msgstr "Alle kantoner"
@@ -761,6 +621,9 @@ msgstr "Tillat denne enheten å dele tilkoblingen"
 msgid "Also disclose appointments marked as confidential"
 msgstr "Vis også avtaler som er merket konfidensielle"
 
+msgid "Also hide in the calendar"
+msgstr "Skjul også i kalenderen"
+
 msgid "Also hide past anniversaries"
 msgstr "Skjul også tidligere merkedager"
 
@@ -786,6 +649,13 @@ msgstr ""
 "En avtalekalender, adressebok, oppgavebok og notatblokk i form av en "
 "skinninnbundet organizer —"
 
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"En oppføring utelates når en av kontaktgruppene er valgt. Ingen kontakter "
+"eller merkedager slettes."
+
 msgid "Android restricts this device identifier."
 msgstr "Android begrenser denne enhetsidentifikatoren."
 
@@ -793,7 +663,7 @@ msgid "Android version"
 msgstr "Android-versjon"
 
 msgid "Angle"
-msgstr ""
+msgstr "Vinkel"
 
 msgid "Anniversaries"
 msgstr "Merkedager"
@@ -849,6 +719,9 @@ msgstr ""
 
 msgid "Apply"
 msgstr "Bruk"
+
+msgid "Apply to"
+msgstr "Bruk på"
 
 msgid "Apply to the remaining conflicts"
 msgstr "Bruk for de resterende konfliktene"
@@ -937,7 +810,7 @@ msgid "Authority appointment"
 msgstr "Avtale med offentlig myndighet"
 
 msgid "Automatic"
-msgstr ""
+msgstr "Automatisk"
 
 msgid "Automatic backup failed."
 msgstr "Automatisk sikkerhetskopiering mislyktes."
@@ -968,7 +841,7 @@ msgid "Automatically dismiss anniversary reminders"
 msgstr "Skjul påminnelser om merkedager automatisk"
 
 msgid "Automatically over the current connection"
-msgstr ""
+msgstr "Automatisk via den gjeldende forbindelsen"
 
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Synkroniser automatisk via Wi-Fi"
@@ -1103,6 +976,9 @@ msgstr "Fødselsdagsfest"
 msgid "Birthday today"
 msgstr "Fødselsdag i dag"
 
+msgid "Birthdays only"
+msgstr "Bare fødselsdager"
+
 msgid "Black"
 msgstr "Svart"
 
@@ -1197,7 +1073,7 @@ msgid "Browse..."
 msgstr "Bla gjennom..."
 
 msgid "Brush"
-msgstr ""
+msgstr "Pensel"
 
 msgid "Burgenland"
 msgstr "Burgenland"
@@ -1294,10 +1170,13 @@ msgid "Call with %(name)s · %(date)s"
 msgstr "Samtale med %(name)s · %(date)s"
 
 msgid "Calligraphy pen"
-msgstr ""
+msgstr "Kalligrafipenn"
 
 msgid "Cancel"
 msgstr "Avbryt"
+
+msgid "Cancel sending"
+msgstr "Avbryt sending"
 
 msgid "Canton"
 msgstr "Kanton"
@@ -1320,6 +1199,19 @@ msgstr "Kategorier"
 msgid "Categories:"
 msgstr "Kategorier:"
 
+msgid "Category"
+msgstr "Kategori"
+
+msgid "Category colors"
+msgstr "Kategorifarger"
+
+msgid ""
+"Category colors highlight appointments and tasks. A custom entry color takes "
+"precedence; otherwise the first matching category is used."
+msgstr ""
+"Kategorifarger fremhever avtaler og oppgaver. En egen farge for oppføringen "
+"har forrang; ellers brukes den første samsvarende kategorien."
+
 msgid "Catholic confirmation"
 msgstr "Konfirmasjon"
 
@@ -1336,7 +1228,14 @@ msgid "Changes are applied automatically"
 msgstr "Endringer brukes automatisk"
 
 msgid "Changes to your own profile are saved with Save."
+msgstr "Endringer i egen profil lagres med Lagre."
+
+msgid ""
+"Changing or removing a category color does not rename or delete categories "
+"on saved or imported entries."
 msgstr ""
+"Endring eller fjerning av en kategorifarge endrer ikke navn på eller sletter "
+"kategorier i lagrede eller importerte oppføringer."
 
 msgid "Charging"
 msgstr "Lader"
@@ -1390,10 +1289,10 @@ msgstr ""
 "en kopi av gjeldende data. En kryptert sikkerhetskopi krever passordet sitt."
 
 msgid "Choose a connection. Confirm the pairing code on the other device."
-msgstr ""
+msgstr "Velg en forbindelse. Bekreft paringskoden på den andre enheten."
 
 msgid "Choose a contact"
-msgstr ""
+msgstr "Velg en kontakt"
 
 msgid "Choose a country first."
 msgstr "Velg et land først."
@@ -1552,7 +1451,7 @@ msgid "Codes match"
 msgstr "Kodene er like"
 
 msgid "Collapse day groups by default"
-msgstr ""
+msgstr "Slå sammen dagsgrupper som standard"
 
 msgid "Colleagues"
 msgstr "Kolleger"
@@ -1587,7 +1486,7 @@ msgstr ""
 "telefon, for å bekrefte forbindelsen."
 
 msgid "Compare with LibreOffice"
-msgstr ""
+msgstr "Sammenlign med LibreOffice"
 
 msgid "Complete archive export is available only in the installed application."
 msgstr ""
@@ -1647,7 +1546,7 @@ msgid "Confirm the pairing request on the phone."
 msgstr "Bekreft paringsforespørselen på telefonen."
 
 msgid "Confirm this code on the other device."
-msgstr ""
+msgstr "Bekreft denne koden på den andre enheten."
 
 msgid "Confirmation"
 msgstr "Bekreftelse"
@@ -1659,7 +1558,7 @@ msgid "Connect"
 msgstr "Koble til"
 
 msgid "Connect Notes before sending this entry."
-msgstr ""
+msgstr "Koble til Notes før denne oppføringen sendes."
 
 msgid "Connect phone via WLAN"
 msgstr "Koble til telefonen via WLAN"
@@ -1820,10 +1719,10 @@ msgid "Create pairing file …"
 msgstr "Opprett paringsfil …"
 
 msgid "Create recovery points"
-msgstr ""
+msgstr "Opprett gjenopprettingspunkter"
 
 msgid "Created"
-msgstr ""
+msgstr "Opprettet"
 
 msgid "Creating recovery snapshot …"
 msgstr "Oppretter gjenopprettingsøyeblikksbilde …"
@@ -1833,6 +1732,9 @@ msgstr "Egendefinert"
 
 msgid "Custom application"
 msgstr "Tilpasset applikasjon"
+
+msgid "Custom color"
+msgstr "Egen farge"
 
 msgid "Custom notification"
 msgstr "Egendefinert varsel"
@@ -1856,7 +1758,7 @@ msgid "Cut"
 msgstr "Klipp ut"
 
 msgid "Cut selection"
-msgstr ""
+msgstr "Klipp ut utvalget"
 
 msgid "Cycle calendar"
 msgstr "Sykluskalender"
@@ -1917,7 +1819,7 @@ msgid "Death anniversary"
 msgstr "Dødsdag"
 
 msgid "Default view"
-msgstr ""
+msgstr "Standardvisning"
 
 msgid "Default: next to the data file"
 msgstr "Standard: ved siden av datafilen"
@@ -1964,10 +1866,10 @@ msgid "Delete cycle marker"
 msgstr "Slett syklusmarkør"
 
 msgid "Delete drawing sheet"
-msgstr ""
+msgstr "Slett tegneark"
 
 msgid "Delete drawing sheet?"
-msgstr ""
+msgstr "Slette tegnearket?"
 
 msgid "Delete entries"
 msgstr "Slett oppføringer"
@@ -2147,6 +2049,13 @@ msgstr "Lege"
 msgid "Doctor appointment"
 msgstr "Legetime"
 
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"Dokumentet er overlevert til valgt program eller faksserver. Levering er "
+"ikke bekreftet."
+
 msgid "Document.pdf"
 msgstr "Dokument.pdf"
 
@@ -2235,7 +2144,7 @@ msgid "Edit the website or application used"
 msgstr "Rediger nettstedet eller programmet som brukes"
 
 msgid "Ellipse"
-msgstr ""
+msgstr "Ellipse"
 
 msgid "Email"
 msgstr "E-post"
@@ -2290,6 +2199,9 @@ msgid ""
 msgstr ""
 "Aktiver Wi-Fi-feilsøking i utvikleralternativene i Notes på din egen parede "
 "telefon."
+
+msgid "Enable contact group exclusions"
+msgstr "Aktiver utelatelse av kontaktgrupper"
 
 msgid "Enable cycle calendar"
 msgstr "Aktiver sykluskalender"
@@ -2357,6 +2269,9 @@ msgstr ""
 msgid "Enter"
 msgstr "Skriv inn"
 
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr "Skriv inn vertsnavnet til en HylaFAX-server, eventuelt fulgt av :port."
+
 msgid ""
 "Enter a blood glucose value on the left to highlight matching scheme rows."
 msgstr ""
@@ -2396,6 +2311,9 @@ msgstr ""
 msgid "Enter height and weight to calculate BMI."
 msgstr "Skriv inn høyde og vekt for å beregne BMI."
 
+msgid "Enter recipient manually"
+msgstr "Skriv inn mottaker manuelt"
+
 msgid "Enter the archive password."
 msgstr "Skriv inn arkivpassordet."
 
@@ -2431,7 +2349,7 @@ msgid "Estimate the next period"
 msgstr "Anslå neste menstruasjon"
 
 msgid "Estimated from older data"
-msgstr ""
+msgstr "Anslått fra eldre data"
 
 msgid "Estimated next period"
 msgstr "Anslått neste menstruasjon"
@@ -2440,7 +2358,7 @@ msgid "Evening"
 msgstr "Kveld"
 
 msgid "Every change"
-msgstr ""
+msgstr "Ved hver endring"
 
 msgid "Every filled medication row requires a name."
 msgstr "Hver utfylte legemiddelrad må ha et navn."
@@ -2449,7 +2367,7 @@ msgid "Every filled row requires a valid date."
 msgstr "Hver utfylte rad må ha en gyldig dato."
 
 msgid "Every program start"
-msgstr ""
+msgstr "Ved hver programstart"
 
 msgid "Everything is done - the list is empty."
 msgstr "Alt er ferdig – listen er tom."
@@ -2460,8 +2378,11 @@ msgstr "Alt er klart"
 msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr "Nøyaktig én Magnolie Notes-telefon må pares."
 
+msgid "Exclude contact groups"
+msgstr "Utelat kontaktgrupper"
+
 msgid "Expand day groups by default"
-msgstr ""
+msgstr "Utvid dagsgrupper som standard"
 
 msgid "Export"
 msgstr "Eksporter"
@@ -2482,7 +2403,7 @@ msgid "Export is available only in the installed application."
 msgstr "Eksport er bare tilgjengelig i det installerte programmet."
 
 msgid "Export vCard"
-msgstr ""
+msgstr "Eksporter vCard"
 
 msgid "Extend sharing"
 msgstr "Utvid deling"
@@ -2498,6 +2419,20 @@ msgstr "Familie"
 
 msgid "Fasting"
 msgstr "Fastende"
+
+msgid "Fax"
+msgstr "Faks"
+
+msgid "Fax printer"
+msgstr "Faksskriver"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"Faks krever en konfigurert HylaFAX-server og installert sendfax. E-post "
+"bruker en støttet installert e-postklient. Overlevering er ikke "
+"leveringsbekreftelse."
 
 msgid "Female caregiver"
 msgstr "Kvinnelig omsorgsperson"
@@ -2518,13 +2453,16 @@ msgid "Fertile days"
 msgstr "Fruktbare dager"
 
 msgid "Field"
-msgstr ""
+msgstr "Felt"
+
+msgid "File"
+msgstr "Fil"
 
 msgid "Fill selection"
-msgstr ""
+msgstr "Fyll utvalget"
 
 msgid "Fill with gradient"
-msgstr ""
+msgstr "Fyll med fargeovergang"
 
 msgid "Fill with stored values"
 msgstr "Fyll ut med lagrede verdier"
@@ -2694,16 +2632,16 @@ msgstr ""
 "innstillingene."
 
 msgid "Gradient end color"
-msgstr ""
+msgstr "Sluttfarge for fargeovergang"
 
 msgid "Grisons"
 msgstr "Graubünden"
 
 msgid "Group by day"
-msgstr ""
+msgstr "Grupper etter dag"
 
 msgid "Group changes by time interval"
-msgstr ""
+msgstr "Grupper endringer etter tidsintervall"
 
 msgid "Group for %(notebook)s"
 msgstr "Gruppe for %(notebook)s"
@@ -2779,7 +2717,7 @@ msgid "Hide past appointments"
 msgstr "Skjul tidligere avtaler"
 
 msgid "Highlighter"
-msgstr ""
+msgstr "Markeringspenn"
 
 msgid "History"
 msgstr "Forløp"
@@ -2819,6 +2757,9 @@ msgstr "Hvordan kalenderen skal oppføre seg når du klikker på en dag."
 msgid "Husband"
 msgstr "Ektemann"
 
+msgid "HylaFAX server (Linux)"
+msgstr "HylaFAX-server (Linux)"
+
 msgid "I"
 msgstr "Jeg"
 
@@ -2832,7 +2773,7 @@ msgid "ISO week (week 1 contains the first Thursday)"
 msgstr "ISO-uke (uke 1 inneholder den første torsdagen)"
 
 msgid "Idea"
-msgstr ""
+msgstr "Idé"
 
 msgid ""
 "If the year is unknown, enter only day and month.\n"
@@ -2982,7 +2923,7 @@ msgid "Insert link"
 msgstr "Sett inn lenke"
 
 msgid "Insert shape"
-msgstr ""
+msgstr "Sett inn figur"
 
 msgid ""
 "Install the highlighted extension in Thunderbird via Add-ons and Themes → "
@@ -3046,6 +2987,9 @@ msgstr "Saft"
 msgid "Jura"
 msgstr "Jura"
 
+msgid "KDE Connect"
+msgstr "KDE Connect"
+
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect for SMS er kun tilgjengelig i det installerte programmet."
 
@@ -3057,6 +3001,17 @@ msgstr "KDE Connect telefon paret."
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect-port %(port)s"
+
+msgid ""
+"KDE Connect transmits pen position, pressure, contact and pen/eraser "
+"changes. The hover cursor leaves no ink. The phone's tablet menu offers "
+"fullscreen and settings to hide or move the drawing button. Tilt, rotation "
+"and extra pen buttons are not transmitted by this protocol."
+msgstr ""
+"KDE Connect overfører pennens posisjon, trykk, kontakt og bytte mellom penn "
+"og viskelær. Svevemarkøren tegner ikke. Telefonens nettbrettmeny tilbyr "
+"fullskjerm og innstillinger for å skjule eller flytte tegneknappen. Denne "
+"protokollen overfører ikke helning, rotasjon eller ekstra penneknapper."
 
 msgid "Keep"
 msgstr "Behold"
@@ -3080,7 +3035,7 @@ msgid "Landline"
 msgstr "Fasttelefon"
 
 msgid "Landscape"
-msgstr ""
+msgstr "Liggende"
 
 msgid "Language"
 msgstr "Språk"
@@ -3129,7 +3084,7 @@ msgstr ""
 "LibreOffice leses bare når du trykker på knappen. Innstillingene endres ikke."
 
 msgid "LibreOffice user data updated."
-msgstr ""
+msgstr "LibreOffice-brukerdata oppdatert."
 
 msgid "License"
 msgstr "Lisens"
@@ -3138,7 +3093,7 @@ msgid "Liechtenstein"
 msgstr "Liechtenstein"
 
 msgid "Line"
-msgstr ""
+msgstr "Linje"
 
 msgid "Line width"
 msgstr "Strektykkelse"
@@ -3169,6 +3124,9 @@ msgstr "Lokal kalender"
 
 msgid "Local image"
 msgstr "Lokalt bilde"
+
+msgid "Local time"
+msgstr "Lokal tid"
 
 msgid "Location"
 msgstr "Sted"
@@ -3318,7 +3276,7 @@ msgid "Manual only"
 msgstr "Bare manuelt"
 
 msgid "Manually"
-msgstr ""
+msgstr "Manuelt"
 
 msgid "Manufacturer"
 msgstr "Produsent"
@@ -3389,16 +3347,13 @@ msgid "Merge duplicate contact cards"
 msgstr "Slå sammen dupliserte kontaktkort"
 
 msgid "Merge history"
-msgstr ""
+msgstr "Flettehistorikk"
 
 msgid "Merge this pair individually"
 msgstr "Slå sammen dette paret enkeltvis"
 
 msgid "Merged"
-msgstr ""
-
-msgid "Message"
-msgstr "Melding"
+msgstr "Flettet"
 
 msgid "Message text"
 msgstr "Meldingstekst"
@@ -3458,7 +3413,7 @@ msgid "Model"
 msgstr "Modell"
 
 msgid "Modified"
-msgstr ""
+msgstr "Endret"
 
 msgid "Module"
 msgstr "Modul"
@@ -3467,7 +3422,7 @@ msgid "Monday"
 msgstr "Mandag"
 
 msgid "Money"
-msgstr ""
+msgstr "Penger"
 
 msgid "Month"
 msgstr "Måned"
@@ -3522,7 +3477,7 @@ msgid "Move notebook up"
 msgstr "Flytt notatbok opp"
 
 msgid "Move selection"
-msgstr ""
+msgstr "Flytt utvalget"
 
 msgid "Move the ticked entries to the wastebasket"
 msgstr "Flytt de avkryssede oppføringene til papirkurven"
@@ -3534,7 +3489,7 @@ msgid "Move up"
 msgstr "Flytt opp"
 
 msgid "Move view"
-msgstr ""
+msgstr "Flytt visningen"
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -3570,6 +3525,9 @@ msgstr "Nederland"
 
 msgid "Network"
 msgstr "Nettverk"
+
+msgid "Network fax server"
+msgstr "Faksserver i nettverket"
 
 msgid "Neuchâtel"
 msgstr "Neuchâtel"
@@ -3613,7 +3571,7 @@ msgid "New contact"
 msgstr "Ny kontakt"
 
 msgid "New drawing sheet"
-msgstr ""
+msgstr "Nytt tegneark"
 
 msgid "New group"
 msgstr "Ny gruppe"
@@ -3637,7 +3595,7 @@ msgid "New version %(version)s is available."
 msgstr "Ny versjon %(version)s er tilgjengelig."
 
 msgid "Newest first"
-msgstr ""
+msgstr "Nyeste først"
 
 msgid "Next"
 msgstr "Neste"
@@ -3670,7 +3628,7 @@ msgid "Nextcloud is not enabled."
 msgstr "Nextcloud er ikke aktivert."
 
 msgid "Nib angle"
-msgstr ""
+msgstr "Pennespisens vinkel"
 
 msgid "Nidwalden"
 msgstr "Nidwalden"
@@ -3698,7 +3656,7 @@ msgid "No SMS messages are scheduled."
 msgstr "Ingen SMS-meldinger er planlagt."
 
 msgid "No WhatsApp profile available for this contact."
-msgstr ""
+msgstr "Ingen WhatsApp-profil tilgjengelig for denne kontakten."
 
 msgid "No Windows dictionary is installed for this language."
 msgstr "Ingen Windows-ordbok er installert for dette språket."
@@ -3722,11 +3680,14 @@ msgstr "Ingen avtale er planlagt."
 msgid "No calendars found."
 msgstr "Fant ingen kalendere."
 
+msgid "No configured mail or fax adapter is available."
+msgstr "Ingen konfigurert e-post- eller fakstilkobling er tilgjengelig."
+
 msgid "No contact group"
-msgstr ""
+msgstr "Ingen kontaktgruppe"
 
 msgid "No date recorded"
-msgstr ""
+msgstr "Ingen dato registrert"
 
 msgid "No default voice subscription is available."
 msgstr "Intet standardabonnement for anrop er tilgjengelig."
@@ -3759,7 +3720,7 @@ msgid "No media player is available on the connected phone."
 msgstr "Ingen mediespiller er tilgjengelig på den tilkoblede telefonen."
 
 msgid "No merge history recorded"
-msgstr ""
+msgstr "Ingen flettehistorikk registrert"
 
 msgid "No notebooks"
 msgstr "Ingen notatbøker"
@@ -3789,7 +3750,7 @@ msgstr ""
 "til personer som er ansvarlige for oppgaver."
 
 msgid "No phone number available."
-msgstr ""
+msgstr "Intet telefonnummer tilgjengelig."
 
 msgid "No phone paired yet."
 msgstr "Ingen telefon er paret ennå."
@@ -3905,7 +3866,7 @@ msgid "Notes and special instructions"
 msgstr "Merknader og spesielle anvisninger"
 
 msgid "Notes and tasks"
-msgstr ""
+msgstr "Notater og oppgaver"
 
 msgid ""
 "Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
@@ -3983,7 +3944,7 @@ msgid "Ointment"
 msgstr "Salve"
 
 msgid "Oldest first"
-msgstr ""
+msgstr "Eldste først"
 
 msgid "One address book"
 msgstr "Én adressebok"
@@ -4029,6 +3990,9 @@ msgstr "På nett"
 msgid "Online address book"
 msgstr "Nettbasert adressebok"
 
+msgid "Online fax service"
+msgstr "Nettbasert fakstjeneste"
+
 msgid "Online via Bluetooth data"
 msgstr "Tilkoblet via Bluetooth-data"
 
@@ -4056,10 +4020,10 @@ msgstr ""
 "før du bytter enhet."
 
 msgid "Only personal entries can be sent to Notes."
-msgstr ""
+msgstr "Bare personlige oppføringer kan sendes til Notes."
 
 msgid "Only the Notes collection"
-msgstr ""
+msgstr "Bare Notes-samlingen"
 
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
@@ -4144,7 +4108,7 @@ msgid "Open the day in the daily view"
 msgstr "Åpne dagen i dagsvisningen"
 
 msgid "Open the drawing tablet in KDE Connect on the paired phone."
-msgstr ""
+msgstr "Åpne tegnebrettet i KDE Connect på den parede telefonen."
 
 msgid "Open the phone connection screen and try again."
 msgstr "Åpne skjermen for telefontilkoblingen og prøv igjen."
@@ -4218,7 +4182,7 @@ msgid "Own phone number (default voice SIM)"
 msgstr "Mitt nummer (standard-SIM for anrop)"
 
 msgid "Own profile"
-msgstr ""
+msgstr "Egen profil"
 
 msgid "PDF file"
 msgstr "PDF-fil"
@@ -4239,7 +4203,7 @@ msgid "Page %(page)s of %(count)s"
 msgstr "Side %(page)s av %(count)s"
 
 msgid "Page order"
-msgstr ""
+msgstr "Siderekkefølge"
 
 msgid "Pages"
 msgstr "Sider"
@@ -4487,6 +4451,9 @@ msgstr "Skriv inn en tittel for hver nye oppgave."
 msgid "Please enter a title."
 msgstr "Skriv inn en tittel."
 
+msgid "Please enter a unique category name without commas or semicolons."
+msgstr "Skriv inn et unikt kategorinavn uten komma eller semikolon."
+
 msgid "Please enter a website or application for the custom action."
 msgstr "Skriv inn et nettsted eller program for den egendefinerte handlingen."
 
@@ -4524,7 +4491,7 @@ msgid "Poland"
 msgstr "Polen"
 
 msgid "Portrait"
-msgstr ""
+msgstr "Stående"
 
 msgid "Possible duplicates among local and incoming contacts"
 msgstr "Mulige duplikater blant lokale og innkommende kontakter"
@@ -4566,6 +4533,9 @@ msgstr "Forbereder Microsoft-pålogging …"
 
 msgid "Preparing account sign-in …"
 msgstr "Forbereder kontoinnlogging …"
+
+msgid "Preparing selected notes…"
+msgstr "Forbereder valgte notater…"
 
 msgid "Preview"
 msgstr "Forhåndsvisning"
@@ -4643,7 +4613,7 @@ msgid "Private"
 msgstr "Privat"
 
 msgid "Properties"
-msgstr ""
+msgstr "Egenskaper"
 
 msgid "Protected archive password unavailable."
 msgstr "Det beskyttede arkivpassordet er utilgjengelig."
@@ -4686,7 +4656,7 @@ msgid "Quit"
 msgstr "Avslutt"
 
 msgid "Quote"
-msgstr ""
+msgstr "Sitat"
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Tilgjengelig IPv4- eller IPv6-adresse til denne datamaskinen"
@@ -4701,10 +4671,13 @@ msgid "Reason"
 msgstr "Årsak"
 
 msgid "Recently modified"
-msgstr ""
+msgstr "Nylig endret"
 
 msgid "Recipe"
-msgstr ""
+msgstr "Oppskrift"
+
+msgid "Recipient"
+msgstr "Mottaker"
 
 msgid "Reconnect"
 msgstr "Koble til på nytt"
@@ -4714,7 +4687,7 @@ msgid "Recorded times"
 msgstr "Registrerte tider"
 
 msgid "Recovery journal"
-msgstr ""
+msgstr "Gjenopprettingsjournal"
 
 msgid "Recovery snapshot created."
 msgstr "Gjenopprettingsøyeblikksbilde opprettet."
@@ -4726,7 +4699,7 @@ msgid "Recovery snapshots"
 msgstr "Gjenopprettingsøyeblikksbilder"
 
 msgid "Rectangle"
-msgstr ""
+msgstr "Rektangel"
 
 msgid "Recycle bin"
 msgstr "Papirkurv"
@@ -4968,7 +4941,7 @@ msgid "Right page"
 msgstr "Høyre side"
 
 msgid "Rotate selection"
-msgstr ""
+msgstr "Roter utvalget"
 
 msgid "Route"
 msgstr "Rute"
@@ -5031,6 +5004,9 @@ msgstr "Lagre"
 
 msgid "Save Magnolienbaum pairing file"
 msgstr "Lagre Magnolienbaum-paringsfil"
+
+msgid "Save as PDF"
+msgstr "Lagre som PDF"
 
 msgid "Save as…"
 msgstr "Lagre som…"
@@ -5114,6 +5090,9 @@ msgstr "Skoleferier er ikke tilgjengelige for denne regionen."
 msgid "Schwyz"
 msgstr "Schwyz"
 
+msgid "Scope"
+msgstr "Omfang"
+
 msgid "Screen notification only"
 msgstr "Bare skjermvarsel"
 
@@ -5154,7 +5133,7 @@ msgid "Security"
 msgstr "Sikkerhet"
 
 msgid "Select"
-msgstr ""
+msgstr "Velg"
 
 msgid "Select a country first."
 msgstr "Velg først et land."
@@ -5168,6 +5147,9 @@ msgstr ""
 
 msgid "Select a custom backup folder."
 msgstr "Velg en egendefinert sikkerhetskopimappe."
+
+msgid "Select a recipient."
+msgstr "Velg en mottaker."
 
 msgid "Select all"
 msgstr "Merk alt"
@@ -5189,7 +5171,7 @@ msgid "Select backup folder"
 msgstr "Velg mappe for sikkerhetskopier"
 
 msgid "Select complete strokes that fit inside the sheet."
-msgstr ""
+msgstr "Velg hele streker som passer innenfor arket."
 
 msgid "Select something first."
 msgstr "Velg først noe."
@@ -5211,7 +5193,7 @@ msgid "Selection options"
 msgstr "Valgalternativer"
 
 msgid "Send"
-msgstr ""
+msgstr "Send"
 
 msgid "Send SMS"
 msgstr "Send SMS"
@@ -5222,17 +5204,29 @@ msgstr "Send tilpasset tekst"
 msgid "Send documents"
 msgstr "Send dokumenter"
 
+msgid "Send notes by email or fax"
+msgstr "Send notater med e-post eller faks"
+
 msgid "Send secure request"
 msgstr "Send sikker forespørsel"
 
 msgid "Send this new note to Notes"
-msgstr ""
+msgstr "Send dette nye notatet til Notes"
 
 msgid "Send to Notes"
-msgstr ""
+msgstr "Send til Notes"
 
 msgid "Send via"
-msgstr ""
+msgstr "Send via"
+
+msgid "Sending cancelled."
+msgstr "Sending avbrutt."
+
+msgid "Sending is disabled."
+msgstr "Sending er deaktivert."
+
+msgid "Sending is not available."
+msgstr "Sending er ikke tilgjengelig."
 
 msgid "Sent"
 msgstr "Sendt"
@@ -5284,7 +5278,7 @@ msgid "Share connection with"
 msgstr "Del tilkobling med"
 
 msgid "Share selected details"
-msgstr ""
+msgstr "Del valgte opplysninger"
 
 msgid "Share this connection with the selected device?"
 msgstr "Dele tilkoblingen med den valgte enheten?"
@@ -5314,7 +5308,7 @@ msgid "Sharing this connection is not allowed."
 msgstr "Deling av denne tilkoblingen er ikke tillatt."
 
 msgid "Sheet size"
-msgstr ""
+msgstr "Arkstørrelse"
 
 msgid "Shift planner"
 msgstr "Vaktplan"
@@ -5327,6 +5321,9 @@ msgstr "Korttidsvirkende insulin"
 
 msgid "Show Health after Planner"
 msgstr "Vis Helse etter Planlegger"
+
+msgid "Show Send in note print options"
+msgstr "Vis Send i notatenes utskriftsvalg"
 
 msgid "Show all"
 msgstr "Vis alle"
@@ -5500,7 +5497,7 @@ msgid "Spray"
 msgstr "Spray"
 
 msgid "Square"
-msgstr ""
+msgstr "Kvadrat"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
@@ -5537,7 +5534,7 @@ msgid "Stop"
 msgstr "Stopp"
 
 msgid "Street"
-msgstr ""
+msgstr "Gate"
 
 msgid "Street / house number"
 msgstr "Gate / husnummer"
@@ -5553,6 +5550,9 @@ msgstr "Gjennomstreking"
 
 msgid "Styria"
 msgstr "Steiermark"
+
+msgid "Subject"
+msgstr "Emne"
 
 msgid "Submitted"
 msgstr "Sendt inn"
@@ -5619,7 +5619,7 @@ msgstr ""
 "fjernes. Allerede godtatte kontakter og lokale data beholdes."
 
 msgid "Synchronize all notes and tasks"
-msgstr ""
+msgstr "Synkroniser alle notater og oppgaver"
 
 msgid "Synchronize automatically at startup"
 msgstr "Synkroniser automatisk ved oppstart"
@@ -5989,6 +5989,9 @@ msgstr "Dataene er ikke et JSON-objekt."
 msgid "The destination could not be opened."
 msgstr "Destinasjonen kunne ikke åpnes."
 
+msgid "The document could not be handed off."
+msgstr "Dokumentet kunne ikke overleveres."
+
 msgid "The download address is not permitted for this platform."
 msgstr "Nedlastingsadressen er ikke tillatt for denne plattformen."
 
@@ -6027,6 +6030,16 @@ msgstr ""
 "OneDrive. Magnolie logger ikke på en leverandør. Automatiske "
 "sikkerhetskopier kjøres bare mens Organizer er åpen og låst opp, umiddelbart "
 "etter at dataene er lagret."
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "Overleveringen har allerede startet og kan ikke kalles tilbake her."
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr ""
+"Resultatet av overleveringen er ukjent. Kontroller det eksterne programmet "
+"før du prøver igjen."
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -6314,14 +6327,14 @@ msgid "The selected contacts contain no values for these columns."
 msgstr "De valgte kontaktene inneholder ingen verdier for disse kolonnene."
 
 msgid "The selected entry is too large to send."
-msgstr ""
+msgstr "Den valgte oppføringen er for stor til å sendes."
 
 msgid "The selected health records contain no printable values."
 msgstr ""
 "De valgte helseoppføringene inneholder ingen verdier som kan skrives ut."
 
 msgid "The selected note contains attachments that cannot be sent."
-msgstr ""
+msgstr "Det valgte notatet inneholder vedlegg som ikke kan sendes."
 
 msgid "The selected phone changed. Try again."
 msgstr "Den valgte telefonen er endret. Prøv igjen."
@@ -6332,6 +6345,9 @@ msgid ""
 msgstr ""
 "De valgte spillerne tilbys også på telefonen når de er lukket. Spill av "
 "starter det tilordnede programmet."
+
+msgid "The selected time zone is unavailable."
+msgstr "Den valgte tidssonen er utilgjengelig."
 
 msgid "The server denied access. Check this account's permissions."
 msgstr "Serveren nektet tilgang. Kontroller tillatelsene til denne kontoen."
@@ -6590,7 +6606,7 @@ msgid "This phone transport is unavailable."
 msgstr "Denne tilkoblingsmåten for telefonen er ikke tilgjengelig."
 
 msgid "This profile format is not supported."
-msgstr ""
+msgstr "Dette profilformatet støttes ikke."
 
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
@@ -6655,7 +6671,7 @@ msgid "Time format"
 msgstr "Tidsformat"
 
 msgid "Time synchronization direction"
-msgstr ""
+msgstr "Synkroniseringsretning for tidsregistrering"
 
 msgctxt "time tracking"
 msgid "Time tracking"
@@ -6715,13 +6731,13 @@ msgid "Tradesperson"
 msgstr "Håndverker"
 
 msgid "Travel"
-msgstr ""
+msgstr "Reise"
 
 msgid "Tray applet"
 msgstr "Systemstatusapplet"
 
 msgid "Triangle"
-msgstr ""
+msgstr "Trekant"
 
 msgid "Trust and accept tasks and notes automatically"
 msgstr "Klarer og godta oppgaver og notater automatisk"
@@ -6773,10 +6789,10 @@ msgid "Unavailable"
 msgstr "Ikke tilgjengelig"
 
 msgid "Unchanged contents do not create another recovery point."
-msgstr ""
+msgstr "Uendret innhold oppretter ikke et nytt gjenopprettingspunkt."
 
 msgid "Undated"
-msgstr ""
+msgstr "Udatert"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -7024,6 +7040,13 @@ msgid "Waiting for device status"
 msgstr "Venter på enhetsstatus"
 
 msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"Venter på e-post- eller faksprogrammet. Å lukke dette vinduet kaller ikke "
+"overleveringen tilbake."
+
+msgid ""
 "Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
 "seconds."
 msgstr ""
@@ -7087,6 +7110,9 @@ msgstr ""
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "Været ble ikke hentet fordi ingen plassering er tilgjengelig."
+
+msgid "Website"
+msgstr "Nettsted"
 
 msgid "Wedding anniversary"
 msgstr "Bryllupsdag"
@@ -7171,7 +7197,7 @@ msgid "Whole month"
 msgstr "Hele måneden"
 
 msgid "Width"
-msgstr ""
+msgstr "Bredde"
 
 msgid "Wife"
 msgstr "Kone"
@@ -7285,7 +7311,7 @@ msgid "Yes, the code matches"
 msgstr "Ja, koden stemmer"
 
 msgid "Yesterday"
-msgstr ""
+msgstr "I går"
 
 msgid "You can also do this later in Settings."
 msgstr "Du kan også gjøre dette senere i Innstillinger."
@@ -7323,10 +7349,10 @@ msgid "Yours sincerely,"
 msgstr "Med vennlig hilsen"
 
 msgid "Zoom in"
-msgstr ""
+msgstr "Zoom inn"
 
 msgid "Zoom out"
-msgstr ""
+msgstr "Zoom ut"
 
 msgid "Zug"
 msgstr "Zug"
@@ -7713,6 +7739,9 @@ msgstr[1] "… og %(count)s elementer til som også blir skrevet ut."
 
 msgid "＋ Add appointment"
 msgstr "＋ Legg til avtale"
+
+#~ msgid "Message"
+#~ msgstr "Melding"
 
 #~ msgid ""
 #~ "The log records when the reminder service checked and what it reported. "

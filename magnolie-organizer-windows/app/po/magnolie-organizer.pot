@@ -2941,6 +2941,9 @@ msgstr ""
 msgid "Local image"
 msgstr ""
 
+msgid "Local time"
+msgstr ""
+
 msgid "Location"
 msgstr ""
 
@@ -5960,6 +5963,9 @@ msgstr ""
 msgid ""
 "The selected players are also offered on the phone while closed. Play starts "
 "the assigned application."
+msgstr ""
+
+msgid "The selected time zone is unavailable."
 msgstr ""
 
 msgid "The server denied access. Check this account's permissions."

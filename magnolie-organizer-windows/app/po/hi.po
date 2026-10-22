@@ -7,6 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: hi\n"
@@ -15,154 +16,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-
-msgid "Cancel sending"
-msgstr "भेजना रद्द करें"
-
-msgid ""
-"Document handed to the selected application or fax server. Delivery is not "
-"confirmed."
-msgstr "दस्तावेज़ चुने हुए ऐप या फ़ैक्स सर्वर को सौंप दिया गया। डिलीवरी की पुष्टि नहीं हुई है।"
-
-msgid "Enter a HylaFAX server hostname, optionally followed by :port."
-msgstr "HylaFAX सर्वर का होस्टनाम लिखें, वैकल्पिक रूप से उसके बाद :port जोड़ें।"
-
-msgid "Enter recipient manually"
-msgstr "प्राप्तकर्ता स्वयं दर्ज करें"
-
-msgid "Fax printer"
-msgstr "फ़ैक्स प्रिंटर"
-
-msgid "Network fax server"
-msgstr "नेटवर्क फ़ैक्स सर्वर"
-
-msgid "Online fax service"
-msgstr "ऑनलाइन फ़ैक्स सेवा"
-
-msgid "Save as PDF"
-msgstr "PDF के रूप में सहेजें"
-
-msgid "Website"
-msgstr "वेबसाइट"
-
-msgid "Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them."
-msgstr "ब्राउज़र वीडियो सहित चल रहा प्लेबैक निर्धारित प्लेयर के साथ उपलब्ध रहता है। खोजें/खोलें से स्थानीय संगीत या वीडियो चुनें; प्लेयर समर्थन करे तो खोजने योग्य प्लेलिस्ट दिखाई देती है। कवर, यादृच्छिक क्रम और दोहराव प्लेयर द्वारा उपलब्ध कराए जाने पर मिलते हैं।"
-
-msgid "KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol."
-msgstr "KDE Connect पेन की स्थिति, दबाव, संपर्क और पेन/रबड़ का बदलाव भेजता है। ऊपर मंडराता कर्सर रेखा नहीं बनाता। फ़ोन के टैबलेट मेनू में पूर्ण स्क्रीन और चित्रण बटन को छिपाने या खिसकाने की सेटिंग हैं। यह प्रोटोकॉल झुकाव, घुमाव और अतिरिक्त पेन बटन नहीं भेजता।"
-
-msgid "Fax"
-msgstr "फ़ैक्स"
-
-msgid ""
-"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
-"supported installed mail client. A handoff is not delivery confirmation."
-msgstr ""
-"फ़ैक्स के लिए कॉन्फ़िगर किया हुआ HylaFAX सर्वर और स्थापित sendfax चाहिए। ईमेल समर्थित "
-"स्थापित मेल क्लाइंट का उपयोग करता है। सौंपना डिलीवरी की पुष्टि नहीं है।"
-
-msgid "HylaFAX server (Linux)"
-msgstr "HylaFAX सर्वर (Linux)"
-
-msgid "No configured mail or fax adapter is available."
-msgstr "कोई कॉन्फ़िगर किया हुआ मेल या फ़ैक्स अडैप्टर उपलब्ध नहीं है।"
-
-msgid "Preparing selected notes…"
-msgstr "चुने हुए नोट तैयार हो रहे हैं…"
-
-msgid "Recipient"
-msgstr "प्राप्तकर्ता"
-
-msgid "Select a recipient."
-msgstr "एक प्राप्तकर्ता चुनें।"
-
-msgid "Send notes by email or fax"
-msgstr "नोट ईमेल या फ़ैक्स से भेजें"
-
-msgid "Sending cancelled."
-msgstr "भेजना रद्द हुआ।"
-
-msgid "Sending is disabled."
-msgstr "भेजना बंद है।"
-
-msgid "Sending is not available."
-msgstr "भेजना उपलब्ध नहीं है।"
-
-msgid "Show Send in note print options"
-msgstr "नोट के मुद्रण विकल्पों में भेजें दिखाएँ"
-
-msgid "Subject"
-msgstr "विषय"
-
-msgid "The document could not be handed off."
-msgstr "दस्तावेज़ सौंपा नहीं जा सका।"
-
-msgid "The handoff has already started and cannot be recalled here."
-msgstr "सौंपने की प्रक्रिया शुरू हो चुकी है और यहाँ से वापस नहीं ली जा सकती।"
-
-msgid ""
-"The handoff outcome is unknown. Check the external application before trying "
-"again."
-msgstr "सौंपने का परिणाम अज्ञात है। दोबारा प्रयास करने से पहले बाहरी ऐप जाँचें।"
-
-msgid ""
-"Waiting for the mail or fax application. Closing this window does not recall "
-"the handoff."
-msgstr "मेल या फ़ैक्स ऐप की प्रतीक्षा है। यह विंडो बंद करने से सौंपना वापस नहीं होता।"
-
-msgid "All anniversaries"
-msgstr "सभी वर्षगाँठ"
-
-msgid "Also hide in the calendar"
-msgstr "कैलेंडर में भी छिपाएँ"
-
-msgid ""
-"An entry is excluded when any of its contact groups is selected. No contacts "
-"or anniversaries are deleted."
-msgstr ""
-"किसी प्रविष्टि का कोई भी संपर्क समूह चुने जाने पर वह बाहर रहती है। कोई संपर्क या वर्षगाँठ "
-"मिटती नहीं है।"
-
-msgid "Apply to"
-msgstr "इस पर लागू करें"
-
-msgid "Birthdays only"
-msgstr "केवल जन्मदिन"
-
-msgid "Enable contact group exclusions"
-msgstr "संपर्क समूह बहिष्करण चालू करें"
-
-msgid "Exclude contact groups"
-msgstr "संपर्क समूहों को बाहर रखें"
-
-msgid "Scope"
-msgstr "दायरा"
-
-msgid "Category"
-msgstr "श्रेणी"
-
-msgid "Category colors"
-msgstr "श्रेणी के रंग"
-
-msgid ""
-"Category colors highlight appointments and tasks. A custom entry color takes "
-"precedence; otherwise the first matching category is used."
-msgstr ""
-"श्रेणी के रंग नियुक्तियों और कार्यों को उभारते हैं। प्रविष्टि का अपना रंग प्राथमिक है; अन्यथा "
-"पहली मेल खाती श्रेणी का रंग लगता है।"
-
-msgid ""
-"Changing or removing a category color does not rename or delete categories "
-"on saved or imported entries."
-msgstr ""
-"श्रेणी का रंग बदलने या हटाने से सहेजी या आयातित प्रविष्टियों की श्रेणियों का नाम नहीं "
-"बदलता और वे मिटती नहीं हैं।"
-
-msgid "Custom color"
-msgstr "अपना रंग"
-
-msgid "Please enter a unique category name without commas or semicolons."
-msgstr "अल्पविराम या अर्धविराम के बिना एक अद्वितीय श्रेणी नाम दर्ज करें।"
 
 msgid " (filtered)"
 msgstr " (फ़िल्टर किया हुआ)"
@@ -335,8 +188,8 @@ msgstr[1] "%(count)s सेकंड"
 
 msgid "%(count)s source"
 msgid_plural "%(count)s sources"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%(count)s स्रोत"
+msgstr[1] "%(count)s स्रोत"
 
 msgid "%(count)s task"
 msgid_plural "%(count)s tasks"
@@ -619,10 +472,20 @@ msgid "Account type"
 msgstr "खाते का प्रकार"
 
 msgid "Action"
-msgstr ""
+msgstr "क्रिया"
 
 msgid "Active call"
 msgstr "सक्रिय कॉल"
+
+msgid ""
+"Active playback, including browser videos, remains available alongside the "
+"assigned players. Search/Open selects local music or videos; a searchable "
+"player playlist appears when supported. Covers, shuffle and repeat are "
+"available when the player provides them."
+msgstr ""
+"ब्राउज़र वीडियो सहित चल रहा प्लेबैक निर्धारित प्लेयर के साथ उपलब्ध रहता है। खोजें/खोलें से "
+"स्थानीय संगीत या वीडियो चुनें; प्लेयर समर्थन करे तो खोजने योग्य प्लेलिस्ट दिखाई देती है। "
+"कवर, यादृच्छिक क्रम और दोहराव प्लेयर द्वारा उपलब्ध कराए जाने पर मिलते हैं।"
 
 msgctxt "time tracking"
 msgid "Activity"
@@ -692,7 +555,7 @@ msgid "Address imported from LibreOffice."
 msgstr "LibreOffice से पता आयात किया गया।"
 
 msgid "Address imported from own profile."
-msgstr ""
+msgstr "निजी प्रोफ़ाइल से पता आयात किया गया।"
 
 msgid "Address supplement"
 msgstr "पते का अतिरिक्त विवरण"
@@ -715,6 +578,9 @@ msgstr "भोजन के बाद"
 
 msgid "All"
 msgstr "सभी"
+
+msgid "All anniversaries"
+msgstr "सभी वर्षगाँठ"
 
 msgid "All cantons"
 msgstr "सभी कैंटन"
@@ -747,6 +613,9 @@ msgstr "इस डिवाइस को यह कनेक्शन साझ�
 msgid "Also disclose appointments marked as confidential"
 msgstr "गोपनीय चिह्नित अपॉइंटमेंट भी साझा करें"
 
+msgid "Also hide in the calendar"
+msgstr "कैलेंडर में भी छिपाएँ"
+
 msgid "Also hide past anniversaries"
 msgstr "बीती हुई वर्षगाँठें भी छिपाएँ"
 
@@ -770,6 +639,13 @@ msgid ""
 "a leather-bound organizer —"
 msgstr "चमड़े से बँधे आयोजक के रूप में अपॉइंटमेंट कैलेंडर, पता पुस्तिका, कार्य पुस्तिका और नोटपैड —"
 
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"किसी प्रविष्टि का कोई भी संपर्क समूह चुने जाने पर वह बाहर रहती है। कोई संपर्क या वर्षगाँठ "
+"मिटती नहीं है।"
+
 msgid "Android restricts this device identifier."
 msgstr "Android इस डिवाइस पहचानकर्ता को प्रतिबंधित करता है।"
 
@@ -777,7 +653,7 @@ msgid "Android version"
 msgstr "एंड्रॉइड संस्करण"
 
 msgid "Angle"
-msgstr ""
+msgstr "कोण"
 
 msgid "Anniversaries"
 msgstr "वर्षगाँठें"
@@ -832,6 +708,9 @@ msgstr ""
 
 msgid "Apply"
 msgstr "लागू करें"
+
+msgid "Apply to"
+msgstr "इस पर लागू करें"
 
 msgid "Apply to the remaining conflicts"
 msgstr "बाकी विरोधों पर लागू करें"
@@ -919,7 +798,7 @@ msgid "Authority appointment"
 msgstr "सरकारी कार्यालय का अपॉइंटमेंट"
 
 msgid "Automatic"
-msgstr ""
+msgstr "स्वचालित"
 
 msgid "Automatic backup failed."
 msgstr "स्वचालित बैकअप विफल रहा।"
@@ -950,7 +829,7 @@ msgid "Automatically dismiss anniversary reminders"
 msgstr "वर्षगाँठ के अनुस्मारक अपने आप छिपाएँ"
 
 msgid "Automatically over the current connection"
-msgstr ""
+msgstr "वर्तमान कनेक्शन से अपने-आप"
 
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Wi-Fi पर अपने आप सिंक्रनाइज़ करें"
@@ -1081,6 +960,9 @@ msgstr "जन्मदिन की पार्टी"
 msgid "Birthday today"
 msgstr "आज जन्मदिन"
 
+msgid "Birthdays only"
+msgstr "केवल जन्मदिन"
+
 msgid "Black"
 msgstr "काला"
 
@@ -1173,7 +1055,7 @@ msgid "Browse..."
 msgstr "ब्राउज़ करें..."
 
 msgid "Brush"
-msgstr ""
+msgstr "कूची"
 
 msgid "Burgenland"
 msgstr "बुर्गेनलांड"
@@ -1268,10 +1150,13 @@ msgid "Call with %(name)s · %(date)s"
 msgstr "%(name)s के साथ कॉल · %(date)s"
 
 msgid "Calligraphy pen"
-msgstr ""
+msgstr "सुलेख कलम"
 
 msgid "Cancel"
 msgstr "रद्द करें"
+
+msgid "Cancel sending"
+msgstr "भेजना रद्द करें"
 
 msgid "Canton"
 msgstr "कैंटन"
@@ -1294,6 +1179,19 @@ msgstr "श्रेणियाँ"
 msgid "Categories:"
 msgstr "श्रेणियाँ:"
 
+msgid "Category"
+msgstr "श्रेणी"
+
+msgid "Category colors"
+msgstr "श्रेणी के रंग"
+
+msgid ""
+"Category colors highlight appointments and tasks. A custom entry color takes "
+"precedence; otherwise the first matching category is used."
+msgstr ""
+"श्रेणी के रंग नियुक्तियों और कार्यों को उभारते हैं। प्रविष्टि का अपना रंग प्राथमिक है; अन्यथा "
+"पहली मेल खाती श्रेणी का रंग लगता है।"
+
 msgid "Catholic confirmation"
 msgstr "कैथोलिक कन्फर्मेशन"
 
@@ -1310,7 +1208,14 @@ msgid "Changes are applied automatically"
 msgstr "परिवर्तन अपने-आप लागू होते हैं"
 
 msgid "Changes to your own profile are saved with Save."
+msgstr "निजी प्रोफ़ाइल में बदलाव सहेजें से सहेजे जाते हैं।"
+
+msgid ""
+"Changing or removing a category color does not rename or delete categories "
+"on saved or imported entries."
 msgstr ""
+"श्रेणी का रंग बदलने या हटाने से सहेजी या आयातित प्रविष्टियों की श्रेणियों का नाम नहीं "
+"बदलता और वे मिटती नहीं हैं।"
 
 msgid "Charging"
 msgstr "चार्जिंग"
@@ -1361,10 +1266,10 @@ msgstr ""
 "बना देता है। एन्क्रिप्टेड बैकअप के लिए उसका पासवर्ड चाहिए।"
 
 msgid "Choose a connection. Confirm the pairing code on the other device."
-msgstr ""
+msgstr "कनेक्शन चुनें। दूसरे डिवाइस पर युग्मन कोड की पुष्टि करें।"
 
 msgid "Choose a contact"
-msgstr ""
+msgstr "संपर्क चुनें"
 
 msgid "Choose a country first."
 msgstr "पहले देश चुनें।"
@@ -1518,7 +1423,7 @@ msgid "Codes match"
 msgstr "कोड मेल खाता है"
 
 msgid "Collapse day groups by default"
-msgstr ""
+msgstr "दिन के समूह डिफ़ॉल्ट रूप से समेटें"
 
 msgid "Colleagues"
 msgstr "सहकर्मी"
@@ -1553,7 +1458,7 @@ msgstr ""
 "पर।"
 
 msgid "Compare with LibreOffice"
-msgstr ""
+msgstr "LibreOffice से तुलना करें"
 
 msgid "Complete archive export is available only in the installed application."
 msgstr "संपूर्ण संग्रह निर्यात केवल इंस्टॉल किए गए एप्लिकेशन में उपलब्ध है।"
@@ -1607,7 +1512,7 @@ msgid "Confirm the pairing request on the phone."
 msgstr "फ़ोन पर पेयरिंग अनुरोध की पुष्टि करें।"
 
 msgid "Confirm this code on the other device."
-msgstr ""
+msgstr "दूसरे डिवाइस पर इस कोड की पुष्टि करें।"
 
 msgid "Confirmation"
 msgstr "पुष्टि"
@@ -1619,7 +1524,7 @@ msgid "Connect"
 msgstr "कनेक्ट करें"
 
 msgid "Connect Notes before sending this entry."
-msgstr ""
+msgstr "यह प्रविष्टि भेजने से पहले Notes को कनेक्ट करें।"
 
 msgid "Connect phone via WLAN"
 msgstr "फोन को WLAN के माध्यम से कनेक्ट करें"
@@ -1776,10 +1681,10 @@ msgid "Create pairing file …"
 msgstr "पेयरिंग फ़ाइल बनाएँ …"
 
 msgid "Create recovery points"
-msgstr ""
+msgstr "पुनर्प्राप्ति बिंदु बनाएँ"
 
 msgid "Created"
-msgstr ""
+msgstr "बनाया गया"
 
 msgid "Creating recovery snapshot …"
 msgstr "पुनर्प्राप्ति स्नैपशॉट बनाया जा रहा है …"
@@ -1789,6 +1694,9 @@ msgstr "कस्टम"
 
 msgid "Custom application"
 msgstr "कस्टम अनुप्रयोग"
+
+msgid "Custom color"
+msgstr "अपना रंग"
 
 msgid "Custom notification"
 msgstr "कस्टम सूचना"
@@ -1812,7 +1720,7 @@ msgid "Cut"
 msgstr "काटें"
 
 msgid "Cut selection"
-msgstr ""
+msgstr "चयन काटें"
 
 msgid "Cycle calendar"
 msgstr "चक्र कैलेंडर"
@@ -1873,7 +1781,7 @@ msgid "Death anniversary"
 msgstr "पुण्यतिथि"
 
 msgid "Default view"
-msgstr ""
+msgstr "डिफ़ॉल्ट दृश्य"
 
 msgid "Default: next to the data file"
 msgstr "डिफ़ॉल्ट: डेटा फ़ाइल के पास"
@@ -1920,10 +1828,10 @@ msgid "Delete cycle marker"
 msgstr "चक्र चिह्न हटाएँ"
 
 msgid "Delete drawing sheet"
-msgstr ""
+msgstr "चित्रण पत्रक हटाएँ"
 
 msgid "Delete drawing sheet?"
-msgstr ""
+msgstr "चित्रण पत्रक हटाएँ?"
 
 msgid "Delete entries"
 msgstr "प्रविष्टियाँ हटाएँ"
@@ -2100,6 +2008,11 @@ msgstr "डॉक्टर"
 msgid "Doctor appointment"
 msgstr "डॉक्टर का अपॉइंटमेंट"
 
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr "दस्तावेज़ चुने हुए ऐप या फ़ैक्स सर्वर को सौंप दिया गया। डिलीवरी की पुष्टि नहीं हुई है।"
+
 msgid "Document.pdf"
 msgstr "Document.pdf"
 
@@ -2187,7 +2100,7 @@ msgid "Edit the website or application used"
 msgstr "उपयोग की जाने वाली वेबसाइट या एप्लिकेशन संपादित करें"
 
 msgid "Ellipse"
-msgstr ""
+msgstr "दीर्घवृत्त"
 
 msgid "Email"
 msgstr "ईमेल"
@@ -2240,6 +2153,9 @@ msgstr "SMS शेड्यूलिंग चालू करें"
 msgid ""
 "Enable WLAN debugging in Notes developer options on your own paired phone."
 msgstr "अपने युग्मित फ़ोन पर Notes के डेवलपर विकल्पों में वाई-फ़ाई डिबगिंग चालू करें।"
+
+msgid "Enable contact group exclusions"
+msgstr "संपर्क समूह बहिष्करण चालू करें"
 
 msgid "Enable cycle calendar"
 msgstr "चक्र कैलेंडर सक्षम करें"
@@ -2306,6 +2222,9 @@ msgstr ""
 msgid "Enter"
 msgstr "दर्ज करें"
 
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr "HylaFAX सर्वर का होस्टनाम लिखें, वैकल्पिक रूप से उसके बाद :port जोड़ें।"
+
 msgid ""
 "Enter a blood glucose value on the left to highlight matching scheme rows."
 msgstr ""
@@ -2341,6 +2260,9 @@ msgstr "घंटे और मिनट दोनों दर्ज करे�
 msgid "Enter height and weight to calculate BMI."
 msgstr "बीएमआई की गणना के लिए लंबाई और वज़न दर्ज करें।"
 
+msgid "Enter recipient manually"
+msgstr "प्राप्तकर्ता स्वयं दर्ज करें"
+
 msgid "Enter the archive password."
 msgstr "पुरालेख पासवर्ड दर्ज करें."
 
@@ -2374,7 +2296,7 @@ msgid "Estimate the next period"
 msgstr "अगली माहवारी का अनुमान लगाएँ"
 
 msgid "Estimated from older data"
-msgstr ""
+msgstr "पुराने डेटा से अनुमानित"
 
 msgid "Estimated next period"
 msgstr "अगली माहवारी का अनुमान"
@@ -2383,7 +2305,7 @@ msgid "Evening"
 msgstr "शाम"
 
 msgid "Every change"
-msgstr ""
+msgstr "हर बदलाव पर"
 
 msgid "Every filled medication row requires a name."
 msgstr "दवा की हर भरी हुई पंक्ति के लिए नाम आवश्यक है।"
@@ -2392,7 +2314,7 @@ msgid "Every filled row requires a valid date."
 msgstr "हर भरी हुई पंक्ति के लिए मान्य तारीख आवश्यक है।"
 
 msgid "Every program start"
-msgstr ""
+msgstr "हर प्रोग्राम प्रारंभ पर"
 
 msgid "Everything is done - the list is empty."
 msgstr "सब पूरा हो गया – सूची खाली है।"
@@ -2403,8 +2325,11 @@ msgstr "सब कुछ तैयार है"
 msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr "बिल्कुल एक Magnolie Notes फ़ोन जोड़ा जाना चाहिए।"
 
+msgid "Exclude contact groups"
+msgstr "संपर्क समूहों को बाहर रखें"
+
 msgid "Expand day groups by default"
-msgstr ""
+msgstr "दिन के समूह डिफ़ॉल्ट रूप से फैलाएँ"
 
 msgid "Export"
 msgstr "निर्यात करें"
@@ -2425,7 +2350,7 @@ msgid "Export is available only in the installed application."
 msgstr "निर्यात केवल स्थापित एप्लिकेशन में उपलब्ध है।"
 
 msgid "Export vCard"
-msgstr ""
+msgstr "vCard निर्यात करें"
 
 msgid "Extend sharing"
 msgstr "साझाकरण बढ़ाएँ"
@@ -2441,6 +2366,19 @@ msgstr "परिवार"
 
 msgid "Fasting"
 msgstr "खाली पेट"
+
+msgid "Fax"
+msgstr "फ़ैक्स"
+
+msgid "Fax printer"
+msgstr "फ़ैक्स प्रिंटर"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"फ़ैक्स के लिए कॉन्फ़िगर किया हुआ HylaFAX सर्वर और स्थापित sendfax चाहिए। ईमेल समर्थित "
+"स्थापित मेल क्लाइंट का उपयोग करता है। सौंपना डिलीवरी की पुष्टि नहीं है।"
 
 msgid "Female caregiver"
 msgstr "महिला देखभालकर्ता"
@@ -2461,13 +2399,16 @@ msgid "Fertile days"
 msgstr "उपजाऊ दिन"
 
 msgid "Field"
-msgstr ""
+msgstr "फ़ील्ड"
+
+msgid "File"
+msgstr "फ़ाइल"
 
 msgid "Fill selection"
-msgstr ""
+msgstr "चयन भरें"
 
 msgid "Fill with gradient"
-msgstr ""
+msgstr "रंग संक्रमण से भरें"
 
 msgid "Fill with stored values"
 msgstr "संग्रहित मानों से भरें"
@@ -2634,16 +2575,16 @@ msgstr ""
 "Google के लिए ब्राउज़र में साइन इन करना आवश्यक है। सेटिंग्स में इंटरनेट खाते उपयोग करें।"
 
 msgid "Gradient end color"
-msgstr ""
+msgstr "रंग संक्रमण का अंतिम रंग"
 
 msgid "Grisons"
 msgstr "ग्राउब्युंडेन"
 
 msgid "Group by day"
-msgstr ""
+msgstr "दिन के अनुसार समूह बनाएँ"
 
 msgid "Group changes by time interval"
-msgstr ""
+msgstr "समय अंतराल के अनुसार बदलाव समूहित करें"
 
 msgid "Group for %(notebook)s"
 msgstr "%(notebook)s के लिए समूह"
@@ -2719,7 +2660,7 @@ msgid "Hide past appointments"
 msgstr "बीते हुए अपॉइंटमेंट छिपाएँ"
 
 msgid "Highlighter"
-msgstr ""
+msgstr "हाइलाइटर"
 
 msgid "History"
 msgstr "इतिहास"
@@ -2758,6 +2699,9 @@ msgstr "किसी दिन पर क्लिक करने पर कै
 msgid "Husband"
 msgstr "पति"
 
+msgid "HylaFAX server (Linux)"
+msgstr "HylaFAX सर्वर (Linux)"
+
 msgid "I"
 msgstr "मैं"
 
@@ -2771,7 +2715,7 @@ msgid "ISO week (week 1 contains the first Thursday)"
 msgstr "ISO सप्ताह (सप्ताह 1 में पहला गुरुवार होता है)"
 
 msgid "Idea"
-msgstr ""
+msgstr "विचार"
 
 msgid ""
 "If the year is unknown, enter only day and month.\n"
@@ -2917,7 +2861,7 @@ msgid "Insert link"
 msgstr "लिंक डालें"
 
 msgid "Insert shape"
-msgstr ""
+msgstr "आकृति डालें"
 
 msgid ""
 "Install the highlighted extension in Thunderbird via Add-ons and Themes → "
@@ -2981,6 +2925,9 @@ msgstr "जूस"
 msgid "Jura"
 msgstr "जुरा"
 
+msgid "KDE Connect"
+msgstr "KDE Connect"
+
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "SMS के लिए KDE Connect केवल इंस्टॉल किए गए एप्लिकेशन में उपलब्ध है।"
 
@@ -2992,6 +2939,16 @@ msgstr "KDE Connect फ़ोन युग्मित हुआ।"
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect पोर्ट %(port)s"
+
+msgid ""
+"KDE Connect transmits pen position, pressure, contact and pen/eraser "
+"changes. The hover cursor leaves no ink. The phone's tablet menu offers "
+"fullscreen and settings to hide or move the drawing button. Tilt, rotation "
+"and extra pen buttons are not transmitted by this protocol."
+msgstr ""
+"KDE Connect पेन की स्थिति, दबाव, संपर्क और पेन/रबड़ का बदलाव भेजता है। ऊपर मंडराता "
+"कर्सर रेखा नहीं बनाता। फ़ोन के टैबलेट मेनू में पूर्ण स्क्रीन और चित्रण बटन को छिपाने या "
+"खिसकाने की सेटिंग हैं। यह प्रोटोकॉल झुकाव, घुमाव और अतिरिक्त पेन बटन नहीं भेजता।"
 
 msgid "Keep"
 msgstr "रखें"
@@ -3015,7 +2972,7 @@ msgid "Landline"
 msgstr "लैंडलाइन"
 
 msgid "Landscape"
-msgstr ""
+msgstr "क्षैतिज"
 
 msgid "Language"
 msgstr "भाषा"
@@ -3064,7 +3021,7 @@ msgstr ""
 "LibreOffice को केवल आपके बटन दबाने पर पढ़ा जाता है। इसकी सेटिंग बदली नहीं जाती।"
 
 msgid "LibreOffice user data updated."
-msgstr ""
+msgstr "LibreOffice उपयोगकर्ता डेटा अपडेट किया गया।"
 
 msgid "License"
 msgstr "लाइसेंस"
@@ -3073,7 +3030,7 @@ msgid "Liechtenstein"
 msgstr "लिकटेंस्टीन"
 
 msgid "Line"
-msgstr ""
+msgstr "रेखा"
 
 msgid "Line width"
 msgstr "रेखा की चौड़ाई"
@@ -3104,6 +3061,9 @@ msgstr "स्थानीय कैलेंडर"
 
 msgid "Local image"
 msgstr "स्थानीय चित्र"
+
+msgid "Local time"
+msgstr "स्थानीय समय"
 
 msgid "Location"
 msgstr "स्थान"
@@ -3250,7 +3210,7 @@ msgid "Manual only"
 msgstr "केवल मैन्युअल"
 
 msgid "Manually"
-msgstr ""
+msgstr "मैन्युअल रूप से"
 
 msgid "Manufacturer"
 msgstr "निर्माता"
@@ -3319,16 +3279,13 @@ msgid "Merge duplicate contact cards"
 msgstr "डुप्लिकेट संपर्क कार्ड मिलाएँ"
 
 msgid "Merge history"
-msgstr ""
+msgstr "विलय इतिहास"
 
 msgid "Merge this pair individually"
 msgstr "इस जोड़ी को अलग से मिलाएँ"
 
 msgid "Merged"
-msgstr ""
-
-msgid "Message"
-msgstr "संदेश"
+msgstr "विलय किया गया"
 
 msgid "Message text"
 msgstr "संदेश"
@@ -3387,7 +3344,7 @@ msgid "Model"
 msgstr "मॉडल"
 
 msgid "Modified"
-msgstr ""
+msgstr "बदला गया"
 
 msgid "Module"
 msgstr "मॉड्यूल"
@@ -3396,7 +3353,7 @@ msgid "Monday"
 msgstr "सोमवार"
 
 msgid "Money"
-msgstr ""
+msgstr "धन"
 
 msgid "Month"
 msgstr "महीना"
@@ -3450,7 +3407,7 @@ msgid "Move notebook up"
 msgstr "नोटबुक ऊपर ले जाएँ"
 
 msgid "Move selection"
-msgstr ""
+msgstr "चयन खिसकाएँ"
 
 msgid "Move the ticked entries to the wastebasket"
 msgstr "चिह्नित प्रविष्टियाँ कूड़ेदान में ले जाएँ"
@@ -3462,7 +3419,7 @@ msgid "Move up"
 msgstr "ऊपर ले जाएँ"
 
 msgid "Move view"
-msgstr ""
+msgstr "दृश्य खिसकाएँ"
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -3497,6 +3454,9 @@ msgstr "नीदरलैंड"
 
 msgid "Network"
 msgstr "नेटवर्क"
+
+msgid "Network fax server"
+msgstr "नेटवर्क फ़ैक्स सर्वर"
 
 msgid "Neuchâtel"
 msgstr "न्यूशातेल"
@@ -3539,7 +3499,7 @@ msgid "New contact"
 msgstr "नया संपर्क"
 
 msgid "New drawing sheet"
-msgstr ""
+msgstr "नया चित्रण पत्रक"
 
 msgid "New group"
 msgstr "नया समूह"
@@ -3563,7 +3523,7 @@ msgid "New version %(version)s is available."
 msgstr "नया संस्करण %(version)s उपलब्ध है।"
 
 msgid "Newest first"
-msgstr ""
+msgstr "नवीनतम पहले"
 
 msgid "Next"
 msgstr "आगे"
@@ -3596,7 +3556,7 @@ msgid "Nextcloud is not enabled."
 msgstr "नेक्स्टक्लाउड सक्षम नहीं है।"
 
 msgid "Nib angle"
-msgstr ""
+msgstr "निब का कोण"
 
 msgid "Nidwalden"
 msgstr "निडवाल्डेन"
@@ -3624,7 +3584,7 @@ msgid "No SMS messages are scheduled."
 msgstr "कोई SMS निर्धारित नहीं है।"
 
 msgid "No WhatsApp profile available for this contact."
-msgstr ""
+msgstr "इस संपर्क के लिए WhatsApp प्रोफ़ाइल उपलब्ध नहीं है।"
 
 msgid "No Windows dictionary is installed for this language."
 msgstr "इस भाषा के लिए Windows शब्दकोश स्थापित नहीं है।"
@@ -3648,11 +3608,14 @@ msgstr "कोई अपॉइंटमेंट निर्धारित न
 msgid "No calendars found."
 msgstr "कोई कैलेंडर नहीं मिला।"
 
+msgid "No configured mail or fax adapter is available."
+msgstr "कोई कॉन्फ़िगर किया हुआ मेल या फ़ैक्स अडैप्टर उपलब्ध नहीं है।"
+
 msgid "No contact group"
-msgstr ""
+msgstr "कोई संपर्क समूह नहीं"
 
 msgid "No date recorded"
-msgstr ""
+msgstr "कोई तारीख दर्ज नहीं है"
 
 msgid "No default voice subscription is available."
 msgstr "कोई डिफ़ॉल्ट वॉइस सदस्यता उपलब्ध नहीं है।"
@@ -3685,7 +3648,7 @@ msgid "No media player is available on the connected phone."
 msgstr "कनेक्ट किए गए फ़ोन पर कोई मीडिया प्लेयर उपलब्ध नहीं है।"
 
 msgid "No merge history recorded"
-msgstr ""
+msgstr "कोई विलय इतिहास दर्ज नहीं है"
 
 msgid "No notebooks"
 msgstr "कोई नोटबुक नहीं"
@@ -3714,7 +3677,7 @@ msgstr ""
 "बटन इस्तेमाल करें।"
 
 msgid "No phone number available."
-msgstr ""
+msgstr "कोई फ़ोन नंबर उपलब्ध नहीं है।"
 
 msgid "No phone paired yet."
 msgstr "अभी कोई कार्य लिंक नहीं है।"
@@ -3830,7 +3793,7 @@ msgid "Notes and special instructions"
 msgstr "टिप्पणियाँ और विशेष निर्देश"
 
 msgid "Notes and tasks"
-msgstr ""
+msgstr "नोट और कार्य"
 
 msgid ""
 "Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
@@ -3905,7 +3868,7 @@ msgid "Ointment"
 msgstr "मरहम"
 
 msgid "Oldest first"
-msgstr ""
+msgstr "सबसे पुराना पहले"
 
 msgid "One address book"
 msgstr "एक पता पुस्तिका"
@@ -3951,6 +3914,9 @@ msgstr "ऑनलाइन"
 msgid "Online address book"
 msgstr "ऑनलाइन पता पुस्तिका"
 
+msgid "Online fax service"
+msgstr "ऑनलाइन फ़ैक्स सेवा"
+
 msgid "Online via Bluetooth data"
 msgstr "Bluetooth डेटा के माध्यम से ऑनलाइन"
 
@@ -3978,10 +3944,10 @@ msgstr ""
 "हटाएँ।"
 
 msgid "Only personal entries can be sent to Notes."
-msgstr ""
+msgstr "केवल निजी प्रविष्टियाँ Notes को भेजी जा सकती हैं।"
 
 msgid "Only the Notes collection"
-msgstr ""
+msgstr "केवल Notes संग्रह"
 
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
@@ -4065,7 +4031,7 @@ msgid "Open the day in the daily view"
 msgstr "दिन को दैनिक दृश्य में खोलें"
 
 msgid "Open the drawing tablet in KDE Connect on the paired phone."
-msgstr ""
+msgstr "युग्मित फ़ोन पर KDE Connect में ड्रॉइंग टैबलेट खोलें।"
 
 msgid "Open the phone connection screen and try again."
 msgstr "फ़ोन से जुड़ने वाली स्क्रीन खोलें और फिर कोशिश करें।"
@@ -4139,7 +4105,7 @@ msgid "Own phone number (default voice SIM)"
 msgstr "अपना नंबर (डिफ़ॉल्ट वॉइस SIM)"
 
 msgid "Own profile"
-msgstr ""
+msgstr "निजी प्रोफ़ाइल"
 
 msgid "PDF file"
 msgstr "PDF फ़ाइल"
@@ -4160,7 +4126,7 @@ msgid "Page %(page)s of %(count)s"
 msgstr "पृष्ठ %(page)s / %(count)s"
 
 msgid "Page order"
-msgstr ""
+msgstr "पृष्ठ क्रम"
 
 msgid "Pages"
 msgstr "पृष्ठ"
@@ -4408,6 +4374,9 @@ msgstr "हर नए कार्य के लिए शीर्षक दर
 msgid "Please enter a title."
 msgstr "कृपया शीर्षक दर्ज करें।"
 
+msgid "Please enter a unique category name without commas or semicolons."
+msgstr "अल्पविराम या अर्धविराम के बिना एक अद्वितीय श्रेणी नाम दर्ज करें।"
+
 msgid "Please enter a website or application for the custom action."
 msgstr "कस्टम क्रिया के लिए वेबसाइट या अनुप्रयोग दर्ज करें।"
 
@@ -4445,7 +4414,7 @@ msgid "Poland"
 msgstr "पोलैंड"
 
 msgid "Portrait"
-msgstr ""
+msgstr "लंबवत"
 
 msgid "Possible duplicates among local and incoming contacts"
 msgstr "स्थानीय और आने वाले संपर्कों में संभावित डुप्लिकेट"
@@ -4484,6 +4453,9 @@ msgstr "माइक्रोसॉफ्ट साइन-इन तैयार
 
 msgid "Preparing account sign-in …"
 msgstr "खाते में साइन इन करने की तैयारी…"
+
+msgid "Preparing selected notes…"
+msgstr "चुने हुए नोट तैयार हो रहे हैं…"
 
 msgid "Preview"
 msgstr "पूर्वावलोकन"
@@ -4562,7 +4534,7 @@ msgid "Private"
 msgstr "निजी"
 
 msgid "Properties"
-msgstr ""
+msgstr "गुण"
 
 msgid "Protected archive password unavailable."
 msgstr "सुरक्षित संग्रह पासवर्ड उपलब्ध नहीं है।"
@@ -4605,7 +4577,7 @@ msgid "Quit"
 msgstr "बाहर निकलें"
 
 msgid "Quote"
-msgstr ""
+msgstr "उद्धरण"
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "इस कंप्यूटर का पहुँच योग्य IPv4 या IPv6 पता"
@@ -4620,10 +4592,13 @@ msgid "Reason"
 msgstr "कारण"
 
 msgid "Recently modified"
-msgstr ""
+msgstr "हाल में बदले गए"
 
 msgid "Recipe"
-msgstr ""
+msgstr "व्यंजन विधि"
+
+msgid "Recipient"
+msgstr "प्राप्तकर्ता"
 
 msgid "Reconnect"
 msgstr "रिकनेक्ट"
@@ -4633,7 +4608,7 @@ msgid "Recorded times"
 msgstr "दर्ज किए गए समय"
 
 msgid "Recovery journal"
-msgstr ""
+msgstr "पुनर्प्राप्ति जर्नल"
 
 msgid "Recovery snapshot created."
 msgstr "रिकवरी स्नैपशॉट बनाया गया।"
@@ -4645,7 +4620,7 @@ msgid "Recovery snapshots"
 msgstr "रिकवरी स्नैपशॉट"
 
 msgid "Rectangle"
-msgstr ""
+msgstr "आयत"
 
 msgid "Recycle bin"
 msgstr "कूड़ेदान"
@@ -4877,7 +4852,7 @@ msgid "Right page"
 msgstr "दायाँ पृष्ठ"
 
 msgid "Rotate selection"
-msgstr ""
+msgstr "चयन घुमाएँ"
 
 msgid "Route"
 msgstr "मार्ग"
@@ -4940,6 +4915,9 @@ msgstr "सहेजें"
 
 msgid "Save Magnolienbaum pairing file"
 msgstr "Magnolienbaum पेयरिंग फ़ाइल सहेजें"
+
+msgid "Save as PDF"
+msgstr "PDF के रूप में सहेजें"
 
 msgid "Save as…"
 msgstr "इस रूप में सहेजें…"
@@ -5023,6 +5001,9 @@ msgstr "इस क्षेत्र के लिए स्कूल की छ
 msgid "Schwyz"
 msgstr "श्वीत्स"
 
+msgid "Scope"
+msgstr "दायरा"
+
 msgid "Screen notification only"
 msgstr "चयनित सूचनाएँ दिखाएँ (केवल पढ़ने के लिए)"
 
@@ -5063,7 +5044,7 @@ msgid "Security"
 msgstr "सुरक्षा"
 
 msgid "Select"
-msgstr ""
+msgstr "चुनें"
 
 msgid "Select a country first."
 msgstr "पहले कोई देश चुनें।"
@@ -5076,6 +5057,9 @@ msgstr ""
 
 msgid "Select a custom backup folder."
 msgstr "कस्टम बैकअप फ़ोल्डर चुनें।"
+
+msgid "Select a recipient."
+msgstr "एक प्राप्तकर्ता चुनें।"
 
 msgid "Select all"
 msgstr "सभी चुनें"
@@ -5097,7 +5081,7 @@ msgid "Select backup folder"
 msgstr "बैकअप फ़ोल्डर चुनें"
 
 msgid "Select complete strokes that fit inside the sheet."
-msgstr ""
+msgstr "ऐसी पूरी रेखाएँ चुनें जो पत्रक में समाएँ।"
 
 msgid "Select something first."
 msgstr "पहले कुछ चुनें।"
@@ -5119,7 +5103,7 @@ msgid "Selection options"
 msgstr "चयन विकल्प"
 
 msgid "Send"
-msgstr ""
+msgstr "भेजें"
 
 msgid "Send SMS"
 msgstr "SMS भेजें"
@@ -5130,17 +5114,29 @@ msgstr "समायोजित पाठ भेजें"
 msgid "Send documents"
 msgstr "दस्तावेज़ भेजें"
 
+msgid "Send notes by email or fax"
+msgstr "नोट ईमेल या फ़ैक्स से भेजें"
+
 msgid "Send secure request"
 msgstr "सुरक्षित अनुरोध भेजें"
 
 msgid "Send this new note to Notes"
-msgstr ""
+msgstr "यह नया नोट Notes को भेजें"
 
 msgid "Send to Notes"
-msgstr ""
+msgstr "Notes को भेजें"
 
 msgid "Send via"
-msgstr ""
+msgstr "इसके माध्यम से भेजें"
+
+msgid "Sending cancelled."
+msgstr "भेजना रद्द हुआ।"
+
+msgid "Sending is disabled."
+msgstr "भेजना बंद है।"
+
+msgid "Sending is not available."
+msgstr "भेजना उपलब्ध नहीं है।"
 
 msgid "Sent"
 msgstr "भेजा गया"
@@ -5191,7 +5187,7 @@ msgid "Share connection with"
 msgstr "इसके साथ कनेक्शन साझा करें"
 
 msgid "Share selected details"
-msgstr ""
+msgstr "चुना गया विवरण साझा करें"
 
 msgid "Share this connection with the selected device?"
 msgstr "यह कनेक्शन चुने हुए डिवाइस से साझा करें?"
@@ -5221,7 +5217,7 @@ msgid "Sharing this connection is not allowed."
 msgstr "यह कनेक्शन साझा करने की अनुमति नहीं है।"
 
 msgid "Sheet size"
-msgstr ""
+msgstr "पत्रक का आकार"
 
 msgid "Shift planner"
 msgstr "शिफ्ट प्लानर"
@@ -5234,6 +5230,9 @@ msgstr "कम समय तक असर करने वाला इंसु
 
 msgid "Show Health after Planner"
 msgstr "प्लानर के बाद स्वास्थ्य दिखाएँ"
+
+msgid "Show Send in note print options"
+msgstr "नोट के मुद्रण विकल्पों में भेजें दिखाएँ"
 
 msgid "Show all"
 msgstr "सभी दिखाएँ"
@@ -5403,7 +5402,7 @@ msgid "Spray"
 msgstr "स्प्रे"
 
 msgid "Square"
-msgstr ""
+msgstr "वर्ग"
 
 msgid "St. Gallen"
 msgstr "सेंट गैलेन"
@@ -5440,7 +5439,7 @@ msgid "Stop"
 msgstr "रोकें"
 
 msgid "Street"
-msgstr ""
+msgstr "सड़क"
 
 msgid "Street / house number"
 msgstr "सड़क / मकान नंबर"
@@ -5456,6 +5455,9 @@ msgstr "स्ट्राइकथ्रू"
 
 msgid "Styria"
 msgstr "स्टायरिया"
+
+msgid "Subject"
+msgstr "विषय"
 
 msgid "Submitted"
 msgstr "प्रस्तुत"
@@ -5522,7 +5524,7 @@ msgstr ""
 "किए गए संपर्क और स्थानीय डेटा बने रहेंगे।"
 
 msgid "Synchronize all notes and tasks"
-msgstr ""
+msgstr "सभी नोट और कार्य सिंक करें"
 
 msgid "Synchronize automatically at startup"
 msgstr "स्टार्टअप पर अपने-आप सिंक्रोनाइज़ करें"
@@ -5882,6 +5884,9 @@ msgstr "डेटा JSON ऑब्जेक्ट नहीं है।"
 msgid "The destination could not be opened."
 msgstr "गंतव्य नहीं खोला जा सका."
 
+msgid "The document could not be handed off."
+msgstr "दस्तावेज़ सौंपा नहीं जा सका।"
+
 msgid "The download address is not permitted for this platform."
 msgstr "इस प्लेटफ़ॉर्म के लिए डाउनलोड पते की अनुमति नहीं है।"
 
@@ -5919,6 +5924,14 @@ msgstr ""
 "फ़ोल्डर को Nextcloud, Google Drive, Dropbox या OneDrive से स्थानीय रूप से सिंक्रनाइज़ "
 "किया जा सकता है। Magnolie किसी प्रदाता में साइन इन नहीं करता। स्वचालित बैकअप केवल "
 "Organizer के खुले और अनलॉक रहने पर, डेटा सफलतापूर्वक सहेजे जाने के तुरंत बाद चलते हैं।"
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "सौंपने की प्रक्रिया शुरू हो चुकी है और यहाँ से वापस नहीं ली जा सकती।"
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr "सौंपने का परिणाम अज्ञात है। दोबारा प्रयास करने से पहले बाहरी ऐप जाँचें।"
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -6202,13 +6215,13 @@ msgid "The selected contacts contain no values for these columns."
 msgstr "चयनित संपर्कों में इन कॉलमों के लिए कोई मान नहीं है।"
 
 msgid "The selected entry is too large to send."
-msgstr ""
+msgstr "चुनी गई प्रविष्टि भेजने के लिए बहुत बड़ी है।"
 
 msgid "The selected health records contain no printable values."
 msgstr "चुने गए स्वास्थ्य रिकॉर्ड में प्रिंट करने योग्य कोई मान नहीं है।"
 
 msgid "The selected note contains attachments that cannot be sent."
-msgstr ""
+msgstr "चुने गए नोट में ऐसे अनुलग्नक हैं जो भेजे नहीं जा सकते।"
 
 msgid "The selected phone changed. Try again."
 msgstr "चुना हुआ फ़ोन बदल गया है। फिर कोशिश करें।"
@@ -6218,6 +6231,9 @@ msgid ""
 "the assigned application."
 msgstr ""
 "चुने गए प्लेयर बंद होने पर भी फ़ोन पर दिखाई देते हैं। चलाएँ दबाने से निर्धारित ऐप शुरू होता है।"
+
+msgid "The selected time zone is unavailable."
+msgstr "चयनित समय क्षेत्र उपलब्ध नहीं है।"
 
 msgid "The server denied access. Check this account's permissions."
 msgstr "सर्वर ने पहुँच अस्वीकार कर दी। इस खाते की अनुमतियाँ जाँचें।"
@@ -6470,7 +6486,7 @@ msgid "This phone transport is unavailable."
 msgstr "फ़ोन से जुड़ने का यह तरीका उपलब्ध नहीं है।"
 
 msgid "This profile format is not supported."
-msgstr ""
+msgstr "यह प्रोफ़ाइल प्रारूप समर्थित नहीं है।"
 
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
@@ -6531,7 +6547,7 @@ msgid "Time format"
 msgstr "समय प्रारूप"
 
 msgid "Time synchronization direction"
-msgstr ""
+msgstr "समय लेखन की सिंक दिशा"
 
 msgctxt "time tracking"
 msgid "Time tracking"
@@ -6589,13 +6605,13 @@ msgid "Tradesperson"
 msgstr "कारीगर"
 
 msgid "Travel"
-msgstr ""
+msgstr "यात्रा"
 
 msgid "Tray applet"
 msgstr "सिस्टम ट्रे एप्लेट"
 
 msgid "Triangle"
-msgstr ""
+msgstr "त्रिकोण"
 
 msgid "Trust and accept tasks and notes automatically"
 msgstr "भरोसा करें और कार्य तथा नोट अपने आप स्वीकार करें"
@@ -6647,10 +6663,10 @@ msgid "Unavailable"
 msgstr "अनुपलब्ध"
 
 msgid "Unchanged contents do not create another recovery point."
-msgstr ""
+msgstr "बिना बदली सामग्री से दूसरा पुनर्प्राप्ति बिंदु नहीं बनता।"
 
 msgid "Undated"
-msgstr ""
+msgstr "बिना तारीख"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -6899,6 +6915,11 @@ msgid "Waiting for device status"
 msgstr "उपकरण की स्थिति का इंतजार कर रहे हैं"
 
 msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr "मेल या फ़ैक्स ऐप की प्रतीक्षा है। यह विंडो बंद करने से सौंपना वापस नहीं होता।"
+
+msgid ""
 "Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
 "seconds."
 msgstr ""
@@ -6962,6 +6983,9 @@ msgstr ""
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "मौसम की जानकारी नहीं ली गई क्योंकि कोई स्थान उपलब्ध नहीं है।"
+
+msgid "Website"
+msgstr "वेबसाइट"
 
 msgid "Wedding anniversary"
 msgstr "विवाह वर्षगाँठ"
@@ -7044,7 +7068,7 @@ msgid "Whole month"
 msgstr "पूरा महीना"
 
 msgid "Width"
-msgstr ""
+msgstr "चौड़ाई"
 
 msgid "Wife"
 msgstr "पत्नी"
@@ -7156,7 +7180,7 @@ msgid "Yes, the code matches"
 msgstr "हाँ, कोड मेल खाता है"
 
 msgid "Yesterday"
-msgstr ""
+msgstr "कल"
 
 msgid "You can also do this later in Settings."
 msgstr "आप इसे बाद में सेटिंग में भी कर सकते हैं।"
@@ -7192,10 +7216,10 @@ msgid "Yours sincerely,"
 msgstr "सादर,"
 
 msgid "Zoom in"
-msgstr ""
+msgstr "बड़ा करें"
 
 msgid "Zoom out"
-msgstr ""
+msgstr "छोटा करें"
 
 msgid "Zug"
 msgstr "ज़ुग"
@@ -7577,6 +7601,9 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
+
+#~ msgid "Message"
+#~ msgstr "संदेश"
 
 #~ msgid ""
 #~ "The log records when the reminder service checked and what it reported. "

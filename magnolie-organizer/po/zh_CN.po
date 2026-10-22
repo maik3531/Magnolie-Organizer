@@ -7,6 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: zh_CN\n"
@@ -15,152 +16,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-
-msgid "Cancel sending"
-msgstr "取消发送"
-
-msgid ""
-"Document handed to the selected application or fax server. Delivery is not "
-"confirmed."
-msgstr "文档已交给所选应用或传真服务器。尚未确认送达收件人。"
-
-msgid "Enter a HylaFAX server hostname, optionally followed by :port."
-msgstr "请输入HylaFAX服务器主机名，也可在后面加上 :port。"
-
-msgid "Enter recipient manually"
-msgstr "手动输入收件人"
-
-msgid "Fax printer"
-msgstr "传真打印机"
-
-msgid "Network fax server"
-msgstr "网络传真服务器"
-
-msgid "Online fax service"
-msgstr "在线传真服务"
-
-msgid "Save as PDF"
-msgstr "保存为 PDF"
-
-msgid "Website"
-msgstr "网站"
-
-msgid "Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them."
-msgstr "当前播放（包括浏览器视频）仍与指定播放器一起可用。搜索/打开可选择本地音乐或视频；播放器支持时会显示可搜索的播放列表。封面、随机播放和循环播放在播放器提供这些功能时可用。"
-
-msgid "KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol."
-msgstr "KDE Connect传输笔的位置、压力、接触和笔/橡皮切换。悬停光标不会留下笔迹。手机的绘图板菜单提供全屏及隐藏或移动绘图按钮的设置。此协议不传输倾斜、旋转或额外的笔按键。"
-
-msgid "Fax"
-msgstr "传真"
-
-msgid ""
-"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
-"supported installed mail client. A handoff is not delivery confirmation."
-msgstr ""
-"传真需要已配置的HylaFAX服务器和已安装的sendfax。邮件使用受支持的已安装邮件客"
-"户端。交给应用不等于确认送达。"
-
-msgid "HylaFAX server (Linux)"
-msgstr "HylaFAX服务器 (Linux)"
-
-msgid "No configured mail or fax adapter is available."
-msgstr "没有可用的已配置邮件或传真适配器。"
-
-msgid "Preparing selected notes…"
-msgstr "正在准备所选笔记…"
-
-msgid "Recipient"
-msgstr "收件人"
-
-msgid "Select a recipient."
-msgstr "请选择收件人。"
-
-msgid "Send notes by email or fax"
-msgstr "通过邮件或传真发送笔记"
-
-msgid "Sending cancelled."
-msgstr "发送已取消。"
-
-msgid "Sending is disabled."
-msgstr "发送已停用。"
-
-msgid "Sending is not available."
-msgstr "发送不可用。"
-
-msgid "Show Send in note print options"
-msgstr "在笔记打印选项中显示发送"
-
-msgid "Subject"
-msgstr "主题"
-
-msgid "The document could not be handed off."
-msgstr "无法交付文档。"
-
-msgid "The handoff has already started and cannot be recalled here."
-msgstr "交付已经开始，无法在此撤回。"
-
-msgid ""
-"The handoff outcome is unknown. Check the external application before trying "
-"again."
-msgstr "交付结果未知。请先检查外部应用，再尝试重试。"
-
-msgid ""
-"Waiting for the mail or fax application. Closing this window does not recall "
-"the handoff."
-msgstr "正在等待邮件或传真应用。关闭此窗口不会撤回交付。"
-
-msgid "All anniversaries"
-msgstr "所有纪念日"
-
-msgid "Also hide in the calendar"
-msgstr "同时在日历中隐藏"
-
-msgid ""
-"An entry is excluded when any of its contact groups is selected. No contacts "
-"or anniversaries are deleted."
-msgstr ""
-"只要选中了条目所属的任一联系人分组，该条目就会被排除。联系人和纪念日不会被删"
-"除。"
-
-msgid "Apply to"
-msgstr "应用于"
-
-msgid "Birthdays only"
-msgstr "仅生日"
-
-msgid "Enable contact group exclusions"
-msgstr "启用联系人分组排除"
-
-msgid "Exclude contact groups"
-msgstr "排除联系人分组"
-
-msgid "Scope"
-msgstr "范围"
-
-msgid "Category"
-msgstr "类别"
-
-msgid "Category colors"
-msgstr "类别颜色"
-
-msgid ""
-"Category colors highlight appointments and tasks. A custom entry color takes "
-"precedence; otherwise the first matching category is used."
-msgstr ""
-"类别颜色用于突出显示日程和任务。条目的自定义颜色优先，否则使用第一个匹配类别"
-"的颜色。"
-
-msgid ""
-"Changing or removing a category color does not rename or delete categories "
-"on saved or imported entries."
-msgstr "更改或移除类别颜色不会重命名或删除已保存或导入条目上的类别。"
-
-msgid "Custom color"
-msgstr "自定义颜色"
-
-msgid "Please enter a unique category name without commas or semicolons."
-msgstr "请输入不含逗号或分号的唯一类别名称。"
 
 msgid " (filtered)"
 msgstr "（已筛选）"
@@ -345,7 +200,7 @@ msgstr[0] "%(count)s 秒"
 
 msgid "%(count)s source"
 msgid_plural "%(count)s sources"
-msgstr[0] ""
+msgstr[0] "%(count)s 个来源"
 
 msgid "%(count)s task"
 msgid_plural "%(count)s tasks"
@@ -763,10 +618,20 @@ msgid "Account type"
 msgstr "账户类型"
 
 msgid "Action"
-msgstr ""
+msgstr "操作"
 
 msgid "Active call"
 msgstr "当前通话"
+
+msgid ""
+"Active playback, including browser videos, remains available alongside the "
+"assigned players. Search/Open selects local music or videos; a searchable "
+"player playlist appears when supported. Covers, shuffle and repeat are "
+"available when the player provides them."
+msgstr ""
+"当前播放（包括浏览器视频）仍与指定播放器一起可用。搜索/打开可选择本地音乐或视"
+"频；播放器支持时会显示可搜索的播放列表。封面、随机播放和循环播放在播放器提供"
+"这些功能时可用。"
 
 msgctxt "time tracking"
 msgid "Activity"
@@ -845,7 +710,7 @@ msgid "Address imported from LibreOffice."
 msgstr "已从 LibreOffice 导入地址。"
 
 msgid "Address imported from own profile."
-msgstr ""
+msgstr "已从个人资料导入地址。"
 
 msgid "Address supplement"
 msgstr "地址补充信息"
@@ -890,6 +755,9 @@ msgstr "提醒监控器已停止。"
 msgid "All"
 msgstr "全部"
 
+msgid "All anniversaries"
+msgstr "所有纪念日"
+
 msgid "All cantons"
 msgstr "所有州"
 
@@ -923,6 +791,9 @@ msgstr "允许的后台功能"
 
 msgid "Also disclose appointments marked as confidential"
 msgstr "也共享标记为机密的约会"
+
+msgid "Also hide in the calendar"
+msgstr "同时在日历中隐藏"
 
 msgid "Also hide past anniversaries"
 msgstr "也隐藏过去的纪念日"
@@ -971,6 +842,13 @@ msgid ""
 msgstr ""
 "缺少加密组件。请使用以下命令安装： sudo apt install python3-cryptography"
 
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"只要选中了条目所属的任一联系人分组，该条目就会被排除。联系人和纪念日不会被删"
+"除。"
+
 msgid "Android restricts this device identifier."
 msgstr "Android 限制访问此设备标识符。"
 
@@ -978,7 +856,7 @@ msgid "Android version"
 msgstr "安卓版本"
 
 msgid "Angle"
-msgstr ""
+msgstr "角度"
 
 msgid "Anniversaries"
 msgstr "纪念日"
@@ -1043,6 +921,9 @@ msgstr "在时间字段上滚动时生效。按住 Shift 可按整小时更改�
 
 msgid "Apply"
 msgstr "应用"
+
+msgid "Apply to"
+msgstr "应用于"
 
 msgid "Apply to the remaining conflicts"
 msgstr "应用于其余冲突"
@@ -1134,7 +1015,7 @@ msgid "Authority appointment"
 msgstr "办事预约"
 
 msgid "Automatic"
-msgstr ""
+msgstr "自动"
 
 msgid "Automatic backup failed."
 msgstr "自动备份失败。"
@@ -1163,7 +1044,7 @@ msgid "Automatically dismiss anniversary reminders"
 msgstr "自动隐藏纪念日提醒"
 
 msgid "Automatically over the current connection"
-msgstr ""
+msgstr "自动通过当前连接"
 
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "通过 Wi-Fi 自动同步"
@@ -1308,6 +1189,9 @@ msgstr "生日聚会"
 msgid "Birthday today"
 msgstr "今天生日"
 
+msgid "Birthdays only"
+msgstr "仅生日"
+
 msgid "Black"
 msgstr "黑色"
 
@@ -1397,7 +1281,7 @@ msgid "Browse…"
 msgstr "浏览..."
 
 msgid "Brush"
-msgstr ""
+msgstr "画笔"
 
 msgid "Burgenland"
 msgstr "布尔根兰州"
@@ -1513,10 +1397,13 @@ msgid "Call with %(name)s · %(date)s"
 msgstr "与 %(name)s 的通话 · %(date)s"
 
 msgid "Calligraphy pen"
-msgstr ""
+msgstr "书法笔"
 
 msgid "Cancel"
 msgstr "取消"
+
+msgid "Cancel sending"
+msgstr "取消发送"
 
 msgid "Canton"
 msgstr "州"
@@ -1539,6 +1426,19 @@ msgstr "类别"
 msgid "Categories:"
 msgstr "类别："
 
+msgid "Category"
+msgstr "类别"
+
+msgid "Category colors"
+msgstr "类别颜色"
+
+msgid ""
+"Category colors highlight appointments and tasks. A custom entry color takes "
+"precedence; otherwise the first matching category is used."
+msgstr ""
+"类别颜色用于突出显示日程和任务。条目的自定义颜色优先，否则使用第一个匹配类别"
+"的颜色。"
+
 msgid "Catholic confirmation"
 msgstr "天主教坚振礼"
 
@@ -1555,7 +1455,12 @@ msgid "Changes are applied automatically"
 msgstr "更改会自动应用"
 
 msgid "Changes to your own profile are saved with Save."
-msgstr ""
+msgstr "个人资料的修改通过“保存”保存。"
+
+msgid ""
+"Changing or removing a category color does not rename or delete categories "
+"on saved or imported entries."
+msgstr "更改或移除类别颜色不会重命名或删除已保存或导入条目上的类别。"
 
 msgid "Changing phone permission"
 msgstr "更改手机权限"
@@ -1624,10 +1529,10 @@ msgstr ""
 "应密码。"
 
 msgid "Choose a connection. Confirm the pairing code on the other device."
-msgstr ""
+msgstr "请选择连接，并在另一台设备上确认配对码。"
 
 msgid "Choose a contact"
-msgstr ""
+msgstr "选择联系人"
 
 msgid "Choose a country first."
 msgstr "请先选择国家/地区。"
@@ -1779,7 +1684,7 @@ msgid "Codes match"
 msgstr "代码一致"
 
 msgid "Collapse day groups by default"
-msgstr ""
+msgstr "默认折叠每日分组"
 
 msgid "Colleagues"
 msgstr "同事"
@@ -1812,7 +1717,7 @@ msgid ""
 msgstr "请将此指纹与另一分支进行比较，例如通过电话核对，以验证连接。"
 
 msgid "Compare with LibreOffice"
-msgstr ""
+msgstr "与 LibreOffice 比较"
 
 msgid "Complete archive exported (password-protected)."
 msgstr "完整归档已导出（受密码保护）。"
@@ -1866,7 +1771,7 @@ msgid "Confirm the pairing request on the phone."
 msgstr "请在手机上确认配对请求。"
 
 msgid "Confirm this code on the other device."
-msgstr ""
+msgstr "请在另一台设备上确认此代码。"
 
 msgid "Confirmation"
 msgstr "确认"
@@ -1881,7 +1786,7 @@ msgid "Connect"
 msgstr "连接"
 
 msgid "Connect Notes before sending this entry."
-msgstr ""
+msgstr "发送此条目前请连接 Notes。"
 
 msgid "Connect phone via WLAN"
 msgstr "通过无线局域网连接手机"
@@ -2087,10 +1992,10 @@ msgid "Create pairing file …"
 msgstr "创建配对文件 …"
 
 msgid "Create recovery points"
-msgstr ""
+msgstr "创建恢复点"
 
 msgid "Created"
-msgstr ""
+msgstr "已创建"
 
 msgid "Creating a recovery snapshot"
 msgstr "创建恢复快照"
@@ -2125,6 +2030,9 @@ msgstr "自定义"
 msgid "Custom application"
 msgstr "定制应用程序"
 
+msgid "Custom color"
+msgstr "自定义颜色"
+
 msgid "Custom notification"
 msgstr "自定义通知"
 
@@ -2147,7 +2055,7 @@ msgid "Cut"
 msgstr "剪切"
 
 msgid "Cut selection"
-msgstr ""
+msgstr "剪切选区"
 
 msgid "Cycle calendar"
 msgstr "周期日历"
@@ -2225,7 +2133,7 @@ msgid "Decrypting the data"
 msgstr "正在解密数据"
 
 msgid "Default view"
-msgstr ""
+msgstr "默认视图"
 
 msgid "Default: next to the data file"
 msgstr "默认：位于数据文件旁"
@@ -2270,10 +2178,10 @@ msgid "Delete cycle marker"
 msgstr "删除周期标记"
 
 msgid "Delete drawing sheet"
-msgstr ""
+msgstr "删除绘图页"
 
 msgid "Delete drawing sheet?"
-msgstr ""
+msgstr "删除绘图页？"
 
 msgid "Delete entries"
 msgstr "删除条目"
@@ -2451,6 +2359,11 @@ msgstr "医生"
 msgid "Doctor appointment"
 msgstr "就医预约"
 
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr "文档已交给所选应用或传真服务器。尚未确认送达收件人。"
+
 msgid "Document.pdf"
 msgstr "Document.pdf"
 
@@ -2544,7 +2457,7 @@ msgid "Edit the website or application used"
 msgstr "编辑所使用的网站或应用程序"
 
 msgid "Ellipse"
-msgstr ""
+msgstr "椭圆"
 
 msgid "Email"
 msgstr "电子邮件"
@@ -2597,6 +2510,9 @@ msgstr "启用 SMS 定时发送"
 msgid ""
 "Enable WLAN debugging in Notes developer options on your own paired phone."
 msgstr "请在您自己的已配对手机上，进入 Notes 开发者选项并启用 Wi-Fi 调试。"
+
+msgid "Enable contact group exclusions"
+msgstr "启用联系人分组排除"
 
 msgid "Enable cycle calendar"
 msgstr "启用周期日历"
@@ -2667,6 +2583,9 @@ msgstr "祝您整理顺利！"
 msgid "Enter"
 msgstr "输入"
 
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr "请输入HylaFAX服务器主机名，也可在后面加上 :port。"
+
 msgid ""
 "Enter a blood glucose value on the left to highlight matching scheme rows."
 msgstr "在左侧输入血糖值，以突出显示匹配的方案行。"
@@ -2719,6 +2638,9 @@ msgstr "请输入小时和分钟，或将时间完全留空。"
 msgid "Enter height and weight to calculate BMI."
 msgstr "请输入身高和体重以计算 BMI。"
 
+msgid "Enter recipient manually"
+msgstr "手动输入收件人"
+
 msgid "Enter the backup password."
 msgstr "请输入备份密码。"
 
@@ -2756,7 +2678,7 @@ msgid "Estimate the next period"
 msgstr "估计下次月经"
 
 msgid "Estimated from older data"
-msgstr ""
+msgstr "根据旧数据估算"
 
 msgid "Estimated next period"
 msgstr "预计下次月经"
@@ -2769,7 +2691,7 @@ msgid "Event loop is not available: %s"
 msgstr "事件循环不可用：%s"
 
 msgid "Every change"
-msgstr ""
+msgstr "每次修改"
 
 msgid "Every filled medication row requires a name."
 msgstr "每个已填写的用药行都必须包含药物名称。"
@@ -2778,7 +2700,7 @@ msgid "Every filled row requires a valid date."
 msgstr "每个已填写的行都必须包含有效日期。"
 
 msgid "Every program start"
-msgstr ""
+msgstr "每次启动程序"
 
 msgid "Everything is done - the list is empty."
 msgstr "全部完成 – 列表为空。"
@@ -2803,8 +2725,11 @@ msgstr "必须且只能配对一部使用 Magnolie Notes 的手机。"
 msgid "Exactly one online paired Magnolie Notes phone must allow dialing."
 msgstr "必须且只能有一部已配对、在线的 Magnolie Notes 手机允许拨号。"
 
+msgid "Exclude contact groups"
+msgstr "排除联系人分组"
+
 msgid "Expand day groups by default"
-msgstr ""
+msgstr "默认展开每日分组"
 
 msgid "Export"
 msgstr "导出"
@@ -2819,7 +2744,7 @@ msgid "Export is available only in the installed application."
 msgstr "只有安装版应用程序支持导出。"
 
 msgid "Export vCard"
-msgstr ""
+msgstr "导出 vCard"
 
 msgid "Extend sharing"
 msgstr "扩展共享"
@@ -2835,6 +2760,19 @@ msgstr "家人"
 
 msgid "Fasting"
 msgstr "空腹"
+
+msgid "Fax"
+msgstr "传真"
+
+msgid "Fax printer"
+msgstr "传真打印机"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"传真需要已配置的HylaFAX服务器和已安装的sendfax。邮件使用受支持的已安装邮件客"
+"户端。交给应用不等于确认送达。"
 
 msgid "Female caregiver"
 msgstr "女性照护人员"
@@ -2855,7 +2793,7 @@ msgid "Fertile days"
 msgstr "易孕期"
 
 msgid "Field"
-msgstr ""
+msgstr "字段"
 
 msgid "File"
 msgstr "文件"
@@ -2872,10 +2810,10 @@ msgid "File saved: %(name)s"
 msgstr "文件已保存：%(name)s"
 
 msgid "Fill selection"
-msgstr ""
+msgstr "填充选区"
 
 msgid "Fill with gradient"
-msgstr ""
+msgstr "渐变填充"
 
 msgid "Fill with stored values"
 msgstr "填入已存储的数值"
@@ -3048,16 +2986,16 @@ msgid "Google Maps in the browser"
 msgstr "浏览器中的 Google Maps"
 
 msgid "Gradient end color"
-msgstr ""
+msgstr "渐变结束颜色"
 
 msgid "Grisons"
 msgstr "格劳宾登州"
 
 msgid "Group by day"
-msgstr ""
+msgstr "按天分组"
 
 msgid "Group changes by time interval"
-msgstr ""
+msgstr "按时间间隔对修改分组"
 
 msgid "Group for %(notebook)s"
 msgstr "%(notebook)s 的组"
@@ -3133,7 +3071,7 @@ msgid "Hide past appointments"
 msgstr "隐藏过去的约会"
 
 msgid "Highlighter"
-msgstr ""
+msgstr "荧光笔"
 
 msgid "History"
 msgstr "历史趋势"
@@ -3169,6 +3107,9 @@ msgstr "点击某一天时日历应如何响应。"
 msgid "Husband"
 msgstr "丈夫"
 
+msgid "HylaFAX server (Linux)"
+msgstr "HylaFAX服务器 (Linux)"
+
 msgid "I"
 msgstr "我"
 
@@ -3182,7 +3123,7 @@ msgid "ISO week (week 1 contains the first Thursday)"
 msgstr "ISO 周（第 1 周包含第一个星期四）"
 
 msgid "Idea"
-msgstr ""
+msgstr "想法"
 
 msgid ""
 "If the year is unknown, enter only day and month.\n"
@@ -3368,7 +3309,7 @@ msgid "Insert link"
 msgstr "插入链接"
 
 msgid "Insert shape"
-msgstr ""
+msgstr "插入形状"
 
 msgid "Install the packages, for example with:"
 msgstr "安装所需软件包，例如："
@@ -3457,6 +3398,16 @@ msgstr "后台服务无法应用 KDE Connect 接收设置。"
 msgid "KDE Connect reception failed."
 msgstr "KDE Connect 接收失败。"
 
+msgid ""
+"KDE Connect transmits pen position, pressure, contact and pen/eraser "
+"changes. The hover cursor leaves no ink. The phone's tablet menu offers "
+"fullscreen and settings to hide or move the drawing button. Tilt, rotation "
+"and extra pen buttons are not transmitted by this protocol."
+msgstr ""
+"KDE Connect传输笔的位置、压力、接触和笔/橡皮切换。悬停光标不会留下笔迹。手机"
+"的绘图板菜单提供全屏及隐藏或移动绘图按钮的设置。此协议不传输倾斜、旋转或额外"
+"的笔按键。"
+
 msgid "KDE/Akonadi integration is not available."
 msgstr "KDE/Akonadi 集成不可用。"
 
@@ -3485,7 +3436,7 @@ msgid "Landline"
 msgstr "固定电话"
 
 msgid "Landscape"
-msgstr ""
+msgstr "横向"
 
 msgid "Language"
 msgstr "语言"
@@ -3534,7 +3485,7 @@ msgid "LibreOffice is not opened or changed."
 msgstr "未打开或更改 LibreOffice。"
 
 msgid "LibreOffice user data updated."
-msgstr ""
+msgstr "LibreOffice 用户数据已更新。"
 
 #, python-format
 msgid "LibreOffice was not found. The letter is located at: %s"
@@ -3547,7 +3498,7 @@ msgid "Liechtenstein"
 msgstr "列支敦士登"
 
 msgid "Line"
-msgstr ""
+msgstr "线条"
 
 msgid "Line width"
 msgstr "线条宽度"
@@ -3581,6 +3532,9 @@ msgstr "本地日历"
 
 msgid "Local image"
 msgstr "本地图片"
+
+msgid "Local time"
+msgstr "当地时间"
 
 msgid "Location"
 msgstr "位置"
@@ -3773,7 +3727,7 @@ msgid "Manual version %(version)s is available."
 msgstr "手动版本 %(version)s 可用。"
 
 msgid "Manually"
-msgstr ""
+msgstr "手动"
 
 msgid "Manufacturer"
 msgstr "制造商"
@@ -3842,16 +3796,13 @@ msgid "Merge duplicate contact cards"
 msgstr "合并重复的联系人卡片"
 
 msgid "Merge history"
-msgstr ""
+msgstr "合并历史"
 
 msgid "Merge this pair individually"
 msgstr "单独合并此联系人对"
 
 msgid "Merged"
-msgstr ""
-
-msgid "Message"
-msgstr "消息"
+msgstr "已合并"
 
 msgid "Message text"
 msgstr "消息"
@@ -3908,7 +3859,7 @@ msgid "Model"
 msgstr "模型"
 
 msgid "Modified"
-msgstr ""
+msgstr "已修改"
 
 msgid "Module"
 msgstr "模块"
@@ -3917,7 +3868,7 @@ msgid "Monday"
 msgstr "星期一"
 
 msgid "Money"
-msgstr ""
+msgstr "财务"
 
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "监控 KDE Connect SMS 并显示通知"
@@ -3973,7 +3924,7 @@ msgid "Move notebook up"
 msgstr "上移笔记本"
 
 msgid "Move selection"
-msgstr ""
+msgstr "移动选区"
 
 msgid "Move the ticked entries to the wastebasket"
 msgstr "将勾选的条目移到回收站"
@@ -3985,7 +3936,7 @@ msgid "Move up"
 msgstr "上移"
 
 msgid "Move view"
-msgstr ""
+msgstr "移动视图"
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -4047,6 +3998,9 @@ msgstr "荷兰"
 msgid "Network"
 msgstr "网络"
 
+msgid "Network fax server"
+msgstr "网络传真服务器"
+
 msgid "Neuchâtel"
 msgstr "纳沙泰尔"
 
@@ -4090,7 +4044,7 @@ msgid "New contact"
 msgstr "新建联系人"
 
 msgid "New drawing sheet"
-msgstr ""
+msgstr "新建绘图页"
 
 msgid "New group"
 msgstr "新建分组"
@@ -4114,7 +4068,7 @@ msgid "New version %(version)s is available."
 msgstr "有新版本 %(version)s 可用。"
 
 msgid "Newest first"
-msgstr ""
+msgstr "最新优先"
 
 msgid "Next"
 msgstr "下一步"
@@ -4168,7 +4122,7 @@ msgid "Nextcloud returned an incomplete DAV result."
 msgstr "Nextcloud 返回了不完整的 DAV 结果。"
 
 msgid "Nib angle"
-msgstr ""
+msgstr "笔尖角度"
 
 msgid "Nidwalden"
 msgstr "下瓦尔登"
@@ -4193,7 +4147,7 @@ msgid "No SMS messages are scheduled."
 msgstr "没有已计划的 SMS。"
 
 msgid "No WhatsApp profile available for this contact."
-msgstr ""
+msgstr "此联系人没有可用的 WhatsApp 资料。"
 
 msgid "No address books found."
 msgstr "未找到通讯录。"
@@ -4214,6 +4168,9 @@ msgstr "没有安排约会。"
 msgid "No calendars found."
 msgstr "未找到日历。"
 
+msgid "No configured mail or fax adapter is available."
+msgstr "没有可用的已配置邮件或传真适配器。"
+
 msgid "No contact group"
 msgstr "无联系人分组"
 
@@ -4221,7 +4178,7 @@ msgid "No data was found."
 msgstr "未找到数据。"
 
 msgid "No date recorded"
-msgstr ""
+msgstr "未记录日期"
 
 msgid "No default voice subscription is available."
 msgstr "没有可用的默认语音订阅。"
@@ -4270,7 +4227,7 @@ msgid "No media player is available on the connected phone."
 msgstr "已连接的手机上没有可用的媒体播放器。"
 
 msgid "No merge history recorded"
-msgstr ""
+msgstr "未记录合并历史"
 
 msgid "No notebooks"
 msgstr "没有笔记本"
@@ -4300,7 +4257,7 @@ msgid ""
 msgstr "尚未添加人员。请使用上方的“人员”按钮添加任务负责人。"
 
 msgid "No phone number available."
-msgstr ""
+msgstr "没有可用的电话号码。"
 
 msgid "No phone paired yet."
 msgstr "尚未关联任务。"
@@ -4435,7 +4392,7 @@ msgid "Notes and special instructions"
 msgstr "备注和特别说明"
 
 msgid "Notes and tasks"
-msgstr ""
+msgstr "笔记和任务"
 
 msgid ""
 "Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
@@ -4531,7 +4488,7 @@ msgid "Ointment"
 msgstr "软膏"
 
 msgid "Oldest first"
-msgstr ""
+msgstr "最早优先"
 
 msgid "One address book"
 msgstr "一个通讯录"
@@ -4587,6 +4544,9 @@ msgstr "在线"
 msgid "Online address book"
 msgstr "在线通讯录"
 
+msgid "Online fax service"
+msgstr "在线传真服务"
+
 msgid "Online via Bluetooth data"
 msgstr "通过 Bluetooth 数据在线"
 
@@ -4609,10 +4569,10 @@ msgid ""
 msgstr "只能配对一部 Magnolie Notes 手机。更换设备前请移除现有手机。"
 
 msgid "Only personal entries can be sent to Notes."
-msgstr ""
+msgstr "只能将个人条目发送到 Notes。"
 
 msgid "Only the Notes collection"
-msgstr ""
+msgstr "仅 Notes 集合"
 
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
@@ -4694,7 +4654,7 @@ msgid "Open the day in the daily view"
 msgstr "在日视图中打开此日"
 
 msgid "Open the drawing tablet in KDE Connect on the paired phone."
-msgstr ""
+msgstr "在已配对手机的 KDE Connect 中打开绘图板。"
 
 msgid "Open the phone connection screen and try again."
 msgstr "请打开手机连接界面后重试。"
@@ -4786,7 +4746,7 @@ msgid "Own phone number (default voice SIM)"
 msgstr "本机号码（默认语音 SIM）"
 
 msgid "Own profile"
-msgstr ""
+msgstr "个人资料"
 
 msgid "Own window available: no"
 msgstr "可用独立窗口：否"
@@ -4817,7 +4777,7 @@ msgid "Page %(page)s of %(count)s"
 msgstr "第 %(page)s 页，共 %(count)s 页"
 
 msgid "Page order"
-msgstr ""
+msgstr "页面顺序"
 
 msgid "Pages"
 msgstr "页面"
@@ -5065,6 +5025,9 @@ msgstr "请为每个新任务输入标题。"
 msgid "Please enter a title."
 msgstr "请输入标题。"
 
+msgid "Please enter a unique category name without commas or semicolons."
+msgstr "请输入不含逗号或分号的唯一类别名称。"
+
 msgid "Please enter a website or application for the custom action."
 msgstr "请输入自定义操作所使用的网站或应用。"
 
@@ -5105,7 +5068,7 @@ msgid "Port 8741 is unavailable. The phone listener could not start."
 msgstr "端口8741不可用。电话监听器无法启动。"
 
 msgid "Portrait"
-msgstr ""
+msgstr "纵向"
 
 msgid "Possible duplicates among local and incoming contacts"
 msgstr "本地和传入联系人中可能存在的重复项"
@@ -5137,6 +5100,9 @@ msgstr "有可靠的修改时间时，优先使用较新的联系人版本。"
 
 msgid "Preferred backup folder"
 msgstr "首选备份文件夹"
+
+msgid "Preparing selected notes…"
+msgstr "正在准备所选笔记…"
 
 msgid "Preview"
 msgstr "预览"
@@ -5215,7 +5181,7 @@ msgid "Private"
 msgstr "私人"
 
 msgid "Properties"
-msgstr ""
+msgstr "属性"
 
 msgid "Protected archive password unavailable."
 msgstr "受保护的存档密码不可用。"
@@ -5255,7 +5221,7 @@ msgid "Quit"
 msgstr "退出"
 
 msgid "Quote"
-msgstr ""
+msgstr "引用"
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "此电脑可访问的 IPv4 或 IPv6 地址"
@@ -5300,10 +5266,13 @@ msgid "Receive with KDE Connect"
 msgstr "通过 KDE Connect 接收"
 
 msgid "Recently modified"
-msgstr ""
+msgstr "最近修改"
 
 msgid "Recipe"
-msgstr ""
+msgstr "食谱"
+
+msgid "Recipient"
+msgstr "收件人"
 
 msgid "Reconnect"
 msgstr "重新连接"
@@ -5313,7 +5282,7 @@ msgid "Recorded times"
 msgstr "已记录的时间"
 
 msgid "Recovery journal"
-msgstr ""
+msgstr "恢复日志"
 
 msgid "Recovery snapshot created."
 msgstr "已创建恢复快照。"
@@ -5325,7 +5294,7 @@ msgid "Recovery snapshots"
 msgstr "恢复快照"
 
 msgid "Rectangle"
-msgstr ""
+msgstr "矩形"
 
 msgid "Recycle bin"
 msgstr "回收站"
@@ -5607,7 +5576,7 @@ msgid "Right page"
 msgstr "右页"
 
 msgid "Rotate selection"
-msgstr ""
+msgstr "旋转选区"
 
 msgid "Route"
 msgstr "路线"
@@ -5697,6 +5666,9 @@ msgstr "保存纪念日"
 
 msgid "Save appointments"
 msgstr "保存约会"
+
+msgid "Save as PDF"
+msgstr "保存为 PDF"
 
 msgid "Save as…"
 msgstr "另存为…"
@@ -5809,6 +5781,9 @@ msgstr "暂无此地区的学校假期信息。"
 msgid "Schwyz"
 msgstr "施维茨"
 
+msgid "Scope"
+msgstr "范围"
+
 msgid "Screen notification only"
 msgstr "显示选定的通知（只读）"
 
@@ -5862,6 +5837,9 @@ msgstr "请选择自定义备份文件夹并存储存档密码，以启用自动
 msgid "Select a custom backup folder."
 msgstr "请选择自定义备份文件夹。"
 
+msgid "Select a recipient."
+msgstr "请选择收件人。"
+
 msgid "Select all"
 msgstr "全选"
 
@@ -5882,7 +5860,7 @@ msgid "Select backup folder"
 msgstr "选择备份文件夹"
 
 msgid "Select complete strokes that fit inside the sheet."
-msgstr ""
+msgstr "选择能放入绘图页的完整笔画。"
 
 msgid "Select no more than three years."
 msgstr "最多选择三年。"
@@ -5907,7 +5885,7 @@ msgid "Selection options"
 msgstr "选择选项"
 
 msgid "Send"
-msgstr ""
+msgstr "发送"
 
 msgid "Send SMS"
 msgstr "发送 SMS"
@@ -5918,20 +5896,32 @@ msgstr "发送调整后的文本"
 msgid "Send documents"
 msgstr "发送文档"
 
+msgid "Send notes by email or fax"
+msgstr "通过邮件或传真发送笔记"
+
 msgid "Send secure request"
 msgstr "发送安全请求"
 
 msgid "Send this new note to Notes"
-msgstr ""
+msgstr "将此新笔记发送到 Notes"
 
 msgid "Send to Notes"
-msgstr ""
+msgstr "发送到 Notes"
 
 msgid "Send via"
-msgstr ""
+msgstr "发送方式"
 
 msgid "Sending SMS with KDE Connect"
 msgstr "与 KDE Connect 一起发送 SMS"
+
+msgid "Sending cancelled."
+msgstr "发送已取消。"
+
+msgid "Sending is disabled."
+msgstr "发送已停用。"
+
+msgid "Sending is not available."
+msgstr "发送不可用。"
 
 msgid "Sent"
 msgstr "已发送"
@@ -5991,7 +5981,7 @@ msgid "Share connection with"
 msgstr "连接分享给"
 
 msgid "Share selected details"
-msgstr ""
+msgstr "分享选定的详细信息"
 
 msgid "Share this connection with the selected device?"
 msgstr "与所选设备分享此连接？"
@@ -6021,7 +6011,7 @@ msgid "Sharing this connection is not allowed."
 msgstr "未授权分享此连接。"
 
 msgid "Sheet size"
-msgstr ""
+msgstr "绘图页大小"
 
 msgid "Shift planner"
 msgstr "班次计划器"
@@ -6037,6 +6027,9 @@ msgstr "在计划器之后显示“健康”"
 
 msgid "Show Magnolie Notes SMS notifications"
 msgstr "显示 Magnolie Notes SMS 通知"
+
+msgid "Show Send in note print options"
+msgstr "在笔记打印选项中显示发送"
 
 msgid "Show all"
 msgstr "显示全部"
@@ -6207,7 +6200,7 @@ msgid "Spray"
 msgstr "喷雾剂"
 
 msgid "Square"
-msgstr ""
+msgstr "正方形"
 
 msgid "St. Gallen"
 msgstr "圣加仑"
@@ -6256,7 +6249,7 @@ msgid "Stop"
 msgstr "停止"
 
 msgid "Street"
-msgstr ""
+msgstr "街道"
 
 msgid "Street / house number"
 msgstr "街道 / 门牌号"
@@ -6272,6 +6265,9 @@ msgstr "删除线"
 
 msgid "Styria"
 msgstr "施蒂里亚"
+
+msgid "Subject"
+msgstr "主题"
 
 msgid "Submitted"
 msgstr "已提交"
@@ -6335,7 +6331,7 @@ msgstr ""
 "留。"
 
 msgid "Synchronize all notes and tasks"
-msgstr ""
+msgstr "同步所有笔记和任务"
 
 msgid "Synchronize automatically at startup"
 msgstr "启动时自动同步"
@@ -6830,6 +6826,9 @@ msgstr "自定义网站不是安全的 HTTPS 地址。"
 msgid "The data changed during password transaction recovery."
 msgstr "恢复密码事务期间数据发生了变化。"
 
+msgid "The data could not be saved."
+msgstr "无法保存数据。"
+
 msgid ""
 "The data is encrypted – background reminders have not been enabled under "
 "Settings > Security."
@@ -6841,6 +6840,9 @@ msgstr "数据已加密——正在使用已启用的受限提醒数据。"
 
 msgid "The data is encrypted. Unlock the organizer with the password first."
 msgstr "数据已加密。请先使用密码解锁 Organizer。"
+
+msgid "The data is invalid."
+msgstr "数据无效。"
 
 msgid "The data is not a JSON object."
 msgstr "数据不是 JSON 对象。"
@@ -6855,6 +6857,9 @@ msgid ""
 "The directory containing the interface (/usr/share/magnolie-organizer/web) "
 "was not found."
 msgstr "未找到包含界面的目录（/usr/share/magnolie-organizer/web）。"
+
+msgid "The document could not be handed off."
+msgstr "无法交付文档。"
 
 msgid "The drawing limit has been reached."
 msgstr "已达到绘图上限。"
@@ -6910,6 +6915,14 @@ msgstr ""
 "该文件夹可由 Nextcloud、Google Drive、Dropbox 或 OneDrive 在本地同步。"
 "Magnolie 不会登录任何提供商。自动备份仅在 Organizer 已打开且解锁时运行，并在"
 "数据成功保存后立即执行。"
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "交付已经开始，无法在此撤回。"
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr "交付结果未知。请先检查外部应用，再尝试重试。"
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -7329,7 +7342,7 @@ msgid "The selected contacts contain no values for these columns."
 msgstr "所选联系人在这些列中没有任何值。"
 
 msgid "The selected entry is too large to send."
-msgstr ""
+msgstr "所选条目过大，无法发送。"
 
 msgid "The selected file is not a readable CSV file."
 msgstr "所选文件不是可读取的 CSV 文件。"
@@ -7344,7 +7357,7 @@ msgid "The selected iCalendar file is incomplete."
 msgstr "所选 iCalendar 文件不完整。"
 
 msgid "The selected note contains attachments that cannot be sent."
-msgstr ""
+msgstr "所选笔记包含无法发送的附件。"
 
 msgid "The selected online account is disabled, offline or unreachable."
 msgstr "所选在线账户已禁用、离线或无法访问。"
@@ -7367,6 +7380,9 @@ msgstr "所选播放器即使关闭，也会显示在手机上。播放会启动
 
 msgid "The selected source was not found. Select it again in Settings."
 msgstr "未找到所选来源。请在“设置”中重新选择。"
+
+msgid "The selected time zone is unavailable."
+msgstr "所选时区不可用。"
 
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "
@@ -7670,7 +7686,7 @@ msgid "This phone transport is unavailable."
 msgstr "此手机连接方式不可用。"
 
 msgid "This profile format is not supported."
-msgstr ""
+msgstr "不支持此资料格式。"
 
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
@@ -7735,7 +7751,7 @@ msgid "Time format"
 msgstr "时间格式"
 
 msgid "Time synchronization direction"
-msgstr ""
+msgstr "时间记录同步方向"
 
 msgctxt "time tracking"
 msgid "Time tracking"
@@ -7808,13 +7824,13 @@ msgid "Transfer received text to the clipboard"
 msgstr "将收到的文本传送到剪贴板"
 
 msgid "Travel"
-msgstr ""
+msgstr "旅行"
 
 msgid "Tray applet"
 msgstr "系统托盘小程序"
 
 msgid "Triangle"
-msgstr ""
+msgstr "三角形"
 
 msgid "Trust and accept tasks and notes automatically"
 msgstr "信任并自动接受任务和笔记"
@@ -7876,10 +7892,10 @@ msgid "Unavailable"
 msgstr "不可用"
 
 msgid "Unchanged contents do not create another recovery point."
-msgstr ""
+msgstr "内容未更改时不会再创建恢复点。"
 
 msgid "Undated"
-msgstr ""
+msgstr "无日期"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -8142,6 +8158,11 @@ msgid "Waiting for device status"
 msgstr "等待设备状态"
 
 msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr "正在等待邮件或传真应用。关闭此窗口不会撤回交付。"
+
+msgid ""
 "Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
 "seconds."
 msgstr "正在等待端口 %(port)s 上的电话。配对将在 %(seconds)s 秒后关闭。"
@@ -8209,6 +8230,9 @@ msgstr ""
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "未获取天气信息，因为没有可用的位置。"
+
+msgid "Website"
+msgstr "网站"
 
 msgid "Wedding anniversary"
 msgstr "结婚纪念日"
@@ -8289,7 +8313,7 @@ msgid "Whole month"
 msgstr "整月"
 
 msgid "Width"
-msgstr ""
+msgstr "宽度"
 
 msgid "Wife"
 msgstr "妻子"
@@ -8379,7 +8403,7 @@ msgid "Yes, the code matches"
 msgstr "是，代码一致"
 
 msgid "Yesterday"
-msgstr ""
+msgstr "昨天"
 
 msgid "You can also do this later in Settings."
 msgstr "您也可以稍后在设置中进行此操作。"
@@ -8415,10 +8439,10 @@ msgid "ZIP archives (*.zip)"
 msgstr "ZIP 压缩包 (*.zip)"
 
 msgid "Zoom in"
-msgstr ""
+msgstr "放大"
 
 msgid "Zoom out"
-msgstr ""
+msgstr "缩小"
 
 msgid "Zug"
 msgstr "楚格州"
@@ -8835,6 +8859,9 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
+
+#~ msgid "Message"
+#~ msgstr "消息"
 
 #~ msgid ""
 #~ "The log records when the reminder service checked and what it reported. "

@@ -7,6 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: hsb\n"
@@ -16,160 +17,6 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : (n%100==3 || "
 "n%100==4) ? 2 : 3);\n"
-
-msgid "Cancel sending"
-msgstr "Słanje přetorhnyć"
-
-msgid ""
-"Document handed to the selected application or fax server. Delivery is not "
-"confirmed."
-msgstr ""
-"Dokument je na wubranu aplikaciju abo faksowy serwer přepodaty. Doručenje "
-"njeje wobkrućene."
-
-msgid "Enter a HylaFAX server hostname, optionally followed by :port."
-msgstr "Zapodajće mjeno serwera HylaFAX, na přeće z :port na kóncu."
-
-msgid "Enter recipient manually"
-msgstr "Přijimarja manuelnje zapodać"
-
-msgid "Fax printer"
-msgstr "Faksowy ćišćak"
-
-msgid "Network fax server"
-msgstr "Faksowy serwer w syći"
-
-msgid "Online fax service"
-msgstr "Online-faksowa słužba"
-
-msgid "Save as PDF"
-msgstr "Jako PDF składować"
-
-msgid "Website"
-msgstr "Webstrona"
-
-msgid "Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them."
-msgstr "Aktiwne wothrawanje, tež wideja we wobhladowaku, wostanje pódla přirjadowanych wothrawakow přistupne. Pytać/Wočić lokalnu hudźbu abo wideja wuběra; přepytujomna wothrawanska lisćina so zjewi, hdyž ju wothrawak podpěruje. Wobali, připadny slěd a wospjetowanje su přistupne, hdyž je wothrawak poskića."
-
-msgid "KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol."
-msgstr "KDE Connect poziciju pisaka, ćišć, dotknjenje a změnu pisak/radierak přenošuje. Pokazowar při přibliženju žane smuhi njetwori. Tabletowy meni telefona połnu wobrazowku a nastajenja za schowanje abo přesunjenje rysowanskeho tłóčatka poskića. Tutón protokol nachilenje, wobrot abo přidatne tłóčatka pisaka njepřenošuje."
-
-msgid "Fax"
-msgstr "Faks"
-
-msgid ""
-"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
-"supported installed mail client. A handoff is not delivery confirmation."
-msgstr ""
-"Faks nastajeny serwer HylaFAX a instalowany sendfax trjeba. E-mejl podpěrany "
-"instalowany e-mejlowy program wužiwa. Přepodaće njeje wobkrućenje doručenja."
-
-msgid "HylaFAX server (Linux)"
-msgstr "Serwer HylaFAX (Linux)"
-
-msgid "No configured mail or fax adapter is available."
-msgstr "Žadyn nastajeny e-mejlowy abo faksowy zwisk njeje k dispoziciji."
-
-msgid "Preparing selected notes…"
-msgstr "Wubrane noticy so přihotuja…"
-
-msgid "Recipient"
-msgstr "Přijimar"
-
-msgid "Select a recipient."
-msgstr "Wubjerće přijimarja."
-
-msgid "Send notes by email or fax"
-msgstr "Noticy přez e-mejl abo faks słać"
-
-msgid "Sending cancelled."
-msgstr "Słanje přetorhnjene."
-
-msgid "Sending is disabled."
-msgstr "Słanje je znjemóžnjene."
-
-msgid "Sending is not available."
-msgstr "Słanje njeje k dispoziciji."
-
-msgid "Show Send in note print options"
-msgstr "Słać w ćišćerskich opcijach noticow pokazać"
-
-msgid "Subject"
-msgstr "Nastupnosć"
-
-msgid "The document could not be handed off."
-msgstr "Dokument njeda so přepodać."
-
-msgid "The handoff has already started and cannot be recalled here."
-msgstr "Přepodaće je so hižo započało a njeda so tu wróćo zwołać."
-
-msgid ""
-"The handoff outcome is unknown. Check the external application before trying "
-"again."
-msgstr ""
-"Wuslědk přepodaća je njeznaty. Přepruwujće eksternu aplikaciju před dalšim "
-"pospytom."
-
-msgid ""
-"Waiting for the mail or fax application. Closing this window does not recall "
-"the handoff."
-msgstr ""
-"Čakanje na e-mejlowu abo faksowu aplikaciju. Začinjenje tutoho wokna "
-"přepodaće njewróći."
-
-msgid "All anniversaries"
-msgstr "Wšě róčnicy"
-
-msgid "Also hide in the calendar"
-msgstr "Tež w kalendarju schować"
-
-msgid ""
-"An entry is excluded when any of its contact groups is selected. No contacts "
-"or anniversaries are deleted."
-msgstr ""
-"Zapisk so wuzamknje, hdyž je znajmjeńša jedna z jeho skupin kontaktow "
-"wubrana. Kontakty a róčnicy so njezhašeja."
-
-msgid "Apply to"
-msgstr "Nałožić na"
-
-msgid "Birthdays only"
-msgstr "Jenož narodniny"
-
-msgid "Enable contact group exclusions"
-msgstr "Wuzamknjenje skupin kontaktow zmóžnić"
-
-msgid "Exclude contact groups"
-msgstr "Skupiny kontaktow wuzamknyć"
-
-msgid "Scope"
-msgstr "Wobłuk"
-
-msgid "Category"
-msgstr "Kategorija"
-
-msgid "Category colors"
-msgstr "Barby kategorijow"
-
-msgid ""
-"Category colors highlight appointments and tasks. A custom entry color takes "
-"precedence; otherwise the first matching category is used."
-msgstr ""
-"Barby kategorijow terminy a nadawki wuzběhuja. Swójska barba zapiska ma "
-"předmjenje; hewak so prěnja přihódna kategorija wužiwa."
-
-msgid ""
-"Changing or removing a category color does not rename or delete categories "
-"on saved or imported entries."
-msgstr ""
-"Změnjenje abo wotstronjenje barby kategorije kategorije składowanych abo "
-"importowanych zapiskow ani njepomjenuje ani njezhaša."
-
-msgid "Custom color"
-msgstr "Swójska barba"
-
-msgid "Please enter a unique category name without commas or semicolons."
-msgstr "Zapodajće jednozmyslne mjeno kategorije bjez komow abo semikolonow."
 
 msgid " (filtered)"
 msgstr " (filtrowane)"
@@ -444,10 +291,10 @@ msgstr[3] "Ličba sekundow: %(count)s"
 
 msgid "%(count)s source"
 msgid_plural "%(count)s sources"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
+msgstr[0] "%(count)s žórło"
+msgstr[1] "%(count)s žórle"
+msgstr[2] "%(count)s žórła"
+msgstr[3] "%(count)s žórłow"
 
 msgid "%(count)s task"
 msgid_plural "%(count)s tasks"
@@ -909,10 +756,22 @@ msgid "Account type"
 msgstr "Kontowy typ"
 
 msgid "Action"
-msgstr ""
+msgstr "Akcija"
 
 msgid "Active call"
 msgstr "Aktualne zawołanje"
+
+msgid ""
+"Active playback, including browser videos, remains available alongside the "
+"assigned players. Search/Open selects local music or videos; a searchable "
+"player playlist appears when supported. Covers, shuffle and repeat are "
+"available when the player provides them."
+msgstr ""
+"Aktiwne wothrawanje, tež wideja we wobhladowaku, wostanje pódla "
+"přirjadowanych wothrawakow přistupne. Pytać/Wočić lokalnu hudźbu abo wideja "
+"wuběra; přepytujomna wothrawanska lisćina so zjewi, hdyž ju wothrawak "
+"podpěruje. Wobali, připadny slěd a wospjetowanje su přistupne, hdyž je "
+"wothrawak poskića."
 
 msgctxt "time tracking"
 msgid "Activity"
@@ -991,7 +850,7 @@ msgid "Address imported from LibreOffice."
 msgstr "Adresa z LibreOffice importowana."
 
 msgid "Address imported from own profile."
-msgstr ""
+msgstr "Adresa je so z własneho profila importowała."
 
 msgid "Address supplement"
 msgstr "Adresowy dodawk"
@@ -1038,6 +897,9 @@ msgstr "Alarmowy dohladowak zastajeny."
 msgid "All"
 msgstr "Wšitko"
 
+msgid "All anniversaries"
+msgstr "Wšě róčnicy"
+
 msgid "All cantons"
 msgstr "Wšě kantony"
 
@@ -1071,6 +933,9 @@ msgstr "Dowolene pozadkowe funkcije"
 
 msgid "Also disclose appointments marked as confidential"
 msgstr "Tež terminy pokazać, kotrež su jako dowěrliwe markěrowane"
+
+msgid "Also hide in the calendar"
+msgstr "Tež w kalendarju schować"
 
 msgid "Also hide past anniversaries"
 msgstr "Tež zańdźene róčnicy schować"
@@ -1123,6 +988,13 @@ msgstr ""
 "Šifrowanska komponenta faluje. Instalujće ju z: sudo apt install python3-"
 "cryptography"
 
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"Zapisk so wuzamknje, hdyž je znajmjeńša jedna z jeho skupin kontaktow "
+"wubrana. Kontakty a róčnicy so njezhašeja."
+
 msgid "Android restricts this device identifier."
 msgstr "Android tutón identifikator wobmjezuje."
 
@@ -1130,7 +1002,7 @@ msgid "Android version"
 msgstr "Wersija Androida"
 
 msgid "Angle"
-msgstr ""
+msgstr "Kut"
 
 msgid "Anniversaries"
 msgstr "Róčnicy"
@@ -1198,6 +1070,9 @@ msgstr ""
 
 msgid "Apply"
 msgstr "Nałožić"
+
+msgid "Apply to"
+msgstr "Nałožić na"
 
 msgid "Apply to the remaining conflicts"
 msgstr "Na zbytk konfliktow nałožić"
@@ -1290,7 +1165,7 @@ msgid "Authority appointment"
 msgstr "Termin pola zarjada"
 
 msgid "Automatic"
-msgstr ""
+msgstr "Awtomatisce"
 
 msgid "Automatic backup failed."
 msgstr "Awtomatiske zawěsćenje je so njeporadźiło."
@@ -1322,7 +1197,7 @@ msgid "Automatically dismiss anniversary reminders"
 msgstr "Dopomnjeća na róčnicy awtomatisce schować"
 
 msgid "Automatically over the current connection"
-msgstr ""
+msgstr "Awtomatisce přez aktualny zwisk"
 
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Awtomatisce přez WLAN synchronizować"
@@ -1469,6 +1344,9 @@ msgstr "Narodninska swjedźeń"
 msgid "Birthday today"
 msgstr "Dźensa narodniny"
 
+msgid "Birthdays only"
+msgstr "Jenož narodniny"
+
 msgid "Black"
 msgstr "Čorny"
 
@@ -1562,7 +1440,7 @@ msgid "Browse…"
 msgstr "Přepytać..."
 
 msgid "Brush"
-msgstr ""
+msgstr "Štětka"
 
 msgid "Burgenland"
 msgstr "Burgenland"
@@ -1686,10 +1564,13 @@ msgid "Call with %(name)s · %(date)s"
 msgstr "Zawołanje z %(name)s · %(date)s"
 
 msgid "Calligraphy pen"
-msgstr ""
+msgstr "Kaligrafiske pjero"
 
 msgid "Cancel"
 msgstr "Přetorhnyć"
+
+msgid "Cancel sending"
+msgstr "Słanje přetorhnyć"
 
 msgid "Canton"
 msgstr "Kanton"
@@ -1712,6 +1593,19 @@ msgstr "Kategorije"
 msgid "Categories:"
 msgstr "Kategorije:"
 
+msgid "Category"
+msgstr "Kategorija"
+
+msgid "Category colors"
+msgstr "Barby kategorijow"
+
+msgid ""
+"Category colors highlight appointments and tasks. A custom entry color takes "
+"precedence; otherwise the first matching category is used."
+msgstr ""
+"Barby kategorijow terminy a nadawki wuzběhuja. Swójska barba zapiska ma "
+"předmjenje; hewak so prěnja přihódna kategorija wužiwa."
+
 msgid "Catholic confirmation"
 msgstr "Firmowanje"
 
@@ -1728,7 +1622,14 @@ msgid "Changes are applied automatically"
 msgstr "Změny so awtomatisce přewozmu"
 
 msgid "Changes to your own profile are saved with Save."
+msgstr "Změny na własnym profilu so z Tutu składować składuja."
+
+msgid ""
+"Changing or removing a category color does not rename or delete categories "
+"on saved or imported entries."
 msgstr ""
+"Změnjenje abo wotstronjenje barby kategorije kategorije składowanych abo "
+"importowanych zapiskow ani njepomjenuje ani njezhaša."
 
 msgid "Changing phone permission"
 msgstr "Změna dowolnosće telefona"
@@ -1801,10 +1702,10 @@ msgstr ""
 "hesło."
 
 msgid "Choose a connection. Confirm the pairing code on the other device."
-msgstr ""
+msgstr "Wubjerće zwisk. Wobkrućće koplowanski kod na druhim graće."
 
 msgid "Choose a contact"
-msgstr ""
+msgstr "Kontakt wubrać"
 
 msgid "Choose a country first."
 msgstr "Wubjerće najprjedy kraj."
@@ -1968,7 +1869,7 @@ msgid "Codes match"
 msgstr "Kod so kryje"
 
 msgid "Collapse day groups by default"
-msgstr ""
+msgstr "Skupiny dnjow standardnje schować"
 
 msgid "Colleagues"
 msgstr "Kolegojo"
@@ -2003,7 +1904,7 @@ msgstr ""
 "telefonisce, zo byšće zwisk přepruwowali."
 
 msgid "Compare with LibreOffice"
-msgstr ""
+msgstr "Z LibreOffice přirunać"
 
 msgid "Complete archive exported (password-protected)."
 msgstr "Dospołny archiw je so eksportował (z hesłom škitany)."
@@ -2061,7 +1962,7 @@ msgid "Confirm the pairing request on the phone."
 msgstr "Wobkrućće sparowanske naprašowanje na telefonje."
 
 msgid "Confirm this code on the other device."
-msgstr ""
+msgstr "Wobkrućće tutón kod na druhim graće."
 
 msgid "Confirmation"
 msgstr "Wobkrućenje"
@@ -2076,7 +1977,7 @@ msgid "Connect"
 msgstr "Zwjazać"
 
 msgid "Connect Notes before sending this entry."
-msgstr ""
+msgstr "Zwjazajće Notes, prjedy hač tutón zapisk pósćeleće."
 
 msgid "Connect phone via WLAN"
 msgstr "Telefon přez WLAN zwjazać"
@@ -2288,10 +2189,10 @@ msgid "Create pairing file …"
 msgstr "Porowanski dataj wutworić …"
 
 msgid "Create recovery points"
-msgstr ""
+msgstr "Wobnowjenske dypki wutworjeć"
 
 msgid "Created"
-msgstr ""
+msgstr "Wutworjeny"
 
 msgid "Creating a recovery snapshot"
 msgstr "Wutworjenje wuchowanskeho wobraza"
@@ -2326,6 +2227,9 @@ msgstr "Swójske"
 msgid "Custom application"
 msgstr "Swójske nałoženje"
 
+msgid "Custom color"
+msgstr "Swójska barba"
+
 msgid "Custom notification"
 msgstr "Swójska zdźělenka"
 
@@ -2348,7 +2252,7 @@ msgid "Cut"
 msgstr "Wutřihać"
 
 msgid "Cut selection"
-msgstr ""
+msgstr "Wuběr wurězać"
 
 msgid "Cycle calendar"
 msgstr "Cykusowa protyka"
@@ -2426,7 +2330,7 @@ msgid "Decrypting the data"
 msgstr "Daty so dekryptuja"
 
 msgid "Default view"
-msgstr ""
+msgstr "Standardny napohlad"
 
 msgid "Default: next to the data file"
 msgstr "Standard: pódla datoweho dataja"
@@ -2485,10 +2389,10 @@ msgid "Delete cycle marker"
 msgstr "Cykusowe znamjo zhašeć"
 
 msgid "Delete drawing sheet"
-msgstr ""
+msgstr "Rysowanski łopjen wušmórnyć"
 
 msgid "Delete drawing sheet?"
-msgstr ""
+msgstr "Rysowanski łopjen wušmórnyć?"
 
 msgid "Delete entries"
 msgstr "Zapiski zhašeć"
@@ -2677,6 +2581,13 @@ msgstr "Lěkar"
 msgid "Doctor appointment"
 msgstr "Termin pola lěkarja"
 
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"Dokument je na wubranu aplikaciju abo faksowy serwer přepodaty. Doručenje "
+"njeje wobkrućene."
+
 msgid "Document.pdf"
 msgstr "Dokument.pdf"
 
@@ -2771,7 +2682,7 @@ msgid "Edit the website or application used"
 msgstr "Wužiwane websydło abo nałoženje wobdźěłać"
 
 msgid "Ellipse"
-msgstr ""
+msgstr "Elipsa"
 
 msgid "Email"
 msgstr "E-mejl"
@@ -2826,6 +2737,9 @@ msgid ""
 msgstr ""
 "Zmóžńće WLAN pytanje zmylkow we wuwiwarskich nastajenjach Notes na swojim "
 "spřaženym telefonje."
+
+msgid "Enable contact group exclusions"
+msgstr "Wuzamknjenje skupin kontaktow zmóžnić"
 
 msgid "Enable cycle calendar"
 msgstr "Cykusowu protyku zmóžnić"
@@ -2898,6 +2812,9 @@ msgstr "Wjele wjesela při organizowanju!"
 msgid "Enter"
 msgstr "Zapodać"
 
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr "Zapodajće mjeno serwera HylaFAX, na přeće z :port na kóncu."
+
 msgid ""
 "Enter a blood glucose value on the left to highlight matching scheme rows."
 msgstr ""
@@ -2952,6 +2869,9 @@ msgstr "Zapodajće hodźiny a mjeńšiny abo wostajće čas dospołnje prózdny.
 msgid "Enter height and weight to calculate BMI."
 msgstr "Zapodajće wysokosć a wahu, zo byšće BMI wuličili."
 
+msgid "Enter recipient manually"
+msgstr "Přijimarja manuelnje zapodać"
+
 msgid "Enter the backup password."
 msgstr "Zapodajće hesło zawěsćenja."
 
@@ -2991,7 +2911,7 @@ msgid "Estimate the next period"
 msgstr "Přichodnu menstruaciju wobličić"
 
 msgid "Estimated from older data"
-msgstr ""
+msgstr "Ze staršich datow troštny"
 
 msgid "Estimated next period"
 msgstr "Wobličena přichodna menstruacija"
@@ -3004,7 +2924,7 @@ msgid "Event loop is not available: %s"
 msgstr "Podawkowa smyčka k dispoziciji njeje: %s"
 
 msgid "Every change"
-msgstr ""
+msgstr "Při kóždej změnje"
 
 msgid "Every filled medication row requires a name."
 msgstr "Kóžda wupjelnjena linka lěka trjeba mjeno."
@@ -3013,7 +2933,7 @@ msgid "Every filled row requires a valid date."
 msgstr "Kóžda wupjelnjena linka trjeba płaćiwy datum."
 
 msgid "Every program start"
-msgstr ""
+msgstr "Při kóždym starće programa"
 
 msgid "Everything is done - the list is empty."
 msgstr "Wšitko je hotowe – lisćina je prózdna."
@@ -3041,8 +2961,11 @@ msgstr ""
 "Runje jedyn skoplowany telefon z Magnolie Notes dyrbi zwjazany być a wolenje "
 "čisła dowolić."
 
+msgid "Exclude contact groups"
+msgstr "Skupiny kontaktow wuzamknyć"
+
 msgid "Expand day groups by default"
-msgstr ""
+msgstr "Skupiny dnjow standardnje pokazać"
 
 msgid "Export"
 msgstr "Eksportować"
@@ -3057,7 +2980,7 @@ msgid "Export is available only in the installed application."
 msgstr "Eksport je jenož w instalowanym nałoženju k dispoziciji."
 
 msgid "Export vCard"
-msgstr ""
+msgstr "vCard eksportować"
 
 msgid "Extend sharing"
 msgstr "Dźělenje rozšěrić"
@@ -3073,6 +2996,19 @@ msgstr "Swójba"
 
 msgid "Fasting"
 msgstr "Na lačny žaludk"
+
+msgid "Fax"
+msgstr "Faks"
+
+msgid "Fax printer"
+msgstr "Faksowy ćišćak"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"Faks nastajeny serwer HylaFAX a instalowany sendfax trjeba. E-mejl podpěrany "
+"instalowany e-mejlowy program wužiwa. Přepodaće njeje wobkrućenje doručenja."
 
 msgid "Female caregiver"
 msgstr "Hladarka"
@@ -3093,7 +3029,7 @@ msgid "Fertile days"
 msgstr "Płodne dny"
 
 msgid "Field"
-msgstr ""
+msgstr "Polo"
 
 msgid "File"
 msgstr "Dataja"
@@ -3110,10 +3046,10 @@ msgid "File saved: %(name)s"
 msgstr "Dataja składowana: %(name)s"
 
 msgid "Fill selection"
-msgstr ""
+msgstr "Wuběr wupjelnić"
 
 msgid "Fill with gradient"
-msgstr ""
+msgstr "Z barbnym přechodom wupjelnić"
 
 msgid "Fill with stored values"
 msgstr "Ze składowanymi hódnotami wupjelnić"
@@ -3291,16 +3227,16 @@ msgid "Google Maps in the browser"
 msgstr "Google Maps we wobhladowaku"
 
 msgid "Gradient end color"
-msgstr ""
+msgstr "Kónčna barba přechoda"
 
 msgid "Grisons"
 msgstr "Graubünden"
 
 msgid "Group by day"
-msgstr ""
+msgstr "Po dnjach zeskupić"
 
 msgid "Group changes by time interval"
-msgstr ""
+msgstr "Změny po časowym interwalu zeskupić"
 
 msgid "Group for %(notebook)s"
 msgstr "Skupina za %(notebook)s"
@@ -3376,7 +3312,7 @@ msgid "Hide past appointments"
 msgstr "Zańdźene terminy schować"
 
 msgid "Highlighter"
-msgstr ""
+msgstr "Wuzběhowak"
 
 msgid "History"
 msgstr "Stawizny"
@@ -3413,6 +3349,9 @@ msgstr "Kak ma so protyka zadźeržeć, hdyž na dźeń kliknjeće."
 msgid "Husband"
 msgstr "Mandźelski"
 
+msgid "HylaFAX server (Linux)"
+msgstr "Serwer HylaFAX (Linux)"
+
 msgid "I"
 msgstr "Ja"
 
@@ -3426,7 +3365,7 @@ msgid "ISO week (week 1 contains the first Thursday)"
 msgstr "ISO-tydźeń (tydźeń 1 wobsahuje prěni štwórtk)"
 
 msgid "Idea"
-msgstr ""
+msgstr "Ideja"
 
 msgid ""
 "If the year is unknown, enter only day and month.\n"
@@ -3626,7 +3565,7 @@ msgid "Insert link"
 msgstr "Wotkaz zasadźić"
 
 msgid "Insert shape"
-msgstr ""
+msgstr "Formu zasadźić"
 
 msgid "Install the packages, for example with:"
 msgstr "Instalujće pakety, na přikład z:"
@@ -3716,6 +3655,18 @@ msgstr "Pozadkowa słužba njemóžeše přijimanske nastajenja KDE Connect nał
 msgid "KDE Connect reception failed."
 msgstr "Přijimanje KDE Connect je so njeporadźiło."
 
+msgid ""
+"KDE Connect transmits pen position, pressure, contact and pen/eraser "
+"changes. The hover cursor leaves no ink. The phone's tablet menu offers "
+"fullscreen and settings to hide or move the drawing button. Tilt, rotation "
+"and extra pen buttons are not transmitted by this protocol."
+msgstr ""
+"KDE Connect poziciju pisaka, ćišć, dotknjenje a změnu pisak/radierak "
+"přenošuje. Pokazowar při přibliženju žane smuhi njetwori. Tabletowy meni "
+"telefona połnu wobrazowku a nastajenja za schowanje abo přesunjenje "
+"rysowanskeho tłóčatka poskića. Tutón protokol nachilenje, wobrot abo "
+"přidatne tłóčatka pisaka njepřenošuje."
+
 msgid "KDE/Akonadi integration is not available."
 msgstr "Integracija KDE/Akonadi k dispoziciji njeje."
 
@@ -3744,7 +3695,7 @@ msgid "Landline"
 msgstr "Pevny telefon"
 
 msgid "Landscape"
-msgstr ""
+msgstr "Prěčny format"
 
 msgid "Language"
 msgstr "Rěč"
@@ -3793,7 +3744,7 @@ msgid "LibreOffice is not opened or changed."
 msgstr "LibreOffice njeje wočinjeny abo změnjeny."
 
 msgid "LibreOffice user data updated."
-msgstr ""
+msgstr "Wužiwarske daty LibreOffice su zaktualizowane."
 
 #, python-format
 msgid "LibreOffice was not found. The letter is located at: %s"
@@ -3806,7 +3757,7 @@ msgid "Liechtenstein"
 msgstr "Liechtenstein"
 
 msgid "Line"
-msgstr ""
+msgstr "Linija"
 
 msgid "Line width"
 msgstr "Šěrokosć linije"
@@ -3840,6 +3791,9 @@ msgstr "Lokalny protyk"
 
 msgid "Local image"
 msgstr "Swójski wobraz"
+
+msgid "Local time"
+msgstr "Městny čas"
 
 msgid "Location"
 msgstr "Městno"
@@ -4038,7 +3992,7 @@ msgid "Manual version %(version)s is available."
 msgstr "Manuelna wersija %(version)s je k dispoziciji."
 
 msgid "Manually"
-msgstr ""
+msgstr "Manuelnje"
 
 msgid "Manufacturer"
 msgstr "Zhotowjer"
@@ -4109,16 +4063,13 @@ msgid "Merge duplicate contact cards"
 msgstr "Dwójne kontaktowe karty zjednoćić"
 
 msgid "Merge history"
-msgstr ""
+msgstr "Historija zjednoćenjow"
 
 msgid "Merge this pair individually"
 msgstr "Tutón por jednotliwje zjednoćić"
 
 msgid "Merged"
-msgstr ""
-
-msgid "Message"
-msgstr "Powěsć"
+msgstr "Zjednoćeny"
 
 msgid "Message text"
 msgstr "Powěsć"
@@ -4179,7 +4130,7 @@ msgid "Model"
 msgstr "Model"
 
 msgid "Modified"
-msgstr ""
+msgstr "Změnjeny"
 
 msgid "Module"
 msgstr "Modul"
@@ -4188,7 +4139,7 @@ msgid "Monday"
 msgstr "Póndźela"
 
 msgid "Money"
-msgstr ""
+msgstr "Pjenjezy"
 
 msgid "Monitor KDE Connect SMS and show notifications"
 msgstr "SMS KDE Connect dohladować a zdźělenki pokazać"
@@ -4246,7 +4197,7 @@ msgid "Move notebook up"
 msgstr "Noticnik horje přesunyć"
 
 msgid "Move selection"
-msgstr ""
+msgstr "Wuběr přesunyć"
 
 msgid "Move the ticked entries to the wastebasket"
 msgstr "Wotškrtnjene zapiski do papjeroweho koša přesunyć"
@@ -4258,7 +4209,7 @@ msgid "Move up"
 msgstr "Horje sunyć"
 
 msgid "Move view"
-msgstr ""
+msgstr "Napohlad přesunyć"
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -4324,6 +4275,9 @@ msgstr "Nižozemska"
 msgid "Network"
 msgstr "Syć"
 
+msgid "Network fax server"
+msgstr "Faksowy serwer w syći"
+
 msgid "Neuchâtel"
 msgstr "Neuchâtel"
 
@@ -4368,7 +4322,7 @@ msgid "New contact"
 msgstr "Nowy kontakt"
 
 msgid "New drawing sheet"
-msgstr ""
+msgstr "Nowy rysowanski łopjen"
 
 msgid "New group"
 msgstr "Nowa skupina"
@@ -4392,7 +4346,7 @@ msgid "New version %(version)s is available."
 msgstr "Nowa wersija %(version)s je k dispoziciji."
 
 msgid "Newest first"
-msgstr ""
+msgstr "Najnowše najprjedy"
 
 msgid "Next"
 msgstr "Dale"
@@ -4446,7 +4400,7 @@ msgid "Nextcloud returned an incomplete DAV result."
 msgstr "Nextcloud je njedospołny DAV wuslědk wróćił."
 
 msgid "Nib angle"
-msgstr ""
+msgstr "Kut špicy"
 
 msgid "Nidwalden"
 msgstr "Nidwalden"
@@ -4471,7 +4425,7 @@ msgid "No SMS messages are scheduled."
 msgstr "Žane SMS-powěsće njejsu planowane."
 
 msgid "No WhatsApp profile available for this contact."
-msgstr ""
+msgstr "Za tutón kontakt profil WhatsApp k dispoziciji njeje."
 
 msgid "No address books found."
 msgstr "Žane adresniki namakane."
@@ -4492,6 +4446,9 @@ msgstr "Žadyn termin njeje zaplanowany."
 msgid "No calendars found."
 msgstr "Žane protyki namakane."
 
+msgid "No configured mail or fax adapter is available."
+msgstr "Žadyn nastajeny e-mejlowy abo faksowy zwisk njeje k dispoziciji."
+
 msgid "No contact group"
 msgstr "Bjez kontaktneje skupiny"
 
@@ -4499,7 +4456,7 @@ msgid "No data was found."
 msgstr "Žane daty namakane."
 
 msgid "No date recorded"
-msgstr ""
+msgstr "Žadyn datum zapisany"
 
 msgid "No default voice subscription is available."
 msgstr "Žadyn standardny abonement za zawołanja k dispoziciji njeje."
@@ -4550,7 +4507,7 @@ msgstr ""
 "Na zwjazanym telefonje žadyn medijowy wothrawak k dispoziciji njesteji."
 
 msgid "No merge history recorded"
-msgstr ""
+msgstr "Žana historija zjednoćenjow zapisana"
 
 msgid "No notebooks"
 msgstr "Žane noticniki"
@@ -4584,7 +4541,7 @@ msgstr ""
 "zamołwite wosoby za nadawki přidali."
 
 msgid "No phone number available."
-msgstr ""
+msgstr "Žane telefonowe čisło k dispoziciji."
 
 msgid "No phone paired yet."
 msgstr "Hišće žadyn nadawk zwjazany."
@@ -4724,7 +4681,7 @@ msgid "Notes and special instructions"
 msgstr "Přispomnjenki a wosebite instrukcije"
 
 msgid "Notes and tasks"
-msgstr ""
+msgstr "Noticy a nadawki"
 
 msgid ""
 "Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
@@ -4823,7 +4780,7 @@ msgid "Ointment"
 msgstr "Masć"
 
 msgid "Oldest first"
-msgstr ""
+msgstr "Najstarše najprjedy"
 
 msgid "One address book"
 msgstr "Jedyn adresnik"
@@ -4904,6 +4861,9 @@ msgstr "Zwjazany"
 msgid "Online address book"
 msgstr "Online-adresnik"
 
+msgid "Online fax service"
+msgstr "Online-faksowa słužba"
+
 msgid "Online via Bluetooth data"
 msgstr "Online přez daty Bluetooth"
 
@@ -4928,10 +4888,10 @@ msgstr ""
 "telefon, prjedy hač grat změniće."
 
 msgid "Only personal entries can be sent to Notes."
-msgstr ""
+msgstr "Jenož wosobinske zapiski hodźa so do Notes pósłać."
 
 msgid "Only the Notes collection"
-msgstr ""
+msgstr "Jenož zběrka Notes"
 
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
@@ -5016,7 +4976,7 @@ msgid "Open the day in the daily view"
 msgstr "Dźeń w dnjowym napohladźe wočinić"
 
 msgid "Open the drawing tablet in KDE Connect on the paired phone."
-msgstr ""
+msgstr "Wočińće rysowanski tablet w KDE Connect na skoplowanym telefonje."
 
 msgid "Open the phone connection screen and try again."
 msgstr "Wočińće napohlad za zwjazanje z telefonom a spytajće hišće raz."
@@ -5112,7 +5072,7 @@ msgid "Own phone number (default voice SIM)"
 msgstr "Swójske čisło (standardna SIM za zawołanja)"
 
 msgid "Own profile"
-msgstr ""
+msgstr "Własny profil"
 
 msgid "Own window available: no"
 msgstr "Wosobinske wokno k dispoziciji: ně"
@@ -5143,7 +5103,7 @@ msgid "Page %(page)s of %(count)s"
 msgstr "Strona %(page)s z %(count)s"
 
 msgid "Page order"
-msgstr ""
+msgstr "Porjad łopjenow"
 
 msgid "Pages"
 msgstr "Strony"
@@ -5415,6 +5375,9 @@ msgstr "Prošu zapodajće za kóždy nowy nadawk titul."
 msgid "Please enter a title."
 msgstr "Prošu zapodajće titul."
 
+msgid "Please enter a unique category name without commas or semicolons."
+msgstr "Zapodajće jednozmyslne mjeno kategorije bjez komow abo semikolonow."
+
 msgid "Please enter a website or application for the custom action."
 msgstr "Prošu zapodajće webstronu abo nałoženje za swójsku akciju."
 
@@ -5456,7 +5419,7 @@ msgstr ""
 "Port 8741 njeje k dispoziciji. Telefoniski připosłuchar njemóžeše startować."
 
 msgid "Portrait"
-msgstr ""
+msgstr "Wysoki format"
 
 msgid "Possible duplicates among local and incoming contacts"
 msgstr "Móžne duplikaty mjez lokalnymi a dochadźacymi kontaktami"
@@ -5492,6 +5455,9 @@ msgstr ""
 
 msgid "Preferred backup folder"
 msgstr "Preferowany rjadowak zawěsćenjow"
+
+msgid "Preparing selected notes…"
+msgstr "Wubrane noticy so přihotuja…"
 
 msgid "Preview"
 msgstr "Přehlad"
@@ -5576,7 +5542,7 @@ msgid "Private"
 msgstr "Priwatne"
 
 msgid "Properties"
-msgstr ""
+msgstr "Kajkosće"
 
 msgid "Protected archive password unavailable."
 msgstr "Škitane archiwowe hesło njeje k dispoziciji."
@@ -5621,7 +5587,7 @@ msgid "Quit"
 msgstr "Skónčić"
 
 msgid "Quote"
-msgstr ""
+msgstr "Citat"
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Docpějomna IPv4- abo IPv6-adresa tutoho ličaka"
@@ -5666,10 +5632,13 @@ msgid "Receive with KDE Connect"
 msgstr "Z KDE Connect přijimać"
 
 msgid "Recently modified"
-msgstr ""
+msgstr "Njedawno změnjene"
 
 msgid "Recipe"
-msgstr ""
+msgstr "Recept"
+
+msgid "Recipient"
+msgstr "Přijimar"
 
 msgid "Reconnect"
 msgstr "Znowa zwjazać"
@@ -5679,7 +5648,7 @@ msgid "Recorded times"
 msgstr "Zapisane časy"
 
 msgid "Recovery journal"
-msgstr ""
+msgstr "Wobnowjenski žurnal"
 
 msgid "Recovery snapshot created."
 msgstr "Stworjeny wotnowjenski wobraz."
@@ -5691,7 +5660,7 @@ msgid "Recovery snapshots"
 msgstr "Wróćowuchowanske momenty"
 
 msgid "Rectangle"
-msgstr ""
+msgstr "Praworóžk"
 
 msgid "Recycle bin"
 msgstr "Papjerowy koš"
@@ -5992,7 +5961,7 @@ msgid "Right page"
 msgstr "Prawa strona"
 
 msgid "Rotate selection"
-msgstr ""
+msgstr "Wuběr wjerćeć"
 
 msgid "Route"
 msgstr "Rota"
@@ -6085,6 +6054,9 @@ msgstr "Róčnicy składować"
 
 msgid "Save appointments"
 msgstr "Terminy składować"
+
+msgid "Save as PDF"
+msgstr "Jako PDF składować"
 
 msgid "Save as…"
 msgstr "Składować jako…"
@@ -6203,6 +6175,9 @@ msgstr "Za tutón region šulske prózdniny k dispoziciji njejsu."
 msgid "Schwyz"
 msgstr "Schwyz"
 
+msgid "Scope"
+msgstr "Wobłuk"
+
 msgid "Screen notification only"
 msgstr "Jenož zdźělenka na wobrazowce"
 
@@ -6258,6 +6233,9 @@ msgstr ""
 msgid "Select a custom backup folder."
 msgstr "Wubjerće swójski zawěsćenski rjadowak."
 
+msgid "Select a recipient."
+msgstr "Wubjerće přijimarja."
+
 msgid "Select all"
 msgstr "Wšě wubrać"
 
@@ -6278,7 +6256,7 @@ msgid "Select backup folder"
 msgstr "Zapis zawěsćenjow wubrać"
 
 msgid "Select complete strokes that fit inside the sheet."
-msgstr ""
+msgstr "Wubjerće dospołne črěny, kotrež so na łopjen hodźa."
 
 msgid "Select no more than three years."
 msgstr "Wubjerće maksimalnje tři lěta."
@@ -6305,7 +6283,7 @@ msgid "Selection options"
 msgstr "Wuběranske opcije"
 
 msgid "Send"
-msgstr ""
+msgstr "Pósłać"
 
 msgid "Send SMS"
 msgstr "SMS pósłać"
@@ -6316,20 +6294,32 @@ msgstr "Přiměrjeny tekst pósłać"
 msgid "Send documents"
 msgstr "Dokumenty pósłać"
 
+msgid "Send notes by email or fax"
+msgstr "Noticy přez e-mejl abo faks słać"
+
 msgid "Send secure request"
 msgstr "Wěste naprašowanje pósłać"
 
 msgid "Send this new note to Notes"
-msgstr ""
+msgstr "Tutu nowu noticu do Notes pósłać"
 
 msgid "Send to Notes"
-msgstr ""
+msgstr "Do Notes pósłać"
 
 msgid "Send via"
-msgstr ""
+msgstr "Pósłać přez"
 
 msgid "Sending SMS with KDE Connect"
 msgstr "SMS so z KDE Connect sćele"
+
+msgid "Sending cancelled."
+msgstr "Słanje přetorhnjene."
+
+msgid "Sending is disabled."
+msgstr "Słanje je znjemóžnjene."
+
+msgid "Sending is not available."
+msgstr "Słanje njeje k dispoziciji."
 
 msgid "Sent"
 msgstr "Wotpósłane"
@@ -6389,7 +6379,7 @@ msgid "Share connection with"
 msgstr "Zwisk dale dać na"
 
 msgid "Share selected details"
-msgstr ""
+msgstr "Wubrane podrobnosće dźělić"
 
 msgid "Share this connection with the selected device?"
 msgstr "Tutón zwisk na wubrany grat dale dać?"
@@ -6419,7 +6409,7 @@ msgid "Sharing this connection is not allowed."
 msgstr "Dale daće tutoho zwiska njeje dowolene."
 
 msgid "Sheet size"
-msgstr ""
+msgstr "Wulkosć łopjena"
 
 msgid "Shift planner"
 msgstr "Směnowy planowak"
@@ -6435,6 +6425,9 @@ msgstr "Strowotu za planowakom pokazać"
 
 msgid "Show Magnolie Notes SMS notifications"
 msgstr "SMS-zdźělenki Magnolie Notes pokazać"
+
+msgid "Show Send in note print options"
+msgstr "Słać w ćišćerskich opcijach noticow pokazać"
 
 msgid "Show all"
 msgstr "Wšě pokazać"
@@ -6610,7 +6603,7 @@ msgid "Spray"
 msgstr "Sprej"
 
 msgid "Square"
-msgstr ""
+msgstr "Kwadrat"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
@@ -6659,7 +6652,7 @@ msgid "Stop"
 msgstr "Zastajić"
 
 msgid "Street"
-msgstr ""
+msgstr "Hasa"
 
 msgid "Street / house number"
 msgstr "Dróha / domske čisło"
@@ -6675,6 +6668,9 @@ msgstr "Přešmórnjene"
 
 msgid "Styria"
 msgstr "Štajerska"
+
+msgid "Subject"
+msgstr "Nastupnosć"
 
 msgid "Submitted"
 msgstr "Wotedany"
@@ -6738,7 +6734,7 @@ msgstr ""
 "wotstronja. Hižo přiwzate kontakty a lokalne daty wobchowaja so."
 
 msgid "Synchronize all notes and tasks"
-msgstr ""
+msgstr "Wšě noticy a nadawki synchronizować"
 
 msgid "Synchronize automatically at startup"
 msgstr "Při startowanju awtomatisce synchronizować"
@@ -7267,6 +7263,9 @@ msgstr "Swójska webstrona njeje wěsta HTTPS-adresa."
 msgid "The data changed during password transaction recovery."
 msgstr "Daty su so při wobnowjenju hesłoweje transakcije změnili."
 
+msgid "The data could not be saved."
+msgstr "Daty njehodźachu so składować."
+
 msgid ""
 "The data is encrypted – background reminders have not been enabled under "
 "Settings > Security."
@@ -7282,6 +7281,9 @@ msgstr ""
 msgid "The data is encrypted. Unlock the organizer with the password first."
 msgstr "Daty su zaklučowane. Wotzamkńće najprjedy organizator z hesłom."
 
+msgid "The data is invalid."
+msgstr "Daty su njepłaćiwe."
+
 msgid "The data is not a JSON object."
 msgstr "Daty njejsu JSON-objekt."
 
@@ -7296,6 +7298,9 @@ msgid ""
 "was not found."
 msgstr ""
 "Zapis z powjerchom (/usr/share/magnolie-organizer/web) njeje so namakał."
+
+msgid "The document could not be handed off."
+msgstr "Dokument njeda so přepodać."
 
 msgid "The drawing limit has been reached."
 msgstr "Rysowanska hranica je docpěta."
@@ -7352,6 +7357,16 @@ msgstr ""
 "OneDrive synchronizować. Magnolie so pola poskićowarja njepřizjewja. "
 "Awtomatiske zawěsćenja běža jenož, dokelž je Organizer wočinjeny a "
 "wotamknjeny, hnydom po wuspěšnym składowanju datow."
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "Přepodaće je so hižo započało a njeda so tu wróćo zwołać."
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr ""
+"Wuslědk přepodaća je njeznaty. Přepruwujće eksternu aplikaciju před dalšim "
+"pospytom."
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -7795,7 +7810,7 @@ msgid "The selected contacts contain no values for these columns."
 msgstr "Wubrane kontakty za tute stołpiki žane hódnoty njewobsahuja."
 
 msgid "The selected entry is too large to send."
-msgstr ""
+msgstr "Wubrany zapisk je přewulki za pósłanje."
 
 msgid "The selected file is not a readable CSV file."
 msgstr "Wubrany dataj njeje čitajomny CSV-dataj."
@@ -7810,7 +7825,7 @@ msgid "The selected iCalendar file is incomplete."
 msgstr "Wubrany iCalendar-dataj njeje dospołny."
 
 msgid "The selected note contains attachments that cannot be sent."
-msgstr ""
+msgstr "Wubrana notica přiwěški wobsahuje, kotrež njehodźa so pósłać."
 
 msgid "The selected online account is disabled, offline or unreachable."
 msgstr "Wubrane internetne konto je znjemóžnjene, offline abo njedocpějomne."
@@ -7837,6 +7852,9 @@ msgstr ""
 
 msgid "The selected source was not found. Select it again in Settings."
 msgstr "Wubrane žórło njeje so namakało. Wubjerće jo w Nastajenjach znowa."
+
+msgid "The selected time zone is unavailable."
+msgstr "Wubrana časowa cona k dispoziciji njeje."
 
 msgid ""
 "The server operator can see the account, folder and file names, sizes and "
@@ -8160,7 +8178,7 @@ msgid "This phone transport is unavailable."
 msgstr "Tute wašnje zwjazanja z telefonom k dispoziciji njeje."
 
 msgid "This profile format is not supported."
-msgstr ""
+msgstr "Tutón profilowy format so njepodpěruje."
 
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
@@ -8229,7 +8247,7 @@ msgid "Time format"
 msgstr "Časowy format"
 
 msgid "Time synchronization direction"
-msgstr ""
+msgstr "Směr synchronizacije časoweho zapisowanja"
 
 msgctxt "time tracking"
 msgid "Time tracking"
@@ -8302,13 +8320,13 @@ msgid "Transfer received text to the clipboard"
 msgstr "Přijaty tekst do mjezyskłada přenjesć"
 
 msgid "Travel"
-msgstr ""
+msgstr "Pućowanje"
 
 msgid "Tray applet"
 msgstr "Aplet systemoweho pola"
 
 msgid "Triangle"
-msgstr ""
+msgstr "Třiróžk"
 
 msgid "Trust and accept tasks and notes automatically"
 msgstr "Dowěrić a nadawki kaž tež noticy awtomatisce přijimać"
@@ -8370,10 +8388,10 @@ msgid "Unavailable"
 msgstr "Njesteji k dispoziciji"
 
 msgid "Unchanged contents do not create another recovery point."
-msgstr ""
+msgstr "Njezměnjeny wobsah dalši wobnowjenski dypk njewutworja."
 
 msgid "Undated"
-msgstr ""
+msgstr "Bjez datuma"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -8648,6 +8666,13 @@ msgid "Waiting for device status"
 msgstr "Čakanje na status nastroja"
 
 msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"Čakanje na e-mejlowu abo faksowu aplikaciju. Začinjenje tutoho wokna "
+"přepodaće njewróći."
+
+msgid ""
 "Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
 "seconds."
 msgstr ""
@@ -8723,6 +8748,9 @@ msgstr ""
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "Wjedro njebu wotwołane, dokelž městno k dispoziciji njeje."
+
+msgid "Website"
+msgstr "Webstrona"
 
 msgid "Wedding anniversary"
 msgstr "Kwasna róčnica"
@@ -8810,7 +8838,7 @@ msgid "Whole month"
 msgstr "Cyły měsac"
 
 msgid "Width"
-msgstr ""
+msgstr "Šěrokosć"
 
 msgid "Wife"
 msgstr "Žona"
@@ -8905,7 +8933,7 @@ msgid "Yes, the code matches"
 msgstr "Haj, kod so kryje"
 
 msgid "Yesterday"
-msgstr ""
+msgstr "Wčera"
 
 msgid "You can also do this later in Settings."
 msgstr "Móžeće to tež pozdźišo w nastajenjach činić."
@@ -8943,10 +8971,10 @@ msgid "ZIP archives (*.zip)"
 msgstr "ZIP-archiwy (*.zip)"
 
 msgid "Zoom in"
-msgstr ""
+msgstr "Powjetšić"
 
 msgid "Zoom out"
-msgstr ""
+msgstr "Pomjeńšić"
 
 msgid "Zug"
 msgstr "Zug"
@@ -9398,6 +9426,9 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
+
+#~ msgid "Message"
+#~ msgstr "Powěsć"
 
 #~ msgid ""
 #~ "The log records when the reminder service checked and what it reported. "

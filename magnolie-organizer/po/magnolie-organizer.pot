@@ -3482,6 +3482,9 @@ msgstr ""
 msgid "Local image"
 msgstr ""
 
+msgid "Local time"
+msgstr ""
+
 msgid "Location"
 msgstr ""
 
@@ -6730,6 +6733,9 @@ msgstr ""
 msgid "The data is encrypted. Unlock the organizer with the password first."
 msgstr ""
 
+msgid "The data is invalid."
+msgstr ""
+
 msgid "The data is not a JSON object."
 msgstr ""
 
@@ -7250,6 +7256,9 @@ msgid ""
 msgstr ""
 
 msgid "The selected source was not found. Select it again in Settings."
+msgstr ""
+
+msgid "The selected time zone is unavailable."
 msgstr ""
 
 msgid ""

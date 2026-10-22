@@ -7,6 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: cs\n"
@@ -15,161 +16,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=((n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2);\n"
-
-msgid "Cancel sending"
-msgstr "Zrušit odesílání"
-
-msgid ""
-"Document handed to the selected application or fax server. Delivery is not "
-"confirmed."
-msgstr ""
-"Dokument byl předán vybrané aplikaci nebo faxovému serveru. Doručení není "
-"potvrzeno."
-
-msgid "Enter a HylaFAX server hostname, optionally followed by :port."
-msgstr "Zadejte název serveru HylaFAX, případně následovaný :port."
-
-msgid "Enter recipient manually"
-msgstr "Zadat příjemce ručně"
-
-msgid "Fax printer"
-msgstr "Faxová tiskárna"
-
-msgid "Network fax server"
-msgstr "Síťový faxový server"
-
-msgid "Online fax service"
-msgstr "Online faxová služba"
-
-msgid "Save as PDF"
-msgstr "Uložit jako PDF"
-
-msgid "Website"
-msgstr "Webová stránka"
-
-msgid "Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them."
-msgstr "Aktivní přehrávání včetně videí v prohlížeči zůstává dostupné vedle přiřazených přehrávačů. Hledat/Otevřít vybírá místní hudbu nebo videa; prohledávatelný seznam se zobrazí, pokud jej přehrávač podporuje. Obaly, náhodné přehrávání a opakování jsou dostupné, pokud je přehrávač poskytuje."
-
-msgid "KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol."
-msgstr "KDE Connect přenáší polohu pera, tlak, dotyk a přepnutí pero/guma. Ukazatel při přiblížení nekreslí. Nabídka tabletu v telefonu nabízí celou obrazovku a nastavení pro skrytí či přesunutí kreslicího tlačítka. Tento protokol nepřenáší náklon, otočení ani další tlačítka pera."
-
-msgid "Fax"
-msgstr "Fax"
-
-msgid ""
-"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
-"supported installed mail client. A handoff is not delivery confirmation."
-msgstr ""
-"Fax vyžaduje nastavený server HylaFAX a nainstalovaný sendfax. E-mail "
-"používá podporovaného nainstalovaného klienta. Předání není potvrzením "
-"doručení."
-
-msgid "HylaFAX server (Linux)"
-msgstr "Server HylaFAX (Linux)"
-
-msgid "No configured mail or fax adapter is available."
-msgstr "Není k dispozici nastavené poštovní ani faxové rozhraní."
-
-msgid "Preparing selected notes…"
-msgstr "Připravují se vybrané poznámky…"
-
-msgid "Recipient"
-msgstr "Příjemce"
-
-msgid "Select a recipient."
-msgstr "Vyberte příjemce."
-
-msgid "Send notes by email or fax"
-msgstr "Odesílat poznámky e-mailem nebo faxem"
-
-msgid "Sending cancelled."
-msgstr "Odesílání zrušeno."
-
-msgid "Sending is disabled."
-msgstr "Odesílání je vypnuto."
-
-msgid "Sending is not available."
-msgstr "Odesílání není k dispozici."
-
-msgid "Show Send in note print options"
-msgstr "Zobrazit Odeslat v možnostech tisku poznámek"
-
-msgid "Subject"
-msgstr "Věc"
-
-msgid "The document could not be handed off."
-msgstr "Dokument se nepodařilo předat."
-
-msgid "The handoff has already started and cannot be recalled here."
-msgstr "Předání již začalo a zde ho nelze odvolat."
-
-msgid ""
-"The handoff outcome is unknown. Check the external application before trying "
-"again."
-msgstr ""
-"Výsledek předání není znám. Před dalším pokusem zkontrolujte externí "
-"aplikaci."
-
-msgid ""
-"Waiting for the mail or fax application. Closing this window does not recall "
-"the handoff."
-msgstr ""
-"Čeká se na poštovní nebo faxovou aplikaci. Zavření tohoto okna předání "
-"neodvolá."
-
-msgid "All anniversaries"
-msgstr "Všechna výročí"
-
-msgid "Also hide in the calendar"
-msgstr "Skrýt také v kalendáři"
-
-msgid ""
-"An entry is excluded when any of its contact groups is selected. No contacts "
-"or anniversaries are deleted."
-msgstr ""
-"Záznam je vyloučen, pokud je vybrána alespoň jedna z jeho skupin kontaktů. "
-"Kontakty ani výročí se neodstraňují."
-
-msgid "Apply to"
-msgstr "Použít pro"
-
-msgid "Birthdays only"
-msgstr "Pouze narozeniny"
-
-msgid "Enable contact group exclusions"
-msgstr "Povolit vyloučení skupin kontaktů"
-
-msgid "Exclude contact groups"
-msgstr "Vyloučit skupiny kontaktů"
-
-msgid "Scope"
-msgstr "Rozsah"
-
-msgid "Category"
-msgstr "Kategorie"
-
-msgid "Category colors"
-msgstr "Barvy kategorií"
-
-msgid ""
-"Category colors highlight appointments and tasks. A custom entry color takes "
-"precedence; otherwise the first matching category is used."
-msgstr ""
-"Barvy kategorií zvýrazňují události a úkoly. Vlastní barva záznamu má "
-"přednost; jinak se použije první odpovídající kategorie."
-
-msgid ""
-"Changing or removing a category color does not rename or delete categories "
-"on saved or imported entries."
-msgstr ""
-"Změna nebo odebrání barvy kategorie nepřejmenuje ani neodstraní kategorie "
-"uložených nebo importovaných záznamů."
-
-msgid "Custom color"
-msgstr "Vlastní barva"
-
-msgid "Please enter a unique category name without commas or semicolons."
-msgstr "Zadejte jedinečný název kategorie bez čárek a středníků."
 
 msgid " (filtered)"
 msgstr " (filtrováno)"
@@ -369,9 +215,9 @@ msgstr[2] "%(count)s sekundy"
 
 msgid "%(count)s source"
 msgid_plural "%(count)s sources"
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
+msgstr[0] "%(count)s zdroj"
+msgstr[1] "%(count)s zdroje"
+msgstr[2] "%(count)s zdrojů"
 
 msgid "%(count)s task"
 msgid_plural "%(count)s tasks"
@@ -662,10 +508,21 @@ msgid "Account type"
 msgstr "Typ účtu"
 
 msgid "Action"
-msgstr ""
+msgstr "Akce"
 
 msgid "Active call"
 msgstr "Aktivní hovor"
+
+msgid ""
+"Active playback, including browser videos, remains available alongside the "
+"assigned players. Search/Open selects local music or videos; a searchable "
+"player playlist appears when supported. Covers, shuffle and repeat are "
+"available when the player provides them."
+msgstr ""
+"Aktivní přehrávání včetně videí v prohlížeči zůstává dostupné vedle "
+"přiřazených přehrávačů. Hledat/Otevřít vybírá místní hudbu nebo videa; "
+"prohledávatelný seznam se zobrazí, pokud jej přehrávač podporuje. Obaly, "
+"náhodné přehrávání a opakování jsou dostupné, pokud je přehrávač poskytuje."
 
 msgctxt "time tracking"
 msgid "Activity"
@@ -735,7 +592,7 @@ msgid "Address imported from LibreOffice."
 msgstr "Adresa importována z LibreOffice."
 
 msgid "Address imported from own profile."
-msgstr ""
+msgstr "Adresa importována z vlastního profilu."
 
 msgid "Address supplement"
 msgstr "Doplněk adresy"
@@ -758,6 +615,9 @@ msgstr "Po jídle"
 
 msgid "All"
 msgstr "Vše"
+
+msgid "All anniversaries"
+msgstr "Všechna výročí"
 
 msgid "All cantons"
 msgstr "Všechny kantony"
@@ -790,6 +650,9 @@ msgstr "Povolit zařízení sdílet toto spojení"
 msgid "Also disclose appointments marked as confidential"
 msgstr "Zpřístupnit také schůzky označené jako důvěrné"
 
+msgid "Also hide in the calendar"
+msgstr "Skrýt také v kalendáři"
+
 msgid "Also hide past anniversaries"
 msgstr "Skrýt také minulá výročí"
 
@@ -815,6 +678,13 @@ msgstr ""
 "Kalendář schůzek, adresář, kniha úkolů a poznámkový blok v podobě koženého "
 "diáře —"
 
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"Záznam je vyloučen, pokud je vybrána alespoň jedna z jeho skupin kontaktů. "
+"Kontakty ani výročí se neodstraňují."
+
 msgid "Android restricts this device identifier."
 msgstr "Android omezuje tento identifikátor."
 
@@ -822,7 +692,7 @@ msgid "Android version"
 msgstr "Verze pro Android"
 
 msgid "Angle"
-msgstr ""
+msgstr "Úhel"
 
 msgid "Anniversaries"
 msgstr "Výročí"
@@ -878,6 +748,9 @@ msgstr ""
 
 msgid "Apply"
 msgstr "Použít"
+
+msgid "Apply to"
+msgstr "Použít pro"
 
 msgid "Apply to the remaining conflicts"
 msgstr "Použít pro zbývající konflikty"
@@ -966,7 +839,7 @@ msgid "Authority appointment"
 msgstr "Úřední schůzka"
 
 msgid "Automatic"
-msgstr ""
+msgstr "Automaticky"
 
 msgid "Automatic backup failed."
 msgstr "Automatická záloha selhala."
@@ -997,7 +870,7 @@ msgid "Automatically dismiss anniversary reminders"
 msgstr "Automaticky skrývat připomínky výročí"
 
 msgid "Automatically over the current connection"
-msgstr ""
+msgstr "Automaticky přes aktuální spojení"
 
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Automaticky synchronizovat přes Wi-Fi"
@@ -1128,6 +1001,9 @@ msgstr "Narozeninová oslava"
 msgid "Birthday today"
 msgstr "Dnes narozeniny"
 
+msgid "Birthdays only"
+msgstr "Pouze narozeniny"
+
 msgid "Black"
 msgstr "Černá"
 
@@ -1222,7 +1098,7 @@ msgid "Browse..."
 msgstr "Procházet..."
 
 msgid "Brush"
-msgstr ""
+msgstr "Štětec"
 
 msgid "Burgenland"
 msgstr "Burgenland"
@@ -1318,10 +1194,13 @@ msgid "Call with %(name)s · %(date)s"
 msgstr "Hovor s %(name)s · %(date)s"
 
 msgid "Calligraphy pen"
-msgstr ""
+msgstr "Kaligrafické pero"
 
 msgid "Cancel"
 msgstr "Zrušit"
+
+msgid "Cancel sending"
+msgstr "Zrušit odesílání"
 
 msgid "Canton"
 msgstr "Kanton"
@@ -1344,6 +1223,19 @@ msgstr "Kategorie"
 msgid "Categories:"
 msgstr "Kategorie:"
 
+msgid "Category"
+msgstr "Kategorie"
+
+msgid "Category colors"
+msgstr "Barvy kategorií"
+
+msgid ""
+"Category colors highlight appointments and tasks. A custom entry color takes "
+"precedence; otherwise the first matching category is used."
+msgstr ""
+"Barvy kategorií zvýrazňují události a úkoly. Vlastní barva záznamu má "
+"přednost; jinak se použije první odpovídající kategorie."
+
 msgid "Catholic confirmation"
 msgstr "Biřmování"
 
@@ -1360,7 +1252,14 @@ msgid "Changes are applied automatically"
 msgstr "Změny se použijí automaticky"
 
 msgid "Changes to your own profile are saved with Save."
+msgstr "Změny vlastního profilu se ukládají tlačítkem Uložit."
+
+msgid ""
+"Changing or removing a category color does not rename or delete categories "
+"on saved or imported entries."
 msgstr ""
+"Změna nebo odebrání barvy kategorie nepřejmenuje ani neodstraní kategorie "
+"uložených nebo importovaných záznamů."
 
 msgid "Charging"
 msgstr "Nabíjení"
@@ -1412,10 +1311,10 @@ msgstr ""
 "současných dat. Zašifrovaná záloha vyžaduje své heslo."
 
 msgid "Choose a connection. Confirm the pairing code on the other device."
-msgstr ""
+msgstr "Vyberte spojení. Potvrďte párovací kód na druhém zařízení."
 
 msgid "Choose a contact"
-msgstr ""
+msgstr "Vybrat kontakt"
 
 msgid "Choose a country first."
 msgstr "Nejprve vyberte zemi."
@@ -1574,7 +1473,7 @@ msgid "Codes match"
 msgstr "Kód se shoduje"
 
 msgid "Collapse day groups by default"
-msgstr ""
+msgstr "Ve výchozím stavu sbalit denní skupiny"
 
 msgid "Colleagues"
 msgstr "Kolegové"
@@ -1609,7 +1508,7 @@ msgstr ""
 "spojení."
 
 msgid "Compare with LibreOffice"
-msgstr ""
+msgstr "Porovnat s LibreOffice"
 
 msgid "Complete archive export is available only in the installed application."
 msgstr "Kompletní export archivu je dostupný pouze v nainstalované aplikaci."
@@ -1666,7 +1565,7 @@ msgid "Confirm the pairing request on the phone."
 msgstr "Potvrďte žádost o párování v telefonu."
 
 msgid "Confirm this code on the other device."
-msgstr ""
+msgstr "Potvrďte tento kód na druhém zařízení."
 
 msgid "Confirmation"
 msgstr "Potvrzení"
@@ -1678,7 +1577,7 @@ msgid "Connect"
 msgstr "Připojit"
 
 msgid "Connect Notes before sending this entry."
-msgstr ""
+msgstr "Před odesláním této položky připojte Notes."
 
 msgid "Connect phone via WLAN"
 msgstr "Připojte telefon přes WLAN"
@@ -1837,10 +1736,10 @@ msgid "Create pairing file …"
 msgstr "Vytvořit párovací soubor …"
 
 msgid "Create recovery points"
-msgstr ""
+msgstr "Vytvářet body obnovení"
 
 msgid "Created"
-msgstr ""
+msgstr "Vytvořeno"
 
 msgid "Creating recovery snapshot …"
 msgstr "Vytváří se snímek pro obnovení…"
@@ -1850,6 +1749,9 @@ msgstr "Vlastní"
 
 msgid "Custom application"
 msgstr "Vlastní aplikace"
+
+msgid "Custom color"
+msgstr "Vlastní barva"
 
 msgid "Custom notification"
 msgstr "Vlastní oznámení"
@@ -1873,7 +1775,7 @@ msgid "Cut"
 msgstr "Vyjmout"
 
 msgid "Cut selection"
-msgstr ""
+msgstr "Vyjmout výběr"
 
 msgid "Cycle calendar"
 msgstr "Kalendář cyklu"
@@ -1934,7 +1836,7 @@ msgid "Death anniversary"
 msgstr "Výročí úmrtí"
 
 msgid "Default view"
-msgstr ""
+msgstr "Výchozí zobrazení"
 
 msgid "Default: next to the data file"
 msgstr "Výchozí: vedle datového souboru"
@@ -1984,10 +1886,10 @@ msgid "Delete cycle marker"
 msgstr "Odstranit značku cyklu"
 
 msgid "Delete drawing sheet"
-msgstr ""
+msgstr "Smazat list kreslení"
 
 msgid "Delete drawing sheet?"
-msgstr ""
+msgstr "Smazat list kreslení?"
 
 msgid "Delete entries"
 msgstr "Odstranit záznamy"
@@ -2168,6 +2070,13 @@ msgstr "Lékař"
 msgid "Doctor appointment"
 msgstr "Návštěva lékaře"
 
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"Dokument byl předán vybrané aplikaci nebo faxovému serveru. Doručení není "
+"potvrzeno."
+
 msgid "Document.pdf"
 msgstr "Dokument.pdf"
 
@@ -2255,7 +2164,7 @@ msgid "Edit the website or application used"
 msgstr "Upravit používaný web nebo aplikaci"
 
 msgid "Ellipse"
-msgstr ""
+msgstr "Elipsa"
 
 msgid "Email"
 msgstr "E-mail"
@@ -2310,6 +2219,9 @@ msgid ""
 msgstr ""
 "Zapněte ladění Wi-Fi v možnostech pro vývojáře Notes na svém spárovaném "
 "telefonu."
+
+msgid "Enable contact group exclusions"
+msgstr "Povolit vyloučení skupin kontaktů"
 
 msgid "Enable cycle calendar"
 msgstr "Povolit kalendář cyklu"
@@ -2377,6 +2289,9 @@ msgstr ""
 msgid "Enter"
 msgstr "Zadat"
 
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr "Zadejte název serveru HylaFAX, případně následovaný :port."
+
 msgid ""
 "Enter a blood glucose value on the left to highlight matching scheme rows."
 msgstr ""
@@ -2413,6 +2328,9 @@ msgstr "Zadejte hodiny i minuty, nebo ponechte čas zcela prázdný."
 msgid "Enter height and weight to calculate BMI."
 msgstr "Pro výpočet BMI zadejte výšku a hmotnost."
 
+msgid "Enter recipient manually"
+msgstr "Zadat příjemce ručně"
+
 msgid "Enter the archive password."
 msgstr "Zadejte heslo archivu."
 
@@ -2448,7 +2366,7 @@ msgid "Estimate the next period"
 msgstr "Odhadovat příští menstruaci"
 
 msgid "Estimated from older data"
-msgstr ""
+msgstr "Odhadnuto ze starších dat"
 
 msgid "Estimated next period"
 msgstr "Odhad příští menstruace"
@@ -2457,7 +2375,7 @@ msgid "Evening"
 msgstr "Večer"
 
 msgid "Every change"
-msgstr ""
+msgstr "Při každé změně"
 
 msgid "Every filled medication row requires a name."
 msgstr "Každý vyplněný řádek léku musí obsahovat název."
@@ -2466,7 +2384,7 @@ msgid "Every filled row requires a valid date."
 msgstr "Každý vyplněný řádek musí obsahovat platné datum."
 
 msgid "Every program start"
-msgstr ""
+msgstr "Při každém spuštění"
 
 msgid "Everything is done - the list is empty."
 msgstr "Všechno je hotové – seznam je prázdný."
@@ -2477,8 +2395,11 @@ msgstr "Vše je připraveno"
 msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr "Musí být spárován přesně jeden telefon Magnolie Notes."
 
+msgid "Exclude contact groups"
+msgstr "Vyloučit skupiny kontaktů"
+
 msgid "Expand day groups by default"
-msgstr ""
+msgstr "Ve výchozím stavu rozbalit denní skupiny"
 
 msgid "Export"
 msgstr "Exportovat"
@@ -2499,7 +2420,7 @@ msgid "Export is available only in the installed application."
 msgstr "Export je dostupný pouze v nainstalované aplikaci."
 
 msgid "Export vCard"
-msgstr ""
+msgstr "Exportovat vCard"
 
 msgid "Extend sharing"
 msgstr "Rozšířit sdílení"
@@ -2515,6 +2436,20 @@ msgstr "Rodina"
 
 msgid "Fasting"
 msgstr "Nalačno"
+
+msgid "Fax"
+msgstr "Fax"
+
+msgid "Fax printer"
+msgstr "Faxová tiskárna"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"Fax vyžaduje nastavený server HylaFAX a nainstalovaný sendfax. E-mail "
+"používá podporovaného nainstalovaného klienta. Předání není potvrzením "
+"doručení."
 
 msgid "Female caregiver"
 msgstr "Pečovatelka"
@@ -2535,13 +2470,16 @@ msgid "Fertile days"
 msgstr "Plodné dny"
 
 msgid "Field"
-msgstr ""
+msgstr "Pole"
+
+msgid "File"
+msgstr "Soubor"
 
 msgid "Fill selection"
-msgstr ""
+msgstr "Vyplnit výběr"
 
 msgid "Fill with gradient"
-msgstr ""
+msgstr "Vyplnit přechodem"
 
 msgid "Fill with stored values"
 msgstr "Vyplnit uloženými hodnotami"
@@ -2711,16 +2649,16 @@ msgstr ""
 "nastavení."
 
 msgid "Gradient end color"
-msgstr ""
+msgstr "Koncová barva přechodu"
 
 msgid "Grisons"
 msgstr "Graubünden"
 
 msgid "Group by day"
-msgstr ""
+msgstr "Seskupit podle dne"
 
 msgid "Group changes by time interval"
-msgstr ""
+msgstr "Seskupit změny podle časového intervalu"
 
 msgid "Group for %(notebook)s"
 msgstr "Skupina pro %(notebook)s"
@@ -2796,7 +2734,7 @@ msgid "Hide past appointments"
 msgstr "Skrýt minulé schůzky"
 
 msgid "Highlighter"
-msgstr ""
+msgstr "Zvýrazňovač"
 
 msgid "History"
 msgstr "Historie"
@@ -2835,6 +2773,9 @@ msgstr "Jak se má kalendář chovat při kliknutí na den."
 msgid "Husband"
 msgstr "Manžel"
 
+msgid "HylaFAX server (Linux)"
+msgstr "Server HylaFAX (Linux)"
+
 msgid "I"
 msgstr "K"
 
@@ -2848,7 +2789,7 @@ msgid "ISO week (week 1 contains the first Thursday)"
 msgstr "Týden ISO (1. týden obsahuje první čtvrtek)"
 
 msgid "Idea"
-msgstr ""
+msgstr "Nápad"
 
 msgid ""
 "If the year is unknown, enter only day and month.\n"
@@ -2998,7 +2939,7 @@ msgid "Insert link"
 msgstr "Vložit odkaz"
 
 msgid "Insert shape"
-msgstr ""
+msgstr "Vložit tvar"
 
 msgid ""
 "Install the highlighted extension in Thunderbird via Add-ons and Themes → "
@@ -3062,6 +3003,9 @@ msgstr "Džus"
 msgid "Jura"
 msgstr "Jura"
 
+msgid "KDE Connect"
+msgstr "KDE Connect"
+
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "KDE Connect pro SMS je k dispozici pouze v nainstalované aplikaci."
 
@@ -3073,6 +3017,17 @@ msgstr "Telefon KDE Connect spárován."
 
 msgid "KDE Connect port %(port)s"
 msgstr "Port KDE Connect %(port)s"
+
+msgid ""
+"KDE Connect transmits pen position, pressure, contact and pen/eraser "
+"changes. The hover cursor leaves no ink. The phone's tablet menu offers "
+"fullscreen and settings to hide or move the drawing button. Tilt, rotation "
+"and extra pen buttons are not transmitted by this protocol."
+msgstr ""
+"KDE Connect přenáší polohu pera, tlak, dotyk a přepnutí pero/guma. Ukazatel "
+"při přiblížení nekreslí. Nabídka tabletu v telefonu nabízí celou obrazovku a "
+"nastavení pro skrytí či přesunutí kreslicího tlačítka. Tento protokol "
+"nepřenáší náklon, otočení ani další tlačítka pera."
 
 msgid "Keep"
 msgstr "Ponechat"
@@ -3096,7 +3051,7 @@ msgid "Landline"
 msgstr "Pevná linka"
 
 msgid "Landscape"
-msgstr ""
+msgstr "Na šířku"
 
 msgid "Language"
 msgstr "Jazyk"
@@ -3146,7 +3101,7 @@ msgstr ""
 "nezmění."
 
 msgid "LibreOffice user data updated."
-msgstr ""
+msgstr "Uživatelské údaje LibreOffice aktualizovány."
 
 msgid "License"
 msgstr "Licence"
@@ -3155,7 +3110,7 @@ msgid "Liechtenstein"
 msgstr "Lichtenštejnsko"
 
 msgid "Line"
-msgstr ""
+msgstr "Čára"
 
 msgid "Line width"
 msgstr "Tloušťka čáry"
@@ -3186,6 +3141,9 @@ msgstr "Místní kalendář"
 
 msgid "Local image"
 msgstr "Místní obrázek"
+
+msgid "Local time"
+msgstr "Místní čas"
 
 msgid "Location"
 msgstr "Místo"
@@ -3334,7 +3292,7 @@ msgid "Manual only"
 msgstr "Pouze ručně"
 
 msgid "Manually"
-msgstr ""
+msgstr "Ručně"
 
 msgid "Manufacturer"
 msgstr "Výrobce"
@@ -3405,16 +3363,13 @@ msgid "Merge duplicate contact cards"
 msgstr "Sloučit duplicitní karty kontaktů"
 
 msgid "Merge history"
-msgstr ""
+msgstr "Historie sloučení"
 
 msgid "Merge this pair individually"
 msgstr "Sloučit tuto dvojici jednotlivě"
 
 msgid "Merged"
-msgstr ""
-
-msgid "Message"
-msgstr "Zpráva"
+msgstr "Sloučeno"
 
 msgid "Message text"
 msgstr "Zpráva"
@@ -3474,7 +3429,7 @@ msgid "Model"
 msgstr "Model"
 
 msgid "Modified"
-msgstr ""
+msgstr "Změněno"
 
 msgid "Module"
 msgstr "Modul"
@@ -3483,7 +3438,7 @@ msgid "Monday"
 msgstr "Pondělí"
 
 msgid "Money"
-msgstr ""
+msgstr "Peníze"
 
 msgid "Month"
 msgstr "Měsíc"
@@ -3538,7 +3493,7 @@ msgid "Move notebook up"
 msgstr "Přesunout zápisník nahoru"
 
 msgid "Move selection"
-msgstr ""
+msgstr "Přesunout výběr"
 
 msgid "Move the ticked entries to the wastebasket"
 msgstr "Přesunout zaškrtnuté položky do koše"
@@ -3550,7 +3505,7 @@ msgid "Move up"
 msgstr "Přesunout nahoru"
 
 msgid "Move view"
-msgstr ""
+msgstr "Posunout zobrazení"
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -3586,6 +3541,9 @@ msgstr "Nizozemsko"
 
 msgid "Network"
 msgstr "Síť"
+
+msgid "Network fax server"
+msgstr "Síťový faxový server"
 
 msgid "Neuchâtel"
 msgstr "Neuchâtel"
@@ -3628,7 +3586,7 @@ msgid "New contact"
 msgstr "Nový kontakt"
 
 msgid "New drawing sheet"
-msgstr ""
+msgstr "Nový list kreslení"
 
 msgid "New group"
 msgstr "Nová skupina"
@@ -3652,7 +3610,7 @@ msgid "New version %(version)s is available."
 msgstr "Je k dispozici nová verze %(version)s."
 
 msgid "Newest first"
-msgstr ""
+msgstr "Nejnovější nejdříve"
 
 msgid "Next"
 msgstr "Další"
@@ -3685,7 +3643,7 @@ msgid "Nextcloud is not enabled."
 msgstr "Nextcloud není povolen."
 
 msgid "Nib angle"
-msgstr ""
+msgstr "Úhel hrotu"
 
 msgid "Nidwalden"
 msgstr "Nidwalden"
@@ -3713,7 +3671,7 @@ msgid "No SMS messages are scheduled."
 msgstr "Nejsou naplánovány žádné SMS."
 
 msgid "No WhatsApp profile available for this contact."
-msgstr ""
+msgstr "Pro tento kontakt není dostupný profil WhatsApp."
 
 msgid "No Windows dictionary is installed for this language."
 msgstr "Pro tento jazyk není nainstalován slovník Windows."
@@ -3737,11 +3695,14 @@ msgstr "Není naplánována žádná schůzka."
 msgid "No calendars found."
 msgstr "Nebyly nalezeny žádné kalendáře."
 
+msgid "No configured mail or fax adapter is available."
+msgstr "Není k dispozici nastavené poštovní ani faxové rozhraní."
+
 msgid "No contact group"
-msgstr ""
+msgstr "Bez skupiny kontaktů"
 
 msgid "No date recorded"
-msgstr ""
+msgstr "Datum není zaznamenáno"
 
 msgid "No default voice subscription is available."
 msgstr "Není dostupný výchozí hlasový tarif."
@@ -3774,7 +3735,7 @@ msgid "No media player is available on the connected phone."
 msgstr "V připojeném telefonu není dostupný přehrávač médií."
 
 msgid "No merge history recorded"
-msgstr ""
+msgstr "Historie sloučení není zaznamenána"
 
 msgid "No notebooks"
 msgstr "Žádné zápisníky"
@@ -3803,7 +3764,7 @@ msgstr ""
 "osoby odpovědné za úkoly."
 
 msgid "No phone number available."
-msgstr ""
+msgstr "Telefonní číslo není dostupné."
 
 msgid "No phone paired yet."
 msgstr "Zatím není připojen žádný úkol."
@@ -3920,7 +3881,7 @@ msgid "Notes and special instructions"
 msgstr "Poznámky a zvláštní pokyny"
 
 msgid "Notes and tasks"
-msgstr ""
+msgstr "Poznámky a úkoly"
 
 msgid ""
 "Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
@@ -3995,7 +3956,7 @@ msgid "Ointment"
 msgstr "Mast"
 
 msgid "Oldest first"
-msgstr ""
+msgstr "Nejstarší nejdříve"
 
 msgid "One address book"
 msgstr "Jeden adresář"
@@ -4044,6 +4005,9 @@ msgstr "Online"
 msgid "Online address book"
 msgstr "Online adresář"
 
+msgid "Online fax service"
+msgstr "Online faxová služba"
+
 msgid "Online via Bluetooth data"
 msgstr "Online přes data Bluetooth"
 
@@ -4071,10 +4035,10 @@ msgstr ""
 "odeberte stávající telefon."
 
 msgid "Only personal entries can be sent to Notes."
-msgstr ""
+msgstr "Do Notes lze odeslat jen osobní položky."
 
 msgid "Only the Notes collection"
-msgstr ""
+msgstr "Pouze kolekce Notes"
 
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
@@ -4159,7 +4123,7 @@ msgid "Open the day in the daily view"
 msgstr "Otevřít den v denním zobrazení"
 
 msgid "Open the drawing tablet in KDE Connect on the paired phone."
-msgstr ""
+msgstr "Na spárovaném telefonu otevřete kreslicí tablet v KDE Connect."
 
 msgid "Open the phone connection screen and try again."
 msgstr "Otevřete obrazovku připojení telefonu a zkuste to znovu."
@@ -4233,7 +4197,7 @@ msgid "Own phone number (default voice SIM)"
 msgstr "Vlastní číslo (výchozí hlasová SIM)"
 
 msgid "Own profile"
-msgstr ""
+msgstr "Vlastní profil"
 
 msgid "PDF file"
 msgstr "Soubor PDF"
@@ -4254,7 +4218,7 @@ msgid "Page %(page)s of %(count)s"
 msgstr "Stránka %(page)s z %(count)s"
 
 msgid "Page order"
-msgstr ""
+msgstr "Pořadí stránek"
 
 msgid "Pages"
 msgstr "Stránky"
@@ -4503,6 +4467,9 @@ msgstr "Pro každý nový úkol zadejte název."
 msgid "Please enter a title."
 msgstr "Zadejte název."
 
+msgid "Please enter a unique category name without commas or semicolons."
+msgstr "Zadejte jedinečný název kategorie bez čárek a středníků."
+
 msgid "Please enter a website or application for the custom action."
 msgstr "Zadejte webovou stránku nebo aplikaci pro vlastní akci."
 
@@ -4540,7 +4507,7 @@ msgid "Poland"
 msgstr "Polsko"
 
 msgid "Portrait"
-msgstr ""
+msgstr "Na výšku"
 
 msgid "Possible duplicates among local and incoming contacts"
 msgstr "Možné duplicity mezi místními a příchozími kontakty"
@@ -4582,6 +4549,9 @@ msgstr "Příprava přihlášení k Microsoftu…"
 
 msgid "Preparing account sign-in …"
 msgstr "Příprava přihlášení k účtu…"
+
+msgid "Preparing selected notes…"
+msgstr "Připravují se vybrané poznámky…"
 
 msgid "Preview"
 msgstr "Náhled"
@@ -4660,7 +4630,7 @@ msgid "Private"
 msgstr "Soukromé"
 
 msgid "Properties"
-msgstr ""
+msgstr "Vlastnosti"
 
 msgid "Protected archive password unavailable."
 msgstr "Chráněné heslo archivu není dostupné."
@@ -4703,7 +4673,7 @@ msgid "Quit"
 msgstr "Ukončit"
 
 msgid "Quote"
-msgstr ""
+msgstr "Citát"
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Dostupná adresa IPv4 nebo IPv6 tohoto počítače"
@@ -4718,10 +4688,13 @@ msgid "Reason"
 msgstr "Důvod"
 
 msgid "Recently modified"
-msgstr ""
+msgstr "Nedávno změněné"
 
 msgid "Recipe"
-msgstr ""
+msgstr "Recept"
+
+msgid "Recipient"
+msgstr "Příjemce"
 
 msgid "Reconnect"
 msgstr "Znovu se připojte"
@@ -4731,7 +4704,7 @@ msgid "Recorded times"
 msgstr "Zaznamenané časy"
 
 msgid "Recovery journal"
-msgstr ""
+msgstr "Deník obnovení"
 
 msgid "Recovery snapshot created."
 msgstr "Snímek obnovy byl vytvořen."
@@ -4743,7 +4716,7 @@ msgid "Recovery snapshots"
 msgstr "Snímky obnovy"
 
 msgid "Rectangle"
-msgstr ""
+msgstr "Obdélník"
 
 msgid "Recycle bin"
 msgstr "Koš"
@@ -4978,7 +4951,7 @@ msgid "Right page"
 msgstr "Pravá stránka"
 
 msgid "Rotate selection"
-msgstr ""
+msgstr "Otočit výběr"
 
 msgid "Route"
 msgstr "Trasa"
@@ -5041,6 +5014,9 @@ msgstr "Uložit"
 
 msgid "Save Magnolienbaum pairing file"
 msgstr "Uložit párovací soubor Magnolienbaum"
+
+msgid "Save as PDF"
+msgstr "Uložit jako PDF"
 
 msgid "Save as…"
 msgstr "Uložit jako…"
@@ -5125,6 +5101,9 @@ msgstr "Pro tuto oblast nejsou školní prázdniny k dispozici."
 msgid "Schwyz"
 msgstr "Schwyz"
 
+msgid "Scope"
+msgstr "Rozsah"
+
 msgid "Screen notification only"
 msgstr "Pouze oznámení na obrazovce"
 
@@ -5165,7 +5144,7 @@ msgid "Security"
 msgstr "Zabezpečení"
 
 msgid "Select"
-msgstr ""
+msgstr "Vybrat"
 
 msgid "Select a country first."
 msgstr "Nejprve vyberte zemi."
@@ -5179,6 +5158,9 @@ msgstr ""
 
 msgid "Select a custom backup folder."
 msgstr "Vyberte vlastní složku záloh."
+
+msgid "Select a recipient."
+msgstr "Vyberte příjemce."
 
 msgid "Select all"
 msgstr "Vybrat vše"
@@ -5200,7 +5182,7 @@ msgid "Select backup folder"
 msgstr "Vybrat složku záloh"
 
 msgid "Select complete strokes that fit inside the sheet."
-msgstr ""
+msgstr "Vyberte celé tahy, které se vejdou na list."
 
 msgid "Select something first."
 msgstr "Nejprve něco vyberte."
@@ -5226,7 +5208,7 @@ msgid "Selection options"
 msgstr "Možnosti výběru"
 
 msgid "Send"
-msgstr ""
+msgstr "Odeslat"
 
 msgid "Send SMS"
 msgstr "Poslat SMS"
@@ -5237,17 +5219,29 @@ msgstr "Odeslat upravený text"
 msgid "Send documents"
 msgstr "Odeslat dokumenty"
 
+msgid "Send notes by email or fax"
+msgstr "Odesílat poznámky e-mailem nebo faxem"
+
 msgid "Send secure request"
 msgstr "Odeslat zabezpečený požadavek"
 
 msgid "Send this new note to Notes"
-msgstr ""
+msgstr "Odeslat tuto novou poznámku do Notes"
 
 msgid "Send to Notes"
-msgstr ""
+msgstr "Odeslat do Notes"
 
 msgid "Send via"
-msgstr ""
+msgstr "Odeslat přes"
+
+msgid "Sending cancelled."
+msgstr "Odesílání zrušeno."
+
+msgid "Sending is disabled."
+msgstr "Odesílání je vypnuto."
+
+msgid "Sending is not available."
+msgstr "Odesílání není k dispozici."
 
 msgid "Sent"
 msgstr "Odesláno"
@@ -5299,7 +5293,7 @@ msgid "Share connection with"
 msgstr "Sdílet spojení se zařízením"
 
 msgid "Share selected details"
-msgstr ""
+msgstr "Sdílet vybrané údaje"
 
 msgid "Share this connection with the selected device?"
 msgstr "Sdílet spojení s vybraným zařízením?"
@@ -5329,7 +5323,7 @@ msgid "Sharing this connection is not allowed."
 msgstr "Sdílení tohoto spojení není povoleno."
 
 msgid "Sheet size"
-msgstr ""
+msgstr "Velikost listu"
 
 msgid "Shift planner"
 msgstr "Plánovač směn"
@@ -5342,6 +5336,9 @@ msgstr "Krátkodobě působící inzulín"
 
 msgid "Show Health after Planner"
 msgstr "Zobrazit Zdraví za Plánovačem"
+
+msgid "Show Send in note print options"
+msgstr "Zobrazit Odeslat v možnostech tisku poznámek"
 
 msgid "Show all"
 msgstr "Zobrazit vše"
@@ -5513,7 +5510,7 @@ msgid "Spray"
 msgstr "Sprej"
 
 msgid "Square"
-msgstr ""
+msgstr "Čtverec"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
@@ -5550,7 +5547,7 @@ msgid "Stop"
 msgstr "Zastavit"
 
 msgid "Street"
-msgstr ""
+msgstr "Ulice"
 
 msgid "Street / house number"
 msgstr "Ulice / číslo domu"
@@ -5566,6 +5563,9 @@ msgstr "Přeškrtnuté"
 
 msgid "Styria"
 msgstr "Štýrsko"
+
+msgid "Subject"
+msgstr "Věc"
 
 msgid "Submitted"
 msgstr "Odesláno"
@@ -5632,7 +5632,7 @@ msgstr ""
 "odstraněny. Již přijaté kontakty a místní data zůstanou zachovány."
 
 msgid "Synchronize all notes and tasks"
-msgstr ""
+msgstr "Synchronizovat všechny poznámky a úkoly"
 
 msgid "Synchronize automatically at startup"
 msgstr "Synchronizovat automaticky při spuštění"
@@ -6000,6 +6000,9 @@ msgstr "Data nejsou objekt JSON."
 msgid "The destination could not be opened."
 msgstr "Cíl nelze otevřít."
 
+msgid "The document could not be handed off."
+msgstr "Dokument se nepodařilo předat."
+
 msgid "The download address is not permitted for this platform."
 msgstr "Adresa ke stažení není pro tuto platformu povolena."
 
@@ -6038,6 +6041,16 @@ msgstr ""
 "nebo OneDrive. Magnolie se k poskytovateli nepřihlašuje. Automatické zálohy "
 "běží jen tehdy, když je Organizer otevřený a odemčený, bezprostředně po "
 "úspěšném uložení dat."
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "Předání již začalo a zde ho nelze odvolat."
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr ""
+"Výsledek předání není znám. Před dalším pokusem zkontrolujte externí "
+"aplikaci."
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -6324,13 +6337,13 @@ msgid "The selected contacts contain no values for these columns."
 msgstr "Vybrané kontakty neobsahují pro tyto sloupce žádné hodnoty."
 
 msgid "The selected entry is too large to send."
-msgstr ""
+msgstr "Vybraná položka je příliš velká k odeslání."
 
 msgid "The selected health records contain no printable values."
 msgstr "Vybrané zdravotní záznamy neobsahují žádné hodnoty vhodné k tisku."
 
 msgid "The selected note contains attachments that cannot be sent."
-msgstr ""
+msgstr "Vybraná poznámka obsahuje přílohy, které nelze odeslat."
 
 msgid "The selected phone changed. Try again."
 msgstr "Vybraný telefon se změnil. Zkuste to znovu."
@@ -6341,6 +6354,9 @@ msgid ""
 msgstr ""
 "Vybrané přehrávače se v telefonu nabízejí i zavřené. Přehrát spustí "
 "přiřazenou aplikaci."
+
+msgid "The selected time zone is unavailable."
+msgstr "Vybrané časové pásmo není dostupné."
 
 msgid "The server denied access. Check this account's permissions."
 msgstr "Server odepřel přístup. Zkontrolujte oprávnění tohoto účtu."
@@ -6599,7 +6615,7 @@ msgid "This phone transport is unavailable."
 msgstr "Tento způsob připojení telefonu není dostupný."
 
 msgid "This profile format is not supported."
-msgstr ""
+msgstr "Tento formát profilu není podporován."
 
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
@@ -6662,7 +6678,7 @@ msgid "Time format"
 msgstr "Formát času"
 
 msgid "Time synchronization direction"
-msgstr ""
+msgstr "Směr synchronizace evidence času"
 
 msgctxt "time tracking"
 msgid "Time tracking"
@@ -6721,13 +6737,13 @@ msgid "Tradesperson"
 msgstr "Řemeslník"
 
 msgid "Travel"
-msgstr ""
+msgstr "Cestování"
 
 msgid "Tray applet"
 msgstr "Applet oznamovací oblasti"
 
 msgid "Triangle"
-msgstr ""
+msgstr "Trojúhelník"
 
 msgid "Trust and accept tasks and notes automatically"
 msgstr "Důvěřovat a automaticky přijímat úkoly a poznámky"
@@ -6779,10 +6795,10 @@ msgid "Unavailable"
 msgstr "Nedostupné"
 
 msgid "Unchanged contents do not create another recovery point."
-msgstr ""
+msgstr "Nezměněný obsah nevytvoří další bod obnovení."
 
 msgid "Undated"
-msgstr ""
+msgstr "Bez data"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -7029,6 +7045,13 @@ msgid "Waiting for device status"
 msgstr "Čekání na stav zařízení"
 
 msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"Čeká se na poštovní nebo faxovou aplikaci. Zavření tohoto okna předání "
+"neodvolá."
+
+msgid ""
 "Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
 "seconds."
 msgstr ""
@@ -7092,6 +7115,9 @@ msgstr ""
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "Počasí nebylo načteno, protože není k dispozici poloha."
+
+msgid "Website"
+msgstr "Webová stránka"
 
 msgid "Wedding anniversary"
 msgstr "Výročí svatby"
@@ -7176,7 +7202,7 @@ msgid "Whole month"
 msgstr "Celý měsíc"
 
 msgid "Width"
-msgstr ""
+msgstr "Šířka"
 
 msgid "Wife"
 msgstr "Manželka"
@@ -7289,7 +7315,7 @@ msgid "Yes, the code matches"
 msgstr "Ano, kód souhlasí"
 
 msgid "Yesterday"
-msgstr ""
+msgstr "Včera"
 
 msgid "You can also do this later in Settings."
 msgstr "Můžete to provést také později v nastavení."
@@ -7327,10 +7353,10 @@ msgid "Yours sincerely,"
 msgstr "S pozdravem"
 
 msgid "Zoom in"
-msgstr ""
+msgstr "Přiblížit"
 
 msgid "Zoom out"
-msgstr ""
+msgstr "Oddálit"
 
 msgid "Zug"
 msgstr "Zug"
@@ -7722,6 +7748,9 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
+
+#~ msgid "Message"
+#~ msgstr "Zpráva"
 
 #~ msgid ""
 #~ "The log records when the reminder service checked and what it reported. "

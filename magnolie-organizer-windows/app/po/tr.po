@@ -7,6 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Magnolie Organizer 2.0.18\n"
 "Report-Msgid-Bugs-To: maik3531@gmail.com\n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "PO-Revision-Date: 2026-09-07 00:00+0200\n"
 "Last-Translator: Magnolie translation team <maik3531@gmail.com>\n"
 "Language-Team: tr\n"
@@ -15,162 +16,6 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-
-msgid "Cancel sending"
-msgstr "Göndermeyi iptal et"
-
-msgid ""
-"Document handed to the selected application or fax server. Delivery is not "
-"confirmed."
-msgstr ""
-"Belge seçilen uygulamaya veya faks sunucusuna aktarıldı. Teslimat "
-"doğrulanmadı."
-
-msgid "Enter a HylaFAX server hostname, optionally followed by :port."
-msgstr ""
-"Bir HylaFAX sunucu adı girin; isteğe bağlı olarak sonuna :port ekleyin."
-
-msgid "Enter recipient manually"
-msgstr "Alıcıyı elle gir"
-
-msgid "Fax printer"
-msgstr "Faks yazıcısı"
-
-msgid "Network fax server"
-msgstr "Ağ faks sunucusu"
-
-msgid "Online fax service"
-msgstr "Çevrimiçi faks hizmeti"
-
-msgid "Save as PDF"
-msgstr "PDF olarak kaydet"
-
-msgid "Website"
-msgstr "Web sitesi"
-
-msgid "Active playback, including browser videos, remains available alongside the assigned players. Search/Open selects local music or videos; a searchable player playlist appears when supported. Covers, shuffle and repeat are available when the player provides them."
-msgstr "Tarayıcı videoları dahil etkin oynatma, atanmış oynatıcıların yanında kullanılabilir. Ara/Aç yerel müzik veya videoları seçer; oynatıcı destekliyorsa aranabilir çalma listesi görünür. Kapaklar, karışık oynatma ve tekrar, oynatıcı bunları sağladığında kullanılabilir."
-
-msgid "KDE Connect transmits pen position, pressure, contact and pen/eraser changes. The hover cursor leaves no ink. The phone's tablet menu offers fullscreen and settings to hide or move the drawing button. Tilt, rotation and extra pen buttons are not transmitted by this protocol."
-msgstr "KDE Connect kalem konumunu, basıncı, teması ve kalem/silgi değişimini iletir. Yakınlık imleci çizgi bırakmaz. Telefonun tablet menüsü tam ekran ile çizim düğmesini gizleme veya taşıma ayarlarını sunar. Bu protokol eğim, dönüş veya ek kalem düğmelerini iletmez."
-
-msgid "Fax"
-msgstr "Faks"
-
-msgid ""
-"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
-"supported installed mail client. A handoff is not delivery confirmation."
-msgstr ""
-"Faks için yapılandırılmış bir HylaFAX sunucusu ve kurulu sendfax gerekir. E-"
-"posta, desteklenen kurulu bir posta istemcisini kullanır. Aktarma, teslimat "
-"onayı değildir."
-
-msgid "HylaFAX server (Linux)"
-msgstr "HylaFAX sunucusu (Linux)"
-
-msgid "No configured mail or fax adapter is available."
-msgstr "Yapılandırılmış kullanılabilir bir posta veya faks bağlantısı yok."
-
-msgid "Preparing selected notes…"
-msgstr "Seçili notlar hazırlanıyor…"
-
-msgid "Recipient"
-msgstr "Alıcı"
-
-msgid "Select a recipient."
-msgstr "Bir alıcı seçin."
-
-msgid "Send notes by email or fax"
-msgstr "Notları e-posta veya faksla gönder"
-
-msgid "Sending cancelled."
-msgstr "Gönderme iptal edildi."
-
-msgid "Sending is disabled."
-msgstr "Gönderme devre dışı."
-
-msgid "Sending is not available."
-msgstr "Gönderme kullanılamıyor."
-
-msgid "Show Send in note print options"
-msgstr "Not yazdırma seçeneklerinde Gönder’i göster"
-
-msgid "Subject"
-msgstr "Konu"
-
-msgid "The document could not be handed off."
-msgstr "Belge aktarılamadı."
-
-msgid "The handoff has already started and cannot be recalled here."
-msgstr "Aktarma zaten başladı ve buradan geri alınamaz."
-
-msgid ""
-"The handoff outcome is unknown. Check the external application before trying "
-"again."
-msgstr ""
-"Aktarmanın sonucu bilinmiyor. Yeniden denemeden önce dış uygulamayı kontrol "
-"edin."
-
-msgid ""
-"Waiting for the mail or fax application. Closing this window does not recall "
-"the handoff."
-msgstr ""
-"Posta veya faks uygulaması bekleniyor. Bu pencereyi kapatmak aktarmayı geri "
-"almaz."
-
-msgid "All anniversaries"
-msgstr "Tüm yıl dönümleri"
-
-msgid "Also hide in the calendar"
-msgstr "Takvimde de gizle"
-
-msgid ""
-"An entry is excluded when any of its contact groups is selected. No contacts "
-"or anniversaries are deleted."
-msgstr ""
-"Kişi gruplarından herhangi biri seçildiğinde kayıt hariç tutulur. Hiçbir "
-"kişi veya yıl dönümü silinmez."
-
-msgid "Apply to"
-msgstr "Uygulama alanı"
-
-msgid "Birthdays only"
-msgstr "Yalnızca doğum günleri"
-
-msgid "Enable contact group exclusions"
-msgstr "Kişi grubu hariç tutmalarını etkinleştir"
-
-msgid "Exclude contact groups"
-msgstr "Kişi gruplarını hariç tut"
-
-msgid "Scope"
-msgstr "Kapsam"
-
-msgid "Category"
-msgstr "Kategori"
-
-msgid "Category colors"
-msgstr "Kategori renkleri"
-
-msgid ""
-"Category colors highlight appointments and tasks. A custom entry color takes "
-"precedence; otherwise the first matching category is used."
-msgstr ""
-"Kategori renkleri randevu ve görevleri vurgular. Kaydın özel rengi "
-"önceliklidir; yoksa eşleşen ilk kategori kullanılır."
-
-msgid ""
-"Changing or removing a category color does not rename or delete categories "
-"on saved or imported entries."
-msgstr ""
-"Bir kategori rengini değiştirmek veya kaldırmak, kaydedilmiş ya da içe "
-"aktarılmış kayıtların kategorilerini yeniden adlandırmaz veya silmez."
-
-msgid "Custom color"
-msgstr "Özel renk"
-
-msgid "Please enter a unique category name without commas or semicolons."
-msgstr "Virgül veya noktalı virgül içermeyen benzersiz bir kategori adı girin."
 
 msgid " (filtered)"
 msgstr " (filtrelendi)"
@@ -343,8 +188,8 @@ msgstr[1] "%(count)s saniye"
 
 msgid "%(count)s source"
 msgid_plural "%(count)s sources"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%(count)s kaynak"
+msgstr[1] "%(count)s kaynak"
 
 msgid "%(count)s task"
 msgid_plural "%(count)s tasks"
@@ -634,10 +479,21 @@ msgid "Account type"
 msgstr "Hesap türü"
 
 msgid "Action"
-msgstr ""
+msgstr "İşlem"
 
 msgid "Active call"
 msgstr "Etkin arama"
+
+msgid ""
+"Active playback, including browser videos, remains available alongside the "
+"assigned players. Search/Open selects local music or videos; a searchable "
+"player playlist appears when supported. Covers, shuffle and repeat are "
+"available when the player provides them."
+msgstr ""
+"Tarayıcı videoları dahil etkin oynatma, atanmış oynatıcıların yanında "
+"kullanılabilir. Ara/Aç yerel müzik veya videoları seçer; oynatıcı "
+"destekliyorsa aranabilir çalma listesi görünür. Kapaklar, karışık oynatma ve "
+"tekrar, oynatıcı bunları sağladığında kullanılabilir."
 
 msgctxt "time tracking"
 msgid "Activity"
@@ -707,7 +563,7 @@ msgid "Address imported from LibreOffice."
 msgstr "Adres LibreOffice üzerinden içe aktarıldı."
 
 msgid "Address imported from own profile."
-msgstr ""
+msgstr "Adres kendi profilden içe aktarıldı."
 
 msgid "Address supplement"
 msgstr "Ek adres bilgisi"
@@ -731,6 +587,9 @@ msgstr "Yemekten sonra"
 
 msgid "All"
 msgstr "Tümü"
+
+msgid "All anniversaries"
+msgstr "Tüm yıl dönümleri"
 
 msgid "All cantons"
 msgstr "Tüm kantonlar"
@@ -763,6 +622,9 @@ msgstr "Bu cihazın bu bağlantıyı paylaşmasına izin ver"
 msgid "Also disclose appointments marked as confidential"
 msgstr "Gizli olarak işaretlenmiş randevuları da paylaş"
 
+msgid "Also hide in the calendar"
+msgstr "Takvimde de gizle"
+
 msgid "Also hide past anniversaries"
 msgstr "Geçmiş yıldönümlerini de gizle"
 
@@ -788,6 +650,13 @@ msgstr ""
 "Deri ciltli bir organizer görünümünde randevu takvimi, adres defteri, görev "
 "defteri ve not defteri —"
 
+msgid ""
+"An entry is excluded when any of its contact groups is selected. No contacts "
+"or anniversaries are deleted."
+msgstr ""
+"Kişi gruplarından herhangi biri seçildiğinde kayıt hariç tutulur. Hiçbir "
+"kişi veya yıl dönümü silinmez."
+
 msgid "Android restricts this device identifier."
 msgstr "Android bu cihaz tanımlayıcısını kısıtlıyor."
 
@@ -795,7 +664,7 @@ msgid "Android version"
 msgstr "Android sürümü"
 
 msgid "Angle"
-msgstr ""
+msgstr "Açı"
 
 msgid "Anniversaries"
 msgstr "Yıldönümleri"
@@ -851,6 +720,9 @@ msgstr ""
 
 msgid "Apply"
 msgstr "Uygula"
+
+msgid "Apply to"
+msgstr "Uygulama alanı"
 
 msgid "Apply to the remaining conflicts"
 msgstr "Kalan çakışmalara uygula"
@@ -940,7 +812,7 @@ msgid "Authority appointment"
 msgstr "Resmî kurum randevusu"
 
 msgid "Automatic"
-msgstr ""
+msgstr "Otomatik"
 
 msgid "Automatic backup failed."
 msgstr "Otomatik yedekleme başarısız oldu."
@@ -971,7 +843,7 @@ msgid "Automatically dismiss anniversary reminders"
 msgstr "Yıldönümü hatırlatmalarını otomatik gizle"
 
 msgid "Automatically over the current connection"
-msgstr ""
+msgstr "Geçerli bağlantı üzerinden otomatik"
 
 msgid "Automatically synchronize over Wi-Fi"
 msgstr "Wi-Fi üzerinden otomatik eşitle"
@@ -1104,6 +976,9 @@ msgstr "Doğum günü partisi"
 msgid "Birthday today"
 msgstr "Doğum günü bugün"
 
+msgid "Birthdays only"
+msgstr "Yalnızca doğum günleri"
+
 msgid "Black"
 msgstr "Siyah"
 
@@ -1199,7 +1074,7 @@ msgid "Browse..."
 msgstr "Gözat..."
 
 msgid "Brush"
-msgstr ""
+msgstr "Fırça"
 
 msgid "Burgenland"
 msgstr "Burgenland"
@@ -1294,10 +1169,13 @@ msgid "Call with %(name)s · %(date)s"
 msgstr "%(name)s ile arama · %(date)s"
 
 msgid "Calligraphy pen"
-msgstr ""
+msgstr "Kaligrafi kalemi"
 
 msgid "Cancel"
 msgstr "İptal"
+
+msgid "Cancel sending"
+msgstr "Göndermeyi iptal et"
 
 msgid "Canton"
 msgstr "Kanton"
@@ -1320,6 +1198,19 @@ msgstr "Kategoriler"
 msgid "Categories:"
 msgstr "Kategoriler:"
 
+msgid "Category"
+msgstr "Kategori"
+
+msgid "Category colors"
+msgstr "Kategori renkleri"
+
+msgid ""
+"Category colors highlight appointments and tasks. A custom entry color takes "
+"precedence; otherwise the first matching category is used."
+msgstr ""
+"Kategori renkleri randevu ve görevleri vurgular. Kaydın özel rengi "
+"önceliklidir; yoksa eşleşen ilk kategori kullanılır."
+
 msgid "Catholic confirmation"
 msgstr "Katolik konfirmasyonu"
 
@@ -1336,7 +1227,14 @@ msgid "Changes are applied automatically"
 msgstr "Değişiklikler otomatik uygulanır"
 
 msgid "Changes to your own profile are saved with Save."
+msgstr "Kendi profilinizdeki değişiklikler Kaydet ile saklanır."
+
+msgid ""
+"Changing or removing a category color does not rename or delete categories "
+"on saved or imported entries."
 msgstr ""
+"Bir kategori rengini değiştirmek veya kaldırmak, kaydedilmiş ya da içe "
+"aktarılmış kayıtların kategorilerini yeniden adlandırmaz veya silmez."
 
 msgid "Charging"
 msgstr "Şarj oluyor"
@@ -1390,10 +1288,10 @@ msgstr ""
 "gerektirir."
 
 msgid "Choose a connection. Confirm the pairing code on the other device."
-msgstr ""
+msgstr "Bir bağlantı seçin. Eşleştirme kodunu diğer cihazda onaylayın."
 
 msgid "Choose a contact"
-msgstr ""
+msgstr "Kişi seç"
 
 msgid "Choose a country first."
 msgstr "Önce bir ülke seçin."
@@ -1553,7 +1451,7 @@ msgid "Codes match"
 msgstr "Kodlar eşleşiyor"
 
 msgid "Collapse day groups by default"
-msgstr ""
+msgstr "Gün gruplarını varsayılan olarak daralt"
 
 msgid "Colleagues"
 msgstr "İş arkadaşları"
@@ -1588,7 +1486,7 @@ msgstr ""
 "telefonla, karşılaştırın."
 
 msgid "Compare with LibreOffice"
-msgstr ""
+msgstr "LibreOffice ile karşılaştır"
 
 msgid "Complete archive export is available only in the installed application."
 msgstr "Tam arşiv dışa aktarımı yalnızca yüklü uygulamada mümkündür."
@@ -1645,7 +1543,7 @@ msgid "Confirm the pairing request on the phone."
 msgstr "Telefondaki eşleştirme isteğini onaylayın."
 
 msgid "Confirm this code on the other device."
-msgstr ""
+msgstr "Bu kodu diğer cihazda onaylayın."
 
 msgid "Confirmation"
 msgstr "Onay"
@@ -1657,7 +1555,7 @@ msgid "Connect"
 msgstr "Bağlan"
 
 msgid "Connect Notes before sending this entry."
-msgstr ""
+msgstr "Bu girdiyi göndermeden önce Notes’u bağlayın."
 
 msgid "Connect phone via WLAN"
 msgstr "Telefonu WLAN üzerinden bağla"
@@ -1814,10 +1712,10 @@ msgid "Create pairing file …"
 msgstr "Eşleştirme dosyası oluştur …"
 
 msgid "Create recovery points"
-msgstr ""
+msgstr "Kurtarma noktaları oluştur"
 
 msgid "Created"
-msgstr ""
+msgstr "Oluşturuldu"
 
 msgid "Creating recovery snapshot …"
 msgstr "Kurtarma anlık görüntüsü oluşturuluyor …"
@@ -1827,6 +1725,9 @@ msgstr "Özel"
 
 msgid "Custom application"
 msgstr "Özel uygulama"
+
+msgid "Custom color"
+msgstr "Özel renk"
 
 msgid "Custom notification"
 msgstr "Özel bildirim"
@@ -1850,7 +1751,7 @@ msgid "Cut"
 msgstr "Kes"
 
 msgid "Cut selection"
-msgstr ""
+msgstr "Seçimi kes"
 
 msgid "Cycle calendar"
 msgstr "Döngü takvimi"
@@ -1911,7 +1812,7 @@ msgid "Death anniversary"
 msgstr "Ölüm yıldönümü"
 
 msgid "Default view"
-msgstr ""
+msgstr "Varsayılan görünüm"
 
 msgid "Default: next to the data file"
 msgstr "Varsayılan: veri dosyasının yanında"
@@ -1959,10 +1860,10 @@ msgid "Delete cycle marker"
 msgstr "Döngü işaretini sil"
 
 msgid "Delete drawing sheet"
-msgstr ""
+msgstr "Çizim sayfasını sil"
 
 msgid "Delete drawing sheet?"
-msgstr ""
+msgstr "Çizim sayfası silinsin mi?"
 
 msgid "Delete entries"
 msgstr "Girdileri sil"
@@ -2142,6 +2043,13 @@ msgstr "Doktor"
 msgid "Doctor appointment"
 msgstr "Doktor randevusu"
 
+msgid ""
+"Document handed to the selected application or fax server. Delivery is not "
+"confirmed."
+msgstr ""
+"Belge seçilen uygulamaya veya faks sunucusuna aktarıldı. Teslimat "
+"doğrulanmadı."
+
 msgid "Document.pdf"
 msgstr "Document.pdf"
 
@@ -2230,7 +2138,7 @@ msgid "Edit the website or application used"
 msgstr "Kullanılan web sitesini veya uygulamayı düzenle"
 
 msgid "Ellipse"
-msgstr ""
+msgstr "Elips"
 
 msgid "Email"
 msgstr "E-posta"
@@ -2285,6 +2193,9 @@ msgid ""
 msgstr ""
 "Kendi eşleştirilmiş telefonunuzda Notes geliştirici seçeneklerinden Wi-Fi "
 "hata ayıklamayı etkinleştirin."
+
+msgid "Enable contact group exclusions"
+msgstr "Kişi grubu hariç tutmalarını etkinleştir"
 
 msgid "Enable cycle calendar"
 msgstr "Döngü takvimini etkinleştir"
@@ -2353,6 +2264,10 @@ msgstr ""
 msgid "Enter"
 msgstr "Gir"
 
+msgid "Enter a HylaFAX server hostname, optionally followed by :port."
+msgstr ""
+"Bir HylaFAX sunucu adı girin; isteğe bağlı olarak sonuna :port ekleyin."
+
 msgid ""
 "Enter a blood glucose value on the left to highlight matching scheme rows."
 msgstr ""
@@ -2389,6 +2304,9 @@ msgstr "Hem saati hem de dakikayı girin veya saati tamamen boş bırakın."
 msgid "Enter height and weight to calculate BMI."
 msgstr "BKİ'yi hesaplamak için boy ve kilo girin."
 
+msgid "Enter recipient manually"
+msgstr "Alıcıyı elle gir"
+
 msgid "Enter the archive password."
 msgstr "Arşiv şifresini girin."
 
@@ -2424,7 +2342,7 @@ msgid "Estimate the next period"
 msgstr "Sonraki adeti tahmin et"
 
 msgid "Estimated from older data"
-msgstr ""
+msgstr "Eski verilerden tahmin edildi"
 
 msgid "Estimated next period"
 msgstr "Tahmini sonraki adet"
@@ -2433,7 +2351,7 @@ msgid "Evening"
 msgstr "Akşam"
 
 msgid "Every change"
-msgstr ""
+msgstr "Her değişiklikte"
 
 msgid "Every filled medication row requires a name."
 msgstr "Doldurulan her ilaç satırında bir ad bulunmalıdır."
@@ -2442,7 +2360,7 @@ msgid "Every filled row requires a valid date."
 msgstr "Doldurulan her satırda geçerli bir tarih bulunmalıdır."
 
 msgid "Every program start"
-msgstr ""
+msgstr "Her program başlangıcında"
 
 msgid "Everything is done - the list is empty."
 msgstr "Her şey tamam – liste boş."
@@ -2453,8 +2371,11 @@ msgstr "Her şey hazır"
 msgid "Exactly one Magnolie Notes phone must be paired."
 msgstr "Tam olarak bir Magnolie Notes telefonun eşleştirilmesi gerekir."
 
+msgid "Exclude contact groups"
+msgstr "Kişi gruplarını hariç tut"
+
 msgid "Expand day groups by default"
-msgstr ""
+msgstr "Gün gruplarını varsayılan olarak genişlet"
 
 msgid "Export"
 msgstr "Dışa aktar"
@@ -2475,7 +2396,7 @@ msgid "Export is available only in the installed application."
 msgstr "Dışa aktarma yalnızca kurulu uygulamada kullanılabilir."
 
 msgid "Export vCard"
-msgstr ""
+msgstr "vCard dışa aktar"
 
 msgid "Extend sharing"
 msgstr "Paylaşımı genişlet"
@@ -2491,6 +2412,20 @@ msgstr "Aile"
 
 msgid "Fasting"
 msgstr "Açlık"
+
+msgid "Fax"
+msgstr "Faks"
+
+msgid "Fax printer"
+msgstr "Faks yazıcısı"
+
+msgid ""
+"Fax requires a configured HylaFAX server and installed sendfax. Email uses a "
+"supported installed mail client. A handoff is not delivery confirmation."
+msgstr ""
+"Faks için yapılandırılmış bir HylaFAX sunucusu ve kurulu sendfax gerekir. E-"
+"posta, desteklenen kurulu bir posta istemcisini kullanır. Aktarma, teslimat "
+"onayı değildir."
 
 msgid "Female caregiver"
 msgstr "Kadın bakıcı"
@@ -2511,13 +2446,16 @@ msgid "Fertile days"
 msgstr "Doğurgan günler"
 
 msgid "Field"
-msgstr ""
+msgstr "Alan"
+
+msgid "File"
+msgstr "Dosya"
 
 msgid "Fill selection"
-msgstr ""
+msgstr "Seçimi doldur"
 
 msgid "Fill with gradient"
-msgstr ""
+msgstr "Renk geçişiyle doldur"
 
 msgid "Fill with stored values"
 msgstr "Kayıtlı değerlerle doldur"
@@ -2688,16 +2626,16 @@ msgstr ""
 "hesaplarını kullanın."
 
 msgid "Gradient end color"
-msgstr ""
+msgstr "Renk geçişi bitiş rengi"
 
 msgid "Grisons"
 msgstr "Graubünden"
 
 msgid "Group by day"
-msgstr ""
+msgstr "Güne göre grupla"
 
 msgid "Group changes by time interval"
-msgstr ""
+msgstr "Değişiklikleri zaman aralığına göre grupla"
 
 msgid "Group for %(notebook)s"
 msgstr "%(notebook)s için grup"
@@ -2774,7 +2712,7 @@ msgid "Hide past appointments"
 msgstr "Geçmiş randevuları gizle"
 
 msgid "Highlighter"
-msgstr ""
+msgstr "Vurgulayıcı"
 
 msgid "History"
 msgstr "Geçmiş"
@@ -2813,6 +2751,9 @@ msgstr "Bir güne tıkladığınızda takvimin nasıl davranacağı."
 msgid "Husband"
 msgstr "Koca"
 
+msgid "HylaFAX server (Linux)"
+msgstr "HylaFAX sunucusu (Linux)"
+
 msgid "I"
 msgstr "Ben"
 
@@ -2826,7 +2767,7 @@ msgid "ISO week (week 1 contains the first Thursday)"
 msgstr "ISO haftası (1. hafta ilk perşembeyi içerir)"
 
 msgid "Idea"
-msgstr ""
+msgstr "Fikir"
 
 msgid ""
 "If the year is unknown, enter only day and month.\n"
@@ -2977,7 +2918,7 @@ msgid "Insert link"
 msgstr "Bağlantı ekle"
 
 msgid "Insert shape"
-msgstr ""
+msgstr "Şekil ekle"
 
 msgid ""
 "Install the highlighted extension in Thunderbird via Add-ons and Themes → "
@@ -3041,6 +2982,9 @@ msgstr "Meyve suyu"
 msgid "Jura"
 msgstr "Jura"
 
+msgid "KDE Connect"
+msgstr "KDE Connect"
+
 msgid "KDE Connect for SMS is available only in the installed application."
 msgstr "SMS için KDE Connect yalnızca yüklü uygulamada mevcuttur."
 
@@ -3052,6 +2996,17 @@ msgstr "KDE Connect telefon eşleştirildi."
 
 msgid "KDE Connect port %(port)s"
 msgstr "KDE Connect bağlantı noktası %(port)s"
+
+msgid ""
+"KDE Connect transmits pen position, pressure, contact and pen/eraser "
+"changes. The hover cursor leaves no ink. The phone's tablet menu offers "
+"fullscreen and settings to hide or move the drawing button. Tilt, rotation "
+"and extra pen buttons are not transmitted by this protocol."
+msgstr ""
+"KDE Connect kalem konumunu, basıncı, teması ve kalem/silgi değişimini "
+"iletir. Yakınlık imleci çizgi bırakmaz. Telefonun tablet menüsü tam ekran "
+"ile çizim düğmesini gizleme veya taşıma ayarlarını sunar. Bu protokol eğim, "
+"dönüş veya ek kalem düğmelerini iletmez."
 
 msgid "Keep"
 msgstr "Koru"
@@ -3075,7 +3030,7 @@ msgid "Landline"
 msgstr "Sabit telefon"
 
 msgid "Landscape"
-msgstr ""
+msgstr "Yatay"
 
 msgid "Language"
 msgstr "Dil"
@@ -3124,7 +3079,7 @@ msgstr ""
 "LibreOffice yalnızca düğmeye bastığınızda okunur. Ayarları değiştirilmez."
 
 msgid "LibreOffice user data updated."
-msgstr ""
+msgstr "LibreOffice kullanıcı verileri güncellendi."
 
 msgid "License"
 msgstr "Lisans"
@@ -3133,7 +3088,7 @@ msgid "Liechtenstein"
 msgstr "Lihtenştayn"
 
 msgid "Line"
-msgstr ""
+msgstr "Çizgi"
 
 msgid "Line width"
 msgstr "Çizgi kalınlığı"
@@ -3164,6 +3119,9 @@ msgstr "Yerel takvim"
 
 msgid "Local image"
 msgstr "Yerel resim"
+
+msgid "Local time"
+msgstr "Yerel saat"
 
 msgid "Location"
 msgstr "Konum"
@@ -3312,7 +3270,7 @@ msgid "Manual only"
 msgstr "Yalnızca elle"
 
 msgid "Manually"
-msgstr ""
+msgstr "Elle"
 
 msgid "Manufacturer"
 msgstr "Üretici"
@@ -3383,16 +3341,13 @@ msgid "Merge duplicate contact cards"
 msgstr "Yinelenen kişi kartlarını birleştir"
 
 msgid "Merge history"
-msgstr ""
+msgstr "Birleştirme geçmişi"
 
 msgid "Merge this pair individually"
 msgstr "Bu çifti ayrı olarak birleştir"
 
 msgid "Merged"
-msgstr ""
-
-msgid "Message"
-msgstr "İleti"
+msgstr "Birleştirildi"
 
 msgid "Message text"
 msgstr "Mesaj metni"
@@ -3452,7 +3407,7 @@ msgid "Model"
 msgstr "Model"
 
 msgid "Modified"
-msgstr ""
+msgstr "Değiştirildi"
 
 msgid "Module"
 msgstr "Modül"
@@ -3461,7 +3416,7 @@ msgid "Monday"
 msgstr "Pazartesi"
 
 msgid "Money"
-msgstr ""
+msgstr "Para"
 
 msgid "Month"
 msgstr "Ay"
@@ -3516,7 +3471,7 @@ msgid "Move notebook up"
 msgstr "Not defterini yukarı taşı"
 
 msgid "Move selection"
-msgstr ""
+msgstr "Seçimi taşı"
 
 msgid "Move the ticked entries to the wastebasket"
 msgstr "İşaretli girdileri çöp kutusuna taşı"
@@ -3528,7 +3483,7 @@ msgid "Move up"
 msgstr "Yukarı taşı"
 
 msgid "Move view"
-msgstr ""
+msgstr "Görünümü taşı"
 
 msgid ""
 "Multiple Magnolie Notes phones are stored. Personal sync is blocked; remove "
@@ -3564,6 +3519,9 @@ msgstr "Hollanda"
 
 msgid "Network"
 msgstr "Ağ"
+
+msgid "Network fax server"
+msgstr "Ağ faks sunucusu"
 
 msgid "Neuchâtel"
 msgstr "Neuchâtel"
@@ -3606,7 +3564,7 @@ msgid "New contact"
 msgstr "Yeni kişi"
 
 msgid "New drawing sheet"
-msgstr ""
+msgstr "Yeni çizim sayfası"
 
 msgid "New group"
 msgstr "Yeni grup"
@@ -3630,7 +3588,7 @@ msgid "New version %(version)s is available."
 msgstr "Yeni %(version)s sürümü kullanılabilir."
 
 msgid "Newest first"
-msgstr ""
+msgstr "Önce en yeniler"
 
 msgid "Next"
 msgstr "İleri"
@@ -3663,7 +3621,7 @@ msgid "Nextcloud is not enabled."
 msgstr "Nextcloud etkin değil."
 
 msgid "Nib angle"
-msgstr ""
+msgstr "Kalem ucu açısı"
 
 msgid "Nidwalden"
 msgstr "Nidwalden"
@@ -3691,7 +3649,7 @@ msgid "No SMS messages are scheduled."
 msgstr "Zamanlanmış SMS iletisi yok."
 
 msgid "No WhatsApp profile available for this contact."
-msgstr ""
+msgstr "Bu kişi için WhatsApp profili yok."
 
 msgid "No Windows dictionary is installed for this language."
 msgstr "Bu dil için bir Windows sözlüğü yüklü değil."
@@ -3715,11 +3673,14 @@ msgstr "Planlanmış bir randevu yok."
 msgid "No calendars found."
 msgstr "Takvim bulunamadı."
 
+msgid "No configured mail or fax adapter is available."
+msgstr "Yapılandırılmış kullanılabilir bir posta veya faks bağlantısı yok."
+
 msgid "No contact group"
-msgstr ""
+msgstr "Kişi grubu yok"
 
 msgid "No date recorded"
-msgstr ""
+msgstr "Tarih kaydedilmedi"
 
 msgid "No default voice subscription is available."
 msgstr "Varsayılan ses aboneliği yok."
@@ -3752,7 +3713,7 @@ msgid "No media player is available on the connected phone."
 msgstr "Bağlı telefonda kullanılabilir medya oynatıcı yok."
 
 msgid "No merge history recorded"
-msgstr ""
+msgstr "Birleştirme geçmişi kaydedilmedi"
 
 msgid "No notebooks"
 msgstr "Not defteri yok"
@@ -3782,7 +3743,7 @@ msgstr ""
 "Kişiler düğmesini kullanın."
 
 msgid "No phone number available."
-msgstr ""
+msgstr "Telefon numarası yok."
 
 msgid "No phone paired yet."
 msgstr "Henüz telefon eşleştirilmedi."
@@ -3898,7 +3859,7 @@ msgid "Notes and special instructions"
 msgstr "Notlar ve özel talimatlar"
 
 msgid "Notes and tasks"
-msgstr ""
+msgstr "Notlar ve görevler"
 
 msgid ""
 "Notes and tasks synchronize with this paired device. Choose automatic Wi-Fi "
@@ -3975,7 +3936,7 @@ msgid "Ointment"
 msgstr "Merhem"
 
 msgid "Oldest first"
-msgstr ""
+msgstr "Önce en eskiler"
 
 msgid "One address book"
 msgstr "Bir adres defteri"
@@ -4021,6 +3982,9 @@ msgstr "Çevrimiçi"
 msgid "Online address book"
 msgstr "Çevrimiçi adres defteri"
 
+msgid "Online fax service"
+msgstr "Çevrimiçi faks hizmeti"
+
 msgid "Online via Bluetooth data"
 msgstr "Bluetooth verileri üzerinden çevrimiçi"
 
@@ -4048,10 +4012,10 @@ msgstr ""
 "önce mevcut telefonu kaldırın."
 
 msgid "Only personal entries can be sent to Notes."
-msgstr ""
+msgstr "Notes’a yalnızca kişisel girdiler gönderilebilir."
 
 msgid "Only the Notes collection"
-msgstr ""
+msgstr "Yalnızca Notes koleksiyonu"
 
 msgid ""
 "Only the reliable system notification is available under Wayland; the "
@@ -4136,7 +4100,7 @@ msgid "Open the day in the daily view"
 msgstr "Günü günlük görünümde aç"
 
 msgid "Open the drawing tablet in KDE Connect on the paired phone."
-msgstr ""
+msgstr "Eşleştirilmiş telefonda KDE Connect çizim tabletini açın."
 
 msgid "Open the phone connection screen and try again."
 msgstr "Telefon bağlantısı ekranını açıp yeniden deneyin."
@@ -4210,7 +4174,7 @@ msgid "Own phone number (default voice SIM)"
 msgstr "Kendi numaram (varsayılan ses SIM’i)"
 
 msgid "Own profile"
-msgstr ""
+msgstr "Kendi profiliniz"
 
 msgid "PDF file"
 msgstr "PDF dosyası"
@@ -4231,7 +4195,7 @@ msgid "Page %(page)s of %(count)s"
 msgstr "Sayfa %(page)s / %(count)s"
 
 msgid "Page order"
-msgstr ""
+msgstr "Sayfa sırası"
 
 msgid "Pages"
 msgstr "Sayfalar"
@@ -4478,6 +4442,9 @@ msgstr "Her yeni görev için bir başlık girin."
 msgid "Please enter a title."
 msgstr "Lütfen bir başlık girin."
 
+msgid "Please enter a unique category name without commas or semicolons."
+msgstr "Virgül veya noktalı virgül içermeyen benzersiz bir kategori adı girin."
+
 msgid "Please enter a website or application for the custom action."
 msgstr "Özel eylem için bir web sitesi veya uygulama girin."
 
@@ -4515,7 +4482,7 @@ msgid "Poland"
 msgstr "Polonya"
 
 msgid "Portrait"
-msgstr ""
+msgstr "Dikey"
 
 msgid "Possible duplicates among local and incoming contacts"
 msgstr "Yerel ve gelen kişiler arasındaki olası yinelenenler"
@@ -4557,6 +4524,9 @@ msgstr "Microsoft oturum açma işlemi hazırlanıyor…"
 
 msgid "Preparing account sign-in …"
 msgstr "Hesap oturumu hazırlanıyor…"
+
+msgid "Preparing selected notes…"
+msgstr "Seçili notlar hazırlanıyor…"
 
 msgid "Preview"
 msgstr "Önizleme"
@@ -4635,7 +4605,7 @@ msgid "Private"
 msgstr "Özel"
 
 msgid "Properties"
-msgstr ""
+msgstr "Özellikler"
 
 msgid "Protected archive password unavailable."
 msgstr "Korunan arşiv parolası kullanılamıyor."
@@ -4680,7 +4650,7 @@ msgid "Quit"
 msgstr "Çık"
 
 msgid "Quote"
-msgstr ""
+msgstr "Alıntı"
 
 msgid "Reachable IPv4 or IPv6 address of this computer"
 msgstr "Bu bilgisayarın erişilebilir IPv4 veya IPv6 adresi"
@@ -4695,10 +4665,13 @@ msgid "Reason"
 msgstr "Neden"
 
 msgid "Recently modified"
-msgstr ""
+msgstr "Yakın zamanda değiştirilenler"
 
 msgid "Recipe"
-msgstr ""
+msgstr "Tarif"
+
+msgid "Recipient"
+msgstr "Alıcı"
 
 msgid "Reconnect"
 msgstr "Yeniden bağlan"
@@ -4708,7 +4681,7 @@ msgid "Recorded times"
 msgstr "Kaydedilen süreler"
 
 msgid "Recovery journal"
-msgstr ""
+msgstr "Kurtarma günlüğü"
 
 msgid "Recovery snapshot created."
 msgstr "Kurtarma anlık görüntüsü oluşturuldu."
@@ -4720,7 +4693,7 @@ msgid "Recovery snapshots"
 msgstr "Kurtarma anlık görüntüleri"
 
 msgid "Rectangle"
-msgstr ""
+msgstr "Dikdörtgen"
 
 msgid "Recycle bin"
 msgstr "Çöp kutusu"
@@ -4959,7 +4932,7 @@ msgid "Right page"
 msgstr "Sağ sayfa"
 
 msgid "Rotate selection"
-msgstr ""
+msgstr "Seçimi döndür"
 
 msgid "Route"
 msgstr "Rota"
@@ -5022,6 +4995,9 @@ msgstr "Kaydet"
 
 msgid "Save Magnolienbaum pairing file"
 msgstr "Magnolienbaum eşleştirme dosyasını kaydet"
+
+msgid "Save as PDF"
+msgstr "PDF olarak kaydet"
 
 msgid "Save as…"
 msgstr "Farklı kaydet…"
@@ -5105,6 +5081,9 @@ msgstr "Bu bölge için okul tatili bilgileri mevcut değil."
 msgid "Schwyz"
 msgstr "Schwyz"
 
+msgid "Scope"
+msgstr "Kapsam"
+
 msgid "Screen notification only"
 msgstr "Yalnızca ekran bildirimi"
 
@@ -5145,7 +5124,7 @@ msgid "Security"
 msgstr "Güvenlik"
 
 msgid "Select"
-msgstr ""
+msgstr "Seç"
 
 msgid "Select a country first."
 msgstr "Önce bir ülke seçin."
@@ -5159,6 +5138,9 @@ msgstr ""
 
 msgid "Select a custom backup folder."
 msgstr "Özel bir yedek klasörü seçin."
+
+msgid "Select a recipient."
+msgstr "Bir alıcı seçin."
 
 msgid "Select all"
 msgstr "Tümünü seç"
@@ -5180,7 +5162,7 @@ msgid "Select backup folder"
 msgstr "Yedekleme klasörünü seç"
 
 msgid "Select complete strokes that fit inside the sheet."
-msgstr ""
+msgstr "Sayfaya sığan tam çizgileri seçin."
 
 msgid "Select something first."
 msgstr "Önce bir şey seçin."
@@ -5202,7 +5184,7 @@ msgid "Selection options"
 msgstr "Seçim seçenekleri"
 
 msgid "Send"
-msgstr ""
+msgstr "Gönder"
 
 msgid "Send SMS"
 msgstr "SMS gönder"
@@ -5213,17 +5195,29 @@ msgstr "Düzeltilmiş metni gönder"
 msgid "Send documents"
 msgstr "Belgeleri gönder"
 
+msgid "Send notes by email or fax"
+msgstr "Notları e-posta veya faksla gönder"
+
 msgid "Send secure request"
 msgstr "Güvenli istek gönder"
 
 msgid "Send this new note to Notes"
-msgstr ""
+msgstr "Bu yeni notu Notes’a gönder"
 
 msgid "Send to Notes"
-msgstr ""
+msgstr "Notes’a gönder"
 
 msgid "Send via"
-msgstr ""
+msgstr "Şununla gönder"
+
+msgid "Sending cancelled."
+msgstr "Gönderme iptal edildi."
+
+msgid "Sending is disabled."
+msgstr "Gönderme devre dışı."
+
+msgid "Sending is not available."
+msgstr "Gönderme kullanılamıyor."
 
 msgid "Sent"
 msgstr "Gönderildi"
@@ -5276,7 +5270,7 @@ msgid "Share connection with"
 msgstr "Bağlantının paylaşılacağı cihaz"
 
 msgid "Share selected details"
-msgstr ""
+msgstr "Seçili ayrıntıları paylaş"
 
 msgid "Share this connection with the selected device?"
 msgstr "Bu bağlantı seçilen cihazla paylaşılsın mı?"
@@ -5306,7 +5300,7 @@ msgid "Sharing this connection is not allowed."
 msgstr "Bu bağlantının paylaşılmasına izin verilmedi."
 
 msgid "Sheet size"
-msgstr ""
+msgstr "Sayfa boyutu"
 
 msgid "Shift planner"
 msgstr "Vardiya planlayıcı"
@@ -5319,6 +5313,9 @@ msgstr "Kısa etkili insülin"
 
 msgid "Show Health after Planner"
 msgstr "Sağlık bölümünü Planlayıcı'dan sonra göster"
+
+msgid "Show Send in note print options"
+msgstr "Not yazdırma seçeneklerinde Gönder’i göster"
 
 msgid "Show all"
 msgstr "Tümünü göster"
@@ -5492,7 +5489,7 @@ msgid "Spray"
 msgstr "Sprey"
 
 msgid "Square"
-msgstr ""
+msgstr "Kare"
 
 msgid "St. Gallen"
 msgstr "St. Gallen"
@@ -5529,7 +5526,7 @@ msgid "Stop"
 msgstr "Durdur"
 
 msgid "Street"
-msgstr ""
+msgstr "Sokak"
 
 msgid "Street / house number"
 msgstr "Sokak / kapı numarası"
@@ -5545,6 +5542,9 @@ msgstr "Üstü çizili"
 
 msgid "Styria"
 msgstr "Steiermark"
+
+msgid "Subject"
+msgstr "Konu"
 
 msgid "Submitted"
 msgstr "İletildi"
@@ -5611,7 +5611,7 @@ msgstr ""
 "kaldırılır. Daha önce kabul edilen kişiler ve yerel veriler kalır."
 
 msgid "Synchronize all notes and tasks"
-msgstr ""
+msgstr "Tüm notları ve görevleri eşitle"
 
 msgid "Synchronize automatically at startup"
 msgstr "Başlangıçta otomatik eşitle"
@@ -5979,6 +5979,9 @@ msgstr "Veriler bir JSON nesnesi değil."
 msgid "The destination could not be opened."
 msgstr "Hedef açılamadı."
 
+msgid "The document could not be handed off."
+msgstr "Belge aktarılamadı."
+
 msgid "The download address is not permitted for this platform."
 msgstr "Bu platform için indirme adresine izin verilmiyor."
 
@@ -6017,6 +6020,16 @@ msgstr ""
 "olarak eşitlenebilir. Magnolie bir sağlayıcıda oturum açmaz. Otomatik "
 "yedekler yalnızca Organizer açık ve kilidi kaldırılmışken, veriler başarıyla "
 "kaydedildikten hemen sonra çalışır."
+
+msgid "The handoff has already started and cannot be recalled here."
+msgstr "Aktarma zaten başladı ve buradan geri alınamaz."
+
+msgid ""
+"The handoff outcome is unknown. Check the external application before trying "
+"again."
+msgstr ""
+"Aktarmanın sonucu bilinmiyor. Yeniden denemeden önce dış uygulamayı kontrol "
+"edin."
 
 msgid ""
 "The helper frame marks the control that currently has keyboard focus. This "
@@ -6303,13 +6316,13 @@ msgid "The selected contacts contain no values for these columns."
 msgstr "Seçili kişiler bu sütunlar için herhangi bir değer içermiyor."
 
 msgid "The selected entry is too large to send."
-msgstr ""
+msgstr "Seçili girdi gönderilemeyecek kadar büyük."
 
 msgid "The selected health records contain no printable values."
 msgstr "Seçili sağlık kayıtlarında yazdırılabilir değer yok."
 
 msgid "The selected note contains attachments that cannot be sent."
-msgstr ""
+msgstr "Seçili not gönderilemeyen ekler içeriyor."
 
 msgid "The selected phone changed. Try again."
 msgstr "Seçili telefon değişti. Yeniden deneyin."
@@ -6320,6 +6333,9 @@ msgid ""
 msgstr ""
 "Seçilen oynatıcılar kapalıyken de telefonda sunulur. Oynat, atanan "
 "uygulamayı başlatır."
+
+msgid "The selected time zone is unavailable."
+msgstr "Seçilen saat dilimi kullanılamıyor."
 
 msgid "The server denied access. Check this account's permissions."
 msgstr "Sunucu erişimi reddetti. Bu hesabın izinlerini kontrol edin."
@@ -6577,7 +6593,7 @@ msgid "This phone transport is unavailable."
 msgstr "Bu telefon bağlantı yöntemi kullanılamıyor."
 
 msgid "This profile format is not supported."
-msgstr ""
+msgstr "Bu profil biçimi desteklenmiyor."
 
 msgid ""
 "This program is free software: you may redistribute and modify it. It is "
@@ -6641,7 +6657,7 @@ msgid "Time format"
 msgstr "Saat biçimi"
 
 msgid "Time synchronization direction"
-msgstr ""
+msgstr "Zaman takibi eşitleme yönü"
 
 msgctxt "time tracking"
 msgid "Time tracking"
@@ -6701,13 +6717,13 @@ msgid "Tradesperson"
 msgstr "Zanaatkâr"
 
 msgid "Travel"
-msgstr ""
+msgstr "Seyahat"
 
 msgid "Tray applet"
 msgstr "Sistem tepsisi uygulamacığı"
 
 msgid "Triangle"
-msgstr ""
+msgstr "Üçgen"
 
 msgid "Trust and accept tasks and notes automatically"
 msgstr "Güven ve görevlerle notları otomatik kabul et"
@@ -6759,10 +6775,10 @@ msgid "Unavailable"
 msgstr "Kullanılamıyor"
 
 msgid "Unchanged contents do not create another recovery point."
-msgstr ""
+msgstr "Değişmeyen içerik yeni bir kurtarma noktası oluşturmaz."
 
 msgid "Undated"
-msgstr ""
+msgstr "Tarihsiz"
 
 msgid ""
 "Under Wayland, the compositor determines the exact window position; "
@@ -7012,6 +7028,13 @@ msgid "Waiting for device status"
 msgstr "Cihaz durumu bekleniyor"
 
 msgid ""
+"Waiting for the mail or fax application. Closing this window does not recall "
+"the handoff."
+msgstr ""
+"Posta veya faks uygulaması bekleniyor. Bu pencereyi kapatmak aktarmayı geri "
+"almaz."
+
+msgid ""
 "Waiting for the phone on port %(port)s. Pairing closes after %(seconds)s "
 "seconds."
 msgstr ""
@@ -7075,6 +7098,9 @@ msgstr ""
 
 msgid "Weather was not retrieved because no location is available."
 msgstr "Konum bulunmadığı için hava durumu alınmadı."
+
+msgid "Website"
+msgstr "Web sitesi"
 
 msgid "Wedding anniversary"
 msgstr "Evlilik yıldönümü"
@@ -7159,7 +7185,7 @@ msgid "Whole month"
 msgstr "Tüm ay"
 
 msgid "Width"
-msgstr ""
+msgstr "Genişlik"
 
 msgid "Wife"
 msgstr "Eş"
@@ -7273,7 +7299,7 @@ msgid "Yes, the code matches"
 msgstr "Evet, kod eşleşiyor"
 
 msgid "Yesterday"
-msgstr ""
+msgstr "Dün"
 
 msgid "You can also do this later in Settings."
 msgstr "Bunu daha sonra Ayarlar'dan da yapabilirsiniz."
@@ -7311,10 +7337,10 @@ msgid "Yours sincerely,"
 msgstr "Saygılarımla,"
 
 msgid "Zoom in"
-msgstr ""
+msgstr "Yakınlaştır"
 
 msgid "Zoom out"
-msgstr ""
+msgstr "Uzaklaştır"
 
 msgid "Zug"
 msgstr "Zug"
@@ -7701,6 +7727,9 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
+
+#~ msgid "Message"
+#~ msgstr "İleti"
 
 #~ msgid ""
 #~ "The log records when the reminder service checked and what it reported. "
