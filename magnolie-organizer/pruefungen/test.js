@@ -1290,7 +1290,9 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(T.daten().einstellungen.regional,
     { language: "de", formatLocale: "de-DE", hourCycle: "h23",
       firstDayOfWeek: "monday", weekRule: "iso",
-      temperatureUnit: "celsius", timeZone: "system", homeCountry: "DE" },
+      temperatureUnit: "celsius", timeZone: "system", homeCountry: "DE",
+      timeZoneManagement: "off", timeZoneDetection: "auto", timeZoneManual: "system",
+      timeZoneDetectedSource: "manual", timeZoneDetectedAt: "0" },
   "deutsches Bestandsprofil wird regional nicht unverändert festgeschrieben");
   assert.strictEqual(T.fmtPunkt("2026-08-03"), "03.08.2026",
     "deutsches kurzes Datumsformat hat sich geändert");
@@ -1423,7 +1425,7 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(Array.from(enD.querySelectorAll("#inhalt-rechts .feldname"))
     .filter((label) => label.parentElement.style.display !== "none")
     .map((label) => label.textContent),
-  ["Title", "Priority", "Due on", "Parent task", "Note", "Custom notification"],
+  ["Title", "Priority", "Due on", "Parent task", "Note", "Categories", "Color", "Custom notification"],
   "englische Aufgabenbeschriftungen sind unvollständig");
   assert.deepStrictEqual(Array.from(enD.querySelectorAll(
     "#inhalt-rechts select:not(#aufgabe-eltern) option"), (option) => option.textContent),
@@ -1587,8 +1589,9 @@ function knopfMit(text, wurzel) {
     enKontaktText.includes("Work") && enKontaktText.includes("Emergency contacts") &&
     enKontaktText.includes("User note"),
   "englische Karteikarte oder unveränderte Benutzerdaten fehlen: " + enKontaktText);
-  assert.ok(enButton("Letter") && enButton("Map") && enButton("Message") &&
+  assert.ok(enButton("Letter") && enButton("Map") && enButton("Email") &&
     enButton("Edit") && enButton("Delete"), "englische Kontaktaktionen fehlen");
+  assert.strictEqual(enButton("Message"), undefined, "die frühere Nachrichtenaktion darf die klare E-Mail-Aktion nicht ersetzen");
   enT.oeffneDruckvorschau(enT.daten().kontakte.find((k) => k.id === "contact-en"),
     "adressen");
   const enKontaktDruck = enD.querySelector(".druck-vorschau").textContent;
@@ -1888,8 +1891,13 @@ function knopfMit(text, wurzel) {
     "planmäßiger Journalstatus wird als Warnung dargestellt");
   assert.ok(!enD.querySelector("#journal-anzahl") &&
     !enD.querySelector("#journal-intervall") && !enD.querySelector("#journal-jetzt") &&
-    enSicherungsbereiche.textContent.includes("Every saved change is protected automatically"),
-  "Wiederherstellungspunkte werden nicht ausschließlich automatisch pro Änderung erklärt");
+    enSicherungsbereiche.textContent.includes("Create recovery points") &&
+    enSicherungsbereiche.textContent.includes("Unchanged contents do not create another recovery point."),
+  "die ausdrücklich wählbare Journalstrategie wird nicht erklärt");
+  assert.deepStrictEqual(Array.from(enD.querySelector("#journal-modus").options, option => option.value),
+    ["change", "daily", "weekly", "startup", "interval"], "die Journalstrategien aus #142 fehlen");
+  assert.ok(enD.querySelector("#journal-zeitabstand") && enD.querySelector("#journal-zeitabstand-einheit"),
+    "die gespeicherten Intervallfelder fehlen");
   assert.ok(!js.includes('_("Number of snapshots")') &&
     !js.includes('_("Age in days")') &&
     !js.includes('_("Keep recovery snapshots for days")'),
@@ -2537,7 +2545,7 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual(Array.from(enSD.querySelectorAll(
     "#einstellungen-inhalt details.einst-gruppe > summary"),
   (summary) => summary.textContent),
-  ["Week numbers", "Weather", "Shift planner", "Cycle calendar", "Vacation planner",
+  ["Category colors", "Week numbers", "Weather", "Shift planner", "Cycle calendar", "Vacation planner",
     "Waste collection calendar", "Health"],
   "die Schichtdienst- oder Gesundheitsgruppe fehlt in den Kalendereinstellungen");
   assert.ok(Array.from(enSD.querySelectorAll("#einstellungen-inhalt details.einst-gruppe"))
@@ -2712,10 +2720,10 @@ function knopfMit(text, wurzel) {
   assert.ok(enErinnerung.textContent.includes("Enable reminders") &&
     enErinnerung.textContent.includes("Wake the computer from suspend") &&
     enErinnerung.textContent.includes("Also remind me about anniversaries") &&
-    enErinnerung.textContent.includes("Keep a troubleshooting log") &&
-    enErinnerung.textContent.includes("Show preview") &&
-    enErinnerung.textContent.includes("Show log"),
+    enErinnerung.textContent.includes("Show preview"),
   "englische Erinnerungsbeschriftungen fehlen");
+  assert.ok(!enErinnerung.textContent.includes("Keep a troubleshooting log") && !enErinnerung.textContent.includes("Show log"),
+    "Entwicklerprotokolle dürfen nicht auf der normalen Benachrichtigungsseite erscheinen");
   const enWeckOption = enErinnerung.querySelector(".erinnerung-weckoption");
   assert.ok(enWeckOption && enWeckOption.querySelector("#erinnerung-wecken") &&
     enWeckOption.previousElementSibling?.querySelector("#erinnerung-verpasst"),
@@ -2784,7 +2792,6 @@ function knopfMit(text, wurzel) {
     enNeu.querySelector(".ueber-neu-fassung")?.textContent === webFassung &&
     enNeu.querySelectorAll("ul > li").length === neuInhalte.en.length - 1 &&
     neuInhalte.en.slice(1).every(text => enNeu.textContent.includes(text)) &&
-    neuInhalte.en.some(text => /Notes(?: → |-to-)Organizer/.test(text)) &&
     neuInhalte.en.some(text => /Magnolie Notes \d+\.\d+\.\d+/.test(text)) &&
     js.includes('const NEU_IN_DIESER_FASSUNG_FASSUNG = "' + webFassung + '";') &&
     js.includes("NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG"),
@@ -3838,7 +3845,7 @@ function knopfMit(text, wurzel) {
   assert.deepStrictEqual($$("#inhalt-rechts .feldname")
     .filter((label) => label.parentElement.style.display !== "none")
     .map((label) => label.textContent),
-    ["Titel", "Priorität", "Fällig am", "Übergeordnete Aufgabe", "Notiz", "Individuelle Benachrichtigung"],
+    ["Titel", "Priorität", "Fällig am", "Übergeordnete Aufgabe", "Notiz", "Kategorien", "Farbe", "Individuelle Benachrichtigung"],
   "deutsche Aufgabenbeschriftungen sind unvollständig");
   assert.strictEqual($("#aufgabe-titel").value, "",
     "eine neue Aufgabe darf keinen Titel vorgeben");
@@ -4246,6 +4253,11 @@ function knopfMit(text, wurzel) {
     "Notizbuch wurde nicht gelöscht");
 
   knopfMit("Neue Seite").click();
+  const neueSeiteDialog = $(".notes-sendehak").closest(".eingabe-dialog");
+  assert.strictEqual(T.daten().notizen.length, 1, "das bloße Öffnen der Seitenwahl darf keine Notiz anlegen");
+  assert.strictEqual(neueSeiteDialog.querySelector('input[type="checkbox"]').checked, false,
+    "eine neue Notiz darf nicht ungefragt an Notes gesendet werden");
+  neueSeiteDialog.querySelector(".dialog-knoepfe .haupt").click();
   assert.strictEqual(T.daten().notizen.length, 2);
   setze($("#notiz-titel"), "Einkauf");
   const schreibflaeche = $("#notiz-text");
@@ -5255,7 +5267,7 @@ function knopfMit(text, wurzel) {
     "der Sicherungsordner steht weiterhin unter Allgemein");
   $$(".einst-reiter-knopf").find((b) => b.textContent === "Sicherheit").click();
   assert.ok($("#allgemein-sicherungsordner") && $("#journal-datum-filter") &&
-    !$("#journal-intervall") && !$("#journal-jetzt"),
+    !$("#journal-intervall") && !$("#journal-jetzt") && $("#journal-modus") && $("#journal-zeitabstand"),
     "Sicherungsdateien und Wiederherstellungspunkte fehlen unter Sicherheit");
   assert.ok($("#allgemein-sicherung-wiederherstellen"),
     "der Knopf zum Wiederherstellen einer Sicherung fehlt");
@@ -5670,6 +5682,15 @@ function knopfMit(text, wurzel) {
   jtHak.dispatchEvent(new w.Event("change", { bubbles: true }));
 
   /* Fehlersuche: Protokoll */
+  assert.ok(!$("#erinnerung-protokoll") && !$("#erinnerung-protokoll-an"),
+    "das Protokoll darf ohne Entwicklermodus nicht in den Benachrichtigungen stehen");
+  $$(".einst-reiter-knopf").find(button => button.textContent === "Über").click();
+  for (let click = 0; click < 9; click++) $("#entwickler-version").click();
+  assert.strictEqual(T.daten().einstellungen.allgemein.entwicklermodus, false,
+    "neun Versionsklicks dürfen den Entwicklermodus nicht aktivieren");
+  $("#entwickler-version").click();
+  assert.strictEqual(T.daten().einstellungen.allgemein.entwicklermodus, true,
+    "zehn ausdrückliche Versionsklicks müssen die Entwickleroptionen öffnen");
   assert.ok($("#erinnerung-protokoll"), "Knopf für das Protokoll fehlt");
   const protHak = $("#erinnerung-protokoll-an");
   assert.ok(protHak, "Schalter für das Protokoll fehlt");
@@ -5682,6 +5703,16 @@ function knopfMit(text, wurzel) {
   w.App.protokollStand({ ok: true, pfad: "/heim/wecker.log", womit: "xed" });
   assert.ok($("#zettel").textContent.includes("wecker.log"),
     "Rückmeldung zum Protokoll fehlt");
+  knopfMit(w.MagnolieI18n.gettext("Disable developer mode"), $("#einstellungen-inhalt")).click();
+  assert.ok(!T.daten().einstellungen.allgemein.entwicklermodus && !T.daten().einstellungen.erinnerung.protokoll,
+    "das Abschalten des Entwicklermodus muss auch das optionale Protokoll abschalten");
+  // Preserve the original following restart scenario: explicitly opted-in logging.
+  for (let click = 0; click < 10; click++) $("#entwickler-version").click();
+  const erneutProtokoll = $("#erinnerung-protokoll-an"); erneutProtokoll.checked = true;
+  erneutProtokoll.dispatchEvent(new w.Event("change", { bubbles: true }));
+  assert.ok(T.daten().einstellungen.allgemein.entwicklermodus && T.daten().einstellungen.erinnerung.protokoll,
+    "das erneut ausdrücklich aktivierte Protokoll muss für den Neustartfall gespeichert sein");
+  $$(".einst-reiter-knopf").find(button => button.textContent === w.MagnolieI18n.gettext("Notifications")).click();
 
   /* Bei „Nur Ton“ bleibt der Bildschirm ruhig */
   // Earlier enabling of reminders may legitimately show today's fixture birthdays.
@@ -6297,6 +6328,7 @@ function knopfMit(text, wurzel) {
   /* ---- Papierkorb ---- */
   klickeTab("Notizen");
   knopfMit("Neue Seite").click();
+  $(".notes-sendehak").closest(".eingabe-dialog").querySelector(".dialog-knoepfe .haupt").click();
   const zumLoeschen = T.daten().notizen[T.daten().notizen.length - 1];
   setze($("#notiz-titel"), "Wegwerfseite");
   const anzahlVorher = T.daten().notizen.length;
