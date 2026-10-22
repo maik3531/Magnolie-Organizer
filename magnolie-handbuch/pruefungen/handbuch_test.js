@@ -177,7 +177,9 @@ for (const locale of supportedLocales.filter((code) => code !== "en")) {
 assert.ok(replacementIds.every((id) => rawSourcePages.find((page) => page.id === id)
   .inhaltAnhangErsetzt === true), "current SMS pages must explicitly replace their old content");
 contentDom.window.close();
-assert.strictEqual(sourcePages.length, 164, "the release handbook must contain exactly 164 pages");
+assert.strictEqual(sourcePages.length, 165, "the release handbook must contain exactly 165 pages");
+assert.ok(sourcePages.some((page) => page.id === "sending-selected-notes"),
+  "the release handbook must contain the selected-note sending instructions");
 const protectedIds = new Set(["license-and-acknowledgments", "in-closing",
   "support-with-a-coffee", "about-maik-walter"]);
 assert.deepStrictEqual(sourcePages.slice(-2).map((page) => page.id),

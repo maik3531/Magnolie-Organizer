@@ -61,10 +61,10 @@ try {
   }
   const sourcePages = pages(source);
   const installedPages = pages(installed);
-  assert.strictEqual(sourcePages.count, 164, "source package does not contain exactly 164 pages");
+  assert.strictEqual(sourcePages.count, 165, "source package does not contain exactly 165 pages");
   for (const id of ["command-line-and-man-page", "reminder-command-modes",
     "linux-diagnostic-reminder-logs", "windows-diagnostic-logs",
-    "supported-environment-variables", "glossary-a-m", "glossary-n-z"]) {
+    "supported-environment-variables", "glossary-a-m", "glossary-n-z", "sending-selected-notes"]) {
     assert.ok(sourcePages.slugs.includes(id), `source package is missing required page: ${id}`);
   }
   assert.deepStrictEqual(installedPages, sourcePages, "built package slug list differs from source");
