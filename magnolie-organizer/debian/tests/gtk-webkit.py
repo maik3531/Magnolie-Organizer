@@ -35,6 +35,8 @@ erwartet = {
     "magnolie-organizer://app/i18n-start.js",
     "magnolie-organizer://app/anwendung.js",
     "magnolie-organizer://app/zeichenblatt.js",
+    "magnolie-organizer://app/contact-group-aliases.js",
+    "magnolie-organizer://app/mcp-protocol.js",
 }
 zustand = {"bereit": False, "layout": False, "phase": "startup",
            "fehler": "Zeitüberschreitung beim WebKit-Start"}
