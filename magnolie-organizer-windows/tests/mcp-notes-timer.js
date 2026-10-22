@@ -3,7 +3,9 @@ const fs = require("node:fs"), path = require("node:path"), Module = require("no
 const file = path.join(__dirname, "desktop-state-regressions.js");
 const harness = new Module(file, module); harness.filename = file; harness.paths = Module._nodeModulePaths(__dirname);
 harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[0] + "\nmodule.exports={boot,roots};", file);
-const vectors = JSON.parse(fs.readFileSync(path.join(__dirname, "../../contracts/time-control-v13.json"), "utf8"));
+const outerContract = path.join(__dirname, "../../contracts/time-control-v13.json");
+const vectors = JSON.parse(fs.readFileSync(fs.existsSync(outerContract) ? outerContract :
+  path.join(__dirname, "../contracts/time-control-v13.json"), "utf8"));
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const watchdog = setTimeout(() => { console.error("MCP Notes timer timed out"); process.exit(1); }, 30000);
 (async () => {

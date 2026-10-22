@@ -26,6 +26,7 @@ assert.strictEqual(path.resolve(handbook), selectedHandbook,
 const expectedPageIds = canonicalPageIds(selectedHandbook);
 const html = fs.readFileSync(path.join(selectedHandbook, "index.html"), "utf8");
 const content = fs.readFileSync(path.join(handbook, "inhalt.js"), "utf8");
+const platform = fs.readFileSync(path.join(handbook, "platform.js"), "utf8");
 const runtime = fs.readFileSync(path.join(handbook, "handbuch.js"), "utf8");
 const i18n = fs.readFileSync(path.join(handbook, "i18n.js"), "utf8");
 const deCatalog = fs.readFileSync(path.join(handbook, "i18n", "de.js"), "utf8");
@@ -58,9 +59,11 @@ window.webkit = { messageHandlers: { bruecke: { postMessage(message) { bridgeMes
 window.eval(i18n);
 window.eval(deCatalog);
 window.__MAGNOLIE_SPRACHE__ = "de";
+window.__MAGNOLIE_PLATFORM__ = "windows";
 window.eval(localeStart);
 window.eval(mobileDownloads);
 window.eval(content);
+window.eval(platform);
 window.eval(runtime);
 if (!window.Handbuch) window.document.dispatchEvent(new window.Event("DOMContentLoaded"));
 
@@ -92,18 +95,16 @@ assert.ok(completeText.includes("No valid coffee allowance") &&
   completeText.includes("kein regulärer Supportanspruch") &&
   completeText.includes("selbstverständlich geprüft und nicht ignoriert") &&
   completeText.includes("GPL einen Eigenbau ohne Branding erstellen"));
-assert.ok(completeText.includes("genau einem angehefteten eigenen Telefon") &&
-  completeText.includes("Einstellungen ▸ Magnolienbaum") &&
-  completeText.includes("Magnolie Notes-Telefonverbindung einschalten") &&
-  completeText.includes("Telefon über WLAN verbinden") &&
-  completeText.includes("unter Windows die Sicherheitsabfrage") &&
-  completeText.includes("sechsstelligen Code") &&
-  completeText.includes("Codes stimmen nicht überein") &&
-  completeText.includes("Codes stimmen überein") &&
-  completeText.includes("Bluetooth als Ausweichweg") &&
-  completeText.includes("Einstellungen ▸ Bluetooth und Geräte") &&
-  completeText.includes("kein HFP-Ton") && completeText.includes("keine SMS") &&
-  completeText.includes("os_restricted"));
+assert.match(completeText, /genau ein(?:em)? (?:angehefteten )?eigen(?:es|en) Telefon/,
+  "the handbook must retain exactly one own phone per Organizer");
+for (const fragment of ["Einstellungen ▸ Magnolienbaum", "Magnolie Notes-Telefonverbindung einschalten",
+  "Telefon über WLAN verbinden", "sechsstelligen Code",
+  "Codes stimmen überein", "Bluetooth-Datenübertragung", "os_restricted"])
+  assert.ok(completeText.includes(fragment), "Windows phone handbook explanation missing: " + fragment);
+const phonePairing = pages.find(page => page.id === "phone-pairing").inhalt;
+for (const fragment of ["magnolie-phone/1", "Einmal an der Gegenstelle bestätigen", "nur auf dem anderen Gerät",
+  "bietet Abbrechen", "kein zweiter Bestätigungsklick", "Freigaben", "gesondert"])
+  assert.ok(phonePairing.includes(fragment), "Current counterpart-only pairing or consent instructions missing: " + fragment);
 assert.ok(completeText.includes("Kontaktfotos") && completeText.includes("PDF-Anhänge") &&
   completeText.includes("Contacts.ReadWrite") && completeText.includes("Windows-DPAPI"));
 assert.ok(pages.some((page) => page.id === "support-with-a-coffee") &&

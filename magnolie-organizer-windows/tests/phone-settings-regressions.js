@@ -38,11 +38,12 @@ if (process.env.MAGNOLIE_LINUX_SOURCE || fs.existsSync(linuxRoot)) {
   defaults({ peers: [{ ...peer, state: 'pair_commit_pending' }] }, bridge, waiting, { now: () => 1 });
   assert.equal(messages.length, 0, 'defaults must wait for confirmed pairing');
   defaults({ peers: [peer] }, bridge, waiting, { now: () => 1 });
-  assert.equal(messages.length, 1, 'first-pairing defaults must be one coherent operation');
-  assert.ok(messages.some(m => m.cmd === 'personal_sync_betrieb' && m.autoWlan === true && m.loeschungenAuslassen === false));
+  assert.equal(messages.length, 0, 'a confirmed status refresh must not establish ownership or sharing consent');
+  assert.ok(messages.every(m => m.cmd !== 'personal_sync_betrieb'),
+    'sharing defaults belong to the explicit confirmed setup operation, never to a status observation');
   const count = messages.length;
   defaults({ peers: [peer] }, bridge, waiting, { now: () => 2 });
-  assert.equal(messages.length, count, 'waiting for acknowledgment must not flood the bridge');
+  assert.equal(messages.length, count, 'repeated status observations must not emit sharing changes');
   messages.length = 0;
   const configured = { ...peer, own_device: true, local_grants: { grants: {
     personal_notes_sync: false, personal_tasks_sync: false, selected_notifications_readonly: false } } };

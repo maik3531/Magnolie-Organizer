@@ -41,9 +41,16 @@ try {
     assert.deepStrictEqual(pages.map(p => p.id), expectedIds);
     for (const id of variantIds) {
       const source = variants[id].en;
-      const expected = w.MagnolieI18n.gettext(source);
+      let expected = w.MagnolieI18n.gettext(source);
       assert.ok(locale === "en" || expected !== source, `${locale}: untranslated Windows variant ${id}`);
-      assert.strictEqual(pages.find(p => p.id === id).inhalt, expected);
+      const page = pages.find(p => p.id === id);
+      if (page.inhaltAnhang) {
+        const appendix = page.inhaltAnhangNeutral ? page.inhaltAnhang.en :
+          page.inhaltAnhang[code] || page.inhaltAnhang[code.split("-")[0]] || w.MagnolieI18n.gettext(page.inhaltAnhang.en);
+        assert.ok(appendix, `${locale}: empty current appendix ${id}`);
+        expected = page.inhaltAnhangErsetzt ? appendix : expected + appendix;
+      }
+      assert.strictEqual(page.inhalt, expected);
     }
     assert.ok(pages.find(p => p.id === "installing-the-organizer").inhalt.includes(installer));
     for (const id of ["welcome", "starting-for-the-first-time", "first-run-assistant",

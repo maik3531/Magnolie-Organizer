@@ -3,7 +3,7 @@
 const assert = require("node:assert");
 const fs = require("node:fs");
 const path = require("node:path");
-const { canonicalContract, personalSyncPayloads, sendObjects, sha256 } = require("./linux-parity-fixture");
+const { canonicalContract, commands, personalSyncPayloads, sendObjects, sha256 } = require("./linux-parity-fixture");
 
 const root = path.resolve(__dirname, "..");
 const read = file => fs.readFileSync(path.join(root, file), "utf8");
@@ -31,12 +31,10 @@ assert.strictEqual(canonicalContract({ ...fixture, sources: {
 } }), canonicalContract(fixture), "Provenienz-Hashes dürfen den semantischen Vertrag nicht verändern");
 assert.ok(fixture.commands.length > 40, "Befehlsfixture ist unplausibel klein");
 assert.ok(fixture.callbacks.length > 25, "Callbackfixture ist unplausibel klein");
-assert.ok(fixture.commands.includes("mutations_snapshot") &&
-  !fixture.commands.some(command => ["journal_aufbewahrung", "journal_erzeugen",
-    "journal_intervall"].includes(command)),
-"Linux fixture must expose automatic mutation snapshots without manual journal controls");
+assert.ok(fixture.commands.includes("mutations_snapshot"),
+"Linux fixture must retain mandatory mutation snapshots alongside the explicit journal policies from #142");
 
-const windowsCommands = new Set(Array.from(windowsUi.matchAll(/cmd:\s*"([a-z0-9_]+)"/g), match => match[1]));
+const windowsCommands = new Set(commands(windowsUi));
 const commandAliases = { sync_bestaetigen: "sync_commit", handbuch_herunterladen: "update_herunterladen" };
 // Windows ships the manual in the Organizer installer; Linux has a separate DEB.
 assert.ok(!windowsCommands.has("handbuch_herunterladen"));
@@ -68,7 +66,7 @@ for (const name of fixture.callbacks) {
   if (name === linuxAudioCallback || name === "telefonAnrufAudioGespeichert") continue;
   assert.match(windowsCallbacks, new RegExp(`(?:SendAsync|emit)\\("App\\.${name}"`),
     `Windows dispatcher misses App.${name}`);
-  assert.match(windowsUi, new RegExp(`\\n    ${name}\\([^)]*\\) \\{`), `Windows UI misses App.${name}`);
+  assert.ok(new RegExp(`\\n\\s+(?:async\\s+)?${name}\\([^)]*\\)\\s*\\{`).test(windowsUi), `Windows UI misses App.${name}`);
 }
 
 function validatePersonalSyncPayloads(source) {

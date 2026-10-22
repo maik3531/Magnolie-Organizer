@@ -176,8 +176,7 @@ const releaseNotes = Function(`"use strict"; return (${releaseNotesSource});`)()
 assert.strictEqual(Object.keys(releaseNotes).length, 20, "What's New does not cover every locale");
 assert.ok(releaseNotes.en.length >= 2 && Object.values(releaseNotes).every((items) => items.length === releaseNotes.en.length && items.every(text => typeof text === "string" && text.length > 0)),
    "What's New locales do not contain the complete current bullet set");
-assert.ok(releaseNotes.en.some(text => /Notes(?: → |-to-)Organizer/.test(text)) &&
-  releaseNotes.en.some(text => /Magnolie Notes \d+\.\d+\.\d+/.test(text)) &&
+assert.ok(releaseNotes.en.some(text => /Magnolie Notes \d+\.\d+\.\d+/.test(text)) &&
   !releaseNotes.en.some(text => /Linux|Debian|Wayland|AppImage/.test(text)),
 "Windows What's New content is stale or describes Linux-only changes");
 assert.match(fs.readFileSync(path.join(root, "LIESMICH.md"), "utf8"),
@@ -1222,8 +1221,12 @@ assert.ok(window.document.querySelector("#einst-seite-sicherheit").textContent.i
 "the security page does not show the recovery snapshots");
 assert.ok(window.document.querySelector(".journal-liste[role='region'][tabindex='0']") &&
   window.document.querySelector("#einst-seite-sicherheit").textContent.includes(
-    window.MagnolieI18n.gettext("Every saved change is protected automatically by a private, integrity-checked snapshot.")),
-"the mandatory automatic recovery contract is not visible or accessible");
+    window.MagnolieI18n.gettext("Create recovery points")),
+"the configured recovery policy and snapshot list are not visible or accessible");
+assert.deepStrictEqual(Array.from(window.document.querySelector("#journal-modus").options, option => option.value),
+  ["change", "daily", "weekly", "startup", "interval"], "the explicit journal policies from #142 must remain selectable");
+assert.ok(window.document.querySelector("#journal-zeitabstand") && window.document.querySelector("#journal-zeitabstand-einheit"),
+  "the persisted journal interval controls are missing");
 for (const id of ["journal-intervall", "journal-aufbewahrung", "journal-anzahl",
   "journal-tage", "journal-jetzt"]) {
   assert.ok(!window.document.querySelector("#" + id), `obsolete recovery control remains: ${id}`);

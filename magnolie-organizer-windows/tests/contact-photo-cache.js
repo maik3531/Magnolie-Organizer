@@ -5,7 +5,7 @@ const file = path.join(__dirname, "desktop-state-regressions.js");
 const harness = new Module(file, module); harness.filename = file; harness.paths = Module._nodeModulePaths(__dirname);
 const source = fs.readFileSync(file, "utf8").split("async function run(web)")[0].replace(
   'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8"));',
-  'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8").replace("speichereJetzt: speichereJetzt,", "fotoAktiv: () => !!kontaktFotoLauf, fotoSyncBusy: value => { syncLaeuft = value; }, speichereJetzt: speichereJetzt,"));');
+   'w.eval(fs.readFileSync(path.join(web, "anwendung.js"), "utf8").replace("speichereJetzt: speichereJetzt,", "kontaktGruppen, kontaktGruppeKanonisch, fotoAktiv: () => !!kontaktFotoLauf, fotoSyncBusy: value => { syncLaeuft = value; }, speichereJetzt: speichereJetzt,"));');
 harness._compile(source + "\nmodule.exports={boot,roots};", file);
 const plain = x => JSON.parse(JSON.stringify(x));
 const photo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6SpAAAAAASUVORK5CYII=";
@@ -54,7 +54,9 @@ async function run(web, data, remote, options = {}) {
         resumed = true; b.t.fotoSyncBusy(false); timer.fn();
       }
     } while (b.t.fotoAktiv());
-    return { data: plain(b.t.daten()), requests, saves: b.saves().map(m => JSON.parse(m.text)) };
+    return { data: plain(b.t.daten()), requests, saves: b.saves().map(m => JSON.parse(m.text)),
+      groups: b.t.daten().kontakte.map(contact => Array.from(b.t.kontaktGruppen(contact))),
+      expectedFamily: b.t.kontaktGruppeKanonisch("Familie") };
   } finally { b.close(); }
 }
 
@@ -83,7 +85,8 @@ async function run(web, data, remote, options = {}) {
     assert.equal(notes.data.kontakte[0].foto, photo);
     assert.equal(notes.data.kontakte[0].vorname, "Original");
     assert.deepEqual(notes.data.kontakte[0].sozialeMedien, [{ dienst: "whatsapp", wert: "+491701234567" }]);
-    assert.ok(notes.data.kontakte[0].vcardRoundtrip.includes("CATEGORIES:Familie"));
+    assert.ok(notes.data.kontakte[0].vcardRoundtrip.some(line => line.startsWith("CATEGORIES:")));
+    assert.deepEqual(notes.groups[0], [notes.expectedFamily], "Imported group membership must survive locale alias normalization");
     assert.equal(notes.data.kontakte[1].foto, "");
     assert.equal(notes.data.kontakte[2].foto, other);
     assert(notes.requests.every(request => request.device_id === notesDevice), "Notes photo reads must retain their own device namespace");

@@ -172,8 +172,12 @@ assert.match(application, /ausstehendeTransaktion[\s\S]*cmd: "sync", transaction
   "provider sync retry is not bound to a persisted unique transaction");
 assert.match(application, /delete DATEN\.syncMetadaten\.nextcloud\.ausstehendeTransaktion/,
   "successful provider sync does not retire its transaction before the follow-up sync");
-assert.match(bridge, /case "sync_commit": CommitSynchronization/,
-  "provider sync commit is not dispatched");
+const syncCommitDispatch = bridge.match(/case "sync_commit":([\s\S]*?)(?=\n\s*case |\n\s*default:)/)?.[1];
+assert.ok(syncCommitDispatch, "provider sync commit dispatch case is missing");
+assert.match(syncCommitDispatch, /CommitSynchronization\(Text\(message, "transactionId"\)\)/,
+  "provider sync commit is not dispatched with its transaction identity");
+assert.match(syncCommitDispatch, /App\.syncCommitErgebnis[\s\S]*requestId = commitRequest[\s\S]*ok = committed/,
+  "correlated provider commit acknowledgement must reflect the native commit result");
 assert.match(mainForm, /JSON\.parse\([^)]+\)/,
   "WebView callback arguments are not JSON-decoded from serialized data");
 assert.match(mainForm, /BalloonTipClicked[\s\S]*App\.telefonAntwort/,

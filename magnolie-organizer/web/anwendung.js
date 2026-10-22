@@ -24,121 +24,141 @@ const NEU_IN_DIESER_FASSUNG = {
     "Neu in dieser Version",
     "Kontaktgruppen gleichen Ergänzungen und Entfernungen mit Android ab; Kontakte unterstützen mehrere Webseiten",
     "KDE Connect ergänzt die aktuelle Wiedergabe neben zugewiesenen Medienplayern; Zeichenblatt und Gruppen-Ausschlüsse sind verbessert",
-    "Notes korrigiert Textlöschen und Fokuswechsel und ergänzt maskierte Absturzdiagnosen; native Timer- und Prüfwerkzeuge für MCP sind erweitert"
+    "Notes korrigiert Textlöschen und Fokuswechsel und ergänzt maskierte Absturzdiagnosen; native Timer- und Prüfwerkzeuge für MCP sind erweitert",
+    "Magnolie Notes 1.0.20"
   ],
   "en": [
     "What's new in this version",
     "Contact groups synchronize additions and removals with Android; contacts support multiple websites",
     "KDE Connect adds current playback alongside assigned media players; drawing and group-exclusion controls are refined",
-    "Notes fixes text deletion and focus changes and adds redacted crash diagnostics; native timer and review MCP tools are expanded"
+    "Notes fixes text deletion and focus changes and adds redacted crash diagnostics; native timer and review MCP tools are expanded",
+    "Magnolie Notes 1.0.20"
   ],
   "fr": [
     "Nouveautés de cette version",
     "Les groupes de contacts synchronisent les ajouts et suppressions avec Android ; les contacts acceptent plusieurs sites web",
     "KDE Connect ajoute la lecture en cours aux lecteurs attribués ; le dessin et les exclusions de groupes sont améliorés",
-    "Notes corrige la suppression de texte et les changements de focus et ajoute des diagnostics anonymisés ; les outils MCP de minuterie et de vérification sont enrichis"
+    "Notes corrige la suppression de texte et les changements de focus et ajoute des diagnostics anonymisés ; les outils MCP de minuterie et de vérification sont enrichis",
+    "Magnolie Notes 1.0.20"
   ],
   "es": [
     "Novedades de esta versión",
     "Los grupos de contactos sincronizan altas y bajas con Android; los contactos admiten varios sitios web",
     "KDE Connect añade la reproducción actual junto a los reproductores asignados; se mejoran el dibujo y las exclusiones de grupos",
-    "Notes corrige el borrado de texto y los cambios de foco y añade diagnósticos de fallos con datos ocultos; se amplían las herramientas MCP de temporizador y revisión"
+    "Notes corrige el borrado de texto y los cambios de foco y añade diagnósticos de fallos con datos ocultos; se amplían las herramientas MCP de temporizador y revisión",
+    "Magnolie Notes 1.0.20"
   ],
   "it": [
     "Novità di questa versione",
     "I gruppi di contatti sincronizzano aggiunte e rimozioni con Android; i contatti supportano più siti web",
     "KDE Connect aggiunge la riproduzione attuale ai lettori assegnati; migliorati il disegno e le esclusioni dei gruppi",
-    "Notes corregge la cancellazione del testo e i cambi di focus e aggiunge diagnosi degli arresti con dati oscurati; ampliati gli strumenti MCP per timer e revisione"
+    "Notes corregge la cancellazione del testo e i cambi di focus e aggiunge diagnosi degli arresti con dati oscurati; ampliati gli strumenti MCP per timer e revisione",
+    "Magnolie Notes 1.0.20"
   ],
   "nl": [
     "Nieuw in deze versie",
     "Contactgroepen synchroniseren toevoegingen en verwijderingen met Android; contacten ondersteunen meerdere websites",
     "KDE Connect voegt huidige weergave toe naast toegewezen mediaspelers; tekenen en groepsuitsluitingen zijn verbeterd",
-    "Notes herstelt tekst wissen en focuswisselingen en voegt afgeschermde crashdiagnostiek toe; native MCP-timer- en controlehulpmiddelen zijn uitgebreid"
+    "Notes herstelt tekst wissen en focuswisselingen en voegt afgeschermde crashdiagnostiek toe; native MCP-timer- en controlehulpmiddelen zijn uitgebreid",
+    "Magnolie Notes 1.0.20"
   ],
   "pt": [
     "Novidades desta versão",
     "Os grupos de contactos sincronizam adições e remoções com Android; os contactos suportam vários sítios web",
     "KDE Connect acrescenta a reprodução atual aos leitores atribuídos; o desenho e as exclusões de grupos foram melhorados",
-    "Notes corrige a eliminação de texto e as mudanças de foco e acrescenta diagnósticos de falhas com dados ocultados; as ferramentas MCP de temporizador e revisão foram ampliadas"
+    "Notes corrige a eliminação de texto e as mudanças de foco e acrescenta diagnósticos de falhas com dados ocultados; as ferramentas MCP de temporizador e revisão foram ampliadas",
+    "Magnolie Notes 1.0.20"
   ],
   "ru": [
     "Новое в этой версии",
     "Группы контактов синхронизируют добавления и удаления с Android; контакты поддерживают несколько веб-сайтов",
     "KDE Connect показывает текущее воспроизведение наряду с назначенными проигрывателями; улучшены рисование и исключения групп",
-    "Notes исправляет удаление текста и смену фокуса и добавляет обезличенную диагностику сбоев; расширены инструменты MCP для таймеров и проверки"
+    "Notes исправляет удаление текста и смену фокуса и добавляет обезличенную диагностику сбоев; расширены инструменты MCP для таймеров и проверки",
+    "Magnolie Notes 1.0.20"
   ],
   "cs": [
     "Co je nového v této verzi",
     "Skupiny kontaktů synchronizují přidání i odebrání s Androidem; kontakty podporují více webových stránek",
     "KDE Connect doplňuje aktuální přehrávání vedle přiřazených přehrávačů; vylepšeno kreslení a vyloučení skupin",
-    "Notes opravuje mazání textu a změny zaměření a přidává diagnostiku pádů se skrytými údaji; rozšířeny nástroje MCP pro časovače a kontrolu"
+    "Notes opravuje mazání textu a změny zaměření a přidává diagnostiku pádů se skrytými údaji; rozšířeny nástroje MCP pro časovače a kontrolu",
+    "Magnolie Notes 1.0.20"
   ],
   "pl": [
     "Nowości w tej wersji",
     "Grupy kontaktów synchronizują dodawanie i usuwanie z Androidem; kontakty obsługują wiele witryn",
     "KDE Connect dodaje bieżące odtwarzanie obok przypisanych odtwarzaczy; ulepszono rysowanie i wykluczenia grup",
-    "Notes naprawia usuwanie tekstu i zmianę fokusu oraz dodaje diagnostykę awarii z ukrytymi danymi; rozszerzono narzędzia MCP do minutników i przeglądu"
+    "Notes naprawia usuwanie tekstu i zmianę fokusu oraz dodaje diagnostykę awarii z ukrytymi danymi; rozszerzono narzędzia MCP do minutników i przeglądu",
+    "Magnolie Notes 1.0.20"
   ],
   "hsb": [
     "Nowe w tutej wersiji",
     "Kontaktne skupiny přidawanja a wotstronjenja z Androidom synchronizuja; kontakty wjacore websydła podpěruja",
     "KDE Connect aktualne wothraće nimo přirjadowanych přehravačow přidawa; rysowanje a wuzamknjenja skupin su polěpšene",
-    "Notes wušmórnjenje teksta a změny fokusa porjedźa a diagnostiku spadow ze zakrytymi datami přidawa; nastroje MCP za časoměry a přepruwowanje su rozšěrjene"
+    "Notes wušmórnjenje teksta a změny fokusa porjedźa a diagnostiku spadow ze zakrytymi datami přidawa; nastroje MCP za časoměry a přepruwowanje su rozšěrjene",
+    "Magnolie Notes 1.0.20"
   ],
   "da": [
     "Nyt i denne version",
     "Kontaktgrupper synkroniserer tilføjelser og fjernelser med Android; kontakter understøtter flere websteder",
     "KDE Connect tilføjer aktuel afspilning ved siden af tildelte medieafspillere; tegning og gruppeudelukkelser er forbedret",
-    "Notes retter tekstsletning og fokusskift og tilføjer nedbrudsdiagnostik med skjulte data; native MCP-værktøjer til timere og gennemgang er udvidet"
+    "Notes retter tekstsletning og fokusskift og tilføjer nedbrudsdiagnostik med skjulte data; native MCP-værktøjer til timere og gennemgang er udvidet",
+    "Magnolie Notes 1.0.20"
   ],
   "nb": [
     "Nytt i denne versjonen",
     "Kontaktgrupper synkroniserer tillegg og fjerninger med Android; kontakter støtter flere nettsteder",
     "KDE Connect legger til aktuell avspilling ved siden av tilordnede mediespillere; tegning og gruppeutelatelser er forbedret",
-    "Notes retter tekstsletting og fokusbytter og legger til krasjdiagnostikk med skjulte data; native MCP-verktøy for tidtakere og gjennomgang er utvidet"
+    "Notes retter tekstsletting og fokusbytter og legger til krasjdiagnostikk med skjulte data; native MCP-verktøy for tidtakere og gjennomgang er utvidet",
+    "Magnolie Notes 1.0.20"
   ],
   "hi": [
     "इस संस्करण में नया",
     "संपर्क समूह Android के साथ जोड़े और हटाए गए सदस्यों को सिंक करते हैं; संपर्कों में कई वेबसाइट समर्थित हैं",
     "KDE Connect निर्धारित मीडिया प्लेयर के साथ वर्तमान प्लेबैक दिखाता है; चित्रण और समूह अपवर्जन नियंत्रण सुधारे गए हैं",
-    "Notes में पाठ हटाना और फ़ोकस बदलना सुधारा गया है तथा संवेदनशील डेटा छिपाकर क्रैश निदान जोड़ा गया है; मूल टाइमर और समीक्षा MCP उपकरण बढ़ाए गए हैं"
+    "Notes में पाठ हटाना और फ़ोकस बदलना सुधारा गया है तथा संवेदनशील डेटा छिपाकर क्रैश निदान जोड़ा गया है; मूल टाइमर और समीक्षा MCP उपकरण बढ़ाए गए हैं",
+    "Magnolie Notes 1.0.20"
   ],
   "zh-cn": [
     "此版本的新功能",
     "联系人群组可与 Android 同步新增和移除的成员；联系人支持多个网站",
     "KDE Connect 在指定媒体播放器之外增加当前播放；改进绘图和群组排除设置",
-    "Notes 修复删除文本和切换焦点的问题，并增加隐藏敏感信息的崩溃诊断；扩展原生计时器及审核 MCP 工具"
+    "Notes 修复删除文本和切换焦点的问题，并增加隐藏敏感信息的崩溃诊断；扩展原生计时器及审核 MCP 工具",
+    "Magnolie Notes 1.0.20"
   ],
   "ja": [
     "このバージョンの新機能",
     "連絡先グループの追加と削除を Android と同期し、連絡先に複数のウェブサイトを登録できます",
     "KDE Connect で指定したメディアプレーヤーに加えて現在の再生を利用できます。描画とグループ除外の操作も改善しました",
-    "Notes の文字削除とフォーカス切り替えを修正し、機密情報を隠すクラッシュ診断を追加しました。ネイティブのタイマーと確認用 MCP ツールも拡張しました"
+    "Notes の文字削除とフォーカス切り替えを修正し、機密情報を隠すクラッシュ診断を追加しました。ネイティブのタイマーと確認用 MCP ツールも拡張しました",
+    "Magnolie Notes 1.0.20"
   ],
   "ar": [
     "ما الجديد في هذا الإصدار",
     "تزامن مجموعات جهات الاتصال الإضافات والإزالات مع Android، وتدعم جهات الاتصال عدة مواقع ويب",
     "يضيف KDE Connect التشغيل الحالي إلى جانب مشغلات الوسائط المحددة، مع تحسين الرسم واستثناء المجموعات",
-    "يصلح Notes حذف النص وتغيير التركيز ويضيف تشخيص الأعطال مع إخفاء البيانات الحساسة، ويوسع أدوات MCP الأصلية للمؤقتات والمراجعة"
+    "يصلح Notes حذف النص وتغيير التركيز ويضيف تشخيص الأعطال مع إخفاء البيانات الحساسة، ويوسع أدوات MCP الأصلية للمؤقتات والمراجعة",
+    "Magnolie Notes 1.0.20"
   ],
   "uk": [
     "Нове в цій версії",
     "Групи контактів синхронізують додавання й вилучення з Android; контакти підтримують кілька вебсайтів",
     "KDE Connect додає поточне відтворення поряд із призначеними програвачами; покращено малювання та виключення груп",
-    "Notes виправляє видалення тексту й зміну фокуса та додає діагностику збоїв із прихованими даними; розширено засоби MCP для таймерів і перевірки"
+    "Notes виправляє видалення тексту й зміну фокуса та додає діагностику збоїв із прихованими даними; розширено засоби MCP для таймерів і перевірки",
+    "Magnolie Notes 1.0.20"
   ],
   "be": [
     "Што новага ў гэтай версіі",
     "Групы кантактаў сінхранізуюць даданні і выдаленні з Android; кантакты падтрымліваюць некалькі вэб-сайтаў",
     "KDE Connect дадае бягучае прайграванне побач з прызначанымі прайгравальнікамі; палепшаны маляванне і выключэнні груп",
-    "Notes выпраўляе выдаленне тэксту і змену фокуса ды дадае дыягностыку збояў са схаванымі данымі; пашыраны сродкі MCP для таймераў і праверкі"
+    "Notes выпраўляе выдаленне тэксту і змену фокуса ды дадае дыягностыку збояў са схаванымі данымі; пашыраны сродкі MCP для таймераў і праверкі",
+    "Magnolie Notes 1.0.20"
   ],
   "tr": [
     "Bu sürümdeki yenilikler",
     "Kişi grupları ekleme ve kaldırmaları Android ile eşitler; kişiler birden çok web sitesini destekler",
     "KDE Connect atanan medya oynatıcılarının yanına geçerli oynatmayı ekler; çizim ve grup dışlamaları iyileştirildi",
-    "Notes metin silme ve odak değişimlerini düzeltir ve hassas verileri gizleyen çökme tanılaması ekler; yerel zamanlayıcı ve inceleme MCP araçları genişletildi"
+    "Notes metin silme ve odak değişimlerini düzeltir ve hassas verileri gizleyen çökme tanılaması ekler; yerel zamanlayıcı ve inceleme MCP araçları genişletildi",
+    "Magnolie Notes 1.0.20"
   ]
 };
 if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {

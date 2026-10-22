@@ -261,12 +261,24 @@ for (const [locale] of Object.entries(protectedDigests)) {
         }
         assert.ok(messages[original.titel] || original.titel,
           `${name}/${locale}/${page.id}: leerer Titel`);
+        let markup = messages[original.inhalt] || original.inhalt;
+        if (page.inhaltAnhang) {
+          const code = locale.replace("_", "-").toLowerCase();
+          const appendix = page.inhaltAnhangNeutral ? page.inhaltAnhang.en :
+            page.inhaltAnhang[code] || page.inhaltAnhang[code.split("-")[0]] || messages[page.inhaltAnhang.en];
+          if (!original.inhalt) assert.ok(appendix, `${name}/${locale}/${page.id}: fehlender lokalisierter Hauptinhalt im Anhang`);
+          markup = page.inhaltAnhangErsetzt ? appendix : markup + (appendix || "");
+        }
         if (page.platzhalter !== "inhalt") {
-          assert.ok(messages[original.inhalt] || original.inhalt,
+          assert.ok(markup,
             `${name}/${locale}/${page.id}: leerer Seiteninhalt`);
         }
       }
-      const markup = messages[original.inhalt] || original.inhalt;
+      const code = locale.replace("_", "-").toLowerCase();
+      const appendix = page.inhaltAnhang && (page.inhaltAnhangNeutral ? page.inhaltAnhang.en :
+        page.inhaltAnhang[code] || page.inhaltAnhang[code.split("-")[0]] || messages[page.inhaltAnhang.en] || page.inhaltAnhang.en);
+      const base = messages[original.inhalt] || original.inhalt;
+      const markup = page.inhaltAnhangErsetzt ? appendix : base + (appendix || "");
       for (const match of markup.matchAll(/data-page=['"]([^'"]*)['"]/g)) {
         assert.ok(match[1], `${name}/${locale}/${page.id}: leerer data-page-Verweis`);
         assert.ok(expectedIds.includes(match[1]),

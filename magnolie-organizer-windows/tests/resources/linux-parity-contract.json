@@ -1,8 +1,8 @@
 {
   "schema": "magnolie-linux-parity-v1",
   "sources": {
-    "web/anwendung.js": "8d9aa597d4da90dd034b84693003f1f0847ef491a45127508cad73f929280d88",
-    "bin/magnolie-organizer": "f0d94b12c1b03220aa25b8261fdd020d9a1ba84cdb7c04cb9d01836fd5d494f8"
+    "web/anwendung.js": "39a2286ffc7c823101cb3b684d80ba718cfc6008215658c664635ca4601191c0",
+    "bin/magnolie-organizer": "10d85eae197e53e470fe85eeb302a3bb572024926c85bed5d68928a3019bdcbf"
   },
   "commands": [
     "ablage_holen",
@@ -12,11 +12,14 @@
     "baum_briefkasten_pruefen",
     "baum_briefkasten_speichern",
     "baum_briefkasten_status",
+    "baum_dav_pruefen",
     "baum_delegieren",
     "baum_ein",
     "baum_eingang_geleert",
     "baum_entfernen",
     "baum_internet_adresse",
+    "baum_mailbox_schreibpruefen",
+    "baum_mcp",
     "baum_paaren",
     "baum_paarungsdatei_erzeugen",
     "baum_paarungsdatei_importieren",
@@ -39,6 +42,8 @@
     "contributor_pruefen",
     "drucken",
     "eds_status",
+    "eigenes_profil_office",
+    "eigenes_profil_telefon",
     "entsperren",
     "erinnerung_einrichten",
     "erinnerung_zeigen",
@@ -49,15 +54,21 @@
     "gesamtarchiv_pruefen",
     "gesamtarchiv_waehlen",
     "gesundheit_ods",
+    "graph_konto_aendern",
+    "graph_konto_stand",
+    "graph_mcp_cancel",
     "handbuch_herunterladen",
     "handbuch_oeffnen",
     "import",
     "import_lokal",
+    "internet_konten_mcp",
+    "journal_einstellungen_setzen",
     "journal_liste",
     "journal_loeschen",
     "journal_vorschau",
     "journal_wiederherstellen",
     "karte",
+    "kde_mcp",
     "kde_pairing_complete",
     "kde_pairing_confirm",
     "kde_pairing_start",
@@ -68,13 +79,19 @@
     "kennwort_setzen",
     "lo_benutzer",
     "mail",
+    "mcp_antwort",
     "medikament_suchen",
     "mutations_snapshot",
     "notiz_anhang_datei",
+    "notiz_versand",
     "ordner_waehlen",
+    "password_status",
     "personal_sync_attachment_index",
     "personal_sync_betrieb",
     "personal_sync_desktop_features",
+    "personal_sync_gemeinsam_aendern",
+    "personal_sync_gemeinsam_initialisieren",
+    "personal_sync_gemeinsam_start",
     "personal_sync_lauf_senden",
     "personal_sync_notizrichtung",
     "personal_sync_senden",
@@ -82,7 +99,10 @@
     "protokoll_zeigen",
     "rechtschreibung",
     "regional_einstellungen",
+    "regional_einstellungen_status",
+    "reminder_privacy_status",
     "sicherung",
+    "sicherung_pruefen",
     "sicherung_waehlen",
     "sicherung_wiederherstellen",
     "sozial",
@@ -99,9 +119,11 @@
     "telefon_bluetooth_schalten",
     "telefon_ein",
     "telefon_entfernen",
+    "telefon_entwickler_diagnose",
     "telefon_freigabe",
     "telefon_kontakte",
     "telefon_kontaktfotos",
+    "telefon_mcp",
     "telefon_meldung_anzeigen",
     "telefon_pairing_abbrechen",
     "telefon_pairing_bestaetigen",
@@ -112,6 +134,7 @@
     "telefon_status_anfordern",
     "telefon_waehlen",
     "tray_einstellungen",
+    "tray_status",
     "tray_zaehler",
     "update_herunterladen",
     "update_installieren",
@@ -119,61 +142,88 @@
     "vorschlaege",
     "wetter",
     "wort_merken",
+    "zeichenblatt_exportieren",
+    "zeichenblatt_pdf_oeffnen",
+    "zeichenblatt_svg_pruefen",
     "zeit_ods"
   ],
   "callbacks": [
     "ablage",
     "adressWeg",
+    "backgroundSettings",
+    "baumBriefkastenGespeichert",
+    "baumBriefkastenStatus",
+    "baumDavPruefung",
     "baumGesendet",
     "baumInternet",
+    "baumMailboxSchreibpruefung",
+    "baumMcpErgebnis",
     "baumPaarungsdatei",
     "baumWeitergabe",
     "cloudSicherungStand",
     "contributorGeprueft",
+    "documentExportErgebnis",
     "edsStatus",
+    "eigenesProfilOffice",
+    "eigenesProfilTelefon",
     "entsperrtFehler",
     "erinnerungStand",
     "exportErgebnis",
     "feiertageErgebnis",
+    "gemeinsameSyncGespeichert",
     "geraetOeffnen",
     "geraetStatus",
     "gesamtarchivAusgewaehlt",
     "gesamtarchivExportiert",
     "gesamtarchivImportiert",
     "gespeichert",
+    "graphAnmeldeVorgang",
+    "graphKontoGeaendert",
+    "graphKontoStand",
     "importErgebnis",
     "init",
+    "internetKontenMcp",
     "journalErgebnis",
     "journalStand",
     "journalVorschau",
     "journalWiederhergestellt",
+    "kdeMcpErgebnis",
     "kdePairingCode",
     "kdePairingStatus",
     "kdeSmsStatus",
     "kennwortStand",
     "kontaktFotos",
     "mutationsSnapshot",
+    "noteSendErgebnis",
     "notizAnhangDateiErgebnis",
+    "passwordStand",
     "personalCustomAck",
     "personalCustomRequest",
     "personalSync",
+    "personalSyncCollection",
     "personalSyncFehler",
     "personalTimeBatch",
     "personalTimeRequest",
+    "printErgebnis",
     "protokollStand",
     "regionalErgebnis",
+    "regionalStand",
+    "reminderPrivacyStand",
     "sicherungAusgewaehlt",
     "sicherungFertig",
     "sicherungWiederhergestellt",
     "sicherungsordnerGewaehlt",
     "syncFehler",
     "syncFertig",
+    "syncMcpFehler",
+    "syncMcpGestartet",
     "telefonAnnehmStatus",
     "telefonAnrufAudio",
     "telefonAnrufAudioGespeichert",
     "telefonAuflegeStatus",
     "telefonGekoppelt",
     "telefonKontakte",
+    "telefonMcpErgebnis",
     "telefonPairingCode",
     "telefonPairingFehler",
     "telefonPairingOffen",
@@ -185,7 +235,9 @@
     "wetterErgebnis",
     "wortGemerkt",
     "zeichenEingabe",
-    "zeichenEingabeStand"
+    "zeichenEingabeStand",
+    "zeichenPdfGeoeffnet",
+    "zeichenSvgGeprueft"
   ],
   "payloadSchemas": {
     "personal_sync_senden": [
@@ -205,6 +257,28 @@
     ]
   },
   "personalSyncPayloads": [
+    [
+      [
+        "cmd",
+        "\"personal_sync_lauf_senden\""
+      ],
+      [
+        "kennung",
+        "peer.device_id"
+      ],
+      [
+        "request",
+        "{ format: 3, run_id: run, trigger: \"manual\", modules: [kind === \"note\" ? \"notes\" : \"tasks\"], send_item: { kind, id } }"
+      ],
+      [
+        "batches",
+        "chunks.map((records, sequence) => ({ format: 3, run_id: run, batch_id: crypto.randomUUID(), sequence, last: sequence === chunks.length - 1, reply: false, records_hash: hash, records }))"
+      ],
+      [
+        "sources",
+        "records.attachmentSources || []"
+      ]
+    ],
     [
       [
         "cmd",
@@ -446,24 +520,6 @@
     [
       [
         "cmd",
-        "\"personal_sync_senden\""
-      ],
-      [
-        "kennung",
-        "peer.device_id"
-      ],
-      [
-        "art",
-        "\"personal_sync.time_settings\""
-      ],
-      [
-        "inhalt",
-        "{ enabled: false }"
-      ]
-    ],
-    [
-      [
-        "cmd",
         "\"personal_sync_lauf_senden\""
       ],
       [
@@ -526,7 +582,43 @@
         "inhalt",
         "report"
       ]
+    ],
+    [
+      [
+        "cmd",
+        "\"personal_sync_senden\""
+      ],
+      [
+        "kennung",
+        "peer.device_id"
+      ],
+      [
+        "art",
+        "\"personal_sync.deletion_proposals\""
+      ],
+      [
+        "inhalt",
+        "{ format: 1, run_id: body.run_id, proposal_batch_id: crypto.randomUUID(), sequence: offset / 32, last: offset + 32 >= pending.length, proposals: pending.slice(offset, offset + 32) }"
+      ]
+    ],
+    [
+      [
+        "cmd",
+        "\"personal_sync_senden\""
+      ],
+      [
+        "kennung",
+        "peer.device_id"
+      ],
+      [
+        "art",
+        "\"personal_sync.time_settings\""
+      ],
+      [
+        "inhalt",
+        "{ enabled: false }"
+      ]
     ]
   ],
-  "contractSha256": "a0f3417e1dad10fe1e746e5fa8254cf48d8a95679ef8725150e515754ac52520"
+  "contractSha256": "b3a7656af56293852efec53721e67702e017e080b04edd7297aa2bd4b6a3a40e"
 }

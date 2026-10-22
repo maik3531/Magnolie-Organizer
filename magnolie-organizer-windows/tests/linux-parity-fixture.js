@@ -6,7 +6,10 @@ const path = require("node:path");
 
 const sha256 = (value) => crypto.createHash("sha256").update(value).digest("hex");
 const values = (source, expression) => [...new Set(Array.from(source.matchAll(expression), match => match[1]))].sort();
-const commands = source => values(source, /cmd:\s*"([a-z0-9_]+)"/g);
+const commands = source => [...new Set([
+  ...values(source, /cmd:\s*"([a-z0-9_]+)"/g),
+  ...values(source, /\b(?:mcpNativeAufruf|kdeMedienAnfordern)\(\s*"([a-z0-9_]+)"/g)
+])].sort();
 const PLATFORM_ONLY_COMMANDS = new Set([
   "background_settings_get", "background_settings_set", "baum_paarungsqr_erzeugen",
   "debug_startphase", "kde_empfangsordner_waehlen", "kde_receive_decide",
@@ -60,11 +63,38 @@ function scanJavaScript(source, start, stopAtClosingBrace) {
 
 function sendObjects(source) {
   const objects = [];
+  const media = /function kdeMedienAnfordern\(cmd, args = \{\}\) \{/.exec(source);
+  const mediaStart = media ? media.index + media[0].length : -1;
+  const mediaEnd = media ? mediaStart + scanJavaScript(source, mediaStart, true).join(",").length : -1;
+  const native = /function mcpNativeAufruf\(cmd, args, callback, signal, beimStart = null\) \{/.exec(source);
+  const nativeStart = native ? native.index + native[0].length : -1;
+  const nativeEnd = native ? nativeStart + scanJavaScript(source, nativeStart, true).join(",").length : -1;
   for (const match of source.matchAll(/Bruecke\.sende\s*\(\s*\{/g)) {
     const properties = new Map();
     for (const part of scanJavaScript(source, match.index + match[0].length, true)) {
       const property = /^\s*(?:([A-Za-z_$][\w$]*)|"([^"]+)"|'([^']+)')\s*:\s*([\s\S]*)$/.exec(part);
       const shorthand = /^\s*([A-Za-z_$][\w$]*)\s*$/.exec(part);
+      const spread = /^\s*\.\.\.([A-Za-z_$][\w$]*)\s*$/.exec(part);
+      if (/^\s*\.\.\.\(mcp \? \{ mcp: true \} : \{\}\)\s*$/.test(part)) {
+        const key = "...(mcp)";
+        if (properties.has(key)) throw new Error("Doppelte Bruecke.sende-Eigenschaft: optionale MCP-Markierung");
+        properties.set(key, "mcp ? { mcp: true } : {}");
+        continue;
+      }
+      if (spread) {
+        const boundMedia = match.index >= mediaStart && match.index < mediaEnd && properties.size === 2 &&
+          properties.get("cmd") === "cmd" && properties.get("requestId") === "requestId";
+        const boundNative = match.index >= nativeStart && match.index < nativeEnd && properties.size === 1 && properties.get("cmd") === "cmd";
+        if (!(spread[1] === "args" && (boundMedia || boundNative)))
+          throw new Error("Bruecke.sende-Eigenschaft: ungebundene Objektverteilung " + spread[1] +
+            " bei Zeile " + (source.slice(0, match.index).split("\n").length));
+        // Preserve an explicit spread node in source order. Do not invent its
+        // fields or treat it as proof that any required property exists.
+        const key = "..." + spread[1];
+        if (properties.has(key)) throw new Error("Doppelte Bruecke.sende-Verteilung: " + spread[1]);
+        properties.set(key, spread[1]);
+        continue;
+      }
       if (shorthand) {
         if (properties.has(shorthand[1])) throw new Error("Doppelte Bruecke.sende-Eigenschaft: " + shorthand[1]);
         properties.set(shorthand[1], shorthand[1]);
@@ -78,6 +108,13 @@ function sendObjects(source) {
   }
   return objects;
 }
+
+const spreadProbe = sendObjects('function kdeMedienAnfordern(cmd, args = {}) { Bruecke.sende({ cmd, requestId, ...args }); }')[0];
+require("node:assert/strict").deepEqual([...spreadProbe], [["cmd", 'cmd'], ["requestId", "requestId"], ["...args", "args"]]);
+require("node:assert/strict").equal(spreadProbe.has("unknown_property"), false);
+require("node:assert/strict").equal(sendObjects('Bruecke.sende({ cmd: "example", ...(mcp ? { mcp: true } : {}) });')[0].has("mcp"), false);
+require("node:assert/strict").throws(() => sendObjects('Bruecke.sende({ cmd: "example", cmd: "other" });'), /Doppelte/);
+require("node:assert/strict").throws(() => sendObjects('Bruecke.sende({ ...makeArguments() });'), /nicht gelesen/);
 
 const literal = value => {
   const match = /^(?:"([^"]*)"|'([^']*)')$/.exec(value || "");
@@ -109,7 +146,7 @@ function generate(linuxRoot) {
   for (const match of dispatcher.matchAll(/befehl\s+in\s+\(([^)]*)\)/g)) {
     for (const command of values(match[1], /"([a-z0-9_]+)"/g)) dispatchedCommands.add(command);
   }
-  const callbackHandlers = new Set(values(ui, /\n    ([A-Za-z0-9_]+)\([^)]*\)\s*\{/g));
+  const callbackHandlers = new Set(values(ui, /\n\s+(?:async\s+)?([A-Za-z0-9_]+)\([^)]*\)\s*\{/g));
   const fixture = {
     schema: "magnolie-linux-parity-v1",
     sources: {
@@ -129,4 +166,4 @@ function generate(linuxRoot) {
   return fixture;
 }
 
-module.exports = { canonicalContract, generate, personalSyncPayloads, sendObjects, sha256 };
+module.exports = { canonicalContract, commands, generate, personalSyncPayloads, sendObjects, sha256 };

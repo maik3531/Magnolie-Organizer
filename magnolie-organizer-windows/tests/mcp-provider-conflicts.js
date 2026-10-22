@@ -7,7 +7,7 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
 const watchdog = setTimeout(() => { console.error("MCP provider conflicts timed out"); process.exit(1); }, 30000);
 (async () => {
   for (const web of harness.exports.roots) {
-    const windows = web.includes("magnolie-organizer-windows"), field = windows ? "syncKonflikte" : "kontaktProviderKonflikte", source = "generic-dav-addressbook:owned";
+    const windows = fs.existsSync(path.resolve(web, "../../Directory.Build.props")), field = windows ? "syncKonflikte" : "kontaktProviderKonflikte", source = "generic-dav-addressbook:owned";
     for (const mode of ["keep", "merge", "replace", "snapshot_failed", "stale", "save_failed", "cancel", "platform_options", ...(!windows ? ["deleted"] : [])]) {
       const incoming = { uid: "provider-record", vorname: "Remote", nachname: "Person", notiz: "Remote note", telefone: [{ wert: "+49305550124", typen: ["CELL"] }], vcardRoundtrip: ["X-OWNED:remote"] };
       const conflict = { kontakt: incoming, transport: mode === "deleted" ? "eds" : "dav", entfernt: mode === "deleted", mapping: { id: "provider-record", etag: '"v2"', inhaltFormat: "owned-format", inhaltSha256: "owned-digest" } };
