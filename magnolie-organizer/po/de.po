@@ -2437,7 +2437,7 @@ msgid "Determining public IP address…"
 msgstr "Öffentliche IP-Adresse wird ermittelt …"
 
 msgid "Developer options"
-msgstr "Entwickleroptionen"
+msgstr "Entwicklermodus"
 
 msgid "Device"
 msgstr "Gerät"
