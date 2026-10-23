@@ -186,7 +186,9 @@ internal sealed partial class TelefonStore
         {
         if (ownDevice == false || remoteOwnDevice == false) PurgeIdentifiers(peerId);
         var settings = LoadSettings(); var all = settings["personal_sync"] as JsonObject ?? new JsonObject(); settings["personal_sync"] = all;
-        var value = all[peerId] as JsonObject ?? new JsonObject { ["own_device"] = false, ["remote_own_device"] = false, ["auto_wifi"] = false }; all[peerId] = value;
+        // Receiving the remote control frame must preserve the same local
+        // defaults as PersonalSettings, rather than create a hidden opt-out.
+        var value = all[peerId] as JsonObject ?? new JsonObject { ["own_device"] = true, ["remote_own_device"] = false, ["auto_wifi"] = true }; all[peerId] = value;
         if (ownDevice.HasValue) value["own_device"] = ownDevice.Value; if (remoteOwnDevice.HasValue) value["remote_own_device"] = remoteOwnDevice.Value; if (autoWifi.HasValue) value["auto_wifi"] = autoWifi.Value;
         if (value["own_device"]?.GetValue<bool>() != true) value["auto_wifi"] = false; SaveSettings(settings);
         if (ownDevice == false || remoteOwnDevice == false) PauseCustom(peerId);

@@ -18,6 +18,10 @@ internal static class TelefonRepairTests
             store.SavePeers([peer]);
             var defaults = store.PersonalSettings(peer.Id);
             TestAssert.That(defaults.OwnDevice && defaults.AutoWifi && !defaults.RemoteOwnDevice, "Fresh personal preferences have incorrect defaults.");
+            store.SetPersonalSettings(peer.Id, remoteOwnDevice: true);
+            var received = store.PersonalSettings(peer.Id);
+            TestAssert.That(received.OwnDevice && received.AutoWifi && received.RemoteOwnDevice,
+                "Receiving remote settings silently revoked the confirmed phone's default local authorization.");
             store.SetPersonalSettings(peer.Id, ownDevice: false, autoWifi: false);
             TestAssert.That(!store.PersonalSettings(peer.Id).OwnDevice && !store.PersonalSettings(peer.Id).AutoWifi, "Manual preference disable was overridden.");
             using var coordinator = new TelefonCoordinator(paths, (_, _) => Task.CompletedTask, dataStore: store, localOnly: true);
