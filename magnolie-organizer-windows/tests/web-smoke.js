@@ -1149,7 +1149,7 @@ assert.ok(window.document.body.textContent.includes("PHONE-ERROR-SENTINEL"),
   "phone errors are not shown");
 
 window.document.querySelector("#einst-tab-baum").click();
-window.App.telefonStand({ enabled: true, listening: true, port: 8741,
+const connectedPhoneState = { enabled: true, listening: true, port: 8741,
   bluetooth: { available: false, devices: [] },
   peers: [{ device_id: "phone-1", display_name: "Pixel", state: "online_wifi",
     transport: "wifi", fingerprint: "AAAA-BBBB", own_device: true,
@@ -1160,7 +1160,8 @@ window.App.telefonStand({ enabled: true, listening: true, port: 8741,
     grants: { grants: { personal_notes_sync: true, personal_tasks_sync: true,
       personal_deletions_sync: true } }, capabilities: { items: {
       personal_notes_sync: { versions: [1, 2] } } } }],
-  kdeconnect: { available: true, paired: true, listening: true, listen_port: 1716 } });
+  kdeconnect: { available: true, paired: true, listening: true, listen_port: 1716 } };
+window.App.telefonStand(connectedPhoneState);
 assert.ok(window.document.querySelector(".telefon-karte") &&
   window.document.querySelector(".telefon-kde-karte"));
 assert.ok(window.document.body.textContent.includes("Pixel") &&
@@ -1171,6 +1172,21 @@ assert.ok(phoneRow && !Array.from(phoneRow.children).some((element) =>
   element.matches("span.einst-hinweis") && element.textContent.includes(
     window.MagnolieI18n.gettext("Selected notifications"))),
 "the redundant selected-notifications peer summary remains visible");
+
+const stableKdeCard = window.document.querySelector('.telefon-kde-karte');
+for (let tick = 1; tick <= 4; tick++) {
+  window.App.telefonStand({ ...connectedPhoneState,
+    peers: connectedPhoneState.peers.map(peer => ({ ...peer, last_contact_ms: tick * 1000 })),
+    kdeconnect: { ...connectedPhoneState.kdeconnect, last_receive_ms: tick * 1000,
+      unpaired_candidate_age_seconds: tick, next_reconnect_seconds: 10 - tick } });
+  assert.strictEqual(window.document.querySelector('.telefon-kde-karte'), stableKdeCard,
+    'KDE heartbeat telemetry rebuilds the settings card and causes visible flicker');
+}
+window.App.telefonStand({ ...connectedPhoneState,
+  kdeconnect: { ...connectedPhoneState.kdeconnect, paired: false } });
+assert.notStrictEqual(window.document.querySelector('.telefon-kde-karte'), stableKdeCard,
+  'An actual KDE pairing state change must still update the settings');
+window.App.telefonStand(connectedPhoneState);
 
 const statusButton = Array.from(window.document.querySelectorAll("button"))
   .find((button) => button.textContent.includes("Gerätestatus"));

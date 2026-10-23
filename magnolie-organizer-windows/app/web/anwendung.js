@@ -32342,7 +32342,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       for (const offen of (DATEN.personalSync && DATEN.personalSync.pending_decisions || []))
         if (vorhandene.has(offen.peer_device_id)) personalSyncEntscheidungWiederholen(offen);
-      const telefonSignatur = JSON.stringify(telefonStand);
+      // Heartbeats are retained in the status payload, but are not settings
+      // changes. Rebuilding the panel for every packet loses focus and flickers.
+      const telefonSignatur = JSON.stringify(telefonStand, (key, value) =>
+        ["last_contact_ms", "last_receive_ms", "unpaired_candidate_age_seconds", "next_reconnect_seconds"].includes(key)
+          ? undefined : value);
       const telefonGeaendert = telefonSignatur !== telefonStandSignatur;
       telefonStandSignatur = telefonSignatur;
       if (telefonGeaendert && einstSeite === "baum" &&
