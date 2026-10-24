@@ -29,7 +29,7 @@ def main():
             'xesam:artist': GLib.Variant('as', ['Artist']),
             'mpris:length': GLib.Variant('x', 20000000),
              'mpris:trackid': GLib.Variant('o', '/fixture/track')})
-    root_props = dict(DesktopEntry='fixture')
+    root_props = dict(DesktopEntry='fixture', CanRaise=True, CanQuit=True)
     track_props = dict(Tracks=['/fixture/track', '/fixture/video'])
     device_props = dict(isPaired=True, isReachable=True, type='phone', name='Fixture phone')
     registrations = []
@@ -45,6 +45,12 @@ def main():
 
         def method(connection, sender, object_path, interface, member, parameters, invocation):
             args = parameters.unpack(); calls.append((name, member, args))
+            if name == 'org.mpris.MediaPlayer2.Player' and member in ('Play', 'Stop'):
+                local['PlaybackStatus'] = 'Playing' if member == 'Play' else 'Stopped'
+            if name == 'org.mpris.MediaPlayer2' and member == 'Quit':
+                bus.call_sync('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
+                    'ReleaseName', GLib.Variant('(s)', ('org.mpris.MediaPlayer2.fixture',)),
+                    GLib.VariantType.new('(u)'), Gio.DBusCallFlags.NONE, 1000, None)
             if member == 'devices': invocation.return_value(GLib.Variant('(as)', ([device],)))
             elif member == 'hasPlugin': invocation.return_value(GLib.Variant('(b)', (args[0] in ('kdeconnect_sms', 'kdeconnect_mprisremote'),)))
             elif member == 'GetTracksMetadata': invocation.return_value(GLib.Variant('(aa{sv})', ([
@@ -71,11 +77,12 @@ def main():
         '<method name="seek"><arg type="i" direction="in"/></method>',
         dict(playerList='as', player='s', title='s', artist='s', album='s', position='i', length='i', volume='i', canSeek='b', isPlaying='b'))
     register('/org/mpris/MediaPlayer2', 'org.mpris.MediaPlayer2.Player',
-        '<method name="Play"/><method name="Pause"/><method name="Seek"><arg type="x" direction="in"/></method>'
+        '<method name="Play"/><method name="Pause"/><method name="Stop"/><method name="Seek"><arg type="x" direction="in"/></method>'
         '<method name="SetPosition"><arg type="o" direction="in"/><arg type="x" direction="in"/></method>',
         dict(CanControl='b', CanPlay='b', CanPause='b', CanSeek='b', CanGoNext='b', CanGoPrevious='b',
             PlaybackStatus='s', Volume='d', Position='x', Metadata='a{sv}', Shuffle='b', LoopStatus='s'))
-    register('/org/mpris/MediaPlayer2', 'org.mpris.MediaPlayer2', '', dict(DesktopEntry='s'))
+    register('/org/mpris/MediaPlayer2', 'org.mpris.MediaPlayer2', '<method name="Raise"/><method name="Quit"/>',
+        dict(DesktopEntry='s', CanRaise='b', CanQuit='b'))
     register('/org/mpris/MediaPlayer2', 'org.mpris.MediaPlayer2.TrackList',
         '<method name="GetTracksMetadata"><arg type="ao" direction="in"/><arg type="aa{sv}" direction="out"/></method>'
         '<method name="GoTo"><arg type="o" direction="in"/></method>', dict(Tracks='ao'))
@@ -124,11 +131,127 @@ def main():
             local['Metadata']['mpris:artUrl'] = GLib.Variant('s', cover.as_uri())
             art = desktop.receive({'player': 'Music', 'albumArtUrl': cover.as_uri()})[0]
             assert isinstance(art, ArtworkPayload) and art.data == cover.read_bytes()
+        from types import SimpleNamespace
+        launched = []
+        def launch(_files, _context):
+            launched.append('fixture.desktop')
+            bus.call_sync('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
+                'RequestName', GLib.Variant('(su)', ('org.mpris.MediaPlayer2.fixture', 0)),
+                GLib.VariantType.new('(u)'), Gio.DBusCallFlags.NONE, 1000, None)
+            return True
+        app = SimpleNamespace(launch=launch)
+        desktop.selected_apps = {'music': 'fixture.desktop', 'video': ''}
+        desktop._selected = lambda: {'Music': ('music', 'fixture.desktop', app)}
+        calls.clear(); local['PlaybackStatus'] = 'Playing'
+        desktop.receive({'player': 'Music', 'action': 'Stop'})
+        assert local['PlaybackStatus'] == 'Stopped' and not any(member == 'Quit' for _, member, _ in calls)
+        desktop.receive({'player': 'Music', 'action': 'Stop'})
+        assert any(member == 'Quit' for _, member, _ in calls)
+        desktop.receive({'player': 'Music', 'action': 'Play'})
+        assert launched == ['fixture.desktop']
+        desktop.receive({'player': 'Music', 'requestNowPlaying': True})
+        assert local['PlaybackStatus'] == 'Playing' and not any(member == 'Raise' for _, member, _ in calls)
+        desktop.selected_apps = {'music': '', 'video': 'fixture.desktop'}
+        desktop._selected = lambda: {'Video': ('video', 'fixture.desktop', app)}
+        calls.clear()
+        desktop.receive({'player': 'Video', 'action': 'Stop'})
+        desktop.receive({'player': 'Video', 'action': 'Stop'})
+        assert not any(member == 'Quit' for _, member, _ in calls)
+        desktop.receive({'player': 'Video', 'action': 'Play'})
+        assert any(member == 'Raise' for _, member, _ in calls)
         print('PASS: isolated real Gio/D-Bus remote controls and local MPRIS; position ms/us, volume, current players, separate music/video TrackList+GoTo, shuffle/repeat, actual cover bytes, unique owners')
+        print('PASS: music Stop/Stop/Quit, exact registered restart without Raise; video Stop stays player-owned and Play raises')
     finally:
         loop.quit(); thread.join(1)
         for registration in registrations: bus.unregister_object(registration)
 
 
+def rhythmbox_probe():
+    """Exercise the installed player with an empty disposable profile and display."""
+    import signal
+    import subprocess
+    import tempfile
+    import time
+    with tempfile.TemporaryDirectory(prefix='magnolie-rhythmbox-', dir='/tmp/opencode') as directory:
+        root = Path(directory)
+        for key, folder in (('HOME', 'home'), ('XDG_DATA_HOME', 'data'), ('XDG_CONFIG_HOME', 'config'),
+                ('XDG_CACHE_HOME', 'cache'), ('XDG_STATE_HOME', 'state'), ('XDG_RUNTIME_DIR', 'runtime')):
+            path = root / folder; path.mkdir(mode=0o700)
+            os.environ[key] = str(path)
+        os.environ.pop('GTK_USE_PORTAL', None)
+        os.environ['GSETTINGS_BACKEND'] = 'keyfile'
+        for key in ('SSH_AUTH_SOCK', 'GNOME_KEYRING_CONTROL'):
+            os.environ.pop(key, None)
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        names = bus.call_sync('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
+            'ListNames', None, GLib.VariantType.new('(as)'), Gio.DBusCallFlags.NO_AUTO_START, 1000, None).unpack()[0]
+        assert all(name == 'org.freedesktop.DBus' or name.startswith(':') for name in names), 'Private D-Bus required'
+        activation = {key: value for key, value in os.environ.items()
+            if key == 'HOME' or key.startswith('XDG_') or key in ('GSETTINGS_BACKEND', 'GIO_USE_VFS', 'NO_AT_BRIDGE')}
+        bus.call_sync('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
+            'UpdateActivationEnvironment', GLib.Variant('(a{ss})', (activation,)), None,
+            Gio.DBusCallFlags.NO_AUTO_START, 1000, None)
+        subprocess.run(['gsettings', 'set', 'org.gnome.rhythmbox.plugins', 'active-plugins', "['mpris']"],
+            check=True, timeout=5, capture_output=True)
+        provider = DesktopMpris(bus, Gio, GLib, str(root))
+        identifier = next(key for key in provider._applications() if 'rhythmbox' in key.lower())
+        provider.configure(identifier, 'music'); provider.configure('', 'video')
+        alias = next(iter(provider._selected()))
+        log = (root / 'rhythmbox.log').open('w+')
+        process = subprocess.Popen(['rhythmbox', '--no-update'], stdout=log,
+            stderr=subprocess.STDOUT, start_new_session=True)
+        def player():
+            players = provider._players(time.monotonic() + 2)
+            return players.get(alias)
+        def wait_for(present):
+            deadline = time.monotonic() + 12
+            while time.monotonic() < deadline:
+                current = player()
+                if bool(current) == present: return current
+                time.sleep(.1)
+            raise AssertionError('Installed Rhythmbox did not reach the expected MPRIS lifecycle state')
+        try:
+            current = wait_for(True)
+            assert current[1]['PlaybackStatus'] == 'Stopped', 'Empty private profile unexpectedly playing'
+            provider.receive({'player': alias, 'action': 'Stop'})
+            wait_for(False)
+            assert process.wait(8) == 0, 'Regular MPRIS Quit did not exit cleanly'
+            provider.receive({'player': alias, 'action': 'Play'})
+            wait_for(True)
+            # The empty profile has no selected source to play. Delivery of Play
+            # and the no-Raise behavior are covered by the real D-Bus fixture.
+            assert provider.settings()['music'] == identifier
+            provider.receive({'player': alias, 'action': 'Stop'})
+            if player(): provider.receive({'player': alias, 'action': 'Stop'})
+            wait_for(False)
+            print('PASS: installed Rhythmbox, private empty profile, regular MPRIS Quit and exact registered Play restart')
+        except BaseException:
+            log.flush(); log.seek(0)
+            print(log.read()[-4000:], file=sys.stderr)
+            names = bus.call_sync('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
+                'ListNames', None, GLib.VariantType.new('(as)'), Gio.DBusCallFlags.NO_AUTO_START, 1000, None).unpack()[0]
+            print('Rhythmbox probe process exit:', process.poll(), 'MPRIS services:',
+                [name for name in names if name.startswith('org.mpris.')], file=sys.stderr)
+            raise
+        finally:
+            current = player()
+            if current:
+                pid = bus.call_sync('org.freedesktop.DBus', '/org/freedesktop/DBus', 'org.freedesktop.DBus',
+                    'GetConnectionUnixProcessID', GLib.Variant('(s)', (current[0],)), GLib.VariantType.new('(u)'),
+                    Gio.DBusCallFlags.NO_AUTO_START, 1000, None).unpack()[0]
+                try: os.kill(pid, signal.SIGTERM)
+                except ProcessLookupError: pass
+            if process.poll() is None: process.terminate()
+            try: process.wait(5)
+            except subprocess.TimeoutExpired: process.kill(); process.wait(3)
+            log.close()
+            for folder in ('doc', 'gvfs'):
+                mount = root / 'runtime' / folder
+                if os.path.ismount(mount):
+                    subprocess.run(['fusermount3', '-u', str(mount)], timeout=5, capture_output=True)
+                    if os.path.ismount(mount):
+                        subprocess.run(['fusermount3', '-uz', str(mount)], timeout=5, capture_output=True, check=True)
+
+
 if __name__ == '__main__':
-    main()
+    rhythmbox_probe() if '--rhythmbox' in sys.argv else main()

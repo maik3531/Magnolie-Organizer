@@ -333,6 +333,101 @@ def test_play_raises_existing_mpris_window_but_pause_does_not():
     assert (':1.20', 'Raise', ()) in bus.calls
 
 
+def configured_player(slot='music', can_quit=True):
+    class PlayerBus(LocalBus):
+        running = True
+        def call_sync(self, owner, path, interface, method, parameters, reply, flags, timeout, cancellable):
+            args = parameters.unpack() if parameters else ()
+            if method == 'ListNames' and not self.running:
+                self.calls.append((owner, method, args))
+                return Variant('(as)', ([],))
+            if method == 'GetAll' and args == ('org.mpris.MediaPlayer2',):
+                self.calls.append((owner, method, args))
+                return Variant('(a{sv})', ({'DesktopEntry': 'fixture', 'CanRaise': True, 'CanQuit': can_quit},))
+            if method == 'Stop': self.props['PlaybackStatus'] = 'Stopped'
+            if method == 'Play': self.props['PlaybackStatus'] = 'Playing'
+            if method == 'Quit': self.running = False
+            return super().call_sync(owner, path, interface, method, parameters, reply, flags, timeout, cancellable)
+    _, gio = native()
+    from test_kde_native import GLIB
+    bus = PlayerBus(); media = DesktopMpris(bus, gio, GLIB)
+    launched = []
+    def launch(files, context):
+        launched.append('fixture.desktop'); bus.running = True
+        return True
+    app = SimpleNamespace(launch=launch)
+    alias = 'Magnolie · ' + slot + ' · Fixture'
+    media.selected_apps = {'music': '', 'video': '', slot: 'fixture.desktop'}
+    media._selected = lambda: {alias: (slot, media.selected_apps[slot], app)}
+    return media, bus, alias, launched
+
+
+@pytest.mark.parametrize('current', [False, True])
+@pytest.mark.parametrize('initial_state', ['Playing', 'Paused'])
+def test_music_stop_stops_then_quits_and_play_restarts_exact_application_without_raise(current, initial_state):
+    media, bus, alias, launched = configured_player()
+    bus.props['PlaybackStatus'] = initial_state
+    name = CURRENT_PLAYER if current else alias
+    media.receive({'player': name, 'action': 'Stop'})
+    assert [method for _, method, _ in bus.calls if method in ('Stop', 'Quit')] == ['Stop']
+    media.receive({'player': name, 'action': 'Stop'})
+    assert [method for _, method, _ in bus.calls if method in ('Stop', 'Quit')] == ['Stop', 'Quit']
+    media.receive({'player': name, 'action': 'Play'})
+    assert launched == ['fixture.desktop']
+    media.receive({'player': alias, 'requestNowPlaying': True})
+    assert [method for _, method, _ in bus.calls].count('Play') == 1
+    assert not any(method == 'Raise' for _, method, _ in bus.calls)
+    media.receive({'player': name, 'action': 'Play'})
+    assert launched == ['fixture.desktop']
+    assert not any(method == 'Raise' for _, method, _ in bus.calls)
+
+
+@pytest.mark.parametrize('change', ['revoked', 'application'])
+def test_current_music_restart_does_not_bypass_revocation_or_application_change(change):
+    media, bus, alias, launched = configured_player()
+    bus.props['PlaybackStatus'] = 'Stopped'
+    media.receive({'player': CURRENT_PLAYER, 'action': 'Stop'})
+    if change == 'application': media.selected_apps['music'] = 'other.desktop'
+    with pytest.raises(ValueError):
+        media.receive({'player': CURRENT_PLAYER, 'action': 'Play'}, permitted=lambda: change != 'revoked')
+    assert not launched
+
+
+@pytest.mark.parametrize('can_quit', [False, None])
+def test_music_without_explicit_quit_capability_only_stops(can_quit):
+    media, bus, alias, _ = configured_player(can_quit=can_quit)
+    bus.props['PlaybackStatus'] = 'Stopped'
+    media.receive({'player': alias, 'action': 'Stop'})
+    assert any(method == 'Stop' for _, method, _ in bus.calls)
+    assert not any(method in ('Quit', 'Raise') for _, method, _ in bus.calls)
+
+
+def test_video_stop_is_left_to_player_and_play_still_restores_window():
+    media, bus, alias, _ = configured_player(slot='video')
+    media.receive({'player': alias, 'action': 'Stop'})
+    media.receive({'player': alias, 'action': 'Stop'})
+    assert not any(method == 'Quit' for _, method, _ in bus.calls)
+    media.receive({'player': alias, 'action': 'Play'})
+    assert any(method == 'Raise' for _, method, _ in bus.calls)
+
+
+def test_music_quit_rechecks_current_permission_and_does_not_quit_newly_started_playback():
+    media, bus, alias, _ = configured_player()
+    bus.props['PlaybackStatus'] = 'Stopped'
+    allowed = [True]
+    reads = [0]
+    def revoke():
+        reads[0] += 1
+        if reads[0] >= 2: allowed[0] = False
+    bus.after_read = revoke
+    with pytest.raises(ValueError, match='source_changed'):
+        media.receive({'player': alias, 'action': 'Stop'}, permitted=lambda: allowed[0])
+    assert not any(method == 'Quit' for _, method, _ in bus.calls)
+    bus.after_read = lambda: bus.props.update(PlaybackStatus='Playing')
+    media.receive({'player': alias, 'action': 'Stop'})
+    assert not any(method == 'Quit' for _, method, _ in bus.calls)
+
+
 @pytest.mark.parametrize('change', ['none', 'revoked', 'expired', 'changed', 'stop'])
 def test_closed_player_play_is_delivered_once_after_start_with_original_source_fence(change):
     media, bus = local_media()

@@ -39,6 +39,7 @@ class DesktopMpris:
         self.launch_pending = {}
         self.deferred_play = {}
         self.current_owner = None
+        self.current_restart = None
         loaded = False
         if self.settings_path:
             try:
@@ -118,6 +119,7 @@ class DesktopMpris:
             self.selected_apps = selected
             self.launch_pending.pop(slot, None)
             self.deferred_play.pop(slot, None)
+            self.current_restart = None
             return self.settings()
 
     def _selected(self):
@@ -216,6 +218,16 @@ class DesktopMpris:
             except Exception:
                 pass  # Missing window activation must not break supported playback.
 
+    @staticmethod
+    def _selected_owner(name, owner, players, selected):
+        if name in selected:
+            return name, selected[name]
+        matches = [(alias, entry) for alias, entry in selected.items()
+            if alias in players and players[alias][0] == owner]
+        # An application assigned to both slots is ambiguous through Current.
+        # Preserve video behavior unless the caller explicitly selects Music.
+        return next((match for match in matches if match[1][0] == 'video'), matches[0] if matches else None)
+
     def _players(self, deadline):
         names = self._call('org.freedesktop.DBus', '/org/freedesktop/DBus',
             'org.freedesktop.DBus', 'ListNames', reply='(as)', deadline=deadline)[0]
@@ -312,6 +324,13 @@ class DesktopMpris:
                 return [{'playerList': names, 'supportAlbumArtPayload': True}]
             name = player_name(body.get('player'))
             if name == CURRENT_PLAYER and name not in players:
+                restart = self.current_restart
+                if restart and restart[0] in selected and selected[restart[0]][1] == restart[1]:
+                    if body.get('action') in ('Play', 'PlayPause'):
+                        results = self.receive(dict(body, player=restart[0]), permitted)
+                        return [dict(result, player=CURRENT_PLAYER) for result in results]
+                    if not any(key in body for key in ('setVolume', 'SetPosition', 'Seek', 'setShuffle', 'setLoopStatus', 'albumArtUrl')) and body.get('action') in (None, 'Stop'):
+                        return [self._dormant(name)]
                 if any(key in body for key in ('action', 'setVolume', 'SetPosition', 'Seek', 'setShuffle', 'setLoopStatus', 'albumArtUrl')):
                     raise ValueError('local_media_action_unavailable')
                 return [dict(self._dormant(name), canPlay=False)]
@@ -339,7 +358,8 @@ class DesktopMpris:
             if name not in players:
                 return [{'playerList': names}]
             owner, props = players[name]
-            entry = selected.get(name)
+            selection = self._selected_owner(name, owner, players, selected)
+            entry = selection[1] if selection else None
             if entry and body.get('action'):
                 self.deferred_play.pop(entry[0], None)
             if 'albumArtUrl' in body:
@@ -384,7 +404,16 @@ class DesktopMpris:
                 if not permitted():
                     raise ValueError('local_media_source_changed')
                 if action in ACTIONS:
-                    if action == 'Play' or action == 'PlayPause' and props.get('PlaybackStatus') != 'Playing':
+                    if action == 'Stop' and entry and entry[0] == 'music' and props.get('PlaybackStatus') == 'Stopped':
+                        root = self._call(owner, PATH, PROPERTIES, 'GetAll', '(s)', ('org.mpris.MediaPlayer2',), '(a{sv})', deadline=deadline)[0]
+                        current = self._call(owner, PATH, PROPERTIES, 'GetAll', '(s)', (PLAYER,), '(a{sv})', deadline=deadline)[0]
+                        if not permitted() or self.selected_apps.get('music') != entry[1]:
+                            raise ValueError('local_media_source_changed')
+                        if root.get('CanQuit') is True and current.get('PlaybackStatus') == 'Stopped':
+                            self._call(owner, PATH, 'org.mpris.MediaPlayer2', 'Quit', reply='()', deadline=deadline)
+                            self.current_restart = (selection[0], entry[1])
+                            return [self._dormant(name)]
+                    if (action == 'Play' or action == 'PlayPause' and props.get('PlaybackStatus') != 'Playing') and not (entry and entry[0] == 'music'):
                         self._raise_for_play(owner, deadline, permitted)
                         if not permitted(): raise ValueError('local_media_source_changed')
                     self._call(owner, PATH, PLAYER, action, reply='()', deadline=deadline)
@@ -405,7 +434,7 @@ class DesktopMpris:
                 if pending and pending['application'] == application and (props.get('CanPlay') is True or props.get('PlaybackStatus') == 'Playing'):
                     self.deferred_play.pop(slot, None)
                     if not permitted() or not pending['permitted'](): raise ValueError('local_media_source_changed')
-                    self._raise_for_play(owner, deadline, permitted)
+                    if slot != 'music': self._raise_for_play(owner, deadline, permitted)
                     if not permitted() or not pending['permitted'](): raise ValueError('local_media_source_changed')
                     if props.get('PlaybackStatus') != 'Playing':
                         self._call(owner, PATH, PLAYER, 'Play', reply='()', deadline=deadline)
