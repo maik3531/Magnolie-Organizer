@@ -233,6 +233,37 @@ class BackgroundLifecycleTest {
         assertFalse(storage.personalDeletionsEnabled())
     }
 
+    @Test fun contactReadDefaultsRequirePairingAndPermissionAndKeepManualOptOut() = fixture { storage, work, _ ->
+        val app = Shadows.shadowOf(context as Application)
+        app.grantPermissions(android.Manifest.permission.READ_CONTACTS)
+        val peer = TelefonPeer(UUID.randomUUID().toString(), "Computer", TelefonKrypto.b64(ByteArray(32)),
+            state = "paired_unverified")
+        storage.savePeer(peer)
+        work.initializePersonalDefaults(reconnectAfterChange = false)
+        assertFalse(storage.peers().peer!!.contacts_read_enabled)
+        storage.savePeer(peer.copy(state = "paired"))
+        work.initializePersonalDefaults(reconnectAfterChange = false)
+        assertTrue(storage.peers().peer!!.contacts_read_enabled)
+        assertTrue(work.state.value.peer!!.contacts_read_enabled)
+        app.denyPermissions(android.Manifest.permission.READ_CONTACTS)
+        work.initializePersonalDefaults(reconnectAfterChange = false)
+        assertFalse(storage.peers().peer!!.contacts_read_enabled)
+        work.unpair()
+        assertTrue(storage.rememberedContactReadChoice(peer.device_id, peer.static_public))
+        storage.savePeer(peer.copy(state = "paired"))
+        app.grantPermissions(android.Manifest.permission.READ_CONTACTS)
+        work.initializePersonalDefaults(reconnectAfterChange = false)
+        assertTrue(storage.peers().peer!!.contacts_read_enabled)
+        work.setContactReadEnabled(false, peer.device_id, peer.static_public)
+        // A stale enabled peer must never override a persisted explicit opt-out.
+        storage.savePeer(storage.peers().peer!!.copy(contacts_read_enabled = true))
+        work.initializePersonalDefaults(reconnectAfterChange = false)
+        assertFalse(storage.peers().peer!!.contacts_read_enabled)
+        assertFalse(work.state.value.peer!!.contacts_read_enabled)
+        work.initializePersonalDefaults(reconnectAfterChange = false)
+        assertFalse(storage.peers().peer!!.contacts_read_enabled)
+    }
+
     @Test fun oneSyncModeChoicePreservesRemoteConsentAndNoteDirection() = fixture { storage, work, _ ->
         val direction = PersonalNoteMode.create(PersonalNoteMode.IMPORT)
         val peer = TelefonPeer(UUID.randomUUID().toString(), "Computer", TelefonKrypto.b64(ByteArray(32)),

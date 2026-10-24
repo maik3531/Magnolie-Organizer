@@ -56,11 +56,12 @@ class PersonalPreferenceDefaultsTest {
     @Test fun contactChoiceIsBoundToConfirmedComputerKeyAndManualDisableSurvivesReopen() {
         val id = "11111111-1111-4111-8111-111111111111"
         val key = TelefonKrypto.b64(ByteArray(32) { 3 })
+        assertTrue(storage().rememberedContactReadChoice(id, key))
         storage().rememberContactReadChoice(id, key, true)
         assertTrue(storage().rememberedContactReadChoice(id, key))
-        assertFalse(storage().rememberedContactReadChoice(id, TelefonKrypto.b64(ByteArray(32) { 4 })))
         storage().rememberContactReadChoice(id, key, false)
         assertFalse(storage().rememberedContactReadChoice(id, key))
+        assertTrue(storage().rememberedContactReadChoice(id, TelefonKrypto.b64(ByteArray(32) { 4 })))
     }
 
     @Test fun newTreeIsEnabledButStoredDisableIsNotOverridden() {

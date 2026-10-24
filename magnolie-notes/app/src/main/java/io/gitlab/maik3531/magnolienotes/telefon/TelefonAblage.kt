@@ -91,7 +91,7 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
         check(settings.edit().putBoolean(contactChoiceKey(deviceId, publicKey), enabled).commit())
     }
     fun rememberedContactReadChoice(deviceId: String, publicKey: String): Boolean =
-        settings.getBoolean(contactChoiceKey(deviceId, publicKey), false)
+        settings.getBoolean(contactChoiceKey(deviceId, publicKey), true)
     fun setPersonalSyncLastCounter(value: Long) { settings.edit().putLong("personal_sync_last_counter", value).commit() }
     fun setPersonalSync(own: Boolean, notes: Boolean, tasks: Boolean, autoWifi: Boolean,
                         deletions: Boolean = personalDeletionsEnabled(), rememberDeletions: Boolean = true) {
