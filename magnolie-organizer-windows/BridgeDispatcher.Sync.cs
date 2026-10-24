@@ -28,6 +28,8 @@ internal sealed partial class BridgeDispatcher
             await ManagedAccounts.ExecuteAsync("sign_in", Text(message, "anbieter"), "", Text(message, "email").Trim(), "", null, timeout.Token);
             await form.SendAsync("App.internetKontoAnmeldung", new { ok = true });
         }
+        catch (AccountRuntimeUpdatingException)
+        { await form.SendAsync("App.internetKontoAnmeldung", new { ok = false, runtime_updating = true }); }
         catch (Exception error)
         {
             await ReportErrorAsync("internet_konto_anmelden", error.ToString());
@@ -48,6 +50,8 @@ internal sealed partial class BridgeDispatcher
             var receipt = await ManagedAccounts.ExecuteAsync("read", "", "", "", "", null, timeout.Token);
             await form.SendAsync("App.internetKontenStatus", receipt.State.Raw);
         }
+        catch (AccountRuntimeUpdatingException)
+        { await form.SendAsync("App.internetKontenStatus", new { bereit = false, runtime_updating = true }); }
         catch (Exception error)
         {
             await ReportErrorAsync("internet_konten_status", error.ToString());
@@ -70,6 +74,8 @@ internal sealed partial class BridgeDispatcher
             await form.SendAsync("App.internetKontenStatus", receipt.State.Raw);
             await ContactSourcesAsync();
         }
+        catch (AccountRuntimeUpdatingException)
+        { await form.SendAsync("App.internetKontoVerwaltet", new { ok = false, runtime_updating = true }); }
         catch (Exception error)
         {
             await ReportErrorAsync("internet_konto_verwalten", error.ToString());
@@ -95,7 +101,7 @@ internal sealed partial class BridgeDispatcher
         }
         catch (Exception error)
         {
-            var code = error is OperationCanceledException cancellation ? cancellation.CancellationToken.IsCancellationRequested ? "native_timeout" : "locked_or_cancelled" :
+            var code = error is AccountRuntimeUpdatingException ? "native_busy" : error is OperationCanceledException cancellation ? cancellation.CancellationToken.IsCancellationRequested ? "native_timeout" : "locked_or_cancelled" :
                 error is InvalidOperationException && error.Message is "conflict" or "not_found" or "profile_locked" or "native_busy" ? error.Message : "native_operation_failed";
             await form.SendAsync("App.internetKontenMcp", new { requestId, ok = false, code });
         }

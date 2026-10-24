@@ -85,6 +85,10 @@
     <Compile Include="..\CalendarBirthdayCleanup.cs" Link="CalendarBirthdayCleanup.cs" />
     <Compile Include="..\ThunderbirdBridge.cs" Link="ThunderbirdBridge.cs" />
     <Compile Include="..\ManagedInternetAccounts.cs" Link="ManagedInternetAccounts.cs" />
+    <Compile Include="..\ManagedAccountRuntimePolicy.cs" Link="ManagedAccountRuntimePolicy.cs" />
+    <Compile Include="..\ManagedAccountRuntimeResolver.cs" Link="ManagedAccountRuntimeResolver.cs" />
+    <Compile Include="..\MozillaCodeTrust.cs" Link="MozillaCodeTrust.cs" />
+    <Compile Include="..\ManagedAccountRuntimeUpdater.cs" Link="ManagedAccountRuntimeUpdater.cs" />
     <Compile Include="..\NextcloudSyncJournal.cs" Link="NextcloudSyncJournal.cs" />
     <Compile Include="..\MagnolienbaumStore.cs" Link="MagnolienbaumStore.cs" />
     <Compile Include="..\MagnolienbaumPairing.cs" Link="MagnolienbaumPairing.cs" />

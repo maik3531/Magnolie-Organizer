@@ -129,6 +129,9 @@ internal static class ManagedInternetAccounts
     internal static bool Enabled => File.Exists(Path.Combine(Profile, "magnolie-managed.json"));
     private static readonly SemaphoreSlim StartGate = new(1, 1);
     private static Process? ownedProcess;
+    private static string? ownedProfile;
+    private static string? failedProfile;
+    private static DateTimeOffset nextStartAttempt;
 
     [DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(nint window, out uint process);
@@ -205,32 +208,47 @@ internal static class ManagedInternetAccounts
         string? runtime = null, string? nativeExecutable = null, Action<string>? diagnostics = null)
     {
         await StartGate.WaitAsync(token).ConfigureAwait(false);
+        string? attemptedProfile = null;
         try
         {
-            profile ??= Profile; runtime ??= Runtime;
+            var explicitRuntime = runtime is not null;
+            profile = Path.GetFullPath(profile ?? Profile); runtime = Path.GetFullPath(runtime ?? Runtime);
             try
             {
                 var running = await ThunderbirdBridge.CallAsync(new JsonObject { ["op"] = "environment" }, token, 500, managed: true);
                 if (running["managed"]?.GetValue<bool>() == true && running["ready"]?.GetValue<bool>() == true &&
                     string.Equals(Path.GetFullPath(running["profile"]!.GetValue<string>()), Path.GetFullPath(profile), StringComparison.OrdinalIgnoreCase))
                 {
-                    ownedProcess ??= Process.GetProcessById(running["pid"]!.GetValue<int>());
+                    var currentPid = running["pid"]!.GetValue<int>();
+                    if (ownedProcess is null || ownedProcess.Id != currentPid)
+                    { ownedProcess?.Dispose(); ownedProcess = Process.GetProcessById(currentPid); }
+                    ownedProfile = profile;
                     MailWindows(running, hide: true);
+                    failedProfile = null;
                     return;
                 }
                 throw new InvalidDataException("Unexpected account helper identity.");
             }
             catch (Exception error) when (error is IOException or TimeoutException) { }
+            if (ownedProcess is not null && !ownedProcess.HasExited && string.Equals(ownedProfile, profile, StringComparison.OrdinalIgnoreCase))
+                throw new IOException("The owned account helper is still starting or unavailable; a duplicate helper will not be launched.");
+            if (string.Equals(failedProfile, profile, StringComparison.OrdinalIgnoreCase) && DateTimeOffset.UtcNow < nextStartAttempt)
+                throw new IOException("The account helper could not start; a retry is temporarily deferred.");
+            var selected = await ManagedAccountRuntimeUpdater.EnsureAvailableAsync(profile, runtime, !explicitRuntime, token).ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
             var xpi = ThunderbirdBridge.InstallHost(managed: true, nativeExecutable);
             PrepareProfile(profile, runtime, xpi, System.Globalization.CultureInfo.CurrentUICulture.Name);
-            var start = new ProcessStartInfo(Path.Combine(runtime, "thunderbird.exe"))
-            { UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden,
+            var start = new ProcessStartInfo(selected.Executable)
+            { WorkingDirectory = Path.GetDirectoryName(selected.Executable)!, UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden,
                 RedirectStandardOutput = true, RedirectStandardError = true };
             // The managed extension keeps the normal startup window hidden;
             // provider authentication popups remain visible to the user.
             foreach (var value in new[] { "-no-remote", "-purgecaches", "-profile", profile }) start.ArgumentList.Add(value);
             if (diagnostics is not null) start.Environment["MAGNOLIE_ACCOUNT_PROBE_TRACE"] = profile;
+            attemptedProfile = profile;
+            ownedProcess?.Dispose();
             ownedProcess = Process.Start(start) ?? throw new IOException("Could not start account helper.");
+            ownedProfile = profile;
             if (diagnostics is not null) ownedProcess.ErrorDataReceived += (_, data) =>
             {
                 if (data.Data?.StartsWith("JavaScript error:", StringComparison.Ordinal) == true ||
@@ -261,11 +279,17 @@ internal static class ManagedInternetAccounts
                     if (runtimePid != ownedProcess.Id) { ownedProcess.Dispose(); ownedProcess = Process.GetProcessById(runtimePid); }
                     MailWindows(ready, hide: true);
                     if (ready["ready"]?.GetValue<bool>() != true) { await Task.Delay(300, startup.Token).ConfigureAwait(false); continue; }
+                    failedProfile = null;
                     return;
                 }
                 catch (Exception error) when (error is IOException or TimeoutException)
                 { await Task.Delay(300, startup.Token).ConfigureAwait(false); }
             }
+        }
+        catch
+        {
+            if (attemptedProfile is not null) { failedProfile = attemptedProfile; nextStartAttempt = DateTimeOffset.UtcNow.AddMinutes(1); }
+            throw;
         }
         finally { StartGate.Release(); }
     }
@@ -281,21 +305,21 @@ internal static class ManagedInternetAccounts
 
     internal static async Task StopAsync()
     {
+        await ManagedAccountRuntimeUpdater.StopAsync().ConfigureAwait(false);
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         try
         {
-            if (ownedProcess is null)
-            {
-                if (!Enabled) return;
-                var running = await ThunderbirdBridge.CallAsync(new JsonObject { ["op"] = "environment" }, deadline.Token, 500, managed: true);
-                if (running["managed"]?.GetValue<bool>() != true ||
-                    !string.Equals(Path.GetFullPath(running["profile"]!.GetValue<string>()), Path.GetFullPath(Profile), StringComparison.OrdinalIgnoreCase)) return;
-                ownedProcess = Process.GetProcessById(running["pid"]!.GetValue<int>());
-            }
+            if (ownedProcess is null && !Enabled) return;
+            var running = await ThunderbirdBridge.CallAsync(new JsonObject { ["op"] = "environment" }, deadline.Token, 500, managed: true);
+            if (running["managed"]?.GetValue<bool>() != true ||
+                !string.Equals(Path.GetFullPath(running["profile"]!.GetValue<string>()), Path.GetFullPath(ownedProfile ?? Profile), StringComparison.OrdinalIgnoreCase)) return;
+            var currentPid = running["pid"]!.GetValue<int>();
+            if (ownedProcess is null || ownedProcess.Id != currentPid)
+            { ownedProcess?.Dispose(); ownedProcess = Process.GetProcessById(currentPid); }
             await ThunderbirdBridge.CallAsync(new JsonObject { ["op"] = "shutdown" }, deadline.Token, 500, managed: true);
             await ownedProcess.WaitForExitAsync(deadline.Token);
         }
         catch (Exception error) when (error is IOException or TimeoutException or OperationCanceledException or ArgumentException) { }
-        finally { ownedProcess?.Dispose(); ownedProcess = null; }
+        finally { ownedProcess?.Dispose(); ownedProcess = null; ownedProfile = null; }
     }
 }

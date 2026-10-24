@@ -17,9 +17,9 @@ import zipfile
 
 COMPONENTS = {
     "thunderbird": {
-        "version": "155.0",
-        "url": "https://archive.mozilla.org/pub/thunderbird/releases/155.0/win64/de/Thunderbird%20Setup%20155.0.exe",
-        "sha256": "e1f2e6e73425284f6c374f89d54a814aae1d0f0c2a35abbf984893a6f700cb99",
+        "version": "158.0.1",
+        "url": "https://archive.mozilla.org/pub/thunderbird/releases/158.0.1/win64/de/Thunderbird%20Setup%20158.0.1.exe",
+        "sha256": "4471045a1da4dd792c0bcb51771bb499ff6b5b7c40f06047a97a8a65bfb6477e",
     },
     "tbsync": {
         "version": "5.3.8",
@@ -79,7 +79,13 @@ def prepare_extensions(output, cache):
         manifest = json.loads(files["manifest.json"])
         if manifest["version"] != spec["version"] or manifest["browser_specific_settings"]["gecko"]["id"] != spec["id"]:
             raise ValueError("Unexpected account provider identity")
-        manifest["version"] += ".2" if name == "tbsync" else ".1"
+        gecko = manifest["browser_specific_settings"]["gecko"]
+        if gecko.get("strict_min_version") != "153.0" or gecko.get("strict_max_version") != "157.*":
+            raise ValueError("Unexpected upstream account-provider compatibility range")
+        # This is the Magnolie-integrated variant, whose adapter/native gates
+        # are checked against the supported stable Thunderbird 158 runtime.
+        gecko["strict_max_version"] = "158.*"
+        manifest["version"] += ".3" if name == "tbsync" else ".2"
         manifest["name"] = ("TbSync Manager" if name == "tbsync" else "Exchange ActiveSync") + " (Magnolie integration)"
         manifest["browser_specific_settings"]["gecko"].pop("update_url", None)
         files["manifest.json"] = json.dumps(manifest, indent=2).encode()
@@ -111,6 +117,7 @@ def prepare_extensions(output, cache):
             "Upstream: " + spec["url"] + "\n"
             "Added a caller-scoped control adapter and a provider-owned sign-in page.\n"
             "Upstream OAuth implementation and registered authentication identity are unchanged.\n"
+            "Magnolie integration compatibility: Thunderbird 153.0 through 158.*.\n"
             "Adapter source: https://github.com/maik3531/Magnolie-Organizer/tree/main/magnolie-organizer-windows/app/account-bridge\n"
             "Modified/additional files are provided under MPL-2.0.\n"
         ).encode()
@@ -122,14 +129,14 @@ def prepare_extensions(output, cache):
                 archive.writestr(info, data)
         os.replace(temporary, target / (spec["id"] + ".xpi"))
     (output / "MAGNOLIE-NOTICES.txt").write_text(
-        "Mozilla Thunderbird 155.0 is redistributed unmodified (MPL-2.0); see license.html.\n"
-        "Source: https://archive.mozilla.org/pub/thunderbird/releases/155.0/source/\n"
+        f"Mozilla Thunderbird {COMPONENTS['thunderbird']['version']} is redistributed unmodified (MPL-2.0); see license.html.\n"
+        f"Source: https://archive.mozilla.org/pub/thunderbird/releases/{COMPONENTS['thunderbird']['version']}/source/\n"
         "TbSync 5.3.8 and EAS-4-TbSync 5.3.11 are locally integrated variants (MPL-2.0).\n"
         "Their upstream OAuth implementations are unchanged.\n"
         "See MAGNOLIE-CHANGES.txt inside each extension for the exact integration and source links.\n"
         "Upstream sources: https://github.com/jobisoft/TbSync/tree/v5.3.8\n"
         "https://github.com/jobisoft/EAS-4-TbSync/tree/v5.3.11\n"
-        "These upstream add-on versions are beta releases compatible with Thunderbird 155.\n",
+        "The upstream add-ons are beta releases; the Magnolie-integrated variants support Thunderbird 153.0 through 158.*.\n",
         encoding="utf-8")
 
 
@@ -162,12 +169,12 @@ def prepare(output, cache, seven_zip):
         (core / "runtime.json").write_text(json.dumps(COMPONENTS, indent=2) + "\n", encoding="utf-8")
         (core / "MAGNOLIE-NOTICES.txt").write_text(
             "Account helper components (unmodified upstream distributions):\n"
-            "Mozilla Thunderbird 155.0 — Mozilla Public License 2.0; see license.html.\n"
-            "Source: https://archive.mozilla.org/pub/thunderbird/releases/155.0/source/\n"
+            f"Mozilla Thunderbird {COMPONENTS['thunderbird']['version']} — Mozilla Public License 2.0; see license.html.\n"
+            f"Source: https://archive.mozilla.org/pub/thunderbird/releases/{COMPONENTS['thunderbird']['version']}/source/\n"
             "TbSync 5.3.8 and EAS-4-TbSync 5.3.11 — Mozilla Public License 2.0.\n"
             "Source: https://github.com/jobisoft/TbSync/tree/v5.3.8\n"
             "Source: https://github.com/jobisoft/EAS-4-TbSync/tree/v5.3.11\n"
-            "The latter components are upstream beta versions compatible with Thunderbird 155.\n"
+            "The latter components are upstream beta distributions; see the integrated compatibility notes.\n"
             "The account helper is provided with Magnolie; it is not a separate user setup.\n",
             encoding="utf-8")
         core.rename(output)

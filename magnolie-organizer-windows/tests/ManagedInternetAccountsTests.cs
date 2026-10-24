@@ -7,6 +7,7 @@ internal static class ManagedInternetAccountsTests
 {
     internal static async Task RunAsync()
     {
+        ManagedAccountRuntimePolicyTests.Run();
         var root = Path.Combine(Path.GetTempPath(), "magnolie-account-profile-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try
@@ -32,6 +33,13 @@ internal static class ManagedInternetAccountsTests
             TestAssert.That(ThunderbirdBridge.IsManagedSource("thunderbird-calendar:managed:profile:calendar") &&
                 !ThunderbirdBridge.IsManagedSource("thunderbird-calendar:personal:calendar"), "Managed and personal sources share a transport.");
             await TestOperationsAsync();
+            var providerCalls = 0;
+            var preparing = new ManagedAccountOperations(() => true, _ => throw new AccountRuntimeUpdatingException(),
+                (_, _) => { providerCalls++; return Task.FromResult(new JsonObject()); }, (_, _, _) => { providerCalls++; return Task.CompletedTask; });
+            foreach (var action in new[] { "read", "sign_in", "rename", "remove", "edit" })
+                await TestAssert.ThrowsAsync<AccountRuntimeUpdatingException>(() => preparing.ExecuteAsync(action, "google", "owned@example.test",
+                    "owned@example.test", "Owned", null, default), "Component preparation reached an account action or claimed a ready inventory.");
+            TestAssert.That(providerCalls == 0, "An account provider was called before its component became available.");
         }
         finally { Directory.Delete(root, true); }
     }
@@ -109,7 +117,7 @@ internal static class ManagedInternetAccountsTests
             TestAssert.That(ManagedInternetAccounts.MailWindows(environment, hide: false) == 0, "The background helper exposed a mail window.");
             TestAssert.That(status["microsoft"]?["protocol"]?.GetValue<int>() == 1, "The bundled Microsoft account adapter is unavailable.");
             process = System.Diagnostics.Process.GetProcessById(environment["pid"]!.GetValue<int>());
-            TestAssert.That(string.Equals(process.MainModule!.FileName, Path.Combine(runtime, "thunderbird.exe"), StringComparison.OrdinalIgnoreCase),
+            TestAssert.That(string.Equals(process.MainModule!.FileName, Path.GetFullPath(Path.Combine(runtime, "thunderbird.exe")), StringComparison.OrdinalIgnoreCase),
                 "The probe used an installed mail client instead of the packaged helper.");
             Console.WriteLine("Managed account helper: bundled runtime, automatic isolated profile and add-on setup, dedicated native channel, Microsoft adapter ready.");
             if (lifecycle)

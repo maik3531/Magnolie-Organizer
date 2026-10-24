@@ -184,7 +184,9 @@ var magnolie = class extends ExtensionCommon.ExtensionAPI {
       if (message.version !== 1 || !/^[a-f0-9]{32}$/.test(message.id || "")) throw new Error("protocol");
       if (message.op === "environment") { return { managed: managed(), profile: PathUtils.profileDir, pid: Services.appinfo.processID,
         mailWindows: managed() ? Array.from(Services.wm.getEnumerator("mail:3pane"))
-          .map(window => window.docShell.treeOwner.QueryInterface(Ci.nsIBaseWindow).nativeHandle) : [],
+          .map(window => window.docShell.treeOwner.QueryInterface(Ci.nsIBaseWindow).nativeHandle)
+          .filter(handle => handle !== null && handle !== undefined && handle !== "" &&
+            !(typeof handle === "string" && /^(?:0x)?0+$/i.test(handle))) : [],
         probe: Services.env.get("MAGNOLIE_ACCOUNT_PROBE_TRACE") === PathUtils.profileDir }; }
       if (message.op === "probe-phase" && managed() && Services.env.get("MAGNOLIE_ACCOUNT_PROBE_TRACE") === PathUtils.profileDir) {
         if (!["received", "native-api-done", "tb-status-start", "tb-status-done", "reply-sent"].includes(message.phase)) throw new Error("phase");

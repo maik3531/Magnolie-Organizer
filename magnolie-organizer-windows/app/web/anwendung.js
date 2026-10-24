@@ -25188,18 +25188,18 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const liste = $("#internet-konten-liste");
     if (!status || !liste) return;
     const s = internetKontenStand || {};
-    status.textContent = s.fehler || (s.google?.error || s.microsoft?.login?.error
+    status.textContent = s.runtime_updating ? _("Please wait …") : s.fehler || (s.google?.error || s.microsoft?.login?.error
       ? _("Account sign-in could not be started. Please try again.")
       : internetKontoAnmeldung ? _("Preparing account sign-in …") : "");
     liste.textContent = "";
     const kontoZeile = (anbieter, id, name, text, verbunden) => {
       const zeile = el("div", "knopfreihe internet-konto-zeile");
-      zeile.append(el("span", "internet-konto-text", text + " — " + (verbunden ? _("Connected") : _("Unavailable"))));
+      zeile.append(el("span", "internet-konto-text", text + " — " + (verbunden && s.bereit !== false && !s.runtime_updating ? _("Connected") : _("Unavailable"))));
       const entfernen = async () => {
-        if (internetKontoAnmeldung || syncLaeuft || gesperrt) return;
+        if (internetKontoAnmeldung || internetKontenStand?.runtime_updating || syncLaeuft || gesperrt) return;
         const bestand = DATEN;
         if (!await frage(_("Remove") + " · " + name + "?", _("Remove"))) return;
-        if (DATEN !== bestand || internetKontoAnmeldung || syncLaeuft || gesperrt) return;
+        if (DATEN !== bestand || internetKontoAnmeldung || internetKontenStand?.runtime_updating || syncLaeuft || gesperrt) return;
         internetKontoAnmeldung = true; internetKontoStartet = true; internetKontenZeigen();
         if (!Bruecke.sende({cmd:"internet_konto_verwalten",anbieter,konto:id,aktion:"remove"})) {
           internetKontoAnmeldung = false; internetKontoStartet = false;
@@ -25229,7 +25229,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       liste.append(el("p", "einst-hinweis internet-aufgaben-status",
         _("Tasks") + " · Microsoft / EAS — " + _("Unavailable")));
     $("#internet-konten")?.querySelectorAll("button").forEach(button => {
-      button.disabled = !Bruecke.vorhanden || internetKontoAnmeldung || syncLaeuft;
+      button.disabled = !Bruecke.vorhanden || internetKontoAnmeldung || s.runtime_updating === true || syncLaeuft;
     });
   }
 
@@ -25239,7 +25239,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const email = eingabe("email", ""); email.id = "internet-konto-email";
     ab.append(formZeile(_("Email"), email));
     const anmelden = anbieter => {
-      if (internetKontoAnmeldung) return;
+      if (internetKontoAnmeldung || internetKontenStand?.runtime_updating) return;
       if (!email.value.trim().includes("@")) { zettel(_("Enter your email address.")); email.focus(); return; }
       internetKontoAnmeldung = true;
       internetKontoStartet = true;
@@ -32047,6 +32047,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     },
     internetKontoAnmeldung(nutzlast) {
       internetKontoStartet = false;
+      if (nutzlast?.runtime_updating) { internetKontoAnmeldung = false; App.internetKontenStatus({ bereit: false, runtime_updating: true }); return; }
       if (!nutzlast?.ok) {
         internetKontoAnmeldung = false;
         internetKontenStand = {...internetKontenStand, fehler:nutzlast?.fehler || _("Unavailable")};
@@ -32058,6 +32059,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     },
     internetKontoVerwaltet(nutzlast) {
       internetKontoStartet = false;
+      if (nutzlast?.runtime_updating) { internetKontoAnmeldung = false; App.internetKontenStatus({ bereit: false, runtime_updating: true }); return; }
       if (!nutzlast?.ok) {
         internetKontoAnmeldung = false;
         internetKontenZeigen();
@@ -32067,12 +32069,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     internetKontenStatus(nutzlast) {
       if (internetKontoStartet) return;
       clearTimeout(internetKontoTimer);
-      const vorher = internetKontoAnmeldung;
+      const vorher = internetKontoAnmeldung || internetKontenStand?.runtime_updating === true;
       internetKontenStand = nutzlast?.fehler
-        ? {...internetKontenStand, fehler:nutzlast.fehler} : nutzlast || {};
+        ? {...internetKontenStand, fehler:nutzlast.fehler, runtime_updating: nutzlast.runtime_updating === true, bereit: false}
+        : nutzlast?.runtime_updating ? {...internetKontenStand, bereit: false, runtime_updating: true} : nutzlast || {};
       internetKontoAnmeldung = !!(nutzlast?.google?.pending || nutzlast?.microsoft?.login?.pending);
       internetKontenZeigen();
-      if (internetKontoAnmeldung) internetKontoTimer = setTimeout(() => Bruecke.sende({ cmd: "internet_konten_status" }), 1500);
+      if (internetKontoAnmeldung || internetKontenStand.runtime_updating) internetKontoTimer = setTimeout(() => Bruecke.sende({ cmd: "internet_konten_status" }), 3000);
       else if (vorher) Bruecke.sende({ cmd: "eds_status" });
     },
     thunderbirdEinrichtung(nutzlast) {
@@ -36853,10 +36856,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         total: rows.length, offset, entries: rows.slice(offset, offset + limit).map(row => ({ provider: row.provider, id: row.id, name: row.name, enabled: row.enabled, error_present: row.error_present })),
         ...(offset + limit < rows.length ? { next_offset: offset + limit } : {}), operation_accepted: value.accepted, change_verified: value.verified, authentication_verified: false };
     };
-    return [{ name: "organizer_internet_accounts_read", description: "Read the Windows managed Google/Microsoft account helper's actual sanitized account inventory and pending-login flags, with a native public-state revision and pagination. Like the GUI status path, this can start/reconcile the owned helper runtime when configured; it does not create a user account. No tokens, raw provider errors or authentication claim. Linux direct managed-account integration is unsupported; system EDS sources use sync_sources_read. Late replies leave GUI drafts unchanged.",
+    return [{ name: "organizer_internet_accounts_read", description: "Read the Windows managed Google/Microsoft account helper's actual sanitized account inventory and pending-login flags, with a native public-state revision and pagination. Like the GUI status path, this can start/reconcile the owned helper when configured, preferring a verified installed Thunderbird compatible with both profile and providers. Otherwise a signed app-local Mozilla component may be prepared by a bounded shared background worker. Preparation reports native_busy and can outlive caller cancellation; read again after it finishes. This does not create a user account or reset/downgrade a profile. No tokens, raw provider errors or authentication claim. Linux direct managed-account integration is unsupported; system EDS sources use sync_sources_read. Late replies leave GUI drafts unchanged.",
       inputSchema: { type: "object", properties: { offset: { type: "integer", minimum: 0 }, limit: { type: "integer", minimum: 1, maximum: 100 } }, additionalProperties: false },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true }, call: (args, signal) => run(args, signal, "read") },
-    { name: "organizer_internet_account_action", description: "Use the same Windows managed-account handler as the GUI to open Google/Outlook/Microsoft365 sign-in, rename/remove an offered account, or open its edit interface. Requires the latest full public-state revision; account changes are serialized with GUI operations and blocked during pending sign-in. Rename/remove are confirmed by actual status readback; sign_in/edit confirm operation acceptance only, never completed authentication. Helper startup and provider dialogs may outlive cancellation/timeouts. No book mutation, token return or GUI-draft refresh. Re-read state before retrying ambiguous failures.",
+    { name: "organizer_internet_account_action", description: "Use the same Windows managed-account handler as the GUI to open Google/Outlook/Microsoft365 sign-in, rename/remove an offered account, or open its edit interface. Requires the latest full public-state revision; account changes are serialized with GUI operations and blocked during pending sign-in. Compatible component preparation reports native_busy before an account action starts; read fresh state before retrying. Rename/remove are confirmed by actual status readback; sign_in/edit confirm operation acceptance only, never completed authentication. Owned component preparation, helper startup and provider dialogs may outlive cancellation/timeouts. No book mutation, token return or GUI-draft refresh. Re-read state before retrying ambiguous failures.",
       inputSchema: { type: "object", properties: { action: { type: "string", enum: ["sign_in", "rename", "remove", "edit"] }, expected_revision: revision,
         provider: { type: "string", enum: ["google", "microsoft", "personal-ms", "office365"] }, account_id: text, email: text, name: text }, required: ["action", "expected_revision", "provider"],
         anyOf: [{ properties: { action: { enum: ["sign_in"] }, provider: { enum: ["google", "personal-ms", "office365"] } }, required: ["email"] },

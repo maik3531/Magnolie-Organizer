@@ -72,6 +72,24 @@ const watchdog = setTimeout(() => { console.error("MCP Internet accounts timed o
       reply(held); await tick();
       assert.equal(draft.value, "https://owned-draft.example.test"); assert.equal(secret.value, "owned-unsaved-secret");
       assert.equal(b.w.document.querySelector("#zettel").textContent, toast); assert.equal(b.messages.filter(message => message.cmd === "eds_status").length, sourceReads);
+      const section = b.w.document.querySelector("#internet-konten");
+      if (section) {
+        const reads = b.messages.filter(message => message.cmd === "internet_konten_status").length;
+        const starts = b.messages.filter(message => message.cmd === "internet_konto_anmelden").length;
+        b.w.App.internetKontoAnmeldung({ ok: false, runtime_updating: true });
+        assert.equal(b.w.document.querySelector("#internet-konten-status").textContent, b.w.MagnolieI18n.gettext("Please wait …"));
+        assert.ok(Array.from(section.querySelectorAll("button")).every(button => button.disabled));
+        assert.equal(b.w.document.querySelector("#zettel").textContent, toast, "Normal component preparation opened a failure toast");
+        const poll = b.timers.findLast(timer => timer.delay === 3000 && !timer.cancelled);
+        assert.ok(poll, "Component preparation did not schedule its bounded readiness poll");
+        poll.fn();
+        assert.equal(b.messages.filter(message => message.cmd === "internet_konten_status").length, reads + 1, "Component preparation did not poll for readiness");
+        assert.equal(b.messages.filter(message => message.cmd === "internet_konto_anmelden").length, starts, "Preparation silently queued/replayed sign-in");
+        b.w.App.internetKontenStatus({ bereit: true, google: { accounts: [], pending: false }, microsoft: { accounts: [], login: { pending: false } } });
+        assert.equal(b.w.document.querySelector("#internet-konten-status").textContent, "");
+        assert.ok(Array.from(section.querySelectorAll("button")).every(button => !button.disabled));
+        assert.equal(draft.value, "https://owned-draft.example.test"); assert.equal(secret.value, "owned-unsaved-secret");
+      }
       assert.equal(JSON.stringify(b.t.daten()), before); assert.equal(b.saves().length, saves);
       console.log("MCP INTERNET ACCOUNTS PASS: real receipt projection, pagination, action mapping, native ACK/errors, draft gates and silent cancellation " + web);
     } finally { b.close(); }

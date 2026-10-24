@@ -7,6 +7,10 @@ if (args.FirstOrDefault() == "--thunderbird-live") return await NextcloudDavLive
 if (args.FirstOrDefault() == "--birthday-thunderbird-live") return await CalendarBirthdayCleanupTests.RunBridgeLiveAsync();
 if (args.FirstOrDefault() == "--thunderbird-readonly") return await NextcloudDavLiveTests.ReadOnlyAsync();
 if (args.FirstOrDefault() == "--managed-accounts-readonly") return await NextcloudDavLiveTests.ReadOnlyAsync(managed: true);
+if (args.FirstOrDefault() == "--managed-runtime-policy-probe" && args.Length == 3)
+    return ManagedAccountRuntimePolicyTests.NativeProbe(args[1], args[2]);
+if (args.FirstOrDefault() == "--managed-runtime-update-probe" && args.Length == 4)
+    return await ManagedAccountRuntimePolicyTests.NativeUpdateProbeAsync(args[1], args[2], args[3]);
 if (args.FirstOrDefault() == "--contact-identity-audit" && args.Length == 2) return await WindowsContactGraphTests.AuditIdentityAsync(args[1]);
 if (args.FirstOrDefault() == "--contact-cleanup-fixture")
 {
