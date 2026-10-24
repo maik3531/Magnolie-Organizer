@@ -478,13 +478,45 @@ Section -Commit
   commit_done:
 SectionEnd
 
+Section "Telefon-Dateisystem über WLAN" SEC_FILESYSTEM
+  ; Shared system prerequisites are outside the app ownership transaction and
+  ; are never removed by its uninstaller. Existing installations are retained.
+  ExecWait '"$INSTDIR\${PRODUCT_EXE}" --phone-filesystem-runtime-status' $0
+  ${If} $0 == 0
+    Goto filesystem_done
+  ${EndIf}
+  IfSilent filesystem_silent filesystem_interactive
+  filesystem_silent:
+    ExecWait '"$INSTDIR\${PRODUCT_EXE}" --prepare-phone-filesystem' $0
+    Goto filesystem_check
+  filesystem_interactive:
+    ClearErrors
+    ExecShellWait "runas" "$INSTDIR\${PRODUCT_EXE}" "--prepare-phone-filesystem" SW_SHOWNORMAL
+    IfErrors filesystem_failed
+    ExecWait '"$INSTDIR\${PRODUCT_EXE}" --phone-filesystem-runtime-status' $0
+  filesystem_check:
+    ${If} $0 == 0
+      Goto filesystem_done
+    ${EndIf}
+    ${If} $0 == 3010
+      SetRebootFlag true
+      Goto filesystem_done
+    ${EndIf}
+  filesystem_failed:
+    IfSilent filesystem_done
+    MessageBox MB_ICONEXCLAMATION|MB_OK "Die Windows-Komponenten für den Telefon-Dateisystemzugriff konnten noch nicht eingerichtet werden. Magnolie Organizer ist installiert. Sie können die Einrichtung später über filesystem-runtime\Telefon-Dateisystem vorbereiten.cmd mit Administratorrechten wiederholen."
+  filesystem_done:
+SectionEnd
+
 LangString DESC_SEC_MAIN ${LANG_GERMAN} "Installiert die selbstenthaltende 64-Bit-Anwendung und legt die Einträge im Windows-Startmenü an."
 LangString DESC_SEC_HANDBUCH ${LANG_GERMAN} "Installiert das Windows-Benutzerhandbuch und legt dafür einen Eintrag im Startmenü an."
 LangString DESC_SEC_DESKTOP ${LANG_GERMAN} "Legt zusätzlich eine Verknüpfung auf Ihrem Desktop an."
+LangString DESC_SEC_FILESYSTEM ${LANG_GERMAN} "Richtet bei Bedarf die mitgelieferten signierten WinFsp-/SSHFS-Win-Systemkomponenten ein. Dafür sind einmalig Administratorrechte erforderlich. Vorhandene Komponenten bleiben erhalten."
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SEC_MAIN} $(DESC_SEC_MAIN)
   !insertmacro MUI_DESCRIPTION_TEXT ${SEC_HANDBUCH} $(DESC_SEC_HANDBUCH)
   !insertmacro MUI_DESCRIPTION_TEXT ${SEC_DESKTOP} $(DESC_SEC_DESKTOP)
+  !insertmacro MUI_DESCRIPTION_TEXT ${SEC_FILESYSTEM} $(DESC_SEC_FILESYSTEM)
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 Function un.CloseRunningApplication

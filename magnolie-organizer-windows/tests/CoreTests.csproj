@@ -48,6 +48,8 @@
     <Compile Include="..\KdeDigitizerState.cs" Link="KdeDigitizerState.cs" />
     <Compile Include="..\KdeMediaState.cs" Link="KdeMediaState.cs" />
     <Compile Include="..\KdeFilesystem.cs" Link="KdeFilesystem.cs" />
+    <Compile Include="..\FilesystemRuntimeSetup.cs" Link="FilesystemRuntimeSetup.cs" />
+    <EmbeddedResource Include="..\app\filesystem-runtime.json" LogicalName="Magnolie.FilesystemPrerequisites.json" />
     <Compile Include="..\KdeConnectDirectBackend.Filesystem.cs" Link="KdeConnectDirectBackend.Filesystem.cs" />
     <Compile Include="..\KdeLocalMedia.cs" Link="KdeLocalMedia.cs" />
     <Compile Include="..\KdeConnectDirectBackend.MediaPayload.cs" Link="KdeConnectDirectBackend.MediaPayload.cs" />

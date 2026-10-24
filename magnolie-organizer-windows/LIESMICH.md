@@ -35,8 +35,17 @@ bestätigten WLAN-Verbindung, wenn das Telefon SFTP bereitstellt und der
 Windows-Mountprovider verfügbar ist. Bei Bluetooth, Trennung oder fehlendem
 Provider ist er ausgeblendet.
 
-Die Windows-Anbindung verwendet vorhandenes **SSHFS-Win und WinFsp**. Sie
-verändert deren Dienste oder die SSH-Einstellungen des Benutzers nicht. Jede
+Der Setup-Assistent bietet **„Telefon-Dateisystem über WLAN“** an und richtet
+die mitgelieferten, signierten **SSHFS-Win-/WinFsp**-Komponenten bei Bedarf mit
+einmaliger Windows-Administratorfreigabe ein. Bereits vorhandene Komponenten
+bleiben erhalten; sie werden bei einer Organizer-Deinstallation nicht entfernt,
+da auch andere Programme sie verwenden können. In der portablen Ausgabe führt
+`filesystem-runtime\Telefon-Dateisystem vorbereiten.cmd` dieselbe Einrichtung
+aus. Eine stille Installation ohne Administratorrechte überspringt die noch
+fehlende Systemeinrichtung; die Organizer-Anwendung selbst bleibt nutzbar.
+
+Die laufende Dateisystem-Anbindung verändert keine SSH-Einstellungen und keine
+KDE-Connect-Pluginfreigaben. Jede
 Einbindung erhält ein eigenes temporäres Verzeichnis und eine eigene
 Hostschlüsseldatei mit dem Schlüssel des bestätigten Telefonzertifikats. Das
 Sitzungspasswort wird über die Standardeingabe übergeben und erscheint weder

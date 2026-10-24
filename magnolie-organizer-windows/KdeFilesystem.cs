@@ -102,31 +102,52 @@ internal sealed class KdeWindowsFilesystemBrowser : IKdeFilesystemBrowser
     private readonly Func<string?> executable;
     private readonly Func<string, string, bool> mounted;
     private readonly Action<string> show;
+    private readonly Action<string>? diagnostics;
     private bool disposed;
     internal KdeWindowsFilesystemBrowser(string directory, Func<string?>? executable = null,
-        Func<string, string, bool>? mounted = null, Action<string>? show = null)
+        Func<string, string, bool>? mounted = null, Action<string>? show = null, Action<string>? diagnostics = null)
     {
         root = System.IO.Path.Combine(directory, "filesystem");
         this.executable = executable ?? Installed;
         this.mounted = mounted ?? HasVolumeLabel;
         this.show = show ?? (path => { using var child = Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); });
+        this.diagnostics = diagnostics;
     }
     public bool Available => !disposed && executable() is not null;
-    private static string? Installed()
+    internal static bool IsWinFspDriver(string service, int type) => type == 2 &&
+        (service.Equals("WinFsp", StringComparison.OrdinalIgnoreCase) ||
+         service.StartsWith("WinFsp+", StringComparison.OrdinalIgnoreCase) && service.Length > "WinFsp+".Length);
+    internal static bool WinFspInstalled()
+    {
+        if (!OperatingSystem.IsWindows()) return false;
+        using (var machine = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
+        using (var services = machine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services"))
+        {
+            if (services is null) return false;
+            var found = false;
+            foreach (var name in services.GetSubKeyNames())
+            {
+                if (!name.Equals("WinFsp", StringComparison.OrdinalIgnoreCase) && !name.StartsWith("WinFsp+", StringComparison.OrdinalIgnoreCase)) continue;
+                using var service = services.OpenSubKey(name);
+                if (service?.GetValue("Type") is int type && IsWinFspDriver(name, type)) { found = true; break; }
+            }
+            return found;
+        }
+    }
+    internal static string? SshfsInstalled()
     {
         if (!OperatingSystem.IsWindows()) return null;
         foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
         {
             using var machine = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view);
-            using var driver = machine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\WinFsp");
             using var client = machine.OpenSubKey(@"SOFTWARE\SSHFS-Win");
-            if (driver is null) continue;
             var directory = client?.GetValue("InstallDir") as string ?? System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "SSHFS-Win");
             var wrapper = System.IO.Path.Combine(directory, "bin", "sshfs-win.exe");
             if (File.Exists(wrapper) && File.Exists(System.IO.Path.Combine(directory, "bin", "sshfs.exe"))) return wrapper;
         }
         return null;
     }
+    private static string? Installed() => WinFspInstalled() ? SshfsInstalled() : null;
     internal static string CygwinPath(string path)
     {
         var full = System.IO.Path.GetFullPath(path);
@@ -170,7 +191,9 @@ internal sealed class KdeWindowsFilesystemBrowser : IKdeFilesystemBrowser
             Directory.CreateDirectory(root);
             var directory = System.IO.Path.Combine(root, "phone-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
-            var point = System.IO.Path.Combine(directory, "files"); Directory.CreateDirectory(point);
+            // WinFsp creates its directory mount point itself. Unlike Linux
+            // FUSE, the final mount directory must not already exist.
+            var point = System.IO.Path.Combine(directory, "files");
             var known = System.IO.Path.Combine(directory, "known_hosts");
             var host = report.Port == 22 ? address.ToString() : "[" + address + "]:" + report.Port;
             await File.WriteAllTextAsync(known, host + " " + publicKey + "\n", new UTF8Encoding(false), cancellation).ConfigureAwait(false);
@@ -178,20 +201,21 @@ internal sealed class KdeWindowsFilesystemBrowser : IKdeFilesystemBrowser
             var start = new ProcessStartInfo(program) { UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true,
                 RedirectStandardError = true, CreateNoWindow = true, WorkingDirectory = System.IO.Path.GetDirectoryName(program)! };
             foreach (var arg in Arguments(address, report, CygwinPath(point), CygwinPath(known), label)) start.ArgumentList.Add(arg);
+            if (diagnostics is not null) start.ArgumentList.Add("-d");
             Process? process = null; Mount? entry = null;
             try
             {
                 process = Process.Start(start) ?? throw new IOException("filesystem_mount_failed");
                 entry = new(process, directory, point, known, label, endpoint);
                 // Drain without collecting server-controlled output or credentials in a log.
-                _ = process.StandardOutput.BaseStream.CopyToAsync(Stream.Null);
-                _ = process.StandardError.BaseStream.CopyToAsync(Stream.Null);
+                var output = diagnostics is null ? process.StandardOutput.BaseStream.CopyToAsync(Stream.Null) : ReadDiagnosticsAsync(process.StandardOutput, report.Password);
+                var errors = diagnostics is null ? process.StandardError.BaseStream.CopyToAsync(Stream.Null) : ReadDiagnosticsAsync(process.StandardError, report.Password);
                 await process.StandardInput.WriteLineAsync(report.Password.AsMemory(), cancellation).ConfigureAwait(false); process.StandardInput.Close();
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellation); deadline.CancelAfter(TimeSpan.FromSeconds(15));
                 while (!mounted(point, label))
                 {
                     if (!current()) throw new InvalidOperationException("filesystem_source_changed");
-                    if (process.HasExited) throw new IOException("filesystem_mount_failed");
+                    if (process.HasExited) { await Task.WhenAll(output, errors).ConfigureAwait(false); diagnostics?.Invoke($"Native filesystem client exit: 0x{process.ExitCode:X8}"); throw new IOException("filesystem_mount_failed"); }
                     await Task.Delay(50, deadline.Token).ConfigureAwait(false);
                 }
                 if (!current()) throw new InvalidOperationException("filesystem_source_changed");
@@ -200,11 +224,18 @@ internal sealed class KdeWindowsFilesystemBrowser : IKdeFilesystemBrowser
             catch
             {
                 if (entry is not null) await CleanupAsync(entry).ConfigureAwait(false);
-                else { try { Directory.Delete(point); File.Delete(known); Directory.Delete(directory); } catch (IOException) { } }
+                else { try { if (Directory.Exists(point)) Directory.Delete(point); File.Delete(known); Directory.Delete(directory); } catch (IOException) { } }
                 throw;
             }
         }
         finally { gate.Release(); }
+    }
+    private async Task ReadDiagnosticsAsync(StreamReader reader, string password)
+    {
+        var buffer = new char[1024]; var tail = new StringBuilder(); int read;
+        while ((read = await reader.ReadAsync(buffer).ConfigureAwait(false)) > 0)
+        { tail.Append(buffer, 0, read); if (tail.Length > 4096) tail.Remove(0, tail.Length - 4096); }
+        if (tail.Length > 0) diagnostics?.Invoke(tail.ToString().Replace(password, "[redacted]", StringComparison.Ordinal));
     }
     private async Task CleanupAsync(Mount entry)
     {
@@ -216,7 +247,7 @@ internal sealed class KdeWindowsFilesystemBrowser : IKdeFilesystemBrowser
         }
         entry.Process.Dispose();
         if (!mounted(entry.Point, entry.Label))
-            try { Directory.Delete(entry.Point); File.Delete(entry.KnownHosts); Directory.Delete(entry.Directory); }
+            try { if (Directory.Exists(entry.Point)) Directory.Delete(entry.Point); File.Delete(entry.KnownHosts); Directory.Delete(entry.Directory); }
             catch (IOException) { } // No recursive deletion, including after a failed teardown.
     }
     public async Task CloseAsync(string? token = null)

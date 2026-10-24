@@ -11,6 +11,14 @@ if (args.FirstOrDefault() == "--managed-runtime-policy-probe" && args.Length == 
     return ManagedAccountRuntimePolicyTests.NativeProbe(args[1], args[2]);
 if (args.FirstOrDefault() == "--managed-runtime-update-probe" && args.Length == 4)
     return await ManagedAccountRuntimePolicyTests.NativeUpdateProbeAsync(args[1], args[2], args[3]);
+if (args.FirstOrDefault() == "--kde-filesystem-native-probe" && args.Length == 2)
+    return await KdeFilesystemTests.NativeProbeAsync(args[1]);
+if (args.FirstOrDefault() == "--filesystem-prerequisite-probe" && args.Length == 2)
+{
+    MagnolieOrganizer.Windows.FilesystemRuntimeSetup.ValidatePackages(args[1]);
+    Console.WriteLine("NATIVE PREREQUISITES PASS: embedded hashes and Authenticode publisher validated; no installation performed");
+    return 0;
+}
 if (args.FirstOrDefault() == "--contact-identity-audit" && args.Length == 2) return await WindowsContactGraphTests.AuditIdentityAsync(args[1]);
 if (args.FirstOrDefault() == "--contact-cleanup-fixture")
 {

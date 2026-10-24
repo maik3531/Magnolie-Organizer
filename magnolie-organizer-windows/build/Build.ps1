@@ -178,6 +178,7 @@ try {
         Invoke-NativeCommand "bun" @("run", "test")
         Invoke-NativeCommand "dotnet" @("publish", "MagnolieOrganizer.Windows.csproj", "-c", "Release", "-r", "win-x64", "--self-contained", "true", "--no-restore", "-p:Version=$version", "-o", $publish)
         Invoke-NativeCommand $python.Source @((Join-Path $buildRoot "werkzeuge/account_runtime.py"), "--output", (Join-Path $publish "account-runtime"))
+        Invoke-NativeCommand $python.Source @((Join-Path $buildRoot "werkzeuge/filesystem_runtime.py"), "--output", (Join-Path $publish "filesystem-runtime"))
         Invoke-NativeCommand "bun" @((Join-Path $buildRoot "build/PortHandbook.js"), $handbookWeb, $version, $installerName, (Join-Path $publish "handbuch"))
         Invoke-NativeCommand "bun" @((Join-Path $buildRoot "build/AuditWebPayload.js"), "--publish", $buildRoot, $publish)
     } finally {

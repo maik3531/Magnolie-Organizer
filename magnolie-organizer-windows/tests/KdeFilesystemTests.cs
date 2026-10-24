@@ -1,16 +1,64 @@
 using System.Net;
 using System.Text.Json.Nodes;
+using System.Security.Cryptography.X509Certificates;
 using MagnolieOrganizer.Windows;
 
 namespace MagnolieOrganizer.Windows.Tests;
 
 internal static class KdeFilesystemTests
 {
+    internal static async Task<int> NativeProbeAsync(string configuration)
+    {
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        var root = Path.GetDirectoryName(Path.GetFullPath(configuration))!;
+        if (!Path.GetFileName(root).StartsWith("Magnolie-Kernel171-", StringComparison.Ordinal))
+            throw new InvalidDataException("An owned filesystem fixture is required.");
+        var config = JsonNode.Parse(await File.ReadAllTextAsync(configuration))!.AsObject();
+        var address = IPAddress.Parse(config["host"]!.GetValue<string>());
+        var report = KdeSftpDescription.Parse(new JsonObject { ["port"] = config["port"]!.DeepClone(),
+            ["user"] = "kdeconnect", ["path"] = "/", ["password"] = "native-fixture-password" });
+        using var certificate = X509Certificate2.CreateFromPem(config["certificate"]!.GetValue<string>());
+        using var wrong = KdeConnectTests.Certificate("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
+        string? shown = null;
+        Action<string>? diagnostics = config["diagnostics"]?.GetValue<bool>() == true ? Console.Error.WriteLine : null;
+        await using var browser = new KdeWindowsFilesystemBrowser(Path.Combine(root, "profile space,comma"), show: path =>
+        {
+            TestAssert.That(File.ReadAllText(Path.Combine(path, "fixture.txt")) == "fixture-only", "The kernel mount did not expose the owned SFTP fixture.");
+            shown = path;
+        }, diagnostics: diagnostics);
+        TestAssert.That(browser.Available, "Installed SSHFS-Win and the versioned WinFsp driver were not detected.");
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(75));
+        var wrongRejected = false;
+        try { await browser.OpenAsync("wrong-key", address, report, KdeSftpDescription.PublicHostKey(wrong), () => true, deadline.Token); }
+        catch (IOException) { wrongRejected = true; }
+        TestAssert.That(wrongRejected && shown is null, "A wrong pinned SSH host key reached the file manager.");
+        await browser.OpenAsync("fixture", address, report, KdeSftpDescription.PublicHostKey(certificate), () => true, deadline.Token);
+        TestAssert.That(shown is not null, "Native mount readiness did not reach the directory handler.");
+        Console.WriteLine("MOUNTED " + new JsonObject { ["point"] = shown }.ToJsonString());
+        TestAssert.That(await Console.In.ReadLineAsync(deadline.Token) == "CLOSE", "The bounded native Explorer handshake did not finish.");
+        await browser.CloseAsync("fixture");
+        TestAssert.That(!File.Exists(Path.Combine(shown!, "fixture.txt")) && !Directory.Exists(shown), "Owned kernel mount or mount directory remained after close.");
+        Console.WriteLine("NATIVE FILESYSTEM PASS: installed driver/client, pinned host-key rejection, kernel SFTP read, space/comma paths and unmount cleanup");
+        return 0;
+    }
+
     private static JsonObject Body() => new() { ["ip"] = "203.0.113.99", ["port"] = 1739, ["user"] = "kdeconnect",
         ["path"] = "/", ["password"] = "synthetic-only-password" };
 
     internal static async Task RunAsync()
     {
+        var prerequisites = FilesystemRuntimeSetup.Packages();
+        TestAssert.That(prerequisites.Count == 2 && prerequisites.Select(package => package.Kind).Order().SequenceEqual(new[] { "client", "driver" }) &&
+            prerequisites.All(package => package.Publisher == "NAVIMATICS LLC" && package.Url.StartsWith("https://github.com/winfsp/", StringComparison.Ordinal) &&
+                package.Sha256.Length == 64 && Convert.FromHexString(package.Sha256).Length == 32),
+            "Installer prerequisites lost their embedded source/publisher/checksum binding.");
+        TestAssert.That(KdeWindowsFilesystemBrowser.IsWinFspDriver("WinFsp", 2) &&
+            KdeWindowsFilesystemBrowser.IsWinFspDriver("WinFsp+20261024T091731Z", 2),
+            "Legacy or current side-by-side WinFsp driver service was not detected.");
+        foreach (var name in new[] { "WinFsp.Launcher", "WinFsp.Np", "WinFsp+", "Other" })
+            TestAssert.That(!KdeWindowsFilesystemBrowser.IsWinFspDriver(name, 2), "An unrelated service was accepted as the filesystem driver.");
+        TestAssert.That(!KdeWindowsFilesystemBrowser.IsWinFspDriver("WinFsp+20261024T091731Z", 16),
+            "A user-mode service was accepted as a filesystem driver.");
         foreach (var (field, value) in new (string, JsonNode?)[] { ("port", JsonValue.Create(true)), ("port", JsonValue.Create(0)),
             ("user", JsonValue.Create("-option")), ("path", JsonValue.Create("/a/../b")), ("password", JsonValue.Create("bad\npassword")),
             ("url", JsonValue.Create("file:///")), ("multiPaths", new JsonArray("../bad")) })

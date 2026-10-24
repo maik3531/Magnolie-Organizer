@@ -38,6 +38,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="app\filesystem-runtime.json" LogicalName="Magnolie.FilesystemPrerequisites.json" />
     <Content Include="app\thunderbird\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>thunderbird\%(Filename)%(Extension)</Link>

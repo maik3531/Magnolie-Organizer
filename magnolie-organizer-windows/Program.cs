@@ -11,6 +11,15 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        if (args.Length == 1 && args[0] == FilesystemRuntimeSetup.StatusArgument)
+        { Environment.ExitCode = FilesystemRuntimeSetup.Available ? 0 : 1; return; }
+        if (args.Length == 1 && args[0] == FilesystemRuntimeSetup.SetupArgument)
+        {
+            try { Environment.ExitCode = FilesystemRuntimeSetup.RunAsync().GetAwaiter().GetResult(); }
+            catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException or OperationCanceledException or ArgumentException)
+            { Environment.ExitCode = 1; }
+            return;
+        }
         if (args.Length == 1 && args[0] == "--mcp-stdio")
         {
             Environment.ExitCode = McpLocalServer.RunStdioAsync(new WindowsPaths().Root,

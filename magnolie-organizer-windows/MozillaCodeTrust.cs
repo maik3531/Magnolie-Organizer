@@ -6,6 +6,11 @@ namespace MagnolieOrganizer.Windows;
 
 internal static class MozillaCodeTrust
 {
+    internal static bool IsTrusted(string path) => WindowsCodeTrust.IsTrusted(path, "Mozilla Corporation");
+}
+
+internal static class WindowsCodeTrust
+{
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct TrustFile
     {
@@ -35,7 +40,7 @@ internal static class MozillaCodeTrust
     [DllImport("wintrust.dll", ExactSpelling = true, PreserveSig = true)]
     private static extern int WinVerifyTrust(nint window, ref Guid action, ref TrustData data);
 
-    internal static bool IsTrusted(string path)
+    internal static bool IsTrusted(string path, string expectedPublisher)
     {
         if (!OperatingSystem.IsWindows()) return false;
         nint pointer = 0;
@@ -53,7 +58,7 @@ internal static class MozillaCodeTrust
             // showing UI or depending on a network fetch during every status read.
             if (WinVerifyTrust(new nint(-1), ref action, ref data) != 0) return false;
             using var certificate = new X509Certificate2(X509Certificate.CreateFromSignedFile(path));
-            return certificate.GetNameInfo(X509NameType.SimpleName, false) == "Mozilla Corporation";
+            return certificate.GetNameInfo(X509NameType.SimpleName, false).Equals(expectedPublisher, StringComparison.OrdinalIgnoreCase);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or CryptographicException or ArgumentException)
         { return false; }
