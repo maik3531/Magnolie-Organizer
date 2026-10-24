@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_title">O aplikaci Magnolie Notes</string>
+    <string name="about_part_of">Magnolie Notes je součástí Magnolie Organizer.</string>
+    <string name="about_author">Vývojář: %1$s</string>
+</resources>

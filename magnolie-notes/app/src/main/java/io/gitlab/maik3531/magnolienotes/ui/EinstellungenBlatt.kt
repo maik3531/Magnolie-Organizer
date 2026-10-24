@@ -13,6 +13,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.gitlab.maik3531.magnolienotes.BuildConfig
 import io.gitlab.maik3531.magnolienotes.Entwicklermodus
 import androidx.compose.runtime.Composable
@@ -31,13 +35,38 @@ fun EinstellungenBlatt(zeiterfassungAn: Boolean, speichert: Boolean, beiZeiterfa
     var debugOpen by remember { mutableStateOf(false) }
     var wifi by remember { mutableStateOf(developer.wlan) }
     var report by remember { mutableStateOf<String?>(null) }
+    var aboutOpen by remember { mutableStateOf(false) }
+    val uriHandler = LocalUriHandler.current
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val versionClicks = remember(developer) { VersionsKlicks({ aboutOpen = true }, {
+        developerEnabled = developer.versionAngeklickt()
+    }) }
+    DisposableEffect(versionClicks, lifecycle) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) versionClicks.abbrechen()
+        }
+        lifecycle.addObserver(observer)
+        onDispose { versionClicks.abbrechen(); lifecycle.removeObserver(observer) }
+    }
+    if (aboutOpen) AlertDialog(onDismissRequest = { aboutOpen = false },
+        title = { Text(stringResource(R.string.about_title)) },
+        text = { Column {
+            Text(stringResource(R.string.developer_version, BuildConfig.VERSION_NAME))
+            Text(stringResource(R.string.about_part_of))
+            Text(stringResource(R.string.about_author, stringResource(R.string.about_author_name)))
+        } },
+        confirmButton = { Papierknopf(stringResource(R.string.zurueck)) { aboutOpen = false } },
+        dismissButton = { Papierknopf(stringResource(R.string.about_repository_label)) {
+            versionClicks.abbrechen()
+            uriHandler.openUri("https://github.com/maik3531/Magnolie-Organizer")
+        } })
     if (report != null) AlertDialog(onDismissRequest = { report = null },
         title = { Text(stringResource(R.string.developer_show)) }, text = { Text(report!!) },
         confirmButton = { Papierknopf("OK") { report = null } })
     Column(Modifier.fillMaxSize().background(Magnolie.papier).verticalScroll(rememberScrollState())) {
         Abschnitt(stringResource(R.string.zeit_einstellungen)) {
             Papierknopf(stringResource(R.string.developer_version, BuildConfig.VERSION_NAME), Modifier.fillMaxWidth()) {
-                developerEnabled = developer.versionAngeklickt()
+                versionClicks.klicken()
             }
             if (developerEnabled) {
                 Papierknopf(stringResource(R.string.developer_disable), Modifier.fillMaxWidth()) {

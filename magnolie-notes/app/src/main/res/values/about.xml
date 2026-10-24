@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_title">About Magnolie Notes</string>
+    <string name="about_part_of">Magnolie Notes is part of Magnolie Organizer.</string>
+    <string name="about_author">Developer: %1$s</string>
+    <string name="about_author_name" translatable="false">Maik Walter</string>
+    <string name="about_repository_label" translatable="false">GitHub</string>
+</resources>

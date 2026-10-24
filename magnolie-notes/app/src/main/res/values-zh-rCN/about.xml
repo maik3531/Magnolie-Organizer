@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_title">关于 Magnolie Notes</string>
+    <string name="about_part_of">Magnolie Notes 是 Magnolie Organizer 的组成部分。</string>
+    <string name="about_author">开发者：%1$s</string>
+</resources>

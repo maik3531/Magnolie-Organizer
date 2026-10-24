@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_title">Magnolie Notes について</string>
+    <string name="about_part_of">Magnolie Notes は Magnolie Organizer の一部です。</string>
+    <string name="about_author">開発者: %1$s</string>
+</resources>

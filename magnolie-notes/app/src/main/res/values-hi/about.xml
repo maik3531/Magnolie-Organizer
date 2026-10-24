@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_title">Magnolie Notes के बारे में</string>
+    <string name="about_part_of">Magnolie Notes, Magnolie Organizer का हिस्सा है।</string>
+    <string name="about_author">डेवलपर: %1$s</string>
+</resources>

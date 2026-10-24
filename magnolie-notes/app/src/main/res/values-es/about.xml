@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="about_title">Acerca de Magnolie Notes</string>
+    <string name="about_part_of">Magnolie Notes forma parte de Magnolie Organizer.</string>
+    <string name="about_author">Desarrollador: %1$s</string>
+</resources>
