@@ -30,9 +30,12 @@ internal static class PersonalSyncModeTests
             var paths = new WindowsPaths(root); var store = new TelefonStore(paths, key);
             var peer = new TelefonPeer(Guid.NewGuid().ToString("D"), "Synthetic", Enumerable.Repeat((byte)11, 32).ToArray());
             store.SavePeers([peer]);
+            var remoteGrants = peer.Grants.DeepClone();
             store.SetPersonalSyncMode(peer.Id, true, false);
             var reopened = new TelefonStore(paths, key);
-            TestAssert.That(reopened.PersonalSettings(peer.Id) == (true, false, true), "Unified mode invented remote consent or lost local settings.");
+            TestAssert.That(reopened.PersonalSettings(peer.Id) == (true, true, true) &&
+                JsonNode.DeepEquals(reopened.LoadPeers().Single().Grants, remoteGrants),
+                "Confirmed pairing must authorize the device without changing remote feature grants or local choices.");
             var grants = reopened.LocalGrants();
             TestAssert.That(new[] { "personal_notes_sync", "personal_tasks_sync", "personal_deletions_sync" }
                 .All(name => grants[name]!.GetValue<bool>()), "Initial mode did not enable notes, tasks and deletion review.");
@@ -42,7 +45,7 @@ internal static class PersonalSyncModeTests
             reopened.SetNoteSettings(peer.Id, direction, false);
             reopened.SetPersonalSyncMode(peer.Id, false, true);
             grants = reopened.LocalGrants();
-            TestAssert.That(reopened.PersonalSettings(peer.Id) == (true, false, false) &&
+            TestAssert.That(reopened.PersonalSettings(peer.Id) == (true, true, false) &&
                 grants["personal_notes_sync"]!.GetValue<bool>() && grants["personal_tasks_sync"]!.GetValue<bool>() &&
                 !grants["personal_deletions_sync"]!.GetValue<bool>(), "Manual mode or deletion exception did not persist.");
             TestAssert.That(grants["incoming_call_state"]!.GetValue<bool>() && !grants["selected_notifications_readonly"]!.GetValue<bool>() &&

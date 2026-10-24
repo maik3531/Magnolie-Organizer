@@ -127,7 +127,7 @@ class DeveloperDiagnosticsTransportTest {
                                         }
                                         5 -> {
                                             field(TelefonWerk::class.java, "activeTransport").set(work, TelefonTransportArt.WIFI to pipe)
-                                            storage.savePeer(storage.peers().peer!!.copy(own_device = false))
+                                            storage.savePeer(storage.peers().peer!!.copy(remote_device_status_granted = false))
                                         }
                                     }
                                 }

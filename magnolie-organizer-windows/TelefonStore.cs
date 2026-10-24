@@ -176,23 +176,22 @@ internal sealed partial class TelefonStore
     internal (bool OwnDevice, bool RemoteOwnDevice, bool AutoWifi) PersonalSettings(string peerId)
     {
         var value = LoadSettings()["personal_sync"]?[peerId] as JsonObject;
-        var own = value?["own_device"]?.GetValue<bool>() ?? true;
-        return (own, value?["remote_own_device"]?.GetValue<bool>() == true, own && (value?["auto_wifi"]?.GetValue<bool>() ?? true));
+        // The completed key-bound pairing is the device confirmation. Legacy
+        // ownership flags are not an additional user permission or sync choice.
+        var paired = !RestoreFenced && LoadPeers().Any(peer => peer.Id == peerId && peer.State == "paired");
+        return (paired, paired, paired && (value?["auto_wifi"]?.GetValue<bool>() ?? true));
     }
 
     internal void SetPersonalSettings(string peerId, bool? ownDevice = null, bool? remoteOwnDevice = null, bool? autoWifi = null)
     {
         lock (gate)
         {
-        if (ownDevice == false || remoteOwnDevice == false) PurgeIdentifiers(peerId);
         var settings = LoadSettings(); var all = settings["personal_sync"] as JsonObject ?? new JsonObject(); settings["personal_sync"] = all;
         // Receiving the remote control frame must preserve the same local
         // defaults as PersonalSettings, rather than create a hidden opt-out.
         var value = all[peerId] as JsonObject ?? new JsonObject { ["own_device"] = true, ["remote_own_device"] = false, ["auto_wifi"] = true }; all[peerId] = value;
         if (ownDevice.HasValue) value["own_device"] = ownDevice.Value; if (remoteOwnDevice.HasValue) value["remote_own_device"] = remoteOwnDevice.Value; if (autoWifi.HasValue) value["auto_wifi"] = autoWifi.Value;
-        if (value["own_device"]?.GetValue<bool>() != true) value["auto_wifi"] = false; SaveSettings(settings);
-        if (ownDevice == false || remoteOwnDevice == false) PauseCustom(peerId);
-        if (ownDevice == false || remoteOwnDevice == false) PauseTime(peerId);
+        SaveSettings(settings);
         }
     }
 
@@ -532,7 +531,15 @@ internal sealed partial class TelefonStore
     {
         lock (gate)
         {
-            var array = new JsonArray(peers.Select(peer => (JsonNode)WritePeer(peer)).ToArray());
+            var next = peers.ToArray();
+            foreach (var previous in LoadPeers())
+            {
+                var current = next.SingleOrDefault(peer => peer.Id == previous.Id);
+                if (current is null || current.State != "paired" || !current.PublicKey.SequenceEqual(previous.PublicKey) ||
+                    current.Grants["device_status"]?.GetValue<bool>() != true)
+                    PurgeIdentifiers(previous.Id);
+            }
+            var array = new JsonArray(next.Select(peer => (JsonNode)WritePeer(peer)).ToArray());
             files.Write(paths.TelefonPeers, new JsonObject
             {
                 ["blob"] = Convert.ToBase64String(Seal("peers", "all", Encoding.UTF8.GetBytes(array.ToJsonString())))

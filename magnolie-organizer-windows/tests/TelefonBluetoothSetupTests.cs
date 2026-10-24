@@ -125,9 +125,9 @@ internal static class TelefonBluetoothSetupTests
                 await handler;
                 TestAssert.That(finish["type"]!.GetValue<string>() == "pair_finish" && store.LoadPeers().Single().State == "paired",
                     "Pairing without an initiating-device confirmation did not finish");
-                TestAssert.That(store.PersonalSettings(id).OwnDevice == ownBeforePairing &&
-                    JsonNode.Parse(File.ReadAllText(paths.TelefonSettings))?["personal_sync"]?[id]?["own_device"] is null,
-                    "Code display must not change native ownership defaults or persist a sharing decision");
+                TestAssert.That(!ownBeforePairing && store.PersonalSettings(id).OwnDevice &&
+                     JsonNode.Parse(File.ReadAllText(paths.TelefonSettings))?["personal_sync"]?[id]?["own_device"] is null,
+                    "Only completed pairing, not code display or an extra stored ownership switch, must authorize the device");
             }
             finally { CryptographicOperations.ZeroMemory(phoneStatic.Private); CryptographicOperations.ZeroMemory(phoneEphemeral.Private); }
         }
@@ -179,8 +179,8 @@ internal static class TelefonBluetoothSetupTests
                 Console.WriteLine("CODE " + prompt.Code);
                 return Task.FromResult<string?>("accept");
             }, timeout.Token);
-            TestAssert.That(result.Authenticated && store.BluetoothAddress(result.DeviceId) == Phone && !store.PersonalSettings(result.DeviceId).OwnDevice,
-                "First Bluetooth result is unauthenticated or auto-owned");
+            TestAssert.That(result.Authenticated && store.BluetoothAddress(result.DeviceId) == Phone && store.PersonalSettings(result.DeviceId).OwnDevice,
+                "Completed Bluetooth pairing did not provide authenticated device authorization");
             TestAssert.That(os.Connections == (mode == "drop-finish" ? 3 : 2), "Unexpected Bluetooth handshake connection count");
             FirstRunSetupSelections? handoff = null;
             if (mode is "foreground-restart" or "background-restart")
@@ -217,7 +217,8 @@ internal static class TelefonBluetoothSetupTests
             TestAssert.That(store.Enabled == (mode is "background-restart" or "foreground-restart"), "Bluetooth connection consent did not persist correctly");
             return 0;
         }
-        catch (Exception error) when (mode != "accept" && error is UnauthorizedAccessException or OperationCanceledException or InvalidDataException)
+        catch (Exception error) when ((mode is "deny" or "wrong-device" or "decline" or "code-decline" or "expire-code") &&
+            (error is UnauthorizedAccessException or OperationCanceledException or InvalidDataException or InvalidOperationException))
         {
             TestAssert.That(store is not null && store.LoadPeers().Count == 0 && !store.Enabled, "Rejected attempt persisted trust or startup");
             Console.WriteLine("REJECTED"); return 0;

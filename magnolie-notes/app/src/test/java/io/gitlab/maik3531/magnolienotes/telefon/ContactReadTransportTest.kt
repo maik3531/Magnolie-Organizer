@@ -54,6 +54,7 @@ class ContactReadTransportTest {
         val oldDocuments = field(Ablage::class.java, "einzig").get(null)
         field(Ablage::class.java, "einzig").set(null, Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") })
         val storage = TelefonAblage.get(context)
+        storage.identity("Synthetic phone").second.fill(0)
         storage.setEnabled(true); storage.setPersonalSync(true, false, false, false, false)
         val peerId = "11111111-1111-4111-8111-111111111111"
         storage.savePeer(TelefonPeer(peerId, "Synthetic desktop", TelefonKrypto.b64(ByteArray(32)),
@@ -84,7 +85,9 @@ class ContactReadTransportTest {
         }
         work.contactReadSource = source
         val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
-        val process = ProcessBuilder(command).redirectError(ProcessBuilder.Redirect.INHERIT).start()
+        val process = ProcessBuilder(command).apply {
+            environment()["PHONE_TEST_DEVICE_ID"] = storage.identity("Synthetic phone").also { it.second.fill(0) }.first.device_id
+        }.redirectError(ProcessBuilder.Redirect.INHERIT).start()
         try {
             val output = process.inputStream.bufferedReader()
             val port = CompletableFuture.supplyAsync { output.readLine().toInt() }.get(20, TimeUnit.SECONDS)

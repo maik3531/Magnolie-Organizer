@@ -60,6 +60,7 @@ class PersonalNoteModeTransportTest {
         val storage = TelefonAblage.get(context)
         storage.setEnabled(true); storage.setPersonalSync(true, true, true, false, false)
         val peerId = "11111111-1111-4111-8111-111111111111"
+        storage.identity("Synthetic phone").second.fill(0)
         storage.savePeer(TelefonPeer(peerId, "Synthetic desktop", TelefonKrypto.b64(ByteArray(32)),
             capabilities_revision = 1, grants_revision = 1,
             own_device = true, personal_notes_sync_granted = true, personal_tasks_sync_granted = true,
@@ -69,7 +70,9 @@ class PersonalNoteModeTransportTest {
         field(TelefonWerk::class.java, "serviceRunning").setBoolean(work, true)
         (field(TelefonWerk::class.java, "connecting").get(work) as AtomicBoolean).set(true)
         val queue = field(TelefonWerk::class.java, "queue").get(work) as TelefonQueue
-        val process = ProcessBuilder(command).redirectError(ProcessBuilder.Redirect.INHERIT).start()
+        val process = ProcessBuilder(command).apply {
+            environment()["PHONE_TEST_DEVICE_ID"] = storage.identity("Synthetic phone").also { it.second.fill(0) }.first.device_id
+        }.redirectError(ProcessBuilder.Redirect.INHERIT).start()
         try {
             val output = process.inputStream.bufferedReader()
             val port = CompletableFuture.supplyAsync { output.readLine().toInt() }.get(20, TimeUnit.SECONDS)
@@ -132,8 +135,12 @@ class PersonalNoteModeTransportTest {
                     }
                     assertTrue("Native host did not complete", closed)
                     val peer = storage.peers().peer!!
-                    assertTrue(session.ready(peer.personal_note_policy, peer.remote_personal_note_policy))
-                    assertTrue(PersonalNoteMode.importing(peer.personal_note_policy, peer.remote_personal_note_policy))
+                    val ready = TelefonWerk::class.java.getDeclaredMethod("noteModeReady", TelefonPeer::class.java, PersonalNoteSession::class.java)
+                        .apply { isAccessible = true }.invoke(work, peer, session) as Boolean
+                    assertTrue(ready)
+                    val common = TelefonWerk::class.java.getDeclaredMethod("commonValues", TelefonPeer::class.java)
+                        .apply { isAccessible = true }.invoke(work, peer) as Map<*, *>
+                    assertEquals(JsonPrimitive("phone_import"), common["content_mode"])
                     assertTrue(peer.remote_desktop_features!!.long("revision") >= 2)
                     assertFalse(PersonalDesktopFeatures.customAvailable(peer))
                     assertFalse(PersonalDesktopFeatures.treeVisible(peer, independent = false, pending = false))

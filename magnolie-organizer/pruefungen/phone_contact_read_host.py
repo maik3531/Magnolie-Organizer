@@ -2,6 +2,7 @@
 """Real encrypted Notes contact reads with synthetic established-session keys."""
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+import os
 import socket
 import sys
 import tempfile
@@ -11,13 +12,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 import magnolie_telefon as phone
 from modul_laden import quellmodul_laden
 
-PHONE = "22222222-2222-4222-8222-222222222222"
+PHONE = os.environ.get("PHONE_TEST_DEVICE_ID", "22222222-2222-4222-8222-222222222222")
 
 
 def main():
     app = quellmodul_laden("contact_read_host_app", Path(__file__).resolve().parents[1] / "bin" / "magnolie-organizer")
     with tempfile.TemporaryDirectory(prefix="contact-read-host-") as directory:
         service = phone.PhoneService(str(Path(directory) / "phone"), "Synthetic desktop")
+        service.store.identity["device_id"] = "11111111-1111-4111-8111-111111111111"
         service.enabled = True
         peer = {"device_id": PHONE, "display_name": "Synthetic phone", "static_public": phone.b64(b"p" * 32),
                 "state": "paired", "grants": phone.desktop_grants(), "local_grants": phone.desktop_grants(),
@@ -25,6 +27,8 @@ def main():
                 "bluetooth": {"enabled": False, "address": ""},
                 "personal_sync": {"own_device": True, "remote_own_device": False, "auto_wifi": False, "last_report": {}}}
         service.store.peers.append(peer); service.store.save_peers()
+        service.store.initialize_shared_settings(PHONE, peer["static_public"],
+            dict(phone.shared_sync_contract.DEFAULTS, content_mode="phone_import"))
         with socket.socket() as listener, ThreadPoolExecutor(max_workers=1) as workers:
             listener.bind(("127.0.0.1", 0)); listener.listen(1); listener.settimeout(25)
             print(listener.getsockname()[1], flush=True)
@@ -50,7 +54,7 @@ def main():
                     assert cards["contacts"][0]["bindung"].startswith("urn:magnolie:import:notes:")
                     assert not service.store.status(PHONE), "contact reply leaked into ordinary status history"
                     with service.lock:
-                        peer["personal_sync"]["own_device"] = False
+                        peer["local_grants"]["grants"]["device_status"] = False
                         service.store.save_peers()
                     assert not service.contacts_available(PHONE)
                     try:

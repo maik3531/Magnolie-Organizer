@@ -216,7 +216,8 @@ class TelefonWlanInvitationTest {
             val value = TelefonKanonisch.json.parseToJsonElement(offer.removePrefix("OFFER ")) as JsonObject
             val desktop = GefundenerDesktop(value.string("deviceId"), value.string("name"), value.string("host"), value.string("token"),
                 value.long("port").toInt(), confirmationAtPhone = desktopStarted)
-            val previous = if (renew) TelefonPeer(desktop.deviceId, "Saved computer", TelefonKrypto.b64(ByteArray(32) { 23 }), own_device = true) else null
+            val previous = if (renew) TelefonPeer(desktop.deviceId, "Saved computer", TelefonKrypto.b64(ByteArray(32) { 23 }),
+                own_device = true, remote_own_device = true) else null
             previous?.let { storage.savePeer(it); storage.setPersonalSync(true, true, true, false, false) }
             val result = CompletableFuture<Unit>()
             worker = thread(isDaemon = true) {

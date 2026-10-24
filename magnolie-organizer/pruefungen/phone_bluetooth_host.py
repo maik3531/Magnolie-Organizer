@@ -111,7 +111,7 @@ def main():
             result = setup.connect("bluetooth", prompt)
             assert backend.connections == (3 if mode == "drop-finish" else 2), "Unexpected handshake connection count"
             assert result["authenticated"] and setup.phone.store.peer(result["deviceId"])["bluetooth"]["address"] == PHONE
-            assert not setup.phone.store.peer(result["deviceId"])["personal_sync"]["own_device"]
+            assert setup.phone.store.peer(result["deviceId"])["personal_sync"]["own_device"]
             assert not setup.phone.store.settings()["enabled"]
             print("RESULT", flush=True)
             assert input() == "RECONNECT"

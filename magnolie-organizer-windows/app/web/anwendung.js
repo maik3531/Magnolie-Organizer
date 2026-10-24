@@ -2605,10 +2605,10 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (peer?.shared_sync?.initialized && peer.shared_sync.values) return { ...peer.shared_sync.values };
     return { content_mode: peer?.note_sync?.local?.mode || "phone_scope",
       auto_mode: peer?.auto_wifi ? "wifi" : "manual",
-      skip_deletions: peer?.local_grants?.grants?.personal_deletions_sync !== true,
+      skip_deletions: peer?.initial_skip_deletions ?? (peer?.local_grants?.grants?.personal_deletions_sync !== true),
       custom_enabled: peer?.custom_sync?.local?.enabled === true,
       time_enabled: peer?.time_sync?.local?.enabled === true,
-      time_mode: DATEN.einstellungen.sync.timeDirections?.[peer.device_id] || "phone_import" };
+      time_mode: DATEN.einstellungen.sync.timeDirections?.[peer.device_id] || "two_way" };
   }
 
   function gemeinsameSyncEinstellungen(container, peer) {

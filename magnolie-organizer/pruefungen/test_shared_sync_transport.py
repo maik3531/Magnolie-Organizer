@@ -49,6 +49,21 @@ def message(body):
             "created_ms": now, "expires_ms": now + 60000, "body": body}
 
 
+def test_legacy_own_false_is_fresh_control_but_not_a_second_pairing_confirmation(tmp_path, monkeypatch):
+    service, peer, channel, _ = fixture(tmp_path, monkeypatch)
+    service.note_controls[channel].pop("personal_sync.settings")
+    before = copy.deepcopy(peer["local_grants"])
+    payload = message({"format": 1, "own_device": False})
+    payload["kind"] = "personal_sync.settings"
+    service._payload(peer, channel, payload)
+    assert channel.sent[-1]["status"] == "accepted"
+    assert service.note_controls[channel]["personal_sync.settings"] == {"format": 1, "own_device": True}
+    assert peer["personal_sync"]["remote_own_device"]
+    assert peer["local_grants"] == before
+    replacement = Channel(); service.connections[peer["device_id"]] = replacement
+    assert not service._shared_controls_ready(peer, replacement)
+
+
 def test_same_current_choice_is_exchanged_without_changing_existing_grants(tmp_path, monkeypatch):
     service, peer, channel, body = fixture(tmp_path, monkeypatch)
     before = copy.deepcopy(peer)

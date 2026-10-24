@@ -62,7 +62,7 @@ def test_native_source_is_stable_and_has_no_wire_queue_or_gui_read_side_effects(
     assert emitted == []
 
 
-@pytest.mark.parametrize("gate", ["disabled", "transport", "key", "capability", "local_capability", "fresh", "own", "grant", "shared", "scope", "book", "invalid_book"])
+@pytest.mark.parametrize("gate", ["disabled", "transport", "key", "capability", "local_capability", "fresh", "unconfirmed", "grant", "shared", "scope", "book", "invalid_book"])
 def test_missing_native_authority_never_uses_a_cached_or_client_scope(tmp_path, monkeypatch, gate):
     service, peer, channel, fingerprint, manifest = actor_source_fixture(tmp_path, monkeypatch)
     book = lambda: "a" * 64
@@ -80,7 +80,7 @@ def test_missing_native_authority_never_uses_a_cached_or_client_scope(tmp_path, 
             return value
         monkeypatch.setattr(phone, "desktop_capabilities", without_actor)
     elif gate == "fresh": service.note_controls[channel].pop("grants.update")
-    elif gate == "own": peer["personal_sync"]["remote_own_device"] = False
+    elif gate == "unconfirmed": peer["state"] = "paired_unverified"
     elif gate == "grant": peer["local_grants"]["grants"]["personal_tasks_sync"] = False
     elif gate == "shared": service.shared_sessions[channel]["received"] = None
     elif gate == "scope": service.content_scope_sessions[channel] = scope.ScopeSession((peer["device_id"], peer["static_public"], id(channel)))
@@ -115,18 +115,20 @@ def test_connection_and_scope_replacements_and_book_races_invalidate_source(tmp_
     assert read(lambda: "a" * 64) is None, "An incomplete newer generation cannot reuse old membership"
 
 
-def test_accepted_remote_ownership_regrant_cannot_inherit_an_earlier_source(tmp_path, monkeypatch):
+def test_accepted_remote_feature_regrant_cannot_inherit_an_earlier_source(tmp_path, monkeypatch):
     service, peer, channel, fingerprint, _ = actor_source_fixture(tmp_path, monkeypatch)
     def read(): return service.current_actor_source(peer["device_id"], fingerprint, lambda: "a" * 64)
     before = read()
-    peer["personal_sync"]["remote_own_device"] = False
-    service._observe_note_control(peer, channel, "personal_sync.settings", {"format": 1, "own_device": False})
+    peer["grants"]["revision"] += 1
+    peer["grants"]["grants"]["personal_notes_sync"] = False
+    service._observe_note_control(peer, channel, "grants.update", peer["grants"])
     assert read() is None
-    peer["personal_sync"]["remote_own_device"] = True
-    service._observe_note_control(peer, channel, "personal_sync.settings", {"format": 1, "own_device": True})
+    peer["grants"]["revision"] += 1
+    peer["grants"]["grants"]["personal_notes_sync"] = True
+    service._observe_note_control(peer, channel, "grants.update", peer["grants"])
     after = read()
     assert after and after != before
-    service._observe_note_control(peer, channel, "personal_sync.settings", {"format": 1, "own_device": True})
+    service._observe_note_control(peer, channel, "grants.update", peer["grants"])
     assert read() == after
 
 

@@ -1145,8 +1145,6 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                                 }
                             }
                         },
-                        beiPersonalEigen = { if (it) telefonWerk.initializePersonalDefaults()
-                            else telefonWerk.setPersonalSync(false, false, false, false, false) },
                         beiKontakteLesen = { deviceId, publicKey, enabled ->
                             if (!enabled || kontakteLesbar()) runCatching { telefonWerk.setContactReadEnabled(enabled, deviceId, publicKey) }
                                 .onFailure { sage(zusammenhang.fehlertext(it)) }

@@ -54,7 +54,7 @@ def test_unsupported_peer_cannot_initialize_from_a_local_preview(tmp_path, monke
 
 
 @pytest.mark.parametrize("action", ["choice", "start"])
-def test_explicit_sync_action_enables_own_phone_but_status_and_invalid_choices_do_not(tmp_path, monkeypatch, action):
+def test_paired_preferences_do_not_require_another_confirmation_or_restore_revoked_modules(tmp_path, monkeypatch, action):
     service, peer, _, _ = fixture(tmp_path, monkeypatch, initialize=False)
     peer["personal_sync"]["own_device"] = False
     peer["local_grants"]["grants"].update(personal_notes_sync=False, personal_tasks_sync=False)
@@ -63,12 +63,13 @@ def test_explicit_sync_action_enables_own_phone_but_status_and_invalid_choices_d
     fingerprint = phone.fingerprint(phone.unb64(peer["static_public"], 32))
     initial = dict(shared.DEFAULTS)
     assert not service.shared_settings_status(peer_id)["initialized"]
-    with pytest.raises(PermissionError):
-        service.initialize_common_preferences(peer_id, fingerprint, initial)
+    service.initialize_common_preferences(peer_id, fingerprint, initial)
+    saved = service.store.shared_settings(peer_id, peer["static_public"])
     for field, value, key in [("content_mode", "invalid", fingerprint), ("auto_mode", "wifi", "stale")]:
         with pytest.raises((ValueError, PermissionError)):
             service.change_common_preference(peer_id, key, field, value, initial)
-    assert not peer["personal_sync"]["own_device"]
+    assert peer["personal_sync"]["own_device"]
+    assert service.store.shared_settings(peer_id, peer["static_public"]) == saved
     with tempfile.TemporaryDirectory(prefix="shared-optin-") as root:
         socket = str(Path(root) / "bridge.sock")
         server = background.IPCServer(FakeBackend(), socket, phone_backend=service).start()
@@ -81,7 +82,7 @@ def test_explicit_sync_action_enables_own_phone_but_status_and_invalid_choices_d
                 proxy.start_common_sync(peer_id, fingerprint, initial)
                 assert service.store.has_kind(peer_id, shared.START_KIND)
             assert peer["personal_sync"]["own_device"]
-            assert all(peer["local_grants"]["grants"][field] for field in ("personal_notes_sync", "personal_tasks_sync"))
+            assert not any(peer["local_grants"]["grants"][field] for field in ("personal_notes_sync", "personal_tasks_sync"))
         finally:
             server.close()
 

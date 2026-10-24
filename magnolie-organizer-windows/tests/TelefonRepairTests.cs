@@ -17,14 +17,24 @@ internal static class TelefonRepairTests
             var peer = new TelefonPeer("11111111-1111-4111-8111-111111111111", "Fixture", Enumerable.Repeat((byte)1, 32).ToArray());
             store.SavePeers([peer]);
             var defaults = store.PersonalSettings(peer.Id);
-            TestAssert.That(defaults.OwnDevice && defaults.AutoWifi && !defaults.RemoteOwnDevice, "Fresh personal preferences have incorrect defaults.");
+            TestAssert.That(defaults.OwnDevice && defaults.AutoWifi && defaults.RemoteOwnDevice, "Confirmed pairing did not provide device authorization.");
             store.SetPersonalSettings(peer.Id, remoteOwnDevice: true);
             var received = store.PersonalSettings(peer.Id);
             TestAssert.That(received.OwnDevice && received.AutoWifi && received.RemoteOwnDevice,
                 "Receiving remote settings silently revoked the confirmed phone's default local authorization.");
             store.SetPersonalSettings(peer.Id, ownDevice: false, autoWifi: false);
-            TestAssert.That(!store.PersonalSettings(peer.Id).OwnDevice && !store.PersonalSettings(peer.Id).AutoWifi, "Manual preference disable was overridden.");
+            TestAssert.That(store.PersonalSettings(peer.Id).OwnDevice && !store.PersonalSettings(peer.Id).AutoWifi,
+                "Legacy ownership flags must not revoke pairing, and manual automatic-sync disable must survive.");
+            TestAssert.That(!store.PersonalSettings("22222222-2222-4222-8222-222222222222").OwnDevice,
+                "An unknown device obtained pairing-derived authorization.");
             using var coordinator = new TelefonCoordinator(paths, (_, _) => Task.CompletedTask, dataStore: store, localOnly: true);
+            TestAssert.That(coordinator.PersonalSettings(peer.Id).OwnDevice && !coordinator.PersonalSettings(peer.Id).AutoWifi,
+                "The GUI source must expose pairing-derived ownership and retain manual automation choice.");
+            TestAssert.That(!coordinator.InitialSkipDeletions, "An unconfigured connection must not start with skip-deletions selected.");
+            store.SetLocalGrant("personal_deletions_sync", false);
+            TestAssert.That(coordinator.InitialSkipDeletions, "An explicit skip-deletions choice was lost.");
+            store.SetLocalGrant("personal_deletions_sync", true);
+            TestAssert.That(!coordinator.InitialSkipDeletions, "An explicit deletion-sync choice was lost.");
             await coordinator.ResumeAsync();
             var token = (byte[]?)typeof(TelefonCoordinator).GetField("pairingToken", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator);
             TestAssert.That(token?.Length == 16 && store.LoadPeers().Single().Id == peer.Id,
@@ -35,6 +45,7 @@ internal static class TelefonRepairTests
             var phoneProof = Enumerable.Repeat((byte)3, 32).ToArray();
             var desktopProof = Enumerable.Repeat((byte)4, 32).ToArray();
             store.SavePending(peer, transcript, phoneProof, desktopProof, long.MaxValue);
+            TestAssert.That(!store.PersonalSettings(peer.Id).OwnDevice, "Pending renewal reused the old pairing authority.");
             TestAssert.That(store.LoadPeers().Count == 1, "Renewal created a second phone binding.");
             TestAssert.That(!store.TryFinishPending(peer.Id, new byte[32], new byte[32], 1, out _, out _), "Old proof completed renewed pairing.");
             TestAssert.That(store.TryFinishPending(peer.Id, transcript, phoneProof, 1, out var confirmed, out _)

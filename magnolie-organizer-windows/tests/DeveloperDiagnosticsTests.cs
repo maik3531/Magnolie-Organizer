@@ -149,7 +149,7 @@ internal static class DeveloperDiagnosticsTests
             if (change == "disabled_ack")
                 await connection.HandlePlainAsync(new JsonObject { ["type"] = "ack", ["message_id"] = messageId, ["status"] = "rejected", ["error"] = "not_granted" });
             else await connection.HandlePlainAsync(message);
-            if (change is "none" or "duplicate" or "crash")
+            if (change is "none" or "own" or "duplicate" or "crash")
             {
                 var result = await read;
                 TestAssert.That(result["app_version"]!.GetValue<string>() == "fixture" && result["events"]!.AsArray().Count == 1,
@@ -174,6 +174,7 @@ internal static class DeveloperDiagnosticsTests
                 cancel.Cancel();
                 try { await read; throw new Exception("Invalid developer read succeeded: " + change); }
                 catch (OperationCanceledException) { }
+                catch (InvalidOperationException error) when (error.Message == "developer_diagnostics_source_changed") { }
             }
             TestAssert.That(requests.Count == 0 && store.LoadStatus(peer.Id) is null && store.Due(peer.Id, now).Count == 0,
                 "Developer response persisted or waiter leaked.");

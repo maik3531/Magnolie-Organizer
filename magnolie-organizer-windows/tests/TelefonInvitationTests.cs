@@ -33,8 +33,8 @@ internal static class TelefonInvitationTests
                 Console.WriteLine("CODE " + prompt.Code);
                 return Task.FromResult<string?>("accept");
             }, timeout.Token);
-            if (!result.Authenticated || result.DeviceId != target || store.PersonalSettings(target).OwnDevice)
-                throw new InvalidDataException("Unauthenticated or auto-owned fixture phone");
+            if (!result.Authenticated || result.DeviceId != target || !store.PersonalSettings(target).OwnDevice)
+                throw new InvalidDataException("Completed fixture pairing did not provide authenticated device authorization");
             Console.WriteLine("RESULT " + JsonSerializer.Serialize(result));
             await Console.In.ReadLineAsync(timeout.Token);
             setup.Dispose();

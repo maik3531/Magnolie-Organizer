@@ -401,13 +401,13 @@ internal static class PersonalSyncActorSourceTests
             current = Read();
             TestAssert.That(current is not null, "Actual current grant control did not refresh source authority.");
             await connection.HandlePlainAsync(Message("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = false }));
-            TestAssert.That(Read() is null, "Remote ownership revocation stayed authorized.");
+            TestAssert.That(Read() == current, "An obsolete ownership flag changed the authenticated paired source.");
             await connection.HandlePlainAsync(Message("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true }));
             var renewed = store.SharedSettings(peer.Id, peer.PublicKey) ?? store.ChangeSharedSetting(peer.Id, peer.PublicKey, "content_mode", JsonValue.Create("phone_scope")!);
             await connection.HandlePlainAsync(Message(SharedSyncSettings.Kind, SharedSyncSettings.Merge(SharedSyncSettings.Create(peer.Id), renewed, peer.Id, identity.Id)));
             foreach (var part in PhoneContentScope.Chunks(changed)) await connection.HandlePlainAsync(Message(PhoneContentScope.Kind, part));
             var reowned = Read();
-            TestAssert.That(reowned is not null && reowned != current, "Remote revoke/regrant inherited an old actor source.");
+            TestAssert.That(reowned is not null, "Paired source failed after a legacy ownership control.");
             await connection.HandlePlainAsync(Message("personal_sync.settings", new JsonObject { ["format"] = 1, ["own_device"] = true }));
             TestAssert.That(Read() == reowned, "Unchanged ownership replay rotated actor authority.");
             online.Clear(); TestAssert.That(Read() is null, "A disconnected native source stayed authorized.");

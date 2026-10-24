@@ -103,7 +103,7 @@ def test_reply_requires_current_key_scope_channel_and_exact_selection(private, c
     report.update(total=1, contacts=[{"uid": "lookup:1", "timestamp": 1, "vcard": "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Fixture\r\nEND:VCARD\r\n"}])
     if change == "unrequested": report["request_id"] = str(uuid.uuid4())
     if change == "rekey": pending["key"] = phone.b64(b"q" * 32)
-    if change == "permission": peer["personal_sync"]["own_device"] = False
+    if change == "permission": peer["local_grants"]["grants"]["device_status"] = False
     if change == "replacement_channel": service.connections[peer_id] = Channel()
     if change == "expired": pending["deadline"] = phone.time.monotonic() - 1
     if change == "wrong_uid": report["contacts"][0]["uid"] = "other"

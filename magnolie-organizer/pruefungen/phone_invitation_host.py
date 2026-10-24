@@ -172,7 +172,7 @@ def main():
                 try:
                     result = setup.connect("wifi", prompt)
                     assert result["authenticated"] and result["deviceId"] == target
-                    assert not setup.phone.store.peer(target)["personal_sync"]["own_device"]
+                    assert setup.phone.store.peer(target)["personal_sync"]["own_device"]
                     assert not setup.phone.store.settings()["enabled"]
                     print("RESULT " + json.dumps(result), flush=True)
                     input()

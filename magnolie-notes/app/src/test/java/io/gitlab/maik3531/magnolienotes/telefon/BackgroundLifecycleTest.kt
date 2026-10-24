@@ -167,12 +167,12 @@ class BackgroundLifecycleTest {
         fun reopen() = TelefonAblage::class.java.getDeclaredConstructor(Context::class.java)
             .apply { isAccessible = true }.newInstance(context)
         prefs.edit().putString("pending_computer_selection", second.device_id).commit()
-        assertEquals(first, reopen().peers().peer)
+        assertEquals(first.copy(remote_own_device = true), reopen().peers().peer)
         assertTrue(storage.personalNotesEnabled()); assertFalse(storage.personalTasksEnabled())
         prefs.edit().putString("pending_computer_selection", second.device_id).commit()
         storage.savePeer(second)
         val recovered = reopen()
-        assertEquals(second, recovered.peers().peer)
+        assertEquals(second.copy(remote_own_device = true), recovered.peers().peer)
         assertFalse(recovered.personalNotesEnabled()); assertTrue(recovered.personalTasksEnabled())
         assertFalse(recovered.personalAutoWifi()); assertFalse(prefs.contains("pending_computer_selection"))
         assertEquals(2, recovered.peers().all().size)
@@ -186,7 +186,7 @@ class BackgroundLifecycleTest {
         storage.setPersonalSync(true, true, true, true, false)
         val replacement = TelefonPeer(original.device_id, "Computer", key, state = "paired_unverified")
         storage.replaceConfirmedPeer(original, replacement)
-        assertTrue(storage.personalOwnDevice()); assertTrue(storage.personalNotesEnabled())
+        assertFalse(storage.personalOwnDevice()); assertTrue(storage.personalNotesEnabled())
         assertTrue(storage.personalTasksEnabled()); assertTrue(storage.personalAutoWifi())
         assertFalse(storage.personalDeletionsEnabled())
         assertFalse(storage.peers().peer!!.own_device)
@@ -197,11 +197,28 @@ class BackgroundLifecycleTest {
         assertTrue(storage.personalAutoWifi())
     }
 
+    @Test fun uninitializedCommonPreferencesUseRequestedDefaultsAndKeepExplicitChoices() = fixture { storage, work, _ ->
+        val peer = TelefonPeer(UUID.randomUUID().toString(), "Computer", TelefonKrypto.b64(ByteArray(32)))
+        storage.savePeer(peer)
+        work.initializePersonalDefaults(reconnectAfterChange = false)
+        val initial = TelefonWerk::class.java.getDeclaredMethod("initialCommonPreferences", TelefonPeer::class.java)
+            .apply { isAccessible = true }
+        fun values() = initial.invoke(work, storage.peers().peer) as Map<*, *>
+        assertEquals(mapOf("content_mode" to JsonPrimitive("phone_scope"), "auto_mode" to JsonPrimitive("wifi"),
+            "skip_deletions" to JsonPrimitive(false), "custom_enabled" to JsonPrimitive(false),
+            "time_enabled" to JsonPrimitive(false), "time_mode" to JsonPrimitive("two_way")), values())
+        work.setPersonalSync(true, true, true, false, true, reconnectAfterChange = false)
+        assertEquals(JsonPrimitive("manual"), values()["auto_mode"])
+        assertEquals(JsonPrimitive(false), values()["skip_deletions"])
+        work.setPersonalSync(true, true, true, false, false, reconnectAfterChange = false)
+        assertEquals(JsonPrimitive(true), values()["skip_deletions"])
+    }
+
     @Test fun personalPairingDefaultsApplyOnceAndKeepLaterOptOuts() = fixture { storage, work, queue ->
         val peer = TelefonPeer(UUID.randomUUID().toString(), "Computer", TelefonKrypto.b64(ByteArray(32)), state = "paired_unverified")
         storage.savePeer(peer)
         work.initializePersonalDefaults()
-        assertTrue(storage.personalOwnDevice()); assertTrue(storage.personalNotesEnabled())
+        assertFalse(storage.personalOwnDevice()); assertTrue(storage.personalNotesEnabled())
         assertFalse(storage.peers().peer!!.own_device)
         assertFalse(queue.hasKind(peer.device_id, "personal_sync.settings"))
         storage.savePeer(peer.copy(state = "paired"))
@@ -225,7 +242,7 @@ class BackgroundLifecycleTest {
         work.setPersonalSyncMode(false, true, reconnectAfterChange = false)
         assertTrue(storage.personalNotesEnabled()); assertTrue(storage.personalTasksEnabled())
         assertFalse(storage.personalAutoWifi()); assertFalse(storage.personalDeletionsEnabled())
-        assertFalse(storage.peers().peer!!.remote_own_device)
+        assertTrue(storage.peers().peer!!.remote_own_device)
         assertEquals(direction, storage.peers().peer!!.personal_note_policy)
         work.setPersonalSyncMode(true, false, reconnectAfterChange = false)
         assertTrue(storage.personalAutoWifi()); assertTrue(storage.personalDeletionsEnabled())

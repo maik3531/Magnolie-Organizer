@@ -43,10 +43,10 @@ class TelefonBluetoothSetupTest {
         override fun setReadTimeout(timeoutMs: Int) { socket.soTimeout = timeoutMs }
         override fun close() = socket.close()
     }
-    private fun waitFor(check: () -> Boolean) {
+    private fun waitFor(description: () -> String = { "Timed out waiting for Bluetooth state" }, check: () -> Boolean) {
         val until = System.nanoTime() + TimeUnit.SECONDS.toNanos(12)
         while (!check() && System.nanoTime() < until) Thread.sleep(20)
-        assertTrue("Timed out waiting for Bluetooth state", check())
+        assertTrue(description(), check())
     }
 
     @Test fun `Linux native setup adapter and Android factory first pair then secure RFCOMM reconnect`() = live("linux")
@@ -117,7 +117,8 @@ class TelefonBluetoothSetupTest {
         fun command(value: String) { input.write(value + "\n"); input.flush() }
         fun rejected() {
             assertEquals("REJECTED", lines.poll(8, TimeUnit.SECONDS))
-            assertNull(storage.peers().peer); assertFalse(storage.bluetoothEnabled()); assertFalse(storage.personalOwnDevice())
+            assertNull(storage.peers().peer); assertFalse(storage.bluetoothEnabled())
+            assertNull(work.beginIdentifierPermission())
             assertTrue(process.waitFor(8, TimeUnit.SECONDS)); assertEquals(0, process.exitValue())
         }
         try {
@@ -149,7 +150,9 @@ class TelefonBluetoothSetupTest {
             else work.confirmPairing(true)
             val result = lines.poll(12, TimeUnit.SECONDS).orEmpty()
             assertTrue("No authenticated result: ${work.state.value}", result.startsWith("RESULT"))
-            waitFor { work.state.value.connection == TelefonVerbindungsstatus.ONLINE_BLUETOOTH }
+            waitFor({ "Bluetooth connection=${work.state.value.connection}, error=${work.state.value.error}, " +
+                "notes=${storage.personalNotesEnabled()}, tasks=${storage.personalTasksEnabled()}, wifi=${storage.personalAutoWifi()}" }) {
+                work.state.value.connection == TelefonVerbindungsstatus.ONLINE_BLUETOOTH }
             val peer = storage.peers().peer!!
             assertEquals("paired", peer.state); assertEquals(pc, peer.bluetooth_address)
             assertTrue(peer.bluetooth_inbound); assertEquals("", peer.last_host)
@@ -182,7 +185,7 @@ class TelefonBluetoothSetupTest {
             assertEquals(peer.static_public, storage.peers().peer!!.static_public)
             assertEquals(pc, storage.peers().peer!!.bluetooth_address)
             assertTrue(storage.peers().peer!!.bluetooth_inbound)
-            waitFor { receivedSettings() > settingsBeforeReconnect && storage.peers().peer?.remote_own_device == false }
+            waitFor { receivedSettings() > settingsBeforeReconnect && storage.peers().peer?.remote_own_device == true }
             if (previous != null) {
                 assertEquals(2, storage.peers().all().size)
                 assertEquals(previous.static_public, storage.peers().all().single { it.device_id == previous.device_id }.static_public)

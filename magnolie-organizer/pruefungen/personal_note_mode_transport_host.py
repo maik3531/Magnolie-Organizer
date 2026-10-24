@@ -3,6 +3,7 @@
 import base64
 import hashlib
 import json
+import os
 from pathlib import Path
 import socket
 import sys
@@ -14,13 +15,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bin"))
 import magnolie_telefon as phone
 import magnolie_personal_sync as sync
 
-PHONE = "22222222-2222-4222-8222-222222222222"
+PHONE = os.environ.get("PHONE_TEST_DEVICE_ID", "22222222-2222-4222-8222-222222222222")
 
 
 def main():
     with tempfile.TemporaryDirectory(prefix="note-mode-host-") as directory:
         imported = []
         service = phone.PhoneService(str(Path(directory) / "phone"), "Synthetic desktop")
+        service.store.identity["device_id"] = "11111111-1111-4111-8111-111111111111"
         local, remote = phone.desktop_grants(), phone.desktop_grants()
         for name in ("personal_notes_sync", "personal_tasks_sync"):
             local["grants"][name] = True
@@ -33,6 +35,8 @@ def main():
         service.store.save_peers()
         service.store.set_note_settings(PHONE, sync.note_settings("phone_import"))
         service.set_desktop_features(True, True)
+        service.store.initialize_shared_settings(PHONE, peer["static_public"],
+            dict(phone.shared_sync_contract.DEFAULTS, content_mode="phone_import"))
 
         def receive(event, payload):
             if event == "personal_sync_attachment_index":

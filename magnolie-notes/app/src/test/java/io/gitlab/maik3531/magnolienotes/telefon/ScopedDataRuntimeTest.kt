@@ -396,7 +396,7 @@ class ScopedDataRuntimeTest {
                     assertNull(source()); work.sharedLocalCapabilities = capabilities
                     session.grantsReceived = false; assertNull(source()); session.grantsReceived = true
                     session.ownSettingsReceived = false; assertNull(source()); session.ownSettingsReceived = true
-                    for (revoked in listOf(boundPeer.copy(own_device = false), boundPeer.copy(remote_own_device = false),
+                    for (revoked in listOf(boundPeer.copy(state = "paired_unverified"), boundPeer.copy(remote_personal_notes_sync_granted = false),
                         boundPeer.copy(personal_notes_sync_granted = false), boundPeer.copy(remote_personal_tasks_sync_granted = false))) {
                         storage.savePeer(revoked); assertNull(source())
                     }

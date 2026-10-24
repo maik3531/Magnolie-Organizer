@@ -89,16 +89,20 @@ internal static class PhoneContactReadTests
 
     internal static async Task<int> HostAsync()
     {
-        const string phone = "22222222-2222-4222-8222-222222222222";
+        var phone = Environment.GetEnvironmentVariable("PHONE_TEST_DEVICE_ID") ?? "22222222-2222-4222-8222-222222222222";
         var root = Path.Combine(Path.GetTempPath(), "contact-read-host-" + Guid.NewGuid().ToString("N"));
         try
         {
             var paths = new WindowsPaths(root);
             var store = new TelefonStore(paths, Enumerable.Repeat((byte)19, 32).ToArray());
+            typeof(TelefonStore).GetMethod("SaveIdentity", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(store,
+                [store.LoadOrCreateIdentity() with { Id = "11111111-1111-4111-8111-111111111111" }]);
             var peer = new TelefonPeer(phone, "Synthetic phone", Enumerable.Repeat((byte)112, 32).ToArray(),
                 CapabilityRevision: 1, StoredCapabilities: TelefonProtocolContract.DesktopCapabilities()["items"]!.DeepClone().AsObject(),
                 GrantRevision: 1, StoredGrants: TelefonProtocolContract.DesktopGrants());
             store.SavePeers([peer]); store.SetPersonalSettings(phone, ownDevice: true, remoteOwnDevice: false);
+            store.InitializeSharedSettings(phone, peer.PublicKey, SharedSyncSettings.Effective(
+                SharedSyncSettings.Create(store.LoadOrCreateIdentity().Id, new JsonObject { ["content_mode"] = "phone_import" })));
             using var coordinator = new TelefonCoordinator(paths, (_, _) => Task.CompletedTask, dataStore: store);
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(45));
             using var listener = new TcpListener(IPAddress.Loopback, 0); listener.Start(1);
@@ -138,8 +142,9 @@ internal static class PhoneContactReadTests
                 store.SavePeers([confirmed with { State = "pair_commit_pending" }]);
                 TestAssert.That(!coordinator.ContactReadAvailable(phone), "An unconfirmed pairing inherited contact-read access.");
                 store.SavePeers([confirmed]);
-                store.SetPersonalSettings(phone, ownDevice: false);
-                TestAssert.That(!coordinator.ContactReadAvailable(phone), "Own-device revocation left contact access enabled.");
+                store.SavePeers([confirmed with { Grants = new JsonObject(confirmed.Grants.Select(pair =>
+                    KeyValuePair.Create(pair.Key, pair.Key == "device_status" ? (JsonNode?)JsonValue.Create(false) : pair.Value?.DeepClone()))) }]);
+                TestAssert.That(!coordinator.ContactReadAvailable(phone), "Feature-grant revocation left contact access enabled.");
                 try { await coordinator.ReadContactsAsync(phone, null, deadline.Token); throw new Exception("Revoked contact read reached the network."); }
                 catch (InvalidOperationException) { }
                 var send = typeof(TelefonConnection).GetMethod("SendPlainAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;

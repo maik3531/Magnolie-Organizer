@@ -24,10 +24,9 @@ internal static class DeviceIdentifierTests
             var peer = new TelefonPeer("11111111-1111-4111-8111-111111111111", "Fixture", new byte[32],
                 StoredCapabilities: TelefonProtocolContract.DesktopCapabilities()["items"]!.DeepClone().AsObject(),
                 StoredGrants: TelefonProtocolContract.DesktopGrants());
-            store.SavePeers(new[] { peer });
             var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            TestAssert.That(!store.SendIdentifierRequest(peer, request, now, () => { }), "Ownership was bypassed.");
-            store.SetPersonalSettings(peer.Id, ownDevice: true, remoteOwnDevice: true);
+            TestAssert.That(!store.SendIdentifierRequest(peer, request, now, () => { }), "An unpaired device obtained identifiers.");
+            store.SavePeers(new[] { peer });
             TestAssert.That(!store.AcceptIdentifiers(peer, body, now, now + 60_000), "Unsolicited identifiers accepted.");
             TestAssert.That(store.SendIdentifierRequest(peer, request, now, () => { }), "Own-device request blocked.");
             TestAssert.That(store.AcceptIdentifiers(peer, body, now, now + 60_000), "Matching identifiers rejected.");
@@ -45,8 +44,10 @@ internal static class DeviceIdentifierTests
             store.SendIdentifierRequest(peer, request, now, () => { });
             var changedPeer = peer with { PublicKey = Enumerable.Repeat((byte)1, 32).ToArray() };
             TestAssert.That(!store.AcceptIdentifiers(changedPeer, body, now, now + 60_000), "Changed peer key accepted identifiers.");
-            store.SendIdentifierRequest(peer, request, now, () => { }); store.SetPersonalSettings(peer.Id, ownDevice: false);
-            store.SetPersonalSettings(peer.Id, ownDevice: true);
+            store.SendIdentifierRequest(peer, request, now, () => { });
+            var revokedGrants = peer.Grants.DeepClone().AsObject(); revokedGrants["device_status"] = false;
+            store.SavePeers([peer with { Grants = revokedGrants }]);
+            store.SavePeers([peer]);
             TestAssert.That(!store.AcceptIdentifiers(peer, body, now, now + 60_000), "Revoked request revived.");
             store.SendIdentifierRequest(peer, request, now, () => { });
             TestAssert.That(!store.AcceptIdentifiers(peer, body, now + 60_001, now + 120_000), "Expired request accepted.");

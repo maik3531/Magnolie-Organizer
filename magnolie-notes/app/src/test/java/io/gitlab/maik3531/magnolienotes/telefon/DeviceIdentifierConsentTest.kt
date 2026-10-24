@@ -41,6 +41,22 @@ class DeviceIdentifierConsentTest {
     }
     @After fun cleanup() { work.serviceStopped(); Security.removeProvider(provider.name) }
 
+    @Test fun completedPairingReplacesLegacyOwnFlagsWithoutChangingFeatureChoices() {
+        storage.setPersonalSync(false, false, false, false, false)
+        val peer = storage.peers().peer!!.copy(own_device = false, remote_own_device = false,
+            contacts_read_enabled = false, personal_notes_sync_granted = false,
+            personal_tasks_sync_granted = true, saved_auto_wifi = false)
+        storage.savePeer(peer)
+        val current = storage.peers().peer!!
+        assertTrue(current.own_device); assertTrue(current.remote_own_device)
+        assertTrue(storage.personalOwnDevice())
+        assertFalse(current.contacts_read_enabled); assertFalse(current.personal_notes_sync_granted)
+        assertTrue(current.personal_tasks_sync_granted); assertFalse(current.saved_auto_wifi)
+        assertFalse(storage.personalAutoWifi())
+        storage.savePeer(current.copy(state = "paired_unverified", own_device = false, remote_own_device = false))
+        assertFalse(storage.personalOwnDevice()); assertFalse(storage.peers().peer!!.remote_own_device)
+    }
+
     @Test fun permissionGrantDenyAndRevocationAreExplicit() {
         assertFalse(storage.peers().peer!!.identifier_sharing_enabled)
         val denied = work.beginIdentifierPermission()!!
@@ -64,7 +80,8 @@ class DeviceIdentifierConsentTest {
         work.completeIdentifierPermission(token, true)
         assertFalse(storage.peers().peer!!.identifier_sharing_enabled)
         val revoked = work.beginIdentifierPermission()!!
-        work.setPersonalSync(false, false, false, false, false)
+        Shadows.shadowOf(context as Application).denyPermissions(Manifest.permission.READ_PHONE_NUMBERS)
+        work.runtimePermissionsChanged()
         work.completeIdentifierPermission(revoked, true)
         assertFalse(storage.peers().peer!!.identifier_sharing_enabled)
     }
@@ -74,7 +91,7 @@ class DeviceIdentifierConsentTest {
         work.refreshModules()
         assertTrue(storage.peers().peer!!.identifier_sharing_enabled)
         val peer = storage.peers().peer!!
-        storage.savePeer(peer.copy(own_device = false))
+        storage.savePeer(peer.copy(state = "paired_unverified", own_device = false))
         work.refreshModules()
         assertFalse(storage.peers().peer!!.identifier_sharing_enabled)
         storage.savePeer(peer.copy(own_device = true))

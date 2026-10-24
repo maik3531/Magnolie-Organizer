@@ -123,7 +123,6 @@ class Telefonhandlungen(
     val beiAnnehmen: (Boolean) -> Unit,
     val beiBenachrichtigungszugriff: () -> Unit,
     val beiBenachrichtigungsApp: (String) -> Unit,
-    val beiPersonalEigen: (Boolean) -> Unit,
     val beiIdentifierSharing: (Boolean) -> Unit,
     val beiKontakteLesen: (String, String, Boolean) -> Unit,
     val beiPersonalNotizrichtung: (String) -> Unit,

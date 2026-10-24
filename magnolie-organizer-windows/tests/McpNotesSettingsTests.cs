@@ -20,20 +20,23 @@ internal static class McpNotesSettingsTests
             store.SavePeers([peer]);
             store.SetPersonalSettings(peer.Id, ownDevice: false, remoteOwnDevice: false, autoWifi: false);
             var events = new List<string>();
-            using var service = new TelefonCoordinator(paths, (callback, _) => { events.Add(callback); return Task.CompletedTask; }, dataStore: store, localOnly: true);
+            using var modernService = new TelefonCoordinator(paths, (callback, _) => { events.Add(callback); return Task.CompletedTask; }, dataStore: store, localOnly: true);
+            var service = modernService;
             var fingerprint = TelefonCrypto.Fingerprint(peer.PublicKey);
             JsonObject Target(string action) => new() { ["action"] = action, ["peerId"] = peer.Id, ["fingerprint"] = fingerprint };
             var first = await service.ExecuteMcpAsync(Target("notes_settings_read"), default);
             var state = first["notesSettings"]!.AsObject();
-            TestAssert.That(first["ok"]!.GetValue<bool>() && !state["own_device"]!.GetValue<bool>() && state["shared"]!["supported"]!.GetValue<bool>() &&
-                state["shared"]!["values"] is null && store.SharedSettings(peer.Id, peer.PublicKey) is null, "Reading Notes settings initialized consent/preferences.");
+            TestAssert.That(first["ok"]!.GetValue<bool>() && state["own_device"]!.GetValue<bool>() && state["shared"]!["supported"]!.GetValue<bool>() &&
+                state["shared"]!["values"] is null && store.SharedSettings(peer.Id, peer.PublicKey) is null,
+                "Reading pairing-derived authority must not initialize synchronization preferences.");
             var initial = SharedSyncSettings.Effective(SharedSyncSettings.Create(store.LoadOrCreateIdentity().Id));
             var update = Target("notes_settings_update"); update["expectedRevision"] = state["revision"]!.DeepClone();
             update["initial"] = initial; update["field"] = "auto_mode"; update["value"] = "wifi";
             var saved = await service.ExecuteMcpAsync(update, default);
             TestAssert.That(saved["ok"]!.GetValue<bool>() && saved["persisted"]!.GetValue<bool>() && !saved["deliveryConfirmed"]!.GetValue<bool>() &&
-                store.PersonalSettings(peer.Id).OwnDevice && store.PersonalSettings(peer.Id).AutoWifi && !store.PersonalSettings(peer.Id).RemoteOwnDevice &&
-                SharedSyncSettings.Effective(store.SharedSettings(peer.Id, peer.PublicKey)!)["auto_mode"]!.GetValue<string>() == "wifi", "Native Notes shared preference was not saved/read back through the GUI handler.");
+                store.PersonalSettings(peer.Id).OwnDevice && store.PersonalSettings(peer.Id).AutoWifi && store.PersonalSettings(peer.Id).RemoteOwnDevice &&
+                SharedSyncSettings.Effective(store.SharedSettings(peer.Id, peer.PublicKey)!)["auto_mode"]!.GetValue<string>() == "wifi",
+                "Native Notes shared preference was not saved/read back through the GUI handler: " + saved.ToJsonString());
             var stale = await service.ExecuteMcpAsync(update, default);
             TestAssert.That(stale["code"]!.GetValue<string>() == "conflict", "Stale Notes revision mutated shared preferences.");
             update["expectedRevision"] = saved["notesSettings"]!["revision"]!.DeepClone(); update["field"] = "skip_deletions"; update["value"] = false;
@@ -52,19 +55,19 @@ internal static class McpNotesSettingsTests
             {
                 raced = service.ExecuteMcpAsync(update, default);
                 TestAssert.That(!raced.IsCompleted, "Notes mutation did not await the shared note-policy gate.");
-                store.SetPersonalSettings(peer.Id, remoteOwnDevice: true);
+                store.SetLocalGrant("personal_tasks_sync", false);
             }
             finally { store.NotePolicyGate.Release(); }
             TestAssert.That((await raced)["code"]!.GetValue<string>() == "conflict" && store.PersonalSettings(peer.Id).AutoWifi,
                 "Notes mutation failed to recheck consent revision after waiting for the shared gate.");
-            TestAssert.That(service.McpNotesSettings(peer.Id, fingerprint)["revision"]!.GetValue<string>() != revision, "Remote ownership change did not invalidate settings revision.");
+            TestAssert.That(service.McpNotesSettings(peer.Id, fingerprint)["revision"]!.GetValue<string>() != revision, "Feature grant change did not invalidate settings revision.");
             var ownership = Target("notes_ownership"); ownership["enabled"] = false;
             ownership["expectedRevision"] = service.McpNotesSettings(peer.Id, fingerprint)["revision"]!.DeepClone();
             var withdrawn = await service.ExecuteMcpAsync(ownership, default);
-            TestAssert.That(withdrawn["ok"]!.GetValue<bool>() && withdrawn["persisted"]!.GetValue<bool>() &&
-                !store.PersonalSettings(peer.Id).OwnDevice && !store.PersonalSettings(peer.Id).AutoWifi && store.PersonalSettings(peer.Id).RemoteOwnDevice &&
-                store.LoadPeers().Single().Id == peer.Id, "Withdrawal did not preserve pairing/remote consent or failed to stop local automatic synchronization.");
-            ownership["enabled"] = true; ownership["expectedRevision"] = withdrawn["notesSettings"]!["revision"]!.DeepClone();
+            TestAssert.That(withdrawn["code"]!.GetValue<string>() == "unsupported_feature" &&
+                store.PersonalSettings(peer.Id).OwnDevice && store.PersonalSettings(peer.Id).AutoWifi &&
+                store.LoadPeers().Single().Id == peer.Id, "An obsolete ownership switch changed verified pairing or synchronization choices.");
+            ownership["enabled"] = true; ownership["expectedRevision"] = service.McpNotesSettings(peer.Id, fingerprint)["revision"]!.DeepClone();
             var confirmed = await service.ExecuteMcpAsync(ownership, default);
             TestAssert.That(confirmed["ok"]!.GetValue<bool>() && store.PersonalSettings(peer.Id).OwnDevice && store.PersonalSettings(peer.Id).RemoteOwnDevice,
                 "Explicit ownership confirmation failed through the existing native handler.");
@@ -76,6 +79,17 @@ internal static class McpNotesSettingsTests
             store.SavePeers([peer with { Capabilities = oldCapabilities }]);
             legacy["expectedRevision"] = service.McpNotesSettings(peer.Id, fingerprint)["revision"]!.DeepClone();
             var legacySaved = await service.ExecuteMcpAsync(legacy, default);
+            TestAssert.That(legacySaved["code"]!.GetValue<string>() == "unsupported_feature" &&
+                store.SharedSettings(peer.Id, peer.PublicKey) is not null,
+                "An older capability list discarded retained shared preferences.");
+            paths = new WindowsPaths(Path.Combine(root, "legacy"));
+            store = new TelefonStore(paths, testStorageKey: Enumerable.Repeat((byte)29, 32).ToArray());
+            store.LoadOrCreateIdentity(); store.Enabled = false;
+            store.SavePeers([peer with { Capabilities = oldCapabilities }]);
+            using var legacyService = new TelefonCoordinator(paths, (callback, _) => { events.Add(callback); return Task.CompletedTask; }, dataStore: store, localOnly: true);
+            service = legacyService;
+            legacy["expectedRevision"] = service.McpNotesSettings(peer.Id, fingerprint)["revision"]!.DeepClone();
+            legacySaved = await service.ExecuteMcpAsync(legacy, default);
             TestAssert.That(legacySaved["ok"]!.GetValue<bool>() && store.PersonalSettings(peer.Id).AutoWifi &&
                 store.StoredGrantMatches("personal_notes_sync", true) && store.StoredGrantMatches("personal_tasks_sync", true) &&
                 store.StoredGrantMatches("personal_deletions_sync", true), "Legacy mode did not apply/read back the existing paired grant choices.");

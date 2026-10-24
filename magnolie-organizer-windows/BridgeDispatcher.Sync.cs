@@ -1037,7 +1037,6 @@ internal sealed partial class BridgeDispatcher
                 bluetoothDevices.Add(new JsonObject { ["address"] = device.Address, ["name"] = device.Name });
         var phoneStatus = (backend["telefone"] as JsonArray)?.OfType<JsonObject>()
             .ToDictionary(item => item["kennung"]!.GetValue<string>(), StringComparer.Ordinal) ?? [];
-        var settings = ReadTelefonSettings();
         var localGrants = telefon.LocalGrants();
         var peers = new JsonArray();
         foreach (var peer in telefon.StatusPeers)
@@ -1045,7 +1044,7 @@ internal sealed partial class BridgeDispatcher
             var status = phoneStatus.GetValueOrDefault(peer.Id);
             var transport = status?["online"]?.GetValue<bool>() == true ? status["transport"]?.GetValue<string>() ?? "offline" : "offline";
             var bluetoothAddress = status?["bluetooth_address"]?.GetValue<string>() ?? "";
-            var personal = settings["personal_sync"]?[peer.Id] as JsonObject;
+            var personal = telefon.PersonalSettings(peer.Id);
             peers.Add(new JsonObject
             {
                 ["device_id"] = peer.Id,
@@ -1061,13 +1060,14 @@ internal sealed partial class BridgeDispatcher
                 ["grants"] = new JsonObject { ["revision"] = peer.GrantRevision,
                     ["grants"] = peer.Grants.DeepClone() },
                 ["local_grants"] = new JsonObject { ["grants"] = localGrants.DeepClone() },
-                ["own_device"] = personal?["own_device"]?.GetValue<bool>() == true,
+                ["own_device"] = personal.OwnDevice,
+                ["initial_skip_deletions"] = telefon.InitialSkipDeletions,
                 ["custom_sync"] = telefon.CustomSettings(peer.Id),
                 ["note_sync"] = telefon.NoteSettings(peer.Id),
                 ["shared_sync"] = telefon.SharedPreferences(peer.Id),
                 ["time_sync"] = telefon.TimeSettings(peer.Id),
-                ["remote_own_device"] = personal?["remote_own_device"]?.GetValue<bool>() == true,
-                ["auto_wifi"] = personal?["auto_wifi"]?.GetValue<bool>() == true,
+                ["remote_own_device"] = personal.RemoteOwnDevice,
+                ["auto_wifi"] = personal.AutoWifi,
                 ["personal_sync_active_auto"] = false,
                 ["status"] = telefon.CachedDeviceStatus(peer.Id),
                 ["bluetooth_enabled"] = TelefonBluetoothClient.ValidAddress(bluetoothAddress),

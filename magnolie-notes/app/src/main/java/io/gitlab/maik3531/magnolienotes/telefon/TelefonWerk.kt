@@ -546,7 +546,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         "content_mode" to JsonPrimitive(if (peer.personal_note_policy == null)
             "phone_scope" else peer.personal_note_policy.string("mode")),
         "auto_mode" to JsonPrimitive(if (storage.personalAutoWifi()) "wifi" else "manual"),
-        "skip_deletions" to JsonPrimitive(!storage.personalDeletionsEnabled()),
+        "skip_deletions" to JsonPrimitive(storage.personalDeletionsConfigured() && !storage.personalDeletionsEnabled()),
         "custom_enabled" to JsonPrimitive(Ablage.hole(context).bestand.value.personalCustom.local?.get("enabled") == JsonPrimitive(true)),
         "time_enabled" to JsonPrimitive(peer.personal_time_policy?.get("enabled") == JsonPrimitive(true)),
         "time_mode" to JsonPrimitive("two_way"))
@@ -786,7 +786,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
     fun setAnswerCallsEnabled(value: Boolean) { storage.setAnswerCallsEnabled(value); modulesChanged() }
     @Synchronized fun initializePersonalDefaults(reconnectAfterChange: Boolean = true) {
         val peer = safePeer()?.takeIf { it.state == "paired" } ?: return
-        val own = storage.personalOwnDevice()
+        val own = true // The authenticated, completed pairing confirms this relationship.
         val notes = own && storage.personalNotesEnabled()
         val tasks = own && storage.personalTasksEnabled()
         val deletions = own && storage.personalDeletionsEnabled()
@@ -799,7 +799,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             if (contactsChanged) modulesChanged(reconnectAfterChange)
             return
         }
-        setPersonalSync(own, notes, tasks, storage.personalAutoWifi(), deletions, reconnectAfterChange)
+        setPersonalSync(own, notes, tasks, storage.personalAutoWifi(), deletions, reconnectAfterChange, rememberDeletions = false)
     }
 
     @Synchronized fun setPersonalSyncMode(autoWifi: Boolean, skipDeletions: Boolean, reconnectAfterChange: Boolean = true) {
@@ -808,25 +808,19 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
 
     @Synchronized fun setPersonalSync(own: Boolean, notes: Boolean, tasks: Boolean, autoWifi: Boolean,
-                         deletions: Boolean = storage.personalDeletionsEnabled(), reconnectAfterChange: Boolean = true) {
-        var peer = safePeer()
-        if (!own) { identifierEpoch++; identifierPermissionTicket = null; identifierRequests.clear(); contactPermissionTicket = null; closeTransport() }
-        if (!own) pauseCustom()
-        if (!own) peer = peer?.let(::pauseTime)
-        if (peer != null && !own) queue.purgePersonal(peer.device_id)
-        else if (peer != null) queue.purgePersonalModules(peer.device_id,
+                         deletions: Boolean = storage.personalDeletionsEnabled(), reconnectAfterChange: Boolean = true,
+                         rememberDeletions: Boolean = true) {
+        require(own) { "Zum Trennen die Kopplung aufheben; Inhalte über ihre Freigaben steuern." }
+        val peer = safePeer()
+        if (peer != null) queue.purgePersonalModules(peer.device_id,
             buildSet { if (!notes) add("notes"); if (!tasks) add("tasks") })
-        if (own) Ablage.hole(context).personalSyncRevokeModules(
+        Ablage.hole(context).personalSyncRevokeModules(
             buildSet { if (!notes) add("notes"); if (!tasks) add("tasks") }, peer?.device_id)
-        else {
-            Ablage.hole(context).personalSyncRevokeModules(setOf("notes", "tasks"), peer?.device_id)
-            Ablage.hole(context).personalSyncRevokeDeletions(peer?.device_id)
-        }
         if (peer != null && !deletions) {
             queue.purgePersonalDeletionWire(peer.device_id)
             Ablage.hole(context).personalSyncRevokeDeletions(peer.device_id)
         }
-        storage.setPersonalSync(own, notes, tasks, autoWifi, deletions)
+        storage.setPersonalSync(own, notes, tasks, autoWifi, deletions, rememberDeletions)
         if (peer != null) {
             storage.savePeer(peer.copy(own_device = own, identifier_sharing_enabled = own && peer.identifier_sharing_enabled, personal_notes_sync_granted = own && notes,
                 contacts_read_enabled = own && peer.contacts_read_enabled,
@@ -2481,9 +2475,8 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     send(TelefonNachrichten.ack(message.string("message_id"), "rejected", "not_granted")); return
                 }
                 if (kind == "personal_sync.settings" && duplicate.first in setOf("accepted", "duplicate") &&
-                    queue.receivedMatches(peer.device_id, message) &&
-                    (duplicateBody?.get("own_device") as? JsonPrimitive)?.booleanOrNull == current.remote_own_device)
-                    noteSession?.observeActorOwnDecision(current.remote_own_device)
+                    queue.receivedMatches(peer.device_id, message))
+                    noteSession?.observeActorOwnDecision(true)
                 if (kind == "personal_sync.attachment_result" && duplicateBody!!.string("state") == "complete") {
                     val runId = duplicateBody.string("run_id")
                     queue.completeOutgoingAttachment(peer.device_id, runId,
@@ -2508,12 +2501,9 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     negotiatedPersonalFormat(current, requestedModules.ifEmpty { listOf("notes", "tasks") }) < personalFormat)
                     throw TelefonProtokollFehler("Personal-Sync-Format wurde nicht ausgehandelt.")
                 if (kind == "personal_sync.settings") {
-                    val remoteOwn = (body["own_device"] as JsonPrimitive).booleanOrNull == true
-                    if (!remoteOwn) pauseCustom()
-                    if (!remoteOwn) queue.purgePersonal(peer.device_id)
-                    identifierEpoch++; identifierPermissionTicket = null; identifierRequests.clear()
-                    val updated = if (remoteOwn) current else pauseTime(current)
-                    storage.savePeer(updated.copy(remote_own_device = remoteOwn))
+                    // Keep the fresh control-frame requirement; legacy own flags are
+                    // no longer a second confirmation after authenticated pairing.
+                    storage.savePeer(current.copy(remote_own_device = true))
                     return@runCatching queue.receive(peer.device_id, message)
                 }
                 if (!personalSyncTransmissionAllowed(current, kind, body))
@@ -2641,7 +2631,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
             }.getOrElse { runCatching { queue.terminal(peer.device_id, message, "invalid_schema") }
                 .getOrDefault("rejected" to "invalid_schema") }
             if (kind == "personal_sync.settings" && result.first in setOf("accepted", "duplicate"))
-                noteSession?.observeActorOwnDecision(((message["body"] as JsonObject)["own_device"] as JsonPrimitive).content.toBooleanStrict())
+                noteSession?.observeActorOwnDecision(true)
             refreshModules()
             send(TelefonNachrichten.ack(message.string("message_id"), result.first, result.second)); return
         }

@@ -11,7 +11,7 @@ internal static class McpDeviceStatusTests
     internal static async Task RunAsync()
     {
         foreach (var scenario in new[] { "basic", "identifiers", "own_off_basic", "own_off", "grant_off", "key_changed", "channel_changed", "cancel", "replay", "wrong_channel",
-            "timezone", "timezone_bt", "timezone_own_off", "timezone_cancel", "timezone_not_own", "timezone_legacy", "timezone_unavailable" })
+            "timezone", "timezone_bt", "timezone_own_off", "timezone_cancel", "timezone_unpaired", "timezone_legacy", "timezone_unavailable" })
             await ReadAsync(scenario);
     }
     private static async Task ReadAsync(string scenario)
@@ -43,11 +43,11 @@ internal static class McpDeviceStatusTests
             foreach (var flag in new[] { "freshCapabilities", "freshGrants", "freshOwnSettings" })
                 typeof(TelefonConnection).GetField(flag, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(connection, true);
             var include = !timeZone && scenario is not ("basic" or "own_off_basic");
-            if (scenario == "timezone_not_own") store.SetPersonalSettings(peer.Id, ownDevice: false);
-            if (scenario is "timezone_not_own" or "timezone_legacy")
+            if (scenario == "timezone_unpaired") store.SavePeers([peer with { State = "pair_commit_pending" }]);
+            if (scenario is "timezone_unpaired" or "timezone_legacy")
             {
                 TestAssert.That(await coordinator.ReadOwnTimeZoneAsync(lifetime.Token) is null && stream.Length == 0,
-                    "Unowned or legacy phone was queried for a timezone.");
+                    "An unconfirmed pairing or legacy phone was queried for a timezone.");
                 online.Clear(); return;
             }
             if (scenario == "timezone_bt") TestAssert.That(!connection.StatusReadReady(false) && connection.StatusReadReady(false, true), "Timezone support widened ordinary WiFi-only status reads.");
@@ -92,7 +92,7 @@ internal static class McpDeviceStatusTests
                 if (scenario == "key_changed") store.SavePeers([peer with { PublicKey = Enumerable.Repeat((byte)20, 32).ToArray() }]);
                 if (scenario == "channel_changed") online.Remove(peer.Id);
                 var result = coordinator.CurrentMcpDeviceStatus(token);
-                if (scenario is "own_off" or "grant_off" or "key_changed" or "channel_changed" or "timezone_own_off")
+                if (scenario is "grant_off" or "key_changed" or "channel_changed")
                     TestAssert.That(result["ok"]!.GetValue<bool>() == false && !result.ToJsonString().Contains("000000000000001", StringComparison.Ordinal), "Revoked source/identifier permission leaked a queued result.");
                 else
                 {

@@ -94,7 +94,7 @@ def test_known_phone_renewal_requires_new_confirmation_and_keeps_existing_conten
             assert not any(current['grants']['grants'].values())
             assert current['personal_sync']['own_device'] is True
             assert current['personal_sync']['auto_wifi'] is True
-            assert current['personal_sync']['remote_own_device'] is False
+            assert current['personal_sync']['remote_own_device'] is True
         else:
             assert current is previous and 'paired' not in events
         assert hashlib.sha256(content.read_bytes()).hexdigest() == before
@@ -118,3 +118,32 @@ def test_renewal_does_not_replace_another_identity_or_key_before_confirmation(tm
     with pytest.raises(ValueError, match='binding already exists'):
         service._pair(mock.Mock(), init)
     assert service.store.peers == before and not service.pairings
+
+
+def test_confirmed_pairing_replaces_legacy_ownership_flags_without_changing_sync_choices(tmp_path):
+    directory = str(tmp_path / 'phone')
+    service = phone.PhoneService(directory, 'Fixture')
+    peer = _complete_peer()
+    peer['personal_sync'].update(own_device=False, remote_own_device=False, auto_wifi=False)
+    before_local = json.loads(json.dumps(peer['local_grants']))
+    before_remote = json.loads(json.dumps(peer['grants']))
+    service.store.peers = [peer]
+    service.store.save_peers()
+    reopened = phone.PhoneService(directory, 'Fixture')
+    current = reopened.store.peer(peer['device_id'])
+    assert current['personal_sync']['own_device'] is True
+    assert current['personal_sync']['remote_own_device'] is True
+    assert current['personal_sync']['auto_wifi'] is False
+    assert current['local_grants'] == before_local and current['grants'] == before_remote
+    assert reopened.store.peer('00000000-0000-4000-8000-000000000000') is None
+
+
+def test_pending_pair_does_not_obtain_confirmed_pairing_authority(tmp_path):
+    service = phone.PhoneService(str(tmp_path), 'Fixture')
+    peer = _complete_peer()
+    peer['state'] = 'pair_commit_pending'
+    peer['personal_sync'].update(own_device=False, remote_own_device=False, auto_wifi=False)
+    service.store.peers = [peer]
+    current = service.store.peer(peer['device_id'])
+    assert current['personal_sync']['own_device'] is False
+    assert current['personal_sync']['remote_own_device'] is False

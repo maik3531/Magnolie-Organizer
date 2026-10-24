@@ -371,10 +371,15 @@ class PhoneStore:
             else:
                 migrated |= self._migrate_grants(peer["local_grants"], True)
             if "personal_sync" not in peer:
-                peer["personal_sync"] = {"own_device": False, "remote_own_device": False,
-                                         "auto_wifi": False,
+                peer["personal_sync"] = {"own_device": peer.get("state") == "paired", "remote_own_device": peer.get("state") == "paired",
+                                         "auto_wifi": True,
                                          "last_report": {}}
                 migrated = True
+            if peer.get("state") == "paired":
+                personal = peer["personal_sync"]
+                if personal.get("own_device") is not True or personal.get("remote_own_device") is not True:
+                    personal["own_device"] = personal["remote_own_device"] = True
+                    migrated = True
             capabilities = peer.get("capabilities", {})
             if capabilities:
                 items = capabilities.get("items")
@@ -731,7 +736,11 @@ class PhoneStore:
         _atomic(self.settings_path, canonical({"enabled": bool(enabled)}))
 
     def peer(self, device_id):
-        return next((peer for peer in self.peers if peer.get("device_id") == device_id), None)
+        peer = next((peer for peer in self.peers if peer.get("device_id") == device_id), None)
+        if peer is not None and peer.get("state") == "paired":
+            personal = peer.setdefault("personal_sync", {"auto_wifi": True, "last_report": {}})
+            personal["own_device"] = personal["remote_own_device"] = True
+        return peer
 
     def binding_conflict(self):
         return len(self.peers) > 1
@@ -739,7 +748,7 @@ class PhoneStore:
     def sole_peer(self, device_id=None):
         if len(self.peers) != 1:
             return None
-        peer = self.peers[0]
+        peer = self.peer(self.peers[0]["device_id"])
         return peer if device_id is None or peer.get("device_id") == device_id else None
 
     def _database(self):
@@ -1901,6 +1910,25 @@ class PhoneStore:
                        (key, str(revision).encode("ascii")))
         return revision
 
+    def initial_skip_deletions(self, peer_id):
+        peer = self.peer(peer_id)
+        if peer is None:
+            raise ValueError("unknown phone")
+        key = "personal_deletion_choice:" + peer_id + ":" + hashlib.sha256(unb64(peer["static_public"], 32)).hexdigest()
+        with sqlite3.connect(self.database_path) as db:
+            row = db.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
+        # Historical explicit choices cannot be distinguished from old defaults:
+        # preserve those grants. Newly paired relationships record the new default.
+        return bytes(row[0]) == b"1" if row else peer.get("local_grants", {}).get("grants", {}).get("personal_deletions_sync") is not True
+
+    def remember_initial_skip_deletions(self, peer_id, skip):
+        peer = self.peer(peer_id)
+        if peer is None or type(skip) is not bool:
+            raise ValueError("invalid phone preference")
+        key = "personal_deletion_choice:" + peer_id + ":" + hashlib.sha256(unb64(peer["static_public"], 32)).hexdigest()
+        with sqlite3.connect(self.database_path) as db:
+            db.execute("INSERT OR REPLACE INTO meta(key,value) VALUES(?,?)", (key, b"1" if skip else b"0"))
+
     def _shared_settings_binding(self, peer_id, expected_public):
         peer = self.peer(peer_id)
         if (not peer or peer.get("state") != "paired" or peer.get("static_public") != expected_public):
@@ -2469,7 +2497,8 @@ class PhoneService:
                           "status": self.store.status(peer_id),
                            "capabilities": peer.get("capabilities", {}),
                             "grants": peer.get("grants", {}),
-                            "local_grants": peer.get("local_grants", {}),
+                             "local_grants": peer.get("local_grants", {}),
+                             "initial_skip_deletions": self.store.initial_skip_deletions(peer_id),
                            "bluetooth_enabled": bluetooth["enabled"],
                             "bluetooth_address": bluetooth["address"],
                              "call_audio": dict(peer.get("call_audio", {}), address=self._call_audio_address(peer)),
@@ -3792,6 +3821,8 @@ class PhoneService:
         grants["revision"] = self.store.next_revision("grants.update")
         grants["grants"][name] = bool(enabled)
         self.store.save_peers()
+        if name == "personal_deletions_sync":
+            self.store.remember_initial_skip_deletions(peer_id, not enabled)
         message = self.store.queue(peer_id, "grants.update", grants, DAY_MS)
         channel = self.connections.get(peer_id)
         if channel:
@@ -4886,6 +4917,11 @@ class PhoneService:
     def _observe_note_control(self, peer, channel, kind, body):
         if kind not in {"capabilities.update", "grants.update", "personal_sync.settings"}:
             return
+        if kind == "personal_sync.settings":
+            validate_personal_sync_body(kind, body)
+            if peer.get("state") != "paired":
+                return
+            body = {"format": 1, "own_device": True}
         expected = ({"format": 1, "own_device": peer.get("personal_sync", {}).get("remote_own_device", False)}
                     if kind == "personal_sync.settings" else peer.get("capabilities" if kind == "capabilities.update" else "grants"))
         if body == expected:
@@ -5123,6 +5159,7 @@ class PhoneService:
                 raise
             if skip_deletions:
                 self.store.purge_personal_deletion_wire(peer_id)
+            self.store.remember_initial_skip_deletions(peer_id, skip_deletions)
             for kind, body in (("grants.update", grants),
                                ("personal_sync.settings", {"format": 1, "own_device": True})):
                 self.store.remove_kind(peer_id, kind)
@@ -5139,18 +5176,15 @@ class PhoneService:
             raise RuntimeError("Das Telefon ist nicht gekoppelt.")
         if self.store.sole_peer(peer_id) is None:
             raise RuntimeError("Mehrere Magnolie-Notes-Telefone sind gespeichert. Entfernen Sie alle bis auf eines.")
+        if not own_device:
+            raise NotImplementedError("Die Gerätebestätigung ergibt sich aus der abgeschlossenen Kopplung; ändern Sie die Synchronisierungseinstellungen oder entkoppeln Sie das Gerät.")
         previous = peer.get("personal_sync", {})
         if own_device and not previous.get("own_device"):
             # Only a new own-phone confirmation gets the new default. Existing
             # installations wait for the GUI's explicit legacy preference migration.
             peer.setdefault("call_audio", {"prefer_pc": True})
-        if not own_device:
-            self._purge_identifiers(peer_id)
-            self._pause_custom(peer_id)
-            self._pause_time(peer_id)
-            self.store.purge_personal(peer_id)
         peer["personal_sync"] = {"own_device": bool(own_device),
-            "remote_own_device": previous.get("remote_own_device", False),
+            "remote_own_device": True,
             "auto_wifi": bool(auto_wifi) if own_device else False,
             "last_report": previous.get("last_report", {})}
         self.store.save_peers()
@@ -6105,7 +6139,7 @@ class PhoneService:
             expires = now_ms() + PAIR_COMMIT_MS
             peer = {}
             local_preferences = previous.get('personal_sync', {}) if previous else {}
-            own = local_preferences.get('own_device', True) is True
+            own = True
             auto_wifi = own and local_preferences.get('auto_wifi', True) is True
             local_grants = (json.loads(json.dumps(previous.get('local_grants', desktop_grants())))
                 if previous else desktop_grants())
@@ -6146,6 +6180,8 @@ class PhoneService:
                     old_channel.sock.close()
                 self.store.peers = [peer]
                 self.store.save_peers()
+                if previous is None:
+                    self.store.remember_initial_skip_deletions(peer["device_id"], False)
             send_frame(sock, {"p": PROTOCOL, "type": "pair_confirm", "side": "desktop",
                 "transcript": b64(transcript), "proof": b64(proof(
                     key, b"magnolie-phone-pair-v1/confirm\0", "desktop", transcript))})
@@ -6966,15 +7002,10 @@ class PhoneService:
                 local = peer.get("local_grants", {}).get("grants", {})
                 remote = peer.get("grants", {}).get("grants", {})
                 if kind == "personal_sync.settings":
-                    if self.store.binding_conflict() and value["own_device"]:
+                    if self.store.binding_conflict():
                         status, error = "rejected", "not_granted"
                         raise PermissionError
-                    if not value["own_device"]:
-                        self._purge_identifiers(peer["device_id"])
-                        self._pause_custom(peer["device_id"])
-                        self._pause_time(peer["device_id"])
-                        self.store.purge_personal(peer["device_id"])
-                    personal["remote_own_device"] = value["own_device"]
+                    personal["remote_own_device"] = True
                     self.store.save_peers()
                 needed = personal_sync_grants_needed(kind, value)
                 if kind != "personal_sync.settings" and not needed:

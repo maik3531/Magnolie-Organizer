@@ -74,11 +74,13 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
     fun setIncomingNumberEnabled(value: Boolean) { settings.edit().putBoolean("incoming_number_enabled", value).commit() }
     fun setAnswerCallsEnabled(value: Boolean) { settings.edit().putBoolean("answer_calls_enabled", value).commit() }
     fun setSelectedPackages(value: Set<String>) { settings.edit().putStringSet("notification_packages", value).commit() }
-    fun personalOwnDevice(): Boolean = settings.getBoolean("personal_sync_own_device", true)
+    fun personalOwnDevice(): Boolean = peers().peer?.let { it.state == "paired" }
+        ?: settings.getBoolean("personal_sync_own_device", true)
     fun personalNotesEnabled(): Boolean = settings.getBoolean("personal_sync_notes", true)
     fun personalTasksEnabled(): Boolean = settings.getBoolean("personal_sync_tasks", true)
     fun personalAutoWifi(): Boolean = settings.getBoolean("personal_sync_auto_wifi", true)
     fun personalDeletionsEnabled(): Boolean = settings.getBoolean("personal_sync_deletions", false)
+    fun personalDeletionsConfigured(): Boolean = settings.contains("personal_sync_deletions")
     fun personalSyncReport(): String = settings.getString("personal_sync_report", "").orEmpty()
     fun personalSyncLastAuto(): Long = settings.getLong("personal_sync_last_auto", 0)
     fun setPersonalSyncLastAuto(value: Long) { settings.edit().putLong("personal_sync_last_auto", value).commit() }
@@ -92,12 +94,14 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
         settings.getBoolean(contactChoiceKey(deviceId, publicKey), false)
     fun setPersonalSyncLastCounter(value: Long) { settings.edit().putLong("personal_sync_last_counter", value).commit() }
     fun setPersonalSync(own: Boolean, notes: Boolean, tasks: Boolean, autoWifi: Boolean,
-                        deletions: Boolean = personalDeletionsEnabled()) {
-        settings.edit().putBoolean("personal_sync_own_device", own)
+                        deletions: Boolean = personalDeletionsEnabled(), rememberDeletions: Boolean = true) {
+        val edit = settings.edit().putBoolean("personal_sync_own_device", own)
             .putBoolean("personal_sync_notes", own && notes)
             .putBoolean("personal_sync_tasks", own && tasks)
             .putBoolean("personal_sync_auto_wifi", own && autoWifi)
-            .putBoolean("personal_sync_deletions", own && deletions).commit()
+        if (rememberDeletions || personalDeletionsConfigured())
+            edit.putBoolean("personal_sync_deletions", own && deletions)
+        edit.commit()
     }
     fun setPersonalSyncReport(value: String) { settings.edit().putString("personal_sync_report", value.take(2000)).commit() }
 
@@ -126,9 +130,13 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
         val clear = decrypt(peersFile.readText(), "peers", "v1")
         try {
             val (sanitized, migrated) = sanitizeLegacyPeer(TelefonKanonisch.json.parseToJsonElement(clear.decodeToString()) as JsonObject)
-            json.decodeFromJsonElement(TelefonBestand.serializer(), sanitized).validated().also {
-                if (migrated) savePeers(it)
-            }
+            val decoded = json.decodeFromJsonElement(TelefonBestand.serializer(), sanitized).validated()
+            fun confirmed(peer: TelefonPeer): TelefonPeer = if (peer.state == "paired")
+                peer.copy(own_device = true, remote_own_device = true) else peer
+            val current = decoded.copy(peer = decoded.peer?.let(::confirmed),
+                other_peers = decoded.other_peers.map(::confirmed))
+            if (migrated || current != decoded) savePeers(current)
+            current
         } finally { clear.fill(0) }
     }
 
@@ -185,14 +193,16 @@ class TelefonAblage private constructor(context: Context) : TelefonPayloadStorag
     }
 
     private fun restoreComputerSettings(peer: TelefonPeer?) {
-        check(settings.edit().putBoolean("personal_sync_own_device", peer?.own_device == true)
-            .putBoolean("personal_sync_notes", peer?.own_device == true && peer.personal_notes_sync_granted)
-            .putBoolean("personal_sync_tasks", peer?.own_device == true && peer.personal_tasks_sync_granted)
+        val edit = settings.edit().putBoolean("personal_sync_own_device", peer?.own_device == true)
+            .putBoolean("personal_sync_notes", peer?.personal_notes_sync_granted ?: true)
+            .putBoolean("personal_sync_tasks", peer?.personal_tasks_sync_granted ?: true)
             .putBoolean("personal_sync_deletions", peer?.own_device == true && peer.personal_deletions_sync_granted)
-            .putBoolean("personal_sync_auto_wifi", peer?.own_device == true && peer.saved_auto_wifi)
+            .putBoolean("personal_sync_auto_wifi", peer?.saved_auto_wifi ?: true)
             .putBoolean("bluetooth_enabled", peer?.saved_bluetooth == true)
             .putLong("personal_sync_last_auto", 0).putLong("personal_sync_last_counter", -1)
-            .putString("personal_sync_report", "").remove("pending_computer_selection").commit())
+            .putString("personal_sync_report", "").remove("pending_computer_selection")
+        if (peer == null) edit.remove("personal_sync_deletions")
+        check(edit.commit())
     }
 
     private fun savePeers(value: TelefonBestand) {

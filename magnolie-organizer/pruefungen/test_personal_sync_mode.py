@@ -22,13 +22,29 @@ def test_mode_choice_enables_notes_tasks_and_default_deletion_review(tmp_path):
     reopened = phone.PhoneStore(str(tmp_path / "phone"), "Synthetic")
     saved = reopened.peer(peer_id)
     assert saved["personal_sync"]["own_device"] and saved["personal_sync"]["auto_wifi"]
-    assert not saved["personal_sync"]["remote_own_device"], "local operation must not invent remote consent"
+    assert saved["personal_sync"]["remote_own_device"], "completed pairing is the confirmation"
     assert all(saved["local_grants"]["grants"][name] for name in (
         "personal_notes_sync", "personal_tasks_sync", "personal_deletions_sync"))
-    assert saved["local_grants"]["grants"]["selected_notifications_readonly"]
+    assert not saved["local_grants"]["grants"]["selected_notifications_readonly"], "unrelated feature choice is preserved"
     pending = reopened.pending(peer_id)
     assert {message["kind"] for message in pending} == {"grants.update", "personal_sync.settings"}
     assert next(message for message in pending if message["kind"] == "grants.update")["body"]["grants"]["personal_deletions_sync"]
+
+
+def test_new_pairing_deletion_default_and_manual_choices_are_durable_and_key_bound(tmp_path):
+    service, peer_id = _personal_service(tmp_path, lambda *_: None)
+    peer = service.store.peer(peer_id)
+    service.store.remember_initial_skip_deletions(peer_id, False)
+    assert not service.store.initial_skip_deletions(peer_id)
+    service.set_personal_sync_mode(peer_id, False, True)
+    reopened = phone.PhoneStore(str(tmp_path / "phone"), "Synthetic")
+    assert reopened.initial_skip_deletions(peer_id)
+    assert not reopened.peer(peer_id)["personal_sync"]["auto_wifi"]
+    service.set_personal_sync_mode(peer_id, True, False)
+    assert not service.store.initial_skip_deletions(peer_id)
+    peer["static_public"] = phone.b64(b"q" * 32)
+    peer["local_grants"]["grants"]["personal_deletions_sync"] = False
+    assert service.store.initial_skip_deletions(peer_id), "a changed key must not inherit the previous default marker"
 
 
 def test_manual_and_skip_choice_preserve_other_preferences_and_note_direction(tmp_path):

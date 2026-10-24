@@ -30,12 +30,24 @@ class IsolatedDaemon:
         self.env = env
         arguments = ["--serve"] if bluetooth_port is None else ["--serve-bt", str(bluetooth_port)]
         self.command = ["dbus-run-session", "--", sys.executable, "-u", __file__, *arguments]
-        self._start()
+        try:
+            self._start()
+        except BaseException:
+            self._stop()
+            self.directory.cleanup()
+            raise
 
     def _start(self):
         env = self.env
+        parent = os.getpid()
+        def owned_child():
+            import ctypes
+            if ctypes.CDLL(None, use_errno=True).prctl(1, signal.SIGTERM, 0, 0, 0) != 0:
+                raise OSError(ctypes.get_errno(), "Could not bind fixture lifetime")
+            if os.getppid() != parent:
+                os.kill(os.getpid(), signal.SIGTERM)
         self.process = subprocess.Popen(self.command, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, text=True, start_new_session=True)
+            stderr=subprocess.PIPE, text=True, start_new_session=True, preexec_fn=owned_child)
         from magnolie_hintergrund import daemon_available
         # The fixture emits its canonical socket name; no guessed production path.
         self.path = self.process.stdout.readline().strip()
@@ -57,7 +69,10 @@ class IsolatedDaemon:
 
     def _stop(self):
         if self.process.poll() is None:
-            self.process.stdin.write("QUIT\n"); self.process.stdin.flush()
+            try:
+                self.process.stdin.write("QUIT\n"); self.process.stdin.flush()
+            except (BrokenPipeError, OSError):
+                os.killpg(self.process.pid, signal.SIGTERM)
             try: self.process.wait(8)
             except subprocess.TimeoutExpired:
                 os.killpg(self.process.pid, signal.SIGKILL); self.process.wait(3)

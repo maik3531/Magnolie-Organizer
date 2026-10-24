@@ -115,6 +115,8 @@ internal sealed partial class TelefonCoordinator : IDisposable
     internal TelefonPeer[] Peers => store.LoadPeers().Where(peer => peer.State == "paired").ToArray();
     internal TelefonPeer[] StatusPeers { get { store.Cleanup(Now()); return store.LoadPeers().ToArray(); } }
     internal JsonObject LocalGrants() => store.LocalGrants();
+    internal (bool OwnDevice, bool RemoteOwnDevice, bool AutoWifi) PersonalSettings(string id) => store.PersonalSettings(id);
+    internal bool InitialSkipDeletions => store.StoredGrantMatches("personal_deletions_sync", false);
     internal void ClearDeviceIdentifiers(string id) => store.PurgeIdentifiers(id);
     internal JsonObject CurrentDeviceStatus(JsonObject status)
     {
@@ -909,6 +911,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
 
     internal async Task SetPersonalSyncAsync(string id, bool ownDevice, bool autoWifi, string? expectedFingerprint = null, string? expectedNotesRevision = null)
     {
+        if (!ownDevice) throw new NotSupportedException("Device confirmation is established by completed pairing; change synchronization preferences or unpair instead.");
         TelefonConnection? connection;
         await store.NotePolicyGate.WaitAsync();
         try
@@ -922,7 +925,6 @@ internal sealed partial class TelefonCoordinator : IDisposable
                     if (expectedNotesRevision != state["revision"]!.GetValue<string>()) throw new McpConflictException();
                     autoWifi = state["shared"]?["values"] is JsonObject values ? values["auto_mode"]!.GetValue<string>() == "wifi" : state["auto_wifi"]!.GetValue<bool>();
                 }
-                if (!ownDevice) personalSync.PurgeProtocol(id);
                 store.SetPersonalSettings(id, ownDevice: ownDevice, autoWifi: ownDevice && autoWifi);
                 online.TryGetValue(id, out connection);
             }
@@ -1631,7 +1633,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         var currentPeer = Peers.FirstOrDefault(value => value.Id == peer.Id && value.PublicKey.SequenceEqual(peer.PublicKey));
         if (currentPeer is null) return new TelefonAck(id, "rejected", "not_granted");
         peer = currentPeer;
-        if (kind == "personal_sync.settings") { var own = body["own_device"]!.GetValue<bool>(); if (!own) personalSync.PurgeProtocol(peer.Id); store.SetPersonalSettings(peer.Id, remoteOwnDevice: own); await emit("App.telefonPersonalSyncEinstellungen", new { device_id = peer.Id, own_device = own }); await ReportStatusAsync(); return null; }
+        if (kind == "personal_sync.settings") { store.SetPersonalSettings(peer.Id, remoteOwnDevice: true); await emit("App.telefonPersonalSyncEinstellungen", new { device_id = peer.Id, own_device = true }); await ReportStatusAsync(); return null; }
         if (!NoteDirectionAllowed(peer.Id, kind, body, false)) return new TelefonAck(id, "rejected", "not_granted");
         var run = kind == "personal_sync.request" ? null : personalSync.LoadRun(peer.Id, body["run_id"]!.GetValue<string>(), now);
         var grants = PersonalGrants(kind, body, run?.Request); if (grants.Count == 0 || grants.Any(name => store.LocalGrants()[name]?.GetValue<bool>() != true || peer.Grants[name]?.GetValue<bool>() != true)) return new TelefonAck(id, "rejected", "not_granted");
@@ -2174,9 +2176,9 @@ internal sealed partial class TelefonConnection : IDisposable
                         { Interlocked.Exchange(ref actorGrantRevision, current.GrantRevision); freshGrants = true; }
                         break;
                     case "personal_sync.settings":
-                        if (body["own_device"]!.GetValue<bool>() == store.PersonalSettings(peer.Id).RemoteOwnDevice)
+                        if (store.PersonalSettings(peer.Id).OwnDevice)
                         {
-                            var ownDecision = body["own_device"]!.GetValue<bool>();
+                            var ownDecision = true;
                             if (actorRemoteOwnDecision != ownDecision)
                             {
                                 actorRemoteOwnDecision = ownDecision;

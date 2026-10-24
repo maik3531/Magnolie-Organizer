@@ -76,12 +76,12 @@ def test_read_uses_actual_payload_dispatch_and_private_ipc_without_persistence(s
             server.close()
 
 
-@pytest.mark.parametrize('change', ['own', 'remote_own', 'remote_grant', 'local_grant', 'bluetooth',
+@pytest.mark.parametrize('change', ['unconfirmed', 'missing_peer', 'remote_grant', 'local_grant', 'bluetooth',
     'disconnected', 'fresh_controls', 'unsupported', 'disabled', 'stopping'])
 def test_unavailable_source_never_sends(setup, change):
     service, peer, channel = setup
-    if change == 'own': peer['personal_sync']['own_device'] = False
-    if change == 'remote_own': peer['personal_sync']['remote_own_device'] = False
+    if change == 'unconfirmed': peer['state'] = 'paired_unverified'
+    if change == 'missing_peer': service.store.peers.clear()
     if change == 'remote_grant': peer['grants']['grants']['device_status'] = False
     if change == 'local_grant': peer['local_grants']['grants']['device_status'] = False
     if change == 'bluetooth': service.connection_transports[peer['device_id']] = 'bluetooth'
@@ -132,7 +132,7 @@ def test_revocation_after_report_before_return_is_rechecked(setup):
     service, peer, channel = setup
     def respond(request):
         service._payload(peer, channel, response(request))
-        peer['personal_sync']['own_device'] = False
+        peer['local_grants']['grants']['device_status'] = False
     channel.respond = respond
     with pytest.raises(PermissionError, match='source_changed'):
         service.read_developer_diagnostics(peer['device_id'])

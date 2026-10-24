@@ -23,6 +23,15 @@ class Channel:
     def send(self, value): self.sent.append(value)
 
 
+def remote_status_grant(service, peer, channel, enabled):
+    grants = copy.deepcopy(peer["grants"])
+    grants["revision"] += 1
+    grants["grants"]["device_status"] = enabled
+    now = phone.now_ms()
+    service._payload(peer, channel, {"type": "message", "v": 1, "message_id": str(uuid.uuid4()),
+        "kind": "grants.update", "created_ms": now, "expires_ms": now + 60000, "body": grants})
+
+
 @pytest.fixture
 def setup(tmp_path):
     events = []
@@ -80,7 +89,7 @@ def test_native_ui_queue_rechecks_identifiers_at_dispatch(setup, monkeypatch, ch
     for name in names: setattr(owner, name, MethodType(namespace[name], owner))
     owner._telefon_ereignis("device_status", payload)
     assert queued and not scripts
-    if change == "revoked": service.set_personal_sync(peer["device_id"], False)
+    if change == "revoked": remote_status_grant(service, peer, channel, False)
     elif change in ("new-request", "new-report", "old-response", "duplicate-response"):
         next_request = str(uuid.uuid4())
         transport.request_status(peer["device_id"], request_id=next_request)
@@ -145,7 +154,7 @@ def test_matching_encrypted_transport_and_no_persistent_ids(setup):
     assert b'"identifiers"' not in sock.value
 
 
-@pytest.mark.parametrize("change", ["unsolicited", "wrong_request", "late", "own_off", "remote_off", "grant_off", "sharing_off", "peer_changed", "channel_changed"])
+@pytest.mark.parametrize("change", ["unsolicited", "wrong_request", "late", "regrant", "unconfirmed", "grant_off", "sharing_off", "peer_changed", "channel_changed"])
 def test_late_or_unconsented_reports_are_rejected(setup, change):
     service, peer, channel, events = setup
     request = str(uuid.uuid4()) if change == "unsolicited" else service.request_status(peer["device_id"])
@@ -154,8 +163,10 @@ def test_late_or_unconsented_reports_are_rejected(setup, change):
     if change == "late":
         ticket = service.identifier_requests[peer["device_id"]]
         service.identifier_requests[peer["device_id"]] = (*ticket[:3], time.monotonic() - 1, ticket[4])
-    if change == "own_off": service._set_personal_sync(peer["device_id"], False); service._set_personal_sync(peer["device_id"], True)
-    if change == "remote_off": peer["personal_sync"]["remote_own_device"] = False
+    if change == "regrant":
+        remote_status_grant(service, peer, channel, False)
+        remote_status_grant(service, peer, channel, True)
+    if change == "unconfirmed": peer["state"] = "paired_unverified"
     if change == "grant_off": peer["grants"]["grants"]["device_status"] = False
     if change == "sharing_off": peer["capabilities"]["items"]["device_status"]["versions"] = [1, 2, 3]
     if change == "peer_changed": peer = dict(peer, static_public=phone.b64(os.urandom(32)))
@@ -184,7 +195,7 @@ def test_delayed_background_event_rechecks_consent(setup):
     service._payload(peer, channel, response(service.request_status(peer["device_id"])))
     value = events[-1][1]
     assert "identifiers" in service.current_identifier_event(value)["status"]
-    peer["personal_sync"]["own_device"] = False
+    peer["local_grants"]["grants"]["device_status"] = False
     assert "identifiers" not in service.current_identifier_event(value)["status"]
 
 

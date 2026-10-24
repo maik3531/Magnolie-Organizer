@@ -13,12 +13,14 @@ internal static class PersonalNoteModeTransportHost
 {
     internal static async Task<int> RunAsync()
     {
-        const string phone = "22222222-2222-4222-8222-222222222222";
+        var phone = Environment.GetEnvironmentVariable("PHONE_TEST_DEVICE_ID") ?? "22222222-2222-4222-8222-222222222222";
         var temporary = Path.Combine(Path.GetTempPath(), "note-mode-windows-" + Guid.NewGuid().ToString("N"));
         try
         {
             var paths = new WindowsPaths(temporary);
             var store = new TelefonStore(paths, Enumerable.Repeat((byte)19, 32).ToArray());
+            typeof(TelefonStore).GetMethod("SaveIdentity", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(store,
+                [store.LoadOrCreateIdentity() with { Id = "11111111-1111-4111-8111-111111111111" }]);
             var personal = new PersonalSyncStore(store);
             var peer = new TelefonPeer(phone, "Synthetic phone", Enumerable.Repeat((byte)112, 32).ToArray(),
                 CapabilityRevision: 1, StoredCapabilities: TelefonProtocolContract.DesktopCapabilities()["items"]!.DeepClone().AsObject(),
@@ -28,6 +30,8 @@ internal static class PersonalNoteModeTransportHost
             store.SetLocalGrant("personal_notes_sync", true); store.SetLocalGrant("personal_tasks_sync", true);
             store.SetNoteSettings(phone, PersonalSyncContract.NoteSettings("phone_import"), false);
             store.SetDesktopFeatures(true, true);
+            store.InitializeSharedSettings(phone, peer.PublicKey, SharedSyncSettings.Effective(
+                SharedSyncSettings.Create(store.LoadOrCreateIdentity().Id, new JsonObject { ["content_mode"] = "phone_import" })));
             var imported = 0;
             var complete = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             TelefonCoordinator? coordinator = null;
