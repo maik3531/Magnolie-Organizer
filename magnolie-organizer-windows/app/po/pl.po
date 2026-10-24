@@ -8289,3 +8289,6 @@ msgstr "＋ Dodaj spotkanie"
 #~ "pozwala, numer seryjny i IMEI. Od Androida 10 identyfikatory sprzętowe są "
 #~ "ograniczone dla zwykłych aplikacji. Uprawnienie do numeru jest "
 #~ "opcjonalne; specjalne role nie są żądane."
+
+msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
+msgstr "Import OR6: spotkania, zadania, kontakty i tekst notatek. Powtórzenia, grupy i inne sekcje są pomijane; układ, załączniki, kategorie i alarmy nie są przenoszone."

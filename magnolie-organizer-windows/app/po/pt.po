@@ -8287,3 +8287,6 @@ msgstr "＋ Adicionar compromisso"
 #~ "permitir, número de série e IMEI. Desde o Android 10, os identificadores "
 #~ "de hardware são restritos para aplicações comuns. A permissão do número é "
 #~ "opcional; não é pedida nenhuma função especial."
+
+msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
+msgstr "Importação OR6: compromissos, tarefas, contactos e texto das notas. Recorrências, grupos e outras secções são ignorados; disposição, anexos, categorias e alarmes não são transferidos."

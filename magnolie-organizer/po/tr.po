@@ -9620,3 +9620,6 @@ msgstr "＋ Randevu ekle"
 #~ "seri numarası ile IMEI. Android 10 ve üzeri, normal uygulamalar için "
 #~ "donanım tanımlayıcılarını kısıtlar. Numara izni isteğe bağlıdır; özel bir "
 #~ "rol istenmez."
+
+msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
+msgstr "OR6 içe aktarımı: randevular, görevler, kişiler ve not metni. Yinelemeler, gruplar ve diğer bölümler atlanır; düzen, ekler, kategoriler ve alarmlar aktarılmaz."

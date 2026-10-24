@@ -8259,3 +8259,6 @@ msgstr "＋ Додати зустріч"
 #~ "серійний номер і IMEI. Від Android 10 апаратні ідентифікатори обмежені "
 #~ "для звичайних застосунків. Дозвіл на номер необов’язковий; спеціальні "
 #~ "ролі не запитуються."
+
+msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
+msgstr "Імпорт OR6: зустрічі, завдання, контакти й текст нотаток. Повторення, групи та інші розділи пропускаються; оформлення, вкладення, категорії й нагадування не переносяться."

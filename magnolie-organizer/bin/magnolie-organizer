@@ -6342,6 +6342,9 @@ def import_rohdaten_lesen(art, roh, dateiname=""):
             return ics_lesen(_text_dekodieren(daten), sicherer_name,
                              quellen_id or sicherer_name)
         if art == "lotus" or art == "vcf" and endung == ".csv":
+            if art == "lotus" and (endung == ".or6" or daten[:4] == b"\x30\x4b\x04\xb3"):
+                from magnolie_or6 import read_or6
+                return read_or6(daten, _)
             return lotus_csv_lesen(daten)
         if art == "vcf":
             return vcf_lesen(_text_dekodieren(daten))
@@ -6355,7 +6358,7 @@ def import_rohdaten_lesen(art, roh, dateiname=""):
     if not zipfile.is_zipfile(puffer):
         return einzelne(bytes(roh), dateiname)
     erlaubte = {
-        "ics": (".ics", ".vcs", ".lcs"), "lotus": (".csv",),
+        "ics": (".ics", ".vcs", ".lcs"), "lotus": (".csv", ".or6"),
         "vcf": (".vcf", ".csv"), "claws": (".xml", ".ldif", ".ldi")}[art]
     ergebnis = {name: [] for name in ("termine", "jahrestage", "geburtstage",
                                       "aufgaben", "kontakte", "notizen")}
@@ -22437,8 +22440,9 @@ class Fenster(_FENSTER_BASIS):
                      (_("vCalendar (*.vcs)"), "*.vcs"),
                      (_("Lotus Calendar (*.lcs)"), "*.lcs"),
                      (_("All files"), "*")]),
-            "lotus": (_("Import Lotus Organizer CSV"),
-                      [(_("CSV files (*.csv)"), "*.csv"),
+            "lotus": ("Lotus Organizer (.or6 / .csv)",
+                      [("Lotus Organizer 6 (*.or6)", "*.or6"),
+                       (_("CSV files (*.csv)"), "*.csv"),
                        (_("ZIP archives (*.zip)"), "*.zip"), (_("All files"), "*")]),
             "vcf": (_("Import contacts"),
                     [(_("Contact cards (*.vcf)"), "*.vcf"),

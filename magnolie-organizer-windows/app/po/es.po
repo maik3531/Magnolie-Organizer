@@ -8307,3 +8307,6 @@ msgstr "＋ Añadir cita"
 #~ "permite, el número de serie y el IMEI. Desde Android 10 se restringen los "
 #~ "identificadores de hardware para las aplicaciones normales. El permiso "
 #~ "del número es opcional; no se solicita ningún rol especial."
+
+msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
+msgstr "Importación OR6: citas, tareas, contactos y texto de notas. Se omiten recurrencias, grupos y otras secciones; no se transfieren diseño, adjuntos, categorías ni alarmas."

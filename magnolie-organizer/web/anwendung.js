@@ -25346,14 +25346,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     impReihe.append(
       archivImport,
       knopf(_("Calendar file (.ics/.vcs/.lcs) …"), "", () => starteImport("ics")),
-      knopf(_("Lotus Organizer CSV …"), "", () => starteImport("lotus")));
+      knopf("Lotus Organizer (.or6 / .csv) …", "", () => starteImport("lotus")));
     if (registerAktiv("adressen")) impReihe.append(
       knopf("Evolution", "", () => starteImport("lokal", false, "evolution")),
       knopf("Thunderbird", "", () => starteImport("lokal", false, "thunderbird")),
       knopf(_("Claws Mail XML (.xml) …"), "", () => starteImport("claws")),
       knopf(_("vCard (.vcf), including iPhone/iCloud export …"), "", () => starteImport("vcf")),
       knopf(_("LDIF address book (.ldif) …"), "", () => starteImport("ldif")),
-      knopf(_("CSV / Lotus Organizer contacts …"), "", () => starteImport("lotus")),
+      knopf("Lotus Organizer (.or6 / .csv) …", "", () => starteImport("lotus")),
       knopf(_("Magnolie Notes / Android: check for pending import"), "", () =>
         Bruecke.sende({ cmd: "baum_stand" })));
     imp.append(impReihe);
@@ -37579,7 +37579,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
 
   function mcpDateiImportWerkzeuge() {
-    return [{ name: "organizer_import_preview", description: "Parse an explicit ICS/vCalendar/Lotus CSV/vCard/LDIF/Claws XML file or supported ZIP using the actual native import reader and product size/archive limits. Return only counts, byte digest and an opaque format/path/content revision; no import or conflict dialog is opened and book data stays unchanged. Optional expected_revision verifies a previously inspected source. This is inspection, not an import commit.",
+    return [{ name: "organizer_import_preview", description: "Parse an explicit ICS/vCalendar/Lotus OR6 or CSV/vCard/LDIF/Claws XML file or supported ZIP using the actual native import reader and product size/archive limits. Use format lotus for OR6; basic appointments, tasks, contacts and plain-text notes are supported, with explicit loss reports for unsupported features. Return only counts, byte digest and an opaque format/path/content revision; no import or conflict dialog is opened and book data stays unchanged. Optional expected_revision verifies a previously inspected source. This is inspection, not an import commit.",
       inputSchema: { type: "object", properties: { format: { type: "string", enum: ["ics", "lotus", "vcf", "ldif", "claws"] }, path: { type: "string", minLength: 1, maxLength: 4096, pattern: "^[^\\u0000-\\u001f\\u007f]+$" }, expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, required: ["format", "path"], additionalProperties: false },
       annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => {
         const book = DATEN, value = await mcpLeseImportDatei(args, signal);

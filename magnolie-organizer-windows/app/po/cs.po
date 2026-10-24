@@ -8214,3 +8214,6 @@ msgstr "＋ Přidat schůzku"
 #~ "a IMEI. Od Androidu 10 jsou hardwarové identifikátory pro běžné aplikace "
 #~ "omezené. Oprávnění k číslu je volitelné; žádná zvláštní role se "
 #~ "nevyžaduje."
+
+msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
+msgstr "Import OR6: schůzky, úkoly, kontakty a text poznámek. Opakování, skupiny a ostatní oddíly se vynechají; rozvržení, přílohy, kategorie a upozornění se nepřenášejí."

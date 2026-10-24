@@ -9756,3 +9756,6 @@ msgstr "＋ Afspraak toevoegen"
 #~ "Android het toestaat, serienummer en IMEI. Vanaf Android 10 zijn hardware-"
 #~ "identificatiegegevens beperkt voor gewone apps. De nummermachtiging is "
 #~ "optioneel; er wordt geen speciale rol aangevraagd."
+
+msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
+msgstr "OR6-import: afspraken, taken, contacten en notitietekst. Herhalingen, groepen en andere secties worden overgeslagen; opmaak, bijlagen, categorieën en alarmen worden niet overgedragen."

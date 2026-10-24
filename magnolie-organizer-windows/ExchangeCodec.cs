@@ -94,7 +94,9 @@ internal static partial class ExchangeCodec
 
     private static ExchangeImportResult ParseImportEntry(byte[] bytes, string art, string fileName)
     {
-        var text = DecodeText(bytes); var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        var extension = Path.GetExtension(fileName).ToLowerInvariant();
+        if (art == "lotus" && (extension == ".or6" || Or6Codec.HasMagic(bytes))) return Or6Codec.Read(bytes);
+        var text = DecodeText(bytes);
         return art switch
         {
             "ics" => ParseIcs(text, "ics:" + Sha256(fileName.Replace('\\', '/'))),
@@ -111,7 +113,7 @@ internal static partial class ExchangeCodec
     {
         var extension = Path.GetExtension(name).ToLowerInvariant();
         return art switch { "ics" => extension is ".ics" or ".vcs" or ".lcs", "vcf" => extension is ".vcf" or ".csv",
-            "lotus" => extension == ".csv", "claws" => extension is ".xml" or ".ldif" or ".ldi", _ => false };
+            "lotus" => extension is ".csv" or ".or6", "claws" => extension is ".xml" or ".ldif" or ".ldi", _ => false };
     }
 
     private static void Append(JsonArray target, JsonArray source)

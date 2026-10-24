@@ -2291,7 +2291,7 @@ internal sealed partial class BridgeDispatcher : IDisposable
             "muell" => T("Calendar (*.ics)") + " / " + T("CSV files (*.csv)") + "|*.ics;*.csv|" + T("All files") + " (*.*)|*.*",
             "ics" => T("Calendar (*.ics)") + "|*.ics;*.vcs;*.lcs;*.zip|" + T("All files") + " (*.*)|*.*",
             "vcf" => T("Contact cards (*.vcf)") + "|*.vcf;*.csv;*.zip|" + T("All files") + " (*.*)|*.*",
-            "lotus" => T("CSV files (*.csv)") + "|*.csv;*.zip|" + T("All files") + " (*.*)|*.*",
+            "lotus" => "Lotus Organizer 6 (*.or6, *.csv)|*.or6;*.csv;*.zip|" + T("All files") + " (*.*)|*.*",
             "ldif" => T("LDIF address book (*.ldif)") + "|*.ldif;*.ldi;*.zip|" + T("All files") + " (*.*)|*.*",
             "claws" => T("Claws Mail address book (*.xml)") + "|*.xml;*.ldif;*.ldi;*.zip|" + T("All files") + " (*.*)|*.*",
             _ => ""

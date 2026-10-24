@@ -48,6 +48,12 @@ if (args.FirstOrDefault() == "--waste-import-fixture")
         System.Text.Encoding.UTF8.GetBytes(fixture["ics"]!.GetValue<string>()), "waste.ics").ToJsonString());
     return 0;
 }
+if (args.FirstOrDefault() == "--or6-json")
+{
+    Console.WriteLine(MagnolieOrganizer.Windows.ExchangeCodec.ParseImport(
+        Or6CodecTests.Fixture(), "lotus", "known-values.or6").ToPayload("lotus", "known-values.or6").ToJsonString());
+    return 0;
+}
 
 if (args.FirstOrDefault() == "--phone-bt-native-probe") return await TelefonBluetoothNativeProbe.RunAsync();
 
@@ -104,6 +110,7 @@ runner.Add("Encryption / Python-Goldens / Manipulation", ContractGroupTests.Encr
 runner.Add("Password / native source / revisions / authenticated readback", PasswordSourceTests.RunAsync);
 runner.Add("Record export / native codecs / actual files / guards", RecordExportFileTests.RunAsync);
 runner.Add("Import file / native readers / source CAS / archive limits", ImportFileSourceTests.RunAsync);
+runner.Add("OR6 import / native fixtures / freed storage / corrupt boundaries", Or6CodecTests.RunAsync);
 runner.Add("Local import / native readers / semantic snapshot CAS", LocalImportSourceTests.RunAsync);
 runner.Add("Document export / actual ODS / readback / target guards", VerifiedDocumentFileTests.RunAsync);
 runner.Add(".magnolie Gesamtarchiv / Cross-Platform / Anhänge / Fehler", ContractGroupTests.ArchiveAsync);

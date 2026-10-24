@@ -8320,3 +8320,6 @@ msgstr "＋ Aggiungi appuntamento"
 #~ "consente, numero di serie e IMEI. Da Android 10 gli identificativi "
 #~ "hardware sono limitati per le app ordinarie. Il permesso per il numero è "
 #~ "facoltativo; non viene richiesto alcun ruolo speciale."
+
+msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
+msgstr "Importazione OR6: appuntamenti, attività, contatti e testo delle note. Ricorrenze, gruppi e altre sezioni vengono ignorati; impaginazione, allegati, categorie e allarmi non vengono trasferiti."

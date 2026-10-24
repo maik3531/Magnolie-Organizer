@@ -9443,3 +9443,6 @@ msgstr "＋ अपॉइंटमेंट जोड़ें"
 #~ "नंबर और, Android अनुमति दे तो, सीरियल नंबर और IMEI। Android 10 से सामान्य ऐप के "
 #~ "लिए हार्डवेयर पहचानकर्ताओं पर प्रतिबंध हैं। नंबर की अनुमति वैकल्पिक है; कोई विशेष भूमिका "
 #~ "नहीं माँगी जाती।"
+
+msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
+msgstr "OR6 आयात: अपॉइंटमेंट, कार्य, संपर्क और नोट का पाठ। आवृत्तियाँ, समूह और अन्य अनुभाग छोड़ दिए जाते हैं; लेआउट, संलग्नक, श्रेणियाँ और अलार्म स्थानांतरित नहीं होते।"
