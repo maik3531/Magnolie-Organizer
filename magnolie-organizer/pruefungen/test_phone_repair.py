@@ -128,7 +128,10 @@ def test_confirmed_pairing_replaces_legacy_ownership_flags_without_changing_sync
     before_local = json.loads(json.dumps(peer['local_grants']))
     before_remote = json.loads(json.dumps(peer['grants']))
     service.store.peers = [peer]
-    service.store.save_peers()
+    # Reproduce the actual old on-disk representation; current saves already
+    # derive these flags from completed pairing.
+    service.store._encrypt_file(service.store.peers_path,
+        phone.canonical({'storage_version': 1, 'items': [peer]}), 'peers', 'all')
     reopened = phone.PhoneService(directory, 'Fixture')
     current = reopened.store.peer(peer['device_id'])
     assert current['personal_sync']['own_device'] is True

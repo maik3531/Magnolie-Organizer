@@ -506,6 +506,10 @@ class PhoneStore:
                 raise RuntimeError("Telefon-Gegenstellenliste ist beschaedigt.")
 
     def save_peers(self):
+        for peer in self.peers:
+            personal = peer.get("personal_sync")
+            if peer.get("state") == "paired" and isinstance(personal, dict):
+                personal["own_device"] = personal["remote_own_device"] = True
         raw = canonical({"storage_version": 1, "items": self.peers})
         self._encrypt_file(self.peers_path, raw, "peers", "all")
 
@@ -2766,6 +2770,8 @@ class PhoneService:
             if capture["failed"] or not verified:
                 return {"ok": False, "code": "verification_failed"}
             return {"ok": True, "status": self.mcp_status(), "action": action, "localVerified": True, "persisted": persisted, "deliveryConfirmed": False}
+        except NotImplementedError:
+            return {"ok": False, "code": "unsupported_feature"}
         except ValueError as error:
             return {"ok": False, "code": "conflict" if str(error) == "phone_control_conflict" else "native_operation_failed"}
         except PermissionError as error:

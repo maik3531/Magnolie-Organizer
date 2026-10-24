@@ -39,7 +39,7 @@ def test_read_is_side_effect_free_and_revision_tracks_consent_not_reports(tmp_pa
     peer["personal_sync"]["last_report"] = {"private": "owned-content-not-for-settings"}
     assert service.mcp_action(request(service)) == first
     assert "owned-content" not in json.dumps(first)
-    peer["personal_sync"]["remote_own_device"] = True
+    peer["personal_sync"]["auto_wifi"] = True
     assert service.mcp_action(request(service))["notesSettings"]["revision"] != first["notesSettings"]["revision"]
     replacement = phone.PhoneService(str(tmp_path / "phone"), "Owned desktop")
     assert replacement.mcp_action(request(replacement))["notesSettings"]["revision"] != service.mcp_action(request(service))["notesSettings"]["revision"]
@@ -50,7 +50,7 @@ def test_gui_handler_activation_shared_vectors_and_store_readback(tmp_path):
     saved = change(service)
     assert saved["ok"], saved
     assert saved["persisted"] and saved["localVerified"] and saved["deliveryConfirmed"] is False
-    assert saved["notesSettings"]["own_device"] and not saved["notesSettings"]["remote_own_device"]
+    assert saved["notesSettings"]["own_device"] and saved["notesSettings"]["remote_own_device"]
     assert saved["notesSettings"]["shared"]["values"]["auto_mode"] == "wifi"
     assert service.store._load_peers()[0]["personal_sync"]["auto_wifi"]
     other = change(service, "skip_deletions", False)
@@ -67,7 +67,7 @@ def test_stale_wrong_peer_unsupported_and_commit_race_are_rejected(tmp_path, mon
     assert service.mcp_action({**args, "fingerprint": "0000-0000-0000-0000"})["code"] == "conflict"
     original = service.change_common_preference
     def raced(*pos, **kw):
-        peer["personal_sync"]["remote_own_device"] = True
+        peer["personal_sync"]["auto_wifi"] = True
         return original(*pos, **kw)
     monkeypatch.setattr(service, "change_common_preference", raced)
     assert service.mcp_action(args)["code"] == "conflict"
@@ -123,16 +123,16 @@ def ownership(service, enabled, **extra):
     return service.mcp_action(request(service, "notes_ownership", expectedRevision=state["revision"], enabled=enabled, **extra))
 
 
-def test_ownership_confirm_withdraw_preserves_pair_and_remote_consent(tmp_path):
+def test_obsolete_ownership_withdraw_is_unsupported_and_preserves_pair_and_preferences(tmp_path):
     service, peer, events = modern_service(tmp_path)
     assert change(service)["ok"]
     peer["personal_sync"]["remote_own_device"] = True
     service.store.save_peers()
     grants = copy.deepcopy(peer["local_grants"])
+    before = copy.deepcopy(service.mcp_action(request(service))["notesSettings"])
     disabled = ownership(service, False)
-    assert disabled["ok"] and disabled["persisted"] and not disabled["deliveryConfirmed"]
-    state = disabled["notesSettings"]
-    assert not state["own_device"] and not state["auto_wifi"] and state["remote_own_device"]
+    assert disabled == {"ok": False, "code": "unsupported_feature"}
+    assert service.mcp_action(request(service))["notesSettings"] == before
     assert service.store._load_peers()[0]["state"] == "paired"
     restored = ownership(service, True)
     assert restored["ok"] and restored["notesSettings"]["auto_wifi"]
@@ -144,10 +144,10 @@ def test_ownership_checks_revision_again_at_mutation(tmp_path, monkeypatch):
     assert change(service)["ok"]
     original = service.set_personal_sync
     def raced(*args, **kwargs):
-        peer["personal_sync"]["remote_own_device"] = True
+        peer["personal_sync"]["auto_wifi"] = False
         return original(*args, **kwargs)
     monkeypatch.setattr(service, "set_personal_sync", raced)
-    result = ownership(service, False)
+    result = ownership(service, True)
     assert result["code"] == "conflict" and peer["personal_sync"]["own_device"] and not events
 
 
@@ -160,7 +160,9 @@ def test_daemon_ownership_update(tmp_path):
         for own in (True, False):
             state = proxy.mcp_action(request(service))["notesSettings"]
             result = proxy.mcp_action(request(service, "notes_ownership", expectedRevision=state["revision"], enabled=own))
-            assert result["ok"] and result["notesSettings"]["own_device"] is own and proxy._event_thread is None
+            if own: assert result["ok"] and result["notesSettings"]["own_device"]
+            else: assert result == {"ok": False, "code": "unsupported_feature"}
+            assert proxy._event_thread is None
         assert not events
     finally:
         server.close()
@@ -177,7 +179,7 @@ def test_legacy_mode_uses_existing_grant_defaults_and_disk_readback(tmp_path, au
     assert result["ok"], result
     assert result["notesSettings"]["auto_wifi"] is auto and result["notesSettings"]["skip_deletions"] is skip
     stored = service.store._load_peers()[0]
-    assert stored["personal_sync"]["own_device"] and not stored["personal_sync"]["remote_own_device"]
+    assert stored["personal_sync"]["own_device"] and stored["personal_sync"]["remote_own_device"]
     assert all(stored["local_grants"]["grants"][name] for name in ("personal_notes_sync", "personal_tasks_sync"))
     assert stored["local_grants"]["grants"]["personal_deletions_sync"] is not skip
     assert not events
@@ -188,7 +190,7 @@ def test_legacy_mode_cannot_override_modern_shared_preferences(tmp_path):
     state = service.mcp_action(request(service))["notesSettings"]
     result = service.mcp_action(request(service, "notes_legacy_mode", expectedRevision=state["revision"], enabled=True, skipDeletions=False))
     assert result == {"ok": False, "code": "unsupported_feature"}
-    assert not peer["personal_sync"]["own_device"] and not events
+    assert peer["personal_sync"]["own_device"] and not events
 
 
 def test_note_direction_stores_explicit_default_then_two_way_and_keeps_task_grants(tmp_path):
@@ -218,7 +220,7 @@ def test_note_direction_rejects_modern_and_stale_mutation(tmp_path, monkeypatch)
         peer["capabilities"]["items"][name]["versions"] = [1, 2, 3, 4, 5]
     original = service.set_note_mode
     def raced(*args, **kwargs):
-        peer["personal_sync"]["remote_own_device"] = True
+        peer["personal_sync"]["auto_wifi"] = True
         return original(*args, **kwargs)
     monkeypatch.setattr(service, "set_note_mode", raced)
     assert select()["code"] == "conflict" and not peer.get("note_sync") and not events
@@ -242,7 +244,7 @@ def test_legacy_policy_uses_real_gui_handler_and_saved_policy_revision(tmp_path,
     assert not events
 
 
-def test_legacy_policy_rejects_shared_register_and_unowned_time_enable(tmp_path):
+def test_legacy_policy_rejects_shared_register_and_unconfirmed_time_enable(tmp_path):
     service, peer, events = modern_service(tmp_path)
     def choose():
         state = service.mcp_action(request(service))["notesSettings"]
@@ -250,5 +252,8 @@ def test_legacy_policy_rejects_shared_register_and_unowned_time_enable(tmp_path)
     assert choose()["code"] == "unsupported_feature"
     for name in ("personal_notes_sync", "personal_tasks_sync"):
         peer["capabilities"]["items"][name]["versions"] = [1, 2, 3, 4, 5, 7]
-    assert not choose()["ok"] and not service.store.time_settings(peer["device_id"])
+    state = service.mcp_action(request(service))["notesSettings"]
+    peer["state"] = "pair_commit_pending"
+    result = service.mcp_action(request(service, "notes_legacy_policy", expectedRevision=state["revision"], name="time", enabled=True))
+    assert not result["ok"] and not peer.get("time_sync")
     assert not events

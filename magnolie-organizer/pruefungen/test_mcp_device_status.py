@@ -105,14 +105,14 @@ def test_explicit_identifiers_are_ephemeral_and_current_result_is_consumed_once(
     assert channel.sent[-1]["status"] == "rejected" and not events and service.store.status(peer["device_id"]) == {}
 
 
-@pytest.mark.parametrize("change", ["own_off", "remote_off", "grant_off", "channel_changed", "peer_changed", "expired"])
+@pytest.mark.parametrize("change", ["unconfirmed", "local_grant_off", "grant_off", "channel_changed", "peer_changed", "expired"])
 def test_identifier_permission_and_source_rechecked_when_dispatching_result(owned, change):
     service, peer, channel, events = owned
     request, thread, outcome = start_read(owned, True)
     service._payload(peer, channel, report(request, True)); thread.join(3)
     assert not thread.is_alive() and "token" in outcome, outcome
-    if change == "own_off": peer["personal_sync"]["own_device"] = False
-    elif change == "remote_off": peer["personal_sync"]["remote_own_device"] = False
+    if change == "unconfirmed": peer["state"] = "pair_commit_pending"
+    elif change == "local_grant_off": peer["local_grants"]["grants"]["device_status"] = False
     elif change == "grant_off": peer["grants"]["grants"]["device_status"] = False
     elif change == "channel_changed": service.connections[peer["device_id"]] = Channel()
     elif change == "peer_changed": peer["static_public"] = phone.b64(b"n" * 32)
@@ -131,11 +131,12 @@ def test_cancelled_query_rejects_late_identifiers_without_legacy_gui_callbacks(o
     assert channel.sent[-1]["status"] == "rejected" and not events and not service.mcp_status_results
 
 
-def test_basic_status_does_not_require_own_device_but_identifiers_do(owned):
+def test_basic_status_uses_pairing_but_identifiers_still_require_fresh_controls(owned):
     service, peer, channel, events = owned
     peer["personal_sync"].update(own_device=False, remote_own_device=False)
     request, thread, outcome = start_read(owned)
     assert finish(owned, request, thread, outcome)["include_identifiers"] is False
+    service.note_controls[channel].pop("personal_sync.settings")
     with pytest.raises(PermissionError):
         service.read_device_status(peer["device_id"], phone.fingerprint(phone.unb64(peer["static_public"], 32)), True)
     assert not events
@@ -173,11 +174,11 @@ def test_own_timezone_read_is_correlated_readonly_and_has_actual_transport(owned
     assert channel.sent[-1]["status"] == "rejected" and not owned[3]
 
 
-@pytest.mark.parametrize("change", ["own_off", "remote_off", "no_fresh_own", "legacy"])
-def test_unowned_stale_or_legacy_phone_is_not_queried_for_timezone(owned, change):
+@pytest.mark.parametrize("change", ["unconfirmed", "local_grant_off", "no_fresh_own", "legacy"])
+def test_unconfirmed_stale_ungranted_or_legacy_phone_is_not_queried_for_timezone(owned, change):
     service, peer, channel = timezone_peer(owned)
-    if change == "own_off": peer["personal_sync"]["own_device"] = False
-    elif change == "remote_off": peer["personal_sync"]["remote_own_device"] = False
+    if change == "unconfirmed": peer["state"] = "pair_commit_pending"
+    elif change == "local_grant_off": peer["local_grants"]["grants"]["device_status"] = False
     elif change == "no_fresh_own": service.note_controls[channel].pop("personal_sync.settings")
     else:
         peer["capabilities"]["items"]["device_status"]["versions"].remove(12)
@@ -190,7 +191,7 @@ def test_timezone_ownership_is_rechecked_after_native_receipt(owned):
     request, worker, outcome = start_read(owned, time_zone=True)
     service._payload(peer, channel, timezone_report(request)); worker.join(3)
     assert not worker.is_alive() and "token" in outcome
-    peer["personal_sync"]["own_device"] = False
+    peer["local_grants"]["grants"]["device_status"] = False
     with pytest.raises(PermissionError): service.current_mcp_device_status(outcome["token"])
     assert not service.mcp_status_results and not owned[3]
 
@@ -289,7 +290,7 @@ def test_daemon_cancel_is_not_blocked_by_mutation_lock_or_transport_setup(owned,
         service.cancel_device_status(peer["device_id"], request["fingerprint"], query); worker.join(3); server.close()
 
 
-@pytest.mark.parametrize("change", ["valid", "own_revoked", "locked", "owner_changed", "expired"])
+@pytest.mark.parametrize("change", ["valid", "grant_revoked", "locked", "owner_changed", "expired"])
 def test_native_window_queues_only_token_then_rechecks_identifiers_at_dispatch(owned, change):
     service, peer, channel, events = owned
     tree = ast.parse((Path(__file__).resolve().parents[1] / "bin/magnolie-organizer").read_text())
@@ -307,7 +308,7 @@ def test_native_window_queues_only_token_then_rechecks_identifiers_at_dispatch(o
         worker.start(); wait_request(channel, worker)
         service._payload(peer, channel, report(query, True)); worker.join(3)
         assert not worker.is_alive() and len(queued) == 1 and callable(queued[0][1]), "Raw identifiers were queued instead of a dispatch-time resolver"
-        if change == "own_revoked": peer["personal_sync"]["own_device"] = False
+        if change == "grant_revoked": peer["local_grants"]["grants"]["device_status"] = False
         elif change == "locked": owner._gesperrt = True
         elif change == "owner_changed": owner._telefon = SimpleNamespace()
         elif change == "expired": service.mcp_status_results[query]["deadline"] = time.monotonic() - 1
