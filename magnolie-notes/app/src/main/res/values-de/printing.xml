@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="drucker_symbol_automatisch">Druckersymbol nur bei erreichbarem WLAN-Drucker anzeigen</string>
+    <string name="drucker_symbol_hinweis">Normalerweise ist Drucken auch für PDF und andere Android-Druckdienste verfügbar. Diese Option prüft angekündigte IPP-/IPPS-Drucker, während der Editor sichtbar ist.</string>
+    <string name="drucker_einstellung_fehler">Die Druckanzeige-Einstellung konnte nicht gespeichert werden.</string>
+</resources>

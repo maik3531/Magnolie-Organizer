@@ -336,6 +336,7 @@ fun AufgabenEditor(
     var fragtLoeschen by remember { mutableStateOf(false) }
     var fragtGeben by remember { mutableStateOf(false) }
     var fragtEltern by remember { mutableStateOf(false) }
+    val printContext = LocalContext.current
 
     fun aendern(neu: Aufgabe) { if (!speichert) beiEntwurf(neu) }
     fun sichern() { if (!speichert) beiSichern(aufgabe) }
@@ -343,9 +344,7 @@ fun AufgabenEditor(
 
     Column(modifier.fillMaxSize().background(Magnolie.papier)) {
         Einband(titel.ifBlank { stringResource(R.string.aufgabe_neu) }) {
-            Rundknopf("‹", beschreibung = stringResource(R.string.zurueck)) {
-                sichern()
-            }
+            EintragDruckKnopf(!speichert) { EintragDrucken.aufgabe(printContext, aufgabe) }
         }
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).navigationBarsPadding()

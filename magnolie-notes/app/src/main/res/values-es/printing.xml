@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="drucker_symbol_automatisch">Mostrar el icono solo con una impresora Wi-Fi accesible</string>
+    <string name="drucker_symbol_hinweis">Imprimir normalmente también permite PDF y otros servicios de Android. Esta opción comprueba las impresoras IPP/IPPS anunciadas mientras el editor está visible.</string>
+    <string name="drucker_einstellung_fehler">No se pudo guardar la preferencia de impresión.</string>
+</resources>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="drucker_symbol_automatisch">接続可能なWi-Fiプリンターがある場合のみ印刷アイコンを表示</string>
+    <string name="drucker_symbol_hinweis">通常はPDFやほかのAndroid印刷サービスも使用できます。この設定では編集画面の表示中に通知されたIPP/IPPSプリンターを確認します。</string>
+    <string name="drucker_einstellung_fehler">印刷アイコンの設定を保存できませんでした。</string>
+</resources>

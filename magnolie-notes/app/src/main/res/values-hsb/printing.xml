@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="drucker_symbol_automatisch">Ćišćerski symbol jenož za docpějomny WLAN-ćišćak pokazać</string>
+    <string name="drucker_symbol_hinweis">Ćišćenje je normalnje tež za PDF a druhe Android-słužby k dispoziciji. Tuta opcija wozjewjene IPP/IPPS-ćišćaki přepruwuje, mjeztym zo editor widźomny je.</string>
+    <string name="drucker_einstellung_fehler">Nastajenje ćišćerskeho zwobraznjenja njeda so składować.</string>
+</resources>

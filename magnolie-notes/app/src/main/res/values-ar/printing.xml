@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="drucker_symbol_automatisch">إظهار رمز الطباعة فقط عند توفر طابعة Wi-Fi قابلة للوصول</string>
+    <string name="drucker_symbol_hinweis">تتوفر الطباعة عادةً أيضًا إلى PDF وخدمات Android الأخرى. يتحقق هذا الخيار من طابعات IPP/IPPS المعلنة أثناء ظهور المحرر.</string>
+    <string name="drucker_einstellung_fehler">تعذر حفظ تفضيل عرض رمز الطباعة.</string>
+</resources>

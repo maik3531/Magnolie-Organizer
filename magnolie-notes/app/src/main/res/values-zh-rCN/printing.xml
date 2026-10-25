@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="drucker_symbol_automatisch">仅在Wi-Fi打印机可连接时显示打印图标</string>
+    <string name="drucker_symbol_hinweis">通常也可打印为PDF或使用其他Android打印服务。启用此选项后，仅在编辑器可见时检查已广播的IPP/IPPS打印机。</string>
+    <string name="drucker_einstellung_fehler">无法保存打印图标设置。</string>
+</resources>

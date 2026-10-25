@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="drucker_symbol_automatisch">Показувати значок лише для доступного Wi-Fi-принтера</string>
+    <string name="drucker_symbol_hinweis">Зазвичай друк доступний також у PDF та через інші служби Android. Цей параметр перевіряє оголошені принтери IPP/IPPS, поки редактор видимий.</string>
+    <string name="drucker_einstellung_fehler">Не вдалося зберегти налаштування значка друку.</string>
+</resources>

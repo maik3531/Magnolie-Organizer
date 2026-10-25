@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="drucker_symbol_automatisch">प्रिंट चिह्न केवल उपलब्ध वाई-फ़ाई प्रिंटर के लिए दिखाएँ</string>
+    <string name="drucker_symbol_hinweis">प्रिंट सामान्यतः PDF और अन्य Android सेवाओं के लिए भी उपलब्ध है। यह विकल्प संपादक दिखाई देने पर घोषित IPP/IPPS प्रिंटर जाँचता है।</string>
+    <string name="drucker_einstellung_fehler">प्रिंट चिह्न की सेटिंग सहेजी नहीं जा सकी।</string>
+</resources>

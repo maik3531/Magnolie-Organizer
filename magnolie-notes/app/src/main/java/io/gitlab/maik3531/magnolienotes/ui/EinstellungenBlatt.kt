@@ -31,6 +31,7 @@ fun EinstellungenBlatt(zeiterfassungAn: Boolean, speichert: Boolean, beiZeiterfa
                        beiBlatt: (Int) -> Unit, beiRechten: () -> Unit, beiBenachrichtigungen: () -> Unit) {
     val context = LocalContext.current
     val developer = remember(context) { Entwicklermodus(context) }
+    var druckerAutomatisch by remember { mutableStateOf(DruckerEinstellungen.automatisch(context)) }
     var developerEnabled by remember { mutableStateOf(developer.an) }
     var debugOpen by remember { mutableStateOf(false) }
     var wifi by remember { mutableStateOf(developer.wlan) }
@@ -89,6 +90,14 @@ fun EinstellungenBlatt(zeiterfassungAn: Boolean, speichert: Boolean, beiZeiterfa
             Papierknopf(stringResource(R.string.zeit_benachrichtigungen), Modifier.fillMaxWidth(), beiKlick = beiBenachrichtigungen)
         }
         ZeiterfassungsOptionen(zeiterfassungAn, speichert, beiZeiterfassung) { beiBlatt(6) }
+        Abschnitt(stringResource(R.string.zeit_drucken), hinweis = stringResource(R.string.drucker_symbol_hinweis)) {
+            Row(Modifier.fillMaxWidth().toggleable(druckerAutomatisch, role = Role.Checkbox, onValueChange = { value ->
+                runCatching { DruckerEinstellungen.automatisch(context, value); druckerAutomatisch = value }
+                    .onFailure { android.widget.Toast.makeText(context, R.string.drucker_einstellung_fehler, android.widget.Toast.LENGTH_LONG).show() }
+            }), verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(druckerAutomatisch, null); Text(stringResource(R.string.drucker_symbol_automatisch))
+            }
+        }
     }
 }
 

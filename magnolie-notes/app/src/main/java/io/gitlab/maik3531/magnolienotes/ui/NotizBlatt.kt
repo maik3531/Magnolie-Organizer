@@ -40,6 +40,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -253,6 +254,7 @@ fun NotizEditor(
     val text = notiz.text
     val symbol = notiz.symbol
     val anhaenge = notiz.anhaenge
+    val printContext = LocalContext.current
     var fragtLoeschen by remember { mutableStateOf(false) }
     var fragtTeilen by remember { mutableStateOf(false) }
     var anhangAktion by remember { mutableStateOf<Anhang?>(null) }
@@ -271,9 +273,7 @@ fun NotizEditor(
     Column(modifier.fillMaxSize().background(Magnolie.papier)) {
         Einband(titel.ifBlank { stringResource(R.string.notiz_neu) }) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Rundknopf("‹", beschreibung = stringResource(R.string.zurueck)) {
-                    sichern()
-                }
+                EintragDruckKnopf(!speichert) { EintragDrucken.notiz(printContext, notiz) }
             }
         }
 

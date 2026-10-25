@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="drucker_symbol_automatisch">Zobrazit ikonu jen pro dostupnou Wi-Fi tiskárnu</string>
+    <string name="drucker_symbol_hinweis">Tisk je běžně dostupný také pro PDF a jiné služby Androidu. Tato volba ověřuje oznámené tiskárny IPP/IPPS, když je editor viditelný.</string>
+    <string name="drucker_einstellung_fehler">Nastavení zobrazení tisku se nepodařilo uložit.</string>
+</resources>
