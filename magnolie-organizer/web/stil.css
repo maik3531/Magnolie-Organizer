@@ -2244,6 +2244,14 @@ body[data-hilfsrahmen="an"] .notiz-editor :focus-visible {
   gap: 8px;
   margin-block: 12px;
 }
+.land-auswahl { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.land-auswahl > select { flex: 1; min-width: 0; }
+.land-flagge {
+  display: inline-block; flex: 0 0 28px; width: 28px; height: 21px;
+  background-image: url("country-flags.png"); background-size: 728px 546px;
+  background-repeat: no-repeat; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .18);
+}
+.land-flagge[hidden] { display: none; }
 #gruppen-ausschluss .eingabe-dialog { width: min(560px, calc(100vw - 32px)); }
 .gruppen-ausschluss-auswahl > label.hak {
   display: grid;

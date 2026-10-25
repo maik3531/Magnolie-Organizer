@@ -3628,6 +3628,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return ISO_ALPHA2.has(code) ? code : fallback;
   }
 
+  function aktualisiereLandFlagge(node, value) {
+    const code = isoLand(value, ""); node.hidden = !code; node.dataset.land = code;
+    node.setAttribute("aria-hidden", "true");
+    node.style.backgroundPosition = code ? (-28 * (code.charCodeAt(1) - 65)) + "px " + (-21 * (code.charCodeAt(0) - 65)) + "px" : "";
+  }
+
   function telefonHeimatland(daten = DATEN) {
     const e = daten && daten.einstellungen || {};
     const a = e.adressen || {};
@@ -29923,7 +29929,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       [["", _("— not specified —")]].concat(LAENDER.map((l) => [l.code, _(l.name)])),
       o.land);
     landWahl.id = "ort-land";
-    ab.append(formZeile(_("Country"), landWahl));
+    const landZeile = formZeile(_("Country"), landWahl), landBox = el("div", "land-auswahl"), landFlagge = el("span", "land-flagge"); landFlagge.id = "ort-land-flagge";
+    aktualisiereLandFlagge(landFlagge, landWahl.value); landBox.append(landFlagge, landWahl); landZeile.append(landBox); ab.append(landZeile);
 
     const regionZeile = el("div", "ort-region");
     ab.append(regionZeile);
@@ -29967,6 +29974,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     };
 
     landWahl.addEventListener("change", () => {
+      aktualisiereLandFlagge(landFlagge, landWahl.value);
       wendeOrtAuswahlDatenAn({ land: landWahl.value });
       planeSpeichern();
       regionenZeigen();

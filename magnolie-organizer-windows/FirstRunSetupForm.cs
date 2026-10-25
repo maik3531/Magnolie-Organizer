@@ -342,6 +342,11 @@ internal sealed class FirstRunSetupForm : Form
         place.Controls.Add(Field(T("City"), city, 410, value => { city = value; addressSource = "own"; }));
         panel.Controls.Add(place);
         var area = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = new Padding(0, 0, 0, 8) };
+        var countryFlag = new PictureBox { Name = "setup-country-flag", Width = 28, Height = 21, SizeMode = PictureBoxSizeMode.Zoom,
+            Margin = new Padding(0, 24, 8, 0), TabStop = false, Image = CountryFlags.Image(country) };
+        countryFlag.Visible = countryFlag.Image is not null;
+        countryFlag.Disposed += (_, _) => countryFlag.Image?.Dispose();
+        area.Controls.Add(countryFlag);
         var countryChoices = Countries.ToList();
         if (country.Length > 0 && !countryChoices.Any(item => item.Code.Equals(country, StringComparison.OrdinalIgnoreCase)))
             countryChoices.Add(new CountryChoice(country, country));

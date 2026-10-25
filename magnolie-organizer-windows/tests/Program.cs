@@ -111,6 +111,7 @@ runner.Add("Password / native source / revisions / authenticated readback", Pass
 runner.Add("Record export / native codecs / actual files / guards", RecordExportFileTests.RunAsync);
 runner.Add("Import file / native readers / source CAS / archive limits", ImportFileSourceTests.RunAsync);
 runner.Add("OR6 import / native fixtures / freed storage / corrupt boundaries", Or6CodecTests.RunAsync);
+runner.Add("Country flags / local ISO artwork / native setup coordinates", CountryFlagsTests.RunAsync);
 runner.Add("Local import / native readers / semantic snapshot CAS", LocalImportSourceTests.RunAsync);
 runner.Add("Document export / actual ODS / readback / target guards", VerifiedDocumentFileTests.RunAsync);
 runner.Add(".magnolie Gesamtarchiv / Cross-Platform / Anhänge / Fehler", ContractGroupTests.ArchiveAsync);

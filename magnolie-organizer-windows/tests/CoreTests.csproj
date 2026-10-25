@@ -31,6 +31,7 @@
     <Compile Include="..\EncryptionService.cs" Link="EncryptionService.cs" />
     <Compile Include="..\PasswordSource.cs" Link="PasswordSource.cs" />
     <Compile Include="..\ExchangeCodec.cs" Link="ExchangeCodec.cs" />
+    <Compile Include="..\CountryFlags.cs" Link="CountryFlags.cs" />
     <Compile Include="..\Or6Codec.cs" Link="Or6Codec.cs" />
     <Compile Include="..\RecordExportFile.cs" Link="RecordExportFile.cs" />
     <Compile Include="..\ImportFileSource.cs" Link="ImportFileSource.cs" />

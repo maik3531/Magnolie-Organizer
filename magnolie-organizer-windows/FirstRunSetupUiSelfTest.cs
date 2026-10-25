@@ -17,6 +17,7 @@ internal static class FirstRunSetupUiSelfTest
             VerifyAutomaticPhoneServices(Path.Combine(root, "automatic-phone-services"));
             VerifyOwnPhonePrompt(Path.Combine(root, "own-phone-prompt"));
             VerifyHolidayLanguages(Path.Combine(root, "holidays-native"));
+            VerifyCountryFlags(Path.Combine(root, "country-flags-native"));
             Console.WriteLine("WINDOWS-FIRST-RUN-UI-OK");
             return 0;
         }
@@ -29,6 +30,37 @@ internal static class FirstRunSetupUiSelfTest
         {
             try { if (Directory.Exists(root)) Directory.Delete(root, true); } catch (Exception) { }
         }
+    }
+
+    private static void VerifyCountryFlags(string root)
+    {
+        var paths = new WindowsPaths(root);
+        paths.EnsureDirectories();
+        using var form = new FirstRunSetupForm(paths, new FirstRunSetupState(paths));
+        SetField(form, "page", 1);
+        SetField(form, "country", "DE");
+        var render = form.GetType().GetMethod("RenderPage", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        render.Invoke(form, null);
+        form.Show();
+        Application.DoEvents();
+        var host = Field<Panel>(form, "pageHost");
+        PictureBox Flag() => Descendants(host).OfType<PictureBox>().Single(control => control.Name == "setup-country-flag");
+        Test(Flag().Visible && Flag().Image is Bitmap german && german.GetPixel(32, 7).R < 30,
+            "Die deutsche Landesflagge fehlt im nativen Assistenten.");
+        var choice = Descendants(host).OfType<ComboBox>().First();
+        choice.SelectedIndex = 2; // None, Germany, Austria.
+        Application.DoEvents();
+        Test(Flag().Visible && Flag().Image is Bitmap austrian && austrian.GetPixel(32, 24).G > 200,
+            "Ein Landeswechsel aktualisiert die native Flagge nicht.");
+        choice = Descendants(host).OfType<ComboBox>().First();
+        choice.SelectedIndex = 0;
+        Application.DoEvents();
+        Test(!Flag().Visible && Flag().Image is null, "Die leere Auswahl zeigt eine falsche Landesflagge.");
+        SetField(form, "country", "ZZ");
+        render.Invoke(form, null);
+        Application.DoEvents();
+        Test(!Flag().Visible && Flag().Image is null, "Ein unbekanntes Land zeigt eine Ersatzflagge.");
+        Console.WriteLine("WINDOWS-COUNTRY-FLAGS-OK");
     }
 
     private static void VerifySkip(string root)

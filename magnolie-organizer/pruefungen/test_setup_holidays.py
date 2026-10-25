@@ -54,7 +54,12 @@ def test_actual_gtk_region_consent(tmp_path, monkeypatch, language, ending):
             region = next(w for w in widgets if w.get_name() == "setup-state")
             check = next(w for w in widgets if w.get_name() == "setup-school-holidays")
             assert not check.get_active() and not check.get_visible()
+            country.set_active(-1)
+            country.get_child().set_text("ZZ")
+            assert country.get_child().get_icon_pixbuf(Gtk.EntryIconPosition.PRIMARY) is None
             country.set_active_id("DE")
+            german_flag = country.get_child().get_icon_pixbuf(Gtk.EntryIconPosition.PRIMARY)
+            assert german_flag is not None and german_flag.get_width() > 0
             assert region.set_active_id("DE-SN")
             assert check.get_visible() and not check.get_active()
             assert check.get_label() == tr(QUESTION) % {"state": tr("Saxony")}
@@ -67,6 +72,8 @@ def test_actual_gtk_region_consent(tmp_path, monkeypatch, language, ending):
             for territory, code, name in (("AT", "AT-9", "Vienna"), ("CH", "CH-ZH", "Zurich")):
                 check.set_active(True)
                 country.set_active_id(territory)
+                current_flag = country.get_child().get_icon_pixbuf(Gtk.EntryIconPosition.PRIMARY)
+                assert current_flag is not None and current_flag.get_pixels() != german_flag.get_pixels()
                 assert not check.get_active() and not check.get_visible()
                 region.set_active_id(code)
                 assert check.get_visible() and check.get_label() == tr(QUESTION) % {"state": tr(name)}

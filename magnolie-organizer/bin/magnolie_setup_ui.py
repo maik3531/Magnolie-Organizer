@@ -529,6 +529,17 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
     if not country.set_active_id(initial_country):
         country.get_child().set_text(initial_country)
     dynamic_choices.append((country, country_choices))
+    from magnolie_country_flags import country_code as flag_country_code, flag_pixbuf
+    country_entry = country.get_child()
+    def update_country_flag(*_args):
+        value = country.get_active_id() or country_entry.get_text()
+        code = flag_country_code(value, country_choices, tr)
+        country_entry.set_icon_from_pixbuf(Gtk.EntryIconPosition.PRIMARY, flag_pixbuf(code, script_directory))
+        country_entry.set_icon_activatable(Gtk.EntryIconPosition.PRIMARY, False)
+        country_entry.set_icon_sensitive(Gtk.EntryIconPosition.PRIMARY, False)
+    country.connect("changed", update_country_flag)
+    country_entry.connect("changed", update_country_flag)
+    update_country_flag()
     state = Gtk.ComboBoxText.new_with_entry()
     state.set_name("setup-state")
     address_changed = [False]
