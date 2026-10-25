@@ -2980,7 +2980,8 @@ msgstr "क्षण बनाए रखें"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "मूल दोहराव डेटा बनाए रखें; स्थानीय समय की यह क्रिया केवल अलग-अलग प्रविष्टियों के लिए है।"
+msgstr ""
+"मूल दोहराव डेटा बनाए रखें; स्थानीय समय की यह क्रिया केवल अलग-अलग प्रविष्टियों के लिए है।"
 
 msgid "LDIF"
 msgstr "LDIF"
@@ -4031,6 +4032,9 @@ msgstr "%(date)s के लिए दिन दृश्य खोलें"
 msgid "Open designer"
 msgstr "डिज़ाइनर खोलें"
 
+msgid "Open in browser"
+msgstr "ब्राउज़र में खोलें"
+
 msgid "Open manual"
 msgstr "हैंडबुक खोलें"
 
@@ -4431,6 +4435,11 @@ msgstr "कम-से-कम नाम या कंपनी दर्ज क�
 
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "इंटरनेट IP और फ़िंगरप्रिंट पूरा दर्ज करें।"
+
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "कृपया भुगतान के विवरण में अपना ईमेल पता दें, अन्यथा ContributorKey आपको भेजा नहीं जा सकेगा।"
 
 msgid "Please select a PDF file."
 msgstr "कृपया PDF फ़ाइल चुनें।"
@@ -5009,6 +5018,9 @@ msgstr "सैक्सोनी"
 
 msgid "Saxony-Anhalt"
 msgstr "सैक्सोनी-एनहाल्ट"
+
+msgid "Scan or click"
+msgstr "स्कैन करें या क्लिक करें"
 
 msgid "Schaffhausen"
 msgstr "शाफ़हाउज़ेन"

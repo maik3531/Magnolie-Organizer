@@ -643,21 +643,27 @@ msgid ""
 "Share storage locations in KDE Connect on the phone. The direct Linux "
 "connection needs SSHFS and fusermount; Windows needs existing SSHFS-Win and "
 "WinFsp. Existing system KDE Connect uses its own filesystem facility. The "
-"counterpart is checked again before opening.</p><p>KDE Connect offers "
-"assigned music/video players and other active playback, including browser "
-"videos. In Settings → Magnolienbaum → Media players, Search/Open uses the "
-"system file chooser, separately for music and video. Linux also shows "
-"searchable titles/artists when the assigned player exposes MPRIS TrackList; "
-"Windows GSMTC exposes current playback, not a music library. The phone "
-"displays actual covers and optional shuffle/repeat when supported. Streaming-"
-"service catalog searches require that service’s own application.</"
-"p><p>Drawing tablet: KDE Connect sends position, contact, pressure and Pen/"
-"Rubber changes. Magnolie uses these in the active sheet, including the Notes "
-"drawing dialog. The visible hover cursor leaves no stroke and is not saved "
-"or exported. The phone menu offers fullscreen and settings to hide the "
-"finger-drawing button or place it in any corner. Pen variants, shapes, "
-"selection, zoom and undo belong to Magnolie’s toolbar. Tilt, pen rotation "
-"and extra pen buttons are not part of this KDE protocol.</p>"
+"counterpart is checked again before opening.</p><p>Windows Setup offers the "
+"phone-filesystem components and, when needed, installs the bundled signed "
+"WinFsp/SSHFS-Win packages with one administrator approval. In the portable "
+"edition, run <code>filesystem-runtime/Telefon-Dateisystem vorbereiten.cmd</"
+"code>. Existing components are retained and are not removed when "
+"uninstalling Organizer. Reading status or opening the filesystem never "
+"installs components.</p><p>KDE Connect offers assigned music/video players "
+"and other active playback, including browser videos. In Settings → "
+"Magnolienbaum → Media players, Search/Open uses the system file chooser, "
+"separately for music and video. Linux also shows searchable titles/artists "
+"when the assigned player exposes MPRIS TrackList; Windows GSMTC exposes "
+"current playback, not a music library. The phone displays actual covers and "
+"optional shuffle/repeat when supported. Streaming-service catalog searches "
+"require that service’s own application.</p><p>Drawing tablet: KDE Connect "
+"sends position, contact, pressure and Pen/Rubber changes. Magnolie uses "
+"these in the active sheet, including the Notes drawing dialog. The visible "
+"hover cursor leaves no stroke and is not saved or exported. The phone menu "
+"offers fullscreen and settings to hide the finger-drawing button or place it "
+"in any corner. Pen variants, shapes, selection, zoom and undo belong to "
+"Magnolie’s toolbar. Tilt, pen rotation and extra pen buttons are not part of "
+"this KDE protocol.</p>"
 msgstr ""
 
 #, no-javascript-format
@@ -3888,6 +3894,38 @@ msgstr ""
 
 #, no-javascript-format
 msgid ""
+"<p>Open Settings → Country &amp; holidays → <b>Time zone management</b>. "
+"Enable the required areas and choose a manual zone or automatic detection "
+"with a manual fallback. Automatic sources use available fresh phone, GPS or "
+"IP information; an IP/VPN location can differ from your actual location. A "
+"country or UTC offset alone does not identify a zone. Detect now previews a "
+"result; Refresh applies it. Save commits choices; Cancel discards the dialog "
+"draft. The operating-system clock and zone are never changed.</p><p>Assign a "
+"known zone to a contact to show its local time. For calendar and task "
+"display choose your own, the contact’s or the original zone. A linked "
+"individual entry offers <b>Keep instant</b> for another display or <b>Plan "
+"local time</b> to deliberately change its instant. Normal editors show the "
+"saved input zone. A nonexistent daylight-saving time is rejected; a repeated "
+"time requires the earlier or later occurrence. All-day dates, floating times "
+"and opaque recurrence data keep their source meaning. UTC/TZID, seconds, "
+"identities and recurrence exceptions are preserved during synchronization.</"
+"p>"
+msgstr ""
+
+#, no-javascript-format
+msgid ""
+"<p>Open Settings → Import → <b>Lotus Organizer (.or6 / .csv) …</b> and "
+"select an OR6 file or CSV export. OR6 imports basic appointments, tasks, "
+"contacts and note text. Series, groups and other sections are skipped; "
+"layout, attachments, categories and alarms are not transferred. Read the "
+"import report. For CSV, export each desired section in Lotus using File → "
+"Export → Delimited ASCII/CSV, then import each file separately. The original "
+"is read only. The file limit is 32 MiB; ZIP imports also have entry and size "
+"limits.</p>"
+msgstr ""
+
+#, no-javascript-format
+msgid ""
 "<p>Open the <span class='knopfwort'>Import</span> tab. Android keeps every "
 "app's private database closed to other apps, so Magnolie Notes cannot simply "
 "look inside Samsung Notes, Google Keep or another notepad. Use an export "
@@ -5848,6 +5886,9 @@ msgstr ""
 msgid "Click to open the book"
 msgstr ""
 
+msgid "Close"
+msgstr ""
+
 #, no-javascript-format
 msgid "Close search"
 msgstr ""
@@ -6173,6 +6214,9 @@ msgstr ""
 msgid "Notes and notebooks on Android"
 msgstr ""
 
+msgid "Open in browser"
+msgstr ""
+
 #, no-javascript-format
 msgid "Opening and navigating Settings"
 msgstr ""
@@ -6243,6 +6287,11 @@ msgstr ""
 msgid "Platform and security matrix"
 msgstr ""
 
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr ""
+
 #, no-javascript-format
 msgid "Ports, discovery, and firewall rules"
 msgstr ""
@@ -6273,6 +6322,9 @@ msgstr ""
 
 #, no-javascript-format
 msgid "Progress, printing, ODS, and deleting records"
+msgstr ""
+
+msgid "QR code"
 msgstr ""
 
 #, no-javascript-format
@@ -6333,6 +6385,9 @@ msgstr ""
 
 #, no-javascript-format
 msgid "SMS with KDE Connect"
+msgstr ""
+
+msgid "Scan or click"
 msgstr ""
 
 #, no-javascript-format
@@ -6473,6 +6528,9 @@ msgstr ""
 
 #, no-javascript-format
 msgid "The SMS sheet at a glance"
+msgstr ""
+
+msgid "The content is unreadable."
 msgstr ""
 
 #, no-javascript-format

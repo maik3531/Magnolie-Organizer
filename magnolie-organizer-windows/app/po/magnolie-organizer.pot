@@ -3861,6 +3861,9 @@ msgstr ""
 msgid "Open designer"
 msgstr ""
 
+msgid "Open in browser"
+msgstr ""
+
 msgid "Open manual"
 msgstr ""
 
@@ -4253,6 +4256,11 @@ msgid "Please enter at least a name or company."
 msgstr ""
 
 msgid "Please enter the internet IP and fingerprint in full."
+msgstr ""
+
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
 msgstr ""
 
 msgid "Please select a PDF file."
@@ -4807,6 +4815,9 @@ msgid "Saxony"
 msgstr ""
 
 msgid "Saxony-Anhalt"
+msgstr ""
+
+msgid "Scan or click"
 msgstr ""
 
 msgid "Schaffhausen"

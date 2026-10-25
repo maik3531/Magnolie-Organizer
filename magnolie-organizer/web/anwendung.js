@@ -24426,6 +24426,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     });
   }
 
+  function bindeQrInhalt(image, resolve) {
+    const book = DATEN;
+    window.MagnolieQr?.bind(image, () => {
+      const payload = resolve() || {};
+      return { ...payload, valid: () => !gesperrt && DATEN === book && (!payload.valid || payload.valid()) };
+    }, { title: _("QR code"), close: _("Close"), open: _("Open in browser"),
+      readError: _("The content is unreadable."),
+      scanHint: _("Scan or click"),
+      coffeeHint: _("Please enter your email address as the payment reference; otherwise the ContributorKey cannot be sent to you."),
+      target: Bruecke.vorhanden ? "_self" : "_blank", register: registriereModal, unregister: beendeModal });
+  }
   function frage(text, jaText, neinText, hinweis) {
     if (dialogAufloeser) dialogAntwort(false);
     return new Promise((aufloesen) => {
@@ -27278,6 +27289,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const qrBild = el("img");
       qrBild.src = baumPaarungsQr.bild;
       qrBild.alt = _("One-time pairing QR code");
+      const pairing = baumPaarungsQr, book = DATEN;
+      bindeQrInhalt(qrBild, () => ({
+        valid: () => !gesperrt && DATEN === book && baumPaarungsQr === pairing && Date.now() < pairing.gueltigBis * 1000 }));
       qrKasten.append(qrBild, el("p", "einst-hinweis",
         _("Scan this one-time key with the system camera on the phone. It expires after 15 minutes.")),
       knopf(_("Close"), "klein", () => {
@@ -28547,6 +28561,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     kaffeeQr.className = "kaffee-qr";
     kaffeeQr.src = "kaffee-qr.png";
     kaffeeQr.alt = "QR-Code";
+    bindeQrInhalt(kaffeeQr, () => ({ coffee: true }));
     kaffee.append(kaffeeQr);
     links.append(kaffee);
 

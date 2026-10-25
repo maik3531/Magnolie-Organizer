@@ -514,7 +514,8 @@ msgstr ""
 "Nextcloud サーバー上の WebDAV フォルダーを経由します。"
 
 msgid "A floating local time has no unique absolute instant."
-msgstr "タイムゾーンに結び付いていないローカル時刻には、一意の絶対時刻がありません。"
+msgstr ""
+"タイムゾーンに結び付いていないローカル時刻には、一意の絶対時刻がありません。"
 
 msgid "A group with this name already exists."
 msgstr "同じ名前のグループがすでにあります。"
@@ -3566,7 +3567,9 @@ msgstr "絶対時刻を維持"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "元の繰り返しデータを保持してください。このローカル時刻の操作は個別の項目が対象です。"
+msgstr ""
+"元の繰り返しデータを保持してください。このローカル時刻の操作は個別の項目が対"
+"象です。"
 
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "この KDE Connect のファイルをダウンロードに保存しますか？"
@@ -4818,6 +4821,9 @@ msgstr "%(date)s の日表示を開く"
 msgid "Open designer"
 msgstr "デザイナーを開く"
 
+msgid "Open in browser"
+msgstr "ブラウザーで開く"
+
 msgid "Open manual"
 msgstr "マニュアルを開く"
 
@@ -5260,6 +5266,11 @@ msgstr "少なくとも名前または会社名を入力してください。"
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "インターネット IP とフィンガープリントを完全に入力してください。"
 
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "振込の摘要にメールアドレスを記載してください。記載がない場合、ContributorKeyをお送りできません。"
+
 msgid "Please select a PDF file."
 msgstr "PDF ファイルを選択してください。"
 
@@ -5428,6 +5439,9 @@ msgid ""
 msgstr ""
 "脈拍\n"
 "S/min"
+
+msgid "QR code"
+msgstr "QRコード"
 
 msgid "QR codes require the python3-qrcode package."
 msgstr "QR コードには python3-qrcode パッケージが必要です。"
@@ -5979,6 +5993,9 @@ msgstr "ザクセン"
 
 msgid "Saxony-Anhalt"
 msgstr "ザクセン＝アンハルト"
+
+msgid "Scan or click"
+msgstr "スキャンまたはクリック"
 
 msgid ""
 "Scan this one-time key with the system camera on the phone. It expires after "

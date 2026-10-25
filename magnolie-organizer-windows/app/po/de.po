@@ -365,7 +365,9 @@ msgstr ""
 "Server."
 
 msgid "A floating local time has no unique absolute instant."
-msgstr "Eine Ortszeit ohne Zeitzonenbindung hat keinen eindeutigen absoluten Zeitpunkt."
+msgstr ""
+"Eine Ortszeit ohne Zeitzonenbindung hat keinen eindeutigen absoluten "
+"Zeitpunkt."
 
 msgid "A group with this name already exists."
 msgstr "Eine Gruppe mit diesem Namen ist bereits vorhanden."
@@ -623,7 +625,8 @@ msgid "All states"
 msgstr "Alle Bundesländer"
 
 msgid "All-day dates are not converted into timed entries."
-msgstr "Ganztägige Datumsangaben werden nicht in Einträge mit Uhrzeit umgewandelt."
+msgstr ""
+"Ganztägige Datumsangaben werden nicht in Einträge mit Uhrzeit umgewandelt."
 
 msgid "Allow notifications despite password protection"
 msgstr "Benachrichtigungen trotz Kennwortschutz zulassen"
@@ -3079,7 +3082,9 @@ msgstr "Zeitpunkt beibehalten"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "Die ursprünglichen Seriendaten bleiben erhalten; diese Ortszeitaktion gilt für einzelne Einträge."
+msgstr ""
+"Die ursprünglichen Seriendaten bleiben erhalten; diese Ortszeitaktion gilt "
+"für einzelne Einträge."
 
 msgid "LDIF"
 msgstr "LDIF"
@@ -4150,6 +4155,9 @@ msgstr "Zum Tagesblatt vom %(date)s"
 msgid "Open designer"
 msgstr "Designer öffnen"
 
+msgid "Open in browser"
+msgstr "Im Browser öffnen"
+
 msgid "Open manual"
 msgstr "Handbuch öffnen"
 
@@ -4564,6 +4572,11 @@ msgstr "Bitte mindestens Name oder Firma eintragen."
 
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "Bitte Internet-IP und Fingerabdruck vollständig eintragen."
+
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "Bitte als Verwendungszweck deine E-Mail-Adresse angeben, da sonst der ContributorKey nicht zugesendet werden kann."
 
 msgid "Please select a PDF file."
 msgstr "Bitte eine PDF-Datei auswählen."
@@ -5155,6 +5168,9 @@ msgstr "Sachsen"
 
 msgid "Saxony-Anhalt"
 msgstr "Sachsen-Anhalt"
+
+msgid "Scan or click"
+msgstr "Scannen oder klicken"
 
 msgid "Schaffhausen"
 msgstr "Schaffhausen"
@@ -6269,7 +6285,8 @@ msgstr ""
 "wenn das Programm gar nicht geöffnet ist."
 
 msgid "The original calendar time cannot be resolved without guessing."
-msgstr "Die ursprüngliche Kalenderzeit lässt sich nicht ohne Vermutungen auflösen."
+msgstr ""
+"Die ursprüngliche Kalenderzeit lässt sich nicht ohne Vermutungen auflösen."
 
 msgid "The package could not be opened."
 msgstr "Das Paket ließ sich nicht öffnen."
@@ -6648,7 +6665,8 @@ msgstr ""
 "Notes. Anrufton wird nicht über die Magnolie-Datenverbindung übertragen."
 
 msgid "This action does not invent a task start or deadline."
-msgstr "Diese Aktion ergänzt keinen fehlenden Aufgabenbeginn oder Fälligkeitstermin."
+msgstr ""
+"Diese Aktion ergänzt keinen fehlenden Aufgabenbeginn oder Fälligkeitstermin."
 
 msgid "This address can be selected and copied."
 msgstr "Diese Anschrift lässt sich markieren und kopieren."

@@ -24156,6 +24156,17 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     });
   }
 
+  function bindeQrInhalt(image, resolve) {
+    const book = DATEN;
+    window.MagnolieQr?.bind(image, () => {
+      const payload = resolve() || {};
+      return { ...payload, valid: () => !gesperrt && DATEN === book && (!payload.valid || payload.valid()) };
+    }, { title: _("QR code"), close: _("Close"), open: _("Open in browser"),
+      readError: _("The content is unreadable."),
+      scanHint: _("Scan or click"),
+      coffeeHint: _("Please enter your email address as the payment reference; otherwise the ContributorKey cannot be sent to you."),
+      target: Bruecke.vorhanden ? "_self" : "_blank", register: registriereModal, unregister: beendeModal });
+  }
   function frage(text, jaText, neinText, hinweis) {
     if (dialogAufloeser) dialogAntwort(false);
     return new Promise((aufloesen) => {
@@ -28408,6 +28419,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     kaffeeQr.className = "kaffee-qr";
     kaffeeQr.src = "https://appassets.magnolie.invalid/kaffee-qr.png";
     kaffeeQr.alt = _("QR code");
+    bindeQrInhalt(kaffeeQr, () => ({ coffee: true }));
     kaffee.append(kaffeeQr);
     links.append(kaffee);
 

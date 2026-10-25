@@ -3630,7 +3630,9 @@ msgstr "Zachovat okamžik"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "Zachovejte původní údaje opakování; tato akce místního času je určena pro jednotlivé záznamy."
+msgstr ""
+"Zachovejte původní údaje opakování; tato akce místního času je určena pro "
+"jednotlivé záznamy."
 
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Ponechat tento soubor z KDE Connect ve složce Stažené?"
@@ -4890,6 +4892,9 @@ msgstr "Otevřít denní zobrazení pro %(date)s"
 msgid "Open designer"
 msgstr "Otevřít návrhář"
 
+msgid "Open in browser"
+msgstr "Otevřít v prohlížeči"
+
 msgid "Open manual"
 msgstr "Otevřít příručku"
 
@@ -5336,6 +5341,11 @@ msgstr "Zadejte alespoň jméno nebo firmu."
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "Zadejte úplnou internetovou IP a otisk."
 
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "Uveď svou e-mailovou adresu do zprávy k platbě, jinak ti nebude možné zaslat ContributorKey."
+
 msgid "Please select a PDF file."
 msgstr "Vyberte soubor PDF."
 
@@ -5510,6 +5520,9 @@ msgid ""
 msgstr ""
 "Tep\n"
 "S/min"
+
+msgid "QR code"
+msgstr "QR kód"
 
 msgid "QR codes require the python3-qrcode package."
 msgstr "QR kódy vyžadují balíček python3-qrcode."
@@ -6064,6 +6077,9 @@ msgstr "Sasko"
 
 msgid "Saxony-Anhalt"
 msgstr "Sasko-Anhaltsko"
+
+msgid "Scan or click"
+msgstr "Naskenovat nebo kliknout"
 
 msgid ""
 "Scan this one-time key with the system camera on the phone. It expires after "

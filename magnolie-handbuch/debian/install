@@ -3,6 +3,10 @@ bin/magnolie_crash.py                 usr/lib/magnolie-handbuch
 bin/magnolie_asset.py                 usr/lib/magnolie-handbuch
 web/index.html                        usr/share/magnolie-handbuch/web
 web/stil.css                          usr/share/magnolie-handbuch/web
+web/qr-dialog.css                     usr/share/magnolie-handbuch/web
+web/qr-dialog.js                      usr/share/magnolie-handbuch/web
+web/qr-decoder.js                     usr/share/magnolie-handbuch/web
+web/qr-decoder-LICENSE.txt            usr/share/magnolie-handbuch/web
 web/*.png                             usr/share/magnolie-handbuch/web
 web/*.jpg                             usr/share/magnolie-handbuch/web
 web/*.mga                             usr/share/magnolie-handbuch/web

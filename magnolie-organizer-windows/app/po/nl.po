@@ -621,7 +621,8 @@ msgid "All states"
 msgstr "Alle deelstaten"
 
 msgid "All-day dates are not converted into timed entries."
-msgstr "Datums voor een hele dag worden niet omgezet in vermeldingen met een tijd."
+msgstr ""
+"Datums voor een hele dag worden niet omgezet in vermeldingen met een tijd."
 
 msgid "Allow notifications despite password protection"
 msgstr "Meldingen toestaan ondanks wachtwoordbeveiliging"
@@ -3070,7 +3071,9 @@ msgstr "Tijdstip behouden"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "Behoud de oorspronkelijke herhalingsgegevens; deze lokale-tijdactie is voor afzonderlijke vermeldingen."
+msgstr ""
+"Behoud de oorspronkelijke herhalingsgegevens; deze lokale-tijdactie is voor "
+"afzonderlijke vermeldingen."
 
 msgid "LDIF"
 msgstr "LDIF"
@@ -4140,6 +4143,9 @@ msgstr "Dagweergave voor %(date)s openen"
 msgid "Open designer"
 msgstr "Ontwerper openen"
 
+msgid "Open in browser"
+msgstr "Openen in browser"
+
 msgid "Open manual"
 msgstr "Handboek openen"
 
@@ -4549,6 +4555,11 @@ msgstr "Voer minimaal een naam of bedrijf in."
 
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "Voer het internet-IP en de vingerafdruk volledig in."
+
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "Vermeld je e-mailadres in de betalingsomschrijving; anders kan de ContributorKey niet naar je worden verzonden."
 
 msgid "Please select a PDF file."
 msgstr "Selecteer een PDF-bestand."
@@ -5139,6 +5150,9 @@ msgstr "Saksen"
 
 msgid "Saxony-Anhalt"
 msgstr "Saksen-Anhalt"
+
+msgid "Scan or click"
+msgstr "Scannen of klikken"
 
 msgid "Schaffhausen"
 msgstr "Schaffhausen"
@@ -6246,7 +6260,8 @@ msgstr ""
 "wanneer de toepassing niet geopend is."
 
 msgid "The original calendar time cannot be resolved without guessing."
-msgstr "De oorspronkelijke kalendertijd kan niet zonder aannames worden bepaald."
+msgstr ""
+"De oorspronkelijke kalendertijd kan niet zonder aannames worden bepaald."
 
 msgid "The package could not be opened."
 msgstr "Het pakket kon niet worden geopend."
@@ -6620,7 +6635,8 @@ msgstr ""
 "Gespreksaudio wordt niet via de Magnolie-gegevensverbinding verzonden."
 
 msgid "This action does not invent a task start or deadline."
-msgstr "Deze actie voegt geen ontbrekend begin of vervaldatum aan een taak toe."
+msgstr ""
+"Deze actie voegt geen ontbrekend begin of vervaldatum aan een taak toe."
 
 msgid "This address can be selected and copied."
 msgstr "Dit adres kan worden geselecteerd en gekopieerd."

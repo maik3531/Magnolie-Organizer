@@ -626,7 +626,8 @@ msgid "All states"
 msgstr "Tous les États fédérés"
 
 msgid "All-day dates are not converted into timed entries."
-msgstr "Les dates sur toute la journée ne sont pas converties en entrées horaires."
+msgstr ""
+"Les dates sur toute la journée ne sont pas converties en entrées horaires."
 
 msgid "Allow notifications despite password protection"
 msgstr "Autoriser les notifications malgré la protection par mot de passe"
@@ -3104,7 +3105,9 @@ msgstr "Conserver l'instant"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "Conservez les données de récurrence d'origine ; cette action en heure locale concerne les entrées individuelles."
+msgstr ""
+"Conservez les données de récurrence d'origine ; cette action en heure locale "
+"concerne les entrées individuelles."
 
 msgid "LDIF"
 msgstr "LDIF"
@@ -4185,6 +4188,9 @@ msgstr "Ouvrir la vue quotidienne du %(date)s"
 msgid "Open designer"
 msgstr "Ouvrir le concepteur"
 
+msgid "Open in browser"
+msgstr "Ouvrir dans le navigateur"
+
 msgid "Open manual"
 msgstr "Ouvrir le manuel"
 
@@ -4603,6 +4609,11 @@ msgstr "Veuillez saisir au moins un nom ou une entreprise."
 
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "Veuillez saisir intégralement l’adresse IP Internet et l’empreinte."
+
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "Veuillez indiquer votre adresse e-mail dans la référence du paiement ; sinon, le ContributorKey ne pourra pas vous être envoyé."
 
 msgid "Please select a PDF file."
 msgstr "Veuillez sélectionner un fichier PDF."
@@ -5205,6 +5216,9 @@ msgstr "Saxe"
 
 msgid "Saxony-Anhalt"
 msgstr "Saxe-Anhalt"
+
+msgid "Scan or click"
+msgstr "Scanner ou cliquer"
 
 msgid "Schaffhausen"
 msgstr "Schaffhouse"
@@ -6321,7 +6335,8 @@ msgstr ""
 "souhaitez, même lorsque l’application n’est pas ouverte."
 
 msgid "The original calendar time cannot be resolved without guessing."
-msgstr "L'heure d'origine du calendrier ne peut pas être déterminée sans supposition."
+msgstr ""
+"L'heure d'origine du calendrier ne peut pas être déterminée sans supposition."
 
 msgid "The package could not be opened."
 msgstr "Le paquet n’a pas pu être ouvert."
@@ -6705,7 +6720,8 @@ msgstr ""
 "Magnolie."
 
 msgid "This action does not invent a task start or deadline."
-msgstr "Cette action n'ajoute pas de début ni d'échéance manquants à une tâche."
+msgstr ""
+"Cette action n'ajoute pas de début ni d'échéance manquants à une tâche."
 
 msgid "This address can be selected and copied."
 msgstr "Cette adresse peut être sélectionnée et copiée."

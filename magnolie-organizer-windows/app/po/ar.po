@@ -3124,7 +3124,9 @@ msgstr "الاحتفاظ باللحظة"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "احتفظ ببيانات التكرار الأصلية؛ إجراء التوقيت المحلي هذا مخصص للإدخالات المنفردة."
+msgstr ""
+"احتفظ ببيانات التكرار الأصلية؛ إجراء التوقيت المحلي هذا مخصص للإدخالات "
+"المنفردة."
 
 msgid "LDIF"
 msgstr "LDIF"
@@ -4187,6 +4189,9 @@ msgstr "فتح عرض اليوم لـ %(date)s"
 msgid "Open designer"
 msgstr "فتح المصمم"
 
+msgid "Open in browser"
+msgstr "فتح في المتصفح"
+
 msgid "Open manual"
 msgstr "فتح الدليل"
 
@@ -4601,6 +4606,11 @@ msgstr "يرجى إدخال اسم أو شركة على الأقل."
 
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "يرجى إدخال عنوان IP على الإنترنت والبصمة كاملين."
+
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "يرجى كتابة عنوان بريدك الإلكتروني في مرجع الدفع، وإلا فلن يمكن إرسال ContributorKey إليك."
 
 msgid "Please select a PDF file."
 msgstr "يرجى تحديد ملف PDF."
@@ -5187,6 +5197,9 @@ msgstr "ساكسونيا"
 
 msgid "Saxony-Anhalt"
 msgstr "ساكسونيا-أنهالت"
+
+msgid "Scan or click"
+msgstr "امسح الرمز أو انقر"
 
 msgid "Schaffhausen"
 msgstr "شافهاوزن"

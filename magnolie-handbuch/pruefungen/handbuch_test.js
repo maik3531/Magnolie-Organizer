@@ -1,5 +1,6 @@
 /* English/German integration checks for the handbook. */
 "use strict";
+(async () => {
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -630,19 +631,63 @@ for (const language of languages) {
   dom.window.close();
 }
 
-function createBook(locale) {
+function createBook(locale, embedded = false) {
   const dom = new JSDOM(sources.html, { url: "https://handbook.test/",
     pretendToBeVisual: true, runScripts: "outside-only" });
   const w = dom.window;
+  const nativeCalls = [];
+  if (embedded) w.webkit = { messageHandlers: { bruecke: { postMessage: value => nativeCalls.push(value) } } };
   w.eval(sources.i18n);
   w.eval(fs.readFileSync(path.join(WEB, "i18n/en.js"), "utf8"));
   w.eval(sources.catalog);
   w.MagnolieI18n.setLocale(locale);
   w.eval(sources.mobileDownloads);
   w.eval(sources.content);
+  w.eval(fs.readFileSync(path.join(WEB, "qr-decoder.js"), "utf8"));
+  w.eval(fs.readFileSync(path.join(WEB, "qr-dialog.js"), "utf8"));
   w.eval(sources.handbook);
   if (!w.Handbuch) w.document.dispatchEvent(new w.Event("DOMContentLoaded"));
-  return { dom, w, d: w.document, H: w.Handbuch };
+  return { dom, w, d: w.document, H: w.Handbuch, nativeCalls };
+}
+
+for (const embedded of [false, true]) {
+  const b = createBook("de", embedded), opened = [];
+  try {
+    const qr = require(path.join(ROOT, "../magnolie-organizer-windows/tests/qr-image-fixture.js"));
+    const attach = qr.install(b.w), coffeePixels = qr.fixture("--image", path.join(WEB, "kaffee-qr.mga"));
+    await qr.tick();
+    let openedTarget = "";
+    b.w.HTMLAnchorElement.prototype.click = function () { opened.push(this.href); openedTarget = this.target; };
+    b.w.confirm = () => { throw new Error("Use a Magnolie dialog"); };
+    b.H.oeffneBuch(); b.H.blaettereZuId("support-with-a-coffee");
+    const coffee = b.d.querySelector("#seiten img.kaffee-qr"); assert.ok(coffee);
+    attach(coffee, coffeePixels);
+    assert.strictEqual(coffee.title, "Scannen oder klicken");
+    const image = coffee.outerHTML;
+    const nativeBefore = b.nativeCalls.length;
+    assert.strictEqual(b.d.querySelector(".magnolie-qr-coffee-hint"), null);
+    coffee.focus(); coffee.dispatchEvent(new b.w.KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await qr.tick();
+    assert.strictEqual(qr.digest(b.d.querySelector(".magnolie-qr-text").textContent), coffeePixels.content_sha256,
+      "The dialog must read the actual QR image, not stored account text");
+    assert.strictEqual(b.d.querySelector(".magnolie-qr-coffee-hint").textContent,
+      "Bitte als Verwendungszweck deine E-Mail-Adresse angeben, da sonst der ContributorKey nicht zugesendet werden kann.");
+    assert.strictEqual(opened.length, 0); assert.strictEqual(b.nativeCalls.length, nativeBefore);
+    const spread = b.H.bogen();
+    b.d.querySelector(".magnolie-qr-dialog").dispatchEvent(new b.w.KeyboardEvent("keydown", { key: "PageDown", bubbles: true }));
+    assert.strictEqual(b.H.bogen(), spread, "A QR dialog must block background book navigation");
+    b.d.querySelector(".magnolie-qr-dialog").dispatchEvent(new b.w.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    assert.strictEqual(b.d.querySelector(".magnolie-qr-dialog"), null); assert.strictEqual(b.d.activeElement, coffee);
+    assert.strictEqual(coffee.outerHTML, image, "QR appearance markup changed after display");
+    b.H.blaettereZuId("android-apk-transfer");
+    const downloads = [...b.d.querySelectorAll("#seiten img.download-qr")]; assert.ok(downloads.length);
+    attach(downloads[0], qr.fixture("--text", mobileMetadata.notes.url));
+    downloads[0].click(); await qr.tick(); assert.strictEqual(opened.length, 0); assert.strictEqual(b.d.querySelector(".magnolie-qr-coffee-hint"), null);
+    b.d.querySelector(".magnolie-qr-dialog button").click(); assert.strictEqual(opened.length, 0);
+    downloads[0].click(); await qr.tick(); const displayed = b.d.querySelector(".magnolie-qr-text").textContent;
+    b.d.querySelector(".magnolie-qr-open").click(); assert.deepStrictEqual(opened, [displayed]);
+    assert.strictEqual(openedTarget, embedded ? "_self" : "_blank", "Embedded web links must pass through the native navigation policy");
+  } finally { b.w.close(); }
 }
 
 function tags(markup) {
@@ -1249,3 +1294,4 @@ try {
 } finally {
   fs.rmSync(temporary, { recursive: true, force: true });
 }
+})().catch(error => { console.error(error); process.exitCode = 1; });

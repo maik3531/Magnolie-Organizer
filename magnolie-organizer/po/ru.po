@@ -590,7 +590,8 @@ msgstr ""
 "идут через папку WebDAV на вашем сервере Nextcloud."
 
 msgid "A floating local time has no unique absolute instant."
-msgstr "Местное время без часового пояса не задаёт однозначный абсолютный момент."
+msgstr ""
+"Местное время без часового пояса не задаёт однозначный абсолютный момент."
 
 msgid "A group with this name already exists."
 msgstr "Группа с таким именем уже существует."
@@ -3658,7 +3659,9 @@ msgstr "Сохранить момент"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "Сохраните исходные данные повторения; это действие с местным временем предназначено для отдельных записей."
+msgstr ""
+"Сохраните исходные данные повторения; это действие с местным временем "
+"предназначено для отдельных записей."
 
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Сохранить этот файл из KDE Connect в папке «Загрузки»?"
@@ -4925,6 +4928,9 @@ msgstr "Открыть дневной вид для %(date)s"
 msgid "Open designer"
 msgstr "Открыть конструктор"
 
+msgid "Open in browser"
+msgstr "Открыть в браузере"
+
 msgid "Open manual"
 msgstr "Открыть руководство"
 
@@ -5382,6 +5388,11 @@ msgstr "Введите хотя бы имя или название компан
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "Полностью введите интернет-IP и отпечаток."
 
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "Укажите свой адрес электронной почты в назначении платежа, иначе ContributorKey не удастся вам отправить."
+
 msgid "Please select a PDF file."
 msgstr "Выберите PDF-файл."
 
@@ -5557,6 +5568,9 @@ msgid ""
 msgstr ""
 "Пульс\n"
 "S/min"
+
+msgid "QR code"
+msgstr "QR-код"
 
 msgid "QR codes require the python3-qrcode package."
 msgstr "Для QR-кодов требуется пакет python3-qrcode."
@@ -6115,6 +6129,9 @@ msgstr "Саксония"
 
 msgid "Saxony-Anhalt"
 msgstr "Саксония-Анхальт"
+
+msgid "Scan or click"
+msgstr "Сканировать или нажать"
 
 msgid ""
 "Scan this one-time key with the system camera on the phone. It expires after "

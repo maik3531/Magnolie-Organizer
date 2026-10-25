@@ -18,6 +18,7 @@ internal static class FirstRunSetupUiSelfTest
             VerifyOwnPhonePrompt(Path.Combine(root, "own-phone-prompt"));
             VerifyHolidayLanguages(Path.Combine(root, "holidays-native"));
             VerifyCountryFlags(Path.Combine(root, "country-flags-native"));
+            VerifyQrLinks(Path.Combine(root, "qr-links-native"));
             Console.WriteLine("WINDOWS-FIRST-RUN-UI-OK");
             return 0;
         }
@@ -30,6 +31,56 @@ internal static class FirstRunSetupUiSelfTest
         {
             try { if (Directory.Exists(root)) Directory.Delete(root, true); } catch (Exception) { }
         }
+    }
+
+    private static void VerifyQrLinks(string root)
+    {
+        NativeLocalization.SetLanguage("de");
+        var paths = new WindowsPaths(root); paths.EnsureDirectories();
+        using var form = new FirstRunSetupForm(paths, new FirstRunSetupState(paths));
+        SetField(form, "page", 3);
+        form.GetType().GetMethod("RenderPage", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(form, null);
+        form.Show(); Application.DoEvents();
+        var pictures = Descendants(Field<Panel>(form, "pageHost")).OfType<PictureBox>()
+            .Where(picture => picture.AccessibleRole == AccessibleRole.PushButton).ToArray();
+        Test(pictures.Length == 2 && pictures.All(picture => picture.TabStop && picture.Width == 170 && picture.Height == 170),
+            "Native QR images lost keyboard access or their original geometry.");
+        var tips = Field<ToolTip>(form, "qrTooltips");
+        Test(pictures.All(picture => tips.GetToolTip(picture) == "Scannen oder klicken"), "Native QR tooltip is missing or untranslated.");
+        Exception? failure = null;
+        var confirmations = 0;
+        using var timer = new System.Windows.Forms.Timer { Interval = 50 };
+        var answer = DialogResult.Cancel;
+        timer.Tick += (_, _) =>
+        {
+            var prompt = Application.OpenForms.Cast<Form>().FirstOrDefault(window => window.Name == "qr-link-confirm");
+            if (prompt is null) return;
+            timer.Stop(); confirmations++;
+            try
+            {
+                var text = prompt.Controls.OfType<TextBox>().Single().Text;
+                Test(text == FirstRunSetupForm.MagnolieNotesUrl || text == FirstRunSetupForm.KdeConnectUrl,
+                    "Native QR confirmation displayed different content from its download target.");
+                Test(prompt.AcceptButton is Button { DialogResult: DialogResult.Cancel }, "QR confirmation must default to cancellation.");
+                prompt.DialogResult = answer;
+            }
+            catch (Exception error) { failure = error; prompt.DialogResult = DialogResult.Cancel; }
+        };
+        foreach (var picture in pictures)
+        {
+            Test(picture.Focus(), "Native QR image cannot receive keyboard focus.");
+            timer.Start();
+            var key = new KeyEventArgs(Keys.Enter);
+            picture.GetType().GetMethod("OnKeyDown", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(picture, [key]);
+            Test(key.Handled && failure is null, failure?.Message ?? "QR Enter activation was not handled.");
+        }
+        Test(confirmations == 2, "Native download QR did not show confirmation for each image.");
+        var opened = new List<string>(); answer = DialogResult.OK; timer.Start();
+        typeof(FirstRunSetupForm).GetMethod("ConfirmQrLink", BindingFlags.Static | BindingFlags.NonPublic)!
+            .Invoke(null, [form, FirstRunSetupForm.MagnolieNotesUrl, new Func<string, bool>(value => { opened.Add(value); return true; })]);
+        Test(failure is null && opened.SequenceEqual([FirstRunSetupForm.MagnolieNotesUrl]),
+            failure?.Message ?? "Confirmed native QR did not invoke exactly the selected web target.");
+        Console.WriteLine("WINDOWS-QR-DIALOG-OK");
     }
 
     private static void VerifyCountryFlags(string root)

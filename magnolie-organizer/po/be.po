@@ -590,7 +590,8 @@ msgstr ""
 "паведамленні ідуць праз тэчку WebDAV на вашым серверы Nextcloud."
 
 msgid "A floating local time has no unique absolute instant."
-msgstr "Мясцовы час без часавага пояса не задае адназначнага абсалютнага моманту."
+msgstr ""
+"Мясцовы час без часавага пояса не задае адназначнага абсалютнага моманту."
 
 msgid "A group with this name already exists."
 msgstr "Група з такой назвай ужо існуе."
@@ -3639,7 +3640,9 @@ msgstr "Захаваць момант"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "Захавайце зыходныя даныя паўтарэння; гэта дзеянне з мясцовым часам прызначана для асобных запісаў."
+msgstr ""
+"Захавайце зыходныя даныя паўтарэння; гэта дзеянне з мясцовым часам "
+"прызначана для асобных запісаў."
 
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Захаваць гэты файл з KDE Connect у «Спампоўках»?"
@@ -4902,6 +4905,9 @@ msgstr "Адкрыць дзённы выгляд для %(date)s"
 msgid "Open designer"
 msgstr "Адкрыць канструктар"
 
+msgid "Open in browser"
+msgstr "Адкрыць у браўзеры"
+
 msgid "Open manual"
 msgstr "Адкрыць дапаможнік"
 
@@ -5353,6 +5359,11 @@ msgstr "Увядзіце прынамсі імя або кампанію."
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "Увядзіце цалкам інтэрнэт-IP і адбітак."
 
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "Пазначце свой адрас электроннай пошты ў прызначэнні плацяжу, інакш ContributorKey немагчыма будзе вам даслаць."
+
 msgid "Please select a PDF file."
 msgstr "Выберыце файл PDF."
 
@@ -5530,6 +5541,9 @@ msgid ""
 msgstr ""
 "Пульс\n"
 "S/min"
+
+msgid "QR code"
+msgstr "QR-код"
 
 msgid "QR codes require the python3-qrcode package."
 msgstr "QR-коды патрабуюць пакета python3-qrcode."
@@ -6087,6 +6101,9 @@ msgstr "Саксонія"
 
 msgid "Saxony-Anhalt"
 msgstr "Саксонія-Ангальт"
+
+msgid "Scan or click"
+msgstr "Сканаваць або націснуць"
 
 msgid ""
 "Scan this one-time key with the system camera on the phone. It expires after "

@@ -100,6 +100,14 @@
     kopf.append(titelblock);
 
     inhalt.innerHTML = verweiseAufloesen(seite.inhalt);
+    for (const image of inhalt.querySelectorAll("img.kaffee-qr, img.download-qr")) {
+      window.MagnolieQr?.bind(image, () => {
+        return { coffee: image.classList.contains("kaffee-qr") };
+      }, { title: _("QR code"), close: _("Close"), open: _("Open in browser"), target: Bruecke.vorhanden ? "_self" : "_blank",
+        readError: _("The content is unreadable."),
+        scanHint: _("Scan or click"),
+        coffeeHint: _("Please enter your email address as the payment reference; otherwise the ContributorKey cannot be sent to you.") });
+    }
 
     /* Stabile Seitenkennungen bleiben bei eingefügten Blättern gültig. */
     for (const verweis of inhalt.querySelectorAll("[data-page]")) {

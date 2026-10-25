@@ -94,6 +94,7 @@ install -Dpm 0644 bin/magnolie_crash.py %{buildroot}%{_prefix}/lib/%{name}/magno
 install -Dpm 0644 bin/magnolie_asset.py %{buildroot}%{_prefix}/lib/%{name}/magnolie_asset.py
 install -d %{buildroot}%{_datadir}/%{name}/web/i18n
 install -pm 0644 web/index.html web/stil.css web/inhalt.js web/platform.js web/handbuch.js \
+    web/qr-dialog.css web/qr-dialog.js web/qr-decoder.js web/qr-decoder-LICENSE.txt \
     web/i18n.js web/i18n-start.js web/i18n-markers.js web/mobile-downloads.js web/mobile-downloads.json web/version.json \
     web/*.png web/*.jpg web/*.mga web/maik-walter-FOTO-NUTZUNG.txt \
     %{buildroot}%{_datadir}/%{name}/web/

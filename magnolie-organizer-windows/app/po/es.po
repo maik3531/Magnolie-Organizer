@@ -3083,7 +3083,9 @@ msgstr "Conservar el instante"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "Conserve los datos de repetición originales; esta acción de hora local es para entradas individuales."
+msgstr ""
+"Conserve los datos de repetición originales; esta acción de hora local es "
+"para entradas individuales."
 
 msgid "LDIF"
 msgstr "LDIF"
@@ -4155,6 +4157,9 @@ msgstr "Abrir la vista diaria de %(date)s"
 msgid "Open designer"
 msgstr "Abrir diseñador"
 
+msgid "Open in browser"
+msgstr "Abrir en el navegador"
+
 msgid "Open manual"
 msgstr "Abrir manual"
 
@@ -4563,6 +4568,11 @@ msgstr "Introduce al menos un nombre o una empresa."
 
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "Introduce por completo la IP de Internet y la huella."
+
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "Indica tu dirección de correo electrónico como concepto del pago; de lo contrario no se podrá enviarte el ContributorKey."
 
 msgid "Please select a PDF file."
 msgstr "Selecciona un archivo PDF."
@@ -5155,6 +5165,9 @@ msgstr "Sajonia"
 
 msgid "Saxony-Anhalt"
 msgstr "Sajonia-Anhalt"
+
+msgid "Scan or click"
+msgstr "Escanear o hacer clic"
 
 msgid "Schaffhausen"
 msgstr "Schaffhausen"
@@ -6263,7 +6276,9 @@ msgstr ""
 "aplicación no está abierta si así lo deseas."
 
 msgid "The original calendar time cannot be resolved without guessing."
-msgstr "La hora original del calendario no se puede determinar sin hacer suposiciones."
+msgstr ""
+"La hora original del calendario no se puede determinar sin hacer "
+"suposiciones."
 
 msgid "The package could not be opened."
 msgstr "No se pudo abrir el paquete."
@@ -6636,7 +6651,8 @@ msgstr ""
 "audio de la llamada no se envía por la conexión de datos de Magnolie."
 
 msgid "This action does not invent a task start or deadline."
-msgstr "Esta acción no añade un inicio ni un vencimiento que falten en una tarea."
+msgstr ""
+"Esta acción no añade un inicio ni un vencimiento que falten en una tarea."
 
 msgid "This address can be selected and copied."
 msgstr "Esta dirección se puede seleccionar y copiar."

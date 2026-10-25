@@ -3651,7 +3651,9 @@ msgstr "Mantieni l'istante"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "Mantieni i dati di ricorrenza originali; questa azione nell'ora locale riguarda le singole voci."
+msgstr ""
+"Mantieni i dati di ricorrenza originali; questa azione nell'ora locale "
+"riguarda le singole voci."
 
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Conservare questo file di KDE Connect in Scaricati?"
@@ -4925,6 +4927,9 @@ msgstr "Apri vista giornaliera per %(date)s"
 msgid "Open designer"
 msgstr "Apri progettazione"
 
+msgid "Open in browser"
+msgstr "Apri nel browser"
+
 msgid "Open manual"
 msgstr "Apri manuale"
 
@@ -5391,6 +5396,11 @@ msgstr "Inserisci almeno un nome o un’azienda."
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "Inserisci per intero l’IP Internet e l’impronta."
 
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "Indica il tuo indirizzo e-mail nella causale del pagamento; altrimenti non sarà possibile inviarti il ContributorKey."
+
 msgid "Please select a PDF file."
 msgstr "Seleziona un file PDF."
 
@@ -5569,6 +5579,9 @@ msgid ""
 msgstr ""
 "Polso\n"
 "S/min"
+
+msgid "QR code"
+msgstr "Codice QR"
 
 msgid "QR codes require the python3-qrcode package."
 msgstr "I codici QR richiedono il pacchetto python3-qrcode."
@@ -6132,6 +6145,9 @@ msgstr "Sassonia"
 
 msgid "Saxony-Anhalt"
 msgstr "Sassonia-Anhalt"
+
+msgid "Scan or click"
+msgstr "Scansiona o fai clic"
 
 msgid ""
 "Scan this one-time key with the system camera on the phone. It expires after "
@@ -7568,7 +7584,8 @@ msgstr ""
 "quando l’applicazione non è aperta."
 
 msgid "The original calendar time cannot be resolved without guessing."
-msgstr "L'ora originale del calendario non può essere determinata senza supposizioni."
+msgstr ""
+"L'ora originale del calendario non può essere determinata senza supposizioni."
 
 msgid "The other branch did not prove the pairing file."
 msgstr "L’altro ramo non ha dimostrato l’autenticità del file di associazione."
@@ -8117,7 +8134,8 @@ msgstr ""
 "Magnolie."
 
 msgid "This action does not invent a task start or deadline."
-msgstr "Questa azione non aggiunge un inizio o una scadenza mancanti a un'attività."
+msgstr ""
+"Questa azione non aggiunge un inizio o una scadenza mancanti a un'attività."
 
 msgid "This address can be selected and copied."
 msgstr "Questo indirizzo può essere selezionato e copiato."

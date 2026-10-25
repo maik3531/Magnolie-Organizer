@@ -396,7 +396,8 @@ msgstr ""
 "повідомлення йдуть через теку WebDAV на вашому сервері Nextcloud."
 
 msgid "A floating local time has no unique absolute instant."
-msgstr "Місцевий час без часового поясу не визначає однозначного абсолютного моменту."
+msgstr ""
+"Місцевий час без часового поясу не визначає однозначного абсолютного моменту."
 
 msgid "A group with this name already exists."
 msgstr "Група з такою назвою вже існує."
@@ -3065,7 +3066,9 @@ msgstr "Зберегти момент"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "Збережіть початкові дані повторення; ця дія з місцевим часом призначена для окремих записів."
+msgstr ""
+"Збережіть початкові дані повторення; ця дія з місцевим часом призначена для "
+"окремих записів."
 
 msgid "LDIF"
 msgstr "LDIF"
@@ -4134,6 +4137,9 @@ msgstr "Відкрити денний перегляд для %(date)s"
 msgid "Open designer"
 msgstr "Відкрити конструктор"
 
+msgid "Open in browser"
+msgstr "Відкрити в браузері"
+
 msgid "Open manual"
 msgstr "Відкрити посібник"
 
@@ -4538,6 +4544,11 @@ msgstr "Введіть принаймні ім’я або компанію."
 
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "Введіть повністю інтернет-IP та відбиток."
+
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "Укажіть свою електронну адресу в призначенні платежу, інакше ContributorKey неможливо буде вам надіслати."
 
 msgid "Please select a PDF file."
 msgstr "Виберіть файл PDF."
@@ -5126,6 +5137,9 @@ msgstr "Саксонія"
 
 msgid "Saxony-Anhalt"
 msgstr "Саксонія-Ангальт"
+
+msgid "Scan or click"
+msgstr "Сканувати або натиснути"
 
 msgid "Schaffhausen"
 msgstr "Шаффгаузен"

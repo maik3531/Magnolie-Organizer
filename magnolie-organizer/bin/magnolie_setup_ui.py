@@ -998,7 +998,33 @@ def run_setup(Gtk, Gdk, translate, write_state, script_directory,
                 pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(path, 260, 260, True)
             finally:
                 os.unlink(path)
-            area.pack_start(Gtk.Image.new_from_pixbuf(pixbuf), False, False, 8)
+            image_button = Gtk.EventBox()
+            image_button.set_name("setup-download-qr")
+            image_button.set_visible_window(False)
+            image_button.set_can_focus(True)
+            image_button.set_tooltip_text(tr("Scan or click"))
+            image_button.get_accessible().set_name(tr(title) + " " + tr("QR code"))
+            image_button.add(Gtk.Image.new_from_pixbuf(pixbuf))
+            def confirm_link(*_args):
+                confirm = Gtk.Dialog(title=tr("QR code"), transient_for=qr_dialog, modal=True)
+                confirm.add_button(tr("Cancel"), Gtk.ResponseType.CANCEL)
+                confirm.add_button(tr("Open in browser"), Gtk.ResponseType.ACCEPT)
+                confirm.set_default_response(Gtk.ResponseType.CANCEL)
+                label = Gtk.Label(label=url)
+                label.set_selectable(True)
+                label.set_line_wrap(True)
+                label.set_margin_start(20); label.set_margin_end(20)
+                label.set_margin_top(20); label.set_margin_bottom(20)
+                confirm.get_content_area().add(label)
+                confirm.show_all()
+                accepted = confirm.run() == Gtk.ResponseType.ACCEPT
+                confirm.destroy()
+                if accepted:
+                    Gtk.show_uri_on_window(qr_dialog, url, Gdk.CURRENT_TIME)
+                return True
+            image_button.connect("button-press-event", lambda _widget, event: confirm_link() if event.button == 1 else False)
+            image_button.connect("key-press-event", lambda _widget, event: confirm_link() if event.keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter, Gdk.KEY_space) else False)
+            area.pack_start(image_button, False, False, 8)
         except (ImportError, OSError):
             pass
         area.pack_start(Gtk.LinkButton.new_with_label(

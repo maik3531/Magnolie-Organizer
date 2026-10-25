@@ -364,7 +364,8 @@ msgstr ""
 "nås, går meldinger gjennom en WebDAV-mappe på Nextcloud-serveren din."
 
 msgid "A floating local time has no unique absolute instant."
-msgstr "Et lokalt klokkeslett uten tidssone har ikke et entydig absolutt tidspunkt."
+msgstr ""
+"Et lokalt klokkeslett uten tidssone har ikke et entydig absolutt tidspunkt."
 
 msgid "A group with this name already exists."
 msgstr "Det finnes allerede en gruppe med dette navnet."
@@ -3043,7 +3044,9 @@ msgstr "Behold tidspunkt"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "Behold de opprinnelige gjentakelsesdataene; denne handlingen med lokal tid gjelder enkeltoppføringer."
+msgstr ""
+"Behold de opprinnelige gjentakelsesdataene; denne handlingen med lokal tid "
+"gjelder enkeltoppføringer."
 
 msgid "LDIF"
 msgstr "LDIF"
@@ -4109,6 +4112,9 @@ msgstr "Åpne dagsvisning for %(date)s"
 msgid "Open designer"
 msgstr "Åpne utforming"
 
+msgid "Open in browser"
+msgstr "Åpne i nettleser"
+
 msgid "Open manual"
 msgstr "Åpne håndbok"
 
@@ -4509,6 +4515,11 @@ msgstr "Skriv inn minst et navn eller et firma."
 
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "Skriv inn internett-IP og fingeravtrykk i sin helhet."
+
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "Oppgi e-postadressen din som betalingsreferanse, ellers kan ikke ContributorKey sendes til deg."
 
 msgid "Please select a PDF file."
 msgstr "Velg en PDF-fil."
@@ -5099,6 +5110,9 @@ msgstr "Sachsen"
 
 msgid "Saxony-Anhalt"
 msgstr "Sachsen-Anhalt"
+
+msgid "Scan or click"
+msgstr "Skann eller klikk"
 
 msgid "Schaffhausen"
 msgstr "Schaffhausen"
@@ -6555,7 +6569,8 @@ msgstr ""
 "sendes ikke over Magnolies dataforbindelse."
 
 msgid "This action does not invent a task start or deadline."
-msgstr "Denne handlingen legger ikke til en manglende oppgavestart eller frist."
+msgstr ""
+"Denne handlingen legger ikke til en manglende oppgavestart eller frist."
 
 msgid "This address can be selected and copied."
 msgstr "Denne adressen kan merkes og kopieres."

@@ -3649,7 +3649,9 @@ msgstr "Manter o instante"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "Mantenha os dados de repetição originais; esta ação de hora local destina-se a entradas individuais."
+msgstr ""
+"Mantenha os dados de repetição originais; esta ação de hora local destina-se "
+"a entradas individuais."
 
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Manter este ficheiro do KDE Connect em Transferências?"
@@ -4924,6 +4926,9 @@ msgstr "Abrir vista diária de %(date)s"
 msgid "Open designer"
 msgstr "Abrir editor"
 
+msgid "Open in browser"
+msgstr "Abrir no navegador"
+
 msgid "Open manual"
 msgstr "Abrir manual"
 
@@ -5389,6 +5394,11 @@ msgstr "Introduza pelo menos um nome ou uma empresa."
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "Introduza por completo o IP da Internet e a impressão digital."
 
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "Indica o teu endereço de e-mail na descrição do pagamento; caso contrário, não será possível enviar-te o ContributorKey."
+
 msgid "Please select a PDF file."
 msgstr "Selecione um ficheiro PDF."
 
@@ -5567,6 +5577,9 @@ msgid ""
 msgstr ""
 "Pulso\n"
 "S/min"
+
+msgid "QR code"
+msgstr "Código QR"
 
 msgid "QR codes require the python3-qrcode package."
 msgstr "Os códigos QR requerem o pacote python3-qrcode."
@@ -6128,6 +6141,9 @@ msgstr "Saxónia"
 
 msgid "Saxony-Anhalt"
 msgstr "Saxónia-Anhalt"
+
+msgid "Scan or click"
+msgstr "Digitalizar ou clicar"
 
 msgid ""
 "Scan this one-time key with the system camera on the phone. It expires after "
@@ -7566,7 +7582,8 @@ msgstr ""
 "mesmo quando a aplicação não está aberta."
 
 msgid "The original calendar time cannot be resolved without guessing."
-msgstr "Não é possível determinar a hora original do calendário sem suposições."
+msgstr ""
+"Não é possível determinar a hora original do calendário sem suposições."
 
 msgid "The other branch did not prove the pairing file."
 msgstr "O outro ramo não comprovou o ficheiro de emparelhamento."

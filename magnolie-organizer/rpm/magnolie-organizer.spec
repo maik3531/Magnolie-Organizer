@@ -184,6 +184,7 @@ printf '{"version":"%{version}"}\n' > %{buildroot}%{_datadir}/%{name}/version.js
 install -d %{buildroot}%{_datadir}/%{name}/web/schriften
 install -pm 0644 web/schriften/Z003-MediumItalic.otf web/schriften/Z003-LIZENZ.txt %{buildroot}%{_datadir}/%{name}/web/schriften/
 install -pm 0644 web/index.html web/stil.css web/anwendung.js web/zeichenblatt.js web/mcp-protocol.js \
+    web/qr-dialog.css web/qr-dialog.js web/qr-decoder.js web/qr-decoder-LICENSE.txt \
     web/i18n.js web/i18n-start.js web/i18n-markers.js \
     web/i18n-en.js web/phone-metadata-LICENSE.txt web/phone-metadata-NOTICE.txt \
     %{buildroot}%{_datadir}/%{name}/web/

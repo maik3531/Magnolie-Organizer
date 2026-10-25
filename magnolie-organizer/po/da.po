@@ -544,7 +544,8 @@ msgstr ""
 "går beskeder gennem en WebDAV-mappe på din Nextcloud-server."
 
 msgid "A floating local time has no unique absolute instant."
-msgstr "Et lokalt klokkeslæt uden tidszone har ikke et entydigt absolut tidspunkt."
+msgstr ""
+"Et lokalt klokkeslæt uden tidszone har ikke et entydigt absolut tidspunkt."
 
 msgid "A group with this name already exists."
 msgstr "Der findes allerede en gruppe med dette navn."
@@ -3599,7 +3600,9 @@ msgstr "Bevar tidspunkt"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "Bevar de oprindelige gentagelsesdata; denne handling med lokal tid gælder enkelte poster."
+msgstr ""
+"Bevar de oprindelige gentagelsesdata; denne handling med lokal tid gælder "
+"enkelte poster."
 
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Behold denne fil fra KDE Connect i Hentede filer?"
@@ -4860,6 +4863,9 @@ msgstr "Åbn dagsvisning for %(date)s"
 msgid "Open designer"
 msgstr "Åbn designer"
 
+msgid "Open in browser"
+msgstr "Åbn i browser"
+
 msgid "Open manual"
 msgstr "Åbn håndbog"
 
@@ -5310,6 +5316,11 @@ msgstr "Indtast mindst et navn eller en virksomhed."
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "Indtast internet-IP og fingeraftryk fuldstændigt."
 
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "Angiv din e-mailadresse som betalingsreference, da ContributorKey ellers ikke kan sendes til dig."
+
 msgid "Please select a PDF file."
 msgstr "Vælg en PDF-fil."
 
@@ -5482,6 +5493,9 @@ msgid ""
 msgstr ""
 "Puls\n"
 "S/min"
+
+msgid "QR code"
+msgstr "QR-kode"
 
 msgid "QR codes require the python3-qrcode package."
 msgstr "QR-koder kræver python3-qrcode-pakken."
@@ -6038,6 +6052,9 @@ msgstr "Sachsen"
 
 msgid "Saxony-Anhalt"
 msgstr "Sachsen-Anhalt"
+
+msgid "Scan or click"
+msgstr "Scan eller klik"
 
 msgid ""
 "Scan this one-time key with the system camera on the phone. It expires after "

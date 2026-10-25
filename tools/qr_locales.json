@@ -1,0 +1,22 @@
+{
+  "en": ["QR code", "Close", "Open in browser", "Please enter your email address as the payment reference; otherwise the ContributorKey cannot be sent to you."],
+  "de": ["QR-Code", "Schließen", "Im Browser öffnen", "Bitte als Verwendungszweck deine E-Mail-Adresse angeben, da sonst der ContributorKey nicht zugesendet werden kann."],
+  "fr": ["Code QR", "Fermer", "Ouvrir dans le navigateur", "Veuillez indiquer votre adresse e-mail dans la référence du paiement ; sinon, le ContributorKey ne pourra pas vous être envoyé."],
+  "es": ["Código QR", "Cerrar", "Abrir en el navegador", "Indica tu dirección de correo electrónico como concepto del pago; de lo contrario no se podrá enviarte el ContributorKey."],
+  "it": ["Codice QR", "Chiudi", "Apri nel browser", "Indica il tuo indirizzo e-mail nella causale del pagamento; altrimenti non sarà possibile inviarti il ContributorKey."],
+  "nl": ["QR-code", "Sluiten", "Openen in browser", "Vermeld je e-mailadres in de betalingsomschrijving; anders kan de ContributorKey niet naar je worden verzonden."],
+  "pt": ["Código QR", "Fechar", "Abrir no navegador", "Indica o teu endereço de e-mail na descrição do pagamento; caso contrário, não será possível enviar-te o ContributorKey."],
+  "da": ["QR-kode", "Luk", "Åbn i browser", "Angiv din e-mailadresse som betalingsreference, da ContributorKey ellers ikke kan sendes til dig."],
+  "nb": ["QR-kode", "Lukk", "Åpne i nettleser", "Oppgi e-postadressen din som betalingsreferanse, ellers kan ikke ContributorKey sendes til deg."],
+  "pl": ["Kod QR", "Zamknij", "Otwórz w przeglądarce", "Podaj swój adres e-mail w tytule płatności; w przeciwnym razie nie będzie można wysłać Ci ContributorKey."],
+  "cs": ["QR kód", "Zavřít", "Otevřít v prohlížeči", "Uveď svou e-mailovou adresu do zprávy k platbě, jinak ti nebude možné zaslat ContributorKey."],
+  "hsb": ["QR-kod", "Začinić", "We wobhladowaku wočinić", "Podaj swoju e-mejlowu adresu jako zaměr płaćenja, hewak so ContributorKey tebi připosłać njemóže."],
+  "ru": ["QR-код", "Закрыть", "Открыть в браузере", "Укажите свой адрес электронной почты в назначении платежа, иначе ContributorKey не удастся вам отправить."],
+  "uk": ["QR-код", "Закрити", "Відкрити в браузері", "Укажіть свою електронну адресу в призначенні платежу, інакше ContributorKey неможливо буде вам надіслати."],
+  "be": ["QR-код", "Закрыць", "Адкрыць у браўзеры", "Пазначце свой адрас электроннай пошты ў прызначэнні плацяжу, інакш ContributorKey немагчыма будзе вам даслаць."],
+  "tr": ["QR kodu", "Kapat", "Tarayıcıda aç", "Ödeme açıklamasına e-posta adresini yaz; aksi takdirde ContributorKey sana gönderilemez."],
+  "hi": ["QR कोड", "बंद करें", "ब्राउज़र में खोलें", "कृपया भुगतान के विवरण में अपना ईमेल पता दें, अन्यथा ContributorKey आपको भेजा नहीं जा सकेगा।"],
+  "ja": ["QRコード", "閉じる", "ブラウザーで開く", "振込の摘要にメールアドレスを記載してください。記載がない場合、ContributorKeyをお送りできません。"],
+  "zh_CN": ["二维码", "关闭", "在浏览器中打开", "请在付款用途说明中填写你的电子邮箱地址，否则无法向你发送ContributorKey。"],
+  "ar": ["رمز QR", "إغلاق", "فتح في المتصفح", "يرجى كتابة عنوان بريدك الإلكتروني في مرجع الدفع، وإلا فلن يمكن إرسال ContributorKey إليك."]
+}

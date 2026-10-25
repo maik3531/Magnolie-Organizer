@@ -427,7 +427,8 @@ msgstr ""
 "du powěsće přez rjadowak WebDAV na wašim serwerje Nextcloud."
 
 msgid "A floating local time has no unique absolute instant."
-msgstr "Lokalny čas bjez časoweje cony nima jednozmyslny absolutny časowy dypk."
+msgstr ""
+"Lokalny čas bjez časoweje cony nima jednozmyslny absolutny časowy dypk."
 
 msgid "A group with this name already exists."
 msgstr "Skupina z tutym mjenom hižo eksistuje."
@@ -3116,7 +3117,9 @@ msgstr "Časowy dypk wobchować"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "Wobchowajće spóčatne daty wospjetowanja; tuta akcija lokalneho časa je za jednotliwe zapiski."
+msgstr ""
+"Wobchowajće spóčatne daty wospjetowanja; tuta akcija lokalneho časa je za "
+"jednotliwe zapiski."
 
 msgid "LDIF"
 msgstr "LDIF"
@@ -4189,6 +4192,9 @@ msgstr "Dnjowy napohlad za %(date)s wočinić"
 msgid "Open designer"
 msgstr "Nawjerhowak wočinić"
 
+msgid "Open in browser"
+msgstr "We wobhladowaku wočinić"
+
 msgid "Open manual"
 msgstr "Přiručku wočinić"
 
@@ -4597,6 +4603,11 @@ msgstr "Prošu zapodajće znajmjeńša mjeno abo předewzaće."
 
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "Prošu zapodajće internetowu IP a porstowy wotćišć dospołnje."
+
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "Podaj swoju e-mejlowu adresu jako zaměr płaćenja, hewak so ContributorKey tebi připosłać njemóže."
 
 msgid "Please select a PDF file."
 msgstr "Prošu wubjerće PDF-dataj."
@@ -5192,6 +5203,9 @@ msgstr "Sakska"
 
 msgid "Saxony-Anhalt"
 msgstr "Sakska-Anhalt"
+
+msgid "Scan or click"
+msgstr "Skenować abo kliknyć"
 
 msgid "Schaffhausen"
 msgstr "Schaffhausen"

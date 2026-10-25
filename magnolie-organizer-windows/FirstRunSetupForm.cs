@@ -71,6 +71,7 @@ internal sealed class FirstRunSetupForm : Form
     private readonly Button next = new();
     private readonly Button skip = new();
     private readonly Button welcomeManual = new();
+    private readonly ToolTip qrTooltips = new();
     private readonly HashSet<string> registers = new(StringComparer.Ordinal)
         { "tasks", "addresses", "notes", "anniversaries", "planner", "health" };
     private int page;
@@ -113,6 +114,7 @@ internal sealed class FirstRunSetupForm : Form
         this.importDialog = importDialog;
         this.phoneServices = phoneServices;
         FormClosed += (_, _) => { setupCancellation.Cancel(); stagedImports.Clear(); };
+        Disposed += (_, _) => qrTooltips.Dispose();
         backupPath = paths.Backups;
         language = RegionalSettings.Read(paths.RegionalSettings)["language"]?.GetValue<string>() ?? "system";
 
@@ -227,6 +229,7 @@ internal sealed class FirstRunSetupForm : Form
 
     private void RenderPage()
     {
+        qrTooltips.RemoveAll();
         pageHost.SuspendLayout();
         pageHost.AutoScrollPosition = Point.Empty;
         pageHost.Controls.Clear();
@@ -688,13 +691,16 @@ internal sealed class FirstRunSetupForm : Form
         return completion.Task;
     }
 
-    private static Control PhoneDownload(string text, string target, string qrFile)
+    private Control PhoneDownload(string text, string target, string qrFile)
     {
         var card = new FlowLayoutPanel { AutoSize = true, Width = 290, FlowDirection = FlowDirection.TopDown,
             WrapContents = false, Margin = new Padding(0, 0, 20, 0), Padding = new Padding(10) };
         card.Controls.Add(Label(text, bold: true));
-        var picture = new PictureBox { Width = 170, Height = 170, SizeMode = PictureBoxSizeMode.Zoom,
+        var picture = new QrPictureBox { Width = 170, Height = 170, SizeMode = PictureBoxSizeMode.Zoom,
             AccessibleName = text + " " + T("QR code"), Margin = new Padding(0, 4, 0, 7) };
+        picture.Click += (_, _) => ConfirmQrLink(picture.FindForm(), target);
+        qrTooltips.SetToolTip(picture, T("Scan or click"));
+        picture.AccessibleDescription = T("Scan or click");
         var path = Path.Combine(AppContext.BaseDirectory, "symbole", qrFile);
         if (File.Exists(path))
         {
@@ -704,6 +710,31 @@ internal sealed class FirstRunSetupForm : Form
         card.Controls.Add(picture);
         card.Controls.Add(LinkButton(text, target));
         return card;
+    }
+
+    private sealed class QrPictureBox : PictureBox
+    {
+        internal QrPictureBox() { SetStyle(ControlStyles.Selectable, true); TabStop = true; AccessibleRole = AccessibleRole.PushButton; }
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            if (e.KeyCode is Keys.Enter or Keys.Space) { e.Handled = true; e.SuppressKeyPress = true; OnClick(EventArgs.Empty); }
+            else base.OnKeyDown(e);
+        }
+    }
+
+    private static void ConfirmQrLink(IWin32Window? owner, string target, Func<string, bool>? openLink = null)
+    {
+        using var dialog = new Form { Name = "qr-link-confirm", Text = T("QR code"), ClientSize = new Size(520, 200),
+            StartPosition = FormStartPosition.CenterParent, BackColor = Paper, ForeColor = Ink, Font = new Font("Segoe UI", 10),
+            MinimizeBox = false, MaximizeBox = false, FormBorderStyle = FormBorderStyle.FixedDialog };
+        var address = new TextBox { Text = target, ReadOnly = true, Multiline = true, BorderStyle = BorderStyle.None,
+            BackColor = Paper, ForeColor = Ink, Location = new Point(22, 22), Size = new Size(476, 100) };
+        var cancel = new Button { Text = T("Cancel"), AutoSize = true, DialogResult = DialogResult.Cancel };
+        var open = new Button { Text = T("Open in browser"), AutoSize = true, DialogResult = DialogResult.OK };
+        var buttons = new FlowLayoutPanel { Dock = DockStyle.Bottom, AutoSize = true, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(12) };
+        buttons.Controls.Add(open); buttons.Controls.Add(cancel); dialog.Controls.Add(address); dialog.Controls.Add(buttons);
+        dialog.AcceptButton = cancel; dialog.CancelButton = cancel;
+        if (dialog.ShowDialog(owner) == DialogResult.OK) (openLink ?? ShellLauncher.OpenWebUri)(target);
     }
 
     private static LinkLabel LinkButton(string text, string target)

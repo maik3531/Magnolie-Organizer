@@ -3603,7 +3603,9 @@ msgstr "Anı koru"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "Özgün yineleme verilerini koruyun; bu yerel saat işlemi tekil kayıtlar içindir."
+msgstr ""
+"Özgün yineleme verilerini koruyun; bu yerel saat işlemi tekil kayıtlar "
+"içindir."
 
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Bu KDE Connect dosyası İndirilenler'de tutulsun mu?"
@@ -4856,6 +4858,9 @@ msgstr "%(date)s için gün görünümünü aç"
 msgid "Open designer"
 msgstr "Tasarımcıyı aç"
 
+msgid "Open in browser"
+msgstr "Tarayıcıda aç"
+
 msgid "Open manual"
 msgstr "Kılavuzu aç"
 
@@ -5303,6 +5308,11 @@ msgstr "En az bir ad veya şirket girin."
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "İnternet IP’sini ve parmak izini eksiksiz girin."
 
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "Ödeme açıklamasına e-posta adresini yaz; aksi takdirde ContributorKey sana gönderilemez."
+
 msgid "Please select a PDF file."
 msgstr "Lütfen bir PDF dosyası seçin."
 
@@ -5480,6 +5490,9 @@ msgid ""
 msgstr ""
 "Nabız\n"
 "S/dk"
+
+msgid "QR code"
+msgstr "QR kodu"
 
 msgid "QR codes require the python3-qrcode package."
 msgstr "QR kodları python3-qrcode paketini gerektirir."
@@ -6039,6 +6052,9 @@ msgstr "Saksonya"
 
 msgid "Saxony-Anhalt"
 msgstr "Saksonya-Anhalt"
+
+msgid "Scan or click"
+msgstr "Tara veya tıkla"
 
 msgid ""
 "Scan this one-time key with the system camera on the phone. It expires after "

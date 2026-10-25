@@ -43,6 +43,10 @@ bin/magnolie_recurrence.py              usr/bin
 debian/restart-background.py           usr/lib/magnolie-organizer
 web/index.html                        usr/share/magnolie-organizer/web
 web/stil.css                          usr/share/magnolie-organizer/web
+web/qr-dialog.css                     usr/share/magnolie-organizer/web
+web/qr-dialog.js                      usr/share/magnolie-organizer/web
+web/qr-decoder.js                     usr/share/magnolie-organizer/web
+web/qr-decoder-LICENSE.txt            usr/share/magnolie-organizer/web
 web/kaffee-qr.mga                     usr/share/magnolie-organizer/web
 web/anwendung.js                      usr/share/magnolie-organizer/web
 web/zeichenblatt.js                    usr/share/magnolie-organizer/web

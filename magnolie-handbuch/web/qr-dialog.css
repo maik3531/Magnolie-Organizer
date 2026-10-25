@@ -1,0 +1,9 @@
+.magnolie-qr-veil { position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center; padding: 16px; background: rgba(24, 20, 15, .6); }
+.magnolie-qr-dialog { box-sizing: border-box; width: min(560px, 100%); max-height: 90vh; overflow: auto; padding: 22px; color: #3d2b1f; background: #f6efdc; border: 2px solid #b59748; border-radius: 8px; box-shadow: 0 12px 40px #0008; font: inherit; }
+.magnolie-qr-dialog h3 { margin: 0 0 16px; }
+.magnolie-qr-text { white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; font: inherit; padding: 10px; border: 1px solid #b5a47e; background: #fff8; }
+.magnolie-qr-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.magnolie-qr-buttons button { font: inherit; color: #3d2b1f; background: #e9d9b5; border: 1px solid #80633c; border-radius: 4px; padding: 7px 15px; cursor: pointer; }
+.magnolie-qr-buttons .magnolie-qr-open { background: #d6b66d; }
+[data-qr-interactive]:focus-visible, .magnolie-qr-dialog :focus-visible { outline: 3px solid #9b7028; outline-offset: 3px; }
+@media print { .magnolie-qr-veil { display: none !important; } [data-qr-interactive] { outline: none !important; } }

@@ -3937,6 +3937,9 @@ msgstr "打开 %(date)s 的日视图"
 msgid "Open designer"
 msgstr "打开设计器"
 
+msgid "Open in browser"
+msgstr "在浏览器中打开"
+
 msgid "Open manual"
 msgstr "打开手册"
 
@@ -4329,6 +4332,11 @@ msgstr "请至少输入姓名或公司。"
 
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "请输入完整的公网 IP 和指纹。"
+
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "请在付款用途说明中填写你的电子邮箱地址，否则无法向你发送ContributorKey。"
 
 msgid "Please select a PDF file."
 msgstr "请选择 PDF 文件。"
@@ -4890,6 +4898,9 @@ msgstr "萨克森"
 
 msgid "Saxony-Anhalt"
 msgstr "萨克森-安哈尔特"
+
+msgid "Scan or click"
+msgstr "扫描或点击"
 
 msgid "Schaffhausen"
 msgstr "沙夫豪森"

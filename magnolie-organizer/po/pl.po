@@ -590,7 +590,8 @@ msgstr ""
 "nieosiągalne, wiadomości idą przez folder WebDAV na serwerze Nextcloud."
 
 msgid "A floating local time has no unique absolute instant."
-msgstr "Czas lokalny bez strefy nie określa jednoznacznego momentu bezwzględnego."
+msgstr ""
+"Czas lokalny bez strefy nie określa jednoznacznego momentu bezwzględnego."
 
 msgid "A group with this name already exists."
 msgstr "Grupa o tej nazwie już istnieje."
@@ -3652,7 +3653,9 @@ msgstr "Zachowaj moment"
 msgid ""
 "Keep the original recurrence data; this local-time action is for individual "
 "entries."
-msgstr "Zachowaj pierwotne dane cyklu; ta operacja czasu lokalnego dotyczy pojedynczych wpisów."
+msgstr ""
+"Zachowaj pierwotne dane cyklu; ta operacja czasu lokalnego dotyczy "
+"pojedynczych wpisów."
 
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Zachować ten plik z KDE Connect w Pobranych?"
@@ -4918,6 +4921,9 @@ msgstr "Otwórz widok dnia dla %(date)s"
 msgid "Open designer"
 msgstr "Otwórz projektanta"
 
+msgid "Open in browser"
+msgstr "Otwórz w przeglądarce"
+
 msgid "Open manual"
 msgstr "Otwórz podręcznik"
 
@@ -5369,6 +5375,11 @@ msgstr "Wpisz co najmniej nazwę lub firmę."
 msgid "Please enter the internet IP and fingerprint in full."
 msgstr "Wpisz w całości internetowy adres IP i odcisk."
 
+msgid ""
+"Please enter your email address as the payment reference; otherwise the "
+"ContributorKey cannot be sent to you."
+msgstr "Podaj swój adres e-mail w tytule płatności; w przeciwnym razie nie będzie można wysłać Ci ContributorKey."
+
 msgid "Please select a PDF file."
 msgstr "Wybierz plik PDF."
 
@@ -5546,6 +5557,9 @@ msgid ""
 msgstr ""
 "Puls\n"
 "S/min"
+
+msgid "QR code"
+msgstr "Kod QR"
 
 msgid "QR codes require the python3-qrcode package."
 msgstr "Kody QR wymagają pakietu python3-qrcode."
@@ -6106,6 +6120,9 @@ msgstr "Saksonia"
 
 msgid "Saxony-Anhalt"
 msgstr "Saksonia-Anhalt"
+
+msgid "Scan or click"
+msgstr "Zeskanuj lub kliknij"
 
 msgid ""
 "Scan this one-time key with the system camera on the phone. It expires after "
