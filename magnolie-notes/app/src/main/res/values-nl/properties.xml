@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="eigenschaften_titel">Eigenschappen</string>
+    <string name="eigenschaften_erstellt">Aanmaakdatum</string>
+    <string name="eigenschaften_geaendert">Wijzigingsdatum</string>
+    <string name="eigenschaften_ursprung">Oorspronkelijke toepassing</string>
+    <string name="eigenschaften_import">Overgenomen uit</string>
+    <string name="eigenschaften_verbindung">Verbindingsbron</string>
+    <string name="eigenschaften_unbekannt">Onbekend</string>
+</resources>

@@ -235,10 +235,12 @@ internal sealed partial class TelefonCoordinator
             throw new InvalidOperationException("actor_saved_reply_changed");
         var batches = batchNodes.OfType<JsonObject>().ToArray();
         if (batches.Length != batchNodes.Count || batches.Length is < 1 or > 4096) throw new InvalidDataException("invalid_actor_reply_batches");
+        var request = personalSync.LoadRun(PersonalSyncActorContract.StoragePeer(handle.ActorId), handle.ActorId, Now())
+            ?? throw new InvalidDataException("actor_request_missing");
         for (var index = 0; index < batches.Length; index++)
         {
             var body = batches[index]; PersonalSyncContract.ValidateBody("personal_sync.batch", body);
-            if (body["run_id"]!.GetValue<string>() != handle.ActorId || body["format"]!.GetValue<int>() != 3 || !body["reply"]!.GetValue<bool>() ||
+            if (body["run_id"]!.GetValue<string>() != handle.ActorId || body["format"]!.GetValue<int>() != request.Request["format"]!.GetValue<int>() || !body["reply"]!.GetValue<bool>() ||
                 body["sequence"]!.GetValue<int>() != index || body["last"]!.GetValue<bool>() != (index + 1 == batches.Length))
                 throw new InvalidDataException("inconsistent_actor_reply");
         }
@@ -328,7 +330,7 @@ internal sealed partial class TelefonCoordinator
         if (files.Any(value => !personalSync.OutgoingAttachmentComplete(privatePeer, run, true, batch.RecordsHash, value["sha256"]!.GetValue<string>(), Now()))) return;
         if (admission.Outbound.Count >= 4096) throw new InvalidOperationException("actor_capacity");
         var started = TelefonProtocolContract.Integer(admission.Start["created_ms"]);
-        var report = new JsonObject { ["format"] = 3, ["run_id"] = run, ["state"] = "complete", ["trigger"] = "manual", ["transport"] = admission.Connection.Transport,
+        var report = new JsonObject { ["format"] = batch.Format, ["run_id"] = run, ["state"] = "complete", ["trigger"] = "manual", ["transport"] = admission.Connection.Transport,
             ["sent"] = ActorCounts(batch.Records.OfType<JsonObject>()), ["received"] = admission.IncomingCounts.DeepClone(), ["conflicts"] = 0,
             ["attachments_omitted"] = 0, ["oversized_skipped"] = 0, ["started_ms"] = started, ["finished_ms"] = Math.Max(started, Now()), ["error"] = "none",
             ["attachments"] = new JsonObject { ["declared"] = files.Length, ["requested"] = files.Length, ["sent"] = files.Length,
@@ -380,7 +382,9 @@ internal sealed partial class TelefonCoordinator
                 if (semanticKind is not ("personal_sync.request" or "personal_sync.batch" or "personal_sync.report" or "personal_sync.attachment_chunk" or
                     "personal_sync.attachment_request" or "personal_sync.attachment_result" or
                     "personal_sync.deletion_proposals" or "personal_sync.deletion_decision")) return false;
-                if (semanticKind == "personal_sync.request" && (TelefonProtocolContract.Integer(content["format"]) != 3 || content["trigger"]!.GetValue<string>() != "manual")) return false;
+                if (semanticKind == "personal_sync.request" && (TelefonProtocolContract.Integer(content["format"]) is not (3 or 14) || content["trigger"]!.GetValue<string>() != "manual")) return false;
+                if (semanticKind == "personal_sync.request" && TelefonProtocolContract.Integer(content["format"]) == 14 &&
+                    PersonalGrants(semanticKind, content, null).Any(name => !SupportsPersonalFormat(peer, name, 14))) return false;
                 if (semanticKind == "personal_sync.batch")
                 {
                     var records = content["records"]!.AsArray().Select(value => value!.AsObject()).ToArray();

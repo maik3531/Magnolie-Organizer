@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="eigenschaften_titel">गुण</string>
+    <string name="eigenschaften_erstellt">बनाने की तारीख</string>
+    <string name="eigenschaften_geaendert">बदलाव की तारीख</string>
+    <string name="eigenschaften_ursprung">मूल ऐप</string>
+    <string name="eigenschaften_import">यहाँ से आयातित</string>
+    <string name="eigenschaften_verbindung">कनेक्शन का स्रोत</string>
+    <string name="eigenschaften_unbekannt">अज्ञात</string>
+</resources>

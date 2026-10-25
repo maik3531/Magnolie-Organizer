@@ -9,7 +9,8 @@ import uuid
 import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError, available_timezones
 
-FORMATS = [1, 2, 3]
+FORMATS = [1, 2, 3, 14]
+PROVENANCE_FORMAT = 14
 FORMAT = 1
 MAX_RECORDS = 32
 MAX_PACKET = 256 * 1024
@@ -549,15 +550,21 @@ def validate_value(kind, value, format=1):
         raise ValueError("invalid personal sync value")
     fields = {
         "note": {"title", "text", "html", "notebook_id", "symbol", "created_ms", "modified_ms"} |
-                ({"attachments"} if format >= 2 else set()),
+                ({"attachments"} if format >= 2 else set()) |
+                ({"origin_app"} if format == PROVENANCE_FORMAT else set()),
         "task": {"title", "note", "due", "priority", "completed", "remind", "lead_days",
                   "reminder_minute", "created_ms", "modified_ms"} |
-                ({"uid", "parent_uid", "order"} if format == 3 else set()),
+                ({"uid", "parent_uid", "order"} if format in {3, PROVENANCE_FORMAT} else set()) |
+                ({"origin_app"} if format == PROVENANCE_FORMAT else set()),
         "notebook": {"name", "modified_ms"},
     }[kind]
     if set(value) != fields:
         raise ValueError("invalid personal sync value fields")
     for name, item in value.items():
+        if name == "origin_app":
+            if item not in ("", "notes", "organizer"):
+                raise ValueError("invalid original application")
+            continue
         if name == "attachments":
             if not isinstance(item, list) or len(item) > MAX_ATTACHMENTS:
                 raise ValueError("invalid attachments")
@@ -618,7 +625,7 @@ def validate_body(kind, body):
             raise ValueError("invalid personal sync request")
         if "send_item" in body:
             item = body["send_item"]
-            if (body["format"] != 3 or body["trigger"] != "manual" or not isinstance(item, dict)
+            if (body["format"] not in {3, PROVENANCE_FORMAT} or body["trigger"] != "manual" or not isinstance(item, dict)
                     or set(item) != {"kind", "id"} or item["kind"] not in {"note", "task"}
                     or not _identifier(item["id"]) or body["modules"] != ["notes" if item["kind"] == "note" else "tasks"]):
                 raise ValueError("invalid single-item send")

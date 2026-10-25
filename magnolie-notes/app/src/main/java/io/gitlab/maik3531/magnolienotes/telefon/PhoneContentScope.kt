@@ -96,7 +96,8 @@ internal object PhoneContentScope {
         val scope = value["scope"] as? JsonObject ?: error("Scope reference missing")
         val body = value["body"] as? JsonObject ?: error("Scoped data missing")
         validateReference(scope)
-        require(number(body, "format") == if (kind == "personal_sync.deletion_proposals") 1L else if (kind.startsWith("personal_sync.attachment_")) 2L else 3L)
+        val formats = if (kind == "personal_sync.deletion_proposals") setOf(1L) else if (kind.startsWith("personal_sync.attachment_")) setOf(2L) else setOf(3L, 14L)
+        require(number(body, "format") in formats)
         PersonalSyncProtokoll.validate(kind, body)
         require(TelefonKanonisch.bytes(value).size <= 256 * 1024)
         return value

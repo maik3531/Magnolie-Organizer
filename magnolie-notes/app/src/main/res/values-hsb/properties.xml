@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="eigenschaften_titel">Kajkosće</string>
+    <string name="eigenschaften_erstellt">Datum wutworjenja</string>
+    <string name="eigenschaften_geaendert">Datum změny</string>
+    <string name="eigenschaften_ursprung">Spóčatne nałoženje</string>
+    <string name="eigenschaften_import">Přewzate z</string>
+    <string name="eigenschaften_verbindung">Žórło zwiska</string>
+    <string name="eigenschaften_unbekannt">Njeznate</string>
+</resources>

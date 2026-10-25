@@ -58,7 +58,12 @@ class ScopedDataRuntimeTest {
     @Test fun sharedChoicesFromEitherDeviceConvergeWithoutOldEchoUndoingTheLatestChoice() = exercise("preferences")
     @Test fun authenticatedUnpairClearsOnlyTheCurrentComputerAndKeepsPhoneContent() = exercise("unpair")
 
-    private fun exercise(mode: String) {
+    @Test fun provenanceFormatUsesScopedTransportAndRetainsOriginalAppOnReceive() = exercise("receive", 14)
+    @Test fun provenanceFormatSurvivesManualScopeAndReceiptGates() = exercise("manual", 14)
+    @Test fun provenanceFormatUsesTheNativeActorCommitAndCompletionReport() = exercise("actor-commit", 14)
+    @Test fun provenanceFormatCanAdmitOneSelectedOrganizerNote() = exercise("single", 14)
+
+    private fun exercise(mode: String, format: Int = 3) {
         val actorDeletion = mode.startsWith("actor-deletions")
         val actorCommit = mode.startsWith("actor-commit")
         val nativeActor = actorDeletion || actorCommit || mode in setOf("actor-source", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-restart", "actor-transport")
@@ -79,7 +84,8 @@ class ScopedDataRuntimeTest {
         var runtimeWork: TelefonWerk? = null
         try {
             val book = documents.legeNotizbuchAn("Field notes")
-            documents.setzeNotiz(Notiz("phone-note", "Mobile", "Initial phone text", notizbuchId = book.id, angelegt = 1, geaendert = 2))
+            documents.setzeNotiz(Notiz("phone-note", "Mobile", "Initial phone text", notizbuchId = book.id, angelegt = 1, geaendert = 2,
+                ursprungApp = if (format == 14) "notes" else ""))
             if (actorDeletion || actorCommit || mode in setOf("manual", "actor", "actor-snapshot", "actor-cancel", "actor-cancel-pending", "actor-revoked", "actor-transport")) documents.setzeAufgabe(Aufgabe("phone-task", "Mobile task"))
             val storage = TelefonAblage.get(context)
             storage.identity("Synthetic").second.fill(0)
@@ -90,8 +96,8 @@ class ScopedDataRuntimeTest {
                 remote_personal_notes_sync_granted = true, remote_personal_tasks_sync_granted = true,
                 personal_deletions_sync_granted = actorDeletion || mode in setOf("delete", "skip-delete"), remote_personal_deletions_sync_granted = actorDeletion || mode in setOf("delete", "skip-delete"),
                 remote_personal_notes_sync_available = true, remote_personal_tasks_sync_available = true,
-                remote_personal_notes_sync_versions = listOf(1, 2, 3, 5, 9, 10) + if (nativeActor) listOf(12) else emptyList(),
-                remote_personal_tasks_sync_versions = listOf(1, 2, 3, 4, 6, 7, 9, 10) + if (nativeActor) listOf(12) else emptyList())
+                remote_personal_notes_sync_versions = listOf(1, 2, 3, 5, 9, 10) + (if (format == 14) listOf(14) else emptyList()) + if (nativeActor) listOf(12) else emptyList(),
+                remote_personal_tasks_sync_versions = listOf(1, 2, 3, 4, 6, 7, 9, 10) + (if (format == 14) listOf(14) else emptyList()) + if (nativeActor) listOf(12) else emptyList())
             storage.savePeer(peer)
             val work = TelefonWerk.get(context)
             runtimeWork = work
@@ -257,13 +263,13 @@ class ScopedDataRuntimeTest {
                         "modified_ms" to JsonPrimitive(old.modifiedMs + 1), "attachments" to JsonArray(listOf(descriptor))))
                     val incoming = old.copy(value = privateValue, hash = PersonalSync.hash(privateValue), modifiedMs = old.modifiedMs + 1,
                         clock = if (actorCommit) PersonalSync.merge(old.clock, listOf(PersonalSyncClock(peerId, 1))) else old.clock)
-                    val incomingBody = PersonalSyncProtokoll.batch(run, listOf(incoming), 0, true, true, 3, PersonalSync.recordsHash(listOf(incoming)))
+                    val incomingBody = PersonalSyncProtokoll.batch(run, listOf(incoming), 0, true, true, format, PersonalSync.recordsHash(listOf(incoming)))
                     val incomingWire = PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.batch", incomingBody, 86_400_000), run)
                     work.receiveMessage(peer, incomingWire, channel, 0L)
                     assertEquals(incomingWire.string("message_id"), sent().single().getValue("body").jsonObject.string("message_id"))
                     val privatePeer = PersonalSyncActor.storagePeer(run)
                     val completionWire = PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.report", buildJsonObject {
-                        put("format", 3); put("run_id", run); put("state", "complete"); put("trigger", "manual"); put("transport", "wifi")
+                        put("format", format); put("run_id", run); put("state", "complete"); put("trigger", "manual"); put("transport", "wifi")
                         for (name in listOf("sent", "received")) put(name, buildJsonObject { put("notes", 1); put("tasks", if (name == "received") 1 else 0); put("notebooks", 0) })
                         put("conflicts", 0); put("attachments_omitted", 0); put("oversized_skipped", 0)
                         put("started_ms", System.currentTimeMillis()); put("finished_ms", System.currentTimeMillis()); put("error", "none")
@@ -324,6 +330,7 @@ class ScopedDataRuntimeTest {
                             assertEquals("Private desktop draft", documents.notizen().single { it.id == "phone-note" }.text)
                             val reopened = Ablage.fuerTest(context) { SecretKeySpec(ByteArray(32) { 19 }, "AES") }
                             assertEquals("Private desktop draft", reopened.notizen().single { it.id == "phone-note" }.text)
+                            if (format == 14) assertEquals("notes", reopened.notizen().single { it.id == "phone-note" }.ursprungApp)
                             assertEquals(1, reopened.notizen().single { it.id == "phone-note" }.anhaenge.size)
                             assertTrue(io.gitlab.maik3531.magnolienotes.journal.AndroidJournal.hole(context).state.value.entries.any { it.reason == "pre-sync-note" })
                             val savedBytes = java.io.File(context.filesDir, "notizen.json").readBytes()
@@ -335,7 +342,7 @@ class ScopedDataRuntimeTest {
                         return@use
                     }
                     val foreign = incoming.copy(id = "outside-phone-scope")
-                    val foreignBody = PersonalSyncProtokoll.batch(run, listOf(foreign), 0, true, true, 3, PersonalSync.recordsHash(listOf(foreign)))
+                    val foreignBody = PersonalSyncProtokoll.batch(run, listOf(foreign), 0, true, true, format, PersonalSync.recordsHash(listOf(foreign)))
                     work.receiveMessage(peer, PersonalSyncActor.wireMessage(TelefonNachrichten.message("personal_sync.batch", foreignBody, 60000), run), channel, 0L)
                     assertTrue(sent().isEmpty())
                     pump.invoke(work, peer, channel, 0L, false); sent()
@@ -360,13 +367,13 @@ class ScopedDataRuntimeTest {
                         ownerEpoch = "a".repeat(64), sourceLock = work, bookLock = Ablage.SCHREIBSPERRE)
                     val old = previous.create(peerId, peer.static_public, revision)
                     val request = buildJsonObject {
-                        put("format", 3); put("run_id", old.runId); put("trigger", "manual")
+                        put("format", format); put("run_id", old.runId); put("trigger", "manual")
                         put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks"))))
                     }
                     queue.rememberPersonalRun(peerId, request, System.currentTimeMillis() + 60000, actorRun = true)
                     val wire = queue.queue(peerId, "personal_sync.request", request, 60000)
                     val privatePeer = PersonalSyncActor.storagePeer(old.runId)
-                    val privateBody = PersonalSyncProtokoll.batch(old.runId, emptyList(), 0, true, true, 3, PersonalSync.recordsHash(emptyList()))
+                    val privateBody = PersonalSyncProtokoll.batch(old.runId, emptyList(), 0, true, true, format, PersonalSync.recordsHash(emptyList()))
                     queue.stagePersonalBatch(privatePeer, TelefonNachrichten.message("personal_sync.batch", privateBody, 60000))
                     assertTrue(queue.readyPersonalBatches().any { it.first == privatePeer })
                     val before = documents.bestand.value
@@ -482,7 +489,7 @@ class ScopedDataRuntimeTest {
                     }
                     val run = "44444444-4444-4444-8444-444444444444"
                     val request = buildJsonObject {
-                        put("format", 3); put("run_id", run); put("trigger", "manual")
+                        put("format", format); put("run_id", run); put("trigger", "manual")
                         put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks"))))
                     }
                     queue.rememberPersonalRun(peerId, request, System.currentTimeMillis() + 60000, actorRun = true)
@@ -506,7 +513,7 @@ class ScopedDataRuntimeTest {
                     sent(); ackScope(); pump.invoke(work, peer, channel, 0L, false); sent()
                     val run = "44444444-4444-4444-8444-444444444444"
                     val request = buildJsonObject {
-                        put("format", 3); put("run_id", run); put("trigger", "manual")
+                        put("format", format); put("run_id", run); put("trigger", "manual")
                         put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks"))))
                     }
                     queue.rememberPersonalRun(peerId, request, System.currentTimeMillis() + 60000, actorRun = true)
@@ -548,9 +555,9 @@ class ScopedDataRuntimeTest {
                     return@use
                 }
                 if (mode in setOf("delete", "skip-delete")) {
-                    val original = documents.personalSyncSnapshot(setOf("notes"), 3).single { it.kind == "note" }
+                    val original = documents.personalSyncSnapshot(setOf("notes"), format).single { it.kind == "note" }
                     val run = UUID.randomUUID().toString()
-                    val request = buildJsonObject { put("format", 3); put("run_id", run); put("trigger", "manual"); put("modules", JsonArray(listOf(JsonPrimitive("notes")))) }
+                    val request = buildJsonObject { put("format", format); put("run_id", run); put("trigger", "manual"); put("modules", JsonArray(listOf(JsonPrimitive("notes")))) }
                     work.receiveMessage(peer, TelefonNachrichten.message(PhoneContentScope.DATA_KIND,
                         PhoneContentScope.wrap("personal_sync.request", request, manifest), 60000), channel, 0)
                     queue.markPersonalRun(peerId, run, "reported")
@@ -577,16 +584,16 @@ class ScopedDataRuntimeTest {
                     return@use
                 }
                 if (mode == "single") {
-                    val selected = documents.personalSyncSnapshot(setOf("notes"), 3).first { it.kind == "note" }.copy(id = "organizer-note")
+                    val selected = documents.personalSyncSnapshot(setOf("notes"), format).first { it.kind == "note" }.copy(id = "organizer-note")
                     repeat(2) {
                         val run = UUID.randomUUID().toString()
                         val request = buildJsonObject {
-                            put("format", 3); put("run_id", run); put("trigger", "manual")
+                            put("format", format); put("run_id", run); put("trigger", "manual")
                             put("modules", JsonArray(listOf(JsonPrimitive("notes"))))
                             put("send_item", buildJsonObject { put("kind", "note"); put("id", selected.id) })
                         }
                         work.receiveMessage(peer, TelefonNachrichten.message("personal_sync.request", request, 60000), channel, 0)
-                        val batch = PersonalSyncProtokoll.batch(run, listOf(selected), 0, true, false, 3, PersonalSync.recordsHash(listOf(selected)))
+                        val batch = PersonalSyncProtokoll.batch(run, listOf(selected), 0, true, false, format, PersonalSync.recordsHash(listOf(selected)))
                         work.receiveMessage(peer, TelefonNachrichten.message("personal_sync.batch", batch, 60000), channel, 0)
                         assertEquals(selected.value.getValue("text").jsonPrimitive.content, documents.notiz(selected.id)?.text)
                         assertNotNull(documents.notiz("phone-note"))
@@ -647,19 +654,19 @@ class ScopedDataRuntimeTest {
                     return
                 }
                 val selection = PersonalSync.livePersonalContent(documents.bestand.value)
-                val snapshot = documents.personalSyncScopedSnapshot(selection, peerId)
+                val snapshot = documents.personalSyncScopedSnapshot(selection, peerId, format)
                 val old = snapshot.records.single { it.kind == "note" }
                 val value = JsonObject(old.value + mapOf("text" to JsonPrimitive("Organizer addition"), "modified_ms" to JsonPrimitive(old.modifiedMs + 1)))
                 val updated = old.copy(value = value, hash = PersonalSync.hash(value), modifiedMs = old.modifiedMs + 1,
                     clock = (old.clock + PersonalSyncClock(peerId, 1)).sortedWith { a, b -> PersonalSync.compareUtf8(a.actor_id, b.actor_id) })
                 val run = UUID.randomUUID().toString()
-                val request = buildJsonObject { put("format", 3); put("run_id", run); put("trigger", "manual")
+                val request = buildJsonObject { put("format", format); put("run_id", run); put("trigger", "manual")
                     put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks")))) }
                 val requestMessage = TelefonNachrichten.message(PhoneContentScope.DATA_KIND, PhoneContentScope.wrap("personal_sync.request", request, manifest), 60000)
                 work.receiveMessage(peer, requestMessage, channel, 0)
                 // duplicateResult reports the ACK for a subsequent replay of a durable acceptance.
                 assertEquals("duplicate" to "none", queue.duplicateResult(peerId, requestMessage.string("message_id")))
-                val batch = PersonalSyncProtokoll.batch(run, listOf(updated), 0, true, true, 3, PersonalSync.recordsHash(listOf(updated)))
+                val batch = PersonalSyncProtokoll.batch(run, listOf(updated), 0, true, true, format, PersonalSync.recordsHash(listOf(updated)))
                 val message = TelefonNachrichten.message(PhoneContentScope.DATA_KIND, PhoneContentScope.wrap("personal_sync.batch", batch, manifest), 60000)
                 if (mode == "time") {
                     val changed = SharedSyncSettings.change(shared, peerId, actor, "time_enabled", JsonPrimitive(true))
@@ -689,9 +696,10 @@ class ScopedDataRuntimeTest {
                 }
                 work.receiveMessage(peer, message, channel, 0)
                 assertEquals("Organizer addition", documents.notiz("phone-note")!!.text)
+                if (format == 14) assertEquals("notes", documents.notiz("phone-note")!!.ursprungApp)
                 assertEquals(1, documents.notizen().size)
                 val foreign = updated.copy(id = "organizer-only")
-                val foreignBatch = PersonalSyncProtokoll.batch(run, listOf(foreign), 0, true, true, 3, PersonalSync.recordsHash(listOf(foreign)))
+                val foreignBatch = PersonalSyncProtokoll.batch(run, listOf(foreign), 0, true, true, format, PersonalSync.recordsHash(listOf(foreign)))
                 work.receiveMessage(peer, TelefonNachrichten.message(PhoneContentScope.DATA_KIND, PhoneContentScope.wrap("personal_sync.batch", foreignBatch, manifest), 60000), channel, 0)
                 assertNull(documents.notiz("organizer-only")); assertEquals(1, documents.notizen().size)
                 documents.loescheNotiz("phone-note")

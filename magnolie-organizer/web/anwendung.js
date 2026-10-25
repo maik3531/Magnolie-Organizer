@@ -1045,8 +1045,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const key = art + "\u0000" + id;
       let meta = ps.entities[key] || null;
       let wert = personalSyncWert(art, objekt, meta ? Number(meta.modified_ms || 0) : 0, DATEN);
-      if (format === 3 && art === "task") Object.assign(wert, { uid: String(objekt.uid || ""),
+      if ([3, 14].includes(format) && art === "task") Object.assign(wert, { uid: String(objekt.uid || ""),
         parent_uid: String(objekt.elternUid || ""), order: Math.max(0, Number(objekt.reihenfolge) || 0) });
+      if (format === 14 && ["note", "task"].includes(art)) wert.origin_app = ["notes", "organizer"].includes(objekt.ursprungApp) ? objekt.ursprungApp : "";
       if (format >= 2 && art === "note") {
         const anhaenge = [];
         for (const anhang of (Array.isArray(objekt.anhaenge) ? objekt.anhaenge : [])) {
@@ -1140,6 +1141,10 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return object && (kind === "note" ? personalSyncEigeneNotiz(object) :
       kind === "task" && !object.vonZweig && !object.fremdId && !object.delegiertAn && !object.herkunft);
   }
+  function personalSyncDatenFormat(peer, modules) {
+    return [14, 3, 2, 1].find(format => modules.every(module =>
+      (peer.capabilities?.items?.[module === "tasks" ? "personal_tasks_sync" : "personal_notes_sync"]?.versions || [1]).includes(format))) || 1;
+  }
   async function personalAdmissionQueue(kind, localId) {
     const peer = personalAdmissionPeer(), data = DATEN;
     if (!peer?.shared_sync?.ready || gesperrt) throw new Error(_("Connect Notes before sending this entry."));
@@ -1152,19 +1157,20 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
           !(kind === "note" ? DATEN.notizen : DATEN.aufgaben).includes(object))
         throw new Error(_("Personal synchronization failed."));
     };
-    const records = await personalSyncSnapshot([kind === "note" ? "notes" : "tasks"], 3, peer.device_id,
+    const format = personalSyncDatenFormat(peer, [kind === "note" ? "notes" : "tasks"]);
+    const records = await personalSyncSnapshot([kind === "note" ? "notes" : "tasks"], format, peer.device_id,
       { selection: { notes: new Set(kind === "note" ? [id] : []), tasks: new Set(kind === "task" ? [id] : []) },
         independentRemovals: true, guard });
     if (kind === "note" && records.find(record => record.kind === "note" && record.id === id)?.value.attachments.length !== (object.anhaenge || []).length)
       throw new Error(_("The selected note contains attachments that cannot be sent."));
-    const run = crypto.randomUUID(), chunks = personalSyncPakete(records, run, false, 3);
+    const run = crypto.randomUUID(), chunks = personalSyncPakete(records, run, false, format);
     if (chunks.flat().length !== records.length) throw new Error(_("The selected entry is too large to send."));
     const hash = await personalSyncHash(records);
     await new Promise((resolve, reject) => nachDauerhaftemSpeichern(resolve, reject));
     guard();
     Bruecke.sende({ cmd: "personal_sync_lauf_senden", kennung: peer.device_id,
-      request: { format: 3, run_id: run, trigger: "manual", modules: [kind === "note" ? "notes" : "tasks"], send_item: { kind, id } },
-      batches: chunks.map((records, sequence) => ({ format: 3, run_id: run, batch_id: crypto.randomUUID(),
+      request: { format, run_id: run, trigger: "manual", modules: [kind === "note" ? "notes" : "tasks"], send_item: { kind, id } },
+      batches: chunks.map((records, sequence) => ({ format, run_id: run, batch_id: crypto.randomUUID(),
         sequence, last: sequence === chunks.length - 1, reply: false, records_hash: hash, records })),
       sources: records.attachmentSources || [] });
   }
@@ -1407,7 +1413,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       const neu = Object.assign({}, alt || { anhaenge: [], baumFreigabe: null, baumGeaendert: 0,
         baumVersion: 0, baumQuelle: "", geaendert: isoHeute() }, { id: id, titel: v.title,
         text: v.text, html: sicheresHtml, notizbuchId: personalSyncNotizLokalId(v.notebook_id, "notebook", DATEN), symbol: v.symbol,
-        angelegt: v.created_ms, personalGeaendert: v.modified_ms });
+        angelegt: v.created_ms, personalGeaendert: v.modified_ms,
+        ursprungApp: ["notes", "organizer"].includes(alt?.ursprungApp) ? alt.ursprungApp : ["notes", "organizer"].includes(v.origin_app) ? v.origin_app : "" });
       neu.anhaenge = (alt?.anhaenge || []).map(anhang => ({ ...anhang }));
       if (Array.isArray(v.attachments)) {
         const fern = v.attachments.map((x) => ({ id: personalSyncAnhangLokalId(personalSyncNotizWireId(id, "note", DATEN), x.attachment_id, DATEN), name: x.name, art: x.kind,
@@ -1434,7 +1441,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         faellig: v.due, prio: v.priority, erledigt: v.completed, erinnern: v.remind,
         vorlaufTage: v.lead_days, individuelleErinnerungTage: v.lead_days,
         erinnerungsMinute: v.reminder_minute, angelegt: v.created_ms,
-        personalGeaendert: v.modified_ms });
+        personalGeaendert: v.modified_ms,
+        ursprungApp: ["notes", "organizer"].includes(alt?.ursprungApp) ? alt.ursprungApp : ["notes", "organizer"].includes(v.origin_app) ? v.origin_app : "" });
       if (Object.prototype.hasOwnProperty.call(v, "uid")) {
         neu.uid = v.uid; neu.elternUid = v.parent_uid; neu.reihenfolge = v.order;
       }
@@ -1452,9 +1460,9 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
     return personalSyncAnwendenMitBestand(DATEN, records, attachmentData, format, peerId, modules, options, false);
   }
 
-  async function personalSyncAnwendenAusBestand(bestand, records, attachmentData, peerId, modules, options) {
-    if (!options?.selection) throw new Error(_("Personal synchronization failed."));
-    return personalSyncAnwendenMitBestand(bestand, records, attachmentData, 3, peerId, modules, options, true);
+  async function personalSyncAnwendenAusBestand(bestand, records, attachmentData, peerId, modules, options, format = 3) {
+    if (!options?.selection || ![3, 14].includes(format)) throw new Error(_("Personal synchronization failed."));
+    return personalSyncAnwendenMitBestand(bestand, records, attachmentData, format, peerId, modules, options, true);
   }
 
   async function personalSyncAnwendenMitBestand(DATEN, records, attachmentData, format, peerId, modules, options, privat) {
@@ -1770,9 +1778,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       peer.capabilities.items.personal_notes_sync && peer.capabilities.items.personal_notes_sync.versions || [];
     const taskVersions = peer.capabilities && peer.capabilities.items &&
       peer.capabilities.items.personal_tasks_sync && peer.capabilities.items.personal_tasks_sync.versions || [];
-    const format = modules.includes("tasks") && taskVersions.includes(3) &&
-      (!modules.includes("notes") || notesVersions.includes(3)) ? 3 :
-      modules.includes("notes") && notesVersions.includes(2) ? 2 : 1;
+    const format = personalSyncDatenFormat(peer, modules);
     const run = crypto.randomUUID();
     if (trigger === "auto_wifi" && vorbereitet) personalSyncAutoHash.set(run,
       { hash: vorbereitet.hash, modules: vorbereitet.modules.slice(), format: format, peerId: peer.device_id });
@@ -1830,9 +1836,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
       peer.capabilities.items.personal_notes_sync && peer.capabilities.items.personal_notes_sync.versions || [];
     const taskVersions = peer.capabilities && peer.capabilities.items &&
       peer.capabilities.items.personal_tasks_sync && peer.capabilities.items.personal_tasks_sync.versions || [];
-    const format = modules.includes("tasks") && taskVersions.includes(3) &&
-      (!modules.includes("notes") || notesVersions.includes(3)) ? 3 :
-      modules.includes("notes") && notesVersions.includes(2) ? 2 : 1;
+    const format = personalSyncDatenFormat(peer, modules);
     const records = personalSyncNotizAusgang(peer, await personalSyncSnapshot(modules, format, peer.device_id));
     const hash = await personalSyncHash(records);
     const lastHash = String(DATEN.personalSync.last_auto_hash || "");
@@ -7910,6 +7914,7 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         icsElternQuelleId: typeof a.icsElternQuelleId === "string" ? a.icsElternQuelleId : undefined,
         elternUid: S(a.elternUid), reihenfolge: Math.max(0, Math.floor(Number(a.reihenfolge) || 0)),
         titel: S(a.titel), prio: prio,
+        ursprungApp: ["notes", "organizer"].includes(a.ursprungApp) ? a.ursprungApp : "",
         faellig: gueltigesISO(a.faellig) ? a.faellig : "",
         startDatum: gueltigesISO(a.startDatum) ? a.startDatum : "",
         startZeit: Z(a.startZeit), faelligZeit: Z(a.faelligZeit),
@@ -8064,7 +8069,8 @@ if (NEU_IN_DIESER_FASSUNG_FASSUNG !== FASSUNG) {
         notizbuchId: buchIds.has(S(n.notizbuchId))
           ? S(n.notizbuchId) : d.notizbuecher[0].id,
         anhaenge: saubereNotizAnhaenge(n.anhaenge),
-        geaendert: notizDatum, angelegt: notizAngelegt, symbol: S(n.symbol) || "notiz",
+          geaendert: notizDatum, angelegt: notizAngelegt, symbol: S(n.symbol) || "notiz",
+          ursprungApp: ["notes", "organizer"].includes(n.ursprungApp) ? n.ursprungApp : "",
         personalGeaendert: N(n.personalGeaendert) || notizAngelegt,
         angelegtGeschaetzt: n.angelegtGeschaetzt === true || !N(n.angelegt),
         zusammenfuehrungen: saubereNotizZusammenfuehrungen(n.zusammenfuehrungen),
@@ -17570,7 +17576,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       titel: "", prio: 2, faellig: "", startDatum: "", startZeit: "", faelligZeit: "",
       erledigt: false, notiz: "", kategorien: "", akzentFarbe: "", personen: [], erinnern: false, vonTermin: "",
       individuelleErinnerungTage: 0, herkunft: (baumStand && baumStand.kennung) || "",
-      vonZweig: "", fremdId: "", delegiertAn: "", angelegt: jetzt, geaendert: jetzt,
+      vonZweig: "", fremdId: "", delegiertAn: "", angelegt: jetzt, geaendert: jetzt, ursprungApp: "organizer",
       personalGeaendert: jetzt, vorlaufTage: 0, erinnerungsMinute: 480, ...werte };
   }
 
@@ -21405,7 +21411,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return { id: uid(), titel, text, html: textZuHtml(text), anhaenge: [],
       notizbuchId, symbol, geaendert: isoHeute(), angelegt: jetzt,
       personalGeaendert: jetzt, baumFreigabe: null, baumGeaendert: 0,
-      baumVersion: 0, baumQuelle: "" };
+      baumVersion: 0, baumQuelle: "", ursprungApp: "organizer" };
   }
 
   function notizAenderungMerken(notiz) {
@@ -33166,7 +33172,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           messageId: nutzlast.pending_message_id, token: nutzlast.commit_token, erfolgreich: true }));
         return;
       }
-      const format = [1, 2, 3].includes(body.format) ? body.format : 1;
+      const format = [1, 2, 3, 14].includes(body.format) ? body.format : 1;
       let scopeSelection = null;
       const scopeGuard = () => {
         if (DATEN.personalSync !== syncBestand || gesperrt || !nutzlast.content_scope_fingerprint ||
@@ -36870,7 +36876,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           const payload = await mcpNotesActorBytes(job);
           if (!payload) throw new MagnolieMcp.ToolError("not_ready", "Notes snapshot is still arriving");
           data = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(payload.bytes)); viewRevision = payload.revision;
-          if (data.request?.run_id !== job.handle.actorId || data.request.format !== 3 || data.request.trigger !== "manual" ||
+          if (data.request?.run_id !== job.handle.actorId || ![3, 14].includes(data.request.format) || data.request.trigger !== "manual" ||
               !Array.isArray(data.request.modules) || !data.request.modules.length || data.request.modules.some(value => !["notes", "tasks"].includes(value)) ||
               !Array.isArray(data.batch?.records) || !Array.isArray(data.intents) ||
               await personalSyncHash(data.batch.records) !== data.batch.records_hash)
@@ -36906,7 +36912,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       const selection = await personalSyncScopeAusManifest(data.content_scope), book = kopie(job.book);
       mcpNotesActorGuard(job);
       const options = { selection, independentRemovals: true, guard: () => mcpNotesActorGuard(job) };
-      const result = await personalSyncAnwendenAusBestand(book, kopie(data.batch.records), attachments, job.peer, data.request.modules, options);
+      const result = await personalSyncAnwendenAusBestand(book, kopie(data.batch.records), attachments, job.peer, data.request.modules, options, data.request.format);
       const summary = { notes: data.batch.records.filter(record => record.kind === "note").length,
         tasks: data.batch.records.filter(record => record.kind === "task").length, attachments: Object.keys(attachments).length,
         conflicts: result.conflicts, unapplied_deletion_intents: data.intents.length };
@@ -36921,15 +36927,15 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     }
   }
   async function mcpNotesActorBuildReview(job, book, data, viewRevision, summary, options, deletionPlan = null) {
-    const records = await personalSyncSnapshotAusBestand(book, data.request.modules, 3, job.peer, options);
-    const chunks = personalSyncPakete(records, job.handle.actorId, true, 3), aggregate = await personalSyncHash(chunks.flat());
+    const records = await personalSyncSnapshotAusBestand(book, data.request.modules, data.request.format, job.peer, options);
+    const chunks = personalSyncPakete(records, job.handle.actorId, true, data.request.format), aggregate = await personalSyncHash(chunks.flat());
     const after = await personalSyncHash(JSON.stringify(book)); mcpNotesActorGuard(job);
     const revision = await personalSyncHash([viewRevision, after, summary, deletionPlan]); mcpNotesActorGuard(job);
     const confirmed = (await mcpNotesActorNative(job, "notes_actor_read", { offset: 0, limit: 1, expectedRevision: viewRevision })).actor;
     mcpNotesActorGuard(job);
     if (confirmed?.revision !== viewRevision || confirmed.batch_ready !== true) throw new MagnolieMcp.ToolError("source_changed", "Native Notes review changed during preparation");
     return { revision, nativeRevision: viewRevision, book, summary, data, deletionPlan,
-      batches: chunks.map((records, sequence) => ({ format: 3, run_id: job.handle.actorId, batch_id: crypto.randomUUID(),
+      batches: chunks.map((records, sequence) => ({ format: data.request.format, run_id: job.handle.actorId, batch_id: crypto.randomUUID(),
         sequence, last: sequence === chunks.length - 1, reply: true, records_hash: aggregate, records })),
       sources: (records.attachmentSources || []).filter(source => chunks.flat().some(record => record.kind === "note" && record.value.attachments.some(item => item.sha256 === source.sha256))) };
   }

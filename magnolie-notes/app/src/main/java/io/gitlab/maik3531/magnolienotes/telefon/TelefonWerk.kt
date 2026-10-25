@@ -93,14 +93,15 @@ internal fun knownReconnectTarget(current: TelefonPeer, saved: List<TelefonPeer>
 }
 
 internal fun negotiatedPersonalNotesFormat(peer: TelefonPeer): Int =
-    when { 3 in peer.remote_personal_notes_sync_versions -> 3
+    when { 14 in peer.remote_personal_notes_sync_versions -> 14
+        3 in peer.remote_personal_notes_sync_versions -> 3
         2 in peer.remote_personal_notes_sync_versions -> 2
         else -> 1 }
 
 internal fun negotiatedPersonalFormat(peer: TelefonPeer, modules: Collection<String>): Int {
     val supported = modules.map { module -> if (module == "tasks")
         peer.remote_personal_tasks_sync_versions else peer.remote_personal_notes_sync_versions }
-    return (1..3).lastOrNull { format -> supported.all { format in it } } ?: 1
+    return listOf(1, 2, 3, 14).lastOrNull { format -> supported.all { format in it } } ?: 1
 }
 
 internal fun shouldStartPersonalSyncOnSecureWifi(
@@ -467,14 +468,15 @@ class TelefonWerk private constructor(private val context: Context, private val 
             val prepareSnapshot = {
                 val selection = io.gitlab.maik3531.magnolienotes.daten.PersonalContentSelection(notes, tasks)
                 // Reconcile uses the existing encrypted book domain; it is not a SQLite rollback participant.
-                val snapshot = Ablage.hole(context).personalSyncScopedSnapshot(selection, peer.device_id)
+                val format = negotiatedPersonalFormat(peer, listOf("notes", "tasks"))
+                val snapshot = Ablage.hole(context).personalSyncScopedSnapshot(selection, peer.device_id, format)
                 val runId = intent.correlatedRunId ?: UUID.randomUUID().toString()
                 val request = buildJsonObject {
-                    put("format", JsonPrimitive(3)); put("run_id", JsonPrimitive(runId)); put("trigger", JsonPrimitive(intent.trigger))
+                    put("format", JsonPrimitive(format)); put("run_id", JsonPrimitive(runId)); put("trigger", JsonPrimitive(intent.trigger))
                     put("modules", JsonArray(listOf(JsonPrimitive("notes"), JsonPrimitive("tasks"))))
                 }
                 val requestMessage = TelefonNachrichten.message("personal_sync.request", request, 3_600_000)
-                val batches = buildSnapshotBatches(runId, snapshot.records, false, 3).first
+                val batches = buildSnapshotBatches(runId, snapshot.records, false, format).first
                 val advertised = batches.flatMap(PersonalSyncProtokoll::decodeBatch).filter { it.kind == "note" }
                     .flatMap { (it.value["attachments"] as? JsonArray).orEmpty() }.map { (it as JsonObject).string("sha256") }.toSet()
                 val attachments = snapshot.attachments.filterKeys(advertised::contains).map { (hash, value) ->
@@ -2031,11 +2033,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
     }
 
     private fun applyActorCompletionReport(peer: TelefonPeer, run: String, report: JsonObject, manifest: JsonObject) {
-        require(report["format"] == JsonPrimitive(3) && report["state"] == JsonPrimitive("complete") &&
+        val request = queue.personalRun(peer.device_id, run) ?: throw TelefonProtokollFehler("Personal-Sync-Request fehlt.")
+        require(report["format"] == request["format"] && report["state"] == JsonPrimitive("complete") &&
             report["trigger"] == JsonPrimitive("manual") && report["error"] == JsonPrimitive("none")) { "actor_completion_report_required" }
         if (queue.personalDirectionApplied(peer.device_id, run, true)) return
         require(queue.isActorRun(peer.device_id, run) && queue.actorDeletionIntents(run).isEmpty()) { "actor_deletion_review_required" }
-        val request = queue.personalRun(peer.device_id, run) ?: throw TelefonProtokollFehler("Personal-Sync-Request fehlt.")
         val privatePeer = PersonalSyncActor.storagePeer(run)
         val staged = queue.readyPersonalBatches().singleOrNull { it.first == privatePeer &&
             (it.second.last().getValue("body") as JsonObject).let { body -> body.string("run_id") == run && body["reply"] == JsonPrimitive(true) } }?.second
@@ -2055,10 +2057,10 @@ class TelefonWerk private constructor(private val context: Context, private val 
             (members.getValue("tasks") as JsonArray).map { (it as JsonPrimitive).content }.toSet())
         if (appliedKey !in documents.bestand.value.personalSync.applied_batches) {
             require(personalActorBooks[run] === documents.bestand.value) { "actor_phone_book_changed" }
-            val preview = PersonalSync.applyScoped(documents.bestand.value, records, selection, peer.device_id, attachments, 3)
+            val preview = PersonalSync.applyScoped(documents.bestand.value, records, selection, peer.device_id, attachments, request.long("format").toInt())
             require(PersonalSync.livePersonalContent(preview.bestand) == selection) { "actor_scope_changes_require_review" }
             io.gitlab.maik3531.magnolienotes.journal.AndroidJournal.hole(context).appSnapshot("pre-sync-note")
-            documents.personalSyncApplyScopedOnce(records, attachments, appliedKey, selection, peer.device_id, 3)
+            documents.personalSyncApplyScopedOnce(records, attachments, appliedKey, selection, peer.device_id, request.long("format").toInt())
         }
         require(appliedKey in documents.bestand.value.personalSync.applied_batches && PersonalSync.livePersonalContent(documents.bestand.value) == selection)
         queue.markPersonalDirectionApplied(peer.device_id, run, true)
@@ -2796,11 +2798,11 @@ class TelefonWerk private constructor(private val context: Context, private val 
                     remote_answer_call_available = ((items["answer_call"] as JsonObject)["available"] as JsonPrimitive).content.toBooleanStrict(),
                     remote_end_call_available = ((items["end_call"] as JsonObject)["available"] as JsonPrimitive).content.toBooleanStrict(),
                     remote_personal_notes_sync_versions = ((items["personal_notes_sync"] as JsonObject)["versions"] as JsonArray)
-                        .map { (it as JsonPrimitive).content.toInt() }.filter { it in 1..3 || it == PersonalNoteMode.VERSION || it == SharedSyncSettings.VERSION || it == PhoneContentScope.VERSION || it == PersonalSyncActor.VERSION }.distinct().sorted(),
+                        .map { (it as JsonPrimitive).content.toInt() }.filter { it in 1..3 || it == 14 || it == PersonalNoteMode.VERSION || it == SharedSyncSettings.VERSION || it == PhoneContentScope.VERSION || it == PersonalSyncActor.VERSION }.distinct().sorted(),
                     remote_personal_notes_sync_available = ((items["personal_notes_sync"] as JsonObject)["available"] as JsonPrimitive).booleanOrNull == true,
                     remote_personal_tasks_sync_versions = ((items["personal_tasks_sync"] as JsonObject)["versions"] as JsonArray)
                         .map { (it as JsonPrimitive).content.toInt() }.filter {
-                            it in 1..4 || it == PersonalDesktopFeatures.VERSION || it == TimeSyncProtokoll.VERSION || it == SharedSyncSettings.VERSION || it == PhoneContentScope.VERSION || it == PersonalSyncActor.VERSION || it == TimeControlProtokoll.VERSION }.distinct().sorted(),
+                            it in 1..4 || it == 14 || it == PersonalDesktopFeatures.VERSION || it == TimeSyncProtokoll.VERSION || it == SharedSyncSettings.VERSION || it == PhoneContentScope.VERSION || it == PersonalSyncActor.VERSION || it == TimeControlProtokoll.VERSION }.distinct().sorted(),
                     remote_personal_tasks_sync_available = ((items["personal_tasks_sync"] as JsonObject)["available"] as JsonPrimitive).booleanOrNull == true)
             } else {
                 val grants = body["grants"] as JsonObject

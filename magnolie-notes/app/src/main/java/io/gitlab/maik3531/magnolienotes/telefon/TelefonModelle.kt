@@ -188,8 +188,8 @@ object TelefonCapabilities {
         "incoming_call_number" to TelefonCapability(incomingNumber, if (incomingNumber) "available" else "disabled"),
         "answer_call" to TelefonCapability(answerCalls, if (answerCalls) "available" else "disabled"),
         "end_call" to TelefonCapability(endCalls, if (endCalls) "available" else if (Build.VERSION.SDK_INT < 28) "os_restricted" else "disabled", listOf(1, 2)),
-        "personal_notes_sync" to TelefonCapability(true, "available", listOf(1, 2, 3, 5, 9, 10)),
-        "personal_tasks_sync" to TelefonCapability(true, "available", listOf(1, 2, 3, 4, 6, 7, 9, 10, 13)),
+        "personal_notes_sync" to TelefonCapability(true, "available", listOf(1, 2, 3, 5, 9, 10, 14)),
+        "personal_tasks_sync" to TelefonCapability(true, "available", listOf(1, 2, 3, 4, 6, 7, 9, 10, 13, 14)),
         "personal_deletions_sync" to TelefonCapability(true, "available"),
         "transport.bluetooth_rfcomm" to TelefonCapability(true, "available")
     )

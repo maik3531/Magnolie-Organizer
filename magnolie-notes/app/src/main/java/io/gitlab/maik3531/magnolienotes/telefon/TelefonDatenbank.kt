@@ -1034,7 +1034,7 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
     internal fun rememberScopedRun(binding: SharedSettingsBinding, shared: SharedSyncStorage, request: JsonObject,
                                    reference: JsonObject, wireExpiresMs: Long, now: Long = System.currentTimeMillis(), actorRun: Boolean = false) {
         PersonalSyncProtokoll.validate("personal_sync.request", request); PhoneContentScope.validateReference(reference)
-        require(request.long("format") == 3L && wireExpiresMs > now)
+        require(request.long("format") in setOf(3L, 14L) && wireExpiresMs > now)
         val runId = request.string("run_id"); val peerId = binding.peerActor; val key = "personal_scope:$peerId:$runId"
         shared.withWriteTransaction(binding) {
             val settings = requireNotNull(shared.read(binding))
@@ -1080,12 +1080,12 @@ class TelefonQueue internal constructor(context: Context, private val storage: T
         require(message.string("kind") == "personal_sync.request")
         val request = message.getValue("body") as JsonObject
         PersonalSyncProtokoll.validate("personal_sync.request", request)
-        require(request.long("format") == 3L && batches.isNotEmpty())
+        require(request.long("format") in setOf(3L, 14L) && batches.isNotEmpty())
         val runId = request.string("run_id")
         val recordsHash = batches.first().string("records_hash")
         batches.forEachIndexed { index, batch ->
             PersonalSyncProtokoll.validate("personal_sync.batch", batch)
-            require(batch.string("run_id") == runId && batch.long("format") == 3L &&
+            require(batch.string("run_id") == runId && batch.long("format") == request.long("format") &&
                 batch.long("sequence") == index.toLong() && batch["last"] == JsonPrimitive(index == batches.lastIndex) &&
                 batch["reply"] == JsonPrimitive(false) && batch.string("records_hash") == recordsHash)
         }

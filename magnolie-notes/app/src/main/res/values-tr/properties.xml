@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="eigenschaften_titel">Özellikler</string>
+    <string name="eigenschaften_erstellt">Oluşturulma tarihi</string>
+    <string name="eigenschaften_geaendert">Değiştirilme tarihi</string>
+    <string name="eigenschaften_ursprung">Özgün uygulama</string>
+    <string name="eigenschaften_import">İçe aktarılan kaynak</string>
+    <string name="eigenschaften_verbindung">Bağlantı kaynağı</string>
+    <string name="eigenschaften_unbekannt">Bilinmiyor</string>
+</resources>

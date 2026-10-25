@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="eigenschaften_titel">الخصائص</string>
+    <string name="eigenschaften_erstellt">تاريخ الإنشاء</string>
+    <string name="eigenschaften_geaendert">تاريخ التعديل</string>
+    <string name="eigenschaften_ursprung">التطبيق الأصلي</string>
+    <string name="eigenschaften_import">تم الاستيراد من</string>
+    <string name="eigenschaften_verbindung">مصدر الاتصال</string>
+    <string name="eigenschaften_unbekannt">غير معروف</string>
+</resources>

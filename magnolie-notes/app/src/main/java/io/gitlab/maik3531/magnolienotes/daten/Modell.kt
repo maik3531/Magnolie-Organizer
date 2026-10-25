@@ -32,7 +32,9 @@ data class Notiz(
     val baumQuelle: String = "",
     val baumInhaltVersion: Long = 0L,
     /** An own copy was consolidated with this shared note; preserve its personal-sync scope. */
-    val persoenlichVerknuepft: Boolean = false
+    val persoenlichVerknuepft: Boolean = false,
+    /** Application which created this entry; empty means historical provenance is unknown. */
+    val ursprungApp: String = ""
 ) {
     val vorschau: String
         get() {
@@ -114,7 +116,8 @@ data class Aufgabe(
     val elternUid: String = "",
     val reihenfolge: Int = 0,
     /** Explicit recipients, including full-sync copies. Legacy delegiertAn remains authoritative. */
-    val standPartner: List<String> = emptyList()
+    val standPartner: List<String> = emptyList(),
+    val ursprungApp: String = ""
 ) {
     /** Eine fremde Aufgabe darf nur den Erledigt-Stand zurückmelden. */
     val istFremd: Boolean get() = fremdId.isNotEmpty() && herkunft.isNotEmpty()

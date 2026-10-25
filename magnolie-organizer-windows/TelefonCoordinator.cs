@@ -744,7 +744,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         var settings = store.PersonalSettings(id);
         if (!settings.OwnDevice || !settings.RemoteOwnDevice || needed.Count == 0 || needed.Any(name => store.LocalGrants()[name]?.GetValue<bool>() != true || peer.Grants[name]?.GetValue<bool>() != true)) throw new InvalidOperationException(T("Personal synchronization is not permitted on both devices."));
         if (body["format"]?.GetValue<int>() == 2 && !SupportsPersonalFormat2(peer)) throw new InvalidOperationException(T("Personal synchronization format 2 was not negotiated."));
-        if (body["format"]?.GetValue<int>() == 3 && needed.Any(name => !SupportsPersonalFormat(peer, name, 3))) throw new InvalidOperationException(T("Personal synchronization format 3 was not negotiated."));
+        if (body["format"]?.GetValue<int>() is 3 or 14 && needed.Any(name => !SupportsPersonalFormat(peer, name, body["format"]!.GetValue<int>()))) throw new InvalidOperationException(T("Personal synchronization format 3 was not negotiated."));
         string policy;
         if (kind == "personal_sync.request") { personalSync.RememberRun(id, body, now); policy = body["trigger"]?.GetValue<string>() == "auto_wifi" ? "wifi_only" : "any"; }
         else { if (run!.Expired) throw new InvalidOperationException(T("The personal synchronization run has expired.")); policy = run.Policy; }
@@ -1639,7 +1639,7 @@ internal sealed partial class TelefonCoordinator : IDisposable
         var grants = PersonalGrants(kind, body, run?.Request); if (grants.Count == 0 || grants.Any(name => store.LocalGrants()[name]?.GetValue<bool>() != true || peer.Grants[name]?.GetValue<bool>() != true)) return new TelefonAck(id, "rejected", "not_granted");
         var settings = store.PersonalSettings(peer.Id); if (!settings.OwnDevice || !settings.RemoteOwnDevice) return new TelefonAck(id, "rejected", "not_granted");
         if (body["format"]?.GetValue<int>() == 2 && !SupportsPersonalFormat2(peer)) return new TelefonAck(id, "rejected", "invalid_schema");
-        if (body["format"]?.GetValue<int>() == 3 && grants.Any(name => !SupportsPersonalFormat(peer, name, 3))) return new TelefonAck(id, "rejected", "invalid_schema");
+        if (body["format"]?.GetValue<int>() is 3 or 14 && grants.Any(name => !SupportsPersonalFormat(peer, name, body["format"]!.GetValue<int>()))) return new TelefonAck(id, "rejected", "invalid_schema");
         if (kind == "personal_sync.request") { personalSync.RememberRun(peer.Id, body, now, message["expires_ms"]!.GetValue<long>()); await EmitPersonalSyncAsync(new { device_id = peer.Id, transport, kind, body }); return null; }
         if (kind == "personal_sync.batch")
         {
@@ -2226,7 +2226,7 @@ internal sealed partial class TelefonConnection : IDisposable
         if (!settings.OwnDevice || !settings.RemoteOwnDevice) return "not_granted";
         if ((kind == "personal_sync.request" && body["trigger"]?.GetValue<string>() == "auto_wifi" || run?.Policy == "wifi_only") &&
             transport != "wifi") return "not_granted";
-        if (body["format"]?.GetValue<int>() == 3 && grants.Any(name => !TelefonCoordinator.SupportsPersonalFormat(current, name, 3))) return "invalid_schema";
+        if (body["format"]?.GetValue<int>() is 3 or 14 && grants.Any(name => !TelefonCoordinator.SupportsPersonalFormat(current, name, body["format"]!.GetValue<int>()))) return "invalid_schema";
         return body["format"]?.GetValue<int>() == 2 && !TelefonCoordinator.SupportsPersonalFormat2(current) ? "invalid_schema" : null;
     }
     private string? Authorize(string kind, JsonObject body)

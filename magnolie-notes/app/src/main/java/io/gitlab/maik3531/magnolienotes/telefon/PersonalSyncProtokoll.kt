@@ -142,14 +142,14 @@ object PersonalSyncProtokoll {
             }
             "personal_sync.request" -> {
                 TelefonNachrichten.exact(body, setOf("format", "run_id", "trigger", "modules") + if ("send_item" in body) setOf("send_item") else emptySet())
-                TelefonNachrichten.uuid4(body.string("run_id")); if (body.integer("format") !in 1L..3L ||
+                TelefonNachrichten.uuid4(body.string("run_id")); if (body.integer("format") !in setOf(1L, 2L, 3L, 14L) ||
                     body.string("trigger") !in setOf("manual", "auto_wifi")) fail()
                 val modules = (body["modules"] as? JsonArray)?.map { (it as? JsonPrimitive)?.content } ?: fail()
                 if (modules !in listOf(listOf("notes"), listOf("tasks"), listOf("notes", "tasks"))) fail()
                 if ("send_item" in body) {
                     val item = body["send_item"] as? JsonObject ?: fail()
                     TelefonNachrichten.exact(item, setOf("kind", "id"))
-                    if (body.integer("format") != 3L || body.string("trigger") != "manual" ||
+                    if (body.integer("format") !in setOf(3L, 14L) || body.string("trigger") != "manual" ||
                         item.string("kind") !in setOf("note", "task") || !identifier(item.string("id")) ||
                         modules != listOf(if (item.string("kind") == "note") "notes" else "tasks")) fail()
                 }
@@ -222,7 +222,7 @@ object PersonalSyncProtokoll {
         TelefonNachrichten.exact(body, setOf("format", "run_id", "batch_id", "sequence", "last", "reply", "records") +
             if (format >= 2L) setOf("records_hash") else emptySet())
         TelefonNachrichten.uuid4(body.string("run_id")); TelefonNachrichten.uuid4(body.string("batch_id"))
-        if (format !in 1L..3L || body.integer("sequence") !in 0..100_000 ||
+        if (format !in setOf(1L, 2L, 3L, 14L) || body.integer("sequence") !in 0..100_000 ||
             (body["last"] as? JsonPrimitive)?.booleanOrNull == null ||
             (body["reply"] as? JsonPrimitive)?.booleanOrNull == null || TelefonKanonisch.bytes(body).size > 192 * 1024) fail()
         val raw = body["records"] as? JsonArray ?: fail()
@@ -282,12 +282,13 @@ object PersonalSyncProtokoll {
     private fun validateValue(kind: String, value: JsonObject, format: Int) {
         val fields = when (kind) {
             "note" -> setOf("title", "text", "html", "notebook_id", "symbol", "created_ms", "modified_ms") +
-                if (format >= 2) setOf("attachments") else emptySet()
+                (if (format >= 2) setOf("attachments") else emptySet()) + (if (format == 14) setOf("origin_app") else emptySet())
             "task" -> setOf("title", "note", "due", "priority", "completed", "remind", "lead_days", "reminder_minute", "created_ms", "modified_ms") +
-                if (format == 3) setOf("uid", "parent_uid", "order") else emptySet()
+                (if (format in setOf(3, 14)) setOf("uid", "parent_uid", "order") else emptySet()) + (if (format == 14) setOf("origin_app") else emptySet())
             else -> setOf("name", "modified_ms")
         }
         TelefonNachrichten.exact(value, fields)
+        if (format == 14 && kind in setOf("note", "task") && value.string("origin_app") !in setOf("", "notes", "organizer")) fail()
         value.forEach { (name, raw) ->
             if (name == "attachments") {
                 val attachments = raw as? JsonArray ?: fail()
@@ -316,7 +317,7 @@ object PersonalSyncProtokoll {
             "conflicts", "attachments_omitted", "oversized_skipped", "started_ms", "finished_ms", "error") +
             setOf("deletions") + if (format >= 2L) setOf("attachments") else emptySet())
         TelefonNachrichten.uuid4(body.string("run_id"))
-        if (format !in 1L..3L || body.string("state") !in setOf("complete", "partial", "blocked", "failed") ||
+        if (format !in setOf(1L, 2L, 3L, 14L) || body.string("state") !in setOf("complete", "partial", "blocked", "failed") ||
             body.string("trigger") !in setOf("manual", "auto_wifi") || body.string("transport") !in setOf("wifi", "bluetooth") ||
             body.string("error") !in setOf("none", "offline", "not_granted", "too_large", "save_failed", "protocol", "unknown") ||
             body.integer("finished_ms") < body.integer("started_ms") ||

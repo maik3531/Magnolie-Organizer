@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="eigenschaften_titel">Egenskaber</string>
+    <string name="eigenschaften_erstellt">Oprettelsesdato</string>
+    <string name="eigenschaften_geaendert">Ændringsdato</string>
+    <string name="eigenschaften_ursprung">Oprindeligt program</string>
+    <string name="eigenschaften_import">Importeret fra</string>
+    <string name="eigenschaften_verbindung">Forbindelseskilde</string>
+    <string name="eigenschaften_unbekannt">Ukendt</string>
+</resources>

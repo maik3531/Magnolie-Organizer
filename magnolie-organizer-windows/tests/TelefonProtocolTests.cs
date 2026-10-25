@@ -19,7 +19,7 @@ internal static class TelefonProtocolTests
             .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 5, 7, 12 }),
             "Device status negotiation must retain legacy readers, contact-read v7 and the scoped timezone read without new capability names.");
         TestAssert.That(capabilities["items"]!["personal_tasks_sync"]!["versions"]!.AsArray()
-            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 6, 7, 9, 10, 13 }),
+            .Select(value => value!.GetValue<int>()).SequenceEqual(new[] { 1, 2, 3, 4, 6, 7, 9, 10, 13, 14 }),
             "Ordinary tasks, Custom, time tracking, shared/scoped sync or native timer capability is missing.");
         TestAssert.That(!capabilities["items"]!["transport.bluetooth_rfcomm"]!["available"]!.GetValue<bool>() &&
             capabilities["items"]!["transport.bluetooth_rfcomm"]!["reason"]!.GetValue<string>() == "os_restricted" &&

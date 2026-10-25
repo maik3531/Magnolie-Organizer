@@ -240,16 +240,20 @@ def test_actor_private_staging_reader_is_bounded_revisioned_and_owner_guarded(tm
     assert not events
 
 
-def test_actor_core_commit_requires_fresh_native_book_save_and_bound_review_claim(tmp_path, monkeypatch):
+@pytest.mark.parametrize("record_format", [3, 14])
+def test_actor_core_commit_requires_fresh_native_book_save_and_bound_review_claim(tmp_path, monkeypatch, record_format):
     from magnolie_personal_actor_store import NativeBookOwnerScope
     from types import SimpleNamespace
     book = NativeBookOwnerScope(); book.set_ready(True)
     provider = lambda: book.current("native-profile", True)
     service, peer, channel, registry, handle, events = owned_transport(tmp_path, monkeypatch, book_source=provider)
     service.start_personal_actor(registry, handle)
-    request = {"format": 3, "run_id": handle.actor_id, "trigger": "manual", "modules": ["notes", "tasks"]}
+    request = {"format": record_format, "run_id": handle.actor_id, "trigger": "manual", "modules": ["notes", "tasks"]}
     records = [record()]
-    batch = {"format": 3, "run_id": handle.actor_id, "batch_id": str(uuid.uuid4()), "sequence": 0, "last": True,
+    if record_format == 14:
+        records[0]["value"]["origin_app"] = "notes"
+        records[0]["hash"] = personal.projection_hash(records[0]["value"])
+    batch = {"format": record_format, "run_id": handle.actor_id, "batch_id": str(uuid.uuid4()), "sequence": 0, "last": True,
         "reply": False, "records": records, "records_hash": personal.records_hash(records)}
     for kind, body in [("personal_sync.request", request), ("personal_sync.batch", batch)]:
         service._payload(peer, channel, actor.wire_message(frame(kind, body), handle.actor_id))
@@ -308,6 +312,7 @@ def test_actor_core_commit_requires_fresh_native_book_save_and_bound_review_clai
     service._payload(peer, channel, actor.wire_message(frame("personal_sync.attachment_result", result), handle.actor_id))
     reports = [value for value in service.store.pending(peer["device_id"]) if value.get("kind") == actor.DATA_KIND and actor.unwrap(value["body"])[0] == "personal_sync.report"]
     assert len(reports) == 1 and actor.unwrap(reports[0]["body"])[1]["sent"]["notes"] == 1
+    assert actor.unwrap(reports[0]["body"])[1]["format"] == record_format
     assert not service.personal_actor_status(registry, handle)["phone_persisted"], "File integrity result was mistaken for a remote book save"
     service._payload(peer, channel, {"type": "ack", "message_id": reports[0]["message_id"], "status": "accepted", "error": "none"})
     assert not service.personal_actor_status(registry, handle)["phone_persisted"]

@@ -3,6 +3,8 @@ package io.gitlab.maik3531.magnolienotes.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -98,6 +100,11 @@ fun AufgabenBlatt(
     anzeige: ListenAnzeige = ListenAnzeige()
 ) {
     val hierarchie = remember(aufgaben, anzeige) { ListenSortierung.aufgaben(aufgaben, anzeige) }
+    var eigenschaftenId by remember { mutableStateOf<String?>(null) }
+    aufgaben.firstOrNull { it.id == eigenschaftenId }?.let { value ->
+        EintragsEigenschaften(value.anzeigeTitel, value.angelegt, value.geaendert, value.ursprungApp,
+            verbindungsQuelle = value.vonZweig, beiSchliessen = { eigenschaftenId = null })
+    }
 
     val zusammenhang = LocalContext.current
     // Ab Android 12 muss der Mensch genaue Wecker ausdrücklich erlauben.
@@ -167,14 +174,14 @@ fun AufgabenBlatt(
             items(hierarchie, key = { it.aufgabe.id }) { eintrag ->
                 Aufgabenzeile(eintrag.aufgabe, fachVon(eintrag.aufgabe), eintrag.tiefe,
                     beiOeffnen, beiAbhaken, beiTeilaufgabe, beiVerschieben, beiWurzel,
-                    anzeige.aufgaben == AufgabenSortierung.MANUELL)
+                    anzeige.aufgaben == AufgabenSortierung.MANUELL, { eigenschaftenId = eintrag.aufgabe.id })
             }
         }
     }
 }
 
 @Composable
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 private fun Aufgabenzeile(
     aufgabe: Aufgabe,
     fach: Fach,
@@ -184,14 +191,16 @@ private fun Aufgabenzeile(
     beiTeilaufgabe: (Aufgabe) -> Unit,
     beiVerschieben: (Aufgabe, Int) -> Unit,
     beiWurzel: (Aufgabe) -> Unit,
-    manuellSortiert: Boolean
+    manuellSortiert: Boolean,
+    beiEigenschaften: () -> Unit
 ) {
     val zeilenZusammenhang = LocalContext.current
+    val properties = stringResource(R.string.eigenschaften_titel)
     val einzug = (14 + tiefe.coerceAtMost(12) * 16).dp
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
     Row(
         Modifier.fillMaxWidth()
-            .clickable { beiOeffnen(aufgabe) }
+            .combinedClickable(onClick = { beiOeffnen(aufgabe) }, onLongClickLabel = properties, onLongClick = beiEigenschaften)
             .padding(start = einzug, end = 14.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.Top
     ) {

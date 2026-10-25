@@ -334,7 +334,7 @@ def test_capability_and_grant_schemas_are_strict():
     assert phone.validate_grants(grants) is grants
     assert set(capabilities["items"]) == phone.CAPABILITY_NAMES
     assert capabilities["items"]["device_status"]["versions"] == [1, 2, 3, 4, 5, 7, 8, 12]
-    assert capabilities["items"]["personal_tasks_sync"]["versions"] == [1, 2, 3, 4, 6, 7, 9, 10, 13]
+    assert capabilities["items"]["personal_tasks_sync"]["versions"] == [1, 2, 3, 4, 6, 7, 9, 10, 13, 14]
     assert grants["grants"] == {"device_status": True, "dial_request": True,
             "selected_notifications_readonly": False, "incoming_call_state": False,
             "incoming_call_number": False, "answer_call": False, "end_call": False,
@@ -384,8 +384,8 @@ def test_control_contract_matches_android_golden():
     # contract test does. Current desktop offers add these exact role versions.
     current = json.loads(json.dumps(golden["desktop_capabilities"]))
     for name, added in {"device_status": [7, 8, 12],
-                        "personal_notes_sync": [9, 10],
-                        "personal_tasks_sync": [9, 10, 13]}.items():
+                        "personal_notes_sync": [9, 10, 14],
+                        "personal_tasks_sync": [9, 10, 13, 14]}.items():
         current[name]["versions"] += added
     assert phone.desktop_capabilities(bluetooth_available=True)["items"] == current
     assert phone.desktop_grants()["grants"] == golden["desktop_grants"]

@@ -1023,6 +1023,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     beiNeu = {
                         ablage.setzeNotizEntwurf(Notiz(
                             id = Ablage.kennung(),
+                            ursprungApp = "notes",
                             angelegt = System.currentTimeMillis(),
                             geaendert = System.currentTimeMillis()
                         ))
@@ -1044,6 +1045,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                         val id = Ablage.kennung()
                         ablage.setzeAufgabenEntwurf(Aufgabe(
                             id = id, uid = AufgabenHierarchie.stabileUid(id),
+                            ursprungApp = "notes",
                             angelegt = System.currentTimeMillis(),
                             geaendert = System.currentTimeMillis()
                         ))
@@ -1051,6 +1053,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                     beiTeilaufgabe = { parent ->
                         val id = Ablage.kennung()
                         ablage.setzeAufgabenEntwurf(Aufgabe(id = id, uid = AufgabenHierarchie.stabileUid(id),
+                            ursprungApp = "notes",
                             elternUid = parent.uid,
                             reihenfolge = bestand.aufgaben.count { it.elternUid == parent.uid },
                             angelegt = System.currentTimeMillis(), geaendert = System.currentTimeMillis()))

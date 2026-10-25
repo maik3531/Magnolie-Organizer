@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="eigenschaften_titel">Свойства</string>
+    <string name="eigenschaften_erstellt">Дата создания</string>
+    <string name="eigenschaften_geaendert">Дата изменения</string>
+    <string name="eigenschaften_ursprung">Исходное приложение</string>
+    <string name="eigenschaften_import">Импортировано из</string>
+    <string name="eigenschaften_verbindung">Источник соединения</string>
+    <string name="eigenschaften_unbekannt">Неизвестно</string>
+</resources>

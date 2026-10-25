@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="eigenschaften_titel">Vlastnosti</string>
+    <string name="eigenschaften_erstellt">Datum vytvoření</string>
+    <string name="eigenschaften_geaendert">Datum změny</string>
+    <string name="eigenschaften_ursprung">Původní aplikace</string>
+    <string name="eigenschaften_import">Převzato z</string>
+    <string name="eigenschaften_verbindung">Zdroj připojení</string>
+    <string name="eigenschaften_unbekannt">Neznámé</string>
+</resources>

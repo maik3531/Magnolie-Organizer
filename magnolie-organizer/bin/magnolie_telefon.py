@@ -90,9 +90,9 @@ def desktop_capabilities(revision=1, bluetooth_available=False,
                        "reason": "available" if available else (
                            bluetooth_reason if name == "transport.bluetooth_rfcomm"
                            else "not_implemented"),
-                          "versions": [1, 2, 3, 4, 6, 7, 9, 10, 13] if name == "personal_tasks_sync" else
+                          "versions": [1, 2, 3, 4, 6, 7, 9, 10, 13, 14] if name == "personal_tasks_sync" else
                                         [1, 2, 3, 4, 5, 7, 8, 12] if name == "device_status" else
-                                       [1, 2, 3, 5, 9, 10] if name == "personal_notes_sync" else
+                                       [1, 2, 3, 5, 9, 10, 14] if name == "personal_notes_sync" else
                                      [2] if name == "incoming_call_state" else [1]}
     return {"revision": revision, "items": items}
 
@@ -148,7 +148,7 @@ def personal_sync_grants_needed(kind, body):
 def negotiated_personal_notes_format(peer):
     versions = (((peer or {}).get("capabilities") or {}).get("items") or {}).get(
         "personal_notes_sync", {}).get("versions", [])
-    return max((version for version in versions if version in (1, 2, 3)), default=1)
+    return max((version for version in versions if version in (1, 2, 3, 14)), default=1)
 
 
 def supports_personal_format(peer, capability, format):
@@ -1578,8 +1578,8 @@ class PhoneStore:
         this persisted record cannot reconstruct that evidence after reconnect.
         """
         validate_personal_sync_body("personal_sync.request", request)
-        if request.get("format") != 3:
-            raise ValueError("scoped runs require record format 3")
+        if request.get("format") not in (3, 14):
+            raise ValueError("scoped runs require record format 3 or 14")
         content_scope_contract.validate_reference(reference)
         shared_key, local = self._shared_settings_binding(peer_id, expected_public)
         run_id = request["run_id"]
@@ -4145,10 +4145,13 @@ class PhoneService:
                 raise PermissionError("actor_saved_reply_changed")
             if not isinstance(batches, list) or not 1 <= len(batches) <= 4096:
                 raise ValueError("invalid_actor_reply_batches")
+            request = self.store.personal_run(personal_actor_contract.storage_peer(handle.actor_id), handle.actor_id)
+            if not request:
+                raise PermissionError("actor_request_missing")
             records = []
             for index, batch in enumerate(batches):
                 validate_personal_sync_body("personal_sync.batch", batch)
-                if (batch["format"] != 3 or batch["run_id"] != handle.actor_id or batch["reply"] is not True or
+                if (batch["format"] != request["format"] or batch["run_id"] != handle.actor_id or batch["reply"] is not True or
                         batch["sequence"] != index or batch["last"] is not (index == len(batches) - 1)):
                     raise ValueError("inconsistent_actor_reply")
                 records.extend(batch["records"])
@@ -4227,7 +4230,7 @@ class PhoneService:
         if len(admission["outbound"]) >= 4096:
             raise RuntimeError("actor_capacity")
         now = now_ms(); started = admission["start"]["created_ms"]
-        report = {"format": 3, "run_id": handle.actor_id, "state": "complete", "trigger": "manual", "transport": self.connection_transports[admission["peer"]],
+        report = {"format": batch["messages"][-1]["body"]["format"], "run_id": handle.actor_id, "state": "complete", "trigger": "manual", "transport": self.connection_transports[admission["peer"]],
             "sent": {name: sum(record["kind"] == kind for record in batch["records"]) for kind, name in (("note", "notes"), ("task", "tasks"), ("notebook", "notebooks"))},
             "received": admission["commit_plan"]["received"], "conflicts": 0, "attachments_omitted": 0, "oversized_skipped": 0,
             "started_ms": started, "finished_ms": max(started, now), "error": "none",
@@ -4332,8 +4335,11 @@ class PhoneService:
                         "personal_sync.attachment_request", "personal_sync.attachment_result",
                         "personal_sync.deletion_proposals", "personal_sync.deletion_decision"):
                     return
-                if kind == "personal_sync.request" and (content.get("format") != 3 or content.get("trigger") != "manual"):
+                if kind == "personal_sync.request" and (content.get("format") not in (3, 14) or content.get("trigger") != "manual"):
                     raise ValueError("invalid_actor_request")
+                if kind == "personal_sync.request" and content["format"] == 14 and any(
+                        not supports_personal_format(peer, name, 14) for name in personal_sync_grants_needed(kind, content)):
+                    raise ValueError("actor_format_not_negotiated")
                 if kind == "personal_sync.batch" and len(content_scope_contract.filter_records(content["records"], manifest)) != len(content["records"]):
                     raise PermissionError("actor_record_outside_scope")
                 storage_peer = personal_actor_contract.storage_peer(run)
@@ -5251,7 +5257,7 @@ class PhoneService:
         format = body.get("format", 1)
         if format >= 2 and "personal_notes_sync" in needed and negotiated_personal_notes_format(peer) < 2:
             raise RuntimeError("Attachment-Format 2 wird von der Gegenstelle nicht unterstützt.")
-        if format == 3 and any(not supports_personal_format(peer, name, 3) for name in needed):
+        if format in (3, 14) and any(not supports_personal_format(peer, name, format) for name in needed):
             raise RuntimeError("Personal-Sync-Format 3 wurde nicht ausgehandelt.")
         if kind == "personal_sync.request":
             trigger = body["trigger"]
@@ -5318,7 +5324,7 @@ class PhoneService:
         """Validate and durably stage one complete attachment-capable direction."""
         validate_personal_sync_body("personal_sync.request", request)
         format = request["format"]
-        if format not in (2, 3) or not isinstance(batches, list) or not batches:
+        if format not in (2, 3, 14) or not isinstance(batches, list) or not batches:
             raise ValueError("invalid format 2 run")
         for body in batches:
             validate_personal_sync_body("personal_sync.batch", body)
@@ -5352,7 +5358,7 @@ class PhoneService:
                 or not peer.get("personal_sync", {}).get("remote_own_device")
                 or any(not local.get(name) or not remote.get(name) for name in needed)
                 or ("personal_notes_sync" in needed and negotiated_personal_notes_format(peer) < 2)
-                or (format == 3 and any(not supports_personal_format(peer, name, 3)
+                or (format in (3, 14) and any(not supports_personal_format(peer, name, format)
                                        for name in needed))):
             raise RuntimeError("Persoenlicher Sync ist nicht beidseitig freigegeben.")
         descriptors = {item["sha256"]: item for record in records if record["kind"] == "note"
@@ -7020,7 +7026,7 @@ class PhoneService:
                 format = value.get("format", 1)
                 if format >= 2 and "personal_notes_sync" in needed and negotiated_personal_notes_format(peer) < 2:
                     raise ValueError("format 2 was not negotiated")
-                if format == 3 and any(not supports_personal_format(peer, name, 3) for name in needed):
+                if format in (3, 14) and any(not supports_personal_format(peer, name, format) for name in needed):
                     raise ValueError("format 3 was not negotiated")
                 if (kind != "personal_sync.settings" and (self.store.sole_peer(
                         peer["device_id"]) is None or not personal.get("own_device")

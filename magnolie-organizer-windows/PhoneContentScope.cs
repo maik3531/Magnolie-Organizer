@@ -110,7 +110,8 @@ internal static class PhoneContentScope
         if (Number(value, "format") != Version || !DataKinds.Contains(kind) || value["scope"] is not JsonObject scope || value["body"] is not JsonObject body)
             throw new InvalidDataException("Invalid scoped data envelope.");
         ValidateReference(scope);
-        if (Number(body, "format") != (kind == "personal_sync.deletion_proposals" ? 1 : kind.StartsWith("personal_sync.attachment_", StringComparison.Ordinal) ? 2 : 3))
+        var formats = kind == "personal_sync.deletion_proposals" ? new long[] { 1 } : kind.StartsWith("personal_sync.attachment_", StringComparison.Ordinal) ? new long[] { 2 } : new long[] { 3, 14 };
+        if (!formats.Contains(Number(body, "format")))
             throw new InvalidDataException("Invalid scoped record format.");
         PersonalSyncContract.ValidateBody(kind, body);
         if (TelefonCrypto.Canonical(value).Length > 256 * 1024) throw new InvalidDataException("Scoped data envelope too large.");

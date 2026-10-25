@@ -1,0 +1,23 @@
+{
+  "keys": ["eigenschaften_titel", "eigenschaften_erstellt", "eigenschaften_geaendert", "eigenschaften_ursprung", "eigenschaften_import", "eigenschaften_verbindung", "eigenschaften_unbekannt"],
+  "en": ["Properties", "Created", "Modified", "Original application", "Imported from", "Connection source", "Unknown"],
+  "de": ["Eigenschaften", "Erstellungsdatum", "Änderungsdatum", "Ursprüngliche Anwendung", "Übernommen aus", "Verbindungsquelle", "Unbekannt"],
+  "fr": ["Propriétés", "Date de création", "Date de modification", "Application d’origine", "Importé depuis", "Source de connexion", "Inconnu"],
+  "es": ["Propiedades", "Fecha de creación", "Fecha de modificación", "Aplicación original", "Importado desde", "Origen de conexión", "Desconocido"],
+  "it": ["Proprietà", "Data di creazione", "Data di modifica", "Applicazione originale", "Importato da", "Origine della connessione", "Sconosciuto"],
+  "nl": ["Eigenschappen", "Aanmaakdatum", "Wijzigingsdatum", "Oorspronkelijke toepassing", "Overgenomen uit", "Verbindingsbron", "Onbekend"],
+  "pt": ["Propriedades", "Data de criação", "Data de alteração", "Aplicação original", "Importado de", "Origem da ligação", "Desconhecido"],
+  "da": ["Egenskaber", "Oprettelsesdato", "Ændringsdato", "Oprindeligt program", "Importeret fra", "Forbindelseskilde", "Ukendt"],
+  "nb": ["Egenskaper", "Opprettelsesdato", "Endringsdato", "Opprinnelig program", "Importert fra", "Tilkoblingskilde", "Ukjent"],
+  "pl": ["Właściwości", "Data utworzenia", "Data modyfikacji", "Pierwotna aplikacja", "Zaimportowano z", "Źródło połączenia", "Nieznane"],
+  "cs": ["Vlastnosti", "Datum vytvoření", "Datum změny", "Původní aplikace", "Převzato z", "Zdroj připojení", "Neznámé"],
+  "hsb": ["Kajkosće", "Datum wutworjenja", "Datum změny", "Spóčatne nałoženje", "Přewzate z", "Žórło zwiska", "Njeznate"],
+  "ru": ["Свойства", "Дата создания", "Дата изменения", "Исходное приложение", "Импортировано из", "Источник соединения", "Неизвестно"],
+  "uk": ["Властивості", "Дата створення", "Дата зміни", "Початковий застосунок", "Імпортовано з", "Джерело з’єднання", "Невідомо"],
+  "be": ["Уласцівасці", "Дата стварэння", "Дата змянення", "Зыходная праграма", "Імпартавана з", "Крыніца злучэння", "Невядома"],
+  "tr": ["Özellikler", "Oluşturulma tarihi", "Değiştirilme tarihi", "Özgün uygulama", "İçe aktarılan kaynak", "Bağlantı kaynağı", "Bilinmiyor"],
+  "hi": ["गुण", "बनाने की तारीख", "बदलाव की तारीख", "मूल ऐप", "यहाँ से आयातित", "कनेक्शन का स्रोत", "अज्ञात"],
+  "ja": ["プロパティ", "作成日時", "変更日時", "元のアプリ", "取り込み元", "接続元", "不明"],
+  "zh_CN": ["属性", "创建时间", "修改时间", "原始应用", "导入来源", "连接来源", "未知"],
+  "ar": ["الخصائص", "تاريخ الإنشاء", "تاريخ التعديل", "التطبيق الأصلي", "تم الاستيراد من", "مصدر الاتصال", "غير معروف"]
+}

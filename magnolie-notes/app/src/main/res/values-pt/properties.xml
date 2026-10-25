@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="eigenschaften_titel">Propriedades</string>
+    <string name="eigenschaften_erstellt">Data de criação</string>
+    <string name="eigenschaften_geaendert">Data de alteração</string>
+    <string name="eigenschaften_ursprung">Aplicação original</string>
+    <string name="eigenschaften_import">Importado de</string>
+    <string name="eigenschaften_verbindung">Origem da ligação</string>
+    <string name="eigenschaften_unbekannt">Desconhecido</string>
+</resources>

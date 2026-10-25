@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="eigenschaften_titel">Уласцівасці</string>
+    <string name="eigenschaften_erstellt">Дата стварэння</string>
+    <string name="eigenschaften_geaendert">Дата змянення</string>
+    <string name="eigenschaften_ursprung">Зыходная праграма</string>
+    <string name="eigenschaften_import">Імпартавана з</string>
+    <string name="eigenschaften_verbindung">Крыніца злучэння</string>
+    <string name="eigenschaften_unbekannt">Невядома</string>
+</resources>

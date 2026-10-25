@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="eigenschaften_titel">属性</string>
+    <string name="eigenschaften_erstellt">创建时间</string>
+    <string name="eigenschaften_geaendert">修改时间</string>
+    <string name="eigenschaften_ursprung">原始应用</string>
+    <string name="eigenschaften_import">导入来源</string>
+    <string name="eigenschaften_verbindung">连接来源</string>
+    <string name="eigenschaften_unbekannt">未知</string>
+</resources>

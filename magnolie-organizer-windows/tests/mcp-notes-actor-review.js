@@ -7,17 +7,17 @@ harness._compile(fs.readFileSync(file, "utf8").split("async function run(web)")[
 const tick = () => new Promise(resolve => setImmediate(resolve)), plain = value => JSON.parse(JSON.stringify(value));
 const watchdog = setTimeout(() => { console.error("Notes actor review test timed out"); process.exit(1); }, 30000);
 (async () => {
-  for (const web of harness.exports.roots) for (const scenario of ["success", "cancel_create", "cancel_read", "source_changed", "session_closed", "bad_digest", "bad_offset", "outside_scope", "draft", "stale", "capacity",
+  for (const web of harness.exports.roots) for (const recordFormat of [3, 14]) for (const scenario of ["success", "cancel_create", "cancel_read", "source_changed", "session_closed", "bad_digest", "bad_offset", "outside_scope", "draft", "stale", "capacity",
     "commit", "commit_remote", "commit_save_failed", "commit_checkpoint_failed", "commit_stale", "commit_deletions", "commit_stage_changed", "commit_cancel_save", "commit_late_draft", "decision_delete", "decision_restore", "decision_cancel"]) {
     const b = await harness.exports.boot(web, { personalSync: { actor_id: "11111111-1111-4111-8111-111111111111" },
-      notizen: [{ id: "phone-note", titel: "Owned", text: "Original" }, { id: "desktop-only", titel: "Private", text: "Never send this" }] });
+      notizen: [{ id: "phone-note", titel: "Owned", text: "Original", ursprungApp: "notes" }, { id: "desktop-only", titel: "Private", text: "Never send this" }] });
     try {
       if (b.saves().length) b.ack(); await tick();
       b.w.eval(fs.readFileSync(path.join(web, "mcp-protocol.js"), "utf8"));
       const owner = "a".repeat(48), target = { peer_id: "22222222-2222-4222-8222-222222222222", fingerprint: "ABCD-1234-5678-90EF" };
       const actorId = "44444444-4444-4444-8444-444444444444", ownerToken = "d".repeat(64);
       const selection = { notes: new b.w.Set(["phone-note"]), tasks: new b.w.Set() };
-      const local = (await b.t.personalSyncSnapshot(["notes"], 3, target.peer_id, { selection, independentRemovals: true })).find(record => record.kind === "note");
+      const local = (await b.t.personalSyncSnapshot(["notes"], recordFormat, target.peer_id, { selection, independentRemovals: true })).find(record => record.kind === "note");
       const incoming = plain(local), image = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3]);
       const imageHash = createHash("sha256").update(image).digest("hex");
       incoming.value.text = "Incoming Grüße 🌸"; incoming.value.modified_ms++;
@@ -27,7 +27,7 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
       incoming.clock.sort((a, z) => a.actor_id.localeCompare(z.actor_id));
       if (scenario === "outside_scope") incoming.id = "outside-scope";
       const members = { notes: ["phone-note"], tasks: [] };
-      const projection = { request: { format: 3, run_id: actorId, trigger: "manual", modules: ["notes"] },
+      const projection = { request: { format: recordFormat, run_id: actorId, trigger: "manual", modules: ["notes"] },
         content_scope: { format: 10, epoch: "55555555-5555-4555-8555-555555555555", revision: 1,
           scope_hash: await b.t.personalSyncHash(members), members }, intents: [],
         batch: { message_id: "66666666-6666-4666-8666-666666666666", commit_token: "77777777-7777-4777-8777-777777777777",
@@ -65,6 +65,8 @@ const watchdog = setTimeout(() => { console.error("Notes actor review test timed
         } else if (r.action === "notes_actor_reply") {
           assert.equal(coreCommits, 1, "Reply queued before the actual native core commit");
           assert.equal(r.claimToken, "e".repeat(64));
+          assert.ok(r.batches.every(batch => batch.format === recordFormat), "Actor reply changed its negotiated format");
+          if (recordFormat === 14) assert.ok(r.batches.flatMap(batch => batch.records).filter(record => record.kind === "note").every(record => record.value.origin_app === "notes"));
           assert.ok(r.batches.flatMap(batch => batch.records).some(record => record.kind === "note" && record.value.text === "Incoming Grüße 🌸"));
           response = { actor: { reply_queued: true, message_count: r.batches.length, book_persisted: true, phone_persisted: false, delivery_confirmed: false } };
         }

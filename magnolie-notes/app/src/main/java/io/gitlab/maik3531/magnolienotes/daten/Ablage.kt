@@ -661,7 +661,7 @@ class Ablage private constructor(
     }
 
     fun personalSyncSnapshotMitAnhaengen(modules: Set<String>, format: Int = 2): PersonalSyncSnapshot = synchronized(sperre) {
-        require(format in 2..3)
+        require(format in setOf(2, 3, EintragsUrsprung.FORMAT))
         val (neu, records) = PersonalSync.reconcile(_bestand.value, modules, format)
         if (neu != _bestand.value) schreibeBestand(neu)
         val attachments = linkedMapOf<String, PersonalSync.AttachmentSnapshot>()
@@ -675,10 +675,11 @@ class Ablage private constructor(
 
     fun personalSyncCounter(): Long = synchronized(sperre) { _bestand.value.personalSync.counter }
 
-    internal fun personalSyncScopedSnapshot(selection: PersonalContentSelection, peerId: String): PersonalSyncSnapshot = synchronized(sperre) {
+    internal fun personalSyncScopedSnapshot(selection: PersonalContentSelection, peerId: String, format: Int = 3): PersonalSyncSnapshot = synchronized(sperre) {
         schreibbar()
         require(PersonalSync.livePersonalContent(_bestand.value) == selection)
-        val (next, records) = PersonalSync.reconcile(_bestand.value, setOf("notes", "tasks"), 3, peerId,
+        require(format in setOf(3, EintragsUrsprung.FORMAT))
+        val (next, records) = PersonalSync.reconcile(_bestand.value, setOf("notes", "tasks"), format, peerId,
             selection = selection, independentRemovals = true)
         if (next != _bestand.value) schreibeBestand(next)
         val attachments = linkedMapOf<String, PersonalSync.AttachmentSnapshot>()

@@ -403,7 +403,7 @@ object PersonalSync {
                   peerId: String = input.personalSync.peer_device_id,
                   nowMs: Long = System.currentTimeMillis(), selection: PersonalContentSelection? = null,
                   independentRemovals: Boolean = false): Pair<Bestand, List<PersonalSyncRecord>> {
-        require(format in 1..3)
+        require(format in setOf(1, 2, 3, EintragsUrsprung.FORMAT))
         var state = input.personalSync
         val actor = state.actor_id.takeIf(uuid4::matches) ?: UUID.randomUUID().toString()
         var counter = state.counter.coerceAtLeast(0)
@@ -906,7 +906,7 @@ object PersonalSync {
             return wireAttachment(input.personalSync, proposal.parent_id, attachment)?.let { hash(it.descriptor) == proposal.prior_hash } == true
         }
         val local = if (proposal.kind in setOf("note", "notebook")) noteLocalId(input, proposal.id, proposal.kind) else proposal.id
-        return (1..3).any { format ->
+        return listOf(1, 2, 3, EintragsUrsprung.FORMAT).any { format ->
             val value = when (proposal.kind) {
                 "note" -> input.notizen.firstOrNull { it.id == local && ownNote(it) }
                     ?.let { noteValue(it, format, input.personalSync) }
@@ -922,18 +922,20 @@ object PersonalSync {
         "title" to JsonPrimitive(value.titel), "text" to JsonPrimitive(value.text), "html" to JsonPrimitive(value.html),
         "notebook_id" to JsonPrimitive(if (state == null) value.notizbuchId else noteWireId(state, value.notizbuchId, "notebook")), "symbol" to JsonPrimitive(value.symbol),
         "created_ms" to JsonPrimitive(value.angelegt.coerceAtLeast(0)), "modified_ms" to JsonPrimitive(value.geaendert.coerceAtLeast(0))) +
-        if (format >= 2) mapOf("attachments" to JsonArray(value.anhaenge.mapNotNull {
+        (if (format >= 2) mapOf("attachments" to JsonArray(value.anhaenge.mapNotNull {
             if (state == null) attachmentDescriptor(it) else wireAttachment(state, noteWireId(state, value.id), it)
-        }.take(64).map { it.descriptor })) else emptyMap())
+        }.take(64).map { it.descriptor })) else emptyMap()) +
+        (if (format == EintragsUrsprung.FORMAT) mapOf("origin_app" to JsonPrimitive(EintragsUrsprung.bekannt(value.ursprungApp))) else emptyMap()))
 
     private fun taskValue(value: Aufgabe, format: Int) = JsonObject(linkedMapOf(
         "title" to JsonPrimitive(value.titel), "note" to JsonPrimitive(value.notiz), "due" to JsonPrimitive(value.faellig),
         "priority" to JsonPrimitive(value.prio), "completed" to JsonPrimitive(value.erledigt), "remind" to JsonPrimitive(value.erinnern),
         "lead_days" to JsonPrimitive(value.vorlaufTage), "reminder_minute" to JsonPrimitive(value.erinnerungsMinute),
         "created_ms" to JsonPrimitive(value.angelegt.coerceAtLeast(0)), "modified_ms" to JsonPrimitive(value.geaendert.coerceAtLeast(0))) +
-        if (format == 3) mapOf("uid" to JsonPrimitive(value.uid),
+        (if (format in setOf(3, EintragsUrsprung.FORMAT)) mapOf("uid" to JsonPrimitive(value.uid),
             "parent_uid" to JsonPrimitive(value.elternUid), "order" to JsonPrimitive(value.reihenfolge.coerceAtLeast(0)))
-        else emptyMap())
+        else emptyMap()) +
+        (if (format == EintragsUrsprung.FORMAT) mapOf("origin_app" to JsonPrimitive(EintragsUrsprung.bekannt(value.ursprungApp))) else emptyMap()))
 
     private fun notebookValue(value: Notizbuch) = JsonObject(linkedMapOf(
         "name" to JsonPrimitive(value.name), "modified_ms" to JsonPrimitive(0)))
@@ -952,7 +954,8 @@ object PersonalSync {
         return io.gitlab.maik3531.magnolienotes.baum.NotizQuellen.lokaleAenderung(old, (old ?: Notiz(record.id)).copy(
             id = record.id, titel = record.value.text("title"), text = record.value.text("text"), html = record.value.text("html"),
             notizbuchId = record.value.text("notebook_id"), symbol = record.value.text("symbol"),
-            angelegt = record.value.longValue("created_ms"), geaendert = record.modifiedMs, anhaenge = merged))
+            angelegt = record.value.longValue("created_ms"), geaendert = record.modifiedMs, anhaenge = merged,
+            ursprungApp = EintragsUrsprung.erhalten(old?.ursprungApp, record.value.optionalText("origin_app"))))
     }
 
     private fun mergeAttachments(local: List<Anhang>, remote: List<Anhang>): List<Anhang> {
@@ -976,6 +979,7 @@ object PersonalSync {
         erinnern = record.value.bool("remind"), vorlaufTage = record.value.longValue("lead_days").toInt(),
         erinnerungsMinute = record.value.longValue("reminder_minute").toInt(), angelegt = record.value.longValue("created_ms"),
         geaendert = record.modifiedMs,
+        ursprungApp = EintragsUrsprung.erhalten(old?.ursprungApp, record.value.optionalText("origin_app")),
         uid = record.value.optionalText("uid") ?: old?.uid.orEmpty(),
         elternUid = record.value.optionalText("parent_uid") ?: old?.elternUid.orEmpty(),
         reihenfolge = record.value.optionalLong("order")?.coerceAtMost(Int.MAX_VALUE.toLong())?.toInt()

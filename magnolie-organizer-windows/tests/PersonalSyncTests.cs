@@ -51,6 +51,19 @@ internal static class PersonalSyncTests
         TestAssert.Throws<InvalidDataException>(() => PersonalSyncContract.ValidateBody("personal_sync.batch",
             Batch("45454545-4545-4545-8545-454545454545", task3Record.DeepClone().AsObject(), 2)),
             "Format 2 akzeptierte AufgabenGraph-Felder aus Format 3.");
+        foreach (var (kind, legacy) in new[] { ("note", format2Value), ("task", task3Value) })
+        foreach (var origin in new[] { "", "notes", "organizer" })
+        {
+            var provenance = legacy.DeepClone().AsObject(); provenance["origin_app"] = origin;
+            var record = Record(kind, "provenance-1", provenance, format: 14);
+            PersonalSyncContract.ValidateBody("personal_sync.batch", Batch("45454545-4545-4545-8545-454545454545", record, 14));
+            TestAssert.That(PersonalSyncContract.ProjectionHash(legacy) != PersonalSyncContract.ProjectionHash(provenance), "Provenance is missing from the projection hash.");
+            TestAssert.Throws<InvalidDataException>(() => PersonalSyncContract.ValidateBody("personal_sync.batch",
+                Batch("45454545-4545-4545-8545-454545454545", record.DeepClone().AsObject(), 3)), "Legacy record format accepted provenance.");
+            var invalidOrigin = provenance.DeepClone().AsObject(); invalidOrigin["origin_app"] = "last_sender";
+            TestAssert.Throws<InvalidDataException>(() => PersonalSyncContract.ValidateBody("personal_sync.batch",
+                Batch("45454545-4545-4545-8545-454545454545", Record(kind, "provenance-1", invalidOrigin, format: 14), 14)), "Invalid provenance accepted.");
+        }
 
         var tempRoot = Path.Combine(Path.GetTempPath(), "magnolie-personal-tests-" + Guid.NewGuid().ToString("N"));
         try
@@ -276,26 +289,29 @@ internal static class PersonalSyncTests
         var capabilities = TelefonProtocolContract.DesktopCapabilities()["items"]!.DeepClone().AsObject();
         // This restart fixture exercises the pre-V5 protocol without a live
         // connection. V5 replay must wait for the new connection's policy echoes.
-        capabilities["personal_notes_sync"]!["versions"] = new JsonArray(1, 2, 3);
+        capabilities["personal_notes_sync"]!["versions"] = new JsonArray(1, 2, 3, 14);
         store.SavePeers([new TelefonPeer(peer, "Synthetic", TelefonCrypto.GenerateX25519().Public,
             StoredCapabilities: capabilities, StoredGrants: new JsonObject { ["personal_tasks_sync"] = true, ["personal_notes_sync"] = true })]);
         store.SetLocalGrant("personal_tasks_sync", true); store.SetLocalGrant("personal_notes_sync", true);
         store.SetPersonalSettings(peer, ownDevice: true, remoteOwnDevice: true);
         var emitted = new List<JsonObject>();
         Task Emit(string name, object payload) { if (name == "App.telefonPersonalSync") emitted.Add(System.Text.Json.JsonSerializer.SerializeToNode(payload)!.AsObject()); return Task.CompletedTask; }
-        foreach (var format in new[] { 1, 2, 3 })
+        foreach (var format in new[] { 1, 2, 3, 14 })
         {
             var run = Guid.NewGuid().ToString(); var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            var request = new JsonObject { ["format"] = format, ["run_id"] = run, ["trigger"] = "manual", ["modules"] = format == 3 ? new JsonArray("notes", "tasks") : new JsonArray("tasks") };
+            var request = new JsonObject { ["format"] = format, ["run_id"] = run, ["trigger"] = "manual", ["modules"] = format is 3 or 14 ? new JsonArray("notes", "tasks") : new JsonArray("tasks") };
             using (var sender = new TelefonCoordinator(paths, Emit, dataStore: store))
                 await sender.SendPersonalSyncAsync(peer, "personal_sync.request", request);
             var value = task3Value.DeepClone().AsObject();
-            if (format != 3) { value.Remove("uid"); value.Remove("parent_uid"); value.Remove("order"); }
+            if (format is not (3 or 14)) { value.Remove("uid"); value.Remove("parent_uid"); value.Remove("order"); }
+            if (format == 14) value["origin_app"] = "notes";
             var body = Batch(run, Record("task", "task-1", value, format), format); body["batch_id"] = Guid.NewGuid().ToString();
-            if (format == 3)
+            if (format is 3 or 14)
             {
-                body["records"]!.AsArray().Insert(0, Record("note", "note-1", new JsonObject { ["title"] = "Note", ["text"] = "Text", ["html"] = "", ["notebook_id"] = "book",
-                    ["symbol"] = "note", ["created_ms"] = 1, ["modified_ms"] = 2, ["attachments"] = new JsonArray() }, 3));
+                var noteValue = new JsonObject { ["title"] = "Note", ["text"] = "Text", ["html"] = "", ["notebook_id"] = "book",
+                    ["symbol"] = "note", ["created_ms"] = 1, ["modified_ms"] = 2, ["attachments"] = new JsonArray() };
+                if (format == 14) noteValue["origin_app"] = "organizer";
+                body["records"]!.AsArray().Insert(0, Record("note", "note-1", noteValue, format));
                 body["records_hash"] = PersonalSyncContract.RecordsHash(body["records"]!.AsArray());
             }
             var message = Message("personal_sync.batch", body, now, now + 60_000, Guid.NewGuid().ToString());
@@ -313,7 +329,7 @@ internal static class PersonalSyncTests
             var outgoing = await receiver.SendPersonalSyncAsync(peer, "personal_sync.batch", reply);
             TestAssert.That(restartedStore.OutboxMessage(peer, outgoing)?["body"]?["format"]?.GetValue<int>() == format,
                 "Reply did not retain the existing negotiated run format.");
-            if (format == 3)
+            if (format is 3 or 14)
             {
                 var downgraded = Batch(run, Record("task", "task-1", new JsonObject { ["title"] = "Task", ["note"] = "", ["due"] = "", ["priority"] = 2,
                     ["completed"] = false, ["remind"] = false, ["lead_days"] = 0, ["reminder_minute"] = 0, ["created_ms"] = 1, ["modified_ms"] = 2 }, 2), 2);

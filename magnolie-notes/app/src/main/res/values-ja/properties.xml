@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="eigenschaften_titel">プロパティ</string>
+    <string name="eigenschaften_erstellt">作成日時</string>
+    <string name="eigenschaften_geaendert">変更日時</string>
+    <string name="eigenschaften_ursprung">元のアプリ</string>
+    <string name="eigenschaften_import">取り込み元</string>
+    <string name="eigenschaften_verbindung">接続元</string>
+    <string name="eigenschaften_unbekannt">不明</string>
+</resources>

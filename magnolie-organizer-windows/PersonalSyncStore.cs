@@ -42,7 +42,7 @@ internal sealed class PersonalSyncStore(TelefonStore store)
     {
         if (store.RestoreFenced) throw new InvalidOperationException("restore_unavailable");
         PersonalSyncContract.ValidateBody("personal_sync.request", request); PhoneContentScope.ValidateReference(reference);
-        if (request["format"]!.GetValue<int>() != 3 || expires <= now) throw new InvalidDataException("Invalid scoped run.");
+        if (request["format"]!.GetValue<int>() is not (3 or 14) || expires <= now) throw new InvalidDataException("Invalid scoped run.");
         using var db = store.OpenDatabase(); db.Open(); using var transaction = db.BeginTransaction();
         var settings = store.SharedSettings(peerId, expectedPublic) ?? throw new InvalidOperationException("Shared preferences unavailable.");
         if (SharedSyncSettings.Effective(settings)["content_mode"]?.GetValue<string>() != "phone_scope")

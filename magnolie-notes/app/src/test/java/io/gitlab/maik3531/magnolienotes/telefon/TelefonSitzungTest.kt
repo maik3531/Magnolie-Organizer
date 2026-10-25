@@ -97,7 +97,7 @@ class TelefonSitzungTest {
             (grants["grants"] as JsonObject).keys)
         assertEquals(listOf("1", "2", "3", "11", "12", "13"), (((capabilities["items"] as JsonObject)["device_status"] as JsonObject)
             ["versions"] as kotlinx.serialization.json.JsonArray).map { (it as JsonPrimitive).content })
-        assertEquals(listOf("1", "2", "3", "4", "6", "7", "9", "10", "13"), (((capabilities["items"] as JsonObject)["personal_tasks_sync"] as JsonObject)
+        assertEquals(listOf("1", "2", "3", "4", "6", "7", "9", "10", "13", "14"), (((capabilities["items"] as JsonObject)["personal_tasks_sync"] as JsonObject)
             ["versions"] as kotlinx.serialization.json.JsonArray).map { (it as JsonPrimitive).content })
         assertEquals(false, ((grants["grants"] as JsonObject)["dial_request"] as JsonPrimitive).content.toBoolean())
     }
@@ -114,8 +114,8 @@ class TelefonSitzungTest {
             if (name in setOf("personal_notes_sync", "personal_tasks_sync", "device_status")) JsonObject(value.jsonObject +
                 ("versions" to JsonArray(value.jsonObject.getValue("versions").jsonArray + when (name) {
                     "device_status" -> listOf(JsonPrimitive(11), JsonPrimitive(12), JsonPrimitive(13))
-                    "personal_tasks_sync" -> listOf(JsonPrimitive(9), JsonPrimitive(10), JsonPrimitive(13))
-                    else -> listOf(JsonPrimitive(9), JsonPrimitive(10))
+                    "personal_tasks_sync" -> listOf(JsonPrimitive(9), JsonPrimitive(10), JsonPrimitive(13), JsonPrimitive(14))
+                    else -> listOf(JsonPrimitive(9), JsonPrimitive(10), JsonPrimitive(14))
                 })))
             else value
         })

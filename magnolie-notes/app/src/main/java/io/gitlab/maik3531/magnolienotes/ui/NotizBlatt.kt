@@ -2,6 +2,8 @@ package io.gitlab.maik3531.magnolienotes.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -85,6 +87,11 @@ fun NotizBlatt(
     anzeige: ListenAnzeige = ListenAnzeige()
 ) {
     var suche by remember { mutableStateOf("") }
+    var eigenschaftenId by remember { mutableStateOf<String?>(null) }
+    notizen.firstOrNull { it.id == eigenschaftenId }?.let { value ->
+        EintragsEigenschaften(value.anzeigeTitel, value.angelegt, value.geaendert, value.ursprungApp,
+            importQuelle = value.herkunft, beiSchliessen = { eigenschaftenId = null })
+    }
     val gesucht = remember(notizen, suche) {
         if (suche.isBlank()) notizen else notizen.filter {
             it.titel.contains(suche, true) || it.text.contains(suche, true)
@@ -158,7 +165,8 @@ fun NotizBlatt(
                     Notizzeile(
                         notiz = notiz,
                         buchname = notizbuecher.firstOrNull { it.id == notiz.notizbuchId }?.name.orEmpty(),
-                        beiKlick = { beiOeffnen(notiz) }
+                        beiKlick = { beiOeffnen(notiz) },
+                        beiEigenschaften = { eigenschaftenId = notiz.id }
                     )
                 }
             }
@@ -167,11 +175,13 @@ fun NotizBlatt(
 }
 
 @Composable
-private fun Notizzeile(notiz: Notiz, buchname: String, beiKlick: () -> Unit) {
+@OptIn(ExperimentalFoundationApi::class)
+private fun Notizzeile(notiz: Notiz, buchname: String, beiKlick: () -> Unit, beiEigenschaften: () -> Unit) {
+    val properties = stringResource(R.string.eigenschaften_titel)
     Row(
         Modifier
             .fillMaxWidth()
-            .clickable(onClick = beiKlick)
+            .combinedClickable(onClick = beiKlick, onLongClickLabel = properties, onLongClick = beiEigenschaften)
             .padding(horizontal = 14.dp, vertical = 9.dp),
         verticalAlignment = Alignment.Top
     ) {

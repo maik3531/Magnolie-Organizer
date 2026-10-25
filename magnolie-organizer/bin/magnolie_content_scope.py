@@ -114,8 +114,8 @@ def validate_data(value):
             or not isinstance(value.get("kind"), str) or value["kind"] not in DATA_KINDS or not isinstance(value.get("body"), dict)):
         raise ValueError("invalid scoped data envelope")
     validate_reference(value["scope"])
-    expected_format = 1 if value["kind"] == "personal_sync.deletion_proposals" else 2 if value["kind"].startswith("personal_sync.attachment_") else 3
-    if type(value["body"].get("format")) is not int or value["body"]["format"] != expected_format:
+    formats = (1,) if value["kind"] == "personal_sync.deletion_proposals" else (2,) if value["kind"].startswith("personal_sync.attachment_") else (3, 14)
+    if type(value["body"].get("format")) is not int or value["body"]["format"] not in formats:
         raise ValueError("invalid scoped record format")
     personal.validate_body(value["kind"], value["body"])
     if len(personal.canonical(value)) > personal.MAX_PACKET:
