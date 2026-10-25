@@ -364,6 +364,9 @@ msgstr ""
 "erreichbar, laufen Nachrichten über einen WebDAV-Ordner auf Ihrem Nextcloud-"
 "Server."
 
+msgid "A floating local time has no unique absolute instant."
+msgstr "Eine Ortszeit ohne Zeitzonenbindung hat keinen eindeutigen absoluten Zeitpunkt."
+
 msgid "A group with this name already exists."
 msgstr "Eine Gruppe mit diesem Namen ist bereits vorhanden."
 
@@ -618,6 +621,9 @@ msgstr "Alle sechs Diagramme"
 
 msgid "All states"
 msgstr "Alle Bundesländer"
+
+msgid "All-day dates are not converted into timed entries."
+msgstr "Ganztägige Datumsangaben werden nicht in Einträge mit Uhrzeit umgewandelt."
 
 msgid "Allow notifications despite password protection"
 msgstr "Benachrichtigungen trotz Kennwortschutz zulassen"
@@ -1107,9 +1113,6 @@ msgstr "Nach Nachnamen (Müller, Hans)"
 msgid "CSV / Lotus Organizer"
 msgstr "CSV / Lotus Organizer"
 
-msgid "CSV / Lotus Organizer contacts …"
-msgstr "CSV-/Lotus-Organizer-Kontakte …"
-
 msgid "CSV files (*.csv)"
 msgstr "CSV-Dateien (*.csv)"
 
@@ -1364,6 +1367,9 @@ msgstr "Ordner auswählen …"
 
 msgid "Choose local image…"
 msgstr "Eigenes Bild wählen…"
+
+msgid "Choose local-time planning to change clock fields."
+msgstr "Zum Ändern der Uhrzeiten die Ortszeitplanung wählen."
 
 msgid "Choose or enter a phone number"
 msgstr "Rufnummer wählen oder eingeben"
@@ -2000,6 +2006,12 @@ msgstr "Versandstatus ungewiss"
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Zahnarzt Dr. Berg — Vorschau Ihrer Einträge"
 
+msgid "Detect now"
+msgstr "Jetzt erkennen"
+
+msgid "Detected time zone"
+msgstr "Erkannte Zeitzone"
+
 msgid "Determining public IP address…"
 msgstr "Öffentliche IP-Adresse wird ermittelt …"
 
@@ -2130,6 +2142,9 @@ msgstr "Duplikate"
 
 msgid "Duration"
 msgstr "Dauer"
+
+msgid "Earlier occurrence"
+msgstr "Früheres Vorkommen"
 
 msgid "Early shift"
 msgstr "Frühdienst"
@@ -3058,6 +3073,14 @@ msgstr "Protokoll für die Fehlersuche führen"
 msgid "Keep existing"
 msgstr "Bisherige Angaben behalten"
 
+msgid "Keep instant"
+msgstr "Zeitpunkt beibehalten"
+
+msgid ""
+"Keep the original recurrence data; this local-time action is for individual "
+"entries."
+msgstr "Die ursprünglichen Seriendaten bleiben erhalten; diese Ortszeitaktion gilt für einzelne Einträge."
+
 msgid "LDIF"
 msgstr "LDIF"
 
@@ -3100,6 +3123,9 @@ msgstr "Spätdienst"
 msgctxt "time tracking"
 msgid "Late shift"
 msgstr "Spätdienst"
+
+msgid "Later occurrence"
+msgstr "Späteres Vorkommen"
 
 msgid "Lead time"
 msgstr "Vorlauf"
@@ -3179,9 +3205,6 @@ msgstr "Langzeitinsulin"
 
 msgid "Loose Notes"
 msgstr "Lose Notizen"
-
-msgid "Lotus Organizer CSV …"
-msgstr "Lotus-Organizer-CSV …"
 
 msgid "Lower Austria"
 msgstr "Niederösterreich"
@@ -3308,6 +3331,9 @@ msgstr "Benutzerdefiniert"
 msgctxt "time tracking"
 msgid "Manual entry"
 msgstr "Manueller Eintrag"
+
+msgid "Manual fallback"
+msgstr "Manueller Ersatzwert"
 
 msgid "Manual only"
 msgstr "Nur manuell"
@@ -3957,6 +3983,15 @@ msgstr "ODS"
 msgid "OK"
 msgstr "OK"
 
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, "
+"groups and other sections are skipped; layout, attachments, categories and "
+"alarms are not transferred."
+msgstr ""
+"OR6-Import: Termine, Aufgaben, Kontakte und Notiztext. Serien, Gruppen und "
+"andere Bereiche werden ausgelassen; Layout, Anhänge, Kategorien und "
+"Erinnerungen werden nicht übernommen."
+
 msgid "Objects"
 msgstr "Objekte"
 
@@ -4194,6 +4229,9 @@ msgstr "Im Stil des Organizers (Papierblatt)"
 msgid "Organizer · Calendar · Contacts · Notes"
 msgstr "Organizer · Kalender · Adressen · Notizen"
 
+msgid "Original time zone"
+msgstr "Ursprüngliche Zeitzone"
+
 msgid "Other"
 msgstr "Sonstiges"
 
@@ -4228,6 +4266,9 @@ msgstr "Eigene Rufnummer (Standard-Sprach-SIM)"
 
 msgid "Own profile"
 msgstr "Eigenes Profil"
+
+msgid "Own time zone"
+msgstr "Eigene Zeitzone"
 
 msgid "PDF file"
 msgstr "PDF-Datei"
@@ -4473,6 +4514,9 @@ msgstr "Foto von %(name)s"
 
 msgid "Pick up"
 msgstr "Abholen"
+
+msgid "Plan local time"
+msgstr "Ortszeit planen"
 
 msgid "Planner"
 msgstr "Planer"
@@ -5535,6 +5579,9 @@ msgstr "Sortierung"
 msgid "Sound only"
 msgstr "Nur Ton"
 
+msgid "Source"
+msgstr "Quelle"
+
 msgid "Sources"
 msgstr "Quellen"
 
@@ -5999,6 +6046,9 @@ msgstr "Der Anruf klingelt nicht mehr oder ist veraltet."
 msgid "The call is no longer ringing."
 msgstr "Der Anruf klingelt nicht mehr."
 
+msgid "The chosen local time could not be represented exactly."
+msgstr "Die gewählte Ortszeit konnte nicht exakt dargestellt werden."
+
 msgid "The clipboard is empty."
 msgstr "Die Zwischenablage ist leer."
 
@@ -6073,6 +6123,9 @@ msgstr "Die Zeichengrenze ist erreicht."
 
 msgid "The end date cannot be before the start date."
 msgstr "Das Enddatum darf nicht vor dem Anfang liegen."
+
+msgid "The end must not precede the start."
+msgstr "Das Ende darf nicht vor dem Beginn liegen."
 
 msgid "The entry could not be found."
 msgstr "Der Eintrag wurde nicht gefunden."
@@ -6214,6 +6267,9 @@ msgid ""
 msgstr ""
 "Der Organizer meldet sich, bevor ein Termin beginnt – auf Wunsch auch dann, "
 "wenn das Programm gar nicht geöffnet ist."
+
+msgid "The original calendar time cannot be resolved without guessing."
+msgstr "Die ursprüngliche Kalenderzeit lässt sich nicht ohne Vermutungen auflösen."
 
 msgid "The package could not be opened."
 msgstr "Das Paket ließ sich nicht öffnen."
@@ -6419,6 +6475,9 @@ msgstr "Der ausgewählte Eintrag ist zu groß zum Senden."
 msgid "The selected health records contain no printable values."
 msgstr "Die ausgewählten Gesundheitseinträge enthalten keine druckbaren Werte."
 
+msgid "The selected local time does not exist or is ambiguous."
+msgstr "Die gewählte Ortszeit existiert nicht oder ist mehrdeutig."
+
 msgid "The selected note contains attachments that cannot be sent."
 msgstr ""
 "Die ausgewählte Notiz enthält Anhänge, die nicht gesendet werden können."
@@ -6489,6 +6548,9 @@ msgid ""
 msgstr ""
 "Die Aufgabe wird an den gewählten Zweig geschickt. Sie bleibt auch hier "
 "stehen – Sie behalten den Überblick."
+
+msgid "The time zone could not be detected."
+msgstr "Die Zeitzone konnte nicht erkannt werden."
 
 msgid ""
 "The traffic-light colors are general reference ranges for adults, not a "
@@ -6585,6 +6647,9 @@ msgstr ""
 "Diese Optionen erfordern die entsprechenden Berechtigungen in Magnolie "
 "Notes. Anrufton wird nicht über die Magnolie-Datenverbindung übertragen."
 
+msgid "This action does not invent a task start or deadline."
+msgstr "Diese Aktion ergänzt keinen fehlenden Aufgabenbeginn oder Fälligkeitstermin."
+
 msgid "This address can be selected and copied."
 msgstr "Diese Anschrift lässt sich markieren und kopieren."
 
@@ -6613,6 +6678,9 @@ msgstr "Diese Sicherung lässt sich nicht verwenden."
 
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "Dieser Kalender unterstützt keine Aufgaben (VTODO)."
+
+msgid "This calendar source is read-only."
+msgstr "Diese Kalenderquelle ist schreibgeschützt."
 
 msgid ""
 "This choice also determines how names appear on contact cards and under "
@@ -6777,6 +6845,9 @@ msgstr "Zeiterfassung"
 
 msgid "Time zone"
 msgstr "Zeitzone"
+
+msgid "Time zone management"
+msgstr "Zeitzonenmanagement"
 
 msgid "Title"
 msgstr "Titel"
@@ -7841,6 +7912,12 @@ msgstr[1] "… und %(count)s weitere, die ebenfalls gedruckt werden."
 msgid "＋ Add appointment"
 msgstr "＋ Termin hinzufügen"
 
+#~ msgid "CSV / Lotus Organizer contacts …"
+#~ msgstr "CSV-/Lotus-Organizer-Kontakte …"
+
+#~ msgid "Lotus Organizer CSV …"
+#~ msgstr "Lotus-Organizer-CSV …"
+
 #~ msgid "Message"
 #~ msgstr "Nachricht"
 
@@ -8348,7 +8425,3 @@ msgstr "＋ Termin hinzufügen"
 #~ "erlaubt, Seriennummer und IMEI. Ab Android 10 sind Hardwarekennungen für "
 #~ "gewöhnliche Apps eingeschränkt. Die Rufnummernberechtigung ist "
 #~ "freiwillig; es wird keine Sonderrolle angefordert."
-
-#. OR6 native import limitations, issue #212.
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
-msgstr "OR6-Import: Termine, Aufgaben, Kontakte und Notiztext. Serien, Gruppen und andere Bereiche werden ausgelassen; Layout, Anhänge, Kategorien und Erinnerungen werden nicht übernommen."

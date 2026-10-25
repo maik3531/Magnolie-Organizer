@@ -426,6 +426,9 @@ msgstr ""
 "Rezerwowa puć za hałuzu baum-1: hdyž direktne zwiskowanje njeje docpějomne, "
 "du powěsće přez rjadowak WebDAV na wašim serwerje Nextcloud."
 
+msgid "A floating local time has no unique absolute instant."
+msgstr "Lokalny čas bjez časoweje cony nima jednozmyslny absolutny časowy dypk."
+
 msgid "A group with this name already exists."
 msgstr "Skupina z tutym mjenom hižo eksistuje."
 
@@ -674,6 +677,9 @@ msgstr "Wšě šěsć diagramow"
 
 msgid "All states"
 msgstr "Wšě zwjazkowe kraje"
+
+msgid "All-day dates are not converted into timed entries."
+msgstr "Cyłodnjowe daty so do zapiskow z časom njepřetworjeja."
 
 msgid "Allow notifications despite password protection"
 msgstr "Zdźělenki tež při škitje z hesłom dowolić"
@@ -1157,9 +1163,6 @@ msgstr "Po swójbnym mjenje (Müller, Hans)"
 msgid "CSV / Lotus Organizer"
 msgstr "CSV / Lotus Organizer"
 
-msgid "CSV / Lotus Organizer contacts …"
-msgstr "Kontakty CSV / Lotus Organizer …"
-
 msgid "CSV files (*.csv)"
 msgstr "CSV-dataje (*.csv)"
 
@@ -1408,6 +1411,9 @@ msgstr "Rjadowak wubrać …"
 
 msgid "Choose local image…"
 msgstr "Swójski wobraz wubrać…"
+
+msgid "Choose local-time planning to change clock fields."
+msgstr "Wubjerće planowanje w lokalnym času, zo byšće časy změnili."
 
 msgid "Choose or enter a phone number"
 msgstr "Telefonowe čisło wubrać abo zapodać"
@@ -2047,6 +2053,12 @@ msgstr "Status doručenja njejasny"
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Zubny lěkar dr. Hill — Přehlad wašich zapiskow"
 
+msgid "Detect now"
+msgstr "Nětko namakać"
+
+msgid "Detected time zone"
+msgstr "Namakana časowa cona"
+
 msgid "Determining public IP address…"
 msgstr "Zjewna IP-adresa so zwěsća…"
 
@@ -2177,6 +2189,9 @@ msgstr "Duplikaty"
 
 msgid "Duration"
 msgstr "Traće"
+
+msgid "Earlier occurrence"
+msgstr "Zažniši wustup"
 
 msgid "Early shift"
 msgstr "Zažna směna"
@@ -3095,6 +3110,14 @@ msgstr "Protokol za pytanje zmylkow wobchować"
 msgid "Keep existing"
 msgstr "Dotalne podaća wobchować"
 
+msgid "Keep instant"
+msgstr "Časowy dypk wobchować"
+
+msgid ""
+"Keep the original recurrence data; this local-time action is for individual "
+"entries."
+msgstr "Wobchowajće spóčatne daty wospjetowanja; tuta akcija lokalneho časa je za jednotliwe zapiski."
+
 msgid "LDIF"
 msgstr "LDIF"
 
@@ -3137,6 +3160,9 @@ msgstr "Pozdna směna"
 msgctxt "time tracking"
 msgid "Late shift"
 msgstr "Wječorna změna"
+
+msgid "Later occurrence"
+msgstr "Pozdźiši wustup"
 
 msgid "Lead time"
 msgstr "Předčas"
@@ -3216,9 +3242,6 @@ msgstr "Dołhodobnje skutkowacy insulin"
 
 msgid "Loose Notes"
 msgstr "Lózne noticy"
-
-msgid "Lotus Organizer CSV …"
-msgstr "Lotus Organizer CSV …"
 
 msgid "Lower Austria"
 msgstr "Delnja Awstriska"
@@ -3345,6 +3368,9 @@ msgstr "Swójske"
 msgctxt "time tracking"
 msgid "Manual entry"
 msgstr "Manuelny zapisk"
+
+msgid "Manual fallback"
+msgstr "Manuelna narunanska hódnota"
 
 msgid "Manual only"
 msgstr "Jenož manuelnje"
@@ -3993,6 +4019,15 @@ msgstr "ODS"
 msgid "OK"
 msgstr "W porjadku"
 
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, "
+"groups and other sections are skipped; layout, attachments, categories and "
+"alarms are not transferred."
+msgstr ""
+"OR6-import: terminy, nadawki, kontakty a tekst noticow. Wospjetowanja, "
+"skupiny a druhe wotrězki so wuwostajeja; wuhotowanje, přiwěški, kategorije a "
+"dopomnjenki so njepřenjesu."
+
 msgid "Objects"
 msgstr "Předmjety"
 
@@ -4229,6 +4264,9 @@ msgstr "Stil organizatora (papjerowe łopjeno)"
 msgid "Organizer · Calendar · Contacts · Notes"
 msgstr "Organizator · Protyka · Kontakty · Notice"
 
+msgid "Original time zone"
+msgstr "Spóčatna časowa cona"
+
 msgid "Other"
 msgstr "Druhe"
 
@@ -4263,6 +4301,9 @@ msgstr "Swójske čisło (standardna SIM za zawołanja)"
 
 msgid "Own profile"
 msgstr "Własny profil"
+
+msgid "Own time zone"
+msgstr "Swójska časowa cona"
 
 msgid "PDF file"
 msgstr "PDF-dataj"
@@ -4508,6 +4549,9 @@ msgstr "Foto wosoby %(name)s"
 
 msgid "Pick up"
 msgstr "Wotewzać"
+
+msgid "Plan local time"
+msgstr "Lokalny čas planować"
 
 msgid "Planner"
 msgstr "Planowak"
@@ -5568,6 +5612,9 @@ msgstr "Sortěrowanje"
 msgid "Sound only"
 msgstr "Jenož zynk"
 
+msgid "Source"
+msgstr "Žórło"
+
 msgid "Sources"
 msgstr "Žórła"
 
@@ -6026,6 +6073,9 @@ msgstr "Zawołanje hižo njezwoni abo je zestarjene."
 msgid "The call is no longer ringing."
 msgstr "Zawołanje hižo njezwoni."
 
+msgid "The chosen local time could not be represented exactly."
+msgstr "Wubrany lokalny čas njeda so eksaktnje předstajić."
+
 msgid "The clipboard is empty."
 msgstr "Mjezyskład je prózdny."
 
@@ -6097,6 +6147,9 @@ msgstr "Rysowanska hranica je docpěta."
 
 msgid "The end date cannot be before the start date."
 msgstr "Kónčny datum njemóže před startowym datumom być."
+
+msgid "The end must not precede the start."
+msgstr "Kónc njesmě před spočatkom ležeć."
 
 msgid "The entry could not be found."
 msgstr "Zapisk njebu namakany."
@@ -6234,6 +6287,9 @@ msgid ""
 msgstr ""
 "Organizator was před započatkom termina informuje a, jeli chceće, tež hdyž "
 "nałoženje wočinjene njeje."
+
+msgid "The original calendar time cannot be resolved without guessing."
+msgstr "Spóčatny kalendrowy čas njeda so bjez hódanja zwěsćić."
 
 msgid "The package could not be opened."
 msgstr "Paket njehodźeše so wočinić."
@@ -6430,6 +6486,9 @@ msgstr "Wubrany zapisk je přewulki za pósłanje."
 msgid "The selected health records contain no printable values."
 msgstr "Wubrane strowotne zapiski žane ćišćomne hódnoty njewobsahuja."
 
+msgid "The selected local time does not exist or is ambiguous."
+msgstr "Wubrany lokalny čas njeeksistuje abo je wjacezmyslny."
+
 msgid "The selected note contains attachments that cannot be sent."
 msgstr "Wubrana notica přiwěški wobsahuje, kotrež njehodźa so pósłać."
 
@@ -6495,6 +6554,9 @@ msgid ""
 msgstr ""
 "Nadawk so wubranemu hałuzej pósćele. Wostanje tež tu, zo byšće móhli jeho "
 "staw wobkedźbować."
+
+msgid "The time zone could not be detected."
+msgstr "Časowa cona njeda so namakać."
 
 msgid ""
 "The traffic-light colors are general reference ranges for adults, not a "
@@ -6589,6 +6651,9 @@ msgstr ""
 "Tute nastajenja sej wotpowědne dowolnosće w Magnolie Notes žadaja. Zynk "
 "zawołanja so přez datowy zwisk Magnolie njepřenjesuje."
 
+msgid "This action does not invent a task start or deadline."
+msgstr "Tuta akcija njedodawa falowacy spočatk abo termin nadawka."
+
 msgid "This address can be selected and copied."
 msgstr "Tuta adresa hodźi so wubrać a kopěrować."
 
@@ -6616,6 +6681,9 @@ msgstr "Tute zawěsćenje njehodźi so wužiwać."
 
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "Tutón protyka nadawki (VTODO) njepodpěruje."
+
+msgid "This calendar source is read-only."
+msgstr "Tute kalendrowe žórło je jenož za čitanje."
 
 msgid ""
 "This choice also determines how names appear on contact cards and under "
@@ -6775,6 +6843,9 @@ msgstr "Zapisywanje časa"
 
 msgid "Time zone"
 msgstr "Časowe pasmo"
+
+msgid "Time zone management"
+msgstr "Zarjadowanje časowych conow"
 
 msgid "Title"
 msgstr "Titul"
@@ -7849,6 +7920,12 @@ msgstr[3] "… a dale %(count)s zapiskaj, kotrejž so tež ćišćitej."
 msgid "＋ Add appointment"
 msgstr "＋ Termin přidać"
 
+#~ msgid "CSV / Lotus Organizer contacts …"
+#~ msgstr "Kontakty CSV / Lotus Organizer …"
+
+#~ msgid "Lotus Organizer CSV …"
+#~ msgstr "Lotus Organizer CSV …"
+
 #~ msgid "Message"
 #~ msgstr "Powěsć"
 
@@ -8328,6 +8405,3 @@ msgstr "＋ Termin přidać"
 #~ "serijowe čisło a IMEI. Wot Androida 10 su hardwarowe identifikatory za "
 #~ "zwučene aplikacije wobmjezowane. Prawo za čisło je dobrowólne; žana "
 #~ "wosebita róla so njepožada."
-
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
-msgstr "OR6-import: terminy, nadawki, kontakty a tekst noticow. Wospjetowanja, skupiny a druhe wotrězki so wuwostajeja; wuhotowanje, přiwěški, kategorije a dopomnjenki so njepřenjesu."

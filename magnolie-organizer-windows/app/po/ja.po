@@ -335,6 +335,9 @@ msgstr ""
 "baum-1 ブランチの予備経路です。直接接続に到達できない場合、メッセージは "
 "Nextcloud サーバー上の WebDAV フォルダーを経由します。"
 
+msgid "A floating local time has no unique absolute instant."
+msgstr "タイムゾーンに結び付いていないローカル時刻には、一意の絶対時刻がありません。"
+
 msgid "A group with this name already exists."
 msgstr "同じ名前のグループがすでにあります。"
 
@@ -581,6 +584,9 @@ msgstr "6つすべてのグラフ"
 
 msgid "All states"
 msgstr "すべての州"
+
+msgid "All-day dates are not converted into timed entries."
+msgstr "終日の日付は時刻付きの項目には変換されません。"
 
 msgid "Allow notifications despite password protection"
 msgstr "パスワード保護中でも通知を許可"
@@ -1059,9 +1065,6 @@ msgstr "姓で並べる（Müller, Hans）"
 msgid "CSV / Lotus Organizer"
 msgstr "CSV / Lotus Organizer"
 
-msgid "CSV / Lotus Organizer contacts …"
-msgstr "CSV / Lotus Organizerの連絡先…"
-
 msgid "CSV files (*.csv)"
 msgstr "CSV ファイル (*.csv)"
 
@@ -1311,6 +1314,9 @@ msgstr "フォルダーを選択 …"
 
 msgid "Choose local image…"
 msgstr "ローカル画像を選択…"
+
+msgid "Choose local-time planning to change clock fields."
+msgstr "時刻を変更するには、ローカル時刻での予定作成を選択してください。"
 
 msgid "Choose or enter a phone number"
 msgstr "電話番号を選択または入力"
@@ -1937,6 +1943,12 @@ msgstr "配信状況が不明です"
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "歯科医 Hill 先生 — 入力内容のプレビュー"
 
+msgid "Detect now"
+msgstr "今すぐ検出"
+
+msgid "Detected time zone"
+msgstr "検出されたタイムゾーン"
+
 msgid "Determining public IP address…"
 msgstr "公開 IP アドレスを確認しています…"
 
@@ -2067,6 +2079,9 @@ msgstr "重複"
 
 msgid "Duration"
 msgstr "通話時間"
+
+msgid "Earlier occurrence"
+msgstr "先に現れる時刻"
 
 msgid "Early shift"
 msgstr "早番"
@@ -2983,6 +2998,14 @@ msgstr "トラブルシューティングログを保存"
 msgid "Keep existing"
 msgstr "現在の情報を保持"
 
+msgid "Keep instant"
+msgstr "絶対時刻を維持"
+
+msgid ""
+"Keep the original recurrence data; this local-time action is for individual "
+"entries."
+msgstr "元の繰り返しデータを保持してください。このローカル時刻の操作は個別の項目が対象です。"
+
 msgid "LDIF"
 msgstr "LDIF"
 
@@ -3025,6 +3048,9 @@ msgstr "遅番"
 msgctxt "time tracking"
 msgid "Late shift"
 msgstr "遅番"
+
+msgid "Later occurrence"
+msgstr "後に現れる時刻"
 
 msgid "Lead time"
 msgstr "事前通知時間"
@@ -3104,9 +3130,6 @@ msgstr "持効型インスリン"
 
 msgid "Loose Notes"
 msgstr "自由メモ"
-
-msgid "Lotus Organizer CSV …"
-msgstr "Lotus Organizer CSV …"
 
 msgid "Lower Austria"
 msgstr "ニーダーエスターライヒ州"
@@ -3232,6 +3255,9 @@ msgstr "カスタム"
 msgctxt "time tracking"
 msgid "Manual entry"
 msgstr "手動で追加"
+
+msgid "Manual fallback"
+msgstr "手動の代替値"
 
 msgid "Manual only"
 msgstr "手動のみ"
@@ -3880,6 +3906,15 @@ msgstr "ODS"
 msgid "OK"
 msgstr "わかりました"
 
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, "
+"groups and other sections are skipped; layout, attachments, categories and "
+"alarms are not transferred."
+msgstr ""
+"OR6インポート：予定、タスク、連絡先、ノートのプレーンテキスト。繰り返し、グ"
+"ループ、その他の区分はスキップします。レイアウト、添付ファイル、カテゴリ、通"
+"知は転送しません。"
+
 msgid "Objects"
 msgstr "オブジェクト"
 
@@ -4066,7 +4101,8 @@ msgid "Open the day in the daily view"
 msgstr "日表示でこの日を開く"
 
 msgid "Open the drawing tablet in KDE Connect on the paired phone."
-msgstr "ペアリングしたスマートフォンの KDE Connect でペンタブレットを開いてください。"
+msgstr ""
+"ペアリングしたスマートフォンの KDE Connect でペンタブレットを開いてください。"
 
 msgid "Open the phone connection screen and try again."
 msgstr "電話接続の画面を開き、もう一度お試しください。"
@@ -4107,6 +4143,9 @@ msgstr "Organizer スタイル（紙面）"
 msgid "Organizer · Calendar · Contacts · Notes"
 msgstr "Organizer · カレンダー · 連絡先 · メモ"
 
+msgid "Original time zone"
+msgstr "元のタイムゾーン"
+
 msgid "Other"
 msgstr "その他"
 
@@ -4141,6 +4180,9 @@ msgstr "自分の番号（既定の音声 SIM）"
 
 msgid "Own profile"
 msgstr "自分のプロフィール"
+
+msgid "Own time zone"
+msgstr "自分のタイムゾーン"
 
 msgid "PDF file"
 msgstr "PDF ファイル"
@@ -4373,6 +4415,9 @@ msgstr "%(name)s の写真"
 
 msgid "Pick up"
 msgstr "迎えに行く"
+
+msgid "Plan local time"
+msgstr "ローカル時刻で予定作成"
 
 msgid "Planner"
 msgstr "プランナー"
@@ -5409,6 +5454,9 @@ msgstr "並べ替え"
 msgid "Sound only"
 msgstr "サウンドのみ"
 
+msgid "Source"
+msgstr "取得元"
+
 msgid "Sources"
 msgstr "取得元"
 
@@ -5856,6 +5904,9 @@ msgstr "電話が鳴らなくなったか、古くなりました。"
 msgid "The call is no longer ringing."
 msgstr "電話はもう鳴りません。"
 
+msgid "The chosen local time could not be represented exactly."
+msgstr "選択したローカル時刻を正確に表現できませんでした。"
+
 msgid "The clipboard is empty."
 msgstr "クリップボードは空です。"
 
@@ -5927,6 +5978,9 @@ msgstr "描画の上限に達しました。"
 
 msgid "The end date cannot be before the start date."
 msgstr "終了日は開始日より前にできません。"
+
+msgid "The end must not precede the start."
+msgstr "終了は開始より前にはできません。"
 
 msgid "The entry could not be found."
 msgstr "項目が見つかりませんでした。"
@@ -6062,6 +6116,9 @@ msgid ""
 msgstr ""
 "Organizer は予定の開始前に通知します。希望すれば、アプリを開いていないときに"
 "も通知できます。"
+
+msgid "The original calendar time cannot be resolved without guessing."
+msgstr "元のカレンダー時刻は推測せずに特定できません。"
 
 msgid "The package could not be opened."
 msgstr "パッケージを開けませんでした。"
@@ -6255,6 +6312,9 @@ msgstr "選択した項目は大きすぎるため送信できません。"
 msgid "The selected health records contain no printable values."
 msgstr "選択した健康記録には印刷可能な値がありません。"
 
+msgid "The selected local time does not exist or is ambiguous."
+msgstr "選択したローカル時刻は存在しないか、曖昧です。"
+
 msgid "The selected note contains attachments that cannot be sent."
 msgstr "選択したメモに送信できない添付ファイルがあります。"
 
@@ -6320,6 +6380,9 @@ msgid ""
 "you can keep track of it."
 msgstr ""
 "タスクは選択したブランチへ送信されます。追跡できるよう、こちらにも残ります。"
+
+msgid "The time zone could not be detected."
+msgstr "タイムゾーンを検出できませんでした。"
 
 msgid ""
 "The traffic-light colors are general reference ranges for adults, not a "
@@ -6414,6 +6477,9 @@ msgstr ""
 "これらのオプションには Magnolie Notes で対応する権限が必要です。通話音声は "
 "Magnolie のデータ接続では送信されません。"
 
+msgid "This action does not invent a task start or deadline."
+msgstr "この操作は、タスクにない開始日時や期限を追加しません。"
+
 msgid "This address can be selected and copied."
 msgstr "この住所は選択してコピーできます。"
 
@@ -6441,6 +6507,9 @@ msgstr "このバックアップは使用できません。"
 
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "このカレンダーはタスク（VTODO）に対応していません。"
+
+msgid "This calendar source is read-only."
+msgstr "このカレンダーの取得元は読み取り専用です。"
 
 msgid ""
 "This choice also determines how names appear on contact cards and under "
@@ -6600,6 +6669,9 @@ msgstr "時間記録"
 
 msgid "Time zone"
 msgstr "タイムゾーン"
+
+msgid "Time zone management"
+msgstr "タイムゾーン管理"
 
 msgid "Title"
 msgstr "タイトル"
@@ -7650,6 +7722,12 @@ msgstr[0] "… ほか %(count)s 件も印刷されます。"
 msgid "＋ Add appointment"
 msgstr "＋ 予定を追加"
 
+#~ msgid "CSV / Lotus Organizer contacts …"
+#~ msgstr "CSV / Lotus Organizerの連絡先…"
+
+#~ msgid "Lotus Organizer CSV …"
+#~ msgstr "Lotus Organizer CSV …"
+
 #~ msgid "Message"
 #~ msgstr "メッセージ"
 
@@ -8109,6 +8187,3 @@ msgstr "＋ 予定を追加"
 #~ "す。対象は既定の音声 SIM の番号と、Android が許可する場合のシリアル番号お"
 #~ "よび IMEI です。Android 10 以降では一般のアプリによるハードウェア識別子の"
 #~ "取得が制限されます。電話番号の権限は任意で、特別な役割は要求しません。"
-
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
-msgstr "OR6インポート：予定、タスク、連絡先、ノートのプレーンテキスト。繰り返し、グループ、その他の区分はスキップします。レイアウト、添付ファイル、カテゴリ、通知は転送しません。"

@@ -369,7 +369,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         regional: { language: "de", formatLocale: "de-DE", hourCycle: "h23",
           firstDayOfWeek: "monday", weekRule: "iso",
           temperatureUnit: "celsius", timeZone: "system", homeCountry: "DE",
-          timeZoneManagement: "off", timeZoneDetection: "auto", timeZoneManual: "system", timeZoneDetectedSource: "manual", timeZoneDetectedAt: "0" },
+          timeZoneManagement: "off", timeZoneDetection: "auto", timeZoneManual: "system", timeZoneDetectedSource: "manual", timeZoneDetectedAt: "0", timeZoneCalendarDisplay: "own", timeZoneTaskDisplay: "own" },
         schrift: { art: "regular", farbe: "black", groesse: "normal",
           rechtschreibung: true, linien: true, radRichtung: "up-earlier" },
         ansicht: "week",
@@ -2977,7 +2977,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const z = el("div", "formzeile");
     if (!feldEl.id) feldEl.id = "feld-" + (++feldKennung);
     const label = el("label", "feldname", beschriftung);
-    label.htmlFor = feldEl.id;
+    label.htmlFor = feldEl.dataset?.labelTarget || feldEl.id;
     z.append(label, feldEl);
     return z;
   }
@@ -3226,6 +3226,53 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (zone && zone === kontaktZeitzone(kontakt)) return;
     kontakt.vcardRoundtrip = (kontakt.vcardRoundtrip || []).filter(line => !/^(?:[A-Za-z0-9-]+\.)?TZ[;:]/i.test(line));
     if (zone) kontakt.vcardRoundtrip.push("TZ:" + zone);
+  }
+  function eigeneIanaZeitzone(regional = DATEN.einstellungen.regional) {
+    const saved = gueltigeIanaZeitzone(regional.timeZone);
+    if (saved) return saved;
+    try { return gueltigeIanaZeitzone(Intl.DateTimeFormat().resolvedOptions().timeZone); } catch (_) { return ""; }
+  }
+  const automatischeZonenPruefungen = new WeakMap();
+  async function aktualisiereAutomatischeZeitzone() {
+    if (!initialisiert || !antwortErhalten || gesperrt || !Bruecke.vorhanden || !window.MagnolieMcp || document.hidden ||
+        DATEN.einstellungen.regional.timeZoneManagement !== "automatic") return;
+    try { mcpEditorPruefen(); } catch (_) { return; }
+    const book = DATEN, now = Date.now(), interval = 15 * 60 * 1000;
+    const state = automatischeZonenPruefungen.get(book) || { checked: 0, pending: false };
+    const observed = Number(book.einstellungen.regional.timeZoneDetectedAt) || 0;
+    if (state.pending || now - state.checked < interval || observed <= now && now - observed < interval) return;
+    state.checked = now; state.pending = true; automatischeZonenPruefungen.set(book, state);
+    const signal = new AbortController().signal;
+    try {
+      const status = await mcpRegionaleEinstellungenWerkzeuge()[0].call({}, signal);
+      if (DATEN !== book || gesperrt || book.einstellungen.regional.timeZoneManagement !== "automatic" || !status.time_zone_detection_available) return;
+      mcpEditorPruefen();
+      await mcpZeitzonenWerkzeuge()[1].call({ expected_revision: status.revision }, signal);
+    } catch (_) { /* Retain the last verified zone; a later idle check or explicit refresh can retry. */ }
+    finally { state.pending = false; }
+  }
+  function eintragsAnzeigeZone(entry, task = false) {
+    const regional = DATEN.einstellungen.regional, own = eigeneIanaZeitzone(regional);
+    if (!["manual", "automatic"].includes(regional.timeZoneManagement)) return own;
+    const policy = regional[task ? "timeZoneTaskDisplay" : "timeZoneCalendarDisplay"];
+    if (policy === "source") return "source";
+    if (policy !== "contact") return own;
+    // Task "personen" are independent person records, not address-book contacts.
+    const ids = entry.kontaktId ? [entry.kontaktId] : [];
+    if (!ids.length) return own;
+    const zones = ids.map(id => kontaktZeitzone(DATEN.kontakte.find(contact => contact.id === id)));
+    return zones.every(Boolean) && new Set(zones).size === 1 ? zones[0] : own;
+  }
+  function stabilisiereAktiveOrtszeiten() {
+    if (!initialisiert || !antwortErhalten || gesperrt || !["manual", "automatic"].includes(DATEN.einstellungen.regional.timeZoneManagement)) return;
+    const zone = eigeneIanaZeitzone(); if (!zone) return;
+    let changed = false;
+    for (const [name, task] of [["termine", false], ["aufgaben", true]]) for (const entry of DATEN[name]) {
+      if (!(task ? entry.startZeit || entry.faelligZeit : entry.zeit) || (entry.icsRoundtrip || []).some(line => /^(DTSTART|DUE|RECURRENCE-ID)[;:]/i.test(line)) || entry.icsStatus === "CANCELLED") continue;
+      try { for (const value of zeitzonenVerankerungsPlan({ [name]: [entry] }, zone)) { Object.assign(value.entry, value.next); changed = true; } }
+      catch (_) { /* An invalid local time remains unmodified; explicit zone changes reject it. */ }
+    }
+    if (changed) planeSpeichern();
   }
   function kontaktOrtszeit(zone, jetzt = new Date(), regional = DATEN.einstellungen.regional) {
     if (!["manual", "automatic"].includes(regional.timeZoneManagement)) return null;
@@ -6596,10 +6643,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     }
     if (inAlarm) aus.push(...alarmZeilen);
     const neu = [];
+    const zeitZone = gueltigeIanaZeitzone(termin.icsAnzeigeZeitzone) || organizerZeitzone();
     const zeitZeile = (name, datum, zeit) => zeit
-      ? name + ";TZID=" + icsParameter(organizerZeitzone()) + ":" + datum.replace(/-/g, "") + "T" + zeit.replace(/:/g, "").padEnd(6, "0")
+      ? name + ";TZID=" + icsParameter(zeitZone) + ":" + datum.replace(/-/g, "") + "T" + zeit.replace(/:/g, "").padEnd(6, "0")
       : name + ";VALUE=DATE:" + datum.replace(/-/g, "");
-    if (zeitNeu) {
+    const kontextZeilen = zeitNeu ? kalenderBearbeiteteZeitZeilen(termin, vorher, false) : null;
+    if (kontextZeilen) neu.push(...kontextZeilen);
+    else if (zeitNeu) {
       neu.push(zeitZeile("DTSTART", termin.datum, termin.zeit));
       let ende = termin.endDatum || termin.datum;
       if (!termin.zeit) { const datum = ausISO(ende); datum.setDate(datum.getDate() + 1); ende = isoVon(datum); }
@@ -6613,7 +6663,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
         if (w.intervall > 1) regel += ";INTERVAL=" + w.intervall;
         if (w.ordinal && w.wochentag) regel += ";BYDAY=" + w.ordinal + w.wochentag;
         if (w.bis) regel += ";UNTIL=" + (termin.zeit
-          ? organizerZeitpunkt(...w.bis.split("-").map(Number), 23, 59, 59).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")
+          ? new Date(zeitOrtszeitpunkt(w.bis, "23:59:59", zeitZone)).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")
           : w.bis.replace(/-/g, ""));
         neu.push(regel);
       } else if (w.art === "custom") for (const datum of w.daten || []) neu.push(zeitZeile("RDATE", datum, termin.zeit));
@@ -6876,13 +6926,153 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     return { datum, zeit: pad2(wall.hour) + ":" + pad2(wall.minute) + (wall.second ? ":" + pad2(wall.second) : ""), zone };
   }
 
+  function zeitzonenPlanFehler(code, message) {
+    const error = new Error(_(message)); error.code = code; return error;
+  }
+  function kalenderKernEigenschaften(lines) {
+    const result = []; let depth = 0;
+    for (const line of lines || []) {
+      const property = icsEigenschaft(line); if (!property) continue;
+      if (property.name === "BEGIN") { if (!["VEVENT", "VTODO"].includes(property.wert.toUpperCase())) depth++; continue; }
+      if (property.name === "END") { if (!["VEVENT", "VTODO"].includes(property.wert.toUpperCase())) depth = Math.max(0, depth - 1); continue; }
+      if (!depth) result.push({ ...property, raw: line });
+    }
+    return result;
+  }
+  function entferneKalenderKernfelder(lines, names) {
+    let depth = 0;
+    return (lines || []).filter(line => {
+      const property = icsEigenschaft(line); if (!property) return true;
+      if (property.name === "BEGIN") { if (!["VEVENT", "VTODO"].includes(property.wert.toUpperCase())) depth++; return true; }
+      if (property.name === "END") { if (!["VEVENT", "VTODO"].includes(property.wert.toUpperCase())) depth = Math.max(0, depth - 1); return true; }
+      return depth > 0 || !names.has(property.name);
+    });
+  }
+  function kalenderBearbeiteteZeitZeilen(entry, previous, task) {
+    const zone = gueltigeIanaZeitzone(entry.icsAnzeigeZeitzone);
+    if (!zone) return null;
+    const properties = kalenderKernEigenschaften(entry.icsRoundtrip);
+    const series = properties.some(value => ["RRULE", "RDATE", "EXDATE", "EXRULE"].includes(value.name)) || leseWiederholung(entry.wiederholung).art !== "none";
+    const fields = task ? [["DTSTART", "startDatum", "startZeit"], ["DUE", "faellig", "faelligZeit"]]
+      : [["DTSTART", "datum", "zeit"], ["DTEND", "endDatum", "endZeit"]];
+    const result = [];
+    for (const [name, dateField, clockField] of fields) {
+      const original = properties.find(property => property.name === name);
+      const date = task ? entry[dateField] || "" : entry[dateField] || entry.datum;
+      const clock = task ? entry[clockField] || "" : entry.zeit ? entry[clockField] || entry.zeit : "";
+      const oldDate = task ? previous[dateField] || "" : previous[dateField] || previous.datum;
+      const oldClock = task ? previous[clockField] || "" : previous.zeit ? previous[clockField] || previous.zeit : "";
+      if (original && date === oldDate && clock === oldClock) { result.push(original.raw); continue; }
+      if (!date) continue;
+      if (!clock) {
+        let day = date;
+        if (!task && name === "DTEND") { const value = ausISO(day); value.setDate(value.getDate() + 1); day = isoVon(value); }
+        result.push(name + ";VALUE=DATE:" + day.replace(/-/g, "")); continue;
+      }
+      const wall = date.replace(/-/g, "") + "T" + clock.replace(/:/g, "").padEnd(6, "0");
+      const floating = original && !original.params.TZID && !/Z$/i.test(original.wert) && !/^\d{8}$/.test(original.wert);
+      if (floating) { result.push(name + ":" + wall); continue; }
+      const instant = eindeutigerOrtszeitpunkt(date, clock, zone);
+      result.push(series ? name + ";TZID=" + icsParameter(zone) + ":" + wall
+        : name + ":" + new Date(instant).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z"));
+    }
+    return result;
+  }
+  function kalenderBasisInZone(entry, task, zone) {
+    const copy = { ...entry, icsStatus: "", icsDisplayTarget: zone, icsRangeOverrides: [], icsAusnahmen: [], icsAusnahmeTermine: [], icsZusatzDaten: [], icsZusatzTermine: [],
+      icsRoundtrip: entferneKalenderKernfelder(entry.icsRoundtrip, new Set(["RRULE", "RDATE", "EXDATE", "EXRULE", "RECURRENCE-ID", "STATUS"])) };
+    try {
+      const value = icsExpansion(copy, -Infinity, Infinity, task)?.[0];
+      if (!value) throw new Error("missing_base_time");
+      return value;
+    } catch (_) { throw zeitzonenPlanFehler("unsupported_feature", "The original calendar time cannot be resolved without guessing."); }
+  }
+  function eindeutigerOrtszeitpunkt(date, clock, zone, fold = "reject", reference = null) {
+    try {
+      const first = zeitOrtszeitpunkt(date, clock, zone), [year, month, day] = date.split("-").map(Number);
+      if (year < 1 || year > 9999) throw new Error("invalid_year");
+      const [hour, minute, second = 0] = clock.split(":").map(Number), wall = zeitZivilMillis({ year, month, day, hour, minute, second });
+      const offsets = ZEIT_ERFASSUNG_OFFSETS.get(zone + "|" + year + "-" + month + "-" + day) || [0];
+      const wanted = clock.length === 5 ? clock + ":00" : clock;
+      const values = [...new Set([first, ...offsets.map(offset => wall - offset)])].filter(value => {
+        const actual = zeitOrtsanzeige(value, zone); return actual.datum === date && (actual.zeit.length === 5 ? actual.zeit + ":00" : actual.zeit) === wanted;
+      }).sort((a, b) => a - b);
+      if (values.length === 1) return values[0];
+      if (fold === "earlier") return values[0];
+      if (fold === "later") return values[values.length - 1];
+      if (reference !== null && values.includes(reference)) return reference;
+      throw new Error("ambiguous_time");
+    } catch (_) { throw zeitzonenPlanFehler("invalid_settings", "The selected local time does not exist or is ambiguous."); }
+  }
+  function zeitzonenEintragPlan(entry, task, args) {
+    const zone = gueltigeIanaZeitzone(args.time_zone), mode = args.mode;
+    if (!zone || !["display", "plan"].includes(mode)) throw zeitzonenPlanFehler("invalid_time_zone", "The selected time zone is unavailable.");
+    let source = kopie(entry), properties = kalenderKernEigenschaften(source.icsRoundtrip), get = name => properties.find(value => value.name === name);
+    if (!get("DTSTART") && !(task && get("DUE"))) {
+      const local = gueltigeIanaZeitzone(source.icsAnzeigeZeitzone) || eigeneIanaZeitzone();
+      try { const prepared = zeitzonenVerankerungsPlan({ [task ? "aufgaben" : "termine"]: [source] }, local); if (prepared.length) source = prepared[0].next; }
+      catch (_) { throw zeitzonenPlanFehler("invalid_settings", "The selected local time does not exist or is ambiguous."); }
+      properties = kalenderKernEigenschaften(source.icsRoundtrip); get = name => properties.find(value => value.name === name);
+    }
+    const start = get("DTSTART"), end = get(task ? "DUE" : "DTEND"), primary = start || end;
+    if (!primary || primary.params.VALUE === "DATE" || /^\d{8}$/.test(primary.wert)) throw zeitzonenPlanFehler("unsupported_feature", "All-day dates are not converted into timed entries.");
+    const floating = !primary.params.TZID && !/Z$/i.test(primary.wert);
+    if (mode === "display" && floating) throw zeitzonenPlanFehler("unsupported_feature", "A floating local time has no unique absolute instant.");
+    const fields = ["start_date", "start_time", "end_date", "end_time"];
+    if (mode === "display" && fields.some(key => args[key] !== undefined)) throw zeitzonenPlanFehler("invalid_settings", "Choose local-time planning to change clock fields.");
+    const hasSeries = properties.some(value => ["RRULE", "RDATE", "EXDATE", "EXRULE", "RECURRENCE-ID"].includes(value.name)) || (entry.icsRangeOverrides || []).length || leseWiederholung(entry.wiederholung).art !== "none";
+    if (mode === "plan" && (hasSeries || entry.icsKomplex || String(entry.icsStatus || "").toUpperCase() === "CANCELLED")) throw zeitzonenPlanFehler("unsupported_feature", "Keep the original recurrence data; this local-time action is for individual entries.");
+    if (mode === "plan" && entry.icsReadOnly) throw zeitzonenPlanFehler("read_only", "This calendar source is read-only.");
+    const inputZone = gueltigeIanaZeitzone(source.icsAnzeigeZeitzone) || eigeneIanaZeitzone();
+    if (!inputZone) throw zeitzonenPlanFehler("invalid_time_zone", "The selected time zone is unavailable.");
+    const hasStart = !!start, hasEnd = !!end || !!get("DURATION"), before = floating ? null : kalenderBasisInZone(source, task, inputZone);
+    const clockFrom = property => {
+      const match = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?Z?$/.exec(property?.wert || "");
+      return match ? { date: match[1] + "-" + match[2] + "-" + match[3], clock: match[4] + ":" + match[5] + ":" + (match[6] || "00") } : { date: "", clock: "" };
+    };
+    const oldStart = floating ? clockFrom(start) : { date: task ? before.startDatum : before.datum, clock: task ? before.startZeit : before.zeit };
+    const oldEnd = floating ? end ? clockFrom(end) : { date: task ? entry.faellig : entry.endDatum || entry.datum, clock: task ? entry.faelligZeit : entry.endZeit }
+      : { date: task ? before.faellig : before.endDatum || before.datum, clock: task ? before.faelligZeit : before.endZeit };
+    let next = kopie(source), startInstant = before?.icsStartUtc ?? null, endInstant = hasEnd ? before?.icsEndUtc ?? null : null;
+    if (mode === "plan") {
+      if (!hasStart && (args.start_date || args.start_time) || !hasEnd && (args.end_date || args.end_time)) throw zeitzonenPlanFehler("invalid_settings", "This action does not invent a task start or deadline.");
+      const clockValue = (chosen, original) => chosen === undefined ? original : chosen.length === 5 && original.startsWith(chosen + ":") ? original : chosen;
+      const a = { date: args.start_date ?? oldStart.date, clock: clockValue(args.start_time, oldStart.clock) };
+      const b = { date: args.end_date ?? oldEnd.date, clock: clockValue(args.end_time, oldEnd.clock) };
+      startInstant = hasStart ? eindeutigerOrtszeitpunkt(a.date, a.clock, zone, args.start_fold, zone === inputZone ? before?.icsStartUtc ?? null : null) : null;
+      endInstant = hasEnd ? eindeutigerOrtszeitpunkt(b.date, b.clock, zone, args.end_fold, zone === inputZone ? before?.icsEndUtc ?? null : null) : null;
+      if (startInstant !== null && endInstant !== null && endInstant < startInstant) throw zeitzonenPlanFehler("invalid_settings", "The end must not precede the start.");
+      const lines = entferneKalenderKernfelder(source.icsRoundtrip, new Set(["DTSTART", "DTEND", "DUE", "DURATION", "X-MAGNOLIE-PLANNING-TZID"]));
+      // A TZID wall stamp cannot distinguish the second occurrence of a fold.
+      // UTC carries the chosen instant; the opaque extension retains planning context.
+      const stamp = value => new Date(value).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+      const additions = [];
+      if (hasStart) additions.push("DTSTART:" + stamp(startInstant));
+      if (hasEnd) additions.push((task ? "DUE" : "DTEND") + ":" + stamp(endInstant));
+      additions.push("X-MAGNOLIE-PLANNING-TZID:" + zone);
+      const position = lines.findIndex(line => /^END:(VEVENT|VTODO)$/i.test(line)); lines.splice(position < 0 ? lines.length : position, 0, ...additions); next.icsRoundtrip = lines;
+      next.geaendert = Date.now(); if (task) next.personalGeaendert = next.geaendert;
+    }
+    const projected = kalenderBasisInZone(next, task, zone);
+    if (mode === "plan" && (hasStart && projected.icsStartUtc !== startInstant || hasEnd && projected.icsEndUtc !== endInstant))
+      throw zeitzonenPlanFehler("invalid_settings", "The chosen local time could not be represented exactly.");
+    next.icsAnzeigeZeitzone = zone;
+    if (task) Object.assign(next, { startDatum: hasStart ? projected.startDatum : "", startZeit: hasStart ? projected.startZeit.slice(0, 5) : "", faellig: hasEnd ? projected.faellig : "", faelligZeit: hasEnd ? projected.faelligZeit.slice(0, 5) : "" });
+    else Object.assign(next, { datum: projected.datum, zeit: projected.zeit.slice(0, 5), endDatum: hasEnd && projected.endDatum !== projected.datum ? projected.endDatum : "", endZeit: hasEnd ? projected.endZeit.slice(0, 5) : "", icsEndeFehlt: !hasEnd, icsNullDauer: hasEnd && projected.icsStartUtc === projected.icsEndUtc });
+    if (mode === "display" && hasSeries && zone !== inputZone) next.icsKomplex = true;
+    return { next, view: { input_zone: inputZone, time_zone: zone, mode,
+      start_date: hasStart ? task ? projected.startDatum : projected.datum : "", start_time: hasStart ? task ? projected.startZeit : projected.zeit : "",
+      end_date: hasEnd ? task ? projected.faellig : projected.endDatum || projected.datum : "", end_time: hasEnd ? task ? projected.faelligZeit : projected.endZeit : "",
+      start_utc_ms: hasStart ? projected.icsStartUtc : null, end_utc_ms: hasEnd ? projected.icsEndUtc : null,
+      instant_changed: mode === "plan" && (floating || (hasStart ? projected.icsStartUtc : null) !== (hasStart ? before?.icsStartUtc ?? null : null) || (hasEnd ? projected.icsEndUtc : null) !== (hasEnd ? before?.icsEndUtc ?? null : null)) } };
+  }
   function zeitzonenVerankerungsPlan(book, zone) {
     zone = gueltigeIanaZeitzone(zone);
     zeitPruefen(!!zone);
     const plan = [];
-    const stamp = (date, time) => {
+    const stamp = (date, time, sourceZone = zone) => {
       // Validation uses the same resolver as deliberate local-time planning.
-      zeitOrtszeitpunkt(date, time, zone);
+      zeitOrtszeitpunkt(date, time, sourceZone);
       return date.replace(/-/g, "") + "T" + time.replace(/:/g, "").padEnd(6, "0");
     };
     for (const [collection, task] of [[book.termine || [], false], [book.aufgaben || [], true]]) for (const entry of collection) {
@@ -6892,13 +7082,13 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       const date = task ? entry.startDatum || entry.faellig : entry.datum;
       const time = task ? entry.startZeit || entry.faelligZeit : entry.zeit;
       if (!time) continue;
-      const next = kopie(entry), lines = [];
-      const field = (name, day, clock) => name + ";TZID=" + zone + ":" + stamp(day, clock);
+      const next = kopie(entry), lines = [], sourceZone = gueltigeIanaZeitzone(entry.icsAnzeigeZeitzone) || zone;
+      const field = (name, day, clock) => name + ";TZID=" + sourceZone + ":" + stamp(day, clock, sourceZone);
       const dueOnly = task && !entry.startZeit;
       if (!dueOnly) lines.push(field("DTSTART", date, time));
       const endDate = (task ? entry.faellig : entry.endDatum) || date;
       const endTime = (task ? entry.faelligZeit : entry.endZeit) || time;
-      if (!raw.some(line => /^(DTEND|DURATION)[;:]/i.test(line))) lines.push(field(task ? "DUE" : "DTEND", endDate, endTime));
+      if ((!task || entry.faellig && entry.faelligZeit) && !raw.some(line => /^(DTEND|DURATION)[;:]/i.test(line))) lines.push(field(task ? "DUE" : "DTEND", endDate, endTime));
       if (!task && !raw.some(line => /^(RRULE|RDATE|EXRULE|RECURRENCE-ID)[;:]/i.test(line))) {
         const repeat = leseWiederholung(entry.wiederholung);
         const frequency = { daily: "DAILY", weekly: "WEEKLY", monthly: "MONTHLY", yearly: "YEARLY" }[repeat.art];
@@ -6910,7 +7100,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
             else if (+date.slice(8) >= 29) rule += ";BYMONTHDAY=" + Array.from({ length: +date.slice(8) - 27 }, (_, i) => i + 28).join(",") + ";BYSETPOS=-1";
           }
           if (repeat.art === "yearly" && date.slice(5) === "02-29") rule += ";BYMONTH=2;BYMONTHDAY=28,29;BYSETPOS=-1";
-          if (repeat.bis) rule += ";UNTIL=" + new Date(zeitOrtszeitpunkt(repeat.bis, "23:59:59", zone)).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+          if (repeat.bis) rule += ";UNTIL=" + new Date(zeitOrtszeitpunkt(repeat.bis, "23:59:59", sourceZone)).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
           lines.push(rule);
         } else if (repeat.art === "custom") for (const day of repeat.daten || []) if (day > date && (!repeat.bis || day <= repeat.bis)) lines.push(field("RDATE", day, time));
       }
@@ -6926,7 +7116,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       }
       next.icsZusatzTermine = []; next.icsZusatzDaten = []; next.icsAusnahmeTermine = []; next.icsAusnahmen = [];
       const output = raw.slice(), position = output.findIndex(line => /^END:(VEVENT|VTODO)$/i.test(line));
-      output.splice(position < 0 ? output.length : position, 0, ...new Set(lines)); next.icsRoundtrip = output;
+      output.splice(position < 0 ? output.length : position, 0, ...new Set(lines)); next.icsRoundtrip = output; next.icsAnzeigeZeitzone = sourceZone;
       plan.push({ entry, before: JSON.stringify(entry), next });
     }
     return plan;
@@ -8157,6 +8347,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     if (["system", "UTC"].includes(manuelleZone) || /^[A-Za-z0-9._+-]+(?:\/[A-Za-z0-9._+-]+)+$/.test(manuelleZone) && !manuelleZone.includes("..")) zr.timeZoneManual = manuelleZone;
     if (["manual", "system", "phone", "gps", "ip"].includes(reg.timeZoneDetectedSource)) zr.timeZoneDetectedSource = reg.timeZoneDetectedSource;
     if (/^(?:0|[1-9][0-9]{0,14})$/.test(S(reg.timeZoneDetectedAt)) && Number(reg.timeZoneDetectedAt) <= 253402300799999) zr.timeZoneDetectedAt = S(reg.timeZoneDetectedAt);
+    for (const key of ["timeZoneCalendarDisplay", "timeZoneTaskDisplay"]) if (["own", "contact", "source"].includes(reg[key])) zr[key] = reg[key];
     za.briefLayout = enumWert(ad.briefLayout,
       { kompakt: "compact", compact: "compact", din5008: "din5008",
         "din5008-a": "din5008-a", "din5008-b": "din5008-b" }, "din5008-b");
@@ -9468,7 +9659,21 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     const defined = new Map((t.icsTimezones || []).map(lines => [lines.find(v => /^TZID:/i.test(v))?.slice(5), lines]));
     if (String(t.icsStatus || get("STATUS")?.value).toUpperCase() === "CANCELLED") return [];
     if (get("RECURRENCE-ID")?.params.RANGE && get("RECURRENCE-ID").params.RANGE !== "THISANDFUTURE") fail("unsupported-range");
-    const target = organizerZeitzone() || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const ownTarget = (typeof eigeneIanaZeitzone === "function" ? eigeneIanaZeitzone() : "") || organizerZeitzone() || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const requestedTarget = typeof t.icsDisplayTarget === "string" ? t.icsDisplayTarget : typeof eintragsAnzeigeZone === "function" ? eintragsAnzeigeZone(t, task) : ownTarget;
+    const origin = get("DTSTART") || (task ? get("DUE") : null);
+    let target = requestedTarget && requestedTarget !== "source" ? requestedTarget : ownTarget;
+    // A floating source has no foreign absolute instant to convert. DATE stays
+    // a calendar date; embedded source zones keep their actual transition rules.
+    if (origin && (origin.params.VALUE === "DATE" || /^\d{8}$/.test(origin.value) || !origin.params.TZID && !/Z$/i.test(origin.value))) target = ownTarget;
+    else if (requestedTarget === "source" && origin) {
+      const id = origin.params.TZID;
+      target = id ? defined.has(id) ? { id, definition: defined.get(id) } : id : /Z$/i.test(origin.value) ? "UTC" : ownTarget;
+      const planned = get("X-MAGNOLIE-PLANNING-TZID")?.value;
+      if (planned && planned.length <= 128 && /^(?:UTC|[A-Za-z0-9._+-]+(?:\/[A-Za-z0-9._+-]+)+)$/.test(planned) && !planned.includes("..")) {
+        try { new Intl.DateTimeFormat("en", { timeZone: planned }); target = planned; } catch (_) { /* Preserve unknown planning metadata without guessing its zone. */ }
+      }
+    }
     const cache = icsExpansion.cache || (icsExpansion.cache = { formats: new Map(), offsets: new Map(), rules: new Map() });
     const embedded = (zone, year) => {
       const signature = JSON.stringify(zone.definition), zones = cache.zones || (cache.zones = new Map());
@@ -9690,6 +9895,7 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
       if ((t.icsAusnahmen || []).includes(dateOf(s)) && !precise.has(dateOf(s))) continue;
       const range = ranges.filter(r => r.cutoff <= identity).pop(); if (range?.cancelled) continue;
       const projected = { ...t }, changed = new Map();
+      delete projected.icsDisplayTarget;
       for (const r of ranges.filter(r => r.cutoff <= identity)) for (const v of r.properties) {
         if (["DTSTART", "DTEND", "DUE", "DURATION", "RECURRENCE-ID", "RRULE", "RDATE", "EXDATE", "EXRULE", "UID", "DTSTAMP", "SEQUENCE", "LAST-MODIFIED"].includes(v.name)) continue;
         changed.set(v.name, v);
@@ -9721,9 +9927,16 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
   }
 
   /* Fällt ein bestimmter Tag auf eine Wiederholung dieses Termins? */
+  function icsRuntimeVorbereitung(mode, item, args) {
+    const task = mode === "next" || args[2] === true;
+    const prepare = value => ({ ...value, icsDisplayTarget: eintragsAnzeigeZone(value, task) });
+    item = Array.isArray(item) ? item.map(prepare) : prepare(item);
+    const zone = eigeneIanaZeitzone() || organizerZeitzone();
+    return { item, zone, key: JSON.stringify([mode, item, args, zone]) };
+  }
   function icsRuntime(mode, item, args, planerFeiertag = false) {
     const state = icsRuntime.state || (icsRuntime.state = { jobs: new Map(), worker: null, paint: 0 });
-    const zone = organizerZeitzone(), key = JSON.stringify([mode, item, args, zone]);
+    const prepared = icsRuntimeVorbereitung(mode, item, args), zone = prepared.zone, key = prepared.key; item = prepared.item;
     const warn = code => { icsRuntime.lastError = code; zettel(_("Some recurrence rules cannot be expanded. Their original calendar data was preserved.") + " [" + code + "]"); };
     const publish = () => {
       const pending = [...state.jobs.values()].some(v => v.status === "pending");
@@ -9919,7 +10132,12 @@ if (NEU_IN_DIESER_FASSUNG_VERSION !== FASSUNG) throw new Error("Release notes ve
     for (let queries = 0; lower < maximum; queries++) {
       if (queries >= 146097) { const error = new Error("recurrence-next-work-limit"); error.code = "recurrence-next-work-limit"; throw error; }
       const upper = Math.min(maximum, lower + days * 86400000 - 1);
-      const values = icsExpansion(a, lower, upper, true, true, seek).filter(v => v.faellig >= heute);
+      const values = icsExpansion(a, lower, upper, true, true, seek).filter(value => {
+        if (!value.faelligZeit) return value.faellig >= heute;
+        const parts = organizerDatumzeitTeile(new Date(value.icsEndUtc));
+        const ownDate = String(parts.jahr).padStart(4, "0") + "-" + String(parts.monat).padStart(2, "0") + "-" + String(parts.tag).padStart(2, "0");
+        return ownDate >= heute;
+      });
       for (const value of values) if (!best || value.icsEndUtc < best.icsEndUtc) best = value;
       lower = Math.max(upper + 1, seek.next); days = Math.min(32, days * 2);
       if (best && lower > best.icsEndUtc + 2 * 86400000) return best;
@@ -14046,6 +14264,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   function zeichneAlles() {
     sichereNotizSnapshot();
     if (aktiverEditor && aktiverEditor.element && editorIstGeaendert()) return;
+    stabilisiereAktiveOrtszeiten();
     beendeZeicheneingabe(true);
     beendeGesundheitReserve();
     const vorher = document.activeElement && document.activeElement.dataset
@@ -15535,13 +15754,14 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (termin.icsReadOnly || !DATEN.termine.includes(termin)) return false;
     const vorher = kopie(termin), bisherigeQuelle = String(termin.syncKalenderUid || "");
     const neueQuelle = String(werte.syncKalenderUid || "");
+    const roundtrip = spiegeleTerminInIcs({ ...termin, ...werte }, vorher);
     if (bisherigeQuelle && bisherigeQuelle !== neueQuelle && termin.sync) {
       merkeGeloescht("termine", termin);
       if (termin.syncQuellen && typeof termin.syncQuellen === "object") delete termin.syncQuellen[bisherigeQuelle];
     }
     Object.assign(termin, werte);
     if (bisherigeQuelle !== neueQuelle) termin.sync = false;
-    termin.icsRoundtrip = spiegeleTerminInIcs(termin, vorher);
+    termin.icsRoundtrip = roundtrip;
     return true;
   }
 
@@ -15594,6 +15814,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
     /* ---- Linkes Drittel: die Angaben ---- */
     const links = el("div", "tb-links");
+
+    if (!neu && termin.zeit && gueltigeIanaZeitzone(termin.icsAnzeigeZeitzone) &&
+        kalenderKernEigenschaften(termin.icsRoundtrip).some(value => value.name === "DTSTART" && (value.params.TZID || /Z$/i.test(value.wert)))) {
+      const context = el("p", "einst-hinweis", _("Time zone") + ": " + zeitzonenName(termin.icsAnzeigeZeitzone));
+      context.id = "tb-zeitzonen-kontext"; links.append(context);
+    }
 
     if (!neu && termin.icsReadOnly) {
       links.append(el("p", "einst-warnung",
@@ -16389,7 +16615,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
           zettel(_("Conflict")); return;
         }
         termin = aktuell;
-        if (!wendeTerminWerteAn(termin, werte)) { zettel(_("Conflict")); return; }
+        try { if (!wendeTerminWerteAn(termin, werte)) { zettel(_("Conflict")); return; } }
+        catch (error) { zettel(error.message); return; }
       }
       zustand.kalender.bearbeiteId = null;
       planeSpeichern();
@@ -17099,8 +17326,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
 
   function wendeAufgabenWerteAn(aufgabe, werte, zeitGeaendert =
       ["faellig", "startDatum", "startZeit", "faelligZeit"].some(feld => (aufgabe[feld] || "") !== (werte[feld] || "")), elternGeaendert = true) {
+    const kontextZeilen = zeitGeaendert ? kalenderBearbeiteteZeitZeilen({ ...aufgabe, ...werte }, aufgabe, true) : null;
     Object.assign(aufgabe, werte);
-    if (zeitGeaendert) aufgabe.icsRoundtrip = (aufgabe.icsRoundtrip || []).filter(zeile => {
+    if (zeitGeaendert && kontextZeilen) {
+      aufgabe.icsRoundtrip = entferneKalenderKernfelder(aufgabe.icsRoundtrip, new Set(["DUE", "DTSTART", "DURATION"]));
+      const position = aufgabe.icsRoundtrip.findIndex(line => /^END:VTODO$/i.test(line));
+      aufgabe.icsRoundtrip.splice(position < 0 ? aufgabe.icsRoundtrip.length : position, 0, ...kontextZeilen);
+    } else if (zeitGeaendert) aufgabe.icsRoundtrip = (aufgabe.icsRoundtrip || []).filter(zeile => {
       const eig = icsEigenschaft(zeile);
       return !eig || !["DUE", "DTSTART", "DURATION"].includes(eig.name);
     });
@@ -18020,6 +18252,12 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const form = el("fieldset", "formular");
     form.append(el("legend", null, _("Entry")));
 
+    if (bearbeitet && (bearbeitet.startZeit || bearbeitet.faelligZeit) && gueltigeIanaZeitzone(bearbeitet.icsAnzeigeZeitzone) &&
+        kalenderKernEigenschaften(bearbeitet.icsRoundtrip).some(value => ["DTSTART", "DUE"].includes(value.name) && (value.params.TZID || /Z$/i.test(value.wert)))) {
+      const context = el("p", "einst-hinweis", _("Time zone") + ": " + zeitzonenName(bearbeitet.icsAnzeigeZeitzone));
+      context.id = "aufgabe-zeitzonen-kontext"; form.append(context);
+    }
+
     const feldTitel = eingabe("text", bearbeitet ? bearbeitet.titel : "");
     feldTitel.id = "aufgabe-titel";
     feldTitel.placeholder = _("What needs to be done?");
@@ -18241,12 +18479,13 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         : zeitModus === "due" ? feldFaelligZeit.value : "";
       if (bearbeitet) {
         const zeitGeaendert = bearbeitet.faellig !== faellig || (bearbeitet.startDatum || "") !== startDatum || (bearbeitet.startZeit || "") !== startZeit || (bearbeitet.faelligZeit || "") !== faelligZeit;
-        wendeAufgabenWerteAn(bearbeitet, {
+        try { wendeAufgabenWerteAn(bearbeitet, {
           startDatum: zeitModus === "window" ? startDatum : bearbeitet.startDatum || "",
           titel, prio: Number(feldPrio.value), faellig, startZeit, faelligZeit,
           notiz: feldNotiz.value, kategorien: feldKategorien.value.trim(), akzentFarbe: akzentWahl.wert(), elternUid: elternWahl.value, personen: Array.from(gewaehltePersonen),
           erinnern: erinnerHak.checked, individuelleErinnerungTage: erinnerungsTageAusText(individuellFeld.value),
-          ...(zweigWahl ? { delegiertAn: zweigWahl.value } : {}) }, zeitGeaendert);
+          ...(zweigWahl ? { delegiertAn: zweigWahl.value } : {}) }, zeitGeaendert); }
+        catch (error) { zettel(error.message); return; }
         schickeAnZweig(bearbeitet, zweigWahl ? zweigWahl.value : "");
       } else {
         DATEN.aufgaben.push(neueAufgabeDaten({ elternUid: elternWahl.value,
@@ -18311,9 +18550,11 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         ganztag ? "DUE;VALUE=DATE:" + occurrence.faellig.replace(/-/g, "") : "DUE:" + stamp(occurrence.icsEndUtc),
         "STATUS:COMPLETED", "PERCENT-COMPLETE:100");
       completedId = uid();
-      DATEN.aufgaben.push({ ...kopie(occurrence), id: completedId, uid: instanceUid,
+      const ownProjection = kalenderBasisInZone({ ...occurrence, icsRoundtrip: raw }, true, eigeneIanaZeitzone());
+      DATEN.aufgaben.push({ ...kopie(occurrence), startDatum: ownProjection.startDatum, startZeit: ownProjection.startZeit.slice(0, 5),
+        faellig: ownProjection.faellig, faelligZeit: ownProjection.faelligZeit.slice(0, 5), id: completedId, uid: instanceUid,
         icsSerienUid: a.icsSerienUid, icsImportUid: (a.icsImportUid || a.uid) + instanceUid.slice(a.uid.length),
-        icsRoundtrip: raw, icsAnzeigeZeitzone: organizerZeitzone(),
+        icsRoundtrip: raw, icsAnzeigeZeitzone: eigeneIanaZeitzone(),
         icsRangeOverrides: [], icsAusnahmen: [], icsAusnahmeTermine: [],
         icsZusatzTermine: [], erledigt: true, erinnern: false, sync: false, syncQuellen: {},
         geaendert: Date.now(), personalGeaendert: Date.now() });
@@ -19797,10 +20038,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     const webNeu = knopf("+", "klein", () => { webseiten.push(""); zeichneWebseiten(); }); webNeu.setAttribute("aria-label", _("Add"));
     webKopf.append(el("div", "kontakt-zusatz-titel", _("Website")), webNeu);
     weitere.append(webKopf, webKasten); zeichneWebseiten();
-    const feldZeitzone = eingabe("text", kontaktZeitzone(k)); feldZeitzone.id = "kontakt-zeitzone"; feldZeitzone.maxLength = 128;
-    feldZeitzone.placeholder = "Europe/Berlin";
-    feldZeitzone.addEventListener("input", () => feldZeitzone.setCustomValidity(feldZeitzone.value.trim() && !gueltigeIanaZeitzone(feldZeitzone.value) ? _("The selected time zone is unavailable.") : ""));
     const zeitzonenVerwaltungAn = ["manual", "automatic"].includes(DATEN.einstellungen.regional.timeZoneManagement);
+    const feldZeitzone = zeitzonenVerwaltungAn ? zeitzonenAuswahl(kontaktZeitzone(k), false, true) : eingabe("text", kontaktZeitzone(k)); feldZeitzone.id = "kontakt-zeitzone";
+    feldZeitzone.addEventListener("input", () => feldZeitzone.setCustomValidity(feldZeitzone.value.trim() && !gueltigeIanaZeitzone(feldZeitzone.value) ? _("The selected time zone is unavailable.") : ""));
     if (zeitzonenVerwaltungAn) weitere.append(formZeile(_("Time zone"), feldZeitzone));
     const kontaktpersonVorschlaege = el("datalist");
     kontaktpersonVorschlaege.id = "kontaktperson-status-vorschlaege";
@@ -29856,6 +30096,267 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     wurzel.append(ab);
   }
 
+  const zeitzonenNamen = new Map();
+  let zeitzonenDialogLaedt = false, zeitzonenAktionLaeuft = false;
+  function pruefeZeitzonenDialogStart() {
+    try { mcpEditorPruefen(); }
+    catch (error) {
+      // Opening a child of Settings is read-only; external writes keep the full gate.
+      if (error.code !== "dialog_busy" || modalStapel.some(entry => entry.schleier.isConnected && entry.schleier !== $("#einstellungen-schleier"))) throw error;
+    }
+  }
+  async function mitGeschlossenenEinstellungen(action) {
+    const book = DATEN, wasOpen = !$("#einstellungen-schleier").classList.contains("verborgen");
+    let interacted = false;
+    const interaction = () => { interacted = true; };
+    if (wasOpen) schliesseEinstellungen();
+    document.addEventListener("pointerdown", interaction, true); document.addEventListener("keydown", interaction, true);
+    try { return await action(); }
+    finally {
+      document.removeEventListener("pointerdown", interaction, true); document.removeEventListener("keydown", interaction, true);
+      if (wasOpen && !interacted && DATEN === book && !gesperrt && !editorIstGeaendert() && !modalStapel.some(entry => entry.schleier.isConnected)) oeffneEinstellungen();
+    }
+  }
+  function zeitzonenName(value) {
+    if (value === "system") return _("System setting");
+    const zone = gueltigeIanaZeitzone(value);
+    if (!zone) return _("Unavailable") + " (" + String(value || "") + ")";
+    const language = (window.MagnolieI18n?.locale() || "en").replace(/_/g, "-"), key = language + "|" + value;
+    if (zeitzonenNamen.has(key)) return zeitzonenNamen.get(key);
+    let longName = "";
+    for (const style of ["longGeneric", "long"]) {
+      try { longName = new Intl.DateTimeFormat(language, { timeZone: zone, timeZoneName: style }).formatToParts(new Date()).find(part => part.type === "timeZoneName")?.value || ""; break; } catch (_) { /* Older engines may lack generic names. */ }
+    }
+    const city = String(value).split("/").pop().replace(/_/g, " ");
+    const label = city + (longName ? " — " + longName : "") + " (" + value + ")";
+    if (zeitzonenNamen.size >= 1024) zeitzonenNamen.clear();
+    zeitzonenNamen.set(key, label); return label;
+  }
+  function zeitzonenAuswahl(value, system = true, empty = false) {
+    let available = [];
+    try { available = Intl.supportedValuesOf("timeZone"); } catch (_) { available = ["Europe/Berlin", "Europe/London", "America/New_York", "Asia/Tokyo"]; }
+    const ids = [...new Set(["UTC", ...available, ...(value && value !== "system" ? [value] : [])])];
+    const options = ids.map(zone => [zone, zeitzonenName(zone)]).sort((a, b) => vergleicheStandardText(a[1], b[1]));
+    if (system) options.unshift(["system", _("System setting")]);
+    if (empty) options.unshift(["", _("— not specified —")]);
+    return auswahlFeld(options, value || (empty ? "" : "system"));
+  }
+  function oeffneZeitzonenManagement() {
+    if (zeitzonenDialogLaedt || zeitzonenAktionLaeuft || !Bruecke.vorhanden) return;
+    return navigiereMitGuard(async () => {
+      zeitzonenDialogLaedt = true;
+      const book = DATEN, controller = new AbortController();
+      try {
+        pruefeZeitzonenDialogStart();
+        const tools = mcpRegionaleEinstellungenWerkzeuge();
+        let status = await tools[0].call({}, controller.signal);
+        if (DATEN !== book || gesperrt) return;
+        pruefeZeitzonenDialogStart();
+        const saved = status.settings, draft = { enabled: ["manual", "automatic"].includes(saved.time_zone_management), mode: saved.time_zone_management === "automatic" ? "automatic" : "manual",
+          source: saved.time_zone_detection || "auto", manual: saved.time_zone_manual || saved.time_zone || "system",
+          calendar: saved.appointment_time_zone_display || "own", tasks: saved.task_time_zone_display || "own" };
+        const initialDraft = JSON.stringify(draft), contacts = new Map(); let selectedContact = "", pending = false, candidateInfo = null;
+        const veil = el("div", "eingabe-schleier"); veil.id = "zeitzonenverwaltung";
+        const dialog = el("div", "eingabe-dialog"), title = el("h3", null, _("Time zone management")); title.id = "zeitzonenverwaltung-titel"; dialog.setAttribute("aria-labelledby", title.id);
+        const master = eingabe("checkbox", ""); master.id = "zeitzonen-aktiv"; master.checked = draft.enabled;
+        const masterLabel = el("label", "hak"); masterLabel.append(master, document.createTextNode(" " + _("Enable")));
+        const scope = auswahlFeld([["own", _("Own time zone")], ["contacts", _("Contacts")], ["calendar", _("Calendar")], ["tasks", _("Tasks")], ["sync", _("Synchronization")]], "own"); scope.id = "zeitzonen-bereich";
+        const details = el("div"), information = el("p", "einst-hinweis");
+        const close = () => { controller.abort(); beendeModal(veil); veil.remove(); };
+        let save;
+        const available = () => status.time_zone_management_supported && status.time_zone_detection_available;
+        const sourceName = value => ({ phone: _("Phone"), gps: "GPS", ip: "IP", system: _("System setting"), manual: _("Manual") })[value] || _("Unknown source");
+        const showInfo = () => {
+          const actual = status.settings, captured = Number(actual.time_zone_detected_at_ms || 0);
+          information.textContent = _("Time zone") + ": " + zeitzonenName(actual.time_zone || "system") + " · " + _("Source") + ": " + sourceName(actual.time_zone_detected_source) +
+            (captured > 0 ? " · " + datumText(new Date(captured), { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }, true) : "") +
+            (!available() ? " · " + _("Unavailable") : "");
+          if (candidateInfo) information.textContent = _("Detected time zone") + ": " + zeitzonenName(candidateInfo.time_zone) + " · " + sourceName(candidateInfo.source);
+          if (save) save.disabled = pending || !available();
+        };
+        const picker = (value, id, change, system = true, empty = false) => {
+          const select = zeitzonenAuswahl(value, system, empty); select.id = id; select.size = 8; select.disabled = !master.checked;
+          const all = Array.from(select.options, option => [option.value, option.textContent]);
+          const search = eingabe("search", ""); search.placeholder = _("Search"); search.setAttribute("aria-label", _("Search")); search.disabled = !master.checked;
+          search.addEventListener("input", () => {
+            const chosen = select.value, query = kanonischerText(search.value); select.replaceChildren();
+            for (const [zone, name] of all) if (zone === chosen || !query || kanonischerText(name).includes(query)) { const option = document.createElement("option"); option.value = zone; option.textContent = name; select.append(option); }
+            select.value = chosen;
+          });
+          select.addEventListener("change", () => change(select.value));
+          const box = el("div"); box.dataset.labelTarget = select.id; box.append(search, select); return box;
+        };
+        const draw = () => {
+          details.replaceChildren(); draft.enabled = master.checked;
+          if (scope.value === "own") {
+            const mode = auswahlFeld([["manual", _("Manual")], ["automatic", _("Automatic")]], draft.mode); mode.id = "zeitzonen-modus"; mode.disabled = !master.checked;
+            mode.addEventListener("change", () => { draft.mode = mode.value; candidateInfo = null; draw(); }); details.append(formZeile(_("Settings"), mode));
+            if (draft.mode === "automatic") {
+              const source = auswahlFeld([["auto", _("Automatic") + " (" + _("Phone") + " → GPS → IP → " + _("System setting") + ")"], ["phone", _("Phone")], ["gps", "GPS"], ["ip", "IP"], ["system", _("System setting")]], draft.source);
+              source.id = "zeitzonen-quelle"; source.disabled = !master.checked; source.addEventListener("change", () => { draft.source = source.value; candidateInfo = null; draw(); }); details.append(formZeile(_("Source"), source));
+            }
+            details.append(formZeile(draft.mode === "automatic" ? _("Manual fallback") : _("Time zone"), picker(draft.manual, "zeitzonen-manuell", value => { draft.manual = value; candidateInfo = null; draw(); })));
+            const detect = knopf(_("Detect now"), "", async () => {
+              pending = true; showInfo(); detect.disabled = true;
+              try {
+                const candidate = await mcpZeitzonenWerkzeuge()[0].call({ expected_revision: status.revision }, controller.signal);
+                if (veil.isConnected && DATEN === book) candidateInfo = candidate;
+              } catch (error) { if (!controller.signal.aborted) zettel(_("The time zone could not be detected.")); }
+              finally { pending = false; if (veil.isConnected) draw(); }
+            }); detect.id = "zeitzonen-erkennen";
+            detect.disabled = pending || !master.checked || draft.mode !== "automatic" || !available() || status.settings.time_zone_management !== "automatic" || draft.source !== status.settings.time_zone_detection || draft.manual !== status.settings.time_zone_manual;
+            const refresh = knopf(_("Refresh"), "", async () => {
+              pending = true; showInfo();
+              try { const current = await tools[0].call({}, controller.signal); if (veil.isConnected && DATEN === book) { status = current; candidateInfo = null; } }
+              catch (error) { if (!controller.signal.aborted) zettel(_("The regional settings could not be saved.")); }
+              finally { pending = false; if (veil.isConnected) draw(); }
+            }); refresh.disabled = pending; details.append(detect, refresh);
+          } else if (scope.value === "contacts") {
+            const contact = auswahlFeld([["", _("— not specified —")], ...DATEN.kontakte.map(value => [value.id, kontaktName(value)])], selectedContact); contact.id = "zeitzonen-kontakt";
+            const body = el("div"); details.append(formZeile(_("Contact"), contact), body);
+            const load = async () => {
+              selectedContact = contact.value; body.replaceChildren(); const id = selectedContact;
+              if (!id) return;
+              try {
+                if (!contacts.has(id)) {
+                  const value = await mcpKontaktWerkzeuge()[0].call({ id, fields: ["id"] });
+                  if (!veil.isConnected || DATEN !== book || !contact.isConnected || contact.value !== id) return;
+                  const current = DATEN.kontakte.find(value => value.id === id);
+                  contacts.set(id, { original: value.time_zone, zone: value.time_zone, revision: value.revision, changed: false,
+                    annotated: (current?.vcardRoundtrip || []).some(line => /^(?:[A-Za-z0-9-]+\.)?TZ[;:]/i.test(line)) });
+                }
+                const value = contacts.get(id); body.append(formZeile(_("Time zone"), picker(value.zone, "zeitzonen-kontakt-zone", zone => { value.zone = zone; value.changed = true; }, false, true)));
+              } catch (error) { if (veil.isConnected) body.textContent = _("The entry could not be found."); }
+            };
+            contact.addEventListener("change", load); void load();
+          } else {
+            const policy = (key, label, id) => { const select = auswahlFeld([["own", _("Own time zone")], ["contact", _("Contact")], ["source", _("Original time zone")]], draft[key]); select.id = id; select.disabled = !master.checked; select.addEventListener("change", () => { draft[key] = select.value; draw(); }); details.append(formZeile(label, select)); };
+            if (scope.value !== "tasks") policy("calendar", _("Appointments"), "zeitzonen-kalender");
+            if (scope.value !== "calendar") policy("tasks", _("Tasks"), "zeitzonen-aufgaben");
+            details.append(el("p", "einst-hinweis", _("These choices change how the Organizer displays information. Your entries are not converted or moved.")));
+            if (scope.value !== "sync") {
+              const task = scope.value === "tasks", collection = task ? DATEN.aufgaben : DATEN.termine;
+              const entries = auswahlFeld([["", _("— not specified —")], ...collection.filter(value => task ? value.startZeit || value.faelligZeit : value.zeit).map(value => [value.id, value.titel || _("Untitled")])], ""); entries.id = "zeitzonen-eintrag";
+              const open = knopf(_("Time zone") + " …", "", () => { const id = entries.value; if (!id) return; close(); oeffneEintragsZeitzone(task ? "task" : "appointment", id); }); open.id = "zeitzonen-eintrag-oeffnen";
+              const changed = JSON.stringify(draft) !== initialDraft || [...contacts.values()].some(value => value.zone !== value.original || value.changed && value.zone === "" && value.annotated);
+              const update = () => { open.disabled = !entries.value || changed || !["manual", "automatic"].includes(DATEN.einstellungen.regional.timeZoneManagement); };
+              entries.addEventListener("change", update); update(); details.append(formZeile(task ? _("Task") : _("Appointment"), entries), open);
+            }
+          }
+          showInfo();
+        };
+        save = knopf(_("Save"), "haupt", async () => {
+          pending = true; showInfo();
+          try {
+            if (DATEN !== book || gesperrt) throw new Error("source_changed");
+            const current = await tools[0].call({}, controller.signal);
+            if (current.revision !== status.revision || DATEN !== book) throw new Error("conflict");
+            const changes = [...contacts.entries()].filter(([, value]) => value.zone !== value.original || value.changed && value.zone === "" && value.annotated);
+            for (const [id, value] of changes) if ((await mcpKontaktWerkzeuge()[0].call({ id, fields: ["id"] })).revision !== value.revision) throw new Error("conflict");
+            const signal = new AbortController().signal;
+            close(); zeitzonenAktionLaeuft = true;
+            await mitGeschlossenenEinstellungen(async () => {
+              await tools[1].call({ expected_revision: status.revision, time_zone_management: master.checked ? draft.mode : "off", time_zone_detection: draft.source,
+                time_zone_manual: draft.manual, appointment_time_zone_display: draft.calendar, task_time_zone_display: draft.tasks }, signal);
+              for (const [id, value] of changes) await mcpKontaktWerkzeuge().find(tool => tool.name === "organizer_contact_update").call({ id, expected_revision: value.revision, time_zone: value.zone }, signal);
+              if (master.checked && draft.mode === "automatic") { const updated = await tools[0].call({}, signal); await mcpZeitzonenWerkzeuge()[1].call({ expected_revision: updated.revision }, signal); }
+            });
+            zettel(_("Regional settings saved. Restart the Organizer to apply them completely."));
+          } catch (error) { zettel(error.message === "conflict" || error.code === "conflict" || error.code === "source_changed" ? _("Conflict") : _("The regional settings could not be saved.")); }
+          finally { zeitzonenAktionLaeuft = false; pending = false; if (veil.isConnected) showInfo(); }
+        }); save.id = "zeitzonen-speichern";
+        master.addEventListener("change", () => { candidateInfo = null; draw(); }); scope.addEventListener("change", draw);
+        const buttons = el("div", "dialog-knoepfe"); buttons.append(knopf(_("Cancel"), "", close), save);
+        dialog.append(title, masterLabel, formZeile(_("Apply to"), scope), details, information, buttons); veil.append(dialog); document.body.append(veil); draw();
+        registriereModal(veil, dialog, { anfang: master, schliessen: close });
+      } catch (error) { controller.abort(); zettel(_("The regional settings could not be saved.")); }
+      finally { zeitzonenDialogLaedt = false; }
+    });
+  }
+  function oeffneEintragsZeitzone(kind, id) {
+    return navigiereMitGuard(async () => {
+      const book = DATEN, controller = new AbortController(), task = kind === "task";
+      try {
+        pruefeZeitzonenDialogStart();
+        const read = task ? mcpAufgabenWerkzeuge().find(tool => tool.name === "organizer_task_read") : mcpTerminWerkzeuge()[0];
+        const snapshot = await read.call({ id }), entry = snapshot[task ? "task" : "appointment"];
+        if (DATEN !== book || gesperrt) return;
+        pruefeZeitzonenDialogStart();
+        const inputZone = gueltigeIanaZeitzone(entry.icsAnzeigeZeitzone) || eigeneIanaZeitzone();
+        let base = null;
+        try { base = zeitzonenEintragPlan(entry, task, { mode: "display", time_zone: inputZone }).view; }
+        catch (_) { /* Floating clocks can still be deliberately planned below. */ }
+        const properties = kalenderKernEigenschaften(entry.icsRoundtrip), hasStart = properties.some(value => value.name === "DTSTART") || (task ? !!entry.startZeit : !!entry.zeit);
+        const hasEnd = properties.some(value => [task ? "DUE" : "DTEND", "DURATION"].includes(value.name)) || (task ? !!entry.faelligZeit : !!entry.endZeit);
+        const veil = el("div", "eingabe-schleier"); veil.id = "eintrags-zeitzone";
+        const dialog = el("div", "eingabe-dialog"), title = el("h3", null, _("Time zone")); title.id = "eintrags-zeitzone-titel"; dialog.setAttribute("aria-labelledby", title.id);
+        const mode = auswahlFeld([["display", _("Keep instant")], ["plan", _("Plan local time")]], base ? "display" : "plan"); mode.id = "eintrags-zeitzone-modus";
+        const zone = zeitzonenAuswahl(inputZone, false); zone.id = "eintrags-zeitzone-zone";
+        const linked = entry.kontaktId ? [entry.kontaktId] : [];
+        const contact = auswahlFeld([["", _("— not specified —")], ...linked.map(value => [value, kontaktName(DATEN.kontakte.find(item => item.id === value) || {}) || value])], ""); contact.id = "eintrags-zeitzone-kontakt";
+        let selectedContact = null, pending = false, valid = false, selectionError = "", operationError = "";
+        const create = (type, value, name) => { const field = eingabe(type, value); field.id = "eintrags-zeitzone-" + name; if (type === "time") field.step = "1"; return field; };
+        const startDate = create("date", base?.start_date || (task ? entry.startDatum : entry.datum) || "", "von-datum"), startTime = create("time", base?.start_time || (task ? entry.startZeit : entry.zeit) || "", "von-zeit");
+        const endDate = create("date", base?.end_date || (task ? entry.faellig : entry.endDatum || entry.datum) || "", "bis-datum"), endTime = create("time", base?.end_time || (task ? entry.faelligZeit : entry.endZeit) || "", "bis-zeit");
+        const folds = () => auswahlFeld([["reject", _("— please select —")], ["earlier", _("Earlier occurrence")], ["later", _("Later occurrence")]], "reject");
+        const startFold = folds(), endFold = folds(); startFold.id = "eintrags-zeitzone-von-fold"; endFold.id = "eintrags-zeitzone-bis-fold";
+        const info = el("p", "einst-hinweis"), error = el("p", "einst-hinweis"); error.setAttribute("role", "status");
+        const close = () => { controller.abort(); beendeModal(veil); veil.remove(); };
+        let apply;
+        const args = () => ({ entry_type: kind, id, expected_revision: snapshot.revision, mode: mode.value, time_zone: zone.value,
+          ...(selectedContact ? { contact_id: selectedContact.id, expected_contact_revision: selectedContact.revision } : {}),
+          ...(mode.value === "plan" ? { ...(hasStart ? { start_date: datumswert(startDate), start_time: startTime.value, start_fold: startFold.value } : {}), ...(hasEnd ? { end_date: datumswert(endDate), end_time: endTime.value, end_fold: endFold.value } : {}) } : {}) });
+        const preview = () => {
+          valid = false; error.textContent = "";
+          for (const field of [mode, zone, contact]) field.disabled = pending;
+          for (const field of [startDate, startTime, startFold]) field.disabled = pending || mode.value !== "plan" || !hasStart;
+          for (const field of [endDate, endTime, endFold]) field.disabled = pending || mode.value !== "plan" || !hasEnd;
+          if (selectionError || operationError) { error.textContent = operationError || selectionError; if (apply) apply.disabled = true; return; }
+          try {
+            const result = zeitzonenEintragPlan(entry, task, args()).view;
+            if (mode.value === "display") { setzeDatumswert(startDate, result.start_date); startTime.value = result.start_time; setzeDatumswert(endDate, result.end_date); endTime.value = result.end_time; }
+            info.textContent = zeitzonenName(result.time_zone) + " · " + [result.start_date + " " + result.start_time, result.end_date + " " + result.end_time].filter(value => value.trim()).join(" → ") + " · " + (result.instant_changed ? _("Plan local time") : _("Keep instant"));
+            valid = true;
+          } catch (failure) { info.textContent = ""; error.textContent = failure.message; }
+          if (apply) apply.disabled = pending || !valid;
+        };
+        mode.addEventListener("change", () => {
+          if (mode.value === "plan") { setzeDatumswert(startDate, base?.start_date || (task ? entry.startDatum : entry.datum) || ""); startTime.value = base?.start_time || (task ? entry.startZeit : entry.zeit) || ""; setzeDatumswert(endDate, base?.end_date || (task ? entry.faellig : entry.endDatum || entry.datum) || ""); endTime.value = base?.end_time || (task ? entry.faelligZeit : entry.endZeit) || ""; }
+          preview();
+        });
+        zone.addEventListener("change", () => { selectedContact = null; contact.value = ""; selectionError = ""; preview(); });
+        contact.addEventListener("change", async () => {
+          const chosen = contact.value; selectedContact = null; selectionError = ""; if (!chosen) return preview();
+          pending = true; preview();
+          try {
+            const value = await mcpKontaktWerkzeuge()[0].call({ id: chosen, fields: ["id"] });
+            if (!veil.isConnected || DATEN !== book || contact.value !== chosen) return;
+            if (!value.time_zone) throw new Error(_("The selected time zone is unavailable."));
+            selectedContact = { id: chosen, revision: value.revision };
+            if (!Array.from(zone.options).some(option => option.value === value.time_zone)) { const option = document.createElement("option"); option.value = value.time_zone; option.textContent = zeitzonenName(value.time_zone); zone.append(option); }
+            zone.value = value.time_zone;
+          } catch (failure) { selectionError = failure.message; }
+          finally { pending = false; if (veil.isConnected) preview(); }
+        });
+        for (const field of [startDate, startTime, endDate, endTime, startFold, endFold]) field.addEventListener("change", preview);
+        apply = knopf(_("Apply"), "haupt", async () => {
+          pending = true; preview();
+          try {
+            const values = args(); await mcpEintragsZeitzonenWerkzeuge()[0].call(values, controller.signal);
+            if (DATEN !== book || gesperrt) throw new Error(_("Conflict"));
+            const signal = new AbortController().signal; close();
+            await mitGeschlossenenEinstellungen(() => mcpEintragsZeitzonenWerkzeuge()[1].call(values, signal));
+          } catch (failure) { if (veil.isConnected) operationError = failure.message; else zettel(_("The regional settings could not be saved.")); }
+          finally { pending = false; if (veil.isConnected) preview(); }
+        }); apply.id = "eintrags-zeitzone-anwenden";
+        const buttons = el("div", "dialog-knoepfe"); buttons.append(knopf(_("Cancel"), "", close), apply);
+        dialog.append(title, el("p", null, entry.titel || _("Untitled")), formZeile(_("Settings"), mode), formZeile(_("Contact"), contact), formZeile(_("Time zone"), zone),
+          formZeile(_("Date"), startDate), formZeile(_("Time"), startTime), formZeile(_("Date"), endDate), formZeile(_("Time"), endTime),
+          formZeile(_("Earlier occurrence") + " / " + _("Later occurrence"), startFold), formZeile(_("Earlier occurrence") + " / " + _("Later occurrence"), endFold), info, error, buttons);
+        veil.append(dialog); document.body.append(veil); preview(); registriereModal(veil, dialog, { anfang: mode, schliessen: close });
+      } catch (failure) { controller.abort(); zettel(_("The regional settings could not be saved.")); }
+    });
+  }
   function baueSeiteRegional(wurzel) {
     const r = DATEN.einstellungen.regional;
     const ab = abschnitt(_("Language and regional display"),
@@ -29889,10 +30390,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ["celsius", _("Celsius (°C)")], ["fahrenheit", _("Fahrenheit (°F)")]], r.temperatureUnit);
     temperatur.id = "regional-temperatur";
     ab.append(formZeile(_("Weather temperature"), temperatur));
-    const zone = document.createElement("input");
+    const zone = zeitzonenAuswahl(r.timeZone || "system");
     zone.id = "regional-zeitzone";
     zone.value = r.timeZone || "system";
-    zone.placeholder = "Europe/Berlin";
+    zone.disabled = r.timeZoneManagement === "automatic";
     ab.append(formZeile(_("Time zone"), zone));
     const heimatland = auswahlFeld(telefonLaenderOptionen(), telefonHeimatland());
     heimatland.id = "regional-heimatland";
@@ -29903,11 +30404,10 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       try {
         const signal = new AbortController().signal, tools = mcpRegionaleEinstellungenWerkzeuge();
         const before = await tools[0].call({}, signal);
-        await tools[1].call({ expected_revision: before.revision,
+        await mitGeschlossenenEinstellungen(() => tools[1].call({ expected_revision: before.revision,
           language: sprache.value, format_locale: format.value.trim(), hour_cycle: stunden.value,
           first_day_of_week: wochenanfang.value, temperature_unit: temperatur.value,
-          time_zone: zone.value.trim(), home_country: isoLand(heimatland.value, "DE") }, signal);
-        if (einstSeite === "regional") baueEinstellungen();
+          time_zone: zone.value.trim(), home_country: isoLand(heimatland.value, "DE") }, signal));
         zettel(_("Regional settings saved. Restart the Organizer to apply them completely."));
       } catch (_) { zettel(_("The regional settings could not be saved.")); }
       finally { speichern.disabled = false; }
@@ -29985,6 +30485,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     feiertageHak.addEventListener("change", () => { wendeOrtAuswahlDatenAn({ feiertage: feiertageHak.checked }); planeSpeichern(); zeichneAlles(); });
     const feiertageZeile = el("label", "hak");
     feiertageZeile.append(feiertageHak, document.createTextNode(" " + _("Public holidays"))); ab.append(feiertageZeile);
+    const zeitzonen = knopf(_("Time zone management"), "", oeffneZeitzonenManagement); zeitzonen.id = "ort-zeitzonenmanagement"; zeitzonen.disabled = !Bruecke.vorhanden; ab.append(zeitzonen);
     wurzel.append(ab);
 
     /* Abruf */
@@ -32045,6 +32546,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       }
       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "baum_stand" });
       if (Bruecke.vorhanden) Bruecke.sende({ cmd: "telefon_stand" });
+      setTimeout(aktualisiereAutomatischeZeitzone, 3000);
     },
     edsStatus(nutzlast) {
       mcpNativeAntwort(nutzlast, "edsStatus");
@@ -33287,6 +33789,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       zettel(nutzlast.bericht || _("The holidays were imported."));
     },
     regionalStand(nutzlast) { mcpNativeAntwort(nutzlast || {}, "regionalStand"); },
+    zeitzonenErgebnis(nutzlast) { mcpNativeAntwort(nutzlast || {}, "zeitzonenErgebnis"); },
     regionalErgebnis(nutzlast) {
       if (nutzlast?.requestId) { mcpNativeAntwort(nutzlast, "regionalErgebnis"); return; }
       nutzlast = nutzlast || {};
@@ -33832,7 +34335,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     return task;
   }
   async function mcpAufgabenVorkommen(source, date, signal) {
-    const key = JSON.stringify(["next", source, [date], organizerZeitzone()]);
+    const key = icsRuntimeVorbereitung("next", source, [date]).key;
     const immediate = icsRuntime("next", source, [date]);
     const job = icsRuntime.state?.jobs.get(key);
     if (!job) {
@@ -33905,7 +34408,9 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         call: async (args, signal) => mcpSchreiben(signal, async () => {
           const task = await mcpPruefeEintrag("aufgaben", args.id, args.expected_revision, signal);
           const values = mcpAufgabenWerte(args, task);
-          wendeAufgabenWerteAn(task, values, undefined, args.parent_id !== undefined); normalisiereAufgabenGraph(DATEN.aufgaben);
+          try { wendeAufgabenWerteAn(task, values, undefined, args.parent_id !== undefined); }
+          catch (error) { if (error.code === "invalid_settings") throw new MagnolieMcp.ToolError(error.code, error.message); throw error; }
+          normalisiereAufgabenGraph(DATEN.aufgaben);
           schickeAnZweig(task, task.delegiertAn || "");
           weckeAutomatischenNotesAbgleich("task", task.id);
           return { id: task.id };
@@ -34075,7 +34580,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
         call: async (args, signal) => mcpSchreiben(signal, async () => {
           const appointment = await mcpPruefeEintrag("termine", args.id, args.expected_revision, signal);
           if (appointment.icsReadOnly) throw new MagnolieMcp.ToolError("read_only", "Appointment provider is read-only");
-          if (!wendeTerminWerteAn(appointment, mcpTerminWerte(args, appointment))) throw new MagnolieMcp.ToolError("conflict", "Appointment changed before editing");
+          try { if (!wendeTerminWerteAn(appointment, mcpTerminWerte(args, appointment))) throw new MagnolieMcp.ToolError("conflict", "Appointment changed before editing"); }
+          catch (error) { if (error.code === "invalid_settings") throw new MagnolieMcp.ToolError(error.code, error.message); throw error; }
           return { id: appointment.id };
         }) },
       { name: "organizer_appointment_delete", description: "Revision-checked deletion of an appointment or complete series through the product trash/provider tombstone path. Read-only records cannot be deleted.",
@@ -37711,8 +38217,7 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
   }
   function wendeRegionaleEinstellungenDatenAn(values) { Object.assign(DATEN.einstellungen.regional, values); }
   async function sichereZeitzonenVerankerung(signal) {
-    const book = DATEN, plan = zeitzonenVerankerungsPlan(book, organizerZeitzone() || new Intl.DateTimeFormat().resolvedOptions().timeZone);
-    if (!plan.length) return;
+    const book = DATEN, plan = zeitzonenVerankerungsPlan(book, eigeneIanaZeitzone());
     mcpEditorPruefen();
     if (signal.aborted || plan.some(value => JSON.stringify(value.entry) !== value.before)) throw new MagnolieMcp.ToolError("source_changed", "The book changed before time-zone anchoring");
     for (const value of plan) Object.assign(value.entry, value.next);
@@ -37723,40 +38228,199 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (signal.aborted || DATEN !== book || gesperrt || JSON.stringify(book) !== anchored) throw new MagnolieMcp.ToolError("source_changed", "The book changed while time-zone anchors were saved");
     mcpEditorPruefen();
   }
+  const REGIONALE_MCP_ZUORDNUNG = { language: "language", format_locale: "formatLocale", hour_cycle: "hourCycle", first_day_of_week: "firstDayOfWeek", temperature_unit: "temperatureUnit", time_zone: "timeZone", home_country: "homeCountry",
+    time_zone_management: "timeZoneManagement", time_zone_detection: "timeZoneDetection", time_zone_manual: "timeZoneManual", appointment_time_zone_display: "timeZoneCalendarDisplay", task_time_zone_display: "timeZoneTaskDisplay" };
+  const regionaleNativeQuellen = new WeakMap();
+  function regionaleMcpWerte(value) {
+    const result = Object.fromEntries(Object.entries(REGIONALE_MCP_ZUORDNUNG).filter(([, field]) => typeof value[field] === "string").map(([key, field]) => [key, value[field]]));
+    result.week_rule = value.weekRule;
+    if (typeof value.timeZoneDetectedSource === "string") result.time_zone_detected_source = value.timeZoneDetectedSource;
+    if (typeof value.timeZoneDetectedAt === "string") result.time_zone_detected_at_ms = Number(value.timeZoneDetectedAt);
+    return result;
+  }
+  function pruefeNativeRegionalWerte(value) {
+    const required = ["language", "formatLocale", "hourCycle", "firstDayOfWeek", "temperatureUnit", "timeZone", "homeCountry", "weekRule"];
+    const optional = { timeZoneManagement: ["off", "manual", "automatic"], timeZoneDetection: ["auto", "system", "phone", "gps", "ip"], timeZoneCalendarDisplay: ["own", "contact", "source"], timeZoneTaskDisplay: ["own", "contact", "source"], timeZoneDetectedSource: ["manual", "system", "phone", "gps", "ip"] };
+    const allowed = new Set([...required, ...Object.keys(optional), "timeZoneManual", "timeZoneDetectedAt"]);
+    if (!value || typeof value !== "object" || Array.isArray(value) || required.some(key => typeof value[key] !== "string") || Object.keys(value).some(key => !allowed.has(key) || typeof value[key] !== "string") ||
+        Object.entries(optional).some(([key, choices]) => value[key] !== undefined && !choices.includes(value[key])) ||
+        value.timeZoneDetectedAt !== undefined && (!/^(?:0|[1-9][0-9]{0,14})$/.test(value.timeZoneDetectedAt) || Number(value.timeZoneDetectedAt) > 253402300799999))
+      throw new MagnolieMcp.ToolError("invalid_result", "Native regional preferences are incomplete or invalid");
+    return kopie(value);
+  }
+  async function leseNativeRegionalWerte(signal) {
+    const value = await mcpNativeAufruf("regional_einstellungen_status", {}, "regionalStand", signal);
+    if (value.ok !== true) throw new MagnolieMcp.ToolError("native_operation_failed", "Native regional preferences could not be read");
+    const actual = pruefeNativeRegionalWerte(value.regional), preview = value.time_zone_preview_version === 1;
+    if (preview && ["timeZoneManagement", "timeZoneDetection", "timeZoneManual", "timeZoneDetectedSource", "timeZoneDetectedAt", "timeZoneCalendarDisplay", "timeZoneTaskDisplay"].some(key => typeof actual[key] !== "string"))
+      throw new MagnolieMcp.ToolError("invalid_result", "Native time-zone management preferences are incomplete");
+    if (preview && value.book_source != null && (typeof value.book_source !== "string" || !/^[a-f0-9]{64}$/.test(value.book_source)))
+      throw new MagnolieMcp.ToolError("invalid_result", "Native time-zone source binding is invalid");
+    regionaleNativeQuellen.set(actual, { preview, source: preview ? value.book_source || null : null });
+    return actual;
+  }
+  function regionaleMcpMomentaufnahme(native) {
+    return JSON.stringify({ native, book: DATEN.einstellungen.regional, source: regionaleNativeQuellen.get(native)?.source || null });
+  }
+  async function schreibeNativeRegionalWerte(native, wanted, signal) {
+    const source = regionaleNativeQuellen.get(native)?.source;
+    const value = await mcpNativeAufruf("regional_einstellungen", { regional: wanted, expectedRegional: native,
+      ...(source ? { expectedBookSource: source } : {}) }, "regionalErgebnis", signal);
+    if (value.ok !== true) throw new MagnolieMcp.ToolError(["conflict", "source_changed", "invalid_settings", "native_busy", "locked"].includes(value.code) ? value.code : "native_operation_failed", "Native regional save could not be confirmed; re-read stored settings");
+    const actual = pruefeNativeRegionalWerte(value.regional);
+    if (Object.keys(actual).length !== Object.keys(wanted).length || Object.keys(wanted).some(key => actual[key] !== wanted[key]))
+      throw new MagnolieMcp.ToolError("invalid_result", "Native regional readback differs from the requested settings");
+    return actual;
+  }
+  async function leseZeitzonenKandidat(native, signal) {
+    const meta = regionaleNativeQuellen.get(native);
+    if (!meta?.preview) throw new MagnolieMcp.ToolError("unsupported_feature", "This native backend cannot detect a zone without changing settings");
+    if (!meta.source) throw new MagnolieMcp.ToolError("native_busy", "The native book is not ready for source-bound time-zone detection");
+    if (native.timeZoneManagement !== "automatic") throw new MagnolieMcp.ToolError("invalid_settings", "Enable automatic time-zone management before querying optional sources");
+    const value = await mcpNativeAufruf("zeitzone_erkennen", { expectedRegional: native, expectedBookSource: meta.source }, "zeitzonenErgebnis", signal);
+    if (value.ok !== true) throw new MagnolieMcp.ToolError(["conflict", "source_changed", "native_busy", "locked"].includes(value.code) ? value.code : "native_operation_failed", "Native time-zone detection failed");
+    if (value.book_source !== meta.source) throw new MagnolieMcp.ToolError("source_changed", "The native book changed during time-zone detection");
+    const regional = pruefeNativeRegionalWerte(value.regional), now = Date.now();
+    if (Object.keys(regional).length !== Object.keys(native).length || Object.keys(native).some(key => regional[key] !== native[key]) || value.native_changed !== false || value.automatic !== true ||
+        !gueltigeIanaZeitzone(value.time_zone, true) || !["phone", "gps", "ip", "system", "manual"].includes(value.source) || typeof value.fallback !== "boolean" ||
+        !Number.isSafeInteger(value.checked_at_ms) || value.checked_at_ms < now - 60000 || value.checked_at_ms > now + 30000 || !Number.isSafeInteger(value.captured_ms) ||
+        value.captured_ms < value.checked_at_ms - 300000 || value.captured_ms > value.checked_at_ms + 30000 ||
+        value.source === "manual" && !value.fallback || native.timeZoneDetection !== "auto" && value.source !== native.timeZoneDetection && !(value.fallback && ["manual", "system"].includes(value.source)))
+      throw new MagnolieMcp.ToolError("invalid_result", "Native time-zone observation is invalid, stale or changed settings unexpectedly");
+    return { time_zone: value.time_zone, source: value.source, captured_at_ms: value.captured_ms, checked_at_ms: value.checked_at_ms, fallback: value.fallback };
+  }
   function mcpRegionaleEinstellungenWerkzeuge() {
-    const map = { language: "language", format_locale: "formatLocale", hour_cycle: "hourCycle", first_day_of_week: "firstDayOfWeek", temperature_unit: "temperatureUnit", time_zone: "timeZone", home_country: "homeCountry" };
+    const map = REGIONALE_MCP_ZUORDNUNG;
     const fields = { language: { type: "string", enum: ["system", "de", "en", "fr", "es", "it", "nl", "pt", "ru", "cs", "pl", "hsb", "da", "nb", "hi", "zh_CN", "ja", "ar", "uk", "be", "tr"] },
       format_locale: { type: "string", maxLength: 64, pattern: "^system$|^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*$" }, hour_cycle: { type: "string", enum: ["system", "h12", "h23"] },
       first_day_of_week: { type: "string", enum: ["locale", "monday", "sunday", "saturday"] }, temperature_unit: { type: "string", enum: ["system", "celsius", "fahrenheit"] },
-      time_zone: { type: "string", minLength: 1, maxLength: 128, pattern: "^[A-Za-z0-9._+/-]+$" }, home_country: { type: "string", pattern: "^[A-Za-z]{2}$" } };
-    const settings = value => ({ ...Object.fromEntries(Object.entries(map).map(([key, field]) => [key, value[field]])), week_rule: value.weekRule });
-    const validate = value => {
-      if (!value || typeof value !== "object" || Array.isArray(value) || [...Object.values(map), "weekRule"].some(key => typeof value[key] !== "string")) throw new MagnolieMcp.ToolError("invalid_result", "Native regional preferences are incomplete");
-      return kopie(value);
-    };
-    const read = async signal => { const value = await mcpNativeAufruf("regional_einstellungen_status", {}, "regionalStand", signal);
-      if (value.ok !== true) throw new MagnolieMcp.ToolError("native_operation_failed", "Native startup preferences could not be read"); return validate(value.regional); };
-    const snapshot = native => JSON.stringify({ native, book: DATEN.einstellungen.regional });
+      time_zone: { type: "string", minLength: 1, maxLength: 128, pattern: "^[A-Za-z0-9._+/-]+$" }, home_country: { type: "string", pattern: "^[A-Za-z]{2}$" },
+      time_zone_management: { type: "string", enum: ["off", "manual", "automatic"] }, time_zone_detection: { type: "string", enum: ["auto", "phone", "gps", "ip", "system"] },
+      time_zone_manual: { type: "string", minLength: 1, maxLength: 128, pattern: "^[A-Za-z0-9._+/-]+$" },
+      appointment_time_zone_display: { type: "string", enum: ["own", "contact", "source"] }, task_time_zone_display: { type: "string", enum: ["own", "contact", "source"] } };
+    const settings = regionaleMcpWerte, read = leseNativeRegionalWerte, snapshot = regionaleMcpMomentaufnahme;
     return [
-      { name: "organizer_regional_settings_read", description: "Read actual native startup regional preferences separately from current book preferences, with a combined revision. Native windows and language/time-zone choices can require an application restart after saving.",
+      { name: "organizer_regional_settings_read", description: "Read actual native startup regional preferences separately from current book preferences, with a combined revision bound to the native book source when supported. Includes optional time-zone mode/source/fallback, appointment/task display policies, confirmed observation metadata and native preview support/readiness. No location or network query is made. Native windows can require a restart after saving.",
         inputSchema: { type: "object", properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true, openWorldHint: false }, call: async (_args, signal) => {
           const book = DATEN, native = await read(signal);
           if (signal.aborted || DATEN !== book) throw new MagnolieMcp.ToolError("source_changed", "Book changed during native regional preference lookup");
-          const before = snapshot(native), value = JSON.parse(before); return { settings: settings(value.native), book_settings: settings(value.book), revision: await personalSyncHash(before) };
+           const before = snapshot(native), value = JSON.parse(before), revision = await personalSyncHash(before);
+           if (signal.aborted || DATEN !== book || snapshot(native) !== before) throw new MagnolieMcp.ToolError("source_changed", "Regional settings changed during lookup");
+           return { settings: settings(value.native), book_settings: settings(value.book), revision,
+             time_zone_management_supported: !!regionaleNativeQuellen.get(native)?.preview,
+             time_zone_detection_available: !!(regionaleNativeQuellen.get(native)?.preview && regionaleNativeQuellen.get(native)?.source) };
         } },
-      { name: "organizer_regional_settings_update", description: "Save regional startup preferences using the actual native writer and verified readback, with native-state and book-preference revision checks. Then persist matching book metadata through native save acknowledgement. Existing record timestamps are retained. Restart is required for all native windows/runtime components to use the choices; a cancelled call may already have saved startup preferences.",
+      { name: "organizer_regional_settings_update", description: "Save regional startup preferences and optional time-zone mode/source/manual fallback/display policy through native source/CAS checks and exact readback, then book SaveACK. This action does not query sensors or network sources; use time_zone_refresh to detect and apply automatic zones. Existing timed records are anchored before a zone/display-policy change so their instants, IDs and source data remain intact. A cancelled call may retain safe anchors or saved startup preferences. Restart can be required for native windows.",
         inputSchema: { type: "object", properties: { expected_revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, ...fields }, required: ["expected_revision"], anyOf: Object.keys(fields).map(key => ({ required: [key] })), additionalProperties: false }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
           const book = DATEN, native = await read(signal), before = snapshot(native), revision = await personalSyncHash(before);
           if (signal.aborted || DATEN !== book || snapshot(native) !== before || revision !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Native or book regional preferences changed; read them again");
-          mcpEditorPruefen(); const wanted = { ...native };
+           mcpEditorPruefen(); const wanted = { ...native };
+           const managementKeys = ["time_zone_management", "time_zone_detection", "time_zone_manual", "appointment_time_zone_display", "task_time_zone_display"];
+           if (managementKeys.some(key => args[key] !== undefined)) {
+             if (!regionaleNativeQuellen.get(native)?.preview) throw new MagnolieMcp.ToolError("unsupported_feature", "Update the native backend before changing time-zone management");
+             if (!regionaleNativeQuellen.get(native)?.source) throw new MagnolieMcp.ToolError("native_busy", "The native book is not ready for time-zone management");
+           }
+           for (const key of managementKeys)
+             if (args[key] !== undefined && typeof native[map[key]] !== "string") throw new MagnolieMcp.ToolError("unsupported_feature", "Native time-zone management settings are unavailable");
+           if (args.time_zone_management === "automatic" && !regionaleNativeQuellen.get(native)?.preview) throw new MagnolieMcp.ToolError("unsupported_feature", "Update the native backend before enabling automatic detection");
           for (const [key, field] of Object.entries(map)) if (args[key] !== undefined) wanted[field] = key === "home_country" ? args[key].toUpperCase() : key === "format_locale" ? args[key].replace(/_/g, "-") : args[key];
-           if (args.time_zone && args.time_zone !== "system") { try { new Intl.DateTimeFormat("en", { timeZone: args.time_zone }); } catch { throw new MagnolieMcp.ToolError("invalid_settings", "The requested time zone is unavailable"); } }
-           if (wanted.timeZone !== native.timeZone) await sichereZeitzonenVerankerung(signal);
-           const value = await mcpNativeAufruf("regional_einstellungen", { regional: wanted, expectedRegional: native }, "regionalErgebnis", signal);
-          if (value.ok !== true) throw new MagnolieMcp.ToolError(["conflict", "invalid_settings"].includes(value.code) ? value.code : "native_operation_failed", "Native regional startup save could not be confirmed; re-read stored settings");
-          const actual = validate(value.regional);
+           for (const value of [args.time_zone, args.time_zone_manual].filter(value => value !== undefined)) if (!gueltigeIanaZeitzone(value, true)) throw new MagnolieMcp.ToolError("invalid_settings", "The requested time zone is unavailable");
+           if (wanted.timeZoneManagement === "automatic" && wanted.timeZone !== native.timeZone) throw new MagnolieMcp.ToolError("invalid_settings", "Use source-bound refresh or manual mode to change the effective automatic zone");
+           if (wanted.timeZoneManagement !== "automatic" && args.time_zone !== undefined && typeof wanted.timeZoneManual === "string" && args.time_zone_manual === undefined) wanted.timeZoneManual = wanted.timeZone;
+           if (wanted.timeZoneManagement === "manual" && (args.time_zone_management === "manual" || args.time_zone_manual !== undefined)) wanted.timeZone = wanted.timeZoneManual;
+           if (wanted.timeZoneManagement !== "automatic" && (wanted.timeZone !== native.timeZone || args.time_zone_management === "manual")) { wanted.timeZoneDetectedSource = "manual"; wanted.timeZoneDetectedAt = "0"; }
+           const bookRegional = DATEN.einstellungen.regional;
+           if (wanted.timeZone !== bookRegional.timeZone || ["manual", "automatic"].includes(wanted.timeZoneManagement) && (bookRegional.timeZoneManagement === "off" || wanted.timeZoneCalendarDisplay !== bookRegional.timeZoneCalendarDisplay || wanted.timeZoneTaskDisplay !== bookRegional.timeZoneTaskDisplay)) {
+             try { await sichereZeitzonenVerankerung(signal); } catch (error) { if (error instanceof MagnolieMcp.ToolError) throw error; throw new MagnolieMcp.ToolError("invalid_settings", "Existing local times could not be anchored before changing time-zone settings"); }
+           }
+           const actual = await schreibeNativeRegionalWerte(native, wanted, signal);
+           mcpEditorPruefen();
           if (DATEN !== book || JSON.stringify(DATEN.einstellungen.regional) !== JSON.stringify(JSON.parse(before).book)) throw new MagnolieMcp.ToolError("source_changed", "Startup preferences may have been saved; book regional metadata changed");
           wendeRegionaleEinstellungenDatenAn(actual); return { settings: settings(actual), native_saved: true, restart_required: true };
+        }) }
+    ];
+  }
+  function mcpEintragsZeitzonenWerkzeuge() {
+    const id = { type: "string", minLength: 1, maxLength: 256 }, revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const date = { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" }, clock = { type: "string", pattern: "^(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$" }, fold = { type: "string", enum: ["reject", "earlier", "later"] };
+    const inputSchema = { type: "object", properties: { entry_type: { type: "string", enum: ["appointment", "task"] }, id, expected_revision: revision,
+      mode: { type: "string", enum: ["display", "plan"] }, time_zone: { type: "string", minLength: 1, maxLength: 128 }, contact_id: id, expected_contact_revision: revision,
+      start_date: date, start_time: clock, end_date: date, end_time: clock, start_fold: fold, end_fold: fold },
+      required: ["entry_type", "id", "expected_revision", "mode"], anyOf: [{ required: ["time_zone"] }, { required: ["contact_id", "expected_contact_revision"] }], additionalProperties: false };
+    const prepare = async (args, signal) => {
+      const book = DATEN, task = args.entry_type === "task", collection = task ? "aufgaben" : args.entry_type === "appointment" ? "termine" : "";
+      if (!collection || !["manual", "automatic"].includes(book.einstellungen.regional.timeZoneManagement)) throw new MagnolieMcp.ToolError("unsupported_feature", "Enable time-zone management before preparing an entry zone action");
+      const entry = book[collection].find(value => value.id === args.id);
+      if (!entry) throw new MagnolieMcp.ToolError("not_found", "Timed entry not found");
+      const before = JSON.stringify(entry);
+      if (await personalSyncHash(before) !== args.expected_revision) throw new MagnolieMcp.ToolError("conflict", "Read the current entry revision before changing its time-zone context");
+      let zone = args.time_zone, contact = null, contactBefore = "";
+      if (args.contact_id) {
+        const linked = entry.kontaktId === args.contact_id;
+        if (!linked) throw new MagnolieMcp.ToolError("invalid_selection", "The selected contact is not associated with this entry");
+        contact = book.kontakte.find(value => value.id === args.contact_id);
+        if (!contact || !args.expected_contact_revision) throw new MagnolieMcp.ToolError("conflict", "Read the linked contact and its time zone before planning");
+        contactBefore = JSON.stringify(contact);
+        if (await personalSyncHash(contactBefore) !== args.expected_contact_revision) throw new MagnolieMcp.ToolError("conflict", "The linked contact changed before planning");
+        const current = kontaktZeitzone(contact);
+        if (!current) throw new MagnolieMcp.ToolError("invalid_time_zone", "The linked contact has no unambiguous IANA time zone");
+        if (zone && gueltigeIanaZeitzone(zone) !== current) throw new MagnolieMcp.ToolError("conflict", "The requested zone differs from the linked contact's current zone");
+        zone = current;
+      }
+      const check = () => {
+        if (signal.aborted) throw new MagnolieMcp.ToolError("cancelled", "Entry time-zone preparation cancelled");
+        if (DATEN !== book || gesperrt || book[collection].find(value => value.id === args.id) !== entry || JSON.stringify(entry) !== before || contact && (book.kontakte.find(value => value.id === contact.id) !== contact || JSON.stringify(contact) !== contactBefore))
+          throw new MagnolieMcp.ToolError("source_changed", "The entry, contact or book changed during time-zone preparation");
+      };
+      check();
+      let plan;
+      try { plan = zeitzonenEintragPlan(entry, task, { ...args, time_zone: zone }); }
+      catch (error) { throw new MagnolieMcp.ToolError(["invalid_time_zone", "invalid_settings", "unsupported_feature", "read_only"].includes(error.code) ? error.code : "invalid_settings", "The entry time-zone action cannot be prepared without changing its meaning"); }
+      check(); return { entry, task, plan, check, view: { id: entry.id, entry_type: args.entry_type, contact_id: contact?.id || "", ...plan.view } };
+    };
+    return [
+      { name: "organizer_entry_time_zone_preview", description: "Read-only preview for an appointment/task zone action. display preserves the absolute instant and all original calendar data; plan deliberately interprets local clock fields in a chosen IANA or revision-bound associated contact zone. Optional clock fields apply only to plan; nonexistent local times are rejected and folds need explicit earlier/later choices unless the existing same-zone instant identifies the occurrence. No country-to-zone guesses, invented task windows, all-day conversion or opaque recurrence rewrite. Returns only timing metadata; no GUI draft or book write.", inputSchema,
+        annotations: { readOnlyHint: true, openWorldHint: false }, call: async (args, signal) => { const state = await prepare(args, signal); return { ...state.view, revision: args.expected_revision, persisted: false }; } },
+      { name: "organizer_entry_time_zone_apply", description: "Revision-check and apply the same validated time-zone plan as the GUI. display changes field projection/input context while retaining original instants, raw recurrence data, UIDs, baselines and content timestamps; plan changes an individual timed entry's instant deliberately and retains unrelated provider/alarm metadata. Selected fold instants are encoded unambiguously in UTC with retained planning-zone metadata. Read-only sources cannot be replanned. Requires idle editor/dialog state and native durable SaveACK; preview is optional, and is never treated as permission to overwrite a changed entry/contact.", inputSchema,
+        annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const state = await prepare(args, signal); mcpEditorPruefen(); state.check(); Object.assign(state.entry, state.plan.next);
+          if (state.task && args.mode === "plan") { normalisiereAufgabenGraph(DATEN.aufgaben); schickeAnZweig(state.entry, state.entry.delegiertAn || ""); weckeAutomatischenNotesAbgleich("task", state.entry.id); }
+          return state.view;
+        }) }
+    ];
+  }
+  function mcpZeitzonenWerkzeuge() {
+    const revision = { type: "string", pattern: "^[a-f0-9]{64}$" };
+    const inputSchema = { type: "object", properties: { expected_revision: revision }, required: ["expected_revision"], additionalProperties: false };
+    const prepare = async (args, signal) => {
+      const book = DATEN, native = await leseNativeRegionalWerte(signal), before = regionaleMcpMomentaufnahme(native);
+      if (signal.aborted || DATEN !== book || await personalSyncHash(before) !== args.expected_revision || regionaleMcpMomentaufnahme(native) !== before)
+        throw new MagnolieMcp.ToolError("conflict", "Read the current native time-zone preferences and book source before detecting a zone");
+      return { book, native, before };
+    };
+    const check = state => {
+      if (DATEN !== state.book || gesperrt || regionaleMcpMomentaufnahme(state.native) !== state.before)
+        throw new MagnolieMcp.ToolError("source_changed", "The book or time-zone preferences changed during detection");
+    };
+    return [
+      { name: "organizer_time_zone_detect", description: "Detect a fresh own time-zone candidate through the enabled native phone/GPS/IP/system source policy. Requires the revision from regional settings and explicit automatic mode. Read-only preview: no setting, record, local-time anchor or GUI draft is changed. Unknown countries/offsets do not invent a zone; unavailable sources use the saved fallback. Returns zone/source/time metadata, never coordinates or private native book handles.",
+        inputSchema, annotations: { readOnlyHint: true, openWorldHint: true }, call: async (args, signal) => {
+          const state = await prepare(args, signal), candidate = await leseZeitzonenKandidat(state.native, signal);
+          check(state); return { ...candidate, revision: args.expected_revision, native_changed: false, persisted: false };
+        } },
+      { name: "organizer_time_zone_refresh", description: "Detect and apply the enabled automatic own-zone policy with native/book-source CAS. Anchor existing unzoned timed records durably before changing the effective zone; explicit UTC/TZID/floating/DATE source semantics and existing record identities remain intact. Verify native readback and book SaveACK. Editor/dialog drafts block application. Cancellation may retain safe anchors or already-saved startup preferences; re-read status before retrying. No OS clock or time zone is changed.",
+        inputSchema, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true }, call: async (args, signal) => mcpSchreiben(signal, async () => {
+          const state = await prepare(args, signal), candidate = await leseZeitzonenKandidat(state.native, signal);
+          check(state); mcpEditorPruefen();
+          if (candidate.time_zone !== DATEN.einstellungen.regional.timeZone) {
+            try { await sichereZeitzonenVerankerung(signal); } catch (error) { if (error instanceof MagnolieMcp.ToolError) throw error; throw new MagnolieMcp.ToolError("invalid_settings", "Existing local times could not be anchored before applying the detected zone"); }
+          }
+          check(state);
+          const wanted = { ...state.native, timeZone: candidate.time_zone, timeZoneDetectedSource: candidate.source, timeZoneDetectedAt: String(candidate.captured_at_ms) };
+          const changed = Object.keys(wanted).some(key => wanted[key] !== state.native[key]);
+          const actual = changed ? await schreibeNativeRegionalWerte(state.native, wanted, signal) : state.native;
+          check(state); mcpEditorPruefen(); wendeRegionaleEinstellungenDatenAn(actual);
+          return { ...candidate, settings: regionaleMcpWerte(actual), native_changed: changed, native_saved: true, restart_required: true };
         }) }
     ];
   }
@@ -38644,8 +39308,21 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     if (name === "organizer_background_permissions_update") return shape({ settings: object, running: yes, lifecycle: { type: "string", const: "ready" }, autostart_registered: yes, native_applied: yes, persisted: yes }, ["settings", "running", "lifecycle", "autostart_registered", "native_applied", "persisted"]);
     if (name === "organizer_tray_settings_read") return shape({ settings: object, book_settings: object, available: flag, active: flag, autostart_registered: flag, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "book_settings", "available", "active", "autostart_registered", "revision"]);
     if (name === "organizer_tray_settings_update") return shape({ settings: object, available: flag, active: flag, autostart_registered: flag, native_applied: yes, persisted: yes }, ["settings", "available", "active", "autostart_registered", "native_applied", "persisted"]);
-    if (name === "organizer_regional_settings_read") return shape({ settings: object, book_settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "book_settings", "revision"]);
+    if (name === "organizer_regional_settings_read") return shape({ settings: object, book_settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, time_zone_management_supported: flag, time_zone_detection_available: flag }, ["settings", "book_settings", "revision", "time_zone_management_supported", "time_zone_detection_available"]);
     if (name === "organizer_regional_settings_update") return shape({ settings: object, native_saved: yes, restart_required: yes, persisted: yes }, ["settings", "native_saved", "restart_required", "persisted"]);
+    if (["organizer_time_zone_detect", "organizer_time_zone_refresh"].includes(name)) {
+      const no = { type: "boolean", enum: [false] }, stamp = { type: "integer", minimum: 0, maximum: 253402300799999 };
+      const fields = { time_zone: text, source: { type: "string", enum: ["phone", "gps", "ip", "system", "manual"] }, captured_at_ms: stamp, checked_at_ms: stamp, fallback: flag };
+      return name === "organizer_time_zone_detect" ? shape({ ...fields, revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, native_changed: no, persisted: no }, [...Object.keys(fields), "revision", "native_changed", "persisted"])
+        : shape({ ...fields, settings: object, native_changed: flag, native_saved: yes, restart_required: yes, persisted: yes }, [...Object.keys(fields), "settings", "native_changed", "native_saved", "restart_required", "persisted"]);
+    }
+    if (["organizer_entry_time_zone_preview", "organizer_entry_time_zone_apply"].includes(name)) {
+      const instant = { type: ["integer", "null"] }, fields = { id, entry_type: { type: "string", enum: ["appointment", "task"] }, contact_id: text,
+        input_zone: text, time_zone: text, mode: { type: "string", enum: ["display", "plan"] }, start_date: text, start_time: text, end_date: text, end_time: text,
+        start_utc_ms: instant, end_utc_ms: instant, instant_changed: flag };
+      return name === "organizer_entry_time_zone_preview" ? shape({ ...fields, revision: { type: "string", pattern: "^[a-f0-9]{64}$" }, persisted: { type: "boolean", enum: [false] } }, [...Object.keys(fields), "revision", "persisted"])
+        : shape({ ...fields, persisted: yes }, [...Object.keys(fields), "persisted"]);
+    }
     if (name === "organizer_spellcheck_word") return shape({ word: text, language: { type: "string", enum: ["de", "en"] }, correct: flag, suggestions: { type: "array", maxItems: 8, items: { type: "string", maxLength: 4096 } } }, ["word", "language", "correct", "suggestions"]);
     if (name === "organizer_dictionary_add_word") return shape({ word: text, language: { type: "string", enum: ["de", "en"] }, added: yes, confirmed: yes }, ["word", "language", "added", "confirmed"]);
     if (name === "organizer_display_settings_read") return shape({ settings: object, revision: { type: "string", pattern: "^[a-f0-9]{64}$" } }, ["settings", "revision"]);
@@ -38800,6 +39477,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
       ...mcpAnzeigeEinstellungenWerkzeuge(),
       ...mcpRechtschreibWerkzeuge(),
       ...mcpRegionaleEinstellungenWerkzeuge(),
+      ...mcpZeitzonenWerkzeuge(),
+      ...mcpEintragsZeitzonenWerkzeuge(),
       ...mcpTrayWerkzeuge(),
       ...mcpHintergrundWerkzeuge(),
       ...mcpBenachrichtigungsWerkzeuge(),
@@ -39328,6 +40007,8 @@ ${zelle(dauer(brutto), "number")}${zelle(nummer(pause), "number")}${zelle(dauer(
     };
     setInterval(aktualisiereHeutigenTag, 30000);
     window.addEventListener("focus", aktualisiereHeutigenTag);
+    window.addEventListener("focus", aktualisiereAutomatischeZeitzone);
+    setInterval(aktualisiereAutomatischeZeitzone, 15 * 60 * 1000);
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) aktualisiereHeutigenTag();
     });

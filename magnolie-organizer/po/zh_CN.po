@@ -498,6 +498,9 @@ msgstr ""
 "baum-1 分支的备用通道：直接连接无法到达时，消息将经由您 Nextcloud 服务器上的 "
 "WebDAV 文件夹传递。"
 
+msgid "A floating local time has no unique absolute instant."
+msgstr "未绑定时区的本地时间没有唯一的绝对时刻。"
+
 msgid "A group with this name already exists."
 msgstr "已存在同名组。"
 
@@ -779,6 +782,9 @@ msgstr "全部六张图表"
 
 msgid "All states"
 msgstr "所有州/邦"
+
+msgid "All-day dates are not converted into timed entries."
+msgstr "全天日期不会转换为带时间的条目。"
 
 msgid "Allow notifications despite password protection"
 msgstr "即使有密码保护也允许通知"
@@ -1301,9 +1307,6 @@ msgstr "按姓氏排序（Müller, Hans）"
 msgid "CSV / Lotus Organizer"
 msgstr "CSV / Lotus Organizer"
 
-msgid "CSV / Lotus Organizer contacts …"
-msgstr "CSV / Lotus Organizer 联系人 …"
-
 msgid "CSV files (*.csv)"
 msgstr "CSV 文件 (*.csv)"
 
@@ -1585,6 +1588,9 @@ msgstr "选择文件夹 …"
 
 msgid "Choose local image…"
 msgstr "选择本地图片…"
+
+msgid "Choose local-time planning to change clock fields."
+msgstr "请选择按本地时间规划以修改时间字段。"
 
 msgid "Choose or enter a phone number"
 msgstr "选择或输入电话号码"
@@ -2282,6 +2288,12 @@ msgstr "送达状态不确定"
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "牙医 Hill 医生 — 您的条目预览"
 
+msgid "Detect now"
+msgstr "立即检测"
+
+msgid "Detected time zone"
+msgstr "检测到的时区"
+
 msgid "Determining public IP address…"
 msgstr "正在确定公共 IP 地址…"
 
@@ -2417,6 +2429,9 @@ msgstr "重复项"
 
 msgid "Duration"
 msgstr "时长"
+
+msgid "Earlier occurrence"
+msgstr "较早的一次"
 
 msgid "Early shift"
 msgstr "早班"
@@ -3154,9 +3169,6 @@ msgstr "导入 Claws Mail 联系人"
 msgid "Import ICS / CSV…"
 msgstr "导入 ICS / CSV…"
 
-msgid "Import Lotus Organizer CSV"
-msgstr "导入 Lotus Organizer CSV"
-
 msgid "Import Notes → Organizer only"
 msgstr "仅从 Notes 导入到 Organizer"
 
@@ -3420,6 +3432,14 @@ msgstr "保留故障排除日志"
 msgid "Keep existing"
 msgstr "保留现有信息"
 
+msgid "Keep instant"
+msgstr "保持时刻不变"
+
+msgid ""
+"Keep the original recurrence data; this local-time action is for individual "
+"entries."
+msgstr "保留原始重复数据；此本地时间操作仅适用于单个条目。"
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "将此 KDE Connect 文件保留在“下载”中吗？"
 
@@ -3465,6 +3485,9 @@ msgstr "晚班"
 msgctxt "time tracking"
 msgid "Late shift"
 msgstr "晚班"
+
+msgid "Later occurrence"
+msgstr "较晚的一次"
 
 msgid "Latest alarm monitor entries:"
 msgstr "最新提醒监控器记录："
@@ -3556,9 +3579,6 @@ msgstr "零散笔记"
 
 msgid "Lotus Calendar (*.lcs)"
 msgstr "Lotus Calendar (*.lcs)"
-
-msgid "Lotus Organizer CSV …"
-msgstr "Lotus Organizer CSV …"
 
 msgid "Lower Austria"
 msgstr "下奥地利州"
@@ -3719,6 +3739,9 @@ msgstr "自定义"
 msgctxt "time tracking"
 msgid "Manual entry"
 msgstr "手动添加"
+
+msgid "Manual fallback"
+msgstr "手动备用值"
 
 msgid "Manual only"
 msgstr "仅手动"
@@ -4461,6 +4484,14 @@ msgstr "ODS"
 msgid "OK"
 msgstr "好的"
 
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, "
+"groups and other sections are skipped; layout, attachments, categories and "
+"alarms are not transferred."
+msgstr ""
+"OR6 导入：日程、任务、联系人和笔记纯文本。跳过重复规则、群组及其他分区；不传"
+"输布局、附件、分类和提醒。"
+
 msgid "Objects"
 msgstr "物体"
 
@@ -4716,6 +4747,9 @@ msgstr "Organizer 样式（纸张）"
 msgid "Organizer · Calendar · Contacts · Notes"
 msgstr "Organizer · 日历 · 联系人 · 便笺"
 
+msgid "Original time zone"
+msgstr "原始时区"
+
 msgid "Other"
 msgstr "其他"
 
@@ -4747,6 +4781,9 @@ msgstr "本机号码（默认语音 SIM）"
 
 msgid "Own profile"
 msgstr "个人资料"
+
+msgid "Own time zone"
+msgstr "自己的时区"
 
 msgid "Own window available: no"
 msgstr "可用独立窗口：否"
@@ -4994,6 +5031,9 @@ msgstr "%(name)s 的照片"
 
 msgid "Pick up"
 msgstr "接取"
+
+msgid "Plan local time"
+msgstr "按本地时间规划"
 
 msgid "Planner"
 msgstr "计划器"
@@ -6175,6 +6215,9 @@ msgstr "声音输出方式：%(method)s"
 msgid "Sound through: no output method found"
 msgstr "声音输出方式：未找到输出方式"
 
+msgid "Source"
+msgstr "来源"
+
 msgid "Sources"
 msgstr "来源"
 
@@ -6771,6 +6814,9 @@ msgstr "通话已结束，或通话状态已更新。"
 msgid "The call is no longer ringing or is outdated."
 msgstr "来电已停止响铃，或来电信息已过时。"
 
+msgid "The chosen local time could not be represented exactly."
+msgstr "无法精确表示所选本地时间。"
+
 msgid "The clipboard is empty."
 msgstr "剪贴板为空。"
 
@@ -6878,6 +6924,9 @@ msgstr "加密文件已损坏。"
 
 msgid "The end date cannot be before the start date."
 msgstr "结束日期不能早于开始日期。"
+
+msgid "The end must not precede the start."
+msgstr "结束时间不得早于开始时间。"
 
 msgid "The entered fingerprint is incomplete."
 msgstr "输入的指纹不完整。"
@@ -7080,6 +7129,9 @@ msgid ""
 "The organizer notifies you before an appointment begins, even when the "
 "application is not open if you wish."
 msgstr "Organizer 会在约会开始前通知您；如果您愿意，即使应用没有打开也会通知。"
+
+msgid "The original calendar time cannot be resolved without guessing."
+msgstr "无法在不进行猜测的情况下确定原始日历时间。"
 
 msgid "The other branch did not prove the pairing file."
 msgstr "另一分支未证明配对文件有效。"
@@ -7356,6 +7408,9 @@ msgstr "所选健康记录中没有可打印的值。"
 msgid "The selected iCalendar file is incomplete."
 msgstr "所选 iCalendar 文件不完整。"
 
+msgid "The selected local time does not exist or is ambiguous."
+msgstr "所选本地时间不存在或存在歧义。"
+
 msgid "The selected note contains attachments that cannot be sent."
 msgstr "所选笔记包含无法发送的附件。"
 
@@ -7423,6 +7478,9 @@ msgid ""
 "The task will be sent to the selected branch. It will also remain here so "
 "you can keep track of it."
 msgstr "任务将发送到所选分支，同时也会保留在此处，便于您继续跟踪。"
+
+msgid "The time zone could not be detected."
+msgstr "无法检测时区。"
 
 msgid ""
 "The traffic-light colors are general reference ranges for adults, not a "
@@ -7565,6 +7623,9 @@ msgstr ""
 "这些选项需要 Magnolie Notes 中相应的权限。通话音频不会通过 Magnolie 数据连接"
 "传输。"
 
+msgid "This action does not invent a task start or deadline."
+msgstr "此操作不会添加任务缺失的开始时间或截止时间。"
+
 msgid "This address can be selected and copied."
 msgstr "可以选择并复制此地址。"
 
@@ -7600,6 +7661,9 @@ msgstr "此分支未知。"
 
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "此日历不支持任务（VTODO）。"
+
+msgid "This calendar source is read-only."
+msgstr "此日历来源为只读。"
 
 msgid ""
 "This choice also determines how names appear on contact cards and under "
@@ -7759,6 +7823,9 @@ msgstr "时间记录"
 
 msgid "Time zone"
 msgstr "时区"
+
+msgid "Time zone management"
+msgstr "时区管理"
 
 msgid "Title"
 msgstr "标题"
@@ -8860,6 +8927,15 @@ msgstr[0] "… 以及另外 %(count)s 项也将打印。"
 msgid "＋ Add appointment"
 msgstr "＋ 添加约会"
 
+#~ msgid "CSV / Lotus Organizer contacts …"
+#~ msgstr "CSV / Lotus Organizer 联系人 …"
+
+#~ msgid "Import Lotus Organizer CSV"
+#~ msgstr "导入 Lotus Organizer CSV"
+
+#~ msgid "Lotus Organizer CSV …"
+#~ msgstr "Lotus Organizer CSV …"
+
 #~ msgid "Message"
 #~ msgstr "消息"
 
@@ -9182,6 +9258,3 @@ msgstr "＋ 添加约会"
 #~ "仅应自己已配对电脑的请求显示 60 秒，不保存：默认语音 SIM 的号码，以及 "
 #~ "Android 允许时的序列号和 IMEI。Android 10 及更高版本限制普通应用访问硬件标"
 #~ "识符。电话号码权限为可选项；不会请求特殊角色。"
-
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
-msgstr "OR6 导入：日程、任务、联系人和笔记纯文本。跳过重复规则、群组及其他分区；不传输布局、附件、分类和提醒。"

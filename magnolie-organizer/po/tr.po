@@ -551,6 +551,9 @@ msgstr ""
 "baum-1 dalı için yedek yol: doğrudan bağlantıya ulaşılamazsa iletiler "
 "Nextcloud sunucunuzdaki bir WebDAV klasörü üzerinden gider."
 
+msgid "A floating local time has no unique absolute instant."
+msgstr "Saat dilimi olmayan yerel saatin benzersiz bir mutlak anı yoktur."
+
 msgid "A group with this name already exists."
 msgstr "Bu ada sahip bir grup zaten var."
 
@@ -841,6 +844,9 @@ msgstr "Altı grafiğin tümü"
 
 msgid "All states"
 msgstr "Tüm eyaletler"
+
+msgid "All-day dates are not converted into timed entries."
+msgstr "Tüm gün tarihleri saatli kayıtlara dönüştürülmez."
 
 msgid "Allow notifications despite password protection"
 msgstr "Parola korumasına rağmen bildirimlere izin ver"
@@ -1381,9 +1387,6 @@ msgstr "Soyada göre (Müller, Hans)"
 msgid "CSV / Lotus Organizer"
 msgstr "CSV / Lotus Organizer"
 
-msgid "CSV / Lotus Organizer contacts …"
-msgstr "CSV / Lotus Organizer kişileri …"
-
 msgid "CSV files (*.csv)"
 msgstr "CSV dosyaları (*.csv)"
 
@@ -1681,6 +1684,9 @@ msgstr "Klasör seç …"
 
 msgid "Choose local image…"
 msgstr "Yerel resim seç…"
+
+msgid "Choose local-time planning to change clock fields."
+msgstr "Saatleri değiştirmek için yerel saatle planlamayı seçin."
 
 msgid "Choose or enter a phone number"
 msgstr "Telefon numarası seçin veya girin"
@@ -2404,6 +2410,12 @@ msgstr "Teslimat durumu belirsiz"
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Diş hekimi Dr. Hill — Kayıtlarınızın önizlemesi"
 
+msgid "Detect now"
+msgstr "Şimdi algıla"
+
+msgid "Detected time zone"
+msgstr "Algılanan saat dilimi"
+
 msgid "Determining public IP address…"
 msgstr "Genel IP adresi belirleniyor…"
 
@@ -2546,6 +2558,9 @@ msgstr "Yinelenenler"
 
 msgid "Duration"
 msgstr "Süre"
+
+msgid "Earlier occurrence"
+msgstr "Önceki oluşum"
 
 msgid "Early shift"
 msgstr "Erken vardiya"
@@ -3305,9 +3320,6 @@ msgstr "Claws Mail kişilerini içe aktar"
 msgid "Import ICS / CSV…"
 msgstr "ICS / CSV içe aktar…"
 
-msgid "Import Lotus Organizer CSV"
-msgstr "Lotus Organizer CSV’yi içe aktar"
-
 msgid "Import Notes → Organizer only"
 msgstr "Yalnızca Notes → Organizer içe aktarımı"
 
@@ -3585,6 +3597,14 @@ msgstr "Sorun giderme günlüğü tut"
 msgid "Keep existing"
 msgstr "Mevcut bilgileri koru"
 
+msgid "Keep instant"
+msgstr "Anı koru"
+
+msgid ""
+"Keep the original recurrence data; this local-time action is for individual "
+"entries."
+msgstr "Özgün yineleme verilerini koruyun; bu yerel saat işlemi tekil kayıtlar içindir."
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Bu KDE Connect dosyası İndirilenler'de tutulsun mu?"
 
@@ -3630,6 +3650,9 @@ msgstr "Geç vardiya"
 msgctxt "time tracking"
 msgid "Late shift"
 msgstr "Akşam vardiyası"
+
+msgid "Later occurrence"
+msgstr "Sonraki oluşum"
 
 msgid "Latest alarm monitor entries:"
 msgstr "Alarm izleyicisinin son kayıtları:"
@@ -3721,9 +3744,6 @@ msgstr "Serbest Notlar"
 
 msgid "Lotus Calendar (*.lcs)"
 msgstr "Lotus Calendar (*.lcs)"
-
-msgid "Lotus Organizer CSV …"
-msgstr "Lotus Organizer CSV …"
 
 msgid "Lower Austria"
 msgstr "Aşağı Avusturya"
@@ -3889,6 +3909,9 @@ msgstr "Özel"
 msgctxt "time tracking"
 msgid "Manual entry"
 msgstr "Elle kayıt"
+
+msgid "Manual fallback"
+msgstr "Elle belirlenen yedek değer"
 
 msgid "Manual only"
 msgstr "Yalnızca elle"
@@ -4655,6 +4678,15 @@ msgstr "ODS"
 msgid "OK"
 msgstr "Tamam"
 
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, "
+"groups and other sections are skipped; layout, attachments, categories and "
+"alarms are not transferred."
+msgstr ""
+"OR6 içe aktarımı: randevular, görevler, kişiler ve not metni. Yinelemeler, "
+"gruplar ve diğer bölümler atlanır; düzen, ekler, kategoriler ve alarmlar "
+"aktarılmaz."
+
 msgid "Objects"
 msgstr "Nesneler"
 
@@ -4927,6 +4959,9 @@ msgstr "Organizer stili (kâğıt sayfası)"
 msgid "Organizer · Calendar · Contacts · Notes"
 msgstr "Organizer · Takvim · Kişiler · Notlar"
 
+msgid "Original time zone"
+msgstr "Özgün saat dilimi"
+
 msgid "Other"
 msgstr "Diğer"
 
@@ -4958,6 +4993,9 @@ msgstr "Kendi numaram (varsayılan ses SIM’i)"
 
 msgid "Own profile"
 msgstr "Kendi profiliniz"
+
+msgid "Own time zone"
+msgstr "Kendi saat diliminiz"
 
 msgid "Own window available: no"
 msgstr "Bağımsız pencere kullanılabilir: hayır"
@@ -5216,6 +5254,9 @@ msgstr "%(name)s adlı kişinin fotoğrafı"
 
 msgid "Pick up"
 msgstr "Al"
+
+msgid "Plan local time"
+msgstr "Yerel saatle planla"
 
 msgid "Planner"
 msgstr "Planlayıcı"
@@ -6447,6 +6488,9 @@ msgstr "Ses yöntemi: %(method)s"
 msgid "Sound through: no output method found"
 msgstr "Ses yöntemi: çıkış yöntemi bulunamadı"
 
+msgid "Source"
+msgstr "Kaynak"
+
 msgid "Sources"
 msgstr "Kaynaklar"
 
@@ -7065,6 +7109,9 @@ msgstr "Arama artık etkin değil veya durumu değişti."
 msgid "The call is no longer ringing or is outdated."
 msgstr "Telefonun zili artık çalmıyor veya arama bilgisi güncel değil."
 
+msgid "The chosen local time could not be represented exactly."
+msgstr "Seçilen yerel saat tam olarak gösterilemedi."
+
 msgid "The clipboard is empty."
 msgstr "Pano boş."
 
@@ -7178,6 +7225,9 @@ msgstr "Şifreli dosya bozuk."
 
 msgid "The end date cannot be before the start date."
 msgstr "Bitiş tarihi başlangıç tarihinden önce olamaz."
+
+msgid "The end must not precede the start."
+msgstr "Bitiş başlangıçtan önce olamaz."
 
 msgid "The entered fingerprint is incomplete."
 msgstr "Girilen parmak izi eksik."
@@ -7389,6 +7439,9 @@ msgid ""
 msgstr ""
 "Organizer, randevu başlamadan önce sizi bilgilendirir; isterseniz uygulama "
 "açık değilken de."
+
+msgid "The original calendar time cannot be resolved without guessing."
+msgstr "Özgün takvim saati tahmin yürütmeden belirlenemiyor."
 
 msgid "The other branch did not prove the pairing file."
 msgstr "Diğer dal eşleştirme dosyasını doğrulamadı."
@@ -7676,6 +7729,9 @@ msgstr "Seçili sağlık kayıtlarında yazdırılabilir değer yok."
 msgid "The selected iCalendar file is incomplete."
 msgstr "Seçili iCalendar dosyası eksik."
 
+msgid "The selected local time does not exist or is ambiguous."
+msgstr "Seçilen yerel saat mevcut değil veya belirsiz."
+
 msgid "The selected note contains attachments that cannot be sent."
 msgstr "Seçili not gönderilemeyen ekler içeriyor."
 
@@ -7750,6 +7806,9 @@ msgid ""
 "you can keep track of it."
 msgstr ""
 "Görev seçili dala gönderilecek. Takip edebilmeniz için burada da kalacak."
+
+msgid "The time zone could not be detected."
+msgstr "Saat dilimi algılanamadı."
 
 msgid ""
 "The traffic-light colors are general reference ranges for adults, not a "
@@ -7898,6 +7957,9 @@ msgstr ""
 "Bu seçenekler Magnolie Notes'ta ilgili izinleri gerektirir. Arama sesi "
 "Magnolie veri bağlantısı üzerinden gönderilmez."
 
+msgid "This action does not invent a task start or deadline."
+msgstr "Bu işlem eksik bir görev başlangıcı veya son tarihi eklemez."
+
 msgid "This address can be selected and copied."
 msgstr "Bu adres seçilip kopyalanabilir."
 
@@ -7934,6 +7996,9 @@ msgstr "Bu dal bilinmiyor."
 
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "Bu takvim görevleri (VTODO) desteklemiyor."
+
+msgid "This calendar source is read-only."
+msgstr "Bu takvim kaynağı salt okunurdur."
 
 msgid ""
 "This choice also determines how names appear on contact cards and under "
@@ -8104,6 +8169,9 @@ msgstr "Zaman takibi"
 
 msgid "Time zone"
 msgstr "Saat dilimi"
+
+msgid "Time zone management"
+msgstr "Saat dilimi yönetimi"
 
 msgid "Title"
 msgstr "Başlık"
@@ -9261,6 +9329,15 @@ msgstr[1] "… ayrıca yazdırılacak %(count)s öğe daha."
 msgid "＋ Add appointment"
 msgstr "＋ Randevu ekle"
 
+#~ msgid "CSV / Lotus Organizer contacts …"
+#~ msgstr "CSV / Lotus Organizer kişileri …"
+
+#~ msgid "Import Lotus Organizer CSV"
+#~ msgstr "Lotus Organizer CSV’yi içe aktar"
+
+#~ msgid "Lotus Organizer CSV …"
+#~ msgstr "Lotus Organizer CSV …"
+
 #~ msgid "Message"
 #~ msgstr "İleti"
 
@@ -9620,6 +9697,3 @@ msgstr "＋ Randevu ekle"
 #~ "seri numarası ile IMEI. Android 10 ve üzeri, normal uygulamalar için "
 #~ "donanım tanımlayıcılarını kısıtlar. Numara izni isteğe bağlıdır; özel bir "
 #~ "rol istenmez."
-
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
-msgstr "OR6 içe aktarımı: randevular, görevler, kişiler ve not metni. Yinelemeler, gruplar ve diğer bölümler atlanır; düzen, ekler, kategoriler ve alarmlar aktarılmaz."

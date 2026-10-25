@@ -587,6 +587,9 @@ msgstr ""
 "Záložní cesta pro větev baum-1: pokud přímé spojení není dostupné, zprávy "
 "putují přes složku WebDAV na vašem serveru Nextcloud."
 
+msgid "A floating local time has no unique absolute instant."
+msgstr "Místní čas bez časového pásma nemá jednoznačný absolutní okamžik."
+
 msgid "A group with this name already exists."
 msgstr "Skupina s tímto názvem již existuje."
 
@@ -874,6 +877,9 @@ msgstr "Všech šest grafů"
 
 msgid "All states"
 msgstr "Všechny spolkové země"
+
+msgid "All-day dates are not converted into timed entries."
+msgstr "Celodenní data se nepřevádějí na záznamy s časem."
 
 msgid "Allow notifications despite password protection"
 msgstr "Povolit oznámení i při ochraně heslem"
@@ -1410,9 +1416,6 @@ msgstr "Podle příjmení (Müller, Hans)"
 msgid "CSV / Lotus Organizer"
 msgstr "CSV / Lotus Organizer"
 
-msgid "CSV / Lotus Organizer contacts …"
-msgstr "Kontakty CSV / Lotus Organizer…"
-
 msgid "CSV files (*.csv)"
 msgstr "Soubory CSV (*.csv)"
 
@@ -1709,6 +1712,9 @@ msgstr "Vybrat složku …"
 
 msgid "Choose local image…"
 msgstr "Vybrat místní obrázek…"
+
+msgid "Choose local-time planning to change clock fields."
+msgstr "Chcete-li změnit časy, zvolte plánování v místním čase."
 
 msgid "Choose or enter a phone number"
 msgstr "Vyberte nebo zadejte telefonní číslo"
@@ -2437,6 +2443,12 @@ msgstr "Stav doručení je nejistý"
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Zubař MUDr. Hill — Náhled vašich záznamů"
 
+msgid "Detect now"
+msgstr "Zjistit nyní"
+
+msgid "Detected time zone"
+msgstr "Zjištěné časové pásmo"
+
 msgid "Determining public IP address…"
 msgstr "Zjišťování veřejné IP adresy…"
 
@@ -2577,6 +2589,9 @@ msgstr "Duplikáty"
 
 msgid "Duration"
 msgstr "Doba trvání"
+
+msgid "Earlier occurrence"
+msgstr "Dřívější výskyt"
 
 msgid "Early shift"
 msgstr "Ranní směna"
@@ -3333,9 +3348,6 @@ msgstr "Importovat kontakty Claws Mail"
 msgid "Import ICS / CSV…"
 msgstr "Importovat ICS / CSV…"
 
-msgid "Import Lotus Organizer CSV"
-msgstr "Importovat CSV z Lotus Organizer"
-
 msgid "Import Notes → Organizer only"
 msgstr "Importovat pouze z Notes do Organizeru"
 
@@ -3612,6 +3624,14 @@ msgstr "Uchovávat protokol pro řešení potíží"
 msgid "Keep existing"
 msgstr "Zachovat stávající údaje"
 
+msgid "Keep instant"
+msgstr "Zachovat okamžik"
+
+msgid ""
+"Keep the original recurrence data; this local-time action is for individual "
+"entries."
+msgstr "Zachovejte původní údaje opakování; tato akce místního času je určena pro jednotlivé záznamy."
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Ponechat tento soubor z KDE Connect ve složce Stažené?"
 
@@ -3657,6 +3677,9 @@ msgstr "Odpolední směna"
 msgctxt "time tracking"
 msgid "Late shift"
 msgstr "Odpolední směna"
+
+msgid "Later occurrence"
+msgstr "Pozdější výskyt"
 
 msgid "Latest alarm monitor entries:"
 msgstr "Poslední záznamy monitoru upozornění:"
@@ -3748,9 +3771,6 @@ msgstr "Volné poznámky"
 
 msgid "Lotus Calendar (*.lcs)"
 msgstr "Kalendář Lotus (*.lcs)"
-
-msgid "Lotus Organizer CSV …"
-msgstr "Lotus Organizer CSV …"
 
 msgid "Lower Austria"
 msgstr "Dolní Rakousy"
@@ -3916,6 +3936,9 @@ msgstr "Vlastní"
 msgctxt "time tracking"
 msgid "Manual entry"
 msgstr "Ruční záznam"
+
+msgid "Manual fallback"
+msgstr "Ruční náhradní hodnota"
 
 msgid "Manual only"
 msgstr "Pouze ručně"
@@ -4681,6 +4704,15 @@ msgstr "ODS"
 msgid "OK"
 msgstr "OK"
 
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, "
+"groups and other sections are skipped; layout, attachments, categories and "
+"alarms are not transferred."
+msgstr ""
+"Import OR6: schůzky, úkoly, kontakty a text poznámek. Opakování, skupiny a "
+"ostatní oddíly se vynechají; rozvržení, přílohy, kategorie a upozornění se "
+"nepřenášejí."
+
 msgid "Objects"
 msgstr "Objekty"
 
@@ -4961,6 +4993,9 @@ msgstr "Styl organizéru (papírový list)"
 msgid "Organizer · Calendar · Contacts · Notes"
 msgstr "Organizér · Kalendář · Kontakty · Poznámky"
 
+msgid "Original time zone"
+msgstr "Původní časové pásmo"
+
 msgid "Other"
 msgstr "Jiné"
 
@@ -4992,6 +5027,9 @@ msgstr "Vlastní číslo (výchozí hlasová SIM)"
 
 msgid "Own profile"
 msgstr "Vlastní profil"
+
+msgid "Own time zone"
+msgstr "Vlastní časové pásmo"
 
 msgid "Own window available: no"
 msgstr "Vlastní okno k dispozici: ne"
@@ -5249,6 +5287,9 @@ msgstr "Fotografie osoby %(name)s"
 
 msgid "Pick up"
 msgstr "Vyzvednout"
+
+msgid "Plan local time"
+msgstr "Plánovat v místním čase"
 
 msgid "Planner"
 msgstr "Plánovač"
@@ -6473,6 +6514,9 @@ msgstr "Zvuk přes: %(method)s"
 msgid "Sound through: no output method found"
 msgstr "Zvuk přes: nebyla nalezena žádná metoda výstupu"
 
+msgid "Source"
+msgstr "Zdroj"
+
 msgid "Sources"
 msgstr "Zdroje"
 
@@ -7093,6 +7137,9 @@ msgstr "Hovor už není aktivní nebo byly jeho údaje aktualizovány."
 msgid "The call is no longer ringing or is outdated."
 msgstr "Hovor už nevyzvání nebo jsou údaje o něm zastaralé."
 
+msgid "The chosen local time could not be represented exactly."
+msgstr "Zvolený místní čas se nepodařilo přesně vyjádřit."
+
 msgid "The clipboard is empty."
 msgstr "Schránka je prázdná."
 
@@ -7206,6 +7253,9 @@ msgstr "Zašifrovaný soubor je poškozený."
 
 msgid "The end date cannot be before the start date."
 msgstr "Datum konce nemůže být před datem začátku."
+
+msgid "The end must not precede the start."
+msgstr "Konec nesmí předcházet začátku."
 
 msgid "The entered fingerprint is incomplete."
 msgstr "Zadaný otisk není úplný."
@@ -7418,6 +7468,9 @@ msgid ""
 msgstr ""
 "Organizér vás před začátkem schůzky upozorní a na přání i tehdy, když "
 "aplikace není otevřená."
+
+msgid "The original calendar time cannot be resolved without guessing."
+msgstr "Původní čas kalendáře nelze určit bez odhadování."
 
 msgid "The other branch did not prove the pairing file."
 msgstr "Druhá větev neprokázala platnost párovacího souboru."
@@ -7705,6 +7758,9 @@ msgstr "Vybrané zdravotní záznamy neobsahují žádné hodnoty vhodné k tisk
 msgid "The selected iCalendar file is incomplete."
 msgstr "Vybraný soubor iCalendar je neúplný."
 
+msgid "The selected local time does not exist or is ambiguous."
+msgstr "Zvolený místní čas neexistuje nebo je nejednoznačný."
+
 msgid "The selected note contains attachments that cannot be sent."
 msgstr "Vybraná poznámka obsahuje přílohy, které nelze odeslat."
 
@@ -7779,6 +7835,9 @@ msgid ""
 msgstr ""
 "Úkol bude odeslán vybrané větvi. Zůstane také zde, abyste jej mohli dál "
 "sledovat."
+
+msgid "The time zone could not be detected."
+msgstr "Časové pásmo se nepodařilo zjistit."
 
 msgid ""
 "The traffic-light colors are general reference ranges for adults, not a "
@@ -7927,6 +7986,9 @@ msgstr ""
 "Tyto volby vyžadují odpovídající oprávnění v Magnolie Notes. Zvuk hovoru se "
 "přes datové připojení Magnolie nepřenáší."
 
+msgid "This action does not invent a task start or deadline."
+msgstr "Tato akce nepřidává chybějící začátek ani termín úkolu."
+
 msgid "This address can be selected and copied."
 msgstr "Tuto adresu lze vybrat a zkopírovat."
 
@@ -7963,6 +8025,9 @@ msgstr "Tato větev není známá."
 
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "Tento kalendář nepodporuje úkoly (VTODO)."
+
+msgid "This calendar source is read-only."
+msgstr "Tento zdroj kalendáře je pouze pro čtení."
 
 msgid ""
 "This choice also determines how names appear on contact cards and under "
@@ -8133,6 +8198,9 @@ msgstr "Evidence času"
 
 msgid "Time zone"
 msgstr "Časové pásmo"
+
+msgid "Time zone management"
+msgstr "Správa časových pásem"
 
 msgid "Title"
 msgstr "Název"
@@ -9295,6 +9363,15 @@ msgstr[2] "… a ještě %(count)s další položky, které se rovněž vytiskno
 msgid "＋ Add appointment"
 msgstr "＋ Přidat schůzku"
 
+#~ msgid "CSV / Lotus Organizer contacts …"
+#~ msgstr "Kontakty CSV / Lotus Organizer…"
+
+#~ msgid "Import Lotus Organizer CSV"
+#~ msgstr "Importovat CSV z Lotus Organizer"
+
+#~ msgid "Lotus Organizer CSV …"
+#~ msgstr "Lotus Organizer CSV …"
+
 #~ msgid "Message"
 #~ msgstr "Zpráva"
 
@@ -9652,6 +9729,3 @@ msgstr "＋ Přidat schůzku"
 #~ "a IMEI. Od Androidu 10 jsou hardwarové identifikátory pro běžné aplikace "
 #~ "omezené. Oprávnění k číslu je volitelné; žádná zvláštní role se "
 #~ "nevyžaduje."
-
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
-msgstr "Import OR6: schůzky, úkoly, kontakty a text poznámek. Opakování, skupiny a ostatní oddíly se vynechají; rozvržení, přílohy, kategorie a upozornění se nepřenášejí."

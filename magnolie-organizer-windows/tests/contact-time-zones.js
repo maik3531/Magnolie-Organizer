@@ -31,10 +31,13 @@ const watchdog = setTimeout(() => { console.error("Contact timezone test timed o
       regional.timeZoneManagement = "manual";
       let form = b.t.kontaktFormular(contact); b.w.document.body.append(form);
       assert.equal(form.querySelector("#kontakt-zeitzone").value, "America/New_York");
+      assert.equal(form.querySelector("#kontakt-zeitzone").tagName, "SELECT");
+      assert.ok(form.querySelector("#kontakt-zeitzone").selectedOptions[0].textContent.includes("New York"), "Zone choices need readable place names, not only technical IDs");
       const save = () => [...form.querySelectorAll("button")].find(button => ["Save", "Save changes"].includes(button.textContent)).click();
       save(); assert.deepEqual(Array.from(contact.vcardRoundtrip), lines, "An unchanged imported TZ must retain its type and provider metadata");
       form.remove(); form = b.t.kontaktFormular(contact); b.w.document.body.append(form);
-      const input = form.querySelector("#kontakt-zeitzone"); input.value = "Mars/Olympus"; input.dispatchEvent(new b.w.Event("input"));
+      const input = form.querySelector("#kontakt-zeitzone"), unknown = b.w.document.createElement("option"); unknown.value = "Mars/Olympus"; unknown.textContent = "Unknown fixture zone"; input.append(unknown);
+      input.value = "Mars/Olympus"; input.dispatchEvent(new b.w.Event("input"));
       save(); assert.deepEqual(Array.from(contact.vcardRoundtrip), lines, "An unknown zone must not overwrite the original contact");
       input.value = "Asia/Tokyo"; input.dispatchEvent(new b.w.Event("input")); save();
       assert.equal(b.t.kontaktZeitzone(contact), "Asia/Tokyo");

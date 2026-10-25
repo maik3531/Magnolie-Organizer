@@ -2253,6 +2253,16 @@ body[data-hilfsrahmen="an"] .notiz-editor :focus-visible {
 }
 .land-flagge[hidden] { display: none; }
 #gruppen-ausschluss .eingabe-dialog { width: min(560px, calc(100vw - 32px)); }
+#zeitzonenverwaltung .eingabe-dialog { width: min(680px, calc(100vw - 32px)); }
+#zeitzonenverwaltung .formzeile > div { min-width: 0; }
+#zeitzonenverwaltung select, #zeitzonenverwaltung input, #kontakt-zeitzone {
+  width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box;
+}
+#zeitzonenverwaltung .einst-hinweis { overflow-wrap: anywhere; }
+#ort-zeitzonenmanagement { margin-block-start: 12px; }
+#eintrags-zeitzone .eingabe-dialog { width: min(680px, calc(100vw - 32px)); }
+#eintrags-zeitzone select, #eintrags-zeitzone input { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+#eintrags-zeitzone .einst-hinweis { overflow-wrap: anywhere; }
 .gruppen-ausschluss-auswahl > label.hak {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

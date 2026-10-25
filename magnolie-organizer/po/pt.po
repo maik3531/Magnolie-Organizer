@@ -553,6 +553,9 @@ msgstr ""
 "acessível, as mensagens passam por uma pasta WebDAV no seu servidor "
 "Nextcloud."
 
+msgid "A floating local time has no unique absolute instant."
+msgstr "Uma hora local sem fuso horário não tem um instante absoluto único."
+
 msgid "A group with this name already exists."
 msgstr "Já existe um grupo com este nome."
 
@@ -848,6 +851,9 @@ msgstr "Todos os seis gráficos"
 
 msgid "All states"
 msgstr "Todos os estados"
+
+msgid "All-day dates are not converted into timed entries."
+msgstr "As datas de dia inteiro não são convertidas em entradas com hora."
 
 msgid "Allow notifications despite password protection"
 msgstr "Permitir notificações apesar da proteção por palavra-passe"
@@ -1391,9 +1397,6 @@ msgstr "Por apelido (Müller, Hans)"
 msgid "CSV / Lotus Organizer"
 msgstr "CSV / Lotus Organizer"
 
-msgid "CSV / Lotus Organizer contacts …"
-msgstr "Contactos CSV/Lotus Organizer …"
-
 msgid "CSV files (*.csv)"
 msgstr "Ficheiros CSV (*.csv)"
 
@@ -1638,7 +1641,9 @@ msgstr ""
 "segurança encriptada exige a respetiva palavra-passe."
 
 msgid "Choose a connection. Confirm the pairing code on the other device."
-msgstr "Escolha uma ligação. Confirme o código de emparelhamento no outro dispositivo."
+msgstr ""
+"Escolha uma ligação. Confirme o código de emparelhamento no outro "
+"dispositivo."
 
 msgid "Choose a contact"
 msgstr "Escolher contacto"
@@ -1697,6 +1702,9 @@ msgstr "Escolher pasta …"
 
 msgid "Choose local image…"
 msgstr "Escolher imagem local…"
+
+msgid "Choose local-time planning to change clock fields."
+msgstr "Escolha o planeamento em hora local para alterar as horas."
 
 msgid "Choose or enter a phone number"
 msgstr "Escolher ou introduzir um número de telefone"
@@ -2437,6 +2445,12 @@ msgstr "Estado da entrega incerto"
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Dentista Dr. Hill — Pré-visualização das suas entradas"
 
+msgid "Detect now"
+msgstr "Detetar agora"
+
+msgid "Detected time zone"
+msgstr "Fuso horário detetado"
+
 msgid "Determining public IP address…"
 msgstr "A determinar o endereço IP público…"
 
@@ -2578,6 +2592,9 @@ msgstr "Duplicados"
 
 msgid "Duration"
 msgstr "Duração"
+
+msgid "Earlier occurrence"
+msgstr "Ocorrência anterior"
 
 msgid "Early shift"
 msgstr "Turno da manhã"
@@ -3343,9 +3360,6 @@ msgstr "Importar contactos do Claws Mail"
 msgid "Import ICS / CSV…"
 msgstr "Importar ICS / CSV…"
 
-msgid "Import Lotus Organizer CSV"
-msgstr "Importar CSV do Lotus Organizer"
-
 msgid "Import Notes → Organizer only"
 msgstr "Importar apenas de Notes para Organizer"
 
@@ -3629,6 +3643,14 @@ msgstr "Manter um registo para resolução de problemas"
 msgid "Keep existing"
 msgstr "Manter os dados existentes"
 
+msgid "Keep instant"
+msgstr "Manter o instante"
+
+msgid ""
+"Keep the original recurrence data; this local-time action is for individual "
+"entries."
+msgstr "Mantenha os dados de repetição originais; esta ação de hora local destina-se a entradas individuais."
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Manter este ficheiro do KDE Connect em Transferências?"
 
@@ -3674,6 +3696,9 @@ msgstr "Turno da tarde"
 msgctxt "time tracking"
 msgid "Late shift"
 msgstr "Turno da tarde"
+
+msgid "Later occurrence"
+msgstr "Ocorrência posterior"
 
 msgid "Latest alarm monitor entries:"
 msgstr "Entradas mais recentes do monitor de alarmes:"
@@ -3765,9 +3790,6 @@ msgstr "Notas soltas"
 
 msgid "Lotus Calendar (*.lcs)"
 msgstr "Calendário Lotus (*.lcs)"
-
-msgid "Lotus Organizer CSV …"
-msgstr "CSV do Lotus Organizer …"
 
 msgid "Lower Austria"
 msgstr "Baixa Áustria"
@@ -3934,6 +3956,9 @@ msgstr "Personalizado"
 msgctxt "time tracking"
 msgid "Manual entry"
 msgstr "Entrada manual"
+
+msgid "Manual fallback"
+msgstr "Alternativa manual"
 
 msgid "Manual only"
 msgstr "Apenas manualmente"
@@ -4714,6 +4739,15 @@ msgstr "ODS"
 msgid "OK"
 msgstr "OK"
 
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, "
+"groups and other sections are skipped; layout, attachments, categories and "
+"alarms are not transferred."
+msgstr ""
+"Importação OR6: compromissos, tarefas, contactos e texto das notas. "
+"Recorrências, grupos e outras secções são ignorados; disposição, anexos, "
+"categorias e alarmes não são transferidos."
+
 msgid "Objects"
 msgstr "Objetos"
 
@@ -4994,6 +5028,9 @@ msgstr "Estilo do organizador (folha de papel)"
 msgid "Organizer · Calendar · Contacts · Notes"
 msgstr "Organizador · Calendário · Contactos · Notas"
 
+msgid "Original time zone"
+msgstr "Fuso horário original"
+
 msgid "Other"
 msgstr "Outro"
 
@@ -5025,6 +5062,9 @@ msgstr "O meu número (SIM de voz predefinido)"
 
 msgid "Own profile"
 msgstr "Perfil pessoal"
+
+msgid "Own time zone"
+msgstr "Fuso horário próprio"
 
 msgid "Own window available: no"
 msgstr "Janela própria disponível: não"
@@ -5299,6 +5339,9 @@ msgstr "Foto de %(name)s"
 
 msgid "Pick up"
 msgstr "Recolher"
+
+msgid "Plan local time"
+msgstr "Planear em hora local"
 
 msgid "Planner"
 msgstr "Planeador"
@@ -6537,6 +6580,9 @@ msgstr "Som através de: %(method)s"
 msgid "Sound through: no output method found"
 msgstr "Som através de: não foi encontrado nenhum método de saída"
 
+msgid "Source"
+msgstr "Origem"
+
 msgid "Sources"
 msgstr "Origens"
 
@@ -7177,6 +7223,9 @@ msgid "The call is no longer ringing or is outdated."
 msgstr ""
 "A chamada já não está a tocar ou a informação apresentada está desatualizada."
 
+msgid "The chosen local time could not be represented exactly."
+msgstr "Não foi possível representar exatamente a hora local escolhida."
+
 msgid "The clipboard is empty."
 msgstr "A área de transferência está vazia."
 
@@ -7296,6 +7345,9 @@ msgstr "O ficheiro encriptado está danificado."
 
 msgid "The end date cannot be before the start date."
 msgstr "A data de fim não pode ser anterior à data de início."
+
+msgid "The end must not precede the start."
+msgstr "O fim não pode ser anterior ao início."
 
 msgid "The entered fingerprint is incomplete."
 msgstr "A impressão digital introduzida está incompleta."
@@ -7512,6 +7564,9 @@ msgid ""
 msgstr ""
 "O organizador notifica-o antes de um compromisso começar e, se desejar, "
 "mesmo quando a aplicação não está aberta."
+
+msgid "The original calendar time cannot be resolved without guessing."
+msgstr "Não é possível determinar a hora original do calendário sem suposições."
 
 msgid "The other branch did not prove the pairing file."
 msgstr "O outro ramo não comprovou o ficheiro de emparelhamento."
@@ -7813,6 +7868,9 @@ msgstr "Os registos de saúde selecionados não contêm valores imprimíveis."
 msgid "The selected iCalendar file is incomplete."
 msgstr "O ficheiro iCalendar selecionado está incompleto."
 
+msgid "The selected local time does not exist or is ambiguous."
+msgstr "A hora local selecionada não existe ou é ambígua."
+
 msgid "The selected note contains attachments that cannot be sent."
 msgstr "A nota selecionada contém anexos que não podem ser enviados."
 
@@ -7889,6 +7947,9 @@ msgid ""
 msgstr ""
 "A tarefa será enviada para o ramo selecionado. Também permanecerá aqui para "
 "que a possa acompanhar."
+
+msgid "The time zone could not be detected."
+msgstr "Não foi possível detetar o fuso horário."
 
 msgid ""
 "The traffic-light colors are general reference ranges for adults, not a "
@@ -8043,6 +8104,9 @@ msgstr ""
 "Estas opções requerem as permissões correspondentes no Magnolie Notes. O "
 "áudio da chamada não é enviado pela ligação de dados do Magnolie."
 
+msgid "This action does not invent a task start or deadline."
+msgstr "Esta ação não acrescenta um início nem um prazo em falta a uma tarefa."
+
 msgid "This address can be selected and copied."
 msgstr "Esta morada pode ser selecionada e copiada."
 
@@ -8079,6 +8143,9 @@ msgstr "Este ramo não é conhecido."
 
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "Este calendário não suporta tarefas (VTODO)."
+
+msgid "This calendar source is read-only."
+msgstr "Esta origem de calendário é só de leitura."
 
 msgid ""
 "This choice also determines how names appear on contact cards and under "
@@ -8252,6 +8319,9 @@ msgstr "Registo de tempo"
 
 msgid "Time zone"
 msgstr "Fuso horário"
+
+msgid "Time zone management"
+msgstr "Gestão de fusos horários"
 
 msgid "Title"
 msgstr "Título"
@@ -9416,6 +9486,15 @@ msgstr[1] "… e mais %(count)s entradas que também serão impressas."
 msgid "＋ Add appointment"
 msgstr "＋ Adicionar compromisso"
 
+#~ msgid "CSV / Lotus Organizer contacts …"
+#~ msgstr "Contactos CSV/Lotus Organizer …"
+
+#~ msgid "Import Lotus Organizer CSV"
+#~ msgstr "Importar CSV do Lotus Organizer"
+
+#~ msgid "Lotus Organizer CSV …"
+#~ msgstr "CSV do Lotus Organizer …"
+
 #~ msgid "Message"
 #~ msgstr "Mensagem"
 
@@ -9781,6 +9860,3 @@ msgstr "＋ Adicionar compromisso"
 #~ "permitir, número de série e IMEI. Desde o Android 10, os identificadores "
 #~ "de hardware são restritos para aplicações comuns. A permissão do número é "
 #~ "opcional; não é pedida nenhuma função especial."
-
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
-msgstr "Importação OR6: compromissos, tarefas, contactos e texto das notas. Recorrências, grupos e outras secções são ignorados; disposição, anexos, categorias e alarmes não são transferidos."

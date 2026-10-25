@@ -9,7 +9,7 @@ internal static class RegionalSettings
     private static readonly HashSet<string> Languages = new(StringComparer.OrdinalIgnoreCase)
     { "system", "de", "en", "fr", "es", "it", "nl", "pt", "ru", "cs", "pl", "hsb", "da", "nb", "hi", "zh_CN", "ja", "ar", "uk", "be", "tr" };
     private static readonly object Gate = new();
-    private static readonly string[] TimeZoneManagementFields = ["timeZoneManagement", "timeZoneDetection", "timeZoneManual", "timeZoneDetectedSource", "timeZoneDetectedAt"];
+    private static readonly string[] TimeZoneManagementFields = ["timeZoneManagement", "timeZoneDetection", "timeZoneManual", "timeZoneDetectedSource", "timeZoneDetectedAt", "timeZoneCalendarDisplay", "timeZoneTaskDisplay"];
 
     internal static JsonObject ReadVerified(string path)
     {
@@ -136,6 +136,8 @@ internal static class RegionalSettings
             ["timeZoneManual"] = manualZone,
             ["timeZoneDetectedSource"] = OneOf(Text(source, "timeZoneDetectedSource", "manual"), "manual", "system", "phone", "gps", "ip"),
             ["timeZoneDetectedAt"] = captured,
+            ["timeZoneCalendarDisplay"] = OneOf(Text(source, "timeZoneCalendarDisplay", "own"), "own", "contact", "source"),
+            ["timeZoneTaskDisplay"] = OneOf(Text(source, "timeZoneTaskDisplay", "own"), "own", "contact", "source"),
             ["homeCountry"] = homeCountry };
     }
 

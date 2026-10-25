@@ -107,6 +107,7 @@ def haupt(argv=None):
         "xgettext", "--language=JavaScript", "--from-code=UTF-8",
         "--keyword=_", "--keyword=customText", "--keyword=msgid", "--keyword=uebersetzt", "--keyword=uebersetztMehrzahl:1,2",
         "--keyword=gettext",
+        "--keyword=zeitzonenPlanFehler:2",
         "--keyword=ngettext:1,2", "--keyword=pgettext:1c,2",
         "--no-location", "--sort-output",
         "--package-name=Magnolie Organizer", "--package-version=" + version,

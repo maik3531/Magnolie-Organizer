@@ -129,3 +129,66 @@ def test_native_disabled_mode_and_changed_preferences_cannot_start_or_commit_loc
         native.zeitzone_automatisch_aktualisieren(erwartet=native.regional_einstellungen_geprueft_lesen(path), pfad=path, holer=change_during_fetch)
     assert native.regional_einstellungen_geprueft_lesen(path)['timeZoneManagement'] == 'off'
     assert native.regional_einstellungen_geprueft_lesen(path)['timeZone'] == 'system'
+
+
+def test_native_detection_preview_does_not_change_zone_before_book_anchoring(native, tmp_path):
+    path = str(tmp_path / 'locale.json')
+    config = dict(native.REGIONAL_STANDARD, timeZone='Europe/Berlin', timeZoneManagement='automatic',
+                  timeZoneDetection='ip', timeZoneManual='Europe/Berlin')
+    assert native.regional_einstellungen_schreiben(config, path)
+    before = native.regional_einstellungen_geprueft_lesen(path)
+    image = Path(path).read_bytes()
+    result = native.zeitzone_automatisch_aktualisieren(erwartet=before, pfad=path,
+        holer=lambda _url: '{"timezone":"Asia/Tokyo"}', jetzt=1000000, anwenden=False)
+    assert result['time_zone'] == 'Asia/Tokyo' and result['source'] == 'ip'
+    assert result['native_changed'] is False and result['regional'] == before
+    assert native.regional_einstellungen_geprueft_lesen(path) == before and Path(path).read_bytes() == image
+
+
+def test_native_detection_rechecks_book_permission_after_optional_source_returns(native, tmp_path):
+    path = str(tmp_path / 'locale.json')
+    config = dict(native.REGIONAL_STANDARD, timeZoneManagement='automatic', timeZoneDetection='ip')
+    assert native.regional_einstellungen_schreiben(config, path)
+    before = native.regional_einstellungen_geprueft_lesen(path)
+    permitted = [True]
+    def changed_source(_url):
+        permitted[0] = False
+        return '{"timezone":"Asia/Tokyo"}'
+    with pytest.raises(PermissionError, match='locked'):
+        native.zeitzone_automatisch_aktualisieren(erwartet=before, pfad=path, holer=changed_source,
+            erlaubt=lambda: permitted[0], anwenden=False)
+    assert native.regional_einstellungen_geprueft_lesen(path) == before
+
+
+@pytest.mark.parametrize('task', [False, True])
+@pytest.mark.parametrize('shape', ['utc-fold', 'tzid', 'floating', 'date', 'series', 'duration'])
+def test_real_ics_export_reimport_keeps_zone_context_and_wire_instants(native, monkeypatch, task, shape):
+    monkeypatch.setitem(native._REGIONAL, 'timeZone', 'Europe/Berlin')
+    component, ending = ('VTODO', 'DUE') if task else ('VEVENT', 'DTEND')
+    starts = {
+        'utc-fold': 'DTSTART:20261101T063047Z',
+        'tzid': 'DTSTART;TZID=America/New_York:20261022T013047',
+        'floating': 'DTSTART:20261022T013047',
+        'date': 'DTSTART;VALUE=DATE:20261022',
+        'series': 'DTSTART;TZID=America/New_York:20261022T013047',
+        'duration': 'DTSTART;TZID=America/New_York:20261022T013047',
+    }
+    ends = {
+        'utc-fold': ending + ':20261101T073047Z',
+        'tzid': ending + ';TZID=America/New_York:20261022T023047',
+        'floating': ending + ':20261022T023047',
+        'date': ending + ';VALUE=DATE:20261023',
+        'series': ending + ';TZID=America/New_York:20261022T023047',
+        'duration': 'DURATION:PT1H',
+    }
+    recurrence = ['RRULE:FREQ=DAILY;COUNT=3', 'EXDATE;TZID=America/New_York:20261023T013047'] if shape == 'series' else []
+    text = '\r\n'.join(['BEGIN:VCALENDAR', 'VERSION:2.0', 'BEGIN:' + component,
+        'UID:owned-' + shape, 'SUMMARY:Owned zone fixture', starts[shape], ends[shape],
+        *recurrence, 'X-OWNED:keep', 'END:' + component, 'END:VCALENDAR'])
+    for _round in range(3):
+        items = native.ics_lesen(text, quellen_id='owned-zone-source')['aufgaben' if task else 'termine']
+        assert len(items) == 1
+        text = native.ics_schreiben_aufgaben(items) if task else native.ics_schreiben_termine(items)
+        lines = native._entfalte_zeilen(text)
+        expected = [starts[shape], ends[shape], *recurrence, 'UID:owned-' + shape, 'X-OWNED:keep']
+        assert all(line in lines for line in expected), ([line for line in expected if line not in lines], [line for line in lines if line.startswith(('DTSTART', 'DTEND', 'DUE', 'UID', 'X-OWNED'))])

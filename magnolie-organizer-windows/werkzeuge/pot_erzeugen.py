@@ -52,7 +52,7 @@ def run(argv=None):
     common = ["--from-code=UTF-8", "--no-location", "--sort-output",
               "--package-name=Magnolie Organizer", "--package-version=" + version,
               "--msgid-bugs-address=maik3531@gmail.com", "--output=" + target]
-    subprocess.run(["xgettext", "--language=JavaScript", "--keyword=_", "--keyword=msgid",
+    subprocess.run(["xgettext", "--language=JavaScript", "--keyword=_", "--keyword=msgid", "--keyword=zeitzonenPlanFehler:2",
                     "--keyword=customText",
                     "--keyword=uebersetzt", "--keyword=uebersetztMehrzahl:1,2",
                     "--keyword=ngettext:1,2", "--keyword=pgettext:1c,2", *common,

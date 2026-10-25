@@ -589,6 +589,9 @@ msgstr ""
 "Запасны шлях для галіны baum-1: калі простае злучэнне недаступнае, "
 "паведамленні ідуць праз тэчку WebDAV на вашым серверы Nextcloud."
 
+msgid "A floating local time has no unique absolute instant."
+msgstr "Мясцовы час без часавага пояса не задае адназначнага абсалютнага моманту."
+
 msgid "A group with this name already exists."
 msgstr "Група з такой назвай ужо існуе."
 
@@ -877,6 +880,9 @@ msgstr "Усе шэсць графікаў"
 
 msgid "All states"
 msgstr "Усе федэральныя землі"
+
+msgid "All-day dates are not converted into timed entries."
+msgstr "Даты на ўвесь дзень не пераўтвараюцца ў запісы з часам."
 
 msgid "Allow notifications despite password protection"
 msgstr "Дазволіць апавяшчэнні нягледзячы на абарону паролем"
@@ -1418,9 +1424,6 @@ msgstr "Паводле прозвішча (Müller, Hans)"
 msgid "CSV / Lotus Organizer"
 msgstr "CSV / Lotus Organizer"
 
-msgid "CSV / Lotus Organizer contacts …"
-msgstr "Кантакты CSV / Lotus Organizer …"
-
 msgid "CSV files (*.csv)"
 msgstr "Файлы CSV (*.csv)"
 
@@ -1719,6 +1722,9 @@ msgstr "Выбраць папку …"
 
 msgid "Choose local image…"
 msgstr "Выбраць лакальную выяву…"
+
+msgid "Choose local-time planning to change clock fields."
+msgstr "Каб змяніць час, выберыце планаванне паводле мясцовага часу."
 
 msgid "Choose or enter a phone number"
 msgstr "Выберыце або ўвядзіце нумар тэлефона"
@@ -2444,6 +2450,12 @@ msgstr "Стан дастаўкі невядомы"
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Стаматолаг д-р Hill — Папярэдні прагляд вашых запісаў"
 
+msgid "Detect now"
+msgstr "Вызначыць зараз"
+
+msgid "Detected time zone"
+msgstr "Вызначаны часавы пояс"
+
 msgid "Determining public IP address…"
 msgstr "Вызначэнне публічнага IP-адраса…"
 
@@ -2585,6 +2597,9 @@ msgstr "Дублікаты"
 
 msgid "Duration"
 msgstr "Працягласць"
+
+msgid "Earlier occurrence"
+msgstr "Больш ранняе ўваходжанне"
 
 msgid "Early shift"
 msgstr "Ранняя змена"
@@ -3341,9 +3356,6 @@ msgstr "Імпартаваць кантакты Claws Mail"
 msgid "Import ICS / CSV…"
 msgstr "Імпартаваць ICS / CSV…"
 
-msgid "Import Lotus Organizer CSV"
-msgstr "Імпартаваць CSV Lotus Organizer"
-
 msgid "Import Notes → Organizer only"
 msgstr "Імпартаваць толькі з Notes у Organizer"
 
@@ -3621,6 +3633,14 @@ msgstr "Захоўваць журнал ліквідацыі непаладак"
 msgid "Keep existing"
 msgstr "Захаваць бягучыя звесткі"
 
+msgid "Keep instant"
+msgstr "Захаваць момант"
+
+msgid ""
+"Keep the original recurrence data; this local-time action is for individual "
+"entries."
+msgstr "Захавайце зыходныя даныя паўтарэння; гэта дзеянне з мясцовым часам прызначана для асобных запісаў."
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Захаваць гэты файл з KDE Connect у «Спампоўках»?"
 
@@ -3666,6 +3686,9 @@ msgstr "Позняя змена"
 msgctxt "time tracking"
 msgid "Late shift"
 msgstr "Вячэрняя змена"
+
+msgid "Later occurrence"
+msgstr "Больш позняе ўваходжанне"
 
 msgid "Latest alarm monitor entries:"
 msgstr "Апошнія запісы манітора напамінаў:"
@@ -3757,9 +3780,6 @@ msgstr "Вольныя нататкі"
 
 msgid "Lotus Calendar (*.lcs)"
 msgstr "Lotus Calendar (*.lcs)"
-
-msgid "Lotus Organizer CSV …"
-msgstr "Lotus Organizer CSV …"
 
 msgid "Lower Austria"
 msgstr "Ніжняя Аўстрыя"
@@ -3926,6 +3946,9 @@ msgstr "Уласнае"
 msgctxt "time tracking"
 msgid "Manual entry"
 msgstr "Ручны запіс"
+
+msgid "Manual fallback"
+msgstr "Ручны запасны варыянт"
 
 msgid "Manual only"
 msgstr "Толькі ўручную"
@@ -4694,6 +4717,15 @@ msgstr "ODS"
 msgid "OK"
 msgstr "Добра"
 
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, "
+"groups and other sections are skipped; layout, attachments, categories and "
+"alarms are not transferred."
+msgstr ""
+"Імпарт OR6: сустрэчы, заданні, кантакты і тэкст нататак. Паўторы, групы і "
+"іншыя раздзелы прапускаюцца; афармленне, далучэнні, катэгорыі і напаміны не "
+"пераносяцца."
+
 msgid "Objects"
 msgstr "Аб'екты"
 
@@ -4973,6 +5005,9 @@ msgstr "Стыль арганайзера (папяровы аркуш)"
 msgid "Organizer · Calendar · Contacts · Notes"
 msgstr "Арганайзер · Каляндар · Кантакты · Нататкі"
 
+msgid "Original time zone"
+msgstr "Зыходны часавы пояс"
+
 msgid "Other"
 msgstr "Іншае"
 
@@ -5004,6 +5039,9 @@ msgstr "Уласны нумар (стандартная SIM для званко�
 
 msgid "Own profile"
 msgstr "Уласны профіль"
+
+msgid "Own time zone"
+msgstr "Уласны часавы пояс"
 
 msgid "Own window available: no"
 msgstr "Уласнае акно даступна: не"
@@ -5266,6 +5304,9 @@ msgstr "Фота %(name)s"
 
 msgid "Pick up"
 msgstr "Забраць"
+
+msgid "Plan local time"
+msgstr "Планаваць паводле мясцовага часу"
 
 msgid "Planner"
 msgstr "Планавальнік"
@@ -6494,6 +6535,9 @@ msgstr "Гук праз: %(method)s"
 msgid "Sound through: no output method found"
 msgstr "Гук праз: спосаб вываду не знойдзены"
 
+msgid "Source"
+msgstr "Крыніца"
+
 msgid "Sources"
 msgstr "Крыніцы"
 
@@ -7113,6 +7157,9 @@ msgstr "Выклік ужо неактыўны або яго стан змяні
 msgid "The call is no longer ringing or is outdated."
 msgstr "Тэлефон ужо не звоніць або звесткі пра выклік састарэлі."
 
+msgid "The chosen local time could not be represented exactly."
+msgstr "Не ўдалося дакладна прадставіць выбраны мясцовы час."
+
 msgid "The clipboard is empty."
 msgstr "Буфер абмену пусты."
 
@@ -7225,6 +7272,9 @@ msgstr "Зашыфраваны файл пашкоджаны."
 
 msgid "The end date cannot be before the start date."
 msgstr "Дата заканчэння не можа быць ранейшай за дату пачатку."
+
+msgid "The end must not precede the start."
+msgstr "Канец не павінен папярэднічаць пачатку."
 
 msgid "The entered fingerprint is incomplete."
 msgstr "Уведзены адбітак няпоўны."
@@ -7435,6 +7485,9 @@ msgid ""
 msgstr ""
 "Арганайзер апавяшчае вас да пачатку сустрэчы, а пры жаданні — нават калі "
 "праграма не адкрыта."
+
+msgid "The original calendar time cannot be resolved without guessing."
+msgstr "Немагчыма вызначыць зыходны час календара без здагадак."
 
 msgid "The other branch did not prove the pairing file."
 msgstr "Іншая галіна не пацвердзіла файл спалучэння."
@@ -7724,6 +7777,9 @@ msgstr ""
 msgid "The selected iCalendar file is incomplete."
 msgstr "Выбраны файл iCalendar няпоўны."
 
+msgid "The selected local time does not exist or is ambiguous."
+msgstr "Выбраны мясцовы час не існуе або неадназначны."
+
 msgid "The selected note contains attachments that cannot be sent."
 msgstr "Выбраная нататка змяшчае далучэнні, якія нельга адправіць."
 
@@ -7799,6 +7855,9 @@ msgid ""
 msgstr ""
 "Задача будзе адпраўлена выбранай галіне. Яна таксама застанецца тут, каб вы "
 "маглі сачыць за ёй."
+
+msgid "The time zone could not be detected."
+msgstr "Не ўдалося вызначыць часавы пояс."
 
 msgid ""
 "The traffic-light colors are general reference ranges for adults, not a "
@@ -7950,6 +8009,9 @@ msgstr ""
 "Для гэтых параметраў патрэбныя адпаведныя дазволы ў Magnolie Notes. Гук "
 "званка не перадаецца праз злучэнне даных Magnolie."
 
+msgid "This action does not invent a task start or deadline."
+msgstr "Гэта дзеянне не дадае адсутныя пачатак або тэрмін задачы."
+
 msgid "This address can be selected and copied."
 msgstr "Гэты адрас можна выбраць і скапіяваць."
 
@@ -7986,6 +8048,9 @@ msgstr "Гэта галіна невядомая."
 
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "Гэты каляндар не падтрымлівае задачы (VTODO)."
+
+msgid "This calendar source is read-only."
+msgstr "Гэта крыніца календара даступная толькі для чытання."
 
 msgid ""
 "This choice also determines how names appear on contact cards and under "
@@ -8160,6 +8225,9 @@ msgstr "Улік часу"
 
 msgid "Time zone"
 msgstr "Гадзінны пояс"
+
+msgid "Time zone management"
+msgstr "Кіраванне часавымі паясамі"
 
 msgid "Title"
 msgstr "Назва"
@@ -9325,6 +9393,15 @@ msgstr[2] "… і яшчэ %(count)s элементы, якія таксама �
 msgid "＋ Add appointment"
 msgstr "＋ Дадаць сустрэчу"
 
+#~ msgid "CSV / Lotus Organizer contacts …"
+#~ msgstr "Кантакты CSV / Lotus Organizer …"
+
+#~ msgid "Import Lotus Organizer CSV"
+#~ msgstr "Імпартаваць CSV Lotus Organizer"
+
+#~ msgid "Lotus Organizer CSV …"
+#~ msgstr "Lotus Organizer CSV …"
+
 #~ msgid "Message"
 #~ msgstr "Паведамленне"
 
@@ -9689,6 +9766,3 @@ msgstr "＋ Дадаць сустрэчу"
 #~ "серыйны нумар і IMEI. Пачынаючы з Android 10 апаратныя ідэнтыфікатары "
 #~ "абмежаваныя для звычайных праграм. Дазвол на нумар неабавязковы; "
 #~ "спецыяльныя ролі не запытваюцца."
-
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
-msgstr "Імпарт OR6: сустрэчы, заданні, кантакты і тэкст нататак. Паўторы, групы і іншыя раздзелы прапускаюцца; афармленне, далучэнні, катэгорыі і напаміны не пераносяцца."

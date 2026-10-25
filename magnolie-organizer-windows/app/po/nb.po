@@ -363,6 +363,9 @@ msgstr ""
 "En reserveløsning for grenen baum-1: Hvis den direkte forbindelsen ikke kan "
 "nås, går meldinger gjennom en WebDAV-mappe på Nextcloud-serveren din."
 
+msgid "A floating local time has no unique absolute instant."
+msgstr "Et lokalt klokkeslett uten tidssone har ikke et entydig absolutt tidspunkt."
+
 msgid "A group with this name already exists."
 msgstr "Det finnes allerede en gruppe med dette navnet."
 
@@ -611,6 +614,9 @@ msgstr "Alle seks diagrammer"
 
 msgid "All states"
 msgstr "Alle delstater"
+
+msgid "All-day dates are not converted into timed entries."
+msgstr "Heldagsdatoer gjøres ikke om til oppføringer med klokkeslett."
 
 msgid "Allow notifications despite password protection"
 msgstr "Tillat varsler til tross for passordbeskyttelse"
@@ -1094,9 +1100,6 @@ msgstr "Etter etternavn (Müller, Hans)"
 msgid "CSV / Lotus Organizer"
 msgstr "CSV / Lotus Organizer"
 
-msgid "CSV / Lotus Organizer contacts …"
-msgstr "CSV-/Lotus Organizer-kontakter …"
-
 msgid "CSV files (*.csv)"
 msgstr "CSV-filer (*.csv)"
 
@@ -1348,6 +1351,9 @@ msgstr "Velg mappe …"
 
 msgid "Choose local image…"
 msgstr "Velg lokalt bilde…"
+
+msgid "Choose local-time planning to change clock fields."
+msgstr "Velg planlegging i lokal tid for å endre klokkeslett."
 
 msgid "Choose or enter a phone number"
 msgstr "Velg eller skriv inn et telefonnummer"
@@ -1974,6 +1980,12 @@ msgstr "Usikker leveringsstatus"
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Tannlege dr. Hill — Forhåndsvisning av oppføringene dine"
 
+msgid "Detect now"
+msgstr "Oppdag nå"
+
+msgid "Detected time zone"
+msgstr "Oppdaget tidssone"
+
 msgid "Determining public IP address…"
 msgstr "Finner offentlig IP-adresse…"
 
@@ -2104,6 +2116,9 @@ msgstr "Duplikater"
 
 msgid "Duration"
 msgstr "Varighet"
+
+msgid "Earlier occurrence"
+msgstr "Tidligere forekomst"
 
 msgid "Early shift"
 msgstr "Tidlig skift"
@@ -3022,6 +3037,14 @@ msgstr "Behold en feilsøkingslogg"
 msgid "Keep existing"
 msgstr "Behold eksisterende opplysninger"
 
+msgid "Keep instant"
+msgstr "Behold tidspunkt"
+
+msgid ""
+"Keep the original recurrence data; this local-time action is for individual "
+"entries."
+msgstr "Behold de opprinnelige gjentakelsesdataene; denne handlingen med lokal tid gjelder enkeltoppføringer."
+
 msgid "LDIF"
 msgstr "LDIF"
 
@@ -3064,6 +3087,9 @@ msgstr "Sent skift"
 msgctxt "time tracking"
 msgid "Late shift"
 msgstr "Seinvakt"
+
+msgid "Later occurrence"
+msgstr "Senere forekomst"
 
 msgid "Lead time"
 msgstr "Varslingstid"
@@ -3142,9 +3168,6 @@ msgstr "Langtidsvirkende insulin"
 
 msgid "Loose Notes"
 msgstr "Løse notater"
-
-msgid "Lotus Organizer CSV …"
-msgstr "Lotus Organizer CSV …"
 
 msgid "Lower Austria"
 msgstr "Niederösterreich"
@@ -3271,6 +3294,9 @@ msgstr "Egendefinert"
 msgctxt "time tracking"
 msgid "Manual entry"
 msgstr "Manuell registrering"
+
+msgid "Manual fallback"
+msgstr "Manuell reserveverdi"
 
 msgid "Manual only"
 msgstr "Bare manuelt"
@@ -3918,6 +3944,15 @@ msgstr "ODS"
 msgid "OK"
 msgstr "OK"
 
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, "
+"groups and other sections are skipped; layout, attachments, categories and "
+"alarms are not transferred."
+msgstr ""
+"OR6-import: avtaler, oppgaver, kontakter og notattekst. Gjentakelser, "
+"grupper og andre deler hoppes over; oppsett, vedlegg, kategorier og alarmer "
+"overføres ikke."
+
 msgid "Objects"
 msgstr "Objekter"
 
@@ -4149,6 +4184,9 @@ msgstr "Organizer-stil (papirark)"
 msgid "Organizer · Calendar · Contacts · Notes"
 msgstr "Organizer · Kalender · Kontakter · Notater"
 
+msgid "Original time zone"
+msgstr "Opprinnelig tidssone"
+
 msgid "Other"
 msgstr "Annet"
 
@@ -4183,6 +4221,9 @@ msgstr "Mitt nummer (standard-SIM for anrop)"
 
 msgid "Own profile"
 msgstr "Egen profil"
+
+msgid "Own time zone"
+msgstr "Egen tidssone"
 
 msgid "PDF file"
 msgstr "PDF-fil"
@@ -4420,6 +4461,9 @@ msgstr "Bilde av %(name)s"
 
 msgid "Pick up"
 msgstr "Hent"
+
+msgid "Plan local time"
+msgstr "Planlegg lokal tid"
 
 msgid "Planner"
 msgstr "Planlegger"
@@ -5475,6 +5519,9 @@ msgstr "Sortering"
 msgid "Sound only"
 msgstr "Bare lyd"
 
+msgid "Source"
+msgstr "Kilde"
+
 msgid "Sources"
 msgstr "Kilder"
 
@@ -5928,6 +5975,9 @@ msgstr "Samtalen ringer ikke lenger eller er utdatert."
 msgid "The call is no longer ringing."
 msgstr "Samtalen ringer ikke lenger."
 
+msgid "The chosen local time could not be represented exactly."
+msgstr "Det valgte lokale klokkeslettet kunne ikke gjengis nøyaktig."
+
 msgid "The clipboard is empty."
 msgstr "Utklippstavlen er tom."
 
@@ -6000,6 +6050,9 @@ msgstr "Tegnegrensen er nådd."
 
 msgid "The end date cannot be before the start date."
 msgstr "Sluttdatoen kan ikke være før startdatoen."
+
+msgid "The end must not precede the start."
+msgstr "Slutten må ikke være før starten."
 
 msgid "The entry could not be found."
 msgstr "Oppføringen ble ikke funnet."
@@ -6137,6 +6190,9 @@ msgid ""
 msgstr ""
 "Organizeren varsler deg før en avtale begynner, også når programmet ikke er "
 "åpent hvis du ønsker det."
+
+msgid "The original calendar time cannot be resolved without guessing."
+msgstr "Den opprinnelige kalendertiden kan ikke bestemmes uten å gjette."
 
 msgid "The package could not be opened."
 msgstr "Pakken kunne ikke åpnes."
@@ -6333,6 +6389,9 @@ msgid "The selected health records contain no printable values."
 msgstr ""
 "De valgte helseoppføringene inneholder ingen verdier som kan skrives ut."
 
+msgid "The selected local time does not exist or is ambiguous."
+msgstr "Det valgte lokale klokkeslettet finnes ikke eller er tvetydig."
+
 msgid "The selected note contains attachments that cannot be sent."
 msgstr "Det valgte notatet inneholder vedlegg som ikke kan sendes."
 
@@ -6398,6 +6457,9 @@ msgid ""
 msgstr ""
 "Oppgaven sendes til den valgte grenen. Den blir også liggende her, slik at "
 "du kan følge den videre."
+
+msgid "The time zone could not be detected."
+msgstr "Tidssonen kunne ikke oppdages."
 
 msgid ""
 "The traffic-light colors are general reference ranges for adults, not a "
@@ -6492,6 +6554,9 @@ msgstr ""
 "Disse valgene krever tilsvarende tillatelser i Magnolie Notes. Samtalelyd "
 "sendes ikke over Magnolies dataforbindelse."
 
+msgid "This action does not invent a task start or deadline."
+msgstr "Denne handlingen legger ikke til en manglende oppgavestart eller frist."
+
 msgid "This address can be selected and copied."
 msgstr "Denne adressen kan merkes og kopieres."
 
@@ -6519,6 +6584,9 @@ msgstr "Denne sikkerhetskopien kan ikke brukes."
 
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "Denne kalenderen støtter ikke oppgaver (VTODO)."
+
+msgid "This calendar source is read-only."
+msgstr "Denne kalenderkilden er skrivebeskyttet."
 
 msgid ""
 "This choice also determines how names appear on contact cards and under "
@@ -6679,6 +6747,9 @@ msgstr "Tidsregistrering"
 
 msgid "Time zone"
 msgstr "Tidssone"
+
+msgid "Time zone management"
+msgstr "Tidssonebehandling"
 
 msgid "Title"
 msgstr "Tittel"
@@ -7740,6 +7811,12 @@ msgstr[1] "… og %(count)s elementer til som også blir skrevet ut."
 msgid "＋ Add appointment"
 msgstr "＋ Legg til avtale"
 
+#~ msgid "CSV / Lotus Organizer contacts …"
+#~ msgstr "CSV-/Lotus Organizer-kontakter …"
+
+#~ msgid "Lotus Organizer CSV …"
+#~ msgstr "Lotus Organizer CSV …"
+
 #~ msgid "Message"
 #~ msgstr "Melding"
 
@@ -8206,6 +8283,3 @@ msgstr "＋ Legg til avtale"
 #~ "det, serienummer og IMEI. Fra Android 10 er maskinvareidentifikatorer "
 #~ "begrenset for vanlige apper. Tillatelse til nummeret er valgfri; ingen "
 #~ "særskilt rolle forespørres."
-
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
-msgstr "OR6-import: avtaler, oppgaver, kontakter og notattekst. Gjentakelser, grupper og andre deler hoppes over; oppsett, vedlegg, kategorier og alarmer overføres ikke."

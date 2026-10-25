@@ -491,6 +491,8 @@ REGIONAL_STANDARD = {
     "timeZoneManual": "system",
     "timeZoneDetectedSource": "manual",
     "timeZoneDetectedAt": "0",
+    "timeZoneCalendarDisplay": "own",
+    "timeZoneTaskDisplay": "own",
     "homeCountry": "DE",
 }
 
@@ -557,6 +559,9 @@ def regional_einstellungen(roh=None):
     erfasst = str(roh.get("timeZoneDetectedAt") or "0").strip()
     if re.fullmatch(r"0|[1-9][0-9]{0,14}", erfasst) and int(erfasst) <= 253402300799999:
         aus["timeZoneDetectedAt"] = erfasst
+    for key in ("timeZoneCalendarDisplay", "timeZoneTaskDisplay"):
+        if roh.get(key) in ("own", "contact", "source"):
+            aus[key] = roh[key]
     land = str(roh.get("homeCountry") or "DE").strip().upper()
     from magnolie_phone_region import ISO_ALPHA2
     aus["homeCountry"] = land if land in ISO_ALPHA2 else "DE"
@@ -602,7 +607,7 @@ def regional_einstellungen_geprueft_schreiben(werte, erwartet, pfad=None):
         if "timeZone" not in werte:
             werte = dict(werte, timeZone=aktuell["timeZone"])
         werte = dict(werte)
-        for key in ("timeZoneManagement", "timeZoneDetection", "timeZoneManual", "timeZoneDetectedSource", "timeZoneDetectedAt"):
+        for key in ("timeZoneManagement", "timeZoneDetection", "timeZoneManual", "timeZoneDetectedSource", "timeZoneDetectedAt", "timeZoneCalendarDisplay", "timeZoneTaskDisplay"):
             if key not in werte:
                 werte[key] = aktuell[key]
         sauber = regional_einstellungen(werte)
@@ -653,7 +658,7 @@ def regional_einstellungen_schreiben(werte, pfad=None):
             werte["homeCountry"] = aktuell["homeCountry"]
         if "timeZone" not in werte:
             werte["timeZone"] = aktuell["timeZone"]
-        for key in ("timeZoneManagement", "timeZoneDetection", "timeZoneManual", "timeZoneDetectedSource", "timeZoneDetectedAt"):
+        for key in ("timeZoneManagement", "timeZoneDetection", "timeZoneManual", "timeZoneDetectedSource", "timeZoneDetectedAt", "timeZoneCalendarDisplay", "timeZoneTaskDisplay"):
             if key not in werte:
                 werte[key] = werte["timeZone"] if key == "timeZoneManual" and aktuell["timeZoneManagement"] != "automatic" and zeit_vorgegeben else aktuell[key]
     sauber = regional_einstellungen(werte)
@@ -675,7 +680,7 @@ def regional_einstellungen_schreiben(werte, pfad=None):
 
 
 def zeitzone_automatisch_aktualisieren(phone=None, erwartet=None, pfad=None, holer=None,
-                                     gps_lader=None, erlaubt=lambda: True, jetzt=None):
+                                     gps_lader=None, erlaubt=lambda: True, jetzt=None, anwenden=True):
     """Read available sources and use the existing checked installation-local writer."""
     import magnolie_timezone as zonen
     if not _ZEITZONEN_ERKENNUNG_SPERRE.acquire(blocking=False):
@@ -714,11 +719,11 @@ def zeitzone_automatisch_aktualisieren(phone=None, erwartet=None, pfad=None, hol
         geschrieben = vorher
         geaendert = (vorher["timeZone"] != beobachtet["zone"] or vorher["timeZoneDetectedSource"] != beobachtet["source"] or
                      vorher["timeZoneDetectedAt"] == "0")
-        if geaendert:
+        if geaendert and anwenden:
             neu = dict(vorher, timeZone=beobachtet["zone"], timeZoneDetectedSource=beobachtet["source"],
                        timeZoneDetectedAt=str(beobachtet["captured_ms"]))
             geschrieben = regional_einstellungen_geprueft_schreiben(neu, vorher, pfad)
-        return {"regional": geschrieben, "automatic": True, "native_changed": geaendert,
+        return {"regional": geschrieben, "automatic": True, "native_changed": geaendert and anwenden,
                 "time_zone": beobachtet["zone"], "source": beobachtet["source"], "captured_ms": beobachtet["captured_ms"],
                 "checked_at_ms": now, "fallback": beobachtet["fallback"]}
     finally:
@@ -2944,6 +2949,7 @@ def _ics_prop_roh(name, params, wert):
 
 def _ics_roundtrip(props, komplex=False):
     namen = {"RRULE", "RDATE", "EXDATE", "EXRULE", "RECURRENCE-ID", "DURATION",
+             "DTSTART", "DTEND", "DUE",
              "LOCATION", "URL", "ORGANIZER", "ATTENDEE", "ATTACH", "X-ALT-DESC",
              "TRANSP", "BEGIN", "END", "ACTION", "TRIGGER", "REPEAT"}
     erzeugt = {"UID", "DTSTAMP", "LAST-MODIFIED", "SEQUENCE", "DTSTART", "DTEND", "DUE", "SUMMARY",
@@ -3066,7 +3072,7 @@ def _ics_komponente(art, props, ergebnis, komplexe_serie=False,
         if specification and w_start and not w_due:
             source, all_day = ics_date_time(w_start, p_start or {}, _organizer_zeitzone(), zone_resolver=zone_resolver)
             due = ics_duration_end(source, specification, all_day).astimezone(_organizer_zeitzone())
-            faellig, faellig_zeit = due.strftime("%Y-%m-%d"), "" if all_day else due.strftime("%H:%M:%S" if due.second else "%H:%M")
+            faellig, faellig_zeit = due.strftime("%Y-%m-%d"), "" if all_day else due.strftime("%H:%M")
         try:
             prio_roh = int(wert("PRIORITY") or "0")
         except ValueError:
@@ -3662,7 +3668,7 @@ def _vevent_zeilen(t):
         z.append("X-MAGNOLIE-ERINNERUNG-TAGE:%d" % tage)
     if t.get("standardErinnerung") is False:
         z.append("X-MAGNOLIE-STANDARDERINNERUNG:0")
-    _ics_roundtrip_anwenden(z, t.get("icsRoundtrip"))
+    _ics_roundtrip_anwenden(z, t.get("icsRoundtrip"), eintrag=t)
     z.append("END:VEVENT")
     return z
 
@@ -3835,7 +3841,7 @@ def _vtodo_zeilen(a):
         reihenfolge = 0
     z.append("X-MAGNOLIE-REIHENFOLGE:%d" % reihenfolge)
     _ics_roundtrip_anwenden(z, [line for line in a.get("icsRoundtrip") or []
-                              if (_prop_zerlegen(line) or ("",))[0] != "X-MAGNOLIE-TASK-IDENTITY"])
+                              if (_prop_zerlegen(line) or ("",))[0] != "X-MAGNOLIE-TASK-IDENTITY"], eintrag=a)
     identity = a.get("_icsTaskIdentity") or {"v": 1, "source": str(a.get("icsQuelleId") or ""),
                                           "uid": external, "parent": parent,
                                           "parentSource": str(a.get("icsElternQuelleId", a.get("icsQuelleId")) or "")}
@@ -3845,7 +3851,7 @@ def _vtodo_zeilen(a):
     return z
 
 
-def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False):
+def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False, eintrag=None):
     rohzeilen = [str(zeile).replace("\r", "").replace("\n", "")
                  for zeile in (roundtrip or []) if isinstance(zeile, str) and
                  re.match(r"^[A-Za-z0-9-]+(?:;[^:]*)?:", zeile)]
@@ -3855,6 +3861,59 @@ def _ics_roundtrip_anwenden(zeilen, roundtrip, jahrestag=False):
                     not (eigenschaft[0] == "RELATED-TO" and
                          str(eigenschaft[1].get("RELTYPE") or "").upper() == "PARENT"))
     rohzeilen = [zeile for zeile in rohzeilen if fremd(zeile)]
+    if eintrag is not None and not jahrestag:
+        # Compare the input wall fields in their stored projection zone before
+        # letting authoritative raw clocks replace the newly generated fields.
+        from zoneinfo import ZoneInfo
+        from magnolie_timezone import zone_id
+        stored_zone = zone_id(eintrag.get("icsAnzeigeZeitzone"))
+        zone = ZoneInfo(stored_zone) if stored_zone else _organizer_zeitzone()
+        resolver = calendar_zones(eintrag.get("icsTimezones"))
+        props, depth = {}, 0
+        for line in rohzeilen:
+            name, params, value = _prop_zerlegen(line)
+            if name == "BEGIN":
+                depth += 1
+            if not depth:
+                props.setdefault(name, (params, value))
+            if name == "END":
+                depth = max(0, depth - 1)
+        task = zeilen[0] == "BEGIN:VTODO"
+        changed = False
+        for name, date_field, clock_field in (("DTSTART", "startDatum", "startZeit"), ("DUE", "faellig", "faelligZeit")) if task else (("DTSTART", "datum", "zeit"), ("DTEND", "endDatum", "endZeit")):
+            duration_end = name in ("DTEND", "DUE") and name not in props and "DURATION" in props and "DTSTART" in props
+            if name not in props and not duration_end:
+                if task and any(eintrag.get(field) for field in (date_field, clock_field)):
+                    changed = True
+                continue
+            try:
+                params, value = props["DTSTART" if duration_end else name]
+                original, all_day = ics_date_time(value, params, zone, zone_resolver=resolver)
+                if duration_end:
+                    original = ics_duration_end(original, props["DURATION"][1], all_day)
+                original = original.astimezone(zone)
+            except (KeyError, ValueError):
+                continue  # Unresolved source data remains opaque.
+            if all_day and not task and name == "DTEND":
+                original -= timedelta(days=1)
+            expected_date = original.strftime("%Y-%m-%d")
+            actual_date = eintrag.get(date_field) or (eintrag.get("datum") if not task else "") or ""
+            actual_clock = eintrag.get(clock_field) or ""
+            expected_clocks = ("",) if all_day else (original.strftime("%H:%M"), original.strftime("%H:%M:%S"))
+            if actual_date != expected_date or actual_clock not in expected_clocks:
+                changed = True
+        if changed:
+            depth, kept = 0, []
+            for line in rohzeilen:
+                name = _prop_zerlegen(line)[0]
+                if name == "BEGIN": depth += 1
+                if depth or name not in ("DTSTART", "DTEND", "DUE", "DURATION"): kept.append(line)
+                if name == "END": depth = max(0, depth - 1)
+            rohzeilen = kept
+            for index, line in enumerate(zeilen):
+                name, params, value = _prop_zerlegen(line)
+                if name in ("DTSTART", "DTEND", "DUE") and "T" in value and getattr(zone, "key", None):
+                    zeilen[index] = _ics_prop_roh(name, dict(params, TZID=zone.key), value.rstrip("Z"))
     eigene = {"SUMMARY", "DESCRIPTION", "CATEGORIES", "PRIORITY", "X-MAGNOLIE-ACCENT-COLOR"}
     if jahrestag:
         # The annual projection owns its anchor and rule, not nested alarm fields.
@@ -21487,6 +21546,10 @@ class Fenster(_FENSTER_BASIS):
             request_id = nachricht.get("requestId")
             try:
                 with _REGIONAL_SPERRE:
+                    if "expectedBookSource" in nachricht:
+                        expected_source = nachricht["expectedBookSource"]
+                        if not isinstance(expected_source, str) or not re.fullmatch(r"[a-f0-9]{64}", expected_source) or expected_source != self._telefon_actor_buchquelle():
+                            raise ValueError("source_changed")
                     if request_id:
                         sauber = regional_einstellungen_geprueft_schreiben(
                             nachricht.get("regional"), nachricht.get("expectedRegional"))
@@ -21502,7 +21565,7 @@ class Fenster(_FENSTER_BASIS):
             except Exception as error:
                 self.antwort("App.regionalErgebnis", {
                     "ok": False, "requestId": request_id,
-                    "code": "conflict" if str(error) == "regional_conflict" else "invalid_settings" if str(error) == "invalid_regional_settings" else "native_operation_failed",
+                    "code": "conflict" if str(error) == "regional_conflict" else "source_changed" if str(error) == "source_changed" else "invalid_settings" if str(error) == "invalid_regional_settings" else "native_operation_failed",
                     "fehler": _("The regional settings could not be saved.")})
 
         elif befehl == "regional_einstellungen_status":
@@ -21510,7 +21573,8 @@ class Fenster(_FENSTER_BASIS):
                 with _REGIONAL_SPERRE:
                     regional = regional_einstellungen_geprueft_lesen()
                 self.antwort("App.regionalStand", {"ok": True,
-                    "requestId": nachricht.get("requestId"), "regional": regional})
+                    "requestId": nachricht.get("requestId"), "regional": regional, "time_zone_preview_version": 1,
+                    "book_source": self._telefon_actor_buchquelle() if getattr(self, "_notes_actor_book_owner", None) is not None else None})
             except Exception:
                 self.antwort("App.regionalStand", {"ok": False,
                     "requestId": nachricht.get("requestId")})
@@ -24474,17 +24538,23 @@ class Fenster(_FENSTER_BASIS):
         try:
             if self._gesperrt or not self._organizer_vertraut():
                 raise PermissionError("locked")
+            quelle = self._telefon_actor_buchquelle()
+            if quelle is None:
+                raise RuntimeError("time_zone_busy")
+            if "expectedBookSource" in nachricht and nachricht["expectedBookSource"] != quelle:
+                raise RuntimeError("source_changed")
             if not isinstance(nachricht.get("expectedRegional"), dict):
                 raise ValueError("invalid_regional_settings")
             aktuell = regional_einstellungen_geprueft_lesen()
             if aktuell == nachricht["expectedRegional"] and aktuell["timeZoneManagement"] == "automatic":
-                self._telefon_dienst_pflegen()
+                self._telefon_dienst_pflegen(start_listener=False)
             result = zeitzone_automatisch_aktualisieren(getattr(self, "_telefon", None), nachricht["expectedRegional"],
-                erlaubt=lambda: not self._gesperrt and self._organizer_vertraut())
+                erlaubt=lambda: not self._gesperrt and self._organizer_vertraut() and self._telefon_actor_buchquelle() == quelle,
+                anwenden=False)
             self._regional = result["regional"]
-            self.antwort("App.zeitzonenErgebnis", dict(result, ok=True, requestId=request_id))
+            self.antwort("App.zeitzonenErgebnis", dict(result, ok=True, requestId=request_id, book_source=quelle))
         except Exception as error:
-            code = "conflict" if str(error) == "regional_conflict" else "native_busy" if str(error) == "time_zone_busy" else "locked" if isinstance(error, PermissionError) else "native_operation_failed"
+            code = "conflict" if str(error) == "regional_conflict" else "native_busy" if str(error) == "time_zone_busy" else "source_changed" if str(error) == "source_changed" else "locked" if isinstance(error, PermissionError) else "native_operation_failed"
             self.antwort("App.zeitzonenErgebnis", {"ok": False, "requestId": request_id, "code": code})
 
     def _kde_player_datei(self, nachricht):

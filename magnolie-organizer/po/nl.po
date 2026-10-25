@@ -547,6 +547,9 @@ msgstr ""
 "Een terugvalweg voor tak baum-1: als de directe verbinding niet bereikbaar "
 "is, gaan berichten via een WebDAV-map op uw Nextcloud-server."
 
+msgid "A floating local time has no unique absolute instant."
+msgstr "Een lokale tijd zonder tijdzone heeft geen uniek absoluut tijdstip."
+
 msgid "A group with this name already exists."
 msgstr "Er bestaat al een groep met deze naam."
 
@@ -842,6 +845,9 @@ msgstr "Alle zes grafieken"
 
 msgid "All states"
 msgstr "Alle deelstaten"
+
+msgid "All-day dates are not converted into timed entries."
+msgstr "Datums voor een hele dag worden niet omgezet in vermeldingen met een tijd."
 
 msgid "Allow notifications despite password protection"
 msgstr "Meldingen toestaan ondanks wachtwoordbeveiliging"
@@ -1385,9 +1391,6 @@ msgstr "Op achternaam (Müller, Hans)"
 msgid "CSV / Lotus Organizer"
 msgstr "CSV / Lotus Organizer"
 
-msgid "CSV / Lotus Organizer contacts …"
-msgstr "CSV-/Lotus Organizer-contacten …"
-
 msgid "CSV files (*.csv)"
 msgstr "CSV-bestanden (*.csv)"
 
@@ -1686,6 +1689,9 @@ msgstr "Map kiezen …"
 
 msgid "Choose local image…"
 msgstr "Lokale afbeelding kiezen…"
+
+msgid "Choose local-time planning to change clock fields."
+msgstr "Kies plannen in lokale tijd om de tijden te wijzigen."
 
 msgid "Choose or enter a phone number"
 msgstr "Telefoonnummer kiezen of invoeren"
@@ -2427,6 +2433,12 @@ msgstr "Bezorgstatus onzeker"
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "Tandarts dr. Hill — Voorbeeld van uw items"
 
+msgid "Detect now"
+msgstr "Nu detecteren"
+
+msgid "Detected time zone"
+msgstr "Gedetecteerde tijdzone"
+
 msgid "Determining public IP address…"
 msgstr "Openbaar IP-adres bepalen…"
 
@@ -2569,6 +2581,9 @@ msgstr "Duplicaten"
 
 msgid "Duration"
 msgstr "Duur"
+
+msgid "Earlier occurrence"
+msgstr "Eerdere voorkomst"
 
 msgid "Early shift"
 msgstr "Vroege dienst"
@@ -3329,9 +3344,6 @@ msgstr "Claws Mail-contacten importeren"
 msgid "Import ICS / CSV…"
 msgstr "ICS / CSV importeren…"
 
-msgid "Import Lotus Organizer CSV"
-msgstr "Lotus Organizer-CSV importeren"
-
 msgid "Import Notes → Organizer only"
 msgstr "Alleen van Notes naar Organizer importeren"
 
@@ -3612,6 +3624,14 @@ msgstr "Logboek voor probleemoplossing bijhouden"
 msgid "Keep existing"
 msgstr "Bestaande gegevens behouden"
 
+msgid "Keep instant"
+msgstr "Tijdstip behouden"
+
+msgid ""
+"Keep the original recurrence data; this local-time action is for individual "
+"entries."
+msgstr "Behoud de oorspronkelijke herhalingsgegevens; deze lokale-tijdactie is voor afzonderlijke vermeldingen."
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "Dit KDE Connect-bestand in Downloads bewaren?"
 
@@ -3657,6 +3677,9 @@ msgstr "Late dienst"
 msgctxt "time tracking"
 msgid "Late shift"
 msgstr "Late dienst"
+
+msgid "Later occurrence"
+msgstr "Latere voorkomst"
 
 msgid "Latest alarm monitor entries:"
 msgstr "Nieuwste vermeldingen van de alarmmonitor:"
@@ -3748,9 +3771,6 @@ msgstr "Losse notities"
 
 msgid "Lotus Calendar (*.lcs)"
 msgstr "Lotus-kalender (*.lcs)"
-
-msgid "Lotus Organizer CSV …"
-msgstr "Lotus Organizer-CSV …"
 
 msgid "Lower Austria"
 msgstr "Neder-Oostenrijk"
@@ -3918,6 +3938,9 @@ msgstr "Aangepast"
 msgctxt "time tracking"
 msgid "Manual entry"
 msgstr "Handmatige invoer"
+
+msgid "Manual fallback"
+msgstr "Handmatige terugvalwaarde"
 
 msgid "Manual only"
 msgstr "Alleen handmatig"
@@ -4691,6 +4714,15 @@ msgstr "ODS"
 msgid "OK"
 msgstr "OK"
 
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, "
+"groups and other sections are skipped; layout, attachments, categories and "
+"alarms are not transferred."
+msgstr ""
+"OR6-import: afspraken, taken, contacten en notitietekst. Herhalingen, "
+"groepen en andere secties worden overgeslagen; opmaak, bijlagen, categorieën "
+"en alarmen worden niet overgedragen."
+
 msgid "Objects"
 msgstr "Objecten"
 
@@ -4969,6 +5001,9 @@ msgstr "Organizerstijl (papieren blad)"
 msgid "Organizer · Calendar · Contacts · Notes"
 msgstr "Organizer · Kalender · Contacten · Notities"
 
+msgid "Original time zone"
+msgstr "Oorspronkelijke tijdzone"
+
 msgid "Other"
 msgstr "Overig"
 
@@ -5000,6 +5035,9 @@ msgstr "Mijn nummer (standaard spraak-sim)"
 
 msgid "Own profile"
 msgstr "Eigen profiel"
+
+msgid "Own time zone"
+msgstr "Eigen tijdzone"
 
 msgid "Own window available: no"
 msgstr "Eigen venster beschikbaar: nee"
@@ -5274,6 +5312,9 @@ msgstr "Foto van %(name)s"
 
 msgid "Pick up"
 msgstr "Ophalen"
+
+msgid "Plan local time"
+msgstr "Lokale tijd plannen"
 
 msgid "Planner"
 msgstr "Planner"
@@ -6509,6 +6550,9 @@ msgstr "Geluid via: %(method)s"
 msgid "Sound through: no output method found"
 msgstr "Geluid via: geen uitvoermethode gevonden"
 
+msgid "Source"
+msgstr "Bron"
+
 msgid "Sources"
 msgstr "Bronnen"
 
@@ -7143,6 +7187,9 @@ msgstr ""
 "De telefoon gaat niet meer over voor dit gesprek of de gespreksgegevens zijn "
 "verouderd."
 
+msgid "The chosen local time could not be represented exactly."
+msgstr "De gekozen lokale tijd kon niet exact worden weergegeven."
+
 msgid "The clipboard is empty."
 msgstr "Het klembord is leeg."
 
@@ -7263,6 +7310,9 @@ msgstr "Het versleutelde bestand is beschadigd."
 
 msgid "The end date cannot be before the start date."
 msgstr "De einddatum kan niet vóór de begindatum liggen."
+
+msgid "The end must not precede the start."
+msgstr "Het einde mag niet vóór het begin liggen."
 
 msgid "The entered fingerprint is incomplete."
 msgstr "De ingevoerde vingerafdruk is onvolledig."
@@ -7483,6 +7533,9 @@ msgid ""
 msgstr ""
 "De organizer waarschuwt u voordat een afspraak begint, desgewenst ook "
 "wanneer de toepassing niet geopend is."
+
+msgid "The original calendar time cannot be resolved without guessing."
+msgstr "De oorspronkelijke kalendertijd kan niet zonder aannames worden bepaald."
 
 msgid "The other branch did not prove the pairing file."
 msgstr "De andere tak heeft het koppelingsbestand niet geverifieerd."
@@ -7785,8 +7838,12 @@ msgstr "De geselecteerde gezondheidsgegevens bevatten geen afdrukbare waarden."
 msgid "The selected iCalendar file is incomplete."
 msgstr "Het geselecteerde iCalendar-bestand is onvolledig."
 
+msgid "The selected local time does not exist or is ambiguous."
+msgstr "De geselecteerde lokale tijd bestaat niet of is dubbelzinnig."
+
 msgid "The selected note contains attachments that cannot be sent."
-msgstr "De geselecteerde notitie bevat bijlagen die niet kunnen worden verzonden."
+msgstr ""
+"De geselecteerde notitie bevat bijlagen die niet kunnen worden verzonden."
 
 msgid "The selected online account is disabled, offline or unreachable."
 msgstr ""
@@ -7865,6 +7922,9 @@ msgid ""
 msgstr ""
 "De taak wordt naar de geselecteerde tak verzonden. De taak blijft ook hier "
 "staan, zodat u deze kunt volgen."
+
+msgid "The time zone could not be detected."
+msgstr "De tijdzone kon niet worden gedetecteerd."
 
 msgid ""
 "The traffic-light colors are general reference ranges for adults, not a "
@@ -8013,6 +8073,9 @@ msgstr ""
 "Deze opties vereisen de bijbehorende machtigingen in Magnolie Notes. "
 "Gespreksaudio wordt niet via de Magnolie-gegevensverbinding verzonden."
 
+msgid "This action does not invent a task start or deadline."
+msgstr "Deze actie voegt geen ontbrekend begin of vervaldatum aan een taak toe."
+
 msgid "This address can be selected and copied."
 msgstr "Dit adres kan worden geselecteerd en gekopieerd."
 
@@ -8049,6 +8112,9 @@ msgstr "Deze tak is niet bekend."
 
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "Deze agenda ondersteunt geen taken (VTODO)."
+
+msgid "This calendar source is read-only."
+msgstr "Deze kalenderbron is alleen-lezen."
 
 msgid ""
 "This choice also determines how names appear on contact cards and under "
@@ -8225,6 +8291,9 @@ msgstr "Tijdregistratie"
 
 msgid "Time zone"
 msgstr "Tijdzone"
+
+msgid "Time zone management"
+msgstr "Tijdzonebeheer"
 
 msgid "Title"
 msgstr "Titel"
@@ -9388,6 +9457,15 @@ msgstr[1] "… en %(count)s extra items die ook worden afgedrukt."
 msgid "＋ Add appointment"
 msgstr "＋ Afspraak toevoegen"
 
+#~ msgid "CSV / Lotus Organizer contacts …"
+#~ msgstr "CSV-/Lotus Organizer-contacten …"
+
+#~ msgid "Import Lotus Organizer CSV"
+#~ msgstr "Lotus Organizer-CSV importeren"
+
+#~ msgid "Lotus Organizer CSV …"
+#~ msgstr "Lotus Organizer-CSV …"
+
 #~ msgid "Message"
 #~ msgstr "Bericht"
 
@@ -9756,6 +9834,3 @@ msgstr "＋ Afspraak toevoegen"
 #~ "Android het toestaat, serienummer en IMEI. Vanaf Android 10 zijn hardware-"
 #~ "identificatiegegevens beperkt voor gewone apps. De nummermachtiging is "
 #~ "optioneel; er wordt geen speciale rol aangevraagd."
-
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
-msgstr "OR6-import: afspraken, taken, contacten en notitietekst. Herhalingen, groepen en andere secties worden overgeslagen; opmaak, bijlagen, categorieën en alarmen worden niet overgedragen."

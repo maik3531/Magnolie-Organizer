@@ -534,6 +534,9 @@ msgid ""
 "messages travel through a WebDAV folder on your Nextcloud server."
 msgstr ""
 
+msgid "A floating local time has no unique absolute instant."
+msgstr ""
+
 msgid "A group with this name already exists."
 msgstr ""
 
@@ -800,6 +803,9 @@ msgid "All six charts"
 msgstr ""
 
 msgid "All states"
+msgstr ""
+
+msgid "All-day dates are not converted into timed entries."
 msgstr ""
 
 msgid "Allow notifications despite password protection"
@@ -1575,6 +1581,9 @@ msgstr ""
 msgid "Choose local image…"
 msgstr ""
 
+msgid "Choose local-time planning to change clock fields."
+msgstr ""
+
 msgid "Choose or enter a phone number"
 msgstr ""
 
@@ -2267,6 +2276,12 @@ msgstr ""
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr ""
 
+msgid "Detect now"
+msgstr ""
+
+msgid "Detected time zone"
+msgstr ""
+
 msgid "Determining public IP address…"
 msgstr ""
 
@@ -2398,6 +2413,9 @@ msgid "Duplicates"
 msgstr ""
 
 msgid "Duration"
+msgstr ""
+
+msgid "Earlier occurrence"
 msgstr ""
 
 msgid "Early shift"
@@ -3363,6 +3381,14 @@ msgstr ""
 msgid "Keep existing"
 msgstr ""
 
+msgid "Keep instant"
+msgstr ""
+
+msgid ""
+"Keep the original recurrence data; this local-time action is for individual "
+"entries."
+msgstr ""
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr ""
 
@@ -3407,6 +3433,9 @@ msgstr ""
 
 msgctxt "time tracking"
 msgid "Late shift"
+msgstr ""
+
+msgid "Later occurrence"
 msgstr ""
 
 msgid "Latest alarm monitor entries:"
@@ -3654,6 +3683,9 @@ msgstr ""
 
 msgctxt "time tracking"
 msgid "Manual entry"
+msgstr ""
+
+msgid "Manual fallback"
 msgstr ""
 
 msgid "Manual only"
@@ -4631,6 +4663,9 @@ msgstr ""
 msgid "Organizer · Calendar · Contacts · Notes"
 msgstr ""
 
+msgid "Original time zone"
+msgstr ""
+
 msgid "Other"
 msgstr ""
 
@@ -4661,6 +4696,9 @@ msgid "Own phone number (default voice SIM)"
 msgstr ""
 
 msgid "Own profile"
+msgstr ""
+
+msgid "Own time zone"
 msgstr ""
 
 msgid "Own window available: no"
@@ -4910,6 +4948,9 @@ msgid "Photo of %(name)s"
 msgstr ""
 
 msgid "Pick up"
+msgstr ""
+
+msgid "Plan local time"
 msgstr ""
 
 msgid "Planner"
@@ -6083,6 +6124,9 @@ msgstr ""
 msgid "Sound through: no output method found"
 msgstr ""
 
+msgid "Source"
+msgstr ""
+
 msgid "Sources"
 msgstr ""
 
@@ -6662,6 +6706,9 @@ msgstr ""
 msgid "The call is no longer ringing or is outdated."
 msgstr ""
 
+msgid "The chosen local time could not be represented exactly."
+msgstr ""
+
 msgid "The clipboard is empty."
 msgstr ""
 
@@ -6766,6 +6813,9 @@ msgid "The encrypted file is damaged."
 msgstr ""
 
 msgid "The end date cannot be before the start date."
+msgstr ""
+
+msgid "The end must not precede the start."
 msgstr ""
 
 msgid "The entered fingerprint is incomplete."
@@ -6961,6 +7011,9 @@ msgstr ""
 msgid ""
 "The organizer notifies you before an appointment begins, even when the "
 "application is not open if you wish."
+msgstr ""
+
+msgid "The original calendar time cannot be resolved without guessing."
 msgstr ""
 
 msgid "The other branch did not prove the pairing file."
@@ -7230,6 +7283,9 @@ msgstr ""
 msgid "The selected iCalendar file is incomplete."
 msgstr ""
 
+msgid "The selected local time does not exist or is ambiguous."
+msgstr ""
+
 msgid "The selected note contains attachments that cannot be sent."
 msgstr ""
 
@@ -7294,6 +7350,9 @@ msgstr ""
 msgid ""
 "The task will be sent to the selected branch. It will also remain here so "
 "you can keep track of it."
+msgstr ""
+
+msgid "The time zone could not be detected."
 msgstr ""
 
 msgid ""
@@ -7426,6 +7485,9 @@ msgid ""
 "is not sent over the Magnolie data connection."
 msgstr ""
 
+msgid "This action does not invent a task start or deadline."
+msgstr ""
+
 msgid "This address can be selected and copied."
 msgstr ""
 
@@ -7459,6 +7521,9 @@ msgid "This branch is not known."
 msgstr ""
 
 msgid "This calendar does not support tasks (VTODO)."
+msgstr ""
+
+msgid "This calendar source is read-only."
 msgstr ""
 
 msgid ""
@@ -7611,6 +7676,9 @@ msgid "Time tracking"
 msgstr ""
 
 msgid "Time zone"
+msgstr ""
+
+msgid "Time zone management"
 msgstr ""
 
 msgid "Title"

@@ -1147,12 +1147,19 @@ try {
     "the language and regional display route must contain exactly two pages");
   for (const phrase of ["automatically follows the language and format region",
     "no Language &amp; region tab", "magnolie-organizer --language CODE",
-    "Regional display is automatic", "Other regional conventions continue to follow the system"])
+    "Time zone management", "Keep instant", "Plan local time", "Detect now previews a result", "UTC/TZID"])
     assert.ok(englishText.includes(phrase), `English regional documentation missing: ${phrase}`);
   for (const phrase of ["folgt automatisch der Sprache und Formatregion", "keinen Reiter Sprache &amp; Region",
-    "magnolie-organizer --language CODE", "Regionale Darstellung erfolgt automatisch",
-    "Andere regionale Konventionen folgen weiterhin dem System"])
+    "magnolie-organizer --language CODE", "Zeitzonenmanagement", "Zeitpunkt beibehalten",
+    "Ortszeit planen", "Jetzt erkennen zeigt eine Vorschau", "UTC/TZID"])
     assert.ok(germanText.includes(phrase), `German regional documentation missing: ${phrase}`);
+  const zoneHelp = sourcePages.find(page => page.id === "settings-time-week-region");
+  assert.strictEqual(zoneHelp.inhaltAnhangErsetzt, true, "Old automatic-only time-zone instructions must be replaced");
+  assert.strictEqual(Object.keys(zoneHelp.inhaltAnhang).length, 20, "Time-zone management needs all handbook languages");
+  for (const [language, text] of Object.entries(zoneHelp.inhaltAnhang)) {
+    assert.ok(text.includes("UTC/TZID") && (text.match(/<p>/g) || []).length === 2, `Incomplete time-zone instructions: ${language}`);
+    if (language !== "en") assert.notStrictEqual(text, zoneHelp.inhaltAnhang.en, `English fallback in time-zone help: ${language}`);
+  }
   const androidNotesIds = ["android-notes-navigation", "android-notes-notebooks",
     "android-notes-edit-save-delete", "android-tasks-reminders", "android-note-symbols-formatting"];
   assert.strictEqual(sourcePages.filter((page) => androidNotesIds.includes(page.id)).length, 5,

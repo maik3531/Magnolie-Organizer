@@ -91,6 +91,20 @@ const { JSDOM } = require("jsdom");
       assert.ok(T.daten().aufgaben[0].icsRoundtrip.includes("X-OWNED:preserved"));
       assert.equal(T.daten().aufgaben.length, 1, "Rendering occurrences must not duplicate the stored task series");
       preview.querySelector('button[title="Close"]').click();
+      Object.assign(T.daten().einstellungen.regional, { timeZoneManagement: "manual", timeZoneCalendarDisplay: "contact", timeZoneTaskDisplay: "contact" });
+      T.daten().kontakte.push({ id: "worker-ny", vcardRoundtrip: ["TZ:America/New_York"] }, { id: "worker-tokyo", vcardRoundtrip: ["TZ:Asia/Tokyo"] });
+      const batch = [
+        { uid: "worker-zone-ny", kontaktId: "worker-ny", icsRoundtrip: ["DTSTART:20260907T090000Z", "DURATION:PT1H"] },
+        { uid: "worker-zone-tokyo", kontaktId: "worker-tokyo", icsRoundtrip: ["DTSTART:20260907T090000Z", "DURATION:PT1H"] }
+      ];
+      const zones = await query("base", batch, [-Infinity, Infinity]);
+      assert.deepEqual(zones.map(value => value.zeit), ["05:00", "18:00"], "One base batch needs separate contact zones for each item");
+      assert.ok(zones.every(value => value.icsStartUtc === Date.parse("2026-09-07T09:00Z") && !Object.prototype.hasOwnProperty.call(value, "icsDisplayTarget")), "Worker projection changed an instant or leaked transient cache metadata");
+      T.daten().kontakte.find(contact => contact.id === "worker-ny").vcardRoundtrip = ["TZ:Europe/Berlin"];
+      const changedZone = await query("base", batch, [-Infinity, Infinity]);
+      assert.deepEqual(changedZone.map(value => value.zeit), ["11:00", "18:00"], "Changing a contact zone must invalidate the worker cache");
+      const foreignDue = await query("next", { uid: "worker-foreign-due", kontaktId: "worker-tokyo", icsRoundtrip: ["DUE:20260907T233000Z"] }, ["2026-09-07"]);
+      assert.equal(foreignDue.faellig, "2026-09-08"); assert.equal(foreignDue.faelligZeit, "08:30"); assert.equal(foreignDue.startZeit, "");
       await query("expand", { icsRoundtrip: ["DTSTART:20260907T000000Z", "DURATION:PT1S", "RRULE:FREQ=SECONDLY"] }, [Date.parse("2026-09-07"), Date.parse("2026-09-10")], true);
       assert.ok(T.icsRuntime.lastError.includes("limit"));
       T.daten().termine = T.normalisiere({ termine: [{ id: "simple", datum: "2026-01-08", titel: "Local second Thursday",

@@ -178,6 +178,12 @@ internal static partial class ExchangeCodec
             ["zeilen"] = new JsonArray(rows.Select(row => (JsonNode)new JsonArray(row.Select(cell => (JsonNode)JsonValue.Create(cell)!).ToArray())).ToArray()) };
     }
 
+    private static string PortableCalendarZone(TimeZoneInfo? timeZone)
+    {
+        var id = (timeZone ?? TimeZoneInfo.Local).Id;
+        return TimeZoneInfo.TryConvertWindowsIdToIanaId(id, out var iana) ? iana : id;
+    }
+
     internal static ExchangeImportResult ParseIcs(string text, string sourceId = "", TimeZoneInfo? timeZone = null)
     {
         using var culture = new CalendarRecurrence.WireCulture();
@@ -964,7 +970,7 @@ internal static partial class ExchangeCodec
             ["wiederholung"] = recurrenceObject,
             ["icsKomplex"] = complex, ["icsSerienUid"] = complex ? IcsText(First(values, "UID")?.Value ?? "") : "",
             ["icsStatus"] = First(values, "STATUS")?.Value.ToUpperInvariant() ?? "",
-            ["icsAnzeigeZeitzone"] = (timeZone ?? TimeZoneInfo.Local).Id,
+            ["icsAnzeigeZeitzone"] = PortableCalendarZone(timeZone),
             ["icsEndeFehlt"] = endProperty is null && duration is null,
             ["icsNullDauer"] = end is not null && end.Value.DateTime == start.DateTime && !start.AllDay,
             ["icsRoundtrip"] = IcsRoundtrip(roundtripValues, true), ["geaendert"] = IcsModified(values)
@@ -1006,7 +1012,7 @@ internal static partial class ExchangeCodec
             ["icsElternUid"] = parent,
             ["icsSerienUid"] = recurrenceId is null ? "" : uid,
             ["icsStatus"] = First(values, "STATUS")?.Value.ToUpperInvariant() ?? "",
-            ["icsAnzeigeZeitzone"] = (timeZone ?? TimeZoneInfo.Local).Id,
+            ["icsAnzeigeZeitzone"] = PortableCalendarZone(timeZone),
             ["reihenfolge"] = order, ["titel"] = IcsText(First(values, "SUMMARY")?.Value ?? ""),
             ["faellig"] = dueValue.DateTime == default ? "" : dueValue.DateTime.ToString("yyyy-MM-dd"),
             ["faelligZeit"] = dueValue.DateTime == default || dueValue.AllDay ? "" : dueValue.DateTime.ToString("HH:mm"),

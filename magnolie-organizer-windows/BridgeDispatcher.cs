@@ -701,6 +701,8 @@ internal sealed partial class BridgeDispatcher : IDisposable
         try
         {
             if (!message.TryGetProperty("regional", out var regional)) throw new ArgumentException(T("The regional settings are invalid."));
+            if (message.TryGetProperty("expectedBookSource", out var expectedSource) && expectedSource.GetString() != NativeActorBookSource())
+                throw new InvalidOperationException("source_changed");
             var clean = string.IsNullOrEmpty(requestId) ? RegionalSettings.Write(paths.RegionalSettings, regional)
                 : RegionalSettings.WriteChecked(paths.RegionalSettings, regional, message.TryGetProperty("expectedRegional", out var expected) ? expected : default);
             await form.SendAsync("App.regionalErgebnis", new { ok = true, requestId, regional = clean });
@@ -708,13 +710,14 @@ internal sealed partial class BridgeDispatcher : IDisposable
         catch (Exception error)
         {
             await form.SendAsync("App.regionalErgebnis", new { ok = false, requestId,
-                code = error.Message == "regional_conflict" ? "conflict" : error.Message == "invalid_regional_settings" ? "invalid_settings" : "native_operation_failed", fehler = error.Message });
+                code = error.Message == "regional_conflict" ? "conflict" : error.Message == "source_changed" ? "source_changed" : error.Message == "invalid_regional_settings" ? "invalid_settings" : "native_operation_failed", fehler = error.Message });
         }
     }
 
     private async Task SendRegionalSettingsAsync(string requestId)
     {
-        try { await form.SendAsync("App.regionalStand", new { ok = true, requestId, regional = RegionalSettings.ReadVerified(paths.RegionalSettings) }); }
+        try { await form.SendAsync("App.regionalStand", new { ok = true, requestId, regional = RegionalSettings.ReadVerified(paths.RegionalSettings),
+            time_zone_preview_version = 1, book_source = NativeActorBookSource() }); }
         catch (Exception) { await form.SendAsync("App.regionalStand", new { ok = false, requestId }); }
     }
 

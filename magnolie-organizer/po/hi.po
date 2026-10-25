@@ -546,6 +546,9 @@ msgstr ""
 "baum-1 शाखा के लिए वैकल्पिक मार्ग: यदि सीधा संपर्क न बन सके, तो संदेश आपके Nextcloud "
 "सर्वर के WebDAV फ़ोल्डर से होकर जाते हैं।"
 
+msgid "A floating local time has no unique absolute instant."
+msgstr "समय क्षेत्र से असंबद्ध स्थानीय समय का कोई एक निश्चित निरपेक्ष क्षण नहीं होता।"
+
 msgid "A group with this name already exists."
 msgstr "इस नाम का समूह पहले से मौजूद है।"
 
@@ -829,6 +832,9 @@ msgstr "सभी छह चार्ट"
 
 msgid "All states"
 msgstr "सभी राज्य"
+
+msgid "All-day dates are not converted into timed entries."
+msgstr "पूरे दिन की तारीखों को समय वाली प्रविष्टियों में नहीं बदला जाता।"
 
 msgid "Allow notifications despite password protection"
 msgstr "पासवर्ड सुरक्षा के बावजूद सूचनाएँ अनुमति दें"
@@ -1359,9 +1365,6 @@ msgstr "उपनाम के अनुसार (Müller, Hans)"
 msgid "CSV / Lotus Organizer"
 msgstr "CSV / Lotus Organizer"
 
-msgid "CSV / Lotus Organizer contacts …"
-msgstr "CSV / Lotus Organizer संपर्क …"
-
 msgid "CSV files (*.csv)"
 msgstr "CSV फ़ाइलें (*.csv)"
 
@@ -1652,6 +1655,9 @@ msgstr "फ़ोल्डर चुनें …"
 
 msgid "Choose local image…"
 msgstr "स्थानीय चित्र चुनें…"
+
+msgid "Choose local-time planning to change clock fields."
+msgstr "समय बदलने के लिए स्थानीय समय में योजना बनाना चुनें।"
 
 msgid "Choose or enter a phone number"
 msgstr "फ़ोन नंबर चुनें या दर्ज करें"
@@ -2365,6 +2371,12 @@ msgstr "डिलीवरी की स्थिति अनिश्चित
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "दंत चिकित्सक डॉ. Hill — आपकी प्रविष्टियों का पूर्वावलोकन"
 
+msgid "Detect now"
+msgstr "अभी पता लगाएँ"
+
+msgid "Detected time zone"
+msgstr "पता लगाया गया समय क्षेत्र"
+
 msgid "Determining public IP address…"
 msgstr "सार्वजनिक IP पता पता लगाया जा रहा है…"
 
@@ -2500,6 +2512,9 @@ msgstr "डुप्लिकेट"
 
 msgid "Duration"
 msgstr "अवधि"
+
+msgid "Earlier occurrence"
+msgstr "पहली आवृत्ति"
 
 msgid "Early shift"
 msgstr "सुबह की शिफ़्ट"
@@ -3246,9 +3261,6 @@ msgstr "Claws Mail संपर्क आयात करें"
 msgid "Import ICS / CSV…"
 msgstr "ICS / CSV आयात करें…"
 
-msgid "Import Lotus Organizer CSV"
-msgstr "Lotus Organizer CSV आयात करें"
-
 msgid "Import Notes → Organizer only"
 msgstr "केवल Notes से Organizer में आयात करें"
 
@@ -3518,6 +3530,14 @@ msgstr "समस्या निवारण लॉग रखें"
 msgid "Keep existing"
 msgstr "मौजूदा जानकारी रखें"
 
+msgid "Keep instant"
+msgstr "क्षण बनाए रखें"
+
+msgid ""
+"Keep the original recurrence data; this local-time action is for individual "
+"entries."
+msgstr "मूल दोहराव डेटा बनाए रखें; स्थानीय समय की यह क्रिया केवल अलग-अलग प्रविष्टियों के लिए है।"
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "क्या KDE Connect की यह फ़ाइल डाउनलोड में रखनी है?"
 
@@ -3563,6 +3583,9 @@ msgstr "देर की शिफ़्ट"
 msgctxt "time tracking"
 msgid "Late shift"
 msgstr "शाम की पाली"
+
+msgid "Later occurrence"
+msgstr "बाद की आवृत्ति"
 
 msgid "Latest alarm monitor entries:"
 msgstr "अलार्म मॉनिटर की नवीनतम प्रविष्टियाँ:"
@@ -3654,9 +3677,6 @@ msgstr "ढीले नोट"
 
 msgid "Lotus Calendar (*.lcs)"
 msgstr "Lotus Calendar (*.lcs)"
-
-msgid "Lotus Organizer CSV …"
-msgstr "Lotus Organizer CSV …"
 
 msgid "Lower Austria"
 msgstr "लोअर ऑस्ट्रिया"
@@ -3822,6 +3842,9 @@ msgstr "कस्टम"
 msgctxt "time tracking"
 msgid "Manual entry"
 msgstr "मैन्युअल प्रविष्टि"
+
+msgid "Manual fallback"
+msgstr "मैन्युअल वैकल्पिक मान"
 
 msgid "Manual only"
 msgstr "केवल मैन्युअल"
@@ -4577,6 +4600,14 @@ msgstr "ODS"
 msgid "OK"
 msgstr "ठीक है"
 
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, "
+"groups and other sections are skipped; layout, attachments, categories and "
+"alarms are not transferred."
+msgstr ""
+"OR6 आयात: अपॉइंटमेंट, कार्य, संपर्क और नोट का पाठ। आवृत्तियाँ, समूह और अन्य अनुभाग छोड़ "
+"दिए जाते हैं; लेआउट, संलग्नक, श्रेणियाँ और अलार्म स्थानांतरित नहीं होते।"
+
 msgid "Objects"
 msgstr "वस्तुएँ"
 
@@ -4845,6 +4876,9 @@ msgstr "ऑर्गनाइज़र शैली (कागज़ की श�
 msgid "Organizer · Calendar · Contacts · Notes"
 msgstr "ऑर्गनाइज़र · कैलेंडर · संपर्क · नोट्स"
 
+msgid "Original time zone"
+msgstr "मूल समय क्षेत्र"
+
 msgid "Other"
 msgstr "अन्य"
 
@@ -4876,6 +4910,9 @@ msgstr "अपना नंबर (डिफ़ॉल्ट वॉइस SIM)"
 
 msgid "Own profile"
 msgstr "निजी प्रोफ़ाइल"
+
+msgid "Own time zone"
+msgstr "अपना समय क्षेत्र"
 
 msgid "Own window available: no"
 msgstr "अपनी विंडो उपलब्ध: नहीं"
@@ -5132,6 +5169,9 @@ msgstr "%(name)s की फ़ोटो"
 
 msgid "Pick up"
 msgstr "लेने जाएँ"
+
+msgid "Plan local time"
+msgstr "स्थानीय समय में योजना बनाएँ"
 
 msgid "Planner"
 msgstr "प्लानर"
@@ -6338,6 +6378,9 @@ msgstr "ध्वनि माध्यम: %(method)s"
 msgid "Sound through: no output method found"
 msgstr "ध्वनि माध्यम: कोई आउटपुट विधि नहीं मिली"
 
+msgid "Source"
+msgstr "स्रोत"
+
 msgid "Sources"
 msgstr "स्रोत"
 
@@ -6945,6 +6988,9 @@ msgstr "कॉल अब चल नहीं रही है या उसक�
 msgid "The call is no longer ringing or is outdated."
 msgstr "कॉल की घंटी अब नहीं बज रही है या उसकी जानकारी पुरानी हो चुकी है।"
 
+msgid "The chosen local time could not be represented exactly."
+msgstr "चुने गए स्थानीय समय को सटीक रूप से दर्शाया नहीं जा सका।"
+
 msgid "The clipboard is empty."
 msgstr "क्लिपबोर्ड खाली है।"
 
@@ -7055,6 +7101,9 @@ msgstr "एन्क्रिप्टेड फ़ाइल क्षतिग�
 
 msgid "The end date cannot be before the start date."
 msgstr "समाप्ति तारीख आरंभ तारीख से पहले नहीं हो सकती।"
+
+msgid "The end must not precede the start."
+msgstr "समाप्ति शुरुआत से पहले नहीं हो सकती।"
 
 msgid "The entered fingerprint is incomplete."
 msgstr "दर्ज किया गया फ़िंगरप्रिंट अधूरा है।"
@@ -7261,6 +7310,9 @@ msgid ""
 "application is not open if you wish."
 msgstr ""
 "ऑर्गनाइज़र अपॉइंटमेंट शुरू होने से पहले आपको सूचित करता है; चाहें तो अनुप्रयोग बंद होने पर भी।"
+
+msgid "The original calendar time cannot be resolved without guessing."
+msgstr "मूल कैलेंडर समय को अनुमान लगाए बिना निर्धारित नहीं किया जा सकता।"
 
 msgid "The other branch did not prove the pairing file."
 msgstr "दूसरी शाखा ने पेयरिंग फ़ाइल का प्रमाण नहीं दिया।"
@@ -7545,6 +7597,9 @@ msgstr "चुने गए स्वास्थ्य रिकॉर्ड �
 msgid "The selected iCalendar file is incomplete."
 msgstr "चयनित iCalendar फ़ाइल अधूरी है।"
 
+msgid "The selected local time does not exist or is ambiguous."
+msgstr "चुना गया स्थानीय समय मौजूद नहीं है या अस्पष्ट है।"
+
 msgid "The selected note contains attachments that cannot be sent."
 msgstr "चुने गए नोट में ऐसे अनुलग्नक हैं जो भेजे नहीं जा सकते।"
 
@@ -7614,6 +7669,9 @@ msgid ""
 "you can keep track of it."
 msgstr ""
 "कार्य चयनित शाखा को भेजा जाएगा। इसे यहाँ भी रखा जाएगा ताकि आप इसकी स्थिति देख सकें।"
+
+msgid "The time zone could not be detected."
+msgstr "समय क्षेत्र का पता नहीं लगाया जा सका।"
 
 msgid ""
 "The traffic-light colors are general reference ranges for adults, not a "
@@ -7761,6 +7819,9 @@ msgstr ""
 "इन विकल्पों के लिए Magnolie Notes में संबंधित अनुमतियाँ आवश्यक हैं। कॉल की आवाज़ Magnolie "
 "डेटा कनेक्शन पर नहीं भेजी जाती।"
 
+msgid "This action does not invent a task start or deadline."
+msgstr "यह क्रिया कार्य की अनुपस्थित शुरुआत या अंतिम तिथि नहीं जोड़ती।"
+
 msgid "This address can be selected and copied."
 msgstr "इस पते को चुनकर कॉपी किया जा सकता है।"
 
@@ -7797,6 +7858,9 @@ msgstr "यह शाखा ज्ञात नहीं है।"
 
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "यह कैलेंडर कार्यों (VTODO) का समर्थन नहीं करता।"
+
+msgid "This calendar source is read-only."
+msgstr "यह कैलेंडर स्रोत केवल पढ़ने के लिए है।"
 
 msgid ""
 "This choice also determines how names appear on contact cards and under "
@@ -7964,6 +8028,9 @@ msgstr "समय रिकॉर्डिंग"
 
 msgid "Time zone"
 msgstr "समय क्षेत्र"
+
+msgid "Time zone management"
+msgstr "समय क्षेत्र प्रबंधन"
 
 msgid "Title"
 msgstr "शीर्षक"
@@ -9100,6 +9167,15 @@ msgstr[1] "… और %(count)s अतिरिक्त आइटम, जो �
 msgid "＋ Add appointment"
 msgstr "＋ अपॉइंटमेंट जोड़ें"
 
+#~ msgid "CSV / Lotus Organizer contacts …"
+#~ msgstr "CSV / Lotus Organizer संपर्क …"
+
+#~ msgid "Import Lotus Organizer CSV"
+#~ msgstr "Lotus Organizer CSV आयात करें"
+
+#~ msgid "Lotus Organizer CSV …"
+#~ msgstr "Lotus Organizer CSV …"
+
 #~ msgid "Message"
 #~ msgstr "संदेश"
 
@@ -9443,6 +9519,3 @@ msgstr "＋ अपॉइंटमेंट जोड़ें"
 #~ "नंबर और, Android अनुमति दे तो, सीरियल नंबर और IMEI। Android 10 से सामान्य ऐप के "
 #~ "लिए हार्डवेयर पहचानकर्ताओं पर प्रतिबंध हैं। नंबर की अनुमति वैकल्पिक है; कोई विशेष भूमिका "
 #~ "नहीं माँगी जाती।"
-
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
-msgstr "OR6 आयात: अपॉइंटमेंट, कार्य, संपर्क और नोट का पाठ। आवृत्तियाँ, समूह और अन्य अनुभाग छोड़ दिए जाते हैं; लेआउट, संलग्नक, श्रेणियाँ और अलार्म स्थानांतरित नहीं होते।"

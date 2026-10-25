@@ -92,7 +92,8 @@ internal static class TimeZoneManagement
 
     internal static async Task<JsonObject> RefreshAsync(string path, JsonElement expected,
         Func<CancellationToken, Task<JsonObject?>> phone, Func<bool> permitted, CancellationToken cancellationToken,
-        Func<string, CancellationToken, Task<JsonObject>>? fetch = null, Func<CancellationToken, Task<TimeZoneLocation?>>? location = null)
+        Func<string, CancellationToken, Task<JsonObject>>? fetch = null, Func<CancellationToken, Task<TimeZoneLocation?>>? location = null,
+        bool apply = true)
     {
         if (!await RefreshGate.WaitAsync(0, cancellationToken).ConfigureAwait(false)) throw new InvalidOperationException("time_zone_busy");
         try
@@ -138,13 +139,13 @@ internal static class TimeZoneManagement
             Check();
             var changed = ContactFields.Text(before, "timeZone") != observation.Zone || ContactFields.Text(before, "timeZoneDetectedSource") != observation.Source || ContactFields.Text(before, "timeZoneDetectedAt") == "0";
             var actual = before;
-            if (changed)
+            if (changed && apply)
             {
                 var wanted = before.DeepClone().AsObject(); wanted["timeZone"] = observation.Zone;
                 wanted["timeZoneDetectedSource"] = observation.Source; wanted["timeZoneDetectedAt"] = observation.CapturedMs.ToString(CultureInfo.InvariantCulture);
                 actual = RegionalSettings.WriteChecked(path, JsonSerializer.SerializeToElement(wanted), JsonSerializer.SerializeToElement(before));
             }
-            return new JsonObject { ["regional"] = actual, ["automatic"] = true, ["native_changed"] = changed,
+            return new JsonObject { ["regional"] = actual, ["automatic"] = true, ["native_changed"] = changed && apply,
                 ["time_zone"] = observation.Zone, ["source"] = observation.Source, ["captured_ms"] = observation.CapturedMs,
                 ["checked_at_ms"] = now, ["fallback"] = observation.Fallback };
         }

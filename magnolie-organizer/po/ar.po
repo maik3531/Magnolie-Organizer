@@ -706,6 +706,9 @@ msgstr ""
 "مسار احتياطي للفرع baum-1: إذا تعذّر الوصول عبر الاتصال المباشر، تمرّ الرسائل "
 "عبر مجلد WebDAV على خادم Nextcloud الخاص بك."
 
+msgid "A floating local time has no unique absolute instant."
+msgstr "الوقت المحلي غير المرتبط بمنطقة زمنية لا يحدد لحظة مطلقة فريدة."
+
 msgid "A group with this name already exists."
 msgstr "توجد بالفعل مجموعة بهذا الاسم."
 
@@ -988,6 +991,9 @@ msgstr "جميع المخططات الستة"
 
 msgid "All states"
 msgstr "كل الولايات"
+
+msgid "All-day dates are not converted into timed entries."
+msgstr "لا تُحوّل تواريخ اليوم الكامل إلى إدخالات ذات وقت."
 
 msgid "Allow notifications despite password protection"
 msgstr "السماح بالإشعارات رغم الحماية بكلمة مرور"
@@ -1520,9 +1526,6 @@ msgstr "حسب اسم العائلة (Müller, Hans)"
 msgid "CSV / Lotus Organizer"
 msgstr "CSV / Lotus Organizer"
 
-msgid "CSV / Lotus Organizer contacts …"
-msgstr "جهات اتصال CSV / Lotus Organizer…"
-
 msgid "CSV files (*.csv)"
 msgstr "ملفات CSV (*.csv)"
 
@@ -1813,6 +1816,9 @@ msgstr "اختيار مجلد …"
 
 msgid "Choose local image…"
 msgstr "اختيار صورة محلية…"
+
+msgid "Choose local-time planning to change clock fields."
+msgstr "اختر التخطيط بالتوقيت المحلي لتغيير حقول الوقت."
 
 msgid "Choose or enter a phone number"
 msgstr "اختر رقم هاتف أو أدخله"
@@ -2538,6 +2544,12 @@ msgstr "حالة التسليم غير مؤكدة"
 msgid "Dentist Dr. Hill — Preview of your entries"
 msgstr "طبيب الأسنان د. Hill — معاينة إدخالاتك"
 
+msgid "Detect now"
+msgstr "اكتشاف الآن"
+
+msgid "Detected time zone"
+msgstr "المنطقة الزمنية المكتشفة"
+
 msgid "Determining public IP address…"
 msgstr "جارٍ تحديد عنوان IP العام…"
 
@@ -2675,6 +2687,9 @@ msgstr "التكرارات"
 
 msgid "Duration"
 msgstr "المدة"
+
+msgid "Earlier occurrence"
+msgstr "الحدوث الأسبق"
 
 msgid "Early shift"
 msgstr "وردية مبكرة"
@@ -3421,9 +3436,6 @@ msgstr "استيراد جهات اتصال Claws Mail"
 msgid "Import ICS / CSV…"
 msgstr "استيراد ICS / CSV…"
 
-msgid "Import Lotus Organizer CSV"
-msgstr "استيراد Lotus Organizer CSV"
-
 msgid "Import Notes → Organizer only"
 msgstr "الاستيراد من Notes إلى Organizer فقط"
 
@@ -3696,6 +3708,14 @@ msgstr "الاحتفاظ بسجل لاستكشاف الأخطاء وإصلاحه
 msgid "Keep existing"
 msgstr "الاحتفاظ بالمعلومات الحالية"
 
+msgid "Keep instant"
+msgstr "الاحتفاظ باللحظة"
+
+msgid ""
+"Keep the original recurrence data; this local-time action is for individual "
+"entries."
+msgstr "احتفظ ببيانات التكرار الأصلية؛ إجراء التوقيت المحلي هذا مخصص للإدخالات المنفردة."
+
 msgid "Keep this KDE Connect file in Downloads?"
 msgstr "هل تريد الاحتفاظ بملف KDE Connect هذا في التنزيلات؟"
 
@@ -3741,6 +3761,9 @@ msgstr "وردية متأخرة"
 msgctxt "time tracking"
 msgid "Late shift"
 msgstr "الوردية المسائية"
+
+msgid "Later occurrence"
+msgstr "الحدوث اللاحق"
 
 msgid "Latest alarm monitor entries:"
 msgstr "أحدث إدخالات مراقب التنبيهات:"
@@ -3832,9 +3855,6 @@ msgstr "ملاحظات حرة"
 
 msgid "Lotus Calendar (*.lcs)"
 msgstr "Lotus Calendar (*.lcs)"
-
-msgid "Lotus Organizer CSV …"
-msgstr "Lotus Organizer CSV …"
 
 msgid "Lower Austria"
 msgstr "النمسا السفلى"
@@ -4000,6 +4020,9 @@ msgstr "مخصص"
 msgctxt "time tracking"
 msgid "Manual entry"
 msgstr "إدخال يدوي"
+
+msgid "Manual fallback"
+msgstr "قيمة بديلة يدوية"
 
 msgid "Manual only"
 msgstr "يدوي فقط"
@@ -4757,6 +4780,15 @@ msgstr "ODS"
 msgid "OK"
 msgstr "حسناً"
 
+msgid ""
+"OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, "
+"groups and other sections are skipped; layout, attachments, categories and "
+"alarms are not transferred."
+msgstr ""
+"استيراد OR6: المواعيد والمهام وجهات الاتصال ونص الملاحظات. تُتخطى التكرارات "
+"والمجموعات والأقسام الأخرى؛ ولا يُنقل التخطيط أو المرفقات أو الفئات أو "
+"التنبيهات."
+
 msgid "Objects"
 msgstr "أشياء"
 
@@ -5050,6 +5082,9 @@ msgstr "نمط المنظّم (ورقة)"
 msgid "Organizer · Calendar · Contacts · Notes"
 msgstr "المنظّم · التقويم · جهات الاتصال · الملاحظات"
 
+msgid "Original time zone"
+msgstr "المنطقة الزمنية الأصلية"
+
 msgid "Other"
 msgstr "أخرى"
 
@@ -5081,6 +5116,9 @@ msgstr "رقمي (شريحة المكالمات الافتراضية)"
 
 msgid "Own profile"
 msgstr "الملف الشخصي"
+
+msgid "Own time zone"
+msgstr "منطقتك الزمنية"
 
 msgid "Own window available: no"
 msgstr "نافذة مستقلة متاحة: لا"
@@ -5351,6 +5389,9 @@ msgstr "صورة %(name)s"
 
 msgid "Pick up"
 msgstr "اصطحاب"
+
+msgid "Plan local time"
+msgstr "التخطيط بالتوقيت المحلي"
 
 msgid "Planner"
 msgstr "المخطِّط"
@@ -6568,6 +6609,9 @@ msgstr "الصوت عبر: %(method)s"
 msgid "Sound through: no output method found"
 msgstr "الصوت عبر: لم يُعثر على طريقة إخراج"
 
+msgid "Source"
+msgstr "المصدر"
+
 msgid "Sources"
 msgstr "المصادر"
 
@@ -7188,6 +7232,9 @@ msgstr "لم تعد المكالمة جارية أو تغيّرت حالتها."
 msgid "The call is no longer ringing or is outdated."
 msgstr "توقف رنين المكالمة أو لم تعد بياناتها محدثة."
 
+msgid "The chosen local time could not be represented exactly."
+msgstr "تعذر تمثيل الوقت المحلي المختار بدقة."
+
 msgid "The clipboard is empty."
 msgstr "الحافظة فارغة."
 
@@ -7298,6 +7345,9 @@ msgstr "الملف المشفّر تالف."
 
 msgid "The end date cannot be before the start date."
 msgstr "لا يمكن أن يسبق تاريخ الانتهاء تاريخ البدء."
+
+msgid "The end must not precede the start."
+msgstr "يجب ألا تسبق النهاية البداية."
 
 msgid "The entered fingerprint is incomplete."
 msgstr "البصمة المدخلة غير مكتملة."
@@ -7507,6 +7557,9 @@ msgid ""
 msgstr ""
 "ينبهك المنظّم قبل بدء الموعد، وحتى عندما لا يكون التطبيق مفتوحًا إذا رغبت في "
 "ذلك."
+
+msgid "The original calendar time cannot be resolved without guessing."
+msgstr "لا يمكن تحديد وقت التقويم الأصلي دون تخمين."
 
 msgid "The other branch did not prove the pairing file."
 msgstr "لم يثبت الفرع الآخر صحة ملف الإقران."
@@ -7789,6 +7842,9 @@ msgstr "لا تحتوي السجلات الصحية المحددة على أي �
 msgid "The selected iCalendar file is incomplete."
 msgstr "ملف iCalendar المحدد غير مكتمل."
 
+msgid "The selected local time does not exist or is ambiguous."
+msgstr "الوقت المحلي المختار غير موجود أو ملتبس."
+
 msgid "The selected note contains attachments that cannot be sent."
 msgstr "تحتوي الملاحظة المحددة على مرفقات لا يمكن إرسالها."
 
@@ -7861,6 +7917,9 @@ msgid ""
 "you can keep track of it."
 msgstr ""
 "ستُرسل المهمة إلى الفرع المحدد. وستبقى هنا أيضًا حتى تتمكن من متابعة حالتها."
+
+msgid "The time zone could not be detected."
+msgstr "تعذر اكتشاف المنطقة الزمنية."
 
 msgid ""
 "The traffic-light colors are general reference ranges for adults, not a "
@@ -8009,6 +8068,9 @@ msgstr ""
 "تتطلب هذه الخيارات الأذونات المطابقة في Magnolie Notes. لا يُرسل صوت المكالمة "
 "عبر اتصال بيانات Magnolie."
 
+msgid "This action does not invent a task start or deadline."
+msgstr "لا يضيف هذا الإجراء بداية أو موعدًا نهائيًا مفقودًا للمهمة."
+
 msgid "This address can be selected and copied."
 msgstr "يمكن تحديد هذا العنوان ونسخه."
 
@@ -8045,6 +8107,9 @@ msgstr "هذا الفرع غير معروف."
 
 msgid "This calendar does not support tasks (VTODO)."
 msgstr "هذا التقويم لا يدعم المهام (VTODO)."
+
+msgid "This calendar source is read-only."
+msgstr "مصدر التقويم هذا للقراءة فقط."
 
 msgid ""
 "This choice also determines how names appear on contact cards and under "
@@ -8213,6 +8278,9 @@ msgstr "تتبع الوقت"
 
 msgid "Time zone"
 msgstr "المنطقة الزمنية"
+
+msgid "Time zone management"
+msgstr "إدارة المناطق الزمنية"
 
 msgid "Title"
 msgstr "العنوان"
@@ -9387,6 +9455,15 @@ msgstr[5] "… وعناصر إضافية ستُطبع أيضًا؛ العدد: %
 msgid "＋ Add appointment"
 msgstr "＋ إضافة موعد"
 
+#~ msgid "CSV / Lotus Organizer contacts …"
+#~ msgstr "جهات اتصال CSV / Lotus Organizer…"
+
+#~ msgid "Import Lotus Organizer CSV"
+#~ msgstr "استيراد Lotus Organizer CSV"
+
+#~ msgid "Lotus Organizer CSV …"
+#~ msgstr "Lotus Organizer CSV …"
+
 #~ msgid "Message"
 #~ msgstr "رسالة"
 
@@ -9743,6 +9820,3 @@ msgstr "＋ إضافة موعد"
 #~ "الافتراضية، والرقم التسلسلي وIMEI إذا سمح Android. منذ Android 10 تُقيَّد "
 #~ "معرّفات العتاد للتطبيقات العادية. إذن رقم الهاتف اختياري؛ لا يُطلب أي دور "
 #~ "خاص."
-
-msgid "OR6 import: appointments, tasks, contacts and plain-text notes. Recurrences, groups and other sections are skipped; layout, attachments, categories and alarms are not transferred."
-msgstr "استيراد OR6: المواعيد والمهام وجهات الاتصال ونص الملاحظات. تُتخطى التكرارات والمجموعات والأقسام الأخرى؛ ولا يُنقل التخطيط أو المرفقات أو الفئات أو التنبيهات."
