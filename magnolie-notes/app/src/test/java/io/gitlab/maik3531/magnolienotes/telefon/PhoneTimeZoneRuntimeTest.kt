@@ -56,7 +56,8 @@ class PhoneTimeZoneRuntimeTest {
         val pipe = object : TelefonRoehre { override val input = ByteArrayInputStream(ByteArray(0)); override val output = wireOutput; override fun close() {} }
         field(TelefonWerk::class.java, "activeTransport").set(work, (if (scenario == "bluetooth") TelefonTransportArt.BLUETOOTH else TelefonTransportArt.WIFI) to pipe)
         try {
-            documents.aendereZeiterfassung { ZeiterfassungStand(enabled = true) }
+            // Persist an owned fixture independently of the feature's fresh-install default.
+            documents.aendereZeiterfassung { it.copy(enabled = true, reportName = "Owned timezone fixture") }
             val before = File(context.filesDir, "notizen.json").readBytes()
             TelefonSecureChannel(pipe.input, pipe.output, ByteArray(32) { 7 }, ByteArray(32) { 11 }, ByteArray(4) { 12 },
                 ByteArray(32) { 13 }, ByteArray(4) { 14 }).use { channel ->
