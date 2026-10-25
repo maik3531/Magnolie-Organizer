@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="drucker_symbol_automatisch">Yazdır simgesini yalnızca erişilebilir Wi-Fi yazıcısı için göster</string>
-    <string name="drucker_symbol_hinweis">Yazdırma normalde PDF ve diğer Android hizmetleri için de kullanılabilir. Bu seçenek düzenleyici görünürken duyurulan IPP/IPPS yazıcılarını denetler.</string>
+    <string name="drucker_symbol_hinweis">Otomatik görünürlük varsayılan olarak açıktır ve düzenleyici görünürken duyurulan IPP/IPPS yazıcılarını denetler. PDF ve diğer Android yazdırma hizmetleri için bunu kapatın.</string>
     <string name="drucker_einstellung_fehler">Yazdırma görünüm tercihi kaydedilemedi.</string>
 </resources>

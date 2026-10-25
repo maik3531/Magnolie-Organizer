@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="drucker_symbol_automatisch">Паказваць значок толькі для даступнага Wi-Fi-прынтара</string>
-    <string name="drucker_symbol_hinweis">Звычайна друк даступны таксама ў PDF і праз іншыя службы Android. Гэты параметр правярае абвешчаныя прынтары IPP/IPPS, пакуль рэдактар бачны.</string>
+    <string name="drucker_symbol_hinweis">Аўтаматычная бачнасць тыпова ўключаная і правярае абвешчаныя прынтары IPP/IPPS, пакуль рэдактар бачны. Адключыце яе для доступу да PDF і іншых службаў друку Android.</string>
     <string name="drucker_einstellung_fehler">Не ўдалося захаваць наладу значка друку.</string>
 </resources>

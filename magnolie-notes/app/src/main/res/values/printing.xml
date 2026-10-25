@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="drucker_symbol_automatisch">Show print icon only for a reachable Wi-Fi printer</string>
-    <string name="drucker_symbol_hinweis">Normally Print is also available for PDF and other Android print services. This option checks advertised IPP/IPPS printers while the editor is visible.</string>
+    <string name="drucker_symbol_hinweis">Automatic visibility is on by default and checks advertised IPP/IPPS printers while the editor is visible. Turn it off to keep Print available for PDF and other Android print services.</string>
     <string name="drucker_einstellung_fehler">The print display preference could not be saved.</string>
 </resources>

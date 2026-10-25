@@ -17,7 +17,7 @@ import kotlin.coroutines.resume
 
 internal object DruckerEinstellungen {
     private fun prefs(context: Context) = context.applicationContext.getSharedPreferences("magnolie_print_view", Context.MODE_PRIVATE)
-    fun automatisch(context: Context) = prefs(context).getBoolean("only_available_wifi_printer", false)
+    fun automatisch(context: Context) = prefs(context).getBoolean("only_available_wifi_printer", true)
     fun automatisch(context: Context, value: Boolean) { check(prefs(context).edit().putBoolean("only_available_wifi_printer", value).commit()) }
 }
 

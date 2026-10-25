@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="drucker_symbol_automatisch">Afdrukpictogram alleen bij bereikbare wifi-printer tonen</string>
-    <string name="drucker_symbol_hinweis">Afdrukken is normaal ook beschikbaar voor PDF en andere Android-afdrukdiensten. Deze optie controleert aangekondigde IPP/IPPS-printers terwijl de editor zichtbaar is.</string>
+    <string name="drucker_symbol_hinweis">Automatische weergave staat standaard aan en controleert aangekondigde IPP/IPPS-printers terwijl de editor zichtbaar is. Schakel dit uit om afdrukken naar PDF en andere Android-diensten beschikbaar te houden.</string>
     <string name="drucker_einstellung_fehler">De afdrukweergave kon niet worden opgeslagen.</string>
 </resources>

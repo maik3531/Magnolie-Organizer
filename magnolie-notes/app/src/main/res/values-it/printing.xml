@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="drucker_symbol_automatisch">Mostra l’icona solo con una stampante Wi-Fi raggiungibile</string>
-    <string name="drucker_symbol_hinweis">Normalmente Stampa è disponibile anche per PDF e altri servizi Android. Questa opzione verifica le stampanti IPP/IPPS annunciate mentre l’editor è visibile.</string>
+    <string name="drucker_symbol_hinweis">La visibilità automatica è attiva per impostazione predefinita e verifica le stampanti IPP/IPPS annunciate mentre l’editor è visibile. Disattivala per mantenere la stampa PDF e gli altri servizi Android.</string>
     <string name="drucker_einstellung_fehler">Impossibile salvare la preferenza di visualizzazione.</string>
 </resources>

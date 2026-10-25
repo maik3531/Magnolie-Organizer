@@ -17,13 +17,18 @@ class DruckerEinstellungenTest {
         context = ApplicationProvider.getApplicationContext()
         context.getSharedPreferences("magnolie_print_view", Context.MODE_PRIVATE).edit().clear().commit()
     }
-    @Test fun normalPrintingRemainsAvailableForPdfAndOtherServicesByDefault() {
-        assertFalse(DruckerEinstellungen.automatisch(context))
+    @Test fun freshPreferencesAutomaticallyHideTheIconWithoutAReachableWifiPrinter() {
+        assertTrue(DruckerEinstellungen.automatisch(context))
     }
     @Test fun optionalWifiVisibilitySurvivesRecreationAndCanBeDisabledAgain() {
         DruckerEinstellungen.automatisch(context, true)
         assertTrue(DruckerEinstellungen.automatisch(context))
         DruckerEinstellungen.automatisch(context, false)
+        assertFalse(DruckerEinstellungen.automatisch(context))
+    }
+    @Test fun anExplicitAlwaysVisibleChoiceRemainsAvailableForPdfAndOtherServices() {
+        context.getSharedPreferences("magnolie_print_view", Context.MODE_PRIVATE).edit()
+            .putBoolean("only_available_wifi_printer", false).commit()
         assertFalse(DruckerEinstellungen.automatisch(context))
     }
 }

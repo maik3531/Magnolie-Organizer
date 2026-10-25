@@ -13,12 +13,13 @@ class MagnolieTestRunner : Instrumentation() {
         super.onCreate(arguments)
         testContext = targetContext
         expectUpgradeSentinel = arguments?.getString("expect_upgrade_sentinel") == "true"
+        printerProbe = arguments?.getString("printer_probe") == "true"
         start()
     }
 
     override fun onStart() {
         instrumentation = this
-        val classes = arrayOf(
+        val classes = if (printerProbe) arrayOf(DruckerSucheInstrumentationTest::class.java) else arrayOf(
             StartupRecoveryInstrumentationTest::class.java,
             UpgradeMigrationInstrumentationTest::class.java,
             AndroidKeyStoreDatenTest::class.java
@@ -42,6 +43,7 @@ class MagnolieTestRunner : Instrumentation() {
     }
 
     companion object {
+        private var printerProbe = false
         var expectUpgradeSentinel: Boolean = false
             private set
         lateinit var testContext: Context

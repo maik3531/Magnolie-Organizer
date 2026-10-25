@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="drucker_symbol_automatisch">Vis utskriftsikon bare for en tilgjengelig Wi-Fi-skriver</string>
-    <string name="drucker_symbol_hinweis">Utskrift er vanligvis også tilgjengelig for PDF og andre Android-tjenester. Dette valget sjekker annonserte IPP/IPPS-skrivere mens redigeringen er synlig.</string>
+    <string name="drucker_symbol_hinweis">Automatisk visning er på som standard og sjekker annonserte IPP/IPPS-skrivere mens redigeringen er synlig. Slå den av for å beholde PDF og andre Android-utskriftstjenester.</string>
     <string name="drucker_einstellung_fehler">Utskriftsinnstillingen kunne ikke lagres.</string>
 </resources>

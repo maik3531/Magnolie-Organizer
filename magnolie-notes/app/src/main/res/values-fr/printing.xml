@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="drucker_symbol_automatisch">Afficher l’icône seulement pour une imprimante Wi-Fi accessible</string>
-    <string name="drucker_symbol_hinweis">Imprimer reste normalement disponible pour les PDF et les autres services Android. Cette option vérifie les imprimantes IPP/IPPS annoncées lorsque l’éditeur est visible.</string>
+    <string name="drucker_symbol_hinweis">L’affichage automatique est activé par défaut et vérifie les imprimantes IPP/IPPS annoncées lorsque l’éditeur est visible. Désactivez-le pour garder l’accès aux PDF et aux autres services Android.</string>
     <string name="drucker_einstellung_fehler">Impossible d’enregistrer ce réglage d’affichage.</string>
 </resources>
