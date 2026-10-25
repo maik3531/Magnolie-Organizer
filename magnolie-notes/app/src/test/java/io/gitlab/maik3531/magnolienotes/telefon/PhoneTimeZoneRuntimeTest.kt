@@ -66,7 +66,8 @@ class PhoneTimeZoneRuntimeTest {
                 }
                 @Suppress("UNCHECKED_CAST")
                 (field(TelefonWerk::class.java, "noteSessions").get(work) as MutableMap<TelefonSecureChannel, PersonalNoteSession>)[channel] = session
-                if (scenario == "own_off") storage.savePeer(peer.copy(remote_own_device = false))
+                if (scenario == "own_off") storage.savePeer(peer.copy(own_device = false, remote_own_device = false))
+                if (scenario == "unpaired") storage.savePeer(null)
                 val request = buildJsonObject { put("version", 12); put("request_id", UUID.randomUUID().toString()) }
                 val message = TelefonNachrichten.message("device_status.request", request, 60000)
                 work.receiveMessage(peer, message, channel, if (scenario == "wrong_generation") 1 else 0)
@@ -79,7 +80,7 @@ class PhoneTimeZoneRuntimeTest {
                     finally { clear.fill(0) }
                 }
                 val reports = replies.filter { it["kind"] == JsonPrimitive("device_status.report") }
-                if (scenario in setOf("wifi", "bluetooth")) {
+                if (scenario in setOf("wifi", "bluetooth", "own_off")) {
                     val report = reports.single()["body"]!!.jsonObject; PhoneTimeZone.validateReport(report)
                     assertEquals(request.string("request_id"), report.string("request_id")); assertEquals("Asia/Tokyo", report.string("time_zone"))
                 } else assertTrue(reports.isEmpty())
@@ -96,6 +97,7 @@ class PhoneTimeZoneRuntimeTest {
 
     @Test fun actualChannelReportsClockOverWifiAndBluetoothWithoutWritingContent() { check("wifi"); check("bluetooth") }
     @Test fun cachedOrRevokedControlsAndWrongGenerationDoNotReportLocationClock() {
-        for (scenario in listOf("stale_capabilities", "stale_grants", "stale_own", "own_off", "wrong_generation")) check(scenario)
+        for (scenario in listOf("stale_capabilities", "stale_grants", "stale_own", "unpaired", "wrong_generation")) check(scenario)
     }
+    @Test fun completedPairingIgnoresStoredLegacyOwnFlags() { check("own_off") }
 }

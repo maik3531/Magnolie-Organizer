@@ -83,6 +83,7 @@ class CallLifecycleTransportTest {
         field(TelefonAblage::class.java, "instance").set(null, null)
         field(TelefonWerk::class.java, "instance").set(null, null)
         storage = TelefonAblage.get(context)
+        storage.identity("Synthetic phone").second.fill(0)
         storage.setEnabled(true); storage.setIncomingCallsEnabled(true); storage.setAnswerCallsEnabled(true)
         storage.savePeer(TelefonPeer(peerId, "Synthetic desktop", TelefonKrypto.b64(ByteArray(32)),
             remote_incoming_call_state_granted = true, remote_answer_call_granted = true,

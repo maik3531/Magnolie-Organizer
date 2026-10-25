@@ -112,13 +112,24 @@ class TimeControlRuntimeTest {
         assertEquals(f.documents.bestand.value.zeiterfassung, reopened.bestand.value.zeiterfassung)
     }
 
-    @Test fun unsupportedControlsAndWithdrawnOwnershipDoNotLeakOrWriteTimerData() = fixture { f ->
+    @Test fun unsupportedControlsAndUnpairDoNotLeakOrWriteTimerData() = fixture { f ->
         val before = f.documents.bestand.value
         f.work.sharedLocalCapabilities = { TelefonCapabilities.phase1().mapValues { (name, value) ->
             if (name == "personal_tasks_sync") value.copy(versions = value.versions - TimeControlProtokoll.VERSION) else value } }
         val rejected = f.read(); assertEquals("unsupported_feature", rejected.string("error")); assertEquals("", rejected.string("revision"))
         f.storage.savePeer(f.peer.copy(remote_own_device = false))
+        assertEquals("unsupported_feature", f.read().string("error"))
+        f.storage.savePeer(null)
         assertNull(f.receive(TimeControlProtokoll.request(UUID.randomUUID().toString())))
+        assertEquals(before, f.documents.bestand.value)
+    }
+
+    @Test fun completedPairingKeepsTimerReadAvailableDespiteLegacyOwnFlags() = fixture { f ->
+        val before = f.documents.bestand.value
+        f.storage.savePeer(f.peer.copy(own_device = false, remote_own_device = false))
+        val report = f.read()
+        assertEquals(JsonPrimitive(false), report["persisted"])
+        assertTrue(report.string("revision").isNotBlank())
         assertEquals(before, f.documents.bestand.value)
     }
 
@@ -132,5 +143,7 @@ class TimeControlRuntimeTest {
         assertNull(f.documents.bestand.value.zeiterfassung.entries.single().pauseMinute)
         f.session.timeReceived = null
         assertEquals("not_granted", f.execute(f.command("finish", initial, start.operationId)).string("error"))
+        f.session.ownSettingsReceived = false
+        assertNull(f.receive(TimeControlProtokoll.request(UUID.randomUUID().toString())))
     }
 }
