@@ -1681,7 +1681,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
                         peer.own_device && peer.remote_own_device) {
                         val documents = Ablage.hole(context)
                         if (usesScopedContent(peer)) documents.personalSyncScopedSnapshot(
-                            PersonalSync.livePersonalContent(documents.bestand.value), peer.device_id)
+                            PersonalSync.livePersonalContent(documents.bestand.value), peer.device_id, negotiatedPersonalFormat(peer, modules))
                         else documents.personalSyncSnapshot(modules, negotiatedPersonalFormat(peer, modules))
                     }
                     if (shouldStartPersonalSyncOnSecureWifi(transport, true, automaticWifi(peer),
@@ -2891,7 +2891,7 @@ class TelefonWerk private constructor(private val context: Context, private val 
         if (!reply && !queue.personalRunMarked(peer.device_id, runId, "responded")) {
             val format = request.long("format").toInt()
             val responseSnapshot = if (sendItem != null) io.gitlab.maik3531.magnolienotes.daten.PersonalSyncSnapshot(emptyList(), emptyMap())
-                else if (scopeSelection != null) Ablage.hole(context).personalSyncScopedSnapshot(scopeSelection, peer.device_id)
+                else if (scopeSelection != null) Ablage.hole(context).personalSyncScopedSnapshot(scopeSelection, peer.device_id, format)
                 else if (format >= 2) Ablage.hole(context).personalSyncSnapshotMitAnhaengen(modules, format)
                 else io.gitlab.maik3531.magnolienotes.daten.PersonalSyncSnapshot(
                     Ablage.hole(context).personalSyncSnapshot(modules), emptyMap())

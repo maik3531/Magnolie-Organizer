@@ -59,6 +59,7 @@ class ScopedDataRuntimeTest {
     @Test fun authenticatedUnpairClearsOnlyTheCurrentComputerAndKeepsPhoneContent() = exercise("unpair")
 
     @Test fun provenanceFormatUsesScopedTransportAndRetainsOriginalAppOnReceive() = exercise("receive", 14)
+    @Test fun provenanceFormatProducesACompleteMatchingScopedReply() = exercise("receive-request", 14)
     @Test fun provenanceFormatSurvivesManualScopeAndReceiptGates() = exercise("manual", 14)
     @Test fun provenanceFormatUsesTheNativeActorCommitAndCompletionReport() = exercise("actor-commit", 14)
     @Test fun provenanceFormatCanAdmitOneSelectedOrganizerNote() = exercise("single", 14)
@@ -666,7 +667,7 @@ class ScopedDataRuntimeTest {
                 work.receiveMessage(peer, requestMessage, channel, 0)
                 // duplicateResult reports the ACK for a subsequent replay of a durable acceptance.
                 assertEquals("duplicate" to "none", queue.duplicateResult(peerId, requestMessage.string("message_id")))
-                val batch = PersonalSyncProtokoll.batch(run, listOf(updated), 0, true, true, format, PersonalSync.recordsHash(listOf(updated)))
+                val batch = PersonalSyncProtokoll.batch(run, listOf(updated), 0, true, mode != "receive-request", format, PersonalSync.recordsHash(listOf(updated)))
                 val message = TelefonNachrichten.message(PhoneContentScope.DATA_KIND, PhoneContentScope.wrap("personal_sync.batch", batch, manifest), 60000)
                 if (mode == "time") {
                     val changed = SharedSyncSettings.change(shared, peerId, actor, "time_enabled", JsonPrimitive(true))
@@ -697,6 +698,17 @@ class ScopedDataRuntimeTest {
                 work.receiveMessage(peer, message, channel, 0)
                 assertEquals("Organizer addition", documents.notiz("phone-note")!!.text)
                 if (format == 14) assertEquals("notes", documents.notiz("phone-note")!!.ursprungApp)
+                if (mode == "receive-request") {
+                    assertTrue("Scoped reply was not completed", queue.personalRunMarked(peerId, run, "responded"))
+                    val replies = queue.due(peerId, TelefonTransportArt.WIFI).map { it.payload }
+                        .filter { it["kind"] == JsonPrimitive("personal_sync.batch") }
+                        .map { it.getValue("body").jsonObject }.filter { it["run_id"] == JsonPrimitive(run) }
+                    assertTrue("No matching reply batch was queued", replies.isNotEmpty())
+                    assertTrue(replies.all { it["format"] == JsonPrimitive(format) && it["reply"] == JsonPrimitive(true) })
+                    val replyRecords = replies.flatMap(PersonalSyncProtokoll::decodeBatch)
+                    assertEquals("notes", replyRecords.single { it.kind == "note" }.value.string("origin_app"))
+                    return@use
+                }
                 assertEquals(1, documents.notizen().size)
                 val foreign = updated.copy(id = "organizer-only")
                 val foreignBatch = PersonalSyncProtokoll.batch(run, listOf(foreign), 0, true, true, format, PersonalSync.recordsHash(listOf(foreign)))
