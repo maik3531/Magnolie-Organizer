@@ -17,7 +17,7 @@
 
     <string name="blatt_notizen">Notizen</string>
     <string name="blatt_einfuhr">Übernehmen</string>
-    <string name="blatt_baum">Baum</string>
+    <string name="blatt_baum">Verbindungen</string>
 
     <string name="notiz_neu">Neue Notiz</string>
     <string name="notiz_titel">Überschrift</string>
@@ -332,7 +332,6 @@
     <string name="telefon_berechtigung_fehlt">Die Telefonberechtigung wurde nicht erteilt. Die Option bleibt aus.</string>
     <string name="personal_sync_titel">Persönliche Synchronisierung</string>
     <string name="personal_sync_hinweis">Eigene Notizen, Notizbücher und Aufgaben sicher mit dem eigenen gekoppelten Organizer abgleichen.</string>
-    <string name="personal_sync_nicht_baum">Nicht Magnolienbaum</string>
     <string name="personal_sync_eigen">Dieser gekoppelte Rechner ist mein eigenes Gerät</string>
     <string name="personal_sync_notizen">Notizen und Notizbücher synchronisieren</string>
     <string name="personal_sync_aufgaben">Aufgaben synchronisieren</string>

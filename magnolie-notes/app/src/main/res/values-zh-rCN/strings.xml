@@ -16,7 +16,7 @@
     <string name="freigabe_ziel">保存到 Magnolie Notes</string>
     <string name="blatt_notizen">笔记</string>
     <string name="blatt_einfuhr">导入</string>
-    <string name="blatt_baum">树</string>
+    <string name="blatt_baum">连接</string>
     <string name="notiz_neu">新建笔记</string>
     <string name="notiz_titel">标题</string>
     <string name="notiz_text">在此输入……</string>
@@ -260,7 +260,6 @@
     <string name="telefon_eingehend_titel">来电</string><string name="telefon_eingehend_schalter">共享来电状态</string><string name="telefon_nummer_schalter">可用时共享来电号码</string><string name="telefon_annehmen_schalter">允许从计算机接听电话</string><string name="telefon_eingehend_hinweis">每个选项默认关闭，并且只请求所需的手机权限。通话音频绝不会通过 Magnolie 发送。</string><string name="telefon_berechtigung_fehlt">未授予手机权限。该选项保持关闭。</string>
     <string name="personal_sync_titel">个人同步</string>
     <string name="personal_sync_hinweis">将您自己的笔记、笔记本和任务与您已配对的 Organizer 安全同步。</string>
-    <string name="personal_sync_nicht_baum">不是 Magnolienbaum</string>
     <string name="personal_sync_eigen">这台已配对的电脑是我自己的设备</string>
     <string name="personal_sync_notizen">同步笔记和笔记本</string>
     <string name="personal_sync_aufgaben">同步任务</string>

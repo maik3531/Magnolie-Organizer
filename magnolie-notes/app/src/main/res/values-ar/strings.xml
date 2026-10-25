@@ -16,7 +16,7 @@
     <string name="freigabe_ziel">الحفظ في Magnolie Notes</string>
     <string name="blatt_notizen">الملاحظات</string>
     <string name="blatt_einfuhr">الاستيراد</string>
-    <string name="blatt_baum">شجرة</string>
+    <string name="blatt_baum">الاتصالات</string>
     <string name="notiz_neu">ملاحظة جديدة</string>
     <string name="notiz_titel">العنوان</string>
     <string name="notiz_text">اكتب هنا…</string>
@@ -300,7 +300,6 @@
     <string name="telefon_eingehend_titel">المكالمات الواردة</string><string name="telefon_eingehend_schalter">مشاركة حالة المكالمة الواردة</string><string name="telefon_nummer_schalter">مشاركة رقم المتصل عند توفره</string><string name="telefon_annehmen_schalter">السماح بالرد على المكالمات من الحاسوب</string><string name="telefon_eingehend_hinweis">كل خيار متوقف افتراضيًا ولا يطلب إلا إذن الهاتف اللازم له. لا يُرسل صوت المكالمة مطلقًا عبر Magnolie.</string><string name="telefon_berechtigung_fehlt">لم يُمنح إذن الهاتف. يظل الخيار متوقفًا.</string>
     <string name="personal_sync_titel">المزامنة الشخصية</string>
     <string name="personal_sync_hinweis">زامن ملاحظاتك ودفاتر ملاحظاتك ومهامك بأمان مع Organizer المقترن الخاص بك.</string>
-    <string name="personal_sync_nicht_baum">ليس Magnolienbaum</string>
     <string name="personal_sync_eigen">هذا الحاسوب المقترن هو جهازي الخاص</string>
     <string name="personal_sync_notizen">مزامنة الملاحظات ودفاتر الملاحظات</string>
     <string name="personal_sync_aufgaben">مزامنة المهام</string>

@@ -17,7 +17,7 @@
 
     <string name="blatt_notizen">Нататкі</string>
     <string name="blatt_einfuhr">Імпарт</string>
-    <string name="blatt_baum">Дрэва</string>
+    <string name="blatt_baum">Злучэнні</string>
 
     <string name="notiz_neu">Новая нататка</string>
     <string name="notiz_titel">Загаловак</string>
@@ -291,7 +291,6 @@
     <string name="telefon_eingehend_titel">Уваходныя выклікі</string><string name="telefon_eingehend_schalter">Перадаваць стан уваходнага выкліку</string><string name="telefon_nummer_schalter">Перадаваць нумар абанента, калі ён даступны</string><string name="telefon_annehmen_schalter">Дазволіць адказваць на выклікі з камп’ютара</string><string name="telefon_eingehend_hinweis">Кожны параметр стандартна выключаны і запытвае толькі неабходны яму дазвол тэлефона. Аўдыя выкліку ніколі не перадаецца праз Magnolie.</string><string name="telefon_berechtigung_fehlt">Дазвол тэлефона не дадзены. Параметр застаецца выключаным.</string>
     <string name="personal_sync_titel">Асабістая сінхранізацыя</string>
     <string name="personal_sync_hinweis">Бяспечна сінхранізуйце ўласныя нататкі, нататнікі і задачы з уласным спалучаным Organizer.</string>
-    <string name="personal_sync_nicht_baum">Не Magnolienbaum</string>
     <string name="personal_sync_eigen">Гэты спалучаны камп’ютар — мая ўласная прылада</string>
     <string name="personal_sync_notizen">Сінхранізаваць нататкі і нататнікі</string>
     <string name="personal_sync_aufgaben">Сінхранізаваць задачы</string>

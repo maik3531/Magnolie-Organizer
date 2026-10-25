@@ -16,7 +16,7 @@
     <string name="freigabe_ziel">Gem i Magnolie Notes</string>
     <string name="blatt_notizen">Noter</string>
     <string name="blatt_einfuhr">Import</string>
-    <string name="blatt_baum">Træ</string>
+    <string name="blatt_baum">Forbindelser</string>
     <string name="notiz_neu">Ny note</string>
     <string name="notiz_titel">Titel</string>
     <string name="notiz_text">Skriv her …</string>
@@ -274,7 +274,6 @@
     <string name="telefon_eingehend_titel">Indgående opkald</string><string name="telefon_eingehend_schalter">Del status for indgående opkald</string><string name="telefon_nummer_schalter">Del opkalderens nummer, når det er tilgængeligt</string><string name="telefon_annehmen_schalter">Tillad besvarelse af opkald fra computeren</string><string name="telefon_eingehend_hinweis">Hver indstilling er som standard slået fra og anmoder kun om den nødvendige telefontilladelse. Opkaldslyd sendes aldrig via Magnolie.</string><string name="telefon_berechtigung_fehlt">Telefontilladelsen blev ikke givet. Indstillingen forbliver slået fra.</string>
     <string name="personal_sync_titel">Personlig synkronisering</string>
     <string name="personal_sync_hinweis">Synkroniser dine egne noter, notesbøger og opgaver sikkert med din egen parrede Organizer.</string>
-    <string name="personal_sync_nicht_baum">Ikke Magnolienbaum</string>
     <string name="personal_sync_eigen">Denne parrede computer er min egen enhed</string>
     <string name="personal_sync_notizen">Synkroniser noter og notesbøger</string>
     <string name="personal_sync_aufgaben">Synkroniser opgaver</string>

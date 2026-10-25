@@ -16,7 +16,7 @@
     <string name="freigabe_ziel">Opslaan in Magnolie Notes</string>
     <string name="blatt_notizen">Notities</string>
     <string name="blatt_einfuhr">Importeren</string>
-    <string name="blatt_baum">Boom</string>
+    <string name="blatt_baum">Verbindingen</string>
     <string name="notiz_neu">Nieuwe notitie</string>
     <string name="notiz_titel">Titel</string>
     <string name="notiz_text">Schrijf hier …</string>
@@ -268,7 +268,6 @@
     <string name="telefon_eingehend_titel">Inkomende oproepen</string><string name="telefon_eingehend_schalter">Status van inkomende oproep delen</string><string name="telefon_nummer_schalter">Nummer van beller delen indien beschikbaar</string><string name="telefon_annehmen_schalter">Oproepen vanaf de computer laten beantwoorden</string><string name="telefon_eingehend_hinweis">Elke optie staat standaard uit en vraagt alleen de vereiste telefoonmachtiging. Oproepaudio wordt nooit via Magnolie verzonden.</string><string name="telefon_berechtigung_fehlt">De telefoonmachtiging is niet verleend. De optie blijft uit.</string>
     <string name="personal_sync_titel">Persoonlijke synchronisatie</string>
     <string name="personal_sync_hinweis">Synchroniseer je eigen notities, notitieboeken en taken veilig met je eigen gekoppelde Organizer.</string>
-    <string name="personal_sync_nicht_baum">Niet Magnolienbaum</string>
     <string name="personal_sync_eigen">Deze gekoppelde computer is mijn eigen apparaat</string>
     <string name="personal_sync_notizen">Notities en notitieboeken synchroniseren</string>
     <string name="personal_sync_aufgaben">Taken synchroniseren</string>

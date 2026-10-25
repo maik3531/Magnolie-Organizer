@@ -16,7 +16,7 @@
     <string name="freigabe_ziel">Magnolie Notes に保存</string>
     <string name="blatt_notizen">ノート</string>
     <string name="blatt_einfuhr">インポート</string>
-    <string name="blatt_baum">ツリー</string>
+    <string name="blatt_baum">接続</string>
     <string name="notiz_neu">新しいノート</string>
     <string name="notiz_titel">タイトル</string>
     <string name="notiz_text">ここに入力…</string>
@@ -260,7 +260,6 @@
     <string name="telefon_eingehend_titel">着信</string><string name="telefon_eingehend_schalter">着信状態を共有</string><string name="telefon_nummer_schalter">利用可能な場合に発信者番号を共有</string><string name="telefon_annehmen_schalter">コンピューターからの応答を許可</string><string name="telefon_eingehend_hinweis">各オプションは既定でオフで、必要な電話権限だけを要求します。通話音声が Magnolie 経由で送信されることはありません。</string><string name="telefon_berechtigung_fehlt">電話権限が付与されていません。オプションはオフのままです。</string>
     <string name="personal_sync_titel">個人同期</string>
     <string name="personal_sync_hinweis">自分のメモ、ノートブック、タスクを、ペアリングした自分の Organizer と安全に同期します。</string>
-    <string name="personal_sync_nicht_baum">Magnolienbaum ではありません</string>
     <string name="personal_sync_eigen">このペアリング済みコンピューターは自分のデバイスです</string>
     <string name="personal_sync_notizen">メモとノートブックを同期</string>
     <string name="personal_sync_aufgaben">タスクを同期</string>

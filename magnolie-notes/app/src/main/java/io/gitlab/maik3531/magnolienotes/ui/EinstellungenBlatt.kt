@@ -68,6 +68,8 @@ fun EinstellungenBlatt(zeiterfassungAn: Boolean, speichert: Boolean, beiZeiterfa
             Papierknopf(stringResource(R.string.developer_version, BuildConfig.VERSION_NAME), Modifier.fillMaxWidth()) {
                 versionClicks.klicken()
             }
+            Papierknopf(stringResource(R.string.blatt_baum), Modifier.fillMaxWidth()) { beiBlatt(3) }
+            Papierknopf(stringResource(R.string.blatt_einfuhr), Modifier.fillMaxWidth()) { beiBlatt(2) }
             if (developerEnabled) {
                 Papierknopf(stringResource(R.string.developer_disable), Modifier.fillMaxWidth()) {
                     developer.deaktivieren(); developerEnabled = false; wifi = false; debugOpen = false; report = null
@@ -82,8 +84,6 @@ fun EinstellungenBlatt(zeiterfassungAn: Boolean, speichert: Boolean, beiZeiterfa
                 }
                 if (wifi) Papierknopf(stringResource(R.string.developer_show), Modifier.fillMaxWidth()) { report = developer.bericht().toString() }
             }
-            Papierknopf(stringResource(R.string.blatt_einfuhr), Modifier.fillMaxWidth()) { beiBlatt(2) }
-            Papierknopf(stringResource(R.string.blatt_baum), Modifier.fillMaxWidth()) { beiBlatt(3) }
             Papierknopf(stringResource(R.string.blatt_journal), Modifier.fillMaxWidth()) { beiBlatt(4) }
             Papierknopf(stringResource(R.string.zeit_systemrechte), Modifier.fillMaxWidth(), beiKlick = beiRechten)
             Papierknopf(stringResource(R.string.zeit_benachrichtigungen), Modifier.fillMaxWidth(), beiKlick = beiBenachrichtigungen)

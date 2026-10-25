@@ -16,7 +16,7 @@
     <string name="freigabe_ziel">Zapisz w Magnolie Notes</string>
     <string name="blatt_notizen">Notatki</string>
     <string name="blatt_einfuhr">Import</string>
-    <string name="blatt_baum">Drzewo</string>
+    <string name="blatt_baum">Połączenia</string>
     <string name="notiz_neu">Nowa notatka</string>
     <string name="notiz_titel">Tytuł</string>
     <string name="notiz_text">Pisz tutaj …</string>
@@ -284,7 +284,6 @@
     <string name="telefon_eingehend_titel">Połączenia przychodzące</string><string name="telefon_eingehend_schalter">Udostępniaj stan połączenia przychodzącego</string><string name="telefon_nummer_schalter">Udostępniaj numer dzwoniącego, gdy jest dostępny</string><string name="telefon_annehmen_schalter">Zezwalaj na odbieranie połączeń z komputera</string><string name="telefon_eingehend_hinweis">Każda opcja jest domyślnie wyłączona i prosi tylko o wymagane uprawnienie telefonu. Dźwięk połączenia nigdy nie jest wysyłany przez Magnolie.</string><string name="telefon_berechtigung_fehlt">Nie przyznano uprawnienia telefonu. Opcja pozostaje wyłączona.</string>
     <string name="personal_sync_titel">Synchronizacja osobista</string>
     <string name="personal_sync_hinweis">Bezpiecznie synchronizuj własne notatki, notesy i zadania z własnym sparowanym Organizerem.</string>
-    <string name="personal_sync_nicht_baum">To nie jest Magnolienbaum</string>
     <string name="personal_sync_eigen">Ten sparowany komputer jest moim własnym urządzeniem</string>
     <string name="personal_sync_notizen">Synchronizuj notatki i notesy</string>
     <string name="personal_sync_aufgaben">Synchronizuj zadania</string>

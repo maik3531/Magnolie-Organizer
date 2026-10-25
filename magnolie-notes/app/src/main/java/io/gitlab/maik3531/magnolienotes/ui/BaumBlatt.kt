@@ -329,8 +329,6 @@ fun BaumBlatt(
             ueberschrift = stringResource(R.string.personal_sync_titel),
             hinweis = stringResource(R.string.personal_sync_hinweis)
         ) {
-            Text(stringResource(R.string.personal_sync_nicht_baum), fontFamily = FontFamily.SansSerif,
-                fontWeight = FontWeight.Bold, color = Magnolie.braun)
             if (telefon.personalOwnDevice) {
                 Schalterzeile(stringResource(R.string.telefon_kontakte_lesen), telefon.peer?.contacts_read_enabled == true,
                     { enabled -> telefon.peer?.let { telefonHandlungen.beiKontakteLesen(it.device_id, it.static_public, enabled) } })

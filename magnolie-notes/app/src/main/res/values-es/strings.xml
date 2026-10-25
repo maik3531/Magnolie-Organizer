@@ -17,7 +17,7 @@
 
     <string name="blatt_notizen">Notas</string>
     <string name="blatt_einfuhr">Importar</string>
-    <string name="blatt_baum">Árbol</string>
+    <string name="blatt_baum">Conexiones</string>
 
     <string name="notiz_neu">Nueva nota</string>
     <string name="notiz_titel">Título</string>
@@ -286,7 +286,6 @@
     <string name="telefon_eingehend_titel">Llamadas entrantes</string><string name="telefon_eingehend_schalter">Compartir el estado de las llamadas entrantes</string><string name="telefon_nummer_schalter">Compartir el número de quien llama cuando esté disponible</string><string name="telefon_annehmen_schalter">Permitir contestar llamadas desde el ordenador</string><string name="telefon_eingehend_hinweis">Cada opción está desactivada de forma predeterminada y solo solicita el permiso de teléfono necesario. El audio de las llamadas nunca se envía mediante Magnolie.</string><string name="telefon_berechtigung_fehlt">No se concedió el permiso de teléfono. La opción permanece desactivada.</string>
     <string name="personal_sync_titel">Sincronización personal</string>
     <string name="personal_sync_hinweis">Sincroniza de forma segura tus propias notas, cuadernos y tareas con tu Organizer vinculado.</string>
-    <string name="personal_sync_nicht_baum">No es Magnolienbaum</string>
     <string name="personal_sync_eigen">Este ordenador vinculado es mi propio dispositivo</string>
     <string name="personal_sync_notizen">Sincronizar notas y cuadernos</string>
     <string name="personal_sync_aufgaben">Sincronizar tareas</string>

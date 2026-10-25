@@ -17,7 +17,7 @@
 
     <string name="blatt_notizen">Notlar</string>
     <string name="blatt_einfuhr">İçe aktar</string>
-    <string name="blatt_baum">Ağaç</string>
+    <string name="blatt_baum">Bağlantılar</string>
 
     <string name="notiz_neu">Yeni not</string>
     <string name="notiz_titel">Başlık</string>
@@ -275,7 +275,6 @@
     <string name="telefon_eingehend_titel">Gelen çağrılar</string><string name="telefon_eingehend_schalter">Gelen çağrı durumunu paylaş</string><string name="telefon_nummer_schalter">Kullanılabiliyorsa arayanın numarasını paylaş</string><string name="telefon_annehmen_schalter">Çağrıların bilgisayardan yanıtlanmasına izin ver</string><string name="telefon_eingehend_hinweis">Her seçenek varsayılan olarak kapalıdır ve yalnızca gereken telefon iznini ister. Çağrı sesi hiçbir zaman Magnolie üzerinden gönderilmez.</string><string name="telefon_berechtigung_fehlt">Telefon izni verilmedi. Seçenek kapalı kalır.</string>
     <string name="personal_sync_titel">Kişisel eşitleme</string>
     <string name="personal_sync_hinweis">Kendi notlarınızı, not defterlerinizi ve görevlerinizi eşleştirilmiş Organizer’ınızla güvenle eşitleyin.</string>
-    <string name="personal_sync_nicht_baum">Magnolienbaum değil</string>
     <string name="personal_sync_eigen">Bu eşleştirilmiş bilgisayar kendi cihazımdır</string>
     <string name="personal_sync_notizen">Notları ve not defterlerini eşitle</string>
     <string name="personal_sync_aufgaben">Görevleri eşitle</string>

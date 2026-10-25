@@ -17,7 +17,7 @@
 
     <string name="blatt_notizen">Note</string>
     <string name="blatt_einfuhr">Importa</string>
-    <string name="blatt_baum">Albero</string>
+    <string name="blatt_baum">Connessioni</string>
 
     <string name="notiz_neu">Nuova nota</string>
     <string name="notiz_titel">Titolo</string>
@@ -285,7 +285,6 @@
     <string name="telefon_eingehend_titel">Chiamate in arrivo</string><string name="telefon_eingehend_schalter">Condividi stato chiamata in arrivo</string><string name="telefon_nummer_schalter">Condividi numero chiamante se disponibile</string><string name="telefon_annehmen_schalter">Consenti di rispondere dal computer</string><string name="telefon_eingehend_hinweis">Ogni opzione è disattivata per impostazione predefinita e richiede solo l’autorizzazione telefonica necessaria. L’audio delle chiamate non viene mai inviato tramite Magnolie.</string><string name="telefon_berechtigung_fehlt">Autorizzazione telefonica non concessa. L’opzione resta disattivata.</string>
     <string name="personal_sync_titel">Sincronizzazione personale</string>
     <string name="personal_sync_hinweis">Sincronizza in modo sicuro note, taccuini e attività personali con il tuo Organizer associato.</string>
-    <string name="personal_sync_nicht_baum">Non è Magnolienbaum</string>
     <string name="personal_sync_eigen">Questo computer associato è un mio dispositivo</string>
     <string name="personal_sync_notizen">Sincronizza note e taccuini</string>
     <string name="personal_sync_aufgaben">Sincronizza attività</string>

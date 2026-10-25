@@ -19,7 +19,7 @@
     <!-- Blätter -->
     <string name="blatt_notizen">Notes</string>
     <string name="blatt_einfuhr">Import</string>
-    <string name="blatt_baum">Tree</string>
+    <string name="blatt_baum">Connections</string>
 
     <!-- Notizen -->
     <string name="notiz_neu">New note</string>
@@ -352,7 +352,6 @@
     <string name="telefon_berechtigung_fehlt">The phone permission was not granted. The option remains off.</string>
     <string name="personal_sync_titel">Personal synchronization</string>
     <string name="personal_sync_hinweis">Synchronize your own notes, notebooks, and tasks securely with your own paired Organizer.</string>
-    <string name="personal_sync_nicht_baum">Not Magnolienbaum</string>
     <string name="personal_sync_eigen">This paired computer is my own device</string>
     <string name="personal_sync_notizen">Synchronize notes and notebooks</string>
     <string name="personal_sync_aufgaben">Synchronize tasks</string>

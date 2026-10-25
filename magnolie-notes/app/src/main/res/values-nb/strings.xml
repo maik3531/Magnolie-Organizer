@@ -16,7 +16,7 @@
     <string name="freigabe_ziel">Lagre i Magnolie Notes</string>
     <string name="blatt_notizen">Notater</string>
     <string name="blatt_einfuhr">Importer</string>
-    <string name="blatt_baum">Tre</string>
+    <string name="blatt_baum">Tilkoblinger</string>
     <string name="notiz_neu">Nytt notat</string>
     <string name="notiz_titel">Tittel</string>
     <string name="notiz_text">Skriv her …</string>
@@ -274,7 +274,6 @@
     <string name="telefon_eingehend_titel">Innkommende anrop</string><string name="telefon_eingehend_schalter">Del status for innkommende anrop</string><string name="telefon_nummer_schalter">Del innringerens nummer når det er tilgjengelig</string><string name="telefon_annehmen_schalter">Tillat svar på anrop fra datamaskinen</string><string name="telefon_eingehend_hinweis">Hvert alternativ er av som standard og ber bare om den nødvendige telefontillatelsen. Anropslyd sendes aldri via Magnolie.</string><string name="telefon_berechtigung_fehlt">Telefontillatelsen ble ikke gitt. Alternativet forblir av.</string>
     <string name="personal_sync_titel">Personlig synkronisering</string>
     <string name="personal_sync_hinweis">Synkroniser egne notater, notatbøker og oppgaver trygt med din egen parede Organizer.</string>
-    <string name="personal_sync_nicht_baum">Ikke Magnolienbaum</string>
     <string name="personal_sync_eigen">Denne parede datamaskinen er min egen enhet</string>
     <string name="personal_sync_notizen">Synkroniser notater og notatbøker</string>
     <string name="personal_sync_aufgaben">Synkroniser oppgaver</string>

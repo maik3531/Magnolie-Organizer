@@ -16,7 +16,7 @@
     <string name="freigabe_ziel">Guardar no Magnolie Notes</string>
     <string name="blatt_notizen">Notas</string>
     <string name="blatt_einfuhr">Importar</string>
-    <string name="blatt_baum">Árvore</string>
+    <string name="blatt_baum">Ligações</string>
     <string name="notiz_neu">Nova nota</string>
     <string name="notiz_titel">Título</string>
     <string name="notiz_text">Escreva aqui …</string>
@@ -276,7 +276,6 @@
     <string name="telefon_eingehend_titel">Chamadas recebidas</string><string name="telefon_eingehend_schalter">Partilhar estado da chamada recebida</string><string name="telefon_nummer_schalter">Partilhar número de quem liga quando disponível</string><string name="telefon_annehmen_schalter">Permitir atender chamadas no computador</string><string name="telefon_eingehend_hinweis">Cada opção está desativada por predefinição e pede apenas a permissão telefónica necessária. O áudio das chamadas nunca é enviado através do Magnolie.</string><string name="telefon_berechtigung_fehlt">A permissão telefónica não foi concedida. A opção permanece desativada.</string>
     <string name="personal_sync_titel">Sincronização pessoal</string>
     <string name="personal_sync_hinweis">Sincronize com segurança as suas notas, blocos de notas e tarefas com o seu próprio Organizer emparelhado.</string>
-    <string name="personal_sync_nicht_baum">Não é Magnolienbaum</string>
     <string name="personal_sync_eigen">Este computador emparelhado é o meu próprio dispositivo</string>
     <string name="personal_sync_notizen">Sincronizar notas e blocos de notas</string>
     <string name="personal_sync_aufgaben">Sincronizar tarefas</string>

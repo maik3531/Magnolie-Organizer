@@ -16,7 +16,7 @@
     <string name="freigabe_ziel">Uložit do Magnolie Notes</string>
     <string name="blatt_notizen">Poznámky</string>
     <string name="blatt_einfuhr">Import</string>
-    <string name="blatt_baum">Strom</string>
+    <string name="blatt_baum">Připojení</string>
     <string name="notiz_neu">Nová poznámka</string>
     <string name="notiz_titel">Název</string>
     <string name="notiz_text">Pište sem …</string>
@@ -284,7 +284,6 @@
     <string name="telefon_eingehend_titel">Příchozí hovory</string><string name="telefon_eingehend_schalter">Sdílet stav příchozího hovoru</string><string name="telefon_nummer_schalter">Sdílet číslo volajícího, je-li dostupné</string><string name="telefon_annehmen_schalter">Povolit přijímání hovorů z počítače</string><string name="telefon_eingehend_hinweis">Každá možnost je ve výchozím nastavení vypnutá a žádá pouze o potřebné oprávnění telefonu. Zvuk hovoru se přes Magnolie nikdy nepřenáší.</string><string name="telefon_berechtigung_fehlt">Oprávnění telefonu nebylo uděleno. Možnost zůstává vypnutá.</string>
     <string name="personal_sync_titel">Osobní synchronizace</string>
     <string name="personal_sync_hinweis">Bezpečně synchronizujte vlastní poznámky, zápisníky a úkoly s vlastním spárovaným Organizerem.</string>
-    <string name="personal_sync_nicht_baum">Toto není Magnolienbaum</string>
     <string name="personal_sync_eigen">Tento spárovaný počítač je moje vlastní zařízení</string>
     <string name="personal_sync_notizen">Synchronizovat poznámky a zápisníky</string>
     <string name="personal_sync_aufgaben">Synchronizovat úkoly</string>

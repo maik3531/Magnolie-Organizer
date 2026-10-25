@@ -16,7 +16,7 @@
     <string name="freigabe_ziel">Сохранить в Magnolie Notes</string>
     <string name="blatt_notizen">Заметки</string>
     <string name="blatt_einfuhr">Импорт</string>
-    <string name="blatt_baum">Дерево</string>
+    <string name="blatt_baum">Подключения</string>
     <string name="notiz_neu">Новая заметка</string>
     <string name="notiz_titel">Заголовок</string>
     <string name="notiz_text">Пишите здесь …</string>
@@ -284,7 +284,6 @@
     <string name="telefon_eingehend_titel">Входящие вызовы</string><string name="telefon_eingehend_schalter">Передавать состояние входящего вызова</string><string name="telefon_nummer_schalter">Передавать номер вызывающего абонента, если доступен</string><string name="telefon_annehmen_schalter">Разрешить отвечать на вызовы с компьютера</string><string name="telefon_eingehend_hinweis">Каждая функция по умолчанию выключена и запрашивает только необходимое разрешение телефона. Звук вызова никогда не передаётся через Magnolie.</string><string name="telefon_berechtigung_fehlt">Разрешение телефона не предоставлено. Функция остаётся выключенной.</string>
     <string name="personal_sync_titel">Личная синхронизация</string>
     <string name="personal_sync_hinweis">Безопасно синхронизируйте свои заметки, блокноты и задачи со своим сопряжённым Organizer.</string>
-    <string name="personal_sync_nicht_baum">Не Magnolienbaum</string>
     <string name="personal_sync_eigen">Этот сопряжённый компьютер — моё собственное устройство</string>
     <string name="personal_sync_notizen">Синхронизировать заметки и блокноты</string>
     <string name="personal_sync_aufgaben">Синхронизировать задачи</string>

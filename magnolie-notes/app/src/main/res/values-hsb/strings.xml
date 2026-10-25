@@ -16,7 +16,7 @@
     <string name="freigabe_ziel">Do Magnolie Notes składować</string>
     <string name="blatt_notizen">Notice</string>
     <string name="blatt_einfuhr">Import</string>
-    <string name="blatt_baum">Štom</string>
+    <string name="blatt_baum">Zwiski</string>
     <string name="notiz_neu">Nowa notica</string>
     <string name="notiz_titel">Titul</string>
     <string name="notiz_text">Tu pisać …</string>
@@ -284,7 +284,6 @@
     <string name="telefon_eingehend_titel">Dochadźace zawołanja</string><string name="telefon_eingehend_schalter">Status dochadźaceho zawołanja dźělić</string><string name="telefon_nummer_schalter">Čisło wołaceho dźělić, hdyž je k dispoziciji</string><string name="telefon_annehmen_schalter">Přiwzaće zawołanjow z ličaka dowolić</string><string name="telefon_eingehend_hinweis">Kóžda opcija je po standardźe wupinjena a prosy jenož wo trěbnu telefonowu dowolnosć. Zynk zawołanja so ženje přez Magnolie njeposćele.</string><string name="telefon_berechtigung_fehlt">Telefonowa dowolnosć njeje so dała. Opcija wostanje wupinjena.</string>
     <string name="personal_sync_titel">Wosobinska synchronizacija</string>
     <string name="personal_sync_hinweis">Synchronizujće swoje noticy, noticniki a nadawki wěsće ze swojim sparowanym Organizerom.</string>
-    <string name="personal_sync_nicht_baum">To Magnolienbaum njeje</string>
     <string name="personal_sync_eigen">Tutón sparowany ličak je mój swójski grat</string>
     <string name="personal_sync_notizen">Noticy a noticniki synchronizować</string>
     <string name="personal_sync_aufgaben">Nadawki synchronizować</string>

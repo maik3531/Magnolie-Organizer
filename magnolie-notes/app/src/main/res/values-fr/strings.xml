@@ -17,7 +17,7 @@
 
     <string name="blatt_notizen">Notes</string>
     <string name="blatt_einfuhr">Importer</string>
-    <string name="blatt_baum">Arbre</string>
+    <string name="blatt_baum">Connexions</string>
 
     <string name="notiz_neu">Nouvelle note</string>
     <string name="notiz_titel">Titre</string>
@@ -289,7 +289,6 @@
     <string name="telefon_eingehend_titel">Appels entrants</string><string name="telefon_eingehend_schalter">Partager l’état des appels entrants</string><string name="telefon_nummer_schalter">Partager le numéro de l’appelant lorsqu’il est disponible</string><string name="telefon_annehmen_schalter">Autoriser la réponse aux appels depuis l’ordinateur</string><string name="telefon_eingehend_hinweis">Chaque option est désactivée par défaut et ne demande que l’autorisation téléphonique nécessaire. Le son des appels n’est jamais envoyé via Magnolie.</string><string name="telefon_berechtigung_fehlt">L’autorisation téléphonique n’a pas été accordée. L’option reste désactivée.</string>
     <string name="personal_sync_titel">Synchronisation personnelle</string>
     <string name="personal_sync_hinweis">Synchronisez vos propres notes, carnets et tâches en toute sécurité avec votre Organizer jumelé.</string>
-    <string name="personal_sync_nicht_baum">Pas Magnolienbaum</string>
     <string name="personal_sync_eigen">Cet ordinateur jumelé est mon appareil personnel</string>
     <string name="personal_sync_notizen">Synchroniser les notes et les carnets</string>
     <string name="personal_sync_aufgaben">Synchroniser les tâches</string>

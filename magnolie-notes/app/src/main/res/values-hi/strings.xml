@@ -16,7 +16,7 @@
     <string name="freigabe_ziel">Magnolie Notes में सहेजें</string>
     <string name="blatt_notizen">नोट्स</string>
     <string name="blatt_einfuhr">आयात</string>
-    <string name="blatt_baum">वृक्ष</string>
+    <string name="blatt_baum">कनेक्शन</string>
     <string name="notiz_neu">नया नोट</string>
     <string name="notiz_titel">शीर्षक</string>
     <string name="notiz_text">यहाँ लिखें …</string>
@@ -274,7 +274,6 @@
     <string name="telefon_eingehend_titel">आने वाली कॉल</string><string name="telefon_eingehend_schalter">आने वाली कॉल की स्थिति साझा करें</string><string name="telefon_nummer_schalter">उपलब्ध होने पर कॉलर नंबर साझा करें</string><string name="telefon_annehmen_schalter">कंप्यूटर से कॉल का उत्तर देने दें</string><string name="telefon_eingehend_hinweis">हर विकल्प डिफ़ॉल्ट रूप से बंद है और केवल आवश्यक फ़ोन अनुमति माँगता है। कॉल ऑडियो कभी Magnolie पर नहीं भेजा जाता।</string><string name="telefon_berechtigung_fehlt">फ़ोन की अनुमति नहीं दी गई। विकल्प बंद रहेगा।</string>
     <string name="personal_sync_titel">व्यक्तिगत सिंक</string>
     <string name="personal_sync_hinweis">अपने नोट्स, नोटबुक और कार्यों को अपने जोड़े गए Organizer के साथ सुरक्षित रूप से सिंक करें।</string>
-    <string name="personal_sync_nicht_baum">Magnolienbaum नहीं</string>
     <string name="personal_sync_eigen">यह जोड़ा गया कंप्यूटर मेरा अपना डिवाइस है</string>
     <string name="personal_sync_notizen">नोट्स और नोटबुक सिंक करें</string>
     <string name="personal_sync_aufgaben">कार्य सिंक करें</string>
