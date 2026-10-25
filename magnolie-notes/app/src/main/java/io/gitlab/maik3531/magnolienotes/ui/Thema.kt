@@ -43,6 +43,7 @@ object Magnolie {
     val braun = Color(0xFF5A4630)
     val braunHell = Color(0xFF706040)
     val rot = Color(0xFFA43C32)
+    val orange = Color(0xFFAC4C00)
     val filz = Color(0xFF2E3A34)
 
     /** Die Registerfarben des Organizers, für die Notizbücher. */

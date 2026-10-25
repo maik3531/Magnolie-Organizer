@@ -236,7 +236,11 @@ private fun Aufgabenzeile(
                         fontFamily = FontFamily.SansSerif,
                         fontSize = 11.sp,
                         fontWeight = if (fach == Fach.UEBERFAELLIG) FontWeight.Bold else FontWeight.Normal,
-                        color = if (fach == Fach.UEBERFAELLIG) Magnolie.rot else Magnolie.goldDunkel
+                        color = when (fach) {
+                            Fach.UEBERFAELLIG -> Magnolie.rot
+                            Fach.HEUTE -> Magnolie.orange
+                            else -> Magnolie.goldDunkel
+                        }
                     )
                 }
                 if (aufgabe.erinnern) {
