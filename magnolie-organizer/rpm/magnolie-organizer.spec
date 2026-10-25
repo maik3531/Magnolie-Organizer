@@ -178,6 +178,8 @@ install -Dpm 0644 bin/magnolie_setup_ui.py %{buildroot}%{_bindir}/magnolie_setup
 install -Dpm 0644 bin/magnolie_phone_region.py %{buildroot}%{_bindir}/magnolie_phone_region.py
 install -Dpm 0644 bin/magnolie_phone_contacts.py %{buildroot}%{_bindir}/magnolie_phone_contacts.py
 install -Dpm 0644 bin/magnolie_recurrence.py %{buildroot}%{_bindir}/magnolie_recurrence.py
+install -Dpm 0644 bin/magnolie_country_flags.py %{buildroot}%{_bindir}/magnolie_country_flags.py
+install -Dpm 0644 bin/magnolie_or6.py %{buildroot}%{_bindir}/magnolie_or6.py
 
 install -d %{buildroot}%{_datadir}/%{name}/web/i18n
 printf '{"version":"%{version}"}\n' > %{buildroot}%{_datadir}/%{name}/version.json
@@ -185,6 +187,7 @@ install -d %{buildroot}%{_datadir}/%{name}/web/schriften
 install -pm 0644 web/schriften/Z003-MediumItalic.otf web/schriften/Z003-LIZENZ.txt %{buildroot}%{_datadir}/%{name}/web/schriften/
 install -pm 0644 web/index.html web/stil.css web/anwendung.js web/zeichenblatt.js web/mcp-protocol.js \
     web/qr-dialog.css web/qr-dialog.js web/qr-decoder.js web/qr-decoder-LICENSE.txt \
+    web/country-flags.png web/country-flags-LICENSE.txt \
     web/i18n.js web/i18n-start.js web/i18n-markers.js \
     web/i18n-en.js web/phone-metadata-LICENSE.txt web/phone-metadata-NOTICE.txt \
     %{buildroot}%{_datadir}/%{name}/web/
@@ -316,6 +319,8 @@ done
 %{_bindir}/magnolie_phone_region.py
 %{_bindir}/magnolie_phone_contacts.py
 %{_bindir}/magnolie_recurrence.py
+%{_bindir}/magnolie_country_flags.py
+%{_bindir}/magnolie_or6.py
 %{_datadir}/%{name}/
 %{_datadir}/applications/io.gitlab.maik3531.MagnolieOrganizer.desktop
 %{_datadir}/metainfo/io.gitlab.maik3531.MagnolieOrganizer.metainfo.xml

@@ -1,9 +1,12 @@
 """Real source bytes in isolated install/source fixtures; never build a product."""
 
+import base64
+import gzip
 import json
 import os
 from pathlib import Path
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -46,6 +49,68 @@ def environment(tmp_path):
                   DBUS_SESSION_BUS_ADDRESS="unix:path=" + str(tmp_path / "no-session-bus"),
                   PYTHONDONTWRITEBYTECODE="1", PYTEST_DISABLE_PLUGIN_AUTOLOAD="1")
     return result
+
+
+def install_web_files(kind):
+    if kind == 'deb':
+        names = re.findall(r'^web/([^/\s]+)\s+usr/share/magnolie-organizer/web$', (ROOT / 'debian/install').read_text(), re.M)
+        return {ROOT / 'web' / name for name in names}
+    if kind == 'rpm':
+        text = (ROOT / 'rpm/magnolie-organizer.spec').read_text().replace('\\\n', ' ')
+        files = set()
+        for line in text.splitlines():
+            if line.startswith('install -pm 0644 ') and line.rstrip().endswith('%{buildroot}%{_datadir}/%{name}/web/'):
+                for token in shlex.split(line)[3:-1]:
+                    if token.startswith('web/'):
+                        files.update(ROOT.glob(token))
+        return files
+    if kind == 'flatpak':
+        manifest = json.loads((ROOT / 'flatpak/io.gitlab.maik3531.MagnolieOrganizer.json').read_text())
+        assert 'cp -a web/. /app/share/magnolie-organizer/web/' in manifest['modules'][-1]['build-commands']
+    else:
+        assert 'cp -a "$WURZEL/web/." "$APPDIR/usr/share/magnolie-organizer/web/"' in (ROOT / 'werkzeuge/appimage_bauen.sh').read_text()
+    return {path for path in (ROOT / 'web').iterdir() if path.is_file()}
+
+
+@pytest.mark.parametrize('kind,prefix', [('deb', 'usr'), ('rpm', 'usr'), ('flatpak', 'app'), ('appimage', 'AppDir/usr')])
+def test_installed_flags_and_or6_work_from_the_declared_payload(kind, prefix, tmp_path):
+    bindir = tmp_path / prefix / 'bin'
+    webdir = tmp_path / prefix / 'share/magnolie-organizer/web'
+    bindir.mkdir(parents=True); webdir.mkdir(parents=True)
+    for name in install_modules(kind):
+        shutil.copyfile(ROOT / 'bin' / name, bindir / name)
+    webfiles = install_web_files(kind)
+    for name in ('country-flags.png', 'country-flags-LICENSE.txt', 'qr-decoder.js', 'qr-decoder-LICENSE.txt', 'qr-dialog.js', 'qr-dialog.css'):
+        source = ROOT / 'web' / name
+        assert source in webfiles, (kind, name)
+        shutil.copyfile(source, webdir / name)
+    shared_contract = ROOT.parent / 'contracts/or6-native-fixtures.json'
+    contract_path = shared_contract if shared_contract.is_file() else ROOT / 'contracts/or6-native-fixtures.json'
+    contract = json.loads(contract_path.read_text())
+    fixture = tmp_path / 'owned-known-values.or6'
+    fixture.write_bytes(gzip.decompress(base64.b64decode(contract['files']['known-values.or6']['gzip_base64'], validate=True)))
+    script = '''
+import pathlib, sys
+bindir, webdir, fixture = map(pathlib.Path, sys.argv[1:])
+sys.path.insert(0, str(bindir))
+import magnolie_country_flags as flags
+import magnolie_or6 as or6
+assert pathlib.Path(flags.__file__) == bindir / 'magnolie_country_flags.py'
+assert pathlib.Path(or6.__file__) == bindir / 'magnolie_or6.py'
+assert pathlib.Path(flags.atlas_path(str(bindir))) == webdir / 'country-flags.png'
+flag = flags.flag_pixbuf('DE', str(bindir))
+assert flag is not None and (flag.get_width(), flag.get_height()) == (28, 21)
+assert flags.flag_pixbuf('ZZ', str(bindir)) is None
+data = or6.read_or6(fixture.read_bytes())
+assert all(len(data[key]) == 1 for key in ('termine', 'aufgaben', 'kontakte', 'notizen'))
+print('Installed native flag and OR6 readers passed without source-tree fallback')
+'''
+    env = environment(tmp_path)
+    env.pop('MAGNOLIE_ORGANIZER_WEB', None)
+    env['PYTHONPATH'] = str(ROOT / 'bin')
+    result = subprocess.run([sys.executable, '-I', '-B', '-c', script, str(bindir), str(webdir), str(fixture)],
+                            cwd=tmp_path, env=env, capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 @pytest.mark.parametrize("kind,prefix", [("deb", "usr"), ("rpm", "usr"),

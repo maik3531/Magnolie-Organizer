@@ -38,11 +38,15 @@ bin/magnolie_social_profiles.py        usr/bin
 bin/magnolie_setup_state.py            usr/bin
 bin/magnolie_setup_ui.py               usr/bin
 bin/magnolie_phone_region.py            usr/bin
+bin/magnolie_country_flags.py           usr/bin
+bin/magnolie_or6.py                     usr/bin
 bin/magnolie_phone_contacts.py          usr/bin
 bin/magnolie_recurrence.py              usr/bin
 debian/restart-background.py           usr/lib/magnolie-organizer
 web/index.html                        usr/share/magnolie-organizer/web
 web/stil.css                          usr/share/magnolie-organizer/web
+web/country-flags.png                 usr/share/magnolie-organizer/web
+web/country-flags-LICENSE.txt        usr/share/magnolie-organizer/web
 web/qr-dialog.css                     usr/share/magnolie-organizer/web
 web/qr-dialog.js                      usr/share/magnolie-organizer/web
 web/qr-decoder.js                     usr/share/magnolie-organizer/web
