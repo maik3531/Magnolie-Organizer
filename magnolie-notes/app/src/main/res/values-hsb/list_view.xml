@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sortierung_aufgaben">Nadawki sortěrować</string>
+    <string name="sortierung_notizen">Noticy sortěrować</string>
+    <string name="sortierung_faelligkeit">Termin</string>
+    <string name="sortierung_erstellt">Datum wutworjenja</string>
+    <string name="sortierung_geaendert">Datum změny</string>
+    <string name="sortierung_prioritaet">Priorita</string>
+    <string name="sortierung_manuell">Manuelny porjad</string>
+    <string name="sortierung_aufsteigend">Stupajo</string>
+    <string name="sortierung_absteigend">Spadujo</string>
+    <string name="sortierung_tagesgruppen">Po dnjach zeskupić</string>
+    <string name="sortierung_ohne_datum">Bjez datuma</string>
+</resources>

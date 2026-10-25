@@ -1,0 +1,23 @@
+{
+  "keys": ["sortierung_aufgaben", "sortierung_notizen", "sortierung_faelligkeit", "sortierung_erstellt", "sortierung_geaendert", "sortierung_prioritaet", "sortierung_manuell", "sortierung_aufsteigend", "sortierung_absteigend", "sortierung_tagesgruppen", "sortierung_ohne_datum"],
+  "en": ["Sort tasks", "Sort notes", "Due date", "Created", "Modified", "Priority", "Manual order", "Ascending", "Descending", "Group by day", "No date"],
+  "de": ["Aufgaben sortieren", "Notizen sortieren", "Fälligkeit", "Erstelldatum", "Änderungsdatum", "Priorität", "Manuelle Reihenfolge", "Aufsteigend", "Absteigend", "Nach Tagen gruppieren", "Ohne Datum"],
+  "fr": ["Trier les tâches", "Trier les notes", "Échéance", "Date de création", "Date de modification", "Priorité", "Ordre manuel", "Croissant", "Décroissant", "Regrouper par jour", "Sans date"],
+  "es": ["Ordenar tareas", "Ordenar notas", "Vencimiento", "Fecha de creación", "Fecha de modificación", "Prioridad", "Orden manual", "Ascendente", "Descendente", "Agrupar por día", "Sin fecha"],
+  "it": ["Ordina attività", "Ordina note", "Scadenza", "Data di creazione", "Data di modifica", "Priorità", "Ordine manuale", "Crescente", "Decrescente", "Raggruppa per giorno", "Senza data"],
+  "nl": ["Taken sorteren", "Notities sorteren", "Vervaldatum", "Aanmaakdatum", "Wijzigingsdatum", "Prioriteit", "Handmatige volgorde", "Oplopend", "Aflopend", "Groeperen per dag", "Geen datum"],
+  "pt": ["Ordenar tarefas", "Ordenar notas", "Prazo", "Data de criação", "Data de alteração", "Prioridade", "Ordem manual", "Ascendente", "Descendente", "Agrupar por dia", "Sem data"],
+  "da": ["Sortér opgaver", "Sortér noter", "Forfaldsdato", "Oprettelsesdato", "Ændringsdato", "Prioritet", "Manuel rækkefølge", "Stigende", "Faldende", "Gruppér efter dag", "Ingen dato"],
+  "nb": ["Sorter oppgaver", "Sorter notater", "Forfallsdato", "Opprettelsesdato", "Endringsdato", "Prioritet", "Manuell rekkefølge", "Stigende", "Synkende", "Grupper etter dag", "Ingen dato"],
+  "pl": ["Sortuj zadania", "Sortuj notatki", "Termin", "Data utworzenia", "Data modyfikacji", "Priorytet", "Kolejność ręczna", "Rosnąco", "Malejąco", "Grupuj według dni", "Bez daty"],
+  "cs": ["Řazení úkolů", "Řazení poznámek", "Termín", "Datum vytvoření", "Datum změny", "Priorita", "Ruční pořadí", "Vzestupně", "Sestupně", "Seskupit podle dnů", "Bez data"],
+  "hsb": ["Nadawki sortěrować", "Noticy sortěrować", "Termin", "Datum wutworjenja", "Datum změny", "Priorita", "Manuelny porjad", "Stupajo", "Spadujo", "Po dnjach zeskupić", "Bjez datuma"],
+  "ru": ["Сортировка задач", "Сортировка заметок", "Срок", "Дата создания", "Дата изменения", "Приоритет", "Ручной порядок", "По возрастанию", "По убыванию", "Группировать по дням", "Без даты"],
+  "uk": ["Сортування завдань", "Сортування нотаток", "Строк", "Дата створення", "Дата зміни", "Пріоритет", "Ручний порядок", "За зростанням", "За спаданням", "Групувати за днями", "Без дати"],
+  "be": ["Сартаванне задач", "Сартаванне нататак", "Тэрмін", "Дата стварэння", "Дата змянення", "Прыярытэт", "Ручны парадак", "Па ўзрастанні", "Па змяншэнні", "Групаваць па днях", "Без даты"],
+  "tr": ["Görevleri sırala", "Notları sırala", "Son tarih", "Oluşturulma tarihi", "Değiştirilme tarihi", "Öncelik", "Elle sıralama", "Artan", "Azalan", "Güne göre grupla", "Tarih yok"],
+  "hi": ["कार्य क्रमबद्ध करें", "नोट क्रमबद्ध करें", "अंतिम तिथि", "बनाने की तारीख", "बदलाव की तारीख", "प्राथमिकता", "मैन्युअल क्रम", "आरोही", "अवरोही", "दिन के अनुसार समूह बनाएँ", "कोई तारीख नहीं"],
+  "ja": ["タスクの並べ替え", "ノートの並べ替え", "期限", "作成日時", "変更日時", "優先度", "手動の順序", "昇順", "降順", "日ごとにまとめる", "日付なし"],
+  "zh_CN": ["任务排序", "笔记排序", "截止日期", "创建时间", "修改时间", "优先级", "手动顺序", "升序", "降序", "按天分组", "无日期"],
+  "ar": ["ترتيب المهام", "ترتيب الملاحظات", "تاريخ الاستحقاق", "تاريخ الإنشاء", "تاريخ التعديل", "الأولوية", "ترتيب يدوي", "تصاعدي", "تنازلي", "التجميع حسب اليوم", "بلا تاريخ"]
+}

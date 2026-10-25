@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sortierung_aufgaben">Aufgaben sortieren</string>
+    <string name="sortierung_notizen">Notizen sortieren</string>
+    <string name="sortierung_faelligkeit">Fälligkeit</string>
+    <string name="sortierung_erstellt">Erstelldatum</string>
+    <string name="sortierung_geaendert">Änderungsdatum</string>
+    <string name="sortierung_prioritaet">Priorität</string>
+    <string name="sortierung_manuell">Manuelle Reihenfolge</string>
+    <string name="sortierung_aufsteigend">Aufsteigend</string>
+    <string name="sortierung_absteigend">Absteigend</string>
+    <string name="sortierung_tagesgruppen">Nach Tagen gruppieren</string>
+    <string name="sortierung_ohne_datum">Ohne Datum</string>
+</resources>

@@ -89,10 +89,10 @@ object AufgabenHierarchie {
         return normalized
     }
 
-    fun flach(input: List<Aufgabe>): List<HierarchischeAufgabe> {
+    fun flach(input: List<Aufgabe>, anzeigeVergleich: Comparator<Aufgabe>? = null): List<HierarchischeAufgabe> {
         val tasks = normalisieren(input)
         val children = tasks.groupBy(Aufgabe::elternUid).mapValues { (_, values) ->
-            values.sortedWith(aufgabenReihenfolge)
+            values.sortedWith(anzeigeVergleich?.then(aufgabenReihenfolge) ?: aufgabenReihenfolge)
         }
         val result = ArrayList<HierarchischeAufgabe>(tasks.size)
         val stack = ArrayDeque<Pair<Aufgabe, Int>>()

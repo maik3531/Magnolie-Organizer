@@ -54,6 +54,9 @@ import io.gitlab.maik3531.magnolienotes.R
 import io.gitlab.maik3531.magnolienotes.aufgaben.Erinnerung
 import io.gitlab.maik3531.magnolienotes.daten.Aufgabe
 import io.gitlab.maik3531.magnolienotes.daten.AufgabenHierarchie
+import io.gitlab.maik3531.magnolienotes.daten.AufgabenSortierung
+import io.gitlab.maik3531.magnolienotes.daten.ListenAnzeige
+import io.gitlab.maik3531.magnolienotes.daten.ListenSortierung
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -91,9 +94,10 @@ fun AufgabenBlatt(
     beiTeilaufgabe: (Aufgabe) -> Unit,
     beiVerschieben: (Aufgabe, Int) -> Unit,
     beiWurzel: (Aufgabe) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    anzeige: ListenAnzeige = ListenAnzeige()
 ) {
-    val hierarchie = AufgabenHierarchie.flach(aufgaben)
+    val hierarchie = remember(aufgaben, anzeige) { ListenSortierung.aufgaben(aufgaben, anzeige) }
 
     val zusammenhang = LocalContext.current
     // Ab Android 12 muss der Mensch genaue Wecker ausdrücklich erlauben.
@@ -162,7 +166,8 @@ fun AufgabenBlatt(
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 28.dp)) {
             items(hierarchie, key = { it.aufgabe.id }) { eintrag ->
                 Aufgabenzeile(eintrag.aufgabe, fachVon(eintrag.aufgabe), eintrag.tiefe,
-                    beiOeffnen, beiAbhaken, beiTeilaufgabe, beiVerschieben, beiWurzel)
+                    beiOeffnen, beiAbhaken, beiTeilaufgabe, beiVerschieben, beiWurzel,
+                    anzeige.aufgaben == AufgabenSortierung.MANUELL)
             }
         }
     }
@@ -178,7 +183,8 @@ private fun Aufgabenzeile(
     beiAbhaken: (Aufgabe, Boolean) -> Unit,
     beiTeilaufgabe: (Aufgabe) -> Unit,
     beiVerschieben: (Aufgabe, Int) -> Unit,
-    beiWurzel: (Aufgabe) -> Unit
+    beiWurzel: (Aufgabe) -> Unit,
+    manuellSortiert: Boolean
 ) {
     val zeilenZusammenhang = LocalContext.current
     val einzug = (14 + tiefe.coerceAtMost(12) * 16).dp
@@ -269,8 +275,8 @@ private fun Aufgabenzeile(
                 }
                 val nachOben = stringResource(R.string.aufgabe_nach_oben)
                 val nachUnten = stringResource(R.string.aufgabe_nach_unten)
-                TextButton(onClick = { beiVerschieben(aufgabe, -1) }, modifier = Modifier.semantics { contentDescription = nachOben }) { Text("↑") }
-                TextButton(onClick = { beiVerschieben(aufgabe, 1) }, modifier = Modifier.semantics { contentDescription = nachUnten }) { Text("↓") }
+                TextButton(onClick = { beiVerschieben(aufgabe, -1) }, enabled = manuellSortiert, modifier = Modifier.semantics { contentDescription = nachOben }) { Text("↑") }
+                TextButton(onClick = { beiVerschieben(aufgabe, 1) }, enabled = manuellSortiert, modifier = Modifier.semantics { contentDescription = nachUnten }) { Text("↓") }
                 if (aufgabe.elternUid.isNotEmpty()) TextButton(onClick = { beiWurzel(aufgabe) }) {
                     Text(stringResource(R.string.aufgabe_zur_wurzel), fontSize = 11.sp)
                 }

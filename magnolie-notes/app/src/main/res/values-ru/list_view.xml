@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sortierung_aufgaben">Сортировка задач</string>
+    <string name="sortierung_notizen">Сортировка заметок</string>
+    <string name="sortierung_faelligkeit">Срок</string>
+    <string name="sortierung_erstellt">Дата создания</string>
+    <string name="sortierung_geaendert">Дата изменения</string>
+    <string name="sortierung_prioritaet">Приоритет</string>
+    <string name="sortierung_manuell">Ручной порядок</string>
+    <string name="sortierung_aufsteigend">По возрастанию</string>
+    <string name="sortierung_absteigend">По убыванию</string>
+    <string name="sortierung_tagesgruppen">Группировать по дням</string>
+    <string name="sortierung_ohne_datum">Без даты</string>
+</resources>

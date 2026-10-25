@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sortierung_aufgaben">Ordenar tarefas</string>
+    <string name="sortierung_notizen">Ordenar notas</string>
+    <string name="sortierung_faelligkeit">Prazo</string>
+    <string name="sortierung_erstellt">Data de criação</string>
+    <string name="sortierung_geaendert">Data de alteração</string>
+    <string name="sortierung_prioritaet">Prioridade</string>
+    <string name="sortierung_manuell">Ordem manual</string>
+    <string name="sortierung_aufsteigend">Ascendente</string>
+    <string name="sortierung_absteigend">Descendente</string>
+    <string name="sortierung_tagesgruppen">Agrupar por dia</string>
+    <string name="sortierung_ohne_datum">Sem data</string>
+</resources>

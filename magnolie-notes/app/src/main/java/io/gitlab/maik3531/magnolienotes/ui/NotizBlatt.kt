@@ -54,6 +54,8 @@ import io.gitlab.maik3531.magnolienotes.R
 import io.gitlab.maik3531.magnolienotes.daten.Notiz
 import io.gitlab.maik3531.magnolienotes.daten.Notizbuch
 import io.gitlab.maik3531.magnolienotes.daten.Anhang
+import io.gitlab.maik3531.magnolienotes.daten.ListenAnzeige
+import io.gitlab.maik3531.magnolienotes.daten.ListenSortierung
 
 data class AnhangEreignis(val notizId: String, val anhang: Anhang)
 
@@ -78,7 +80,8 @@ fun NotizBlatt(
     notizbuecher: List<Notizbuch>,
     beiOeffnen: (Notiz) -> Unit,
     beiNeu: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    anzeige: ListenAnzeige = ListenAnzeige()
 ) {
     var suche by remember { mutableStateOf("") }
     val gesucht = remember(notizen, suche) {
@@ -86,12 +89,11 @@ fun NotizBlatt(
             it.titel.contains(suche, true) || it.text.contains(suche, true)
         }
     }
-    // Original creation day, shared with the Organizer's day view.
-    fun erstellt(notiz: Notiz) = notiz.angelegt.takeIf { it > 0 } ?: notiz.geaendert
-    val nachTagen = remember(gesucht) {
-        gesucht.sortedByDescending { erstellt(it) }
-            .groupBy { Zeit.tagesschluessel(erstellt(it)) }
-            .toList()
+    val sortiert = remember(gesucht, anzeige) { ListenSortierung.notizen(gesucht, anzeige) }
+    val nachTagen = remember(sortiert, anzeige) {
+        if (anzeige.tagesgruppen) sortiert.groupBy { notiz ->
+            ListenSortierung.notizZeit(notiz, anzeige.notizen)?.let(Zeit::tagesschluessel).orEmpty()
+        }.toList() else listOf("" to sortiert)
     }
     val heute = stringResource(R.string.heute)
     val gestern = stringResource(R.string.gestern)
@@ -129,16 +131,17 @@ fun NotizBlatt(
             Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 28.dp)
         ) {
-            nachTagen.forEach { (_, tagesnotizen) ->
-                val wann = erstellt(tagesnotizen.first())
-                item(key = "tag-" + Zeit.tagesschluessel(wann)) {
+            nachTagen.forEach { (tag, tagesnotizen) ->
+                if (tagesnotizen.isEmpty()) return@forEach
+                val wann = ListenSortierung.notizZeit(tagesnotizen.first(), anzeige.notizen)
+                if (anzeige.tagesgruppen) item(key = "tag-" + tag) {
                     Row(
                         Modifier.fillMaxWidth()
                             .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            Zeit.tagesueberschrift(wann, heute, gestern),
+                            if (wann == null) stringResource(R.string.sortierung_ohne_datum) else Zeit.tagesueberschrift(wann, heute, gestern),
                             fontFamily = FontFamily.SansSerif,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,

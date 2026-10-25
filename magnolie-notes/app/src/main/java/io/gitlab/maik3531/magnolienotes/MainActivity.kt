@@ -399,6 +399,9 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
     val autoSicherung = remember { AndroidAutoSicherung.hole(zusammenhang) }
     val telefonWerk = remember { TelefonWerk.get(zusammenhang) }
     val faden = rememberCoroutineScope()
+    val listenPrefs = remember(zusammenhang) { io.gitlab.maik3531.magnolienotes.ui.ListenEinstellungen(zusammenhang) }
+    var listenAnzeige by remember(listenPrefs) { mutableStateOf(listenPrefs.lesen()) }
+    var sortierBlatt by remember { mutableStateOf<Int?>(null) }
 
     val bestand by ablage.bestand.collectAsState()
     val baumzustand by werk.zustand.collectAsState()
@@ -952,8 +955,16 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
         return
     }
 
+    sortierBlatt?.let { ziel ->
+        io.gitlab.maik3531.magnolienotes.ui.ListenSortierDialog(ziel == 1, listenAnzeige,
+            beiSpeichern = { value ->
+                runCatching { listenPrefs.speichern(value); listenAnzeige = value; sortierBlatt = null }
+                    .onFailure { sage(zusammenhang.fehlertext(it)) }
+            }, beiAbbrechen = { sortierBlatt = null })
+    }
     Scaffold(
         topBar = { Einband(stringResource(R.string.app_name), rechts = {
+            if (blatt == 0 || blatt == 1) io.gitlab.maik3531.magnolienotes.ui.ListenSortierKnopf(blatt == 1) { sortierBlatt = blatt }
             io.gitlab.maik3531.magnolienotes.ui.TelefonKopf(telefonZustand,
                 sync = { runCatching {
                     if (telefonZustand.sharedPreferencesSupported) telefonZustand.peer?.let { peer ->
@@ -1006,6 +1017,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
                 }
                 0 -> NotizBlatt(
                     notizen = bestand.notizen,
+                    anzeige = listenAnzeige,
                     notizbuecher = bestand.notizbuecher,
                     beiOeffnen = ablage::setzeNotizEntwurf,
                     beiNeu = {
@@ -1019,6 +1031,7 @@ private fun Hauptblatt(gewuenschteAufgabe: androidx.compose.runtime.MutableState
 
                 1 -> AufgabenBlatt(
                     aufgaben = bestand.aufgaben,
+                    anzeige = listenAnzeige,
                     beiOeffnen = ablage::setzeAufgabenEntwurf,
                     beiAbhaken = { aufgabe, erledigt ->
                         faden.launch {

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sortierung_aufgaben">タスクの並べ替え</string>
+    <string name="sortierung_notizen">ノートの並べ替え</string>
+    <string name="sortierung_faelligkeit">期限</string>
+    <string name="sortierung_erstellt">作成日時</string>
+    <string name="sortierung_geaendert">変更日時</string>
+    <string name="sortierung_prioritaet">優先度</string>
+    <string name="sortierung_manuell">手動の順序</string>
+    <string name="sortierung_aufsteigend">昇順</string>
+    <string name="sortierung_absteigend">降順</string>
+    <string name="sortierung_tagesgruppen">日ごとにまとめる</string>
+    <string name="sortierung_ohne_datum">日付なし</string>
+</resources>

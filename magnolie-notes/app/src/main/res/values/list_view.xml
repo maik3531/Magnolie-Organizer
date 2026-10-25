@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sortierung_aufgaben">Sort tasks</string>
+    <string name="sortierung_notizen">Sort notes</string>
+    <string name="sortierung_faelligkeit">Due date</string>
+    <string name="sortierung_erstellt">Created</string>
+    <string name="sortierung_geaendert">Modified</string>
+    <string name="sortierung_prioritaet">Priority</string>
+    <string name="sortierung_manuell">Manual order</string>
+    <string name="sortierung_aufsteigend">Ascending</string>
+    <string name="sortierung_absteigend">Descending</string>
+    <string name="sortierung_tagesgruppen">Group by day</string>
+    <string name="sortierung_ohne_datum">No date</string>
+</resources>

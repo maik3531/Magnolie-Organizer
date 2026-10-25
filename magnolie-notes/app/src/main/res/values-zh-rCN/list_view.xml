@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sortierung_aufgaben">任务排序</string>
+    <string name="sortierung_notizen">笔记排序</string>
+    <string name="sortierung_faelligkeit">截止日期</string>
+    <string name="sortierung_erstellt">创建时间</string>
+    <string name="sortierung_geaendert">修改时间</string>
+    <string name="sortierung_prioritaet">优先级</string>
+    <string name="sortierung_manuell">手动顺序</string>
+    <string name="sortierung_aufsteigend">升序</string>
+    <string name="sortierung_absteigend">降序</string>
+    <string name="sortierung_tagesgruppen">按天分组</string>
+    <string name="sortierung_ohne_datum">无日期</string>
+</resources>

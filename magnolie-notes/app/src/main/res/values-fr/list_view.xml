@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sortierung_aufgaben">Trier les tâches</string>
+    <string name="sortierung_notizen">Trier les notes</string>
+    <string name="sortierung_faelligkeit">Échéance</string>
+    <string name="sortierung_erstellt">Date de création</string>
+    <string name="sortierung_geaendert">Date de modification</string>
+    <string name="sortierung_prioritaet">Priorité</string>
+    <string name="sortierung_manuell">Ordre manuel</string>
+    <string name="sortierung_aufsteigend">Croissant</string>
+    <string name="sortierung_absteigend">Décroissant</string>
+    <string name="sortierung_tagesgruppen">Regrouper par jour</string>
+    <string name="sortierung_ohne_datum">Sans date</string>
+</resources>

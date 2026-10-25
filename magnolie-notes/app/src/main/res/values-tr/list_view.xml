@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sortierung_aufgaben">Görevleri sırala</string>
+    <string name="sortierung_notizen">Notları sırala</string>
+    <string name="sortierung_faelligkeit">Son tarih</string>
+    <string name="sortierung_erstellt">Oluşturulma tarihi</string>
+    <string name="sortierung_geaendert">Değiştirilme tarihi</string>
+    <string name="sortierung_prioritaet">Öncelik</string>
+    <string name="sortierung_manuell">Elle sıralama</string>
+    <string name="sortierung_aufsteigend">Artan</string>
+    <string name="sortierung_absteigend">Azalan</string>
+    <string name="sortierung_tagesgruppen">Güne göre grupla</string>
+    <string name="sortierung_ohne_datum">Tarih yok</string>
+</resources>

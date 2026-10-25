@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sortierung_aufgaben">कार्य क्रमबद्ध करें</string>
+    <string name="sortierung_notizen">नोट क्रमबद्ध करें</string>
+    <string name="sortierung_faelligkeit">अंतिम तिथि</string>
+    <string name="sortierung_erstellt">बनाने की तारीख</string>
+    <string name="sortierung_geaendert">बदलाव की तारीख</string>
+    <string name="sortierung_prioritaet">प्राथमिकता</string>
+    <string name="sortierung_manuell">मैन्युअल क्रम</string>
+    <string name="sortierung_aufsteigend">आरोही</string>
+    <string name="sortierung_absteigend">अवरोही</string>
+    <string name="sortierung_tagesgruppen">दिन के अनुसार समूह बनाएँ</string>
+    <string name="sortierung_ohne_datum">कोई तारीख नहीं</string>
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sortierung_aufgaben">Ordina attività</string>
+    <string name="sortierung_notizen">Ordina note</string>
+    <string name="sortierung_faelligkeit">Scadenza</string>
+    <string name="sortierung_erstellt">Data di creazione</string>
+    <string name="sortierung_geaendert">Data di modifica</string>
+    <string name="sortierung_prioritaet">Priorità</string>
+    <string name="sortierung_manuell">Ordine manuale</string>
+    <string name="sortierung_aufsteigend">Crescente</string>
+    <string name="sortierung_absteigend">Decrescente</string>
+    <string name="sortierung_tagesgruppen">Raggruppa per giorno</string>
+    <string name="sortierung_ohne_datum">Senza data</string>
+</resources>

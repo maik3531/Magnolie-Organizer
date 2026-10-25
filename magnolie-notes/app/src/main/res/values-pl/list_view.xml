@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sortierung_aufgaben">Sortuj zadania</string>
+    <string name="sortierung_notizen">Sortuj notatki</string>
+    <string name="sortierung_faelligkeit">Termin</string>
+    <string name="sortierung_erstellt">Data utworzenia</string>
+    <string name="sortierung_geaendert">Data modyfikacji</string>
+    <string name="sortierung_prioritaet">Priorytet</string>
+    <string name="sortierung_manuell">Kolejność ręczna</string>
+    <string name="sortierung_aufsteigend">Rosnąco</string>
+    <string name="sortierung_absteigend">Malejąco</string>
+    <string name="sortierung_tagesgruppen">Grupuj według dni</string>
+    <string name="sortierung_ohne_datum">Bez daty</string>
+</resources>

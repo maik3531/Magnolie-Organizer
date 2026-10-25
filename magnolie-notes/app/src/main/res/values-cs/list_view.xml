@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sortierung_aufgaben">Řazení úkolů</string>
+    <string name="sortierung_notizen">Řazení poznámek</string>
+    <string name="sortierung_faelligkeit">Termín</string>
+    <string name="sortierung_erstellt">Datum vytvoření</string>
+    <string name="sortierung_geaendert">Datum změny</string>
+    <string name="sortierung_prioritaet">Priorita</string>
+    <string name="sortierung_manuell">Ruční pořadí</string>
+    <string name="sortierung_aufsteigend">Vzestupně</string>
+    <string name="sortierung_absteigend">Sestupně</string>
+    <string name="sortierung_tagesgruppen">Seskupit podle dnů</string>
+    <string name="sortierung_ohne_datum">Bez data</string>
+</resources>

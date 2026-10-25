@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sortierung_aufgaben">Sortér opgaver</string>
+    <string name="sortierung_notizen">Sortér noter</string>
+    <string name="sortierung_faelligkeit">Forfaldsdato</string>
+    <string name="sortierung_erstellt">Oprettelsesdato</string>
+    <string name="sortierung_geaendert">Ændringsdato</string>
+    <string name="sortierung_prioritaet">Prioritet</string>
+    <string name="sortierung_manuell">Manuel rækkefølge</string>
+    <string name="sortierung_aufsteigend">Stigende</string>
+    <string name="sortierung_absteigend">Faldende</string>
+    <string name="sortierung_tagesgruppen">Gruppér efter dag</string>
+    <string name="sortierung_ohne_datum">Ingen dato</string>
+</resources>
