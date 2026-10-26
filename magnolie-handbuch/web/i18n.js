@@ -59,6 +59,15 @@
       for (const key of ["kapitel", "titel", "inhalt"]) {
         page[key] = gettext(page._source[key]);
       }
+      if (page.notesRequirementsIntro) {
+        const intro = page.notesRequirementsIntro[locale] || page.notesRequirementsIntro[locale.split("-")[0]] || page.notesRequirementsIntro.en;
+        const sentence = /^[\s\S]*?(?:[.!?](?=\s|$)|[。।؟])/;
+        page.inhalt = page.inhalt.replace(/<p>([\s\S]*?)<\/p>/, (_html, previous) => {
+          const lead = previous.match(sentence)?.[0];
+          if (!lead) throw new Error("Missing handbook platform overview");
+          return "<p>" + lead + " " + intro.replace(sentence, "").trim() + "</p>";
+        });
+      }
       if (Number.isInteger(page.developerLogParagraph)) {
         const content = document.createElement("div");
         content.innerHTML = page.inhalt;
@@ -104,6 +113,24 @@
         const localized = page.inhaltAnhangNeutral ? source :
           (page.inhaltAnhang[locale] || page.inhaltAnhang[locale.split("-")[0]] || gettext(source));
         page.inhalt = page.inhaltAnhangErsetzt ? localized : page.inhalt + localized;
+      }
+      if (page.notesVerweise) page.inhalt += "<p class='notes-organizer-links'><b>Magnolie Notes:</b> " +
+        page.notesVerweise.map(id => "<b data-page='" + id + "' data-page-title='true' class='knopfwort'></b>").join(" · ") + "</p>";
+      if (page.notesParagraphPaths) {
+        let paragraph = -1;
+        const seen = new Set();
+        page.inhalt = page.inhalt.replace(/<p(?:\s[^>]*)?>[\s\S]*?<\/p>/g, html => {
+          paragraph++;
+          const replacement = page.notesParagraphPaths.find(value => value.index === paragraph);
+          if (!replacement) return html;
+          const start = html.indexOf(">") + 1, text = html.slice(start, -4);
+          const sentence = /^[\s\S]*?(?:[.!?](?=\s|$)|[。।؟])/;
+          if (!sentence.test(text)) throw new Error("Missing retired Notes navigation sentence: " + page.id);
+          seen.add(paragraph);
+          const current = replacement.text[locale] || replacement.text[locale.split("-")[0]] || replacement.text.en;
+          return html.slice(0, start) + text.replace(sentence, current + " ") + "</p>";
+        });
+        if (seen.size !== page.notesParagraphPaths.length) throw new Error("Missing Notes navigation paragraph: " + page.id);
       }
     }
   }

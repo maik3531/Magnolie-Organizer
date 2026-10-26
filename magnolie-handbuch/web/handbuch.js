@@ -65,7 +65,8 @@
       const gedruckt = (druck && druckNummern) ? druckNummern.get(ziel) : undefined;
       const nummer = gedruckt !== undefined ? gedruckt : quellSeitenIndex(ziel) + 1;
       if (nummer > 0 && !verweis.textContent.trim()) {
-        verweis.textContent = String(nummer);
+        const page = SEITEN.find(seite => seite.id === ziel);
+        verweis.textContent = verweis.dataset.pageTitle === "true" && page ? page.titel + " (" + nummer + ")" : String(nummer);
       }
     }
     return huelle.innerHTML;
@@ -569,6 +570,11 @@
          Bildes messbar; sonst zaehlte ein leeres Bild als null hoch. */
       "figure img { max-width: 100%; width: auto; height: 37mm;" +
       " object-fit: contain; border: 1px solid #cbb894; border-radius: 1.2mm; }" +
+      ".notes-native-images { display: flex; align-items: flex-start; justify-content: center; gap: 2mm; }" +
+      ".notes-native-images img { width: auto; height: 66mm; max-width: calc(50% - 1mm); object-fit: contain; }" +
+      ".notes-native-images img:only-child { max-width: 100%; }" +
+      '.notes-native-images img[src="notes-native-due-today.png"] { width: 100%; height: auto; max-height: 66mm; }' +
+      ".notes-organizer-links { border-top: 1px solid #ab9468; padding-top: 1.5mm; }" +
       "figcaption { font-style: italic; font-size: 9.2pt; color: #5a4630; }" +
       ".abbildungsreihe { display: grid; gap: 2mm;" +
       " grid-template-columns: repeat(3, minmax(0, 1fr)); }" +

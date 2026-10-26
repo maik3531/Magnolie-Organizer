@@ -50,6 +50,8 @@ def main():
     results = []
     extraction_failures = []
     latest_input = max(path.stat().st_mtime_ns for path in (ROOT / "web").rglob("*") if path.is_file())
+    native_notes = json.loads((ROOT / "web/notes-native-images.json").read_text())
+    native_sizes = {(image["width"], image["height"]) for image in native_notes["images"].values()}
     for language in languages:
         pdf = args.output / (language + ".pdf")
         if not (args.reuse_current and pdf.is_file() and pdf.stat().st_mtime_ns >= latest_input):
@@ -78,12 +80,23 @@ def main():
         title_extractable = title_present(text, title, language == "ar")
         if not title_extractable:
             extraction_failures.append(language)
+        notes_title = translation.gettext("Read properties and original application")
+        notes_extractable = title_present(text, notes_title, language == "ar")
+        if not notes_extractable:
+            extraction_failures.append(language + ":notes")
+        embedded_sizes = set()
+        for line in subprocess.check_output(["pdfimages", "-list", str(pdf)], text=True).splitlines():
+            fields = line.split()
+            if len(fields) > 5 and fields[0].isdigit() and fields[1].isdigit():
+                embedded_sizes.add((int(fields[3]), int(fields[4])))
+        assert native_sizes <= embedded_sizes, (language, "Native Notes raster images missing from PDF", sorted(native_sizes - embedded_sizes))
         if language == "en":
             assert "SupportMagnoliewithacoffee" in visible
             assert "EineE-Mail-Adressebleibtfreiwillig" not in visible
         result = {"locale": language, "pages": pages, "width": float(geometry[1]),
                   "height": float(geometry[2]), "textCharacters": len(text),
-                  "letterTitleExtractable": title_extractable, "path": str(pdf)}
+                  "letterTitleExtractable": title_extractable, "notesTitleExtractable": notes_extractable,
+                  "nativeNotesImageSizes": len(native_sizes), "path": str(pdf)}
         results.append(result)
         print(json.dumps(result), flush=True)
         (args.output / "results.json").write_text(json.dumps(results, indent=2) + "\n")

@@ -178,7 +178,38 @@ for (const locale of supportedLocales.filter((code) => code !== "en")) {
 assert.ok(replacementIds.every((id) => rawSourcePages.find((page) => page.id === id)
   .inhaltAnhangErsetzt === true), "current SMS pages must explicitly replace their old content");
 contentDom.window.close();
-assert.strictEqual(sourcePages.length, 165, "the release handbook must contain exactly 165 pages");
+assert.strictEqual(sourcePages.length, 170, "the release handbook must contain exactly 170 pages");
+const notesChapter = sourcePages.filter(page => page.kapitel === "Magnolie Notes");
+assert.strictEqual(notesChapter.length, 22, "Notes needs its own chapter including the existing Android instructions");
+const notesPositions = sourcePages.map((page, index) => page.kapitel === "Magnolie Notes" ? index : -1).filter(index => index >= 0);
+assert.strictEqual(notesPositions.at(-1) - notesPositions[0] + 1, 22, "The Notes chapter must be contiguous");
+const currentNotesIds = ["android-notes-connections", "android-notes-list-sorting", "android-notes-properties", "android-notes-swipes", "android-notes-print-version"];
+for (const id of currentNotesIds) {
+  const page = notesChapter.find(page => page.id === id);
+  assert.ok(page && page.imInhalt && page.inhaltAnhangErsetzt, `Current Notes instructions missing from their chapter: ${id}`);
+  assert.strictEqual(Object.keys(page.inhaltAnhang).length, 20, `Notes instructions need all twenty languages: ${id}`);
+  for (const [language, html] of Object.entries(page.inhaltAnhang)) {
+    assert.ok(html.includes("data-page="), `Notes instructions need working Organizer cross-references: ${id}/${language}`);
+    if (language !== "en") assert.notStrictEqual(html, page.inhaltAnhang.en, `English fallback in Notes instructions: ${id}/${language}`);
+  }
+}
+const nativeNotesImages = JSON.parse(fs.readFileSync(path.join(WEB, "notes-native-images.json"), "utf8"));
+assert.strictEqual(nativeNotesImages.kind, "native-android-synthetic-examples");
+assert.match(nativeNotesImages.apkSha256, /^[a-f0-9]{64}$/);
+assert.ok(!JSON.stringify(nativeNotesImages).includes("/home/") && !JSON.stringify(nativeNotesImages).includes(".private-testing"), "Native examples must not export private capture paths");
+const referencedNotesImages = new Set(sourcePages.flatMap(page => {
+  const html = page.inhalt + (page.inhaltAnhang?.en || "");
+  return [...html.matchAll(/src='(notes-native-[^']+\.png)'/g)].map(match => match[1]);
+}));
+assert.deepStrictEqual([...referencedNotesImages].sort(), Object.keys(nativeNotesImages.images).sort(), "Every native Notes image must be used and source-bound");
+for (const [name, image] of Object.entries(nativeNotesImages.images)) {
+  const bytes = fs.readFileSync(path.join(WEB, name));
+  assert.strictEqual(crypto.createHash("sha256").update(bytes).digest("hex"), image.sha256, `Native screenshot bytes changed: ${name}`);
+  assert.strictEqual(bytes.readUInt32BE(16), image.width); assert.strictEqual(bytes.readUInt32BE(20), image.height);
+  assert.strictEqual(image.width, image.crop[2] - image.crop[0]); assert.strictEqual(image.height, image.crop[3] - image.crop[1]);
+  assert.strictEqual(image.sourceWidth, 720); assert.strictEqual(image.sourceHeight, 1280);
+  assert.match(image.sourceSha256, /^[a-f0-9]{64}$/);
+}
 assert.ok(sourcePages.some((page) => page.id === "sending-selected-notes"),
   "the release handbook must contain the selected-note sending instructions");
 const protectedIds = new Set(["license-and-acknowledgments", "in-closing",
@@ -331,9 +362,9 @@ for (const id of ["android-apk-transfer", "android-apk-install-update", "my-proj
 const route17Ids = ["phone-call-getting-started", "phone-call-control", "sms-getting-started",
   "phone-number-origin", "sms-kde-connect-setup"];
 assert.deepStrictEqual(sourcePages.slice(sourcePages.findIndex((page) =>
-  page.id === "android-recovery-journal") + 1, sourcePages.findIndex((page) =>
+  page.id === "android-notes-print-version") + 1, sourcePages.findIndex((page) =>
   page.id === "technical-connection-map")).map((page) => page.id), route17Ids,
-"route 17 pages must be between Android recovery and the technical pages");
+"route 17 pages must follow the complete Notes chapter and precede the technical pages");
 const route17Text = Object.fromEntries(route17Ids.map((id) =>
   [id, sourcePages.find((page) => page.id === id)?.inhalt || ""]));
 assert.ok(route17Text["phone-call-getting-started"].includes("TelecomManager.placeCall") &&
@@ -640,6 +671,7 @@ function createBook(locale, embedded = false) {
   w.eval(sources.i18n);
   w.eval(fs.readFileSync(path.join(WEB, "i18n/en.js"), "utf8"));
   w.eval(sources.catalog);
+  if (!["en", "de"].includes(locale)) w.eval(fs.readFileSync(path.join(WEB, "i18n", locale.replace(/-/g, "_") + ".js"), "utf8"));
   w.MagnolieI18n.setLocale(locale);
   w.eval(sources.mobileDownloads);
   w.eval(sources.content);
@@ -689,6 +721,40 @@ for (const embedded of [false, true]) {
     assert.strictEqual(openedTarget, embedded ? "_self" : "_blank", "Embedded web links must pass through the native navigation policy");
   } finally { b.w.close(); }
 }
+
+for (const locale of ["en", ...languages]) for (const embedded of [false, true]) {
+  const b = createBook(locale, embedded);
+  try {
+    const pages = b.H.seiten(), normalized = locale.replace(/_/g, "-").toLowerCase();
+    assert.strictEqual(b.d.documentElement.lang, normalized);
+    assert.strictEqual(pages.filter(page => page.kapitel === "Magnolie Notes").length, 22);
+    b.H.oeffneBuch();
+    for (const id of currentNotesIds) {
+      const page = pages.find(page => page.id === id);
+      assert.ok(b.H.suche(page.titel).includes(id), `Notes title not searchable: ${locale}/${id}/${embedded}`);
+      b.H.blaettereZuId(id);
+      assert.ok(b.d.querySelector("#seiten").textContent.includes(page.titel), `Notes page did not open: ${locale}/${id}/${embedded}`);
+      const links = [...b.d.querySelectorAll("#seiten [data-page-title='true']")];
+      assert.ok(links.length, `Notes page has no labeled cross-reference: ${locale}/${id}`);
+      for (const link of links) {
+        const target = pages.find(page => page.id === link.dataset.page);
+        assert.ok(target && link.textContent.includes(target.titel) && /\d/.test(link.textContent), `Unresolved translated Notes reference: ${locale}/${id}`);
+      }
+      const target = pages.find(page => page.id === links[0].dataset.page);
+      links[0].click();
+      assert.ok(b.d.querySelector("#seiten").textContent.includes(target.titel), `Notes reference did not navigate: ${locale}/${id}/${embedded}`);
+    }
+    for (const id of ["notebooks-and-pages", "the-task-list", "printing-and-saving-as-pdf", "phone-pairing", "creating-a-contact"]) {
+      b.H.blaettereZuId(id);
+      assert.ok(b.d.querySelector("#seiten .notes-organizer-links [data-page-title='true']"), `Organizer page lacks Notes return links: ${locale}/${id}`);
+    }
+    const printed = b.H.druckFassung();
+    for (const name of Object.keys(nativeNotesImages.images)) assert.ok(printed.includes(name), `Native Notes figure missing from print: ${locale}/${name}`);
+    assert.ok(printed.includes(".notes-native-images") && printed.includes("height: 66mm"), `Native Notes figures need readable print sizing: ${locale}`);
+    for (const id of currentNotesIds) assert.ok(printed.includes(pages.find(page => page.id === id).titel), `Notes heading missing from print: ${locale}/${id}`);
+  } finally { b.w.close(); }
+}
+console.log("Notes chapter PASS: 20 languages, standalone/embedded navigation, labeled references, search and native print figures");
 
 function tags(markup) {
   return (markup.match(/<[^>]+>/g) || [])
@@ -759,7 +825,7 @@ function checkLocale(locale, expected) {
         assert.ok(page[key]);
       }
     }
-    if (page.platzhalter !== "inhalt" && !page.inhaltAnhang && !newPageIds.has(page.id) &&
+    if (page.platzhalter !== "inhalt" && !page.inhaltAnhang && !page.notesVerweise && !page.notesRequirementsIntro && !page.notesParagraphPaths && !newPageIds.has(page.id) &&
         !protectedIds.has(page.id)) {
       assert.deepStrictEqual(tags(page.inhalt), tags(page._source.inhalt),
         `${locale}: HTML structure changed on ${page._source.titel}`);
@@ -1209,10 +1275,10 @@ try {
     "android-notes-edit-save-delete", "android-tasks-reminders", "android-note-symbols-formatting"];
   assert.strictEqual(sourcePages.filter((page) => androidNotesIds.includes(page.id)).length, 5,
     "the Magnolie Notes route must contain exactly five pages");
-  for (const phrase of ["The gear groups Import, Tree, Recovery and Android permissions", "Loose Notes", "Do not use Back to discard changes",
+  for (const phrase of ["Settings lists Version, Connections and Import in that order", "Loose Notes", "Do not use Back to discard changes",
     "zero through fourteen", "no bold, italic, underline, list, heading, Markdown or rich-text toolbar"])
     assert.ok(englishText.includes(phrase), `English Magnolie Notes documentation missing: ${phrase}`);
-  for (const phrase of ["Das Zahnrad bündelt Import, Baum, Wiederherstellung und Android-Rechte", "Lose Notizen", "Verwenden Sie Zurück nicht zum Verwerfen",
+  for (const phrase of ["Version, Verbindungen und Übernehmen in dieser Reihenfolge", "Lose Notizen", "Verwenden Sie Zurück nicht zum Verwerfen",
     "null bis vierzehn", "keine Werkzeugleiste für Fett, Kursiv, Unterstreichen, Listen, Überschriften, Markdown oder Rich Text"])
     assert.ok(germanText.includes(phrase), `German Magnolie Notes documentation missing: ${phrase}`);
   const androidImportIds = ["android-import-files-folders", "android-import-formats",

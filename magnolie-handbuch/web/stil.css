@@ -673,6 +673,22 @@ figure img {
   object-fit: contain;
 }
 
+.notes-native-images {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px;
+}
+.notes-native-images img {
+  height: calc(var(--buchhoehe) * 0.29);
+  width: auto;
+  max-width: calc(50% - 5px);
+  object-fit: contain;
+}
+.notes-native-images img:only-child { max-width: 100%; }
+.notes-native-images img[src="notes-native-due-today.png"] { width: 100%; height: auto; }
+.notes-organizer-links { border-top: 1px solid var(--linie-stark); padding-top: 6px; }
+
 .kaffee-qr {
   width: calc(var(--buchhoehe) * 0.173);
   height: calc(var(--buchhoehe) * 0.173);

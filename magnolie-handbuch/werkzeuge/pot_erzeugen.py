@@ -44,6 +44,10 @@ def handbook_messages(content=CONTENT):
             yield page["inhaltAnhang"]["en"]
         if page.get("notificationDescription"):
             yield page["notificationDescription"]["en"]
+        if page.get("notesRequirementsIntro"):
+            yield page["notesRequirementsIntro"]["en"]
+        for value in page.get("notesParagraphPaths", []):
+            yield value["text"]["en"]
     for variant in data["variants"].values():
         yield variant["en"]
 

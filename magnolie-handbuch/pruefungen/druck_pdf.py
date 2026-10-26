@@ -62,7 +62,8 @@ def haupt():
     ansicht = WebKit2.WebView.new_with_context(kontext)
     druckansicht = WebKit2.WebView.new_with_context(kontext)
     nativer_weg = os.environ.get("MAGNOLIE_HANDBUCH_TEST_NATIVE") == "1" and not nur_layout
-    fenster = Gtk.Window() if nativer_weg else None
+    notes_probe = os.environ.get("MAGNOLIE_HANDBUCH_TEST_NOTES") == "1"
+    fenster = Gtk.Window() if nativer_weg or notes_probe else None
     if fenster:
         fenster.set_default_size(1280, 860)
         fenster.add(ansicht)
@@ -193,8 +194,112 @@ def haupt():
             druckansicht.connect("load-changed", drucken)
             druckansicht.load_html(html, "magnolie-handbuch://app/")
 
+    notes_ids = ["android-notes-connections", "android-notes-list-sorting", "android-notes-properties",
+                 "android-notes-swipes", "android-notes-print-version", "android-tasks-reminders"]
+    notes_state = {"attempt": 0, "position": 0, "steps": [], "results": [], "images": set(), "screenshots": set()}
+
+    def notes_next():
+        if notes_state["position"] >= len(notes_state["steps"]):
+            try:
+                assert len(notes_state["images"]) == 8, notes_state["images"]
+                result = {"passed": True, "language": sprache, "chapterPages": 22,
+                          "images": sorted(notes_state["images"]), "steps": notes_state["results"]}
+                with open(os.path.splitext(ziel)[0] + ".notes.json", "w", encoding="utf-8") as output:
+                    json.dump(result, output, ensure_ascii=False, indent=2)
+                print(json.dumps({"notes": "PASS", "language": sprache, "parts": len(result["steps"]), "images": 8}), flush=True)
+                ansicht.evaluate_javascript("Handbuch.druckFassung()", -1, None, None, None, bei_druckfassung, None)
+            except Exception as error:
+                beenden(1, "Notes native result failed: " + str(error))
+            return False
+        step = notes_state["steps"][notes_state["position"]]
+        script = "Handbuch.blaettereZu(%d); true" % step["index"]
+        ansicht.evaluate_javascript(script, -1, None, None, None, None, None)
+        GLib.timeout_add(250, notes_inspect)
+        return False
+
+    def notes_inspect():
+        script = """JSON.stringify({text:document.querySelector('#seiten').textContent,
+          overflow:[...document.querySelectorAll('#seiten .seiten-inhalt')].filter(n=>n.clientHeight>0&&n.scrollHeight>n.clientHeight+2).map(n=>({height:n.clientHeight,scroll:n.scrollHeight})),
+          images:[...document.querySelectorAll('#seiten img')].filter(n=>n.getAttribute('src').includes('notes-native-')).map(n=>({name:n.getAttribute('src').split('/').pop(),ready:n.complete&&n.naturalWidth>0})),
+          links:[...document.querySelectorAll('#seiten [data-page-title="true"]')].map(n=>({id:n.dataset.page,text:n.textContent}))})"""
+        ansicht.evaluate_javascript(script, -1, None, None, None, notes_inspected, None)
+        return False
+
+    def notes_inspected(_view, finished, _data):
+        try:
+            result = json.loads(_view.evaluate_javascript_finish(finished).to_string())
+            step = notes_state["steps"][notes_state["position"]]
+            assert step["title"] in result["text"], step
+            assert not result["overflow"], {"page": step, "overflow": result["overflow"]}
+            assert all(image["ready"] for image in result["images"]), result["images"]
+            assert all(link["text"].strip() for link in result["links"]), result["links"]
+            notes_state["images"].update(image["name"] for image in result["images"])
+            notes_state["results"].append({"id": step["id"], "partIndex": step["index"], "images": result["images"], "links": result["links"]})
+            if os.environ.get("MAGNOLIE_HANDBUCH_TEST_NOTES_SCREENSHOTS") == "1" and step["id"] not in notes_state["screenshots"]:
+                notes_state["screenshots"].add(step["id"])
+                _view.get_snapshot(WebKit2.SnapshotRegion.VISIBLE, WebKit2.SnapshotOptions.NONE, None, notes_snapshot, step)
+            else:
+                notes_follow_reference()
+        except Exception as error:
+            beenden(1, "Notes native UI failed: " + str(error))
+
+    def notes_snapshot(view, finished, step):
+        try:
+            snapshot = view.get_snapshot_finish(finished)
+            snapshot.write_to_png(os.path.splitext(ziel)[0] + "-" + step["id"] + ".png")
+            notes_follow_reference()
+        except Exception as error:
+            beenden(1, "Notes native screenshot failed: " + str(error))
+
+    def notes_follow_reference():
+        script = """(() => {const link=document.querySelector('#seiten [data-page-title="true"]');
+          if(!link)return JSON.stringify({clicked:false,ok:true});
+          const target=Handbuch.seiten().find(p=>p.id===link.dataset.page);link.click();
+          return JSON.stringify({clicked:true,ok:!!target&&document.querySelector('#seiten').textContent.includes(target.titel)});})()"""
+        ansicht.evaluate_javascript(script, -1, None, None, None, notes_reference_checked, None)
+
+    def notes_reference_checked(view, finished, _data):
+        try:
+            result = json.loads(view.evaluate_javascript_finish(finished).to_string())
+            assert result["ok"], result
+            notes_state["results"][-1]["reference"] = result
+            notes_state["position"] += 1
+            GLib.idle_add(notes_next)
+        except Exception as error:
+            beenden(1, "Notes native reference failed: " + str(error))
+
+    def notes_ready(_view, finished, _data):
+        try:
+            result = json.loads(_view.evaluate_javascript_finish(finished).to_string())
+            assert result["pages"] == 22 and result["searchable"], result
+            assert result["language"] == sprache.replace("_", "-").lower(), result
+            if not result["ready"]:
+                notes_state["attempt"] += 1
+                assert notes_state["attempt"] < 50, "Native Notes images/fonts did not load"
+                GLib.timeout_add(100, notes_prepare)
+                return
+            notes_state["steps"] = result["steps"]
+            assert notes_state["steps"], result
+            GLib.timeout_add(600, notes_next)
+        except Exception as error:
+            beenden(1, "Notes native preparation failed: " + str(error))
+
+    def notes_prepare():
+        script = """(() => { MagnolieI18n.setLocale(%s);Handbuch.oeffneBuch();
+          window.__notesImages ||= ['properties','task-properties','delete','swipe-settings','sort','task-sort','due-today','about'].map(name=>{const img=new Image();img.src='notes-native-'+name+'.png';return img});
+          const ready=window.__notesImages.every(img=>img.complete&&img.naturalWidth>0)&&(!document.fonts||document.fonts.status==='loaded');
+          if(ready)Handbuch.neuUmbrechen();const ids=%s,pages=Handbuch.seiten();
+          return JSON.stringify({ready,language:document.documentElement.lang,pages:pages.filter(p=>p.kapitel==='Magnolie Notes').length,
+            searchable:ids.every(id=>Handbuch.suche(pages.find(p=>p.id===id).titel).includes(id)),
+            steps:Handbuch.anzeige().map((p,index)=>({id:p.quellId,index,title:pages.find(v=>v.id===p.quellId)?.titel||''})).filter(p=>ids.includes(p.id))}); })()""" % (json.dumps(sprache), json.dumps(notes_ids))
+        ansicht.evaluate_javascript(script, -1, None, None, None, notes_ready, None)
+        return False
+
     def bei_ladewechsel(_ansicht, ereignis):
         if ereignis != WebKit2.LoadEvent.FINISHED:
+            return
+        if notes_probe:
+            notes_prepare()
             return
         _ansicht.evaluate_javascript(
             "MagnolieI18n.setLocale(%s); Handbuch.druckFassung()" % json.dumps(sprache), -1, None, None, None,

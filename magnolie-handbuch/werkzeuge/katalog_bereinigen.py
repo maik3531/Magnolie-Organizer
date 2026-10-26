@@ -6,6 +6,7 @@ import json
 import os
 import re
 import sys
+from pot_erzeugen import handbook_data
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PROTECTED_TITLES = {
@@ -19,14 +20,8 @@ PROTECTED_IDS = {
     "support-with-a-coffee", "about-maik-walter",
 }
 PROTECTED_MESSAGES = set(PROTECTED_TITLES)
-with open(os.path.join(ROOT, "web", "inhalt.js"), encoding="utf-8") as _source:
-    _text = _source.read()
-_pages = json.loads(_text[_text.index("["):_text.index("];", _text.index("[")) + 1])
-_marker = "window.HANDBUCH_SEITEN.push("
-if _marker in _text:
-    _start = _text.index(_marker) + len(_marker)
-    _end = _text.index("\n);", _start)
-    _pages.extend(json.loads("[" + _text[_start:_end] + "]"))
+# Use the same evaluated source model as extraction: additions may be built dynamically.
+_pages = handbook_data()["pages"]
 for _page in _pages:
     if (_page.get("id") in PROTECTED_IDS or
             _page.get("titel") in PROTECTED_TITLES):

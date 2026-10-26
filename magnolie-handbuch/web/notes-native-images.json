@@ -1,0 +1,119 @@
+{
+  "apkSha256": "ca69310635fc933dbe734e7f181d177c6a487e816b11405323f0d41d7484dc39",
+  "format": 2,
+  "images": {
+    "notes-native-about.png": {
+      "crop": [
+        72,
+        371,
+        648,
+        995
+      ],
+      "height": 624,
+      "sha256": "2962cabc47039301f15c0dcac30393c9a7862b5b247278af204defd8ff640046",
+      "sourceHeight": 1280,
+      "sourceSha256": "e6cf99eb417e3c8429ed7403798a582f483d16e00ab6502d1baa69c2cc390a3a",
+      "sourceWidth": 720,
+      "width": 576
+    },
+    "notes-native-delete.png": {
+      "crop": [
+        107,
+        459,
+        613,
+        907
+      ],
+      "height": 448,
+      "sha256": "061ae428ef12ba9808edf8ab7a4cc090025c591526aab4363f07b035f38fe76c",
+      "sourceHeight": 1280,
+      "sourceSha256": "577a2a31cb08f38a858e04e9e6785e54f316170dd1994a736b75bfe04658d4f2",
+      "sourceWidth": 720,
+      "width": 506
+    },
+    "notes-native-due-today.png": {
+      "crop": [
+        20,
+        395,
+        700,
+        612
+      ],
+      "height": 217,
+      "sha256": "386e61123260779c2ea9f7049e8e9d318b9a03b595a828751fd90d63905e4095",
+      "sourceHeight": 1280,
+      "sourceSha256": "db82ed54d963d5c0ab35cb13513856f3ab129fd60e9037caad33e386a63eb622",
+      "sourceWidth": 720,
+      "width": 680
+    },
+    "notes-native-properties.png": {
+      "crop": [
+        107,
+        335,
+        613,
+        1030
+      ],
+      "height": 695,
+      "sha256": "2ffc4e8e8c692d02a4be6655e2eb4050d65a2e32d210e5a3488c7a53c23c8c5f",
+      "sourceHeight": 1280,
+      "sourceSha256": "ad5c4fe65818f29f517f2ac948cad5598332e0f65136ad75ccd859e97e540886",
+      "sourceWidth": 720,
+      "width": 506
+    },
+    "notes-native-sort.png": {
+      "crop": [
+        72,
+        413,
+        648,
+        953
+      ],
+      "height": 540,
+      "sha256": "2f9c520fbe0aed848b272c287e3bb63331c5fcbbc945f61a191c125650a9bd15",
+      "sourceHeight": 1280,
+      "sourceSha256": "205e7f506150197dafc8283f9121d6531b32b780857e3b0de7c972e8712c55fc",
+      "sourceWidth": 720,
+      "width": 576
+    },
+    "notes-native-swipe-settings.png": {
+      "crop": [
+        18,
+        720,
+        702,
+        1115
+      ],
+      "height": 395,
+      "sha256": "dbd8c3cb5d5e88769f781e018f74ad47ee75fac0941d2a0452a7d04495e0e888",
+      "sourceHeight": 1280,
+      "sourceSha256": "e6243d52bf4a9d8bf353ba69c88826aa59d3d880bf4ff26b19653c03f188ca8e",
+      "sourceWidth": 720,
+      "width": 684
+    },
+    "notes-native-task-properties.png": {
+      "crop": [
+        107,
+        335,
+        613,
+        1030
+      ],
+      "height": 695,
+      "sha256": "14056e3bc265319dfe4286f2d5682db371ee52c618166715c0a6d4a43681fcbe",
+      "sourceHeight": 1280,
+      "sourceSha256": "87e5948f2d62a06c308c14b61c874189fac67bbac9d478bfb9c5bbd2ed41a4db",
+      "sourceWidth": 720,
+      "width": 506
+    },
+    "notes-native-task-sort.png": {
+      "crop": [
+        72,
+        367,
+        648,
+        999
+      ],
+      "height": 632,
+      "sha256": "f9f7ac475bfb2591b5dfac1521373ae1aff9b49bebc618adc1e496bceef5937f",
+      "sourceHeight": 1280,
+      "sourceSha256": "5123587fdc01f8de12c98f7a1b39b41c48e6e264c0815530c06cdec94afd20c8",
+      "sourceWidth": 720,
+      "width": 576
+    }
+  },
+  "kind": "native-android-synthetic-examples"
+}
