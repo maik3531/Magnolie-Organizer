@@ -56,7 +56,6 @@ Requires:       python(abi) >= 3.10
 Requires:       python3dist(cffi)
 Requires:       python3dist(pillow) >= 9.1
 Requires:       python3dist(brotli)
-Requires:       python3dist(zopfli)
 Requires:       /usr/bin/xgettext
 Requires:       %{magnolie_deps}
 Recommends:     magnolie-organizer >= 2.0.0

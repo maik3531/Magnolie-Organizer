@@ -100,7 +100,7 @@ if [ ! -f "$MARKER" ] || [ "$(cat "$MARKER")" != "$BASIS_STAND" ]; then
         gnome-themes-extra-data libayatana-appindicator3-1 libglib2.0-bin libgtk-3-0 libwebkit2gtk-4.0-37 \
         libxapp1 libfakekey0 libxtst6 xapp python3 python3-cryptography python3-gi python3-gi-cairo \
         python3-ifaddr python3-openssl python3-phonenumbers \
-        python3-qrcode python3-zeroconf python3-cffi python3-pil python3-brotli python3-zopfli tzdata
+        python3-qrcode python3-zeroconf python3-cffi python3-pil python3-brotli tzdata
     printf '%s\n' "$BASIS_STAND" > "$MARKER"
 fi
 

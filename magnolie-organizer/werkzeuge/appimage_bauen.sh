@@ -195,7 +195,7 @@ ln -s "python$PYTHON_VERSION" "$APPDIR/usr/bin/python3"
 cp -a "/usr/lib/python$PYTHON_VERSION" "$APPDIR/usr/lib/"
 find "$APPDIR/usr/lib/python$PYTHON_VERSION" -type f \( -name '*.a' -o -name '*.o' \) -delete
 python3 -c 'import gi; gi.require_foreign("cairo")'
-for paket in gi cairo cryptography OpenSSL zeroconf ifaddr async_timeout qrcode phonenumbers cffi pycparser brotli.py zopfli; do
+for paket in gi cairo cryptography OpenSSL zeroconf ifaddr async_timeout qrcode phonenumbers cffi pycparser brotli.py; do
     quelle="/usr/lib/python3/dist-packages/$paket"
     [ ! -e "$quelle" ] || cp -a "$quelle" "$APPDIR/usr/lib/python3/dist-packages/"
 done
