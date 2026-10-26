@@ -30,6 +30,21 @@ Copyright: 2010, 2012-2020 Google Inc.; 2015-2020 Google LLC
 License: OFL-1.1
  See web/schriften/Noto-LIZENZ.txt for the complete license text.
 
+Files: bin/pdf-runtime/*
+Copyright: The upstream authors identified in the corresponding package metadata
+ and unmodified license files included in this directory.
+License: BSD-3-clause and MIT and Apache-2.0 and LGPL-2.1+ and OFL-1.1
+ WeasyPrint, pydyf, tinycss2, cssselect2, pypdf, and webencodings retain their
+ upstream BSD license notices. tinyhtml5 retains its MIT notice. FontTools
+ retains LICENSE and LICENSE.external, including its MIT, BSD, Apache-2.0,
+ and font-license notices. Pyphen retains its licensing choices and all
+ dictionary notices; LGPL-2.1-or-later is selected for its program code.
+ .
+ The exact versions and original wheel SHA-256 values are recorded in
+ bin/pdf-runtime-lock.json. runtime-manifest.json identifies every included
+ source file and each package's complete license files. These notices remain
+ with the installed private runtime under /usr/lib/magnolie-handbuch/pdf-runtime.
+
 License: GPL-3+
  This program is free software: you can redistribute it and/or modify it under
  the terms of the GNU General Public License as published by the Free Software

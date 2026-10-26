@@ -195,7 +195,7 @@ ln -s "python$PYTHON_VERSION" "$APPDIR/usr/bin/python3"
 cp -a "/usr/lib/python$PYTHON_VERSION" "$APPDIR/usr/lib/"
 find "$APPDIR/usr/lib/python$PYTHON_VERSION" -type f \( -name '*.a' -o -name '*.o' \) -delete
 python3 -c 'import gi; gi.require_foreign("cairo")'
-for paket in gi cairo cryptography OpenSSL zeroconf ifaddr async_timeout qrcode phonenumbers; do
+for paket in gi cairo cryptography OpenSSL zeroconf ifaddr async_timeout qrcode phonenumbers cffi pycparser brotli.py zopfli; do
     quelle="/usr/lib/python3/dist-packages/$paket"
     [ ! -e "$quelle" ] || cp -a "$quelle" "$APPDIR/usr/lib/python3/dist-packages/"
 done
@@ -247,7 +247,7 @@ fi
     printf '%s\n' 'phonenumbers konnte nicht in das AppImage kopiert werden.' >&2
     exit 1
 }
-for modul in /usr/lib/python3/dist-packages/_cffi_backend*.so; do
+for modul in /usr/lib/python3/dist-packages/_cffi_backend*.so /usr/lib/python3/dist-packages/_brotli*.so; do
     [ ! -e "$modul" ] || cp -a "$modul" "$APPDIR/usr/lib/python3/dist-packages/"
 done
 [ ! -f /usr/lib/python3/dist-packages/six.py ] || \
@@ -284,7 +284,7 @@ EOF
 
 cp -a "$WURZEL/web/." "$APPDIR/usr/share/magnolie-organizer/web/"
 HANDBUCH=${MAGNOLIE_HANDBUCH_SOURCE:-"$(dirname "$WURZEL")/magnolie-handbuch"}
-python3 "$WURZEL/werkzeuge/appimage_handbook.py" "$APPDIR" "$HANDBUCH" "$FASSUNG"
+python3 "$WURZEL/werkzeuge/appimage_handbook.py" "$APPDIR" "$HANDBUCH" "$FASSUNG" --cache "$WERKZEUGE"
 printf '{"version":"%s"}\n' "$FASSUNG" > "$APPDIR/usr/share/magnolie-organizer/version.json"
 if [ -n "$CONTRIBUTOR_HASH" ]; then
     printf '{"contributorHash":"%s"}\n' "$CONTRIBUTOR_HASH" > \

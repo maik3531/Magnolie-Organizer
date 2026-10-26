@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "packages": [
+    {"name": "weasyprint", "version": "70.0", "filename": "weasyprint-70.0-py3-none-any.whl", "sha256": "5043e55e38d2a2af2b2b871e869697b1f65dad5f8b4a3677961d04ceacf9c5fe"},
+    {"name": "pydyf", "version": "0.11.0", "filename": "pydyf-0.11.0-py3-none-any.whl", "sha256": "0aaf9e2ebbe786ec7a78ec3fbffa4cdcecde53fd6f563221d53c6bc1328848a3"},
+    {"name": "tinyhtml5", "version": "2.0.0", "filename": "tinyhtml5-2.0.0-py3-none-any.whl", "sha256": "13683277c5b176d070f82d099d977194b7a1e26815b016114f581a74bbfbf47e"},
+    {"name": "tinycss2", "version": "1.5.0", "filename": "tinycss2-1.5.0-py3-none-any.whl", "sha256": "6645326e562ea497d6d11cfa608ce3ad30c1e96576b0e43d678dcf6275df6761"},
+    {"name": "cssselect2", "version": "0.8.0", "filename": "cssselect2-0.8.0-py3-none-any.whl", "sha256": "46fc70ebc41ced7a32cd42d58b1884d72ade23d21e5a4eaaf022401c13f0e76e"},
+    {"name": "fonttools", "version": "4.59.2", "filename": "fonttools-4.59.2-py3-none-any.whl", "sha256": "8bd0f759020e87bb5d323e6283914d9bf4ae35a7307dafb2cbd1e379e720ad37"},
+    {"name": "pypdf", "version": "6.21.2", "filename": "pypdf-6.21.2-py3-none-any.whl", "sha256": "1d44d1a3a200f25062adff0085b02040e4646431ac2ccac22e42679e91466084"},
+    {"name": "pyphen", "version": "0.18.1", "filename": "pyphen-0.18.1-py3-none-any.whl", "sha256": "0aa9051e15928cecadd4c632cea0258ba57215b2a197a39baa46abcdb0f47e84"},
+    {"name": "webencodings", "version": "0.6.1", "filename": "webencodings-0.6.1-py3-none-any.whl", "sha256": "7fab6269c8bf237c657876b52058ccb182e861518d1c695c1a9aaa8c1c105d5b"}
+  ]
+}

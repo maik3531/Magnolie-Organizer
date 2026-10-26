@@ -8,6 +8,7 @@ JS_LAUFER := $(shell command -v node 2>/dev/null || command -v nodejs 2>/dev/nul
 
 override_dh_auto_build:
 	rm -rf debian/magnolie-handbuch debian/.debhelper debian/files debian/*.substvars
+	test -f bin/pdf-runtime/runtime-manifest.json
 	python3 werkzeuge/mobile_downloads_erzeugen.py
 	mkdir -p web/i18n
 	python3 werkzeuge/po_zu_js.py en po/english/protected.po web/i18n/en.js
@@ -17,7 +18,7 @@ override_dh_auto_build:
 		msgfmt --check --check-format -o locale/$$sprache/LC_MESSAGES/magnolie-handbuch.mo po/$$sprache.po; \
 		python3 werkzeuge/po_zu_js.py $$sprache po/$$sprache.po web/i18n/$$sprache.js; \
 	done < po/LINGUAS
-	python3 -m py_compile bin/magnolie-handbuch bin/magnolie_crash.py bin/magnolie_asset.py
+	python3 -m py_compile bin/magnolie-handbuch bin/magnolie_crash.py bin/magnolie_asset.py bin/magnolie_print_*.py
 	rm -rf bin/__pycache__
 
 override_dh_auto_test:
@@ -29,6 +30,7 @@ ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 	TZ=Europe/Berlin $(JS_LAUFER) pruefungen/handbuch_test.js
 	python3 pruefungen/druck_test.py --cli-only
 	python3 -m pytest -q pruefungen/test_asset_container.py pruefungen/test_source_packaging.py
+	PYTHONPATH=bin/pdf-runtime PYTHONDONTWRITEBYTECODE=1 python3 -B -m pytest -q pruefungen/test_print_pdf.py pruefungen/test_pdf_runtime.py
 	@if { [ -n "$${DISPLAY:-}" ] || [ -n "$${WAYLAND_DISPLAY:-}" ]; } && \
 		command -v pdfinfo >/dev/null && command -v pdftotext >/dev/null && \
 		python3 -c 'import gi; gi.require_version("Gtk", "3.0"); gi.require_version("WebKit2", "4.1")' 2>/dev/null; then \

@@ -2,14 +2,14 @@ Source: magnolie-handbuch
 Section: doc
 Priority: optional
 Maintainer: Maik Walter <maik3531@gmail.com>
-Build-Depends: debhelper-compat (= 13), python3:any, python3-cryptography, python3-pytest, python3-qrcode, gettext, nodejs, node-jsdom
+Build-Depends: debhelper-compat (= 13), python3:any (>= 3.10), python3-cryptography, python3-pytest, python3-qrcode, python3-cffi, python3-pil (>= 9.1), python3-brotli, python3-zopfli, libpango-1.0-0 (>= 1.44), libpangoft2-1.0-0, gettext, nodejs, node-jsdom
 Standards-Version: 4.6.2
 Rules-Requires-Root: no
 
 Package: magnolie-handbuch
 Architecture: all
-Depends: ${misc:Depends}, python3, python3-cryptography, gettext, python3-gi, gir1.2-gtk-3.0, gir1.2-webkit2-4.1 | gir1.2-webkit2-4.0
-Recommends: magnolie-organizer (>= 2.0.0)
+Depends: ${misc:Depends}, python3 (>= 3.10), python3-cryptography, python3-cffi, python3-pil (>= 9.1), python3-brotli, python3-zopfli, libpango-1.0-0 (>= 1.44), libpangoft2-1.0-0, gettext, python3-gi, gir1.2-gtk-3.0, gir1.2-webkit2-4.1 | gir1.2-webkit2-4.0
+Recommends: magnolie-organizer (>= 2.0.0), fonts-noto-core, fonts-noto-cjk
 Description: Illustrated user handbook for Magnolie Organizer
  The complete handbook for Magnolie Organizer, presented like the application
  itself: an open landscape-format book with a brown leather cover, ring binding,

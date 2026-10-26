@@ -17,11 +17,18 @@ def test_bundled_handbook_has_own_program_assets_and_all_locales(tmp_path):
     source = ROOT.parent / 'magnolie-handbuch'
     appdir = tmp_path / 'AppDir'
     version = json.loads((source / 'web/version.json').read_text())['version']
-    packer.bundle(appdir, source, version)
+    runtime = Path(os.environ.get('MAGNOLIE_PDF_TEST_RUNTIME', source / 'bin/pdf-runtime'))
+    packer.bundle(appdir, source, version, runtime_source=runtime)
     program = appdir / 'usr/lib/magnolie-handbuch/magnolie-handbuch'
     assert (appdir / 'usr/bin/magnolie-handbuch').stat().st_mode & 0o111
     assert (appdir / 'usr/share/magnolie-handbuch/web/index.html').is_file()
     assert (appdir / 'usr/share/magnolie-handbuch/web/i18n/en.js').is_file()
+    private = appdir / 'usr/lib/magnolie-handbuch'
+    for name in ('magnolie_print_pdf.py', 'magnolie_print_gtk.py', 'magnolie_print_process.py',
+                 'magnolie_print_operation.py', 'magnolie_print_portal.py', 'pdf-runtime-lock.json'):
+        assert (private / name).read_bytes() == (source / 'bin' / name).read_bytes()
+    assert (private / 'pdf-runtime/runtime-manifest.json').read_bytes() == (runtime / 'runtime-manifest.json').read_bytes()
+    assert (appdir / 'usr/lib/python3/dist-packages/PIL/Image.py').is_file()
     languages = (source / 'po/LINGUAS').read_text().split()
     assert len(languages) == 19
     for language in languages:

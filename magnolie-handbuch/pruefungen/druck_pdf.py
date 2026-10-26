@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Erzeugt die Handbuch-Druckfassung mit demselben WebKit wie das Programm."""
+"""Paginate in native WebKit and exercise the product's semantic PDF print path."""
 
 import os
 import sys
@@ -7,7 +7,6 @@ import gettext
 import json
 import importlib.machinery
 import importlib.util
-from types import SimpleNamespace
 
 import gi
 
@@ -30,6 +29,9 @@ def haupt():
     nur_layout = sys.argv[1] == "--layout-only"
     ziel = os.path.abspath(sys.argv[1])
     sprache = os.environ.get("MAGNOLIE_HANDBUCH_TEST_LANGUAGE", "de")
+    druck_optionen = {}
+    if os.environ.get("MAGNOLIE_HANDBUCH_TEST_RESERVE_MM"):
+        druck_optionen["reserveMm"] = float(os.environ["MAGNOLIE_HANDBUCH_TEST_RESERVE_MM"])
     web = os.environ.get(
         "MAGNOLIE_HANDBUCH_WEB",
         os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "web")),
@@ -61,7 +63,10 @@ def haupt():
             pass
     ansicht = WebKit2.WebView.new_with_context(kontext)
     druckansicht = WebKit2.WebView.new_with_context(kontext)
-    nativer_weg = os.environ.get("MAGNOLIE_HANDBUCH_TEST_NATIVE") == "1" and not nur_layout
+    nativer_weg = not nur_layout
+    ansicht.get_user_content_manager().add_script(WebKit2.UserScript.new(
+        "window.MAGNOLIE_NATIVE_SEMANTIC_PDF = true;", WebKit2.UserContentInjectedFrames.TOP_FRAME,
+        WebKit2.UserScriptInjectionTime.START, ["magnolie-handbuch://app/*"], None))
     notes_probe = os.environ.get("MAGNOLIE_HANDBUCH_TEST_NOTES") == "1"
     fenster = Gtk.Window() if nativer_weg or notes_probe else None
     if fenster:
@@ -129,7 +134,8 @@ def haupt():
         auftrag.print_()
 
     def nativ_drucken(html):
-        pfad = os.path.join(os.path.dirname(__file__), "..", "bin", "magnolie-handbuch")
+        pfad = os.environ.get("MAGNOLIE_HANDBUCH_TEST_PROGRAMM") or os.path.join(
+            os.path.dirname(__file__), "..", "bin", "magnolie-handbuch")
         lader = importlib.machinery.SourceFileLoader("handbuch_druck_produkt", pfad)
         spec = importlib.util.spec_from_loader(lader.name, lader)
         modul = importlib.util.module_from_spec(spec)
@@ -163,23 +169,34 @@ def haupt():
                     return False
             return True
 
-        def auftrag_neu(view):
-            auftrag = WebKit2.PrintOperation.new(view)
+        import magnolie_print_operation as druck_implementation
+        produkt_auftrag = druck_implementation.PdfPrintOperation
+        def auftrag_neu(parent, title, markup, root, complete, translate):
+            def fertig(ok, result):
+                if not ok:
+                    parent._closing = True
+                complete(ok, result)
+                beenden(0 if ok else 1, None if ok else "Nativer PDF-Druck fehlgeschlagen: " + str(result))
+            auftrag = produkt_auftrag(parent, title, markup, root, fertig, translate,
+                runtime_dir=os.environ.get("MAGNOLIE_PDF_TEST_RUNTIME"))
             einstellung = Gtk.PrintSettings()
             einstellung.set_printer(dateidrucker)
             einstellung.set(Gtk.PRINT_SETTINGS_OUTPUT_FILE_FORMAT, "pdf")
             einstellung.set(Gtk.PRINT_SETTINGS_OUTPUT_URI, ziel_uri)
             auftrag.set_print_settings(einstellung)
-            auftrag.connect("failed", bei_druckfehler)
-            auftrag.connect("finished", bei_druckende)
-            GLib.timeout_add(100, bestaetigen)
+            GLib.timeout_add(500, bestaetigen)
             return auftrag
 
-        # Keep production loading, page setup and printer selection. Only isolate the
-        # WebContext and preselect a verified virtual PDF destination for the test.
-        modul.WebKit2 = SimpleNamespace(WebView=lambda: WebKit2.WebView.new_with_context(kontext),
-            LoadEvent=WebKit2.LoadEvent, PrintOperation=SimpleNamespace(new=auftrag_neu))
-        modul.Fenster._drucken(fenster, html)
+        # Keep the actual product chooser, worker, backend options and PDF send.
+        # Only preselect the verified virtual destination and build-time runtime.
+        fenster._web_verzeichnis = web
+        fenster._closing = False
+        fenster._print_shutdown_timeout = None
+        druck_implementation.PdfPrintOperation = auftrag_neu
+        try:
+            modul.Fenster._drucken(fenster, html)
+        finally:
+            druck_implementation.PdfPrintOperation = produkt_auftrag
 
     def bei_druckfassung(_ansicht, ergebnis, _daten):
         try:
@@ -187,6 +204,12 @@ def haupt():
             html = wert.to_string()
         except Exception as fehler:
             beenden(1, "Druckfassung konnte nicht gelesen werden: %s" % fehler)
+            return
+        if os.environ.get("MAGNOLIE_HANDBUCH_TEST_HTML_ONLY") == "1":
+            with open(ziel, "w", encoding="utf-8") as output:
+                output.write(html)
+            print(json.dumps({"nativePrintHtml": "PASS", "language": sprache}), flush=True)
+            beenden(0)
             return
         if nativer_weg:
             nativ_drucken(html)
@@ -207,7 +230,7 @@ def haupt():
                 with open(os.path.splitext(ziel)[0] + ".notes.json", "w", encoding="utf-8") as output:
                     json.dump(result, output, ensure_ascii=False, indent=2)
                 print(json.dumps({"notes": "PASS", "language": sprache, "parts": len(result["steps"]), "images": 8}), flush=True)
-                ansicht.evaluate_javascript("Handbuch.druckFassung()", -1, None, None, None, bei_druckfassung, None)
+                ansicht.evaluate_javascript("Handbuch.druckFassung(%s)" % json.dumps(druck_optionen), -1, None, None, None, bei_druckfassung, None)
             except Exception as error:
                 beenden(1, "Notes native result failed: " + str(error))
             return False
@@ -302,12 +325,12 @@ def haupt():
             notes_prepare()
             return
         _ansicht.evaluate_javascript(
-            "MagnolieI18n.setLocale(%s); Handbuch.druckFassung()" % json.dumps(sprache), -1, None, None, None,
+            "MagnolieI18n.setLocale(%s); Handbuch.druckFassung(%s)" % (json.dumps(sprache), json.dumps(druck_optionen)), -1, None, None, None,
             bei_druckfassung, None)
 
     ansicht.connect("load-changed", bei_ladewechsel)
     ansicht.load_uri("magnolie-handbuch://app/index.html")
-    GLib.timeout_add_seconds(60, lambda: beenden(1, "Zeitüberschreitung") or False)
+    GLib.timeout_add_seconds(300, lambda: beenden(1, "Zeitüberschreitung") or False)
     schleife.run()
     ansicht.stop_loading()
     druckansicht.stop_loading()
@@ -315,7 +338,7 @@ def haupt():
     druckansicht.destroy()
     if fenster:
         if getattr(fenster, "_druckansicht", None):
-            fenster._druckansicht.destroy()
+            fenster._druckansicht.shutdown()
         fenster.destroy()
     return status["code"]
 

@@ -1,6 +1,9 @@
 bin/magnolie-handbuch                 usr/bin
 bin/magnolie_crash.py                 usr/lib/magnolie-handbuch
 bin/magnolie_asset.py                 usr/lib/magnolie-handbuch
+bin/magnolie_print_*.py               usr/lib/magnolie-handbuch
+bin/pdf-runtime-lock.json            usr/lib/magnolie-handbuch
+bin/pdf-runtime                      usr/lib/magnolie-handbuch
 web/index.html                        usr/share/magnolie-handbuch/web
 web/stil.css                          usr/share/magnolie-handbuch/web
 web/qr-dialog.css                     usr/share/magnolie-handbuch/web

@@ -39,6 +39,41 @@ def test_title_extraction_preserves_letters_and_respects_rtl():
     assert not title_present("प लखना", "पत्र लिखना")
 
 
+def inspect_pdf(pdf, language):
+    """Collect the same strict evidence for a freshly printed or existing PDF."""
+    native_notes = json.loads((ROOT / "web/notes-native-images.json").read_text())
+    native_sizes = {(image["width"], image["height"]) for image in native_notes["images"].values()}
+    info = subprocess.check_output(["pdfinfo", str(pdf)], text=True)
+    geometry = re.search(r"Page size:\s+([\d.]+) x ([\d.]+) pts", info)
+    assert geometry and abs(float(geometry[1]) - 842) < 2 and abs(float(geometry[2]) - 595) < 2, (language, info)
+    pages = int(re.search(r"Pages:\s+(\d+)", info)[1])
+    assert pages >= 82, (language, pages)
+    text = subprocess.check_output(["pdftotext", "-raw", str(pdf), "-"], text=True)
+    physical = text.split("\f")
+    if not physical[-1].strip():
+        physical.pop()
+    assert len(physical) == pages and all(page.strip() for page in physical), language
+    assert len(text) > 10000, language
+    assert "DIN" in text and "5008" in text, language
+    translation = gettext.NullTranslations() if language == "en" else gettext.translation(
+        "magnolie-handbuch", localedir=str(ROOT / "locale"), languages=[language])
+    title_extractable = title_present(text, translation.gettext("Writing letters"), language == "ar")
+    notes_extractable = title_present(text, translation.gettext("Read properties and original application"), language == "ar")
+    embedded_sizes = set()
+    for line in subprocess.check_output(["pdfimages", "-list", str(pdf)], text=True).splitlines():
+        fields = line.split()
+        if len(fields) > 5 and fields[0].isdigit() and fields[1].isdigit():
+            embedded_sizes.add((int(fields[3]), int(fields[4])))
+    assert native_sizes <= embedded_sizes, (language, "Native Notes raster images missing from PDF", sorted(native_sizes - embedded_sizes))
+    if language == "en":
+        visible = normalized(text)
+        assert "SupportMagnoliewithacoffee" in visible
+        assert "EineE-Mail-Adressebleibtfreiwillig" not in visible
+    return {"locale": language, "pages": pages, "width": float(geometry[1]), "height": float(geometry[2]),
+            "textCharacters": len(text), "letterTitleExtractable": title_extractable,
+            "notesTitleExtractable": notes_extractable, "nativeNotesImageSizes": len(native_sizes), "path": str(pdf)}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
@@ -50,8 +85,6 @@ def main():
     results = []
     extraction_failures = []
     latest_input = max(path.stat().st_mtime_ns for path in (ROOT / "web").rglob("*") if path.is_file())
-    native_notes = json.loads((ROOT / "web/notes-native-images.json").read_text())
-    native_sizes = {(image["width"], image["height"]) for image in native_notes["images"].values()}
     for language in languages:
         pdf = args.output / (language + ".pdf")
         if not (args.reuse_current and pdf.is_file() and pdf.stat().st_mtime_ns >= latest_input):
@@ -61,42 +94,11 @@ def main():
                                  capture_output=True, text=True, timeout=180)
             if run.returncode:
                 raise AssertionError((language, run.stdout, run.stderr))
-        info = subprocess.check_output(["pdfinfo", str(pdf)], text=True)
-        geometry = re.search(r"Page size:\s+([\d.]+) x ([\d.]+) pts", info)
-        assert geometry and abs(float(geometry[1]) - 842) < 2 and abs(float(geometry[2]) - 595) < 2, (language, info)
-        pages = int(re.search(r"Pages:\s+(\d+)", info)[1])
-        assert pages >= 82, (language, pages)
-        text = subprocess.check_output(["pdftotext", "-raw", str(pdf), "-"], text=True)
-        physical = text.split("\f")
-        if not physical[-1].strip():
-            physical.pop()
-        assert len(physical) == pages and all(page.strip() for page in physical), language
-        assert len(text) > 10000, language
-        assert "DIN" in text and "5008" in text, language
-        translation = gettext.NullTranslations() if language == "en" else gettext.translation(
-            "magnolie-handbuch", localedir=str(ROOT / "locale"), languages=[language])
-        title = translation.gettext("Writing letters")
-        visible = normalized(text)
-        title_extractable = title_present(text, title, language == "ar")
-        if not title_extractable:
+        result = inspect_pdf(pdf, language)
+        if not result["letterTitleExtractable"]:
             extraction_failures.append(language)
-        notes_title = translation.gettext("Read properties and original application")
-        notes_extractable = title_present(text, notes_title, language == "ar")
-        if not notes_extractable:
+        if not result["notesTitleExtractable"]:
             extraction_failures.append(language + ":notes")
-        embedded_sizes = set()
-        for line in subprocess.check_output(["pdfimages", "-list", str(pdf)], text=True).splitlines():
-            fields = line.split()
-            if len(fields) > 5 and fields[0].isdigit() and fields[1].isdigit():
-                embedded_sizes.add((int(fields[3]), int(fields[4])))
-        assert native_sizes <= embedded_sizes, (language, "Native Notes raster images missing from PDF", sorted(native_sizes - embedded_sizes))
-        if language == "en":
-            assert "SupportMagnoliewithacoffee" in visible
-            assert "EineE-Mail-Adressebleibtfreiwillig" not in visible
-        result = {"locale": language, "pages": pages, "width": float(geometry[1]),
-                  "height": float(geometry[2]), "textCharacters": len(text),
-                  "letterTitleExtractable": title_extractable, "notesTitleExtractable": notes_extractable,
-                  "nativeNotesImageSizes": len(native_sizes), "path": str(pdf)}
         results.append(result)
         print(json.dumps(result), flush=True)
         (args.output / "results.json").write_text(json.dumps(results, indent=2) + "\n")

@@ -20,7 +20,7 @@ TALLOC_SHA=0910059bb0329add8d13b502f5a10d18d5b3c5202fbbbe25ef4f6d58e7edfe6c
 PROOT_WURZEL="$ARBEIT/proot"
 PROOT="$PROOT_WURZEL/usr/bin/proot"
 SNAPSHOT=20260820T000000Z
-BASIS_STAND="$SNAPSHOT-openssl-theme1-recurrence-tzdata1-cairo1-eds-soup2-compat1"
+BASIS_STAND="$SNAPSHOT-openssl-theme1-recurrence-tzdata1-cairo1-eds-soup2-compat1-pdf1"
 
 for befehl in curl dpkg-deb dpkg-parsechangelog sha256sum tar timeout; do
     command -v "$befehl" >/dev/null || {
@@ -100,7 +100,7 @@ if [ ! -f "$MARKER" ] || [ "$(cat "$MARKER")" != "$BASIS_STAND" ]; then
         gnome-themes-extra-data libayatana-appindicator3-1 libglib2.0-bin libgtk-3-0 libwebkit2gtk-4.0-37 \
         libxapp1 libfakekey0 libxtst6 xapp python3 python3-cryptography python3-gi python3-gi-cairo \
         python3-ifaddr python3-openssl python3-phonenumbers \
-        python3-qrcode python3-zeroconf tzdata
+        python3-qrcode python3-zeroconf python3-cffi python3-pil python3-brotli python3-zopfli tzdata
     printf '%s\n' "$BASIS_STAND" > "$MARKER"
 fi
 

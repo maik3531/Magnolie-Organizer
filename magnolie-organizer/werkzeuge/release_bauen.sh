@@ -135,6 +135,15 @@ python3 "$WURZEL/werkzeuge/release_sources.py" contracts "$WURZEL"
 python3 "$LIVE_SOURCE/werkzeuge/release_sources.py" verify-copy "$STAGE/source-record.json" "$STAGE/contracts" --component contracts
 python3 "$LIVE_SOURCE/werkzeuge/release_sources.py" verify-copy "$STAGE/source-record.json" "$WURZEL" --component magnolie-organizer
 python3 "$LIVE_SOURCE/werkzeuge/release_sources.py" verify-copy "$STAGE/source-record.json" "$STAGE/magnolie-handbuch" --component magnolie-handbuch
+# The canonical source projection is verified before adding hash-locked upstream
+# sources. Ship these with the handbook source archive for offline rebuilds.
+PDF_WHEEL_CACHE=${MAGNOLIE_PDF_WHEEL_CACHE:-"${MAGNOLIE_BUILD_SCRATCH:-/tmp/opencode}/magnolie-pdf-wheels"}
+mkdir -p "$PDF_WHEEL_CACHE"
+python3 "$STAGE/magnolie-handbuch/werkzeuge/pdf_runtime.py" \
+    "$STAGE/magnolie-handbuch/bin/pdf-runtime" --cache "$PDF_WHEEL_CACHE" --update
+PYTHONPATH="$STAGE/magnolie-handbuch/bin/pdf-runtime" PYTHONDONTWRITEBYTECODE=1 \
+    python3 -B -m pytest -q "$STAGE/magnolie-handbuch/pruefungen/test_print_pdf.py" \
+    "$STAGE/magnolie-handbuch/pruefungen/test_pdf_runtime.py"
 MAGNOLIE_LINUX_SOURCE="$WURZEL" "$LAEUFER" "$LIVE_WINDOWS/tests/linux-live-parity.js"
 cp "$LIVE_ROOT/update.xml" "$STAGE/update.xml"
 cp "$LIVE_ROOT/.gitignore" "$STAGE/"

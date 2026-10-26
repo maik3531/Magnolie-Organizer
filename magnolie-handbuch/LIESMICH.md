@@ -83,8 +83,9 @@ festgeschriebenen Stand seines rollenden Repositorys geprüft werden.
 vorhanden, zeigt `NODE_PATH` auf dessen `node_modules`, ohne dieses Handbuch zu
 verändern.
 
-Die zweite Prüfung erzeugt die Druckfassung mit demselben GTK/WebKit wie das
-Handbuchprogramm und benötigt zusätzlich `pdfinfo` und `pdftotext`.
+Die Druckprüfung erzeugt den Seitenumbruch im nativen GTK/WebKit und benutzt
+anschließend denselben Unicode-PDF-Renderer und GTK-Dateidruck wie das Programm.
+Sie benötigt zusätzlich `pdfinfo`, `pdftotext` und die vorbereitete PDF-Laufzeit.
 Die Paketprüfung läuft erst nach dem Paketbau. Sie entpackt das gebaute DEB in
 ein temporäres Verzeichnis und vergleicht SHA-256, Seitenzahl und Slug-Liste von
 `web/inhalt.js` mit dem sauberen Quellbaum; eingecheckte Debian-Stagingdateien
@@ -93,3 +94,29 @@ werden dabei weder verwendet noch akzeptiert.
 ## Ohne Installation ausprobieren
 
     MAGNOLIE_HANDBUCH_WEB=$(pwd)/web python3 bin/magnolie-handbuch
+
+## PDF-Laufzeit für Quell- und Paketbau
+
+Die unterstützten reinen Python-Abhängigkeiten sind in
+`bin/pdf-runtime-lock.json` mit Version und SHA-256 festgeschrieben. Vor dem
+Paketbau wird daraus `bin/pdf-runtime` erzeugt; bei der Programmausführung
+werden keine Abhängigkeiten heruntergeladen. Der vorhandene Gesamtbau bereitet
+dies nach der Prüfung seiner Quellkopie vor und nimmt die unveränderten
+Upstream-Quellen samt Lizenztexten auch ins Handbuch-Quellarchiv auf.
+
+Für einen einzelnen Quellbau mit einem vorhandenen Wheel-Cache:
+
+    python3 werkzeuge/pdf_runtime.py bin/pdf-runtime --cache /pfad/zum/wheel-cache
+
+Mit `--offline` müssen alle festgeschriebenen Wheels bereits im Cache liegen.
+`--update` ersetzt nur eine unveränderte, anhand ihres Manifests überprüfte
+generierte Laufzeit. Zusätzliche Dateien oder Verzeichnisse werden erhalten
+und verhindern diesen Austausch. CFFI, Pillow ab 9.1 und die nativen
+Pango-/Fontconfig-Bibliotheken kommen aus den Paketabhängigkeiten; das
+Jammy-AppImage erhält eine dazu passende festgeschriebene Pillow-Version.
+
+Die gezielten nativen Prüfungen laufen ausschließlich mit dem virtuellen
+Dateidrucker:
+
+    PYTHONPATH=bin/pdf-runtime xvfb-run -a python3 -B pruefungen/native_print_pdf.py
+    PYTHONPATH=bin/pdf-runtime xvfb-run -a python3 -B pruefungen/native_sheet_order.py

@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { handbookData } = require("../werkzeuge/handbook_data.js");
 
 const root = path.resolve(__dirname, "..");
 const archive = process.argv[2];
@@ -15,14 +16,7 @@ if (!archive || !sourceArchive) {
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "magnolie-handbook-package-"));
 const digest = (file) => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 const pages = (file) => {
-  const text = fs.readFileSync(file, "utf8");
-  const data = JSON.parse(text.slice(text.indexOf("["), text.indexOf("];" ) + 1));
-  const marker = "window.HANDBUCH_SEITEN.push(";
-  if (text.includes(marker)) {
-    const start = text.indexOf(marker) + marker.length;
-    const end = text.indexOf("\n);", start);
-    data.push(...JSON.parse("[" + text.slice(start, end) + "]"));
-  }
+  const data = handbookData(path.dirname(file)).pages;
   return { count: data.length, slugs: data.map((page) => page.id || page.titel.toLowerCase()
     .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")) };
 };
@@ -37,6 +31,16 @@ try {
   assert.ok(fs.existsSync(reporter), "built package does not contain its private crash reporter");
   assert.ok(!fs.existsSync(path.join(temporary, "usr", "bin", "magnolie_crash.py")),
     "built handbook package must not own the organizer crash reporter path");
+  const privateRuntime = path.join(temporary, "usr", "lib", "magnolie-handbuch");
+  const printModules = ["magnolie_print_pdf.py", "magnolie_print_gtk.py", "magnolie_print_process.py",
+    "magnolie_print_operation.py", "magnolie_print_portal.py", "pdf-runtime-lock.json"];
+  for (const name of printModules) {
+    assert.strictEqual(digest(path.join(privateRuntime, name)), digest(path.join(root, "bin", name)),
+      `built package contains missing or stale PDF module ${name}`);
+  }
+  childProcess.execFileSync("python3", ["-B", "-c",
+    "import sys;sys.path.insert(0,sys.argv[1]);from magnolie_print_pdf import verify_runtime;verify_runtime()", privateRuntime],
+    { env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" }, stdio: "pipe" });
   childProcess.execFileSync(path.join(temporary, "usr", "bin", "magnolie-handbuch"), ["--help"],
     { env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" }, stdio: "pipe" });
   for (const relative of ["stil.css", "01.jpg", "02.jpg", "03.jpg",
@@ -61,7 +65,7 @@ try {
   }
   const sourcePages = pages(source);
   const installedPages = pages(installed);
-  assert.strictEqual(sourcePages.count, 165, "source package does not contain exactly 165 pages");
+  assert.strictEqual(sourcePages.count, 170, "source package does not contain exactly 170 pages");
   for (const id of ["command-line-and-man-page", "reminder-command-modes",
     "linux-diagnostic-reminder-logs", "windows-diagnostic-logs",
     "supported-environment-variables", "glossary-a-m", "glossary-n-z", "sending-selected-notes"]) {
@@ -83,6 +87,20 @@ try {
 
   const sourceEntries = childProcess.execFileSync("tar", ["-tf", sourceArchive],
     { encoding: "utf8" }).trim().split("\n");
+  for (const relative of [...printModules.map(name => "bin/" + name), "werkzeuge/pdf_runtime.py",
+    "bin/pdf-runtime/runtime-manifest.json", ...["weasyprint", "pydyf", "tinyhtml5", "tinycss2",
+      "cssselect2", "fontTools", "pypdf", "pyphen", "webencodings"].map(name => `bin/pdf-runtime/${name}/__init__.py`)]) {
+    assert.ok(sourceEntries.some(entry => entry.endsWith("/" + relative)),
+      `source archive lacks offline PDF rebuild input ${relative}`);
+  }
+  for (const relative of [...printModules.map(name => "bin/" + name), "werkzeuge/pdf_runtime.py",
+    "pruefungen/paket_inhalt_test.js"]) {
+    const member = sourceEntries.find(entry => entry.endsWith("/" + relative));
+    assert.ok(member, `source archive lacks current check or PDF source ${relative}`);
+    const content = childProcess.execFileSync("tar", ["-xOf", sourceArchive, member]);
+    assert.strictEqual(crypto.createHash("sha256").update(content).digest("hex"), digest(path.join(root, relative)),
+      `source archive contains stale PDF/check source ${relative}`);
+  }
   assert.ok(sourceEntries.some((entry) => entry.endsWith("/web/kaffee-qr.mga")) &&
     sourceEntries.some((entry) => entry.endsWith("/web/maik-walter.mga")),
   "source archive is missing protected asset containers");

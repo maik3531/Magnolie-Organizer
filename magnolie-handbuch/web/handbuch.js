@@ -266,13 +266,21 @@
     suchRueckkehrFokus = null;
   }
 
-  function einheiten(markup) {
+  function einheiten(markup, druckAbschnitte = false) {
     const huelle = document.createElement("div");
     huelle.innerHTML = markup || "";
     const ergebnis = [];
     let gruppe = 0;
     for (const knoten of Array.from(huelle.children)) {
-      if ((knoten.tagName === "OL" || knoten.tagName === "UL") && knoten.children.length) {
+      if (druckAbschnitte && knoten.tagName === "SECTION" && !knoten.id && !knoten.className &&
+          !knoten.hasAttribute("style") && !Array.from(knoten.childNodes).some(child => child.nodeType === 3 && child.textContent.trim())) {
+        // Semantic wrappers must not force a complete multi-paragraph section onto one print leaf.
+        for (const child of Array.from(knoten.children)) {
+          const wrapper = knoten.cloneNode(false);
+          wrapper.append(child.cloneNode(true));
+          ergebnis.push({ knoten: wrapper, ueberschrift: /^H[1-6]$/.test(child.tagName) });
+        }
+      } else if ((knoten.tagName === "OL" || knoten.tagName === "UL") && knoten.children.length) {
         const schablone = knoten.cloneNode(false);
         const start = knoten.tagName === "OL" ? Number(knoten.getAttribute("start") || 1) : 0;
         Array.from(knoten.children).forEach((li, index) => {
@@ -354,8 +362,8 @@
     return teileSeiteMit(quelle, markup, passtInAnzeigekasten);
   }
 
-  function teileSeiteMit(quelle, markup, passt) {
-    const alle = einheiten(markup);
+  function teileSeiteMit(quelle, markup, passt, druckAbschnitte = false) {
+    const alle = einheiten(markup, druckAbschnitte);
     if (!alle.length) return [anzeigeSeite(quelle, "", 0)];
     const seiten = [];
     let aktuell = [];
@@ -367,7 +375,7 @@
            aber nur, wenn beide zusammen auf die nächste Seite passen. */
         const letztes = aktuell[aktuell.length - 1];
         const paar = [letztes, einheit];
-        if (letztes.knoten && /^H[1-6]$/.test(letztes.knoten.tagName) &&
+        if (letztes.knoten && (letztes.ueberschrift || /^H[1-6]$/.test(letztes.knoten.tagName)) &&
             passt(anzeigeSeite(quelle, einheitenMarkup(paar), seiten.length))) {
           aktuell.pop();
           if (aktuell.length) {
@@ -635,7 +643,7 @@
       bildmasseSetzen(verweiseAufloesen(seite.inhalt, true)) + "</div>";
   }
 
-  function druckMesser() {
+  function druckMesser(reserveMm = 2) {
     let rahmen = null;
     try {
       rahmen = document.createElement("iframe");
@@ -663,10 +671,9 @@
       const blatt = d.getElementById("mess-blatt");
       const kasten = d.getElementById("mess-inhalt");
       if (!blatt || !kasten || !kasten.clientHeight) throw new Error("keine Messung");
-      /* Der Messkasten ist bewusst zwei Millimeter niedriger als das gedruckte
-         Blatt. Dieser Vorbehalt faengt Rundung und den letzten Zeilenabstand
-         ab, damit kein Absatz an den Blattrand stoesst. */
-      blatt.style.paddingBottom = "6mm";
+      /* The printed font size is unchanged. A native writer can request extra
+         measurement reserve to account for its line-breaking metrics. */
+      blatt.style.paddingBottom = (4 + reserveMm) + "mm";
       return {
         passt(seite) {
           blatt.className = "blatt" + (seite.druckKompakt ? " kompakt" : "");
@@ -700,13 +707,13 @@
     return huelle.innerHTML;
   }
 
-  function druckSeiten() {
-    const messer = druckMesser();
+  function druckSeiten(reserveMm = 2) {
+    const messer = druckMesser(reserveMm);
     const passt = messer ? ((seite) => messer.passt(seite)) : null;
     const teilen = (seite) => {
       const kopie = Object.assign({}, seite);
       if (!passt || passt(kopie)) return [kopie];
-      return teileSeiteMit(kopie, kopie.inhalt, passt);
+      return teileSeiteMit(kopie, kopie.inhalt, passt, true);
     };
 
     const platzhalter = SEITEN.filter((seite) => seite.platzhalter === "inhalt");
@@ -733,7 +740,7 @@
       if (!platzhalter.length) break;
       const markup = druckVerzeichnisMarkup(ergebnis);
       const roh = passt
-        ? teileSeiteMit(platzhalter[0], markup, passt)
+        ? teileSeiteMit(platzhalter[0], markup, passt, true)
         : [{ inhalt: markup }];
       const neu = roh.map((seite, index) => Object.assign(
         {}, platzhalter[Math.min(index, platzhalter.length - 1)],
@@ -760,8 +767,10 @@
       fuss + "</section>";
   }
 
-  function druckFassung() {
-    const seiten = druckSeiten();
+  function druckFassung(options = {}) {
+    const reserveMm = options.reserveMm === undefined ? (window.MAGNOLIE_NATIVE_SEMANTIC_PDF ? 16 : 2) : options.reserveMm;
+    if (!Number.isFinite(reserveMm) || reserveMm < 2 || reserveMm > 16) throw new RangeError("Invalid print measurement reserve");
+    const seiten = druckSeiten(reserveMm);
     druckNummern = new Map();
     seiten.forEach((seite, index) => {
       if (seite.teil && seite.teil > 1) return;

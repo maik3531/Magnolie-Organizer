@@ -180,6 +180,8 @@ def druckdialog_starten(auftrag, fenster):
             return
         einstellungen = dialog.get_property("print-settings")
         einstellungen.set_printer(drucker.get_property("name"))
+        if hasattr(auftrag, "set_printer"):
+            auftrag.set_printer(drucker)
         # GTK can omit this key after selecting its virtual file printer.
         # WebKit/Skia may then produce blank pages instead of the selected PDF.
         if drucker.get_property("is-virtual") and not einstellungen.get(Gtk.PRINT_SETTINGS_OUTPUT_FILE_FORMAT):
@@ -201,6 +203,8 @@ class Fenster(_FENSTER_BASIS):
         self.set_position(Gtk.WindowPosition.CENTER)
         self._gezeigt = False
         self._druckansicht = None
+        self._closing = False
+        self._print_shutdown_timeout = None
         self._setze_symbol()
 
         try:
@@ -230,7 +234,7 @@ class Fenster(_FENSTER_BASIS):
         inhalte = WebKit2.UserContentManager()
         try:
             import json
-            sprachskript = "window.MAGNOLIE_LOCALE = %s;" % json.dumps(web_sprache())
+            sprachskript = "window.MAGNOLIE_LOCALE = %s; window.MAGNOLIE_NATIVE_SEMANTIC_PDF = true;" % json.dumps(web_sprache())
             inhalte.add_script(WebKit2.UserScript.new(
                 sprachskript, WebKit2.UserContentInjectedFrames.TOP_FRAME,
                 WebKit2.UserScriptInjectionTime.START,
@@ -256,7 +260,7 @@ class Fenster(_FENSTER_BASIS):
         self.add(self.ansicht)
 
         self.ansicht.load_uri(HANDBUCH_URI)
-        self.connect("destroy", Gtk.main_quit)
+        self.connect("destroy", self._bei_destroy)
         self.connect("key-press-event", self.bei_taste)
 
     # ------------------------------------------------------------------ GTK
@@ -370,66 +374,61 @@ class Fenster(_FENSTER_BASIS):
             self._organizer_starten()
 
     def _drucken(self, html):
-        """Druckt das Handbuch über den Druckdialog des Systems."""
-        import time
+        """Keep original Unicode through rendering and the native print system."""
         if not isinstance(html, str) or not 1 <= len(html) <= 8_000_000:
             return
-        try:
-            ansicht = WebKit2.WebView()
-            fertig = {"getan": False}
-
-            def druck_starten():
-                if self._druckansicht is not ansicht:
-                    return False
-                auftrag = WebKit2.PrintOperation.new(ansicht)
-                seite = Gtk.PageSetup()
-                seite.set_paper_size(Gtk.PaperSize.new("iso_a4"))
-                seite.set_orientation(Gtk.PageOrientation.LANDSCAPE)
-                for rand in ("top", "bottom", "left", "right"):
-                    getattr(seite, "set_" + rand + "_margin")(0, Gtk.Unit.MM)
-                auftrag.set_page_setup(seite)
-                druckdialog_starten(auftrag, self)
-                return False
-
-            def layout_pruefen():
-                if self._druckansicht is not ansicht or time.monotonic() > fertig["frist"]:
-                    return False
-                skript = """(() => {
-                  const hoehe = document.body.getBoundingClientRect().height;
-                  return hoehe > 0 && (!document.fonts || document.fonts.status === 'loaded') &&
-                    Array.from(document.images).every(bild => bild.complete);
-                })()"""
-                if hasattr(ansicht, "evaluate_javascript"):
-                    ansicht.evaluate_javascript(skript, -1, None, None, None, bei_layout, None)
-                else:
-                    ansicht.run_javascript(skript, None, bei_layout, None)
-                return False
-
-            def bei_layout(_a, ergebnis, _daten):
-                try:
-                    wert = (_a.evaluate_javascript_finish(ergebnis) if hasattr(_a, "evaluate_javascript_finish")
-                            else _a.run_javascript_finish(ergebnis).get_js_value())
-                    if wert.to_boolean():
-                        # Finish the load/layout callback before opening GTK's modal chooser.
-                        GLib.idle_add(druck_starten)
-                    else:
-                        GLib.timeout_add(100, layout_pruefen)
-                except Exception:
-                    if self._druckansicht is ansicht:
-                        self._druckansicht = None
-
-            def bei_fertig(_a, ereignis):
-                if ereignis != WebKit2.LoadEvent.FINISHED or fertig["getan"]:
-                    return
-                fertig["getan"] = True
-                fertig["frist"] = time.monotonic() + 10
-                GLib.idle_add(layout_pruefen)
-
-            ansicht.connect("load-changed", bei_fertig)
-            ansicht.load_html(html, "magnolie-handbuch://app/")
-            self._druckansicht = ansicht
-        except Exception:
+        if getattr(self, "_druckansicht", None) is not None:
+            return
+        from magnolie_print_operation import PdfPrintOperation
+        def abgeschlossen(ok, result):
             self._druckansicht = None
+            if getattr(self, "_closing", False):
+                if self._print_shutdown_timeout is not None:
+                    GLib.source_remove(self._print_shutdown_timeout)
+                    self._print_shutdown_timeout = None
+                if Gtk.main_level():
+                    Gtk.main_quit()
+            elif not ok and result != "cancelled":
+                dialog = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.ERROR,
+                    buttons=Gtk.ButtonsType.CLOSE, text=_("Print / PDF"))
+                dialog.format_secondary_text(str(result)[:2000])
+                dialog.run()
+                dialog.destroy()
+        try:
+            auftrag = PdfPrintOperation(self, FENSTER_TITEL, html, self._web_verzeichnis, abgeschlossen, _)
+            self._druckansicht = auftrag
+            def auswaehlen():
+                if self._druckansicht is not auftrag:
+                    return False
+                try:
+                    druckdialog_starten(auftrag, self)
+                except Exception as error:
+                    auftrag._finish(False, str(error)[:2000])
+                finally:
+                    if not auftrag.started:
+                        auftrag.close()
+                return False
+            GLib.idle_add(auswaehlen)
+        except Exception as error:
+            abgeschlossen(False, str(error))
+
+    def _bei_destroy(self, *_args):
+        self._closing = True
+        auftrag = self._druckansicht
+        if auftrag is not None:
+            auftrag.shutdown()
+            if auftrag._submitted and not auftrag._finished:
+                # Finish an already submitted native copy rather than tearing
+                # down GTK while it still consumes the private source PDF.
+                def zeitgrenze():
+                    self._print_shutdown_timeout = None
+                    if Gtk.main_level():
+                        Gtk.main_quit()
+                    return False
+                self._print_shutdown_timeout = GLib.timeout_add_seconds(60, zeitgrenze)
+                return
+        if Gtk.main_level():
+            Gtk.main_quit()
 
     def _organizer_starten(self):
         import subprocess

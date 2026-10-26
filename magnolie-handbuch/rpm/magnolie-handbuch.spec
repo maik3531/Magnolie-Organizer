@@ -37,7 +37,7 @@ Version:        2.0.28
 Release:        1%{?dist}
 Summary:        Illustrated user handbook for Magnolie Organizer
 
-License:        GPL-3.0-or-later AND OFL-1.1 AND LicenseRef-Bitstream-Vera AND LicenseRef-Magnolie-protected-assets
+License:        GPL-3.0-or-later AND OFL-1.1 AND BSD-3-Clause AND MIT AND Apache-2.0 AND LGPL-2.1-or-later AND LicenseRef-Bitstream-Vera AND LicenseRef-Magnolie-protected-assets
 URL:            https://github.com/maik3531/Magnolie-Organizer
 Source0:        %{name}-%{version}.tar.xz
 BuildArch:      noarch
@@ -49,7 +49,14 @@ BuildRequires:  /usr/bin/node
 BuildRequires:  /usr/bin/python3
 BuildRequires:  %{magnolie_build_deps}
 BuildRequires:  %{magnolie_deps}
+BuildRequires:  python3dist(cffi)
+BuildRequires:  python3dist(pillow) >= 9.1
 Requires:       /usr/bin/python3
+Requires:       python(abi) >= 3.10
+Requires:       python3dist(cffi)
+Requires:       python3dist(pillow) >= 9.1
+Requires:       python3dist(brotli)
+Requires:       python3dist(zopfli)
 Requires:       /usr/bin/xgettext
 Requires:       %{magnolie_deps}
 Recommends:     magnolie-organizer >= 2.0.0
@@ -64,6 +71,7 @@ used independently from the organizer package.
 
 %build
 set -eu
+test -f bin/pdf-runtime/runtime-manifest.json
 while read -r language; do
     test -n "$language" || continue
     mkdir -p "locale/$language/LC_MESSAGES" web/i18n
@@ -78,7 +86,7 @@ done < po/LINGUAS
 
 %check
 set -eu
-/usr/bin/python3 -m py_compile bin/%{name} bin/magnolie_crash.py bin/magnolie_asset.py werkzeuge/*.py pruefungen/*.py
+/usr/bin/python3 -m py_compile bin/%{name} bin/magnolie_crash.py bin/magnolie_asset.py bin/magnolie_print_*.py werkzeuge/*.py pruefungen/*.py
 test "$(find locale -name '%{name}.mo' -type f | wc -l)" -eq 19
 test "$(find web/i18n -name '*.js' -type f | wc -l)" -eq 20
 for script in web/*.js web/i18n/*.js; do
@@ -86,12 +94,15 @@ for script in web/*.js web/i18n/*.js; do
 done
 /usr/bin/python3 pruefungen/druck_test.py --cli-only
 /usr/bin/python3 -m pytest -q pruefungen/test_asset_container.py pruefungen/test_source_packaging.py
+PYTHONPATH=bin/pdf-runtime PYTHONDONTWRITEBYTECODE=1 /usr/bin/python3 -B -m pytest -q pruefungen/test_print_pdf.py pruefungen/test_pdf_runtime.py
 desktop-file-validate magnolie-handbuch.desktop
 
 %install
 install -Dpm 0755 bin/%{name} %{buildroot}%{_bindir}/%{name}
 install -Dpm 0644 bin/magnolie_crash.py %{buildroot}%{_prefix}/lib/%{name}/magnolie_crash.py
 install -Dpm 0644 bin/magnolie_asset.py %{buildroot}%{_prefix}/lib/%{name}/magnolie_asset.py
+install -pm 0644 bin/magnolie_print_*.py bin/pdf-runtime-lock.json %{buildroot}%{_prefix}/lib/%{name}/
+cp -a bin/pdf-runtime %{buildroot}%{_prefix}/lib/%{name}/
 install -d %{buildroot}%{_datadir}/%{name}/web/i18n
 install -pm 0644 web/index.html web/stil.css web/inhalt.js web/platform.js web/handbuch.js \
     web/qr-dialog.css web/qr-dialog.js web/qr-decoder.js web/qr-decoder-LICENSE.txt \
@@ -133,6 +144,9 @@ done < po/LINGUAS
 %dir %{_prefix}/lib/%{name}
 %{_prefix}/lib/%{name}/magnolie_crash.py
 %{_prefix}/lib/%{name}/magnolie_asset.py
+%{_prefix}/lib/%{name}/magnolie_print_*.py
+%{_prefix}/lib/%{name}/pdf-runtime-lock.json
+%{_prefix}/lib/%{name}/pdf-runtime/
 %{_datadir}/%{name}/
 %{_datadir}/applications/magnolie-handbuch.desktop
 %{_datadir}/icons/hicolor/*/apps/magnolie-handbuch.*
