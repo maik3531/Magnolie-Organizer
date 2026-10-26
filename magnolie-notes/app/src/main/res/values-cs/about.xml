@@ -3,4 +3,10 @@
     <string name="about_title">O aplikaci Magnolie Notes</string>
     <string name="about_part_of">Magnolie Notes je součástí Magnolie Organizer.</string>
     <string name="about_author">Vývojář: %1$s</string>
+    <string name="about_update_checking">Kontrolují se zveřejněné verze Notes …</string>
+    <string name="about_update_available">Je dostupná nová verze Notes: %1$s</string>
+    <string name="about_update_published">Zveřejněná verze Notes: %1$s</string>
+    <string name="about_update_unavailable">Zveřejněnou verzi Notes se nepodařilo ověřit.</string>
+    <string name="about_update_release">Otevřít vydání</string>
+    <string name="about_update_retry">Zkontrolovat znovu</string>
 </resources>

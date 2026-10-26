@@ -5,4 +5,10 @@
     <string name="about_author">Developer: %1$s</string>
     <string name="about_author_name" translatable="false">Maik Walter</string>
     <string name="about_repository_label" translatable="false">GitHub</string>
+    <string name="about_update_checking">Checking published Notes versions …</string>
+    <string name="about_update_available">New Notes version available: %1$s</string>
+    <string name="about_update_published">Published Notes version: %1$s</string>
+    <string name="about_update_unavailable">The published Notes version could not be checked.</string>
+    <string name="about_update_release">Open release</string>
+    <string name="about_update_retry">Check again</string>
 </resources>

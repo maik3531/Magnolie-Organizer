@@ -3,4 +3,10 @@
     <string name="about_title">关于 Magnolie Notes</string>
     <string name="about_part_of">Magnolie Notes 是 Magnolie Organizer 的组成部分。</string>
     <string name="about_author">开发者：%1$s</string>
+    <string name="about_update_checking">正在检查已发布的Notes版本 …</string>
+    <string name="about_update_available">有新的Notes版本可用：%1$s</string>
+    <string name="about_update_published">已发布的Notes版本：%1$s</string>
+    <string name="about_update_unavailable">无法检查已发布的Notes版本。</string>
+    <string name="about_update_release">打开发布页面</string>
+    <string name="about_update_retry">重新检查</string>
 </resources>

@@ -3,4 +3,10 @@
     <string name="about_title">Informazioni su Magnolie Notes</string>
     <string name="about_part_of">Magnolie Notes fa parte di Magnolie Organizer.</string>
     <string name="about_author">Sviluppatore: %1$s</string>
+    <string name="about_update_checking">Verifica delle versioni pubblicate di Notes …</string>
+    <string name="about_update_available">Nuova versione di Notes disponibile: %1$s</string>
+    <string name="about_update_published">Versione pubblicata di Notes: %1$s</string>
+    <string name="about_update_unavailable">Impossibile verificare la versione pubblicata di Notes.</string>
+    <string name="about_update_release">Apri pubblicazione</string>
+    <string name="about_update_retry">Verifica di nuovo</string>
 </resources>

@@ -3,4 +3,10 @@
     <string name="about_title">حول Magnolie Notes</string>
     <string name="about_part_of">Magnolie Notes جزء من Magnolie Organizer.</string>
     <string name="about_author">المطوّر: %1$s</string>
+    <string name="about_update_checking">جارٍ التحقق من إصدارات Notes المنشورة …</string>
+    <string name="about_update_available">يتوفر إصدار جديد من Notes: %1$s</string>
+    <string name="about_update_published">إصدار Notes المنشور: %1$s</string>
+    <string name="about_update_unavailable">تعذر التحقق من إصدار Notes المنشور.</string>
+    <string name="about_update_release">فتح الإصدار</string>
+    <string name="about_update_retry">التحقق مجددًا</string>
 </resources>

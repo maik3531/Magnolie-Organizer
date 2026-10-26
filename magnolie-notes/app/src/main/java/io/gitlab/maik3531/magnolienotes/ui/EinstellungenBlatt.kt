@@ -52,10 +52,11 @@ fun EinstellungenBlatt(zeiterfassungAn: Boolean, speichert: Boolean, beiZeiterfa
     }
     if (aboutOpen) AlertDialog(onDismissRequest = { aboutOpen = false },
         title = { Text(stringResource(R.string.about_title)) },
-        text = { Column {
+        text = { Column(Modifier.verticalScroll(rememberScrollState())) {
             Text(stringResource(R.string.developer_version, BuildConfig.VERSION_NAME))
             Text(stringResource(R.string.about_part_of))
             Text(stringResource(R.string.about_author, stringResource(R.string.about_author_name)))
+            NotesVersionsHinweis()
         } },
         confirmButton = { Papierknopf(stringResource(R.string.zurueck)) { aboutOpen = false } },
         dismissButton = { Papierknopf(stringResource(R.string.about_repository_label)) {

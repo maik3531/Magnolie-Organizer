@@ -3,4 +3,10 @@
     <string name="about_title">Magnolie Notes hakkında</string>
     <string name="about_part_of">Magnolie Notes, Magnolie Organizer uygulamasının bir parçasıdır.</string>
     <string name="about_author">Geliştirici: %1$s</string>
+    <string name="about_update_checking">Yayımlanmış Notes sürümleri denetleniyor …</string>
+    <string name="about_update_available">Yeni Notes sürümü mevcut: %1$s</string>
+    <string name="about_update_published">Yayımlanmış Notes sürümü: %1$s</string>
+    <string name="about_update_unavailable">Yayımlanmış Notes sürümü denetlenemedi.</string>
+    <string name="about_update_release">Yayını aç</string>
+    <string name="about_update_retry">Yeniden denetle</string>
 </resources>

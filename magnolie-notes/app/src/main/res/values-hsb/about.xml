@@ -3,4 +3,10 @@
     <string name="about_title">Wo Magnolie Notes</string>
     <string name="about_part_of">Magnolie Notes je dźěl Magnolie Organizer.</string>
     <string name="about_author">Wuwiwar: %1$s</string>
+    <string name="about_update_checking">Wozjewjene Notes-wersije so přepruwuja …</string>
+    <string name="about_update_available">Nowa Notes-wersija je k dispoziciji: %1$s</string>
+    <string name="about_update_published">Wozjewjena Notes-wersija: %1$s</string>
+    <string name="about_update_unavailable">Wozjewjena Notes-wersija njeda so přepruwować.</string>
+    <string name="about_update_release">Wozjewjenje wočinić</string>
+    <string name="about_update_retry">Znowa přepruwować</string>
 </resources>

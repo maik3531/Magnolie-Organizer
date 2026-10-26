@@ -3,4 +3,10 @@
     <string name="about_title">Om Magnolie Notes</string>
     <string name="about_part_of">Magnolie Notes er en del av Magnolie Organizer.</string>
     <string name="about_author">Utvikler: %1$s</string>
+    <string name="about_update_checking">Kontrollerer publiserte Notes-versjoner …</string>
+    <string name="about_update_available">Ny Notes-versjon tilgjengelig: %1$s</string>
+    <string name="about_update_published">Publisert Notes-versjon: %1$s</string>
+    <string name="about_update_unavailable">Den publiserte Notes-versjonen kunne ikke kontrolleres.</string>
+    <string name="about_update_release">Åpne utgivelse</string>
+    <string name="about_update_retry">Kontroller på nytt</string>
 </resources>
