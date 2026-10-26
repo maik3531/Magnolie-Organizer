@@ -94,6 +94,7 @@ fedora /usr/bin/dnf -y --setopt=install_weak_deps=False install fakeroot
 fedora /usr/bin/fakeroot /usr/bin/dnf -y --setopt=install_weak_deps=False install \
     appstream desktop-file-utils dpkg-dev gettext gtk3 libnotify nodejs \
     python3-cryptography python3-devel python3-gobject python3-phonenumbers python3-pyOpenSSL \
+    python3-cffi python3-pillow python3-brotli poppler-utils \
     python3-pytest python3-qrcode python3-zeroconf rpm-build webkit2gtk4.1 xdg-utils \
     tzdata cmake gcc-c++ extra-cmake-modules akonadi-server-devel \
     xorg-x11-server-Xvfb xorg-x11-xauth \

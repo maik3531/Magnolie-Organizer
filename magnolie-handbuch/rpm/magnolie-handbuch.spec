@@ -47,6 +47,8 @@ BuildRequires:  /usr/bin/desktop-file-validate
 BuildRequires:  /usr/bin/msgfmt
 BuildRequires:  /usr/bin/node
 BuildRequires:  /usr/bin/python3
+BuildRequires:  /usr/bin/pdftotext
+BuildRequires:  /usr/bin/pdftoppm
 BuildRequires:  %{magnolie_build_deps}
 BuildRequires:  %{magnolie_deps}
 BuildRequires:  python3dist(cffi)

@@ -2,7 +2,7 @@ Source: magnolie-handbuch
 Section: doc
 Priority: optional
 Maintainer: Maik Walter <maik3531@gmail.com>
-Build-Depends: debhelper-compat (= 13), python3:any (>= 3.10), python3-cryptography, python3-pytest, python3-qrcode, python3-cffi, python3-pil (>= 9.1), python3-brotli, libpango-1.0-0 (>= 1.44), libpangoft2-1.0-0, gettext, nodejs, node-jsdom
+Build-Depends: debhelper-compat (= 13), python3:any (>= 3.10), python3-cryptography, python3-pytest, python3-qrcode, python3-cffi, python3-pil (>= 9.1), python3-brotli, libpango-1.0-0 (>= 1.44), libpangoft2-1.0-0, poppler-utils, gettext, nodejs, node-jsdom
 Standards-Version: 4.6.2
 Rules-Requires-Root: no
 
