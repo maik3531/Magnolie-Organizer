@@ -88,7 +88,7 @@ try {
   const sourceEntries = childProcess.execFileSync("tar", ["-tf", sourceArchive],
     { encoding: "utf8" }).trim().split("\n");
   for (const relative of [...printModules.map(name => "bin/" + name), "werkzeuge/pdf_runtime.py",
-    "bin/pdf-runtime/runtime-manifest.json", ...["weasyprint", "pydyf", "tinyhtml5", "tinycss2",
+    "bin/pdf-runtime/runtime-manifest.json", "bin/pdf-runtime/typing_extensions.py", ...["weasyprint", "pydyf", "tinyhtml5", "tinycss2",
       "cssselect2", "fontTools", "pypdf", "pyphen", "webencodings"].map(name => `bin/pdf-runtime/${name}/__init__.py`)]) {
     assert.ok(sourceEntries.some(entry => entry.endsWith("/" + relative)),
       `source archive lacks offline PDF rebuild input ${relative}`);

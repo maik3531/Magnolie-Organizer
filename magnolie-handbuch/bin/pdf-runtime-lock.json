@@ -9,6 +9,7 @@
     {"name": "fonttools", "version": "4.59.2", "filename": "fonttools-4.59.2-py3-none-any.whl", "sha256": "8bd0f759020e87bb5d323e6283914d9bf4ae35a7307dafb2cbd1e379e720ad37"},
     {"name": "pypdf", "version": "6.21.2", "filename": "pypdf-6.21.2-py3-none-any.whl", "sha256": "1d44d1a3a200f25062adff0085b02040e4646431ac2ccac22e42679e91466084"},
     {"name": "pyphen", "version": "0.18.1", "filename": "pyphen-0.18.1-py3-none-any.whl", "sha256": "0aa9051e15928cecadd4c632cea0258ba57215b2a197a39baa46abcdb0f47e84"},
-    {"name": "webencodings", "version": "0.6.1", "filename": "webencodings-0.6.1-py3-none-any.whl", "sha256": "7fab6269c8bf237c657876b52058ccb182e861518d1c695c1a9aaa8c1c105d5b"}
+    {"name": "webencodings", "version": "0.6.1", "filename": "webencodings-0.6.1-py3-none-any.whl", "sha256": "7fab6269c8bf237c657876b52058ccb182e861518d1c695c1a9aaa8c1c105d5b"},
+    {"name": "typing_extensions", "version": "4.16.0", "filename": "typing_extensions-4.16.0-py3-none-any.whl", "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"}
   ]
 }

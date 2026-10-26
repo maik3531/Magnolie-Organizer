@@ -37,7 +37,7 @@ Version:        2.0.28
 Release:        1%{?dist}
 Summary:        Illustrated user handbook for Magnolie Organizer
 
-License:        GPL-3.0-or-later AND OFL-1.1 AND BSD-3-Clause AND MIT AND Apache-2.0 AND LGPL-2.1-or-later AND LicenseRef-Bitstream-Vera AND LicenseRef-Magnolie-protected-assets
+License:        GPL-3.0-or-later AND OFL-1.1 AND BSD-3-Clause AND MIT AND Apache-2.0 AND LGPL-2.1-or-later AND PSF-2.0 AND LicenseRef-Bitstream-Vera AND LicenseRef-Magnolie-protected-assets
 URL:            https://github.com/maik3531/Magnolie-Organizer
 Source0:        %{name}-%{version}.tar.xz
 BuildArch:      noarch

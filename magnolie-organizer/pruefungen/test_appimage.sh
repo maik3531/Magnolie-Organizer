@@ -65,6 +65,29 @@ ctypes.CDLL('libnotify.so.4')
 assert Notify.init('Magnolie packaging load check')
 Notify.uninit()
 PY
+test -f "$APPDIR/usr/lib/magnolie-handbuch/magnolie_print_pdf.py"
+PYTHONHOME="$APPDIR/usr" \
+PYTHONPATH="$APPDIR/usr/lib/magnolie-handbuch:$APPDIR/usr/lib/python3/dist-packages" \
+LD_LIBRARY_PATH="$APPDIR/usr/lib/x86_64-linux-gnu:$APPDIR/usr/lib" \
+FONTCONFIG_PATH="$APPDIR/usr/share/magnolie-organizer/fontconfig" \
+FONTCONFIG_FILE="$APPDIR/usr/share/magnolie-organizer/fontconfig/fonts.conf" \
+    "$APPDIR/usr/bin/python3" -B - "$APPDIR" "$ARBEIT/handbook-runtime.pdf" <<'PY'
+import sys
+from pathlib import Path
+from magnolie_print_pdf import activate_runtime, render_pdf
+activate_runtime()
+import cffi
+from PIL import Image
+cffi.FFI().cdef('int puts(const char *text);')
+assert Image.Resampling.LANCZOS is not None
+appdir = Path(sys.argv[1])
+markup = ('<style>@page{size:A4 landscape}</style><p>पत्र लिखना की 页面</p>'
+          '<img src="notes-native-properties.png" style="width:60mm">')
+result = render_pdf(markup, appdir / 'usr/share/magnolie-handbuch/web', Path(sys.argv[2]), {})
+assert result['sheets'] == 1
+assert Path(sys.argv[2]).read_bytes().startswith(b'%PDF-')
+print('Bundled handbook PDF runtime: native Pango/Pillow/CFFI renderer passed')
+PY
 test -f "$APPDIR/usr/share/magnolie-organizer/werkzeuge/appimage_graphics.py"
 test -f "$APPDIR/usr/share/magnolie-organizer/werkzeuge/appimage_runtime.py"
 python3 - "$APPDIR" <<'PY'
